@@ -1,4 +1,5 @@
 import { aePixelShaderCases, aeWarpShaderCases } from "./ae-effect-shader-cases";
+import { aeLayerStylePixelShaderCases } from "./ae-layer-style-shader-cases";
 
 export {
   imageShader,
@@ -769,6 +770,7 @@ ${aeWarpShaderCases}
         alpha = max(alpha, shadow_alpha);
       }
 ${aePixelShaderCases}
+${aeLayerStylePixelShaderCases}
       case 106u: {
         active_pixel_mask = effect_mask_value(effect, input.uv, resolution);
       }

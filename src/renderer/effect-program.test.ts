@@ -246,6 +246,14 @@ describe("GPU effect program compiler", () => {
     ["mesh-warp", EffectOpcode.MeshWarp],
     ["warp", EffectOpcode.Warp],
     ["page-turn", EffectOpcode.PageTurn],
+    ["outer-glow", EffectOpcode.OuterGlow],
+    ["inner-glow", EffectOpcode.InnerGlow],
+    ["alpha-stroke", EffectOpcode.AlphaStroke],
+    ["inner-shadow", EffectOpcode.InnerShadow],
+    ["bevel-emboss-style", EffectOpcode.BevelEmbossStyle],
+    ["satin", EffectOpcode.Satin],
+    ["color-overlay", EffectOpcode.ColorOverlay],
+    ["gradient-overlay", EffectOpcode.GradientOverlay],
   ])("compiles %s into its dedicated GPU opcode", (type, opcode) => {
     const composition = activeComposition(createDemoProject());
     composition.layers.forEach((layer) => {

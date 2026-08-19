@@ -4,6 +4,7 @@ import type { Composition, Effect, Layer } from "../core/types";
 import { EffectOpcode } from "./effect-opcodes";
 import { compileBlurSharpenEffect } from "./effect-program-blur-sharpen";
 import { compileChannelKeyingEffect } from "./effect-program-channel-keying";
+import { compileLayerStyleEffect } from "./effect-program-layer-styles";
 import { compilePerspectiveEffect } from "./effect-program-perspective";
 
 export { EffectOpcode } from "./effect-opcodes";
@@ -59,6 +60,7 @@ function compileEffect(
 ): void {
   if (compileBlurSharpenEffect(effect, time, emit)) return;
   if (compileChannelKeyingEffect(effect, time, emit)) return;
+  if (compileLayerStyleEffect(effect, time, emit)) return;
   if (compilePerspectiveEffect(effect, time, emit)) return;
   const value = (key: string, fallback = 0) => evaluateEffectParameter(effect, key, time, fallback);
   const color = (key: string, fallback: number) => colorChannels(value(key, fallback));

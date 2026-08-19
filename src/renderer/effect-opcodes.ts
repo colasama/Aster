@@ -130,4 +130,12 @@ export enum EffectOpcode {
   MeshWarp = 129,
   Warp = 130,
   PageTurn = 131,
+  OuterGlow = 132,
+  InnerGlow = 133,
+  AlphaStroke = 134,
+  InnerShadow = 135,
+  BevelEmbossStyle = 136,
+  Satin = 137,
+  ColorOverlay = 138,
+  GradientOverlay = 139,
 }

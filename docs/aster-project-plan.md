@@ -1225,6 +1225,7 @@ aster/
 - [x] GPU Channel / Keying 工具（Set Channels、Color Range、Matte Choker、Keylight 等）。
 - [x] GPU 高级 Blur / Sharpen 工具（Channel、Compound、Vector、Radial、High Pass 等）。
 - [x] GPU Perspective / UV Warp 工具（Sphere、Cylinder、Bend、Mesh、Page Turn 等）。
+- [x] GPU Layer Styles（Glow、Stroke、Inner Shadow、Bevel、Satin、Overlay）。
 - [ ] Console / Diagnostics。
 - [ ] Profiler Overlay。
 - [ ] AI Panel placeholder。
