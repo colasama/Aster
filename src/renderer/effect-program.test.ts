@@ -9,6 +9,14 @@ import {
 } from "./effect-program";
 
 describe("GPU effect program compiler", () => {
+  it("keeps effect opcodes unique and contiguous", () => {
+    const opcodes = Object.values(EffectOpcode)
+      .filter((value): value is number => typeof value === "number")
+      .sort((left, right) => left - right);
+    const expected = Array.from({ length: EffectOpcode.Overscan }, (_, index) => index + 1);
+    expect(opcodes).toEqual(expected);
+  });
+
   it("preserves enabled effect order and packs color parameters", () => {
     const composition = activeComposition(createDemoProject());
     composition.layers.forEach((layer) => {
