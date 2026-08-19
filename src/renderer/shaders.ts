@@ -426,6 +426,37 @@ fn fragment_main(input: VertexOutput) -> @location(0) vec4f {
         let remapped = select(polar_uv, rectangular_uv, effect.header.y > 0.5);
         uv = mix(uv, remapped, effect.header.z);
       }
+      case 73u: {
+        let shifted = uv - effect.header.yz / resolution;
+        uv = select(clamp(shifted, vec2f(0.0), vec2f(1.0)), fract(shifted + vec2f(1.0)), effect.header.w > 0.5);
+      }
+      case 74u: {
+        let center = effect.header.yz;
+        let delta = (uv - center) * resolution;
+        let distance = select(length(delta), max(abs(delta.x), abs(delta.y)), effect.p0.z > 0.5);
+        let region = 1.0 - smoothstep(effect.p0.x, effect.p0.x + effect.p0.y + 0.0001, distance);
+        let magnified = center + delta / max(effect.header.w, 0.01) / resolution;
+        uv = mix(uv, magnified, region);
+      }
+      case 75u: {
+        let center = effect.header.yz;
+        let delta = (uv - center) * resolution;
+        let distance = length(delta);
+        let direction = delta / max(distance, 0.0001);
+        let falloff = 1.0 - smoothstep(effect.p0.y * 0.7, effect.p0.y, distance);
+        let phase = distance / max(effect.p0.x, 1.0) * 6.283185 + effect.p0.z + time * effect.p0.w;
+        uv += direction * sin(phase) * effect.header.w * falloff / resolution;
+      }
+      case 76u: {
+        let upper_left = effect.header.yz;
+        let upper_right = vec2f(effect.header.w, effect.p0.x);
+        let lower_left = effect.p0.yz;
+        let lower_right = vec2f(effect.p0.w, effect.p1.x);
+        let top = mix(upper_left, upper_right, uv.x);
+        let bottom = mix(lower_left, lower_right, uv.x);
+        let pinned = mix(top, bottom, uv.y);
+        uv = mix(uv, pinned, effect.p1.y);
+      }
       default: {}
     }
   }
@@ -1014,6 +1045,98 @@ fn fragment_main(input: VertexOutput) -> @location(0) vec4f {
         let burst = (spoke * radial + center_glow * 0.7) * effect.p0.w;
         color += effect.p1.xyz * burst * effect.p1.w;
         alpha = max(alpha, clamp(burst, 0.0, 1.0) * effect.p1.w);
+      }
+      case 77u: {
+        let center = effect.header.yz * resolution;
+        let delta = input.position.xy - center;
+        let distance = length(delta);
+        let scale = max(effect.p0.x, 1.0);
+        let halo = exp(-distance / (scale * 0.42));
+        let ring = 1.0 - smoothstep(3.0, 12.0, abs(distance - scale * 0.72));
+        let streak_direction = vec2f(cos(effect.p0.y), sin(effect.p0.y));
+        let streak_normal = vec2f(-streak_direction.y, streak_direction.x);
+        let across = abs(dot(delta, streak_normal));
+        let along = abs(dot(delta, streak_direction));
+        let anamorphic = 1.0 - smoothstep(1.5, 8.0 + effect.p0.z * 9.0, across);
+        let streak = anamorphic * exp(-along / (scale * (1.2 + effect.p0.z)));
+        let lens_axis = resolution * vec2f(0.5) - center;
+        let ghost_a = exp(-length(input.position.xy - (center + lens_axis * 0.72)) / (scale * 0.16));
+        let ghost_b = exp(-length(input.position.xy - (center + lens_axis * 1.34)) / (scale * 0.1));
+        let flare = halo * 1.4 + ring * 0.42 + streak * 0.6 + ghost_a * 0.55 + ghost_b * 0.38;
+        let flare_color = vec3f(effect.p0.w, effect.p1.x, effect.p1.y);
+        color += flare_color * flare * effect.header.w * effect.p1.z;
+        alpha = max(alpha, clamp(flare, 0.0, 1.0) * effect.p1.z);
+      }
+      case 78u: {
+        let position = input.position.xy / max(effect.header.y, 1.0) + vec2f(effect.header.w * 0.07 + effect_time * 0.03);
+        let base_cell = floor(position);
+        let local = fract(position);
+        var nearest = 10.0;
+        var second_nearest = 10.0;
+        for (var cell_y = -1; cell_y <= 1; cell_y += 1) {
+          for (var cell_x = -1; cell_x <= 1; cell_x += 1) {
+            let neighbor = vec2f(f32(cell_x), f32(cell_y));
+            let cell = base_cell + neighbor;
+            let point = neighbor + vec2f(hash(cell), hash(cell + vec2f(71.3, 19.7)));
+            let candidate = length(point - local);
+            if candidate < nearest {
+              second_nearest = nearest;
+              nearest = candidate;
+            } else if candidate < second_nearest {
+              second_nearest = candidate;
+            }
+          }
+        }
+        var cell_value = smoothstep(0.02, 0.18, second_nearest - nearest);
+        if effect.p0.x > 0.5 && effect.p0.x < 1.5 {
+          cell_value = pow(clamp(1.0 - nearest, 0.0, 1.0), max(effect.header.z, 0.01));
+        } else if effect.p0.x > 1.5 {
+          cell_value = 1.0 - smoothstep(0.12, 0.72, nearest * max(effect.header.z, 0.01));
+        } else {
+          cell_value = pow(cell_value, 1.0 / max(effect.header.z, 0.01));
+        }
+        cell_value = select(cell_value, 1.0 - cell_value, effect.p0.y > 0.5);
+        let cell_color = vec3f(effect.p0.z, effect.p0.w, effect.p1.x);
+        let border_color = effect.p1.yzw;
+        color = mix(color, mix(border_color, cell_color, cell_value), effect.p2.x);
+      }
+      case 79u: {
+        let direction = vec2f(cos(effect.header.w), sin(effect.header.w));
+        let normal = vec2f(-direction.y, direction.x);
+        let field = vec2f(
+          dot(input.position.xy, normal),
+          dot(input.position.xy, direction) - effect_time * effect.header.z,
+        );
+        let grid = vec2f(max(24.0 / max(effect.header.y, 0.05), 4.0), max(effect.p0.x * 2.4, 40.0));
+        let cell = floor(field / grid);
+        let random_offset = vec2f(hash(cell + vec2f(effect.p0.z)), hash(cell + vec2f(effect.p0.z + 47.0)));
+        let local = fract(field / grid + random_offset) - vec2f(0.5);
+        let cross_distance = abs(local.x * grid.x);
+        let along_distance = abs(local.y * grid.y);
+        let streak = (1.0 - smoothstep(effect.p0.y, effect.p0.y + 1.0, cross_distance))
+          * (1.0 - smoothstep(effect.p0.x * 0.5, effect.p0.x * 0.5 + 2.0, along_distance));
+        let rain_color = vec3f(effect.p0.w, effect.p1.x, effect.p1.y);
+        color += rain_color * streak * effect.p1.z;
+        alpha = max(alpha, streak * effect.p1.z);
+      }
+      case 80u: {
+        let grid_size = max(48.0 / max(effect.header.y, 0.05), 7.0);
+        let animated = input.position.xy
+          - vec2f(effect.p0.x * effect_time, effect.header.z * effect_time)
+          + vec2f(sin(input.position.y / 90.0 + effect_time) * effect.p0.y, 0.0);
+        let cell = floor(animated / grid_size);
+        let depth = 0.35 + hash(cell + vec2f(effect.p0.z)) * 0.65;
+        let center = vec2f(
+          hash(cell + vec2f(effect.p0.z + 11.0)),
+          hash(cell + vec2f(effect.p0.z + 83.0)),
+        );
+        let local = fract(animated / grid_size);
+        let distance = length(local - center) * grid_size;
+        let radius = effect.header.w * depth;
+        let flake = (1.0 - smoothstep(radius, radius + 1.25, distance)) * depth;
+        let snow_color = vec3f(effect.p0.w, effect.p1.x, effect.p1.y);
+        color += snow_color * flake * effect.p1.z;
+        alpha = max(alpha, flake * effect.p1.z);
       }
       default: {}
     }

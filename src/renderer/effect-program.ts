@@ -78,6 +78,14 @@ export enum EffectOpcode {
   Circle = 70,
   StarBurst = 71,
   PolarCoordinates = 72,
+  Offset = 73,
+  Magnify = 74,
+  Ripple = 75,
+  CornerPin = 76,
+  LensFlare = 77,
+  CellPattern = 78,
+  Rainfall = 79,
+  Snowfall = 80,
 }
 
 export interface EffectProgram {
@@ -625,6 +633,91 @@ function compileEffect(
         value("centerX", 50) / 100,
         value("centerY", 50) / 100,
         degrees(value("rotation")),
+      ]);
+      break;
+    case "offset":
+      emit(EffectOpcode.Offset, [value("shiftX"), value("shiftY"), value("wrapEdges", 1)]);
+      break;
+    case "magnify":
+      emit(EffectOpcode.Magnify, [
+        value("centerX", 50) / 100,
+        value("centerY", 50) / 100,
+        value("magnification", 2),
+        value("size", 280),
+        value("feather", 48),
+        value("shape"),
+      ]);
+      break;
+    case "ripple":
+      emit(EffectOpcode.Ripple, [
+        value("centerX", 50) / 100,
+        value("centerY", 50) / 100,
+        value("height", 18),
+        value("width", 120),
+        value("radius", 600),
+        value("phase"),
+        value("speed", 1),
+      ]);
+      break;
+    case "corner-pin":
+      emit(EffectOpcode.CornerPin, [
+        value("upperLeftX") / 100,
+        value("upperLeftY") / 100,
+        value("upperRightX", 100) / 100,
+        value("upperRightY") / 100,
+        value("lowerLeftX") / 100,
+        value("lowerLeftY", 100) / 100,
+        value("lowerRightX", 100) / 100,
+        value("lowerRightY", 100) / 100,
+        value("blend", 100) / 100,
+      ]);
+      break;
+    case "lens-flare":
+      emit(EffectOpcode.LensFlare, [
+        value("centerX", 58) / 100,
+        value("centerY", 38) / 100,
+        value("brightness", 1.8),
+        value("scale", 180),
+        degrees(value("angle")),
+        value("lensType"),
+        ...color("color", 0xa8cfff),
+        value("blend", 100) / 100,
+      ]);
+      break;
+    case "cell-pattern":
+      emit(EffectOpcode.CellPattern, [
+        value("cellSize", 120),
+        value("contrast", 1.4),
+        value("evolution"),
+        value("pattern"),
+        value("invert"),
+        ...color("color1", 0x102656),
+        ...color("color2", 0x6edaff),
+        value("blend", 100) / 100,
+      ]);
+      break;
+    case "rainfall":
+      emit(EffectOpcode.Rainfall, [
+        value("density", 1),
+        value("speed", 900),
+        degrees(value("direction", 78)),
+        value("length", 48),
+        value("width", 1.5),
+        value("seed", 1),
+        ...color("color", 0xa8d8ff),
+        value("opacity", 70) / 100,
+      ]);
+      break;
+    case "snowfall":
+      emit(EffectOpcode.Snowfall, [
+        value("density", 1),
+        value("speed", 140),
+        value("size", 5),
+        value("wind", 55),
+        value("turbulence", 24),
+        value("seed", 1),
+        ...color("color", 0xe8f4ff),
+        value("opacity", 85) / 100,
       ]);
       break;
   }

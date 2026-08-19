@@ -1059,6 +1059,9 @@ aster/
 - [x] 实现 Beam / Radio Waves / Advanced Lightning。
 - [x] 实现 Circle / CC Star Burst。
 - [x] 实现 Polar Coordinates。
+- [x] 实现 Offset / Magnify / Ripple / Corner Pin。
+- [x] 实现 Lens Flare / Cell Pattern。
+- [x] 实现 CC Rainfall / CC Snowfall。
 - [x] 建立 Effect parameter uniform abstraction。
 - [x] 建立 Effect pass abstraction。
 

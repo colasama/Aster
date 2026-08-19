@@ -129,6 +129,14 @@ describe("GPU effect program compiler", () => {
     ["circle", EffectOpcode.Circle],
     ["star-burst", EffectOpcode.StarBurst],
     ["polar-coordinates", EffectOpcode.PolarCoordinates],
+    ["offset", EffectOpcode.Offset],
+    ["magnify", EffectOpcode.Magnify],
+    ["ripple", EffectOpcode.Ripple],
+    ["corner-pin", EffectOpcode.CornerPin],
+    ["lens-flare", EffectOpcode.LensFlare],
+    ["cell-pattern", EffectOpcode.CellPattern],
+    ["rainfall", EffectOpcode.Rainfall],
+    ["snowfall", EffectOpcode.Snowfall],
   ])("compiles %s into its dedicated GPU opcode", (type, opcode) => {
     const composition = activeComposition(createDemoProject());
     composition.layers.forEach((layer) => {
