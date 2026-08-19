@@ -45,4 +45,32 @@ describe("GPU effect program compiler", () => {
 
     expect(compileEffectProgram(composition).count).toBe(MAX_EFFECT_OPERATIONS);
   });
+
+  it.each([
+    ["bilateral-blur", EffectOpcode.BilateralBlur],
+    ["echo", EffectOpcode.Echo],
+    ["motion-trails", EffectOpcode.MotionTrails],
+    ["particle-world", EffectOpcode.ParticleWorld],
+    ["fill", EffectOpcode.Fill],
+    ["invert", EffectOpcode.Invert],
+    ["threshold", EffectOpcode.Threshold],
+    ["noise", EffectOpcode.Noise],
+    ["mirror", EffectOpcode.Mirror],
+    ["motion-tile", EffectOpcode.MotionTile],
+    ["venetian-blinds", EffectOpcode.VenetianBlinds],
+    ["gradient-ramp", EffectOpcode.GradientRamp],
+    ["drop-shadow", EffectOpcode.DropShadow],
+    ["tritone", EffectOpcode.Tritone],
+    ["lens-distortion", EffectOpcode.LensDistortion],
+    ["black-white", EffectOpcode.BlackWhite],
+  ])("compiles %s into its dedicated GPU opcode", (type, opcode) => {
+    const composition = activeComposition(createDemoProject());
+    composition.layers.forEach((layer) => {
+      layer.effects = [];
+    });
+    composition.layers[0].effects = [createEffect(type)];
+    const program = compileEffectProgram(composition);
+    expect(program.count).toBe(1);
+    expect(program.data[0]).toBe(opcode);
+  });
 });

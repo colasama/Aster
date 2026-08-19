@@ -37,6 +37,22 @@ export enum EffectOpcode {
   PosterizeTime = 30,
   HueSaturation = 31,
   Lut = 32,
+  BilateralBlur = 33,
+  Echo = 34,
+  MotionTrails = 35,
+  ParticleWorld = 36,
+  Fill = 37,
+  Invert = 38,
+  Threshold = 39,
+  Noise = 40,
+  Mirror = 41,
+  MotionTile = 42,
+  VenetianBlinds = 43,
+  GradientRamp = 44,
+  DropShadow = 45,
+  Tritone = 46,
+  LensDistortion = 47,
+  BlackWhite = 48,
 }
 
 export interface EffectProgram {
@@ -261,6 +277,100 @@ function compileEffect(
       break;
     case "lut":
       emit(EffectOpcode.Lut, [value("intensity", 100) / 100, value("interpolation")]);
+      break;
+    case "bilateral-blur":
+      emit(EffectOpcode.BilateralBlur, [value("radius", 12), value("threshold", 0.12)]);
+      break;
+    case "echo":
+      emit(EffectOpcode.Echo, [
+        value("echoTime", -0.033),
+        value("echoes", 8),
+        value("decay", 0.8),
+        value("operator"),
+      ]);
+      break;
+    case "motion-trails":
+      emit(EffectOpcode.MotionTrails, [
+        value("samples", 12),
+        value("duration", 0.35),
+        value("decay", 0.82),
+      ]);
+      break;
+    case "particle-world":
+      emit(EffectOpcode.ParticleWorld, [
+        value("birthRate", 2),
+        value("longevity", 3),
+        value("velocity", 1),
+        value("gravity", 0.5),
+        value("seed", 1),
+      ]);
+      break;
+    case "fill":
+      emit(EffectOpcode.Fill, [...color("color", 0x4d80ff), value("opacity", 100) / 100]);
+      break;
+    case "invert":
+      emit(EffectOpcode.Invert, [value("channel"), value("blend", 100) / 100]);
+      break;
+    case "threshold":
+      emit(EffectOpcode.Threshold, [value("level", 0.5), value("smoothness", 0.02)]);
+      break;
+    case "noise":
+      emit(EffectOpcode.Noise, [value("amount", 12) / 100, value("colorNoise", 1)]);
+      break;
+    case "mirror":
+      emit(EffectOpcode.Mirror, [degrees(value("angle")), value("center", 50) / 100]);
+      break;
+    case "motion-tile":
+      emit(EffectOpcode.MotionTile, [
+        value("outputWidth", 200) / 100,
+        value("outputHeight", 200) / 100,
+        value("mirrorEdges", 1),
+      ]);
+      break;
+    case "venetian-blinds":
+      emit(EffectOpcode.VenetianBlinds, [
+        value("completion", 50) / 100,
+        degrees(value("direction", 90)),
+        value("width", 80),
+        value("feather", 4),
+      ]);
+      break;
+    case "gradient-ramp":
+      emit(EffectOpcode.GradientRamp, [
+        ...color("startColor", 0x172968),
+        degrees(value("angle", 90)),
+        ...color("endColor", 0x8d74ef),
+        value("blend", 100) / 100,
+      ]);
+      break;
+    case "drop-shadow":
+      emit(EffectOpcode.DropShadow, [
+        ...color("color", 0x000000),
+        value("opacity", 60) / 100,
+        degrees(value("direction", 135)),
+        value("distance", 24),
+        value("softness", 18),
+      ]);
+      break;
+    case "tritone":
+      emit(EffectOpcode.Tritone, [
+        ...color("shadows", 0x152446),
+        ...color("midtones", 0x6d74a8),
+        ...color("highlights", 0xdce8ff),
+        value("blend", 100) / 100,
+      ]);
+      break;
+    case "lens-distortion":
+      emit(EffectOpcode.LensDistortion, [value("curvature", 0.18), value("zoom", 100) / 100]);
+      break;
+    case "black-white":
+      emit(EffectOpcode.BlackWhite, [
+        value("reds", 0.3),
+        value("greens", 0.59),
+        value("blues", 0.11),
+        value("tint", 0),
+        ...color("tintColor", 0xb8c8e8),
+      ]);
       break;
   }
 }

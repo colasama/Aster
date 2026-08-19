@@ -321,6 +321,25 @@ fn fragment_main(input: VertexOutput) -> @location(0) vec4f {
         let noise = vec2f(value_noise(uv * 13.0 + time), value_noise(uv * 17.0 - time)) - vec2f(0.5);
         uv += noise * effect.header.yz / resolution;
       }
+      case 41u: {
+        var reflected = rotate2(uv - vec2f(0.5), -effect.header.y);
+        let mirror_line = effect.header.z - 0.5;
+        reflected.x = mirror_line + abs(reflected.x - mirror_line);
+        uv = rotate2(reflected, effect.header.y) + vec2f(0.5);
+      }
+      case 42u: {
+        let tiled = (uv - vec2f(0.5)) * max(effect.header.yz, vec2f(0.01)) + vec2f(0.5);
+        if effect.header.w > 0.5 {
+          uv = abs(fract(tiled * 0.5) * 2.0 - vec2f(1.0));
+        } else {
+          uv = fract(tiled);
+        }
+      }
+      case 47u: {
+        let centered_uv = (uv - vec2f(0.5)) / max(effect.header.z, 0.01);
+        let radius_squared = dot(centered_uv, centered_uv);
+        uv = centered_uv * (1.0 + effect.header.y * radius_squared) + vec2f(0.5);
+      }
       default: {}
     }
   }
@@ -523,6 +542,132 @@ fn fragment_main(input: VertexOutput) -> @location(0) vec4f {
       case 32u: {
         let graded = pow(max(color, vec3f(0.0)), vec3f(0.92)) * vec3f(1.03, 1.0, 0.97);
         color = mix(color, graded, effect.header.y);
+      }
+      case 33u: {
+        let offset = vec2f(max(effect.header.y, 0.5)) / resolution;
+        let center_level = luminance(color);
+        var weighted = color;
+        var total_weight = 1.0;
+        let sample_a = textureSample(hdr_scene, linear_sampler, uv + vec2f(offset.x, 0.0)).rgb;
+        let sample_b = textureSample(hdr_scene, linear_sampler, uv - vec2f(offset.x, 0.0)).rgb;
+        let sample_c = textureSample(hdr_scene, linear_sampler, uv + vec2f(0.0, offset.y)).rgb;
+        let sample_d = textureSample(hdr_scene, linear_sampler, uv - vec2f(0.0, offset.y)).rgb;
+        let threshold = max(effect.header.z, 0.0001);
+        let weight_a = exp(-abs(luminance(sample_a) - center_level) / threshold);
+        let weight_b = exp(-abs(luminance(sample_b) - center_level) / threshold);
+        let weight_c = exp(-abs(luminance(sample_c) - center_level) / threshold);
+        let weight_d = exp(-abs(luminance(sample_d) - center_level) / threshold);
+        weighted += sample_a * weight_a + sample_b * weight_b + sample_c * weight_c + sample_d * weight_d;
+        total_weight += weight_a + weight_b + weight_c + weight_d;
+        color = weighted / total_weight;
+      }
+      case 34u: {
+        let offset = vec2f(effect.header.y * 180.0, effect.header.y * 90.0) / resolution;
+        var echo_color = color;
+        var echo_weight = 1.0;
+        let echo_count = min(u32(effect.header.z), 8u);
+        for (var echo_index = 1u; echo_index <= 8u; echo_index += 1u) {
+          if (echo_index > echo_count) { break; }
+          let weight = pow(effect.header.w, f32(echo_index));
+          let sample_color = textureSample(hdr_scene, linear_sampler, uv + offset * f32(echo_index)).rgb;
+          if effect.p0.x < 0.5 {
+            echo_color += sample_color * weight;
+          } else if effect.p0.x < 1.5 {
+            echo_color = max(echo_color, sample_color * weight);
+          } else if effect.p0.x < 2.5 {
+            echo_color = vec3f(1.0) - (vec3f(1.0) - echo_color) * (vec3f(1.0) - sample_color * weight);
+          } else {
+            echo_color += sample_color * weight;
+            echo_weight += weight;
+          }
+        }
+        color = select(echo_color, echo_color / max(echo_weight, 0.0001), effect.p0.x > 2.5);
+      }
+      case 35u: {
+        let trail_offset = vec2f(effect.header.z * 150.0, effect.header.z * 45.0) / resolution;
+        var trail = color;
+        var trail_weight = 1.0;
+        let trail_count = min(u32(effect.header.y), 6u);
+        for (var trail_index = 1u; trail_index <= 6u; trail_index += 1u) {
+          if (trail_index > trail_count) { break; }
+          let weight = pow(effect.header.w, f32(trail_index));
+          trail += textureSample(hdr_scene, linear_sampler, uv + trail_offset * f32(trail_index) / 6.0).rgb * weight;
+          trail_weight += weight;
+        }
+        color = trail / trail_weight;
+      }
+      case 36u: {
+        let cell_size = max(5.0, 42.0 / max(effect.header.y, 0.1));
+        let cell = floor(input.position.xy / cell_size);
+        let random = hash(cell + vec2f(effect.p0.y));
+        let life = fract(time / max(effect.header.z, 0.01) + random);
+        let local = fract(input.position.xy / cell_size);
+        let center = vec2f(hash(cell + vec2f(19.3)), hash(cell + vec2f(71.7)));
+        let gravity_offset = vec2f(0.0, effect.p0.x * life * life * 0.2);
+        let distance = length(local - center - gravity_offset);
+        let particle = (1.0 - smoothstep(0.04, 0.16, distance)) * (1.0 - life) * min(effect.header.w, 4.0);
+        color += vec3f(0.35, 0.65, 1.0) * particle;
+        alpha = max(alpha, particle);
+      }
+      case 37u: {
+        color = mix(color, effect.header.yzw, effect.p0.x);
+      }
+      case 38u: {
+        var inverted = vec3f(1.0) - color;
+        if effect.header.y > 0.5 && effect.header.y < 1.5 { inverted = vec3f(1.0 - color.r, color.g, color.b); }
+        if effect.header.y > 1.5 && effect.header.y < 2.5 { inverted = vec3f(color.r, 1.0 - color.g, color.b); }
+        if effect.header.y > 2.5 { inverted = vec3f(color.r, color.g, 1.0 - color.b); }
+        color = mix(color, inverted, effect.header.z);
+      }
+      case 39u: {
+        let value = smoothstep(effect.header.y - effect.header.z, effect.header.y + effect.header.z, luminance(color));
+        color = vec3f(value);
+      }
+      case 40u: {
+        let monochrome = hash(input.position.xy + vec2f(time * 113.0)) - 0.5;
+        let colored = vec3f(
+          monochrome,
+          hash(input.position.yx + vec2f(time * 157.0, 19.0)) - 0.5,
+          hash(input.position.xy + vec2f(47.0, time * 193.0)) - 0.5,
+        );
+        color += select(vec3f(monochrome), colored, effect.header.z > 0.5) * effect.header.y;
+      }
+      case 43u: {
+        let direction = vec2f(cos(effect.header.z), sin(effect.header.z));
+        let coordinate = dot(input.position.xy, direction);
+        let stripe = fract(coordinate / max(effect.header.w, 1.0));
+        let feather = effect.p0.x / max(effect.header.w, 1.0);
+        alpha *= 1.0 - smoothstep(effect.header.y - feather, effect.header.y + feather, stripe);
+      }
+      case 44u: {
+        let direction = vec2f(cos(effect.p0.x), sin(effect.p0.x));
+        let ramp = clamp(dot(uv - vec2f(0.5), direction) + 0.5, 0.0, 1.0);
+        let gradient = mix(effect.header.yzw, effect.p0.yzw, ramp);
+        color = mix(color, gradient, effect.p1.x);
+      }
+      case 45u: {
+        let direction = vec2f(cos(effect.p0.y), sin(effect.p0.y));
+        let shadow_uv = uv - direction * effect.p0.z / resolution;
+        let soft = vec2f(max(effect.p0.w, 0.5)) / resolution;
+        var shadow_alpha = textureSample(hdr_scene, linear_sampler, shadow_uv).a * 0.4;
+        shadow_alpha += textureSample(hdr_scene, linear_sampler, shadow_uv + vec2f(soft.x, 0.0)).a * 0.15;
+        shadow_alpha += textureSample(hdr_scene, linear_sampler, shadow_uv - vec2f(soft.x, 0.0)).a * 0.15;
+        shadow_alpha += textureSample(hdr_scene, linear_sampler, shadow_uv + vec2f(0.0, soft.y)).a * 0.15;
+        shadow_alpha += textureSample(hdr_scene, linear_sampler, shadow_uv - vec2f(0.0, soft.y)).a * 0.15;
+        shadow_alpha *= effect.p0.x;
+        color += effect.header.yzw * shadow_alpha * (1.0 - alpha);
+        alpha = max(alpha, shadow_alpha);
+      }
+      case 46u: {
+        let level = clamp(luminance(color), 0.0, 1.0);
+        let lower = mix(effect.header.yzw, effect.p0.xyz, smoothstep(0.0, 0.5, level));
+        let upper = mix(effect.p0.xyz, vec3f(effect.p0.w, effect.p1.x, effect.p1.y), smoothstep(0.5, 1.0, level));
+        color = mix(color, select(lower, upper, level > 0.5), effect.p1.z);
+      }
+      case 48u: {
+        let monochrome = dot(color, effect.header.yzw);
+        let tinted = vec3f(monochrome) * effect.p0.yzw;
+        color = select(vec3f(monochrome), tinted, effect.p0.x > 0.5);
       }
       default: {}
     }
