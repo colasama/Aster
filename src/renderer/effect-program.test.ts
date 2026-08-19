@@ -145,6 +145,14 @@ describe("GPU effect program compiler", () => {
     ["strobe-light", EffectOpcode.StrobeLight],
     ["scatter", EffectOpcode.Scatter],
     ["brush-strokes", EffectOpcode.BrushStrokes],
+    ["photo-filter", EffectOpcode.PhotoFilter],
+    ["selective-color", EffectOpcode.SelectiveColor],
+    ["shadows-highlights", EffectOpcode.ShadowsHighlights],
+    ["gamma-pedestal-gain", EffectOpcode.GammaPedestalGain],
+    ["hdr-compander", EffectOpcode.HdrCompander],
+    ["broadcast-colors", EffectOpcode.BroadcastColors],
+    ["white-balance", EffectOpcode.WhiteBalance],
+    ["color-emboss", EffectOpcode.ColorEmboss],
   ])("compiles %s into its dedicated GPU opcode", (type, opcode) => {
     const composition = activeComposition(createDemoProject());
     composition.layers.forEach((layer) => {

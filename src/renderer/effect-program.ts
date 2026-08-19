@@ -94,6 +94,14 @@ export enum EffectOpcode {
   StrobeLight = 86,
   Scatter = 87,
   BrushStrokes = 88,
+  PhotoFilter = 89,
+  SelectiveColor = 90,
+  ShadowsHighlights = 91,
+  GammaPedestalGain = 92,
+  HdrCompander = 93,
+  BroadcastColors = 94,
+  WhiteBalance = 95,
+  ColorEmboss = 96,
 }
 
 export interface EffectProgram {
@@ -804,6 +812,78 @@ function compileEffect(
         value("roughness", 0.4),
         value("grain", 48),
         value("levels", 12),
+        value("blend", 100) / 100,
+      ]);
+      break;
+    case "photo-filter":
+      emit(EffectOpcode.PhotoFilter, [
+        ...color("color", 0xffa34d),
+        value("density", 25) / 100,
+        value("preserveLuminance", 1),
+        value("exposure"),
+      ]);
+      break;
+    case "selective-color":
+      emit(EffectOpcode.SelectiveColor, [
+        value("target"),
+        value("cyan") / 100,
+        value("magenta") / 100,
+        value("yellow") / 100,
+        value("black") / 100,
+        value("relative", 1),
+      ]);
+      break;
+    case "shadows-highlights":
+      emit(EffectOpcode.ShadowsHighlights, [
+        value("shadows", 30) / 100,
+        value("highlights", 20) / 100,
+        value("shadowWidth", 50) / 100,
+        value("highlightWidth", 50) / 100,
+        value("colorCorrection", 20) / 100,
+        value("midtoneContrast"),
+      ]);
+      break;
+    case "gamma-pedestal-gain":
+      emit(EffectOpcode.GammaPedestalGain, [
+        value("gamma", 1),
+        value("pedestal"),
+        value("gain", 1),
+        value("redGain", 1),
+        value("greenGain", 1),
+        value("blueGain", 1),
+      ]);
+      break;
+    case "hdr-compander":
+      emit(EffectOpcode.HdrCompander, [
+        value("mode"),
+        value("threshold", 0.7),
+        value("ratio", 4),
+        value("exposure"),
+        value("blend", 100) / 100,
+      ]);
+      break;
+    case "broadcast-colors":
+      emit(EffectOpcode.BroadcastColors, [
+        value("standard"),
+        value("maximumSignal", 1),
+        value("method"),
+        value("softness", 0.08),
+        value("blend", 100) / 100,
+      ]);
+      break;
+    case "white-balance":
+      emit(EffectOpcode.WhiteBalance, [
+        value("temperature"),
+        value("tint"),
+        value("adaptation", 100) / 100,
+        value("preserveLuminance", 1),
+      ]);
+      break;
+    case "color-emboss":
+      emit(EffectOpcode.ColorEmboss, [
+        degrees(value("direction", 135)),
+        value("relief", 2),
+        value("contrast", 1.5),
         value("blend", 100) / 100,
       ]);
       break;
