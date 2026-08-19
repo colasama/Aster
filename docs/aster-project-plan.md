@@ -1062,7 +1062,7 @@ aster/
 - [x] 实现 Offset / Magnify / Ripple / Corner Pin。
 - [x] 实现 Lens Flare / Cell Pattern。
 - [x] 实现 CC Rainfall / CC Snowfall。
-- [x] 提供 16 套带色板预览、单事务撤销的 Looks 调色链。
+- [x] 提供 24 套带色板预览、单事务撤销的 Looks 调色链。
 - [x] 实现 Block Dissolve / Iris Wipe / Barn Doors / Gradient Wipe。
 - [x] 实现 CC Burn Film / Strobe Light / Scatter / Brush Strokes。
 - [x] 实现 Photo Filter / Selective Color / Shadow-Highlight / Gamma-Pedestal-Gain。
@@ -1233,6 +1233,7 @@ aster/
 - [x] GPU Advanced Stylize（Halftone、Glowing Edges、Texture、Toner、Plastic、Blobbylize）。
 - [x] GPU Matte Refine（Hard / Soft、Feather、Cleanup、Decontaminate、Light Wrap）。
 - [x] GPU HDR Lighting（Rays、Spotlight、Light Leak、Flare、Fog、Caustics、Laser）。
+- [x] GPU 专业调色（ASC CDL、RGB Lift / Gamma / Gain、Log Wheels、HSL Secondary、Highlight Recovery、Gamut Compressor、False Color、Film Print Density）。
 - [ ] Console / Diagnostics。
 - [ ] Profiler Overlay。
 - [ ] AI Panel placeholder。

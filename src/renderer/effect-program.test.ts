@@ -302,6 +302,14 @@ describe("GPU effect program compiler", () => {
     ["caustics", EffectOpcode.Caustics],
     ["god-rays", EffectOpcode.GodRays],
     ["laser", EffectOpcode.Laser],
+    ["asc-cdl", EffectOpcode.AscCdl],
+    ["rgb-lift-gamma-gain", EffectOpcode.RgbLiftGammaGain],
+    ["log-wheels", EffectOpcode.LogWheels],
+    ["hsl-secondary", EffectOpcode.HslSecondary],
+    ["highlight-recovery", EffectOpcode.HighlightRecovery],
+    ["gamut-compressor", EffectOpcode.GamutCompressor],
+    ["false-color", EffectOpcode.FalseColor],
+    ["film-print-density", EffectOpcode.FilmPrintDensity],
   ])("compiles %s into its dedicated GPU opcode", (type, opcode) => {
     const composition = activeComposition(createDemoProject());
     composition.layers.forEach((layer) => {

@@ -9,6 +9,7 @@ import { compileLightingEffect } from "./effect-program-lighting";
 import { compileMatteRefineEffect } from "./effect-program-matte";
 import { compileNoiseGrainEffect } from "./effect-program-noise-grain";
 import { compilePerspectiveEffect } from "./effect-program-perspective";
+import { compileProfessionalColorEffect } from "./effect-program-professional-color";
 import { compileSimulationEffect } from "./effect-program-simulation";
 import { compileAdvancedStylizeEffect } from "./effect-program-stylize";
 import { compileAdvancedTransitionEffect } from "./effect-program-transitions";
@@ -71,6 +72,7 @@ function compileEffect(
   if (compileMatteRefineEffect(effect, time, emit)) return;
   if (compileNoiseGrainEffect(effect, time, emit)) return;
   if (compilePerspectiveEffect(effect, time, emit)) return;
+  if (compileProfessionalColorEffect(effect, time, emit)) return;
   if (compileSimulationEffect(effect, time, emit)) return;
   if (compileAdvancedStylizeEffect(effect, time, emit)) return;
   if (compileAdvancedTransitionEffect(effect, time, emit)) return;

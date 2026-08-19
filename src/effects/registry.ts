@@ -3,6 +3,7 @@ import { ADDITIONAL_AE_EFFECTS } from "./ae-additional";
 import { AE_BLUR_SHARPEN_EFFECTS } from "./ae-blur-sharpen";
 import { AE_CHANNEL_KEYING_EFFECTS } from "./ae-channel-keying";
 import { AE_COLOR_EFFECTS } from "./ae-color";
+import { AE_PROFESSIONAL_COLOR_EFFECTS } from "./ae-color-professional";
 import { AE_ENVIRONMENT_EFFECTS } from "./ae-environment";
 import { AE_GENERATOR_EFFECTS } from "./ae-generators";
 import { AE_LAYER_STYLE_EFFECTS } from "./ae-layer-styles";
@@ -859,6 +860,7 @@ export const EFFECT_REGISTRY: EffectDefinition[] = [
   ...AE_ADVANCED_STYLIZE_EFFECTS,
   ...AE_MATTE_REFINE_EFFECTS,
   ...AE_LIGHTING_EFFECTS,
+  ...AE_PROFESSIONAL_COLOR_EFFECTS,
 ];
 
 export const EFFECT_BY_TYPE = new Map(EFFECT_REGISTRY.map((effect) => [effect.type, effect]));

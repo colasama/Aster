@@ -186,4 +186,12 @@ export enum EffectOpcode {
   Caustics = 185,
   GodRays = 186,
   Laser = 187,
+  AscCdl = 188,
+  RgbLiftGammaGain = 189,
+  LogWheels = 190,
+  HslSecondary = 191,
+  HighlightRecovery = 192,
+  GamutCompressor = 193,
+  FalseColor = 194,
+  FilmPrintDensity = 195,
 }
