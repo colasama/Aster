@@ -200,6 +200,53 @@ button.tree-row {
   overflow: auto;
   padding: 0 6px 8px;
 }
+.user-preset-save {
+  display: flex;
+  gap: 4px;
+  margin: 4px 0 7px;
+}
+.user-preset-save input {
+  min-width: 0;
+  height: 27px;
+  flex: 1;
+  padding: 0 7px;
+  border: 1px solid #303440;
+  border-radius: 3px;
+  outline: none;
+  background: #111217;
+  color: #c4c8d1;
+  font-size: 9px;
+}
+.user-preset-save input:focus {
+  border-color: #526fa7;
+}
+.user-preset-save button {
+  width: 29px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #3a4660;
+  border-radius: 3px;
+  color: #9bb9ef;
+  background: #20283a;
+}
+.user-preset-save button:hover:not(:disabled) {
+  border-color: #6584c1;
+  color: #e1eafa;
+}
+.user-preset-save button:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+.preset-error {
+  margin: -2px 0 6px;
+  padding: 5px 7px;
+  border: 1px solid #713a44;
+  border-radius: 3px;
+  color: #dc8c98;
+  background: #28161a;
+  font-size: 8px;
+  line-height: 1.4;
+}
 .effect-category {
   height: 26px;
   display: flex;
@@ -317,6 +364,21 @@ button.tree-row {
   border: 1px solid #36304e;
   border-radius: 5px;
   background: linear-gradient(150deg, rgb(49 39 76 / 45%), rgb(18 19 27 / 20%));
+}
+.user-preset-group {
+  margin: 4px 0 6px;
+  padding: 0 4px 4px;
+  border: 1px solid #30435f;
+  border-radius: 5px;
+  background: linear-gradient(150deg, rgb(32 52 76 / 52%), rgb(18 19 27 / 20%));
+}
+.effect-icon.user-preset {
+  color: #9fc6ff;
+  background: linear-gradient(145deg, #24446a, #20283b);
+}
+.preset-delete:hover {
+  color: #ee8796;
+  background: rgb(210 70 90 / 10%);
 }
 .effect-icon.preset {
   border: 1px solid rgb(255 255 255 / 12%);

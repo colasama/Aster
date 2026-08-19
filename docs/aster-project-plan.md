@@ -1219,6 +1219,7 @@ aster/
 - [ ] Asset Browser。
 - [x] Effects Browser。
 - [x] Effects Browser 收藏与最近使用持久化。
+- [x] 自定义 Effect Chain 预设保存、持久化、应用、删除与单步撤销。
 - [x] Effect Chain 顺序化执行、Inspector 重排与撤销。
 - [x] Effect 局部椭圆 / 矩形 Mask、羽化、不透明度、反转与工程持久化。
 - [ ] Console / Diagnostics。

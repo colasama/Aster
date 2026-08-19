@@ -8,10 +8,12 @@ import {
   Folder,
   Layers3,
   Plus,
+  Save,
   Search,
   Shapes,
   Sparkles,
   Star,
+  Trash2,
   Type,
 } from "lucide-react";
 import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
@@ -33,6 +35,14 @@ import {
   effectCategories,
 } from "../effects/registry";
 import type { EffectDefinition } from "../effects/types";
+import {
+  addUserEffectPreset,
+  createEffectsFromUserPreset,
+  createUserEffectPreset,
+  readUserEffectPresets,
+  removeUserEffectPreset,
+  writeUserEffectPresets,
+} from "../effects/user-presets";
 import { useEditor } from "../state/editor-store";
 import { Panel, PanelTabs } from "./Panel";
 
@@ -52,11 +62,17 @@ export function ProjectPanel() {
   const { state, dispatch } = useEditor();
   const [query, setQuery] = useState("");
   const [assetError, setAssetError] = useState<string>();
+  const [presetError, setPresetError] = useState<string>();
+  const [presetName, setPresetName] = useState("");
   const [effectPreferences, setEffectPreferences] = useState(() =>
     readEffectBrowserPreferences(localPreferenceStorage()),
   );
+  const [userPresets, setUserPresets] = useState(() =>
+    readUserEffectPresets(localPreferenceStorage()),
+  );
   const imagePickerRef = useRef<HTMLInputElement>(null);
   const composition = activeComposition(state.project);
+  const selectedLayer = composition.layers.find((layer) => layer.id === state.selection[0]);
   const filteredEffects = useMemo(
     () =>
       EFFECT_REGISTRY.filter((effect) =>
@@ -72,6 +88,15 @@ export function ProjectPanel() {
         `${preset.name} ${preset.description}`.toLowerCase().includes(query.toLowerCase()),
       ),
     [query],
+  );
+  const filteredUserPresets = useMemo(
+    () =>
+      userPresets.filter((preset) =>
+        `${preset.name} ${preset.effects.map((effect) => effect.type).join(" ")}`
+          .toLowerCase()
+          .includes(query.toLowerCase()),
+      ),
+    [query, userPresets],
   );
   const filteredEffectTypes = useMemo(
     () => new Set(filteredEffects.map((effect) => effect.type)),
@@ -100,6 +125,9 @@ export function ProjectPanel() {
   useEffect(() => {
     writeEffectBrowserPreferences(localPreferenceStorage(), effectPreferences);
   }, [effectPreferences]);
+  useEffect(() => {
+    writeUserEffectPresets(localPreferenceStorage(), userPresets);
+  }, [userPresets]);
   const addLayer = (kind: LayerKind) => {
     const layer = createLayerForComposition(kind, composition, state.currentTime);
     dispatch({
@@ -129,6 +157,30 @@ export function ProjectPanel() {
         effect,
       })),
     });
+  };
+  const applyUserPreset = (presetId: string) => {
+    const layerId = state.selection[0];
+    const preset = userPresets.find((candidate) => candidate.id === presetId);
+    if (!layerId || !preset) return;
+    dispatch({
+      type: "operation",
+      operations: createEffectsFromUserPreset(preset).map((effect) => ({
+        type: "addEffect" as const,
+        layerId,
+        effect,
+      })),
+    });
+  };
+  const saveUserPreset = () => {
+    if (!selectedLayer) return;
+    try {
+      const preset = createUserEffectPreset(presetName, selectedLayer.effects);
+      setUserPresets((current) => addUserEffectPreset(current, preset));
+      setPresetName("");
+      setPresetError(undefined);
+    } catch (error) {
+      setPresetError(error instanceof Error ? error.message : "Could not save preset");
+    }
   };
   const importImage = async (file: File) => {
     try {
@@ -245,6 +297,65 @@ export function ProjectPanel() {
         </div>
       ) : (
         <div className="effect-list">
+          <div className="user-preset-save">
+            <input
+              aria-label="Custom effect preset name"
+              maxLength={64}
+              onChange={(event) => setPresetName(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") saveUserPreset();
+              }}
+              placeholder="Save selected chain as preset"
+              value={presetName}
+            />
+            <button
+              aria-label="Save selected effect chain"
+              disabled={!selectedLayer?.effects.length || !presetName.trim()}
+              onClick={saveUserPreset}
+              title="Save masks, parameters, and animation as a reusable preset"
+              type="button"
+            >
+              <Save size={12} />
+            </button>
+          </div>
+          {presetError && <div className="preset-error">{presetError}</div>}
+          {filteredUserPresets.length > 0 && (
+            <div className="effect-group user-preset-group">
+              <div className="effect-category">
+                <ChevronDown size={13} /> My Presets <small>{filteredUserPresets.length}</small>
+              </div>
+              {filteredUserPresets.map((preset) => (
+                <div className="effect-entry" key={preset.id}>
+                  <button
+                    className="effect-apply"
+                    disabled={!state.selection[0]}
+                    onClick={() => applyUserPreset(preset.id)}
+                    title={state.selection[0] ? "Apply as one undo step" : "Select a layer first"}
+                    type="button"
+                  >
+                    <span className="effect-icon user-preset">
+                      <Save size={13} />
+                    </span>
+                    <span>
+                      <strong>{preset.name}</strong>
+                      <small>{preset.effects.length} effects · masks & animation</small>
+                    </span>
+                  </button>
+                  <button
+                    aria-label={`Delete custom preset ${preset.name}`}
+                    className="effect-favorite preset-delete"
+                    onClick={() =>
+                      setUserPresets((current) => removeUserEffectPreset(current, preset.id))
+                    }
+                    title={`Delete ${preset.name}`}
+                    type="button"
+                  >
+                    <Trash2 size={11} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
           {filteredPresets.length > 0 && (
             <div className="effect-group preset-group">
               <div className="effect-category">

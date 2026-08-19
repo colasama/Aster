@@ -32,6 +32,8 @@ frames. Rendering, effects, particles, and composition are designed to remain GP
 - Sixteen one-click Looks chains with palette previews and transactional undo, complete Color Lab
   lift/pivot/gain controls, and stock-sensitive film emulation.
 - Searchable Effects Browser with persistent favorites and a bounded recently-used GPU effect list.
+- Persistent custom effect-chain presets capture ordered parameters, local masks, and parameter
+  animation, then apply transactionally with fresh IDs and a single undo step.
 - Inspector effect-chain reordering with undo; legacy grading, blur, glow, and Looks controls now
   execute as explicit ordered GPU operations instead of an out-of-band aggregate.
 - Per-effect ellipse and rectangle masks run inside the ordered GPU chain for both spatial warps
