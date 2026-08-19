@@ -1,0 +1,27 @@
+name: Bug report
+description: Report reproducible incorrect behavior
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: textarea
+    attributes:
+      label: Reproduction
+      description: Include the smallest project and exact steps.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Expected and actual behavior
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Aster version or commit
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: System and GPU diagnostics
+      description: OS, adapter, driver/backend, resolution, and relevant logs without secrets.
+    validations:
+      required: true

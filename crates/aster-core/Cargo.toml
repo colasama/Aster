@@ -1,0 +1,15 @@
+[package]
+name = "aster-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+aster-timeline.workspace = true
+indexmap.workspace = true
+schemars.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+uuid.workspace = true
+

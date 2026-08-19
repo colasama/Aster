@@ -11,6 +11,11 @@ node_modules
 dist
 dist-ssr
 *.local
+*.tsbuildinfo
+target/
+src-tauri/target/
+.aster-cache/
+*.aster.autosave
 
 # Editor directories and files
 .vscode/*

@@ -1,0 +1,20 @@
+pre-commit:
+  parallel: true
+  commands:
+    frontend:
+      glob: "*.{ts,tsx,js,jsx,json,css,html,md,yml,yaml}"
+      run: pnpm exec biome check --no-errors-on-unmatched {staged_files}
+    rustfmt:
+      glob: "*.rs"
+      run: cargo fmt --all --check
+    clippy:
+      glob: "*.{rs,toml}"
+      run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+
+pre-push:
+  parallel: true
+  commands:
+    frontend-tests:
+      run: pnpm check:frontend
+    rust-tests:
+      run: cargo test --workspace --all-features

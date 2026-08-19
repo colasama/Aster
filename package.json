@@ -1,26 +1,42 @@
 {
   "name": "aster",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
+  "packageManager": "pnpm@10.15.0",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "pnpm typecheck && vite build",
+    "check": "pnpm check:frontend && pnpm check:rust",
+    "check:frontend": "biome check . && pnpm typecheck && vitest run",
+    "check:rust": "cargo fmt --all --check && cargo clippy --workspace --all-targets --all-features -- -D warnings && cargo test --workspace --all-features",
+    "format": "biome check --write . && cargo fmt --all",
+    "lint": "biome lint .",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "prepare": "lefthook install",
+    "tauri": "tauri",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json"
   },
   "dependencies": {
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
-    "@tauri-apps/api": "^2",
-    "@tauri-apps/plugin-opener": "^2"
+    "@tauri-apps/api": "^2.11.1",
+    "@tauri-apps/plugin-dialog": "2.7.2",
+    "@tauri-apps/plugin-opener": "^2.5.4",
+    "lucide-react": "^1.33.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
   },
   "devDependencies": {
-    "@types/react": "^19.1.8",
-    "@types/react-dom": "^19.1.6",
-    "@vitejs/plugin-react": "^6.0.2",
-    "typescript": "~6.0.3",
-    "vite": "^8.0.16",
-    "@tauri-apps/cli": "^2"
+    "@biomejs/biome": "^2.5.9",
+    "@tauri-apps/cli": "^2.11.4",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "@vitejs/plugin-react": "^6.0.5",
+    "@webgpu/types": "^0.1.72",
+    "lefthook": "^2.1.10",
+    "typescript": "~7.0.2",
+    "vite": "^8.2.1",
+    "vitest": "^4.1.11"
   }
 }

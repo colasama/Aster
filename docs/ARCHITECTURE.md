@@ -1,0 +1,52 @@
+# Architecture
+
+Aster separates its portable model from platform/UI code. The Rust crates own deterministic domain
+logic and native boundaries; the React/Tauri application owns interactive editing and the current
+WebGPU preview implementation.
+
+## Crates
+
+| Crate | Responsibility |
+| --- | --- |
+| `aster-timeline` | Rational time/frame rates, interpolation, arbitrary-time properties |
+| `aster-core` | Project model, dependency DAG, operations, transactions, undo/redo |
+| `aster-scene` | Unified 2D/3D entities, cameras, lights, auxiliary buffers |
+| `aster-render` | Adapter strategy, render graph, lifetimes, aliasing, debug export |
+| `aster-profiler` | RAII CPU timing and rolling metrics |
+| `aster-project` | Versioned bundle validation and atomic persistence |
+| `aster-plugin` | Manifest, parameter, permission, and capability validation |
+| `aster-ai` | Permission-checked operation planning, audit, provider boundary |
+
+## Frame flow
+
+1. UI gestures produce serializable operations; they do not mutate render state directly.
+2. The operation reducer creates a new project snapshot and updates bounded undo history.
+3. Properties and safe expressions are evaluated at the requested rational time; recursive
+   precompositions are flattened with cycle detection and composed transforms.
+4. Visible 2D/3D geometry, media textures, and effect uniforms are uploaded in batches.
+5. Compute particles run, layers composite to an `rgba16float` target, then a fused effects/ACES
+   pass presents to the surface.
+6. Metrics are sampled outside React's frame-critical path.
+
+The preview has a Canvas 2D compatibility renderer. It is a functional fallback, not a performance
+target. Native wgpu and browser WebGPU share formats and graph concepts, but do not yet share shader
+compilation artifacts.
+
+Browser video uses hardware media decode and a persistent staging canvas before `queue.writeTexture`.
+This deterministic compatibility path exists because current WebView implementations can silently
+zero `copyExternalImageToTexture` for decoded video surfaces. The native video backend is expected to
+replace it with platform-specific low-copy interop without changing layer or timeline semantics.
+
+## Invariants
+
+- Evaluation is a function of project state and time; playback history is never required.
+- Dependency graphs reject cycles before scheduling.
+- Project writes use a temporary file and recoverable backup replacement.
+- AI and plugins act through declared permissions and typed operations.
+- Cache data is derived state and never part of the source project.
+
+## Performance strategy
+
+Use GPU-resident intermediates, premultiplied alpha, HDR linear color, transient resource aliasing,
+batched uploads, instancing, compute simulation, bounded history, and explicit instrumentation.
+Optimize measured frame time; never hide semantic mutations inside render code.

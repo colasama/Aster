@@ -1,0 +1,28 @@
+name: Nightly performance smoke test
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-release-core:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.97.1
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo test --workspace --all-features --release
+      - name: Record baseline metadata
+        run: |
+          mkdir -p benchmark-results
+          printf '{"commit":"%s","suite":"release-core-smoke"}\n' "$GITHUB_SHA" > benchmark-results/baseline.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results
+          path: benchmark-results

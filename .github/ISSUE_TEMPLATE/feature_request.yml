@@ -1,0 +1,19 @@
+name: Feature request
+description: Propose a focused capability or workflow improvement
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    attributes:
+      label: Problem and workflow
+      description: Describe the user outcome rather than only an implementation.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Proposed behavior
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: GPU, compatibility, and maintenance impact

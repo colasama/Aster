@@ -1,0 +1,326 @@
+.viewport-panel {
+  width: 100%;
+  height: 100%;
+}
+.viewport-panel .panel-content {
+  display: grid;
+  grid-template-rows: 28px minmax(0, 1fr) 24px;
+  background: #090a0d;
+}
+.viewport-toolbar,
+.viewport-status {
+  display: flex;
+  align-items: center;
+  padding: 0 7px;
+  background: #15171c;
+  color: #727784;
+  font-size: 9px;
+}
+.viewport-toolbar {
+  gap: 2px;
+  border-bottom: 1px solid #24262e;
+}
+.viewport-toolbar button,
+.viewport-status button {
+  height: 21px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 6px;
+  border-radius: 3px;
+  color: #858a96;
+  font-size: 9px;
+}
+.viewport-toolbar button:hover,
+.viewport-toolbar button.active {
+  background: #272a32;
+  color: #c8cbd3;
+}
+.toolbar-gap {
+  flex: 1;
+}
+.viewport-space {
+  min-height: 0;
+  overflow: auto;
+  background-color: #0a0b0e;
+  background-image: radial-gradient(#24262b 0.65px, transparent 0.65px);
+  background-size: 12px 12px;
+  cursor: grab;
+  touch-action: none;
+}
+.viewport-space.panning {
+  cursor: grabbing;
+}
+.stage-centering {
+  min-width: 100%;
+  min-height: 100%;
+  display: grid;
+  place-items: center;
+  padding: 22px 30px;
+}
+.stage-centering.multiview {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  justify-content: center;
+}
+.composition-stage {
+  position: relative;
+  flex: none;
+  overflow: hidden;
+  background: #050711;
+  box-shadow:
+    0 0 0 1px #383b44,
+    0 16px 50px #000b;
+}
+.composition-stage canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.safe-guides {
+  pointer-events: none;
+  position: absolute;
+  inset: 5%;
+  border: 1px solid #8da1c222;
+}
+.composition-grid {
+  pointer-events: none;
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  background-image:
+    linear-gradient(#84a6d91f 1px, transparent 1px),
+    linear-gradient(90deg, #84a6d91f 1px, transparent 1px);
+  background-size: 10% 10%;
+}
+.safe-guides span {
+  position: absolute;
+  inset: 5%;
+  border: 1px dashed #8da1c21b;
+}
+.gpu-text-overlay {
+  pointer-events: none;
+  position: absolute;
+  z-index: 2;
+  transform-origin: center;
+  text-align: center;
+  text-shadow: 0 2px 14px #02040c;
+  white-space: nowrap;
+}
+.composition-stage.custom-stage canvas,
+.composition-stage.custom-stage .gpu-text-overlay {
+  transform: perspective(900px) rotateX(7deg) rotateY(-9deg) scale(0.92);
+  transform-origin: center;
+}
+.composition-stage.secondary-stage {
+  pointer-events: none;
+  box-shadow:
+    0 0 0 1px #555b72,
+    0 16px 50px #000b;
+}
+.view-label {
+  position: absolute;
+  top: 8px;
+  left: 10px;
+  z-index: 8;
+  padding: 3px 7px;
+  border: 1px solid #ffffff1a;
+  border-radius: 4px;
+  background: #090b14c9;
+  color: #bfc6dd;
+  font-size: 9px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+.selection-bounds {
+  position: absolute;
+  z-index: 4;
+  min-width: 4px;
+  min-height: 4px;
+  border: 1px solid #79a7ff;
+  cursor: move;
+  touch-action: none;
+  box-shadow: 0 0 0 1px #102b5e99;
+}
+.selection-bounds.locked {
+  border-color: #ec8d98;
+  cursor: not-allowed;
+}
+.selection-bounds .handle {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border: 1px solid #31568f;
+  background: #dce9ff;
+}
+.selection-bounds .top-left {
+  top: -4px;
+  left: -4px;
+}
+.selection-bounds .top-right {
+  top: -4px;
+  right: -4px;
+}
+.selection-bounds .bottom-left {
+  bottom: -4px;
+  left: -4px;
+}
+.selection-bounds .bottom-right {
+  right: -4px;
+  bottom: -4px;
+}
+.selection-bounds .anchor-handle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  border: 1px solid #f16d79;
+  transform: translate(-50%, -50%) rotate(45deg);
+  background: #10141d;
+}
+.hero-title {
+  font-size: clamp(32px, 7.2vw, 112px);
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  line-height: 1;
+  background: linear-gradient(110deg, #fff 15%, #b5ceff 55%, #8d74ef);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 18px #507dff6b);
+}
+.subtitle {
+  font-size: clamp(6px, 0.85vw, 13px);
+  font-weight: 600;
+  letter-spacing: 0.42em;
+}
+.viewport-origin {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  width: 25px;
+  height: 25px;
+  opacity: 0.65;
+}
+.axis {
+  position: absolute;
+  bottom: 4px;
+  left: 4px;
+  transform-origin: bottom left;
+}
+.axis.x {
+  width: 18px;
+  height: 1px;
+  background: #f16572;
+}
+.axis.y {
+  width: 1px;
+  height: 18px;
+  background: #57d49b;
+}
+.viewport-status {
+  gap: 12px;
+  border-top: 1px solid #24262e;
+}
+.viewport-status input[type="range"] {
+  width: 62px;
+  height: 3px;
+  accent-color: var(--blue);
+}
+.viewport-status .zoom-value {
+  min-width: 34px;
+  padding: 0 3px;
+  font-family: "Cascadia Mono", Consolas, monospace;
+}
+.viewport-status span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.renderer-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+.renderer-status.gpu {
+  color: #76a2ff;
+}
+.renderer-status.fallback {
+  color: #db9b68;
+}
+
+.profiler-overlay {
+  position: absolute;
+  z-index: 5;
+  top: 67px;
+  right: 10px;
+  width: 154px;
+  padding: 7px 8px 8px;
+  border: 1px solid #39507b99;
+  border-radius: 4px;
+  background: #0d111bd9;
+  box-shadow: 0 8px 20px #0005;
+  backdrop-filter: blur(10px);
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 8px;
+}
+.profiler-title {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 5px;
+  color: #86a8ed;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+.profiler-title span {
+  margin-left: auto;
+  padding: 1px 4px;
+  border-radius: 2px;
+  color: #86eece;
+  background: #12352d;
+}
+.metric-row {
+  height: 17px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #707a8d;
+}
+.metric-row span {
+  flex: 1;
+}
+.metric-row strong {
+  color: #c4cee1;
+  font-weight: 500;
+}
+.metric-row strong.accent {
+  color: #68e2b4;
+}
+.cache-bar {
+  position: relative;
+  height: 13px;
+  margin-top: 5px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: #222a39;
+}
+.cache-bar > span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #3764c7, #7959e2);
+}
+.cache-bar small {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #d9e1f2;
+  font-size: 7px;
+}
