@@ -31,6 +31,12 @@ import {
   readRecoverySnapshotForCurrentProject,
   saveProjectDocument,
 } from "../core/project-file";
+import {
+  nativeSequenceExportAvailable,
+  type RenderSequenceProgress,
+  renderPngSequence,
+  renderSingleFrame,
+} from "../core/render-export";
 import { evaluateAnimatable } from "../core/timeline";
 import { createId, type LayerKind, type Project } from "../core/types";
 import { createEffect } from "../effects/registry";
@@ -92,10 +98,12 @@ export function TopBar() {
   const [paletteQuery, setPaletteQuery] = useState("");
   const [renderOpen, setRenderOpen] = useState(false);
   const [rendering, setRendering] = useState(false);
-  const [renderFormat, setRenderFormat] = useState<"png" | "project">("png");
+  const [renderFormat, setRenderFormat] = useState<"png" | "project" | "sequence">("png");
+  const [renderProgress, setRenderProgress] = useState<RenderSequenceProgress>();
   const [workspaceDialog, setWorkspaceDialog] = useState<WorkspaceDialogKind>();
   const [toast, setToast] = useState<string>();
   const paletteInputRef = useRef<HTMLInputElement>(null);
+  const cancelRenderRef = useRef(false);
   const commands = useMemo(
     () => [
       { label: "Save project", action: () => saveProject(state.project, setToast) },
@@ -457,8 +465,8 @@ export function TopBar() {
         <div className="modal-backdrop" role="presentation">
           <div className="render-dialog">
             <header>
-              <strong>Render current frame</strong>
-              <button onClick={() => setRenderOpen(false)} type="button">
+              <strong>Render output</strong>
+              <button disabled={rendering} onClick={() => setRenderOpen(false)} type="button">
                 <X size={14} />
               </button>
             </header>
@@ -466,35 +474,74 @@ export function TopBar() {
               <Sparkles size={20} />
               <div>
                 <strong>GPU render pipeline</strong>
-                <span>4K · Linear sRGB · PNG</span>
+                <span>
+                  {renderFormat === "sequence"
+                    ? `${activeComposition(state.project).duration}s · PNG sequence · Linear sRGB`
+                    : "4K · Linear sRGB · PNG"}
+                </span>
               </div>
             </div>
             <label>
               Output format
               <select
-                onChange={(event) => setRenderFormat(event.target.value as "png" | "project")}
+                onChange={(event) =>
+                  setRenderFormat(event.target.value as "png" | "project" | "sequence")
+                }
                 value={renderFormat}
               >
                 <option value="png">PNG image</option>
+                <option disabled={!nativeSequenceExportAvailable()} value="sequence">
+                  PNG image sequence (native)
+                </option>
                 <option value="project">Aster project JSON</option>
               </select>
             </label>
+            {renderProgress && (
+              <div className="render-progress">
+                <progress max={renderProgress.total} value={renderProgress.current} />
+                <span>
+                  {renderProgress.current} / {renderProgress.total} frames
+                </span>
+              </div>
+            )}
             <footer>
-              <button disabled={rendering} onClick={() => setRenderOpen(false)} type="button">
-                Cancel
+              <button
+                onClick={() => {
+                  if (rendering) cancelRenderRef.current = true;
+                  else setRenderOpen(false);
+                }}
+                type="button"
+              >
+                {rendering ? "Stop after frame" : "Cancel"}
               </button>
               <button
                 className="primary"
                 disabled={rendering}
                 onClick={async () => {
+                  cancelRenderRef.current = false;
+                  setRenderProgress(undefined);
                   setRendering(true);
                   try {
                     if (renderFormat === "project") saveProject(state.project, setToast);
-                    else {
-                      await exportViewport();
+                    else if (renderFormat === "png") {
+                      const blob = await renderSingleFrame(state.currentTime);
+                      downloadBlob(blob, "aster-frame-4k.png");
                       showToast(
                         setToast,
                         `Exported ${activeComposition(state.project).width} × ${activeComposition(state.project).height} PNG`,
+                      );
+                    } else {
+                      const result = await renderPngSequence(
+                        activeComposition(state.project),
+                        setRenderProgress,
+                        () => cancelRenderRef.current,
+                      );
+                      if (!result) return;
+                      showToast(
+                        setToast,
+                        result.cancelled
+                          ? `Stopped after ${result.frames} PNG frames`
+                          : `Exported ${result.frames} PNG frames`,
                       );
                     }
                     setRenderOpen(false);
@@ -505,17 +552,20 @@ export function TopBar() {
                     );
                   } finally {
                     setRendering(false);
+                    setRenderProgress(undefined);
                   }
                 }}
                 type="button"
               >
                 {rendering ? (
                   <>
-                    <LoaderCircle className="spin" size={12} /> Rendering 4K…
+                    <LoaderCircle className="spin" size={12} />
+                    {renderFormat === "sequence" ? "Rendering sequence…" : "Rendering 4K…"}
                   </>
                 ) : (
                   <>
-                    <Play size={12} /> Render frame
+                    <Play size={12} />
+                    {renderFormat === "sequence" ? "Render sequence" : "Render frame"}
                   </>
                 )}
               </button>
@@ -543,14 +593,6 @@ async function openProjectFile(
   } catch (error) {
     showToast(setToast, error instanceof Error ? error.message : "Unable to open project");
   }
-}
-
-async function exportViewport(): Promise<void> {
-  const blob = await new Promise<Blob | undefined>((resolve) => {
-    window.dispatchEvent(new CustomEvent("aster:export-frame", { detail: { resolve } }));
-  });
-  if (!blob) throw new Error("Renderer did not return an export frame");
-  downloadBlob(blob, "aster-frame-4k.png");
 }
 
 function saveProject(

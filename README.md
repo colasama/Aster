@@ -22,7 +22,8 @@ frames. Rendering, effects, particles, and composition are designed to remain GP
 - Retained GPU text textures participate in HDR layer effects, blend modes, precompositions, and
   lossless frame export.
 - Full/Half/Quarter preview resolution, dual Active/Custom views, lossless 4K PNG frame export,
-  local autosave recovery, and atomic native project persistence.
+  cancellable native PNG sequence rendering with progress, local autosave recovery, and atomic
+  native project persistence.
 - Data-driven catalog of 59 blur, color, distort, generate, stylize, keying, time, transition,
   simulation, and Looks-style effects, including 48 fused GPU opcodes.
 - Rust render graph with validation, topological scheduling, resource lifetimes, transient aliasing,

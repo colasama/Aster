@@ -1,4 +1,5 @@
 use aster_core::Project;
+use base64::Engine;
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeSet, fs, path::PathBuf};
 use tauri::Manager;
@@ -62,6 +63,68 @@ fn recovery_candidate(path: String) -> Result<Option<serde_json::Value>, String>
 #[tauri::command]
 fn clear_autosave(path: String) -> Result<(), String> {
     aster_project::clear_autosave(path).map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+fn save_render_frame(directory: String, file_name: String, data: String) -> Result<(), String> {
+    if !valid_render_frame_name(&file_name) {
+        return Err("render frame name must match frame_000001.png".to_owned());
+    }
+    let directory = PathBuf::from(directory);
+    fs::create_dir_all(&directory).map_err(|error| error.to_string())?;
+    let bytes = base64::engine::general_purpose::STANDARD
+        .decode(data)
+        .map_err(|error| error.to_string())?;
+    let destination = directory.join(&file_name);
+    let temporary = directory.join(format!(".{file_name}.tmp"));
+    fs::write(&temporary, bytes).map_err(|error| error.to_string())?;
+    if destination.exists() {
+        fs::remove_file(&destination).map_err(|error| error.to_string())?;
+    }
+    fs::rename(temporary, destination).map_err(|error| error.to_string())
+}
+
+fn valid_render_frame_name(name: &str) -> bool {
+    let bytes = name.as_bytes();
+    bytes.len() == 16
+        && bytes.starts_with(b"frame_")
+        && bytes.ends_with(b".png")
+        && bytes[6..12].iter().all(u8::is_ascii_digit)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{save_render_frame, valid_render_frame_name};
+    use std::fs;
+
+    #[test]
+    fn render_frame_names_cannot_escape_the_selected_directory() {
+        assert!(valid_render_frame_name("frame_000001.png"));
+        assert!(!valid_render_frame_name("../frame_000001.png"));
+        assert!(!valid_render_frame_name("frame_00001x.png"));
+        assert!(!valid_render_frame_name("frame_一00001.png"));
+    }
+
+    #[test]
+    fn render_frames_are_atomically_written() {
+        let directory =
+            std::env::temp_dir().join(format!("aster-render-frame-test-{}", std::process::id()));
+        fs::create_dir_all(&directory).expect("create render test directory");
+
+        save_render_frame(
+            directory.to_string_lossy().into_owned(),
+            "frame_000001.png".to_owned(),
+            "iVBORw0KGgo=".to_owned(),
+        )
+        .expect("save render frame");
+
+        assert_eq!(
+            fs::read(directory.join("frame_000001.png")).expect("read render frame"),
+            [137, 80, 78, 71, 13, 10, 26, 10]
+        );
+        assert!(!directory.join(".frame_000001.png.tmp").exists());
+        fs::remove_dir_all(directory).expect("remove render test directory");
+    }
 }
 
 #[derive(Default, Deserialize, Serialize)]
@@ -207,6 +270,7 @@ pub fn run() {
             renderer_capabilities,
             save_autosave,
             save_project,
+            save_render_frame,
             set_plugin_enabled,
             set_plugin_safe_mode
         ])

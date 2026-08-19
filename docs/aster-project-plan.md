@@ -1488,15 +1488,15 @@ aster/
 
 ### Export
 
-- [ ] Render frame sequence。
-- [ ] PNG sequence export。
+- [x] Render frame sequence。
+- [x] PNG sequence export。
 - [ ] EXR research / support。
 - [ ] H.264 export。
 - [ ] H.265 optional path。
 - [ ] ProRes platform strategy research。
 - [ ] Audio muxing。
-- [ ] Export progress。
-- [ ] Cancel export。
+- [x] Export progress。
+- [x] Cancel export。
 - [ ] Background export architecture research。
 
 ### Hardware Fast Path

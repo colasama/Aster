@@ -12,6 +12,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createLayerForComposition } from "../core/layer-factory";
 import { activeComposition } from "../core/project";
+import type { FrameRenderSession } from "../core/render-export";
 import { evaluateWorldTransform, flattenSceneLayers } from "../core/scene-evaluation";
 import { evaluateAnimatable } from "../core/timeline";
 import type { GpuDiagnostics, Project } from "../core/types";
@@ -111,8 +112,10 @@ export function Viewport() {
   ]);
 
   useEffect(() => {
-    const exportFrame = async (event: Event) => {
-      const request = event as CustomEvent<{ resolve: (blob?: Blob) => void }>;
+    const openRenderSession = (event: Event) => {
+      const request = event as CustomEvent<{
+        resolve: (session?: FrameRenderSession) => void;
+      }>;
       const canvas = canvasRef.current;
       const renderer = rendererRef.current;
       if (!canvas || !renderer) {
@@ -124,19 +127,30 @@ export function Viewport() {
       canvas.width = composition.width;
       canvas.height = composition.height;
       renderer.resize(composition.width, composition.height);
-      renderer.render(composition, state.currentTime, false, state.project);
-      await renderer.complete();
-      const blob = await new Promise<Blob | undefined>((resolveBlob) =>
-        canvas.toBlob((value) => resolveBlob(value ?? undefined), "image/png"),
-      );
-      canvas.width = previewWidth;
-      canvas.height = previewHeight;
-      renderer.resize(previewWidth, previewHeight);
-      renderer.render(composition, state.currentTime, false, state.project);
-      request.detail.resolve(blob);
+      let closed = false;
+      request.detail.resolve({
+        renderFrame: async (time) => {
+          if (closed) throw new Error("Render session is already closed");
+          renderer.render(composition, time, false, state.project);
+          await renderer.complete();
+          const blob = await new Promise<Blob | undefined>((resolveBlob) =>
+            canvas.toBlob((value) => resolveBlob(value ?? undefined), "image/png"),
+          );
+          if (!blob) throw new Error("Renderer did not encode a PNG frame");
+          return blob;
+        },
+        close: () => {
+          if (closed) return;
+          closed = true;
+          canvas.width = previewWidth;
+          canvas.height = previewHeight;
+          renderer.resize(previewWidth, previewHeight);
+          renderer.render(composition, state.currentTime, false, state.project);
+        },
+      });
     };
-    window.addEventListener("aster:export-frame", exportFrame);
-    return () => window.removeEventListener("aster:export-frame", exportFrame);
+    window.addEventListener("aster:open-render-session", openRenderSession);
+    return () => window.removeEventListener("aster:open-render-session", openRenderSession);
   }, [composition, state.currentTime, state.project]);
 
   return (

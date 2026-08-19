@@ -30,6 +30,11 @@ WebGPU preview implementation.
 6. One composition-level ACES display pass presents the linear HDR result to the surface.
 7. Metrics are sampled outside React's frame-critical path.
 
+Frame and sequence export open one full-resolution render session, resize the GPU surface once, and
+evaluate each frame directly from its timeline time. Native PNG sequences are written one frame at a
+time through a restricted filename boundary and a same-directory temporary file, so cancellation is
+bounded to the current frame and never leaves a partial PNG behind.
+
 The preview has a Canvas 2D compatibility renderer. It is a functional fallback, not a performance
 target. Native wgpu and browser WebGPU share formats and graph concepts, but do not yet share shader
 compilation artifacts.
