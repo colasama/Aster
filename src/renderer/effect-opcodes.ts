@@ -249,4 +249,12 @@ export enum EffectOpcode {
   VrGlow = 248,
   VrBlur = 249,
   VrFractalNoise = 250,
+  Scanlines = 251,
+  TapeDropout = 252,
+  HeadSwitching = 253,
+  CompressionBlocks = 254,
+  GateWeave = 255,
+  FilmDamage = 256,
+  RgbPhosphor = 257,
+  PixelSort = 258,
 }

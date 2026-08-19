@@ -365,6 +365,14 @@ describe("GPU effect program compiler", () => {
     ["vr-glow", EffectOpcode.VrGlow],
     ["vr-blur", EffectOpcode.VrBlur],
     ["vr-fractal-noise", EffectOpcode.VrFractalNoise],
+    ["scanlines", EffectOpcode.Scanlines],
+    ["tape-dropout", EffectOpcode.TapeDropout],
+    ["head-switching", EffectOpcode.HeadSwitching],
+    ["compression-blocks", EffectOpcode.CompressionBlocks],
+    ["gate-weave", EffectOpcode.GateWeave],
+    ["film-damage", EffectOpcode.FilmDamage],
+    ["rgb-phosphor", EffectOpcode.RgbPhosphor],
+    ["pixel-sort", EffectOpcode.PixelSort],
   ])("compiles %s into its dedicated GPU opcode", (type, opcode) => {
     const composition = activeComposition(createDemoProject());
     composition.layers.forEach((layer) => {

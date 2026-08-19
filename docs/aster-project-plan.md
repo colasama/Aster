@@ -1231,6 +1231,7 @@ aster/
 - [x] GPU Advanced Distort（Bezier、Flo Motion、Griddler、Power Pin、Ripple Pulse、Slant、Smear、Split）。
 - [x] GPU Layer Styles（Glow、Stroke、Inner Shadow、Bevel、Satin、Overlay）。
 - [x] GPU Noise & Grain（Add / Remove Grain、Median、HLS / Alpha Noise、Turbulence）。
+- [x] GPU Retro Media（Scanlines、Tape Dropout、Head Switching、Compression、Film Damage、Gate Weave、Phosphor、Pixel Sort）。
 - [x] GPU Advanced Transitions（Clock、Grid、Jaws、Light、Scale、Twister、Card Wipe）。
 - [x] GPU Procedural Simulation（Bubbles、Drizzle、Hair、Mercury、Particles、Pixel Polly）。
 - [x] GPU Immersive Video（Rotate / Plane to Sphere、Chromatic、Glitch、Gradient、Glow、Blur、Fractal Noise）。
