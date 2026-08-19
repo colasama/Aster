@@ -222,6 +222,14 @@ describe("GPU effect program compiler", () => {
     ["chromatic", EffectOpcode.ChromaticAberration],
     ["looks-color-lab", EffectOpcode.LooksColorLab],
     ["film-emulation", EffectOpcode.FilmEmulation],
+    ["set-channels", EffectOpcode.SetChannels],
+    ["arithmetic", EffectOpcode.Arithmetic],
+    ["alpha-levels", EffectOpcode.AlphaLevels],
+    ["remove-color-matting", EffectOpcode.RemoveColorMatting],
+    ["linear-color-key", EffectOpcode.LinearColorKey],
+    ["color-range", EffectOpcode.ColorRange],
+    ["matte-choker", EffectOpcode.MatteChoker],
+    ["keylight", EffectOpcode.Keylight],
   ])("compiles %s into its dedicated GPU opcode", (type, opcode) => {
     const composition = activeComposition(createDemoProject());
     composition.layers.forEach((layer) => {

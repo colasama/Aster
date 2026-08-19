@@ -1,5 +1,6 @@
 import { createId, type Effect } from "../core/types";
 import { ADDITIONAL_AE_EFFECTS } from "./ae-additional";
+import { AE_CHANNEL_KEYING_EFFECTS } from "./ae-channel-keying";
 import { AE_COLOR_EFFECTS } from "./ae-color";
 import { AE_ENVIRONMENT_EFFECTS } from "./ae-environment";
 import { AE_GENERATOR_EFFECTS } from "./ae-generators";
@@ -839,6 +840,7 @@ export const EFFECT_REGISTRY: EffectDefinition[] = [
   ...AE_ENVIRONMENT_EFFECTS,
   ...AE_STYLIZE_TRANSITION_EFFECTS,
   ...AE_COLOR_EFFECTS,
+  ...AE_CHANNEL_KEYING_EFFECTS,
 ];
 
 export const EFFECT_BY_TYPE = new Map(EFFECT_REGISTRY.map((effect) => [effect.type, effect]));
