@@ -40,9 +40,6 @@ export function buildSceneGeometry(
   for (const scene of visible.reverse()) {
     const { layer, transform } = scene;
     const firstVertex = output.length / FLOATS_PER_VERTEX;
-    const exposure = layer.effects
-      .filter((effect) => effect.enabled && effect.type === "exposure")
-      .reduce((value, effect) => value * 2 ** (effect.parameters.exposure ?? 0), 1);
     const shade = layer.threeDimensional
       ? 0.72 +
         0.28 *
@@ -52,9 +49,9 @@ export function buildSceneGeometry(
           )
       : 1;
     const color = [
-      Math.min(4, layer.color[0] * exposure * shade),
-      Math.min(4, layer.color[1] * exposure * shade),
-      Math.min(4, layer.color[2] * exposure * shade),
+      Math.min(4, layer.color[0] * shade),
+      Math.min(4, layer.color[1] * shade),
+      Math.min(4, layer.color[2] * shade),
       layer.color[3] * transform.opacity,
     ] as const;
     const width = (layer.size[0] * transform.scale[0]) / 100;

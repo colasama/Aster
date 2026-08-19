@@ -7,13 +7,10 @@ import type {
   Project,
   RendererMetrics,
 } from "../core/types";
-import { collectPostProcessParameters } from "./effect-parameters";
-import {
-  compileEffectProgram,
-  FLOATS_PER_EFFECT_OPERATION,
-  MAX_EFFECT_OPERATIONS,
-} from "./effect-program";
-import { buildSceneGeometry, FLOATS_PER_VERTEX } from "./geometry";
+import { FLOATS_PER_EFFECT_OPERATION, MAX_EFFECT_OPERATIONS } from "./effect-program";
+import { buildSceneGeometry, FLOATS_PER_VERTEX, type GeometryBatch } from "./geometry";
+import { LayerEffectRenderer } from "./layer-effects";
+import { buildPostProcessUniforms } from "./post-process";
 import {
   imageShader,
   particleComputeShader,
@@ -48,6 +45,7 @@ export class WebGpuRenderer {
   readonly #imagePipelines: Record<BlendMode, GPURenderPipeline>;
   readonly #particlePipeline: GPURenderPipeline;
   readonly #postPipeline: GPURenderPipeline;
+  readonly #layerEffects: LayerEffectRenderer;
   readonly #computePipeline: GPUComputePipeline;
   #shapeBuffer: GPUBuffer;
   readonly #particleBuffer: GPUBuffer;
@@ -191,6 +189,7 @@ export class WebGpuRenderer {
       });
     }
     this.#postPipeline = this.#createPostPipeline();
+    this.#layerEffects = new LayerEffectRenderer(device, SCENE_FORMAT);
   }
 
   static async create(
@@ -255,6 +254,7 @@ export class WebGpuRenderer {
         { binding: 3, resource: { buffer: this.#effectProgramBuffer } },
       ],
     });
+    this.#layerEffects.resize(this.#width, this.#height);
   }
 
   render(
@@ -295,35 +295,10 @@ export class WebGpuRenderer {
       0,
       new Float32Array([time, this.#width / this.#height, PARTICLE_COUNT, 0]),
     );
-    const effectLayers = sceneLayers.map((scene) => scene.layer);
-    const effects = collectPostProcessParameters(composition, time, effectLayers);
-    const effectProgram = compileEffectProgram(composition, time, effectLayers);
-    this.#device.queue.writeBuffer(this.#effectProgramBuffer, 0, effectProgram.data);
     this.#device.queue.writeBuffer(
       this.#postUniformBuffer,
       0,
-      new Float32Array([
-        this.#width,
-        this.#height,
-        time,
-        effects.exposure,
-        effects.contrast,
-        effects.saturation,
-        effects.temperature,
-        effects.tint,
-        effects.glow,
-        effects.glowThreshold,
-        effects.blur,
-        effects.chromatic,
-        effects.vignette,
-        effects.grain,
-        effects.gamma,
-        effects.fade,
-        effectProgram.count,
-        0,
-        0,
-        0,
-      ]),
+      buildPostProcessUniforms(this.#width, this.#height, time),
     );
     if (!this.#sceneTexture || !this.#postBindGroup) this.resize(this.#width, this.#height);
     const encoder = this.#device.createCommandEncoder({ label: "Aster frame render graph" });
@@ -343,13 +318,12 @@ export class WebGpuRenderer {
     compute.end();
     const sceneView = this.#sceneTexture?.createView();
     if (!sceneView || !this.#postBindGroup) throw new Error("HDR scene target is unavailable");
-    const pass = encoder.beginRenderPass({
+    let scenePass: GPURenderPassEncoder | undefined = encoder.beginRenderPass({
       label: "Linear HDR composition",
       timestampWrites: this.#timestampQuerySet
         ? {
             querySet: this.#timestampQuerySet,
             beginningOfPassWriteIndex: 2,
-            endOfPassWriteIndex: 3,
           }
         : undefined,
       colorAttachments: [
@@ -366,29 +340,62 @@ export class WebGpuRenderer {
         },
       ],
     });
+    let scenePassCount = 1;
+    let effectOperationCount = 0;
+    let effectLayerCount = 0;
+    const activeEffectInstances = new Set<string>();
     if (geometry.data.length > 0) {
-      pass.setVertexBuffer(0, this.#shapeBuffer);
       for (const batch of geometry.batches) {
-        const media =
-          batch.layer.kind === "image" || batch.layer.kind === "video"
-            ? this.#mediaResources.get(batch.instanceId)
-            : undefined;
-        if (media?.bindGroup) {
-          pass.setPipeline(this.#imagePipelines[batch.layer.blendMode]);
-          pass.setBindGroup(0, media.bindGroup);
+        const hasEffects = batch.layer.effects.some((effect) => effect.enabled);
+        if (hasEffects) {
+          scenePass?.end();
+          scenePass = undefined;
+          activeEffectInstances.add(batch.instanceId);
+          effectLayerCount += 1;
+          effectOperationCount += this.#layerEffects.encode(
+            encoder,
+            sceneView,
+            composition,
+            batch.layer,
+            batch.instanceId,
+            time,
+            (layerPass) => this.#drawBatch(layerPass, batch, "normal"),
+          );
         } else {
-          pass.setPipeline(this.#shapePipelines[batch.layer.blendMode]);
+          if (!scenePass) {
+            scenePass = encoder.beginRenderPass({
+              label: "Linear HDR direct layer group",
+              colorAttachments: [{ view: sceneView, loadOp: "load", storeOp: "store" }],
+            });
+            scenePassCount += 1;
+          }
+          this.#drawBatch(scenePass, batch);
         }
-        pass.draw(batch.vertexCount, 1, batch.firstVertex);
       }
     }
     const particleVisible = sceneLayers.some((scene) => scene.layer.kind === "particle");
     if (particleVisible) {
-      pass.setPipeline(this.#particlePipeline);
-      pass.setBindGroup(0, this.#particleBindGroup);
-      pass.draw(6, PARTICLE_COUNT);
+      if (!scenePass) {
+        scenePass = encoder.beginRenderPass({
+          label: "Linear HDR particle group",
+          colorAttachments: [{ view: sceneView, loadOp: "load", storeOp: "store" }],
+        });
+        scenePassCount += 1;
+      }
+      scenePass.setPipeline(this.#particlePipeline);
+      scenePass.setBindGroup(0, this.#particleBindGroup);
+      scenePass.draw(6, PARTICLE_COUNT);
     }
-    pass.end();
+    scenePass?.end();
+    this.#layerEffects.sweep(activeEffectInstances);
+    const sceneTimingEnd = encoder.beginRenderPass({
+      label: "Composition timing marker",
+      timestampWrites: this.#timestampQuerySet
+        ? { querySet: this.#timestampQuerySet, endOfPassWriteIndex: 3 }
+        : undefined,
+      colorAttachments: [{ view: sceneView, loadOp: "load", storeOp: "store" }],
+    });
+    sceneTimingEnd.end();
     const output = this.#context.getCurrentTexture().createView();
     const postPass = encoder.beginRenderPass({
       label: "Fused effects + ACES display transform",
@@ -433,15 +440,16 @@ export class WebGpuRenderer {
     const cpuMs = performance.now() - started;
     const sample = frameInterval > 100 ? 16.67 : Math.max(frameInterval, 0.1);
     this.#smoothedFrameMs = this.#smoothedFrameMs * 0.9 + sample * 0.1;
-    const hdr4kBytes = composition.width * composition.height * 8 * 3;
+    const hdr4kBytes =
+      composition.width * composition.height * 8 * 3 + this.#layerEffects.estimatedTextureBytes();
     return {
       fps: Math.min(240, 1000 / this.#smoothedFrameMs),
       frameMs: this.#smoothedFrameMs,
       cpuMs,
       gpuMs: this.#lastGpuMs,
-      drawCalls: 1 + geometry.batches.length + Number(particleVisible),
-      passCount: 3,
-      dirtyNodes: sceneLayers.length + effectProgram.count,
+      drawCalls: 1 + geometry.batches.length + effectLayerCount * 2 + Number(particleVisible),
+      passCount: 3 + scenePassCount + effectLayerCount * 3,
+      dirtyNodes: sceneLayers.length + effectOperationCount,
       cacheHitRate: 0.86,
       estimatedVramMb: (hdr4kBytes + PARTICLE_COUNT * 16) / 1024 / 1024,
     };
@@ -468,6 +476,25 @@ export class WebGpuRenderer {
       .finally(() => {
         this.#gpuTimestampPending = false;
       });
+  }
+
+  #drawBatch(
+    pass: GPURenderPassEncoder,
+    batch: GeometryBatch,
+    blendMode: BlendMode = batch.layer.blendMode,
+  ): void {
+    const media =
+      batch.layer.kind === "image" || batch.layer.kind === "video"
+        ? this.#mediaResources.get(batch.instanceId)
+        : undefined;
+    pass.setVertexBuffer(0, this.#shapeBuffer);
+    if (media?.bindGroup) {
+      pass.setPipeline(this.#imagePipelines[blendMode]);
+      pass.setBindGroup(0, media.bindGroup);
+    } else {
+      pass.setPipeline(this.#shapePipelines[blendMode]);
+    }
+    pass.draw(batch.vertexCount, 1, batch.firstVertex);
   }
 
   #ensureShapeBuffer(requiredBytes: number): void {

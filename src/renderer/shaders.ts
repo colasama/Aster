@@ -133,6 +133,35 @@ fn fragment_main(input: VertexOutput) -> @location(0) vec4f {
 }
 `;
 
+export const textureCompositeShader = /* wgsl */ `
+struct VertexOutput {
+  @builtin(position) position: vec4f,
+  @location(0) uv: vec2f,
+}
+
+@group(0) @binding(0) var source_texture: texture_2d<f32>;
+@group(0) @binding(1) var source_sampler: sampler;
+
+@vertex
+fn vertex_main(@builtin(vertex_index) index: u32) -> VertexOutput {
+  let positions = array<vec2f, 3>(
+    vec2f(-1.0, -1.0), vec2f(3.0, -1.0), vec2f(-1.0, 3.0)
+  );
+  let uvs = array<vec2f, 3>(
+    vec2f(0.0, 1.0), vec2f(2.0, 1.0), vec2f(0.0, -1.0)
+  );
+  var output: VertexOutput;
+  output.position = vec4f(positions[index], 0.0, 1.0);
+  output.uv = uvs[index];
+  return output;
+}
+
+@fragment
+fn fragment_main(input: VertexOutput) -> @location(0) vec4f {
+  return textureSample(source_texture, source_sampler, input.uv);
+}
+`;
+
 export const postProcessShader = /* wgsl */ `
 struct PostProcess {
   resolution_time_exposure: vec4f,
@@ -315,6 +344,10 @@ fn fragment_main(input: VertexOutput) -> @location(0) vec4f {
     base.g,
     textureSample(hdr_scene, linear_sampler, uv - chromatic_offset).b,
   );
+  let linear_output = settings.program.y > 0.5;
+  if linear_output && alpha > 0.00001 {
+    color /= alpha;
+  }
   let blurred = sample_blur(uv, blur_radius);
   let blur_mix = smoothstep(0.0, 1.0, blur_radius / 8.0);
   color = mix(color, blurred, blur_mix);
@@ -500,6 +533,9 @@ fn fragment_main(input: VertexOutput) -> @location(0) vec4f {
   color *= mix(1.0 - settings.finish.x, 1.0, vignette);
   let noise = hash(input.position.xy + vec2f(effect_time * 91.7)) - 0.5;
   color += noise * settings.finish.y;
+  if linear_output {
+    return vec4f(max(color, vec3f(0.0)) * alpha, alpha);
+  }
   return vec4f(aces_tonemap(color) * alpha, alpha);
 }
 `;

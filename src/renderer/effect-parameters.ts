@@ -17,7 +17,7 @@ export interface PostProcessParameters {
   fade: number;
 }
 
-const defaults = (): PostProcessParameters => ({
+export const defaultPostProcessParameters = (): PostProcessParameters => ({
   exposure: 0,
   contrast: 1,
   saturation: 1,
@@ -38,7 +38,7 @@ export function collectPostProcessParameters(
   time = 0,
   layers: Layer[] = visibleLayersAtTime(composition, time),
 ): PostProcessParameters {
-  const output = defaults();
+  const output = defaultPostProcessParameters();
   for (const layer of layers) {
     for (const effect of layer.effects) {
       if (!effect.enabled) continue;

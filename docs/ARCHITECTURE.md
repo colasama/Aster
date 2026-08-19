@@ -24,13 +24,18 @@ WebGPU preview implementation.
 3. Properties and safe expressions are evaluated at the requested rational time; recursive
    precompositions are flattened with cycle detection and composed transforms.
 4. Visible 2D/3D geometry, media textures, and effect uniforms are uploaded in batches.
-5. Compute particles run, layers composite to an `rgba16float` target, then a fused effects/ACES
-   pass presents to the surface.
-6. Metrics are sampled outside React's frame-critical path.
+5. Compute particles run. Each effected layer uses a fused offscreen chain before its blend-mode
+   composite; unaffected adjacent layers stay batched directly into the `rgba16float` scene target.
+6. One composition-level ACES display pass presents the linear HDR result to the surface.
+7. Metrics are sampled outside React's frame-critical path.
 
 The preview has a Canvas 2D compatibility renderer. It is a functional fallback, not a performance
 target. Native wgpu and browser WebGPU share formats and graph concepts, but do not yet share shader
 compilation artifacts.
+
+Layer effects reuse one pair of full-resolution HDR transient textures across the frame. Per-layer
+uniform and operation buffers remain distinct so queue uploads cannot race command-buffer execution;
+the large textures do not scale with the number of effected layers.
 
 Browser video uses hardware media decode and a persistent staging canvas before `queue.writeTexture`.
 This deterministic compatibility path exists because current WebView implementations can silently
