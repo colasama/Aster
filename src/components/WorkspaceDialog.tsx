@@ -5,11 +5,13 @@ import { getProperty, type PropertyPath } from "../core/operations";
 import { activeComposition } from "../core/project";
 import { evaluateAnimatable } from "../core/timeline";
 import { useEditor } from "../state/editor-store";
+import { PluginManager } from "./PluginManager";
 
 export type WorkspaceDialogKind =
   | "preferences"
   | "composition"
   | "expression"
+  | "plugins"
   | "shortcuts"
   | "about";
 
@@ -91,6 +93,7 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
     preferences: "Preferences",
     composition: "Composition settings",
     expression: "Expression editor",
+    plugins: "Plugin manager",
     shortcuts: "Keyboard shortcuts",
     about: "About Aster",
   }[kind];
@@ -262,6 +265,7 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
             ))}
           </div>
         )}
+        {kind === "plugins" && <PluginManager />}
         {kind === "about" && (
           <div className="about-dialog">
             <div className="about-mark">A</div>

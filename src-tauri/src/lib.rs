@@ -1,5 +1,7 @@
 use aster_core::Project;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+use std::{collections::BTreeSet, fs, path::PathBuf};
+use tauri::Manager;
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -62,6 +64,133 @@ fn clear_autosave(path: String) -> Result<(), String> {
     aster_project::clear_autosave(path).map_err(|error| error.to_string())
 }
 
+#[derive(Default, Deserialize, Serialize)]
+#[serde(default, deny_unknown_fields, rename_all = "camelCase")]
+struct PluginPreferences {
+    safe_mode: bool,
+    disabled: BTreeSet<String>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct PluginStatus {
+    directory: PathBuf,
+    safe_mode: bool,
+    disabled: BTreeSet<String>,
+    report: aster_plugin::DiscoveryReport,
+}
+
+#[tauri::command]
+fn plugin_status(app: tauri::AppHandle) -> Result<PluginStatus, String> {
+    let root = plugin_root(&app)?;
+    fs::create_dir_all(&root).map_err(|error| error.to_string())?;
+    let preferences = read_plugin_preferences(&app)?;
+    let report = aster_plugin::discover(&root).map_err(|error| error.to_string())?;
+    Ok(PluginStatus {
+        directory: root,
+        safe_mode: preferences.safe_mode,
+        disabled: preferences.disabled,
+        report,
+    })
+}
+
+#[tauri::command]
+fn install_plugin(app: tauri::AppHandle, source: String) -> Result<PluginStatus, String> {
+    let root = plugin_root(&app)?;
+    aster_plugin::install(source, root).map_err(|error| error.to_string())?;
+    plugin_status(app)
+}
+
+#[tauri::command]
+fn set_plugin_enabled(
+    app: tauri::AppHandle,
+    plugin_id: String,
+    enabled: bool,
+) -> Result<PluginStatus, String> {
+    let root = plugin_root(&app)?;
+    let report = aster_plugin::discover(&root).map_err(|error| error.to_string())?;
+    if !report
+        .plugins
+        .iter()
+        .any(|manifest| manifest.plugin.id == plugin_id)
+    {
+        return Err(format!("plugin `{plugin_id}` is not installed"));
+    }
+    let mut preferences = read_plugin_preferences(&app)?;
+    if enabled {
+        preferences.disabled.remove(&plugin_id);
+    } else {
+        preferences.disabled.insert(plugin_id);
+    }
+    write_plugin_preferences(&app, &preferences)?;
+    plugin_status(app)
+}
+
+#[tauri::command]
+fn set_plugin_safe_mode(app: tauri::AppHandle, safe_mode: bool) -> Result<PluginStatus, String> {
+    let mut preferences = read_plugin_preferences(&app)?;
+    preferences.safe_mode = safe_mode;
+    write_plugin_preferences(&app, &preferences)?;
+    plugin_status(app)
+}
+
+fn plugin_root(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+    app.path()
+        .app_data_dir()
+        .map(|path| path.join("plugins"))
+        .map_err(|error| error.to_string())
+}
+
+fn plugin_preferences_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+    app.path()
+        .app_data_dir()
+        .map(|path| path.join("plugin-preferences.json"))
+        .map_err(|error| error.to_string())
+}
+
+fn read_plugin_preferences(app: &tauri::AppHandle) -> Result<PluginPreferences, String> {
+    let path = plugin_preferences_path(app)?;
+    if !path.exists() {
+        return Ok(PluginPreferences::default());
+    }
+    let source = fs::read_to_string(path).map_err(|error| error.to_string())?;
+    serde_json::from_str(&source).map_err(|error| error.to_string())
+}
+
+fn write_plugin_preferences(
+    app: &tauri::AppHandle,
+    preferences: &PluginPreferences,
+) -> Result<(), String> {
+    let path = plugin_preferences_path(app)?;
+    let parent = path
+        .parent()
+        .ok_or_else(|| "plugin preferences path has no parent".to_owned())?;
+    fs::create_dir_all(parent).map_err(|error| error.to_string())?;
+    let temporary = path.with_extension("json.tmp");
+    let backup = path.with_extension("json.backup");
+    fs::write(
+        &temporary,
+        serde_json::to_vec_pretty(preferences).map_err(|error| error.to_string())?,
+    )
+    .map_err(|error| error.to_string())?;
+    if path.exists() {
+        if backup.exists() {
+            fs::remove_file(&backup).map_err(|error| error.to_string())?;
+        }
+        fs::rename(&path, &backup).map_err(|error| error.to_string())?;
+    }
+    if let Err(error) = fs::rename(&temporary, &path) {
+        if backup.exists() {
+            let _ = fs::rename(&backup, &path);
+        }
+        return Err(error.to_string());
+    }
+    if backup.exists() {
+        fs::remove_file(backup).map_err(|error| error.to_string())?;
+    }
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -71,11 +200,15 @@ pub fn run() {
             clear_autosave,
             generate_ai_plan,
             load_project,
+            install_plugin,
             operation_schema,
+            plugin_status,
             recovery_candidate,
             renderer_capabilities,
             save_autosave,
-            save_project
+            save_project,
+            set_plugin_enabled,
+            set_plugin_safe_mode
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

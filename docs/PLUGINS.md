@@ -11,8 +11,20 @@ numeric semantic version, API version, WGSL entry point, capabilities, and typed
 
 Capabilities currently cover GPU render/compute, file read, and network access. Undeclared
 capabilities are denied. Loading rejects unknown manifest fields, invalid IDs and versions, unsafe
-or non-WGSL entry paths, missing shader files, invalid parameter ranges, and duplicate keys.
+or non-WGSL entry paths, missing/oversized shaders, WGSL parse or validation failures, invalid
+parameter ranges, and duplicate keys.
 Directory discovery isolates failures so one broken plugin cannot prevent other plugins loading.
+
+## Installation and recovery
+
+Open **Window → Plugins** in the native app to install a directory, refresh discovery, enable or
+disable individual plugins, or enter safe mode. Aster validates the source before installation and
+atomically swaps the installed directory. The v1 installer copies only `plugin.toml` and the shader
+declared by that manifest; undeclared binaries and files are intentionally excluded. Reinstalling the
+same plugin ID upgrades it without exposing a partially copied version.
+
+Safe mode leaves individual enable/disable preferences intact but suppresses every third-party
+plugin. Manifest and WGSL failures appear in the manager and never block other valid plugins.
 
 ## Minimal manifest
 

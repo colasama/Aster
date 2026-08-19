@@ -10,6 +10,8 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
+const MAX_SHADER_BYTES: u64 = 4 * 1024 * 1024;
+
 #[derive(Clone, Debug, Deserialize, JsonSchema, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct PluginManifest {
@@ -58,6 +60,11 @@ impl PluginManifest {
         if !shader.is_file() {
             return Err(PluginError::MissingShader(shader));
         }
+        let metadata = fs::metadata(&shader)?;
+        if metadata.len() > MAX_SHADER_BYTES {
+            return Err(PluginError::ShaderTooLarge(metadata.len()));
+        }
+        validate_shader(&fs::read_to_string(shader)?)?;
         Ok(manifest)
     }
 }
@@ -153,6 +160,71 @@ pub fn discover(root: impl AsRef<Path>) -> Result<DiscoveryReport, PluginError> 
     Ok(report)
 }
 
+/// Installs a validated WGSL plugin using a same-volume atomic directory swap.
+///
+/// Only the manifest and its declared shader are copied. This keeps the v1 plugin surface
+/// capability-bounded and prevents undeclared native payloads from entering the plugin directory.
+pub fn install(
+    source: impl AsRef<Path>,
+    root: impl AsRef<Path>,
+) -> Result<PluginManifest, PluginError> {
+    let source = source.as_ref().canonicalize()?;
+    let manifest_path = source.join("plugin.toml");
+    let manifest = PluginManifest::load(&manifest_path)?;
+    let shader_source = source.join(&manifest.plugin.shader).canonicalize()?;
+    if !shader_source.starts_with(&source) {
+        return Err(PluginError::ShaderOutsidePlugin(shader_source));
+    }
+
+    let root = root.as_ref();
+    fs::create_dir_all(root)?;
+    let destination = root.join(&manifest.plugin.id);
+    let nonce = std::process::id();
+    let staging = root.join(format!(".{}-{nonce}.installing", manifest.plugin.id));
+    let backup = root.join(format!(".{}-{nonce}.backup", manifest.plugin.id));
+    remove_directory_if_present(&staging)?;
+    remove_directory_if_present(&backup)?;
+    fs::create_dir_all(&staging)?;
+    fs::copy(&manifest_path, staging.join("plugin.toml"))?;
+    let shader_destination = staging.join(&manifest.plugin.shader);
+    if let Some(parent) = shader_destination.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    fs::copy(shader_source, shader_destination)?;
+    PluginManifest::load(staging.join("plugin.toml"))?;
+
+    if destination.exists() {
+        fs::rename(&destination, &backup)?;
+    }
+    if let Err(error) = fs::rename(&staging, &destination) {
+        if backup.exists() {
+            let _ = fs::rename(&backup, &destination);
+        }
+        return Err(PluginError::Io(error));
+    }
+    remove_directory_if_present(&backup)?;
+    Ok(manifest)
+}
+
+fn remove_directory_if_present(path: &Path) -> Result<(), PluginError> {
+    if path.exists() {
+        fs::remove_dir_all(path)?;
+    }
+    Ok(())
+}
+
+fn validate_shader(source: &str) -> Result<(), PluginError> {
+    let module = naga::front::wgsl::parse_str(source)
+        .map_err(|error| PluginError::ShaderParse(error.emit_to_string(source)))?;
+    naga::valid::Validator::new(
+        naga::valid::ValidationFlags::all(),
+        naga::valid::Capabilities::all(),
+    )
+    .validate(&module)
+    .map_err(|error| PluginError::ShaderValidation(error.to_string()))?;
+    Ok(())
+}
+
 impl Parameter {
     pub fn name(&self) -> &str {
         match self {
@@ -235,6 +307,14 @@ pub enum PluginError {
     InvalidShaderPath(String),
     #[error("plugin shader was not found at {0}")]
     MissingShader(PathBuf),
+    #[error("plugin shader is {0} bytes; the v1 limit is 4194304 bytes")]
+    ShaderTooLarge(u64),
+    #[error("plugin shader resolves outside its plugin directory: {0}")]
+    ShaderOutsidePlugin(PathBuf),
+    #[error("plugin shader WGSL could not be parsed: {0}")]
+    ShaderParse(String),
+    #[error("plugin shader WGSL failed validation: {0}")]
+    ShaderValidation(String),
     #[error("parameter `{0}` is invalid")]
     InvalidParameter(String),
     #[error("parameter `{0}` is declared more than once")]
@@ -297,7 +377,11 @@ mod tests {
             "#,
         )
         .unwrap();
-        fs::write(valid.join("effect.wgsl"), "@fragment fn main() {}").unwrap();
+        fs::write(
+            valid.join("effect.wgsl"),
+            "@fragment fn main() -> @location(0) vec4f { return vec4f(1.0); }",
+        )
+        .unwrap();
         fs::write(
             invalid.join("plugin.toml"),
             r#"
@@ -316,5 +400,53 @@ mod tests {
         assert_eq!(report.failures.len(), 1);
         assert!(report.failures[0].message.contains("version"));
         fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn installs_only_declared_plugin_files_and_replaces_versions() {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let base = std::env::temp_dir().join(format!("aster-plugin-install-{nonce}"));
+        let source = base.join("source");
+        let installed = base.join("installed");
+        fs::create_dir_all(&source).unwrap();
+        fs::write(
+            source.join("plugin.toml"),
+            r#"
+                [plugin]
+                id = "org.aster.install"
+                name = "Install Test"
+                version = "1.0.0"
+                api_version = 1
+                shader = "shaders/effect.wgsl"
+            "#,
+        )
+        .unwrap();
+        fs::create_dir_all(source.join("shaders")).unwrap();
+        fs::write(
+            source.join("shaders/effect.wgsl"),
+            "@fragment fn main() -> @location(0) vec4f { return vec4f(1.0); }",
+        )
+        .unwrap();
+        fs::write(source.join("undeclared.dll"), "not copied").unwrap();
+
+        let manifest = install(&source, &installed).unwrap();
+        let destination = installed.join("org.aster.install");
+        assert_eq!(manifest.plugin.version, "1.0.0");
+        assert!(destination.join("plugin.toml").is_file());
+        assert!(destination.join("shaders/effect.wgsl").is_file());
+        assert!(!destination.join("undeclared.dll").exists());
+
+        let next_manifest = fs::read_to_string(source.join("plugin.toml"))
+            .unwrap()
+            .replace("1.0.0", "1.1.0");
+        fs::write(source.join("plugin.toml"), next_manifest).unwrap();
+        assert_eq!(
+            install(&source, &installed).unwrap().plugin.version,
+            "1.1.0"
+        );
+        fs::remove_dir_all(base).unwrap();
     }
 }

@@ -74,6 +74,7 @@ version = "0.2.0"
 dependencies = [
  "aster-ai",
  "aster-core",
+ "aster-plugin",
  "aster-project",
  "aster-render",
  "serde",
@@ -113,6 +114,7 @@ dependencies = [
 name = "aster-plugin"
 version = "0.2.0"
 dependencies = [
+ "naga",
  "schemars 1.2.2",
  "serde",
  "thiserror 2.0.20",

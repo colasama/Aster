@@ -25,7 +25,7 @@ frames. Rendering, effects, particles, and composition are designed to remain GP
   simulation, and Looks-style color effects.
 - Rust render graph with validation, topological scheduling, resource lifetimes, transient aliasing,
   and DOT/JSON diagnostics.
-- Open project bundle, structured plugin manifests, permission-checked AI operation plans, and an
+- Open project bundle, a native WGSL plugin manager with safe mode, permission-checked AI operation plans, and an
   OpenAI-compatible provider boundary with in-memory secrets.
 - Browser compatibility renderer when WebGPU is unavailable.
 

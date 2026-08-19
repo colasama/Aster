@@ -64,7 +64,7 @@ const menuItems: Record<string, string[]> = {
   Effect: ["Glow / Bloom", "Kawase Blur", "Color Matrix", "Looks Color Lab"],
   Animation: ["Add Keyframe", "Graph Editor", "Easy Ease", "Expression Editor"],
   View: ["Fit Composition", "Zoom In", "Zoom Out", "Toggle Guides"],
-  Window: ["Project", "Viewport", "Timeline", "Properties", "AI Operator"],
+  Window: ["Project", "Viewport", "Timeline", "Properties", "AI Operator", "Plugins"],
   Help: ["Command Palette", "Keyboard Shortcuts", "GPU Diagnostics", "About Aster"],
 };
 
@@ -275,6 +275,7 @@ export function TopBar() {
     else if (item === "Composition Settings…") setWorkspaceDialog("composition");
     else if (item === "Keyboard Shortcuts") setWorkspaceDialog("shortcuts");
     else if (item === "About Aster") setWorkspaceDialog("about");
+    else if (item === "Plugins") setWorkspaceDialog("plugins");
     else if (item === "AI Operator") dispatch({ type: "setRightTab", tab: "ai" });
     else if (item === "Fit Composition" || item === "Viewport")
       dispatch({ type: "setViewportZoom", zoom: 0.22 });
