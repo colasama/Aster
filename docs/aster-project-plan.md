@@ -1227,6 +1227,7 @@ aster/
 - [x] GPU Perspective / UV Warp 工具（Sphere、Cylinder、Bend、Mesh、Page Turn 等）。
 - [x] GPU Layer Styles（Glow、Stroke、Inner Shadow、Bevel、Satin、Overlay）。
 - [x] GPU Noise & Grain（Add / Remove Grain、Median、HLS / Alpha Noise、Turbulence）。
+- [x] GPU Advanced Transitions（Clock、Grid、Jaws、Light、Scale、Twister、Card Wipe）。
 - [ ] Console / Diagnostics。
 - [ ] Profiler Overlay。
 - [ ] AI Panel placeholder。

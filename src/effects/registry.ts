@@ -9,6 +9,7 @@ import { AE_LAYER_STYLE_EFFECTS } from "./ae-layer-styles";
 import { AE_NOISE_GRAIN_EFFECTS } from "./ae-noise-grain";
 import { AE_PERSPECTIVE_EFFECTS } from "./ae-perspective";
 import { AE_STYLIZE_TRANSITION_EFFECTS } from "./ae-stylize-transitions";
+import { AE_ADVANCED_TRANSITIONS } from "./ae-transitions-advanced";
 import { angle, choice, color, number, percent, toggle } from "./parameter-builders";
 import type { EffectDefinition } from "./types";
 
@@ -849,6 +850,7 @@ export const EFFECT_REGISTRY: EffectDefinition[] = [
   ...AE_PERSPECTIVE_EFFECTS,
   ...AE_LAYER_STYLE_EFFECTS,
   ...AE_NOISE_GRAIN_EFFECTS,
+  ...AE_ADVANCED_TRANSITIONS,
 ];
 
 export const EFFECT_BY_TYPE = new Map(EFFECT_REGISTRY.map((effect) => [effect.type, effect]));

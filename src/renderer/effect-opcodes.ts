@@ -146,4 +146,12 @@ export enum EffectOpcode {
   NoiseHlsAuto = 145,
   RemoveGrain = 146,
   TurbulentNoise = 147,
+  ClockWipe = 148,
+  GridWipe = 149,
+  Jaws = 150,
+  LightWipe = 151,
+  LineSweep = 152,
+  ScaleWipe = 153,
+  Twister = 154,
+  CardWipe = 155,
 }

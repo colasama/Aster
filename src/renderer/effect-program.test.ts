@@ -262,6 +262,14 @@ describe("GPU effect program compiler", () => {
     ["noise-hls-auto", EffectOpcode.NoiseHlsAuto],
     ["remove-grain", EffectOpcode.RemoveGrain],
     ["turbulent-noise", EffectOpcode.TurbulentNoise],
+    ["clock-wipe", EffectOpcode.ClockWipe],
+    ["grid-wipe", EffectOpcode.GridWipe],
+    ["jaws", EffectOpcode.Jaws],
+    ["light-wipe", EffectOpcode.LightWipe],
+    ["line-sweep", EffectOpcode.LineSweep],
+    ["scale-wipe", EffectOpcode.ScaleWipe],
+    ["twister", EffectOpcode.Twister],
+    ["card-wipe", EffectOpcode.CardWipe],
   ])("compiles %s into its dedicated GPU opcode", (type, opcode) => {
     const composition = activeComposition(createDemoProject());
     composition.layers.forEach((layer) => {

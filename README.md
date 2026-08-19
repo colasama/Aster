@@ -27,8 +27,8 @@ frames. Rendering, effects, particles, and composition are designed to remain GP
 - Full/Half/Quarter preview resolution, dual Active/Custom views, lossless 4K PNG frame export,
   cancellable native PNG sequence rendering with progress, local autosave recovery, and atomic
   native project persistence.
-- Data-driven catalog of 147 blur, color, channel, distort, generate, stylize, keying, time,
-  transition, simulation, matte, perspective, layer-style, noise, and Looks effects, including 145 ordered GPU
+- Data-driven catalog of 155 blur, color, channel, distort, generate, stylize, keying, time,
+  transition, simulation, matte, perspective, layer-style, noise, and Looks effects, including 153 ordered GPU
   opcodes.
 - Professional channel and keying tools include Set Channels, Arithmetic, Alpha Levels, Remove
   Color Matting, Linear Color Key, Color Range, Matte Choker, and GPU Keylight.
@@ -40,6 +40,8 @@ frames. Rendering, effects, particles, and composition are designed to remain GP
   Color Overlay, and Gradient Overlay with blend modes.
 - Deterministic Noise & Grain includes tonal Add Grain, Dust & Scratches, Median, alpha/HLS noise,
   Remove Grain, and animated Turbulent Noise.
+- Advanced transitions include Clock, Grid, Jaws, HDR Light, Line, Scale, Twister, and randomized
+  Card Wipe, with UV and alpha stages compiled into the same ordered GPU program.
 - Sixteen one-click Looks chains with palette previews and transactional undo, complete Color Lab
   lift/pivot/gain controls, and stock-sensitive film emulation.
 - Searchable Effects Browser with persistent favorites and a bounded recently-used GPU effect list.
