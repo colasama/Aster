@@ -262,9 +262,16 @@ button.tree-row {
   background: linear-gradient(150deg, rgb(49 39 76 / 45%), rgb(18 19 27 / 20%));
 }
 .effect-icon.preset {
-  color: #e1c7ff;
-  background: linear-gradient(145deg, #7049a3, #3a255c);
-  box-shadow: 0 0 14px rgb(137 83 205 / 20%);
+  border: 1px solid rgb(255 255 255 / 12%);
+  color: rgb(255 255 255 / 88%);
+  background: linear-gradient(
+    135deg,
+    var(--preset-a) 0 34%,
+    var(--preset-b) 34% 67%,
+    var(--preset-c) 67% 100%
+  );
+  box-shadow: 0 0 14px color-mix(in srgb, var(--preset-b) 28%, transparent);
+  text-shadow: 0 1px 3px rgb(0 0 0 / 80%);
 }
 .effect-list strong,
 .effect-list small {

@@ -12,7 +12,7 @@ import {
   Sparkles,
   Type,
 } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
+import { type CSSProperties, useMemo, useRef, useState } from "react";
 import { createMediaLayerFromFile } from "../core/assets";
 import { createLayerForComposition } from "../core/layer-factory";
 import { activeComposition } from "../core/project";
@@ -213,7 +213,16 @@ export function ProjectPanel() {
                   title={state.selection[0] ? preset.description : "Select a layer first"}
                   type="button"
                 >
-                  <span className="effect-icon preset">
+                  <span
+                    className="effect-icon preset"
+                    style={
+                      {
+                        "--preset-a": preset.palette[0],
+                        "--preset-b": preset.palette[1],
+                        "--preset-c": preset.palette[2],
+                      } as CSSProperties
+                    }
+                  >
                     <Sparkles size={13} />
                   </span>
                   <span>

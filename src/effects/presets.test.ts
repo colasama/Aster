@@ -7,6 +7,8 @@ describe("Looks presets", () => {
     expect(new Set(LOOK_PRESETS.map((preset) => preset.id)).size).toBe(LOOK_PRESETS.length);
     for (const preset of LOOK_PRESETS) {
       expect(preset.id).toMatch(/^[a-z][a-z0-9-]+$/);
+      expect(preset.palette).toHaveLength(3);
+      expect(preset.palette.every((color) => /^#[0-9a-f]{6}$/i.test(color))).toBe(true);
       expect(preset.effects.length).toBeGreaterThan(0);
       const effects = createEffectsFromPreset(preset);
       for (const effect of effects) {

@@ -29,8 +29,8 @@ frames. Rendering, effects, particles, and composition are designed to remain GP
   native project persistence.
 - Data-driven catalog of 91 blur, color, distort, generate, stylize, keying, time, transition,
   simulation, matte, and Looks-style effects, including 80 fused GPU opcodes.
-- Eight one-click Looks chains with transactional undo, complete Color Lab lift/pivot/gain controls,
-  and stock-sensitive film emulation.
+- Sixteen one-click Looks chains with palette previews and transactional undo, complete Color Lab
+  lift/pivot/gain controls, and stock-sensitive film emulation.
 - Bounded `.cube` import embedded in the project, uploaded as `rgba16float` 3D textures, with
   trilinear and tetrahedral GPU interpolation.
 - Rust render graph with validation, topological scheduling, resource lifetimes, transient aliasing,
