@@ -1235,6 +1235,7 @@ aster/
 - [x] GPU Advanced Stylize（Halftone、Glowing Edges、Texture、Toner、Plastic、Blobbylize）。
 - [x] GPU Matte Refine（Hard / Soft、Feather、Cleanup、Decontaminate、Light Wrap）。
 - [x] GPU HDR Lighting（Rays、Spotlight、Light Leak、Flare、Fog、Caustics、Laser）。
+- [x] GPU Draw / Generate（Ellipse、Stroke、Vegas、Scribble、Write-on、Eyedropper Fill、Paint Bucket）。
 - [x] GPU 专业调色（ASC CDL、RGB Lift / Gamma / Gain、Log Wheels、HSL Secondary、Highlight Recovery、Gamut Compressor、False Color、Film Print Density）。
 - [ ] Console / Diagnostics。
 - [ ] Profiler Overlay。

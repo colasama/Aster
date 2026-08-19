@@ -210,4 +210,11 @@ export enum EffectOpcode {
   AlphaFromLuminance = 209,
   SetMatte = 210,
   HdrClamp = 211,
+  Ellipse = 212,
+  Stroke = 213,
+  Vegas = 214,
+  Scribble = 215,
+  WriteOn = 216,
+  EyedropperFill = 217,
+  PaintBucket = 218,
 }

@@ -6,6 +6,7 @@ import { AE_CHANNEL_UTILITY_EFFECTS } from "./ae-channel-utility";
 import { AE_COLOR_EFFECTS } from "./ae-color";
 import { AE_PROFESSIONAL_COLOR_EFFECTS } from "./ae-color-professional";
 import { AE_ADVANCED_DISTORT_EFFECTS } from "./ae-distort-advanced";
+import { AE_DRAW_GENERATOR_EFFECTS } from "./ae-draw-generators";
 import { AE_ENVIRONMENT_EFFECTS } from "./ae-environment";
 import { AE_GENERATOR_EFFECTS } from "./ae-generators";
 import { AE_LAYER_STYLE_EFFECTS } from "./ae-layer-styles";
@@ -865,6 +866,7 @@ export const EFFECT_REGISTRY: EffectDefinition[] = [
   ...AE_LIGHTING_EFFECTS,
   ...AE_PROFESSIONAL_COLOR_EFFECTS,
   ...AE_ADVANCED_DISTORT_EFFECTS,
+  ...AE_DRAW_GENERATOR_EFFECTS,
 ];
 
 export const EFFECT_BY_TYPE = new Map(EFFECT_REGISTRY.map((effect) => [effect.type, effect]));

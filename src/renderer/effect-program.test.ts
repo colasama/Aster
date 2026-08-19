@@ -326,6 +326,13 @@ describe("GPU effect program compiler", () => {
     ["alpha-from-luminance", EffectOpcode.AlphaFromLuminance],
     ["set-matte", EffectOpcode.SetMatte],
     ["hdr-clamp", EffectOpcode.HdrClamp],
+    ["ellipse", EffectOpcode.Ellipse],
+    ["stroke", EffectOpcode.Stroke],
+    ["vegas", EffectOpcode.Vegas],
+    ["scribble", EffectOpcode.Scribble],
+    ["write-on", EffectOpcode.WriteOn],
+    ["eyedropper-fill", EffectOpcode.EyedropperFill],
+    ["paint-bucket", EffectOpcode.PaintBucket],
   ])("compiles %s into its dedicated GPU opcode", (type, opcode) => {
     const composition = activeComposition(createDemoProject());
     composition.layers.forEach((layer) => {

@@ -27,8 +27,8 @@ frames. Rendering, effects, particles, and composition are designed to remain GP
 - Full/Half/Quarter preview resolution, dual Active/Custom views, lossless 4K PNG frame export,
   cancellable native PNG sequence rendering with progress, local autosave recovery, and atomic
   native project persistence.
-- Data-driven catalog of 211 blur, color, channel, distort, generate, stylize, keying, time,
-  transition, simulation, matte, perspective, layer-style, noise, and Looks effects, including 209 ordered GPU
+- Data-driven catalog of 218 blur, color, channel, distort, generate, stylize, keying, time,
+  transition, simulation, matte, perspective, layer-style, noise, and Looks effects, including 216 ordered GPU
   opcodes.
 - Professional channel and keying tools include Set Channels, Arithmetic, Alpha Levels, Remove
   Color Matting, Linear Color Key, Color Range, Matte Choker, and GPU Keylight.
@@ -54,6 +54,8 @@ frames. Rendering, effects, particles, and composition are designed to remain GP
   wrap, alpha bevel, and bounded erode/dilate morphology.
 - HDR lighting and generators include Light Rays, Spotlight, animated Light Leak, Anamorphic Flare,
   Volumetric Fog, Caustics, God Rays, and pulsing Laser.
+- GPU drawing generators include Ellipse, partial quadratic Stroke, segmented Vegas edges,
+  deterministic Scribble, Write-on, Eyedropper Fill, and bounded Paint Bucket fills.
 - Professional linear-HDR color tools include ASC CDL, per-channel Lift/Gamma/Gain, Log Wheels,
   HSL Secondary, Highlight Recovery, Gamut Compressor, False Color, and Film Print Density.
 - Twenty-four one-click Looks chains with palette previews and transactional undo, complete Color Lab
