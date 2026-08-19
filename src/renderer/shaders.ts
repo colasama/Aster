@@ -4,6 +4,7 @@ import { aeColorPipelinePixelShaderCases } from "./ae-color-pipeline-shader-case
 import { aeDetailProcessingPixelShaderCases } from "./ae-detail-processing-shader-cases";
 import { aeDrawGeneratorPixelShaderCases } from "./ae-draw-generator-shader-cases";
 import { aePixelShaderCases, aeWarpShaderCases } from "./ae-effect-shader-cases";
+import { aeFramingPixelShaderCases, aeFramingWarpShaderCases } from "./ae-framing-shader-cases";
 import {
   aeImmersiveVideoPixelShaderCases,
   aeImmersiveVideoWarpShaderCases,
@@ -333,6 +334,7 @@ ${aeAdvancedStylizeWarpShaderCases}
 ${aeAdvancedDistortWarpShaderCases}
 ${aeImmersiveVideoWarpShaderCases}
 ${aeRetroMediaWarpShaderCases}
+${aeFramingWarpShaderCases}
       case 106u: {
         active_warp_mask = effect_mask_value(effect, input.uv, resolution);
       }
@@ -862,6 +864,7 @@ ${aeRetroMediaPixelShaderCases}
 ${aeChannelUtilityPixelShaderCases}
 ${aeColorPipelinePixelShaderCases}
 ${aeDrawGeneratorPixelShaderCases}
+${aeFramingPixelShaderCases}
 ${aeDetailProcessingPixelShaderCases}
 ${aeAdvancedTransitionPixelShaderCases}
 ${aeSimulationPixelShaderCases}

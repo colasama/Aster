@@ -10,6 +10,7 @@ import { AE_DETAIL_PROCESSING_EFFECTS } from "./ae-detail-processing";
 import { AE_ADVANCED_DISTORT_EFFECTS } from "./ae-distort-advanced";
 import { AE_DRAW_GENERATOR_EFFECTS } from "./ae-draw-generators";
 import { AE_ENVIRONMENT_EFFECTS } from "./ae-environment";
+import { AE_FRAMING_EFFECTS } from "./ae-framing";
 import { AE_GENERATOR_EFFECTS } from "./ae-generators";
 import { AE_IMMERSIVE_VIDEO_EFFECTS } from "./ae-immersive-video";
 import { AE_KEYING_CLEANUP_EFFECTS } from "./ae-keying-cleanup";
@@ -858,6 +859,7 @@ export const EFFECT_REGISTRY: EffectDefinition[] = [
   ...AE_GENERATOR_EFFECTS,
   ...AE_IMMERSIVE_VIDEO_EFFECTS,
   ...AE_ENVIRONMENT_EFFECTS,
+  ...AE_FRAMING_EFFECTS,
   ...AE_STYLIZE_TRANSITION_EFFECTS,
   ...AE_COLOR_EFFECTS,
   ...AE_COLOR_PIPELINE_EFFECTS,

@@ -1241,6 +1241,7 @@ aster/
 - [x] GPU HDR Lighting（Rays、Spotlight、Light Leak、Flare、Fog、Caustics、Laser）。
 - [x] GPU Draw / Generate（Ellipse、Stroke、Vegas、Scribble、Write-on、Eyedropper Fill、Paint Bucket）。
 - [x] GPU QC Overlays（Zebra、Gamut Warning、Focus Peaking、Alpha Boundary）。
+- [x] GPU Framing（Crop、Letterbox、Edge Feather、Overscan）。
 - [x] GPU 专业调色（ASC CDL、RGB Lift / Gamma / Gain、Log Wheels、HSL Secondary、Highlight Recovery、Gamut Compressor、False Color、Film Print Density）。
 - [x] GPU Selective Color Pipeline（Printer Lights、Hue / Luma Curves、Shadow / Highlight、Tone Map、Skin Refine）。
 - [ ] Console / Diagnostics。

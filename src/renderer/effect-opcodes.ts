@@ -261,4 +261,8 @@ export enum EffectOpcode {
   GamutWarning = 260,
   FocusPeaking = 261,
   AlphaBoundary = 262,
+  Crop = 263,
+  Letterbox = 264,
+  EdgeFeather = 265,
+  Overscan = 266,
 }

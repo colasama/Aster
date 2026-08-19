@@ -377,6 +377,10 @@ describe("GPU effect program compiler", () => {
     ["gamut-warning", EffectOpcode.GamutWarning],
     ["focus-peaking", EffectOpcode.FocusPeaking],
     ["alpha-boundary", EffectOpcode.AlphaBoundary],
+    ["crop", EffectOpcode.Crop],
+    ["letterbox", EffectOpcode.Letterbox],
+    ["edge-feather", EffectOpcode.EdgeFeather],
+    ["overscan", EffectOpcode.Overscan],
   ])("compiles %s into its dedicated GPU opcode", (type, opcode) => {
     const composition = activeComposition(createDemoProject());
     composition.layers.forEach((layer) => {
