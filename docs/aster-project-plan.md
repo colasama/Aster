@@ -1229,6 +1229,7 @@ aster/
 - [x] GPU Noise & Grain（Add / Remove Grain、Median、HLS / Alpha Noise、Turbulence）。
 - [x] GPU Advanced Transitions（Clock、Grid、Jaws、Light、Scale、Twister、Card Wipe）。
 - [x] GPU Procedural Simulation（Bubbles、Drizzle、Hair、Mercury、Particles、Pixel Polly）。
+- [x] GPU Advanced Stylize（Halftone、Glowing Edges、Texture、Toner、Plastic、Blobbylize）。
 - [ ] Console / Diagnostics。
 - [ ] Profiler Overlay。
 - [ ] AI Panel placeholder。

@@ -278,6 +278,14 @@ describe("GPU effect program compiler", () => {
     ["pixel-polly", EffectOpcode.PixelPolly],
     ["scatterize", EffectOpcode.Scatterize],
     ["wave-world", EffectOpcode.WaveWorld],
+    ["color-halftone", EffectOpcode.ColorHalftone],
+    ["glowing-edges", EffectOpcode.GlowingEdges],
+    ["texturize", EffectOpcode.Texturize],
+    ["tiles", EffectOpcode.Tiles],
+    ["cc-threshold", EffectOpcode.CcThreshold],
+    ["cc-toner", EffectOpcode.CcToner],
+    ["cc-plastic", EffectOpcode.CcPlastic],
+    ["cc-blobbylize", EffectOpcode.CcBlobbylize],
   ])("compiles %s into its dedicated GPU opcode", (type, opcode) => {
     const composition = activeComposition(createDemoProject());
     composition.layers.forEach((layer) => {

@@ -162,4 +162,12 @@ export enum EffectOpcode {
   PixelPolly = 161,
   Scatterize = 162,
   WaveWorld = 163,
+  ColorHalftone = 164,
+  GlowingEdges = 165,
+  Texturize = 166,
+  Tiles = 167,
+  CcThreshold = 168,
+  CcToner = 169,
+  CcPlastic = 170,
+  CcBlobbylize = 171,
 }

@@ -8,6 +8,7 @@ import { compileLayerStyleEffect } from "./effect-program-layer-styles";
 import { compileNoiseGrainEffect } from "./effect-program-noise-grain";
 import { compilePerspectiveEffect } from "./effect-program-perspective";
 import { compileSimulationEffect } from "./effect-program-simulation";
+import { compileAdvancedStylizeEffect } from "./effect-program-stylize";
 import { compileAdvancedTransitionEffect } from "./effect-program-transitions";
 
 export { EffectOpcode } from "./effect-opcodes";
@@ -67,6 +68,7 @@ function compileEffect(
   if (compileNoiseGrainEffect(effect, time, emit)) return;
   if (compilePerspectiveEffect(effect, time, emit)) return;
   if (compileSimulationEffect(effect, time, emit)) return;
+  if (compileAdvancedStylizeEffect(effect, time, emit)) return;
   if (compileAdvancedTransitionEffect(effect, time, emit)) return;
   const value = (key: string, fallback = 0) => evaluateEffectParameter(effect, key, time, fallback);
   const color = (key: string, fallback: number) => colorChannels(value(key, fallback));
