@@ -34,6 +34,8 @@ frames. Rendering, effects, particles, and composition are designed to remain GP
 - Searchable Effects Browser with persistent favorites and a bounded recently-used GPU effect list.
 - Inspector effect-chain reordering with undo; legacy grading, blur, glow, and Looks controls now
   execute as explicit ordered GPU operations instead of an out-of-band aggregate.
+- Per-effect ellipse and rectangle masks run inside the ordered GPU chain for both spatial warps
+  and pixel effects, with feather, opacity, inversion, undo, and project persistence.
 - Bounded `.cube` import embedded in the project, uploaded as `rgba16float` 3D textures, with
   trilinear and tetrahedral GPU interpolation.
 - Rust render graph with validation, topological scheduling, resource lifetimes, transient aliasing,

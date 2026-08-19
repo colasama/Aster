@@ -4,6 +4,7 @@ import type {
   Animatable,
   BlendMode,
   Effect,
+  EffectMask,
   Id,
   Keyframe,
   Layer,
@@ -45,6 +46,7 @@ export type Operation =
   | { type: "addEffect"; layerId: Id; effect: Effect }
   | { type: "removeEffect"; layerId: Id; effectId: Id }
   | { type: "moveEffect"; layerId: Id; effectId: Id; toIndex: number }
+  | { type: "setEffectMask"; layerId: Id; effectId: Id; mask: EffectMask | undefined }
   | { type: "toggleEffect"; layerId: Id; effectId: Id }
   | { type: "setEffectLut"; layerId: Id; effectId: Id; resource?: Lut3dResource }
   | {
@@ -181,6 +183,12 @@ export function applyOperation(project: Project, operation: Operation): void {
       if (!effect) throw new Error("Effect does not exist");
       const toIndex = Math.max(0, Math.min(layer.effects.length, Math.trunc(operation.toIndex)));
       layer.effects.splice(toIndex, 0, effect);
+      break;
+    }
+    case "setEffectMask": {
+      const effect = layer.effects.find((entry) => entry.id === operation.effectId);
+      if (!effect) throw new Error("Effect does not exist");
+      effect.mask = operation.mask;
       break;
     }
     case "toggleEffect": {

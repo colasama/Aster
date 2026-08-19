@@ -111,6 +111,8 @@ export enum EffectOpcode {
   ChromaticAberration = 103,
   LooksColorLab = 104,
   FilmEmulation = 105,
+  MaskBegin = 106,
+  MaskEnd = 107,
 }
 
 export interface EffectProgram {
@@ -134,7 +136,21 @@ export function compileEffectProgram(
   };
   for (const layer of [...layers].reverse()) {
     for (const effect of layer.effects) {
-      if (effect.enabled) compileEffect(effect, time, emit);
+      if (!effect.enabled) continue;
+      if (effect.mask) {
+        emit(EffectOpcode.MaskBegin, [
+          effect.mask.center[0] / 100,
+          effect.mask.center[1] / 100,
+          effect.mask.size[0] / 100,
+          effect.mask.size[1] / 100,
+          effect.mask.feather,
+          effect.mask.opacity / 100,
+          effect.mask.invert ? 1 : 0,
+          effect.mask.shape === "rectangle" ? 1 : 0,
+        ]);
+      }
+      compileEffect(effect, time, emit);
+      if (effect.mask) emit(EffectOpcode.MaskEnd, []);
     }
   }
   return { data: values, count };

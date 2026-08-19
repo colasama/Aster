@@ -56,6 +56,34 @@ describe("structured project operations", () => {
     expect(layer.effects[0].id).toBe(firstId);
   });
 
+  it("sets and removes an effect-local mask without mutating the source", () => {
+    const source = createDemoProject();
+    const layer = activeComposition(source).layers[0];
+    const effect = layer.effects[0];
+    const masked = applyOperations(source, [
+      {
+        type: "setEffectMask",
+        layerId: layer.id,
+        effectId: effect.id,
+        mask: {
+          shape: "ellipse",
+          center: [50, 50],
+          size: [60, 40],
+          feather: 24,
+          opacity: 85,
+          invert: false,
+        },
+      },
+    ]);
+
+    expect(activeComposition(masked).layers[0].effects[0].mask?.size).toEqual([60, 40]);
+    expect(effect.mask).toBeUndefined();
+    const unmasked = applyOperations(masked, [
+      { type: "setEffectMask", layerId: layer.id, effectId: effect.id, mask: undefined },
+    ]);
+    expect(activeComposition(unmasked).layers[0].effects[0].mask).toBeUndefined();
+  });
+
   it("retimes, eases, and removes keyframes through operations", () => {
     const source = createDemoProject();
     const layer = activeComposition(source).layers[0];

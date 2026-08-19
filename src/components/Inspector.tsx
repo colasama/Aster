@@ -9,6 +9,7 @@ import {
   KeyRound,
   Plus,
   RotateCw,
+  Scan,
   Sparkles,
   Trash2,
 } from "lucide-react";
@@ -22,6 +23,7 @@ import { createEffect, EFFECT_BY_TYPE } from "../effects/registry";
 import type { EffectParameterDefinition } from "../effects/types";
 import { useEditor } from "../state/editor-store";
 import { AiPanel } from "./AiPanel";
+import { EffectMaskEditor } from "./EffectMaskEditor";
 import { Panel, PanelTabs } from "./Panel";
 
 const fields: { label: string; paths: PropertyPath[]; suffix: string }[] = [
@@ -396,6 +398,11 @@ function EffectEditor({ effect, layerId }: { effect: Effect; layerId: string }) 
           ],
     });
   };
+  const setMask = (mask: Effect["mask"]) =>
+    dispatch({
+      type: "operation",
+      operations: [{ type: "setEffectMask", layerId, effectId: effect.id, mask }],
+    });
   return (
     <div className={`effect-editor ${effect.enabled ? "" : "disabled"}`}>
       <div className="effect-title">
@@ -414,6 +421,28 @@ function EffectEditor({ effect, layerId }: { effect: Effect; layerId: string }) 
         </button>
         <strong>{effect.name}</strong>
         <span className="gpu-pill">{definition?.execution.replace("-", " ") ?? "GPU"}</span>
+        <button
+          aria-label={effect.mask ? `Remove ${effect.name} mask` : `Add ${effect.name} mask`}
+          className={effect.mask ? "effect-mask-toggle active" : "effect-mask-toggle"}
+          onClick={() =>
+            setMask(
+              effect.mask
+                ? undefined
+                : {
+                    shape: "ellipse",
+                    center: [50, 50],
+                    size: [55, 55],
+                    feather: 24,
+                    opacity: 100,
+                    invert: false,
+                  },
+            )
+          }
+          title={effect.mask ? "Remove local effect mask" : "Add local effect mask"}
+          type="button"
+        >
+          <Scan size={11} />
+        </button>
         <button
           aria-label={`Move ${effect.name} up`}
           disabled={effectIndex <= 0}
@@ -457,6 +486,7 @@ function EffectEditor({ effect, layerId }: { effect: Effect; layerId: string }) 
           <Trash2 size={12} />
         </button>
       </div>
+      {effect.mask && <EffectMaskEditor mask={effect.mask} onChange={setMask} />}
       {parameters.map((parameter) => (
         <EffectParameter
           animated={(effect.parameterKeyframes?.[parameter.key]?.length ?? 0) > 0}

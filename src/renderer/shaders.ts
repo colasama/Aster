@@ -112,6 +112,22 @@ fn luminance(color: vec3f) -> f32 {
   return dot(color, vec3f(0.2126, 0.7152, 0.0722));
 }
 
+fn effect_mask_value(effect: EffectOp, uv: vec2f, resolution: vec2f) -> f32 {
+  let center = effect.header.yz;
+  let half_size = max(
+    vec2f(effect.header.w * resolution.x, effect.p0.x * resolution.y) * 0.5,
+    vec2f(0.5),
+  );
+  let delta = (uv - center) * resolution;
+  let ellipse_distance = (length(delta / half_size) - 1.0) * min(half_size.x, half_size.y);
+  let rectangle_distance = max(abs(delta.x) - half_size.x, abs(delta.y) - half_size.y);
+  let signed_distance = select(ellipse_distance, rectangle_distance, effect.p1.x > 0.5);
+  let feather = max(effect.p0.y, 0.0001);
+  var mask = 1.0 - smoothstep(-feather, feather, signed_distance);
+  mask = select(mask, 1.0 - mask, effect.p0.w > 0.5);
+  return mask * effect.p0.z;
+}
+
 fn hue_color(angle: f32) -> vec3f {
   return 0.5 + 0.5 * cos(angle + vec3f(0.0, 4.188790, 2.094395));
 }
@@ -159,10 +175,12 @@ fn fragment_main(input: VertexOutput) -> @location(0) vec4f {
   let time = settings.resolution_time_exposure.z;
   let effect_count = u32(settings.program.x);
   var uv = input.uv;
+  var active_warp_mask = 1.0;
   for (var index = 0u; index < 64u; index += 1u) {
     if (index >= effect_count) { break; }
     let effect = effect_ops[index];
     let code = u32(effect.header.x + 0.5);
+    let uv_before_effect = uv;
     let centered = uv - vec2f(0.5);
     switch code {
       case 1u: {
@@ -234,7 +252,16 @@ fn fragment_main(input: VertexOutput) -> @location(0) vec4f {
         uv = center + vec2f(cos(folded_angle), sin(folded_angle)) * radius / aspect;
       }
 ${aeWarpShaderCases}
+      case 106u: {
+        active_warp_mask = effect_mask_value(effect, input.uv, resolution);
+      }
+      case 107u: {
+        active_warp_mask = 1.0;
+      }
       default: {}
+    }
+    if code != 106u && code != 107u {
+      uv = mix(uv_before_effect, uv, active_warp_mask);
     }
   }
 
@@ -282,10 +309,13 @@ ${aeWarpShaderCases}
   color = mix(color, vec3f(gray * 0.75 + 0.08), settings.finish.w);
 
   var effect_time = time;
+  var active_pixel_mask = 1.0;
   for (var index = 0u; index < 64u; index += 1u) {
     if (index >= effect_count) { break; }
     let effect = effect_ops[index];
     let code = u32(effect.header.x + 0.5);
+    let color_before_effect = color;
+    let alpha_before_effect = alpha;
     switch code {
       case 2u: {
         let levels = max(effect.header.y, 2.0);
@@ -739,7 +769,17 @@ ${aeWarpShaderCases}
         alpha = max(alpha, shadow_alpha);
       }
 ${aePixelShaderCases}
+      case 106u: {
+        active_pixel_mask = effect_mask_value(effect, input.uv, resolution);
+      }
+      case 107u: {
+        active_pixel_mask = 1.0;
+      }
       default: {}
+    }
+    if code != 106u && code != 107u {
+      color = mix(color_before_effect, color, active_pixel_mask);
+      alpha = mix(alpha_before_effect, alpha, active_pixel_mask);
     }
   }
 

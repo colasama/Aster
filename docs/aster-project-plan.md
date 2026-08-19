@@ -1220,6 +1220,7 @@ aster/
 - [x] Effects Browser。
 - [x] Effects Browser 收藏与最近使用持久化。
 - [x] Effect Chain 顺序化执行、Inspector 重排与撤销。
+- [x] Effect 局部椭圆 / 矩形 Mask、羽化、不透明度、反转与工程持久化。
 - [ ] Console / Diagnostics。
 - [ ] Profiler Overlay。
 - [ ] AI Panel placeholder。

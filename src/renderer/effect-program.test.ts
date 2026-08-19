@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { activeComposition, createDemoProject } from "../core/project";
-import { createEffect } from "../effects/registry";
+import { createEffect, EFFECT_REGISTRY } from "../effects/registry";
 import {
   compileEffectProgram,
   EffectOpcode,
@@ -105,6 +105,45 @@ describe("GPU effect program compiler", () => {
     expect(program.data[0]).toBe(EffectOpcode.Posterize);
     expect(program.data[FLOATS_PER_EFFECT_OPERATION]).toBe(EffectOpcode.Exposure);
     expect(program.data[FLOATS_PER_EFFECT_OPERATION * 2]).toBe(EffectOpcode.LooksColorLab);
+  });
+
+  it("gives every catalog effect a GPU program path", () => {
+    const composition = activeComposition(createDemoProject());
+    composition.layers.forEach((layer) => {
+      layer.effects = [];
+    });
+    for (const definition of EFFECT_REGISTRY) {
+      composition.layers[0].effects = [createEffect(definition.type)];
+      expect(compileEffectProgram(composition).count, definition.type).toBeGreaterThan(0);
+    }
+  });
+
+  it("wraps a masked effect in bounded mask operations", () => {
+    const composition = activeComposition(createDemoProject());
+    composition.layers.forEach((layer) => {
+      layer.effects = [];
+    });
+    const exposure = createEffect("exposure");
+    exposure.mask = {
+      shape: "rectangle",
+      center: [40, 60],
+      size: [70, 30],
+      feather: 18,
+      opacity: 75,
+      invert: true,
+    };
+    composition.layers[0].effects = [exposure];
+
+    const program = compileEffectProgram(composition);
+
+    expect(program.count).toBe(3);
+    expect(program.data[0]).toBe(EffectOpcode.MaskBegin);
+    expect(program.data[1]).toBeCloseTo(0.4);
+    expect(program.data[4]).toBeCloseTo(0.3);
+    expect(program.data[6]).toBeCloseTo(0.75);
+    expect(program.data[7]).toBe(1);
+    expect(program.data[FLOATS_PER_EFFECT_OPERATION]).toBe(EffectOpcode.Exposure);
+    expect(program.data[FLOATS_PER_EFFECT_OPERATION * 2]).toBe(EffectOpcode.MaskEnd);
   });
 
   it.each([

@@ -240,7 +240,31 @@ function validateEffect(value: unknown, path: string): void {
       }
     }
   }
+  if (effect.mask !== undefined) validateEffectMask(effect.mask, `${path}.mask`);
   if (effect.resource !== undefined) validateLutResource(effect.resource, `${path}.resource`);
+}
+
+function validateEffectMask(value: unknown, path: string): void {
+  const mask = requireObject(value, path);
+  if (mask.shape !== "ellipse" && mask.shape !== "rectangle")
+    throw new Error(`${path}.shape must be ellipse or rectangle`);
+  if (!Array.isArray(mask.center) || mask.center.length !== 2)
+    throw new Error(`${path}.center must contain two values`);
+  if (!Array.isArray(mask.size) || mask.size.length !== 2)
+    throw new Error(`${path}.size must contain two values`);
+  for (const [index, channel] of mask.center.entries()) {
+    const value = requireFiniteNumber(channel, `${path}.center[${index}]`);
+    if (value < -1000 || value > 1000) throw new Error(`${path}.center is out of range`);
+  }
+  for (const [index, channel] of mask.size.entries()) {
+    const value = requirePositiveNumber(channel, `${path}.size[${index}]`);
+    if (value > 2000) throw new Error(`${path}.size is out of range`);
+  }
+  const feather = requireFiniteNumber(mask.feather, `${path}.feather`);
+  if (feather < 0 || feather > 8000) throw new Error(`${path}.feather is out of range`);
+  const opacity = requireFiniteNumber(mask.opacity, `${path}.opacity`);
+  if (opacity < 0 || opacity > 100) throw new Error(`${path}.opacity is out of range`);
+  if (typeof mask.invert !== "boolean") throw new Error(`${path}.invert must be a boolean`);
 }
 
 function validateLutResource(value: unknown, path: string): void {

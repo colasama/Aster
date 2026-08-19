@@ -51,6 +51,16 @@ export interface Effect {
   parameters: Record<string, number>;
   parameterKeyframes?: Record<string, Keyframe[]>;
   resource?: Lut3dResource;
+  mask?: EffectMask;
+}
+
+export interface EffectMask {
+  shape: "ellipse" | "rectangle";
+  center: [number, number];
+  size: [number, number];
+  feather: number;
+  opacity: number;
+  invert: boolean;
 }
 
 export interface Layer {

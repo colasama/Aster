@@ -40,4 +40,23 @@ describe("project document boundary", () => {
     lut.resource.data.pop();
     expect(() => validateProjectDocument(project)).toThrow("invalid length");
   });
+
+  it("roundtrips bounded effect-local masks", () => {
+    const project = createBlankProject();
+    const effect = createEffect("exposure");
+    effect.mask = {
+      shape: "rectangle",
+      center: [45, 55],
+      size: [70, 35],
+      feather: 18,
+      opacity: 90,
+      invert: true,
+    };
+    project.compositions[0].layers[0].effects.push(effect);
+
+    const roundtrip = validateProjectDocument(JSON.parse(serializeProject(project)));
+    expect(roundtrip.compositions[0].layers[0].effects[0].mask).toEqual(effect.mask);
+    effect.mask.opacity = 101;
+    expect(() => validateProjectDocument(project)).toThrow("opacity is out of range");
+  });
 });
