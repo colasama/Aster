@@ -18,6 +18,7 @@ import { AE_LIGHTING_EFFECTS } from "./ae-lighting";
 import { AE_MATTE_REFINE_EFFECTS } from "./ae-matte-refine";
 import { AE_NOISE_GRAIN_EFFECTS } from "./ae-noise-grain";
 import { AE_PERSPECTIVE_EFFECTS } from "./ae-perspective";
+import { AE_QC_OVERLAY_EFFECTS } from "./ae-qc-overlays";
 import { AE_RETRO_MEDIA_EFFECTS } from "./ae-retro-media";
 import { AE_SIMULATION_EFFECTS } from "./ae-simulation";
 import { AE_ADVANCED_STYLIZE_EFFECTS } from "./ae-stylize-advanced";
@@ -873,6 +874,7 @@ export const EFFECT_REGISTRY: EffectDefinition[] = [
   ...AE_MATTE_REFINE_EFFECTS,
   ...AE_LIGHTING_EFFECTS,
   ...AE_PROFESSIONAL_COLOR_EFFECTS,
+  ...AE_QC_OVERLAY_EFFECTS,
   ...AE_RETRO_MEDIA_EFFECTS,
   ...AE_ADVANCED_DISTORT_EFFECTS,
   ...AE_DRAW_GENERATOR_EFFECTS,

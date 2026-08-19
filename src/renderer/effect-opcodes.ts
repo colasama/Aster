@@ -257,4 +257,8 @@ export enum EffectOpcode {
   FilmDamage = 256,
   RgbPhosphor = 257,
   PixelSort = 258,
+  ZebraOverlay = 259,
+  GamutWarning = 260,
+  FocusPeaking = 261,
+  AlphaBoundary = 262,
 }

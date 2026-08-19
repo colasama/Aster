@@ -373,6 +373,10 @@ describe("GPU effect program compiler", () => {
     ["film-damage", EffectOpcode.FilmDamage],
     ["rgb-phosphor", EffectOpcode.RgbPhosphor],
     ["pixel-sort", EffectOpcode.PixelSort],
+    ["zebra-overlay", EffectOpcode.ZebraOverlay],
+    ["gamut-warning", EffectOpcode.GamutWarning],
+    ["focus-peaking", EffectOpcode.FocusPeaking],
+    ["alpha-boundary", EffectOpcode.AlphaBoundary],
   ])("compiles %s into its dedicated GPU opcode", (type, opcode) => {
     const composition = activeComposition(createDemoProject());
     composition.layers.forEach((layer) => {

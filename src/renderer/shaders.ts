@@ -14,6 +14,7 @@ import { aeLightingPixelShaderCases } from "./ae-lighting-shader-cases";
 import { aeMatteRefinePixelShaderCases } from "./ae-matte-shader-cases";
 import { aeNoiseGrainPixelShaderCases } from "./ae-noise-grain-shader-cases";
 import { aeProfessionalColorPixelShaderCases } from "./ae-professional-color-shader-cases";
+import { aeQcOverlayPixelShaderCases } from "./ae-qc-overlay-shader-cases";
 import {
   aeRetroMediaPixelShaderCases,
   aeRetroMediaWarpShaderCases,
@@ -856,6 +857,7 @@ ${aeLightingPixelShaderCases}
 ${aeMatteRefinePixelShaderCases}
 ${aeNoiseGrainPixelShaderCases}
 ${aeProfessionalColorPixelShaderCases}
+${aeQcOverlayPixelShaderCases}
 ${aeRetroMediaPixelShaderCases}
 ${aeChannelUtilityPixelShaderCases}
 ${aeColorPipelinePixelShaderCases}
