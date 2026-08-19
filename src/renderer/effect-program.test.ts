@@ -318,6 +318,14 @@ describe("GPU effect program compiler", () => {
     ["slant", EffectOpcode.Slant],
     ["smear", EffectOpcode.Smear],
     ["split", EffectOpcode.Split],
+    ["shift-channels", EffectOpcode.ShiftChannels],
+    ["channel-combiner", EffectOpcode.ChannelCombiner],
+    ["solid-composite", EffectOpcode.SolidComposite],
+    ["premultiply-color", EffectOpcode.PremultiplyColor],
+    ["unpremultiply-color", EffectOpcode.UnpremultiplyColor],
+    ["alpha-from-luminance", EffectOpcode.AlphaFromLuminance],
+    ["set-matte", EffectOpcode.SetMatte],
+    ["hdr-clamp", EffectOpcode.HdrClamp],
   ])("compiles %s into its dedicated GPU opcode", (type, opcode) => {
     const composition = activeComposition(createDemoProject());
     composition.layers.forEach((layer) => {

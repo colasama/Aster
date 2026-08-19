@@ -202,4 +202,12 @@ export enum EffectOpcode {
   Slant = 201,
   Smear = 202,
   Split = 203,
+  ShiftChannels = 204,
+  ChannelCombiner = 205,
+  SolidComposite = 206,
+  PremultiplyColor = 207,
+  UnpremultiplyColor = 208,
+  AlphaFromLuminance = 209,
+  SetMatte = 210,
+  HdrClamp = 211,
 }

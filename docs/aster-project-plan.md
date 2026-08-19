@@ -1224,6 +1224,7 @@ aster/
 - [x] Effect Chain 顺序化执行、Inspector 重排与撤销。
 - [x] Effect 局部椭圆 / 矩形 Mask、羽化、不透明度、反转与工程持久化。
 - [x] GPU Channel / Keying 工具（Set Channels、Color Range、Matte Choker、Keylight 等）。
+- [x] GPU Channel / Matte Utility（Shift / Combine、Solid Composite、Pre/Unpremultiply、Luma Matte、HDR Clamp）。
 - [x] GPU 高级 Blur / Sharpen 工具（Channel、Compound、Vector、Radial、High Pass 等）。
 - [x] GPU Perspective / UV Warp 工具（Sphere、Cylinder、Bend、Mesh、Page Turn 等）。
 - [x] GPU Advanced Distort（Bezier、Flo Motion、Griddler、Power Pin、Ripple Pulse、Slant、Smear、Split）。

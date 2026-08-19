@@ -5,6 +5,7 @@ import { EffectOpcode } from "./effect-opcodes";
 import { compileAdvancedDistortEffect } from "./effect-program-advanced-distort";
 import { compileBlurSharpenEffect } from "./effect-program-blur-sharpen";
 import { compileChannelKeyingEffect } from "./effect-program-channel-keying";
+import { compileChannelUtilityEffect } from "./effect-program-channel-utility";
 import { compileLayerStyleEffect } from "./effect-program-layer-styles";
 import { compileLightingEffect } from "./effect-program-lighting";
 import { compileMatteRefineEffect } from "./effect-program-matte";
@@ -69,6 +70,7 @@ function compileEffect(
   if (compileAdvancedDistortEffect(effect, time, emit)) return;
   if (compileBlurSharpenEffect(effect, time, emit)) return;
   if (compileChannelKeyingEffect(effect, time, emit)) return;
+  if (compileChannelUtilityEffect(effect, time, emit)) return;
   if (compileLayerStyleEffect(effect, time, emit)) return;
   if (compileLightingEffect(effect, time, emit)) return;
   if (compileMatteRefineEffect(effect, time, emit)) return;
