@@ -230,6 +230,14 @@ describe("GPU effect program compiler", () => {
     ["color-range", EffectOpcode.ColorRange],
     ["matte-choker", EffectOpcode.MatteChoker],
     ["keylight", EffectOpcode.Keylight],
+    ["channel-blur", EffectOpcode.ChannelBlur],
+    ["cross-blur", EffectOpcode.CrossBlur],
+    ["smart-blur", EffectOpcode.SmartBlur],
+    ["vector-blur", EffectOpcode.VectorBlur],
+    ["radial-fast-blur", EffectOpcode.RadialFastBlur],
+    ["high-pass", EffectOpcode.HighPass],
+    ["sharpen-edges", EffectOpcode.SharpenEdges],
+    ["compound-blur", EffectOpcode.CompoundBlur],
   ])("compiles %s into its dedicated GPU opcode", (type, opcode) => {
     const composition = activeComposition(createDemoProject());
     composition.layers.forEach((layer) => {

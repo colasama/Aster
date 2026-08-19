@@ -2,6 +2,7 @@ import { visibleLayersAtTime } from "../core/scene-evaluation";
 import { evaluateEffectParameter } from "../core/timeline";
 import type { Composition, Effect, Layer } from "../core/types";
 import { EffectOpcode } from "./effect-opcodes";
+import { compileBlurSharpenEffect } from "./effect-program-blur-sharpen";
 import { compileChannelKeyingEffect } from "./effect-program-channel-keying";
 
 export { EffectOpcode } from "./effect-opcodes";
@@ -55,6 +56,7 @@ function compileEffect(
   time: number,
   emit: (opcode: EffectOpcode, parameters: number[]) => void,
 ): void {
+  if (compileBlurSharpenEffect(effect, time, emit)) return;
   if (compileChannelKeyingEffect(effect, time, emit)) return;
   const value = (key: string, fallback = 0) => evaluateEffectParameter(effect, key, time, fallback);
   const color = (key: string, fallback: number) => colorChannels(value(key, fallback));

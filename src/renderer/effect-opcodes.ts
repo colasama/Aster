@@ -114,4 +114,12 @@ export enum EffectOpcode {
   ColorRange = 113,
   MatteChoker = 114,
   Keylight = 115,
+  ChannelBlur = 116,
+  CrossBlur = 117,
+  SmartBlur = 118,
+  VectorBlur = 119,
+  RadialFastBlur = 120,
+  HighPass = 121,
+  SharpenEdges = 122,
+  CompoundBlur = 123,
 }
