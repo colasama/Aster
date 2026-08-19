@@ -170,4 +170,12 @@ export enum EffectOpcode {
   CcToner = 169,
   CcPlastic = 170,
   CcBlobbylize = 171,
+  RefineHardMatte = 172,
+  RefineSoftMatte = 173,
+  MatteFeather = 174,
+  MatteCleanup = 175,
+  EdgeDecontaminate = 176,
+  LightWrap = 177,
+  AlphaBevel = 178,
+  AlphaErodeDilate = 179,
 }

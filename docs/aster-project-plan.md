@@ -1231,6 +1231,7 @@ aster/
 - [x] GPU Advanced Transitions（Clock、Grid、Jaws、Light、Scale、Twister、Card Wipe）。
 - [x] GPU Procedural Simulation（Bubbles、Drizzle、Hair、Mercury、Particles、Pixel Polly）。
 - [x] GPU Advanced Stylize（Halftone、Glowing Edges、Texture、Toner、Plastic、Blobbylize）。
+- [x] GPU Matte Refine（Hard / Soft、Feather、Cleanup、Decontaminate、Light Wrap）。
 - [ ] Console / Diagnostics。
 - [ ] Profiler Overlay。
 - [ ] AI Panel placeholder。

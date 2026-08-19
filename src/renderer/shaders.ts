@@ -1,5 +1,6 @@
 import { aePixelShaderCases, aeWarpShaderCases } from "./ae-effect-shader-cases";
 import { aeLayerStylePixelShaderCases } from "./ae-layer-style-shader-cases";
+import { aeMatteRefinePixelShaderCases } from "./ae-matte-shader-cases";
 import { aeNoiseGrainPixelShaderCases } from "./ae-noise-grain-shader-cases";
 import {
   aeSimulationPixelShaderCases,
@@ -138,6 +139,19 @@ fn median5(a: f32, b: f32, c: f32, d: f32, e: f32) -> f32 {
     }
   }
   return values[2u];
+}
+
+fn sample_alpha_cross(uv: vec2f, radius: f32) -> vec2f {
+  let offset = vec2f(max(radius, 0.35)) / settings.resolution_time_exposure.xy;
+  let center = textureSample(hdr_scene, linear_sampler, uv).a;
+  let alpha_a = textureSample(hdr_scene, linear_sampler, uv + vec2f(offset.x, 0.0)).a;
+  let alpha_b = textureSample(hdr_scene, linear_sampler, uv - vec2f(offset.x, 0.0)).a;
+  let alpha_c = textureSample(hdr_scene, linear_sampler, uv + vec2f(0.0, offset.y)).a;
+  let alpha_d = textureSample(hdr_scene, linear_sampler, uv - vec2f(0.0, offset.y)).a;
+  return vec2f(
+    min(center, min(min(alpha_a, alpha_b), min(alpha_c, alpha_d))),
+    max(center, max(max(alpha_a, alpha_b), max(alpha_c, alpha_d))),
+  );
 }
 
 fn effect_mask_value(effect: EffectOp, uv: vec2f, resolution: vec2f) -> f32 {
@@ -801,6 +815,7 @@ ${aeAdvancedStylizeWarpShaderCases}
       }
 ${aePixelShaderCases}
 ${aeLayerStylePixelShaderCases}
+${aeMatteRefinePixelShaderCases}
 ${aeNoiseGrainPixelShaderCases}
 ${aeAdvancedTransitionPixelShaderCases}
 ${aeSimulationPixelShaderCases}

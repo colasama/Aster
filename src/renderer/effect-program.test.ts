@@ -286,6 +286,14 @@ describe("GPU effect program compiler", () => {
     ["cc-toner", EffectOpcode.CcToner],
     ["cc-plastic", EffectOpcode.CcPlastic],
     ["cc-blobbylize", EffectOpcode.CcBlobbylize],
+    ["refine-hard-matte", EffectOpcode.RefineHardMatte],
+    ["refine-soft-matte", EffectOpcode.RefineSoftMatte],
+    ["matte-feather", EffectOpcode.MatteFeather],
+    ["matte-cleanup", EffectOpcode.MatteCleanup],
+    ["edge-decontaminate", EffectOpcode.EdgeDecontaminate],
+    ["light-wrap", EffectOpcode.LightWrap],
+    ["alpha-bevel", EffectOpcode.AlphaBevel],
+    ["alpha-erode-dilate", EffectOpcode.AlphaErodeDilate],
   ])("compiles %s into its dedicated GPU opcode", (type, opcode) => {
     const composition = activeComposition(createDemoProject());
     composition.layers.forEach((layer) => {
