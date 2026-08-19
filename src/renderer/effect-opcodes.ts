@@ -217,4 +217,12 @@ export enum EffectOpcode {
   WriteOn = 216,
   EyedropperFill = 217,
   PaintBucket = 218,
+  DetailPreservingUpscale = 219,
+  ReduceInterlaceFlicker = 220,
+  Deband = 221,
+  Denoise = 222,
+  Clarity = 223,
+  LocalContrast = 224,
+  SmartSharpen = 225,
+  FrequencySeparation = 226,
 }

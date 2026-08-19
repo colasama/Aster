@@ -1,5 +1,6 @@
 import { aeAdvancedDistortWarpShaderCases } from "./ae-advanced-distort-shader-cases";
 import { aeChannelUtilityPixelShaderCases } from "./ae-channel-utility-shader-cases";
+import { aeDetailProcessingPixelShaderCases } from "./ae-detail-processing-shader-cases";
 import { aeDrawGeneratorPixelShaderCases } from "./ae-draw-generator-shader-cases";
 import { aePixelShaderCases, aeWarpShaderCases } from "./ae-effect-shader-cases";
 import { aeLayerStylePixelShaderCases } from "./ae-layer-style-shader-cases";
@@ -827,6 +828,7 @@ ${aeNoiseGrainPixelShaderCases}
 ${aeProfessionalColorPixelShaderCases}
 ${aeChannelUtilityPixelShaderCases}
 ${aeDrawGeneratorPixelShaderCases}
+${aeDetailProcessingPixelShaderCases}
 ${aeAdvancedTransitionPixelShaderCases}
 ${aeSimulationPixelShaderCases}
 ${aeAdvancedStylizePixelShaderCases}

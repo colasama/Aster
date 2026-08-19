@@ -333,6 +333,14 @@ describe("GPU effect program compiler", () => {
     ["write-on", EffectOpcode.WriteOn],
     ["eyedropper-fill", EffectOpcode.EyedropperFill],
     ["paint-bucket", EffectOpcode.PaintBucket],
+    ["detail-preserving-upscale", EffectOpcode.DetailPreservingUpscale],
+    ["reduce-interlace-flicker", EffectOpcode.ReduceInterlaceFlicker],
+    ["deband", EffectOpcode.Deband],
+    ["denoise", EffectOpcode.Denoise],
+    ["clarity", EffectOpcode.Clarity],
+    ["local-contrast", EffectOpcode.LocalContrast],
+    ["smart-sharpen", EffectOpcode.SmartSharpen],
+    ["frequency-separation", EffectOpcode.FrequencySeparation],
   ])("compiles %s into its dedicated GPU opcode", (type, opcode) => {
     const composition = activeComposition(createDemoProject());
     composition.layers.forEach((layer) => {

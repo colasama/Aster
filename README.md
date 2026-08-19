@@ -27,8 +27,8 @@ frames. Rendering, effects, particles, and composition are designed to remain GP
 - Full/Half/Quarter preview resolution, dual Active/Custom views, lossless 4K PNG frame export,
   cancellable native PNG sequence rendering with progress, local autosave recovery, and atomic
   native project persistence.
-- Data-driven catalog of 218 blur, color, channel, distort, generate, stylize, keying, time,
-  transition, simulation, matte, perspective, layer-style, noise, and Looks effects, including 216 ordered GPU
+- Data-driven catalog of 226 blur, color, channel, distort, generate, stylize, keying, time,
+  transition, simulation, matte, perspective, layer-style, noise, and Looks effects, including 224 ordered GPU
   opcodes.
 - Professional channel and keying tools include Set Channels, Arithmetic, Alpha Levels, Remove
   Color Matting, Linear Color Key, Color Range, Matte Choker, and GPU Keylight.
@@ -36,6 +36,8 @@ frames. Rendering, effects, particles, and composition are designed to remain GP
   composite, bounded pre/unpremultiplication, luminance mattes, Set Matte, and soft HDR clamping.
 - Advanced blur and sharpening includes per-channel and compound blur, Smart Blur, CC Vector Blur,
   CC Radial Fast Blur, High Pass, Cross Blur, and thresholded edge sharpening.
+- Fixed-cost detail processing adds detail-preserving upscale, interlace stabilization, Deband,
+  bilateral Denoise, Clarity, Local Contrast, Smart Sharpen, and Frequency Separation views.
 - GPU perspective and UV deformation includes Spherize, Optics Compensation, CC Bend It,
   CC Cylinder, CC Sphere, Mesh Warp, multi-style Warp, and shaded CC Page Turn.
 - Advanced single-pass UV distortion includes Bezier Warp, CC Flo Motion, CC Griddler, CC Power
