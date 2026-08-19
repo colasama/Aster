@@ -154,4 +154,12 @@ export enum EffectOpcode {
   ScaleWipe = 153,
   Twister = 154,
   CardWipe = 155,
+  Bubbles = 156,
+  Drizzle = 157,
+  Hair = 158,
+  MrMercury = 159,
+  ParticleSystemsII = 160,
+  PixelPolly = 161,
+  Scatterize = 162,
+  WaveWorld = 163,
 }

@@ -2,6 +2,10 @@ import { aePixelShaderCases, aeWarpShaderCases } from "./ae-effect-shader-cases"
 import { aeLayerStylePixelShaderCases } from "./ae-layer-style-shader-cases";
 import { aeNoiseGrainPixelShaderCases } from "./ae-noise-grain-shader-cases";
 import {
+  aeSimulationPixelShaderCases,
+  aeSimulationWarpShaderCases,
+} from "./ae-simulation-shader-cases";
+import {
   aeAdvancedTransitionPixelShaderCases,
   aeAdvancedTransitionWarpShaderCases,
 } from "./ae-transition-shader-cases";
@@ -273,6 +277,7 @@ fn fragment_main(input: VertexOutput) -> @location(0) vec4f {
       }
 ${aeWarpShaderCases}
 ${aeAdvancedTransitionWarpShaderCases}
+${aeSimulationWarpShaderCases}
       case 106u: {
         active_warp_mask = effect_mask_value(effect, input.uv, resolution);
       }
@@ -793,6 +798,7 @@ ${aePixelShaderCases}
 ${aeLayerStylePixelShaderCases}
 ${aeNoiseGrainPixelShaderCases}
 ${aeAdvancedTransitionPixelShaderCases}
+${aeSimulationPixelShaderCases}
       case 106u: {
         active_pixel_mask = effect_mask_value(effect, input.uv, resolution);
       }

@@ -270,6 +270,14 @@ describe("GPU effect program compiler", () => {
     ["scale-wipe", EffectOpcode.ScaleWipe],
     ["twister", EffectOpcode.Twister],
     ["card-wipe", EffectOpcode.CardWipe],
+    ["bubbles", EffectOpcode.Bubbles],
+    ["drizzle", EffectOpcode.Drizzle],
+    ["hair", EffectOpcode.Hair],
+    ["mr-mercury", EffectOpcode.MrMercury],
+    ["particle-systems-ii", EffectOpcode.ParticleSystemsII],
+    ["pixel-polly", EffectOpcode.PixelPolly],
+    ["scatterize", EffectOpcode.Scatterize],
+    ["wave-world", EffectOpcode.WaveWorld],
   ])("compiles %s into its dedicated GPU opcode", (type, opcode) => {
     const composition = activeComposition(createDemoProject());
     composition.layers.forEach((layer) => {
