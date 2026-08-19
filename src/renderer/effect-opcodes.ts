@@ -122,4 +122,12 @@ export enum EffectOpcode {
   HighPass = 121,
   SharpenEdges = 122,
   CompoundBlur = 123,
+  Spherize = 124,
+  OpticsCompensation = 125,
+  BendIt = 126,
+  Cylinder = 127,
+  Sphere = 128,
+  MeshWarp = 129,
+  Warp = 130,
+  PageTurn = 131,
 }

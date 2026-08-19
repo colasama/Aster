@@ -238,6 +238,14 @@ describe("GPU effect program compiler", () => {
     ["high-pass", EffectOpcode.HighPass],
     ["sharpen-edges", EffectOpcode.SharpenEdges],
     ["compound-blur", EffectOpcode.CompoundBlur],
+    ["spherize", EffectOpcode.Spherize],
+    ["optics-compensation", EffectOpcode.OpticsCompensation],
+    ["bend-it", EffectOpcode.BendIt],
+    ["cylinder", EffectOpcode.Cylinder],
+    ["sphere", EffectOpcode.Sphere],
+    ["mesh-warp", EffectOpcode.MeshWarp],
+    ["warp", EffectOpcode.Warp],
+    ["page-turn", EffectOpcode.PageTurn],
   ])("compiles %s into its dedicated GPU opcode", (type, opcode) => {
     const composition = activeComposition(createDemoProject());
     composition.layers.forEach((layer) => {

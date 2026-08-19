@@ -5,6 +5,7 @@ import { AE_CHANNEL_KEYING_EFFECTS } from "./ae-channel-keying";
 import { AE_COLOR_EFFECTS } from "./ae-color";
 import { AE_ENVIRONMENT_EFFECTS } from "./ae-environment";
 import { AE_GENERATOR_EFFECTS } from "./ae-generators";
+import { AE_PERSPECTIVE_EFFECTS } from "./ae-perspective";
 import { AE_STYLIZE_TRANSITION_EFFECTS } from "./ae-stylize-transitions";
 import { angle, choice, color, number, percent, toggle } from "./parameter-builders";
 import type { EffectDefinition } from "./types";
@@ -843,6 +844,7 @@ export const EFFECT_REGISTRY: EffectDefinition[] = [
   ...AE_COLOR_EFFECTS,
   ...AE_CHANNEL_KEYING_EFFECTS,
   ...AE_BLUR_SHARPEN_EFFECTS,
+  ...AE_PERSPECTIVE_EFFECTS,
 ];
 
 export const EFFECT_BY_TYPE = new Map(EFFECT_REGISTRY.map((effect) => [effect.type, effect]));

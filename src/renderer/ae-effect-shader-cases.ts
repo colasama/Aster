@@ -79,6 +79,96 @@ export const aeWarpShaderCases = /* wgsl */ `
         ) * 2.0 - vec2f(1.0);
         uv += random_offset * effect.header.yz / resolution;
       }
+      case 124u: {
+        let center = effect.header.yz;
+        let delta = (uv - center) * resolution;
+        let distance = length(delta);
+        let radius = max(effect.header.w, 0.0001);
+        let region = 1.0 - smoothstep(radius * 0.82, radius, distance);
+        let profile = pow(clamp(1.0 - distance / radius, 0.0, 1.0), 1.5);
+        let distorted = center + delta * (1.0 - effect.p0.x * profile * 0.72) / resolution;
+        uv = mix(uv, distorted, region);
+      }
+      case 125u: {
+        let center = vec2f(effect.header.w, effect.p0.x);
+        let scale = max(effect.p0.y, 0.01);
+        let aspect = vec2f(resolution.x / resolution.y, 1.0);
+        let centered_uv = (uv - center) * aspect / scale;
+        let radius_squared = dot(centered_uv, centered_uv);
+        let strength = tan(clamp(effect.header.y, 0.0, 0.99) * 1.5707963) * 0.16;
+        let signed_strength = select(strength, -strength, effect.header.z > 0.5);
+        uv = center + centered_uv * (1.0 + signed_strength * radius_squared) * scale / aspect;
+      }
+      case 126u: {
+        let start = effect.header.yz * resolution;
+        let end = vec2f(effect.header.w, effect.p0.x) * resolution;
+        let axis = end - start;
+        let axis_length = max(length(axis), 0.0001);
+        let direction = axis / axis_length;
+        let normal = vec2f(-direction.y, direction.x);
+        let progress = dot(uv * resolution - start, direction) / axis_length;
+        let window = sin(clamp(progress, 0.0, 1.0) * 3.14159265)
+          * step(0.0, progress) * step(progress, 1.0);
+        uv -= normal * window * effect.p0.y / resolution;
+      }
+      case 127u: {
+        let center = effect.header.yz;
+        let radius = max(effect.header.w, 1.0);
+        let local = rotate2((uv - center) * resolution, -effect.p0.x);
+        let normalized_x = clamp(local.x / radius, -0.999, 0.999);
+        let cylindrical_x = asin(normalized_x) * radius;
+        let wrapped = vec2f(mix(local.x, cylindrical_x, effect.p0.y), local.y);
+        let projected = center + rotate2(wrapped, effect.p0.x) / resolution;
+        uv = mix(uv, projected, step(abs(local.x), radius));
+      }
+      case 128u: {
+        let center = effect.header.yz;
+        let radius = max(effect.header.w, 1.0);
+        let local = (uv - center) * resolution / max(effect.p0.y, 0.01);
+        let distance = length(local);
+        let depth = sqrt(max(radius * radius - distance * distance, 0.0));
+        let longitude = atan2(local.x, depth) + effect.p0.x;
+        let latitude = asin(clamp(local.y / radius, -1.0, 1.0));
+        let spherical = center + vec2f(longitude / 3.14159265, latitude / 1.5707963)
+          * radius / resolution;
+        uv = mix(uv, spherical, 1.0 - smoothstep(radius * 0.98, radius, distance));
+      }
+      case 129u: {
+        let horizontal = sin(uv.y * effect.p0.x * 6.283185 + effect.p0.y) * effect.header.y;
+        let vertical = sin(uv.x * effect.header.w * 6.283185 + effect.p0.y) * effect.header.z;
+        uv += vec2f(horizontal, vertical) * effect.p0.z / resolution;
+      }
+      case 130u: {
+        var local = rotate2(uv - vec2f(0.5), -effect.p0.y);
+        if effect.header.y < 0.5 {
+          local.y += (local.x * local.x - 0.25) * effect.header.z;
+        } else if effect.header.y < 1.5 {
+          local.y += sin((local.x + 0.5) * 6.283185) * effect.header.z * 0.28;
+        } else if effect.header.y < 2.5 {
+          local += vec2f(
+            sin((local.y + 0.5) * 6.283185),
+            sin((local.x + 0.5) * 6.283185),
+          ) * effect.header.z * 0.2;
+        } else {
+          let radius_squared = dot(local, local) * 4.0;
+          local *= 1.0 + effect.header.z * (1.0 - radius_squared) * 0.6;
+        }
+        local += vec2f(local.y * effect.header.w, local.x * effect.p0.x) * 0.5;
+        uv = rotate2(local, effect.p0.y) + vec2f(0.5);
+      }
+      case 131u: {
+        let direction = vec2f(cos(effect.header.z), sin(effect.header.z));
+        let diagonal = length(resolution);
+        let pixel = (uv - vec2f(0.5)) * resolution;
+        let coordinate = dot(pixel, direction);
+        let boundary = (effect.header.y - 0.5) * diagonal;
+        let fold_distance = coordinate - boundary;
+        if fold_distance > 0.0 {
+          let curl = min(fold_distance / max(effect.header.w, 1.0), 3.14159265);
+          let curled_coordinate = boundary + sin(curl) * effect.header.w;
+          uv += direction * (curled_coordinate - coordinate) / resolution;
+        }
+      }
 `;
 
 export const aePixelShaderCases = /* wgsl */ `
@@ -796,5 +886,19 @@ export const aePixelShaderCases = /* wgsl */ `
         map_value = select(map_value, 1.0 - map_value, effect.header.w > 0.5);
         let radius = effect.header.y * pow(clamp(map_value, 0.0, 1.0), max(effect.p0.x, 0.1));
         color = mix(color, sample_blur(uv, radius), effect.p0.y);
+      }
+      case 131u: {
+        let direction = vec2f(cos(effect.header.z), sin(effect.header.z));
+        let diagonal = length(resolution);
+        let coordinate = dot((input.uv - vec2f(0.5)) * resolution, direction);
+        let boundary = (effect.header.y - 0.5) * diagonal;
+        let curl = clamp(
+          (coordinate - boundary) / max(effect.header.w, 1.0),
+          0.0,
+          3.14159265,
+        );
+        let back_face = smoothstep(1.45, 1.72, curl) * (1.0 - smoothstep(3.0, 3.14159265, curl));
+        let fold_shade = 0.7 + 0.3 * abs(cos(curl));
+        color = mix(color * fold_shade, effect.p0.xyz * fold_shade, back_face * effect.p0.w);
       }
 `;
