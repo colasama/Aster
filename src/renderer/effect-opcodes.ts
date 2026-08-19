@@ -225,4 +225,12 @@ export enum EffectOpcode {
   LocalContrast = 224,
   SmartSharpen = 225,
   FrequencySeparation = 226,
+  PrinterLights = 227,
+  HueVsHue = 228,
+  HueVsSaturation = 229,
+  LumaVsSaturation = 230,
+  ShadowDesaturate = 231,
+  HighlightTint = 232,
+  FilmicToneMap = 233,
+  SkinToneRefine = 234,
 }

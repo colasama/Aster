@@ -1,5 +1,6 @@
 import { aeAdvancedDistortWarpShaderCases } from "./ae-advanced-distort-shader-cases";
 import { aeChannelUtilityPixelShaderCases } from "./ae-channel-utility-shader-cases";
+import { aeColorPipelinePixelShaderCases } from "./ae-color-pipeline-shader-cases";
 import { aeDetailProcessingPixelShaderCases } from "./ae-detail-processing-shader-cases";
 import { aeDrawGeneratorPixelShaderCases } from "./ae-draw-generator-shader-cases";
 import { aePixelShaderCases, aeWarpShaderCases } from "./ae-effect-shader-cases";
@@ -183,6 +184,22 @@ fn hue_color(angle: f32) -> vec3f {
 fn hue_rotate(color: vec3f, angle: f32) -> vec3f {
   let axis = normalize(vec3f(1.0));
   return color * cos(angle) + cross(axis, color) * sin(angle) + axis * dot(axis, color) * (1.0 - cos(angle));
+}
+
+fn rgb_hue(color: vec3f) -> f32 {
+  let maximum = max(color.r, max(color.g, color.b));
+  let minimum = min(color.r, min(color.g, color.b));
+  let chroma = maximum - minimum;
+  if chroma < 0.000001 {
+    return 0.0;
+  }
+  var sector = (color.g - color.b) / chroma;
+  if maximum == color.g {
+    sector = 2.0 + (color.b - color.r) / chroma;
+  } else if maximum == color.b {
+    sector = 4.0 + (color.r - color.g) / chroma;
+  }
+  return fract(sector / 6.0 + 1.0) * 6.283185;
 }
 
 fn sample_lut_tetrahedral(coordinate: vec3f) -> vec3f {
@@ -827,6 +844,7 @@ ${aeMatteRefinePixelShaderCases}
 ${aeNoiseGrainPixelShaderCases}
 ${aeProfessionalColorPixelShaderCases}
 ${aeChannelUtilityPixelShaderCases}
+${aeColorPipelinePixelShaderCases}
 ${aeDrawGeneratorPixelShaderCases}
 ${aeDetailProcessingPixelShaderCases}
 ${aeAdvancedTransitionPixelShaderCases}

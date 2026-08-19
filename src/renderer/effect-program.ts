@@ -6,6 +6,7 @@ import { compileAdvancedDistortEffect } from "./effect-program-advanced-distort"
 import { compileBlurSharpenEffect } from "./effect-program-blur-sharpen";
 import { compileChannelKeyingEffect } from "./effect-program-channel-keying";
 import { compileChannelUtilityEffect } from "./effect-program-channel-utility";
+import { compileColorPipelineEffect } from "./effect-program-color-pipeline";
 import { compileDetailProcessingEffect } from "./effect-program-detail-processing";
 import { compileDrawGeneratorEffect } from "./effect-program-draw-generators";
 import { compileLayerStyleEffect } from "./effect-program-layer-styles";
@@ -73,6 +74,7 @@ function compileEffect(
   if (compileBlurSharpenEffect(effect, time, emit)) return;
   if (compileChannelKeyingEffect(effect, time, emit)) return;
   if (compileChannelUtilityEffect(effect, time, emit)) return;
+  if (compileColorPipelineEffect(effect, time, emit)) return;
   if (compileDrawGeneratorEffect(effect, time, emit)) return;
   if (compileDetailProcessingEffect(effect, time, emit)) return;
   if (compileLayerStyleEffect(effect, time, emit)) return;

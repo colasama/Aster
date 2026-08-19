@@ -4,6 +4,7 @@ import { AE_BLUR_SHARPEN_EFFECTS } from "./ae-blur-sharpen";
 import { AE_CHANNEL_KEYING_EFFECTS } from "./ae-channel-keying";
 import { AE_CHANNEL_UTILITY_EFFECTS } from "./ae-channel-utility";
 import { AE_COLOR_EFFECTS } from "./ae-color";
+import { AE_COLOR_PIPELINE_EFFECTS } from "./ae-color-pipeline";
 import { AE_PROFESSIONAL_COLOR_EFFECTS } from "./ae-color-professional";
 import { AE_DETAIL_PROCESSING_EFFECTS } from "./ae-detail-processing";
 import { AE_ADVANCED_DISTORT_EFFECTS } from "./ae-distort-advanced";
@@ -854,6 +855,7 @@ export const EFFECT_REGISTRY: EffectDefinition[] = [
   ...AE_ENVIRONMENT_EFFECTS,
   ...AE_STYLIZE_TRANSITION_EFFECTS,
   ...AE_COLOR_EFFECTS,
+  ...AE_COLOR_PIPELINE_EFFECTS,
   ...AE_CHANNEL_KEYING_EFFECTS,
   ...AE_CHANNEL_UTILITY_EFFECTS,
   ...AE_BLUR_SHARPEN_EFFECTS,

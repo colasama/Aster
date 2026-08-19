@@ -341,6 +341,14 @@ describe("GPU effect program compiler", () => {
     ["local-contrast", EffectOpcode.LocalContrast],
     ["smart-sharpen", EffectOpcode.SmartSharpen],
     ["frequency-separation", EffectOpcode.FrequencySeparation],
+    ["printer-lights", EffectOpcode.PrinterLights],
+    ["hue-vs-hue", EffectOpcode.HueVsHue],
+    ["hue-vs-saturation", EffectOpcode.HueVsSaturation],
+    ["luma-vs-saturation", EffectOpcode.LumaVsSaturation],
+    ["shadow-desaturate", EffectOpcode.ShadowDesaturate],
+    ["highlight-tint", EffectOpcode.HighlightTint],
+    ["filmic-tone-map", EffectOpcode.FilmicToneMap],
+    ["skin-tone-refine", EffectOpcode.SkinToneRefine],
   ])("compiles %s into its dedicated GPU opcode", (type, opcode) => {
     const composition = activeComposition(createDemoProject());
     composition.layers.forEach((layer) => {
