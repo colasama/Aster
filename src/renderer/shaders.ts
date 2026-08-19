@@ -4,6 +4,7 @@ import { aeColorPipelinePixelShaderCases } from "./ae-color-pipeline-shader-case
 import { aeDetailProcessingPixelShaderCases } from "./ae-detail-processing-shader-cases";
 import { aeDrawGeneratorPixelShaderCases } from "./ae-draw-generator-shader-cases";
 import { aePixelShaderCases, aeWarpShaderCases } from "./ae-effect-shader-cases";
+import { aeKeyingCleanupPixelShaderCases } from "./ae-keying-cleanup-shader-cases";
 import { aeLayerStylePixelShaderCases } from "./ae-layer-style-shader-cases";
 import { aeLightingPixelShaderCases } from "./ae-lighting-shader-cases";
 import { aeMatteRefinePixelShaderCases } from "./ae-matte-shader-cases";
@@ -839,6 +840,7 @@ ${aeAdvancedDistortWarpShaderCases}
       }
 ${aePixelShaderCases}
 ${aeLayerStylePixelShaderCases}
+${aeKeyingCleanupPixelShaderCases}
 ${aeLightingPixelShaderCases}
 ${aeMatteRefinePixelShaderCases}
 ${aeNoiseGrainPixelShaderCases}

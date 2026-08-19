@@ -349,6 +349,14 @@ describe("GPU effect program compiler", () => {
     ["highlight-tint", EffectOpcode.HighlightTint],
     ["filmic-tone-map", EffectOpcode.FilmicToneMap],
     ["skin-tone-refine", EffectOpcode.SkinToneRefine],
+    ["key-cleaner", EffectOpcode.KeyCleaner],
+    ["screen-matte", EffectOpcode.ScreenMatte],
+    ["core-matte", EffectOpcode.CoreMatte],
+    ["despot", EffectOpcode.Despot],
+    ["edge-extend", EffectOpcode.EdgeExtend],
+    ["edge-color-blend", EffectOpcode.EdgeColorBlend],
+    ["spill-killer", EffectOpcode.SpillKiller],
+    ["wire-removal", EffectOpcode.WireRemoval],
   ])("compiles %s into its dedicated GPU opcode", (type, opcode) => {
     const composition = activeComposition(createDemoProject());
     composition.layers.forEach((layer) => {

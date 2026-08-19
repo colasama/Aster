@@ -233,4 +233,12 @@ export enum EffectOpcode {
   HighlightTint = 232,
   FilmicToneMap = 233,
   SkinToneRefine = 234,
+  KeyCleaner = 235,
+  ScreenMatte = 236,
+  CoreMatte = 237,
+  Despot = 238,
+  EdgeExtend = 239,
+  EdgeColorBlend = 240,
+  SpillKiller = 241,
+  WireRemoval = 242,
 }

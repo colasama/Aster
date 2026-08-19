@@ -1235,6 +1235,7 @@ aster/
 - [x] GPU Procedural Simulation（Bubbles、Drizzle、Hair、Mercury、Particles、Pixel Polly）。
 - [x] GPU Advanced Stylize（Halftone、Glowing Edges、Texture、Toner、Plastic、Blobbylize）。
 - [x] GPU Matte Refine（Hard / Soft、Feather、Cleanup、Decontaminate、Light Wrap）。
+- [x] GPU Keying Cleanup（Key Cleaner、Screen / Core Matte、Despot、Edge Extend / Blend、Spill Killer、Wire Removal）。
 - [x] GPU HDR Lighting（Rays、Spotlight、Light Leak、Flare、Fog、Caustics、Laser）。
 - [x] GPU Draw / Generate（Ellipse、Stroke、Vegas、Scribble、Write-on、Eyedropper Fill、Paint Bucket）。
 - [x] GPU 专业调色（ASC CDL、RGB Lift / Gamma / Gain、Log Wheels、HSL Secondary、Highlight Recovery、Gamut Compressor、False Color、Film Print Density）。

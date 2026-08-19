@@ -11,6 +11,7 @@ import { AE_ADVANCED_DISTORT_EFFECTS } from "./ae-distort-advanced";
 import { AE_DRAW_GENERATOR_EFFECTS } from "./ae-draw-generators";
 import { AE_ENVIRONMENT_EFFECTS } from "./ae-environment";
 import { AE_GENERATOR_EFFECTS } from "./ae-generators";
+import { AE_KEYING_CLEANUP_EFFECTS } from "./ae-keying-cleanup";
 import { AE_LAYER_STYLE_EFFECTS } from "./ae-layer-styles";
 import { AE_LIGHTING_EFFECTS } from "./ae-lighting";
 import { AE_MATTE_REFINE_EFFECTS } from "./ae-matte-refine";
@@ -857,6 +858,7 @@ export const EFFECT_REGISTRY: EffectDefinition[] = [
   ...AE_COLOR_EFFECTS,
   ...AE_COLOR_PIPELINE_EFFECTS,
   ...AE_CHANNEL_KEYING_EFFECTS,
+  ...AE_KEYING_CLEANUP_EFFECTS,
   ...AE_CHANNEL_UTILITY_EFFECTS,
   ...AE_BLUR_SHARPEN_EFFECTS,
   ...AE_PERSPECTIVE_EFFECTS,
