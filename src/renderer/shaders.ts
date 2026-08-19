@@ -1,3 +1,4 @@
+import { aeAdvancedDistortWarpShaderCases } from "./ae-advanced-distort-shader-cases";
 import { aePixelShaderCases, aeWarpShaderCases } from "./ae-effect-shader-cases";
 import { aeLayerStylePixelShaderCases } from "./ae-layer-style-shader-cases";
 import { aeLightingPixelShaderCases } from "./ae-lighting-shader-cases";
@@ -299,6 +300,7 @@ ${aeWarpShaderCases}
 ${aeAdvancedTransitionWarpShaderCases}
 ${aeSimulationWarpShaderCases}
 ${aeAdvancedStylizeWarpShaderCases}
+${aeAdvancedDistortWarpShaderCases}
       case 106u: {
         active_warp_mask = effect_mask_value(effect, input.uv, resolution);
       }

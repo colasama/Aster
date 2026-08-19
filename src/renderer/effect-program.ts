@@ -2,6 +2,7 @@ import { visibleLayersAtTime } from "../core/scene-evaluation";
 import { evaluateEffectParameter } from "../core/timeline";
 import type { Composition, Effect, Layer } from "../core/types";
 import { EffectOpcode } from "./effect-opcodes";
+import { compileAdvancedDistortEffect } from "./effect-program-advanced-distort";
 import { compileBlurSharpenEffect } from "./effect-program-blur-sharpen";
 import { compileChannelKeyingEffect } from "./effect-program-channel-keying";
 import { compileLayerStyleEffect } from "./effect-program-layer-styles";
@@ -65,6 +66,7 @@ function compileEffect(
   time: number,
   emit: (opcode: EffectOpcode, parameters: number[]) => void,
 ): void {
+  if (compileAdvancedDistortEffect(effect, time, emit)) return;
   if (compileBlurSharpenEffect(effect, time, emit)) return;
   if (compileChannelKeyingEffect(effect, time, emit)) return;
   if (compileLayerStyleEffect(effect, time, emit)) return;

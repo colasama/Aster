@@ -194,4 +194,12 @@ export enum EffectOpcode {
   GamutCompressor = 193,
   FalseColor = 194,
   FilmPrintDensity = 195,
+  BezierWarp = 196,
+  FloMotion = 197,
+  Griddler = 198,
+  PowerPin = 199,
+  RipplePulse = 200,
+  Slant = 201,
+  Smear = 202,
+  Split = 203,
 }

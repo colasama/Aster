@@ -310,6 +310,14 @@ describe("GPU effect program compiler", () => {
     ["gamut-compressor", EffectOpcode.GamutCompressor],
     ["false-color", EffectOpcode.FalseColor],
     ["film-print-density", EffectOpcode.FilmPrintDensity],
+    ["bezier-warp", EffectOpcode.BezierWarp],
+    ["flo-motion", EffectOpcode.FloMotion],
+    ["griddler", EffectOpcode.Griddler],
+    ["power-pin", EffectOpcode.PowerPin],
+    ["ripple-pulse", EffectOpcode.RipplePulse],
+    ["slant", EffectOpcode.Slant],
+    ["smear", EffectOpcode.Smear],
+    ["split", EffectOpcode.Split],
   ])("compiles %s into its dedicated GPU opcode", (type, opcode) => {
     const composition = activeComposition(createDemoProject());
     composition.layers.forEach((layer) => {

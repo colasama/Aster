@@ -1226,6 +1226,7 @@ aster/
 - [x] GPU Channel / Keying 工具（Set Channels、Color Range、Matte Choker、Keylight 等）。
 - [x] GPU 高级 Blur / Sharpen 工具（Channel、Compound、Vector、Radial、High Pass 等）。
 - [x] GPU Perspective / UV Warp 工具（Sphere、Cylinder、Bend、Mesh、Page Turn 等）。
+- [x] GPU Advanced Distort（Bezier、Flo Motion、Griddler、Power Pin、Ripple Pulse、Slant、Smear、Split）。
 - [x] GPU Layer Styles（Glow、Stroke、Inner Shadow、Bevel、Satin、Overlay）。
 - [x] GPU Noise & Grain（Add / Remove Grain、Median、HLS / Alpha Noise、Turbulence）。
 - [x] GPU Advanced Transitions（Clock、Grid、Jaws、Light、Scale、Twister、Card Wipe）。
