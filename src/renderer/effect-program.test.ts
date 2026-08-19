@@ -121,6 +121,14 @@ describe("GPU effect program compiler", () => {
     ["roughen-edges", EffectOpcode.RoughenEdges],
     ["light-burst", EffectOpcode.LightBurst],
     ["radial-shadow", EffectOpcode.RadialShadow],
+    ["ball-action", EffectOpcode.BallAction],
+    ["hex-tile", EffectOpcode.HexTile],
+    ["beam", EffectOpcode.Beam],
+    ["radio-waves", EffectOpcode.RadioWaves],
+    ["advanced-lightning", EffectOpcode.AdvancedLightning],
+    ["circle", EffectOpcode.Circle],
+    ["star-burst", EffectOpcode.StarBurst],
+    ["polar-coordinates", EffectOpcode.PolarCoordinates],
   ])("compiles %s into its dedicated GPU opcode", (type, opcode) => {
     const composition = activeComposition(createDemoProject());
     composition.layers.forEach((layer) => {

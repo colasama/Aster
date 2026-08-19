@@ -70,6 +70,14 @@ export enum EffectOpcode {
   RoughenEdges = 62,
   LightBurst = 63,
   RadialShadow = 64,
+  BallAction = 65,
+  HexTile = 66,
+  Beam = 67,
+  RadioWaves = 68,
+  AdvancedLightning = 69,
+  Circle = 70,
+  StarBurst = 71,
+  PolarCoordinates = 72,
 }
 
 export interface EffectProgram {
@@ -521,6 +529,102 @@ function compileEffect(
         value("opacity", 55) / 100,
         value("softness", 18),
         ...color("color", 0x08101f),
+      ]);
+      break;
+    case "ball-action":
+      emit(EffectOpcode.BallAction, [
+        value("gridSize", 36),
+        value("ballSize", 72) / 100,
+        value("scatter"),
+        degrees(value("twist")),
+        value("blend", 100) / 100,
+      ]);
+      break;
+    case "hex-tile":
+      emit(EffectOpcode.HexTile, [
+        value("tileSize", 64),
+        value("centerX", 50) / 100,
+        value("centerY", 50) / 100,
+        degrees(value("rotation")),
+        value("scale", 100) / 100,
+        value("blend", 100) / 100,
+      ]);
+      break;
+    case "beam":
+      emit(EffectOpcode.Beam, [
+        value("startX", 25) / 100,
+        value("startY", 50) / 100,
+        value("endX", 75) / 100,
+        value("endY", 50) / 100,
+        value("thickness", 12),
+        value("softness", 8),
+        value("intensity", 2),
+        ...color("startColor", 0xe8fbff),
+        value("blend", 100) / 100,
+        ...color("endColor", 0x3293ff),
+      ]);
+      break;
+    case "radio-waves":
+      emit(EffectOpcode.RadioWaves, [
+        value("centerX", 50) / 100,
+        value("centerY", 50) / 100,
+        value("frequency", 6),
+        value("speed", 120),
+        value("width", 4),
+        value("intensity", 1.5),
+        value("fade", 65) / 100,
+        ...color("color", 0x56c8ff),
+        value("blend", 100) / 100,
+      ]);
+      break;
+    case "advanced-lightning":
+      emit(EffectOpcode.AdvancedLightning, [
+        value("startX", 28) / 100,
+        value("startY", 20) / 100,
+        value("endX", 72) / 100,
+        value("endY", 80) / 100,
+        value("amplitude", 48),
+        value("frequency", 8),
+        value("evolution"),
+        value("thickness", 2.5),
+        value("glow", 22),
+        ...color("color", 0xbde8ff),
+        value("blend", 100) / 100,
+      ]);
+      break;
+    case "circle":
+      emit(EffectOpcode.Circle, [
+        value("centerX", 50) / 100,
+        value("centerY", 50) / 100,
+        value("radius", 240),
+        value("thickness", 12),
+        value("feather", 2),
+        value("mode"),
+        ...color("color", 0x52a8ff),
+        value("opacity", 100) / 100,
+        value("blend", 100) / 100,
+      ]);
+      break;
+    case "star-burst":
+      emit(EffectOpcode.StarBurst, [
+        value("centerX", 50) / 100,
+        value("centerY", 50) / 100,
+        value("rays", 24),
+        value("radius", 420),
+        degrees(value("rotation")),
+        value("sharpness", 12),
+        value("intensity", 1.2),
+        ...color("color", 0x70b7ff),
+        value("blend", 100) / 100,
+      ]);
+      break;
+    case "polar-coordinates":
+      emit(EffectOpcode.PolarCoordinates, [
+        value("mode"),
+        value("interpolation", 100) / 100,
+        value("centerX", 50) / 100,
+        value("centerY", 50) / 100,
+        degrees(value("rotation")),
       ]);
       break;
   }

@@ -1,5 +1,6 @@
 import { createId, type Effect } from "../core/types";
 import { ADDITIONAL_AE_EFFECTS } from "./ae-additional";
+import { AE_GENERATOR_EFFECTS } from "./ae-generators";
 import { angle, choice, color, number, percent, toggle } from "./parameter-builders";
 import type { EffectDefinition } from "./types";
 
@@ -831,6 +832,7 @@ export const EFFECT_REGISTRY: EffectDefinition[] = [
     ],
   },
   ...ADDITIONAL_AE_EFFECTS,
+  ...AE_GENERATOR_EFFECTS,
 ];
 
 export const EFFECT_BY_TYPE = new Map(EFFECT_REGISTRY.map((effect) => [effect.type, effect]));

@@ -1055,6 +1055,10 @@ aster/
 - [x] 实现 Glow / Bloom。
 - [x] 实现 Chromatic Aberration。
 - [x] 实现简单 Displacement。
+- [x] 实现 CC Ball Action / CC HexTile。
+- [x] 实现 Beam / Radio Waves / Advanced Lightning。
+- [x] 实现 Circle / CC Star Burst。
+- [x] 实现 Polar Coordinates。
 - [x] 建立 Effect parameter uniform abstraction。
 - [x] 建立 Effect pass abstraction。
 
