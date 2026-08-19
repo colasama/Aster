@@ -46,7 +46,7 @@ frames. Rendering, effects, particles, and composition are designed to remain GP
   Pixel Polly, Scatterize, and damped Wave World.
 - Advanced stylization includes Color Halftone, Glowing Edges, Texturize, Tiles, CC Threshold,
   CC Toner, CC Plastic, and CC Blobbylize.
-- Sixteen one-click Looks chains with palette previews and transactional undo, complete Color Lab
+- Twenty-four one-click Looks chains with palette previews and transactional undo, complete Color Lab
   lift/pivot/gain controls, and stock-sensitive film emulation.
 - Searchable Effects Browser with persistent favorites and a bounded recently-used GPU effect list.
 - Persistent custom effect-chain presets capture ordered parameters, local masks, and parameter

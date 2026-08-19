@@ -1220,6 +1220,7 @@ aster/
 - [x] Effects Browser。
 - [x] Effects Browser 收藏与最近使用持久化。
 - [x] 自定义 Effect Chain 预设保存、持久化、应用、删除与单步撤销。
+- [x] 24 套内置 Looks（调色、胶片、夜景、VHS、印刷与风格化链）。
 - [x] Effect Chain 顺序化执行、Inspector 重排与撤销。
 - [x] Effect 局部椭圆 / 矩形 Mask、羽化、不透明度、反转与工程持久化。
 - [x] GPU Channel / Keying 工具（Set Channels、Color Range、Matte Choker、Keylight 等）。

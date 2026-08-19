@@ -337,6 +337,172 @@ export const LOOK_PRESETS: EffectPreset[] = [
       },
     ],
   },
+  {
+    id: "day-for-night",
+    name: "Day for Night",
+    description: "Underexposed moonlit blues with protected highlights and cool shadow density.",
+    palette: ["#071426", "#164674", "#8db5c9"],
+    effects: [
+      {
+        type: "white-balance",
+        parameters: { temperature: -0.52, tint: -0.08, adaptation: 92 },
+      },
+      {
+        type: "looks-color-lab",
+        parameters: {
+          exposure: -1.15,
+          contrast: 1.26,
+          pivot: 0.32,
+          saturation: 0.68,
+          lift: -0.025,
+          vignette: 0.48,
+          grain: 0.035,
+        },
+      },
+      {
+        type: "split-tone",
+        parameters: {
+          shadowHue: 222,
+          shadowAmount: 0.24,
+          highlightHue: 188,
+          highlightAmount: 0.08,
+        },
+      },
+    ],
+  },
+  {
+    id: "sodium-vapor",
+    name: "Sodium Vapor",
+    description: "Monochromatic amber streetlight response with dense blacks and soft halation.",
+    palette: ["#1b1005", "#a94f12", "#ffd36a"],
+    effects: [
+      {
+        type: "tritone",
+        parameters: { shadows: 0x140c05, midtones: 0xa94f12, highlights: 0xffd36a, blend: 96 },
+      },
+      { type: "glow", parameters: { threshold: 0.7, radius: 52, intensity: 0.65 } },
+      {
+        type: "looks-color-lab",
+        parameters: { contrast: 1.28, pivot: 0.35, saturation: 0.58, vignette: 0.36 },
+      },
+    ],
+  },
+  {
+    id: "vintage-print",
+    name: "Vintage Print",
+    description: "Warm print stock with faded blacks, tactile grain, and restrained color density.",
+    palette: ["#3a2e2a", "#a47d63", "#e7c7a3"],
+    effects: [
+      {
+        type: "film-emulation",
+        parameters: { stock: 0, strength: 0.78, grain: 0.11, halation: 0.07, weave: 0.65 },
+      },
+      {
+        type: "looks-color-lab",
+        parameters: {
+          temperature: 0.11,
+          contrast: 0.92,
+          lift: 0.045,
+          gain: 0.93,
+          fade: 0.13,
+          saturation: 0.84,
+          vignette: 0.22,
+        },
+      },
+    ],
+  },
+  {
+    id: "editorial-pop",
+    name: "Editorial Pop",
+    description: "Clean fashion contrast with precise reds, luminous neutrals, and polished color.",
+    palette: ["#242630", "#df315f", "#f4e8dc"],
+    effects: [
+      {
+        type: "selective-color",
+        parameters: { target: 0, cyan: -12, magenta: 14, yellow: 6, black: -4, relative: 1 },
+      },
+      {
+        type: "looks-color-lab",
+        parameters: {
+          exposure: 0.12,
+          contrast: 1.14,
+          pivot: 0.48,
+          saturation: 1.08,
+          vibrance: 0.16,
+          bloom: 0.12,
+        },
+      },
+      { type: "sharpen", parameters: { amount: 36, radius: 1.1, threshold: 3 } },
+    ],
+  },
+  {
+    id: "analog-vhs",
+    name: "Analog VHS",
+    description:
+      "Late-eighties chroma separation, coarse color grain, faded density, and soft detail.",
+    palette: ["#26265c", "#d33c8e", "#37bad1"],
+    effects: [
+      { type: "chromatic", parameters: { amount: 9, angle: 0, falloff: 0.45 } },
+      {
+        type: "add-grain",
+        parameters: { intensity: 22, size: 2.4, softness: 0.12, colorAmount: 72, speed: 3.5 },
+      },
+      {
+        type: "looks-color-lab",
+        parameters: { contrast: 0.9, saturation: 1.12, fade: 0.14, gain: 0.92, vignette: 0.18 },
+      },
+    ],
+  },
+  {
+    id: "nordic-clean",
+    name: "Nordic Clean",
+    description:
+      "Neutral cool daylight, open whites, quiet saturation, and precise micro-contrast.",
+    palette: ["#33434d", "#91aeb5", "#eff4ef"],
+    effects: [
+      { type: "white-balance", parameters: { temperature: -0.12, tint: -0.025, adaptation: 82 } },
+      { type: "levels", parameters: { inputBlack: 0.01, inputWhite: 0.97, gamma: 1.04 } },
+      {
+        type: "looks-color-lab",
+        parameters: { contrast: 1.04, pivot: 0.52, saturation: 0.88, vibrance: 0.07, bloom: 0.08 },
+      },
+    ],
+  },
+  {
+    id: "crimson-thriller",
+    name: "Crimson Thriller",
+    description: "Cold cyan shadows against controlled crimson highlights and hard film density.",
+    palette: ["#082b3a", "#7e1531", "#e64258"],
+    effects: [
+      {
+        type: "split-tone",
+        parameters: { shadowHue: 194, shadowAmount: 0.2, highlightHue: 352, highlightAmount: 0.23 },
+      },
+      {
+        type: "selective-color",
+        parameters: { target: 0, cyan: -18, magenta: 12, yellow: 5, black: 7, relative: 1 },
+      },
+      {
+        type: "looks-color-lab",
+        parameters: { contrast: 1.32, pivot: 0.37, saturation: 0.92, vignette: 0.44, grain: 0.055 },
+      },
+    ],
+  },
+  {
+    id: "three-strip-color",
+    name: "Three-Strip Color",
+    description:
+      "Dense primary separation inspired by three-strip print color and luminous skin tones.",
+    palette: ["#153d5a", "#c3383f", "#e7b84c"],
+    effects: [
+      { type: "channel-mixer", parameters: { red: 1.1, green: 1.04, blue: 0.92, monochrome: 0 } },
+      { type: "hue-saturation", parameters: { hue: -2, saturation: 1.14, lightness: 0.015 } },
+      {
+        type: "looks-color-lab",
+        parameters: { contrast: 1.16, pivot: 0.43, vibrance: 0.18, bloom: 0.16, grain: 0.025 },
+      },
+    ],
+  },
 ];
 
 export function createEffectsFromPreset(preset: EffectPreset): Effect[] {
