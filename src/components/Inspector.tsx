@@ -13,7 +13,7 @@ import {
 import { useRef, useState } from "react";
 import { getProperty, type PropertyPath } from "../core/operations";
 import { activeComposition } from "../core/project";
-import { evaluateAnimatable } from "../core/timeline";
+import { evaluateAnimatable, evaluateEffectParameter } from "../core/timeline";
 import { type BlendMode, createId, type Effect } from "../core/types";
 import { parseCubeLutFile } from "../effects/cube-lut";
 import { createEffect, EFFECT_BY_TYPE } from "../effects/registry";
@@ -335,7 +335,7 @@ export function Inspector() {
 }
 
 function EffectEditor({ effect, layerId }: { effect: Effect; layerId: string }) {
-  const { dispatch } = useEditor();
+  const { state, dispatch } = useEditor();
   const [resourceError, setResourceError] = useState<string>();
   const lutPickerRef = useRef<HTMLInputElement>(null);
   const definition = EFFECT_BY_TYPE.get(effect.type);
@@ -344,7 +344,50 @@ function EffectEditor({ effect, layerId }: { effect: Effect; layerId: string }) 
     if (!Number.isFinite(value)) return;
     dispatch({
       type: "operation",
-      operations: [{ type: "setEffectParameter", layerId, effectId: effect.id, parameter, value }],
+      operations: [
+        {
+          type: "setEffectParameterAtTime",
+          layerId,
+          effectId: effect.id,
+          parameter,
+          time: state.currentTime,
+          value,
+          keyframeId: createId(),
+        },
+      ],
+    });
+  };
+  const toggleParameterKeyframe = (parameter: string, value: number) => {
+    const current = effect.parameterKeyframes?.[parameter]?.find(
+      (keyframe) => Math.abs(keyframe.time - state.currentTime) <= 0.000_001,
+    );
+    dispatch({
+      type: "operation",
+      operations: current
+        ? [
+            {
+              type: "removeEffectParameterKeyframe",
+              layerId,
+              effectId: effect.id,
+              parameter,
+              keyframeId: current.id,
+            },
+          ]
+        : [
+            {
+              type: "addEffectParameterKeyframe",
+              layerId,
+              effectId: effect.id,
+              parameter,
+              keyframe: {
+                id: createId(),
+                time: state.currentTime,
+                value,
+                interpolation: "bezier",
+                easing: [0.42, 0, 0.58, 1],
+              },
+            },
+          ],
     });
   };
   return (
@@ -379,10 +422,22 @@ function EffectEditor({ effect, layerId }: { effect: Effect; layerId: string }) 
       </div>
       {parameters.map((parameter) => (
         <EffectParameter
+          animated={(effect.parameterKeyframes?.[parameter.key]?.length ?? 0) > 0}
           definition={parameter}
+          keyframed={
+            effect.parameterKeyframes?.[parameter.key]?.some(
+              (keyframe) => Math.abs(keyframe.time - state.currentTime) <= 0.000_001,
+            ) ?? false
+          }
           key={parameter.key}
           onChange={(value) => setParameter(parameter.key, value)}
-          value={effect.parameters[parameter.key] ?? parameter.defaultValue}
+          onToggleKeyframe={(value) => toggleParameterKeyframe(parameter.key, value)}
+          value={evaluateEffectParameter(
+            effect,
+            parameter.key,
+            state.currentTime,
+            parameter.defaultValue,
+          )}
         />
       ))}
       {effect.type === "lut" && (
@@ -450,10 +505,16 @@ function EffectParameter({
   definition,
   value,
   onChange,
+  onToggleKeyframe,
+  animated,
+  keyframed,
 }: {
   definition: EffectParameterDefinition;
   value: number;
   onChange: (value: number) => void;
+  onToggleKeyframe: (value: number) => void;
+  animated: boolean;
+  keyframed: boolean;
 }) {
   if (definition.kind === "toggle") {
     return (
@@ -463,6 +524,12 @@ function EffectParameter({
           checked={value > 0.5}
           onChange={(event) => onChange(event.target.checked ? 1 : 0)}
           type="checkbox"
+        />
+        <EffectKeyframeButton
+          animated={animated}
+          keyframed={keyframed}
+          label={definition.label}
+          onClick={() => onToggleKeyframe(value)}
         />
       </label>
     );
@@ -478,6 +545,12 @@ function EffectParameter({
             </option>
           ))}
         </select>
+        <EffectKeyframeButton
+          animated={animated}
+          keyframed={keyframed}
+          label={definition.label}
+          onClick={() => onToggleKeyframe(value)}
+        />
       </label>
     );
   }
@@ -491,6 +564,12 @@ function EffectParameter({
           value={`#${Math.max(0, Math.min(0xffffff, Math.round(value)))
             .toString(16)
             .padStart(6, "0")}`}
+        />
+        <EffectKeyframeButton
+          animated={animated}
+          keyframed={keyframed}
+          label={definition.label}
+          onClick={() => onToggleKeyframe(value)}
         />
       </label>
     );
@@ -518,7 +597,36 @@ function EffectParameter({
         />
         <small>{definition.unit}</small>
       </span>
+      <EffectKeyframeButton
+        animated={animated}
+        keyframed={keyframed}
+        label={definition.label}
+        onClick={() => onToggleKeyframe(value)}
+      />
     </label>
+  );
+}
+
+function EffectKeyframeButton({
+  animated,
+  keyframed,
+  label,
+  onClick,
+}: {
+  animated: boolean;
+  keyframed: boolean;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      aria-label={`${keyframed ? "Remove" : "Add"} ${label} keyframe`}
+      className={`effect-keyframe ${animated ? "animated" : ""} ${keyframed ? "active" : ""}`}
+      onClick={onClick}
+      type="button"
+    >
+      <KeyRound size={10} />
+    </button>
   );
 }
 

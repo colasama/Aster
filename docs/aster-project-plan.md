@@ -1124,26 +1124,26 @@ aster/
 
 ### Property System
 
-- [ ] 定义 Animatable Property。
-- [ ] 支持 scalar。
+- [x] 定义 Animatable Property。
+- [x] 支持 scalar。
 - [ ] 支持 vec2 / vec3 / vec4。
-- [ ] 支持 color。
-- [ ] 支持 bool / enum。
+- [x] 支持 color。
+- [x] 支持 bool / enum。
 - [ ] 支持 string。
 - [ ] 支持 quaternion。
-- [ ] 支持 static value。
-- [ ] 支持 animated value。
+- [x] 支持 static value。
+- [x] 支持 animated value。
 - [ ] 支持 property binding。
 
 ### Keyframe
 
-- [ ] 定义 Keyframe。
-- [ ] 支持 Linear interpolation。
-- [ ] 支持 Step interpolation。
-- [ ] 支持 Bezier interpolation。
-- [ ] 支持 Hold keyframe。
-- [ ] 支持 easing presets。
-- [ ] 支持 temporal handles。
+- [x] 定义 Keyframe。
+- [x] 支持 Linear interpolation。
+- [x] 支持 Step interpolation。
+- [x] 支持 Bezier interpolation。
+- [x] 支持 Hold keyframe。
+- [x] 支持 easing presets。
+- [x] 支持 temporal handles。
 - [ ] 支持 spatial handles。
 - [ ] 支持 keyframe copy/paste。
 - [ ] 支持 keyframe multi-select。
@@ -1218,8 +1218,8 @@ aster/
 - [ ] Scrub timeline。
 - [ ] Zoom timeline。
 - [ ] Pan timeline。
-- [ ] Add / delete keyframe。
-- [ ] Drag keyframe。
+- [x] Add / delete keyframe。
+- [x] Drag keyframe。
 - [ ] Edit Bezier handles。
 - [ ] Transform gizmo。
 - [ ] Camera gizmo（M2）。

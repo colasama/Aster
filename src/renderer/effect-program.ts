@@ -1,4 +1,5 @@
 import { visibleLayersAtTime } from "../core/scene-evaluation";
+import { evaluateEffectParameter } from "../core/timeline";
 import type { Composition, Effect, Layer } from "../core/types";
 
 export const MAX_EFFECT_OPERATIONS = 64;
@@ -92,7 +93,7 @@ export function compileEffectProgram(
   };
   for (const layer of [...layers].reverse()) {
     for (const effect of layer.effects) {
-      if (effect.enabled) compileEffect(effect, emit);
+      if (effect.enabled) compileEffect(effect, time, emit);
     }
   }
   return { data: values, count };
@@ -100,9 +101,10 @@ export function compileEffectProgram(
 
 function compileEffect(
   effect: Effect,
+  time: number,
   emit: (opcode: EffectOpcode, parameters: number[]) => void,
 ): void {
-  const value = (key: string, fallback = 0) => effect.parameters[key] ?? fallback;
+  const value = (key: string, fallback = 0) => evaluateEffectParameter(effect, key, time, fallback);
   const color = (key: string, fallback: number) => colorChannels(value(key, fallback));
   switch (effect.type) {
     case "mosaic":

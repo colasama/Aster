@@ -46,6 +46,29 @@ export type Operation =
   | { type: "removeEffect"; layerId: Id; effectId: Id }
   | { type: "toggleEffect"; layerId: Id; effectId: Id }
   | { type: "setEffectLut"; layerId: Id; effectId: Id; resource?: Lut3dResource }
+  | {
+      type: "setEffectParameterAtTime";
+      layerId: Id;
+      effectId: Id;
+      parameter: string;
+      time: number;
+      value: number;
+      keyframeId: Id;
+    }
+  | {
+      type: "addEffectParameterKeyframe";
+      layerId: Id;
+      effectId: Id;
+      parameter: string;
+      keyframe: Keyframe;
+    }
+  | {
+      type: "removeEffectParameterKeyframe";
+      layerId: Id;
+      effectId: Id;
+      parameter: string;
+      keyframeId: Id;
+    }
   | { type: "setEffectParameter"; layerId: Id; effectId: Id; parameter: string; value: number };
 
 export function applyOperations(project: Project, operations: Operation[]): Project {
@@ -159,6 +182,58 @@ export function applyOperation(project: Project, operation: Operation): void {
       if (!effect) throw new Error("Effect does not exist");
       if (effect.type !== "lut") throw new Error("LUT resources require a 3D LUT effect");
       effect.resource = operation.resource;
+      break;
+    }
+    case "setEffectParameterAtTime": {
+      const effect = layer.effects.find((entry) => entry.id === operation.effectId);
+      if (!effect) throw new Error("Effect does not exist");
+      const track = effect.parameterKeyframes?.[operation.parameter];
+      if (!track?.length) {
+        effect.parameters[operation.parameter] = operation.value;
+        break;
+      }
+      effect.parameterKeyframes ??= {};
+      const inserted = insertKeyframe(
+        { mode: "animated", keyframes: track },
+        {
+          id: operation.keyframeId,
+          time: Math.max(0, operation.time),
+          value: operation.value,
+          interpolation: "bezier",
+          easing: [0.42, 0, 0.58, 1],
+        },
+      );
+      if (inserted.mode === "animated")
+        effect.parameterKeyframes[operation.parameter] = inserted.keyframes;
+      break;
+    }
+    case "addEffectParameterKeyframe": {
+      const effect = layer.effects.find((entry) => entry.id === operation.effectId);
+      if (!effect) throw new Error("Effect does not exist");
+      effect.parameterKeyframes ??= {};
+      const inserted = insertKeyframe(
+        { mode: "animated", keyframes: effect.parameterKeyframes[operation.parameter] ?? [] },
+        operation.keyframe,
+      );
+      if (inserted.mode === "animated")
+        effect.parameterKeyframes[operation.parameter] = inserted.keyframes;
+      break;
+    }
+    case "removeEffectParameterKeyframe": {
+      const effect = layer.effects.find((entry) => entry.id === operation.effectId);
+      if (!effect) throw new Error("Effect does not exist");
+      const track = effect.parameterKeyframes?.[operation.parameter];
+      if (!track) break;
+      const removed = track.find((keyframe) => keyframe.id === operation.keyframeId);
+      const remaining = track.filter((keyframe) => keyframe.id !== operation.keyframeId);
+      if (remaining.length) {
+        effect.parameterKeyframes ??= {};
+        effect.parameterKeyframes[operation.parameter] = remaining;
+      } else {
+        effect.parameters[operation.parameter] =
+          removed?.value ?? effect.parameters[operation.parameter];
+        delete effect.parameterKeyframes?.[operation.parameter];
+      }
       break;
     }
   }

@@ -71,6 +71,23 @@ describe("GPU effect program compiler", () => {
     expect(program.data[8]).toBeCloseTo(0.9);
   });
 
+  it("evaluates animated effect parameters at the requested render time", () => {
+    const composition = activeComposition(createDemoProject());
+    composition.layers.forEach((layer) => {
+      layer.effects = [];
+    });
+    const posterize = createEffect("posterize");
+    posterize.parameterKeyframes = {
+      levels: [
+        { id: "low", time: 0, value: 2, interpolation: "linear" },
+        { id: "high", time: 2, value: 10, interpolation: "linear" },
+      ],
+    };
+    composition.layers[0].effects = [posterize];
+
+    expect(compileEffectProgram(composition, 1).data[1]).toBe(6);
+  });
+
   it.each([
     ["bilateral-blur", EffectOpcode.BilateralBlur],
     ["echo", EffectOpcode.Echo],

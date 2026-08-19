@@ -1,4 +1,4 @@
-import type { Animatable, EvaluatedTransform, Keyframe, Transform } from "./types";
+import type { Animatable, Effect, EvaluatedTransform, Keyframe, Transform } from "./types";
 
 export function evaluateAnimatable(property: Animatable, time: number): number {
   if (property.mode === "static") return property.value;
@@ -32,6 +32,17 @@ export function evaluateTransform(transform: Transform, time: number): Evaluated
     anchor: evaluateVector(transform.anchor),
     opacity: Math.max(0, Math.min(100, evaluateAnimatable(transform.opacity, time))) / 100,
   };
+}
+
+export function evaluateEffectParameter(
+  effect: Effect,
+  parameter: string,
+  time: number,
+  fallback = 0,
+): number {
+  const keyframes = effect.parameterKeyframes?.[parameter];
+  if (keyframes?.length) return evaluateAnimatable({ mode: "animated", keyframes }, time);
+  return effect.parameters[parameter] ?? fallback;
 }
 
 export function insertKeyframe(property: Animatable, keyframe: Keyframe): Animatable {

@@ -1,4 +1,5 @@
 import { visibleLayersAtTime } from "../core/scene-evaluation";
+import { evaluateEffectParameter } from "../core/timeline";
 import type { Composition, Layer } from "../core/types";
 
 export interface PostProcessParameters {
@@ -48,7 +49,8 @@ export function collectPostProcessParameters(
   for (const layer of layers) {
     for (const effect of layer.effects) {
       if (!effect.enabled) continue;
-      const value = (key: string, fallback = 0) => effect.parameters[key] ?? fallback;
+      const value = (key: string, fallback = 0) =>
+        evaluateEffectParameter(effect, key, time, fallback);
       switch (effect.type) {
         case "exposure":
           output.exposure += value("exposure");

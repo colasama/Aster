@@ -22,7 +22,8 @@ WebGPU preview implementation.
 1. UI gestures produce serializable operations; they do not mutate render state directly.
 2. The operation reducer creates a new project snapshot and updates bounded undo history.
 3. Properties and safe expressions are evaluated at the requested rational time; recursive
-   precompositions are flattened with cycle detection and composed transforms.
+   precompositions are flattened with cycle detection and composed transforms. Effect parameters
+   use the same time-addressable keyframe interpolation before uniform and opcode compilation.
 4. Visible 2D/3D geometry, media textures, and effect uniforms are uploaded in batches. Mesh cubes
    carry clip depth and use the active camera transform plus a shared `depth24plus` target.
 5. Compute particles run. Each effected layer uses a fused offscreen chain before its blend-mode

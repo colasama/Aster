@@ -196,6 +196,50 @@ function validateEffect(value: unknown, path: string): void {
   for (const [key, parameter] of Object.entries(parameters))
     if (typeof parameter !== "number" || !Number.isFinite(parameter))
       throw new Error(`${path}.parameters.${key} must be finite`);
+  if (effect.parameterKeyframes !== undefined) {
+    const tracks = requireObject(effect.parameterKeyframes, `${path}.parameterKeyframes`);
+    for (const [parameter, value] of Object.entries(tracks)) {
+      if (!Array.isArray(value) || value.length > 10_000)
+        throw new Error(`${path}.parameterKeyframes.${parameter} must be a bounded array`);
+      let previousTime = -Infinity;
+      const keyframeIds = new Set<string>();
+      for (const [index, keyframeValue] of value.entries()) {
+        const keyframe = requireObject(
+          keyframeValue,
+          `${path}.parameterKeyframes.${parameter}[${index}]`,
+        );
+        const id = requireString(
+          keyframe.id,
+          `${path}.parameterKeyframes.${parameter}[${index}].id`,
+        );
+        if (keyframeIds.has(id))
+          throw new Error(`${path}.parameterKeyframes.${parameter} contains a duplicate id`);
+        keyframeIds.add(id);
+        const time = requireFiniteNumber(
+          keyframe.time,
+          `${path}.parameterKeyframes.${parameter}[${index}].time`,
+        );
+        requireFiniteNumber(
+          keyframe.value,
+          `${path}.parameterKeyframes.${parameter}[${index}].value`,
+        );
+        if (time < 0 || time <= previousTime)
+          throw new Error(`${path}.parameterKeyframes.${parameter} must be strictly sorted`);
+        if (!["linear", "step", "bezier"].includes(String(keyframe.interpolation)))
+          throw new Error(`${path}.parameterKeyframes.${parameter} has invalid interpolation`);
+        if (
+          keyframe.easing !== undefined &&
+          (!Array.isArray(keyframe.easing) ||
+            keyframe.easing.length !== 4 ||
+            keyframe.easing.some(
+              (channel) => typeof channel !== "number" || !Number.isFinite(channel),
+            ))
+        )
+          throw new Error(`${path}.parameterKeyframes.${parameter} has invalid easing`);
+        previousTime = time;
+      }
+    }
+  }
   if (effect.resource !== undefined) validateLutResource(effect.resource, `${path}.resource`);
 }
 
@@ -248,6 +292,12 @@ function requireString(value: unknown, path: string): string {
 function requirePositiveNumber(value: unknown, path: string): number {
   if (typeof value !== "number" || !Number.isFinite(value) || value <= 0)
     throw new Error(`${path} must be a positive number`);
+  return value;
+}
+
+function requireFiniteNumber(value: unknown, path: string): number {
+  if (typeof value !== "number" || !Number.isFinite(value))
+    throw new Error(`${path} must be a finite number`);
   return value;
 }
 

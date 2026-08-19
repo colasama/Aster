@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { evaluateAnimatable, frameAt, insertKeyframe, timeAtFrame } from "./timeline";
+import { createEffect } from "../effects/registry";
+import {
+  evaluateAnimatable,
+  evaluateEffectParameter,
+  frameAt,
+  insertKeyframe,
+  timeAtFrame,
+} from "./timeline";
 import type { Animatable } from "./types";
 
 describe("time-addressable animation", () => {
@@ -31,5 +38,17 @@ describe("time-addressable animation", () => {
   it("round-trips fractional frame rates", () => {
     const rate = { numerator: 24_000, denominator: 1_001 };
     expect(frameAt(timeAtFrame(240, rate), rate)).toBe(240);
+  });
+
+  it("evaluates effect parameters independently at arbitrary times", () => {
+    const effect = createEffect("exposure");
+    effect.parameterKeyframes = {
+      exposure: [
+        { id: "start", time: 0, value: -1, interpolation: "linear" },
+        { id: "end", time: 2, value: 3, interpolation: "linear" },
+      ],
+    };
+    expect(evaluateEffectParameter(effect, "exposure", 0.5)).toBe(0);
+    expect(evaluateEffectParameter(effect, "gamma", 0.5, 1)).toBe(1);
   });
 });

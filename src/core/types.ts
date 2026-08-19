@@ -49,6 +49,7 @@ export interface Effect {
   name: string;
   enabled: boolean;
   parameters: Record<string, number>;
+  parameterKeyframes?: Record<string, Keyframe[]>;
   resource?: Lut3dResource;
 }
 

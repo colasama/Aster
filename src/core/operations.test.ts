@@ -114,4 +114,46 @@ describe("structured project operations", () => {
     ).toEqual(resource);
     expect(effect.resource).toBeUndefined();
   });
+
+  it("upserts and removes effect parameter keyframes without mutating the source", () => {
+    const source = createDemoProject();
+    const layer = activeComposition(source).layers[0];
+    const effect = layer.effects[0];
+    const keyed = applyOperations(source, [
+      {
+        type: "addEffectParameterKeyframe",
+        layerId: layer.id,
+        effectId: effect.id,
+        parameter: "exposure",
+        keyframe: { id: "first", time: 1, value: 2, interpolation: "linear" },
+      },
+      {
+        type: "setEffectParameterAtTime",
+        layerId: layer.id,
+        effectId: effect.id,
+        parameter: "exposure",
+        time: 1,
+        value: 3,
+        keyframeId: "updated",
+      },
+    ]);
+    const keyedEffect = activeComposition(keyed).layers[0].effects[0];
+    expect(keyedEffect.parameterKeyframes?.exposure).toEqual([
+      expect.objectContaining({ id: "updated", time: 1, value: 3 }),
+    ]);
+    expect(effect.parameterKeyframes).toBeUndefined();
+
+    const removed = applyOperations(keyed, [
+      {
+        type: "removeEffectParameterKeyframe",
+        layerId: layer.id,
+        effectId: effect.id,
+        parameter: "exposure",
+        keyframeId: "updated",
+      },
+    ]);
+    const removedEffect = activeComposition(removed).layers[0].effects[0];
+    expect(removedEffect.parameterKeyframes?.exposure).toBeUndefined();
+    expect(removedEffect.parameters.exposure).toBe(3);
+  });
 });

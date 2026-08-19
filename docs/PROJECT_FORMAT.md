@@ -21,7 +21,8 @@ A composition declares dimensions, rational frame rate, duration, linear RGBA ba
 ordered layer list. Layers use stable UUIDs, time bounds, kind, blend mode, transform properties, and
 effects. An animatable property is either a static value or an ordered keyframe array. Effects are
 identified by a stable type string and numeric parameter map so missing plugins can remain round-trip
-safe. Precomposition layers reference another composition by stable ID. Development image/video
+safe. An effect may carry per-parameter ordered keyframe tracks without changing its static fallback
+map. Precomposition layers reference another composition by stable ID. Development image/video
 imports may use bounded `data:` URLs for portable single-file projects; the native bundle layer will
 externalize large media into an asset directory without changing layer references.
 

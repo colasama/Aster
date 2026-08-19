@@ -332,6 +332,25 @@
   border-radius: 3px;
   background: #101116;
 }
+.effect-keyframe {
+  width: 19px;
+  height: 19px;
+  flex: 0 0 19px;
+  display: grid;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  color: #4f5563;
+}
+.effect-keyframe.animated {
+  color: #8298d6;
+}
+.effect-keyframe.active {
+  border-color: #6f82ca;
+  color: #d7dcff;
+  background: #344372;
+  box-shadow: 0 0 7px rgb(95 122 210 / 28%);
+}
 .lut-resource-editor {
   display: grid;
   gap: 5px;
