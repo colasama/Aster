@@ -24,8 +24,8 @@ frames. Rendering, effects, particles, and composition are designed to remain GP
 - Full/Half/Quarter preview resolution, dual Active/Custom views, lossless 4K PNG frame export,
   cancellable native PNG sequence rendering with progress, local autosave recovery, and atomic
   native project persistence.
-- Data-driven catalog of 67 blur, color, distort, generate, stylize, keying, time, transition,
-  simulation, matte, and Looks-style effects, including 56 fused GPU opcodes.
+- Data-driven catalog of 75 blur, color, distort, generate, stylize, keying, time, transition,
+  simulation, matte, and Looks-style effects, including 64 fused GPU opcodes.
 - Eight one-click Looks chains with transactional undo, complete Color Lab lift/pivot/gain controls,
   and stock-sensitive film emulation.
 - Rust render graph with validation, topological scheduling, resource lifetimes, transient aliasing,

@@ -71,6 +71,14 @@ describe("GPU effect program compiler", () => {
     ["cartoon", EffectOpcode.Cartoon],
     ["solarize", EffectOpcode.Solarize],
     ["simple-choker", EffectOpcode.SimpleChoker],
+    ["box-blur", EffectOpcode.BoxBlur],
+    ["camera-lens-blur", EffectOpcode.CameraLensBlur],
+    ["change-to-color", EffectOpcode.ChangeToColor],
+    ["leave-color", EffectOpcode.LeaveColor],
+    ["extract", EffectOpcode.Extract],
+    ["roughen-edges", EffectOpcode.RoughenEdges],
+    ["light-burst", EffectOpcode.LightBurst],
+    ["radial-shadow", EffectOpcode.RadialShadow],
   ])("compiles %s into its dedicated GPU opcode", (type, opcode) => {
     const composition = activeComposition(createDemoProject());
     composition.layers.forEach((layer) => {

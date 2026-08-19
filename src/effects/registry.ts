@@ -1,67 +1,7 @@
 import { createId, type Effect } from "../core/types";
-import type { EffectDefinition, EffectParameterDefinition } from "./types";
-
-const number = (
-  key: string,
-  label: string,
-  defaultValue: number,
-  min: number,
-  max: number,
-  step = 1,
-  unit = "",
-): EffectParameterDefinition => ({
-  key,
-  label,
-  kind: "number",
-  defaultValue,
-  min,
-  max,
-  step,
-  unit,
-});
-
-const percent = (key: string, label: string, defaultValue: number) => ({
-  ...number(key, label, defaultValue, 0, 100, 1, "%"),
-  kind: "percent" as const,
-});
-
-const angle = (key: string, label: string, defaultValue: number) => ({
-  ...number(key, label, defaultValue, -360, 360, 1, "°"),
-  kind: "angle" as const,
-});
-
-const toggle = (key: string, label: string, defaultValue = 1): EffectParameterDefinition => ({
-  key,
-  label,
-  kind: "toggle",
-  defaultValue,
-  min: 0,
-  max: 1,
-  step: 1,
-});
-
-const choice = (
-  key: string,
-  label: string,
-  options: string[],
-  defaultValue = 0,
-): EffectParameterDefinition => ({
-  key,
-  label,
-  kind: "choice",
-  defaultValue,
-  options,
-  min: 0,
-  max: options.length - 1,
-  step: 1,
-});
-
-const color = (key: string, label: string, defaultValue: number): EffectParameterDefinition => ({
-  key,
-  label,
-  kind: "color",
-  defaultValue,
-});
+import { ADDITIONAL_AE_EFFECTS } from "./ae-additional";
+import { angle, choice, color, number, percent, toggle } from "./parameter-builders";
+import type { EffectDefinition } from "./types";
 
 export const EFFECT_REGISTRY: EffectDefinition[] = [
   {
@@ -890,6 +830,7 @@ export const EFFECT_REGISTRY: EffectDefinition[] = [
       number("softness", "Softness", 1, 0, 64, 0.25, "px"),
     ],
   },
+  ...ADDITIONAL_AE_EFFECTS,
 ];
 
 export const EFFECT_BY_TYPE = new Map(EFFECT_REGISTRY.map((effect) => [effect.type, effect]));

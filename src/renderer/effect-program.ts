@@ -61,6 +61,14 @@ export enum EffectOpcode {
   Cartoon = 54,
   Solarize = 55,
   SimpleChoker = 56,
+  BoxBlur = 57,
+  CameraLensBlur = 58,
+  ChangeToColor = 59,
+  LeaveColor = 60,
+  Extract = 61,
+  RoughenEdges = 62,
+  LightBurst = 63,
+  RadialShadow = 64,
 }
 
 export interface EffectProgram {
@@ -442,6 +450,71 @@ function compileEffect(
       break;
     case "simple-choker":
       emit(EffectOpcode.SimpleChoker, [value("choke", 2), value("softness", 1)]);
+      break;
+    case "box-blur":
+      emit(EffectOpcode.BoxBlur, [value("radius", 12)]);
+      break;
+    case "camera-lens-blur":
+      emit(EffectOpcode.CameraLensBlur, [
+        value("radius", 18),
+        degrees(value("rotation")),
+        value("highlightThreshold", 0.72),
+        value("highlightGain", 1.25),
+      ]);
+      break;
+    case "change-to-color":
+      emit(EffectOpcode.ChangeToColor, [
+        ...color("fromColor", 0x3d65ff),
+        value("tolerance", 0.22),
+        value("softness", 0.12),
+        ...color("toColor", 0xff4fa7),
+        value("preserveLuminance", 1),
+      ]);
+      break;
+    case "leave-color":
+      emit(EffectOpcode.LeaveColor, [
+        ...color("color", 0xff3b72),
+        value("tolerance", 0.24),
+        value("softness", 0.16),
+        value("amount", 100) / 100,
+      ]);
+      break;
+    case "extract":
+      emit(EffectOpcode.Extract, [
+        value("blackPoint", 0.12),
+        value("whitePoint", 0.88),
+        value("softness", 0.04),
+        value("invert"),
+      ]);
+      break;
+    case "roughen-edges":
+      emit(EffectOpcode.RoughenEdges, [
+        value("border", 12),
+        value("scale", 80),
+        value("complexity", 3),
+        value("evolution"),
+        value("sharpness", 0.15),
+      ]);
+      break;
+    case "light-burst":
+      emit(EffectOpcode.LightBurst, [
+        value("centerX", 50) / 100,
+        value("centerY", 50) / 100,
+        value("rayLength", 160),
+        value("intensity", 1.4),
+        value("blend", 100) / 100,
+        ...color("color", 0x9ddcff),
+      ]);
+      break;
+    case "radial-shadow":
+      emit(EffectOpcode.RadialShadow, [
+        value("centerX", 50) / 100,
+        value("centerY", 35) / 100,
+        value("distance", 48),
+        value("opacity", 55) / 100,
+        value("softness", 18),
+        ...color("color", 0x08101f),
+      ]);
       break;
   }
 }

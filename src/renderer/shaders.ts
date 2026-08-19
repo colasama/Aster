@@ -762,6 +762,94 @@ fn fragment_main(input: VertexOutput) -> @location(0) vec4f {
         let amount = abs(effect.header.y) / max(abs(effect.header.y) + effect.header.z, 0.0001);
         alpha = mix(alpha, matte, amount);
       }
+      case 57u: {
+        let offset = vec2f(max(effect.header.y, 0.0)) / resolution;
+        color = (
+          textureSample(hdr_scene, linear_sampler, uv).rgb
+          + textureSample(hdr_scene, linear_sampler, uv + vec2f(offset.x, 0.0)).rgb
+          + textureSample(hdr_scene, linear_sampler, uv - vec2f(offset.x, 0.0)).rgb
+          + textureSample(hdr_scene, linear_sampler, uv + vec2f(0.0, offset.y)).rgb
+          + textureSample(hdr_scene, linear_sampler, uv - vec2f(0.0, offset.y)).rgb
+        ) * 0.2;
+      }
+      case 58u: {
+        var lens_color = vec3f(0.0);
+        var lens_weight = 0.0;
+        for (var lens_index = 0u; lens_index < 8u; lens_index += 1u) {
+          let angle = effect.header.z + f32(lens_index) * 0.785398;
+          let sample_uv = uv + vec2f(cos(angle), sin(angle)) * effect.header.y / resolution;
+          let lens_sample = textureSample(hdr_scene, linear_sampler, sample_uv).rgb;
+          let highlight = 1.0 + max(luminance(lens_sample) - effect.header.w, 0.0) * effect.p0.x;
+          lens_color += lens_sample * highlight;
+          lens_weight += highlight;
+        }
+        color = lens_color / max(lens_weight, 0.0001);
+      }
+      case 59u: {
+        let distance = length(color - effect.header.yzw);
+        let selection = 1.0 - smoothstep(effect.p0.x, effect.p0.x + effect.p0.y + 0.0001, distance);
+        var replacement = vec3f(effect.p0.z, effect.p0.w, effect.p1.x);
+        if effect.p1.y > 0.5 {
+          replacement *= luminance(color) / max(luminance(replacement), 0.0001);
+        }
+        color = mix(color, replacement, selection);
+      }
+      case 60u: {
+        let distance = length(color - effect.header.yzw);
+        let selection = 1.0 - smoothstep(effect.p0.x, effect.p0.x + effect.p0.y + 0.0001, distance);
+        let isolated = mix(vec3f(luminance(color)), color, selection);
+        color = mix(color, isolated, effect.p0.z);
+      }
+      case 61u: {
+        let level = luminance(color);
+        var matte = smoothstep(effect.header.y - effect.header.w, effect.header.y + effect.header.w, level);
+        matte *= 1.0 - smoothstep(effect.header.z - effect.header.w, effect.header.z + effect.header.w, level);
+        matte = select(matte, 1.0 - matte, effect.p0.x > 0.5);
+        alpha *= matte;
+      }
+      case 62u: {
+        let position = input.position.xy / max(effect.header.z, 1.0) + vec2f(effect.p0.x + time * 0.08);
+        let roughness = fractal_noise(position);
+        let direction = normalize(vec2f(
+          value_noise(position + vec2f(17.0, 3.0)) - 0.5,
+          value_noise(position + vec2f(5.0, 29.0)) - 0.5,
+        ) + vec2f(0.0001));
+        let rough_alpha = textureSample(
+          hdr_scene,
+          linear_sampler,
+          uv + direction * (roughness - 0.5) * effect.header.y / resolution,
+        ).a;
+        let detail = clamp(effect.header.w / 5.0, 0.0, 1.0);
+        let erosion = smoothstep(0.5 - effect.p0.y, 0.5 + effect.p0.y, roughness) * detail;
+        alpha = mix(alpha, min(alpha, rough_alpha), erosion);
+      }
+      case 63u: {
+        let center = vec2f(effect.header.y, effect.header.z);
+        let direction = normalize(uv - center + vec2f(0.0001));
+        let ray = direction * effect.header.w / resolution;
+        var burst = vec3f(0.0);
+        for (var burst_index = 1u; burst_index <= 5u; burst_index += 1u) {
+          burst += textureSample(hdr_scene, linear_sampler, uv - ray * f32(burst_index) * 0.2).rgb;
+        }
+        burst = max(burst * 0.2 - color * 0.35, vec3f(0.0));
+        let burst_color = vec3f(effect.p0.z, effect.p0.w, effect.p1.x);
+        color = mix(color, color + burst * burst_color * effect.p0.x, effect.p0.y);
+      }
+      case 64u: {
+        let center = vec2f(effect.header.y, effect.header.z);
+        let direction = normalize(uv - center + vec2f(0.0001));
+        let shadow_uv = uv - direction * effect.header.w / resolution;
+        let soft = vec2f(max(effect.p0.y, 0.5)) / resolution;
+        var shadow_alpha = textureSample(hdr_scene, linear_sampler, shadow_uv).a * 0.4;
+        shadow_alpha += textureSample(hdr_scene, linear_sampler, shadow_uv + vec2f(soft.x, 0.0)).a * 0.15;
+        shadow_alpha += textureSample(hdr_scene, linear_sampler, shadow_uv - vec2f(soft.x, 0.0)).a * 0.15;
+        shadow_alpha += textureSample(hdr_scene, linear_sampler, shadow_uv + vec2f(0.0, soft.y)).a * 0.15;
+        shadow_alpha += textureSample(hdr_scene, linear_sampler, shadow_uv - vec2f(0.0, soft.y)).a * 0.15;
+        shadow_alpha *= effect.p0.x;
+        let shadow_color = vec3f(effect.p0.z, effect.p0.w, effect.p1.x);
+        color += shadow_color * shadow_alpha * (1.0 - alpha);
+        alpha = max(alpha, shadow_alpha);
+      }
       default: {}
     }
   }
