@@ -233,6 +233,63 @@ button.tree-row {
   cursor: not-allowed;
   opacity: 0.42;
 }
+.effect-entry {
+  position: relative;
+  display: flex;
+  align-items: center;
+  border-radius: 3px;
+}
+.effect-entry:hover {
+  background: #22252e;
+}
+.effect-apply {
+  min-width: 0;
+  height: 42px;
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  padding: 0 31px 0 7px;
+  text-align: left;
+}
+.effect-apply > span:last-child {
+  min-width: 0;
+}
+.effect-apply:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+}
+.effect-favorite {
+  position: absolute;
+  right: 5px;
+  width: 23px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 3px;
+  color: #4f5562;
+  opacity: 0;
+}
+.effect-entry:hover .effect-favorite,
+.effect-favorite.active,
+.effect-favorite:focus-visible {
+  opacity: 1;
+}
+.effect-favorite:hover,
+.effect-favorite.active {
+  color: #e5b963;
+  background: rgb(229 185 99 / 9%);
+}
+.shortcut-group {
+  margin: 4px 0;
+  padding: 0 4px 3px;
+  border: 1px solid #2e3442;
+  border-radius: 5px;
+  background: rgb(30 34 45 / 55%);
+}
+.shortcut-group .effect-category {
+  color: #9aa7c5;
+}
 .effect-icon {
   width: 26px;
   height: 26px;

@@ -1218,6 +1218,7 @@ aster/
 - [ ] Graph Editor。
 - [ ] Asset Browser。
 - [x] Effects Browser。
+- [x] Effects Browser 收藏与最近使用持久化。
 - [ ] Console / Diagnostics。
 - [ ] Profiler Overlay。
 - [ ] AI Panel placeholder。

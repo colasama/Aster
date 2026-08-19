@@ -2,6 +2,7 @@ import {
   Box,
   Camera,
   ChevronDown,
+  Clock3,
   FileImage,
   Film,
   Folder,
@@ -10,15 +11,28 @@ import {
   Search,
   Shapes,
   Sparkles,
+  Star,
   Type,
 } from "lucide-react";
-import { type CSSProperties, useMemo, useRef, useState } from "react";
+import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 import { createMediaLayerFromFile } from "../core/assets";
 import { createLayerForComposition } from "../core/layer-factory";
 import { activeComposition } from "../core/project";
 import type { LayerKind } from "../core/types";
+import {
+  readEffectBrowserPreferences,
+  recordRecentEffect,
+  toggleFavoriteEffect,
+  writeEffectBrowserPreferences,
+} from "../effects/browser-preferences";
 import { createEffectsFromPreset, LOOK_PRESETS } from "../effects/presets";
-import { createEffect, EFFECT_REGISTRY, effectCategories } from "../effects/registry";
+import {
+  createEffect,
+  EFFECT_BY_TYPE,
+  EFFECT_REGISTRY,
+  effectCategories,
+} from "../effects/registry";
+import type { EffectDefinition } from "../effects/types";
 import { useEditor } from "../state/editor-store";
 import { Panel, PanelTabs } from "./Panel";
 
@@ -38,6 +52,9 @@ export function ProjectPanel() {
   const { state, dispatch } = useEditor();
   const [query, setQuery] = useState("");
   const [assetError, setAssetError] = useState<string>();
+  const [effectPreferences, setEffectPreferences] = useState(() =>
+    readEffectBrowserPreferences(localPreferenceStorage()),
+  );
   const imagePickerRef = useRef<HTMLInputElement>(null);
   const composition = activeComposition(state.project);
   const filteredEffects = useMemo(
@@ -56,6 +73,33 @@ export function ProjectPanel() {
       ),
     [query],
   );
+  const filteredEffectTypes = useMemo(
+    () => new Set(filteredEffects.map((effect) => effect.type)),
+    [filteredEffects],
+  );
+  const favoriteEffects = useMemo(
+    () =>
+      effectPreferences.favorites
+        .map((type) => EFFECT_BY_TYPE.get(type))
+        .filter(
+          (effect): effect is EffectDefinition =>
+            effect !== undefined && filteredEffectTypes.has(effect.type),
+        ),
+    [effectPreferences.favorites, filteredEffectTypes],
+  );
+  const recentEffects = useMemo(
+    () =>
+      effectPreferences.recent
+        .map((type) => EFFECT_BY_TYPE.get(type))
+        .filter(
+          (effect): effect is EffectDefinition =>
+            effect !== undefined && filteredEffectTypes.has(effect.type),
+        ),
+    [effectPreferences.recent, filteredEffectTypes],
+  );
+  useEffect(() => {
+    writeEffectBrowserPreferences(localPreferenceStorage(), effectPreferences);
+  }, [effectPreferences]);
   const addLayer = (kind: LayerKind) => {
     const layer = createLayerForComposition(kind, composition, state.currentTime);
     dispatch({
@@ -71,6 +115,7 @@ export function ProjectPanel() {
       type: "operation",
       operations: [{ type: "addEffect", layerId, effect: createEffect(type) }],
     });
+    setEffectPreferences((preferences) => recordRecentEffect(preferences, type));
   };
   const applyPreset = (presetId: string) => {
     const layerId = state.selection[0];
@@ -233,36 +278,123 @@ export function ProjectPanel() {
               ))}
             </div>
           )}
+          {favoriteEffects.length > 0 && (
+            <EffectCatalogGroup
+              effects={favoriteEffects}
+              favorites={effectPreferences.favorites}
+              icon="favorite"
+              onApply={applyEffect}
+              onToggleFavorite={(type) =>
+                setEffectPreferences((preferences) => toggleFavoriteEffect(preferences, type))
+              }
+              selected={Boolean(state.selection[0])}
+              title="Favorites"
+            />
+          )}
+          {recentEffects.length > 0 && (
+            <EffectCatalogGroup
+              effects={recentEffects}
+              favorites={effectPreferences.favorites}
+              icon="recent"
+              onApply={applyEffect}
+              onToggleFavorite={(type) =>
+                setEffectPreferences((preferences) => toggleFavoriteEffect(preferences, type))
+              }
+              selected={Boolean(state.selection[0])}
+              title="Recently Used"
+            />
+          )}
           {effectCategories().map((category) => {
             const effects = filteredEffects.filter((effect) => effect.category === category);
             if (effects.length === 0) return null;
             return (
-              <div className="effect-group" key={category}>
-                <div className="effect-category">
-                  <ChevronDown size={13} /> {category} <small>{effects.length}</small>
-                </div>
-                {effects.map((effect) => (
-                  <button
-                    disabled={!state.selection[0]}
-                    key={effect.type}
-                    onClick={() => applyEffect(effect.type)}
-                    title={state.selection[0] ? effect.description : "Select a layer first"}
-                    type="button"
-                  >
-                    <span className={`effect-icon ${effect.execution}`}>
-                      <Sparkles size={13} />
-                    </span>
-                    <span>
-                      <strong>{effect.name}</strong>
-                      <small>{effect.execution.replace("-", " ")} · GPU</small>
-                    </span>
-                  </button>
-                ))}
-              </div>
+              <EffectCatalogGroup
+                effects={effects}
+                favorites={effectPreferences.favorites}
+                key={category}
+                onApply={applyEffect}
+                onToggleFavorite={(type) =>
+                  setEffectPreferences((preferences) => toggleFavoriteEffect(preferences, type))
+                }
+                selected={Boolean(state.selection[0])}
+                title={category}
+              />
             );
           })}
         </div>
       )}
     </Panel>
   );
+}
+
+function EffectCatalogGroup({
+  effects,
+  favorites,
+  icon,
+  onApply,
+  onToggleFavorite,
+  selected,
+  title,
+}: {
+  effects: EffectDefinition[];
+  favorites: string[];
+  icon?: "favorite" | "recent";
+  onApply: (type: string) => void;
+  onToggleFavorite: (type: string) => void;
+  selected: boolean;
+  title: string;
+}) {
+  return (
+    <div className={`effect-group ${icon ? "shortcut-group" : ""}`}>
+      <div className="effect-category">
+        {icon === "favorite" ? (
+          <Star fill="currentColor" size={11} />
+        ) : icon === "recent" ? (
+          <Clock3 size={11} />
+        ) : (
+          <ChevronDown size={13} />
+        )}
+        {title} <small>{effects.length}</small>
+      </div>
+      {effects.map((effect) => {
+        const favorite = favorites.includes(effect.type);
+        return (
+          <div className="effect-entry" key={effect.type}>
+            <button
+              className="effect-apply"
+              disabled={!selected}
+              onClick={() => onApply(effect.type)}
+              title={selected ? effect.description : "Select a layer first"}
+              type="button"
+            >
+              <span className={`effect-icon ${effect.execution}`}>
+                <Sparkles size={13} />
+              </span>
+              <span>
+                <strong>{effect.name}</strong>
+                <small>{effect.execution.replace("-", " ")} · GPU</small>
+              </span>
+            </button>
+            <button
+              aria-label={`Toggle favorite ${effect.type}`}
+              className={`effect-favorite ${favorite ? "active" : ""}`}
+              onClick={() => onToggleFavorite(effect.type)}
+              title={`${favorite ? "Remove" : "Add"} ${effect.name} ${favorite ? "from" : "to"} favorites`}
+              type="button"
+            >
+              <Star fill={favorite ? "currentColor" : "none"} size={11} />
+            </button>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function localPreferenceStorage(): Storage | undefined {
+  try {
+    return typeof window === "undefined" ? undefined : window.localStorage;
+  } catch {
+    return undefined;
+  }
 }
