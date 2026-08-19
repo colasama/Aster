@@ -340,6 +340,18 @@ fn fragment_main(input: VertexOutput) -> @location(0) vec4f {
         let radius_squared = dot(centered_uv, centered_uv);
         uv = centered_uv * (1.0 + effect.header.y * radius_squared) + vec2f(0.5);
       }
+      case 51u: {
+        let segments = max(effect.header.y, 2.0);
+        let rotation = effect.header.z;
+        let center = vec2f(effect.header.w, effect.p0.x);
+        let aspect = vec2f(resolution.x / resolution.y, 1.0);
+        let delta = (uv - center) * aspect;
+        let radius = length(delta) / max(effect.p0.y, 0.01);
+        let sector = 6.283185 / segments;
+        let triangle = abs(fract((atan2(delta.y, delta.x) - rotation) / sector + 0.5) * 2.0 - 1.0);
+        let folded_angle = triangle * sector * 0.5 + rotation;
+        uv = center + vec2f(cos(folded_angle), sin(folded_angle)) * radius / aspect;
+      }
       default: {}
     }
   }
@@ -668,6 +680,81 @@ fn fragment_main(input: VertexOutput) -> @location(0) vec4f {
         let monochrome = dot(color, effect.header.yzw);
         let tinted = vec3f(monochrome) * effect.p0.yzw;
         color = select(vec3f(monochrome), tinted, effect.p0.x > 0.5);
+      }
+      case 49u: {
+        let phase = fract(luminance(color) + effect.header.y / 6.283185);
+        var palette = hue_color(phase * 6.283185);
+        if effect.header.z > 0.5 && effect.header.z < 1.5 {
+          palette = vec3f(
+            smoothstep(0.0, 0.55, phase),
+            smoothstep(0.18, 0.72, phase) * (1.0 - smoothstep(0.72, 1.0, phase)),
+            smoothstep(0.72, 1.0, phase) * 0.35,
+          );
+        } else if effect.header.z > 1.5 {
+          palette = mix(vec3f(0.01, 0.08, 0.22), vec3f(0.12, 0.9, 1.0), smoothstep(0.0, 1.0, phase));
+        }
+        palette = mix(vec3f(luminance(palette)), palette, effect.header.w);
+        color = mix(color, palette, effect.p0.x);
+      }
+      case 50u: {
+        let center = vec2f(effect.header.y, effect.header.z);
+        let normal = vec2f(-sin(effect.header.w), cos(effect.header.w));
+        let distance = abs(dot((uv - center) * resolution, normal));
+        let band = pow(clamp(1.0 - distance / max(effect.p0.x, 1.0), 0.0, 1.0), max(effect.p0.z, 0.1));
+        color += effect.p1.xyz * band * effect.p0.y * effect.p0.w;
+      }
+      case 52u: {
+        let direction = vec2f(cos(effect.header.y), sin(effect.header.y));
+        let offset = direction * max(effect.header.z, 0.25) / resolution;
+        let forward = textureSample(hdr_scene, linear_sampler, uv + offset).a;
+        let backward = textureSample(hdr_scene, linear_sampler, uv - offset).a;
+        let edge = (backward - forward) * effect.header.w;
+        let beveled = color
+          + effect.p0.yzw * max(edge, 0.0)
+          - (vec3f(1.0) - effect.p1.xyz) * max(-edge, 0.0);
+        color = mix(color, beveled, effect.p0.x);
+      }
+      case 53u: {
+        let offset = vec2f(max(effect.header.y, 0.25)) / resolution;
+        let left = luminance(textureSample(hdr_scene, linear_sampler, uv - vec2f(offset.x, 0.0)).rgb);
+        let right = luminance(textureSample(hdr_scene, linear_sampler, uv + vec2f(offset.x, 0.0)).rgb);
+        let up = luminance(textureSample(hdr_scene, linear_sampler, uv - vec2f(0.0, offset.y)).rgb);
+        let down = luminance(textureSample(hdr_scene, linear_sampler, uv + vec2f(0.0, offset.y)).rgb);
+        let normal = normalize(vec3f((left - right) * effect.header.z, (up - down) * effect.header.z, 1.0));
+        let light = normalize(vec3f(cos(effect.p0.x), sin(effect.p0.x), max(effect.p0.y, 0.05)));
+        let refracted = textureSample(hdr_scene, linear_sampler, uv + normal.xy * effect.header.w / resolution).rgb;
+        let diffuse = max(dot(normal, light), 0.0);
+        let specular = pow(diffuse, 24.0) * 0.8;
+        let glass = refracted * (0.42 + diffuse * 0.72) + vec3f(specular);
+        color = mix(color, glass, effect.p0.z);
+      }
+      case 54u: {
+        let offset = vec2f(1.0) / resolution;
+        let horizontal = luminance(textureSample(hdr_scene, linear_sampler, uv + vec2f(offset.x, 0.0)).rgb)
+          - luminance(textureSample(hdr_scene, linear_sampler, uv - vec2f(offset.x, 0.0)).rgb);
+        let vertical = luminance(textureSample(hdr_scene, linear_sampler, uv + vec2f(0.0, offset.y)).rgb)
+          - luminance(textureSample(hdr_scene, linear_sampler, uv - vec2f(0.0, offset.y)).rgb);
+        let levels = max(effect.header.z, 2.0);
+        let posterized = floor(clamp(color, vec3f(0.0), vec3f(1.0)) * (levels - 1.0) + 0.5) / (levels - 1.0);
+        let ink = smoothstep(effect.header.y, effect.header.y + effect.header.w, length(vec2f(horizontal, vertical)));
+        color = mix(color, posterized * (1.0 - ink), effect.p0.x);
+      }
+      case 55u: {
+        let solarized = select(color, max(vec3f(0.0), vec3f(1.0) - color), color > vec3f(effect.header.y));
+        color = mix(color, solarized, effect.header.z);
+      }
+      case 56u: {
+        let radius = max(abs(effect.header.y) + effect.header.z, 0.25);
+        let offset = vec2f(radius) / resolution;
+        let alpha_a = textureSample(hdr_scene, linear_sampler, uv + vec2f(offset.x, 0.0)).a;
+        let alpha_b = textureSample(hdr_scene, linear_sampler, uv - vec2f(offset.x, 0.0)).a;
+        let alpha_c = textureSample(hdr_scene, linear_sampler, uv + vec2f(0.0, offset.y)).a;
+        let alpha_d = textureSample(hdr_scene, linear_sampler, uv - vec2f(0.0, offset.y)).a;
+        let contracted = min(alpha, min(min(alpha_a, alpha_b), min(alpha_c, alpha_d)));
+        let expanded = max(alpha, max(max(alpha_a, alpha_b), max(alpha_c, alpha_d)));
+        let matte = select(expanded, contracted, effect.header.y >= 0.0);
+        let amount = abs(effect.header.y) / max(abs(effect.header.y) + effect.header.z, 0.0001);
+        alpha = mix(alpha, matte, amount);
       }
       default: {}
     }

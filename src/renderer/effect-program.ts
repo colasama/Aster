@@ -53,6 +53,14 @@ export enum EffectOpcode {
   Tritone = 46,
   LensDistortion = 47,
   BlackWhite = 48,
+  Colorama = 49,
+  LightSweep = 50,
+  Kaleidoscope = 51,
+  BevelAlpha = 52,
+  Glass = 53,
+  Cartoon = 54,
+  Solarize = 55,
+  SimpleChoker = 56,
 }
 
 export interface EffectProgram {
@@ -371,6 +379,69 @@ function compileEffect(
         value("tint", 0),
         ...color("tintColor", 0xb8c8e8),
       ]);
+      break;
+    case "colorama":
+      emit(EffectOpcode.Colorama, [
+        degrees(value("phase")),
+        value("palette"),
+        value("saturation", 1),
+        value("blend", 100) / 100,
+      ]);
+      break;
+    case "light-sweep":
+      emit(EffectOpcode.LightSweep, [
+        value("centerX", 50) / 100,
+        value("centerY", 50) / 100,
+        degrees(value("direction", 45)),
+        value("width", 120),
+        value("intensity", 2),
+        value("edgeThickness", 1.5),
+        value("blend", 100) / 100,
+        ...color("color", 0xffffff),
+      ]);
+      break;
+    case "kaleidoscope":
+      emit(EffectOpcode.Kaleidoscope, [
+        value("segments", 8),
+        degrees(value("rotation")),
+        value("centerX", 50) / 100,
+        value("centerY", 50) / 100,
+        value("zoom", 100) / 100,
+      ]);
+      break;
+    case "bevel-alpha":
+      emit(EffectOpcode.BevelAlpha, [
+        degrees(value("direction", 135)),
+        value("relief", 4),
+        value("intensity", 1),
+        value("blend", 100) / 100,
+        ...color("highlightColor", 0xffffff),
+        ...color("shadowColor", 0x101528),
+      ]);
+      break;
+    case "glass":
+      emit(EffectOpcode.Glass, [
+        value("softness", 2),
+        value("height", 6),
+        value("displacement", 12),
+        degrees(value("lightDirection", 315)),
+        value("lightHeight", 1.5),
+        value("blend", 100) / 100,
+      ]);
+      break;
+    case "cartoon":
+      emit(EffectOpcode.Cartoon, [
+        value("edgeThreshold", 0.16),
+        value("levels", 6),
+        value("edgeSoftness", 0.04),
+        value("blend", 100) / 100,
+      ]);
+      break;
+    case "solarize":
+      emit(EffectOpcode.Solarize, [value("threshold", 0.5), value("blend", 100) / 100]);
+      break;
+    case "simple-choker":
+      emit(EffectOpcode.SimpleChoker, [value("choke", 2), value("softness", 1)]);
       break;
   }
 }

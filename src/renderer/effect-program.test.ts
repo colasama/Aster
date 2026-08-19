@@ -63,6 +63,14 @@ describe("GPU effect program compiler", () => {
     ["tritone", EffectOpcode.Tritone],
     ["lens-distortion", EffectOpcode.LensDistortion],
     ["black-white", EffectOpcode.BlackWhite],
+    ["colorama", EffectOpcode.Colorama],
+    ["light-sweep", EffectOpcode.LightSweep],
+    ["kaleidoscope", EffectOpcode.Kaleidoscope],
+    ["bevel-alpha", EffectOpcode.BevelAlpha],
+    ["glass", EffectOpcode.Glass],
+    ["cartoon", EffectOpcode.Cartoon],
+    ["solarize", EffectOpcode.Solarize],
+    ["simple-choker", EffectOpcode.SimpleChoker],
   ])("compiles %s into its dedicated GPU opcode", (type, opcode) => {
     const composition = activeComposition(createDemoProject());
     composition.layers.forEach((layer) => {

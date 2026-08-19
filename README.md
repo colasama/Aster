@@ -24,8 +24,8 @@ frames. Rendering, effects, particles, and composition are designed to remain GP
 - Full/Half/Quarter preview resolution, dual Active/Custom views, lossless 4K PNG frame export,
   cancellable native PNG sequence rendering with progress, local autosave recovery, and atomic
   native project persistence.
-- Data-driven catalog of 59 blur, color, distort, generate, stylize, keying, time, transition,
-  simulation, and Looks-style effects, including 48 fused GPU opcodes.
+- Data-driven catalog of 67 blur, color, distort, generate, stylize, keying, time, transition,
+  simulation, matte, and Looks-style effects, including 56 fused GPU opcodes.
 - Rust render graph with validation, topological scheduling, resource lifetimes, transient aliasing,
   and DOT/JSON diagnostics.
 - Open project bundle, a native WGSL plugin manager with safe mode, permission-checked AI operation

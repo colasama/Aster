@@ -1047,16 +1047,16 @@ aster/
 
 ### Representative GPU Effects
 
-- [ ] 实现 Color Matrix。
-- [ ] 实现 Exposure。
-- [ ] 实现 Tint。
-- [ ] 实现 Gaussian / Separable Blur。
-- [ ] 实现 Kawase Blur 实验版本。
-- [ ] 实现 Glow / Bloom。
-- [ ] 实现 Chromatic Aberration。
-- [ ] 实现简单 Displacement。
-- [ ] 建立 Effect parameter uniform abstraction。
-- [ ] 建立 Effect pass abstraction。
+- [x] 实现 Color Matrix。
+- [x] 实现 Exposure。
+- [x] 实现 Tint。
+- [x] 实现 Gaussian / Separable Blur。
+- [x] 实现 Kawase Blur 实验版本。
+- [x] 实现 Glow / Bloom。
+- [x] 实现 Chromatic Aberration。
+- [x] 实现简单 Displacement。
+- [x] 建立 Effect parameter uniform abstraction。
+- [x] 建立 Effect pass abstraction。
 
 ### Profiling
 
