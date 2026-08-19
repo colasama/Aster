@@ -357,6 +357,14 @@ describe("GPU effect program compiler", () => {
     ["edge-color-blend", EffectOpcode.EdgeColorBlend],
     ["spill-killer", EffectOpcode.SpillKiller],
     ["wire-removal", EffectOpcode.WireRemoval],
+    ["vr-rotate-sphere", EffectOpcode.VrRotateSphere],
+    ["vr-plane-to-sphere", EffectOpcode.VrPlaneToSphere],
+    ["vr-chromatic-aberrations", EffectOpcode.VrChromaticAberrations],
+    ["vr-digital-glitch", EffectOpcode.VrDigitalGlitch],
+    ["vr-color-gradients", EffectOpcode.VrColorGradients],
+    ["vr-glow", EffectOpcode.VrGlow],
+    ["vr-blur", EffectOpcode.VrBlur],
+    ["vr-fractal-noise", EffectOpcode.VrFractalNoise],
   ])("compiles %s into its dedicated GPU opcode", (type, opcode) => {
     const composition = activeComposition(createDemoProject());
     composition.layers.forEach((layer) => {

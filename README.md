@@ -27,8 +27,9 @@ frames. Rendering, effects, particles, and composition are designed to remain GP
 - Full/Half/Quarter preview resolution, dual Active/Custom views, lossless 4K PNG frame export,
   cancellable native PNG sequence rendering with progress, local autosave recovery, and atomic
   native project persistence.
-- Data-driven catalog of 242 blur, color, channel, distort, generate, stylize, keying, time,
-  transition, simulation, matte, perspective, layer-style, noise, and Looks effects, including 240 ordered GPU
+- Data-driven catalog of 250 blur, color, channel, distort, generate, stylize, keying, time,
+  transition, simulation, matte, perspective, layer-style, noise, immersive-video, and Looks effects,
+  including 248 ordered GPU opcodes.
   opcodes.
 - Professional channel and keying tools include Set Channels, Arithmetic, Alpha Levels, Remove
   Color Matting, Linear Color Key, Color Range, Matte Choker, and GPU Keylight.
@@ -50,6 +51,8 @@ frames. Rendering, effects, particles, and composition are designed to remain GP
   Card Wipe, with UV and alpha stages compiled into the same ordered GPU program.
 - Procedural simulation includes Bubbles, Drizzle, Hair, Mr. Mercury metaballs, Particle Systems II,
   Pixel Polly, Scatterize, and damped Wave World.
+- Immersive Video includes equirectangular sphere rotation/projection, spherical chromatic shift,
+  latitude-band glitch, HDR gradients/glow, seam-aware blur, and animated fractal noise.
 - Advanced stylization includes Color Halftone, Glowing Edges, Texturize, Tiles, CC Threshold,
   CC Toner, CC Plastic, and CC Blobbylize.
 - Matte refinement includes hard/soft refine, feather, cleanup, edge decontamination, tinted light

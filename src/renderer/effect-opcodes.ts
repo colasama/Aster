@@ -241,4 +241,12 @@ export enum EffectOpcode {
   EdgeColorBlend = 240,
   SpillKiller = 241,
   WireRemoval = 242,
+  VrRotateSphere = 243,
+  VrPlaneToSphere = 244,
+  VrChromaticAberrations = 245,
+  VrDigitalGlitch = 246,
+  VrColorGradients = 247,
+  VrGlow = 248,
+  VrBlur = 249,
+  VrFractalNoise = 250,
 }

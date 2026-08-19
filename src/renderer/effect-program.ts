@@ -9,6 +9,7 @@ import { compileChannelUtilityEffect } from "./effect-program-channel-utility";
 import { compileColorPipelineEffect } from "./effect-program-color-pipeline";
 import { compileDetailProcessingEffect } from "./effect-program-detail-processing";
 import { compileDrawGeneratorEffect } from "./effect-program-draw-generators";
+import { compileImmersiveVideoEffect } from "./effect-program-immersive-video";
 import { compileKeyingCleanupEffect } from "./effect-program-keying-cleanup";
 import { compileLayerStyleEffect } from "./effect-program-layer-styles";
 import { compileLightingEffect } from "./effect-program-lighting";
@@ -80,6 +81,7 @@ function compileEffect(
   if (compileDetailProcessingEffect(effect, time, emit)) return;
   if (compileLayerStyleEffect(effect, time, emit)) return;
   if (compileKeyingCleanupEffect(effect, time, emit)) return;
+  if (compileImmersiveVideoEffect(effect, time, emit)) return;
   if (compileLightingEffect(effect, time, emit)) return;
   if (compileMatteRefineEffect(effect, time, emit)) return;
   if (compileNoiseGrainEffect(effect, time, emit)) return;

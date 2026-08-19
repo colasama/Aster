@@ -1233,6 +1233,7 @@ aster/
 - [x] GPU Noise & Grain（Add / Remove Grain、Median、HLS / Alpha Noise、Turbulence）。
 - [x] GPU Advanced Transitions（Clock、Grid、Jaws、Light、Scale、Twister、Card Wipe）。
 - [x] GPU Procedural Simulation（Bubbles、Drizzle、Hair、Mercury、Particles、Pixel Polly）。
+- [x] GPU Immersive Video（Rotate / Plane to Sphere、Chromatic、Glitch、Gradient、Glow、Blur、Fractal Noise）。
 - [x] GPU Advanced Stylize（Halftone、Glowing Edges、Texture、Toner、Plastic、Blobbylize）。
 - [x] GPU Matte Refine（Hard / Soft、Feather、Cleanup、Decontaminate、Light Wrap）。
 - [x] GPU Keying Cleanup（Key Cleaner、Screen / Core Matte、Despot、Edge Extend / Blend、Spill Killer、Wire Removal）。
