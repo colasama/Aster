@@ -1062,7 +1062,7 @@ aster/
 - [x] 实现 Offset / Magnify / Ripple / Corner Pin。
 - [x] 实现 Lens Flare / Cell Pattern。
 - [x] 实现 CC Rainfall / CC Snowfall。
-- [x] 提供 24 套带色板预览、单事务撤销的 Looks 调色链。
+- [x] 提供 32 套带色板预览、单事务撤销的 Looks 调色链。
 - [x] 实现 Block Dissolve / Iris Wipe / Barn Doors / Gradient Wipe。
 - [x] 实现 CC Burn Film / Strobe Light / Scatter / Brush Strokes。
 - [x] 实现 Photo Filter / Selective Color / Shadow-Highlight / Gamma-Pedestal-Gain。
@@ -1220,7 +1220,7 @@ aster/
 - [x] Effects Browser。
 - [x] Effects Browser 收藏与最近使用持久化。
 - [x] 自定义 Effect Chain 预设保存、持久化、应用、删除与单步撤销。
-- [x] 24 套内置 Looks（调色、胶片、夜景、VHS、印刷与风格化链）。
+- [x] 32 套内置 Looks（调色、胶片、夜景、VHS、印刷与风格化链）。
 - [x] Effect Chain 顺序化执行、Inspector 重排与撤销。
 - [x] Effect 局部椭圆 / 矩形 Mask、羽化、不透明度、反转与工程持久化。
 - [x] GPU Channel / Keying 工具（Set Channels、Color Range、Matte Choker、Keylight 等）。

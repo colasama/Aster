@@ -58,7 +58,7 @@ frames. Rendering, effects, particles, and composition are designed to remain GP
   deterministic Scribble, Write-on, Eyedropper Fill, and bounded Paint Bucket fills.
 - Professional linear-HDR color tools include ASC CDL, per-channel Lift/Gamma/Gain, Log Wheels,
   HSL Secondary, Highlight Recovery, Gamut Compressor, False Color, and Film Print Density.
-- Twenty-four one-click Looks chains with palette previews and transactional undo, complete Color Lab
+- Thirty-two one-click Looks chains with palette previews and transactional undo, complete Color Lab
   lift/pivot/gain controls, and stock-sensitive film emulation.
 - Searchable Effects Browser with persistent favorites and a bounded recently-used GPU effect list.
 - Persistent custom effect-chain presets capture ordered parameters, local masks, and parameter

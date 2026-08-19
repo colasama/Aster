@@ -1,4 +1,5 @@
 import type { Effect } from "../core/types";
+import { PROFESSIONAL_LOOK_PRESETS } from "./presets-professional";
 import { createEffect, EFFECT_BY_TYPE } from "./registry";
 
 export interface EffectPresetEntry {
@@ -503,6 +504,7 @@ export const LOOK_PRESETS: EffectPreset[] = [
       },
     ],
   },
+  ...PROFESSIONAL_LOOK_PRESETS,
 ];
 
 export function createEffectsFromPreset(preset: EffectPreset): Effect[] {
