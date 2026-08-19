@@ -15,6 +15,9 @@ export interface PostProcessParameters {
   grain: number;
   gamma: number;
   fade: number;
+  pivot: number;
+  lift: number;
+  gain: number;
 }
 
 export const defaultPostProcessParameters = (): PostProcessParameters => ({
@@ -31,6 +34,9 @@ export const defaultPostProcessParameters = (): PostProcessParameters => ({
   grain: 0,
   gamma: 1,
   fade: 0,
+  pivot: 0.18,
+  lift: 0,
+  gain: 1,
 });
 
 export function collectPostProcessParameters(
@@ -78,8 +84,11 @@ export function collectPostProcessParameters(
           output.tint += value("tint");
           output.exposure += value("exposure");
           output.contrast *= value("contrast", 1);
+          output.pivot = value("pivot", 0.42);
           output.saturation *= value("saturation", 1) + value("vibrance") * 0.35;
+          output.lift += value("lift");
           output.gamma *= value("gamma", 1);
+          output.gain *= value("gain", 1);
           output.vignette += value("vignette");
           output.grain += value("grain");
           output.glow += value("bloom");
@@ -87,9 +96,21 @@ export function collectPostProcessParameters(
           break;
         case "film-emulation": {
           const strength = value("strength", 1);
+          const stock = value("stock");
           output.grain += value("grain") * strength;
           output.glow += value("halation") * strength;
           output.contrast *= 1 + 0.08 * strength;
+          if (stock > 0.5 && stock < 1.5) {
+            output.temperature += 0.25 * strength;
+            output.tint += 0.06 * strength;
+            output.saturation *= 1 + 0.05 * strength;
+          } else if (stock > 1.5 && stock < 2.5) {
+            output.contrast *= 1 + 0.1 * strength;
+            output.saturation *= 1 + 0.18 * strength;
+          } else if (stock > 2.5) {
+            output.contrast *= 1 + 0.18 * strength;
+            output.saturation *= Math.max(0, 1 - 0.35 * strength);
+          }
           break;
         }
       }
@@ -107,6 +128,9 @@ export function collectPostProcessParameters(
   output.grain = clamp(output.grain, 0, 1);
   output.gamma = clamp(output.gamma, 0.1, 10);
   output.fade = clamp(output.fade, 0, 1);
+  output.pivot = clamp(output.pivot, 0, 1);
+  output.lift = clamp(output.lift, -2, 2);
+  output.gain = clamp(output.gain, 0, 8);
   return output;
 }
 

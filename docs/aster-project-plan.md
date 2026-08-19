@@ -1205,7 +1205,7 @@ aster/
 - [ ] Inspector / Properties。
 - [ ] Graph Editor。
 - [ ] Asset Browser。
-- [ ] Effects Browser。
+- [x] Effects Browser。
 - [ ] Console / Diagnostics。
 - [ ] Profiler Overlay。
 - [ ] AI Panel placeholder。

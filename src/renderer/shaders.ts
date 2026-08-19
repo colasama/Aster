@@ -169,6 +169,7 @@ struct PostProcess {
   optical: vec4f,
   finish: vec4f,
   program: vec4f,
+  grading: vec4f,
 }
 
 struct EffectOp {
@@ -361,6 +362,9 @@ fn fragment_main(input: VertexOutput) -> @location(0) vec4f {
   let saturation = settings.color.y;
   let temperature = settings.color.z;
   let tint = settings.color.w;
+  let pivot = settings.grading.x;
+  let lift = settings.grading.y;
+  let gain = settings.grading.z;
   let glow = settings.optical.x;
   let threshold = settings.optical.y;
   let blur_radius = settings.optical.z;
@@ -388,7 +392,9 @@ fn fragment_main(input: VertexOutput) -> @location(0) vec4f {
 
   color *= exp2(exposure);
   color *= vec3f(1.0 + temperature * 0.16, 1.0 + tint * 0.08, 1.0 - temperature * 0.16);
-  color = (color - vec3f(0.18)) * contrast + vec3f(0.18);
+  color += lift;
+  color = (color - vec3f(pivot)) * contrast + vec3f(pivot);
+  color *= gain;
   let gray = luminance(color);
   color = mix(vec3f(gray), color, saturation);
   color = pow(max(color, vec3f(0.0)), vec3f(1.0 / settings.finish.z));

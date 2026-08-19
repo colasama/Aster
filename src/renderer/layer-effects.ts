@@ -202,7 +202,7 @@ export class LayerEffectRenderer {
     if (!this.#input) throw new Error("Layer effect input is unavailable");
     const uniforms = this.#device.createBuffer({
       label: `Layer effect uniforms · ${instanceId}`,
-      size: 80,
+      size: 96,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
     const program = this.#device.createBuffer({

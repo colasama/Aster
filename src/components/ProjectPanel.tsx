@@ -17,6 +17,7 @@ import { createMediaLayerFromFile } from "../core/assets";
 import { createLayerForComposition } from "../core/layer-factory";
 import { activeComposition } from "../core/project";
 import type { LayerKind } from "../core/types";
+import { createEffectsFromPreset, LOOK_PRESETS } from "../effects/presets";
 import { createEffect, EFFECT_REGISTRY, effectCategories } from "../effects/registry";
 import { useEditor } from "../state/editor-store";
 import { Panel, PanelTabs } from "./Panel";
@@ -48,6 +49,13 @@ export function ProjectPanel() {
       ),
     [query],
   );
+  const filteredPresets = useMemo(
+    () =>
+      LOOK_PRESETS.filter((preset) =>
+        `${preset.name} ${preset.description}`.toLowerCase().includes(query.toLowerCase()),
+      ),
+    [query],
+  );
   const addLayer = (kind: LayerKind) => {
     const layer = createLayerForComposition(kind, composition, state.currentTime);
     dispatch({
@@ -62,6 +70,19 @@ export function ProjectPanel() {
     dispatch({
       type: "operation",
       operations: [{ type: "addEffect", layerId, effect: createEffect(type) }],
+    });
+  };
+  const applyPreset = (presetId: string) => {
+    const layerId = state.selection[0];
+    const preset = LOOK_PRESETS.find((candidate) => candidate.id === presetId);
+    if (!layerId || !preset) return;
+    dispatch({
+      type: "operation",
+      operations: createEffectsFromPreset(preset).map((effect) => ({
+        type: "addEffect" as const,
+        layerId,
+        effect,
+      })),
     });
   };
   const importImage = async (file: File) => {
@@ -179,6 +200,30 @@ export function ProjectPanel() {
         </div>
       ) : (
         <div className="effect-list">
+          {filteredPresets.length > 0 && (
+            <div className="effect-group preset-group">
+              <div className="effect-category">
+                <ChevronDown size={13} /> Looks Presets <small>{filteredPresets.length}</small>
+              </div>
+              {filteredPresets.map((preset) => (
+                <button
+                  disabled={!state.selection[0]}
+                  key={preset.id}
+                  onClick={() => applyPreset(preset.id)}
+                  title={state.selection[0] ? preset.description : "Select a layer first"}
+                  type="button"
+                >
+                  <span className="effect-icon preset">
+                    <Sparkles size={13} />
+                  </span>
+                  <span>
+                    <strong>{preset.name}</strong>
+                    <small>{preset.effects.length} effects · one undo</small>
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
           {effectCategories().map((category) => {
             const effects = filteredEffects.filter((effect) => effect.category === category);
             if (effects.length === 0) return null;

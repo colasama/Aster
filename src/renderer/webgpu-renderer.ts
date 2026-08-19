@@ -165,7 +165,7 @@ export class WebGpuRenderer {
     });
     this.#postUniformBuffer = device.createBuffer({
       label: "Fused post-process uniforms",
-      size: 80,
+      size: 96,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
     this.#effectProgramBuffer = device.createBuffer({

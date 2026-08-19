@@ -26,6 +26,8 @@ frames. Rendering, effects, particles, and composition are designed to remain GP
   native project persistence.
 - Data-driven catalog of 67 blur, color, distort, generate, stylize, keying, time, transition,
   simulation, matte, and Looks-style effects, including 56 fused GPU opcodes.
+- Eight one-click Looks chains with transactional undo, complete Color Lab lift/pivot/gain controls,
+  and stock-sensitive film emulation.
 - Rust render graph with validation, topological scheduling, resource lifetimes, transient aliasing,
   and DOT/JSON diagnostics.
 - Open project bundle, a native WGSL plugin manager with safe mode, permission-checked AI operation

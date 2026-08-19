@@ -29,5 +29,9 @@ export function buildPostProcessUniforms(
     Number(linearOutput),
     0,
     0,
+    effects.pivot,
+    effects.lift,
+    effects.gain,
+    0,
   ]);
 }

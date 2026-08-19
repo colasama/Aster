@@ -13,6 +13,9 @@ describe("GPU effect parameter fusion", () => {
     const looks = createEffect("looks-color-lab");
     looks.parameters.temperature = 0.7;
     looks.parameters.grain = 0.12;
+    looks.parameters.pivot = 0.43;
+    looks.parameters.lift = -0.04;
+    looks.parameters.gain = 1.12;
     const glow = createEffect("glow");
     glow.parameters.radius = 100;
     glow.parameters.intensity = 2;
@@ -25,6 +28,9 @@ describe("GPU effect parameter fusion", () => {
     expect(parameters.glow).toBeCloseTo(2.35);
     expect(parameters.blur).toBe(8);
     expect(parameters.contrast).toBeCloseTo(1.08);
+    expect(parameters.pivot).toBeCloseTo(0.43);
+    expect(parameters.lift).toBeCloseTo(-0.04);
+    expect(parameters.gain).toBeCloseTo(1.12);
   });
 
   it("ignores disabled effects and clamps unsafe parameter combinations", () => {
