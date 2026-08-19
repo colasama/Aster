@@ -16,7 +16,8 @@ frames. Rendering, effects, particles, and composition are designed to remain GP
 - Rational time, keyframes, cubic easing, graph view, layer ordering, undo/redo, and arbitrary-time
   evaluation.
 - Arbitrary effect parameters—including numeric, color, toggle, and choice controls—support
-  Inspector keyframing and direct GPU evaluation at render time.
+  Inspector keyframing, distinct Timeline tracks and markers, direct retiming/removal, and GPU
+  evaluation at render time.
 - WebGPU high-performance adapter selection, `rgba16float` HDR composition, ACES output,
   timestamp-query profiling, 100,000 compute particles, and fused realtime effects.
 - GPU image layers, time-addressable hardware-decoded video layers, recursive precompositions,

@@ -295,8 +295,15 @@
 .keyframe:hover span {
   background: #e8f0ff;
 }
+.keyframe.effect-key span {
+  border-color: #f6d6a1;
+  background: #d99542;
+  box-shadow: 0 0 4px #a96524;
+}
+.keyframe.effect-key:hover span {
+  background: #fff2d8;
+}
 .expanded-properties {
-  height: 22px;
   margin-left: 0;
   border-top: 1px solid #20232b;
   color: #6f7480;
@@ -304,7 +311,7 @@
 }
 .expanded-properties > div {
   width: 286px;
-  height: 100%;
+  height: 22px;
   display: flex;
   align-items: center;
   gap: 5px;

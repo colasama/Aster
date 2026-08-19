@@ -17,6 +17,7 @@ import {
   SkipBack,
   SkipForward,
   SlidersHorizontal,
+  Sparkles,
   Type,
   Volume2,
   VolumeX,
@@ -27,12 +28,22 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { PropertyPath } from "../core/operations";
 import { activeComposition } from "../core/project";
 import { frameAt } from "../core/timeline";
-import type { Animatable, Layer } from "../core/types";
+import type { Animatable, Keyframe, Layer } from "../core/types";
 import { useEditor } from "../state/editor-store";
 import { Panel, PanelTabs } from "./Panel";
 
 const LABEL_WIDTH = 286;
 const BASE_PIXELS_PER_SECOND = 82;
+
+type TimelineKeyframeEntry =
+  | { source: "transform"; keyframe: Keyframe; path: PropertyPath; label: string }
+  | {
+      source: "effect";
+      keyframe: Keyframe;
+      effectId: string;
+      parameter: string;
+      label: string;
+    };
 
 export function Timeline() {
   const { state, dispatch } = useEditor();
@@ -241,6 +252,7 @@ function TimelineLayer({
   const { state, dispatch } = useEditor();
   const [expanded, setExpanded] = useState(selected && layer.name === "ASTER");
   const keyframes = collectKeyframes(layer);
+  const effectTracks = collectEffectTracks(layer);
   const Icon =
     layer.kind === "text"
       ? Type
@@ -361,24 +373,37 @@ function TimelineLayer({
         >
           <span>{layer.name}</span>
         </div>
-        {keyframes.map(({ keyframe, path }) => (
+        {keyframes.map((entry) => (
           <button
-            className="keyframe"
-            key={keyframe.id}
-            onClick={() => dispatch({ type: "setTime", time: keyframe.time })}
+            className={`keyframe ${entry.source === "effect" ? "effect-key" : ""}`}
+            key={`${entry.source}:${entry.keyframe.id}`}
+            onClick={() => dispatch({ type: "setTime", time: entry.keyframe.time })}
             onContextMenu={(event) => {
               event.preventDefault();
               dispatch({
                 type: "operation",
                 operations: [
-                  { type: "removeKeyframe", layerId: layer.id, path, keyframeId: keyframe.id },
+                  entry.source === "transform"
+                    ? {
+                        type: "removeKeyframe",
+                        layerId: layer.id,
+                        path: entry.path,
+                        keyframeId: entry.keyframe.id,
+                      }
+                    : {
+                        type: "removeEffectParameterKeyframe",
+                        layerId: layer.id,
+                        effectId: entry.effectId,
+                        parameter: entry.parameter,
+                        keyframeId: entry.keyframe.id,
+                      },
                 ],
               });
             }}
             onPointerDown={(event) => {
               event.stopPropagation();
               const startX = event.clientX;
-              const initialTime = keyframe.time;
+              const initialTime = entry.keyframe.time;
               let nextTime = initialTime;
               const move = (moveEvent: PointerEvent) => {
                 nextTime = Math.max(
@@ -393,21 +418,30 @@ function TimelineLayer({
                 dispatch({
                   type: "operation",
                   operations: [
-                    {
-                      type: "moveKeyframe",
-                      layerId: layer.id,
-                      path,
-                      keyframeId: keyframe.id,
-                      time: nextTime,
-                    },
+                    entry.source === "transform"
+                      ? {
+                          type: "moveKeyframe",
+                          layerId: layer.id,
+                          path: entry.path,
+                          keyframeId: entry.keyframe.id,
+                          time: nextTime,
+                        }
+                      : {
+                          type: "moveEffectParameterKeyframe",
+                          layerId: layer.id,
+                          effectId: entry.effectId,
+                          parameter: entry.parameter,
+                          keyframeId: entry.keyframe.id,
+                          time: nextTime,
+                        },
                   ],
                 });
               };
               window.addEventListener("pointermove", move);
               window.addEventListener("pointerup", up);
             }}
-            style={{ left: keyframe.time * pixelsPerSecond }}
-            title={`${keyframe.time.toFixed(2)}s · ${keyframe.value.toFixed(1)} · drag to retime · right-click to delete`}
+            style={{ left: entry.keyframe.time * pixelsPerSecond }}
+            title={`${entry.label} · ${entry.keyframe.time.toFixed(2)}s · ${entry.keyframe.value.toFixed(2)} · drag to retime · right-click to delete`}
             type="button"
           >
             <span />
@@ -419,8 +453,17 @@ function TimelineLayer({
           <div>
             <KeyRound size={11} />
             <span>Transform</span>
-            <small>{keyframes.length} keyframes</small>
+            <small>
+              {keyframes.filter((entry) => entry.source === "transform").length} keyframes
+            </small>
           </div>
+          {effectTracks.map((track) => (
+            <div key={`${track.effectId}:${track.parameter}`}>
+              <Sparkles size={11} />
+              <span>{track.label}</span>
+              <small>{track.count} keyframes</small>
+            </div>
+          ))}
         </div>
       )}
     </div>
@@ -527,7 +570,7 @@ function usePlayback(duration: number) {
   }, [dispatch, duration, state.playing]);
 }
 
-function collectKeyframes(layer: Layer) {
+function collectKeyframes(layer: Layer): TimelineKeyframeEntry[] {
   const properties: Array<[PropertyPath, Animatable]> = [
     ["position.0", layer.transform.position[0]],
     ["position.1", layer.transform.position[1]],
@@ -540,8 +583,38 @@ function collectKeyframes(layer: Layer) {
     ["scale.2", layer.transform.scale[2]],
     ["opacity", layer.transform.opacity],
   ];
-  return properties.flatMap(([path, property]) =>
-    property.mode === "animated" ? property.keyframes.map((keyframe) => ({ keyframe, path })) : [],
+  const transformKeyframes: TimelineKeyframeEntry[] = properties.flatMap(([path, property]) =>
+    property.mode === "animated"
+      ? property.keyframes.map((keyframe) => ({
+          source: "transform" as const,
+          keyframe,
+          path,
+          label: path,
+        }))
+      : [],
+  );
+  const effectKeyframes: TimelineKeyframeEntry[] = layer.effects.flatMap((effect) =>
+    Object.entries(effect.parameterKeyframes ?? {}).flatMap(([parameter, keyframes]) =>
+      keyframes.map((keyframe) => ({
+        source: "effect" as const,
+        keyframe,
+        effectId: effect.id,
+        parameter,
+        label: `${effect.name} · ${parameter}`,
+      })),
+    ),
+  );
+  return [...transformKeyframes, ...effectKeyframes];
+}
+
+function collectEffectTracks(layer: Layer) {
+  return layer.effects.flatMap((effect) =>
+    Object.entries(effect.parameterKeyframes ?? {}).map(([parameter, keyframes]) => ({
+      effectId: effect.id,
+      parameter,
+      label: `${effect.name} · ${parameter}`,
+      count: keyframes.length,
+    })),
   );
 }
 

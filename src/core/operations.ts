@@ -69,6 +69,14 @@ export type Operation =
       parameter: string;
       keyframeId: Id;
     }
+  | {
+      type: "moveEffectParameterKeyframe";
+      layerId: Id;
+      effectId: Id;
+      parameter: string;
+      keyframeId: Id;
+      time: number;
+    }
   | { type: "setEffectParameter"; layerId: Id; effectId: Id; parameter: string; value: number };
 
 export function applyOperations(project: Project, operations: Operation[]): Project {
@@ -234,6 +242,23 @@ export function applyOperation(project: Project, operation: Operation): void {
           removed?.value ?? effect.parameters[operation.parameter];
         delete effect.parameterKeyframes?.[operation.parameter];
       }
+      break;
+    }
+    case "moveEffectParameterKeyframe": {
+      const effect = layer.effects.find((entry) => entry.id === operation.effectId);
+      if (!effect) throw new Error("Effect does not exist");
+      const tracks = effect.parameterKeyframes;
+      const track = tracks?.[operation.parameter];
+      const keyframe = track?.find((entry) => entry.id === operation.keyframeId);
+      if (!tracks || !track || !keyframe) throw new Error("Effect keyframe does not exist");
+      const nextTime = Math.max(0, operation.time);
+      tracks[operation.parameter] = track
+        .filter(
+          (entry) =>
+            entry.id === operation.keyframeId || Math.abs(entry.time - nextTime) > 0.000_001,
+        )
+        .map((entry) => (entry.id === operation.keyframeId ? { ...entry, time: nextTime } : entry))
+        .sort((left, right) => left.time - right.time);
       break;
     }
   }

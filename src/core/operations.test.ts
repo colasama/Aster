@@ -143,7 +143,21 @@ describe("structured project operations", () => {
     ]);
     expect(effect.parameterKeyframes).toBeUndefined();
 
-    const removed = applyOperations(keyed, [
+    const moved = applyOperations(keyed, [
+      {
+        type: "moveEffectParameterKeyframe",
+        layerId: layer.id,
+        effectId: effect.id,
+        parameter: "exposure",
+        keyframeId: "updated",
+        time: 2,
+      },
+    ]);
+    expect(activeComposition(moved).layers[0].effects[0].parameterKeyframes?.exposure[0].time).toBe(
+      2,
+    );
+
+    const removed = applyOperations(moved, [
       {
         type: "removeEffectParameterKeyframe",
         layerId: layer.id,
