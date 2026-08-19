@@ -86,6 +86,14 @@ export enum EffectOpcode {
   CellPattern = 78,
   Rainfall = 79,
   Snowfall = 80,
+  BlockDissolve = 81,
+  IrisWipe = 82,
+  BarnDoors = 83,
+  GradientWipe = 84,
+  BurnFilm = 85,
+  StrobeLight = 86,
+  Scatter = 87,
+  BrushStrokes = 88,
 }
 
 export interface EffectProgram {
@@ -718,6 +726,85 @@ function compileEffect(
         value("seed", 1),
         ...color("color", 0xe8f4ff),
         value("opacity", 85) / 100,
+      ]);
+      break;
+    case "block-dissolve":
+      emit(EffectOpcode.BlockDissolve, [
+        value("completion", 50) / 100,
+        value("blockWidth", 64),
+        value("blockHeight", 36),
+        value("softness", 4) / 100,
+        value("seed", 1),
+      ]);
+      break;
+    case "iris-wipe":
+      emit(EffectOpcode.IrisWipe, [
+        value("completion", 50) / 100,
+        value("shape"),
+        value("centerX", 50) / 100,
+        value("centerY", 50) / 100,
+        value("feather", 12),
+        value("invert"),
+      ]);
+      break;
+    case "barn-doors":
+      emit(EffectOpcode.BarnDoors, [
+        value("completion", 50) / 100,
+        value("direction"),
+        value("center", 50) / 100,
+        value("feather", 8),
+        value("invert"),
+      ]);
+      break;
+    case "gradient-wipe":
+      emit(EffectOpcode.GradientWipe, [
+        value("completion", 50) / 100,
+        value("softness", 12) / 100,
+        value("scale", 180),
+        value("complexity", 4),
+        value("evolution"),
+        value("invert"),
+      ]);
+      break;
+    case "burn-film":
+      emit(EffectOpcode.BurnFilm, [
+        value("burn", 38) / 100,
+        value("centerX", 50) / 100,
+        value("centerY", 50) / 100,
+        value("turbulence", 90),
+        value("edgeWidth", 26),
+        value("intensity", 2.4),
+        value("evolution"),
+        ...color("color", 0xff6b18),
+      ]);
+      break;
+    case "strobe-light":
+      emit(EffectOpcode.StrobeLight, [
+        value("frequency", 8),
+        value("dutyCycle", 35) / 100,
+        value("phase"),
+        value("operator"),
+        ...color("color", 0xffffff),
+        value("opacity", 100) / 100,
+      ]);
+      break;
+    case "scatter":
+      emit(EffectOpcode.Scatter, [
+        value("horizontal", 18),
+        value("vertical", 18),
+        value("grain", 6),
+        value("seed", 1),
+        value("evolution"),
+      ]);
+      break;
+    case "brush-strokes":
+      emit(EffectOpcode.BrushStrokes, [
+        degrees(value("direction", 25)),
+        value("length", 26),
+        value("roughness", 0.4),
+        value("grain", 48),
+        value("levels", 12),
+        value("blend", 100) / 100,
       ]);
       break;
   }

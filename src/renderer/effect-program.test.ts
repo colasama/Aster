@@ -137,6 +137,14 @@ describe("GPU effect program compiler", () => {
     ["cell-pattern", EffectOpcode.CellPattern],
     ["rainfall", EffectOpcode.Rainfall],
     ["snowfall", EffectOpcode.Snowfall],
+    ["block-dissolve", EffectOpcode.BlockDissolve],
+    ["iris-wipe", EffectOpcode.IrisWipe],
+    ["barn-doors", EffectOpcode.BarnDoors],
+    ["gradient-wipe", EffectOpcode.GradientWipe],
+    ["burn-film", EffectOpcode.BurnFilm],
+    ["strobe-light", EffectOpcode.StrobeLight],
+    ["scatter", EffectOpcode.Scatter],
+    ["brush-strokes", EffectOpcode.BrushStrokes],
   ])("compiles %s into its dedicated GPU opcode", (type, opcode) => {
     const composition = activeComposition(createDemoProject());
     composition.layers.forEach((layer) => {

@@ -1063,6 +1063,8 @@ aster/
 - [x] 实现 Lens Flare / Cell Pattern。
 - [x] 实现 CC Rainfall / CC Snowfall。
 - [x] 提供 16 套带色板预览、单事务撤销的 Looks 调色链。
+- [x] 实现 Block Dissolve / Iris Wipe / Barn Doors / Gradient Wipe。
+- [x] 实现 CC Burn Film / Strobe Light / Scatter / Brush Strokes。
 - [x] 建立 Effect parameter uniform abstraction。
 - [x] 建立 Effect pass abstraction。
 

@@ -69,6 +69,16 @@ export const aeWarpShaderCases = /* wgsl */ `
         let pinned = mix(top, bottom, uv.y);
         uv = mix(uv, pinned, effect.p1.y);
       }
+      case 87u: {
+        let grain = max(effect.header.w, 1.0);
+        let cell = floor(input.position.xy / grain);
+        let evolution = effect.p0.y + time * 0.03;
+        let random_offset = vec2f(
+          hash(cell + vec2f(effect.p0.x + evolution)),
+          hash(cell + vec2f(effect.p0.x + evolution + 83.1)),
+        ) * 2.0 - vec2f(1.0);
+        uv += random_offset * effect.header.yz / resolution;
+      }
 `;
 
 export const aePixelShaderCases = /* wgsl */ `
@@ -248,5 +258,94 @@ export const aePixelShaderCases = /* wgsl */ `
         let snow_color = vec3f(effect.p0.w, effect.p1.x, effect.p1.y);
         color += snow_color * flake * effect.p1.z;
         alpha = max(alpha, flake * effect.p1.z);
+      }
+      case 81u: {
+        let block = floor(input.position.xy / max(effect.header.zw, vec2f(2.0)));
+        let threshold = hash(block + vec2f(effect.p0.y));
+        let keep = smoothstep(
+          effect.header.y - effect.p0.x,
+          effect.header.y + effect.p0.x + 0.0001,
+          threshold,
+        );
+        alpha *= keep;
+      }
+      case 82u: {
+        let center = vec2f(effect.header.w, effect.p0.x) * resolution;
+        let delta = input.position.xy - center;
+        var distance = length(delta);
+        if effect.header.z > 0.5 && effect.header.z < 1.5 {
+          distance = max(abs(delta.x), abs(delta.y));
+        } else if effect.header.z > 1.5 {
+          distance = abs(delta.x) + abs(delta.y);
+        }
+        let maximum = length(resolution) * 0.55;
+        let boundary = (1.0 - effect.header.y) * maximum;
+        var keep = 1.0 - smoothstep(boundary - effect.p0.y, boundary + effect.p0.y + 0.0001, distance);
+        keep = select(keep, 1.0 - keep, effect.p0.z > 0.5);
+        alpha *= keep;
+      }
+      case 83u: {
+        let horizontal = effect.header.z < 0.5;
+        let coordinate = select(uv.y, uv.x, horizontal);
+        let axis_size = select(resolution.y, resolution.x, horizontal);
+        let distance = abs(coordinate - effect.header.w) * axis_size;
+        let boundary = (1.0 - effect.header.y) * axis_size * 0.5;
+        var keep = 1.0 - smoothstep(boundary - effect.p0.x, boundary + effect.p0.x + 0.0001, distance);
+        keep = select(keep, 1.0 - keep, effect.p0.y > 0.5);
+        alpha *= keep;
+      }
+      case 84u: {
+        let position = input.position.xy / max(effect.header.w, 2.0) + vec2f(effect.p0.y + effect_time * 0.04);
+        var gradient = fractal_noise(position);
+        gradient = mix(gradient, value_noise(position * 2.7), clamp((effect.p0.x - 1.0) / 4.0, 0.0, 1.0));
+        gradient = select(gradient, 1.0 - gradient, effect.p0.z > 0.5);
+        let keep = smoothstep(
+          effect.header.y - effect.header.z,
+          effect.header.y + effect.header.z + 0.0001,
+          gradient,
+        );
+        alpha *= keep;
+      }
+      case 85u: {
+        let center = effect.header.zw * resolution;
+        let distance = length(input.position.xy - center);
+        let maximum = max(length(resolution) * 0.5, 1.0);
+        let noise_position = input.position.xy / max(effect.p0.x, 1.0) + vec2f(effect.p0.w + effect_time * 0.08);
+        let burn_field = distance / maximum + (fractal_noise(noise_position) - 0.5) * 0.36;
+        let edge = max(effect.p0.y / maximum, 0.0001);
+        let hole = 1.0 - smoothstep(effect.header.y - edge, effect.header.y + edge, burn_field);
+        let hot_edge = 1.0 - smoothstep(edge, edge * 3.0, abs(burn_field - effect.header.y));
+        color += effect.p1.xyz * hot_edge * effect.p0.z;
+        alpha *= 1.0 - hole;
+        alpha = max(alpha, hot_edge * 0.75);
+      }
+      case 86u: {
+        let pulse = step(fract(effect_time * max(effect.header.y, 0.1) + effect.header.w), effect.header.z);
+        let amount = pulse * effect.p1.x;
+        if effect.p0.x < 0.5 {
+          color = mix(color, effect.p0.yzw, amount);
+        } else if effect.p0.x < 1.5 {
+          color += effect.p0.yzw * amount;
+        } else {
+          color = mix(color, color * effect.p0.yzw, amount);
+        }
+      }
+      case 88u: {
+        let base_direction = vec2f(cos(effect.header.y), sin(effect.header.y));
+        let field = input.position.xy / max(effect.p0.x, 2.0);
+        let jitter = (value_noise(field + vec2f(effect_time * 0.03)) - 0.5) * effect.header.w;
+        let direction = rotate2(base_direction, jitter);
+        let stroke = direction * effect.header.z / resolution;
+        let painted = (
+          textureSample(hdr_scene, linear_sampler, uv - stroke).rgb
+          + textureSample(hdr_scene, linear_sampler, uv - stroke * 0.5).rgb
+          + textureSample(hdr_scene, linear_sampler, uv).rgb
+          + textureSample(hdr_scene, linear_sampler, uv + stroke * 0.5).rgb
+          + textureSample(hdr_scene, linear_sampler, uv + stroke).rgb
+        ) * 0.2;
+        let levels = max(effect.p0.y, 2.0);
+        let posterized = floor(clamp(painted, vec3f(0.0), vec3f(1.0)) * (levels - 1.0) + 0.5)
+          / (levels - 1.0);
+        color = mix(color, posterized, effect.p0.z);
       }
 `;
