@@ -1,4 +1,6 @@
 import {
+  ArrowDown,
+  ArrowUp,
   Box,
   ChevronDown,
   ChevronRight,
@@ -340,6 +342,10 @@ function EffectEditor({ effect, layerId }: { effect: Effect; layerId: string }) 
   const lutPickerRef = useRef<HTMLInputElement>(null);
   const definition = EFFECT_BY_TYPE.get(effect.type);
   const parameters = definition?.parameters ?? fallbackParameters(effect);
+  const layerEffects = activeComposition(state.project).layers.find(
+    (layer) => layer.id === layerId,
+  )?.effects;
+  const effectIndex = layerEffects?.findIndex((entry) => entry.id === effect.id) ?? -1;
   const setParameter = (parameter: string, value: number) => {
     if (!Number.isFinite(value)) return;
     dispatch({
@@ -409,6 +415,37 @@ function EffectEditor({ effect, layerId }: { effect: Effect; layerId: string }) 
         <strong>{effect.name}</strong>
         <span className="gpu-pill">{definition?.execution.replace("-", " ") ?? "GPU"}</span>
         <button
+          aria-label={`Move ${effect.name} up`}
+          disabled={effectIndex <= 0}
+          onClick={() =>
+            dispatch({
+              type: "operation",
+              operations: [
+                { type: "moveEffect", layerId, effectId: effect.id, toIndex: effectIndex - 1 },
+              ],
+            })
+          }
+          type="button"
+        >
+          <ArrowUp size={11} />
+        </button>
+        <button
+          aria-label={`Move ${effect.name} down`}
+          disabled={!layerEffects || effectIndex < 0 || effectIndex >= layerEffects.length - 1}
+          onClick={() =>
+            dispatch({
+              type: "operation",
+              operations: [
+                { type: "moveEffect", layerId, effectId: effect.id, toIndex: effectIndex + 1 },
+              ],
+            })
+          }
+          type="button"
+        >
+          <ArrowDown size={11} />
+        </button>
+        <button
+          aria-label={`Remove ${effect.name}`}
           onClick={() =>
             dispatch({
               type: "operation",

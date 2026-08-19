@@ -88,6 +88,25 @@ describe("GPU effect program compiler", () => {
     expect(compileEffectProgram(composition, 1).data[1]).toBe(6);
   });
 
+  it("keeps former aggregate effects in explicit layer order", () => {
+    const composition = activeComposition(createDemoProject());
+    composition.layers.forEach((layer) => {
+      layer.effects = [];
+    });
+    composition.layers[0].effects = [
+      createEffect("posterize"),
+      createEffect("exposure"),
+      createEffect("looks-color-lab"),
+    ];
+
+    const program = compileEffectProgram(composition);
+
+    expect(program.count).toBe(3);
+    expect(program.data[0]).toBe(EffectOpcode.Posterize);
+    expect(program.data[FLOATS_PER_EFFECT_OPERATION]).toBe(EffectOpcode.Exposure);
+    expect(program.data[FLOATS_PER_EFFECT_OPERATION * 2]).toBe(EffectOpcode.LooksColorLab);
+  });
+
   it.each([
     ["bilateral-blur", EffectOpcode.BilateralBlur],
     ["echo", EffectOpcode.Echo],
@@ -153,6 +172,17 @@ describe("GPU effect program compiler", () => {
     ["broadcast-colors", EffectOpcode.BroadcastColors],
     ["white-balance", EffectOpcode.WhiteBalance],
     ["color-emboss", EffectOpcode.ColorEmboss],
+    ["brightness-contrast", EffectOpcode.BrightnessContrast],
+    ["exposure", EffectOpcode.Exposure],
+    ["color-matrix", EffectOpcode.ColorMatrix],
+    ["vibrance", EffectOpcode.Vibrance],
+    ["gaussian-blur", EffectOpcode.Blur],
+    ["kawase-blur", EffectOpcode.Blur],
+    ["glow", EffectOpcode.Glow],
+    ["bloom", EffectOpcode.Glow],
+    ["chromatic", EffectOpcode.ChromaticAberration],
+    ["looks-color-lab", EffectOpcode.LooksColorLab],
+    ["film-emulation", EffectOpcode.FilmEmulation],
   ])("compiles %s into its dedicated GPU opcode", (type, opcode) => {
     const composition = activeComposition(createDemoProject());
     composition.layers.forEach((layer) => {

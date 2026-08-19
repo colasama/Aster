@@ -1,5 +1,5 @@
 import type { BlendMode, Composition, Layer } from "../core/types";
-import { collectPostProcessParameters } from "./effect-parameters";
+import { defaultPostProcessParameters } from "./effect-parameters";
 import {
   compileEffectProgram,
   FLOATS_PER_EFFECT_OPERATION,
@@ -142,7 +142,7 @@ export class LayerEffectRenderer {
       throw new Error("Layer effect targets unavailable");
 
     const program = compileEffectProgram(composition, time, [layer]);
-    const effects = collectPostProcessParameters(composition, time, [layer]);
+    const effects = defaultPostProcessParameters();
     const resource = this.#resource(instanceId, layer);
     this.#device.queue.writeBuffer(resource.program, 0, program.data);
     this.#device.queue.writeBuffer(

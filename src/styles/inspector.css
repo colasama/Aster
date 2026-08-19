@@ -264,6 +264,13 @@
 .effect-title button:hover {
   color: #e1717d;
 }
+.effect-title button:disabled {
+  color: #3c414b;
+  cursor: default;
+}
+.effect-title button[aria-label^="Move"]:not(:disabled):hover {
+  color: #8dacff;
+}
 .effect-parameter {
   height: 28px;
   display: flex;

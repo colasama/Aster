@@ -1219,6 +1219,7 @@ aster/
 - [ ] Asset Browser。
 - [x] Effects Browser。
 - [x] Effects Browser 收藏与最近使用持久化。
+- [x] Effect Chain 顺序化执行、Inspector 重排与撤销。
 - [ ] Console / Diagnostics。
 - [ ] Profiler Overlay。
 - [ ] AI Panel placeholder。

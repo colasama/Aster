@@ -44,6 +44,7 @@ export type Operation =
   | { type: "setExpression"; layerId: Id; path: PropertyPath; expression: string }
   | { type: "addEffect"; layerId: Id; effect: Effect }
   | { type: "removeEffect"; layerId: Id; effectId: Id }
+  | { type: "moveEffect"; layerId: Id; effectId: Id; toIndex: number }
   | { type: "toggleEffect"; layerId: Id; effectId: Id }
   | { type: "setEffectLut"; layerId: Id; effectId: Id; resource?: Lut3dResource }
   | {
@@ -173,6 +174,15 @@ export function applyOperation(project: Project, operation: Operation): void {
     case "removeEffect":
       layer.effects = layer.effects.filter((effect) => effect.id !== operation.effectId);
       break;
+    case "moveEffect": {
+      const fromIndex = layer.effects.findIndex((effect) => effect.id === operation.effectId);
+      if (fromIndex < 0) throw new Error("Effect does not exist");
+      const [effect] = layer.effects.splice(fromIndex, 1);
+      if (!effect) throw new Error("Effect does not exist");
+      const toIndex = Math.max(0, Math.min(layer.effects.length, Math.trunc(operation.toIndex)));
+      layer.effects.splice(toIndex, 0, effect);
+      break;
+    }
     case "toggleEffect": {
       const effect = layer.effects.find((entry) => entry.id === operation.effectId);
       if (!effect) throw new Error("Effect does not exist");

@@ -42,6 +42,20 @@ describe("structured project operations", () => {
     expect(effect?.enabled).toBe(true);
   });
 
+  it("reorders effects through a bounded operation", () => {
+    const source = createDemoProject();
+    const layer = activeComposition(source).layers[0];
+    expect(layer.effects.length).toBeGreaterThan(1);
+    const firstId = layer.effects[0].id;
+    const moved = applyOperations(source, [
+      { type: "moveEffect", layerId: layer.id, effectId: firstId, toIndex: 99 },
+    ]);
+
+    const movedEffects = activeComposition(moved).layers[0].effects;
+    expect(movedEffects[movedEffects.length - 1]?.id).toBe(firstId);
+    expect(layer.effects[0].id).toBe(firstId);
+  });
+
   it("retimes, eases, and removes keyframes through operations", () => {
     const source = createDemoProject();
     const layer = activeComposition(source).layers[0];

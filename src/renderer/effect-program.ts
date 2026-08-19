@@ -102,6 +102,15 @@ export enum EffectOpcode {
   BroadcastColors = 94,
   WhiteBalance = 95,
   ColorEmboss = 96,
+  BrightnessContrast = 97,
+  Exposure = 98,
+  ColorMatrix = 99,
+  Vibrance = 100,
+  Blur = 101,
+  Glow = 102,
+  ChromaticAberration = 103,
+  LooksColorLab = 104,
+  FilmEmulation = 105,
 }
 
 export interface EffectProgram {
@@ -139,6 +148,80 @@ function compileEffect(
   const value = (key: string, fallback = 0) => evaluateEffectParameter(effect, key, time, fallback);
   const color = (key: string, fallback: number) => colorChannels(value(key, fallback));
   switch (effect.type) {
+    case "brightness-contrast":
+      emit(EffectOpcode.BrightnessContrast, [value("brightness"), value("contrast", 1)]);
+      break;
+    case "exposure":
+      emit(EffectOpcode.Exposure, [value("exposure"), value("offset"), value("gamma", 1)]);
+      break;
+    case "color-matrix":
+      emit(EffectOpcode.ColorMatrix, [
+        value("contrast", 1),
+        value("saturation", 1),
+        value("gain", 1),
+      ]);
+      break;
+    case "vibrance":
+      emit(EffectOpcode.Vibrance, [value("vibrance"), value("saturation", 1)]);
+      break;
+    case "gaussian-blur":
+      emit(EffectOpcode.Blur, [value("radius", 18), 0, value("repeatEdge", 1)]);
+      break;
+    case "kawase-blur":
+      emit(EffectOpcode.Blur, [value("radius", 24), 1, value("iterations", 4)]);
+      break;
+    case "glow":
+      emit(EffectOpcode.Glow, [
+        value("threshold", 0.65),
+        value("radius", 42),
+        value("intensity", 1.1),
+        value("composite"),
+        0,
+      ]);
+      break;
+    case "bloom":
+      emit(EffectOpcode.Glow, [
+        value("threshold", 0.8),
+        value("radius", 96),
+        value("intensity", 0.8),
+        0,
+        value("anamorphic"),
+      ]);
+      break;
+    case "chromatic":
+      emit(EffectOpcode.ChromaticAberration, [
+        value("amount", 6),
+        degrees(value("angle")),
+        value("falloff", 1),
+      ]);
+      break;
+    case "looks-color-lab":
+      emit(EffectOpcode.LooksColorLab, [
+        value("temperature"),
+        value("tint"),
+        value("exposure"),
+        value("contrast", 1.08),
+        value("pivot", 0.42),
+        value("saturation", 1),
+        value("vibrance", 0.15),
+        value("lift"),
+        value("gamma", 1),
+        value("gain", 1),
+        value("fade"),
+        value("vignette", 0.22),
+        value("grain", 0.04),
+        value("bloom", 0.35),
+      ]);
+      break;
+    case "film-emulation":
+      emit(EffectOpcode.FilmEmulation, [
+        value("stock"),
+        value("strength", 1),
+        value("grain", 0.08),
+        value("halation", 0.18),
+        value("weave"),
+      ]);
+      break;
     case "mosaic":
       emit(EffectOpcode.Mosaic, [value("blocksX", 64), value("blocksY", 36)]);
       break;
