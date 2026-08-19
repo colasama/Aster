@@ -69,7 +69,7 @@ frames. Rendering, effects, particles, and composition are designed to remain GP
   HSL Secondary, Highlight Recovery, Gamut Compressor, False Color, and Film Print Density.
 - Selective color-pipeline tools add Printer Lights, Hue-vs-Hue, Hue-vs-Saturation,
   Luma-vs-Saturation, shadow chroma control, highlight tint, filmic tone maps, and skin refinement.
-- Thirty-two one-click Looks chains with palette previews and transactional undo, complete Color Lab
+- Forty one-click Looks chains with palette previews and transactional undo, complete Color Lab
   lift/pivot/gain controls, and stock-sensitive film emulation.
 - Searchable Effects Browser with persistent favorites and a bounded recently-used GPU effect list.
 - Persistent custom effect-chain presets capture ordered parameters, local masks, and parameter
