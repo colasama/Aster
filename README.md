@@ -18,7 +18,7 @@ frames. Rendering, effects, particles, and composition are designed to remain GP
 - WebGPU high-performance adapter selection, `rgba16float` HDR composition, ACES output,
   timestamp-query profiling, 100,000 compute particles, and fused realtime effects.
 - GPU image layers, time-addressable hardware-decoded video layers, recursive precompositions,
-  3D-projected planes, blend modes, parenting, solo, timing, and expressions.
+  depth-buffered 3D cubes/cameras, blend modes, parenting, solo, timing, and expressions.
 - Retained GPU text textures participate in HDR layer effects, blend modes, precompositions, and
   lossless frame export.
 - Full/Half/Quarter preview resolution, dual Active/Custom views, lossless 4K PNG frame export,

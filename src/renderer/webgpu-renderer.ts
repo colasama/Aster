@@ -1,4 +1,4 @@
-import { flattenSceneLayers } from "../core/scene-evaluation";
+import { evaluateWorldTransform, flattenSceneLayers } from "../core/scene-evaluation";
 import type {
   BlendMode,
   Composition,
@@ -62,6 +62,7 @@ export class WebGpuRenderer {
   readonly #timestampReadBuffer?: GPUBuffer;
   #postBindGroup?: GPUBindGroup;
   #sceneTexture?: GPUTexture;
+  #depthTexture?: GPUTexture;
   #width = 1;
   #height = 1;
   #smoothedFrameMs = 16.67;
@@ -239,11 +240,18 @@ export class WebGpuRenderer {
       usage: GPUTextureUsage.RENDER_ATTACHMENT,
     });
     this.#sceneTexture?.destroy();
+    this.#depthTexture?.destroy();
     this.#sceneTexture = this.#device.createTexture({
       label: "HDR scene target",
       size: [this.#width, this.#height],
       format: SCENE_FORMAT,
       usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
+    });
+    this.#depthTexture = this.#device.createTexture({
+      label: "Composition depth target",
+      size: [this.#width, this.#height],
+      format: "depth24plus",
+      usage: GPUTextureUsage.RENDER_ATTACHMENT,
     });
     this.#postBindGroup = this.#device.createBindGroup({
       label: "HDR fused post-process resources",
@@ -268,7 +276,9 @@ export class WebGpuRenderer {
     const frameInterval = this.#lastFrameStarted ? started - this.#lastFrameStarted : 16.67;
     this.#lastFrameStarted = started;
     const sceneLayers = flattenSceneLayers(composition, project, time);
-    const geometry = buildSceneGeometry(composition, sceneLayers);
+    const cameraLayer = composition.layers.find((layer) => layer.kind === "camera");
+    const camera = cameraLayer ? evaluateWorldTransform(cameraLayer, composition, time) : undefined;
+    const geometry = buildSceneGeometry(composition, sceneLayers, camera);
     if (geometry.data.length > 0) {
       this.#ensureShapeBuffer(geometry.data.byteLength);
       this.#device.queue.writeBuffer(this.#shapeBuffer, 0, geometry.data);
@@ -321,7 +331,9 @@ export class WebGpuRenderer {
     compute.dispatchWorkgroups(Math.ceil(PARTICLE_COUNT / 256));
     compute.end();
     const sceneView = this.#sceneTexture?.createView();
-    if (!sceneView || !this.#postBindGroup) throw new Error("HDR scene target is unavailable");
+    const depthView = this.#depthTexture?.createView();
+    if (!sceneView || !depthView || !this.#postBindGroup)
+      throw new Error("HDR scene target is unavailable");
     let scenePass: GPURenderPassEncoder | undefined = encoder.beginRenderPass({
       label: "Linear HDR composition",
       timestampWrites: this.#timestampQuerySet
@@ -343,6 +355,12 @@ export class WebGpuRenderer {
           storeOp: "store",
         },
       ],
+      depthStencilAttachment: {
+        view: depthView,
+        depthClearValue: 1,
+        depthLoadOp: "clear",
+        depthStoreOp: "store",
+      },
     });
     let scenePassCount = 1;
     let effectOperationCount = 0;
@@ -370,6 +388,11 @@ export class WebGpuRenderer {
             scenePass = encoder.beginRenderPass({
               label: "Linear HDR direct layer group",
               colorAttachments: [{ view: sceneView, loadOp: "load", storeOp: "store" }],
+              depthStencilAttachment: {
+                view: depthView,
+                depthLoadOp: "load",
+                depthStoreOp: "store",
+              },
             });
             scenePassCount += 1;
           }
@@ -383,6 +406,11 @@ export class WebGpuRenderer {
         scenePass = encoder.beginRenderPass({
           label: "Linear HDR particle group",
           colorAttachments: [{ view: sceneView, loadOp: "load", storeOp: "store" }],
+          depthStencilAttachment: {
+            view: depthView,
+            depthLoadOp: "load",
+            depthStoreOp: "store",
+          },
         });
         scenePassCount += 1;
       }
@@ -786,10 +814,10 @@ export class WebGpuRenderer {
           {
             arrayStride: FLOATS_PER_VERTEX * 4,
             attributes: [
-              { shaderLocation: 0, offset: 0, format: "float32x2" },
-              { shaderLocation: 1, offset: 8, format: "float32x2" },
-              { shaderLocation: 2, offset: 16, format: "float32x4" },
-              { shaderLocation: 3, offset: 32, format: "float32" },
+              { shaderLocation: 0, offset: 0, format: "float32x3" },
+              { shaderLocation: 1, offset: 12, format: "float32x2" },
+              { shaderLocation: 2, offset: 20, format: "float32x4" },
+              { shaderLocation: 3, offset: 36, format: "float32" },
             ],
           },
         ],
@@ -805,6 +833,11 @@ export class WebGpuRenderer {
         ],
       },
       primitive: { topology: "triangle-list", cullMode: "none" },
+      depthStencil: {
+        format: "depth24plus",
+        depthWriteEnabled: true,
+        depthCompare: "less-equal",
+      },
     });
   }
 
@@ -826,10 +859,10 @@ export class WebGpuRenderer {
           {
             arrayStride: FLOATS_PER_VERTEX * 4,
             attributes: [
-              { shaderLocation: 0, offset: 0, format: "float32x2" },
-              { shaderLocation: 1, offset: 8, format: "float32x2" },
-              { shaderLocation: 2, offset: 16, format: "float32x4" },
-              { shaderLocation: 3, offset: 32, format: "float32" },
+              { shaderLocation: 0, offset: 0, format: "float32x3" },
+              { shaderLocation: 1, offset: 12, format: "float32x2" },
+              { shaderLocation: 2, offset: 20, format: "float32x4" },
+              { shaderLocation: 3, offset: 36, format: "float32" },
             ],
           },
         ],
@@ -845,6 +878,11 @@ export class WebGpuRenderer {
         ],
       },
       primitive: { topology: "triangle-list", cullMode: "none" },
+      depthStencil: {
+        format: "depth24plus",
+        depthWriteEnabled: true,
+        depthCompare: "less-equal",
+      },
     });
   }
 
@@ -871,6 +909,11 @@ export class WebGpuRenderer {
         ],
       },
       primitive: { topology: "triangle-list" },
+      depthStencil: {
+        format: "depth24plus",
+        depthWriteEnabled: false,
+        depthCompare: "always",
+      },
     });
   }
 

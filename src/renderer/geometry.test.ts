@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createLayerForComposition } from "../core/layer-factory";
 import { createBlankProject } from "../core/project";
-import { flattenSceneLayers } from "../core/scene-evaluation";
+import { evaluateWorldTransform, flattenSceneLayers } from "../core/scene-evaluation";
 import { buildSceneGeometry, FLOATS_PER_VERTEX } from "./geometry";
 
 describe("GPU scene geometry", () => {
@@ -10,7 +10,15 @@ describe("GPU scene geometry", () => {
     const composition = project.compositions[0];
     const mesh = createLayerForComposition("mesh", composition);
     composition.layers = [mesh];
-    const flat = buildSceneGeometry(composition, flattenSceneLayers(composition, project, 0)).data;
+    const flatGeometry = buildSceneGeometry(
+      composition,
+      flattenSceneLayers(composition, project, 0),
+    );
+    const flat = flatGeometry.data;
+    expect(flatGeometry.batches[0].vertexCount).toBe(36);
+    expect(
+      new Set(Array.from({ length: 36 }, (_, index) => flat[index * FLOATS_PER_VERTEX + 2])).size,
+    ).toBeGreaterThan(1);
     mesh.transform.rotation[0] = { mode: "static", value: 58 };
     mesh.transform.position[2] = { mode: "static", value: 480 };
     const projected = buildSceneGeometry(
@@ -20,6 +28,29 @@ describe("GPU scene geometry", () => {
     expect(projected[0]).not.toBeCloseTo(flat[0]);
     expect(projected[1]).not.toBeCloseTo(flat[1]);
     expect(projected[FLOATS_PER_VERTEX - 1]).toBe(0);
+  });
+
+  it("projects 3D geometry relative to the active camera transform", () => {
+    const project = createBlankProject();
+    const composition = project.compositions[0];
+    const mesh = createLayerForComposition("mesh", composition);
+    const camera = createLayerForComposition("camera", composition);
+    composition.layers = [mesh, camera];
+    const scene = flattenSceneLayers(composition, project, 0);
+    const centered = buildSceneGeometry(
+      composition,
+      scene,
+      evaluateWorldTransform(camera, composition, 0),
+    ).data;
+    camera.transform.position[0] = { mode: "static", value: composition.width * 0.35 };
+    camera.transform.rotation[1] = { mode: "static", value: 14 };
+    const moved = buildSceneGeometry(
+      composition,
+      scene,
+      evaluateWorldTransform(camera, composition, 0),
+    ).data;
+    expect(moved[0]).not.toBeCloseTo(centered[0]);
+    expect(moved[2]).not.toBeCloseTo(centered[2]);
   });
 
   it("uses the circular mask only for square shape layers", () => {

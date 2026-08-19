@@ -25,6 +25,7 @@ export class LayerEffectRenderer {
   readonly #resources = new Map<string, LayerEffectBuffers>();
   #input?: GPUTexture;
   #output?: GPUTexture;
+  #depth?: GPUTexture;
   #compositeBindGroup?: GPUBindGroup;
   #width = 1;
   #height = 1;
@@ -82,8 +83,15 @@ export class LayerEffectRenderer {
     this.#height = Math.max(1, Math.floor(height));
     this.#input?.destroy();
     this.#output?.destroy();
+    this.#depth?.destroy();
     this.#input = this.#createTexture("Per-layer effect input");
     this.#output = this.#createTexture("Per-layer effect output");
+    this.#depth = this.#device.createTexture({
+      label: "Per-layer effect depth",
+      size: [this.#width, this.#height],
+      format: "depth24plus",
+      usage: GPUTextureUsage.RENDER_ATTACHMENT,
+    });
     this.#compositeBindGroup = this.#device.createBindGroup({
       label: "Per-layer effect composite resources",
       layout: this.#compositeLayout,
@@ -108,13 +116,14 @@ export class LayerEffectRenderer {
     time: number,
     drawLayer: (pass: GPURenderPassEncoder) => void,
   ): number {
-    if (!this.#input || !this.#output || !this.#compositeBindGroup) {
+    if (!this.#input || !this.#output || !this.#depth || !this.#compositeBindGroup) {
       this.resize(this.#width, this.#height);
     }
     const input = this.#input;
     const output = this.#output;
+    const depth = this.#depth;
     const compositeBindGroup = this.#compositeBindGroup;
-    if (!input || !output || !compositeBindGroup)
+    if (!input || !output || !depth || !compositeBindGroup)
       throw new Error("Layer effect targets unavailable");
 
     const program = compileEffectProgram(composition, time, [layer]);
@@ -137,6 +146,12 @@ export class LayerEffectRenderer {
           storeOp: "store",
         },
       ],
+      depthStencilAttachment: {
+        view: depth.createView(),
+        depthClearValue: 1,
+        depthLoadOp: "clear",
+        depthStoreOp: "discard",
+      },
     });
     drawLayer(inputPass);
     inputPass.end();
@@ -178,7 +193,7 @@ export class LayerEffectRenderer {
   }
 
   estimatedTextureBytes(): number {
-    return this.#width * this.#height * 8 * 2;
+    return this.#width * this.#height * (8 * 2 + 4);
   }
 
   #resource(instanceId: string): LayerEffectBuffers {

@@ -8,13 +8,13 @@ struct VertexOutput {
 
 @vertex
 fn vertex_main(
-  @location(0) position: vec2f,
+  @location(0) position: vec3f,
   @location(1) uv: vec2f,
   @location(2) color: vec4f,
   @location(3) shape: f32,
 ) -> VertexOutput {
   var output: VertexOutput;
-  output.position = vec4f(position, 0.0, 1.0);
+  output.position = vec4f(position, 1.0);
   output.uv = uv;
   output.color = color;
   output.shape = shape;
@@ -49,13 +49,13 @@ struct VertexOutput {
 
 @vertex
 fn vertex_main(
-  @location(0) position: vec2f,
+  @location(0) position: vec3f,
   @location(1) uv: vec2f,
   @location(2) color: vec4f,
   @location(3) shape: f32,
 ) -> VertexOutput {
   var output: VertexOutput;
-  output.position = vec4f(position, 0.0, 1.0);
+  output.position = vec4f(position, 1.0);
   output.uv = uv;
   output.color = color;
   output.media_type = shape;
