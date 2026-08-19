@@ -19,14 +19,16 @@ frames. Rendering, effects, particles, and composition are designed to remain GP
   timestamp-query profiling, 100,000 compute particles, and fused realtime effects.
 - GPU image layers, time-addressable hardware-decoded video layers, recursive precompositions,
   3D-projected planes, blend modes, parenting, solo, timing, and expressions.
+- Retained GPU text textures participate in HDR layer effects, blend modes, precompositions, and
+  lossless frame export.
 - Full/Half/Quarter preview resolution, dual Active/Custom views, lossless 4K PNG frame export,
   local autosave recovery, and atomic native project persistence.
 - Data-driven catalog of blur, color, distort, generate, stylize, keying, time, transition,
   simulation, and Looks-style color effects.
 - Rust render graph with validation, topological scheduling, resource lifetimes, transient aliasing,
   and DOT/JSON diagnostics.
-- Open project bundle, a native WGSL plugin manager with safe mode, permission-checked AI operation plans, and an
-  OpenAI-compatible provider boundary with in-memory secrets.
+- Open project bundle, a native WGSL plugin manager with safe mode, permission-checked AI operation
+  plans, and an OpenAI-compatible provider boundary with in-memory secrets.
 - Browser compatibility renderer when WebGPU is unavailable.
 
 ## Architecture

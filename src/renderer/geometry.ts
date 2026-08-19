@@ -34,8 +34,7 @@ export function buildSceneGeometry(
     (scene) =>
       scene.layer.kind !== "particle" &&
       scene.layer.kind !== "camera" &&
-      scene.layer.kind !== "light" &&
-      scene.layer.kind !== "text",
+      scene.layer.kind !== "light",
   );
   for (const scene of visible.reverse()) {
     const { layer, transform } = scene;

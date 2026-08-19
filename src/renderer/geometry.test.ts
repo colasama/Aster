@@ -31,4 +31,15 @@ describe("GPU scene geometry", () => {
     const data = buildSceneGeometry(composition, flattenSceneLayers(composition, project, 0)).data;
     expect(data[FLOATS_PER_VERTEX - 1]).toBe(1);
   });
+
+  it("includes text quads so cached glyph textures share the layer effect graph", () => {
+    const project = createBlankProject();
+    const composition = project.compositions[0];
+    const text = createLayerForComposition("text", composition);
+    composition.layers = [text];
+    const geometry = buildSceneGeometry(composition, flattenSceneLayers(composition, project, 0));
+    expect(geometry.batches).toHaveLength(1);
+    expect(geometry.batches[0].layer.kind).toBe("text");
+    expect(geometry.data[FLOATS_PER_VERTEX - 1]).toBe(0);
+  });
 });

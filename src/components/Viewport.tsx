@@ -14,13 +14,7 @@ import { createLayerForComposition } from "../core/layer-factory";
 import { activeComposition } from "../core/project";
 import { evaluateWorldTransform, flattenSceneLayers } from "../core/scene-evaluation";
 import { evaluateAnimatable } from "../core/timeline";
-import type {
-  Composition,
-  EvaluatedTransform,
-  GpuDiagnostics,
-  Layer,
-  Project,
-} from "../core/types";
+import type { GpuDiagnostics, Project } from "../core/types";
 import { CanvasFallbackRenderer } from "../renderer/canvas-fallback";
 import { WebGpuRenderer } from "../renderer/webgpu-renderer";
 import { useEditor } from "../state/editor-store";
@@ -144,17 +138,6 @@ export function Viewport() {
     window.addEventListener("aster:export-frame", exportFrame);
     return () => window.removeEventListener("aster:export-frame", exportFrame);
   }, [composition, state.currentTime, state.project]);
-
-  const textLayers = useMemo(
-    () =>
-      flattenSceneLayers(composition, state.project, state.currentTime)
-        .filter((scene) => scene.layer.kind === "text")
-        .map((scene) => ({
-          layer: scene.layer,
-          transform: scene.transform,
-        })),
-    [composition, state.currentTime, state.project],
-  );
 
   return (
     <Panel
@@ -317,7 +300,6 @@ export function Viewport() {
                 <span />
               </div>
             )}
-            <TextOverlays composition={composition} layers={textLayers} />
             {state.showLayerControls &&
               selectedLayer &&
               selectedTransform &&
@@ -490,7 +472,6 @@ export function Viewport() {
               }}
             >
               <canvas ref={mirrorCanvasRef} />
-              <TextOverlays composition={composition} layers={textLayers} />
               <span className="view-label">Custom View</span>
             </div>
           )}
@@ -548,34 +529,6 @@ export function Viewport() {
       </div>
     </Panel>
   );
-}
-
-function TextOverlays({
-  composition,
-  layers,
-}: {
-  composition: Composition;
-  layers: Array<{ layer: Layer; transform: EvaluatedTransform }>;
-}) {
-  return layers.map(({ layer, transform }) => (
-    <div
-      className={`gpu-text-overlay ${layer.name === "ASTER" ? "hero-title" : "subtitle"}`}
-      key={layer.id}
-      style={{
-        color: `rgba(${layer.color
-          .slice(0, 3)
-          .map((channel) => Math.round(channel * 255))
-          .join(",")},${transform.opacity})`,
-        left: `${(transform.position[0] / composition.width) * 100}%`,
-        opacity: transform.opacity,
-        top: `${(transform.position[1] / composition.height) * 100}%`,
-        transform: `translate(-50%, -50%) rotate(${transform.rotation[2]}deg) scale(${transform.scale[0] / 100})`,
-        width: `${(layer.size[0] / composition.width) * 100}%`,
-      }}
-    >
-      {layer.text}
-    </div>
-  ));
 }
 
 function syncMirrorCanvas(

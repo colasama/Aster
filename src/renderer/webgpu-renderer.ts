@@ -18,6 +18,7 @@ import {
   postProcessShader,
   shapeShader,
 } from "./shaders";
+import { rasterizeTextLayer } from "./text-rasterizer";
 
 const PARTICLE_COUNT = 100_000;
 const MAX_SHAPE_VERTICES = 6 * 128;
@@ -25,7 +26,7 @@ const SCENE_FORMAT: GPUTextureFormat = "rgba16float";
 
 interface MediaResource {
   source: string;
-  kind: "image" | "video";
+  kind: "image" | "video" | "text";
   texture?: GPUTexture;
   bindGroup?: GPUBindGroup;
   video?: HTMLVideoElement;
@@ -273,7 +274,9 @@ export class WebGpuRenderer {
       this.#device.queue.writeBuffer(this.#shapeBuffer, 0, geometry.data);
     }
     for (const scene of sceneLayers) {
-      if (
+      if (scene.layer.kind === "text") {
+        this.#prepareText(scene.layer, scene.instanceId);
+      } else if (
         (scene.layer.kind === "image" || scene.layer.kind === "video") &&
         scene.layer.asset?.dataUrl
       )
@@ -284,8 +287,9 @@ export class WebGpuRenderer {
         sceneLayers
           .filter(
             (scene) =>
-              (scene.layer.kind === "image" || scene.layer.kind === "video") &&
-              scene.layer.asset?.dataUrl,
+              scene.layer.kind === "text" ||
+              ((scene.layer.kind === "image" || scene.layer.kind === "video") &&
+                scene.layer.asset?.dataUrl),
           )
           .map((scene) => scene.instanceId),
       ),
@@ -484,7 +488,7 @@ export class WebGpuRenderer {
     blendMode: BlendMode = batch.layer.blendMode,
   ): void {
     const media =
-      batch.layer.kind === "image" || batch.layer.kind === "video"
+      batch.layer.kind === "image" || batch.layer.kind === "video" || batch.layer.kind === "text"
         ? this.#mediaResources.get(batch.instanceId)
         : undefined;
     pass.setVertexBuffer(0, this.#shapeBuffer);
@@ -557,6 +561,40 @@ export class WebGpuRenderer {
         if (this.#mediaResources.get(instanceId) === resource)
           this.#mediaResources.delete(instanceId);
       });
+  }
+
+  #prepareText(layer: Layer, instanceId: string): void {
+    const source = JSON.stringify([layer.text, layer.name, layer.color, layer.size]);
+    const existing = this.#mediaResources.get(instanceId);
+    if (existing?.kind === "text" && existing.source === source) return;
+    this.#destroyMediaResource(existing);
+    const resource: MediaResource = { source, kind: "text" };
+    this.#mediaResources.set(instanceId, resource);
+    const raster = rasterizeTextLayer(
+      layer,
+      Math.min(4096, this.#device.limits.maxTextureDimension2D),
+    );
+    const texture = this.#device.createTexture({
+      label: `GPU text cache · ${layer.name}`,
+      size: [raster.width, raster.height],
+      format: "rgba8unorm-srgb",
+      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+    });
+    this.#device.queue.writeTexture(
+      { texture },
+      raster.pixels,
+      { bytesPerRow: raster.width * 4, rowsPerImage: raster.height },
+      [raster.width, raster.height],
+    );
+    resource.texture = texture;
+    resource.bindGroup = this.#device.createBindGroup({
+      label: `GPU text resources · ${layer.id}`,
+      layout: this.#imageBindGroupLayout,
+      entries: [
+        { binding: 0, resource: texture.createView() },
+        { binding: 1, resource: this.#imageSampler },
+      ],
+    });
   }
 
   #prepareVideo(

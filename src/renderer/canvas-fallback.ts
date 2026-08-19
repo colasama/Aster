@@ -1,5 +1,6 @@
 import { flattenSceneLayers } from "../core/scene-evaluation";
 import type { Composition, GpuDiagnostics, Layer, Project, RendererMetrics } from "../core/types";
+import { drawTextLayer } from "./text-rasterizer";
 
 interface CanvasMediaResource {
   source: string;
@@ -47,13 +48,7 @@ export class CanvasFallbackRenderer {
     const sceneLayers = flattenSceneLayers(composition, project, time);
     for (const scene of sceneLayers.reverse()) {
       const { layer, transform } = scene;
-      if (
-        layer.kind === "camera" ||
-        layer.kind === "particle" ||
-        layer.kind === "light" ||
-        layer.kind === "text"
-      )
-        continue;
+      if (layer.kind === "camera" || layer.kind === "particle" || layer.kind === "light") continue;
       const media = this.#prepareMedia(layer, scene.localTime, playing, scene.instanceId);
       if (media) activeMedia.add(scene.instanceId);
       context.save();
@@ -67,7 +62,8 @@ export class CanvasFallbackRenderer {
         .join(" ")})`;
       const width = (layer.size[0] * transform.scale[0] * scale) / 100;
       const height = (layer.size[1] * transform.scale[1] * scale) / 100;
-      if (isDrawableMedia(media?.element))
+      if (layer.kind === "text") drawTextLayer(context, layer, width, height);
+      else if (isDrawableMedia(media?.element))
         context.drawImage(media.element, -width / 2, -height / 2, width, height);
       else context.fillRect(-width / 2, -height / 2, width, height);
       context.restore();
