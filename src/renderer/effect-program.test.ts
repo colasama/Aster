@@ -254,6 +254,14 @@ describe("GPU effect program compiler", () => {
     ["satin", EffectOpcode.Satin],
     ["color-overlay", EffectOpcode.ColorOverlay],
     ["gradient-overlay", EffectOpcode.GradientOverlay],
+    ["add-grain", EffectOpcode.AddGrain],
+    ["dust-scratches", EffectOpcode.DustScratches],
+    ["median", EffectOpcode.Median],
+    ["noise-alpha", EffectOpcode.NoiseAlpha],
+    ["noise-hls", EffectOpcode.NoiseHls],
+    ["noise-hls-auto", EffectOpcode.NoiseHlsAuto],
+    ["remove-grain", EffectOpcode.RemoveGrain],
+    ["turbulent-noise", EffectOpcode.TurbulentNoise],
   ])("compiles %s into its dedicated GPU opcode", (type, opcode) => {
     const composition = activeComposition(createDemoProject());
     composition.layers.forEach((layer) => {

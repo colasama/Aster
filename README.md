@@ -27,8 +27,8 @@ frames. Rendering, effects, particles, and composition are designed to remain GP
 - Full/Half/Quarter preview resolution, dual Active/Custom views, lossless 4K PNG frame export,
   cancellable native PNG sequence rendering with progress, local autosave recovery, and atomic
   native project persistence.
-- Data-driven catalog of 139 blur, color, channel, distort, generate, stylize, keying, time,
-  transition, simulation, matte, perspective, layer-style, and Looks effects, including 137 ordered GPU
+- Data-driven catalog of 147 blur, color, channel, distort, generate, stylize, keying, time,
+  transition, simulation, matte, perspective, layer-style, noise, and Looks effects, including 145 ordered GPU
   opcodes.
 - Professional channel and keying tools include Set Channels, Arithmetic, Alpha Levels, Remove
   Color Matting, Linear Color Key, Color Range, Matte Choker, and GPU Keylight.
@@ -38,6 +38,8 @@ frames. Rendering, effects, particles, and composition are designed to remain GP
   CC Cylinder, CC Sphere, Mesh Warp, multi-style Warp, and shaded CC Page Turn.
 - GPU Layer Styles include outer/inner glow, alpha stroke, inner shadow, Bevel & Emboss, Satin,
   Color Overlay, and Gradient Overlay with blend modes.
+- Deterministic Noise & Grain includes tonal Add Grain, Dust & Scratches, Median, alpha/HLS noise,
+  Remove Grain, and animated Turbulent Noise.
 - Sixteen one-click Looks chains with palette previews and transactional undo, complete Color Lab
   lift/pivot/gain controls, and stock-sensitive film emulation.
 - Searchable Effects Browser with persistent favorites and a bounded recently-used GPU effect list.

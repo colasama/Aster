@@ -138,4 +138,12 @@ export enum EffectOpcode {
   Satin = 137,
   ColorOverlay = 138,
   GradientOverlay = 139,
+  AddGrain = 140,
+  DustScratches = 141,
+  Median = 142,
+  NoiseAlpha = 143,
+  NoiseHls = 144,
+  NoiseHlsAuto = 145,
+  RemoveGrain = 146,
+  TurbulentNoise = 147,
 }

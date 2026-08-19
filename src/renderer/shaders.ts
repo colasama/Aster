@@ -1,5 +1,6 @@
 import { aePixelShaderCases, aeWarpShaderCases } from "./ae-effect-shader-cases";
 import { aeLayerStylePixelShaderCases } from "./ae-layer-style-shader-cases";
+import { aeNoiseGrainPixelShaderCases } from "./ae-noise-grain-shader-cases";
 
 export {
   imageShader,
@@ -111,6 +112,20 @@ fn rotate2(value: vec2f, angle: f32) -> vec2f {
 
 fn luminance(color: vec3f) -> f32 {
   return dot(color, vec3f(0.2126, 0.7152, 0.0722));
+}
+
+fn median5(a: f32, b: f32, c: f32, d: f32, e: f32) -> f32 {
+  var values = array<f32, 5>(a, b, c, d, e);
+  for (var index = 1u; index < 5u; index += 1u) {
+    var cursor = index;
+    while cursor > 0u && values[cursor] < values[cursor - 1u] {
+      let temporary = values[cursor];
+      values[cursor] = values[cursor - 1u];
+      values[cursor - 1u] = temporary;
+      cursor -= 1u;
+    }
+  }
+  return values[2u];
 }
 
 fn effect_mask_value(effect: EffectOp, uv: vec2f, resolution: vec2f) -> f32 {
@@ -771,6 +786,7 @@ ${aeWarpShaderCases}
       }
 ${aePixelShaderCases}
 ${aeLayerStylePixelShaderCases}
+${aeNoiseGrainPixelShaderCases}
       case 106u: {
         active_pixel_mask = effect_mask_value(effect, input.uv, resolution);
       }
