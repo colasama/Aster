@@ -6,6 +6,7 @@ import { AE_COLOR_EFFECTS } from "./ae-color";
 import { AE_ENVIRONMENT_EFFECTS } from "./ae-environment";
 import { AE_GENERATOR_EFFECTS } from "./ae-generators";
 import { AE_LAYER_STYLE_EFFECTS } from "./ae-layer-styles";
+import { AE_LIGHTING_EFFECTS } from "./ae-lighting";
 import { AE_MATTE_REFINE_EFFECTS } from "./ae-matte-refine";
 import { AE_NOISE_GRAIN_EFFECTS } from "./ae-noise-grain";
 import { AE_PERSPECTIVE_EFFECTS } from "./ae-perspective";
@@ -857,6 +858,7 @@ export const EFFECT_REGISTRY: EffectDefinition[] = [
   ...AE_SIMULATION_EFFECTS,
   ...AE_ADVANCED_STYLIZE_EFFECTS,
   ...AE_MATTE_REFINE_EFFECTS,
+  ...AE_LIGHTING_EFFECTS,
 ];
 
 export const EFFECT_BY_TYPE = new Map(EFFECT_REGISTRY.map((effect) => [effect.type, effect]));

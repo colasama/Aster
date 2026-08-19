@@ -1232,6 +1232,7 @@ aster/
 - [x] GPU Procedural Simulation（Bubbles、Drizzle、Hair、Mercury、Particles、Pixel Polly）。
 - [x] GPU Advanced Stylize（Halftone、Glowing Edges、Texture、Toner、Plastic、Blobbylize）。
 - [x] GPU Matte Refine（Hard / Soft、Feather、Cleanup、Decontaminate、Light Wrap）。
+- [x] GPU HDR Lighting（Rays、Spotlight、Light Leak、Flare、Fog、Caustics、Laser）。
 - [ ] Console / Diagnostics。
 - [ ] Profiler Overlay。
 - [ ] AI Panel placeholder。

@@ -294,6 +294,14 @@ describe("GPU effect program compiler", () => {
     ["light-wrap", EffectOpcode.LightWrap],
     ["alpha-bevel", EffectOpcode.AlphaBevel],
     ["alpha-erode-dilate", EffectOpcode.AlphaErodeDilate],
+    ["light-rays", EffectOpcode.LightRays],
+    ["spotlight", EffectOpcode.Spotlight],
+    ["light-leak", EffectOpcode.LightLeak],
+    ["anamorphic-flare", EffectOpcode.AnamorphicFlare],
+    ["volumetric-fog", EffectOpcode.VolumetricFog],
+    ["caustics", EffectOpcode.Caustics],
+    ["god-rays", EffectOpcode.GodRays],
+    ["laser", EffectOpcode.Laser],
   ])("compiles %s into its dedicated GPU opcode", (type, opcode) => {
     const composition = activeComposition(createDemoProject());
     composition.layers.forEach((layer) => {

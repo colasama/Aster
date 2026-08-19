@@ -178,4 +178,12 @@ export enum EffectOpcode {
   LightWrap = 177,
   AlphaBevel = 178,
   AlphaErodeDilate = 179,
+  LightRays = 180,
+  Spotlight = 181,
+  LightLeak = 182,
+  AnamorphicFlare = 183,
+  VolumetricFog = 184,
+  Caustics = 185,
+  GodRays = 186,
+  Laser = 187,
 }

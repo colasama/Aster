@@ -1,5 +1,6 @@
 import { aePixelShaderCases, aeWarpShaderCases } from "./ae-effect-shader-cases";
 import { aeLayerStylePixelShaderCases } from "./ae-layer-style-shader-cases";
+import { aeLightingPixelShaderCases } from "./ae-lighting-shader-cases";
 import { aeMatteRefinePixelShaderCases } from "./ae-matte-shader-cases";
 import { aeNoiseGrainPixelShaderCases } from "./ae-noise-grain-shader-cases";
 import {
@@ -815,6 +816,7 @@ ${aeAdvancedStylizeWarpShaderCases}
       }
 ${aePixelShaderCases}
 ${aeLayerStylePixelShaderCases}
+${aeLightingPixelShaderCases}
 ${aeMatteRefinePixelShaderCases}
 ${aeNoiseGrainPixelShaderCases}
 ${aeAdvancedTransitionPixelShaderCases}

@@ -27,8 +27,8 @@ frames. Rendering, effects, particles, and composition are designed to remain GP
 - Full/Half/Quarter preview resolution, dual Active/Custom views, lossless 4K PNG frame export,
   cancellable native PNG sequence rendering with progress, local autosave recovery, and atomic
   native project persistence.
-- Data-driven catalog of 179 blur, color, channel, distort, generate, stylize, keying, time,
-  transition, simulation, matte, perspective, layer-style, noise, and Looks effects, including 177 ordered GPU
+- Data-driven catalog of 187 blur, color, channel, distort, generate, stylize, keying, time,
+  transition, simulation, matte, perspective, layer-style, noise, and Looks effects, including 185 ordered GPU
   opcodes.
 - Professional channel and keying tools include Set Channels, Arithmetic, Alpha Levels, Remove
   Color Matting, Linear Color Key, Color Range, Matte Choker, and GPU Keylight.
@@ -48,6 +48,8 @@ frames. Rendering, effects, particles, and composition are designed to remain GP
   CC Toner, CC Plastic, and CC Blobbylize.
 - Matte refinement includes hard/soft refine, feather, cleanup, edge decontamination, tinted light
   wrap, alpha bevel, and bounded erode/dilate morphology.
+- HDR lighting and generators include Light Rays, Spotlight, animated Light Leak, Anamorphic Flare,
+  Volumetric Fog, Caustics, God Rays, and pulsing Laser.
 - Twenty-four one-click Looks chains with palette previews and transactional undo, complete Color Lab
   lift/pivot/gain controls, and stock-sensitive film emulation.
 - Searchable Effects Browser with persistent favorites and a bounded recently-used GPU effect list.
