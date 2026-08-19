@@ -292,7 +292,12 @@ function compileEffect(
       ]);
       break;
     case "lut":
-      emit(EffectOpcode.Lut, [value("intensity", 100) / 100, value("interpolation")]);
+      emit(EffectOpcode.Lut, [
+        value("intensity", 100) / 100,
+        value("interpolation"),
+        ...(effect.resource?.domainMin ?? [0, 0, 0]),
+        ...(effect.resource?.domainMax ?? [1, 1, 1]),
+      ]);
       break;
     case "bilateral-blur":
       emit(EffectOpcode.BilateralBlur, [value("radius", 12), value("threshold", 0.12)]);

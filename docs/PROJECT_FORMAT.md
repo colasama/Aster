@@ -25,6 +25,10 @@ safe. Precomposition layers reference another composition by stable ID. Developm
 imports may use bounded `data:` URLs for portable single-file projects; the native bundle layer will
 externalize large media into an asset directory without changing layer references.
 
+A 3D LUT effect may embed one bounded `lut3d` resource containing its display name, 2–64 cube size,
+RGB voxel data, input domain, and checksum. Readers validate the exact `size³ × 3` channel count and
+finite channel bounds before allocating a GPU texture.
+
 ## Compatibility
 
 - Readers must reject unsupported future `schemaVersion` values without partially applying them.

@@ -3,17 +3,19 @@ import {
   ChevronDown,
   ChevronRight,
   CircleDot,
+  FileUp,
   KeyRound,
   Plus,
   RotateCw,
   Sparkles,
   Trash2,
 } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { getProperty, type PropertyPath } from "../core/operations";
 import { activeComposition } from "../core/project";
 import { evaluateAnimatable } from "../core/timeline";
 import { type BlendMode, createId, type Effect } from "../core/types";
+import { parseCubeLutFile } from "../effects/cube-lut";
 import { createEffect, EFFECT_BY_TYPE } from "../effects/registry";
 import type { EffectParameterDefinition } from "../effects/types";
 import { useEditor } from "../state/editor-store";
@@ -334,6 +336,8 @@ export function Inspector() {
 
 function EffectEditor({ effect, layerId }: { effect: Effect; layerId: string }) {
   const { dispatch } = useEditor();
+  const [resourceError, setResourceError] = useState<string>();
+  const lutPickerRef = useRef<HTMLInputElement>(null);
   const definition = EFFECT_BY_TYPE.get(effect.type);
   const parameters = definition?.parameters ?? fallbackParameters(effect);
   const setParameter = (parameter: string, value: number) => {
@@ -381,6 +385,63 @@ function EffectEditor({ effect, layerId }: { effect: Effect; layerId: string }) 
           value={effect.parameters[parameter.key] ?? parameter.defaultValue}
         />
       ))}
+      {effect.type === "lut" && (
+        <div className="lut-resource-editor">
+          <input
+            accept=".cube,text/plain"
+            aria-label="Choose .cube LUT"
+            hidden
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              if (file)
+                void parseCubeLutFile(file)
+                  .then((resource) => {
+                    dispatch({
+                      type: "operation",
+                      operations: [
+                        { type: "setEffectLut", layerId, effectId: effect.id, resource },
+                      ],
+                    });
+                    setResourceError(undefined);
+                  })
+                  .catch((error: unknown) =>
+                    setResourceError(error instanceof Error ? error.message : "LUT import failed"),
+                  );
+              event.target.value = "";
+            }}
+            ref={lutPickerRef}
+            type="file"
+          />
+          <button onClick={() => lutPickerRef.current?.click()} type="button">
+            <FileUp size={12} /> {effect.resource ? "Replace .cube" : "Load .cube LUT"}
+          </button>
+          {effect.resource && (
+            <div className="lut-resource-summary">
+              <span title={effect.resource.name}>
+                {effect.resource.title || effect.resource.name}
+              </span>
+              <small>
+                {effect.resource.size}³ · {effect.resource.checksum}
+              </small>
+              <button
+                aria-label="Remove LUT resource"
+                onClick={() =>
+                  dispatch({
+                    type: "operation",
+                    operations: [
+                      { type: "setEffectLut", layerId, effectId: effect.id, resource: undefined },
+                    ],
+                  })
+                }
+                type="button"
+              >
+                <Trash2 size={11} />
+              </button>
+            </div>
+          )}
+          {resourceError && <small className="lut-resource-error">{resourceError}</small>}
+        </div>
+      )}
     </div>
   );
 }

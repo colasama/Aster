@@ -1516,7 +1516,7 @@ aster/
 - [ ] Linear-light compositing。
 - [ ] sRGB import/export。
 - [ ] Display transform。
-- [ ] LUT support。
+- [x] LUT support。
 - [ ] ICC / OCIO strategy research。
 - [ ] HDR roadmap。
 - [ ] 16-bit / float pipeline strategy。

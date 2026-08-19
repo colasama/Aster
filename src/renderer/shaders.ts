@@ -188,6 +188,8 @@ struct VertexOutput {
 @group(0) @binding(1) var linear_sampler: sampler;
 @group(0) @binding(2) var<uniform> settings: PostProcess;
 @group(0) @binding(3) var<storage, read> effect_ops: array<EffectOp>;
+@group(0) @binding(4) var lut_texture: texture_3d<f32>;
+@group(0) @binding(5) var lut_sampler: sampler;
 
 @vertex
 fn vertex_main(@builtin(vertex_index) index: u32) -> VertexOutput {
@@ -271,6 +273,38 @@ fn hue_color(angle: f32) -> vec3f {
 fn hue_rotate(color: vec3f, angle: f32) -> vec3f {
   let axis = normalize(vec3f(1.0));
   return color * cos(angle) + cross(axis, color) * sin(angle) + axis * dot(axis, color) * (1.0 - cos(angle));
+}
+
+fn sample_lut_tetrahedral(coordinate: vec3f) -> vec3f {
+  let dimensions = textureDimensions(lut_texture, 0);
+  let scaled = clamp(coordinate, vec3f(0.0), vec3f(1.0)) * vec3f(dimensions - vec3u(1u));
+  let low = vec3u(floor(scaled));
+  let high = min(low + vec3u(1u), dimensions - vec3u(1u));
+  let fraction = fract(scaled);
+  let c000 = textureLoad(lut_texture, vec3i(low), 0).rgb;
+  let c100 = textureLoad(lut_texture, vec3i(vec3u(high.x, low.y, low.z)), 0).rgb;
+  let c010 = textureLoad(lut_texture, vec3i(vec3u(low.x, high.y, low.z)), 0).rgb;
+  let c001 = textureLoad(lut_texture, vec3i(vec3u(low.x, low.y, high.z)), 0).rgb;
+  let c110 = textureLoad(lut_texture, vec3i(vec3u(high.x, high.y, low.z)), 0).rgb;
+  let c101 = textureLoad(lut_texture, vec3i(vec3u(high.x, low.y, high.z)), 0).rgb;
+  let c011 = textureLoad(lut_texture, vec3i(vec3u(low.x, high.y, high.z)), 0).rgb;
+  let c111 = textureLoad(lut_texture, vec3i(high), 0).rgb;
+  if fraction.x >= fraction.y {
+    if fraction.y >= fraction.z {
+      return c000 + fraction.x * (c100 - c000) + fraction.y * (c110 - c100) + fraction.z * (c111 - c110);
+    }
+    if fraction.x >= fraction.z {
+      return c000 + fraction.x * (c100 - c000) + fraction.z * (c101 - c100) + fraction.y * (c111 - c101);
+    }
+    return c000 + fraction.z * (c001 - c000) + fraction.x * (c101 - c001) + fraction.y * (c111 - c101);
+  }
+  if fraction.x >= fraction.z {
+    return c000 + fraction.y * (c010 - c000) + fraction.x * (c110 - c010) + fraction.z * (c111 - c110);
+  }
+  if fraction.y >= fraction.z {
+    return c000 + fraction.y * (c010 - c000) + fraction.z * (c011 - c010) + fraction.x * (c111 - c011);
+  }
+  return c000 + fraction.z * (c001 - c000) + fraction.y * (c011 - c001) + fraction.x * (c111 - c011);
 }
 
 @fragment
@@ -558,7 +592,14 @@ fn fragment_main(input: VertexOutput) -> @location(0) vec4f {
         color = mix(vec3f(level), color, effect.header.z) + effect.header.w;
       }
       case 32u: {
-        let graded = pow(max(color, vec3f(0.0)), vec3f(0.92)) * vec3f(1.03, 1.0, 0.97);
+        let domain_min = vec3f(effect.header.w, effect.p0.x, effect.p0.y);
+        let domain_max = vec3f(effect.p0.z, effect.p0.w, effect.p1.x);
+        let coordinate = clamp((color - domain_min) / max(domain_max - domain_min, vec3f(0.0001)), vec3f(0.0), vec3f(1.0));
+        let graded = select(
+          textureSampleLevel(lut_texture, lut_sampler, coordinate, 0.0).rgb,
+          sample_lut_tetrahedral(coordinate),
+          effect.header.z > 0.5,
+        );
         color = mix(color, graded, effect.header.y);
       }
       case 33u: {

@@ -332,6 +332,52 @@
   border-radius: 3px;
   background: #101116;
 }
+.lut-resource-editor {
+  display: grid;
+  gap: 5px;
+  padding: 7px;
+  border-top: 1px solid #292c35;
+}
+.lut-resource-editor > button {
+  height: 25px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border: 1px solid #3c4160;
+  border-radius: 3px;
+  color: #c7c9dd;
+  background: #232638;
+  font-size: 8px;
+}
+.lut-resource-summary {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 6px;
+  align-items: center;
+}
+.lut-resource-summary span {
+  overflow: hidden;
+  color: #c8cad3;
+  font-size: 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lut-resource-summary small {
+  color: #707688;
+  font-size: 7px;
+}
+.lut-resource-summary button {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  color: #777d8b;
+}
+.lut-resource-error {
+  color: #e67682;
+  font-size: 8px;
+  line-height: 1.35;
+}
 .empty-inspector {
   display: grid;
   height: 100%;

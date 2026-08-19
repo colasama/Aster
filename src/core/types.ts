@@ -32,12 +32,24 @@ export type LayerKind =
   | "light";
 export type BlendMode = "normal" | "add" | "multiply" | "screen" | "overlay";
 
+export interface Lut3dResource {
+  kind: "lut3d";
+  name: string;
+  title?: string;
+  size: number;
+  data: number[];
+  domainMin: [number, number, number];
+  domainMax: [number, number, number];
+  checksum: string;
+}
+
 export interface Effect {
   id: Id;
   type: string;
   name: string;
   enabled: boolean;
   parameters: Record<string, number>;
+  resource?: Lut3dResource;
 }
 
 export interface Layer {

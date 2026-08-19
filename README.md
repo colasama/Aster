@@ -28,6 +28,8 @@ frames. Rendering, effects, particles, and composition are designed to remain GP
   simulation, matte, and Looks-style effects, including 64 fused GPU opcodes.
 - Eight one-click Looks chains with transactional undo, complete Color Lab lift/pivot/gain controls,
   and stock-sensitive film emulation.
+- Bounded `.cube` import embedded in the project, uploaded as `rgba16float` 3D textures, with
+  trilinear and tetrahedral GPU interpolation.
 - Rust render graph with validation, topological scheduling, resource lifetimes, transient aliasing,
   and DOT/JSON diagnostics.
 - Open project bundle, a native WGSL plugin manager with safe mode, permission-checked AI operation

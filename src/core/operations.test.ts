@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { applyOperations } from "./operations";
 import { activeComposition, createDemoProject } from "./project";
+import type { Lut3dResource } from "./types";
 
 describe("structured project operations", () => {
   it("does not mutate the source project", () => {
@@ -81,5 +82,36 @@ describe("structured project operations", () => {
     expect(() =>
       applyOperations(parented, [{ type: "setParent", layerId: first.id, parentId: second.id }]),
     ).toThrow("cycle");
+  });
+
+  it("attaches LUT resources through an undoable typed operation", () => {
+    const source = createDemoProject();
+    const layer = activeComposition(source).layers[0];
+    const effect = layer.effects.find((entry) => entry.type === "lut") ?? {
+      id: crypto.randomUUID(),
+      type: "lut",
+      name: "3D LUT",
+      enabled: true,
+      parameters: { intensity: 100, interpolation: 0 },
+    };
+    if (!layer.effects.includes(effect)) layer.effects.push(effect);
+    const resource: Lut3dResource = {
+      kind: "lut3d",
+      name: "identity.cube",
+      size: 2,
+      data: [0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1],
+      domainMin: [0, 0, 0],
+      domainMax: [1, 1, 1],
+      checksum: "deadbeef",
+    };
+
+    const next = applyOperations(source, [
+      { type: "setEffectLut", layerId: layer.id, effectId: effect.id, resource },
+    ]);
+
+    expect(
+      activeComposition(next).layers[0].effects.find((entry) => entry.id === effect.id)?.resource,
+    ).toEqual(resource);
+    expect(effect.resource).toBeUndefined();
   });
 });

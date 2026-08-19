@@ -10,6 +10,7 @@ import type {
 import { FLOATS_PER_EFFECT_OPERATION, MAX_EFFECT_OPERATIONS } from "./effect-program";
 import { buildSceneGeometry, FLOATS_PER_VERTEX, type GeometryBatch } from "./geometry";
 import { LayerEffectRenderer } from "./layer-effects";
+import { createLutSampler, createLutTexture } from "./lut-texture";
 import { buildPostProcessUniforms } from "./post-process";
 import {
   imageShader,
@@ -54,6 +55,8 @@ export class WebGpuRenderer {
   readonly #computeBindGroup: GPUBindGroup;
   readonly #particleBindGroup: GPUBindGroup;
   readonly #postSampler: GPUSampler;
+  readonly #lutSampler: GPUSampler;
+  readonly #identityLut: GPUTexture;
   readonly #imageSampler: GPUSampler;
   readonly #postUniformBuffer: GPUBuffer;
   readonly #effectProgramBuffer: GPUBuffer;
@@ -157,6 +160,8 @@ export class WebGpuRenderer {
       magFilter: "linear",
       minFilter: "linear",
     });
+    this.#lutSampler = createLutSampler(device);
+    this.#identityLut = createLutTexture(device);
     this.#imageSampler = device.createSampler({
       label: "Imported image sampler",
       magFilter: "linear",
@@ -261,6 +266,8 @@ export class WebGpuRenderer {
         { binding: 1, resource: this.#postSampler },
         { binding: 2, resource: { buffer: this.#postUniformBuffer } },
         { binding: 3, resource: { buffer: this.#effectProgramBuffer } },
+        { binding: 4, resource: this.#identityLut.createView({ dimension: "3d" }) },
+        { binding: 5, resource: this.#lutSampler },
       ],
     });
     this.#layerEffects.resize(this.#width, this.#height);

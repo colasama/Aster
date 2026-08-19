@@ -182,6 +182,56 @@ function validateLayer(value: unknown, path: string): asserts value is Layer {
     throw new Error(`${path}.color must contain four channels`);
   requireObject(layer.transform, `${path}.transform`);
   if (!Array.isArray(layer.effects)) throw new Error(`${path}.effects must be an array`);
+  for (const [index, effect] of layer.effects.entries())
+    validateEffect(effect, `${path}.effects[${index}]`);
+}
+
+function validateEffect(value: unknown, path: string): void {
+  const effect = requireObject(value, path);
+  requireString(effect.id, `${path}.id`);
+  requireString(effect.type, `${path}.type`);
+  requireString(effect.name, `${path}.name`);
+  if (typeof effect.enabled !== "boolean") throw new Error(`${path}.enabled must be a boolean`);
+  const parameters = requireObject(effect.parameters, `${path}.parameters`);
+  for (const [key, parameter] of Object.entries(parameters))
+    if (typeof parameter !== "number" || !Number.isFinite(parameter))
+      throw new Error(`${path}.parameters.${key} must be finite`);
+  if (effect.resource !== undefined) validateLutResource(effect.resource, `${path}.resource`);
+}
+
+function validateLutResource(value: unknown, path: string): void {
+  const resource = requireObject(value, path);
+  if (resource.kind !== "lut3d") throw new Error(`${path}.kind must be lut3d`);
+  if (requireString(resource.name, `${path}.name`).length > 160)
+    throw new Error(`${path}.name is too long`);
+  if (!/^[a-f0-9]{8}$/.test(requireString(resource.checksum, `${path}.checksum`)))
+    throw new Error(`${path}.checksum is invalid`);
+  const size = requirePositiveNumber(resource.size, `${path}.size`);
+  if (!Number.isInteger(size) || size > 64)
+    throw new Error(`${path}.size must be an integer at most 64`);
+  if (!Array.isArray(resource.data) || resource.data.length !== size ** 3 * 3)
+    throw new Error(`${path}.data has an invalid length`);
+  if (
+    resource.data.some(
+      (channel) =>
+        typeof channel !== "number" || !Number.isFinite(channel) || Math.abs(channel) > 64,
+    )
+  )
+    throw new Error(`${path}.data must contain bounded finite channels`);
+  for (const field of ["domainMin", "domainMax"] as const) {
+    if (!Array.isArray(resource[field]) || resource[field].length !== 3)
+      throw new Error(`${path}.${field} must contain three channels`);
+    if (
+      resource[field].some(
+        (channel) =>
+          typeof channel !== "number" || !Number.isFinite(channel) || Math.abs(channel) > 64,
+      )
+    )
+      throw new Error(`${path}.${field} must contain bounded finite channels`);
+  }
+  for (let channel = 0; channel < 3; channel += 1)
+    if ((resource.domainMax as number[])[channel] <= (resource.domainMin as number[])[channel])
+      throw new Error(`${path} has an invalid domain`);
 }
 
 function requireObject(value: unknown, path: string): Record<string, unknown> {

@@ -46,6 +46,31 @@ describe("GPU effect program compiler", () => {
     expect(compileEffectProgram(composition).count).toBe(MAX_EFFECT_OPERATIONS);
   });
 
+  it("packs imported LUT domains into the GPU program", () => {
+    const composition = activeComposition(createDemoProject());
+    composition.layers.forEach((layer) => {
+      layer.effects = [];
+    });
+    const lut = createEffect("lut");
+    lut.resource = {
+      kind: "lut3d",
+      name: "range.cube",
+      size: 2,
+      data: new Array(24).fill(0),
+      domainMin: [-1, 0, 0.1],
+      domainMax: [2, 1, 0.9],
+      checksum: "12345678",
+    };
+    composition.layers[0].effects = [lut];
+
+    const program = compileEffectProgram(composition);
+
+    expect([...program.data.slice(3, 5)]).toEqual([-1, 0]);
+    expect(program.data[5]).toBeCloseTo(0.1);
+    expect([...program.data.slice(6, 8)]).toEqual([2, 1]);
+    expect(program.data[8]).toBeCloseTo(0.9);
+  });
+
   it.each([
     ["bilateral-blur", EffectOpcode.BilateralBlur],
     ["echo", EffectOpcode.Echo],

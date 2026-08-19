@@ -5,6 +5,7 @@ import {
   FLOATS_PER_EFFECT_OPERATION,
   MAX_EFFECT_OPERATIONS,
 } from "./effect-program";
+import { createLutSampler, createLutTexture } from "./lut-texture";
 import { buildPostProcessUniforms } from "./post-process";
 import { postProcessShader, textureCompositeShader } from "./shaders";
 
@@ -12,12 +13,17 @@ interface LayerEffectBuffers {
   uniforms: GPUBuffer;
   program: GPUBuffer;
   bindGroup: GPUBindGroup;
+  lutTexture: GPUTexture;
+  lutKey: string;
+  lutBytes: number;
 }
 
 export class LayerEffectRenderer {
   readonly #device: GPUDevice;
   readonly #format: GPUTextureFormat;
   readonly #sampler: GPUSampler;
+  readonly #lutSampler: GPUSampler;
+  readonly #identityLut: GPUTexture;
   readonly #postLayout: GPUBindGroupLayout;
   readonly #compositeLayout: GPUBindGroupLayout;
   readonly #effectPipeline: GPURenderPipeline;
@@ -38,6 +44,8 @@ export class LayerEffectRenderer {
       magFilter: "linear",
       minFilter: "linear",
     });
+    this.#lutSampler = createLutSampler(device);
+    this.#identityLut = createLutTexture(device);
     this.#postLayout = device.createBindGroupLayout({
       label: "Layer effect post-process layout",
       entries: [
@@ -45,6 +53,12 @@ export class LayerEffectRenderer {
         { binding: 1, visibility: GPUShaderStage.FRAGMENT, sampler: { type: "filtering" } },
         { binding: 2, visibility: GPUShaderStage.FRAGMENT, buffer: { type: "uniform" } },
         { binding: 3, visibility: GPUShaderStage.FRAGMENT, buffer: { type: "read-only-storage" } },
+        {
+          binding: 4,
+          visibility: GPUShaderStage.FRAGMENT,
+          texture: { sampleType: "float", viewDimension: "3d" },
+        },
+        { binding: 5, visibility: GPUShaderStage.FRAGMENT, sampler: { type: "filtering" } },
       ],
     });
     this.#compositeLayout = device.createBindGroupLayout({
@@ -103,6 +117,7 @@ export class LayerEffectRenderer {
     for (const resource of this.#resources.values()) {
       resource.uniforms.destroy();
       resource.program.destroy();
+      if (resource.lutTexture !== this.#identityLut) resource.lutTexture.destroy();
     }
     this.#resources.clear();
   }
@@ -128,7 +143,7 @@ export class LayerEffectRenderer {
 
     const program = compileEffectProgram(composition, time, [layer]);
     const effects = collectPostProcessParameters(composition, time, [layer]);
-    const resource = this.#resource(instanceId);
+    const resource = this.#resource(instanceId, layer);
     this.#device.queue.writeBuffer(resource.program, 0, program.data);
     this.#device.queue.writeBuffer(
       resource.uniforms,
@@ -188,17 +203,24 @@ export class LayerEffectRenderer {
       if (activeInstanceIds.has(instanceId)) continue;
       resource.uniforms.destroy();
       resource.program.destroy();
+      if (resource.lutTexture !== this.#identityLut) resource.lutTexture.destroy();
       this.#resources.delete(instanceId);
     }
   }
 
   estimatedTextureBytes(): number {
-    return this.#width * this.#height * (8 * 2 + 4);
+    return (
+      this.#width * this.#height * (8 * 2 + 4) +
+      [...this.#resources.values()].reduce((total, resource) => total + resource.lutBytes, 0)
+    );
   }
 
-  #resource(instanceId: string): LayerEffectBuffers {
+  #resource(instanceId: string, layer: Layer): LayerEffectBuffers {
     const existing = this.#resources.get(instanceId);
-    if (existing) return existing;
+    if (existing) {
+      this.#updateLut(existing, layer);
+      return existing;
+    }
     if (!this.#input) throw new Error("Layer effect input is unavailable");
     const uniforms = this.#device.createBuffer({
       label: `Layer effect uniforms · ${instanceId}`,
@@ -210,22 +232,56 @@ export class LayerEffectRenderer {
       size: MAX_EFFECT_OPERATIONS * FLOATS_PER_EFFECT_OPERATION * Float32Array.BYTES_PER_ELEMENT,
       usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
     });
-    const resource = {
+    const resource: LayerEffectBuffers = {
       uniforms,
       program,
-      bindGroup: this.#device.createBindGroup({
-        label: `Layer effect resources · ${instanceId}`,
-        layout: this.#postLayout,
-        entries: [
-          { binding: 0, resource: this.#input.createView() },
-          { binding: 1, resource: this.#sampler },
-          { binding: 2, resource: { buffer: uniforms } },
-          { binding: 3, resource: { buffer: program } },
-        ],
-      }),
+      bindGroup: this.#createEffectBindGroup(instanceId, uniforms, program, this.#identityLut),
+      lutTexture: this.#identityLut,
+      lutKey: "identity",
+      lutBytes: 0,
     };
+    this.#updateLut(resource, layer);
     this.#resources.set(instanceId, resource);
     return resource;
+  }
+
+  #updateLut(resource: LayerEffectBuffers, layer: Layer): void {
+    const lut = [...layer.effects]
+      .reverse()
+      .find((effect) => effect.enabled && effect.type === "lut" && effect.resource)?.resource;
+    const key = lut ? `${lut.checksum}:${lut.size}` : "identity";
+    if (resource.lutKey === key) return;
+    if (resource.lutTexture !== this.#identityLut) resource.lutTexture.destroy();
+    resource.lutTexture = lut ? createLutTexture(this.#device, lut) : this.#identityLut;
+    resource.lutKey = key;
+    resource.lutBytes = lut ? lut.size ** 3 * 8 : 0;
+    resource.bindGroup = this.#createEffectBindGroup(
+      layer.id,
+      resource.uniforms,
+      resource.program,
+      resource.lutTexture,
+    );
+  }
+
+  #createEffectBindGroup(
+    instanceId: string,
+    uniforms: GPUBuffer,
+    program: GPUBuffer,
+    lutTexture: GPUTexture,
+  ): GPUBindGroup {
+    if (!this.#input) throw new Error("Layer effect input is unavailable");
+    return this.#device.createBindGroup({
+      label: `Layer effect resources · ${instanceId}`,
+      layout: this.#postLayout,
+      entries: [
+        { binding: 0, resource: this.#input.createView() },
+        { binding: 1, resource: this.#sampler },
+        { binding: 2, resource: { buffer: uniforms } },
+        { binding: 3, resource: { buffer: program } },
+        { binding: 4, resource: lutTexture.createView({ dimension: "3d" }) },
+        { binding: 5, resource: this.#lutSampler },
+      ],
+    });
   }
 
   #createTexture(label: string): GPUTexture {

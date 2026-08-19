@@ -49,6 +49,11 @@ precomposed, and exported by the same GPU path as image layers. Canvas 2D draws 
 compatibility mode. A future native shaper/atlas can replace raster-cache creation without changing
 the render graph.
 
+Imported `.cube` resources are parsed through a bounded project boundary, stored in red-fastest
+voxel order, packed to `rgba16float`, and cached per effected layer. The fused shader supports both
+hardware trilinear sampling and explicit tetrahedral interpolation; layers without a LUT bind a tiny
+identity texture so the pipeline layout stays stable.
+
 Browser video uses hardware media decode and a persistent staging canvas before `queue.writeTexture`.
 This deterministic compatibility path exists because current WebView implementations can silently
 zero `copyExternalImageToTexture` for decoded video surfaces. The native video backend is expected to

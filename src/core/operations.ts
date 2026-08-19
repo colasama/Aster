@@ -1,6 +1,15 @@
 import { activeComposition } from "./project";
 import { insertKeyframe } from "./timeline";
-import type { Animatable, BlendMode, Effect, Id, Keyframe, Layer, Project } from "./types";
+import type {
+  Animatable,
+  BlendMode,
+  Effect,
+  Id,
+  Keyframe,
+  Layer,
+  Lut3dResource,
+  Project,
+} from "./types";
 
 export type PropertyPath =
   | "position.0"
@@ -36,6 +45,7 @@ export type Operation =
   | { type: "addEffect"; layerId: Id; effect: Effect }
   | { type: "removeEffect"; layerId: Id; effectId: Id }
   | { type: "toggleEffect"; layerId: Id; effectId: Id }
+  | { type: "setEffectLut"; layerId: Id; effectId: Id; resource?: Lut3dResource }
   | { type: "setEffectParameter"; layerId: Id; effectId: Id; parameter: string; value: number };
 
 export function applyOperations(project: Project, operations: Operation[]): Project {
@@ -142,6 +152,13 @@ export function applyOperation(project: Project, operation: Operation): void {
       const effect = layer.effects.find((entry) => entry.id === operation.effectId);
       if (!effect) throw new Error("Effect does not exist");
       effect.parameters[operation.parameter] = operation.value;
+      break;
+    }
+    case "setEffectLut": {
+      const effect = layer.effects.find((entry) => entry.id === operation.effectId);
+      if (!effect) throw new Error("Effect does not exist");
+      if (effect.type !== "lut") throw new Error("LUT resources require a 3D LUT effect");
+      effect.resource = operation.resource;
       break;
     }
   }
