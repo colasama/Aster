@@ -21,6 +21,7 @@
   border-bottom: 1px solid #24262e;
 }
 .viewport-toolbar button,
+.viewport-toolbar select,
 .viewport-status button {
   height: 21px;
   display: flex;
@@ -30,6 +31,11 @@
   border-radius: 3px;
   color: #858a96;
   font-size: 9px;
+}
+.viewport-toolbar select {
+  border: 0;
+  background: #1b1d23;
+  outline: 1px solid #2c2f38;
 }
 .viewport-toolbar button:hover,
 .viewport-toolbar button.active {

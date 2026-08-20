@@ -19,6 +19,10 @@ import type { GpuDiagnostics, Project } from "../core/types";
 import { CanvasFallbackRenderer } from "../renderer/canvas-fallback";
 import { type GpuBenchmarkRequest, runGpuBenchmark } from "../renderer/gpu-benchmark";
 import { calculatePreviewSize } from "../renderer/preview-size";
+import {
+  SCENE_BUFFER_VISUALIZATIONS,
+  type SceneBufferVisualization,
+} from "../renderer/render-buffers";
 import { createDefaultBezierPath } from "../renderer/vector-path";
 import { WebGpuRenderer } from "../renderer/webgpu-renderer";
 import { useEditor } from "../state/editor-store";
@@ -42,6 +46,7 @@ export function Viewport() {
   const [rendererRevision, setRendererRevision] = useState(0);
   const [view, setView] = useState("Active Camera");
   const [viewCount, setViewCount] = useState(1);
+  const [bufferView, setBufferView] = useState<SceneBufferVisualization>("beauty");
   const [space, setSpace] = useState<"Local" | "World">("Local");
   const displayZoom = state.viewportZoom * (viewCount === 2 ? 0.5 : 1);
   const pan = useRef({ active: false, x: 0, y: 0, left: 0, top: 0 });
@@ -74,6 +79,13 @@ export function Viewport() {
     previewQualityRef.current = state.previewQuality;
     resize();
   }, [resize, state.previewQuality]);
+
+  useEffect(() => {
+    const renderer = rendererRef.current;
+    if (!(renderer instanceof WebGpuRenderer)) return;
+    renderer.setBufferVisualization(bufferView);
+    setRendererRevision((revision) => revision + 1);
+  }, [bufferView]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -151,6 +163,9 @@ export function Viewport() {
       }
       const previewWidth = canvas.width;
       const previewHeight = canvas.height;
+      const previewBufferView =
+        renderer instanceof WebGpuRenderer ? renderer.bufferVisualization : undefined;
+      if (renderer instanceof WebGpuRenderer) renderer.setBufferVisualization("beauty");
       canvas.width = composition.width;
       canvas.height = composition.height;
       renderer.resize(composition.width, composition.height);
@@ -172,6 +187,8 @@ export function Viewport() {
           canvas.width = previewWidth;
           canvas.height = previewHeight;
           renderer.resize(previewWidth, previewHeight);
+          if (previewBufferView && renderer instanceof WebGpuRenderer)
+            renderer.setBufferVisualization(previewBufferView);
           renderer.render(composition, state.currentTime, false, state.project);
         },
       });
@@ -240,6 +257,18 @@ export function Viewport() {
       }
     >
       <div className="viewport-toolbar">
+        <select
+          aria-label="Viewport render buffer"
+          onChange={(event) => setBufferView(event.target.value as SceneBufferVisualization)}
+          title="Visualize the GPU scene buffer"
+          value={bufferView}
+        >
+          {SCENE_BUFFER_VISUALIZATIONS.map((mode) => (
+            <option key={mode} value={mode}>
+              {bufferViewLabel(mode)}
+            </option>
+          ))}
+        </select>
         <button
           onClick={() => setView(view === "Active Camera" ? "Custom View" : "Active Camera")}
           title="Switch camera view"
@@ -629,6 +658,15 @@ export function Viewport() {
       </div>
     </Panel>
   );
+}
+
+function bufferViewLabel(mode: SceneBufferVisualization): string {
+  return {
+    beauty: "Beauty",
+    linearColor: "Linear HDR",
+    luminance: "Luminance",
+    alpha: "Alpha",
+  }[mode];
 }
 
 function syncMirrorCanvas(

@@ -4,10 +4,15 @@ import {
   buildBufferVisualizationUniforms,
   encodeRenderId,
   planAuxiliaryBuffers,
+  SCENE_BUFFER_VISUALIZATIONS,
   visualizationCode,
 } from "./render-buffers";
 
 describe("auxiliary render buffers", () => {
+  it("exposes only scene buffers that the viewport can render truthfully", () => {
+    expect(SCENE_BUFFER_VISUALIZATIONS).toEqual(["beauty", "linearColor", "luminance", "alpha"]);
+  });
+
   it("plans typed GPU attachments within an explicit budget", () => {
     const plan = planAuxiliaryBuffers(1920, 1080);
     expect(plan.attachments.map(({ kind }) => kind)).toEqual([

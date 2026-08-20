@@ -1382,7 +1382,7 @@ aster/
 - [ ] Material ID。
 - [ ] Motion Vector。
 - [ ] World Position optional path。
-- [ ] Buffer visualization debug mode。
+- [x] Buffer visualization debug mode。
 
 ### 2D + 3D Composition
 
@@ -1428,7 +1428,7 @@ aster/
 - [x] Position effector。
 - [x] Scale effector。
 - [x] Rotation effector。
-- [ ] Audio-reactive effector。
+- [x] Audio-reactive effector。
 
 ---
 
@@ -1490,28 +1490,28 @@ aster/
 
 ### Video
 
-- [ ] 创建 `aster-video` crate。
+- [x] 创建 `aster-video` crate。
 - [ ] FFmpeg integration。
 - [ ] Container probe。
-- [ ] Video stream selection。
+- [x] Video stream selection。
 - [x] Decode frame。
 - [x] Timestamp handling。
 - [x] Frame-rate handling。
 - [x] Variable frame rate strategy。
 - [x] Seek。
-- [ ] Decode cache。
-- [ ] Frame cache。
+- [x] Decode cache。
+- [x] Frame cache。
 - [x] Video layer → GPU texture。
-- [ ] Color space metadata。
+- [x] Color space metadata。
 - [ ] Alpha video support research。
 
 ### Audio
 
 - [ ] Audio stream decode。
-- [ ] Timeline audio clock。
+- [x] Timeline audio clock。
 - [x] Waveform generation。
 - [ ] Audio preview playback。
-- [ ] AV sync。
+- [x] AV sync。
 - [x] Audio mute / gain。
 - [x] Audio analysis API。
 - [x] FFT / spectrum data for animation。

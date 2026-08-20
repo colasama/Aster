@@ -9,6 +9,7 @@ members = [
   "crates/aster-render",
   "crates/aster-scene",
   "crates/aster-timeline",
+  "crates/aster-video",
   "src-tauri",
 ]
 
@@ -28,6 +29,7 @@ aster-project = { path = "crates/aster-project", version = "0.2.0" }
 aster-render = { path = "crates/aster-render", version = "0.2.0" }
 aster-scene = { path = "crates/aster-scene", version = "0.2.0" }
 aster-timeline = { path = "crates/aster-timeline", version = "0.2.0" }
+aster-video = { path = "crates/aster-video", version = "0.2.0" }
 base64 = "0.22.1"
 glam = { version = "0.33.5", features = ["serde"] }
 indexmap = { version = "2.14.0", features = ["serde"] }

@@ -109,6 +109,37 @@ describe("cloner evaluation", () => {
     expect(evaluateCloner(changed).instances).not.toEqual(first.instances);
   });
 
+  it("drives GPU-ready clone transforms from a bounded audio band", () => {
+    const spectrum = new Float32Array([
+      100, 0.25, 0.0625, 0, 1_000, 0.75, 0.5625, 0, 10_000, 1, 1, 0,
+    ]);
+    const evaluated = evaluateCloner(
+      {
+        distribution: { kind: "grid", count: [1, 1, 1], spacing: [0, 0, 0] },
+        effectors: [
+          {
+            id: "bass",
+            kind: "audio",
+            enabled: true,
+            strength: 1,
+            band: [20, 2_000],
+            gain: 2,
+            position: [10, 0, 0],
+            scale: [50, 0, 0],
+            rotation: [0, 0, 90],
+          },
+        ],
+      },
+      0,
+      { audioSpectrum: spectrum },
+    );
+
+    expect(evaluated.instances[0].position).toEqual([10, 0, 0]);
+    expect(evaluated.instances[0].scale).toEqual([150, 100, 100]);
+    expect(evaluated.instances[0].rotation).toEqual([0, 0, 90]);
+    expect(evaluated.instanceData[CLONER_INSTANCE_OFFSETS.position]).toBe(10);
+  });
+
   it("maps clone-local offsets through the source 3D transform", () => {
     const transformed = composeClonerTransform(
       {

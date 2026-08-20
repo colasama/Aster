@@ -6,7 +6,9 @@ export const AUXILIARY_BUFFER_KINDS = [
 ] as const;
 
 export type AuxiliaryBufferKind = (typeof AUXILIARY_BUFFER_KINDS)[number];
-export type BufferVisualization = "beauty" | AuxiliaryBufferKind;
+export const SCENE_BUFFER_VISUALIZATIONS = ["beauty", "linearColor", "luminance", "alpha"] as const;
+export type SceneBufferVisualization = (typeof SCENE_BUFFER_VISUALIZATIONS)[number];
+export type BufferVisualization = SceneBufferVisualization | AuxiliaryBufferKind;
 
 export interface AuxiliaryBufferDescriptor {
   kind: AuxiliaryBufferKind;

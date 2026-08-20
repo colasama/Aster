@@ -9,6 +9,7 @@ import type {
   Project,
   RendererMetrics,
 } from "../core/types";
+import { SceneBufferVisualizer } from "./buffer-visualizer";
 import { analyzeEffectFusion } from "./effect-fusion";
 import { FLOATS_PER_EFFECT_OPERATION, MAX_EFFECT_OPERATIONS } from "./effect-program";
 import { FLOATS_PER_VERTEX, type GeometryBatch } from "./geometry";
@@ -19,6 +20,7 @@ import { createLutSampler, createLutTexture } from "./lut-texture";
 import { PARTICLE_INDIRECT_RESET } from "./particle-indirect";
 import { precompileGpuPipelines } from "./pipeline-precompile";
 import { buildPostProcessUniforms } from "./post-process";
+import type { SceneBufferVisualization } from "./render-buffers";
 import { createParticlePipeline, createPostPipeline } from "./runtime-pipelines";
 import { SceneEvaluationCache } from "./scene-evaluation-cache";
 import { buildSceneLighting, SCENE_LIGHTING_BYTES, shadowMapSize } from "./scene-lighting";
@@ -67,6 +69,7 @@ export class WebGpuRenderer {
   readonly #imagePipelines: Record<BlendMode, GPURenderPipeline>;
   readonly #particlePipeline: GPURenderPipeline;
   readonly #postPipeline: GPURenderPipeline;
+  readonly #bufferVisualizer: SceneBufferVisualizer;
   readonly #layerEffects: LayerEffectRenderer;
   readonly #computePipeline: GPUComputePipeline;
   #shapeBuffer: GPUBuffer;
@@ -89,6 +92,7 @@ export class WebGpuRenderer {
   #height = 1;
   #shadowMapSize = DEFAULT_SHADOW_MAP_SIZE;
   #memoryBudgetMb?: number;
+  #bufferVisualization: SceneBufferVisualization = "beauty";
   #smoothedFrameMs = 16.67;
   #lastFrameStarted?: number;
   #shapeBufferBytes = MAX_SHAPE_VERTICES * FLOATS_PER_VERTEX * Float32Array.BYTES_PER_ELEMENT;
@@ -266,6 +270,7 @@ export class WebGpuRenderer {
       usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
     });
     this.#postPipeline = createPostPipeline(device, format);
+    this.#bufferVisualizer = new SceneBufferVisualizer(device, format);
     this.#layerEffects = new LayerEffectRenderer(device, SCENE_FORMAT);
   }
 
@@ -340,7 +345,16 @@ export class WebGpuRenderer {
         { binding: 5, resource: this.#lutSampler },
       ],
     });
+    this.#bufferVisualizer.setSource(this.#sceneTexture);
     this.#layerEffects.resize(this.#width, this.#height);
+  }
+
+  get bufferVisualization(): SceneBufferVisualization {
+    return this.#bufferVisualization;
+  }
+
+  setBufferVisualization(mode: SceneBufferVisualization): void {
+    this.#bufferVisualization = mode;
   }
 
   render(
@@ -598,9 +612,11 @@ export class WebGpuRenderer {
         },
       ],
     });
-    postPass.setPipeline(this.#postPipeline);
-    postPass.setBindGroup(0, this.#postBindGroup);
-    postPass.draw(3);
+    if (this.#bufferVisualization === "beauty") {
+      postPass.setPipeline(this.#postPipeline);
+      postPass.setBindGroup(0, this.#postBindGroup);
+      postPass.draw(3);
+    } else this.#bufferVisualizer.encode(postPass, this.#bufferVisualization);
     postPass.end();
     const collectTimestamps = this.#gpuProfiler.encodeReadback(encoder);
     this.#device.queue.submit([encoder.finish()]);

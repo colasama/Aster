@@ -56,11 +56,23 @@ export interface RotationClonerEffector extends ClonerEffectorBase {
   value: [number, number, number];
 }
 
+export interface AudioClonerEffector extends ClonerEffectorBase {
+  kind: "audio";
+  /** Inclusive frequency range in hertz. */
+  band: [number, number];
+  gain: number;
+  position: [number, number, number];
+  /** Percentage delta per unit spectrum magnitude. */
+  scale: [number, number, number];
+  rotation: [number, number, number];
+}
+
 export type ClonerEffector =
   | RandomClonerEffector
   | PositionClonerEffector
   | ScaleClonerEffector
-  | RotationClonerEffector;
+  | RotationClonerEffector
+  | AudioClonerEffector;
 
 export interface ClonerSettings {
   distribution: GridClonerDistribution | RadialClonerDistribution;
@@ -82,6 +94,11 @@ export interface ClonerEvaluation {
    * unit scale, then index/normalized index/stable random/active flag.
    */
   instanceData: Float32Array;
+}
+
+export interface ClonerEvaluationContext {
+  /** GPU-aligned vec4 spectrum records: frequency, magnitude, power, phase. */
+  audioSpectrum?: Float32Array;
 }
 
 export function normalizeClonerSettings(settings: ClonerSettings): ClonerSettings {
@@ -147,12 +164,20 @@ export function validateClonerSettings(
     validateEffector(candidate, `${path}.effectors[${index}]`);
 }
 
-export function evaluateCloner(settings: ClonerSettings, _time = 0): ClonerEvaluation {
+export function evaluateCloner(
+  settings: ClonerSettings,
+  _time = 0,
+  context: ClonerEvaluationContext = {},
+): ClonerEvaluation {
   const instances = distributionInstances(settings.distribution);
   for (const effector of settings.effectors.slice(0, 32)) {
     if (!effector.enabled || !Number.isFinite(effector.strength) || effector.strength === 0)
       continue;
-    for (const instance of instances) applyEffector(instance, effector);
+    const audioResponse =
+      effector.kind === "audio"
+        ? sampleSpectrumMagnitude(context.audioSpectrum, effector.band) * finite(effector.gain)
+        : 0;
+    for (const instance of instances) applyEffector(instance, effector, audioResponse);
   }
   return { instances, instanceData: packClonerInstances(instances) };
 }
@@ -269,7 +294,11 @@ function radialInstances(distribution: RadialClonerDistribution): ClonerInstance
   });
 }
 
-function applyEffector(instance: ClonerInstance, effector: ClonerEffector): void {
+function applyEffector(
+  instance: ClonerInstance,
+  effector: ClonerEffector,
+  audioResponse: number,
+): void {
   const strength = effector.strength;
   if (effector.kind === "position" || effector.kind === "rotation") {
     const target = effector.kind === "position" ? instance.position : instance.rotation;
@@ -280,6 +309,18 @@ function applyEffector(instance: ClonerInstance, effector: ClonerEffector): void
     for (let axis = 0; axis < 3; axis += 1) {
       const factor = 1 + (finite(effector.value[axis], 100) / 100 - 1) * strength;
       instance.scale[axis] = Math.max(0.001, instance.scale[axis] * factor);
+    }
+    return;
+  }
+  if (effector.kind === "audio") {
+    const response = Math.max(0, Math.min(1_000, audioResponse)) * strength;
+    for (let axis = 0; axis < 3; axis += 1) {
+      instance.position[axis] += finite(effector.position[axis]) * response;
+      instance.scale[axis] = Math.max(
+        0.001,
+        instance.scale[axis] * (1 + (finite(effector.scale[axis]) * response) / 100),
+      );
+      instance.rotation[axis] += finite(effector.rotation[axis]) * response;
     }
     return;
   }
@@ -327,6 +368,19 @@ function normalizeEffector(effector: ClonerEffector): ClonerEffector {
         Math.max(0.001, Math.min(10_000, finite(value, 100))),
       ) as [number, number, number],
     };
+  if (effector.kind === "audio") {
+    const lower = Math.max(0, Math.min(192_000, finite(effector.band[0])));
+    const upper = Math.max(lower, Math.min(192_000, finite(effector.band[1])));
+    return {
+      ...common,
+      kind: "audio",
+      band: [lower, upper],
+      gain: Math.max(0, Math.min(100, finite(effector.gain, 1))),
+      position: boundedVector(effector.position),
+      scale: boundedVector(effector.scale),
+      rotation: boundedVector(effector.rotation),
+    };
+  }
   return { ...common, kind: effector.kind, value: boundedVector(effector.value) };
 }
 
@@ -348,11 +402,41 @@ function validateEffector(value: unknown, path: string): void {
     }
     return;
   }
+  if (effector.kind === "audio") {
+    const band = pairValue(effector.band, `${path}.band`);
+    if (band[0] < 0 || band[1] < band[0] || band[1] > 192_000)
+      throw new Error(`${path}.band must be an ascending range from 0 to 192000 Hz`);
+    const gain = finiteValue(effector.gain, `${path}.gain`);
+    if (gain < 0 || gain > 100) throw new Error(`${path}.gain is out of range`);
+    for (const field of ["position", "scale", "rotation"] as const)
+      boundedVectorValue(effector[field], `${path}.${field}`);
+    return;
+  }
   if (effector.kind !== "position" && effector.kind !== "scale" && effector.kind !== "rotation")
     throw new Error(`${path}.kind is invalid`);
   const vector = boundedVectorValue(effector.value, `${path}.value`);
   if (effector.kind === "scale" && vector.some((entry) => entry <= 0 || entry > 10_000))
     throw new Error(`${path}.value must contain scale percentages from 0 to 10000`);
+}
+
+function sampleSpectrumMagnitude(
+  spectrum: Float32Array | undefined,
+  band: readonly [number, number],
+): number {
+  if (!spectrum) return 0;
+  const lower = Math.max(0, finite(band[0]));
+  const upper = Math.max(lower, finite(band[1]));
+  const records = Math.min(Math.floor(spectrum.length / 4), 16_385);
+  let sum = 0;
+  let count = 0;
+  for (let record = 0; record < records; record += 1) {
+    const offset = record * 4;
+    const frequency = spectrum[offset];
+    if (!Number.isFinite(frequency) || frequency < lower || frequency > upper) continue;
+    sum += Math.max(0, Math.min(1_000, finite(spectrum[offset + 1])));
+    count += 1;
+  }
+  return count === 0 ? 0 : sum / count;
 }
 
 function rotateVector(
@@ -443,6 +527,12 @@ function vectorValue(value: unknown, path: string): [number, number, number] {
     number,
     number,
   ];
+}
+
+function pairValue(value: unknown, path: string): [number, number] {
+  if (!Array.isArray(value) || value.length !== 2)
+    throw new Error(`${path} must contain two numbers`);
+  return value.map((entry, index) => finiteValue(entry, `${path}[${index}]`)) as [number, number];
 }
 
 function boundedVectorValue(value: unknown, path: string): [number, number, number] {
