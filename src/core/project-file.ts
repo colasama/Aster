@@ -1,5 +1,5 @@
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
-import { open } from "@tauri-apps/plugin-dialog";
+import { open, save } from "@tauri-apps/plugin-dialog";
 import { validateClonerSettings } from "./cloner";
 import {
   MAX_COMMAND_LOG_ENTRIES,
@@ -121,6 +121,43 @@ export async function pickProjectFile(): Promise<{ project: Project; name: strin
     );
     picker.click();
   });
+}
+
+export async function packCurrentProject(projectName: string): Promise<string | undefined> {
+  if (!nativeProjectPath || !isTauriRuntime())
+    throw new Error("Save this project in the native app before packing it");
+  const destination = await save({
+    title: "Pack Aster project",
+    defaultPath: `${safeFileName(projectName)}.aster`,
+    filters: [{ name: "Aster packed project", extensions: ["aster"] }],
+  });
+  if (!destination) return undefined;
+  await invoke("pack_project", { bundle: nativeProjectPath, destination });
+  return destination;
+}
+
+export async function pickPackedProject(): Promise<{ project: Project; name: string } | undefined> {
+  if (!isTauriRuntime())
+    throw new Error("Packed projects are available in the native Aster application");
+  const archive = await open({
+    directory: false,
+    multiple: false,
+    title: "Open packed Aster project",
+    filters: [{ name: "Aster packed project", extensions: ["aster"] }],
+  });
+  if (typeof archive !== "string") return undefined;
+  const parent = await open({
+    directory: true,
+    multiple: false,
+    title: "Choose where to unpack the project",
+  });
+  if (typeof parent !== "string") return undefined;
+  const destination = await invoke<string>("unpack_project", { archive, parent });
+  const project = validateProjectDocument(
+    hydrateRuntimeAssetUrls(await invoke("load_project", { path: destination })),
+  );
+  nativeProjectPath = destination;
+  return { project, name: destination.split(/[\\/]/).pop() || destination };
 }
 
 export function storeRecoverySnapshot(

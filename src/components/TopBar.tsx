@@ -28,6 +28,8 @@ import { activeComposition, createBlankComposition, createBlankProject } from ".
 import {
   clearRecoverySnapshot,
   downloadBlob,
+  packCurrentProject,
+  pickPackedProject,
   pickProjectFile,
   readRecoverySnapshotForCurrentProject,
   saveProjectDocument,
@@ -57,7 +59,16 @@ const menus = [
 ];
 
 const menuItems: Record<string, string[]> = {
-  File: ["New Project", "Open…", "Recover Autosave", "Save Project", "Save As…", "Export Frame…"],
+  File: [
+    "New Project",
+    "Open…",
+    "Open Packed…",
+    "Recover Autosave",
+    "Save Project",
+    "Save As…",
+    "Pack Project…",
+    "Export Frame…",
+  ],
   Edit: ["Undo", "Redo", "Duplicate", "Preferences…"],
   Composition: ["New Composition", "Composition Settings…", "Add to Render Queue"],
   Layer: [
@@ -189,6 +200,7 @@ export function TopBar() {
       clearRecoverySnapshot();
       dispatch({ type: "loadProject", project: createBlankProject() });
     } else if (item === "Open…") openProjectFile(dispatch, setToast);
+    else if (item === "Open Packed…") openPackedProject(dispatch, setToast);
     else if (item === "Recover Autosave") {
       void readRecoverySnapshotForCurrentProject()
         .then((recovery) => {
@@ -202,6 +214,7 @@ export function TopBar() {
         );
     } else if (item === "Save Project" || item === "Save As…")
       saveProject(state.project, setToast, item === "Save As…");
+    else if (item === "Pack Project…") packProject(state.project, setToast);
     else if (item === "Undo") dispatch({ type: "undo" });
     else if (item === "Redo") dispatch({ type: "redo" });
     else if (item === "Duplicate" && selectedLayer) {
@@ -633,6 +646,31 @@ async function openProjectFile(
   } catch (error) {
     showToast(setToast, error instanceof Error ? error.message : "Unable to open project");
   }
+}
+
+async function openPackedProject(
+  dispatch: ReturnType<typeof useEditor>["dispatch"],
+  setToast: (message: string | undefined) => void,
+) {
+  try {
+    const selected = await pickPackedProject();
+    if (!selected) return;
+    dispatch({ type: "loadProject", project: selected.project });
+    showToast(setToast, `Unpacked and opened ${selected.name}`);
+  } catch (error) {
+    showToast(setToast, error instanceof Error ? error.message : "Unable to open packed project");
+  }
+}
+
+function packProject(project: Project, setToast: (message: string | undefined) => void): void {
+  void saveProjectDocument(project)
+    .then((saved) => (saved ? packCurrentProject(project.name) : undefined))
+    .then((path) => {
+      if (path) showToast(setToast, `Packed ${path.split(/[\\/]/).pop() || path}`);
+    })
+    .catch((error: unknown) => {
+      showToast(setToast, error instanceof Error ? error.message : "Unable to pack project");
+    });
 }
 
 function saveProject(

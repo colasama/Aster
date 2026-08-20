@@ -63,6 +63,63 @@ async fn load_project(app: tauri::AppHandle, path: String) -> Result<serde_json:
     Ok(project)
 }
 
+#[tauri::command]
+async fn pack_project(bundle: String, destination: String) -> Result<(), String> {
+    blocking_io(move || {
+        aster_project::pack_editor_bundle(bundle, destination).map_err(|error| error.to_string())
+    })
+    .await
+}
+
+#[tauri::command]
+async fn unpack_project(archive: String, parent: String) -> Result<String, String> {
+    blocking_io(move || {
+        let archive = PathBuf::from(archive)
+            .canonicalize()
+            .map_err(|error| error.to_string())?;
+        let parent = PathBuf::from(parent)
+            .canonicalize()
+            .map_err(|error| error.to_string())?;
+        if !archive.is_file() || !parent.is_dir() {
+            return Err("packed project source and destination must exist".to_owned());
+        }
+        let stem = archive
+            .file_stem()
+            .and_then(|stem| stem.to_str())
+            .unwrap_or("Aster Project");
+        let sanitized: String = stem
+            .chars()
+            .map(|character| {
+                if character.is_ascii_alphanumeric() || " -_".contains(character) {
+                    character
+                } else {
+                    '-'
+                }
+            })
+            .take(100)
+            .collect();
+        let base = if sanitized.trim().is_empty() {
+            "Aster Project"
+        } else {
+            sanitized.trim()
+        };
+        let mut destination = parent.join(base);
+        for suffix in 2..10_000 {
+            if !destination.exists() {
+                break;
+            }
+            destination = parent.join(format!("{base}-{suffix}"));
+        }
+        if destination.exists() {
+            return Err("unable to allocate an unpacked project directory".to_owned());
+        }
+        aster_project::unpack_editor_bundle(&archive, &destination)
+            .map_err(|error| error.to_string())?;
+        Ok(destination.to_string_lossy().into_owned())
+    })
+    .await
+}
+
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct LinkedProjectAsset {
@@ -547,6 +604,7 @@ pub fn run() {
             generate_ai_plan,
             load_project,
             link_project_asset,
+            pack_project,
             install_plugin,
             operation_schema,
             plugin_status,
@@ -556,7 +614,8 @@ pub fn run() {
             save_project,
             save_render_frame,
             set_plugin_enabled,
-            set_plugin_safe_mode
+            set_plugin_safe_mode,
+            unpack_project
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

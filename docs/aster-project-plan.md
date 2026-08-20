@@ -1642,7 +1642,7 @@ aster/
 - [x] 实现 crash recovery。
 - [x] 实现 relative asset paths。
 - [x] 实现 missing asset relink。
-- [ ] 实现 packed project。
+- [x] 实现 packed project。
 - [x] 实现 schema validation。
 - [x] 实现 MVP current-schema gate（不兼容旧项目）。
 - [x] 实现 unsupported-schema rejection tests。
