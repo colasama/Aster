@@ -98,6 +98,7 @@ export interface Layer {
   light?: LightSettings;
   camera?: CameraSettings;
   mesh?: MeshAsset;
+  particle?: ParticleSettings;
 }
 
 export interface Material3d {
@@ -125,6 +126,11 @@ export interface MeshAsset {
   normals: number[];
   uvs: number[];
   indices: number[];
+}
+
+export interface ParticleSettings {
+  count: number;
+  seed: number;
 }
 
 export interface Composition {

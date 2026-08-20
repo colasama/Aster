@@ -1402,8 +1402,8 @@ aster/
 
 ## 18.9 GPU Particle / Procedural Motion
 
-- [ ] Particle storage buffer。
-- [ ] Compute update pass。
+- [x] Particle storage buffer。
+- [x] Compute update pass。
 - [ ] Particle spawn system。
 - [ ] Lifetime。
 - [ ] Position / Velocity。
@@ -1411,15 +1411,15 @@ aster/
 - [ ] Color over life。
 - [ ] Size over life。
 - [ ] Rotation over life。
-- [ ] GPU random source。
-- [ ] Billboard rendering。
+- [x] GPU random source。
+- [x] Billboard rendering。
 - [ ] Mesh particle rendering。
 - [ ] Indirect draw research / implementation。
-- [ ] 100k particle benchmark。
-- [ ] 500k particle benchmark。
-- [ ] 1M particle benchmark。
-- [ ] Particle cache / deterministic seed。
-- [ ] Arbitrary-time evaluation strategy。
+- [x] 100k particle benchmark。
+- [x] 500k particle benchmark。
+- [x] 1M particle benchmark。
+- [x] Particle cache / deterministic seed。
+- [x] Arbitrary-time evaluation strategy。
 - [ ] Checkpoint-based seek strategy。
 - [ ] Cloner abstraction。
 - [ ] Grid cloner。

@@ -191,9 +191,10 @@ fn hash(value: u32) -> f32 {
 fn compute_main(@builtin(global_invocation_id) global_id: vec3u) {
   let index = global_id.x;
   if f32(index) >= simulation.count { return; }
-  let random_a = hash(index);
-  let random_b = hash(index + 11731u);
-  let random_c = hash(index + 97127u);
+  let seeded_index = index + u32(simulation.padding) * 1664525u;
+  let random_a = hash(seeded_index);
+  let random_b = hash(seeded_index + 11731u);
+  let random_c = hash(seeded_index + 97127u);
   let phase = simulation.time * (0.08 + random_c * 0.16) + random_a * 6.283185;
   let radius = 0.15 + sqrt(random_b) * 1.15;
   let x = cos(phase + radius * 3.0) * radius / max(simulation.aspect, 1.0);

@@ -129,6 +129,7 @@ export function createDemoProject(): Project {
     color: [0.5, 0.74, 1, 0.65],
     size: [3840, 2160],
     blendMode: "add",
+    particle: { count: 100_000, seed: 13_337 },
   });
   const camera = layer({
     name: "Camera 1",

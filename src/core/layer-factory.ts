@@ -45,5 +45,6 @@ export function createLayerForComposition(
       kind === "camera"
         ? { projection: "perspective", fieldOfView: 50, orthographicSize: composition.height }
         : undefined,
+    particle: kind === "particle" ? { count: 100_000, seed: 13_337 } : undefined,
   };
 }

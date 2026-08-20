@@ -12,6 +12,7 @@ import type {
   LightSettings,
   Lut3dResource,
   Material3d,
+  ParticleSettings,
   Project,
 } from "./types";
 
@@ -41,6 +42,7 @@ export type Operation =
   | { type: "setLightSettings"; layerId: Id; light: LightSettings }
   | { type: "setLayerColor"; layerId: Id; color: Layer["color"] }
   | { type: "setCameraSettings"; layerId: Id; camera: CameraSettings }
+  | { type: "setParticleSettings"; layerId: Id; particle: ParticleSettings }
   | {
       type: "toggleLayer";
       layerId: Id;
@@ -182,6 +184,12 @@ export function applyOperation(project: Project, operation: Operation): void {
         projection: operation.camera.projection,
         fieldOfView: clamp(operation.camera.fieldOfView, 1, 179),
         orthographicSize: clamp(operation.camera.orthographicSize, 1, 100_000),
+      };
+      break;
+    case "setParticleSettings":
+      layer.particle = {
+        count: Math.round(clamp(operation.particle.count, 1, 1_000_000)),
+        seed: Math.round(clamp(operation.particle.seed, 0, 16_777_215)),
       };
       break;
     case "toggleLayer":

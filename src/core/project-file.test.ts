@@ -131,4 +131,18 @@ describe("project document boundary", () => {
     mesh.mesh.indices[2] = 99;
     expect(() => validateProjectDocument(project)).toThrow("reference missing vertices");
   });
+
+  it("roundtrips bounded deterministic particle settings", () => {
+    const project = createBlankProject();
+    const composition = project.compositions[0];
+    const particles = createLayerForComposition("particle", composition);
+    particles.particle = { count: 500_000, seed: 42 };
+    composition.layers.push(particles);
+
+    const roundtrip = validateProjectDocument(JSON.parse(serializeProject(project)));
+    expect(roundtrip.compositions[0].layers[1].particle).toEqual(particles.particle);
+    if (!particles.particle) throw new Error("Expected particle settings");
+    particles.particle.count = 1_000_001;
+    expect(() => validateProjectDocument(project)).toThrow("at most 1000000");
+  });
 });

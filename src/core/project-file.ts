@@ -228,6 +228,15 @@ function validateLayer(value: unknown, path: string): asserts value is Layer {
     )
       throw new Error(`${path}.mesh.indices reference missing vertices`);
   }
+  if (layer.particle !== undefined) {
+    const particle = requireObject(layer.particle, `${path}.particle`);
+    const count = requirePositiveNumber(particle.count, `${path}.particle.count`);
+    const seed = requireFiniteNumber(particle.seed, `${path}.particle.seed`);
+    if (!Number.isInteger(count) || count > 1_000_000)
+      throw new Error(`${path}.particle.count must be an integer at most 1000000`);
+    if (!Number.isInteger(seed) || seed < 0 || seed > 16_777_215)
+      throw new Error(`${path}.particle.seed must be a bounded non-negative integer`);
+  }
   if (!Array.isArray(layer.size) || layer.size.length !== 2)
     throw new Error(`${path}.size must contain two values`);
   if (!Array.isArray(layer.color) || layer.color.length !== 4)

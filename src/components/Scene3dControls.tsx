@@ -1,4 +1,10 @@
-import type { CameraSettings, Layer, LightSettings, Material3d } from "../core/types";
+import type {
+  CameraSettings,
+  Layer,
+  LightSettings,
+  Material3d,
+  ParticleSettings,
+} from "../core/types";
 import { useEditor } from "../state/editor-store";
 
 export function Scene3dControls({ layer }: { layer: Layer }) {
@@ -53,6 +59,23 @@ export function Scene3dControls({ layer }: { layer: Layer }) {
             projection: layer.camera?.projection ?? "perspective",
             fieldOfView: layer.camera?.fieldOfView ?? 50,
             orthographicSize: layer.camera?.orthographicSize ?? 2160,
+            [field]: value,
+          },
+        },
+      ],
+    });
+  };
+
+  const updateParticle = (field: keyof ParticleSettings, value: number) => {
+    dispatch({
+      type: "operation",
+      operations: [
+        {
+          type: "setParticleSettings",
+          layerId: layer.id,
+          particle: {
+            count: layer.particle?.count ?? 100_000,
+            seed: layer.particle?.seed ?? 13_337,
             [field]: value,
           },
         },
@@ -125,6 +148,29 @@ export function Scene3dControls({ layer }: { layer: Layer }) {
             value={layer.camera?.orthographicSize ?? 2160}
           />
         )}
+      </>
+    );
+  }
+
+  if (layer.kind === "particle") {
+    return (
+      <>
+        <NumericControl
+          label="Particle count"
+          max={1_000_000}
+          min={1}
+          onChange={(value) => updateParticle("count", value)}
+          step={10_000}
+          value={layer.particle?.count ?? 100_000}
+        />
+        <NumericControl
+          label="Random seed"
+          max={16_777_215}
+          min={0}
+          onChange={(value) => updateParticle("seed", value)}
+          step={1}
+          value={layer.particle?.seed ?? 13_337}
+        />
       </>
     );
   }

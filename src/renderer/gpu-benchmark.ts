@@ -1,3 +1,4 @@
+import { createLayerForComposition } from "../core/layer-factory";
 import type { Composition, Project, RendererMetrics } from "../core/types";
 import { createId } from "../core/types";
 import { createEffect } from "../effects/registry";
@@ -174,11 +175,28 @@ export function buildBenchmarkScenarios(source: Composition): BenchmarkScenario[
       createEffect("exposure"),
     ];
   }
+  const particleScenario = (count: number): BenchmarkScenario => {
+    const label = count === 1_000_000 ? "1M" : `${count / 1000}K`;
+    const scenario = resolution(`${label} GPU particles`, 1920, 1080);
+    const sourceParticle = source.layers.find((layer) => layer.kind === "particle");
+    const particle = sourceParticle
+      ? structuredClone(sourceParticle)
+      : createLayerForComposition("particle", scenario.composition);
+    particle.id = createId();
+    particle.parentId = undefined;
+    particle.name = `${label} GPU particles`;
+    particle.particle = { count, seed: 13_337 };
+    scenario.composition.layers = [particle];
+    return scenario;
+  };
   return [
     resolution("1080p current composition", 1920, 1080),
     resolution("4K current composition", 3840, 2160),
     twentyLayers,
     effectChain,
+    particleScenario(100_000),
+    particleScenario(500_000),
+    particleScenario(1_000_000),
   ];
 }
 

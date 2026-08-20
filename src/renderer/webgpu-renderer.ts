@@ -30,7 +30,7 @@ import {
 } from "./shaders";
 import { rasterizeTextLayer } from "./text-rasterizer";
 
-const PARTICLE_COUNT = 100_000;
+const PARTICLE_CAPACITY = 1_000_000;
 const MAX_SHAPE_VERTICES = 6 * 128;
 const SCENE_FORMAT: GPUTextureFormat = "rgba16float";
 const SHADOW_MAP_SIZE = 1024;
@@ -186,8 +186,8 @@ export class WebGpuRenderer {
     });
     this.#imagePipelines = createImagePipelines(device, SCENE_FORMAT, this.#imageBindGroupLayout);
     this.#particleBuffer = device.createBuffer({
-      label: "GPU particle storage · 100K",
-      size: PARTICLE_COUNT * 16,
+      label: "GPU particle storage · 1M capacity",
+      size: PARTICLE_CAPACITY * 16,
       usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
     });
     this.#simulationBuffer = device.createBuffer({
@@ -341,6 +341,12 @@ export class WebGpuRenderer {
       this.#height,
     );
     const { sceneLayers, geometry } = evaluation;
+    const particleScene = sceneLayers.find((scene) => scene.layer.kind === "particle");
+    const particleCount = Math.max(
+      1,
+      Math.min(PARTICLE_CAPACITY, Math.round(particleScene?.layer.particle?.count ?? 100_000)),
+    );
+    const particleSeed = particleScene?.layer.particle?.seed ?? 13_337;
     this.#device.queue.writeBuffer(
       this.#lightingBuffer,
       0,
@@ -374,7 +380,7 @@ export class WebGpuRenderer {
     this.#device.queue.writeBuffer(
       this.#simulationBuffer,
       0,
-      new Float32Array([time, this.#width / this.#height, PARTICLE_COUNT, 0]),
+      new Float32Array([time, this.#width / this.#height, particleCount, particleSeed]),
     );
     this.#device.queue.writeBuffer(
       this.#postUniformBuffer,
@@ -389,7 +395,7 @@ export class WebGpuRenderer {
     });
     compute.setPipeline(this.#computePipeline);
     compute.setBindGroup(0, this.#computeBindGroup);
-    compute.dispatchWorkgroups(Math.ceil(PARTICLE_COUNT / 256));
+    if (particleScene) compute.dispatchWorkgroups(Math.ceil(particleCount / 256));
     compute.end();
     const shadowPass = encoder.beginRenderPass({
       label: "Scene shadow-map depth",
@@ -475,7 +481,7 @@ export class WebGpuRenderer {
         }
       }
     }
-    const particleVisible = sceneLayers.some((scene) => scene.layer.kind === "particle");
+    const particleVisible = Boolean(particleScene);
     if (particleVisible) {
       if (!scenePass) {
         scenePass = encoder.beginRenderPass({
@@ -491,7 +497,7 @@ export class WebGpuRenderer {
       }
       scenePass.setPipeline(this.#particlePipeline);
       scenePass.setBindGroup(0, this.#particleBindGroup);
-      scenePass.draw(6, PARTICLE_COUNT);
+      scenePass.draw(6, particleCount);
     }
     scenePass?.end();
     this.#layerEffects.sweep(activeEffectInstances);
@@ -543,7 +549,7 @@ export class WebGpuRenderer {
       passCount: 4 + scenePassCount + effectLayerCount * 3,
       dirtyNodes: (evaluation.cacheHit ? 0 : sceneLayers.length) + effectOperationCount,
       cacheHitRate: this.#evaluationCache.hitRate(),
-      estimatedVramMb: (hdr4kBytes + PARTICLE_COUNT * 16) / 1024 / 1024,
+      estimatedVramMb: (hdr4kBytes + PARTICLE_CAPACITY * 16) / 1024 / 1024,
       transientTextureCount: 6,
       passTimings: this.#gpuProfiler.passTimings(),
     };

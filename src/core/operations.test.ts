@@ -95,6 +95,27 @@ describe("structured project operations", () => {
     expect(camera.camera?.projection).toBe("perspective");
   });
 
+  it("bounds GPU particle count and deterministic seed settings", () => {
+    const source = createDemoProject();
+    const particles = activeComposition(source).layers.find((layer) => layer.kind === "particle");
+    if (!particles) throw new Error("Expected demo particle layer");
+    const next = applyOperations(source, [
+      {
+        type: "setParticleSettings",
+        layerId: particles.id,
+        particle: { count: 2_000_000, seed: -20 },
+      },
+    ]);
+
+    expect(
+      activeComposition(next).layers.find((layer) => layer.id === particles.id)?.particle,
+    ).toEqual({
+      count: 1_000_000,
+      seed: 0,
+    });
+    expect(particles.particle).toEqual({ count: 100_000, seed: 13_337 });
+  });
+
   it("reorders effects through a bounded operation", () => {
     const source = createDemoProject();
     const layer = activeComposition(source).layers[0];

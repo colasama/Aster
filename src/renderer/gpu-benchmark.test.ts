@@ -10,10 +10,16 @@ describe("GPU benchmark harness", () => {
       "4K current composition",
       "20-layer 1080p composite",
       "Blur + glow effect chain",
+      "100K GPU particles",
+      "500K GPU particles",
+      "1M GPU particles",
     ]);
     expect(scenarios[1].composition).toMatchObject({ width: 3840, height: 2160 });
     expect(scenarios[2].composition.layers).toHaveLength(20);
     expect(scenarios[3].composition.layers[0].effects).toHaveLength(5);
+    expect(
+      scenarios.slice(4).map((scenario) => scenario.composition.layers[0].particle?.count),
+    ).toEqual([100_000, 500_000, 1_000_000]);
   });
 
   it("reports interpolated benchmark distributions", () => {
