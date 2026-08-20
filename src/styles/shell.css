@@ -544,6 +544,31 @@
   color: #c9d2e5;
   font-size: 9px;
 }
+.plugin-search {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid #303540;
+  border-radius: 4px;
+  color: #687386;
+  background: #101218;
+}
+.plugin-search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  color: #c6cedd;
+  background: transparent;
+  outline: 0;
+  font-size: 9px;
+}
+.plugin-search small {
+  color: #697385;
+  font-size: 8px;
+  white-space: nowrap;
+}
 .plugin-metadata,
 .plugin-empty-copy {
   color: #737b8c;

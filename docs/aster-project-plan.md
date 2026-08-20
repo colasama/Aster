@@ -1752,7 +1752,7 @@ aster/
 - [ ] Auto-update strategy。
 - [ ] Crash reporting opt-in design。
 - [x] Plugin directory convention。
-- [ ] Plugin search UI。
+- [x] Plugin search UI。
 - [x] Plugin install UI。
 - [x] Plugin update UI。
 - [ ] Plugin signature / trust research。
