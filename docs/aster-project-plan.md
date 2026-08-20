@@ -1377,11 +1377,11 @@ aster/
 
 - [x] Color。
 - [x] Depth。
-- [ ] Normal。
-- [ ] Object ID。
-- [ ] Material ID。
+- [x] Normal。
+- [x] Object ID。
+- [x] Material ID。
 - [ ] Motion Vector。
-- [ ] World Position optional path。
+- [x] World Position optional path。
 - [x] Buffer visualization debug mode。
 
 ### 2D + 3D Composition
@@ -1458,7 +1458,7 @@ aster/
 - [x] 定义 texture parameter。
 - [x] 自动生成 Inspector UI。
 - [x] Shader compile error UI。
-- [ ] Hot reload shader。
+- [x] Hot reload shader。
 - [x] Example: Tint。
 - [x] Example: Chromatic Aberration。
 - [x] Example: CRT / Stylize。
@@ -1491,8 +1491,8 @@ aster/
 ### Video
 
 - [x] 创建 `aster-video` crate。
-- [ ] FFmpeg integration。
-- [ ] Container probe。
+- [x] FFmpeg integration。
+- [x] Container probe。
 - [x] Video stream selection。
 - [x] Decode frame。
 - [x] Timestamp handling。
