@@ -816,3 +816,44 @@
   align-items: center;
   gap: 7px;
 }
+
+.cloner-controls {
+  display: grid;
+  gap: 8px;
+  grid-column: 1 / -1;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-soft);
+}
+.cloner-effector-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.cloner-effector {
+  display: grid;
+  gap: 7px;
+  padding: 8px;
+  border: 1px solid var(--border-soft);
+  border-radius: 6px;
+  background: var(--bg-raised);
+}
+.cloner-effector > div:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.cloner-vector {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+  padding: 0;
+  border: 0;
+}
+.cloner-vector legend {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font-size: 10px;
+}
+.cloner-vector label {
+  min-width: 0;
+}

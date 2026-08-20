@@ -25,6 +25,7 @@ import type { EffectParameterDefinition } from "../effects/types";
 import { useEditor } from "../state/editor-store";
 import { AiPanel } from "./AiPanel";
 import { AudioControls } from "./AudioControls";
+import { ClonerControls } from "./ClonerControls";
 import { EffectMaskEditor } from "./EffectMaskEditor";
 import { EffectParameter } from "./EffectParameter";
 import { Panel, PanelTabs } from "./Panel";
@@ -426,6 +427,7 @@ export function Inspector() {
                 </label>
                 <Scene3dControls layer={layer} />
                 <ShapeControls layer={layer} />
+                <ClonerControls layer={layer} />
                 <TextControls layer={layer} />
                 <AudioControls layer={layer} />
               </div>
