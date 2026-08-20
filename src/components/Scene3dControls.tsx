@@ -5,10 +5,12 @@ import type {
   Material3d,
   ParticleSettings,
 } from "../core/types";
+import { useI18n } from "../i18n/react";
 import { useEditor } from "../state/editor-store";
 
 export function Scene3dControls({ layer }: { layer: Layer }) {
   const { dispatch } = useEditor();
+  const { t } = useI18n();
 
   const updateMaterial = (field: keyof Material3d, value: number | string) => {
     if (typeof value === "number" && !Number.isFinite(value)) return;
@@ -102,7 +104,7 @@ export function Scene3dControls({ layer }: { layer: Layer }) {
     return (
       <>
         <NumericControl
-          label="Metallic"
+          label={t("scene3d.material.metallic")}
           max={1}
           min={0}
           onChange={(value) => updateMaterial("metallic", value)}
@@ -110,7 +112,7 @@ export function Scene3dControls({ layer }: { layer: Layer }) {
           value={layer.material?.metallic ?? 0.18}
         />
         <NumericControl
-          label="Roughness"
+          label={t("scene3d.material.roughness")}
           max={1}
           min={0.04}
           onChange={(value) => updateMaterial("roughness", value)}
@@ -118,7 +120,7 @@ export function Scene3dControls({ layer }: { layer: Layer }) {
           value={layer.material?.roughness ?? 0.42}
         />
         <NumericControl
-          label="Emissive"
+          label={t("scene3d.material.emissive")}
           max={16}
           min={0}
           onChange={(value) => updateMaterial("emissive", value)}
@@ -126,20 +128,20 @@ export function Scene3dControls({ layer }: { layer: Layer }) {
           value={layer.material?.emissive ?? 0}
         />
         <label>
-          Alpha mode
+          {t("scene3d.material.alphaMode")}
           <select
-            aria-label="Alpha mode"
+            aria-label={t("scene3d.material.alphaMode")}
             onChange={(event) => updateMaterial("alphaMode", event.target.value)}
             value={layer.material?.alphaMode ?? "opaque"}
           >
-            <option value="opaque">Opaque</option>
-            <option value="mask">Mask</option>
-            <option value="blend">Blend</option>
+            <option value="opaque">{t("scene3d.alpha.opaque")}</option>
+            <option value="mask">{t("scene3d.alpha.mask")}</option>
+            <option value="blend">{t("scene3d.alpha.blend")}</option>
           </select>
         </label>
         {(layer.material?.alphaMode ?? "opaque") === "mask" && (
           <NumericControl
-            label="Alpha cutoff"
+            label={t("scene3d.material.alphaCutoff")}
             max={1}
             min={0}
             onChange={(value) => updateMaterial("alphaCutoff", value)}
@@ -156,19 +158,19 @@ export function Scene3dControls({ layer }: { layer: Layer }) {
     return (
       <>
         <label>
-          Projection
+          {t("scene3d.camera.projection")}
           <select
-            aria-label="Camera projection"
+            aria-label={t("scene3d.camera.projectionA11y")}
             onChange={(event) => updateCamera("projection", event.target.value)}
             value={projection}
           >
-            <option value="perspective">Perspective</option>
-            <option value="orthographic">Orthographic</option>
+            <option value="perspective">{t("scene3d.camera.perspective")}</option>
+            <option value="orthographic">{t("scene3d.camera.orthographic")}</option>
           </select>
         </label>
         {projection === "perspective" ? (
           <NumericControl
-            label="Field of view"
+            label={t("scene3d.camera.fieldOfView")}
             max={179}
             min={1}
             onChange={(value) => updateCamera("fieldOfView", value)}
@@ -177,7 +179,7 @@ export function Scene3dControls({ layer }: { layer: Layer }) {
           />
         ) : (
           <NumericControl
-            label="Orthographic size"
+            label={t("scene3d.camera.orthographicSize")}
             max={100_000}
             min={1}
             onChange={(value) => updateCamera("orthographicSize", value)}
@@ -194,23 +196,23 @@ export function Scene3dControls({ layer }: { layer: Layer }) {
     return (
       <>
         <label>
-          Render mode
+          {t("scene3d.particle.renderMode")}
           <select
-            aria-label="Particle render mode"
+            aria-label={t("scene3d.particle.renderModeA11y")}
             onChange={(event) =>
               updateParticle("renderMode", event.target.value as ParticleSettings["renderMode"])
             }
             value={renderMode}
           >
-            <option value="billboard">Billboard</option>
-            <option value="mesh">Mesh</option>
+            <option value="billboard">{t("scene3d.particle.billboard")}</option>
+            <option value="mesh">{t("scene3d.particle.mesh")}</option>
           </select>
         </label>
         {renderMode === "mesh" && (
           <label>
-            Mesh primitive
+            {t("scene3d.particle.meshPrimitive")}
             <select
-              aria-label="Particle mesh primitive"
+              aria-label={t("scene3d.particle.meshPrimitiveA11y")}
               onChange={(event) =>
                 updateParticle(
                   "meshPrimitive",
@@ -219,12 +221,12 @@ export function Scene3dControls({ layer }: { layer: Layer }) {
               }
               value={layer.particle?.meshPrimitive ?? "cube"}
             >
-              <option value="cube">Cube</option>
+              <option value="cube">{t("scene3d.particle.cube")}</option>
             </select>
           </label>
         )}
         <NumericControl
-          label="Particle count"
+          label={t("scene3d.particle.count")}
           max={1_000_000}
           min={1}
           onChange={(value) => updateParticle("count", value)}
@@ -232,7 +234,7 @@ export function Scene3dControls({ layer }: { layer: Layer }) {
           value={layer.particle?.count ?? 100_000}
         />
         <NumericControl
-          label="Random seed"
+          label={t("scene3d.particle.seed")}
           max={16_777_215}
           min={0}
           onChange={(value) => updateParticle("seed", value)}
@@ -240,7 +242,7 @@ export function Scene3dControls({ layer }: { layer: Layer }) {
           value={layer.particle?.seed ?? 13_337}
         />
         <NumericControl
-          label="Lifetime"
+          label={t("scene3d.particle.lifetime")}
           max={3600}
           min={0.05}
           onChange={(value) => updateParticle("lifetime", value)}
@@ -248,7 +250,7 @@ export function Scene3dControls({ layer }: { layer: Layer }) {
           value={layer.particle?.lifetime ?? 6}
         />
         <NumericControl
-          label="Speed"
+          label={t("scene3d.particle.speed")}
           max={10}
           min={0}
           onChange={(value) => updateParticle("speed", value)}
@@ -256,7 +258,7 @@ export function Scene3dControls({ layer }: { layer: Layer }) {
           value={layer.particle?.speed ?? 0.16}
         />
         <NumericControl
-          label="Acceleration"
+          label={t("scene3d.particle.acceleration")}
           max={10}
           min={-10}
           onChange={(value) => updateParticle("acceleration", value)}
@@ -264,7 +266,7 @@ export function Scene3dControls({ layer }: { layer: Layer }) {
           value={layer.particle?.acceleration ?? -0.035}
         />
         <NumericControl
-          label="Start size"
+          label={t("scene3d.particle.startSize")}
           max={256}
           min={0.01}
           onChange={(value) => updateParticle("startSize", value)}
@@ -272,7 +274,7 @@ export function Scene3dControls({ layer }: { layer: Layer }) {
           value={layer.particle?.startSize ?? 2.4}
         />
         <NumericControl
-          label="End size"
+          label={t("scene3d.particle.endSize")}
           max={256}
           min={0.01}
           onChange={(value) => updateParticle("endSize", value)}
@@ -280,7 +282,7 @@ export function Scene3dControls({ layer }: { layer: Layer }) {
           value={layer.particle?.endSize ?? 0.35}
         />
         <NumericControl
-          label="Start rotation"
+          label={t("scene3d.particle.startRotation")}
           max={36_000}
           min={-36_000}
           onChange={(value) => updateParticle("startRotation", value)}
@@ -288,7 +290,7 @@ export function Scene3dControls({ layer }: { layer: Layer }) {
           value={layer.particle?.startRotation ?? 0}
         />
         <NumericControl
-          label="End rotation"
+          label={t("scene3d.particle.endRotation")}
           max={36_000}
           min={-36_000}
           onChange={(value) => updateParticle("endRotation", value)}
@@ -304,19 +306,19 @@ export function Scene3dControls({ layer }: { layer: Layer }) {
   return (
     <>
       <label>
-        Light type
+        {t("scene3d.light.type")}
         <select
-          aria-label="Light type"
+          aria-label={t("scene3d.light.type")}
           onChange={(event) => updateLight("kind", event.target.value)}
           value={lightKind}
         >
-          <option value="directional">Directional</option>
-          <option value="point">Point</option>
-          <option value="spot">Spot</option>
+          <option value="directional">{t("scene3d.light.directional")}</option>
+          <option value="point">{t("scene3d.light.point")}</option>
+          <option value="spot">{t("scene3d.light.spot")}</option>
         </select>
       </label>
       <NumericControl
-        label="Intensity"
+        label={t("scene3d.light.intensity")}
         max={100}
         min={0}
         onChange={(value) => updateLight("intensity", value)}
@@ -325,7 +327,7 @@ export function Scene3dControls({ layer }: { layer: Layer }) {
       />
       {(lightKind === "point" || lightKind === "spot") && (
         <NumericControl
-          label="Range"
+          label={t("scene3d.light.range")}
           max={20_000}
           min={1}
           onChange={(value) => updateLight("range", value)}
@@ -335,7 +337,7 @@ export function Scene3dControls({ layer }: { layer: Layer }) {
       )}
       {lightKind === "spot" && (
         <NumericControl
-          label="Cone angle"
+          label={t("scene3d.light.coneAngle")}
           max={179}
           min={1}
           onChange={(value) => updateLight("coneAngle", value)}
@@ -344,22 +346,22 @@ export function Scene3dControls({ layer }: { layer: Layer }) {
         />
       )}
       <label>
-        Shadow quality
+        {t("scene3d.light.shadowQuality")}
         <select
-          aria-label="Shadow quality"
+          aria-label={t("scene3d.light.shadowQuality")}
           onChange={(event) => updateLight("shadowQuality", event.target.value)}
           value={layer.light?.shadowQuality ?? "medium"}
         >
-          <option value="off">Off</option>
-          <option value="low">Low · 512²</option>
-          <option value="medium">Medium · 1024²</option>
-          <option value="high">High · 2048²</option>
+          <option value="off">{t("scene3d.light.shadowOff")}</option>
+          <option value="low">{t("scene3d.light.shadowLow")}</option>
+          <option value="medium">{t("scene3d.light.shadowMedium")}</option>
+          <option value="high">{t("scene3d.light.shadowHigh")}</option>
         </select>
       </label>
       <label>
-        Light color
+        {t("scene3d.light.color")}
         <input
-          aria-label="Light color"
+          aria-label={t("scene3d.light.color")}
           onChange={(event) => {
             const color = Number.parseInt(event.target.value.slice(1), 16);
             dispatch({

@@ -2,8 +2,15 @@ import type { Id } from "./types";
 
 const DEFAULT_SNAP_THRESHOLD_PX = 8;
 const EPSILON = 1e-7;
+const MINIMUM_LAYER_DURATION = 1 / 240;
 
-export type TimelineSnapKind = "frame" | "playhead" | "layer-in" | "layer-out" | "work-area";
+export type TimelineSnapKind =
+  | "frame"
+  | "playhead"
+  | "layer-in"
+  | "layer-out"
+  | "keyframe"
+  | "work-area";
 
 export interface TimelineSnapTarget {
   time: number;
@@ -89,7 +96,7 @@ export function moveLayerTimingGroup(
   }));
 }
 
-/** Trims the matching edge on every selected layer; every result remains at least one frame long. */
+/** Trims matching group edges without shrinking valid sub-frame layers or crossing one frame. */
 export function trimLayerTimingGroup(
   layers: readonly LayerTiming[],
   edge: "in" | "out",
@@ -114,17 +121,28 @@ export function trimLayerTimingGroup(
   ).time;
   const requestedDelta = snapped - current;
   const duration = finiteNonNegative(compositionDuration);
+  const minimumLengths = layers.map((layer) =>
+    Math.min(
+      frame,
+      Math.max(MINIMUM_LAYER_DURATION, finiteNonNegative(layer.outPoint - layer.inPoint)),
+    ),
+  );
   const minimumDelta =
     edge === "in" ? -Math.min(...layers.map((layer) => layer.inPoint)) : -Infinity;
   const maximumDelta =
     edge === "in"
-      ? Math.min(...layers.map((layer) => layer.outPoint - layer.inPoint - frame))
+      ? Math.min(
+          ...layers.map((layer, index) => layer.outPoint - layer.inPoint - minimumLengths[index]),
+        )
       : duration - Math.max(...layers.map((layer) => layer.outPoint));
   const minimumOutDelta =
     edge === "out"
-      ? Math.max(...layers.map((layer) => layer.inPoint + frame - layer.outPoint))
+      ? Math.max(
+          ...layers.map((layer, index) => layer.inPoint + minimumLengths[index] - layer.outPoint),
+        )
       : -Infinity;
-  const delta = clamp(requestedDelta, Math.max(minimumDelta, minimumOutDelta), maximumDelta);
+  const lowerBound = Math.max(minimumDelta, minimumOutDelta);
+  const delta = lowerBound <= maximumDelta ? clamp(requestedDelta, lowerBound, maximumDelta) : 0;
   return layers.map((layer) => ({
     id: layer.id,
     inPoint: edge === "in" ? layer.inPoint + delta : layer.inPoint,

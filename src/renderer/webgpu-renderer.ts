@@ -35,6 +35,7 @@ import {
   postRenderRoute,
   usesAuxiliarySurfaceData,
 } from "./render-buffers";
+import { planSceneRenderStack } from "./render-stack";
 import {
   createParticleBindGroupLayout,
   createParticlePipelines,
@@ -348,7 +349,11 @@ export class WebGpuRenderer {
       label: "HDR scene target",
       size: [this.#width, this.#height],
       format: SCENE_FORMAT,
-      usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
+      usage:
+        GPUTextureUsage.RENDER_ATTACHMENT |
+        GPUTextureUsage.TEXTURE_BINDING |
+        GPUTextureUsage.COPY_SRC |
+        GPUTextureUsage.COPY_DST,
     });
     this.#depthTexture = this.#device.createTexture({
       label: "Composition depth target",
@@ -398,6 +403,7 @@ export class WebGpuRenderer {
       this.#height,
     );
     const { sceneLayers, geometry } = evaluation;
+    const renderStack = planSceneRenderStack(sceneLayers, geometry.batches);
     const primaryLight = sceneLayers.find((scene) => scene.layer.kind === "light")?.layer.light;
     const cameraLayer = composition.layers.find((layer) => layer.kind === "camera");
     const cameraPosition = cameraLayer
@@ -562,9 +568,10 @@ export class WebGpuRenderer {
       });
       shadowMarker.end();
     }
-    const sceneView = this.#sceneTexture?.createView();
+    const sceneTexture = this.#sceneTexture;
+    const sceneView = sceneTexture?.createView();
     const depthView = this.#depthTexture?.createView();
-    if (!sceneView || !depthView || !this.#postBindGroup)
+    if (!sceneTexture || !sceneView || !depthView || !this.#postBindGroup)
       throw new Error("HDR scene target is unavailable");
     let scenePass: GPURenderPassEncoder | undefined = encoder.beginRenderPass({
       label: "Linear HDR composition",
@@ -592,70 +599,105 @@ export class WebGpuRenderer {
     let scenePassCount = 1;
     let effectOperationCount = 0;
     let effectLayerCount = 0;
+    let adjustmentEffectLayerCount = 0;
     let fusedEffectCount = 0;
     let fusionGroupCount = 0;
     let fusionBarrierCount = 0;
+    let particleDrawn = false;
     const activeEffectInstances = new Set<string>();
-    if (geometry.data.length > 0) {
-      for (const batch of geometry.batches) {
-        const hasEffects = batch.layer.effects.some((effect) => effect.enabled);
-        if (hasEffects) {
-          const fusion = analyzeEffectFusion(batch.layer.effects);
-          fusedEffectCount += fusion.fusedEffectCount;
-          fusionGroupCount += fusion.fusedGroupCount;
-          fusionBarrierCount += fusion.barrierCount;
-          scenePass?.end();
-          scenePass = undefined;
-          activeEffectInstances.add(batch.instanceId);
-          effectLayerCount += 1;
-          effectOperationCount += this.#layerEffects.encode(
+    this.diagnostics.adjustmentLayerError = undefined;
+    for (const item of renderStack) {
+      if (item.kind === "adjustment") {
+        const { layer } = item.scene;
+        if (!layer.effects.some((effect) => effect.enabled)) continue;
+        const fusion = analyzeEffectFusion(layer.effects);
+        scenePass?.end();
+        scenePass = undefined;
+        try {
+          const operationCount = this.#layerEffects.encodeAdjustment(
             encoder,
-            sceneView,
+            sceneTexture,
             composition,
-            batch.layer,
-            batch.instanceId,
+            layer,
+            item.scene.instanceId,
             time,
-            (layerPass) => this.#drawBatch(layerPass, batch, "normal", composition.environment),
           );
-        } else {
-          if (!scenePass) {
-            scenePass = encoder.beginRenderPass({
-              label: "Linear HDR direct layer group",
-              colorAttachments: [{ view: sceneView, loadOp: "load", storeOp: "store" }],
-              depthStencilAttachment: {
-                view: depthView,
-                depthLoadOp: "load",
-                depthStoreOp: "store",
-              },
-            });
-            scenePassCount += 1;
+          if (operationCount > 0) {
+            activeEffectInstances.add(item.scene.instanceId);
+            adjustmentEffectLayerCount += 1;
+            effectOperationCount += operationCount;
+            fusedEffectCount += fusion.fusedEffectCount;
+            fusionGroupCount += fusion.fusedGroupCount;
+            fusionBarrierCount += fusion.barrierCount;
           }
-          this.#drawBatch(scenePass, batch, batch.layer.blendMode, composition.environment);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          this.diagnostics.adjustmentLayerError = message;
+          console.warn(`Adjustment layer "${layer.name}" was skipped: ${message}`);
         }
+        continue;
+      }
+      if (item.kind === "particle") {
+        if (particleDrawn || item.scene.instanceId !== particleScene?.instanceId) continue;
+        if (!scenePass) {
+          scenePass = encoder.beginRenderPass({
+            label: "Linear HDR particle group",
+            colorAttachments: [{ view: sceneView, loadOp: "load", storeOp: "store" }],
+            depthStencilAttachment: {
+              view: depthView,
+              depthLoadOp: "load",
+              depthStoreOp: "store",
+            },
+          });
+          scenePassCount += 1;
+        }
+        scenePass.setPipeline(
+          particleRenderMode === "mesh"
+            ? this.#particlePipelines.mesh[item.scene.layer.blendMode]
+            : this.#particlePipelines.billboard,
+        );
+        scenePass.setBindGroup(0, this.#particleBindGroup);
+        scenePass.drawIndirect(this.#particleIndirectBuffer, 0);
+        particleDrawn = true;
+        continue;
+      }
+      const { batch } = item;
+      const hasEffects = batch.layer.effects.some((effect) => effect.enabled);
+      if (hasEffects) {
+        const fusion = analyzeEffectFusion(batch.layer.effects);
+        fusedEffectCount += fusion.fusedEffectCount;
+        fusionGroupCount += fusion.fusedGroupCount;
+        fusionBarrierCount += fusion.barrierCount;
+        scenePass?.end();
+        scenePass = undefined;
+        activeEffectInstances.add(batch.instanceId);
+        effectLayerCount += 1;
+        effectOperationCount += this.#layerEffects.encode(
+          encoder,
+          sceneView,
+          composition,
+          batch.layer,
+          batch.instanceId,
+          time,
+          (layerPass) => this.#drawBatch(layerPass, batch, "normal", composition.environment),
+        );
+      } else {
+        if (!scenePass) {
+          scenePass = encoder.beginRenderPass({
+            label: "Linear HDR direct layer group",
+            colorAttachments: [{ view: sceneView, loadOp: "load", storeOp: "store" }],
+            depthStencilAttachment: {
+              view: depthView,
+              depthLoadOp: "load",
+              depthStoreOp: "store",
+            },
+          });
+          scenePassCount += 1;
+        }
+        this.#drawBatch(scenePass, batch, batch.layer.blendMode, composition.environment);
       }
     }
     const particleVisible = Boolean(particleScene);
-    if (particleScene) {
-      if (!scenePass) {
-        scenePass = encoder.beginRenderPass({
-          label: "Linear HDR particle group",
-          colorAttachments: [{ view: sceneView, loadOp: "load", storeOp: "store" }],
-          depthStencilAttachment: {
-            view: depthView,
-            depthLoadOp: "load",
-            depthStoreOp: "store",
-          },
-        });
-        scenePassCount += 1;
-      }
-      scenePass.setPipeline(
-        particleRenderMode === "mesh"
-          ? this.#particlePipelines.mesh[particleScene.layer.blendMode]
-          : this.#particlePipelines.billboard,
-      );
-      scenePass.setBindGroup(0, this.#particleBindGroup);
-      scenePass.drawIndirect(this.#particleIndirectBuffer, 0);
-    }
     scenePass?.end();
     let auxiliaryFrameValid = !usesAuxiliarySurfaceData(this.#bufferVisualization);
     if (!auxiliaryFrameValid) {
@@ -735,8 +777,14 @@ export class WebGpuRenderer {
         geometry.batches.length +
         shadowDrawCalls +
         effectLayerCount * 2 +
+        adjustmentEffectLayerCount +
         Number(particleVisible),
-      passCount: 3 + Number(shadowsEnabled) + scenePassCount + effectLayerCount * 3,
+      passCount:
+        3 +
+        Number(shadowsEnabled) +
+        scenePassCount +
+        effectLayerCount * 3 +
+        adjustmentEffectLayerCount,
       dirtyNodes: (evaluation.cacheHit ? 0 : sceneLayers.length) + effectOperationCount,
       cacheHitRate: this.#evaluationCache.hitRate(),
       estimatedVramMb: memory.estimatedBytes / 1024 / 1024,

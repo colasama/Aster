@@ -1,99 +1,162 @@
 import {
   Box,
-  ChevronDown,
-  ChevronRight,
   ClipboardPaste,
   Copy,
   Eye,
-  EyeOff,
-  Film,
   Gauge,
-  GripVertical,
-  KeyRound,
-  Layers3,
   Lock,
-  LockOpen,
   Maximize2,
   Pause,
   Play,
   SkipBack,
   SkipForward,
   SlidersHorizontal,
-  Sparkles,
   Trash2,
-  Type,
   Volume2,
-  VolumeX,
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   copyKeyframes,
   selectedKeyframes as findSelectedKeyframes,
   type KeyframeClipboard,
   pasteKeyframes,
   removeKeyframes,
-  retimeKeyframes,
 } from "../core/keyframe-editing";
-import type { PropertyPath } from "../core/operations";
 import { activeComposition } from "../core/project";
 import { frameAt } from "../core/timeline";
-import type { Animatable, Keyframe, Layer } from "../core/types";
+import {
+  adjacentTimelineEvent,
+  marqueeTimelineSelection,
+  snapTimelineTime,
+} from "../core/timeline-editing";
+import type { Layer } from "../core/types";
+import { useI18n } from "../i18n/react";
 import { useEditor } from "../state/editor-store";
 import { GraphEditor } from "./GraphEditor";
-import { LayerTimingBar } from "./LayerTimingBar";
 import { Panel, PanelTabs } from "./Panel";
+import { collectTimelineLayerKeyframes, TimelineLayerRow } from "./TimelineLayerRow";
+import { TimelineWorkArea } from "./TimelineWorkArea";
+import {
+  buildTimelineSnapTargets,
+  collectTimelineEventTimes,
+  compositionFrameDuration,
+  editLayerTimingGroup,
+  type LayerTimingDrag,
+  layerTimingOperations,
+  resolveTimelineShortcut,
+  setWorkAreaBoundary,
+  type TimelineWorkArea as TimelineWorkAreaValue,
+  timelineContentPoint,
+  timelineMarqueeRect,
+} from "./timeline-interactions";
+import { useWindowPointerDrag } from "./use-window-pointer-drag";
 
 const LABEL_WIDTH = 286;
 const BASE_PIXELS_PER_SECOND = 82;
 
-type TimelineKeyframeEntry =
-  | { source: "transform"; keyframe: Keyframe; path: PropertyPath; label: string }
-  | {
-      source: "effect";
-      keyframe: Keyframe;
-      effectId: string;
-      parameter: string;
-      label: string;
-    };
+interface TimelineMarquee {
+  height: number;
+  left: number;
+  top: number;
+  width: number;
+}
+
+type TimingPreview = Record<string, { inPoint: number; outPoint: number }>;
 
 export function Timeline() {
   const { state, dispatch } = useEditor();
+  const { t } = useI18n();
   const composition = activeComposition(state.project);
   const pixelsPerSecond = BASE_PIXELS_PER_SECOND * state.timelineZoom;
   const scrollRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLDivElement>(null);
   const dragLayer = useRef<string | undefined>(undefined);
   const [keyframeClipboard, setKeyframeClipboard] = useState<KeyframeClipboard>();
+  const [timingPreview, setTimingPreview] = useState<TimingPreview>();
+  const [marquee, setMarquee] = useState<TimelineMarquee>();
+  const pointerDrag = useWindowPointerDrag();
+  const startPointerDrag = pointerDrag.start;
+  const workArea = composition.workArea;
+  const setWorkArea = useCallback(
+    (value: TimelineWorkAreaValue) =>
+      dispatch({
+        type: "operation",
+        operations: [
+          {
+            type: "setCompositionWorkArea",
+            compositionId: composition.id,
+            start: value.start,
+            end: value.end,
+          },
+        ],
+      }),
+    [composition.id, dispatch],
+  );
+  const frameDuration = compositionFrameDuration(composition);
+  const timelineTargets = useMemo(
+    () => buildTimelineSnapTargets(composition, state.currentTime, workArea),
+    [composition, state.currentTime, workArea],
+  );
   const selectedEntries = useMemo(
     () => findSelectedKeyframes(composition, state.selectedKeyframes),
     [composition, state.selectedKeyframes],
   );
+  useEffect(() => {
+    if (composition.id) pointerDrag.cancel();
+  }, [composition.id, pointerDrag]);
+  useEffect(() => {
+    if (state.bottomMode !== "timeline") pointerDrag.cancel();
+    return pointerDrag.cancel;
+  }, [pointerDrag, state.bottomMode]);
   const keyboardContext = useRef({
     bottomMode: state.bottomMode,
     composition,
     currentTime: state.currentTime,
     keyframeClipboard,
+    selection: state.selection,
     selectedEntries,
+    timelineTargets,
+    workArea,
   });
   keyboardContext.current = {
     bottomMode: state.bottomMode,
     composition,
     currentTime: state.currentTime,
     keyframeClipboard,
+    selection: state.selection,
     selectedEntries,
+    timelineTargets,
+    workArea,
   };
-  usePlayback(composition.duration);
+  usePlayback(workArea);
   const ticks = useMemo(
     () => Array.from({ length: Math.floor(composition.duration * 2) + 1 }, (_, index) => index / 2),
     [composition.duration],
   );
-  const scrub = (clientX: number) => {
+  const clientXToTime = (clientX: number) => {
     const scroll = scrollRef.current;
-    if (!scroll) return;
+    if (!scroll) return 0;
     const bounds = scroll.getBoundingClientRect();
-    const time = (clientX - bounds.left + scroll.scrollLeft - LABEL_WIDTH) / pixelsPerSecond;
-    dispatch({ type: "setTime", time: Math.max(0, Math.min(composition.duration, time)) });
+    return Math.max(
+      0,
+      Math.min(
+        composition.duration,
+        (clientX - bounds.left + scroll.scrollLeft - LABEL_WIDTH) / pixelsPerSecond,
+      ),
+    );
+  };
+  const scrub = (clientX: number, bypassSnap: boolean) => {
+    const time = clientXToTime(clientX);
+    const snapped = snapTimelineTime(
+      time,
+      frameDuration,
+      pixelsPerSecond,
+      timelineTargets,
+      bypassSnap,
+    );
+    dispatch({ type: "setTime", time: snapped.time });
   };
   const copySelection = () => {
     setKeyframeClipboard(copyKeyframes(selectedEntries));
@@ -134,11 +197,195 @@ export function Timeline() {
         dispatch({ type: "selectKeyframes", ids: [] });
       } else if (event.key === "Escape") {
         dispatch({ type: "selectKeyframes", ids: [] });
+      } else {
+        const shortcut = resolveTimelineShortcut(event);
+        if (!shortcut) return;
+        const compositionFrame = compositionFrameDuration(context.composition);
+        const setTime = (time: number) =>
+          dispatch({
+            type: "setTime",
+            time: Math.max(0, Math.min(context.composition.duration, time)),
+          });
+        if (shortcut === "work-start" || shortcut === "work-end") {
+          event.preventDefault();
+          setWorkArea(
+            setWorkAreaBoundary(
+              context.workArea,
+              shortcut === "work-start" ? "start" : "end",
+              context.currentTime,
+              context.composition.duration,
+              compositionFrame,
+            ),
+          );
+          return;
+        }
+        if (shortcut === "composition-start" || shortcut === "composition-end") {
+          event.preventDefault();
+          setTime(shortcut === "composition-start" ? 0 : context.composition.duration);
+          return;
+        }
+        if (shortcut === "previous-frame" || shortcut === "next-frame") {
+          event.preventDefault();
+          setTime(
+            context.currentTime +
+              (shortcut === "previous-frame" ? -compositionFrame : compositionFrame),
+          );
+          return;
+        }
+        if (shortcut === "previous-event" || shortcut === "next-event") {
+          const next = adjacentTimelineEvent(
+            collectTimelineEventTimes(context.composition, context.workArea),
+            context.currentTime,
+            shortcut === "previous-event" ? -1 : 1,
+          );
+          if (next === undefined) return;
+          event.preventDefault();
+          setTime(next);
+          return;
+        }
+        const selectedLayers = context.composition.layers.filter(
+          (layer) => context.selection.includes(layer.id) && !layer.locked,
+        );
+        const activeId = context.selection.find((id) =>
+          selectedLayers.some((layer) => layer.id === id),
+        );
+        const active = selectedLayers.find((layer) => layer.id === activeId);
+        if (!active) return;
+        const mode: LayerTimingDrag = shortcut.startsWith("trim")
+          ? shortcut === "trim-in"
+            ? "trim-in"
+            : "trim-out"
+          : "move";
+        const requestedTime =
+          shortcut === "align-out"
+            ? context.currentTime - (active.outPoint - active.inPoint)
+            : context.currentTime;
+        const timings = editLayerTimingGroup(
+          selectedLayers,
+          active.id,
+          mode,
+          requestedTime,
+          context.composition,
+          pixelsPerSecond,
+          context.timelineTargets,
+          true,
+        );
+        if (!timings.length) return;
+        event.preventDefault();
+        dispatch({ type: "operation", operations: layerTimingOperations(timings) });
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [dispatch]);
+  }, [dispatch, pixelsPerSecond, setWorkArea]);
+
+  const startLayerTimingDrag = (
+    event: React.PointerEvent,
+    activeLayer: Layer,
+    mode: LayerTimingDrag,
+  ) => {
+    if (event.button !== 0 || activeLayer.locked) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const activeWasSelected = state.selection.includes(activeLayer.id);
+    const layers = composition.layers.filter(
+      (layer) =>
+        !layer.locked &&
+        (activeWasSelected ? state.selection.includes(layer.id) : layer.id === activeLayer.id),
+    );
+    if (!activeWasSelected) dispatch({ type: "select", ids: [activeLayer.id] });
+    const initialActive = layers.find((layer) => layer.id === activeLayer.id);
+    if (!initialActive) return;
+    const initialTime = mode === "trim-out" ? initialActive.outPoint : initialActive.inPoint;
+    const startX = event.clientX;
+    const targets = timelineTargets;
+    let next = layers.map(({ id, inPoint, outPoint }) => ({ id, inPoint, outPoint }));
+    startPointerDrag(event.pointerId, {
+      onMove: (moveEvent) => {
+        next = editLayerTimingGroup(
+          layers,
+          activeLayer.id,
+          mode,
+          initialTime + (moveEvent.clientX - startX) / pixelsPerSecond,
+          composition,
+          pixelsPerSecond,
+          targets,
+          moveEvent.ctrlKey || moveEvent.metaKey,
+        );
+        setTimingPreview(
+          Object.fromEntries(next.map((timing) => [timing.id, timing])) as TimingPreview,
+        );
+      },
+      onCommit: () => {
+        setTimingPreview(undefined);
+        const changed = next.some((timing) => {
+          const initial = layers.find((layer) => layer.id === timing.id);
+          return (
+            !initial ||
+            Math.abs(timing.inPoint - initial.inPoint) > 0.000_001 ||
+            Math.abs(timing.outPoint - initial.outPoint) > 0.000_001
+          );
+        });
+        if (changed) dispatch({ type: "operation", operations: layerTimingOperations(next) });
+      },
+      onCancel: () => setTimingPreview(undefined),
+    });
+  };
+
+  const startMarquee = (event: React.PointerEvent, startRow: number) => {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    const canvas = canvasRef.current;
+    const scroll = scrollRef.current;
+    if (!canvas || !scroll) return;
+    const scrollBounds = scroll.getBoundingClientRect();
+    const contentPoint = (clientX: number, clientY: number) =>
+      timelineContentPoint(clientX, clientY, {
+        left: scrollBounds.left,
+        top: scrollBounds.top,
+        scrollLeft: scroll.scrollLeft,
+        scrollTop: scroll.scrollTop,
+      });
+    const pointTime = (point: { x: number }) =>
+      Math.max(0, Math.min(composition.duration, (point.x - LABEL_WIDTH) / pixelsPerSecond));
+    const startPoint = contentPoint(event.clientX, event.clientY);
+    const startTime = pointTime(startPoint);
+    const previousSelection = event.shiftKey ? state.selectedKeyframes : [];
+    startPointerDrag(event.pointerId, {
+      onMove: (moveEvent) => {
+        setMarquee(
+          timelineMarqueeRect(
+            startPoint,
+            contentPoint(moveEvent.clientX, moveEvent.clientY),
+            LABEL_WIDTH,
+          ),
+        );
+      },
+      onCommit: (upEvent) => {
+        setMarquee(undefined);
+        const endRow = rowAtClientY(canvas, upEvent.clientY, startRow);
+        const points = composition.layers.flatMap((layer, row) =>
+          collectTimelineLayerKeyframes(layer).map((entry) => ({
+            id: entry.keyframe.id,
+            time: entry.keyframe.time,
+            row,
+          })),
+        );
+        const selected = marqueeTimelineSelection(
+          points,
+          startTime,
+          pointTime(contentPoint(upEvent.clientX, upEvent.clientY)),
+          startRow,
+          endRow,
+        );
+        dispatch({
+          type: "selectKeyframes",
+          ids: [...new Set([...previousSelection, ...selected])],
+        });
+      },
+      onCancel: () => setMarquee(undefined),
+    });
+  };
   return (
     <Panel
       className="timeline-panel"
@@ -149,8 +396,8 @@ export function Timeline() {
             dispatch({ type: "setBottomMode", mode: mode as "timeline" | "graph" })
           }
           tabs={[
-            { id: "timeline", label: "Timeline" },
-            { id: "graph", label: "Graph Editor" },
+            { id: "timeline", label: t("timeline.tab.timeline") },
+            { id: "graph", label: t("timeline.tab.graph") },
           ]}
         />
       }
@@ -159,14 +406,14 @@ export function Timeline() {
           <button
             className={state.showLayerControls ? "active" : ""}
             onClick={() => dispatch({ type: "toggleView", view: "layerControls" })}
-            title="Toggle layer switches"
+            title={t("timeline.toggleLayerSwitches")}
             type="button"
           >
             <SlidersHorizontal size={13} />
           </button>
           <button
             onClick={() => toggleTimelineFullscreen()}
-            title="Toggle fullscreen timeline"
+            title={t("timeline.toggleFullscreen")}
             type="button"
           >
             <Maximize2 size={13} />
@@ -180,10 +427,17 @@ export function Timeline() {
           <small>{frameAt(state.currentTime, composition.frameRate)}f</small>
         </div>
         <div className="transport-controls">
-          <button onClick={() => dispatch({ type: "setTime", time: 0 })} type="button">
+          <button
+            aria-label={t("timeline.transport.start")}
+            onClick={() => dispatch({ type: "setTime", time: 0 })}
+            type="button"
+          >
             <SkipBack size={14} />
           </button>
           <button
+            aria-label={
+              state.playing ? t("timeline.transport.pause") : t("timeline.transport.play")
+            }
             className="play"
             onClick={() => dispatch({ type: "setPlaying", playing: !state.playing })}
             type="button"
@@ -195,6 +449,7 @@ export function Timeline() {
             )}
           </button>
           <button
+            aria-label={t("timeline.transport.end")}
             onClick={() => dispatch({ type: "setTime", time: composition.duration })}
             type="button"
           >
@@ -203,15 +458,21 @@ export function Timeline() {
         </div>
         <div className="timeline-options">
           <span>
-            <Gauge size={12} /> 60 fps
+            <Gauge size={12} />
+            {Math.round(composition.frameRate.numerator / composition.frameRate.denominator)} fps
           </span>
           <span className="keyframe-selection-count">
-            {state.selectedKeyframes.length} key{state.selectedKeyframes.length === 1 ? "" : "s"}
+            {t(
+              state.selectedKeyframes.length === 1
+                ? "timeline.selectedKeyframe"
+                : "timeline.selectedKeyframes",
+              { count: state.selectedKeyframes.length },
+            )}
           </span>
           <button
             disabled={!selectedEntries.length}
             onClick={copySelection}
-            title="Copy selected keyframes (Ctrl/Cmd+C)"
+            title={t("timeline.copyKeyframes")}
             type="button"
           >
             <Copy size={12} />
@@ -219,7 +480,7 @@ export function Timeline() {
           <button
             disabled={!keyframeClipboard}
             onClick={pasteSelection}
-            title="Paste keyframes at playhead (Ctrl/Cmd+V)"
+            title={t("timeline.pasteKeyframes")}
             type="button"
           >
             <ClipboardPaste size={12} />
@@ -227,18 +488,20 @@ export function Timeline() {
           <button
             disabled={!selectedEntries.length}
             onClick={deleteSelection}
-            title="Delete selected keyframes"
+            title={t("timeline.deleteKeyframes")}
             type="button"
           >
             <Trash2 size={12} />
           </button>
           <button
+            aria-label={t("timeline.zoomOut")}
             onClick={() => dispatch({ type: "setTimelineZoom", zoom: state.timelineZoom / 1.25 })}
             type="button"
           >
             <ZoomOut size={13} />
           </button>
           <input
+            aria-label={t("timeline.zoom")}
             max="8"
             min="0.5"
             onChange={(event) =>
@@ -249,6 +512,7 @@ export function Timeline() {
             value={state.timelineZoom}
           />
           <button
+            aria-label={t("timeline.zoomIn")}
             onClick={() => dispatch({ type: "setTimelineZoom", zoom: state.timelineZoom * 1.25 })}
             type="button"
           >
@@ -262,10 +526,11 @@ export function Timeline() {
         <div className="timeline-scroll" ref={scrollRef}>
           <div
             className="timeline-canvas"
+            ref={canvasRef}
             style={{ width: LABEL_WIDTH + composition.duration * pixelsPerSecond }}
           >
             <div className="layer-column-header">
-              <span>Source name</span>
+              <span>{t("timeline.sourceName")}</span>
               <div>
                 <Eye size={11} />
                 <Volume2 size={11} />
@@ -276,14 +541,14 @@ export function Timeline() {
             <div
               className="time-ruler"
               onPointerDown={(event) => {
-                scrub(event.clientX);
-                const move = (moveEvent: PointerEvent) => scrub(moveEvent.clientX);
-                const up = () => {
-                  window.removeEventListener("pointermove", move);
-                  window.removeEventListener("pointerup", up);
-                };
-                window.addEventListener("pointermove", move);
-                window.addEventListener("pointerup", up);
+                if (event.button !== 0) return;
+                event.preventDefault();
+                scrub(event.clientX, event.ctrlKey || event.metaKey);
+                startPointerDrag(event.pointerId, {
+                  onMove: (moveEvent) =>
+                    scrub(moveEvent.clientX, moveEvent.ctrlKey || moveEvent.metaKey),
+                  onCommit: () => undefined,
+                });
               }}
               style={{ left: LABEL_WIDTH, width: composition.duration * pixelsPerSecond }}
             >
@@ -296,20 +561,27 @@ export function Timeline() {
                   <span>{Number.isInteger(time) ? formatSeconds(time) : ""}</span>
                 </div>
               ))}
-              <div
-                className="work-area"
-                style={{ left: 0, width: composition.duration * pixelsPerSecond }}
+              <TimelineWorkArea
+                duration={composition.duration}
+                frameDuration={frameDuration}
+                onChange={setWorkArea}
+                pixelsPerSecond={pixelsPerSecond}
+                startPointerDrag={startPointerDrag}
+                value={workArea}
               />
             </div>
             <div className="layer-rows">
               {composition.layers.map((layer, index) => (
-                <TimelineLayer
+                <TimelineLayerRow
                   composition={composition}
                   index={index}
                   key={layer.id}
                   layer={layer}
                   onDragStart={() => {
                     dragLayer.current = layer.id;
+                  }}
+                  onDragEnd={() => {
+                    dragLayer.current = undefined;
                   }}
                   onDrop={() => {
                     if (dragLayer.current && dragLayer.current !== layer.id)
@@ -319,11 +591,17 @@ export function Timeline() {
                       });
                     dragLayer.current = undefined;
                   }}
+                  onMarqueeStart={(event) => startMarquee(event, index)}
+                  onTimingDragStart={(event, mode) => startLayerTimingDrag(event, layer, mode)}
                   pixelsPerSecond={pixelsPerSecond}
                   selected={state.selection.includes(layer.id)}
+                  startPointerDrag={startPointerDrag}
+                  timing={timingPreview?.[layer.id]}
+                  timelineTargets={timelineTargets}
                 />
               ))}
             </div>
+            {marquee && <div className="timeline-marquee" style={marquee} />}
             <div
               className="playhead"
               style={{ left: LABEL_WIDTH + state.currentTime * pixelsPerSecond }}
@@ -338,297 +616,30 @@ export function Timeline() {
   );
 }
 
-function TimelineLayer({
-  composition,
-  layer,
-  index,
-  selected,
-  pixelsPerSecond,
-  onDragStart,
-  onDrop,
-}: {
-  composition: ReturnType<typeof activeComposition>;
-  layer: Layer;
-  index: number;
-  selected: boolean;
-  pixelsPerSecond: number;
-  onDragStart: () => void;
-  onDrop: () => void;
-}) {
-  const { state, dispatch } = useEditor();
-  const [expanded, setExpanded] = useState(selected && layer.name === "ASTER");
-  const keyframes = collectKeyframes(layer);
-  const effectTracks = collectEffectTracks(layer);
-  const Icon =
-    layer.kind === "text"
-      ? Type
-      : layer.kind === "video"
-        ? Film
-        : layer.kind === "camera"
-          ? Layers3
-          : layer.kind === "particle"
-            ? Gauge
-            : Box;
-  return (
-    // biome-ignore lint/a11y/noStaticElementInteractions: Native drag-and-drop requires row-level handlers.
-    <div
-      className={`timeline-layer ${selected ? "selected" : ""}`}
-      draggable
-      onDragOver={(event) => event.preventDefault()}
-      onDragStart={onDragStart}
-      onDrop={onDrop}
-    >
-      {/* biome-ignore lint/a11y/useSemanticElements: This control contains independent layer-switch buttons. */}
-      <div
-        className="layer-label"
-        onClick={(event) => {
-          const ids = event.shiftKey
-            ? state.selection.includes(layer.id)
-              ? state.selection.filter((id) => id !== layer.id)
-              : [...state.selection, layer.id]
-            : [layer.id];
-          dispatch({ type: "select", ids });
-        }}
-        onKeyDown={(event) => {
-          if (event.key === "Enter" || event.key === " ") {
-            event.preventDefault();
-            dispatch({ type: "select", ids: [layer.id] });
-          }
-        }}
-        role="button"
-        tabIndex={0}
-      >
-        <GripVertical className="drag-handle" size={11} />
-        <button
-          onClick={(event) => {
-            event.stopPropagation();
-            setExpanded(!expanded);
-          }}
-          type="button"
-        >
-          {expanded ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
-        </button>
-        <span className={`layer-index color-${index % 6}`}>{index + 1}</span>
-        <Icon size={13} />
-        <strong>{layer.name}</strong>
-        {state.showLayerControls && (
-          <div className="layer-switches">
-            <button
-              onClick={(event) => {
-                event.stopPropagation();
-                dispatch({
-                  type: "operation",
-                  operations: [{ type: "toggleLayer", layerId: layer.id, field: "visible" }],
-                });
-              }}
-              type="button"
-            >
-              {layer.visible ? <Eye size={11} /> : <EyeOff size={11} />}
-            </button>
-            <button
-              disabled={layer.kind !== "video"}
-              onClick={(event) => {
-                event.stopPropagation();
-                dispatch({
-                  type: "operation",
-                  operations: [{ type: "toggleLayer", layerId: layer.id, field: "audioEnabled" }],
-                });
-              }}
-              title={layer.kind === "video" ? "Toggle layer audio" : "This layer has no audio"}
-              type="button"
-            >
-              {layer.audioEnabled === false ? <VolumeX size={11} /> : <Volume2 size={11} />}
-            </button>
-            <button
-              onClick={(event) => {
-                event.stopPropagation();
-                dispatch({
-                  type: "operation",
-                  operations: [{ type: "toggleLayer", layerId: layer.id, field: "locked" }],
-                });
-              }}
-              type="button"
-            >
-              {layer.locked ? <Lock size={11} /> : <LockOpen size={11} />}
-            </button>
-            <button
-              className={layer.threeDimensional ? "enabled" : ""}
-              onClick={(event) => {
-                event.stopPropagation();
-                dispatch({
-                  type: "operation",
-                  operations: [
-                    { type: "toggleLayer", layerId: layer.id, field: "threeDimensional" },
-                  ],
-                });
-              }}
-              type="button"
-            >
-              <Box size={11} />
-            </button>
-          </div>
-        )}
-      </div>
-      <div className="layer-track" style={{ left: LABEL_WIDTH }}>
-        <LayerTimingBar composition={composition} layer={layer} pixelsPerSecond={pixelsPerSecond} />
-        {keyframes.map((entry) => (
-          <button
-            className={`keyframe ${entry.source === "effect" ? "effect-key" : ""} ${state.selectedKeyframes.includes(entry.keyframe.id) ? "selected" : ""}`}
-            key={`${entry.source}:${entry.keyframe.id}`}
-            onClick={() => dispatch({ type: "setTime", time: entry.keyframe.time })}
-            onContextMenu={(event) => {
-              event.preventDefault();
-              const ids = state.selectedKeyframes.includes(entry.keyframe.id)
-                ? state.selectedKeyframes
-                : [entry.keyframe.id];
-              const entries = findSelectedKeyframes(activeComposition(state.project), ids);
-              dispatch({
-                type: "operation",
-                operations: removeKeyframes(entries),
-              });
-              dispatch({ type: "selectKeyframes", ids: [] });
-            }}
-            onPointerDown={(event) => {
-              event.stopPropagation();
-              if (event.button !== 0) return;
-              const additive = event.shiftKey || event.ctrlKey || event.metaKey;
-              const alreadySelected = state.selectedKeyframes.includes(entry.keyframe.id);
-              const selectedIds = additive
-                ? alreadySelected
-                  ? state.selectedKeyframes.filter((id) => id !== entry.keyframe.id)
-                  : [...state.selectedKeyframes, entry.keyframe.id]
-                : alreadySelected
-                  ? state.selectedKeyframes
-                  : [entry.keyframe.id];
-              dispatch({ type: "selectKeyframes", ids: selectedIds });
-              const selectedEntries = findSelectedKeyframes(
-                activeComposition(state.project),
-                selectedIds,
-              );
-              const startX = event.clientX;
-              const initialTime = entry.keyframe.time;
-              let nextTime = initialTime;
-              const move = (moveEvent: PointerEvent) => {
-                nextTime = Math.max(
-                  0,
-                  initialTime + (moveEvent.clientX - startX) / pixelsPerSecond,
-                );
-              };
-              const up = () => {
-                window.removeEventListener("pointermove", move);
-                window.removeEventListener("pointerup", up);
-                if (Math.abs(nextTime - initialTime) < 0.001) return;
-                const frameDuration =
-                  activeComposition(state.project).frameRate.denominator /
-                  activeComposition(state.project).frameRate.numerator;
-                dispatch({
-                  type: "operation",
-                  operations: retimeKeyframes(
-                    selectedEntries,
-                    entry.keyframe.id,
-                    nextTime,
-                    frameDuration,
-                    event.altKey,
-                  ),
-                });
-              };
-              window.addEventListener("pointermove", move);
-              window.addEventListener("pointerup", up);
-            }}
-            style={{ left: entry.keyframe.time * pixelsPerSecond }}
-            title={`${entry.label} · ${entry.keyframe.time.toFixed(2)}s · ${entry.keyframe.value.toFixed(2)} · Shift/Ctrl select · drag group · Alt-drag scale · right-click delete`}
-            type="button"
-          >
-            <span />
-          </button>
-        ))}
-      </div>
-      {expanded && (
-        <div className="expanded-properties">
-          <div>
-            <KeyRound size={11} />
-            <span>Transform</span>
-            <small>
-              {keyframes.filter((entry) => entry.source === "transform").length} keyframes
-            </small>
-          </div>
-          {effectTracks.map((track) => (
-            <div key={`${track.effectId}:${track.parameter}`}>
-              <Sparkles size={11} />
-              <span>{track.label}</span>
-              <small>{track.count} keyframes</small>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function usePlayback(duration: number) {
+function usePlayback(workArea: TimelineWorkAreaValue) {
   const { state, dispatch } = useEditor();
   const currentTime = useRef(state.currentTime);
   currentTime.current = state.currentTime;
   useEffect(() => {
     if (!state.playing) return;
     const startedAt = performance.now();
-    const initialTime = currentTime.current;
+    const duration = Math.max(0.000_001, workArea.end - workArea.start);
+    const initialTime =
+      currentTime.current >= workArea.start && currentTime.current < workArea.end
+        ? currentTime.current
+        : workArea.start;
     let frame = 0;
     const tick = (now: number) => {
-      dispatch({ type: "setTime", time: (initialTime + (now - startedAt) / 1000) % duration });
+      dispatch({
+        type: "setTime",
+        time:
+          workArea.start + ((initialTime - workArea.start + (now - startedAt) / 1000) % duration),
+      });
       frame = requestAnimationFrame(tick);
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [dispatch, duration, state.playing]);
-}
-
-function collectKeyframes(layer: Layer): TimelineKeyframeEntry[] {
-  const properties: Array<[PropertyPath, Animatable]> = [
-    ["position.0", layer.transform.position[0]],
-    ["position.1", layer.transform.position[1]],
-    ["position.2", layer.transform.position[2]],
-    ["rotation.0", layer.transform.rotation[0]],
-    ["rotation.1", layer.transform.rotation[1]],
-    ["rotation.2", layer.transform.rotation[2]],
-    ["scale.0", layer.transform.scale[0]],
-    ["scale.1", layer.transform.scale[1]],
-    ["scale.2", layer.transform.scale[2]],
-    ["opacity", layer.transform.opacity],
-  ];
-  const transformKeyframes: TimelineKeyframeEntry[] = properties.flatMap(([path, property]) =>
-    property.mode === "animated"
-      ? property.keyframes.map((keyframe) => ({
-          source: "transform" as const,
-          keyframe,
-          path,
-          label: path,
-        }))
-      : [],
-  );
-  const effectKeyframes: TimelineKeyframeEntry[] = layer.effects.flatMap((effect) =>
-    Object.entries(effect.parameterKeyframes ?? {}).flatMap(([parameter, keyframes]) =>
-      keyframes.map((keyframe) => ({
-        source: "effect" as const,
-        keyframe,
-        effectId: effect.id,
-        parameter,
-        label: `${effect.name} · ${parameter}`,
-      })),
-    ),
-  );
-  return [...transformKeyframes, ...effectKeyframes];
-}
-
-function collectEffectTracks(layer: Layer) {
-  return layer.effects.flatMap((effect) =>
-    Object.entries(effect.parameterKeyframes ?? {}).map(([parameter, keyframes]) => ({
-      effectId: effect.id,
-      parameter,
-      label: `${effect.name} · ${parameter}`,
-      count: keyframes.length,
-    })),
-  );
+  }, [dispatch, state.playing, workArea.end, workArea.start]);
 }
 
 function formatTimecode(
@@ -664,6 +675,19 @@ function isEditableTarget(target: EventTarget | null): boolean {
   return (
     target instanceof HTMLInputElement ||
     target instanceof HTMLTextAreaElement ||
+    target instanceof HTMLSelectElement ||
     (target instanceof HTMLElement && target.isContentEditable)
   );
+}
+
+function rowAtClientY(canvas: HTMLElement, clientY: number, fallback: number): number {
+  const rows = [...canvas.querySelectorAll<HTMLElement>("[data-timeline-row]")];
+  for (const row of rows) {
+    const bounds = row.getBoundingClientRect();
+    if (clientY >= bounds.top && clientY <= bounds.bottom)
+      return Number(row.dataset.timelineRow ?? fallback);
+  }
+  const first = rows[0]?.getBoundingClientRect();
+  if (first && clientY < first.top) return 0;
+  return rows.length ? rows.length - 1 : fallback;
 }

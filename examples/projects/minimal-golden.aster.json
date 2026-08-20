@@ -14,6 +14,7 @@
         "denominator": 1
       },
       "duration": 2,
+      "workArea": { "start": 0, "end": 2 },
       "background": [0.015, 0.02, 0.04, 1],
       "layers": [
         {

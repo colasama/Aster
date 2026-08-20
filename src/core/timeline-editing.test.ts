@@ -22,6 +22,11 @@ describe("After Effects-style timeline editing primitives", () => {
       time: 1.081,
       kind: "frame",
     });
+    expect(snapTimelineTime(2.03, frame, 100, [{ id: "key", time: 2, kind: "keyframe" }])).toEqual({
+      time: 2,
+      kind: "keyframe",
+      targetId: "key",
+    });
   });
 
   it("moves multiple layers as one bounded transaction and ignores self snap targets", () => {
@@ -58,6 +63,25 @@ describe("After Effects-style timeline editing primitives", () => {
     );
     expect(trimmed[1].outPoint - trimmed[1].inPoint).toBeCloseTo(frame);
     expect(trimmed[0].inPoint).toBeCloseTo(1.1666667);
+  });
+
+  it("keeps a sub-frame layer stable when trimming its in point forward", () => {
+    const layer = { id: "short", inPoint: 0, outPoint: 1 / 240 };
+    expect(trimLayerTimingGroup([layer], "in", layer.id, 1, 10, frame, 100)).toEqual([layer]);
+  });
+
+  it("keeps a sub-frame layer stable when trimming its out point backward", () => {
+    const layer = { id: "short", inPoint: 1, outPoint: 1 + 1 / 240 };
+    expect(trimLayerTimingGroup([layer], "out", layer.id, 0, 10, frame, 100)).toEqual([layer]);
+  });
+
+  it("uses sub-frame members as valid group trim boundaries", () => {
+    const layers = [
+      { id: "active", inPoint: 1, outPoint: 2 },
+      { id: "short", inPoint: 2, outPoint: 2 + 1 / 240 },
+    ];
+    expect(trimLayerTimingGroup(layers, "in", "active", 5, 10, frame, 100)).toEqual(layers);
+    expect(trimLayerTimingGroup(layers, "out", "active", 0, 10, frame, 100)).toEqual(layers);
   });
 
   it("normalizes work areas to frames and guarantees a non-empty range", () => {

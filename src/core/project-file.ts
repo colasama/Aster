@@ -1,5 +1,6 @@
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { open, save } from "@tauri-apps/plugin-dialog";
+import { assertAdjustmentLayerInvariants } from "./adjustment-layer";
 import { validateClonerSettings } from "./cloner";
 import {
   MAX_COMMAND_LOG_ENTRIES,
@@ -7,10 +8,12 @@ import {
   MAX_SERIALIZED_COMMAND_SIZE,
 } from "./command-log";
 import { runCpuTask } from "./cpu-scheduler";
+import { assertProjectRenderBoundaries } from "./project-render-boundaries";
 import { cloneCurrentProjectDocument } from "./project-schema";
 import { validateShapeGraph } from "./shape-graph";
 import { TEXT_ANIMATOR_LIMITS } from "./text-animator";
-import type { Composition, Effect, Layer, Project } from "./types";
+import { normalizeWorkArea } from "./timeline-editing";
+import { type Composition, type Effect, isLayerKind, type Layer, type Project } from "./types";
 
 const RECOVERY_KEY = "aster.recoveryProject.v0";
 const MAX_EMBEDDED_ASSET_CHARACTERS = 136 * 1024 * 1024;
@@ -36,6 +39,7 @@ export function validateProjectDocument(value: unknown): Project {
     throw new Error("Project must contain at least one composition");
   for (const [index, value] of project.compositions.entries())
     validateComposition(value, `project.compositions[${index}]`);
+  assertProjectRenderBoundaries(project as unknown as Project);
   if (
     !project.compositions.some(
       (composition) => requireObject(composition, "composition").id === activeCompositionId,
@@ -293,10 +297,24 @@ function validateComposition(value: unknown, path: string): asserts value is Com
   requireString(composition.name, `${path}.name`);
   requirePositiveNumber(composition.width, `${path}.width`);
   requirePositiveNumber(composition.height, `${path}.height`);
-  requirePositiveNumber(composition.duration, `${path}.duration`);
+  const duration = requirePositiveNumber(composition.duration, `${path}.duration`);
   const frameRate = requireObject(composition.frameRate, `${path}.frameRate`);
-  requirePositiveNumber(frameRate.numerator, `${path}.frameRate.numerator`);
-  requirePositiveNumber(frameRate.denominator, `${path}.frameRate.denominator`);
+  const numerator = requirePositiveNumber(frameRate.numerator, `${path}.frameRate.numerator`);
+  const denominator = requirePositiveNumber(frameRate.denominator, `${path}.frameRate.denominator`);
+  const workArea = requireObject(composition.workArea, `${path}.workArea`);
+  const workAreaStart = requireFiniteNumber(workArea.start, `${path}.workArea.start`);
+  const workAreaEnd = requireFiniteNumber(workArea.end, `${path}.workArea.end`);
+  const normalizedWorkArea = normalizeWorkArea(
+    workAreaStart,
+    workAreaEnd,
+    duration,
+    denominator / numerator,
+  );
+  if (
+    Math.abs(normalizedWorkArea.start - workAreaStart) > 0.000_000_1 ||
+    Math.abs(normalizedWorkArea.end - workAreaEnd) > 0.000_000_1
+  )
+    throw new Error(`${path}.workArea must be a non-empty frame-aligned composition range`);
   if (!Array.isArray(composition.background) || composition.background.length !== 4)
     throw new Error(`${path}.background must contain four channels`);
   if (composition.environment !== undefined) {
@@ -323,18 +341,22 @@ function validateComposition(value: unknown, path: string): asserts value is Com
   if (!Array.isArray(composition.layers)) throw new Error(`${path}.layers must be an array`);
   const layerIds = new Set<string>();
   for (const [index, layer] of composition.layers.entries()) {
-    validateLayer(layer, `${path}.layers[${index}]`);
+    validateLayer(layer, composition as unknown as Composition, `${path}.layers[${index}]`);
     const id = (layer as Layer).id;
     if (layerIds.has(id)) throw new Error(`${path} contains duplicate layer id ${id}`);
     layerIds.add(id);
   }
 }
 
-function validateLayer(value: unknown, path: string): asserts value is Layer {
+function validateLayer(
+  value: unknown,
+  composition: Composition,
+  path: string,
+): asserts value is Layer {
   const layer = requireObject(value, path);
   requireString(layer.id, `${path}.id`);
   requireString(layer.name, `${path}.name`);
-  requireString(layer.kind, `${path}.kind`);
+  if (!isLayerKind(layer.kind)) throw new Error(`${path}.kind is unsupported`);
   if (layer.audioEnabled !== undefined && typeof layer.audioEnabled !== "boolean")
     throw new Error(`${path}.audioEnabled must be a boolean`);
   if (layer.audioGain !== undefined) {
@@ -549,6 +571,7 @@ function validateLayer(value: unknown, path: string): asserts value is Layer {
     if (!effect.mask.pathId || !reusablePathIds.has(effect.mask.pathId))
       throw new Error(`${path}.effects[${index}].mask references a missing shape path`);
   }
+  assertAdjustmentLayerInvariants(layer as unknown as Layer, composition, path);
 }
 
 function validateMeshTexture(value: unknown, path: string, normal: boolean): void {

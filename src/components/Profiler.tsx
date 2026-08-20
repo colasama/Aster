@@ -10,6 +10,13 @@ import {
   Zap,
 } from "lucide-react";
 import { useMemo, useState } from "react";
+import {
+  type MessageDescriptor,
+  messageDescriptor,
+  type Translate,
+  translateDescriptor,
+} from "../i18n/core";
+import { useI18n } from "../i18n/react";
 import type { GpuBenchmarkReport, GpuBenchmarkRequest } from "../renderer/gpu-benchmark";
 import {
   compareGpuBenchmarks,
@@ -21,12 +28,11 @@ const BENCHMARK_BASELINE_KEY = "aster.gpuBenchmarkBaseline.v1";
 
 export function Profiler() {
   const { state } = useEditor();
+  const { t } = useI18n();
   const metrics = state.metrics;
   const [benchmark, setBenchmark] = useState<GpuBenchmarkReport>();
-  const [baseline, setBaseline] = useState<GpuBenchmarkReport | undefined>(() =>
-    parseGpuBenchmarkBaseline(localStorage.getItem(BENCHMARK_BASELINE_KEY)),
-  );
-  const [benchmarkProgress, setBenchmarkProgress] = useState<string>();
+  const [baseline, setBaseline] = useState<GpuBenchmarkReport | undefined>(readBaseline);
+  const [benchmarkProgress, setBenchmarkProgress] = useState<MessageDescriptor>();
   const comparison = useMemo(
     () => (benchmark && baseline ? compareGpuBenchmarks(benchmark, baseline) : undefined),
     [baseline, benchmark],
@@ -34,14 +40,19 @@ export function Profiler() {
   const runBenchmark = (sampleFrames: number) => {
     if (benchmarkProgress) return;
     setBenchmark(undefined);
-    setBenchmarkProgress("Preparing GPU…");
+    setBenchmarkProgress(messageDescriptor("profiler.preparing"));
     void new Promise<GpuBenchmarkReport | undefined>((resolve) => {
       window.dispatchEvent(
         new CustomEvent<GpuBenchmarkRequest>("aster:run-gpu-benchmark", {
           detail: {
             sampleFrames,
             onProgress: (scenario, completed, total) =>
-              setBenchmarkProgress(`${scenario} · ${Math.round((completed / total) * 100)}%`),
+              setBenchmarkProgress(
+                messageDescriptor("profiler.progress", {
+                  scenario,
+                  percent: Math.round((completed / total) * 100),
+                }),
+              ),
             resolve,
           },
         }),
@@ -54,112 +65,123 @@ export function Profiler() {
   return (
     <div className={`profiler-overlay ${benchmark ? "benchmark-expanded" : ""}`}>
       <div className="profiler-title">
-        <Activity size={12} /> REALTIME <span>GPU</span>
+        <Activity size={12} /> {t("profiler.realtime")} <span>GPU</span>
         <button
           disabled={Boolean(benchmarkProgress)}
           onClick={() => runBenchmark(60)}
-          title="Run a quick 60-frame benchmark per scenario"
+          title={t("profiler.quickHint")}
           type="button"
         >
-          QUICK
+          {t("profiler.quick")}
         </button>
         <button
           disabled={Boolean(benchmarkProgress)}
           onClick={() => runBenchmark(600)}
-          title="Run the full 600-frame benchmark per scenario"
+          title={t("profiler.fullHint")}
           type="button"
         >
-          FULL
+          {t("profiler.full")}
         </button>
       </div>
-      <Metric icon={Gauge} label="FPS" value={metrics.fps.toFixed(0)} accent />
-      <Metric icon={Zap} label="Frame" value={`${metrics.frameMs.toFixed(2)} ms`} />
+      <Metric icon={Gauge} label={t("profiler.fps")} value={metrics.fps.toFixed(0)} accent />
+      <Metric icon={Zap} label={t("profiler.frame")} value={`${metrics.frameMs.toFixed(2)} ms`} />
       <Metric
         icon={Zap}
-        label="GPU execution"
-        value={metrics.gpuMs === undefined ? "warming…" : `${metrics.gpuMs.toFixed(2)} ms`}
+        label={t("profiler.gpuExecution")}
+        value={
+          metrics.gpuMs === undefined ? t("profiler.warming") : `${metrics.gpuMs.toFixed(2)} ms`
+        }
       />
-      <Metric icon={Cpu} label="CPU submit" value={`${metrics.cpuMs.toFixed(2)} ms`} />
+      <Metric icon={Cpu} label={t("profiler.cpuSubmit")} value={`${metrics.cpuMs.toFixed(2)} ms`} />
       <Metric
         icon={MemoryStick}
-        label="VRAM est."
-        value={`${metrics.estimatedVramMb.toFixed(0)} / ${metrics.memoryBudgetMb?.toFixed(0) ?? "auto"} MB`}
+        label={t("profiler.vram")}
+        value={`${metrics.estimatedVramMb.toFixed(0)} / ${metrics.memoryBudgetMb?.toFixed(0) ?? t("common.auto")} MB`}
       />
       <Metric
         icon={MemoryStick}
-        label="Pressure / shadow"
-        value={`${metrics.memoryPressure ?? "normal"} / ${formatShadowMap(metrics.shadowMapSize)}`}
+        label={t("profiler.pressureShadow")}
+        value={`${metrics.memoryPressure ?? t("profiler.pressure.normal")} / ${formatShadowMap(metrics.shadowMapSize, t)}`}
       />
       <Metric
         icon={Layers3}
-        label="Passes / dirty"
+        label={t("profiler.passesDirty")}
         value={`${metrics.passCount} / ${metrics.dirtyNodes}`}
       />
       <Metric
         icon={Layers3}
-        label="Transient"
-        value={`${metrics.transientTextureCount} textures`}
+        label={t("profiler.transient")}
+        value={t("profiler.transientValue", { count: metrics.transientTextureCount })}
       />
       <Metric
         icon={Layers3}
-        label="Effect fusion"
-        value={`${metrics.fusedEffectCount ?? 0} fx / ${metrics.fusionGroupCount ?? 0} groups / ${metrics.fusionBarrierCount ?? 0} barriers`}
+        label={t("profiler.effectFusion")}
+        value={t("profiler.effectFusionValue", {
+          effects: metrics.fusedEffectCount ?? 0,
+          groups: metrics.fusionGroupCount ?? 0,
+          barriers: metrics.fusionBarrierCount ?? 0,
+        })}
       />
       <Metric
         icon={MemoryStick}
-        label="Temporal cache"
+        label={t("profiler.temporalCache")}
         value={`${(metrics.temporalCacheMb ?? 0).toFixed(1)} / 32 MB`}
       />
       {metrics.passTimings && (
         <div className="pass-breakdown">
-          <PassTiming label="Compute" value={metrics.passTimings.computeMs} />
-          <PassTiming label="Shadow" value={metrics.passTimings.shadowMs} />
-          <PassTiming label="Scene" value={metrics.passTimings.sceneMs} />
-          <PassTiming label="Post / ACES" value={metrics.passTimings.postMs} />
+          <PassTiming label={t("profiler.compute")} value={metrics.passTimings.computeMs} />
+          <PassTiming label={t("profiler.shadow")} value={metrics.passTimings.shadowMs} />
+          <PassTiming label={t("profiler.scene")} value={metrics.passTimings.sceneMs} />
+          <PassTiming label={t("profiler.post")} value={metrics.passTimings.postMs} />
         </div>
       )}
       <div className="cache-bar">
         <span style={{ width: `${metrics.cacheHitRate * 100}%` }} />
-        <small>Node cache {Math.round(metrics.cacheHitRate * 100)}%</small>
+        <small>
+          {t("profiler.nodeCache", { percent: Math.round(metrics.cacheHitRate * 100) })}
+        </small>
       </div>
-      {benchmarkProgress && <div className="benchmark-progress">{benchmarkProgress}</div>}
+      {benchmarkProgress && (
+        <div className="benchmark-progress">{translateDescriptor(t, benchmarkProgress)}</div>
+      )}
       {benchmark && (
         <div className="benchmark-report">
           <div className="benchmark-report-title">
             <span>
-              {benchmark.sampleFrames} frame report
-              {baseline && ` · ${comparison?.compatible ? "vs baseline" : "hardware mismatch"}`}
+              {t("profiler.report", { count: benchmark.sampleFrames })}
+              {baseline &&
+                ` · ${comparison?.compatible ? t("profiler.vsBaseline") : t("profiler.hardwareMismatch")}`}
             </span>
             <button
-              aria-label={
-                baseline ? "Replace GPU benchmark baseline" : "Save GPU benchmark baseline"
-              }
+              aria-label={baseline ? t("profiler.baseline.replace") : t("profiler.baseline.save")}
               onClick={() => {
-                localStorage.setItem(BENCHMARK_BASELINE_KEY, JSON.stringify(benchmark));
+                writeBaseline(benchmark);
                 setBaseline(benchmark);
               }}
-              title={baseline ? "Replace the stored baseline" : "Save this report as the baseline"}
+              title={
+                baseline ? t("profiler.baseline.replaceHint") : t("profiler.baseline.saveHint")
+              }
               type="button"
             >
               <BookmarkPlus size={10} />
             </button>
             {baseline && (
               <button
-                aria-label="Clear GPU benchmark baseline"
+                aria-label={t("profiler.baseline.clear")}
                 onClick={() => {
-                  localStorage.removeItem(BENCHMARK_BASELINE_KEY);
+                  clearBaseline();
                   setBaseline(undefined);
                 }}
-                title="Clear the stored performance baseline"
+                title={t("profiler.baseline.clearHint")}
                 type="button"
               >
                 <BookmarkX size={10} />
               </button>
             )}
             <button
-              aria-label="Download GPU benchmark JSON"
+              aria-label={t("profiler.download")}
               onClick={() => downloadBenchmark(benchmark)}
-              title="Download machine-readable benchmark JSON"
+              title={t("profiler.downloadHint")}
               type="button"
             >
               <Download size={10} />
@@ -193,8 +215,32 @@ function regressionClass(percent: number): string {
   return "stable";
 }
 
-function formatShadowMap(size?: number): string {
-  return size && size > 1 ? `${size}²` : "off";
+function formatShadowMap(size: number | undefined, t: Translate): string {
+  return size && size > 1 ? `${size}²` : t("profiler.shadowOff");
+}
+
+function readBaseline(): GpuBenchmarkReport | undefined {
+  try {
+    return parseGpuBenchmarkBaseline(window.localStorage.getItem(BENCHMARK_BASELINE_KEY));
+  } catch {
+    return undefined;
+  }
+}
+
+function writeBaseline(report: GpuBenchmarkReport): void {
+  try {
+    window.localStorage.setItem(BENCHMARK_BASELINE_KEY, JSON.stringify(report));
+  } catch {
+    // Benchmarking remains usable when local storage is unavailable.
+  }
+}
+
+function clearBaseline(): void {
+  try {
+    window.localStorage.removeItem(BENCHMARK_BASELINE_KEY);
+  } catch {
+    // An in-memory baseline can still be cleared in private contexts.
+  }
 }
 
 function PassTiming({ label, value }: { label: string; value: number }) {

@@ -1,3 +1,4 @@
+import { createCanonicalAdjustmentTransform } from "./adjustment-layer";
 import { createDefaultTextAnimator } from "./text-animator";
 import type { Composition, Layer, LayerKind } from "./types";
 import { createId, createTransform } from "./types";
@@ -10,6 +11,7 @@ const names: Record<LayerKind, string> = {
   mesh: "3D Layer",
   particle: "GPU Particle Layer",
   precomposition: "Precomposition",
+  adjustment: "Adjustment Layer",
   camera: "Camera",
   light: "Light",
 };
@@ -21,6 +23,7 @@ export function createLayerForComposition(
 ): Layer {
   const isCamera = kind === "camera";
   const isText = kind === "text";
+  const isAdjustment = kind === "adjustment";
   return {
     id: createId(),
     name: names[kind],
@@ -35,9 +38,17 @@ export function createLayerForComposition(
     inPoint: currentTime,
     outPoint: composition.duration,
     blendMode: kind === "particle" ? "add" : "normal",
-    color: isText ? [0.95, 0.97, 1, 1] : [0.3, 0.55, 1, 1],
-    size: isCamera ? [0, 0] : isText ? [1200, 260] : [720, 720],
-    transform: createTransform([composition.width / 2, composition.height / 2, 0]),
+    color: isAdjustment ? [0, 0, 0, 0] : isText ? [0.95, 0.97, 1, 1] : [0.3, 0.55, 1, 1],
+    size: isCamera
+      ? [0, 0]
+      : isAdjustment
+        ? [composition.width, composition.height]
+        : isText
+          ? [1200, 260]
+          : [720, 720],
+    transform: isAdjustment
+      ? createCanonicalAdjustmentTransform(composition)
+      : createTransform([composition.width / 2, composition.height / 2, 0]),
     effects: [],
     material:
       kind === "mesh"

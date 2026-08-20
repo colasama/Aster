@@ -135,22 +135,31 @@ export function retimeKeyframes(
   requestedTime: number,
   frameDuration: number,
   scale: boolean,
+  snap = true,
+  maximumTime = Number.POSITIVE_INFINITY,
 ): MoveKeyframeOperation[] {
   const active = entries.find((entry) => entry.keyframe.id === activeId);
   if (!active) return [];
-  const snappedTime = snapToFrame(requestedTime, frameDuration);
+  const snappedTime = snap ? snapToFrame(requestedTime, frameDuration) : Math.max(0, requestedTime);
   const earliest = Math.min(...entries.map((entry) => entry.keyframe.time));
+  const latest = Math.max(...entries.map((entry) => entry.keyframe.time));
+  const maximum = Number.isFinite(maximumTime)
+    ? Math.max(0, maximumTime)
+    : Number.POSITIVE_INFINITY;
   const activeDistance = active.keyframe.time - earliest;
+  const selectedSpan = latest - earliest;
+  const maximumFactor = selectedSpan > 0 ? (maximum - earliest) / selectedSpan : 1;
   const factor =
-    scale && activeDistance > 0.000_001 ? (snappedTime - earliest) / activeDistance : 1;
-  const requestedDelta = snappedTime - active.keyframe.time;
-  const delta = Math.max(requestedDelta, -earliest);
+    scale && activeDistance > 0.000_001
+      ? Math.max(0, Math.min(maximumFactor, (snappedTime - earliest) / activeDistance))
+      : 1;
+  const delta = Math.max(-earliest, Math.min(maximum - latest, snappedTime - active.keyframe.time));
   return entries.map((entry) => {
     const time =
       scale && activeDistance > 0.000_001
-        ? earliest + (entry.keyframe.time - earliest) * Math.max(0, factor)
+        ? earliest + (entry.keyframe.time - earliest) * factor
         : entry.keyframe.time + delta;
-    return moveOperation(entry, snapToFrame(time, frameDuration));
+    return moveOperation(entry, Math.max(0, Math.min(maximum, time)));
   });
 }
 

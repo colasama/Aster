@@ -1,10 +1,159 @@
 import { describe, expect, it } from "vitest";
+import { createEffect } from "../effects/registry";
+import { createLayerForComposition } from "./layer-factory";
 import { applyOperations } from "./operations";
 import { planPrecomposition } from "./precomposition";
-import { activeComposition, createBlankComposition, createDemoProject } from "./project";
+import {
+  activeComposition,
+  createBlankComposition,
+  createBlankProject,
+  createDemoProject,
+} from "./project";
 import type { Lut3dResource } from "./types";
 
 describe("structured project operations", () => {
+  it("adds strict adjustment layers and rejects source-layer mutations", () => {
+    const source = createDemoProject();
+    const composition = activeComposition(source);
+    const adjustment = createLayerForComposition("adjustment", composition, 1);
+    const added = applyOperations(source, [{ type: "addLayer", layer: adjustment }]);
+    const result = activeComposition(added).layers[0];
+
+    expect(result).toMatchObject({
+      kind: "adjustment",
+      name: "Adjustment Layer",
+      color: [0, 0, 0, 0],
+      size: [composition.width, composition.height],
+      inPoint: 1,
+      blendMode: "normal",
+      threeDimensional: false,
+    });
+    expect(() =>
+      applyOperations(added, [{ type: "setLayerColor", layerId: result.id, color: [1, 0, 0, 1] }]),
+    ).toThrow("not supported for adjustment layers");
+    expect(() =>
+      applyOperations(added, [{ type: "setBlendMode", layerId: result.id, blendMode: "screen" }]),
+    ).toThrow("require normal blend mode");
+    expect(() =>
+      applyOperations(added, [
+        { type: "setProperty", layerId: result.id, path: "position.0", value: 12 },
+      ]),
+    ).toThrow("has no visual meaning for adjustment layers");
+    expect(() =>
+      applyOperations(added, [
+        { type: "setLayerTimeMapping", layerId: result.id, offset: 2, stretch: 0.5 },
+      ]),
+    ).toThrow("has no visual meaning for adjustment layers");
+  });
+
+  it("enforces bounded adjustment, particle, and LUT render resources", () => {
+    const project = createDemoProject();
+    const composition = activeComposition(project);
+    const secondParticle = createLayerForComposition("particle", composition);
+    expect(() => applyOperations(project, [{ type: "addLayer", layer: secondParticle }])).toThrow(
+      "at most one GPU particle layer",
+    );
+    const particle = composition.layers.find((layer) => layer.kind === "particle");
+    if (!particle) throw new Error("Expected demo particle layer");
+    expect(() =>
+      applyOperations(project, [
+        {
+          type: "setClonerSettings",
+          layerId: particle.id,
+          cloner: {
+            distribution: { kind: "grid", count: [2, 1, 1], spacing: [100, 0, 0] },
+            effectors: [],
+          },
+        },
+      ]),
+    ).toThrow("GPU particle layers cannot use cloners");
+
+    const layer = composition.layers[0];
+    layer.effects = [];
+    const firstLut = createEffect("lut");
+    const secondLut = createEffect("lut");
+    secondLut.enabled = false;
+    const withDisabled = applyOperations(project, [
+      { type: "addEffect", layerId: layer.id, effect: firstLut },
+      { type: "addEffect", layerId: layer.id, effect: secondLut },
+    ]);
+    expect(() =>
+      applyOperations(withDisabled, [
+        { type: "toggleEffect", layerId: layer.id, effectId: secondLut.id },
+      ]),
+    ).toThrow("at most one enabled 3D LUT");
+
+    const nested = createBlankComposition("Referenced");
+    const wrapper = createLayerForComposition("precomposition", composition);
+    wrapper.sourceCompositionId = nested.id;
+    composition.layers.unshift(wrapper);
+    project.compositions.push(nested);
+    project.activeCompositionId = nested.id;
+    expect(() =>
+      applyOperations(project, [
+        { type: "addLayer", layer: createLayerForComposition("adjustment", nested) },
+      ]),
+    ).toThrow("Precomposition sources cannot contain adjustment layers");
+  });
+
+  it("rejects every operation that could nest or clone a GPU particle source", () => {
+    const project = createBlankProject();
+    const root = project.compositions[0];
+    const nested = createBlankComposition("Particle source");
+    nested.layers = [createLayerForComposition("particle", nested)];
+    project.compositions.push(nested);
+
+    const wrapper = createLayerForComposition("precomposition", root);
+    wrapper.sourceCompositionId = nested.id;
+    expect(() => applyOperations(project, [{ type: "addLayer", layer: wrapper }])).toThrow(
+      "Precomposition sources cannot contain GPU particle layers",
+    );
+
+    const referenced = createBlankComposition("Referenced later");
+    const unresolvedWrapper = createLayerForComposition("precomposition", root);
+    unresolvedWrapper.sourceCompositionId = referenced.id;
+    root.layers.unshift(unresolvedWrapper);
+    referenced.layers = [createLayerForComposition("particle", referenced)];
+    expect(() =>
+      applyOperations(project, [
+        { type: "addComposition", composition: referenced, activate: false },
+      ]),
+    ).toThrow("Precomposition sources cannot contain GPU particle layers");
+
+    const referencedRoot = createBlankProject();
+    const referencedComposition = createBlankComposition("Referenced");
+    referencedRoot.compositions.push(referencedComposition);
+    const validWrapper = createLayerForComposition(
+      "precomposition",
+      referencedRoot.compositions[0],
+    );
+    validWrapper.sourceCompositionId = referencedComposition.id;
+    referencedRoot.compositions[0].layers.unshift(validWrapper);
+    referencedRoot.activeCompositionId = referencedComposition.id;
+    expect(() =>
+      applyOperations(referencedRoot, [
+        {
+          type: "addLayer",
+          layer: createLayerForComposition("particle", referencedComposition),
+        },
+      ]),
+    ).toThrow("Precomposition sources cannot contain GPU particle layers");
+
+    root.layers = [wrapper];
+    expect(() =>
+      applyOperations(project, [
+        {
+          type: "setClonerSettings",
+          layerId: wrapper.id,
+          cloner: {
+            distribution: { kind: "grid", count: [2, 1, 1], spacing: [100, 0, 0] },
+            effectors: [],
+          },
+        },
+      ]),
+    ).toThrow("Precomposition sources cannot contain GPU particle layers");
+  });
+
   it("does not mutate the source project", () => {
     const source = createDemoProject();
     const layer = activeComposition(source).layers[0];
@@ -48,6 +197,36 @@ describe("structured project operations", () => {
       { type: "setActiveComposition", compositionId: source.activeCompositionId },
     ]);
     expect(navigated.activeCompositionId).toBe(source.activeCompositionId);
+  });
+
+  it("persists frame-aligned work areas and normalizes them when duration shrinks", () => {
+    const source = createDemoProject();
+    const composition = activeComposition(source);
+    const edited = applyOperations(source, [
+      {
+        type: "setCompositionWorkArea",
+        compositionId: composition.id,
+        start: 2.019,
+        end: 5.011,
+      },
+    ]);
+    expect(activeComposition(edited).workArea).toEqual({
+      start: 121 / 60,
+      end: 301 / 60,
+    });
+
+    const resized = applyOperations(edited, [
+      {
+        type: "setCompositionSettings",
+        compositionId: composition.id,
+        name: composition.name,
+        width: composition.width,
+        height: composition.height,
+        frameRate: composition.frameRate,
+        duration: 3,
+      },
+    ]);
+    expect(activeComposition(resized).workArea).toEqual({ start: 121 / 60, end: 3 });
   });
 
   it("precomposes with stable IDs through a deterministic operation", () => {

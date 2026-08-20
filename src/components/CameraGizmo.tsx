@@ -1,5 +1,6 @@
 import type { Dispatch } from "react";
 import type { EvaluatedTransform, Layer } from "../core/types";
+import { useI18n } from "../i18n/react";
 import type { EditorAction } from "../state/editor-store";
 
 interface CameraGizmoProps {
@@ -11,6 +12,7 @@ interface CameraGizmoProps {
 }
 
 export function CameraGizmo({ activeTool, dispatch, layer, transform, zoom }: CameraGizmoProps) {
+  const { t } = useI18n();
   if (!layer.camera) return null;
   const geometry = cameraGizmoGeometry(layer.camera.projection, layer.camera.fieldOfView);
   const moveBy = (x: number, y: number) =>
@@ -24,7 +26,7 @@ export function CameraGizmo({ activeTool, dispatch, layer, transform, zoom }: Ca
 
   return (
     <button
-      aria-label={`Camera gizmo ${layer.name}`}
+      aria-label={t("viewport.camera.gizmo", { name: layer.name })}
       className={`camera-gizmo ${layer.locked ? "locked" : ""}`}
       onKeyDown={(event) => {
         if (layer.locked || !event.key.startsWith("Arrow")) return;
@@ -95,7 +97,11 @@ export function CameraGizmo({ activeTool, dispatch, layer, transform, zoom }: Ca
         top: `${transform.position[1] * zoom}px`,
         transform: `translate(calc(-18px + var(--camera-drag-x, 0px)), calc(-40px + var(--camera-drag-y, 0px))) rotate(var(--camera-preview-rotation, ${transform.rotation[2]}deg))`,
       }}
-      title={`${layer.camera.projection === "perspective" ? `${layer.camera.fieldOfView}° field of view` : `${layer.camera.orthographicSize}px orthographic span`} · Drag to move`}
+      title={
+        layer.camera.projection === "perspective"
+          ? t("viewport.camera.perspectiveHint", { degrees: layer.camera.fieldOfView })
+          : t("viewport.camera.orthographicHint", { pixels: layer.camera.orthographicSize })
+      }
       type="button"
     >
       <svg aria-hidden="true" viewBox="0 0 128 80">
@@ -103,7 +109,9 @@ export function CameraGizmo({ activeTool, dispatch, layer, transform, zoom }: Ca
         <path className="camera-body" d="M5 25h27v30H5zM32 32l15-9v34l-15-9z" />
         <circle className="camera-center" cx="18" cy="40" r="3" />
       </svg>
-      <small>{geometry.label}</small>
+      <small>
+        {layer.camera.projection === "orthographic" ? t("viewport.camera.ortho") : geometry.label}
+      </small>
     </button>
   );
 }
@@ -112,8 +120,7 @@ export function cameraGizmoGeometry(
   projection: "perspective" | "orthographic",
   fieldOfView: number,
 ): { path: string; label: string } {
-  if (projection === "orthographic")
-    return { path: "M47 24H118M47 56H118M118 24V56", label: "ORTHO" };
+  if (projection === "orthographic") return { path: "M47 24H118M47 56H118M118 24V56", label: "" };
   const safeFov = Math.max(1, Math.min(179, fieldOfView));
   const spread = Math.max(9, Math.min(35, Math.tan((safeFov * Math.PI) / 360) * 28));
   return {

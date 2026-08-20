@@ -1,10 +1,21 @@
+import {
+  assertAdjustmentLayerInvariants,
+  createCanonicalAdjustmentTransform,
+} from "./adjustment-layer";
 import { type ClonerSettings, normalizeClonerSettings } from "./cloner";
 import { applyPrecompositionPlan, type PrecompositionPlan } from "./precomposition";
 import { activeComposition } from "./project";
+import {
+  assertCanAddLayer,
+  assertCanUpdateLayer,
+  assertLayerEffectLimits,
+  assertProjectRenderBoundaries,
+} from "./project-render-boundaries";
 import type { ShapeGraph } from "./shape-graph";
 import { validateShapeGraph } from "./shape-graph";
 import { normalizeTextAnimatorSettings } from "./text-animator";
 import { insertKeyframe } from "./timeline";
+import { normalizeWorkArea } from "./timeline-editing";
 import type {
   Animatable,
   BlendMode,
@@ -25,6 +36,7 @@ import type {
   TextAnimatorSettings,
   TextStyle,
 } from "./types";
+import { isLayerKind } from "./types";
 
 export type PropertyPath =
   | "position.0"
@@ -54,6 +66,12 @@ export type Operation =
       type: "setCompositionEnvironment";
       compositionId: Id;
       environment?: EnvironmentLighting;
+    }
+  | {
+      type: "setCompositionWorkArea";
+      compositionId: Id;
+      start: number;
+      end: number;
     }
   | ({ type: "precomposeLayers" } & PrecompositionPlan)
   | { type: "addLayer"; layer: Layer }
@@ -157,7 +175,9 @@ export function applyOperation(project: Project, operation: Operation): void {
   if (operation.type === "addComposition") {
     if (project.compositions.some((composition) => composition.id === operation.composition.id))
       throw new Error("Composition already exists");
-    project.compositions.push(structuredClone(operation.composition));
+    const composition = structuredClone(operation.composition);
+    assertProjectRenderBoundaries({ compositions: [...project.compositions, composition] });
+    project.compositions.push(composition);
     if (operation.activate) project.activeCompositionId = operation.composition.id;
     return;
   }
@@ -174,6 +194,30 @@ export function applyOperation(project: Project, operation: Operation): void {
       denominator: Math.round(clamp(operation.frameRate.denominator, 1, 240_000)),
     };
     composition.duration = clamp(operation.duration, 0.1, 86_400);
+    for (const layer of composition.layers) {
+      if (layer.kind !== "adjustment") continue;
+      layer.size = [composition.width, composition.height];
+      layer.transform = createCanonicalAdjustmentTransform(composition);
+    }
+    composition.workArea = normalizeWorkArea(
+      composition.workArea.start,
+      composition.workArea.end,
+      composition.duration,
+      composition.frameRate.denominator / composition.frameRate.numerator,
+    );
+    return;
+  }
+  if (operation.type === "setCompositionWorkArea") {
+    const composition = project.compositions.find(
+      (candidate) => candidate.id === operation.compositionId,
+    );
+    if (!composition) throw new Error("Composition does not exist");
+    composition.workArea = normalizeWorkArea(
+      operation.start,
+      operation.end,
+      composition.duration,
+      composition.frameRate.denominator / composition.frameRate.numerator,
+    );
     return;
   }
   if (operation.type === "setCompositionEnvironment") {
@@ -207,12 +251,16 @@ export function applyOperation(project: Project, operation: Operation): void {
   if (operation.type === "addLayer") {
     if (composition.layers.some((layer) => layer.id === operation.layer.id))
       throw new Error("Layer already exists");
-    composition.layers.unshift(operation.layer);
+    if (!isLayerKind(operation.layer.kind)) throw new Error("Layer kind is unsupported");
+    assertAdjustmentLayerInvariants(operation.layer, composition);
+    assertCanAddLayer(project, composition, operation.layer);
+    composition.layers.unshift(structuredClone(operation.layer));
     return;
   }
   const index = composition.layers.findIndex((layer) => layer.id === operation.layerId);
   if (index < 0) throw new Error("Layer does not exist");
   const layer = composition.layers[index];
+  assertAdjustmentOperationSupported(layer, operation);
   switch (operation.type) {
     case "removeLayer":
       composition.layers.splice(index, 1);
@@ -303,7 +351,14 @@ export function applyOperation(project: Project, operation: Operation): void {
       };
       break;
     case "setClonerSettings":
-      layer.cloner = operation.cloner ? normalizeClonerSettings(operation.cloner) : undefined;
+      {
+        const nextLayer = {
+          ...layer,
+          cloner: operation.cloner ? normalizeClonerSettings(operation.cloner) : undefined,
+        };
+        assertCanUpdateLayer(project, composition, nextLayer);
+        layer.cloner = nextLayer.cloner;
+      }
       break;
     case "setShapeSettings":
       layer.shape = {
@@ -417,7 +472,8 @@ export function applyOperation(project: Project, operation: Operation): void {
       break;
     }
     case "addEffect":
-      layer.effects.push(operation.effect);
+      assertLayerEffectLimits({ effects: [...layer.effects, operation.effect] });
+      layer.effects.push(structuredClone(operation.effect));
       break;
     case "removeEffect":
       layer.effects = layer.effects.filter((effect) => effect.id !== operation.effectId);
@@ -440,6 +496,11 @@ export function applyOperation(project: Project, operation: Operation): void {
     case "toggleEffect": {
       const effect = layer.effects.find((entry) => entry.id === operation.effectId);
       if (!effect) throw new Error("Effect does not exist");
+      assertLayerEffectLimits({
+        effects: layer.effects.map((entry) =>
+          entry.id === operation.effectId ? { ...entry, enabled: !entry.enabled } : entry,
+        ),
+      });
       effect.enabled = !effect.enabled;
       break;
     }
@@ -453,6 +514,7 @@ export function applyOperation(project: Project, operation: Operation): void {
       const effect = layer.effects.find((entry) => entry.id === operation.effectId);
       if (!effect) throw new Error("Effect does not exist");
       if (effect.type !== "lut") throw new Error("LUT resources require a 3D LUT effect");
+      assertLayerEffectLimits(layer);
       effect.resource = operation.resource;
       break;
     }
@@ -526,6 +588,48 @@ export function applyOperation(project: Project, operation: Operation): void {
       break;
     }
   }
+}
+
+function assertAdjustmentOperationSupported(layer: Layer, operation: Operation): void {
+  if (layer.kind !== "adjustment") return;
+  if (operation.type === "setBlendMode" && operation.blendMode !== "normal")
+    throw new Error("Adjustment layers use replace semantics and require normal blend mode");
+  const mappingOperations: readonly Operation["type"][] = [
+    "setParent",
+    "setLayerTimeMapping",
+    "setLayerTimeRemap",
+    "setProperty",
+    "addKeyframe",
+    "moveKeyframe",
+    "updateKeyframe",
+    "removeKeyframe",
+    "easeLayer",
+    "setExpression",
+  ];
+  if (mappingOperations.includes(operation.type))
+    throw new Error(`Operation ${operation.type} has no visual meaning for adjustment layers`);
+  if (
+    operation.type === "toggleLayer" &&
+    (operation.field === "threeDimensional" || operation.field === "audioEnabled")
+  )
+    throw new Error(`Adjustment layers cannot toggle ${operation.field}`);
+  const sourceOperations: readonly Operation["type"][] = [
+    "setLayerAudioGain",
+    "setMaterial3d",
+    "setLightSettings",
+    "setLayerColor",
+    "setLayerAsset",
+    "setCameraSettings",
+    "setParticleSettings",
+    "setClonerSettings",
+    "setShapeSettings",
+    "setShapeGraph",
+    "setTextContent",
+    "setTextStyle",
+    "setTextAnimator",
+  ];
+  if (sourceOperations.includes(operation.type))
+    throw new Error(`Operation ${operation.type} is not supported for adjustment layers`);
 }
 
 function clamp01(value: number): number {

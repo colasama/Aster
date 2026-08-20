@@ -1,9 +1,28 @@
 import { describe, expect, it } from "vitest";
+import { createLayerForComposition } from "./layer-factory";
 import { precomposeLayers } from "./precomposition";
-import { createDemoProject } from "./project";
+import { createBlankProject, createDemoProject } from "./project";
 import { flattenSceneLayers } from "./scene-evaluation";
 
 describe("precomposition creation", () => {
+  it("keeps adjustment layers composition-local in the flat MVP renderer", () => {
+    const project = createBlankProject();
+    const composition = project.compositions[0];
+    const adjustment = createLayerForComposition("adjustment", composition);
+    composition.layers.unshift(adjustment);
+
+    expect(precomposeLayers(project, [adjustment.id])).toBeUndefined();
+  });
+
+  it("keeps the single GPU particle simulation out of nested precompositions", () => {
+    const project = createBlankProject();
+    const composition = project.compositions[0];
+    const particle = createLayerForComposition("particle", composition);
+    composition.layers.unshift(particle);
+
+    expect(precomposeLayers(project, [particle.id])).toBeUndefined();
+  });
+
   it("preserves evaluated appearance and stacking at the same project time", () => {
     const project = createDemoProject();
     const source = project.compositions[0];

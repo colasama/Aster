@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { useI18n } from "../i18n/react";
 
 let topPanelZIndex = 20;
 
@@ -18,6 +19,7 @@ interface PanelProps extends PropsWithChildren {
 }
 
 export function Panel({ title, className = "", tabs, actions, children }: PanelProps) {
+  const { t } = useI18n();
   const panelRef = useRef<HTMLElement>(null);
   const drag = useRef({ active: false, x: 0, y: 0, left: 0, top: 0, width: 0, height: 0 });
   const [floating, setFloating] = useState(false);
@@ -120,9 +122,9 @@ export function Panel({ title, className = "", tabs, actions, children }: PanelP
           <div className="panel-actions">
             {actions}
             <button
-              aria-label={floating ? "Dock panel" : "Float panel"}
+              aria-label={floating ? t("panel.dock") : t("panel.float")}
               onClick={toggleFloating}
-              title={floating ? "Dock panel" : "Float panel (double-click header)"}
+              title={floating ? t("panel.dock") : t("panel.floatHint")}
               type="button"
             >
               {floating ? <Minimize2 size={12} /> : <Maximize2 size={12} />}

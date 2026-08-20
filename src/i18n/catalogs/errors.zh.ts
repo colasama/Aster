@@ -1,0 +1,22 @@
+import type { errorsEn } from "./errors.en";
+
+export const errorsZh = {
+  "ui.error.assetImageImport": "无法导入图像。请检查文件后重试。",
+  "ui.error.assetVideoImport": "无法导入视频。请检查文件后重试。",
+  "ui.error.assetRelink": "无法重新链接此素材。请选择受支持的源文件。",
+  "ui.error.presetSave": "无法保存此预设。请检查名称和效果链。",
+  "ui.error.pluginOperation": "无法完成插件操作。",
+  "ui.error.pluginCatalog": "无法加载本地插件目录。",
+  "ui.error.aiRequest": "无法完成 AI 操作。请检查提供程序设置后重试。",
+  "ui.error.lutImport": "无法导入此 LUT。请选择有效的 .cube 文件。",
+  "ui.error.hdrImport": "无法读取此 HDR 环境。请选择有效的 Radiance .hdr 文件。",
+  "ui.error.projectOpen": "无法打开此项目。",
+  "ui.error.projectPackedOpen": "无法打开此打包项目。",
+  "ui.error.projectPack": "无法打包此项目。",
+  "ui.error.projectSave": "无法保存此项目。",
+  "ui.error.projectRecovery": "无法恢复自动保存快照。",
+  "ui.error.mediaImport": "无法导入此媒体文件。",
+  "ui.error.meshImport": "无法导入此 3D 素材。",
+  "ui.error.frameExport": "无法导出帧。",
+  "ui.error.expression": "无法计算此表达式。",
+} as const satisfies Record<keyof typeof errorsEn, string>;

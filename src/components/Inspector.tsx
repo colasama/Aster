@@ -5,8 +5,12 @@ import {
   ChevronDown,
   ChevronRight,
   CircleDot,
+  Eye,
+  EyeOff,
   FileUp,
   KeyRound,
+  LockKeyhole,
+  LockOpen,
   Plus,
   RotateCw,
   Scan,
@@ -23,6 +27,7 @@ import { parseCubeLutFile } from "../effects/cube-lut";
 import { createEffect, EFFECT_BY_TYPE } from "../effects/registry";
 import type { EffectParameterDefinition } from "../effects/types";
 import type { PlainMessageKey } from "../i18n/core";
+import { type UiErrorCode, uiErrorMessage } from "../i18n/errors";
 import { useI18n } from "../i18n/react";
 import { useEditor } from "../state/editor-store";
 import { AiPanel } from "./AiPanel";
@@ -58,17 +63,18 @@ export function Inspector() {
   const { t } = useI18n();
   const composition = activeComposition(state.project);
   const layer = composition.layers.find((entry) => entry.id === state.selection[0]);
+  const isAdjustment = layer?.kind === "adjustment";
   const [transformOpen, setTransformOpen] = useState(true);
   const [compositingOpen, setCompositingOpen] = useState(false);
   const updateProperty = (path: PropertyPath, value: number) => {
-    if (!layer || !Number.isFinite(value)) return;
+    if (!layer || isAdjustment || !Number.isFinite(value)) return;
     dispatch({
       type: "operation",
       operations: [{ type: "setProperty", layerId: layer.id, path, value }],
     });
   };
   const addKeyframe = (path: PropertyPath) => {
-    if (!layer) return;
+    if (!layer || isAdjustment) return;
     const value = evaluateAnimatable(getProperty(layer, path), state.currentTime);
     dispatch({
       type: "operation",
@@ -89,7 +95,7 @@ export function Inspector() {
     });
   };
   const resetTransform = () => {
-    if (!layer) return;
+    if (!layer || isAdjustment) return;
     const defaults: [PropertyPath, number][] = [
       ["position.0", composition.width / 2],
       ["position.1", composition.height / 2],
@@ -144,6 +150,19 @@ export function Inspector() {
               </small>
             </div>
             <button
+              aria-label={layer.visible ? t("inspector.visible.hide") : t("inspector.visible.show")}
+              className={layer.visible ? "active" : ""}
+              onClick={() =>
+                dispatch({
+                  type: "operation",
+                  operations: [{ type: "toggleLayer", layerId: layer.id, field: "visible" }],
+                })
+              }
+              type="button"
+            >
+              {layer.visible ? <Eye size={14} /> : <EyeOff size={14} />}
+            </button>
+            <button
               aria-label={layer.solo ? t("inspector.solo.disable") : t("inspector.solo.enable")}
               className={layer.solo ? "active" : ""}
               onClick={() =>
@@ -156,86 +175,101 @@ export function Inspector() {
             >
               <CircleDot size={14} />
             </button>
+            <button
+              aria-label={layer.locked ? t("inspector.lock.unlock") : t("inspector.lock.lock")}
+              className={layer.locked ? "active" : ""}
+              onClick={() =>
+                dispatch({
+                  type: "operation",
+                  operations: [{ type: "toggleLayer", layerId: layer.id, field: "locked" }],
+                })
+              }
+              type="button"
+            >
+              {layer.locked ? <LockKeyhole size={14} /> : <LockOpen size={14} />}
+            </button>
           </div>
-          <div className="inspector-section">
-            <div className="section-title">
-              <button
-                className="section-toggle"
-                onClick={() => setTransformOpen(!transformOpen)}
-                type="button"
-              >
-                {transformOpen ? <ChevronDown size={13} /> : <ChevronRight size={13} />}{" "}
-                {t("inspector.transform.title")}
-              </button>
-              <span />
-              <button
-                aria-label={t("inspector.transform.reset")}
-                onClick={resetTransform}
-                type="button"
-              >
-                <RotateCw size={12} />
-              </button>
-            </div>
-            {transformOpen && (
-              <div className="property-grid">
-                {fields.map((field) => (
-                  <div className="vector-property" key={field.labelKey}>
-                    <div className="property-label">{t(field.labelKey)}</div>
-                    <div className="vector-inputs">
-                      {field.paths.map((path, index) => (
-                        <div className="number-field" key={path}>
-                          <span className={`axis-label axis-${index}`}>
-                            {["X", "Y", "Z"][index]}
-                          </span>
-                          <input
-                            onChange={(event) => updateProperty(path, Number(event.target.value))}
-                            type="number"
-                            value={
-                              Math.round(
-                                evaluateAnimatable(getProperty(layer, path), state.currentTime) *
-                                  100,
-                              ) / 100
-                            }
-                          />
-                          <small>{field.suffix}</small>
-                          <button
-                            onClick={() => addKeyframe(path)}
-                            title={t("inspector.transform.addKeyframe")}
-                            type="button"
-                          >
-                            <KeyRound size={10} />
-                          </button>
-                        </div>
-                      ))}
+          {!isAdjustment && (
+            <div className="inspector-section">
+              <div className="section-title">
+                <button
+                  className="section-toggle"
+                  onClick={() => setTransformOpen(!transformOpen)}
+                  type="button"
+                >
+                  {transformOpen ? <ChevronDown size={13} /> : <ChevronRight size={13} />}{" "}
+                  {t("inspector.transform.title")}
+                </button>
+                <span />
+                <button
+                  aria-label={t("inspector.transform.reset")}
+                  onClick={resetTransform}
+                  type="button"
+                >
+                  <RotateCw size={12} />
+                </button>
+              </div>
+              {transformOpen && (
+                <div className="property-grid">
+                  {fields.map((field) => (
+                    <div className="vector-property" key={field.labelKey}>
+                      <div className="property-label">{t(field.labelKey)}</div>
+                      <div className="vector-inputs">
+                        {field.paths.map((path, index) => (
+                          <div className="number-field" key={path}>
+                            <span className={`axis-label axis-${index}`}>
+                              {["X", "Y", "Z"][index]}
+                            </span>
+                            <input
+                              onChange={(event) => updateProperty(path, Number(event.target.value))}
+                              type="number"
+                              value={
+                                Math.round(
+                                  evaluateAnimatable(getProperty(layer, path), state.currentTime) *
+                                    100,
+                                ) / 100
+                              }
+                            />
+                            <small>{field.suffix}</small>
+                            <button
+                              onClick={() => addKeyframe(path)}
+                              title={t("inspector.transform.addKeyframe")}
+                              type="button"
+                            >
+                              <KeyRound size={10} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  <div className="vector-property">
+                    <div className="property-label">{t("inspector.transform.opacity")}</div>
+                    <div className="slider-property">
+                      <input
+                        max="100"
+                        min="0"
+                        onChange={(event) => updateProperty("opacity", Number(event.target.value))}
+                        type="range"
+                        value={evaluateAnimatable(layer.transform.opacity, state.currentTime)}
+                      />
+                      <input
+                        onChange={(event) => updateProperty("opacity", Number(event.target.value))}
+                        type="number"
+                        value={Math.round(
+                          evaluateAnimatable(layer.transform.opacity, state.currentTime),
+                        )}
+                      />
+                      <span>%</span>
+                      <button onClick={() => addKeyframe("opacity")} type="button">
+                        <KeyRound size={11} />
+                      </button>
                     </div>
                   </div>
-                ))}
-                <div className="vector-property">
-                  <div className="property-label">{t("inspector.transform.opacity")}</div>
-                  <div className="slider-property">
-                    <input
-                      max="100"
-                      min="0"
-                      onChange={(event) => updateProperty("opacity", Number(event.target.value))}
-                      type="range"
-                      value={evaluateAnimatable(layer.transform.opacity, state.currentTime)}
-                    />
-                    <input
-                      onChange={(event) => updateProperty("opacity", Number(event.target.value))}
-                      type="number"
-                      value={Math.round(
-                        evaluateAnimatable(layer.transform.opacity, state.currentTime),
-                      )}
-                    />
-                    <span>%</span>
-                    <button onClick={() => addKeyframe("opacity")} type="button">
-                      <KeyRound size={11} />
-                    </button>
-                  </div>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
           <div className="inspector-section effects-section">
             <div className="section-title static">
               <ChevronDown size={13} /> {t("inspector.effects.title")} <span />
@@ -254,165 +288,158 @@ export function Inspector() {
               <EffectEditor effect={effect} key={effect.id} layerId={layer.id} />
             ))}
           </div>
-          <div className="inspector-section blend-section">
-            <div className="section-title">
-              <button
-                className="section-toggle"
-                onClick={() => setCompositingOpen(!compositingOpen)}
-                type="button"
-              >
-                {compositingOpen ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
-                {t("inspector.compositing.title")}
-              </button>
-            </div>
-            {compositingOpen && (
-              <div className="compositing-grid">
-                <label>
-                  {t("inspector.compositing.blendMode")}
-                  <select
-                    onChange={(event) =>
-                      dispatch({
-                        type: "operation",
-                        operations: [
-                          {
-                            type: "setBlendMode",
-                            layerId: layer.id,
-                            blendMode: event.target.value as BlendMode,
-                          },
-                        ],
-                      })
-                    }
-                    value={layer.blendMode}
-                  >
-                    <option value="normal">{t("inspector.blend.normal")}</option>
-                    <option value="add">{t("inspector.blend.add")}</option>
-                    <option value="multiply">{t("inspector.blend.multiply")}</option>
-                    <option value="screen">{t("inspector.blend.screen")}</option>
-                    <option value="overlay">{t("inspector.blend.overlay")}</option>
-                  </select>
-                </label>
-                <label>
-                  {t("inspector.compositing.parent")}
-                  <select
-                    onChange={(event) =>
-                      dispatch({
-                        type: "operation",
-                        operations: [
-                          {
-                            type: "setParent",
-                            layerId: layer.id,
-                            parentId: event.target.value || undefined,
-                          },
-                        ],
-                      })
-                    }
-                    value={layer.parentId ?? ""}
-                  >
-                    <option value="">{t("common.none")}</option>
-                    {composition.layers
-                      .filter((candidate) => candidate.id !== layer.id)
-                      .map((candidate) => (
-                        <option key={candidate.id} value={candidate.id}>
-                          {candidate.name}
-                        </option>
-                      ))}
-                  </select>
-                </label>
-                <label>
-                  {t("inspector.compositing.inPoint")}
-                  <input
-                    min="0"
-                    onChange={(event) =>
-                      setLayerTiming(layer.id, Number(event.target.value), layer.outPoint, dispatch)
-                    }
-                    step="0.01"
-                    type="number"
-                    value={layer.inPoint}
-                  />
-                </label>
-                <label>
-                  {t("inspector.compositing.outPoint")}
-                  <input
-                    min={layer.inPoint + 1 / 240}
-                    onChange={(event) =>
-                      setLayerTiming(layer.id, layer.inPoint, Number(event.target.value), dispatch)
-                    }
-                    step="0.01"
-                    type="number"
-                    value={layer.outPoint}
-                  />
-                </label>
-                <label>
-                  {t("inspector.compositing.sourceOffset")}
-                  <input
-                    min="0"
-                    onChange={(event) =>
-                      dispatch({
-                        type: "operation",
-                        operations: [
-                          {
-                            type: "setLayerTimeMapping",
-                            layerId: layer.id,
-                            offset: Number(event.target.value),
-                            stretch: layer.timeStretch ?? 1,
-                          },
-                        ],
-                      })
-                    }
-                    step="0.01"
-                    type="number"
-                    value={layer.timeOffset ?? 0}
-                  />
-                </label>
-                <label>
-                  {t("inspector.compositing.timeStretch")}
-                  <input
-                    min="1"
-                    onChange={(event) =>
-                      dispatch({
-                        type: "operation",
-                        operations: [
-                          {
-                            type: "setLayerTimeMapping",
-                            layerId: layer.id,
-                            offset: layer.timeOffset ?? 0,
-                            stretch: Number(event.target.value) / 100,
-                          },
-                        ],
-                      })
-                    }
-                    step="1"
-                    type="number"
-                    value={(layer.timeStretch ?? 1) * 100}
-                  />
-                </label>
-                <label className="compositing-check">
-                  <input
-                    checked={Boolean(layer.timeRemap)}
-                    onChange={(event) =>
-                      dispatch({
-                        type: "operation",
-                        operations: [
-                          {
-                            type: "setLayerTimeRemap",
-                            layerId: layer.id,
-                            value: event.target.checked
-                              ? {
-                                  mode: "static",
-                                  value: evaluateLayerSourceTime(layer, state.currentTime),
-                                }
-                              : undefined,
-                          },
-                        ],
-                      })
-                    }
-                    type="checkbox"
-                  />
-                  {t("inspector.compositing.enableRemap")}
-                </label>
-                {layer.timeRemap && (
+          {isAdjustment ? (
+            <div className="inspector-section blend-section">
+              <div className="section-title">
+                <button
+                  className="section-toggle"
+                  onClick={() => setCompositingOpen(!compositingOpen)}
+                  type="button"
+                >
+                  {compositingOpen ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+                  {t("inspector.compositing.adjustmentTiming")}
+                </button>
+              </div>
+              {compositingOpen && (
+                <div className="compositing-grid">
                   <label>
-                    {t("inspector.compositing.remappedTime")}
+                    {t("inspector.compositing.inPoint")}
+                    <input
+                      min="0"
+                      onChange={(event) =>
+                        setLayerTiming(
+                          layer.id,
+                          Number(event.target.value),
+                          layer.outPoint,
+                          dispatch,
+                        )
+                      }
+                      step="0.01"
+                      type="number"
+                      value={layer.inPoint}
+                    />
+                  </label>
+                  <label>
+                    {t("inspector.compositing.outPoint")}
+                    <input
+                      min={layer.inPoint + 1 / 240}
+                      onChange={(event) =>
+                        setLayerTiming(
+                          layer.id,
+                          layer.inPoint,
+                          Number(event.target.value),
+                          dispatch,
+                        )
+                      }
+                      step="0.01"
+                      type="number"
+                      value={layer.outPoint}
+                    />
+                  </label>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="inspector-section blend-section">
+              <div className="section-title">
+                <button
+                  className="section-toggle"
+                  onClick={() => setCompositingOpen(!compositingOpen)}
+                  type="button"
+                >
+                  {compositingOpen ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+                  {t("inspector.compositing.title")}
+                </button>
+              </div>
+              {compositingOpen && (
+                <div className="compositing-grid">
+                  <label>
+                    {t("inspector.compositing.blendMode")}
+                    <select
+                      onChange={(event) =>
+                        dispatch({
+                          type: "operation",
+                          operations: [
+                            {
+                              type: "setBlendMode",
+                              layerId: layer.id,
+                              blendMode: event.target.value as BlendMode,
+                            },
+                          ],
+                        })
+                      }
+                      value={layer.blendMode}
+                    >
+                      <option value="normal">{t("inspector.blend.normal")}</option>
+                      <option value="add">{t("inspector.blend.add")}</option>
+                      <option value="multiply">{t("inspector.blend.multiply")}</option>
+                      <option value="screen">{t("inspector.blend.screen")}</option>
+                      <option value="overlay">{t("inspector.blend.overlay")}</option>
+                    </select>
+                  </label>
+                  <label>
+                    {t("inspector.compositing.parent")}
+                    <select
+                      onChange={(event) =>
+                        dispatch({
+                          type: "operation",
+                          operations: [
+                            {
+                              type: "setParent",
+                              layerId: layer.id,
+                              parentId: event.target.value || undefined,
+                            },
+                          ],
+                        })
+                      }
+                      value={layer.parentId ?? ""}
+                    >
+                      <option value="">{t("common.none")}</option>
+                      {composition.layers
+                        .filter((candidate) => candidate.id !== layer.id)
+                        .map((candidate) => (
+                          <option key={candidate.id} value={candidate.id}>
+                            {candidate.name}
+                          </option>
+                        ))}
+                    </select>
+                  </label>
+                  <label>
+                    {t("inspector.compositing.inPoint")}
+                    <input
+                      min="0"
+                      onChange={(event) =>
+                        setLayerTiming(
+                          layer.id,
+                          Number(event.target.value),
+                          layer.outPoint,
+                          dispatch,
+                        )
+                      }
+                      step="0.01"
+                      type="number"
+                      value={layer.inPoint}
+                    />
+                  </label>
+                  <label>
+                    {t("inspector.compositing.outPoint")}
+                    <input
+                      min={layer.inPoint + 1 / 240}
+                      onChange={(event) =>
+                        setLayerTiming(
+                          layer.id,
+                          layer.inPoint,
+                          Number(event.target.value),
+                          dispatch,
+                        )
+                      }
+                      step="0.01"
+                      type="number"
+                      value={layer.outPoint}
+                    />
+                  </label>
+                  <label>
+                    {t("inspector.compositing.sourceOffset")}
                     <input
                       min="0"
                       onChange={(event) =>
@@ -420,42 +447,112 @@ export function Inspector() {
                           type: "operation",
                           operations: [
                             {
-                              type: "setLayerTimeRemap",
+                              type: "setLayerTimeMapping",
                               layerId: layer.id,
-                              value: { mode: "static", value: Number(event.target.value) },
+                              offset: Number(event.target.value),
+                              stretch: layer.timeStretch ?? 1,
                             },
                           ],
                         })
                       }
                       step="0.01"
                       type="number"
-                      value={evaluateAnimatable(layer.timeRemap, state.currentTime)}
+                      value={layer.timeOffset ?? 0}
                     />
                   </label>
-                )}
-                <label className="compositing-check">
-                  <input
-                    checked={layer.threeDimensional}
-                    onChange={() =>
-                      dispatch({
-                        type: "operation",
-                        operations: [
-                          { type: "toggleLayer", layerId: layer.id, field: "threeDimensional" },
-                        ],
-                      })
-                    }
-                    type="checkbox"
-                  />
-                  {t("inspector.compositing.enable3d")}
-                </label>
-                <Scene3dControls layer={layer} />
-                <ShapeControls layer={layer} />
-                <ClonerControls layer={layer} />
-                <TextControls layer={layer} />
-                <AudioControls layer={layer} />
-              </div>
-            )}
-          </div>
+                  <label>
+                    {t("inspector.compositing.timeStretch")}
+                    <input
+                      min="1"
+                      onChange={(event) =>
+                        dispatch({
+                          type: "operation",
+                          operations: [
+                            {
+                              type: "setLayerTimeMapping",
+                              layerId: layer.id,
+                              offset: layer.timeOffset ?? 0,
+                              stretch: Number(event.target.value) / 100,
+                            },
+                          ],
+                        })
+                      }
+                      step="1"
+                      type="number"
+                      value={(layer.timeStretch ?? 1) * 100}
+                    />
+                  </label>
+                  <label className="compositing-check">
+                    <input
+                      checked={Boolean(layer.timeRemap)}
+                      onChange={(event) =>
+                        dispatch({
+                          type: "operation",
+                          operations: [
+                            {
+                              type: "setLayerTimeRemap",
+                              layerId: layer.id,
+                              value: event.target.checked
+                                ? {
+                                    mode: "static",
+                                    value: evaluateLayerSourceTime(layer, state.currentTime),
+                                  }
+                                : undefined,
+                            },
+                          ],
+                        })
+                      }
+                      type="checkbox"
+                    />
+                    {t("inspector.compositing.enableRemap")}
+                  </label>
+                  {layer.timeRemap && (
+                    <label>
+                      {t("inspector.compositing.remappedTime")}
+                      <input
+                        min="0"
+                        onChange={(event) =>
+                          dispatch({
+                            type: "operation",
+                            operations: [
+                              {
+                                type: "setLayerTimeRemap",
+                                layerId: layer.id,
+                                value: { mode: "static", value: Number(event.target.value) },
+                              },
+                            ],
+                          })
+                        }
+                        step="0.01"
+                        type="number"
+                        value={evaluateAnimatable(layer.timeRemap, state.currentTime)}
+                      />
+                    </label>
+                  )}
+                  <label className="compositing-check">
+                    <input
+                      checked={layer.threeDimensional}
+                      onChange={() =>
+                        dispatch({
+                          type: "operation",
+                          operations: [
+                            { type: "toggleLayer", layerId: layer.id, field: "threeDimensional" },
+                          ],
+                        })
+                      }
+                      type="checkbox"
+                    />
+                    {t("inspector.compositing.enable3d")}
+                  </label>
+                  <Scene3dControls layer={layer} />
+                  <ShapeControls layer={layer} />
+                  <ClonerControls layer={layer} />
+                  <TextControls layer={layer} />
+                  <AudioControls layer={layer} />
+                </div>
+              )}
+            </div>
+          )}
         </div>
       ) : (
         <div className="empty-inspector">{t("inspector.empty")}</div>
@@ -467,7 +564,7 @@ export function Inspector() {
 function EffectEditor({ effect, layerId }: { effect: Effect; layerId: string }) {
   const { state, dispatch } = useEditor();
   const { t } = useI18n();
-  const [resourceError, setResourceError] = useState<string>();
+  const [resourceError, setResourceError] = useState<UiErrorCode>();
   const lutPickerRef = useRef<HTMLInputElement>(null);
   const definition = EFFECT_BY_TYPE.get(effect.type);
   const parameters = definition?.parameters ?? fallbackParameters(effect);
@@ -666,11 +763,7 @@ function EffectEditor({ effect, layerId }: { effect: Effect; layerId: string }) 
                     });
                     setResourceError(undefined);
                   })
-                  .catch((error: unknown) =>
-                    setResourceError(
-                      error instanceof Error ? error.message : t("inspector.lut.importFailed"),
-                    ),
-                  );
+                  .catch(() => setResourceError("lutImport"));
               event.target.value = "";
             }}
             ref={lutPickerRef}
@@ -704,7 +797,9 @@ function EffectEditor({ effect, layerId }: { effect: Effect; layerId: string }) 
               </button>
             </div>
           )}
-          {resourceError && <small className="lut-resource-error">{resourceError}</small>}
+          {resourceError && (
+            <small className="lut-resource-error">{uiErrorMessage(t, resourceError)}</small>
+          )}
         </div>
       )}
     </div>

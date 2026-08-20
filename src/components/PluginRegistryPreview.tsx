@@ -1,5 +1,6 @@
 import { FlaskConical, LockKeyhole, Puzzle } from "lucide-react";
 import { filterRegistryEntries, type PluginRegistryCatalog } from "../core/plugin-catalog";
+import { useI18n } from "../i18n/react";
 
 interface PluginRegistryPreviewProps {
   catalog: PluginRegistryCatalog | undefined;
@@ -7,9 +8,10 @@ interface PluginRegistryPreviewProps {
 }
 
 export function PluginRegistryPreview({ catalog, query }: PluginRegistryPreviewProps) {
+  const { t } = useI18n();
   const entries = filterRegistryEntries(catalog?.packages ?? [], query);
   if (!catalog) {
-    return <div className="plugin-registry-loading">Loading local registry preview…</div>;
+    return <div className="plugin-registry-loading">{t("registry.loading")}</div>;
   }
   return (
     <>
@@ -17,14 +19,10 @@ export function PluginRegistryPreview({ catalog, query }: PluginRegistryPreviewP
         <FlaskConical size={15} />
         <span className="plugin-registry-notice-copy">
           <strong className="plugin-registry-notice-title">
-            {catalog.developmentFixture
-              ? "Development fixture · catalog preview only"
-              : "Registry catalog · manual install only"}
+            {catalog.developmentFixture ? t("registry.fixtureTitle") : t("registry.catalogTitle")}
           </strong>
           <small>
-            {catalog.developmentFixture
-              ? "No network request, download, or plugin execution occurs. MVP installs only trusted local folders selected manually."
-              : "This view does not install or execute plugins. Review package trust before selecting a local folder manually."}
+            {catalog.developmentFixture ? t("registry.fixtureNotice") : t("registry.catalogNotice")}
           </small>
         </span>
       </div>
@@ -38,7 +36,9 @@ export function PluginRegistryPreview({ catalog, query }: PluginRegistryPreviewP
                 <span
                   className={`plugin-registry-badge ${entry.compatible ? "compatible" : "incompatible"}`}
                 >
-                  {entry.compatible ? "Host compatible" : `Requires API ${entry.apiVersion}`}
+                  {entry.compatible
+                    ? t("registry.compatible")
+                    : t("registry.requiresApi", { version: entry.apiVersion })}
                 </span>
               </span>
               <span className="plugin-identity">
@@ -47,33 +47,37 @@ export function PluginRegistryPreview({ catalog, query }: PluginRegistryPreviewP
               <small className="plugin-registry-summary">{entry.summary}</small>
               <small className="plugin-metadata">
                 {entry.compatibleVersion
-                  ? `v${entry.compatibleVersion} for API ${entry.apiVersion}`
-                  : `Latest v${entry.latestVersion}`}{" "}
+                  ? t("registry.compatibleVersion", {
+                      version: entry.compatibleVersion,
+                      api: entry.apiVersion,
+                    })
+                  : t("registry.latestVersion", { version: entry.latestVersion })}{" "}
                 {entry.compatibleVersion && entry.compatibleVersion !== entry.latestVersion
-                  ? `· latest v${entry.latestVersion} `
+                  ? t("registry.latestSuffix", { version: entry.latestVersion })
                   : ""}
                 ·{" "}
-                {entry.capabilities.map(formatCapability).join(" · ") ||
-                  "No privileged capabilities"}
+                {entry.capabilities.map(formatCapability).join(" · ") || t("plugin.noCapabilities")}
               </small>
             </div>
-            <span className="plugin-manual-install" title="Automatic registry install is disabled">
-              <LockKeyhole size={12} /> Manual folder
+            <span className="plugin-manual-install" title={t("registry.installDisabled")}>
+              <LockKeyhole size={12} /> {t("registry.manualFolder")}
             </span>
           </article>
         ))}
         {entries.length === 0 && (
           <div className="plugin-empty">
             <Puzzle size={22} />
-            <strong>No registry entries match this search</strong>
-            <span className="plugin-empty-copy">
-              Try a name, ID, version, compatibility state, author, or capability.
-            </span>
+            <strong>{t("registry.empty")}</strong>
+            <span className="plugin-empty-copy">{t("registry.emptyHint")}</span>
           </div>
         )}
       </div>
       <small className="plugin-registry-source">
-        {catalog.source} · host API {catalog.hostApiVersion} · {entries.length} shown
+        {t("registry.source", {
+          source: catalog.source,
+          api: catalog.hostApiVersion,
+          count: entries.length,
+        })}
       </small>
     </>
   );

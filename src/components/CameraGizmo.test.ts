@@ -12,7 +12,7 @@ describe("camera gizmo geometry", () => {
   it("uses parallel rays for an orthographic camera", () => {
     expect(cameraGizmoGeometry("orthographic", 50)).toEqual({
       path: "M47 24H118M47 56H118M118 24V56",
-      label: "ORTHO",
+      label: "",
     });
   });
 });

@@ -1,5 +1,5 @@
 import { AlertTriangle, FolderPlus, Puzzle, RefreshCw, Search, ShieldCheck } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { type PluginRegistryCatalog, readPluginRegistryCatalog } from "../core/plugin-catalog";
 import {
   installPluginFromFolder,
@@ -11,46 +11,100 @@ import {
   setPluginSafeMode,
 } from "../core/plugins";
 import { synchronizePluginEffectDefinitions } from "../effects/plugin-registry";
+import type { Translate } from "../i18n/core";
+import { createTranslator } from "../i18n/core";
+import { type UiErrorCode, uiErrorMessage } from "../i18n/errors";
+import { useI18n } from "../i18n/react";
 import { PluginRegistryPreview } from "./PluginRegistryPreview";
 
 type PluginManagerView = "installed" | "registry";
 
+export class PluginStatusCoordinator {
+  private generation = 0;
+  private manualPending = false;
+  private pollPending = false;
+
+  beginManual(): number {
+    this.manualPending = true;
+    this.generation += 1;
+    return this.generation;
+  }
+
+  canCommitManual(token: number): boolean {
+    return token === this.generation;
+  }
+
+  finishManual(token: number): boolean {
+    if (!this.canCommitManual(token)) return false;
+    this.manualPending = false;
+    return true;
+  }
+
+  beginPoll(): number | undefined {
+    if (this.manualPending || this.pollPending) return undefined;
+    this.pollPending = true;
+    return this.generation;
+  }
+
+  canCommitPoll(token: number): boolean {
+    return !this.manualPending && token === this.generation;
+  }
+
+  finishPoll(): void {
+    this.pollPending = false;
+  }
+
+  invalidate(): void {
+    this.generation += 1;
+    this.manualPending = false;
+    this.pollPending = false;
+  }
+}
+
 export function PluginManager() {
+  const { t } = useI18n();
   const [status, setStatus] = useState<PluginStatus>();
   const [pending, setPending] = useState(false);
-  const [installedError, setInstalledError] = useState<string>();
+  const [installedError, setInstalledError] = useState<UiErrorCode>();
   const [installedQuery, setInstalledQuery] = useState("");
   const [registryQuery, setRegistryQuery] = useState("");
   const [view, setView] = useState<PluginManagerView>("installed");
   const [catalog, setCatalog] = useState<PluginRegistryCatalog>();
-  const [catalogError, setCatalogError] = useState<string>();
+  const [catalogError, setCatalogError] = useState<UiErrorCode>();
   const [catalogPending, setCatalogPending] = useState(true);
+  const coordinatorRef = useRef<PluginStatusCoordinator>(new PluginStatusCoordinator());
 
-  const run = useCallback(async (operation: () => Promise<PluginStatus | undefined>) => {
-    setPending(true);
-    setInstalledError(undefined);
-    try {
-      const next = await operation();
-      if (next) {
-        const failures = synchronizePluginEffectDefinitions(next);
-        if (failures.length > 0)
-          setInstalledError(`Plugin schema rejected: ${failures[0].message}`);
-        setStatus(next);
-      }
-    } catch (reason) {
-      setInstalledError(reason instanceof Error ? reason.message : "Plugin operation failed");
-    } finally {
-      setPending(false);
-    }
+  const commitStatus = useCallback((next: PluginStatus) => {
+    const failures = synchronizePluginEffectDefinitions(next);
+    setInstalledError(failures.length > 0 ? "pluginOperation" : undefined);
+    setStatus(next);
   }, []);
+
+  const run = useCallback(
+    async (operation: () => Promise<PluginStatus | undefined>) => {
+      const coordinator = coordinatorRef.current;
+      const token = coordinator.beginManual();
+      setPending(true);
+      setInstalledError(undefined);
+      try {
+        const next = await operation();
+        if (next && coordinator.canCommitManual(token)) commitStatus(next);
+      } catch {
+        if (coordinator.canCommitManual(token)) setInstalledError("pluginOperation");
+      } finally {
+        if (coordinator.finishManual(token)) setPending(false);
+      }
+    },
+    [commitStatus],
+  );
 
   const loadCatalog = useCallback(async () => {
     setCatalogPending(true);
     setCatalogError(undefined);
     try {
       setCatalog(await readPluginRegistryCatalog());
-    } catch (reason) {
-      setCatalogError(reason instanceof Error ? reason.message : "Registry preview failed to load");
+    } catch {
+      setCatalogError("pluginCatalog");
     } finally {
       setCatalogPending(false);
     }
@@ -62,41 +116,39 @@ export function PluginManager() {
   useEffect(() => {
     void loadCatalog();
   }, [loadCatalog]);
+  useEffect(() => () => coordinatorRef.current.invalidate(), []);
   useEffect(() => {
     if (!status?.native || !status.hotReload.enabled || status.safeMode) return;
-    let polling = false;
     const interval = window.setInterval(() => {
-      if (polling) return;
-      polling = true;
+      const coordinator = coordinatorRef.current;
+      const token = coordinator.beginPoll();
+      if (token === undefined) return;
       void pollPluginHotReload()
         .then((next) => {
-          synchronizePluginEffectDefinitions(next);
-          setStatus(next);
+          if (coordinator.canCommitPoll(token)) commitStatus(next);
         })
-        .catch((reason: unknown) => {
-          setInstalledError(
-            reason instanceof Error ? reason.message : "Plugin hot reload poll failed",
-          );
+        .catch(() => {
+          if (coordinator.canCommitPoll(token)) setInstalledError("pluginOperation");
         })
         .finally(() => {
-          polling = false;
+          coordinator.finishPoll();
         });
     }, 750);
     return () => window.clearInterval(interval);
-  }, [status?.hotReload.enabled, status?.native, status?.safeMode]);
+  }, [commitStatus, status?.hotReload.enabled, status?.native, status?.safeMode]);
   const visiblePlugins = filterPluginManifests(status?.report.plugins ?? [], installedQuery);
 
   return (
     <div className="plugin-manager">
       <div className="plugin-toolbar">
         <div>
-          <strong className="plugin-toolbar-title">WGSL effect plugins</strong>
+          <strong className="plugin-toolbar-title">{t("plugin.title")}</strong>
           <span className="plugin-directory" title={status?.directory}>
-            {status?.directory ?? "Loading plugin directory…"}
+            {status?.directory ?? t("plugin.loadingDirectory")}
           </span>
         </div>
         <button disabled={pending} onClick={() => void run(readPluginStatus)} type="button">
-          <RefreshCw className={pending ? "spin" : undefined} size={13} /> Refresh
+          <RefreshCw className={pending ? "spin" : undefined} size={13} /> {t("plugin.refresh")}
         </button>
         <button
           className="plugin-install-button"
@@ -104,10 +156,10 @@ export function PluginManager() {
           onClick={() => void run(installPluginFromFolder)}
           type="button"
         >
-          <FolderPlus size={13} /> Install folder…
+          <FolderPlus size={13} /> {t("plugin.installFolder")}
         </button>
       </div>
-      <div aria-label="Plugin manager view" className="plugin-view-tabs" role="tablist">
+      <div aria-label={t("plugin.view")} className="plugin-view-tabs" role="tablist">
         <button
           aria-selected={view === "installed"}
           className={view === "installed" ? "active" : undefined}
@@ -115,7 +167,7 @@ export function PluginManager() {
           role="tab"
           type="button"
         >
-          Installed {status ? `(${status.report.plugins.length})` : ""}
+          {t("plugin.installed")} {status ? `(${status.report.plugins.length})` : ""}
         </button>
         <button
           aria-selected={view === "registry"}
@@ -124,7 +176,7 @@ export function PluginManager() {
           role="tab"
           type="button"
         >
-          Registry preview {catalog ? `(${catalog.packages.length})` : ""}
+          {t("plugin.registryPreview")} {catalog ? `(${catalog.packages.length})` : ""}
         </button>
       </div>
       {view === "installed" && (
@@ -138,10 +190,8 @@ export function PluginManager() {
             />
             <ShieldCheck size={15} />
             <span className="plugin-safe-copy">
-              <strong className="plugin-safe-title">Safe mode</strong>
-              <small className="plugin-metadata">
-                Disable every third-party plugin without changing individual settings.
-              </small>
+              <strong className="plugin-safe-title">{t("plugin.safeMode")}</strong>
+              <small className="plugin-metadata">{t("plugin.safeModeHint")}</small>
             </span>
           </label>
           <label className="plugin-hot-reload">
@@ -153,25 +203,25 @@ export function PluginManager() {
             />
             <RefreshCw className={status?.hotReload.pending ? "spin" : undefined} size={15} />
             <span className="plugin-safe-copy">
-              <strong className="plugin-safe-title">Developer hot reload</strong>
-              <small className="plugin-metadata">{describeHotReload(status)}</small>
+              <strong className="plugin-safe-title">{t("plugin.hotReload")}</strong>
+              <small className="plugin-metadata">{describeHotReload(status, t)}</small>
             </span>
           </label>
           {installedError && (
             <div className="plugin-error" role="alert">
-              <AlertTriangle size={14} /> {installedError}
+              <AlertTriangle size={14} /> {uiErrorMessage(t, installedError)}
             </div>
           )}
           <label className="plugin-search">
             <Search size={13} />
             <input
-              aria-label="Search plugins"
+              aria-label={t("plugin.search")}
               onChange={(event) => setInstalledQuery(event.target.value)}
-              placeholder="Search name, ID, version, or capability"
+              placeholder={t("plugin.searchPlaceholder")}
               type="search"
               value={installedQuery}
             />
-            {status && <small>{visiblePlugins.length} found</small>}
+            {status && <small>{t("plugin.found", { count: visiblePlugins.length })}</small>}
           </label>
           <div className="plugin-list">
             {status &&
@@ -187,8 +237,8 @@ export function PluginManager() {
                         {manifest.plugin.api_version}
                       </span>
                       <small className="plugin-metadata">
-                        {manifest.capabilities.join(" · ") || "No privileged capabilities"} ·{" "}
-                        {manifest.parameters.length} parameters
+                        {manifest.capabilities.join(" · ") || t("plugin.noCapabilities")} ·{" "}
+                        {t("plugin.parameterCount", { count: manifest.parameters.length })}
                       </small>
                     </div>
                     <label>
@@ -200,7 +250,7 @@ export function PluginManager() {
                         }
                         type="checkbox"
                       />
-                      Enabled
+                      {t("common.enabled")}
                     </label>
                   </article>
                 );
@@ -210,15 +260,15 @@ export function PluginManager() {
                 <Puzzle size={22} />
                 <strong>
                   {status.report.plugins.length === 0
-                    ? "No third-party plugins installed"
-                    : "No plugins match this search"}
+                    ? t("plugin.emptyInstalled")
+                    : t("plugin.emptySearch")}
                 </strong>
                 <span className="plugin-empty-copy">
                   {status.report.plugins.length > 0
-                    ? "Try a plugin name, reverse-domain ID, version, or declared capability."
+                    ? t("plugin.emptySearchHint")
                     : status.native
-                      ? "Install a folder containing plugin.toml and its declared WGSL shader."
-                      : "Open the native Aster app to install and validate local WGSL plugins."}
+                      ? t("plugin.emptyNativeHint")
+                      : t("plugin.emptyBrowserHint")}
                 </span>
               </div>
             )}
@@ -226,12 +276,13 @@ export function PluginManager() {
           {status && status.report.failures.length > 0 && (
             <details className="plugin-failures" open>
               <summary>
-                <AlertTriangle size={13} /> {status.report.failures.length} plugin load failure(s)
+                <AlertTriangle size={13} />{" "}
+                {t("plugin.failureCount", { count: status.report.failures.length })}
               </summary>
               {status.report.failures.map((failure) => (
                 <div key={failure.manifest}>
                   <strong>{failure.manifest}</strong>
-                  <span>{failure.message}</span>
+                  <span>{t("plugin.failureDetail")}</span>
                 </div>
               ))}
             </details>
@@ -239,8 +290,10 @@ export function PluginManager() {
           {status && status.hotReload.diagnostics.length > 0 && (
             <details className="plugin-diagnostics">
               <summary>
-                Hot reload diagnostics · revision {status.hotReload.revision} ·{" "}
-                {status.hotReload.rejectedReloads} rejected
+                {t("plugin.diagnostics", {
+                  revision: status.hotReload.revision,
+                  rejected: status.hotReload.rejectedReloads,
+                })}
               </summary>
               {status.hotReload.diagnostics.slice(-8).map((diagnostic) => (
                 <div
@@ -259,18 +312,18 @@ export function PluginManager() {
         <>
           {catalogError && (
             <div className="plugin-error" role="alert">
-              <AlertTriangle size={14} /> {catalogError}
+              <AlertTriangle size={14} /> {uiErrorMessage(t, catalogError)}
               <button disabled={catalogPending} onClick={() => void loadCatalog()} type="button">
-                Retry
+                {t("plugin.retry")}
               </button>
             </div>
           )}
           <label className="plugin-search">
             <Search size={13} />
             <input
-              aria-label="Search registry preview"
+              aria-label={t("plugin.registrySearch")}
               onChange={(event) => setRegistryQuery(event.target.value)}
-              placeholder="Search registry name, ID, author, or capability"
+              placeholder={t("plugin.registrySearchPlaceholder")}
               type="search"
               value={registryQuery}
             />
@@ -282,14 +335,20 @@ export function PluginManager() {
   );
 }
 
-export function describeHotReload(status: PluginStatus | undefined): string {
-  if (!status?.native) return "Available only in the native app.";
-  if (!status.hotReload.enabled) return "Off. Enable only while developing trusted local WGSL.";
+export function describeHotReload(
+  status: PluginStatus | undefined,
+  t: Translate = createTranslator("en-US"),
+): string {
+  if (!status?.native) return t("plugin.hotReload.nativeOnly");
+  if (!status.hotReload.enabled) return t("plugin.hotReload.off");
   if (status.hotReload.suspendedBySafeMode || status.safeMode) {
-    return "Suspended while safe mode is active.";
+    return t("plugin.hotReload.suspended");
   }
-  if (status.hotReload.pending) return "Change detected; waiting for files to settle.";
-  return `${status.hotReload.successfulReloads} validated · ${status.hotReload.rejectedReloads} rejected`;
+  if (status.hotReload.pending) return t("plugin.hotReload.pending");
+  return t("plugin.hotReload.counts", {
+    validated: status.hotReload.successfulReloads,
+    rejected: status.hotReload.rejectedReloads,
+  });
 }
 
 export function filterPluginManifests(plugins: PluginStatus["report"]["plugins"], query: string) {

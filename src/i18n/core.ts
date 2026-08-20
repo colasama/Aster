@@ -1,5 +1,7 @@
 import { catalogs, type MessageCatalog, type MessageKey } from "./catalogs";
 
+export type { MessageKey } from "./catalogs";
+
 export const SUPPORTED_LOCALES = ["en-US", "zh-CN"] as const;
 export type Locale = (typeof SUPPORTED_LOCALES)[number];
 export const DEFAULT_LOCALE: Locale = "en-US";
@@ -11,17 +13,41 @@ type Placeholder<Value extends string> = Value extends `${string}{${infer Name}}
 export type PlainMessageKey = {
   [Key in MessageKey]: [Placeholder<MessageCatalog[Key]>] extends [never] ? Key : never;
 }[MessageKey];
-type InterpolationValue = string | number;
-type TranslationArguments<Key extends MessageKey> = [Placeholder<MessageCatalog[Key]>] extends [
-  never,
-]
+export type InterpolationValue = string | number;
+export type TranslationArguments<Key extends MessageKey> = [
+  Placeholder<MessageCatalog[Key]>,
+] extends [never]
   ? []
   : [values: Record<Placeholder<MessageCatalog[Key]>, InterpolationValue>];
+
+export type MessageDescriptor<Key extends MessageKey = MessageKey> = Key extends MessageKey
+  ? [Placeholder<MessageCatalog[Key]>] extends [never]
+    ? { key: Key }
+    : {
+        key: Key;
+        values: Record<Placeholder<MessageCatalog[Key]>, InterpolationValue>;
+      }
+  : never;
 
 export type Translate = <Key extends MessageKey>(
   key: Key,
   ...values: TranslationArguments<Key>
 ) => string;
+
+export function messageDescriptor<Key extends MessageKey>(
+  key: Key,
+  ...values: TranslationArguments<Key>
+): MessageDescriptor<Key> {
+  return (values.length === 0 ? { key } : { key, values: values[0] }) as MessageDescriptor<Key>;
+}
+
+export function translateDescriptor(t: Translate, descriptor: MessageDescriptor): string {
+  const translate = t as (
+    key: MessageKey,
+    values?: Readonly<Record<string, InterpolationValue>>,
+  ) => string;
+  return translate(descriptor.key, "values" in descriptor ? descriptor.values : undefined);
+}
 
 export function isLocale(value: unknown): value is Locale {
   return typeof value === "string" && SUPPORTED_LOCALES.includes(value as Locale);

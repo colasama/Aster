@@ -12,6 +12,7 @@ import {
   Save,
   Search,
   Shapes,
+  SlidersHorizontal,
   Sparkles,
   Star,
   Trash2,
@@ -58,6 +59,8 @@ import {
   removeUserEffectPreset,
   writeUserEffectPresets,
 } from "../effects/user-presets";
+import { type UiErrorCode, uiErrorMessage } from "../i18n/errors";
+import { useI18n } from "../i18n/react";
 import { useEditor } from "../state/editor-store";
 import { Panel, PanelTabs } from "./Panel";
 
@@ -71,13 +74,15 @@ const layerIcon: Record<LayerKind, typeof Shapes> = {
   camera: Camera,
   light: Sparkles,
   precomposition: Layers3,
+  adjustment: SlidersHorizontal,
 };
 
 export function ProjectPanel() {
   const { state, dispatch } = useEditor();
+  const { t } = useI18n();
   const [query, setQuery] = useState("");
-  const [assetError, setAssetError] = useState<string>();
-  const [presetError, setPresetError] = useState<string>();
+  const [assetError, setAssetError] = useState<UiErrorCode>();
+  const [presetError, setPresetError] = useState<UiErrorCode>();
   const [presetName, setPresetName] = useState("");
   const [effectPreferences, setEffectPreferences] = useState(() =>
     readEffectBrowserPreferences(localPreferenceStorage()),
@@ -218,8 +223,8 @@ export function ProjectPanel() {
       setUserPresets((current) => addUserEffectPreset(current, preset));
       setPresetName("");
       setPresetError(undefined);
-    } catch (error) {
-      setPresetError(error instanceof Error ? error.message : "Could not save preset");
+    } catch {
+      setPresetError("presetSave");
     }
   };
   const importMedia = async (kind: "image" | "video", file: File) => {
@@ -231,8 +236,8 @@ export function ProjectPanel() {
         operations: [{ type: "addLayer", layer }],
         select: [layer.id],
       });
-    } catch (error) {
-      setAssetError(error instanceof Error ? error.message : `${kind} import failed`);
+    } catch {
+      setAssetError(kind === "image" ? "assetImageImport" : "assetVideoImport");
     }
   };
   const relinkSelectedAsset = async () => {
@@ -245,8 +250,8 @@ export function ProjectPanel() {
           type: "operation",
           operations: [{ type: "setLayerAsset", layerId: selectedLayer.id, asset }],
         });
-    } catch (error) {
-      setAssetError(error instanceof Error ? error.message : "Asset relink failed");
+    } catch {
+      setAssetError("assetRelink");
     }
   };
   return (
@@ -257,13 +262,13 @@ export function ProjectPanel() {
           active={state.leftTab}
           onChange={(tab) => dispatch({ type: "setLeftTab", tab: tab as "project" | "effects" })}
           tabs={[
-            { id: "project", label: "Project" },
-            { id: "effects", label: "Effects & Presets" },
+            { id: "project", label: t("project.tab.project") },
+            { id: "effects", label: t("project.tab.effects") },
           ]}
         />
       }
       actions={
-        <button aria-label="Add item" onClick={() => addLayer("shape")} type="button">
+        <button aria-label={t("project.addItem")} onClick={() => addLayer("shape")} type="button">
           <Plus size={14} />
         </button>
       }
@@ -272,7 +277,7 @@ export function ProjectPanel() {
         <Search size={13} />
         <input
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search"
+          placeholder={t("project.search")}
           value={query}
         />
       </div>
@@ -307,7 +312,7 @@ export function ProjectPanel() {
           <div className="tree-row asset-folder">
             <span className="tree-spacer" />
             <Folder size={14} />
-            <span>Assets</span>
+            <span>{t("project.assets")}</span>
             <small>{mediaLayers.length}</small>
           </div>
           {mediaLayers.map((layer) => (
@@ -317,8 +322,8 @@ export function ProjectPanel() {
               onClick={() => dispatch({ type: "select", ids: [layer.id] })}
               title={
                 layer.asset?.dataUrl || layer.asset?.runtimeUrl
-                  ? `Locate ${layer.asset.name} in the active composition`
-                  : `${layer.asset?.name ?? layer.name} is missing its source file`
+                  ? t("project.asset.locate", { name: layer.asset.name })
+                  : t("project.asset.missingTitle", { name: layer.asset?.name ?? layer.name })
               }
               type="button"
             >
@@ -332,7 +337,7 @@ export function ProjectPanel() {
                     {layer.asset.duration ? ` · ${layer.asset.duration.toFixed(1)}s` : ""}
                   </>
                 ) : (
-                  "Missing source"
+                  t("project.asset.missing")
                 )}
               </small>
             </button>
@@ -357,7 +362,7 @@ export function ProjectPanel() {
           <div className="project-footer">
             <input
               accept="image/*"
-              aria-label="Choose image asset"
+              aria-label={t("project.asset.chooseImage")}
               hidden
               onChange={(event) => {
                 const file = event.target.files?.[0];
@@ -369,7 +374,7 @@ export function ProjectPanel() {
             />
             <input
               accept="video/*"
-              aria-label="Choose video asset"
+              aria-label={t("project.asset.chooseVideo")}
               hidden
               onChange={(event) => {
                 const file = event.target.files?.[0];
@@ -380,56 +385,60 @@ export function ProjectPanel() {
               type="file"
             />
             <button onClick={() => imagePickerRef.current?.click()} type="button">
-              <FileImage size={13} /> Image
+              <FileImage size={13} /> {t("project.add.image")}
             </button>
             <button onClick={() => videoPickerRef.current?.click()} type="button">
-              <Film size={13} /> Video
+              <Film size={13} /> {t("project.add.video")}
             </button>
             <button onClick={() => addLayer("text")} type="button">
-              <Type size={13} /> Text
+              <Type size={13} /> {t("project.add.text")}
             </button>
             <button onClick={() => addLayer("shape")} type="button">
-              <Shapes size={13} /> Shape
+              <Shapes size={13} /> {t("project.add.shape")}
+            </button>
+            <button onClick={() => addLayer("adjustment")} type="button">
+              <SlidersHorizontal size={13} /> {t("project.add.adjustment")}
             </button>
             <button onClick={() => addLayer("mesh")} type="button">
-              <Box size={13} /> 3D
+              <Box size={13} /> {t("project.add.mesh")}
             </button>
             {selectedLayer?.asset && (
               <button onClick={() => void relinkSelectedAsset()} type="button">
-                <Link2 size={13} /> Relink
+                <Link2 size={13} /> {t("project.asset.relink")}
               </button>
             )}
           </div>
-          {assetError && <div className="project-error">{assetError}</div>}
+          {assetError && <div className="project-error">{uiErrorMessage(t, assetError)}</div>}
         </div>
       ) : (
         <div className="effect-list">
           <div className="user-preset-save">
             <input
-              aria-label="Custom effect preset name"
+              aria-label={t("project.preset.name")}
               maxLength={64}
               onChange={(event) => setPresetName(event.target.value)}
               onKeyDown={(event) => {
                 if (event.key === "Enter") saveUserPreset();
               }}
-              placeholder="Save selected chain as preset"
+              placeholder={t("project.preset.placeholder")}
               value={presetName}
             />
             <button
-              aria-label="Save selected effect chain"
+              aria-label={t("project.preset.save")}
               disabled={!selectedLayer?.effects.length || !presetName.trim()}
               onClick={saveUserPreset}
-              title="Save masks, parameters, and animation as a reusable preset"
+              title={t("project.preset.saveHint")}
               type="button"
             >
               <Save size={12} />
             </button>
           </div>
-          {presetError && <div className="preset-error">{presetError}</div>}
+          {presetError && <div className="preset-error">{uiErrorMessage(t, presetError)}</div>}
           {filteredUserPresets.length > 0 && (
             <div className="effect-group user-preset-group">
               <div className="effect-category">
-                <ChevronDown size={13} /> My Presets <small>{filteredUserPresets.length}</small>
+                <ChevronDown size={13} /> {t("project.preset.mine")}{" "}
+                <small>{filteredUserPresets.length}</small>
               </div>
               {filteredUserPresets.map((preset) => (
                 <div className="effect-entry" key={preset.id}>
@@ -437,7 +446,11 @@ export function ProjectPanel() {
                     className="effect-apply"
                     disabled={!state.selection[0]}
                     onClick={() => applyUserPreset(preset.id)}
-                    title={state.selection[0] ? "Apply as one undo step" : "Select a layer first"}
+                    title={
+                      state.selection[0]
+                        ? t("project.preset.applyOneUndo")
+                        : t("project.effect.selectLayer")
+                    }
                     type="button"
                   >
                     <span className="effect-icon user-preset">
@@ -445,16 +458,18 @@ export function ProjectPanel() {
                     </span>
                     <span>
                       <strong>{preset.name}</strong>
-                      <small>{preset.effects.length} effects · masks & animation</small>
+                      <small>
+                        {t("project.preset.effectCount", { count: preset.effects.length })}
+                      </small>
                     </span>
                   </button>
                   <button
-                    aria-label={`Delete custom preset ${preset.name}`}
+                    aria-label={t("project.preset.delete", { name: preset.name })}
                     className="effect-favorite preset-delete"
                     onClick={() =>
                       setUserPresets((current) => removeUserEffectPreset(current, preset.id))
                     }
-                    title={`Delete ${preset.name}`}
+                    title={t("project.preset.deleteShort", { name: preset.name })}
                     type="button"
                   >
                     <Trash2 size={11} />
@@ -466,14 +481,15 @@ export function ProjectPanel() {
           {filteredPresets.length > 0 && (
             <div className="effect-group preset-group">
               <div className="effect-category">
-                <ChevronDown size={13} /> Looks Presets <small>{filteredPresets.length}</small>
+                <ChevronDown size={13} /> {t("project.preset.looks")}{" "}
+                <small>{filteredPresets.length}</small>
               </div>
               {filteredPresets.map((preset) => (
                 <button
                   disabled={!state.selection[0]}
                   key={preset.id}
                   onClick={() => applyPreset(preset.id)}
-                  title={state.selection[0] ? preset.description : "Select a layer first"}
+                  title={state.selection[0] ? preset.description : t("project.effect.selectLayer")}
                   type="button"
                 >
                   <span
@@ -490,7 +506,7 @@ export function ProjectPanel() {
                   </span>
                   <span>
                     <strong>{preset.name}</strong>
-                    <small>{preset.effects.length} effects · one undo</small>
+                    <small>{t("project.preset.lookCount", { count: preset.effects.length })}</small>
                   </span>
                 </button>
               ))}
@@ -506,7 +522,7 @@ export function ProjectPanel() {
                 setEffectPreferences((preferences) => toggleFavoriteEffect(preferences, type))
               }
               selected={Boolean(state.selection[0])}
-              title="Favorites"
+              title={t("project.effect.favorites")}
             />
           )}
           {recentEffects.length > 0 && (
@@ -519,7 +535,7 @@ export function ProjectPanel() {
                 setEffectPreferences((preferences) => toggleFavoriteEffect(preferences, type))
               }
               selected={Boolean(state.selection[0])}
-              title="Recently Used"
+              title={t("project.effect.recent")}
             />
           )}
           {effectCategories().map((category) => {
@@ -562,6 +578,7 @@ function EffectCatalogGroup({
   selected: boolean;
   title: string;
 }) {
+  const { t } = useI18n();
   return (
     <div className={`effect-group ${icon ? "shortcut-group" : ""}`}>
       <div className="effect-category">
@@ -582,7 +599,7 @@ function EffectCatalogGroup({
               className="effect-apply"
               disabled={!selected}
               onClick={() => onApply(effect.type)}
-              title={selected ? effect.description : "Select a layer first"}
+              title={selected ? effect.description : t("project.effect.selectLayer")}
               type="button"
             >
               <span className={`effect-icon ${effect.execution}`}>
@@ -590,14 +607,22 @@ function EffectCatalogGroup({
               </span>
               <span>
                 <strong>{effect.name}</strong>
-                <small>{effect.execution.replace("-", " ")} · GPU</small>
+                <small>
+                  {t("project.effect.execution", {
+                    execution: effect.execution.replace("-", " "),
+                  })}
+                </small>
               </span>
             </button>
             <button
-              aria-label={`Toggle favorite ${effect.type}`}
+              aria-label={t("project.effect.toggleFavorite", { type: effect.type })}
               className={`effect-favorite ${favorite ? "active" : ""}`}
               onClick={() => onToggleFavorite(effect.type)}
-              title={`${favorite ? "Remove" : "Add"} ${effect.name} ${favorite ? "from" : "to"} favorites`}
+              title={
+                favorite
+                  ? t("project.effect.removeFavorite", { name: effect.name })
+                  : t("project.effect.addFavorite", { name: effect.name })
+              }
               type="button"
             >
               <Star fill={favorite ? "currentColor" : "none"} size={11} />

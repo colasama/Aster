@@ -35,8 +35,26 @@ export type LayerKind =
   | "mesh"
   | "particle"
   | "precomposition"
+  | "adjustment"
   | "camera"
   | "light";
+
+export const LAYER_KINDS = [
+  "shape",
+  "text",
+  "image",
+  "video",
+  "mesh",
+  "particle",
+  "precomposition",
+  "adjustment",
+  "camera",
+  "light",
+] as const satisfies readonly LayerKind[];
+
+export function isLayerKind(value: unknown): value is LayerKind {
+  return typeof value === "string" && (LAYER_KINDS as readonly string[]).includes(value);
+}
 export type BlendMode = "normal" | "add" | "multiply" | "screen" | "overlay";
 
 export interface Lut3dResource {
@@ -250,6 +268,7 @@ export interface Composition {
   height: number;
   frameRate: { numerator: number; denominator: number };
   duration: number;
+  workArea: { start: number; end: number };
   background: [number, number, number, number];
   environment?: EnvironmentLighting;
   layers: Layer[];
@@ -334,6 +353,7 @@ export interface GpuDiagnostics {
   pipelineCompileMs?: number;
   prewarmedPipelines?: number;
   materialResourceError?: string;
+  adjustmentLayerError?: string;
 }
 
 export const createId = (): Id => crypto.randomUUID();

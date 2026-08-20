@@ -255,6 +255,7 @@ export function createDemoProject(): Project {
     height: 2160,
     frameRate: { numerator: 60, denominator: 1 },
     duration: 12,
+    workArea: { start: 0, end: 12 },
     background: [0.008, 0.01, 0.025, 1],
     environment: {
       enabled: true,
@@ -309,6 +310,7 @@ export function createBlankComposition(name = "Composition 1"): Composition {
     height: 1080,
     frameRate: { numerator: 30, denominator: 1 },
     duration: 10,
+    workArea: { start: 0, end: 10 },
     background: [0.008, 0.01, 0.018, 1],
     layers: [background],
   };

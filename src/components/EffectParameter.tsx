@@ -1,5 +1,6 @@
 import { KeyRound } from "lucide-react";
 import type { EffectParameterDefinition } from "../effects/types";
+import { useI18n } from "../i18n/react";
 
 export function EffectParameter({
   definition,
@@ -16,13 +17,12 @@ export function EffectParameter({
   animated: boolean;
   keyframed: boolean;
 }) {
+  const { t } = useI18n();
   if (definition.kind === "texture") {
     return (
       <div className="effect-parameter">
         <span>{definition.label}</span>
-        <small title="WGSL effect ABI v1 binds the current layer as the source texture">
-          Layer source
-        </small>
+        <small title={t("effectParameter.sourceHint")}>{t("effectParameter.layerSource")}</small>
       </div>
     );
   }
@@ -128,9 +128,14 @@ function EffectKeyframeButton({
   label: string;
   onClick: () => void;
 }) {
+  const { t } = useI18n();
   return (
     <button
-      aria-label={`${keyframed ? "Remove" : "Add"} ${label} keyframe`}
+      aria-label={
+        keyframed
+          ? t("effectParameter.removeKeyframe", { label })
+          : t("effectParameter.addKeyframe", { label })
+      }
       className={`effect-keyframe ${animated ? "animated" : ""} ${keyframed ? "active" : ""}`}
       onClick={onClick}
       type="button"

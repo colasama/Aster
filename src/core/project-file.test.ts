@@ -6,9 +6,121 @@ import { createBlankProject } from "./project";
 import { serializeProject, validateProjectDocument } from "./project-file";
 
 describe("project document boundary", () => {
+  it("rejects render states the bounded flat renderer cannot represent", () => {
+    const project = createBlankProject();
+    const root = project.compositions[0];
+    const nested = structuredClone(root);
+    nested.id = crypto.randomUUID();
+    nested.layers[0].id = crypto.randomUUID();
+    const wrapper = createLayerForComposition("precomposition", root);
+    wrapper.sourceCompositionId = nested.id;
+    root.layers.unshift(wrapper);
+    project.compositions.push(nested);
+
+    nested.layers.unshift(createLayerForComposition("adjustment", nested));
+    expect(() => validateProjectDocument(project)).toThrow(
+      "Precomposition sources cannot contain adjustment layers",
+    );
+    nested.layers.shift();
+
+    const nestedParticle = createLayerForComposition("particle", nested);
+    nested.layers.push(nestedParticle);
+    expect(() => validateProjectDocument(project)).toThrow(
+      "Precomposition sources cannot contain GPU particle layers",
+    );
+
+    const secondWrapper = createLayerForComposition("precomposition", root);
+    secondWrapper.sourceCompositionId = nested.id;
+    secondWrapper.cloner = {
+      distribution: { kind: "grid", count: [2, 1, 1], spacing: [100, 0, 0] },
+      effectors: [],
+    };
+    root.layers.unshift(secondWrapper);
+    expect(() => validateProjectDocument(project)).toThrow(
+      "Precomposition sources cannot contain GPU particle layers",
+    );
+
+    root.layers = root.layers.filter((layer) => layer.kind !== "precomposition");
+    nested.layers.push(createLayerForComposition("particle", nested));
+    expect(() => validateProjectDocument(project)).toThrow("at most one GPU particle layer");
+    nested.layers.pop();
+    nestedParticle.cloner = {
+      distribution: { kind: "grid", count: [2, 1, 1], spacing: [100, 0, 0] },
+      effectors: [],
+    };
+    expect(() => validateProjectDocument(project)).toThrow(
+      "GPU particle layers cannot use cloners",
+    );
+    nestedParticle.cloner = undefined;
+    nested.layers = nested.layers.filter((layer) => layer.kind !== "particle");
+
+    const firstLut = createEffect("lut");
+    const secondLut = createEffect("lut");
+    firstLut.resource = parseCubeLut(
+      "LUT_3D_SIZE 2\n0 0 0\n1 0 0\n0 1 0\n1 1 0\n0 0 1\n1 0 1\n0 1 1\n1 1 1",
+      "first.cube",
+    );
+    secondLut.resource = parseCubeLut(
+      "LUT_3D_SIZE 2\n0 0 0\n0.8 0 0\n0 0.8 0\n0.8 0.8 0\n0 0 0.8\n0.8 0 0.8\n0 0.8 0.8\n0.8 0.8 0.8",
+      "second.cube",
+    );
+    nested.layers[0].effects = [firstLut, secondLut];
+    expect(() => validateProjectDocument(project)).toThrow("at most one enabled 3D LUT");
+    secondLut.enabled = false;
+    expect(validateProjectDocument(project).compositions[1].layers[0].effects).toHaveLength(2);
+  });
+
+  it("roundtrips strict adjustment layers and rejects unknown or source-backed kinds", () => {
+    const project = createBlankProject();
+    const composition = project.compositions[0];
+    const adjustment = createLayerForComposition("adjustment", composition);
+    composition.layers.unshift(adjustment);
+
+    const roundtrip = validateProjectDocument(JSON.parse(serializeProject(project)));
+    expect(roundtrip.compositions[0].layers[0]).toMatchObject({
+      kind: "adjustment",
+      color: [0, 0, 0, 0],
+      blendMode: "normal",
+      threeDimensional: false,
+    });
+
+    adjustment.transform.opacity = { mode: "static", value: 99 };
+    expect(() => validateProjectDocument(project)).toThrow(
+      "transform must be canonical for adjustment layers",
+    );
+    adjustment.transform.opacity = { mode: "static", value: 100 };
+
+    adjustment.cloner = {
+      distribution: { kind: "grid", count: [2, 1, 1], spacing: [100, 0, 0] },
+      effectors: [],
+    };
+    expect(() => validateProjectDocument(project)).toThrow(
+      "cloner is not supported for adjustment layers",
+    );
+    adjustment.cloner = undefined;
+    adjustment.kind = "unsupported" as typeof adjustment.kind;
+    expect(() => validateProjectDocument(project)).toThrow("kind is unsupported");
+  });
+
   it("roundtrips a valid editor project", () => {
     const project = createBlankProject();
     expect(validateProjectDocument(JSON.parse(serializeProject(project)))).toEqual(project);
+  });
+
+  it("requires a strict frame-aligned composition work area", () => {
+    const project = createBlankProject();
+    project.compositions[0].workArea = { start: 1, end: 3 };
+    expect(
+      validateProjectDocument(JSON.parse(serializeProject(project))).compositions[0].workArea,
+    ).toEqual({ start: 1, end: 3 });
+
+    const missing = structuredClone(project) as unknown as {
+      compositions: Array<{ workArea?: unknown }>;
+    };
+    delete missing.compositions[0].workArea;
+    expect(() => validateProjectDocument(missing)).toThrow("workArea must be an object");
+    project.compositions[0].workArea = { start: 1.01, end: 3 };
+    expect(() => validateProjectDocument(project)).toThrow("frame-aligned composition range");
   });
 
   it("rejects a missing active composition", () => {

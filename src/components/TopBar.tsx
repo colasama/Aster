@@ -43,10 +43,17 @@ import {
 import { evaluateAnimatable } from "../core/timeline";
 import { createId, type LayerKind, type Project } from "../core/types";
 import { createEffect } from "../effects/registry";
-import type { PlainMessageKey, Translate } from "../i18n/core";
+import type { PlainMessageKey } from "../i18n/core";
 import { useI18n } from "../i18n/react";
 import { useEditor } from "../state/editor-store";
 import { findMenuEntry, type MenuId, type MenuItemId, menuDefinitions } from "./topbar-menu";
+import {
+  renderTopBarToast,
+  type TopBarToastActions,
+  toastError,
+  toastMessage,
+  useTopBarToast,
+} from "./topbar-toast";
 import { WorkspaceDialog, type WorkspaceDialogKind } from "./WorkspaceDialog";
 
 interface ToolDefinition {
@@ -77,13 +84,20 @@ export function TopBar() {
   const [renderFormat, setRenderFormat] = useState<"png" | "project" | "sequence">("png");
   const [renderProgress, setRenderProgress] = useState<RenderSequenceProgress>();
   const [workspaceDialog, setWorkspaceDialog] = useState<WorkspaceDialogKind>();
-  const [toast, setToast] = useState<string>();
+  const toast = useTopBarToast();
+  const toastActions = useMemo<TopBarToastActions>(
+    () => ({ beginRequest: toast.beginRequest, show: toast.show }),
+    [toast.beginRequest, toast.show],
+  );
   const paletteInputRef = useRef<HTMLInputElement>(null);
   const meshInputRef = useRef<HTMLInputElement>(null);
   const cancelRenderRef = useRef(false);
   const commands = useMemo(
     () => [
-      { label: t("topbar.command.save"), action: () => saveProject(state.project, setToast, t) },
+      {
+        label: t("topbar.command.save"),
+        action: () => saveProject(state.project, toastActions),
+      },
       {
         label: t("topbar.command.graph"),
         action: () => dispatch({ type: "setBottomMode", mode: "graph" }),
@@ -99,7 +113,7 @@ export function TopBar() {
       },
       { label: t("topbar.command.render"), action: () => setRenderOpen(true) },
     ],
-    [dispatch, state.playing, state.project, t],
+    [dispatch, state.playing, state.project, t, toastActions],
   );
   const filteredCommands = commands.filter((command) =>
     command.label.toLowerCase().includes(paletteQuery.toLowerCase()),
@@ -114,7 +128,7 @@ export function TopBar() {
         setPaletteOpen(true);
       } else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
         event.preventDefault();
-        saveProject(state.project, setToast, t);
+        saveProject(state.project, toastActions);
       } else if (event.key === "Escape") {
         setPaletteOpen(false);
         setRenderOpen(false);
@@ -134,7 +148,7 @@ export function TopBar() {
     };
     window.addEventListener("keydown", shortcut);
     return () => window.removeEventListener("keydown", shortcut);
-  }, [dispatch, state.project, t]);
+  }, [dispatch, state.project, toastActions]);
   useEffect(() => {
     if (paletteOpen) paletteInputRef.current?.focus();
   }, [paletteOpen]);
@@ -159,22 +173,21 @@ export function TopBar() {
     if (item === "newProject") {
       clearRecoverySnapshot();
       dispatch({ type: "loadProject", project: createBlankProject() });
-    } else if (item === "open") openProjectFile(dispatch, setToast, t);
-    else if (item === "openPacked") openPackedProject(dispatch, setToast, t);
+    } else if (item === "open") openProjectFile(dispatch, toastActions);
+    else if (item === "openPacked") openPackedProject(dispatch, toastActions);
     else if (item === "recoverAutosave") {
+      const requestToken = toastActions.beginRequest();
       void readRecoverySnapshotForCurrentProject()
         .then((recovery) => {
           if (recovery) {
             dispatch({ type: "loadProject", project: recovery });
-            showToast(setToast, t("topbar.toast.recovered"));
-          } else showToast(setToast, t("topbar.toast.noRecovery"));
+            toastActions.show(toastMessage("topbar.toast.recovered"), requestToken);
+          } else toastActions.show(toastMessage("topbar.toast.noRecovery"), requestToken);
         })
-        .catch((error: unknown) =>
-          showToast(setToast, error instanceof Error ? error.message : t("topbar.error.recovery")),
-        );
+        .catch(() => toastActions.show(toastError("projectRecovery"), requestToken));
     } else if (item === "saveProject" || item === "saveAs")
-      saveProject(state.project, setToast, t, item === "saveAs");
-    else if (item === "packProject") packProject(state.project, setToast, t);
+      saveProject(state.project, toastActions, item === "saveAs");
+    else if (item === "packProject") packProject(state.project, toastActions);
     else if (item === "undo") dispatch({ type: "undo" });
     else if (item === "redo") dispatch({ type: "redo" });
     else if (item === "duplicate" && selectedLayer) {
@@ -201,7 +214,7 @@ export function TopBar() {
     } else if (item === "precompose" && state.selection.length > 0) {
       const plan = planPrecomposition(state.project, state.selection);
       if (!plan) {
-        showToast(setToast, t("topbar.error.precomposeSelection"));
+        toastActions.show(toastMessage("topbar.error.precomposeSelection"));
         return;
       }
       dispatch({
@@ -209,9 +222,12 @@ export function TopBar() {
         operations: [{ type: "precomposeLayers", ...plan }],
         select: [plan.wrapper.id],
       });
-      showToast(setToast, t("topbar.toast.created", { name: plan.nestedComposition.name }));
+      toastActions.show(
+        toastMessage("topbar.toast.created", { name: plan.nestedComposition.name }),
+      );
     } else if (item === "importImage" || item === "importVideo") {
       const kind = item === "importImage" ? "image" : "video";
+      const requestToken = toastActions.beginRequest();
       void importMediaLayer(kind, composition, state.currentTime)
         .then((layer) => {
           if (!layer) return;
@@ -220,17 +236,12 @@ export function TopBar() {
             operations: [{ type: "addLayer", layer }],
             select: [layer.id],
           });
-          showToast(
-            setToast,
-            t("topbar.toast.imported", { name: layer.asset?.name ?? layer.name }),
+          toastActions.show(
+            toastMessage("topbar.toast.imported", { name: layer.asset?.name ?? layer.name }),
+            requestToken,
           );
         })
-        .catch((error: unknown) =>
-          showToast(
-            setToast,
-            error instanceof Error ? error.message : t("topbar.error.assetImport"),
-          ),
-        );
+        .catch(() => toastActions.show(toastError("mediaImport"), requestToken));
     } else if (item === "importMesh") {
       meshInputRef.current?.click();
     } else if (layerTypes[item]) {
@@ -271,7 +282,7 @@ export function TopBar() {
         type: "operation",
         operations: [{ type: "easeLayer", layerId: selectedLayer.id }],
       });
-      showToast(setToast, t("topbar.toast.easyEase", { name: selectedLayer.name }));
+      toastActions.show(toastMessage("topbar.toast.easyEase", { name: selectedLayer.name }));
     } else if (item === "expressionEditor") setWorkspaceDialog("expression");
     else if (item === "preferences") setWorkspaceDialog("preferences");
     else if (item === "compositionSettings") setWorkspaceDialog("composition");
@@ -292,18 +303,16 @@ export function TopBar() {
     else if (item === "properties") dispatch({ type: "setRightTab", tab: "properties" });
     else if (item === "timeline") dispatch({ type: "setBottomMode", mode: "timeline" });
     else if (item === "gpuDiagnostics") {
-      setToast(
-        t("topbar.toast.gpuMetrics", {
+      toastActions.show(
+        toastMessage("topbar.toast.gpuMetrics", {
           fps: state.metrics.fps.toFixed(0),
           frameMs: state.metrics.frameMs.toFixed(2),
           passes: state.metrics.passCount,
         }),
       );
-      window.setTimeout(() => setToast(undefined), 2600);
     } else {
       const definition = findMenuEntry(item);
-      setToast(t("topbar.toast.nextStep", { item: definition ? t(definition.labelKey) : item }));
-      window.setTimeout(() => setToast(undefined), 1800);
+      if (definition) toastActions.show({ kind: "nextStep", itemKey: definition.labelKey });
     }
   };
   return (
@@ -315,6 +324,7 @@ export function TopBar() {
           const file = event.target.files?.[0];
           event.target.value = "";
           if (!file) return;
+          const requestToken = toastActions.beginRequest();
           void createGltfLayerFromFile(file, activeComposition(state.project), state.currentTime)
             .then((layer) => {
               dispatch({
@@ -322,14 +332,12 @@ export function TopBar() {
                 operations: [{ type: "addLayer", layer }],
                 select: [layer.id],
               });
-              showToast(setToast, t("topbar.toast.imported", { name: layer.name }));
+              toastActions.show(
+                toastMessage("topbar.toast.imported", { name: layer.name }),
+                requestToken,
+              );
             })
-            .catch((error: unknown) =>
-              showToast(
-                setToast,
-                error instanceof Error ? error.message : t("topbar.error.meshImport"),
-              ),
-            );
+            .catch(() => toastActions.show(toastError("meshImport"), requestToken));
         }}
         ref={meshInputRef}
         style={{ display: "none" }}
@@ -366,7 +374,7 @@ export function TopBar() {
         <div className="title-actions">
           <button
             aria-label={t("topbar.command.save")}
-            onClick={() => saveProject(state.project, setToast, t)}
+            onClick={() => saveProject(state.project, toastActions)}
             type="button"
           >
             <Save size={14} />
@@ -547,20 +555,22 @@ export function TopBar() {
                 className="primary"
                 disabled={rendering}
                 onClick={async () => {
+                  const requestToken = toastActions.beginRequest();
                   cancelRenderRef.current = false;
                   setRenderProgress(undefined);
                   setRendering(true);
                   try {
-                    if (renderFormat === "project") saveProject(state.project, setToast, t);
+                    if (renderFormat === "project")
+                      saveProject(state.project, toastActions, false, requestToken);
                     else if (renderFormat === "png") {
                       const blob = await renderSingleFrame(state.currentTime);
                       downloadBlob(blob, "aster-frame-4k.png");
-                      showToast(
-                        setToast,
-                        t("topbar.toast.exportedPng", {
+                      toastActions.show(
+                        toastMessage("topbar.toast.exportedPng", {
                           width: activeComposition(state.project).width,
                           height: activeComposition(state.project).height,
                         }),
+                        requestToken,
                       );
                     } else {
                       const result = await renderPngSequence(
@@ -569,19 +579,18 @@ export function TopBar() {
                         () => cancelRenderRef.current,
                       );
                       if (!result) return;
-                      showToast(
-                        setToast,
+                      toastActions.show(
                         result.cancelled
-                          ? t("topbar.toast.stoppedFrames", { frames: result.frames })
-                          : t("topbar.toast.exportedFrames", { frames: result.frames }),
+                          ? toastMessage("topbar.toast.stoppedFrames", { frames: result.frames })
+                          : toastMessage("topbar.toast.exportedFrames", {
+                              frames: result.frames,
+                            }),
+                        requestToken,
                       );
                     }
                     setRenderOpen(false);
-                  } catch (error) {
-                    showToast(
-                      setToast,
-                      error instanceof Error ? error.message : t("topbar.error.frameExport"),
-                    );
+                  } catch {
+                    toastActions.show(toastError("frameExport"), requestToken);
                   } finally {
                     setRendering(false);
                     setRenderProgress(undefined);
@@ -612,74 +621,76 @@ export function TopBar() {
       {workspaceDialog && (
         <WorkspaceDialog kind={workspaceDialog} onClose={() => setWorkspaceDialog(undefined)} />
       )}
-      {toast && <div className="app-toast">{toast}</div>}
+      {toast.toast && (
+        <div className="app-toast">{renderTopBarToast(t, toast.toast.descriptor)}</div>
+      )}
     </>
   );
 }
 
 async function openProjectFile(
   dispatch: ReturnType<typeof useEditor>["dispatch"],
-  setToast: (message: string | undefined) => void,
-  t: Translate,
+  toast: TopBarToastActions,
 ) {
+  const requestToken = toast.beginRequest();
   try {
     const selected = await pickProjectFile();
     if (!selected) return;
     dispatch({ type: "loadProject", project: selected.project });
-    showToast(setToast, t("topbar.toast.opened", { name: selected.name }));
-  } catch (error) {
-    showToast(setToast, error instanceof Error ? error.message : t("topbar.error.openProject"));
+    toast.show(toastMessage("topbar.toast.opened", { name: selected.name }), requestToken);
+  } catch {
+    toast.show(toastError("projectOpen"), requestToken);
   }
 }
 
 async function openPackedProject(
   dispatch: ReturnType<typeof useEditor>["dispatch"],
-  setToast: (message: string | undefined) => void,
-  t: Translate,
+  toast: TopBarToastActions,
 ) {
+  const requestToken = toast.beginRequest();
   try {
     const selected = await pickPackedProject();
     if (!selected) return;
     dispatch({ type: "loadProject", project: selected.project });
-    showToast(setToast, t("topbar.toast.unpacked", { name: selected.name }));
-  } catch (error) {
-    showToast(setToast, error instanceof Error ? error.message : t("topbar.error.openPacked"));
+    toast.show(toastMessage("topbar.toast.unpacked", { name: selected.name }), requestToken);
+  } catch {
+    toast.show(toastError("projectPackedOpen"), requestToken);
   }
 }
 
-function packProject(
-  project: Project,
-  setToast: (message: string | undefined) => void,
-  t: Translate,
-): void {
+function packProject(project: Project, toast: TopBarToastActions): void {
+  const requestToken = toast.beginRequest();
   void saveProjectDocument(project)
     .then((saved) => (saved ? packCurrentProject(project.name) : undefined))
     .then((path) => {
-      if (path)
-        showToast(setToast, t("topbar.toast.packed", { name: path.split(/[\\/]/).pop() || path }));
+      if (path) {
+        toast.show(
+          toastMessage("topbar.toast.packed", { name: path.split(/[\\/]/).pop() || path }),
+          requestToken,
+        );
+      }
     })
-    .catch((error: unknown) => {
-      showToast(setToast, error instanceof Error ? error.message : t("topbar.error.packProject"));
+    .catch(() => {
+      toast.show(toastError("projectPack"), requestToken);
     });
 }
 
 function saveProject(
   project: Project,
-  setToast: (message: string | undefined) => void,
-  t: Translate,
+  toast: TopBarToastActions,
   chooseDirectory = false,
+  requestToken = toast.beginRequest(),
 ): void {
   void saveProjectDocument(project, chooseDirectory)
     .then((path) => {
-      if (path)
-        showToast(setToast, t("topbar.toast.saved", { name: path.split(/[\\/]/).pop() || path }));
+      if (path) {
+        toast.show(
+          toastMessage("topbar.toast.saved", { name: path.split(/[\\/]/).pop() || path }),
+          requestToken,
+        );
+      }
     })
-    .catch((error: unknown) => {
-      showToast(setToast, error instanceof Error ? error.message : t("topbar.error.saveProject"));
+    .catch(() => {
+      toast.show(toastError("projectSave"), requestToken);
     });
-}
-
-function showToast(setToast: (message: string | undefined) => void, message: string): void {
-  setToast(message);
-  window.setTimeout(() => setToast(undefined), 2400);
 }

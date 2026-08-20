@@ -147,10 +147,40 @@
 }
 .work-area {
   position: absolute;
-  top: 2px;
-  height: 2px;
-  background: #6d75a3;
-  box-shadow: 0 0 3px #6a7bc0;
+  z-index: 2;
+  top: 1px;
+  height: 7px;
+  min-width: 2px;
+  border-top: 3px solid #7e8ecb;
+  filter: drop-shadow(0 0 2px #566cad);
+}
+.work-area-move {
+  position: absolute;
+  inset: -3px 5px 0;
+  height: 7px;
+  padding: 0;
+  cursor: grab;
+}
+.work-area-move:active {
+  cursor: grabbing;
+}
+.work-area-handle {
+  position: absolute;
+  z-index: 2;
+  top: -3px;
+  width: 7px;
+  height: 9px;
+  padding: 0;
+  background: #8b9bd7;
+  cursor: ew-resize;
+}
+.work-area-handle.start {
+  left: 0;
+  clip-path: polygon(0 0, 100% 0, 0 100%);
+}
+.work-area-handle.end {
+  right: 0;
+  clip-path: polygon(0 0, 100% 0, 100% 100%);
 }
 .layer-rows {
   position: relative;
@@ -353,6 +383,14 @@
   box-shadow:
     0 0 0 2px #c87b2c,
     0 0 7px #e8a654;
+}
+.timeline-marquee {
+  pointer-events: none;
+  position: absolute;
+  z-index: 12;
+  border: 1px solid #8fb2ff;
+  background: rgba(80, 124, 221, 0.16);
+  box-shadow: 0 0 0 1px rgba(23, 35, 63, 0.65) inset;
 }
 .expanded-properties {
   margin-left: 0;

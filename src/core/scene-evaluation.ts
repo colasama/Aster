@@ -1,6 +1,7 @@
 import { composeClonerTransform, evaluateCloner, MAX_CLONER_INSTANCES } from "./cloner";
 import { evaluateLayerTransform } from "./expressions";
 import { evaluateLayerSourceTime } from "./layer-time";
+import { NESTED_ADJUSTMENT_ERROR } from "./project-render-boundaries";
 import type { Composition, EvaluatedTransform, Id, Layer, Project } from "./types";
 
 export interface FlattenedSceneLayer {
@@ -59,13 +60,19 @@ function flattenComposition(
   const nextStack = new Set(compositionStack).add(composition.id);
   const output: FlattenedSceneLayer[] = [];
   for (const layer of visibleLayersAtTime(composition, time)) {
+    if (layer.kind === "adjustment" && compositionStack.size > 0)
+      throw new Error(NESTED_ADJUSTMENT_ERROR);
     const localTransform = evaluateWorldTransform(layer, composition, time);
     const rootSelectionId = selectionId ?? layer.id;
     const nested =
       layer.kind === "precomposition" && layer.sourceCompositionId
         ? project?.compositions.find((candidate) => candidate.id === layer.sourceCompositionId)
         : undefined;
-    const clones = layer.cloner ? evaluateCloner(layer.cloner, time).instances : undefined;
+    // Adjustment layers are composition-wide stack operations, never spatial instances.
+    const clones =
+      layer.kind !== "adjustment" && layer.cloner
+        ? evaluateCloner(layer.cloner, time).instances
+        : undefined;
     const cloneInstances = clones ?? [undefined];
     for (const clone of cloneInstances) {
       if (output.length >= MAX_CLONER_INSTANCES) break;

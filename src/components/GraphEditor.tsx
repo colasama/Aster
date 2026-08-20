@@ -2,6 +2,7 @@ import { useState } from "react";
 import { activeComposition } from "../core/project";
 import { evaluateAnimatable } from "../core/timeline";
 import type { Keyframe } from "../core/types";
+import { useI18n } from "../i18n/react";
 import { useEditor } from "../state/editor-store";
 
 const WIDTH = 1000;
@@ -21,6 +22,7 @@ interface EasingPreview {
 
 export function GraphEditor() {
   const { state, dispatch } = useEditor();
+  const { t } = useI18n();
   const composition = activeComposition(state.project);
   const layer = composition.layers.find((entry) => entry.id === state.selection[0]);
   const property = layer?.transform.position[1];
@@ -162,21 +164,21 @@ export function GraphEditor() {
   return (
     <div className="graph-editor">
       <div className="graph-sidebar">
-        <strong>{layer?.name ?? "No selection"}</strong>
+        <strong>{layer?.name ?? t("graph.noSelection")}</strong>
         <button
           className="active"
           onClick={() => {
             if (keyframes[0]) dispatch({ type: "setTime", time: keyframes[0].time });
           }}
-          title="Focus and edit Y Position curve"
+          title={t("graph.focusPositionY")}
           type="button"
         >
-          <span className="property-color" /> Y Position
+          <span className="property-color" /> {t("graph.positionY")}
         </button>
-        <small>Drag keys · drag handles for easing</small>
+        <small>{t("graph.dragHint")}</small>
       </div>
       <svg
-        aria-label="Editable Y Position keyframe value graph"
+        aria-label={t("graph.a11y")}
         preserveAspectRatio="none"
         role="img"
         viewBox={`0 0 ${WIDTH} ${HEIGHT}`}

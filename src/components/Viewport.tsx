@@ -16,6 +16,8 @@ import type { FrameRenderSession } from "../core/render-export";
 import { evaluateWorldTransform, flattenSceneLayers } from "../core/scene-evaluation";
 import { evaluateAnimatable } from "../core/timeline";
 import type { GpuDiagnostics, Project } from "../core/types";
+import type { PlainMessageKey, Translate } from "../i18n/core";
+import { useI18n } from "../i18n/react";
 import { CanvasFallbackRenderer } from "../renderer/canvas-fallback";
 import { type GpuBenchmarkRequest, runGpuBenchmark } from "../renderer/gpu-benchmark";
 import { calculatePreviewSize } from "../renderer/preview-size";
@@ -30,6 +32,7 @@ type Renderer = WebGpuRenderer | CanvasFallbackRenderer;
 
 export function Viewport() {
   const { state, dispatch } = useEditor();
+  const { t } = useI18n();
   const composition = activeComposition(state.project);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const mirrorCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -41,10 +44,10 @@ export function Viewport() {
   const [diagnostics, setDiagnostics] = useState<GpuDiagnostics>();
   const [rendererReady, setRendererReady] = useState(false);
   const [rendererRevision, setRendererRevision] = useState(0);
-  const [view, setView] = useState("Active Camera");
+  const [view, setView] = useState<"active" | "custom">("active");
   const [viewCount, setViewCount] = useState(1);
   const [bufferView, setBufferView] = useState<BufferVisualization>("beauty");
-  const [space, setSpace] = useState<"Local" | "World">("Local");
+  const [space, setSpace] = useState<"local" | "world">("local");
   const displayZoom = state.viewportZoom * (viewCount === 2 ? 0.5 : 1);
   const pan = useRef({ active: false, x: 0, y: 0, left: 0, top: 0 });
   const selectedLayer = composition.layers.find((layer) => layer.id === state.selection[0]);
@@ -240,20 +243,23 @@ export function Viewport() {
   return (
     <Panel
       className="viewport-panel"
-      title={`${composition.name}  •  Active Camera`}
+      title={t("viewport.title", {
+        composition: composition.name,
+        view: t("viewport.activeCamera"),
+      })}
       actions={
         <>
           <button
             className={state.showGrid ? "active" : ""}
             onClick={() => dispatch({ type: "toggleView", view: "grid" })}
-            title="Toggle composition grid"
+            title={t("viewport.toggleGrid")}
             type="button"
           >
             <Grid3X3 size={13} />
           </button>
           <button
             onClick={() => toggleFullscreen(document.querySelector(".viewport-panel"))}
-            title="Toggle fullscreen viewport"
+            title={t("viewport.toggleFullscreen")}
             type="button"
           >
             <Maximize2 size={13} />
@@ -263,44 +269,53 @@ export function Viewport() {
     >
       <div className="viewport-toolbar">
         <select
-          aria-label="Viewport render buffer"
+          aria-label={t("viewport.buffer.label")}
           onChange={(event) => setBufferView(event.target.value as BufferVisualization)}
-          title="Visualize the GPU scene buffer"
+          title={t("viewport.buffer.hint")}
           value={bufferView}
         >
           {BUFFER_VISUALIZATIONS.map((mode) => (
             <option key={mode} value={mode}>
-              {bufferViewLabel(mode)}
+              {bufferViewLabel(mode, t)}
             </option>
           ))}
         </select>
         <button
-          onClick={() => setView(view === "Active Camera" ? "Custom View" : "Active Camera")}
-          title="Switch camera view"
+          onClick={() => setView(view === "active" ? "custom" : "active")}
+          title={t("viewport.switchCamera")}
           type="button"
         >
-          {viewCount === 2 ? "Active + Custom" : view} <ChevronDown size={11} />
+          {viewCount === 2
+            ? t("viewport.activeAndCustom")
+            : view === "active"
+              ? t("viewport.activeCamera")
+              : t("viewport.customView")}{" "}
+          <ChevronDown size={11} />
         </button>
         <button
           onClick={() => setViewCount(viewCount === 1 ? 2 : 1)}
-          title="Cycle viewport layout"
+          title={t("viewport.cycleLayout")}
           type="button"
         >
-          {viewCount} {viewCount === 1 ? "View" : "Views"} <ChevronDown size={11} />
+          {viewCount === 1
+            ? t("viewport.viewCount", { count: viewCount })
+            : t("viewport.viewsCount", { count: viewCount })}{" "}
+          <ChevronDown size={11} />
         </button>
         <span className="toolbar-gap" />
         <button
           className="active"
-          onClick={() => setSpace(space === "Local" ? "World" : "Local")}
-          title="Toggle transform coordinate space"
+          onClick={() => setSpace(space === "local" ? "world" : "local")}
+          title={t("viewport.toggleSpace")}
           type="button"
         >
-          <Move3D size={13} /> {space}
+          <Move3D size={13} />
+          {space === "local" ? t("viewport.space.local") : t("viewport.space.world")}
         </button>
         <button
           className={state.showOrigin ? "active" : ""}
           onClick={() => dispatch({ type: "toggleView", view: "origin" })}
-          title="Toggle composition origin"
+          title={t("viewport.toggleOrigin")}
           type="button"
         >
           <Crosshair size={13} />
@@ -308,7 +323,7 @@ export function Viewport() {
         <button
           className={state.showGuides ? "active" : ""}
           onClick={() => dispatch({ type: "toggleView", view: "guides" })}
-          title="Toggle title/action safe guides"
+          title={t("viewport.toggleGuides")}
           type="button"
         >
           <Scan size={13} />
@@ -342,7 +357,7 @@ export function Viewport() {
             }
             if (state.activeTool === "shape") layer.size = [720, 480];
             if (state.activeTool === "pen") {
-              layer.name = "Pen Path";
+              layer.name = t("viewport.penPath");
               layer.size = [760, 480];
               if (layer.shape) {
                 layer.shape.kind = "bezier";
@@ -407,7 +422,7 @@ export function Viewport() {
       >
         <div className={`stage-centering ${viewCount === 2 ? "multiview" : ""}`}>
           <div
-            className={`composition-stage ${view === "Custom View" && viewCount === 1 ? "custom-stage" : ""}`}
+            className={`composition-stage ${view === "custom" && viewCount === 1 ? "custom-stage" : ""}`}
             ref={stageRef}
             style={{
               height: composition.height * displayZoom,
@@ -427,7 +442,7 @@ export function Viewport() {
               selectedLayer.kind !== "camera" &&
               selectedLayer.kind !== "particle" && (
                 <button
-                  aria-label={`Transform ${selectedLayer.name} in viewport`}
+                  aria-label={t("viewport.transformLayer", { name: selectedLayer.name })}
                   className={`selection-bounds ${selectedLayer.locked ? "locked" : ""}`}
                   onKeyDown={(event) => {
                     if (selectedLayer.locked || !event.key.startsWith("Arrow")) return;
@@ -602,21 +617,21 @@ export function Viewport() {
               }}
             >
               <canvas ref={mirrorCanvasRef} />
-              <span className="view-label">Custom View</span>
+              <span className="view-label">{t("viewport.customView")}</span>
             </div>
           )}
         </div>
       </div>
       <div className="viewport-status">
         <button
-          aria-label="Zoom out"
+          aria-label={t("viewport.zoomOut")}
           onClick={() => dispatch({ type: "setViewportZoom", zoom: state.viewportZoom / 1.15 })}
           type="button"
         >
           <Minus size={11} />
         </button>
         <input
-          aria-label="Viewport zoom"
+          aria-label={t("viewport.zoom")}
           max="1"
           min="0.05"
           onChange={(event) =>
@@ -629,13 +644,13 @@ export function Viewport() {
         <button
           className="zoom-value"
           onClick={() => dispatch({ type: "setViewportZoom", zoom: 0.22 })}
-          title="Reset to 22%"
+          title={t("viewport.resetZoom")}
           type="button"
         >
           {Math.round(state.viewportZoom * 100)}%
         </button>
         <button
-          aria-label="Zoom in"
+          aria-label={t("viewport.zoomIn")}
           onClick={() => dispatch({ type: "setViewportZoom", zoom: state.viewportZoom * 1.15 })}
           type="button"
         >
@@ -654,42 +669,50 @@ export function Viewport() {
                 : "fallback"
           }`}
           title={
-            diagnostics?.materialResourceError ??
-            (diagnostics?.available
-              ? `${diagnostics.description} · ${diagnostics.prewarmedPipelines ?? 0} pipelines asynchronously prewarmed in ${(diagnostics.pipelineCompileMs ?? 0).toFixed(1)} ms`
-              : diagnostics?.description)
+            diagnostics?.materialResourceError
+              ? t("viewport.gpuResourceError")
+              : diagnostics?.available
+                ? t("viewport.gpuDetails", {
+                    adapter: diagnostics.adapter,
+                    count: diagnostics.prewarmedPipelines ?? 0,
+                    ms: (diagnostics.pipelineCompileMs ?? 0).toFixed(1),
+                  })
+                : diagnostics
+                  ? t("viewport.compatibility")
+                  : t("viewport.initializing")
           }
         >
           <Sparkles size={11} />{" "}
           {diagnostics?.materialResourceError
-            ? "GPU material resource error"
+            ? t("viewport.gpuResourceError")
             : diagnostics?.available
-              ? `WebGPU · ${diagnostics.adapter}`
+              ? t("viewport.webgpu", { adapter: diagnostics.adapter })
               : diagnostics
-                ? "Compatibility renderer"
-                : "Initializing GPU…"}
+                ? t("viewport.compatibility")
+                : t("viewport.initializing")}
         </span>
       </div>
     </Panel>
   );
 }
 
-function bufferViewLabel(mode: BufferVisualization): string {
-  return {
-    beauty: "Beauty",
-    linearColor: "Linear HDR",
-    luminance: "Luminance",
-    alpha: "Alpha",
-    depthFog: "Depth Fog · GPU",
-    depthOfField: "Depth of Field · GPU",
-    selectionIsolation: "Selected Object Isolation · GPU",
-    vectorMotionBlur: "Vector Motion Blur · GPU",
-    normal: "Normal",
-    objectId: "Object ID",
-    materialId: "Material ID",
-    worldPosition: "World Position",
-    motionVector: "Motion Vector",
-  }[mode];
+function bufferViewLabel(mode: BufferVisualization, t: Translate): string {
+  const keys: Record<BufferVisualization, PlainMessageKey> = {
+    beauty: "viewport.buffer.beauty",
+    linearColor: "viewport.buffer.linearColor",
+    luminance: "viewport.buffer.luminance",
+    alpha: "viewport.buffer.alpha",
+    depthFog: "viewport.buffer.depthFog",
+    depthOfField: "viewport.buffer.depthOfField",
+    selectionIsolation: "viewport.buffer.selectionIsolation",
+    vectorMotionBlur: "viewport.buffer.vectorMotionBlur",
+    normal: "viewport.buffer.normal",
+    objectId: "viewport.buffer.objectId",
+    materialId: "viewport.buffer.materialId",
+    worldPosition: "viewport.buffer.worldPosition",
+    motionVector: "viewport.buffer.motionVector",
+  };
+  return t(keys[mode]);
 }
 
 function syncMirrorCanvas(

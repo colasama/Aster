@@ -148,4 +148,28 @@ describe("editor scene evaluation", () => {
 
     expect(flattenSceneLayers(root, project, 0)).toHaveLength(65_536);
   });
+
+  it("keeps adjustment evaluation local and non-spatial", () => {
+    const project = createBlankProject();
+    const root = project.compositions[0];
+    const adjustment = createLayerForComposition("adjustment", root);
+    adjustment.cloner = {
+      distribution: { kind: "grid", count: [4, 1, 1], spacing: [100, 0, 0] },
+      effectors: [],
+    };
+    root.layers = [adjustment];
+    expect(flattenSceneLayers(root, project, 0)).toHaveLength(1);
+
+    const nested = createBlankProject().compositions[0];
+    nested.id = crypto.randomUUID();
+    nested.layers = [createLayerForComposition("adjustment", nested), nested.layers[0]];
+    const wrapper = createLayerForComposition("precomposition", root);
+    wrapper.sourceCompositionId = nested.id;
+    root.layers = [wrapper];
+    project.compositions.push(nested);
+
+    expect(() => flattenSceneLayers(root, project, 0)).toThrow(
+      "Precomposition sources cannot contain adjustment layers",
+    );
+  });
 });

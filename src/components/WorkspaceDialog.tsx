@@ -7,6 +7,7 @@ import { activeComposition } from "../core/project";
 import { evaluateAnimatable } from "../core/timeline";
 import type { EnvironmentLighting } from "../core/types";
 import type { Locale, PlainMessageKey, Translate } from "../i18n/core";
+import { type UiErrorCode, uiErrorMessage } from "../i18n/errors";
 import { useI18n } from "../i18n/react";
 import { useEditor } from "../state/editor-store";
 import { PluginManager } from "./PluginManager";
@@ -50,16 +51,16 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
   const [environment, setEnvironment] = useState<EnvironmentLighting | undefined>(
     composition.environment,
   );
-  const [environmentError, setEnvironmentError] = useState<string>();
+  const [environmentError, setEnvironmentError] = useState<UiErrorCode>();
   const [environmentValidating, setEnvironmentValidating] = useState(false);
   const hdrValidationAbort = useRef<AbortController | undefined>(undefined);
   const [autosaveSeconds, setAutosaveSeconds] = useState(() =>
-    Number(localStorage.getItem("aster.autosaveSeconds") ?? 30),
+    Number(readPreference("aster.autosaveSeconds") ?? 30),
   );
   const [previewQuality, setPreviewQuality] = useState(state.previewQuality);
   const [gpuMemoryBudgetMb, setGpuMemoryBudgetMb] = useState(state.gpuMemoryBudgetMb);
   const [reducedMotion, setReducedMotion] = useState(
-    () => localStorage.getItem("aster.reducedMotion") === "true",
+    () => readPreference("aster.reducedMotion") === "true",
   );
   const [preferredLocale, setPreferredLocale] = useState<Locale>(locale);
   const [expressionPath, setExpressionPath] = useState<PropertyPath>("opacity");
@@ -99,13 +100,17 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
   };
 
   const savePreferences = () => {
-    localStorage.setItem("aster.autosaveSeconds", String(autosaveSeconds));
-    localStorage.setItem("aster.reducedMotion", String(reducedMotion));
-    localStorage.setItem("aster.gpuMemoryBudgetMb", String(gpuMemoryBudgetMb));
+    writePreferences([
+      ["aster.autosaveSeconds", String(autosaveSeconds)],
+      ["aster.reducedMotion", String(reducedMotion)],
+      ["aster.gpuMemoryBudgetMb", String(gpuMemoryBudgetMb)],
+    ]);
     dispatch({ type: "setPreviewQuality", quality: previewQuality });
     dispatch({ type: "setGpuMemoryBudget", budget: gpuMemoryBudgetMb });
     setLocale(preferredLocale);
-    document.documentElement.classList.toggle("reduced-motion", reducedMotion);
+    if (typeof document !== "undefined") {
+      document.documentElement.classList.toggle("reduced-motion", reducedMotion);
+    }
     onClose();
   };
 
@@ -261,13 +266,9 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
                         source,
                       }),
                     )
-                    .catch((error) => {
+                    .catch(() => {
                       if (abort.signal.aborted) return;
-                      setEnvironmentError(
-                        error instanceof Error
-                          ? error.message
-                          : t("workspace.error.readEnvironment"),
-                      );
+                      setEnvironmentError("hdrImport");
                     })
                     .finally(() => {
                       if (hdrValidationAbort.current !== abort) return;
@@ -292,7 +293,9 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
                 </button>
               </div>
             )}
-            {environmentError && <div className="dialog-note wide">{environmentError}</div>}
+            {environmentError && (
+              <div className="dialog-note wide">{uiErrorMessage(t, environmentError)}</div>
+            )}
             <div className="dialog-note wide">
               <Gauge size={15} /> {t("workspace.composition.gpuLimit")}
             </div>
@@ -539,9 +542,25 @@ function previewExpression(
 ): { value: number; error?: undefined } | { value?: undefined; error: string } {
   try {
     return { value: evaluateExpression(expression, { value, time }) };
-  } catch (error) {
-    return {
-      error: error instanceof Error ? error.message : t("workspace.error.invalidExpression"),
-    };
+  } catch {
+    return { error: uiErrorMessage(t, "expression") };
+  }
+}
+
+function readPreference(key: string): string | undefined {
+  if (typeof window === "undefined") return undefined;
+  try {
+    return window.localStorage.getItem(key) ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function writePreferences(entries: ReadonlyArray<readonly [string, string]>): void {
+  if (typeof window === "undefined") return;
+  try {
+    for (const [key, value] of entries) window.localStorage.setItem(key, value);
+  } catch {
+    // Preferences still apply to this session when persistent storage is unavailable.
   }
 }

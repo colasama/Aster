@@ -1,4 +1,5 @@
 import type { EffectMask } from "../core/types";
+import { useI18n } from "../i18n/react";
 
 export function EffectMaskEditor({
   mask,
@@ -7,6 +8,7 @@ export function EffectMaskEditor({
   mask: EffectMask;
   onChange: (mask: EffectMask) => void;
 }) {
+  const { t } = useI18n();
   const update = (patch: Partial<EffectMask>) => onChange({ ...mask, ...patch });
   const updatePair = (key: "center" | "size", index: 0 | 1, value: number) => {
     if (!Number.isFinite(value)) return;
@@ -17,14 +19,14 @@ export function EffectMaskEditor({
   return (
     <div className="effect-mask-editor">
       <div className="effect-mask-heading">
-        <strong>Effect Mask</strong>
+        <strong>{t("mask.title")}</strong>
         <select
-          aria-label="Effect mask shape"
+          aria-label={t("mask.shape")}
           onChange={(event) => update({ shape: event.target.value as EffectMask["shape"] })}
           value={mask.shape}
         >
-          <option value="ellipse">Ellipse</option>
-          <option value="rectangle">Rectangle</option>
+          <option value="ellipse">{t("mask.ellipse")}</option>
+          <option value="rectangle">{t("mask.rectangle")}</option>
         </select>
         <label>
           <input
@@ -32,25 +34,25 @@ export function EffectMaskEditor({
             onChange={(event) => update({ invert: event.target.checked })}
             type="checkbox"
           />
-          Invert
+          {t("mask.invert")}
         </label>
       </div>
       <MaskPair
-        label="Center"
+        label={t("mask.center")}
         max={1000}
         min={-1000}
         onChange={(index, value) => updatePair("center", index, value)}
         value={mask.center}
       />
       <MaskPair
-        label="Size"
+        label={t("mask.size")}
         max={2000}
         min={0.1}
         onChange={(index, value) => updatePair("size", index, value)}
         value={mask.size}
       />
       <MaskScalar
-        label="Feather"
+        label={t("mask.feather")}
         max={500}
         min={0}
         onChange={(feather) => update({ feather })}
@@ -59,7 +61,7 @@ export function EffectMaskEditor({
         value={mask.feather}
       />
       <MaskScalar
-        label="Opacity"
+        label={t("mask.opacity")}
         max={100}
         min={0}
         onChange={(opacity) => update({ opacity })}

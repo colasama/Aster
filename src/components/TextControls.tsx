@@ -1,5 +1,6 @@
 import { createDefaultTextAnimator, TEXT_ANIMATOR_LIMITS } from "../core/text-animator";
 import type { Layer, TextAnimatorSettings, TextStyle } from "../core/types";
+import { useI18n } from "../i18n/react";
 import { useEditor } from "../state/editor-store";
 
 const DEFAULT_STYLE: TextStyle = {
@@ -15,6 +16,7 @@ const DEFAULT_STYLE: TextStyle = {
 
 export function TextControls({ layer }: { layer: Layer }) {
   const { dispatch } = useEditor();
+  const { t } = useI18n();
   if (layer.kind !== "text") return null;
   const style = layer.textStyle ?? DEFAULT_STYLE;
   const animator = layer.textAnimator ?? createDefaultTextAnimator();
@@ -61,9 +63,9 @@ export function TextControls({ layer }: { layer: Layer }) {
   return (
     <>
       <label>
-        Text
+        {t("text.content")}
         <textarea
-          aria-label="Text content"
+          aria-label={t("text.contentA11y")}
           maxLength={20_000}
           onChange={(event) =>
             dispatch({
@@ -76,9 +78,9 @@ export function TextControls({ layer }: { layer: Layer }) {
         />
       </label>
       <label>
-        Font family
+        {t("text.fontFamily")}
         <input
-          aria-label="Font family"
+          aria-label={t("text.fontFamily")}
           maxLength={160}
           onChange={(event) => update("fontFamily", event.target.value)}
           type="text"
@@ -86,15 +88,15 @@ export function TextControls({ layer }: { layer: Layer }) {
         />
       </label>
       <TextNumber
-        label="Font size"
+        label={t("text.fontSize")}
         min={1}
         onChange={(value) => update("fontSize", value)}
         value={style.fontSize}
       />
       <label>
-        Font weight
+        {t("text.fontWeight")}
         <select
-          aria-label="Font weight"
+          aria-label={t("text.fontWeight")}
           onChange={(event) => update("fontWeight", Number(event.target.value))}
           value={style.fontWeight}
         >
@@ -106,48 +108,48 @@ export function TextControls({ layer }: { layer: Layer }) {
         </select>
       </label>
       <label>
-        Alignment
+        {t("text.alignment")}
         <select
-          aria-label="Text alignment"
+          aria-label={t("text.alignmentA11y")}
           onChange={(event) => update("alignment", event.target.value as TextStyle["alignment"])}
           value={style.alignment}
         >
-          <option value="left">Left</option>
-          <option value="center">Center</option>
-          <option value="right">Right</option>
+          <option value="left">{t("text.left")}</option>
+          <option value="center">{t("text.center")}</option>
+          <option value="right">{t("text.right")}</option>
         </select>
       </label>
       <TextNumber
-        label="Tracking"
+        label={t("text.tracking")}
         min={-1000}
         onChange={(value) => update("tracking", value)}
         value={style.tracking}
       />
       <TextNumber
-        label="Leading"
+        label={t("text.leading")}
         min={1}
         onChange={(value) => update("leading", value)}
         value={style.leading}
       />
       <label>
-        Fill color
+        {t("text.fillColor")}
         <input
-          aria-label="Text fill color"
+          aria-label={t("text.fillColorA11y")}
           onChange={(event) => updateColor(event.target.value)}
           type="color"
           value={colorInput(layer.color)}
         />
       </label>
       <TextNumber
-        label="Text stroke width"
+        label={t("text.strokeWidth")}
         min={0}
         onChange={(value) => update("strokeWidth", value)}
         value={style.strokeWidth}
       />
       <label>
-        Stroke color
+        {t("text.strokeColor")}
         <input
-          aria-label="Text stroke color"
+          aria-label={t("text.strokeColorA11y")}
           onChange={(event) =>
             update("strokeColor", [...parseColor(event.target.value), style.strokeColor[3]])
           }
@@ -156,9 +158,9 @@ export function TextControls({ layer }: { layer: Layer }) {
         />
       </label>
       <label>
-        Character animator
+        {t("text.animator")}
         <input
-          aria-label="Character animator"
+          aria-label={t("text.animator")}
           checked={animator.enabled}
           onChange={(event) => updateAnimator("enabled", event.target.checked)}
           type="checkbox"
@@ -167,7 +169,7 @@ export function TextControls({ layer }: { layer: Layer }) {
       {animator.enabled ? (
         <>
           <TextNumber
-            label="Animator delay"
+            label={t("text.animatorDelay")}
             max={TEXT_ANIMATOR_LIMITS.delay[1]}
             min={TEXT_ANIMATOR_LIMITS.delay[0]}
             onChange={(value) => updateAnimator("delay", value)}
@@ -175,7 +177,7 @@ export function TextControls({ layer }: { layer: Layer }) {
             value={animator.delay}
           />
           <TextNumber
-            label="Character stagger"
+            label={t("text.characterStagger")}
             max={TEXT_ANIMATOR_LIMITS.stagger[1]}
             min={TEXT_ANIMATOR_LIMITS.stagger[0]}
             onChange={(value) => updateAnimator("stagger", value)}
@@ -183,7 +185,7 @@ export function TextControls({ layer }: { layer: Layer }) {
             value={animator.stagger}
           />
           <TextNumber
-            label="Character duration"
+            label={t("text.characterDuration")}
             max={TEXT_ANIMATOR_LIMITS.duration[1]}
             min={TEXT_ANIMATOR_LIMITS.duration[0]}
             onChange={(value) => updateAnimator("duration", value)}
@@ -191,28 +193,28 @@ export function TextControls({ layer }: { layer: Layer }) {
             value={animator.duration}
           />
           <TextNumber
-            label="Start position X"
+            label={t("text.startPositionX")}
             max={TEXT_ANIMATOR_LIMITS.position[1]}
             min={TEXT_ANIMATOR_LIMITS.position[0]}
             onChange={(value) => updateAnimator("position", [value, animator.position[1]])}
             value={animator.position[0]}
           />
           <TextNumber
-            label="Start position Y"
+            label={t("text.startPositionY")}
             max={TEXT_ANIMATOR_LIMITS.position[1]}
             min={TEXT_ANIMATOR_LIMITS.position[0]}
             onChange={(value) => updateAnimator("position", [animator.position[0], value])}
             value={animator.position[1]}
           />
           <TextNumber
-            label="Start scale"
+            label={t("text.startScale")}
             max={TEXT_ANIMATOR_LIMITS.scale[1]}
             min={TEXT_ANIMATOR_LIMITS.scale[0]}
             onChange={(value) => updateAnimator("scale", value)}
             value={animator.scale}
           />
           <TextNumber
-            label="Start opacity"
+            label={t("text.startOpacity")}
             max={TEXT_ANIMATOR_LIMITS.opacity[1]}
             min={TEXT_ANIMATOR_LIMITS.opacity[0]}
             onChange={(value) => updateAnimator("opacity", value)}

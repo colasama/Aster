@@ -199,6 +199,68 @@ export class LayerEffectRenderer {
     return program.count;
   }
 
+  /**
+   * Applies a composition-wide effect to the pixels already accumulated below
+   * an adjustment layer. Separate ping-pong textures make every read/write
+   * dependency explicit; the final copy replaces the HDR target without alpha
+   * compositing the same pixels a second time.
+   */
+  encodeAdjustment(
+    encoder: GPUCommandEncoder,
+    target: GPUTexture,
+    composition: Composition,
+    layer: Layer,
+    instanceId: string,
+    time: number,
+  ): number {
+    if (!layer.effects.some((effect) => effect.enabled)) return 0;
+    if (!this.#input || !this.#output) this.resize(this.#width, this.#height);
+    const input = this.#input;
+    const output = this.#output;
+    if (!input || !output) throw new Error("Adjustment effect targets unavailable");
+
+    const program = compileEffectProgram(composition, time, [layer]);
+    if (program.count === 0) return 0;
+    const resource = this.#resource(instanceId, layer);
+    this.#device.queue.writeBuffer(resource.program, 0, program.data);
+    this.#device.queue.writeBuffer(
+      resource.uniforms,
+      0,
+      buildPostProcessUniforms(
+        this.#width,
+        this.#height,
+        time,
+        defaultPostProcessParameters(),
+        program.count,
+        true,
+      ),
+    );
+
+    const extent: GPUExtent3DStrict = {
+      width: this.#width,
+      height: this.#height,
+      depthOrArrayLayers: 1,
+    };
+    encoder.copyTextureToTexture({ texture: target }, { texture: input }, extent);
+    const effectPass = encoder.beginRenderPass({
+      label: `Adjustment effects · ${layer.name}`,
+      colorAttachments: [
+        {
+          view: output.createView(),
+          clearValue: { r: 0, g: 0, b: 0, a: 0 },
+          loadOp: "clear",
+          storeOp: "store",
+        },
+      ],
+    });
+    effectPass.setPipeline(this.#effectPipeline);
+    effectPass.setBindGroup(0, resource.bindGroup);
+    effectPass.draw(3);
+    effectPass.end();
+    encoder.copyTextureToTexture({ texture: output }, { texture: target }, extent);
+    return program.count;
+  }
+
   sweep(activeInstanceIds: Set<string>): void {
     for (const [instanceId, resource] of this.#resources) {
       if (activeInstanceIds.has(instanceId)) continue;
@@ -214,6 +276,23 @@ export class LayerEffectRenderer {
       this.#width * this.#height * (8 * 2 + 4) +
       [...this.#resources.values()].reduce((total, resource) => total + resource.lutBytes, 0)
     );
+  }
+
+  destroy(): void {
+    this.#input?.destroy();
+    this.#output?.destroy();
+    this.#depth?.destroy();
+    this.#input = undefined;
+    this.#output = undefined;
+    this.#depth = undefined;
+    this.#compositeBindGroup = undefined;
+    for (const resource of this.#resources.values()) {
+      resource.uniforms.destroy();
+      resource.program.destroy();
+      if (resource.lutTexture !== this.#identityLut) resource.lutTexture.destroy();
+    }
+    this.#resources.clear();
+    this.#identityLut.destroy();
   }
 
   #resource(instanceId: string, layer: Layer): LayerEffectBuffers {
@@ -290,7 +369,11 @@ export class LayerEffectRenderer {
       label,
       size: [this.#width, this.#height],
       format: this.#format,
-      usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
+      usage:
+        GPUTextureUsage.RENDER_ATTACHMENT |
+        GPUTextureUsage.TEXTURE_BINDING |
+        GPUTextureUsage.COPY_SRC |
+        GPUTextureUsage.COPY_DST,
     });
   }
 

@@ -1,5 +1,11 @@
 import { createLayerForComposition } from "./layer-factory";
 import { activeComposition, createBlankComposition } from "./project";
+import {
+  assertCompositionRenderBoundaries,
+  assertProjectRenderBoundaries,
+  NESTED_ADJUSTMENT_ERROR,
+  NESTED_PARTICLE_ERROR,
+} from "./project-render-boundaries";
 import type { Animatable, Composition, Id, Layer, Project } from "./types";
 
 export interface PrecompositionPlan {
@@ -39,6 +45,10 @@ export function planPrecomposition(
   const selectedSet = new Set(selectedIds);
   const selected = source.layers.filter((layer) => selectedSet.has(layer.id));
   if (selected.length === 0) return undefined;
+  // Until precompositions render into isolated offscreen targets, moving an
+  // adjustment layer into one would either leak onto the parent or disappear.
+  if (selected.some((layer) => layer.kind === "adjustment" || layer.kind === "particle"))
+    return undefined;
 
   const start = Math.min(...selected.map((layer) => layer.inPoint));
   const end = Math.max(...selected.map((layer) => layer.outPoint));
@@ -52,6 +62,7 @@ export function planPrecomposition(
   nested.height = source.height;
   nested.frameRate = structuredClone(source.frameRate);
   nested.duration = Math.max(frameDuration, end - start);
+  nested.workArea = { start: 0, end: nested.duration };
   nested.background = [0, 0, 0, 0];
   nested.layers = selected.map((layer) => rebaseLayer(layer, start, selectedSet));
 
@@ -76,6 +87,11 @@ export function planPrecomposition(
 export function applyPrecompositionPlan(project: Project, plan: PrecompositionPlan): void {
   if (project.compositions.some((composition) => composition.id === plan.nestedComposition.id))
     throw new Error("Precomposition already exists");
+  assertCompositionRenderBoundaries(plan.nestedComposition, "nestedComposition");
+  if (plan.nestedComposition.layers.some((layer) => layer.kind === "adjustment"))
+    throw new Error(NESTED_ADJUSTMENT_ERROR);
+  if (plan.nestedComposition.layers.some((layer) => layer.kind === "particle"))
+    throw new Error(NESTED_PARTICLE_ERROR);
   const source = activeComposition(project);
   const selected = new Set(plan.selectedIds);
   if (
@@ -83,14 +99,38 @@ export function applyPrecompositionPlan(project: Project, plan: PrecompositionPl
     ![...selected].every((id) => source.layers.some((layer) => layer.id === id))
   )
     throw new Error("Precomposition source layer does not exist");
+  if (source.layers.some((layer) => selected.has(layer.id) && layer.kind === "adjustment"))
+    throw new Error(NESTED_ADJUSTMENT_ERROR);
+  if (source.layers.some((layer) => selected.has(layer.id) && layer.kind === "particle"))
+    throw new Error(NESTED_PARTICLE_ERROR);
+  if (plan.wrapper.sourceCompositionId) {
+    const target =
+      plan.wrapper.sourceCompositionId === plan.nestedComposition.id
+        ? plan.nestedComposition
+        : project.compositions.find(
+            (composition) => composition.id === plan.wrapper.sourceCompositionId,
+          );
+    if (target?.layers.some((layer) => layer.kind === "adjustment"))
+      throw new Error(NESTED_ADJUSTMENT_ERROR);
+  }
   if (source.layers.some((layer) => layer.id === plan.wrapper.id))
     throw new Error("Precomposition wrapper already exists");
-  source.layers = source.layers.filter((layer) => !selected.has(layer.id));
-  source.layers.splice(
+  const nextSourceLayers = source.layers.filter((layer) => !selected.has(layer.id));
+  nextSourceLayers.splice(
     Math.max(0, Math.min(source.layers.length, plan.insertionIndex)),
     0,
     structuredClone(plan.wrapper),
   );
+  const nextSource = { ...source, layers: nextSourceLayers };
+  assertProjectRenderBoundaries({
+    compositions: [
+      ...project.compositions.map((composition) =>
+        composition.id === source.id ? nextSource : composition,
+      ),
+      plan.nestedComposition,
+    ],
+  });
+  source.layers = nextSourceLayers;
   project.compositions.push(structuredClone(plan.nestedComposition));
 }
 

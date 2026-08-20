@@ -1,0 +1,21 @@
+export const errorsEn = {
+  "ui.error.assetImageImport": "Could not import the image. Check the file and try again.",
+  "ui.error.assetVideoImport": "Could not import the video. Check the file and try again.",
+  "ui.error.assetRelink": "Could not relink this asset. Choose a supported source file.",
+  "ui.error.presetSave": "Could not save this preset. Check its name and effect chain.",
+  "ui.error.pluginOperation": "The plugin operation could not be completed.",
+  "ui.error.pluginCatalog": "The local plugin catalog could not be loaded.",
+  "ui.error.aiRequest":
+    "The AI operation could not be completed. Review the provider settings and try again.",
+  "ui.error.lutImport": "Could not import this LUT. Choose a valid .cube file.",
+  "ui.error.hdrImport": "Could not read this HDR environment. Choose a valid Radiance .hdr file.",
+  "ui.error.projectOpen": "Could not open this project.",
+  "ui.error.projectPackedOpen": "Could not open this packed project.",
+  "ui.error.projectPack": "Could not pack this project.",
+  "ui.error.projectSave": "Could not save this project.",
+  "ui.error.projectRecovery": "Could not recover an autosave snapshot.",
+  "ui.error.mediaImport": "Could not import this media file.",
+  "ui.error.meshImport": "Could not import this 3D asset.",
+  "ui.error.frameExport": "Could not export the frame.",
+  "ui.error.expression": "The expression could not be evaluated.",
+} as const;

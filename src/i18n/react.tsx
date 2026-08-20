@@ -30,7 +30,7 @@ const defaultContext: I18nContextValue = {
 
 const I18nContext = createContext<I18nContextValue>(defaultContext);
 
-function readInitialLocale(): Locale {
+export function readInitialLocale(): Locale {
   if (typeof window === "undefined") return DEFAULT_LOCALE;
   let stored: string | null = null;
   try {
@@ -41,18 +41,32 @@ function readInitialLocale(): Locale {
   return resolveLocale(stored, window.navigator.languages);
 }
 
+export function persistLocale(locale: Locale): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(LOCALE_STORAGE_KEY, locale);
+  } catch {
+    // A private or locked-down browser can reject storage without blocking localization.
+  }
+}
+
+export function syncDocumentLocale(
+  locale: Locale,
+  target: Pick<Document, "documentElement"> | undefined = typeof document === "undefined"
+    ? undefined
+    : document,
+): void {
+  if (target) target.documentElement.lang = locale;
+}
+
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>(readInitialLocale);
   const setLocale = useCallback((nextLocale: Locale) => {
     setLocaleState(nextLocale);
-    try {
-      window.localStorage.setItem(LOCALE_STORAGE_KEY, nextLocale);
-    } catch {
-      // A private or locked-down browser can reject storage without blocking localization.
-    }
+    persistLocale(nextLocale);
   }, []);
   useEffect(() => {
-    document.documentElement.lang = locale;
+    syncDocumentLocale(locale);
   }, [locale]);
   const value = useMemo<I18nContextValue>(
     () => ({ locale, setLocale, t: createTranslator(locale) }),

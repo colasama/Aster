@@ -19,16 +19,20 @@ import { activeComposition } from "../core/project";
 import { createDefaultTextAnimator, normalizeTextAnimatorSettings } from "../core/text-animator";
 import { type Composition, createId, type LayerKind } from "../core/types";
 import { createEffect, EFFECT_BY_TYPE } from "../effects/registry";
+import type { PlainMessageKey, Translate } from "../i18n/core";
+import { translateUiMessage, type UiMessageDescriptor, uiError, uiMessage } from "../i18n/errors";
+import { useI18n } from "../i18n/react";
 import { useEditor } from "../state/editor-store";
 
 const suggestions = [
-  "Make the title spring in",
-  "Add a soft glow to the selection",
-  "Stagger the selected layers by 0.08s",
-];
+  { intent: "Make the title spring in", labelKey: "ai.suggestion.springTitle" },
+  { intent: "Add a soft glow to the selection", labelKey: "ai.suggestion.softGlow" },
+  { intent: "Stagger the selected layers by 0.08s", labelKey: "ai.suggestion.stagger" },
+] as const satisfies readonly { intent: string; labelKey: PlainMessageKey }[];
 
 export function AiPanel() {
   const { state, dispatch } = useEditor();
+  const { t } = useI18n();
   const [prompt, setPrompt] = useState("");
   const [preview, setPreview] = useState<{
     summary: string;
@@ -42,7 +46,7 @@ export function AiPanel() {
     model: "deepseek-v4-flash-0731",
   });
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string>();
+  const [error, setError] = useState<UiMessageDescriptor>();
   const createPreview = async (intent: string) => {
     const layerId = state.selection[0];
     setError(undefined);
@@ -78,15 +82,15 @@ export function AiPanel() {
         });
         setPrompt("");
         return;
-      } catch (providerError) {
-        setError(providerError instanceof Error ? providerError.message : String(providerError));
+      } catch {
+        setError(uiError("aiRequest"));
       } finally {
         setLoading(false);
       }
     }
     const local = planLocalAiOperations(intent, composition, state.selection, state.currentTime);
     if (local.operations.length === 0) {
-      setError("The local planner needs an editable selection for this request");
+      setError(uiMessage("ai.localSelectionError"));
       return;
     }
     setPreview({
@@ -104,15 +108,16 @@ export function AiPanel() {
           <WandSparkles size={18} />
         </span>
         <div>
-          <strong>Aster Operator</strong>
-          <small>Structured operations · Preview before apply</small>
+          <strong>{t("ai.title")}</strong>
+          <small>{t("ai.subtitle")}</small>
         </div>
       </div>
       <div className="ai-context">
-        <Sparkles size={12} /> Context: {composition.name} · {state.selection.length} layer selected
+        <Sparkles size={12} />{" "}
+        {t("ai.context", { composition: composition.name, count: state.selection.length })}
         <button
           onClick={() => setProviderOpen(!providerOpen)}
-          title="AI provider settings"
+          title={t("ai.providerSettings")}
           type="button"
         >
           <Settings2 size={11} />
@@ -121,25 +126,25 @@ export function AiPanel() {
       {providerOpen && (
         <div className="provider-settings">
           <label>
-            Endpoint
+            {t("ai.endpoint")}
             <input
               onChange={(event) => setProvider({ ...provider, baseUrl: event.target.value })}
               value={provider.baseUrl}
             />
           </label>
           <label>
-            Model
+            {t("ai.model")}
             <input
               onChange={(event) => setProvider({ ...provider, model: event.target.value })}
               value={provider.model}
             />
           </label>
           <label>
-            API key <small>memory only</small>
+            {t("ai.apiKey")} <small>{t("ai.memoryOnly")}</small>
             <input
               autoComplete="off"
               onChange={(event) => setProvider({ ...provider, apiKey: event.target.value })}
-              placeholder="Uses ASTER_AI_API_KEY when empty"
+              placeholder={t("ai.apiKeyPlaceholder")}
               type="password"
               value={provider.apiKey}
             />
@@ -147,15 +152,21 @@ export function AiPanel() {
         </div>
       )}
       {error && (
-        <div className="ai-error">{error} · Local planning fallback is still available.</div>
+        <div className="ai-error">
+          {translateUiMessage(t, error)} · {t("ai.errorFallback")}
+        </div>
       )}
       {!preview ? (
         <>
           <div className="ai-suggestions">
-            <small>TRY AN OPERATION</small>
+            <small>{t("ai.tryOperation")}</small>
             {suggestions.map((suggestion) => (
-              <button key={suggestion} onClick={() => void createPreview(suggestion)} type="button">
-                <span>{suggestion}</span>
+              <button
+                key={suggestion.intent}
+                onClick={() => void createPreview(suggestion.intent)}
+                type="button"
+              >
+                <span>{t(suggestion.labelKey)}</span>
                 <ChevronRight size={13} />
               </button>
             ))}
@@ -164,18 +175,19 @@ export function AiPanel() {
             <History size={20} />
             {state.auditLog.length > 0 ? (
               <div className="ai-audit-log">
-                <strong>Recent accepted plans</strong>
+                <strong>{t("ai.recentPlans")}</strong>
                 {state.auditLog
                   .slice(-3)
                   .reverse()
                   .map((entry) => (
                     <span key={entry.id}>
-                      {entry.summary} · {entry.operationTypes.length} operations
+                      {entry.summary} ·{" "}
+                      {t("ai.operationCount", { count: entry.operationTypes.length })}
                     </span>
                   ))}
               </div>
             ) : (
-              <span>Every AI change is auditable, replayable, and undoable.</span>
+              <span>{t("ai.auditEmpty")}</span>
             )}
           </div>
         </>
@@ -183,7 +195,7 @@ export function AiPanel() {
         <div className="operation-preview">
           <div className="preview-heading">
             <Sparkles size={14} />
-            <strong>Operation preview</strong>
+            <strong>{t("ai.preview")}</strong>
           </div>
           <p>{preview.summary}</p>
           <div className="operation-list">
@@ -193,7 +205,7 @@ export function AiPanel() {
                 key={JSON.stringify(operation)}
               >
                 <input
-                  aria-label={`Include operation ${index + 1}`}
+                  aria-label={t("ai.includeOperation", { number: index + 1 })}
                   checked={preview.included[index]}
                   onChange={() =>
                     setPreview({
@@ -208,7 +220,7 @@ export function AiPanel() {
                 <span>{index + 1}</span>
                 <div className="operation-diff">
                   <code>{operation.type}</code>
-                  <small>{describeOperation(operation, composition)}</small>
+                  <small>{describeOperation(operation, composition, t)}</small>
                 </div>
                 {preview.included[index] && <Check size={12} />}
               </div>
@@ -216,7 +228,7 @@ export function AiPanel() {
           </div>
           <div className="preview-actions">
             <button onClick={() => setPreview(undefined)} type="button">
-              <X size={13} /> Reject
+              <X size={13} /> {t("ai.reject")}
             </button>
             <button
               disabled={!preview.included.some(Boolean)}
@@ -231,7 +243,7 @@ export function AiPanel() {
               }}
               type="button"
             >
-              <Check size={13} /> Accept selected
+              <Check size={13} /> {t("ai.acceptSelected")}
             </button>
             <button
               className="accept"
@@ -245,7 +257,7 @@ export function AiPanel() {
               }}
               type="button"
             >
-              <Check size={13} /> Accept all
+              <Check size={13} /> {t("ai.acceptAll")}
             </button>
           </div>
         </div>
@@ -259,12 +271,12 @@ export function AiPanel() {
       >
         <textarea
           onChange={(event) => setPrompt(event.target.value)}
-          placeholder="Describe an editable motion change…"
+          placeholder={t("ai.prompt")}
           rows={3}
           value={prompt}
         />
         <div>
-          <span>Operations only · no destructive pixel edits</span>
+          <span>{t("ai.boundary")}</span>
           <button disabled={!prompt.trim() || loading} type="submit">
             {loading ? <Loader2 className="spin" size={14} /> : <Send size={14} />}
           </button>
@@ -274,41 +286,61 @@ export function AiPanel() {
   );
 }
 
-function describeOperation(operation: Operation, composition: Composition): string {
+function describeOperation(operation: Operation, composition: Composition, t: Translate): string {
   const layer =
     "layerId" in operation
       ? composition.layers.find((candidate) => candidate.id === operation.layerId)
       : undefined;
-  const target = layer?.name ?? ("layer" in operation ? operation.layer.name : "Composition");
+  const target =
+    layer?.name ?? ("layer" in operation ? operation.layer.name : t("ai.targetComposition"));
   switch (operation.type) {
     case "addLayer":
-      return `Add ${operation.layer.kind} layer “${operation.layer.name}”`;
+      return t("ai.operation.addLayer", {
+        kind: operation.layer.kind,
+        name: operation.layer.name,
+      });
     case "removeLayer":
-      return `Remove “${target}”`;
+      return t("ai.operation.remove", { target });
     case "renameLayer":
       return `${target} → “${operation.name}”`;
     case "reorderLayer":
-      return `${target} → stack index ${operation.index}`;
+      return t("ai.operation.stackIndex", { target, index: operation.index });
     case "setProperty":
-      return `${target} · ${operation.path} → ${operation.value}`;
+      return t("ai.operation.property", { target, path: operation.path, value: operation.value });
     case "addKeyframe":
-      return `${target} · ${operation.path} @ ${operation.keyframe.time.toFixed(2)}s → ${operation.keyframe.value}`;
+      return t("ai.operation.keyframe", {
+        target,
+        path: operation.path,
+        time: operation.keyframe.time.toFixed(2),
+        value: operation.keyframe.value,
+      });
     case "addEffect":
-      return `${target} · add ${operation.effect.name}`;
+      return t("ai.operation.addEffect", { target, effect: operation.effect.name });
     case "removeEffect":
-      return `${target} · remove effect ${operation.effectId.slice(0, 8)}`;
+      return t("ai.operation.removeEffect", { target, id: operation.effectId.slice(0, 8) });
     case "setEffectParameter":
-      return `${target} · ${operation.parameter} → ${String(operation.value)}`;
+      return t("ai.operation.property", {
+        target,
+        path: operation.parameter,
+        value: String(operation.value),
+      });
     case "toggleLayer":
-      return `${target} · toggle ${operation.field}`;
+      return t("ai.operation.toggle", { target, field: operation.field });
     case "setTextAnimator":
-      return `${target} · character stagger → ${operation.textAnimator.stagger.toFixed(2)}s`;
+      return t("ai.operation.stagger", {
+        target,
+        seconds: operation.textAnimator.stagger.toFixed(2),
+      });
     case "easeLayer":
-      return `${target} · reduce transform elasticity`;
+      return t("ai.operation.ease", { target });
     case "setLayerTiming":
-      return `${target} · ${operation.inPoint.toFixed(2)}s–${operation.outPoint.toFixed(2)}s`;
+      return t("ai.operation.timing", {
+        target,
+        start: operation.inPoint.toFixed(2),
+        end: operation.outPoint.toFixed(2),
+      });
     default:
-      return `${target} · structured project change`;
+      return t("ai.operation.structured", { target });
   }
 }
 

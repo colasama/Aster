@@ -7,6 +7,8 @@ import {
 } from "../core/cloner";
 import type { Layer } from "../core/types";
 import { createId } from "../core/types";
+import type { PlainMessageKey, Translate } from "../i18n/core";
+import { useI18n } from "../i18n/react";
 import { useEditor } from "../state/editor-store";
 
 type EffectorKind = ClonerEffector["kind"];
@@ -19,6 +21,7 @@ const DEFAULT_CLONER: ClonerSettings = {
 
 export function ClonerControls({ layer }: { layer: Layer }) {
   const { dispatch } = useEditor();
+  const { t } = useI18n();
   if (layer.kind === "camera" || layer.kind === "light") return null;
   const settings = layer.cloner;
   const update = (cloner?: ClonerSettings) => {
@@ -39,21 +42,21 @@ export function ClonerControls({ layer }: { layer: Layer }) {
     <div className="cloner-controls">
       <label className="compositing-check">
         <input
-          aria-label="Enable cloner"
+          aria-label={t("cloner.enableA11y")}
           checked={Boolean(settings)}
           onChange={(event) =>
             update(event.target.checked ? structuredClone(DEFAULT_CLONER) : undefined)
           }
           type="checkbox"
         />
-        Enable procedural cloner
+        {t("cloner.enable")}
       </label>
       {settings && (
         <>
           <label>
-            Distribution
+            {t("cloner.distribution")}
             <select
-              aria-label="Cloner distribution"
+              aria-label={t("cloner.distributionA11y")}
               onChange={(event) =>
                 update({
                   ...settings,
@@ -73,8 +76,8 @@ export function ClonerControls({ layer }: { layer: Layer }) {
               }
               value={settings.distribution.kind}
             >
-              <option value="grid">Grid</option>
-              <option value="radial">Radial</option>
+              <option value="grid">{t("cloner.grid")}</option>
+              <option value="radial">{t("cloner.radial")}</option>
             </select>
           </label>
           {settings.distribution.kind === "grid" ? (
@@ -101,7 +104,7 @@ export function ClonerControls({ layer }: { layer: Layer }) {
                 }
                 type="button"
               >
-                + {kind}
+                + {effectorLabel(t, kind)}
               </button>
             ))}
           </div>
@@ -131,18 +134,19 @@ function GridDistributionEditor({
   distribution: GridClonerDistribution;
   onChange: (value: GridClonerDistribution) => void;
 }) {
+  const { t } = useI18n();
   return (
     <>
       <VectorInput
         integer
-        label="Grid count"
+        label={t("cloner.gridCount")}
         max={512}
         min={1}
         onChange={(count) => onChange({ ...distribution, count })}
         value={distribution.count}
       />
       <VectorInput
-        label="Grid spacing"
+        label={t("cloner.gridSpacing")}
         onChange={(spacing) => onChange({ ...distribution, spacing })}
         value={distribution.spacing}
       />
@@ -157,10 +161,11 @@ function RadialDistributionEditor({
   distribution: RadialClonerDistribution;
   onChange: (value: RadialClonerDistribution) => void;
 }) {
+  const { t } = useI18n();
   return (
     <>
       <NumberInput
-        label="Clone count"
+        label={t("cloner.cloneCount")}
         max={65_536}
         min={1}
         onChange={(count) => onChange({ ...distribution, count: Math.round(count) })}
@@ -168,25 +173,25 @@ function RadialDistributionEditor({
         value={distribution.count}
       />
       <NumberInput
-        label="Radius"
+        label={t("cloner.radius")}
         min={0}
         onChange={(radius) => onChange({ ...distribution, radius })}
         value={distribution.radius}
       />
       <NumberInput
-        label="Start angle"
+        label={t("cloner.startAngle")}
         onChange={(startAngle) => onChange({ ...distribution, startAngle })}
         value={distribution.startAngle}
       />
       <NumberInput
-        label="End angle"
+        label={t("cloner.endAngle")}
         onChange={(endAngle) => onChange({ ...distribution, endAngle })}
         value={distribution.endAngle}
       />
       <label>
-        Axis
+        {t("cloner.axis")}
         <select
-          aria-label="Radial cloner axis"
+          aria-label={t("cloner.axisA11y")}
           onChange={(event) =>
             onChange({ ...distribution, axis: event.target.value as "x" | "y" | "z" })
           }
@@ -203,7 +208,7 @@ function RadialDistributionEditor({
           onChange={(event) => onChange({ ...distribution, alignRotation: event.target.checked })}
           type="checkbox"
         />
-        Align clone rotation
+        {t("cloner.alignRotation")}
       </label>
     </>
   );
@@ -218,6 +223,8 @@ function EffectorEditor({
   onChange: (value: ClonerEffector) => void;
   onRemove: () => void;
 }) {
+  const { t } = useI18n();
+  const kindLabel = effectorLabel(t, effector.kind);
   const vector = (field: "position" | "scale" | "rotation", value: Vector3) => {
     if (!(field in effector)) return;
     onChange({ ...effector, [field]: value } as ClonerEffector);
@@ -225,9 +232,13 @@ function EffectorEditor({
   return (
     <div className="cloner-effector">
       <div>
-        <strong>{effector.kind} effector</strong>
-        <button aria-label={`Remove ${effector.kind} effector`} onClick={onRemove} type="button">
-          Remove
+        <strong>{t("cloner.effectorTitle", { kind: kindLabel })}</strong>
+        <button
+          aria-label={t("cloner.effectorRemove", { kind: kindLabel })}
+          onClick={onRemove}
+          type="button"
+        >
+          {t("common.remove")}
         </button>
       </div>
       <label className="compositing-check">
@@ -236,10 +247,10 @@ function EffectorEditor({
           onChange={(event) => onChange({ ...effector, enabled: event.target.checked })}
           type="checkbox"
         />
-        Enabled
+        {t("common.enabled")}
       </label>
       <NumberInput
-        label="Strength"
+        label={t("cloner.strength")}
         max={4}
         min={-4}
         onChange={(strength) => onChange({ ...effector, strength })}
@@ -248,7 +259,7 @@ function EffectorEditor({
       />
       {effector.kind === "random" && (
         <NumberInput
-          label="Seed"
+          label={t("cloner.seed")}
           onChange={(seed) => onChange({ ...effector, seed: Math.round(seed) })}
           step={1}
           value={effector.seed}
@@ -258,7 +269,7 @@ function EffectorEditor({
         effector.kind === "scale" ||
         effector.kind === "rotation") && (
         <VectorInput
-          label={effector.kind}
+          label={kindLabel}
           onChange={(value) => onChange({ ...effector, value })}
           value={effector.value}
         />
@@ -266,17 +277,17 @@ function EffectorEditor({
       {(effector.kind === "random" || effector.kind === "audio") && (
         <>
           <VectorInput
-            label="Position"
+            label={t("cloner.position")}
             onChange={(value) => vector("position", value)}
             value={effector.position}
           />
           <VectorInput
-            label="Scale"
+            label={t("cloner.scale")}
             onChange={(value) => vector("scale", value)}
             value={effector.scale}
           />
           <VectorInput
-            label="Rotation"
+            label={t("cloner.rotation")}
             onChange={(value) => vector("rotation", value)}
             value={effector.rotation}
           />
@@ -285,14 +296,14 @@ function EffectorEditor({
       {effector.kind === "audio" && (
         <>
           <VectorInput
-            dimensions={["Low Hz", "High Hz"]}
-            label="Frequency band"
+            dimensions={[t("cloner.lowHz"), t("cloner.highHz")]}
+            label={t("cloner.frequencyBand")}
             min={0}
             onChange={(band) => onChange({ ...effector, band: [band[0], band[1]] })}
             value={[effector.band[0], effector.band[1], 0]}
           />
           <NumberInput
-            label="Audio gain"
+            label={t("audio.gain")}
             min={0}
             onChange={(gain) => onChange({ ...effector, gain })}
             value={effector.gain}
@@ -402,4 +413,15 @@ export function createClonerEffector(kind: EffectorKind): ClonerEffector {
 
 export function normalizedDefaultCloner(): ClonerSettings {
   return normalizeClonerSettings(structuredClone(DEFAULT_CLONER));
+}
+
+function effectorLabel(t: Translate, kind: EffectorKind): string {
+  const keys: Record<EffectorKind, PlainMessageKey> = {
+    position: "cloner.effector.position",
+    scale: "cloner.effector.scale",
+    rotation: "cloner.effector.rotation",
+    random: "cloner.effector.random",
+    audio: "cloner.effector.audio",
+  };
+  return t(keys[kind]);
 }

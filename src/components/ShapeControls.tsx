@@ -1,9 +1,11 @@
 import type { Layer, ShapeSettings } from "../core/types";
+import { useI18n } from "../i18n/react";
 import { createDefaultBezierPath } from "../renderer/vector-path";
 import { useEditor } from "../state/editor-store";
 
 export function ShapeControls({ layer }: { layer: Layer }) {
   const { dispatch } = useEditor();
+  const { t } = useI18n();
   if (layer.kind !== "shape") return null;
   const settings = layer.shape ?? {
     kind: layer.size[0] === layer.size[1] ? "ellipse" : "rectangle",
@@ -49,9 +51,9 @@ export function ShapeControls({ layer }: { layer: Layer }) {
   return (
     <>
       <label>
-        Shape
+        {t("shape.kind")}
         <select
-          aria-label="Shape kind"
+          aria-label={t("shape.kindA11y")}
           onChange={(event) => {
             const kind = event.target.value as ShapeSettings["kind"];
             dispatch({
@@ -74,39 +76,39 @@ export function ShapeControls({ layer }: { layer: Layer }) {
           }}
           value={settings.kind}
         >
-          <option value="rectangle">Rectangle</option>
-          <option value="ellipse">Ellipse</option>
-          <option value="line">Line</option>
-          <option value="bezier">Bezier path</option>
+          <option value="rectangle">{t("shape.rectangle")}</option>
+          <option value="ellipse">{t("shape.ellipse")}</option>
+          <option value="line">{t("shape.line")}</option>
+          <option value="bezier">{t("shape.bezier")}</option>
         </select>
       </label>
       <label>
-        Fill color
+        {t("shape.fillColor")}
         <input
-          aria-label="Fill color"
+          aria-label={t("shape.fillColor")}
           onChange={(event) => setFill(event.target.value)}
           type="color"
           value={colorInput(layer.color)}
         />
       </label>
       <label>
-        Fill mode
+        {t("shape.fillMode")}
         <select
-          aria-label="Fill mode"
+          aria-label={t("shape.fillMode")}
           onChange={(event) => update("fillMode", event.target.value as ShapeSettings["fillMode"])}
           value={settings.fillMode}
         >
-          <option value="solid">Solid</option>
-          <option value="linear">Linear gradient</option>
-          <option value="radial">Radial gradient</option>
+          <option value="solid">{t("shape.solid")}</option>
+          <option value="linear">{t("shape.linearGradient")}</option>
+          <option value="radial">{t("shape.radialGradient")}</option>
         </select>
       </label>
       {settings.fillMode !== "solid" && (
         <>
           <label>
-            Gradient color
+            {t("shape.gradientColor")}
             <input
-              aria-label="Gradient color"
+              aria-label={t("shape.gradientColor")}
               onChange={(event) =>
                 update("gradientColor", [
                   ...parseColor(event.target.value),
@@ -119,9 +121,9 @@ export function ShapeControls({ layer }: { layer: Layer }) {
           </label>
           {settings.fillMode === "linear" && (
             <label>
-              Gradient angle
+              {t("shape.gradientAngle")}
               <input
-                aria-label="Gradient angle"
+                aria-label={t("shape.gradientAngle")}
                 max="36000"
                 min="-36000"
                 onChange={(event) => update("gradientAngle", Number(event.target.value))}
@@ -134,9 +136,9 @@ export function ShapeControls({ layer }: { layer: Layer }) {
         </>
       )}
       <label>
-        Roundness
+        {t("shape.roundness")}
         <input
-          aria-label="Roundness"
+          aria-label={t("shape.roundness")}
           min="0"
           onChange={(event) => update("roundness", Number(event.target.value))}
           step="1"
@@ -145,9 +147,9 @@ export function ShapeControls({ layer }: { layer: Layer }) {
         />
       </label>
       <label>
-        Stroke width
+        {t("shape.strokeWidth")}
         <input
-          aria-label="Stroke width"
+          aria-label={t("shape.strokeWidth")}
           min="0"
           onChange={(event) => update("strokeWidth", Number(event.target.value))}
           step="1"
@@ -156,9 +158,9 @@ export function ShapeControls({ layer }: { layer: Layer }) {
         />
       </label>
       <label>
-        Stroke color
+        {t("shape.strokeColor")}
         <input
-          aria-label="Stroke color"
+          aria-label={t("shape.strokeColor")}
           onChange={(event) =>
             update("strokeColor", [...parseColor(event.target.value), settings.strokeColor[3]])
           }
@@ -169,49 +171,49 @@ export function ShapeControls({ layer }: { layer: Layer }) {
       {(settings.kind === "line" || settings.kind === "bezier") && (
         <>
           <label>
-            Line cap
+            {t("shape.lineCap")}
             <select
-              aria-label="Line cap"
+              aria-label={t("shape.lineCap")}
               onChange={(event) =>
                 update("lineCap", event.target.value as ShapeSettings["lineCap"])
               }
               value={settings.lineCap}
             >
-              <option value="round">Round</option>
-              <option value="butt">Butt</option>
+              <option value="round">{t("shape.capRound")}</option>
+              <option value="butt">{t("shape.capButt")}</option>
             </select>
           </label>
           {settings.kind === "bezier" && (
             <>
               <label>
-                Line join
+                {t("shape.lineJoin")}
                 <select
-                  aria-label="Line join"
+                  aria-label={t("shape.lineJoin")}
                   onChange={(event) =>
                     update("lineJoin", event.target.value as ShapeSettings["lineJoin"])
                   }
                   value={settings.lineJoin ?? "round"}
                 >
-                  <option value="miter">Miter</option>
-                  <option value="bevel">Bevel</option>
-                  <option value="round">Round</option>
+                  <option value="miter">{t("shape.joinMiter")}</option>
+                  <option value="bevel">{t("shape.joinBevel")}</option>
+                  <option value="round">{t("shape.joinRound")}</option>
                 </select>
               </label>
               {settings.path && (
                 <>
                   <label>
-                    Closed path
+                    {t("shape.closedPath")}
                     <input
-                      aria-label="Closed path"
+                      aria-label={t("shape.closedPath")}
                       checked={settings.path.closed}
                       onChange={(event) => setPathClosed(event.target.checked)}
                       type="checkbox"
                     />
                   </label>
                   <label>
-                    Trim start %
+                    {t("shape.trimStart")}
                     <input
-                      aria-label="Trim start"
+                      aria-label={t("shape.trimStartA11y")}
                       max="100"
                       min="0"
                       onChange={(event) =>
@@ -226,9 +228,9 @@ export function ShapeControls({ layer }: { layer: Layer }) {
                     />
                   </label>
                   <label>
-                    Trim end %
+                    {t("shape.trimEnd")}
                     <input
-                      aria-label="Trim end"
+                      aria-label={t("shape.trimEndA11y")}
                       max="100"
                       min="0"
                       onChange={(event) =>
@@ -243,9 +245,9 @@ export function ShapeControls({ layer }: { layer: Layer }) {
                     />
                   </label>
                   <label>
-                    Trim offset %
+                    {t("shape.trimOffset")}
                     <input
-                      aria-label="Trim offset"
+                      aria-label={t("shape.trimOffsetA11y")}
                       max="100000"
                       min="-100000"
                       onChange={(event) =>
@@ -264,9 +266,9 @@ export function ShapeControls({ layer }: { layer: Layer }) {
             </>
           )}
           <label>
-            Dash length
+            {t("shape.dashLength")}
             <input
-              aria-label="Dash length"
+              aria-label={t("shape.dashLength")}
               min="0"
               onChange={(event) => update("dashLength", Number(event.target.value))}
               step="1"
@@ -275,9 +277,9 @@ export function ShapeControls({ layer }: { layer: Layer }) {
             />
           </label>
           <label>
-            Dash gap
+            {t("shape.dashGap")}
             <input
-              aria-label="Dash gap"
+              aria-label={t("shape.dashGap")}
               min="0"
               onChange={(event) => update("dashGap", Number(event.target.value))}
               step="1"

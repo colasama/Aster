@@ -38,6 +38,9 @@ describe("keyframe editing", () => {
     expect(operations[1].time - operations[0].time).toBeCloseTo(
       entries[1].keyframe.time - entries[0].keyframe.time,
     );
+    expect(
+      retimeKeyframes(entries, active.keyframe.id, 1.019, 1 / 60, false, false)[0],
+    ).toMatchObject({ time: 1.019 });
   });
 
   it("scales selected timing around the earliest keyframe", () => {
@@ -56,5 +59,20 @@ describe("keyframe editing", () => {
     expect(operations[0].time).toBeCloseTo(entries[0].keyframe.time);
     expect(operations[1].time - operations[0].time).toBeCloseTo(originalSpan * 2);
     expect(removeKeyframes(entries)).toHaveLength(2);
+  });
+
+  it("preserves group offsets after one snap and clamps move/scale to the composition", () => {
+    const composition = activeComposition(createDemoProject());
+    const entries = collectEditableKeyframes(composition).slice(0, 2);
+    const active = entries[0];
+    const moved = retimeKeyframes(entries, active.keyframe.id, 99, 1 / 60, false, false, 10);
+    expect(Math.max(...moved.map((operation) => operation.time))).toBe(10);
+    expect(moved[1].time - moved[0].time).toBeCloseTo(
+      entries[1].keyframe.time - entries[0].keyframe.time,
+    );
+
+    const scaled = retimeKeyframes(entries, entries[1].keyframe.id, 99, 1 / 60, true, false, 10);
+    expect(Math.max(...scaled.map((operation) => operation.time))).toBe(10);
+    expect(Math.min(...scaled.map((operation) => operation.time))).toBeGreaterThanOrEqual(0);
   });
 });

@@ -91,6 +91,7 @@ export function buildSceneGeometry(
   const visible = sceneLayers.filter(
     (scene) =>
       scene.layer.kind !== "particle" &&
+      scene.layer.kind !== "adjustment" &&
       scene.layer.kind !== "camera" &&
       scene.layer.kind !== "light",
   );

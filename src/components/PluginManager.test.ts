@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { PluginManifest, PluginStatus } from "../core/plugins";
-import { describeHotReload, filterPluginManifests } from "./PluginManager";
+import { describeHotReload, filterPluginManifests, PluginStatusCoordinator } from "./PluginManager";
 
 const plugins: PluginManifest[] = [
   {
@@ -55,5 +55,39 @@ describe("plugin hot reload status", () => {
     };
     expect(describeHotReload(status)).toContain("waiting for files to settle");
     expect(describeHotReload({ ...status, safeMode: true })).toContain("Suspended");
+  });
+});
+
+describe("plugin status request coordination", () => {
+  it("blocks polls during a manual mutation and rejects the older poll result and error", () => {
+    const coordinator = new PluginStatusCoordinator();
+    const stalePoll = coordinator.beginPoll();
+    expect(stalePoll).toBe(0);
+
+    const mutation = coordinator.beginManual();
+    expect(coordinator.beginPoll()).toBeUndefined();
+    expect(coordinator.canCommitPoll(stalePoll as number)).toBe(false);
+    expect(coordinator.canCommitManual(mutation)).toBe(true);
+
+    coordinator.finishPoll();
+    expect(coordinator.beginPoll()).toBeUndefined();
+    expect(coordinator.finishManual(mutation)).toBe(true);
+
+    const freshPoll = coordinator.beginPoll();
+    expect(freshPoll).toBe(mutation);
+    expect(coordinator.canCommitPoll(freshPoll as number)).toBe(true);
+  });
+
+  it("prevents an older manual completion from clearing a newer pending mutation", () => {
+    const coordinator = new PluginStatusCoordinator();
+    const older = coordinator.beginManual();
+    const newer = coordinator.beginManual();
+
+    expect(coordinator.canCommitManual(older)).toBe(false);
+    expect(coordinator.finishManual(older)).toBe(false);
+    expect(coordinator.beginPoll()).toBeUndefined();
+    expect(coordinator.canCommitManual(newer)).toBe(true);
+    expect(coordinator.finishManual(newer)).toBe(true);
+    expect(coordinator.beginPoll()).toBe(newer);
   });
 });
