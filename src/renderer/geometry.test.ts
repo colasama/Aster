@@ -137,6 +137,11 @@ describe("GPU scene geometry", () => {
     expect(geometry.data).toHaveLength(geometry.batches[0].vertexCount * FLOATS_PER_VERTEX);
     expect(geometry.data[VERTEX_FLOAT_OFFSETS.shapeStyleParameters + 2]).toBe(4);
     expect(Array.from(geometry.data).every(Number.isFinite)).toBe(true);
+
+    path.shape.trim = { start: 0, end: 50, offset: 0 };
+    const trimmed = buildSceneGeometry(composition, flattenSceneLayers(composition, project, 0));
+    expect(trimmed.batches[0].vertexCount).toBeGreaterThan(0);
+    expect(trimmed.batches[0].vertexCount).toBeLessThan(geometry.batches[0].vertexCount);
   });
 
   it("includes text quads so cached glyph textures share the layer effect graph", () => {

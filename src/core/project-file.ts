@@ -422,6 +422,16 @@ function validateLayer(value: unknown, path: string): asserts value is Layer {
     const dashLength = requireFiniteNumber(shape.dashLength, `${path}.shape.dashLength`);
     const dashGap = requireFiniteNumber(shape.dashGap, `${path}.shape.dashGap`);
     requireFiniteNumber(shape.gradientAngle, `${path}.shape.gradientAngle`);
+    if (shape.trim !== undefined) {
+      const trim = requireObject(shape.trim, `${path}.shape.trim`);
+      const start = requireFiniteNumber(trim.start, `${path}.shape.trim.start`);
+      const end = requireFiniteNumber(trim.end, `${path}.shape.trim.end`);
+      const offset = requireFiniteNumber(trim.offset, `${path}.shape.trim.offset`);
+      if (start < 0 || start > 100 || end < 0 || end > 100)
+        throw new Error(`${path}.shape.trim start and end must be percentages from 0 through 100`);
+      if (Math.abs(offset) > 100_000)
+        throw new Error(`${path}.shape.trim.offset exceeds the supported range`);
+    }
     if (roundness < 0 || strokeWidth < 0 || dashLength < 0 || dashGap < 0)
       throw new Error(`${path}.shape dimensions must not be negative`);
     requireNumberArray(shape.strokeColor, `${path}.shape.strokeColor`, 4);

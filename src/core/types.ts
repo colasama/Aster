@@ -205,6 +205,14 @@ export interface ShapeSettings {
   lineCap: "butt" | "round";
   lineJoin?: "miter" | "bevel" | "round";
   path?: BezierPath;
+  /** Percentage-based arc-length trim for Bezier strokes. */
+  trim?: ShapeTrimSettings;
+}
+
+export interface ShapeTrimSettings {
+  start: number;
+  end: number;
+  offset: number;
 }
 
 export interface TextStyle {

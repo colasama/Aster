@@ -198,15 +198,68 @@ export function ShapeControls({ layer }: { layer: Layer }) {
                 </select>
               </label>
               {settings.path && (
-                <label>
-                  Closed path
-                  <input
-                    aria-label="Closed path"
-                    checked={settings.path.closed}
-                    onChange={(event) => setPathClosed(event.target.checked)}
-                    type="checkbox"
-                  />
-                </label>
+                <>
+                  <label>
+                    Closed path
+                    <input
+                      aria-label="Closed path"
+                      checked={settings.path.closed}
+                      onChange={(event) => setPathClosed(event.target.checked)}
+                      type="checkbox"
+                    />
+                  </label>
+                  <label>
+                    Trim start %
+                    <input
+                      aria-label="Trim start"
+                      max="100"
+                      min="0"
+                      onChange={(event) =>
+                        update("trim", {
+                          ...(settings.trim ?? { start: 0, end: 100, offset: 0 }),
+                          start: Number(event.target.value),
+                        })
+                      }
+                      step="0.1"
+                      type="number"
+                      value={settings.trim?.start ?? 0}
+                    />
+                  </label>
+                  <label>
+                    Trim end %
+                    <input
+                      aria-label="Trim end"
+                      max="100"
+                      min="0"
+                      onChange={(event) =>
+                        update("trim", {
+                          ...(settings.trim ?? { start: 0, end: 100, offset: 0 }),
+                          end: Number(event.target.value),
+                        })
+                      }
+                      step="0.1"
+                      type="number"
+                      value={settings.trim?.end ?? 100}
+                    />
+                  </label>
+                  <label>
+                    Trim offset %
+                    <input
+                      aria-label="Trim offset"
+                      max="100000"
+                      min="-100000"
+                      onChange={(event) =>
+                        update("trim", {
+                          ...(settings.trim ?? { start: 0, end: 100, offset: 0 }),
+                          offset: Number(event.target.value),
+                        })
+                      }
+                      step="0.1"
+                      type="number"
+                      value={settings.trim?.offset ?? 0}
+                    />
+                  </label>
+                </>
               )}
             </>
           )}

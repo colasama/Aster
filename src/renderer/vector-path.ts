@@ -2,6 +2,11 @@ import type { BezierPath } from "../core/types";
 
 export type Point2 = [number, number];
 
+export interface TrimmedPolyline {
+  points: Point2[];
+  closed: boolean;
+}
+
 const EPSILON = 1e-7;
 
 export function createDefaultBezierPath(): BezierPath {
@@ -33,6 +38,40 @@ export function flattenBezierPath(path: BezierPath, tolerance = 0.002): Point2[]
   }
   if (path.closed && distanceSquared(points[0], points[points.length - 1]) <= EPSILON) points.pop();
   return removeAdjacentDuplicates(points);
+}
+
+/** Trims a polyline by normalized arc length without resampling its interior vertices. */
+export function trimPolyline(
+  input: readonly Point2[],
+  closed: boolean,
+  start: number,
+  end: number,
+  offset = 0,
+): TrimmedPolyline[] {
+  const points = deduplicatePoints(input);
+  if (points.length < 2) return [];
+  const clampedStart = clamp01(start);
+  const clampedEnd = clamp01(end);
+  const span =
+    clampedEnd >= clampedStart ? clampedEnd - clampedStart : 1 - clampedStart + clampedEnd;
+  if (span >= 1 - EPSILON) return [{ points, closed }];
+  if (span <= EPSILON) return [];
+
+  const shiftedStart = moduloOne(clampedStart + offset);
+  const shiftedEnd = shiftedStart + span;
+  if (shiftedEnd <= 1 + EPSILON) {
+    const segment = slicePolyline(points, closed, shiftedStart, Math.min(1, shiftedEnd));
+    return segment.length >= 2 ? [{ points: segment, closed: false }] : [];
+  }
+
+  const tail = slicePolyline(points, closed, shiftedStart, 1);
+  const head = slicePolyline(points, closed, 0, shiftedEnd - 1);
+  if (!closed)
+    return [tail, head]
+      .filter((segment) => segment.length >= 2)
+      .map((segment) => ({ points: segment, closed: false }));
+  const joined = [...tail, ...head.slice(pointsEqual(tail[tail.length - 1], head[0]) ? 1 : 0)];
+  return joined.length >= 2 ? [{ points: joined, closed: false }] : [];
 }
 
 export function triangulatePolygon(source: Point2[]): Point2[] {
@@ -255,6 +294,66 @@ function removeAdjacentDuplicates(points: Point2[]): Point2[] {
   return points.filter(
     (point, index) => index === 0 || distanceSquared(point, points[index - 1]) > EPSILON,
   );
+}
+
+function deduplicatePoints(points: readonly Point2[]): Point2[] {
+  return removeAdjacentDuplicates(points.map((point) => [...point]));
+}
+
+function slicePolyline(
+  points: readonly Point2[],
+  closed: boolean,
+  start: number,
+  end: number,
+): Point2[] {
+  if (end - start <= EPSILON) return [];
+  const route = closed ? [...points, points[0]] : [...points];
+  const cumulative = [0];
+  for (let index = 1; index < route.length; index += 1)
+    cumulative.push(
+      cumulative[index - 1] +
+        Math.hypot(route[index][0] - route[index - 1][0], route[index][1] - route[index - 1][1]),
+    );
+  const total = cumulative[cumulative.length - 1] ?? 0;
+  if (total <= EPSILON) return [];
+  const startDistance = clamp01(start) * total;
+  const endDistance = clamp01(end) * total;
+  const output = [samplePolyline(route, cumulative, startDistance)];
+  for (let index = 1; index < route.length - 1; index += 1)
+    if (cumulative[index] > startDistance + EPSILON && cumulative[index] < endDistance - EPSILON)
+      output.push([...route[index]]);
+  output.push(samplePolyline(route, cumulative, endDistance));
+  return removeAdjacentDuplicates(output);
+}
+
+function samplePolyline(
+  route: readonly Point2[],
+  cumulative: readonly number[],
+  distance: number,
+): Point2 {
+  const last = cumulative.length - 1;
+  if (distance <= 0) return [...route[0]];
+  if (distance >= cumulative[last]) return [...route[last]];
+  let index = 1;
+  while (index < cumulative.length && cumulative[index] < distance) index += 1;
+  const span = cumulative[index] - cumulative[index - 1];
+  const amount = span <= EPSILON ? 0 : (distance - cumulative[index - 1]) / span;
+  return [
+    route[index - 1][0] + (route[index][0] - route[index - 1][0]) * amount,
+    route[index - 1][1] + (route[index][1] - route[index - 1][1]) * amount,
+  ];
+}
+
+function clamp01(value: number): number {
+  return Math.max(0, Math.min(1, Number.isFinite(value) ? value : 0));
+}
+
+function moduloOne(value: number): number {
+  return ((value % 1) + 1) % 1;
+}
+
+function pointsEqual(left: Point2 | undefined, right: Point2 | undefined): boolean {
+  return Boolean(left && right && distanceSquared(left, right) <= EPSILON);
 }
 
 function signedArea(points: Point2[]): number {

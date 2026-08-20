@@ -1,6 +1,11 @@
 import type { FlattenedSceneLayer } from "../core/scene-evaluation";
 import type { CameraSettings, Composition, EvaluatedTransform, Layer } from "../core/types";
-import { flattenBezierPath, tessellateStroke, triangulatePolygon } from "./vector-path";
+import {
+  flattenBezierPath,
+  tessellateStroke,
+  triangulatePolygon,
+  trimPolyline,
+} from "./vector-path";
 
 export const FLOATS_PER_VERTEX = 40;
 export const VERTEX_FLOAT_OFFSETS = {
@@ -323,12 +328,13 @@ function appendBezierPath(
     const scaled = normalized.map(
       (point) => [point[0] * width, point[1] * height] as [number, number],
     );
-    const stroke = tessellateStroke(
+    const trim = shape.trim ?? { start: 0, end: 100, offset: 0 };
+    const segments = trimPolyline(
       scaled,
-      shape.strokeWidth,
       shape.path.closed,
-      shape.lineJoin ?? "round",
-      shape.lineCap,
+      trim.start / 100,
+      trim.end / 100,
+      trim.offset / 100,
     );
     const strokeColor: readonly [number, number, number, number] = [
       shape.strokeColor[0],
@@ -337,13 +343,22 @@ function appendBezierPath(
       shape.strokeColor[3] * transform.opacity,
     ];
     const solidParameters: readonly [number, number, number, number] = [0, 0, 0, 0];
-    for (const point of stroke)
-      append(
-        [point[0] / Math.max(Math.abs(width), 1), point[1] / Math.max(Math.abs(height), 1)],
-        strokeColor,
-        noStyle,
-        solidParameters,
+    for (const segment of segments) {
+      const stroke = tessellateStroke(
+        segment.points,
+        shape.strokeWidth,
+        segment.closed,
+        shape.lineJoin ?? "round",
+        shape.lineCap,
       );
+      for (const point of stroke)
+        append(
+          [point[0] / Math.max(Math.abs(width), 1), point[1] / Math.max(Math.abs(height), 1)],
+          strokeColor,
+          noStyle,
+          solidParameters,
+        );
+    }
   }
   return vertexCount;
 }

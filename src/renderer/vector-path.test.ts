@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { BezierPath } from "../core/types";
-import { flattenBezierPath, tessellateStroke, triangulatePolygon } from "./vector-path";
+import {
+  flattenBezierPath,
+  tessellateStroke,
+  triangulatePolygon,
+  trimPolyline,
+} from "./vector-path";
 
 const curve: BezierPath = {
   closed: false,
@@ -48,4 +53,53 @@ describe("Bezier path tessellation", () => {
       expect(triangles.every((point) => point.every(Number.isFinite))).toBe(true);
     },
   );
+
+  it("trims open paths by exact arc length", () => {
+    expect(
+      trimPolyline(
+        [
+          [0, 0],
+          [10, 0],
+          [10, 10],
+        ],
+        false,
+        0.25,
+        0.75,
+      ),
+    ).toEqual([
+      {
+        closed: false,
+        points: [
+          [5, 0],
+          [10, 0],
+          [10, 5],
+        ],
+      },
+    ]);
+  });
+
+  it("joins wrapped trims across a closed path seam", () => {
+    const trimmed = trimPolyline(
+      [
+        [0, 0],
+        [10, 0],
+        [10, 10],
+        [0, 10],
+      ],
+      true,
+      0.75,
+      0.25,
+    );
+    expect(trimmed).toEqual([
+      {
+        closed: false,
+        points: [
+          [0, 10],
+          [0, 0],
+          [10, 0],
+        ],
+      },
+    ]);
+    expect(trimPolyline(trimmed[0].points, false, 0, 0)).toEqual([]);
+  });
 });
