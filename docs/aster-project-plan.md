@@ -1307,7 +1307,7 @@ aster/
 - [x] 定义 Shape Layer。
 - [x] Rectangle。
 - [x] Ellipse。
-- [ ] Line。
+- [x] Line。
 - [ ] Bezier Path。
 - [x] Fill。
 - [x] Stroke。

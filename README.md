@@ -45,7 +45,8 @@ frames. Rendering, effects, particles, and composition are designed to remain GP
   start/end size; compute evaluates spawn age and motion directly from time while the billboard pass
   applies GPU color, opacity, and size over life without replaying earlier frames.
 - Vector shape layers use analytic anti-aliased WGSL signed-distance rendering for rectangles,
-  rounded rectangles, and ellipses, with HDR fill/stroke colors and editable stroke width.
+  rounded rectangles, ellipses, and round-capped line segments, with HDR fill/stroke colors and
+  editable stroke width.
 - Retained GPU text textures now come from a serializable typography model with font fallback,
   size/weight, multiline leading, left/center/right alignment, tracking, fill, and outline stroke;
   cache keys include every typography field so unchanged glyph textures remain resident.

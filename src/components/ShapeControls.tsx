@@ -46,6 +46,7 @@ export function ShapeControls({ layer }: { layer: Layer }) {
         >
           <option value="rectangle">Rectangle</option>
           <option value="ellipse">Ellipse</option>
+          <option value="line">Line</option>
         </select>
       </label>
       <label>

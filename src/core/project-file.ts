@@ -245,7 +245,7 @@ function validateLayer(value: unknown, path: string): asserts value is Layer {
   }
   if (layer.shape !== undefined) {
     const shape = requireObject(layer.shape, `${path}.shape`);
-    if (shape.kind !== "rectangle" && shape.kind !== "ellipse")
+    if (shape.kind !== "rectangle" && shape.kind !== "ellipse" && shape.kind !== "line")
       throw new Error(`${path}.shape.kind is invalid`);
     const roundness = requireFiniteNumber(shape.roundness, `${path}.shape.roundness`);
     const strokeWidth = requireFiniteNumber(shape.strokeWidth, `${path}.shape.strokeWidth`);

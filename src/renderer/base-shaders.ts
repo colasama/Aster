@@ -70,19 +70,28 @@ fn fragment_main(input: VertexOutput) -> @location(0) vec4f {
     let rounded = abs(centered) - vec2f(0.5 - radius);
     let rectangle_distance = length(max(rounded, vec2f(0.0)))
       + min(max(rounded.x, rounded.y), 0.0) - radius;
-    let shape_distance = select(
+    var shape_distance = select(
       rectangle_distance,
       ellipse_distance,
       input.shape_style_parameters.z > 1.5,
     );
+    if input.shape_style_parameters.z > 2.5 {
+      let segment_start = vec2f(-0.5, 0.0);
+      let segment = vec2f(1.0, 0.0);
+      let relative = centered - segment_start;
+      let along = clamp(dot(relative, segment) / dot(segment, segment), 0.0, 1.0);
+      shape_distance = length(relative - segment * along)
+        - max(input.shape_style_parameters.x * 0.5, 0.003);
+    }
     let antialias = 0.006;
     let coverage = 1.0 - smoothstep(0.0, antialias, shape_distance);
     let stroke_width = input.shape_style_parameters.x;
-    let stroke = select(
+    var stroke = select(
       0.0,
       1.0 - smoothstep(stroke_width, stroke_width + antialias, abs(shape_distance)),
       stroke_width > 0.0,
     ) * input.shape_style_color.a;
+    if input.shape_style_parameters.z > 2.5 { stroke = 1.0; }
     let shape_color = mix(input.color.rgb, input.shape_style_color.rgb, stroke);
     alpha *= coverage;
     return vec4f(shape_color * alpha, alpha);

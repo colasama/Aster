@@ -141,7 +141,7 @@ export interface ParticleSettings {
 }
 
 export interface ShapeSettings {
-  kind: "rectangle" | "ellipse";
+  kind: "rectangle" | "ellipse" | "line";
   roundness: number;
   strokeWidth: number;
   strokeColor: [number, number, number, number];

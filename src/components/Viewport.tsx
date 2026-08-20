@@ -287,6 +287,10 @@ export function Viewport() {
             if (state.activeTool === "pen") {
               layer.name = "Pen Path";
               layer.size = [640, 36];
+              if (layer.shape) {
+                layer.shape.kind = "line";
+                layer.shape.strokeWidth = 12;
+              }
             }
             dispatch({
               type: "operation",
