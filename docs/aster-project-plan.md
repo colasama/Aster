@@ -1804,9 +1804,9 @@ Color Grading
 Demo 发布准备：
 
 - [x] 制作 benchmark project。
-- [ ] 固定测试硬件配置。
+- [x] 固定测试硬件配置。
 - [x] 记录 Aster performance。
-- [ ] 选择合理竞品对照方式。
+- [x] 选择合理竞品对照方式。
 - [x] 保证测试条件公平可复现。
 - [ ] 录制实时交互视频。
 - [ ] README 添加 Demo GIF / Video。

@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "minimal-golden-motion-v1",
+  "projectFile": "minimal-golden.aster.json",
+  "projectSha256": "b9f8b9c6129eab1f2169b17089c84d6c98859df3ef4104e2a276a1ddbad0bf18",
+  "capture": {
+    "width": 320,
+    "height": 180,
+    "frameRate": {
+      "numerator": 60,
+      "denominator": 1
+    },
+    "frameIndices": [0, 30, 60, 90, 119],
+    "pixelFormat": "rgba8unorm",
+    "colorSpace": "srgb"
+  },
+  "comparisonPolicy": {
+    "maximumChannelDelta8Bit": 1,
+    "maximumDifferentPixelRatio": 0.0001,
+    "alphaMode": "premultiplied"
+  }
+}

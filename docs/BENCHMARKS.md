@@ -3,6 +3,18 @@
 Measure release builds after pipeline warm-up on AC power with the same project seed, resolution,
 preview quality, driver, and adapter. Record median, p95, and p99 over at least 600 frames.
 
+The fixed primary MVP machine is described by the privacy-safe, machine-readable
+[`windows-rtx5060-laptop.json`](../benchmarks/hardware/windows-rtx5060-laptop.json) manifest. A result
+must cite that exact manifest and satisfy its run conditions; a changed driver, OS build, display
+topology, power mode, or selected adapter starts a separate baseline series. Hardware capture and
+adapter-verification steps are documented in [`benchmarks/hardware`](../benchmarks/hardware).
+
+Any public comparison with another application follows the preregistered
+[`competitor-comparison-v1.md`](../benchmarks/protocols/competitor-comparison-v1.md) protocol. It
+requires equivalent visible output and quality, rotating application order, three raw runs, declared
+metric sources, published fixtures and raw data, and explicit unsupported results. It forbids
+substituting an easier workload or using unmatched timing sources in one performance ratio.
+
 ## Suites
 
 - 1080p and 4K 20-layer 2D composite.
@@ -34,10 +46,10 @@ median, p95, p99, and max distributions. `BenchmarkReport::regressions_against` 
 policy of 5% median and 10% p95 timing thresholds. Nightly CI stores the generated JSON as a build
 artifact so results remain attributable to the exact commit and runner.
 
-On the Windows x86-64 development machine used for the initial implementation, the 10,000-node
-full invalidation measured 1.008 ms median / 1.234 ms p95; a leaf-only invalidation measured 0.069 ms
-median / 0.071 ms p95, with 99.99% of nodes retained. These numbers are reference observations, not
-portable pass/fail limits.
+On the Windows x86-64 development machine used for the initial implementation, the 10,000-node full
+invalidation measured 1.008 ms median / 1.234 ms p95; a leaf-only invalidation measured 0.069 ms
+median / 0.071 ms p95, with 99.99% of nodes retained. These numbers predate the fixed-manifest policy:
+they are reference observations, not a manifest-qualified baseline or portable pass/fail limits.
 
 ## In-editor WebGPU benchmark
 
@@ -50,4 +62,5 @@ schema-versioned JSON with adapter metadata.
 
 An initial 60-frame run on the development WebGPU adapter measured 1.11 ms median / 1.31 ms p95 at
 1080p, 4.59 / 4.92 ms at 4K, 3.47 / 3.80 ms for 20 layers, and 0.72 / 0.79 ms for the five-effect
-Blur/Glow chain. These are observational smoke results rather than cross-machine limits.
+Blur/Glow chain. This run predates the fixed-manifest policy and remains an observational smoke result
+rather than a manifest-qualified baseline or cross-machine limit.

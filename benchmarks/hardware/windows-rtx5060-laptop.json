@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "id": "windows-rtx5060-laptop-primary",
+  "capturedAt": "2026-08-20",
+  "operatingSystem": {
+    "name": "Microsoft Windows 11 Home Chinese",
+    "version": "10.0.26100",
+    "build": "26100",
+    "architecture": "x86_64"
+  },
+  "system": {
+    "manufacturer": "MECHREVO",
+    "model": "JIAOLONG Series"
+  },
+  "cpu": {
+    "name": "AMD Ryzen 9 8945HX with Radeon Graphics",
+    "physicalCores": 16,
+    "logicalProcessors": 32
+  },
+  "memory": {
+    "physicalBytes": 68719476736,
+    "modules": 2,
+    "configuredClockMHz": 5200,
+    "totalVisibleBytes": 67878334464,
+    "totalVisibleGiB": 63.22
+  },
+  "graphicsAdapters": [
+    {
+      "name": "NVIDIA GeForce RTX 5060 Laptop GPU",
+      "driverVersion": "32.0.15.9621",
+      "vendorDriverVersion": "596.21",
+      "dedicatedMemoryMiB": 8151,
+      "defaultPowerLimitWatts": 50,
+      "maximumPowerLimitWatts": 115,
+      "maximumGraphicsClockMHz": 3090,
+      "maximumMemoryClockMHz": 12001,
+      "role": "required-primary-benchmark-adapter"
+    },
+    {
+      "name": "AMD Radeon 610M",
+      "driverVersion": "32.0.13034.5007",
+      "role": "integrated-adapter-not-used-for-primary-results"
+    }
+  ],
+  "excludedAdapters": ["GameViewer Virtual Display Adapter", "Parsec Virtual Display Adapter"],
+  "requiredRunConditions": {
+    "power": "AC power connected",
+    "adapterSelection": "Aster report adapter must exactly identify the NVIDIA discrete adapter",
+    "osPowerMode": "Best performance",
+    "backgroundWorkloads": "Close nonessential foreground and GPU-intensive applications",
+    "thermalState": "Run one complete warm-up suite before recording samples",
+    "displayPolicy": "Record display topology and refresh rate beside every result; do not compare runs when either changes",
+    "driverPolicy": "Driver versions must match this manifest or the result starts a new baseline series"
+  },
+  "privacy": {
+    "hostnameIncluded": false,
+    "userNameIncluded": false,
+    "deviceSerialIncluded": false,
+    "hardwareInstanceIdsIncluded": false
+  }
+}
