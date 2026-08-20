@@ -12,6 +12,7 @@ import type {
 } from "../core/types";
 import { AuxiliaryBufferRenderer } from "./auxiliary-buffer-renderer";
 import { SceneBufferVisualizer } from "./buffer-visualizer";
+import { DepthEffectsRenderer } from "./depth-effects";
 import { analyzeEffectFusion } from "./effect-fusion";
 import { FLOATS_PER_EFFECT_OPERATION, MAX_EFFECT_OPERATIONS } from "./effect-program";
 import { FLOATS_PER_VERTEX, type GeometryBatch } from "./geometry";
@@ -29,7 +30,11 @@ import {
 import { PARTICLE_INDIRECT_RESET } from "./particle-indirect";
 import { precompileGpuPipelines } from "./pipeline-precompile";
 import { buildPostProcessUniforms } from "./post-process";
-import { type BufferVisualization, isAuxiliaryBuffer } from "./render-buffers";
+import {
+  type BufferVisualization,
+  isDepthEffectVisualization,
+  usesAuxiliarySurfaceData,
+} from "./render-buffers";
 import {
   createParticleBindGroupLayout,
   createParticlePipeline,
@@ -70,6 +75,7 @@ export class WebGpuRenderer {
   readonly #particlePipeline: GPURenderPipeline;
   readonly #postPipeline: GPURenderPipeline;
   readonly #bufferVisualizer: SceneBufferVisualizer;
+  readonly #depthEffects: DepthEffectsRenderer;
   readonly #auxiliaryBuffers: AuxiliaryBufferRenderer;
   readonly #layerEffects: LayerEffectRenderer;
   readonly #computePipeline: GPUComputePipeline;
@@ -278,6 +284,7 @@ export class WebGpuRenderer {
     });
     this.#postPipeline = createPostPipeline(device, format);
     this.#bufferVisualizer = new SceneBufferVisualizer(device, format);
+    this.#depthEffects = new DepthEffectsRenderer(device, format);
     this.#layerEffects = new LayerEffectRenderer(device, SCENE_FORMAT);
   }
   static async create(
@@ -599,7 +606,7 @@ export class WebGpuRenderer {
       scenePass.drawIndirect(this.#particleIndirectBuffer, 0);
     }
     scenePass?.end();
-    if (isAuxiliaryBuffer(this.#bufferVisualization)) {
+    if (usesAuxiliarySurfaceData(this.#bufferVisualization)) {
       this.#auxiliaryBuffers.encode({
         encoder,
         vertexBuffer: this.#shapeBuffer,
@@ -640,6 +647,8 @@ export class WebGpuRenderer {
       postPass.setPipeline(this.#postPipeline);
       postPass.setBindGroup(0, this.#postBindGroup);
       postPass.draw(3);
+    } else if (isDepthEffectVisualization(this.#bufferVisualization)) {
+      this.#depthEffects.encode(postPass, this.#bufferVisualization);
     } else this.#bufferVisualizer.encode(postPass, this.#bufferVisualization);
     postPass.end();
     const collectTimestamps = this.#gpuProfiler.encodeReadback(encoder);
@@ -680,12 +689,10 @@ export class WebGpuRenderer {
   async complete(): Promise<void> {
     await this.#device.queue.onSubmittedWorkDone();
   }
-
   setMemoryBudget(megabytes?: number): void {
     this.#memoryBudgetMb = megabytes;
     this.#configureAuxiliaryBuffers();
   }
-
   #configureAuxiliaryBuffers(): void {
     this.#bufferVisualization = this.#auxiliaryBuffers.configureVisualization(
       this.#bufferVisualizer,
@@ -694,8 +701,13 @@ export class WebGpuRenderer {
       this.#height,
       this.#memoryBudgetMb,
     );
+    this.#depthEffects.setSources(
+      this.#width,
+      this.#height,
+      this.#sceneTexture,
+      this.#auxiliaryBuffers.textures.get("worldPosition"),
+    );
   }
-
   #configureShadowMap(size: number): void {
     if (size === this.#shadowMapSize) return;
     this.#shadowTexture.destroy();
@@ -716,7 +728,6 @@ export class WebGpuRenderer {
       ],
     });
   }
-
   #drawBatch(
     pass: GPURenderPassEncoder,
     batch: GeometryBatch,
@@ -736,7 +747,6 @@ export class WebGpuRenderer {
     }
     pass.draw(batch.vertexCount, 1, batch.firstVertex);
   }
-
   #ensureShapeBuffer(requiredBytes: number): void {
     if (requiredBytes <= this.#shapeBufferBytes) return;
     this.#shapeBufferBytes = 2 ** Math.ceil(Math.log2(requiredBytes));
@@ -747,7 +757,6 @@ export class WebGpuRenderer {
       usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE,
     });
   }
-
   #prepareMedia(layer: Layer, time: number, playing: boolean, instanceId: string): void {
     const source = layer.asset?.dataUrl ?? layer.asset?.runtimeUrl;
     if (!source) return;
@@ -800,7 +809,6 @@ export class WebGpuRenderer {
           this.#mediaResources.delete(instanceId);
       });
   }
-
   #prepareText(layer: Layer, instanceId: string, localTime: number, frameRate: number): void {
     const characterCount = countAnimatedTextCharacters(layer.text ?? layer.name);
     const animationTime = clampTextAnimationTime(layer.textAnimator, localTime, characterCount);

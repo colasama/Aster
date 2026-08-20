@@ -9,14 +9,30 @@ export const AUXILIARY_BUFFER_KINDS = [
 export type AuxiliaryBufferKind = (typeof AUXILIARY_BUFFER_KINDS)[number];
 export const SCENE_BUFFER_VISUALIZATIONS = ["beauty", "linearColor", "luminance", "alpha"] as const;
 export type SceneBufferVisualization = (typeof SCENE_BUFFER_VISUALIZATIONS)[number];
-export type BufferVisualization = SceneBufferVisualization | AuxiliaryBufferKind;
+export const DEPTH_EFFECT_VISUALIZATIONS = ["depthFog", "depthOfField"] as const;
+export type DepthEffectVisualization = (typeof DEPTH_EFFECT_VISUALIZATIONS)[number];
+export type BufferVisualization =
+  | SceneBufferVisualization
+  | AuxiliaryBufferKind
+  | DepthEffectVisualization;
 export const BUFFER_VISUALIZATIONS: readonly BufferVisualization[] = [
   ...SCENE_BUFFER_VISUALIZATIONS,
+  ...DEPTH_EFFECT_VISUALIZATIONS,
   ...AUXILIARY_BUFFER_KINDS,
 ];
 
 export function isAuxiliaryBuffer(mode: BufferVisualization): mode is AuxiliaryBufferKind {
   return AUXILIARY_BUFFER_KINDS.includes(mode as AuxiliaryBufferKind);
+}
+
+export function isDepthEffectVisualization(
+  mode: BufferVisualization,
+): mode is DepthEffectVisualization {
+  return DEPTH_EFFECT_VISUALIZATIONS.includes(mode as DepthEffectVisualization);
+}
+
+export function usesAuxiliarySurfaceData(mode: BufferVisualization): boolean {
+  return isAuxiliaryBuffer(mode) || isDepthEffectVisualization(mode);
 }
 
 export interface AuxiliaryBufferDescriptor {

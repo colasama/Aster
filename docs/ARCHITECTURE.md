@@ -28,7 +28,10 @@ WebGPU preview implementation.
    carry clip depth and use the active camera transform plus a shared `depth24plus` target.
 5. Compute particles run. Each effected layer uses a fused offscreen chain before its blend-mode
    composite; unaffected adjacent layers stay batched directly into the `rgba16float` scene target.
-6. One composition-level ACES display pass presents the linear HDR result to the surface.
+6. One composition-level ACES display pass presents the linear HDR result to the surface. Depth
+   previews reuse the on-demand auxiliary MRT world-position attachment: exponential fog derives
+   distance from its world-space Z value, while depth of field applies a bounded 16-tap circular
+   blur from the same value. Beauty mode disables these transient attachments to avoid idle VRAM.
 7. Metrics are sampled outside React's frame-critical path.
 
 Frame and sequence export open one full-resolution render session, resize the GPU surface once, and

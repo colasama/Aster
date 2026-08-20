@@ -19,6 +19,8 @@ describe("auxiliary render buffers", () => {
       "linearColor",
       "luminance",
       "alpha",
+      "depthFog",
+      "depthOfField",
       "normal",
       "objectId",
       "materialId",

@@ -664,6 +664,8 @@ function bufferViewLabel(mode: BufferVisualization): string {
     linearColor: "Linear HDR",
     luminance: "Luminance",
     alpha: "Alpha",
+    depthFog: "Depth Fog · GPU",
+    depthOfField: "Depth of Field · GPU",
     normal: "Normal",
     objectId: "Object ID",
     materialId: "Material ID",

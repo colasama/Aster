@@ -2,6 +2,7 @@ import {
   AUXILIARY_BUFFER_DESCRIPTORS,
   type AuxiliaryBufferKind,
   type BufferVisualization,
+  type DepthEffectVisualization,
   type SceneBufferVisualization,
 } from "./render-buffers";
 
@@ -99,7 +100,10 @@ export class SceneBufferVisualizer {
     this.#auxiliaryBindGroups.clear();
   }
 
-  encode(pass: GPURenderPassEncoder, mode: Exclude<BufferVisualization, "beauty">): void {
+  encode(
+    pass: GPURenderPassEncoder,
+    mode: Exclude<BufferVisualization, "beauty" | DepthEffectVisualization>,
+  ): void {
     if (mode === "linearColor" || mode === "luminance" || mode === "alpha") {
       if (!this.#sceneBindGroup) throw new Error("Scene buffer visualizer has no source texture");
       this.#device.queue.writeBuffer(this.#sceneUniform, 0, new Uint32Array([SCENE_MODES[mode]]));

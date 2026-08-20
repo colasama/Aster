@@ -12,9 +12,9 @@ describe("asynchronous GPU pipeline precompilation", () => {
     } as unknown as GPUDevice;
 
     const report = await precompileGpuPipelines(device, "bgra8unorm");
-    expect(report.count).toBe(7);
+    expect(report.count).toBe(8);
     expect(report.durationMs).toBeGreaterThanOrEqual(0);
-    expect(createRenderPipelineAsync).toHaveBeenCalledTimes(6);
+    expect(createRenderPipelineAsync).toHaveBeenCalledTimes(7);
     expect(createComputePipelineAsync).toHaveBeenCalledTimes(1);
   });
 });

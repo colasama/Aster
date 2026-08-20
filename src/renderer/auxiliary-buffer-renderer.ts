@@ -14,6 +14,7 @@ import {
   isAuxiliaryBuffer,
   planAuxiliaryBuffers,
   supportsAuxiliaryMrt,
+  usesAuxiliarySurfaceData,
 } from "./render-buffers";
 import { SHAPE_VERTEX_BUFFERS } from "./scene-pipelines";
 
@@ -194,7 +195,7 @@ export class AuxiliaryBufferRenderer {
     height: number,
     budgetMb?: number,
   ): BufferVisualization {
-    if (!isAuxiliaryBuffer(mode)) {
+    if (!usesAuxiliarySurfaceData(mode)) {
       this.disable();
       visualizer.clearAuxiliarySources();
       return mode;
@@ -205,7 +206,8 @@ export class AuxiliaryBufferRenderer {
       return "beauty";
     }
     const range = Math.max(width, height);
-    visualizer.setAuxiliarySources(this.textures, [-range, range]);
+    if (isAuxiliaryBuffer(mode)) visualizer.setAuxiliarySources(this.textures, [-range, range]);
+    else visualizer.clearAuxiliarySources();
     return mode;
   }
 

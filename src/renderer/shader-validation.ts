@@ -1,4 +1,5 @@
 import { auxiliarySurfaceShader } from "./auxiliary-buffer-renderer";
+import { depthEffectsShader } from "./depth-effects";
 import { extractPositionsShader } from "./motion-vector-history";
 import {
   imageShader,
@@ -18,6 +19,7 @@ export async function validateShaderSources(device: GPUDevice): Promise<void> {
     ["shadow", shadowShader],
     ["post process", postProcessShader],
     ["auxiliary surface MRT", auxiliarySurfaceShader],
+    ["depth effects", depthEffectsShader],
     ["motion-vector history", extractPositionsShader],
   ] as const;
   for (const [label, code] of sources) {

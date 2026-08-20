@@ -1,3 +1,4 @@
+import { depthEffectsShader } from "./depth-effects";
 import {
   IMAGE_VERTEX_BUFFERS,
   SHADOW_VERTEX_BUFFERS,
@@ -32,6 +33,7 @@ export async function precompileGpuPipelines(
   const particles = module("Async precompile · particle render", particleRenderShader);
   const compute = module("Async precompile · particle compute", particleComputeShader);
   const post = module("Async precompile · post process", postProcessShader);
+  const depthEffects = module("Async precompile · depth effects", depthEffectsShader);
   const composite = module("Async precompile · texture composite", textureCompositeShader);
   await Promise.all([
     device.createRenderPipelineAsync({
@@ -83,6 +85,9 @@ export async function precompileGpuPipelines(
     }),
     device.createRenderPipelineAsync(fullscreenDescriptor("post process", post, canvasFormat)),
     device.createRenderPipelineAsync(
+      fullscreenDescriptor("depth effects", depthEffects, canvasFormat),
+    ),
+    device.createRenderPipelineAsync(
       fullscreenDescriptor("texture composite", composite, SCENE_FORMAT),
     ),
     device.createComputePipelineAsync({
@@ -91,7 +96,7 @@ export async function precompileGpuPipelines(
       compute: { module: compute, entryPoint: "compute_main" },
     }),
   ]);
-  return { count: 7, durationMs: performance.now() - started };
+  return { count: 8, durationMs: performance.now() - started };
 }
 
 function fullscreenDescriptor(
