@@ -272,12 +272,22 @@ function validateLayer(value: unknown, path: string): asserts value is Layer {
   }
   if (layer.shape !== undefined) {
     const shape = requireObject(layer.shape, `${path}.shape`);
-    if (shape.kind !== "rectangle" && shape.kind !== "ellipse" && shape.kind !== "line")
+    if (
+      shape.kind !== "rectangle" &&
+      shape.kind !== "ellipse" &&
+      shape.kind !== "line" &&
+      shape.kind !== "bezier"
+    )
       throw new Error(`${path}.shape.kind is invalid`);
     if (!["solid", "linear", "radial"].includes(String(shape.fillMode)))
       throw new Error(`${path}.shape.fillMode is invalid`);
     if (!["butt", "round"].includes(String(shape.lineCap)))
       throw new Error(`${path}.shape.lineCap is invalid`);
+    if (
+      shape.lineJoin !== undefined &&
+      !["miter", "bevel", "round"].includes(String(shape.lineJoin))
+    )
+      throw new Error(`${path}.shape.lineJoin is invalid`);
     const roundness = requireFiniteNumber(shape.roundness, `${path}.shape.roundness`);
     const strokeWidth = requireFiniteNumber(shape.strokeWidth, `${path}.shape.strokeWidth`);
     const dashLength = requireFiniteNumber(shape.dashLength, `${path}.shape.dashLength`);
@@ -291,6 +301,7 @@ function validateLayer(value: unknown, path: string): asserts value is Layer {
     requireNumberArray(shape.gradientColor, `${path}.shape.gradientColor`, 4);
     if ((shape.gradientColor as number[]).length !== 4)
       throw new Error(`${path}.shape.gradientColor must contain four channels`);
+    if (shape.kind === "bezier") validateBezierPath(shape.path, `${path}.shape.path`);
   }
   if (layer.textStyle !== undefined) {
     const style = requireObject(layer.textStyle, `${path}.textStyle`);
@@ -319,6 +330,21 @@ function validateLayer(value: unknown, path: string): asserts value is Layer {
   if (!Array.isArray(layer.effects)) throw new Error(`${path}.effects must be an array`);
   for (const [index, effect] of layer.effects.entries())
     validateEffect(effect, `${path}.effects[${index}]`);
+}
+
+function validateBezierPath(value: unknown, path: string): void {
+  const bezier = requireObject(value, path);
+  if (typeof bezier.closed !== "boolean") throw new Error(`${path}.closed must be a boolean`);
+  if (!Array.isArray(bezier.vertices) || bezier.vertices.length < 2 || bezier.vertices.length > 512)
+    throw new Error(`${path}.vertices must contain between 2 and 512 anchors`);
+  for (const [index, value] of bezier.vertices.entries()) {
+    const vertex = requireObject(value, `${path}.vertices[${index}]`);
+    for (const field of ["position", "inTangent", "outTangent"] as const) {
+      const point = requireNumberArray(vertex[field], `${path}.vertices[${index}].${field}`, 2);
+      if (point.length !== 2 || point.some((channel) => Math.abs(channel) > 16))
+        throw new Error(`${path}.vertices[${index}].${field} is out of range`);
+    }
+  }
 }
 
 function validateAnimatable(value: unknown, path: string): void {

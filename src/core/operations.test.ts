@@ -217,6 +217,7 @@ describe("structured project operations", () => {
           dashLength: -5,
           dashGap: 24,
           lineCap: "butt",
+          lineJoin: "bevel",
         },
       },
     ]);
@@ -232,6 +233,7 @@ describe("structured project operations", () => {
       dashLength: 0,
       dashGap: 24,
       lineCap: "butt",
+      lineJoin: "bevel",
     });
     expect(shape.shape?.kind).toBe("rectangle");
   });

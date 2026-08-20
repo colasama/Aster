@@ -1,5 +1,6 @@
 import type { FlattenedSceneLayer } from "../core/scene-evaluation";
 import type { CameraSettings, Composition, EvaluatedTransform, Layer } from "../core/types";
+import { flattenBezierPath, tessellateStroke, triangulatePolygon } from "./vector-path";
 
 export const FLOATS_PER_VERTEX = 36;
 export const VERTEX_FLOAT_OFFSETS = {
@@ -120,7 +121,9 @@ export function buildSceneGeometry(
           ? 2
           : inferredShapeKind === "line"
             ? 3
-            : 1
+            : inferredShapeKind === "bezier"
+              ? 4
+              : 1
         : 0,
       layer.shape?.lineCap === "round" ? 1 : 0,
     ] as const;
@@ -195,6 +198,21 @@ export function buildSceneGeometry(
           }
         }
       }
+    } else if (layer.kind === "shape" && layer.shape?.kind === "bezier" && layer.shape.path) {
+      vertexCount = appendBezierPath(
+        output,
+        layer,
+        transform,
+        width,
+        height,
+        color,
+        material,
+        shapeStyleParameters,
+        gradientStyleColor,
+        gradientStyleParameters,
+        composition,
+        camera,
+      );
     } else {
       const normal = rotatePoint(0, 0, 1, transform.rotation);
       for (const [cornerX, cornerY, u, v] of QUAD_CORNERS) {
@@ -233,6 +251,92 @@ export function buildSceneGeometry(
     });
   }
   return { data: new Float32Array(output), batches };
+}
+
+function appendBezierPath(
+  output: number[],
+  layer: Layer,
+  transform: EvaluatedTransform,
+  width: number,
+  height: number,
+  fillColor: readonly [number, number, number, number],
+  material: readonly [number, number, number, number],
+  shapeStyleParameters: readonly [number, number, number, number],
+  gradientStyleColor: readonly [number, number, number, number],
+  gradientStyleParameters: readonly [number, number, number, number],
+  composition: Composition,
+  camera?: SceneCamera,
+): number {
+  const shape = layer.shape;
+  if (!shape?.path) return 0;
+  const normalized = flattenBezierPath(shape.path);
+  const normal = rotatePoint(0, 0, 1, transform.rotation);
+  const noStyle: readonly [number, number, number, number] = [1, 1, 1, 1];
+  let vertexCount = 0;
+  const append = (
+    point: readonly [number, number],
+    color: readonly [number, number, number, number],
+    gradientColor: readonly [number, number, number, number],
+    gradientParameters: readonly [number, number, number, number],
+  ) => {
+    const projected = projectVertex(
+      point[0] * width,
+      point[1] * height,
+      0,
+      layer.threeDimensional,
+      transform.position,
+      transform.rotation,
+      composition,
+      camera,
+    );
+    pushVertex(
+      output,
+      projected,
+      point[0] + 0.5,
+      point[1] + 0.5,
+      color,
+      0,
+      normal,
+      material,
+      noStyle,
+      shapeStyleParameters,
+      gradientColor,
+      gradientParameters,
+      composition,
+    );
+    vertexCount += 1;
+  };
+  if (shape.path.closed) {
+    for (const point of triangulatePolygon(normalized))
+      append(point, fillColor, gradientStyleColor, gradientStyleParameters);
+  }
+  if (shape.strokeWidth > 0) {
+    const scaled = normalized.map(
+      (point) => [point[0] * width, point[1] * height] as [number, number],
+    );
+    const stroke = tessellateStroke(
+      scaled,
+      shape.strokeWidth,
+      shape.path.closed,
+      shape.lineJoin ?? "round",
+      shape.lineCap,
+    );
+    const strokeColor: readonly [number, number, number, number] = [
+      shape.strokeColor[0],
+      shape.strokeColor[1],
+      shape.strokeColor[2],
+      shape.strokeColor[3] * transform.opacity,
+    ];
+    const solidParameters: readonly [number, number, number, number] = [0, 0, 0, 0];
+    for (const point of stroke)
+      append(
+        [point[0] / Math.max(Math.abs(width), 1), point[1] / Math.max(Math.abs(height), 1)],
+        strokeColor,
+        noStyle,
+        solidParameters,
+      );
+  }
+  return vertexCount;
 }
 
 function appendImportedMesh(

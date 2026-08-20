@@ -42,6 +42,7 @@ export function createDemoProject(): Project {
       dashLength: 0,
       dashGap: 0,
       lineCap: "round",
+      lineJoin: "round",
     },
   });
   const orb = layer({
@@ -60,6 +61,7 @@ export function createDemoProject(): Project {
       dashLength: 0,
       dashGap: 0,
       lineCap: "round",
+      lineJoin: "round",
     },
     blendMode: "screen",
     transform: createTransform([2740, 950, 80]),
@@ -89,6 +91,7 @@ export function createDemoProject(): Project {
       dashLength: 0,
       dashGap: 0,
       lineCap: "round",
+      lineJoin: "round",
     },
     threeDimensional: true,
     transform: createTransform([1870, 1450, 40]),
@@ -245,6 +248,7 @@ export function createBlankComposition(name = "Composition 1"): Composition {
       dashLength: 0,
       dashGap: 0,
       lineCap: "round",
+      lineJoin: "round",
     },
     outPoint: 10,
     transform: createTransform([960, 540, 0]),

@@ -269,6 +269,8 @@ export function applyOperation(project: Project, operation: Operation): void {
         dashLength: clamp(operation.shape.dashLength, 0, 100_000),
         dashGap: clamp(operation.shape.dashGap, 0, 100_000),
         lineCap: operation.shape.lineCap,
+        lineJoin: operation.shape.lineJoin ?? "round",
+        path: operation.shape.path ? structuredClone(operation.shape.path) : undefined,
       };
       break;
     case "setTextContent":

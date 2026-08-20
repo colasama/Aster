@@ -3,6 +3,7 @@ import { createLayerForComposition } from "../core/layer-factory";
 import { createBlankProject } from "../core/project";
 import { evaluateWorldTransform, flattenSceneLayers } from "../core/scene-evaluation";
 import { buildSceneGeometry, FLOATS_PER_VERTEX, VERTEX_FLOAT_OFFSETS } from "./geometry";
+import { createDefaultBezierPath } from "./vector-path";
 
 describe("GPU scene geometry", () => {
   it("projects 3D rotation and depth into screen-space vertices", () => {
@@ -106,6 +107,7 @@ describe("GPU scene geometry", () => {
       dashLength: 16,
       dashGap: 8,
       lineCap: "butt",
+      lineJoin: "bevel",
     };
     composition.layers = [ellipse];
     const data = buildSceneGeometry(composition, flattenSceneLayers(composition, project, 0)).data;
@@ -116,6 +118,25 @@ describe("GPU scene geometry", () => {
     expect(data[VERTEX_FLOAT_OFFSETS.gradientStyleColor + 2]).toBeCloseTo(0.8);
     expect(data[VERTEX_FLOAT_OFFSETS.gradientStyleParameters]).toBe(2);
     expect(data[VERTEX_FLOAT_OFFSETS.gradientStyleParameters + 1]).toBeCloseTo(Math.PI / 4);
+  });
+
+  it("tessellates Bezier paths into the shared GPU vertex stream", () => {
+    const project = createBlankProject();
+    const composition = project.compositions[0];
+    const path = createLayerForComposition("shape", composition);
+    if (!path.shape) throw new Error("Expected shape settings");
+    path.size = [760, 480];
+    path.shape.kind = "bezier";
+    path.shape.path = createDefaultBezierPath();
+    path.shape.strokeWidth = 12;
+    path.shape.lineJoin = "round";
+    composition.layers = [path];
+
+    const geometry = buildSceneGeometry(composition, flattenSceneLayers(composition, project, 0));
+    expect(geometry.batches[0].vertexCount).toBeGreaterThan(12);
+    expect(geometry.data).toHaveLength(geometry.batches[0].vertexCount * FLOATS_PER_VERTEX);
+    expect(geometry.data[VERTEX_FLOAT_OFFSETS.shapeStyleParameters + 2]).toBe(4);
+    expect(Array.from(geometry.data).every(Number.isFinite)).toBe(true);
   });
 
   it("includes text quads so cached glyph textures share the layer effect graph", () => {

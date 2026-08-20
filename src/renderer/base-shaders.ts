@@ -89,6 +89,9 @@ fn fragment_main(input: VertexOutput) -> @location(0) vec4f {
       fill_color = mix(fill_color, input.gradient_style_color.rgb, gradient_amount);
       alpha *= mix(1.0, input.gradient_style_color.a, gradient_amount);
     }
+    if input.shape_style_parameters.z > 3.5 {
+      return vec4f(fill_color * alpha, alpha);
+    }
     let ellipse_distance = (length(centered * 2.0) - 1.0) * 0.5;
     let radius = input.shape_style_parameters.y;
     let rounded = abs(centered) - vec2f(0.5 - radius);

@@ -1,4 +1,5 @@
 import type { Layer, ShapeSettings } from "../core/types";
+import { createDefaultBezierPath } from "../renderer/vector-path";
 import { useEditor } from "../state/editor-store";
 
 export function ShapeControls({ layer }: { layer: Layer }) {
@@ -15,6 +16,7 @@ export function ShapeControls({ layer }: { layer: Layer }) {
     dashLength: 0,
     dashGap: 0,
     lineCap: "round" as const,
+    lineJoin: "round" as const,
   };
   const update = <Field extends keyof ShapeSettings>(field: Field, value: ShapeSettings[Field]) => {
     dispatch({
@@ -40,6 +42,9 @@ export function ShapeControls({ layer }: { layer: Layer }) {
       ],
     });
   };
+  const setPathClosed = (closed: boolean) => {
+    if (settings.path) update("path", { ...settings.path, closed });
+  };
 
   return (
     <>
@@ -47,12 +52,32 @@ export function ShapeControls({ layer }: { layer: Layer }) {
         Shape
         <select
           aria-label="Shape kind"
-          onChange={(event) => update("kind", event.target.value as ShapeSettings["kind"])}
+          onChange={(event) => {
+            const kind = event.target.value as ShapeSettings["kind"];
+            dispatch({
+              type: "operation",
+              operations: [
+                {
+                  type: "setShapeSettings",
+                  layerId: layer.id,
+                  shape: {
+                    ...settings,
+                    kind,
+                    path:
+                      kind === "bezier"
+                        ? (settings.path ?? createDefaultBezierPath())
+                        : settings.path,
+                  },
+                },
+              ],
+            });
+          }}
           value={settings.kind}
         >
           <option value="rectangle">Rectangle</option>
           <option value="ellipse">Ellipse</option>
           <option value="line">Line</option>
+          <option value="bezier">Bezier path</option>
         </select>
       </label>
       <label>
@@ -141,7 +166,7 @@ export function ShapeControls({ layer }: { layer: Layer }) {
           value={colorInput(settings.strokeColor)}
         />
       </label>
-      {settings.kind === "line" && (
+      {(settings.kind === "line" || settings.kind === "bezier") && (
         <>
           <label>
             Line cap
@@ -156,6 +181,35 @@ export function ShapeControls({ layer }: { layer: Layer }) {
               <option value="butt">Butt</option>
             </select>
           </label>
+          {settings.kind === "bezier" && (
+            <>
+              <label>
+                Line join
+                <select
+                  aria-label="Line join"
+                  onChange={(event) =>
+                    update("lineJoin", event.target.value as ShapeSettings["lineJoin"])
+                  }
+                  value={settings.lineJoin ?? "round"}
+                >
+                  <option value="miter">Miter</option>
+                  <option value="bevel">Bevel</option>
+                  <option value="round">Round</option>
+                </select>
+              </label>
+              {settings.path && (
+                <label>
+                  Closed path
+                  <input
+                    aria-label="Closed path"
+                    checked={settings.path.closed}
+                    onChange={(event) => setPathClosed(event.target.checked)}
+                    type="checkbox"
+                  />
+                </label>
+              )}
+            </>
+          )}
           <label>
             Dash length
             <input

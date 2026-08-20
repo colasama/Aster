@@ -87,6 +87,7 @@ export function createLayerForComposition(
             dashLength: 0,
             dashGap: 0,
             lineCap: "round",
+            lineJoin: "round",
           }
         : undefined,
     textStyle:

@@ -182,12 +182,34 @@ describe("project document boundary", () => {
       dashLength: 16,
       dashGap: 8,
       lineCap: "butt",
+      lineJoin: "miter",
     };
 
     const roundtrip = validateProjectDocument(JSON.parse(serializeProject(project)));
     expect(roundtrip.compositions[0].layers[0].shape).toEqual(shape.shape);
     shape.shape.strokeWidth = -1;
     expect(() => validateProjectDocument(project)).toThrow("must not be negative");
+  });
+
+  it("roundtrips bounded cubic Bezier anchors and handles", () => {
+    const project = createBlankProject();
+    const shape = project.compositions[0].layers[0];
+    if (!shape.shape) throw new Error("Expected shape settings");
+    shape.shape.kind = "bezier";
+    shape.shape.strokeWidth = 8;
+    shape.shape.lineJoin = "round";
+    shape.shape.path = {
+      closed: false,
+      vertices: [
+        { position: [-0.5, 0], inTangent: [0, 0], outTangent: [0.25, -0.4] },
+        { position: [0.5, 0], inTangent: [-0.25, 0.4], outTangent: [0, 0] },
+      ],
+    };
+
+    const roundtrip = validateProjectDocument(JSON.parse(serializeProject(project)));
+    expect(roundtrip.compositions[0].layers[0].shape?.path).toEqual(shape.shape.path);
+    shape.shape.path.vertices[0].position[0] = 17;
+    expect(() => validateProjectDocument(project)).toThrow("out of range");
   });
 
   it("roundtrips multiline text typography", () => {

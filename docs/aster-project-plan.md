@@ -1308,14 +1308,14 @@ aster/
 - [x] Rectangle。
 - [x] Ellipse。
 - [x] Line。
-- [ ] Bezier Path。
+- [x] Bezier Path。
 - [x] Fill。
 - [x] Stroke。
 - [x] Stroke width。
-- [ ] Join / Cap。
+- [x] Join / Cap。
 - [x] Dash。
 - [x] Gradient fill。
-- [ ] Path tessellation。
+- [x] Path tessellation。
 - [x] GPU path rendering strategy。
 - [ ] Mask path reuse。
 - [ ] Shape grouping。

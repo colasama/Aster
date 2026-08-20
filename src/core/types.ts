@@ -147,8 +147,19 @@ export interface ParticleSettings {
   endRotation: number;
 }
 
+export interface BezierVertex {
+  position: [number, number];
+  inTangent: [number, number];
+  outTangent: [number, number];
+}
+
+export interface BezierPath {
+  closed: boolean;
+  vertices: BezierVertex[];
+}
+
 export interface ShapeSettings {
-  kind: "rectangle" | "ellipse" | "line";
+  kind: "rectangle" | "ellipse" | "line" | "bezier";
   roundness: number;
   strokeWidth: number;
   strokeColor: [number, number, number, number];
@@ -158,6 +169,8 @@ export interface ShapeSettings {
   dashLength: number;
   dashGap: number;
   lineCap: "butt" | "round";
+  lineJoin?: "miter" | "bevel" | "round";
+  path?: BezierPath;
 }
 
 export interface TextStyle {

@@ -18,6 +18,7 @@ import { evaluateAnimatable } from "../core/timeline";
 import type { GpuDiagnostics, Project } from "../core/types";
 import { CanvasFallbackRenderer } from "../renderer/canvas-fallback";
 import { type GpuBenchmarkRequest, runGpuBenchmark } from "../renderer/gpu-benchmark";
+import { createDefaultBezierPath } from "../renderer/vector-path";
 import { WebGpuRenderer } from "../renderer/webgpu-renderer";
 import { useEditor } from "../state/editor-store";
 import { CameraGizmo } from "./CameraGizmo";
@@ -287,10 +288,14 @@ export function Viewport() {
             if (state.activeTool === "shape") layer.size = [720, 480];
             if (state.activeTool === "pen") {
               layer.name = "Pen Path";
-              layer.size = [640, 36];
+              layer.size = [760, 480];
               if (layer.shape) {
-                layer.shape.kind = "line";
+                layer.shape.kind = "bezier";
                 layer.shape.strokeWidth = 12;
+                layer.shape.strokeColor = [0.46, 0.72, 1, 1];
+                layer.shape.lineCap = "round";
+                layer.shape.lineJoin = "round";
+                layer.shape.path = createDefaultBezierPath();
               }
             }
             dispatch({
