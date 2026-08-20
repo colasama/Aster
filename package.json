@@ -1,6 +1,8 @@
 {
   "name": "aster",
+  "description": "GPU-first motion graphics and compositing editor",
   "private": true,
+  "repository": "github:aster-mograph/aster",
   "version": "0.2.0",
   "type": "module",
   "packageManager": "pnpm@10.15.0",

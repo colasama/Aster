@@ -952,9 +952,9 @@ aster/
 ## 18.1 P0 — Repository / Engineering Foundation
 
 - [ ] 创建 GitHub Organization / Repository。
-- [ ] 确认 Aster 最终仓库 slug。
+- [x] 确认 Aster 最终仓库 slug。
 - [x] 添加 `README.md`。
-- [ ] 添加项目一句话 Description。
+- [x] 添加项目一句话 Description。
 - [x] 添加 `LICENSE`，主程序采用 MPL-2.0。
 - [x] 添加 `NOTICE`。
 - [x] 添加 `THIRD_PARTY_LICENSES`。

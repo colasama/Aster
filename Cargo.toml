@@ -17,6 +17,7 @@ members = [
 [workspace.package]
 version = "0.2.0"
 edition = "2024"
+description = "GPU-first motion graphics and compositing editor"
 license = "MPL-2.0"
 repository = "https://github.com/aster-mograph/aster"
 rust-version = "1.97"
