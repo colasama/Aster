@@ -1,7 +1,16 @@
 import type { FlattenedSceneLayer } from "../core/scene-evaluation";
 import type { Composition, EvaluatedTransform, Layer } from "../core/types";
 
-export const FLOATS_PER_VERTEX = 10;
+export const FLOATS_PER_VERTEX = 20;
+export const VERTEX_FLOAT_OFFSETS = {
+  position: 0,
+  uv: 3,
+  color: 5,
+  mediaType: 9,
+  normal: 10,
+  material: 13,
+  worldPosition: 17,
+} as const;
 
 export interface GeometryBatch {
   layer: Layer;
@@ -70,21 +79,17 @@ export function buildSceneGeometry(
   for (const scene of visible.reverse()) {
     const { layer, transform } = scene;
     const firstVertex = output.length / FLOATS_PER_VERTEX;
-    const shade =
-      layer.threeDimensional && layer.kind !== "mesh"
-        ? 0.72 +
-          0.28 *
-            Math.max(
-              0,
-              Math.cos(toRadians(transform.rotation[0])) *
-                Math.cos(toRadians(transform.rotation[1])),
-            )
-        : 1;
     const color = [
-      Math.min(4, layer.color[0] * shade),
-      Math.min(4, layer.color[1] * shade),
-      Math.min(4, layer.color[2] * shade),
+      Math.min(4, layer.color[0]),
+      Math.min(4, layer.color[1]),
+      Math.min(4, layer.color[2]),
       layer.color[3] * transform.opacity,
+    ] as const;
+    const material = [
+      layer.material?.metallic ?? 0.12,
+      layer.material?.roughness ?? 0.48,
+      layer.material?.emissive ?? 0,
+      Number(layer.threeDimensional || layer.kind === "mesh"),
     ] as const;
     const width = (layer.size[0] * transform.scale[0]) / 100;
     const height = (layer.size[1] * transform.scale[1]) / 100;
@@ -100,8 +105,6 @@ export function buildSceneGeometry(
       const depth = Math.min(width, height) * 0.68;
       for (const cubeFace of CUBE_FACES) {
         const normal = rotatePoint(...cubeFace.normal, transform.rotation);
-        const light = Math.max(0, normal[0] * 0.35 + normal[1] * -0.45 + normal[2] * 0.82);
-        const faceShade = 0.24 + light * 0.76;
         for (const [cornerX, cornerY, cornerZ, u, v] of cubeFace.corners) {
           const projected = projectVertex(
             cornerX * width,
@@ -113,23 +116,11 @@ export function buildSceneGeometry(
             composition,
             camera,
           );
-          pushVertex(
-            output,
-            projected,
-            u,
-            v,
-            color.map((value, index) => (index < 3 ? value * faceShade : value)) as [
-              number,
-              number,
-              number,
-              number,
-            ],
-            0,
-            composition,
-          );
+          pushVertex(output, projected, u, v, color, 0, normal, material, composition);
         }
       }
     } else {
+      const normal = rotatePoint(0, 0, 1, transform.rotation);
       for (const [cornerX, cornerY, u, v] of QUAD_CORNERS) {
         const projected = projectVertex(
           cornerX * width,
@@ -141,7 +132,7 @@ export function buildSceneGeometry(
           composition,
           camera,
         );
-        pushVertex(output, projected, u, v, color, mediaType, composition);
+        pushVertex(output, projected, u, v, color, mediaType, normal, material, composition);
       }
     }
     batches.push({
@@ -163,49 +154,59 @@ function projectVertex(
   rotation: [number, number, number],
   composition: Composition,
   camera?: EvaluatedTransform,
-): [number, number, number] {
+): { clip: [number, number, number]; world: [number, number, number] } {
   if (!threeDimensional) {
     const angle = toRadians(rotation[2]);
-    return [
+    const world: [number, number, number] = [
       position[0] + localX * Math.cos(angle) - localY * Math.sin(angle),
       position[1] + localX * Math.sin(angle) + localY * Math.cos(angle),
-      1,
+      position[2] + localZ,
     ];
+    return { clip: [world[0], world[1], 1], world };
   }
   const [x, y, z] = rotatePoint(localX, localY, localZ, rotation);
+  const world: [number, number, number] = [position[0] + x, position[1] + y, position[2] + z];
   const cameraPosition = camera?.position ?? [composition.width / 2, composition.height / 2, 0];
   const relative: [number, number, number] = [
-    position[0] + x - cameraPosition[0],
-    position[1] + y - cameraPosition[1],
-    position[2] + z - cameraPosition[2],
+    world[0] - cameraPosition[0],
+    world[1] - cameraPosition[1],
+    world[2] - cameraPosition[2],
   ];
   const [viewX, viewY, viewZ] = applyInverseRotation(relative, camera?.rotation ?? [0, 0, 0]);
   const focalLength = Math.max(composition.width, composition.height) * 1.2;
   const perspective = focalLength / Math.max(focalLength * 0.08, focalLength - viewZ);
-  return [
-    composition.width / 2 + viewX * perspective,
-    composition.height / 2 + viewY * perspective,
-    Math.max(0, Math.min(1, 0.5 - viewZ / (focalLength * 2))),
-  ];
+  return {
+    clip: [
+      composition.width / 2 + viewX * perspective,
+      composition.height / 2 + viewY * perspective,
+      Math.max(0, Math.min(1, 0.5 - viewZ / (focalLength * 2))),
+    ],
+    world,
+  };
 }
 
 function pushVertex(
   output: number[],
-  projected: [number, number, number],
+  projected: { clip: [number, number, number]; world: [number, number, number] },
   u: number,
   v: number,
   color: readonly [number, number, number, number],
   mediaType: number,
+  normal: readonly [number, number, number],
+  material: readonly [number, number, number, number],
   composition: Composition,
 ): void {
   output.push(
-    (projected[0] / composition.width) * 2 - 1,
-    1 - (projected[1] / composition.height) * 2,
-    projected[2],
+    (projected.clip[0] / composition.width) * 2 - 1,
+    1 - (projected.clip[1] / composition.height) * 2,
+    projected.clip[2],
     u,
     v,
     ...color,
     mediaType,
+    ...normal,
+    ...material,
+    ...projected.world,
   );
 }
 

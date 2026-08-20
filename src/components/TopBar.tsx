@@ -64,7 +64,10 @@ const menuItems: Record<string, string[]> = {
     "Import Video…",
     "New Text Layer",
     "New Shape Layer",
+    "New 3D Object",
     "New Camera",
+    "New Light",
+    "New GPU Particles",
     "Pre-compose…",
   ],
   Effect: ["Glow / Bloom", "Kawase Blur", "Color Matrix", "Looks Color Lab"],
@@ -168,7 +171,10 @@ export function TopBar() {
     const layerTypes: Record<string, LayerKind> = {
       "New Text Layer": "text",
       "New Shape Layer": "shape",
+      "New 3D Object": "mesh",
       "New Camera": "camera",
+      "New Light": "light",
+      "New GPU Particles": "particle",
     };
     const effectTypes: Record<string, string> = {
       "Glow / Bloom": "glow",

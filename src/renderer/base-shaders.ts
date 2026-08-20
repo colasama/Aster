@@ -4,7 +4,19 @@ struct VertexOutput {
   @location(0) uv: vec2f,
   @location(1) color: vec4f,
   @location(2) shape: f32,
+  @location(3) normal: vec3f,
+  @location(4) material: vec4f,
+  @location(5) world_position: vec3f,
 }
+
+struct SceneLighting {
+  direction_intensity: vec4f,
+  color_ambient: vec4f,
+  position_kind: vec4f,
+  range_cone: vec4f,
+}
+
+@group(0) @binding(0) var<uniform> lighting: SceneLighting;
 
 @vertex
 fn vertex_main(
@@ -12,12 +24,18 @@ fn vertex_main(
   @location(1) uv: vec2f,
   @location(2) color: vec4f,
   @location(3) shape: f32,
+  @location(4) normal: vec3f,
+  @location(5) material: vec4f,
+  @location(6) world_position: vec3f,
 ) -> VertexOutput {
   var output: VertexOutput;
   output.position = vec4f(position, 1.0);
   output.uv = uv;
   output.color = color;
   output.shape = shape;
+  output.normal = normal;
+  output.material = material;
+  output.world_position = world_position;
   return output;
 }
 
@@ -32,7 +50,34 @@ fn fragment_main(input: VertexOutput) -> @location(0) vec4f {
   }
   let edge = min(min(input.uv.x, 1.0 - input.uv.x), min(input.uv.y, 1.0 - input.uv.y));
   alpha *= smoothstep(0.0, 0.025, edge);
-  return vec4f(input.color.rgb * alpha, alpha);
+  var color = input.color.rgb;
+  if input.material.w > 0.5 {
+    let normal = normalize(input.normal);
+    let to_light = lighting.position_kind.xyz - input.world_position;
+    let distance_to_light = max(length(to_light), 0.001);
+    let directional = lighting.position_kind.w < 0.5;
+    let light_direction = select(normalize(to_light), normalize(lighting.direction_intensity.xyz), directional);
+    let normalized_distance = distance_to_light / max(lighting.range_cone.x, 1.0);
+    var attenuation = select(1.0 / (1.0 + normalized_distance * normalized_distance * 4.0), 1.0, directional);
+    if lighting.position_kind.w > 1.5 {
+      let from_light = normalize(input.world_position - lighting.position_kind.xyz);
+      let cone = dot(from_light, normalize(lighting.direction_intensity.xyz));
+      attenuation *= smoothstep(lighting.range_cone.y, min(1.0, lighting.range_cone.y + 0.08), cone);
+    }
+    let diffuse_weight = max(dot(normal, light_direction), 0.0);
+    let view_direction = vec3f(0.0, 0.0, 1.0);
+    let half_direction = normalize(light_direction + view_direction);
+    let roughness = clamp(input.material.y, 0.04, 1.0);
+    let metallic = clamp(input.material.x, 0.0, 1.0);
+    let specular_power = mix(160.0, 4.0, roughness);
+    let fresnel = mix(vec3f(0.04), color, metallic);
+    let specular = fresnel * pow(max(dot(normal, half_direction), 0.0), specular_power);
+    let radiance = lighting.color_ambient.rgb * lighting.direction_intensity.w * attenuation;
+    let diffuse = color * (1.0 - metallic) * diffuse_weight * radiance;
+    color = color * lighting.color_ambient.w + diffuse + specular * radiance;
+    color += input.color.rgb * max(input.material.z, 0.0);
+  }
+  return vec4f(color * alpha, alpha);
 }
 `;
 

@@ -46,6 +46,46 @@ export function Inspector() {
       operations: [{ type: "setProperty", layerId: layer.id, path, value }],
     });
   };
+  const updateMaterial = (field: "metallic" | "roughness" | "emissive", value: number) => {
+    if (!layer || !Number.isFinite(value)) return;
+    dispatch({
+      type: "operation",
+      operations: [
+        {
+          type: "setMaterial3d",
+          layerId: layer.id,
+          material: {
+            metallic: layer.material?.metallic ?? 0.18,
+            roughness: layer.material?.roughness ?? 0.42,
+            emissive: layer.material?.emissive ?? 0,
+            [field]: value,
+          },
+        },
+      ],
+    });
+  };
+  const updateLight = (
+    field: "kind" | "intensity" | "range" | "coneAngle",
+    value: string | number,
+  ) => {
+    if (!layer) return;
+    dispatch({
+      type: "operation",
+      operations: [
+        {
+          type: "setLightSettings",
+          layerId: layer.id,
+          light: {
+            kind: layer.light?.kind ?? "directional",
+            intensity: layer.light?.intensity ?? 2.5,
+            range: layer.light?.range ?? 2400,
+            coneAngle: layer.light?.coneAngle ?? 45,
+            [field]: value,
+          },
+        },
+      ],
+    });
+  };
   const addKeyframe = (path: PropertyPath) => {
     if (!layer) return;
     const value = evaluateAnimatable(getProperty(layer, path), state.currentTime);
@@ -419,6 +459,122 @@ export function Inspector() {
                   />
                   Enable 3D layer
                 </label>
+                {layer.kind === "mesh" && (
+                  <>
+                    <label>
+                      Metallic
+                      <input
+                        max="1"
+                        min="0"
+                        onChange={(event) => updateMaterial("metallic", Number(event.target.value))}
+                        step="0.01"
+                        type="number"
+                        value={layer.material?.metallic ?? 0.18}
+                      />
+                    </label>
+                    <label>
+                      Roughness
+                      <input
+                        max="1"
+                        min="0.04"
+                        onChange={(event) =>
+                          updateMaterial("roughness", Number(event.target.value))
+                        }
+                        step="0.01"
+                        type="number"
+                        value={layer.material?.roughness ?? 0.42}
+                      />
+                    </label>
+                    <label>
+                      Emissive
+                      <input
+                        max="16"
+                        min="0"
+                        onChange={(event) => updateMaterial("emissive", Number(event.target.value))}
+                        step="0.05"
+                        type="number"
+                        value={layer.material?.emissive ?? 0}
+                      />
+                    </label>
+                  </>
+                )}
+                {layer.kind === "light" && (
+                  <>
+                    <label>
+                      Light type
+                      <select
+                        onChange={(event) => updateLight("kind", event.target.value)}
+                        value={layer.light?.kind ?? "directional"}
+                      >
+                        <option value="directional">Directional</option>
+                        <option value="point">Point</option>
+                        <option value="spot">Spot</option>
+                      </select>
+                    </label>
+                    <label>
+                      Intensity
+                      <input
+                        max="100"
+                        min="0"
+                        onChange={(event) => updateLight("intensity", Number(event.target.value))}
+                        step="0.1"
+                        type="number"
+                        value={layer.light?.intensity ?? 2.5}
+                      />
+                    </label>
+                    {(layer.light?.kind === "point" || layer.light?.kind === "spot") && (
+                      <label>
+                        Range
+                        <input
+                          max="20000"
+                          min="1"
+                          onChange={(event) => updateLight("range", Number(event.target.value))}
+                          step="10"
+                          type="number"
+                          value={layer.light?.range ?? 2400}
+                        />
+                      </label>
+                    )}
+                    {layer.light?.kind === "spot" && (
+                      <label>
+                        Cone angle
+                        <input
+                          max="179"
+                          min="1"
+                          onChange={(event) => updateLight("coneAngle", Number(event.target.value))}
+                          step="1"
+                          type="number"
+                          value={layer.light?.coneAngle ?? 45}
+                        />
+                      </label>
+                    )}
+                    <label>
+                      Light color
+                      <input
+                        onChange={(event) => {
+                          const color = Number.parseInt(event.target.value.slice(1), 16);
+                          dispatch({
+                            type: "operation",
+                            operations: [
+                              {
+                                type: "setLayerColor",
+                                layerId: layer.id,
+                                color: [
+                                  ((color >> 16) & 0xff) / 255,
+                                  ((color >> 8) & 0xff) / 255,
+                                  (color & 0xff) / 255,
+                                  layer.color[3],
+                                ],
+                              },
+                            ],
+                          });
+                        }}
+                        type="color"
+                        value={rgbColorInput(layer.color)}
+                      />
+                    </label>
+                  </>
+                )}
               </div>
             )}
           </div>
@@ -823,4 +979,15 @@ function setLayerTiming(
     type: "operation",
     operations: [{ type: "setLayerTiming", layerId, inPoint, outPoint }],
   });
+}
+
+function rgbColorInput(color: readonly [number, number, number, number]): string {
+  return `#${color
+    .slice(0, 3)
+    .map((channel) =>
+      Math.round(Math.max(0, Math.min(1, channel)) * 255)
+        .toString(16)
+        .padStart(2, "0"),
+    )
+    .join("")}`;
 }

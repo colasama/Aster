@@ -183,6 +183,20 @@ function validateLayer(value: unknown, path: string): asserts value is Layer {
   if (layer.timeStretch !== undefined)
     requirePositiveNumber(layer.timeStretch, `${path}.timeStretch`);
   if (layer.timeRemap !== undefined) validateAnimatable(layer.timeRemap, `${path}.timeRemap`);
+  if (layer.material !== undefined) {
+    const material = requireObject(layer.material, `${path}.material`);
+    for (const field of ["metallic", "roughness", "emissive"])
+      requireFiniteNumber(material[field], `${path}.material.${field}`);
+  }
+  if (layer.light !== undefined) {
+    const light = requireObject(layer.light, `${path}.light`);
+    if (!["directional", "point", "spot"].includes(String(light.kind)))
+      throw new Error(`${path}.light.kind is invalid`);
+    const intensity = requireFiniteNumber(light.intensity, `${path}.light.intensity`);
+    if (intensity < 0) throw new Error(`${path}.light.intensity must not be negative`);
+    for (const field of ["range", "coneAngle"])
+      requirePositiveNumber(light[field], `${path}.light.${field}`);
+  }
   if (!Array.isArray(layer.size) || layer.size.length !== 2)
     throw new Error(`${path}.size must contain two values`);
   if (!Array.isArray(layer.color) || layer.color.length !== 4)

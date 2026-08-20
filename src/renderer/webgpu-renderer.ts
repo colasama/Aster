@@ -14,6 +14,7 @@ import { LayerEffectRenderer } from "./layer-effects";
 import { createLutSampler, createLutTexture } from "./lut-texture";
 import { buildPostProcessUniforms } from "./post-process";
 import { SceneEvaluationCache } from "./scene-evaluation-cache";
+import { buildSceneLighting, SCENE_LIGHTING_BYTES } from "./scene-lighting";
 import {
   imageShader,
   particleComputeShader,
@@ -44,6 +45,9 @@ export class WebGpuRenderer {
   readonly #device: GPUDevice;
   readonly #context: GPUCanvasContext;
   readonly #format: GPUTextureFormat;
+  readonly #lightingBindGroupLayout: GPUBindGroupLayout;
+  readonly #lightingBuffer: GPUBuffer;
+  readonly #lightingBindGroup: GPUBindGroup;
   readonly #shapePipelines: Record<BlendMode, GPURenderPipeline>;
   readonly #imageBindGroupLayout: GPUBindGroupLayout;
   readonly #imagePipelines: Record<BlendMode, GPURenderPipeline>;
@@ -88,6 +92,26 @@ export class WebGpuRenderer {
     this.diagnostics = diagnostics;
     this.#invalidate = invalidate;
     this.#gpuProfiler = new GpuTimestampProfiler(device, diagnostics.timestampQueries, invalidate);
+    this.#lightingBindGroupLayout = device.createBindGroupLayout({
+      label: "Scene lighting layout",
+      entries: [
+        {
+          binding: 0,
+          visibility: GPUShaderStage.FRAGMENT,
+          buffer: { type: "uniform" },
+        },
+      ],
+    });
+    this.#lightingBuffer = device.createBuffer({
+      label: "Scene lighting uniforms",
+      size: SCENE_LIGHTING_BYTES,
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    });
+    this.#lightingBindGroup = device.createBindGroup({
+      label: "Scene lighting resources",
+      layout: this.#lightingBindGroupLayout,
+      entries: [{ binding: 0, resource: { buffer: this.#lightingBuffer } }],
+    });
     this.#shapePipelines = {
       normal: this.#createShapePipeline("normal"),
       add: this.#createShapePipeline("add"),
@@ -273,6 +297,7 @@ export class WebGpuRenderer {
       this.#height,
     );
     const { sceneLayers, geometry } = evaluation;
+    this.#device.queue.writeBuffer(this.#lightingBuffer, 0, buildSceneLighting(sceneLayers));
     if (geometry.data.length > 0) {
       this.#ensureShapeBuffer(geometry.data.byteLength);
       this.#device.queue.writeBuffer(this.#shapeBuffer, 0, geometry.data);
@@ -468,6 +493,7 @@ export class WebGpuRenderer {
       pass.setBindGroup(0, media.bindGroup);
     } else {
       pass.setPipeline(this.#shapePipelines[blendMode]);
+      pass.setBindGroup(0, this.#lightingBindGroup);
     }
     pass.draw(batch.vertexCount, 1, batch.firstVertex);
   }
@@ -749,7 +775,10 @@ export class WebGpuRenderer {
     });
     return this.#device.createRenderPipeline({
       label: `GPU-resident ${blendMode} layer composite`,
-      layout: "auto",
+      layout: this.#device.createPipelineLayout({
+        label: "GPU-lit shape pipeline layout",
+        bindGroupLayouts: [this.#lightingBindGroupLayout],
+      }),
       vertex: {
         module,
         entryPoint: "vertex_main",
@@ -761,6 +790,9 @@ export class WebGpuRenderer {
               { shaderLocation: 1, offset: 12, format: "float32x2" },
               { shaderLocation: 2, offset: 20, format: "float32x4" },
               { shaderLocation: 3, offset: 36, format: "float32" },
+              { shaderLocation: 4, offset: 40, format: "float32x3" },
+              { shaderLocation: 5, offset: 52, format: "float32x4" },
+              { shaderLocation: 6, offset: 68, format: "float32x3" },
             ],
           },
         ],

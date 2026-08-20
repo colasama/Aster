@@ -1331,44 +1331,44 @@ aster/
 
 - [ ] 创建 `aster-scene` crate。
 - [ ] Entity / Component model。
-- [ ] Vec3 Transform。
+- [x] Vec3 Transform。
 - [ ] Quaternion rotation。
-- [ ] Parent hierarchy in 3D。
-- [ ] World matrix evaluation。
+- [x] Parent hierarchy in 3D。
+- [x] World matrix evaluation。
 - [ ] Orthographic Camera。
-- [ ] Perspective Camera。
-- [ ] Camera animation。
+- [x] Perspective Camera。
+- [x] Camera animation。
 
 ### Mesh / Asset
 
 - [ ] glTF loader。
 - [ ] GLB loader。
-- [ ] Mesh buffers。
-- [ ] Vertex attributes。
+- [x] Mesh buffers。
+- [x] Vertex attributes。
 - [ ] Index buffers。
-- [ ] Normal。
+- [x] Normal。
 - [ ] Tangent。
-- [ ] UV。
+- [x] UV。
 - [ ] Texture loading。
-- [ ] Material mapping。
+- [x] Material mapping。
 
 ### PBR
 
-- [ ] Base Color。
-- [ ] Metallic。
-- [ ] Roughness。
+- [x] Base Color。
+- [x] Metallic。
+- [x] Roughness。
 - [ ] Normal Map。
-- [ ] Emissive。
+- [x] Emissive。
 - [ ] Alpha mode。
 - [ ] Environment lighting prototype。
 - [ ] HDR environment support。
 
 ### Lighting
 
-- [ ] Directional Light。
-- [ ] Point Light。
-- [ ] Spot Light。
-- [ ] Light animation。
+- [x] Directional Light。
+- [x] Point Light。
+- [x] Spot Light。
+- [x] Light animation。
 - [ ] Shadow map。
 - [ ] Cascaded shadow research。
 - [ ] Shadow quality settings。

@@ -42,6 +42,39 @@ describe("structured project operations", () => {
     expect(effect?.enabled).toBe(true);
   });
 
+  it("updates bounded GPU material and light settings without mutating the source", () => {
+    const source = createDemoProject();
+    const composition = activeComposition(source);
+    const mesh = composition.layers.find((layer) => layer.kind === "mesh") ?? composition.layers[0];
+    const light =
+      composition.layers.find((layer) => layer.kind === "light") ?? composition.layers[1];
+    const next = applyOperations(source, [
+      {
+        type: "setMaterial3d",
+        layerId: mesh.id,
+        material: { metallic: 1.4, roughness: -0.2, emissive: 3 },
+      },
+      {
+        type: "setLightSettings",
+        layerId: light.id,
+        light: { kind: "spot", intensity: 8, range: 3600, coneAngle: 52 },
+      },
+      { type: "setLayerColor", layerId: light.id, color: [1.2, 0.7, 0.3, 1] },
+    ]);
+
+    expect(activeComposition(next).layers.find((layer) => layer.id === mesh.id)?.material).toEqual({
+      metallic: 1,
+      roughness: 0.04,
+      emissive: 3,
+    });
+    expect(activeComposition(next).layers.find((layer) => layer.id === light.id)).toMatchObject({
+      light: { kind: "spot", intensity: 8, range: 3600, coneAngle: 52 },
+      color: [1.2, 0.7, 0.3, 1],
+    });
+    expect(mesh.material).toBeUndefined();
+    expect(light.light).toBeUndefined();
+  });
+
   it("reorders effects through a bounded operation", () => {
     const source = createDemoProject();
     const layer = activeComposition(source).layers[0];

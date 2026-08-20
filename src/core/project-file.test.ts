@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { parseCubeLut } from "../effects/cube-lut";
 import { createEffect } from "../effects/registry";
+import { createLayerForComposition } from "./layer-factory";
 import { createBlankProject } from "./project";
 import { serializeProject, validateProjectDocument } from "./project-file";
 
@@ -77,5 +78,24 @@ describe("project document boundary", () => {
 
     layer.timeStretch = 0;
     expect(() => validateProjectDocument(project)).toThrow("timeStretch must be a positive number");
+  });
+
+  it("roundtrips GPU material and physical light settings", () => {
+    const project = createBlankProject();
+    const composition = project.compositions[0];
+    const mesh = createLayerForComposition("mesh", composition);
+    const light = createLayerForComposition("light", composition);
+    mesh.material = { metallic: 0.8, roughness: 0.2, emissive: 1.5 };
+    light.light = { kind: "spot", intensity: 6, range: 3200, coneAngle: 70 };
+    light.color = [1.4, 0.8, 0.5, 1];
+    composition.layers.push(mesh, light);
+
+    const roundtrip = validateProjectDocument(JSON.parse(serializeProject(project)));
+    const layers = roundtrip.compositions[0].layers;
+    expect(layers[layers.length - 2]?.material).toEqual(mesh.material);
+    expect(layers[layers.length - 1]).toMatchObject({
+      light: light.light,
+      color: light.color,
+    });
   });
 });

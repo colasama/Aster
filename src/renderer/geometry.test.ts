@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createLayerForComposition } from "../core/layer-factory";
 import { createBlankProject } from "../core/project";
 import { evaluateWorldTransform, flattenSceneLayers } from "../core/scene-evaluation";
-import { buildSceneGeometry, FLOATS_PER_VERTEX } from "./geometry";
+import { buildSceneGeometry, FLOATS_PER_VERTEX, VERTEX_FLOAT_OFFSETS } from "./geometry";
 
 describe("GPU scene geometry", () => {
   it("projects 3D rotation and depth into screen-space vertices", () => {
@@ -27,7 +27,8 @@ describe("GPU scene geometry", () => {
     ).data;
     expect(projected[0]).not.toBeCloseTo(flat[0]);
     expect(projected[1]).not.toBeCloseTo(flat[1]);
-    expect(projected[FLOATS_PER_VERTEX - 1]).toBe(0);
+    expect(projected[VERTEX_FLOAT_OFFSETS.material + 3]).toBe(1);
+    expect(projected[VERTEX_FLOAT_OFFSETS.worldPosition + 2]).not.toBe(0);
   });
 
   it("projects 3D geometry relative to the active camera transform", () => {
@@ -60,7 +61,7 @@ describe("GPU scene geometry", () => {
     ellipse.size = [480, 480];
     composition.layers = [ellipse];
     const data = buildSceneGeometry(composition, flattenSceneLayers(composition, project, 0)).data;
-    expect(data[FLOATS_PER_VERTEX - 1]).toBe(1);
+    expect(data[VERTEX_FLOAT_OFFSETS.mediaType]).toBe(1);
   });
 
   it("includes text quads so cached glyph textures share the layer effect graph", () => {
@@ -71,6 +72,6 @@ describe("GPU scene geometry", () => {
     const geometry = buildSceneGeometry(composition, flattenSceneLayers(composition, project, 0));
     expect(geometry.batches).toHaveLength(1);
     expect(geometry.batches[0].layer.kind).toBe("text");
-    expect(geometry.data[FLOATS_PER_VERTEX - 1]).toBe(0);
+    expect(geometry.data[VERTEX_FLOAT_OFFSETS.mediaType]).toBe(0);
   });
 });

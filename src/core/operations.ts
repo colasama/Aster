@@ -8,7 +8,9 @@ import type {
   Id,
   Keyframe,
   Layer,
+  LightSettings,
   Lut3dResource,
+  Material3d,
   Project,
 } from "./types";
 
@@ -34,6 +36,9 @@ export type Operation =
   | { type: "setLayerTiming"; layerId: Id; inPoint: number; outPoint: number }
   | { type: "setLayerTimeMapping"; layerId: Id; offset: number; stretch: number }
   | { type: "setLayerTimeRemap"; layerId: Id; value?: Animatable }
+  | { type: "setMaterial3d"; layerId: Id; material: Material3d }
+  | { type: "setLightSettings"; layerId: Id; light: LightSettings }
+  | { type: "setLayerColor"; layerId: Id; color: Layer["color"] }
   | {
       type: "toggleLayer";
       layerId: Id;
@@ -149,6 +154,26 @@ export function applyOperation(project: Project, operation: Operation): void {
       break;
     case "setLayerTimeRemap":
       layer.timeRemap = operation.value;
+      break;
+    case "setMaterial3d":
+      layer.material = {
+        metallic: clamp01(operation.material.metallic),
+        roughness: Math.max(0.04, clamp01(operation.material.roughness)),
+        emissive: clamp(operation.material.emissive, 0, 16),
+      };
+      break;
+    case "setLightSettings":
+      layer.light = {
+        kind: operation.light.kind,
+        intensity: clamp(operation.light.intensity, 0, 100),
+        range: clamp(operation.light.range, 1, 100_000),
+        coneAngle: clamp(operation.light.coneAngle, 1, 179),
+      };
+      break;
+    case "setLayerColor":
+      layer.color = operation.color.map((channel, index) =>
+        clamp(channel, 0, index === 3 ? 1 : 16),
+      ) as Layer["color"];
       break;
     case "toggleLayer":
       layer[operation.field] = !layer[operation.field];
@@ -325,6 +350,14 @@ export function applyOperation(project: Project, operation: Operation): void {
       break;
     }
   }
+}
+
+function clamp01(value: number): number {
+  return clamp(value, 0, 1);
+}
+
+function clamp(value: number, minimum: number, maximum: number): number {
+  return Number.isFinite(value) ? Math.max(minimum, Math.min(maximum, value)) : minimum;
 }
 
 function validateParent(layers: Layer[], layerId: Id, parentId: Id | undefined): void {

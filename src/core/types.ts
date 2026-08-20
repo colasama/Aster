@@ -94,6 +94,21 @@ export interface Layer {
   expressions?: Record<string, string>;
   transform: Transform;
   effects: Effect[];
+  material?: Material3d;
+  light?: LightSettings;
+}
+
+export interface Material3d {
+  metallic: number;
+  roughness: number;
+  emissive: number;
+}
+
+export interface LightSettings {
+  kind: "directional" | "point" | "spot";
+  intensity: number;
+  range: number;
+  coneAngle: number;
 }
 
 export interface Composition {
