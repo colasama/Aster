@@ -1,3 +1,4 @@
+import { AsyncWorkPool } from "../core/async-work-pool";
 import { evaluateLayerSourceTime } from "../core/layer-time";
 import type {
   BlendMode,
@@ -92,6 +93,7 @@ export class WebGpuRenderer {
   readonly #invalidate: () => void;
   readonly #mediaResources = new Map<string, MediaResource>();
   readonly #evaluationCache = new SceneEvaluationCache();
+  readonly #imageDecodePool = new AsyncWorkPool(4);
 
   private constructor(
     device: GPUDevice,
@@ -700,7 +702,7 @@ export class WebGpuRenderer {
     }
     void fetch(source)
       .then((response) => response.blob())
-      .then((blob) => createImageBitmap(blob))
+      .then((blob) => this.#imageDecodePool.run(() => createImageBitmap(blob)))
       .then((bitmap) => {
         const textureBytes = bitmap.width * bitmap.height * 4;
         const texture = this.#device.createTexture({

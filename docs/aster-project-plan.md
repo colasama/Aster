@@ -1662,7 +1662,7 @@ aster/
 - [x] Preview quality levels。
 - [ ] Tile processing research for huge compositions。
 - [ ] Multi-threaded CPU scheduling。
-- [ ] Parallel asset decode。
+- [x] Parallel asset decode。
 - [x] Async disk IO。
 - [ ] Texture upload batching。
 - [ ] Persistent staging buffers。
