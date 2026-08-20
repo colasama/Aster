@@ -22,6 +22,8 @@ import { type BlendMode, createId, type Effect } from "../core/types";
 import { parseCubeLutFile } from "../effects/cube-lut";
 import { createEffect, EFFECT_BY_TYPE } from "../effects/registry";
 import type { EffectParameterDefinition } from "../effects/types";
+import type { PlainMessageKey } from "../i18n/core";
+import { useI18n } from "../i18n/react";
 import { useEditor } from "../state/editor-store";
 import { AiPanel } from "./AiPanel";
 import { AudioControls } from "./AudioControls";
@@ -33,14 +35,27 @@ import { Scene3dControls } from "./Scene3dControls";
 import { ShapeControls } from "./ShapeControls";
 import { TextControls } from "./TextControls";
 
-const fields: { label: string; paths: PropertyPath[]; suffix: string }[] = [
-  { label: "Position", paths: ["position.0", "position.1", "position.2"], suffix: "px" },
-  { label: "Rotation", paths: ["rotation.0", "rotation.1", "rotation.2"], suffix: "°" },
-  { label: "Scale", paths: ["scale.0", "scale.1", "scale.2"], suffix: "%" },
+const fields: { labelKey: PlainMessageKey; paths: PropertyPath[]; suffix: string }[] = [
+  {
+    labelKey: "inspector.transform.position",
+    paths: ["position.0", "position.1", "position.2"],
+    suffix: "px",
+  },
+  {
+    labelKey: "inspector.transform.rotation",
+    paths: ["rotation.0", "rotation.1", "rotation.2"],
+    suffix: "°",
+  },
+  {
+    labelKey: "inspector.transform.scale",
+    paths: ["scale.0", "scale.1", "scale.2"],
+    suffix: "%",
+  },
 ];
 
 export function Inspector() {
   const { state, dispatch } = useEditor();
+  const { t } = useI18n();
   const composition = activeComposition(state.project);
   const layer = composition.layers.find((entry) => entry.id === state.selection[0]);
   const [transformOpen, setTransformOpen] = useState(true);
@@ -105,8 +120,8 @@ export function Inspector() {
           active={state.rightTab}
           onChange={(tab) => dispatch({ type: "setRightTab", tab: tab as "properties" | "ai" })}
           tabs={[
-            { id: "properties", label: "Properties" },
-            { id: "ai", label: "AI Operator" },
+            { id: "properties", label: t("inspector.tab.properties") },
+            { id: "ai", label: t("inspector.tab.ai") },
           ]}
         />
       }
@@ -122,11 +137,14 @@ export function Inspector() {
             <div>
               <strong>{layer.name}</strong>
               <small>
-                {layer.kind} layer · {layer.threeDimensional ? "3D" : "2D"}
+                {t("inspector.layerSummary", {
+                  kind: layer.kind,
+                  dimension: layer.threeDimensional ? "3D" : "2D",
+                })}
               </small>
             </div>
             <button
-              aria-label={layer.solo ? "Disable solo" : "Solo layer"}
+              aria-label={layer.solo ? t("inspector.solo.disable") : t("inspector.solo.enable")}
               className={layer.solo ? "active" : ""}
               onClick={() =>
                 dispatch({
@@ -146,18 +164,23 @@ export function Inspector() {
                 onClick={() => setTransformOpen(!transformOpen)}
                 type="button"
               >
-                {transformOpen ? <ChevronDown size={13} /> : <ChevronRight size={13} />} Transform
+                {transformOpen ? <ChevronDown size={13} /> : <ChevronRight size={13} />}{" "}
+                {t("inspector.transform.title")}
               </button>
               <span />
-              <button aria-label="Reset transform" onClick={resetTransform} type="button">
+              <button
+                aria-label={t("inspector.transform.reset")}
+                onClick={resetTransform}
+                type="button"
+              >
                 <RotateCw size={12} />
               </button>
             </div>
             {transformOpen && (
               <div className="property-grid">
                 {fields.map((field) => (
-                  <div className="vector-property" key={field.label}>
-                    <div className="property-label">{field.label}</div>
+                  <div className="vector-property" key={field.labelKey}>
+                    <div className="property-label">{t(field.labelKey)}</div>
                     <div className="vector-inputs">
                       {field.paths.map((path, index) => (
                         <div className="number-field" key={path}>
@@ -177,7 +200,7 @@ export function Inspector() {
                           <small>{field.suffix}</small>
                           <button
                             onClick={() => addKeyframe(path)}
-                            title="Add keyframe"
+                            title={t("inspector.transform.addKeyframe")}
                             type="button"
                           >
                             <KeyRound size={10} />
@@ -188,7 +211,7 @@ export function Inspector() {
                   </div>
                 ))}
                 <div className="vector-property">
-                  <div className="property-label">Opacity</div>
+                  <div className="property-label">{t("inspector.transform.opacity")}</div>
                   <div className="slider-property">
                     <input
                       max="100"
@@ -215,7 +238,7 @@ export function Inspector() {
           </div>
           <div className="inspector-section effects-section">
             <div className="section-title static">
-              <ChevronDown size={13} /> Effects <span />
+              <ChevronDown size={13} /> {t("inspector.effects.title")} <span />
               <button onClick={() => addDefaultEffect(layer.id, dispatch)} type="button">
                 <Plus size={13} />
               </button>
@@ -223,8 +246,8 @@ export function Inspector() {
             {layer.effects.length === 0 && (
               <div className="empty-effects">
                 <Sparkles size={18} />
-                <span>No effects applied</span>
-                <small>Use Effects & Presets or click +</small>
+                <span>{t("inspector.effects.empty")}</span>
+                <small>{t("inspector.effects.emptyHint")}</small>
               </div>
             )}
             {layer.effects.map((effect) => (
@@ -239,13 +262,13 @@ export function Inspector() {
                 type="button"
               >
                 {compositingOpen ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
-                Compositing
+                {t("inspector.compositing.title")}
               </button>
             </div>
             {compositingOpen && (
               <div className="compositing-grid">
                 <label>
-                  Blend mode
+                  {t("inspector.compositing.blendMode")}
                   <select
                     onChange={(event) =>
                       dispatch({
@@ -261,15 +284,15 @@ export function Inspector() {
                     }
                     value={layer.blendMode}
                   >
-                    <option value="normal">Normal</option>
-                    <option value="add">Add</option>
-                    <option value="multiply">Multiply</option>
-                    <option value="screen">Screen</option>
-                    <option value="overlay">Overlay</option>
+                    <option value="normal">{t("inspector.blend.normal")}</option>
+                    <option value="add">{t("inspector.blend.add")}</option>
+                    <option value="multiply">{t("inspector.blend.multiply")}</option>
+                    <option value="screen">{t("inspector.blend.screen")}</option>
+                    <option value="overlay">{t("inspector.blend.overlay")}</option>
                   </select>
                 </label>
                 <label>
-                  Parent
+                  {t("inspector.compositing.parent")}
                   <select
                     onChange={(event) =>
                       dispatch({
@@ -285,7 +308,7 @@ export function Inspector() {
                     }
                     value={layer.parentId ?? ""}
                   >
-                    <option value="">None</option>
+                    <option value="">{t("common.none")}</option>
                     {composition.layers
                       .filter((candidate) => candidate.id !== layer.id)
                       .map((candidate) => (
@@ -296,7 +319,7 @@ export function Inspector() {
                   </select>
                 </label>
                 <label>
-                  In point
+                  {t("inspector.compositing.inPoint")}
                   <input
                     min="0"
                     onChange={(event) =>
@@ -308,7 +331,7 @@ export function Inspector() {
                   />
                 </label>
                 <label>
-                  Out point
+                  {t("inspector.compositing.outPoint")}
                   <input
                     min={layer.inPoint + 1 / 240}
                     onChange={(event) =>
@@ -320,7 +343,7 @@ export function Inspector() {
                   />
                 </label>
                 <label>
-                  Source offset
+                  {t("inspector.compositing.sourceOffset")}
                   <input
                     min="0"
                     onChange={(event) =>
@@ -342,7 +365,7 @@ export function Inspector() {
                   />
                 </label>
                 <label>
-                  Time stretch
+                  {t("inspector.compositing.timeStretch")}
                   <input
                     min="1"
                     onChange={(event) =>
@@ -385,11 +408,11 @@ export function Inspector() {
                     }
                     type="checkbox"
                   />
-                  Enable time remapping
+                  {t("inspector.compositing.enableRemap")}
                 </label>
                 {layer.timeRemap && (
                   <label>
-                    Remapped time
+                    {t("inspector.compositing.remappedTime")}
                     <input
                       min="0"
                       onChange={(event) =>
@@ -423,7 +446,7 @@ export function Inspector() {
                     }
                     type="checkbox"
                   />
-                  Enable 3D layer
+                  {t("inspector.compositing.enable3d")}
                 </label>
                 <Scene3dControls layer={layer} />
                 <ShapeControls layer={layer} />
@@ -435,7 +458,7 @@ export function Inspector() {
           </div>
         </div>
       ) : (
-        <div className="empty-inspector">Select a layer to edit its properties.</div>
+        <div className="empty-inspector">{t("inspector.empty")}</div>
       )}
     </Panel>
   );
@@ -443,6 +466,7 @@ export function Inspector() {
 
 function EffectEditor({ effect, layerId }: { effect: Effect; layerId: string }) {
   const { state, dispatch } = useEditor();
+  const { t } = useI18n();
   const [resourceError, setResourceError] = useState<string>();
   const lutPickerRef = useRef<HTMLInputElement>(null);
   const definition = EFFECT_BY_TYPE.get(effect.type);
@@ -510,7 +534,7 @@ function EffectEditor({ effect, layerId }: { effect: Effect; layerId: string }) 
     <div className={`effect-editor ${effect.enabled ? "" : "disabled"}`}>
       <div className="effect-title">
         <button
-          aria-label={effect.enabled ? "Disable effect" : "Enable effect"}
+          aria-label={effect.enabled ? t("inspector.effect.disable") : t("inspector.effect.enable")}
           className="effect-power"
           onClick={() =>
             dispatch({
@@ -525,12 +549,18 @@ function EffectEditor({ effect, layerId }: { effect: Effect; layerId: string }) 
         <strong>{effect.name}</strong>
         <span
           className={`gpu-pill ${definition ? "" : "missing"}`}
-          title={definition ? undefined : `Effect provider ${effect.type} is not installed`}
+          title={
+            definition ? undefined : t("inspector.effect.providerMissing", { type: effect.type })
+          }
         >
-          {definition?.execution.replace("-", " ") ?? "Missing plugin"}
+          {definition?.execution.replace("-", " ") ?? t("inspector.effect.missingPlugin")}
         </span>
         <button
-          aria-label={effect.mask ? `Remove ${effect.name} mask` : `Add ${effect.name} mask`}
+          aria-label={
+            effect.mask
+              ? t("inspector.effect.removeMask", { name: effect.name })
+              : t("inspector.effect.addMask", { name: effect.name })
+          }
           className={effect.mask ? "effect-mask-toggle active" : "effect-mask-toggle"}
           onClick={() =>
             setMask(
@@ -546,13 +576,15 @@ function EffectEditor({ effect, layerId }: { effect: Effect; layerId: string }) 
                   },
             )
           }
-          title={effect.mask ? "Remove local effect mask" : "Add local effect mask"}
+          title={
+            effect.mask ? t("inspector.effect.removeLocalMask") : t("inspector.effect.addLocalMask")
+          }
           type="button"
         >
           <Scan size={11} />
         </button>
         <button
-          aria-label={`Move ${effect.name} up`}
+          aria-label={t("inspector.effect.moveUp", { name: effect.name })}
           disabled={effectIndex <= 0}
           onClick={() =>
             dispatch({
@@ -567,7 +599,7 @@ function EffectEditor({ effect, layerId }: { effect: Effect; layerId: string }) 
           <ArrowUp size={11} />
         </button>
         <button
-          aria-label={`Move ${effect.name} down`}
+          aria-label={t("inspector.effect.moveDown", { name: effect.name })}
           disabled={!layerEffects || effectIndex < 0 || effectIndex >= layerEffects.length - 1}
           onClick={() =>
             dispatch({
@@ -582,7 +614,7 @@ function EffectEditor({ effect, layerId }: { effect: Effect; layerId: string }) 
           <ArrowDown size={11} />
         </button>
         <button
-          aria-label={`Remove ${effect.name}`}
+          aria-label={t("inspector.effect.remove", { name: effect.name })}
           onClick={() =>
             dispatch({
               type: "operation",
@@ -619,7 +651,7 @@ function EffectEditor({ effect, layerId }: { effect: Effect; layerId: string }) 
         <div className="lut-resource-editor">
           <input
             accept=".cube,text/plain"
-            aria-label="Choose .cube LUT"
+            aria-label={t("inspector.lut.choose")}
             hidden
             onChange={(event) => {
               const file = event.target.files?.[0];
@@ -635,7 +667,9 @@ function EffectEditor({ effect, layerId }: { effect: Effect; layerId: string }) 
                     setResourceError(undefined);
                   })
                   .catch((error: unknown) =>
-                    setResourceError(error instanceof Error ? error.message : "LUT import failed"),
+                    setResourceError(
+                      error instanceof Error ? error.message : t("inspector.lut.importFailed"),
+                    ),
                   );
               event.target.value = "";
             }}
@@ -643,7 +677,8 @@ function EffectEditor({ effect, layerId }: { effect: Effect; layerId: string }) 
             type="file"
           />
           <button onClick={() => lutPickerRef.current?.click()} type="button">
-            <FileUp size={12} /> {effect.resource ? "Replace .cube" : "Load .cube LUT"}
+            <FileUp size={12} />{" "}
+            {effect.resource ? t("inspector.lut.replace") : t("inspector.lut.load")}
           </button>
           {effect.resource && (
             <div className="lut-resource-summary">
@@ -654,7 +689,7 @@ function EffectEditor({ effect, layerId }: { effect: Effect; layerId: string }) 
                 {effect.resource.size}³ · {effect.resource.checksum}
               </small>
               <button
-                aria-label="Remove LUT resource"
+                aria-label={t("inspector.lut.remove")}
                 onClick={() =>
                   dispatch({
                     type: "operation",

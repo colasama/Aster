@@ -43,73 +43,33 @@ import {
 import { evaluateAnimatable } from "../core/timeline";
 import { createId, type LayerKind, type Project } from "../core/types";
 import { createEffect } from "../effects/registry";
+import type { PlainMessageKey, Translate } from "../i18n/core";
+import { useI18n } from "../i18n/react";
 import { useEditor } from "../state/editor-store";
+import { findMenuEntry, type MenuId, type MenuItemId, menuDefinitions } from "./topbar-menu";
 import { WorkspaceDialog, type WorkspaceDialogKind } from "./WorkspaceDialog";
-
-const menus = [
-  "File",
-  "Edit",
-  "Composition",
-  "Layer",
-  "Effect",
-  "Animation",
-  "View",
-  "Window",
-  "Help",
-];
-
-const menuItems: Record<string, string[]> = {
-  File: [
-    "New Project",
-    "Open…",
-    "Open Packed…",
-    "Recover Autosave",
-    "Save Project",
-    "Save As…",
-    "Pack Project…",
-    "Export Frame…",
-  ],
-  Edit: ["Undo", "Redo", "Duplicate", "Preferences…"],
-  Composition: ["New Composition", "Composition Settings…", "Add to Render Queue"],
-  Layer: [
-    "Import Image…",
-    "Import Video…",
-    "Import glTF / GLB…",
-    "New Text Layer",
-    "New Shape Layer",
-    "New 3D Object",
-    "New Camera",
-    "New Light",
-    "New GPU Particles",
-    "Pre-compose…",
-  ],
-  Effect: ["Glow / Bloom", "Kawase Blur", "Color Matrix", "Looks Color Lab"],
-  Animation: ["Add Keyframe", "Graph Editor", "Easy Ease", "Expression Editor"],
-  View: ["Fit Composition", "Zoom In", "Zoom Out", "Toggle Guides"],
-  Window: ["Project", "Viewport", "Timeline", "Properties", "AI Operator", "Plugins"],
-  Help: ["Command Palette", "Keyboard Shortcuts", "GPU Diagnostics", "About Aster"],
-};
 
 interface ToolDefinition {
   id: string;
   icon: ComponentType<{ size?: number }>;
-  label: string;
+  labelKey: PlainMessageKey;
 }
 
 const tools: ToolDefinition[] = [
-  { id: "select", icon: MousePointer2, label: "Selection tool (V)" },
-  { id: "hand", icon: Hand, label: "Hand tool (H)" },
-  { id: "rotate", icon: RotateCcw, label: "Rotation tool (W)" },
-  { id: "shape", icon: Square, label: "Rectangle tool (Q)" },
-  { id: "ellipse", icon: Circle, label: "Ellipse tool" },
-  { id: "pen", icon: PenTool, label: "Pen tool (G)" },
-  { id: "text", icon: Type, label: "Text tool (T)" },
-  { id: "3d", icon: Box, label: "3D gizmo" },
+  { id: "select", icon: MousePointer2, labelKey: "topbar.tool.select" },
+  { id: "hand", icon: Hand, labelKey: "topbar.tool.hand" },
+  { id: "rotate", icon: RotateCcw, labelKey: "topbar.tool.rotate" },
+  { id: "shape", icon: Square, labelKey: "topbar.tool.rectangle" },
+  { id: "ellipse", icon: Circle, labelKey: "topbar.tool.ellipse" },
+  { id: "pen", icon: PenTool, labelKey: "topbar.tool.pen" },
+  { id: "text", icon: Type, labelKey: "topbar.tool.text" },
+  { id: "3d", icon: Box, labelKey: "topbar.tool.gizmo3d" },
 ];
 
 export function TopBar() {
   const { state, dispatch } = useEditor();
-  const [activeMenu, setActiveMenu] = useState<string>();
+  const { t } = useI18n();
+  const [activeMenu, setActiveMenu] = useState<MenuId>();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [paletteQuery, setPaletteQuery] = useState("");
   const [renderOpen, setRenderOpen] = useState(false);
@@ -123,23 +83,23 @@ export function TopBar() {
   const cancelRenderRef = useRef(false);
   const commands = useMemo(
     () => [
-      { label: "Save project", action: () => saveProject(state.project, setToast) },
+      { label: t("topbar.command.save"), action: () => saveProject(state.project, setToast, t) },
       {
-        label: "Open Graph Editor",
+        label: t("topbar.command.graph"),
         action: () => dispatch({ type: "setBottomMode", mode: "graph" }),
       },
-      { label: "Open AI Operator", action: () => dispatch({ type: "setRightTab", tab: "ai" }) },
+      { label: t("topbar.command.ai"), action: () => dispatch({ type: "setRightTab", tab: "ai" }) },
       {
-        label: "Fit composition at 22%",
+        label: t("topbar.command.fit"),
         action: () => dispatch({ type: "setViewportZoom", zoom: 0.22 }),
       },
       {
-        label: state.playing ? "Pause preview" : "Play preview",
+        label: state.playing ? t("topbar.command.pause") : t("topbar.command.play"),
         action: () => dispatch({ type: "setPlaying", playing: !state.playing }),
       },
-      { label: "Render current frame", action: () => setRenderOpen(true) },
+      { label: t("topbar.command.render"), action: () => setRenderOpen(true) },
     ],
-    [dispatch, state.playing, state.project],
+    [dispatch, state.playing, state.project, t],
   );
   const filteredCommands = commands.filter((command) =>
     command.label.toLowerCase().includes(paletteQuery.toLowerCase()),
@@ -154,7 +114,7 @@ export function TopBar() {
         setPaletteOpen(true);
       } else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
         event.preventDefault();
-        saveProject(state.project, setToast);
+        saveProject(state.project, setToast, t);
       } else if (event.key === "Escape") {
         setPaletteOpen(false);
         setRenderOpen(false);
@@ -174,53 +134,53 @@ export function TopBar() {
     };
     window.addEventListener("keydown", shortcut);
     return () => window.removeEventListener("keydown", shortcut);
-  }, [dispatch, state.project]);
+  }, [dispatch, state.project, t]);
   useEffect(() => {
     if (paletteOpen) paletteInputRef.current?.focus();
   }, [paletteOpen]);
-  const handleMenuItem = (item: string) => {
+  const handleMenuItem = (item: MenuItemId) => {
     setActiveMenu(undefined);
     const composition = activeComposition(state.project);
     const selectedLayer = composition.layers.find((layer) => layer.id === state.selection[0]);
-    const layerTypes: Record<string, LayerKind> = {
-      "New Text Layer": "text",
-      "New Shape Layer": "shape",
-      "New 3D Object": "mesh",
-      "New Camera": "camera",
-      "New Light": "light",
-      "New GPU Particles": "particle",
+    const layerTypes: Partial<Record<MenuItemId, LayerKind>> = {
+      newText: "text",
+      newShape: "shape",
+      newMesh: "mesh",
+      newCamera: "camera",
+      newLight: "light",
+      newParticles: "particle",
     };
-    const effectTypes: Record<string, string> = {
-      "Glow / Bloom": "glow",
-      "Kawase Blur": "kawase-blur",
-      "Color Matrix": "color-matrix",
-      "Looks Color Lab": "looks-color-lab",
+    const effectTypes: Partial<Record<MenuItemId, string>> = {
+      glow: "glow",
+      blur: "kawase-blur",
+      colorMatrix: "color-matrix",
+      looks: "looks-color-lab",
     };
-    if (item === "New Project") {
+    if (item === "newProject") {
       clearRecoverySnapshot();
       dispatch({ type: "loadProject", project: createBlankProject() });
-    } else if (item === "Open…") openProjectFile(dispatch, setToast);
-    else if (item === "Open Packed…") openPackedProject(dispatch, setToast);
-    else if (item === "Recover Autosave") {
+    } else if (item === "open") openProjectFile(dispatch, setToast, t);
+    else if (item === "openPacked") openPackedProject(dispatch, setToast, t);
+    else if (item === "recoverAutosave") {
       void readRecoverySnapshotForCurrentProject()
         .then((recovery) => {
           if (recovery) {
             dispatch({ type: "loadProject", project: recovery });
-            showToast(setToast, "Recovered the latest valid autosave");
-          } else showToast(setToast, "No valid autosave is available");
+            showToast(setToast, t("topbar.toast.recovered"));
+          } else showToast(setToast, t("topbar.toast.noRecovery"));
         })
         .catch((error: unknown) =>
-          showToast(setToast, error instanceof Error ? error.message : "Recovery failed"),
+          showToast(setToast, error instanceof Error ? error.message : t("topbar.error.recovery")),
         );
-    } else if (item === "Save Project" || item === "Save As…")
-      saveProject(state.project, setToast, item === "Save As…");
-    else if (item === "Pack Project…") packProject(state.project, setToast);
-    else if (item === "Undo") dispatch({ type: "undo" });
-    else if (item === "Redo") dispatch({ type: "redo" });
-    else if (item === "Duplicate" && selectedLayer) {
+    } else if (item === "saveProject" || item === "saveAs")
+      saveProject(state.project, setToast, t, item === "saveAs");
+    else if (item === "packProject") packProject(state.project, setToast, t);
+    else if (item === "undo") dispatch({ type: "undo" });
+    else if (item === "redo") dispatch({ type: "redo" });
+    else if (item === "duplicate" && selectedLayer) {
       const duplicate = structuredClone(selectedLayer);
       duplicate.id = createId();
-      duplicate.name = `${duplicate.name} Copy`;
+      duplicate.name = t("topbar.toast.copySuffix", { name: duplicate.name });
       duplicate.effects.forEach((effect) => {
         effect.id = createId();
       });
@@ -229,17 +189,19 @@ export function TopBar() {
         operations: [{ type: "addLayer", layer: duplicate }],
         select: [duplicate.id],
       });
-    } else if (item === "New Composition") {
-      const next = createBlankComposition(`Composition ${state.project.compositions.length + 1}`);
+    } else if (item === "newComposition") {
+      const next = createBlankComposition(
+        t("topbar.toast.compositionName", { number: state.project.compositions.length + 1 }),
+      );
       dispatch({
         type: "operation",
         operations: [{ type: "addComposition", composition: next, activate: true }],
         select: [],
       });
-    } else if (item === "Pre-compose…" && state.selection.length > 0) {
+    } else if (item === "precompose" && state.selection.length > 0) {
       const plan = planPrecomposition(state.project, state.selection);
       if (!plan) {
-        showToast(setToast, "Select at least one valid layer to pre-compose");
+        showToast(setToast, t("topbar.error.precomposeSelection"));
         return;
       }
       dispatch({
@@ -247,9 +209,9 @@ export function TopBar() {
         operations: [{ type: "precomposeLayers", ...plan }],
         select: [plan.wrapper.id],
       });
-      showToast(setToast, `Created ${plan.nestedComposition.name}`);
-    } else if (item === "Import Image…" || item === "Import Video…") {
-      const kind = item === "Import Image…" ? "image" : "video";
+      showToast(setToast, t("topbar.toast.created", { name: plan.nestedComposition.name }));
+    } else if (item === "importImage" || item === "importVideo") {
+      const kind = item === "importImage" ? "image" : "video";
       void importMediaLayer(kind, composition, state.currentTime)
         .then((layer) => {
           if (!layer) return;
@@ -258,12 +220,18 @@ export function TopBar() {
             operations: [{ type: "addLayer", layer }],
             select: [layer.id],
           });
-          showToast(setToast, `Imported ${layer.asset?.name ?? layer.name}`);
+          showToast(
+            setToast,
+            t("topbar.toast.imported", { name: layer.asset?.name ?? layer.name }),
+          );
         })
         .catch((error: unknown) =>
-          showToast(setToast, error instanceof Error ? error.message : "Asset import failed"),
+          showToast(
+            setToast,
+            error instanceof Error ? error.message : t("topbar.error.assetImport"),
+          ),
         );
-    } else if (item === "Import glTF / GLB…") {
+    } else if (item === "importMesh") {
       meshInputRef.current?.click();
     } else if (layerTypes[item]) {
       const layer = createLayerForComposition(layerTypes[item], composition, state.currentTime);
@@ -279,7 +247,7 @@ export function TopBar() {
           { type: "addEffect", layerId: selectedLayer.id, effect: createEffect(effectTypes[item]) },
         ],
       });
-    } else if (item === "Add Keyframe" && selectedLayer) {
+    } else if (item === "addKeyframe" && selectedLayer) {
       dispatch({
         type: "operation",
         operations: [
@@ -297,39 +265,44 @@ export function TopBar() {
           },
         ],
       });
-    } else if (item === "Graph Editor") dispatch({ type: "setBottomMode", mode: "graph" });
-    else if (item === "Easy Ease" && selectedLayer) {
+    } else if (item === "graphEditor") dispatch({ type: "setBottomMode", mode: "graph" });
+    else if (item === "easyEase" && selectedLayer) {
       dispatch({
         type: "operation",
         operations: [{ type: "easeLayer", layerId: selectedLayer.id }],
       });
-      showToast(setToast, `Applied Easy Ease to ${selectedLayer.name}`);
-    } else if (item === "Expression Editor") setWorkspaceDialog("expression");
-    else if (item === "Preferences…") setWorkspaceDialog("preferences");
-    else if (item === "Composition Settings…") setWorkspaceDialog("composition");
-    else if (item === "Keyboard Shortcuts") setWorkspaceDialog("shortcuts");
-    else if (item === "About Aster") setWorkspaceDialog("about");
-    else if (item === "Plugins") setWorkspaceDialog("plugins");
-    else if (item === "AI Operator") dispatch({ type: "setRightTab", tab: "ai" });
-    else if (item === "Fit Composition" || item === "Viewport")
+      showToast(setToast, t("topbar.toast.easyEase", { name: selectedLayer.name }));
+    } else if (item === "expressionEditor") setWorkspaceDialog("expression");
+    else if (item === "preferences") setWorkspaceDialog("preferences");
+    else if (item === "compositionSettings") setWorkspaceDialog("composition");
+    else if (item === "keyboardShortcuts") setWorkspaceDialog("shortcuts");
+    else if (item === "about") setWorkspaceDialog("about");
+    else if (item === "plugins") setWorkspaceDialog("plugins");
+    else if (item === "aiOperator") dispatch({ type: "setRightTab", tab: "ai" });
+    else if (item === "fitComposition" || item === "viewport")
       dispatch({ type: "setViewportZoom", zoom: 0.22 });
-    else if (item === "Zoom In")
+    else if (item === "zoomIn")
       dispatch({ type: "setViewportZoom", zoom: state.viewportZoom * 1.15 });
-    else if (item === "Zoom Out")
+    else if (item === "zoomOut")
       dispatch({ type: "setViewportZoom", zoom: state.viewportZoom / 1.15 });
-    else if (item.includes("Render") || item.includes("Export Frame")) setRenderOpen(true);
-    else if (item === "Command Palette") setPaletteOpen(true);
-    else if (item === "Toggle Guides") dispatch({ type: "toggleView", view: "guides" });
-    else if (item === "Project") dispatch({ type: "setLeftTab", tab: "project" });
-    else if (item === "Properties") dispatch({ type: "setRightTab", tab: "properties" });
-    else if (item === "Timeline") dispatch({ type: "setBottomMode", mode: "timeline" });
-    else if (item === "GPU Diagnostics") {
+    else if (item === "renderQueue" || item === "exportFrame") setRenderOpen(true);
+    else if (item === "commandPalette") setPaletteOpen(true);
+    else if (item === "toggleGuides") dispatch({ type: "toggleView", view: "guides" });
+    else if (item === "project") dispatch({ type: "setLeftTab", tab: "project" });
+    else if (item === "properties") dispatch({ type: "setRightTab", tab: "properties" });
+    else if (item === "timeline") dispatch({ type: "setBottomMode", mode: "timeline" });
+    else if (item === "gpuDiagnostics") {
       setToast(
-        `${state.metrics.fps.toFixed(0)} FPS · ${state.metrics.frameMs.toFixed(2)} ms · ${state.metrics.passCount} GPU passes`,
+        t("topbar.toast.gpuMetrics", {
+          fps: state.metrics.fps.toFixed(0),
+          frameMs: state.metrics.frameMs.toFixed(2),
+          passes: state.metrics.passCount,
+        }),
       );
       window.setTimeout(() => setToast(undefined), 2600);
     } else {
-      setToast(`${item} is ready for its next workflow step`);
+      const definition = findMenuEntry(item);
+      setToast(t("topbar.toast.nextStep", { item: definition ? t(definition.labelKey) : item }));
       window.setTimeout(() => setToast(undefined), 1800);
     }
   };
@@ -337,7 +310,7 @@ export function TopBar() {
     <>
       <input
         accept=".gltf,.glb,model/gltf+json,model/gltf-binary"
-        aria-label="Import glTF or GLB"
+        aria-label={t("topbar.a11y.importMesh")}
         onChange={(event) => {
           const file = event.target.files?.[0];
           event.target.value = "";
@@ -349,12 +322,12 @@ export function TopBar() {
                 operations: [{ type: "addLayer", layer }],
                 select: [layer.id],
               });
-              showToast(setToast, `Imported ${layer.name}`);
+              showToast(setToast, t("topbar.toast.imported", { name: layer.name }));
             })
             .catch((error: unknown) =>
               showToast(
                 setToast,
-                error instanceof Error ? error.message : "3D asset import failed",
+                error instanceof Error ? error.message : t("topbar.error.meshImport"),
               ),
             );
         }}
@@ -365,23 +338,21 @@ export function TopBar() {
       <div className="title-bar">
         <div className="brand-mark">A</div>
         <div className="menu-strip">
-          {menus.map((menu) => (
-            <div className="menu-root" key={menu}>
+          {menuDefinitions.map((menu) => (
+            <div className="menu-root" key={menu.id}>
               <button
-                className={activeMenu === menu ? "active" : ""}
-                onClick={() => setActiveMenu(activeMenu === menu ? undefined : menu)}
+                className={activeMenu === menu.id ? "active" : ""}
+                onClick={() => setActiveMenu(activeMenu === menu.id ? undefined : menu.id)}
                 type="button"
               >
-                {menu}
+                {t(menu.labelKey)}
               </button>
-              {activeMenu === menu && (
+              {activeMenu === menu.id && (
                 <div className="app-menu-popover">
-                  {menuItems[menu].map((item) => (
-                    <button key={item} onClick={() => handleMenuItem(item)} type="button">
-                      <span>{item}</span>
-                      {item === "Undo" && <kbd>Ctrl Z</kbd>}
-                      {item === "Redo" && <kbd>Ctrl Y</kbd>}
-                      {item === "Command Palette" && <kbd>Ctrl K</kbd>}
+                  {menu.items.map((item) => (
+                    <button key={item.id} onClick={() => handleMenuItem(item.id)} type="button">
+                      <span>{t(item.labelKey)}</span>
+                      {"shortcut" in item && <kbd>{item.shortcut}</kbd>}
                     </button>
                   ))}
                 </div>
@@ -394,8 +365,8 @@ export function TopBar() {
         </div>
         <div className="title-actions">
           <button
-            aria-label="Save project"
-            onClick={() => saveProject(state.project, setToast)}
+            aria-label={t("topbar.command.save")}
+            onClick={() => saveProject(state.project, setToast, t)}
             type="button"
           >
             <Save size={14} />
@@ -407,14 +378,14 @@ export function TopBar() {
       </div>
       <div className="tool-bar">
         <div className="tool-group">
-          {tools.map(({ id, icon: Icon, label }) => (
+          {tools.map(({ id, icon: Icon, labelKey }) => (
             <button
               className={state.activeTool === id ? "active" : ""}
               key={id}
               onClick={() =>
                 dispatch({ type: "setActiveTool", tool: id as typeof state.activeTool })
               }
-              title={label}
+              title={t(labelKey)}
               type="button"
             >
               <Icon size={16} />
@@ -425,7 +396,7 @@ export function TopBar() {
         <button
           disabled={!state.history.past.length}
           onClick={() => dispatch({ type: "undo" })}
-          title="Undo"
+          title={t("topbar.item.undo")}
           type="button"
         >
           <Undo2 size={16} />
@@ -433,7 +404,7 @@ export function TopBar() {
         <button
           disabled={!state.history.future.length}
           onClick={() => dispatch({ type: "redo" })}
-          title="Redo"
+          title={t("topbar.item.redo")}
           type="button"
         >
           <Redo2 size={16} />
@@ -446,18 +417,18 @@ export function TopBar() {
                 state.previewQuality === 1 ? 0.5 : state.previewQuality === 0.5 ? 0.25 : 1;
               dispatch({ type: "setPreviewQuality", quality });
             }}
-            title="Cycle preview resolution"
+            title={t("topbar.toolbar.previewResolution")}
             type="button"
           >
             {state.previewQuality === 1
-              ? "Full"
+              ? t("common.full")
               : state.previewQuality === 0.5
-                ? "Half"
-                : "Quarter"}{" "}
+                ? t("common.half")
+                : t("common.quarter")}{" "}
             <ChevronDown size={12} />
           </button>
           <span className="gpu-badge">
-            <Sparkles size={12} /> GPU Preview
+            <Sparkles size={12} /> {t("topbar.toolbar.gpuPreview")}
           </span>
         </div>
         <div className="toolbar-right">
@@ -470,10 +441,10 @@ export function TopBar() {
             }
             type="button"
           >
-            <Search size={14} /> Search project
+            <Search size={14} /> {t("topbar.toolbar.searchProject")}
           </button>
           <button className="render-button" onClick={() => setRenderOpen(true)} type="button">
-            <Play fill="currentColor" size={13} /> Render
+            <Play fill="currentColor" size={13} /> {t("topbar.toolbar.render")}
           </button>
         </div>
       </div>
@@ -481,7 +452,7 @@ export function TopBar() {
         <div className="modal-backdrop">
           <div className="command-palette">
             <button
-              aria-label="Close command palette"
+              aria-label={t("topbar.command.close")}
               className="palette-close"
               onClick={() => setPaletteOpen(false)}
               type="button"
@@ -492,12 +463,12 @@ export function TopBar() {
               <Search size={15} />
               <input
                 onChange={(event) => setPaletteQuery(event.target.value)}
-                placeholder="Type a command…"
+                placeholder={t("topbar.command.placeholder")}
                 ref={paletteInputRef}
                 value={paletteQuery}
               />
             </div>
-            <small>QUICK COMMANDS</small>
+            <small>{t("topbar.command.quick")}</small>
             {filteredCommands.map((command) => (
               <button
                 key={command.label}
@@ -518,7 +489,7 @@ export function TopBar() {
         <div className="modal-backdrop" role="presentation">
           <div className="render-dialog">
             <header>
-              <strong>Render output</strong>
+              <strong>{t("topbar.render.title")}</strong>
               <button disabled={rendering} onClick={() => setRenderOpen(false)} type="button">
                 <X size={14} />
               </button>
@@ -526,34 +497,39 @@ export function TopBar() {
             <div className="render-summary">
               <Sparkles size={20} />
               <div>
-                <strong>GPU render pipeline</strong>
+                <strong>{t("topbar.render.pipeline")}</strong>
                 <span>
                   {renderFormat === "sequence"
-                    ? `${activeComposition(state.project).duration}s · PNG sequence · Linear sRGB`
-                    : "4K · Linear sRGB · PNG"}
+                    ? t("topbar.render.sequenceSummary", {
+                        duration: activeComposition(state.project).duration,
+                      })
+                    : t("topbar.render.frameSummary")}
                 </span>
               </div>
             </div>
             <label>
-              Output format
+              {t("topbar.render.outputFormat")}
               <select
                 onChange={(event) =>
                   setRenderFormat(event.target.value as "png" | "project" | "sequence")
                 }
                 value={renderFormat}
               >
-                <option value="png">PNG image</option>
+                <option value="png">{t("topbar.render.png")}</option>
                 <option disabled={!nativeSequenceExportAvailable()} value="sequence">
-                  PNG image sequence (native)
+                  {t("topbar.render.sequence")}
                 </option>
-                <option value="project">Aster project JSON</option>
+                <option value="project">{t("topbar.render.project")}</option>
               </select>
             </label>
             {renderProgress && (
               <div className="render-progress">
                 <progress max={renderProgress.total} value={renderProgress.current} />
                 <span>
-                  {renderProgress.current} / {renderProgress.total} frames
+                  {t("topbar.render.progress", {
+                    current: renderProgress.current,
+                    total: renderProgress.total,
+                  })}
                 </span>
               </div>
             )}
@@ -565,7 +541,7 @@ export function TopBar() {
                 }}
                 type="button"
               >
-                {rendering ? "Stop after frame" : "Cancel"}
+                {rendering ? t("topbar.render.stopAfterFrame") : t("common.cancel")}
               </button>
               <button
                 className="primary"
@@ -575,13 +551,16 @@ export function TopBar() {
                   setRenderProgress(undefined);
                   setRendering(true);
                   try {
-                    if (renderFormat === "project") saveProject(state.project, setToast);
+                    if (renderFormat === "project") saveProject(state.project, setToast, t);
                     else if (renderFormat === "png") {
                       const blob = await renderSingleFrame(state.currentTime);
                       downloadBlob(blob, "aster-frame-4k.png");
                       showToast(
                         setToast,
-                        `Exported ${activeComposition(state.project).width} × ${activeComposition(state.project).height} PNG`,
+                        t("topbar.toast.exportedPng", {
+                          width: activeComposition(state.project).width,
+                          height: activeComposition(state.project).height,
+                        }),
                       );
                     } else {
                       const result = await renderPngSequence(
@@ -593,15 +572,15 @@ export function TopBar() {
                       showToast(
                         setToast,
                         result.cancelled
-                          ? `Stopped after ${result.frames} PNG frames`
-                          : `Exported ${result.frames} PNG frames`,
+                          ? t("topbar.toast.stoppedFrames", { frames: result.frames })
+                          : t("topbar.toast.exportedFrames", { frames: result.frames }),
                       );
                     }
                     setRenderOpen(false);
                   } catch (error) {
                     showToast(
                       setToast,
-                      error instanceof Error ? error.message : "Frame export failed",
+                      error instanceof Error ? error.message : t("topbar.error.frameExport"),
                     );
                   } finally {
                     setRendering(false);
@@ -613,12 +592,16 @@ export function TopBar() {
                 {rendering ? (
                   <>
                     <LoaderCircle className="spin" size={12} />
-                    {renderFormat === "sequence" ? "Rendering sequence…" : "Rendering 4K…"}
+                    {renderFormat === "sequence"
+                      ? t("topbar.render.renderingSequence")
+                      : t("topbar.render.rendering4k")}
                   </>
                 ) : (
                   <>
                     <Play size={12} />
-                    {renderFormat === "sequence" ? "Render sequence" : "Render frame"}
+                    {renderFormat === "sequence"
+                      ? t("topbar.render.renderSequence")
+                      : t("topbar.render.renderFrame")}
                   </>
                 )}
               </button>
@@ -637,53 +620,62 @@ export function TopBar() {
 async function openProjectFile(
   dispatch: ReturnType<typeof useEditor>["dispatch"],
   setToast: (message: string | undefined) => void,
+  t: Translate,
 ) {
   try {
     const selected = await pickProjectFile();
     if (!selected) return;
     dispatch({ type: "loadProject", project: selected.project });
-    showToast(setToast, `Opened ${selected.name}`);
+    showToast(setToast, t("topbar.toast.opened", { name: selected.name }));
   } catch (error) {
-    showToast(setToast, error instanceof Error ? error.message : "Unable to open project");
+    showToast(setToast, error instanceof Error ? error.message : t("topbar.error.openProject"));
   }
 }
 
 async function openPackedProject(
   dispatch: ReturnType<typeof useEditor>["dispatch"],
   setToast: (message: string | undefined) => void,
+  t: Translate,
 ) {
   try {
     const selected = await pickPackedProject();
     if (!selected) return;
     dispatch({ type: "loadProject", project: selected.project });
-    showToast(setToast, `Unpacked and opened ${selected.name}`);
+    showToast(setToast, t("topbar.toast.unpacked", { name: selected.name }));
   } catch (error) {
-    showToast(setToast, error instanceof Error ? error.message : "Unable to open packed project");
+    showToast(setToast, error instanceof Error ? error.message : t("topbar.error.openPacked"));
   }
 }
 
-function packProject(project: Project, setToast: (message: string | undefined) => void): void {
+function packProject(
+  project: Project,
+  setToast: (message: string | undefined) => void,
+  t: Translate,
+): void {
   void saveProjectDocument(project)
     .then((saved) => (saved ? packCurrentProject(project.name) : undefined))
     .then((path) => {
-      if (path) showToast(setToast, `Packed ${path.split(/[\\/]/).pop() || path}`);
+      if (path)
+        showToast(setToast, t("topbar.toast.packed", { name: path.split(/[\\/]/).pop() || path }));
     })
     .catch((error: unknown) => {
-      showToast(setToast, error instanceof Error ? error.message : "Unable to pack project");
+      showToast(setToast, error instanceof Error ? error.message : t("topbar.error.packProject"));
     });
 }
 
 function saveProject(
   project: Project,
   setToast: (message: string | undefined) => void,
+  t: Translate,
   chooseDirectory = false,
 ): void {
   void saveProjectDocument(project, chooseDirectory)
     .then((path) => {
-      if (path) showToast(setToast, `Saved ${path.split(/[\\/]/).pop() || path}`);
+      if (path)
+        showToast(setToast, t("topbar.toast.saved", { name: path.split(/[\\/]/).pop() || path }));
     })
     .catch((error: unknown) => {
-      showToast(setToast, error instanceof Error ? error.message : "Unable to save project");
+      showToast(setToast, error instanceof Error ? error.message : t("topbar.error.saveProject"));
     });
 }
 

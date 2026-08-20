@@ -1,0 +1,27 @@
+import type { commonEn } from "./common.en";
+
+export const commonZh = {
+  "common.add": "添加",
+  "common.auto": "自动",
+  "common.cancel": "取消",
+  "common.close": "关闭",
+  "common.disabled": "已停用",
+  "common.enabled": "已启用",
+  "common.full": "完整",
+  "common.half": "一半",
+  "common.none": "无",
+  "common.quarter": "四分之一",
+  "common.remove": "移除",
+  "common.save": "保存",
+  "common.seconds": "{count} 秒",
+  "common.unknownError": "发生未知错误",
+  "locale.enUS": "英语（美国）",
+  "locale.language": "界面语言",
+  "locale.systemHint": "Aster 首次启动时跟随浏览器语言，并会记住此选择。",
+  "locale.zhCN": "简体中文",
+  "app.status.ready": "就绪",
+  "app.status.color": "线性 sRGB · 32 位浮点",
+  "app.status.gpuBudget": "GPU 内存预算：{value}",
+  "app.status.gpuBudgetAuto": "自动",
+  "app.status.version": "Aster 0.2.0 · MVP",
+} as const satisfies Record<keyof typeof commonEn, string>;

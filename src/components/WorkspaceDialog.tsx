@@ -6,6 +6,8 @@ import { getProperty, type PropertyPath } from "../core/operations";
 import { activeComposition } from "../core/project";
 import { evaluateAnimatable } from "../core/timeline";
 import type { EnvironmentLighting } from "../core/types";
+import type { Locale, PlainMessageKey, Translate } from "../i18n/core";
+import { useI18n } from "../i18n/react";
 import { useEditor } from "../state/editor-store";
 import { PluginManager } from "./PluginManager";
 
@@ -23,18 +25,19 @@ interface WorkspaceDialogProps {
 }
 
 const shortcuts = [
-  ["V / H / W", "Selection, hand, and rotation tools"],
-  ["Q / G / T", "Rectangle, pen path, and text tools"],
-  ["Ctrl / Cmd + K", "Open command palette"],
-  ["Ctrl / Cmd + Z", "Undo the last operation"],
-  ["Ctrl / Cmd + Y", "Redo the last operation"],
-  ["Space", "Play or pause the timeline"],
-  ["Ctrl / Cmd + wheel", "Zoom the composition freely"],
-  ["Middle drag", "Pan the composition canvas"],
-] as const;
+  ["V / H / W", "workspace.shortcut.tools"],
+  ["Q / G / T", "workspace.shortcut.creation"],
+  ["Ctrl / Cmd + K", "workspace.shortcut.palette"],
+  ["Ctrl / Cmd + Z", "workspace.shortcut.undo"],
+  ["Ctrl / Cmd + Y", "workspace.shortcut.redo"],
+  ["Space", "workspace.shortcut.playback"],
+  ["Ctrl / Cmd + wheel", "workspace.shortcut.zoom"],
+  ["Middle drag", "workspace.shortcut.pan"],
+] as const satisfies readonly (readonly [string, PlainMessageKey])[];
 
 export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
   const { state, dispatch } = useEditor();
+  const { locale, setLocale, t } = useI18n();
   const composition = activeComposition(state.project);
   const selectedLayer = composition.layers.find((layer) => layer.id === state.selection[0]);
   const [name, setName] = useState(composition.name);
@@ -58,6 +61,7 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
   const [reducedMotion, setReducedMotion] = useState(
     () => localStorage.getItem("aster.reducedMotion") === "true",
   );
+  const [preferredLocale, setPreferredLocale] = useState<Locale>(locale);
   const [expressionPath, setExpressionPath] = useState<PropertyPath>("opacity");
   const [expression, setExpression] = useState(selectedLayer?.expressions?.opacity ?? "value");
   const expressionResult = selectedLayer
@@ -65,6 +69,7 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
         expression,
         evaluateAnimatable(getProperty(selectedLayer, expressionPath), state.currentTime),
         state.currentTime,
+        t,
       )
     : undefined;
 
@@ -99,6 +104,7 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
     localStorage.setItem("aster.gpuMemoryBudgetMb", String(gpuMemoryBudgetMb));
     dispatch({ type: "setPreviewQuality", quality: previewQuality });
     dispatch({ type: "setGpuMemoryBudget", budget: gpuMemoryBudgetMb });
+    setLocale(preferredLocale);
     document.documentElement.classList.toggle("reduced-motion", reducedMotion);
     onClose();
   };
@@ -114,32 +120,37 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
     onClose();
   };
 
-  const title = {
-    preferences: "Preferences",
-    composition: "Composition settings",
-    expression: "Expression editor",
-    plugins: "Plugin manager",
-    shortcuts: "Keyboard shortcuts",
-    about: "About Aster",
-  }[kind];
+  const titleKey: Record<WorkspaceDialogKind, PlainMessageKey> = {
+    preferences: "workspace.title.preferences",
+    composition: "workspace.title.composition",
+    expression: "workspace.title.expression",
+    plugins: "workspace.title.plugins",
+    shortcuts: "workspace.title.shortcuts",
+    about: "workspace.title.about",
+  };
+  const title = t(titleKey[kind]);
 
   return (
     <div className="modal-backdrop" role="presentation">
       <section aria-label={title} aria-modal="true" className="workspace-dialog" role="dialog">
         <header>
           <strong>{title}</strong>
-          <button aria-label={`Close ${title}`} onClick={onClose} type="button">
+          <button
+            aria-label={t("workspace.closeDialog", { title })}
+            onClick={onClose}
+            type="button"
+          >
             <X size={14} />
           </button>
         </header>
         {kind === "composition" && (
           <div className="dialog-form">
             <label className="wide">
-              Name
+              {t("workspace.composition.name")}
               <input onChange={(event) => setName(event.target.value)} value={name} />
             </label>
             <label>
-              Width
+              {t("workspace.composition.width")}
               <input
                 max={16384}
                 min={16}
@@ -149,7 +160,7 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
               />
             </label>
             <label>
-              Height
+              {t("workspace.composition.height")}
               <input
                 max={16384}
                 min={16}
@@ -159,7 +170,7 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
               />
             </label>
             <label>
-              Frame rate
+              {t("workspace.composition.frameRate")}
               <input
                 max={240}
                 min={1}
@@ -170,7 +181,7 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
               />
             </label>
             <label>
-              Duration (seconds)
+              {t("workspace.composition.duration")}
               <input
                 max={86400}
                 min={0.1}
@@ -191,12 +202,12 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
                 }
                 type="checkbox"
               />
-              Enable HDR environment lighting
+              {t("workspace.composition.enableEnvironment")}
             </label>
             {environment && (
               <>
                 <label>
-                  Environment intensity
+                  {t("workspace.composition.environmentIntensity")}
                   <input
                     max={32}
                     min={0}
@@ -212,7 +223,7 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
                   />
                 </label>
                 <label>
-                  Environment rotation
+                  {t("workspace.composition.environmentRotation")}
                   <input
                     max={360}
                     min={-360}
@@ -230,7 +241,7 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
               </>
             )}
             <label className="wide">
-              Radiance environment (.hdr, max 48 MiB)
+              {t("workspace.composition.environmentFile")}
               <input
                 accept=".hdr,image/vnd.radiance,image/x-hdr"
                 onChange={(event) => {
@@ -241,7 +252,7 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
                   hdrValidationAbort.current = abort;
                   setEnvironmentError(undefined);
                   setEnvironmentValidating(true);
-                  void readHdrFile(file, abort.signal)
+                  void readHdrFile(file, abort.signal, t)
                     .then((source) =>
                       setEnvironment({
                         enabled: true,
@@ -253,7 +264,9 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
                     .catch((error) => {
                       if (abort.signal.aborted) return;
                       setEnvironmentError(
-                        error instanceof Error ? error.message : "Unable to read HDR environment",
+                        error instanceof Error
+                          ? error.message
+                          : t("workspace.error.readEnvironment"),
                       );
                     })
                     .finally(() => {
@@ -266,53 +279,67 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
               />
             </label>
             {environmentValidating && (
-              <div className="dialog-note wide">Validating HDR scanlines in a worker…</div>
+              <div className="dialog-note wide">
+                {t("workspace.composition.validatingEnvironment")}
+              </div>
             )}
             {environment && (
               <div className="dialog-note wide">
-                <Sparkles size={15} /> {environment.source.name} · worker-validated linear RGBE ·
-                GPU rgba16float
+                <Sparkles size={15} /> {environment.source.name} ·{" "}
+                {t("workspace.composition.environmentSummary")}
                 <button onClick={() => setEnvironment(undefined)} type="button">
-                  Remove
+                  {t("common.remove")}
                 </button>
               </div>
             )}
             {environmentError && <div className="dialog-note wide">{environmentError}</div>}
             <div className="dialog-note wide">
-              <Gauge size={15} /> The renderer supports compositions up to the GPU adapter's texture
-              limit. Oversized outputs can be tiled by the native render queue.
+              <Gauge size={15} /> {t("workspace.composition.gpuLimit")}
             </div>
           </div>
         )}
         {kind === "preferences" && (
           <div className="dialog-form preferences-form">
             <label className="wide">
-              Preview quality
+              {t("workspace.preferences.previewQuality")}
               <select
                 onChange={(event) =>
                   setPreviewQuality(Number(event.target.value) as 1 | 0.5 | 0.25)
                 }
                 value={previewQuality}
               >
-                <option value="1">Full resolution</option>
-                <option value="0.5">Half resolution</option>
-                <option value="0.25">Quarter resolution</option>
+                <option value="1">{t("workspace.preferences.fullResolution")}</option>
+                <option value="0.5">{t("workspace.preferences.halfResolution")}</option>
+                <option value="0.25">{t("workspace.preferences.quarterResolution")}</option>
               </select>
             </label>
             <label className="wide">
-              Recovery snapshot interval
+              {t("locale.language")}
+              <select
+                onChange={(event) => setPreferredLocale(event.target.value as Locale)}
+                value={preferredLocale}
+              >
+                <option value="en-US">{t("locale.enUS")}</option>
+                <option value="zh-CN">{t("locale.zhCN")}</option>
+              </select>
+              <small>{t("locale.systemHint")}</small>
+            </label>
+            <label className="wide">
+              {t("workspace.preferences.recoveryInterval")}
               <select
                 onChange={(event) => setAutosaveSeconds(Number(event.target.value))}
                 value={autosaveSeconds}
               >
-                <option value="15">15 seconds after editing</option>
-                <option value="30">30 seconds after editing</option>
-                <option value="60">60 seconds after editing</option>
-                <option value="0">Disabled</option>
+                {[15, 30, 60].map((seconds) => (
+                  <option key={seconds} value={seconds}>
+                    {t("workspace.preferences.afterEditing", { seconds })}
+                  </option>
+                ))}
+                <option value="0">{t("common.disabled")}</option>
               </select>
             </label>
             <label className="wide">
-              GPU memory budget
+              {t("workspace.preferences.gpuBudget")}
               <select
                 onChange={(event) =>
                   setGpuMemoryBudgetMb(
@@ -323,7 +350,7 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
                 }
                 value={gpuMemoryBudgetMb}
               >
-                <option value="auto">Auto (512 MB)</option>
+                <option value="auto">{t("workspace.preferences.autoBudget")}</option>
                 <option value="32">32 MB</option>
                 <option value="64">64 MB</option>
                 <option value="128">128 MB</option>
@@ -337,11 +364,10 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
                 onChange={(event) => setReducedMotion(event.target.checked)}
                 type="checkbox"
               />
-              Reduce non-essential interface motion
+              {t("workspace.preferences.reducedMotion")}
             </label>
             <div className="dialog-note wide">
-              <Settings2 size={15} /> Aster renders through WebGPU whenever the adapter supports it;
-              the 2D fallback remains available for recovery and diagnostics.
+              <Settings2 size={15} /> {t("workspace.preferences.webgpuNote")}
             </div>
           </div>
         )}
@@ -359,20 +385,20 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
                     }}
                     value={expressionPath}
                   >
-                    <option value="position.0">Position X</option>
-                    <option value="position.1">Position Y</option>
-                    <option value="position.2">Position Z</option>
-                    <option value="rotation.0">Rotation X</option>
-                    <option value="rotation.1">Rotation Y</option>
-                    <option value="rotation.2">Rotation Z</option>
-                    <option value="scale.0">Scale X</option>
-                    <option value="scale.1">Scale Y</option>
-                    <option value="scale.2">Scale Z</option>
-                    <option value="opacity">Opacity</option>
+                    <option value="position.0">{t("workspace.expression.positionX")}</option>
+                    <option value="position.1">{t("workspace.expression.positionY")}</option>
+                    <option value="position.2">{t("workspace.expression.positionZ")}</option>
+                    <option value="rotation.0">{t("workspace.expression.rotationX")}</option>
+                    <option value="rotation.1">{t("workspace.expression.rotationY")}</option>
+                    <option value="rotation.2">{t("workspace.expression.rotationZ")}</option>
+                    <option value="scale.0">{t("workspace.expression.scaleX")}</option>
+                    <option value="scale.1">{t("workspace.expression.scaleY")}</option>
+                    <option value="scale.2">{t("workspace.expression.scaleZ")}</option>
+                    <option value="opacity">{t("workspace.expression.opacity")}</option>
                   </select>
                 </div>
                 <textarea
-                  aria-label="Expression"
+                  aria-label={t("workspace.expression.label")}
                   onChange={(event) => setExpression(event.target.value)}
                   spellCheck={false}
                   value={expression}
@@ -383,24 +409,24 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
                   }
                 >
                   {expressionResult?.error ??
-                    `At ${state.currentTime.toFixed(3)}s → ${expressionResult?.value.toFixed(3)}`}
+                    t("workspace.expression.result", {
+                      time: state.currentTime.toFixed(3),
+                      value: expressionResult?.value.toFixed(3) ?? "—",
+                    })}
                 </div>
-                <p>
-                  Variables: <code>value</code>, <code>time</code>, <code>pi</code>. Functions:
-                  <code> sin cos tan abs sqrt min max pow clamp floor ceil round</code>.
-                </p>
+                <p>{t("workspace.expression.help")}</p>
               </>
             ) : (
-              <div className="dialog-note">Select a layer before adding an expression.</div>
+              <div className="dialog-note">{t("workspace.expression.selectLayer")}</div>
             )}
           </div>
         )}
         {kind === "shortcuts" && (
           <div className="shortcut-list">
-            {shortcuts.map(([key, description]) => (
+            {shortcuts.map(([key, descriptionKey]) => (
               <div key={key}>
                 <kbd>{key}</kbd>
-                <span>{description}</span>
+                <span>{t(descriptionKey)}</span>
               </div>
             ))}
           </div>
@@ -411,20 +437,21 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
             <div className="about-mark">A</div>
             <div>
               <h2>Aster 0.2.0</h2>
-              <p>GPU-first motion graphics and compositing studio.</p>
+              <p>{t("workspace.about.summary")}</p>
               <span className="about-meta">
                 React 19 · TypeScript 7 · Tauri 2 · Rust 2024 · WebGPU/WGSL · MPL-2.0
               </span>
             </div>
             <div className="dialog-note">
-              <Sparkles size={15} /> HDR scene rendering, schema-driven effects, a structured AI
-              operator, and a non-destructive timeline share one open project format.
+              <Sparkles size={15} /> {t("workspace.about.detail")}
             </div>
           </div>
         )}
         <footer>
           <button onClick={onClose} type="button">
-            {kind === "composition" || kind === "preferences" ? "Cancel" : "Close"}
+            {kind === "composition" || kind === "preferences"
+              ? t("common.cancel")
+              : t("common.close")}
           </button>
           {kind === "composition" && (
             <button
@@ -433,12 +460,12 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
               onClick={saveComposition}
               type="button"
             >
-              Apply settings
+              {t("workspace.action.applySettings")}
             </button>
           )}
           {kind === "preferences" && (
             <button className="primary" onClick={savePreferences} type="button">
-              Save preferences
+              {t("workspace.action.savePreferences")}
             </button>
           )}
           {kind === "expression" && selectedLayer && (
@@ -448,7 +475,7 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
               onClick={saveExpression}
               type="button"
             >
-              Apply expression
+              {t("workspace.action.applyExpression")}
             </button>
           )}
         </footer>
@@ -460,11 +487,11 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
 async function readHdrFile(
   file: File,
   signal: AbortSignal,
+  t: Translate,
 ): Promise<EnvironmentLighting["source"]> {
-  if (!file.name.toLowerCase().endsWith(".hdr"))
-    throw new Error("Choose a Radiance .hdr environment file");
+  if (!file.name.toLowerCase().endsWith(".hdr")) throw new Error(t("workspace.error.chooseHdr"));
   if (file.size === 0 || file.size > 48 * 1024 * 1024)
-    throw new Error("HDR environment must be between 1 byte and 48 MiB");
+    throw new Error(t("workspace.error.hdrSize"));
   const buffer = await file.arrayBuffer();
   await runCpuTask(
     { kind: "decode-radiance-hdr", metadataOnly: true, source: buffer },
@@ -476,23 +503,27 @@ async function readHdrFile(
       transfer: [buffer],
     },
   );
-  if (signal.aborted) throw new DOMException("HDR validation cancelled", "AbortError");
+  if (signal.aborted) throw new DOMException(t("workspace.error.hdrCancelled"), "AbortError");
   const result = await new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
     const cancel = () => {
       reader.abort();
-      reject(new DOMException("HDR validation cancelled", "AbortError"));
+      reject(new DOMException(t("workspace.error.hdrCancelled"), "AbortError"));
     };
     signal.addEventListener("abort", cancel, { once: true });
     reader.addEventListener("load", () =>
-      typeof reader.result === "string" ? resolve(reader.result) : reject(new Error("Read failed")),
+      typeof reader.result === "string"
+        ? resolve(reader.result)
+        : reject(new Error(t("workspace.error.readFailed"))),
     );
-    reader.addEventListener("error", () => reject(reader.error ?? new Error("Read failed")));
+    reader.addEventListener("error", () =>
+      reject(reader.error ?? new Error(t("workspace.error.readFailed"))),
+    );
     reader.addEventListener("loadend", () => signal.removeEventListener("abort", cancel));
     reader.readAsDataURL(file);
   });
   const comma = result.indexOf(",");
-  if (comma < 0) throw new Error("Unable to encode HDR environment");
+  if (comma < 0) throw new Error(t("workspace.error.encodeHdr"));
   return {
     name: file.name.slice(0, 512),
     mimeType: "image/vnd.radiance",
@@ -504,10 +535,13 @@ function previewExpression(
   expression: string,
   value: number,
   time: number,
+  t: Translate,
 ): { value: number; error?: undefined } | { value?: undefined; error: string } {
   try {
     return { value: evaluateExpression(expression, { value, time }) };
   } catch (error) {
-    return { error: error instanceof Error ? error.message : "Invalid expression" };
+    return {
+      error: error instanceof Error ? error.message : t("workspace.error.invalidExpression"),
+    };
   }
 }

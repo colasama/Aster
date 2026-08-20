@@ -6,11 +6,13 @@ import { Timeline } from "./components/Timeline";
 import { TopBar } from "./components/TopBar";
 import { Viewport } from "./components/Viewport";
 import { activeComposition } from "./core/project";
+import { I18nProvider, useI18n } from "./i18n/react";
 import { EditorProvider, useEditor } from "./state/editor-store";
 import "./styles/index.css";
 
 function Studio() {
   const { state, dispatch } = useEditor();
+  const { t } = useI18n();
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
@@ -52,15 +54,19 @@ function Studio() {
       </div>
       <footer className="status-bar">
         <span>
-          <i className="status-dot" /> Ready
+          <i className="status-dot" /> {t("app.status.ready")}
         </span>
-        <span>Linear sRGB · 32 bpc float</span>
+        <span>{t("app.status.color")}</span>
         <span>
-          GPU memory budget:{" "}
-          {state.gpuMemoryBudgetMb === "auto" ? "Auto" : `${state.gpuMemoryBudgetMb} MB`}
+          {t("app.status.gpuBudget", {
+            value:
+              state.gpuMemoryBudgetMb === "auto"
+                ? t("app.status.gpuBudgetAuto")
+                : `${state.gpuMemoryBudgetMb} MB`,
+          })}
         </span>
         <span className="status-spacer" />
-        <span>Aster 0.2.0 · M0/M1 vertical slice</span>
+        <span>{t("app.status.version")}</span>
       </footer>
     </main>
   );
@@ -68,8 +74,10 @@ function Studio() {
 
 export default function App() {
   return (
-    <EditorProvider>
-      <Studio />
-    </EditorProvider>
+    <I18nProvider>
+      <EditorProvider>
+        <Studio />
+      </EditorProvider>
+    </I18nProvider>
   );
 }
