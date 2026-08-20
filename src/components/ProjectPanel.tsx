@@ -71,7 +71,15 @@ export function ProjectPanel() {
     readUserEffectPresets(localPreferenceStorage()),
   );
   const imagePickerRef = useRef<HTMLInputElement>(null);
+  const videoPickerRef = useRef<HTMLInputElement>(null);
   const composition = activeComposition(state.project);
+  const mediaLayers = useMemo(
+    () =>
+      composition.layers.filter((layer) =>
+        layer.asset?.name.toLowerCase().includes(query.toLowerCase()),
+      ),
+    [composition.layers, query],
+  );
   const selectedLayer = composition.layers.find((layer) => layer.id === state.selection[0]);
   const filteredEffects = useMemo(
     () =>
@@ -182,17 +190,17 @@ export function ProjectPanel() {
       setPresetError(error instanceof Error ? error.message : "Could not save preset");
     }
   };
-  const importImage = async (file: File) => {
+  const importMedia = async (kind: "image" | "video", file: File) => {
     try {
       setAssetError(undefined);
-      const layer = await createMediaLayerFromFile("image", file, composition, state.currentTime);
+      const layer = await createMediaLayerFromFile(kind, file, composition, state.currentTime);
       dispatch({
         type: "operation",
         operations: [{ type: "addLayer", layer }],
         select: [layer.id],
       });
     } catch (error) {
-      setAssetError(error instanceof Error ? error.message : "Image import failed");
+      setAssetError(error instanceof Error ? error.message : `${kind} import failed`);
     }
   };
   return (
@@ -250,6 +258,29 @@ export function ProjectPanel() {
               </small>
             </button>
           ))}
+          <div className="tree-row asset-folder">
+            <span className="tree-spacer" />
+            <Folder size={14} />
+            <span>Assets</span>
+            <small>{mediaLayers.length}</small>
+          </div>
+          {mediaLayers.map((layer) => (
+            <button
+              className={`tree-row asset ${state.selection.includes(layer.id) ? "selected" : ""}`}
+              key={`asset:${layer.id}`}
+              onClick={() => dispatch({ type: "select", ids: [layer.id] })}
+              title={`Locate ${layer.asset?.name} in the active composition`}
+              type="button"
+            >
+              <span className="tree-spacer" />
+              {layer.kind === "video" ? <Film size={14} /> : <FileImage size={14} />}
+              <span>{layer.asset?.name}</span>
+              <small>
+                {layer.asset?.width}×{layer.asset?.height}
+                {layer.asset?.duration ? ` · ${layer.asset.duration.toFixed(1)}s` : ""}
+              </small>
+            </button>
+          ))}
           {composition.layers
             .filter((layer) => layer.name.toLowerCase().includes(query.toLowerCase()))
             .map((layer) => {
@@ -274,14 +305,29 @@ export function ProjectPanel() {
               hidden
               onChange={(event) => {
                 const file = event.target.files?.[0];
-                if (file) void importImage(file);
+                if (file) void importMedia("image", file);
                 event.target.value = "";
               }}
               ref={imagePickerRef}
               type="file"
             />
+            <input
+              accept="video/*"
+              aria-label="Choose video asset"
+              hidden
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) void importMedia("video", file);
+                event.target.value = "";
+              }}
+              ref={videoPickerRef}
+              type="file"
+            />
             <button onClick={() => imagePickerRef.current?.click()} type="button">
               <FileImage size={13} /> Image
+            </button>
+            <button onClick={() => videoPickerRef.current?.click()} type="button">
+              <Film size={13} /> Video
             </button>
             <button onClick={() => addLayer("text")} type="button">
               <Type size={13} /> Text

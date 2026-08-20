@@ -1216,7 +1216,7 @@ aster/
 - [ ] Layer Stack。
 - [ ] Inspector / Properties。
 - [ ] Graph Editor。
-- [ ] Asset Browser。
+- [x] Asset Browser。
 - [x] Effects Browser。
 - [x] Effects Browser 收藏与最近使用持久化。
 - [x] 自定义 Effect Chain 预设保存、持久化、应用、删除与单步撤销。

@@ -151,6 +151,20 @@ button.tree-row {
 .tree-row.composition svg:nth-child(2) {
   color: #7b62db;
 }
+.tree-row.asset-folder {
+  margin-top: 3px;
+  color: #8d93a1;
+  font-weight: 600;
+}
+.tree-row.asset-folder svg,
+.tree-row.asset svg {
+  color: #5f88c9;
+}
+.tree-row.asset > span:nth-last-of-type(1) {
+  max-width: 92px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .tree-row small {
   margin-left: auto;
   color: #565b68;
