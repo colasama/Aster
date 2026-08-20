@@ -18,10 +18,13 @@ jobs:
           toolchain: 1.97.1
       - uses: Swatinem/rust-cache@v2
       - run: cargo test --workspace --all-features --release
-      - name: Record baseline metadata
+      - name: Record benchmark reports
         run: |
           mkdir -p benchmark-results
-          printf '{"commit":"%s","suite":"release-core-smoke"}\n' "$GITHUB_SHA" > benchmark-results/baseline.json
+          cargo run -p aster-profiler --release --example incremental_evaluation \
+            > benchmark-results/incremental-evaluation.json
+          printf '{"commit":"%s","suite":"release-core-smoke"}\n' "$GITHUB_SHA" \
+            > benchmark-results/release-core-smoke.json
       - uses: actions/upload-artifact@v4
         with:
           name: benchmark-results

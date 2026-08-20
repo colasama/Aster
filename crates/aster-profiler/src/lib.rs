@@ -1,5 +1,12 @@
 //! Lightweight CPU/GPU frame metrics designed to stay enabled in editor builds.
 
+mod benchmark;
+
+pub use benchmark::{
+    BenchmarkEnvironment, BenchmarkRecorder, BenchmarkReport, BenchmarkStatistics, Distribution,
+    Regression, RegressionPolicy,
+};
+
 use std::{
     collections::VecDeque,
     sync::Arc,

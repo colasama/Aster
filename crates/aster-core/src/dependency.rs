@@ -13,10 +13,15 @@ pub struct DependencyGraph {
     dependencies: HashMap<NodeId, IndexSet<NodeId>>,
     dependents: HashMap<NodeId, IndexSet<NodeId>>,
     dirty: HashSet<NodeId>,
+    #[serde(skip)]
+    topological_cache: Vec<NodeId>,
 }
 
 impl DependencyGraph {
     pub fn add_node(&mut self, id: NodeId) {
+        if !self.dependencies.contains_key(&id) {
+            self.topological_cache.clear();
+        }
         self.dependencies.entry(id).or_default();
         self.dependents.entry(id).or_default();
     }
@@ -40,6 +45,7 @@ impl DependencyGraph {
             .or_default()
             .insert(dependency);
         self.dependents.entry(dependency).or_default().insert(node);
+        self.topological_cache.clear();
         Ok(())
     }
 
@@ -62,11 +68,15 @@ impl DependencyGraph {
     }
 
     pub fn take_evaluation_order(&mut self) -> Result<Vec<NodeId>, DependencyError> {
-        let order = self.topological_order()?;
-        let dirty_order = order
-            .into_iter()
-            .filter(|node| self.dirty.remove(node))
-            .collect();
+        if self.topological_cache.is_empty() && !self.dependencies.is_empty() {
+            self.topological_cache = self.topological_order()?;
+        }
+        let mut dirty_order = Vec::with_capacity(self.dirty.len());
+        for node in &self.topological_cache {
+            if self.dirty.remove(node) {
+                dirty_order.push(*node);
+            }
+        }
         Ok(dirty_order)
     }
 
@@ -160,5 +170,20 @@ mod tests {
         let mut graph = DependencyGraph::default();
         graph.add_dependency(b, a).unwrap();
         assert_eq!(graph.add_dependency(a, b), Err(DependencyError::Cycle));
+    }
+
+    #[test]
+    fn invalidates_cached_topology_after_graph_changes() {
+        let a = Uuid::new_v4();
+        let b = Uuid::new_v4();
+        let c = Uuid::new_v4();
+        let mut graph = DependencyGraph::default();
+        graph.add_dependency(b, a).unwrap();
+        graph.mark_dirty(a);
+        assert_eq!(graph.take_evaluation_order().unwrap(), vec![a, b]);
+
+        graph.add_dependency(c, b).unwrap();
+        graph.mark_dirty(a);
+        assert_eq!(graph.take_evaluation_order().unwrap(), vec![a, b, c]);
     }
 }

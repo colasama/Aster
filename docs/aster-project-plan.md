@@ -1072,14 +1072,14 @@ aster/
 
 ### Profiling
 
-- [ ] 创建 `aster-profiler` crate。
-- [ ] 实现 CPU scope timing。
-- [ ] 实现 GPU timestamp query。
-- [ ] 显示 frame time。
-- [ ] 显示 GPU frame time。
+- [x] 创建 `aster-profiler` crate。
+- [x] 实现 CPU scope timing。
+- [x] 实现 GPU timestamp query。
+- [x] 显示 frame time。
+- [x] 显示 GPU frame time。
 - [ ] 显示各 Render Graph pass timing。
-- [ ] 显示 VRAM estimate。
-- [ ] 显示 draw / dispatch count。
+- [x] 显示 VRAM estimate。
+- [x] 显示 draw / dispatch count。
 - [ ] 显示 transient texture count。
 
 ### M0 Benchmark
@@ -1091,7 +1091,7 @@ aster/
 - [ ] 创建 Glow benchmark。
 - [ ] 创建 Effect-chain benchmark。
 - [ ] 保存 benchmark baseline。
-- [ ] 自动输出 benchmark JSON。
+- [x] 自动输出 benchmark JSON。
 - [ ] 创建 benchmark 可视化报告。
 
 ---
@@ -1114,7 +1114,7 @@ aster/
 - [x] 实现 cache invalidation。
 - [x] 实现 cache statistics。
 - [x] 显示当前重算 Node 数量。
-- [ ] 创建增量渲染 benchmark。
+- [x] 创建增量渲染 benchmark。
 
 ---
 

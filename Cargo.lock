@@ -126,8 +126,10 @@ dependencies = [
 name = "aster-profiler"
 version = "0.2.0"
 dependencies = [
+ "aster-core",
  "parking_lot",
  "serde",
+ "serde_json",
 ]
 
 [[package]]
