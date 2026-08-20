@@ -14,6 +14,7 @@ import type {
   Material3d,
   ParticleSettings,
   Project,
+  ShapeSettings,
 } from "./types";
 
 export type PropertyPath =
@@ -43,6 +44,7 @@ export type Operation =
   | { type: "setLayerColor"; layerId: Id; color: Layer["color"] }
   | { type: "setCameraSettings"; layerId: Id; camera: CameraSettings }
   | { type: "setParticleSettings"; layerId: Id; particle: ParticleSettings }
+  | { type: "setShapeSettings"; layerId: Id; shape: ShapeSettings }
   | {
       type: "toggleLayer";
       layerId: Id;
@@ -195,6 +197,16 @@ export function applyOperation(project: Project, operation: Operation): void {
         acceleration: clamp(operation.particle.acceleration, -10, 10),
         startSize: clamp(operation.particle.startSize, 0.01, 256),
         endSize: clamp(operation.particle.endSize, 0.01, 256),
+      };
+      break;
+    case "setShapeSettings":
+      layer.shape = {
+        kind: operation.shape.kind,
+        roundness: clamp(operation.shape.roundness, 0, 100_000),
+        strokeWidth: clamp(operation.shape.strokeWidth, 0, 100_000),
+        strokeColor: operation.shape.strokeColor.map((channel, index) =>
+          clamp(channel, 0, index === 3 ? 1 : 16),
+        ) as ShapeSettings["strokeColor"],
       };
       break;
     case "toggleLayer":

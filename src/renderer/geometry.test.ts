@@ -85,14 +85,23 @@ describe("GPU scene geometry", () => {
     expect(depthMoved[2]).not.toBeCloseTo(centered[2]);
   });
 
-  it("uses the circular mask only for square shape layers", () => {
+  it("packs explicit vector kind, roundness, and stroke style attributes", () => {
     const project = createBlankProject();
     const composition = project.compositions[0];
     const ellipse = createLayerForComposition("shape", composition);
     ellipse.size = [480, 480];
+    ellipse.shape = {
+      kind: "ellipse",
+      roundness: 24,
+      strokeWidth: 12,
+      strokeColor: [1, 0.5, 0.25, 0.8],
+    };
     composition.layers = [ellipse];
     const data = buildSceneGeometry(composition, flattenSceneLayers(composition, project, 0)).data;
-    expect(data[VERTEX_FLOAT_OFFSETS.mediaType]).toBe(1);
+    expect(data[VERTEX_FLOAT_OFFSETS.shapeStyleColor]).toBe(1);
+    expect(data[VERTEX_FLOAT_OFFSETS.shapeStyleParameters]).toBeCloseTo(0.05);
+    expect(data[VERTEX_FLOAT_OFFSETS.shapeStyleParameters + 1]).toBeCloseTo(0.05);
+    expect(data[VERTEX_FLOAT_OFFSETS.shapeStyleParameters + 2]).toBe(2);
   });
 
   it("includes text quads so cached glyph textures share the layer effect graph", () => {
@@ -122,6 +131,12 @@ describe("GPU scene geometry", () => {
     const geometry = buildSceneGeometry(composition, flattenSceneLayers(composition, project, 0));
     expect(geometry.batches[0].vertexCount).toBe(3);
     expect(geometry.data).toHaveLength(FLOATS_PER_VERTEX * 3);
-    expect(new Set([geometry.data[0], geometry.data[20], geometry.data[40]]).size).toBe(2);
+    expect(
+      new Set([
+        geometry.data[0],
+        geometry.data[FLOATS_PER_VERTEX],
+        geometry.data[FLOATS_PER_VERTEX * 2],
+      ]).size,
+    ).toBe(2);
   });
 });

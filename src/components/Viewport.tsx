@@ -279,7 +279,10 @@ export function Viewport() {
               mode: "static",
               value,
             })) as typeof layer.transform.position;
-            if (state.activeTool === "ellipse") layer.size = [480, 480];
+            if (state.activeTool === "ellipse") {
+              layer.size = [480, 480];
+              if (layer.shape) layer.shape.kind = "ellipse";
+            }
             if (state.activeTool === "shape") layer.size = [720, 480];
             if (state.activeTool === "pen") {
               layer.name = "Pen Path";

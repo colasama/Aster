@@ -27,6 +27,7 @@ import { AiPanel } from "./AiPanel";
 import { EffectMaskEditor } from "./EffectMaskEditor";
 import { Panel, PanelTabs } from "./Panel";
 import { Scene3dControls } from "./Scene3dControls";
+import { ShapeControls } from "./ShapeControls";
 
 const fields: { label: string; paths: PropertyPath[]; suffix: string }[] = [
   { label: "Position", paths: ["position.0", "position.1", "position.2"], suffix: "px" },
@@ -421,6 +422,7 @@ export function Inspector() {
                   Enable 3D layer
                 </label>
                 <Scene3dControls layer={layer} />
+                <ShapeControls layer={layer} />
               </div>
             )}
           </div>

@@ -31,6 +31,8 @@ export function createShapePipelines(
             { shaderLocation: 4, offset: 40, format: "float32x3" },
             { shaderLocation: 5, offset: 52, format: "float32x4" },
             { shaderLocation: 6, offset: 68, format: "float32x3" },
+            { shaderLocation: 7, offset: 80, format: "float32x4" },
+            { shaderLocation: 8, offset: 96, format: "float32x4" },
           ],
         },
       ],

@@ -241,6 +241,18 @@ function validateLayer(value: unknown, path: string): asserts value is Layer {
     for (const field of ["speed", "acceleration"])
       requireFiniteNumber(particle[field], `${path}.particle.${field}`);
   }
+  if (layer.shape !== undefined) {
+    const shape = requireObject(layer.shape, `${path}.shape`);
+    if (shape.kind !== "rectangle" && shape.kind !== "ellipse")
+      throw new Error(`${path}.shape.kind is invalid`);
+    const roundness = requireFiniteNumber(shape.roundness, `${path}.shape.roundness`);
+    const strokeWidth = requireFiniteNumber(shape.strokeWidth, `${path}.shape.strokeWidth`);
+    if (roundness < 0 || strokeWidth < 0)
+      throw new Error(`${path}.shape dimensions must not be negative`);
+    requireNumberArray(shape.strokeColor, `${path}.shape.strokeColor`, 4);
+    if ((shape.strokeColor as number[]).length !== 4)
+      throw new Error(`${path}.shape.strokeColor must contain four channels`);
+  }
   if (!Array.isArray(layer.size) || layer.size.length !== 2)
     throw new Error(`${path}.size must contain two values`);
   if (!Array.isArray(layer.color) || layer.color.length !== 4)

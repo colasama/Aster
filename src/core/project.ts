@@ -31,12 +31,14 @@ export function createDemoProject(): Project {
     kind: "shape",
     color: [0.025, 0.035, 0.085, 1],
     size: [3840, 2160],
+    shape: { kind: "rectangle", roundness: 0, strokeWidth: 0, strokeColor: [1, 1, 1, 1] },
   });
   const orb = layer({
     name: "Luminous Orb",
     kind: "shape",
     color: [0.18, 0.42, 1, 1],
     size: [980, 980],
+    shape: { kind: "ellipse", roundness: 0, strokeWidth: 0, strokeColor: [1, 1, 1, 1] },
     blendMode: "screen",
     transform: createTransform([2740, 950, 80]),
     effects: [
@@ -54,6 +56,7 @@ export function createDemoProject(): Project {
     kind: "shape",
     color: [0.53, 0.24, 1, 0.86],
     size: [2350, 180],
+    shape: { kind: "rectangle", roundness: 72, strokeWidth: 0, strokeColor: [1, 1, 1, 1] },
     threeDimensional: true,
     transform: createTransform([1870, 1450, 40]),
     effects: [
@@ -175,6 +178,7 @@ export function createBlankComposition(name = "Composition 1"): Composition {
     kind: "shape",
     color: [0.015, 0.018, 0.028, 1],
     size: [1920, 1080],
+    shape: { kind: "rectangle", roundness: 0, strokeWidth: 0, strokeColor: [1, 1, 1, 1] },
     outPoint: 10,
     transform: createTransform([960, 540, 0]),
   });

@@ -57,5 +57,9 @@ export function createLayerForComposition(
             endSize: 0.35,
           }
         : undefined,
+    shape:
+      kind === "shape"
+        ? { kind: "rectangle", roundness: 0, strokeWidth: 0, strokeColor: [1, 1, 1, 1] }
+        : undefined,
   };
 }

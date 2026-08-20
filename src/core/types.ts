@@ -99,6 +99,7 @@ export interface Layer {
   camera?: CameraSettings;
   mesh?: MeshAsset;
   particle?: ParticleSettings;
+  shape?: ShapeSettings;
 }
 
 export interface Material3d {
@@ -136,6 +137,13 @@ export interface ParticleSettings {
   acceleration: number;
   startSize: number;
   endSize: number;
+}
+
+export interface ShapeSettings {
+  kind: "rectangle" | "ellipse";
+  roundness: number;
+  strokeWidth: number;
+  strokeColor: [number, number, number, number];
 }
 
 export interface Composition {

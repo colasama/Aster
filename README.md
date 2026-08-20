@@ -44,6 +44,8 @@ frames. Rendering, effects, particles, and composition are designed to remain GP
 - Particle layers expose bounded count, deterministic seed, lifetime, velocity, acceleration, and
   start/end size; compute evaluates spawn age and motion directly from time while the billboard pass
   applies GPU color, opacity, and size over life without replaying earlier frames.
+- Vector shape layers use analytic anti-aliased WGSL signed-distance rendering for rectangles,
+  rounded rectangles, and ellipses, with HDR fill/stroke colors and editable stroke width.
 - The searchable Asset Browser imports bounded image and video files, shows source resolution and
   duration, and locates the corresponding composition layer.
 - Retained GPU text textures participate in HDR layer effects, blend modes, precompositions, and

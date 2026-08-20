@@ -1,7 +1,7 @@
 import type { FlattenedSceneLayer } from "../core/scene-evaluation";
 import type { CameraSettings, Composition, EvaluatedTransform, Layer } from "../core/types";
 
-export const FLOATS_PER_VERTEX = 20;
+export const FLOATS_PER_VERTEX = 28;
 export const VERTEX_FLOAT_OFFSETS = {
   position: 0,
   uv: 3,
@@ -10,6 +10,8 @@ export const VERTEX_FLOAT_OFFSETS = {
   normal: 10,
   material: 13,
   worldPosition: 17,
+  shapeStyleColor: 20,
+  shapeStyleParameters: 24,
 } as const;
 
 export interface GeometryBatch {
@@ -98,14 +100,18 @@ export function buildSceneGeometry(
     ] as const;
     const width = (layer.size[0] * transform.scale[0]) / 100;
     const height = (layer.size[1] * transform.scale[1]) / 100;
-    const mediaType =
-      layer.kind === "video"
-        ? 2
-        : layer.kind === "shape" &&
-            layer.size[0] === layer.size[1] &&
-            layer.size[0] < composition.width
-          ? 1
-          : 0;
+    const mediaType = layer.kind === "video" ? 2 : 0;
+    const inferredShapeKind =
+      layer.shape?.kind ??
+      (layer.kind === "shape" && layer.size[0] === layer.size[1] ? "ellipse" : "rectangle");
+    const minimumDimension = Math.max(1, Math.min(Math.abs(width), Math.abs(height)));
+    const shapeStyleColor = layer.shape?.strokeColor ?? ([1, 1, 1, 1] as const);
+    const shapeStyleParameters = [
+      layer.kind === "shape" ? ((layer.shape?.strokeWidth ?? 0) / minimumDimension) * 2 : 0,
+      layer.kind === "shape" ? Math.min(0.49, (layer.shape?.roundness ?? 0) / minimumDimension) : 0,
+      layer.kind === "shape" ? (inferredShapeKind === "ellipse" ? 2 : 1) : 0,
+      0,
+    ] as const;
     let vertexCount = QUAD_CORNERS.length;
     if (layer.kind === "mesh") {
       if (layer.mesh) {
@@ -117,6 +123,8 @@ export function buildSceneGeometry(
           height,
           color,
           material,
+          shapeStyleColor,
+          shapeStyleParameters,
           composition,
           camera,
         );
@@ -136,7 +144,19 @@ export function buildSceneGeometry(
               composition,
               camera,
             );
-            pushVertex(output, projected, u, v, color, 0, normal, material, composition);
+            pushVertex(
+              output,
+              projected,
+              u,
+              v,
+              color,
+              0,
+              normal,
+              material,
+              shapeStyleColor,
+              shapeStyleParameters,
+              composition,
+            );
           }
         }
       }
@@ -153,7 +173,19 @@ export function buildSceneGeometry(
           composition,
           camera,
         );
-        pushVertex(output, projected, u, v, color, mediaType, normal, material, composition);
+        pushVertex(
+          output,
+          projected,
+          u,
+          v,
+          color,
+          mediaType,
+          normal,
+          material,
+          shapeStyleColor,
+          shapeStyleParameters,
+          composition,
+        );
       }
     }
     batches.push({
@@ -174,6 +206,8 @@ function appendImportedMesh(
   height: number,
   color: readonly [number, number, number, number],
   material: readonly [number, number, number, number],
+  shapeStyleColor: readonly [number, number, number, number],
+  shapeStyleParameters: readonly [number, number, number, number],
   composition: Composition,
   camera?: SceneCamera,
 ): number {
@@ -224,6 +258,8 @@ function appendImportedMesh(
       0,
       normal,
       material,
+      shapeStyleColor,
+      shapeStyleParameters,
       composition,
     );
   }
@@ -309,6 +345,8 @@ function pushVertex(
   mediaType: number,
   normal: readonly [number, number, number],
   material: readonly [number, number, number, number],
+  shapeStyleColor: readonly [number, number, number, number],
+  shapeStyleParameters: readonly [number, number, number, number],
   composition: Composition,
 ): void {
   output.push(
@@ -322,6 +360,8 @@ function pushVertex(
     ...normal,
     ...material,
     ...projected.world,
+    ...shapeStyleColor,
+    ...shapeStyleParameters,
   );
 }
 

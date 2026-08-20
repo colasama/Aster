@@ -153,4 +153,20 @@ describe("project document boundary", () => {
     particles.particle.count = 1_000_001;
     expect(() => validateProjectDocument(project)).toThrow("at most 1000000");
   });
+
+  it("roundtrips explicit vector shape styling", () => {
+    const project = createBlankProject();
+    const shape = project.compositions[0].layers[0];
+    shape.shape = {
+      kind: "ellipse",
+      roundness: 24,
+      strokeWidth: 12,
+      strokeColor: [1, 0.5, 0.25, 0.8],
+    };
+
+    const roundtrip = validateProjectDocument(JSON.parse(serializeProject(project)));
+    expect(roundtrip.compositions[0].layers[0].shape).toEqual(shape.shape);
+    shape.shape.strokeWidth = -1;
+    expect(() => validateProjectDocument(project)).toThrow("must not be negative");
+  });
 });

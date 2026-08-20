@@ -129,6 +129,32 @@ describe("structured project operations", () => {
     expect(particles.particle).toMatchObject({ count: 100_000, seed: 13_337 });
   });
 
+  it("updates bounded vector fill and stroke settings", () => {
+    const source = createDemoProject();
+    const shape = activeComposition(source).layers.find((layer) => layer.kind === "shape");
+    if (!shape) throw new Error("Expected demo shape");
+    const next = applyOperations(source, [
+      {
+        type: "setShapeSettings",
+        layerId: shape.id,
+        shape: {
+          kind: "ellipse",
+          roundness: -10,
+          strokeWidth: 18,
+          strokeColor: [2, 0.5, 0.25, 1.5],
+        },
+      },
+    ]);
+
+    expect(activeComposition(next).layers.find((layer) => layer.id === shape.id)?.shape).toEqual({
+      kind: "ellipse",
+      roundness: 0,
+      strokeWidth: 18,
+      strokeColor: [2, 0.5, 0.25, 1],
+    });
+    expect(shape.shape?.kind).toBe("rectangle");
+  });
+
   it("reorders effects through a bounded operation", () => {
     const source = createDemoProject();
     const layer = activeComposition(source).layers[0];

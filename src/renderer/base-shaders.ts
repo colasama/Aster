@@ -7,6 +7,8 @@ struct VertexOutput {
   @location(3) normal: vec3f,
   @location(4) material: vec4f,
   @location(5) world_position: vec3f,
+  @location(6) shape_style_color: vec4f,
+  @location(7) shape_style_parameters: vec4f,
 }
 
 struct SceneLighting {
@@ -42,6 +44,8 @@ fn vertex_main(
   @location(4) normal: vec3f,
   @location(5) material: vec4f,
   @location(6) world_position: vec3f,
+  @location(7) shape_style_color: vec4f,
+  @location(8) shape_style_parameters: vec4f,
 ) -> VertexOutput {
   var output: VertexOutput;
   output.position = vec4f(position, 1.0);
@@ -51,17 +55,37 @@ fn vertex_main(
   output.normal = normal;
   output.material = material;
   output.world_position = world_position;
+  output.shape_style_color = shape_style_color;
+  output.shape_style_parameters = shape_style_parameters;
   return output;
 }
 
 @fragment
 fn fragment_main(input: VertexOutput) -> @location(0) vec4f {
   var alpha = input.color.a;
-  if input.shape > 0.5 {
-    let distance = length((input.uv - vec2f(0.5)) * 2.0);
-    alpha *= 1.0 - smoothstep(0.84, 1.0, distance);
-    let halo = max(0.0, 1.0 - distance) * 0.48;
-    return vec4f(input.color.rgb * (1.0 + halo), alpha);
+  if input.shape_style_parameters.z > 0.5 {
+    let centered = input.uv - vec2f(0.5);
+    let ellipse_distance = (length(centered * 2.0) - 1.0) * 0.5;
+    let radius = input.shape_style_parameters.y;
+    let rounded = abs(centered) - vec2f(0.5 - radius);
+    let rectangle_distance = length(max(rounded, vec2f(0.0)))
+      + min(max(rounded.x, rounded.y), 0.0) - radius;
+    let shape_distance = select(
+      rectangle_distance,
+      ellipse_distance,
+      input.shape_style_parameters.z > 1.5,
+    );
+    let antialias = 0.006;
+    let coverage = 1.0 - smoothstep(0.0, antialias, shape_distance);
+    let stroke_width = input.shape_style_parameters.x;
+    let stroke = select(
+      0.0,
+      1.0 - smoothstep(stroke_width, stroke_width + antialias, abs(shape_distance)),
+      stroke_width > 0.0,
+    ) * input.shape_style_color.a;
+    let shape_color = mix(input.color.rgb, input.shape_style_color.rgb, stroke);
+    alpha *= coverage;
+    return vec4f(shape_color * alpha, alpha);
   }
   let edge = min(min(input.uv.x, 1.0 - input.uv.x), min(input.uv.y, 1.0 - input.uv.y));
   alpha *= smoothstep(0.0, 0.025, edge);

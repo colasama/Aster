@@ -1304,22 +1304,22 @@ aster/
 
 ## 18.7 Vector Shape System
 
-- [ ] 定义 Shape Layer。
-- [ ] Rectangle。
-- [ ] Ellipse。
+- [x] 定义 Shape Layer。
+- [x] Rectangle。
+- [x] Ellipse。
 - [ ] Line。
 - [ ] Bezier Path。
-- [ ] Fill。
-- [ ] Stroke。
-- [ ] Stroke width。
+- [x] Fill。
+- [x] Stroke。
+- [x] Stroke width。
 - [ ] Join / Cap。
 - [ ] Dash。
 - [ ] Gradient fill。
 - [ ] Path tessellation。
-- [ ] GPU path rendering strategy。
+- [x] GPU path rendering strategy。
 - [ ] Mask path reuse。
 - [ ] Shape grouping。
-- [ ] Shape transform stack。
+- [x] Shape transform stack。
 - [ ] Trim Paths（后续 M1+）。
 - [ ] Repeater / procedural duplication（可移至 M3）。
 
