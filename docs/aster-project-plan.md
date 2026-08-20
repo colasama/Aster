@@ -1736,10 +1736,10 @@ aster/
 - [x] AI Operation API docs。
 - [x] Benchmark methodology docs。
 - [x] Roadmap page。
-- [ ] Good First Issues。
+- [x] Good First Issues。
 - [ ] Example project repository。
 - [ ] Example shader repository。
-- [ ] Contributor recognition policy。
+- [x] Contributor recognition policy。
 - [x] Release notes template。
 
 ---

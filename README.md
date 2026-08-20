@@ -153,6 +153,8 @@ Desktop bundle commands, CI artifact targets, and the MVP feature-flag policy ar
 [Desktop Builds and Feature Flags](docs/BUILD_AND_FEATURES.md).
 Updater, crash-reporting, plugin trust, and public stability criteria are defined in the
 [Distribution and Trust Policy](docs/DISTRIBUTION.md).
+New contributors can start from the bounded [Good First Issues](docs/GOOD_FIRST_ISSUES.md); attribution
+and release credit follow the [Contributor Recognition Policy](docs/CONTRIBUTOR_RECOGNITION.md).
 
 ## Quality gates
 
