@@ -1141,8 +1141,8 @@ aster/
 - [x] 支持 vec2 / vec3 / vec4。
 - [x] 支持 color。
 - [x] 支持 bool / enum。
-- [ ] 支持 string。
-- [ ] 支持 quaternion。
+- [x] 支持 string。
+- [x] 支持 quaternion。
 - [x] 支持 static value。
 - [x] 支持 animated value。
 - [x] 支持 property binding。

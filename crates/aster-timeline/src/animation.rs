@@ -11,6 +11,16 @@ pub enum Interpolation {
     Bezier(CubicBezier),
 }
 
+impl Interpolation {
+    pub fn sample(self, progress: f64) -> f64 {
+        match self {
+            Self::Linear => progress,
+            Self::Step => 0.0,
+            Self::Bezier(curve) => curve.sample(progress),
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Deserialize, JsonSchema, PartialEq, Serialize)]
 pub struct CubicBezier {
     pub x1: f64,
@@ -92,11 +102,7 @@ impl Animatable {
             return next.value;
         }
         let progress = ((time.seconds() - previous.time.seconds()) / span).clamp(0.0, 1.0);
-        let eased = match previous.interpolation {
-            Interpolation::Linear => progress,
-            Interpolation::Step => 0.0,
-            Interpolation::Bezier(curve) => curve.sample(progress),
-        };
+        let eased = previous.interpolation.sample(progress);
         previous.value + (next.value - previous.value) * eased
     }
 
