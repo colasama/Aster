@@ -254,6 +254,8 @@ export interface GpuDiagnostics {
   description: string;
   maxTextureSize: number;
   timestampQueries: boolean;
+  pipelineCompileMs?: number;
+  prewarmedPipelines?: number;
 }
 
 export const createId = (): Id => crypto.randomUUID();

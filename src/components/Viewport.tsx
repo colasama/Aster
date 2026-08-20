@@ -600,7 +600,11 @@ export function Viewport() {
         </span>
         <span
           className={`renderer-status ${diagnostics?.available ? "gpu" : "fallback"}`}
-          title={diagnostics?.description}
+          title={
+            diagnostics?.available
+              ? `${diagnostics.description} · ${diagnostics.prewarmedPipelines ?? 0} pipelines asynchronously prewarmed in ${(diagnostics.pipelineCompileMs ?? 0).toFixed(1)} ms`
+              : diagnostics?.description
+          }
         >
           <Sparkles size={11} />{" "}
           {diagnostics?.available

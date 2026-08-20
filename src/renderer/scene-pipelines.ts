@@ -5,6 +5,44 @@ import { imageShader, shadowShader, shapeShader } from "./shaders";
 
 const BLEND_MODES: BlendMode[] = ["normal", "add", "multiply", "screen", "overlay"];
 
+export const SHAPE_VERTEX_BUFFERS: GPUVertexBufferLayout[] = [
+  {
+    arrayStride: FLOATS_PER_VERTEX * 4,
+    attributes: [
+      { shaderLocation: 0, offset: 0, format: "float32x3" },
+      { shaderLocation: 1, offset: 12, format: "float32x2" },
+      { shaderLocation: 2, offset: 20, format: "float32x4" },
+      { shaderLocation: 3, offset: 36, format: "float32" },
+      { shaderLocation: 4, offset: 40, format: "float32x3" },
+      { shaderLocation: 5, offset: 52, format: "float32x4" },
+      { shaderLocation: 6, offset: 68, format: "float32x3" },
+      { shaderLocation: 7, offset: 80, format: "float32x4" },
+      { shaderLocation: 8, offset: 96, format: "float32x4" },
+      { shaderLocation: 9, offset: 112, format: "float32x4" },
+      { shaderLocation: 10, offset: 128, format: "float32x4" },
+    ],
+  },
+];
+
+export const IMAGE_VERTEX_BUFFERS: GPUVertexBufferLayout[] = [
+  {
+    arrayStride: FLOATS_PER_VERTEX * 4,
+    attributes: [
+      { shaderLocation: 0, offset: 0, format: "float32x3" },
+      { shaderLocation: 1, offset: 12, format: "float32x2" },
+      { shaderLocation: 2, offset: 20, format: "float32x4" },
+      { shaderLocation: 3, offset: 36, format: "float32" },
+    ],
+  },
+];
+
+export const SHADOW_VERTEX_BUFFERS: GPUVertexBufferLayout[] = [
+  {
+    arrayStride: FLOATS_PER_VERTEX * 4,
+    attributes: [{ shaderLocation: 6, offset: 68, format: "float32x3" }],
+  },
+];
+
 export function createShapePipelines(
   device: GPUDevice,
   format: GPUTextureFormat,
@@ -21,24 +59,7 @@ export function createShapePipelines(
     vertex: {
       module,
       entryPoint: "vertex_main",
-      buffers: [
-        {
-          arrayStride: FLOATS_PER_VERTEX * 4,
-          attributes: [
-            { shaderLocation: 0, offset: 0, format: "float32x3" },
-            { shaderLocation: 1, offset: 12, format: "float32x2" },
-            { shaderLocation: 2, offset: 20, format: "float32x4" },
-            { shaderLocation: 3, offset: 36, format: "float32" },
-            { shaderLocation: 4, offset: 40, format: "float32x3" },
-            { shaderLocation: 5, offset: 52, format: "float32x4" },
-            { shaderLocation: 6, offset: 68, format: "float32x3" },
-            { shaderLocation: 7, offset: 80, format: "float32x4" },
-            { shaderLocation: 8, offset: 96, format: "float32x4" },
-            { shaderLocation: 9, offset: 112, format: "float32x4" },
-            { shaderLocation: 10, offset: 128, format: "float32x4" },
-          ],
-        },
-      ],
+      buffers: SHAPE_VERTEX_BUFFERS,
     },
     fragment: {
       module,
@@ -70,17 +91,7 @@ export function createImagePipelines(
     vertex: {
       module,
       entryPoint: "vertex_main",
-      buffers: [
-        {
-          arrayStride: FLOATS_PER_VERTEX * 4,
-          attributes: [
-            { shaderLocation: 0, offset: 0, format: "float32x3" },
-            { shaderLocation: 1, offset: 12, format: "float32x2" },
-            { shaderLocation: 2, offset: 20, format: "float32x4" },
-            { shaderLocation: 3, offset: 36, format: "float32" },
-          ],
-        },
-      ],
+      buffers: IMAGE_VERTEX_BUFFERS,
     },
     fragment: {
       module,
@@ -110,12 +121,7 @@ export function createShadowPipeline(
     vertex: {
       module,
       entryPoint: "vertex_main",
-      buffers: [
-        {
-          arrayStride: FLOATS_PER_VERTEX * 4,
-          attributes: [{ shaderLocation: 6, offset: 68, format: "float32x3" }],
-        },
-      ],
+      buffers: SHADOW_VERTEX_BUFFERS,
     },
     primitive: { topology: "triangle-list", cullMode: "back" },
     depthStencil: {

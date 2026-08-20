@@ -13,6 +13,7 @@ import { planGpuMemory } from "./gpu-memory-budget";
 import { GpuTimestampProfiler } from "./gpu-timestamp-profiler";
 import { LayerEffectRenderer } from "./layer-effects";
 import { createLutSampler, createLutTexture } from "./lut-texture";
+import { precompileGpuPipelines } from "./pipeline-precompile";
 import { buildPostProcessUniforms } from "./post-process";
 import { SceneEvaluationCache } from "./scene-evaluation-cache";
 import { buildSceneLighting, SCENE_LIGHTING_BYTES, shadowMapSize } from "./scene-lighting";
@@ -269,7 +270,11 @@ export class WebGpuRenderer {
     const timestampQueries = adapter.features.has("timestamp-query");
     const requiredFeatures: GPUFeatureName[] = timestampQueries ? ["timestamp-query"] : [];
     const device = await adapter.requestDevice({ requiredFeatures });
-    await validateShaderSources(device);
+    const format = navigator.gpu.getPreferredCanvasFormat();
+    const [, precompile] = await Promise.all([
+      validateShaderSources(device),
+      precompileGpuPipelines(device, format),
+    ]);
     const context = canvas.getContext("webgpu");
     if (!context) throw new Error("Unable to create a WebGPU canvas context");
     const info = adapter.info;
@@ -280,15 +285,11 @@ export class WebGpuRenderer {
       description: `${info.vendor || "GPU"} · ${info.description || info.device || "WebGPU"}`,
       maxTextureSize: device.limits.maxTextureDimension2D,
       timestampQueries,
+      pipelineCompileMs: precompile.durationMs,
+      prewarmedPipelines: precompile.count,
     };
     device.pushErrorScope("validation");
-    const renderer = new WebGpuRenderer(
-      device,
-      context,
-      navigator.gpu.getPreferredCanvasFormat(),
-      diagnostics,
-      invalidate,
-    );
+    const renderer = new WebGpuRenderer(device, context, format, diagnostics, invalidate);
     const validationError = await device.popErrorScope();
     if (validationError)
       throw new Error(`WebGPU renderer validation failed: ${validationError.message}`);
