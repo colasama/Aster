@@ -1321,7 +1321,7 @@ aster/
 - [x] Shape grouping。
 - [x] Shape transform stack。
 - [x] Trim Paths（后续 M1+）。
-- [ ] Repeater / procedural duplication（可移至 M3）。
+- [x] Repeater / procedural duplication（可移至 M3）。
 
 ---
 
@@ -1394,8 +1394,8 @@ aster/
 - [x] 2D overlay mode。
 - [x] 3D render → post effect → final composite。
 - [ ] Object-ID selective effect。
-- [ ] Depth-based fog。
-- [ ] Depth-of-field prototype。
+- [x] Depth-based fog。
+- [x] Depth-of-field prototype。
 - [ ] Vector motion blur prototype。
 
 ---
@@ -1661,7 +1661,7 @@ aster/
 - [x] Dynamic resolution preview。
 - [x] Preview quality levels。
 - [x] Tile processing research for huge compositions。
-- [ ] Multi-threaded CPU scheduling。
+- [x] Multi-threaded CPU scheduling。
 - [x] Parallel asset decode。
 - [x] Async disk IO。
 - [x] Texture upload batching。
