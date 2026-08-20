@@ -1,5 +1,5 @@
 import type { Dispatch } from "react";
-import type { EvaluatedTransform, Layer } from "../core/types";
+import type { EvaluatedTransform, Layer, Project } from "../core/types";
 import { useI18n } from "../i18n/react";
 import type { EditorAction } from "../state/editor-store";
 
@@ -7,17 +7,26 @@ interface CameraGizmoProps {
   activeTool: "select" | "rotate";
   dispatch: Dispatch<EditorAction>;
   layer: Layer;
+  project: Project;
   transform: EvaluatedTransform;
   zoom: number;
 }
 
-export function CameraGizmo({ activeTool, dispatch, layer, transform, zoom }: CameraGizmoProps) {
+export function CameraGizmo({
+  activeTool,
+  dispatch,
+  layer,
+  project,
+  transform,
+  zoom,
+}: CameraGizmoProps) {
   const { t } = useI18n();
   if (!layer.camera) return null;
   const geometry = cameraGizmoGeometry(layer.camera.projection, layer.camera.fieldOfView);
-  const moveBy = (x: number, y: number) =>
+  const moveBy = (x: number, y: number, historyBase?: Project) =>
     dispatch({
       type: "operation",
+      historyBase,
       operations: [
         { type: "setProperty", layerId: layer.id, path: "position.0", value: x },
         { type: "setProperty", layerId: layer.id, path: "position.1", value: y },
@@ -46,6 +55,7 @@ export function CameraGizmo({ activeTool, dispatch, layer, transform, zoom }: Ca
         const element = event.currentTarget;
         const startX = event.clientX;
         const startY = event.clientY;
+        const pointerId = event.pointerId;
         const initialX = transform.position[0];
         const initialY = transform.position[1];
         const initialRotation = transform.rotation[2];
@@ -57,27 +67,12 @@ export function CameraGizmo({ activeTool, dispatch, layer, transform, zoom }: Ca
         let nextY = initialY;
         let nextRotation = initialRotation;
         const move = (moveEvent: PointerEvent) => {
+          if (moveEvent.pointerId !== pointerId) return;
           if (activeTool === "rotate") {
             const angle = Math.atan2(moveEvent.clientY - centerY, moveEvent.clientX - centerX);
             nextRotation = initialRotation + ((angle - startAngle) * 180) / Math.PI;
-            element.style.setProperty("--camera-preview-rotation", `${nextRotation}deg`);
-          } else {
-            nextX = initialX + (moveEvent.clientX - startX) / zoom;
-            nextY = initialY + (moveEvent.clientY - startY) / zoom;
-            element.style.setProperty("--camera-drag-x", `${moveEvent.clientX - startX}px`);
-            element.style.setProperty("--camera-drag-y", `${moveEvent.clientY - startY}px`);
-          }
-        };
-        const up = () => {
-          window.removeEventListener("pointermove", move);
-          window.removeEventListener("pointerup", up);
-          element.style.removeProperty("--camera-drag-x");
-          element.style.removeProperty("--camera-drag-y");
-          element.style.removeProperty("--camera-preview-rotation");
-          if (activeTool === "rotate") {
-            if (Math.abs(nextRotation - initialRotation) < 0.01) return;
             dispatch({
-              type: "operation",
+              type: "previewOperation",
               operations: [
                 {
                   type: "setProperty",
@@ -87,15 +82,48 @@ export function CameraGizmo({ activeTool, dispatch, layer, transform, zoom }: Ca
                 },
               ],
             });
-          } else if (Math.hypot(nextX - initialX, nextY - initialY) >= 0.01) moveBy(nextX, nextY);
+          } else {
+            nextX = initialX + (moveEvent.clientX - startX) / zoom;
+            nextY = initialY + (moveEvent.clientY - startY) / zoom;
+            dispatch({
+              type: "previewOperation",
+              operations: [
+                { type: "setProperty", layerId: layer.id, path: "position.0", value: nextX },
+                { type: "setProperty", layerId: layer.id, path: "position.1", value: nextY },
+              ],
+            });
+          }
+        };
+        const up = (upEvent: PointerEvent) => {
+          if (upEvent.pointerId !== pointerId) return;
+          window.removeEventListener("pointermove", move);
+          window.removeEventListener("pointerup", up);
+          window.removeEventListener("pointercancel", up);
+          if (activeTool === "rotate") {
+            if (Math.abs(nextRotation - initialRotation) < 0.01) return;
+            dispatch({
+              type: "operation",
+              historyBase: project,
+              operations: [
+                {
+                  type: "setProperty",
+                  layerId: layer.id,
+                  path: "rotation.2",
+                  value: nextRotation,
+                },
+              ],
+            });
+          } else if (Math.hypot(nextX - initialX, nextY - initialY) >= 0.01)
+            moveBy(nextX, nextY, project);
         };
         window.addEventListener("pointermove", move);
         window.addEventListener("pointerup", up);
+        window.addEventListener("pointercancel", up);
       }}
       style={{
         left: `${transform.position[0] * zoom}px`,
         top: `${transform.position[1] * zoom}px`,
-        transform: `translate(calc(-18px + var(--camera-drag-x, 0px)), calc(-40px + var(--camera-drag-y, 0px))) rotate(var(--camera-preview-rotation, ${transform.rotation[2]}deg))`,
+        transform: `translate(-18px, -40px) rotate(${transform.rotation[2]}deg)`,
       }}
       title={
         layer.camera.projection === "perspective"

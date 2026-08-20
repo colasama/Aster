@@ -281,8 +281,8 @@
 }
 .layer-bar {
   position: absolute;
-  top: 6px;
-  height: 17px;
+  top: 4px;
+  height: calc(100% - 8px);
   min-width: 2px;
   overflow: hidden;
   border: 1px solid #5c70a0;
@@ -312,11 +312,6 @@
 .layer-bar.kind-camera {
   border-color: #7e7650;
   background: #554f32;
-}
-.layer-bar span {
-  display: block;
-  padding: 2px 8px;
-  white-space: nowrap;
 }
 .timing-handle {
   position: absolute;

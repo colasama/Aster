@@ -2,7 +2,7 @@
 
 **GPU-first motion graphics and compositing, built for real-time iteration.**
 
-Aster is an open motion design studio built with Rust, Tauri, React, and WebGPU/wgpu. Its core
+Aster is an open motion design studio built with Rust, Electron, React, and WebGPU/wgpu. Its core
 model is time-addressable: project state can be evaluated at any time without replaying previous
 frames. Rendering, effects, particles, and composition are designed to remain GPU-resident.
 
@@ -64,8 +64,9 @@ _Live WebGPU preview: Beauty → depth fog → depth of field → normals → mo
 - Retained GPU text textures participate in HDR layer effects, blend modes, precompositions, and
   lossless frame export.
 - Full/Half/Quarter preview resolution, dual Active/Custom views, lossless 4K PNG frame export,
-  cancellable native PNG sequence rendering with progress, local autosave recovery, and atomic
-  native project persistence.
+  cancellable native PNG sequences, and silent SDR H.264 MP4 export with three bounded WebGPU
+  readbacks, probed NVENC acceleration, `libx264` fallback, progress, cancellation, and atomic
+  publication when FFmpeg is available.
 - Data-driven catalog of 266 blur, color, channel, distort, generate, stylize, keying, time,
   transition, simulation, matte, perspective, layer-style, noise, immersive-video, and Looks effects,
   including 264 ordered GPU opcodes.
@@ -135,12 +136,13 @@ _Live WebGPU preview: Beauty → depth fog → depth of field → normals → mo
 ## Architecture
 
 ```text
-React/Tauri editor ── structured operations ── aster-core / aster-timeline
-       │                                              │
-       ├── WebGPU preview ── HDR graph/effects ── aster-render
-       ├── project bundle ────────────────────── aster-project
-       ├── plugin manifests ──────────────────── aster-plugin
-       └── guarded operation plans ───────────── aster-ai
+Sandboxed React/Electron renderer ── structured operations ── aster-core / aster-timeline
+       │
+       ├── WebGPU preview ───────────────────────── HDR graph/effects ── aster-render
+       └── preload + allowlisted IPC ── desktop bridge
+                                          ├── project bundle ───────── aster-project
+                                          ├── plugin manifests ─────── aster-plugin
+                                          └── guarded plans ────────── aster-ai
 ```
 
 See [Architecture](docs/ARCHITECTURE.md), [Project Format](docs/PROJECT_FORMAT.md),
@@ -148,16 +150,18 @@ See [Architecture](docs/ARCHITECTURE.md), [Project Format](docs/PROJECT_FORMAT.m
 
 ## Build from source
 
-Prerequisites: Node.js 22+, pnpm 10.15, Rust 1.97, and the platform prerequisites for Tauri 2.
+Prerequisites: Node.js 22+, pnpm 10.15, and Rust 1.97. Linux packaging additionally requires the
+standard AppImage and Debian packaging tools available on the supported CI image.
 
 ```bash
 pnpm install --frozen-lockfile
 pnpm check:frontend
 cargo test --workspace --all-features
-pnpm tauri dev
+pnpm dev
 ```
 
-For the browser editor only, run `pnpm dev`. Production assets are built with `pnpm build`.
+For the browser editor only, run `pnpm dev:web`. Production assets and the Rust desktop bridge are
+built with `pnpm build`; a platform installer is produced with `pnpm artifact:build`.
 Desktop bundle commands, CI artifact targets, and the MVP feature-flag policy are documented in
 [Desktop Builds and Feature Flags](docs/BUILD_AND_FEATURES.md).
 Updater, crash-reporting, plugin trust, and public stability criteria are defined in the

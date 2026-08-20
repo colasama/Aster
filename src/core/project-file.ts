@@ -1,5 +1,4 @@
-import { convertFileSrc, invoke } from "@tauri-apps/api/core";
-import { open, save } from "@tauri-apps/plugin-dialog";
+import { convertFileSrc, invoke, isDesktopRuntime, open, save } from "../desktop/api";
 import { assertAdjustmentLayerInvariants } from "./adjustment-layer";
 import { validateClonerSettings } from "./cloner";
 import {
@@ -8,6 +7,7 @@ import {
   MAX_SERIALIZED_COMMAND_SIZE,
 } from "./command-log";
 import { runCpuTask } from "./cpu-scheduler";
+import { logger } from "./logger";
 import { assertParticleSettings } from "./particle-settings";
 import { assertProjectRenderBoundaries } from "./project-render-boundaries";
 import { cloneCurrentProjectDocument } from "./project-schema";
@@ -19,6 +19,7 @@ import { type Composition, type Effect, isLayerKind, type Layer, type Project } 
 const RECOVERY_KEY = "aster.recoveryProject.v0";
 const MAX_EMBEDDED_ASSET_CHARACTERS = 136 * 1024 * 1024;
 let nativeProjectPath: string | undefined;
+let nativeAutosaveFailureReported = false;
 
 interface RecoveryStorage {
   getItem(key: string): string | null;
@@ -40,6 +41,9 @@ export function validateProjectDocument(value: unknown): Project {
     throw new Error("Project must contain at least one composition");
   for (const [index, value] of project.compositions.entries())
     validateComposition(value, `project.compositions[${index}]`);
+  project.folders ??= [];
+  project.itemFolderIds ??= {};
+  validateProjectOrganization(project);
   assertProjectRenderBoundaries(project as unknown as Project);
   if (
     !project.compositions.some(
@@ -51,6 +55,50 @@ export function validateProjectDocument(value: unknown): Project {
     throw new Error("project.updatedAt must be an ISO date");
   validateCommandLog(project.commandLog);
   return current as unknown as Project;
+}
+
+function validateProjectOrganization(project: Record<string, unknown>): void {
+  if (!Array.isArray(project.folders) || project.folders.length > 10_000)
+    throw new Error("project.folders must be a bounded array");
+  const folderIds = new Set<string>();
+  const parentIds = new Map<string, string>();
+  for (const [index, value] of project.folders.entries()) {
+    const folder = requireObject(value, `project.folders[${index}]`);
+    const id = requireString(folder.id, `project.folders[${index}].id`);
+    const name = requireString(folder.name, `project.folders[${index}].name`);
+    if (name.length > 256) throw new Error(`project.folders[${index}].name is too long`);
+    if (folderIds.has(id)) throw new Error("project.folders contains a duplicate id");
+    folderIds.add(id);
+    if (folder.parentId !== undefined)
+      parentIds.set(id, requireString(folder.parentId, `project.folders[${index}].parentId`));
+  }
+  for (const [id, parentId] of parentIds) {
+    if (!folderIds.has(parentId)) throw new Error("project folder parent does not exist");
+    const visited = new Set([id]);
+    let candidate: string | undefined = parentId;
+    while (candidate) {
+      if (visited.has(candidate)) throw new Error("project folders cannot contain a cycle");
+      visited.add(candidate);
+      candidate = parentIds.get(candidate);
+    }
+  }
+  const assignments = requireObject(project.itemFolderIds, "project.itemFolderIds");
+  if (Object.keys(assignments).length > 50_000)
+    throw new Error("project.itemFolderIds must be bounded");
+  const itemIds = new Set<string>();
+  for (const value of project.compositions as unknown[]) {
+    const composition = requireObject(value, "composition");
+    itemIds.add(requireString(composition.id, "composition.id"));
+    for (const layerValue of composition.layers as unknown[]) {
+      const layer = requireObject(layerValue, "layer");
+      if (layer.asset !== undefined) itemIds.add(requireString(layer.id, "layer.id"));
+    }
+  }
+  for (const [itemId, folderId] of Object.entries(assignments)) {
+    if (!itemIds.has(itemId)) throw new Error("project.itemFolderIds references an unknown item");
+    if (typeof folderId !== "string" || !folderIds.has(folderId))
+      throw new Error("project.itemFolderIds references an unknown folder");
+  }
 }
 
 export function serializeProject(project: Project): string {
@@ -78,9 +126,14 @@ export async function saveProjectDocument(
   project: Project,
   chooseDirectory = false,
 ): Promise<string | undefined> {
-  if (!isTauriRuntime()) {
+  const startedAt = performance.now();
+  if (!isDesktopRuntime()) {
     await downloadProject(project);
     clearRecoverySnapshot();
+    logger.info("project", "downloaded", {
+      compositionCount: project.compositions.length,
+      durationMs: performance.now() - startedAt,
+    });
     return `${safeFileName(project.name)}.aster.json`;
   }
   if (chooseDirectory || !nativeProjectPath) {
@@ -97,11 +150,15 @@ export async function saveProjectDocument(
     project: projectDocumentForPersistence(project),
   });
   clearRecoverySnapshot();
+  logger.info("project", "saved", {
+    compositionCount: project.compositions.length,
+    durationMs: performance.now() - startedAt,
+  });
   return nativeProjectPath;
 }
 
 export async function pickProjectFile(): Promise<{ project: Project; name: string } | undefined> {
-  if (isTauriRuntime()) {
+  if (isDesktopRuntime()) {
     const selected = await open({
       directory: true,
       multiple: false,
@@ -112,6 +169,7 @@ export async function pickProjectFile(): Promise<{ project: Project; name: strin
       hydrateRuntimeAssetUrls(await invoke("load_project", { path: selected })),
     );
     nativeProjectPath = selected;
+    logger.info("project", "loaded", { compositionCount: project.compositions.length });
     return { project, name: selected.split(/[\\/]/).pop() || selected };
   }
   const picker = document.createElement("input");
@@ -127,8 +185,10 @@ export async function pickProjectFile(): Promise<{ project: Project; name: strin
           return;
         }
         try {
+          const project = validateProjectDocument(JSON.parse(await file.text()));
+          logger.info("project", "loaded", { compositionCount: project.compositions.length });
           resolve({
-            project: validateProjectDocument(JSON.parse(await file.text())),
+            project,
             name: file.name,
           });
         } catch (error) {
@@ -142,7 +202,7 @@ export async function pickProjectFile(): Promise<{ project: Project; name: strin
 }
 
 export async function packCurrentProject(projectName: string): Promise<string | undefined> {
-  if (!nativeProjectPath || !isTauriRuntime())
+  if (!nativeProjectPath || !isDesktopRuntime())
     throw new Error("Save this project in the native app before packing it");
   const destination = await save({
     title: "Pack Aster project",
@@ -155,7 +215,7 @@ export async function packCurrentProject(projectName: string): Promise<string | 
 }
 
 export async function pickPackedProject(): Promise<{ project: Project; name: string } | undefined> {
-  if (!isTauriRuntime())
+  if (!isDesktopRuntime())
     throw new Error("Packed projects are available in the native Aster application");
   const archive = await open({
     directory: false,
@@ -175,6 +235,9 @@ export async function pickPackedProject(): Promise<{ project: Project; name: str
     hydrateRuntimeAssetUrls(await invoke("load_project", { path: destination })),
   );
   nativeProjectPath = destination;
+  logger.info("project", "packed_project_loaded", {
+    compositionCount: project.compositions.length,
+  });
   return { project, name: destination.split(/[\\/]/).pop() || destination };
 }
 
@@ -191,7 +254,15 @@ export function storeRecoverySnapshot(
     void invoke("save_autosave", {
       path: nativeProjectPath,
       project: projectDocumentForPersistence(project),
-    }).catch(() => undefined);
+    })
+      .then(() => {
+        nativeAutosaveFailureReported = false;
+      })
+      .catch((error: unknown) => {
+        if (nativeAutosaveFailureReported) return;
+        nativeAutosaveFailureReported = true;
+        logger.warn("project", "autosave_failed", undefined, error);
+      });
 }
 
 export function readRecoverySnapshot(storage: RecoveryStorage = localStorage): Project | undefined {
@@ -222,7 +293,7 @@ export function clearRecoverySnapshot(storage: RecoveryStorage = localStorage): 
 }
 
 export async function relinkProjectAsset(layer: Layer): Promise<Layer["asset"] | undefined> {
-  if (!nativeProjectPath || !isTauriRuntime())
+  if (!nativeProjectPath || !isDesktopRuntime())
     throw new Error("Save or open this project in the native app before linking an asset");
   if (layer.kind !== "image" && layer.kind !== "video")
     throw new Error("Only image and video layers can link project assets");
@@ -892,8 +963,4 @@ function safeFileName(name: string): string {
     return codePoint < 32 || '<>:"/\\|?*'.includes(character) ? "-" : character;
   }).join("");
   return sanitized || "aster-project";
-}
-
-function isTauriRuntime(): boolean {
-  return "__TAURI_INTERNALS__" in window;
 }

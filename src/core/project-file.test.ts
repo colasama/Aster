@@ -5,6 +5,7 @@ import { createLayerForComposition } from "./layer-factory";
 import { createDefaultParticleSettings } from "./particle-settings";
 import { createBlankProject } from "./project";
 import { serializeProject, validateProjectDocument } from "./project-file";
+import type { ProjectFolder } from "./types";
 
 describe("project document boundary", () => {
   it("rejects render states the bounded flat renderer cannot represent", () => {
@@ -109,6 +110,32 @@ describe("project document boundary", () => {
   it("roundtrips a valid editor project", () => {
     const project = createBlankProject();
     expect(validateProjectDocument(JSON.parse(serializeProject(project)))).toEqual(project);
+  });
+
+  it("roundtrips project folders and rejects cyclic folder trees", () => {
+    const project = createBlankProject();
+    const parent: ProjectFolder = { id: crypto.randomUUID(), name: "Footage" };
+    const child = { id: crypto.randomUUID(), name: "Selects", parentId: parent.id };
+    project.folders = [parent, child];
+    project.itemFolderIds[project.activeCompositionId] = child.id;
+
+    expect(validateProjectDocument(JSON.parse(serializeProject(project)))).toMatchObject({
+      folders: [parent, child],
+      itemFolderIds: { [project.activeCompositionId]: child.id },
+    });
+    parent.parentId = child.id;
+    expect(() => validateProjectDocument(project)).toThrow(
+      "project folders cannot contain a cycle",
+    );
+  });
+
+  it("hydrates project organization for v1 documents created before folders", () => {
+    const legacy = structuredClone(createBlankProject()) as Partial<
+      ReturnType<typeof createBlankProject>
+    >;
+    delete legacy.folders;
+    delete legacy.itemFolderIds;
+    expect(validateProjectDocument(legacy)).toMatchObject({ folders: [], itemFolderIds: {} });
   });
 
   it("requires a strict frame-aligned composition work area", () => {

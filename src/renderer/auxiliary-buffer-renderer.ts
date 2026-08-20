@@ -1,3 +1,4 @@
+import { logger } from "../core/logger";
 import type { Layer } from "../core/types";
 import type { SceneBufferVisualizer } from "./buffer-visualizer";
 import type { GeometryBatch } from "./geometry";
@@ -58,6 +59,8 @@ export class AuxiliaryBufferRenderer {
   #byteBudget = 0;
   #enabled = false;
   #motionShutterScale = 0;
+  #allocationFailureReported = false;
+  #budgetFailureReported = false;
   readonly supported: boolean;
 
   constructor(
@@ -200,10 +203,19 @@ export class AuxiliaryBufferRenderer {
       this.#height = plan.height;
       this.#estimatedBytes = requiredBytes;
       this.#enabled = true;
+      this.#allocationFailureReported = false;
       return true;
     } catch (error) {
       this.#destroyTargets();
-      console.warn("Auxiliary MRT allocation failed", error);
+      if (!this.#allocationFailureReported) {
+        this.#allocationFailureReported = true;
+        logger.warn(
+          "webgpu",
+          "auxiliary_buffer_allocation_failed",
+          { width, height, requiredBytes },
+          error,
+        );
+      }
       return false;
     }
   }
@@ -225,7 +237,12 @@ export class AuxiliaryBufferRenderer {
       return mode;
     }
     if (!this.enable(width, height, (budgetMb ?? 512) * 1024 * 1024 * 0.5)) {
-      console.warn("Auxiliary MRT is unsupported or exceeds half of the GPU memory budget");
+      logger.warn("webgpu", "auxiliary_buffers_unavailable", {
+        supported: this.supported,
+        width,
+        height,
+        budgetMb,
+      });
       visualizer.clearAuxiliarySources();
       return "beauty";
     }
@@ -244,12 +261,19 @@ export class AuxiliaryBufferRenderer {
       32 +
       this.#motionHistory.plannedBytes(request.vertexCount);
     if (plannedBytes > this.#byteBudget) {
-      console.warn("Auxiliary MRT dynamic buffers exceed the configured GPU memory budget");
+      if (!this.#budgetFailureReported) {
+        this.#budgetFailureReported = true;
+        logger.warn("webgpu", "auxiliary_buffer_budget_exceeded", {
+          plannedBytes,
+          byteBudget: this.#byteBudget,
+        });
+      }
       this.#beginPass(request.encoder, "Auxiliary MRT budget fallback · cleared").end();
       this.#motionHistory.reset();
       this.#motionShutterScale = 0;
       return false;
     }
+    this.#budgetFailureReported = false;
     this.#uploadBatchIds(request.batches);
     const idBuffer = this.#idBuffer;
     if (!idBuffer) return false;

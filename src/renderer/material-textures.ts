@@ -1,4 +1,5 @@
 import { runCpuTask } from "../core/cpu-scheduler";
+import { logger } from "../core/logger";
 import type { BlendMode, Composition, EnvironmentLighting, Layer } from "../core/types";
 import { createMaterialShapePipelines } from "./scene-pipelines";
 
@@ -413,7 +414,7 @@ export class MaterialTextureRenderer {
     resource.diagnosticReported = true;
     const message = `${label} failed: ${error instanceof Error ? error.message : String(error)}`;
     this.#failures.set(key, message);
-    console.warn(message);
+    logger.warn("webgpu", "material_texture_failed", { resource: key, message }, error);
     this.#updateDiagnostic();
     this.#invalidate();
   }

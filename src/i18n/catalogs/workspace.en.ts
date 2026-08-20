@@ -55,7 +55,7 @@ export const workspaceEn = {
   "workspace.shortcut.pan": "Pan the composition canvas",
   "workspace.about.summary": "GPU-first motion graphics and compositing studio.",
   "workspace.about.detail":
-    "HDR scene rendering, schema-driven effects, a structured AI operator, and a non-destructive timeline share one open project format.",
+    "HDR scene rendering, schema-driven effects, a structured AI assistant, and a non-destructive timeline share one open project format.",
   "workspace.action.applySettings": "Apply settings",
   "workspace.action.savePreferences": "Save preferences",
   "workspace.action.applyExpression": "Apply expression",

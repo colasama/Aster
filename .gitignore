@@ -10,10 +10,13 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+dist-electron
+release
+artifacts
+artifacts-final
 *.local
 *.tsbuildinfo
 target/
-src-tauri/target/
 .aster-cache/
 *.aster.autosave
 

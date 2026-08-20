@@ -33,6 +33,7 @@ import type {
   Material3d,
   ParticleSettings,
   Project,
+  ProjectFolder,
   ShapeSettings,
   TextAnimatorSettings,
   TextStyle,
@@ -54,6 +55,8 @@ export type PropertyPath =
 export type Operation =
   | { type: "setActiveComposition"; compositionId: Id }
   | { type: "addComposition"; composition: Composition; activate: boolean }
+  | { type: "addProjectFolder"; folder: ProjectFolder }
+  | { type: "moveProjectItem"; itemId: Id; folderId?: Id }
   | {
       type: "setCompositionSettings";
       compositionId: Id;
@@ -180,6 +183,38 @@ export function applyOperation(project: Project, operation: Operation): void {
     assertProjectRenderBoundaries({ compositions: [...project.compositions, composition] });
     project.compositions.push(composition);
     if (operation.activate) project.activeCompositionId = operation.composition.id;
+    return;
+  }
+  if (operation.type === "addProjectFolder") {
+    project.folders ??= [];
+    project.itemFolderIds ??= {};
+    if (project.folders.some((folder) => folder.id === operation.folder.id))
+      throw new Error("Project folder already exists");
+    if (
+      operation.folder.parentId &&
+      !project.folders.some((folder) => folder.id === operation.folder.parentId)
+    )
+      throw new Error("Parent project folder does not exist");
+    project.folders.push({
+      id: operation.folder.id,
+      name: operation.folder.name.trim().slice(0, 256) || "Untitled Folder",
+      ...(operation.folder.parentId ? { parentId: operation.folder.parentId } : {}),
+    });
+    return;
+  }
+  if (operation.type === "moveProjectItem") {
+    project.folders ??= [];
+    project.itemFolderIds ??= {};
+    if (operation.folderId && !project.folders.some((folder) => folder.id === operation.folderId))
+      throw new Error("Project folder does not exist");
+    const itemExists =
+      project.compositions.some((composition) => composition.id === operation.itemId) ||
+      project.compositions.some((composition) =>
+        composition.layers.some((layer) => layer.id === operation.itemId && layer.asset),
+      );
+    if (!itemExists) throw new Error("Project item does not exist");
+    if (operation.folderId) project.itemFolderIds[operation.itemId] = operation.folderId;
+    else delete project.itemFolderIds[operation.itemId];
     return;
   }
   if (operation.type === "setCompositionSettings") {

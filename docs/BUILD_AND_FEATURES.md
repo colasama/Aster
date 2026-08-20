@@ -9,10 +9,11 @@ gate, then builds the platform bundles in parallel:
 | Runner | Target | Bundles |
 | --- | --- | --- |
 | Ubuntu 22.04 | Linux x64 | AppImage and Debian package |
-| Windows | Windows x64 | MSI and NSIS installers |
-| macOS 14 | Universal Apple binary | application bundle and DMG |
+| Windows | Windows x64 | NSIS installer |
+| macOS 14 | Universal Apple binary | DMG and ZIP |
 
-Node/pnpm downloads use the pnpm store cache. Rust dependencies and build outputs use a separate
+Node/pnpm downloads use the pnpm store cache. Electron downloads, Rust dependencies, and build
+outputs use separate
 cache per operating system, preventing incompatible native objects from being restored across
 platforms. Uploaded bundles are retained for 14 days and contain the commit SHA in their artifact
 name. Code signing and notarization are intentionally outside this MVP workflow; release promotion
@@ -30,11 +31,24 @@ pnpm artifact:build
 To choose only platform-appropriate bundles, use the same command shape as CI:
 
 ```bash
-pnpm tauri build --features production --bundles appimage,deb
+pnpm artifact:build -- --linux AppImage deb --x64
 ```
 
-Replace the bundle list with `msi,nsis` on Windows or `app,dmg` on macOS. A universal macOS build
-also passes `--target universal-apple-darwin` and requires both Apple Rust targets.
+Use `--win nsis --x64` on Windows. The universal macOS CI job builds the bridge for both Apple
+architectures, combines it with `lipo`, and then runs `electron-builder --mac --universal` so the
+sidecar architecture always matches the bundled Electron runtime.
+
+## MP4 encoder dependency
+
+The MVP MP4 path launches an FFmpeg executable from Electron's main process. Development resolves
+`ASTER_FFMPEG_PATH` first and otherwise uses `ffmpeg`/`ffmpeg.exe` from `PATH`. A packaged build first
+looks for `resources/bin/ffmpeg` (or `ffmpeg.exe`), then applies the same development fallback.
+
+The artifact workflow does not yet bundle FFmpeg. A release that advertises MP4 export must add a
+reproducible, platform-specific FFmpeg artifact under `resources/bin`, publish its configuration and
+licenses, verify NVENC and software fallback probes, and pass the codec/legal gates in
+`MEDIA_BACKENDS.md`. Missing FFmpeg produces an actionable export error and never falls back to PNG
+intermediates.
 
 ## MVP feature-flag policy
 
@@ -42,10 +56,10 @@ Aster ships one product configuration during the MVP. GPU-first rendering, AI op
 and native WGSL plugins are core product behavior, not optional editions. Keeping them in one tested
 configuration avoids a combinatorial build matrix and prevents partially working releases.
 
-The only compile-time Cargo feature is `aster/production` in `src-tauri/Cargo.toml`. It enables
-Tauri's `custom-protocol` feature for packaged desktop assets. Local development and ordinary Cargo
-tests use the default feature set; artifact builds request `production` explicitly. CI still runs
-Clippy and tests with `--all-features`, so the packaged configuration is checked before bundling.
+The Electron shell and `aster-desktop-bridge` currently define no product feature flags. Development
+and packaged builds use the same command surface; packaging changes only asset locations and the
+Electron loading URL. CI still runs Clippy and tests with `--all-features`, so any crate-local
+features remain covered before bundling.
 
 New flags must meet all of these requirements:
 

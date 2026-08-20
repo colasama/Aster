@@ -1,5 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
-import { open } from "@tauri-apps/plugin-dialog";
+import { invoke, isDesktopRuntime, open } from "../desktop/api";
 
 export const HOST_PLUGIN_API_VERSION = 1;
 
@@ -80,7 +79,7 @@ export interface PluginHotReloadStatus {
 const browserPreferencesKey = "aster.pluginPreferences";
 
 export async function readPluginStatus(): Promise<PluginStatus> {
-  if (isTauriRuntime()) {
+  if (isDesktopRuntime()) {
     const status = await invoke<Omit<PluginStatus, "native">>("plugin_status");
     return { ...status, native: true };
   }
@@ -96,13 +95,13 @@ export async function readPluginStatus(): Promise<PluginStatus> {
 }
 
 export async function pollPluginHotReload(): Promise<PluginStatus> {
-  if (!isTauriRuntime()) return readPluginStatus();
+  if (!isDesktopRuntime()) return readPluginStatus();
   const status = await invoke<Omit<PluginStatus, "native">>("poll_plugin_hot_reload");
   return { ...status, native: true };
 }
 
 export async function installPluginFromFolder(): Promise<PluginStatus | undefined> {
-  if (!isTauriRuntime()) {
+  if (!isDesktopRuntime()) {
     throw new Error("Plugin installation is available in the native Aster application");
   }
   const source = await open({
@@ -116,7 +115,7 @@ export async function installPluginFromFolder(): Promise<PluginStatus | undefine
 }
 
 export async function setPluginEnabled(pluginId: string, enabled: boolean): Promise<PluginStatus> {
-  if (isTauriRuntime()) {
+  if (isDesktopRuntime()) {
     const status = await invoke<Omit<PluginStatus, "native">>("set_plugin_enabled", {
       pluginId,
       enabled,
@@ -132,7 +131,7 @@ export async function setPluginEnabled(pluginId: string, enabled: boolean): Prom
 }
 
 export async function setPluginSafeMode(safeMode: boolean): Promise<PluginStatus> {
-  if (isTauriRuntime()) {
+  if (isDesktopRuntime()) {
     const status = await invoke<Omit<PluginStatus, "native">>("set_plugin_safe_mode", { safeMode });
     return { ...status, native: true };
   }
@@ -143,7 +142,7 @@ export async function setPluginSafeMode(safeMode: boolean): Promise<PluginStatus
 }
 
 export async function setPluginHotReload(enabled: boolean): Promise<PluginStatus> {
-  if (isTauriRuntime()) {
+  if (isDesktopRuntime()) {
     const status = await invoke<Omit<PluginStatus, "native">>("set_plugin_hot_reload", {
       enabled,
     });
@@ -164,10 +163,6 @@ function emptyHotReloadStatus(): PluginHotReloadStatus {
     rejectedReloads: 0,
     diagnostics: [],
   };
-}
-
-function isTauriRuntime(): boolean {
-  return "__TAURI_INTERNALS__" in window;
 }
 
 function readBrowserPreferences(): Pick<PluginStatus, "safeMode" | "disabled"> {

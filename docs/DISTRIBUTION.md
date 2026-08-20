@@ -3,20 +3,20 @@
 ## Desktop packages
 
 The artifact workflow builds Aster from the same quality-gated commit on every supported desktop
-runner. Windows produces MSI and NSIS installers, macOS produces a universal application and DMG,
+runner. Windows produces an NSIS installer, macOS produces universal DMG and ZIP artifacts,
 and Linux produces AppImage and Debian packages. Artifact builds are unsigned previews until a
 release job supplies platform signing identities; unsigned artifacts must never be promoted as a
 stable release.
 
-Windows preview installers embed the WebView2 offline installer so a clean machine can install
-without network access. The stable application identifier is `io.github.aster-mograph.aster`; it
+Desktop packages include Electron's Chromium runtime, so they do not depend on a system webview.
+The stable application identifier is `io.github.aster-mograph.aster`; it
 must not change after public release because it defines upgrade identity and application data paths.
 
 ## Auto-update strategy
 
 Auto-update remains disabled for the MVP. Enabling it requires all of the following in one change:
 
-1. Tauri updater signatures verified against a public key compiled into the application.
+1. Electron updater signatures and release metadata verified before installation.
 2. HTTPS release metadata containing version, platform, architecture, digest, signature, and size.
 3. An explicit user setting with `Notify only` as the default; downloads never run while rendering.
 4. Atomic installation with the previous version retained for one-start rollback.

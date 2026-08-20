@@ -1,6 +1,6 @@
 export const inspectorEn = {
   "inspector.tab.properties": "Properties",
-  "inspector.tab.ai": "AI Operator",
+  "inspector.tab.ai": "AI Assistant",
   "inspector.layerSummary": "{kind} layer · {dimension}",
   "inspector.solo.enable": "Solo layer",
   "inspector.solo.disable": "Disable solo",

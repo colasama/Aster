@@ -309,12 +309,21 @@ export interface ProjectCommandEntry {
   serializedOperations?: string;
 }
 
+/** A bin in the project panel. Items remain renderer-owned; this only records organization. */
+export interface ProjectFolder {
+  id: Id;
+  name: string;
+  parentId?: Id;
+}
+
 export interface Project {
   schemaVersion: 1;
   id: Id;
   name: string;
   activeCompositionId: Id;
   compositions: Composition[];
+  folders: ProjectFolder[];
+  itemFolderIds: Record<Id, Id>;
   commandLog: ProjectCommandEntry[];
   updatedAt: string;
 }

@@ -1,3 +1,4 @@
+import { logger } from "../core/logger";
 import type { VideoExternalUpload } from "./video-external-upload";
 
 export interface MediaResource {
@@ -21,7 +22,7 @@ export function reportVideoUploadError(resource: MediaResource, error: unknown):
   resource.uploadErrorReported = true;
   if (resource.video)
     resource.video.dataset.gpuError = error instanceof Error ? error.message : String(error);
-  console.warn("Aster video frame upload is waiting for a decoded frame", error);
+  logger.warn("webgpu", "video_frame_upload_waiting", undefined, error);
 }
 
 export function destroyMediaResource(resource?: MediaResource): void {

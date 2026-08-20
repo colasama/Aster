@@ -54,6 +54,9 @@ describe("adjustment layer inspector", () => {
       ),
     );
 
+    expect(
+      [...container.querySelectorAll(".panel-tabs button")].map((button) => button.textContent),
+    ).toEqual(["AI Assistant", "Properties"]);
     expect(container.textContent).toContain("Effects");
     expect(container.textContent).not.toContain("Transform");
     expect(container.textContent).not.toContain("Opacity");

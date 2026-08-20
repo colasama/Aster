@@ -1,7 +1,16 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.5.9/schema.json",
   "files": {
-    "includes": ["**", "!dist", "!node_modules", "!src-tauri/gen", "!src-tauri/target", "!target"]
+    "includes": [
+      "**",
+      "!artifacts",
+      "!artifacts-final",
+      "!dist",
+      "!dist-electron",
+      "!node_modules",
+      "!release",
+      "!target"
+    ]
   },
   "formatter": {
     "enabled": true,

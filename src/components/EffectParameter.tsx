@@ -1,4 +1,4 @@
-import { KeyRound } from "lucide-react";
+import { Stopwatch } from "lucide-react";
 import type { EffectParameterDefinition } from "../effects/types";
 import { useI18n } from "../i18n/react";
 
@@ -140,7 +140,7 @@ function EffectKeyframeButton({
       onClick={onClick}
       type="button"
     >
-      <KeyRound size={10} />
+      <Stopwatch size={10} />
     </button>
   );
 }

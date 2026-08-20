@@ -57,6 +57,13 @@ export class MediaTextureCache {
     sweepMediaResources(this.#resources, activeInstanceIds);
   }
 
+  async waitForVideoFrames(timeoutMs = 10_000): Promise<void> {
+    const resources = [...this.#resources.values()].filter(
+      (resource) => resource.kind === "video" && resource.video,
+    );
+    await Promise.all(resources.map((resource) => this.#waitForVideoFrame(resource, timeoutMs)));
+  }
+
   prepareMedia(layer: Layer, time: number, playing: boolean, instanceId: string): void {
     const source = layer.asset?.dataUrl ?? layer.asset?.runtimeUrl;
     if (!source) return;
@@ -267,6 +274,51 @@ export class MediaTextureCache {
       height <= maximumDimension &&
       width * height * 4 <= MAX_MEDIA_TEXTURE_BYTES
     );
+  }
+
+  #waitForVideoFrame(resource: MediaResource, timeoutMs: number): Promise<void> {
+    const video = resource.video;
+    if (!video) return Promise.resolve();
+    return new Promise((resolve, reject) => {
+      let settled = false;
+      const cleanup = () => {
+        clearTimeout(timeout);
+        video.removeEventListener("loadeddata", check);
+        video.removeEventListener("seeked", check);
+        video.removeEventListener("canplay", check);
+        video.removeEventListener("error", check);
+      };
+      const finish = (error?: Error) => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        if (error) reject(error);
+        else resolve();
+      };
+      const check = () => {
+        if (video.error) {
+          finish(new Error(video.error.message || "Video decode failed during export"));
+          return;
+        }
+        if (
+          resource.texture &&
+          video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA &&
+          !video.seeking
+        ) {
+          this.#copyVideoFrame(resource);
+          finish();
+        }
+      };
+      const timeout = setTimeout(
+        () => finish(new Error("Timed out waiting for an exact video frame during export")),
+        timeoutMs,
+      );
+      video.addEventListener("loadeddata", check);
+      video.addEventListener("seeked", check);
+      video.addEventListener("canplay", check);
+      video.addEventListener("error", check);
+      check();
+    });
   }
 
   #updateVideo(resource: MediaResource, layer: Layer, time: number, playing: boolean): void {

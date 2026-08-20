@@ -13,6 +13,8 @@ proxy, and preview data are deliberately excluded.
   "name": "Project name",
   "activeCompositionId": "stable-uuid",
   "compositions": [],
+  "folders": [],
+  "itemFolderIds": {},
   "commandLog": [],
   "updatedAt": "2026-08-20T00:00:00.000Z"
 }
@@ -31,6 +33,14 @@ safe. An effect may carry per-parameter ordered keyframe tracks without changing
 map. Precomposition layers reference another composition by stable ID. Development image/video
 imports may use bounded `data:` URLs for portable single-file projects; the native bundle layer will
 externalize large media into an asset directory without changing layer references.
+
+The project panel stores AE-style organizational bins in `folders`. A folder has a stable ID, a
+bounded display name, and an optional `parentId` for nesting. `itemFolderIds` maps composition IDs or
+source-backed layer IDs to their containing folder. These fields affect project-panel organization
+only: rendering data remains on compositions and layers, so moving an item between folders never
+copies media or invalidates GPU resources. Readers hydrate both fields as empty for early version 1
+documents, reject missing parents and folder cycles, and preserve the organization through saves,
+autosaves, and undoable project operations.
 
 Version 1 adds a bounded serialized command log. Each entry records its stable ID, timestamp, source,
 summary, and operation type manifest. Transactions of at most 32 KiB also retain replayable operation

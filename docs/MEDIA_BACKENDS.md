@@ -2,11 +2,18 @@
 
 ## Status and scope
 
-This document is an implementation plan, not a statement that native media backends are present.
-The current browser path may use hardware decoding internally, but it copies decoded pixels through a
-persistent canvas and `GPUQueue.writeTexture`. `aster-video` currently owns backend-independent stream
-selection, exact timestamps, color metadata, and bounded caches. FFmpeg integration, native hardware
-decode/encode, alpha video, audio muxing, and zero-copy interop remain future work.
+This document describes both the current bounded compatibility paths and the remaining native-media
+plan. Browser video may use hardware decoding internally, but decoded pixels still pass through a
+persistent canvas and `GPUQueue.writeTexture`. `aster-video` owns backend-independent stream selection,
+exact timestamps, color metadata, bounded caches, process-isolated FFprobe/software decode, and a
+typed FFmpeg H.264/H.265 export backend.
+
+The Electron MVP exposes silent SDR H.264 MP4 export. It keeps at most three WebGPU readbacks in
+flight, sends packed BGRA/RGBA frames over a dedicated binary IPC method, probes a real NVENC frame,
+falls back to `libx264`, and atomically publishes the completed MP4. It deliberately does not claim
+zero-copy: the display-referred frame travels from GPU memory to CPU memory and is uploaded again for
+hardware encoding. Project audio mixing, HDR/10-bit delivery, alpha video, packaged FFmpeg artifacts,
+native platform decode/encode surfaces, and zero-copy interop remain future work.
 
 The MVP keeps one project model and one rendering contract. Media backends are replaceable adapters;
 codec, platform, and driver details must not leak into layer evaluation.

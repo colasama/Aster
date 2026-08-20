@@ -2,7 +2,7 @@ import type { inspectorEn } from "./inspector.en";
 
 export const inspectorZh = {
   "inspector.tab.properties": "属性",
-  "inspector.tab.ai": "AI 操作员",
+  "inspector.tab.ai": "AI 助手",
   "inspector.layerSummary": "{kind} 图层 · {dimension}",
   "inspector.solo.enable": "独显图层",
   "inspector.solo.disable": "停用独显",

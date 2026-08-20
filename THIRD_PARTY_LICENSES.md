@@ -1,7 +1,7 @@
 # Third-party licenses
 
 Aster is distributed under MPL-2.0, while dependencies retain their original licenses. The primary
-runtime families include Rust, Tauri, wgpu, React, Vite, Lucide, serde, glam, reqwest, and their
+runtime families include Rust, Electron, wgpu, React, Vite, Lucide, serde, glam, reqwest, and their
 transitive dependencies.
 
 The authoritative inventories are `Cargo.lock` and `pnpm-lock.yaml`. Before a release, generate the

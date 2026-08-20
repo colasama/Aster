@@ -442,7 +442,7 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
               <h2>Aster 0.2.0</h2>
               <p>{t("workspace.about.summary")}</p>
               <span className="about-meta">
-                React 19 · TypeScript 7 · Tauri 2 · Rust 2024 · WebGPU/WGSL · MPL-2.0
+                React 19 · TypeScript 7 · Electron 43 · Rust 2024 · WebGPU/WGSL · MPL-2.0
               </span>
             </div>
             <div className="dialog-note">

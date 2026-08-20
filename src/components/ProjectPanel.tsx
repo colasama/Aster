@@ -1,7 +1,7 @@
 import {
   Box,
-  Camera,
   ChevronDown,
+  ChevronRight,
   Clock3,
   FileImage,
   Film,
@@ -18,6 +18,7 @@ import {
   Trash2,
   Type,
 } from "lucide-react";
+import type { DragEvent } from "react";
 import {
   type CSSProperties,
   useEffect,
@@ -29,9 +30,9 @@ import {
 import { createMediaLayerFromFile } from "../core/assets";
 import { createLayerForComposition } from "../core/layer-factory";
 import { readPluginStatus } from "../core/plugins";
-import { activeComposition } from "../core/project";
+import { activeComposition, createBlankComposition } from "../core/project";
 import { relinkProjectAsset } from "../core/project-file";
-import type { LayerKind } from "../core/types";
+import { createId, type Id, type Layer, type LayerKind, type ProjectFolder } from "../core/types";
 import {
   readEffectBrowserPreferences,
   recordRecentEffect,
@@ -64,18 +65,13 @@ import { useI18n } from "../i18n/react";
 import { useEditor } from "../state/editor-store";
 import { Panel, PanelTabs } from "./Panel";
 
-const layerIcon: Record<LayerKind, typeof Shapes> = {
-  shape: Shapes,
-  text: Type,
-  image: FileImage,
-  video: Film,
-  mesh: Box,
-  particle: Sparkles,
-  camera: Camera,
-  light: Sparkles,
-  precomposition: Layers3,
-  adjustment: SlidersHorizontal,
-};
+const ROOT_ASSETS_ID = "root-assets";
+const PROJECT_ITEM_MIME = "application/x-aster-project-item";
+
+interface MediaProjectItem {
+  compositionId: Id;
+  layer: Layer;
+}
 
 export function ProjectPanel() {
   const { state, dispatch } = useEditor();
@@ -84,6 +80,10 @@ export function ProjectPanel() {
   const [assetError, setAssetError] = useState<UiErrorCode>();
   const [presetError, setPresetError] = useState<UiErrorCode>();
   const [presetName, setPresetName] = useState("");
+  const [addTarget, setAddTarget] = useState<{ folderId?: Id; label: string }>();
+  const [expandedFolders, setExpandedFolders] = useState(() => new Set([ROOT_ASSETS_ID]));
+  const [draggedItemId, setDraggedItemId] = useState<Id>();
+  const [dropTargetId, setDropTargetId] = useState<Id>();
   const [effectPreferences, setEffectPreferences] = useState(() =>
     readEffectBrowserPreferences(localPreferenceStorage()),
   );
@@ -97,13 +97,16 @@ export function ProjectPanel() {
   );
   const imagePickerRef = useRef<HTMLInputElement>(null);
   const videoPickerRef = useRef<HTMLInputElement>(null);
+  const addMenuRef = useRef<HTMLElement>(null);
   const composition = activeComposition(state.project);
-  const mediaLayers = useMemo(
+  const mediaItems = useMemo<MediaProjectItem[]>(
     () =>
-      composition.layers.filter((layer) =>
-        layer.asset?.name.toLowerCase().includes(query.toLowerCase()),
+      state.project.compositions.flatMap((candidate) =>
+        candidate.layers
+          .filter((layer) => layer.asset)
+          .map((layer) => ({ compositionId: candidate.id, layer })),
       ),
-    [composition.layers, query],
+    [state.project.compositions],
   );
   const selectedLayer = composition.layers.find((layer) => layer.id === state.selection[0]);
   const availableEffects = useMemo(() => [...EFFECT_REGISTRY, ...pluginEffects], [pluginEffects]);
@@ -173,6 +176,14 @@ export function ProjectPanel() {
   useEffect(() => {
     writeUserEffectPresets(localPreferenceStorage(), userPresets);
   }, [userPresets]);
+  useEffect(() => {
+    if (!addTarget) return;
+    const closeMenu = (event: PointerEvent) => {
+      if (!addMenuRef.current?.contains(event.target as Node)) setAddTarget(undefined);
+    };
+    document.addEventListener("pointerdown", closeMenu, true);
+    return () => document.removeEventListener("pointerdown", closeMenu, true);
+  }, [addTarget]);
   const addLayer = (kind: LayerKind) => {
     const layer = createLayerForComposition(kind, composition, state.currentTime);
     dispatch({
@@ -180,6 +191,44 @@ export function ProjectPanel() {
       operations: [{ type: "addLayer", layer }],
       select: [layer.id],
     });
+    setAddTarget(undefined);
+  };
+  const openAddDrawer = (folderId?: Id, label = t("project.assets")) => {
+    if (state.leftTab !== "project") dispatch({ type: "setLeftTab", tab: "project" });
+    setAddTarget({ folderId, label });
+  };
+  const createFolder = () => {
+    const folder: ProjectFolder = {
+      id: createId(),
+      name: t("project.folder.defaultName", { number: state.project.folders.length + 1 }),
+      ...(addTarget?.folderId ? { parentId: addTarget.folderId } : {}),
+    };
+    dispatch({ type: "operation", operations: [{ type: "addProjectFolder", folder }] });
+    setExpandedFolders((current) => new Set(current).add(addTarget?.folderId ?? ROOT_ASSETS_ID));
+    setAddTarget(undefined);
+  };
+  const createComposition = () => {
+    const next = createBlankComposition(
+      t("project.composition.defaultName", { number: state.project.compositions.length + 1 }),
+    );
+    dispatch({
+      type: "operation",
+      operations: [
+        { type: "addComposition", composition: next, activate: true },
+        ...(addTarget?.folderId
+          ? ([
+              {
+                type: "moveProjectItem",
+                itemId: next.id,
+                folderId: addTarget.folderId,
+              },
+            ] as const)
+          : []),
+      ],
+      select: [],
+    });
+    setExpandedFolders((current) => new Set(current).add(addTarget?.folderId ?? ROOT_ASSETS_ID));
+    setAddTarget(undefined);
   };
   const applyEffect = (type: string) => {
     const layerId = state.selection[0];
@@ -227,18 +276,51 @@ export function ProjectPanel() {
       setPresetError("presetSave");
     }
   };
-  const importMedia = async (kind: "image" | "video", file: File) => {
+  const importMedia = async (kind: "image" | "video", file: File, folderId?: Id) => {
     try {
       setAssetError(undefined);
       const layer = await createMediaLayerFromFile(kind, file, composition, state.currentTime);
       dispatch({
         type: "operation",
-        operations: [{ type: "addLayer", layer }],
+        operations: [
+          { type: "addLayer", layer },
+          ...(folderId ? ([{ type: "moveProjectItem", itemId: layer.id, folderId }] as const) : []),
+        ],
         select: [layer.id],
       });
+      setExpandedFolders((current) => new Set(current).add(folderId ?? ROOT_ASSETS_ID));
+      setAddTarget(undefined);
     } catch {
       setAssetError(kind === "image" ? "assetImageImport" : "assetVideoImport");
     }
+  };
+  const toggleFolder = (folderId: Id) => {
+    setExpandedFolders((current) => {
+      const next = new Set(current);
+      if (next.has(folderId)) next.delete(folderId);
+      else next.add(folderId);
+      return next;
+    });
+  };
+  const moveItemToFolder = (itemId: Id, folderId?: Id) => {
+    if (state.project.itemFolderIds[itemId] === folderId) return;
+    dispatch({
+      type: "operation",
+      operations: [{ type: "moveProjectItem", itemId, folderId }],
+    });
+    setExpandedFolders((current) => new Set(current).add(folderId ?? ROOT_ASSETS_ID));
+  };
+  const startItemDrag = (event: DragEvent<HTMLElement>, itemId: Id) => {
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData(PROJECT_ITEM_MIME, itemId);
+    setDraggedItemId(itemId);
+  };
+  const dropItem = (event: DragEvent<HTMLElement>, folderId?: Id) => {
+    event.preventDefault();
+    const itemId = event.dataTransfer.getData(PROJECT_ITEM_MIME) || draggedItemId;
+    if (itemId) moveItemToFolder(itemId, folderId);
+    setDraggedItemId(undefined);
+    setDropTargetId(undefined);
   };
   const relinkSelectedAsset = async () => {
     if (!selectedLayer) return;
@@ -254,6 +336,163 @@ export function ProjectPanel() {
       setAssetError("assetRelink");
     }
   };
+  const normalizedQuery = query.trim().toLowerCase();
+  const matchingCompositions = state.project.compositions.filter((candidate) =>
+    candidate.name.toLowerCase().includes(normalizedQuery),
+  );
+  const matchingMediaItems = mediaItems.filter((item) =>
+    (item.layer.asset?.name ?? item.layer.name).toLowerCase().includes(normalizedQuery),
+  );
+  const itemCountInFolder = (folderId?: Id): number => {
+    const direct =
+      state.project.compositions.filter(
+        (candidate) => state.project.itemFolderIds[candidate.id] === folderId,
+      ).length +
+      mediaItems.filter((item) => state.project.itemFolderIds[item.layer.id] === folderId).length;
+    return state.project.folders
+      .filter((folder) => folder.parentId === folderId)
+      .reduce((count, folder) => count + itemCountInFolder(folder.id), direct);
+  };
+  const renderProjectItem = (
+    item:
+      | { kind: "composition"; id: Id; compositionId: Id }
+      | { kind: "media"; id: Id; media: MediaProjectItem },
+    depth: number,
+  ) => {
+    if (item.kind === "composition") {
+      const candidate = state.project.compositions.find((entry) => entry.id === item.compositionId);
+      if (!candidate) return null;
+      return (
+        <button
+          className={`tree-row composition project-item ${candidate.id === composition.id ? "active" : ""} ${draggedItemId === candidate.id ? "dragging" : ""}`}
+          draggable
+          key={`composition:${candidate.id}`}
+          onClick={() => dispatch({ type: "setActiveComposition", compositionId: candidate.id })}
+          onDragEnd={() => setDraggedItemId(undefined)}
+          onDragStart={(event) => startItemDrag(event, candidate.id)}
+          style={{ "--tree-depth": depth } as CSSProperties}
+          type="button"
+        >
+          <Layers3 size={14} />
+          <span>{candidate.name}</span>
+          <small>
+            {candidate.width} × {candidate.height}
+          </small>
+        </button>
+      );
+    }
+    const { layer, compositionId } = item.media;
+    const asset = layer.asset;
+    return (
+      <button
+        className={`tree-row asset project-item ${state.selection.includes(layer.id) ? "selected" : ""} ${asset?.dataUrl || asset?.runtimeUrl ? "" : "missing"} ${draggedItemId === layer.id ? "dragging" : ""}`}
+        draggable
+        key={`asset:${layer.id}`}
+        onClick={() => {
+          if (compositionId !== composition.id)
+            dispatch({ type: "setActiveComposition", compositionId });
+          dispatch({ type: "select", ids: [layer.id] });
+        }}
+        onDragEnd={() => setDraggedItemId(undefined)}
+        onDragStart={(event) => startItemDrag(event, layer.id)}
+        style={{ "--tree-depth": depth } as CSSProperties}
+        title={
+          asset?.dataUrl || asset?.runtimeUrl
+            ? t("project.asset.locate", { name: asset.name })
+            : t("project.asset.missingTitle", { name: asset?.name ?? layer.name })
+        }
+        type="button"
+      >
+        {layer.kind === "video" ? <Film size={14} /> : <FileImage size={14} />}
+        <span>{asset?.name ?? layer.name}</span>
+        <small>
+          {asset?.dataUrl || asset?.runtimeUrl ? (
+            <>
+              {asset.width}×{asset.height}
+              {asset.duration ? ` · ${asset.duration.toFixed(1)}s` : ""}
+            </>
+          ) : (
+            t("project.asset.missing")
+          )}
+        </small>
+      </button>
+    );
+  };
+  const renderItemsInFolder = (folderId: Id | undefined, depth: number) => {
+    const compositions = matchingCompositions
+      .filter((candidate) => state.project.itemFolderIds[candidate.id] === folderId)
+      .map((candidate) => ({
+        kind: "composition" as const,
+        id: candidate.id,
+        compositionId: candidate.id,
+      }));
+    const media = matchingMediaItems
+      .filter((item) => state.project.itemFolderIds[item.layer.id] === folderId)
+      .map((item) => ({ kind: "media" as const, id: item.layer.id, media: item }));
+    return [...compositions, ...media].map((item) => renderProjectItem(item, depth));
+  };
+  const renderFolder = (folder: ProjectFolder, depth: number) => {
+    const expanded = expandedFolders.has(folder.id);
+    const dropTarget = dropTargetId === folder.id;
+    return (
+      <div className="asset-folder-node" key={folder.id}>
+        <div
+          aria-expanded={expanded}
+          className={`tree-row asset-folder ${dropTarget ? "drop-target" : ""}`}
+          onDragEnter={(event) => {
+            event.preventDefault();
+            setDropTargetId(folder.id);
+          }}
+          onDragLeave={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget as Node))
+              setDropTargetId(undefined);
+          }}
+          onDragOver={(event) => {
+            event.preventDefault();
+            event.dataTransfer.dropEffect = "move";
+          }}
+          onDrop={(event) => dropItem(event, folder.id)}
+          role="treeitem"
+          style={{ "--tree-depth": depth } as CSSProperties}
+          tabIndex={-1}
+        >
+          <button
+            aria-expanded={expanded}
+            aria-label={
+              expanded
+                ? t("project.folder.collapse", { name: folder.name })
+                : t("project.folder.expand", { name: folder.name })
+            }
+            className="folder-toggle"
+            onClick={() => toggleFolder(folder.id)}
+            type="button"
+          >
+            {expanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+            <Folder fill="currentColor" size={14} />
+            <span>{folder.name}</span>
+          </button>
+          <small>{itemCountInFolder(folder.id)}</small>
+          <button
+            aria-label={t("project.folder.addTo", { name: folder.name })}
+            className="folder-add"
+            onClick={() => openAddDrawer(folder.id, folder.name)}
+            title={t("project.folder.addTo", { name: folder.name })}
+            type="button"
+          >
+            <Plus size={12} />
+          </button>
+        </div>
+        {expanded && (
+          <>
+            {state.project.folders
+              .filter((candidate) => candidate.parentId === folder.id)
+              .map((candidate) => renderFolder(candidate, depth + 1))}
+            {renderItemsInFolder(folder.id, depth + 1)}
+          </>
+        )}
+      </div>
+    );
+  };
   return (
     <Panel
       className="project-panel"
@@ -268,11 +507,40 @@ export function ProjectPanel() {
         />
       }
       actions={
-        <button aria-label={t("project.addItem")} onClick={() => addLayer("shape")} type="button">
+        <button
+          aria-expanded={Boolean(addTarget)}
+          aria-label={t("project.addItem")}
+          onClick={() => (addTarget ? setAddTarget(undefined) : openAddDrawer())}
+          type="button"
+        >
           <Plus size={14} />
         </button>
       }
     >
+      <input
+        accept="image/*"
+        aria-label={t("project.asset.chooseImage")}
+        hidden
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          if (file) void importMedia("image", file, addTarget?.folderId);
+          event.target.value = "";
+        }}
+        ref={imagePickerRef}
+        type="file"
+      />
+      <input
+        accept="video/*"
+        aria-label={t("project.asset.chooseVideo")}
+        hidden
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          if (file) void importMedia("video", file, addTarget?.folderId);
+          event.target.value = "";
+        }}
+        ref={videoPickerRef}
+        type="file"
+      />
       <div className="panel-search">
         <Search size={13} />
         <input
@@ -282,132 +550,69 @@ export function ProjectPanel() {
         />
       </div>
       {state.leftTab === "project" ? (
-        <div className="project-tree">
+        <div className="project-tree" role="tree">
           <div className="tree-row folder">
-            <ChevronDown size={13} />
             <Folder fill="currentColor" size={15} />
             <span>{state.project.name}</span>
           </div>
-          {state.project.compositions.map((candidate) => (
+          <div
+            aria-expanded={expandedFolders.has(ROOT_ASSETS_ID)}
+            className={`tree-row asset-folder root-assets ${dropTargetId === ROOT_ASSETS_ID ? "drop-target" : ""}`}
+            onDragEnter={(event) => {
+              event.preventDefault();
+              setDropTargetId(ROOT_ASSETS_ID);
+            }}
+            onDragLeave={(event) => {
+              if (!event.currentTarget.contains(event.relatedTarget as Node))
+                setDropTargetId(undefined);
+            }}
+            onDragOver={(event) => {
+              event.preventDefault();
+              event.dataTransfer.dropEffect = "move";
+            }}
+            onDrop={(event) => dropItem(event)}
+            role="treeitem"
+            style={{ "--tree-depth": 0 } as CSSProperties}
+            tabIndex={-1}
+          >
             <button
-              className={`tree-row composition ${candidate.id === composition.id ? "active" : ""}`}
-              key={candidate.id}
-              onClick={() =>
-                dispatch({ type: "setActiveComposition", compositionId: candidate.id })
+              aria-expanded={expandedFolders.has(ROOT_ASSETS_ID)}
+              aria-label={
+                expandedFolders.has(ROOT_ASSETS_ID)
+                  ? t("project.folder.collapse", { name: t("project.assets") })
+                  : t("project.folder.expand", { name: t("project.assets") })
               }
+              className="folder-toggle"
+              onClick={() => toggleFolder(ROOT_ASSETS_ID)}
               type="button"
             >
-              {candidate.id === composition.id ? (
+              {expandedFolders.has(ROOT_ASSETS_ID) ? (
                 <ChevronDown size={13} />
               ) : (
-                <span className="tree-spacer" />
+                <ChevronRight size={13} />
               )}
-              <Layers3 size={15} />
-              <span>{candidate.name}</span>
-              <small>
-                {candidate.width} × {candidate.height}
-              </small>
+              <Folder fill="currentColor" size={14} />
+              <span>{t("project.assets")}</span>
             </button>
-          ))}
-          <div className="tree-row asset-folder">
-            <span className="tree-spacer" />
-            <Folder size={14} />
-            <span>{t("project.assets")}</span>
-            <small>{mediaLayers.length}</small>
-          </div>
-          {mediaLayers.map((layer) => (
+            <small>{state.project.compositions.length + mediaItems.length}</small>
             <button
-              className={`tree-row asset ${state.selection.includes(layer.id) ? "selected" : ""} ${layer.asset?.dataUrl || layer.asset?.runtimeUrl ? "" : "missing"}`}
-              key={`asset:${layer.id}`}
-              onClick={() => dispatch({ type: "select", ids: [layer.id] })}
-              title={
-                layer.asset?.dataUrl || layer.asset?.runtimeUrl
-                  ? t("project.asset.locate", { name: layer.asset.name })
-                  : t("project.asset.missingTitle", { name: layer.asset?.name ?? layer.name })
-              }
+              aria-label={t("project.folder.addTo", { name: t("project.assets") })}
+              className="folder-add"
+              onClick={() => openAddDrawer()}
+              title={t("project.folder.addTo", { name: t("project.assets") })}
               type="button"
             >
-              <span className="tree-spacer" />
-              {layer.kind === "video" ? <Film size={14} /> : <FileImage size={14} />}
-              <span>{layer.asset?.name}</span>
-              <small>
-                {layer.asset?.dataUrl || layer.asset?.runtimeUrl ? (
-                  <>
-                    {layer.asset.width}×{layer.asset.height}
-                    {layer.asset.duration ? ` · ${layer.asset.duration.toFixed(1)}s` : ""}
-                  </>
-                ) : (
-                  t("project.asset.missing")
-                )}
-              </small>
+              <Plus size={12} />
             </button>
-          ))}
-          {composition.layers
-            .filter((layer) => layer.name.toLowerCase().includes(query.toLowerCase()))
-            .map((layer) => {
-              const Icon = layerIcon[layer.kind];
-              return (
-                <button
-                  className={`tree-row layer ${state.selection.includes(layer.id) ? "selected" : ""}`}
-                  key={layer.id}
-                  onClick={() => dispatch({ type: "select", ids: [layer.id] })}
-                  type="button"
-                >
-                  <span className="tree-spacer" />
-                  <Icon size={14} />
-                  <span>{layer.name}</span>
-                </button>
-              );
-            })}
-          <div className="project-footer">
-            <input
-              accept="image/*"
-              aria-label={t("project.asset.chooseImage")}
-              hidden
-              onChange={(event) => {
-                const file = event.target.files?.[0];
-                if (file) void importMedia("image", file);
-                event.target.value = "";
-              }}
-              ref={imagePickerRef}
-              type="file"
-            />
-            <input
-              accept="video/*"
-              aria-label={t("project.asset.chooseVideo")}
-              hidden
-              onChange={(event) => {
-                const file = event.target.files?.[0];
-                if (file) void importMedia("video", file);
-                event.target.value = "";
-              }}
-              ref={videoPickerRef}
-              type="file"
-            />
-            <button onClick={() => imagePickerRef.current?.click()} type="button">
-              <FileImage size={13} /> {t("project.add.image")}
-            </button>
-            <button onClick={() => videoPickerRef.current?.click()} type="button">
-              <Film size={13} /> {t("project.add.video")}
-            </button>
-            <button onClick={() => addLayer("text")} type="button">
-              <Type size={13} /> {t("project.add.text")}
-            </button>
-            <button onClick={() => addLayer("shape")} type="button">
-              <Shapes size={13} /> {t("project.add.shape")}
-            </button>
-            <button onClick={() => addLayer("adjustment")} type="button">
-              <SlidersHorizontal size={13} /> {t("project.add.adjustment")}
-            </button>
-            <button onClick={() => addLayer("mesh")} type="button">
-              <Box size={13} /> {t("project.add.mesh")}
-            </button>
-            {selectedLayer?.asset && (
-              <button onClick={() => void relinkSelectedAsset()} type="button">
-                <Link2 size={13} /> {t("project.asset.relink")}
-              </button>
-            )}
           </div>
+          {expandedFolders.has(ROOT_ASSETS_ID) && (
+            <>
+              {state.project.folders
+                .filter((folder) => !folder.parentId)
+                .map((folder) => renderFolder(folder, 1))}
+              {renderItemsInFolder(undefined, 1)}
+            </>
+          )}
           {assetError && <div className="project-error">{uiErrorMessage(t, assetError)}</div>}
         </div>
       ) : (
@@ -556,6 +761,66 @@ export function ProjectPanel() {
             );
           })}
         </div>
+      )}
+      {addTarget && (
+        <aside aria-label={t("project.add.menuTitle")} className="asset-add-menu" ref={addMenuRef}>
+          <div className="asset-add-heading">
+            <span>
+              <strong>{t("project.add.menuTitle")}</strong>
+              <small>{t("project.add.destination", { name: addTarget.label })}</small>
+            </span>
+            <button
+              aria-label={t("project.add.close")}
+              onClick={() => setAddTarget(undefined)}
+              type="button"
+            >
+              ×
+            </button>
+          </div>
+          <div className="asset-add-group">
+            <span>{t("project.add.projectItems")}</span>
+            <div className="asset-add-grid">
+              <button onClick={createFolder} type="button">
+                <Folder size={15} /> {t("project.add.folder")}
+              </button>
+              <button onClick={createComposition} type="button">
+                <Layers3 size={15} /> {t("project.add.composition")}
+              </button>
+              <button onClick={() => imagePickerRef.current?.click()} type="button">
+                <FileImage size={15} /> {t("project.add.image")}
+              </button>
+              <button onClick={() => videoPickerRef.current?.click()} type="button">
+                <Film size={15} /> {t("project.add.video")}
+              </button>
+            </div>
+          </div>
+          <div className="asset-add-group">
+            <span>{t("project.add.layers")}</span>
+            <div className="asset-add-grid">
+              <button onClick={() => addLayer("text")} type="button">
+                <Type size={15} /> {t("project.add.text")}
+              </button>
+              <button onClick={() => addLayer("shape")} type="button">
+                <Shapes size={15} /> {t("project.add.shape")}
+              </button>
+              <button onClick={() => addLayer("adjustment")} type="button">
+                <SlidersHorizontal size={15} /> {t("project.add.adjustment")}
+              </button>
+              <button onClick={() => addLayer("mesh")} type="button">
+                <Box size={15} /> {t("project.add.mesh")}
+              </button>
+            </div>
+          </div>
+          {selectedLayer?.asset && (
+            <button
+              className="asset-relink"
+              onClick={() => void relinkSelectedAsset()}
+              type="button"
+            >
+              <Link2 size={14} /> {t("project.asset.relink")}
+            </button>
+          )}
+        </aside>
       )}
     </Panel>
   );

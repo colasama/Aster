@@ -224,6 +224,38 @@ describe("structured project operations", () => {
     expect(navigated.activeCompositionId).toBe(source.activeCompositionId);
   });
 
+  it("creates project folders and moves compositions and media between them", () => {
+    const source = createBlankProject();
+    const folder = { id: crypto.randomUUID(), name: "Footage" };
+    const nestedFolder = { id: crypto.randomUUID(), name: "Selects", parentId: folder.id };
+    const image = createLayerForComposition("image", activeComposition(source));
+    image.asset = {
+      name: "plate.png",
+      mimeType: "image/png",
+      dataUrl: "data:image/png;base64,AA==",
+      width: 1,
+      height: 1,
+    };
+    const organized = applyOperations(source, [
+      { type: "addLayer", layer: image },
+      { type: "addProjectFolder", folder },
+      { type: "addProjectFolder", folder: nestedFolder },
+      { type: "moveProjectItem", itemId: source.activeCompositionId, folderId: folder.id },
+      { type: "moveProjectItem", itemId: image.id, folderId: nestedFolder.id },
+    ]);
+
+    expect(organized.folders).toEqual([folder, nestedFolder]);
+    expect(organized.itemFolderIds).toEqual({
+      [source.activeCompositionId]: folder.id,
+      [image.id]: nestedFolder.id,
+    });
+    const returnedToRoot = applyOperations(organized, [
+      { type: "moveProjectItem", itemId: image.id },
+    ]);
+    expect(returnedToRoot.itemFolderIds[image.id]).toBeUndefined();
+    expect(source.folders).toEqual([]);
+  });
+
   it("persists frame-aligned work areas and normalizes them when duration shrinks", () => {
     const source = createDemoProject();
     const composition = activeComposition(source);

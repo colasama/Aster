@@ -57,7 +57,7 @@ export const workspaceZh = {
   "workspace.shortcut.pan": "平移合成画布",
   "workspace.about.summary": "GPU 优先的动态图形与合成工作室。",
   "workspace.about.detail":
-    "HDR 场景渲染、架构驱动的效果、结构化 AI 操作员和非破坏性时间线共享同一种开放项目格式。",
+    "HDR 场景渲染、架构驱动的效果、结构化 AI 助手和非破坏性时间线共享同一种开放项目格式。",
   "workspace.action.applySettings": "应用设置",
   "workspace.action.savePreferences": "保存偏好设置",
   "workspace.action.applyExpression": "应用表达式",

@@ -1,8 +1,24 @@
 # Architecture
 
 Aster separates its portable model from platform/UI code. The Rust crates own deterministic domain
-logic and native boundaries; the React/Tauri application owns interactive editing and the current
-WebGPU preview implementation.
+logic and native boundaries; the React/Electron application owns interactive editing and the current
+WebGPU preview implementation. Electron's sandboxed renderer reaches native capabilities only
+through a context-isolated preload API, a main-process command allowlist, and the JSON-lines desktop
+bridge. Local media uses a dedicated protocol whose path set is populated only by validated bridge
+responses.
+
+The desktop window uses renderer-owned chrome so the project menu and window controls share one
+visual system. The frameless window exposes only minimize, maximize/restore, and close through the
+context-isolated preload boundary; the renderer has no direct Electron access. The sandboxed preload
+is emitted as CommonJS because Electron does not support ESM imports inside sandboxed preload scripts.
+
+## Logging and diagnostics
+
+Renderer events cross a bounded, one-way preload IPC surface and join Electron lifecycle/export
+events plus JSON `tracing` records from the Rust bridge. Electron adds a shared session ID and writes
+the combined JSON Lines stream asynchronously to size-bounded rolling files. Command payloads and
+frame data are excluded, and successful hot-path operations are intentionally silent. See
+[`LOGGING.md`](LOGGING.md) for the schema, retention, privacy rules, and event-level guidance.
 
 ## Crates
 
@@ -16,6 +32,7 @@ WebGPU preview implementation.
 | `aster-project` | Versioned bundle validation and atomic persistence |
 | `aster-plugin` | Manifest, parameter, permission, and capability validation |
 | `aster-ai` | Permission-checked operation planning, audit, provider boundary |
+| `aster-desktop-bridge` | Electron sidecar protocol, native project I/O, AI, and plugin runtime |
 
 ## Frame flow
 
@@ -47,13 +64,27 @@ WebGPU preview implementation.
 7. Metrics are sampled outside React's frame-critical path.
 
 Frame and sequence export open one full-resolution render session, resize the GPU surface once, and
-evaluate each frame directly from its timeline time. Native PNG sequences are written one frame at a
-time through a restricted filename boundary and a same-directory temporary file, so cancellation is
-bounded to the current frame and never leaves a partial PNG behind.
+evaluate each frame directly from its rational timeline time. Native PNG sequences are written one
+frame at a time through a restricted filename boundary and a same-directory temporary file. The MVP
+H.264 MP4 path copies the display-transformed canvas texture into three bounded WebGPU readback
+buffers, transfers packed BGRA/RGBA frames through a dedicated binary Electron IPC surface, and
+streams them into an FFmpeg child process. Frames are submitted to the encoder in timeline order even
+when GPU mappings finish out of order. A real one-frame probe selects NVENC when it works and otherwise
+falls back to `libx264`; MP4 publication replaces the selected output only after FFmpeg writes the
+trailer successfully. Compositions containing video layers, including nested compositions, use one
+in-flight frame and wait for the browser decoder's `seeked` state before capture; graphics-only jobs
+use all three readback slots. Cancellation stops at a bounded in-flight frame and removes temporary
+output.
 
 The preview has a Canvas 2D compatibility renderer. It is a functional fallback, not a performance
 target. Native wgpu and browser WebGPU share formats and graph concepts, but do not yet share shader
 compilation artifacts.
+
+Viewport direct manipulation applies time-addressed preview operations while a pointer gesture is in
+progress, so position, scale, rotation, and text changes render immediately. Releasing the pointer or
+finishing text editing records one transaction from the gesture's original project snapshot, keeping
+undo deterministic without accumulating per-move history entries. Canvas resizes invalidate the
+preview, and renderer initialization always draws the current evaluated frame.
 
 Layer effects reuse one pair of full-resolution HDR transient textures across the frame. Per-layer
 uniform and operation buffers remain distinct so queue uploads cannot race command-buffer execution;
@@ -71,7 +102,7 @@ hardware trilinear sampling and explicit tetrahedral interpolation; layers witho
 identity texture so the pipeline layout stays stable.
 
 Browser video uses hardware media decode and a persistent staging canvas before `queue.writeTexture`.
-This deterministic compatibility path exists because current WebView implementations can silently
+This deterministic compatibility path exists because Chromium implementations can silently
 zero `copyExternalImageToTexture` for decoded video surfaces. The native video backend is expected to
 replace it with platform-specific low-copy interop without changing layer or timeline semantics.
 

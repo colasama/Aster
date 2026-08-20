@@ -142,13 +142,14 @@ button.tree-row {
   font-weight: 600;
   color: #c6c9d1;
 }
-.tree-row.folder svg:nth-child(2) {
+.tree-row.folder svg {
   color: #7187b8;
 }
-.tree-row.composition {
-  padding-left: 19px;
+.tree-row.project-item,
+.tree-row.asset-folder {
+  padding-left: calc(8px + var(--tree-depth, 0) * 14px);
 }
-.tree-row.composition svg:nth-child(2) {
+.tree-row.composition svg {
   color: #7b62db;
 }
 .tree-row.asset-folder {
@@ -156,9 +157,63 @@ button.tree-row {
   color: #8d93a1;
   font-weight: 600;
 }
+.tree-row.asset-folder.root-assets {
+  margin-top: 1px;
+}
 .tree-row.asset-folder svg,
 .tree-row.asset svg {
   color: #5f88c9;
+}
+.tree-row.asset-folder.drop-target {
+  outline: 1px solid #6895db;
+  outline-offset: -1px;
+  background: #263753;
+  color: #d9e7ff;
+}
+.tree-row.project-item {
+  cursor: grab;
+}
+.tree-row.project-item:active {
+  cursor: grabbing;
+}
+.tree-row.project-item.dragging {
+  opacity: 0.45;
+}
+.tree-row.project-item > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.folder-toggle {
+  min-width: 0;
+  height: 25px;
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 6px;
+  text-align: left;
+}
+.tree-row.asset-folder .folder-toggle > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.folder-add {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+  display: grid;
+  place-items: center;
+  border-radius: 3px;
+  color: #9bb9ef;
+  opacity: 0;
+}
+.tree-row.asset-folder:hover .folder-add,
+.tree-row.asset-folder:focus-within .folder-add {
+  opacity: 1;
+}
+.folder-add:hover {
+  background: #33445f;
+  color: #e3edff;
 }
 .tree-row.asset > span:nth-last-of-type(1) {
   max-width: 92px;
@@ -172,6 +227,106 @@ button.tree-row {
 }
 .tree-spacer {
   width: 29px;
+}
+.asset-add-menu {
+  position: absolute;
+  z-index: 10;
+  top: 4px;
+  right: 4px;
+  width: min(280px, calc(100% - 8px));
+  max-height: calc(100% - 8px);
+  padding: 11px;
+  overflow: auto;
+  border: 1px solid #3a4151;
+  border-radius: 5px;
+  background: #181a21;
+  box-shadow: 0 12px 32px rgb(0 0 0 / 58%);
+  animation: asset-menu-in 100ms ease-out;
+}
+.asset-add-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 2px 1px 10px;
+  border-bottom: 1px solid var(--border-soft);
+}
+.asset-add-heading strong,
+.asset-add-heading small {
+  display: block;
+}
+.asset-add-heading strong {
+  color: #d4d7df;
+  font-size: 11px;
+}
+.asset-add-heading small {
+  margin-top: 4px;
+  color: #6f7685;
+  font-size: 8px;
+}
+.asset-add-heading button {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 3px;
+  color: #7e8490;
+  font-size: 17px;
+}
+.asset-add-heading button:hover {
+  color: white;
+  background: #2b2e37;
+}
+.asset-add-group {
+  margin-top: 12px;
+}
+.asset-add-menu .asset-add-group > span {
+  color: #6e7481;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.asset-add-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+  margin-top: 6px;
+}
+.asset-add-grid button,
+.asset-relink {
+  min-width: 0;
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 8px;
+  border: 1px solid #303440;
+  border-radius: 4px;
+  color: #aeb3bf;
+  background: #20232b;
+  font-size: 9px;
+  text-align: left;
+}
+.asset-add-grid button:hover,
+.asset-relink:hover {
+  border-color: #4f70ac;
+  color: #e1e9f8;
+  background: #253047;
+}
+.asset-add-menu .asset-add-grid button svg,
+.asset-add-menu button.asset-relink svg {
+  flex: 0 0 auto;
+  color: #7fa5e8;
+}
+.asset-relink {
+  width: 100%;
+  margin-top: 14px;
+}
+@keyframes asset-menu-in {
+  from {
+    transform: translateY(-5px);
+    opacity: 0;
+  }
 }
 .project-footer {
   position: sticky;

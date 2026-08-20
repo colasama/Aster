@@ -167,6 +167,34 @@
   right: -4px;
   bottom: -4px;
 }
+.selection-bounds .rotation-stem {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  width: 1px;
+  height: 18px;
+  background: #79a7ff;
+}
+.selection-bounds .rotation-handle {
+  position: absolute;
+  bottom: calc(100% + 14px);
+  left: 50%;
+  width: 9px;
+  height: 9px;
+  border: 1px solid #31568f;
+  border-radius: 50%;
+  transform: translateX(-4px);
+  background: #dce9ff;
+  cursor: grab;
+}
+.selection-bounds .top-left,
+.selection-bounds .bottom-right {
+  cursor: nwse-resize;
+}
+.selection-bounds .top-right,
+.selection-bounds .bottom-left {
+  cursor: nesw-resize;
+}
 .selection-bounds .anchor-handle {
   position: absolute;
   top: 50%;
@@ -176,6 +204,20 @@
   border: 1px solid #f16d79;
   transform: translate(-50%, -50%) rotate(45deg);
   background: #10141d;
+}
+.viewport-text-editor {
+  position: absolute;
+  z-index: 7;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  resize: none;
+  overflow: hidden;
+  border: 1px solid #b9d1ff;
+  outline: 2px solid #3764c799;
+  background: #080b14d9;
+  caret-color: #fff;
+  white-space: pre-wrap;
 }
 .camera-gizmo {
   position: absolute;

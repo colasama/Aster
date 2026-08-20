@@ -1,4 +1,5 @@
 import { evaluateLayerSourceTime } from "../core/layer-time";
+import { logger } from "../core/logger";
 import { createDefaultParticleSettings } from "../core/particle-settings";
 import { evaluateWorldTransform } from "../core/scene-evaluation";
 import type {
@@ -14,6 +15,12 @@ import { SceneBufferVisualizer } from "./buffer-visualizer";
 import { DepthEffectsRenderer } from "./depth-effects";
 import { analyzeEffectFusion } from "./effect-fusion";
 import { FLOATS_PER_EFFECT_OPERATION, MAX_EFFECT_OPERATIONS } from "./effect-program";
+import {
+  type FrameReadbackTicket,
+  GpuFrameReadbackPool,
+  type RawFramePixelFormat,
+  type RawVideoFrame,
+} from "./frame-readback";
 import { FLOATS_PER_VERTEX, type GeometryBatch } from "./geometry";
 import { planGpuMemory } from "./gpu-memory-budget";
 import { GpuTimestampProfiler } from "./gpu-timestamp-profiler";
@@ -90,6 +97,7 @@ export class WebGpuRenderer {
   #shapeBuffer: GPUBuffer;
   #particleBuffer: GPUBuffer;
   #particleCapacity = 1_024;
+  #particleResizeFailure?: number;
   readonly #particleIndirectBuffer: GPUBuffer;
   readonly #simulationBuffer: GPUBuffer;
   #computeBindGroup: GPUBindGroup;
@@ -102,6 +110,8 @@ export class WebGpuRenderer {
   readonly #postUniformBuffer: GPUBuffer;
   readonly #effectProgramBuffer: GPUBuffer;
   readonly #gpuProfiler: GpuTimestampProfiler;
+  readonly #frameReadback: GpuFrameReadbackPool;
+  #pendingFrameReadback?: FrameReadbackTicket;
   #postBindGroup?: GPUBindGroup;
   #sceneTexture?: GPUTexture;
   #depthTexture?: GPUTexture;
@@ -110,6 +120,7 @@ export class WebGpuRenderer {
   #shadowMapSize = DEFAULT_SHADOW_MAP_SIZE;
   #memoryBudgetMb?: number;
   #bufferVisualization: BufferVisualization = "beauty";
+  readonly #reportedAdjustmentErrors = new Set<string>();
   #smoothedFrameMs = 16.67;
   #lastFrameStarted?: number;
   #shapeBufferBytes = MAX_SHAPE_VERTICES * FLOATS_PER_VERTEX * Float32Array.BYTES_PER_ELEMENT;
@@ -131,6 +142,7 @@ export class WebGpuRenderer {
     this.diagnostics = diagnostics;
     this.#invalidate = invalidate;
     this.#gpuProfiler = new GpuTimestampProfiler(device, diagnostics.timestampQueries, invalidate);
+    this.#frameReadback = new GpuFrameReadbackPool(device, format);
     this.#lightingBindGroupLayout = device.createBindGroupLayout({
       label: "Scene lighting layout",
       entries: [
@@ -319,12 +331,19 @@ export class WebGpuRenderer {
     canvas: HTMLCanvasElement,
     invalidate: () => void = () => undefined,
   ): Promise<WebGpuRenderer> {
+    logger.debug("webgpu", "initialization_started");
     if (!navigator.gpu) throw new Error("WebGPU is unavailable");
     const adapter = await navigator.gpu.requestAdapter({ powerPreference: "high-performance" });
     if (!adapter) throw new Error("No high-performance GPU adapter was found");
     const timestampQueries = adapter.features.has("timestamp-query");
     const requiredFeatures: GPUFeatureName[] = timestampQueries ? ["timestamp-query"] : [];
     const device = await adapter.requestDevice({ requiredFeatures });
+    device.addEventListener("uncapturederror", (event) => {
+      logger.error("webgpu", "uncaptured_error", event.error);
+    });
+    void device.lost.then((info) => {
+      logger.warn("webgpu", "device_lost", { reason: info.reason, message: info.message });
+    });
     const format = navigator.gpu.getPreferredCanvasFormat();
     const [, precompile] = await Promise.all([
       validateShaderSources(device),
@@ -348,16 +367,25 @@ export class WebGpuRenderer {
     const validationError = await device.popErrorScope();
     if (validationError)
       throw new Error(`WebGPU renderer validation failed: ${validationError.message}`);
+    logger.info("webgpu", "initialized", {
+      adapter: diagnostics.adapter,
+      architecture: diagnostics.architecture,
+      timestampQueries,
+      maxTextureSize: diagnostics.maxTextureSize,
+      prewarmedPipelines: diagnostics.prewarmedPipelines,
+      pipelineCompileMs: diagnostics.pipelineCompileMs,
+    });
     return renderer;
   }
   resize(width: number, height: number): void {
+    this.#frameReadback.reset();
     this.#width = Math.max(1, Math.floor(width));
     this.#height = Math.max(1, Math.floor(height));
     this.#context.configure({
       device: this.#device,
       format: this.#format,
       alphaMode: "opaque",
-      usage: GPUTextureUsage.RENDER_ATTACHMENT,
+      usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
     });
     this.#sceneTexture?.destroy();
     this.#depthTexture?.destroy();
@@ -400,6 +428,42 @@ export class WebGpuRenderer {
     this.#bufferVisualization = mode;
     this.#configureAuxiliaryBuffers();
     return this.#bufferVisualization;
+  }
+  get exportPixelFormat(): RawFramePixelFormat {
+    return this.#frameReadback.pixelFormat;
+  }
+  renderRawFrame(
+    composition: Composition,
+    time: number,
+    project?: Project,
+    synchronizeVideo = false,
+  ): Promise<RawVideoFrame> {
+    if (synchronizeVideo) {
+      this.render(composition, time, false, project);
+      return this.#mediaTextures
+        .waitForVideoFrames()
+        .then(() => this.#captureRawFrame(composition, time, project));
+    }
+    return this.#captureRawFrame(composition, time, project);
+  }
+  #captureRawFrame(
+    composition: Composition,
+    time: number,
+    project?: Project,
+  ): Promise<RawVideoFrame> {
+    if (this.#pendingFrameReadback)
+      return Promise.reject(new Error("A GPU frame readback is already being encoded"));
+    const ticket = this.#frameReadback.reserve(this.#width, this.#height);
+    this.#pendingFrameReadback = ticket;
+    try {
+      this.render(composition, time, false, project);
+    } catch (error) {
+      ticket.abort();
+      throw error;
+    } finally {
+      this.#pendingFrameReadback = undefined;
+    }
+    return ticket.read();
   }
   render(
     composition: Composition,
@@ -648,7 +712,14 @@ export class WebGpuRenderer {
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
           this.diagnostics.adjustmentLayerError = message;
-          console.warn(`Adjustment layer "${layer.name}" was skipped: ${message}`);
+          const diagnosticKey = `${layer.id}:${message}`;
+          if (!this.#reportedAdjustmentErrors.has(diagnosticKey)) {
+            this.#reportedAdjustmentErrors.add(diagnosticKey);
+            logger.warn("webgpu", "adjustment_layer_skipped", {
+              layerId: layer.id,
+              error: message,
+            });
+          }
         }
         continue;
       }
@@ -747,7 +818,8 @@ export class WebGpuRenderer {
       colorAttachments: [{ view: sceneView, loadOp: "load", storeOp: "store" }],
     });
     sceneTimingEnd.end();
-    const output = this.#context.getCurrentTexture().createView();
+    const outputTexture = this.#context.getCurrentTexture();
+    const output = outputTexture.createView();
     const postPass = encoder.beginRenderPass({
       label: "Fused effects + ACES display transform",
       timestampWrites: this.#gpuProfiler.writes(6, 7),
@@ -775,6 +847,7 @@ export class WebGpuRenderer {
       postPass.draw(3);
     } else this.#bufferVisualizer.encode(postPass, this.#bufferVisualization);
     postPass.end();
+    this.#pendingFrameReadback?.encode(encoder, outputTexture);
     const collectTimestamps = this.#gpuProfiler.encodeReadback(encoder);
     this.#device.queue.submit([encoder.finish()]);
     if (collectTimestamps) this.#gpuProfiler.readback();
@@ -938,15 +1011,21 @@ export class WebGpuRenderer {
       this.#particleBuffer.destroy();
       this.#particleBuffer = nextBuffer;
       this.#particleCapacity = requiredCapacity;
+      this.#particleResizeFailure = undefined;
       this.#computeBindGroup = computeBindGroup;
       this.#particleBindGroup = particleBindGroup;
       return requiredCapacity;
     } catch (error) {
       nextBuffer?.destroy();
-      console.warn(
-        "GPU particle storage resize failed; retaining the current bounded capacity",
-        error,
-      );
+      if (this.#particleResizeFailure !== requiredCapacity) {
+        this.#particleResizeFailure = requiredCapacity;
+        logger.warn(
+          "webgpu",
+          "particle_storage_resize_failed",
+          { retainedCapacity: this.#particleCapacity, requiredCapacity },
+          error,
+        );
+      }
       return this.#particleCapacity;
     }
   }

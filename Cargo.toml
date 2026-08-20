@@ -3,6 +3,7 @@ resolver = "3"
 members = [
   "crates/aster-ai",
   "crates/aster-core",
+  "crates/aster-desktop-bridge",
   "crates/aster-plugin",
   "crates/aster-profiler",
   "crates/aster-project",
@@ -11,7 +12,6 @@ members = [
   "crates/aster-timeline",
   "crates/aster-text",
   "crates/aster-video",
-  "src-tauri",
 ]
 
 [workspace.package]
@@ -46,7 +46,10 @@ serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.149"
 sha2 = "0.10.9"
 thiserror = "2.0.20"
+tokio = { version = "1.47.1", features = ["rt-multi-thread"] }
 toml = "1.1.4"
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.22", features = ["env-filter", "json"] }
 uuid = { version = "1.24.1", features = ["serde", "v4"] }
 zip = { version = "=8.6.0", default-features = false, features = ["deflate"] }
 wgpu = "30.0.0"

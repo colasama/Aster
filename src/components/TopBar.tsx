@@ -10,7 +10,6 @@ import {
   Play,
   Redo2,
   RotateCcw,
-  Save,
   Search,
   Sparkles,
   Square,
@@ -22,6 +21,7 @@ import { type ComponentType, useEffect, useMemo, useRef, useState } from "react"
 import { importMediaLayer } from "../core/assets";
 import { createGltfLayerFromFile } from "../core/gltf";
 import { createLayerForComposition } from "../core/layer-factory";
+import { logger } from "../core/logger";
 import { getProperty } from "../core/operations";
 import { planPrecomposition } from "../core/precomposition";
 import { activeComposition, createBlankComposition, createBlankProject } from "../core/project";
@@ -35,8 +35,10 @@ import {
   saveProjectDocument,
 } from "../core/project-file";
 import {
+  nativeMp4ExportAvailable,
   nativeSequenceExportAvailable,
   type RenderSequenceProgress,
+  renderMp4,
   renderPngSequence,
   renderSingleFrame,
 } from "../core/render-export";
@@ -54,6 +56,7 @@ import {
   toastMessage,
   useTopBarToast,
 } from "./topbar-toast";
+import { WindowControls } from "./WindowControls";
 import { WorkspaceDialog, type WorkspaceDialogKind } from "./WorkspaceDialog";
 
 interface ToolDefinition {
@@ -61,6 +64,8 @@ interface ToolDefinition {
   icon: ComponentType<{ size?: number }>;
   labelKey: PlainMessageKey;
 }
+
+type RenderFormat = "mp4" | "png" | "project" | "sequence";
 
 const tools: ToolDefinition[] = [
   { id: "select", icon: MousePointer2, labelKey: "topbar.tool.select" },
@@ -81,7 +86,7 @@ export function TopBar() {
   const [paletteQuery, setPaletteQuery] = useState("");
   const [renderOpen, setRenderOpen] = useState(false);
   const [rendering, setRendering] = useState(false);
-  const [renderFormat, setRenderFormat] = useState<"png" | "project" | "sequence">("png");
+  const [renderFormat, setRenderFormat] = useState<RenderFormat>("png");
   const [renderProgress, setRenderProgress] = useState<RenderSequenceProgress>();
   const [workspaceDialog, setWorkspaceDialog] = useState<WorkspaceDialogKind>();
   const toast = useTopBarToast();
@@ -131,7 +136,8 @@ export function TopBar() {
         saveProject(state.project, toastActions);
       } else if (event.key === "Escape") {
         setPaletteOpen(false);
-        setRenderOpen(false);
+        if (rendering) cancelRenderRef.current = true;
+        else setRenderOpen(false);
         setWorkspaceDialog(undefined);
         setActiveMenu(undefined);
       } else if (!isEditing) {
@@ -148,7 +154,7 @@ export function TopBar() {
     };
     window.addEventListener("keydown", shortcut);
     return () => window.removeEventListener("keydown", shortcut);
-  }, [dispatch, state.project, toastActions]);
+  }, [dispatch, rendering, state.project, toastActions]);
   useEffect(() => {
     if (paletteOpen) paletteInputRef.current?.focus();
   }, [paletteOpen]);
@@ -372,17 +378,11 @@ export function TopBar() {
           <span className="unsaved-dot" /> {state.project.name} — Aster
         </div>
         <div className="title-actions">
-          <button
-            aria-label={t("topbar.command.save")}
-            onClick={() => saveProject(state.project, toastActions)}
-            type="button"
-          >
-            <Save size={14} />
-          </button>
           <button className="command-hint" onClick={() => setPaletteOpen(true)} type="button">
             <Command size={13} /> K
           </button>
         </div>
+        <WindowControls />
       </div>
       <div className="tool-bar">
         <div className="tool-group">
@@ -435,22 +435,8 @@ export function TopBar() {
                 : t("common.quarter")}{" "}
             <ChevronDown size={12} />
           </button>
-          <span className="gpu-badge">
-            <Sparkles size={12} /> {t("topbar.toolbar.gpuPreview")}
-          </span>
         </div>
         <div className="toolbar-right">
-          <button
-            className="search-button"
-            onClick={() =>
-              document
-                .querySelector<HTMLInputElement>(".project-panel .panel-search input")
-                ?.focus()
-            }
-            type="button"
-          >
-            <Search size={14} /> {t("topbar.toolbar.searchProject")}
-          </button>
           <button className="render-button" onClick={() => setRenderOpen(true)} type="button">
             <Play fill="currentColor" size={13} /> {t("topbar.toolbar.render")}
           </button>
@@ -507,22 +493,27 @@ export function TopBar() {
               <div>
                 <strong>{t("topbar.render.pipeline")}</strong>
                 <span>
-                  {renderFormat === "sequence"
-                    ? t("topbar.render.sequenceSummary", {
+                  {renderFormat === "mp4"
+                    ? t("topbar.render.videoSummary", {
                         duration: activeComposition(state.project).duration,
                       })
-                    : t("topbar.render.frameSummary")}
+                    : renderFormat === "sequence"
+                      ? t("topbar.render.sequenceSummary", {
+                          duration: activeComposition(state.project).duration,
+                        })
+                      : t("topbar.render.frameSummary")}
                 </span>
               </div>
             </div>
             <label>
               {t("topbar.render.outputFormat")}
               <select
-                onChange={(event) =>
-                  setRenderFormat(event.target.value as "png" | "project" | "sequence")
-                }
+                onChange={(event) => setRenderFormat(event.target.value as RenderFormat)}
                 value={renderFormat}
               >
+                <option disabled={!nativeMp4ExportAvailable()} value="mp4">
+                  {t("topbar.render.mp4")}
+                </option>
                 <option value="png">{t("topbar.render.png")}</option>
                 <option disabled={!nativeSequenceExportAvailable()} value="sequence">
                   {t("topbar.render.sequence")}
@@ -572,6 +563,22 @@ export function TopBar() {
                         }),
                         requestToken,
                       );
+                    } else if (renderFormat === "mp4") {
+                      const result = await renderMp4(
+                        activeComposition(state.project),
+                        setRenderProgress,
+                        () => cancelRenderRef.current,
+                      );
+                      if (!result) return;
+                      toastActions.show(
+                        result.cancelled
+                          ? toastMessage("topbar.toast.stoppedMp4", { frames: result.frames })
+                          : toastMessage("topbar.toast.exportedMp4", {
+                              frames: result.frames,
+                              encoder: result.encoder ?? "H.264",
+                            }),
+                        requestToken,
+                      );
                     } else {
                       const result = await renderPngSequence(
                         activeComposition(state.project),
@@ -589,7 +596,8 @@ export function TopBar() {
                       );
                     }
                     setRenderOpen(false);
-                  } catch {
+                  } catch (error) {
+                    logger.error("export", "request_failed", error, { format: renderFormat });
                     toastActions.show(toastError("frameExport"), requestToken);
                   } finally {
                     setRendering(false);
@@ -601,16 +609,20 @@ export function TopBar() {
                 {rendering ? (
                   <>
                     <LoaderCircle className="spin" size={12} />
-                    {renderFormat === "sequence"
-                      ? t("topbar.render.renderingSequence")
-                      : t("topbar.render.rendering4k")}
+                    {renderFormat === "mp4"
+                      ? t("topbar.render.renderingVideo")
+                      : renderFormat === "sequence"
+                        ? t("topbar.render.renderingSequence")
+                        : t("topbar.render.rendering4k")}
                   </>
                 ) : (
                   <>
                     <Play size={12} />
-                    {renderFormat === "sequence"
-                      ? t("topbar.render.renderSequence")
-                      : t("topbar.render.renderFrame")}
+                    {renderFormat === "mp4"
+                      ? t("topbar.render.renderVideo")
+                      : renderFormat === "sequence"
+                        ? t("topbar.render.renderSequence")
+                        : t("topbar.render.renderFrame")}
                   </>
                 )}
               </button>

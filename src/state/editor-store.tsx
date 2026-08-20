@@ -47,8 +47,10 @@ export type EditorAction =
       type: "operation";
       operations: Operation[];
       select?: Id[];
+      historyBase?: Project;
       metadata?: { source: "ai" | "user"; summary: string };
     }
+  | { type: "previewOperation"; operations: Operation[] }
   | { type: "undo" }
   | { type: "redo" }
   | { type: "select"; ids: Id[] }
@@ -80,7 +82,7 @@ const initialMetrics: RendererMetrics = {
   transientTextureCount: 0,
 };
 
-function createInitialState(): EditorState {
+export function createInitialState(): EditorState {
   const project = createDemoProject();
   return {
     selection: [project.compositions[0].layers[0].id],
@@ -106,7 +108,7 @@ function createInitialState(): EditorState {
   };
 }
 
-function reducer(state: EditorState, action: EditorAction): EditorState {
+export function editorReducer(state: EditorState, action: EditorAction): EditorState {
   switch (action.type) {
     case "operation": {
       const project = applyOperations(state.project, action.operations);
@@ -115,11 +117,16 @@ function reducer(state: EditorState, action: EditorAction): EditorState {
         ...state,
         project,
         selection: action.select ?? state.selection,
-        history: { past: [...state.history.past.slice(-99), state.project], future: [] },
+        history: {
+          past: [...state.history.past.slice(-99), action.historyBase ?? state.project],
+          future: [],
+        },
         auditLog:
           action.metadata?.source === "ai" ? [...state.auditLog.slice(-99), entry] : state.auditLog,
       };
     }
+    case "previewOperation":
+      return { ...state, project: applyOperations(state.project, action.operations) };
     case "undo": {
       const project = state.history.past[state.history.past.length - 1];
       if (!project) return state;
@@ -244,7 +251,7 @@ const EditorContext = createContext<
 >(undefined);
 
 export function EditorProvider({ children }: PropsWithChildren) {
-  const [state, dispatch] = useReducer(reducer, undefined, createInitialState);
+  const [state, dispatch] = useReducer(editorReducer, undefined, createInitialState);
   useEffect(() => {
     if (!state.history.past.length) return;
     const seconds = Number(localStorage.getItem("aster.autosaveSeconds") ?? 30);

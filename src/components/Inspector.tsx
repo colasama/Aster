@@ -8,13 +8,13 @@ import {
   Eye,
   EyeOff,
   FileUp,
-  KeyRound,
   LockKeyhole,
   LockOpen,
   Plus,
   RotateCw,
   Scan,
   Sparkles,
+  Stopwatch,
   Trash2,
 } from "lucide-react";
 import { useRef, useState } from "react";
@@ -126,8 +126,8 @@ export function Inspector() {
           active={state.rightTab}
           onChange={(tab) => dispatch({ type: "setRightTab", tab: tab as "properties" | "ai" })}
           tabs={[
-            { id: "properties", label: t("inspector.tab.properties") },
             { id: "ai", label: t("inspector.tab.ai") },
+            { id: "properties", label: t("inspector.tab.properties") },
           ]}
         />
       }
@@ -236,7 +236,7 @@ export function Inspector() {
                               title={t("inspector.transform.addKeyframe")}
                               type="button"
                             >
-                              <KeyRound size={10} />
+                              <Stopwatch size={10} />
                             </button>
                           </div>
                         ))}
@@ -262,7 +262,7 @@ export function Inspector() {
                       />
                       <span>%</span>
                       <button onClick={() => addKeyframe("opacity")} type="button">
-                        <KeyRound size={11} />
+                        <Stopwatch size={11} />
                       </button>
                     </div>
                   </div>

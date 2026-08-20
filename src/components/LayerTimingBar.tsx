@@ -38,7 +38,6 @@ export function LayerTimingBar({
         onPointerDown={(event) => startDrag(event, "trim-in")}
         type="button"
       />
-      <span>{layer.name}</span>
       <button
         aria-label={t("layerTiming.trimOut", { name: layer.name })}
         className="timing-handle end"

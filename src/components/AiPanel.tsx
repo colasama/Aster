@@ -1,4 +1,3 @@
-import { invoke } from "@tauri-apps/api/core";
 import {
   Check,
   ChevronRight,
@@ -18,6 +17,7 @@ import type { Operation, PropertyPath } from "../core/operations";
 import { activeComposition } from "../core/project";
 import { createDefaultTextAnimator, normalizeTextAnimatorSettings } from "../core/text-animator";
 import { type Composition, createId, type LayerKind } from "../core/types";
+import { invoke, isDesktopRuntime } from "../desktop/api";
 import { createEffect, EFFECT_BY_TYPE } from "../effects/registry";
 import type { PlainMessageKey, Translate } from "../i18n/core";
 import { translateUiMessage, type UiMessageDescriptor, uiError, uiMessage } from "../i18n/errors";
@@ -50,7 +50,7 @@ export function AiPanel() {
   const createPreview = async (intent: string) => {
     const layerId = state.selection[0];
     setError(undefined);
-    if ("__TAURI_INTERNALS__" in window && intent.trim()) {
+    if (isDesktopRuntime() && intent.trim()) {
       setLoading(true);
       try {
         const generated = await invoke<{ summary: string; operations: unknown[] }>(

@@ -28,7 +28,7 @@ Aster 最重要的产品目标是：
 - **Open Source** — 开放核心、开放项目格式、开放插件生态。
 - **Programmable** — WGSL Shader、Render Graph 与 Native Plugin。
 - 第一版的界面完全参考 After Effects 进行实现
-- 使用最新版 Tauri 和 Vite + React 完成本项目的编写。
+- 使用最新版 Electron 和 Vite + React 完成本项目的编写。
 - 尽可能让性能做的更好。
 - 初版先支持 4K 分辨率。
 - 尽量控制代码行数和项目解耦拆分。
@@ -665,7 +665,7 @@ project.aster/
 | GPU | wgpu / WebGPU API model |
 | Backends | Vulkan / Metal / DX12 |
 | Shader | WGSL |
-| Desktop | Tauri + TypeScript |
+| Desktop | Electron + TypeScript |
 | Frontend | React / Vue 二选一 |
 | Viewport | Native wgpu Surface |
 | Video / Audio | FFmpeg |
@@ -1197,7 +1197,7 @@ aster/
 ### Desktop Shell
 
 - [ ] 创建 `apps/studio`。
-- [x] 集成 Tauri。
+- [x] 集成 Electron。
 - [x] 选择 React 或 Vue 并冻结首版选择。
 - [x] 建立前端状态管理方案。
 - [x] 建立 Rust ↔ UI command bridge。

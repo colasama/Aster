@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { activeComposition } from "../core/project";
 import { evaluateAnimatable } from "../core/timeline";
 import type { Keyframe } from "../core/types";
@@ -23,6 +23,8 @@ interface EasingPreview {
 export function GraphEditor() {
   const { state, dispatch } = useEditor();
   const { t } = useI18n();
+  const svgRef = useRef<SVGSVGElement>(null);
+  const [viewportSize, setViewportSize] = useState({ width: WIDTH, height: HEIGHT });
   const composition = activeComposition(state.project);
   const layer = composition.layers.find((entry) => entry.id === state.selection[0]);
   const property = layer?.transform.position[1];
@@ -47,11 +49,31 @@ export function GraphEditor() {
     y: HEIGHT - ((keyframe.value - min) / (max - min)) * (HEIGHT - PADDING * 2) - PADDING,
   });
   const curve = { mode: "animated" as const, keyframes: displayed };
+  const keyRadii = graphMarkerRadii(viewportSize.width, viewportSize.height, 5);
+  const handleRadii = graphMarkerRadii(viewportSize.width, viewportSize.height, 4);
   const points = Array.from({ length: 241 }, (_, index) => {
     const time = (index / 240) * composition.duration;
     const point = position({ time, value: evaluateAnimatable(curve, time) } as Keyframe);
     return `${point.x},${point.y}`;
   }).join(" ");
+
+  useLayoutEffect(() => {
+    const svg = svgRef.current;
+    if (!svg) return;
+    const updateViewportSize = () => {
+      const { width, height } = svg.getBoundingClientRect();
+      if (width <= 0 || height <= 0) return;
+      setViewportSize((current) =>
+        Math.abs(current.width - width) < 0.5 && Math.abs(current.height - height) < 0.5
+          ? current
+          : { width, height },
+      );
+    };
+    updateViewportSize();
+    const observer = new ResizeObserver(updateViewportSize);
+    observer.observe(svg);
+    return () => observer.disconnect();
+  }, []);
 
   const updateKeyframe = (
     keyframe: Keyframe,
@@ -77,7 +99,7 @@ export function GraphEditor() {
     });
   };
 
-  const startKeyframeDrag = (event: React.PointerEvent<SVGCircleElement>, keyframe: Keyframe) => {
+  const startKeyframeDrag = (event: React.PointerEvent<SVGEllipseElement>, keyframe: Keyframe) => {
     event.preventDefault();
     event.stopPropagation();
     dispatch({ type: "selectKeyframes", ids: [keyframe.id] });
@@ -111,7 +133,7 @@ export function GraphEditor() {
   };
 
   const startHandleDrag = (
-    event: React.PointerEvent<SVGCircleElement>,
+    event: React.PointerEvent<SVGEllipseElement>,
     keyframe: Keyframe,
     nextKeyframe: Keyframe,
     handle: "out" | "in",
@@ -180,6 +202,7 @@ export function GraphEditor() {
       <svg
         aria-label={t("graph.a11y")}
         preserveAspectRatio="none"
+        ref={svgRef}
         role="img"
         viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
       >
@@ -236,28 +259,31 @@ export function GraphEditor() {
                     y1={nextPoint?.y}
                     y2={inHandle.y}
                   />
-                  <circle
+                  <ellipse
                     className="graph-handle"
                     cx={outHandle.x}
                     cy={outHandle.y}
                     onPointerDown={(event) => startHandleDrag(event, keyframe, next, "out")}
-                    r="4"
+                    rx={handleRadii.x}
+                    ry={handleRadii.y}
                   />
-                  <circle
+                  <ellipse
                     className="graph-handle"
                     cx={inHandle.x}
                     cy={inHandle.y}
                     onPointerDown={(event) => startHandleDrag(event, keyframe, next, "in")}
-                    r="4"
+                    rx={handleRadii.x}
+                    ry={handleRadii.y}
                   />
                 </>
               )}
-              <circle
+              <ellipse
                 className={selected ? "graph-key selected" : "graph-key"}
                 cx={point.x}
                 cy={point.y}
                 onPointerDown={(event) => startKeyframeDrag(event, keyframe)}
-                r="5"
+                rx={keyRadii.x}
+                ry={keyRadii.y}
               />
             </g>
           );
@@ -272,6 +298,13 @@ export function GraphEditor() {
       </svg>
     </div>
   );
+}
+
+export function graphMarkerRadii(viewportWidth: number, viewportHeight: number, radius: number) {
+  return {
+    x: viewportWidth > 0 ? (radius * WIDTH) / viewportWidth : radius,
+    y: viewportHeight > 0 ? (radius * HEIGHT) / viewportHeight : radius,
+  };
 }
 
 function graphPoint(svg: SVGSVGElement, clientX: number, clientY: number) {

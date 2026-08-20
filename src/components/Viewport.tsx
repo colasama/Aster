@@ -11,11 +11,13 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createLayerForComposition } from "../core/layer-factory";
+import { logger } from "../core/logger";
+import type { Operation } from "../core/operations";
 import { activeComposition } from "../core/project";
 import type { FrameRenderSession } from "../core/render-export";
 import { evaluateWorldTransform, flattenSceneLayers } from "../core/scene-evaluation";
 import { evaluateAnimatable } from "../core/timeline";
-import type { GpuDiagnostics, Project } from "../core/types";
+import type { Composition, GpuDiagnostics, Project } from "../core/types";
 import type { PlainMessageKey, Translate } from "../i18n/core";
 import { useI18n } from "../i18n/react";
 import { CanvasFallbackRenderer } from "../renderer/canvas-fallback";
@@ -48,9 +50,23 @@ export function Viewport() {
   const [viewCount, setViewCount] = useState(1);
   const [bufferView, setBufferView] = useState<BufferVisualization>("beauty");
   const [space, setSpace] = useState<"local" | "world">("local");
+  const [editingTextLayerId, setEditingTextLayerId] = useState<string>();
+  const textEditRef = useRef<
+    | {
+        historyBase: Project;
+        initialText: string;
+        value: string;
+      }
+    | undefined
+  >(undefined);
+  const textEditorRef = useRef<HTMLTextAreaElement>(null);
   const displayZoom = state.viewportZoom * (viewCount === 2 ? 0.5 : 1);
   const pan = useRef({ active: false, x: 0, y: 0, left: 0, top: 0 });
   const selectedLayer = composition.layers.find((layer) => layer.id === state.selection[0]);
+  const editingTextLayer =
+    editingTextLayerId === selectedLayer?.id && selectedLayer?.kind === "text"
+      ? selectedLayer
+      : undefined;
   const selectedTransform = useMemo(
     () =>
       selectedLayer
@@ -70,9 +86,11 @@ export function Viewport() {
       quality: previewQualityRef.current,
       maxDimension: rendererRef.current?.diagnostics.maxTextureSize || undefined,
     });
+    if (canvas.width === preview.width && canvas.height === preview.height) return;
     canvas.width = preview.width;
     canvas.height = preview.height;
-    rendererRef.current?.resize(canvas.width, canvas.height);
+    rendererRef.current?.resize(preview.width, preview.height);
+    setRendererRevision((revision) => revision + 1);
   }, []);
 
   useEffect(() => {
@@ -99,17 +117,20 @@ export function Viewport() {
       if (!cancelled) setRendererRevision((revision) => revision + 1);
     })
       .catch((error: unknown) => {
-        console.error(
-          error instanceof Error ? error.message : "WebGPU renderer initialization failed",
-        );
+        logger.error("viewport", "webgpu_fallback_activated", error);
         return new CanvasFallbackRenderer(canvas);
       })
       .then((renderer) => {
         if (cancelled) return;
+        logger.info("viewport", "renderer_ready", {
+          backend: renderer instanceof WebGpuRenderer ? "webgpu" : "canvas2d",
+          adapter: renderer.diagnostics.adapter,
+        });
         rendererRef.current = renderer;
         setDiagnostics(renderer.diagnostics);
-        setRendererReady(true);
         resize();
+        renderer.resize(canvas.width, canvas.height);
+        setRendererReady(true);
       });
     return () => {
       cancelled = true;
@@ -174,11 +195,15 @@ export function Viewport() {
       const previewBufferView =
         renderer instanceof WebGpuRenderer ? renderer.bufferVisualization : undefined;
       if (renderer instanceof WebGpuRenderer) renderer.setBufferVisualization("beauty");
+      const synchronizeVideo = compositionContainsVideo(composition, state.project);
       canvas.width = composition.width;
       canvas.height = composition.height;
       renderer.resize(composition.width, composition.height);
       let closed = false;
       request.detail.resolve({
+        rawPixelFormat:
+          renderer instanceof WebGpuRenderer ? renderer.exportPixelFormat : ("rgba" as const),
+        maxInFlightFrames: renderer instanceof WebGpuRenderer && !synchronizeVideo ? 3 : 1,
         renderFrame: async (time) => {
           if (closed) throw new Error("Render session is already closed");
           renderer.render(composition, time, false, state.project);
@@ -188,6 +213,17 @@ export function Viewport() {
           );
           if (!blob) throw new Error("Renderer did not encode a PNG frame");
           return blob;
+        },
+        renderRawFrame: async (time) => {
+          if (closed) throw new Error("Render session is already closed");
+          if (renderer instanceof WebGpuRenderer)
+            return renderer.renderRawFrame(composition, time, state.project, synchronizeVideo);
+          renderer.render(composition, time, false, state.project);
+          await renderer.complete();
+          const context = canvas.getContext("2d");
+          if (!context) throw new Error("Canvas fallback pixels are unavailable");
+          const source = context.getImageData(0, 0, canvas.width, canvas.height).data;
+          return { pixels: new Uint8Array(source).slice().buffer, pixelFormat: "rgba" };
         },
         close: () => {
           if (closed) return;
@@ -216,6 +252,8 @@ export function Viewport() {
         return;
       }
       running = true;
+      const benchmarkStartedAt = performance.now();
+      logger.info("gpu_benchmark", "started", { sampleFrames: request.detail.sampleFrames });
       void runGpuBenchmark(
         renderer,
         canvas,
@@ -227,9 +265,18 @@ export function Viewport() {
         request.detail.sampleFrames,
         request.detail.onProgress,
       )
-        .then(request.detail.resolve)
+        .then((report) => {
+          logger.info("gpu_benchmark", "completed", {
+            sampleFrames: request.detail.sampleFrames,
+            durationMs: performance.now() - benchmarkStartedAt,
+          });
+          request.detail.resolve(report);
+        })
         .catch((error: unknown) => {
-          console.error(error instanceof Error ? error.message : "GPU benchmark failed");
+          logger.error("gpu_benchmark", "failed", error, {
+            sampleFrames: request.detail.sampleFrames,
+            durationMs: performance.now() - benchmarkStartedAt,
+          });
           request.detail.resolve();
         })
         .finally(() => {
@@ -239,6 +286,44 @@ export function Viewport() {
     window.addEventListener("aster:run-gpu-benchmark", runBenchmark);
     return () => window.removeEventListener("aster:run-gpu-benchmark", runBenchmark);
   }, [composition, state.currentTime, state.project]);
+
+  useEffect(() => {
+    if (editingTextLayerId) textEditorRef.current?.focus();
+  }, [editingTextLayerId]);
+
+  const beginTextEditing = (layerId: string) => {
+    const layer = composition.layers.find((candidate) => candidate.id === layerId);
+    if (layer?.kind !== "text" || layer.locked) return;
+    textEditRef.current = {
+      historyBase: state.project,
+      initialText: layer.text ?? "",
+      value: layer.text ?? "",
+    };
+    setEditingTextLayerId(layerId);
+  };
+  const finishTextEditing = () => {
+    const edit = textEditRef.current;
+    const layerId = editingTextLayerId;
+    textEditRef.current = undefined;
+    setEditingTextLayerId(undefined);
+    if (!edit || !layerId || edit.value === edit.initialText) return;
+    dispatch({
+      type: "operation",
+      historyBase: edit.historyBase,
+      operations: [{ type: "setTextContent", layerId, text: edit.value }],
+    });
+  };
+  const cancelTextEditing = () => {
+    const edit = textEditRef.current;
+    const layerId = editingTextLayerId;
+    textEditRef.current = undefined;
+    setEditingTextLayerId(undefined);
+    if (!edit || !layerId || edit.value === edit.initialText) return;
+    dispatch({
+      type: "previewOperation",
+      operations: [{ type: "setTextContent", layerId, text: edit.initialText }],
+    });
+  };
 
   return (
     <Panel
@@ -440,10 +525,15 @@ export function Viewport() {
               selectedLayer &&
               selectedTransform &&
               selectedLayer.kind !== "camera" &&
-              selectedLayer.kind !== "particle" && (
+              selectedLayer.kind !== "adjustment" && (
                 <button
                   aria-label={t("viewport.transformLayer", { name: selectedLayer.name })}
                   className={`selection-bounds ${selectedLayer.locked ? "locked" : ""}`}
+                  onDoubleClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    beginTextEditing(selectedLayer.id);
+                  }}
                   onKeyDown={(event) => {
                     if (selectedLayer.locked || !event.key.startsWith("Arrow")) return;
                     event.preventDefault();
@@ -490,9 +580,22 @@ export function Viewport() {
                     if (selectedLayer.locked) return;
                     event.preventDefault();
                     event.stopPropagation();
-                    const element = event.currentTarget;
                     const startX = event.clientX;
                     const startY = event.clientY;
+                    const pointerId = event.pointerId;
+                    const scaleHandle = (event.target as HTMLElement).closest<HTMLElement>(
+                      "[data-scale-handle]",
+                    )?.dataset.scaleHandle;
+                    const rotateHandle = Boolean(
+                      (event.target as HTMLElement).closest("[data-rotate-handle]"),
+                    );
+                    const mode =
+                      rotateHandle || state.activeTool === "rotate"
+                        ? "rotate"
+                        : scaleHandle
+                          ? "scale"
+                          : "move";
+                    const historyBase = state.project;
                     const initialX = evaluateAnimatable(
                       selectedLayer.transform.position[0],
                       state.currentTime,
@@ -505,6 +608,14 @@ export function Viewport() {
                       selectedLayer.transform.rotation[2],
                       state.currentTime,
                     );
+                    const initialScaleX = evaluateAnimatable(
+                      selectedLayer.transform.scale[0],
+                      state.currentTime,
+                    );
+                    const initialScaleY = evaluateAnimatable(
+                      selectedLayer.transform.scale[1],
+                      state.currentTime,
+                    );
                     const bounds = stageRef.current?.getBoundingClientRect();
                     const centerX = bounds
                       ? bounds.left +
@@ -515,34 +626,89 @@ export function Viewport() {
                         (selectedTransform.position[1] / composition.height) * bounds.height
                       : startY;
                     const startAngle = Math.atan2(startY - centerY, startX - centerX);
+                    const startLocal = rotateViewportPoint(
+                      startX - centerX,
+                      startY - centerY,
+                      -initialRotation,
+                    );
                     let nextX = initialX;
                     let nextY = initialY;
                     let nextRotation = initialRotation;
+                    let nextScaleX = initialScaleX;
+                    let nextScaleY = initialScaleY;
                     const move = (moveEvent: PointerEvent) => {
-                      if (state.activeTool === "rotate") {
+                      if (moveEvent.pointerId !== pointerId) return;
+                      let operations: Operation[];
+                      if (mode === "rotate") {
                         const angle = Math.atan2(
                           moveEvent.clientY - centerY,
                           moveEvent.clientX - centerX,
                         );
                         nextRotation = initialRotation + ((angle - startAngle) * 180) / Math.PI;
-                        element.style.setProperty("--preview-rotation", `${nextRotation}deg`);
+                        operations = [
+                          {
+                            type: "setProperty",
+                            layerId: selectedLayer.id,
+                            path: "rotation.2",
+                            value: nextRotation,
+                          },
+                        ];
+                      } else if (mode === "scale") {
+                        const local = rotateViewportPoint(
+                          moveEvent.clientX - centerX,
+                          moveEvent.clientY - centerY,
+                          -initialRotation,
+                        );
+                        const uniform = moveEvent.shiftKey;
+                        const ratioX = safeScaleRatio(local[0], startLocal[0]);
+                        const ratioY = safeScaleRatio(local[1], startLocal[1]);
+                        const uniformRatio = Math.abs(ratioX) > Math.abs(ratioY) ? ratioX : ratioY;
+                        nextScaleX = clampScale(initialScaleX * (uniform ? uniformRatio : ratioX));
+                        nextScaleY = clampScale(initialScaleY * (uniform ? uniformRatio : ratioY));
+                        operations = [
+                          {
+                            type: "setProperty",
+                            layerId: selectedLayer.id,
+                            path: "scale.0",
+                            value: nextScaleX,
+                          },
+                          {
+                            type: "setProperty",
+                            layerId: selectedLayer.id,
+                            path: "scale.1",
+                            value: nextScaleY,
+                          },
+                        ];
                       } else {
                         nextX = initialX + (moveEvent.clientX - startX) / displayZoom;
                         nextY = initialY + (moveEvent.clientY - startY) / displayZoom;
-                        element.style.setProperty("--drag-x", `${moveEvent.clientX - startX}px`);
-                        element.style.setProperty("--drag-y", `${moveEvent.clientY - startY}px`);
+                        operations = [
+                          {
+                            type: "setProperty",
+                            layerId: selectedLayer.id,
+                            path: "position.0",
+                            value: nextX,
+                          },
+                          {
+                            type: "setProperty",
+                            layerId: selectedLayer.id,
+                            path: "position.1",
+                            value: nextY,
+                          },
+                        ];
                       }
+                      dispatch({ type: "previewOperation", operations });
                     };
-                    const up = () => {
+                    const up = (upEvent: PointerEvent) => {
+                      if (upEvent.pointerId !== pointerId) return;
                       window.removeEventListener("pointermove", move);
                       window.removeEventListener("pointerup", up);
-                      element.style.removeProperty("--drag-x");
-                      element.style.removeProperty("--drag-y");
-                      element.style.removeProperty("--preview-rotation");
-                      if (state.activeTool === "rotate") {
+                      window.removeEventListener("pointercancel", up);
+                      if (mode === "rotate") {
                         if (Math.abs(nextRotation - initialRotation) < 0.01) return;
                         dispatch({
                           type: "operation",
+                          historyBase,
                           operations: [
                             {
                               type: "setProperty",
@@ -552,10 +718,34 @@ export function Viewport() {
                             },
                           ],
                         });
+                      } else if (mode === "scale") {
+                        if (
+                          Math.hypot(nextScaleX - initialScaleX, nextScaleY - initialScaleY) < 0.01
+                        )
+                          return;
+                        dispatch({
+                          type: "operation",
+                          historyBase,
+                          operations: [
+                            {
+                              type: "setProperty",
+                              layerId: selectedLayer.id,
+                              path: "scale.0",
+                              value: nextScaleX,
+                            },
+                            {
+                              type: "setProperty",
+                              layerId: selectedLayer.id,
+                              path: "scale.1",
+                              value: nextScaleY,
+                            },
+                          ],
+                        });
                       } else {
                         if (Math.hypot(nextX - initialX, nextY - initialY) < 0.01) return;
                         dispatch({
                           type: "operation",
+                          historyBase,
                           operations: [
                             {
                               type: "setProperty",
@@ -575,28 +765,80 @@ export function Viewport() {
                     };
                     window.addEventListener("pointermove", move);
                     window.addEventListener("pointerup", up);
+                    window.addEventListener("pointercancel", up);
                   }}
                   style={{
-                    height: `${(selectedLayer.size[1] * selectedTransform.scale[1] * displayZoom) / 100}px`,
+                    height: `${(selectedLayer.size[1] * Math.abs(selectedTransform.scale[1]) * displayZoom) / 100}px`,
                     left: `${selectedTransform.position[0] * displayZoom}px`,
                     top: `${selectedTransform.position[1] * displayZoom}px`,
-                    transform: `translate(calc(-50% + var(--drag-x, 0px)), calc(-50% + var(--drag-y, 0px))) rotate(var(--preview-rotation, ${selectedTransform.rotation[2]}deg))`,
-                    width: `${(selectedLayer.size[0] * selectedTransform.scale[0] * displayZoom) / 100}px`,
+                    transform: `translate(-50%, -50%) rotate(${selectedTransform.rotation[2]}deg)`,
+                    width: `${(selectedLayer.size[0] * Math.abs(selectedTransform.scale[0]) * displayZoom) / 100}px`,
                   }}
                   type="button"
                 >
-                  <i className="handle top-left" />
-                  <i className="handle top-right" />
-                  <i className="handle bottom-left" />
-                  <i className="handle bottom-right" />
+                  <i className="rotation-stem" />
+                  <i className="rotation-handle" data-rotate-handle />
+                  <i className="handle top-left" data-scale-handle="top-left" />
+                  <i className="handle top-right" data-scale-handle="top-right" />
+                  <i className="handle bottom-left" data-scale-handle="bottom-left" />
+                  <i className="handle bottom-right" data-scale-handle="bottom-right" />
                   <i className="anchor-handle" />
                 </button>
               )}
+            {editingTextLayer && selectedTransform && (
+              <textarea
+                aria-label={t("viewport.editText", { name: editingTextLayer.name })}
+                className="viewport-text-editor"
+                maxLength={20_000}
+                onBlur={finishTextEditing}
+                onChange={(event) => {
+                  if (!textEditRef.current) return;
+                  textEditRef.current.value = event.target.value;
+                  dispatch({
+                    type: "previewOperation",
+                    operations: [
+                      {
+                        type: "setTextContent",
+                        layerId: editingTextLayer.id,
+                        text: event.target.value,
+                      },
+                    ],
+                  });
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Escape") {
+                    event.preventDefault();
+                    cancelTextEditing();
+                  } else if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
+                    event.preventDefault();
+                    finishTextEditing();
+                  }
+                }}
+                onPointerDown={(event) => event.stopPropagation()}
+                ref={textEditorRef}
+                spellCheck="true"
+                style={{
+                  color: cssColor(editingTextLayer.color),
+                  fontFamily: editingTextLayer.textStyle?.fontFamily,
+                  fontSize: `${(editingTextLayer.textStyle?.fontSize ?? 144) * displayZoom}px`,
+                  fontWeight: editingTextLayer.textStyle?.fontWeight,
+                  height: `${(editingTextLayer.size[1] * Math.abs(selectedTransform.scale[1]) * displayZoom) / 100}px`,
+                  left: `${selectedTransform.position[0] * displayZoom}px`,
+                  lineHeight: `${(editingTextLayer.textStyle?.leading ?? 172) * displayZoom}px`,
+                  textAlign: editingTextLayer.textStyle?.alignment ?? "center",
+                  top: `${selectedTransform.position[1] * displayZoom}px`,
+                  transform: `translate(-50%, -50%) rotate(${selectedTransform.rotation[2]}deg)`,
+                  width: `${(editingTextLayer.size[0] * Math.abs(selectedTransform.scale[0]) * displayZoom) / 100}px`,
+                }}
+                value={editingTextLayer.text ?? ""}
+              />
+            )}
             {state.showLayerControls && selectedLayer?.kind === "camera" && selectedTransform && (
               <CameraGizmo
                 activeTool={state.activeTool === "rotate" ? "rotate" : "select"}
                 dispatch={dispatch}
                 layer={selectedLayer}
+                project={state.project}
                 transform={selectedTransform}
                 zoom={displayZoom}
               />
@@ -739,7 +981,7 @@ function hitTestLayer(
 ) {
   const hit = flattenSceneLayers(composition, project, time).find((scene) => {
     const { layer, transform } = scene;
-    if (layer.kind === "camera" || layer.kind === "particle" || layer.kind === "light")
+    if (layer.kind === "camera" || layer.kind === "light" || layer.kind === "adjustment")
       return false;
     const radians = (-transform.rotation[2] * Math.PI) / 180;
     const deltaX = x - transform.position[0];
@@ -751,4 +993,48 @@ function hitTestLayer(
     return Math.abs(localX) <= halfWidth && Math.abs(localY) <= halfHeight;
   });
   return hit ? composition.layers.find((layer) => layer.id === hit.selectionId) : undefined;
+}
+
+export function rotateViewportPoint(x: number, y: number, degrees: number): [number, number] {
+  const radians = (degrees * Math.PI) / 180;
+  return [
+    x * Math.cos(radians) - y * Math.sin(radians),
+    x * Math.sin(radians) + y * Math.cos(radians),
+  ];
+}
+
+export function safeScaleRatio(value: number, origin: number): number {
+  return Math.abs(origin) < 0.5 ? 1 : value / origin;
+}
+
+export function clampScale(value: number): number {
+  if (!Number.isFinite(value)) return 100;
+  const sign = value < 0 ? -1 : 1;
+  return sign * Math.max(0.1, Math.min(10_000, Math.abs(value)));
+}
+
+function cssColor(color: readonly [number, number, number, number]): string {
+  const channels = color.map((value, index) =>
+    index === 3
+      ? Math.max(0, Math.min(1, value))
+      : Math.round(Math.max(0, Math.min(1, value)) * 255),
+  );
+  return `rgba(${channels.join(", ")})`;
+}
+
+function compositionContainsVideo(
+  composition: Composition,
+  project: Project,
+  visited = new Set<string>(),
+): boolean {
+  if (visited.has(composition.id)) return false;
+  visited.add(composition.id);
+  return composition.layers.some((layer) => {
+    if (layer.kind === "video") return true;
+    if (layer.kind !== "precomposition" || !layer.sourceCompositionId) return false;
+    const source = project.compositions.find(
+      (candidate) => candidate.id === layer.sourceCompositionId,
+    );
+    return source ? compositionContainsVideo(source, project, visited) : false;
+  });
 }

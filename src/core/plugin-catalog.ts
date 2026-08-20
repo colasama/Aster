@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invoke, isDesktopRuntime } from "../desktop/api";
 import { HOST_PLUGIN_API_VERSION, type PluginCapability } from "./plugins";
 
 export interface PluginRegistryEntry {
@@ -21,7 +21,7 @@ export interface PluginRegistryCatalog {
 }
 
 export async function readPluginRegistryCatalog(): Promise<PluginRegistryCatalog> {
-  if (typeof window !== "undefined" && "__TAURI_INTERNALS__" in window) {
+  if (isDesktopRuntime()) {
     return invoke<PluginRegistryCatalog>("plugin_registry_catalog");
   }
   return browserDevelopmentCatalog();
