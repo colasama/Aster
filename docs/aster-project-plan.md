@@ -1420,7 +1420,7 @@ aster/
 - [x] 1M particle benchmark。
 - [x] Particle cache / deterministic seed。
 - [x] Arbitrary-time evaluation strategy。
-- [ ] Checkpoint-based seek strategy。
+- [x] Checkpoint-based seek strategy。
 - [x] Cloner abstraction。
 - [x] Grid cloner。
 - [x] Radial cloner。
