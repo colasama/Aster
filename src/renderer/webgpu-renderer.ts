@@ -9,6 +9,7 @@ import type {
 } from "../core/types";
 import { FLOATS_PER_EFFECT_OPERATION, MAX_EFFECT_OPERATIONS } from "./effect-program";
 import { FLOATS_PER_VERTEX, type GeometryBatch } from "./geometry";
+import { GpuTimestampProfiler } from "./gpu-timestamp-profiler";
 import { LayerEffectRenderer } from "./layer-effects";
 import { createLutSampler, createLutTexture } from "./lut-texture";
 import { buildPostProcessUniforms } from "./post-process";
@@ -61,9 +62,7 @@ export class WebGpuRenderer {
   readonly #imageSampler: GPUSampler;
   readonly #postUniformBuffer: GPUBuffer;
   readonly #effectProgramBuffer: GPUBuffer;
-  readonly #timestampQuerySet?: GPUQuerySet;
-  readonly #timestampResolveBuffer?: GPUBuffer;
-  readonly #timestampReadBuffer?: GPUBuffer;
+  readonly #gpuProfiler: GpuTimestampProfiler;
   #postBindGroup?: GPUBindGroup;
   #sceneTexture?: GPUTexture;
   #depthTexture?: GPUTexture;
@@ -71,9 +70,6 @@ export class WebGpuRenderer {
   #height = 1;
   #smoothedFrameMs = 16.67;
   #lastFrameStarted?: number;
-  #gpuTimestampPending = false;
-  #lastGpuMs?: number;
-  #lastPassTimings?: RendererMetrics["passTimings"];
   #shapeBufferBytes = MAX_SHAPE_VERTICES * FLOATS_PER_VERTEX * Float32Array.BYTES_PER_ELEMENT;
   readonly #invalidate: () => void;
   readonly #mediaResources = new Map<string, MediaResource>();
@@ -91,6 +87,7 @@ export class WebGpuRenderer {
     this.#format = format;
     this.diagnostics = diagnostics;
     this.#invalidate = invalidate;
+    this.#gpuProfiler = new GpuTimestampProfiler(device, diagnostics.timestampQueries, invalidate);
     this.#shapePipelines = {
       normal: this.#createShapePipeline("normal"),
       add: this.#createShapePipeline("add"),
@@ -181,23 +178,6 @@ export class WebGpuRenderer {
       size: MAX_EFFECT_OPERATIONS * FLOATS_PER_EFFECT_OPERATION * Float32Array.BYTES_PER_ELEMENT,
       usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
     });
-    if (diagnostics.timestampQueries) {
-      this.#timestampQuerySet = device.createQuerySet({
-        label: "Aster GPU pass timestamps",
-        type: "timestamp",
-        count: 6,
-      });
-      this.#timestampResolveBuffer = device.createBuffer({
-        label: "GPU timestamp resolve",
-        size: 6 * BigUint64Array.BYTES_PER_ELEMENT,
-        usage: GPUBufferUsage.QUERY_RESOLVE | GPUBufferUsage.COPY_SRC,
-      });
-      this.#timestampReadBuffer = device.createBuffer({
-        label: "Asynchronous GPU timestamp readback",
-        size: 6 * BigUint64Array.BYTES_PER_ELEMENT,
-        usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
-      });
-    }
     this.#postPipeline = this.#createPostPipeline();
     this.#layerEffects = new LayerEffectRenderer(device, SCENE_FORMAT);
   }
@@ -332,13 +312,7 @@ export class WebGpuRenderer {
     const encoder = this.#device.createCommandEncoder({ label: "Aster frame render graph" });
     const compute = encoder.beginComputePass({
       label: "GPU particle simulation",
-      timestampWrites: this.#timestampQuerySet
-        ? {
-            querySet: this.#timestampQuerySet,
-            beginningOfPassWriteIndex: 0,
-            endOfPassWriteIndex: 1,
-          }
-        : undefined,
+      timestampWrites: this.#gpuProfiler.writes(0, 1),
     });
     compute.setPipeline(this.#computePipeline);
     compute.setBindGroup(0, this.#computeBindGroup);
@@ -350,12 +324,7 @@ export class WebGpuRenderer {
       throw new Error("HDR scene target is unavailable");
     let scenePass: GPURenderPassEncoder | undefined = encoder.beginRenderPass({
       label: "Linear HDR composition",
-      timestampWrites: this.#timestampQuerySet
-        ? {
-            querySet: this.#timestampQuerySet,
-            beginningOfPassWriteIndex: 2,
-          }
-        : undefined,
+      timestampWrites: this.#gpuProfiler.writes(2),
       colorAttachments: [
         {
           view: sceneView,
@@ -436,22 +405,14 @@ export class WebGpuRenderer {
     this.#layerEffects.sweep(activeEffectInstances);
     const sceneTimingEnd = encoder.beginRenderPass({
       label: "Composition timing marker",
-      timestampWrites: this.#timestampQuerySet
-        ? { querySet: this.#timestampQuerySet, endOfPassWriteIndex: 3 }
-        : undefined,
+      timestampWrites: this.#gpuProfiler.writes(undefined, 3),
       colorAttachments: [{ view: sceneView, loadOp: "load", storeOp: "store" }],
     });
     sceneTimingEnd.end();
     const output = this.#context.getCurrentTexture().createView();
     const postPass = encoder.beginRenderPass({
       label: "Fused effects + ACES display transform",
-      timestampWrites: this.#timestampQuerySet
-        ? {
-            querySet: this.#timestampQuerySet,
-            beginningOfPassWriteIndex: 4,
-            endOfPassWriteIndex: 5,
-          }
-        : undefined,
+      timestampWrites: this.#gpuProfiler.writes(4, 5),
       colorAttachments: [
         {
           view: output,
@@ -465,24 +426,9 @@ export class WebGpuRenderer {
     postPass.setBindGroup(0, this.#postBindGroup);
     postPass.draw(3);
     postPass.end();
-    const collectTimestamps =
-      this.#timestampQuerySet &&
-      this.#timestampResolveBuffer &&
-      this.#timestampReadBuffer &&
-      !this.#gpuTimestampPending;
-    if (collectTimestamps) {
-      this.#gpuTimestampPending = true;
-      encoder.resolveQuerySet(this.#timestampQuerySet, 0, 6, this.#timestampResolveBuffer, 0);
-      encoder.copyBufferToBuffer(
-        this.#timestampResolveBuffer,
-        0,
-        this.#timestampReadBuffer,
-        0,
-        6 * BigUint64Array.BYTES_PER_ELEMENT,
-      );
-    }
+    const collectTimestamps = this.#gpuProfiler.encodeReadback(encoder);
     this.#device.queue.submit([encoder.finish()]);
-    if (collectTimestamps) this.#readGpuTimestamps(this.#timestampReadBuffer);
+    if (collectTimestamps) this.#gpuProfiler.readback();
     const cpuMs = performance.now() - started;
     const sample = frameInterval > 100 ? 16.67 : Math.max(frameInterval, 0.1);
     this.#smoothedFrameMs = this.#smoothedFrameMs * 0.9 + sample * 0.1;
@@ -492,45 +438,19 @@ export class WebGpuRenderer {
       fps: Math.min(240, 1000 / this.#smoothedFrameMs),
       frameMs: this.#smoothedFrameMs,
       cpuMs,
-      gpuMs: this.#lastGpuMs,
+      gpuMs: this.#gpuProfiler.totalMs(),
       drawCalls: 1 + geometry.batches.length + effectLayerCount * 2 + Number(particleVisible),
       passCount: 3 + scenePassCount + effectLayerCount * 3,
       dirtyNodes: (evaluation.cacheHit ? 0 : sceneLayers.length) + effectOperationCount,
       cacheHitRate: this.#evaluationCache.hitRate(),
       estimatedVramMb: (hdr4kBytes + PARTICLE_COUNT * 16) / 1024 / 1024,
       transientTextureCount: 5,
-      passTimings: this.#lastPassTimings,
+      passTimings: this.#gpuProfiler.passTimings(),
     };
   }
 
   async complete(): Promise<void> {
     await this.#device.queue.onSubmittedWorkDone();
-  }
-
-  #readGpuTimestamps(buffer: GPUBuffer): void {
-    void buffer
-      .mapAsync(GPUMapMode.READ)
-      .then(() => {
-        const firstSample = this.#lastPassTimings === undefined;
-        const timestamps = new BigUint64Array(buffer.getMappedRange().slice(0));
-        const elapsed =
-          timestamps[1] -
-          timestamps[0] +
-          (timestamps[3] - timestamps[2]) +
-          (timestamps[5] - timestamps[4]);
-        this.#lastGpuMs = Number(elapsed) / 1_000_000;
-        this.#lastPassTimings = {
-          computeMs: Number(timestamps[1] - timestamps[0]) / 1_000_000,
-          sceneMs: Number(timestamps[3] - timestamps[2]) / 1_000_000,
-          postMs: Number(timestamps[5] - timestamps[4]) / 1_000_000,
-        };
-        buffer.unmap();
-        if (firstSample) this.#invalidate();
-      })
-      .catch(() => undefined)
-      .finally(() => {
-        this.#gpuTimestampPending = false;
-      });
   }
 
   #drawBatch(
