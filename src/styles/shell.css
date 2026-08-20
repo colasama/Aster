@@ -524,6 +524,26 @@
   color: white;
   background: #3c68c7;
 }
+.plugin-view-tabs {
+  display: flex;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid #303540;
+  border-radius: 4px;
+  background: #101218;
+}
+.plugin-view-tabs button {
+  flex: 1;
+  height: 25px;
+  border-radius: 3px;
+  color: #737c8d;
+  font-size: 8px;
+}
+.plugin-view-tabs button.active {
+  color: #dce5f7;
+  background: #293650;
+  box-shadow: inset 0 0 0 1px #3f5680;
+}
 .plugin-safe-mode {
   display: flex;
   align-items: center;
@@ -614,6 +634,76 @@
   gap: 5px;
   color: #969dab;
   font-size: 8px;
+}
+.plugin-registry-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 9px;
+  border: 1px solid #5a5133;
+  border-radius: 4px;
+  color: #d6bd73;
+  background: #211e14;
+}
+.plugin-registry-notice-copy {
+  display: grid;
+  gap: 3px;
+}
+.plugin-registry-notice-title {
+  color: #e2cf96;
+  font-size: 9px;
+}
+.plugin-registry-notice small,
+.plugin-registry-summary,
+.plugin-registry-source,
+.plugin-registry-loading {
+  color: #838b9a;
+  font-size: 8px;
+  line-height: 1.45;
+}
+.plugin-registry-list {
+  max-height: 255px;
+}
+.plugin-registry-list article {
+  min-height: 78px;
+}
+.plugin-registry-heading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.plugin-registry-badge {
+  padding: 2px 5px;
+  border-radius: 8px;
+  font-size: 7px;
+}
+.plugin-registry-heading .compatible {
+  color: #8bc7a4;
+  background: #1a3328;
+}
+.plugin-registry-heading .incompatible {
+  color: #c89b82;
+  background: #36251f;
+}
+.plugin-registry-summary {
+  color: #a2a9b6;
+}
+.plugin-manual-install {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #7c8493;
+  font-size: 7px;
+  white-space: nowrap;
+}
+.plugin-registry-source {
+  padding: 0 2px;
+  color: #656e7e;
+}
+.plugin-registry-loading {
+  display: grid;
+  min-height: 125px;
+  place-items: center;
 }
 .plugin-empty {
   display: grid;

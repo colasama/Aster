@@ -9,6 +9,9 @@ use std::{
 };
 use tauri::Manager;
 
+mod plugin_registry;
+use plugin_registry::plugin_registry_catalog;
+
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct RendererCapabilities {
@@ -688,6 +691,7 @@ pub fn run() {
             install_plugin,
             operation_schema,
             poll_plugin_hot_reload,
+            plugin_registry_catalog,
             plugin_status,
             recovery_candidate,
             renderer_capabilities,

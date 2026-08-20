@@ -18,6 +18,7 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 const MAX_SHADER_BYTES: u64 = 4 * 1024 * 1024;
+pub const HOST_PLUGIN_API_VERSION: u32 = 1;
 
 #[derive(Clone, Debug, Deserialize, JsonSchema, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -37,10 +38,10 @@ impl PluginManifest {
     }
 
     pub fn validate(&self) -> Result<(), PluginError> {
-        if !valid_id(&self.plugin.id) {
+        if !valid_plugin_id(&self.plugin.id) {
             return Err(PluginError::InvalidId(self.plugin.id.clone()));
         }
-        if self.plugin.api_version != 1 {
+        if self.plugin.api_version != HOST_PLUGIN_API_VERSION {
             return Err(PluginError::UnsupportedApi(self.plugin.api_version));
         }
         if !valid_version(&self.plugin.version) {
@@ -311,13 +312,23 @@ fn valid_parameter_name(name: &str) -> bool {
         && characters.all(|character| character.is_ascii_alphanumeric() || character == '_')
 }
 
-fn valid_id(id: &str) -> bool {
-    !id.is_empty()
+pub fn valid_plugin_id(id: &str) -> bool {
+    id.len() <= 128
         && id.split('.').count() >= 2
-        && id.chars().all(|character| {
-            character.is_ascii_lowercase()
-                || character.is_ascii_digit()
-                || ".-_".contains(character)
+        && id.split('.').all(|label| {
+            !label.is_empty()
+                && label.len() <= 63
+                && label
+                    .as_bytes()
+                    .first()
+                    .is_some_and(u8::is_ascii_alphanumeric)
+                && label
+                    .as_bytes()
+                    .last()
+                    .is_some_and(u8::is_ascii_alphanumeric)
+                && label
+                    .bytes()
+                    .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'-')
         })
 }
 

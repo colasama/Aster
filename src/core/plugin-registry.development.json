@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "packages": [
+    {
+      "id": "org.aster.development.soft-tint",
+      "name": "Soft Tint",
+      "summary": "Minimal GPU render effect used to preview the registry catalog contract.",
+      "author": "Aster Development Fixtures",
+      "releases": [
+        {
+          "version": "1.1.0",
+          "api_version": 1,
+          "download_url": "https://registry.invalid/development/soft-tint-1.1.0.zip",
+          "sha256": "f9b02f6d7815ac32ead57c57a136005e30ec6f7f37f81a48931868f829590119",
+          "archive_bytes": 4096,
+          "capabilities": ["gpu_render"]
+        },
+        {
+          "version": "2.0.0",
+          "api_version": 2,
+          "download_url": "https://registry.invalid/development/soft-tint-2.0.0.zip",
+          "sha256": "40bdef3de7c2ec8d12a68978bbf98270b8c97652b2e68f4bf895f6a0060a2184",
+          "archive_bytes": 5120,
+          "capabilities": ["gpu_render"]
+        }
+      ]
+    },
+    {
+      "id": "org.aster.development.temporal-grain",
+      "name": "Temporal Grain",
+      "summary": "GPU compute and render capability example for catalog presentation.",
+      "author": "Aster Development Fixtures",
+      "releases": [
+        {
+          "version": "0.3.0",
+          "api_version": 1,
+          "download_url": "https://registry.invalid/development/temporal-grain-0.3.0.zip",
+          "sha256": "1fda0af9d6792528ef7af76bd16cc6de3fc91dbc9afd07e96b0dfe3db0e1b230",
+          "archive_bytes": 8192,
+          "capabilities": ["gpu_compute", "gpu_render"]
+        }
+      ]
+    },
+    {
+      "id": "org.aster.development.remote-texture",
+      "name": "Remote Texture",
+      "summary": "Future API example that remains unavailable on the current host.",
+      "author": "Aster Development Fixtures",
+      "releases": [
+        {
+          "version": "2.1.0",
+          "api_version": 2,
+          "download_url": "https://registry.invalid/development/remote-texture-2.1.0.zip",
+          "sha256": "a5a45c51cfe48bb87f4e30a4d26ac59fbb1b898d5fbf84c3b462f4289495ae73",
+          "archive_bytes": 6144,
+          "capabilities": ["gpu_render", "network"]
+        }
+      ]
+    }
+  ]
+}

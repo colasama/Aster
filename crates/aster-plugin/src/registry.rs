@@ -1,11 +1,11 @@
 //! Bounded registry index parsing and deterministic compatible-release selection.
 
-use std::collections::BTreeSet;
+use std::{collections::BTreeSet, net::IpAddr};
 
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use crate::Capability;
+use crate::{Capability, valid_plugin_id};
 
 pub const REGISTRY_SCHEMA_VERSION: u32 = 1;
 pub const MAX_REGISTRY_BYTES: usize = 1024 * 1024;
@@ -109,7 +109,7 @@ impl RegistryIndex {
 
 impl RegistryPackage {
     fn validate(&self) -> Result<(), RegistryError> {
-        if !valid_id(&self.id) {
+        if !valid_plugin_id(&self.id) {
             return Err(RegistryError::InvalidPackageId(self.id.clone()));
         }
         for (field, value) in [
@@ -177,22 +177,88 @@ fn parse_version(version: &str) -> Option<(u64, u64, u64)> {
     parts.next().is_none().then_some(parsed)
 }
 
-fn valid_id(id: &str) -> bool {
-    !id.is_empty()
-        && id.len() <= 128
-        && id.split('.').count() >= 2
-        && id.chars().all(|character| {
-            character.is_ascii_lowercase()
-                || character.is_ascii_digit()
-                || ".-_".contains(character)
+fn valid_https_url(value: &str) -> bool {
+    if value.len() > 2048 || value.contains('\\') || value.chars().any(char::is_whitespace) {
+        return false;
+    }
+    let Some(remainder) = value.strip_prefix("https://") else {
+        return false;
+    };
+    let authority = remainder.split(['/', '?', '#']).next().unwrap_or_default();
+    if authority.is_empty() || authority.contains('@') {
+        return false;
+    }
+    let Some(host) = authority_host(authority) else {
+        return false;
+    };
+    if let Ok(address) = host.parse::<IpAddr>() {
+        return public_ip_literal(address);
+    }
+    let host = host.to_ascii_lowercase();
+    host != "localhost"
+        && !host.ends_with(".localhost")
+        && !host.ends_with(".local")
+        && host.len() <= 253
+        && host.split('.').count() >= 2
+        && host.split('.').all(|label| {
+            !label.is_empty()
+                && label.len() <= 63
+                && label
+                    .as_bytes()
+                    .first()
+                    .is_some_and(u8::is_ascii_alphanumeric)
+                && label
+                    .as_bytes()
+                    .last()
+                    .is_some_and(u8::is_ascii_alphanumeric)
+                && label
+                    .bytes()
+                    .all(|byte| byte.is_ascii_alphanumeric() || byte == b'-')
         })
 }
 
-fn valid_https_url(value: &str) -> bool {
-    value.starts_with("https://")
-        && value.len() <= 2048
-        && !value.contains(['\\', '@'])
-        && !value.chars().any(char::is_whitespace)
+fn authority_host(authority: &str) -> Option<&str> {
+    if let Some(bracketed) = authority.strip_prefix('[') {
+        let closing = bracketed.find(']')?;
+        let host = &bracketed[..closing];
+        let suffix = &bracketed[closing + 1..];
+        return valid_port_suffix(suffix).then_some(host);
+    }
+    match authority.rsplit_once(':') {
+        Some((host, port)) if !host.contains(':') && valid_port(port) => Some(host),
+        Some(_) => None,
+        None => Some(authority),
+    }
+}
+
+fn valid_port_suffix(suffix: &str) -> bool {
+    suffix.is_empty() || suffix.strip_prefix(':').is_some_and(valid_port)
+}
+
+fn valid_port(port: &str) -> bool {
+    port.parse::<u16>().is_ok_and(|value| value != 0)
+}
+
+fn public_ip_literal(address: IpAddr) -> bool {
+    match address {
+        IpAddr::V4(address) => {
+            !(address.is_private()
+                || address.is_loopback()
+                || address.is_link_local()
+                || address.is_broadcast()
+                || address.is_documentation()
+                || address.is_unspecified()
+                || address.is_multicast())
+        }
+        IpAddr::V6(address) => {
+            let first = address.segments()[0];
+            !(address.is_loopback()
+                || address.is_unspecified()
+                || address.is_multicast()
+                || first & 0xfe00 == 0xfc00
+                || first & 0xffc0 == 0xfe80)
+        }
+    }
 }
 
 #[derive(Debug, Error)]
@@ -285,6 +351,19 @@ mod tests {
             RegistryIndex::parse(&duplicate),
             Err(RegistryError::DuplicateRelease { .. })
         ));
+        for url in [
+            "https://",
+            "https://localhost/tint.zip",
+            "https://127.0.0.1/tint.zip",
+            "https://10.0.0.1/tint.zip",
+            "https://[::1]/tint.zip",
+            "https://user@plugins.example/tint.zip",
+        ] {
+            assert!(matches!(
+                RegistryIndex::parse(&index_json(&release("1.0.0", 1, url))),
+                Err(RegistryError::UnsafeDownloadUrl(_))
+            ));
+        }
     }
 
     #[test]
@@ -294,5 +373,29 @@ mod tests {
             RegistryIndex::parse(&bytes),
             Err(RegistryError::IndexTooLarge(_))
         ));
+    }
+
+    #[test]
+    fn rejects_empty_or_path_like_reverse_domain_labels() {
+        for id in [
+            ".",
+            "..",
+            "org..tint",
+            "org.-tint",
+            "org.tint-",
+            "org.tint_name",
+        ] {
+            let invalid = String::from_utf8(index_json(&release(
+                "1.0.0",
+                1,
+                "https://plugins.example/tint.zip",
+            )))
+            .unwrap()
+            .replace("org.aster.tint", id);
+            assert!(matches!(
+                RegistryIndex::parse(invalid.as_bytes()),
+                Err(RegistryError::InvalidPackageId(_))
+            ));
+        }
     }
 }

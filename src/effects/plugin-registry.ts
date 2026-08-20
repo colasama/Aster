@@ -1,4 +1,9 @@
-import type { PluginManifest, PluginParameter, PluginStatus } from "../core/plugins";
+import {
+  HOST_PLUGIN_API_VERSION,
+  type PluginManifest,
+  type PluginParameter,
+  type PluginStatus,
+} from "../core/plugins";
 import { replacePluginEffectDefinitions } from "./registry";
 import type { EffectDefinition, EffectParameterDefinition } from "./types";
 
@@ -41,10 +46,10 @@ export function synchronizePluginEffectDefinitions(status: PluginStatus): readon
 
 export function pluginManifestToEffectDefinition(manifest: PluginManifest): EffectDefinition {
   assertNonEmpty(manifest.plugin.id, "plugin id");
-  if (!/^[a-z0-9_-]+(?:\.[a-z0-9_-]+)+$/.test(manifest.plugin.id))
+  if (!isValidPluginId(manifest.plugin.id))
     throw new Error(`Plugin id ${manifest.plugin.id} must be a reverse-domain identifier`);
   assertNonEmpty(manifest.plugin.name, "plugin name");
-  if (manifest.plugin.api_version !== 1)
+  if (manifest.plugin.api_version !== HOST_PLUGIN_API_VERSION)
     throw new Error(
       `Plugin ${manifest.plugin.id} uses unsupported API ${manifest.plugin.api_version}`,
     );
@@ -65,6 +70,18 @@ export function pluginManifestToEffectDefinition(manifest: PluginManifest): Effe
     execution: "fused-pixel",
     parameters,
   };
+}
+
+function isValidPluginId(id: string): boolean {
+  const labels = id.split(".");
+  return (
+    id.length <= 128 &&
+    labels.length >= 2 &&
+    labels.every(
+      (label) =>
+        label.length > 0 && label.length <= 63 && /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/.test(label),
+    )
+  );
 }
 
 export function pluginParameterToEffectParameter(
