@@ -3,6 +3,10 @@
 Aster plugins are declarative and capability-based. A `plugin.toml` manifest supplies a stable ID,
 numeric semantic version, API version, WGSL entry point, capabilities, and typed parameters.
 
+Plugin authors can copy `examples/plugin-ci-template.yml` into their repository and replace the two
+repository/ref placeholders with the final Aster slug and a pinned tag or commit. The workflow runs
+the same manifest, WGSL, ABI, capability, and parameter validation used by the host application.
+
 ## Levels
 
 1. **WGSL effect** — sandboxed shader plus declared inputs, outputs, and numeric parameters.

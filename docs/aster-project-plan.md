@@ -1757,7 +1757,7 @@ aster/
 - [x] Plugin update UI。
 - [x] Plugin signature / trust research。
 - [ ] Plugin Registry prototype。
-- [ ] Example plugin CI template。
+- [x] Example plugin CI template。
 - [x] Stable Plugin API v1 criteria。
 - [x] Stable Project Spec v1 criteria。
 - [x] Semantic version compatibility rules。

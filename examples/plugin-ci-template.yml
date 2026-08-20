@@ -1,0 +1,39 @@
+# Copy this file to .github/workflows/ci.yml in a WGSL plugin repository.
+name: Validate Aster plugin
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Check out plugin
+        uses: actions/checkout@v4
+        with:
+          path: plugin
+      - name: Check out the pinned Aster validator
+        uses: actions/checkout@v4
+        with:
+          # Replace these placeholders after the final Aster repository slug is chosen.
+          repository: REPLACE_WITH_ASTER_ORG/REPLACE_WITH_ASTER_REPOSITORY
+          ref: REPLACE_WITH_PINNED_ASTER_TAG_OR_COMMIT
+          path: aster
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.97.1
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: aster
+      - name: Validate manifest, WGSL, ABI, and parameter bounds
+        run: >-
+          cargo run
+          --manifest-path aster/Cargo.toml
+          -p aster-plugin
+          --example validate
+          -- "$GITHUB_WORKSPACE/plugin"
