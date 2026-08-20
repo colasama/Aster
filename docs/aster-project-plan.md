@@ -1583,7 +1583,7 @@ aster/
 
 ### AI Tooling
 
-- [ ] Provider abstraction。
+- [x] Provider abstraction。
 - [ ] Tool calling abstraction。
 - [x] Context builder。
 - [x] Project summary API。

@@ -10,7 +10,10 @@ use uuid::Uuid;
 
 mod provider;
 
-pub use provider::{AiProviderConfig, GeneratedPlan, ProviderError, generate_plan};
+pub use provider::{
+    AiProvider, AiProviderConfig, GeneratedPlan, OpenAiCompatibleProvider, ProviderError,
+    ProviderFuture, generate_plan,
+};
 
 #[derive(Clone, Debug, Deserialize, JsonSchema, Serialize)]
 pub struct OperationPlan {
