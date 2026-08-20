@@ -20,6 +20,7 @@ import { CanvasFallbackRenderer } from "../renderer/canvas-fallback";
 import { type GpuBenchmarkRequest, runGpuBenchmark } from "../renderer/gpu-benchmark";
 import { WebGpuRenderer } from "../renderer/webgpu-renderer";
 import { useEditor } from "../state/editor-store";
+import { CameraGizmo } from "./CameraGizmo";
 import { Panel } from "./Panel";
 
 type Renderer = WebGpuRenderer | CanvasFallbackRenderer;
@@ -516,6 +517,15 @@ export function Viewport() {
                   <i className="anchor-handle" />
                 </button>
               )}
+            {state.showLayerControls && selectedLayer?.kind === "camera" && selectedTransform && (
+              <CameraGizmo
+                activeTool={state.activeTool === "rotate" ? "rotate" : "select"}
+                dispatch={dispatch}
+                layer={selectedLayer}
+                transform={selectedTransform}
+                zoom={displayZoom}
+              />
+            )}
             {state.showOrigin && (
               <div className="viewport-origin">
                 <span className="axis x" />

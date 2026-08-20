@@ -1261,7 +1261,7 @@ aster/
 - [x] 在 Timeline 展示 Effect parameter track，并支持拖拽重定时与删除。
 - [x] Edit Bezier handles。
 - [x] Transform gizmo。
-- [ ] Camera gizmo（M2）。
+- [x] Camera gizmo（M2）。
 - [x] Snap system。
 - [x] Guides / ruler。
 - [x] Viewport zoom / pan。
