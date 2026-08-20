@@ -1477,11 +1477,11 @@ aster/
 
 ### Native Plugin
 
-- [ ] 设计 C ABI 草案。
-- [ ] 设计 Rust plugin API 草案。
-- [ ] 明确 ABI stability policy。
-- [ ] 明确 crash isolation policy。
-- [ ] 明确 unsafe capability policy。
+- [x] 设计 C ABI 草案。
+- [x] 设计 Rust plugin API 草案。
+- [x] 明确 ABI stability policy。
+- [x] 明确 crash isolation policy。
+- [x] 明确 unsafe capability policy。
 - [x] 首版暂不承诺稳定 ABI。
 
 ---

@@ -95,3 +95,54 @@ resource count and types, and every uniform field name, type, offset, array stri
 See the installable [Tint](../examples/plugins/tint),
 [Chromatic Aberration](../examples/plugins/chromatic-aberration), and
 [CRT](../examples/plugins/crt) examples.
+
+## Native extension draft (disabled in the MVP)
+
+Native plugins are a future trusted-only escape hatch, not an alternative path around the WGSL
+sandbox. The host never loads a plugin library into the editor process. It starts a per-publisher
+plugin-host process, negotiates an exact ABI version, and exchanges size-bounded messages and shared
+GPU handles through a platform broker. A timeout, malformed response, device loss, or process crash
+disables that node while the editor preserves the project and autosave.
+
+The C boundary is deliberately small and allocator-neutral. Every structure starts with its byte
+size and ABI version; strings and buffers are borrowed pointer/length pairs valid only for the call.
+The plugin returns status codes, never exceptions, and releases its own opaque handles:
+
+```c
+typedef struct AsterHostV1 AsterHostV1;
+typedef struct AsterPluginV1 AsterPluginV1;
+
+typedef struct {
+  uint32_t struct_size;
+  uint32_t abi_version;
+  const uint8_t *manifest_json;
+  uint64_t manifest_len;
+} AsterPluginCreateInfoV1;
+
+typedef int32_t (*AsterPluginCreateV1)(
+  const AsterHostV1 *host,
+  const AsterPluginCreateInfoV1 *info,
+  AsterPluginV1 **plugin);
+
+typedef void (*AsterPluginDestroyV1)(AsterPluginV1 *plugin);
+```
+
+The Rust author API is a safe adapter over that C contract. Its draft surface is a `Plugin` trait
+with `manifest()`, `prepare(&mut PrepareContext)`, and `evaluate(&mut FrameContext)` methods. Contexts
+expose only capability-checked handles; they do not expose raw `wgpu::Device`, filesystem paths, host
+pointers, or a Tokio runtime. The adapter catches panics at every FFI entry, validates lengths before
+creating slices, and maps errors to stable numeric status codes. `unsafe` is confined to the adapter
+crate and denied in plugin-facing SDK crates.
+
+No native ABI is stable during `0.x`. A future stable ABI increments only by adding size-gated tail
+fields or new entry points; changing field meaning, ownership, alignment, or required behavior needs
+a new major ABI. The host supports only explicitly listed versions and never guesses compatibility.
+The Rust trait itself has no binary-stability promise: Rust plugins compile against an SDK release
+that targets one C ABI version.
+
+Native capability policy is deny-by-default. GPU compute/render, scoped file reads/writes, network,
+audio input, and process spawning are separate grants shown at installation and again when expanded.
+Raw device access, arbitrary host memory, debugger attachment, and unsandboxed child processes are
+never grantable. Signed publisher identity does not imply capabilities. Native loading remains off
+until the process sandbox, handle broker, watchdog, crash-loop suppression, and conformance suite are
+implemented on every supported desktop platform.
