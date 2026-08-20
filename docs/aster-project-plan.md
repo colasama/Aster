@@ -1510,7 +1510,7 @@ aster/
 - [ ] Audio stream decode。
 - [x] Timeline audio clock。
 - [x] Waveform generation。
-- [ ] Audio preview playback。
+- [x] Audio preview playback。
 - [x] AV sync。
 - [x] Audio mute / gain。
 - [x] Audio analysis API。

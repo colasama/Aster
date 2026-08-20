@@ -303,6 +303,12 @@ function validateLayer(value: unknown, path: string): asserts value is Layer {
   requireString(layer.id, `${path}.id`);
   requireString(layer.name, `${path}.name`);
   requireString(layer.kind, `${path}.kind`);
+  if (layer.audioEnabled !== undefined && typeof layer.audioEnabled !== "boolean")
+    throw new Error(`${path}.audioEnabled must be a boolean`);
+  if (layer.audioGain !== undefined) {
+    const gain = requireFiniteNumber(layer.audioGain, `${path}.audioGain`);
+    if (gain < 0 || gain > 1) throw new Error(`${path}.audioGain must be between 0 and 1`);
+  }
   if (layer.asset !== undefined) validateAsset(layer.asset, `${path}.asset`);
   if (layer.text !== undefined && (typeof layer.text !== "string" || layer.text.length > 20_000))
     throw new Error(`${path}.text must be a string at most 20000 characters`);

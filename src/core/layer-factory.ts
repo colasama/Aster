@@ -29,6 +29,8 @@ export function createLayerForComposition(
     visible: !isCamera,
     solo: false,
     locked: false,
+    audioEnabled: kind === "video" ? true : undefined,
+    audioGain: kind === "video" ? 1 : undefined,
     threeDimensional: kind === "mesh" || kind === "camera" || kind === "light",
     inPoint: currentTime,
     outPoint: composition.duration,

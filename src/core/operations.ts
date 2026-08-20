@@ -59,6 +59,7 @@ export type Operation =
   | { type: "setLayerTiming"; layerId: Id; inPoint: number; outPoint: number }
   | { type: "setLayerTimeMapping"; layerId: Id; offset: number; stretch: number }
   | { type: "setLayerTimeRemap"; layerId: Id; value?: Animatable }
+  | { type: "setLayerAudioGain"; layerId: Id; gain: number }
   | { type: "setMaterial3d"; layerId: Id; material: Material3d }
   | { type: "setLightSettings"; layerId: Id; light: LightSettings }
   | { type: "setLayerColor"; layerId: Id; color: Layer["color"] }
@@ -220,6 +221,9 @@ export function applyOperation(project: Project, operation: Operation): void {
       break;
     case "setLayerTimeRemap":
       layer.timeRemap = operation.value;
+      break;
+    case "setLayerAudioGain":
+      layer.audioGain = clamp(operation.gain, 0, 1);
       break;
     case "setMaterial3d":
       layer.material = {

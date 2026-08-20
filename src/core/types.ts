@@ -81,6 +81,8 @@ export interface Layer {
   solo: boolean;
   locked: boolean;
   audioEnabled?: boolean;
+  /** Preview gain in the HTML media element's normalized 0..1 range. */
+  audioGain?: number;
   threeDimensional: boolean;
   inPoint: number;
   outPoint: number;

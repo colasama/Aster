@@ -24,6 +24,7 @@ import { createEffect, EFFECT_BY_TYPE } from "../effects/registry";
 import type { EffectParameterDefinition } from "../effects/types";
 import { useEditor } from "../state/editor-store";
 import { AiPanel } from "./AiPanel";
+import { AudioControls } from "./AudioControls";
 import { EffectMaskEditor } from "./EffectMaskEditor";
 import { Panel, PanelTabs } from "./Panel";
 import { Scene3dControls } from "./Scene3dControls";
@@ -425,6 +426,7 @@ export function Inspector() {
                 <Scene3dControls layer={layer} />
                 <ShapeControls layer={layer} />
                 <TextControls layer={layer} />
+                <AudioControls layer={layer} />
               </div>
             )}
           </div>

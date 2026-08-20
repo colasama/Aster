@@ -80,6 +80,20 @@ describe("project document boundary", () => {
     expect(() => validateProjectDocument(project)).toThrow("timeStretch must be a positive number");
   });
 
+  it("roundtrips bounded preview audio state", () => {
+    const project = createBlankProject();
+    const layer = project.compositions[0].layers[0];
+    layer.audioEnabled = false;
+    layer.audioGain = 0.35;
+    const roundtrip = validateProjectDocument(JSON.parse(serializeProject(project)));
+    expect(roundtrip.compositions[0].layers[0]).toMatchObject({
+      audioEnabled: false,
+      audioGain: 0.35,
+    });
+    layer.audioGain = 1.1;
+    expect(() => validateProjectDocument(project)).toThrow("audioGain must be between 0 and 1");
+  });
+
   it("roundtrips GPU material and physical light settings", () => {
     const project = createBlankProject();
     const composition = project.compositions[0];

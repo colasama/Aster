@@ -1,4 +1,5 @@
 import { AsyncWorkPool } from "../core/async-work-pool";
+import { configurePreviewVideoAudio } from "../core/audio-preview";
 import { evaluateLayerSourceTime } from "../core/layer-time";
 import { clampTextAnimationTime, countAnimatedTextCharacters } from "../core/text-animator";
 import type {
@@ -821,7 +822,7 @@ export class WebGpuRenderer {
     const video = document.createElement("video");
     video.preload = "auto";
     video.playsInline = true;
-    video.muted = !layer.audioEnabled;
+    configurePreviewVideoAudio(video, layer);
     video.dataset.asterLayerId = instanceId;
     video.dataset.decoderState = "loading";
     video.setAttribute("aria-hidden", "true");
@@ -897,7 +898,7 @@ export class WebGpuRenderer {
   #updateVideo(resource: MediaResource, layer: Layer, time: number, playing: boolean): void {
     const video = resource.video;
     if (!video) return;
-    video.muted = !layer.audioEnabled;
+    configurePreviewVideoAudio(video, layer);
     const duration = Number.isFinite(video.duration)
       ? video.duration
       : (layer.asset?.duration ?? layer.outPoint - layer.inPoint);

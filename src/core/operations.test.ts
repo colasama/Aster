@@ -296,6 +296,20 @@ describe("structured project operations", () => {
     expect(text.text).not.toBe("GPU\nMOTION");
   });
 
+  it("sets bounded preview audio gain without mutating the source", () => {
+    const source = createDemoProject();
+    const layer = activeComposition(source).layers[0];
+    const louder = applyOperations(source, [
+      { type: "setLayerAudioGain", layerId: layer.id, gain: 8 },
+    ]);
+    const silent = applyOperations(source, [
+      { type: "setLayerAudioGain", layerId: layer.id, gain: -1 },
+    ]);
+    expect(activeComposition(louder).layers[0].audioGain).toBe(1);
+    expect(activeComposition(silent).layers[0].audioGain).toBe(0);
+    expect(layer.audioGain).toBeUndefined();
+  });
+
   it("reorders effects through a bounded operation", () => {
     const source = createDemoProject();
     const layer = activeComposition(source).layers[0];

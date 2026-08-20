@@ -1,3 +1,4 @@
+import { configurePreviewVideoAudio } from "../core/audio-preview";
 import { evaluateLayerSourceTime } from "../core/layer-time";
 import { flattenSceneLayers } from "../core/scene-evaluation";
 import type { Composition, GpuDiagnostics, Layer, Project, RendererMetrics } from "../core/types";
@@ -113,7 +114,7 @@ export class CanvasFallbackRenderer {
       if (element instanceof HTMLVideoElement) {
         element.preload = "auto";
         element.playsInline = true;
-        element.muted = !layer.audioEnabled;
+        configurePreviewVideoAudio(element, layer);
       }
       element.src = source;
       resource = { source, element };
@@ -121,7 +122,7 @@ export class CanvasFallbackRenderer {
     }
     if (resource.element instanceof HTMLVideoElement) {
       const video = resource.element;
-      video.muted = !layer.audioEnabled;
+      configurePreviewVideoAudio(video, layer);
       const duration = Number.isFinite(video.duration)
         ? video.duration
         : (layer.asset?.duration ?? layer.outPoint - layer.inPoint);
