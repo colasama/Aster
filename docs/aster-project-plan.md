@@ -1664,8 +1664,8 @@ aster/
 - [ ] Multi-threaded CPU scheduling。
 - [x] Parallel asset decode。
 - [x] Async disk IO。
-- [ ] Texture upload batching。
-- [ ] Persistent staging buffers。
+- [x] Texture upload batching。
+- [x] Persistent staging buffers。
 - [x] GPU culling for 3D / particles。
 - [x] Indirect drawing。
 - [ ] Bindless/resource-array strategy research。

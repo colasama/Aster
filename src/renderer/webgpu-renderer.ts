@@ -29,6 +29,7 @@ import {
 import { validateShaderSources } from "./shader-validation";
 import { particleComputeShader } from "./shaders";
 import { rasterizeTextLayer } from "./text-rasterizer";
+import { TextureUploadBatch } from "./texture-upload-batch";
 
 const PARTICLE_CAPACITY = 1_000_000;
 const MAX_SHAPE_VERTICES = 6 * 128;
@@ -94,6 +95,7 @@ export class WebGpuRenderer {
   readonly #mediaResources = new Map<string, MediaResource>();
   readonly #evaluationCache = new SceneEvaluationCache();
   readonly #imageDecodePool = new AsyncWorkPool(4);
+  readonly #textureUploads: TextureUploadBatch;
 
   private constructor(
     device: GPUDevice,
@@ -108,6 +110,7 @@ export class WebGpuRenderer {
     this.diagnostics = diagnostics;
     this.#invalidate = invalidate;
     this.#gpuProfiler = new GpuTimestampProfiler(device, diagnostics.timestampQueries, invalidate);
+    this.#textureUploads = new TextureUploadBatch(device);
     this.#lightingBindGroupLayout = device.createBindGroupLayout({
       label: "Scene lighting layout",
       entries: [
@@ -363,7 +366,10 @@ export class WebGpuRenderer {
       height: this.#height,
       effectTextureBytes: this.#layerEffects.estimatedTextureBytes(),
       persistentBufferBytes:
-        PARTICLE_CAPACITY * 16 + this.#shapeBufferBytes + this.#mediaTextureBytes(),
+        PARTICLE_CAPACITY * 16 +
+        this.#shapeBufferBytes +
+        this.#mediaTextureBytes() +
+        this.#textureUploads.capacityBytes,
       requestedShadowMapSize: shadowMapSize(shadowQuality),
       budgetMb: this.#memoryBudgetMb,
     });
@@ -439,6 +445,7 @@ export class WebGpuRenderer {
     );
     if (!this.#sceneTexture || !this.#postBindGroup) this.resize(this.#width, this.#height);
     const encoder = this.#device.createCommandEncoder({ label: "Aster frame render graph" });
+    this.#textureUploads.flush(encoder);
     const compute = encoder.beginComputePass({
       label: "GPU particle simulation",
       timestampWrites: this.#gpuProfiler.writes(0, 1),
@@ -761,12 +768,7 @@ export class WebGpuRenderer {
       format: "rgba8unorm-srgb",
       usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
     });
-    this.#device.queue.writeTexture(
-      { texture },
-      raster.pixels,
-      { bytesPerRow: raster.width * 4, rowsPerImage: raster.height },
-      [raster.width, raster.height],
-    );
+    this.#textureUploads.enqueue(texture, raster.pixels, raster.width, raster.height);
     resource.texture = texture;
     resource.textureBytes = raster.width * raster.height * 4;
     resource.bindGroup = this.#device.createBindGroup({
@@ -907,14 +909,11 @@ export class WebGpuRenderer {
         resource.videoCanvas.width,
         resource.videoCanvas.height,
       );
-      this.#device.queue.writeTexture(
-        { texture },
+      this.#textureUploads.enqueue(
+        texture,
         pixels.data,
-        {
-          bytesPerRow: resource.videoCanvas.width * 4,
-          rowsPerImage: resource.videoCanvas.height,
-        },
-        [resource.videoCanvas.width, resource.videoCanvas.height],
+        resource.videoCanvas.width,
+        resource.videoCanvas.height,
       );
       resource.lastUploadedTime = mediaTime;
       resource.uploadErrorReported = false;
