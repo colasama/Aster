@@ -76,6 +76,11 @@ export function Scene3dControls({ layer }: { layer: Layer }) {
           particle: {
             count: layer.particle?.count ?? 100_000,
             seed: layer.particle?.seed ?? 13_337,
+            lifetime: layer.particle?.lifetime ?? 6,
+            speed: layer.particle?.speed ?? 0.16,
+            acceleration: layer.particle?.acceleration ?? -0.035,
+            startSize: layer.particle?.startSize ?? 2.4,
+            endSize: layer.particle?.endSize ?? 0.35,
             [field]: value,
           },
         },
@@ -170,6 +175,46 @@ export function Scene3dControls({ layer }: { layer: Layer }) {
           onChange={(value) => updateParticle("seed", value)}
           step={1}
           value={layer.particle?.seed ?? 13_337}
+        />
+        <NumericControl
+          label="Lifetime"
+          max={3600}
+          min={0.05}
+          onChange={(value) => updateParticle("lifetime", value)}
+          step={0.1}
+          value={layer.particle?.lifetime ?? 6}
+        />
+        <NumericControl
+          label="Speed"
+          max={10}
+          min={0}
+          onChange={(value) => updateParticle("speed", value)}
+          step={0.01}
+          value={layer.particle?.speed ?? 0.16}
+        />
+        <NumericControl
+          label="Acceleration"
+          max={10}
+          min={-10}
+          onChange={(value) => updateParticle("acceleration", value)}
+          step={0.005}
+          value={layer.particle?.acceleration ?? -0.035}
+        />
+        <NumericControl
+          label="Start size"
+          max={256}
+          min={0.01}
+          onChange={(value) => updateParticle("startSize", value)}
+          step={0.1}
+          value={layer.particle?.startSize ?? 2.4}
+        />
+        <NumericControl
+          label="End size"
+          max={256}
+          min={0.01}
+          onChange={(value) => updateParticle("endSize", value)}
+          step={0.1}
+          value={layer.particle?.endSize ?? 0.35}
         />
       </>
     );

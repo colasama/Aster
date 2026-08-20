@@ -192,7 +192,7 @@ export class WebGpuRenderer {
     });
     this.#simulationBuffer = device.createBuffer({
       label: "Particle simulation uniforms",
-      size: 16,
+      size: 20 * Float32Array.BYTES_PER_ELEMENT,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
     this.#shapeBuffer = device.createBuffer({
@@ -221,7 +221,10 @@ export class WebGpuRenderer {
     this.#particleBindGroup = device.createBindGroup({
       label: "Particle render resources",
       layout: this.#particlePipeline.getBindGroupLayout(0),
-      entries: [{ binding: 0, resource: { buffer: this.#particleBuffer } }],
+      entries: [
+        { binding: 0, resource: { buffer: this.#particleBuffer } },
+        { binding: 1, resource: { buffer: this.#simulationBuffer } },
+      ],
     });
     this.#postSampler = device.createSampler({
       label: "HDR linear sampler",
@@ -347,6 +350,8 @@ export class WebGpuRenderer {
       Math.min(PARTICLE_CAPACITY, Math.round(particleScene?.layer.particle?.count ?? 100_000)),
     );
     const particleSeed = particleScene?.layer.particle?.seed ?? 13_337;
+    const particleSettings = particleScene?.layer.particle;
+    const particleColor = particleScene?.layer.color ?? [0.5, 0.74, 1, 0.65];
     this.#device.queue.writeBuffer(
       this.#lightingBuffer,
       0,
@@ -380,7 +385,25 @@ export class WebGpuRenderer {
     this.#device.queue.writeBuffer(
       this.#simulationBuffer,
       0,
-      new Float32Array([time, this.#width / this.#height, particleCount, particleSeed]),
+      new Float32Array([
+        time,
+        this.#width / this.#height,
+        particleCount,
+        particleSeed,
+        particleSettings?.lifetime ?? 6,
+        particleSettings?.speed ?? 0.16,
+        particleSettings?.acceleration ?? -0.035,
+        particleSettings?.startSize ?? 2.4,
+        particleSettings?.endSize ?? 0.35,
+        0,
+        0,
+        0,
+        ...particleColor,
+        particleColor[0] * 0.25 + 0.75,
+        particleColor[1] * 0.25 + 0.75,
+        particleColor[2] * 0.25 + 0.75,
+        0,
+      ]),
     );
     this.#device.queue.writeBuffer(
       this.#postUniformBuffer,

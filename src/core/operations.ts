@@ -190,6 +190,11 @@ export function applyOperation(project: Project, operation: Operation): void {
       layer.particle = {
         count: Math.round(clamp(operation.particle.count, 1, 1_000_000)),
         seed: Math.round(clamp(operation.particle.seed, 0, 16_777_215)),
+        lifetime: clamp(operation.particle.lifetime, 0.05, 3600),
+        speed: clamp(operation.particle.speed, 0, 10),
+        acceleration: clamp(operation.particle.acceleration, -10, 10),
+        startSize: clamp(operation.particle.startSize, 0.01, 256),
+        endSize: clamp(operation.particle.endSize, 0.01, 256),
       };
       break;
     case "toggleLayer":

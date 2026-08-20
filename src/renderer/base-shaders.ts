@@ -171,10 +171,11 @@ fn fragment_main(input: VertexOutput) -> @location(0) vec4f {
 
 export const particleComputeShader = /* wgsl */ `
 struct Simulation {
-  time: f32,
-  aspect: f32,
-  count: f32,
-  padding: f32,
+  header: vec4f,
+  motion: vec4f,
+  appearance: vec4f,
+  start_color: vec4f,
+  end_color: vec4f,
 }
 
 @group(0) @binding(0) var<uniform> simulation: Simulation;
@@ -190,26 +191,42 @@ fn hash(value: u32) -> f32 {
 @compute @workgroup_size(256)
 fn compute_main(@builtin(global_invocation_id) global_id: vec3u) {
   let index = global_id.x;
-  if f32(index) >= simulation.count { return; }
-  let seeded_index = index + u32(simulation.padding) * 1664525u;
+  if f32(index) >= simulation.header.z { return; }
+  let seeded_index = index + u32(simulation.header.w) * 1664525u;
   let random_a = hash(seeded_index);
   let random_b = hash(seeded_index + 11731u);
   let random_c = hash(seeded_index + 97127u);
-  let phase = simulation.time * (0.08 + random_c * 0.16) + random_a * 6.283185;
-  let radius = 0.15 + sqrt(random_b) * 1.15;
-  let x = cos(phase + radius * 3.0) * radius / max(simulation.aspect, 1.0);
-  let y = sin(phase * 0.72) * radius * 0.66 + (random_c - 0.5) * 0.45;
-  particles[index] = vec4f(x, y, 0.7 + random_a * 1.8, 0.05 + random_b * 0.34);
+  let lifetime = max(simulation.motion.x, 0.05);
+  let age = fract(simulation.header.x / lifetime + random_a);
+  let elapsed = age * lifetime;
+  let angle = random_b * 6.283185;
+  let spawn_radius = sqrt(random_c) * 0.12;
+  let origin = vec2f(cos(angle), sin(angle)) * spawn_radius;
+  let velocity_angle = angle + (random_a - 0.5) * 1.2;
+  let velocity = vec2f(cos(velocity_angle), sin(velocity_angle)) * simulation.motion.y;
+  let x = (origin.x + velocity.x * elapsed) / max(simulation.header.y, 1.0);
+  let y = origin.y + velocity.y * elapsed + 0.5 * simulation.motion.z * elapsed * elapsed;
+  let size = mix(simulation.motion.w, simulation.appearance.x, age);
+  particles[index] = vec4f(x, y, size, age);
 }
 `;
 
 export const particleRenderShader = /* wgsl */ `
+struct Simulation {
+  header: vec4f,
+  motion: vec4f,
+  appearance: vec4f,
+  start_color: vec4f,
+  end_color: vec4f,
+}
+
 struct VertexOutput {
   @builtin(position) position: vec4f,
-  @location(0) opacity: f32,
+  @location(0) color: vec4f,
 }
 
 @group(0) @binding(0) var<storage, read> particles: array<vec4f>;
+@group(0) @binding(1) var<uniform> simulation: Simulation;
 
 @vertex
 fn vertex_main(@builtin(vertex_index) vertex: u32, @builtin(instance_index) instance: u32) -> VertexOutput {
@@ -221,14 +238,13 @@ fn vertex_main(@builtin(vertex_index) vertex: u32, @builtin(instance_index) inst
   let size = particle.z / 900.0;
   var output: VertexOutput;
   output.position = vec4f(particle.xy + corners[vertex] * size, 0.0, 1.0);
-  output.opacity = particle.w;
+  output.color = mix(simulation.start_color, simulation.end_color, particle.w);
   return output;
 }
 
 @fragment
 fn fragment_main(input: VertexOutput) -> @location(0) vec4f {
-  let color = vec3f(0.28, 0.58, 1.0) * input.opacity;
-  return vec4f(color, input.opacity);
+  return vec4f(input.color.rgb * input.color.a, input.color.a);
 }
 `;
 

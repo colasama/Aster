@@ -41,6 +41,9 @@ frames. Rendering, effects, particles, and composition are designed to remain GP
 - Bounded glTF/GLB import reads the first triangle primitive, including POSITION, NORMAL,
   TEXCOORD_0, and u8/u16/u32 indices; GLB binary chunks and embedded data-URI glTF buffers feed the
   shared PBR/shadow vertex path and remain serializable in Aster project documents.
+- Particle layers expose bounded count, deterministic seed, lifetime, velocity, acceleration, and
+  start/end size; compute evaluates spawn age and motion directly from time while the billboard pass
+  applies GPU color, opacity, and size over life without replaying earlier frames.
 - The searchable Asset Browser imports bounded image and video files, shows source resolution and
   duration, and locates the corresponding composition layer.
 - Retained GPU text textures participate in HDR layer effects, blend modes, precompositions, and

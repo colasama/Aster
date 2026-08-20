@@ -185,7 +185,15 @@ export function buildBenchmarkScenarios(source: Composition): BenchmarkScenario[
     particle.id = createId();
     particle.parentId = undefined;
     particle.name = `${label} GPU particles`;
-    particle.particle = { count, seed: 13_337 };
+    particle.particle = {
+      count,
+      seed: 13_337,
+      lifetime: 6,
+      speed: 0.16,
+      acceleration: -0.035,
+      startSize: 2.4,
+      endSize: 0.35,
+    };
     scenario.composition.layers = [particle];
     return scenario;
   };

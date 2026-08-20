@@ -236,6 +236,10 @@ function validateLayer(value: unknown, path: string): asserts value is Layer {
       throw new Error(`${path}.particle.count must be an integer at most 1000000`);
     if (!Number.isInteger(seed) || seed < 0 || seed > 16_777_215)
       throw new Error(`${path}.particle.seed must be a bounded non-negative integer`);
+    for (const field of ["lifetime", "startSize", "endSize"])
+      requirePositiveNumber(particle[field], `${path}.particle.${field}`);
+    for (const field of ["speed", "acceleration"])
+      requireFiniteNumber(particle[field], `${path}.particle.${field}`);
   }
   if (!Array.isArray(layer.size) || layer.size.length !== 2)
     throw new Error(`${path}.size must contain two values`);

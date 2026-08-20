@@ -1404,12 +1404,12 @@ aster/
 
 - [x] Particle storage buffer。
 - [x] Compute update pass。
-- [ ] Particle spawn system。
-- [ ] Lifetime。
-- [ ] Position / Velocity。
-- [ ] Acceleration。
-- [ ] Color over life。
-- [ ] Size over life。
+- [x] Particle spawn system。
+- [x] Lifetime。
+- [x] Position / Velocity。
+- [x] Acceleration。
+- [x] Color over life。
+- [x] Size over life。
 - [ ] Rotation over life。
 - [x] GPU random source。
 - [x] Billboard rendering。

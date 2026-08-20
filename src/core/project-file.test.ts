@@ -136,7 +136,15 @@ describe("project document boundary", () => {
     const project = createBlankProject();
     const composition = project.compositions[0];
     const particles = createLayerForComposition("particle", composition);
-    particles.particle = { count: 500_000, seed: 42 };
+    particles.particle = {
+      count: 500_000,
+      seed: 42,
+      lifetime: 4,
+      speed: 0.25,
+      acceleration: -0.08,
+      startSize: 3,
+      endSize: 0.2,
+    };
     composition.layers.push(particles);
 
     const roundtrip = validateProjectDocument(JSON.parse(serializeProject(project)));

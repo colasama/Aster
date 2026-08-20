@@ -131,6 +131,11 @@ export interface MeshAsset {
 export interface ParticleSettings {
   count: number;
   seed: number;
+  lifetime: number;
+  speed: number;
+  acceleration: number;
+  startSize: number;
+  endSize: number;
 }
 
 export interface Composition {

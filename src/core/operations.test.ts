@@ -103,7 +103,15 @@ describe("structured project operations", () => {
       {
         type: "setParticleSettings",
         layerId: particles.id,
-        particle: { count: 2_000_000, seed: -20 },
+        particle: {
+          count: 2_000_000,
+          seed: -20,
+          lifetime: 6,
+          speed: 0.16,
+          acceleration: -0.035,
+          startSize: 2.4,
+          endSize: 0.35,
+        },
       },
     ]);
 
@@ -112,8 +120,13 @@ describe("structured project operations", () => {
     ).toEqual({
       count: 1_000_000,
       seed: 0,
+      lifetime: 6,
+      speed: 0.16,
+      acceleration: -0.035,
+      startSize: 2.4,
+      endSize: 0.35,
     });
-    expect(particles.particle).toEqual({ count: 100_000, seed: 13_337 });
+    expect(particles.particle).toMatchObject({ count: 100_000, seed: 13_337 });
   });
 
   it("reorders effects through a bounded operation", () => {
