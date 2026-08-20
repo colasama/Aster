@@ -4,6 +4,7 @@ import {
   type BufferVisualization,
   type DepthEffectVisualization,
   type SceneBufferVisualization,
+  type SurfaceEffectVisualization,
 } from "./render-buffers";
 
 const SCENE_MODES: Readonly<Record<Exclude<SceneBufferVisualization, "beauty">, number>> = {
@@ -102,7 +103,10 @@ export class SceneBufferVisualizer {
 
   encode(
     pass: GPURenderPassEncoder,
-    mode: Exclude<BufferVisualization, "beauty" | DepthEffectVisualization>,
+    mode: Exclude<
+      BufferVisualization,
+      "beauty" | DepthEffectVisualization | SurfaceEffectVisualization
+    >,
   ): void {
     if (mode === "linearColor" || mode === "luminance" || mode === "alpha") {
       if (!this.#sceneBindGroup) throw new Error("Scene buffer visualizer has no source texture");

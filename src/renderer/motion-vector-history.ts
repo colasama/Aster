@@ -2,6 +2,9 @@ import { FLOATS_PER_VERTEX, type GeometryBatch } from "./geometry";
 
 const EXTRACTED_POSITION_BYTES = 16;
 const PARAMETER_BYTES = 16;
+export const MAX_REUSABLE_MOTION_FRAMES = 2;
+export const MOTION_SHUTTER_FRACTION = 0.5;
+const MAX_SHUTTER_SCALE = 4;
 
 export interface MotionFrameIdentity {
   timelineTime: number;
@@ -12,41 +15,64 @@ export interface PreparedMotionFrame {
   buffer: GPUBuffer;
   identity: MotionFrameIdentity;
   reusedHistory: boolean;
+  shutterScale: number;
 }
 
 export interface MotionHistorySchedule {
   extractBeforeRender: boolean;
   extractAfterRender: boolean;
   reusePreviousSample: boolean;
+  shutterScale: number;
 }
 
 /**
- * Motion compares the current sample with the last submitted, strictly earlier timeline sample.
- * Re-rendering the same time, reverse playback, and topology changes intentionally start a new
- * history epoch so edits and seeks cannot create false velocity.
+ * Motion compares against a strictly earlier sample no more than two composition frames away.
+ * Same-time renders, reverse playback, topology changes, and larger seeks start a new history
+ * epoch so edits, dropped frames, and timeline navigation cannot create false velocity.
  */
 export function canReuseMotionHistory(
   previous: MotionFrameIdentity | undefined,
   current: MotionFrameIdentity,
+  frameRate = 60,
 ): boolean {
+  const timelineDelta = previous ? current.timelineTime - previous.timelineTime : 0;
+  const maximumDelta = MAX_REUSABLE_MOTION_FRAMES / boundedFrameRate(frameRate);
   return (
     previous !== undefined &&
     Number.isFinite(current.timelineTime) &&
-    current.timelineTime > previous.timelineTime &&
+    timelineDelta > 0 &&
+    timelineDelta <= maximumDelta + Number.EPSILON * 16 &&
     current.layoutSignature === previous.layoutSignature
   );
+}
+
+/** Normalizes observed displacement to a 180-degree shutter interval at the composition rate. */
+export function normalizedMotionShutterScale(
+  previous: MotionFrameIdentity | undefined,
+  current: MotionFrameIdentity,
+  frameRate = 60,
+): number {
+  if (!canReuseMotionHistory(previous, current, frameRate) || !previous) return 0;
+  const timelineDelta = current.timelineTime - previous.timelineTime;
+  const shutterDuration = MOTION_SHUTTER_FRACTION / boundedFrameRate(frameRate);
+  return Math.min(MAX_SHUTTER_SCALE, shutterDuration / timelineDelta);
 }
 
 export function planMotionHistory(
   previous: MotionFrameIdentity | undefined,
   current: MotionFrameIdentity,
   storageReallocated = false,
+  frameRate = 60,
 ): MotionHistorySchedule {
-  const reusePreviousSample = !storageReallocated && canReuseMotionHistory(previous, current);
+  const reusePreviousSample =
+    !storageReallocated && canReuseMotionHistory(previous, current, frameRate);
   return {
     extractBeforeRender: !reusePreviousSample,
     extractAfterRender: reusePreviousSample,
     reusePreviousSample,
+    shutterScale: reusePreviousSample
+      ? normalizedMotionShutterScale(previous, current, frameRate)
+      : 0,
   };
 }
 
@@ -118,17 +144,23 @@ export class GpuMotionVectorHistory {
     vertexCount: number,
     batches: readonly GeometryBatch[],
     timelineTime: number,
+    frameRate: number,
   ): PreparedMotionFrame {
     const reallocated = this.#ensureCapacity(vertexCount);
     const identity = {
       timelineTime,
       layoutSignature: buildMotionLayoutSignature(batches),
     } satisfies MotionFrameIdentity;
-    const schedule = planMotionHistory(this.#frame, identity, reallocated);
+    const schedule = planMotionHistory(this.#frame, identity, reallocated, frameRate);
     if (schedule.extractBeforeRender) this.#encodeExtraction(encoder, source, vertexCount);
     const buffer = this.#positions;
     if (!buffer) throw new Error("Motion-vector history buffer is unavailable");
-    return { buffer, identity, reusedHistory: schedule.reusePreviousSample };
+    return {
+      buffer,
+      identity,
+      reusedHistory: schedule.reusePreviousSample,
+      shutterScale: schedule.shutterScale,
+    };
   }
 
   commit(
@@ -197,6 +229,10 @@ export class GpuMotionVectorHistory {
     pass.dispatchWorkgroups(Math.ceil(vertexCount / 256));
     pass.end();
   }
+}
+
+function boundedFrameRate(value: number): number {
+  return Number.isFinite(value) ? Math.min(1000, Math.max(1, value)) : 60;
 }
 
 export const extractPositionsShader = /* wgsl */ `

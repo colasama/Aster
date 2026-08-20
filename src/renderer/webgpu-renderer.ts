@@ -26,6 +26,8 @@ import { buildPostProcessUniforms } from "./post-process";
 import {
   type BufferVisualization,
   isDepthEffectVisualization,
+  isSurfaceEffectVisualization,
+  postRenderRoute,
   usesAuxiliarySurfaceData,
 } from "./render-buffers";
 import {
@@ -42,6 +44,7 @@ import {
 } from "./scene-pipelines";
 import { validateShaderSources } from "./shader-validation";
 import { particleComputeShader } from "./shaders";
+import { SurfacePostEffectsRenderer, selectedRenderId } from "./surface-post-effects";
 
 const PARTICLE_CAPACITY = 1_000_000;
 const MAX_SHAPE_VERTICES = 6 * 128;
@@ -67,6 +70,7 @@ export class WebGpuRenderer {
   readonly #postPipeline: GPURenderPipeline;
   readonly #bufferVisualizer: SceneBufferVisualizer;
   readonly #depthEffects: DepthEffectsRenderer;
+  readonly #surfacePostEffects: SurfacePostEffectsRenderer;
   readonly #auxiliaryBuffers: AuxiliaryBufferRenderer;
   readonly #layerEffects: LayerEffectRenderer;
   #materialTextures?: MaterialTextureRenderer;
@@ -280,6 +284,7 @@ export class WebGpuRenderer {
     this.#postPipeline = createPostPipeline(device, format);
     this.#bufferVisualizer = new SceneBufferVisualizer(device, format);
     this.#depthEffects = new DepthEffectsRenderer(device, format);
+    this.#surfacePostEffects = new SurfacePostEffectsRenderer(device, format);
     this.#layerEffects = new LayerEffectRenderer(device, SCENE_FORMAT);
   }
   static async create(
@@ -369,6 +374,7 @@ export class WebGpuRenderer {
     time: number,
     playing = false,
     project?: Project,
+    selectedLayerId?: string,
   ): RendererMetrics {
     const started = performance.now();
     const frameInterval = this.#lastFrameStarted ? started - this.#lastFrameStarted : 16.67;
@@ -396,6 +402,7 @@ export class WebGpuRenderer {
         this.#shapeBufferBytes +
         this.#auxiliaryBuffers.estimatedBytes +
         this.#mediaTextures.estimatedBytes +
+        this.#surfacePostEffects.estimatedBytes +
         (this.#materialTextures?.estimatedBytes ?? 0),
       requestedShadowMapSize: shadowMapSize(shadowQuality),
       budgetMb: this.#memoryBudgetMb,
@@ -625,23 +632,29 @@ export class WebGpuRenderer {
       scenePass.drawIndirect(this.#particleIndirectBuffer, 0);
     }
     scenePass?.end();
-    if (usesAuxiliarySurfaceData(this.#bufferVisualization)) {
-      this.#auxiliaryBuffers.encode({
+    let auxiliaryFrameValid = !usesAuxiliarySurfaceData(this.#bufferVisualization);
+    if (!auxiliaryFrameValid) {
+      auxiliaryFrameValid = this.#auxiliaryBuffers.encode({
         encoder,
         vertexBuffer: this.#shapeBuffer,
         vertexCount: geometry.data.length / FLOATS_PER_VERTEX,
         timelineTime: time,
+        frameRate: composition.frameRate.numerator / composition.frameRate.denominator,
         batches: geometry.batches,
         mediaBindGroup: (batch) => this.#mediaTextures.bindGroup(batch.resourceInstanceId),
         particle: particleScene
           ? {
               bindGroup: this.#particleBindGroup,
               indirectBuffer: this.#particleIndirectBuffer,
-              instanceId: particleScene.instanceId,
+              selectionId: particleScene.selectionId,
             }
           : undefined,
       });
     }
+    this.#surfacePostEffects.setSelection(
+      selectedRenderId(geometry.batches, selectedLayerId, particleScene?.selectionId),
+    );
+    this.#surfacePostEffects.setMotionShutterScale(this.#auxiliaryBuffers.motionShutterScale);
     this.#layerEffects.sweep(activeEffectInstances);
     const sceneTimingEnd = encoder.beginRenderPass({
       label: "Composition timing marker",
@@ -662,12 +675,19 @@ export class WebGpuRenderer {
         },
       ],
     });
-    if (this.#bufferVisualization === "beauty") {
+    const postRoute = postRenderRoute(this.#bufferVisualization, auxiliaryFrameValid);
+    if (postRoute === "beauty") {
       postPass.setPipeline(this.#postPipeline);
       postPass.setBindGroup(0, this.#postBindGroup);
       postPass.draw(3);
     } else if (isDepthEffectVisualization(this.#bufferVisualization)) {
       this.#depthEffects.encode(postPass, this.#bufferVisualization);
+    } else if (isSurfaceEffectVisualization(this.#bufferVisualization)) {
+      this.#surfacePostEffects.encode(postPass, this.#bufferVisualization);
+    } else if (this.#bufferVisualization === "beauty") {
+      postPass.setPipeline(this.#postPipeline);
+      postPass.setBindGroup(0, this.#postBindGroup);
+      postPass.draw(3);
     } else this.#bufferVisualizer.encode(postPass, this.#bufferVisualization);
     postPass.end();
     const collectTimestamps = this.#gpuProfiler.encodeReadback(encoder);
@@ -725,6 +745,13 @@ export class WebGpuRenderer {
       this.#height,
       this.#sceneTexture,
       this.#auxiliaryBuffers.textures.get("worldPosition"),
+    );
+    this.#surfacePostEffects.setSources(
+      this.#width,
+      this.#height,
+      this.#sceneTexture,
+      this.#auxiliaryBuffers.textures.get("objectId"),
+      this.#auxiliaryBuffers.textures.get("motionVector"),
     );
   }
   #configureShadowMap(size: number): void {

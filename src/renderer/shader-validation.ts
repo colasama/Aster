@@ -10,6 +10,7 @@ import {
   shadowShader,
   shapeShader,
 } from "./shaders";
+import { surfacePostEffectsShader } from "./surface-post-effects";
 
 export async function validateShaderSources(device: GPUDevice): Promise<void> {
   const sources = [
@@ -23,6 +24,7 @@ export async function validateShaderSources(device: GPUDevice): Promise<void> {
     ["auxiliary surface MRT", auxiliarySurfaceShader],
     ["depth effects", depthEffectsShader],
     ["motion-vector history", extractPositionsShader],
+    ["object isolation and vector motion blur", surfacePostEffectsShader],
   ] as const;
   for (const [label, code] of sources) {
     const module = device.createShaderModule({ label: `Validate ${label}`, code });

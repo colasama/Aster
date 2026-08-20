@@ -23,7 +23,7 @@ const ID_RECORD_BYTES = 8;
 interface ParticleDraw {
   bindGroup: GPUBindGroup;
   indirectBuffer: GPUBuffer;
-  instanceId: string;
+  selectionId: string;
 }
 
 export interface AuxiliaryEncodeRequest {
@@ -31,6 +31,7 @@ export interface AuxiliaryEncodeRequest {
   vertexBuffer: GPUBuffer;
   vertexCount: number;
   timelineTime: number;
+  frameRate: number;
   batches: readonly GeometryBatch[];
   mediaBindGroup: (batch: GeometryBatch) => GPUBindGroup | undefined;
   particle?: ParticleDraw;
@@ -54,6 +55,7 @@ export class AuxiliaryBufferRenderer {
   #estimatedBytes = 0;
   #byteBudget = 0;
   #enabled = false;
+  #motionShutterScale = 0;
   readonly supported: boolean;
 
   constructor(
@@ -152,6 +154,10 @@ export class AuxiliaryBufferRenderer {
     return this.#textures;
   }
 
+  get motionShutterScale(): number {
+    return this.#motionShutterScale;
+  }
+
   enable(width: number, height: number, byteBudget: number): boolean {
     if (!this.supported) return false;
     this.#byteBudget = Math.max(0, byteBudget);
@@ -211,8 +217,8 @@ export class AuxiliaryBufferRenderer {
     return mode;
   }
 
-  encode(request: AuxiliaryEncodeRequest): void {
-    if (!this.#enabled || !this.#depth) return;
+  encode(request: AuxiliaryEncodeRequest): boolean {
+    if (!this.#enabled || !this.#depth) return false;
     const nextIdBytes = idBufferCapacityBytes(request.batches.length);
     const plannedBytes =
       this.#estimatedBytes +
@@ -223,18 +229,21 @@ export class AuxiliaryBufferRenderer {
       console.warn("Auxiliary MRT dynamic buffers exceed the configured GPU memory budget");
       this.#beginPass(request.encoder, "Auxiliary MRT budget fallback · cleared").end();
       this.#motionHistory.reset();
-      return;
+      this.#motionShutterScale = 0;
+      return false;
     }
     this.#uploadBatchIds(request.batches);
     const idBuffer = this.#idBuffer;
-    if (!idBuffer) return;
+    if (!idBuffer) return false;
     const motion = this.#motionHistory.prepare(
       request.encoder,
       request.vertexBuffer,
       request.vertexCount,
       request.batches,
       request.timelineTime,
+      request.frameRate,
     );
+    this.#motionShutterScale = motion.shutterScale;
     const pass = this.#beginPass(
       request.encoder,
       "Normal + IDs + World Position + Motion Vector MRT",
@@ -250,7 +259,7 @@ export class AuxiliaryBufferRenderer {
       pass.draw(batch.vertexCount, 1, batch.firstVertex, index);
     }
     if (request.particle) {
-      this.#uploadParticle(request.particle.instanceId);
+      this.#uploadParticle(request.particle.selectionId);
       pass.setPipeline(this.#particlePipeline);
       pass.setBindGroup(0, request.particle.bindGroup);
       pass.setBindGroup(1, this.#particleUniformBindGroup);
@@ -258,6 +267,7 @@ export class AuxiliaryBufferRenderer {
     }
     pass.end();
     this.#motionHistory.commit(request.encoder, request.vertexBuffer, request.vertexCount, motion);
+    return true;
   }
 
   #beginPass(encoder: GPUCommandEncoder, label: string): GPURenderPassEncoder {
@@ -303,13 +313,12 @@ export class AuxiliaryBufferRenderer {
     if (records.byteLength > 0) this.#device.queue.writeBuffer(this.#idBuffer, 0, records);
   }
 
-  #uploadParticle(instanceId: string): void {
-    const data = new ArrayBuffer(32);
-    const ids = new Uint32Array(data, 0, 4);
-    ids[0] = encodeRenderId(instanceId);
-    ids[1] = encodeRenderId("material:particle");
-    new Float32Array(data, 16, 4).set([this.#width, this.#height, 0, 0]);
-    this.#device.queue.writeBuffer(this.#particleUniform, 0, data);
+  #uploadParticle(selectionId: string): void {
+    this.#device.queue.writeBuffer(
+      this.#particleUniform,
+      0,
+      buildAuxiliaryParticleIdentity(selectionId, this.#width, this.#height),
+    );
   }
 
   #requiredTexture(kind: AuxiliaryBufferKind): GPUTexture {
@@ -326,6 +335,7 @@ export class AuxiliaryBufferRenderer {
     this.#estimatedBytes = 0;
     this.#enabled = false;
     this.#motionHistory.release();
+    this.#motionShutterScale = 0;
   }
 }
 
@@ -335,15 +345,28 @@ function idBufferCapacityBytes(instanceCount: number): number {
 }
 
 export function buildAuxiliaryBatchIds(
-  batches: readonly Pick<GeometryBatch, "instanceId" | "layer">[],
+  batches: readonly Pick<GeometryBatch, "selectionId" | "layer">[],
 ): Uint32Array {
   const records = new Uint32Array(batches.length * 2);
   for (let index = 0; index < batches.length; index += 1) {
     const batch = batches[index];
-    records[index * 2] = encodeRenderId(batch.instanceId);
+    records[index * 2] = encodeRenderId(batch.selectionId);
     records[index * 2 + 1] = encodeRenderId(materialKey(batch.layer));
   }
   return records;
+}
+
+export function buildAuxiliaryParticleIdentity(
+  selectionId: string,
+  width: number,
+  height: number,
+): ArrayBuffer {
+  const data = new ArrayBuffer(32);
+  const ids = new Uint32Array(data, 0, 4);
+  ids[0] = encodeRenderId(selectionId);
+  ids[1] = encodeRenderId("material:particle");
+  new Float32Array(data, 16, 4).set([width, height, 0, 0]);
+  return data;
 }
 
 function materialKey(layer: Layer): string {

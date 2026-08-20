@@ -167,6 +167,9 @@ describe("GPU scene geometry", () => {
 
     const geometry = buildSceneGeometry(composition, flattenSceneLayers(composition, project, 0));
     expect(new Set(geometry.batches.map((batch) => batch.instanceId)).size).toBe(3);
+    expect(new Set(geometry.batches.map((batch) => batch.selectionId))).toEqual(
+      new Set([image.id]),
+    );
     expect(new Set(geometry.batches.map((batch) => batch.resourceInstanceId))).toEqual(
       new Set([`root/${image.id}`]),
     );

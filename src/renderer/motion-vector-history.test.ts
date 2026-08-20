@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   buildMotionLayoutSignature,
   canReuseMotionHistory,
+  MAX_REUSABLE_MOTION_FRAMES,
   motionHistoryBufferBytes,
+  normalizedMotionShutterScale,
   planMotionHistory,
 } from "./motion-vector-history";
 
@@ -27,9 +29,9 @@ describe("motion-vector history", () => {
     );
   });
 
-  it("reuses only a strictly earlier sample with the same instance layout", () => {
+  it("reuses only a forward sample within two composition frames and the same layout", () => {
     const previous = { timelineTime: 1, layoutSignature: "stable" };
-    expect(canReuseMotionHistory(previous, { timelineTime: 1.04, layoutSignature: "stable" })).toBe(
+    expect(canReuseMotionHistory(previous, { timelineTime: 1.02, layoutSignature: "stable" })).toBe(
       true,
     );
     expect(canReuseMotionHistory(previous, { timelineTime: 1, layoutSignature: "stable" })).toBe(
@@ -39,11 +41,39 @@ describe("motion-vector history", () => {
       false,
     );
     expect(
-      canReuseMotionHistory(previous, { timelineTime: 1.04, layoutSignature: "changed" }),
+      canReuseMotionHistory(previous, { timelineTime: 1.02, layoutSignature: "changed" }),
     ).toBe(false);
+    expect(canReuseMotionHistory(previous, { timelineTime: 1.04, layoutSignature: "stable" })).toBe(
+      false,
+    );
+    expect(
+      canReuseMotionHistory(previous, { timelineTime: 1.04, layoutSignature: "stable" }, 25),
+    ).toBe(true);
     expect(canReuseMotionHistory(undefined, { timelineTime: 1, layoutSignature: "stable" })).toBe(
       false,
     );
+    expect(MAX_REUSABLE_MOTION_FRAMES).toBe(2);
+  });
+
+  it("normalizes actual history delta to a 180-degree composition shutter", () => {
+    const previous = { timelineTime: 1, layoutSignature: "stable" };
+    expect(
+      normalizedMotionShutterScale(
+        previous,
+        { timelineTime: 1 + 1 / 60, layoutSignature: "stable" },
+        60,
+      ),
+    ).toBeCloseTo(0.5);
+    expect(
+      normalizedMotionShutterScale(
+        previous,
+        { timelineTime: 1 + 1 / 120, layoutSignature: "stable" },
+        60,
+      ),
+    ).toBeCloseTo(1);
+    expect(
+      normalizedMotionShutterScale(previous, { timelineTime: 1.5, layoutSignature: "stable" }, 60),
+    ).toBe(0);
   });
 
   it("extracts current positions before the first pass so the first vector is zero", () => {
@@ -52,18 +82,31 @@ describe("motion-vector history", () => {
       extractBeforeRender: true,
       extractAfterRender: false,
       reusePreviousSample: false,
+      shutterScale: 0,
     });
-    expect(planMotionHistory({ timelineTime: 1.96, layoutSignature: "stable" }, current)).toEqual({
+    const reused = planMotionHistory(
+      { timelineTime: 2 - 1 / 60, layoutSignature: "stable" },
+      current,
+    );
+    expect(reused).toMatchObject({
       extractBeforeRender: false,
       extractAfterRender: true,
       reusePreviousSample: true,
     });
+    expect(reused.shutterScale).toBeCloseTo(0.5);
     expect(
-      planMotionHistory({ timelineTime: 1.96, layoutSignature: "stable" }, current, true),
+      planMotionHistory({ timelineTime: 2 - 1 / 60, layoutSignature: "stable" }, current, true),
     ).toEqual({
       extractBeforeRender: true,
       extractAfterRender: false,
       reusePreviousSample: false,
+      shutterScale: 0,
+    });
+    expect(planMotionHistory({ timelineTime: 1.5, layoutSignature: "stable" }, current)).toEqual({
+      extractBeforeRender: true,
+      extractAfterRender: false,
+      reusePreviousSample: false,
+      shutterScale: 0,
     });
   });
 

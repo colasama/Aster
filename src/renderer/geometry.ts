@@ -27,6 +27,7 @@ export interface GeometryBatch {
   layer: Layer;
   instanceId: string;
   resourceInstanceId: string;
+  selectionId: string;
   firstVertex: number;
   vertexCount: number;
 }
@@ -258,6 +259,7 @@ export function buildSceneGeometry(
       layer,
       instanceId: scene.instanceId,
       resourceInstanceId: scene.resourceInstanceId,
+      selectionId: scene.selectionId,
       firstVertex,
       vertexCount,
     });

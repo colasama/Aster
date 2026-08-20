@@ -6,6 +6,7 @@ import {
   buildBufferVisualizationUniforms,
   encodeRenderId,
   planAuxiliaryBuffers,
+  postRenderRoute,
   SCENE_BUFFER_VISUALIZATIONS,
   supportsAuxiliaryMrt,
   visualizationCode,
@@ -21,6 +22,8 @@ describe("auxiliary render buffers", () => {
       "alpha",
       "depthFog",
       "depthOfField",
+      "selectionIsolation",
+      "vectorMotionBlur",
       "normal",
       "objectId",
       "materialId",
@@ -87,5 +90,14 @@ describe("auxiliary render buffers", () => {
     expect([...uniforms.slice(0, 2)]).toEqual([4, -20]);
     expect(uniforms[2]).toBeCloseTo(0.01);
     expect(uniforms[3]).toBe(0);
+  });
+
+  it("routes an invalid surface-data frame through the safe Beauty post", () => {
+    expect(postRenderRoute("selectionIsolation", true)).toBe("surface");
+    expect(postRenderRoute("vectorMotionBlur", true)).toBe("surface");
+    expect(postRenderRoute("selectionIsolation", false)).toBe("beauty");
+    expect(postRenderRoute("vectorMotionBlur", false)).toBe("beauty");
+    expect(postRenderRoute("beauty", false)).toBe("beauty");
+    expect(postRenderRoute("normal", true)).toBe("visualizer");
   });
 });

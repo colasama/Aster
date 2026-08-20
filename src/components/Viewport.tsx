@@ -128,7 +128,13 @@ export function Viewport() {
     if (!rendererReady) return;
     const renderer = rendererRef.current;
     if (!renderer) return;
-    const metrics = renderer.render(composition, state.currentTime, state.playing, state.project);
+    const metrics = renderer.render(
+      composition,
+      state.currentTime,
+      state.playing,
+      state.project,
+      state.selection[0],
+    );
     syncMirrorCanvas(canvasRef.current, mirrorCanvasRef.current);
     const now = performance.now();
     const firstPassBreakdown = Boolean(metrics.passTimings) && !hasGpuPassMetrics.current;
@@ -144,6 +150,7 @@ export function Viewport() {
     rendererRevision,
     state.currentTime,
     state.playing,
+    state.selection,
     viewCount,
     state.project,
   ]);
@@ -187,13 +194,13 @@ export function Viewport() {
           renderer.resize(previewWidth, previewHeight);
           if (previewBufferView && renderer instanceof WebGpuRenderer)
             renderer.setBufferVisualization(previewBufferView);
-          renderer.render(composition, state.currentTime, false, state.project);
+          renderer.render(composition, state.currentTime, false, state.project, state.selection[0]);
         },
       });
     };
     window.addEventListener("aster:open-render-session", openRenderSession);
     return () => window.removeEventListener("aster:open-render-session", openRenderSession);
-  }, [composition, state.currentTime, state.project]);
+  }, [composition, state.currentTime, state.project, state.selection]);
 
   useEffect(() => {
     let running = false;
@@ -675,6 +682,8 @@ function bufferViewLabel(mode: BufferVisualization): string {
     alpha: "Alpha",
     depthFog: "Depth Fog · GPU",
     depthOfField: "Depth of Field · GPU",
+    selectionIsolation: "Selected Object Isolation · GPU",
+    vectorMotionBlur: "Vector Motion Blur · GPU",
     normal: "Normal",
     objectId: "Object ID",
     materialId: "Material ID",

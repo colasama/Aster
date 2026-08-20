@@ -11,13 +11,17 @@ export const SCENE_BUFFER_VISUALIZATIONS = ["beauty", "linearColor", "luminance"
 export type SceneBufferVisualization = (typeof SCENE_BUFFER_VISUALIZATIONS)[number];
 export const DEPTH_EFFECT_VISUALIZATIONS = ["depthFog", "depthOfField"] as const;
 export type DepthEffectVisualization = (typeof DEPTH_EFFECT_VISUALIZATIONS)[number];
+export const SURFACE_EFFECT_VISUALIZATIONS = ["selectionIsolation", "vectorMotionBlur"] as const;
+export type SurfaceEffectVisualization = (typeof SURFACE_EFFECT_VISUALIZATIONS)[number];
 export type BufferVisualization =
   | SceneBufferVisualization
   | AuxiliaryBufferKind
-  | DepthEffectVisualization;
+  | DepthEffectVisualization
+  | SurfaceEffectVisualization;
 export const BUFFER_VISUALIZATIONS: readonly BufferVisualization[] = [
   ...SCENE_BUFFER_VISUALIZATIONS,
   ...DEPTH_EFFECT_VISUALIZATIONS,
+  ...SURFACE_EFFECT_VISUALIZATIONS,
   ...AUXILIARY_BUFFER_KINDS,
 ];
 
@@ -31,8 +35,32 @@ export function isDepthEffectVisualization(
   return DEPTH_EFFECT_VISUALIZATIONS.includes(mode as DepthEffectVisualization);
 }
 
+export function isSurfaceEffectVisualization(
+  mode: BufferVisualization,
+): mode is SurfaceEffectVisualization {
+  return SURFACE_EFFECT_VISUALIZATIONS.includes(mode as SurfaceEffectVisualization);
+}
+
 export function usesAuxiliarySurfaceData(mode: BufferVisualization): boolean {
-  return isAuxiliaryBuffer(mode) || isDepthEffectVisualization(mode);
+  return (
+    isAuxiliaryBuffer(mode) ||
+    isDepthEffectVisualization(mode) ||
+    isSurfaceEffectVisualization(mode)
+  );
+}
+
+export type PostRenderRoute = "beauty" | "depth" | "surface" | "visualizer";
+
+/** Surface effects must never sample a cleared or unavailable auxiliary frame. */
+export function postRenderRoute(
+  mode: BufferVisualization,
+  auxiliaryFrameValid = true,
+): PostRenderRoute {
+  if (mode === "beauty" || (isSurfaceEffectVisualization(mode) && !auxiliaryFrameValid))
+    return "beauty";
+  if (isDepthEffectVisualization(mode)) return "depth";
+  if (isSurfaceEffectVisualization(mode)) return "surface";
+  return "visualizer";
 }
 
 export interface AuxiliaryBufferDescriptor {

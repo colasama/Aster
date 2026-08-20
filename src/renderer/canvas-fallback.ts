@@ -39,6 +39,7 @@ export class CanvasFallbackRenderer {
     time: number,
     playing = false,
     project?: Project,
+    _selectedLayerId?: string,
   ): RendererMetrics {
     const started = performance.now();
     const context = this.#context;

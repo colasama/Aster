@@ -1393,10 +1393,10 @@ aster/
 - [x] Correct depth occlusion。
 - [x] 2D overlay mode。
 - [x] 3D render → post effect → final composite。
-- [ ] Object-ID selective effect。
+- [x] Object-ID selective effect。
 - [x] Depth-based fog。
 - [x] Depth-of-field prototype。
-- [ ] Vector motion blur prototype。
+- [x] Vector motion blur prototype。
 
 ---
 
