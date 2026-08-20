@@ -1275,7 +1275,7 @@ aster/
 
 - [x] 创建 `aster-text` crate。
 - [x] 集成 HarfBuzz 或等价 shaping。
-- [ ] 字体发现。
+- [x] 字体发现。
 - [x] Font fallback。
 - [x] Font cache。
 - [x] Glyph cache。
