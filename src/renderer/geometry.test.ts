@@ -38,20 +38,51 @@ describe("GPU scene geometry", () => {
     const camera = createLayerForComposition("camera", composition);
     composition.layers = [mesh, camera];
     const scene = flattenSceneLayers(composition, project, 0);
-    const centered = buildSceneGeometry(
-      composition,
-      scene,
-      evaluateWorldTransform(camera, composition, 0),
-    ).data;
+    const centered = buildSceneGeometry(composition, scene, {
+      transform: evaluateWorldTransform(camera, composition, 0),
+      settings: camera.camera ?? {
+        projection: "perspective",
+        fieldOfView: 50,
+        orthographicSize: composition.height,
+      },
+    }).data;
     camera.transform.position[0] = { mode: "static", value: composition.width * 0.35 };
     camera.transform.rotation[1] = { mode: "static", value: 14 };
-    const moved = buildSceneGeometry(
-      composition,
-      scene,
-      evaluateWorldTransform(camera, composition, 0),
-    ).data;
+    const moved = buildSceneGeometry(composition, scene, {
+      transform: evaluateWorldTransform(camera, composition, 0),
+      settings: camera.camera ?? {
+        projection: "perspective",
+        fieldOfView: 50,
+        orthographicSize: composition.height,
+      },
+    }).data;
     expect(moved[0]).not.toBeCloseTo(centered[0]);
     expect(moved[2]).not.toBeCloseTo(centered[2]);
+  });
+
+  it("supports orthographic camera projection without perspective depth scaling", () => {
+    const project = createBlankProject();
+    const composition = project.compositions[0];
+    const mesh = createLayerForComposition("mesh", composition);
+    const camera = createLayerForComposition("camera", composition);
+    if (!camera.camera) throw new Error("Expected camera settings");
+    camera.camera.projection = "orthographic";
+    composition.layers = [mesh, camera];
+    const scene = flattenSceneLayers(composition, project, 0);
+    const baseCamera = {
+      transform: evaluateWorldTransform(camera, composition, 0),
+      settings: camera.camera,
+    };
+    const centered = buildSceneGeometry(composition, scene, baseCamera).data;
+    mesh.transform.position[2] = { mode: "static", value: 600 };
+    const depthMoved = buildSceneGeometry(
+      composition,
+      flattenSceneLayers(composition, project, 0),
+      baseCamera,
+    ).data;
+    expect(depthMoved[0]).toBeCloseTo(centered[0]);
+    expect(depthMoved[1]).toBeCloseTo(centered[1]);
+    expect(depthMoved[2]).not.toBeCloseTo(centered[2]);
   });
 
   it("uses the circular mask only for square shape layers", () => {

@@ -29,7 +29,8 @@ frames. Rendering, effects, particles, and composition are designed to remain GP
 - In-editor GPU benchmarks measure 1080p, 4K, 20-layer, and Blur/Glow effect-chain scenarios with
   warm-up, GPU completion barriers, median/p95/p99 reports, quick/full modes, and JSON download.
 - GPU image layers, time-addressable hardware-decoded video layers, recursive precompositions,
-  depth-buffered 3D cubes/cameras, blend modes, parenting, solo, timing, and expressions.
+  depth-buffered 3D cubes, animated perspective/orthographic cameras, blend modes, parenting, solo,
+  timing, and expressions.
 - GPU-lit 3D materials carry base color, metallic, roughness, and emissive data through the HDR
   vertex path; directional, point, and spot lights expose animated transforms, HDR color, intensity,
   range, and cone controls through undoable project operations.

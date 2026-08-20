@@ -41,5 +41,9 @@ export function createLayerForComposition(
       kind === "light"
         ? { kind: "directional", intensity: 2.5, range: 2400, coneAngle: 45 }
         : undefined,
+    camera:
+      kind === "camera"
+        ? { projection: "perspective", fieldOfView: 50, orthographicSize: composition.height }
+        : undefined,
   };
 }

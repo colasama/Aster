@@ -96,6 +96,7 @@ export interface Layer {
   effects: Effect[];
   material?: Material3d;
   light?: LightSettings;
+  camera?: CameraSettings;
 }
 
 export interface Material3d {
@@ -109,6 +110,12 @@ export interface LightSettings {
   intensity: number;
   range: number;
   coneAngle: number;
+}
+
+export interface CameraSettings {
+  projection: "perspective" | "orthographic";
+  fieldOfView: number;
+  orthographicSize: number;
 }
 
 export interface Composition {

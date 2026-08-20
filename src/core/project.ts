@@ -137,6 +137,7 @@ export function createDemoProject(): Project {
     size: [0, 0],
     threeDimensional: true,
     visible: false,
+    camera: { projection: "perspective", fieldOfView: 50, orthographicSize: 2160 },
   });
   const composition: Composition = {
     id: compositionId,

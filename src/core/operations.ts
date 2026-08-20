@@ -3,6 +3,7 @@ import { insertKeyframe } from "./timeline";
 import type {
   Animatable,
   BlendMode,
+  CameraSettings,
   Effect,
   EffectMask,
   Id,
@@ -39,6 +40,7 @@ export type Operation =
   | { type: "setMaterial3d"; layerId: Id; material: Material3d }
   | { type: "setLightSettings"; layerId: Id; light: LightSettings }
   | { type: "setLayerColor"; layerId: Id; color: Layer["color"] }
+  | { type: "setCameraSettings"; layerId: Id; camera: CameraSettings }
   | {
       type: "toggleLayer";
       layerId: Id;
@@ -174,6 +176,13 @@ export function applyOperation(project: Project, operation: Operation): void {
       layer.color = operation.color.map((channel, index) =>
         clamp(channel, 0, index === 3 ? 1 : 16),
       ) as Layer["color"];
+      break;
+    case "setCameraSettings":
+      layer.camera = {
+        projection: operation.camera.projection,
+        fieldOfView: clamp(operation.camera.fieldOfView, 1, 179),
+        orthographicSize: clamp(operation.camera.orthographicSize, 1, 100_000),
+      };
       break;
     case "toggleLayer":
       layer[operation.field] = !layer[operation.field];

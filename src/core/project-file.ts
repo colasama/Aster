@@ -197,6 +197,15 @@ function validateLayer(value: unknown, path: string): asserts value is Layer {
     for (const field of ["range", "coneAngle"])
       requirePositiveNumber(light[field], `${path}.light.${field}`);
   }
+  if (layer.camera !== undefined) {
+    const camera = requireObject(layer.camera, `${path}.camera`);
+    if (!["perspective", "orthographic"].includes(String(camera.projection)))
+      throw new Error(`${path}.camera.projection is invalid`);
+    const fieldOfView = requireFiniteNumber(camera.fieldOfView, `${path}.camera.fieldOfView`);
+    if (fieldOfView <= 0 || fieldOfView >= 180)
+      throw new Error(`${path}.camera.fieldOfView must be between 0 and 180 degrees`);
+    requirePositiveNumber(camera.orthographicSize, `${path}.camera.orthographicSize`);
+  }
   if (!Array.isArray(layer.size) || layer.size.length !== 2)
     throw new Error(`${path}.size must contain two values`);
   if (!Array.isArray(layer.color) || layer.color.length !== 4)

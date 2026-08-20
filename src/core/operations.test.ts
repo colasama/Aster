@@ -75,6 +75,26 @@ describe("structured project operations", () => {
     expect(light.light).toBeUndefined();
   });
 
+  it("updates bounded camera projection settings through an undoable operation", () => {
+    const source = createDemoProject();
+    const camera = activeComposition(source).layers.find((layer) => layer.kind === "camera");
+    if (!camera) throw new Error("Expected demo camera");
+    const next = applyOperations(source, [
+      {
+        type: "setCameraSettings",
+        layerId: camera.id,
+        camera: { projection: "orthographic", fieldOfView: 220, orthographicSize: 0 },
+      },
+    ]);
+
+    expect(activeComposition(next).layers.find((layer) => layer.id === camera.id)?.camera).toEqual({
+      projection: "orthographic",
+      fieldOfView: 179,
+      orthographicSize: 1,
+    });
+    expect(camera.camera?.projection).toBe("perspective");
+  });
+
   it("reorders effects through a bounded operation", () => {
     const source = createDemoProject();
     const layer = activeComposition(source).layers[0];

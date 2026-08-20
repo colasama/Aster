@@ -1,5 +1,5 @@
 import type { FlattenedSceneLayer } from "../core/scene-evaluation";
-import type { Composition, EvaluatedTransform, Layer } from "../core/types";
+import type { CameraSettings, Composition, EvaluatedTransform, Layer } from "../core/types";
 
 export const FLOATS_PER_VERTEX = 20;
 export const VERTEX_FLOAT_OFFSETS = {
@@ -22,6 +22,11 @@ export interface GeometryBatch {
 export interface GeometryResult {
   data: Float32Array;
   batches: GeometryBatch[];
+}
+
+export interface SceneCamera {
+  transform: EvaluatedTransform;
+  settings: CameraSettings;
 }
 
 const QUAD_CORNERS: ReadonlyArray<readonly [number, number, number, number]> = [
@@ -66,7 +71,7 @@ const CUBE_FACES: ReadonlyArray<{
 export function buildSceneGeometry(
   composition: Composition,
   sceneLayers: FlattenedSceneLayer[],
-  camera?: EvaluatedTransform,
+  camera?: SceneCamera,
 ): GeometryResult {
   const output: number[] = [];
   const batches: GeometryBatch[] = [];
@@ -153,7 +158,7 @@ function projectVertex(
   position: [number, number, number],
   rotation: [number, number, number],
   composition: Composition,
-  camera?: EvaluatedTransform,
+  camera?: SceneCamera,
 ): { clip: [number, number, number]; world: [number, number, number] } {
   if (!threeDimensional) {
     const angle = toRadians(rotation[2]);
@@ -166,15 +171,30 @@ function projectVertex(
   }
   const [x, y, z] = rotatePoint(localX, localY, localZ, rotation);
   const world: [number, number, number] = [position[0] + x, position[1] + y, position[2] + z];
-  const cameraPosition = camera?.position ?? [composition.width / 2, composition.height / 2, 0];
+  const cameraPosition = camera?.transform.position ?? [
+    composition.width / 2,
+    composition.height / 2,
+    0,
+  ];
   const relative: [number, number, number] = [
     world[0] - cameraPosition[0],
     world[1] - cameraPosition[1],
     world[2] - cameraPosition[2],
   ];
-  const [viewX, viewY, viewZ] = applyInverseRotation(relative, camera?.rotation ?? [0, 0, 0]);
-  const focalLength = Math.max(composition.width, composition.height) * 1.2;
-  const perspective = focalLength / Math.max(focalLength * 0.08, focalLength - viewZ);
+  const [viewX, viewY, viewZ] = applyInverseRotation(
+    relative,
+    camera?.transform.rotation ?? [0, 0, 0],
+  );
+  const settings = camera?.settings ?? {
+    projection: "perspective",
+    fieldOfView: 45,
+    orthographicSize: composition.height,
+  };
+  const focalLength = composition.height / (2 * Math.tan(toRadians(settings.fieldOfView) / 2));
+  const perspective =
+    settings.projection === "orthographic"
+      ? composition.height / settings.orthographicSize
+      : focalLength / Math.max(focalLength * 0.08, focalLength - viewZ);
   return {
     clip: [
       composition.width / 2 + viewX * perspective,

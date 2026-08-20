@@ -1335,7 +1335,7 @@ aster/
 - [ ] Quaternion rotation。
 - [x] Parent hierarchy in 3D。
 - [x] World matrix evaluation。
-- [ ] Orthographic Camera。
+- [x] Orthographic Camera。
 - [x] Perspective Camera。
 - [x] Camera animation。
 

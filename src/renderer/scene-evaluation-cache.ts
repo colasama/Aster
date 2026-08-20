@@ -52,7 +52,16 @@ export class SceneEvaluationCache {
     if (cached) return { ...cached, cacheHit: true };
     const sceneLayers = flattenSceneLayers(composition, project, time);
     const cameraLayer = composition.layers.find((layer) => layer.kind === "camera");
-    const camera = cameraLayer ? evaluateWorldTransform(cameraLayer, composition, time) : undefined;
+    const camera = cameraLayer
+      ? {
+          transform: evaluateWorldTransform(cameraLayer, composition, time),
+          settings: cameraLayer.camera ?? {
+            projection: "perspective" as const,
+            fieldOfView: 50,
+            orthographicSize: composition.height,
+          },
+        }
+      : undefined;
     const value = {
       sceneLayers,
       geometry: buildSceneGeometry(composition, sceneLayers, camera),

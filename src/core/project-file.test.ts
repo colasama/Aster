@@ -98,4 +98,18 @@ describe("project document boundary", () => {
       color: light.color,
     });
   });
+
+  it("roundtrips perspective and orthographic camera settings", () => {
+    const project = createBlankProject();
+    const composition = project.compositions[0];
+    const camera = createLayerForComposition("camera", composition);
+    camera.camera = { projection: "orthographic", fieldOfView: 50, orthographicSize: 1400 };
+    composition.layers.push(camera);
+
+    const roundtrip = validateProjectDocument(JSON.parse(serializeProject(project)));
+    expect(roundtrip.compositions[0].layers[1].camera).toEqual(camera.camera);
+    if (!camera.camera) throw new Error("Expected camera settings");
+    camera.camera.fieldOfView = 180;
+    expect(() => validateProjectDocument(project)).toThrow("between 0 and 180 degrees");
+  });
 });
