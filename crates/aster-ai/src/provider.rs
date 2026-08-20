@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use thiserror::Error;
 
-use crate::tool::{AiTool, SubmitOperationPlanTool, ToolError};
+use crate::tool::{AI_OPERATION_TYPES, AiTool, SubmitOperationPlanTool, ToolError};
 
 const MAX_PROVIDER_RESPONSE_BYTES: usize = 1_048_576;
 
@@ -98,12 +98,14 @@ pub async fn generate_plan(
 
 fn request_body(model: &str, prompt: &str, project_context: &str) -> Value {
     let tool = SubmitOperationPlanTool.definition();
-    let system = r#"You are the operation planner inside Aster, a GPU-first motion graphics editor.
-Return only valid JSON with this shape: {"summary":"...","operations":[...]}. Never return markdown.
-Allowed operation types are addLayer, removeLayer, renameLayer, reorderLayer, toggleLayer,
-setProperty, addKeyframe, addEffect, removeEffect, and setEffectParameter. Use the exact IDs and
+    let system = format!(
+        r#"You are the operation planner inside Aster, a GPU-first motion graphics editor.
+Return only valid JSON with this shape: {{"summary":"...","operations":[...]}}. Never return markdown.
+Allowed operation types are {}. Use the exact IDs and
 property paths in the project context. Prefer editable keyframes and GPU effects. Do not invent
-asset paths, execute code, or include secrets. Keep every plan reversible and under 12 operations."#;
+asset paths, execute code, or include secrets. Keep every plan reversible and under 12 operations."#,
+        AI_OPERATION_TYPES.join(", ")
+    );
     json!({
         "model": model,
         "temperature": 0.2,

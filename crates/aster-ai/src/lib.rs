@@ -15,7 +15,7 @@ pub use provider::{
     AiProvider, AiProviderConfig, GeneratedPlan, OpenAiCompatibleProvider, ProviderError,
     ProviderFuture, generate_plan,
 };
-pub use tool::{AiTool, AiToolDefinition, SubmitOperationPlanTool, ToolError};
+pub use tool::{AI_OPERATION_TYPES, AiTool, AiToolDefinition, SubmitOperationPlanTool, ToolError};
 
 #[derive(Clone, Debug, Deserialize, JsonSchema, Serialize)]
 pub struct OperationPlan {

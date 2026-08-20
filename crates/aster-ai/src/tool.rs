@@ -4,6 +4,19 @@ use thiserror::Error;
 
 use crate::provider::GeneratedPlan;
 
+pub const AI_OPERATION_TYPES: [&str; 10] = [
+    "addLayer",
+    "removeLayer",
+    "renameLayer",
+    "reorderLayer",
+    "toggleLayer",
+    "setProperty",
+    "addKeyframe",
+    "addEffect",
+    "removeEffect",
+    "setEffectParameter",
+];
+
 #[derive(Clone, Debug, Serialize)]
 pub struct AiToolDefinition {
     pub name: &'static str,
@@ -45,7 +58,12 @@ impl AiTool for SubmitOperationPlanTool {
                         "items": {
                             "type": "object",
                             "required": ["type"],
-                            "properties": { "type": { "type": "string" } }
+                            "properties": {
+                                "type": {
+                                    "type": "string",
+                                    "enum": AI_OPERATION_TYPES
+                                }
+                            }
                         }
                     }
                 }
@@ -61,6 +79,15 @@ impl AiTool for SubmitOperationPlanTool {
         if plan.operations.is_empty() || plan.operations.len() > 12 {
             return Err(ToolError::InvalidOperationCount(plan.operations.len()));
         }
+        for operation in &plan.operations {
+            let operation_type = operation
+                .get("type")
+                .and_then(Value::as_str)
+                .unwrap_or("<missing>");
+            if !AI_OPERATION_TYPES.contains(&operation_type) {
+                return Err(ToolError::UnsupportedOperation(operation_type.to_owned()));
+            }
+        }
         Ok(plan)
     }
 }
@@ -73,6 +100,8 @@ pub enum ToolError {
     EmptySummary,
     #[error("AI operation plan contains {0} operations; expected 1 through 12")]
     InvalidOperationCount(usize),
+    #[error("AI operation type {0} is not available")]
+    UnsupportedOperation(String),
 }
 
 #[cfg(test)]
@@ -90,6 +119,12 @@ mod tests {
                 .pointer("/properties/operations/maxItems"),
             Some(&json!(12))
         );
+        assert_eq!(
+            definition
+                .parameters
+                .pointer("/properties/operations/items/properties/type/enum"),
+            Some(&json!(AI_OPERATION_TYPES))
+        );
         let plan = tool
             .decode(r#"{"summary":"Tint","operations":[{"type":"addEffect"}]}"#)
             .unwrap();
@@ -97,6 +132,10 @@ mod tests {
         assert!(matches!(
             tool.decode(r#"{"summary":"Empty","operations":[]}"#),
             Err(ToolError::InvalidOperationCount(0))
+        ));
+        assert!(matches!(
+            tool.decode(r#"{"summary":"Unsafe","operations":[{"type":"runCode"}]}"#),
+            Err(ToolError::UnsupportedOperation(name)) if name == "runCode"
         ));
     }
 }

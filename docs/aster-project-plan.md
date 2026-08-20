@@ -1570,7 +1570,7 @@ aster/
 ### Operation API
 
 - [x] 创建 `aster-ai` crate。
-- [ ] 列出全部可供 AI 调用的基础 Operation。
+- [x] 列出全部可供 AI 调用的基础 Operation。
 - [x] 定义 JSON Schema。
 - [x] 定义 parameter validation。
 - [x] 定义 operation permission。
