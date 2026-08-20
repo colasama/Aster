@@ -10,6 +10,10 @@ frames. Rendering, effects, particles, and composition are designed to remain GP
 > model, structured operations, project persistence, render graph, HDR WebGPU renderer, effect
 > catalog, GPU particles, plugins, and guarded AI operation planning.
 
+![Aster WebGPU editor cycling through Beauty, depth fog, depth of field, normal, and motion-vector views](docs/assets/aster-gpu-demo.gif)
+
+_Live WebGPU preview: Beauty → depth fog → depth of field → normals → motion vectors._
+
 ## Current capabilities
 
 - AE-style desktop editor with dockable, movable, resizable panels and free viewport zoom/pan.
