@@ -14,6 +14,8 @@ frames. Rendering, effects, particles, and composition are designed to remain GP
 
 _Live WebGPU preview: Beauty → depth fog → depth of field → normals → motion vectors._
 
+[Watch the MP4 capture](docs/assets/aster-gpu-demo.mp4)
+
 ## Current capabilities
 
 - AE-style desktop editor with dockable, movable, resizable panels and free viewport zoom/pan.

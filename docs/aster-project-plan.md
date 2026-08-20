@@ -1808,7 +1808,7 @@ Demo 发布准备：
 - [x] 记录 Aster performance。
 - [x] 选择合理竞品对照方式。
 - [x] 保证测试条件公平可复现。
-- [ ] 录制实时交互视频。
+- [x] 录制实时交互视频。
 - [x] README 添加 Demo GIF / Video。
 - [x] 发布 benchmark methodology。
 
