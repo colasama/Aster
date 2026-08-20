@@ -11,6 +11,7 @@ import {
   X,
 } from "lucide-react";
 import { useState } from "react";
+import { buildAiContext } from "../core/ai-context";
 import { createLayerForComposition } from "../core/layer-factory";
 import type { Operation, PropertyPath } from "../core/operations";
 import { activeComposition } from "../core/project";
@@ -55,22 +56,9 @@ export function AiPanel() {
               baseUrl: provider.baseUrl,
               model: provider.model,
             },
-            projectSummary: JSON.stringify({
-              composition: {
-                duration: composition.duration,
-                frameRate: composition.frameRate,
-                id: composition.id,
-                layers: composition.layers.map((layer) => ({
-                  effects: layer.effects.map((effect) => ({ id: effect.id, type: effect.type })),
-                  id: layer.id,
-                  kind: layer.kind,
-                  name: layer.name,
-                })),
-                name: composition.name,
-              },
-              currentTime: state.currentTime,
-              selectedLayerIds: state.selection,
-            }),
+            projectSummary: JSON.stringify(
+              buildAiContext(state.project, state.selection, state.currentTime),
+            ),
             prompt: intent,
           },
         );

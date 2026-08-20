@@ -1588,11 +1588,11 @@ aster/
 - [x] Context builder。
 - [x] Project summary API。
 - [x] Layer query API。
-- [ ] Property query API。
-- [ ] Timeline query API。
-- [ ] Scene query API。
+- [x] Property query API。
+- [x] Timeline query API。
+- [x] Scene query API。
 - [x] Effect query API。
-- [ ] Asset query API。
+- [x] Asset query API。
 - [x] Selection-aware context。
 
 ### Natural Language Workflows
