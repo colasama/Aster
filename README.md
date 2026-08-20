@@ -17,6 +17,8 @@ frames. Rendering, effects, particles, and composition are designed to remain GP
   evaluation.
 - Timeline keyframes support additive multi-selection, frame-snapped group retiming, Alt-drag time
   scaling, track-aware copy/paste at the playhead, grouped deletion, and single-step undo.
+- Layer timing provides frame-snapped bar moves and edge trimming plus source offsets, playback
+  stretch, and arbitrary-time remapping shared by videos and nested compositions.
 - Arbitrary effect parameters—including numeric, color, toggle, and choice controls—support
   Inspector keyframing, distinct Timeline tracks and markers, direct retiming/removal, and GPU
   evaluation at render time.

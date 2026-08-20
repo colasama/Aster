@@ -1,3 +1,4 @@
+import { evaluateLayerSourceTime } from "../core/layer-time";
 import { flattenSceneLayers } from "../core/scene-evaluation";
 import type { Composition, GpuDiagnostics, Layer, Project, RendererMetrics } from "../core/types";
 import { drawTextLayer } from "./text-rasterizer";
@@ -113,7 +114,7 @@ export class CanvasFallbackRenderer {
       const duration = Number.isFinite(video.duration)
         ? video.duration
         : (layer.asset.duration ?? layer.outPoint - layer.inPoint);
-      const mediaTime = Math.max(0, Math.min(Math.max(0, duration - 0.001), time - layer.inPoint));
+      const mediaTime = evaluateLayerSourceTime(layer, time, Math.max(0, duration - 0.001));
       if (Math.abs(video.currentTime - mediaTime) > (playing ? 0.12 : 1 / 240))
         video.currentTime = mediaTime;
       if (playing && video.paused) void video.play().catch(() => undefined);

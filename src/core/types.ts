@@ -75,6 +75,9 @@ export interface Layer {
   threeDimensional: boolean;
   inPoint: number;
   outPoint: number;
+  timeOffset?: number;
+  timeStretch?: number;
+  timeRemap?: Animatable;
   blendMode: BlendMode;
   color: [number, number, number, number];
   size: [number, number];

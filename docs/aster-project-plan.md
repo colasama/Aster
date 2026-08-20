@@ -1122,17 +1122,17 @@ aster/
 
 ### Time Model
 
-- [ ] 创建 `aster-timeline` crate。
-- [ ] 定义 Time 类型。
-- [ ] 支持 frame-based time。
-- [ ] 支持 rational frame rate。
-- [ ] 支持 seconds / frames 转换。
-- [ ] 支持任意时间 seek。
-- [ ] 定义 Composition duration。
-- [ ] 定义 layer in/out point。
-- [ ] 支持 time offset。
-- [ ] 支持 time stretch。
-- [ ] 设计 time remapping API。
+- [x] 创建 `aster-timeline` crate。
+- [x] 定义 Time 类型。
+- [x] 支持 frame-based time。
+- [x] 支持 rational frame rate。
+- [x] 支持 seconds / frames 转换。
+- [x] 支持任意时间 seek。
+- [x] 定义 Composition duration。
+- [x] 定义 layer in/out point。
+- [x] 支持 time offset。
+- [x] 支持 time stretch。
+- [x] 设计 time remapping API。
 
 ### Property System
 

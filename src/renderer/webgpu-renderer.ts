@@ -1,3 +1,4 @@
+import { evaluateLayerSourceTime } from "../core/layer-time";
 import type {
   BlendMode,
   Composition,
@@ -726,7 +727,7 @@ export class WebGpuRenderer {
     const duration = Number.isFinite(video.duration)
       ? video.duration
       : (layer.asset?.duration ?? layer.outPoint - layer.inPoint);
-    const mediaTime = Math.max(0, Math.min(Math.max(0, duration - 0.001), time - layer.inPoint));
+    const mediaTime = evaluateLayerSourceTime(layer, time, Math.max(0, duration - 0.001));
     const tolerance = playing ? 0.12 : 1 / 240;
     if (Math.abs(video.currentTime - mediaTime) > tolerance) video.currentTime = mediaTime;
     if (playing && video.paused) {

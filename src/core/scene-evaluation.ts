@@ -1,4 +1,5 @@
 import { evaluateLayerTransform } from "./expressions";
+import { evaluateLayerSourceTime } from "./layer-time";
 import type { Composition, EvaluatedTransform, Id, Layer, Project } from "./types";
 
 export interface FlattenedSceneLayer {
@@ -57,7 +58,7 @@ function flattenComposition(
         ? project?.compositions.find((candidate) => candidate.id === layer.sourceCompositionId)
         : undefined;
     if (nested) {
-      const nestedTime = Math.max(0, time - layer.inPoint);
+      const nestedTime = evaluateLayerSourceTime(layer, time, nested.duration);
       const wrapperTransform = applyWrapperSize(transform, layer, nested);
       output.push(
         ...flattenComposition(

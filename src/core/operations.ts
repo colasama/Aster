@@ -32,6 +32,8 @@ export type Operation =
   | { type: "setBlendMode"; layerId: Id; blendMode: BlendMode }
   | { type: "setParent"; layerId: Id; parentId?: Id }
   | { type: "setLayerTiming"; layerId: Id; inPoint: number; outPoint: number }
+  | { type: "setLayerTimeMapping"; layerId: Id; offset: number; stretch: number }
+  | { type: "setLayerTimeRemap"; layerId: Id; value?: Animatable }
   | {
       type: "toggleLayer";
       layerId: Id;
@@ -128,6 +130,15 @@ export function applyOperation(project: Project, operation: Operation): void {
     case "setLayerTiming":
       layer.inPoint = Math.max(0, operation.inPoint);
       layer.outPoint = Math.max(layer.inPoint + 1 / 240, operation.outPoint);
+      break;
+    case "setLayerTimeMapping":
+      layer.timeOffset = Number.isFinite(operation.offset) ? Math.max(0, operation.offset) : 0;
+      layer.timeStretch = Number.isFinite(operation.stretch)
+        ? Math.max(0.01, operation.stretch)
+        : 1;
+      break;
+    case "setLayerTimeRemap":
+      layer.timeRemap = operation.value;
       break;
     case "toggleLayer":
       layer[operation.field] = !layer[operation.field];

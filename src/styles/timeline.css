@@ -260,6 +260,11 @@
   background: #384b72;
   color: #a9b9dd;
   font-size: 7px;
+  cursor: grab;
+  user-select: none;
+}
+.layer-bar:active {
+  cursor: grabbing;
 }
 .layer-bar.kind-text {
   border-color: #7462a6;
@@ -280,8 +285,31 @@
 }
 .layer-bar span {
   display: block;
-  padding: 2px 5px;
+  padding: 2px 8px;
   white-space: nowrap;
+}
+.timing-handle {
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  bottom: 0;
+  width: 7px;
+  padding: 0;
+  cursor: ew-resize;
+  background: rgba(190, 213, 255, 0.18);
+  opacity: 0;
+}
+.layer-bar:hover .timing-handle,
+.timing-handle:focus-visible {
+  opacity: 1;
+}
+.timing-handle.start {
+  left: 0;
+  border-right: 1px solid rgba(220, 232, 255, 0.65);
+}
+.timing-handle.end {
+  right: 0;
+  border-left: 1px solid rgba(220, 232, 255, 0.65);
 }
 .keyframe {
   position: absolute;

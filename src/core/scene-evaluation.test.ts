@@ -74,4 +74,20 @@ describe("editor scene evaluation", () => {
     project.compositions.push(nested);
     expect(flattenSceneLayers(root, project, 0)).toEqual([]);
   });
+
+  it("evaluates nested compositions through the wrapper time mapping", () => {
+    const project = createBlankProject();
+    const root = project.compositions[0];
+    const nested = structuredClone(root);
+    nested.id = crypto.randomUUID();
+    nested.layers[0].id = crypto.randomUUID();
+    const wrapper = createLayerForComposition("precomposition", root);
+    wrapper.sourceCompositionId = nested.id;
+    wrapper.timeOffset = 1;
+    wrapper.timeStretch = 2;
+    root.layers = [wrapper];
+    project.compositions.push(nested);
+
+    expect(flattenSceneLayers(root, project, 5)[0].localTime).toBe(3.5);
+  });
 });

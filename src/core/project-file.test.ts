@@ -59,4 +59,23 @@ describe("project document boundary", () => {
     effect.mask.opacity = 101;
     expect(() => validateProjectDocument(project)).toThrow("opacity is out of range");
   });
+
+  it("validates source-time mapping and animated time remapping", () => {
+    const project = createBlankProject();
+    const layer = project.compositions[0].layers[0];
+    layer.timeOffset = 2;
+    layer.timeStretch = 0.5;
+    layer.timeRemap = {
+      mode: "animated",
+      keyframes: [
+        { id: "start", time: 0, value: 1, interpolation: "linear" },
+        { id: "end", time: 4, value: 3, interpolation: "bezier", easing: [0.4, 0, 0.6, 1] },
+      ],
+    };
+    const roundtrip = validateProjectDocument(JSON.parse(serializeProject(project)));
+    expect(roundtrip.compositions[0].layers[0].timeRemap).toEqual(layer.timeRemap);
+
+    layer.timeStretch = 0;
+    expect(() => validateProjectDocument(project)).toThrow("timeStretch must be a positive number");
+  });
 });

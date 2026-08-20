@@ -41,6 +41,7 @@ import { activeComposition } from "../core/project";
 import { frameAt } from "../core/timeline";
 import type { Animatable, Keyframe, Layer } from "../core/types";
 import { useEditor } from "../state/editor-store";
+import { LayerTimingBar } from "./LayerTimingBar";
 import { Panel, PanelTabs } from "./Panel";
 
 const LABEL_WIDTH = 286;
@@ -302,6 +303,7 @@ export function Timeline() {
             <div className="layer-rows">
               {composition.layers.map((layer, index) => (
                 <TimelineLayer
+                  composition={composition}
                   index={index}
                   key={layer.id}
                   layer={layer}
@@ -336,6 +338,7 @@ export function Timeline() {
 }
 
 function TimelineLayer({
+  composition,
   layer,
   index,
   selected,
@@ -343,6 +346,7 @@ function TimelineLayer({
   onDragStart,
   onDrop,
 }: {
+  composition: ReturnType<typeof activeComposition>;
   layer: Layer;
   index: number;
   selected: boolean;
@@ -465,15 +469,7 @@ function TimelineLayer({
         )}
       </div>
       <div className="layer-track" style={{ left: LABEL_WIDTH }}>
-        <div
-          className={`layer-bar kind-${layer.kind}`}
-          style={{
-            left: layer.inPoint * pixelsPerSecond,
-            width: Math.max(2, (layer.outPoint - layer.inPoint) * pixelsPerSecond),
-          }}
-        >
-          <span>{layer.name}</span>
-        </div>
+        <LayerTimingBar composition={composition} layer={layer} pixelsPerSecond={pixelsPerSecond} />
         {keyframes.map((entry) => (
           <button
             className={`keyframe ${entry.source === "effect" ? "effect-key" : ""} ${state.selectedKeyframes.includes(entry.keyframe.id) ? "selected" : ""}`}

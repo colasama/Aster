@@ -176,6 +176,13 @@ function validateLayer(value: unknown, path: string): asserts value is Layer {
   requireString(layer.name, `${path}.name`);
   requireString(layer.kind, `${path}.kind`);
   requirePositiveNumber(layer.outPoint, `${path}.outPoint`);
+  if (layer.timeOffset !== undefined) {
+    const offset = requireFiniteNumber(layer.timeOffset, `${path}.timeOffset`);
+    if (offset < 0) throw new Error(`${path}.timeOffset must not be negative`);
+  }
+  if (layer.timeStretch !== undefined)
+    requirePositiveNumber(layer.timeStretch, `${path}.timeStretch`);
+  if (layer.timeRemap !== undefined) validateAnimatable(layer.timeRemap, `${path}.timeRemap`);
   if (!Array.isArray(layer.size) || layer.size.length !== 2)
     throw new Error(`${path}.size must contain two values`);
   if (!Array.isArray(layer.color) || layer.color.length !== 4)
@@ -184,6 +191,31 @@ function validateLayer(value: unknown, path: string): asserts value is Layer {
   if (!Array.isArray(layer.effects)) throw new Error(`${path}.effects must be an array`);
   for (const [index, effect] of layer.effects.entries())
     validateEffect(effect, `${path}.effects[${index}]`);
+}
+
+function validateAnimatable(value: unknown, path: string): void {
+  const property = requireObject(value, path);
+  if (property.mode === "static") {
+    requireFiniteNumber(property.value, `${path}.value`);
+    return;
+  }
+  if (property.mode !== "animated" || !Array.isArray(property.keyframes))
+    throw new Error(`${path} must be a static or animated property`);
+  if (property.keyframes.length > 10_000) throw new Error(`${path}.keyframes must be bounded`);
+  let previousTime = -Infinity;
+  const ids = new Set<string>();
+  for (const [index, value] of property.keyframes.entries()) {
+    const keyframe = requireObject(value, `${path}.keyframes[${index}]`);
+    const id = requireString(keyframe.id, `${path}.keyframes[${index}].id`);
+    if (ids.has(id)) throw new Error(`${path}.keyframes contains duplicate id ${id}`);
+    ids.add(id);
+    const time = requireFiniteNumber(keyframe.time, `${path}.keyframes[${index}].time`);
+    requireFiniteNumber(keyframe.value, `${path}.keyframes[${index}].value`);
+    if (time < 0 || time <= previousTime) throw new Error(`${path}.keyframes must be sorted`);
+    if (!["linear", "step", "bezier"].includes(String(keyframe.interpolation)))
+      throw new Error(`${path}.keyframes has invalid interpolation`);
+    previousTime = time;
+  }
 }
 
 function validateEffect(value: unknown, path: string): void {

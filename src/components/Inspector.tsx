@@ -14,6 +14,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useRef, useState } from "react";
+import { evaluateLayerSourceTime } from "../core/layer-time";
 import { getProperty, type PropertyPath } from "../core/operations";
 import { activeComposition } from "../core/project";
 import { evaluateAnimatable, evaluateEffectParameter } from "../core/timeline";
@@ -312,6 +313,97 @@ export function Inspector() {
                     value={layer.outPoint}
                   />
                 </label>
+                <label>
+                  Source offset
+                  <input
+                    min="0"
+                    onChange={(event) =>
+                      dispatch({
+                        type: "operation",
+                        operations: [
+                          {
+                            type: "setLayerTimeMapping",
+                            layerId: layer.id,
+                            offset: Number(event.target.value),
+                            stretch: layer.timeStretch ?? 1,
+                          },
+                        ],
+                      })
+                    }
+                    step="0.01"
+                    type="number"
+                    value={layer.timeOffset ?? 0}
+                  />
+                </label>
+                <label>
+                  Time stretch
+                  <input
+                    min="1"
+                    onChange={(event) =>
+                      dispatch({
+                        type: "operation",
+                        operations: [
+                          {
+                            type: "setLayerTimeMapping",
+                            layerId: layer.id,
+                            offset: layer.timeOffset ?? 0,
+                            stretch: Number(event.target.value) / 100,
+                          },
+                        ],
+                      })
+                    }
+                    step="1"
+                    type="number"
+                    value={(layer.timeStretch ?? 1) * 100}
+                  />
+                </label>
+                <label className="compositing-check">
+                  <input
+                    checked={Boolean(layer.timeRemap)}
+                    onChange={(event) =>
+                      dispatch({
+                        type: "operation",
+                        operations: [
+                          {
+                            type: "setLayerTimeRemap",
+                            layerId: layer.id,
+                            value: event.target.checked
+                              ? {
+                                  mode: "static",
+                                  value: evaluateLayerSourceTime(layer, state.currentTime),
+                                }
+                              : undefined,
+                          },
+                        ],
+                      })
+                    }
+                    type="checkbox"
+                  />
+                  Enable time remapping
+                </label>
+                {layer.timeRemap && (
+                  <label>
+                    Remapped time
+                    <input
+                      min="0"
+                      onChange={(event) =>
+                        dispatch({
+                          type: "operation",
+                          operations: [
+                            {
+                              type: "setLayerTimeRemap",
+                              layerId: layer.id,
+                              value: { mode: "static", value: Number(event.target.value) },
+                            },
+                          ],
+                        })
+                      }
+                      step="0.01"
+                      type="number"
+                      value={evaluateAnimatable(layer.timeRemap, state.currentTime)}
+                    />
+                  </label>
+                )}
                 <label className="compositing-check">
                   <input
                     checked={layer.threeDimensional}
