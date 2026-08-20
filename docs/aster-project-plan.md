@@ -1693,8 +1693,8 @@ aster/
 
 ### Rendering Tests
 
-- [ ] Golden image tests。
-- [ ] GPU backend comparison tests。
+- [x] Golden image tests。
+- [x] GPU backend comparison tests。
 - [x] Alpha compositing tests。
 - [x] Color tests。
 - [x] Blur tests。

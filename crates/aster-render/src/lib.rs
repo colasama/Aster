@@ -1,5 +1,7 @@
 //! GPU-first render graph and adapter policy.
 
+#[cfg(test)]
+mod golden_image;
 mod gpu;
 mod graph;
 mod resource_wrappers;
