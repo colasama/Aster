@@ -1856,21 +1856,21 @@ Demo 发布准备：
 
 如果今天开始编码，第一批 Issue 建议严格控制为：
 
-1. [ ] **Initialize Rust workspace, CI, licensing and contribution docs**
-2. [ ] **Create wgpu window/surface and render first texture**
-3. [ ] **Implement minimal Render Graph**
-4. [ ] **Add GPU timestamp profiler**
-5. [ ] **Implement Image Layer + 2D Transform + Alpha Composite**
-6. [ ] **Implement Timeline Clock and time-addressable evaluation**
-7. [ ] **Implement Keyframe + Linear/Bezier Easing**
-8. [ ] **Implement Dependency DAG + Dirty Propagation**
-9. [ ] **Implement intermediate Node Cache**
-10. [ ] **Add Color Matrix WGSL Effect**
-11. [ ] **Add Blur WGSL Effect**
-12. [ ] **Add Glow/Bloom WGSL Effect**
-13. [ ] **Create 1080p and 4K performance benchmark**
-14. [ ] **Create minimal Editor UI with Viewport + Timeline + Inspector**
-15. [ ] **Only after the above: start Text / Shape / Video / 3D work**
+1. [x] **Initialize Rust workspace, CI, licensing and contribution docs**
+2. [x] **Create wgpu window/surface and render first texture**
+3. [x] **Implement minimal Render Graph**
+4. [x] **Add GPU timestamp profiler**
+5. [x] **Implement Image Layer + 2D Transform + Alpha Composite**
+6. [x] **Implement Timeline Clock and time-addressable evaluation**
+7. [x] **Implement Keyframe + Linear/Bezier Easing**
+8. [x] **Implement Dependency DAG + Dirty Propagation**
+9. [x] **Implement intermediate Node Cache**
+10. [x] **Add Color Matrix WGSL Effect**
+11. [x] **Add Blur WGSL Effect**
+12. [x] **Add Glow/Bloom WGSL Effect**
+13. [x] **Create 1080p and 4K performance benchmark**
+14. [x] **Create minimal Editor UI with Viewport + Timeline + Inspector**
+15. [x] **Only after the above: start Text / Shape / Video / 3D work**
 
 ---
 
@@ -1882,7 +1882,7 @@ Aster 的第一阶段成功标准不是“拥有多少 AE 功能”，而是证�
 - [x] Timeline 可以任意 seek，而不会被游戏式帧状态模型绑死；
 - [x] Dirty Propagation 能显著减少不必要的重算；
 - [x] 2D 与 3D 可以共享同一套 Scene / Render Graph；
-- [ ] WGSL Plugin 可以低成本扩展效果；
+- [x] WGSL Plugin 可以低成本扩展效果；
 - [x] 工程文件是开放、稳定、可版本控制的；
 - [x] AI 能通过结构化 API 修改工程并完整 Undo；
 - [ ] Aster 在公开、可复现 Benchmark 中体现出明显的实时性能优势。
