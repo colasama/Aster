@@ -243,6 +243,18 @@ impl Parameter {
     }
 
     fn validate(&self) -> Result<(), PluginError> {
+        if !valid_parameter_name(self.name()) {
+            return Err(PluginError::InvalidParameter(self.name().into()));
+        }
+        let label = match self {
+            Self::Number { label, .. }
+            | Self::Color { label, .. }
+            | Self::Choice { label, .. }
+            | Self::Texture { label, .. } => label,
+        };
+        if label.trim().is_empty() {
+            return Err(PluginError::InvalidParameter(self.name().into()));
+        }
         match self {
             Self::Number {
                 name,
@@ -259,17 +271,36 @@ impl Parameter {
             {
                 Err(PluginError::InvalidParameter(name.clone()))
             }
+            Self::Color { name, default, .. }
+                if default
+                    .iter()
+                    .any(|channel| !channel.is_finite() || !(0.0..=1.0).contains(channel)) =>
+            {
+                Err(PluginError::InvalidParameter(name.clone()))
+            }
             Self::Choice {
                 name,
                 default,
                 choices,
                 ..
-            } if choices.is_empty() || !choices.contains(default) => {
+            } if choices.is_empty()
+                || !choices.contains(default)
+                || choices.iter().any(|choice| choice.trim().is_empty())
+                || choices.iter().collect::<BTreeSet<_>>().len() != choices.len() =>
+            {
                 Err(PluginError::InvalidParameter(name.clone()))
             }
             _ => Ok(()),
         }
     }
+}
+
+fn valid_parameter_name(name: &str) -> bool {
+    let mut characters = name.chars();
+    characters
+        .next()
+        .is_some_and(|character| character.is_ascii_alphabetic() || character == '_')
+        && characters.all(|character| character.is_ascii_alphanumeric() || character == '_')
 }
 
 fn valid_id(id: &str) -> bool {
@@ -380,6 +411,48 @@ fn aster_effect(@location(0) uv: vec2f) -> @location(0) vec4f {
         .unwrap();
         assert_eq!(manifest.plugin.id, "org.aster.tint");
         assert_eq!(manifest.parameters.len(), 1);
+    }
+
+    #[test]
+    fn validates_parameter_schema_before_exposing_it_to_the_host() {
+        let invalid_color = PluginManifest::parse(
+            r#"
+                [plugin]
+                id = "org.aster.invalid-color"
+                name = "Invalid Color"
+                version = "1.0.0"
+                api_version = 1
+                shader = "effect.wgsl"
+
+                [[parameters]]
+                type = "color"
+                name = "tint"
+                label = "Tint"
+                default = [1.2, 0.5, 0.5, 1.0]
+            "#,
+        )
+        .unwrap_err();
+        assert!(matches!(invalid_color, PluginError::InvalidParameter(name) if name == "tint"));
+
+        let invalid_name = PluginManifest::parse(
+            r#"
+                [plugin]
+                id = "org.aster.invalid-name"
+                name = "Invalid Name"
+                version = "1.0.0"
+                api_version = 1
+                shader = "effect.wgsl"
+
+                [[parameters]]
+                type = "texture"
+                name = "source texture"
+                label = "Source"
+            "#,
+        )
+        .unwrap_err();
+        assert!(
+            matches!(invalid_name, PluginError::InvalidParameter(name) if name == "source texture")
+        );
     }
 
     #[test]

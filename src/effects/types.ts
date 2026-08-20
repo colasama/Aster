@@ -1,5 +1,12 @@
 export type EffectExecution = "fused-pixel" | "multi-pass" | "compute" | "temporal";
-export type ParameterKind = "number" | "angle" | "percent" | "color" | "choice" | "toggle";
+export type ParameterKind =
+  | "number"
+  | "angle"
+  | "percent"
+  | "color"
+  | "choice"
+  | "toggle"
+  | "texture";
 
 export interface EffectParameterDefinition {
   key: string;

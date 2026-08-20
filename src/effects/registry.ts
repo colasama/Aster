@@ -885,6 +885,18 @@ export const EFFECT_REGISTRY: EffectDefinition[] = [
 
 export const EFFECT_BY_TYPE = new Map(EFFECT_REGISTRY.map((effect) => [effect.type, effect]));
 
+const pluginEffectTypes = new Set<string>();
+
+export function replacePluginEffectDefinitions(definitions: readonly EffectDefinition[]): void {
+  for (const type of pluginEffectTypes) EFFECT_BY_TYPE.delete(type);
+  pluginEffectTypes.clear();
+  for (const definition of definitions) {
+    if (EFFECT_REGISTRY.some((builtin) => builtin.type === definition.type)) continue;
+    EFFECT_BY_TYPE.set(definition.type, definition);
+    pluginEffectTypes.add(definition.type);
+  }
+}
+
 export function createEffect(type: string): Effect {
   const definition = EFFECT_BY_TYPE.get(type);
   if (!definition) throw new Error(`Unknown effect type: ${type}`);
@@ -900,5 +912,5 @@ export function createEffect(type: string): Effect {
 }
 
 export function effectCategories(): string[] {
-  return [...new Set(EFFECT_REGISTRY.map((effect) => effect.category))];
+  return [...new Set([...EFFECT_BY_TYPE.values()].map((effect) => effect.category))];
 }

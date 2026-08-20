@@ -686,6 +686,16 @@ function EffectParameter({
   animated: boolean;
   keyframed: boolean;
 }) {
+  if (definition.kind === "texture") {
+    return (
+      <div className="effect-parameter">
+        <span>{definition.label}</span>
+        <small title="WGSL effect ABI v1 binds the current layer as the source texture">
+          Layer source
+        </small>
+      </div>
+    );
+  }
   if (definition.kind === "toggle") {
     return (
       <label className="effect-parameter effect-toggle">

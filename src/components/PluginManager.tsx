@@ -7,6 +7,7 @@ import {
   setPluginEnabled,
   setPluginSafeMode,
 } from "../core/plugins";
+import { synchronizePluginEffectDefinitions } from "../effects/plugin-registry";
 
 export function PluginManager() {
   const [status, setStatus] = useState<PluginStatus>();
@@ -19,7 +20,11 @@ export function PluginManager() {
     setError(undefined);
     try {
       const next = await operation();
-      if (next) setStatus(next);
+      if (next) {
+        const failures = synchronizePluginEffectDefinitions(next);
+        if (failures.length > 0) setError(`Plugin schema rejected: ${failures[0].message}`);
+        setStatus(next);
+      }
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Plugin operation failed");
     } finally {

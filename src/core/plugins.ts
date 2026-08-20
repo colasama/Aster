@@ -3,6 +3,39 @@ import { open } from "@tauri-apps/plugin-dialog";
 
 export type PluginCapability = "gpu_compute" | "gpu_render" | "file_read" | "network";
 
+interface PluginParameterBase {
+  name: string;
+  label: string;
+}
+
+export interface PluginNumberParameter extends PluginParameterBase {
+  type: "number";
+  default: number;
+  min: number;
+  max: number;
+}
+
+export interface PluginColorParameter extends PluginParameterBase {
+  type: "color";
+  default: [number, number, number, number];
+}
+
+export interface PluginChoiceParameter extends PluginParameterBase {
+  type: "choice";
+  default: string;
+  choices: string[];
+}
+
+export interface PluginTextureParameter extends PluginParameterBase {
+  type: "texture";
+}
+
+export type PluginParameter =
+  | PluginNumberParameter
+  | PluginColorParameter
+  | PluginChoiceParameter
+  | PluginTextureParameter;
+
 export interface PluginManifest {
   plugin: {
     id: string;
@@ -12,7 +45,7 @@ export interface PluginManifest {
     shader: string;
   };
   capabilities: PluginCapability[];
-  parameters: Array<{ type: string; name: string; label: string }>;
+  parameters: PluginParameter[];
 }
 
 export interface PluginStatus {

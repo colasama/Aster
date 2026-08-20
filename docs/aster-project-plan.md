@@ -1456,7 +1456,7 @@ aster/
 - [x] 定义 color parameter。
 - [x] 定义 enum parameter。
 - [x] 定义 texture parameter。
-- [ ] 自动生成 Inspector UI。
+- [x] 自动生成 Inspector UI。
 - [x] Shader compile error UI。
 - [ ] Hot reload shader。
 - [x] Example: Tint。

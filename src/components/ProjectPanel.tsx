@@ -17,9 +17,17 @@ import {
   Trash2,
   Type,
 } from "lucide-react";
-import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
+import {
+  type CSSProperties,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { createMediaLayerFromFile } from "../core/assets";
 import { createLayerForComposition } from "../core/layer-factory";
+import { readPluginStatus } from "../core/plugins";
 import { activeComposition } from "../core/project";
 import { relinkProjectAsset } from "../core/project-file";
 import type { LayerKind } from "../core/types";
@@ -29,6 +37,11 @@ import {
   toggleFavoriteEffect,
   writeEffectBrowserPreferences,
 } from "../effects/browser-preferences";
+import {
+  getPluginEffectDefinitions,
+  subscribePluginEffectDefinitions,
+  synchronizePluginEffectDefinitions,
+} from "../effects/plugin-registry";
 import { createEffectsFromPreset, LOOK_PRESETS } from "../effects/presets";
 import {
   createEffect,
@@ -72,6 +85,11 @@ export function ProjectPanel() {
   const [userPresets, setUserPresets] = useState(() =>
     readUserEffectPresets(localPreferenceStorage()),
   );
+  const pluginEffects = useSyncExternalStore(
+    subscribePluginEffectDefinitions,
+    getPluginEffectDefinitions,
+    getPluginEffectDefinitions,
+  );
   const imagePickerRef = useRef<HTMLInputElement>(null);
   const videoPickerRef = useRef<HTMLInputElement>(null);
   const composition = activeComposition(state.project);
@@ -83,14 +101,15 @@ export function ProjectPanel() {
     [composition.layers, query],
   );
   const selectedLayer = composition.layers.find((layer) => layer.id === state.selection[0]);
+  const availableEffects = useMemo(() => [...EFFECT_REGISTRY, ...pluginEffects], [pluginEffects]);
   const filteredEffects = useMemo(
     () =>
-      EFFECT_REGISTRY.filter((effect) =>
+      availableEffects.filter((effect) =>
         `${effect.name} ${effect.category} ${effect.description}`
           .toLowerCase()
           .includes(query.toLowerCase()),
       ),
-    [query],
+    [availableEffects, query],
   );
   const filteredPresets = useMemo(
     () =>
@@ -135,6 +154,17 @@ export function ProjectPanel() {
   useEffect(() => {
     writeEffectBrowserPreferences(localPreferenceStorage(), effectPreferences);
   }, [effectPreferences]);
+  useEffect(() => {
+    let active = true;
+    void readPluginStatus()
+      .then((status) => {
+        if (active) synchronizePluginEffectDefinitions(status);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, []);
   useEffect(() => {
     writeUserEffectPresets(localPreferenceStorage(), userPresets);
   }, [userPresets]);
