@@ -90,6 +90,8 @@ export class CanvasFallbackRenderer {
     await Promise.resolve();
   }
 
+  setMemoryBudget(_megabytes?: number): void {}
+
   #prepareMedia(
     layer: Layer,
     time: number,

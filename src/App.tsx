@@ -55,7 +55,10 @@ function Studio() {
           <i className="status-dot" /> Ready
         </span>
         <span>Linear sRGB · 32 bpc float</span>
-        <span>GPU memory budget: Auto</span>
+        <span>
+          GPU memory budget:{" "}
+          {state.gpuMemoryBudgetMb === "auto" ? "Auto" : `${state.gpuMemoryBudgetMb} MB`}
+        </span>
         <span className="status-spacer" />
         <span>Aster 0.2.0 · M0/M1 vertical slice</span>
       </footer>

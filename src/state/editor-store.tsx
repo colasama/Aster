@@ -22,6 +22,7 @@ export interface EditorState {
   timelineZoom: number;
   viewportZoom: number;
   previewQuality: 1 | 0.5 | 0.25;
+  gpuMemoryBudgetMb: "auto" | 32 | 64 | 128 | 256 | 512;
   leftTab: "project" | "effects";
   rightTab: "properties" | "ai";
   bottomMode: "timeline" | "graph";
@@ -57,6 +58,7 @@ export type EditorAction =
   | { type: "setTimelineZoom"; zoom: number }
   | { type: "setViewportZoom"; zoom: number }
   | { type: "setPreviewQuality"; quality: EditorState["previewQuality"] }
+  | { type: "setGpuMemoryBudget"; budget: EditorState["gpuMemoryBudgetMb"] }
   | { type: "setLeftTab"; tab: EditorState["leftTab"] }
   | { type: "setRightTab"; tab: EditorState["rightTab"] }
   | { type: "setBottomMode"; mode: EditorState["bottomMode"] }
@@ -89,6 +91,7 @@ function createInitialState(): EditorState {
     timelineZoom: 1,
     viewportZoom: 0.22,
     previewQuality: 1,
+    gpuMemoryBudgetMb: readGpuMemoryBudget(),
     leftTab: "project",
     rightTab: "properties",
     bottomMode: "timeline",
@@ -160,6 +163,8 @@ function reducer(state: EditorState, action: EditorAction): EditorState {
       return { ...state, viewportZoom: Math.max(0.05, Math.min(2, action.zoom)) };
     case "setPreviewQuality":
       return { ...state, previewQuality: action.quality };
+    case "setGpuMemoryBudget":
+      return { ...state, gpuMemoryBudgetMb: action.budget };
     case "setLeftTab":
       return { ...state, leftTab: action.tab };
     case "setRightTab":
@@ -211,6 +216,16 @@ function reducer(state: EditorState, action: EditorAction): EditorState {
       };
     }
   }
+}
+
+function readGpuMemoryBudget(): EditorState["gpuMemoryBudgetMb"] {
+  if (typeof window === "undefined") return "auto";
+  const value = window.localStorage.getItem("aster.gpuMemoryBudgetMb") ?? "auto";
+  if (value === "auto") return value;
+  const megabytes = Number(value);
+  return [32, 64, 128, 256, 512].includes(megabytes)
+    ? (megabytes as Exclude<EditorState["gpuMemoryBudgetMb"], "auto">)
+    : "auto";
 }
 
 function validSelection(project: Project, selection: Id[], fallback: boolean): Id[] {

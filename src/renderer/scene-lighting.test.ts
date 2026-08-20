@@ -57,4 +57,17 @@ describe("scene lighting uniforms", () => {
     expect(Math.hypot(...uniforms.slice(16, 19))).toBeCloseTo(1);
     expect([...uniforms.slice(28, 31)]).toEqual([composition.width / 2, composition.height / 2, 0]);
   });
+
+  it("disables shadow sampling when the memory budget rejects a shadow map", () => {
+    const project = createBlankProject();
+    const composition = project.compositions[0];
+    const light = createLayerForComposition("light", composition);
+    composition.layers.push(light);
+    const uniforms = buildSceneLighting(
+      flattenSceneLayers(composition, project, 0),
+      composition,
+      false,
+    );
+    expect(uniforms[15]).toBe(0);
+  });
 });

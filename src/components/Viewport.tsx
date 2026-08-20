@@ -92,6 +92,14 @@ export function Viewport() {
   }, [resize]);
 
   useEffect(() => {
+    if (!rendererReady) return;
+    rendererRef.current?.setMemoryBudget(
+      state.gpuMemoryBudgetMb === "auto" ? undefined : state.gpuMemoryBudgetMb,
+    );
+    setRendererRevision((revision) => revision + 1);
+  }, [rendererReady, state.gpuMemoryBudgetMb]);
+
+  useEffect(() => {
     void rendererRevision;
     void viewCount;
     if (!rendererReady) return;

@@ -45,6 +45,8 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
   const [autosaveSeconds, setAutosaveSeconds] = useState(() =>
     Number(localStorage.getItem("aster.autosaveSeconds") ?? 30),
   );
+  const [previewQuality, setPreviewQuality] = useState(state.previewQuality);
+  const [gpuMemoryBudgetMb, setGpuMemoryBudgetMb] = useState(state.gpuMemoryBudgetMb);
   const [reducedMotion, setReducedMotion] = useState(
     () => localStorage.getItem("aster.reducedMotion") === "true",
   );
@@ -79,6 +81,9 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
   const savePreferences = () => {
     localStorage.setItem("aster.autosaveSeconds", String(autosaveSeconds));
     localStorage.setItem("aster.reducedMotion", String(reducedMotion));
+    localStorage.setItem("aster.gpuMemoryBudgetMb", String(gpuMemoryBudgetMb));
+    dispatch({ type: "setPreviewQuality", quality: previewQuality });
+    dispatch({ type: "setGpuMemoryBudget", budget: gpuMemoryBudgetMb });
     document.documentElement.classList.toggle("reduced-motion", reducedMotion);
     onClose();
   };
@@ -172,12 +177,9 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
               Preview quality
               <select
                 onChange={(event) =>
-                  dispatch({
-                    type: "setPreviewQuality",
-                    quality: Number(event.target.value) as 1 | 0.5 | 0.25,
-                  })
+                  setPreviewQuality(Number(event.target.value) as 1 | 0.5 | 0.25)
                 }
-                value={state.previewQuality}
+                value={previewQuality}
               >
                 <option value="1">Full resolution</option>
                 <option value="0.5">Half resolution</option>
@@ -194,6 +196,26 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
                 <option value="30">30 seconds after editing</option>
                 <option value="60">60 seconds after editing</option>
                 <option value="0">Disabled</option>
+              </select>
+            </label>
+            <label className="wide">
+              GPU memory budget
+              <select
+                onChange={(event) =>
+                  setGpuMemoryBudgetMb(
+                    event.target.value === "auto"
+                      ? "auto"
+                      : (Number(event.target.value) as 32 | 64 | 128 | 256 | 512),
+                  )
+                }
+                value={gpuMemoryBudgetMb}
+              >
+                <option value="auto">Auto (512 MB)</option>
+                <option value="32">32 MB</option>
+                <option value="64">64 MB</option>
+                <option value="128">128 MB</option>
+                <option value="256">256 MB</option>
+                <option value="512">512 MB</option>
               </select>
             </label>
             <label className="dialog-check wide">

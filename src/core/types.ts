@@ -234,6 +234,9 @@ export interface RendererMetrics {
   cacheHitRate: number;
   estimatedVramMb: number;
   transientTextureCount: number;
+  memoryBudgetMb?: number;
+  memoryPressure?: "normal" | "warning" | "critical";
+  shadowMapSize?: number;
   passTimings?: GpuPassTimings;
 }
 

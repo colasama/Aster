@@ -60,7 +60,12 @@ export function Profiler() {
       <Metric
         icon={MemoryStick}
         label="VRAM est."
-        value={`${metrics.estimatedVramMb.toFixed(0)} MB`}
+        value={`${metrics.estimatedVramMb.toFixed(0)} / ${metrics.memoryBudgetMb?.toFixed(0) ?? "auto"} MB`}
+      />
+      <Metric
+        icon={MemoryStick}
+        label="Pressure / shadow"
+        value={`${metrics.memoryPressure ?? "normal"} / ${formatShadowMap(metrics.shadowMapSize)}`}
       />
       <Metric
         icon={Layers3}
@@ -109,6 +114,10 @@ export function Profiler() {
       )}
     </div>
   );
+}
+
+function formatShadowMap(size?: number): string {
+  return size && size > 1 ? `${size}²` : "off";
 }
 
 function PassTiming({ label, value }: { label: string; value: number }) {

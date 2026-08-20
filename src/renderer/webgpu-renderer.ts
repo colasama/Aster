@@ -9,6 +9,7 @@ import type {
 } from "../core/types";
 import { FLOATS_PER_EFFECT_OPERATION, MAX_EFFECT_OPERATIONS } from "./effect-program";
 import { FLOATS_PER_VERTEX, type GeometryBatch } from "./geometry";
+import { planGpuMemory } from "./gpu-memory-budget";
 import { GpuTimestampProfiler } from "./gpu-timestamp-profiler";
 import { LayerEffectRenderer } from "./layer-effects";
 import { createLutSampler, createLutTexture } from "./lut-texture";
@@ -20,14 +21,8 @@ import {
   createShadowPipeline,
   createShapePipelines,
 } from "./scene-pipelines";
-import {
-  imageShader,
-  particleComputeShader,
-  particleRenderShader,
-  postProcessShader,
-  shadowShader,
-  shapeShader,
-} from "./shaders";
+import { validateShaderSources } from "./shader-validation";
+import { particleComputeShader, particleRenderShader, postProcessShader } from "./shaders";
 import { rasterizeTextLayer } from "./text-rasterizer";
 
 const PARTICLE_CAPACITY = 1_000_000;
@@ -39,6 +34,7 @@ interface MediaResource {
   source: string;
   kind: "image" | "video" | "text";
   texture?: GPUTexture;
+  textureBytes?: number;
   bindGroup?: GPUBindGroup;
   video?: HTMLVideoElement;
   videoCanvas?: HTMLCanvasElement;
@@ -85,6 +81,7 @@ export class WebGpuRenderer {
   #width = 1;
   #height = 1;
   #shadowMapSize = DEFAULT_SHADOW_MAP_SIZE;
+  #memoryBudgetMb?: number;
   #smoothedFrameMs = 16.67;
   #lastFrameStarted?: number;
   #shapeBufferBytes = MAX_SHAPE_VERTICES * FLOATS_PER_VERTEX * Float32Array.BYTES_PER_ELEMENT;
@@ -355,8 +352,18 @@ export class WebGpuRenderer {
     const { sceneLayers, geometry } = evaluation;
     const primaryLight = sceneLayers.find((scene) => scene.layer.kind === "light")?.layer.light;
     const shadowQuality = primaryLight?.shadowQuality ?? "medium";
-    const shadowsEnabled = shadowQuality !== "off" && primaryLight?.kind !== "point";
-    this.#configureShadowMap(shadowMapSize(shadowQuality));
+    const memory = planGpuMemory({
+      width: this.#width,
+      height: this.#height,
+      effectTextureBytes: this.#layerEffects.estimatedTextureBytes(),
+      persistentBufferBytes:
+        PARTICLE_CAPACITY * 16 + this.#shapeBufferBytes + this.#mediaTextureBytes(),
+      requestedShadowMapSize: shadowMapSize(shadowQuality),
+      budgetMb: this.#memoryBudgetMb,
+    });
+    const shadowsEnabled =
+      shadowQuality !== "off" && primaryLight?.kind !== "point" && memory.shadowMapSize > 1;
+    this.#configureShadowMap(memory.shadowMapSize);
     const particleScene = sceneLayers.find((scene) => scene.layer.kind === "particle");
     const particleCount = Math.max(
       1,
@@ -368,7 +375,7 @@ export class WebGpuRenderer {
     this.#device.queue.writeBuffer(
       this.#lightingBuffer,
       0,
-      buildSceneLighting(sceneLayers, composition),
+      buildSceneLighting(sceneLayers, composition, shadowsEnabled),
     );
     if (geometry.data.length > 0) {
       this.#ensureShapeBuffer(geometry.data.byteLength);
@@ -574,10 +581,6 @@ export class WebGpuRenderer {
     const cpuMs = performance.now() - started;
     const sample = frameInterval > 100 ? 16.67 : Math.max(frameInterval, 0.1);
     this.#smoothedFrameMs = this.#smoothedFrameMs * 0.9 + sample * 0.1;
-    const hdr4kBytes =
-      composition.width * composition.height * 8 * 3 +
-      this.#layerEffects.estimatedTextureBytes() +
-      this.#shadowMapSize * this.#shadowMapSize * 4;
     const shadowDrawCalls = shadowsEnabled
       ? geometry.batches.filter((batch) => batch.layer.threeDimensional).length
       : 0;
@@ -592,17 +595,24 @@ export class WebGpuRenderer {
         shadowDrawCalls +
         effectLayerCount * 2 +
         Number(particleVisible),
-      passCount: 4 + scenePassCount + effectLayerCount * 3,
+      passCount: 3 + Number(shadowsEnabled) + scenePassCount + effectLayerCount * 3,
       dirtyNodes: (evaluation.cacheHit ? 0 : sceneLayers.length) + effectOperationCount,
       cacheHitRate: this.#evaluationCache.hitRate(),
-      estimatedVramMb: (hdr4kBytes + PARTICLE_CAPACITY * 16) / 1024 / 1024,
+      estimatedVramMb: memory.estimatedBytes / 1024 / 1024,
       transientTextureCount: 6,
+      memoryBudgetMb: memory.budgetMb,
+      memoryPressure: memory.pressure,
+      shadowMapSize: memory.shadowMapSize,
       passTimings: this.#gpuProfiler.passTimings(),
     };
   }
 
   async complete(): Promise<void> {
     await this.#device.queue.onSubmittedWorkDone();
+  }
+
+  setMemoryBudget(megabytes?: number): void {
+    this.#memoryBudgetMb = megabytes;
   }
 
   #configureShadowMap(size: number): void {
@@ -676,6 +686,7 @@ export class WebGpuRenderer {
       .then((response) => response.blob())
       .then((blob) => createImageBitmap(blob))
       .then((bitmap) => {
+        const textureBytes = bitmap.width * bitmap.height * 4;
         const texture = this.#device.createTexture({
           label: `Imported image · ${layer.asset?.name ?? layer.name}`,
           size: [bitmap.width, bitmap.height],
@@ -692,6 +703,7 @@ export class WebGpuRenderer {
           return;
         }
         resource.texture = texture;
+        resource.textureBytes = textureBytes;
         resource.bindGroup = this.#device.createBindGroup({
           label: `Imported image resources · ${layer.id}`,
           layout: this.#imageBindGroupLayout,
@@ -738,6 +750,7 @@ export class WebGpuRenderer {
       [raster.width, raster.height],
     );
     resource.texture = texture;
+    resource.textureBytes = raster.width * raster.height * 4;
     resource.bindGroup = this.#device.createBindGroup({
       label: `GPU text resources · ${layer.id}`,
       layout: this.#imageBindGroupLayout,
@@ -785,6 +798,7 @@ export class WebGpuRenderer {
         format: "rgba8unorm-srgb",
         usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
       });
+      resource.textureBytes = width * height * 4;
       resource.videoCanvas = document.createElement("canvas");
       resource.videoCanvas.width = width;
       resource.videoCanvas.height = height;
@@ -922,6 +936,12 @@ export class WebGpuRenderer {
     }
   }
 
+  #mediaTextureBytes(): number {
+    let bytes = 0;
+    for (const resource of this.#mediaResources.values()) bytes += resource.textureBytes ?? 0;
+    return bytes;
+  }
+
   #createParticlePipeline(): GPURenderPipeline {
     const module = this.#device.createShaderModule({
       label: "Particle billboard shader",
@@ -969,28 +989,5 @@ export class WebGpuRenderer {
       },
       primitive: { topology: "triangle-list" },
     });
-  }
-}
-
-async function validateShaderSources(device: GPUDevice): Promise<void> {
-  const sources = [
-    ["shape", shapeShader],
-    ["image", imageShader],
-    ["particle compute", particleComputeShader],
-    ["particle render", particleRenderShader],
-    ["shadow", shadowShader],
-    ["post process", postProcessShader],
-  ] as const;
-  for (const [label, code] of sources) {
-    const module = device.createShaderModule({ label: `Validate ${label}`, code });
-    const compilation = await module.getCompilationInfo();
-    const errors = compilation.messages.filter((message) => message.type === "error");
-    if (errors.length > 0) {
-      const details = errors
-        .slice(0, 8)
-        .map((message) => `${message.lineNum}:${message.linePos} ${message.message}`)
-        .join("\n");
-      throw new Error(`WebGPU ${label} shader compilation failed:\n${details}`);
-    }
   }
 }

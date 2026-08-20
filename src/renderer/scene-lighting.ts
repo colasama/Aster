@@ -13,6 +13,7 @@ export function shadowMapSize(quality: "off" | "low" | "medium" | "high"): numbe
 export function buildSceneLighting(
   sceneLayers: FlattenedSceneLayer[],
   composition: Composition,
+  shadowsAvailable = true,
 ): Float32Array {
   const light = sceneLayers.find((scene) => scene.layer.kind === "light");
   const direction = light
@@ -31,7 +32,7 @@ export function buildSceneLighting(
     kind === "directional" ? 0 : kind === "point" ? 1 : 2,
     light?.layer.light?.range ?? 10_000,
     Math.cos(((light?.layer.light?.coneAngle ?? 45) * Math.PI) / 360),
-    (light?.layer.light?.shadowQuality ?? "medium") === "off" ? 0 : 1,
+    (light?.layer.light?.shadowQuality ?? "medium") === "off" || !shadowsAvailable ? 0 : 1,
     0,
     ...shadow,
   ]);

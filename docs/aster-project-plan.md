@@ -1669,8 +1669,8 @@ aster/
 - [ ] GPU culling for 3D / particles。
 - [x] Indirect drawing。
 - [ ] Bindless/resource-array strategy research。
-- [ ] Memory budget manager。
-- [ ] VRAM pressure handling。
+- [x] Memory budget manager。
+- [x] VRAM pressure handling。
 - [x] LRU GPU cache。
 - [ ] Disk cache benchmark。
 - [ ] Temporal cache design。
