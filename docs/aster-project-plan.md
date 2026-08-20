@@ -1529,7 +1529,7 @@ aster/
 
 - [x] Render frame sequence。
 - [x] PNG sequence export。
-- [ ] EXR research / support。
+- [x] EXR research / support。
 - [x] H.264 export。
 - [x] H.265 optional path。
 - [x] ProRes platform strategy research。

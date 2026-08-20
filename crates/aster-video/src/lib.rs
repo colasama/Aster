@@ -13,9 +13,15 @@ use thiserror::Error;
 
 mod audio;
 mod export;
+mod exr;
 mod ffmpeg;
 
 pub use audio::{AudioDecodeRequest, DecodedAudio};
+
+pub use exr::{
+    ExrBackend, ExrError, ExrFrame, ExrLimits, ExrPrecision, ExrSequenceRequest, ExrWriteReport,
+    ExrWriteRequest,
+};
 
 pub use export::{
     AudioEncoder, AudioMuxSpec, EncoderAvailability, ExportContainer, ExportError, ExportFrame,
