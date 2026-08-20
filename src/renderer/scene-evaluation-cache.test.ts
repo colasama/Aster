@@ -27,6 +27,16 @@ describe("SceneEvaluationCache", () => {
     expect(cache.evaluate(composition, project, 1, 1920, 1080).cacheHit).toBe(false);
     expect(cache.evaluate(composition, project, 1, 3840, 2160).cacheHit).toBe(false);
     expect(cache.evaluate(composition, project, 1, 1920, 1080).cacheHit).toBe(true);
+    expect(cache.evaluate(composition, project, 0, 1920, 1080).cacheHit).toBe(true);
+  });
+
+  it("bounds temporal geometry by bytes as well as frame count", () => {
+    const project = createDemoProject();
+    const composition = activeComposition(project);
+    const cache = new SceneEvaluationCache(16, 1);
+    cache.evaluate(composition, project, 0, 1920, 1080);
+    expect(cache.memoryBytes()).toBe(0);
+    expect(cache.evaluate(composition, project, 0, 1920, 1080).cacheHit).toBe(false);
   });
 
   it("invalidates cached geometry when the project revision changes", () => {

@@ -24,8 +24,13 @@ export class SceneEvaluationCache {
   #composition?: Composition;
   #revision = 0;
 
-  constructor(capacity = 8) {
-    this.#cache = new EvaluationCache(capacity);
+  constructor(capacity = 16, maxBytes = 32 * 1024 * 1024) {
+    this.#cache = new EvaluationCache({
+      capacity,
+      maxBytes,
+      sizeOf: (value: SceneEvaluationValue) =>
+        value.geometry.data.byteLength + value.sceneLayers.length * 512,
+    });
   }
 
   evaluate(
@@ -37,7 +42,7 @@ export class SceneEvaluationCache {
   ): CachedSceneEvaluation {
     if (this.#project !== project || this.#composition !== composition) {
       this.#revision += 1;
-      this.#cache.invalidateNode(composition.id);
+      this.#cache.clear();
       this.#project = project;
       this.#composition = composition;
     }
@@ -72,5 +77,9 @@ export class SceneEvaluationCache {
 
   hitRate(): number {
     return this.#cache.statistics().hitRate;
+  }
+
+  memoryBytes(): number {
+    return this.#cache.statistics().bytes;
   }
 }

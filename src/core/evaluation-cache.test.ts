@@ -35,4 +35,17 @@ describe("evaluation cache", () => {
     expect(cache.get({ nodeId: "clean", revision: 1, time: 1 })).toBe(3);
     expect(cache.statistics().invalidations).toBe(2);
   });
+
+  it("evicts least-recently-used values to stay inside a byte budget", () => {
+    const cache = new EvaluationCache<string>({
+      capacity: 8,
+      maxBytes: 6,
+      sizeOf: (value) => value.length,
+    });
+    cache.set({ nodeId: "a", revision: 1 }, "aaaa");
+    cache.set({ nodeId: "b", revision: 1 }, "bbbb");
+    expect(cache.get({ nodeId: "a", revision: 1 })).toBeUndefined();
+    expect(cache.get({ nodeId: "b", revision: 1 })).toBe("bbbb");
+    expect(cache.statistics()).toMatchObject({ bytes: 4, maxBytes: 6, evictions: 1 });
+  });
 });

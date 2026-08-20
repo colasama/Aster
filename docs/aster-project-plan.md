@@ -1673,7 +1673,7 @@ aster/
 - [x] VRAM pressure handling。
 - [x] LRU GPU cache。
 - [ ] Disk cache benchmark。
-- [ ] Temporal cache design。
+- [x] Temporal cache design。
 - [x] Multi-frame render export strategy。
 - [x] CPU fallback strategy for unsupported GPU features。
 - [x] Performance regression dashboard。

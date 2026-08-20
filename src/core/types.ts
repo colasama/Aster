@@ -240,6 +240,7 @@ export interface RendererMetrics {
   fusedEffectCount?: number;
   fusionGroupCount?: number;
   fusionBarrierCount?: number;
+  temporalCacheMb?: number;
   passTimings?: GpuPassTimings;
 }
 

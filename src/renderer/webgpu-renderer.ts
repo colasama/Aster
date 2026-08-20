@@ -618,6 +618,7 @@ export class WebGpuRenderer {
       fusedEffectCount,
       fusionGroupCount,
       fusionBarrierCount,
+      temporalCacheMb: this.#evaluationCache.memoryBytes() / 1024 / 1024,
       passTimings: this.#gpuProfiler.passTimings(),
     };
   }

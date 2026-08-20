@@ -16,25 +16,43 @@ export interface EvaluationCacheStatistics {
   invalidations: number;
   entries: number;
   capacity: number;
+  bytes: number;
+  maxBytes: number;
   hitRate: number;
 }
 
 interface CacheEntry<T> {
   key: EvaluationCacheKey;
   value: T;
+  bytes: number;
+}
+
+interface EvaluationCacheOptions<T> {
+  capacity: number;
+  maxBytes: number;
+  sizeOf: (value: T) => number;
 }
 
 export class EvaluationCache<T> {
   readonly #capacity: number;
+  readonly #maxBytes: number;
+  readonly #sizeOf: (value: T) => number;
   readonly #entries = new Map<string, CacheEntry<T>>();
+  #bytes = 0;
   #hits = 0;
   #misses = 0;
   #insertions = 0;
   #evictions = 0;
   #invalidations = 0;
 
-  constructor(capacity: number) {
-    this.#capacity = Math.max(1, Math.floor(capacity));
+  constructor(capacityOrOptions: number | EvaluationCacheOptions<T>) {
+    const options =
+      typeof capacityOrOptions === "number"
+        ? { capacity: capacityOrOptions, maxBytes: Number.POSITIVE_INFINITY, sizeOf: () => 0 }
+        : capacityOrOptions;
+    this.#capacity = Math.max(1, Math.floor(options.capacity));
+    this.#maxBytes = Math.max(0, options.maxBytes);
+    this.#sizeOf = options.sizeOf;
   }
 
   get(key: EvaluationCacheKey): T | undefined {
@@ -52,13 +70,20 @@ export class EvaluationCache<T> {
 
   set(key: EvaluationCacheKey, value: T): void {
     const id = serializeKey(key);
+    const existing = this.#entries.get(id);
+    if (existing) this.#bytes -= existing.bytes;
     this.#insertions += 1;
     this.#entries.delete(id);
-    this.#entries.set(id, { key: { ...key }, value });
-    if (this.#entries.size <= this.#capacity) return;
-    const oldest = this.#entries.keys().next().value;
-    if (oldest !== undefined) {
+    const bytes = Math.max(0, Math.ceil(this.#sizeOf(value)));
+    if (bytes > this.#maxBytes) return;
+    this.#entries.set(id, { key: { ...key }, value, bytes });
+    this.#bytes += bytes;
+    while (this.#entries.size > this.#capacity || this.#bytes > this.#maxBytes) {
+      const oldest = this.#entries.keys().next().value;
+      if (oldest === undefined) break;
+      const removed = this.#entries.get(oldest);
       this.#entries.delete(oldest);
+      this.#bytes -= removed?.bytes ?? 0;
       this.#evictions += 1;
     }
   }
@@ -68,6 +93,7 @@ export class EvaluationCache<T> {
     for (const [id, entry] of this.#entries) {
       if (entry.key.nodeId !== nodeId) continue;
       this.#entries.delete(id);
+      this.#bytes -= entry.bytes;
       removed += 1;
     }
     this.#invalidations += removed;
@@ -80,6 +106,7 @@ export class EvaluationCache<T> {
     for (const [id, entry] of this.#entries) {
       if (!targets.has(entry.key.nodeId)) continue;
       this.#entries.delete(id);
+      this.#bytes -= entry.bytes;
       removed += 1;
     }
     this.#invalidations += removed;
@@ -89,6 +116,7 @@ export class EvaluationCache<T> {
   clear(): void {
     this.#invalidations += this.#entries.size;
     this.#entries.clear();
+    this.#bytes = 0;
   }
 
   statistics(): EvaluationCacheStatistics {
@@ -101,6 +129,8 @@ export class EvaluationCache<T> {
       invalidations: this.#invalidations,
       entries: this.#entries.size,
       capacity: this.#capacity,
+      bytes: this.#bytes,
+      maxBytes: this.#maxBytes,
       hitRate: attempts === 0 ? 1 : this.#hits / attempts,
     };
   }
