@@ -1644,8 +1644,8 @@ aster/
 - [ ] 实现 missing asset relink。
 - [ ] 实现 packed project。
 - [x] 实现 schema validation。
-- [ ] 实现 migration framework。
-- [ ] 实现 migration test fixtures。
+- [x] 实现 migration framework。
+- [x] 实现 migration test fixtures。
 - [x] 将 cache 与 source project 分离。
 - [x] 发布 Project Format draft specification。
 

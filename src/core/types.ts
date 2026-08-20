@@ -193,7 +193,7 @@ export interface ProjectCommandEntry {
 }
 
 export interface Project {
-  schemaVersion: 0;
+  schemaVersion: 1;
   id: Id;
   name: string;
   activeCompositionId: Id;

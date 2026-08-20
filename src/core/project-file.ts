@@ -5,14 +5,16 @@ import {
   MAX_COMMAND_LOG_SIZE,
   MAX_SERIALIZED_COMMAND_SIZE,
 } from "./command-log";
+import { migrateProjectDocument } from "./project-migrations";
 import type { Composition, Layer, Project } from "./types";
 
 const RECOVERY_KEY = "aster.recoveryProject.v0";
 let nativeProjectPath: string | undefined;
 
 export function validateProjectDocument(value: unknown): Project {
-  const project = requireObject(value, "project");
-  if (project.schemaVersion !== 0) throw new Error("Unsupported Aster project schema");
+  const migrated = migrateProjectDocument(value);
+  const project = requireObject(migrated, "project");
+  if (project.schemaVersion !== 1) throw new Error("Unsupported Aster project schema");
   requireString(project.id, "project.id");
   requireString(project.name, "project.name");
   const activeCompositionId = requireString(
@@ -31,9 +33,8 @@ export function validateProjectDocument(value: unknown): Project {
     throw new Error("Active composition does not exist");
   if (typeof project.updatedAt !== "string" || Number.isNaN(Date.parse(project.updatedAt)))
     throw new Error("project.updatedAt must be an ISO date");
-  if (project.commandLog === undefined) project.commandLog = [];
   validateCommandLog(project.commandLog);
-  return value as Project;
+  return migrated as unknown as Project;
 }
 
 export function serializeProject(project: Project): string {

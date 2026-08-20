@@ -37,7 +37,8 @@ describe("serialized command log", () => {
   });
 
   it("upgrades legacy documents and rejects a mismatched operation manifest", () => {
-    const legacy = createBlankProject() as Partial<ReturnType<typeof createBlankProject>>;
+    const legacy = createBlankProject() as unknown as Record<string, unknown>;
+    legacy.schemaVersion = 0;
     delete legacy.commandLog;
     expect(validateProjectDocument(legacy).commandLog).toEqual([]);
 

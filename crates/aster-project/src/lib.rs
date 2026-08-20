@@ -13,7 +13,7 @@ use uuid::Uuid;
 
 pub const PROJECT_FILE: &str = "project.json";
 pub const AUTOSAVE_FILE: &str = "project.autosave.json";
-pub const EDITOR_SCHEMA_VERSION: u64 = 0;
+pub const EDITOR_SCHEMA_VERSION: u64 = 1;
 
 pub fn save_bundle(bundle: impl AsRef<Path>, project: &Project) -> Result<(), ProjectError> {
     let bundle = bundle.as_ref();
@@ -235,12 +235,13 @@ mod tests {
 
     fn editor_project() -> Value {
         serde_json::json!({
-            "schemaVersion": 0,
+            "schemaVersion": 1,
             "id": Uuid::new_v4().to_string(),
             "name": "Editor roundtrip",
             "activeCompositionId": "main",
             "compositions": [{ "id": "main", "layers": [] }],
             "updatedAt": "2026-08-20T00:00:00.000Z",
+            "commandLog": [],
             "presentationOnly": { "expandedLayers": ["hero"] }
         })
     }

@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 0,
+  "id": "legacy-project",
+  "name": "Legacy v0 fixture",
+  "activeCompositionId": "main",
+  "compositions": [
+    {
+      "id": "main",
+      "name": "Main",
+      "width": 1920,
+      "height": 1080,
+      "frameRate": { "numerator": 30, "denominator": 1 },
+      "duration": 10,
+      "background": [0, 0, 0, 1],
+      "layers": []
+    }
+  ],
+  "updatedAt": "2026-08-20T00:00:00.000Z"
+}

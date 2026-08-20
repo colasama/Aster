@@ -217,7 +217,7 @@ export function createDemoProject(): Project {
     layers: [title, subtitle, ribbon, orb, particles, background, camera],
   };
   return {
-    schemaVersion: 0,
+    schemaVersion: 1,
     id: createId(),
     name: "Aster Launch",
     activeCompositionId: compositionId,
@@ -264,7 +264,7 @@ export function createBlankComposition(name = "Composition 1"): Composition {
 export function createBlankProject(): Project {
   const composition = createBlankComposition();
   return {
-    schemaVersion: 0,
+    schemaVersion: 1,
     id: createId(),
     name: "Untitled Project",
     activeCompositionId: composition.id,
