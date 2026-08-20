@@ -1,7 +1,8 @@
 //! Decode-backend-independent video metadata, selection, and bounded caches.
 //!
-//! This crate intentionally does not decode compressed media. A platform decoder can
-//! translate its output into [`GpuFrameDescriptor`] and share the cache policy here.
+//! Its bounded FFmpeg backend provides the MVP's process-isolated video-frame and
+//! audio-range decode. Video output is repacked into GPU-copy-aligned layouts, while
+//! canonical audio remains an explicitly bounded preview/playback path.
 
 use std::collections::HashMap;
 use std::hash::Hash;
@@ -10,7 +11,10 @@ use std::sync::Arc;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
+mod audio;
 mod ffmpeg;
+
+pub use audio::{AudioDecodeRequest, DecodedAudio};
 
 pub use ffmpeg::{
     CancellationToken, DecodeLimits, FfmpegBackend, FfmpegCommand, FfmpegError, FfprobeBackend,

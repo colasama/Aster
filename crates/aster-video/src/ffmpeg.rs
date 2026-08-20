@@ -1,4 +1,4 @@
-//! Sandboxed process integration for FFprobe container inspection.
+//! Sandboxed process integration for FFprobe inspection and FFmpeg decoding.
 //!
 //! Commands are assembled as argument vectors and never passed through a shell.
 //! Output is drained concurrently, retained within explicit bounds, and the child
@@ -31,17 +31,17 @@ pub enum FfprobeError {
     InvalidMediaPath(&'static str),
     #[error("media file is larger than the configured {limit} byte limit")]
     MediaTooLarge { limit: u64 },
-    #[error("failed to launch or communicate with ffprobe: {0}")]
+    #[error("failed to launch or communicate with media process: {0}")]
     ProcessIo(String),
-    #[error("ffprobe was cancelled")]
+    #[error("media process was cancelled")]
     Cancelled,
-    #[error("ffprobe exceeded its {timeout_ms} ms timeout")]
+    #[error("media process exceeded its {timeout_ms} ms timeout")]
     TimedOut { timeout_ms: u64 },
-    #[error("ffprobe {stream} exceeded its {limit} byte limit")]
+    #[error("media process {stream} exceeded its {limit} byte limit")]
     OutputTooLarge { stream: &'static str, limit: usize },
-    #[error("ffprobe exited unsuccessfully ({code:?}): {stderr}")]
+    #[error("media process exited unsuccessfully ({code:?}): {stderr}")]
     ProcessFailed { code: Option<i32>, stderr: String },
-    #[error("ffprobe metadata is invalid: {0}")]
+    #[error("media metadata or decode request is invalid: {0}")]
     InvalidMetadata(String),
 }
 
@@ -71,6 +71,7 @@ impl Default for ProbeLimits {
 pub struct DecodeLimits {
     pub timeout: Duration,
     pub max_frame_bytes: usize,
+    pub max_audio_bytes: usize,
     pub max_stderr_bytes: usize,
     pub max_media_bytes: u64,
 }
@@ -80,6 +81,7 @@ impl Default for DecodeLimits {
         Self {
             timeout: Duration::from_secs(30),
             max_frame_bytes: 512 * 1024 * 1024,
+            max_audio_bytes: 256 * 1024 * 1024,
             max_stderr_bytes: 256 * 1024,
             max_media_bytes: 1024 * 1024 * 1024 * 1024,
         }
@@ -190,7 +192,7 @@ impl FfprobeBackend {
     }
 }
 
-/// Inspectable single-frame FFmpeg decode invocation.
+/// Inspectable FFmpeg invocation whose arguments are never interpreted by a shell.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FfmpegCommand {
     executable: PathBuf,
@@ -214,9 +216,16 @@ impl FfmpegCommand {
             .stderr(Stdio::piped())
             .spawn()
     }
+
+    pub(crate) fn new(executable: PathBuf, arguments: Vec<OsString>) -> Self {
+        Self {
+            executable,
+            arguments,
+        }
+    }
 }
 
-/// Real FFmpeg process backend for bounded, time-addressable RGBA frame decode.
+/// Real FFmpeg process backend for bounded, time-addressable media decode.
 #[derive(Debug, Clone)]
 pub struct FfmpegBackend {
     executable: PathBuf,
@@ -242,6 +251,32 @@ impl FfmpegBackend {
             executable: executable.into(),
             limits,
         }
+    }
+
+    pub(crate) fn executable(&self) -> &Path {
+        &self.executable
+    }
+
+    pub(crate) fn limits(&self) -> &DecodeLimits {
+        &self.limits
+    }
+
+    pub(crate) fn execute(
+        &self,
+        command: &FfmpegCommand,
+        max_stdout_bytes: usize,
+        cancellation: &CancellationToken,
+    ) -> Result<ProcessOutput, FfmpegError> {
+        let child = command
+            .spawn()
+            .map_err(|error| FfmpegError::ProcessIo(error.to_string()))?;
+        run_child(
+            child,
+            self.limits.timeout,
+            max_stdout_bytes,
+            self.limits.max_stderr_bytes,
+            cancellation,
+        )
     }
 
     pub fn build_decode_command(
@@ -359,7 +394,7 @@ impl FfmpegBackend {
     }
 }
 
-fn validate_media_path(path: &Path, max_media_bytes: u64) -> Result<(), FfprobeError> {
+pub(crate) fn validate_media_path(path: &Path, max_media_bytes: u64) -> Result<(), FfprobeError> {
     if path.as_os_str().is_empty() {
         return Err(FfprobeError::InvalidMediaPath("path is empty"));
     }
@@ -380,10 +415,10 @@ fn validate_media_path(path: &Path, max_media_bytes: u64) -> Result<(), FfprobeE
     Ok(())
 }
 
-struct ProcessOutput {
-    status: ExitStatus,
-    stdout: Vec<u8>,
-    stderr: Vec<u8>,
+pub(crate) struct ProcessOutput {
+    pub(crate) status: ExitStatus,
+    pub(crate) stdout: Vec<u8>,
+    pub(crate) stderr: Vec<u8>,
 }
 
 struct BoundedRead {
