@@ -5,6 +5,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use thiserror::Error;
 
+use crate::tool::{AiTool, SubmitOperationPlanTool, ToolError};
+
 const MAX_PROVIDER_RESPONSE_BYTES: usize = 1_048_576;
 
 #[derive(Clone, Debug, Deserialize)]
@@ -95,6 +97,7 @@ pub async fn generate_plan(
 }
 
 fn request_body(model: &str, prompt: &str, project_context: &str) -> Value {
+    let tool = SubmitOperationPlanTool.definition();
     let system = r#"You are the operation planner inside Aster, a GPU-first motion graphics editor.
 Return only valid JSON with this shape: {"summary":"...","operations":[...]}. Never return markdown.
 Allowed operation types are addLayer, removeLayer, renameLayer, reorderLayer, toggleLayer,
@@ -105,6 +108,8 @@ asset paths, execute code, or include secrets. Keep every plan reversible and un
         "model": model,
         "temperature": 0.2,
         "response_format": { "type": "json_object" },
+        "tools": [{ "type": "function", "function": tool }],
+        "tool_choice": "auto",
         "messages": [
             { "role": "system", "content": system },
             {
@@ -127,6 +132,21 @@ fn parse_provider_response(status: u16, bytes: &[u8]) -> Result<GeneratedPlan, P
             message: message.to_owned(),
         });
     }
+    if let Some(arguments) = value
+        .pointer("/choices/0/message/tool_calls/0/function/arguments")
+        .and_then(Value::as_str)
+    {
+        let name = value
+            .pointer("/choices/0/message/tool_calls/0/function/name")
+            .and_then(Value::as_str)
+            .ok_or(ProviderError::MissingToolName)?;
+        if name != SubmitOperationPlanTool::NAME {
+            return Err(ProviderError::UnexpectedTool(name.to_owned()));
+        }
+        return SubmitOperationPlanTool
+            .decode(arguments)
+            .map_err(ProviderError::Tool);
+    }
     let content = value
         .pointer("/choices/0/message/content")
         .and_then(Value::as_str)
@@ -138,11 +158,9 @@ fn parse_provider_response(status: u16, bytes: &[u8]) -> Result<GeneratedPlan, P
         .strip_suffix("```")
         .unwrap_or(content.trim())
         .trim();
-    let plan: GeneratedPlan = serde_json::from_str(cleaned)?;
-    if plan.operations.is_empty() {
-        return Err(ProviderError::EmptyPlan);
-    }
-    Ok(plan)
+    SubmitOperationPlanTool
+        .decode(cleaned)
+        .map_err(ProviderError::Tool)
 }
 
 fn validate_config(config: &AiProviderConfig) -> Result<(), ProviderError> {
@@ -172,6 +190,12 @@ pub enum ProviderError {
     Json(#[from] serde_json::Error),
     #[error("AI provider returned no message content")]
     MissingContent,
+    #[error("AI provider tool call omitted its function name")]
+    MissingToolName,
+    #[error("AI provider called unsupported tool `{0}`")]
+    UnexpectedTool(String),
+    #[error("AI provider tool call failed validation: {0}")]
+    Tool(#[from] ToolError),
     #[error("AI provider returned an empty operation plan")]
     EmptyPlan,
     #[error("AI provider response exceeded the 1 MiB safety limit")]
@@ -220,5 +244,24 @@ mod tests {
         let plan = parse_provider_response(200, &serde_json::to_vec(&response).unwrap()).unwrap();
         assert_eq!(plan.summary, "Tint");
         assert_eq!(plan.operations.len(), 1);
+    }
+
+    #[test]
+    fn parses_standard_operation_plan_tool_calls() {
+        let response = json!({
+            "choices": [{
+                "message": {
+                    "tool_calls": [{
+                        "type": "function",
+                        "function": {
+                            "name": SubmitOperationPlanTool::NAME,
+                            "arguments": "{\"summary\":\"Glow\",\"operations\":[{\"type\":\"addEffect\"}]}"
+                        }
+                    }]
+                }
+            }]
+        });
+        let plan = parse_provider_response(200, &serde_json::to_vec(&response).unwrap()).unwrap();
+        assert_eq!(plan.summary, "Glow");
     }
 }

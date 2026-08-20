@@ -9,11 +9,13 @@ use thiserror::Error;
 use uuid::Uuid;
 
 mod provider;
+mod tool;
 
 pub use provider::{
     AiProvider, AiProviderConfig, GeneratedPlan, OpenAiCompatibleProvider, ProviderError,
     ProviderFuture, generate_plan,
 };
+pub use tool::{AiTool, AiToolDefinition, SubmitOperationPlanTool, ToolError};
 
 #[derive(Clone, Debug, Deserialize, JsonSchema, Serialize)]
 pub struct OperationPlan {
