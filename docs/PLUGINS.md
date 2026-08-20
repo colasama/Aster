@@ -51,3 +51,43 @@ Shader plugins receive only declared bindings. Render-graph plugins cannot read 
 resource without declaring the corresponding edge. Plugin failures isolate the node and preserve the
 project data for recovery. The native ABI remains intentionally unstable and disabled for untrusted
 projects in this milestone.
+
+## Effect shader ABI v1
+
+An effect exposes exactly one `@fragment` entry point named `aster_effect`. Its signature is:
+
+```wgsl
+@fragment
+fn aster_effect(@location(0) uv: vec2f) -> @location(0) vec4f
+```
+
+The input UV is normalized with its origin at the top left. The output is linear, premultiplied RGBA.
+The host exposes exactly these resources; additional bindings are rejected during installation:
+
+| Binding | WGSL declaration | Meaning |
+| --- | --- | --- |
+| `@group(0) @binding(0)` | `var aster_source: texture_2d<f32>` | Linear source image |
+| `@group(0) @binding(1)` | `var aster_sampler: sampler` | Clamping linear sampler |
+| `@group(0) @binding(2)` | `var<uniform> aster: AsterEffectUniforms` | Frame and parameter data |
+
+The uniform layout is stable for API version 1:
+
+```wgsl
+struct AsterEffectUniforms {
+    resolution: vec2f,
+    time: f32,
+    parameter_count: u32,
+    parameters: array<vec4f, 16>,
+}
+```
+
+Each manifest parameter occupies one `vec4f` slot in declaration order. Number and choice values use
+`.x`; colors use `.rgba`. Unused channels are zero. The 16-slot limit makes the uniform exactly 272
+bytes and gives the host a bounded, backend-independent allocation. Texture parameters are reserved
+for the render-graph ABI; v1 effects always receive the primary source texture shown above.
+
+The loader parses and validates the complete module with Naga, then checks the entry signature,
+resource count and types, and every uniform field name, type, offset, array stride, and total span.
+See the installable [Tint](../examples/plugins/tint),
+[Chromatic Aberration](../examples/plugins/chromatic-aberration), and
+[CRT](../examples/plugins/crt) examples.

@@ -1,0 +1,24 @@
+capabilities = ["gpu_render"]
+
+[plugin]
+id = "org.aster.example.chromatic-aberration"
+name = "Aster Chromatic Aberration"
+version = "1.0.0"
+api_version = 1
+shader = "effect.wgsl"
+
+[[parameters]]
+type = "number"
+name = "amount"
+label = "Amount"
+default = 6.0
+min = 0.0
+max = 64.0
+
+[[parameters]]
+type = "number"
+name = "angle"
+label = "Angle"
+default = 0.0
+min = -3.141593
+max = 3.141593

@@ -1,5 +1,9 @@
 //! Versioned manifest and parameter ABI for portable WGSL effects.
 
+mod abi;
+
+pub use abi::{EFFECT_ENTRY_POINT, EFFECT_PARAMETER_VECTORS, EFFECT_UNIFORM_SIZE};
+
 use std::{
     collections::BTreeSet,
     fs,
@@ -41,6 +45,9 @@ impl PluginManifest {
         }
         if !valid_shader_path(&self.plugin.shader) {
             return Err(PluginError::InvalidShaderPath(self.plugin.shader.clone()));
+        }
+        if self.parameters.len() > EFFECT_PARAMETER_VECTORS as usize {
+            return Err(PluginError::TooManyParameters(self.parameters.len()));
         }
         let mut names = BTreeSet::new();
         for parameter in &self.parameters {
@@ -222,7 +229,7 @@ fn validate_shader(source: &str) -> Result<(), PluginError> {
     )
     .validate(&module)
     .map_err(|error| PluginError::ShaderValidation(error.to_string()))?;
-    Ok(())
+    abi::validate_effect_abi(&module).map_err(PluginError::ShaderAbi)
 }
 
 impl Parameter {
@@ -315,10 +322,14 @@ pub enum PluginError {
     ShaderParse(String),
     #[error("plugin shader WGSL failed validation: {0}")]
     ShaderValidation(String),
+    #[error("plugin shader does not implement Aster effect ABI v1: {0}")]
+    ShaderAbi(String),
     #[error("parameter `{0}` is invalid")]
     InvalidParameter(String),
     #[error("parameter `{0}` is declared more than once")]
     DuplicateParameter(String),
+    #[error("effect declares {0} parameters; ABI v1 supports at most 16")]
+    TooManyParameters(usize),
 }
 
 #[cfg(test)]
@@ -326,6 +337,25 @@ mod tests {
     use std::time::{SystemTime, UNIX_EPOCH};
 
     use super::*;
+
+    const VALID_EFFECT: &str = r#"
+struct AsterEffectUniforms {
+    resolution: vec2f,
+    time: f32,
+    parameter_count: u32,
+    parameters: array<vec4f, 16>,
+}
+
+@group(0) @binding(0) var aster_source: texture_2d<f32>;
+@group(0) @binding(1) var aster_sampler: sampler;
+@group(0) @binding(2) var<uniform> aster: AsterEffectUniforms;
+
+@fragment
+fn aster_effect(@location(0) uv: vec2f) -> @location(0) vec4f {
+    let source = textureSample(aster_source, aster_sampler, uv);
+    return vec4f(source.rgb * aster.parameters[0].x, source.a);
+}
+"#;
 
     #[test]
     fn parses_wgsl_effect_manifest() {
@@ -377,11 +407,7 @@ mod tests {
             "#,
         )
         .unwrap();
-        fs::write(
-            valid.join("effect.wgsl"),
-            "@fragment fn main() -> @location(0) vec4f { return vec4f(1.0); }",
-        )
-        .unwrap();
+        fs::write(valid.join("effect.wgsl"), VALID_EFFECT).unwrap();
         fs::write(
             invalid.join("plugin.toml"),
             r#"
@@ -425,11 +451,7 @@ mod tests {
         )
         .unwrap();
         fs::create_dir_all(source.join("shaders")).unwrap();
-        fs::write(
-            source.join("shaders/effect.wgsl"),
-            "@fragment fn main() -> @location(0) vec4f { return vec4f(1.0); }",
-        )
-        .unwrap();
+        fs::write(source.join("shaders/effect.wgsl"), VALID_EFFECT).unwrap();
         fs::write(source.join("undeclared.dll"), "not copied").unwrap();
 
         let manifest = install(&source, &installed).unwrap();
@@ -448,5 +470,23 @@ mod tests {
             "1.1.0"
         );
         fs::remove_dir_all(base).unwrap();
+    }
+
+    #[test]
+    fn rejects_valid_wgsl_with_an_incompatible_effect_interface() {
+        let error =
+            validate_shader("@fragment fn main() -> @location(0) vec4f { return vec4f(1.0); }")
+                .unwrap_err();
+        assert!(matches!(error, PluginError::ShaderAbi(_)));
+        assert!(error.to_string().contains("aster_effect"));
+    }
+
+    #[test]
+    fn bundled_effect_examples_implement_the_v1_abi() {
+        let examples = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/plugins");
+        for name in ["tint", "chromatic-aberration", "crt"] {
+            PluginManifest::load(examples.join(name).join("plugin.toml"))
+                .unwrap_or_else(|error| panic!("{name} example failed: {error}"));
+        }
     }
 }

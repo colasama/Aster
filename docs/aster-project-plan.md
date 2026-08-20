@@ -1449,9 +1449,9 @@ aster/
 
 ### WGSL Plugin
 
-- [ ] 定义 Effect shader ABI。
-- [ ] 定义 texture inputs。
-- [ ] 定义 output。
+- [x] 定义 Effect shader ABI。
+- [x] 定义 texture inputs。
+- [x] 定义 output。
 - [x] 定义 numeric parameter schema。
 - [x] 定义 color parameter。
 - [x] 定义 enum parameter。
@@ -1459,9 +1459,9 @@ aster/
 - [ ] 自动生成 Inspector UI。
 - [x] Shader compile error UI。
 - [ ] Hot reload shader。
-- [ ] Example: Tint。
-- [ ] Example: Chromatic Aberration。
-- [ ] Example: CRT / Stylize。
+- [x] Example: Tint。
+- [x] Example: Chromatic Aberration。
+- [x] Example: CRT / Stylize。
 
 ### Render Graph Plugin
 
