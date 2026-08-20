@@ -85,7 +85,7 @@ export interface Layer {
   asset?: {
     name: string;
     mimeType: string;
-    dataUrl: string;
+    dataUrl?: string;
     width: number;
     height: number;
     duration?: number;

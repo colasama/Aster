@@ -1698,17 +1698,17 @@ aster/
 - [ ] Alpha compositing tests。
 - [x] Color tests。
 - [x] Blur tests。
-- [ ] Text rendering tests。
+- [x] Text rendering tests。
 - [x] 3D depth tests。
 - [ ] Motion vector tests。
 
 ### Project Compatibility
 
 - [x] Save/load roundtrip test。
-- [ ] Migration test。
-- [ ] Missing plugin test。
-- [ ] Missing asset test。
-- [ ] Corrupted project recovery test。
+- [x] Migration test。
+- [x] Missing plugin test。
+- [x] Missing asset test。
+- [x] Corrupted project recovery test。
 
 ### Platform QA
 

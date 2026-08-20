@@ -255,6 +255,10 @@
   font-weight: 700;
   text-transform: uppercase;
 }
+.gpu-pill.missing {
+  color: #e5ad7d;
+  background: #41291f;
+}
 .effect-title button {
   color: #666b77;
 }

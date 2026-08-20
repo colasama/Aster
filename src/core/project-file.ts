@@ -9,7 +9,14 @@ import { migrateProjectDocument } from "./project-migrations";
 import type { Composition, Layer, Project } from "./types";
 
 const RECOVERY_KEY = "aster.recoveryProject.v0";
+const MAX_EMBEDDED_ASSET_CHARACTERS = 136 * 1024 * 1024;
 let nativeProjectPath: string | undefined;
+
+interface RecoveryStorage {
+  getItem(key: string): string | null;
+  setItem(key: string, value: string): void;
+  removeItem(key: string): void;
+}
 
 export function validateProjectDocument(value: unknown): Project {
   const migrated = migrateProjectDocument(value);
@@ -110,23 +117,26 @@ export async function pickProjectFile(): Promise<{ project: Project; name: strin
   });
 }
 
-export function storeRecoverySnapshot(project: Project): void {
+export function storeRecoverySnapshot(
+  project: Project,
+  storage: RecoveryStorage = localStorage,
+): void {
   try {
-    localStorage.setItem(RECOVERY_KEY, serializeProject(project));
+    storage.setItem(RECOVERY_KEY, serializeProject(project));
   } catch {
-    localStorage.removeItem(RECOVERY_KEY);
+    storage.removeItem(RECOVERY_KEY);
   }
   if (nativeProjectPath)
     void invoke("save_autosave", { path: nativeProjectPath, project }).catch(() => undefined);
 }
 
-export function readRecoverySnapshot(): Project | undefined {
-  const document = localStorage.getItem(RECOVERY_KEY);
+export function readRecoverySnapshot(storage: RecoveryStorage = localStorage): Project | undefined {
+  const document = storage.getItem(RECOVERY_KEY);
   if (!document) return undefined;
   try {
     return validateProjectDocument(JSON.parse(document));
   } catch {
-    localStorage.removeItem(RECOVERY_KEY);
+    storage.removeItem(RECOVERY_KEY);
     return undefined;
   }
 }
@@ -141,8 +151,8 @@ export async function readRecoverySnapshotForCurrentProject(): Promise<Project |
   return readRecoverySnapshot();
 }
 
-export function clearRecoverySnapshot(): void {
-  localStorage.removeItem(RECOVERY_KEY);
+export function clearRecoverySnapshot(storage: RecoveryStorage = localStorage): void {
+  storage.removeItem(RECOVERY_KEY);
   if (nativeProjectPath)
     void invoke("clear_autosave", { path: nativeProjectPath }).catch(() => undefined);
 }
@@ -183,6 +193,7 @@ function validateLayer(value: unknown, path: string): asserts value is Layer {
   requireString(layer.id, `${path}.id`);
   requireString(layer.name, `${path}.name`);
   requireString(layer.kind, `${path}.kind`);
+  if (layer.asset !== undefined) validateAsset(layer.asset, `${path}.asset`);
   if (layer.text !== undefined && (typeof layer.text !== "string" || layer.text.length > 20_000))
     throw new Error(`${path}.text must be a string at most 20000 characters`);
   requirePositiveNumber(layer.outPoint, `${path}.outPoint`);
@@ -330,6 +341,20 @@ function validateLayer(value: unknown, path: string): asserts value is Layer {
   if (!Array.isArray(layer.effects)) throw new Error(`${path}.effects must be an array`);
   for (const [index, effect] of layer.effects.entries())
     validateEffect(effect, `${path}.effects[${index}]`);
+}
+
+function validateAsset(value: unknown, path: string): void {
+  const asset = requireObject(value, path);
+  if (requireString(asset.name, `${path}.name`).length > 512)
+    throw new Error(`${path}.name is too long`);
+  requireString(asset.mimeType, `${path}.mimeType`);
+  requirePositiveNumber(asset.width, `${path}.width`);
+  requirePositiveNumber(asset.height, `${path}.height`);
+  if (asset.duration !== undefined) requirePositiveNumber(asset.duration, `${path}.duration`);
+  if (asset.dataUrl === undefined) return;
+  const dataUrl = requireString(asset.dataUrl, `${path}.dataUrl`);
+  if (!dataUrl.startsWith("data:") || dataUrl.length > MAX_EMBEDDED_ASSET_CHARACTERS)
+    throw new Error(`${path}.dataUrl must be a bounded embedded data URL`);
 }
 
 function validateBezierPath(value: unknown, path: string): void {

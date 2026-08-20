@@ -420,3 +420,8 @@ button.tree-row {
   color: #606572;
   font-size: 8px;
 }
+.tree-row.asset.missing,
+.tree-row.asset.missing svg,
+.tree-row.asset.missing small {
+  color: #d7955c;
+}

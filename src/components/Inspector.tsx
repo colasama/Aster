@@ -518,7 +518,12 @@ function EffectEditor({ effect, layerId }: { effect: Effect; layerId: string }) 
           <Sparkles size={13} />
         </button>
         <strong>{effect.name}</strong>
-        <span className="gpu-pill">{definition?.execution.replace("-", " ") ?? "GPU"}</span>
+        <span
+          className={`gpu-pill ${definition ? "" : "missing"}`}
+          title={definition ? undefined : `Effect provider ${effect.type} is not installed`}
+        >
+          {definition?.execution.replace("-", " ") ?? "Missing plugin"}
+        </span>
         <button
           aria-label={effect.mask ? `Remove ${effect.name} mask` : `Add ${effect.name} mask`}
           className={effect.mask ? "effect-mask-toggle active" : "effect-mask-toggle"}

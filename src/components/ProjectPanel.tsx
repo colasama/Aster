@@ -266,18 +266,28 @@ export function ProjectPanel() {
           </div>
           {mediaLayers.map((layer) => (
             <button
-              className={`tree-row asset ${state.selection.includes(layer.id) ? "selected" : ""}`}
+              className={`tree-row asset ${state.selection.includes(layer.id) ? "selected" : ""} ${layer.asset?.dataUrl ? "" : "missing"}`}
               key={`asset:${layer.id}`}
               onClick={() => dispatch({ type: "select", ids: [layer.id] })}
-              title={`Locate ${layer.asset?.name} in the active composition`}
+              title={
+                layer.asset?.dataUrl
+                  ? `Locate ${layer.asset.name} in the active composition`
+                  : `${layer.asset?.name ?? layer.name} is missing its embedded source`
+              }
               type="button"
             >
               <span className="tree-spacer" />
               {layer.kind === "video" ? <Film size={14} /> : <FileImage size={14} />}
               <span>{layer.asset?.name}</span>
               <small>
-                {layer.asset?.width}×{layer.asset?.height}
-                {layer.asset?.duration ? ` · ${layer.asset.duration.toFixed(1)}s` : ""}
+                {layer.asset?.dataUrl ? (
+                  <>
+                    {layer.asset.width}×{layer.asset.height}
+                    {layer.asset.duration ? ` · ${layer.asset.duration.toFixed(1)}s` : ""}
+                  </>
+                ) : (
+                  "Missing source"
+                )}
               </small>
             </button>
           ))}
