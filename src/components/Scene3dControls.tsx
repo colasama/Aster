@@ -81,6 +81,8 @@ export function Scene3dControls({ layer }: { layer: Layer }) {
             acceleration: layer.particle?.acceleration ?? -0.035,
             startSize: layer.particle?.startSize ?? 2.4,
             endSize: layer.particle?.endSize ?? 0.35,
+            startRotation: layer.particle?.startRotation ?? 0,
+            endRotation: layer.particle?.endRotation ?? 180,
             [field]: value,
           },
         },
@@ -215,6 +217,22 @@ export function Scene3dControls({ layer }: { layer: Layer }) {
           onChange={(value) => updateParticle("endSize", value)}
           step={0.1}
           value={layer.particle?.endSize ?? 0.35}
+        />
+        <NumericControl
+          label="Start rotation"
+          max={36_000}
+          min={-36_000}
+          onChange={(value) => updateParticle("startRotation", value)}
+          step={1}
+          value={layer.particle?.startRotation ?? 0}
+        />
+        <NumericControl
+          label="End rotation"
+          max={36_000}
+          min={-36_000}
+          onChange={(value) => updateParticle("endRotation", value)}
+          step={1}
+          value={layer.particle?.endRotation ?? 180}
         />
       </>
     );

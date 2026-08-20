@@ -111,6 +111,8 @@ describe("structured project operations", () => {
           acceleration: -0.035,
           startSize: 2.4,
           endSize: 0.35,
+          startRotation: -80_000,
+          endRotation: 80_000,
         },
       },
     ]);
@@ -125,6 +127,8 @@ describe("structured project operations", () => {
       acceleration: -0.035,
       startSize: 2.4,
       endSize: 0.35,
+      startRotation: -36_000,
+      endRotation: 36_000,
     });
     expect(particles.particle).toMatchObject({ count: 100_000, seed: 13_337 });
   });

@@ -193,6 +193,8 @@ export function buildBenchmarkScenarios(source: Composition): BenchmarkScenario[
       acceleration: -0.035,
       startSize: 2.4,
       endSize: 0.35,
+      startRotation: 0,
+      endRotation: 180,
     };
     scenario.composition.layers = [particle];
     return scenario;

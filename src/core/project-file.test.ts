@@ -144,6 +144,8 @@ describe("project document boundary", () => {
       acceleration: -0.08,
       startSize: 3,
       endSize: 0.2,
+      startRotation: -45,
+      endRotation: 270,
     };
     composition.layers.push(particles);
 

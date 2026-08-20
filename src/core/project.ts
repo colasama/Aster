@@ -160,6 +160,8 @@ export function createDemoProject(): Project {
       acceleration: -0.035,
       startSize: 2.4,
       endSize: 0.35,
+      startRotation: 0,
+      endRotation: 180,
     },
   });
   const camera = layer({

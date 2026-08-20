@@ -240,7 +240,12 @@ fn compute_main(@builtin(global_invocation_id) global_id: vec3u) {
   let x = (origin.x + velocity.x * elapsed) / max(simulation.header.y, 1.0);
   let y = origin.y + velocity.y * elapsed + 0.5 * simulation.motion.z * elapsed * elapsed;
   let size = mix(simulation.motion.w, simulation.appearance.x, age);
-  particles[index] = vec4f(x, y, size, age);
+  let rotation = mix(simulation.appearance.y, simulation.appearance.z, age) * 0.01745329252;
+  let packed_age = u32(round(age * 1023.0));
+  let packed_cos = u32(round((cos(rotation) * 0.5 + 0.5) * 2047.0));
+  let packed_sin = u32(round((sin(rotation) * 0.5 + 0.5) * 2047.0));
+  let packed = packed_age | (packed_cos << 10u) | (packed_sin << 21u);
+  particles[index] = vec4f(x, y, size, bitcast<f32>(packed));
 }
 `;
 
@@ -256,6 +261,7 @@ struct Simulation {
 struct VertexOutput {
   @builtin(position) position: vec4f,
   @location(0) color: vec4f,
+  @location(1) local: vec2f,
 }
 
 @group(0) @binding(0) var<storage, read> particles: array<vec4f>;
@@ -269,15 +275,27 @@ fn vertex_main(@builtin(vertex_index) vertex: u32, @builtin(instance_index) inst
   );
   let particle = particles[instance];
   let size = particle.z / 900.0;
+  let packed = bitcast<u32>(particle.w);
+  let age = f32(packed & 1023u) / 1023.0;
+  let rotation_cos = f32((packed >> 10u) & 2047u) / 1023.5 - 1.0;
+  let rotation_sin = f32((packed >> 21u) & 2047u) / 1023.5 - 1.0;
+  let unit = corners[vertex];
+  let rotated = vec2f(
+    unit.x * rotation_cos - unit.y * rotation_sin,
+    unit.x * rotation_sin + unit.y * rotation_cos,
+  );
   var output: VertexOutput;
-  output.position = vec4f(particle.xy + corners[vertex] * size, 0.0, 1.0);
-  output.color = mix(simulation.start_color, simulation.end_color, particle.w);
+  output.position = vec4f(particle.xy + rotated * size, 0.0, 1.0);
+  output.color = mix(simulation.start_color, simulation.end_color, age);
+  output.local = unit;
   return output;
 }
 
 @fragment
 fn fragment_main(input: VertexOutput) -> @location(0) vec4f {
-  return vec4f(input.color.rgb * input.color.a, input.color.a);
+  let coverage = 1.0 - smoothstep(0.72, 1.0, length(input.local * vec2f(0.64, 1.0)));
+  let alpha = input.color.a * coverage;
+  return vec4f(input.color.rgb * alpha, alpha);
 }
 `;
 

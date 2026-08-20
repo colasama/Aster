@@ -240,7 +240,7 @@ function validateLayer(value: unknown, path: string): asserts value is Layer {
       throw new Error(`${path}.particle.seed must be a bounded non-negative integer`);
     for (const field of ["lifetime", "startSize", "endSize"])
       requirePositiveNumber(particle[field], `${path}.particle.${field}`);
-    for (const field of ["speed", "acceleration"])
+    for (const field of ["speed", "acceleration", "startRotation", "endRotation"])
       requireFiniteNumber(particle[field], `${path}.particle.${field}`);
   }
   if (layer.shape !== undefined) {

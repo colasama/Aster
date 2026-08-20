@@ -138,6 +138,8 @@ export interface ParticleSettings {
   acceleration: number;
   startSize: number;
   endSize: number;
+  startRotation: number;
+  endRotation: number;
 }
 
 export interface ShapeSettings {

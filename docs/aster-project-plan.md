@@ -1410,7 +1410,7 @@ aster/
 - [x] Acceleration。
 - [x] Color over life。
 - [x] Size over life。
-- [ ] Rotation over life。
+- [x] Rotation over life。
 - [x] GPU random source。
 - [x] Billboard rendering。
 - [ ] Mesh particle rendering。

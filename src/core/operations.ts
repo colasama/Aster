@@ -200,6 +200,8 @@ export function applyOperation(project: Project, operation: Operation): void {
         acceleration: clamp(operation.particle.acceleration, -10, 10),
         startSize: clamp(operation.particle.startSize, 0.01, 256),
         endSize: clamp(operation.particle.endSize, 0.01, 256),
+        startRotation: clamp(operation.particle.startRotation, -36_000, 36_000),
+        endRotation: clamp(operation.particle.endRotation, -36_000, 36_000),
       };
       break;
     case "setShapeSettings":
