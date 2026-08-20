@@ -6,6 +6,7 @@ import {
   MAX_COMMAND_LOG_SIZE,
   MAX_SERIALIZED_COMMAND_SIZE,
 } from "./command-log";
+import { runCpuTask } from "./cpu-scheduler";
 import { cloneCurrentProjectDocument } from "./project-schema";
 import { validateShapeGraph } from "./shape-graph";
 import { TEXT_ANIMATOR_LIMITS } from "./text-animator";
@@ -51,9 +52,19 @@ export function serializeProject(project: Project): string {
   return `${JSON.stringify(projectDocumentForPersistence(project), null, 2)}\n`;
 }
 
-export function downloadProject(project: Project): void {
+export async function downloadProject(project: Project): Promise<void> {
+  const serialized = await runCpuTask(
+    {
+      kind: "serialize-json",
+      maxOutputCharacters: MAX_EMBEDDED_ASSET_CHARACTERS + 16 * 1024 * 1024,
+      spacing: 2,
+      trailingNewline: true,
+      value: projectDocumentForPersistence(project),
+    },
+    { priority: "interactive" },
+  );
   downloadBlob(
-    new Blob([serializeProject(project)], { type: "application/json" }),
+    new Blob([serialized], { type: "application/json" }),
     `${safeFileName(project.name)}.aster.json`,
   );
 }
@@ -63,7 +74,7 @@ export async function saveProjectDocument(
   chooseDirectory = false,
 ): Promise<string | undefined> {
   if (!isTauriRuntime()) {
-    downloadProject(project);
+    await downloadProject(project);
     clearRecoverySnapshot();
     return `${safeFileName(project.name)}.aster.json`;
   }
