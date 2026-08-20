@@ -19,10 +19,7 @@ import type { GpuDiagnostics, Project } from "../core/types";
 import { CanvasFallbackRenderer } from "../renderer/canvas-fallback";
 import { type GpuBenchmarkRequest, runGpuBenchmark } from "../renderer/gpu-benchmark";
 import { calculatePreviewSize } from "../renderer/preview-size";
-import {
-  SCENE_BUFFER_VISUALIZATIONS,
-  type SceneBufferVisualization,
-} from "../renderer/render-buffers";
+import { BUFFER_VISUALIZATIONS, type BufferVisualization } from "../renderer/render-buffers";
 import { createDefaultBezierPath } from "../renderer/vector-path";
 import { WebGpuRenderer } from "../renderer/webgpu-renderer";
 import { useEditor } from "../state/editor-store";
@@ -46,7 +43,7 @@ export function Viewport() {
   const [rendererRevision, setRendererRevision] = useState(0);
   const [view, setView] = useState("Active Camera");
   const [viewCount, setViewCount] = useState(1);
-  const [bufferView, setBufferView] = useState<SceneBufferVisualization>("beauty");
+  const [bufferView, setBufferView] = useState<BufferVisualization>("beauty");
   const [space, setSpace] = useState<"Local" | "World">("Local");
   const displayZoom = state.viewportZoom * (viewCount === 2 ? 0.5 : 1);
   const pan = useRef({ active: false, x: 0, y: 0, left: 0, top: 0 });
@@ -83,7 +80,8 @@ export function Viewport() {
   useEffect(() => {
     const renderer = rendererRef.current;
     if (!(renderer instanceof WebGpuRenderer)) return;
-    renderer.setBufferVisualization(bufferView);
+    const actual = renderer.setBufferVisualization(bufferView);
+    if (actual !== bufferView) setBufferView(actual);
     setRendererRevision((revision) => revision + 1);
   }, [bufferView]);
 
@@ -259,11 +257,11 @@ export function Viewport() {
       <div className="viewport-toolbar">
         <select
           aria-label="Viewport render buffer"
-          onChange={(event) => setBufferView(event.target.value as SceneBufferVisualization)}
+          onChange={(event) => setBufferView(event.target.value as BufferVisualization)}
           title="Visualize the GPU scene buffer"
           value={bufferView}
         >
-          {SCENE_BUFFER_VISUALIZATIONS.map((mode) => (
+          {BUFFER_VISUALIZATIONS.map((mode) => (
             <option key={mode} value={mode}>
               {bufferViewLabel(mode)}
             </option>
@@ -660,12 +658,16 @@ export function Viewport() {
   );
 }
 
-function bufferViewLabel(mode: SceneBufferVisualization): string {
+function bufferViewLabel(mode: BufferVisualization): string {
   return {
     beauty: "Beauty",
     linearColor: "Linear HDR",
     luminance: "Luminance",
     alpha: "Alpha",
+    normal: "Normal",
+    objectId: "Object ID",
+    materialId: "Material ID",
+    worldPosition: "World Position",
   }[mode];
 }
 

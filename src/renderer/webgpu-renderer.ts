@@ -10,6 +10,7 @@ import type {
   Project,
   RendererMetrics,
 } from "../core/types";
+import { AuxiliaryBufferRenderer } from "./auxiliary-buffer-renderer";
 import { SceneBufferVisualizer } from "./buffer-visualizer";
 import { analyzeEffectFusion } from "./effect-fusion";
 import { FLOATS_PER_EFFECT_OPERATION, MAX_EFFECT_OPERATIONS } from "./effect-program";
@@ -18,10 +19,17 @@ import { planGpuMemory } from "./gpu-memory-budget";
 import { GpuTimestampProfiler } from "./gpu-timestamp-profiler";
 import { LayerEffectRenderer } from "./layer-effects";
 import { createLutSampler, createLutTexture } from "./lut-texture";
+import {
+  destroyMediaResource,
+  type MediaResource,
+  mediaTextureBytes,
+  reportVideoUploadError,
+  sweepMediaResources,
+} from "./media-resource";
 import { PARTICLE_INDIRECT_RESET } from "./particle-indirect";
 import { precompileGpuPipelines } from "./pipeline-precompile";
 import { buildPostProcessUniforms } from "./post-process";
-import type { SceneBufferVisualization } from "./render-buffers";
+import { type BufferVisualization, isAuxiliaryBuffer } from "./render-buffers";
 import { createParticlePipeline, createPostPipeline } from "./runtime-pipelines";
 import { SceneEvaluationCache } from "./scene-evaluation-cache";
 import { buildSceneLighting, SCENE_LIGHTING_BYTES, shadowMapSize } from "./scene-lighting";
@@ -39,19 +47,6 @@ const PARTICLE_CAPACITY = 1_000_000;
 const MAX_SHAPE_VERTICES = 6 * 128;
 const SCENE_FORMAT: GPUTextureFormat = "rgba16float";
 const DEFAULT_SHADOW_MAP_SIZE = 1024;
-
-interface MediaResource {
-  source: string;
-  kind: "image" | "video" | "text";
-  texture?: GPUTexture;
-  textureBytes?: number;
-  bindGroup?: GPUBindGroup;
-  video?: HTMLVideoElement;
-  videoCanvas?: HTMLCanvasElement;
-  videoContext?: CanvasRenderingContext2D;
-  lastUploadedTime?: number;
-  uploadErrorReported?: boolean;
-}
 
 export class WebGpuRenderer {
   readonly diagnostics: GpuDiagnostics;
@@ -71,6 +66,7 @@ export class WebGpuRenderer {
   readonly #particlePipeline: GPURenderPipeline;
   readonly #postPipeline: GPURenderPipeline;
   readonly #bufferVisualizer: SceneBufferVisualizer;
+  readonly #auxiliaryBuffers: AuxiliaryBufferRenderer;
   readonly #layerEffects: LayerEffectRenderer;
   readonly #computePipeline: GPUComputePipeline;
   #shapeBuffer: GPUBuffer;
@@ -93,7 +89,7 @@ export class WebGpuRenderer {
   #height = 1;
   #shadowMapSize = DEFAULT_SHADOW_MAP_SIZE;
   #memoryBudgetMb?: number;
-  #bufferVisualization: SceneBufferVisualization = "beauty";
+  #bufferVisualization: BufferVisualization = "beauty";
   #smoothedFrameMs = 16.67;
   #lastFrameStarted?: number;
   #shapeBufferBytes = MAX_SHAPE_VERTICES * FLOATS_PER_VERTEX * Float32Array.BYTES_PER_ELEMENT;
@@ -247,6 +243,11 @@ export class WebGpuRenderer {
         { binding: 1, resource: { buffer: this.#simulationBuffer } },
       ],
     });
+    this.#auxiliaryBuffers = new AuxiliaryBufferRenderer(
+      device,
+      this.#imageBindGroupLayout,
+      this.#particlePipeline.getBindGroupLayout(0),
+    );
     this.#postSampler = device.createSampler({
       label: "HDR linear sampler",
       magFilter: "linear",
@@ -274,7 +275,6 @@ export class WebGpuRenderer {
     this.#bufferVisualizer = new SceneBufferVisualizer(device, format);
     this.#layerEffects = new LayerEffectRenderer(device, SCENE_FORMAT);
   }
-
   static async create(
     canvas: HTMLCanvasElement,
     invalidate: () => void = () => undefined,
@@ -310,7 +310,6 @@ export class WebGpuRenderer {
       throw new Error(`WebGPU renderer validation failed: ${validationError.message}`);
     return renderer;
   }
-
   resize(width: number, height: number): void {
     this.#width = Math.max(1, Math.floor(width));
     this.#height = Math.max(1, Math.floor(height));
@@ -347,17 +346,17 @@ export class WebGpuRenderer {
       ],
     });
     this.#bufferVisualizer.setSource(this.#sceneTexture);
+    this.#configureAuxiliaryBuffers();
     this.#layerEffects.resize(this.#width, this.#height);
   }
-
-  get bufferVisualization(): SceneBufferVisualization {
+  get bufferVisualization(): BufferVisualization {
     return this.#bufferVisualization;
   }
-
-  setBufferVisualization(mode: SceneBufferVisualization): void {
+  setBufferVisualization(mode: BufferVisualization): BufferVisualization {
     this.#bufferVisualization = mode;
+    this.#configureAuxiliaryBuffers();
+    return this.#bufferVisualization;
   }
-
   render(
     composition: Composition,
     time: number,
@@ -384,7 +383,8 @@ export class WebGpuRenderer {
       persistentBufferBytes:
         PARTICLE_CAPACITY * 16 +
         this.#shapeBufferBytes +
-        this.#mediaTextureBytes() +
+        this.#auxiliaryBuffers.estimatedBytes +
+        mediaTextureBytes(this.#mediaResources) +
         this.#textureUploads.capacityBytes,
       requestedShadowMapSize: shadowMapSize(shadowQuality),
       budgetMb: this.#memoryBudgetMb,
@@ -423,7 +423,8 @@ export class WebGpuRenderer {
       )
         this.#prepareMedia(scene.layer, scene.localTime, playing, scene.resourceInstanceId);
     }
-    this.#sweepMediaResources(
+    sweepMediaResources(
+      this.#mediaResources,
       new Set(
         sceneLayers
           .filter(
@@ -593,6 +594,21 @@ export class WebGpuRenderer {
       scenePass.drawIndirect(this.#particleIndirectBuffer, 0);
     }
     scenePass?.end();
+    if (isAuxiliaryBuffer(this.#bufferVisualization)) {
+      this.#auxiliaryBuffers.encode({
+        encoder,
+        vertexBuffer: this.#shapeBuffer,
+        batches: geometry.batches,
+        mediaBindGroup: (batch) => this.#mediaResources.get(batch.resourceInstanceId)?.bindGroup,
+        particle: particleScene
+          ? {
+              bindGroup: this.#particleBindGroup,
+              indirectBuffer: this.#particleIndirectBuffer,
+              instanceId: particleScene.instanceId,
+            }
+          : undefined,
+      });
+    }
     this.#layerEffects.sweep(activeEffectInstances);
     const sceneTimingEnd = encoder.beginRenderPass({
       label: "Composition timing marker",
@@ -654,13 +670,23 @@ export class WebGpuRenderer {
       passTimings: this.#gpuProfiler.passTimings(),
     };
   }
-
   async complete(): Promise<void> {
     await this.#device.queue.onSubmittedWorkDone();
   }
 
   setMemoryBudget(megabytes?: number): void {
     this.#memoryBudgetMb = megabytes;
+    this.#configureAuxiliaryBuffers();
+  }
+
+  #configureAuxiliaryBuffers(): void {
+    this.#bufferVisualization = this.#auxiliaryBuffers.configureVisualization(
+      this.#bufferVisualizer,
+      this.#bufferVisualization,
+      this.#width,
+      this.#height,
+      this.#memoryBudgetMb,
+    );
   }
 
   #configureShadowMap(size: number): void {
@@ -723,7 +749,7 @@ export class WebGpuRenderer {
       if (existing.kind === "video") this.#updateVideo(existing, layer, time, playing);
       return;
     }
-    this.#destroyMediaResource(existing);
+    destroyMediaResource(existing);
     const resource: MediaResource = { source, kind: layer.kind === "video" ? "video" : "image" };
     this.#mediaResources.set(instanceId, resource);
     if (resource.kind === "video") {
@@ -785,7 +811,7 @@ export class WebGpuRenderer {
     ]);
     const existing = this.#mediaResources.get(instanceId);
     if (existing?.kind === "text" && existing.source === source) return;
-    this.#destroyMediaResource(existing);
+    destroyMediaResource(existing);
     const resource: MediaResource = { source, kind: "text" };
     this.#mediaResources.set(instanceId, resource);
     const raster = rasterizeTextLayer(
@@ -888,7 +914,7 @@ export class WebGpuRenderer {
       video.dataset.decoderState = "error";
       video.dataset.decoderError = video.error?.message ?? "decode failed";
       if (this.#mediaResources.get(instanceId) === resource) {
-        this.#destroyMediaResource(resource);
+        destroyMediaResource(resource);
         this.#mediaResources.delete(instanceId);
       }
     });
@@ -952,41 +978,7 @@ export class WebGpuRenderer {
       delete video.dataset.gpuError;
     } catch (error) {
       // A seek can temporarily make a hardware-decoded frame unavailable.
-      this.#reportVideoUploadError(resource, error);
+      reportVideoUploadError(resource, error);
     }
-  }
-
-  #reportVideoUploadError(resource: MediaResource, error: unknown): void {
-    if (resource.uploadErrorReported) return;
-    resource.uploadErrorReported = true;
-    if (resource.video)
-      resource.video.dataset.gpuError = error instanceof Error ? error.message : String(error);
-    console.warn("Aster video frame upload is waiting for a decoded frame", error);
-  }
-
-  #destroyMediaResource(resource?: MediaResource): void {
-    if (!resource) return;
-    resource.video?.pause();
-    resource.videoCanvas?.remove();
-    if (resource.video) {
-      resource.video.removeAttribute("src");
-      resource.video.load();
-      resource.video.remove();
-    }
-    resource.texture?.destroy();
-  }
-
-  #sweepMediaResources(activeLayerIds: Set<string>): void {
-    for (const [layerId, resource] of this.#mediaResources) {
-      if (activeLayerIds.has(layerId)) continue;
-      this.#destroyMediaResource(resource);
-      this.#mediaResources.delete(layerId);
-    }
-  }
-
-  #mediaTextureBytes(): number {
-    let bytes = 0;
-    for (const resource of this.#mediaResources.values()) bytes += resource.textureBytes ?? 0;
-    return bytes;
   }
 }

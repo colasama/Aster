@@ -9,6 +9,14 @@ export type AuxiliaryBufferKind = (typeof AUXILIARY_BUFFER_KINDS)[number];
 export const SCENE_BUFFER_VISUALIZATIONS = ["beauty", "linearColor", "luminance", "alpha"] as const;
 export type SceneBufferVisualization = (typeof SCENE_BUFFER_VISUALIZATIONS)[number];
 export type BufferVisualization = SceneBufferVisualization | AuxiliaryBufferKind;
+export const BUFFER_VISUALIZATIONS: readonly BufferVisualization[] = [
+  ...SCENE_BUFFER_VISUALIZATIONS,
+  ...AUXILIARY_BUFFER_KINDS,
+];
+
+export function isAuxiliaryBuffer(mode: BufferVisualization): mode is AuxiliaryBufferKind {
+  return AUXILIARY_BUFFER_KINDS.includes(mode as AuxiliaryBufferKind);
+}
 
 export interface AuxiliaryBufferDescriptor {
   kind: AuxiliaryBufferKind;
@@ -26,12 +34,14 @@ export interface AuxiliaryBufferPlan {
   attachments: readonly AuxiliaryBufferDescriptor[];
 }
 
+export const AUXILIARY_DEPTH_BYTES_PER_PIXEL = 4;
+
 export const AUXILIARY_BUFFER_DESCRIPTORS: Readonly<
   Record<AuxiliaryBufferKind, AuxiliaryBufferDescriptor>
 > = {
   normal: {
     kind: "normal",
-    label: "View-space normals",
+    label: "World-space normals",
     format: "rgba16float",
     bytesPerPixel: 8,
     sampleType: "float",
@@ -86,6 +96,17 @@ export function planAuxiliaryBuffers(
     );
   }
   return { width: safeWidth, height: safeHeight, estimatedBytes, attachments };
+}
+
+export function auxiliaryRenderPassBytes(plan: AuxiliaryBufferPlan): number {
+  return plan.estimatedBytes + plan.width * plan.height * AUXILIARY_DEPTH_BYTES_PER_PIXEL;
+}
+
+export function supportsAuxiliaryMrt(limits: GPUSupportedLimits): boolean {
+  return (
+    limits.maxColorAttachments >= AUXILIARY_BUFFER_KINDS.length &&
+    limits.maxColorAttachmentBytesPerSample >= 24
+  );
 }
 
 export function createAuxiliaryBufferTextures(

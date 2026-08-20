@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   AUXILIARY_BUFFER_DESCRIPTORS,
+  auxiliaryRenderPassBytes,
+  BUFFER_VISUALIZATIONS,
   buildBufferVisualizationUniforms,
   encodeRenderId,
   planAuxiliaryBuffers,
@@ -11,6 +13,16 @@ import {
 describe("auxiliary render buffers", () => {
   it("exposes only scene buffers that the viewport can render truthfully", () => {
     expect(SCENE_BUFFER_VISUALIZATIONS).toEqual(["beauty", "linearColor", "luminance", "alpha"]);
+    expect(BUFFER_VISUALIZATIONS).toEqual([
+      "beauty",
+      "linearColor",
+      "luminance",
+      "alpha",
+      "normal",
+      "objectId",
+      "materialId",
+      "worldPosition",
+    ]);
   });
 
   it("plans typed GPU attachments within an explicit budget", () => {
@@ -22,6 +34,7 @@ describe("auxiliary render buffers", () => {
       "worldPosition",
     ]);
     expect(plan.estimatedBytes).toBe(1920 * 1080 * 24);
+    expect(auxiliaryRenderPassBytes(plan)).toBe(1920 * 1080 * 28);
     expect(AUXILIARY_BUFFER_DESCRIPTORS.objectId.format).toBe("r32uint");
     expect(AUXILIARY_BUFFER_DESCRIPTORS.normal.format).toBe("rgba16float");
   });
