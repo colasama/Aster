@@ -23,7 +23,7 @@ import { importMediaLayer } from "../core/assets";
 import { createGltfLayerFromFile } from "../core/gltf";
 import { createLayerForComposition } from "../core/layer-factory";
 import { getProperty } from "../core/operations";
-import { precomposeLayers } from "../core/precomposition";
+import { planPrecomposition } from "../core/precomposition";
 import { activeComposition, createBlankComposition, createBlankProject } from "../core/project";
 import {
   clearRecoverySnapshot,
@@ -217,22 +217,24 @@ export function TopBar() {
         select: [duplicate.id],
       });
     } else if (item === "New Composition") {
-      const project = structuredClone(state.project);
-      const next = createBlankComposition(`Composition ${project.compositions.length + 1}`);
-      project.compositions.push(next);
-      project.activeCompositionId = next.id;
-      dispatch({ type: "commitProject", project, select: [] });
+      const next = createBlankComposition(`Composition ${state.project.compositions.length + 1}`);
+      dispatch({
+        type: "operation",
+        operations: [{ type: "addComposition", composition: next, activate: true }],
+        select: [],
+      });
     } else if (item === "Pre-compose…" && state.selection.length > 0) {
-      const result = precomposeLayers(state.project, state.selection);
-      if (!result) {
+      const plan = planPrecomposition(state.project, state.selection);
+      if (!plan) {
         showToast(setToast, "Select at least one valid layer to pre-compose");
         return;
       }
-      dispatch({ type: "commitProject", project: result.project, select: [result.wrapperId] });
-      const nested = result.project.compositions.find(
-        (composition) => composition.id === result.nestedCompositionId,
-      );
-      showToast(setToast, `Created ${nested?.name ?? "precomposition"}`);
+      dispatch({
+        type: "operation",
+        operations: [{ type: "precomposeLayers", ...plan }],
+        select: [plan.wrapper.id],
+      });
+      showToast(setToast, `Created ${plan.nestedComposition.name}`);
     } else if (item === "Import Image…" || item === "Import Video…") {
       const kind = item === "Import Image…" ? "image" : "video";
       void importMediaLayer(kind, composition, state.currentTime)

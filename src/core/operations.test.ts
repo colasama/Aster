@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { applyOperations } from "./operations";
-import { activeComposition, createDemoProject } from "./project";
+import { planPrecomposition } from "./precomposition";
+import { activeComposition, createBlankComposition, createDemoProject } from "./project";
 import type { Lut3dResource } from "./types";
 
 describe("structured project operations", () => {
@@ -17,6 +18,50 @@ describe("structured project operations", () => {
       mode: "static",
       value: 42,
     });
+  });
+
+  it("creates and edits compositions through replayable project operations", () => {
+    const source = createDemoProject();
+    const composition = createBlankComposition("Second");
+    const result = applyOperations(source, [
+      { type: "addComposition", composition, activate: true },
+      {
+        type: "setCompositionSettings",
+        compositionId: composition.id,
+        name: "Delivery",
+        width: 7680,
+        height: 4320,
+        frameRate: { numerator: 60_000, denominator: 1001 },
+        duration: 30,
+      },
+    ]);
+    expect(result.activeCompositionId).toBe(composition.id);
+    expect(activeComposition(result)).toMatchObject({
+      name: "Delivery",
+      width: 7680,
+      height: 4320,
+      frameRate: { numerator: 60_000, denominator: 1001 },
+      duration: 30,
+    });
+    expect(source.compositions).toHaveLength(1);
+    const navigated = applyOperations(result, [
+      { type: "setActiveComposition", compositionId: source.activeCompositionId },
+    ]);
+    expect(navigated.activeCompositionId).toBe(source.activeCompositionId);
+  });
+
+  it("precomposes with stable IDs through a deterministic operation", () => {
+    const source = createDemoProject();
+    const layerId = activeComposition(source).layers[0].id;
+    const plan = planPrecomposition(source, [layerId]);
+    expect(plan).toBeDefined();
+    if (!plan) return;
+    const operation = { type: "precomposeLayers" as const, ...plan };
+    const first = applyOperations(source, [operation]);
+    const replay = applyOperations(source, [structuredClone(operation)]);
+    expect({ ...first, updatedAt: "" }).toEqual({ ...replay, updatedAt: "" });
+    expect(activeComposition(first).layers[plan.insertionIndex].id).toBe(plan.wrapper.id);
+    expect(first.compositions.some((entry) => entry.id === plan.nestedComposition.id)).toBe(true);
   });
 
   it("rejects operations that target a missing layer", () => {

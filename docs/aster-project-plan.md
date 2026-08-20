@@ -1182,7 +1182,7 @@ aster/
 ### Undo / Redo / Command
 
 - [x] 定义 Command trait / Operation。
-- [ ] 所有 UI mutation 使用 Operation。
+- [x] 所有 UI mutation 使用 Operation。
 - [x] 实现 Undo stack。
 - [x] 实现 Redo stack。
 - [x] 支持 transaction / grouped commands。

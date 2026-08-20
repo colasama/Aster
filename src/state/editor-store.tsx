@@ -64,7 +64,6 @@ export type EditorAction =
   | { type: "toggleView"; view: "grid" | "guides" | "origin" | "layerControls" }
   | { type: "setMetrics"; metrics: RendererMetrics }
   | { type: "setActiveComposition"; compositionId: Id }
-  | { type: "commitProject"; project: Project; select?: Id[] }
   | { type: "loadProject"; project: Project };
 
 const initialMetrics: RendererMetrics = {
@@ -185,23 +184,19 @@ function reducer(state: EditorState, action: EditorAction): EditorState {
         (candidate) => candidate.id === action.compositionId,
       );
       if (!composition) return state;
+      const project = applyOperations(state.project, [
+        { type: "setActiveComposition", compositionId: action.compositionId },
+      ]);
+      recordOperations(project, [
+        { type: "setActiveComposition", compositionId: action.compositionId },
+      ]);
       return {
         ...state,
-        project: { ...state.project, activeCompositionId: action.compositionId },
+        project,
         selection: composition.layers[0] ? [composition.layers[0].id] : [],
         selectedKeyframes: [],
         currentTime: 0,
         playing: false,
-      };
-    }
-    case "commitProject": {
-      const project = structuredClone(action.project);
-      project.commandLog = state.project.commandLog;
-      recordCommandMarker(project, "commitProject", "Commit project transaction");
-      return {
-        ...state,
-        project,
-        selection: validSelection(project, action.select ?? state.selection, false),
         history: { past: [...state.history.past.slice(-99), state.project], future: [] },
       };
     }

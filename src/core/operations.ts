@@ -1,9 +1,11 @@
+import { applyPrecompositionPlan, type PrecompositionPlan } from "./precomposition";
 import { activeComposition } from "./project";
 import { insertKeyframe } from "./timeline";
 import type {
   Animatable,
   BlendMode,
   CameraSettings,
+  Composition,
   Effect,
   EffectMask,
   Id,
@@ -31,6 +33,18 @@ export type PropertyPath =
   | "opacity";
 
 export type Operation =
+  | { type: "setActiveComposition"; compositionId: Id }
+  | { type: "addComposition"; composition: Composition; activate: boolean }
+  | {
+      type: "setCompositionSettings";
+      compositionId: Id;
+      name: string;
+      width: number;
+      height: number;
+      frameRate: { numerator: number; denominator: number };
+      duration: number;
+    }
+  | ({ type: "precomposeLayers" } & PrecompositionPlan)
   | { type: "addLayer"; layer: Layer }
   | { type: "removeLayer"; layerId: Id }
   | { type: "renameLayer"; layerId: Id; name: string }
@@ -116,6 +130,38 @@ export function applyOperations(project: Project, operations: Operation[]): Proj
 }
 
 export function applyOperation(project: Project, operation: Operation): void {
+  if (operation.type === "setActiveComposition") {
+    if (!project.compositions.some((composition) => composition.id === operation.compositionId))
+      throw new Error("Composition does not exist");
+    project.activeCompositionId = operation.compositionId;
+    return;
+  }
+  if (operation.type === "addComposition") {
+    if (project.compositions.some((composition) => composition.id === operation.composition.id))
+      throw new Error("Composition already exists");
+    project.compositions.push(structuredClone(operation.composition));
+    if (operation.activate) project.activeCompositionId = operation.composition.id;
+    return;
+  }
+  if (operation.type === "setCompositionSettings") {
+    const composition = project.compositions.find(
+      (candidate) => candidate.id === operation.compositionId,
+    );
+    if (!composition) throw new Error("Composition does not exist");
+    composition.name = operation.name.trim().slice(0, 256) || "Untitled Composition";
+    composition.width = Math.round(clamp(operation.width, 16, 16_384));
+    composition.height = Math.round(clamp(operation.height, 16, 16_384));
+    composition.frameRate = {
+      numerator: Math.round(clamp(operation.frameRate.numerator, 1, 240_000)),
+      denominator: Math.round(clamp(operation.frameRate.denominator, 1, 240_000)),
+    };
+    composition.duration = clamp(operation.duration, 0.1, 86_400);
+    return;
+  }
+  if (operation.type === "precomposeLayers") {
+    applyPrecompositionPlan(project, operation);
+    return;
+  }
   const composition = activeComposition(project);
   if (operation.type === "addLayer") {
     if (composition.layers.some((layer) => layer.id === operation.layer.id))

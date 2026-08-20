@@ -33,7 +33,7 @@ export function recordOperations(
 
 export function recordCommandMarker(
   project: Project,
-  operationType: "commitProject" | "redo" | "undo",
+  operationType: "redo" | "undo",
   summary: string,
 ): ProjectCommandEntry {
   const entry: ProjectCommandEntry = {

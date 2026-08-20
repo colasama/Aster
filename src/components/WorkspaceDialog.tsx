@@ -59,15 +59,20 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
     : undefined;
 
   const saveComposition = () => {
-    const project = structuredClone(state.project);
-    const next = activeComposition(project);
-    next.name = name.trim() || "Untitled Composition";
-    next.width = clampInteger(width, 16, 16_384);
-    next.height = clampInteger(height, 16, 16_384);
-    next.frameRate = { numerator: clampInteger(frameRate * 1000, 1, 240_000), denominator: 1000 };
-    next.duration = clamp(duration, 0.1, 86_400);
-    project.updatedAt = new Date().toISOString();
-    dispatch({ type: "commitProject", project });
+    dispatch({
+      type: "operation",
+      operations: [
+        {
+          type: "setCompositionSettings",
+          compositionId: composition.id,
+          name,
+          width,
+          height,
+          frameRate: { numerator: frameRate * 1000, denominator: 1000 },
+          duration,
+        },
+      ],
+    });
     onClose();
   };
 
@@ -322,12 +327,4 @@ function previewExpression(
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Invalid expression" };
   }
-}
-
-function clamp(value: number, minimum: number, maximum: number): number {
-  return Math.max(minimum, Math.min(maximum, Number.isFinite(value) ? value : minimum));
-}
-
-function clampInteger(value: number, minimum: number, maximum: number): number {
-  return Math.round(clamp(value, minimum, maximum));
 }
