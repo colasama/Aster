@@ -1,3 +1,4 @@
+import { createDefaultTextAnimator } from "./text-animator";
 import type { Composition, Layer, LayerKind } from "./types";
 import { createId, createTransform } from "./types";
 
@@ -103,5 +104,6 @@ export function createLayerForComposition(
             strokeColor: [0, 0, 0, 1],
           }
         : undefined,
+    textAnimator: kind === "text" ? createDefaultTextAnimator(true) : undefined,
   };
 }

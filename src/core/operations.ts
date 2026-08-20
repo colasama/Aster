@@ -1,6 +1,7 @@
 import { type ClonerSettings, normalizeClonerSettings } from "./cloner";
 import { applyPrecompositionPlan, type PrecompositionPlan } from "./precomposition";
 import { activeComposition } from "./project";
+import { normalizeTextAnimatorSettings } from "./text-animator";
 import { insertKeyframe } from "./timeline";
 import type {
   Animatable,
@@ -18,6 +19,7 @@ import type {
   ParticleSettings,
   Project,
   ShapeSettings,
+  TextAnimatorSettings,
   TextStyle,
 } from "./types";
 
@@ -65,6 +67,7 @@ export type Operation =
   | { type: "setShapeSettings"; layerId: Id; shape: ShapeSettings }
   | { type: "setTextContent"; layerId: Id; text: string }
   | { type: "setTextStyle"; layerId: Id; textStyle: TextStyle }
+  | { type: "setTextAnimator"; layerId: Id; textAnimator: TextAnimatorSettings }
   | {
       type: "toggleLayer";
       layerId: Id;
@@ -300,6 +303,9 @@ export function applyOperation(project: Project, operation: Operation): void {
           clamp(channel, 0, index === 3 ? 1 : 16),
         ) as TextStyle["strokeColor"],
       };
+      break;
+    case "setTextAnimator":
+      layer.textAnimator = normalizeTextAnimatorSettings(operation.textAnimator);
       break;
     case "toggleLayer":
       layer[operation.field] = !layer[operation.field];

@@ -1,5 +1,6 @@
 import { AsyncWorkPool } from "../core/async-work-pool";
 import { evaluateLayerSourceTime } from "../core/layer-time";
+import { clampTextAnimationTime, countAnimatedTextCharacters } from "../core/text-animator";
 import type {
   BlendMode,
   Composition,
@@ -395,7 +396,12 @@ export class WebGpuRenderer {
     }
     for (const scene of sceneLayers) {
       if (scene.layer.kind === "text") {
-        this.#prepareText(scene.layer, scene.resourceInstanceId);
+        this.#prepareText(
+          scene.layer,
+          scene.resourceInstanceId,
+          evaluateLayerSourceTime(scene.layer, scene.localTime),
+          composition.frameRate.numerator / composition.frameRate.denominator,
+        );
       } else if (
         (scene.layer.kind === "image" || scene.layer.kind === "video") &&
         (scene.layer.asset?.dataUrl ?? scene.layer.asset?.runtimeUrl)
@@ -745,13 +751,20 @@ export class WebGpuRenderer {
       });
   }
 
-  #prepareText(layer: Layer, instanceId: string): void {
+  #prepareText(layer: Layer, instanceId: string, localTime: number, frameRate: number): void {
+    const characterCount = countAnimatedTextCharacters(layer.text ?? layer.name);
+    const animationTime = clampTextAnimationTime(layer.textAnimator, localTime, characterCount);
+    const sampleRate = Number.isFinite(frameRate) ? Math.max(1, Math.min(240, frameRate)) : 60;
+    const sampledAnimationTime =
+      animationTime === undefined ? undefined : Math.round(animationTime * sampleRate) / sampleRate;
     const source = JSON.stringify([
       layer.text,
       layer.name,
       layer.color,
       layer.size,
       layer.textStyle,
+      layer.textAnimator,
+      sampledAnimationTime,
     ]);
     const existing = this.#mediaResources.get(instanceId);
     if (existing?.kind === "text" && existing.source === source) return;
@@ -761,6 +774,7 @@ export class WebGpuRenderer {
     const raster = rasterizeTextLayer(
       layer,
       Math.min(4096, this.#device.limits.maxTextureDimension2D),
+      sampledAnimationTime,
     );
     const texture = this.#device.createTexture({
       label: `GPU text cache · ${layer.name}`,

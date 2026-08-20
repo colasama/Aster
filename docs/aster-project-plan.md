@@ -1297,8 +1297,8 @@ aster/
 - [x] Text on GPU texture。
 - [ ] 研究竖排文字。
 - [ ] 研究 variable fonts。
-- [ ] 研究 per-character animation 数据模型。
-- [ ] 实现最小 Text Animator。
+- [x] 研究 per-character animation 数据模型。
+- [x] 实现最小 Text Animator。
 
 ---
 
@@ -1347,9 +1347,9 @@ aster/
 - [x] Vertex attributes。
 - [x] Index buffers。
 - [x] Normal。
-- [ ] Tangent。
+- [x] Tangent。
 - [x] UV。
-- [ ] Texture loading。
+- [x] Texture loading。
 - [x] Material mapping。
 
 ### PBR

@@ -110,6 +110,7 @@ export interface Layer {
   cloner?: ClonerSettings;
   shape?: ShapeSettings;
   textStyle?: TextStyle;
+  textAnimator?: TextAnimatorSettings;
 }
 
 export interface Material3d {
@@ -138,10 +139,28 @@ export interface MeshAsset {
   name: string;
   positions: number[];
   normals: number[];
+  /** xyz tangent plus the bitangent handedness in w. */
+  tangents?: number[];
   uvs: number[];
   indices: number[];
   sourceMaterial?: Material3d;
   baseColor?: [number, number, number, number];
+  materialTextures?: MeshMaterialTextures;
+}
+
+export interface MeshTexture {
+  mimeType: "image/jpeg" | "image/png" | "image/webp";
+  dataUrl: string;
+  texCoord: 0;
+  /** glTF normalTexture scale; omitted for color/data textures. */
+  scale?: number;
+}
+
+export interface MeshMaterialTextures {
+  baseColor?: MeshTexture;
+  metallicRoughness?: MeshTexture;
+  normal?: MeshTexture;
+  emissive?: MeshTexture;
 }
 
 export interface ParticleSettings {
@@ -191,6 +210,21 @@ export interface TextStyle {
   leading: number;
   strokeWidth: number;
   strokeColor: [number, number, number, number];
+}
+
+export interface TextAnimatorSettings {
+  enabled: boolean;
+  /** Seconds before the first character begins. */
+  delay: number;
+  /** Additional delay in seconds for each grapheme cluster. */
+  stagger: number;
+  duration: number;
+  /** Starting offset in text-layer pixels; animation resolves to zero. */
+  position: [number, number];
+  /** Starting uniform scale percentage; animation resolves to 100. */
+  scale: number;
+  /** Starting opacity percentage; animation resolves to 100. */
+  opacity: number;
 }
 
 export interface Composition {

@@ -11,6 +11,7 @@ struct VertexOutput {
   @location(7) shape_style_parameters: vec4f,
   @location(8) gradient_style_color: vec4f,
   @location(9) gradient_style_parameters: vec4f,
+  @location(10) tangent: vec4f,
 }
 
 struct SceneLighting {
@@ -50,6 +51,7 @@ fn vertex_main(
   @location(8) shape_style_parameters: vec4f,
   @location(9) gradient_style_color: vec4f,
   @location(10) gradient_style_parameters: vec4f,
+  @location(11) tangent: vec4f,
 ) -> VertexOutput {
   var output: VertexOutput;
   output.position = vec4f(position, 1.0);
@@ -63,6 +65,7 @@ fn vertex_main(
   output.shape_style_parameters = shape_style_parameters;
   output.gradient_style_color = gradient_style_color;
   output.gradient_style_parameters = gradient_style_parameters;
+  output.tangent = tangent;
   return output;
 }
 

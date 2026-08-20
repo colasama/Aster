@@ -7,6 +7,7 @@ import {
   MAX_SERIALIZED_COMMAND_SIZE,
 } from "./command-log";
 import { cloneCurrentProjectDocument } from "./project-schema";
+import { TEXT_ANIMATOR_LIMITS } from "./text-animator";
 import type { Composition, Layer, Project } from "./types";
 
 const RECOVERY_KEY = "aster.recoveryProject.v0";
@@ -443,6 +444,8 @@ function validateLayer(value: unknown, path: string): asserts value is Layer {
     if (strokeColor.length !== 4)
       throw new Error(`${path}.textStyle.strokeColor must contain four channels`);
   }
+  if (layer.textAnimator !== undefined)
+    validateTextAnimator(layer.textAnimator, `${path}.textAnimator`);
   if (!Array.isArray(layer.size) || layer.size.length !== 2)
     throw new Error(`${path}.size must contain two values`);
   if (!Array.isArray(layer.color) || layer.color.length !== 4)
@@ -451,6 +454,30 @@ function validateLayer(value: unknown, path: string): asserts value is Layer {
   if (!Array.isArray(layer.effects)) throw new Error(`${path}.effects must be an array`);
   for (const [index, effect] of layer.effects.entries())
     validateEffect(effect, `${path}.effects[${index}]`);
+}
+
+function validateTextAnimator(value: unknown, path: string): void {
+  const animator = requireObject(value, path);
+  if (typeof animator.enabled !== "boolean") throw new Error(`${path}.enabled must be a boolean`);
+  validateBoundedNumber(animator.delay, `${path}.delay`, TEXT_ANIMATOR_LIMITS.delay);
+  validateBoundedNumber(animator.stagger, `${path}.stagger`, TEXT_ANIMATOR_LIMITS.stagger);
+  validateBoundedNumber(animator.duration, `${path}.duration`, TEXT_ANIMATOR_LIMITS.duration);
+  validateBoundedNumber(animator.scale, `${path}.scale`, TEXT_ANIMATOR_LIMITS.scale);
+  validateBoundedNumber(animator.opacity, `${path}.opacity`, TEXT_ANIMATOR_LIMITS.opacity);
+  const position = requireNumberArray(animator.position, `${path}.position`, 2);
+  if (position.length !== 2) throw new Error(`${path}.position must contain two values`);
+  for (const [index, coordinate] of position.entries())
+    validateBoundedNumber(coordinate, `${path}.position[${index}]`, TEXT_ANIMATOR_LIMITS.position);
+}
+
+function validateBoundedNumber(
+  value: unknown,
+  path: string,
+  bounds: readonly [number, number],
+): void {
+  const number = requireFiniteNumber(value, path);
+  if (number < bounds[0] || number > bounds[1])
+    throw new Error(`${path} must be between ${bounds[0]} and ${bounds[1]}`);
 }
 
 function validateAsset(value: unknown, path: string): void {

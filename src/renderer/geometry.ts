@@ -2,7 +2,7 @@ import type { FlattenedSceneLayer } from "../core/scene-evaluation";
 import type { CameraSettings, Composition, EvaluatedTransform, Layer } from "../core/types";
 import { flattenBezierPath, tessellateStroke, triangulatePolygon } from "./vector-path";
 
-export const FLOATS_PER_VERTEX = 36;
+export const FLOATS_PER_VERTEX = 40;
 export const VERTEX_FLOAT_OFFSETS = {
   position: 0,
   uv: 3,
@@ -15,6 +15,7 @@ export const VERTEX_FLOAT_OFFSETS = {
   shapeStyleParameters: 24,
   gradientStyleColor: 28,
   gradientStyleParameters: 32,
+  tangent: 36,
 } as const;
 
 export interface GeometryBatch {
@@ -170,6 +171,7 @@ export function buildSceneGeometry(
         vertexCount = CUBE_FACES.length * 6;
         for (const cubeFace of CUBE_FACES) {
           const normal = rotatePoint(...cubeFace.normal, transform.rotation);
+          const tangent = rotatePoint(1, 0, 0, transform.rotation);
           for (const [cornerX, cornerY, cornerZ, u, v] of cubeFace.corners) {
             const projected = projectVertex(
               cornerX * width,
@@ -194,6 +196,7 @@ export function buildSceneGeometry(
               shapeStyleParameters,
               gradientStyleColor,
               gradientStyleParameters,
+              [...tangent, 1],
               composition,
             );
           }
@@ -216,6 +219,7 @@ export function buildSceneGeometry(
       );
     } else {
       const normal = rotatePoint(0, 0, 1, transform.rotation);
+      const tangent = rotatePoint(1, 0, 0, transform.rotation);
       for (const [cornerX, cornerY, u, v] of QUAD_CORNERS) {
         const projected = projectVertex(
           cornerX * width,
@@ -240,6 +244,7 @@ export function buildSceneGeometry(
           shapeStyleParameters,
           gradientStyleColor,
           gradientStyleParameters,
+          [...tangent, 1],
           composition,
         );
       }
@@ -273,6 +278,7 @@ function appendBezierPath(
   if (!shape?.path) return 0;
   const normalized = flattenBezierPath(shape.path);
   const normal = rotatePoint(0, 0, 1, transform.rotation);
+  const tangent = rotatePoint(1, 0, 0, transform.rotation);
   const noStyle: readonly [number, number, number, number] = [1, 1, 1, 1];
   let vertexCount = 0;
   const append = (
@@ -304,6 +310,7 @@ function appendBezierPath(
       shapeStyleParameters,
       gradientColor,
       gradientParameters,
+      [...tangent, 1],
       composition,
     );
     vertexCount += 1;
@@ -384,6 +391,14 @@ function appendImportedMesh(
       mesh.normals[positionOffset + 2],
       transform.rotation,
     );
+    const tangentOffset = vertexIndex * 4;
+    const sourceTangent = mesh.tangents?.slice(tangentOffset, tangentOffset + 4) ?? [1, 0, 0, 1];
+    const tangent = rotatePoint(
+      sourceTangent[0],
+      -sourceTangent[1],
+      sourceTangent[2],
+      transform.rotation,
+    );
     const projected = projectVertex(
       localX,
       localY,
@@ -407,6 +422,7 @@ function appendImportedMesh(
       shapeStyleParameters,
       gradientStyleColor,
       gradientStyleParameters,
+      [tangent[0], tangent[1], tangent[2], -sourceTangent[3]],
       composition,
     );
   }
@@ -496,6 +512,7 @@ function pushVertex(
   shapeStyleParameters: readonly [number, number, number, number],
   gradientStyleColor: readonly [number, number, number, number],
   gradientStyleParameters: readonly [number, number, number, number],
+  tangent: readonly [number, number, number, number],
   composition: Composition,
 ): void {
   output.push(
@@ -513,6 +530,7 @@ function pushVertex(
     ...shapeStyleParameters,
     ...gradientStyleColor,
     ...gradientStyleParameters,
+    ...tangent,
   );
 }
 

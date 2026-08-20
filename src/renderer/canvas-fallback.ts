@@ -65,7 +65,13 @@ export class CanvasFallbackRenderer {
       const height = (layer.size[1] * transform.scale[1] * scale) / 100;
       if (layer.kind === "text") {
         context.translate(-width / 2, -height / 2);
-        drawTextLayer(context, layer, width, height);
+        drawTextLayer(
+          context,
+          layer,
+          width,
+          height,
+          evaluateLayerSourceTime(layer, scene.localTime),
+        );
       } else if (isDrawableMedia(media?.element))
         context.drawImage(media.element, -width / 2, -height / 2, width, height);
       else context.fillRect(-width / 2, -height / 2, width, height);

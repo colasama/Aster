@@ -1,3 +1,4 @@
+import { evaluateTextCharacter } from "../core/text-animator";
 import type { Layer, TextStyle } from "../core/types";
 
 export interface RasterizedText {
@@ -6,7 +7,11 @@ export interface RasterizedText {
   pixels: Uint8ClampedArray;
 }
 
-export function rasterizeTextLayer(layer: Layer, maximumDimension: number): RasterizedText {
+export function rasterizeTextLayer(
+  layer: Layer,
+  maximumDimension: number,
+  localTime = 0,
+): RasterizedText {
   const sourceWidth = Math.max(1, layer.size[0]);
   const sourceHeight = Math.max(1, layer.size[1]);
   const scale = Math.min(1, maximumDimension / Math.max(sourceWidth, sourceHeight));
@@ -17,7 +22,7 @@ export function rasterizeTextLayer(layer: Layer, maximumDimension: number): Rast
   canvas.height = height;
   const context = canvas.getContext("2d", { willReadFrequently: true });
   if (!context) throw new Error("Text rasterization canvas is unavailable");
-  drawTextLayer(context, layer, width, height);
+  drawTextLayer(context, layer, width, height, localTime);
   return { width, height, pixels: context.getImageData(0, 0, width, height).data };
 }
 
@@ -26,6 +31,7 @@ export function drawTextLayer(
   layer: Layer,
   width: number,
   height: number,
+  localTime = 0,
 ): void {
   const sourceScale = width / Math.max(1, layer.size[0]);
   const style = resolvedStyle(layer);
@@ -54,6 +60,9 @@ export function drawTextLayer(
   ).slice(0, 256);
   const blockHeight = fontSize + Math.max(0, lines.length - 1) * leading;
   const firstBaseline = (height - blockHeight) / 2 + fontSize / 2;
+  const animation = layer.textAnimator?.enabled
+    ? { characterIndex: 0, localTime, sourceScale }
+    : undefined;
   for (let index = 0; index < lines.length; index += 1) {
     drawTrackedLine(
       context,
@@ -64,8 +73,16 @@ export function drawTextLayer(
       maximumWidth,
       style.alignment,
       strokeWidth > 0,
+      layer,
+      animation,
     );
   }
+}
+
+interface TextAnimationCursor {
+  characterIndex: number;
+  localTime: number;
+  sourceScale: number;
 }
 
 function drawTrackedLine(
@@ -77,6 +94,8 @@ function drawTrackedLine(
   maximumWidth: number,
   alignment: TextStyle["alignment"],
   stroke: boolean,
+  layer: Layer,
+  animation: TextAnimationCursor | undefined,
 ): void {
   const glyphs = graphemes(text);
   const widths = glyphs.map((glyph) => context.measureText(glyph).width);
@@ -92,7 +111,7 @@ function drawTrackedLine(
   context.save();
   context.translate(alignedLeft, baseline);
   context.scale(horizontalScale, 1);
-  if (Math.abs(tracking) < 0.000_01) {
+  if (!animation && Math.abs(tracking) < 0.000_01) {
     if (stroke) context.strokeText(text, 0, 0);
     context.fillText(text, 0, 0);
     context.restore();
@@ -100,9 +119,30 @@ function drawTrackedLine(
   }
   let cursor = 0;
   for (let index = 0; index < glyphs.length; index += 1) {
-    if (stroke) context.strokeText(glyphs[index], cursor, 0);
-    context.fillText(glyphs[index], cursor, 0);
-    cursor += widths[index] + tracking;
+    const glyph = glyphs[index];
+    const glyphWidth = widths[index];
+    if (animation) {
+      const state = evaluateTextCharacter(
+        layer.textAnimator,
+        animation.localTime,
+        animation.characterIndex,
+      );
+      context.save();
+      context.globalAlpha *= state.opacity;
+      context.translate(
+        cursor + glyphWidth / 2 + state.position[0] * animation.sourceScale,
+        state.position[1] * animation.sourceScale,
+      );
+      context.scale(state.scale, state.scale);
+      if (stroke) context.strokeText(glyph, -glyphWidth / 2, 0);
+      context.fillText(glyph, -glyphWidth / 2, 0);
+      context.restore();
+      animation.characterIndex += 1;
+    } else {
+      if (stroke) context.strokeText(glyph, cursor, 0);
+      context.fillText(glyph, cursor, 0);
+    }
+    cursor += glyphWidth + tracking;
   }
   context.restore();
 }

@@ -20,6 +20,7 @@ export const SHAPE_VERTEX_BUFFERS: GPUVertexBufferLayout[] = [
       { shaderLocation: 8, offset: 96, format: "float32x4" },
       { shaderLocation: 9, offset: 112, format: "float32x4" },
       { shaderLocation: 10, offset: 128, format: "float32x4" },
+      { shaderLocation: 11, offset: 144, format: "float32x4" },
     ],
   },
 ];

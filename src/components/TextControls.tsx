@@ -1,4 +1,5 @@
-import type { Layer, TextStyle } from "../core/types";
+import { createDefaultTextAnimator, TEXT_ANIMATOR_LIMITS } from "../core/text-animator";
+import type { Layer, TextAnimatorSettings, TextStyle } from "../core/types";
 import { useEditor } from "../state/editor-store";
 
 const DEFAULT_STYLE: TextStyle = {
@@ -16,6 +17,7 @@ export function TextControls({ layer }: { layer: Layer }) {
   const { dispatch } = useEditor();
   if (layer.kind !== "text") return null;
   const style = layer.textStyle ?? DEFAULT_STYLE;
+  const animator = layer.textAnimator ?? createDefaultTextAnimator();
   const update = <Field extends keyof TextStyle>(field: Field, value: TextStyle[Field]) => {
     dispatch({
       type: "operation",
@@ -36,6 +38,21 @@ export function TextControls({ layer }: { layer: Layer }) {
           type: "setLayerColor",
           layerId: layer.id,
           color: [...parseColor(value), layer.color[3]],
+        },
+      ],
+    });
+  };
+  const updateAnimator = <Field extends keyof TextAnimatorSettings>(
+    field: Field,
+    value: TextAnimatorSettings[Field],
+  ) => {
+    dispatch({
+      type: "operation",
+      operations: [
+        {
+          type: "setTextAnimator",
+          layerId: layer.id,
+          textAnimator: { ...animator, [field]: value },
         },
       ],
     });
@@ -138,6 +155,71 @@ export function TextControls({ layer }: { layer: Layer }) {
           value={colorInput(style.strokeColor)}
         />
       </label>
+      <label>
+        Character animator
+        <input
+          aria-label="Character animator"
+          checked={animator.enabled}
+          onChange={(event) => updateAnimator("enabled", event.target.checked)}
+          type="checkbox"
+        />
+      </label>
+      {animator.enabled ? (
+        <>
+          <TextNumber
+            label="Animator delay"
+            max={TEXT_ANIMATOR_LIMITS.delay[1]}
+            min={TEXT_ANIMATOR_LIMITS.delay[0]}
+            onChange={(value) => updateAnimator("delay", value)}
+            step={0.01}
+            value={animator.delay}
+          />
+          <TextNumber
+            label="Character stagger"
+            max={TEXT_ANIMATOR_LIMITS.stagger[1]}
+            min={TEXT_ANIMATOR_LIMITS.stagger[0]}
+            onChange={(value) => updateAnimator("stagger", value)}
+            step={0.01}
+            value={animator.stagger}
+          />
+          <TextNumber
+            label="Character duration"
+            max={TEXT_ANIMATOR_LIMITS.duration[1]}
+            min={TEXT_ANIMATOR_LIMITS.duration[0]}
+            onChange={(value) => updateAnimator("duration", value)}
+            step={0.01}
+            value={animator.duration}
+          />
+          <TextNumber
+            label="Start position X"
+            max={TEXT_ANIMATOR_LIMITS.position[1]}
+            min={TEXT_ANIMATOR_LIMITS.position[0]}
+            onChange={(value) => updateAnimator("position", [value, animator.position[1]])}
+            value={animator.position[0]}
+          />
+          <TextNumber
+            label="Start position Y"
+            max={TEXT_ANIMATOR_LIMITS.position[1]}
+            min={TEXT_ANIMATOR_LIMITS.position[0]}
+            onChange={(value) => updateAnimator("position", [animator.position[0], value])}
+            value={animator.position[1]}
+          />
+          <TextNumber
+            label="Start scale"
+            max={TEXT_ANIMATOR_LIMITS.scale[1]}
+            min={TEXT_ANIMATOR_LIMITS.scale[0]}
+            onChange={(value) => updateAnimator("scale", value)}
+            value={animator.scale}
+          />
+          <TextNumber
+            label="Start opacity"
+            max={TEXT_ANIMATOR_LIMITS.opacity[1]}
+            min={TEXT_ANIMATOR_LIMITS.opacity[0]}
+            onChange={(value) => updateAnimator("opacity", value)}
+            value={animator.opacity}
+          />
+        </>
+      ) : null}
     </>
   );
 }
@@ -145,12 +227,16 @@ export function TextControls({ layer }: { layer: Layer }) {
 function TextNumber({
   label,
   min,
+  max,
   onChange,
+  step = 1,
   value,
 }: {
   label: string;
   min: number;
+  max?: number;
   onChange: (value: number) => void;
+  step?: number;
   value: number;
 }) {
   return (
@@ -159,8 +245,9 @@ function TextNumber({
       <input
         aria-label={label}
         min={min}
+        max={max}
         onChange={(event) => onChange(Number(event.target.value))}
-        step="1"
+        step={step}
         type="number"
         value={value}
       />
