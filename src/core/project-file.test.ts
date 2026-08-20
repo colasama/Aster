@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { parseCubeLut } from "../effects/cube-lut";
 import { createEffect } from "../effects/registry";
 import { createLayerForComposition } from "./layer-factory";
+import { createDefaultParticleSettings } from "./particle-settings";
 import { createBlankProject } from "./project";
 import { serializeProject, validateProjectDocument } from "./project-file";
 
@@ -19,8 +20,11 @@ describe("project document boundary", () => {
 
     nested.layers.unshift(createLayerForComposition("adjustment", nested));
     expect(() => validateProjectDocument(project)).toThrow(
-      "Precomposition sources cannot contain adjustment layers",
+      "Adjustment layers in precomposition sources require a 3D texture surface wrapper",
     );
+    wrapper.threeDimensional = true;
+    expect(validateProjectDocument(project).compositions[1].layers[0].kind).toBe("adjustment");
+    wrapper.threeDimensional = false;
     nested.layers.shift();
 
     const nestedParticle = createLayerForComposition("particle", nested);
@@ -343,13 +347,14 @@ describe("project document boundary", () => {
     const composition = project.compositions[0];
     const particles = createLayerForComposition("particle", composition);
     particles.particle = {
+      ...createDefaultParticleSettings(),
       renderMode: "mesh",
-      meshPrimitive: "cube",
       count: 500_000,
       seed: 42,
       lifetime: 4,
-      speed: 0.25,
-      acceleration: -0.08,
+      emitterShape: "ring",
+      velocity: [0.25, 0.1, -0.05],
+      gravity: [0, -0.08, 0],
       startSize: 3,
       endSize: 0.2,
       startRotation: -45,
@@ -361,23 +366,31 @@ describe("project document boundary", () => {
     expect(roundtrip.compositions[0].layers[1].particle).toEqual(particles.particle);
     if (!particles.particle) throw new Error("Expected particle settings");
     particles.particle.count = 1_000_001;
-    expect(() => validateProjectDocument(project)).toThrow("at most 1000000");
+    expect(() => validateProjectDocument(project)).toThrow("between 1 and 1000000");
     particles.particle.count = 500_000;
     (particles.particle as { renderMode: string }).renderMode = "sprite";
     expect(() => validateProjectDocument(project)).toThrow("renderMode");
     particles.particle.renderMode = "mesh";
-    particles.particle.speed = Number.POSITIVE_INFINITY;
-    expect(() => validateProjectDocument(project)).toThrow("speed must be a finite number");
-    particles.particle.speed = 0.25;
+    particles.particle.velocity[0] = Number.POSITIVE_INFINITY;
+    expect(() => validateProjectDocument(project)).toThrow("velocity[0] must be a finite number");
+    particles.particle.velocity[0] = 0.25;
     particles.particle.startSize = 257;
     expect(() => validateProjectDocument(project)).toThrow(
       "startSize must be between 0.01 and 256",
     );
     particles.particle.startSize = 3;
+    particles.particle.renderMode = "billboard";
+    particles.blendMode = "normal";
+    expect(() => validateProjectDocument(project)).toThrow("require add blend mode");
+    particles.particle.renderMode = "mesh";
+    particles.blendMode = "normal";
     particles.particle.lifetime = 3601;
     expect(() => validateProjectDocument(project)).toThrow(
       "lifetime must be between 0.05 and 3600",
     );
+    particles.particle.lifetime = 4;
+    (particles.particle as unknown as Record<string, unknown>).legacySpeed = 0.25;
+    expect(() => validateProjectDocument(project)).toThrow("legacySpeed is not supported");
   });
 
   it("roundtrips explicit vector shape styling", () => {

@@ -1,10 +1,11 @@
 import type { BlendMode } from "../core/types";
 import { gpuBlendState } from "./blend-state";
+import { PARTICLE_STORAGE_STRIDE_BYTES } from "./particle-system";
 
-export type ParticleRenderMode = "billboard" | "mesh";
+export type ParticleRenderMode = "billboard" | "streak" | "mesh";
 
 export const MAX_PARTICLE_CAPACITY = 1_000_000;
-export const PARTICLE_BUFFER_STRIDE_BYTES = 32;
+export const PARTICLE_BUFFER_STRIDE_BYTES = PARTICLE_STORAGE_STRIDE_BYTES;
 export const PARTICLE_BILLBOARD_VERTEX_COUNT = 6;
 export const PARTICLE_MESH_VERTEX_COUNT = 36;
 export const PARTICLE_MESH_BLEND_MODES: readonly BlendMode[] = [
@@ -133,11 +134,11 @@ fn particle_orient(value: vec3f, cosine: f32, sine: f32) -> vec3f {
   );
 }
 
-fn particle_mesh_clip(position_size: vec3f, local: vec3f) -> vec3f {
-  let size = position_size.z / 900.0;
-  let center_depth = clamp(0.42 + position_size.y * 0.08, 0.08, 0.82);
+fn particle_mesh_clip(position: vec3f, size_pixels: f32, local: vec3f) -> vec3f {
+  let size = size_pixels / 900.0;
+  let center_depth = clamp(0.5 - position.z * 0.1, 0.08, 0.92);
   return vec3f(
-    position_size.xy + local.xy * size,
+    position.xy + local.xy * size,
     clamp(center_depth + local.z * size, 0.001, 0.999),
   );
 }
@@ -146,10 +147,12 @@ fn particle_mesh_clip(position_size: vec3f, local: vec3f) -> vec3f {
 /** GPU-expanded cube particles sourced directly from compacted simulation storage. */
 export const particleMeshRenderShader = /* wgsl */ `
 struct Simulation {
-  header: vec4f, motion: vec4f, appearance: vec4f,
+  header: vec4f, lifecycle: vec4f,
+  emitter_position_shape: vec4f, emitter_size_spread: vec4f,
+  velocity_scale: vec4f, gravity_streak: vec4f, appearance: vec4f,
   start_color: vec4f, end_color: vec4f,
 }
-struct Particle { current: vec4f, previous: vec4f }
+struct Particle { current: vec4f, previous: vec4f, appearance: vec4f }
 struct VertexOutput {
   @builtin(position) position: vec4f,
   @location(0) color: vec4f,
@@ -164,14 +167,13 @@ ${particleMeshGeometryShader}
   @builtin(vertex_index) vertex: u32,
   @builtin(instance_index) instance: u32,
 ) -> VertexOutput {
-  let particle = particles[instance].current;
-  let packed = bitcast<u32>(particle.w);
-  let age = f32(packed & 1023u) / 1023.0;
-  let rotation_cos = f32((packed >> 10u) & 2047u) / 1023.5 - 1.0;
-  let rotation_sin = f32((packed >> 21u) & 2047u) / 1023.5 - 1.0;
+  let particle = particles[instance];
+  let age = particle.appearance.x;
+  let rotation_cos = particle.appearance.y;
+  let rotation_sin = particle.appearance.z;
   let surface = particle_cube_surface(vertex);
   let local = particle_orient(surface.position, rotation_cos, rotation_sin);
-  let clip = particle_mesh_clip(particle.xyz, local);
+  let clip = particle_mesh_clip(particle.current.xyz, particle.current.w, local);
   var output: VertexOutput;
   output.position = vec4f(clip, 1.0);
   output.color = mix(simulation.start_color, simulation.end_color, age);

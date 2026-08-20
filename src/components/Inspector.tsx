@@ -356,6 +356,7 @@ export function Inspector() {
                   <label>
                     {t("inspector.compositing.blendMode")}
                     <select
+                      disabled={layer.kind === "particle" && layer.particle?.renderMode !== "mesh"}
                       onChange={(event) =>
                         dispatch({
                           type: "operation",

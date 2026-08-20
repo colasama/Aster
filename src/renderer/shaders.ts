@@ -36,12 +36,15 @@ import {
 export {
   imageShader,
   materialShapeShader,
-  particleComputeShader,
-  particleRenderShader,
   shadowShader,
   shapeShader,
   textureCompositeShader,
 } from "./base-shaders";
+export {
+  particleBillboardRenderShader as particleRenderShader,
+  particleComputeShader,
+  particleStreakRenderShader,
+} from "./particle-system";
 
 export const postProcessShader = /* wgsl */ `
 struct PostProcess {

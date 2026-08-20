@@ -91,6 +91,28 @@ describe("editor scene evaluation", () => {
     expect(flattenSceneLayers(root, project, 5)[0].localTime).toBe(3.5);
   });
 
+  it("keeps 3D wrapper transforms while evaluating its surface at mapped local time", () => {
+    const project = createBlankProject();
+    const root = project.compositions[0];
+    const nested = structuredClone(root);
+    nested.id = crypto.randomUUID();
+    const wrapper = createLayerForComposition("precomposition", root);
+    wrapper.sourceCompositionId = nested.id;
+    wrapper.threeDimensional = true;
+    wrapper.timeOffset = 1;
+    wrapper.timeStretch = 2;
+    wrapper.transform.position[0] = { mode: "static", value: 321 };
+    wrapper.transform.position[2] = { mode: "static", value: 80 };
+    root.layers = [wrapper];
+    project.compositions.push(nested);
+
+    const [surface] = flattenSceneLayers(root, project, 5);
+    expect(surface.layer).toBe(wrapper);
+    expect(surface.localTime).toBe(5);
+    expect(surface.precompositionSurface?.time).toBe(3.5);
+    expect(surface.transform.position).toEqual([321, root.height / 2, 80]);
+  });
+
   it("expands cloners into stable scene instances for the current render path", () => {
     const project = createBlankProject();
     const composition = project.compositions[0];
@@ -149,7 +171,7 @@ describe("editor scene evaluation", () => {
     expect(flattenSceneLayers(root, project, 0)).toHaveLength(65_536);
   });
 
-  it("keeps adjustment evaluation local and non-spatial", () => {
+  it("keeps adjustment evaluation local and routes 3D precompositions as surfaces", () => {
     const project = createBlankProject();
     const root = project.compositions[0];
     const adjustment = createLayerForComposition("adjustment", root);
@@ -165,11 +187,13 @@ describe("editor scene evaluation", () => {
     nested.layers = [createLayerForComposition("adjustment", nested), nested.layers[0]];
     const wrapper = createLayerForComposition("precomposition", root);
     wrapper.sourceCompositionId = nested.id;
+    wrapper.threeDimensional = true;
     root.layers = [wrapper];
     project.compositions.push(nested);
 
-    expect(() => flattenSceneLayers(root, project, 0)).toThrow(
-      "Precomposition sources cannot contain adjustment layers",
-    );
+    const [surface] = flattenSceneLayers(root, project, 0);
+    expect(surface.layer).toBe(wrapper);
+    expect(surface.precompositionSurface).toMatchObject({ composition: nested, time: 0 });
+    expect(surface.precompositionSurface?.compositionPath).toEqual([root.id]);
   });
 });

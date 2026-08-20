@@ -1,4 +1,5 @@
 import { createLayerForComposition } from "../core/layer-factory";
+import { createDefaultParticleSettings } from "../core/particle-settings";
 import type { Composition, Project, RendererMetrics } from "../core/types";
 import { createId } from "../core/types";
 import { createEffect } from "../effects/registry";
@@ -186,17 +187,9 @@ export function buildBenchmarkScenarios(source: Composition): BenchmarkScenario[
     particle.parentId = undefined;
     particle.name = `${label} GPU particles`;
     particle.particle = {
+      ...createDefaultParticleSettings(),
       renderMode: "billboard",
-      meshPrimitive: "cube",
       count,
-      seed: 13_337,
-      lifetime: 6,
-      speed: 0.16,
-      acceleration: -0.035,
-      startSize: 2.4,
-      endSize: 0.35,
-      startRotation: 0,
-      endRotation: 180,
     };
     scenario.composition.layers = [particle];
     return scenario;

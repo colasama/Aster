@@ -1,3 +1,4 @@
+import { createDefaultParticleSettings } from "../core/particle-settings";
 import type {
   CameraSettings,
   Layer,
@@ -7,6 +8,7 @@ import type {
 } from "../core/types";
 import { useI18n } from "../i18n/react";
 import { useEditor } from "../state/editor-store";
+import { ParticleControls } from "./ParticleControls";
 
 export function Scene3dControls({ layer }: { layer: Layer }) {
   const { dispatch } = useEditor();
@@ -71,32 +73,22 @@ export function Scene3dControls({ layer }: { layer: Layer }) {
     });
   };
 
-  const updateParticle = <Key extends keyof ParticleSettings>(
-    field: Key,
-    value: ParticleSettings[Key],
-  ) => {
+  const updateParticle = (particle: ParticleSettings) => {
+    const operations = [];
+    if (particle.renderMode !== "mesh" && layer.blendMode !== "add")
+      operations.push({
+        type: "setBlendMode" as const,
+        layerId: layer.id,
+        blendMode: "add" as const,
+      });
+    operations.push({
+      type: "setParticleSettings" as const,
+      layerId: layer.id,
+      particle,
+    });
     dispatch({
       type: "operation",
-      operations: [
-        {
-          type: "setParticleSettings",
-          layerId: layer.id,
-          particle: {
-            renderMode: layer.particle?.renderMode ?? "billboard",
-            meshPrimitive: layer.particle?.meshPrimitive ?? "cube",
-            count: layer.particle?.count ?? 100_000,
-            seed: layer.particle?.seed ?? 13_337,
-            lifetime: layer.particle?.lifetime ?? 6,
-            speed: layer.particle?.speed ?? 0.16,
-            acceleration: layer.particle?.acceleration ?? -0.035,
-            startSize: layer.particle?.startSize ?? 2.4,
-            endSize: layer.particle?.endSize ?? 0.35,
-            startRotation: layer.particle?.startRotation ?? 0,
-            endRotation: layer.particle?.endRotation ?? 180,
-            [field]: value,
-          },
-        },
-      ],
+      operations,
     });
   };
 
@@ -192,112 +184,11 @@ export function Scene3dControls({ layer }: { layer: Layer }) {
   }
 
   if (layer.kind === "particle") {
-    const renderMode = layer.particle?.renderMode ?? "billboard";
     return (
-      <>
-        <label>
-          {t("scene3d.particle.renderMode")}
-          <select
-            aria-label={t("scene3d.particle.renderModeA11y")}
-            onChange={(event) =>
-              updateParticle("renderMode", event.target.value as ParticleSettings["renderMode"])
-            }
-            value={renderMode}
-          >
-            <option value="billboard">{t("scene3d.particle.billboard")}</option>
-            <option value="mesh">{t("scene3d.particle.mesh")}</option>
-          </select>
-        </label>
-        {renderMode === "mesh" && (
-          <label>
-            {t("scene3d.particle.meshPrimitive")}
-            <select
-              aria-label={t("scene3d.particle.meshPrimitiveA11y")}
-              onChange={(event) =>
-                updateParticle(
-                  "meshPrimitive",
-                  event.target.value as ParticleSettings["meshPrimitive"],
-                )
-              }
-              value={layer.particle?.meshPrimitive ?? "cube"}
-            >
-              <option value="cube">{t("scene3d.particle.cube")}</option>
-            </select>
-          </label>
-        )}
-        <NumericControl
-          label={t("scene3d.particle.count")}
-          max={1_000_000}
-          min={1}
-          onChange={(value) => updateParticle("count", value)}
-          step={10_000}
-          value={layer.particle?.count ?? 100_000}
-        />
-        <NumericControl
-          label={t("scene3d.particle.seed")}
-          max={16_777_215}
-          min={0}
-          onChange={(value) => updateParticle("seed", value)}
-          step={1}
-          value={layer.particle?.seed ?? 13_337}
-        />
-        <NumericControl
-          label={t("scene3d.particle.lifetime")}
-          max={3600}
-          min={0.05}
-          onChange={(value) => updateParticle("lifetime", value)}
-          step={0.1}
-          value={layer.particle?.lifetime ?? 6}
-        />
-        <NumericControl
-          label={t("scene3d.particle.speed")}
-          max={10}
-          min={0}
-          onChange={(value) => updateParticle("speed", value)}
-          step={0.01}
-          value={layer.particle?.speed ?? 0.16}
-        />
-        <NumericControl
-          label={t("scene3d.particle.acceleration")}
-          max={10}
-          min={-10}
-          onChange={(value) => updateParticle("acceleration", value)}
-          step={0.005}
-          value={layer.particle?.acceleration ?? -0.035}
-        />
-        <NumericControl
-          label={t("scene3d.particle.startSize")}
-          max={256}
-          min={0.01}
-          onChange={(value) => updateParticle("startSize", value)}
-          step={0.1}
-          value={layer.particle?.startSize ?? 2.4}
-        />
-        <NumericControl
-          label={t("scene3d.particle.endSize")}
-          max={256}
-          min={0.01}
-          onChange={(value) => updateParticle("endSize", value)}
-          step={0.1}
-          value={layer.particle?.endSize ?? 0.35}
-        />
-        <NumericControl
-          label={t("scene3d.particle.startRotation")}
-          max={36_000}
-          min={-36_000}
-          onChange={(value) => updateParticle("startRotation", value)}
-          step={1}
-          value={layer.particle?.startRotation ?? 0}
-        />
-        <NumericControl
-          label={t("scene3d.particle.endRotation")}
-          max={36_000}
-          min={-36_000}
-          onChange={(value) => updateParticle("endRotation", value)}
-          step={1}
-          value={layer.particle?.endRotation ?? 180}
-        />
-      </>
+      <ParticleControls
+        onChange={updateParticle}
+        settings={layer.particle ?? createDefaultParticleSettings()}
+      />
     );
   }
 

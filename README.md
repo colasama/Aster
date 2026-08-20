@@ -31,7 +31,7 @@ _Live WebGPU preview: Beauty → depth fog → depth of field → normals → mo
   Inspector keyframing, distinct Timeline tracks and markers, direct retiming/removal, and GPU
   evaluation at render time.
 - WebGPU high-performance adapter selection, `rgba16float` HDR composition, ACES output,
-  timestamp-query profiling, deterministic compute particles scaling from 1 to 1,000,000, and fused
+  timestamp-query profiling, absolute-time compute particles scaling from 1 to 1,000,000, and fused
   realtime effects.
 - In-editor GPU benchmarks measure 1080p, 4K, 20-layer, and Blur/Glow effect-chain scenarios with
   warm-up, GPU completion barriers, median/p95/p99 reports, quick/full modes, and JSON download;
@@ -47,9 +47,12 @@ _Live WebGPU preview: Beauty → depth fog → depth of field → normals → mo
 - Bounded glTF/GLB import reads the first triangle primitive, including POSITION, NORMAL,
   TEXCOORD_0, and u8/u16/u32 indices; GLB binary chunks and embedded data-URI glTF buffers feed the
   shared PBR/shadow vertex path and remain serializable in Aster project documents.
-- Particle layers expose bounded count, deterministic seed, lifetime, velocity, acceleration, and
-  start/end size; compute evaluates spawn age and motion directly from time while the billboard pass
-  applies GPU color, opacity, and size over life without replaying earlier frames.
+- Particle layers provide a Trapcode-inspired, brand-independent GPU workflow with point, box,
+  sphere, ring, and line emitters; vector velocity and gravity; analytic drag; turbulence; and
+  HDR color, opacity, size, and rotation over life. Billboard, streak, and cube-mesh passes consume
+  the same compacted GPU storage. Each slot is evaluated from absolute time and a bounded seed, so
+  seeking never replays earlier frames; atomic visibility compaction intentionally leaves draw order
+  unspecified while additive color remains GPU-resident.
 - Vector shape layers use analytic anti-aliased WGSL signed-distance rendering for rectangles,
   rounded rectangles, ellipses, and round-capped line segments, with HDR fill/stroke colors and
   editable stroke width.

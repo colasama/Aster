@@ -12,6 +12,16 @@ export interface FlattenedSceneLayer {
   instanceId: string;
   resourceInstanceId: string;
   selectionId: Id;
+  /**
+   * A 3D precomposition stays isolated instead of being flattened into its
+   * parent. The renderer evaluates this source at `time` into a GPU texture and
+   * maps that texture onto the wrapper quad.
+   */
+  precompositionSurface?: {
+    composition: Composition;
+    time: number;
+    compositionPath: Id[];
+  };
 }
 
 export function visibleLayersAtTime(composition: Composition, time: number): Layer[] {
@@ -87,6 +97,23 @@ function flattenComposition(
       const instanceId = clone ? `${baseInstanceId}:clone-${clone.index}` : baseInstanceId;
       if (nested) {
         const nestedTime = evaluateLayerSourceTime(layer, time, nested.duration);
+        if (layer.threeDimensional) {
+          output.push({
+            layer,
+            sourceComposition: composition,
+            transform,
+            localTime: time,
+            instanceId,
+            resourceInstanceId,
+            selectionId: rootSelectionId,
+            precompositionSurface: {
+              composition: nested,
+              time: nestedTime,
+              compositionPath: [...nextStack],
+            },
+          });
+          continue;
+        }
         const wrapperTransform = applyWrapperSize(transform, layer, nested);
         const nestedLayers = flattenComposition(
           nested,

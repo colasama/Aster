@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createEffect } from "../effects/registry";
 import { createLayerForComposition } from "./layer-factory";
 import { applyOperations } from "./operations";
+import { createDefaultParticleSettings } from "./particle-settings";
 import { planPrecomposition } from "./precomposition";
 import {
   activeComposition,
@@ -93,7 +94,31 @@ describe("structured project operations", () => {
       applyOperations(project, [
         { type: "addLayer", layer: createLayerForComposition("adjustment", nested) },
       ]),
-    ).toThrow("Precomposition sources cannot contain adjustment layers");
+    ).toThrow("Adjustment layers in precomposition sources require a 3D texture surface wrapper");
+  });
+
+  it("keeps adjustment precompositions on the isolated 3D surface route", () => {
+    const project = createBlankProject();
+    const root = project.compositions[0];
+    const nested = createBlankComposition("Adjusted source");
+    nested.layers.unshift(createLayerForComposition("adjustment", nested));
+    const wrapper = createLayerForComposition("precomposition", root);
+    wrapper.sourceCompositionId = nested.id;
+    wrapper.threeDimensional = true;
+    root.layers = [wrapper];
+    project.compositions.push(nested);
+
+    expect(() =>
+      applyOperations(project, [
+        { type: "toggleLayer", layerId: wrapper.id, field: "threeDimensional" },
+      ]),
+    ).toThrow("Adjustment layers in precomposition sources require a 3D texture surface wrapper");
+
+    nested.layers = nested.layers.filter((layer) => layer.kind !== "adjustment");
+    const flattened = applyOperations(project, [
+      { type: "toggleLayer", layerId: wrapper.id, field: "threeDimensional" },
+    ]);
+    expect(flattened.compositions[0].layers[0].threeDimensional).toBe(false);
   });
 
   it("rejects every operation that could nest or clone a GPU particle source", () => {
@@ -377,17 +402,13 @@ describe("structured project operations", () => {
         type: "setParticleSettings",
         layerId: particles.id,
         particle: {
+          ...createDefaultParticleSettings(),
           renderMode: "mesh",
-          meshPrimitive: "cube",
           count: 2_000_000,
           seed: -20,
-          lifetime: 6,
-          speed: 0.16,
-          acceleration: -0.035,
-          startSize: 2.4,
-          endSize: 0.35,
           startRotation: -80_000,
           endRotation: 80_000,
+          emitterPosition: [Number.NaN, -20, 20],
         },
       },
     ]);
@@ -395,19 +416,51 @@ describe("structured project operations", () => {
     expect(
       activeComposition(next).layers.find((layer) => layer.id === particles.id)?.particle,
     ).toEqual({
+      ...createDefaultParticleSettings(),
       renderMode: "mesh",
-      meshPrimitive: "cube",
       count: 1_000_000,
       seed: 0,
-      lifetime: 6,
-      speed: 0.16,
-      acceleration: -0.035,
-      startSize: 2.4,
-      endSize: 0.35,
       startRotation: -36_000,
       endRotation: 36_000,
+      emitterPosition: [0, -4, 4],
     });
     expect(particles.particle).toMatchObject({ count: 100_000, seed: 13_337 });
+
+    expect(() =>
+      applyOperations(source, [
+        { type: "setBlendMode", layerId: particles.id, blendMode: "normal" },
+      ]),
+    ).toThrow("require add blend mode");
+
+    const meshWithNormalBlend = applyOperations(source, [
+      {
+        type: "setParticleSettings",
+        layerId: particles.id,
+        particle: { ...createDefaultParticleSettings(), renderMode: "mesh" },
+      },
+      { type: "setBlendMode", layerId: particles.id, blendMode: "normal" },
+    ]);
+    expect(() =>
+      applyOperations(meshWithNormalBlend, [
+        {
+          type: "setParticleSettings",
+          layerId: particles.id,
+          particle: createDefaultParticleSettings(),
+        },
+      ]),
+    ).toThrow("require add blend mode");
+
+    const shape = activeComposition(source).layers.find((layer) => layer.kind === "shape");
+    if (!shape) throw new Error("Expected demo shape layer");
+    expect(() =>
+      applyOperations(source, [
+        {
+          type: "setParticleSettings",
+          layerId: shape.id,
+          particle: createDefaultParticleSettings(),
+        },
+      ]),
+    ).toThrow("Particle settings require a GPU particle layer");
   });
 
   it("updates bounded vector fill and stroke settings", () => {

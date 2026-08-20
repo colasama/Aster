@@ -1389,7 +1389,7 @@ aster/
 - [x] Image Layer in 3D space。
 - [x] Text Layer in 3D space。
 - [x] Video Layer in 3D space。
-- [ ] Composition as 3D texture。
+- [x] Composition as 3D texture。
 - [x] Correct depth occlusion。
 - [x] 2D overlay mode。
 - [x] 3D render → post effect → final composite。

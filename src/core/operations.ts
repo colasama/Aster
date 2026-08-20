@@ -3,6 +3,7 @@ import {
   createCanonicalAdjustmentTransform,
 } from "./adjustment-layer";
 import { type ClonerSettings, normalizeClonerSettings } from "./cloner";
+import { normalizeParticleSettings } from "./particle-settings";
 import { applyPrecompositionPlan, type PrecompositionPlan } from "./precomposition";
 import { activeComposition } from "./project";
 import {
@@ -279,9 +280,12 @@ export function applyOperation(project: Project, operation: Operation): void {
       );
       break;
     }
-    case "setBlendMode":
-      layer.blendMode = operation.blendMode;
+    case "setBlendMode": {
+      const nextLayer = { ...layer, blendMode: operation.blendMode };
+      assertCanUpdateLayer(project, composition, nextLayer);
+      layer.blendMode = nextLayer.blendMode;
       break;
+    }
     case "setParent":
       validateParent(composition.layers, layer.id, operation.parentId);
       layer.parentId = operation.parentId;
@@ -335,21 +339,14 @@ export function applyOperation(project: Project, operation: Operation): void {
         orthographicSize: clamp(operation.camera.orthographicSize, 1, 100_000),
       };
       break;
-    case "setParticleSettings":
-      layer.particle = {
-        renderMode: operation.particle.renderMode,
-        meshPrimitive: operation.particle.meshPrimitive,
-        count: Math.round(clamp(operation.particle.count, 1, 1_000_000)),
-        seed: Math.round(clamp(operation.particle.seed, 0, 16_777_215)),
-        lifetime: clamp(operation.particle.lifetime, 0.05, 3600),
-        speed: clamp(operation.particle.speed, 0, 10),
-        acceleration: clamp(operation.particle.acceleration, -10, 10),
-        startSize: clamp(operation.particle.startSize, 0.01, 256),
-        endSize: clamp(operation.particle.endSize, 0.01, 256),
-        startRotation: clamp(operation.particle.startRotation, -36_000, 36_000),
-        endRotation: clamp(operation.particle.endRotation, -36_000, 36_000),
-      };
+    case "setParticleSettings": {
+      if (layer.kind !== "particle")
+        throw new Error("Particle settings require a GPU particle layer");
+      const nextLayer = { ...layer, particle: normalizeParticleSettings(operation.particle) };
+      assertCanUpdateLayer(project, composition, nextLayer);
+      layer.particle = nextLayer.particle;
       break;
+    }
     case "setClonerSettings":
       {
         const nextLayer = {
@@ -405,7 +402,11 @@ export function applyOperation(project: Project, operation: Operation): void {
       layer.textAnimator = normalizeTextAnimatorSettings(operation.textAnimator);
       break;
     case "toggleLayer":
-      layer[operation.field] = !layer[operation.field];
+      if (operation.field === "threeDimensional") {
+        const nextLayer = { ...layer, threeDimensional: !layer.threeDimensional };
+        assertCanUpdateLayer(project, composition, nextLayer);
+        layer.threeDimensional = nextLayer.threeDimensional;
+      } else layer[operation.field] = !layer[operation.field];
       break;
     case "setProperty":
       setProperty(layer, operation.path, { mode: "static", value: operation.value });

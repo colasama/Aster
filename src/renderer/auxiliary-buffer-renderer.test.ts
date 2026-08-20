@@ -34,7 +34,7 @@ describe("auxiliary MRT identities", () => {
       "(position.xy - previous_position.xy) * vec2f(0.5, -0.5)",
     );
     expect(auxiliarySurfaceShader).toContain(
-      "(particle.xy - record.previous.xy) * vec2f(0.5, -0.5)",
+      "(record.current.xy - record.previous.xy) * vec2f(0.5, -0.5)",
     );
     expect(auxiliarySurfaceShader).toContain("output.motion_vector = input.motion_vector");
   });
@@ -43,8 +43,18 @@ describe("auxiliary MRT identities", () => {
     expect(auxiliarySurfaceShader).toContain("let previous_size = mix");
     expect(auxiliarySurfaceShader).toContain("let previous_rotation = mix");
     expect(auxiliarySurfaceShader).toContain("particle_mesh_clip(");
+    expect(auxiliarySurfaceShader).toContain("particle_streak_vertex");
     expect(auxiliarySurfaceShader).toContain("output.position = vec4f(clip, 1.0)");
     expect(auxiliarySurfaceShader).toContain("(clip.xy - previous_clip.xy) * vec2f(0.5, -0.5)");
+  });
+
+  it("matches Beauty coverage independently for billboard, streak, and mesh particles", () => {
+    expect(auxiliarySurfaceShader).toContain("@fragment fn particle_billboard_fragment");
+    expect(auxiliarySurfaceShader).toContain("if (length(input.local) >= 1.0) { discard; }");
+    expect(auxiliarySurfaceShader).toContain("@fragment fn particle_streak_fragment");
+    expect(auxiliarySurfaceShader).toContain("if (abs(input.local.y) >= 1.0) { discard; }");
+    expect(auxiliarySurfaceShader).toContain("@fragment fn particle_mesh_fragment");
+    expect(auxiliarySurfaceShader).not.toContain("input.local * vec2f(0.64, 1.0)");
   });
 
   it("gives the particle surface its selectable root layer ID", () => {

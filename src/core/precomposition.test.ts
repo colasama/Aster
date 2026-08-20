@@ -5,13 +5,22 @@ import { createBlankProject, createDemoProject } from "./project";
 import { flattenSceneLayers } from "./scene-evaluation";
 
 describe("precomposition creation", () => {
-  it("keeps adjustment layers composition-local in the flat MVP renderer", () => {
+  it("routes precomposed adjustment layers through an isolated 3D texture surface", () => {
     const project = createBlankProject();
     const composition = project.compositions[0];
     const adjustment = createLayerForComposition("adjustment", composition);
     composition.layers.unshift(adjustment);
 
-    expect(precomposeLayers(project, [adjustment.id])).toBeUndefined();
+    const result = precomposeLayers(project, [adjustment.id]);
+    expect(result).toBeDefined();
+    const wrapper = result?.project.compositions[0].layers.find(
+      (layer) => layer.id === result.wrapperId,
+    );
+    expect(wrapper).toMatchObject({
+      kind: "precomposition",
+      threeDimensional: true,
+      color: [1, 1, 1, 1],
+    });
   });
 
   it("keeps the single GPU particle simulation out of nested precompositions", () => {

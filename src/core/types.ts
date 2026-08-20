@@ -188,17 +188,29 @@ export interface MeshMaterialTextures {
 }
 
 export interface ParticleSettings {
-  renderMode: "billboard" | "mesh";
+  renderMode: "billboard" | "streak" | "mesh";
   meshPrimitive: "cube";
   count: number;
   seed: number;
   lifetime: number;
-  speed: number;
-  acceleration: number;
+  emitterShape: "point" | "box" | "sphere" | "ring" | "line";
+  emitterPosition: [number, number, number];
+  emitterSize: [number, number, number];
+  emitterSpread: number;
+  velocity: [number, number, number];
+  gravity: [number, number, number];
+  drag: number;
+  turbulence: number;
+  turbulenceScale: number;
+  startColor: [number, number, number];
+  endColor: [number, number, number];
+  startOpacity: number;
+  endOpacity: number;
   startSize: number;
   endSize: number;
   startRotation: number;
   endRotation: number;
+  streakLength: number;
 }
 
 export interface BezierVertex {
@@ -354,6 +366,7 @@ export interface GpuDiagnostics {
   prewarmedPipelines?: number;
   materialResourceError?: string;
   adjustmentLayerError?: string;
+  precompositionSurfaceError?: string;
 }
 
 export const createId = (): Id => crypto.randomUUID();

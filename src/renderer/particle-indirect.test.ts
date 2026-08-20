@@ -12,6 +12,7 @@ describe("GPU particle indirect culling", () => {
     expect([...PARTICLE_INDIRECT_RESET]).toEqual([6, 0, 0, 0]);
     expect([...PARTICLE_MESH_INDIRECT_RESET]).toEqual([36, 0, 0, 0]);
     expect(particleIndirectReset("billboard")).toBe(PARTICLE_INDIRECT_RESET);
+    expect(particleIndirectReset("streak")).toBe(PARTICLE_INDIRECT_RESET);
     expect(particleIndirectReset("mesh")).toBe(PARTICLE_MESH_INDIRECT_RESET);
   });
 

@@ -857,3 +857,39 @@
 .cloner-vector label {
   min-width: 0;
 }
+
+.particle-controls {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: 8px;
+}
+.particle-section {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid var(--border-soft);
+  border-radius: 6px;
+  background: var(--bg-raised);
+}
+.particle-section > legend,
+.particle-vector > legend {
+  color: var(--muted);
+  font-size: 10px;
+}
+.particle-vector {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+}
+.particle-vector > legend {
+  grid-column: 1 / -1;
+}
+.particle-vector label {
+  min-width: 0;
+}

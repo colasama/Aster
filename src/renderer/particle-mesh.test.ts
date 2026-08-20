@@ -11,14 +11,16 @@ import {
 describe("GPU mesh particle rendering", () => {
   it("expands a cube per compacted GPU particle without a CPU vertex buffer", () => {
     expect(PARTICLE_MESH_VERTEX_COUNT).toBe(36);
-    expect(PARTICLE_BUFFER_STRIDE_BYTES).toBe(32);
+    expect(PARTICLE_BUFFER_STRIDE_BYTES).toBe(48);
     expect(particleMeshRenderShader).toContain("@builtin(instance_index) instance");
-    expect(particleMeshRenderShader).toContain("particles[instance].current");
+    expect(particleMeshRenderShader).toContain("let particle = particles[instance]");
     expect(particleMeshRenderShader).toContain("particle_cube_surface(vertex)");
   });
 
   it("writes real rotated normals and depth while preserving color over life", () => {
-    expect(particleMeshRenderShader).toContain("particle_mesh_clip(particle.xyz, local)");
+    expect(particleMeshRenderShader).toContain(
+      "particle_mesh_clip(particle.current.xyz, particle.current.w, local)",
+    );
     expect(particleMeshRenderShader).toContain("output.normal = normalize");
     expect(particleMeshRenderShader).toContain(
       "mix(simulation.start_color, simulation.end_color, age)",
@@ -29,7 +31,7 @@ describe("GPU mesh particle rendering", () => {
     expect(planParticleRendering(100_000, "mesh", 512)).toMatchObject({
       effectiveCount: 100_000,
       capacity: 131_072,
-      estimatedBytes: 4_194_304,
+      estimatedBytes: 6_291_456,
       lodApplied: false,
     });
     expect(planParticleRendering(1_000_000, "mesh", 512)).toMatchObject({

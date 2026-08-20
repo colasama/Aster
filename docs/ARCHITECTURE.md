@@ -33,8 +33,13 @@ WebGPU preview implementation.
    pipeline, fallback texels, and map uploads are created lazily only when a ready normal map or
    enabled environment needs them. Mesh cubes carry clip depth and use the active camera transform
    plus a shared `depth24plus` target.
-5. Compute particles run. Each effected layer uses a fused offscreen chain before its blend-mode
-   composite; unaffected adjacent layers stay batched directly into the `rgba16float` scene target.
+5. Compute particles run as an analytic, absolute-time field. A 256-thread compute kernel evaluates
+   bounded emitter shape, cone velocity, closed-form gravity/drag, and turbulence for each slot,
+   then GPU-compacts visible records into an indirect billboard, streak, or cube-mesh draw. No
+   per-particle state crosses the CPU boundary. Per-slot state is deterministic for project seed and
+   time; atomic compaction order is deliberately unspecified. Each effected layer uses a fused
+   offscreen chain before its blend-mode composite; unaffected adjacent layers stay batched directly
+   into the `rgba16float` scene target.
 6. One composition-level ACES display pass presents the linear HDR result to the surface. Depth
    previews reuse the on-demand auxiliary MRT world-position attachment: exponential fog derives
    distance from its world-space Z value, while depth of field applies a bounded 16-tap circular

@@ -111,8 +111,14 @@ export function buildSceneGeometry(
       layerMaterial?.emissive ?? 0,
       Number(layer.threeDimensional || layer.kind === "mesh"),
     ] as const;
-    const width = (layer.size[0] * transform.scale[0]) / 100;
-    const height = (layer.size[1] * transform.scale[1]) / 100;
+    const sourceSize = scene.precompositionSurface
+      ? [
+          scene.precompositionSurface.composition.width,
+          scene.precompositionSurface.composition.height,
+        ]
+      : layer.size;
+    const width = (sourceSize[0] * transform.scale[0]) / 100;
+    const height = (sourceSize[1] * transform.scale[1]) / 100;
     const mediaType = layer.kind === "video" ? 2 : 0;
     const inferredShapeKind =
       layer.shape?.kind ??

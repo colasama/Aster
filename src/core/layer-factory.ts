@@ -1,4 +1,5 @@
 import { createCanonicalAdjustmentTransform } from "./adjustment-layer";
+import { createDefaultParticleSettings } from "./particle-settings";
 import { createDefaultTextAnimator } from "./text-animator";
 import type { Composition, Layer, LayerKind } from "./types";
 import { createId, createTransform } from "./types";
@@ -74,22 +75,7 @@ export function createLayerForComposition(
       kind === "camera"
         ? { projection: "perspective", fieldOfView: 50, orthographicSize: composition.height }
         : undefined,
-    particle:
-      kind === "particle"
-        ? {
-            renderMode: "billboard",
-            meshPrimitive: "cube",
-            count: 100_000,
-            seed: 13_337,
-            lifetime: 6,
-            speed: 0.16,
-            acceleration: -0.035,
-            startSize: 2.4,
-            endSize: 0.35,
-            startRotation: 0,
-            endRotation: 180,
-          }
-        : undefined,
+    particle: kind === "particle" ? createDefaultParticleSettings() : undefined,
     shape:
       kind === "shape"
         ? {

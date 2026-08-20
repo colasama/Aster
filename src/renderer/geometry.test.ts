@@ -155,6 +155,25 @@ describe("GPU scene geometry", () => {
     expect(geometry.data[VERTEX_FLOAT_OFFSETS.mediaType]).toBe(0);
   });
 
+  it("sizes a 3D precomposition quad from its source composition", () => {
+    const project = createBlankProject();
+    const root = project.compositions[0];
+    const nested = structuredClone(root);
+    nested.id = crypto.randomUUID();
+    nested.width = 320;
+    nested.height = 160;
+    const wrapper = createLayerForComposition("precomposition", root);
+    wrapper.sourceCompositionId = nested.id;
+    wrapper.threeDimensional = true;
+    expect(wrapper.size).toEqual([720, 720]);
+    root.layers = [wrapper];
+    project.compositions.push(nested);
+
+    const geometry = buildSceneGeometry(root, flattenSceneLayers(root, project, 0));
+    expect(geometry.data[VERTEX_FLOAT_OFFSETS.position]).toBeCloseTo(-320 / root.width);
+    expect(geometry.data[VERTEX_FLOAT_OFFSETS.position + 1]).toBeCloseTo(160 / root.height);
+  });
+
   it("keeps clone effect instances distinct while sharing their media resource", () => {
     const project = createBlankProject();
     const composition = project.compositions[0];

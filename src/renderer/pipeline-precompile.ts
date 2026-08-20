@@ -13,6 +13,7 @@ import {
   imageShader,
   particleComputeShader,
   particleRenderShader,
+  particleStreakRenderShader,
   postProcessShader,
   shadowShader,
   shapeShader,
@@ -36,6 +37,10 @@ export async function precompileGpuPipelines(
   const image = module("Async precompile · image", imageShader);
   const shadow = module("Async precompile · shadow", shadowShader);
   const particles = module("Async precompile · particle render", particleRenderShader);
+  const streakParticles = module(
+    "Async precompile · particle streak render",
+    particleStreakRenderShader,
+  );
   const meshParticles = module("Async precompile · particle mesh render", particleMeshRenderShader);
   const compute = module("Async precompile · particle compute", particleComputeShader);
   const post = module("Async precompile · post process", postProcessShader);
@@ -76,6 +81,9 @@ export async function precompileGpuPipelines(
     device.createRenderPipelineAsync(
       particlePipelineDescriptor("billboard", particles, SCENE_FORMAT, "auto"),
     ),
+    device.createRenderPipelineAsync(
+      particlePipelineDescriptor("streak", streakParticles, SCENE_FORMAT, "auto"),
+    ),
     ...PARTICLE_MESH_BLEND_MODES.map((blendMode) =>
       device.createRenderPipelineAsync(
         particlePipelineDescriptor("mesh", meshParticles, SCENE_FORMAT, "auto", blendMode),
@@ -94,7 +102,7 @@ export async function precompileGpuPipelines(
       compute: { module: compute, entryPoint: "compute_main" },
     }),
   ]);
-  return { count: 8 + PARTICLE_MESH_BLEND_MODES.length, durationMs: performance.now() - started };
+  return { count: 9 + PARTICLE_MESH_BLEND_MODES.length, durationMs: performance.now() - started };
 }
 
 function fullscreenDescriptor(

@@ -1,9 +1,9 @@
-import { particleVertexCount } from "./particle-mesh";
+import { type ParticleRenderMode, particleVertexCount } from "./particle-mesh";
 
 export const PARTICLE_INDIRECT_RESET = new Uint32Array([particleVertexCount("billboard"), 0, 0, 0]);
 export const PARTICLE_MESH_INDIRECT_RESET = new Uint32Array([particleVertexCount("mesh"), 0, 0, 0]);
 
-export function particleIndirectReset(renderMode: "billboard" | "mesh"): Uint32Array {
+export function particleIndirectReset(renderMode: ParticleRenderMode): Uint32Array {
   return renderMode === "mesh" ? PARTICLE_MESH_INDIRECT_RESET : PARTICLE_INDIRECT_RESET;
 }
 

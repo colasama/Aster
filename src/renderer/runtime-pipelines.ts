@@ -4,7 +4,8 @@ import {
   particleMeshRenderShader,
   particlePipelineDescriptor,
 } from "./particle-mesh";
-import { particleRenderShader, postProcessShader } from "./shaders";
+import { particleBillboardRenderShader, particleStreakRenderShader } from "./particle-system";
+import { postProcessShader } from "./shaders";
 
 export function createParticleBindGroupLayout(device: GPUDevice): GPUBindGroupLayout {
   return device.createBindGroupLayout({
@@ -24,14 +25,22 @@ export function createParticlePipelines(
   device: GPUDevice,
   format: GPUTextureFormat,
   bindGroupLayout: GPUBindGroupLayout,
-): { billboard: GPURenderPipeline; mesh: Record<BlendMode, GPURenderPipeline> } {
+): {
+  billboard: GPURenderPipeline;
+  streak: GPURenderPipeline;
+  mesh: Record<BlendMode, GPURenderPipeline>;
+} {
   const layout = device.createPipelineLayout({
     label: "Particle render pipeline layout",
     bindGroupLayouts: [bindGroupLayout],
   });
   const billboardModule = device.createShaderModule({
     label: "Particle billboard shader",
-    code: particleRenderShader,
+    code: particleBillboardRenderShader,
+  });
+  const streakModule = device.createShaderModule({
+    label: "Particle streak shader",
+    code: particleStreakRenderShader,
   });
   const meshModule = device.createShaderModule({
     label: "Particle mesh shader",
@@ -48,6 +57,9 @@ export function createParticlePipelines(
   return {
     billboard: device.createRenderPipeline(
       particlePipelineDescriptor("billboard", billboardModule, format, layout),
+    ),
+    streak: device.createRenderPipeline(
+      particlePipelineDescriptor("streak", streakModule, format, layout),
     ),
     mesh,
   };

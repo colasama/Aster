@@ -8,6 +8,7 @@ import {
   MAX_SERIALIZED_COMMAND_SIZE,
 } from "./command-log";
 import { runCpuTask } from "./cpu-scheduler";
+import { assertParticleSettings } from "./particle-settings";
 import { assertProjectRenderBoundaries } from "./project-render-boundaries";
 import { cloneCurrentProjectDocument } from "./project-schema";
 import { validateShapeGraph } from "./shape-graph";
@@ -461,32 +462,11 @@ function validateLayer(
     }
   }
   if (layer.particle !== undefined) {
-    const particle = requireObject(layer.particle, `${path}.particle`);
-    if (particle.renderMode !== "billboard" && particle.renderMode !== "mesh")
-      throw new Error(`${path}.particle.renderMode must be billboard or mesh`);
-    if (particle.meshPrimitive !== "cube")
-      throw new Error(`${path}.particle.meshPrimitive must be cube`);
-    const count = requirePositiveNumber(particle.count, `${path}.particle.count`);
-    const seed = requireFiniteNumber(particle.seed, `${path}.particle.seed`);
-    if (!Number.isInteger(count) || count > 1_000_000)
-      throw new Error(`${path}.particle.count must be an integer at most 1000000`);
-    if (!Number.isInteger(seed) || seed < 0 || seed > 16_777_215)
-      throw new Error(`${path}.particle.seed must be a bounded non-negative integer`);
-    const boundedFields = [
-      ["lifetime", 0.05, 3600],
-      ["speed", 0, 10],
-      ["acceleration", -10, 10],
-      ["startSize", 0.01, 256],
-      ["endSize", 0.01, 256],
-      ["startRotation", -36_000, 36_000],
-      ["endRotation", -36_000, 36_000],
-    ] as const;
-    for (const [field, minimum, maximum] of boundedFields) {
-      const setting = requireFiniteNumber(particle[field], `${path}.particle.${field}`);
-      if (setting < minimum || setting > maximum)
-        throw new Error(`${path}.particle.${field} must be between ${minimum} and ${maximum}`);
-    }
+    if (layer.kind !== "particle") throw new Error(`${path}.particle requires particle layer kind`);
+    assertParticleSettings(layer.particle, `${path}.particle`);
   }
+  if (layer.kind === "particle" && layer.particle === undefined)
+    throw new Error(`${path}.particle is required for particle layers`);
   if (layer.cloner !== undefined) validateClonerSettings(layer.cloner, `${path}.cloner`);
   if (layer.shape !== undefined) {
     const shape = requireObject(layer.shape, `${path}.shape`);

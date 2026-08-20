@@ -1,3 +1,4 @@
+import { createDefaultParticleSettings } from "./particle-settings";
 import {
   type Composition,
   createId,
@@ -193,19 +194,7 @@ export function createDemoProject(): Project {
     color: [0.5, 0.74, 1, 0.65],
     size: [3840, 2160],
     blendMode: "add",
-    particle: {
-      renderMode: "billboard",
-      meshPrimitive: "cube",
-      count: 100_000,
-      seed: 13_337,
-      lifetime: 6,
-      speed: 0.16,
-      acceleration: -0.035,
-      startSize: 2.4,
-      endSize: 0.35,
-      startRotation: 0,
-      endRotation: 180,
-    },
+    particle: createDefaultParticleSettings(),
   });
   const materialStudy = layer({
     name: "Normal + HDR Material",

@@ -2,7 +2,7 @@ import type { Layer } from "../core/types";
 import type { SceneBufferVisualizer } from "./buffer-visualizer";
 import type { GeometryBatch } from "./geometry";
 import { GpuMotionVectorHistory } from "./motion-vector-history";
-import { particleMeshGeometryShader } from "./particle-mesh";
+import { type ParticleRenderMode, particleMeshGeometryShader } from "./particle-mesh";
 import {
   AUXILIARY_BUFFER_DESCRIPTORS,
   AUXILIARY_BUFFER_KINDS,
@@ -25,7 +25,7 @@ interface ParticleDraw {
   bindGroup: GPUBindGroup;
   indirectBuffer: GPUBuffer;
   selectionId: string;
-  renderMode: "billboard" | "mesh";
+  renderMode: ParticleRenderMode;
 }
 
 export interface AuxiliaryEncodeRequest {
@@ -44,7 +44,7 @@ export class AuxiliaryBufferRenderer {
   readonly #device: GPUDevice;
   readonly #shapePipeline: GPURenderPipeline;
   readonly #mediaPipeline: GPURenderPipeline;
-  readonly #particlePipelines: Record<"billboard" | "mesh", GPURenderPipeline>;
+  readonly #particlePipelines: Record<ParticleRenderMode, GPURenderPipeline>;
   readonly #particleUniform: GPUBuffer;
   readonly #particleUniformBindGroup: GPUBindGroup;
   readonly #motionHistory: GpuMotionVectorHistory;
@@ -137,21 +137,29 @@ export class AuxiliaryBufferRenderer {
       bindGroupLayouts: [particleBindGroupLayout, particleUniformLayout],
     });
     const particlePipeline = (
-      mode: "billboard" | "mesh",
+      mode: ParticleRenderMode,
       entryPoint: string,
       depthWriteEnabled: boolean,
       depthCompare: GPUCompareFunction,
-    ) =>
-      device.createRenderPipeline({
+    ) => {
+      const fragmentEntryPoint =
+        mode === "billboard"
+          ? "particle_billboard_fragment"
+          : mode === "streak"
+            ? "particle_streak_fragment"
+            : "particle_mesh_fragment";
+      return device.createRenderPipeline({
         label: `Auxiliary MRT ${mode} particle pipeline`,
         layout: particleLayout,
         vertex: { module, entryPoint },
-        fragment: { module, entryPoint: "particle_fragment", targets },
+        fragment: { module, entryPoint: fragmentEntryPoint, targets },
         primitive: { topology: "triangle-list", cullMode: mode === "mesh" ? "back" : "none" },
         depthStencil: { format: "depth24plus", depthWriteEnabled, depthCompare },
       });
+    };
     this.#particlePipelines = {
       billboard: particlePipeline("billboard", "particle_vertex", false, "always"),
+      streak: particlePipeline("streak", "particle_streak_vertex", false, "always"),
       mesh: particlePipeline("mesh", "particle_mesh_vertex", true, "less-equal"),
     };
   }
@@ -471,7 +479,10 @@ fn shape_coverage(input: SurfaceVertex) -> f32 {
 }
 
 struct Simulation {
-  header: vec4f, motion: vec4f, appearance: vec4f, start_color: vec4f, end_color: vec4f,
+  header: vec4f, lifecycle: vec4f,
+  emitter_position_shape: vec4f, emitter_size_spread: vec4f,
+  velocity_scale: vec4f, gravity_streak: vec4f, appearance: vec4f,
+  start_color: vec4f, end_color: vec4f,
 }
 struct ParticleIdentity { ids: vec4u, resolution: vec4f }
 struct ParticleVertex {
@@ -481,7 +492,7 @@ struct ParticleVertex {
   @location(2) normal: vec3f,
   @location(3) motion_vector: vec2f,
 }
-struct Particle { current: vec4f, previous: vec4f }
+struct Particle { current: vec4f, previous: vec4f, appearance: vec4f }
 @group(0) @binding(0) var<storage, read> particles: array<Particle>;
 @group(0) @binding(1) var<uniform> simulation: Simulation;
 @group(1) @binding(0) var<uniform> particle_identity: ParticleIdentity;
@@ -498,17 +509,17 @@ ${particleMeshGeometryShader}
   );
   let record = particles[instance];
   let particle = record.current;
-  let packed = bitcast<u32>(particle.w);
-  let rotation_cos = f32((packed >> 10u) & 2047u) / 1023.5 - 1.0;
-  let rotation_sin = f32((packed >> 21u) & 2047u) / 1023.5 - 1.0;
+  let rotation_cos = record.appearance.y;
+  let rotation_sin = record.appearance.z;
   let unit = corners[vertex];
   let rotated = vec2f(
     unit.x * rotation_cos - unit.y * rotation_sin,
     unit.x * rotation_sin + unit.y * rotation_cos,
   );
-  let clip = particle.xy + rotated * particle.z / 900.0;
+  let clip = particle.xy + rotated * particle.w / 900.0;
+  let depth = clamp(0.5 - particle.z * 0.1, 0.001, 0.999);
   var output: ParticleVertex;
-  output.position = vec4f(clip, 0.0, 1.0);
+  output.position = vec4f(clip, depth, 1.0);
   output.local = unit;
   output.normal = vec3f(0.0, 0.0, 1.0);
   output.motion_vector = (particle.xy - record.previous.xy) * vec2f(0.5, -0.5)
@@ -516,7 +527,36 @@ ${particleMeshGeometryShader}
   output.world_position = vec3f(
     (clip.x * 0.5 + 0.5) * particle_identity.resolution.x,
     (0.5 - clip.y * 0.5) * particle_identity.resolution.y,
-    0.0,
+    particle.z,
+  );
+  return output;
+}
+
+@vertex fn particle_streak_vertex(
+  @builtin(vertex_index) vertex: u32,
+  @builtin(instance_index) instance: u32,
+) -> ParticleVertex {
+  let along = array<f32, 6>(0.0, 0.0, 1.0, 1.0, 0.0, 1.0);
+  let side = array<f32, 6>(-1.0, 1.0, -1.0, -1.0, 1.0, 1.0);
+  let record = particles[instance];
+  let motion = (record.current.xy - record.previous.xy)
+    * record.previous.w * simulation.gravity_streak.w;
+  var direction = vec2f(1.0, 0.0);
+  if length(motion) > 0.000001 { direction = normalize(motion); }
+  let normal = vec2f(-direction.y, direction.x);
+  let half_width = record.current.w / 900.0;
+  let clip = record.current.xy - motion * along[vertex] + normal * side[vertex] * half_width;
+  let depth = clamp(0.5 - record.current.z * 0.1, 0.001, 0.999);
+  var output: ParticleVertex;
+  output.position = vec4f(clip, depth, 1.0);
+  output.local = vec2f(along[vertex] * 2.0 - 1.0, side[vertex]);
+  output.normal = vec3f(0.0, 0.0, 1.0);
+  output.motion_vector = (record.current.xy - record.previous.xy) * vec2f(0.5, -0.5)
+    * record.previous.w;
+  output.world_position = vec3f(
+    (clip.x * 0.5 + 0.5) * particle_identity.resolution.x,
+    (0.5 - clip.y * 0.5) * particle_identity.resolution.y,
+    record.current.z,
   );
   return output;
 }
@@ -527,23 +567,27 @@ ${particleMeshGeometryShader}
 ) -> ParticleVertex {
   let record = particles[instance];
   let particle = record.current;
-  let packed = bitcast<u32>(particle.w);
-  let rotation_cos = f32((packed >> 10u) & 2047u) / 1023.5 - 1.0;
-  let rotation_sin = f32((packed >> 21u) & 2047u) / 1023.5 - 1.0;
+  let rotation_cos = record.appearance.y;
+  let rotation_sin = record.appearance.z;
   let surface = particle_cube_surface(vertex);
   let local = particle_orient(surface.position, rotation_cos, rotation_sin);
-  let clip = particle_mesh_clip(particle.xyz, local);
-  let previous_age = record.previous.z;
-  let previous_rotation = mix(simulation.appearance.y, simulation.appearance.z, previous_age)
+  let clip = particle_mesh_clip(particle.xyz, particle.w, local);
+  let previous_age = select(
+    record.appearance.x,
+    max(record.appearance.x - simulation.lifecycle.y / max(simulation.lifecycle.x, 0.05), 0.0),
+    record.previous.w > 0.5,
+  );
+  let previous_rotation = mix(simulation.appearance.z, simulation.appearance.w, previous_age)
     * 0.01745329252;
   let previous_local = particle_orient(
     surface.position,
     cos(previous_rotation),
     sin(previous_rotation),
   );
-  let previous_size = mix(simulation.motion.w, simulation.appearance.x, previous_age);
+  let previous_size = mix(simulation.appearance.x, simulation.appearance.y, previous_age);
   let previous_clip = particle_mesh_clip(
-    vec3f(record.previous.xy, previous_size),
+    record.previous.xyz,
+    previous_size,
     previous_local,
   );
   var output: ParticleVertex;
@@ -560,8 +604,7 @@ ${particleMeshGeometryShader}
   return output;
 }
 
-@fragment fn particle_fragment(input: ParticleVertex) -> SurfaceOutput {
-  if (length(input.local * vec2f(0.64, 1.0)) >= 1.0) { discard; }
+fn write_particle_surface(input: ParticleVertex) -> SurfaceOutput {
   var output: SurfaceOutput;
   output.normal = vec4f(normalize(input.normal), 1.0);
   output.object_id = particle_identity.ids.x;
@@ -569,5 +612,19 @@ ${particleMeshGeometryShader}
   output.world_position = vec4f(input.world_position, 1.0);
   output.motion_vector = input.motion_vector;
   return output;
+}
+
+@fragment fn particle_billboard_fragment(input: ParticleVertex) -> SurfaceOutput {
+  if (length(input.local) >= 1.0) { discard; }
+  return write_particle_surface(input);
+}
+
+@fragment fn particle_streak_fragment(input: ParticleVertex) -> SurfaceOutput {
+  if (abs(input.local.y) >= 1.0) { discard; }
+  return write_particle_surface(input);
+}
+
+@fragment fn particle_mesh_fragment(input: ParticleVertex) -> SurfaceOutput {
+  return write_particle_surface(input);
 }
 `;

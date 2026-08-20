@@ -1,4 +1,5 @@
 import { evaluateLayerSourceTime } from "../core/layer-time";
+import { createDefaultParticleSettings } from "../core/particle-settings";
 import { evaluateWorldTransform } from "../core/scene-evaluation";
 import type {
   BlendMode,
@@ -26,8 +27,14 @@ import {
   PARTICLE_BUFFER_STRIDE_BYTES,
   planParticleRendering,
 } from "./particle-mesh";
+import {
+  buildParticleSimulationUniforms,
+  PARTICLE_UNIFORM_FLOATS,
+  PARTICLE_WORKGROUP_SIZE,
+} from "./particle-system";
 import { precompileGpuPipelines } from "./pipeline-precompile";
 import { buildPostProcessUniforms } from "./post-process";
+import { PrecompositionSurfaceRenderer } from "./precomposition-surface-renderer";
 import {
   type BufferVisualization,
   isDepthEffectVisualization,
@@ -108,6 +115,7 @@ export class WebGpuRenderer {
   #shapeBufferBytes = MAX_SHAPE_VERTICES * FLOATS_PER_VERTEX * Float32Array.BYTES_PER_ELEMENT;
   readonly #invalidate: () => void;
   readonly #mediaTextures: MediaTextureCache;
+  readonly #precompositionSurfaces: PrecompositionSurfaceRenderer;
   readonly #evaluationCache = new SceneEvaluationCache();
 
   private constructor(
@@ -218,7 +226,7 @@ export class WebGpuRenderer {
     });
     this.#simulationBuffer = device.createBuffer({
       label: "Particle simulation uniforms",
-      size: 20 * Float32Array.BYTES_PER_ELEMENT,
+      size: PARTICLE_UNIFORM_FLOATS * Float32Array.BYTES_PER_ELEMENT,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
     this.#shapeBuffer = device.createBuffer({
@@ -283,6 +291,14 @@ export class WebGpuRenderer {
       this.#imageSampler,
       invalidate,
     );
+    this.#precompositionSurfaces = new PrecompositionSurfaceRenderer(device, {
+      mediaTextures: this.#mediaTextures,
+      mediaLayout: this.#imageBindGroupLayout,
+      mediaSampler: this.#imageSampler,
+      lightingLayout: this.#lightingBindGroupLayout,
+      shapePipelines: this.#shapePipelines,
+      imagePipelines: this.#imagePipelines,
+    });
     this.#postUniformBuffer = device.createBuffer({
       label: "Fused post-process uniforms",
       size: 96,
@@ -404,6 +420,14 @@ export class WebGpuRenderer {
     );
     const { sceneLayers, geometry } = evaluation;
     const renderStack = planSceneRenderStack(sceneLayers, geometry.batches);
+    const surfaceFrame = this.#precompositionSurfaces.prepare(
+      project,
+      sceneLayers,
+      playing,
+      this.#memoryBudgetMb,
+    );
+    this.diagnostics.precompositionSurfaceError =
+      surfaceFrame.diagnostics.length > 0 ? surfaceFrame.diagnostics.join("; ") : undefined;
     const primaryLight = sceneLayers.find((scene) => scene.layer.kind === "light")?.layer.light;
     const cameraLayer = composition.layers.find((layer) => layer.kind === "camera");
     const cameraPosition = cameraLayer
@@ -420,8 +444,7 @@ export class WebGpuRenderer {
     );
     const particleCapacity = this.#ensureParticleCapacity(particlePlan.capacity);
     const particleCount = Math.min(particlePlan.effectiveCount, particleCapacity);
-    const particleSeed = particleSettings?.seed ?? 13_337;
-    const particleColor = particleScene?.layer.color ?? [0.5, 0.74, 1, 0.65];
+    const simulationSettings = particleSettings ?? createDefaultParticleSettings();
     const memory = planGpuMemory({
       width: this.#width,
       height: this.#height,
@@ -431,6 +454,7 @@ export class WebGpuRenderer {
         this.#shapeBufferBytes +
         this.#auxiliaryBuffers.estimatedBytes +
         this.#mediaTextures.estimatedBytes +
+        surfaceFrame.residentBytes +
         this.#surfacePostEffects.estimatedBytes +
         (this.#materialTextures?.estimatedBytes ?? 0),
       requestedShadowMapSize: shadowMapSize(shadowQuality),
@@ -484,8 +508,8 @@ export class WebGpuRenderer {
         );
     }
     this.#mediaTextures.sweep(
-      new Set(
-        sceneLayers
+      new Set([
+        ...sceneLayers
           .filter(
             (scene) =>
               scene.layer.kind === "text" ||
@@ -493,30 +517,19 @@ export class WebGpuRenderer {
                 (scene.layer.asset?.dataUrl ?? scene.layer.asset?.runtimeUrl)),
           )
           .map((scene) => scene.resourceInstanceId),
-      ),
+        ...surfaceFrame.mediaInstanceIds,
+      ]),
     );
     this.#device.queue.writeBuffer(
       this.#simulationBuffer,
       0,
-      new Float32Array([
+      buildParticleSimulationUniforms(
+        simulationSettings,
         time,
         this.#width / this.#height,
-        particleCount,
-        particleSeed,
-        particleSettings?.lifetime ?? 6,
-        particleSettings?.speed ?? 0.16,
-        particleSettings?.acceleration ?? -0.035,
-        particleSettings?.startSize ?? 2.4,
-        particleSettings?.endSize ?? 0.35,
-        particleSettings?.startRotation ?? 0,
-        particleSettings?.endRotation ?? 180,
         composition.frameRate.denominator / composition.frameRate.numerator,
-        ...particleColor,
-        particleColor[0] * 0.25 + 0.75,
-        particleColor[1] * 0.25 + 0.75,
-        particleColor[2] * 0.25 + 0.75,
-        0,
-      ]),
+        particleCount,
+      ),
     );
     this.#device.queue.writeBuffer(
       this.#particleIndirectBuffer,
@@ -531,6 +544,7 @@ export class WebGpuRenderer {
     if (!this.#sceneTexture || !this.#postBindGroup) this.resize(this.#width, this.#height);
     const encoder = this.#device.createCommandEncoder({ label: "Aster frame render graph" });
     this.#mediaTextures.flush(encoder);
+    this.#precompositionSurfaces.encode(encoder);
     const compute = encoder.beginComputePass({
       label: particlePlan.lodApplied
         ? `GPU particle simulation · LOD ${particleCount}/${particlePlan.requestedCount}`
@@ -539,7 +553,8 @@ export class WebGpuRenderer {
     });
     compute.setPipeline(this.#computePipeline);
     compute.setBindGroup(0, this.#computeBindGroup);
-    if (particleScene) compute.dispatchWorkgroups(Math.ceil(particleCount / 256));
+    if (particleScene)
+      compute.dispatchWorkgroups(Math.ceil(particleCount / PARTICLE_WORKGROUP_SIZE));
     compute.end();
     if (shadowsEnabled) {
       const shadowPass = encoder.beginRenderPass({
@@ -654,7 +669,7 @@ export class WebGpuRenderer {
         scenePass.setPipeline(
           particleRenderMode === "mesh"
             ? this.#particlePipelines.mesh[item.scene.layer.blendMode]
-            : this.#particlePipelines.billboard,
+            : this.#particlePipelines[particleRenderMode],
         );
         scenePass.setBindGroup(0, this.#particleBindGroup);
         scenePass.drawIndirect(this.#particleIndirectBuffer, 0);
@@ -708,7 +723,9 @@ export class WebGpuRenderer {
         timelineTime: time,
         frameRate: composition.frameRate.numerator / composition.frameRate.denominator,
         batches: geometry.batches,
-        mediaBindGroup: (batch) => this.#mediaTextures.bindGroup(batch.resourceInstanceId),
+        mediaBindGroup: (batch) =>
+          this.#precompositionSurfaces.bindingFor(batch.instanceId) ??
+          this.#mediaTextures.bindGroup(batch.resourceInstanceId),
         particle: particleScene
           ? {
               bindGroup: this.#particleBindGroup,
@@ -775,6 +792,7 @@ export class WebGpuRenderer {
       drawCalls:
         1 +
         geometry.batches.length +
+        surfaceFrame.surfaceCount +
         shadowDrawCalls +
         effectLayerCount * 2 +
         adjustmentEffectLayerCount +
@@ -784,11 +802,12 @@ export class WebGpuRenderer {
         Number(shadowsEnabled) +
         scenePassCount +
         effectLayerCount * 3 +
-        adjustmentEffectLayerCount,
+        adjustmentEffectLayerCount +
+        surfaceFrame.surfaceCount,
       dirtyNodes: (evaluation.cacheHit ? 0 : sceneLayers.length) + effectOperationCount,
       cacheHitRate: this.#evaluationCache.hitRate(),
       estimatedVramMb: memory.estimatedBytes / 1024 / 1024,
-      transientTextureCount: 6,
+      transientTextureCount: 6 + surfaceFrame.residentTextureCount,
       memoryBudgetMb: memory.budgetMb,
       memoryPressure: memory.pressure,
       shadowMapSize: memory.shadowMapSize,
@@ -854,11 +873,22 @@ export class WebGpuRenderer {
     blendMode: BlendMode = batch.layer.blendMode,
     environment?: EnvironmentLighting,
   ): void {
+    const surface =
+      batch.layer.kind === "precomposition"
+        ? this.#precompositionSurfaces.bindingFor(batch.instanceId)
+        : undefined;
     const media =
       batch.layer.kind === "image" || batch.layer.kind === "video" || batch.layer.kind === "text"
         ? this.#mediaTextures.bindGroup(batch.resourceInstanceId)
         : undefined;
     pass.setVertexBuffer(0, this.#shapeBuffer);
+    if (surface) {
+      pass.setPipeline(this.#precompositionSurfaces.pipelineFor(blendMode));
+      pass.setBindGroup(0, surface);
+      pass.draw(batch.vertexCount, 1, batch.firstVertex);
+      return;
+    }
+    if (batch.layer.kind === "precomposition") return;
     const material = this.#materialTextures?.bindingFor(
       batch.layer,
       batch.resourceInstanceId,
