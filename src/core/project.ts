@@ -76,6 +76,16 @@ export function createDemoProject(): Project {
     text: "GPU-FIRST MOTION SYSTEM",
     color: [0.58, 0.68, 0.92, 1],
     size: [1440, 120],
+    textStyle: {
+      fontFamily: "Inter, Segoe UI, sans-serif",
+      fontSize: 68,
+      fontWeight: 600,
+      alignment: "center",
+      tracking: 22,
+      leading: 82,
+      strokeWidth: 0,
+      strokeColor: [0, 0, 0, 1],
+    },
     transform: createTransform([1230, 1300, 0]),
   });
   const title = layer({
@@ -84,6 +94,16 @@ export function createDemoProject(): Project {
     text: "ASTER",
     color: [0.95, 0.97, 1, 1],
     size: [2100, 560],
+    textStyle: {
+      fontFamily: "Inter, Segoe UI, sans-serif",
+      fontSize: 480,
+      fontWeight: 800,
+      alignment: "center",
+      tracking: 54,
+      leading: 520,
+      strokeWidth: 0,
+      strokeColor: [0.08, 0.12, 0.3, 1],
+    },
     transform: createTransform([1440, 960, 0]),
     effects: [
       {

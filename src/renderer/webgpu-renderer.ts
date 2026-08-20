@@ -665,7 +665,13 @@ export class WebGpuRenderer {
   }
 
   #prepareText(layer: Layer, instanceId: string): void {
-    const source = JSON.stringify([layer.text, layer.name, layer.color, layer.size]);
+    const source = JSON.stringify([
+      layer.text,
+      layer.name,
+      layer.color,
+      layer.size,
+      layer.textStyle,
+    ]);
     const existing = this.#mediaResources.get(instanceId);
     if (existing?.kind === "text" && existing.source === source) return;
     this.#destroyMediaResource(existing);

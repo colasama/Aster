@@ -87,9 +87,9 @@ export function buildSceneGeometry(
     const { layer, transform } = scene;
     const firstVertex = output.length / FLOATS_PER_VERTEX;
     const color = [
-      Math.min(4, layer.color[0]),
-      Math.min(4, layer.color[1]),
-      Math.min(4, layer.color[2]),
+      layer.kind === "text" ? 1 : Math.min(4, layer.color[0]),
+      layer.kind === "text" ? 1 : Math.min(4, layer.color[1]),
+      layer.kind === "text" ? 1 : Math.min(4, layer.color[2]),
       layer.color[3] * transform.opacity,
     ] as const;
     const material = [

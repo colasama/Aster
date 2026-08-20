@@ -169,4 +169,28 @@ describe("project document boundary", () => {
     shape.shape.strokeWidth = -1;
     expect(() => validateProjectDocument(project)).toThrow("must not be negative");
   });
+
+  it("roundtrips multiline text typography", () => {
+    const project = createBlankProject();
+    const composition = project.compositions[0];
+    const text = createLayerForComposition("text", composition);
+    text.text = "GPU\nMOTION";
+    text.textStyle = {
+      fontFamily: "Inter, sans-serif",
+      fontSize: 190,
+      fontWeight: 800,
+      alignment: "right",
+      tracking: 24,
+      leading: 220,
+      strokeWidth: 7,
+      strokeColor: [0.3, 0.4, 0.9, 1],
+    };
+    composition.layers.push(text);
+
+    const roundtrip = validateProjectDocument(JSON.parse(serializeProject(project)));
+    expect(roundtrip.compositions[0].layers[1]).toMatchObject({
+      text: text.text,
+      textStyle: text.textStyle,
+    });
+  });
 });

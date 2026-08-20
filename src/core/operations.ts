@@ -15,6 +15,7 @@ import type {
   ParticleSettings,
   Project,
   ShapeSettings,
+  TextStyle,
 } from "./types";
 
 export type PropertyPath =
@@ -45,6 +46,8 @@ export type Operation =
   | { type: "setCameraSettings"; layerId: Id; camera: CameraSettings }
   | { type: "setParticleSettings"; layerId: Id; particle: ParticleSettings }
   | { type: "setShapeSettings"; layerId: Id; shape: ShapeSettings }
+  | { type: "setTextContent"; layerId: Id; text: string }
+  | { type: "setTextStyle"; layerId: Id; textStyle: TextStyle }
   | {
       type: "toggleLayer";
       layerId: Id;
@@ -207,6 +210,23 @@ export function applyOperation(project: Project, operation: Operation): void {
         strokeColor: operation.shape.strokeColor.map((channel, index) =>
           clamp(channel, 0, index === 3 ? 1 : 16),
         ) as ShapeSettings["strokeColor"],
+      };
+      break;
+    case "setTextContent":
+      layer.text = operation.text.slice(0, 20_000);
+      break;
+    case "setTextStyle":
+      layer.textStyle = {
+        fontFamily: operation.textStyle.fontFamily.trim().slice(0, 160) || "sans-serif",
+        fontSize: clamp(operation.textStyle.fontSize, 1, 4096),
+        fontWeight: Math.round(clamp(operation.textStyle.fontWeight, 100, 900) / 100) * 100,
+        alignment: operation.textStyle.alignment,
+        tracking: clamp(operation.textStyle.tracking, -1000, 1000),
+        leading: clamp(operation.textStyle.leading, 1, 8192),
+        strokeWidth: clamp(operation.textStyle.strokeWidth, 0, 512),
+        strokeColor: operation.textStyle.strokeColor.map((channel, index) =>
+          clamp(channel, 0, index === 3 ? 1 : 16),
+        ) as TextStyle["strokeColor"],
       };
       break;
     case "toggleLayer":

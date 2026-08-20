@@ -155,6 +155,35 @@ describe("structured project operations", () => {
     expect(shape.shape?.kind).toBe("rectangle");
   });
 
+  it("updates multiline text and bounded typography settings", () => {
+    const source = createDemoProject();
+    const text = activeComposition(source).layers.find((layer) => layer.kind === "text");
+    if (!text?.textStyle) throw new Error("Expected styled demo text");
+    const next = applyOperations(source, [
+      { type: "setTextContent", layerId: text.id, text: "GPU\nMOTION" },
+      {
+        type: "setTextStyle",
+        layerId: text.id,
+        textStyle: {
+          ...text.textStyle,
+          fontWeight: 950,
+          alignment: "right",
+          tracking: 24,
+          strokeWidth: 7,
+        },
+      },
+    ]);
+    const updated = activeComposition(next).layers.find((layer) => layer.id === text.id);
+    expect(updated?.text).toBe("GPU\nMOTION");
+    expect(updated?.textStyle).toMatchObject({
+      fontWeight: 900,
+      alignment: "right",
+      tracking: 24,
+      strokeWidth: 7,
+    });
+    expect(text.text).not.toBe("GPU\nMOTION");
+  });
+
   it("reorders effects through a bounded operation", () => {
     const source = createDemoProject();
     const layer = activeComposition(source).layers[0];

@@ -175,6 +175,8 @@ function validateLayer(value: unknown, path: string): asserts value is Layer {
   requireString(layer.id, `${path}.id`);
   requireString(layer.name, `${path}.name`);
   requireString(layer.kind, `${path}.kind`);
+  if (layer.text !== undefined && (typeof layer.text !== "string" || layer.text.length > 20_000))
+    throw new Error(`${path}.text must be a string at most 20000 characters`);
   requirePositiveNumber(layer.outPoint, `${path}.outPoint`);
   if (layer.timeOffset !== undefined) {
     const offset = requireFiniteNumber(layer.timeOffset, `${path}.timeOffset`);
@@ -252,6 +254,25 @@ function validateLayer(value: unknown, path: string): asserts value is Layer {
     requireNumberArray(shape.strokeColor, `${path}.shape.strokeColor`, 4);
     if ((shape.strokeColor as number[]).length !== 4)
       throw new Error(`${path}.shape.strokeColor must contain four channels`);
+  }
+  if (layer.textStyle !== undefined) {
+    const style = requireObject(layer.textStyle, `${path}.textStyle`);
+    if (requireString(style.fontFamily, `${path}.textStyle.fontFamily`).length > 160)
+      throw new Error(`${path}.textStyle.fontFamily is too long`);
+    for (const field of ["fontSize", "fontWeight", "leading"])
+      requirePositiveNumber(style[field], `${path}.textStyle.${field}`);
+    for (const field of ["tracking", "strokeWidth"])
+      requireFiniteNumber(style[field], `${path}.textStyle.${field}`);
+    if ((style.strokeWidth as number) < 0)
+      throw new Error(`${path}.textStyle.strokeWidth must not be negative`);
+    const fontWeight = style.fontWeight as number;
+    if (fontWeight < 100 || fontWeight > 900)
+      throw new Error(`${path}.textStyle.fontWeight must be between 100 and 900`);
+    if (!["left", "center", "right"].includes(String(style.alignment)))
+      throw new Error(`${path}.textStyle.alignment is invalid`);
+    const strokeColor = requireNumberArray(style.strokeColor, `${path}.textStyle.strokeColor`, 4);
+    if (strokeColor.length !== 4)
+      throw new Error(`${path}.textStyle.strokeColor must contain four channels`);
   }
   if (!Array.isArray(layer.size) || layer.size.length !== 2)
     throw new Error(`${path}.size must contain two values`);

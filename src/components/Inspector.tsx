@@ -28,6 +28,7 @@ import { EffectMaskEditor } from "./EffectMaskEditor";
 import { Panel, PanelTabs } from "./Panel";
 import { Scene3dControls } from "./Scene3dControls";
 import { ShapeControls } from "./ShapeControls";
+import { TextControls } from "./TextControls";
 
 const fields: { label: string; paths: PropertyPath[]; suffix: string }[] = [
   { label: "Position", paths: ["position.0", "position.1", "position.2"], suffix: "px" },
@@ -423,6 +424,7 @@ export function Inspector() {
                 </label>
                 <Scene3dControls layer={layer} />
                 <ShapeControls layer={layer} />
+                <TextControls layer={layer} />
               </div>
             )}
           </div>

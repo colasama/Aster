@@ -46,6 +46,9 @@ frames. Rendering, effects, particles, and composition are designed to remain GP
   applies GPU color, opacity, and size over life without replaying earlier frames.
 - Vector shape layers use analytic anti-aliased WGSL signed-distance rendering for rectangles,
   rounded rectangles, and ellipses, with HDR fill/stroke colors and editable stroke width.
+- Retained GPU text textures now come from a serializable typography model with font fallback,
+  size/weight, multiline leading, left/center/right alignment, tracking, fill, and outline stroke;
+  cache keys include every typography field so unchanged glyph textures remain resident.
 - The searchable Asset Browser imports bounded image and video files, shows source resolution and
   duration, and locates the corresponding composition layer.
 - Retained GPU text textures participate in HDR layer effects, blend modes, precompositions, and

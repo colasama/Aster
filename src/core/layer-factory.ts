@@ -61,5 +61,18 @@ export function createLayerForComposition(
       kind === "shape"
         ? { kind: "rectangle", roundness: 0, strokeWidth: 0, strokeColor: [1, 1, 1, 1] }
         : undefined,
+    textStyle:
+      kind === "text"
+        ? {
+            fontFamily: "Inter, Segoe UI, sans-serif",
+            fontSize: 144,
+            fontWeight: 700,
+            alignment: "center",
+            tracking: 12,
+            leading: 172,
+            strokeWidth: 0,
+            strokeColor: [0, 0, 0, 1],
+          }
+        : undefined,
   };
 }

@@ -1276,25 +1276,25 @@ aster/
 - [ ] 创建 `aster-text` crate。
 - [ ] 集成 HarfBuzz 或等价 shaping。
 - [ ] 字体发现。
-- [ ] Font fallback。
+- [x] Font fallback。
 - [ ] Font cache。
 - [ ] Glyph cache。
 - [ ] Glyph atlas。
-- [ ] GPU text rendering。
+- [x] GPU text rendering。
 - [ ] Unicode shaping。
-- [ ] Latin script。
+- [x] Latin script。
 - [ ] CJK shaping。
 - [ ] Emoji fallback。
 - [ ] Ligature。
 - [ ] Kerning。
 - [ ] Line breaking。
-- [ ] Multi-line layout。
-- [ ] Alignment。
-- [ ] Tracking。
-- [ ] Leading。
-- [ ] Baseline。
-- [ ] Stroke / Fill。
-- [ ] Text on GPU texture。
+- [x] Multi-line layout。
+- [x] Alignment。
+- [x] Tracking。
+- [x] Leading。
+- [x] Baseline。
+- [x] Stroke / Fill。
+- [x] Text on GPU texture。
 - [ ] 研究竖排文字。
 - [ ] 研究 variable fonts。
 - [ ] 研究 per-character animation 数据模型。

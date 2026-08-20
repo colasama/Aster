@@ -100,6 +100,7 @@ export interface Layer {
   mesh?: MeshAsset;
   particle?: ParticleSettings;
   shape?: ShapeSettings;
+  textStyle?: TextStyle;
 }
 
 export interface Material3d {
@@ -142,6 +143,17 @@ export interface ParticleSettings {
 export interface ShapeSettings {
   kind: "rectangle" | "ellipse";
   roundness: number;
+  strokeWidth: number;
+  strokeColor: [number, number, number, number];
+}
+
+export interface TextStyle {
+  fontFamily: string;
+  fontSize: number;
+  fontWeight: number;
+  alignment: "left" | "center" | "right";
+  tracking: number;
+  leading: number;
   strokeWidth: number;
   strokeColor: [number, number, number, number];
 }
