@@ -1,13 +1,53 @@
-import { Activity, Cpu, Gauge, Layers3, MemoryStick, Zap } from "lucide-react";
+import { Activity, Cpu, Download, Gauge, Layers3, MemoryStick, Zap } from "lucide-react";
+import { useState } from "react";
+import type { GpuBenchmarkReport, GpuBenchmarkRequest } from "../renderer/gpu-benchmark";
 import { useEditor } from "../state/editor-store";
 
 export function Profiler() {
   const { state } = useEditor();
   const metrics = state.metrics;
+  const [benchmark, setBenchmark] = useState<GpuBenchmarkReport>();
+  const [benchmarkProgress, setBenchmarkProgress] = useState<string>();
+  const runBenchmark = (sampleFrames: number) => {
+    if (benchmarkProgress) return;
+    setBenchmark(undefined);
+    setBenchmarkProgress("Preparing GPU…");
+    void new Promise<GpuBenchmarkReport | undefined>((resolve) => {
+      window.dispatchEvent(
+        new CustomEvent<GpuBenchmarkRequest>("aster:run-gpu-benchmark", {
+          detail: {
+            sampleFrames,
+            onProgress: (scenario, completed, total) =>
+              setBenchmarkProgress(`${scenario} · ${Math.round((completed / total) * 100)}%`),
+            resolve,
+          },
+        }),
+      );
+    }).then((report) => {
+      setBenchmark(report);
+      setBenchmarkProgress(undefined);
+    });
+  };
   return (
-    <div className="profiler-overlay">
+    <div className={`profiler-overlay ${benchmark ? "benchmark-expanded" : ""}`}>
       <div className="profiler-title">
         <Activity size={12} /> REALTIME <span>GPU</span>
+        <button
+          disabled={Boolean(benchmarkProgress)}
+          onClick={() => runBenchmark(60)}
+          title="Run a quick 60-frame benchmark per scenario"
+          type="button"
+        >
+          QUICK
+        </button>
+        <button
+          disabled={Boolean(benchmarkProgress)}
+          onClick={() => runBenchmark(600)}
+          title="Run the full 600-frame benchmark per scenario"
+          type="button"
+        >
+          FULL
+        </button>
       </div>
       <Metric icon={Gauge} label="FPS" value={metrics.fps.toFixed(0)} accent />
       <Metric icon={Zap} label="Frame" value={`${metrics.frameMs.toFixed(2)} ms`} />
@@ -43,6 +83,29 @@ export function Profiler() {
         <span style={{ width: `${metrics.cacheHitRate * 100}%` }} />
         <small>Node cache {Math.round(metrics.cacheHitRate * 100)}%</small>
       </div>
+      {benchmarkProgress && <div className="benchmark-progress">{benchmarkProgress}</div>}
+      {benchmark && (
+        <div className="benchmark-report">
+          <div className="benchmark-report-title">
+            <span>{benchmark.sampleFrames} frame report</span>
+            <button
+              aria-label="Download GPU benchmark JSON"
+              onClick={() => downloadBenchmark(benchmark)}
+              title="Download machine-readable benchmark JSON"
+              type="button"
+            >
+              <Download size={10} />
+            </button>
+          </div>
+          {benchmark.scenarios.map((scenario) => (
+            <div className="benchmark-scenario" key={scenario.name}>
+              <span>{scenario.name}</span>
+              <strong>{scenario.gpuMs.median.toFixed(2)} ms</strong>
+              <small>p95 {scenario.gpuMs.p95.toFixed(2)}</small>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -54,6 +117,16 @@ function PassTiming({ label, value }: { label: string; value: number }) {
       <strong>{value.toFixed(2)} ms</strong>
     </div>
   );
+}
+
+function downloadBenchmark(report: GpuBenchmarkReport): void {
+  const blob = new Blob([JSON.stringify(report, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = `aster-gpu-benchmark-${report.generatedAt.replace(/:/g, "-")}.json`;
+  anchor.click();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 function Metric({

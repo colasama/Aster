@@ -26,6 +26,8 @@ frames. Rendering, effects, particles, and composition are designed to remain GP
   evaluation at render time.
 - WebGPU high-performance adapter selection, `rgba16float` HDR composition, ACES output,
   timestamp-query profiling, 100,000 compute particles, and fused realtime effects.
+- In-editor GPU benchmarks measure 1080p, 4K, 20-layer, and Blur/Glow effect-chain scenarios with
+  warm-up, GPU completion barriers, median/p95/p99 reports, quick/full modes, and JSON download.
 - GPU image layers, time-addressable hardware-decoded video layers, recursive precompositions,
   depth-buffered 3D cubes/cameras, blend modes, parenting, solo, timing, and expressions.
 - The searchable Asset Browser imports bounded image and video files, shows source resolution and

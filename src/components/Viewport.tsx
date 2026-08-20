@@ -17,6 +17,7 @@ import { evaluateWorldTransform, flattenSceneLayers } from "../core/scene-evalua
 import { evaluateAnimatable } from "../core/timeline";
 import type { GpuDiagnostics, Project } from "../core/types";
 import { CanvasFallbackRenderer } from "../renderer/canvas-fallback";
+import { type GpuBenchmarkRequest, runGpuBenchmark } from "../renderer/gpu-benchmark";
 import { WebGpuRenderer } from "../renderer/webgpu-renderer";
 import { useEditor } from "../state/editor-store";
 import { Panel } from "./Panel";
@@ -154,6 +155,41 @@ export function Viewport() {
     };
     window.addEventListener("aster:open-render-session", openRenderSession);
     return () => window.removeEventListener("aster:open-render-session", openRenderSession);
+  }, [composition, state.currentTime, state.project]);
+
+  useEffect(() => {
+    let running = false;
+    const runBenchmark = (event: Event) => {
+      const request = event as CustomEvent<GpuBenchmarkRequest>;
+      const canvas = canvasRef.current;
+      const renderer = rendererRef.current;
+      if (!canvas || !renderer || running) {
+        request.detail.resolve();
+        return;
+      }
+      running = true;
+      void runGpuBenchmark(
+        renderer,
+        canvas,
+        composition,
+        state.project,
+        state.currentTime,
+        renderer.diagnostics.adapter,
+        renderer.diagnostics.architecture,
+        request.detail.sampleFrames,
+        request.detail.onProgress,
+      )
+        .then(request.detail.resolve)
+        .catch((error: unknown) => {
+          console.error(error instanceof Error ? error.message : "GPU benchmark failed");
+          request.detail.resolve();
+        })
+        .finally(() => {
+          running = false;
+        });
+    };
+    window.addEventListener("aster:run-gpu-benchmark", runBenchmark);
+    return () => window.removeEventListener("aster:run-gpu-benchmark", runBenchmark);
   }, [composition, state.currentTime, state.project]);
 
   return (

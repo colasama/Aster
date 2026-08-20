@@ -38,3 +38,16 @@ On the Windows x86-64 development machine used for the initial implementation, t
 full invalidation measured 1.008 ms median / 1.234 ms p95; a leaf-only invalidation measured 0.069 ms
 median / 0.071 ms p95, with 99.99% of nodes retained. These numbers are reference observations, not
 portable pass/fail limits.
+
+## In-editor WebGPU benchmark
+
+The realtime Profiler provides **QUICK** (60 measured frames per scenario) and **FULL** (600 measured
+frames per scenario) controls. Each run uses 10 warm-up frames, waits for submitted GPU work after
+every measured frame, and tests the current composition at 1080p and 4K, a generated 20-layer 1080p
+composition, and a fused Blur/Glow color-effect chain. The visual report shows GPU median and p95;
+the download button writes the complete wall/CPU/GPU min, median, p95, p99, and max distributions as
+schema-versioned JSON with adapter metadata.
+
+An initial 60-frame run on the development WebGPU adapter measured 1.11 ms median / 1.31 ms p95 at
+1080p, 4.59 / 4.92 ms at 4K, 3.47 / 3.80 ms for 20 layers, and 0.72 / 0.79 ms for the five-effect
+Blur/Glow chain. These are observational smoke results rather than cross-machine limits.

@@ -1084,15 +1084,15 @@ aster/
 
 ### M0 Benchmark
 
-- [ ] 创建 1080p benchmark。
-- [ ] 创建 4K benchmark。
-- [ ] 创建 20-layer benchmark。
-- [ ] 创建 Blur benchmark。
-- [ ] 创建 Glow benchmark。
-- [ ] 创建 Effect-chain benchmark。
+- [x] 创建 1080p benchmark。
+- [x] 创建 4K benchmark。
+- [x] 创建 20-layer benchmark。
+- [x] 创建 Blur benchmark。
+- [x] 创建 Glow benchmark。
+- [x] 创建 Effect-chain benchmark。
 - [ ] 保存 benchmark baseline。
 - [x] 自动输出 benchmark JSON。
-- [ ] 创建 benchmark 可视化报告。
+- [x] 创建 benchmark 可视化报告。
 
 ---
 
