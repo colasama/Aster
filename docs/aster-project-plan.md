@@ -1561,7 +1561,7 @@ aster/
 - [x] 16-bit / float pipeline strategy。
 - [x] Texture format policy。
 - [x] Premultiplied alpha policy。
-- [ ] Color-management test suite。
+- [x] Color-management test suite。
 
 ---
 
