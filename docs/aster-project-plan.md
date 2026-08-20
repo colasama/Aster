@@ -1371,7 +1371,7 @@ aster/
 - [x] Light animation。
 - [x] Shadow map。
 - [ ] Cascaded shadow research。
-- [ ] Shadow quality settings。
+- [x] Shadow quality settings。
 
 ### GBuffer / Auxiliary Buffers
 

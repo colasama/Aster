@@ -194,6 +194,8 @@ function validateLayer(value: unknown, path: string): asserts value is Layer {
     const light = requireObject(layer.light, `${path}.light`);
     if (!["directional", "point", "spot"].includes(String(light.kind)))
       throw new Error(`${path}.light.kind is invalid`);
+    if (!["off", "low", "medium", "high"].includes(String(light.shadowQuality)))
+      throw new Error(`${path}.light.shadowQuality is invalid`);
     const intensity = requireFiniteNumber(light.intensity, `${path}.light.intensity`);
     if (intensity < 0) throw new Error(`${path}.light.intensity must not be negative`);
     for (const field of ["range", "coneAngle"])

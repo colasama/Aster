@@ -86,7 +86,13 @@ describe("project document boundary", () => {
     const mesh = createLayerForComposition("mesh", composition);
     const light = createLayerForComposition("light", composition);
     mesh.material = { metallic: 0.8, roughness: 0.2, emissive: 1.5 };
-    light.light = { kind: "spot", intensity: 6, range: 3200, coneAngle: 70 };
+    light.light = {
+      kind: "spot",
+      intensity: 6,
+      range: 3200,
+      coneAngle: 70,
+      shadowQuality: "high",
+    };
     light.color = [1.4, 0.8, 0.5, 1];
     composition.layers.push(mesh, light);
 

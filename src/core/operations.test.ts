@@ -57,7 +57,13 @@ describe("structured project operations", () => {
       {
         type: "setLightSettings",
         layerId: light.id,
-        light: { kind: "spot", intensity: 8, range: 3600, coneAngle: 52 },
+        light: {
+          kind: "spot",
+          intensity: 8,
+          range: 3600,
+          coneAngle: 52,
+          shadowQuality: "high",
+        },
       },
       { type: "setLayerColor", layerId: light.id, color: [1.2, 0.7, 0.3, 1] },
     ]);
@@ -68,7 +74,13 @@ describe("structured project operations", () => {
       emissive: 3,
     });
     expect(activeComposition(next).layers.find((layer) => layer.id === light.id)).toMatchObject({
-      light: { kind: "spot", intensity: 8, range: 3600, coneAngle: 52 },
+      light: {
+        kind: "spot",
+        intensity: 8,
+        range: 3600,
+        coneAngle: 52,
+        shadowQuality: "high",
+      },
       color: [1.2, 0.7, 0.3, 1],
     });
     expect(mesh.material).toBeUndefined();

@@ -161,7 +161,7 @@ fn fragment_main(input: VertexOutput) -> @location(0) vec4f {
     let inside_shadow_map = all(shadow_uv >= vec2f(0.0)) && all(shadow_uv <= vec2f(1.0))
       && shadow_coordinate.z >= 0.0 && shadow_coordinate.z <= 1.0;
     var visibility = 1.0;
-    if inside_shadow_map && lighting.position_kind.w != 1.0 {
+    if inside_shadow_map && lighting.position_kind.w != 1.0 && lighting.range_cone.z > 0.5 {
       let comparison = textureSampleCompareLevel(
         shadow_map,
         shadow_sampler,

@@ -2,9 +2,16 @@ import { describe, expect, it } from "vitest";
 import { createLayerForComposition } from "../core/layer-factory";
 import { createBlankProject } from "../core/project";
 import { flattenSceneLayers } from "../core/scene-evaluation";
-import { buildSceneLighting } from "./scene-lighting";
+import { buildSceneLighting, shadowMapSize } from "./scene-lighting";
 
 describe("scene lighting uniforms", () => {
+  it("maps shadow quality to bounded GPU allocations", () => {
+    expect(shadowMapSize("off")).toBe(1);
+    expect(shadowMapSize("low")).toBe(512);
+    expect(shadowMapSize("medium")).toBe(1024);
+    expect(shadowMapSize("high")).toBe(2048);
+  });
+
   it("uses animated light orientation, HDR color, and intensity", () => {
     const project = createBlankProject();
     const composition = project.compositions[0];
@@ -28,7 +35,13 @@ describe("scene lighting uniforms", () => {
     const composition = project.compositions[0];
     const light = createLayerForComposition("light", composition);
     if (!light.light) throw new Error("Expected light settings");
-    light.light = { kind: "spot", intensity: 5, range: 3600, coneAngle: 60 };
+    light.light = {
+      kind: "spot",
+      intensity: 5,
+      range: 3600,
+      coneAngle: 60,
+      shadowQuality: "medium",
+    };
     light.transform.position[2] = { mode: "static", value: -800 };
     composition.layers.push(light);
 

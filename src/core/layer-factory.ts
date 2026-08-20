@@ -39,7 +39,13 @@ export function createLayerForComposition(
     material: kind === "mesh" ? { metallic: 0.18, roughness: 0.42, emissive: 0 } : undefined,
     light:
       kind === "light"
-        ? { kind: "directional", intensity: 2.5, range: 2400, coneAngle: 45 }
+        ? {
+            kind: "directional",
+            intensity: 2.5,
+            range: 2400,
+            coneAngle: 45,
+            shadowQuality: "medium",
+          }
         : undefined,
     camera:
       kind === "camera"

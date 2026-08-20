@@ -41,6 +41,7 @@ export function Scene3dControls({ layer }: { layer: Layer }) {
             intensity: layer.light?.intensity ?? 2.5,
             range: layer.light?.range ?? 2400,
             coneAngle: layer.light?.coneAngle ?? 45,
+            shadowQuality: layer.light?.shadowQuality ?? "medium",
             [field]: value,
           },
         },
@@ -282,6 +283,19 @@ export function Scene3dControls({ layer }: { layer: Layer }) {
           value={layer.light?.coneAngle ?? 45}
         />
       )}
+      <label>
+        Shadow quality
+        <select
+          aria-label="Shadow quality"
+          onChange={(event) => updateLight("shadowQuality", event.target.value)}
+          value={layer.light?.shadowQuality ?? "medium"}
+        >
+          <option value="off">Off</option>
+          <option value="low">Low · 512²</option>
+          <option value="medium">Medium · 1024²</option>
+          <option value="high">High · 2048²</option>
+        </select>
+      </label>
       <label>
         Light color
         <input

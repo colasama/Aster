@@ -177,6 +177,7 @@ export function applyOperation(project: Project, operation: Operation): void {
         intensity: clamp(operation.light.intensity, 0, 100),
         range: clamp(operation.light.range, 1, 100_000),
         coneAngle: clamp(operation.light.coneAngle, 1, 179),
+        shadowQuality: operation.light.shadowQuality,
       };
       break;
     case "setLayerColor":

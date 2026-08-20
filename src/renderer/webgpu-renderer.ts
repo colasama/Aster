@@ -14,7 +14,7 @@ import { LayerEffectRenderer } from "./layer-effects";
 import { createLutSampler, createLutTexture } from "./lut-texture";
 import { buildPostProcessUniforms } from "./post-process";
 import { SceneEvaluationCache } from "./scene-evaluation-cache";
-import { buildSceneLighting, SCENE_LIGHTING_BYTES } from "./scene-lighting";
+import { buildSceneLighting, SCENE_LIGHTING_BYTES, shadowMapSize } from "./scene-lighting";
 import {
   createImagePipelines,
   createShadowPipeline,
@@ -33,7 +33,7 @@ import { rasterizeTextLayer } from "./text-rasterizer";
 const PARTICLE_CAPACITY = 1_000_000;
 const MAX_SHAPE_VERTICES = 6 * 128;
 const SCENE_FORMAT: GPUTextureFormat = "rgba16float";
-const SHADOW_MAP_SIZE = 1024;
+const DEFAULT_SHADOW_MAP_SIZE = 1024;
 
 interface MediaResource {
   source: string;
@@ -54,9 +54,10 @@ export class WebGpuRenderer {
   readonly #format: GPUTextureFormat;
   readonly #lightingBindGroupLayout: GPUBindGroupLayout;
   readonly #lightingBuffer: GPUBuffer;
-  readonly #lightingBindGroup: GPUBindGroup;
+  #lightingBindGroup: GPUBindGroup;
   readonly #shadowBindGroup: GPUBindGroup;
-  readonly #shadowTexture: GPUTexture;
+  #shadowTexture: GPUTexture;
+  readonly #shadowSampler: GPUSampler;
   readonly #shadowPipeline: GPURenderPipeline;
   readonly #shapePipelines: Record<BlendMode, GPURenderPipeline>;
   readonly #imageBindGroupLayout: GPUBindGroupLayout;
@@ -83,6 +84,7 @@ export class WebGpuRenderer {
   #depthTexture?: GPUTexture;
   #width = 1;
   #height = 1;
+  #shadowMapSize = DEFAULT_SHADOW_MAP_SIZE;
   #smoothedFrameMs = 16.67;
   #lastFrameStarted?: number;
   #shapeBufferBytes = MAX_SHAPE_VERTICES * FLOATS_PER_VERTEX * Float32Array.BYTES_PER_ELEMENT;
@@ -145,11 +147,11 @@ export class WebGpuRenderer {
     });
     this.#shadowTexture = device.createTexture({
       label: "Scene shadow map · 1024²",
-      size: [SHADOW_MAP_SIZE, SHADOW_MAP_SIZE],
+      size: [DEFAULT_SHADOW_MAP_SIZE, DEFAULT_SHADOW_MAP_SIZE],
       format: "depth24plus",
       usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
     });
-    const shadowSampler = device.createSampler({
+    this.#shadowSampler = device.createSampler({
       label: "Scene shadow comparison sampler",
       compare: "less-equal",
       minFilter: "linear",
@@ -161,7 +163,7 @@ export class WebGpuRenderer {
       entries: [
         { binding: 0, resource: { buffer: this.#lightingBuffer } },
         { binding: 1, resource: this.#shadowTexture.createView() },
-        { binding: 2, resource: shadowSampler },
+        { binding: 2, resource: this.#shadowSampler },
       ],
     });
     this.#shapePipelines = createShapePipelines(
@@ -351,6 +353,10 @@ export class WebGpuRenderer {
       this.#height,
     );
     const { sceneLayers, geometry } = evaluation;
+    const primaryLight = sceneLayers.find((scene) => scene.layer.kind === "light")?.layer.light;
+    const shadowQuality = primaryLight?.shadowQuality ?? "medium";
+    const shadowsEnabled = shadowQuality !== "off" && primaryLight?.kind !== "point";
+    this.#configureShadowMap(shadowMapSize(shadowQuality));
     const particleScene = sceneLayers.find((scene) => scene.layer.kind === "particle");
     const particleCount = Math.max(
       1,
@@ -427,25 +433,33 @@ export class WebGpuRenderer {
     compute.setBindGroup(0, this.#computeBindGroup);
     if (particleScene) compute.dispatchWorkgroups(Math.ceil(particleCount / 256));
     compute.end();
-    const shadowPass = encoder.beginRenderPass({
-      label: "Scene shadow-map depth",
-      timestampWrites: this.#gpuProfiler.writes(2, 3),
-      colorAttachments: [],
-      depthStencilAttachment: {
-        view: this.#shadowTexture.createView(),
-        depthClearValue: 1,
-        depthLoadOp: "clear",
-        depthStoreOp: "store",
-      },
-    });
-    shadowPass.setPipeline(this.#shadowPipeline);
-    shadowPass.setBindGroup(0, this.#shadowBindGroup);
-    shadowPass.setVertexBuffer(0, this.#shapeBuffer);
-    for (const batch of geometry.batches) {
-      if (!batch.layer.threeDimensional) continue;
-      shadowPass.draw(batch.vertexCount, 1, batch.firstVertex);
+    if (shadowsEnabled) {
+      const shadowPass = encoder.beginRenderPass({
+        label: `Scene shadow-map depth · ${this.#shadowMapSize}²`,
+        timestampWrites: this.#gpuProfiler.writes(2, 3),
+        colorAttachments: [],
+        depthStencilAttachment: {
+          view: this.#shadowTexture.createView(),
+          depthClearValue: 1,
+          depthLoadOp: "clear",
+          depthStoreOp: "store",
+        },
+      });
+      shadowPass.setPipeline(this.#shadowPipeline);
+      shadowPass.setBindGroup(0, this.#shadowBindGroup);
+      shadowPass.setVertexBuffer(0, this.#shapeBuffer);
+      for (const batch of geometry.batches) {
+        if (!batch.layer.threeDimensional) continue;
+        shadowPass.draw(batch.vertexCount, 1, batch.firstVertex);
+      }
+      shadowPass.end();
+    } else {
+      const shadowMarker = encoder.beginComputePass({
+        label: "Shadow raster disabled",
+        timestampWrites: this.#gpuProfiler.writes(2, 3),
+      });
+      shadowMarker.end();
     }
-    shadowPass.end();
     const sceneView = this.#sceneTexture?.createView();
     const depthView = this.#depthTexture?.createView();
     if (!sceneView || !depthView || !this.#postBindGroup)
@@ -563,8 +577,10 @@ export class WebGpuRenderer {
     const hdr4kBytes =
       composition.width * composition.height * 8 * 3 +
       this.#layerEffects.estimatedTextureBytes() +
-      SHADOW_MAP_SIZE * SHADOW_MAP_SIZE * 4;
-    const shadowDrawCalls = geometry.batches.filter((batch) => batch.layer.threeDimensional).length;
+      this.#shadowMapSize * this.#shadowMapSize * 4;
+    const shadowDrawCalls = shadowsEnabled
+      ? geometry.batches.filter((batch) => batch.layer.threeDimensional).length
+      : 0;
     return {
       fps: Math.min(240, 1000 / this.#smoothedFrameMs),
       frameMs: this.#smoothedFrameMs,
@@ -587,6 +603,27 @@ export class WebGpuRenderer {
 
   async complete(): Promise<void> {
     await this.#device.queue.onSubmittedWorkDone();
+  }
+
+  #configureShadowMap(size: number): void {
+    if (size === this.#shadowMapSize) return;
+    this.#shadowTexture.destroy();
+    this.#shadowMapSize = size;
+    this.#shadowTexture = this.#device.createTexture({
+      label: `Scene shadow map · ${size}²`,
+      size: [size, size],
+      format: "depth24plus",
+      usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
+    });
+    this.#lightingBindGroup = this.#device.createBindGroup({
+      label: "Scene lighting resources",
+      layout: this.#lightingBindGroupLayout,
+      entries: [
+        { binding: 0, resource: { buffer: this.#lightingBuffer } },
+        { binding: 1, resource: this.#shadowTexture.createView() },
+        { binding: 2, resource: this.#shadowSampler },
+      ],
+    });
   }
 
   #drawBatch(

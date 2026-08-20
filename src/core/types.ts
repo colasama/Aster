@@ -114,6 +114,7 @@ export interface LightSettings {
   intensity: number;
   range: number;
   coneAngle: number;
+  shadowQuality: "off" | "low" | "medium" | "high";
 }
 
 export interface CameraSettings {
