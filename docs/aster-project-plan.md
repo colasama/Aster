@@ -1544,7 +1544,7 @@ aster/
 - [x] macOS VideoToolbox decode research。
 - [x] Linux VAAPI decode research。
 - [x] GPU interop capability matrix。
-- [ ] Zero/low-copy prototype。
+- [x] Zero/low-copy prototype。
 - [x] Hardware encode prototype。
 
 ---

@@ -7,11 +7,13 @@ import {
   destroyMediaResource,
   type MediaResource,
   mediaTextureBytes,
+  mediaTextureExtent,
   reportVideoUploadError,
   sweepMediaResources,
 } from "./media-resource";
 import { rasterizeTextLayer } from "./text-rasterizer";
 import { TextureUploadBatch } from "./texture-upload-batch";
+import { VideoExternalUpload, type VideoExternalUploadStatus } from "./video-external-upload";
 
 const MAX_MEDIA_TEXTURE_DIMENSION = 8_192;
 const MAX_MEDIA_TEXTURE_BYTES = 256 * 1024 * 1024;
@@ -206,22 +208,35 @@ export class MediaTextureCache {
         label: `Hardware-decoded video · ${layer.asset?.name ?? layer.name}`,
         size: [width, height],
         format: "rgba8unorm-srgb",
-        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+        usage:
+          GPUTextureUsage.TEXTURE_BINDING |
+          GPUTextureUsage.COPY_DST |
+          GPUTextureUsage.RENDER_ATTACHMENT,
       });
       resource.textureBytes = width * height * 4;
-      resource.videoCanvas = document.createElement("canvas");
-      resource.videoCanvas.width = width;
-      resource.videoCanvas.height = height;
-      resource.videoCanvas.setAttribute("aria-hidden", "true");
-      Object.assign(resource.videoCanvas.style, hiddenMediaStyle(1));
-      document.body.append(resource.videoCanvas);
-      resource.videoContext =
-        resource.videoCanvas.getContext("2d", { alpha: false, willReadFrequently: true }) ??
-        undefined;
+      resource.textureWidth = width;
+      resource.textureHeight = height;
+      this.#ensureVideoFallbackSurface(resource);
       resource.bindGroup = this.#createBindGroup(
         resource.texture,
         `Video texture resources · ${layer.id}`,
       );
+      resource.videoExternalUpload = new VideoExternalUpload(
+        this.#device,
+        video,
+        resource.texture,
+        width,
+        height,
+        {
+          onStatus: (status) => {
+            if (this.#resources.get(instanceId) !== resource) return;
+            this.#reportVideoUploadStatus(resource, status);
+            if (status.mode === "direct") this.#releaseVideoFallbackSurface(resource);
+            this.#invalidate();
+          },
+        },
+      );
+      resource.videoExternalUpload.start();
       this.#updateVideo(resource, layer, time, playing);
       this.#invalidate();
     };
@@ -275,40 +290,75 @@ export class MediaTextureCache {
     if (
       !video ||
       !texture ||
-      !resource.videoCanvas ||
-      !resource.videoContext ||
       video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA ||
       resource.lastUploadedTime === video.currentTime
     )
       return;
     const mediaTime = video.currentTime;
     try {
-      resource.videoContext.drawImage(
-        video,
-        0,
-        0,
-        resource.videoCanvas.width,
-        resource.videoCanvas.height,
-      );
-      const pixels = resource.videoContext.getImageData(
-        0,
-        0,
-        resource.videoCanvas.width,
-        resource.videoCanvas.height,
-      );
-      this.#uploads.enqueue(
-        texture,
-        pixels.data,
-        resource.videoCanvas.width,
-        resource.videoCanvas.height,
-      );
+      if (resource.videoExternalUpload?.copyFrame()) {
+        resource.lastUploadedTime = mediaTime;
+        resource.uploadErrorReported = false;
+        video.dataset.gpuFrame = "direct-external-copy";
+        video.dataset.gpuUploadPath = "direct-external-copy";
+        delete video.dataset.gpuError;
+        return;
+      }
+      const context = this.#ensureVideoFallbackSurface(resource);
+      const canvas = resource.videoCanvas;
+      if (!context || !canvas) throw new Error("Canvas2D video upload fallback is unavailable");
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const pixels = context.getImageData(0, 0, canvas.width, canvas.height);
+      this.#uploads.enqueue(texture, pixels.data, canvas.width, canvas.height);
       resource.lastUploadedTime = mediaTime;
       resource.uploadErrorReported = false;
-      video.dataset.gpuFrame = "uploaded";
+      video.dataset.gpuFrame = "cpu-staging-fallback";
+      video.dataset.gpuUploadPath = "cpu-staging-fallback";
       delete video.dataset.gpuError;
     } catch (error) {
       reportVideoUploadError(resource, error);
     }
+  }
+
+  #ensureVideoFallbackSurface(resource: MediaResource): CanvasRenderingContext2D | undefined {
+    const extent = mediaTextureExtent(resource);
+    if (!extent) return undefined;
+    const [width, height] = extent;
+    if (
+      resource.videoCanvas?.width === width &&
+      resource.videoCanvas.height === height &&
+      resource.videoContext
+    )
+      return resource.videoContext;
+    this.#releaseVideoFallbackSurface(resource);
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    canvas.setAttribute("aria-hidden", "true");
+    const context =
+      canvas.getContext("2d", { alpha: false, willReadFrequently: true }) ?? undefined;
+    resource.videoCanvas = canvas;
+    resource.videoContext = context;
+    return context;
+  }
+
+  #releaseVideoFallbackSurface(resource: MediaResource): void {
+    if (resource.videoCanvas) {
+      resource.videoCanvas.width = 1;
+      resource.videoCanvas.height = 1;
+      resource.videoCanvas.remove();
+    }
+    resource.videoCanvas = undefined;
+    resource.videoContext = undefined;
+  }
+
+  #reportVideoUploadStatus(resource: MediaResource, status: VideoExternalUploadStatus): void {
+    const video = resource.video;
+    if (!video) return;
+    video.dataset.gpuUploadCapability = status.mode;
+    video.dataset.gpuUploadDiagnostic = status.reason;
+    video.dataset.gpuUploadPath =
+      status.mode === "direct" ? "direct-external-copy" : "cpu-staging-fallback";
   }
 }
 
