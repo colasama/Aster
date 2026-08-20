@@ -6,6 +6,10 @@ export interface Keyframe {
   value: number;
   interpolation: "linear" | "step" | "bezier";
   easing?: [number, number, number, number];
+  /** Value-relative tangent for the segment entering this keyframe. */
+  spatialIn?: number;
+  /** Value-relative tangent for the segment leaving this keyframe. */
+  spatialOut?: number;
 }
 
 export type Animatable =

@@ -19,6 +19,14 @@ export function evaluateAnimatable(property: Animatable, time: number): number {
   if (span <= Number.EPSILON) return next.value;
   const progress = Math.max(0, Math.min(1, (time - previous.time) / span));
   const eased = interpolateProgress(previous, progress);
+  if (previous.spatialOut !== undefined || next.spatialIn !== undefined)
+    return cubicValue(
+      eased,
+      previous.value,
+      previous.value + (previous.spatialOut ?? 0),
+      next.value + (next.spatialIn ?? 0),
+      next.value,
+    );
   return previous.value + (next.value - previous.value) * eased;
 }
 
@@ -97,5 +105,15 @@ function cubicDerivative(time: number, control1: number, control2: number): numb
     3 * (1 - time) ** 2 * control1 +
     6 * (1 - time) * time * (control2 - control1) +
     3 * time ** 2 * (1 - control2)
+  );
+}
+
+function cubicValue(time: number, start: number, control1: number, control2: number, end: number) {
+  const inverse = 1 - time;
+  return (
+    inverse ** 3 * start +
+    3 * inverse * inverse * time * control1 +
+    3 * inverse * time * time * control2 +
+    time ** 3 * end
   );
 }

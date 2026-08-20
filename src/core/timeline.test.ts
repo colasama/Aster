@@ -35,6 +35,31 @@ describe("time-addressable animation", () => {
       expect(property.keyframes.map(({ id }) => id)).toEqual(["early", "late"]);
   });
 
+  it("evaluates value-relative spatial Bezier handles after temporal easing", () => {
+    const property: Animatable = {
+      mode: "animated",
+      keyframes: [
+        {
+          id: "a",
+          time: 0,
+          value: 0,
+          interpolation: "linear",
+          spatialOut: 50,
+        },
+        {
+          id: "b",
+          time: 1,
+          value: 100,
+          interpolation: "linear",
+          spatialIn: -50,
+        },
+      ],
+    };
+
+    expect(evaluateAnimatable(property, 0.25)).toBeCloseTo(29.6875);
+    expect(evaluateAnimatable(property, 0.75)).toBeCloseTo(70.3125);
+  });
+
   it("round-trips fractional frame rates", () => {
     const rate = { numerator: 24_000, denominator: 1_001 };
     expect(frameAt(timeAtFrame(240, rate), rate)).toBe(240);

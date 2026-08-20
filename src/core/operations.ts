@@ -80,6 +80,8 @@ export type Operation =
       value: number;
       interpolation: Keyframe["interpolation"];
       easing?: Keyframe["easing"];
+      spatialIn?: number;
+      spatialOut?: number;
     }
   | { type: "removeKeyframe"; layerId: Id; path: PropertyPath; keyframeId: Id }
   | { type: "easeLayer"; layerId: Id }
@@ -334,6 +336,8 @@ export function applyOperation(project: Project, operation: Operation): void {
                 value: Number.isFinite(operation.value) ? operation.value : entry.value,
                 interpolation: operation.interpolation,
                 easing: operation.easing,
+                spatialIn: operation.spatialIn ?? entry.spatialIn,
+                spatialOut: operation.spatialOut ?? entry.spatialOut,
               }
             : entry,
         )

@@ -274,6 +274,7 @@ function validateLayer(value: unknown, path: string): asserts value is Layer {
   if (layer.timeStretch !== undefined)
     requirePositiveNumber(layer.timeStretch, `${path}.timeStretch`);
   if (layer.timeRemap !== undefined) validateAnimatable(layer.timeRemap, `${path}.timeRemap`);
+  validateTransform(layer.transform, `${path}.transform`);
   if (layer.material !== undefined) {
     const material = requireObject(layer.material, `${path}.material`);
     for (const field of ["metallic", "roughness", "emissive"])
@@ -438,6 +439,17 @@ function validateAsset(value: unknown, path: string): void {
     throw new Error(`${path}.dataUrl must be a bounded embedded data URL`);
 }
 
+function validateTransform(value: unknown, path: string): void {
+  const transform = requireObject(value, path);
+  for (const field of ["position", "rotation", "scale", "anchor"] as const) {
+    if (!Array.isArray(transform[field]) || transform[field].length !== 3)
+      throw new Error(`${path}.${field} must contain three animated properties`);
+    for (const [index, property] of transform[field].entries())
+      validateAnimatable(property, `${path}.${field}[${index}]`);
+  }
+  validateAnimatable(transform.opacity, `${path}.opacity`);
+}
+
 function validateBezierPath(value: unknown, path: string): void {
   const bezier = requireObject(value, path);
   if (typeof bezier.closed !== "boolean") throw new Error(`${path}.closed must be a boolean`);
@@ -474,8 +486,25 @@ function validateAnimatable(value: unknown, path: string): void {
     if (time < 0 || time <= previousTime) throw new Error(`${path}.keyframes must be sorted`);
     if (!["linear", "step", "bezier"].includes(String(keyframe.interpolation)))
       throw new Error(`${path}.keyframes has invalid interpolation`);
+    validateKeyframeHandles(keyframe, `${path}.keyframes[${index}]`);
     previousTime = time;
   }
+}
+
+function validateKeyframeHandles(keyframe: Record<string, unknown>, path: string): void {
+  if (
+    keyframe.easing !== undefined &&
+    (!Array.isArray(keyframe.easing) ||
+      keyframe.easing.length !== 4 ||
+      keyframe.easing.some((channel) => typeof channel !== "number" || !Number.isFinite(channel)))
+  )
+    throw new Error(`${path}.easing must contain four finite values`);
+  for (const field of ["spatialIn", "spatialOut"] as const)
+    if (
+      keyframe[field] !== undefined &&
+      (typeof keyframe[field] !== "number" || !Number.isFinite(keyframe[field]))
+    )
+      throw new Error(`${path}.${field} must be finite`);
 }
 
 function validateEffect(value: unknown, path: string): void {
@@ -528,6 +557,7 @@ function validateEffect(value: unknown, path: string): void {
             ))
         )
           throw new Error(`${path}.parameterKeyframes.${parameter} has invalid easing`);
+        validateKeyframeHandles(keyframe, `${path}.parameterKeyframes.${parameter}[${index}]`);
         previousTime = time;
       }
     }

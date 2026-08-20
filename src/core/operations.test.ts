@@ -339,7 +339,7 @@ describe("structured project operations", () => {
     expect(removedOpacity.mode === "animated" && removedOpacity.keyframes).toHaveLength(3);
   });
 
-  it("updates keyframe value and temporal handles atomically", () => {
+  it("updates keyframe value, temporal easing, and spatial handles atomically", () => {
     const source = createDemoProject();
     const layer = activeComposition(source).layers.find((entry) => entry.name === "ASTER");
     if (!layer) throw new Error("Expected ASTER layer");
@@ -356,6 +356,8 @@ describe("structured project operations", () => {
         value: 840,
         interpolation: "bezier",
         easing: [0.2, 0.1, 0.8, 0.9],
+        spatialIn: -120,
+        spatialOut: 80,
       },
     ]);
     const updated = activeComposition(next).layers.find((entry) => entry.id === layer.id);
@@ -366,6 +368,8 @@ describe("structured project operations", () => {
       time: 1.5,
       value: 840,
       easing: [0.2, 0.1, 0.8, 0.9],
+      spatialIn: -120,
+      spatialOut: 80,
     });
   });
 

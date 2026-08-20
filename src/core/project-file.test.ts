@@ -212,6 +212,35 @@ describe("project document boundary", () => {
     expect(() => validateProjectDocument(project)).toThrow("out of range");
   });
 
+  it("roundtrips finite spatial keyframe handles", () => {
+    const project = createBlankProject();
+    const opacity = {
+      mode: "animated" as const,
+      keyframes: [
+        {
+          id: "spatial-start",
+          time: 0,
+          value: 0,
+          interpolation: "linear" as const,
+          spatialOut: 40,
+        },
+        {
+          id: "spatial-end",
+          time: 1,
+          value: 100,
+          interpolation: "linear" as const,
+          spatialIn: -20,
+        },
+      ],
+    };
+    project.compositions[0].layers[0].transform.opacity = opacity;
+
+    const roundtrip = validateProjectDocument(JSON.parse(serializeProject(project)));
+    expect(roundtrip.compositions[0].layers[0].transform.opacity).toEqual(opacity);
+    opacity.keyframes[0].spatialOut = Number.NaN;
+    expect(() => validateProjectDocument(project)).toThrow("spatialOut must be finite");
+  });
+
   it("roundtrips multiline text typography", () => {
     const project = createBlankProject();
     const composition = project.compositions[0];
