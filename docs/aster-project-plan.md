@@ -1098,22 +1098,22 @@ aster/
 
 ## 18.3 Dependency Graph / Incremental Evaluation
 
-- [ ] 创建 Dependency Node 数据结构。
+- [x] 创建 Dependency Node 数据结构。
 - [ ] 定义 Property dependency。
 - [ ] 定义 Layer dependency。
 - [ ] 定义 Effect dependency。
 - [ ] 定义 Composition dependency。
-- [ ] 实现 dirty flag。
-- [ ] 实现 dirty propagation。
-- [ ] 防止依赖环。
-- [ ] 实现 dependency graph validation。
-- [ ] 实现 node cache。
-- [ ] 定义 cache key。
-- [ ] 定义 time-dependent cache key。
-- [ ] 定义 resolution-dependent cache key。
-- [ ] 实现 cache invalidation。
-- [ ] 实现 cache statistics。
-- [ ] 显示当前重算 Node 数量。
+- [x] 实现 dirty flag。
+- [x] 实现 dirty propagation。
+- [x] 防止依赖环。
+- [x] 实现 dependency graph validation。
+- [x] 实现 node cache。
+- [x] 定义 cache key。
+- [x] 定义 time-dependent cache key。
+- [x] 定义 resolution-dependent cache key。
+- [x] 实现 cache invalidation。
+- [x] 实现 cache statistics。
+- [x] 显示当前重算 Node 数量。
 - [ ] 创建增量渲染 benchmark。
 
 ---

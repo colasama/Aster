@@ -1,4 +1,3 @@
-import { evaluateWorldTransform, flattenSceneLayers } from "../core/scene-evaluation";
 import type {
   BlendMode,
   Composition,
@@ -8,10 +7,11 @@ import type {
   RendererMetrics,
 } from "../core/types";
 import { FLOATS_PER_EFFECT_OPERATION, MAX_EFFECT_OPERATIONS } from "./effect-program";
-import { buildSceneGeometry, FLOATS_PER_VERTEX, type GeometryBatch } from "./geometry";
+import { FLOATS_PER_VERTEX, type GeometryBatch } from "./geometry";
 import { LayerEffectRenderer } from "./layer-effects";
 import { createLutSampler, createLutTexture } from "./lut-texture";
 import { buildPostProcessUniforms } from "./post-process";
+import { SceneEvaluationCache } from "./scene-evaluation-cache";
 import {
   imageShader,
   particleComputeShader,
@@ -75,6 +75,7 @@ export class WebGpuRenderer {
   #shapeBufferBytes = MAX_SHAPE_VERTICES * FLOATS_PER_VERTEX * Float32Array.BYTES_PER_ELEMENT;
   readonly #invalidate: () => void;
   readonly #mediaResources = new Map<string, MediaResource>();
+  readonly #evaluationCache = new SceneEvaluationCache();
 
   private constructor(
     device: GPUDevice,
@@ -282,10 +283,14 @@ export class WebGpuRenderer {
     const started = performance.now();
     const frameInterval = this.#lastFrameStarted ? started - this.#lastFrameStarted : 16.67;
     this.#lastFrameStarted = started;
-    const sceneLayers = flattenSceneLayers(composition, project, time);
-    const cameraLayer = composition.layers.find((layer) => layer.kind === "camera");
-    const camera = cameraLayer ? evaluateWorldTransform(cameraLayer, composition, time) : undefined;
-    const geometry = buildSceneGeometry(composition, sceneLayers, camera);
+    const evaluation = this.#evaluationCache.evaluate(
+      composition,
+      project,
+      time,
+      this.#width,
+      this.#height,
+    );
+    const { sceneLayers, geometry } = evaluation;
     if (geometry.data.length > 0) {
       this.#ensureShapeBuffer(geometry.data.byteLength);
       this.#device.queue.writeBuffer(this.#shapeBuffer, 0, geometry.data);
@@ -488,8 +493,8 @@ export class WebGpuRenderer {
       gpuMs: this.#lastGpuMs,
       drawCalls: 1 + geometry.batches.length + effectLayerCount * 2 + Number(particleVisible),
       passCount: 3 + scenePassCount + effectLayerCount * 3,
-      dirtyNodes: sceneLayers.length + effectOperationCount,
-      cacheHitRate: 0.86,
+      dirtyNodes: (evaluation.cacheHit ? 0 : sceneLayers.length) + effectOperationCount,
+      cacheHitRate: this.#evaluationCache.hitRate(),
       estimatedVramMb: (hdr4kBytes + PARTICLE_COUNT * 16) / 1024 / 1024,
     };
   }

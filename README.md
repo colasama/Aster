@@ -30,7 +30,8 @@ frames. Rendering, effects, particles, and composition are designed to remain GP
 - Data-driven catalog of 266 blur, color, channel, distort, generate, stylize, keying, time,
   transition, simulation, matte, perspective, layer-style, noise, immersive-video, and Looks effects,
   including 264 ordered GPU opcodes.
-  opcodes.
+- Bounded incremental scene evaluation caches flattened layers and geometry by project revision,
+  rationalized time, and preview resolution; the profiler reports real cache hits and dirty work.
 - Professional channel and keying tools include Set Channels, Arithmetic, Alpha Levels, Remove
   Color Matting, Linear Color Key, Color Range, Matte Choker, and GPU Keylight.
 - GPU channel utilities include alpha shifting, component-space conversion, straight-alpha solid

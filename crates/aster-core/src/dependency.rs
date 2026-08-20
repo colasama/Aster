@@ -70,6 +70,10 @@ impl DependencyGraph {
         Ok(dirty_order)
     }
 
+    pub fn dirty_nodes(&self) -> impl Iterator<Item = NodeId> + '_ {
+        self.dirty.iter().copied()
+    }
+
     pub fn topological_order(&self) -> Result<Vec<NodeId>, DependencyError> {
         let mut pending: HashMap<_, _> = self
             .dependencies
