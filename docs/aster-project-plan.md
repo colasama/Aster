@@ -1359,7 +1359,7 @@ aster/
 - [x] Roughness。
 - [ ] Normal Map。
 - [x] Emissive。
-- [ ] Alpha mode。
+- [x] Alpha mode。
 - [ ] Environment lighting prototype。
 - [ ] HDR environment support。
 

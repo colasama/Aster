@@ -29,7 +29,18 @@ interface GltfDocument {
       attributes: Record<string, number>;
       indices?: number;
       mode?: number;
+      material?: number;
     }>;
+  }>;
+  materials?: Array<{
+    pbrMetallicRoughness?: {
+      baseColorFactor?: number[];
+      metallicFactor?: number;
+      roughnessFactor?: number;
+    };
+    emissiveFactor?: number[];
+    alphaMode?: string;
+    alphaCutoff?: number;
   }>;
 }
 
@@ -42,6 +53,8 @@ export async function createGltfLayerFromFile(
   const layer = createLayerForComposition("mesh", composition, currentTime);
   layer.name = mesh.name;
   layer.mesh = mesh;
+  if (mesh.sourceMaterial) layer.material = mesh.sourceMaterial;
+  if (mesh.baseColor) layer.color = mesh.baseColor;
   return layer;
 }
 
@@ -112,13 +125,57 @@ export function parseGltfAsset(source: ArrayBuffer, name: string): MeshAsset {
     throw new Error("glTF NORMAL count does not match POSITION count");
   if (uvs.length !== vertexCount * 2)
     throw new Error("glTF TEXCOORD_0 count does not match POSITION count");
+  const sourceMaterial = readMaterial(document, primitive.material);
   return {
     name: mesh.name?.trim() || name.replace(/\.(?:gltf|glb)$/i, "") || "Imported Mesh",
     positions,
     normals: normals.length > 0 ? normals : generateNormals(positions, indices),
     uvs,
     indices,
+    sourceMaterial: sourceMaterial.material,
+    baseColor: sourceMaterial.baseColor,
   };
+}
+
+function readMaterial(
+  document: GltfDocument,
+  materialIndex: number | undefined,
+): {
+  material: MeshAsset["sourceMaterial"];
+  baseColor: NonNullable<MeshAsset["baseColor"]>;
+} {
+  const source = materialIndex === undefined ? undefined : document.materials?.[materialIndex];
+  if (materialIndex !== undefined && !source)
+    throw new Error("glTF primitive references a missing material");
+  const pbr = source?.pbrMetallicRoughness;
+  const baseColor = boundedVector(pbr?.baseColorFactor, 4, [1, 1, 1, 1]);
+  const emissive = boundedVector(source?.emissiveFactor, 3, [0, 0, 0]);
+  const alphaMode = (source?.alphaMode ?? "OPAQUE").toUpperCase();
+  if (alphaMode !== "OPAQUE" && alphaMode !== "MASK" && alphaMode !== "BLEND")
+    throw new Error(`glTF alpha mode ${alphaMode} is unsupported`);
+  return {
+    baseColor: baseColor as [number, number, number, number],
+    material: {
+      metallic: boundedScalar(pbr?.metallicFactor, 1),
+      roughness: boundedScalar(pbr?.roughnessFactor, 1),
+      emissive: Math.max(...emissive),
+      alphaMode: alphaMode.toLowerCase() as "opaque" | "mask" | "blend",
+      alphaCutoff: boundedScalar(source?.alphaCutoff, 0.5),
+    },
+  };
+}
+
+function boundedVector(source: number[] | undefined, length: number, fallback: number[]): number[] {
+  if (source === undefined) return fallback;
+  if (source.length !== length || source.some((value) => !Number.isFinite(value)))
+    throw new Error("glTF material factor is invalid");
+  return source.map((value) => Math.max(0, Math.min(1, value)));
+}
+
+function boundedScalar(source: number | undefined, fallback: number): number {
+  if (source === undefined) return fallback;
+  if (!Number.isFinite(source)) throw new Error("glTF material factor is invalid");
+  return Math.max(0, Math.min(1, source));
 }
 
 function parseGlb(bytes: Uint8Array): { document: GltfDocument; binaryChunk?: Uint8Array } {

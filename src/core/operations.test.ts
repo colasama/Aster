@@ -52,7 +52,13 @@ describe("structured project operations", () => {
       {
         type: "setMaterial3d",
         layerId: mesh.id,
-        material: { metallic: 1.4, roughness: -0.2, emissive: 3 },
+        material: {
+          metallic: 1.4,
+          roughness: -0.2,
+          emissive: 3,
+          alphaMode: "mask",
+          alphaCutoff: 2,
+        },
       },
       {
         type: "setLightSettings",
@@ -72,6 +78,8 @@ describe("structured project operations", () => {
       metallic: 1,
       roughness: 0.04,
       emissive: 3,
+      alphaMode: "mask",
+      alphaCutoff: 1,
     });
     expect(activeComposition(next).layers.find((layer) => layer.id === light.id)).toMatchObject({
       light: {

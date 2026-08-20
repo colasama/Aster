@@ -189,6 +189,11 @@ function validateLayer(value: unknown, path: string): asserts value is Layer {
     const material = requireObject(layer.material, `${path}.material`);
     for (const field of ["metallic", "roughness", "emissive"])
       requireFiniteNumber(material[field], `${path}.material.${field}`);
+    if (!["opaque", "mask", "blend"].includes(String(material.alphaMode)))
+      throw new Error(`${path}.material.alphaMode is invalid`);
+    const alphaCutoff = requireFiniteNumber(material.alphaCutoff, `${path}.material.alphaCutoff`);
+    if (alphaCutoff < 0 || alphaCutoff > 1)
+      throw new Error(`${path}.material.alphaCutoff must be between 0 and 1`);
   }
   if (layer.light !== undefined) {
     const light = requireObject(layer.light, `${path}.light`);
@@ -231,6 +236,18 @@ function validateLayer(value: unknown, path: string): asserts value is Layer {
       )
     )
       throw new Error(`${path}.mesh.indices reference missing vertices`);
+    if (mesh.sourceMaterial !== undefined) {
+      const material = requireObject(mesh.sourceMaterial, `${path}.mesh.sourceMaterial`);
+      for (const field of ["metallic", "roughness", "emissive", "alphaCutoff"])
+        requireFiniteNumber(material[field], `${path}.mesh.sourceMaterial.${field}`);
+      if (!["opaque", "mask", "blend"].includes(String(material.alphaMode)))
+        throw new Error(`${path}.mesh.sourceMaterial.alphaMode is invalid`);
+    }
+    if (mesh.baseColor !== undefined) {
+      requireNumberArray(mesh.baseColor, `${path}.mesh.baseColor`, 4);
+      if ((mesh.baseColor as number[]).length !== 4)
+        throw new Error(`${path}.mesh.baseColor must contain four channels`);
+    }
   }
   if (layer.particle !== undefined) {
     const particle = requireObject(layer.particle, `${path}.particle`);

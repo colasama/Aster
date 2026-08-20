@@ -9,6 +9,9 @@ describe("GPU scene geometry", () => {
     const project = createBlankProject();
     const composition = project.compositions[0];
     const mesh = createLayerForComposition("mesh", composition);
+    if (!mesh.material) throw new Error("Expected mesh material");
+    mesh.material.alphaMode = "mask";
+    mesh.material.alphaCutoff = 0.42;
     composition.layers = [mesh];
     const flatGeometry = buildSceneGeometry(
       composition,
@@ -29,6 +32,8 @@ describe("GPU scene geometry", () => {
     expect(projected[1]).not.toBeCloseTo(flat[1]);
     expect(projected[VERTEX_FLOAT_OFFSETS.material + 3]).toBe(1);
     expect(projected[VERTEX_FLOAT_OFFSETS.worldPosition + 2]).not.toBe(0);
+    expect(projected[VERTEX_FLOAT_OFFSETS.gradientStyleParameters]).toBe(1);
+    expect(projected[VERTEX_FLOAT_OFFSETS.gradientStyleParameters + 1]).toBeCloseTo(0.42);
   });
 
   it("projects 3D geometry relative to the active camera transform", () => {

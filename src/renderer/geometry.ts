@@ -94,10 +94,11 @@ export function buildSceneGeometry(
       layer.kind === "text" ? 1 : Math.min(4, layer.color[2]),
       layer.color[3] * transform.opacity,
     ] as const;
+    const layerMaterial = layer.material ?? layer.mesh?.sourceMaterial;
     const material = [
-      layer.material?.metallic ?? 0.12,
-      layer.material?.roughness ?? 0.48,
-      layer.material?.emissive ?? 0,
+      layerMaterial?.metallic ?? 0.12,
+      layerMaterial?.roughness ?? 0.48,
+      layerMaterial?.emissive ?? 0,
       Number(layer.threeDimensional || layer.kind === "mesh"),
     ] as const;
     const width = (layer.size[0] * transform.scale[0]) / 100;
@@ -107,7 +108,10 @@ export function buildSceneGeometry(
       layer.shape?.kind ??
       (layer.kind === "shape" && layer.size[0] === layer.size[1] ? "ellipse" : "rectangle");
     const minimumDimension = Math.max(1, Math.min(Math.abs(width), Math.abs(height)));
-    const shapeStyleColor = layer.shape?.strokeColor ?? ([1, 1, 1, 1] as const);
+    const shapeStyleColor =
+      layer.kind === "mesh"
+        ? ([1, 1, 1, layer.mesh?.baseColor?.[3] ?? 1] as const)
+        : (layer.shape?.strokeColor ?? ([1, 1, 1, 1] as const));
     const shapeStyleParameters = [
       layer.kind === "shape" ? ((layer.shape?.strokeWidth ?? 0) / minimumDimension) * 2 : 0,
       layer.kind === "shape" ? Math.min(0.49, (layer.shape?.roundness ?? 0) / minimumDimension) : 0,
@@ -122,8 +126,20 @@ export function buildSceneGeometry(
     ] as const;
     const gradientStyleColor = layer.shape?.gradientColor ?? ([0, 0, 0, 1] as const);
     const gradientStyleParameters = [
-      layer.shape?.fillMode === "linear" ? 1 : layer.shape?.fillMode === "radial" ? 2 : 0,
-      toRadians(layer.shape?.gradientAngle ?? 0),
+      layer.kind === "mesh"
+        ? layerMaterial?.alphaMode === "mask"
+          ? 1
+          : layerMaterial?.alphaMode === "blend"
+            ? 2
+            : 0
+        : layer.shape?.fillMode === "linear"
+          ? 1
+          : layer.shape?.fillMode === "radial"
+            ? 2
+            : 0,
+      layer.kind === "mesh"
+        ? (layerMaterial?.alphaCutoff ?? 0.5)
+        : toRadians(layer.shape?.gradientAngle ?? 0),
       (layer.shape?.dashLength ?? 0) / Math.max(Math.abs(width), 1),
       (layer.shape?.dashGap ?? 0) / Math.max(Math.abs(width), 1),
     ] as const;

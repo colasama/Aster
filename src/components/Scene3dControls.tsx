@@ -10,8 +10,8 @@ import { useEditor } from "../state/editor-store";
 export function Scene3dControls({ layer }: { layer: Layer }) {
   const { dispatch } = useEditor();
 
-  const updateMaterial = (field: keyof Material3d, value: number) => {
-    if (!Number.isFinite(value)) return;
+  const updateMaterial = (field: keyof Material3d, value: number | string) => {
+    if (typeof value === "number" && !Number.isFinite(value)) return;
     dispatch({
       type: "operation",
       operations: [
@@ -22,6 +22,8 @@ export function Scene3dControls({ layer }: { layer: Layer }) {
             metallic: layer.material?.metallic ?? 0.18,
             roughness: layer.material?.roughness ?? 0.42,
             emissive: layer.material?.emissive ?? 0,
+            alphaMode: layer.material?.alphaMode ?? "opaque",
+            alphaCutoff: layer.material?.alphaCutoff ?? 0.5,
             [field]: value,
           },
         },
@@ -118,6 +120,28 @@ export function Scene3dControls({ layer }: { layer: Layer }) {
           step={0.05}
           value={layer.material?.emissive ?? 0}
         />
+        <label>
+          Alpha mode
+          <select
+            aria-label="Alpha mode"
+            onChange={(event) => updateMaterial("alphaMode", event.target.value)}
+            value={layer.material?.alphaMode ?? "opaque"}
+          >
+            <option value="opaque">Opaque</option>
+            <option value="mask">Mask</option>
+            <option value="blend">Blend</option>
+          </select>
+        </label>
+        {(layer.material?.alphaMode ?? "opaque") === "mask" && (
+          <NumericControl
+            label="Alpha cutoff"
+            max={1}
+            min={0}
+            onChange={(value) => updateMaterial("alphaCutoff", value)}
+            step={0.01}
+            value={layer.material?.alphaCutoff ?? 0.5}
+          />
+        )}
       </>
     );
   }

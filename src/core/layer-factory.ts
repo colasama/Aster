@@ -36,7 +36,16 @@ export function createLayerForComposition(
     size: isCamera ? [0, 0] : isText ? [1200, 260] : [720, 720],
     transform: createTransform([composition.width / 2, composition.height / 2, 0]),
     effects: [],
-    material: kind === "mesh" ? { metallic: 0.18, roughness: 0.42, emissive: 0 } : undefined,
+    material:
+      kind === "mesh"
+        ? {
+            metallic: 0.18,
+            roughness: 0.42,
+            emissive: 0,
+            alphaMode: "opaque",
+            alphaCutoff: 0.5,
+          }
+        : undefined,
     light:
       kind === "light"
         ? {

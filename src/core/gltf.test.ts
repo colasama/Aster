@@ -17,6 +17,14 @@ describe("bounded glTF mesh import", () => {
     expect(mesh.positions).toHaveLength(9);
     expect(mesh.indices).toEqual([0, 1, 2]);
     expect(mesh.normals).toEqual([0, 0, 1, 0, 0, 1, 0, 0, 1]);
+    expect(mesh.baseColor).toEqual([0.2, 0.4, 0.8, 0.35]);
+    expect(mesh.sourceMaterial).toEqual({
+      metallic: 0.7,
+      roughness: 0.25,
+      emissive: 0.3,
+      alphaMode: "blend",
+      alphaCutoff: 0.4,
+    });
   });
 
   it("loads the same primitive from a GLB binary chunk", () => {
@@ -67,6 +75,20 @@ function triangleDocument(uri: string | undefined) {
       { bufferView: 0, componentType: 5126, count: 3, type: "VEC3" },
       { bufferView: 1, componentType: 5123, count: 3, type: "SCALAR" },
     ],
-    meshes: [{ name: "Triangle", primitives: [{ attributes: { POSITION: 0 }, indices: 1 }] }],
+    materials: [
+      {
+        pbrMetallicRoughness: {
+          baseColorFactor: [0.2, 0.4, 0.8, 0.35],
+          metallicFactor: 0.7,
+          roughnessFactor: 0.25,
+        },
+        emissiveFactor: [0.1, 0.3, 0.2],
+        alphaMode: "BLEND",
+        alphaCutoff: 0.4,
+      },
+    ],
+    meshes: [
+      { name: "Triangle", primitives: [{ attributes: { POSITION: 0 }, indices: 1, material: 0 }] },
+    ],
   };
 }

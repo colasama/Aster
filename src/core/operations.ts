@@ -169,6 +169,8 @@ export function applyOperation(project: Project, operation: Operation): void {
         metallic: clamp01(operation.material.metallic),
         roughness: Math.max(0.04, clamp01(operation.material.roughness)),
         emissive: clamp(operation.material.emissive, 0, 16),
+        alphaMode: operation.material.alphaMode,
+        alphaCutoff: clamp01(operation.material.alphaCutoff),
       };
       break;
     case "setLightSettings":

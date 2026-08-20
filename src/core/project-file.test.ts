@@ -85,7 +85,13 @@ describe("project document boundary", () => {
     const composition = project.compositions[0];
     const mesh = createLayerForComposition("mesh", composition);
     const light = createLayerForComposition("light", composition);
-    mesh.material = { metallic: 0.8, roughness: 0.2, emissive: 1.5 };
+    mesh.material = {
+      metallic: 0.8,
+      roughness: 0.2,
+      emissive: 1.5,
+      alphaMode: "blend",
+      alphaCutoff: 0.35,
+    };
     light.light = {
       kind: "spot",
       intensity: 6,

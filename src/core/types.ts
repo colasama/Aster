@@ -107,6 +107,8 @@ export interface Material3d {
   metallic: number;
   roughness: number;
   emissive: number;
+  alphaMode: "opaque" | "mask" | "blend";
+  alphaCutoff: number;
 }
 
 export interface LightSettings {
@@ -129,6 +131,8 @@ export interface MeshAsset {
   normals: number[];
   uvs: number[];
   indices: number[];
+  sourceMaterial?: Material3d;
+  baseColor?: [number, number, number, number];
 }
 
 export interface ParticleSettings {
