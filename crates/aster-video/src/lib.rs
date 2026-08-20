@@ -10,6 +10,13 @@ use std::sync::Arc;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
+mod ffmpeg;
+
+pub use ffmpeg::{
+    CancellationToken, DecodeLimits, FfmpegBackend, FfmpegCommand, FfmpegError, FfprobeBackend,
+    FfprobeCommand, FfprobeError, ProbeLimits, parse_ffprobe_json,
+};
+
 const MAX_PROBE_BYTES: usize = 1024 * 1024;
 const MAX_STREAMS: usize = 128;
 const MAX_DIMENSION: u32 = 32_768;
