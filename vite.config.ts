@@ -9,6 +9,44 @@ const host = process.env.TAURI_DEV_HOST;
 export default defineConfig(() => ({
   plugins: [react()],
 
+  build: {
+    rolldownOptions: {
+      output: {
+        codeSplitting: {
+          groups: [
+            {
+              name: "react-runtime",
+              test: /node_modules[\\/](?:react|react-dom|scheduler)[\\/]/,
+              priority: 30,
+            },
+            {
+              name: "tauri-runtime",
+              test: /node_modules[\\/]@tauri-apps[\\/]/,
+              priority: 20,
+            },
+            {
+              name: "icon-library",
+              test: /node_modules[\\/]lucide-react[\\/]/,
+              priority: 20,
+            },
+            {
+              name: "effect-catalog",
+              test: /src[\\/](?:effects|renderer[\\/]ae-effect-shader-cases)\b/,
+              priority: 10,
+              includeDependenciesRecursively: false,
+            },
+            {
+              name: "gpu-runtime",
+              test: /src[\\/]renderer[\\/]/,
+              priority: 5,
+              includeDependenciesRecursively: false,
+            },
+          ],
+        },
+      },
+    },
+  },
+
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   //
   // 1. prevent Vite from obscuring rust errors
