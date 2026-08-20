@@ -28,6 +28,7 @@ editor operation until it has an explicit normalizer and permission review.
 | `addEffect` | `layerId`, `effectType`; optional parameters | Creates a registered GPU effect. |
 | `removeEffect` | `layerId`, `effectId` | Removes an effect owned by the target layer. |
 | `setEffectParameter` | `layerId`, `effectId`, `parameter`, `value` | Sets a finite parameter on an owned effect. |
+| `setTextAnimator` | `layerId`; optional animator fields | Enables and configures bounded per-character delay, transform, and opacity. |
 
 The public `AI_OPERATION_TYPES` catalog drives both the provider system prompt and the function-tool
 enum, preventing those boundaries from drifting. The frontend still normalizes IDs, property paths,

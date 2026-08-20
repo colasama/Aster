@@ -15,6 +15,7 @@ import { buildAiContext } from "../core/ai-context";
 import { createLayerForComposition } from "../core/layer-factory";
 import type { Operation, PropertyPath } from "../core/operations";
 import { activeComposition } from "../core/project";
+import { createDefaultTextAnimator, normalizeTextAnimatorSettings } from "../core/text-animator";
 import { type Composition, createId, type LayerKind } from "../core/types";
 import { createEffect, EFFECT_BY_TYPE } from "../effects/registry";
 import { useEditor } from "../state/editor-store";
@@ -337,6 +338,8 @@ function describeOperation(operation: Operation, composition: Composition): stri
       return `${target} · ${operation.parameter} → ${String(operation.value)}`;
     case "toggleLayer":
       return `${target} · toggle ${operation.field}`;
+    case "setTextAnimator":
+      return `${target} · character stagger → ${operation.textAnimator.stagger.toFixed(2)}s`;
     default:
       return `${target} · structured project change`;
   }
@@ -480,7 +483,36 @@ function normalizeOperations(
           parameter: input.parameter,
           value: input.value,
         });
+    } else if (input.type === "setTextAnimator") {
+      const layer = composition.layers.find((candidate) => candidate.id === layerId);
+      if (layer?.kind !== "text") continue;
+      const current = layer.textAnimator ?? createDefaultTextAnimator(true);
+      const position = finitePair(input.position) ?? current.position;
+      supported.push({
+        type: "setTextAnimator",
+        layerId,
+        textAnimator: normalizeTextAnimatorSettings({
+          ...current,
+          enabled: typeof input.enabled === "boolean" ? input.enabled : true,
+          delay: finiteNumber(input.delay) ?? current.delay,
+          stagger: finiteNumber(input.stagger) ?? current.stagger,
+          duration: finiteNumber(input.duration) ?? current.duration,
+          position,
+          scale: finiteNumber(input.scale) ?? current.scale,
+          opacity: finiteNumber(input.opacity) ?? current.opacity,
+        }),
+      });
     }
   }
   return supported;
+}
+
+function finiteNumber(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+function finitePair(value: unknown): [number, number] | undefined {
+  if (!Array.isArray(value) || value.length !== 2) return undefined;
+  const pair = value.map(finiteNumber);
+  return pair.every((entry) => entry !== undefined) ? (pair as [number, number]) : undefined;
 }

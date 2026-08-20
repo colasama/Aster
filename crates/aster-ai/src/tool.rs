@@ -4,7 +4,7 @@ use thiserror::Error;
 
 use crate::provider::GeneratedPlan;
 
-pub const AI_OPERATION_TYPES: [&str; 10] = [
+pub const AI_OPERATION_TYPES: [&str; 11] = [
     "addLayer",
     "removeLayer",
     "renameLayer",
@@ -15,6 +15,7 @@ pub const AI_OPERATION_TYPES: [&str; 10] = [
     "addEffect",
     "removeEffect",
     "setEffectParameter",
+    "setTextAnimator",
 ];
 
 #[derive(Clone, Debug, Serialize)]
