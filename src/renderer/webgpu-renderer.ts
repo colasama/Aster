@@ -15,6 +15,7 @@ import { createLutSampler, createLutTexture } from "./lut-texture";
 import { buildPostProcessUniforms } from "./post-process";
 import { SceneEvaluationCache } from "./scene-evaluation-cache";
 import { buildSceneLighting, SCENE_LIGHTING_BYTES } from "./scene-lighting";
+import { createImagePipelines, createShapePipelines } from "./scene-pipelines";
 import {
   imageShader,
   particleComputeShader,
@@ -112,13 +113,11 @@ export class WebGpuRenderer {
       layout: this.#lightingBindGroupLayout,
       entries: [{ binding: 0, resource: { buffer: this.#lightingBuffer } }],
     });
-    this.#shapePipelines = {
-      normal: this.#createShapePipeline("normal"),
-      add: this.#createShapePipeline("add"),
-      multiply: this.#createShapePipeline("multiply"),
-      screen: this.#createShapePipeline("screen"),
-      overlay: this.#createShapePipeline("overlay"),
-    };
+    this.#shapePipelines = createShapePipelines(
+      device,
+      SCENE_FORMAT,
+      this.#lightingBindGroupLayout,
+    );
     this.#imageBindGroupLayout = device.createBindGroupLayout({
       label: "Imported media texture layout",
       entries: [
@@ -134,13 +133,7 @@ export class WebGpuRenderer {
         },
       ],
     });
-    this.#imagePipelines = {
-      normal: this.#createImagePipeline("normal"),
-      add: this.#createImagePipeline("add"),
-      multiply: this.#createImagePipeline("multiply"),
-      screen: this.#createImagePipeline("screen"),
-      overlay: this.#createImagePipeline("overlay"),
-    };
+    this.#imagePipelines = createImagePipelines(device, SCENE_FORMAT, this.#imageBindGroupLayout);
     this.#particleBuffer = device.createBuffer({
       label: "GPU particle storage · 100K",
       size: PARTICLE_COUNT * 16,
@@ -768,99 +761,6 @@ export class WebGpuRenderer {
     }
   }
 
-  #createShapePipeline(blendMode: BlendMode): GPURenderPipeline {
-    const module = this.#device.createShaderModule({
-      label: "Fused shape/color effect",
-      code: shapeShader,
-    });
-    return this.#device.createRenderPipeline({
-      label: `GPU-resident ${blendMode} layer composite`,
-      layout: this.#device.createPipelineLayout({
-        label: "GPU-lit shape pipeline layout",
-        bindGroupLayouts: [this.#lightingBindGroupLayout],
-      }),
-      vertex: {
-        module,
-        entryPoint: "vertex_main",
-        buffers: [
-          {
-            arrayStride: FLOATS_PER_VERTEX * 4,
-            attributes: [
-              { shaderLocation: 0, offset: 0, format: "float32x3" },
-              { shaderLocation: 1, offset: 12, format: "float32x2" },
-              { shaderLocation: 2, offset: 20, format: "float32x4" },
-              { shaderLocation: 3, offset: 36, format: "float32" },
-              { shaderLocation: 4, offset: 40, format: "float32x3" },
-              { shaderLocation: 5, offset: 52, format: "float32x4" },
-              { shaderLocation: 6, offset: 68, format: "float32x3" },
-            ],
-          },
-        ],
-      },
-      fragment: {
-        module,
-        entryPoint: "fragment_main",
-        targets: [
-          {
-            format: SCENE_FORMAT,
-            blend: blendState(blendMode),
-          },
-        ],
-      },
-      primitive: { topology: "triangle-list", cullMode: "none" },
-      depthStencil: {
-        format: "depth24plus",
-        depthWriteEnabled: true,
-        depthCompare: "less-equal",
-      },
-    });
-  }
-
-  #createImagePipeline(blendMode: BlendMode): GPURenderPipeline {
-    const module = this.#device.createShaderModule({
-      label: "Imported image shader",
-      code: imageShader,
-    });
-    return this.#device.createRenderPipeline({
-      label: `GPU-resident ${blendMode} sRGB media layer`,
-      layout: this.#device.createPipelineLayout({
-        label: "Imported media pipeline layout",
-        bindGroupLayouts: [this.#imageBindGroupLayout],
-      }),
-      vertex: {
-        module,
-        entryPoint: "vertex_main",
-        buffers: [
-          {
-            arrayStride: FLOATS_PER_VERTEX * 4,
-            attributes: [
-              { shaderLocation: 0, offset: 0, format: "float32x3" },
-              { shaderLocation: 1, offset: 12, format: "float32x2" },
-              { shaderLocation: 2, offset: 20, format: "float32x4" },
-              { shaderLocation: 3, offset: 36, format: "float32" },
-            ],
-          },
-        ],
-      },
-      fragment: {
-        module,
-        entryPoint: "fragment_main",
-        targets: [
-          {
-            format: SCENE_FORMAT,
-            blend: blendState(blendMode),
-          },
-        ],
-      },
-      primitive: { topology: "triangle-list", cullMode: "none" },
-      depthStencil: {
-        format: "depth24plus",
-        depthWriteEnabled: true,
-        depthCompare: "less-equal",
-      },
-    });
-  }
-
   #createParticlePipeline(): GPURenderPipeline {
     const module = this.#device.createShaderModule({
       label: "Particle billboard shader",
@@ -931,25 +831,4 @@ async function validateShaderSources(device: GPUDevice): Promise<void> {
       throw new Error(`WebGPU ${label} shader compilation failed:\n${details}`);
     }
   }
-}
-
-function blendState(mode: BlendMode): GPUBlendState {
-  const alpha: GPUBlendComponent = {
-    srcFactor: "one",
-    dstFactor: "one-minus-src-alpha",
-    operation: "add",
-  };
-  if (mode === "add")
-    return { color: { srcFactor: "one", dstFactor: "one", operation: "add" }, alpha };
-  if (mode === "multiply")
-    return { color: { srcFactor: "dst", dstFactor: "zero", operation: "add" }, alpha };
-  if (mode === "screen")
-    return {
-      color: { srcFactor: "one", dstFactor: "one-minus-src", operation: "add" },
-      alpha,
-    };
-  return {
-    color: { srcFactor: "one", dstFactor: "one-minus-src-alpha", operation: "add" },
-    alpha,
-  };
 }
