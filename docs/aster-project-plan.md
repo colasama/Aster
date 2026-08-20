@@ -1740,27 +1740,27 @@ aster/
 - [ ] Example project repository。
 - [ ] Example shader repository。
 - [ ] Contributor recognition policy。
-- [ ] Release notes template。
+- [x] Release notes template。
 
 ---
 
 ## 18.18 M6 — Distribution / Ecosystem
 
-- [ ] Windows installer。
-- [ ] macOS package。
-- [ ] Linux AppImage / Flatpak strategy。
-- [ ] Auto-update strategy。
-- [ ] Crash reporting opt-in design。
+- [x] Windows installer。
+- [x] macOS package。
+- [x] Linux AppImage / Flatpak strategy。
+- [x] Auto-update strategy。
+- [x] Crash reporting opt-in design。
 - [x] Plugin directory convention。
 - [x] Plugin search UI。
 - [x] Plugin install UI。
 - [x] Plugin update UI。
-- [ ] Plugin signature / trust research。
+- [x] Plugin signature / trust research。
 - [ ] Plugin Registry prototype。
 - [ ] Example plugin CI template。
-- [ ] Stable Plugin API v1 criteria。
-- [ ] Stable Project Spec v1 criteria。
-- [ ] Semantic version compatibility rules。
+- [x] Stable Plugin API v1 criteria。
+- [x] Stable Project Spec v1 criteria。
+- [x] Semantic version compatibility rules。
 
 ---
 
