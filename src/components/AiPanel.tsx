@@ -27,7 +27,11 @@ const suggestions = [
 export function AiPanel() {
   const { state, dispatch } = useEditor();
   const [prompt, setPrompt] = useState("");
-  const [preview, setPreview] = useState<{ summary: string; operations: Operation[] }>();
+  const [preview, setPreview] = useState<{
+    summary: string;
+    operations: Operation[];
+    included: boolean[];
+  }>();
   const [providerOpen, setProviderOpen] = useState(false);
   const [provider, setProvider] = useState({
     baseUrl: "https://88996api.cloud/v1",
@@ -78,7 +82,11 @@ export function AiPanel() {
         );
         if (operations.length === 0)
           throw new Error("The provider returned no supported operations");
-        setPreview({ summary: generated.summary, operations });
+        setPreview({
+          summary: generated.summary,
+          operations,
+          included: operations.map(() => true),
+        });
         setPrompt("");
         return;
       } catch (providerError) {
@@ -129,7 +137,11 @@ export function AiPanel() {
         },
       );
     }
-    setPreview({ summary: intent || "Animate selected layer", operations });
+    setPreview({
+      summary: intent || "Animate selected layer",
+      operations,
+      included: operations.map(() => true),
+    });
     setPrompt("");
   };
   const composition = activeComposition(state.project);
@@ -224,16 +236,50 @@ export function AiPanel() {
           <p>{preview.summary}</p>
           <div className="operation-list">
             {preview.operations.map((operation, index) => (
-              <div key={JSON.stringify(operation)}>
+              <div
+                className={preview.included[index] ? "" : "excluded"}
+                key={JSON.stringify(operation)}
+              >
+                <input
+                  aria-label={`Include operation ${index + 1}`}
+                  checked={preview.included[index]}
+                  onChange={() =>
+                    setPreview({
+                      ...preview,
+                      included: preview.included.map((included, candidate) =>
+                        candidate === index ? !included : included,
+                      ),
+                    })
+                  }
+                  type="checkbox"
+                />
                 <span>{index + 1}</span>
-                <code>{operation.type}</code>
-                <Check size={12} />
+                <div className="operation-diff">
+                  <code>{operation.type}</code>
+                  <small>{describeOperation(operation, composition)}</small>
+                </div>
+                {preview.included[index] && <Check size={12} />}
               </div>
             ))}
           </div>
           <div className="preview-actions">
             <button onClick={() => setPreview(undefined)} type="button">
               <X size={13} /> Reject
+            </button>
+            <button
+              disabled={!preview.included.some(Boolean)}
+              onClick={() => {
+                const selected = preview.operations.filter((_, index) => preview.included[index]);
+                dispatch({
+                  type: "operation",
+                  operations: selected,
+                  metadata: { source: "ai", summary: preview.summary },
+                });
+                setPreview(undefined);
+              }}
+              type="button"
+            >
+              <Check size={13} /> Accept selected
             </button>
             <button
               className="accept"
@@ -274,6 +320,38 @@ export function AiPanel() {
       </form>
     </div>
   );
+}
+
+function describeOperation(operation: Operation, composition: Composition): string {
+  const layer =
+    "layerId" in operation
+      ? composition.layers.find((candidate) => candidate.id === operation.layerId)
+      : undefined;
+  const target = layer?.name ?? ("layer" in operation ? operation.layer.name : "Composition");
+  switch (operation.type) {
+    case "addLayer":
+      return `Add ${operation.layer.kind} layer “${operation.layer.name}”`;
+    case "removeLayer":
+      return `Remove “${target}”`;
+    case "renameLayer":
+      return `${target} → “${operation.name}”`;
+    case "reorderLayer":
+      return `${target} → stack index ${operation.index}`;
+    case "setProperty":
+      return `${target} · ${operation.path} → ${operation.value}`;
+    case "addKeyframe":
+      return `${target} · ${operation.path} @ ${operation.keyframe.time.toFixed(2)}s → ${operation.keyframe.value}`;
+    case "addEffect":
+      return `${target} · add ${operation.effect.name}`;
+    case "removeEffect":
+      return `${target} · remove effect ${operation.effectId.slice(0, 8)}`;
+    case "setEffectParameter":
+      return `${target} · ${operation.parameter} → ${String(operation.value)}`;
+    case "toggleLayer":
+      return `${target} · toggle ${operation.field}`;
+    default:
+      return `${target} · structured project change`;
+  }
 }
 
 function normalizeOperations(

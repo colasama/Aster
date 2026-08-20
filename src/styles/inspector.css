@@ -715,7 +715,7 @@
   font-size: 9px;
 }
 .operation-list > div {
-  height: 25px;
+  min-height: 34px;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -723,13 +723,33 @@
   color: #62c89f;
   font-size: 8px;
 }
+.operation-list > div.excluded {
+  opacity: 0.48;
+}
+.operation-list > div > input {
+  width: 11px;
+  height: 11px;
+  accent-color: #7258bd;
+}
 .operation-list > div > span {
   width: 15px;
   color: #5f596e;
 }
-.operation-list code {
+.operation-diff {
   flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+.operation-list code {
   color: #9b8cc8;
+}
+.operation-diff small {
+  overflow: hidden;
+  color: #777184;
+  font-size: 7px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .preview-actions {
   display: flex;
@@ -752,6 +772,10 @@
   border-color: #5e4b98;
   color: #d8cff5;
   background: #503b8d;
+}
+.preview-actions button:disabled {
+  cursor: default;
+  opacity: 0.4;
 }
 .compositing-grid {
   display: grid;

@@ -1611,12 +1611,12 @@ aster/
 ### AI Safety / UX
 
 - [x] Preview changes。
-- [ ] Diff changes。
+- [x] Diff changes。
 - [x] Accept all。
-- [ ] Accept selected。
+- [x] Accept selected。
 - [x] Reject。
 - [x] Undo AI transaction。
-- [ ] 显示 AI 修改了哪些对象。
+- [x] 显示 AI 修改了哪些对象。
 - [x] 阻止模型访问未授权本地文件。
 - [x] 明确网络 Provider 数据边界。
 - [x] Local model provider interface。
