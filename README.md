@@ -17,6 +17,8 @@ frames. Rendering, effects, particles, and composition are designed to remain GP
   evaluation.
 - Timeline keyframes support additive multi-selection, frame-snapped group retiming, Alt-drag time
   scaling, track-aware copy/paste at the playhead, grouped deletion, and single-step undo.
+- The value Graph Editor renders sampled temporal easing curves and supports frame-snapped keyframe
+  time/value dragging plus direct cubic Bezier handle editing.
 - Layer timing provides frame-snapped bar moves and edge trimming plus source offsets, playback
   stretch, and arbitrary-time remapping shared by videos and nested compositions.
 - Arbitrary effect parameters—including numeric, color, toggle, and choice controls—support

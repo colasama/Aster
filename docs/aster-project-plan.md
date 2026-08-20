@@ -1259,7 +1259,7 @@ aster/
 - [x] Add / delete keyframe。
 - [x] Drag keyframe。
 - [x] 在 Timeline 展示 Effect parameter track，并支持拖拽重定时与删除。
-- [ ] Edit Bezier handles。
+- [x] Edit Bezier handles。
 - [ ] Transform gizmo。
 - [ ] Camera gizmo（M2）。
 - [ ] Snap system。

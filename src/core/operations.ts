@@ -42,6 +42,16 @@ export type Operation =
   | { type: "setProperty"; layerId: Id; path: PropertyPath; value: number }
   | { type: "addKeyframe"; layerId: Id; path: PropertyPath; keyframe: Keyframe }
   | { type: "moveKeyframe"; layerId: Id; path: PropertyPath; keyframeId: Id; time: number }
+  | {
+      type: "updateKeyframe";
+      layerId: Id;
+      path: PropertyPath;
+      keyframeId: Id;
+      time: number;
+      value: number;
+      interpolation: Keyframe["interpolation"];
+      easing?: Keyframe["easing"];
+    }
   | { type: "removeKeyframe"; layerId: Id; path: PropertyPath; keyframeId: Id }
   | { type: "easeLayer"; layerId: Id }
   | { type: "setExpression"; layerId: Id; path: PropertyPath; expression: string }
@@ -160,6 +170,30 @@ export function applyOperation(project: Project, operation: Operation): void {
       if (!keyframe) throw new Error("Keyframe does not exist");
       keyframe.time = Math.max(0, operation.time);
       property.keyframes.sort((left, right) => left.time - right.time);
+      break;
+    }
+    case "updateKeyframe": {
+      const property = getProperty(layer, operation.path);
+      if (property.mode !== "animated") break;
+      const keyframe = property.keyframes.find((entry) => entry.id === operation.keyframeId);
+      if (!keyframe) throw new Error("Keyframe does not exist");
+      const time = Math.max(0, operation.time);
+      property.keyframes = property.keyframes
+        .filter(
+          (entry) => entry.id === operation.keyframeId || Math.abs(entry.time - time) > 0.000_001,
+        )
+        .map((entry) =>
+          entry.id === operation.keyframeId
+            ? {
+                ...entry,
+                time,
+                value: Number.isFinite(operation.value) ? operation.value : entry.value,
+                interpolation: operation.interpolation,
+                easing: operation.easing,
+              }
+            : entry,
+        )
+        .sort((left, right) => left.time - right.time);
       break;
     }
     case "removeKeyframe": {

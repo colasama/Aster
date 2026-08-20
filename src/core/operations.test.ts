@@ -114,6 +114,36 @@ describe("structured project operations", () => {
     expect(removedOpacity.mode === "animated" && removedOpacity.keyframes).toHaveLength(3);
   });
 
+  it("updates keyframe value and temporal handles atomically", () => {
+    const source = createDemoProject();
+    const layer = activeComposition(source).layers.find((entry) => entry.name === "ASTER");
+    if (!layer) throw new Error("Expected ASTER layer");
+    const position = layer.transform.position[1];
+    if (position.mode !== "animated") throw new Error("Expected animated Y position");
+    const keyframe = position.keyframes[1];
+    const next = applyOperations(source, [
+      {
+        type: "updateKeyframe",
+        layerId: layer.id,
+        path: "position.1",
+        keyframeId: keyframe.id,
+        time: 1.5,
+        value: 840,
+        interpolation: "bezier",
+        easing: [0.2, 0.1, 0.8, 0.9],
+      },
+    ]);
+    const updated = activeComposition(next).layers.find((entry) => entry.id === layer.id);
+    const updatedPosition = updated?.transform.position[1];
+    expect(updatedPosition?.mode).toBe("animated");
+    if (updatedPosition?.mode !== "animated") throw new Error("Expected animated Y position");
+    expect(updatedPosition.keyframes.find((entry) => entry.id === keyframe.id)).toMatchObject({
+      time: 1.5,
+      value: 840,
+      easing: [0.2, 0.1, 0.8, 0.9],
+    });
+  });
+
   it("validates parenting cycles", () => {
     const source = createDemoProject();
     const [first, second] = activeComposition(source).layers;

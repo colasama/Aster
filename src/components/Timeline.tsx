@@ -41,6 +41,7 @@ import { activeComposition } from "../core/project";
 import { frameAt } from "../core/timeline";
 import type { Animatable, Keyframe, Layer } from "../core/types";
 import { useEditor } from "../state/editor-store";
+import { GraphEditor } from "./GraphEditor";
 import { LayerTimingBar } from "./LayerTimingBar";
 import { Panel, PanelTabs } from "./Panel";
 
@@ -560,88 +561,6 @@ function TimelineLayer({
           ))}
         </div>
       )}
-    </div>
-  );
-}
-
-function GraphEditor() {
-  const { state, dispatch } = useEditor();
-  const composition = activeComposition(state.project);
-  const layer = composition.layers.find((entry) => entry.id === state.selection[0]);
-  const property = layer?.transform.position[1];
-  const keyframes = property?.mode === "animated" ? property.keyframes : [];
-  const width = 1000;
-  const height = 260;
-  const values = keyframes.map((keyframe) => keyframe.value);
-  const min = Math.min(...values, 0);
-  const max = Math.max(...values, 1);
-  const points = keyframes
-    .map(
-      (keyframe) =>
-        `${(keyframe.time / composition.duration) * width},${height - ((keyframe.value - min) / (max - min || 1)) * (height - 60) - 30}`,
-    )
-    .join(" ");
-  return (
-    <div className="graph-editor">
-      <div className="graph-sidebar">
-        <strong>{layer?.name ?? "No selection"}</strong>
-        <button
-          className="active"
-          onClick={() => {
-            if (keyframes[0]) dispatch({ type: "setTime", time: keyframes[0].time });
-          }}
-          title="Focus Y Position curve"
-          type="button"
-        >
-          <span className="property-color" /> Y Position
-        </button>
-        <small>Value graph</small>
-      </div>
-      <svg
-        aria-label="Keyframe value graph"
-        preserveAspectRatio="none"
-        role="img"
-        viewBox={`0 0 ${width} ${height}`}
-      >
-        <defs>
-          <pattern height="26" id="grid" patternUnits="userSpaceOnUse" width="50">
-            <path
-              d="M 50 0 L 0 0 0 26"
-              fill="none"
-              stroke="rgba(255,255,255,.055)"
-              strokeWidth="1"
-            />
-          </pattern>
-        </defs>
-        <rect fill="url(#grid)" height={height} width={width} />
-        {points && (
-          <polyline
-            fill="none"
-            points={points}
-            stroke="#68a0ff"
-            strokeWidth="2.5"
-            vectorEffect="non-scaling-stroke"
-          />
-        )}
-        {keyframes.map((keyframe) => {
-          const x = (keyframe.time / composition.duration) * width;
-          const y = height - ((keyframe.value - min) / (max - min || 1)) * (height - 60) - 30;
-          return (
-            <g key={keyframe.id}>
-              <line stroke="#775cff" strokeWidth="1" x1={x - 50} x2={x} y1={y + 18} y2={y} />
-              <circle cx={x} cy={y} fill="#d7e5ff" r="5" stroke="#477ef5" strokeWidth="2" />
-            </g>
-          );
-        })}
-        <line
-          stroke="#ff5b6e"
-          strokeWidth="1.5"
-          x1={(state.currentTime / composition.duration) * width}
-          x2={(state.currentTime / composition.duration) * width}
-          y1="0"
-          y2={height}
-        />
-      </svg>
     </div>
   );
 }
