@@ -2,6 +2,7 @@
 
 mod abi;
 pub mod graph;
+pub mod hot_reload;
 
 pub use abi::{EFFECT_ENTRY_POINT, EFFECT_PARAMETER_VECTORS, EFFECT_UNIFORM_SIZE};
 
@@ -72,7 +73,12 @@ impl PluginManifest {
         if metadata.len() > MAX_SHADER_BYTES {
             return Err(PluginError::ShaderTooLarge(metadata.len()));
         }
-        validate_shader(&fs::read_to_string(shader)?)?;
+        let resolved_directory = directory.canonicalize()?;
+        let resolved_shader = shader.canonicalize()?;
+        if !resolved_shader.starts_with(&resolved_directory) {
+            return Err(PluginError::ShaderOutsidePlugin(resolved_shader));
+        }
+        validate_shader(&fs::read_to_string(resolved_shader)?)?;
         Ok(manifest)
     }
 }

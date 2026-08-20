@@ -534,6 +534,16 @@
   color: #91aef0;
   background: #151923;
 }
+.plugin-hot-reload {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px;
+  border: 1px solid #343947;
+  border-radius: 4px;
+  color: #83c5a0;
+  background: #121b18;
+}
 .plugin-safe-copy,
 .plugin-info {
   display: grid;
@@ -640,6 +650,23 @@
   padding: 7px 2px 2px 19px;
   color: #a67a6c;
   font-size: 8px;
+}
+.plugin-diagnostics {
+  padding: 7px;
+  border: 1px solid #30483d;
+  border-radius: 3px;
+  color: #83b99d;
+  background: #131c18;
+  font-size: 8px;
+}
+.plugin-diagnostics > div {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  gap: 6px;
+  padding: 5px 2px;
+}
+.plugin-diagnostics > div.error {
+  color: #d49b79;
 }
 .expression-form {
   display: grid;

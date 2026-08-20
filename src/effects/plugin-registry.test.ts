@@ -109,6 +109,15 @@ function status(plugins: PluginManifest[], disabled: string[] = []): PluginStatu
     safeMode: false,
     disabled,
     report: { plugins, failures: [] },
+    hotReload: {
+      enabled: false,
+      suspendedBySafeMode: false,
+      pending: false,
+      revision: 0,
+      successfulReloads: 0,
+      rejectedReloads: 0,
+      diagnostics: [],
+    },
     native: true,
   };
 }

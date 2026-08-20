@@ -3,8 +3,10 @@ import { useCallback, useEffect, useState } from "react";
 import {
   installPluginFromFolder,
   type PluginStatus,
+  pollPluginHotReload,
   readPluginStatus,
   setPluginEnabled,
+  setPluginHotReload,
   setPluginSafeMode,
 } from "../core/plugins";
 import { synchronizePluginEffectDefinitions } from "../effects/plugin-registry";
@@ -35,6 +37,26 @@ export function PluginManager() {
   useEffect(() => {
     void run(readPluginStatus);
   }, [run]);
+  useEffect(() => {
+    if (!status?.native || !status.hotReload.enabled || status.safeMode) return;
+    let polling = false;
+    const interval = window.setInterval(() => {
+      if (polling) return;
+      polling = true;
+      void pollPluginHotReload()
+        .then((next) => {
+          synchronizePluginEffectDefinitions(next);
+          setStatus(next);
+        })
+        .catch((reason: unknown) => {
+          setError(reason instanceof Error ? reason.message : "Plugin hot reload poll failed");
+        })
+        .finally(() => {
+          polling = false;
+        });
+    }, 750);
+    return () => window.clearInterval(interval);
+  }, [status?.hotReload.enabled, status?.native, status?.safeMode]);
   const visiblePlugins = filterPluginManifests(status?.report.plugins ?? [], query);
 
   return (
@@ -71,6 +93,19 @@ export function PluginManager() {
           <small className="plugin-metadata">
             Disable every third-party plugin without changing individual settings.
           </small>
+        </span>
+      </label>
+      <label className="plugin-hot-reload">
+        <input
+          checked={status?.hotReload.enabled ?? false}
+          disabled={pending || !status?.native}
+          onChange={(event) => void run(() => setPluginHotReload(event.target.checked))}
+          type="checkbox"
+        />
+        <RefreshCw className={status?.hotReload.pending ? "spin" : undefined} size={15} />
+        <span className="plugin-safe-copy">
+          <strong className="plugin-safe-title">Developer hot reload</strong>
+          <small className="plugin-metadata">{describeHotReload(status)}</small>
         </span>
       </label>
       {error && (
@@ -152,8 +187,35 @@ export function PluginManager() {
           ))}
         </details>
       )}
+      {status && status.hotReload.diagnostics.length > 0 && (
+        <details className="plugin-diagnostics">
+          <summary>
+            Hot reload diagnostics · revision {status.hotReload.revision} ·{" "}
+            {status.hotReload.rejectedReloads} rejected
+          </summary>
+          {status.hotReload.diagnostics.slice(-8).map((diagnostic) => (
+            <div
+              className={diagnostic.level}
+              key={`${diagnostic.revision}-${diagnostic.plugin}-${diagnostic.message}`}
+            >
+              <strong>{diagnostic.plugin}</strong>
+              <span>{diagnostic.message}</span>
+            </div>
+          ))}
+        </details>
+      )}
     </div>
   );
+}
+
+export function describeHotReload(status: PluginStatus | undefined): string {
+  if (!status?.native) return "Available only in the native app.";
+  if (!status.hotReload.enabled) return "Off. Enable only while developing trusted local WGSL.";
+  if (status.hotReload.suspendedBySafeMode || status.safeMode) {
+    return "Suspended while safe mode is active.";
+  }
+  if (status.hotReload.pending) return "Change detected; waiting for files to settle.";
+  return `${status.hotReload.successfulReloads} validated · ${status.hotReload.rejectedReloads} rejected`;
 }
 
 export function filterPluginManifests(plugins: PluginStatus["report"]["plugins"], query: string) {

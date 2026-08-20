@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { PluginManifest } from "../core/plugins";
-import { filterPluginManifests } from "./PluginManager";
+import type { PluginManifest, PluginStatus } from "../core/plugins";
+import { describeHotReload, filterPluginManifests } from "./PluginManager";
 
 const plugins: PluginManifest[] = [
   {
@@ -32,5 +32,28 @@ describe("plugin search", () => {
     expect(filterPluginManifests(plugins, "soft GPU_RENDER")).toEqual([plugins[0]]);
     expect(filterPluginManifests(plugins, "example 0.4")).toEqual([plugins[1]]);
     expect(filterPluginManifests(plugins, "network")).toEqual([]);
+  });
+});
+
+describe("plugin hot reload status", () => {
+  it("surfaces debounce and safe-mode suspension", () => {
+    const status: PluginStatus = {
+      directory: "plugins",
+      safeMode: false,
+      disabled: [],
+      report: { plugins: [], failures: [] },
+      native: true,
+      hotReload: {
+        enabled: true,
+        suspendedBySafeMode: false,
+        pending: true,
+        revision: 1,
+        successfulReloads: 1,
+        rejectedReloads: 0,
+        diagnostics: [],
+      },
+    };
+    expect(describeHotReload(status)).toContain("waiting for files to settle");
+    expect(describeHotReload({ ...status, safeMode: true })).toContain("Suspended");
   });
 });

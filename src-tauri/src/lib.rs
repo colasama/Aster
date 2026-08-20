@@ -5,6 +5,7 @@ use std::{
     collections::BTreeSet,
     fs,
     path::{Component, Path, PathBuf},
+    sync::Mutex,
 };
 use tauri::Manager;
 
@@ -471,6 +472,7 @@ mod tests {
 #[serde(default, deny_unknown_fields, rename_all = "camelCase")]
 struct PluginPreferences {
     safe_mode: bool,
+    hot_reload_enabled: bool,
     disabled: BTreeSet<String>,
 }
 
@@ -481,32 +483,75 @@ struct PluginStatus {
     safe_mode: bool,
     disabled: BTreeSet<String>,
     report: aster_plugin::DiscoveryReport,
+    hot_reload: aster_plugin::hot_reload::HotReloadStatus,
 }
 
 #[tauri::command]
-fn plugin_status(app: tauri::AppHandle) -> Result<PluginStatus, String> {
-    let root = plugin_root(&app)?;
+fn plugin_status(
+    app: tauri::AppHandle,
+    runtime: tauri::State<'_, Mutex<aster_plugin::hot_reload::HotReloadController>>,
+) -> Result<PluginStatus, String> {
+    plugin_status_inner(&app, runtime.inner(), false)
+}
+
+#[tauri::command]
+fn poll_plugin_hot_reload(
+    app: tauri::AppHandle,
+    runtime: tauri::State<'_, Mutex<aster_plugin::hot_reload::HotReloadController>>,
+) -> Result<PluginStatus, String> {
+    plugin_status_inner(&app, runtime.inner(), false)
+}
+
+fn plugin_status_inner(
+    app: &tauri::AppHandle,
+    runtime: &Mutex<aster_plugin::hot_reload::HotReloadController>,
+    force_reload: bool,
+) -> Result<PluginStatus, String> {
+    let root = plugin_root(app)?;
     fs::create_dir_all(&root).map_err(|error| error.to_string())?;
-    let preferences = read_plugin_preferences(&app)?;
-    let report = aster_plugin::discover(&root).map_err(|error| error.to_string())?;
+    let preferences = read_plugin_preferences(app)?;
+    let mut runtime = runtime
+        .lock()
+        .map_err(|_| "plugin hot reload state is unavailable".to_owned())?;
+    let (report, hot_reload) = if preferences.hot_reload_enabled && !preferences.safe_mode {
+        let view = if force_reload {
+            runtime.force_reload(&root)
+        } else {
+            runtime.poll(&root)
+        }
+        .map_err(|error| error.to_string())?;
+        (view.report, view.status)
+    } else {
+        let report = aster_plugin::discover(&root).map_err(|error| error.to_string())?;
+        let status = runtime
+            .inactive_view(preferences.hot_reload_enabled, preferences.safe_mode)
+            .status;
+        (redact_plugin_report(&root, report), status)
+    };
     Ok(PluginStatus {
         directory: root,
         safe_mode: preferences.safe_mode,
         disabled: preferences.disabled,
         report,
+        hot_reload,
     })
 }
 
 #[tauri::command]
-fn install_plugin(app: tauri::AppHandle, source: String) -> Result<PluginStatus, String> {
+fn install_plugin(
+    app: tauri::AppHandle,
+    runtime: tauri::State<'_, Mutex<aster_plugin::hot_reload::HotReloadController>>,
+    source: String,
+) -> Result<PluginStatus, String> {
     let root = plugin_root(&app)?;
     aster_plugin::install(source, root).map_err(|error| error.to_string())?;
-    plugin_status(app)
+    plugin_status_inner(&app, runtime.inner(), true)
 }
 
 #[tauri::command]
 fn set_plugin_enabled(
     app: tauri::AppHandle,
+    runtime: tauri::State<'_, Mutex<aster_plugin::hot_reload::HotReloadController>>,
     plugin_id: String,
     enabled: bool,
 ) -> Result<PluginStatus, String> {
@@ -526,15 +571,47 @@ fn set_plugin_enabled(
         preferences.disabled.insert(plugin_id);
     }
     write_plugin_preferences(&app, &preferences)?;
-    plugin_status(app)
+    plugin_status_inner(&app, runtime.inner(), false)
 }
 
 #[tauri::command]
-fn set_plugin_safe_mode(app: tauri::AppHandle, safe_mode: bool) -> Result<PluginStatus, String> {
+fn set_plugin_safe_mode(
+    app: tauri::AppHandle,
+    runtime: tauri::State<'_, Mutex<aster_plugin::hot_reload::HotReloadController>>,
+    safe_mode: bool,
+) -> Result<PluginStatus, String> {
     let mut preferences = read_plugin_preferences(&app)?;
     preferences.safe_mode = safe_mode;
     write_plugin_preferences(&app, &preferences)?;
-    plugin_status(app)
+    plugin_status_inner(&app, runtime.inner(), !safe_mode)
+}
+
+#[tauri::command]
+fn set_plugin_hot_reload(
+    app: tauri::AppHandle,
+    runtime: tauri::State<'_, Mutex<aster_plugin::hot_reload::HotReloadController>>,
+    enabled: bool,
+) -> Result<PluginStatus, String> {
+    let mut preferences = read_plugin_preferences(&app)?;
+    preferences.hot_reload_enabled = enabled;
+    write_plugin_preferences(&app, &preferences)?;
+    plugin_status_inner(&app, runtime.inner(), enabled && !preferences.safe_mode)
+}
+
+fn redact_plugin_report(
+    root: &Path,
+    mut report: aster_plugin::DiscoveryReport,
+) -> aster_plugin::DiscoveryReport {
+    let root_text = root.to_string_lossy();
+    for failure in &mut report.failures {
+        failure.manifest = failure
+            .manifest
+            .strip_prefix(root)
+            .unwrap_or_else(|_| Path::new("plugin.toml"))
+            .to_path_buf();
+        failure.message = failure.message.replace(root_text.as_ref(), "<plugins>");
+    }
+    report
 }
 
 fn plugin_root(app: &tauri::AppHandle) -> Result<PathBuf, String> {
@@ -597,6 +674,9 @@ fn write_plugin_preferences(
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .manage(Mutex::new(
+            aster_plugin::hot_reload::HotReloadController::default(),
+        ))
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
@@ -607,6 +687,7 @@ pub fn run() {
             pack_project,
             install_plugin,
             operation_schema,
+            poll_plugin_hot_reload,
             plugin_status,
             recovery_candidate,
             renderer_capabilities,
@@ -614,6 +695,7 @@ pub fn run() {
             save_project,
             save_render_frame,
             set_plugin_enabled,
+            set_plugin_hot_reload,
             set_plugin_safe_mode,
             unpack_project
         ])

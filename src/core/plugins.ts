@@ -56,7 +56,23 @@ export interface PluginStatus {
     plugins: PluginManifest[];
     failures: Array<{ manifest: string; message: string }>;
   };
+  hotReload: PluginHotReloadStatus;
   native: boolean;
+}
+
+export interface PluginHotReloadStatus {
+  enabled: boolean;
+  suspendedBySafeMode: boolean;
+  pending: boolean;
+  revision: number;
+  successfulReloads: number;
+  rejectedReloads: number;
+  diagnostics: Array<{
+    revision: number;
+    plugin: string;
+    level: "info" | "error";
+    message: string;
+  }>;
 }
 
 const browserPreferencesKey = "aster.pluginPreferences";
@@ -72,8 +88,15 @@ export async function readPluginStatus(): Promise<PluginStatus> {
     safeMode: preferences.safeMode,
     disabled: preferences.disabled,
     report: { plugins: [], failures: [] },
+    hotReload: emptyHotReloadStatus(),
     native: false,
   };
+}
+
+export async function pollPluginHotReload(): Promise<PluginStatus> {
+  if (!isTauriRuntime()) return readPluginStatus();
+  const status = await invoke<Omit<PluginStatus, "native">>("poll_plugin_hot_reload");
+  return { ...status, native: true };
 }
 
 export async function installPluginFromFolder(): Promise<PluginStatus | undefined> {
@@ -115,6 +138,30 @@ export async function setPluginSafeMode(safeMode: boolean): Promise<PluginStatus
   status.safeMode = safeMode;
   writeBrowserPreferences(status);
   return status;
+}
+
+export async function setPluginHotReload(enabled: boolean): Promise<PluginStatus> {
+  if (isTauriRuntime()) {
+    const status = await invoke<Omit<PluginStatus, "native">>("set_plugin_hot_reload", {
+      enabled,
+    });
+    return { ...status, native: true };
+  }
+  const status = await readPluginStatus();
+  status.hotReload.enabled = enabled;
+  return status;
+}
+
+function emptyHotReloadStatus(): PluginHotReloadStatus {
+  return {
+    enabled: false,
+    suspendedBySafeMode: false,
+    pending: false,
+    revision: 0,
+    successfulReloads: 0,
+    rejectedReloads: 0,
+    diagnostics: [],
+  };
 }
 
 function isTauriRuntime(): boolean {
