@@ -1274,20 +1274,20 @@ aster/
 文本必须尽早实现，因为 CJK / Emoji / shaping 很容易成为后期架构坑。
 
 - [ ] 创建 `aster-text` crate。
-- [ ] 集成 HarfBuzz 或等价 shaping。
+- [x] 集成 HarfBuzz 或等价 shaping。
 - [ ] 字体发现。
 - [x] Font fallback。
 - [ ] Font cache。
 - [ ] Glyph cache。
 - [ ] Glyph atlas。
 - [x] GPU text rendering。
-- [ ] Unicode shaping。
+- [x] Unicode shaping。
 - [x] Latin script。
-- [ ] CJK shaping。
-- [ ] Emoji fallback。
-- [ ] Ligature。
-- [ ] Kerning。
-- [ ] Line breaking。
+- [x] CJK shaping。
+- [x] Emoji fallback。
+- [x] Ligature。
+- [x] Kerning。
+- [x] Line breaking。
 - [x] Multi-line layout。
 - [x] Alignment。
 - [x] Tracking。

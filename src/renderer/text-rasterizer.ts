@@ -45,7 +45,13 @@ export function drawTextLayer(
   context.strokeStyle = cssColor(style.strokeColor);
   context.lineWidth = strokeWidth * 2;
 
-  const lines = (layer.text ?? layer.name).split(/\r?\n/).slice(0, 256);
+  const maximumWidth = width * 0.94;
+  const lines = breakTextLines(
+    layer.text ?? layer.name,
+    maximumWidth,
+    (text) => context.measureText(text).width,
+    tracking,
+  ).slice(0, 256);
   const blockHeight = fontSize + Math.max(0, lines.length - 1) * leading;
   const firstBaseline = (height - blockHeight) / 2 + fontSize / 2;
   for (let index = 0; index < lines.length; index += 1) {
@@ -55,7 +61,7 @@ export function drawTextLayer(
       width * 0.03,
       firstBaseline + index * leading,
       tracking,
-      width * 0.94,
+      maximumWidth,
       style.alignment,
       strokeWidth > 0,
     );
@@ -72,10 +78,9 @@ function drawTrackedLine(
   alignment: TextStyle["alignment"],
   stroke: boolean,
 ): void {
-  const glyphs = Array.from(text);
+  const glyphs = graphemes(text);
   const widths = glyphs.map((glyph) => context.measureText(glyph).width);
-  const naturalWidth =
-    widths.reduce((sum, width) => sum + width, 0) + Math.max(0, glyphs.length - 1) * tracking;
+  const naturalWidth = trackedWidth(text, (value) => context.measureText(value).width, tracking);
   const horizontalScale = Math.min(1, maximumWidth / Math.max(naturalWidth, 1));
   const renderedWidth = naturalWidth * horizontalScale;
   const alignedLeft =
@@ -87,6 +92,12 @@ function drawTrackedLine(
   context.save();
   context.translate(alignedLeft, baseline);
   context.scale(horizontalScale, 1);
+  if (Math.abs(tracking) < 0.000_01) {
+    if (stroke) context.strokeText(text, 0, 0);
+    context.fillText(text, 0, 0);
+    context.restore();
+    return;
+  }
   let cursor = 0;
   for (let index = 0; index < glyphs.length; index += 1) {
     if (stroke) context.strokeText(glyphs[index], cursor, 0);
@@ -94,6 +105,65 @@ function drawTrackedLine(
     cursor += widths[index] + tracking;
   }
   context.restore();
+}
+
+export function breakTextLines(
+  text: string,
+  maximumWidth: number,
+  measure: (text: string) => number,
+  tracking = 0,
+): string[] {
+  const output: string[] = [];
+  for (const hardLine of text.split(/\r?\n/)) {
+    if (hardLine.length === 0) {
+      output.push("");
+      continue;
+    }
+    let line = "";
+    for (const token of words(hardLine)) {
+      const candidate = line + token;
+      if (line.length === 0 || trackedWidth(candidate, measure, tracking) <= maximumWidth) {
+        line = candidate;
+        continue;
+      }
+      output.push(line.trimEnd());
+      line = token.trimStart();
+      if (trackedWidth(line, measure, tracking) <= maximumWidth) continue;
+      const clusters = graphemes(line);
+      line = "";
+      for (const cluster of clusters) {
+        if (line.length > 0 && trackedWidth(line + cluster, measure, tracking) > maximumWidth) {
+          output.push(line);
+          line = cluster;
+        } else line += cluster;
+      }
+    }
+    output.push(line.trimEnd());
+  }
+  return output;
+}
+
+function trackedWidth(text: string, measure: (text: string) => number, tracking: number): number {
+  if (Math.abs(tracking) < 0.000_01) return measure(text);
+  const clusters = graphemes(text);
+  return (
+    clusters.reduce((total, cluster) => total + measure(cluster), 0) +
+    Math.max(0, clusters.length - 1) * tracking
+  );
+}
+
+function graphemes(text: string): string[] {
+  return Array.from(
+    new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(text),
+    (segment) => segment.segment,
+  );
+}
+
+function words(text: string): string[] {
+  return Array.from(
+    new Intl.Segmenter(undefined, { granularity: "word" }).segment(text),
+    (segment) => segment.segment,
+  );
 }
 
 function resolvedStyle(layer: Layer): TextStyle {
