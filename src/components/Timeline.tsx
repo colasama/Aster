@@ -51,6 +51,7 @@ import {
   timelineContentPoint,
   timelineMarqueeRect,
 } from "./timeline-interactions";
+import type { KeyframeTimePreview } from "./timeline-property-tracks";
 import { useWindowPointerDrag } from "./use-window-pointer-drag";
 
 const LABEL_WIDTH = 286;
@@ -74,6 +75,7 @@ export function Timeline() {
   const canvasRef = useRef<HTMLDivElement>(null);
   const dragLayer = useRef<string | undefined>(undefined);
   const [keyframeClipboard, setKeyframeClipboard] = useState<KeyframeClipboard>();
+  const [keyframeTimePreview, setKeyframeTimePreview] = useState<KeyframeTimePreview>();
   const [timingPreview, setTimingPreview] = useState<TimingPreview>();
   const [marquee, setMarquee] = useState<TimelineMarquee>();
   const pointerDrag = useWindowPointerDrag();
@@ -104,10 +106,16 @@ export function Timeline() {
     [composition, state.selectedKeyframes],
   );
   useEffect(() => {
-    if (composition.id) pointerDrag.cancel();
+    if (composition.id) {
+      pointerDrag.cancel();
+      setKeyframeTimePreview(undefined);
+    }
   }, [composition.id, pointerDrag]);
   useEffect(() => {
-    if (state.bottomMode !== "timeline") pointerDrag.cancel();
+    if (state.bottomMode !== "timeline") {
+      pointerDrag.cancel();
+      setKeyframeTimePreview(undefined);
+    }
     return pointerDrag.cancel;
   }, [pointerDrag, state.bottomMode]);
   const keyboardContext = useRef({
@@ -575,6 +583,7 @@ export function Timeline() {
                 <TimelineLayerRow
                   composition={composition}
                   index={index}
+                  keyframeTimePreview={keyframeTimePreview}
                   key={layer.id}
                   layer={layer}
                   onDragStart={() => {
@@ -591,6 +600,7 @@ export function Timeline() {
                       });
                     dragLayer.current = undefined;
                   }}
+                  onKeyframeTimePreview={setKeyframeTimePreview}
                   onMarqueeStart={(event) => startMarquee(event, index)}
                   onTimingDragStart={(event, mode) => startLayerTimingDrag(event, layer, mode)}
                   pixelsPerSecond={pixelsPerSecond}

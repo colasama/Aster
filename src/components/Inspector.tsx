@@ -14,7 +14,7 @@ import {
   RotateCw,
   Scan,
   Sparkles,
-  Stopwatch,
+  Timer,
   Trash2,
 } from "lucide-react";
 import { useRef, useState } from "react";
@@ -236,7 +236,7 @@ export function Inspector() {
                               title={t("inspector.transform.addKeyframe")}
                               type="button"
                             >
-                              <Stopwatch size={10} />
+                              <Timer size={10} />
                             </button>
                           </div>
                         ))}
@@ -262,7 +262,7 @@ export function Inspector() {
                       />
                       <span>%</span>
                       <button onClick={() => addKeyframe("opacity")} type="button">
-                        <Stopwatch size={11} />
+                        <Timer size={11} />
                       </button>
                     </div>
                   </div>
