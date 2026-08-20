@@ -206,6 +206,28 @@ function validateLayer(value: unknown, path: string): asserts value is Layer {
       throw new Error(`${path}.camera.fieldOfView must be between 0 and 180 degrees`);
     requirePositiveNumber(camera.orthographicSize, `${path}.camera.orthographicSize`);
   }
+  if (layer.mesh !== undefined) {
+    const mesh = requireObject(layer.mesh, `${path}.mesh`);
+    requireString(mesh.name, `${path}.mesh.name`);
+    const positions = requireNumberArray(mesh.positions, `${path}.mesh.positions`, 750_000);
+    const normals = requireNumberArray(mesh.normals, `${path}.mesh.normals`, 750_000);
+    const uvs = requireNumberArray(mesh.uvs, `${path}.mesh.uvs`, 500_000);
+    const indices = requireNumberArray(mesh.indices, `${path}.mesh.indices`, 750_000);
+    if (positions.length === 0 || positions.length % 3 !== 0)
+      throw new Error(`${path}.mesh.positions must contain 3D vertices`);
+    if (normals.length !== positions.length)
+      throw new Error(`${path}.mesh.normals must match positions`);
+    if (uvs.length !== (positions.length / 3) * 2)
+      throw new Error(`${path}.mesh.uvs must match positions`);
+    if (indices.length === 0 || indices.length % 3 !== 0)
+      throw new Error(`${path}.mesh.indices must contain triangles`);
+    if (
+      indices.some(
+        (index) => !Number.isInteger(index) || index < 0 || index >= positions.length / 3,
+      )
+    )
+      throw new Error(`${path}.mesh.indices reference missing vertices`);
+  }
   if (!Array.isArray(layer.size) || layer.size.length !== 2)
     throw new Error(`${path}.size must contain two values`);
   if (!Array.isArray(layer.color) || layer.color.length !== 4)
@@ -378,6 +400,14 @@ function requireFiniteNumber(value: unknown, path: string): number {
   if (typeof value !== "number" || !Number.isFinite(value))
     throw new Error(`${path} must be a finite number`);
   return value;
+}
+
+function requireNumberArray(value: unknown, path: string, maximumLength: number): number[] {
+  if (!Array.isArray(value) || value.length > maximumLength)
+    throw new Error(`${path} must be a bounded number array`);
+  if (value.some((entry) => typeof entry !== "number" || !Number.isFinite(entry)))
+    throw new Error(`${path} must contain finite numbers`);
+  return value as number[];
 }
 
 function safeFileName(name: string): string {

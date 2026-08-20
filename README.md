@@ -36,6 +36,9 @@ frames. Rendering, effects, particles, and composition are designed to remain GP
   range, and cone controls through undoable project operations.
 - A dedicated 1024² GPU shadow-map depth pass uses comparison sampling in the HDR material shader;
   its GPU time, pass count, draw calls, transient texture, and VRAM cost are reported separately.
+- Bounded glTF/GLB import reads the first triangle primitive, including POSITION, NORMAL,
+  TEXCOORD_0, and u8/u16/u32 indices; GLB binary chunks and embedded data-URI glTF buffers feed the
+  shared PBR/shadow vertex path and remain serializable in Aster project documents.
 - The searchable Asset Browser imports bounded image and video files, shows source resolution and
   duration, and locates the corresponding composition layer.
 - Retained GPU text textures participate in HDR layer effects, blend modes, precompositions, and

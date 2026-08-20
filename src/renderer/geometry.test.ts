@@ -105,4 +105,23 @@ describe("GPU scene geometry", () => {
     expect(geometry.batches[0].layer.kind).toBe("text");
     expect(geometry.data[VERTEX_FLOAT_OFFSETS.mediaType]).toBe(0);
   });
+
+  it("expands imported indexed meshes into the shared GPU vertex stream", () => {
+    const project = createBlankProject();
+    const composition = project.compositions[0];
+    const mesh = createLayerForComposition("mesh", composition);
+    mesh.mesh = {
+      name: "Triangle",
+      positions: [0, 0, 0, 1, 0, 0, 0, 1, 0],
+      normals: [0, 0, 1, 0, 0, 1, 0, 0, 1],
+      uvs: [0, 0, 1, 0, 0, 1],
+      indices: [0, 1, 2],
+    };
+    composition.layers = [mesh];
+
+    const geometry = buildSceneGeometry(composition, flattenSceneLayers(composition, project, 0));
+    expect(geometry.batches[0].vertexCount).toBe(3);
+    expect(geometry.data).toHaveLength(FLOATS_PER_VERTEX * 3);
+    expect(new Set([geometry.data[0], geometry.data[20], geometry.data[40]]).size).toBe(2);
+  });
 });

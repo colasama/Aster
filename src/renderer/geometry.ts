@@ -106,22 +106,38 @@ export function buildSceneGeometry(
             layer.size[0] < composition.width
           ? 1
           : 0;
+    let vertexCount = QUAD_CORNERS.length;
     if (layer.kind === "mesh") {
-      const depth = Math.min(width, height) * 0.68;
-      for (const cubeFace of CUBE_FACES) {
-        const normal = rotatePoint(...cubeFace.normal, transform.rotation);
-        for (const [cornerX, cornerY, cornerZ, u, v] of cubeFace.corners) {
-          const projected = projectVertex(
-            cornerX * width,
-            cornerY * height,
-            cornerZ * depth,
-            true,
-            transform.position,
-            transform.rotation,
-            composition,
-            camera,
-          );
-          pushVertex(output, projected, u, v, color, 0, normal, material, composition);
+      if (layer.mesh) {
+        vertexCount = appendImportedMesh(
+          output,
+          layer,
+          transform,
+          width,
+          height,
+          color,
+          material,
+          composition,
+          camera,
+        );
+      } else {
+        const depth = Math.min(width, height) * 0.68;
+        vertexCount = CUBE_FACES.length * 6;
+        for (const cubeFace of CUBE_FACES) {
+          const normal = rotatePoint(...cubeFace.normal, transform.rotation);
+          for (const [cornerX, cornerY, cornerZ, u, v] of cubeFace.corners) {
+            const projected = projectVertex(
+              cornerX * width,
+              cornerY * height,
+              cornerZ * depth,
+              true,
+              transform.position,
+              transform.rotation,
+              composition,
+              camera,
+            );
+            pushVertex(output, projected, u, v, color, 0, normal, material, composition);
+          }
         }
       }
     } else {
@@ -144,10 +160,89 @@ export function buildSceneGeometry(
       layer,
       instanceId: scene.instanceId,
       firstVertex,
-      vertexCount: layer.kind === "mesh" ? CUBE_FACES.length * 6 : QUAD_CORNERS.length,
+      vertexCount,
     });
   }
   return { data: new Float32Array(output), batches };
+}
+
+function appendImportedMesh(
+  output: number[],
+  layer: Layer,
+  transform: EvaluatedTransform,
+  width: number,
+  height: number,
+  color: readonly [number, number, number, number],
+  material: readonly [number, number, number, number],
+  composition: Composition,
+  camera?: SceneCamera,
+): number {
+  const mesh = layer.mesh;
+  if (!mesh) return 0;
+  const bounds = meshBounds(mesh.positions);
+  const extents = bounds.maximum.map((value, axis) => value - bounds.minimum[axis]);
+  const targetDepth = Math.min(width, height) * 0.68;
+  const scales = [width, height, targetDepth]
+    .map((target, axis) =>
+      extents[axis] > 0.000_001 ? target / extents[axis] : Number.POSITIVE_INFINITY,
+    )
+    .filter(Number.isFinite);
+  const modelScale = scales.length > 0 ? Math.min(...scales) : 1;
+  const center = bounds.minimum.map((value, axis) => (value + bounds.maximum[axis]) / 2) as [
+    number,
+    number,
+    number,
+  ];
+  for (const vertexIndex of mesh.indices) {
+    const positionOffset = vertexIndex * 3;
+    const uvOffset = vertexIndex * 2;
+    const localX = (mesh.positions[positionOffset] - center[0]) * modelScale;
+    const localY = -(mesh.positions[positionOffset + 1] - center[1]) * modelScale;
+    const localZ = (mesh.positions[positionOffset + 2] - center[2]) * modelScale;
+    const normal = rotatePoint(
+      mesh.normals[positionOffset],
+      -mesh.normals[positionOffset + 1],
+      mesh.normals[positionOffset + 2],
+      transform.rotation,
+    );
+    const projected = projectVertex(
+      localX,
+      localY,
+      localZ,
+      true,
+      transform.position,
+      transform.rotation,
+      composition,
+      camera,
+    );
+    pushVertex(
+      output,
+      projected,
+      mesh.uvs[uvOffset],
+      mesh.uvs[uvOffset + 1],
+      color,
+      0,
+      normal,
+      material,
+      composition,
+    );
+  }
+  return mesh.indices.length;
+}
+
+function meshBounds(positions: number[]): {
+  minimum: [number, number, number];
+  maximum: [number, number, number];
+} {
+  const minimum: [number, number, number] = [Infinity, Infinity, Infinity];
+  const maximum: [number, number, number] = [-Infinity, -Infinity, -Infinity];
+  for (let index = 0; index < positions.length; index += 3) {
+    for (let axis = 0; axis < 3; axis++) {
+      minimum[axis] = Math.min(minimum[axis], positions[index + axis]);
+      maximum[axis] = Math.max(maximum[axis], positions[index + axis]);
+    }
+  }
+  return { minimum, maximum };
 }
 
 function projectVertex(

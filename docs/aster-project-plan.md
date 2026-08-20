@@ -1341,8 +1341,8 @@ aster/
 
 ### Mesh / Asset
 
-- [ ] glTF loader。
-- [ ] GLB loader。
+- [x] glTF loader。
+- [x] GLB loader。
 - [x] Mesh buffers。
 - [x] Vertex attributes。
 - [ ] Index buffers。

@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { type ComponentType, useEffect, useMemo, useRef, useState } from "react";
 import { importMediaLayer } from "../core/assets";
+import { createGltfLayerFromFile } from "../core/gltf";
 import { createLayerForComposition } from "../core/layer-factory";
 import { getProperty } from "../core/operations";
 import { precomposeLayers } from "../core/precomposition";
@@ -62,6 +63,7 @@ const menuItems: Record<string, string[]> = {
   Layer: [
     "Import Image…",
     "Import Video…",
+    "Import glTF / GLB…",
     "New Text Layer",
     "New Shape Layer",
     "New 3D Object",
@@ -106,6 +108,7 @@ export function TopBar() {
   const [workspaceDialog, setWorkspaceDialog] = useState<WorkspaceDialogKind>();
   const [toast, setToast] = useState<string>();
   const paletteInputRef = useRef<HTMLInputElement>(null);
+  const meshInputRef = useRef<HTMLInputElement>(null);
   const cancelRenderRef = useRef(false);
   const commands = useMemo(
     () => [
@@ -245,6 +248,8 @@ export function TopBar() {
         .catch((error: unknown) =>
           showToast(setToast, error instanceof Error ? error.message : "Asset import failed"),
         );
+    } else if (item === "Import glTF / GLB…") {
+      meshInputRef.current?.click();
     } else if (layerTypes[item]) {
       const layer = createLayerForComposition(layerTypes[item], composition, state.currentTime);
       dispatch({
@@ -315,6 +320,33 @@ export function TopBar() {
   };
   return (
     <>
+      <input
+        accept=".gltf,.glb,model/gltf+json,model/gltf-binary"
+        aria-label="Import glTF or GLB"
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          event.target.value = "";
+          if (!file) return;
+          void createGltfLayerFromFile(file, activeComposition(state.project), state.currentTime)
+            .then((layer) => {
+              dispatch({
+                type: "operation",
+                operations: [{ type: "addLayer", layer }],
+                select: [layer.id],
+              });
+              showToast(setToast, `Imported ${layer.name}`);
+            })
+            .catch((error: unknown) =>
+              showToast(
+                setToast,
+                error instanceof Error ? error.message : "3D asset import failed",
+              ),
+            );
+        }}
+        ref={meshInputRef}
+        style={{ display: "none" }}
+        type="file"
+      />
       <div className="title-bar">
         <div className="brand-mark">A</div>
         <div className="menu-strip">

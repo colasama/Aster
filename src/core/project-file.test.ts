@@ -112,4 +112,23 @@ describe("project document boundary", () => {
     camera.camera.fieldOfView = 180;
     expect(() => validateProjectDocument(project)).toThrow("between 0 and 180 degrees");
   });
+
+  it("roundtrips bounded imported mesh buffers", () => {
+    const project = createBlankProject();
+    const composition = project.compositions[0];
+    const mesh = createLayerForComposition("mesh", composition);
+    mesh.mesh = {
+      name: "Triangle",
+      positions: [0, 0, 0, 1, 0, 0, 0, 1, 0],
+      normals: [0, 0, 1, 0, 0, 1, 0, 0, 1],
+      uvs: [0, 0, 1, 0, 0, 1],
+      indices: [0, 1, 2],
+    };
+    composition.layers.push(mesh);
+
+    const roundtrip = validateProjectDocument(JSON.parse(serializeProject(project)));
+    expect(roundtrip.compositions[0].layers[1].mesh).toEqual(mesh.mesh);
+    mesh.mesh.indices[2] = 99;
+    expect(() => validateProjectDocument(project)).toThrow("reference missing vertices");
+  });
 });

@@ -97,6 +97,7 @@ export interface Layer {
   material?: Material3d;
   light?: LightSettings;
   camera?: CameraSettings;
+  mesh?: MeshAsset;
 }
 
 export interface Material3d {
@@ -116,6 +117,14 @@ export interface CameraSettings {
   projection: "perspective" | "orthographic";
   fieldOfView: number;
   orthographicSize: number;
+}
+
+export interface MeshAsset {
+  name: string;
+  positions: number[];
+  normals: number[];
+  uvs: number[];
+  indices: number[];
 }
 
 export interface Composition {
