@@ -1010,28 +1010,28 @@ aster/
 
 - [ ] 实现 Texture wrapper。
 - [ ] 实现 Buffer wrapper。
-- [ ] 实现 Sampler cache。
-- [ ] 实现 Bind Group cache。
-- [ ] 实现 Pipeline cache。
-- [ ] 实现 Shader module cache。
-- [ ] 实现 GPU Resource Pool。
-- [ ] 实现 transient texture allocator。
-- [ ] 实现资源生命周期调试信息。
-- [ ] 实现显存估算统计。
+- [x] 实现 Sampler cache。
+- [x] 实现 Bind Group cache。
+- [x] 实现 Pipeline cache。
+- [x] 实现 Shader module cache。
+- [x] 实现 GPU Resource Pool。
+- [x] 实现 transient texture allocator。
+- [x] 实现资源生命周期调试信息。
+- [x] 实现显存估算统计。
 
 ### Minimal Render Graph
 
-- [ ] 定义 Render Graph Node。
-- [ ] 定义 Resource Handle。
-- [ ] 定义 Render Pass Node。
-- [ ] 定义 Compute Pass Node。
-- [ ] 实现 dependency edge。
-- [ ] 实现 topological scheduling。
-- [ ] 实现 resource lifetime analysis。
-- [ ] 实现 transient resource reuse。
-- [ ] 实现 graph validation。
-- [ ] 实现 graph debug dump。
-- [ ] 实现 graph visualization export（DOT / JSON）。
+- [x] 定义 Render Graph Node。
+- [x] 定义 Resource Handle。
+- [x] 定义 Render Pass Node。
+- [x] 定义 Compute Pass Node。
+- [x] 实现 dependency edge。
+- [x] 实现 topological scheduling。
+- [x] 实现 resource lifetime analysis。
+- [x] 实现 transient resource reuse。
+- [x] 实现 graph validation。
+- [x] 实现 graph debug dump。
+- [x] 实现 graph visualization export（DOT / JSON）。
 
 ### First Rendering Pipeline
 

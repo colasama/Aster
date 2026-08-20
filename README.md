@@ -95,6 +95,8 @@ frames. Rendering, effects, particles, and composition are designed to remain GP
   trilinear and tetrahedral GPU interpolation.
 - Rust render graph with validation, topological scheduling, resource lifetimes, transient aliasing,
   and DOT/JSON diagnostics.
+- The Rust renderer provides budgeted descriptor-matched GPU resource pooling, LRU shader/pipeline/
+  bind-group object caches, lease diagnostics, VRAM estimates, and oldest-idle eviction.
 - Open project bundle, a native WGSL plugin manager with safe mode, permission-checked AI operation
   plans, and an OpenAI-compatible provider boundary with in-memory secrets.
 - Browser compatibility renderer when WebGPU is unavailable.
