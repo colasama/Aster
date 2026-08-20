@@ -41,33 +41,60 @@ async fn generate_ai_plan(
 }
 
 #[tauri::command]
-fn save_project(path: String, project: serde_json::Value) -> Result<(), String> {
-    aster_project::save_editor_bundle(path, &project).map_err(|error| error.to_string())
+async fn save_project(path: String, project: serde_json::Value) -> Result<(), String> {
+    blocking_io(move || {
+        aster_project::save_editor_bundle(path, &project).map_err(|error| error.to_string())
+    })
+    .await
 }
 
 #[tauri::command]
-fn load_project(path: String) -> Result<serde_json::Value, String> {
-    aster_project::load_editor_bundle(path).map_err(|error| error.to_string())
+async fn load_project(path: String) -> Result<serde_json::Value, String> {
+    blocking_io(move || aster_project::load_editor_bundle(path).map_err(|error| error.to_string()))
+        .await
 }
 
 #[tauri::command]
-fn save_autosave(path: String, project: serde_json::Value) -> Result<(), String> {
-    aster_project::save_autosave(path, &project).map_err(|error| error.to_string())
+async fn save_autosave(path: String, project: serde_json::Value) -> Result<(), String> {
+    blocking_io(move || {
+        aster_project::save_autosave(path, &project).map_err(|error| error.to_string())
+    })
+    .await
 }
 
 #[tauri::command]
-fn recovery_candidate(path: String) -> Result<Option<serde_json::Value>, String> {
-    aster_project::recovery_candidate(path).map_err(|error| error.to_string())
+async fn recovery_candidate(path: String) -> Result<Option<serde_json::Value>, String> {
+    blocking_io(move || aster_project::recovery_candidate(path).map_err(|error| error.to_string()))
+        .await
 }
 
 #[tauri::command]
-fn clear_autosave(path: String) -> Result<(), String> {
-    aster_project::clear_autosave(path).map_err(|error| error.to_string())
+async fn clear_autosave(path: String) -> Result<(), String> {
+    blocking_io(move || aster_project::clear_autosave(path).map_err(|error| error.to_string()))
+        .await
 }
 
 #[tauri::command]
-fn save_render_frame(directory: String, file_name: String, data: String) -> Result<(), String> {
-    if !valid_render_frame_name(&file_name) {
+async fn save_render_frame(
+    directory: String,
+    file_name: String,
+    data: String,
+) -> Result<(), String> {
+    blocking_io(move || write_render_frame(&directory, &file_name, &data)).await
+}
+
+async fn blocking_io<T, F>(operation: F) -> Result<T, String>
+where
+    T: Send + 'static,
+    F: FnOnce() -> Result<T, String> + Send + 'static,
+{
+    tauri::async_runtime::spawn_blocking(operation)
+        .await
+        .map_err(|error| format!("background I/O task failed: {error}"))?
+}
+
+fn write_render_frame(directory: &str, file_name: &str, data: &str) -> Result<(), String> {
+    if !valid_render_frame_name(file_name) {
         return Err("render frame name must match frame_000001.png".to_owned());
     }
     let directory = PathBuf::from(directory);
@@ -75,7 +102,7 @@ fn save_render_frame(directory: String, file_name: String, data: String) -> Resu
     let bytes = base64::engine::general_purpose::STANDARD
         .decode(data)
         .map_err(|error| error.to_string())?;
-    let destination = directory.join(&file_name);
+    let destination = directory.join(file_name);
     let temporary = directory.join(format!(".{file_name}.tmp"));
     fs::write(&temporary, bytes).map_err(|error| error.to_string())?;
     if destination.exists() {
@@ -94,7 +121,7 @@ fn valid_render_frame_name(name: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::{save_render_frame, valid_render_frame_name};
+    use super::{valid_render_frame_name, write_render_frame};
     use std::fs;
 
     #[test]
@@ -111,10 +138,10 @@ mod tests {
             std::env::temp_dir().join(format!("aster-render-frame-test-{}", std::process::id()));
         fs::create_dir_all(&directory).expect("create render test directory");
 
-        save_render_frame(
-            directory.to_string_lossy().into_owned(),
-            "frame_000001.png".to_owned(),
-            "iVBORw0KGgo=".to_owned(),
+        write_render_frame(
+            &directory.to_string_lossy(),
+            "frame_000001.png",
+            "iVBORw0KGgo=",
         )
         .expect("save render frame");
 

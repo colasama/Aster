@@ -1663,7 +1663,7 @@ aster/
 - [ ] Tile processing research for huge compositions。
 - [ ] Multi-threaded CPU scheduling。
 - [ ] Parallel asset decode。
-- [ ] Async disk IO。
+- [x] Async disk IO。
 - [ ] Texture upload batching。
 - [ ] Persistent staging buffers。
 - [x] GPU culling for 3D / particles。
