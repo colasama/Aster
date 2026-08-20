@@ -3,6 +3,7 @@
 mod abi;
 pub mod graph;
 pub mod hot_reload;
+pub mod registry;
 
 pub use abi::{EFFECT_ENTRY_POINT, EFFECT_PARAMETER_VECTORS, EFFECT_UNIFORM_SIZE};
 
