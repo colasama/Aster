@@ -1008,8 +1008,8 @@ aster/
 
 ### Resource Layer
 
-- [ ] 实现 Texture wrapper。
-- [ ] 实现 Buffer wrapper。
+- [x] 实现 Texture wrapper。
+- [x] 实现 Buffer wrapper。
 - [x] 实现 Sampler cache。
 - [x] 实现 Bind Group cache。
 - [x] 实现 Pipeline cache。
