@@ -68,6 +68,15 @@
   place-items: center;
   color: #707582;
 }
+.timeline-options button:disabled {
+  cursor: default;
+  opacity: 0.3;
+}
+.timeline-options .keyframe-selection-count {
+  min-width: 34px;
+  margin-right: 2px;
+  color: #8d95a5;
+}
 .timeline-options input {
   width: 80px;
   accent-color: var(--blue);
@@ -302,6 +311,20 @@
 }
 .keyframe.effect-key:hover span {
   background: #fff2d8;
+}
+.keyframe.selected span {
+  border-color: #fff;
+  background: #f3f7ff;
+  box-shadow:
+    0 0 0 2px #4f7fe6,
+    0 0 7px #7aa3ff;
+}
+.keyframe.effect-key.selected span {
+  border-color: #fff7e6;
+  background: #ffe0a8;
+  box-shadow:
+    0 0 0 2px #c87b2c,
+    0 0 7px #e8a654;
 }
 .expanded-properties {
   margin-left: 0;

@@ -1157,9 +1157,9 @@ aster/
 - [x] 支持 easing presets。
 - [x] 支持 temporal handles。
 - [ ] 支持 spatial handles。
-- [ ] 支持 keyframe copy/paste。
-- [ ] 支持 keyframe multi-select。
-- [ ] 支持 keyframe scale / retime。
+- [x] 支持 keyframe copy/paste。
+- [x] 支持 keyframe multi-select。
+- [x] 支持 keyframe scale / retime。
 
 ### Composition / Layer
 

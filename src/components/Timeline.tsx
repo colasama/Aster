@@ -2,6 +2,8 @@ import {
   Box,
   ChevronDown,
   ChevronRight,
+  ClipboardPaste,
+  Copy,
   Eye,
   EyeOff,
   Film,
@@ -18,6 +20,7 @@ import {
   SkipForward,
   SlidersHorizontal,
   Sparkles,
+  Trash2,
   Type,
   Volume2,
   VolumeX,
@@ -25,6 +28,14 @@ import {
   ZoomOut,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  copyKeyframes,
+  selectedKeyframes as findSelectedKeyframes,
+  type KeyframeClipboard,
+  pasteKeyframes,
+  removeKeyframes,
+  retimeKeyframes,
+} from "../core/keyframe-editing";
 import type { PropertyPath } from "../core/operations";
 import { activeComposition } from "../core/project";
 import { frameAt } from "../core/timeline";
@@ -51,6 +62,25 @@ export function Timeline() {
   const pixelsPerSecond = BASE_PIXELS_PER_SECOND * state.timelineZoom;
   const scrollRef = useRef<HTMLDivElement>(null);
   const dragLayer = useRef<string | undefined>(undefined);
+  const [keyframeClipboard, setKeyframeClipboard] = useState<KeyframeClipboard>();
+  const selectedEntries = useMemo(
+    () => findSelectedKeyframes(composition, state.selectedKeyframes),
+    [composition, state.selectedKeyframes],
+  );
+  const keyboardContext = useRef({
+    bottomMode: state.bottomMode,
+    composition,
+    currentTime: state.currentTime,
+    keyframeClipboard,
+    selectedEntries,
+  });
+  keyboardContext.current = {
+    bottomMode: state.bottomMode,
+    composition,
+    currentTime: state.currentTime,
+    keyframeClipboard,
+    selectedEntries,
+  };
   usePlayback(composition.duration);
   const ticks = useMemo(
     () => Array.from({ length: Math.floor(composition.duration * 2) + 1 }, (_, index) => index / 2),
@@ -63,6 +93,50 @@ export function Timeline() {
     const time = (clientX - bounds.left + scroll.scrollLeft - LABEL_WIDTH) / pixelsPerSecond;
     dispatch({ type: "setTime", time: Math.max(0, Math.min(composition.duration, time)) });
   };
+  const copySelection = () => {
+    setKeyframeClipboard(copyKeyframes(selectedEntries));
+  };
+  const pasteSelection = () => {
+    if (!keyframeClipboard) return;
+    const pasted = pasteKeyframes(keyframeClipboard, state.currentTime, composition.duration);
+    dispatch({ type: "operation", operations: pasted.operations });
+    dispatch({ type: "selectKeyframes", ids: pasted.selectedIds });
+  };
+  const deleteSelection = () => {
+    if (!selectedEntries.length) return;
+    dispatch({ type: "operation", operations: removeKeyframes(selectedEntries) });
+    dispatch({ type: "selectKeyframes", ids: [] });
+  };
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const context = keyboardContext.current;
+      if (context.bottomMode !== "timeline" || isEditableTarget(event.target)) return;
+      const command = event.ctrlKey || event.metaKey;
+      if (command && event.key.toLowerCase() === "c") {
+        event.preventDefault();
+        setKeyframeClipboard(copyKeyframes(context.selectedEntries));
+      } else if (command && event.key.toLowerCase() === "v") {
+        event.preventDefault();
+        if (!context.keyframeClipboard) return;
+        const pasted = pasteKeyframes(
+          context.keyframeClipboard,
+          context.currentTime,
+          context.composition.duration,
+        );
+        dispatch({ type: "operation", operations: pasted.operations });
+        dispatch({ type: "selectKeyframes", ids: pasted.selectedIds });
+      } else if (event.key === "Delete" || event.key === "Backspace") {
+        event.preventDefault();
+        if (!context.selectedEntries.length) return;
+        dispatch({ type: "operation", operations: removeKeyframes(context.selectedEntries) });
+        dispatch({ type: "selectKeyframes", ids: [] });
+      } else if (event.key === "Escape") {
+        dispatch({ type: "selectKeyframes", ids: [] });
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [dispatch]);
   return (
     <Panel
       className="timeline-panel"
@@ -129,6 +203,33 @@ export function Timeline() {
           <span>
             <Gauge size={12} /> 60 fps
           </span>
+          <span className="keyframe-selection-count">
+            {state.selectedKeyframes.length} key{state.selectedKeyframes.length === 1 ? "" : "s"}
+          </span>
+          <button
+            disabled={!selectedEntries.length}
+            onClick={copySelection}
+            title="Copy selected keyframes (Ctrl/Cmd+C)"
+            type="button"
+          >
+            <Copy size={12} />
+          </button>
+          <button
+            disabled={!keyframeClipboard}
+            onClick={pasteSelection}
+            title="Paste keyframes at playhead (Ctrl/Cmd+V)"
+            type="button"
+          >
+            <ClipboardPaste size={12} />
+          </button>
+          <button
+            disabled={!selectedEntries.length}
+            onClick={deleteSelection}
+            title="Delete selected keyframes"
+            type="button"
+          >
+            <Trash2 size={12} />
+          </button>
           <button
             onClick={() => dispatch({ type: "setTimelineZoom", zoom: state.timelineZoom / 1.25 })}
             type="button"
@@ -375,33 +476,38 @@ function TimelineLayer({
         </div>
         {keyframes.map((entry) => (
           <button
-            className={`keyframe ${entry.source === "effect" ? "effect-key" : ""}`}
+            className={`keyframe ${entry.source === "effect" ? "effect-key" : ""} ${state.selectedKeyframes.includes(entry.keyframe.id) ? "selected" : ""}`}
             key={`${entry.source}:${entry.keyframe.id}`}
             onClick={() => dispatch({ type: "setTime", time: entry.keyframe.time })}
             onContextMenu={(event) => {
               event.preventDefault();
+              const ids = state.selectedKeyframes.includes(entry.keyframe.id)
+                ? state.selectedKeyframes
+                : [entry.keyframe.id];
+              const entries = findSelectedKeyframes(activeComposition(state.project), ids);
               dispatch({
                 type: "operation",
-                operations: [
-                  entry.source === "transform"
-                    ? {
-                        type: "removeKeyframe",
-                        layerId: layer.id,
-                        path: entry.path,
-                        keyframeId: entry.keyframe.id,
-                      }
-                    : {
-                        type: "removeEffectParameterKeyframe",
-                        layerId: layer.id,
-                        effectId: entry.effectId,
-                        parameter: entry.parameter,
-                        keyframeId: entry.keyframe.id,
-                      },
-                ],
+                operations: removeKeyframes(entries),
               });
+              dispatch({ type: "selectKeyframes", ids: [] });
             }}
             onPointerDown={(event) => {
               event.stopPropagation();
+              if (event.button !== 0) return;
+              const additive = event.shiftKey || event.ctrlKey || event.metaKey;
+              const alreadySelected = state.selectedKeyframes.includes(entry.keyframe.id);
+              const selectedIds = additive
+                ? alreadySelected
+                  ? state.selectedKeyframes.filter((id) => id !== entry.keyframe.id)
+                  : [...state.selectedKeyframes, entry.keyframe.id]
+                : alreadySelected
+                  ? state.selectedKeyframes
+                  : [entry.keyframe.id];
+              dispatch({ type: "selectKeyframes", ids: selectedIds });
+              const selectedEntries = findSelectedKeyframes(
+                activeComposition(state.project),
+                selectedIds,
+              );
               const startX = event.clientX;
               const initialTime = entry.keyframe.time;
               let nextTime = initialTime;
@@ -415,33 +521,25 @@ function TimelineLayer({
                 window.removeEventListener("pointermove", move);
                 window.removeEventListener("pointerup", up);
                 if (Math.abs(nextTime - initialTime) < 0.001) return;
+                const frameDuration =
+                  activeComposition(state.project).frameRate.denominator /
+                  activeComposition(state.project).frameRate.numerator;
                 dispatch({
                   type: "operation",
-                  operations: [
-                    entry.source === "transform"
-                      ? {
-                          type: "moveKeyframe",
-                          layerId: layer.id,
-                          path: entry.path,
-                          keyframeId: entry.keyframe.id,
-                          time: nextTime,
-                        }
-                      : {
-                          type: "moveEffectParameterKeyframe",
-                          layerId: layer.id,
-                          effectId: entry.effectId,
-                          parameter: entry.parameter,
-                          keyframeId: entry.keyframe.id,
-                          time: nextTime,
-                        },
-                  ],
+                  operations: retimeKeyframes(
+                    selectedEntries,
+                    entry.keyframe.id,
+                    nextTime,
+                    frameDuration,
+                    event.altKey,
+                  ),
                 });
               };
               window.addEventListener("pointermove", move);
               window.addEventListener("pointerup", up);
             }}
             style={{ left: entry.keyframe.time * pixelsPerSecond }}
-            title={`${entry.label} · ${entry.keyframe.time.toFixed(2)}s · ${entry.keyframe.value.toFixed(2)} · drag to retime · right-click to delete`}
+            title={`${entry.label} · ${entry.keyframe.time.toFixed(2)}s · ${entry.keyframe.value.toFixed(2)} · Shift/Ctrl select · drag group · Alt-drag scale · right-click delete`}
             type="button"
           >
             <span />
@@ -645,4 +743,12 @@ function toggleTimelineFullscreen(): void {
     const panel = document.querySelector<HTMLElement>(".timeline-panel");
     if (panel) void panel.requestFullscreen();
   }
+}
+
+function isEditableTarget(target: EventTarget | null): boolean {
+  return (
+    target instanceof HTMLInputElement ||
+    target instanceof HTMLTextAreaElement ||
+    (target instanceof HTMLElement && target.isContentEditable)
+  );
 }

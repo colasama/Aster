@@ -15,6 +15,7 @@ import type { Id, Project, RendererMetrics } from "../core/types";
 export interface EditorState {
   project: Project;
   selection: Id[];
+  selectedKeyframes: Id[];
   currentTime: number;
   playing: boolean;
   timelineZoom: number;
@@ -49,6 +50,7 @@ export type EditorAction =
   | { type: "undo" }
   | { type: "redo" }
   | { type: "select"; ids: Id[] }
+  | { type: "selectKeyframes"; ids: Id[] }
   | { type: "setTime"; time: number }
   | { type: "setPlaying"; playing: boolean }
   | { type: "setTimelineZoom"; zoom: number }
@@ -79,6 +81,7 @@ function createInitialState(): EditorState {
   const project = createDemoProject();
   return {
     selection: [project.compositions[0].layers[0].id],
+    selectedKeyframes: [],
     project,
     currentTime: 0.72,
     playing: false,
@@ -147,6 +150,8 @@ function reducer(state: EditorState, action: EditorAction): EditorState {
     }
     case "select":
       return { ...state, selection: action.ids };
+    case "selectKeyframes":
+      return { ...state, selectedKeyframes: action.ids };
     case "setTime":
       return { ...state, currentTime: Math.max(0, action.time) };
     case "setPlaying":
@@ -185,6 +190,7 @@ function reducer(state: EditorState, action: EditorAction): EditorState {
         ...state,
         project: { ...state.project, activeCompositionId: action.compositionId },
         selection: composition.layers[0] ? [composition.layers[0].id] : [],
+        selectedKeyframes: [],
         currentTime: 0,
         playing: false,
       };
