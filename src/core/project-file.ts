@@ -1,5 +1,6 @@
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
+import { validateClonerSettings } from "./cloner";
 import {
   MAX_COMMAND_LOG_ENTRIES,
   MAX_COMMAND_LOG_SIZE,
@@ -352,6 +353,7 @@ function validateLayer(value: unknown, path: string): asserts value is Layer {
     for (const field of ["speed", "acceleration", "startRotation", "endRotation"])
       requireFiniteNumber(particle[field], `${path}.particle.${field}`);
   }
+  if (layer.cloner !== undefined) validateClonerSettings(layer.cloner, `${path}.cloner`);
   if (layer.shape !== undefined) {
     const shape = requireObject(layer.shape, `${path}.shape`);
     if (

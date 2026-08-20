@@ -20,6 +20,7 @@ export const VERTEX_FLOAT_OFFSETS = {
 export interface GeometryBatch {
   layer: Layer;
   instanceId: string;
+  resourceInstanceId: string;
   firstVertex: number;
   vertexCount: number;
 }
@@ -246,6 +247,7 @@ export function buildSceneGeometry(
     batches.push({
       layer,
       instanceId: scene.instanceId,
+      resourceInstanceId: scene.resourceInstanceId,
       firstVertex,
       vertexCount,
     });

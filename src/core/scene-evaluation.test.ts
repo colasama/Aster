@@ -90,4 +90,62 @@ describe("editor scene evaluation", () => {
 
     expect(flattenSceneLayers(root, project, 5)[0].localTime).toBe(3.5);
   });
+
+  it("expands cloners into stable scene instances for the current render path", () => {
+    const project = createBlankProject();
+    const composition = project.compositions[0];
+    const source = composition.layers[0];
+    source.transform.position[0] = { mode: "static", value: 100 };
+    source.transform.position[1] = { mode: "static", value: 200 };
+    source.cloner = {
+      distribution: { kind: "grid", count: [3, 1, 1], spacing: [50, 0, 0] },
+      effectors: [
+        {
+          id: "offset",
+          kind: "position",
+          enabled: true,
+          strength: 1,
+          value: [10, 5, 0],
+        },
+      ],
+    };
+
+    const flattened = flattenSceneLayers(composition, project, 0);
+    expect(flattened).toHaveLength(3);
+    expect(flattened.map((scene) => scene.instanceId)).toEqual([
+      `root/${source.id}:clone-0`,
+      `root/${source.id}:clone-1`,
+      `root/${source.id}:clone-2`,
+    ]);
+    expect(new Set(flattened.map((scene) => scene.resourceInstanceId))).toEqual(
+      new Set([`root/${source.id}`]),
+    );
+    expect(flattened.map((scene) => scene.transform.position)).toEqual([
+      [60, 205, 0],
+      [110, 205, 0],
+      [160, 205, 0],
+    ]);
+    expect(flattened.every((scene) => scene.selectionId === source.id)).toBe(true);
+  });
+
+  it("bounds recursively multiplied precomposition clones", () => {
+    const project = createBlankProject();
+    const root = project.compositions[0];
+    const nested = createBlankProject().compositions[0];
+    nested.id = crypto.randomUUID();
+    nested.layers[0].cloner = {
+      distribution: { kind: "grid", count: [512, 128, 1], spacing: [1, 1, 0] },
+      effectors: [],
+    };
+    const wrapper = createLayerForComposition("precomposition", root);
+    wrapper.sourceCompositionId = nested.id;
+    wrapper.cloner = {
+      distribution: { kind: "grid", count: [2, 1, 1], spacing: [1, 0, 0] },
+      effectors: [],
+    };
+    root.layers = [wrapper];
+    project.compositions.push(nested);
+
+    expect(flattenSceneLayers(root, project, 0)).toHaveLength(65_536);
+  });
 });

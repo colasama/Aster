@@ -395,12 +395,12 @@ export class WebGpuRenderer {
     }
     for (const scene of sceneLayers) {
       if (scene.layer.kind === "text") {
-        this.#prepareText(scene.layer, scene.instanceId);
+        this.#prepareText(scene.layer, scene.resourceInstanceId);
       } else if (
         (scene.layer.kind === "image" || scene.layer.kind === "video") &&
         (scene.layer.asset?.dataUrl ?? scene.layer.asset?.runtimeUrl)
       )
-        this.#prepareMedia(scene.layer, scene.localTime, playing, scene.instanceId);
+        this.#prepareMedia(scene.layer, scene.localTime, playing, scene.resourceInstanceId);
     }
     this.#sweepMediaResources(
       new Set(
@@ -411,7 +411,7 @@ export class WebGpuRenderer {
               ((scene.layer.kind === "image" || scene.layer.kind === "video") &&
                 (scene.layer.asset?.dataUrl ?? scene.layer.asset?.runtimeUrl)),
           )
-          .map((scene) => scene.instanceId),
+          .map((scene) => scene.resourceInstanceId),
       ),
     );
     this.#device.queue.writeBuffer(
@@ -668,7 +668,7 @@ export class WebGpuRenderer {
   ): void {
     const media =
       batch.layer.kind === "image" || batch.layer.kind === "video" || batch.layer.kind === "text"
-        ? this.#mediaResources.get(batch.instanceId)
+        ? this.#mediaResources.get(batch.resourceInstanceId)
         : undefined;
     pass.setVertexBuffer(0, this.#shapeBuffer);
     if (media?.bindGroup) {

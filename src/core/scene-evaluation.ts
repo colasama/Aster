@@ -1,3 +1,4 @@
+import { composeClonerTransform, evaluateCloner, MAX_CLONER_INSTANCES } from "./cloner";
 import { evaluateLayerTransform } from "./expressions";
 import { evaluateLayerSourceTime } from "./layer-time";
 import type { Composition, EvaluatedTransform, Id, Layer, Project } from "./types";
@@ -8,6 +9,7 @@ export interface FlattenedSceneLayer {
   transform: EvaluatedTransform;
   localTime: number;
   instanceId: string;
+  resourceInstanceId: string;
   selectionId: Id;
 }
 
@@ -31,7 +33,16 @@ export function flattenSceneLayers(
   project: Project | undefined,
   time: number,
 ): FlattenedSceneLayer[] {
-  return flattenComposition(composition, project, time, undefined, "root", undefined, new Set());
+  return flattenComposition(
+    composition,
+    project,
+    time,
+    undefined,
+    "root",
+    "root",
+    undefined,
+    new Set(),
+  );
 }
 
 function flattenComposition(
@@ -40,6 +51,7 @@ function flattenComposition(
   time: number,
   parentTransform: EvaluatedTransform | undefined,
   instancePrefix: string,
+  resourcePrefix: string,
   selectionId: Id | undefined,
   compositionStack: Set<Id>,
 ): FlattenedSceneLayer[] {
@@ -48,39 +60,53 @@ function flattenComposition(
   const output: FlattenedSceneLayer[] = [];
   for (const layer of visibleLayersAtTime(composition, time)) {
     const localTransform = evaluateWorldTransform(layer, composition, time);
-    const transform = parentTransform
-      ? mapNestedTransform(localTransform, parentTransform, composition)
-      : localTransform;
-    const instanceId = `${instancePrefix}/${layer.id}`;
     const rootSelectionId = selectionId ?? layer.id;
     const nested =
       layer.kind === "precomposition" && layer.sourceCompositionId
         ? project?.compositions.find((candidate) => candidate.id === layer.sourceCompositionId)
         : undefined;
-    if (nested) {
-      const nestedTime = evaluateLayerSourceTime(layer, time, nested.duration);
-      const wrapperTransform = applyWrapperSize(transform, layer, nested);
-      output.push(
-        ...flattenComposition(
+    const clones = layer.cloner ? evaluateCloner(layer.cloner, time).instances : undefined;
+    const cloneInstances = clones ?? [undefined];
+    for (const clone of cloneInstances) {
+      if (output.length >= MAX_CLONER_INSTANCES) break;
+      const clonedTransform = clone
+        ? composeClonerTransform(localTransform, clone)
+        : localTransform;
+      const transform = parentTransform
+        ? mapNestedTransform(clonedTransform, parentTransform, composition)
+        : clonedTransform;
+      const baseInstanceId = `${instancePrefix}/${layer.id}`;
+      const resourceInstanceId = `${resourcePrefix}/${layer.id}`;
+      const instanceId = clone ? `${baseInstanceId}:clone-${clone.index}` : baseInstanceId;
+      if (nested) {
+        const nestedTime = evaluateLayerSourceTime(layer, time, nested.duration);
+        const wrapperTransform = applyWrapperSize(transform, layer, nested);
+        const nestedLayers = flattenComposition(
           nested,
           project,
           nestedTime,
           wrapperTransform,
           instanceId,
+          resourceInstanceId,
           rootSelectionId,
           nextStack,
-        ),
-      );
-      continue;
+        );
+        for (const nestedLayer of nestedLayers) {
+          if (output.length >= MAX_CLONER_INSTANCES) break;
+          output.push(nestedLayer);
+        }
+        continue;
+      }
+      output.push({
+        layer,
+        sourceComposition: composition,
+        transform,
+        localTime: time,
+        instanceId,
+        resourceInstanceId,
+        selectionId: rootSelectionId,
+      });
     }
-    output.push({
-      layer,
-      sourceComposition: composition,
-      transform,
-      localTime: time,
-      instanceId,
-      selectionId: rootSelectionId,
-    });
   }
   return output;
 }

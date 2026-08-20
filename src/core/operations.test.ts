@@ -71,6 +71,35 @@ describe("structured project operations", () => {
     ).toThrow("Layer does not exist");
   });
 
+  it("sets normalized cloner settings through a replayable operation", () => {
+    const source = createDemoProject();
+    const layer = activeComposition(source).layers[0];
+    const next = applyOperations(source, [
+      {
+        type: "setClonerSettings",
+        layerId: layer.id,
+        cloner: {
+          distribution: { kind: "grid", count: [0, 2.9, 1], spacing: [80, 40, 0] },
+          effectors: [
+            {
+              id: "scale",
+              kind: "scale",
+              enabled: true,
+              strength: 2,
+              value: [150, 150, 150],
+            },
+          ],
+        },
+      },
+    ]);
+
+    expect(activeComposition(next).layers[0].cloner).toMatchObject({
+      distribution: { kind: "grid", count: [1, 2, 1] },
+      effectors: [{ kind: "scale", strength: 2 }],
+    });
+    expect(layer.cloner).toBeUndefined();
+  });
+
   it("toggles an effect without mutating the source project", () => {
     const source = createDemoProject();
     const layer = activeComposition(source).layers.find((entry) => entry.effects.length > 0);

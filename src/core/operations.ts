@@ -1,3 +1,4 @@
+import { type ClonerSettings, normalizeClonerSettings } from "./cloner";
 import { applyPrecompositionPlan, type PrecompositionPlan } from "./precomposition";
 import { activeComposition } from "./project";
 import { insertKeyframe } from "./timeline";
@@ -60,6 +61,7 @@ export type Operation =
   | { type: "setLayerAsset"; layerId: Id; asset?: Layer["asset"] }
   | { type: "setCameraSettings"; layerId: Id; camera: CameraSettings }
   | { type: "setParticleSettings"; layerId: Id; particle: ParticleSettings }
+  | { type: "setClonerSettings"; layerId: Id; cloner?: ClonerSettings }
   | { type: "setShapeSettings"; layerId: Id; shape: ShapeSettings }
   | { type: "setTextContent"; layerId: Id; text: string }
   | { type: "setTextStyle"; layerId: Id; textStyle: TextStyle }
@@ -258,6 +260,9 @@ export function applyOperation(project: Project, operation: Operation): void {
         startRotation: clamp(operation.particle.startRotation, -36_000, 36_000),
         endRotation: clamp(operation.particle.endRotation, -36_000, 36_000),
       };
+      break;
+    case "setClonerSettings":
+      layer.cloner = operation.cloner ? normalizeClonerSettings(operation.cloner) : undefined;
       break;
     case "setShapeSettings":
       layer.shape = {

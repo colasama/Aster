@@ -1421,13 +1421,13 @@ aster/
 - [x] Particle cache / deterministic seed。
 - [x] Arbitrary-time evaluation strategy。
 - [ ] Checkpoint-based seek strategy。
-- [ ] Cloner abstraction。
-- [ ] Grid cloner。
-- [ ] Radial cloner。
-- [ ] Random effector。
-- [ ] Position effector。
-- [ ] Scale effector。
-- [ ] Rotation effector。
+- [x] Cloner abstraction。
+- [x] Grid cloner。
+- [x] Radial cloner。
+- [x] Random effector。
+- [x] Position effector。
+- [x] Scale effector。
+- [x] Rotation effector。
 - [ ] Audio-reactive effector。
 
 ---

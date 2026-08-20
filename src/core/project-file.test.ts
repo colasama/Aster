@@ -264,4 +264,40 @@ describe("project document boundary", () => {
       textStyle: text.textStyle,
     });
   });
+
+  it("roundtrips bounded cloners and rejects oversized grids", () => {
+    const project = createBlankProject();
+    const layer = project.compositions[0].layers[0];
+    layer.cloner = {
+      distribution: {
+        kind: "radial",
+        count: 12,
+        radius: 320,
+        startAngle: -90,
+        endAngle: 270,
+        axis: "z",
+        alignRotation: true,
+      },
+      effectors: [
+        {
+          id: "random",
+          kind: "random",
+          enabled: true,
+          strength: 0.5,
+          seed: 7,
+          position: [10, 20, 0],
+          scale: [15, 15, 0],
+          rotation: [0, 0, 30],
+        },
+      ],
+    };
+
+    const roundtrip = validateProjectDocument(JSON.parse(serializeProject(project)));
+    expect(roundtrip.compositions[0].layers[0].cloner).toEqual(layer.cloner);
+    layer.cloner = {
+      distribution: { kind: "grid", count: [512, 512, 2], spacing: [1, 1, 1] },
+      effectors: [],
+    };
+    expect(() => validateProjectDocument(project)).toThrow("exceeds 65536 instances");
+  });
 });

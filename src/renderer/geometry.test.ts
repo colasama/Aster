@@ -150,6 +150,23 @@ describe("GPU scene geometry", () => {
     expect(geometry.data[VERTEX_FLOAT_OFFSETS.mediaType]).toBe(0);
   });
 
+  it("keeps clone effect instances distinct while sharing their media resource", () => {
+    const project = createBlankProject();
+    const composition = project.compositions[0];
+    const image = createLayerForComposition("image", composition);
+    image.cloner = {
+      distribution: { kind: "grid", count: [3, 1, 1], spacing: [200, 0, 0] },
+      effectors: [],
+    };
+    composition.layers = [image];
+
+    const geometry = buildSceneGeometry(composition, flattenSceneLayers(composition, project, 0));
+    expect(new Set(geometry.batches.map((batch) => batch.instanceId)).size).toBe(3);
+    expect(new Set(geometry.batches.map((batch) => batch.resourceInstanceId))).toEqual(
+      new Set([`root/${image.id}`]),
+    );
+  });
+
   it("expands imported indexed meshes into the shared GPU vertex stream", () => {
     const project = createBlankProject();
     const composition = project.compositions[0];

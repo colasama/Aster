@@ -1,3 +1,5 @@
+import type { ClonerSettings } from "./cloner";
+
 export type Id = string;
 
 export interface Keyframe {
@@ -105,6 +107,7 @@ export interface Layer {
   camera?: CameraSettings;
   mesh?: MeshAsset;
   particle?: ParticleSettings;
+  cloner?: ClonerSettings;
   shape?: ShapeSettings;
   textStyle?: TextStyle;
 }
