@@ -1,13 +1,26 @@
 import type { Id } from "./types";
 
+export type DependencyNodeKind = "property" | "effect" | "layer" | "composition";
+
+export interface DependencyNode {
+  id: Id;
+  kind: DependencyNodeKind;
+  ownerId: Id;
+  label: string;
+}
+
 export class DependencyGraph {
   readonly #dependents = new Map<Id, Set<Id>>();
   readonly #dependencies = new Map<Id, Set<Id>>();
   readonly #dirty = new Set<Id>();
+  readonly #nodes = new Map<Id, DependencyNode>();
+  #topologicalCache?: Id[];
 
-  addNode(id: Id): void {
+  addNode(id: Id, node?: Omit<DependencyNode, "id">): void {
+    if (!this.#dependencies.has(id)) this.#topologicalCache = undefined;
     if (!this.#dependents.has(id)) this.#dependents.set(id, new Set());
     if (!this.#dependencies.has(id)) this.#dependencies.set(id, new Set());
+    if (node) this.#nodes.set(id, { id, ...node });
   }
 
   addDependency(node: Id, dependency: Id): void {
@@ -18,6 +31,7 @@ export class DependencyGraph {
     }
     this.#dependencies.get(node)?.add(dependency);
     this.#dependents.get(dependency)?.add(node);
+    this.#topologicalCache = undefined;
   }
 
   markDirty(root: Id): number {
@@ -34,13 +48,32 @@ export class DependencyGraph {
   }
 
   consumeDirtyOrder(): Id[] {
+    const order = this.#topologicalCache ?? this.#createTopologicalOrder();
+    this.#topologicalCache = order;
+    return order.filter((node) => this.#dirty.delete(node));
+  }
+
+  node(id: Id): DependencyNode | undefined {
+    return this.#nodes.get(id);
+  }
+
+  nodes(kind?: DependencyNodeKind): DependencyNode[] {
+    const nodes = [...this.#nodes.values()];
+    return kind ? nodes.filter((node) => node.kind === kind) : nodes;
+  }
+
+  get size(): number {
+    return this.#dependencies.size;
+  }
+
+  #createTopologicalOrder(): Id[] {
     const pending = new Map([...this.#dependencies].map(([id, entries]) => [id, entries.size]));
     const queue = [...pending].filter(([, count]) => count === 0).map(([id]) => id);
     const order: Id[] = [];
     while (queue.length > 0) {
       const node = queue.shift();
       if (!node) continue;
-      if (this.#dirty.delete(node)) order.push(node);
+      order.push(node);
       for (const dependent of this.#dependents.get(node) ?? []) {
         const count = (pending.get(dependent) ?? 1) - 1;
         pending.set(dependent, count);
@@ -50,10 +83,6 @@ export class DependencyGraph {
     if ([...pending.values()].some((count) => count > 0))
       throw new Error("Dependency graph contains a cycle");
     return order;
-  }
-
-  get size(): number {
-    return this.#dependencies.size;
   }
 
   #reaches(start: Id, target: Id): boolean {

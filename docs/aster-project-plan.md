@@ -1099,10 +1099,10 @@ aster/
 ## 18.3 Dependency Graph / Incremental Evaluation
 
 - [x] 创建 Dependency Node 数据结构。
-- [ ] 定义 Property dependency。
-- [ ] 定义 Layer dependency。
-- [ ] 定义 Effect dependency。
-- [ ] 定义 Composition dependency。
+- [x] 定义 Property dependency。
+- [x] 定义 Layer dependency。
+- [x] 定义 Effect dependency。
+- [x] 定义 Composition dependency。
 - [x] 实现 dirty flag。
 - [x] 实现 dirty propagation。
 - [x] 防止依赖环。
