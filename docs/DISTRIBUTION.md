@@ -8,6 +8,10 @@ and Linux produces AppImage and Debian packages. Artifact builds are unsigned pr
 release job supplies platform signing identities; unsigned artifacts must never be promoted as a
 stable release.
 
+Windows preview installers embed the WebView2 offline installer so a clean machine can install
+without network access. The stable application identifier is `io.github.aster-mograph.aster`; it
+must not change after public release because it defines upgrade identity and application data paths.
+
 ## Auto-update strategy
 
 Auto-update remains disabled for the MVP. Enabling it requires all of the following in one change:
