@@ -1,6 +1,8 @@
 import { type ClonerSettings, normalizeClonerSettings } from "./cloner";
 import { applyPrecompositionPlan, type PrecompositionPlan } from "./precomposition";
 import { activeComposition } from "./project";
+import type { ShapeGraph } from "./shape-graph";
+import { validateShapeGraph } from "./shape-graph";
 import { normalizeTextAnimatorSettings } from "./text-animator";
 import { insertKeyframe } from "./timeline";
 import type {
@@ -65,6 +67,7 @@ export type Operation =
   | { type: "setParticleSettings"; layerId: Id; particle: ParticleSettings }
   | { type: "setClonerSettings"; layerId: Id; cloner?: ClonerSettings }
   | { type: "setShapeSettings"; layerId: Id; shape: ShapeSettings }
+  | { type: "setShapeGraph"; layerId: Id; shapeGraph?: ShapeGraph }
   | { type: "setTextContent"; layerId: Id; text: string }
   | { type: "setTextStyle"; layerId: Id; textStyle: TextStyle }
   | { type: "setTextAnimator"; layerId: Id; textAnimator: TextAnimatorSettings }
@@ -286,6 +289,10 @@ export function applyOperation(project: Project, operation: Operation): void {
         lineJoin: operation.shape.lineJoin ?? "round",
         path: operation.shape.path ? structuredClone(operation.shape.path) : undefined,
       };
+      break;
+    case "setShapeGraph":
+      if (operation.shapeGraph) validateShapeGraph(operation.shapeGraph);
+      layer.shapeGraph = operation.shapeGraph ? structuredClone(operation.shapeGraph) : undefined;
       break;
     case "setTextContent":
       layer.text = operation.text.slice(0, 20_000);

@@ -7,8 +7,9 @@ import {
   MAX_SERIALIZED_COMMAND_SIZE,
 } from "./command-log";
 import { cloneCurrentProjectDocument } from "./project-schema";
+import { validateShapeGraph } from "./shape-graph";
 import { TEXT_ANIMATOR_LIMITS } from "./text-animator";
-import type { Composition, Layer, Project } from "./types";
+import type { Composition, Effect, Layer, Project } from "./types";
 
 const RECOVERY_KEY = "aster.recoveryProject.v0";
 const MAX_EMBEDDED_ASSET_CHARACTERS = 136 * 1024 * 1024;
@@ -425,6 +426,7 @@ function validateLayer(value: unknown, path: string): asserts value is Layer {
       throw new Error(`${path}.shape.gradientColor must contain four channels`);
     if (shape.kind === "bezier") validateBezierPath(shape.path, `${path}.shape.path`);
   }
+  if (layer.shapeGraph !== undefined) validateShapeGraph(layer.shapeGraph, `${path}.shapeGraph`);
   if (layer.textStyle !== undefined) {
     const style = requireObject(layer.textStyle, `${path}.textStyle`);
     if (requireString(style.fontFamily, `${path}.textStyle.fontFamily`).length > 160)
@@ -454,6 +456,16 @@ function validateLayer(value: unknown, path: string): asserts value is Layer {
   if (!Array.isArray(layer.effects)) throw new Error(`${path}.effects must be an array`);
   for (const [index, effect] of layer.effects.entries())
     validateEffect(effect, `${path}.effects[${index}]`);
+  const reusablePathIds = new Set(
+    ((layer.shapeGraph as { paths?: Array<{ id?: unknown }> } | undefined)?.paths ?? []).map(
+      (resource) => resource.id,
+    ),
+  );
+  for (const [index, effect] of (layer.effects as Effect[]).entries()) {
+    if (effect.mask?.shape !== "path") continue;
+    if (!effect.mask.pathId || !reusablePathIds.has(effect.mask.pathId))
+      throw new Error(`${path}.effects[${index}].mask references a missing shape path`);
+  }
 }
 
 function validateTextAnimator(value: unknown, path: string): void {
@@ -634,8 +646,11 @@ function validateEffect(value: unknown, path: string): void {
 
 function validateEffectMask(value: unknown, path: string): void {
   const mask = requireObject(value, path);
-  if (mask.shape !== "ellipse" && mask.shape !== "rectangle")
-    throw new Error(`${path}.shape must be ellipse or rectangle`);
+  if (mask.shape !== "ellipse" && mask.shape !== "rectangle" && mask.shape !== "path")
+    throw new Error(`${path}.shape must be ellipse, rectangle, or path`);
+  if (mask.shape === "path") requireString(mask.pathId, `${path}.pathId`);
+  else if (mask.pathId !== undefined)
+    throw new Error(`${path}.pathId is only valid for path masks`);
   if (!Array.isArray(mask.center) || mask.center.length !== 2)
     throw new Error(`${path}.center must contain two values`);
   if (!Array.isArray(mask.size) || mask.size.length !== 2)

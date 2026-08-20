@@ -169,6 +169,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "aster-text"
+version = "0.2.0"
+dependencies = [
+ "thiserror 2.0.20",
+]
+
+[[package]]
 name = "aster-timeline"
 version = "0.2.0"
 dependencies = [

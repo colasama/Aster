@@ -1,4 +1,5 @@
 import type { ClonerSettings } from "./cloner";
+import type { ShapeGraph } from "./shape-graph";
 
 export type Id = string;
 
@@ -61,7 +62,9 @@ export interface Effect {
 }
 
 export interface EffectMask {
-  shape: "ellipse" | "rectangle";
+  shape: "ellipse" | "rectangle" | "path";
+  /** References a reusable path in the owning layer's shape graph. */
+  pathId?: Id;
   center: [number, number];
   size: [number, number];
   feather: number;
@@ -109,6 +112,7 @@ export interface Layer {
   particle?: ParticleSettings;
   cloner?: ClonerSettings;
   shape?: ShapeSettings;
+  shapeGraph?: ShapeGraph;
   textStyle?: TextStyle;
   textAnimator?: TextAnimatorSettings;
 }

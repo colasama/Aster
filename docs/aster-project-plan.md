@@ -1273,13 +1273,13 @@ aster/
 
 文本必须尽早实现，因为 CJK / Emoji / shaping 很容易成为后期架构坑。
 
-- [ ] 创建 `aster-text` crate。
+- [x] 创建 `aster-text` crate。
 - [x] 集成 HarfBuzz 或等价 shaping。
 - [ ] 字体发现。
 - [x] Font fallback。
-- [ ] Font cache。
-- [ ] Glyph cache。
-- [ ] Glyph atlas。
+- [x] Font cache。
+- [x] Glyph cache。
+- [x] Glyph atlas。
 - [x] GPU text rendering。
 - [x] Unicode shaping。
 - [x] Latin script。
@@ -1317,8 +1317,8 @@ aster/
 - [x] Gradient fill。
 - [x] Path tessellation。
 - [x] GPU path rendering strategy。
-- [ ] Mask path reuse。
-- [ ] Shape grouping。
+- [x] Mask path reuse。
+- [x] Shape grouping。
 - [x] Shape transform stack。
 - [ ] Trim Paths（后续 M1+）。
 - [ ] Repeater / procedural duplication（可移至 M3）。
@@ -1503,7 +1503,7 @@ aster/
 - [x] Frame cache。
 - [x] Video layer → GPU texture。
 - [x] Color space metadata。
-- [ ] Alpha video support research。
+- [x] Alpha video support research。
 
 ### Audio
 
@@ -1532,18 +1532,18 @@ aster/
 - [ ] EXR research / support。
 - [ ] H.264 export。
 - [ ] H.265 optional path。
-- [ ] ProRes platform strategy research。
+- [x] ProRes platform strategy research。
 - [ ] Audio muxing。
 - [x] Export progress。
 - [x] Cancel export。
-- [ ] Background export architecture research。
+- [x] Background export architecture research。
 
 ### Hardware Fast Path
 
-- [ ] Windows hardware decode research。
-- [ ] macOS VideoToolbox decode research。
-- [ ] Linux VAAPI decode research。
-- [ ] GPU interop capability matrix。
+- [x] Windows hardware decode research。
+- [x] macOS VideoToolbox decode research。
+- [x] Linux VAAPI decode research。
+- [x] GPU interop capability matrix。
 - [ ] Zero/low-copy prototype。
 - [ ] Hardware encode prototype。
 
