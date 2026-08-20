@@ -421,12 +421,12 @@ pub(crate) struct ProcessOutput {
     pub(crate) stderr: Vec<u8>,
 }
 
-struct BoundedRead {
-    bytes: Vec<u8>,
-    overflowed: bool,
+pub(crate) struct BoundedRead {
+    pub(crate) bytes: Vec<u8>,
+    pub(crate) overflowed: bool,
 }
 
-fn read_bounded(mut reader: impl Read, limit: usize) -> io::Result<BoundedRead> {
+pub(crate) fn read_bounded(mut reader: impl Read, limit: usize) -> io::Result<BoundedRead> {
     let mut bytes = Vec::with_capacity(limit.min(64 * 1024));
     let mut overflowed = false;
     let mut chunk = [0_u8; 16 * 1024];
@@ -524,7 +524,7 @@ fn run_child(
     })
 }
 
-fn terminate(child: &mut std::process::Child) {
+pub(crate) fn terminate(child: &mut std::process::Child) {
     let _ = child.kill();
     let _ = child.wait();
 }

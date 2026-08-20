@@ -12,9 +12,17 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 mod audio;
+mod export;
 mod ffmpeg;
 
 pub use audio::{AudioDecodeRequest, DecodedAudio};
+
+pub use export::{
+    AudioEncoder, AudioMuxSpec, EncoderAvailability, ExportContainer, ExportError, ExportFrame,
+    ExportFrameReceiver, ExportFrameSendError, ExportFrameSender, ExportLimits, ExportReport,
+    FfmpegExportBackend, PixelFormat, VideoCodec, VideoEncoder, VideoExportRequest,
+    bounded_frame_channel,
+};
 
 pub use ffmpeg::{
     CancellationToken, DecodeLimits, FfmpegBackend, FfmpegCommand, FfmpegError, FfprobeBackend,

@@ -1530,10 +1530,10 @@ aster/
 - [x] Render frame sequence。
 - [x] PNG sequence export。
 - [ ] EXR research / support。
-- [ ] H.264 export。
-- [ ] H.265 optional path。
+- [x] H.264 export。
+- [x] H.265 optional path。
 - [x] ProRes platform strategy research。
-- [ ] Audio muxing。
+- [x] Audio muxing。
 - [x] Export progress。
 - [x] Cancel export。
 - [x] Background export architecture research。
@@ -1545,7 +1545,7 @@ aster/
 - [x] Linux VAAPI decode research。
 - [x] GPU interop capability matrix。
 - [ ] Zero/low-copy prototype。
-- [ ] Hardware encode prototype。
+- [x] Hardware encode prototype。
 
 ---
 
