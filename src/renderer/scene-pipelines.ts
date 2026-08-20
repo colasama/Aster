@@ -1,6 +1,6 @@
 import type { BlendMode } from "../core/types";
 import { FLOATS_PER_VERTEX } from "./geometry";
-import { imageShader, shapeShader } from "./shaders";
+import { imageShader, shadowShader, shapeShader } from "./shaders";
 
 const BLEND_MODES: BlendMode[] = ["normal", "add", "multiply", "screen", "overlay"];
 
@@ -89,6 +89,38 @@ export function createImagePipelines(
       depthCompare: "less-equal",
     },
   }));
+}
+
+export function createShadowPipeline(
+  device: GPUDevice,
+  bindGroupLayout: GPUBindGroupLayout,
+): GPURenderPipeline {
+  const module = device.createShaderModule({ label: "Scene shadow shader", code: shadowShader });
+  return device.createRenderPipeline({
+    label: "GPU shadow-map depth pass",
+    layout: device.createPipelineLayout({
+      label: "GPU shadow-map pipeline layout",
+      bindGroupLayouts: [bindGroupLayout],
+    }),
+    vertex: {
+      module,
+      entryPoint: "vertex_main",
+      buffers: [
+        {
+          arrayStride: FLOATS_PER_VERTEX * 4,
+          attributes: [{ shaderLocation: 6, offset: 68, format: "float32x3" }],
+        },
+      ],
+    },
+    primitive: { topology: "triangle-list", cullMode: "back" },
+    depthStencil: {
+      format: "depth24plus",
+      depthWriteEnabled: true,
+      depthCompare: "less",
+      depthBias: 2,
+      depthBiasSlopeScale: 1.5,
+    },
+  });
 }
 
 function createBlendPipelines(

@@ -1,6 +1,6 @@
 import type { GpuPassTimings } from "../core/types";
 
-const QUERY_COUNT = 6;
+const QUERY_COUNT = 8;
 const QUERY_BYTES = QUERY_COUNT * BigUint64Array.BYTES_PER_ELEMENT;
 
 export class GpuTimestampProfiler {
@@ -58,11 +58,13 @@ export class GpuTimestampProfiler {
         const firstSample = this.#passTimings === undefined;
         const timestamps = new BigUint64Array(buffer.getMappedRange().slice(0));
         const compute = timestamps[1] - timestamps[0];
-        const scene = timestamps[3] - timestamps[2];
-        const post = timestamps[5] - timestamps[4];
-        this.#totalMs = Number(compute + scene + post) / 1_000_000;
+        const shadow = timestamps[3] - timestamps[2];
+        const scene = timestamps[5] - timestamps[4];
+        const post = timestamps[7] - timestamps[6];
+        this.#totalMs = Number(compute + shadow + scene + post) / 1_000_000;
         this.#passTimings = {
           computeMs: Number(compute) / 1_000_000,
+          shadowMs: Number(shadow) / 1_000_000,
           sceneMs: Number(scene) / 1_000_000,
           postMs: Number(post) / 1_000_000,
         };

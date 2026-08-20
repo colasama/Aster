@@ -14,9 +14,24 @@ struct SceneLighting {
   color_ambient: vec4f,
   position_kind: vec4f,
   range_cone: vec4f,
+  shadow_x_scale: vec4f,
+  shadow_y_scale: vec4f,
+  shadow_z_scale: vec4f,
+  shadow_center_bias: vec4f,
 }
 
 @group(0) @binding(0) var<uniform> lighting: SceneLighting;
+@group(0) @binding(1) var shadow_map: texture_depth_2d;
+@group(0) @binding(2) var shadow_sampler: sampler_comparison;
+
+fn shadow_position(world_position: vec3f) -> vec3f {
+  let relative = world_position - lighting.shadow_center_bias.xyz;
+  return vec3f(
+    dot(relative, lighting.shadow_x_scale.xyz) * lighting.shadow_x_scale.w,
+    dot(relative, lighting.shadow_y_scale.xyz) * lighting.shadow_y_scale.w,
+    0.5 - dot(relative, lighting.shadow_z_scale.xyz) * lighting.shadow_z_scale.w,
+  );
+}
 
 @vertex
 fn vertex_main(
@@ -73,11 +88,49 @@ fn fragment_main(input: VertexOutput) -> @location(0) vec4f {
     let fresnel = mix(vec3f(0.04), color, metallic);
     let specular = fresnel * pow(max(dot(normal, half_direction), 0.0), specular_power);
     let radiance = lighting.color_ambient.rgb * lighting.direction_intensity.w * attenuation;
-    let diffuse = color * (1.0 - metallic) * diffuse_weight * radiance;
-    color = color * lighting.color_ambient.w + diffuse + specular * radiance;
+    let shadow_coordinate = shadow_position(input.world_position);
+    let shadow_uv = vec2f(shadow_coordinate.x * 0.5 + 0.5, 0.5 - shadow_coordinate.y * 0.5);
+    let inside_shadow_map = all(shadow_uv >= vec2f(0.0)) && all(shadow_uv <= vec2f(1.0))
+      && shadow_coordinate.z >= 0.0 && shadow_coordinate.z <= 1.0;
+    var visibility = 1.0;
+    if inside_shadow_map && lighting.position_kind.w != 1.0 {
+      let comparison = textureSampleCompareLevel(
+        shadow_map,
+        shadow_sampler,
+        shadow_uv,
+        shadow_coordinate.z - lighting.shadow_center_bias.w,
+      );
+      visibility = mix(0.32, 1.0, comparison);
+    }
+    let diffuse = color * (1.0 - metallic) * diffuse_weight * radiance * visibility;
+    color = color * lighting.color_ambient.w + diffuse + specular * radiance * visibility;
     color += input.color.rgb * max(input.material.z, 0.0);
   }
   return vec4f(color * alpha, alpha);
+}
+`;
+
+export const shadowShader = /* wgsl */ `
+struct SceneLighting {
+  direction_intensity: vec4f,
+  color_ambient: vec4f,
+  position_kind: vec4f,
+  range_cone: vec4f,
+  shadow_x_scale: vec4f,
+  shadow_y_scale: vec4f,
+  shadow_z_scale: vec4f,
+  shadow_center_bias: vec4f,
+}
+
+@group(0) @binding(0) var<uniform> lighting: SceneLighting;
+
+@vertex
+fn vertex_main(@location(6) world_position: vec3f) -> @builtin(position) vec4f {
+  let relative = world_position - lighting.shadow_center_bias.xyz;
+  let x = dot(relative, lighting.shadow_x_scale.xyz) * lighting.shadow_x_scale.w;
+  let y = dot(relative, lighting.shadow_y_scale.xyz) * lighting.shadow_y_scale.w;
+  let depth = 0.5 - dot(relative, lighting.shadow_z_scale.xyz) * lighting.shadow_z_scale.w;
+  return vec4f(x, y, depth, 1.0);
 }
 `;
 

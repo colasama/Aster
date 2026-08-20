@@ -15,12 +15,17 @@ import { createLutSampler, createLutTexture } from "./lut-texture";
 import { buildPostProcessUniforms } from "./post-process";
 import { SceneEvaluationCache } from "./scene-evaluation-cache";
 import { buildSceneLighting, SCENE_LIGHTING_BYTES } from "./scene-lighting";
-import { createImagePipelines, createShapePipelines } from "./scene-pipelines";
+import {
+  createImagePipelines,
+  createShadowPipeline,
+  createShapePipelines,
+} from "./scene-pipelines";
 import {
   imageShader,
   particleComputeShader,
   particleRenderShader,
   postProcessShader,
+  shadowShader,
   shapeShader,
 } from "./shaders";
 import { rasterizeTextLayer } from "./text-rasterizer";
@@ -28,6 +33,7 @@ import { rasterizeTextLayer } from "./text-rasterizer";
 const PARTICLE_COUNT = 100_000;
 const MAX_SHAPE_VERTICES = 6 * 128;
 const SCENE_FORMAT: GPUTextureFormat = "rgba16float";
+const SHADOW_MAP_SIZE = 1024;
 
 interface MediaResource {
   source: string;
@@ -49,6 +55,9 @@ export class WebGpuRenderer {
   readonly #lightingBindGroupLayout: GPUBindGroupLayout;
   readonly #lightingBuffer: GPUBuffer;
   readonly #lightingBindGroup: GPUBindGroup;
+  readonly #shadowBindGroup: GPUBindGroup;
+  readonly #shadowTexture: GPUTexture;
+  readonly #shadowPipeline: GPURenderPipeline;
   readonly #shapePipelines: Record<BlendMode, GPURenderPipeline>;
   readonly #imageBindGroupLayout: GPUBindGroupLayout;
   readonly #imagePipelines: Record<BlendMode, GPURenderPipeline>;
@@ -98,8 +107,18 @@ export class WebGpuRenderer {
       entries: [
         {
           binding: 0,
-          visibility: GPUShaderStage.FRAGMENT,
+          visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
           buffer: { type: "uniform" },
+        },
+        {
+          binding: 1,
+          visibility: GPUShaderStage.FRAGMENT,
+          texture: { sampleType: "depth", viewDimension: "2d" },
+        },
+        {
+          binding: 2,
+          visibility: GPUShaderStage.FRAGMENT,
+          sampler: { type: "comparison" },
         },
       ],
     });
@@ -108,16 +127,48 @@ export class WebGpuRenderer {
       size: SCENE_LIGHTING_BYTES,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
+    const shadowBindGroupLayout = device.createBindGroupLayout({
+      label: "Shadow depth uniform layout",
+      entries: [
+        {
+          binding: 0,
+          visibility: GPUShaderStage.VERTEX,
+          buffer: { type: "uniform" },
+        },
+      ],
+    });
+    this.#shadowBindGroup = device.createBindGroup({
+      label: "Shadow depth uniforms",
+      layout: shadowBindGroupLayout,
+      entries: [{ binding: 0, resource: { buffer: this.#lightingBuffer } }],
+    });
+    this.#shadowTexture = device.createTexture({
+      label: "Scene shadow map · 1024²",
+      size: [SHADOW_MAP_SIZE, SHADOW_MAP_SIZE],
+      format: "depth24plus",
+      usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
+    });
+    const shadowSampler = device.createSampler({
+      label: "Scene shadow comparison sampler",
+      compare: "less-equal",
+      minFilter: "linear",
+      magFilter: "linear",
+    });
     this.#lightingBindGroup = device.createBindGroup({
       label: "Scene lighting resources",
       layout: this.#lightingBindGroupLayout,
-      entries: [{ binding: 0, resource: { buffer: this.#lightingBuffer } }],
+      entries: [
+        { binding: 0, resource: { buffer: this.#lightingBuffer } },
+        { binding: 1, resource: this.#shadowTexture.createView() },
+        { binding: 2, resource: shadowSampler },
+      ],
     });
     this.#shapePipelines = createShapePipelines(
       device,
       SCENE_FORMAT,
       this.#lightingBindGroupLayout,
     );
+    this.#shadowPipeline = createShadowPipeline(device, shadowBindGroupLayout);
     this.#imageBindGroupLayout = device.createBindGroupLayout({
       label: "Imported media texture layout",
       entries: [
@@ -290,7 +341,11 @@ export class WebGpuRenderer {
       this.#height,
     );
     const { sceneLayers, geometry } = evaluation;
-    this.#device.queue.writeBuffer(this.#lightingBuffer, 0, buildSceneLighting(sceneLayers));
+    this.#device.queue.writeBuffer(
+      this.#lightingBuffer,
+      0,
+      buildSceneLighting(sceneLayers, composition),
+    );
     if (geometry.data.length > 0) {
       this.#ensureShapeBuffer(geometry.data.byteLength);
       this.#device.queue.writeBuffer(this.#shapeBuffer, 0, geometry.data);
@@ -336,13 +391,32 @@ export class WebGpuRenderer {
     compute.setBindGroup(0, this.#computeBindGroup);
     compute.dispatchWorkgroups(Math.ceil(PARTICLE_COUNT / 256));
     compute.end();
+    const shadowPass = encoder.beginRenderPass({
+      label: "Scene shadow-map depth",
+      timestampWrites: this.#gpuProfiler.writes(2, 3),
+      colorAttachments: [],
+      depthStencilAttachment: {
+        view: this.#shadowTexture.createView(),
+        depthClearValue: 1,
+        depthLoadOp: "clear",
+        depthStoreOp: "store",
+      },
+    });
+    shadowPass.setPipeline(this.#shadowPipeline);
+    shadowPass.setBindGroup(0, this.#shadowBindGroup);
+    shadowPass.setVertexBuffer(0, this.#shapeBuffer);
+    for (const batch of geometry.batches) {
+      if (!batch.layer.threeDimensional) continue;
+      shadowPass.draw(batch.vertexCount, 1, batch.firstVertex);
+    }
+    shadowPass.end();
     const sceneView = this.#sceneTexture?.createView();
     const depthView = this.#depthTexture?.createView();
     if (!sceneView || !depthView || !this.#postBindGroup)
       throw new Error("HDR scene target is unavailable");
     let scenePass: GPURenderPassEncoder | undefined = encoder.beginRenderPass({
       label: "Linear HDR composition",
-      timestampWrites: this.#gpuProfiler.writes(2),
+      timestampWrites: this.#gpuProfiler.writes(4),
       colorAttachments: [
         {
           view: sceneView,
@@ -423,14 +497,14 @@ export class WebGpuRenderer {
     this.#layerEffects.sweep(activeEffectInstances);
     const sceneTimingEnd = encoder.beginRenderPass({
       label: "Composition timing marker",
-      timestampWrites: this.#gpuProfiler.writes(undefined, 3),
+      timestampWrites: this.#gpuProfiler.writes(undefined, 5),
       colorAttachments: [{ view: sceneView, loadOp: "load", storeOp: "store" }],
     });
     sceneTimingEnd.end();
     const output = this.#context.getCurrentTexture().createView();
     const postPass = encoder.beginRenderPass({
       label: "Fused effects + ACES display transform",
-      timestampWrites: this.#gpuProfiler.writes(4, 5),
+      timestampWrites: this.#gpuProfiler.writes(6, 7),
       colorAttachments: [
         {
           view: output,
@@ -451,18 +525,26 @@ export class WebGpuRenderer {
     const sample = frameInterval > 100 ? 16.67 : Math.max(frameInterval, 0.1);
     this.#smoothedFrameMs = this.#smoothedFrameMs * 0.9 + sample * 0.1;
     const hdr4kBytes =
-      composition.width * composition.height * 8 * 3 + this.#layerEffects.estimatedTextureBytes();
+      composition.width * composition.height * 8 * 3 +
+      this.#layerEffects.estimatedTextureBytes() +
+      SHADOW_MAP_SIZE * SHADOW_MAP_SIZE * 4;
+    const shadowDrawCalls = geometry.batches.filter((batch) => batch.layer.threeDimensional).length;
     return {
       fps: Math.min(240, 1000 / this.#smoothedFrameMs),
       frameMs: this.#smoothedFrameMs,
       cpuMs,
       gpuMs: this.#gpuProfiler.totalMs(),
-      drawCalls: 1 + geometry.batches.length + effectLayerCount * 2 + Number(particleVisible),
-      passCount: 3 + scenePassCount + effectLayerCount * 3,
+      drawCalls:
+        1 +
+        geometry.batches.length +
+        shadowDrawCalls +
+        effectLayerCount * 2 +
+        Number(particleVisible),
+      passCount: 4 + scenePassCount + effectLayerCount * 3,
       dirtyNodes: (evaluation.cacheHit ? 0 : sceneLayers.length) + effectOperationCount,
       cacheHitRate: this.#evaluationCache.hitRate(),
       estimatedVramMb: (hdr4kBytes + PARTICLE_COUNT * 16) / 1024 / 1024,
-      transientTextureCount: 5,
+      transientTextureCount: 6,
       passTimings: this.#gpuProfiler.passTimings(),
     };
   }
@@ -817,6 +899,7 @@ async function validateShaderSources(device: GPUDevice): Promise<void> {
     ["image", imageShader],
     ["particle compute", particleComputeShader],
     ["particle render", particleRenderShader],
+    ["shadow", shadowShader],
     ["post process", postProcessShader],
   ] as const;
   for (const [label, code] of sources) {

@@ -75,6 +75,7 @@ export function Profiler() {
       {metrics.passTimings && (
         <div className="pass-breakdown">
           <PassTiming label="Compute" value={metrics.passTimings.computeMs} />
+          <PassTiming label="Shadow" value={metrics.passTimings.shadowMs} />
           <PassTiming label="Scene" value={metrics.passTimings.sceneMs} />
           <PassTiming label="Post / ACES" value={metrics.passTimings.postMs} />
         </div>

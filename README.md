@@ -34,6 +34,8 @@ frames. Rendering, effects, particles, and composition are designed to remain GP
 - GPU-lit 3D materials carry base color, metallic, roughness, and emissive data through the HDR
   vertex path; directional, point, and spot lights expose animated transforms, HDR color, intensity,
   range, and cone controls through undoable project operations.
+- A dedicated 1024² GPU shadow-map depth pass uses comparison sampling in the HDR material shader;
+  its GPU time, pass count, draw calls, transient texture, and VRAM cost are reported separately.
 - The searchable Asset Browser imports bounded image and video files, shows source resolution and
   duration, and locates the corresponding composition layer.
 - Retained GPU text textures participate in HDR layer effects, blend modes, precompositions, and

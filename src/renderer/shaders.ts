@@ -37,6 +37,7 @@ export {
   imageShader,
   particleComputeShader,
   particleRenderShader,
+  shadowShader,
   shapeShader,
   textureCompositeShader,
 } from "./base-shaders";

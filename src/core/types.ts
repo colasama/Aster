@@ -162,6 +162,7 @@ export interface RendererMetrics {
 
 export interface GpuPassTimings {
   computeMs: number;
+  shadowMs: number;
   sceneMs: number;
   postMs: number;
 }

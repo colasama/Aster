@@ -1369,7 +1369,7 @@ aster/
 - [x] Point Light。
 - [x] Spot Light。
 - [x] Light animation。
-- [ ] Shadow map。
+- [x] Shadow map。
 - [ ] Cascaded shadow research。
 - [ ] Shadow quality settings。
 

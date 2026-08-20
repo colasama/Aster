@@ -14,12 +14,13 @@ describe("scene lighting uniforms", () => {
     light.light.intensity = 4;
     light.transform.rotation[1] = { mode: "static", value: 90 };
     composition.layers.push(light);
-    const uniforms = buildSceneLighting(flattenSceneLayers(composition, project, 0));
+    const uniforms = buildSceneLighting(flattenSceneLayers(composition, project, 0), composition);
     expect(uniforms[0]).toBeCloseTo(1);
     expect(uniforms[2]).toBeCloseTo(0);
     expect(uniforms[3]).toBe(4);
     expect([...uniforms.slice(4, 7)]).toEqual([0.5, 0.75, 1.5]);
     expect(uniforms[11]).toBe(0);
+    expect(uniforms).toHaveLength(32);
   });
 
   it("packs point and spot attenuation parameters in world space", () => {
@@ -31,7 +32,7 @@ describe("scene lighting uniforms", () => {
     light.transform.position[2] = { mode: "static", value: -800 };
     composition.layers.push(light);
 
-    const uniforms = buildSceneLighting(flattenSceneLayers(composition, project, 0));
+    const uniforms = buildSceneLighting(flattenSceneLayers(composition, project, 0), composition);
     expect([...uniforms.slice(8, 12)]).toEqual([
       composition.width / 2,
       composition.height / 2,
@@ -40,5 +41,7 @@ describe("scene lighting uniforms", () => {
     ]);
     expect(uniforms[12]).toBe(3600);
     expect(uniforms[13]).toBeCloseTo(Math.cos(Math.PI / 6));
+    expect(Math.hypot(...uniforms.slice(16, 19))).toBeCloseTo(1);
+    expect([...uniforms.slice(28, 31)]).toEqual([composition.width / 2, composition.height / 2, 0]);
   });
 });
