@@ -7,6 +7,7 @@ import type {
   Project,
   RendererMetrics,
 } from "../core/types";
+import { analyzeEffectFusion } from "./effect-fusion";
 import { FLOATS_PER_EFFECT_OPERATION, MAX_EFFECT_OPERATIONS } from "./effect-program";
 import { FLOATS_PER_VERTEX, type GeometryBatch } from "./geometry";
 import { planGpuMemory } from "./gpu-memory-budget";
@@ -498,11 +499,18 @@ export class WebGpuRenderer {
     let scenePassCount = 1;
     let effectOperationCount = 0;
     let effectLayerCount = 0;
+    let fusedEffectCount = 0;
+    let fusionGroupCount = 0;
+    let fusionBarrierCount = 0;
     const activeEffectInstances = new Set<string>();
     if (geometry.data.length > 0) {
       for (const batch of geometry.batches) {
         const hasEffects = batch.layer.effects.some((effect) => effect.enabled);
         if (hasEffects) {
+          const fusion = analyzeEffectFusion(batch.layer.effects);
+          fusedEffectCount += fusion.fusedEffectCount;
+          fusionGroupCount += fusion.fusedGroupCount;
+          fusionBarrierCount += fusion.barrierCount;
           scenePass?.end();
           scenePass = undefined;
           activeEffectInstances.add(batch.instanceId);
@@ -604,6 +612,9 @@ export class WebGpuRenderer {
       memoryBudgetMb: memory.budgetMb,
       memoryPressure: memory.pressure,
       shadowMapSize: memory.shadowMapSize,
+      fusedEffectCount,
+      fusionGroupCount,
+      fusionBarrierCount,
       passTimings: this.#gpuProfiler.passTimings(),
     };
   }

@@ -1,6 +1,7 @@
 import { visibleLayersAtTime } from "../core/scene-evaluation";
 import { evaluateEffectParameter } from "../core/timeline";
 import type { Composition, Effect, Layer } from "../core/types";
+import { EFFECT_BY_TYPE } from "../effects/registry";
 import { EffectOpcode } from "./effect-opcodes";
 import { compileAdvancedDistortEffect } from "./effect-program-advanced-distort";
 import { compileBlurSharpenEffect } from "./effect-program-blur-sharpen";
@@ -50,7 +51,7 @@ export function compileEffectProgram(
   };
   for (const layer of [...layers].reverse()) {
     for (const effect of layer.effects) {
-      if (!effect.enabled) continue;
+      if (!effect.enabled || !EFFECT_BY_TYPE.has(effect.type)) continue;
       if (effect.mask) {
         emit(EffectOpcode.MaskBegin, [
           effect.mask.center[0] / 100,

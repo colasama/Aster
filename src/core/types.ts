@@ -237,6 +237,9 @@ export interface RendererMetrics {
   memoryBudgetMb?: number;
   memoryPressure?: "normal" | "warning" | "critical";
   shadowMapSize?: number;
+  fusedEffectCount?: number;
+  fusionGroupCount?: number;
+  fusionBarrierCount?: number;
   passTimings?: GpuPassTimings;
 }
 

@@ -1656,8 +1656,8 @@ aster/
 - [x] Render Graph resource aliasing。
 - [x] Pipeline prewarming。
 - [x] Async shader compilation strategy。
-- [ ] Shader fusion prototype。
-- [ ] Effect fusion eligibility analysis。
+- [x] Shader fusion prototype。
+- [x] Effect fusion eligibility analysis。
 - [x] Dynamic resolution preview。
 - [x] Preview quality levels。
 - [ ] Tile processing research for huge compositions。

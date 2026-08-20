@@ -100,6 +100,11 @@ export function Profiler() {
         label="Transient"
         value={`${metrics.transientTextureCount} textures`}
       />
+      <Metric
+        icon={Layers3}
+        label="Effect fusion"
+        value={`${metrics.fusedEffectCount ?? 0} fx / ${metrics.fusionGroupCount ?? 0} groups / ${metrics.fusionBarrierCount ?? 0} barriers`}
+      />
       {metrics.passTimings && (
         <div className="pass-breakdown">
           <PassTiming label="Compute" value={metrics.passTimings.computeMs} />
