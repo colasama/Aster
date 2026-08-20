@@ -149,6 +149,8 @@ pnpm tauri dev
 ```
 
 For the browser editor only, run `pnpm dev`. Production assets are built with `pnpm build`.
+Desktop bundle commands, CI artifact targets, and the MVP feature-flag policy are documented in
+[Desktop Builds and Feature Flags](docs/BUILD_AND_FEATURES.md).
 
 ## Quality gates
 

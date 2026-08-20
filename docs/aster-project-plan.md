@@ -975,12 +975,12 @@ aster/
 - [x] 配置 macOS CI。
 - [x] 配置 Linux CI。
 - [x] 配置 unit test workflow。
-- [ ] 配置 build artifact workflow。
+- [x] 配置 build artifact workflow。
 - [x] 配置 nightly benchmark workflow。
 - [x] 定义最低 Rust toolchain。
 - [x] 确定 MSRV 策略。
 - [x] 确定版本号策略。
-- [ ] 确定 feature flag 策略。
+- [x] 确定 feature flag 策略。
 - [x] 创建 Architecture Decision Record（ADR）目录。
 - [x] 写 ADR：为什么选择 Rust。
 - [x] 写 ADR：为什么选择 wgpu。

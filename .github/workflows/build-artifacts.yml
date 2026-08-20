@@ -1,0 +1,124 @@
+name: Build desktop artifacts
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-artifacts-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: "1"
+
+jobs:
+  quality:
+    name: Quality gates
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.97.1
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: desktop-artifacts-quality
+      - name: Install Linux desktop dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf
+      - run: pnpm install --frozen-lockfile
+      - name: Check frontend formatting, types, and tests
+        run: pnpm check:frontend
+      - name: Check Rust formatting
+        run: cargo fmt --all --check
+      - name: Lint all Rust targets and features
+        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+      - name: Test all Rust features
+        run: cargo test --workspace --all-features
+
+  bundle:
+    name: Bundle ${{ matrix.name }}
+    needs: quality
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux x64
+            os: ubuntu-22.04
+            bundles: appimage,deb
+            artifact: aster-linux-x64
+          - name: Windows x64
+            os: windows-latest
+            bundles: msi,nsis
+            artifact: aster-windows-x64
+          - name: macOS universal
+            os: macos-14
+            bundles: app,dmg
+            artifact: aster-macos-universal
+            target_args: --target universal-apple-darwin
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.97.1
+      - name: Install universal Apple Rust targets
+        if: matrix.name == 'macOS universal'
+        run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
+      - name: Install Linux desktop dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: desktop-artifacts-${{ runner.os }}
+      - run: pnpm install --frozen-lockfile
+      - name: Build desktop bundles
+        shell: bash
+        run: >-
+          pnpm tauri build
+          --ci
+          --features production
+          --bundles ${{ matrix.bundles }}
+          ${{ matrix.target_args }}
+      - name: Upload desktop bundles
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}-${{ github.sha }}
+          path: target/**/release/bundle/**/*
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0

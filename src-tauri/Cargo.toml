@@ -16,6 +16,12 @@ rust-version.workspace = true
 name = "aster_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
+[features]
+# Developer builds use Tauri's IPC transport. Packaged desktop artifacts opt in
+# to the production custom protocol explicitly through the artifact workflow.
+default = []
+production = ["tauri/custom-protocol"]
+
 [build-dependencies]
 tauri-build = { version = "2.6.3", features = [] }
 
