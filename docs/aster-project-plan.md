@@ -1518,8 +1518,8 @@ aster/
 
 ### Proxy / Cache
 
-- [ ] Proxy metadata model。
-- [ ] Proxy generation command。
+- [x] Proxy metadata model。
+- [x] Proxy generation command。
 - [x] Disk cache directory。
 - [x] Cache eviction policy。
 - [x] Cache size setting。

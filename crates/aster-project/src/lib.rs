@@ -1,8 +1,13 @@
 //! Git-friendly project bundle persistence.
 
 mod disk_cache;
+mod proxy;
 
 pub use disk_cache::{DiskCache, DiskCacheBenchmark, DiskCacheStatistics};
+pub use proxy::{
+    CancellationToken, ProxyError, ProxyGenerationPlan, ProxyMetadata, ProxyProfile, ProxyValidity,
+    finalize_proxy_generation, inspect_proxy, prepare_proxy_generation, write_proxy_metadata,
+};
 
 use std::{
     fs::{self, File},
