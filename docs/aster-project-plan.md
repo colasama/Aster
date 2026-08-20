@@ -1465,15 +1465,15 @@ aster/
 
 ### Render Graph Plugin
 
-- [ ] 定义 graph plugin API。
-- [ ] 允许 temporary texture。
-- [ ] 允许 compute pass。
-- [ ] 允许 render pass。
-- [ ] 允许 multi-pass dependency。
-- [ ] Graph validation sandbox。
-- [ ] Resource quota / safety research。
-- [ ] Example: Bloom。
-- [ ] Example: Multi-pass Blur。
+- [x] 定义 graph plugin API。
+- [x] 允许 temporary texture。
+- [x] 允许 compute pass。
+- [x] 允许 render pass。
+- [x] 允许 multi-pass dependency。
+- [x] Graph validation sandbox。
+- [x] Resource quota / safety research。
+- [x] Example: Bloom。
+- [x] Example: Multi-pass Blur。
 
 ### Native Plugin
 

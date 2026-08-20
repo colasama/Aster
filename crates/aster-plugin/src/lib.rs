@@ -1,6 +1,7 @@
 //! Versioned manifest and parameter ABI for portable WGSL effects.
 
 mod abi;
+pub mod graph;
 
 pub use abi::{EFFECT_ENTRY_POINT, EFFECT_PARAMETER_VECTORS, EFFECT_UNIFORM_SIZE};
 
