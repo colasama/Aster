@@ -1295,8 +1295,8 @@ aster/
 - [x] Baseline。
 - [x] Stroke / Fill。
 - [x] Text on GPU texture。
-- [ ] 研究竖排文字。
-- [ ] 研究 variable fonts。
+- [x] 研究竖排文字。
+- [x] 研究 variable fonts。
 - [x] 研究 per-character animation 数据模型。
 - [x] 实现最小 Text Animator。
 
@@ -1370,7 +1370,7 @@ aster/
 - [x] Spot Light。
 - [x] Light animation。
 - [x] Shadow map。
-- [ ] Cascaded shadow research。
+- [x] Cascaded shadow research。
 - [x] Shadow quality settings。
 
 ### GBuffer / Auxiliary Buffers
@@ -1556,8 +1556,8 @@ aster/
 - [x] sRGB import/export。
 - [x] Display transform。
 - [x] LUT support。
-- [ ] ICC / OCIO strategy research。
-- [ ] HDR roadmap。
+- [x] ICC / OCIO strategy research。
+- [x] HDR roadmap。
 - [x] 16-bit / float pipeline strategy。
 - [x] Texture format policy。
 - [x] Premultiplied alpha policy。
