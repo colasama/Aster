@@ -3,6 +3,7 @@ export const AUXILIARY_BUFFER_KINDS = [
   "objectId",
   "materialId",
   "worldPosition",
+  "motionVector",
 ] as const;
 
 export type AuxiliaryBufferKind = (typeof AUXILIARY_BUFFER_KINDS)[number];
@@ -71,6 +72,14 @@ export const AUXILIARY_BUFFER_DESCRIPTORS: Readonly<
     sampleType: "float",
     clearValue: { r: 0, g: 0, b: 0, a: 0 },
   },
+  motionVector: {
+    kind: "motionVector",
+    label: "Previous-to-current UV motion vectors",
+    format: "rg16float",
+    bytesPerPixel: 4,
+    sampleType: "float",
+    clearValue: { r: 0, g: 0, b: 0, a: 0 },
+  },
 };
 
 const MAX_DIMENSION = 16_384;
@@ -105,7 +114,7 @@ export function auxiliaryRenderPassBytes(plan: AuxiliaryBufferPlan): number {
 export function supportsAuxiliaryMrt(limits: GPUSupportedLimits): boolean {
   return (
     limits.maxColorAttachments >= AUXILIARY_BUFFER_KINDS.length &&
-    limits.maxColorAttachmentBytesPerSample >= 24
+    limits.maxColorAttachmentBytesPerSample >= 28
   );
 }
 

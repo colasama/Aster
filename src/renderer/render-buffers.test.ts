@@ -7,6 +7,7 @@ import {
   encodeRenderId,
   planAuxiliaryBuffers,
   SCENE_BUFFER_VISUALIZATIONS,
+  supportsAuxiliaryMrt,
   visualizationCode,
 } from "./render-buffers";
 
@@ -22,6 +23,7 @@ describe("auxiliary render buffers", () => {
       "objectId",
       "materialId",
       "worldPosition",
+      "motionVector",
     ]);
   });
 
@@ -32,11 +34,13 @@ describe("auxiliary render buffers", () => {
       "objectId",
       "materialId",
       "worldPosition",
+      "motionVector",
     ]);
-    expect(plan.estimatedBytes).toBe(1920 * 1080 * 24);
-    expect(auxiliaryRenderPassBytes(plan)).toBe(1920 * 1080 * 28);
+    expect(plan.estimatedBytes).toBe(1920 * 1080 * 28);
+    expect(auxiliaryRenderPassBytes(plan)).toBe(1920 * 1080 * 32);
     expect(AUXILIARY_BUFFER_DESCRIPTORS.objectId.format).toBe("r32uint");
     expect(AUXILIARY_BUFFER_DESCRIPTORS.normal.format).toBe("rgba16float");
+    expect(AUXILIARY_BUFFER_DESCRIPTORS.motionVector.format).toBe("rg16float");
   });
 
   it("deduplicates requests and refuses allocations over budget", () => {
@@ -44,6 +48,27 @@ describe("auxiliary render buffers", () => {
     expect(() => planAuxiliaryBuffers(4096, 4096, undefined, 16 * 1024 * 1024)).toThrow(
       "exceeding",
     );
+  });
+
+  it("requires enough MRT slots and bytes for the motion attachment", () => {
+    expect(
+      supportsAuxiliaryMrt({
+        maxColorAttachments: 5,
+        maxColorAttachmentBytesPerSample: 28,
+      } as GPUSupportedLimits),
+    ).toBe(true);
+    expect(
+      supportsAuxiliaryMrt({
+        maxColorAttachments: 4,
+        maxColorAttachmentBytesPerSample: 28,
+      } as GPUSupportedLimits),
+    ).toBe(false);
+    expect(
+      supportsAuxiliaryMrt({
+        maxColorAttachments: 5,
+        maxColorAttachmentBytesPerSample: 24,
+      } as GPUSupportedLimits),
+    ).toBe(false);
   });
 
   it("encodes stable non-zero object and material identifiers", () => {
@@ -55,6 +80,7 @@ describe("auxiliary render buffers", () => {
   it("packs deterministic debug selection and position ranges", () => {
     expect(visualizationCode("normal")).toBe(1);
     expect(visualizationCode("worldPosition")).toBe(4);
+    expect(visualizationCode("motionVector")).toBe(5);
     const uniforms = buildBufferVisualizationUniforms("worldPosition", [-20, 80]);
     expect([...uniforms.slice(0, 2)]).toEqual([4, -20]);
     expect(uniforms[2]).toBeCloseTo(0.01);

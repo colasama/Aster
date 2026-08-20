@@ -30,7 +30,11 @@ import { PARTICLE_INDIRECT_RESET } from "./particle-indirect";
 import { precompileGpuPipelines } from "./pipeline-precompile";
 import { buildPostProcessUniforms } from "./post-process";
 import { type BufferVisualization, isAuxiliaryBuffer } from "./render-buffers";
-import { createParticlePipeline, createPostPipeline } from "./runtime-pipelines";
+import {
+  createParticleBindGroupLayout,
+  createParticlePipeline,
+  createPostPipeline,
+} from "./runtime-pipelines";
 import { SceneEvaluationCache } from "./scene-evaluation-cache";
 import { buildSceneLighting, SCENE_LIGHTING_BYTES, shadowMapSize } from "./scene-lighting";
 import {
@@ -214,7 +218,7 @@ export class WebGpuRenderer {
     this.#shapeBuffer = device.createBuffer({
       label: "Dynamic layer geometry",
       size: this.#shapeBufferBytes,
-      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE,
     });
     const computeModule = device.createShaderModule({
       label: "Particle compute",
@@ -234,10 +238,11 @@ export class WebGpuRenderer {
         { binding: 2, resource: { buffer: this.#particleIndirectBuffer } },
       ],
     });
-    this.#particlePipeline = createParticlePipeline(device, SCENE_FORMAT);
+    const particleBindGroupLayout = createParticleBindGroupLayout(device);
+    this.#particlePipeline = createParticlePipeline(device, SCENE_FORMAT, particleBindGroupLayout);
     this.#particleBindGroup = device.createBindGroup({
       label: "Particle render resources",
-      layout: this.#particlePipeline.getBindGroupLayout(0),
+      layout: particleBindGroupLayout,
       entries: [
         { binding: 0, resource: { buffer: this.#particleBuffer } },
         { binding: 1, resource: { buffer: this.#simulationBuffer } },
@@ -246,7 +251,7 @@ export class WebGpuRenderer {
     this.#auxiliaryBuffers = new AuxiliaryBufferRenderer(
       device,
       this.#imageBindGroupLayout,
-      this.#particlePipeline.getBindGroupLayout(0),
+      particleBindGroupLayout,
     );
     this.#postSampler = device.createSampler({
       label: "HDR linear sampler",
@@ -598,6 +603,8 @@ export class WebGpuRenderer {
       this.#auxiliaryBuffers.encode({
         encoder,
         vertexBuffer: this.#shapeBuffer,
+        vertexCount: geometry.data.length / FLOATS_PER_VERTEX,
+        timelineTime: time,
         batches: geometry.batches,
         mediaBindGroup: (batch) => this.#mediaResources.get(batch.resourceInstanceId)?.bindGroup,
         particle: particleScene
@@ -737,7 +744,7 @@ export class WebGpuRenderer {
     this.#shapeBuffer = this.#device.createBuffer({
       label: "Dynamic layer geometry · grown",
       size: this.#shapeBufferBytes,
-      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE,
     });
   }
 

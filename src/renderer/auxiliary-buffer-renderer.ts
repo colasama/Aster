@@ -1,6 +1,7 @@
 import type { Layer } from "../core/types";
 import type { SceneBufferVisualizer } from "./buffer-visualizer";
 import type { GeometryBatch } from "./geometry";
+import { GpuMotionVectorHistory } from "./motion-vector-history";
 import {
   AUXILIARY_BUFFER_DESCRIPTORS,
   AUXILIARY_BUFFER_KINDS,
@@ -27,6 +28,8 @@ interface ParticleDraw {
 export interface AuxiliaryEncodeRequest {
   encoder: GPUCommandEncoder;
   vertexBuffer: GPUBuffer;
+  vertexCount: number;
+  timelineTime: number;
   batches: readonly GeometryBatch[];
   mediaBindGroup: (batch: GeometryBatch) => GPUBindGroup | undefined;
   particle?: ParticleDraw;
@@ -40,6 +43,7 @@ export class AuxiliaryBufferRenderer {
   readonly #particlePipeline: GPURenderPipeline;
   readonly #particleUniform: GPUBuffer;
   readonly #particleUniformBindGroup: GPUBindGroup;
+  readonly #motionHistory: GpuMotionVectorHistory;
   #textures = new Map<AuxiliaryBufferKind, GPUTexture>();
   #depth?: GPUTexture;
   #idBuffer?: GPUBuffer;
@@ -47,6 +51,7 @@ export class AuxiliaryBufferRenderer {
   #width = 1;
   #height = 1;
   #estimatedBytes = 0;
+  #byteBudget = 0;
   #enabled = false;
   readonly supported: boolean;
 
@@ -56,6 +61,7 @@ export class AuxiliaryBufferRenderer {
     particleBindGroupLayout: GPUBindGroupLayout,
   ) {
     this.#device = device;
+    this.#motionHistory = new GpuMotionVectorHistory(device);
     this.supported = supportsAuxiliaryMrt(device.limits);
     const module = device.createShaderModule({
       label: "Auxiliary MRT surface shader",
@@ -73,6 +79,11 @@ export class AuxiliaryBufferRenderer {
           { shaderLocation: 12, offset: 0, format: "uint32" },
           { shaderLocation: 13, offset: 4, format: "uint32" },
         ],
+      },
+      {
+        arrayStride: 16,
+        stepMode: "vertex",
+        attributes: [{ shaderLocation: 14, offset: 0, format: "float32x3" }],
       },
     ];
     const base: Omit<GPURenderPipelineDescriptor, "fragment" | "layout"> = {
@@ -133,7 +144,7 @@ export class AuxiliaryBufferRenderer {
   }
 
   get estimatedBytes(): number {
-    return this.#estimatedBytes + this.#idBufferBytes + 32;
+    return this.#estimatedBytes + this.#idBufferBytes + 32 + this.#motionHistory.estimatedBytes;
   }
 
   get textures(): ReadonlyMap<AuxiliaryBufferKind, GPUTexture> {
@@ -142,10 +153,15 @@ export class AuxiliaryBufferRenderer {
 
   enable(width: number, height: number, byteBudget: number): boolean {
     if (!this.supported) return false;
+    this.#byteBudget = Math.max(0, byteBudget);
     const plan = planAuxiliaryBuffers(width, height);
     const requiredBytes = auxiliaryRenderPassBytes(plan);
-    if (requiredBytes > byteBudget) return false;
-    if (this.#enabled && plan.width === this.#width && plan.height === this.#height) return true;
+    if (requiredBytes + this.#idBufferBytes + 48 > this.#byteBudget) return false;
+    if (this.#enabled && plan.width === this.#width && plan.height === this.#height) {
+      if (this.estimatedBytes <= this.#byteBudget) return true;
+      this.#destroyTargets();
+      return false;
+    }
     this.#destroyTargets();
     try {
       this.#textures = new Map(createAuxiliaryBufferTextures(this.#device, plan));
@@ -195,26 +211,35 @@ export class AuxiliaryBufferRenderer {
 
   encode(request: AuxiliaryEncodeRequest): void {
     if (!this.#enabled || !this.#depth) return;
+    const nextIdBytes = idBufferCapacityBytes(request.batches.length);
+    const plannedBytes =
+      this.#estimatedBytes +
+      Math.max(this.#idBufferBytes, nextIdBytes) +
+      32 +
+      this.#motionHistory.plannedBytes(request.vertexCount);
+    if (plannedBytes > this.#byteBudget) {
+      console.warn("Auxiliary MRT dynamic buffers exceed the configured GPU memory budget");
+      this.#beginPass(request.encoder, "Auxiliary MRT budget fallback · cleared").end();
+      this.#motionHistory.reset();
+      return;
+    }
     this.#uploadBatchIds(request.batches);
     const idBuffer = this.#idBuffer;
     if (!idBuffer) return;
-    const pass = request.encoder.beginRenderPass({
-      label: "Normal + Object ID + Material ID + World Position MRT",
-      colorAttachments: AUXILIARY_BUFFER_KINDS.map((kind) => ({
-        view: this.#requiredTexture(kind).createView(),
-        clearValue: AUXILIARY_BUFFER_DESCRIPTORS[kind].clearValue,
-        loadOp: "clear" as const,
-        storeOp: "store" as const,
-      })),
-      depthStencilAttachment: {
-        view: this.#depth.createView(),
-        depthClearValue: 1,
-        depthLoadOp: "clear",
-        depthStoreOp: "discard",
-      },
-    });
+    const motion = this.#motionHistory.prepare(
+      request.encoder,
+      request.vertexBuffer,
+      request.vertexCount,
+      request.batches,
+      request.timelineTime,
+    );
+    const pass = this.#beginPass(
+      request.encoder,
+      "Normal + IDs + World Position + Motion Vector MRT",
+    );
     pass.setVertexBuffer(0, request.vertexBuffer);
     pass.setVertexBuffer(1, idBuffer);
+    pass.setVertexBuffer(2, motion.buffer);
     for (let index = 0; index < request.batches.length; index += 1) {
       const batch = request.batches[index];
       const media = request.mediaBindGroup(batch);
@@ -230,6 +255,26 @@ export class AuxiliaryBufferRenderer {
       pass.drawIndirect(request.particle.indirectBuffer, 0);
     }
     pass.end();
+    this.#motionHistory.commit(request.encoder, request.vertexBuffer, request.vertexCount, motion);
+  }
+
+  #beginPass(encoder: GPUCommandEncoder, label: string): GPURenderPassEncoder {
+    if (!this.#depth) throw new Error("Auxiliary MRT depth target is unavailable");
+    return encoder.beginRenderPass({
+      label,
+      colorAttachments: AUXILIARY_BUFFER_KINDS.map((kind) => ({
+        view: this.#requiredTexture(kind).createView(),
+        clearValue: AUXILIARY_BUFFER_DESCRIPTORS[kind].clearValue,
+        loadOp: "clear" as const,
+        storeOp: "store" as const,
+      })),
+      depthStencilAttachment: {
+        view: this.#depth.createView(),
+        depthClearValue: 1,
+        depthLoadOp: "clear",
+        depthStoreOp: "discard",
+      },
+    });
   }
 
   destroy(): void {
@@ -238,14 +283,15 @@ export class AuxiliaryBufferRenderer {
     this.#idBuffer = undefined;
     this.#idBufferBytes = 0;
     this.#particleUniform.destroy();
+    this.#motionHistory.destroy();
   }
 
   #uploadBatchIds(batches: readonly GeometryBatch[]): void {
     const records = buildAuxiliaryBatchIds(batches);
-    const requiredBytes = Math.max(ID_RECORD_BYTES, records.byteLength);
+    const requiredBytes = idBufferCapacityBytes(batches.length);
     if (!this.#idBuffer || requiredBytes > this.#idBufferBytes) {
       this.#idBuffer?.destroy();
-      this.#idBufferBytes = 2 ** Math.ceil(Math.log2(requiredBytes));
+      this.#idBufferBytes = requiredBytes;
       this.#idBuffer = this.#device.createBuffer({
         label: "Auxiliary object/material ID instances",
         size: this.#idBufferBytes,
@@ -277,7 +323,13 @@ export class AuxiliaryBufferRenderer {
     this.#depth = undefined;
     this.#estimatedBytes = 0;
     this.#enabled = false;
+    this.#motionHistory.release();
   }
+}
+
+function idBufferCapacityBytes(instanceCount: number): number {
+  const requiredBytes = Math.max(ID_RECORD_BYTES, instanceCount * ID_RECORD_BYTES);
+  return 2 ** Math.ceil(Math.log2(requiredBytes));
 }
 
 export function buildAuxiliaryBatchIds(
@@ -302,6 +354,7 @@ struct SurfaceOutput {
   @location(1) object_id: u32,
   @location(2) material_id: u32,
   @location(3) world_position: vec4f,
+  @location(4) motion_vector: vec2f,
 }
 struct SurfaceVertex {
   @builtin(position) position: vec4f,
@@ -312,6 +365,7 @@ struct SurfaceVertex {
   @location(4) shape_parameters: vec4f,
   @location(5) @interpolate(flat) object_id: u32,
   @location(6) @interpolate(flat) material_id: u32,
+  @location(7) motion_vector: vec2f,
 }
 
 @vertex fn surface_vertex(
@@ -323,6 +377,7 @@ struct SurfaceVertex {
   @location(8) shape_parameters: vec4f,
   @location(12) object_id: u32,
   @location(13) material_id: u32,
+  @location(14) previous_position: vec3f,
 ) -> SurfaceVertex {
   var output: SurfaceVertex;
   output.position = vec4f(position, 1.0);
@@ -333,6 +388,7 @@ struct SurfaceVertex {
   output.shape_parameters = shape_parameters;
   output.object_id = object_id;
   output.material_id = material_id;
+  output.motion_vector = (position.xy - previous_position.xy) * vec2f(0.5, -0.5);
   return output;
 }
 
@@ -342,6 +398,7 @@ fn write_surface(input: SurfaceVertex) -> SurfaceOutput {
   output.object_id = input.object_id;
   output.material_id = input.material_id;
   output.world_position = vec4f(input.world_position, 1.0);
+  output.motion_vector = input.motion_vector;
   return output;
 }
 
@@ -427,6 +484,7 @@ struct ParticleVertex {
   output.object_id = particle_identity.ids.x;
   output.material_id = particle_identity.ids.y;
   output.world_position = vec4f(input.world_position, 1.0);
+  output.motion_vector = vec2f(0.0);
   return output;
 }
 `;

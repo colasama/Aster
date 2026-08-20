@@ -668,6 +668,7 @@ function bufferViewLabel(mode: BufferVisualization): string {
     objectId: "Object ID",
     materialId: "Material ID",
     worldPosition: "World Position",
+    motionVector: "Motion Vector",
   }[mode];
 }
 

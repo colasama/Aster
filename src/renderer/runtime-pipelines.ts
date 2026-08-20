@@ -1,8 +1,23 @@
 import { particleRenderShader, postProcessShader } from "./shaders";
 
+export function createParticleBindGroupLayout(device: GPUDevice): GPUBindGroupLayout {
+  return device.createBindGroupLayout({
+    label: "Shared particle render resources",
+    entries: [
+      {
+        binding: 0,
+        visibility: GPUShaderStage.VERTEX,
+        buffer: { type: "read-only-storage" },
+      },
+      { binding: 1, visibility: GPUShaderStage.VERTEX, buffer: { type: "uniform" } },
+    ],
+  });
+}
+
 export function createParticlePipeline(
   device: GPUDevice,
   format: GPUTextureFormat,
+  bindGroupLayout: GPUBindGroupLayout,
 ): GPURenderPipeline {
   const module = device.createShaderModule({
     label: "Particle billboard shader",
@@ -10,7 +25,10 @@ export function createParticlePipeline(
   });
   return device.createRenderPipeline({
     label: "GPU-culled additive particle renderer",
-    layout: "auto",
+    layout: device.createPipelineLayout({
+      label: "Particle render pipeline layout",
+      bindGroupLayouts: [bindGroupLayout],
+    }),
     vertex: { module, entryPoint: "vertex_main" },
     fragment: {
       module,

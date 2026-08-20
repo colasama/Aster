@@ -1,3 +1,5 @@
+import { auxiliarySurfaceShader } from "./auxiliary-buffer-renderer";
+import { extractPositionsShader } from "./motion-vector-history";
 import {
   imageShader,
   particleComputeShader,
@@ -15,6 +17,8 @@ export async function validateShaderSources(device: GPUDevice): Promise<void> {
     ["particle render", particleRenderShader],
     ["shadow", shadowShader],
     ["post process", postProcessShader],
+    ["auxiliary surface MRT", auxiliarySurfaceShader],
+    ["motion-vector history", extractPositionsShader],
   ] as const;
   for (const [label, code] of sources) {
     const module = device.createShaderModule({ label: `Validate ${label}`, code });
