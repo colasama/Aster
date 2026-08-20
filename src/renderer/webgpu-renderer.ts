@@ -73,6 +73,7 @@ export class WebGpuRenderer {
   #lastFrameStarted?: number;
   #gpuTimestampPending = false;
   #lastGpuMs?: number;
+  #lastPassTimings?: RendererMetrics["passTimings"];
   #shapeBufferBytes = MAX_SHAPE_VERTICES * FLOATS_PER_VERTEX * Float32Array.BYTES_PER_ELEMENT;
   readonly #invalidate: () => void;
   readonly #mediaResources = new Map<string, MediaResource>();
@@ -497,6 +498,8 @@ export class WebGpuRenderer {
       dirtyNodes: (evaluation.cacheHit ? 0 : sceneLayers.length) + effectOperationCount,
       cacheHitRate: this.#evaluationCache.hitRate(),
       estimatedVramMb: (hdr4kBytes + PARTICLE_COUNT * 16) / 1024 / 1024,
+      transientTextureCount: 5,
+      passTimings: this.#lastPassTimings,
     };
   }
 
@@ -508,6 +511,7 @@ export class WebGpuRenderer {
     void buffer
       .mapAsync(GPUMapMode.READ)
       .then(() => {
+        const firstSample = this.#lastPassTimings === undefined;
         const timestamps = new BigUint64Array(buffer.getMappedRange().slice(0));
         const elapsed =
           timestamps[1] -
@@ -515,7 +519,13 @@ export class WebGpuRenderer {
           (timestamps[3] - timestamps[2]) +
           (timestamps[5] - timestamps[4]);
         this.#lastGpuMs = Number(elapsed) / 1_000_000;
+        this.#lastPassTimings = {
+          computeMs: Number(timestamps[1] - timestamps[0]) / 1_000_000,
+          sceneMs: Number(timestamps[3] - timestamps[2]) / 1_000_000,
+          postMs: Number(timestamps[5] - timestamps[4]) / 1_000_000,
+        };
         buffer.unmap();
+        if (firstSample) this.#invalidate();
       })
       .catch(() => undefined)
       .finally(() => {

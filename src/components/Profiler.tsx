@@ -27,10 +27,31 @@ export function Profiler() {
         label="Passes / dirty"
         value={`${metrics.passCount} / ${metrics.dirtyNodes}`}
       />
+      <Metric
+        icon={Layers3}
+        label="Transient"
+        value={`${metrics.transientTextureCount} textures`}
+      />
+      {metrics.passTimings && (
+        <div className="pass-breakdown">
+          <PassTiming label="Compute" value={metrics.passTimings.computeMs} />
+          <PassTiming label="Scene" value={metrics.passTimings.sceneMs} />
+          <PassTiming label="Post / ACES" value={metrics.passTimings.postMs} />
+        </div>
+      )}
       <div className="cache-bar">
         <span style={{ width: `${metrics.cacheHitRate * 100}%` }} />
         <small>Node cache {Math.round(metrics.cacheHitRate * 100)}%</small>
       </div>
+    </div>
+  );
+}
+
+function PassTiming({ label, value }: { label: string; value: number }) {
+  return (
+    <div>
+      <span>{label}</span>
+      <strong>{value.toFixed(2)} ms</strong>
     </div>
   );
 }

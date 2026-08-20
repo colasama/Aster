@@ -75,6 +75,7 @@ const initialMetrics: RendererMetrics = {
   dirtyNodes: 0,
   cacheHitRate: 0,
   estimatedVramMb: 0,
+  transientTextureCount: 0,
 };
 
 function createInitialState(): EditorState {

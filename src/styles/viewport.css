@@ -276,6 +276,24 @@
 .metric-row strong.accent {
   color: #68e2b4;
 }
+.pass-breakdown {
+  margin: 3px 0 2px 16px;
+  padding-left: 6px;
+  border-left: 1px solid #3b4d70;
+}
+.pass-breakdown > div {
+  height: 14px;
+  display: flex;
+  align-items: center;
+  color: #66738b;
+}
+.pass-breakdown span {
+  flex: 1;
+}
+.pass-breakdown strong {
+  color: #9eacc6;
+  font-weight: 500;
+}
 .cache-bar {
   position: relative;
   height: 13px;

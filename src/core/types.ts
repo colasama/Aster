@@ -134,6 +134,14 @@ export interface RendererMetrics {
   dirtyNodes: number;
   cacheHitRate: number;
   estimatedVramMb: number;
+  transientTextureCount: number;
+  passTimings?: GpuPassTimings;
+}
+
+export interface GpuPassTimings {
+  computeMs: number;
+  sceneMs: number;
+  postMs: number;
 }
 
 export interface GpuDiagnostics {

@@ -80,6 +80,7 @@ export class CanvasFallbackRenderer {
       dirtyNodes: sceneLayers.length,
       cacheHitRate: 0,
       estimatedVramMb: 0,
+      transientTextureCount: 0,
     };
   }
 

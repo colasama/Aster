@@ -31,6 +31,7 @@ export function Viewport() {
   const stageRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<Renderer | undefined>(undefined);
   const lastMetricUpdate = useRef(0);
+  const hasGpuPassMetrics = useRef(false);
   const [diagnostics, setDiagnostics] = useState<GpuDiagnostics>();
   const [rendererReady, setRendererReady] = useState(false);
   const [rendererRevision, setRendererRevision] = useState(0);
@@ -96,7 +97,9 @@ export function Viewport() {
     const metrics = renderer.render(composition, state.currentTime, state.playing, state.project);
     syncMirrorCanvas(canvasRef.current, mirrorCanvasRef.current);
     const now = performance.now();
-    if (now - lastMetricUpdate.current > 200) {
+    const firstPassBreakdown = Boolean(metrics.passTimings) && !hasGpuPassMetrics.current;
+    if (firstPassBreakdown) hasGpuPassMetrics.current = true;
+    if (now - lastMetricUpdate.current > 200 || firstPassBreakdown) {
       lastMetricUpdate.current = now;
       dispatch({ type: "setMetrics", metrics });
     }

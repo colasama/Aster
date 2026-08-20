@@ -1077,10 +1077,10 @@ aster/
 - [x] 实现 GPU timestamp query。
 - [x] 显示 frame time。
 - [x] 显示 GPU frame time。
-- [ ] 显示各 Render Graph pass timing。
+- [x] 显示各 Render Graph pass timing。
 - [x] 显示 VRAM estimate。
 - [x] 显示 draw / dispatch count。
-- [ ] 显示 transient texture count。
+- [x] 显示 transient texture count。
 
 ### M0 Benchmark
 
