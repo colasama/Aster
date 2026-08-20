@@ -61,7 +61,18 @@ export function createLayerForComposition(
         : undefined,
     shape:
       kind === "shape"
-        ? { kind: "rectangle", roundness: 0, strokeWidth: 0, strokeColor: [1, 1, 1, 1] }
+        ? {
+            kind: "rectangle",
+            roundness: 0,
+            strokeWidth: 0,
+            strokeColor: [1, 1, 1, 1],
+            fillMode: "solid",
+            gradientColor: [0.2, 0.45, 1, 1],
+            gradientAngle: 0,
+            dashLength: 0,
+            dashGap: 0,
+            lineCap: "round",
+          }
         : undefined,
     textStyle:
       kind === "text"

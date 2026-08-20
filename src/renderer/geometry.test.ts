@@ -95,6 +95,12 @@ describe("GPU scene geometry", () => {
       roundness: 24,
       strokeWidth: 12,
       strokeColor: [1, 0.5, 0.25, 0.8],
+      fillMode: "radial",
+      gradientColor: [0.1, 0.2, 0.8, 1],
+      gradientAngle: 45,
+      dashLength: 16,
+      dashGap: 8,
+      lineCap: "butt",
     };
     composition.layers = [ellipse];
     const data = buildSceneGeometry(composition, flattenSceneLayers(composition, project, 0)).data;
@@ -102,6 +108,9 @@ describe("GPU scene geometry", () => {
     expect(data[VERTEX_FLOAT_OFFSETS.shapeStyleParameters]).toBeCloseTo(0.05);
     expect(data[VERTEX_FLOAT_OFFSETS.shapeStyleParameters + 1]).toBeCloseTo(0.05);
     expect(data[VERTEX_FLOAT_OFFSETS.shapeStyleParameters + 2]).toBe(2);
+    expect(data[VERTEX_FLOAT_OFFSETS.gradientStyleColor + 2]).toBeCloseTo(0.8);
+    expect(data[VERTEX_FLOAT_OFFSETS.gradientStyleParameters]).toBe(2);
+    expect(data[VERTEX_FLOAT_OFFSETS.gradientStyleParameters + 1]).toBeCloseTo(Math.PI / 4);
   });
 
   it("includes text quads so cached glyph textures share the layer effect graph", () => {

@@ -147,6 +147,12 @@ export interface ShapeSettings {
   roundness: number;
   strokeWidth: number;
   strokeColor: [number, number, number, number];
+  fillMode: "solid" | "linear" | "radial";
+  gradientColor: [number, number, number, number];
+  gradientAngle: number;
+  dashLength: number;
+  dashGap: number;
+  lineCap: "butt" | "round";
 }
 
 export interface TextStyle {

@@ -247,13 +247,23 @@ function validateLayer(value: unknown, path: string): asserts value is Layer {
     const shape = requireObject(layer.shape, `${path}.shape`);
     if (shape.kind !== "rectangle" && shape.kind !== "ellipse" && shape.kind !== "line")
       throw new Error(`${path}.shape.kind is invalid`);
+    if (!["solid", "linear", "radial"].includes(String(shape.fillMode)))
+      throw new Error(`${path}.shape.fillMode is invalid`);
+    if (!["butt", "round"].includes(String(shape.lineCap)))
+      throw new Error(`${path}.shape.lineCap is invalid`);
     const roundness = requireFiniteNumber(shape.roundness, `${path}.shape.roundness`);
     const strokeWidth = requireFiniteNumber(shape.strokeWidth, `${path}.shape.strokeWidth`);
-    if (roundness < 0 || strokeWidth < 0)
+    const dashLength = requireFiniteNumber(shape.dashLength, `${path}.shape.dashLength`);
+    const dashGap = requireFiniteNumber(shape.dashGap, `${path}.shape.dashGap`);
+    requireFiniteNumber(shape.gradientAngle, `${path}.shape.gradientAngle`);
+    if (roundness < 0 || strokeWidth < 0 || dashLength < 0 || dashGap < 0)
       throw new Error(`${path}.shape dimensions must not be negative`);
     requireNumberArray(shape.strokeColor, `${path}.shape.strokeColor`, 4);
     if ((shape.strokeColor as number[]).length !== 4)
       throw new Error(`${path}.shape.strokeColor must contain four channels`);
+    requireNumberArray(shape.gradientColor, `${path}.shape.gradientColor`, 4);
+    if ((shape.gradientColor as number[]).length !== 4)
+      throw new Error(`${path}.shape.gradientColor must contain four channels`);
   }
   if (layer.textStyle !== undefined) {
     const style = requireObject(layer.textStyle, `${path}.textStyle`);

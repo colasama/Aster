@@ -164,6 +164,12 @@ describe("project document boundary", () => {
       roundness: 24,
       strokeWidth: 12,
       strokeColor: [1, 0.5, 0.25, 0.8],
+      fillMode: "radial",
+      gradientColor: [0.1, 0.2, 0.8, 1],
+      gradientAngle: 45,
+      dashLength: 16,
+      dashGap: 8,
+      lineCap: "butt",
     };
 
     const roundtrip = validateProjectDocument(JSON.parse(serializeProject(project)));

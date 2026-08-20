@@ -1313,8 +1313,8 @@ aster/
 - [x] Stroke。
 - [x] Stroke width。
 - [ ] Join / Cap。
-- [ ] Dash。
-- [ ] Gradient fill。
+- [x] Dash。
+- [x] Gradient fill。
 - [ ] Path tessellation。
 - [x] GPU path rendering strategy。
 - [ ] Mask path reuse。

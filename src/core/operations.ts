@@ -212,6 +212,14 @@ export function applyOperation(project: Project, operation: Operation): void {
         strokeColor: operation.shape.strokeColor.map((channel, index) =>
           clamp(channel, 0, index === 3 ? 1 : 16),
         ) as ShapeSettings["strokeColor"],
+        fillMode: operation.shape.fillMode,
+        gradientColor: operation.shape.gradientColor.map((channel, index) =>
+          clamp(channel, 0, index === 3 ? 1 : 16),
+        ) as ShapeSettings["gradientColor"],
+        gradientAngle: clamp(operation.shape.gradientAngle, -36_000, 36_000),
+        dashLength: clamp(operation.shape.dashLength, 0, 100_000),
+        dashGap: clamp(operation.shape.dashGap, 0, 100_000),
+        lineCap: operation.shape.lineCap,
       };
       break;
     case "setTextContent":

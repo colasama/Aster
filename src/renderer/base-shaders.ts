@@ -9,6 +9,8 @@ struct VertexOutput {
   @location(5) world_position: vec3f,
   @location(6) shape_style_color: vec4f,
   @location(7) shape_style_parameters: vec4f,
+  @location(8) gradient_style_color: vec4f,
+  @location(9) gradient_style_parameters: vec4f,
 }
 
 struct SceneLighting {
@@ -46,6 +48,8 @@ fn vertex_main(
   @location(6) world_position: vec3f,
   @location(7) shape_style_color: vec4f,
   @location(8) shape_style_parameters: vec4f,
+  @location(9) gradient_style_color: vec4f,
+  @location(10) gradient_style_parameters: vec4f,
 ) -> VertexOutput {
   var output: VertexOutput;
   output.position = vec4f(position, 1.0);
@@ -57,14 +61,34 @@ fn vertex_main(
   output.world_position = world_position;
   output.shape_style_color = shape_style_color;
   output.shape_style_parameters = shape_style_parameters;
+  output.gradient_style_color = gradient_style_color;
+  output.gradient_style_parameters = gradient_style_parameters;
   return output;
 }
 
 @fragment
 fn fragment_main(input: VertexOutput) -> @location(0) vec4f {
   var alpha = input.color.a;
+  let uv_derivative = max(fwidth(input.uv.x), 0.0005);
   if input.shape_style_parameters.z > 0.5 {
     let centered = input.uv - vec2f(0.5);
+    var fill_color = input.color.rgb;
+    if input.gradient_style_parameters.x > 0.5 {
+      let angle = input.gradient_style_parameters.y;
+      let linear_amount = clamp(
+        dot(centered, vec2f(cos(angle), sin(angle))) + 0.5,
+        0.0,
+        1.0,
+      );
+      let radial_amount = clamp(length(centered) * 1.41421356, 0.0, 1.0);
+      let gradient_amount = select(
+        linear_amount,
+        radial_amount,
+        input.gradient_style_parameters.x > 1.5,
+      );
+      fill_color = mix(fill_color, input.gradient_style_color.rgb, gradient_amount);
+      alpha *= mix(1.0, input.gradient_style_color.a, gradient_amount);
+    }
     let ellipse_distance = (length(centered * 2.0) - 1.0) * 0.5;
     let radius = input.shape_style_parameters.y;
     let rounded = abs(centered) - vec2f(0.5 - radius);
@@ -75,16 +99,27 @@ fn fragment_main(input: VertexOutput) -> @location(0) vec4f {
       ellipse_distance,
       input.shape_style_parameters.z > 1.5,
     );
+    var dash_coverage = 1.0;
     if input.shape_style_parameters.z > 2.5 {
       let segment_start = vec2f(-0.5, 0.0);
       let segment = vec2f(1.0, 0.0);
       let relative = centered - segment_start;
       let along = clamp(dot(relative, segment) / dot(segment, segment), 0.0, 1.0);
-      shape_distance = length(relative - segment * along)
-        - max(input.shape_style_parameters.x * 0.5, 0.003);
+      let line_radius = max(input.shape_style_parameters.x * 0.5, 0.003);
+      shape_distance = select(
+        max(abs(centered.y) - line_radius, abs(centered.x) - 0.5),
+        length(relative - segment * along) - line_radius,
+        input.shape_style_parameters.w > 0.5,
+      );
+      let dash = input.gradient_style_parameters.z;
+      let gap = input.gradient_style_parameters.w;
+      if dash > 0.0 && gap > 0.0 {
+        let phase = fract(along / (dash + gap)) * (dash + gap);
+        dash_coverage = 1.0 - smoothstep(dash, dash + uv_derivative, phase);
+      }
     }
     let antialias = 0.006;
-    let coverage = 1.0 - smoothstep(0.0, antialias, shape_distance);
+    let coverage = (1.0 - smoothstep(0.0, antialias, shape_distance)) * dash_coverage;
     let stroke_width = input.shape_style_parameters.x;
     var stroke = select(
       0.0,
@@ -92,7 +127,7 @@ fn fragment_main(input: VertexOutput) -> @location(0) vec4f {
       stroke_width > 0.0,
     ) * input.shape_style_color.a;
     if input.shape_style_parameters.z > 2.5 { stroke = 1.0; }
-    let shape_color = mix(input.color.rgb, input.shape_style_color.rgb, stroke);
+    let shape_color = mix(fill_color, input.shape_style_color.rgb, stroke);
     alpha *= coverage;
     return vec4f(shape_color * alpha, alpha);
   }

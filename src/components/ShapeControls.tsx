@@ -9,6 +9,12 @@ export function ShapeControls({ layer }: { layer: Layer }) {
     roundness: 0,
     strokeWidth: 0,
     strokeColor: [1, 1, 1, 1],
+    fillMode: "solid" as const,
+    gradientColor: [0.2, 0.45, 1, 1] as [number, number, number, number],
+    gradientAngle: 0,
+    dashLength: 0,
+    dashGap: 0,
+    lineCap: "round" as const,
   };
   const update = <Field extends keyof ShapeSettings>(field: Field, value: ShapeSettings[Field]) => {
     dispatch({
@@ -59,6 +65,50 @@ export function ShapeControls({ layer }: { layer: Layer }) {
         />
       </label>
       <label>
+        Fill mode
+        <select
+          aria-label="Fill mode"
+          onChange={(event) => update("fillMode", event.target.value as ShapeSettings["fillMode"])}
+          value={settings.fillMode}
+        >
+          <option value="solid">Solid</option>
+          <option value="linear">Linear gradient</option>
+          <option value="radial">Radial gradient</option>
+        </select>
+      </label>
+      {settings.fillMode !== "solid" && (
+        <>
+          <label>
+            Gradient color
+            <input
+              aria-label="Gradient color"
+              onChange={(event) =>
+                update("gradientColor", [
+                  ...parseColor(event.target.value),
+                  settings.gradientColor[3],
+                ])
+              }
+              type="color"
+              value={colorInput(settings.gradientColor)}
+            />
+          </label>
+          {settings.fillMode === "linear" && (
+            <label>
+              Gradient angle
+              <input
+                aria-label="Gradient angle"
+                max="36000"
+                min="-36000"
+                onChange={(event) => update("gradientAngle", Number(event.target.value))}
+                step="1"
+                type="number"
+                value={settings.gradientAngle}
+              />
+            </label>
+          )}
+        </>
+      )}
+      <label>
         Roundness
         <input
           aria-label="Roundness"
@@ -91,6 +141,45 @@ export function ShapeControls({ layer }: { layer: Layer }) {
           value={colorInput(settings.strokeColor)}
         />
       </label>
+      {settings.kind === "line" && (
+        <>
+          <label>
+            Line cap
+            <select
+              aria-label="Line cap"
+              onChange={(event) =>
+                update("lineCap", event.target.value as ShapeSettings["lineCap"])
+              }
+              value={settings.lineCap}
+            >
+              <option value="round">Round</option>
+              <option value="butt">Butt</option>
+            </select>
+          </label>
+          <label>
+            Dash length
+            <input
+              aria-label="Dash length"
+              min="0"
+              onChange={(event) => update("dashLength", Number(event.target.value))}
+              step="1"
+              type="number"
+              value={settings.dashLength}
+            />
+          </label>
+          <label>
+            Dash gap
+            <input
+              aria-label="Dash gap"
+              min="0"
+              onChange={(event) => update("dashGap", Number(event.target.value))}
+              step="1"
+              type="number"
+              value={settings.dashGap}
+            />
+          </label>
+        </>
+      )}
     </>
   );
 }

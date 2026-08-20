@@ -146,6 +146,12 @@ describe("structured project operations", () => {
           roundness: -10,
           strokeWidth: 18,
           strokeColor: [2, 0.5, 0.25, 1.5],
+          fillMode: "linear",
+          gradientColor: [0.1, 0.2, 20, 1.5],
+          gradientAngle: 80_000,
+          dashLength: -5,
+          dashGap: 24,
+          lineCap: "butt",
         },
       },
     ]);
@@ -155,6 +161,12 @@ describe("structured project operations", () => {
       roundness: 0,
       strokeWidth: 18,
       strokeColor: [2, 0.5, 0.25, 1],
+      fillMode: "linear",
+      gradientColor: [0.1, 0.2, 16, 1],
+      gradientAngle: 36_000,
+      dashLength: 0,
+      dashGap: 24,
+      lineCap: "butt",
     });
     expect(shape.shape?.kind).toBe("rectangle");
   });

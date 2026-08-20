@@ -1,7 +1,7 @@
 import type { FlattenedSceneLayer } from "../core/scene-evaluation";
 import type { CameraSettings, Composition, EvaluatedTransform, Layer } from "../core/types";
 
-export const FLOATS_PER_VERTEX = 28;
+export const FLOATS_PER_VERTEX = 36;
 export const VERTEX_FLOAT_OFFSETS = {
   position: 0,
   uv: 3,
@@ -12,6 +12,8 @@ export const VERTEX_FLOAT_OFFSETS = {
   worldPosition: 17,
   shapeStyleColor: 20,
   shapeStyleParameters: 24,
+  gradientStyleColor: 28,
+  gradientStyleParameters: 32,
 } as const;
 
 export interface GeometryBatch {
@@ -116,7 +118,14 @@ export function buildSceneGeometry(
             ? 3
             : 1
         : 0,
-      0,
+      layer.shape?.lineCap === "round" ? 1 : 0,
+    ] as const;
+    const gradientStyleColor = layer.shape?.gradientColor ?? ([0, 0, 0, 1] as const);
+    const gradientStyleParameters = [
+      layer.shape?.fillMode === "linear" ? 1 : layer.shape?.fillMode === "radial" ? 2 : 0,
+      toRadians(layer.shape?.gradientAngle ?? 0),
+      (layer.shape?.dashLength ?? 0) / Math.max(Math.abs(width), 1),
+      (layer.shape?.dashGap ?? 0) / Math.max(Math.abs(width), 1),
     ] as const;
     let vertexCount = QUAD_CORNERS.length;
     if (layer.kind === "mesh") {
@@ -131,6 +140,8 @@ export function buildSceneGeometry(
           material,
           shapeStyleColor,
           shapeStyleParameters,
+          gradientStyleColor,
+          gradientStyleParameters,
           composition,
           camera,
         );
@@ -161,6 +172,8 @@ export function buildSceneGeometry(
               material,
               shapeStyleColor,
               shapeStyleParameters,
+              gradientStyleColor,
+              gradientStyleParameters,
               composition,
             );
           }
@@ -190,6 +203,8 @@ export function buildSceneGeometry(
           material,
           shapeStyleColor,
           shapeStyleParameters,
+          gradientStyleColor,
+          gradientStyleParameters,
           composition,
         );
       }
@@ -214,6 +229,8 @@ function appendImportedMesh(
   material: readonly [number, number, number, number],
   shapeStyleColor: readonly [number, number, number, number],
   shapeStyleParameters: readonly [number, number, number, number],
+  gradientStyleColor: readonly [number, number, number, number],
+  gradientStyleParameters: readonly [number, number, number, number],
   composition: Composition,
   camera?: SceneCamera,
 ): number {
@@ -266,6 +283,8 @@ function appendImportedMesh(
       material,
       shapeStyleColor,
       shapeStyleParameters,
+      gradientStyleColor,
+      gradientStyleParameters,
       composition,
     );
   }
@@ -353,6 +372,8 @@ function pushVertex(
   material: readonly [number, number, number, number],
   shapeStyleColor: readonly [number, number, number, number],
   shapeStyleParameters: readonly [number, number, number, number],
+  gradientStyleColor: readonly [number, number, number, number],
+  gradientStyleParameters: readonly [number, number, number, number],
   composition: Composition,
 ): void {
   output.push(
@@ -368,6 +389,8 @@ function pushVertex(
     ...projected.world,
     ...shapeStyleColor,
     ...shapeStyleParameters,
+    ...gradientStyleColor,
+    ...gradientStyleParameters,
   );
 }
 
