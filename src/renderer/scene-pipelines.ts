@@ -1,4 +1,5 @@
 import type { BlendMode } from "../core/types";
+import { gpuBlendState } from "./blend-state";
 import { FLOATS_PER_VERTEX } from "./geometry";
 import { imageShader, shadowShader, shapeShader } from "./shaders";
 
@@ -42,7 +43,7 @@ export function createShapePipelines(
     fragment: {
       module,
       entryPoint: "fragment_main",
-      targets: [{ format, blend: blendState(blendMode) }],
+      targets: [{ format, blend: gpuBlendState(blendMode) }],
     },
     primitive: { topology: "triangle-list", cullMode: "none" },
     depthStencil: {
@@ -84,7 +85,7 @@ export function createImagePipelines(
     fragment: {
       module,
       entryPoint: "fragment_main",
-      targets: [{ format, blend: blendState(blendMode) }],
+      targets: [{ format, blend: gpuBlendState(blendMode) }],
     },
     primitive: { topology: "triangle-list", cullMode: "none" },
     depthStencil: {
@@ -138,25 +139,4 @@ function createBlendPipelines(
       device.createRenderPipeline({ ...descriptor(blendMode), label: `${label} · ${blendMode}` }),
     ]),
   ) as Record<BlendMode, GPURenderPipeline>;
-}
-
-function blendState(mode: BlendMode): GPUBlendState {
-  const alpha: GPUBlendComponent = {
-    srcFactor: "one",
-    dstFactor: "one-minus-src-alpha",
-    operation: "add",
-  };
-  if (mode === "add")
-    return { color: { srcFactor: "one", dstFactor: "one", operation: "add" }, alpha };
-  if (mode === "multiply")
-    return { color: { srcFactor: "dst", dstFactor: "zero", operation: "add" }, alpha };
-  if (mode === "screen")
-    return {
-      color: { srcFactor: "one", dstFactor: "one-minus-src", operation: "add" },
-      alpha,
-    };
-  return {
-    color: { srcFactor: "one", dstFactor: "one-minus-src-alpha", operation: "add" },
-    alpha,
-  };
 }

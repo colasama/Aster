@@ -1695,7 +1695,7 @@ aster/
 
 - [ ] Golden image tests。
 - [ ] GPU backend comparison tests。
-- [ ] Alpha compositing tests。
+- [x] Alpha compositing tests。
 - [x] Color tests。
 - [x] Blur tests。
 - [x] Text rendering tests。

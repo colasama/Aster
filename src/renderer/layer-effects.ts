@@ -1,4 +1,5 @@
 import type { BlendMode, Composition, Layer } from "../core/types";
+import { gpuBlendState } from "./blend-state";
 import { defaultPostProcessParameters } from "./effect-parameters";
 import {
   compileEffectProgram,
@@ -305,30 +306,9 @@ export class LayerEffectRenderer {
       fragment: {
         module,
         entryPoint: "fragment_main",
-        targets: [{ format: this.#format, blend: blendState(blendMode) }],
+        targets: [{ format: this.#format, blend: gpuBlendState(blendMode) }],
       },
       primitive: { topology: "triangle-list" },
     });
   }
-}
-
-function blendState(mode: BlendMode): GPUBlendState {
-  const alpha: GPUBlendComponent = {
-    srcFactor: "one",
-    dstFactor: "one-minus-src-alpha",
-    operation: "add",
-  };
-  if (mode === "add") {
-    return { color: { srcFactor: "one", dstFactor: "one", operation: "add" }, alpha };
-  }
-  if (mode === "multiply") {
-    return { color: { srcFactor: "dst", dstFactor: "zero", operation: "add" }, alpha };
-  }
-  if (mode === "screen") {
-    return { color: { srcFactor: "one", dstFactor: "one-minus-src", operation: "add" }, alpha };
-  }
-  return {
-    color: { srcFactor: "one", dstFactor: "one-minus-src-alpha", operation: "add" },
-    alpha,
-  };
 }
