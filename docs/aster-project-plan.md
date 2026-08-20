@@ -1320,7 +1320,7 @@ aster/
 - [x] Mask path reuse。
 - [x] Shape grouping。
 - [x] Shape transform stack。
-- [ ] Trim Paths（后续 M1+）。
+- [x] Trim Paths（后续 M1+）。
 - [ ] Repeater / procedural duplication（可移至 M3）。
 
 ---
@@ -1380,7 +1380,7 @@ aster/
 - [x] Normal。
 - [x] Object ID。
 - [x] Material ID。
-- [ ] Motion Vector。
+- [x] Motion Vector。
 - [x] World Position optional path。
 - [x] Buffer visualization debug mode。
 
@@ -1507,7 +1507,7 @@ aster/
 
 ### Audio
 
-- [ ] Audio stream decode。
+- [x] Audio stream decode。
 - [x] Timeline audio clock。
 - [x] Waveform generation。
 - [x] Audio preview playback。
@@ -1600,11 +1600,11 @@ aster/
 - [x] “创建文字图层”。
 - [x] “让文字从下面弹入”。
 - [x] “每个字延迟 0.08 秒”。
-- [ ] “减少弹性”。
+- [x] “减少弹性”。
 - [x] “给背景加 Glow”。
 - [x] “让 Camera 缓慢推近”。
-- [ ] “人物保持清晰，背景增加景深”。
-- [ ] “复制这组 Layer 并改成左右交替进入”。
+- [x] “人物保持清晰，背景增加景深”。
+- [x] “复制这组 Layer 并改成左右交替进入”。
 - [x] 多步骤 Planning。
 - [x] 失败自动解释而不是静默修改。
 
@@ -1700,7 +1700,7 @@ aster/
 - [x] Blur tests。
 - [x] Text rendering tests。
 - [x] 3D depth tests。
-- [ ] Motion vector tests。
+- [x] Motion vector tests。
 
 ### Project Compatibility
 
@@ -1756,7 +1756,7 @@ aster/
 - [x] Plugin install UI。
 - [x] Plugin update UI。
 - [x] Plugin signature / trust research。
-- [ ] Plugin Registry prototype。
+- [x] Plugin Registry prototype。
 - [x] Example plugin CI template。
 - [x] Stable Plugin API v1 criteria。
 - [x] Stable Project Spec v1 criteria。
