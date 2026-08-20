@@ -18,6 +18,7 @@ import { evaluateAnimatable } from "../core/timeline";
 import type { GpuDiagnostics, Project } from "../core/types";
 import { CanvasFallbackRenderer } from "../renderer/canvas-fallback";
 import { type GpuBenchmarkRequest, runGpuBenchmark } from "../renderer/gpu-benchmark";
+import { calculatePreviewSize } from "../renderer/preview-size";
 import { createDefaultBezierPath } from "../renderer/vector-path";
 import { WebGpuRenderer } from "../renderer/webgpu-renderer";
 import { useEditor } from "../state/editor-store";
@@ -33,6 +34,7 @@ export function Viewport() {
   const mirrorCanvasRef = useRef<HTMLCanvasElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<Renderer | undefined>(undefined);
+  const previewQualityRef = useRef(state.previewQuality);
   const lastMetricUpdate = useRef(0);
   const hasGpuPassMetrics = useRef(false);
   const [diagnostics, setDiagnostics] = useState<GpuDiagnostics>();
@@ -56,11 +58,22 @@ export function Viewport() {
     const stage = stageRef.current;
     if (!canvas || !stage) return;
     const bounds = stage.getBoundingClientRect();
-    const ratio = Math.min(devicePixelRatio, 2) * state.previewQuality;
-    canvas.width = Math.max(1, Math.floor(bounds.width * ratio));
-    canvas.height = Math.max(1, Math.floor(bounds.height * ratio));
+    const preview = calculatePreviewSize({
+      cssWidth: bounds.width,
+      cssHeight: bounds.height,
+      devicePixelRatio,
+      quality: previewQualityRef.current,
+      maxDimension: rendererRef.current?.diagnostics.maxTextureSize || undefined,
+    });
+    canvas.width = preview.width;
+    canvas.height = preview.height;
     rendererRef.current?.resize(canvas.width, canvas.height);
-  }, [state.previewQuality]);
+  }, []);
+
+  useEffect(() => {
+    previewQualityRef.current = state.previewQuality;
+    resize();
+  }, [resize, state.previewQuality]);
 
   useEffect(() => {
     const canvas = canvasRef.current;

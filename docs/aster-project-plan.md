@@ -1718,7 +1718,7 @@ aster/
 - [ ] macOS Apple Silicon matrix。
 - [ ] Linux NVIDIA matrix。
 - [ ] Linux AMD matrix。
-- [ ] High-DPI test。
+- [x] High-DPI test。
 - [ ] Multi-monitor test。
 
 ---
