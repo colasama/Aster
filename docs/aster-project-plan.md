@@ -1414,7 +1414,7 @@ aster/
 - [x] GPU random source。
 - [x] Billboard rendering。
 - [ ] Mesh particle rendering。
-- [ ] Indirect draw research / implementation。
+- [x] Indirect draw research / implementation。
 - [x] 100k particle benchmark。
 - [x] 500k particle benchmark。
 - [x] 1M particle benchmark。
@@ -1667,7 +1667,7 @@ aster/
 - [ ] Texture upload batching。
 - [ ] Persistent staging buffers。
 - [ ] GPU culling for 3D / particles。
-- [ ] Indirect drawing。
+- [x] Indirect drawing。
 - [ ] Bindless/resource-array strategy research。
 - [ ] Memory budget manager。
 - [ ] VRAM pressure handling。

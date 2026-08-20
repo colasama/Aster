@@ -67,6 +67,7 @@ export class WebGpuRenderer {
   readonly #computePipeline: GPUComputePipeline;
   #shapeBuffer: GPUBuffer;
   readonly #particleBuffer: GPUBuffer;
+  readonly #particleIndirectBuffer: GPUBuffer;
   readonly #simulationBuffer: GPUBuffer;
   readonly #computeBindGroup: GPUBindGroup;
   readonly #particleBindGroup: GPUBindGroup;
@@ -190,6 +191,11 @@ export class WebGpuRenderer {
       size: PARTICLE_CAPACITY * 16,
       usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
     });
+    this.#particleIndirectBuffer = device.createBuffer({
+      label: "GPU particle indirect draw arguments",
+      size: 4 * Uint32Array.BYTES_PER_ELEMENT,
+      usage: GPUBufferUsage.INDIRECT | GPUBufferUsage.STORAGE,
+    });
     this.#simulationBuffer = device.createBuffer({
       label: "Particle simulation uniforms",
       size: 20 * Float32Array.BYTES_PER_ELEMENT,
@@ -215,6 +221,7 @@ export class WebGpuRenderer {
       entries: [
         { binding: 0, resource: { buffer: this.#simulationBuffer } },
         { binding: 1, resource: { buffer: this.#particleBuffer } },
+        { binding: 2, resource: { buffer: this.#particleIndirectBuffer } },
       ],
     });
     this.#particlePipeline = this.#createParticlePipeline();
@@ -520,7 +527,7 @@ export class WebGpuRenderer {
       }
       scenePass.setPipeline(this.#particlePipeline);
       scenePass.setBindGroup(0, this.#particleBindGroup);
-      scenePass.draw(6, particleCount);
+      scenePass.drawIndirect(this.#particleIndirectBuffer, 0);
     }
     scenePass?.end();
     this.#layerEffects.sweep(activeEffectInstances);

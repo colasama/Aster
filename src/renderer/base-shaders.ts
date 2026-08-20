@@ -211,8 +211,16 @@ struct Simulation {
   end_color: vec4f,
 }
 
+struct DrawIndirect {
+  vertex_count: u32,
+  instance_count: u32,
+  first_vertex: u32,
+  first_instance: u32,
+}
+
 @group(0) @binding(0) var<uniform> simulation: Simulation;
 @group(0) @binding(1) var<storage, read_write> particles: array<vec4f>;
+@group(0) @binding(2) var<storage, read_write> particle_draw: DrawIndirect;
 
 fn hash(value: u32) -> f32 {
   var state = value * 747796405u + 2891336453u;
@@ -225,6 +233,12 @@ fn hash(value: u32) -> f32 {
 fn compute_main(@builtin(global_invocation_id) global_id: vec3u) {
   let index = global_id.x;
   if f32(index) >= simulation.header.z { return; }
+  if index == 0u {
+    particle_draw.vertex_count = 6u;
+    particle_draw.instance_count = u32(simulation.header.z);
+    particle_draw.first_vertex = 0u;
+    particle_draw.first_instance = 0u;
+  }
   let seeded_index = index + u32(simulation.header.w) * 1664525u;
   let random_a = hash(seeded_index);
   let random_b = hash(seeded_index + 11731u);
