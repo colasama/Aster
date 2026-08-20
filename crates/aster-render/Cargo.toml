@@ -7,8 +7,8 @@ rust-version.workspace = true
 
 [dependencies]
 indexmap.workspace = true
+pollster.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
 wgpu.workspace = true
-

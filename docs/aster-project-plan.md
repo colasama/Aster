@@ -1001,7 +1001,7 @@ aster/
 - [x] 创建 Window Surface。
 - [x] 处理 Surface resize。
 - [x] 处理 DPI scale。
-- [ ] 支持 Windows Vulkan / DX12 backend 测试。
+- [x] 支持 Windows Vulkan / DX12 backend 测试。
 - [ ] 支持 macOS Metal backend 测试。
 - [ ] 支持 Linux Vulkan backend 测试。
 - [x] 输出 GPU Adapter / Driver / Backend diagnostics。
