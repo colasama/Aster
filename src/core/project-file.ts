@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import {
   MAX_COMMAND_LOG_ENTRIES,
@@ -45,7 +45,7 @@ export function validateProjectDocument(value: unknown): Project {
 }
 
 export function serializeProject(project: Project): string {
-  return `${JSON.stringify(project, null, 2)}\n`;
+  return `${JSON.stringify(projectDocumentForPersistence(project), null, 2)}\n`;
 }
 
 export function downloadProject(project: Project): void {
@@ -73,7 +73,10 @@ export async function saveProjectDocument(
     if (typeof selected !== "string") return undefined;
     nativeProjectPath = selected;
   }
-  await invoke("save_project", { path: nativeProjectPath, project });
+  await invoke("save_project", {
+    path: nativeProjectPath,
+    project: projectDocumentForPersistence(project),
+  });
   clearRecoverySnapshot();
   return nativeProjectPath;
 }
@@ -86,7 +89,9 @@ export async function pickProjectFile(): Promise<{ project: Project; name: strin
       title: "Open an Aster project folder",
     });
     if (typeof selected !== "string") return undefined;
-    const project = validateProjectDocument(await invoke("load_project", { path: selected }));
+    const project = validateProjectDocument(
+      hydrateRuntimeAssetUrls(await invoke("load_project", { path: selected })),
+    );
     nativeProjectPath = selected;
     return { project, name: selected.split(/[\\/]/).pop() || selected };
   }
@@ -127,7 +132,10 @@ export function storeRecoverySnapshot(
     storage.removeItem(RECOVERY_KEY);
   }
   if (nativeProjectPath)
-    void invoke("save_autosave", { path: nativeProjectPath, project }).catch(() => undefined);
+    void invoke("save_autosave", {
+      path: nativeProjectPath,
+      project: projectDocumentForPersistence(project),
+    }).catch(() => undefined);
 }
 
 export function readRecoverySnapshot(storage: RecoveryStorage = localStorage): Project | undefined {
@@ -146,7 +154,7 @@ export async function readRecoverySnapshotForCurrentProject(): Promise<Project |
     const candidate = await invoke<unknown>("recovery_candidate", {
       path: nativeProjectPath,
     });
-    if (candidate) return validateProjectDocument(candidate);
+    if (candidate) return validateProjectDocument(hydrateRuntimeAssetUrls(candidate));
   }
   return readRecoverySnapshot();
 }
@@ -155,6 +163,68 @@ export function clearRecoverySnapshot(storage: RecoveryStorage = localStorage): 
   storage.removeItem(RECOVERY_KEY);
   if (nativeProjectPath)
     void invoke("clear_autosave", { path: nativeProjectPath }).catch(() => undefined);
+}
+
+export async function relinkProjectAsset(layer: Layer): Promise<Layer["asset"] | undefined> {
+  if (!nativeProjectPath || !isTauriRuntime())
+    throw new Error("Save or open this project in the native app before linking an asset");
+  if (layer.kind !== "image" && layer.kind !== "video")
+    throw new Error("Only image and video layers can link project assets");
+  const selected = await open({
+    directory: false,
+    multiple: false,
+    title: `Link ${layer.kind} asset`,
+    filters: [
+      {
+        name: layer.kind === "image" ? "Images" : "Videos",
+        extensions:
+          layer.kind === "image"
+            ? ["png", "jpg", "jpeg", "webp", "gif", "bmp", "avif"]
+            : ["mp4", "webm", "mov", "m4v", "ogv"],
+      },
+    ],
+  });
+  if (typeof selected !== "string") return undefined;
+  const linked = await invoke<{ relativePath: string; resolvedPath: string; name: string }>(
+    "link_project_asset",
+    { bundle: nativeProjectPath, source: selected, kind: layer.kind },
+  );
+  return {
+    ...(layer.asset ?? {
+      mimeType: layer.kind === "image" ? "image/*" : "video/*",
+      width: Math.max(1, layer.size[0]),
+      height: Math.max(1, layer.size[1]),
+    }),
+    name: linked.name,
+    dataUrl: undefined,
+    relativePath: linked.relativePath,
+    runtimeUrl: convertFileSrc(linked.resolvedPath),
+  };
+}
+
+export function projectDocumentForPersistence(project: Project): Project {
+  const document = structuredClone(project);
+  for (const composition of document.compositions)
+    for (const layer of composition.layers) if (layer.asset) delete layer.asset.runtimeUrl;
+  return document;
+}
+
+function hydrateRuntimeAssetUrls(value: unknown): unknown {
+  if (!value || typeof value !== "object") return value;
+  const document = value as {
+    compositions?: Array<{ layers?: Array<{ asset?: Record<string, unknown> }> }>;
+  };
+  for (const composition of document.compositions ?? []) {
+    for (const layer of composition.layers ?? []) {
+      const asset = layer.asset;
+      if (!asset) continue;
+      const resolvedPath = asset.resolvedPath;
+      if (typeof resolvedPath !== "string") continue;
+      asset.runtimeUrl = convertFileSrc(resolvedPath);
+      delete asset.resolvedPath;
+    }
+  }
+  return value;
 }
 
 export function downloadBlob(blob: Blob, name: string): void {
@@ -351,6 +421,17 @@ function validateAsset(value: unknown, path: string): void {
   requirePositiveNumber(asset.width, `${path}.width`);
   requirePositiveNumber(asset.height, `${path}.height`);
   if (asset.duration !== undefined) requirePositiveNumber(asset.duration, `${path}.duration`);
+  if (asset.relativePath !== undefined) {
+    const relativePath = requireString(asset.relativePath, `${path}.relativePath`);
+    if (
+      relativePath.length > 1024 ||
+      relativePath.includes("\\") ||
+      relativePath.split("/").some((segment) => segment === "..") ||
+      relativePath.startsWith("/")
+    )
+      throw new Error(`${path}.relativePath must stay inside the project bundle`);
+  }
+  if (asset.runtimeUrl !== undefined) requireString(asset.runtimeUrl, `${path}.runtimeUrl`);
   if (asset.dataUrl === undefined) return;
   const dataUrl = requireString(asset.dataUrl, `${path}.dataUrl`);
   if (!dataUrl.startsWith("data:") || dataUrl.length > MAX_EMBEDDED_ASSET_CHARACTERS)

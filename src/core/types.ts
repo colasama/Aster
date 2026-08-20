@@ -86,6 +86,8 @@ export interface Layer {
     name: string;
     mimeType: string;
     dataUrl?: string;
+    relativePath?: string;
+    runtimeUrl?: string;
     width: number;
     height: number;
     duration?: number;

@@ -7,6 +7,7 @@ import {
   Film,
   Folder,
   Layers3,
+  Link2,
   Plus,
   Save,
   Search,
@@ -20,6 +21,7 @@ import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react"
 import { createMediaLayerFromFile } from "../core/assets";
 import { createLayerForComposition } from "../core/layer-factory";
 import { activeComposition } from "../core/project";
+import { relinkProjectAsset } from "../core/project-file";
 import type { LayerKind } from "../core/types";
 import {
   readEffectBrowserPreferences,
@@ -203,6 +205,20 @@ export function ProjectPanel() {
       setAssetError(error instanceof Error ? error.message : `${kind} import failed`);
     }
   };
+  const relinkSelectedAsset = async () => {
+    if (!selectedLayer) return;
+    try {
+      setAssetError(undefined);
+      const asset = await relinkProjectAsset(selectedLayer);
+      if (asset)
+        dispatch({
+          type: "operation",
+          operations: [{ type: "setLayerAsset", layerId: selectedLayer.id, asset }],
+        });
+    } catch (error) {
+      setAssetError(error instanceof Error ? error.message : "Asset relink failed");
+    }
+  };
   return (
     <Panel
       className="project-panel"
@@ -266,13 +282,13 @@ export function ProjectPanel() {
           </div>
           {mediaLayers.map((layer) => (
             <button
-              className={`tree-row asset ${state.selection.includes(layer.id) ? "selected" : ""} ${layer.asset?.dataUrl ? "" : "missing"}`}
+              className={`tree-row asset ${state.selection.includes(layer.id) ? "selected" : ""} ${layer.asset?.dataUrl || layer.asset?.runtimeUrl ? "" : "missing"}`}
               key={`asset:${layer.id}`}
               onClick={() => dispatch({ type: "select", ids: [layer.id] })}
               title={
-                layer.asset?.dataUrl
+                layer.asset?.dataUrl || layer.asset?.runtimeUrl
                   ? `Locate ${layer.asset.name} in the active composition`
-                  : `${layer.asset?.name ?? layer.name} is missing its embedded source`
+                  : `${layer.asset?.name ?? layer.name} is missing its source file`
               }
               type="button"
             >
@@ -280,7 +296,7 @@ export function ProjectPanel() {
               {layer.kind === "video" ? <Film size={14} /> : <FileImage size={14} />}
               <span>{layer.asset?.name}</span>
               <small>
-                {layer.asset?.dataUrl ? (
+                {layer.asset?.dataUrl || layer.asset?.runtimeUrl ? (
                   <>
                     {layer.asset.width}×{layer.asset.height}
                     {layer.asset.duration ? ` · ${layer.asset.duration.toFixed(1)}s` : ""}
@@ -348,6 +364,11 @@ export function ProjectPanel() {
             <button onClick={() => addLayer("mesh")} type="button">
               <Box size={13} /> 3D
             </button>
+            {selectedLayer?.asset && (
+              <button onClick={() => void relinkSelectedAsset()} type="button">
+                <Link2 size={13} /> Relink
+              </button>
+            )}
           </div>
           {assetError && <div className="project-error">{assetError}</div>}
         </div>

@@ -1,7 +1,11 @@
 use aster_core::Project;
 use base64::Engine;
 use serde::{Deserialize, Serialize};
-use std::{collections::BTreeSet, fs, path::PathBuf};
+use std::{
+    collections::BTreeSet,
+    fs,
+    path::{Component, Path, PathBuf},
+};
 use tauri::Manager;
 
 #[derive(Serialize)]
@@ -49,9 +53,36 @@ async fn save_project(path: String, project: serde_json::Value) -> Result<(), St
 }
 
 #[tauri::command]
-async fn load_project(path: String) -> Result<serde_json::Value, String> {
-    blocking_io(move || aster_project::load_editor_bundle(path).map_err(|error| error.to_string()))
-        .await
+async fn load_project(app: tauri::AppHandle, path: String) -> Result<serde_json::Value, String> {
+    let (project, assets) = blocking_io(move || load_project_assets(&path)).await?;
+    for asset in assets {
+        app.asset_protocol_scope()
+            .allow_file(asset)
+            .map_err(|error| error.to_string())?;
+    }
+    Ok(project)
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct LinkedProjectAsset {
+    relative_path: String,
+    resolved_path: PathBuf,
+    name: String,
+}
+
+#[tauri::command]
+async fn link_project_asset(
+    app: tauri::AppHandle,
+    bundle: String,
+    source: String,
+    kind: String,
+) -> Result<LinkedProjectAsset, String> {
+    let linked = blocking_io(move || link_asset(&bundle, &source, &kind)).await?;
+    app.asset_protocol_scope()
+        .allow_file(&linked.resolved_path)
+        .map_err(|error| error.to_string())?;
+    Ok(linked)
 }
 
 #[tauri::command]
@@ -63,9 +94,29 @@ async fn save_autosave(path: String, project: serde_json::Value) -> Result<(), S
 }
 
 #[tauri::command]
-async fn recovery_candidate(path: String) -> Result<Option<serde_json::Value>, String> {
-    blocking_io(move || aster_project::recovery_candidate(path).map_err(|error| error.to_string()))
-        .await
+async fn recovery_candidate(
+    app: tauri::AppHandle,
+    path: String,
+) -> Result<Option<serde_json::Value>, String> {
+    let (candidate, assets) = blocking_io(move || {
+        let bundle = PathBuf::from(path)
+            .canonicalize()
+            .map_err(|error| error.to_string())?;
+        let mut candidate =
+            aster_project::recovery_candidate(&bundle).map_err(|error| error.to_string())?;
+        let assets = match candidate.as_mut() {
+            Some(project) => resolve_project_asset_paths(&bundle, project)?,
+            None => Vec::new(),
+        };
+        Ok((candidate, assets))
+    })
+    .await?;
+    for asset in assets {
+        app.asset_protocol_scope()
+            .allow_file(asset)
+            .map_err(|error| error.to_string())?;
+    }
+    Ok(candidate)
 }
 
 #[tauri::command]
@@ -111,6 +162,177 @@ fn write_render_frame(directory: &str, file_name: &str, data: &str) -> Result<()
     fs::rename(temporary, destination).map_err(|error| error.to_string())
 }
 
+fn load_project_assets(path: &str) -> Result<(serde_json::Value, Vec<PathBuf>), String> {
+    let bundle = PathBuf::from(path)
+        .canonicalize()
+        .map_err(|error| error.to_string())?;
+    let mut project =
+        aster_project::load_editor_bundle(&bundle).map_err(|error| error.to_string())?;
+    let assets = resolve_project_asset_paths(&bundle, &mut project)?;
+    Ok((project, assets))
+}
+
+fn resolve_project_asset_paths(
+    bundle: &Path,
+    project: &mut serde_json::Value,
+) -> Result<Vec<PathBuf>, String> {
+    let mut assets = Vec::new();
+    for composition in project
+        .get_mut("compositions")
+        .and_then(serde_json::Value::as_array_mut)
+        .into_iter()
+        .flatten()
+    {
+        for layer in composition
+            .get_mut("layers")
+            .and_then(serde_json::Value::as_array_mut)
+            .into_iter()
+            .flatten()
+        {
+            let Some(asset) = layer
+                .get_mut("asset")
+                .and_then(serde_json::Value::as_object_mut)
+            else {
+                continue;
+            };
+            let Some(relative) = asset
+                .get("relativePath")
+                .and_then(serde_json::Value::as_str)
+            else {
+                continue;
+            };
+            let candidate = bundle.join(safe_relative_path(relative)?);
+            if !candidate.is_file() {
+                continue;
+            }
+            let resolved = candidate
+                .canonicalize()
+                .map_err(|error| error.to_string())?;
+            if !resolved.starts_with(bundle) {
+                return Err("relative asset resolves outside the project bundle".to_owned());
+            }
+            asset.insert(
+                "resolvedPath".to_owned(),
+                serde_json::Value::String(resolved.to_string_lossy().into_owned()),
+            );
+            assets.push(resolved);
+        }
+    }
+    Ok(assets)
+}
+
+fn link_asset(bundle: &str, source: &str, kind: &str) -> Result<LinkedProjectAsset, String> {
+    let bundle = PathBuf::from(bundle)
+        .canonicalize()
+        .map_err(|error| error.to_string())?;
+    let source = PathBuf::from(source)
+        .canonicalize()
+        .map_err(|error| error.to_string())?;
+    if !source.is_file() || !valid_asset_extension(&source, kind) {
+        return Err(format!("selected file is not a supported {kind} asset"));
+    }
+    let resolved = if source.starts_with(&bundle) {
+        source
+    } else {
+        let assets = bundle.join("assets");
+        fs::create_dir_all(&assets).map_err(|error| error.to_string())?;
+        let destination = available_asset_destination(&assets, &source);
+        fs::copy(&source, &destination).map_err(|error| error.to_string())?;
+        fs::OpenOptions::new()
+            .write(true)
+            .open(&destination)
+            .and_then(|file| file.sync_all())
+            .map_err(|error| error.to_string())?;
+        destination
+            .canonicalize()
+            .map_err(|error| error.to_string())?
+    };
+    let relative = resolved
+        .strip_prefix(&bundle)
+        .map_err(|_| "linked asset must stay inside the project bundle".to_owned())?;
+    let relative_path = relative
+        .components()
+        .map(|component| component.as_os_str().to_string_lossy())
+        .collect::<Vec<_>>()
+        .join("/");
+    Ok(LinkedProjectAsset {
+        relative_path,
+        name: resolved
+            .file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or("asset")
+            .to_owned(),
+        resolved_path: resolved,
+    })
+}
+
+fn safe_relative_path(value: &str) -> Result<PathBuf, String> {
+    let path = Path::new(value);
+    if value.is_empty()
+        || value.contains('\\')
+        || path
+            .components()
+            .any(|component| !matches!(component, Component::Normal(_) | Component::CurDir))
+    {
+        return Err("asset relativePath must stay inside the project bundle".to_owned());
+    }
+    Ok(path.to_owned())
+}
+
+fn valid_asset_extension(path: &Path, kind: &str) -> bool {
+    let extension = path
+        .extension()
+        .and_then(|extension| extension.to_str())
+        .unwrap_or_default()
+        .to_ascii_lowercase();
+    match kind {
+        "image" => {
+            ["png", "jpg", "jpeg", "webp", "gif", "bmp", "avif"].contains(&extension.as_str())
+        }
+        "video" => ["mp4", "webm", "mov", "m4v", "ogv"].contains(&extension.as_str()),
+        _ => false,
+    }
+}
+
+fn available_asset_destination(directory: &Path, source: &Path) -> PathBuf {
+    let file_name = source
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("asset.bin");
+    let sanitized: String = file_name
+        .chars()
+        .map(|character| {
+            if character.is_ascii_alphanumeric() || ".-_".contains(character) {
+                character
+            } else {
+                '-'
+            }
+        })
+        .take(160)
+        .collect();
+    let initial = directory.join(&sanitized);
+    if !initial.exists() {
+        return initial;
+    }
+    let path = Path::new(&sanitized);
+    let stem = path
+        .file_stem()
+        .and_then(|stem| stem.to_str())
+        .unwrap_or("asset");
+    let extension = path.extension().and_then(|extension| extension.to_str());
+    for index in 2..10_000 {
+        let name = match extension {
+            Some(extension) => format!("{stem}-{index}.{extension}"),
+            None => format!("{stem}-{index}"),
+        };
+        let candidate = directory.join(name);
+        if !candidate.exists() {
+            return candidate;
+        }
+    }
+    directory.join(format!("asset-{}", std::process::id()))
+}
+
 fn valid_render_frame_name(name: &str) -> bool {
     let bytes = name.as_bytes();
     bytes.len() == 16
@@ -121,7 +343,7 @@ fn valid_render_frame_name(name: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::{valid_render_frame_name, write_render_frame};
+    use super::{link_asset, safe_relative_path, valid_render_frame_name, write_render_frame};
     use std::fs;
 
     #[test]
@@ -130,6 +352,40 @@ mod tests {
         assert!(!valid_render_frame_name("../frame_000001.png"));
         assert!(!valid_render_frame_name("frame_00001x.png"));
         assert!(!valid_render_frame_name("frame_一00001.png"));
+    }
+
+    #[test]
+    fn relative_assets_cannot_escape_the_project_bundle() {
+        assert!(safe_relative_path("assets/plate.png").is_ok());
+        assert!(safe_relative_path("../secret.txt").is_err());
+        assert!(safe_relative_path("C:\\secret.txt").is_err());
+        assert!(safe_relative_path("/etc/passwd").is_err());
+    }
+
+    #[test]
+    fn linked_assets_are_copied_inside_the_project_bundle() {
+        let suffix = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("system clock")
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!("aster-link-test-{suffix}"));
+        let bundle = root.join("project");
+        fs::create_dir_all(&bundle).expect("create project bundle");
+        let source = root.join("plate.png");
+        fs::write(&source, [1, 2, 3, 4]).expect("write source asset");
+
+        let linked = link_asset(
+            &bundle.to_string_lossy(),
+            &source.to_string_lossy(),
+            "image",
+        )
+        .expect("link project asset");
+        assert_eq!(linked.relative_path, "assets/plate.png");
+        assert_eq!(
+            fs::read(linked.resolved_path).expect("read linked asset"),
+            [1, 2, 3, 4]
+        );
+        fs::remove_dir_all(root).expect("remove link test directory");
     }
 
     #[test]
@@ -290,6 +546,7 @@ pub fn run() {
             clear_autosave,
             generate_ai_plan,
             load_project,
+            link_project_asset,
             install_plugin,
             operation_schema,
             plugin_status,

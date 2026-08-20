@@ -390,7 +390,7 @@ export class WebGpuRenderer {
         this.#prepareText(scene.layer, scene.instanceId);
       } else if (
         (scene.layer.kind === "image" || scene.layer.kind === "video") &&
-        scene.layer.asset?.dataUrl
+        (scene.layer.asset?.dataUrl ?? scene.layer.asset?.runtimeUrl)
       )
         this.#prepareMedia(scene.layer, scene.localTime, playing, scene.instanceId);
     }
@@ -401,7 +401,7 @@ export class WebGpuRenderer {
             (scene) =>
               scene.layer.kind === "text" ||
               ((scene.layer.kind === "image" || scene.layer.kind === "video") &&
-                scene.layer.asset?.dataUrl),
+                (scene.layer.asset?.dataUrl ?? scene.layer.asset?.runtimeUrl)),
           )
           .map((scene) => scene.instanceId),
       ),
@@ -684,7 +684,7 @@ export class WebGpuRenderer {
   }
 
   #prepareMedia(layer: Layer, time: number, playing: boolean, instanceId: string): void {
-    const source = layer.asset?.dataUrl;
+    const source = layer.asset?.dataUrl ?? layer.asset?.runtimeUrl;
     if (!source) return;
     const existing = this.#mediaResources.get(instanceId);
     if (existing?.source === source && existing.kind === layer.kind) {

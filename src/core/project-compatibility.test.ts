@@ -3,6 +3,7 @@ import { compileEffectProgram } from "../renderer/effect-program";
 import { createLayerForComposition } from "./layer-factory";
 import { createBlankProject } from "./project";
 import {
+  projectDocumentForPersistence,
   readRecoverySnapshot,
   serializeProject,
   storeRecoverySnapshot,
@@ -43,6 +44,41 @@ describe("project compatibility fallbacks", () => {
 
     const restored = validateProjectDocument(JSON.parse(serializeProject(project)));
     expect(restored.compositions[0].layers[1].asset).toEqual(image.asset);
+  });
+
+  it("persists relative asset paths without ephemeral protocol URLs", () => {
+    const project = createBlankProject();
+    const image = createLayerForComposition("image", project.compositions[0]);
+    image.asset = {
+      name: "plate.png",
+      mimeType: "image/png",
+      width: 1920,
+      height: 1080,
+      relativePath: "assets/plate.png",
+      runtimeUrl: "asset://localhost/plate.png",
+    };
+    project.compositions[0].layers.push(image);
+
+    const persisted = projectDocumentForPersistence(project);
+    expect(persisted.compositions[0].layers[1].asset).toMatchObject({
+      relativePath: "assets/plate.png",
+    });
+    expect(persisted.compositions[0].layers[1].asset?.runtimeUrl).toBeUndefined();
+    expect(project.compositions[0].layers[1].asset?.runtimeUrl).toContain("asset:");
+  });
+
+  it("rejects relative asset traversal before native resolution", () => {
+    const project = createBlankProject();
+    const image = createLayerForComposition("image", project.compositions[0]);
+    image.asset = {
+      name: "secret.png",
+      mimeType: "image/png",
+      width: 1,
+      height: 1,
+      relativePath: "../secret.png",
+    };
+    project.compositions[0].layers.push(image);
+    expect(() => validateProjectDocument(project)).toThrow("stay inside the project bundle");
   });
 
   it("discards a corrupted recovery snapshot without replacing the project", () => {

@@ -98,10 +98,10 @@ export class CanvasFallbackRenderer {
     playing: boolean,
     instanceId: string,
   ): CanvasMediaResource | undefined {
-    if ((layer.kind !== "image" && layer.kind !== "video") || !layer.asset?.dataUrl)
-      return undefined;
+    const source = layer.asset?.dataUrl ?? layer.asset?.runtimeUrl;
+    if ((layer.kind !== "image" && layer.kind !== "video") || !source) return undefined;
     let resource = this.#mediaResources.get(instanceId);
-    if (!resource || resource.source !== layer.asset.dataUrl) {
+    if (!resource || resource.source !== source) {
       if (resource?.element instanceof HTMLVideoElement) resource.element.pause();
       const element = layer.kind === "video" ? document.createElement("video") : new Image();
       if (element instanceof HTMLVideoElement) {
@@ -109,8 +109,8 @@ export class CanvasFallbackRenderer {
         element.playsInline = true;
         element.muted = !layer.audioEnabled;
       }
-      element.src = layer.asset.dataUrl;
-      resource = { source: layer.asset.dataUrl, element };
+      element.src = source;
+      resource = { source, element };
       this.#mediaResources.set(instanceId, resource);
     }
     if (resource.element instanceof HTMLVideoElement) {
@@ -118,7 +118,7 @@ export class CanvasFallbackRenderer {
       video.muted = !layer.audioEnabled;
       const duration = Number.isFinite(video.duration)
         ? video.duration
-        : (layer.asset.duration ?? layer.outPoint - layer.inPoint);
+        : (layer.asset?.duration ?? layer.outPoint - layer.inPoint);
       const mediaTime = evaluateLayerSourceTime(layer, time, Math.max(0, duration - 0.001));
       if (Math.abs(video.currentTime - mediaTime) > (playing ? 0.12 : 1 / 240))
         video.currentTime = mediaTime;

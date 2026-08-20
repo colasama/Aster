@@ -1640,8 +1640,8 @@ aster/
 - [x] 实现 atomic save。
 - [x] 实现 autosave。
 - [x] 实现 crash recovery。
-- [ ] 实现 relative asset paths。
-- [ ] 实现 missing asset relink。
+- [x] 实现 relative asset paths。
+- [x] 实现 missing asset relink。
 - [ ] 实现 packed project。
 - [x] 实现 schema validation。
 - [x] 实现 migration framework。
