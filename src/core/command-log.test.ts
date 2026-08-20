@@ -36,11 +36,11 @@ describe("serialized command log", () => {
     expect(project.commandLog[project.commandLog.length - 1]?.summary).toBe("Rename layer");
   });
 
-  it("upgrades legacy documents and rejects a mismatched operation manifest", () => {
+  it("rejects legacy documents and a mismatched operation manifest", () => {
     const legacy = createBlankProject() as unknown as Record<string, unknown>;
     legacy.schemaVersion = 0;
     delete legacy.commandLog;
-    expect(validateProjectDocument(legacy).commandLog).toEqual([]);
+    expect(() => validateProjectDocument(legacy)).toThrow("MVP accepts only v1");
 
     const project = createBlankProject();
     recordOperations(project, [

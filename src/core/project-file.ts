@@ -5,7 +5,7 @@ import {
   MAX_COMMAND_LOG_SIZE,
   MAX_SERIALIZED_COMMAND_SIZE,
 } from "./command-log";
-import { migrateProjectDocument } from "./project-migrations";
+import { cloneCurrentProjectDocument } from "./project-schema";
 import type { Composition, Layer, Project } from "./types";
 
 const RECOVERY_KEY = "aster.recoveryProject.v0";
@@ -19,8 +19,8 @@ interface RecoveryStorage {
 }
 
 export function validateProjectDocument(value: unknown): Project {
-  const migrated = migrateProjectDocument(value);
-  const project = requireObject(migrated, "project");
+  const current = cloneCurrentProjectDocument(value);
+  const project = requireObject(current, "project");
   if (project.schemaVersion !== 1) throw new Error("Unsupported Aster project schema");
   requireString(project.id, "project.id");
   requireString(project.name, "project.name");
@@ -41,7 +41,7 @@ export function validateProjectDocument(value: unknown): Project {
   if (typeof project.updatedAt !== "string" || Number.isNaN(Date.parse(project.updatedAt)))
     throw new Error("project.updatedAt must be an ISO date");
   validateCommandLog(project.commandLog);
-  return migrated as unknown as Project;
+  return current as unknown as Project;
 }
 
 export function serializeProject(project: Project): string {

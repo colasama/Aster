@@ -36,14 +36,12 @@ A 3D LUT effect may embed one bounded `lut3d` resource containing its display na
 RGB voxel data, input domain, and checksum. Readers validate the exact `size³ × 3` channel count and
 finite channel bounds before allocating a GPU texture.
 
-## Compatibility
+## MVP schema policy
 
-- Readers must reject unsupported future `schemaVersion` values without partially applying them.
-- Readers migrate v0 to v1 by a pure clone-and-transform step that adds an empty command log; source
-  objects and files remain unchanged until the user explicitly saves.
+- Readers accept only the current `schemaVersion` and reject older, future, missing, or fractional
+  versions before partially applying them. The MVP intentionally provides no legacy migrations.
 - Unknown effect types and parameters must be preserved and disabled when execution is unavailable.
 - IDs are stable across saves; duplicate/copy operations issue new IDs.
-- Migrations are pure `vN -> vN+1` functions with roundtrip fixtures.
 - Relative asset paths resolve against the project directory and may not escape it after
   canonicalization.
 - Parent and precomposition references must resolve, and precomposition cycles are rejected during
