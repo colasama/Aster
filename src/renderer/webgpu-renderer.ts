@@ -14,8 +14,10 @@ import { planGpuMemory } from "./gpu-memory-budget";
 import { GpuTimestampProfiler } from "./gpu-timestamp-profiler";
 import { LayerEffectRenderer } from "./layer-effects";
 import { createLutSampler, createLutTexture } from "./lut-texture";
+import { PARTICLE_INDIRECT_RESET } from "./particle-indirect";
 import { precompileGpuPipelines } from "./pipeline-precompile";
 import { buildPostProcessUniforms } from "./post-process";
+import { createParticlePipeline, createPostPipeline } from "./runtime-pipelines";
 import { SceneEvaluationCache } from "./scene-evaluation-cache";
 import { buildSceneLighting, SCENE_LIGHTING_BYTES, shadowMapSize } from "./scene-lighting";
 import {
@@ -24,7 +26,7 @@ import {
   createShapePipelines,
 } from "./scene-pipelines";
 import { validateShaderSources } from "./shader-validation";
-import { particleComputeShader, particleRenderShader, postProcessShader } from "./shaders";
+import { particleComputeShader } from "./shaders";
 import { rasterizeTextLayer } from "./text-rasterizer";
 
 const PARTICLE_CAPACITY = 1_000_000;
@@ -195,7 +197,7 @@ export class WebGpuRenderer {
     this.#particleIndirectBuffer = device.createBuffer({
       label: "GPU particle indirect draw arguments",
       size: 4 * Uint32Array.BYTES_PER_ELEMENT,
-      usage: GPUBufferUsage.INDIRECT | GPUBufferUsage.STORAGE,
+      usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.INDIRECT | GPUBufferUsage.STORAGE,
     });
     this.#simulationBuffer = device.createBuffer({
       label: "Particle simulation uniforms",
@@ -225,7 +227,7 @@ export class WebGpuRenderer {
         { binding: 2, resource: { buffer: this.#particleIndirectBuffer } },
       ],
     });
-    this.#particlePipeline = this.#createParticlePipeline();
+    this.#particlePipeline = createParticlePipeline(device, SCENE_FORMAT);
     this.#particleBindGroup = device.createBindGroup({
       label: "Particle render resources",
       layout: this.#particlePipeline.getBindGroupLayout(0),
@@ -257,7 +259,7 @@ export class WebGpuRenderer {
       size: MAX_EFFECT_OPERATIONS * FLOATS_PER_EFFECT_OPERATION * Float32Array.BYTES_PER_ELEMENT,
       usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
     });
-    this.#postPipeline = this.#createPostPipeline();
+    this.#postPipeline = createPostPipeline(device, format);
     this.#layerEffects = new LayerEffectRenderer(device, SCENE_FORMAT);
   }
 
@@ -427,6 +429,7 @@ export class WebGpuRenderer {
         0,
       ]),
     );
+    this.#device.queue.writeBuffer(this.#particleIndirectBuffer, 0, PARTICLE_INDIRECT_RESET);
     this.#device.queue.writeBuffer(
       this.#postUniformBuffer,
       0,
@@ -952,54 +955,5 @@ export class WebGpuRenderer {
     let bytes = 0;
     for (const resource of this.#mediaResources.values()) bytes += resource.textureBytes ?? 0;
     return bytes;
-  }
-
-  #createParticlePipeline(): GPURenderPipeline {
-    const module = this.#device.createShaderModule({
-      label: "Particle billboard shader",
-      code: particleRenderShader,
-    });
-    return this.#device.createRenderPipeline({
-      label: "100K additive particle renderer",
-      layout: "auto",
-      vertex: { module, entryPoint: "vertex_main" },
-      fragment: {
-        module,
-        entryPoint: "fragment_main",
-        targets: [
-          {
-            format: SCENE_FORMAT,
-            blend: {
-              color: { srcFactor: "one", dstFactor: "one", operation: "add" },
-              alpha: { srcFactor: "one", dstFactor: "one-minus-src-alpha", operation: "add" },
-            },
-          },
-        ],
-      },
-      primitive: { topology: "triangle-list" },
-      depthStencil: {
-        format: "depth24plus",
-        depthWriteEnabled: false,
-        depthCompare: "always",
-      },
-    });
-  }
-
-  #createPostPipeline(): GPURenderPipeline {
-    const module = this.#device.createShaderModule({
-      label: "HDR fused effects and display shader",
-      code: postProcessShader,
-    });
-    return this.#device.createRenderPipeline({
-      label: "HDR post-process and ACES output",
-      layout: "auto",
-      vertex: { module, entryPoint: "vertex_main" },
-      fragment: {
-        module,
-        entryPoint: "fragment_main",
-        targets: [{ format: this.#format }],
-      },
-      primitive: { topology: "triangle-list" },
-    });
   }
 }

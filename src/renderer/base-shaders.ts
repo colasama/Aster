@@ -260,7 +260,7 @@ struct Simulation {
 
 struct DrawIndirect {
   vertex_count: u32,
-  instance_count: u32,
+  instance_count: atomic<u32>,
   first_vertex: u32,
   first_instance: u32,
 }
@@ -280,12 +280,6 @@ fn hash(value: u32) -> f32 {
 fn compute_main(@builtin(global_invocation_id) global_id: vec3u) {
   let index = global_id.x;
   if f32(index) >= simulation.header.z { return; }
-  if index == 0u {
-    particle_draw.vertex_count = 6u;
-    particle_draw.instance_count = u32(simulation.header.z);
-    particle_draw.first_vertex = 0u;
-    particle_draw.first_instance = 0u;
-  }
   let seeded_index = index + u32(simulation.header.w) * 1664525u;
   let random_a = hash(seeded_index);
   let random_b = hash(seeded_index + 11731u);
@@ -306,7 +300,11 @@ fn compute_main(@builtin(global_invocation_id) global_id: vec3u) {
   let packed_cos = u32(round((cos(rotation) * 0.5 + 0.5) * 2047.0));
   let packed_sin = u32(round((sin(rotation) * 0.5 + 0.5) * 2047.0));
   let packed = packed_age | (packed_cos << 10u) | (packed_sin << 21u);
-  particles[index] = vec4f(x, y, size, bitcast<f32>(packed));
+  let margin = size / 900.0;
+  if abs(x) <= 1.0 + margin && abs(y) <= 1.0 + margin {
+    let visible_index = atomicAdd(&particle_draw.instance_count, 1u);
+    particles[visible_index] = vec4f(x, y, size, bitcast<f32>(packed));
+  }
 }
 `;
 

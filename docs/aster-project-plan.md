@@ -1666,7 +1666,7 @@ aster/
 - [ ] Async disk IO。
 - [ ] Texture upload batching。
 - [ ] Persistent staging buffers。
-- [ ] GPU culling for 3D / particles。
+- [x] GPU culling for 3D / particles。
 - [x] Indirect drawing。
 - [ ] Bindless/resource-array strategy research。
 - [x] Memory budget manager。
