@@ -11,6 +11,7 @@ import {
   X,
 } from "lucide-react";
 import { useState } from "react";
+import { planLocalAiOperations } from "../ai/local-planner";
 import { buildAiContext } from "../core/ai-context";
 import { createLayerForComposition } from "../core/layer-factory";
 import type { Operation, PropertyPath } from "../core/operations";
@@ -44,7 +45,6 @@ export function AiPanel() {
   const [error, setError] = useState<string>();
   const createPreview = async (intent: string) => {
     const layerId = state.selection[0];
-    if (!layerId) return;
     setError(undefined);
     if ("__TAURI_INTERNALS__" in window && intent.trim()) {
       setLoading(true);
@@ -66,7 +66,7 @@ export function AiPanel() {
         const operations = normalizeOperations(
           generated.operations,
           composition,
-          layerId,
+          layerId ?? "",
           state.currentTime,
         );
         if (operations.length === 0)
@@ -84,52 +84,15 @@ export function AiPanel() {
         setLoading(false);
       }
     }
-    const lowered = intent.toLowerCase();
-    const operations: Operation[] = [];
-    if (lowered.includes("glow")) {
-      operations.push({
-        type: "addEffect",
-        layerId,
-        effect: {
-          id: createId(),
-          type: "glow",
-          name: "AI Glow",
-          enabled: true,
-          parameters: { radius: 64, intensity: 1.35 },
-        },
-      });
-    } else {
-      operations.push(
-        {
-          type: "addKeyframe",
-          layerId,
-          path: "position.1",
-          keyframe: {
-            id: createId(),
-            time: state.currentTime,
-            value: 1320,
-            interpolation: "bezier",
-            easing: [0.16, 1, 0.3, 1],
-          },
-        },
-        {
-          type: "addKeyframe",
-          layerId,
-          path: "position.1",
-          keyframe: {
-            id: createId(),
-            time: state.currentTime + 0.9,
-            value: 900,
-            interpolation: "bezier",
-            easing: [0.16, 1, 0.3, 1],
-          },
-        },
-      );
+    const local = planLocalAiOperations(intent, composition, state.selection, state.currentTime);
+    if (local.operations.length === 0) {
+      setError("The local planner needs an editable selection for this request");
+      return;
     }
     setPreview({
-      summary: intent || "Animate selected layer",
-      operations,
-      included: operations.map(() => true),
+      summary: local.summary,
+      operations: local.operations,
+      included: local.operations.map(() => true),
     });
     setPrompt("");
   };
@@ -340,6 +303,10 @@ function describeOperation(operation: Operation, composition: Composition): stri
       return `${target} · toggle ${operation.field}`;
     case "setTextAnimator":
       return `${target} · character stagger → ${operation.textAnimator.stagger.toFixed(2)}s`;
+    case "easeLayer":
+      return `${target} · reduce transform elasticity`;
+    case "setLayerTiming":
+      return `${target} · ${operation.inPoint.toFixed(2)}s–${operation.outPoint.toFixed(2)}s`;
     default:
       return `${target} · structured project change`;
   }
