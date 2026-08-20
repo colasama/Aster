@@ -7,6 +7,7 @@ import {
   useMemo,
   useReducer,
 } from "react";
+import { recordCommandMarker, recordOperations } from "../core/command-log";
 import { applyOperations, type Operation } from "../core/operations";
 import { createDemoProject } from "../core/project";
 import { storeRecoverySnapshot } from "../core/project-file";
@@ -107,32 +108,26 @@ function reducer(state: EditorState, action: EditorAction): EditorState {
   switch (action.type) {
     case "operation": {
       const project = applyOperations(state.project, action.operations);
+      const entry = recordOperations(project, action.operations, action.metadata);
       return {
         ...state,
         project,
         selection: action.select ?? state.selection,
         history: { past: [...state.history.past.slice(-99), state.project], future: [] },
-        auditLog: action.metadata
-          ? [
-              ...state.auditLog.slice(-99),
-              {
-                id: crypto.randomUUID(),
-                at: new Date().toISOString(),
-                source: action.metadata.source,
-                summary: action.metadata.summary,
-                operationTypes: action.operations.map((operation) => operation.type),
-              },
-            ]
-          : state.auditLog,
+        auditLog:
+          action.metadata?.source === "ai" ? [...state.auditLog.slice(-99), entry] : state.auditLog,
       };
     }
     case "undo": {
       const project = state.history.past[state.history.past.length - 1];
       if (!project) return state;
+      const restored = structuredClone(project);
+      restored.commandLog = state.project.commandLog;
+      recordCommandMarker(restored, "undo", "Undo transaction");
       return {
         ...state,
-        project,
-        selection: validSelection(project, state.selection, true),
+        project: restored,
+        selection: validSelection(restored, state.selection, true),
         history: {
           past: state.history.past.slice(0, -1),
           future: [state.project, ...state.history.future],
@@ -142,10 +137,13 @@ function reducer(state: EditorState, action: EditorAction): EditorState {
     case "redo": {
       const [project, ...future] = state.history.future;
       if (!project) return state;
+      const restored = structuredClone(project);
+      restored.commandLog = state.project.commandLog;
+      recordCommandMarker(restored, "redo", "Redo transaction");
       return {
         ...state,
-        project,
-        selection: validSelection(project, state.selection, true),
+        project: restored,
+        selection: validSelection(restored, state.selection, true),
         history: { past: [...state.history.past, state.project], future },
       };
     }
@@ -196,18 +194,23 @@ function reducer(state: EditorState, action: EditorAction): EditorState {
         playing: false,
       };
     }
-    case "commitProject":
+    case "commitProject": {
+      const project = structuredClone(action.project);
+      project.commandLog = state.project.commandLog;
+      recordCommandMarker(project, "commitProject", "Commit project transaction");
       return {
         ...state,
-        project: action.project,
-        selection: validSelection(action.project, action.select ?? state.selection, false),
+        project,
+        selection: validSelection(project, action.select ?? state.selection, false),
         history: { past: [...state.history.past.slice(-99), state.project], future: [] },
       };
+    }
     case "loadProject": {
       const initial = createInitialState();
       return {
         ...initial,
         project: action.project,
+        auditLog: action.project.commandLog.filter((entry) => entry.source === "ai").slice(-100),
         selection: validSelection(action.project, [], true),
         currentTime: 0,
       };

@@ -182,12 +182,23 @@ export interface Composition {
   layers: Layer[];
 }
 
+export interface ProjectCommandEntry {
+  id: Id;
+  at: string;
+  source: "ai" | "user";
+  summary: string;
+  operationTypes: string[];
+  /** Present only when the transaction is small enough to persist safely. */
+  serializedOperations?: string;
+}
+
 export interface Project {
   schemaVersion: 0;
   id: Id;
   name: string;
   activeCompositionId: Id;
   compositions: Composition[];
+  commandLog: ProjectCommandEntry[];
   updatedAt: string;
 }
 

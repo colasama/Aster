@@ -222,6 +222,7 @@ export function createDemoProject(): Project {
     name: "Aster Launch",
     activeCompositionId: compositionId,
     compositions: [composition],
+    commandLog: [],
     updatedAt: new Date().toISOString(),
   };
 }
@@ -268,6 +269,7 @@ export function createBlankProject(): Project {
     name: "Untitled Project",
     activeCompositionId: composition.id,
     compositions: [composition],
+    commandLog: [],
     updatedAt: new Date().toISOString(),
   };
 }

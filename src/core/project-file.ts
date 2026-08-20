@@ -1,5 +1,10 @@
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
+import {
+  MAX_COMMAND_LOG_ENTRIES,
+  MAX_COMMAND_LOG_SIZE,
+  MAX_SERIALIZED_COMMAND_SIZE,
+} from "./command-log";
 import type { Composition, Layer, Project } from "./types";
 
 const RECOVERY_KEY = "aster.recoveryProject.v0";
@@ -26,6 +31,8 @@ export function validateProjectDocument(value: unknown): Project {
     throw new Error("Active composition does not exist");
   if (typeof project.updatedAt !== "string" || Number.isNaN(Date.parse(project.updatedAt)))
     throw new Error("project.updatedAt must be an ISO date");
+  if (project.commandLog === undefined) project.commandLog = [];
+  validateCommandLog(project.commandLog);
   return value as Project;
 }
 
@@ -452,6 +459,53 @@ function validateLutResource(value: unknown, path: string): void {
   for (let channel = 0; channel < 3; channel += 1)
     if ((resource.domainMax as number[])[channel] <= (resource.domainMin as number[])[channel])
       throw new Error(`${path} has an invalid domain`);
+}
+
+function validateCommandLog(value: unknown): void {
+  if (!Array.isArray(value) || value.length > MAX_COMMAND_LOG_ENTRIES)
+    throw new Error(`project.commandLog must contain at most ${MAX_COMMAND_LOG_ENTRIES} entries`);
+  if (JSON.stringify(value).length > MAX_COMMAND_LOG_SIZE)
+    throw new Error("project.commandLog exceeds its serialized size budget");
+  const ids = new Set<string>();
+  for (const [index, candidate] of value.entries()) {
+    const path = `project.commandLog[${index}]`;
+    const entry = requireObject(candidate, path);
+    const id = requireString(entry.id, `${path}.id`);
+    if (ids.has(id)) throw new Error("project.commandLog contains a duplicate id");
+    ids.add(id);
+    const at = requireString(entry.at, `${path}.at`);
+    if (Number.isNaN(Date.parse(at))) throw new Error(`${path}.at must be an ISO date`);
+    if (entry.source !== "ai" && entry.source !== "user")
+      throw new Error(`${path}.source is invalid`);
+    if (requireString(entry.summary, `${path}.summary`).length > 500)
+      throw new Error(`${path}.summary is too long`);
+    if (!Array.isArray(entry.operationTypes) || entry.operationTypes.length > 100)
+      throw new Error(`${path}.operationTypes must be a bounded array`);
+    const types = entry.operationTypes.map((type, typeIndex) =>
+      requireString(type, `${path}.operationTypes[${typeIndex}]`),
+    );
+    if (entry.serializedOperations === undefined) continue;
+    const serialized = requireString(entry.serializedOperations, `${path}.serializedOperations`);
+    if (serialized.length > MAX_SERIALIZED_COMMAND_SIZE)
+      throw new Error(`${path}.serializedOperations is too large`);
+    let operations: unknown;
+    try {
+      operations = JSON.parse(serialized);
+    } catch {
+      throw new Error(`${path}.serializedOperations is not valid JSON`);
+    }
+    if (
+      !Array.isArray(operations) ||
+      operations.length !== types.length ||
+      operations.some(
+        (operation, operationIndex) =>
+          !operation ||
+          typeof operation !== "object" ||
+          (operation as { type?: unknown }).type !== types[operationIndex],
+      )
+    )
+      throw new Error(`${path}.serializedOperations does not match its operation manifest`);
+  }
 }
 
 function requireObject(value: unknown, path: string): Record<string, unknown> {

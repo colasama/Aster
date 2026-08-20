@@ -1186,7 +1186,7 @@ aster/
 - [x] 实现 Undo stack。
 - [x] 实现 Redo stack。
 - [x] 支持 transaction / grouped commands。
-- [ ] 支持 serialized command log。
+- [x] 支持 serialized command log。
 - [x] 支持 operation replay。
 - [x] 为 AI Operation 预留 metadata。
 
