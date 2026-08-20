@@ -953,40 +953,40 @@ aster/
 
 - [ ] 创建 GitHub Organization / Repository。
 - [ ] 确认 Aster 最终仓库 slug。
-- [ ] 添加 `README.md`。
+- [x] 添加 `README.md`。
 - [ ] 添加项目一句话 Description。
-- [ ] 添加 `LICENSE`，主程序采用 MPL-2.0。
-- [ ] 添加 `NOTICE`。
-- [ ] 添加 `THIRD_PARTY_LICENSES`。
-- [ ] 添加 `DEPENDENCY_POLICY.md`。
-- [ ] 添加 `CONTRIBUTING.md`。
-- [ ] 添加 `CODE_OF_CONDUCT.md`。
-- [ ] 添加 `SECURITY.md`。
-- [ ] 添加 Issue Templates。
-- [ ] 添加 Pull Request Template。
-- [ ] 定义 Commit / PR convention。
-- [ ] 初始化 Rust workspace。
+- [x] 添加 `LICENSE`，主程序采用 MPL-2.0。
+- [x] 添加 `NOTICE`。
+- [x] 添加 `THIRD_PARTY_LICENSES`。
+- [x] 添加 `DEPENDENCY_POLICY.md`。
+- [x] 添加 `CONTRIBUTING.md`。
+- [x] 添加 `CODE_OF_CONDUCT.md`。
+- [x] 添加 `SECURITY.md`。
+- [x] 添加 Issue Templates。
+- [x] 添加 Pull Request Template。
+- [x] 定义 Commit / PR convention。
+- [x] 初始化 Rust workspace。
 - [ ] 建立 `apps/` 与 `crates/` monorepo 结构。
-- [ ] 配置 `rustfmt`。
-- [ ] 配置 `clippy`。
-- [ ] 配置 cargo dependency audit。
-- [ ] 配置 cargo deny / license policy。
-- [ ] 配置 Windows CI。
-- [ ] 配置 macOS CI。
-- [ ] 配置 Linux CI。
-- [ ] 配置 unit test workflow。
+- [x] 配置 `rustfmt`。
+- [x] 配置 `clippy`。
+- [x] 配置 cargo dependency audit。
+- [x] 配置 cargo deny / license policy。
+- [x] 配置 Windows CI。
+- [x] 配置 macOS CI。
+- [x] 配置 Linux CI。
+- [x] 配置 unit test workflow。
 - [ ] 配置 build artifact workflow。
-- [ ] 配置 nightly benchmark workflow。
-- [ ] 定义最低 Rust toolchain。
-- [ ] 确定 MSRV 策略。
-- [ ] 确定版本号策略。
+- [x] 配置 nightly benchmark workflow。
+- [x] 定义最低 Rust toolchain。
+- [x] 确定 MSRV 策略。
+- [x] 确定版本号策略。
 - [ ] 确定 feature flag 策略。
-- [ ] 创建 Architecture Decision Record（ADR）目录。
-- [ ] 写 ADR：为什么选择 Rust。
-- [ ] 写 ADR：为什么选择 wgpu。
-- [ ] 写 ADR：为什么使用 WGSL。
-- [ ] 写 ADR：为什么项目格式开放。
-- [ ] 写 ADR：为什么采用 time-addressable evaluation。
+- [x] 创建 Architecture Decision Record（ADR）目录。
+- [x] 写 ADR：为什么选择 Rust。
+- [x] 写 ADR：为什么选择 wgpu。
+- [x] 写 ADR：为什么使用 WGSL。
+- [x] 写 ADR：为什么项目格式开放。
+- [x] 写 ADR：为什么采用 time-addressable evaluation。
 
 ---
 
@@ -994,17 +994,17 @@ aster/
 
 ### Window / GPU Bootstrap
 
-- [ ] 创建 `aster-render` crate。
-- [ ] 初始化 wgpu Instance。
-- [ ] 创建 Adapter selection strategy。
-- [ ] 创建设备与 Queue。
-- [ ] 创建 Window Surface。
-- [ ] 处理 Surface resize。
-- [ ] 处理 DPI scale。
+- [x] 创建 `aster-render` crate。
+- [x] 初始化 wgpu Instance。
+- [x] 创建 Adapter selection strategy。
+- [x] 创建设备与 Queue。
+- [x] 创建 Window Surface。
+- [x] 处理 Surface resize。
+- [x] 处理 DPI scale。
 - [ ] 支持 Windows Vulkan / DX12 backend 测试。
 - [ ] 支持 macOS Metal backend 测试。
 - [ ] 支持 Linux Vulkan backend 测试。
-- [ ] 输出 GPU Adapter / Driver / Backend diagnostics。
+- [x] 输出 GPU Adapter / Driver / Backend diagnostics。
 
 ### Resource Layer
 
@@ -1035,15 +1035,15 @@ aster/
 
 ### First Rendering Pipeline
 
-- [ ] 加载 PNG / JPEG Image。
-- [ ] 上传 Image 为 GPU Texture。
-- [ ] 实现 fullscreen textured quad。
-- [ ] 实现 2D Transform matrix。
-- [ ] 实现 Opacity。
-- [ ] 实现 Alpha Composite。
-- [ ] 实现多个 Image Layer Composite。
-- [ ] 实现 offscreen render target。
-- [ ] 实现 Composition Texture。
+- [x] 加载 PNG / JPEG Image。
+- [x] 上传 Image 为 GPU Texture。
+- [x] 实现 fullscreen textured quad。
+- [x] 实现 2D Transform matrix。
+- [x] 实现 Opacity。
+- [x] 实现 Alpha Composite。
+- [x] 实现多个 Image Layer Composite。
+- [x] 实现 offscreen render target。
+- [x] 实现 Composition Texture。
 
 ### Representative GPU Effects
 
@@ -1090,7 +1090,7 @@ aster/
 - [x] 创建 Blur benchmark。
 - [x] 创建 Glow benchmark。
 - [x] 创建 Effect-chain benchmark。
-- [ ] 保存 benchmark baseline。
+- [x] 保存 benchmark baseline。
 - [x] 自动输出 benchmark JSON。
 - [x] 创建 benchmark 可视化报告。
 
@@ -1138,14 +1138,14 @@ aster/
 
 - [x] 定义 Animatable Property。
 - [x] 支持 scalar。
-- [ ] 支持 vec2 / vec3 / vec4。
+- [x] 支持 vec2 / vec3 / vec4。
 - [x] 支持 color。
 - [x] 支持 bool / enum。
 - [ ] 支持 string。
 - [ ] 支持 quaternion。
 - [x] 支持 static value。
 - [x] 支持 animated value。
-- [ ] 支持 property binding。
+- [x] 支持 property binding。
 
 ### Keyframe
 
@@ -1163,32 +1163,32 @@ aster/
 
 ### Composition / Layer
 
-- [ ] 创建 `aster-core` crate。
-- [ ] 定义 Project。
-- [ ] 定义 Composition。
-- [ ] 定义 Layer。
-- [ ] 定义 Layer ID / UUID。
-- [ ] 实现 Layer ordering。
-- [ ] 实现 visibility。
-- [ ] 实现 solo。
-- [ ] 实现 lock。
-- [ ] 实现 parent/child hierarchy。
-- [ ] 实现 2D transform。
-- [ ] 实现 anchor point。
-- [ ] 实现 opacity。
-- [ ] 实现 nested composition。
-- [ ] 实现 composition-as-texture。
+- [x] 创建 `aster-core` crate。
+- [x] 定义 Project。
+- [x] 定义 Composition。
+- [x] 定义 Layer。
+- [x] 定义 Layer ID / UUID。
+- [x] 实现 Layer ordering。
+- [x] 实现 visibility。
+- [x] 实现 solo。
+- [x] 实现 lock。
+- [x] 实现 parent/child hierarchy。
+- [x] 实现 2D transform。
+- [x] 实现 anchor point。
+- [x] 实现 opacity。
+- [x] 实现 nested composition。
+- [x] 实现 composition-as-texture。
 
 ### Undo / Redo / Command
 
-- [ ] 定义 Command trait / Operation。
+- [x] 定义 Command trait / Operation。
 - [ ] 所有 UI mutation 使用 Operation。
-- [ ] 实现 Undo stack。
-- [ ] 实现 Redo stack。
-- [ ] 支持 transaction / grouped commands。
+- [x] 实现 Undo stack。
+- [x] 实现 Redo stack。
+- [x] 支持 transaction / grouped commands。
 - [ ] 支持 serialized command log。
-- [ ] 支持 operation replay。
-- [ ] 为 AI Operation 预留 metadata。
+- [x] 支持 operation replay。
+- [x] 为 AI Operation 预留 metadata。
 
 ---
 
@@ -1197,25 +1197,25 @@ aster/
 ### Desktop Shell
 
 - [ ] 创建 `apps/studio`。
-- [ ] 集成 Tauri。
-- [ ] 选择 React 或 Vue 并冻结首版选择。
-- [ ] 建立前端状态管理方案。
-- [ ] 建立 Rust ↔ UI command bridge。
-- [ ] 建立 native viewport embedding。
-- [ ] 支持 workspace layout。
-- [ ] 支持 panel docking 基础方案。
-- [ ] 支持 keyboard shortcut system。
-- [ ] 支持 theme system。
-- [ ] 支持 HiDPI。
+- [x] 集成 Tauri。
+- [x] 选择 React 或 Vue 并冻结首版选择。
+- [x] 建立前端状态管理方案。
+- [x] 建立 Rust ↔ UI command bridge。
+- [x] 建立 native viewport embedding。
+- [x] 支持 workspace layout。
+- [x] 支持 panel docking 基础方案。
+- [x] 支持 keyboard shortcut system。
+- [x] 支持 theme system。
+- [x] 支持 HiDPI。
 
 ### Main Panels
 
-- [ ] Project Panel。
-- [ ] Composition Viewer / Viewport。
-- [ ] Timeline Panel。
-- [ ] Layer Stack。
-- [ ] Inspector / Properties。
-- [ ] Graph Editor。
+- [x] Project Panel。
+- [x] Composition Viewer / Viewport。
+- [x] Timeline Panel。
+- [x] Layer Stack。
+- [x] Inspector / Properties。
+- [x] Graph Editor。
 - [x] Asset Browser。
 - [x] Effects Browser。
 - [x] Effects Browser 收藏与最近使用持久化。
@@ -1244,28 +1244,28 @@ aster/
 - [x] GPU Framing（Crop、Letterbox、Edge Feather、Overscan）。
 - [x] GPU 专业调色（ASC CDL、RGB Lift / Gamma / Gain、Log Wheels、HSL Secondary、Highlight Recovery、Gamut Compressor、False Color、Film Print Density）。
 - [x] GPU Selective Color Pipeline（Printer Lights、Hue / Luma Curves、Shadow / Highlight、Tone Map、Skin Refine）。
-- [ ] Console / Diagnostics。
-- [ ] Profiler Overlay。
-- [ ] AI Panel placeholder。
+- [x] Console / Diagnostics。
+- [x] Profiler Overlay。
+- [x] AI Panel placeholder。
 
 ### Interaction
 
-- [ ] Drag layer。
-- [ ] Reorder layer。
-- [ ] Multi-select layer。
-- [ ] Scrub timeline。
-- [ ] Zoom timeline。
-- [ ] Pan timeline。
+- [x] Drag layer。
+- [x] Reorder layer。
+- [x] Multi-select layer。
+- [x] Scrub timeline。
+- [x] Zoom timeline。
+- [x] Pan timeline。
 - [x] Add / delete keyframe。
 - [x] Drag keyframe。
 - [x] 在 Timeline 展示 Effect parameter track，并支持拖拽重定时与删除。
 - [x] Edit Bezier handles。
-- [ ] Transform gizmo。
+- [x] Transform gizmo。
 - [ ] Camera gizmo（M2）。
-- [ ] Snap system。
-- [ ] Guides / ruler。
-- [ ] Viewport zoom / pan。
-- [ ] Fit composition。
+- [x] Snap system。
+- [x] Guides / ruler。
+- [x] Viewport zoom / pan。
+- [x] Fit composition。
 
 ---
 
@@ -1329,10 +1329,10 @@ aster/
 
 ### Scene
 
-- [ ] 创建 `aster-scene` crate。
-- [ ] Entity / Component model。
+- [x] 创建 `aster-scene` crate。
+- [x] Entity / Component model。
 - [x] Vec3 Transform。
-- [ ] Quaternion rotation。
+- [x] Quaternion rotation。
 - [x] Parent hierarchy in 3D。
 - [x] World matrix evaluation。
 - [x] Orthographic Camera。
@@ -1345,7 +1345,7 @@ aster/
 - [x] GLB loader。
 - [x] Mesh buffers。
 - [x] Vertex attributes。
-- [ ] Index buffers。
+- [x] Index buffers。
 - [x] Normal。
 - [ ] Tangent。
 - [x] UV。
@@ -1375,8 +1375,8 @@ aster/
 
 ### GBuffer / Auxiliary Buffers
 
-- [ ] Color。
-- [ ] Depth。
+- [x] Color。
+- [x] Depth。
 - [ ] Normal。
 - [ ] Object ID。
 - [ ] Material ID。
@@ -1386,13 +1386,13 @@ aster/
 
 ### 2D + 3D Composition
 
-- [ ] Image Layer in 3D space。
-- [ ] Text Layer in 3D space。
-- [ ] Video Layer in 3D space。
+- [x] Image Layer in 3D space。
+- [x] Text Layer in 3D space。
+- [x] Video Layer in 3D space。
 - [ ] Composition as 3D texture。
-- [ ] Correct depth occlusion。
-- [ ] 2D overlay mode。
-- [ ] 3D render → post effect → final composite。
+- [x] Correct depth occlusion。
+- [x] 2D overlay mode。
+- [x] 3D render → post effect → final composite。
 - [ ] Object-ID selective effect。
 - [ ] Depth-based fog。
 - [ ] Depth-of-field prototype。
@@ -1436,28 +1436,28 @@ aster/
 
 ### Plugin Foundation
 
-- [ ] 创建 `aster-plugin` crate。
-- [ ] 定义 Plugin Manifest schema。
-- [ ] 定义 plugin ID。
-- [ ] 定义 semantic version。
-- [ ] 定义 Aster API version。
-- [ ] 定义 capability / permission。
-- [ ] 实现 plugin discovery。
-- [ ] 实现 plugin loading。
-- [ ] 实现 plugin error reporting。
-- [ ] 实现 plugin disable / safe mode。
+- [x] 创建 `aster-plugin` crate。
+- [x] 定义 Plugin Manifest schema。
+- [x] 定义 plugin ID。
+- [x] 定义 semantic version。
+- [x] 定义 Aster API version。
+- [x] 定义 capability / permission。
+- [x] 实现 plugin discovery。
+- [x] 实现 plugin loading。
+- [x] 实现 plugin error reporting。
+- [x] 实现 plugin disable / safe mode。
 
 ### WGSL Plugin
 
 - [ ] 定义 Effect shader ABI。
 - [ ] 定义 texture inputs。
 - [ ] 定义 output。
-- [ ] 定义 numeric parameter schema。
-- [ ] 定义 color parameter。
-- [ ] 定义 enum parameter。
-- [ ] 定义 texture parameter。
+- [x] 定义 numeric parameter schema。
+- [x] 定义 color parameter。
+- [x] 定义 enum parameter。
+- [x] 定义 texture parameter。
 - [ ] 自动生成 Inspector UI。
-- [ ] Shader compile error UI。
+- [x] Shader compile error UI。
 - [ ] Hot reload shader。
 - [ ] Example: Tint。
 - [ ] Example: Chromatic Aberration。
@@ -1482,7 +1482,7 @@ aster/
 - [ ] 明确 ABI stability policy。
 - [ ] 明确 crash isolation policy。
 - [ ] 明确 unsafe capability policy。
-- [ ] 首版暂不承诺稳定 ABI。
+- [x] 首版暂不承诺稳定 ABI。
 
 ---
 
@@ -1494,14 +1494,14 @@ aster/
 - [ ] FFmpeg integration。
 - [ ] Container probe。
 - [ ] Video stream selection。
-- [ ] Decode frame。
-- [ ] Timestamp handling。
-- [ ] Frame-rate handling。
-- [ ] Variable frame rate strategy。
-- [ ] Seek。
+- [x] Decode frame。
+- [x] Timestamp handling。
+- [x] Frame-rate handling。
+- [x] Variable frame rate strategy。
+- [x] Seek。
 - [ ] Decode cache。
 - [ ] Frame cache。
-- [ ] Video layer → GPU texture。
+- [x] Video layer → GPU texture。
 - [ ] Color space metadata。
 - [ ] Alpha video support research。
 
@@ -1551,16 +1551,16 @@ aster/
 
 ## 18.12 Color Management
 
-- [ ] 定义 internal working color model。
-- [ ] Linear-light compositing。
-- [ ] sRGB import/export。
-- [ ] Display transform。
+- [x] 定义 internal working color model。
+- [x] Linear-light compositing。
+- [x] sRGB import/export。
+- [x] Display transform。
 - [x] LUT support。
 - [ ] ICC / OCIO strategy research。
 - [ ] HDR roadmap。
-- [ ] 16-bit / float pipeline strategy。
-- [ ] Texture format policy。
-- [ ] Premultiplied alpha policy。
+- [x] 16-bit / float pipeline strategy。
+- [x] Texture format policy。
+- [x] Premultiplied alpha policy。
 - [ ] Color-management test suite。
 
 ---
@@ -1569,97 +1569,97 @@ aster/
 
 ### Operation API
 
-- [ ] 创建 `aster-ai` crate。
+- [x] 创建 `aster-ai` crate。
 - [ ] 列出全部可供 AI 调用的基础 Operation。
-- [ ] 定义 JSON Schema。
-- [ ] 定义 parameter validation。
-- [ ] 定义 operation permission。
-- [ ] 定义 operation result。
-- [ ] 定义 error schema。
-- [ ] 定义 dry-run / preview 模式。
-- [ ] 定义 operation transaction。
-- [ ] 定义 rollback。
-- [ ] 定义 audit log。
+- [x] 定义 JSON Schema。
+- [x] 定义 parameter validation。
+- [x] 定义 operation permission。
+- [x] 定义 operation result。
+- [x] 定义 error schema。
+- [x] 定义 dry-run / preview 模式。
+- [x] 定义 operation transaction。
+- [x] 定义 rollback。
+- [x] 定义 audit log。
 
 ### AI Tooling
 
 - [ ] Provider abstraction。
 - [ ] Tool calling abstraction。
-- [ ] Context builder。
-- [ ] Project summary API。
-- [ ] Layer query API。
+- [x] Context builder。
+- [x] Project summary API。
+- [x] Layer query API。
 - [ ] Property query API。
 - [ ] Timeline query API。
 - [ ] Scene query API。
-- [ ] Effect query API。
+- [x] Effect query API。
 - [ ] Asset query API。
-- [ ] Selection-aware context。
+- [x] Selection-aware context。
 
 ### Natural Language Workflows
 
-- [ ] “创建文字图层”。
-- [ ] “让文字从下面弹入”。
+- [x] “创建文字图层”。
+- [x] “让文字从下面弹入”。
 - [ ] “每个字延迟 0.08 秒”。
 - [ ] “减少弹性”。
-- [ ] “给背景加 Glow”。
-- [ ] “让 Camera 缓慢推近”。
+- [x] “给背景加 Glow”。
+- [x] “让 Camera 缓慢推近”。
 - [ ] “人物保持清晰，背景增加景深”。
 - [ ] “复制这组 Layer 并改成左右交替进入”。
-- [ ] 多步骤 Planning。
-- [ ] 失败自动解释而不是静默修改。
+- [x] 多步骤 Planning。
+- [x] 失败自动解释而不是静默修改。
 
 ### AI Safety / UX
 
-- [ ] Preview changes。
+- [x] Preview changes。
 - [ ] Diff changes。
-- [ ] Accept all。
+- [x] Accept all。
 - [ ] Accept selected。
-- [ ] Reject。
-- [ ] Undo AI transaction。
+- [x] Reject。
+- [x] Undo AI transaction。
 - [ ] 显示 AI 修改了哪些对象。
-- [ ] 阻止模型访问未授权本地文件。
-- [ ] 明确网络 Provider 数据边界。
-- [ ] Local model provider interface。
+- [x] 阻止模型访问未授权本地文件。
+- [x] 明确网络 Provider 数据边界。
+- [x] Local model provider interface。
 
 ---
 
 ## 18.14 Project Format / Persistence
 
-- [ ] 创建 `aster-project` crate。
-- [ ] 定义 Project Schema v0。
-- [ ] 定义 Composition Schema。
-- [ ] 定义 Layer Schema。
-- [ ] 定义 Property Schema。
-- [ ] 定义 Keyframe Schema。
-- [ ] 定义 Effect Schema。
-- [ ] 定义 Asset Schema。
-- [ ] 定义 Plugin dependency Schema。
-- [ ] 定义 Stable UUID。
-- [ ] 实现 project save。
-- [ ] 实现 project load。
-- [ ] 实现 atomic save。
-- [ ] 实现 autosave。
-- [ ] 实现 crash recovery。
+- [x] 创建 `aster-project` crate。
+- [x] 定义 Project Schema v0。
+- [x] 定义 Composition Schema。
+- [x] 定义 Layer Schema。
+- [x] 定义 Property Schema。
+- [x] 定义 Keyframe Schema。
+- [x] 定义 Effect Schema。
+- [x] 定义 Asset Schema。
+- [x] 定义 Plugin dependency Schema。
+- [x] 定义 Stable UUID。
+- [x] 实现 project save。
+- [x] 实现 project load。
+- [x] 实现 atomic save。
+- [x] 实现 autosave。
+- [x] 实现 crash recovery。
 - [ ] 实现 relative asset paths。
 - [ ] 实现 missing asset relink。
 - [ ] 实现 packed project。
-- [ ] 实现 schema validation。
+- [x] 实现 schema validation。
 - [ ] 实现 migration framework。
 - [ ] 实现 migration test fixtures。
-- [ ] 将 cache 与 source project 分离。
-- [ ] 发布 Project Format draft specification。
+- [x] 将 cache 与 source project 分离。
+- [x] 发布 Project Format draft specification。
 
 ---
 
 ## 18.15 Performance / Optimization Backlog
 
-- [ ] Render Graph resource aliasing。
-- [ ] Pipeline prewarming。
+- [x] Render Graph resource aliasing。
+- [x] Pipeline prewarming。
 - [ ] Async shader compilation strategy。
 - [ ] Shader fusion prototype。
 - [ ] Effect fusion eligibility analysis。
-- [ ] Dynamic resolution preview。
-- [ ] Preview quality levels。
+- [x] Dynamic resolution preview。
+- [x] Preview quality levels。
 - [ ] Tile processing research for huge compositions。
 - [ ] Multi-threaded CPU scheduling。
 - [ ] Parallel asset decode。
@@ -1671,11 +1671,11 @@ aster/
 - [ ] Bindless/resource-array strategy research。
 - [ ] Memory budget manager。
 - [ ] VRAM pressure handling。
-- [ ] LRU GPU cache。
+- [x] LRU GPU cache。
 - [ ] Disk cache benchmark。
 - [ ] Temporal cache design。
-- [ ] Multi-frame render export strategy。
-- [ ] CPU fallback strategy for unsupported GPU features。
+- [x] Multi-frame render export strategy。
+- [x] CPU fallback strategy for unsupported GPU features。
 - [ ] Performance regression dashboard。
 
 ---
@@ -1684,27 +1684,27 @@ aster/
 
 ### Core Tests
 
-- [ ] Unit tests for Time。
-- [ ] Unit tests for Keyframe interpolation。
-- [ ] Unit tests for Dependency DAG。
-- [ ] Unit tests for Project serialization。
-- [ ] Unit tests for Operation / Undo。
-- [ ] Unit tests for Plugin manifest。
+- [x] Unit tests for Time。
+- [x] Unit tests for Keyframe interpolation。
+- [x] Unit tests for Dependency DAG。
+- [x] Unit tests for Project serialization。
+- [x] Unit tests for Operation / Undo。
+- [x] Unit tests for Plugin manifest。
 
 ### Rendering Tests
 
 - [ ] Golden image tests。
 - [ ] GPU backend comparison tests。
 - [ ] Alpha compositing tests。
-- [ ] Color tests。
-- [ ] Blur tests。
+- [x] Color tests。
+- [x] Blur tests。
 - [ ] Text rendering tests。
-- [ ] 3D depth tests。
+- [x] 3D depth tests。
 - [ ] Motion vector tests。
 
 ### Project Compatibility
 
-- [ ] Save/load roundtrip test。
+- [x] Save/load roundtrip test。
 - [ ] Migration test。
 - [ ] Missing plugin test。
 - [ ] Missing asset test。
@@ -1725,17 +1725,17 @@ aster/
 
 ## 18.17 Documentation / Community
 
-- [ ] README hero section。
-- [ ] Architecture overview。
-- [ ] Build from source guide。
-- [ ] Contribution guide。
-- [ ] Plugin tutorial。
-- [ ] WGSL Effect tutorial。
-- [ ] Render Graph tutorial。
-- [ ] Project Format spec。
-- [ ] AI Operation API docs。
-- [ ] Benchmark methodology docs。
-- [ ] Roadmap page。
+- [x] README hero section。
+- [x] Architecture overview。
+- [x] Build from source guide。
+- [x] Contribution guide。
+- [x] Plugin tutorial。
+- [x] WGSL Effect tutorial。
+- [x] Render Graph tutorial。
+- [x] Project Format spec。
+- [x] AI Operation API docs。
+- [x] Benchmark methodology docs。
+- [x] Roadmap page。
 - [ ] Good First Issues。
 - [ ] Example project repository。
 - [ ] Example shader repository。
@@ -1751,10 +1751,10 @@ aster/
 - [ ] Linux AppImage / Flatpak strategy。
 - [ ] Auto-update strategy。
 - [ ] Crash reporting opt-in design。
-- [ ] Plugin directory convention。
+- [x] Plugin directory convention。
 - [ ] Plugin search UI。
-- [ ] Plugin install UI。
-- [ ] Plugin update UI。
+- [x] Plugin install UI。
+- [x] Plugin update UI。
 - [ ] Plugin signature / trust research。
 - [ ] Plugin Registry prototype。
 - [ ] Example plugin CI template。
@@ -1792,25 +1792,25 @@ Color Grading
 
 界面实时显示：
 
-- [ ] FPS。
-- [ ] Total Frame Time。
-- [ ] GPU Frame Time。
-- [ ] CPU Frame Time。
-- [ ] VRAM。
-- [ ] Dirty / Recomputed Node Count。
-- [ ] Particle Count。
-- [ ] Render Graph Pass Count。
+- [x] FPS。
+- [x] Total Frame Time。
+- [x] GPU Frame Time。
+- [x] CPU Frame Time。
+- [x] VRAM。
+- [x] Dirty / Recomputed Node Count。
+- [x] Particle Count。
+- [x] Render Graph Pass Count。
 
 Demo 发布准备：
 
-- [ ] 制作 benchmark project。
+- [x] 制作 benchmark project。
 - [ ] 固定测试硬件配置。
-- [ ] 记录 Aster performance。
+- [x] 记录 Aster performance。
 - [ ] 选择合理竞品对照方式。
-- [ ] 保证测试条件公平可复现。
+- [x] 保证测试条件公平可复现。
 - [ ] 录制实时交互视频。
 - [ ] README 添加 Demo GIF / Video。
-- [ ] 发布 benchmark methodology。
+- [x] 发布 benchmark methodology。
 
 ---
 
@@ -1878,13 +1878,13 @@ Demo 发布准备：
 
 Aster 的第一阶段成功标准不是“拥有多少 AE 功能”，而是证明以下假设：
 
-- [ ] 复杂 2D Motion 可以通过统一 GPU pipeline 实时预览；
-- [ ] Timeline 可以任意 seek，而不会被游戏式帧状态模型绑死；
-- [ ] Dirty Propagation 能显著减少不必要的重算；
-- [ ] 2D 与 3D 可以共享同一套 Scene / Render Graph；
+- [x] 复杂 2D Motion 可以通过统一 GPU pipeline 实时预览；
+- [x] Timeline 可以任意 seek，而不会被游戏式帧状态模型绑死；
+- [x] Dirty Propagation 能显著减少不必要的重算；
+- [x] 2D 与 3D 可以共享同一套 Scene / Render Graph；
 - [ ] WGSL Plugin 可以低成本扩展效果；
-- [ ] 工程文件是开放、稳定、可版本控制的；
-- [ ] AI 能通过结构化 API 修改工程并完整 Undo；
+- [x] 工程文件是开放、稳定、可版本控制的；
+- [x] AI 能通过结构化 API 修改工程并完整 Undo；
 - [ ] Aster 在公开、可复现 Benchmark 中体现出明显的实时性能优势。
 
 如果这些成立，后续功能数量可以逐步由核心团队和社区扩展。
