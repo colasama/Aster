@@ -1,5 +1,9 @@
 //! Git-friendly project bundle persistence.
 
+mod disk_cache;
+
+pub use disk_cache::{DiskCache, DiskCacheBenchmark, DiskCacheStatistics};
+
 use std::{
     fs::{self, File},
     io::{self, BufReader, BufWriter, Read, Write},
@@ -391,6 +395,8 @@ pub enum ProjectError {
     InvalidPackedProject,
     #[error("packed project ZIP is invalid: {0}")]
     Zip(#[from] zip::result::ZipError),
+    #[error("disk cache key must contain only ASCII letters, digits, underscore, or hyphen")]
+    InvalidCacheKey,
 }
 
 #[cfg(test)]

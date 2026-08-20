@@ -1520,10 +1520,10 @@ aster/
 
 - [ ] Proxy metadata model。
 - [ ] Proxy generation command。
-- [ ] Disk cache directory。
-- [ ] Cache eviction policy。
-- [ ] Cache size setting。
-- [ ] Cache diagnostics。
+- [x] Disk cache directory。
+- [x] Cache eviction policy。
+- [x] Cache size setting。
+- [x] Cache diagnostics。
 
 ### Export
 
@@ -1672,7 +1672,7 @@ aster/
 - [x] Memory budget manager。
 - [x] VRAM pressure handling。
 - [x] LRU GPU cache。
-- [ ] Disk cache benchmark。
+- [x] Disk cache benchmark。
 - [x] Temporal cache design。
 - [x] Multi-frame render export strategy。
 - [x] CPU fallback strategy for unsupported GPU features。
