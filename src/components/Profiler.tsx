@@ -1,13 +1,36 @@
-import { Activity, Cpu, Download, Gauge, Layers3, MemoryStick, Zap } from "lucide-react";
-import { useState } from "react";
+import {
+  Activity,
+  BookmarkPlus,
+  BookmarkX,
+  Cpu,
+  Download,
+  Gauge,
+  Layers3,
+  MemoryStick,
+  Zap,
+} from "lucide-react";
+import { useMemo, useState } from "react";
 import type { GpuBenchmarkReport, GpuBenchmarkRequest } from "../renderer/gpu-benchmark";
+import {
+  compareGpuBenchmarks,
+  parseGpuBenchmarkBaseline,
+} from "../renderer/gpu-benchmark-baseline";
 import { useEditor } from "../state/editor-store";
+
+const BENCHMARK_BASELINE_KEY = "aster.gpuBenchmarkBaseline.v1";
 
 export function Profiler() {
   const { state } = useEditor();
   const metrics = state.metrics;
   const [benchmark, setBenchmark] = useState<GpuBenchmarkReport>();
+  const [baseline, setBaseline] = useState<GpuBenchmarkReport | undefined>(() =>
+    parseGpuBenchmarkBaseline(localStorage.getItem(BENCHMARK_BASELINE_KEY)),
+  );
   const [benchmarkProgress, setBenchmarkProgress] = useState<string>();
+  const comparison = useMemo(
+    () => (benchmark && baseline ? compareGpuBenchmarks(benchmark, baseline) : undefined),
+    [baseline, benchmark],
+  );
   const runBenchmark = (sampleFrames: number) => {
     if (benchmarkProgress) return;
     setBenchmark(undefined);
@@ -93,7 +116,36 @@ export function Profiler() {
       {benchmark && (
         <div className="benchmark-report">
           <div className="benchmark-report-title">
-            <span>{benchmark.sampleFrames} frame report</span>
+            <span>
+              {benchmark.sampleFrames} frame report
+              {baseline && ` · ${comparison?.compatible ? "vs baseline" : "hardware mismatch"}`}
+            </span>
+            <button
+              aria-label={
+                baseline ? "Replace GPU benchmark baseline" : "Save GPU benchmark baseline"
+              }
+              onClick={() => {
+                localStorage.setItem(BENCHMARK_BASELINE_KEY, JSON.stringify(benchmark));
+                setBaseline(benchmark);
+              }}
+              title={baseline ? "Replace the stored baseline" : "Save this report as the baseline"}
+              type="button"
+            >
+              <BookmarkPlus size={10} />
+            </button>
+            {baseline && (
+              <button
+                aria-label="Clear GPU benchmark baseline"
+                onClick={() => {
+                  localStorage.removeItem(BENCHMARK_BASELINE_KEY);
+                  setBaseline(undefined);
+                }}
+                title="Clear the stored performance baseline"
+                type="button"
+              >
+                <BookmarkX size={10} />
+              </button>
+            )}
             <button
               aria-label="Download GPU benchmark JSON"
               onClick={() => downloadBenchmark(benchmark)}
@@ -108,12 +160,27 @@ export function Profiler() {
               <span>{scenario.name}</span>
               <strong>{scenario.gpuMs.median.toFixed(2)} ms</strong>
               <small>p95 {scenario.gpuMs.p95.toFixed(2)}</small>
+              {comparison?.gpuMedianDeltaPercent[scenario.name] !== undefined && (
+                <em className={regressionClass(comparison.gpuMedianDeltaPercent[scenario.name])}>
+                  {formatDelta(comparison.gpuMedianDeltaPercent[scenario.name])}
+                </em>
+              )}
             </div>
           ))}
         </div>
       )}
     </div>
   );
+}
+
+function formatDelta(percent: number): string {
+  return `${percent > 0 ? "+" : ""}${percent.toFixed(1)}%`;
+}
+
+function regressionClass(percent: number): string {
+  if (percent > 5) return "regressed";
+  if (percent < -5) return "improved";
+  return "stable";
 }
 
 function formatShadowMap(size?: number): string {

@@ -445,3 +445,18 @@
   color: #65738b;
   font-size: 6px;
 }
+.benchmark-scenario em {
+  min-width: 39px;
+  font-size: 7px;
+  font-style: normal;
+  text-align: right;
+}
+.benchmark-scenario em.regressed {
+  color: #f18a91;
+}
+.benchmark-scenario em.improved {
+  color: #68d8a7;
+}
+.benchmark-scenario em.stable {
+  color: #8795ad;
+}

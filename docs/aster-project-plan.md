@@ -1676,7 +1676,7 @@ aster/
 - [ ] Temporal cache design。
 - [x] Multi-frame render export strategy。
 - [x] CPU fallback strategy for unsupported GPU features。
-- [ ] Performance regression dashboard。
+- [x] Performance regression dashboard。
 
 ---
 
