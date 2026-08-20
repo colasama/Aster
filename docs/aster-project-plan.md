@@ -1660,7 +1660,7 @@ aster/
 - [x] Effect fusion eligibility analysis。
 - [x] Dynamic resolution preview。
 - [x] Preview quality levels。
-- [ ] Tile processing research for huge compositions。
+- [x] Tile processing research for huge compositions。
 - [ ] Multi-threaded CPU scheduling。
 - [x] Parallel asset decode。
 - [x] Async disk IO。
@@ -1668,7 +1668,7 @@ aster/
 - [x] Persistent staging buffers。
 - [x] GPU culling for 3D / particles。
 - [x] Indirect drawing。
-- [ ] Bindless/resource-array strategy research。
+- [x] Bindless/resource-array strategy research。
 - [x] Memory budget manager。
 - [x] VRAM pressure handling。
 - [x] LRU GPU cache。
