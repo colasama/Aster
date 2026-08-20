@@ -3,6 +3,7 @@ import { depthEffectsShader } from "./depth-effects";
 import { extractPositionsShader } from "./motion-vector-history";
 import {
   imageShader,
+  materialShapeShader,
   particleComputeShader,
   particleRenderShader,
   postProcessShader,
@@ -13,6 +14,7 @@ import {
 export async function validateShaderSources(device: GPUDevice): Promise<void> {
   const sources = [
     ["shape", shapeShader],
+    ["normal-mapped HDR environment", materialShapeShader],
     ["image", imageShader],
     ["particle compute", particleComputeShader],
     ["particle render", particleRenderShader],

@@ -23,13 +23,34 @@ export interface SpectrumCpuTask {
   options?: SpectrumOptions;
 }
 
-export type CpuTask = SerializeJsonCpuTask | WaveformPeaksCpuTask | SpectrumCpuTask;
+export interface DecodeRadianceHdrCpuTask {
+  kind: "decode-radiance-hdr";
+  source: ArrayBuffer;
+  /** Validates every scanline without returning the upload payload. */
+  metadataOnly?: boolean;
+}
+
+export interface RadianceHdrCpuResult {
+  width: number;
+  height: number;
+  bytesPerRow: number;
+  /** Present for renderer requests and already row-aligned for queue.writeTexture. */
+  pixels?: Uint16Array;
+}
+
+export type CpuTask =
+  | SerializeJsonCpuTask
+  | WaveformPeaksCpuTask
+  | SpectrumCpuTask
+  | DecodeRadianceHdrCpuTask;
 
 export type CpuTaskResult<T extends CpuTask> = T extends SerializeJsonCpuTask
   ? string
   : T extends WaveformPeaksCpuTask | SpectrumCpuTask
     ? Float32Array
-    : never;
+    : T extends DecodeRadianceHdrCpuTask
+      ? RadianceHdrCpuResult
+      : never;
 
 export interface CpuTaskRequest {
   id: number;
@@ -43,7 +64,7 @@ export interface SerializedCpuTaskError {
 }
 
 export type CpuTaskResponse =
-  | { id: number; ok: true; result: string | Float32Array }
+  | { id: number; ok: true; result: string | Float32Array | RadianceHdrCpuResult }
   | { error: SerializedCpuTaskError; id: number; ok: false };
 
 export function serializeCpuTaskError(error: unknown): SerializedCpuTaskError {

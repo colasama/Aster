@@ -1,9 +1,11 @@
 import { Gauge, Settings2, Sparkles, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { runCpuTask } from "../core/cpu-scheduler";
 import { evaluateExpression } from "../core/expressions";
 import { getProperty, type PropertyPath } from "../core/operations";
 import { activeComposition } from "../core/project";
 import { evaluateAnimatable } from "../core/timeline";
+import type { EnvironmentLighting } from "../core/types";
 import { useEditor } from "../state/editor-store";
 import { PluginManager } from "./PluginManager";
 
@@ -42,6 +44,12 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
     composition.frameRate.numerator / composition.frameRate.denominator,
   );
   const [duration, setDuration] = useState(composition.duration);
+  const [environment, setEnvironment] = useState<EnvironmentLighting | undefined>(
+    composition.environment,
+  );
+  const [environmentError, setEnvironmentError] = useState<string>();
+  const [environmentValidating, setEnvironmentValidating] = useState(false);
+  const hdrValidationAbort = useRef<AbortController | undefined>(undefined);
   const [autosaveSeconds, setAutosaveSeconds] = useState(() =>
     Number(localStorage.getItem("aster.autosaveSeconds") ?? 30),
   );
@@ -60,6 +68,8 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
       )
     : undefined;
 
+  useEffect(() => () => hdrValidationAbort.current?.abort(), []);
+
   const saveComposition = () => {
     dispatch({
       type: "operation",
@@ -72,6 +82,11 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
           height,
           frameRate: { numerator: frameRate * 1000, denominator: 1000 },
           duration,
+        },
+        {
+          type: "setCompositionEnvironment",
+          compositionId: composition.id,
+          environment,
         },
       ],
     });
@@ -165,6 +180,104 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
                 value={duration}
               />
             </label>
+            <label className="dialog-check wide">
+              <input
+                checked={environment?.enabled ?? false}
+                disabled={!environment}
+                onChange={(event) =>
+                  setEnvironment((current) =>
+                    current ? { ...current, enabled: event.target.checked } : current,
+                  )
+                }
+                type="checkbox"
+              />
+              Enable HDR environment lighting
+            </label>
+            {environment && (
+              <>
+                <label>
+                  Environment intensity
+                  <input
+                    max={32}
+                    min={0}
+                    onChange={(event) =>
+                      setEnvironment({
+                        ...environment,
+                        intensity: event.currentTarget.valueAsNumber,
+                      })
+                    }
+                    step="0.05"
+                    type="number"
+                    value={environment.intensity}
+                  />
+                </label>
+                <label>
+                  Environment rotation
+                  <input
+                    max={360}
+                    min={-360}
+                    onChange={(event) =>
+                      setEnvironment({
+                        ...environment,
+                        rotation: event.currentTarget.valueAsNumber,
+                      })
+                    }
+                    step="1"
+                    type="number"
+                    value={environment.rotation}
+                  />
+                </label>
+              </>
+            )}
+            <label className="wide">
+              Radiance environment (.hdr, max 48 MiB)
+              <input
+                accept=".hdr,image/vnd.radiance,image/x-hdr"
+                onChange={(event) => {
+                  const file = event.currentTarget.files?.[0];
+                  if (!file) return;
+                  hdrValidationAbort.current?.abort();
+                  const abort = new AbortController();
+                  hdrValidationAbort.current = abort;
+                  setEnvironmentError(undefined);
+                  setEnvironmentValidating(true);
+                  void readHdrFile(file, abort.signal)
+                    .then((source) =>
+                      setEnvironment({
+                        enabled: true,
+                        intensity: environment?.intensity ?? 1,
+                        rotation: environment?.rotation ?? 0,
+                        source,
+                      }),
+                    )
+                    .catch((error) => {
+                      if (abort.signal.aborted) return;
+                      setEnvironmentError(
+                        error instanceof Error ? error.message : "Unable to read HDR environment",
+                      );
+                    })
+                    .finally(() => {
+                      if (hdrValidationAbort.current !== abort) return;
+                      hdrValidationAbort.current = undefined;
+                      setEnvironmentValidating(false);
+                    });
+                }}
+                type="file"
+              />
+            </label>
+            {environmentValidating && (
+              <div className="dialog-note wide">Validating HDR scanlines in a worker…</div>
+            )}
+            {environment && (
+              <div className="dialog-note wide">
+                <Sparkles size={15} /> {environment.source.name} · worker-validated linear RGBE ·
+                GPU rgba16float
+                <button onClick={() => setEnvironment(undefined)} type="button">
+                  Remove
+                </button>
+              </div>
+            )}
+            {environmentError && <div className="dialog-note wide">{environmentError}</div>}
             <div className="dialog-note wide">
               <Gauge size={15} /> The renderer supports compositions up to the GPU adapter's texture
               limit. Oversized outputs can be tiled by the native render queue.
@@ -314,7 +427,12 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
             {kind === "composition" || kind === "preferences" ? "Cancel" : "Close"}
           </button>
           {kind === "composition" && (
-            <button className="primary" onClick={saveComposition} type="button">
+            <button
+              className="primary"
+              disabled={environmentValidating}
+              onClick={saveComposition}
+              type="button"
+            >
               Apply settings
             </button>
           )}
@@ -337,6 +455,49 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
       </section>
     </div>
   );
+}
+
+async function readHdrFile(
+  file: File,
+  signal: AbortSignal,
+): Promise<EnvironmentLighting["source"]> {
+  if (!file.name.toLowerCase().endsWith(".hdr"))
+    throw new Error("Choose a Radiance .hdr environment file");
+  if (file.size === 0 || file.size > 48 * 1024 * 1024)
+    throw new Error("HDR environment must be between 1 byte and 48 MiB");
+  const buffer = await file.arrayBuffer();
+  await runCpuTask(
+    { kind: "decode-radiance-hdr", metadataOnly: true, source: buffer },
+    {
+      priority: "interactive",
+      requireWorker: true,
+      signal,
+      timeoutMs: 30_000,
+      transfer: [buffer],
+    },
+  );
+  if (signal.aborted) throw new DOMException("HDR validation cancelled", "AbortError");
+  const result = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    const cancel = () => {
+      reader.abort();
+      reject(new DOMException("HDR validation cancelled", "AbortError"));
+    };
+    signal.addEventListener("abort", cancel, { once: true });
+    reader.addEventListener("load", () =>
+      typeof reader.result === "string" ? resolve(reader.result) : reject(new Error("Read failed")),
+    );
+    reader.addEventListener("error", () => reject(reader.error ?? new Error("Read failed")));
+    reader.addEventListener("loadend", () => signal.removeEventListener("abort", cancel));
+    reader.readAsDataURL(file);
+  });
+  const comma = result.indexOf(",");
+  if (comma < 0) throw new Error("Unable to encode HDR environment");
+  return {
+    name: file.name.slice(0, 512),
+    mimeType: "image/vnd.radiance",
+    dataUrl: `data:image/vnd.radiance;base64,${result.slice(comma + 1)}`,
+  };
 }
 
 function previewExpression(

@@ -5,6 +5,7 @@ import {
   type CpuTaskResult,
   MAX_CPU_TASK_OUTPUT_CHARACTERS,
 } from "./cpu-task-protocol";
+import { decodeRadianceHdrForUpload } from "./hdr-environment";
 
 export function executeCpuTask<T extends CpuTask>(task: T): CpuTaskResult<T> {
   switch (task.kind) {
@@ -14,6 +15,11 @@ export function executeCpuTask<T extends CpuTask>(task: T): CpuTaskResult<T> {
       return buildWaveformPeaks(task.samples, task.binCount) as CpuTaskResult<T>;
     case "spectrum":
       return analyzeSpectrum(task.samples, task.sampleRate, task.options) as CpuTaskResult<T>;
+    case "decode-radiance-hdr":
+      return decodeRadianceHdrForUpload(
+        new Uint8Array(task.source),
+        task.metadataOnly,
+      ) as CpuTaskResult<T>;
   }
 }
 

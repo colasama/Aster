@@ -1,7 +1,7 @@
 import type { BlendMode } from "../core/types";
 import { gpuBlendState } from "./blend-state";
 import { FLOATS_PER_VERTEX } from "./geometry";
-import { imageShader, shadowShader, shapeShader } from "./shaders";
+import { imageShader, materialShapeShader, shadowShader, shapeShader } from "./shaders";
 
 const BLEND_MODES: BlendMode[] = ["normal", "add", "multiply", "screen", "overlay"];
 
@@ -62,6 +62,38 @@ export function createShapePipelines(
       entryPoint: "vertex_main",
       buffers: SHAPE_VERTEX_BUFFERS,
     },
+    fragment: {
+      module,
+      entryPoint: "fragment_main",
+      targets: [{ format, blend: gpuBlendState(blendMode) }],
+    },
+    primitive: { topology: "triangle-list", cullMode: "none" },
+    depthStencil: {
+      format: "depth24plus",
+      depthWriteEnabled: true,
+      depthCompare: "less-equal",
+    },
+  }));
+}
+
+export function createMaterialShapePipelines(
+  device: GPUDevice,
+  format: GPUTextureFormat,
+  lightingBindGroupLayout: GPUBindGroupLayout,
+  materialBindGroupLayout: GPUBindGroupLayout,
+): Record<BlendMode, GPURenderPipeline> {
+  const module = device.createShaderModule({
+    label: "Normal-mapped HDR environment shader",
+    code: materialShapeShader,
+  });
+  const layout = device.createPipelineLayout({
+    label: "Normal-mapped HDR environment pipeline layout",
+    bindGroupLayouts: [lightingBindGroupLayout, materialBindGroupLayout],
+  });
+  return createBlendPipelines(device, "GPU material environment composite", (blendMode) => ({
+    label: `GPU material environment composite · ${blendMode}`,
+    layout,
+    vertex: { module, entryPoint: "vertex_main", buffers: SHAPE_VERTEX_BUFFERS },
     fragment: {
       module,
       entryPoint: "fragment_main",

@@ -1,7 +1,7 @@
 import type { FlattenedSceneLayer } from "../core/scene-evaluation";
 import type { Composition } from "../core/types";
 
-export const SCENE_LIGHTING_BYTES = 32 * Float32Array.BYTES_PER_ELEMENT;
+export const SCENE_LIGHTING_BYTES = 36 * Float32Array.BYTES_PER_ELEMENT;
 
 export function shadowMapSize(quality: "off" | "low" | "medium" | "high"): number {
   if (quality === "off") return 1;
@@ -14,6 +14,11 @@ export function buildSceneLighting(
   sceneLayers: FlattenedSceneLayer[],
   composition: Composition,
   shadowsAvailable = true,
+  cameraPosition: readonly [number, number, number] = [
+    composition.width / 2,
+    composition.height / 2,
+    0,
+  ],
 ): Float32Array {
   const light = sceneLayers.find((scene) => scene.layer.kind === "light");
   const direction = light
@@ -35,6 +40,8 @@ export function buildSceneLighting(
     (light?.layer.light?.shadowQuality ?? "medium") === "off" || !shadowsAvailable ? 0 : 1,
     0,
     ...shadow,
+    ...cameraPosition,
+    0,
   ]);
 }
 

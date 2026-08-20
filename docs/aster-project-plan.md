@@ -1357,11 +1357,11 @@ aster/
 - [x] Base Color。
 - [x] Metallic。
 - [x] Roughness。
-- [ ] Normal Map。
+- [x] Normal Map。
 - [x] Emissive。
 - [x] Alpha mode。
-- [ ] Environment lighting prototype。
-- [ ] HDR environment support。
+- [x] Environment lighting prototype。
+- [x] HDR environment support。
 
 ### Lighting
 

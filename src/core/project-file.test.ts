@@ -158,6 +158,74 @@ describe("project document boundary", () => {
     expect(() => validateProjectDocument(project)).toThrow("reference missing vertices");
   });
 
+  it("roundtrips bounded normal maps and Radiance HDR environment lighting", () => {
+    const project = createBlankProject();
+    const composition = project.compositions[0];
+    const mesh = createLayerForComposition("mesh", composition);
+    mesh.mesh = {
+      name: "Normal mapped triangle",
+      positions: [0, 0, 0, 1, 0, 0, 0, 1, 0],
+      normals: [0, 0, 1, 0, 0, 1, 0, 0, 1],
+      tangents: [1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1],
+      uvs: [0, 0, 1, 0, 0, 1],
+      indices: [0, 1, 2],
+      materialTextures: {
+        normal: {
+          mimeType: "image/png",
+          dataUrl: "data:image/png;base64,AA==",
+          texCoord: 0,
+          scale: 1.5,
+        },
+      },
+    };
+    composition.environment = {
+      enabled: true,
+      intensity: 2,
+      rotation: -45,
+      source: {
+        name: "studio.hdr",
+        mimeType: "image/vnd.radiance",
+        dataUrl: "data:image/vnd.radiance;base64,AA==",
+      },
+    };
+    composition.layers.push(mesh);
+
+    const roundtrip = validateProjectDocument(JSON.parse(serializeProject(project)));
+    expect(roundtrip.compositions[0].environment).toEqual(composition.environment);
+    expect(roundtrip.compositions[0].layers[1].mesh?.materialTextures).toEqual(
+      mesh.mesh.materialTextures,
+    );
+    const normalMap = mesh.mesh.materialTextures?.normal;
+    if (!normalMap) throw new Error("Expected normal map fixture");
+    normalMap.scale = 9;
+    expect(() => validateProjectDocument(project)).toThrow("scale must be between -8 and 8");
+  });
+
+  it("rejects unsafe mesh tangent frames", () => {
+    const project = createBlankProject();
+    const composition = project.compositions[0];
+    const mesh = createLayerForComposition("mesh", composition);
+    mesh.mesh = {
+      name: "Triangle",
+      positions: [0, 0, 0, 1, 0, 0, 0, 1, 0],
+      normals: [0, 0, 1, 0, 0, 1, 0, 0, 1],
+      uvs: [0, 0, 1, 0, 0, 1],
+      indices: [0, 1, 2],
+      tangents: [1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1],
+    };
+    composition.layers.push(mesh);
+
+    const tangents = mesh.mesh.tangents;
+    if (!tangents) throw new Error("Expected tangent fixture");
+    tangents[0] = Number.NaN;
+    expect(() => validateProjectDocument(project)).toThrow("finite number");
+    tangents[0] = 0;
+    expect(() => validateProjectDocument(project)).toThrow("must not be near zero");
+    tangents[0] = 1;
+    tangents[3] = 0;
+    expect(() => validateProjectDocument(project)).toThrow("handedness must be -1 or 1");
+  });
+
   it("roundtrips bounded deterministic particle settings", () => {
     const project = createBlankProject();
     const composition = project.compositions[0];

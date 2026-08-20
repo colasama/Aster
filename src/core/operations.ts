@@ -12,6 +12,7 @@ import type {
   Composition,
   Effect,
   EffectMask,
+  EnvironmentLighting,
   Id,
   Keyframe,
   Layer,
@@ -48,6 +49,11 @@ export type Operation =
       height: number;
       frameRate: { numerator: number; denominator: number };
       duration: number;
+    }
+  | {
+      type: "setCompositionEnvironment";
+      compositionId: Id;
+      environment?: EnvironmentLighting;
     }
   | ({ type: "precomposeLayers" } & PrecompositionPlan)
   | { type: "addLayer"; layer: Layer }
@@ -168,6 +174,29 @@ export function applyOperation(project: Project, operation: Operation): void {
       denominator: Math.round(clamp(operation.frameRate.denominator, 1, 240_000)),
     };
     composition.duration = clamp(operation.duration, 0.1, 86_400);
+    return;
+  }
+  if (operation.type === "setCompositionEnvironment") {
+    const composition = project.compositions.find(
+      (candidate) => candidate.id === operation.compositionId,
+    );
+    if (!composition) throw new Error("Composition does not exist");
+    if (!operation.environment) {
+      composition.environment = undefined;
+      return;
+    }
+    if (operation.environment.source.dataUrl.length > 64 * 1024 * 1024)
+      throw new Error("HDR environment exceeds the 64 MiB encoded limit");
+    composition.environment = {
+      enabled: operation.environment.enabled,
+      intensity: clamp(operation.environment.intensity, 0, 32),
+      rotation: clamp(operation.environment.rotation, -1_000_000, 1_000_000),
+      source: {
+        name: operation.environment.source.name.trim().slice(0, 512) || "Environment.hdr",
+        mimeType: operation.environment.source.mimeType,
+        dataUrl: operation.environment.source.dataUrl,
+      },
+    };
     return;
   }
   if (operation.type === "precomposeLayers") {

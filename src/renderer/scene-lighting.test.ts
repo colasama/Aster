@@ -27,7 +27,8 @@ describe("scene lighting uniforms", () => {
     expect(uniforms[3]).toBe(4);
     expect([...uniforms.slice(4, 7)]).toEqual([0.5, 0.75, 1.5]);
     expect(uniforms[11]).toBe(0);
-    expect(uniforms).toHaveLength(32);
+    expect(uniforms).toHaveLength(36);
+    expect([...uniforms.slice(32, 35)]).toEqual([composition.width / 2, composition.height / 2, 0]);
   });
 
   it("packs point and spot attenuation parameters in world space", () => {
@@ -69,5 +70,17 @@ describe("scene lighting uniforms", () => {
       false,
     );
     expect(uniforms[15]).toBe(0);
+  });
+
+  it("packs the active camera position for view-dependent reflections", () => {
+    const project = createBlankProject();
+    const composition = project.compositions[0];
+    const uniforms = buildSceneLighting(
+      flattenSceneLayers(composition, project, 0),
+      composition,
+      true,
+      [200, 300, -900],
+    );
+    expect([...uniforms.slice(32, 35)]).toEqual([200, 300, -900]);
   });
 });

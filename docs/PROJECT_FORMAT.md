@@ -18,8 +18,13 @@ proxy, and preview data are deliberately excluded.
 }
 ```
 
-A composition declares dimensions, rational frame rate, duration, linear RGBA background, and an
-ordered layer list. Layers use stable UUIDs, time bounds, kind, blend mode, transform properties, and
+A composition declares dimensions, rational frame rate, duration, linear RGBA background, an
+optional HDR environment, and an ordered layer list. The environment stores an enable flag, bounded
+linear intensity, equirectangular rotation, and an embedded Radiance RGBE source. Readers accept only
+`image/vnd.radiance` or `image/x-hdr`, cap the encoded source at 64 MiB, and the renderer further caps
+decoded maps at 8192 × 4096 and 16 million pixels.
+
+Layers use stable UUIDs, time bounds, kind, blend mode, transform properties, and
 effects. An animatable property is either a static value or an ordered keyframe array. Effects are
 identified by a stable type string and numeric parameter map so missing plugins can remain round-trip
 safe. An effect may carry per-parameter ordered keyframe tracks without changing its static fallback
@@ -35,6 +40,13 @@ duplicated into project history.
 A 3D LUT effect may embed one bounded `lut3d` resource containing its display name, 2–64 cube size,
 RGB voxel data, input domain, and checksum. Readers validate the exact `size³ × 3` channel count and
 finite channel bounds before allocating a GPU texture.
+
+Imported meshes may carry one tangent `xyzw` tuple per vertex and bounded embedded
+material textures. Normal maps use PNG, JPEG, or WebP data URLs, texture coordinate set zero, and an
+optional scale from -8 through 8. Every tangent must have finite, non-negligible xyz length and
+handedness exactly -1 or 1. Tangents, UVs, normal-map scale, and source dimensions are validated
+before the material enters the GPU path. HDR imports are fully decoded and validated in a cancellable
+worker before their source is admitted to the project document.
 
 ## MVP schema policy
 

@@ -35,6 +35,7 @@ import {
 
 export {
   imageShader,
+  materialShapeShader,
   particleComputeShader,
   particleRenderShader,
   shadowShader,

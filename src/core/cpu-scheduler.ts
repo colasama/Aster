@@ -5,6 +5,7 @@ import {
   type CpuTaskResponse,
   type CpuTaskResult,
   deserializeCpuTaskError,
+  type RadianceHdrCpuResult,
 } from "./cpu-task-protocol";
 import { executeCpuTask } from "./cpu-task-runner";
 
@@ -20,6 +21,8 @@ export interface CpuTaskOptions {
   signal?: AbortSignal;
   timeoutMs?: number;
   transfer?: Transferable[];
+  /** Reject instead of falling back to main-thread execution. */
+  requireWorker?: boolean;
 }
 
 export interface CpuSchedulerStatistics {
@@ -54,6 +57,7 @@ interface PendingCpuTask {
   task: CpuTask;
   timeoutMs: number;
   transfer?: Transferable[];
+  requireWorker: boolean;
 }
 
 interface WorkerSlot {
@@ -128,6 +132,7 @@ export class CpuTaskScheduler {
         task,
         timeoutMs,
         transfer: options.transfer,
+        requireWorker: options.requireWorker ?? false,
       };
       pending.abortListener = () => this.#cancel(pending);
       pending.signal?.addEventListener("abort", pending.abortListener, { once: true });
@@ -190,6 +195,14 @@ export class CpuTaskScheduler {
     if (this.#activeInline > 0) return;
     const pending = this.#queue.shift();
     if (!pending) return;
+    if (pending.requireWorker) {
+      this.#reject(
+        pending,
+        schedulerError("worker-required", "This CPU task requires an available module Worker"),
+      );
+      this.#scheduleDrain();
+      return;
+    }
     this.#activeInline = 1;
     queueMicrotask(() => {
       if (pending.signal?.aborted) {
@@ -352,10 +365,31 @@ function activeSlotCount(slots: Set<WorkerSlot>): number {
   return active;
 }
 
-function matchesTaskResult(task: CpuTask, result: string | Float32Array): boolean {
-  return task.kind === "serialize-json"
-    ? typeof result === "string"
-    : result instanceof Float32Array;
+function matchesTaskResult(
+  task: CpuTask,
+  result: string | Float32Array | RadianceHdrCpuResult,
+): boolean {
+  if (task.kind === "serialize-json") return typeof result === "string";
+  if (task.kind === "waveform-peaks" || task.kind === "spectrum")
+    return result instanceof Float32Array;
+  if (typeof result !== "object" || result instanceof Float32Array) return false;
+  const validDimensions =
+    Number.isSafeInteger(result.width) &&
+    result.width >= 1 &&
+    result.width <= 8_192 &&
+    Number.isSafeInteger(result.height) &&
+    result.height >= 1 &&
+    result.height <= 4_096;
+  const validStride =
+    Number.isSafeInteger(result.bytesPerRow) &&
+    result.bytesPerRow >= result.width * 8 &&
+    result.bytesPerRow % 256 === 0;
+  if (!validDimensions || !validStride) return false;
+  if (task.metadataOnly) return result.pixels === undefined;
+  return (
+    result.pixels instanceof Uint16Array &&
+    result.pixels.byteLength === result.bytesPerRow * result.height
+  );
 }
 
 function schedulerError(code: string, message: string): CpuTaskError {

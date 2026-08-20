@@ -639,19 +639,28 @@ export function Viewport() {
           {composition.frameRate.numerator / composition.frameRate.denominator} fps
         </span>
         <span
-          className={`renderer-status ${diagnostics?.available ? "gpu" : "fallback"}`}
+          className={`renderer-status ${
+            diagnostics?.materialResourceError
+              ? "resource-error"
+              : diagnostics?.available
+                ? "gpu"
+                : "fallback"
+          }`}
           title={
-            diagnostics?.available
+            diagnostics?.materialResourceError ??
+            (diagnostics?.available
               ? `${diagnostics.description} · ${diagnostics.prewarmedPipelines ?? 0} pipelines asynchronously prewarmed in ${(diagnostics.pipelineCompileMs ?? 0).toFixed(1)} ms`
-              : diagnostics?.description
+              : diagnostics?.description)
           }
         >
           <Sparkles size={11} />{" "}
-          {diagnostics?.available
-            ? `WebGPU · ${diagnostics.adapter}`
-            : diagnostics
-              ? "Compatibility renderer"
-              : "Initializing GPU…"}
+          {diagnostics?.materialResourceError
+            ? "GPU material resource error"
+            : diagnostics?.available
+              ? `WebGPU · ${diagnostics.adapter}`
+              : diagnostics
+                ? "Compatibility renderer"
+                : "Initializing GPU…"}
         </span>
       </div>
     </Panel>

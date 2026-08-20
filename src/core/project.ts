@@ -7,6 +7,11 @@ import {
   staticValue,
 } from "./types";
 
+const DEMO_HDR_ENVIRONMENT =
+  "data:image/vnd.radiance;base64,Iz9SQURJQU5DRQpGT1JNQVQ9MzItYml0X3JsZV9yZ2JlCgotWSAyICtYIDQK3LR4gqDI/4JkjNyCtHhQgig8ZIFGWoyBeFAygTJGboE=";
+const DEMO_NORMAL_MAP =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAbSURBVBhXY2ho+P//UsOd/ww2DXf+N+y78x8AZ/0L3Ki6BEgAAAAASUVORK5CYII=";
+
 function layer(base: Pick<Layer, "name" | "kind" | "color" | "size"> & Partial<Layer>): Layer {
   return {
     id: createId(),
@@ -200,6 +205,38 @@ export function createDemoProject(): Project {
       endRotation: 180,
     },
   });
+  const materialStudy = layer({
+    name: "Normal + HDR Material",
+    kind: "mesh",
+    color: [0.7, 0.74, 0.82, 1],
+    size: [560, 560],
+    threeDimensional: true,
+    transform: createTransform([1900, 400, 120]),
+    mesh: {
+      name: "Material study quad",
+      positions: [-1, -1, 0, 1, -1, 0, -1, 1, 0, 1, 1, 0],
+      normals: [0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1],
+      tangents: [1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1],
+      uvs: [0, 1, 1, 1, 0, 0, 1, 0],
+      indices: [0, 1, 2, 2, 1, 3],
+      baseColor: [0.7, 0.74, 0.82, 1],
+      sourceMaterial: {
+        metallic: 0.55,
+        roughness: 0.24,
+        emissive: 0,
+        alphaMode: "opaque",
+        alphaCutoff: 0.5,
+      },
+      materialTextures: {
+        normal: {
+          mimeType: "image/png",
+          dataUrl: DEMO_NORMAL_MAP,
+          texCoord: 0,
+          scale: 2,
+        },
+      },
+    },
+  });
   const camera = layer({
     name: "Camera 1",
     kind: "camera",
@@ -217,7 +254,17 @@ export function createDemoProject(): Project {
     frameRate: { numerator: 60, denominator: 1 },
     duration: 12,
     background: [0.008, 0.01, 0.025, 1],
-    layers: [title, subtitle, ribbon, orb, particles, background, camera],
+    environment: {
+      enabled: true,
+      intensity: 0.55,
+      rotation: 18,
+      source: {
+        name: "Aster studio gradient.hdr",
+        mimeType: "image/vnd.radiance",
+        dataUrl: DEMO_HDR_ENVIRONMENT,
+      },
+    },
+    layers: [title, subtitle, ribbon, orb, materialStudy, particles, background, camera],
   };
   return {
     schemaVersion: 1,

@@ -24,8 +24,15 @@ WebGPU preview implementation.
 3. Properties and safe expressions are evaluated at the requested rational time; recursive
    precompositions are flattened with cycle detection and composed transforms. Effect parameters
    use the same time-addressable keyframe interpolation before uniform and opcode compilation.
-4. Visible 2D/3D geometry, media textures, and effect uniforms are uploaded in batches. Mesh cubes
-   carry clip depth and use the active camera transform plus a shared `depth24plus` target.
+4. Visible 2D/3D geometry, media textures, and effect uniforms are uploaded in batches. Imported mesh
+   vertices retain normal, UV, and tangent handedness for tangent-space normal mapping. Radiance RGBE
+   environments transfer to the bounded CPU worker pool, which validates every scanline and writes
+   directly into the final row-aligned binary16 upload payload. The current environment-lighting
+   prototype integrates five bounded cone samples for diffuse and rough specular response in linear
+   space. It is prepared only for visible meshes in an environment-enabled composition. The material
+   pipeline, fallback texels, and map uploads are created lazily only when a ready normal map or
+   enabled environment needs them. Mesh cubes carry clip depth and use the active camera transform
+   plus a shared `depth24plus` target.
 5. Compute particles run. Each effected layer uses a fused offscreen chain before its blend-mode
    composite; unaffected adjacent layers stay batched directly into the `rgba16float` scene target.
 6. One composition-level ACES display pass presents the linear HDR result to the surface. Depth

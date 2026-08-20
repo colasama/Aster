@@ -299,6 +299,27 @@ function validateComposition(value: unknown, path: string): asserts value is Com
   requirePositiveNumber(frameRate.denominator, `${path}.frameRate.denominator`);
   if (!Array.isArray(composition.background) || composition.background.length !== 4)
     throw new Error(`${path}.background must contain four channels`);
+  if (composition.environment !== undefined) {
+    const environment = requireObject(composition.environment, `${path}.environment`);
+    if (typeof environment.enabled !== "boolean")
+      throw new Error(`${path}.environment.enabled must be a boolean`);
+    const intensity = requireFiniteNumber(environment.intensity, `${path}.environment.intensity`);
+    if (intensity < 0 || intensity > 32)
+      throw new Error(`${path}.environment.intensity must be between 0 and 32`);
+    const rotation = requireFiniteNumber(environment.rotation, `${path}.environment.rotation`);
+    if (Math.abs(rotation) > 1_000_000)
+      throw new Error(`${path}.environment.rotation exceeds the supported range`);
+    const source = requireObject(environment.source, `${path}.environment.source`);
+    const name = requireString(source.name, `${path}.environment.source.name`);
+    if (name.length > 512) throw new Error(`${path}.environment.source.name is too long`);
+    if (!["image/vnd.radiance", "image/x-hdr"].includes(String(source.mimeType)))
+      throw new Error(`${path}.environment.source.mimeType is invalid`);
+    const dataUrl = requireString(source.dataUrl, `${path}.environment.source.dataUrl`);
+    if (dataUrl.length > 64 * 1024 * 1024)
+      throw new Error(`${path}.environment.source.dataUrl exceeds the 64 MiB encoded limit`);
+    if (!/^data:image\/(?:vnd\.radiance|x-hdr);base64,/i.test(dataUrl))
+      throw new Error(`${path}.environment.source.dataUrl must contain embedded Radiance HDR data`);
+  }
   if (!Array.isArray(composition.layers)) throw new Error(`${path}.layers must be an array`);
   const layerIds = new Set<string>();
   for (const [index, layer] of composition.layers.entries()) {
@@ -394,6 +415,27 @@ function validateLayer(value: unknown, path: string): asserts value is Layer {
       requireNumberArray(mesh.baseColor, `${path}.mesh.baseColor`, 4);
       if ((mesh.baseColor as number[]).length !== 4)
         throw new Error(`${path}.mesh.baseColor must contain four channels`);
+    }
+    if (mesh.tangents !== undefined) {
+      const tangents = requireNumberArray(mesh.tangents, `${path}.mesh.tangents`, 1_000_000);
+      if (tangents.length !== (positions.length / 3) * 4)
+        throw new Error(`${path}.mesh.tangents must contain xyzw values for every vertex`);
+      for (let index = 0; index < tangents.length; index += 4) {
+        if (Math.hypot(tangents[index], tangents[index + 1], tangents[index + 2]) < 1e-6)
+          throw new Error(`${path}.mesh.tangents tangent xyz must not be near zero`);
+        if (tangents[index + 3] !== -1 && tangents[index + 3] !== 1)
+          throw new Error(`${path}.mesh.tangents handedness must be -1 or 1`);
+      }
+    }
+    if (mesh.materialTextures !== undefined) {
+      const textures = requireObject(mesh.materialTextures, `${path}.mesh.materialTextures`);
+      for (const key of ["baseColor", "metallicRoughness", "normal", "emissive"])
+        if (textures[key] !== undefined)
+          validateMeshTexture(
+            textures[key],
+            `${path}.mesh.materialTextures.${key}`,
+            key === "normal",
+          );
     }
   }
   if (layer.particle !== undefined) {
@@ -492,6 +534,23 @@ function validateLayer(value: unknown, path: string): asserts value is Layer {
     if (effect.mask?.shape !== "path") continue;
     if (!effect.mask.pathId || !reusablePathIds.has(effect.mask.pathId))
       throw new Error(`${path}.effects[${index}].mask references a missing shape path`);
+  }
+}
+
+function validateMeshTexture(value: unknown, path: string, normal: boolean): void {
+  const texture = requireObject(value, path);
+  if (!["image/jpeg", "image/png", "image/webp"].includes(String(texture.mimeType)))
+    throw new Error(`${path}.mimeType is invalid`);
+  if (texture.texCoord !== 0) throw new Error(`${path}.texCoord must be 0`);
+  const dataUrl = requireString(texture.dataUrl, `${path}.dataUrl`);
+  if (dataUrl.length > 64 * 1024 * 1024)
+    throw new Error(`${path}.dataUrl exceeds the 64 MiB encoded limit`);
+  if (!/^data:image\/(?:jpeg|png|webp);base64,/i.test(dataUrl))
+    throw new Error(`${path}.dataUrl must contain an embedded supported image`);
+  if (texture.scale !== undefined) {
+    if (!normal) throw new Error(`${path}.scale is only valid for a normal map`);
+    const scale = requireFiniteNumber(texture.scale, `${path}.scale`);
+    if (scale < -8 || scale > 8) throw new Error(`${path}.scale must be between -8 and 8`);
   }
 }
 

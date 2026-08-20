@@ -13,7 +13,12 @@ scope.onmessage = (event) => {
   const { id, task } = event.data;
   try {
     const result = executeCpuTask(task);
-    const transfer = result instanceof Float32Array ? [result.buffer] : undefined;
+    const transfer =
+      result instanceof Float32Array
+        ? [result.buffer]
+        : typeof result === "object" && result && "pixels" in result && result.pixels
+          ? [result.pixels.buffer]
+          : undefined;
     scope.postMessage({ id, ok: true, result }, transfer);
   } catch (error) {
     scope.postMessage({ error: serializeCpuTaskError(error), id, ok: false });

@@ -5,23 +5,25 @@ import {
   MAX_CPU_QUEUE_CAPACITY,
   MAX_CPU_WORKERS,
 } from "./cpu-scheduler";
-import type { CpuTaskRequest, CpuTaskResponse } from "./cpu-task-protocol";
+import type { CpuTaskRequest, CpuTaskResponse, RadianceHdrCpuResult } from "./cpu-task-protocol";
 
 class ControlledWorker implements CpuWorkerLike {
   onerror: ((event: ErrorEvent) => void) | null = null;
   onmessage: ((event: MessageEvent<CpuTaskResponse>) => void) | null = null;
   readonly requests: CpuTaskRequest[] = [];
+  readonly transfers: Transferable[][] = [];
   terminated = false;
 
-  postMessage(message: CpuTaskRequest): void {
+  postMessage(message: CpuTaskRequest, transfer: Transferable[] = []): void {
     this.requests.push(message);
+    this.transfers.push(transfer);
   }
 
   terminate(): void {
     this.terminated = true;
   }
 
-  succeed(result: string | Float32Array): void {
+  succeed(result: string | Float32Array | RadianceHdrCpuResult): void {
     const request = this.requests[this.requests.length - 1];
     if (!request) throw new Error("No worker request is pending");
     this.onmessage?.({
@@ -67,6 +69,33 @@ describe("bounded CPU task scheduler", () => {
     expect(Array.from(peaks.slice(3, 6))).toEqual([2, -0.25, 1]);
     expect(peaks[6]).toBeCloseTo(Math.sqrt(0.53125), 6);
     expect(peaks[7]).toBe(2);
+    scheduler.dispose();
+  });
+
+  it("never runs worker-required HDR decoding on the main thread", async () => {
+    const scheduler = new CpuTaskScheduler({ workerFactory: null });
+    await expect(
+      scheduler.submit(
+        { kind: "decode-radiance-hdr", source: new ArrayBuffer(1) },
+        { requireWorker: true },
+      ),
+    ).rejects.toMatchObject({ code: "worker-required" });
+    scheduler.dispose();
+  });
+
+  it("transfers worker-only HDR input and accepts the final aligned payload", async () => {
+    const worker = new ControlledWorker();
+    const scheduler = new CpuTaskScheduler({ concurrency: 1, workerFactory: () => worker });
+    const source = new ArrayBuffer(16);
+    const decoded = scheduler.submit(
+      { kind: "decode-radiance-hdr", source },
+      { requireWorker: true, transfer: [source] },
+    );
+    await flushScheduler();
+    expect(worker.transfers[0]).toEqual([source]);
+    const pixels = new Uint16Array(128);
+    worker.succeed({ width: 1, height: 1, bytesPerRow: 256, pixels });
+    await expect(decoded).resolves.toEqual({ width: 1, height: 1, bytesPerRow: 256, pixels });
     scheduler.dispose();
   });
 

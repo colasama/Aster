@@ -249,7 +249,21 @@ export interface Composition {
   frameRate: { numerator: number; denominator: number };
   duration: number;
   background: [number, number, number, number];
+  environment?: EnvironmentLighting;
   layers: Layer[];
+}
+
+export interface EnvironmentLighting {
+  enabled: boolean;
+  /** Linear multiplier applied before the HDR scene is tone mapped. */
+  intensity: number;
+  /** Horizontal equirectangular rotation in degrees. */
+  rotation: number;
+  source: {
+    name: string;
+    mimeType: "image/vnd.radiance" | "image/x-hdr";
+    dataUrl: string;
+  };
 }
 
 export interface ProjectCommandEntry {
@@ -317,6 +331,7 @@ export interface GpuDiagnostics {
   timestampQueries: boolean;
   pipelineCompileMs?: number;
   prewarmedPipelines?: number;
+  materialResourceError?: string;
 }
 
 export const createId = (): Id => crypto.randomUUID();

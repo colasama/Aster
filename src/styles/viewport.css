@@ -284,6 +284,9 @@
 .renderer-status.fallback {
   color: #db9b68;
 }
+.renderer-status.resource-error {
+  color: #ff8c72;
+}
 
 .profiler-overlay {
   position: absolute;

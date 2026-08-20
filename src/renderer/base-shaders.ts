@@ -1,4 +1,105 @@
-export const shapeShader = /* wgsl */ `
+export const shapeShader = createShapeShader(false);
+export const materialShapeShader = createShapeShader(true);
+
+function createShapeShader(materialTextures: boolean): string {
+  const materialBindings = materialTextures
+    ? /* wgsl */ `
+struct MaterialTextureSettings {
+  normal_environment: vec4f,
+}
+
+@group(1) @binding(0) var normal_texture: texture_2d<f32>;
+@group(1) @binding(1) var environment_texture: texture_2d<f32>;
+@group(1) @binding(2) var normal_sampler: sampler;
+@group(1) @binding(3) var environment_sampler: sampler;
+@group(1) @binding(4) var<uniform> material_textures: MaterialTextureSettings;
+
+fn environment_uv(direction: vec3f, rotation: f32) -> vec2f {
+  let normalized = safe_normalize3(direction, vec3f(0.0, 0.0, 1.0));
+  let longitude = atan2(normalized.z, normalized.x) / 6.28318530718 + 0.5 + rotation;
+  let latitude = acos(clamp(normalized.y, -1.0, 1.0)) / 3.14159265359;
+  return vec2f(fract(longitude), clamp(latitude, 0.0, 1.0));
+}
+
+fn sample_environment_cone(direction: vec3f, spread: f32, rotation: f32) -> vec3f {
+  let center = safe_normalize3(direction, vec3f(0.0, 0.0, 1.0));
+  let reference = select(vec3f(0.0, 1.0, 0.0), vec3f(1.0, 0.0, 0.0), abs(center.y) > 0.9);
+  let tangent = safe_normalize3(cross(reference, center), vec3f(1.0, 0.0, 0.0));
+  let bitangent = safe_normalize3(cross(center, tangent), vec3f(0.0, 1.0, 0.0));
+  let radius = clamp(spread, 0.0, 1.0) * 0.62;
+  var integrated = textureSampleLevel(
+    environment_texture, environment_sampler, environment_uv(center, rotation), 0.0
+  ).rgb * 0.4;
+  integrated += textureSampleLevel(
+    environment_texture, environment_sampler,
+    environment_uv(safe_normalize3(center + tangent * radius, center), rotation), 0.0
+  ).rgb * 0.15;
+  integrated += textureSampleLevel(
+    environment_texture, environment_sampler,
+    environment_uv(safe_normalize3(center - tangent * radius, center), rotation), 0.0
+  ).rgb * 0.15;
+  integrated += textureSampleLevel(
+    environment_texture, environment_sampler,
+    environment_uv(safe_normalize3(center + bitangent * radius, center), rotation), 0.0
+  ).rgb * 0.15;
+  integrated += textureSampleLevel(
+    environment_texture, environment_sampler,
+    environment_uv(safe_normalize3(center - bitangent * radius, center), rotation), 0.0
+  ).rgb * 0.15;
+  return integrated;
+}
+`
+    : "";
+  const surfaceNormal = materialTextures
+    ? /* wgsl */ `
+    var normal = safe_normalize3(input.normal, vec3f(0.0, 0.0, 1.0));
+    if material_textures.normal_environment.z > 0.5 {
+      let sampled_normal = textureSampleLevel(normal_texture, normal_sampler, input.uv, 0.0).xyz * 2.0 - 1.0;
+      let scaled_sample = vec3f(
+        sampled_normal.xy * material_textures.normal_environment.x,
+        sampled_normal.z,
+      );
+      let tangent_space_normal = safe_normalize3(scaled_sample, vec3f(0.0, 0.0, 1.0));
+      let projected_tangent = input.tangent.xyz - normal * dot(input.tangent.xyz, normal);
+      var tangent = vec3f(1.0, 0.0, 0.0);
+      if dot(projected_tangent, projected_tangent) > 0.00000001 {
+        tangent = safe_normalize3(projected_tangent, tangent);
+      } else {
+        let fallback_axis = select(
+          vec3f(0.0, 1.0, 0.0), vec3f(1.0, 0.0, 0.0), abs(normal.y) > 0.9
+        );
+        tangent = safe_normalize3(cross(fallback_axis, normal), tangent);
+      }
+      let handedness = select(-1.0, 1.0, input.tangent.w >= 0.0);
+      let bitangent = safe_normalize3(cross(normal, tangent), vec3f(0.0, 1.0, 0.0)) * handedness;
+      normal = safe_normalize3(
+        tangent * tangent_space_normal.x
+          + bitangent * tangent_space_normal.y
+          + normal * tangent_space_normal.z,
+        normal,
+      );
+    }
+`
+    : /* wgsl */ `let normal = safe_normalize3(input.normal, vec3f(0.0, 0.0, 1.0));`;
+  const environmentLighting = materialTextures
+    ? /* wgsl */ `
+    if material_textures.normal_environment.y > 0.0 {
+      let environment_intensity = material_textures.normal_environment.y;
+      let environment_diffuse = sample_environment_cone(
+        normal, 1.0, material_textures.normal_environment.w
+      );
+      let reflected = reflect(-view_direction, normal);
+      let environment_specular = sample_environment_cone(
+        reflected, roughness * roughness, material_textures.normal_environment.w
+      );
+      let diffuse_environment = color * (1.0 - metallic) * environment_diffuse;
+      let specular_environment = mix(vec3f(0.04), color, metallic)
+        * environment_specular;
+      color += (diffuse_environment + specular_environment) * environment_intensity;
+    }
+`
+    : "";
+  return /* wgsl */ `
 struct VertexOutput {
   @builtin(position) position: vec4f,
   @location(0) uv: vec2f,
@@ -23,11 +124,21 @@ struct SceneLighting {
   shadow_y_scale: vec4f,
   shadow_z_scale: vec4f,
   shadow_center_bias: vec4f,
+  camera_position: vec4f,
 }
 
 @group(0) @binding(0) var<uniform> lighting: SceneLighting;
 @group(0) @binding(1) var shadow_map: texture_depth_2d;
 @group(0) @binding(2) var shadow_sampler: sampler_comparison;
+${materialBindings}
+
+fn safe_normalize3(value: vec3f, fallback: vec3f) -> vec3f {
+  let length_squared = dot(value, value);
+  if length_squared > 0.00000001 {
+    return value * inverseSqrt(length_squared);
+  }
+  return fallback;
+}
 
 fn shadow_position(world_position: vec3f) -> vec3f {
   let relative = world_position - lighting.shadow_center_bias.xyz;
@@ -141,21 +252,33 @@ fn fragment_main(input: VertexOutput) -> @location(0) vec4f {
   alpha *= smoothstep(0.0, 0.025, edge);
   var color = input.color.rgb;
   if input.material.w > 0.5 {
-    let normal = normalize(input.normal);
+    ${surfaceNormal}
     let to_light = lighting.position_kind.xyz - input.world_position;
     let distance_to_light = max(length(to_light), 0.001);
     let directional = lighting.position_kind.w < 0.5;
-    let light_direction = select(normalize(to_light), normalize(lighting.direction_intensity.xyz), directional);
+    let light_direction = select(
+      safe_normalize3(to_light, vec3f(0.0, 0.0, 1.0)),
+      safe_normalize3(lighting.direction_intensity.xyz, vec3f(0.0, 0.0, 1.0)),
+      directional,
+    );
     let normalized_distance = distance_to_light / max(lighting.range_cone.x, 1.0);
     var attenuation = select(1.0 / (1.0 + normalized_distance * normalized_distance * 4.0), 1.0, directional);
     if lighting.position_kind.w > 1.5 {
-      let from_light = normalize(input.world_position - lighting.position_kind.xyz);
-      let cone = dot(from_light, normalize(lighting.direction_intensity.xyz));
+      let from_light = safe_normalize3(
+        input.world_position - lighting.position_kind.xyz, vec3f(0.0, 0.0, -1.0)
+      );
+      let cone = dot(
+        from_light,
+        safe_normalize3(lighting.direction_intensity.xyz, vec3f(0.0, 0.0, 1.0)),
+      );
       attenuation *= smoothstep(lighting.range_cone.y, min(1.0, lighting.range_cone.y + 0.08), cone);
     }
     let diffuse_weight = max(dot(normal, light_direction), 0.0);
-    let view_direction = vec3f(0.0, 0.0, 1.0);
-    let half_direction = normalize(light_direction + view_direction);
+    let view_direction = safe_normalize3(
+      lighting.camera_position.xyz - input.world_position,
+      vec3f(0.0, 0.0, -1.0),
+    );
+    let half_direction = safe_normalize3(light_direction + view_direction, light_direction);
     let roughness = clamp(input.material.y, 0.04, 1.0);
     let metallic = clamp(input.material.x, 0.0, 1.0);
     let specular_power = mix(160.0, 4.0, roughness);
@@ -178,6 +301,7 @@ fn fragment_main(input: VertexOutput) -> @location(0) vec4f {
     }
     let diffuse = color * (1.0 - metallic) * diffuse_weight * radiance * visibility;
     color = color * lighting.color_ambient.w + diffuse + specular * radiance * visibility;
+    ${environmentLighting}
     color += input.color.rgb * max(input.material.z, 0.0);
     let alpha_mode = input.gradient_style_parameters.x;
     let material_alpha = max(input.shape_style_color.a, 0.00001);
@@ -192,6 +316,7 @@ fn fragment_main(input: VertexOutput) -> @location(0) vec4f {
   return vec4f(color * alpha, alpha);
 }
 `;
+}
 
 export const shadowShader = /* wgsl */ `
 struct SceneLighting {
