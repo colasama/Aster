@@ -66,6 +66,8 @@ export function createLayerForComposition(
     particle:
       kind === "particle"
         ? {
+            renderMode: "billboard",
+            meshPrimitive: "cube",
             count: 100_000,
             seed: 13_337,
             lifetime: 6,

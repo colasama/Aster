@@ -1,6 +1,7 @@
 import { auxiliarySurfaceShader } from "./auxiliary-buffer-renderer";
 import { depthEffectsShader } from "./depth-effects";
 import { extractPositionsShader } from "./motion-vector-history";
+import { particleMeshRenderShader } from "./particle-mesh";
 import {
   imageShader,
   materialShapeShader,
@@ -19,6 +20,7 @@ export async function validateShaderSources(device: GPUDevice): Promise<void> {
     ["image", imageShader],
     ["particle compute", particleComputeShader],
     ["particle render", particleRenderShader],
+    ["particle mesh render", particleMeshRenderShader],
     ["shadow", shadowShader],
     ["post process", postProcessShader],
     ["auxiliary surface MRT", auxiliarySurfaceShader],

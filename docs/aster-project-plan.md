@@ -1413,7 +1413,7 @@ aster/
 - [x] Rotation over life。
 - [x] GPU random source。
 - [x] Billboard rendering。
-- [ ] Mesh particle rendering。
+- [x] Mesh particle rendering。
 - [x] Indirect draw research / implementation。
 - [x] 100k particle benchmark。
 - [x] 500k particle benchmark。

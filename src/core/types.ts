@@ -170,6 +170,8 @@ export interface MeshMaterialTextures {
 }
 
 export interface ParticleSettings {
+  renderMode: "billboard" | "mesh";
+  meshPrimitive: "cube";
   count: number;
   seed: number;
   lifetime: number;

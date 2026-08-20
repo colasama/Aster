@@ -198,6 +198,8 @@ describe("structured project operations", () => {
         type: "setParticleSettings",
         layerId: particles.id,
         particle: {
+          renderMode: "mesh",
+          meshPrimitive: "cube",
           count: 2_000_000,
           seed: -20,
           lifetime: 6,
@@ -214,6 +216,8 @@ describe("structured project operations", () => {
     expect(
       activeComposition(next).layers.find((layer) => layer.id === particles.id)?.particle,
     ).toEqual({
+      renderMode: "mesh",
+      meshPrimitive: "cube",
       count: 1_000_000,
       seed: 0,
       lifetime: 6,

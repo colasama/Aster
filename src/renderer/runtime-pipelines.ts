@@ -1,3 +1,9 @@
+import type { BlendMode } from "../core/types";
+import {
+  PARTICLE_MESH_BLEND_MODES,
+  particleMeshRenderShader,
+  particlePipelineDescriptor,
+} from "./particle-mesh";
 import { particleRenderShader, postProcessShader } from "./shaders";
 
 export function createParticleBindGroupLayout(device: GPUDevice): GPUBindGroupLayout {
@@ -14,42 +20,37 @@ export function createParticleBindGroupLayout(device: GPUDevice): GPUBindGroupLa
   });
 }
 
-export function createParticlePipeline(
+export function createParticlePipelines(
   device: GPUDevice,
   format: GPUTextureFormat,
   bindGroupLayout: GPUBindGroupLayout,
-): GPURenderPipeline {
-  const module = device.createShaderModule({
+): { billboard: GPURenderPipeline; mesh: Record<BlendMode, GPURenderPipeline> } {
+  const layout = device.createPipelineLayout({
+    label: "Particle render pipeline layout",
+    bindGroupLayouts: [bindGroupLayout],
+  });
+  const billboardModule = device.createShaderModule({
     label: "Particle billboard shader",
     code: particleRenderShader,
   });
-  return device.createRenderPipeline({
-    label: "GPU-culled additive particle renderer",
-    layout: device.createPipelineLayout({
-      label: "Particle render pipeline layout",
-      bindGroupLayouts: [bindGroupLayout],
-    }),
-    vertex: { module, entryPoint: "vertex_main" },
-    fragment: {
-      module,
-      entryPoint: "fragment_main",
-      targets: [
-        {
-          format,
-          blend: {
-            color: { srcFactor: "one", dstFactor: "one", operation: "add" },
-            alpha: { srcFactor: "one", dstFactor: "one-minus-src-alpha", operation: "add" },
-          },
-        },
-      ],
-    },
-    primitive: { topology: "triangle-list" },
-    depthStencil: {
-      format: "depth24plus",
-      depthWriteEnabled: false,
-      depthCompare: "always",
-    },
+  const meshModule = device.createShaderModule({
+    label: "Particle mesh shader",
+    code: particleMeshRenderShader,
   });
+  const mesh = Object.fromEntries(
+    PARTICLE_MESH_BLEND_MODES.map((blendMode) => [
+      blendMode,
+      device.createRenderPipeline(
+        particlePipelineDescriptor("mesh", meshModule, format, layout, blendMode),
+      ),
+    ]),
+  ) as Record<BlendMode, GPURenderPipeline>;
+  return {
+    billboard: device.createRenderPipeline(
+      particlePipelineDescriptor("billboard", billboardModule, format, layout),
+    ),
+    mesh,
+  };
 }
 
 export function createPostPipeline(device: GPUDevice, format: GPUTextureFormat): GPURenderPipeline {

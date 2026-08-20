@@ -1,5 +1,10 @@
 import { depthEffectsShader } from "./depth-effects";
 import {
+  PARTICLE_MESH_BLEND_MODES,
+  particleMeshRenderShader,
+  particlePipelineDescriptor,
+} from "./particle-mesh";
+import {
   IMAGE_VERTEX_BUFFERS,
   SHADOW_VERTEX_BUFFERS,
   SHAPE_VERTEX_BUFFERS,
@@ -31,6 +36,7 @@ export async function precompileGpuPipelines(
   const image = module("Async precompile · image", imageShader);
   const shadow = module("Async precompile · shadow", shadowShader);
   const particles = module("Async precompile · particle render", particleRenderShader);
+  const meshParticles = module("Async precompile · particle mesh render", particleMeshRenderShader);
   const compute = module("Async precompile · particle compute", particleComputeShader);
   const post = module("Async precompile · post process", postProcessShader);
   const depthEffects = module("Async precompile · depth effects", depthEffectsShader);
@@ -67,22 +73,14 @@ export async function precompileGpuPipelines(
       primitive: { topology: "triangle-list", cullMode: "back" },
       depthStencil: { format: "depth24plus", depthWriteEnabled: true, depthCompare: "less" },
     }),
-    device.createRenderPipelineAsync({
-      label: "Async precompile · particle pipeline",
-      layout: "auto",
-      vertex: { module: particles, entryPoint: "vertex_main" },
-      fragment: {
-        module: particles,
-        entryPoint: "fragment_main",
-        targets: [{ format: SCENE_FORMAT }],
-      },
-      primitive: { topology: "triangle-list" },
-      depthStencil: {
-        format: "depth24plus",
-        depthWriteEnabled: false,
-        depthCompare: "always",
-      },
-    }),
+    device.createRenderPipelineAsync(
+      particlePipelineDescriptor("billboard", particles, SCENE_FORMAT, "auto"),
+    ),
+    ...PARTICLE_MESH_BLEND_MODES.map((blendMode) =>
+      device.createRenderPipelineAsync(
+        particlePipelineDescriptor("mesh", meshParticles, SCENE_FORMAT, "auto", blendMode),
+      ),
+    ),
     device.createRenderPipelineAsync(fullscreenDescriptor("post process", post, canvasFormat)),
     device.createRenderPipelineAsync(
       fullscreenDescriptor("depth effects", depthEffects, canvasFormat),
@@ -96,7 +94,7 @@ export async function precompileGpuPipelines(
       compute: { module: compute, entryPoint: "compute_main" },
     }),
   ]);
-  return { count: 8, durationMs: performance.now() - started };
+  return { count: 8 + PARTICLE_MESH_BLEND_MODES.length, durationMs: performance.now() - started };
 }
 
 function fullscreenDescriptor(

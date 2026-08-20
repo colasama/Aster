@@ -28,12 +28,23 @@ describe("auxiliary MRT identities", () => {
     expect([...ids].every((id) => id !== 0)).toBe(true);
   });
 
-  it("writes signed previous-to-current UV motion and avoids unstable particle vectors", () => {
+  it("writes signed previous-to-current UV motion for geometry and GPU particles", () => {
     expect(auxiliarySurfaceShader).toContain("@location(4) motion_vector: vec2f");
     expect(auxiliarySurfaceShader).toContain(
       "(position.xy - previous_position.xy) * vec2f(0.5, -0.5)",
     );
-    expect(auxiliarySurfaceShader).toContain("output.motion_vector = vec2f(0.0)");
+    expect(auxiliarySurfaceShader).toContain(
+      "(particle.xy - record.previous.xy) * vec2f(0.5, -0.5)",
+    );
+    expect(auxiliarySurfaceShader).toContain("output.motion_vector = input.motion_vector");
+  });
+
+  it("rebuilds previous mesh vertices and keeps auxiliary depth identical to Beauty", () => {
+    expect(auxiliarySurfaceShader).toContain("let previous_size = mix");
+    expect(auxiliarySurfaceShader).toContain("let previous_rotation = mix");
+    expect(auxiliarySurfaceShader).toContain("particle_mesh_clip(");
+    expect(auxiliarySurfaceShader).toContain("output.position = vec4f(clip, 1.0)");
+    expect(auxiliarySurfaceShader).toContain("(clip.xy - previous_clip.xy) * vec2f(0.5, -0.5)");
   });
 
   it("gives the particle surface its selectable root layer ID", () => {

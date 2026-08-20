@@ -393,8 +393,13 @@ struct DrawIndirect {
   first_instance: u32,
 }
 
+struct Particle {
+  current: vec4f,
+  previous: vec4f,
+}
+
 @group(0) @binding(0) var<uniform> simulation: Simulation;
-@group(0) @binding(1) var<storage, read_write> particles: array<vec4f>;
+@group(0) @binding(1) var<storage, read_write> particles: array<Particle>;
 @group(0) @binding(2) var<storage, read_write> particle_draw: DrawIndirect;
 
 fn hash(value: u32) -> f32 {
@@ -414,6 +419,7 @@ fn compute_main(@builtin(global_invocation_id) global_id: vec3u) {
   let random_c = hash(seeded_index + 97127u);
   let lifetime = max(simulation.motion.x, 0.05);
   let age = fract(simulation.header.x / lifetime + random_a);
+  let previous_age = fract((simulation.header.x - simulation.appearance.w) / lifetime + random_a);
   let elapsed = age * lifetime;
   let angle = random_b * 6.283185;
   let spawn_radius = sqrt(random_c) * 0.12;
@@ -422,6 +428,11 @@ fn compute_main(@builtin(global_invocation_id) global_id: vec3u) {
   let velocity = vec2f(cos(velocity_angle), sin(velocity_angle)) * simulation.motion.y;
   let x = (origin.x + velocity.x * elapsed) / max(simulation.header.y, 1.0);
   let y = origin.y + velocity.y * elapsed + 0.5 * simulation.motion.z * elapsed * elapsed;
+  let previous_elapsed = previous_age * lifetime;
+  let previous_x =
+    (origin.x + velocity.x * previous_elapsed) / max(simulation.header.y, 1.0);
+  let previous_y = origin.y + velocity.y * previous_elapsed
+    + 0.5 * simulation.motion.z * previous_elapsed * previous_elapsed;
   let size = mix(simulation.motion.w, simulation.appearance.x, age);
   let rotation = mix(simulation.appearance.y, simulation.appearance.z, age) * 0.01745329252;
   let packed_age = u32(round(age * 1023.0));
@@ -431,7 +442,9 @@ fn compute_main(@builtin(global_invocation_id) global_id: vec3u) {
   let margin = size / 900.0;
   if abs(x) <= 1.0 + margin && abs(y) <= 1.0 + margin {
     let visible_index = atomicAdd(&particle_draw.instance_count, 1u);
-    particles[visible_index] = vec4f(x, y, size, bitcast<f32>(packed));
+    let continuous = select(0.0, 1.0, age >= previous_age);
+    particles[visible_index].current = vec4f(x, y, size, bitcast<f32>(packed));
+    particles[visible_index].previous = vec4f(previous_x, previous_y, previous_age, continuous);
   }
 }
 `;
@@ -451,7 +464,12 @@ struct VertexOutput {
   @location(1) local: vec2f,
 }
 
-@group(0) @binding(0) var<storage, read> particles: array<vec4f>;
+struct Particle {
+  current: vec4f,
+  previous: vec4f,
+}
+
+@group(0) @binding(0) var<storage, read> particles: array<Particle>;
 @group(0) @binding(1) var<uniform> simulation: Simulation;
 
 @vertex
@@ -460,7 +478,8 @@ fn vertex_main(@builtin(vertex_index) vertex: u32, @builtin(instance_index) inst
     vec2f(-1.0, -1.0), vec2f(1.0, -1.0), vec2f(-1.0, 1.0),
     vec2f(-1.0, 1.0), vec2f(1.0, -1.0), vec2f(1.0, 1.0)
   );
-  let particle = particles[instance];
+  let record = particles[instance];
+  let particle = record.current;
   let size = particle.z / 900.0;
   let packed = bitcast<u32>(particle.w);
   let age = f32(packed & 1023u) / 1023.0;

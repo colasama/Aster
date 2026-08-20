@@ -231,6 +231,8 @@ describe("project document boundary", () => {
     const composition = project.compositions[0];
     const particles = createLayerForComposition("particle", composition);
     particles.particle = {
+      renderMode: "mesh",
+      meshPrimitive: "cube",
       count: 500_000,
       seed: 42,
       lifetime: 4,
@@ -248,6 +250,22 @@ describe("project document boundary", () => {
     if (!particles.particle) throw new Error("Expected particle settings");
     particles.particle.count = 1_000_001;
     expect(() => validateProjectDocument(project)).toThrow("at most 1000000");
+    particles.particle.count = 500_000;
+    (particles.particle as { renderMode: string }).renderMode = "sprite";
+    expect(() => validateProjectDocument(project)).toThrow("renderMode");
+    particles.particle.renderMode = "mesh";
+    particles.particle.speed = Number.POSITIVE_INFINITY;
+    expect(() => validateProjectDocument(project)).toThrow("speed must be a finite number");
+    particles.particle.speed = 0.25;
+    particles.particle.startSize = 257;
+    expect(() => validateProjectDocument(project)).toThrow(
+      "startSize must be between 0.01 and 256",
+    );
+    particles.particle.startSize = 3;
+    particles.particle.lifetime = 3601;
+    expect(() => validateProjectDocument(project)).toThrow(
+      "lifetime must be between 0.05 and 3600",
+    );
   });
 
   it("roundtrips explicit vector shape styling", () => {

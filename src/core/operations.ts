@@ -289,6 +289,8 @@ export function applyOperation(project: Project, operation: Operation): void {
       break;
     case "setParticleSettings":
       layer.particle = {
+        renderMode: operation.particle.renderMode,
+        meshPrimitive: operation.particle.meshPrimitive,
         count: Math.round(clamp(operation.particle.count, 1, 1_000_000)),
         seed: Math.round(clamp(operation.particle.seed, 0, 16_777_215)),
         lifetime: clamp(operation.particle.lifetime, 0.05, 3600),

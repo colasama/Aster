@@ -69,7 +69,10 @@ export function Scene3dControls({ layer }: { layer: Layer }) {
     });
   };
 
-  const updateParticle = (field: keyof ParticleSettings, value: number) => {
+  const updateParticle = <Key extends keyof ParticleSettings>(
+    field: Key,
+    value: ParticleSettings[Key],
+  ) => {
     dispatch({
       type: "operation",
       operations: [
@@ -77,6 +80,8 @@ export function Scene3dControls({ layer }: { layer: Layer }) {
           type: "setParticleSettings",
           layerId: layer.id,
           particle: {
+            renderMode: layer.particle?.renderMode ?? "billboard",
+            meshPrimitive: layer.particle?.meshPrimitive ?? "cube",
             count: layer.particle?.count ?? 100_000,
             seed: layer.particle?.seed ?? 13_337,
             lifetime: layer.particle?.lifetime ?? 6,
@@ -185,8 +190,39 @@ export function Scene3dControls({ layer }: { layer: Layer }) {
   }
 
   if (layer.kind === "particle") {
+    const renderMode = layer.particle?.renderMode ?? "billboard";
     return (
       <>
+        <label>
+          Render mode
+          <select
+            aria-label="Particle render mode"
+            onChange={(event) =>
+              updateParticle("renderMode", event.target.value as ParticleSettings["renderMode"])
+            }
+            value={renderMode}
+          >
+            <option value="billboard">Billboard</option>
+            <option value="mesh">Mesh</option>
+          </select>
+        </label>
+        {renderMode === "mesh" && (
+          <label>
+            Mesh primitive
+            <select
+              aria-label="Particle mesh primitive"
+              onChange={(event) =>
+                updateParticle(
+                  "meshPrimitive",
+                  event.target.value as ParticleSettings["meshPrimitive"],
+                )
+              }
+              value={layer.particle?.meshPrimitive ?? "cube"}
+            >
+              <option value="cube">Cube</option>
+            </select>
+          </label>
+        )}
         <NumericControl
           label="Particle count"
           max={1_000_000}

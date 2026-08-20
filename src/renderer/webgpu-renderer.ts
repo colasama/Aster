@@ -20,7 +20,12 @@ import { LayerEffectRenderer } from "./layer-effects";
 import { createLutSampler, createLutTexture } from "./lut-texture";
 import { MaterialTextureRenderer } from "./material-textures";
 import { MediaTextureCache } from "./media-texture-cache";
-import { PARTICLE_INDIRECT_RESET } from "./particle-indirect";
+import { particleIndirectReset } from "./particle-indirect";
+import {
+  needsParticleStorageGrowth,
+  PARTICLE_BUFFER_STRIDE_BYTES,
+  planParticleRendering,
+} from "./particle-mesh";
 import { precompileGpuPipelines } from "./pipeline-precompile";
 import { buildPostProcessUniforms } from "./post-process";
 import {
@@ -32,7 +37,7 @@ import {
 } from "./render-buffers";
 import {
   createParticleBindGroupLayout,
-  createParticlePipeline,
+  createParticlePipelines,
   createPostPipeline,
 } from "./runtime-pipelines";
 import { SceneEvaluationCache } from "./scene-evaluation-cache";
@@ -46,7 +51,6 @@ import { validateShaderSources } from "./shader-validation";
 import { particleComputeShader } from "./shaders";
 import { SurfacePostEffectsRenderer, selectedRenderId } from "./surface-post-effects";
 
-const PARTICLE_CAPACITY = 1_000_000;
 const MAX_SHAPE_VERTICES = 6 * 128;
 const SCENE_FORMAT: GPUTextureFormat = "rgba16float";
 const DEFAULT_SHADOW_MAP_SIZE = 1024;
@@ -66,7 +70,7 @@ export class WebGpuRenderer {
   readonly #shapePipelines: Record<BlendMode, GPURenderPipeline>;
   readonly #imageBindGroupLayout: GPUBindGroupLayout;
   readonly #imagePipelines: Record<BlendMode, GPURenderPipeline>;
-  readonly #particlePipeline: GPURenderPipeline;
+  readonly #particlePipelines: ReturnType<typeof createParticlePipelines>;
   readonly #postPipeline: GPURenderPipeline;
   readonly #bufferVisualizer: SceneBufferVisualizer;
   readonly #depthEffects: DepthEffectsRenderer;
@@ -76,11 +80,13 @@ export class WebGpuRenderer {
   #materialTextures?: MaterialTextureRenderer;
   readonly #computePipeline: GPUComputePipeline;
   #shapeBuffer: GPUBuffer;
-  readonly #particleBuffer: GPUBuffer;
+  #particleBuffer: GPUBuffer;
+  #particleCapacity = 1_024;
   readonly #particleIndirectBuffer: GPUBuffer;
   readonly #simulationBuffer: GPUBuffer;
-  readonly #computeBindGroup: GPUBindGroup;
-  readonly #particleBindGroup: GPUBindGroup;
+  #computeBindGroup: GPUBindGroup;
+  #particleBindGroup: GPUBindGroup;
+  readonly #particleBindGroupLayout: GPUBindGroupLayout;
   readonly #postSampler: GPUSampler;
   readonly #lutSampler: GPUSampler;
   readonly #identityLut: GPUTexture;
@@ -200,8 +206,8 @@ export class WebGpuRenderer {
     });
     this.#imagePipelines = createImagePipelines(device, SCENE_FORMAT, this.#imageBindGroupLayout);
     this.#particleBuffer = device.createBuffer({
-      label: "GPU particle storage · 1M capacity",
-      size: PARTICLE_CAPACITY * 16,
+      label: "GPU particle storage · initial 1K capacity",
+      size: this.#particleCapacity * PARTICLE_BUFFER_STRIDE_BYTES,
       usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
     });
     this.#particleIndirectBuffer = device.createBuffer({
@@ -238,7 +244,12 @@ export class WebGpuRenderer {
       ],
     });
     const particleBindGroupLayout = createParticleBindGroupLayout(device);
-    this.#particlePipeline = createParticlePipeline(device, SCENE_FORMAT, particleBindGroupLayout);
+    this.#particleBindGroupLayout = particleBindGroupLayout;
+    this.#particlePipelines = createParticlePipelines(
+      device,
+      SCENE_FORMAT,
+      particleBindGroupLayout,
+    );
     this.#particleBindGroup = device.createBindGroup({
       label: "Particle render resources",
       layout: particleBindGroupLayout,
@@ -393,12 +404,24 @@ export class WebGpuRenderer {
       ? evaluateWorldTransform(cameraLayer, composition, time).position
       : undefined;
     const shadowQuality = primaryLight?.shadowQuality ?? "medium";
+    const particleScene = sceneLayers.find((scene) => scene.layer.kind === "particle");
+    const particleSettings = particleScene?.layer.particle;
+    const particleRenderMode = particleSettings?.renderMode ?? "billboard";
+    const particlePlan = planParticleRendering(
+      particleSettings?.count ?? (particleScene ? 100_000 : 1),
+      particleRenderMode,
+      this.#memoryBudgetMb,
+    );
+    const particleCapacity = this.#ensureParticleCapacity(particlePlan.capacity);
+    const particleCount = Math.min(particlePlan.effectiveCount, particleCapacity);
+    const particleSeed = particleSettings?.seed ?? 13_337;
+    const particleColor = particleScene?.layer.color ?? [0.5, 0.74, 1, 0.65];
     const memory = planGpuMemory({
       width: this.#width,
       height: this.#height,
       effectTextureBytes: this.#layerEffects.estimatedTextureBytes(),
       persistentBufferBytes:
-        PARTICLE_CAPACITY * 16 +
+        this.#particleCapacity * PARTICLE_BUFFER_STRIDE_BYTES +
         this.#shapeBufferBytes +
         this.#auxiliaryBuffers.estimatedBytes +
         this.#mediaTextures.estimatedBytes +
@@ -410,14 +433,6 @@ export class WebGpuRenderer {
     const shadowsEnabled =
       shadowQuality !== "off" && primaryLight?.kind !== "point" && memory.shadowMapSize > 1;
     this.#configureShadowMap(memory.shadowMapSize);
-    const particleScene = sceneLayers.find((scene) => scene.layer.kind === "particle");
-    const particleCount = Math.max(
-      1,
-      Math.min(PARTICLE_CAPACITY, Math.round(particleScene?.layer.particle?.count ?? 100_000)),
-    );
-    const particleSeed = particleScene?.layer.particle?.seed ?? 13_337;
-    const particleSettings = particleScene?.layer.particle;
-    const particleColor = particleScene?.layer.color ?? [0.5, 0.74, 1, 0.65];
     this.#device.queue.writeBuffer(
       this.#lightingBuffer,
       0,
@@ -489,7 +504,7 @@ export class WebGpuRenderer {
         particleSettings?.endSize ?? 0.35,
         particleSettings?.startRotation ?? 0,
         particleSettings?.endRotation ?? 180,
-        0,
+        composition.frameRate.denominator / composition.frameRate.numerator,
         ...particleColor,
         particleColor[0] * 0.25 + 0.75,
         particleColor[1] * 0.25 + 0.75,
@@ -497,7 +512,11 @@ export class WebGpuRenderer {
         0,
       ]),
     );
-    this.#device.queue.writeBuffer(this.#particleIndirectBuffer, 0, PARTICLE_INDIRECT_RESET);
+    this.#device.queue.writeBuffer(
+      this.#particleIndirectBuffer,
+      0,
+      particleIndirectReset(particleRenderMode),
+    );
     this.#device.queue.writeBuffer(
       this.#postUniformBuffer,
       0,
@@ -507,7 +526,9 @@ export class WebGpuRenderer {
     const encoder = this.#device.createCommandEncoder({ label: "Aster frame render graph" });
     this.#mediaTextures.flush(encoder);
     const compute = encoder.beginComputePass({
-      label: "GPU particle simulation",
+      label: particlePlan.lodApplied
+        ? `GPU particle simulation · LOD ${particleCount}/${particlePlan.requestedCount}`
+        : "GPU particle simulation",
       timestampWrites: this.#gpuProfiler.writes(0, 1),
     });
     compute.setPipeline(this.#computePipeline);
@@ -614,7 +635,7 @@ export class WebGpuRenderer {
       }
     }
     const particleVisible = Boolean(particleScene);
-    if (particleVisible) {
+    if (particleScene) {
       if (!scenePass) {
         scenePass = encoder.beginRenderPass({
           label: "Linear HDR particle group",
@@ -627,7 +648,11 @@ export class WebGpuRenderer {
         });
         scenePassCount += 1;
       }
-      scenePass.setPipeline(this.#particlePipeline);
+      scenePass.setPipeline(
+        particleRenderMode === "mesh"
+          ? this.#particlePipelines.mesh[particleScene.layer.blendMode]
+          : this.#particlePipelines.billboard,
+      );
       scenePass.setBindGroup(0, this.#particleBindGroup);
       scenePass.drawIndirect(this.#particleIndirectBuffer, 0);
     }
@@ -647,6 +672,7 @@ export class WebGpuRenderer {
               bindGroup: this.#particleBindGroup,
               indirectBuffer: this.#particleIndirectBuffer,
               selectionId: particleScene.selectionId,
+              renderMode: particleRenderMode,
             }
           : undefined,
       });
@@ -803,6 +829,48 @@ export class WebGpuRenderer {
       pass.setBindGroup(0, this.#lightingBindGroup);
     }
     pass.draw(batch.vertexCount, 1, batch.firstVertex);
+  }
+  #ensureParticleCapacity(requiredCapacity: number): number {
+    if (!needsParticleStorageGrowth(this.#particleCapacity, requiredCapacity))
+      return this.#particleCapacity;
+    let nextBuffer: GPUBuffer | undefined;
+    try {
+      nextBuffer = this.#device.createBuffer({
+        label: `GPU particle storage · ${requiredCapacity.toLocaleString()} capacity`,
+        size: requiredCapacity * PARTICLE_BUFFER_STRIDE_BYTES,
+        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+      });
+      const computeBindGroup = this.#device.createBindGroup({
+        label: "Particle compute resources · resized",
+        layout: this.#computePipeline.getBindGroupLayout(0),
+        entries: [
+          { binding: 0, resource: { buffer: this.#simulationBuffer } },
+          { binding: 1, resource: { buffer: nextBuffer } },
+          { binding: 2, resource: { buffer: this.#particleIndirectBuffer } },
+        ],
+      });
+      const particleBindGroup = this.#device.createBindGroup({
+        label: "Particle render resources · resized",
+        layout: this.#particleBindGroupLayout,
+        entries: [
+          { binding: 0, resource: { buffer: nextBuffer } },
+          { binding: 1, resource: { buffer: this.#simulationBuffer } },
+        ],
+      });
+      this.#particleBuffer.destroy();
+      this.#particleBuffer = nextBuffer;
+      this.#particleCapacity = requiredCapacity;
+      this.#computeBindGroup = computeBindGroup;
+      this.#particleBindGroup = particleBindGroup;
+      return requiredCapacity;
+    } catch (error) {
+      nextBuffer?.destroy();
+      console.warn(
+        "GPU particle storage resize failed; retaining the current bounded capacity",
+        error,
+      );
+      return this.#particleCapacity;
+    }
   }
   #ensureShapeBuffer(requiredBytes: number): void {
     if (requiredBytes <= this.#shapeBufferBytes) return;

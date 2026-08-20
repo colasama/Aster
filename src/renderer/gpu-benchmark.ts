@@ -186,6 +186,8 @@ export function buildBenchmarkScenarios(source: Composition): BenchmarkScenario[
     particle.parentId = undefined;
     particle.name = `${label} GPU particles`;
     particle.particle = {
+      renderMode: "billboard",
+      meshPrimitive: "cube",
       count,
       seed: 13_337,
       lifetime: 6,
