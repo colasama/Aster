@@ -1,9 +1,10 @@
 # PSD import
 
-Aster decodes bounded PSD v1 RGB and grayscale documents at 8 or 16 bits per channel. Raw and
-PackBits channel data, Unicode names, persistent layer IDs, visibility, opacity, blend keys, alpha,
-and folder section markers are preserved. Input and decoded-memory budgets are both bounded at
-512 MiB.
+Aster decodes bounded PSD v1 RGB and grayscale documents at 8 or 16 bits per channel. Raw, PackBits,
+ZIP, and ZIP-with-prediction channel data, Unicode names, persistent layer IDs, visibility, opacity,
+blend keys, alpha, and folder section markers are preserved. ZIP inflation streams into the exact
+declared plane allocation and cancels on overflow. Input and decoded-memory budgets are both bounded
+at 512 MiB.
 
 Import modes follow After Effects:
 

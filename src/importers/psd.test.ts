@@ -9,8 +9,8 @@ describe("PSD importer", () => {
     expect(() => decodePackBitsRow(new Uint8Array([3, 1]), 4)).toThrow("literal run");
   });
 
-  it("parses a raw RGB PSD layer and composite with layer metadata", () => {
-    const document = parsePsd(minimalPsd());
+  it("parses a raw RGB PSD layer and composite with layer metadata", async () => {
+    const document = await parsePsd(minimalPsd());
     expect(document).toMatchObject({
       width: 2,
       height: 1,
@@ -34,17 +34,22 @@ describe("PSD importer", () => {
     expect(Array.from(document.composite ?? [])).toEqual([255, 0, 0, 255, 0, 255, 0, 255]);
   });
 
-  it("rejects unsupported depth, color mode, compression, and truncated sections", () => {
+  it.each([2, 3] as const)("parses ZIP compression %s composite planes", async (compression) => {
+    const document = await parsePsd(await minimalZipCompositePsd(compression));
+    expect(Array.from(document.composite ?? [])).toEqual([255, 0, 0, 255, 0, 255, 0, 255]);
+  });
+
+  it("rejects unsupported depth, color mode, compression, and truncated sections", async () => {
     const depth = minimalPsd();
     new DataView(depth).setUint16(22, 32, false);
-    expect(() => parsePsd(depth)).toThrow("8 or 16");
+    await expect(parsePsd(depth)).rejects.toThrow("8 or 16");
     const color = minimalPsd();
     new DataView(color).setUint16(24, 4, false);
-    expect(() => parsePsd(color)).toThrow("Grayscale or RGB");
+    await expect(parsePsd(color)).rejects.toThrow("Grayscale or RGB");
     const compression = minimalPsd();
-    new DataView(compression).setUint16(compression.byteLength - 8, 2, false);
-    expect(() => parsePsd(compression)).toThrow("compression 2");
-    expect(() => parsePsd(minimalPsd().slice(0, 40))).toThrow("truncated");
+    new DataView(compression).setUint16(compression.byteLength - 8, 4, false);
+    await expect(parsePsd(compression)).rejects.toThrow("compression 4");
+    await expect(parsePsd(minimalPsd().slice(0, 40))).rejects.toThrow("truncated");
   });
 });
 
@@ -83,6 +88,19 @@ function minimalPsd(): ArrayBuffer {
   writer.patchU32(layerInfoLength, writer.length - layerInfoStart);
   writer.patchU32(layerMaskLength, writer.length - layerMaskStart);
   writer.u16(0).bytes([255, 0]).bytes([0, 255]).bytes([0, 0]);
+  return writer.buffer();
+}
+
+async function minimalZipCompositePsd(compression: 2 | 3): Promise<ArrayBuffer> {
+  const writer = new BinaryWriter();
+  writer.ascii("8BPS").u16(1).zero(6).u16(3).u32(1).u32(2).u16(8).u16(3);
+  writer.u32(0).u32(0).u32(0).u16(compression);
+  const planes =
+    compression === 2
+      ? new Uint8Array([255, 0, 0, 255, 0, 0])
+      : new Uint8Array([255, 1, 0, 255, 0, 0]);
+  const stream = new Blob([planes.buffer]).stream().pipeThrough(new CompressionStream("deflate"));
+  writer.bytes([...new Uint8Array(await new Response(stream).arrayBuffer())]);
   return writer.buffer();
 }
 

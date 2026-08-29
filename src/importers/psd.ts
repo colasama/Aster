@@ -1,3 +1,5 @@
+import { inflatePsdZipData } from "./psd-zip";
+
 export interface PsdRectangle {
   top: number;
   left: number;
@@ -48,13 +50,13 @@ interface LayerRecord {
 }
 
 const MAX_PSD_BYTES = 512 * 1024 * 1024;
-const MAX_DIMENSION = 32_768;
+const MAX_DIMENSION = 30_000;
 const MAX_DECODED_BYTES = 512 * 1024 * 1024;
 const MAX_CHANNELS = 56;
 const SIGNATURE = "8BPS";
 
-/** Decodes bounded 8/16-bit RGB or grayscale PSD layer records with Raw or PackBits compression. */
-export function parsePsd(buffer: ArrayBuffer): ParsedPsdDocument {
+/** Decodes bounded 8/16-bit RGB or grayscale PSD layers with Raw, PackBits, or ZIP compression. */
+export async function parsePsd(buffer: ArrayBuffer): Promise<ParsedPsdDocument> {
   if (buffer.byteLength < 30 || buffer.byteLength > MAX_PSD_BYTES)
     throw new Error("PSD file is truncated or exceeds 512 MiB");
   const reader = new PsdReader(buffer);
@@ -92,14 +94,14 @@ export function parsePsd(buffer: ArrayBuffer): ParsedPsdDocument {
       const layerCount = Math.abs(signedLayerCount);
       if (layerCount > 100_000) throw new Error("PSD layer count exceeds the supported limit");
       const records = Array.from({ length: layerCount }, () => readLayerRecord(reader));
-      layers = decodeLayers(reader, records, depth, colorMode);
+      layers = await decodeLayers(reader, records, depth, colorMode);
     }
     reader.seek(layerInfoEnd, "layer information end");
   }
   reader.seek(layerMaskEnd, "layer and mask information end");
   const composite =
     reader.remaining >= 2
-      ? decodeComposite(reader, width, height, channelCount, depth, colorMode)
+      ? await decodeComposite(reader, width, height, channelCount, depth, colorMode)
       : undefined;
   return { width, height, channelCount, depth, colorMode, mergedAlpha, layers, composite };
 }
@@ -201,15 +203,20 @@ function layerSectionType(value: number): ParsedPsdLayer["sectionType"] {
   return undefined;
 }
 
-function decodeLayers(
+async function decodeLayers(
   reader: PsdReader,
   records: readonly LayerRecord[],
   depth: 8 | 16,
   colorMode: "grayscale" | "rgb",
-): ParsedPsdLayer[] {
+): Promise<ParsedPsdLayer[]> {
   let decodedBytes = 0;
-  return records.map((record) => {
-    decodedBytes += checkedProduct(record.width, record.height, record.channels.length + 4);
+  const layers: ParsedPsdLayer[] = [];
+  for (const record of records) {
+    decodedBytes += checkedProduct(
+      record.width,
+      record.height,
+      record.channels.length * (depth / 8) + 4,
+    );
     if (decodedBytes > MAX_DECODED_BYTES) throw new Error("PSD decoded layers exceed 512 MiB");
     const decoded = new Map<number, Uint8Array>();
     for (const channel of record.channels) {
@@ -219,26 +226,27 @@ function decodeLayers(
       const compression = reader.u16();
       decoded.set(
         channel.id,
-        decodePlane(reader, record.width, record.height, depth, compression, channelEnd),
+        await decodePlane(reader, record.width, record.height, depth, compression, channelEnd),
       );
       reader.seek(channelEnd, `layer ${record.name} channel end`);
     }
-    return {
+    layers.push({
       ...record,
       pixels: interleavePlanes(decoded, record.width, record.height, colorMode),
-    };
-  });
+    });
+  }
+  return layers;
 }
 
-function decodeComposite(
+async function decodeComposite(
   reader: PsdReader,
   width: number,
   height: number,
   channelCount: number,
   depth: 8 | 16,
   colorMode: "grayscale" | "rgb",
-): Uint8ClampedArray {
-  checkedProduct(width, height, channelCount + 4);
+): Promise<Uint8ClampedArray> {
+  checkedProduct(width, height, channelCount * (depth / 8) + 4);
   const compression = reader.u16();
   const planes = new Map<number, Uint8Array>();
   if (compression === 0) {
@@ -257,6 +265,23 @@ function decodeComposite(
           rowLengths.slice(channel * height, (channel + 1) * height),
         ),
       );
+  } else if (compression === 2 || compression === 3) {
+    const inflated = await inflatePsdZipData(
+      reader.bytes(reader.remaining),
+      width,
+      height * channelCount,
+      depth,
+      compression === 3,
+    );
+    const planeBytes = width * height * (depth / 8);
+    for (let channel = 0; channel < channelCount; channel += 1)
+      planes.set(
+        channel,
+        decodeRawPlaneBytes(
+          inflated.subarray(channel * planeBytes, (channel + 1) * planeBytes),
+          depth,
+        ),
+      );
   } else throw new Error(`PSD composite compression ${compression} is not supported`);
   if (colorMode === "rgb" && channelCount > 3) planes.set(-1, planes.get(3) as Uint8Array);
   else if (colorMode === "grayscale" && channelCount > 1)
@@ -264,14 +289,14 @@ function decodeComposite(
   return interleavePlanes(planes, width, height, colorMode);
 }
 
-function decodePlane(
+async function decodePlane(
   reader: PsdReader,
   width: number,
   height: number,
   depth: 8 | 16,
   compression: number,
   channelEnd: number,
-): Uint8Array {
+): Promise<Uint8Array> {
   if (width === 0 || height === 0) return new Uint8Array();
   if (compression === 0) return decodeRawPlane(reader, width, height, depth);
   if (compression === 1) {
@@ -279,6 +304,16 @@ function decodePlane(
     const plane = decodeRleRows(reader, width, height, depth, rowLengths);
     if (reader.offset > channelEnd) throw new Error("PSD RLE channel exceeds its declared length");
     return plane;
+  }
+  if (compression === 2 || compression === 3) {
+    const inflated = await inflatePsdZipData(
+      reader.bytes(channelEnd - reader.offset),
+      width,
+      height,
+      depth,
+      compression === 3,
+    );
+    return decodeRawPlaneBytes(inflated, depth);
   }
   throw new Error(`PSD layer compression ${compression} is not supported`);
 }
@@ -291,9 +326,14 @@ function decodeRawPlane(
 ): Uint8Array {
   const pixelCount = checkedProduct(width, height, 1);
   const source = reader.bytes(pixelCount * (depth / 8));
+  return decodeRawPlaneBytes(source, depth);
+}
+
+function decodeRawPlaneBytes(source: Uint8Array, depth: 8 | 16): Uint8Array {
   if (depth === 8) return source.slice();
-  const output = new Uint8Array(pixelCount);
-  for (let index = 0; index < pixelCount; index += 1) output[index] = source[index * 2] as number;
+  const output = new Uint8Array(source.length / 2);
+  for (let index = 0; index < output.length; index += 1)
+    output[index] = source[index * 2] as number;
   return output;
 }
 
