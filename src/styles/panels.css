@@ -57,6 +57,24 @@
   flex: 1;
   position: relative;
 }
+.panel.workspace-embedded-panel {
+  width: 100%;
+  height: 100%;
+  flex: 1;
+}
+.workspace-profiler-panel .panel-content {
+  overflow: auto;
+}
+.workspace-profiler-panel .profiler-overlay {
+  position: relative;
+  top: auto;
+  right: auto;
+  width: auto;
+  min-height: 100%;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
 .panel-tabs {
   align-self: stretch;
   display: flex;

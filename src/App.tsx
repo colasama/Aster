@@ -1,10 +1,14 @@
 import { useEffect, useMemo, useRef } from "react";
 import { Inspector } from "./components/Inspector";
-import { Profiler } from "./components/Profiler";
 import { ProjectPanel } from "./components/ProjectPanel";
-import { Timeline } from "./components/Timeline";
 import { TopBar } from "./components/TopBar";
 import { Viewport } from "./components/Viewport";
+import { DockWorkspace } from "./components/workspace/DockWorkspace";
+import {
+  WorkspaceProfilerSurface,
+  WorkspaceTimelineSurface,
+} from "./components/workspace/WorkspacePanelSurfaces";
+import type { WorkspacePanelDefinition } from "./components/workspace/workspace-types";
 import { logger } from "./core/logger";
 import { activeComposition } from "./core/project";
 import { projectPluginReferences } from "./core/project-plugin-references";
@@ -21,6 +25,29 @@ function Studio() {
   );
   const referencedPluginKey = referencedPluginIds.join("\u0000");
   const projectPluginRuntimeWasRequested = useRef(false);
+  const workspacePanels = useMemo<readonly WorkspacePanelDefinition[]>(
+    () => [
+      { id: "project", label: t("workspace.panel.project"), element: <ProjectPanel /> },
+      { id: "viewport", label: t("workspace.panel.viewport"), element: <Viewport /> },
+      { id: "inspector", label: t("workspace.panel.inspector"), element: <Inspector /> },
+      {
+        id: "timeline",
+        label: t("workspace.panel.timeline"),
+        element: <WorkspaceTimelineSurface mode="timeline" />,
+      },
+      {
+        id: "graph",
+        label: t("workspace.panel.graph"),
+        element: <WorkspaceTimelineSurface mode="graph" />,
+      },
+      {
+        id: "profiler",
+        label: t("workspace.panel.profiler"),
+        element: <WorkspaceProfilerSurface />,
+      },
+    ],
+    [t],
+  );
   useEffect(() => {
     if (!referencedPluginKey && !projectPluginRuntimeWasRequested.current) return;
     const pluginIds = referencedPluginKey ? referencedPluginKey.split("\u0000") : [];
@@ -65,15 +92,7 @@ function Studio() {
   return (
     <main className="aster-studio">
       <TopBar />
-      <div className="editor-grid">
-        <ProjectPanel />
-        <div className="viewport-cell">
-          <Viewport />
-          <Profiler />
-        </div>
-        <Inspector />
-        <Timeline />
-      </div>
+      <DockWorkspace panels={workspacePanels} />
       <footer className="status-bar">
         <span>
           <i className="status-dot" /> {t("app.status.ready")}

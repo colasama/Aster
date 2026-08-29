@@ -58,18 +58,32 @@ Workspace documents belong in application preferences, not `.aster` project file
 must not silently replace the user's active workspace unless a later explicit preference enables that
 behavior.
 
-## UI integration constraints
+## Dock renderer and interaction transactions
 
-The current model does not mount docking UI or create native floating windows. Integration should
-preserve these boundaries:
+`src/components/workspace` renders the immutable tree directly. Groups own an accessible,
+overflowing tab strip and a host for the active panel's existing actions. This lets legacy `Panel`
+callers keep their content and tool buttons while the workspace owns layout tabs, close, float, and
+maximize controls. Project, Composition, Inspector, Timeline, Graph Editor, and Profiler are stable
+panel registry entries rather than fixed CSS grid cells.
 
-- pointer movement may update a transient drop preview, while a layout operation commits only the
-  chosen result;
-- split dragging should coalesce visual updates and avoid rebuilding the React panel subtree;
-- GPU preview surfaces must not be destroyed and recreated for every raw pointer event;
-- durable persistence should occur after a committed dock, close, float, or resize transaction;
-- monitor removal should remap floating bounds before applying them to a native window, without
-  changing the stored panel tree.
+Panel and group drags expose four edge zones for splitting and one center zone for grouping. A drop
+maps to exactly one model operation and one persistence write. Closing records the panel ID and the
+workspace API can reopen it into a chosen or most recently hovered group. Double-clicking a group
+header, or pressing the backtick key over a group, maximizes it without changing the durable tree.
+
+Splitter movement is an explicit preview transaction. Raw pointer values are coalesced with
+`requestAnimationFrame`, but only a lightweight divider preview moves. The split ratio and real DOM
+geometry commit once on pointer release, so a WebGPU canvas observes one resize instead of allocating
+surfaces for every pointer event. Floating-group movement similarly uses a transform preview and
+persists bounds only on release.
+
+The active layout is stored under `aster.workspace.layout.v1`. Reads pass through the versioned
+schema boundary; malformed JSON, rejected storage access, invalid data, and future schema versions
+fall back atomically to the default layout. Layout preferences remain separate from `.aster` project
+documents.
+
+Native multi-window floating and monitor-removal remapping remain later integration work. Monitor
+changes must adjust window bounds without creating another panel-tree representation.
 
 Named workspace presets should wrap this layout document with preset identity and display metadata.
 They should not introduce a second layout representation.

@@ -1,13 +1,17 @@
 import { describe, expect, it } from "vitest";
 import {
+  activatePanel,
   closePanel,
+  dockGroup,
   dockPanel,
   findWorkspaceNode,
+  floatGroup,
   floatPanel,
   groupPanel,
   normalizeWorkspaceLayout,
   reopenPanel,
   resizeSplit,
+  setFloatingBounds,
   type WorkspaceLayout,
   type WorkspaceNode,
   workspacePanelIds,
@@ -185,5 +189,64 @@ describe("workspace layout", () => {
       floating: [],
       closedPanels: [],
     });
+  });
+
+  it("activates tabs with path-only structural sharing and preserves no-op identity", () => {
+    const layout = nestedLayout();
+    const activated = activatePanel(layout, "project-tabs", "effects");
+    expect(activated).not.toBe(layout);
+    expect(activated.floating).toBe(layout.floating);
+    expect(findWorkspaceNode(activated, "project-tabs")).toMatchObject({
+      activePanelId: "effects",
+    });
+    if (layout.root?.kind !== "split" || activated.root?.kind !== "split") return;
+    expect(activated.root.second).toBe(layout.root.second);
+    expect(activatePanel(activated, "project-tabs", "effects")).toBe(activated);
+    expect(activatePanel(layout, "project-tabs", "missing")).toBe(layout);
+  });
+
+  it("moves complete groups to center and edge targets without rebuilding their panels", () => {
+    const layout = nestedLayout();
+    const grouped = dockGroup(layout, "project-tabs", "viewport-tabs", "center");
+    expect(findWorkspaceNode(grouped, "project-tabs")).toBeUndefined();
+    expect(findWorkspaceNode(grouped, "viewport-tabs")).toEqual(
+      tabGroup("viewport-tabs", ["viewport", "project", "effects"], "project"),
+    );
+    expect(grouped.floating).toBe(layout.floating);
+
+    const edged = dockGroup(layout, "inspector-tabs", "timeline-tabs", "right");
+    expect(edged.floating).toHaveLength(0);
+    const inserted = findWorkspaceNode(edged, "split-1");
+    expect(inserted).toMatchObject({
+      kind: "split",
+      axis: "horizontal",
+      first: { id: "timeline-tabs" },
+      second: { id: "inspector-tabs", panels: ["inspector"] },
+    });
+    expect(dockGroup(layout, "viewport-tabs", "viewport-tabs", "left")).toBe(layout);
+  });
+
+  it("floats whole groups and commits floating bounds without changing their node", () => {
+    const layout = nestedLayout();
+    const floated = floatGroup(layout, "viewport-tabs", {
+      x: 80,
+      y: 90,
+      width: 800,
+      height: 600,
+    });
+    const entry = floated.floating[floated.floating.length - 1];
+    expect(entry?.node).toMatchObject({ id: "viewport-tabs", panels: ["viewport"] });
+    expect(findWorkspaceNode(floated, "detail-split")).toBeUndefined();
+    if (!entry) return;
+    const moved = setFloatingBounds(floated, entry.id, {
+      x: 160,
+      y: 140,
+      width: 800,
+      height: 600,
+    });
+    expect(moved.root).toBe(floated.root);
+    expect(moved.floating[1].node).toBe(entry.node);
+    expect(moved.floating[1].bounds.x).toBe(160);
+    expect(setFloatingBounds(moved, entry.id, moved.floating[1].bounds)).toBe(moved);
   });
 });

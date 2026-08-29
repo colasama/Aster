@@ -177,6 +177,66 @@ export function groupPanel(
   return dockPanel(layout, panelId, targetGroupId, "center");
 }
 
+export function activatePanel(
+  layout: WorkspaceLayout,
+  groupId: string,
+  panelId: string,
+): WorkspaceLayout {
+  if (!validId(groupId) || !validId(panelId)) return layout;
+  return (
+    replaceNodeInLayout(layout, groupId, (node) =>
+      node.kind === "tabGroup" && node.panels.includes(panelId) && node.activePanelId !== panelId
+        ? { ...node, activePanelId: panelId }
+        : node,
+    ) ?? layout
+  );
+}
+
+/** Moves a complete tab group without cloning unaffected layout branches. */
+export function dockGroup(
+  layout: WorkspaceLayout,
+  sourceGroupId: string,
+  targetGroupId: string,
+  position: WorkspaceDockPosition,
+): WorkspaceLayout {
+  if (!validId(sourceGroupId) || !validId(targetGroupId) || sourceGroupId === targetGroupId)
+    return layout;
+  const source = findWorkspaceNode(layout, sourceGroupId);
+  const target = findWorkspaceNode(layout, targetGroupId);
+  if (source?.kind !== "tabGroup" || target?.kind !== "tabGroup") return layout;
+
+  const detached = detachWorkspaceNode(layout, sourceGroupId);
+  if (!detached.node || !findWorkspaceNode(detached.layout, targetGroupId)) return layout;
+  const base = detached.layout;
+  if (position === "center") {
+    return (
+      replaceNodeInLayout(base, targetGroupId, (node) =>
+        node.kind === "tabGroup"
+          ? {
+              ...node,
+              panels: [...node.panels, ...source.panels],
+              activePanelId: source.activePanelId,
+            }
+          : node,
+      ) ?? layout
+    );
+  }
+
+  const axis: WorkspaceAxis =
+    position === "left" || position === "right" ? "horizontal" : "vertical";
+  const insertFirst = position === "left" || position === "top";
+  return (
+    replaceNodeInLayout(base, targetGroupId, (node) => ({
+      kind: "split",
+      id: nextLayoutId(base, "split"),
+      axis,
+      ratio: 0.5,
+      first: insertFirst ? source : node,
+      second: insertFirst ? node : source,
+    })) ?? layout
+  );
+}
+
 export function floatPanel(
   layout: WorkspaceLayout,
   panelId: string,
@@ -219,6 +279,54 @@ export function floatPanel(
     ...(normalizedDisplayId ? { displayId: normalizedDisplayId } : {}),
   };
   return { ...base, floating: [...base.floating, entry] };
+}
+
+export function floatGroup(
+  layout: WorkspaceLayout,
+  groupId: string,
+  bounds: WorkspaceBounds,
+  displayId?: string,
+): WorkspaceLayout {
+  const source = findWorkspaceNode(layout, groupId);
+  if (source?.kind !== "tabGroup") return layout;
+  const existing = layout.floating.find((entry) => entry.node.id === groupId);
+  if (existing) return setFloatingBounds(layout, existing.id, bounds, displayId);
+  const detached = detachWorkspaceNode(layout, groupId);
+  if (!detached.node) return layout;
+  const normalizedDisplayId = normalizeOptionalId(displayId);
+  return {
+    ...detached.layout,
+    floating: [
+      ...detached.layout.floating,
+      {
+        id: nextLayoutId(detached.layout, "floating"),
+        node: detached.node,
+        bounds: normalizeBounds(bounds),
+        ...(normalizedDisplayId ? { displayId: normalizedDisplayId } : {}),
+      },
+    ],
+  };
+}
+
+export function setFloatingBounds(
+  layout: WorkspaceLayout,
+  floatingId: string,
+  bounds: WorkspaceBounds,
+  displayId?: string,
+): WorkspaceLayout {
+  const index = layout.floating.findIndex((entry) => entry.id === floatingId);
+  if (index < 0) return layout;
+  const entry = layout.floating[index];
+  const nextBounds = normalizeBounds(bounds);
+  const nextDisplayId = normalizeOptionalId(displayId ?? entry.displayId);
+  if (sameBounds(entry.bounds, nextBounds) && entry.displayId === nextDisplayId) return layout;
+  const floating = [...layout.floating];
+  floating[index] = {
+    ...entry,
+    bounds: nextBounds,
+    ...(nextDisplayId ? { displayId: nextDisplayId } : { displayId: undefined }),
+  };
+  return { ...layout, floating };
 }
 
 export function closePanel(layout: WorkspaceLayout, panelId: string): WorkspaceLayout {
@@ -331,6 +439,43 @@ function detachVisiblePanel(
     return { layout: { ...layout, floating }, removed: true };
   }
   return { layout, removed: false };
+}
+
+function detachWorkspaceNode(
+  layout: WorkspaceLayout,
+  nodeId: string,
+): { readonly layout: WorkspaceLayout; readonly node: WorkspaceNode | null } {
+  if (layout.root) {
+    const result = removeNodeById(layout.root, nodeId);
+    if (result.removed) return { layout: { ...layout, root: result.node }, node: result.detached };
+  }
+  for (let index = 0; index < layout.floating.length; index += 1) {
+    const entry = layout.floating[index];
+    const result = removeNodeById(entry.node, nodeId);
+    if (!result.removed) continue;
+    const floating = [...layout.floating];
+    if (result.node) floating[index] = { ...entry, node: result.node };
+    else floating.splice(index, 1);
+    return { layout: { ...layout, floating }, node: result.detached };
+  }
+  return { layout, node: null };
+}
+
+function removeNodeById(
+  node: WorkspaceNode,
+  nodeId: string,
+): NodeResult & { readonly detached: WorkspaceNode | null } {
+  if (node.id === nodeId) return { node: null, removed: true, detached: node };
+  if (node.kind === "tabGroup") return { node, removed: false, detached: null };
+  const first = removeNodeById(node.first, nodeId);
+  if (first.removed) {
+    if (!first.node) return { node: node.second, removed: true, detached: first.detached };
+    return { node: { ...node, first: first.node }, removed: true, detached: first.detached };
+  }
+  const second = removeNodeById(node.second, nodeId);
+  if (!second.removed) return { node, removed: false, detached: null };
+  if (!second.node) return { node: node.first, removed: true, detached: second.detached };
+  return { node: { ...node, second: second.node }, removed: true, detached: second.detached };
 }
 
 function removePanelFromNode(node: WorkspaceNode, panelId: string): NodeResult {
