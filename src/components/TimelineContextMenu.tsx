@@ -19,8 +19,11 @@ export interface TimelineContextMenuActions {
   canDeleteLayers: boolean;
   canEditKeyframes: boolean;
   canInterpolate: boolean;
+  canInvertSelection: boolean;
   canPasteKeyframes: boolean;
   canPasteLayers: boolean;
+  canSelectChildren: boolean;
+  canSplitLayers: boolean;
   copyKeyframes(): void;
   copyLayers(): void;
   createLayer(kind: TimelineCreateKind): void;
@@ -38,13 +41,16 @@ export interface TimelineContextMenuActions {
   locked: boolean;
   onClose(): void;
   openGraph(): void;
+  invertSelection(): void;
   pasteKeyframes(): void;
   pasteLayers(): void;
   precompose(): void;
   rename(): void;
   revealSource(): void;
+  selectChildren(): void;
   selectedLayerCount: number;
   setInterpolation(value: "linear" | "bezier" | "step"): void;
+  splitLayers(): void;
   toggle3d(): void;
   toggleMotionBlur(): void;
   x: number;
@@ -112,13 +118,13 @@ export function timelineContextMenuItems(
         onSelect: actions.rename,
       },
       {
-        disabled: true,
+        disabled: !actions.canSplitLayers,
         disabledReason: t("timeline.menu.splitUnavailable"),
         id: "split",
         kind: "command",
         label: t("timeline.menu.split"),
         shortcut: "Ctrl/Cmd+Shift+D",
-        onSelect: () => undefined,
+        onSelect: actions.splitLayers,
       },
       {
         disabled: actions.selectedLayerCount === 0,
@@ -127,6 +133,23 @@ export function timelineContextMenuItems(
         kind: "command",
         label: t("timeline.menu.precompose"),
         onSelect: actions.precompose,
+      },
+      { id: "selection-separator", kind: "separator" },
+      {
+        disabled: !actions.canInvertSelection,
+        disabledReason: noLayers,
+        id: "invert-selection",
+        kind: "command",
+        label: t("timeline.menu.invertSelection"),
+        onSelect: actions.invertSelection,
+      },
+      {
+        disabled: !actions.canSelectChildren,
+        disabledReason: t("timeline.menu.noChildren"),
+        id: "select-children",
+        kind: "command",
+        label: t("timeline.menu.selectChildren"),
+        onSelect: actions.selectChildren,
       },
       { id: "switches-separator", kind: "separator" },
       {
@@ -137,15 +160,6 @@ export function timelineContextMenuItems(
         kind: "checkbox",
         label: t("timeline.menu.threeDimensional"),
         onSelect: actions.toggle3d,
-      },
-      {
-        checked: actions.isAdjustment,
-        disabled: true,
-        disabledReason: t("timeline.menu.adjustmentUnavailable"),
-        id: "adjustment",
-        kind: "checkbox",
-        label: t("timeline.menu.adjustment"),
-        onSelect: () => undefined,
       },
       {
         checked: actions.isMotionBlur,
@@ -209,30 +223,6 @@ export function timelineContextMenuItems(
             label: t(createLabels[kind]),
             onSelect: () => actions.createLayer(kind),
           })),
-          {
-            disabled: true,
-            disabledReason: t("timeline.menu.sourceLayerUnavailable"),
-            id: "new-image",
-            kind: "command" as const,
-            label: t("timeline.menu.new.image"),
-            onSelect: () => undefined,
-          },
-          {
-            disabled: true,
-            disabledReason: t("timeline.menu.sourceLayerUnavailable"),
-            id: "new-video",
-            kind: "command" as const,
-            label: t("timeline.menu.new.video"),
-            onSelect: () => undefined,
-          },
-          {
-            disabled: true,
-            disabledReason: t("timeline.menu.sourceLayerUnavailable"),
-            id: "new-precomposition",
-            kind: "command" as const,
-            label: t("timeline.menu.new.precomposition"),
-            onSelect: () => undefined,
-          },
         ],
       },
       {

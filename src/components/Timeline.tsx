@@ -64,9 +64,10 @@ import {
   timelineContentPoint,
   timelineMarqueeRect,
 } from "./timeline-interactions";
-import { duplicateTimelineLayers } from "./timeline-layer-clipboard";
+import { duplicateTimelineLayers, splitTimelineLayers } from "./timeline-layer-clipboard";
 import type { KeyframeTimePreview } from "./timeline-property-tracks";
 import { useWindowPointerDrag } from "./use-window-pointer-drag";
+import { useWorkspaceApi } from "./workspace/DockWorkspace";
 
 const LABEL_WIDTH = 286;
 const BASE_PIXELS_PER_SECOND = 82;
@@ -82,6 +83,7 @@ type TimingPreview = Record<string, { inPoint: number; outPoint: number }>;
 
 export function Timeline() {
   const { state, dispatch } = useEditor();
+  const workspace = useWorkspaceApi();
   const { t } = useI18n();
   const composition = activeComposition(state.project);
   const pixelsPerSecond = BASE_PIXELS_PER_SECOND * state.timelineZoom;
@@ -152,6 +154,18 @@ export function Timeline() {
     editableContextLayers.length === contextLayers.length &&
     editableContextLayers.length > 0 &&
     composition.layers.length - editableContextLayers.length >= 1;
+  const canSplitContextLayers =
+    editableContextLayers.length === contextLayers.length &&
+    editableContextLayers.length > 0 &&
+    editableContextLayers.every(
+      (layer) =>
+        state.currentTime > layer.inPoint + frameDuration * 0.5 &&
+        state.currentTime < layer.outPoint - frameDuration * 0.5,
+    );
+  const contextLayerIds = new Set(contextLayers.map((layer) => layer.id));
+  const childLayerIds = composition.layers
+    .filter((layer) => layer.parentId && contextLayerIds.has(layer.parentId))
+    .map((layer) => layer.id);
   const canEditSelectedKeyframes =
     selectedEntries.length > 0 &&
     selectedEntries.every(
@@ -277,6 +291,41 @@ export function Timeline() {
       type: "operation",
       operations: layers.map((layer) => ({ type: "addLayer" as const, layer })),
       select: layers.map((layer) => layer.id),
+    });
+  };
+  const splitContextLayers = () => {
+    if (!canSplitContextLayers) return;
+    const rightLayers = splitTimelineLayers(editableContextLayers, state.currentTime);
+    dispatch({
+      type: "operation",
+      operations: [
+        ...editableContextLayers.map((layer) => ({
+          type: "setLayerTiming" as const,
+          layerId: layer.id,
+          inPoint: layer.inPoint,
+          outPoint: state.currentTime,
+        })),
+        ...rightLayers.map((layer) => ({ type: "addLayer" as const, layer })),
+      ],
+      select: [
+        ...editableContextLayers.map((layer) => layer.id),
+        ...rightLayers.map(({ id }) => id),
+      ],
+    });
+  };
+  const invertLayerSelection = () => {
+    const selected = new Set(state.selection);
+    dispatch({
+      type: "select",
+      ids: composition.layers.filter((layer) => !selected.has(layer.id)).map((layer) => layer.id),
+    });
+  };
+  const selectChildLayers = () => {
+    if (childLayerIds.length === 0) return;
+    const ids = new Set([...state.selection, ...childLayerIds]);
+    dispatch({
+      type: "select",
+      ids: composition.layers.filter((layer) => ids.has(layer.id)).map((layer) => layer.id),
     });
   };
   const renameContextLayer = () => {
@@ -853,8 +902,11 @@ export function Timeline() {
           canDeleteLayers={canDeleteContextLayers}
           canEditKeyframes={canEditSelectedKeyframes}
           canInterpolate={canInterpolateSelectedKeyframes}
+          canInvertSelection={state.selection.length > 0}
           canPasteKeyframes={canPasteKeyframeClipboard}
           canPasteLayers={Boolean(layerClipboard?.length)}
+          canSelectChildren={childLayerIds.length > 0}
+          canSplitLayers={canSplitContextLayers}
           copyKeyframes={copySelection}
           copyLayers={copyContextLayers}
           createLayer={createTimelineLayer}
@@ -870,6 +922,7 @@ export function Timeline() {
           isMotionBlur={Boolean(menuLayer?.motionBlur)}
           canMotionBlur={Boolean(menuLayer && layerSupportsMotionBlur(menuLayer))}
           isLayerTarget={Boolean(menuLayer)}
+          invertSelection={invertLayerSelection}
           locked={contextLayers.some((layer) => layer.locked)}
           onClose={contextMenu.close}
           openGraph={() => dispatch({ type: "setBottomMode", mode: "graph" })}
@@ -877,9 +930,14 @@ export function Timeline() {
           pasteLayers={pasteContextLayers}
           precompose={precomposeContextLayers}
           rename={renameContextLayer}
-          revealSource={() => dispatch({ type: "setLeftTab", tab: "project" })}
+          revealSource={() => {
+            dispatch({ type: "setLeftTab", tab: "project" });
+            workspace.reopen("project");
+          }}
+          selectChildren={selectChildLayers}
           selectedLayerCount={contextLayers.length}
           setInterpolation={setSelectedInterpolation}
+          splitLayers={splitContextLayers}
           toggle3d={() => {
             if (!menuLayer) return;
             dispatch({

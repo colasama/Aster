@@ -8,12 +8,21 @@ import type { ContextMenuItem } from "./context-menu/context-menu-model";
 export interface ViewportContextMenuActions {
   bufferView: BufferVisualization;
   canCopyFrame: boolean;
+  canCropComposition: boolean;
   canExportFrame: boolean;
+  canInvertSelection: boolean;
+  canSelectChildren: boolean;
   copyUnavailableReason: string;
   copyFrame(): void;
+  cropComposition(): void;
+  cropUnavailableReason: string;
   exportFrame(): void;
   exportUnavailableReason: string;
+  invertSelection(): void;
   onClose(): void;
+  openCompositionSettings(): void;
+  revealComposition(): void;
+  selectChildren(): void;
   setBufferView(value: BufferVisualization): void;
   setPreviewQuality(value: 1 | 0.5 | 0.25): void;
   setViewCount(value: number): void;
@@ -39,6 +48,45 @@ export function viewportContextMenuItems(
 ): ContextMenuItem[] {
   const zooms = [0.25, 0.5, 1, 2] as const;
   return [
+    {
+      id: "composition-settings",
+      kind: "command",
+      label: t("viewport.menu.compositionSettings"),
+      shortcut: "Ctrl/Cmd+K",
+      onSelect: actions.openCompositionSettings,
+    },
+    {
+      id: "reveal-composition",
+      kind: "command",
+      label: t("viewport.menu.revealComposition"),
+      onSelect: actions.revealComposition,
+    },
+    {
+      disabled: !actions.canCropComposition,
+      disabledReason: actions.cropUnavailableReason,
+      id: "crop-composition",
+      kind: "command",
+      label: t("viewport.menu.cropComposition"),
+      onSelect: actions.cropComposition,
+    },
+    { id: "selection-separator", kind: "separator" },
+    {
+      disabled: !actions.canInvertSelection,
+      disabledReason: t("viewport.menu.noSelection"),
+      id: "invert-selection",
+      kind: "command",
+      label: t("viewport.menu.invertSelection"),
+      onSelect: actions.invertSelection,
+    },
+    {
+      disabled: !actions.canSelectChildren,
+      disabledReason: t("viewport.menu.noChildren"),
+      id: "select-children",
+      kind: "command",
+      label: t("viewport.menu.selectChildren"),
+      onSelect: actions.selectChildren,
+    },
+    { id: "composition-separator", kind: "separator" },
     {
       id: "fit",
       kind: "command",

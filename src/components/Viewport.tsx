@@ -10,6 +10,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { planCompositionCrop } from "../core/composition-crop";
 import { createLayerForComposition } from "../core/layer-factory";
 import { logger } from "../core/logger";
 import { activeComposition } from "../core/project";
@@ -43,11 +44,14 @@ import { useContextMenuTrigger } from "./context-menu/use-context-menu-trigger";
 import { Panel } from "./Panel";
 import { ViewportContextMenu } from "./ViewportContextMenu";
 import { ViewportTransformControls } from "./ViewportTransformControls";
+import { WorkspaceDialog } from "./WorkspaceDialog";
+import { useWorkspaceApi } from "./workspace/DockWorkspace";
 
 type Renderer = WebGpuRenderer | CanvasFallbackRenderer;
 
 export function Viewport() {
   const { state, dispatch } = useEditor();
+  const workspace = useWorkspaceApi();
   const { t } = useI18n();
   const composition = activeComposition(state.project);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -64,6 +68,7 @@ export function Viewport() {
   const [rendererRevision, setRendererRevision] = useState(0);
   const [view, setView] = useState<"active" | "custom">("active");
   const [viewCount, setViewCount] = useState(1);
+  const [compositionSettingsOpen, setCompositionSettingsOpen] = useState(false);
   const [bufferView, setBufferView] = useState<BufferVisualization>("beauty");
   const contextMenu = useContextMenuTrigger();
   const previewRestoreRef = useRef({
@@ -94,6 +99,17 @@ export function Viewport() {
   const displayZoom = state.viewportZoom * (viewCount === 2 ? 0.5 : 1);
   const pan = useRef({ active: false, x: 0, y: 0, left: 0, top: 0 });
   const selectedLayer = composition.layers.find((layer) => layer.id === state.selection[0]);
+  const selectedLayerIds = new Set(state.selection);
+  const childLayerIds = composition.layers
+    .filter((layer) => layer.parentId && selectedLayerIds.has(layer.parentId))
+    .map((layer) => layer.id);
+  const compositionCrop = useMemo(
+    () =>
+      contextMenu.point
+        ? planCompositionCrop(composition, state.selection, state.currentTime)
+        : undefined,
+    [composition, contextMenu.point, state.currentTime, state.selection],
+  );
   const editingTextLayer =
     editingTextLayerId === selectedLayer?.id && selectedLayer?.kind === "text"
       ? selectedLayer
@@ -765,17 +781,45 @@ export function Viewport() {
             typeof ClipboardItem !== "undefined" &&
             typeof navigator.clipboard?.write === "function"
           }
+          canCropComposition={Boolean(compositionCrop)}
           canExportFrame={rendererReady}
+          canInvertSelection={state.selection.length > 0}
+          canSelectChildren={childLayerIds.length > 0}
           copyFrame={copyFrame}
           copyUnavailableReason={
             rendererReady
               ? t("viewport.menu.clipboardUnavailable")
               : t("viewport.menu.rendererUnavailable")
           }
+          cropComposition={() => {
+            if (compositionCrop)
+              dispatch({ type: "operation", operations: [...compositionCrop.operations] });
+          }}
+          cropUnavailableReason={t("viewport.menu.cropUnavailable")}
           exportFrame={exportFrame}
           exportUnavailableReason={t("viewport.menu.rendererUnavailable")}
+          invertSelection={() => {
+            dispatch({
+              type: "select",
+              ids: composition.layers
+                .filter((layer) => !selectedLayerIds.has(layer.id))
+                .map((layer) => layer.id),
+            });
+          }}
           onClose={contextMenu.close}
+          openCompositionSettings={() => setCompositionSettingsOpen(true)}
           previewQuality={state.previewQuality}
+          revealComposition={() => {
+            dispatch({ type: "setLeftTab", tab: "project" });
+            workspace.reopen("project");
+          }}
+          selectChildren={() => {
+            const ids = new Set([...state.selection, ...childLayerIds]);
+            dispatch({
+              type: "select",
+              ids: composition.layers.filter((layer) => ids.has(layer.id)).map((layer) => layer.id),
+            });
+          }}
           setBufferView={setBufferView}
           setPreviewQuality={(quality) => dispatch({ type: "setPreviewQuality", quality })}
           setViewCount={setViewCount}
@@ -793,6 +837,9 @@ export function Viewport() {
           y={contextMenu.point.y}
           zoom={state.viewportZoom}
         />
+      )}
+      {compositionSettingsOpen && (
+        <WorkspaceDialog kind="composition" onClose={() => setCompositionSettingsOpen(false)} />
       )}
       <div className="viewport-status">
         <button

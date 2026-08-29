@@ -26,16 +26,20 @@ typed editor operations or local view state. Menu construction is separated from
 availability and destructive/disabled states are unit-tested without mounting GPU surfaces. Pointer and
 keyboard invocation share the same trigger and viewport-clamped menu renderer.
 
+Composition viewer commands open the existing Composition Settings transaction, reveal and reopen the
+active composition's Project panel, and crop the composition to selected 2D world bounds. Crop shifts
+every root layer's static or fully keyed position in the same undo transaction, preserving animation and
+parented geometry. Timeline selection commands invert the active composition selection or add direct
+children; the same selection commands are available from the Composition viewer. Split Layer creates
+independent graph identities, preserves source-time continuity and external parenting, and updates both
+halves in one undo transaction. Commands without a valid model operation are omitted instead of rendered
+as disabled no-op entries.
+
 The following Adobe surfaces require later, explicitly owned slices rather than workspace changes:
 
 - stacked panel groups and solo expansion need a persisted group presentation model;
 - locked or split viewers need multiple viewer instances and viewer identity;
 - native floating windows and monitor remapping need an Electron window host (the current schema already
   reserves `displayId`);
-- Composition-context `Composition Settings`, `Reveal Composition in Project`, and crop-to-selected-layer
-  commands need composition hit context and selection bounds;
-- Timeline `Invert Selection` and `Select Children` need hierarchy-aware selection callbacks in the active
-  Timeline slice.
-
 These are not emulated with menu-only stubs: unavailable commands remain absent until their underlying
 operation and state ownership exist.

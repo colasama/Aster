@@ -7,8 +7,11 @@ function actions(): TimelineContextMenuActions {
     canDeleteLayers: false,
     canEditKeyframes: false,
     canInterpolate: false,
+    canInvertSelection: true,
     canPasteKeyframes: false,
     canPasteLayers: false,
+    canSelectChildren: false,
+    canSplitLayers: false,
     canMotionBlur: false,
     copyKeyframes: vi.fn(),
     copyLayers: vi.fn(),
@@ -24,6 +27,7 @@ function actions(): TimelineContextMenuActions {
     isAdjustment: false,
     isLayerTarget: true,
     isMotionBlur: false,
+    invertSelection: vi.fn(),
     locked: false,
     onClose: vi.fn(),
     openGraph: vi.fn(),
@@ -32,8 +36,10 @@ function actions(): TimelineContextMenuActions {
     precompose: vi.fn(),
     rename: vi.fn(),
     revealSource: vi.fn(),
+    selectChildren: vi.fn(),
     selectedLayerCount: 1,
     setInterpolation: vi.fn(),
+    splitLayers: vi.fn(),
     toggle3d: vi.fn(),
     toggleMotionBlur: vi.fn(),
     x: 0,
@@ -46,9 +52,33 @@ describe("timelineContextMenuItems", () => {
     const items = timelineContextMenuItems(actions(), createTranslator("en-US"));
     expect(items.find((item) => item.id === "split")).toMatchObject({
       disabled: true,
-      disabledReason: "Layer splitting is not available in the current model",
+      disabledReason: "Move the current time inside every unlocked selected layer",
     });
     expect(items.find((item) => item.id === "motion-blur")).toMatchObject({ disabled: true });
+  });
+
+  it("routes split and selection commands with hierarchy-aware availability", () => {
+    const splitLayers = vi.fn();
+    const invertSelection = vi.fn();
+    const selectChildren = vi.fn();
+    const items = timelineContextMenuItems(
+      {
+        ...actions(),
+        canSelectChildren: true,
+        canSplitLayers: true,
+        invertSelection,
+        selectChildren,
+        splitLayers,
+      },
+      createTranslator("en-US"),
+    );
+    for (const id of ["split", "invert-selection", "select-children"]) {
+      const item = items.find((candidate) => candidate.id === id);
+      if (item?.kind === "command") item.onSelect();
+    }
+    expect(splitLayers).toHaveBeenCalledOnce();
+    expect(invertSelection).toHaveBeenCalledOnce();
+    expect(selectChildren).toHaveBeenCalledOnce();
   });
 
   it("exposes the persisted per-layer motion-blur switch when vectors are supported", () => {
@@ -67,9 +97,6 @@ describe("timelineContextMenuItems", () => {
     const empty = { ...actions(), isLayerTarget: false };
     const items = timelineContextMenuItems(empty, createTranslator("en-US"));
     const menu = items.find((item) => item.id === "new-layer");
-    expect(menu?.kind === "submenu" && menu.items).toHaveLength(13);
-    expect(
-      menu?.kind === "submenu" && menu.items.find((item) => item.id === "new-image"),
-    ).toMatchObject({ disabled: true, disabledReason: "Import or select a project source first" });
+    expect(menu?.kind === "submenu" && menu.items).toHaveLength(10);
   });
 });

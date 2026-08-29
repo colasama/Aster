@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createLayerForComposition } from "../core/layer-factory";
 import { createBlankComposition } from "../core/project";
-import { duplicateTimelineLayers } from "./timeline-layer-clipboard";
+import { duplicateTimelineLayers, splitTimelineLayers } from "./timeline-layer-clipboard";
 
 describe("duplicateTimelineLayers", () => {
   it("remaps graph identities and preserves parent links inside the copied set", () => {
@@ -42,5 +42,28 @@ describe("duplicateTimelineLayers", () => {
     const layer = createLayerForComposition("shape", composition);
     layer.parentId = "outside";
     expect(duplicateTimelineLayers([layer])[0]?.parentId).toBeUndefined();
+  });
+});
+
+describe("splitTimelineLayers", () => {
+  it("preserves source-time continuity, names, and external parenting", () => {
+    const composition = createBlankComposition();
+    const layer = createLayerForComposition("video", composition);
+    layer.name = "Interview";
+    layer.inPoint = 1;
+    layer.outPoint = 9;
+    layer.timeOffset = 2;
+    layer.timeStretch = 0.5;
+    layer.parentId = "external-parent";
+    const split = splitTimelineLayers([layer], 4)[0];
+    expect(split).toMatchObject({
+      name: "Interview",
+      inPoint: 4,
+      outPoint: 9,
+      timeOffset: 8,
+      timeStretch: 0.5,
+      parentId: "external-parent",
+    });
+    expect(split?.id).not.toBe(layer.id);
   });
 });
