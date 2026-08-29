@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef } from "react";
+import { DiagnosticBanner } from "./components/DiagnosticBanner";
 import { Inspector } from "./components/Inspector";
 import { ProjectPanel } from "./components/ProjectPanel";
 import { TopBar } from "./components/TopBar";
@@ -93,6 +94,7 @@ function Studio() {
     <main className="aster-studio">
       <TopBar />
       <DockWorkspace panels={workspacePanels} />
+      <DiagnosticBanner />
       <footer className="status-bar">
         <span>
           <i className="status-dot" /> {t("app.status.ready")}

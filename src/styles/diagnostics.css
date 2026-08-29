@@ -1,0 +1,195 @@
+.diagnostic-banner {
+  position: fixed;
+  z-index: 180;
+  right: 12px;
+  bottom: 31px;
+  left: 12px;
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 8px;
+  border: 1px solid #475166;
+  border-radius: 5px;
+  color: #d9dde7;
+  background: #202633f5;
+  box-shadow: 0 10px 28px #0009;
+  backdrop-filter: blur(12px);
+}
+
+.diagnostic-banner.warning {
+  border-color: #7c673b;
+  background: #30291df5;
+}
+
+.diagnostic-banner.error,
+.diagnostic-banner.fatal {
+  border-color: #7d4447;
+  background: #321f24f5;
+}
+
+.diagnostic-banner.fatal {
+  box-shadow:
+    0 0 0 1px #b64d57,
+    0 10px 28px #0009;
+}
+
+.diagnostic-severity-icon {
+  flex: 0 0 auto;
+  color: #91b4ff;
+}
+
+.diagnostic-banner.warning .diagnostic-severity-icon {
+  color: #e4bd68;
+}
+
+.diagnostic-banner.error .diagnostic-severity-icon,
+.diagnostic-banner.fatal .diagnostic-severity-icon {
+  color: #ee8c92;
+}
+
+.diagnostic-summary {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+  flex: 1;
+  font-size: 10px;
+}
+
+.diagnostic-summary strong,
+.diagnostic-summary span,
+.diagnostic-summary small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.diagnostic-summary small {
+  color: #7f8694;
+  font:
+    8px "Cascadia Mono",
+    monospace;
+}
+
+.diagnostic-actions,
+.diagnostic-navigation {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.diagnostic-actions button,
+.diagnostic-navigation button,
+.diagnostic-dismiss {
+  min-height: 25px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 0 7px;
+  border: 1px solid #4a5060;
+  border-radius: 3px;
+  color: #c7ccd7;
+  font-size: 9px;
+}
+
+.diagnostic-actions button:hover,
+.diagnostic-navigation button:hover,
+.diagnostic-dismiss:hover {
+  color: white;
+  background: #343b4a;
+}
+
+.diagnostic-navigation span {
+  min-width: 28px;
+  color: #858b98;
+  font-size: 8px;
+  text-align: center;
+}
+
+.diagnostic-dismiss {
+  width: 25px;
+  padding: 0;
+  border: 0;
+}
+
+.diagnostic-details-backdrop {
+  z-index: 560;
+}
+
+.diagnostic-details {
+  width: min(720px, calc(100vw - 32px));
+  max-height: min(680px, calc(100vh - 64px));
+  overflow: auto;
+  border: 1px solid #4a5060;
+  border-radius: 6px;
+  color: #d5d9e2;
+  background: #181b22;
+  box-shadow: 0 24px 70px #000d;
+}
+
+.diagnostic-details > header {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #30343e;
+  background: #1b1e26;
+}
+
+.diagnostic-details > header strong {
+  flex: 1;
+}
+
+.diagnostic-details dl {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+  padding: 12px;
+}
+
+.diagnostic-details dl > div {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+}
+
+.diagnostic-details dt {
+  color: #7f8694;
+}
+
+.diagnostic-details dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-family: "Cascadia Mono", monospace;
+}
+
+.diagnostic-error-detail {
+  margin: 0 12px 12px;
+  padding: 10px;
+  border: 1px solid #343945;
+  border-radius: 4px;
+  background: #12141a;
+}
+
+.diagnostic-error-detail p {
+  user-select: text;
+}
+
+.diagnostic-error-detail pre {
+  max-height: 280px;
+  overflow: auto;
+  color: #aeb5c4;
+  font:
+    9px / 1.5 "Cascadia Mono",
+    monospace;
+  user-select: text;
+  white-space: pre-wrap;
+}
+
+.diagnostic-cause {
+  margin-top: 9px;
+  padding-left: 9px;
+  border-left: 2px solid #484e5b;
+}
