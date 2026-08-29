@@ -11,8 +11,14 @@ export interface GraphSamplingRequest {
   endTime: number;
   /** Horizontal display budget in physical or CSS pixels. */
   pixelWidth: number;
+  /** Vertical display budget used to convert curve error into pixels. Defaults to 512. */
+  pixelHeight?: number;
   /** Sampling density within the pixel budget. Defaults to one sample per pixel. */
   samplesPerPixel?: number;
+  /** Maximum permitted curve deviation in display pixels. Defaults to 0.35. */
+  adaptiveErrorPixels?: number;
+  /** Times that must be sampled exactly, such as keyframes and hold boundaries. */
+  breakpoints?: readonly number[];
   /** Hard allocation bound. Defaults to 16,384 samples. */
   maxSamples?: number;
   /** Reused when its typed arrays are large enough for the requested sample count. */
@@ -37,6 +43,15 @@ export interface GraphSampleBuffer {
 
 const DEFAULT_MAX_SAMPLES = 16_384;
 const DEFAULT_SAMPLES_PER_PIXEL = 1;
+const DEFAULT_PIXEL_HEIGHT = 512;
+const DEFAULT_ADAPTIVE_ERROR_PIXELS = 0.35;
+const MAX_ADAPTIVE_DEPTH = 14;
+
+interface SamplePoint {
+  time: number;
+  value: number;
+  valid: boolean;
+}
 
 /**
  * Samples an arbitrary time-addressable property without tying curve fidelity to a fixed count.
@@ -47,26 +62,26 @@ export function sampleGraph(request: GraphSamplingRequest): GraphSampleBuffer {
   const samplesPerPixel = request.samplesPerPixel ?? DEFAULT_SAMPLES_PER_PIXEL;
   const maxSamples = request.maxSamples ?? DEFAULT_MAX_SAMPLES;
   const duration = request.endTime - request.startTime;
-  const count = graphSampleCount(duration, request.pixelWidth, samplesPerPixel, maxSamples);
-  const target = prepareTarget(request.target, count);
-  target.count = count;
+  const baseCount = graphSampleCount(duration, request.pixelWidth, samplesPerPixel, maxSamples);
+  const base = sampleBasePoints(request, baseCount, maxSamples);
+  const points = refineGraphPoints(request, base, maxSamples);
+  const target = prepareTarget(request.target, points.length);
+  target.count = points.length;
   target.startTime = request.startTime;
   target.endTime = request.endTime;
-  target.timeStep = count > 1 ? duration / (count - 1) : 0;
+  target.timeStep = uniformTimeStep(points);
 
   const validValues = target.validity;
-  validValues.fill(0, 0, count);
+  validValues.fill(0, 0, points.length);
   let firstFiniteIndex = -1;
   let previousFiniteValue = 0;
-  for (let index = 0; index < count; index += 1) {
-    const progress = count > 1 ? index / (count - 1) : 0;
-    const time = request.startTime + duration * progress;
-    const value = request.evaluate(time);
-    target.times[index] = time;
-    if (Number.isFinite(value)) {
-      target.values[index] = value;
+  for (let index = 0; index < points.length; index += 1) {
+    const point = points[index] as SamplePoint;
+    target.times[index] = point.time;
+    if (point.valid) {
+      target.values[index] = point.value;
       validValues[index] = 1;
-      previousFiniteValue = value;
+      previousFiniteValue = point.value;
       if (firstFiniteIndex < 0) firstFiniteIndex = index;
     } else {
       target.values[index] = previousFiniteValue;
@@ -76,10 +91,10 @@ export function sampleGraph(request: GraphSamplingRequest): GraphSampleBuffer {
   // Leading invalid evaluations cannot use a preceding value, so extend the first finite result.
   if (firstFiniteIndex > 0)
     target.values.fill(target.values[firstFiniteIndex], 0, firstFiniteIndex);
-  else if (firstFiniteIndex < 0) target.values.fill(0, 0, count);
+  else if (firstFiniteIndex < 0) target.values.fill(0, 0, points.length);
 
   if (request.evaluateSpeed) {
-    for (let index = 0; index < count; index += 1) {
+    for (let index = 0; index < points.length; index += 1) {
       const speed = request.evaluateSpeed(target.times[index]);
       target.speeds[index] = finiteOrZero(speed);
     }
@@ -87,6 +102,129 @@ export function sampleGraph(request: GraphSamplingRequest): GraphSampleBuffer {
     sampleNumericalSpeeds(target, validValues);
   }
   return target;
+}
+
+function sampleBasePoints(
+  request: GraphSamplingRequest,
+  baseCount: number,
+  maxSamples: number,
+): SamplePoint[] {
+  const duration = request.endTime - request.startTime;
+  const times = new Set<number>();
+  for (let index = 0; index < baseCount; index += 1) {
+    const progress = baseCount > 1 ? index / (baseCount - 1) : 0;
+    times.add(request.startTime + duration * progress);
+  }
+  for (const breakpoint of request.breakpoints ?? []) {
+    if (times.size >= maxSamples) break;
+    if (!Number.isFinite(breakpoint)) continue;
+    if (breakpoint < request.startTime || breakpoint > request.endTime) continue;
+    times.add(breakpoint);
+  }
+  return [...times]
+    .sort((left, right) => left - right)
+    .map((time) => evaluatePoint(request.evaluate, time));
+}
+
+function refineGraphPoints(
+  request: GraphSamplingRequest,
+  base: readonly SamplePoint[],
+  maxSamples: number,
+): SamplePoint[] {
+  if (base.length < 2 || base.length >= maxSamples) return [...base];
+  let minimum = Number.POSITIVE_INFINITY;
+  let maximum = Number.NEGATIVE_INFINITY;
+  for (const point of base) {
+    if (!point.valid) continue;
+    minimum = Math.min(minimum, point.value);
+    maximum = Math.max(maximum, point.value);
+  }
+  const valueSpan = Math.max(
+    1e-9,
+    Number.isFinite(minimum) && Number.isFinite(maximum) ? maximum - minimum : 1,
+  );
+  const pixelHeight = request.pixelHeight ?? DEFAULT_PIXEL_HEIGHT;
+  const errorPixels = request.adaptiveErrorPixels ?? DEFAULT_ADAPTIVE_ERROR_PIXELS;
+  const tolerance = (valueSpan / pixelHeight) * errorPixels;
+  let remaining = maxSamples - base.length;
+  const result: SamplePoint[] = [base[0] as SamplePoint];
+  for (let index = 0; index < base.length - 1; index += 1) {
+    const start = base[index] as SamplePoint;
+    const end = base[index + 1] as SamplePoint;
+    const refined: SamplePoint[] = [];
+    remaining = refineSegment(request.evaluate, start, end, tolerance, 0, remaining, refined);
+    result.push(...refined, end);
+  }
+  return result;
+}
+
+function refineSegment(
+  evaluate: GraphEvaluator,
+  start: SamplePoint,
+  end: SamplePoint,
+  tolerance: number,
+  depth: number,
+  remaining: number,
+  output: SamplePoint[],
+): number {
+  if (remaining <= 0 || depth >= MAX_ADAPTIVE_DEPTH) return remaining;
+  const duration = end.time - start.time;
+  if (duration <= Number.EPSILON) return remaining;
+  const middle = evaluatePoint(evaluate, start.time + duration * 0.5);
+  const quarter = evaluatePoint(evaluate, start.time + duration * 0.25);
+  const threeQuarter = evaluatePoint(evaluate, start.time + duration * 0.75);
+  const needsRefinement =
+    !start.valid ||
+    !end.valid ||
+    !middle.valid ||
+    !quarter.valid ||
+    !threeQuarter.valid ||
+    pointDeviation(quarter, start, end, 0.25) > tolerance ||
+    pointDeviation(middle, start, end, 0.5) > tolerance ||
+    pointDeviation(threeQuarter, start, end, 0.75) > tolerance;
+  if (!needsRefinement) return remaining;
+  const remainingAfterMiddle = remaining - 1;
+  let available = refineSegment(
+    evaluate,
+    start,
+    middle,
+    tolerance,
+    depth + 1,
+    remainingAfterMiddle,
+    output,
+  );
+  output.push(middle);
+  available = refineSegment(evaluate, middle, end, tolerance, depth + 1, available, output);
+  return available;
+}
+
+function pointDeviation(
+  point: SamplePoint,
+  start: SamplePoint,
+  end: SamplePoint,
+  progress: number,
+): number {
+  if (!point.valid || !start.valid || !end.valid) return Number.POSITIVE_INFINITY;
+  const linear = start.value * (1 - progress) + end.value * progress;
+  return Math.abs(point.value - linear);
+}
+
+function evaluatePoint(evaluate: GraphEvaluator, time: number): SamplePoint {
+  const value = evaluate(time);
+  const valid = Number.isFinite(value);
+  return { time, value: valid ? value : 0, valid };
+}
+
+function uniformTimeStep(points: readonly SamplePoint[]): number {
+  if (points.length < 2) return 0;
+  const span = (points[points.length - 1] as SamplePoint).time - (points[0] as SamplePoint).time;
+  const expected = span / (points.length - 1);
+  const epsilon = Math.max(1e-12, Math.abs(expected) * 1e-9);
+  for (let index = 1; index < points.length; index += 1) {
+    const actual = (points[index] as SamplePoint).time - (points[index - 1] as SamplePoint).time;
+    if (Math.abs(actual - expected) > epsilon) return 0;
+  }
+  return expected;
 }
 
 /** Returns the bounded sample count selected for a visible interval and horizontal pixel budget. */
@@ -117,6 +255,16 @@ function validateRequest(request: GraphSamplingRequest): void {
     throw new RangeError("Graph sampling times must be finite");
   if (request.endTime < request.startTime)
     throw new RangeError("Graph sampling end time must not precede start time");
+  if (
+    request.pixelHeight !== undefined &&
+    (!Number.isFinite(request.pixelHeight) || request.pixelHeight <= 0)
+  )
+    throw new RangeError("Graph sampling pixel height must be a finite positive number");
+  if (
+    request.adaptiveErrorPixels !== undefined &&
+    (!Number.isFinite(request.adaptiveErrorPixels) || request.adaptiveErrorPixels <= 0)
+  )
+    throw new RangeError("Graph adaptive error must be a finite positive pixel value");
   graphSampleCount(
     request.endTime - request.startTime,
     request.pixelWidth,

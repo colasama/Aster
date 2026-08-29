@@ -18,9 +18,13 @@ temporarily with Ctrl/Cmd or persistently with Allow Keyframes Between Frames. S
 reduces selection; dragging a selected group commits one bounded operation while preserving relative
 timing. Horizontal/vertical pan and anchor-centered zoom remain view-only state.
 
-Curve sampling is bounded by the visible pixel width and reuses typed sample buffers. Binary lookup is
-used for keyframe evaluation and curve hit values; hidden tracks are not sampled. Marker radii
-counteract non-uniform SVG scaling to retain stable pointer targets.
+Curve sampling starts from the visible pixel budget, inserts visible keyframe boundaries exactly,
+and adaptively subdivides segments until their quarter/midpoint deviation is below a bounded
+screen-space error. The hard 16,384-sample ceiling prevents pathological expressions from creating
+unbounded work, while typed sample buffers are reused across viewport changes. Numerical derivatives
+support the resulting non-uniform time samples. Binary lookup is used for keyframe evaluation and
+curve hit values; hidden tracks are not sampled. Marker radii counteract non-uniform SVG scaling to
+retain stable pointer targets.
 
 Adobe behavior references:
 

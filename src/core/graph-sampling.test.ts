@@ -98,6 +98,56 @@ describe("time-addressable graph sampling", () => {
     expect([...samples.speeds.subarray(0, samples.count)].every(Number.isFinite)).toBe(true);
   });
 
+  it("subdivides curved segments to a bounded screen-space error at low zoom", () => {
+    const property: Animatable = {
+      mode: "animated",
+      keyframes: [
+        {
+          id: "a",
+          time: 0,
+          value: 0,
+          interpolation: "bezier",
+          easing: [0.08, 2.8, 0.22, 1.4],
+        },
+        { id: "b", time: 1, value: 100, interpolation: "linear" },
+      ],
+    };
+    const samples = sampleGraph({
+      evaluate: (time) => evaluateAnimatable(property, time),
+      startTime: 0,
+      endTime: 1,
+      pixelWidth: 4,
+      pixelHeight: 400,
+      maxSamples: 256,
+      breakpoints: property.keyframes.map((keyframe) => keyframe.time),
+    });
+    const reference = Array.from({ length: 20_001 }, (_, index) =>
+      evaluateAnimatable(property, index / 20_000),
+    );
+
+    expect(samples.count).toBeGreaterThan(5);
+    expect(samples.count).toBeLessThanOrEqual(256);
+    expect(samples.timeStep).toBe(0);
+    expect(Math.max(...samples.values.subarray(0, samples.count))).toBeCloseTo(
+      Math.max(...reference),
+      1,
+    );
+  });
+
+  it("samples visible breakpoints exactly without losing the interval endpoints", () => {
+    const samples = sampleGraph({
+      evaluate: (time) => time,
+      startTime: 0,
+      endTime: 1,
+      pixelWidth: 2,
+      breakpoints: [-1, 0.375, 2],
+    });
+
+    expect([...samples.times.subarray(0, samples.count)]).toContain(0.375);
+    expect(samples.times[0]).toBe(0);
+    expect(samples.times[samples.count - 1]).toBe(1);
+  });
+
   it("handles zero display duration and coincident keyframes deterministically", () => {
     const property: Animatable = {
       mode: "animated",
@@ -171,5 +221,8 @@ describe("time-addressable graph sampling", () => {
     expect(() =>
       sampleGraph({ evaluate, startTime: 0, endTime: 1, pixelWidth: 10, maxSamples: 0 }),
     ).toThrow("maximum");
+    expect(() =>
+      sampleGraph({ evaluate, startTime: 0, endTime: 1, pixelWidth: 10, pixelHeight: 0 }),
+    ).toThrow("pixel height");
   });
 });

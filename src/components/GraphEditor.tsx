@@ -136,11 +136,19 @@ export function GraphEditor() {
           timeRange.end,
           Math.max(1, viewportSize.width),
           sampleBuffers.current.get(track.id),
+          Math.max(1, viewportSize.height),
         );
         sampleBuffers.current.set(track.id, curve.samples);
         return curve;
       }),
-    [graphType, timeRange.end, timeRange.start, viewportSize.width, visibleTracks],
+    [
+      graphType,
+      timeRange.end,
+      timeRange.start,
+      viewportSize.height,
+      viewportSize.width,
+      visibleTracks,
+    ],
   );
   const referenceCurves = useMemo(
     () =>
@@ -153,6 +161,8 @@ export function GraphEditor() {
               timeRange.start,
               timeRange.end,
               Math.max(1, viewportSize.width),
+              undefined,
+              Math.max(1, viewportSize.height),
             );
           })
         : [],
@@ -161,6 +171,7 @@ export function GraphEditor() {
       showReferenceGraph,
       timeRange.end,
       timeRange.start,
+      viewportSize.height,
       viewportSize.width,
       visibleTracks,
     ],

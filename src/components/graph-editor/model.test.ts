@@ -111,7 +111,7 @@ describe("graph editor track model", () => {
     expect(easeGraphTrack(track, new Set(["c"]), "out")).toEqual([]);
   });
 
-  it("uses the graph sampling pixel budget and includes Bezier overshoot in visible range", () => {
+  it("uses bounded adaptive graph sampling and includes Bezier overshoot in visible range", () => {
     const composition = activeComposition(createDemoProject());
     const layer = createLayerForComposition("shape", composition);
     layer.transform.rotation[2] = animated(0, 100, [0.25, 1.8, 0.75, 1.8]);
@@ -119,8 +119,9 @@ describe("graph editor track model", () => {
 
     const narrow = sampleGraphTrack(track, "value", 0, 1, 40);
     const wide = sampleGraphTrack(track, "value", 0, 1, 400);
-    expect(narrow.samples.count).toBe(41);
-    expect(wide.samples.count).toBe(401);
+    expect(narrow.samples.count).toBeGreaterThanOrEqual(41);
+    expect(wide.samples.count).toBeGreaterThanOrEqual(401);
+    expect(narrow.samples.count).toBeLessThan(wide.samples.count);
     const range = graphCurveRange([wide]);
     expect(range.max).toBeGreaterThan(100);
     expect(range.min).toBeLessThanOrEqual(0);

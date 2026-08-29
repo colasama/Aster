@@ -169,6 +169,7 @@ export function sampleGraphTrack(
   endTime: number,
   pixelWidth: number,
   target?: GraphSampleBuffer,
+  pixelHeight = 512,
 ): GraphCurve {
   return {
     track,
@@ -178,7 +179,9 @@ export function sampleGraphTrack(
       startTime,
       endTime,
       pixelWidth,
+      pixelHeight,
       samplesPerPixel: 1,
+      breakpoints: track.property.keyframes.map((keyframe) => keyframe.time),
       target,
     }),
   };
