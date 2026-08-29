@@ -65,6 +65,9 @@ frame data are excluded, and successful hot-path operations are intentionally si
 
 1. UI gestures produce serializable operations; they do not mutate render state directly.
 2. The operation reducer creates a new project snapshot and updates bounded undo history.
+   Project-level footage sources are immutable shared records: operation snapshots copy only source
+   arrays and affected records, retaining large embedded strings by reference. Layers carry stable
+   `sourceId` references, so layer duplication and ordinary edits never clone footage bytes.
 3. Properties and safe expressions are evaluated at the requested rational time; recursive
    precompositions are flattened with cycle detection and composed transforms. Effect parameters
    use the same time-addressable keyframe interpolation before uniform and opcode compilation.
@@ -74,6 +77,8 @@ frame data are excluded, and successful hot-path operations are intentionally si
    so transforms, 3D projection, effects, and blend modes reuse the standard render path without a
    texture allocation. Null layers are filtered before geometry and render-stack construction: they
    keep transform/parent/selection behavior but cannot allocate an effect surface or emit pixels.
+   Media caches resolve layer instances through the project source registry; relink, reload, and
+   interpretation replace one source record and invalidate consumers by stable identity.
    Radiance RGBE environments transfer to the bounded CPU worker pool, which validates every
    scanline and writes
    directly into the final row-aligned binary16 upload payload. The current environment-lighting

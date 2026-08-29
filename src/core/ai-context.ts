@@ -152,19 +152,12 @@ export function queryScene(project: Project, composition: Composition, time: num
 }
 
 export function queryAssets(project: Project) {
-  const assets = new Map<string, NonNullable<Layer["asset"]>>();
-  for (const composition of project.compositions)
-    for (const layer of composition.layers) {
-      if (!layer.asset) continue;
-      const key = `${layer.asset.name}\0${layer.asset.mimeType}\0${layer.asset.width}x${layer.asset.height}`;
-      if (!assets.has(key)) assets.set(key, layer.asset);
-    }
-  return [...assets.values()].slice(0, MAX_CONTEXT_LAYERS).map((asset) => ({
-    name: boundedText(asset.name),
-    mimeType: boundedText(asset.mimeType),
-    width: asset.width,
-    height: asset.height,
-    duration: asset.duration,
+  return project.sources.slice(0, MAX_CONTEXT_LAYERS).map((source) => ({
+    name: boundedText(source.name),
+    mimeType: boundedText(source.mimeType),
+    width: "width" in source ? source.width : undefined,
+    height: "height" in source ? source.height : undefined,
+    duration: "duration" in source ? source.duration : undefined,
   }));
 }
 

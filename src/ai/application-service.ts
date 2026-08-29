@@ -329,9 +329,11 @@ export class AsterAgentApplicationService {
     const times = boundedTimes(input.times);
     const composition = activeComposition(workspace.project);
     const findings: VisualObservation["findings"] = [];
-    const missingAssets = composition.layers.filter(
-      (layer) => layer.asset && !layer.asset.dataUrl && !layer.asset.runtimeUrl,
-    );
+    const missingAssets = composition.layers.filter((layer) => {
+      if (!layer.sourceId) return false;
+      const source = workspace.project.sources.find((candidate) => candidate.id === layer.sourceId);
+      return !source || (!source.dataUrl && !source.runtimeUrl);
+    });
     if (missingAssets.length > 0)
       findings.push({
         severity: "error",
@@ -411,8 +413,15 @@ export class AsterAgentApplicationService {
           objectId: string;
           message: string;
         }> = [];
-        if (layer.asset && !layer.asset.dataUrl && !layer.asset.runtimeUrl)
-          messages.push({ severity: "error", objectId: layer.id, message: "Asset is unresolved" });
+        if (layer.sourceId) {
+          const source = project.sources.find((candidate) => candidate.id === layer.sourceId);
+          if (!source || (!source.dataUrl && !source.runtimeUrl))
+            messages.push({
+              severity: "error",
+              objectId: layer.id,
+              message: "Asset is unresolved",
+            });
+        }
         if (layer.outPoint <= layer.inPoint)
           messages.push({
             severity: "error",

@@ -1,8 +1,16 @@
 import { configurePreviewVideoAudio } from "../core/audio-preview";
+import { sourceForLayer, sourceLocator } from "../core/footage-source";
 import { evaluateLayerSourceTime } from "../core/layer-time";
 import { flattenSceneLayers } from "../core/scene-evaluation";
 import { solidRenderColor, solidRenderSize } from "../core/solid-layer";
-import type { Composition, GpuDiagnostics, Layer, Project, RendererMetrics } from "../core/types";
+import type {
+  Composition,
+  FootageSource,
+  GpuDiagnostics,
+  Layer,
+  Project,
+  RendererMetrics,
+} from "../core/types";
 import { drawTextLayer } from "./text-rasterizer";
 
 interface CanvasMediaResource {
@@ -64,7 +72,13 @@ export class CanvasFallbackRenderer {
       drawCalls += 1;
       const resolvedColor = solidRenderColor(layer);
       const resolvedSize = solidRenderSize(layer);
-      const media = this.#prepareMedia(layer, scene.localTime, playing, scene.instanceId);
+      const media = this.#prepareMedia(
+        layer,
+        sourceForLayer(project, layer),
+        scene.localTime,
+        playing,
+        scene.instanceId,
+      );
       if (media) activeMedia.add(scene.instanceId);
       context.save();
       context.globalCompositeOperation = canvasBlendMode(layer.blendMode);
@@ -114,11 +128,12 @@ export class CanvasFallbackRenderer {
 
   #prepareMedia(
     layer: Layer,
+    footage: FootageSource | undefined,
     time: number,
     playing: boolean,
     instanceId: string,
   ): CanvasMediaResource | undefined {
-    const source = layer.asset?.dataUrl ?? layer.asset?.runtimeUrl;
+    const source = footage && sourceLocator(footage);
     if ((layer.kind !== "image" && layer.kind !== "video") || !source) return undefined;
     let resource = this.#mediaResources.get(instanceId);
     if (!resource || resource.source !== source) {
@@ -138,7 +153,9 @@ export class CanvasFallbackRenderer {
       configurePreviewVideoAudio(video, layer);
       const duration = Number.isFinite(video.duration)
         ? video.duration
-        : (layer.asset?.duration ?? layer.outPoint - layer.inPoint);
+        : footage && "duration" in footage
+          ? footage.duration
+          : layer.outPoint - layer.inPoint;
       const mediaTime = evaluateLayerSourceTime(layer, time, Math.max(0, duration - 0.001));
       if (Math.abs(video.currentTime - mediaTime) > (playing ? 0.12 : 1 / 240))
         video.currentTime = mediaTime;

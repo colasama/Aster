@@ -1,8 +1,9 @@
 import { AsyncWorkPool } from "../core/async-work-pool";
 import { configurePreviewVideoAudio } from "../core/audio-preview";
+import { sourceLocator } from "../core/footage-source";
 import { evaluateLayerSourceTime } from "../core/layer-time";
 import { clampTextAnimationTime, countAnimatedTextCharacters } from "../core/text-animator";
-import type { Layer } from "../core/types";
+import type { FootageSource, Layer } from "../core/types";
 import {
   destroyMediaResource,
   type MediaResource,
@@ -64,19 +65,25 @@ export class MediaTextureCache {
     await Promise.all(resources.map((resource) => this.#waitForVideoFrame(resource, timeoutMs)));
   }
 
-  prepareMedia(layer: Layer, time: number, playing: boolean, instanceId: string): void {
-    const source = layer.asset?.dataUrl ?? layer.asset?.runtimeUrl;
+  prepareMedia(
+    layer: Layer,
+    footage: FootageSource,
+    time: number,
+    playing: boolean,
+    instanceId: string,
+  ): void {
+    const source = sourceLocator(footage);
     if (!source) return;
     const existing = this.#resources.get(instanceId);
     if (existing?.source === source && existing.kind === layer.kind) {
-      if (existing.kind === "video") this.#updateVideo(existing, layer, time, playing);
+      if (existing.kind === "video") this.#updateVideo(existing, layer, footage, time, playing);
       return;
     }
     destroyMediaResource(existing);
     const resource: MediaResource = { source, kind: layer.kind === "video" ? "video" : "image" };
     this.#resources.set(instanceId, resource);
     if (resource.kind === "video") {
-      this.#prepareVideo(resource, layer, time, playing, instanceId);
+      this.#prepareVideo(resource, layer, footage, time, playing, instanceId);
       return;
     }
     void fetch(source)
@@ -85,7 +92,7 @@ export class MediaTextureCache {
         return response.blob();
       })
       .then((blob) => this.#decodePool.run(() => createImageBitmap(blob)))
-      .then((bitmap) => this.#installBitmap(resource, bitmap, layer, instanceId))
+      .then((bitmap) => this.#installBitmap(resource, bitmap, layer, footage, instanceId))
       .catch(() => {
         if (this.#resources.get(instanceId) === resource) this.#resources.delete(instanceId);
       });
@@ -132,6 +139,7 @@ export class MediaTextureCache {
     resource: MediaResource,
     bitmap: ImageBitmap,
     layer: Layer,
+    footage: FootageSource,
     instanceId: string,
   ): void {
     const maximumDimension = Math.min(
@@ -150,7 +158,7 @@ export class MediaTextureCache {
       throw new Error("Decoded media exceeds the GPU texture limits");
     }
     const texture = this.#device.createTexture({
-      label: `Imported image · ${layer.asset?.name ?? layer.name}`,
+      label: `Imported image · ${footage.name}`,
       size: [bitmap.width, bitmap.height],
       format: "rgba8unorm-srgb",
       usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
@@ -184,6 +192,7 @@ export class MediaTextureCache {
   #prepareVideo(
     resource: MediaResource,
     layer: Layer,
+    footage: FootageSource,
     time: number,
     playing: boolean,
     instanceId: string,
@@ -202,8 +211,8 @@ export class MediaTextureCache {
     const prepareTexture = () => {
       if (this.#resources.get(instanceId) !== resource || resource.texture) return;
       video.dataset.decoderState = "ready";
-      const width = Math.max(1, video.videoWidth || layer.asset?.width || 1);
-      const height = Math.max(1, video.videoHeight || layer.asset?.height || 1);
+      const width = Math.max(1, video.videoWidth || ("width" in footage ? footage.width : 1));
+      const height = Math.max(1, video.videoHeight || ("height" in footage ? footage.height : 1));
       if (!this.#validVideoSize(width, height)) {
         video.dataset.decoderState = "error";
         video.dataset.decoderError = "decoded video exceeds the GPU texture limits";
@@ -212,7 +221,7 @@ export class MediaTextureCache {
         return;
       }
       resource.texture = this.#device.createTexture({
-        label: `Hardware-decoded video · ${layer.asset?.name ?? layer.name}`,
+        label: `Hardware-decoded video · ${footage.name}`,
         size: [width, height],
         format: "rgba8unorm-srgb",
         usage:
@@ -244,7 +253,7 @@ export class MediaTextureCache {
         },
       );
       resource.videoExternalUpload.start();
-      this.#updateVideo(resource, layer, time, playing);
+      this.#updateVideo(resource, layer, footage, time, playing);
       this.#invalidate();
     };
     video.addEventListener("loadeddata", prepareTexture, { once: true });
@@ -321,13 +330,21 @@ export class MediaTextureCache {
     });
   }
 
-  #updateVideo(resource: MediaResource, layer: Layer, time: number, playing: boolean): void {
+  #updateVideo(
+    resource: MediaResource,
+    layer: Layer,
+    footage: FootageSource,
+    time: number,
+    playing: boolean,
+  ): void {
     const video = resource.video;
     if (!video) return;
     configurePreviewVideoAudio(video, layer);
     const duration = Number.isFinite(video.duration)
       ? video.duration
-      : (layer.asset?.duration ?? layer.outPoint - layer.inPoint);
+      : "duration" in footage
+        ? footage.duration
+        : layer.outPoint - layer.inPoint;
     const mediaTime = evaluateLayerSourceTime(layer, time, Math.max(0, duration - 0.001));
     const tolerance = playing ? 0.12 : 1 / 240;
     if (Math.abs(video.currentTime - mediaTime) > tolerance) video.currentTime = mediaTime;

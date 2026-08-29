@@ -37,6 +37,49 @@
         }
       }
     },
+    "sourceInterpretation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["alpha", "colorSpace"],
+      "properties": {
+        "alpha": { "enum": ["straight", "premultiplied", "ignore"] },
+        "colorSpace": { "enum": ["srgb", "linear", "display-p3"] },
+        "frameRate": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["numerator", "denominator"],
+          "properties": {
+            "numerator": { "type": "integer", "minimum": 1, "maximum": 240000 },
+            "denominator": { "type": "integer", "minimum": 1, "maximum": 240000 }
+          }
+        }
+      }
+    },
+    "footageSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "name", "mimeType", "contentIdentity", "interpretation"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "kind": { "enum": ["still", "video", "audio", "imageSequence", "svg", "psd"] },
+        "name": { "type": "string", "minLength": 1, "maxLength": 512 },
+        "mimeType": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "contentIdentity": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "dataUrl": { "type": "string", "minLength": 6, "maxLength": 142606336 },
+        "relativePath": { "type": "string", "minLength": 1, "maxLength": 1024 },
+        "runtimeUrl": { "type": "string", "minLength": 1, "maxLength": 4096 },
+        "width": { "type": "integer", "minimum": 1, "maximum": 30000 },
+        "height": { "type": "integer", "minimum": 1, "maximum": 30000 },
+        "duration": { "type": "number", "minimum": 0.001, "maximum": 86400 },
+        "channels": { "type": "integer", "minimum": 1, "maximum": 32 },
+        "sampleRate": { "type": "integer", "minimum": 8000, "maximum": 384000 },
+        "pattern": { "type": "string", "minLength": 1, "maxLength": 1024 },
+        "startFrame": { "type": "integer" },
+        "endFrame": { "type": "integer" },
+        "layerCount": { "type": "integer", "minimum": 1, "maximum": 10000 },
+        "interpretation": { "$ref": "#/$defs/sourceInterpretation" }
+      }
+    },
     "propertyPath": {
       "enum": [
         "position.0",
@@ -1176,10 +1219,64 @@
       }
     },
     {
-      "name": "setLayerAsset",
+      "name": "addSource",
       "version": 1,
       "category": "assets",
-      "description": "Clear a layer asset or copy an already imported asset from another layer.",
+      "description": "Add one validated footage source to the project registry.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "source"],
+        "properties": {
+          "type": { "const": "addSource" },
+          "source": { "$ref": "#/$defs/footageSource" }
+        }
+      }
+    },
+    {
+      "name": "removeSource",
+      "version": 1,
+      "category": "assets",
+      "description": "Remove an unreferenced footage source.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "sourceId"],
+        "properties": {
+          "type": { "const": "removeSource" },
+          "sourceId": { "$ref": "#/$defs/id" }
+        }
+      }
+    },
+    {
+      "name": "cleanupOrphanSources",
+      "version": 1,
+      "category": "assets",
+      "description": "Remove every footage source not referenced by a layer.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type"],
+        "properties": { "type": { "const": "cleanupOrphanSources" } }
+      }
+    },
+    {
+      "name": "setLayerSource",
+      "version": 1,
+      "category": "assets",
+      "description": "Set or clear a layer footage-source reference.",
       "requiredPermissions": ["project.edit"],
       "risk": "reversible",
       "undoable": true,
@@ -1189,9 +1286,73 @@
         "additionalProperties": false,
         "required": ["type", "layerId"],
         "properties": {
-          "type": { "const": "setLayerAsset" },
+          "type": { "const": "setLayerSource" },
           "layerId": { "$ref": "#/$defs/id" },
-          "sourceLayerId": { "$ref": "#/$defs/id" }
+          "sourceId": { "$ref": "#/$defs/id" }
+        }
+      }
+    },
+    {
+      "name": "relinkSource",
+      "version": 1,
+      "category": "assets",
+      "description": "Replace the bounded locator and content identity of a footage source.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "sourceId", "name", "contentIdentity"],
+        "properties": {
+          "type": { "const": "relinkSource" },
+          "sourceId": { "$ref": "#/$defs/id" },
+          "name": { "type": "string", "minLength": 1, "maxLength": 512 },
+          "contentIdentity": { "type": "string", "minLength": 1, "maxLength": 256 },
+          "dataUrl": { "type": "string", "minLength": 6, "maxLength": 142606336 },
+          "relativePath": { "type": "string", "minLength": 1, "maxLength": 1024 },
+          "runtimeUrl": { "type": "string", "minLength": 1, "maxLength": 4096 }
+        }
+      }
+    },
+    {
+      "name": "reloadSource",
+      "version": 1,
+      "category": "assets",
+      "description": "Reload source metadata and content while preserving its stable id and kind.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "sourceId", "source"],
+        "properties": {
+          "type": { "const": "reloadSource" },
+          "sourceId": { "$ref": "#/$defs/id" },
+          "source": { "$ref": "#/$defs/footageSource" }
+        }
+      }
+    },
+    {
+      "name": "interpretSource",
+      "version": 1,
+      "category": "assets",
+      "description": "Replace bounded alpha, color-space, and frame-rate interpretation metadata.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "sourceId", "interpretation"],
+        "properties": {
+          "type": { "const": "interpretSource" },
+          "sourceId": { "$ref": "#/$defs/id" },
+          "interpretation": { "$ref": "#/$defs/sourceInterpretation" }
         }
       }
     },

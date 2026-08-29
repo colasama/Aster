@@ -8,6 +8,7 @@ import {
   type CameraSettings,
   createId,
   type EffectMask,
+  type FootageSource,
   type Keyframe,
   type Layer,
   type LightSettings,
@@ -17,6 +18,7 @@ import {
   type SceneGeneratorInstance,
   type ShapeSettings,
   type SolidSettings,
+  type SourceInterpretation,
   type TextStyle,
 } from "../core/types";
 
@@ -30,6 +32,34 @@ export function normalizeExtendedAiCommand(
     ? composition.layers.find((candidate) => candidate.id === layerId)
     : undefined;
   switch (input.type) {
+    case "addSource":
+      return { type: "addSource", source: copyFootageSourceInput(input.source) };
+    case "removeSource":
+      return { type: "removeSource", sourceId: requiredId(input.sourceId, "sourceId") };
+    case "cleanupOrphanSources":
+      return { type: "cleanupOrphanSources" };
+    case "relinkSource":
+      return {
+        type: "relinkSource",
+        sourceId: requiredId(input.sourceId, "sourceId"),
+        name: String(input.name),
+        contentIdentity: String(input.contentIdentity),
+        ...(typeof input.dataUrl === "string" ? { dataUrl: input.dataUrl } : {}),
+        ...(typeof input.relativePath === "string" ? { relativePath: input.relativePath } : {}),
+        ...(typeof input.runtimeUrl === "string" ? { runtimeUrl: input.runtimeUrl } : {}),
+      };
+    case "reloadSource":
+      return {
+        type: "reloadSource",
+        sourceId: requiredId(input.sourceId, "sourceId"),
+        source: copyFootageSourceInput(input.source),
+      };
+    case "interpretSource":
+      return {
+        type: "interpretSource",
+        sourceId: requiredId(input.sourceId, "sourceId"),
+        interpretation: structuredClone(input.interpretation as SourceInterpretation),
+      };
     case "setActiveComposition": {
       const compositionId = requiredId(input.compositionId, "compositionId");
       requireComposition(project, compositionId);
@@ -181,15 +211,12 @@ export function normalizeExtendedAiCommand(
         layerId,
         solid: structuredClone(input.solid as SolidSettings),
       };
-    case "setLayerAsset": {
+    case "setLayerSource": {
       requireLayer(layer, layerId);
-      const sourceLayerId = optionalId(input.sourceLayerId);
-      if (!sourceLayerId) return { type: "setLayerAsset", layerId };
-      const source = project.compositions
-        .flatMap((candidate) => candidate.layers)
-        .find((candidate) => candidate.id === sourceLayerId);
-      if (!source?.asset) throw new Error("Source layer does not own an imported asset");
-      return { type: "setLayerAsset", layerId, asset: structuredClone(source.asset) };
+      const sourceId = optionalId(input.sourceId);
+      if (sourceId && !project.sources.some((source) => source.id === sourceId))
+        throw new Error("Footage source does not exist");
+      return { type: "setLayerSource", layerId, ...(sourceId ? { sourceId } : {}) };
     }
     case "setCameraSettings":
       requireLayerKind(layer, layerId, "camera");
@@ -379,6 +406,11 @@ export function normalizeExtendedAiCommand(
     default:
       return undefined;
   }
+}
+
+function copyFootageSourceInput(value: unknown): FootageSource {
+  const source = value as FootageSource;
+  return { ...source, interpretation: { ...source.interpretation } } as FootageSource;
 }
 
 function requireComposition(project: Project, id: string) {

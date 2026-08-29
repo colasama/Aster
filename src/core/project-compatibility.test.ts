@@ -34,49 +34,68 @@ describe("project compatibility fallbacks", () => {
     const project = createBlankProject();
     const composition = project.compositions[0];
     const image = createLayerForComposition("image", composition);
-    image.asset = {
+    const source = {
+      id: crypto.randomUUID(),
+      kind: "still" as const,
       name: "missing-plate.png",
       mimeType: "image/png",
+      contentIdentity: "test:missing",
       width: 2048,
       height: 1152,
+      interpretation: { alpha: "straight" as const, colorSpace: "srgb" as const },
     };
+    image.sourceId = source.id;
+    project.sources.push(source);
     composition.layers.push(image);
 
     const restored = validateProjectDocument(JSON.parse(serializeProject(project)));
-    expect(restored.compositions[0].layers[1].asset).toEqual(image.asset);
+    expect(restored.compositions[0].layers[1].sourceId).toBe(source.id);
+    expect(restored.sources[0]).toEqual(source);
   });
 
   it("persists relative asset paths without ephemeral protocol URLs", () => {
     const project = createBlankProject();
     const image = createLayerForComposition("image", project.compositions[0]);
-    image.asset = {
+    const source = {
+      id: crypto.randomUUID(),
+      kind: "still" as const,
       name: "plate.png",
       mimeType: "image/png",
+      contentIdentity: "test:linked",
       width: 1920,
       height: 1080,
       relativePath: "assets/plate.png",
       runtimeUrl: "asset://localhost/plate.png",
+      interpretation: { alpha: "straight" as const, colorSpace: "srgb" as const },
     };
+    image.sourceId = source.id;
+    project.sources.push(source);
     project.compositions[0].layers.push(image);
 
     const persisted = projectDocumentForPersistence(project);
-    expect(persisted.compositions[0].layers[1].asset).toMatchObject({
+    expect(persisted.sources[0]).toMatchObject({
       relativePath: "assets/plate.png",
     });
-    expect(persisted.compositions[0].layers[1].asset?.runtimeUrl).toBeUndefined();
-    expect(project.compositions[0].layers[1].asset?.runtimeUrl).toContain("asset:");
+    expect(persisted.sources[0].runtimeUrl).toBeUndefined();
+    expect(project.sources[0].runtimeUrl).toContain("asset:");
   });
 
   it("rejects relative asset traversal before native resolution", () => {
     const project = createBlankProject();
     const image = createLayerForComposition("image", project.compositions[0]);
-    image.asset = {
+    const source = {
+      id: crypto.randomUUID(),
+      kind: "still" as const,
       name: "secret.png",
       mimeType: "image/png",
+      contentIdentity: "test:traversal",
       width: 1,
       height: 1,
       relativePath: "../secret.png",
+      interpretation: { alpha: "straight" as const, colorSpace: "srgb" as const },
     };
+    image.sourceId = source.id;
+    project.sources.push(source);
     project.compositions[0].layers.push(image);
     expect(() => validateProjectDocument(project)).toThrow("stay inside the project bundle");
   });

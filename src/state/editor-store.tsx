@@ -11,7 +11,7 @@ import {
   useState,
 } from "react";
 import { recordCommandMarker, recordOperations } from "../core/command-log";
-import { applyOperations, type Operation } from "../core/operations";
+import { applyOperations, cloneProjectSnapshot, type Operation } from "../core/operations";
 import { createDemoProject } from "../core/project";
 import { storeRecoverySnapshot } from "../core/project-file";
 import type { Id, Project, RendererMetrics } from "../core/types";
@@ -158,7 +158,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
     case "undo": {
       const project = state.history.past[state.history.past.length - 1];
       if (!project) return state;
-      const restored = structuredClone(project);
+      const restored = cloneProjectSnapshot(project);
       restored.commandLog = state.project.commandLog;
       recordCommandMarker(restored, "undo", "Undo transaction");
       return {
@@ -176,7 +176,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
     case "redo": {
       const [project, ...future] = state.history.future;
       if (!project) return state;
-      const restored = structuredClone(project);
+      const restored = cloneProjectSnapshot(project);
       restored.commandLog = state.project.commandLog;
       recordCommandMarker(restored, "redo", "Redo transaction");
       return {

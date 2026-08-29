@@ -3,6 +3,7 @@ import {
   createCanonicalAdjustmentTransform,
 } from "./adjustment-layer";
 import { type ClonerSettings, normalizeClonerSettings } from "./cloner";
+import { referencedSourceIds, sourceSupportsLayer } from "./footage-source";
 import { applyPrecompositionPlan, type PrecompositionPlan } from "./precomposition";
 import { activeComposition } from "./project";
 import {
@@ -26,6 +27,7 @@ import type {
   Effect,
   EffectMask,
   EnvironmentLighting,
+  FootageSource,
   Id,
   Keyframe,
   Layer,
@@ -37,6 +39,7 @@ import type {
   SceneGeneratorInstance,
   ShapeSettings,
   SolidSettings,
+  SourceInterpretation,
   TextAnimatorSettings,
   TextStyle,
 } from "./types";
@@ -80,6 +83,9 @@ export type Operation =
       end: number;
     }
   | ({ type: "precomposeLayers" } & PrecompositionPlan)
+  | { type: "addSource"; source: FootageSource }
+  | { type: "removeSource"; sourceId: Id }
+  | { type: "cleanupOrphanSources" }
   | { type: "addLayer"; layer: Layer }
   | { type: "removeLayer"; layerId: Id }
   | { type: "renameLayer"; layerId: Id; name: string }
@@ -94,7 +100,18 @@ export type Operation =
   | { type: "setLightSettings"; layerId: Id; light: LightSettings }
   | { type: "setLayerColor"; layerId: Id; color: Layer["color"] }
   | { type: "setSolidSettings"; layerId: Id; solid: SolidSettings }
-  | { type: "setLayerAsset"; layerId: Id; asset?: Layer["asset"] }
+  | { type: "setLayerSource"; layerId: Id; sourceId?: Id }
+  | {
+      type: "relinkSource";
+      sourceId: Id;
+      name: string;
+      contentIdentity: string;
+      dataUrl?: string;
+      relativePath?: string;
+      runtimeUrl?: string;
+    }
+  | { type: "reloadSource"; sourceId: Id; source: FootageSource }
+  | { type: "interpretSource"; sourceId: Id; interpretation: SourceInterpretation }
   | { type: "setCameraSettings"; layerId: Id; camera: CameraSettings }
   | { type: "setSceneGenerator"; layerId: Id; generator: SceneGeneratorInstance }
   | { type: "setClonerSettings"; layerId: Id; cloner?: ClonerSettings }
@@ -174,6 +191,9 @@ export const OPERATION_TYPES = [
   "setCompositionEnvironment",
   "setCompositionWorkArea",
   "precomposeLayers",
+  "addSource",
+  "removeSource",
+  "cleanupOrphanSources",
   "addLayer",
   "removeLayer",
   "renameLayer",
@@ -188,7 +208,10 @@ export const OPERATION_TYPES = [
   "setLightSettings",
   "setLayerColor",
   "setSolidSettings",
-  "setLayerAsset",
+  "setLayerSource",
+  "relinkSource",
+  "reloadSource",
+  "interpretSource",
   "setCameraSettings",
   "setSceneGenerator",
   "setClonerSettings",
@@ -223,7 +246,7 @@ const operationTypeListIsExhaustive: MissingOperationType extends never ? true :
 void operationTypeListIsExhaustive;
 
 export function applyOperations(project: Project, operations: Operation[]): Project {
-  const next = structuredClone(project);
+  const next = cloneProjectSnapshot(project);
   for (const operation of operations) applyOperation(next, operation);
   next.updatedAt = new Date().toISOString();
   return next;
@@ -269,9 +292,7 @@ export function applyOperation(project: Project, operation: Operation): void {
       throw new Error("Project folder does not exist");
     const itemExists =
       project.compositions.some((composition) => composition.id === operation.itemId) ||
-      project.compositions.some((composition) =>
-        composition.layers.some((layer) => layer.id === operation.itemId && layer.asset),
-      );
+      project.sources.some((source) => source.id === operation.itemId);
     if (!itemExists) throw new Error("Project item does not exist");
     if (operation.folderId) project.itemFolderIds[operation.itemId] = operation.folderId;
     else delete project.itemFolderIds[operation.itemId];
@@ -343,11 +364,98 @@ export function applyOperation(project: Project, operation: Operation): void {
     applyPrecompositionPlan(project, operation);
     return;
   }
+  if (operation.type === "addSource") {
+    assertOperationalSource(operation.source);
+    if (project.sources.some((source) => source.id === operation.source.id))
+      throw new Error("Footage source already exists");
+    if (
+      project.sources.some((source) => source.contentIdentity === operation.source.contentIdentity)
+    )
+      throw new Error("Footage source content already exists");
+    project.sources.push(copySourceForOperation(operation.source));
+    return;
+  }
+  if (operation.type === "removeSource") {
+    if (referencedSourceIds(project).has(operation.sourceId))
+      throw new Error("Cannot remove a footage source while layers still reference it");
+    const sourceIndex = project.sources.findIndex((source) => source.id === operation.sourceId);
+    if (sourceIndex < 0) throw new Error("Footage source does not exist");
+    project.sources.splice(sourceIndex, 1);
+    delete project.itemFolderIds[operation.sourceId];
+    return;
+  }
+  if (operation.type === "cleanupOrphanSources") {
+    const referenced = referencedSourceIds(project);
+    const sourceIds = new Set(project.sources.map((source) => source.id));
+    project.sources = project.sources.filter((source) => referenced.has(source.id));
+    for (const itemId of Object.keys(project.itemFolderIds))
+      if (sourceIds.has(itemId) && !referenced.has(itemId)) delete project.itemFolderIds[itemId];
+    return;
+  }
+  if (
+    operation.type === "relinkSource" ||
+    operation.type === "reloadSource" ||
+    operation.type === "interpretSource"
+  ) {
+    const sourceIndex = project.sources.findIndex((source) => source.id === operation.sourceId);
+    if (sourceIndex < 0) throw new Error("Footage source does not exist");
+    const source = project.sources[sourceIndex];
+    if (operation.type === "relinkSource") {
+      assertSourceLocator(
+        operation.contentIdentity,
+        operation.dataUrl,
+        operation.relativePath,
+        operation.runtimeUrl,
+      );
+      if (
+        project.sources.some(
+          (candidate) =>
+            candidate.id !== source.id && candidate.contentIdentity === operation.contentIdentity,
+        )
+      )
+        throw new Error("Footage source content already exists");
+      project.sources[sourceIndex] = {
+        ...source,
+        name: operation.name.trim().slice(0, 512) || source.name,
+        contentIdentity: operation.contentIdentity,
+        dataUrl: operation.dataUrl,
+        relativePath: operation.relativePath,
+        runtimeUrl: operation.runtimeUrl,
+      };
+    } else if (operation.type === "reloadSource") {
+      assertOperationalSource(operation.source);
+      if (operation.source.id !== source.id || operation.source.kind !== source.kind)
+        throw new Error("Reloaded footage must preserve source identity and kind");
+      if (
+        project.sources.some(
+          (candidate) =>
+            candidate.id !== source.id &&
+            candidate.contentIdentity === operation.source.contentIdentity,
+        )
+      )
+        throw new Error("Footage source content already exists");
+      project.sources[sourceIndex] = copySourceForOperation(operation.source);
+    } else {
+      project.sources[sourceIndex] = {
+        ...source,
+        interpretation: normalizeSourceInterpretation(operation.interpretation),
+      };
+    }
+    return;
+  }
   const composition = activeComposition(project);
   if (operation.type === "addLayer") {
     if (composition.layers.some((layer) => layer.id === operation.layer.id))
       throw new Error("Layer already exists");
     if (!isLayerKind(operation.layer.kind)) throw new Error("Layer kind is unsupported");
+    if (operation.layer.sourceId) {
+      const source = project.sources.find((candidate) => candidate.id === operation.layer.sourceId);
+      if (!source) throw new Error("Layer references a missing footage source");
+      if (!sourceSupportsLayer(source, operation.layer))
+        throw new Error(
+          `${source.kind} footage is incompatible with ${operation.layer.kind} layers`,
+        );
+    }
     assertAdjustmentLayerInvariants(operation.layer, composition);
     assertCanAddLayer(project, composition, operation.layer);
     composition.layers.unshift(structuredClone(operation.layer));
@@ -430,9 +538,18 @@ export function applyOperation(project: Project, operation: Operation): void {
     case "setSolidSettings":
       applySolidSettings(layer, operation.solid);
       break;
-    case "setLayerAsset":
-      layer.asset = operation.asset ? structuredClone(operation.asset) : undefined;
+    case "setLayerSource": {
+      if (!operation.sourceId) {
+        layer.sourceId = undefined;
+        break;
+      }
+      const source = project.sources.find((candidate) => candidate.id === operation.sourceId);
+      if (!source) throw new Error("Footage source does not exist");
+      if (!sourceSupportsLayer(source, layer))
+        throw new Error(`${source.kind} footage is incompatible with ${layer.kind} layers`);
+      layer.sourceId = source.id;
       break;
+    }
     case "setCameraSettings":
       layer.camera = {
         projection: operation.camera.projection,
@@ -723,7 +840,7 @@ function assertAdjustmentOperationSupported(layer: Layer, operation: Operation):
     "setLightSettings",
     "setLayerColor",
     "setSolidSettings",
-    "setLayerAsset",
+    "setLayerSource",
     "setCameraSettings",
     "setSceneGenerator",
     "setClonerSettings",
@@ -735,6 +852,130 @@ function assertAdjustmentOperationSupported(layer: Layer, operation: Operation):
   ];
   if (sourceOperations.includes(operation.type))
     throw new Error(`Operation ${operation.type} is not supported for adjustment layers`);
+}
+
+export function cloneProjectSnapshot(project: Project): Project {
+  return {
+    ...project,
+    compositions: project.compositions.map((composition) => structuredClone(composition)),
+    sources: [...project.sources],
+    folders: project.folders.map((folder) => ({ ...folder })),
+    itemFolderIds: { ...project.itemFolderIds },
+    commandLog: project.commandLog.map((entry) => ({ ...entry })),
+  };
+}
+
+function copySourceForOperation(source: FootageSource): FootageSource {
+  return { ...source, interpretation: { ...source.interpretation } } as FootageSource;
+}
+
+function normalizeSourceInterpretation(interpretation: SourceInterpretation): SourceInterpretation {
+  if (!["straight", "premultiplied", "ignore"].includes(interpretation.alpha))
+    throw new Error("Footage alpha interpretation is invalid");
+  if (!["srgb", "linear", "display-p3"].includes(interpretation.colorSpace))
+    throw new Error("Footage color-space interpretation is invalid");
+  return {
+    alpha: interpretation.alpha,
+    colorSpace: interpretation.colorSpace,
+    ...(interpretation.frameRate
+      ? {
+          frameRate: {
+            numerator: Math.round(
+              clamp(interpolationRate(interpretation.frameRate.numerator), 1, 240_000),
+            ),
+            denominator: Math.round(
+              clamp(interpolationRate(interpretation.frameRate.denominator), 1, 240_000),
+            ),
+          },
+        }
+      : {}),
+  };
+}
+
+function interpolationRate(value: number): number {
+  return Number.isFinite(value) ? value : 1;
+}
+
+function assertOperationalSource(source: FootageSource): void {
+  if (!source.id || source.id.length > 256 || !source.name.trim() || source.name.length > 512)
+    throw new Error("Footage source identity is invalid");
+  if (
+    !["still", "video", "audio", "imageSequence", "svg", "psd"].includes(source.kind) ||
+    !source.mimeType ||
+    source.mimeType.length > 256
+  )
+    throw new Error("Footage source type is invalid");
+  assertSourceLocator(
+    source.contentIdentity,
+    source.dataUrl,
+    source.relativePath,
+    source.runtimeUrl,
+  );
+  if (
+    "width" in source &&
+    (!Number.isSafeInteger(source.width) || source.width < 1 || source.width > 30_000)
+  )
+    throw new Error("Footage source width is invalid");
+  if (
+    "height" in source &&
+    (!Number.isSafeInteger(source.height) || source.height < 1 || source.height > 30_000)
+  )
+    throw new Error("Footage source height is invalid");
+  if (
+    "duration" in source &&
+    (!Number.isFinite(source.duration) || source.duration <= 0 || source.duration > 86_400)
+  )
+    throw new Error("Footage source duration is invalid");
+  if (
+    source.kind === "audio" &&
+    (!Number.isSafeInteger(source.channels) || source.channels < 1 || source.channels > 32)
+  )
+    throw new Error("Footage source channel count is invalid");
+  if (
+    source.kind === "audio" &&
+    (!Number.isSafeInteger(source.sampleRate) ||
+      source.sampleRate < 8_000 ||
+      source.sampleRate > 384_000)
+  )
+    throw new Error("Footage source sample rate is invalid");
+  if (
+    source.kind === "imageSequence" &&
+    (!source.pattern ||
+      source.pattern.length > 1024 ||
+      !Number.isSafeInteger(source.startFrame) ||
+      !Number.isSafeInteger(source.endFrame) ||
+      source.endFrame < source.startFrame)
+  )
+    throw new Error("Footage source sequence range is invalid");
+  if (
+    source.kind === "psd" &&
+    (!Number.isSafeInteger(source.layerCount) ||
+      source.layerCount < 1 ||
+      source.layerCount > 10_000)
+  )
+    throw new Error("Footage source PSD layer count is invalid");
+  normalizeSourceInterpretation(source.interpretation);
+}
+
+function assertSourceLocator(
+  contentIdentity: string,
+  dataUrl?: string,
+  relativePath?: string,
+  runtimeUrl?: string,
+): void {
+  if (!contentIdentity || contentIdentity.length > 256)
+    throw new Error("Footage content identity is invalid");
+  if (dataUrl && (!dataUrl.startsWith("data:") || dataUrl.length > 136 * 1024 * 1024))
+    throw new Error("Footage embedded data is invalid");
+  if (
+    relativePath &&
+    (relativePath.length > 1024 ||
+      relativePath.includes("\\") ||
+      relativePath.startsWith("/") ||
+      relativePath.split("/").some((segment) => segment === ".."))
+  )
+    throw new Error("Footage relative path is invalid");
+  if (runtimeUrl && runtimeUrl.length > 4096) throw new Error("Footage runtime URL is invalid");
 }
 
 function clamp01(value: number): number {

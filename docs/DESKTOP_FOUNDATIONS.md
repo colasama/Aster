@@ -101,7 +101,8 @@ Three persistence domains have independent version boundaries:
 3. Project loading runs through a sequential migration registry. The v1 to v2 transform converts
    legacy `particle` layers into built-in `generator` layers while preserving their identity,
    timing, transforms, cloners, and settings. The v2 to v3 transform introduces explicit null and
-   solid source semantics without rewriting prior layers. Older unsupported or future versions fail without
+   solid source semantics without rewriting prior layers. The v3 to v4 transform deduplicates nested
+   image/video payloads into the project footage registry and installs stable layer references. Older unsupported or future versions fail without
    modifying their source document.
 
 Migrations must be deterministic, operate on a clone, validate their output version, preserve a

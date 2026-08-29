@@ -290,15 +290,23 @@ export function TopBar() {
       const kind = item === "importImage" ? "image" : "video";
       const requestToken = toastActions.beginRequest();
       void importMediaLayer(kind, composition, state.currentTime)
-        .then((layer) => {
-          if (!layer) return;
+        .then((imported) => {
+          if (!imported) return;
+          const existing = state.project.sources.find(
+            (source) => source.contentIdentity === imported.source.contentIdentity,
+          );
+          const source = existing ?? imported.source;
+          const layer = { ...imported.layer, sourceId: source.id };
           dispatch({
             type: "operation",
-            operations: [{ type: "addLayer", layer }],
+            operations: [
+              ...(!existing ? ([{ type: "addSource", source }] as const) : []),
+              { type: "addLayer", layer },
+            ],
             select: [layer.id],
           });
           toastActions.show(
-            toastMessage("topbar.toast.imported", { name: layer.asset?.name ?? layer.name }),
+            toastMessage("topbar.toast.imported", { name: source.name }),
             requestToken,
           );
         })

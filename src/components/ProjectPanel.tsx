@@ -37,14 +37,20 @@ import {
   type StandardLayerKind,
 } from "../core/layer-factory";
 import { activeComposition, createBlankComposition } from "../core/project";
-import { relinkProjectAsset } from "../core/project-file";
+import { relinkProjectSource } from "../core/project-file";
 import {
   createSceneGeneratorInstance,
   getSceneGeneratorDefinitions,
   type SceneGeneratorDefinition,
   subscribeSceneGeneratorDefinitions,
 } from "../core/scene-generator-registry";
-import { createId, type Id, type Layer, type ProjectFolder } from "../core/types";
+import {
+  createId,
+  type FootageSource,
+  type Id,
+  type Layer,
+  type ProjectFolder,
+} from "../core/types";
 import {
   readEffectBrowserPreferences,
   recordRecentEffect,
@@ -80,8 +86,8 @@ const ROOT_ASSETS_ID = "root-assets";
 const PROJECT_ITEM_MIME = "application/x-aster-project-item";
 
 interface MediaProjectItem {
-  compositionId: Id;
-  layer: Layer;
+  source: FootageSource;
+  instances: Array<{ compositionId: Id; layer: Layer }>;
 }
 
 export function ProjectPanel() {
@@ -117,14 +123,20 @@ export function ProjectPanel() {
   const composition = activeComposition(state.project);
   const mediaItems = useMemo<MediaProjectItem[]>(
     () =>
-      state.project.compositions.flatMap((candidate) =>
-        candidate.layers
-          .filter((layer) => layer.asset)
-          .map((layer) => ({ compositionId: candidate.id, layer })),
-      ),
-    [state.project.compositions],
+      state.project.sources.map((source) => ({
+        source,
+        instances: state.project.compositions.flatMap((candidate) =>
+          candidate.layers
+            .filter((layer) => layer.sourceId === source.id)
+            .map((layer) => ({ compositionId: candidate.id, layer })),
+        ),
+      })),
+    [state.project.compositions, state.project.sources],
   );
   const selectedLayer = composition.layers.find((layer) => layer.id === state.selection[0]);
+  const selectedSource = state.project.sources.find(
+    (source) => source.id === selectedLayer?.sourceId,
+  );
   const availableEffects = useMemo(() => [...EFFECT_REGISTRY, ...pluginEffects], [pluginEffects]);
   const filteredEffects = useMemo(
     () =>
@@ -307,12 +319,20 @@ export function ProjectPanel() {
   const importMedia = async (kind: "image" | "video", file: File, folderId?: Id) => {
     try {
       setAssetError(undefined);
-      const layer = await createMediaLayerFromFile(kind, file, composition, state.currentTime);
+      const imported = await createMediaLayerFromFile(kind, file, composition, state.currentTime);
+      const existing = state.project.sources.find(
+        (source) => source.contentIdentity === imported.source.contentIdentity,
+      );
+      const source = existing ?? imported.source;
+      const layer = { ...imported.layer, sourceId: source.id };
       dispatch({
         type: "operation",
         operations: [
+          ...(!existing ? ([{ type: "addSource", source }] as const) : []),
           { type: "addLayer", layer },
-          ...(folderId ? ([{ type: "moveProjectItem", itemId: layer.id, folderId }] as const) : []),
+          ...(folderId
+            ? ([{ type: "moveProjectItem", itemId: source.id, folderId }] as const)
+            : []),
         ],
         select: [layer.id],
       });
@@ -351,14 +371,14 @@ export function ProjectPanel() {
     setDropTargetId(undefined);
   };
   const relinkSelectedAsset = async () => {
-    if (!selectedLayer) return;
+    if (!selectedSource) return;
     try {
       setAssetError(undefined);
-      const asset = await relinkProjectAsset(selectedLayer);
-      if (asset)
+      const source = await relinkProjectSource(selectedSource);
+      if (source)
         dispatch({
           type: "operation",
-          operations: [{ type: "setLayerAsset", layerId: selectedLayer.id, asset }],
+          operations: [{ type: "reloadSource", sourceId: selectedSource.id, source }],
         });
     } catch {
       setAssetError("assetRelink");
@@ -369,14 +389,14 @@ export function ProjectPanel() {
     candidate.name.toLowerCase().includes(normalizedQuery),
   );
   const matchingMediaItems = mediaItems.filter((item) =>
-    (item.layer.asset?.name ?? item.layer.name).toLowerCase().includes(normalizedQuery),
+    item.source.name.toLowerCase().includes(normalizedQuery),
   );
   const itemCountInFolder = (folderId?: Id): number => {
     const direct =
       state.project.compositions.filter(
         (candidate) => state.project.itemFolderIds[candidate.id] === folderId,
       ).length +
-      mediaItems.filter((item) => state.project.itemFolderIds[item.layer.id] === folderId).length;
+      mediaItems.filter((item) => state.project.itemFolderIds[item.source.id] === folderId).length;
     return state.project.folders
       .filter((folder) => folder.parentId === folderId)
       .reduce((count, folder) => count + itemCountInFolder(folder.id), direct);
@@ -409,35 +429,40 @@ export function ProjectPanel() {
         </button>
       );
     }
-    const { layer, compositionId } = item.media;
-    const asset = layer.asset;
+    const { source, instances } = item.media;
+    const preferredInstance =
+      instances.find((instance) => instance.compositionId === composition.id) ?? instances[0];
     return (
       <button
-        className={`tree-row asset project-item ${state.selection.includes(layer.id) ? "selected" : ""} ${asset?.dataUrl || asset?.runtimeUrl ? "" : "missing"} ${draggedItemId === layer.id ? "dragging" : ""}`}
+        className={`tree-row asset project-item ${preferredInstance && state.selection.includes(preferredInstance.layer.id) ? "selected" : ""} ${source.dataUrl || source.runtimeUrl ? "" : "missing"} ${draggedItemId === source.id ? "dragging" : ""}`}
         draggable
-        key={`asset:${layer.id}`}
+        key={`source:${source.id}`}
         onClick={() => {
-          if (compositionId !== composition.id)
-            dispatch({ type: "setActiveComposition", compositionId });
-          dispatch({ type: "select", ids: [layer.id] });
+          if (!preferredInstance) return;
+          if (preferredInstance.compositionId !== composition.id)
+            dispatch({
+              type: "setActiveComposition",
+              compositionId: preferredInstance.compositionId,
+            });
+          dispatch({ type: "select", ids: [preferredInstance.layer.id] });
         }}
         onDragEnd={() => setDraggedItemId(undefined)}
-        onDragStart={(event) => startItemDrag(event, layer.id)}
+        onDragStart={(event) => startItemDrag(event, source.id)}
         style={{ "--tree-depth": depth } as CSSProperties}
         title={
-          asset?.dataUrl || asset?.runtimeUrl
-            ? t("project.asset.locate", { name: asset.name })
-            : t("project.asset.missingTitle", { name: asset?.name ?? layer.name })
+          source.dataUrl || source.runtimeUrl
+            ? t("project.asset.locate", { name: source.name })
+            : t("project.asset.missingTitle", { name: source.name })
         }
         type="button"
       >
-        {layer.kind === "video" ? <Film size={14} /> : <FileImage size={14} />}
-        <span>{asset?.name ?? layer.name}</span>
+        {source.kind === "video" ? <Film size={14} /> : <FileImage size={14} />}
+        <span>{source.name}</span>
         <small>
-          {asset?.dataUrl || asset?.runtimeUrl ? (
+          {source.dataUrl || source.runtimeUrl ? (
             <>
-              {asset.width}×{asset.height}
-              {asset.duration ? ` · ${asset.duration.toFixed(1)}s` : ""}
+              {"width" in source && "height" in source ? `${source.width}×${source.height}` : ""}
+              {"duration" in source ? ` · ${source.duration.toFixed(1)}s` : ""}
             </>
           ) : (
             t("project.asset.missing")
@@ -455,8 +480,8 @@ export function ProjectPanel() {
         compositionId: candidate.id,
       }));
     const media = matchingMediaItems
-      .filter((item) => state.project.itemFolderIds[item.layer.id] === folderId)
-      .map((item) => ({ kind: "media" as const, id: item.layer.id, media: item }));
+      .filter((item) => state.project.itemFolderIds[item.source.id] === folderId)
+      .map((item) => ({ kind: "media" as const, id: item.source.id, media: item }));
     return [...compositions, ...media].map((item) => renderProjectItem(item, depth));
   };
   const renderFolder = (folder: ProjectFolder, depth: number) => {
@@ -858,7 +883,7 @@ export function ProjectPanel() {
               ))}
             </div>
           </div>
-          {selectedLayer?.asset && (
+          {selectedSource && (
             <button
               className="asset-relink"
               onClick={() => void relinkSelectedAsset()}

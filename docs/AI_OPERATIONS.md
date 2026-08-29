@@ -17,7 +17,7 @@ on demand, executes them in an isolated workspace, and submits a cumulative type
 6. Freeze one cumulative semantic diff and reject a stale live revision.
 7. Apply accepted work as one undoable transaction and append a secret-free audit record.
 
-The registry covers all 50 variants in the live TypeScript `Operation` union. Asset import, project
+The registry covers all 56 variants in the live TypeScript `Operation` union. Asset import, project
 I/O, plugin installation, export, filesystem, process, and network actions remain separate services
 because they have different authority, cancellation, and audit requirements.
 
@@ -45,7 +45,13 @@ because they have different authority, cancellation, and audit requirements.
 | `setLightSettings` | 3D | Replaces light settings. |
 | `setLayerColor` | Layers | Sets linear RGBA layer color. |
 | `setSolidSettings` | Layers | Replaces bounded solid dimensions and normalized RGBA color. |
-| `setLayerAsset` | Assets | Clears or reuses an already imported layer asset. |
+| `addSource` | Assets | Adds one validated project footage source. |
+| `removeSource` | Assets | Removes an unreferenced footage source. |
+| `cleanupOrphanSources` | Assets | Removes every unreferenced footage source. |
+| `setLayerSource` | Assets | Sets or clears a layer source reference. |
+| `relinkSource` | Assets | Replaces a source locator and content identity. |
+| `reloadSource` | Assets | Reloads source metadata while preserving its stable identity. |
+| `interpretSource` | Assets | Replaces source alpha, color-space, and frame-rate interpretation. |
 | `setCameraSettings` | 3D | Replaces camera settings. |
 | `setSceneGenerator` | Scene generators | Replaces a generator plugin instance and its bounded parameters. |
 | `setClonerSettings` | Cloners | Replaces or clears cloner distribution and effectors. |

@@ -1,4 +1,4 @@
-# Aster project format v3
+# Aster project format v4
 
 The development editor currently exchanges a readable JSON document named `*.aster.json`. The Rust
 bundle layer stores the same versioned domain model inside an atomically replaced project path. Cache,
@@ -8,11 +8,12 @@ proxy, and preview data are deliberately excluded.
 
 ```json
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "id": "stable-uuid",
   "name": "Project name",
   "activeCompositionId": "stable-uuid",
   "compositions": [],
+  "sources": [],
   "folders": [],
   "itemFolderIds": {},
   "commandLog": [],
@@ -32,7 +33,17 @@ identified by a stable type string and numeric parameter map so missing plugins 
 safe. An effect may carry per-parameter ordered keyframe tracks without changing its static fallback
 map. Precomposition layers reference another composition by stable ID. Development image/video
 imports may use bounded `data:` URLs for portable single-file projects; the native bundle layer will
-externalize large media into an asset directory without changing layer references.
+externalize large media into an asset directory without changing layer references. Version 4 stores
+footage once in the project-level `sources` registry. Image and video layer instances reference it by
+stable `sourceId`, so duplication, parenting, effects, and timeline edits never copy encoded bytes.
+
+Sources are discriminated as `still`, `video`, `audio`, `imageSequence`, `svg`, or `psd`. Every source
+has a stable ID, MIME type, bounded content identity, optional embedded/relative/runtime locator, and
+explicit alpha/color-space/frame-rate interpretation. Kind-specific dimensions, durations, channel
+metadata, sequence ranges, and PSD layer counts are bounded before use. Current importers produce
+`still` and `video`; the other discriminants reserve compatible project data without claiming a
+decoder. Importers implement the fixed `probe`, `validate`, and `import` contract and must validate
+before admitting a source.
 
 Null and solid layers have explicit source semantics. A `null` remains selectable, parentable,
 time-addressable, and 2D/3D-transformable, but emits no render geometry; effects attached to it are
@@ -64,7 +75,7 @@ independent of installed plugins and preserves data during plugin recovery or do
 
 The project panel stores AE-style organizational bins in `folders`. A folder has a stable ID, a
 bounded display name, and an optional `parentId` for nesting. `itemFolderIds` maps composition IDs or
-source-backed layer IDs to their containing folder. These fields affect project-panel organization
+footage source IDs to their containing folder. These fields affect project-panel organization
 only: rendering data remains on compositions and layers, so moving an item between folders never
 copies media or invalidates GPU resources. Readers hydrate both fields as empty for early version 1
 documents, reject missing parents and folder cycles, and preserve the organization through saves,
@@ -92,10 +103,12 @@ worker before their source is admitted to the project document.
   validating the current `schemaVersion`. The v1 → v2 migration converts legacy `particle` layers
   into `generator` layers backed by `org.aster.builtin.particles` without changing IDs, timing,
   transforms, cloners, or settings. The v2 → v3 migration establishes the explicit null/solid layer
-  vocabulary without rewriting existing layers. Older, future, missing, or fractional versions fail
+  vocabulary without rewriting existing layers. The v3 → v4 migration lifts nested image/video
+  assets into `sources`, deduplicates exact repeated content, and replaces each nested payload with a
+  stable `sourceId`. Older, future, missing, or fractional versions fail
   before partially applying the document.
-- The native bundle boundary accepts v1 through v3 on read so the renderer can run migrations, but
-  new primary saves and autosaves must already be validated v3 documents.
+- The native bundle boundary accepts v1 through v4 on read so the renderer can run migrations, but
+  new primary saves and autosaves must already be validated v4 documents.
 - Every future historical transform must preserve the source document, set exactly the next integer
   version, and gain a compatibility fixture before the current schema version increases.
 - Unknown effect types and parameters must be preserved and disabled when execution is unavailable.

@@ -28,13 +28,19 @@ describe("bounded AI project queries", () => {
     const project = createDemoProject();
     const composition = project.compositions[0];
     const image = createLayerForComposition("image", composition);
-    image.asset = {
+    const source = {
+      id: crypto.randomUUID(),
+      kind: "still" as const,
       name: "plate.png",
       mimeType: "image/png",
+      contentIdentity: "test:private",
       dataUrl: "data:image/png;base64,PRIVATE_BYTES",
       width: 1920,
       height: 1080,
+      interpretation: { alpha: "straight" as const, colorSpace: "srgb" as const },
     };
+    image.sourceId = source.id;
+    project.sources.push(source);
     composition.layers.push(image);
     const serialized = JSON.stringify(queryAssets(project));
     expect(serialized).toContain("plate.png");

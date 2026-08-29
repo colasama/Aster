@@ -260,22 +260,33 @@ describe("GPU precomposition surfaces", () => {
     const duplicateMediaId = crypto.randomUUID();
     const mediaA = createLayerForComposition("image", sourceA);
     mediaA.id = duplicateMediaId;
-    mediaA.asset = {
+    const footageA = {
+      id: crypto.randomUUID(),
+      kind: "still" as const,
       name: "A.png",
       mimeType: "image/png",
+      contentIdentity: "test:A",
       dataUrl: "data:image/png;base64,QQ==",
       width: 16,
       height: 16,
+      interpretation: { alpha: "straight" as const, colorSpace: "srgb" as const },
     };
+    mediaA.sourceId = footageA.id;
     const mediaB = createLayerForComposition("image", sourceB);
     mediaB.id = duplicateMediaId;
-    mediaB.asset = {
+    const footageB = {
+      id: crypto.randomUUID(),
+      kind: "still" as const,
       name: "B.png",
       mimeType: "image/png",
+      contentIdentity: "test:B",
       dataUrl: "data:image/png;base64,Qg==",
       width: 16,
       height: 16,
+      interpretation: { alpha: "straight" as const, colorSpace: "srgb" as const },
     };
+    mediaB.sourceId = footageB.id;
+    project.sources.push(footageA, footageB);
     const duplicateNestedId = crypto.randomUUID();
     const nestedA = createLayerForComposition("precomposition", sourceA);
     nestedA.id = duplicateNestedId;
@@ -302,7 +313,7 @@ describe("GPU precomposition surfaces", () => {
     const namespaceB = `surface:root/${wrapperB.id}`;
     const nestedBindingA = renderer.bindingFor(`${namespaceA}/root/${duplicateNestedId}`);
     const nestedBindingB = renderer.bindingFor(`${namespaceB}/root/${duplicateNestedId}`);
-    const mediaIds = prepareMedia.mock.calls.map((call) => call[3]);
+    const mediaIds = prepareMedia.mock.calls.map((call) => call[4]);
 
     expect(frame.surfaceCount).toBe(4);
     expect(nestedBindingA).toBeDefined();
@@ -335,14 +346,20 @@ describe("GPU precomposition surfaces", () => {
     const source = structuredClone(root);
     source.id = crypto.randomUUID();
     const video = createLayerForComposition("video", source);
-    video.asset = {
+    const footage = {
+      id: crypto.randomUUID(),
+      kind: "video" as const,
       name: "sample.mp4",
       mimeType: "video/mp4",
+      contentIdentity: "test:video",
       runtimeUrl: "blob:sample",
       width: 16,
       height: 16,
       duration: source.duration,
+      interpretation: { alpha: "straight" as const, colorSpace: "srgb" as const },
     };
+    video.sourceId = footage.id;
+    project.sources.push(footage);
     source.layers = [video];
     const wrapperA = createLayerForComposition("precomposition", root);
     wrapperA.sourceCompositionId = source.id;
@@ -356,7 +373,7 @@ describe("GPU precomposition surfaces", () => {
     project.compositions.push(source);
 
     const frame = renderer.prepare(project, flattenSceneLayers(root, project, 0), false);
-    const calls = prepareMedia.mock.calls.map((call) => ({ time: call[1], id: call[3] }));
+    const calls = prepareMedia.mock.calls.map((call) => ({ time: call[2], id: call[4] }));
 
     expect(frame.surfaceCount).toBe(2);
     expect(calls).toEqual([
@@ -388,13 +405,19 @@ describe("GPU precomposition surfaces", () => {
     const source = structuredClone(root);
     source.id = crypto.randomUUID();
     const image = createLayerForComposition("image", source);
-    image.asset = {
+    const footage = {
+      id: crypto.randomUUID(),
+      kind: "still" as const,
       name: "stable.png",
       mimeType: "image/png",
+      contentIdentity: "test:stable",
       dataUrl: "data:image/png;base64,QQ==",
       width: 16,
       height: 16,
+      interpretation: { alpha: "straight" as const, colorSpace: "srgb" as const },
     };
+    image.sourceId = footage.id;
+    project.sources.push(footage);
     source.layers = [image];
     const wrapper = createLayerForComposition("precomposition", root);
     wrapper.sourceCompositionId = source.id;

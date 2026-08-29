@@ -18,6 +18,108 @@ import {
 import type { Lut3dResource } from "./types";
 
 describe("structured project operations", () => {
+  it("manages shared footage sources without cloning embedded bytes on unrelated edits", () => {
+    const project = createBlankProject();
+    const composition = activeComposition(project);
+    const bytes = `data:image/png;base64,${"A".repeat(1024)}`;
+    const source = {
+      id: crypto.randomUUID(),
+      kind: "still" as const,
+      name: "plate.png",
+      mimeType: "image/png",
+      contentIdentity: "test:shared-plate",
+      dataUrl: bytes,
+      width: 1920,
+      height: 1080,
+      interpretation: { alpha: "straight" as const, colorSpace: "srgb" as const },
+    };
+    const first = createLayerForComposition("image", composition);
+    const second = createLayerForComposition("image", composition);
+    first.sourceId = source.id;
+    second.sourceId = source.id;
+    const imported = applyOperations(project, [
+      { type: "addSource", source },
+      { type: "addLayer", layer: first },
+      { type: "addLayer", layer: second },
+    ]);
+    expect(imported.sources[0].dataUrl).toBe(bytes);
+    expect(imported.compositions[0].layers.slice(0, 2).map((layer) => layer.sourceId)).toEqual([
+      source.id,
+      source.id,
+    ]);
+
+    const renamed = applyOperations(imported, [
+      { type: "renameLayer", layerId: first.id, name: "Plate instance" },
+    ]);
+    expect(renamed.sources[0]).toBe(imported.sources[0]);
+    expect(() =>
+      applyOperations(imported, [{ type: "removeSource", sourceId: source.id }]),
+    ).toThrow("still reference it");
+
+    const detached = applyOperations(imported, [
+      { type: "setLayerSource", layerId: first.id },
+      { type: "setLayerSource", layerId: second.id },
+      { type: "cleanupOrphanSources" },
+    ]);
+    expect(detached.sources).toEqual([]);
+  });
+
+  it("relinks, reloads, and interprets one stable footage source", () => {
+    const project = createBlankProject();
+    const source = {
+      id: crypto.randomUUID(),
+      kind: "video" as const,
+      name: "take.mp4",
+      mimeType: "video/mp4",
+      contentIdentity: "test:take-1",
+      relativePath: "assets/take.mp4",
+      width: 1280,
+      height: 720,
+      duration: 5,
+      interpretation: { alpha: "straight" as const, colorSpace: "srgb" as const },
+    };
+    const added = applyOperations(project, [{ type: "addSource", source }]);
+    const relinked = applyOperations(added, [
+      {
+        type: "relinkSource",
+        sourceId: source.id,
+        name: "take-new.mp4",
+        contentIdentity: "test:take-2",
+        runtimeUrl: "asset://take-new.mp4",
+      },
+      {
+        type: "interpretSource",
+        sourceId: source.id,
+        interpretation: {
+          alpha: "ignore",
+          colorSpace: "display-p3",
+          frameRate: { numerator: 24_000, denominator: 1001 },
+        },
+      },
+    ]);
+    expect(relinked.sources[0]).toMatchObject({
+      name: "take-new.mp4",
+      contentIdentity: "test:take-2",
+      relativePath: undefined,
+      runtimeUrl: "asset://take-new.mp4",
+      interpretation: {
+        alpha: "ignore",
+        colorSpace: "display-p3",
+        frameRate: { numerator: 24_000, denominator: 1001 },
+      },
+    });
+    const current = relinked.sources[0];
+    if (current.kind !== "video") throw new Error("Expected video source");
+    const reloaded = applyOperations(relinked, [
+      {
+        type: "reloadSource",
+        sourceId: source.id,
+        source: { ...current, width: 1920, height: 1080, duration: 6 },
+      },
+    ]);
+    expect(reloaded.sources[0]).toMatchObject({ width: 1920, height: 1080, duration: 6 });
+  });
+
   it("updates dedicated solid settings atomically and preserves them through copy-safe snapshots", () => {
     const project = createBlankProject();
     const composition = activeComposition(project);
@@ -259,30 +361,36 @@ describe("structured project operations", () => {
     const folder = { id: crypto.randomUUID(), name: "Footage" };
     const nestedFolder = { id: crypto.randomUUID(), name: "Selects", parentId: folder.id };
     const image = createLayerForComposition("image", activeComposition(source));
-    image.asset = {
+    const footage = {
+      id: crypto.randomUUID(),
+      kind: "still" as const,
       name: "plate.png",
       mimeType: "image/png",
+      contentIdentity: "test:plate",
       dataUrl: "data:image/png;base64,AA==",
       width: 1,
       height: 1,
+      interpretation: { alpha: "straight" as const, colorSpace: "srgb" as const },
     };
+    image.sourceId = footage.id;
     const organized = applyOperations(source, [
+      { type: "addSource", source: footage },
       { type: "addLayer", layer: image },
       { type: "addProjectFolder", folder },
       { type: "addProjectFolder", folder: nestedFolder },
       { type: "moveProjectItem", itemId: source.activeCompositionId, folderId: folder.id },
-      { type: "moveProjectItem", itemId: image.id, folderId: nestedFolder.id },
+      { type: "moveProjectItem", itemId: footage.id, folderId: nestedFolder.id },
     ]);
 
     expect(organized.folders).toEqual([folder, nestedFolder]);
     expect(organized.itemFolderIds).toEqual({
       [source.activeCompositionId]: folder.id,
-      [image.id]: nestedFolder.id,
+      [footage.id]: nestedFolder.id,
     });
     const returnedToRoot = applyOperations(organized, [
-      { type: "moveProjectItem", itemId: image.id },
+      { type: "moveProjectItem", itemId: footage.id },
     ]);
-    expect(returnedToRoot.itemFolderIds[image.id]).toBeUndefined();
+    expect(returnedToRoot.itemFolderIds[footage.id]).toBeUndefined();
     expect(source.folders).toEqual([]);
   });
 

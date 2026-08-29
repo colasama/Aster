@@ -1,7 +1,7 @@
 import { createTransform, type Layer, type Transform } from "./types";
 
 const SOURCE_FIELDS = [
-  "asset",
+  "sourceId",
   "text",
   "sourceCompositionId",
   "material",

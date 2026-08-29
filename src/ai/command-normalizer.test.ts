@@ -10,6 +10,44 @@ import { createBlankComposition, createBlankProject } from "../core/project";
 import { normalizeAiCommands } from "./command-normalizer";
 
 describe("AI command normalization", () => {
+  it("adds, assigns, and interprets a versioned footage source", () => {
+    const project = createBlankProject();
+    const composition = project.compositions[0];
+    const image = createLayerForComposition("image", composition);
+    composition.layers.push(image);
+    const source = {
+      id: crypto.randomUUID(),
+      kind: "still" as const,
+      name: "plate.png",
+      mimeType: "image/png",
+      contentIdentity: "test:ai-plate",
+      dataUrl: "data:image/png;base64,AA==",
+      width: 1920,
+      height: 1080,
+      interpretation: { alpha: "straight" as const, colorSpace: "srgb" as const },
+    };
+    const result = normalizeAiCommands(
+      [
+        { type: "addSource", source },
+        { type: "setLayerSource", layerId: image.id, sourceId: source.id },
+        {
+          type: "interpretSource",
+          sourceId: source.id,
+          interpretation: { alpha: "premultiplied", colorSpace: "linear" },
+        },
+      ],
+      project,
+      0,
+    );
+    expect(result.project.sources[0].interpretation).toEqual({
+      alpha: "premultiplied",
+      colorSpace: "linear",
+    });
+    expect(
+      result.project.compositions[0].layers.find((layer) => layer.id === image.id)?.sourceId,
+    ).toBe(source.id);
+  });
+
   it("creates and updates bounded solid sources while keeping nulls source-free", () => {
     const project = createBlankProject();
     const added = normalizeAiCommands(

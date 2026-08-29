@@ -1,10 +1,11 @@
 use aster_core::Project;
 use base64::Engine;
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use std::{
     collections::BTreeSet,
     fs,
-    io::{self, BufRead, Write},
+    io::{self, BufRead, Read, Write},
     path::{Component, Path, PathBuf},
     sync::Mutex,
     time::Instant,
@@ -108,6 +109,7 @@ struct LinkedProjectAsset {
     relative_path: String,
     resolved_path: PathBuf,
     name: String,
+    content_identity: String,
 }
 
 async fn link_project_asset(
@@ -199,6 +201,37 @@ fn resolve_project_asset_paths(
     project: &mut serde_json::Value,
 ) -> Result<Vec<PathBuf>, String> {
     let mut assets = Vec::new();
+    for source in project
+        .get_mut("sources")
+        .and_then(serde_json::Value::as_array_mut)
+        .into_iter()
+        .flatten()
+    {
+        let Some(source) = source.as_object_mut() else {
+            continue;
+        };
+        let Some(relative) = source
+            .get("relativePath")
+            .and_then(serde_json::Value::as_str)
+        else {
+            continue;
+        };
+        let candidate = bundle.join(safe_relative_path(relative)?);
+        if !candidate.is_file() {
+            continue;
+        }
+        let resolved = candidate
+            .canonicalize()
+            .map_err(|error| error.to_string())?;
+        if !resolved.starts_with(bundle) {
+            return Err("relative asset resolves outside the project bundle".to_owned());
+        }
+        source.insert(
+            "resolvedPath".to_owned(),
+            serde_json::Value::String(resolved.to_string_lossy().into_owned()),
+        );
+        assets.push(resolved);
+    }
     for composition in project
         .get_mut("compositions")
         .and_then(serde_json::Value::as_array_mut)
@@ -277,6 +310,7 @@ fn link_asset(bundle: &str, source: &str, kind: &str) -> Result<LinkedProjectAss
         .map(|component| component.as_os_str().to_string_lossy())
         .collect::<Vec<_>>()
         .join("/");
+    let content_identity = sha256_file_identity(&resolved)?;
     Ok(LinkedProjectAsset {
         relative_path,
         name: resolved
@@ -284,8 +318,23 @@ fn link_asset(bundle: &str, source: &str, kind: &str) -> Result<LinkedProjectAss
             .and_then(|name| name.to_str())
             .unwrap_or("asset")
             .to_owned(),
+        content_identity,
         resolved_path: resolved,
     })
+}
+
+fn sha256_file_identity(path: &Path) -> Result<String, String> {
+    let mut file = fs::File::open(path).map_err(|error| error.to_string())?;
+    let mut digest = Sha256::new();
+    let mut buffer = [0_u8; 64 * 1024];
+    loop {
+        let count = file.read(&mut buffer).map_err(|error| error.to_string())?;
+        if count == 0 {
+            break;
+        }
+        digest.update(&buffer[..count]);
+    }
+    Ok(format!("sha256:{:x}", digest.finalize()))
 }
 
 fn safe_relative_path(value: &str) -> Result<PathBuf, String> {
@@ -366,8 +415,8 @@ fn valid_render_frame_name(name: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::{
-        link_asset, read_plugin_preferences, safe_relative_path, valid_render_frame_name,
-        write_render_frame,
+        link_asset, read_plugin_preferences, safe_relative_path, sha256_file_identity,
+        valid_render_frame_name, write_render_frame,
     };
     use std::fs;
 
@@ -406,6 +455,10 @@ mod tests {
         )
         .expect("link project asset");
         assert_eq!(linked.relative_path, "assets/plate.png");
+        assert_eq!(
+            linked.content_identity,
+            sha256_file_identity(&source).unwrap()
+        );
         assert_eq!(
             fs::read(linked.resolved_path).expect("read linked asset"),
             [1, 2, 3, 4]

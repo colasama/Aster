@@ -14,6 +14,12 @@ import {
   MAX_SERIALIZED_COMMAND_SIZE,
 } from "./command-log";
 import { runCpuTask } from "./cpu-scheduler";
+import {
+  copySourceWithoutRuntimeUrl,
+  MAX_SOURCE_DIMENSION,
+  MAX_SOURCE_DURATION,
+  sourceSupportsLayer,
+} from "./footage-source";
 import { logger } from "./logger";
 import { assertProjectRenderBoundaries } from "./project-render-boundaries";
 import { cloneCurrentProjectDocument } from "./project-schema";
@@ -22,7 +28,14 @@ import { validateShapeGraph } from "./shape-graph";
 import { MAX_SOLID_DIMENSION } from "./solid-layer";
 import { TEXT_ANIMATOR_LIMITS } from "./text-animator";
 import { normalizeWorkArea } from "./timeline-editing";
-import { type Composition, type Effect, isLayerKind, type Layer, type Project } from "./types";
+import {
+  type Composition,
+  type Effect,
+  type FootageSource,
+  isLayerKind,
+  type Layer,
+  type Project,
+} from "./types";
 
 const RECOVERY_KEY = "aster.recoveryProject.v0";
 const MAX_EMBEDDED_ASSET_CHARACTERS = 136 * 1024 * 1024;
@@ -39,7 +52,7 @@ interface RecoveryStorage {
 export function validateProjectDocument(value: unknown): Project {
   const current = cloneCurrentProjectDocument(value);
   const project = requireObject(current, "project");
-  if (project.schemaVersion !== 3) throw new Error("Unsupported Aster project schema");
+  if (project.schemaVersion !== 4) throw new Error("Unsupported Aster project schema");
   requireString(project.id, "project.id");
   requireString(project.name, "project.name");
   const activeCompositionId = requireString(
@@ -48,8 +61,29 @@ export function validateProjectDocument(value: unknown): Project {
   );
   if (!Array.isArray(project.compositions) || project.compositions.length === 0)
     throw new Error("Project must contain at least one composition");
+  if (!Array.isArray(project.sources) || project.sources.length > 50_000)
+    throw new Error("project.sources must be a bounded array");
+  const sourceById = new Map<string, FootageSource>();
+  const sourceIdentities = new Set<string>();
+  for (const [index, value] of project.sources.entries()) {
+    validateFootageSource(value, `project.sources[${index}]`);
+    const source = value as FootageSource;
+    if (sourceById.has(source.id)) throw new Error("project.sources contains a duplicate id");
+    if (sourceIdentities.has(source.contentIdentity))
+      throw new Error("project.sources contains duplicate content identity");
+    sourceById.set(source.id, source);
+    sourceIdentities.add(source.contentIdentity);
+  }
   for (const [index, value] of project.compositions.entries())
     validateComposition(value, `project.compositions[${index}]`);
+  for (const composition of project.compositions as unknown as Composition[])
+    for (const layer of composition.layers) {
+      if (!layer.sourceId) continue;
+      const source = sourceById.get(layer.sourceId);
+      if (!source) throw new Error(`Layer ${layer.id} references a missing footage source`);
+      if (!sourceSupportsLayer(source, layer))
+        throw new Error(`Layer ${layer.id} cannot use ${source.kind} footage`);
+    }
   project.folders ??= [];
   project.itemFolderIds ??= {};
   validateProjectOrganization(project);
@@ -98,11 +132,9 @@ function validateProjectOrganization(project: Record<string, unknown>): void {
   for (const value of project.compositions as unknown[]) {
     const composition = requireObject(value, "composition");
     itemIds.add(requireString(composition.id, "composition.id"));
-    for (const layerValue of composition.layers as unknown[]) {
-      const layer = requireObject(layerValue, "layer");
-      if (layer.asset !== undefined) itemIds.add(requireString(layer.id, "layer.id"));
-    }
   }
+  for (const sourceValue of project.sources as unknown[])
+    itemIds.add(requireString(requireObject(sourceValue, "source").id, "source.id"));
   for (const [itemId, folderId] of Object.entries(assignments)) {
     if (!itemIds.has(itemId)) throw new Error("project.itemFolderIds references an unknown item");
     if (typeof folderId !== "string" || !folderIds.has(folderId))
@@ -385,37 +417,42 @@ function queueNativePersistence(task: () => Promise<unknown>): Promise<void> {
   return queued;
 }
 
-export async function relinkProjectAsset(layer: Layer): Promise<Layer["asset"] | undefined> {
+export async function relinkProjectSource(
+  source: FootageSource,
+): Promise<FootageSource | undefined> {
   if (!nativeProjectPath || !isDesktopRuntime())
     throw new Error("Save or open this project in the native app before linking an asset");
-  if (layer.kind !== "image" && layer.kind !== "video")
-    throw new Error("Only image and video layers can link project assets");
+  if (source.kind !== "still" && source.kind !== "video")
+    throw new Error("Only still and video sources can link project assets");
   const selected = await open({
     directory: false,
     multiple: false,
-    title: `Link ${layer.kind} asset`,
+    title: `Link ${source.kind} source`,
     filters: [
       {
-        name: layer.kind === "image" ? "Images" : "Videos",
+        name: source.kind === "still" ? "Images" : "Videos",
         extensions:
-          layer.kind === "image"
+          source.kind === "still"
             ? ["png", "jpg", "jpeg", "webp", "gif", "bmp", "avif"]
             : ["mp4", "webm", "mov", "m4v", "ogv"],
       },
     ],
   });
   if (typeof selected !== "string") return undefined;
-  const linked = await invoke<{ relativePath: string; resolvedPath: string; name: string }>(
-    "link_project_asset",
-    { bundle: nativeProjectPath, source: selected, kind: layer.kind },
-  );
+  const linked = await invoke<{
+    relativePath: string;
+    resolvedPath: string;
+    name: string;
+    contentIdentity: string;
+  }>("link_project_asset", {
+    bundle: nativeProjectPath,
+    source: selected,
+    kind: source.kind === "still" ? "image" : "video",
+  });
   return {
-    ...(layer.asset ?? {
-      mimeType: layer.kind === "image" ? "image/*" : "video/*",
-      width: Math.max(1, layer.size[0]),
-      height: Math.max(1, layer.size[1]),
-    }),
+    ...source,
     name: linked.name,
+    contentIdentity: linked.contentIdentity,
     dataUrl: undefined,
     relativePath: linked.relativePath,
     runtimeUrl: convertFileSrc(linked.resolvedPath),
@@ -423,27 +460,35 @@ export async function relinkProjectAsset(layer: Layer): Promise<Layer["asset"] |
 }
 
 export function projectDocumentForPersistence(project: Project): Project {
-  const document = structuredClone(project);
-  for (const composition of document.compositions)
-    for (const layer of composition.layers) if (layer.asset) delete layer.asset.runtimeUrl;
-  return document;
+  return {
+    ...project,
+    compositions: structuredClone(project.compositions),
+    sources: project.sources.map(copySourceWithoutRuntimeUrl),
+    folders: project.folders.map((folder) => ({ ...folder })),
+    itemFolderIds: { ...project.itemFolderIds },
+    commandLog: project.commandLog.map((entry) => ({ ...entry })),
+  };
 }
 
 function hydrateRuntimeAssetUrls(value: unknown): unknown {
   if (!value || typeof value !== "object") return value;
   const document = value as {
+    sources?: Array<Record<string, unknown>>;
     compositions?: Array<{ layers?: Array<{ asset?: Record<string, unknown> }> }>;
   };
-  for (const composition of document.compositions ?? []) {
-    for (const layer of composition.layers ?? []) {
-      const asset = layer.asset;
-      if (!asset) continue;
-      const resolvedPath = asset.resolvedPath;
-      if (typeof resolvedPath !== "string") continue;
-      asset.runtimeUrl = convertFileSrc(resolvedPath);
-      delete asset.resolvedPath;
-    }
+  for (const source of document.sources ?? []) {
+    const resolvedPath = source.resolvedPath;
+    if (typeof resolvedPath !== "string") continue;
+    source.runtimeUrl = convertFileSrc(resolvedPath);
+    delete source.resolvedPath;
   }
+  for (const composition of document.compositions ?? [])
+    for (const layer of composition.layers ?? []) {
+      const resolvedPath = layer.asset?.resolvedPath;
+      if (typeof resolvedPath !== "string" || !layer.asset) continue;
+      layer.asset.runtimeUrl = convertFileSrc(resolvedPath);
+      delete layer.asset.resolvedPath;
+    }
   return value;
 }
 
@@ -528,7 +573,7 @@ function validateLayer(
     const gain = requireFiniteNumber(layer.audioGain, `${path}.audioGain`);
     if (gain < 0 || gain > 1) throw new Error(`${path}.audioGain must be between 0 and 1`);
   }
-  if (layer.asset !== undefined) validateAsset(layer.asset, `${path}.asset`);
+  if (layer.sourceId !== undefined) requireString(layer.sourceId, `${path}.sourceId`);
   if (layer.solid !== undefined) {
     if (layer.kind !== "solid") throw new Error(`${path}.solid requires solid layer kind`);
     const solid = requireObject(layer.solid, `${path}.solid`);
@@ -788,16 +833,76 @@ function validateBoundedNumber(
     throw new Error(`${path} must be between ${bounds[0]} and ${bounds[1]}`);
 }
 
-function validateAsset(value: unknown, path: string): void {
-  const asset = requireObject(value, path);
-  if (requireString(asset.name, `${path}.name`).length > 512)
-    throw new Error(`${path}.name is too long`);
-  requireString(asset.mimeType, `${path}.mimeType`);
-  requirePositiveNumber(asset.width, `${path}.width`);
-  requirePositiveNumber(asset.height, `${path}.height`);
-  if (asset.duration !== undefined) requirePositiveNumber(asset.duration, `${path}.duration`);
-  if (asset.relativePath !== undefined) {
-    const relativePath = requireString(asset.relativePath, `${path}.relativePath`);
+function validateFootageSource(value: unknown, path: string): asserts value is FootageSource {
+  const source = requireObject(value, path);
+  if (requireString(source.id, `${path}.id`).length > 256)
+    throw new Error(`${path}.id is too long`);
+  const name = requireString(source.name, `${path}.name`);
+  if (!name.trim() || name.length > 512) throw new Error(`${path}.name is too long`);
+  if (requireString(source.mimeType, `${path}.mimeType`).length > 256)
+    throw new Error(`${path}.mimeType is too long`);
+  if (requireString(source.contentIdentity, `${path}.contentIdentity`).length > 256)
+    throw new Error(`${path}.contentIdentity is too long`);
+  if (!["still", "video", "audio", "imageSequence", "svg", "psd"].includes(String(source.kind)))
+    throw new Error(`${path}.kind is unsupported`);
+  if (["still", "video", "imageSequence", "svg", "psd"].includes(String(source.kind))) {
+    for (const field of ["width", "height"] as const) {
+      const dimension = requireFiniteNumber(source[field], `${path}.${field}`);
+      if (!Number.isSafeInteger(dimension) || dimension < 1 || dimension > MAX_SOURCE_DIMENSION)
+        throw new Error(
+          `${path}.${field} must be an integer from 1 through ${MAX_SOURCE_DIMENSION}`,
+        );
+    }
+  }
+  if (source.kind === "video" || source.kind === "audio") {
+    const duration = requirePositiveNumber(source.duration, `${path}.duration`);
+    if (duration > MAX_SOURCE_DURATION)
+      throw new Error(`${path}.duration exceeds the supported range`);
+  }
+  if (source.kind === "audio") {
+    const channels = requireFiniteNumber(source.channels, `${path}.channels`);
+    const sampleRate = requireFiniteNumber(source.sampleRate, `${path}.sampleRate`);
+    if (!Number.isSafeInteger(channels) || channels < 1 || channels > 32)
+      throw new Error(`${path}.channels must be an integer from 1 through 32`);
+    if (!Number.isSafeInteger(sampleRate) || sampleRate < 8_000 || sampleRate > 384_000)
+      throw new Error(`${path}.sampleRate is unsupported`);
+  }
+  if (source.kind === "imageSequence") {
+    if (requireString(source.pattern, `${path}.pattern`).trim().length === 0)
+      throw new Error(`${path}.pattern must not be blank`);
+    if (String(source.pattern).length > 1024) throw new Error(`${path}.pattern is too long`);
+    const startFrame = requireFiniteNumber(source.startFrame, `${path}.startFrame`);
+    const endFrame = requireFiniteNumber(source.endFrame, `${path}.endFrame`);
+    if (
+      !Number.isSafeInteger(startFrame) ||
+      !Number.isSafeInteger(endFrame) ||
+      endFrame < startFrame
+    )
+      throw new Error(`${path} has an invalid frame range`);
+  }
+  if (source.kind === "psd") {
+    const layerCount = requireFiniteNumber(source.layerCount, `${path}.layerCount`);
+    if (!Number.isSafeInteger(layerCount) || layerCount < 1 || layerCount > 10_000)
+      throw new Error(`${path}.layerCount must be an integer from 1 through 10000`);
+  }
+  const interpretation = requireObject(source.interpretation, `${path}.interpretation`);
+  if (!["straight", "premultiplied", "ignore"].includes(String(interpretation.alpha)))
+    throw new Error(`${path}.interpretation.alpha is unsupported`);
+  if (!["srgb", "linear", "display-p3"].includes(String(interpretation.colorSpace)))
+    throw new Error(`${path}.interpretation.colorSpace is unsupported`);
+  if (interpretation.frameRate !== undefined) {
+    const frameRate = requireObject(interpretation.frameRate, `${path}.interpretation.frameRate`);
+    for (const field of ["numerator", "denominator"] as const) {
+      const rate = requirePositiveNumber(
+        frameRate[field],
+        `${path}.interpretation.frameRate.${field}`,
+      );
+      if (!Number.isSafeInteger(rate) || rate > 240_000)
+        throw new Error(`${path}.interpretation.frameRate.${field} is unsupported`);
+    }
+  }
+  if (source.relativePath !== undefined) {
+    const relativePath = requireString(source.relativePath, `${path}.relativePath`);
     if (
       relativePath.length > 1024 ||
       relativePath.includes("\\") ||
@@ -806,9 +911,13 @@ function validateAsset(value: unknown, path: string): void {
     )
       throw new Error(`${path}.relativePath must stay inside the project bundle`);
   }
-  if (asset.runtimeUrl !== undefined) requireString(asset.runtimeUrl, `${path}.runtimeUrl`);
-  if (asset.dataUrl === undefined) return;
-  const dataUrl = requireString(asset.dataUrl, `${path}.dataUrl`);
+  if (
+    source.runtimeUrl !== undefined &&
+    requireString(source.runtimeUrl, `${path}.runtimeUrl`).length > 4096
+  )
+    throw new Error(`${path}.runtimeUrl is too long`);
+  if (source.dataUrl === undefined) return;
+  const dataUrl = requireString(source.dataUrl, `${path}.dataUrl`);
   if (!dataUrl.startsWith("data:") || dataUrl.length > MAX_EMBEDDED_ASSET_CHARACTERS)
     throw new Error(`${path}.dataUrl must be a bounded embedded data URL`);
 }

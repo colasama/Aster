@@ -296,6 +296,8 @@ function changedIds(operations: readonly Operation[]): string[] {
     if ("compositionId" in operation) ids.add(operation.compositionId);
     if (operation.type === "addComposition") ids.add(operation.composition.id);
     if (operation.type === "addProjectFolder") ids.add(operation.folder.id);
+    if ("sourceId" in operation && operation.sourceId) ids.add(operation.sourceId);
+    if (operation.type === "addSource") ids.add(operation.source.id);
     if (operation.type === "moveProjectItem") ids.add(operation.itemId);
     if (operation.type === "precomposeLayers") {
       ids.add(operation.wrapper.id);

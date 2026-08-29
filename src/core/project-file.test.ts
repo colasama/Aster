@@ -13,6 +13,43 @@ import { serializeProject, storeRecoverySnapshot, validateProjectDocument } from
 import type { ProjectFolder } from "./types";
 
 describe("project document boundary", () => {
+  it("roundtrips shared sources once and rejects invalid references or metadata", () => {
+    const project = createBlankProject();
+    const composition = project.compositions[0];
+    const source = {
+      id: crypto.randomUUID(),
+      kind: "still" as const,
+      name: "plate.png",
+      mimeType: "image/png",
+      contentIdentity: "test:plate",
+      dataUrl: "data:image/png;base64,AA==",
+      width: 1920,
+      height: 1080,
+      interpretation: { alpha: "straight" as const, colorSpace: "srgb" as const },
+    };
+    const first = createLayerForComposition("image", composition);
+    const second = createLayerForComposition("image", composition);
+    first.sourceId = source.id;
+    second.sourceId = source.id;
+    project.sources.push(source);
+    composition.layers.push(first, second);
+    const roundtrip = validateProjectDocument(JSON.parse(serializeProject(project)));
+    expect(roundtrip.sources).toEqual([source]);
+    expect(roundtrip.compositions[0].layers.slice(-2).map((layer) => layer.sourceId)).toEqual([
+      source.id,
+      source.id,
+    ]);
+
+    first.sourceId = "missing";
+    expect(() => validateProjectDocument(project)).toThrow("missing footage source");
+    first.sourceId = source.id;
+    source.width = 30_001;
+    expect(() => validateProjectDocument(project)).toThrow("width must be an integer");
+    source.width = 1920;
+    source.interpretation.colorSpace = "acescg" as never;
+    expect(() => validateProjectDocument(project)).toThrow("colorSpace is unsupported");
+  });
+
   it("roundtrips canonical solid sources and transform-only null layers", () => {
     const project = createBlankProject();
     const composition = project.compositions[0];
@@ -23,7 +60,7 @@ describe("project document boundary", () => {
     composition.layers = [nullLayer, solid];
 
     const roundtrip = validateProjectDocument(JSON.parse(serializeProject(project)));
-    expect(roundtrip.schemaVersion).toBe(3);
+    expect(roundtrip.schemaVersion).toBe(4);
     expect(roundtrip.compositions[0].layers).toEqual([nullLayer, solid]);
   });
 

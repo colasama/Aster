@@ -1,3 +1,4 @@
+import { sourceForLayer, sourceLocator } from "../core/footage-source";
 import { evaluateLayerSourceTime } from "../core/layer-time";
 import {
   evaluateWorldTransform,
@@ -371,10 +372,13 @@ export class PrecompositionSurfaceRenderer {
     }
     if (
       (scene.layer.kind === "image" || scene.layer.kind === "video") &&
-      (scene.layer.asset?.dataUrl ?? scene.layer.asset?.runtimeUrl)
+      sourceLocator(sourceForLayer(this.#project, scene.layer))
     ) {
+      const footage = sourceForLayer(this.#project, scene.layer);
+      if (!footage) return;
       this.#mediaTextures.prepareMedia(
         scene.layer,
+        footage,
         scene.localTime,
         playing,
         scene.resourceInstanceId,

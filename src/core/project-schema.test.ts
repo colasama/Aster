@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { createLayerForComposition } from "./layer-factory";
 import { createDefaultParticleSettings } from "./particle-settings";
 import { createBlankProject } from "./project";
 import { CURRENT_PROJECT_SCHEMA_VERSION, cloneCurrentProjectDocument } from "./project-schema";
@@ -29,7 +30,7 @@ describe("project schema migration gate", () => {
       schemaVersion: number;
       compositions: Array<{ layers: Array<Record<string, unknown>> }>;
     };
-    expect(migrated.schemaVersion).toBe(3);
+    expect(migrated.schemaVersion).toBe(4);
     expect(migrated.compositions[0].layers[0]).toMatchObject({
       kind: "generator",
       generator: { pluginId: "org.aster.builtin.particles", nodeType: "particle_system" },
@@ -49,15 +50,51 @@ describe("project schema migration gate", () => {
     );
   });
 
-  it("migrates v2 documents to v3 without rewriting existing layers", () => {
+  it("migrates v2 documents through v4 without rewriting source-free layers", () => {
     const previous = createBlankProject() as unknown as Record<string, unknown>;
     previous.schemaVersion = 2;
     const migrated = cloneCurrentProjectDocument(previous);
-    expect(migrated.schemaVersion).toBe(3);
+    expect(migrated.schemaVersion).toBe(4);
     expect(migrated.compositions).toEqual(previous.compositions);
   });
 
-  it.each([4, undefined, 1.5])("rejects unsupported schema %s", (schemaVersion) => {
+  it("deduplicates repeated v3 nested assets by exact content identity", () => {
+    const previous = createBlankProject();
+    const composition = previous.compositions[0];
+    const first = createLayerForComposition("image", composition);
+    const second = createLayerForComposition("image", composition);
+    const asset = {
+      name: "plate.png",
+      mimeType: "image/png",
+      dataUrl: "data:image/png;base64,QUJD",
+      width: 640,
+      height: 360,
+    };
+    const raw = structuredClone(previous) as unknown as Record<string, unknown>;
+    raw.schemaVersion = 3;
+    delete raw.sources;
+    const rawLayers = (raw.compositions as Array<{ layers: Array<Record<string, unknown>> }>)[0]
+      .layers;
+    rawLayers.push(
+      { ...(first as unknown as Record<string, unknown>), asset: { ...asset } },
+      { ...(second as unknown as Record<string, unknown>), asset: { ...asset } },
+    );
+
+    const migrated = cloneCurrentProjectDocument(raw) as {
+      schemaVersion: number;
+      sources: Array<Record<string, unknown>>;
+      compositions: Array<{ layers: Array<Record<string, unknown>> }>;
+    };
+    expect(migrated.schemaVersion).toBe(4);
+    expect(migrated.sources).toHaveLength(1);
+    expect(migrated.compositions[0].layers.slice(-2).map((layer) => layer.sourceId)).toEqual([
+      migrated.sources[0].id,
+      migrated.sources[0].id,
+    ]);
+    expect(migrated.compositions[0].layers.slice(-2).every((layer) => !layer.asset)).toBe(true);
+  });
+
+  it.each([5, undefined, 1.5])("rejects unsupported schema %s", (schemaVersion) => {
     expect(() => cloneCurrentProjectDocument({ schemaVersion })).toThrow("Aster project schema");
   });
 });

@@ -9,7 +9,7 @@ describe("minimal golden project fixture", () => {
     const project = validateProjectDocument(structuredClone(fixture));
     const composition = project.compositions[0];
 
-    expect(project.schemaVersion).toBe(3);
+    expect(project.schemaVersion).toBe(4);
     expect(project.id).toBe("11111111-1111-4111-8111-111111111111");
     expect(project.commandLog).toEqual([]);
     expect(composition.id).toBe(project.activeCompositionId);
@@ -19,7 +19,8 @@ describe("minimal golden project fixture", () => {
     ]);
     expect(composition.frameRate).toEqual(manifest.capture.frameRate);
     expect(composition.layers.map((layer) => layer.kind)).toEqual(["shape", "shape"]);
-    expect(composition.layers.every((layer) => layer.asset === undefined)).toBe(true);
+    expect(composition.layers.every((layer) => layer.sourceId === undefined)).toBe(true);
+    expect(project.sources).toEqual([]);
     expect(await sha256(fixtureRaw)).toBe(manifest.projectSha256);
   });
 

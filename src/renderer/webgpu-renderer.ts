@@ -1,3 +1,4 @@
+import { sourceForLayer, sourceLocator } from "../core/footage-source";
 import { evaluateLayerSourceTime } from "../core/layer-time";
 import { logger } from "../core/logger";
 import { evaluateWorldTransform } from "../core/scene-evaluation";
@@ -517,14 +518,18 @@ export class WebGpuRenderer {
         );
       } else if (
         (scene.layer.kind === "image" || scene.layer.kind === "video") &&
-        (scene.layer.asset?.dataUrl ?? scene.layer.asset?.runtimeUrl)
-      )
+        sourceLocator(sourceForLayer(project, scene.layer))
+      ) {
+        const footage = sourceForLayer(project, scene.layer);
+        if (!footage) continue;
         this.#mediaTextures.prepareMedia(
           scene.layer,
+          footage,
           scene.localTime,
           playing,
           scene.resourceInstanceId,
         );
+      }
     }
     this.#mediaTextures.sweep(
       new Set([
@@ -533,7 +538,7 @@ export class WebGpuRenderer {
             (scene) =>
               scene.layer.kind === "text" ||
               ((scene.layer.kind === "image" || scene.layer.kind === "video") &&
-                (scene.layer.asset?.dataUrl ?? scene.layer.asset?.runtimeUrl)),
+                Boolean(sourceLocator(sourceForLayer(project, scene.layer)))),
           )
           .map((scene) => scene.resourceInstanceId),
         ...surfaceFrame.mediaInstanceIds,

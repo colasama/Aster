@@ -115,16 +115,7 @@ export interface Layer {
   color: [number, number, number, number];
   size: [number, number];
   text?: string;
-  asset?: {
-    name: string;
-    mimeType: string;
-    dataUrl?: string;
-    relativePath?: string;
-    runtimeUrl?: string;
-    width: number;
-    height: number;
-    duration?: number;
-  };
+  sourceId?: Id;
   sourceCompositionId?: Id;
   expressions?: Record<string, string>;
   transform: Transform;
@@ -311,16 +302,54 @@ export interface ProjectFolder {
 }
 
 export interface Project {
-  schemaVersion: 3;
+  schemaVersion: 4;
   id: Id;
   name: string;
   activeCompositionId: Id;
   compositions: Composition[];
+  sources: FootageSource[];
   folders: ProjectFolder[];
   itemFolderIds: Record<Id, Id>;
   commandLog: ProjectCommandEntry[];
   updatedAt: string;
 }
+
+export interface SourceInterpretation {
+  alpha: "straight" | "premultiplied" | "ignore";
+  colorSpace: "srgb" | "linear" | "display-p3";
+  frameRate?: { numerator: number; denominator: number };
+}
+
+interface FootageSourceBase {
+  id: Id;
+  name: string;
+  mimeType: string;
+  contentIdentity: string;
+  dataUrl?: string;
+  relativePath?: string;
+  runtimeUrl?: string;
+  interpretation: SourceInterpretation;
+}
+
+export type FootageSource =
+  | (FootageSourceBase & { kind: "still"; width: number; height: number })
+  | (FootageSourceBase & { kind: "video"; width: number; height: number; duration: number })
+  | (FootageSourceBase & {
+      kind: "audio";
+      duration: number;
+      channels: number;
+      sampleRate: number;
+    })
+  | (FootageSourceBase & {
+      kind: "imageSequence";
+      width: number;
+      height: number;
+      pattern: string;
+      startFrame: number;
+      endFrame: number;
+    })
+  | (FootageSourceBase & { kind: "svg"; width: number; height: number })
+  | (FootageSourceBase & { kind: "psd"; width: number; height: number; layerCount: number });
 
 export interface EvaluatedTransform {
   position: [number, number, number];
