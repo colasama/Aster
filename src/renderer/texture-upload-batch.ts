@@ -98,6 +98,13 @@ export class TextureUploadBatch {
     return statistics;
   }
 
+  destroy(): void {
+    this.#pending.length = 0;
+    this.#staging?.destroy();
+    this.#staging = undefined;
+    this.#stagingCapacity = 0;
+  }
+
   #ensureStagingCapacity(requiredBytes: number): void {
     if (requiredBytes <= this.#stagingCapacity) return;
     this.#stagingCapacity = Math.min(

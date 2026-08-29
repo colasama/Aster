@@ -23,6 +23,7 @@ import { bundledParticleDefinition } from "./bundled-particle-generator";
 import { DepthEffectsRenderer } from "./depth-effects";
 import { analyzeEffectFusion } from "./effect-fusion";
 import { FLOATS_PER_EFFECT_OPERATION, MAX_EFFECT_OPERATIONS } from "./effect-program";
+import { captureAfterExactFrameResources } from "./exact-frame-resource-barrier";
 import {
   type FrameReadbackTicket,
   GpuFrameReadbackPool,
@@ -65,6 +66,10 @@ import { buildTimeAddressedMotionVectors } from "./time-addressed-motion-vectors
 const MAX_SHAPE_VERTICES = 6 * 128;
 const SCENE_FORMAT: GPUTextureFormat = "rgba16float";
 const DEFAULT_SHADOW_MAP_SIZE = 1024;
+
+export function shouldReportGpuDeviceLoss(rendererDisposed: boolean): boolean {
+  return !rendererDisposed;
+}
 
 export class WebGpuRenderer {
   readonly diagnostics: GpuDiagnostics;
@@ -120,6 +125,7 @@ export class WebGpuRenderer {
   readonly #mediaTextures: MediaTextureCache;
   readonly #precompositionSurfaces: PrecompositionSurfaceRenderer;
   readonly #evaluationCache = new SceneEvaluationCache();
+  #disposed = false;
 
   private constructor(
     device: GPUDevice,
@@ -291,7 +297,9 @@ export class WebGpuRenderer {
         { gpuErrorType: event.error.constructor.name },
       );
     });
+    let renderer: WebGpuRenderer | undefined;
     void device.lost.then((info) => {
+      if (!shouldReportGpuDeviceLoss(renderer?.#disposed ?? false)) return;
       logger.warn("webgpu", "device_lost", { reason: info.reason, message: info.message });
     });
     const format = navigator.gpu.getPreferredCanvasFormat();
@@ -313,7 +321,7 @@ export class WebGpuRenderer {
       prewarmedPipelines: precompile.count,
     };
     device.pushErrorScope("validation");
-    const renderer = new WebGpuRenderer(device, context, format, diagnostics, invalidate);
+    renderer = new WebGpuRenderer(device, context, format, diagnostics, invalidate);
     const validationError = await device.popErrorScope();
     if (validationError)
       throw new Error(`WebGPU renderer validation failed: ${validationError.message}`);
@@ -328,6 +336,7 @@ export class WebGpuRenderer {
     return renderer;
   }
   resize(width: number, height: number): void {
+    this.#assertActive();
     this.#frameReadback.reset();
     this.#width = Math.max(1, Math.floor(width));
     this.#height = Math.max(1, Math.floor(height));
@@ -372,19 +381,22 @@ export class WebGpuRenderer {
   get exportPixelFormat(): RawFramePixelFormat {
     return this.#frameReadback.pixelFormat;
   }
-  renderRawFrame(
+  async renderRawFrame(
     composition: Composition,
     time: number,
     project?: Project,
     synchronizeVideo = false,
   ): Promise<RawVideoFrame> {
+    this.#assertActive();
     if (synchronizeVideo) {
       this.render(composition, time, false, project);
-      return this.#mediaTextures
-        .waitForVideoFrames()
-        .then(() => this.#captureRawFrame(composition, time, project));
+      await this.#mediaTextures.waitForFrameResources();
+      return this.#captureRawFrame(composition, time, project);
     }
-    return this.#captureRawFrame(composition, time, project);
+    return captureAfterExactFrameResources(
+      () => this.#captureRawFrame(composition, time, project),
+      this.#mediaTextures,
+    );
   }
   #captureRawFrame(
     composition: Composition,
@@ -412,6 +424,7 @@ export class WebGpuRenderer {
     project?: Project,
     selectedLayerId?: string,
   ): RendererMetrics {
+    this.#assertActive();
     const started = performance.now();
     const frameInterval = this.#lastFrameStarted ? started - this.#lastFrameStarted : 16.67;
     this.#lastFrameStarted = started;
@@ -960,11 +973,50 @@ export class WebGpuRenderer {
     };
   }
   async complete(): Promise<void> {
+    this.#assertActive();
     await this.#device.queue.onSubmittedWorkDone();
   }
   setMemoryBudget(megabytes?: number): void {
+    this.#assertActive();
     this.#memoryBudgetMb = megabytes;
     this.#configureAuxiliaryBuffers();
+  }
+  dispose(): void {
+    if (this.#disposed) return;
+    this.#disposed = true;
+    this.#pendingFrameReadback?.abort();
+    this.#pendingFrameReadback = undefined;
+    this.#frameReadback.destroy();
+    this.#mediaTextures.destroy();
+    this.#materialTextures?.destroy();
+    this.#materialTextures = undefined;
+    this.#precompositionSurfaces.destroy();
+    this.#sceneGenerators.destroy();
+    this.#bufferVisualizer.destroy();
+    this.#depthEffects.destroy();
+    this.#motionBlur.destroy();
+    this.#surfacePostEffects.destroy();
+    this.#auxiliaryBuffers.destroy();
+    this.#layerEffects.destroy();
+    this.#gpuProfiler.destroy();
+    this.#evaluationCache.clear();
+    this.#sceneTexture?.destroy();
+    this.#sceneTexture = undefined;
+    this.#depthTexture?.destroy();
+    this.#depthTexture = undefined;
+    this.#shadowTexture.destroy();
+    this.#shapeBuffer.destroy();
+    this.#lightingBuffer.destroy();
+    this.#postUniformBuffer.destroy();
+    this.#effectProgramBuffer.destroy();
+    this.#identityLut.destroy();
+    this.#postBindGroup = undefined;
+    this.#motionBlurPostBindGroup = undefined;
+    this.#context.unconfigure();
+    this.#device.destroy();
+  }
+  #assertActive(): void {
+    if (this.#disposed) throw new Error("WebGPU renderer is disposed");
   }
   #configureAuxiliaryBuffers(): void {
     this.#bufferVisualization = this.#auxiliaryBuffers.configureVisualization(

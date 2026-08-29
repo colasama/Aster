@@ -56,6 +56,7 @@ export class CanvasFallbackRenderer {
   #lastRender?: CanvasRenderRequest;
   #width = 1;
   #height = 1;
+  #disposed = false;
 
   constructor(canvas: HTMLCanvasElement) {
     const context = canvas.getContext("2d");
@@ -64,6 +65,7 @@ export class CanvasFallbackRenderer {
   }
 
   resize(width: number, height: number): void {
+    this.#assertActive();
     this.#width = width;
     this.#height = height;
   }
@@ -75,6 +77,7 @@ export class CanvasFallbackRenderer {
     project?: Project,
     _selectedLayerId?: string,
   ): RendererMetrics {
+    this.#assertActive();
     this.#lastRender = {
       composition,
       time,
@@ -154,6 +157,7 @@ export class CanvasFallbackRenderer {
   }
 
   async complete(): Promise<void> {
+    this.#assertActive();
     const started = performance.now();
     const needsRedraw = this.#pendingMediaResources.size > 0;
     await this.waitForFrameResources();
@@ -172,6 +176,7 @@ export class CanvasFallbackRenderer {
 
   /** Waits for the current source generation before deterministic pixel readback. */
   async waitForFrameResources(timeoutMs = 10_000, signal?: AbortSignal): Promise<void> {
+    this.#assertActive();
     const started = performance.now();
     while (true) {
       if (signal?.aborted) throw canvasAbortError(signal.reason);
@@ -193,6 +198,21 @@ export class CanvasFallbackRenderer {
   }
 
   setMemoryBudget(_megabytes?: number): void {}
+
+  dispose(): void {
+    if (this.#disposed) return;
+    this.#disposed = true;
+    for (const resource of this.#mediaResources.values()) disposeCanvasMedia(resource);
+    this.#mediaResources.clear();
+    this.#pendingMediaResources.clear();
+    this.#mediaResourceErrors.clear();
+    this.#lastRender = undefined;
+    this.#context.clearRect(0, 0, this.#context.canvas.width, this.#context.canvas.height);
+  }
+
+  #assertActive(): void {
+    if (this.#disposed) throw new Error("Canvas renderer is disposed");
+  }
 
   #prepareMedia(
     layer: Layer,
@@ -537,7 +557,17 @@ function isDrawableMedia(
 
 function disposeCanvasMedia(resource: CanvasMediaResource | undefined): void {
   if (!resource) return;
-  if (resource.element instanceof HTMLVideoElement) resource.element.pause();
+  if (resource.element instanceof HTMLVideoElement) {
+    resource.element.pause();
+    resource.element.removeAttribute("src");
+    resource.element.load();
+    resource.element.remove();
+  }
+  if (resource.element instanceof HTMLCanvasElement) {
+    resource.element.width = 1;
+    resource.element.height = 1;
+    resource.element.remove();
+  }
   resource.revoke?.();
 }
 

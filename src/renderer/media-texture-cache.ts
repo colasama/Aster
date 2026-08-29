@@ -73,6 +73,7 @@ export class MediaTextureCache {
     maxEntries: 12,
     maxBytes: 256 * 1024 * 1024,
   });
+  #destroyed = false;
 
   constructor(
     device: GPUDevice,
@@ -96,6 +97,19 @@ export class MediaTextureCache {
     for (const [instanceId, resource] of this.#resources)
       if (resource.kind === "video" && !this.#videoFrameIsExact(instanceId, resource)) return true;
     return false;
+  }
+
+  destroy(): void {
+    if (this.#destroyed) return;
+    this.#destroyed = true;
+    for (const resource of this.#resources.values()) destroyMediaResource(resource);
+    this.#resources.clear();
+    this.#pendingFrameResources.clear();
+    this.#frameResourceErrors.clear();
+    this.#videoFrameTargets.clear();
+    this.#sequenceFrames.clear();
+    this.#svgRasters.clear();
+    this.#uploads.destroy();
   }
 
   bindGroup(instanceId: string): GPUBindGroup | undefined {
@@ -158,6 +172,7 @@ export class MediaTextureCache {
     playing: boolean,
     instanceId: string,
   ): void {
+    if (this.#destroyed) throw new Error("Media texture cache is destroyed");
     const source = sourceLocator(footage);
     if (!source) return;
     if (layer.kind !== "video") this.#videoFrameTargets.delete(instanceId);
@@ -197,8 +212,15 @@ export class MediaTextureCache {
         return response.blob();
       })
       .then((blob) => this.#decodePool.run(() => createImageBitmap(blob)))
-      .then((bitmap) => this.#installBitmap(resource, bitmap, layer, footage, instanceId))
+      .then((bitmap) => {
+        if (this.#destroyed) {
+          bitmap.close();
+          return;
+        }
+        this.#installBitmap(resource, bitmap, layer, footage, instanceId);
+      })
       .catch((error: unknown) => {
+        if (this.#destroyed) return;
         if (this.#resources.get(instanceId) === resource) this.#resources.delete(instanceId);
         mediaImportRuntime.reportError(footage.id, error);
         throw error;
@@ -372,6 +394,7 @@ export class MediaTextureCache {
   ): void {
     const installation = pending.then(
       (bitmap) => {
+        if (this.#destroyed) return;
         if (this.#pendingFrameResources.get(instanceId)?.source !== source) return;
         const previous = this.#resources.get(instanceId);
         const resource: MediaResource = { source, kind: "image" };
@@ -389,6 +412,7 @@ export class MediaTextureCache {
         }
       },
       (error: unknown) => {
+        if (this.#destroyed) return;
         if (this.#pendingFrameResources.get(instanceId)?.source !== source) return;
         mediaImportRuntime.reportError(footage.id, error);
         throw error;
@@ -402,6 +426,7 @@ export class MediaTextureCache {
     this.#frameResourceErrors.delete(instanceId);
     pending.promise = task
       .catch((error: unknown) => {
+        if (this.#destroyed) return;
         if (this.#pendingFrameResources.get(instanceId) === pending)
           this.#frameResourceErrors.set(instanceId, { source, error: asError(error) });
         throw error;
@@ -463,6 +488,10 @@ export class MediaTextureCache {
     instanceId: string,
     closeBitmap = true,
   ): void {
+    if (this.#destroyed) {
+      if (closeBitmap) bitmap.close();
+      return;
+    }
     const maximumDimension = Math.min(
       MAX_MEDIA_TEXTURE_DIMENSION,
       this.#device.limits.maxTextureDimension2D,

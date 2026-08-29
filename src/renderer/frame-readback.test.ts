@@ -71,4 +71,30 @@ describe("video export frame readback", () => {
     tickets[2].abort();
     expect(buffers).toHaveLength(3);
   });
+
+  it("aborts active tickets and destroys buffers idempotently", () => {
+    vi.stubGlobal("GPUBufferUsage", { COPY_DST: 1, MAP_READ: 2 });
+    const destroy = vi.fn();
+    const device = {
+      createBuffer: ({ size }: { size: number }) =>
+        ({
+          mapState: "unmapped",
+          mapAsync: vi.fn(),
+          getMappedRange: () => new ArrayBuffer(size),
+          unmap: vi.fn(),
+          destroy,
+        }) as unknown as GPUBuffer,
+    } as unknown as GPUDevice;
+    const pool = new GpuFrameReadbackPool(device, "rgba8unorm", 2);
+    const ticket = pool.reserve(8, 8);
+
+    pool.destroy();
+    pool.destroy();
+
+    expect(destroy).toHaveBeenCalledTimes(2);
+    expect(() => ticket.encode({} as GPUCommandEncoder, {} as GPUTexture)).toThrow(
+      "no longer writable",
+    );
+    expect(() => pool.reserve(8, 8)).toThrow("destroyed");
+  });
 });

@@ -84,4 +84,12 @@ export class GpuTimestampProfiler {
   passTimings(): GpuPassTimings | undefined {
     return this.#passTimings;
   }
+
+  destroy(): void {
+    if (this.#readBuffer?.mapState === "mapped") this.#readBuffer.unmap();
+    this.#querySet?.destroy();
+    this.#resolveBuffer?.destroy();
+    this.#readBuffer?.destroy();
+    this.#pending = false;
+  }
 }

@@ -69,4 +69,10 @@ export class SceneEvaluationCache {
   memoryBytes(): number {
     return this.#cache.statistics().bytes;
   }
+
+  clear(): void {
+    this.#cache.clear();
+    this.#project = undefined;
+    this.#composition = undefined;
+  }
 }

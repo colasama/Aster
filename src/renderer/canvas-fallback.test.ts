@@ -108,6 +108,39 @@ describe("Canvas exact-frame resources", () => {
 
     await expect(renderer.waitForFrameResources()).rejects.toThrow("frame 2 is missing");
   });
+
+  it("disposes video DOM and pending decode state idempotently and rejects reuse", async () => {
+    const videoFixture = fixture("video");
+    const composition = videoFixture.project.compositions[0];
+    if (!composition) throw new Error("Fixture composition is unavailable");
+    videoFixture.renderer.render(composition, 1, false, videoFixture.project);
+    const video = videos[videos.length - 1];
+    if (!video) throw new Error("Fixture video is unavailable");
+
+    videoFixture.renderer.dispose();
+    videoFixture.renderer.dispose();
+
+    expect(video.pause).toHaveBeenCalledTimes(1);
+    expect(video.removeAttribute).toHaveBeenCalledWith("src");
+    expect(video.load).toHaveBeenCalledTimes(1);
+    expect(video.remove).toHaveBeenCalledTimes(1);
+    expect(() => videoFixture.renderer.render(composition, 1, false, videoFixture.project)).toThrow(
+      "disposed",
+    );
+    await expect(videoFixture.renderer.complete()).rejects.toThrow("disposed");
+
+    const pendingFixture = fixture("still");
+    const pendingComposition = pendingFixture.project.compositions[0];
+    if (!pendingComposition) throw new Error("Fixture composition is unavailable");
+    pendingFixture.renderer.render(pendingComposition, 0, false, pendingFixture.project);
+    const pendingImage = images[images.length - 1];
+    pendingFixture.renderer.dispose();
+    pendingImage.naturalWidth = 16;
+    pendingImage.complete = true;
+    pendingImage.dispatchEvent(new Event("load"));
+    await Promise.resolve();
+    expect(pendingFixture.context.drawImage).not.toHaveBeenCalled();
+  });
 });
 
 function fixture(kind: "still" | "svg" | "imageSequence" | "video") {
@@ -209,14 +242,18 @@ class MockVideo extends EventTarget {
   seeking = true;
   src = "";
   volume = 0;
+  readonly load = vi.fn();
+  readonly pause = vi.fn(() => {
+    this.paused = true;
+  });
+  readonly remove = vi.fn();
+  readonly removeAttribute = vi.fn((name: string) => {
+    if (name === "src") this.src = "";
+  });
 
   constructor() {
     super();
     videos.push(this);
-  }
-
-  pause(): void {
-    this.paused = true;
   }
 
   play(): Promise<void> {
@@ -228,7 +265,13 @@ class MockVideo extends EventTarget {
 class MockCanvas {
   width = 320;
   height = 180;
-  readonly context = canvasContext();
+  readonly context: ReturnType<typeof canvasContext>;
+  readonly remove = vi.fn();
+
+  constructor() {
+    this.context = canvasContext();
+    Object.assign(this.context, { canvas: this });
+  }
 
   getContext(): CanvasRenderingContext2D {
     return this.context;

@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createLayerForComposition } from "../core/layer-factory";
 import { createBlankComposition } from "../core/project";
 import type { FootageSource } from "../core/types";
+import { mediaImportRuntime } from "../importers/media-import-runtime";
 import { MediaTextureCache } from "./media-texture-cache";
 
 beforeEach(() => {
@@ -96,6 +97,51 @@ describe("exact-frame media resource barrier", () => {
     video.dispatchEvent(new Event("loadeddata"));
 
     expect(cache.hasPendingFrameResources).toBe(false);
+  });
+
+  it("closes a late still decode after destroy without touching GPU state or reporting errors", async () => {
+    const decode = deferred<ImageBitmap>();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({ ok: true, blob: async () => ({}) })),
+    );
+    const decodeBitmap = vi.fn(() => decode.promise);
+    vi.stubGlobal("createImageBitmap", decodeBitmap);
+    const createTexture = vi.fn(() => ({ createView: vi.fn(() => ({})), destroy: vi.fn() }));
+    const invalidate = vi.fn();
+    const reportError = vi.spyOn(mediaImportRuntime, "reportError");
+    const device = {
+      limits: { maxTextureDimension2D: 8_192 },
+      queue: { copyExternalImageToTexture: vi.fn(), writeTexture: vi.fn() },
+      createTexture,
+      createBuffer: vi.fn(() => ({ destroy: vi.fn() })),
+      createBindGroup: vi.fn(() => ({})),
+    } as unknown as GPUDevice;
+    const cache = new MediaTextureCache(
+      device,
+      {} as GPUBindGroupLayout,
+      {} as GPUSampler,
+      invalidate,
+    );
+    const layer = createLayerForComposition("image", createBlankComposition());
+    cache.prepareMedia(layer, still("late.png"), 0, false, "late-instance");
+    await vi.waitFor(() => expect(decodeBitmap).toHaveBeenCalledTimes(1));
+    cache.destroy();
+    const late = bitmap();
+
+    decode.resolve(late);
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(late.close).toHaveBeenCalledTimes(1);
+    expect(createTexture).not.toHaveBeenCalled();
+    expect(invalidate).not.toHaveBeenCalled();
+    expect(reportError).not.toHaveBeenCalled();
+    expect(cache.bindGroup("late-instance")).toBeUndefined();
+    expect(() => cache.prepareMedia(layer, still("again.png"), 0, false, "again")).toThrow(
+      "destroyed",
+    );
   });
 });
 

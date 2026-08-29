@@ -101,6 +101,13 @@ export class SceneBufferVisualizer {
     this.#auxiliaryBindGroups.clear();
   }
 
+  destroy(): void {
+    this.#sceneBindGroup = undefined;
+    this.#auxiliaryBindGroups.clear();
+    this.#sceneUniform.destroy();
+    this.#auxiliaryUniform.destroy();
+  }
+
   encode(
     pass: GPURenderPassEncoder,
     mode: Exclude<

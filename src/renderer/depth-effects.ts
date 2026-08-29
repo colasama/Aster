@@ -151,6 +151,11 @@ export class DepthEffectsRenderer {
     pass.draw(3);
     return true;
   }
+
+  destroy(): void {
+    this.#bindGroup = undefined;
+    this.#uniform.destroy();
+  }
 }
 
 function finite(value: number, fallback: number): number {

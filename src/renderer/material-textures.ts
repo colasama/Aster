@@ -124,6 +124,25 @@ export class MaterialTextureRenderer {
     });
   }
 
+  destroy(): void {
+    for (const resource of this.#normals.values()) {
+      resource.abort.abort();
+      resource.texture?.destroy();
+    }
+    this.#normals.clear();
+    this.#environment?.abort.abort();
+    this.#environment?.texture?.destroy();
+    this.#environment = undefined;
+    for (const uniform of this.#uniforms.values()) uniform.destroy();
+    this.#uniforms.clear();
+    this.#bindGroups.clear();
+    this.#failures.clear();
+    this.#fallbackNormal?.destroy();
+    this.#fallbackNormal = undefined;
+    this.#fallbackEnvironment?.destroy();
+    this.#fallbackEnvironment = undefined;
+  }
+
   get estimatedBytes(): number {
     const normalBytes = [...this.#normals.values()].reduce(
       (sum, resource) => sum + resource.bytes,

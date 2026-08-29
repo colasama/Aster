@@ -31,6 +31,8 @@ export class GpuFrameReadbackPool {
   #width = 0;
   #height = 0;
   #bytesPerRow = 0;
+  readonly #activeTickets = new Set<FrameReadbackTicket>();
+  #destroyed = false;
 
   constructor(device: GPUDevice, textureFormat: GPUTextureFormat, slotCount = 3) {
     if (!Number.isInteger(slotCount) || slotCount < 1)
@@ -45,18 +47,21 @@ export class GpuFrameReadbackPool {
   }
 
   reserve(width: number, height: number): FrameReadbackTicket {
+    if (this.#destroyed) throw new Error("GPU frame readback pool is destroyed");
     this.#ensureBuffers(width, height);
     const slot = this.#slots.find((candidate) => !candidate.busy);
     if (!slot) throw new Error("All GPU frame readback buffers are busy");
     slot.busy = true;
     let encoded = false;
     let released = false;
+    let ticket: FrameReadbackTicket;
     const release = () => {
       if (released) return;
       released = true;
       slot.busy = false;
+      this.#activeTickets.delete(ticket);
     };
-    return {
+    ticket = {
       encode: (encoder, source) => {
         if (released || encoded) throw new Error("Frame readback ticket is no longer writable");
         encoder.copyTextureToBuffer(
@@ -86,11 +91,14 @@ export class GpuFrameReadbackPool {
         release();
       },
     };
+    this.#activeTickets.add(ticket);
+    return ticket;
   }
 
   destroy(): void {
-    if (this.#slots.some((slot) => slot.busy))
-      throw new Error("Cannot destroy GPU frame readback buffers while frames are in flight");
+    if (this.#destroyed) return;
+    this.#destroyed = true;
+    for (const ticket of [...this.#activeTickets]) ticket.abort();
     this.reset();
   }
 
