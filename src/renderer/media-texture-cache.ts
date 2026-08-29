@@ -37,6 +37,17 @@ import { VideoExternalUpload, type VideoExternalUploadStatus } from "./video-ext
 const MAX_MEDIA_TEXTURE_DIMENSION = 8_192;
 const MAX_MEDIA_TEXTURE_BYTES = 256 * 1024 * 1024;
 
+interface PendingFrameResource {
+  source: string;
+  promise: Promise<void>;
+}
+
+interface VideoFrameTarget {
+  source: string;
+  time: number;
+  tolerance: number;
+}
+
 /** Owns decoded media, text rasters, and the staging upload queue used by the renderer. */
 export class MediaTextureCache {
   readonly #device: GPUDevice;
@@ -44,7 +55,9 @@ export class MediaTextureCache {
   readonly #sampler: GPUSampler;
   readonly #invalidate: () => void;
   readonly #resources = new Map<string, MediaResource>();
-  readonly #pendingImageSources = new Map<string, string>();
+  readonly #pendingFrameResources = new Map<string, PendingFrameResource>();
+  readonly #frameResourceErrors = new Map<string, { source: string; error: Error }>();
+  readonly #videoFrameTargets = new Map<string, VideoFrameTarget>();
   readonly #decodePool = new AsyncWorkPool(4);
   readonly #uploads: TextureUploadBatch;
   readonly #sequenceFrames = new ImageSequenceFrameCache<RuntimeSequenceFile, ImageBitmap>({
@@ -78,6 +91,13 @@ export class MediaTextureCache {
     return mediaTextureBytes(this.#resources) + this.#uploads.capacityBytes;
   }
 
+  get hasPendingFrameResources(): boolean {
+    if (this.#pendingFrameResources.size > 0) return true;
+    for (const [instanceId, resource] of this.#resources)
+      if (resource.kind === "video" && !this.#videoFrameIsExact(instanceId, resource)) return true;
+    return false;
+  }
+
   bindGroup(instanceId: string): GPUBindGroup | undefined {
     return this.#resources.get(instanceId)?.bindGroup;
   }
@@ -88,8 +108,12 @@ export class MediaTextureCache {
 
   sweep(activeInstanceIds: ReadonlySet<string>): void {
     sweepMediaResources(this.#resources, activeInstanceIds);
-    for (const instanceId of this.#pendingImageSources.keys())
-      if (!activeInstanceIds.has(instanceId)) this.#pendingImageSources.delete(instanceId);
+    for (const instanceId of this.#pendingFrameResources.keys())
+      if (!activeInstanceIds.has(instanceId)) this.#pendingFrameResources.delete(instanceId);
+    for (const instanceId of this.#frameResourceErrors.keys())
+      if (!activeInstanceIds.has(instanceId)) this.#frameResourceErrors.delete(instanceId);
+    for (const instanceId of this.#videoFrameTargets.keys())
+      if (!activeInstanceIds.has(instanceId)) this.#videoFrameTargets.delete(instanceId);
   }
 
   async waitForVideoFrames(timeoutMs = 10_000): Promise<void> {
@@ -97,6 +121,34 @@ export class MediaTextureCache {
       (resource) => resource.kind === "video" && resource.video,
     );
     await Promise.all(resources.map((resource) => this.#waitForVideoFrame(resource, timeoutMs)));
+  }
+
+  /** Waits only for the current generation of every exact-frame media resource. */
+  async waitForFrameResources(timeoutMs = 10_000, signal?: AbortSignal): Promise<void> {
+    const started = performance.now();
+    while (true) {
+      if (signal?.aborted) throw abortError(signal.reason);
+      const pending = [...this.#pendingFrameResources.values()];
+      if (pending.length > 0)
+        await waitWithTimeout(
+          Promise.all(pending.map((resource) => resource.promise)).then(() => undefined),
+          remainingTimeout(started, timeoutMs),
+          signal,
+          "Timed out waiting for exact image, SVG, or image-sequence resources",
+        );
+      if (this.#pendingFrameResources.size > 0) continue;
+      const failure = this.#frameResourceErrors.values().next().value as
+        | { source: string; error: Error }
+        | undefined;
+      if (failure) throw failure.error;
+      await waitWithTimeout(
+        this.waitForVideoFrames(remainingTimeout(started, timeoutMs)),
+        remainingTimeout(started, timeoutMs),
+        signal,
+        "Timed out waiting for exact video resources",
+      );
+      if (this.#pendingFrameResources.size === 0) return;
+    }
   }
 
   prepareMedia(
@@ -108,9 +160,10 @@ export class MediaTextureCache {
   ): void {
     const source = sourceLocator(footage);
     if (!source) return;
+    if (layer.kind !== "video") this.#videoFrameTargets.delete(instanceId);
     const runtime = mediaImportRuntime.get(footage.id);
     if (runtime?.kind === "psd") {
-      this.#pendingImageSources.delete(instanceId);
+      this.#pendingFrameResources.delete(instanceId);
       this.#preparePsd(runtime, layer, footage, instanceId, source);
       return;
     }
@@ -124,10 +177,13 @@ export class MediaTextureCache {
     }
     const existing = this.#resources.get(instanceId);
     if (existing?.source === source && existing.kind === layer.kind) {
-      if (existing.kind === "video") this.#updateVideo(existing, layer, footage, time, playing);
+      this.#frameResourceErrors.delete(instanceId);
+      if (existing.kind === "video")
+        this.#updateVideo(existing, layer, footage, time, playing, instanceId);
       return;
     }
-    this.#pendingImageSources.delete(instanceId);
+    this.#pendingFrameResources.delete(instanceId);
+    this.#frameResourceErrors.delete(instanceId);
     destroyMediaResource(existing);
     const resource: MediaResource = { source, kind: layer.kind === "video" ? "video" : "image" };
     this.#resources.set(instanceId, resource);
@@ -135,16 +191,19 @@ export class MediaTextureCache {
       this.#prepareVideo(resource, layer, footage, time, playing, instanceId);
       return;
     }
-    void fetch(source)
+    const pending = fetch(source)
       .then((response) => {
         if (!response.ok) throw new Error(`Media request failed with HTTP ${response.status}`);
         return response.blob();
       })
       .then((blob) => this.#decodePool.run(() => createImageBitmap(blob)))
       .then((bitmap) => this.#installBitmap(resource, bitmap, layer, footage, instanceId))
-      .catch(() => {
+      .catch((error: unknown) => {
         if (this.#resources.get(instanceId) === resource) this.#resources.delete(instanceId);
+        mediaImportRuntime.reportError(footage.id, error);
+        throw error;
       });
+    this.#trackPending(instanceId, source, pending);
   }
 
   #preparePsd(
@@ -158,6 +217,7 @@ export class MediaTextureCache {
     const source = `${locator}|${runtime.documentIdentity}|${cropX},${cropY},${width},${height}`;
     const existing = this.#resources.get(instanceId);
     if (existing?.kind === "image" && existing.source === source) {
+      this.#frameResourceErrors.delete(instanceId);
       mediaImportRuntime.clearError(footage.id);
       return;
     }
@@ -178,15 +238,18 @@ export class MediaTextureCache {
       cropX + width > runtime.decodedWidth ||
       cropY + height > runtime.decodedHeight
     ) {
-      mediaImportRuntime.reportError(
-        footage.id,
-        new Error("PSD layer crop exceeds the available GPU texture or decoded pixel bounds"),
+      const error = new Error(
+        "PSD layer crop exceeds the available GPU texture or decoded pixel bounds",
       );
+      mediaImportRuntime.reportError(footage.id, error);
+      this.#frameResourceErrors.set(instanceId, { source, error });
       return;
     }
     const requiredBytes = runtime.decodedWidth * runtime.decodedHeight * 4;
     if (runtime.pixels.byteLength < requiredBytes) {
-      mediaImportRuntime.reportError(footage.id, new Error("PSD decoded pixel plane is truncated"));
+      const error = new Error("PSD decoded pixel plane is truncated");
+      mediaImportRuntime.reportError(footage.id, error);
+      this.#frameResourceErrors.set(instanceId, { source, error });
       return;
     }
     const resource: MediaResource = { source, kind: "image" };
@@ -211,6 +274,7 @@ export class MediaTextureCache {
     resource.textureBytes = width * height * 4;
     resource.bindGroup = this.#createBindGroup(texture, `Imported PSD resources · ${layer.id}`);
     mediaImportRuntime.clearError(footage.id);
+    this.#frameResourceErrors.delete(instanceId);
     this.#invalidate();
   }
 
@@ -230,8 +294,11 @@ export class MediaTextureCache {
     );
     const source = `${locator}|${target.width}x${target.height}`;
     const existing = this.#resources.get(instanceId);
-    if (existing?.kind === "image" && existing.source === source) return;
-    if (this.#pendingImageSources.get(instanceId) === source) return;
+    if (existing?.kind === "image" && existing.source === source) {
+      this.#frameResourceErrors.delete(instanceId);
+      return;
+    }
+    if (this.#pendingFrameResources.get(instanceId)?.source === source) return;
     this.#installCachedBitmapWhenReady(
       source,
       this.#svgRasters.get(footage.contentIdentity, runtime.parsed, target),
@@ -262,6 +329,10 @@ export class MediaTextureCache {
       });
     } catch (error) {
       mediaImportRuntime.reportError(footage.id, error);
+      this.#frameResourceErrors.set(instanceId, {
+        source: `${locator}|sequence-error|${time}`,
+        error: asError(error),
+      });
       destroyMediaResource(this.#resources.get(instanceId));
       this.#resources.delete(instanceId);
       return;
@@ -269,8 +340,11 @@ export class MediaTextureCache {
     const frame = { frame: resolved.actualFrame, file: resolved.file };
     const source = `${locator}|${resolved.actualFrame}|${resolved.file.url}`;
     const existing = this.#resources.get(instanceId);
-    if (existing?.kind === "image" && existing.source === source) return;
-    if (this.#pendingImageSources.get(instanceId) !== source)
+    if (existing?.kind === "image" && existing.source === source) {
+      this.#frameResourceErrors.delete(instanceId);
+      return;
+    }
+    if (this.#pendingFrameResources.get(instanceId)?.source !== source)
       this.#installCachedBitmapWhenReady(
         source,
         this.#sequenceFrames.get(frame),
@@ -296,11 +370,9 @@ export class MediaTextureCache {
     footage: FootageSource,
     instanceId: string,
   ): void {
-    this.#pendingImageSources.set(instanceId, source);
-    void pending.then(
+    const installation = pending.then(
       (bitmap) => {
-        if (this.#pendingImageSources.get(instanceId) !== source) return;
-        this.#pendingImageSources.delete(instanceId);
+        if (this.#pendingFrameResources.get(instanceId)?.source !== source) return;
         const previous = this.#resources.get(instanceId);
         const resource: MediaResource = { source, kind: "image" };
         this.#resources.set(instanceId, resource);
@@ -313,14 +385,33 @@ export class MediaTextureCache {
           if (previous) this.#resources.set(instanceId, previous);
           else this.#resources.delete(instanceId);
           mediaImportRuntime.reportError(footage.id, error);
+          throw error;
         }
       },
       (error: unknown) => {
-        if (this.#pendingImageSources.get(instanceId) !== source) return;
-        this.#pendingImageSources.delete(instanceId);
+        if (this.#pendingFrameResources.get(instanceId)?.source !== source) return;
         mediaImportRuntime.reportError(footage.id, error);
+        throw error;
       },
     );
+    this.#trackPending(instanceId, source, installation);
+  }
+
+  #trackPending(instanceId: string, source: string, task: Promise<void>): void {
+    const pending: PendingFrameResource = { source, promise: Promise.resolve() };
+    this.#frameResourceErrors.delete(instanceId);
+    pending.promise = task
+      .catch((error: unknown) => {
+        if (this.#pendingFrameResources.get(instanceId) === pending)
+          this.#frameResourceErrors.set(instanceId, { source, error: asError(error) });
+        throw error;
+      })
+      .finally(() => {
+        if (this.#pendingFrameResources.get(instanceId) === pending)
+          this.#pendingFrameResources.delete(instanceId);
+      });
+    this.#pendingFrameResources.set(instanceId, pending);
+    void pending.promise.catch(() => undefined);
   }
 
   prepareText(layer: Layer, instanceId: string, localTime: number, frameRate: number): void {
@@ -339,7 +430,11 @@ export class MediaTextureCache {
       sampledAnimationTime,
     ]);
     const existing = this.#resources.get(instanceId);
-    if (existing?.kind === "text" && existing.source === source) return;
+    if (existing?.kind === "text" && existing.source === source) {
+      this.#frameResourceErrors.delete(instanceId);
+      return;
+    }
+    this.#frameResourceErrors.delete(instanceId);
     destroyMediaResource(existing);
     const resource: MediaResource = { source, kind: "text" };
     this.#resources.set(instanceId, resource);
@@ -433,6 +528,10 @@ export class MediaTextureCache {
     Object.assign(video.style, hiddenMediaStyle(0));
     video.src = resource.source;
     resource.video = video;
+    this.#videoFrameTargets.set(
+      instanceId,
+      this.#resolveVideoFrameTarget(resource.source, video, layer, footage, time, playing),
+    );
     document.body.append(video);
     const prepareTexture = () => {
       if (this.#resources.get(instanceId) !== resource || resource.texture) return;
@@ -442,6 +541,10 @@ export class MediaTextureCache {
       if (!this.#validVideoSize(width, height)) {
         video.dataset.decoderState = "error";
         video.dataset.decoderError = "decoded video exceeds the GPU texture limits";
+        this.#frameResourceErrors.set(instanceId, {
+          source: resource.source,
+          error: new Error(video.dataset.decoderError),
+        });
         destroyMediaResource(resource);
         this.#resources.delete(instanceId);
         return;
@@ -479,7 +582,7 @@ export class MediaTextureCache {
         },
       );
       resource.videoExternalUpload.start();
-      this.#updateVideo(resource, layer, footage, time, playing);
+      this.#updateVideo(resource, layer, footage, time, playing, instanceId);
       this.#invalidate();
     };
     video.addEventListener("loadeddata", prepareTexture, { once: true });
@@ -492,6 +595,10 @@ export class MediaTextureCache {
       video.dataset.decoderState = "error";
       video.dataset.decoderError = video.error?.message ?? "decode failed";
       if (this.#resources.get(instanceId) === resource) {
+        this.#frameResourceErrors.set(instanceId, {
+          source: resource.source,
+          error: new Error(video.dataset.decoderError),
+        });
         destroyMediaResource(resource);
         this.#resources.delete(instanceId);
       }
@@ -535,13 +642,10 @@ export class MediaTextureCache {
           finish(new Error(video.error.message || "Video decode failed during export"));
           return;
         }
-        if (
-          resource.texture &&
-          video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA &&
-          !video.seeking
-        ) {
+        if (this.#videoFrameCanUpload(resource)) {
           this.#copyVideoFrame(resource);
-          finish();
+          const instanceId = video.dataset.asterLayerId;
+          if (instanceId && this.#videoFrameIsExact(instanceId, resource)) finish();
         }
       };
       const timeout = setTimeout(
@@ -562,21 +666,67 @@ export class MediaTextureCache {
     footage: FootageSource,
     time: number,
     playing: boolean,
+    instanceId: string,
   ): void {
     const video = resource.video;
     if (!video) return;
     configurePreviewVideoAudio(video, layer);
+    const target = this.#resolveVideoFrameTarget(
+      resource.source,
+      video,
+      layer,
+      footage,
+      time,
+      playing,
+    );
+    this.#videoFrameTargets.set(instanceId, target);
+    if (Math.abs(video.currentTime - target.time) > target.tolerance)
+      video.currentTime = target.time;
+    if (playing && video.paused) void video.play().catch(() => undefined);
+    else if (!playing && !video.paused) video.pause();
+    this.#copyVideoFrame(resource);
+  }
+
+  #resolveVideoFrameTarget(
+    source: string,
+    video: HTMLVideoElement,
+    layer: Layer,
+    footage: FootageSource,
+    time: number,
+    playing: boolean,
+  ): VideoFrameTarget {
     const duration = Number.isFinite(video.duration)
       ? video.duration
       : "duration" in footage
         ? footage.duration
         : layer.outPoint - layer.inPoint;
-    const mediaTime = evaluateLayerSourceTime(layer, time, Math.max(0, duration - 0.001));
-    const tolerance = playing ? 0.12 : 1 / 240;
-    if (Math.abs(video.currentTime - mediaTime) > tolerance) video.currentTime = mediaTime;
-    if (playing && video.paused) void video.play().catch(() => undefined);
-    else if (!playing && !video.paused) video.pause();
-    this.#copyVideoFrame(resource);
+    return {
+      source,
+      time: evaluateLayerSourceTime(layer, time, Math.max(0, duration - 0.001)),
+      tolerance: playing ? 0.12 : 1 / 240,
+    };
+  }
+
+  #videoFrameCanUpload(resource: MediaResource): boolean {
+    const video = resource.video;
+    return Boolean(
+      resource.texture &&
+        video &&
+        video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA &&
+        !video.seeking,
+    );
+  }
+
+  #videoFrameIsExact(instanceId: string, resource: MediaResource): boolean {
+    if (!this.#videoFrameCanUpload(resource)) return false;
+    const video = resource.video;
+    const target = this.#videoFrameTargets.get(instanceId);
+    if (!video || !target || target.source !== resource.source) return false;
+    return (
+      Math.abs(video.currentTime - target.time) <= target.tolerance &&
+      resource.lastUploadedTime !== undefined &&
+      Math.abs(resource.lastUploadedTime - target.time) <= target.tolerance
+    );
   }
 
   #copyVideoFrame(resource: MediaResource): void {
@@ -586,6 +736,7 @@ export class MediaTextureCache {
       !video ||
       !texture ||
       video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA ||
+      video.seeking ||
       resource.lastUploadedTime === video.currentTime
     )
       return;
@@ -683,4 +834,44 @@ function bucketSvgTarget(displayWidth: number, displayHeight: number, maximumDim
     maxTextureDimension: maximumDimension,
     maxPixels: MAX_MEDIA_TEXTURE_BYTES / 4,
   });
+}
+
+function remainingTimeout(started: number, timeoutMs: number): number {
+  const bounded = Number.isFinite(timeoutMs) ? Math.max(1, timeoutMs) : 10_000;
+  return Math.max(0, bounded - (performance.now() - started));
+}
+
+function waitWithTimeout<T>(
+  task: Promise<T>,
+  timeoutMs: number,
+  signal: AbortSignal | undefined,
+  message: string,
+): Promise<T> {
+  if (signal?.aborted) return Promise.reject(abortError(signal.reason));
+  if (timeoutMs <= 0) return Promise.reject(new Error(message));
+  return new Promise<T>((resolve, reject) => {
+    let settled = false;
+    const finish = (error: unknown, value?: T) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      signal?.removeEventListener("abort", onAbort);
+      if (error) reject(error);
+      else resolve(value as T);
+    };
+    const onAbort = () => finish(abortError(signal?.reason));
+    const timeout = setTimeout(() => finish(new Error(message)), timeoutMs);
+    signal?.addEventListener("abort", onAbort, { once: true });
+    task.then((value) => finish(undefined, value), finish);
+  });
+}
+
+function abortError(reason: unknown): Error {
+  const error = new Error(typeof reason === "string" ? reason : "Frame resource wait was aborted");
+  error.name = "AbortError";
+  return error;
+}
+
+function asError(error: unknown): Error {
+  return error instanceof Error ? error : new Error(String(error));
 }
