@@ -40,17 +40,25 @@ describe("motion blur", () => {
     });
   });
 
-  it("routes nonlinear, temporal, and video layers through bounded HDR accumulation", () => {
+  it("uses bounded adaptive endpoint reconstruction for video-layer transforms", () => {
     const settings = normalizeMotionBlurSettings({
       enabled: true,
       samplesPerFrame: 4,
       adaptiveSampleLimit: 12,
     });
     const plan = planLayerMotionBlur(0, 60, settings, { ...vectorLayer, hasVideo: true }, 200);
-    expect(plan.strategy).toBe("accumulation");
+    expect(plan.strategy).toBe("vector");
     expect(plan.interval.sampleTimes).toHaveLength(12);
     expect(adaptiveMotionBlurSampleCount(settings, 0)).toBe(4);
     expect(adaptiveMotionBlurSampleCount(settings, 32)).toBe(5);
+  });
+
+  it("disables topology that cannot supply stable endpoint vectors", () => {
+    const settings = { ...DEFAULT_MOTION_BLUR_SETTINGS, enabled: true };
+    expect(
+      planLayerMotionBlur(0, 60, settings, { ...vectorLayer, supportsMotionVectors: false })
+        .strategy,
+    ).toBe("disabled");
   });
 
   it("requires both composition and layer switches", () => {

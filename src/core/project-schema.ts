@@ -6,7 +6,7 @@ import {
 import { sourceContentIdentity } from "./footage-source";
 import { assertParticleSettings } from "./particle-settings";
 
-export const CURRENT_PROJECT_SCHEMA_VERSION = 6 as const;
+export const CURRENT_PROJECT_SCHEMA_VERSION = 7 as const;
 
 type ProjectDocument = Record<string, unknown>;
 type ProjectMigration = (document: ProjectDocument) => ProjectDocument;
@@ -207,6 +207,30 @@ const PROJECT_MIGRATIONS = new Map<number, ProjectMigration>([
         }
       }
       document.schemaVersion = 6;
+      return document;
+    },
+  ],
+  [
+    6,
+    (document) => {
+      const compositions = Array.isArray(document.compositions) ? document.compositions : [];
+      for (const compositionValue of compositions) {
+        if (!compositionValue || typeof compositionValue !== "object") continue;
+        const composition = compositionValue as Record<string, unknown>;
+        composition.motionBlur = {
+          enabled: false,
+          shutterAngle: 180,
+          shutterPhase: -90,
+          samplesPerFrame: 8,
+          adaptiveSampleLimit: 32,
+        };
+        const layers = Array.isArray(composition.layers) ? composition.layers : [];
+        for (const layerValue of layers) {
+          if (!layerValue || typeof layerValue !== "object") continue;
+          (layerValue as Record<string, unknown>).motionBlur = false;
+        }
+      }
+      document.schemaVersion = 7;
       return document;
     },
   ],

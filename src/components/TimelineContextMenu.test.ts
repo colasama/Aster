@@ -9,6 +9,7 @@ function actions(): TimelineContextMenuActions {
     canInterpolate: false,
     canPasteKeyframes: false,
     canPasteLayers: false,
+    canMotionBlur: false,
     copyKeyframes: vi.fn(),
     copyLayers: vi.fn(),
     createLayer: vi.fn(),
@@ -22,6 +23,7 @@ function actions(): TimelineContextMenuActions {
     is3d: false,
     isAdjustment: false,
     isLayerTarget: true,
+    isMotionBlur: false,
     locked: false,
     onClose: vi.fn(),
     openGraph: vi.fn(),
@@ -33,6 +35,7 @@ function actions(): TimelineContextMenuActions {
     selectedLayerCount: 1,
     setInterpolation: vi.fn(),
     toggle3d: vi.fn(),
+    toggleMotionBlur: vi.fn(),
     x: 0,
     y: 0,
   };
@@ -46,6 +49,18 @@ describe("timelineContextMenuItems", () => {
       disabledReason: "Layer splitting is not available in the current model",
     });
     expect(items.find((item) => item.id === "motion-blur")).toMatchObject({ disabled: true });
+  });
+
+  it("exposes the persisted per-layer motion-blur switch when vectors are supported", () => {
+    const toggleMotionBlur = vi.fn();
+    const items = timelineContextMenuItems(
+      { ...actions(), canMotionBlur: true, isMotionBlur: true, toggleMotionBlur },
+      createTranslator("en-US"),
+    );
+    const item = items.find((candidate) => candidate.id === "motion-blur");
+    expect(item).toMatchObject({ checked: true, disabled: false });
+    if (item?.kind === "checkbox") item.onSelect();
+    expect(toggleMotionBlur).toHaveBeenCalledOnce();
   });
 
   it("offers all source-free layer kinds on empty timeline space", () => {

@@ -32,6 +32,8 @@ export interface TimelineContextMenuActions {
   hasKeyframeClipboard: boolean;
   is3d: boolean;
   isAdjustment: boolean;
+  isMotionBlur: boolean;
+  canMotionBlur: boolean;
   isLayerTarget: boolean;
   locked: boolean;
   onClose(): void;
@@ -44,6 +46,7 @@ export interface TimelineContextMenuActions {
   selectedLayerCount: number;
   setInterpolation(value: "linear" | "bezier" | "step"): void;
   toggle3d(): void;
+  toggleMotionBlur(): void;
   x: number;
   y: number;
   hasSource: boolean;
@@ -145,13 +148,13 @@ export function timelineContextMenuItems(
         onSelect: () => undefined,
       },
       {
-        checked: false,
-        disabled: true,
-        disabledReason: t("timeline.menu.motionBlurUnavailable"),
+        checked: actions.isMotionBlur,
+        disabled: !actions.canMotionBlur || actions.locked,
+        disabledReason: actions.locked ? locked : t("timeline.menu.motionBlurUnavailable"),
         id: "motion-blur",
         kind: "checkbox",
         label: t("timeline.menu.motionBlur"),
-        onSelect: () => undefined,
+        onSelect: actions.toggleMotionBlur,
       },
       { id: "source-separator", kind: "separator" },
       {

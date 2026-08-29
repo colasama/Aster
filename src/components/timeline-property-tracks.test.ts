@@ -80,6 +80,7 @@ function layer(): Layer {
     solo: false,
     locked: false,
     threeDimensional: false,
+    motionBlur: false,
     inPoint: 0,
     outPoint: 10,
     blendMode: "normal",

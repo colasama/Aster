@@ -58,7 +58,7 @@ interface RecoveryStorage {
 export function validateProjectDocument(value: unknown): Project {
   const current = cloneCurrentProjectDocument(value);
   const project = requireObject(current, "project");
-  if (project.schemaVersion !== 6) throw new Error("Unsupported Aster project schema");
+  if (project.schemaVersion !== 7) throw new Error("Unsupported Aster project schema");
   requireString(project.id, "project.id");
   requireString(project.name, "project.name");
   const activeCompositionId = requireString(
@@ -563,6 +563,23 @@ function validateComposition(value: unknown, path: string): asserts value is Com
     throw new Error(`${path}.workArea must be a non-empty frame-aligned composition range`);
   if (!Array.isArray(composition.background) || composition.background.length !== 4)
     throw new Error(`${path}.background must contain four channels`);
+  const motionBlur = requireObject(composition.motionBlur, `${path}.motionBlur`);
+  if (typeof motionBlur.enabled !== "boolean")
+    throw new Error(`${path}.motionBlur.enabled must be a boolean`);
+  validateBoundedNumber(motionBlur.shutterAngle, `${path}.motionBlur.shutterAngle`, [0, 720]);
+  validateBoundedNumber(motionBlur.shutterPhase, `${path}.motionBlur.shutterPhase`, [-720, 720]);
+  for (const [field, bounds] of [
+    ["samplesPerFrame", [2, 64]],
+    ["adaptiveSampleLimit", [2, 128]],
+  ] as const) {
+    const value = requireFiniteNumber(motionBlur[field], `${path}.motionBlur.${field}`);
+    if (!Number.isSafeInteger(value) || value < bounds[0] || value > bounds[1])
+      throw new Error(
+        `${path}.motionBlur.${field} must be an integer from ${bounds[0]} through ${bounds[1]}`,
+      );
+  }
+  if (Number(motionBlur.adaptiveSampleLimit) < Number(motionBlur.samplesPerFrame))
+    throw new Error(`${path}.motionBlur.adaptiveSampleLimit must not be below samplesPerFrame`);
   if (composition.environment !== undefined) {
     const environment = requireObject(composition.environment, `${path}.environment`);
     if (typeof environment.enabled !== "boolean")
@@ -603,6 +620,8 @@ function validateLayer(
   requireString(layer.id, `${path}.id`);
   requireString(layer.name, `${path}.name`);
   if (!isLayerKind(layer.kind)) throw new Error(`${path}.kind is unsupported`);
+  if (typeof layer.motionBlur !== "boolean")
+    throw new Error(`${path}.motionBlur must be a boolean`);
   if (layer.audioEnabled !== undefined && typeof layer.audioEnabled !== "boolean")
     throw new Error(`${path}.audioEnabled must be a boolean`);
   if (layer.audio !== undefined) {

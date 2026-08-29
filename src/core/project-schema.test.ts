@@ -30,7 +30,7 @@ describe("project schema migration gate", () => {
       schemaVersion: number;
       compositions: Array<{ layers: Array<Record<string, unknown>> }>;
     };
-    expect(migrated.schemaVersion).toBe(6);
+    expect(migrated.schemaVersion).toBe(7);
     expect(migrated.compositions[0].layers[0]).toMatchObject({
       kind: "generator",
       generator: { pluginId: "org.aster.builtin.particles", nodeType: "particle_system" },
@@ -50,12 +50,23 @@ describe("project schema migration gate", () => {
     );
   });
 
-  it("migrates v2 documents through v6 without rewriting source-free layers", () => {
+  it("migrates v2 documents through v7 without rewriting source-free layers", () => {
     const previous = createBlankProject() as unknown as Record<string, unknown>;
     previous.schemaVersion = 2;
-    const migrated = cloneCurrentProjectDocument(previous);
-    expect(migrated.schemaVersion).toBe(6);
-    expect(migrated.compositions).toEqual(previous.compositions);
+    const migrated = cloneCurrentProjectDocument(previous) as {
+      schemaVersion: number;
+      compositions: Array<Record<string, unknown>>;
+    };
+    expect(migrated.schemaVersion).toBe(7);
+    expect(migrated.compositions[0]).toMatchObject({
+      motionBlur: {
+        enabled: false,
+        shutterAngle: 180,
+        shutterPhase: -90,
+        samplesPerFrame: 8,
+        adaptiveSampleLimit: 32,
+      },
+    });
   });
 
   it("deduplicates repeated v3 nested assets by exact content identity", () => {
@@ -85,7 +96,7 @@ describe("project schema migration gate", () => {
       sources: Array<Record<string, unknown>>;
       compositions: Array<{ layers: Array<Record<string, unknown>> }>;
     };
-    expect(migrated.schemaVersion).toBe(6);
+    expect(migrated.schemaVersion).toBe(7);
     expect(migrated.sources).toHaveLength(1);
     expect(migrated.compositions[0].layers.slice(-2).map((layer) => layer.sourceId)).toEqual([
       migrated.sources[0].id,
@@ -106,7 +117,7 @@ describe("project schema migration gate", () => {
       schemaVersion: number;
       compositions: Array<{ layers: Array<Record<string, unknown>> }>;
     };
-    expect(migrated.schemaVersion).toBe(6);
+    expect(migrated.schemaVersion).toBe(7);
     const audio = migrated.compositions[0].layers[0].audio as {
       levelsDb: [number, number];
       pan: number;
@@ -151,7 +162,7 @@ describe("project schema migration gate", () => {
       }
     ).position;
 
-    expect(migrated.schemaVersion).toBe(6);
+    expect(migrated.schemaVersion).toBe(7);
     expect(migratedCamera).toMatchObject({
       mode: "oneNode",
       zoom,
@@ -163,7 +174,33 @@ describe("project schema migration gate", () => {
     expect(migratedCamera.fieldOfView).toBeUndefined();
   });
 
-  it.each([7, undefined, 1.5])("rejects unsupported schema %s", (schemaVersion) => {
+  it("migrates v6 camera documents to the two-switch motion-blur model", () => {
+    const previous = createBlankProject() as unknown as Record<string, unknown>;
+    previous.schemaVersion = 6;
+    const composition = (previous.compositions as Array<Record<string, unknown>>)[0];
+    delete composition.motionBlur;
+    const layers = composition.layers as Array<Record<string, unknown>>;
+    for (const layer of layers) delete layer.motionBlur;
+
+    const migrated = cloneCurrentProjectDocument(previous) as {
+      schemaVersion: number;
+      compositions: Array<{
+        motionBlur: Record<string, unknown>;
+        layers: Array<Record<string, unknown>>;
+      }>;
+    };
+    expect(migrated.schemaVersion).toBe(7);
+    expect(migrated.compositions[0].motionBlur).toEqual({
+      enabled: false,
+      shutterAngle: 180,
+      shutterPhase: -90,
+      samplesPerFrame: 8,
+      adaptiveSampleLimit: 32,
+    });
+    expect(migrated.compositions[0].layers.every((layer) => layer.motionBlur === false)).toBe(true);
+  });
+
+  it.each([8, undefined, 1.5])("rejects unsupported schema %s", (schemaVersion) => {
     expect(() => cloneCurrentProjectDocument({ schemaVersion })).toThrow("Aster project schema");
   });
 });

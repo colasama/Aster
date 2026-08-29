@@ -6,6 +6,7 @@ import { layerHasAudio, linearToDecibels, normalizeAudioLayerSettings } from "./
 import { normalizeCameraSettings } from "./camera-settings";
 import { type ClonerSettings, normalizeClonerSettings } from "./cloner";
 import { referencedSourceIds, sourceSupportsLayer } from "./footage-source";
+import { layerSupportsMotionBlur, normalizeMotionBlurSettings } from "./motion-blur";
 import { applyPrecompositionPlan, type PrecompositionPlan } from "./precomposition";
 import { activeComposition } from "./project";
 import {
@@ -37,6 +38,7 @@ import type {
   LightSettings,
   Lut3dResource,
   Material3d,
+  MotionBlurSettings,
   Project,
   ProjectFolder,
   SceneGeneratorInstance,
@@ -89,6 +91,11 @@ export type Operation =
       environment?: EnvironmentLighting;
     }
   | {
+      type: "setCompositionMotionBlur";
+      compositionId: Id;
+      motionBlur: MotionBlurSettings;
+    }
+  | {
       type: "setCompositionWorkArea";
       compositionId: Id;
       start: number;
@@ -136,7 +143,7 @@ export type Operation =
   | {
       type: "toggleLayer";
       layerId: Id;
-      field: "visible" | "solo" | "locked" | "audioEnabled" | "threeDimensional";
+      field: "visible" | "solo" | "locked" | "audioEnabled" | "threeDimensional" | "motionBlur";
     }
   | { type: "setProperty"; layerId: Id; path: PropertyPath; value: number }
   | { type: "addKeyframe"; layerId: Id; path: PropertyPath; keyframe: Keyframe }
@@ -202,6 +209,7 @@ export const OPERATION_TYPES = [
   "moveProjectItem",
   "setCompositionSettings",
   "setCompositionEnvironment",
+  "setCompositionMotionBlur",
   "setCompositionWorkArea",
   "precomposeLayers",
   "addSource",
@@ -349,6 +357,14 @@ export function applyOperation(project: Project, operation: Operation): void {
       composition.duration,
       composition.frameRate.denominator / composition.frameRate.numerator,
     );
+    return;
+  }
+  if (operation.type === "setCompositionMotionBlur") {
+    const composition = project.compositions.find(
+      (candidate) => candidate.id === operation.compositionId,
+    );
+    if (!composition) throw new Error("Composition does not exist");
+    composition.motionBlur = normalizeMotionBlurSettings(operation.motionBlur);
     return;
   }
   if (operation.type === "setCompositionEnvironment") {
@@ -648,7 +664,11 @@ export function applyOperation(project: Project, operation: Operation): void {
       layer.textAnimator = normalizeTextAnimatorSettings(operation.textAnimator);
       break;
     case "toggleLayer":
-      if (operation.field === "threeDimensional") {
+      if (operation.field === "motionBlur") {
+        if (!layerSupportsMotionBlur(layer))
+          throw new Error(`${layer.kind} layers do not support motion blur`);
+        layer.motionBlur = !layer.motionBlur;
+      } else if (operation.field === "threeDimensional") {
         const nextLayer = { ...layer, threeDimensional: !layer.threeDimensional };
         assertCanUpdateLayer(project, composition, nextLayer);
         layer.threeDimensional = nextLayer.threeDimensional;

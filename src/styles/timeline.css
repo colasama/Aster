@@ -72,6 +72,10 @@
   cursor: default;
   opacity: 0.3;
 }
+.timeline-options button.enabled {
+  color: #dce8ff;
+  background: #3159ad;
+}
 .timeline-options .keyframe-selection-count {
   min-width: 34px;
   margin-right: 2px;
@@ -129,6 +133,16 @@
   border-bottom: 1px solid #2b2e36;
   background: #17191e;
   cursor: ew-resize;
+}
+.timeline-shutter-region {
+  pointer-events: none;
+  position: absolute;
+  z-index: 1;
+  top: 8px;
+  bottom: 0;
+  min-width: 1px;
+  border-inline: 1px solid rgb(109 151 238 / 85%);
+  background: rgb(79 122 218 / 24%);
 }
 .tick {
   position: absolute;

@@ -2,7 +2,6 @@ import { logger } from "../core/logger";
 import type { Layer } from "../core/types";
 import type { SceneBufferVisualizer } from "./buffer-visualizer";
 import type { GeometryBatch } from "./geometry";
-import { GpuMotionVectorHistory } from "./motion-vector-history";
 import {
   AUXILIARY_BUFFER_DESCRIPTORS,
   AUXILIARY_BUFFER_KINDS,
@@ -18,6 +17,7 @@ import {
   usesAuxiliarySurfaceData,
 } from "./render-buffers";
 import { SHAPE_VERTEX_BUFFERS } from "./scene-pipelines";
+import { GpuTimeAddressedMotionVectors } from "./time-addressed-motion-vectors";
 
 const ID_RECORD_BYTES = 8;
 
@@ -31,9 +31,8 @@ export interface AuxiliaryEncodeRequest {
   encoder: GPUCommandEncoder;
   vertexBuffer: GPUBuffer;
   vertexCount: number;
-  timelineTime: number;
-  frameRate: number;
   batches: readonly GeometryBatch[];
+  motionVectors?: Float32Array;
   mediaBindGroup: (batch: GeometryBatch) => GPUBindGroup | undefined;
   generators?: readonly GeneratorDraw[];
 }
@@ -43,7 +42,7 @@ export class AuxiliaryBufferRenderer {
   readonly #device: GPUDevice;
   readonly #shapePipeline: GPURenderPipeline;
   readonly #mediaPipeline: GPURenderPipeline;
-  readonly #motionHistory: GpuMotionVectorHistory;
+  readonly #motionVectors: GpuTimeAddressedMotionVectors;
   #textures = new Map<AuxiliaryBufferKind, GPUTexture>();
   #depth?: GPUTexture;
   #idBuffer?: GPUBuffer;
@@ -60,7 +59,7 @@ export class AuxiliaryBufferRenderer {
 
   constructor(device: GPUDevice, imageBindGroupLayout: GPUBindGroupLayout) {
     this.#device = device;
-    this.#motionHistory = new GpuMotionVectorHistory(device);
+    this.#motionVectors = new GpuTimeAddressedMotionVectors(device);
     this.supported = supportsAuxiliaryMrt(device.limits);
     const module = device.createShaderModule({
       label: "Auxiliary MRT surface shader",
@@ -80,9 +79,9 @@ export class AuxiliaryBufferRenderer {
         ],
       },
       {
-        arrayStride: 16,
+        arrayStride: 8,
         stepMode: "vertex",
-        attributes: [{ shaderLocation: 14, offset: 0, format: "float32x3" }],
+        attributes: [{ shaderLocation: 14, offset: 0, format: "float32x2" }],
       },
     ];
     const base: Omit<GPURenderPipelineDescriptor, "fragment" | "layout"> = {
@@ -109,7 +108,7 @@ export class AuxiliaryBufferRenderer {
   }
 
   get estimatedBytes(): number {
-    return this.#estimatedBytes + this.#idBufferBytes + this.#motionHistory.estimatedBytes;
+    return this.#estimatedBytes + this.#idBufferBytes + this.#motionVectors.estimatedBytes;
   }
 
   get textures(): ReadonlyMap<AuxiliaryBufferKind, GPUTexture> {
@@ -204,7 +203,7 @@ export class AuxiliaryBufferRenderer {
     const plannedBytes =
       this.#estimatedBytes +
       Math.max(this.#idBufferBytes, nextIdBytes) +
-      this.#motionHistory.plannedBytes(request.vertexCount);
+      this.#motionVectors.plannedBytes(request.vertexCount);
     if (plannedBytes > this.#byteBudget) {
       if (!this.#budgetFailureReported) {
         this.#budgetFailureReported = true;
@@ -214,7 +213,6 @@ export class AuxiliaryBufferRenderer {
         });
       }
       this.#beginPass(request.encoder, "Auxiliary MRT budget fallback · cleared").end();
-      this.#motionHistory.reset();
       this.#motionShutterScale = 0;
       return false;
     }
@@ -222,22 +220,18 @@ export class AuxiliaryBufferRenderer {
     this.#uploadBatchIds(request.batches);
     const idBuffer = this.#idBuffer;
     if (!idBuffer) return false;
-    const motion = this.#motionHistory.prepare(
-      request.encoder,
-      request.vertexBuffer,
-      request.vertexCount,
-      request.batches,
-      request.timelineTime,
-      request.frameRate,
-    );
-    this.#motionShutterScale = motion.shutterScale;
+    const vectors = request.motionVectors ?? new Float32Array(request.vertexCount * 2);
+    if (vectors.length !== request.vertexCount * 2)
+      throw new Error("Auxiliary motion vectors must match the current geometry vertex count");
+    const motionBuffer = this.#motionVectors.upload(vectors);
+    this.#motionShutterScale = request.motionVectors ? 1 : 0;
     const pass = this.#beginPass(
       request.encoder,
       "Normal + IDs + World Position + Motion Vector MRT",
     );
     pass.setVertexBuffer(0, request.vertexBuffer);
     pass.setVertexBuffer(1, idBuffer);
-    pass.setVertexBuffer(2, motion.buffer);
+    pass.setVertexBuffer(2, motionBuffer);
     for (let index = 0; index < request.batches.length; index += 1) {
       const batch = request.batches[index];
       const media = request.mediaBindGroup(batch);
@@ -251,7 +245,6 @@ export class AuxiliaryBufferRenderer {
       pass.drawIndirect(generator.indirectBuffer, 0);
     }
     pass.end();
-    this.#motionHistory.commit(request.encoder, request.vertexBuffer, request.vertexCount, motion);
     return true;
   }
 
@@ -279,7 +272,7 @@ export class AuxiliaryBufferRenderer {
     this.#idBuffer?.destroy();
     this.#idBuffer = undefined;
     this.#idBufferBytes = 0;
-    this.#motionHistory.destroy();
+    this.#motionVectors.destroy();
   }
 
   #uploadBatchIds(batches: readonly GeometryBatch[]): void {
@@ -310,7 +303,7 @@ export class AuxiliaryBufferRenderer {
     this.#depth = undefined;
     this.#estimatedBytes = 0;
     this.#enabled = false;
-    this.#motionHistory.release();
+    this.#motionVectors.release();
     this.#motionShutterScale = 0;
   }
 }
@@ -365,7 +358,7 @@ struct SurfaceVertex {
   @location(8) shape_parameters: vec4f,
   @location(12) object_id: u32,
   @location(13) material_id: u32,
-  @location(14) previous_position: vec3f,
+  @location(14) motion_vector: vec2f,
 ) -> SurfaceVertex {
   var output: SurfaceVertex;
   output.position = vec4f(position, 1.0);
@@ -376,7 +369,7 @@ struct SurfaceVertex {
   output.shape_parameters = shape_parameters;
   output.object_id = object_id;
   output.material_id = material_id;
-  output.motion_vector = (position.xy - previous_position.xy) * vec2f(0.5, -0.5);
+  output.motion_vector = motion_vector;
   return output;
 }
 

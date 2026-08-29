@@ -3,6 +3,12 @@ import { evaluateCameraBasis } from "../core/camera-rig";
 import { sourceForLayer, sourceLocator } from "../core/footage-source";
 import { evaluateLayerSourceTime } from "../core/layer-time";
 import { logger } from "../core/logger";
+import {
+  compositionMotionBlurSettings,
+  layerMotionBlurEnabled,
+  layerSupportsMotionBlur,
+  motionBlurInterval,
+} from "../core/motion-blur";
 import type {
   BlendMode,
   Composition,
@@ -30,6 +36,7 @@ import { LayerEffectRenderer } from "./layer-effects";
 import { createLutSampler, createLutTexture } from "./lut-texture";
 import { MaterialTextureRenderer } from "./material-textures";
 import { MediaTextureCache } from "./media-texture-cache";
+import { MotionBlurRenderer } from "./motion-blur-renderer";
 import { precompileGpuPipelines } from "./pipeline-precompile";
 import { buildPostProcessUniforms } from "./post-process";
 import { PrecompositionSurfaceRenderer } from "./precomposition-surface-renderer";
@@ -53,6 +60,7 @@ import {
 } from "./scene-pipelines";
 import { validateShaderSources } from "./shader-validation";
 import { SurfacePostEffectsRenderer, selectedRenderId } from "./surface-post-effects";
+import { buildTimeAddressedMotionVectors } from "./time-addressed-motion-vectors";
 
 const MAX_SHAPE_VERTICES = 6 * 128;
 const SCENE_FORMAT: GPUTextureFormat = "rgba16float";
@@ -77,6 +85,7 @@ export class WebGpuRenderer {
   readonly #postPipeline: GPURenderPipeline;
   readonly #bufferVisualizer: SceneBufferVisualizer;
   readonly #depthEffects: DepthEffectsRenderer;
+  readonly #motionBlur: MotionBlurRenderer;
   readonly #surfacePostEffects: SurfacePostEffectsRenderer;
   readonly #auxiliaryBuffers: AuxiliaryBufferRenderer;
   readonly #layerEffects: LayerEffectRenderer;
@@ -92,6 +101,7 @@ export class WebGpuRenderer {
   readonly #frameReadback: GpuFrameReadbackPool;
   #pendingFrameReadback?: FrameReadbackTicket;
   #postBindGroup?: GPUBindGroup;
+  #motionBlurPostBindGroup?: GPUBindGroup;
   #sceneTexture?: GPUTexture;
   #depthTexture?: GPUTexture;
   #width = 1;
@@ -100,6 +110,8 @@ export class WebGpuRenderer {
   #memoryBudgetMb?: number;
   #bufferVisualization: BufferVisualization = "beauty";
   #beautyDepthOfFieldActive = false;
+  #beautyMotionBlurActive = false;
+  #depthEffectsUseMotionBlur = false;
   readonly #reportedAdjustmentErrors = new Set<string>();
   #smoothedFrameMs = 16.67;
   #lastFrameStarted?: number;
@@ -256,6 +268,7 @@ export class WebGpuRenderer {
     this.#postPipeline = createPostPipeline(device, format);
     this.#bufferVisualizer = new SceneBufferVisualizer(device, format);
     this.#depthEffects = new DepthEffectsRenderer(device, format);
+    this.#motionBlur = new MotionBlurRenderer(device, SCENE_FORMAT);
     this.#surfacePostEffects = new SurfacePostEffectsRenderer(device, format);
     this.#layerEffects = new LayerEffectRenderer(device, SCENE_FORMAT);
   }
@@ -342,18 +355,8 @@ export class WebGpuRenderer {
       format: "depth24plus",
       usage: GPUTextureUsage.RENDER_ATTACHMENT,
     });
-    this.#postBindGroup = this.#device.createBindGroup({
-      label: "HDR fused post-process resources",
-      layout: this.#postPipeline.getBindGroupLayout(0),
-      entries: [
-        { binding: 0, resource: this.#sceneTexture.createView() },
-        { binding: 1, resource: this.#postSampler },
-        { binding: 2, resource: { buffer: this.#postUniformBuffer } },
-        { binding: 3, resource: { buffer: this.#effectProgramBuffer } },
-        { binding: 4, resource: this.#identityLut.createView({ dimension: "3d" }) },
-        { binding: 5, resource: this.#lutSampler },
-      ],
-    });
+    this.#postBindGroup = this.#createPostBindGroup(this.#sceneTexture, "scene");
+    this.#motionBlurPostBindGroup = undefined;
     this.#bufferVisualizer.setSource(this.#sceneTexture);
     this.#configureAuxiliaryBuffers();
     this.#layerEffects.resize(this.#width, this.#height);
@@ -421,6 +424,26 @@ export class WebGpuRenderer {
     );
     const { sceneLayers, geometry } = evaluation;
     const renderStack = planSceneRenderStack(sceneLayers, geometry.batches);
+    const motionBlurSettings = compositionMotionBlurSettings(composition);
+    const motionBlurSelectionIds = new Set(
+      geometry.batches
+        .filter(
+          (batch) => layerMotionBlurEnabled(batch.layer) && layerSupportsMotionBlur(batch.layer),
+        )
+        .map((batch) => batch.selectionId),
+    );
+    const beautyMotionBlur =
+      this.#bufferVisualization === "beauty" &&
+      motionBlurSettings.enabled &&
+      motionBlurSettings.shutterAngle > 0 &&
+      motionBlurSelectionIds.size > 0;
+    const motionBlurRequested =
+      motionBlurSettings.enabled &&
+      motionBlurSettings.shutterAngle > 0 &&
+      motionBlurSelectionIds.size > 0 &&
+      (beautyMotionBlur ||
+        this.#bufferVisualization === "motionVector" ||
+        this.#bufferVisualization === "vectorMotionBlur");
     this.#sceneGenerators.beginFrame();
     const surfaceFrame = this.#precompositionSurfaces.prepare(
       project,
@@ -437,9 +460,40 @@ export class WebGpuRenderer {
       this.#bufferVisualization === "beauty" &&
       camera?.optics.depthOfField === true &&
       camera.projection.kind === "perspective";
+    let auxiliaryConfigurationChanged = false;
     if (beautyDepthOfField !== this.#beautyDepthOfFieldActive) {
       this.#beautyDepthOfFieldActive = beautyDepthOfField;
-      this.#configureAuxiliaryBuffers();
+      auxiliaryConfigurationChanged = true;
+    }
+    if (beautyMotionBlur !== this.#beautyMotionBlurActive) {
+      this.#beautyMotionBlurActive = beautyMotionBlur;
+      auxiliaryConfigurationChanged = true;
+    }
+    if (auxiliaryConfigurationChanged) this.#configureAuxiliaryBuffers();
+    const frameRate = composition.frameRate.numerator / composition.frameRate.denominator;
+    const shutterInterval = motionBlurInterval(time, frameRate, motionBlurSettings);
+    let motionVectors: Float32Array | undefined;
+    if (motionBlurRequested) {
+      const shutterOpen = this.#evaluationCache.evaluate(
+        composition,
+        project,
+        shutterInterval.openTime,
+        this.#width,
+        this.#height,
+      );
+      const shutterClose = this.#evaluationCache.evaluate(
+        composition,
+        project,
+        shutterInterval.closeTime,
+        this.#width,
+        this.#height,
+      );
+      motionVectors = buildTimeAddressedMotionVectors(
+        geometry,
+        shutterOpen.geometry,
+        shutterClose.geometry,
+        motionBlurSelectionIds,
+      );
     }
     if (camera) {
       const basis = evaluateCameraBasis(camera.pose);
@@ -489,6 +543,7 @@ export class WebGpuRenderer {
         this.#sceneGenerators.estimatedBytes +
         this.#shapeBufferBytes +
         this.#auxiliaryBuffers.estimatedBytes +
+        this.#motionBlur.estimatedBytes +
         this.#mediaTextures.estimatedBytes +
         surfaceFrame.residentBytes +
         this.#surfacePostEffects.estimatedBytes +
@@ -761,23 +816,51 @@ export class WebGpuRenderer {
     const generatorDrawCount = drawnGenerators.size;
     scenePass?.end();
     const needsAuxiliarySurfaceData =
-      usesAuxiliarySurfaceData(this.#bufferVisualization) || beautyDepthOfField;
+      usesAuxiliarySurfaceData(this.#bufferVisualization) ||
+      beautyDepthOfField ||
+      motionBlurRequested;
     let auxiliaryFrameValid = !needsAuxiliarySurfaceData;
     if (!auxiliaryFrameValid) {
       auxiliaryFrameValid = this.#auxiliaryBuffers.encode({
         encoder,
         vertexBuffer: this.#shapeBuffer,
         vertexCount: geometry.data.length / FLOATS_PER_VERTEX,
-        timelineTime: time,
-        frameRate: composition.frameRate.numerator / composition.frameRate.denominator,
         batches: geometry.batches,
+        motionVectors,
         mediaBindGroup: (batch) =>
           this.#precompositionSurfaces.bindingFor(batch.instanceId) ??
           this.#mediaTextures.bindGroup(batch.resourceInstanceId),
-        generators: sceneGenerators
-          .map((generator) => this.#sceneGenerators.auxiliaryDraw(generator))
-          .filter((draw) => draw !== undefined),
+        generators: beautyMotionBlur
+          ? []
+          : sceneGenerators
+              .map((generator) => this.#sceneGenerators.auxiliaryDraw(generator))
+              .filter((draw) => draw !== undefined),
       });
+    }
+    const framePosition =
+      shutterInterval.duration > Number.EPSILON
+        ? (time - shutterInterval.openTime) / shutterInterval.duration
+        : 0.5;
+    const beautyMotionBlurValid =
+      beautyMotionBlur &&
+      auxiliaryFrameValid &&
+      motionVectors !== undefined &&
+      this.#motionBlur.encode(encoder, {
+        ...motionBlurSettings,
+        framePosition,
+        maximumRadius: Math.max(
+          1,
+          Math.min(256, 256 * (this.#width / Math.max(composition.width, 1))),
+        ),
+      });
+    if (beautyDepthOfField && beautyMotionBlurValid !== this.#depthEffectsUseMotionBlur) {
+      this.#depthEffectsUseMotionBlur = beautyMotionBlurValid;
+      this.#depthEffects.setSources(
+        this.#width,
+        this.#height,
+        beautyMotionBlurValid ? this.#motionBlur.outputTexture : this.#sceneTexture,
+        this.#auxiliaryBuffers.textures.get("worldPosition"),
+      );
     }
     this.#surfacePostEffects.setSelection(
       selectedRenderId(
@@ -809,11 +892,15 @@ export class WebGpuRenderer {
       ],
     });
     const postRoute = postRenderRoute(this.#bufferVisualization, auxiliaryFrameValid);
+    const beautyPostBindGroup =
+      beautyMotionBlurValid && this.#motionBlurPostBindGroup
+        ? this.#motionBlurPostBindGroup
+        : this.#postBindGroup;
     if (beautyDepthOfField && auxiliaryFrameValid) {
       this.#depthEffects.encode(postPass, "depthOfField");
     } else if (postRoute === "beauty") {
       postPass.setPipeline(this.#postPipeline);
-      postPass.setBindGroup(0, this.#postBindGroup);
+      postPass.setBindGroup(0, beautyPostBindGroup);
       postPass.draw(3);
     } else if (isDepthEffectVisualization(this.#bufferVisualization)) {
       this.#depthEffects.encode(postPass, this.#bufferVisualization);
@@ -821,7 +908,7 @@ export class WebGpuRenderer {
       this.#surfacePostEffects.encode(postPass, this.#bufferVisualization);
     } else if (this.#bufferVisualization === "beauty") {
       postPass.setPipeline(this.#postPipeline);
-      postPass.setBindGroup(0, this.#postBindGroup);
+      postPass.setBindGroup(0, beautyPostBindGroup);
       postPass.draw(3);
     } else this.#bufferVisualizer.encode(postPass, this.#bufferVisualization);
     postPass.end();
@@ -842,6 +929,7 @@ export class WebGpuRenderer {
       gpuMs: this.#gpuProfiler.totalMs(),
       drawCalls:
         1 +
+        (beautyMotionBlurValid ? 3 : 0) +
         geometry.batches.length +
         surfaceFrame.surfaceCount +
         shadowDrawCalls +
@@ -850,6 +938,7 @@ export class WebGpuRenderer {
         generatorDrawCount,
       passCount:
         3 +
+        (beautyMotionBlurValid ? 3 : 0) +
         Number(shadowsEnabled) +
         scenePassCount +
         effectLayerCount * 3 +
@@ -858,7 +947,8 @@ export class WebGpuRenderer {
       dirtyNodes: (evaluation.cacheHit ? 0 : sceneLayers.length) + effectOperationCount,
       cacheHitRate: this.#evaluationCache.hitRate(),
       estimatedVramMb: memory.estimatedBytes / 1024 / 1024,
-      transientTextureCount: 6 + surfaceFrame.residentTextureCount,
+      transientTextureCount:
+        6 + (beautyMotionBlurValid ? 3 : 0) + surfaceFrame.residentTextureCount,
       memoryBudgetMb: memory.budgetMb,
       memoryPressure: memory.pressure,
       shadowMapSize: memory.shadowMapSize,
@@ -883,8 +973,22 @@ export class WebGpuRenderer {
       this.#width,
       this.#height,
       this.#memoryBudgetMb,
-      this.#beautyDepthOfFieldActive,
+      this.#beautyDepthOfFieldActive || this.#beautyMotionBlurActive,
     );
+    this.#motionBlur.setSources(
+      this.#width,
+      this.#height,
+      this.#beautyMotionBlurActive ? this.#sceneTexture : undefined,
+      this.#beautyMotionBlurActive
+        ? this.#auxiliaryBuffers.textures.get("motionVector")
+        : undefined,
+      this.#beautyMotionBlurActive ? this.#auxiliaryBuffers.textures.get("objectId") : undefined,
+      (this.#memoryBudgetMb ?? 512) * 1024 * 1024 * 0.25,
+    );
+    this.#motionBlurPostBindGroup = this.#motionBlur.outputTexture
+      ? this.#createPostBindGroup(this.#motionBlur.outputTexture, "motion-blurred scene")
+      : undefined;
+    this.#depthEffectsUseMotionBlur = false;
     this.#depthEffects.setSources(
       this.#width,
       this.#height,
@@ -898,6 +1002,20 @@ export class WebGpuRenderer {
       this.#auxiliaryBuffers.textures.get("objectId"),
       this.#auxiliaryBuffers.textures.get("motionVector"),
     );
+  }
+  #createPostBindGroup(source: GPUTexture, label: string): GPUBindGroup {
+    return this.#device.createBindGroup({
+      label: `HDR fused post-process resources · ${label}`,
+      layout: this.#postPipeline.getBindGroupLayout(0),
+      entries: [
+        { binding: 0, resource: source.createView() },
+        { binding: 1, resource: this.#postSampler },
+        { binding: 2, resource: { buffer: this.#postUniformBuffer } },
+        { binding: 3, resource: { buffer: this.#effectProgramBuffer } },
+        { binding: 4, resource: this.#identityLut.createView({ dimension: "3d" }) },
+        { binding: 5, resource: this.#lutSampler },
+      ],
+    });
   }
   #configureShadowMap(size: number): void {
     if (size === this.#shadowMapSize) return;

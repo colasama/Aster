@@ -102,10 +102,13 @@ The generic layer factory requires an explicit plugin instance and the generic r
 bundled definitions through constructor injection. Only application composition roots and the
 bundled-particle adapter select particles as a convenient default; core layer creation, project I/O,
 render-stack planning, precompilation, and GPU resource ownership contain no particle branch.
-6. One composition-level ACES display pass presents the linear HDR result to the surface. Depth
-   previews reuse the on-demand auxiliary MRT world-position attachment: exponential fog derives
-   distance from its world-space Z value, while depth of field applies a bounded 16-tap circular
-   blur from the same value. Beauty mode disables these transient attachments to avoid idle VRAM.
+6. Beauty motion blur evaluates shutter-open and shutter-close geometry at exact timeline times,
+   uploads one endpoint displacement per vertex, and rasterizes motion vectors with object IDs in the
+   on-demand auxiliary MRT. A GPU tile-max, neighbor-max, and object-aware adaptive reconstruction
+   writes a new premultiplied linear-HDR scene without consulting render history. Depth of field then
+   consumes that scene and the world-position attachment. One composition-level ACES display pass
+   presents the result. Beauty mode releases all motion/depth transient attachments when both effects
+   are disabled, so the steady unblurred path pays no extra full-resolution VRAM.
 7. Metrics are sampled outside React's frame-critical path.
 
 Frame and sequence export open one full-resolution render session, resize the GPU surface once, and

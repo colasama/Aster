@@ -17,7 +17,7 @@ on demand, executes them in an isolated workspace, and submits a cumulative type
 6. Freeze one cumulative semantic diff and reject a stale live revision.
 7. Apply accepted work as one undoable transaction and append a secret-free audit record.
 
-The registry covers all 57 variants in the live TypeScript `Operation` union. Asset import, project
+The registry covers all 58 variants in the live TypeScript `Operation` union. Asset import, project
 I/O, plugin installation, export, filesystem, process, and network actions remain separate services
 because they have different authority, cancellation, and audit requirements.
 
@@ -28,6 +28,7 @@ because they have different authority, cancellation, and audit requirements.
 | `addProjectFolder` | Project | Creates a project-panel folder. |
 | `moveProjectItem` | Project | Moves a composition or media item between folders. |
 | `setCompositionSettings` | Compositions | Changes name, dimensions, frame rate, and duration. |
+| `setCompositionMotionBlur` | Compositions | Sets the bounded shutter and adaptive sample policy. |
 | `setCompositionEnvironment` | Compositions | Updates or clears an imported HDR environment. |
 | `setCompositionWorkArea` | Compositions | Sets the frame-aligned work area. |
 | `precomposeLayers` | Compositions | Creates a nested composition and wrapper layer. |
@@ -61,7 +62,7 @@ because they have different authority, cancellation, and audit requirements.
 | `setTextContent` | Typography | Sets bounded text content. |
 | `setTextStyle` | Typography | Replaces typography and stroke settings. |
 | `setTextAnimator` | Typography | Configures per-character text animation. |
-| `toggleLayer` | Layers | Toggles visibility, solo, lock, audio, or 3D state. |
+| `toggleLayer` | Layers | Toggles visibility, solo, lock, audio, 3D, or motion blur state. |
 | `setProperty` | Animation | Sets a finite transform or opacity property. |
 | `addKeyframe` | Animation | Adds a transform keyframe. |
 | `moveKeyframe` | Animation | Moves an existing transform keyframe. |

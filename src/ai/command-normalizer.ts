@@ -132,7 +132,13 @@ function normalizeCommand(
       return {
         type: "toggleLayer",
         layerId,
-        field: input.field as "visible" | "solo" | "locked" | "audioEnabled" | "threeDimensional",
+        field: input.field as
+          | "visible"
+          | "solo"
+          | "locked"
+          | "audioEnabled"
+          | "threeDimensional"
+          | "motionBlur",
       };
     case "setProperty":
       requireLayer(layer, layerId);

@@ -23,11 +23,10 @@ describe("auxiliary MRT identities", () => {
     expect([...ids].every((id) => id !== 0)).toBe(true);
   });
 
-  it("writes signed previous-to-current UV motion for geometry", () => {
+  it("writes interpolated shutter-endpoint UV motion for geometry", () => {
     expect(auxiliarySurfaceShader).toContain("@location(4) motion_vector: vec2f");
-    expect(auxiliarySurfaceShader).toContain(
-      "(position.xy - previous_position.xy) * vec2f(0.5, -0.5)",
-    );
+    expect(auxiliarySurfaceShader).toContain("@location(14) motion_vector: vec2f");
+    expect(auxiliarySurfaceShader).not.toContain("previous_position");
     expect(auxiliarySurfaceShader).toContain("output.motion_vector = input.motion_vector");
   });
 });

@@ -106,6 +106,21 @@ export function normalizeExtendedAiCommand(
         },
         duration: Number(input.duration),
       };
+    case "setCompositionMotionBlur": {
+      const compositionId = requiredId(input.compositionId, "compositionId");
+      requireComposition(project, compositionId);
+      return {
+        type: "setCompositionMotionBlur",
+        compositionId,
+        motionBlur: {
+          enabled: input.enabled === true,
+          shutterAngle: Number(input.shutterAngle),
+          shutterPhase: Number(input.shutterPhase),
+          samplesPerFrame: Number(input.samplesPerFrame),
+          adaptiveSampleLimit: Number(input.adaptiveSampleLimit),
+        },
+      };
+    }
     case "setCompositionEnvironment": {
       const compositionId = requiredId(input.compositionId, "compositionId");
       const target = requireComposition(project, compositionId);

@@ -4,7 +4,7 @@ import {
   particleGeneratorRenderShader,
 } from "./bundled-particle-generator";
 import { depthEffectsShader } from "./depth-effects";
-import { extractPositionsShader } from "./motion-vector-history";
+import { motionBlurShader } from "./motion-blur-renderer";
 import {
   imageShader,
   materialShapeShader,
@@ -25,7 +25,7 @@ export async function validateShaderSources(device: GPUDevice): Promise<void> {
     ["post process", postProcessShader],
     ["auxiliary surface MRT", auxiliarySurfaceShader],
     ["depth effects", depthEffectsShader],
-    ["motion-vector history", extractPositionsShader],
+    ["time-addressed vector motion blur", motionBlurShader],
     ["object isolation and vector motion blur", surfacePostEffectsShader],
   ] as const;
   for (const [label, code] of sources) {

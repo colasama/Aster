@@ -37,6 +37,7 @@ import { useContextMenuTrigger } from "./context-menu/use-context-menu-trigger";
 import { EffectMaskEditor } from "./EffectMaskEditor";
 import { EffectParameter } from "./EffectParameter";
 import { InspectorPropertyContextMenu } from "./InspectorPropertyContextMenu";
+import { MotionBlurControls } from "./MotionBlurControls";
 import { Panel, PanelTabs } from "./Panel";
 import { Scene3dControls } from "./Scene3dControls";
 import { ShapeControls } from "./ShapeControls";
@@ -352,6 +353,7 @@ export function Inspector() {
               )}
             </div>
           )}
+          <MotionBlurControls composition={composition} layer={layer} />
           <div className="inspector-section effects-section">
             <div className="section-title static">
               <ChevronDown size={13} /> {t("inspector.effects.title")} <span />

@@ -711,7 +711,9 @@
         "properties": {
           "type": { "const": "toggleLayer" },
           "layerId": { "type": "string", "minLength": 1, "maxLength": 128 },
-          "field": { "enum": ["visible", "solo", "locked", "audioEnabled", "threeDimensional"] }
+          "field": {
+            "enum": ["visible", "solo", "locked", "audioEnabled", "threeDimensional", "motionBlur"]
+          }
         }
       }
     },
@@ -1019,6 +1021,38 @@
           "frameRateNumerator": { "type": "integer", "minimum": 1, "maximum": 240000 },
           "frameRateDenominator": { "type": "integer", "minimum": 1, "maximum": 240000 },
           "duration": { "type": "number", "minimum": 0.1, "maximum": 86400 }
+        }
+      }
+    },
+    {
+      "name": "setCompositionMotionBlur",
+      "version": 1,
+      "category": "compositions",
+      "description": "Set the composition motion-blur switch and bounded AE-style shutter sampling.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "type",
+          "compositionId",
+          "enabled",
+          "shutterAngle",
+          "shutterPhase",
+          "samplesPerFrame",
+          "adaptiveSampleLimit"
+        ],
+        "properties": {
+          "type": { "const": "setCompositionMotionBlur" },
+          "compositionId": { "$ref": "#/$defs/id" },
+          "enabled": { "type": "boolean" },
+          "shutterAngle": { "type": "number", "minimum": 0, "maximum": 720 },
+          "shutterPhase": { "type": "number", "minimum": -720, "maximum": 720 },
+          "samplesPerFrame": { "type": "integer", "minimum": 2, "maximum": 64 },
+          "adaptiveSampleLimit": { "type": "integer", "minimum": 2, "maximum": 128 }
         }
       }
     },

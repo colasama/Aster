@@ -300,6 +300,7 @@ function psdComposition(
     duration: activeComposition.duration,
     workArea: { ...activeComposition.workArea },
     background: [0, 0, 0, 0],
+    motionBlur: { ...activeComposition.motionBlur },
     layers: [],
   };
 }

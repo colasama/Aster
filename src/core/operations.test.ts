@@ -356,6 +356,41 @@ describe("structured project operations", () => {
     expect(navigated.activeCompositionId).toBe(source.activeCompositionId);
   });
 
+  it("normalizes the composition shutter and toggles supported layer motion blur", () => {
+    const source = createDemoProject();
+    const composition = activeComposition(source);
+    const layer = composition.layers[0];
+    const edited = applyOperations(source, [
+      {
+        type: "setCompositionMotionBlur",
+        compositionId: composition.id,
+        motionBlur: {
+          enabled: true,
+          shutterAngle: 999,
+          shutterPhase: -999,
+          samplesPerFrame: 12,
+          adaptiveSampleLimit: 4,
+        },
+      },
+      { type: "toggleLayer", layerId: layer.id, field: "motionBlur" },
+    ]);
+    expect(activeComposition(edited).motionBlur).toEqual({
+      enabled: true,
+      shutterAngle: 720,
+      shutterPhase: -720,
+      samplesPerFrame: 12,
+      adaptiveSampleLimit: 12,
+    });
+    expect(activeComposition(edited).layers[0].motionBlur).toBe(true);
+    expect(layer.motionBlur).toBe(false);
+
+    const audio = createLayerForComposition("audio", composition);
+    composition.layers.push(audio);
+    expect(() =>
+      applyOperations(source, [{ type: "toggleLayer", layerId: audio.id, field: "motionBlur" }]),
+    ).toThrow("do not support motion blur");
+  });
+
   it("creates project folders and moves compositions and media between them", () => {
     const source = createBlankProject();
     const folder = { id: crypto.randomUUID(), name: "Footage" };

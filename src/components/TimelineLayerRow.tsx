@@ -17,6 +17,7 @@ import {
   Type,
   Volume2,
   VolumeX,
+  Wind,
 } from "lucide-react";
 import {
   type KeyboardEvent as ReactKeyboardEvent,
@@ -24,6 +25,7 @@ import {
   type PointerEvent as ReactPointerEvent,
   useState,
 } from "react";
+import { layerSupportsMotionBlur } from "../core/motion-blur";
 import type { activeComposition } from "../core/project";
 import type { Keyframe, Layer } from "../core/types";
 import { useI18n } from "../i18n/react";
@@ -193,7 +195,9 @@ export function TimelineLayerRow({
 function LayerSwitches({ layer }: { layer: Layer }) {
   const { dispatch } = useEditor();
   const { t } = useI18n();
-  const toggle = (field: "visible" | "solo" | "audioEnabled" | "locked" | "threeDimensional") =>
+  const toggle = (
+    field: "visible" | "solo" | "audioEnabled" | "locked" | "threeDimensional" | "motionBlur",
+  ) =>
     dispatch({
       type: "operation",
       operations: [{ type: "toggleLayer", layerId: layer.id, field }],
@@ -281,6 +285,27 @@ function LayerSwitches({ layer }: { layer: Layer }) {
         type="button"
       >
         <Box size={11} />
+      </button>
+      <button
+        aria-label={
+          layer.motionBlur
+            ? t("timeline.layer.disableMotionBlur", { name: layer.name })
+            : t("timeline.layer.enableMotionBlur", { name: layer.name })
+        }
+        className={layer.motionBlur ? "enabled" : ""}
+        disabled={!layerSupportsMotionBlur(layer)}
+        onClick={(event) => {
+          event.stopPropagation();
+          toggle("motionBlur");
+        }}
+        title={
+          layerSupportsMotionBlur(layer)
+            ? t("timeline.menu.motionBlur")
+            : t("timeline.menu.motionBlurUnavailable")
+        }
+        type="button"
+      >
+        <Wind size={11} />
       </button>
     </div>
   );

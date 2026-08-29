@@ -22,6 +22,7 @@ function layer(base: Pick<Layer, "name" | "kind" | "color" | "size"> & Partial<L
     solo: false,
     locked: false,
     threeDimensional: false,
+    motionBlur: false,
     inPoint: 0,
     outPoint: 12,
     blendMode: "normal",
@@ -248,6 +249,13 @@ export function createDemoProject(): Project {
     duration: 12,
     workArea: { start: 0, end: 12 },
     background: [0.008, 0.01, 0.025, 1],
+    motionBlur: {
+      enabled: false,
+      shutterAngle: 180,
+      shutterPhase: -90,
+      samplesPerFrame: 8,
+      adaptiveSampleLimit: 32,
+    },
     environment: {
       enabled: true,
       intensity: 0.55,
@@ -261,7 +269,7 @@ export function createDemoProject(): Project {
     layers: [title, subtitle, ribbon, orb, materialStudy, particles, background, camera],
   };
   return {
-    schemaVersion: 6,
+    schemaVersion: 7,
     id: createId(),
     name: "Aster Launch",
     activeCompositionId: compositionId,
@@ -306,6 +314,13 @@ export function createBlankComposition(name = "Composition 1"): Composition {
     duration: 10,
     workArea: { start: 0, end: 10 },
     background: [0.008, 0.01, 0.018, 1],
+    motionBlur: {
+      enabled: false,
+      shutterAngle: 180,
+      shutterPhase: -90,
+      samplesPerFrame: 8,
+      adaptiveSampleLimit: 32,
+    },
     layers: [background],
   };
 }
@@ -313,7 +328,7 @@ export function createBlankComposition(name = "Composition 1"): Composition {
 export function createBlankProject(): Project {
   const composition = createBlankComposition();
   return {
-    schemaVersion: 6,
+    schemaVersion: 7,
     id: createId(),
     name: "Untitled Project",
     activeCompositionId: composition.id,

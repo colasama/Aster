@@ -1,4 +1,4 @@
-# Aster project format v5
+# Aster project format v7
 
 The development editor currently exchanges a readable JSON document named `*.aster.json`. The Rust
 bundle layer stores the same versioned domain model inside an atomically replaced project path. Cache,
@@ -8,7 +8,7 @@ proxy, and preview data are deliberately excluded.
 
 ```json
 {
-  "schemaVersion": 5,
+  "schemaVersion": 7,
   "id": "stable-uuid",
   "name": "Project name",
   "activeCompositionId": "stable-uuid",
@@ -26,6 +26,13 @@ optional HDR environment, and an ordered layer list. The environment stores an e
 linear intensity, equirectangular rotation, and an embedded Radiance RGBE source. Readers accept only
 `image/vnd.radiance` or `image/x-hdr`, cap the encoded source at 64 MiB, and the renderer further caps
 decoded maps at 8192 × 4096 and 16 million pixels.
+
+Version 7 persists AE-style motion blur as two independent switches. A composition has required
+`motionBlur` settings containing `enabled`, a 0–720 degree `shutterAngle`, a -720–720 degree
+`shutterPhase`, 2–64 base samples, and a 2–128 adaptive sample limit that may not be below the base.
+Every layer has its own required `motionBlur` boolean. Both switches must be true before the renderer
+evaluates shutter endpoints. The default 180 degree angle and -90 degree phase center the exposure on
+the current frame.
 
 Layers use stable UUIDs, time bounds, kind, blend mode, transform properties, and
 effects. An animatable property is either a static value or an ordered keyframe array. Effects are
@@ -128,10 +135,12 @@ and [Advanced 3D depth-of-field controls](https://helpx.adobe.com/ca/after-effec
   The v5 → v6 migration converts legacy vertical-FOV cameras to a physical film-back/Zoom lens,
   offsets their camera position by the migrated Zoom so the composition plane remains visible, and
   supplies deterministic one-node and depth-of-field defaults.
+  The v6 → v7 migration adds a disabled composition Motion Blur switch with the centered 180/-90
+  shutter defaults and disables the switch on every existing layer, preserving all previous pixels.
   Older, future, missing, or fractional versions fail
   before partially applying the document.
-- The native bundle boundary accepts v1 through v6 on read so the renderer can run migrations, but
-  new primary saves and autosaves must already be validated v6 documents.
+- The native bundle boundary accepts v1 through v7 on read so the renderer can run migrations, but
+  new primary saves and autosaves must already be validated v7 documents.
 - Every future historical transform must preserve the source document, set exactly the next integer
   version, and gain a compatibility fixture before the current schema version increases.
 - Unknown effect types and parameters must be preserved and disabled when execution is unavailable.

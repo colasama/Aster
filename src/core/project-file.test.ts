@@ -10,7 +10,7 @@ import { createLayerForComposition } from "./layer-factory";
 import { createDefaultParticleSettings } from "./particle-settings";
 import { createBlankProject } from "./project";
 import { serializeProject, storeRecoverySnapshot, validateProjectDocument } from "./project-file";
-import type { ProjectFolder } from "./types";
+import type { Layer, ProjectFolder } from "./types";
 
 describe("project document boundary", () => {
   it("roundtrips shared sources once and rejects invalid references or metadata", () => {
@@ -60,8 +60,32 @@ describe("project document boundary", () => {
     composition.layers = [nullLayer, solid];
 
     const roundtrip = validateProjectDocument(JSON.parse(serializeProject(project)));
-    expect(roundtrip.schemaVersion).toBe(6);
+    expect(roundtrip.schemaVersion).toBe(7);
     expect(roundtrip.compositions[0].layers).toEqual([nullLayer, solid]);
+  });
+
+  it("roundtrips bounded composition and per-layer motion blur settings", () => {
+    const project = createBlankProject();
+    const composition = project.compositions[0];
+    composition.motionBlur = {
+      enabled: true,
+      shutterAngle: 270,
+      shutterPhase: -135,
+      samplesPerFrame: 12,
+      adaptiveSampleLimit: 48,
+    };
+    composition.layers[0].motionBlur = true;
+    const roundtrip = validateProjectDocument(JSON.parse(serializeProject(project)));
+    expect(roundtrip.compositions[0].motionBlur).toEqual(composition.motionBlur);
+    expect(roundtrip.compositions[0].layers[0].motionBlur).toBe(true);
+
+    composition.motionBlur.adaptiveSampleLimit = 4;
+    expect(() => validateProjectDocument(project)).toThrow(
+      "adaptiveSampleLimit must not be below samplesPerFrame",
+    );
+    composition.motionBlur.adaptiveSampleLimit = 48;
+    delete (composition.layers[0] as Partial<Layer>).motionBlur;
+    expect(() => validateProjectDocument(project)).toThrow("motionBlur must be a boolean");
   });
 
   it("rejects missing, oversized, and internally inconsistent solid sources", () => {

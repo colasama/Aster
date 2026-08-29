@@ -13,6 +13,7 @@ import {
   SlidersHorizontal,
   Trash2,
   Volume2,
+  Wind,
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
@@ -28,6 +29,11 @@ import {
 } from "../core/keyframe-editing";
 import { createLayerForComposition } from "../core/layer-factory";
 import { logger } from "../core/logger";
+import {
+  compositionMotionBlurSettings,
+  layerSupportsMotionBlur,
+  motionBlurInterval,
+} from "../core/motion-blur";
 import { planPrecomposition } from "../core/precomposition";
 import { activeComposition } from "../core/project";
 import { frameAt } from "../core/timeline";
@@ -79,6 +85,16 @@ export function Timeline() {
   const { t } = useI18n();
   const composition = activeComposition(state.project);
   const pixelsPerSecond = BASE_PIXELS_PER_SECOND * state.timelineZoom;
+  const compositionMotionBlur = compositionMotionBlurSettings(composition);
+  const shutterInterval = motionBlurInterval(
+    state.currentTime,
+    composition.frameRate.numerator / composition.frameRate.denominator,
+    compositionMotionBlur,
+  );
+  const showShutterRegion =
+    compositionMotionBlur.enabled &&
+    compositionMotionBlur.shutterAngle > 0 &&
+    state.timelineZoom >= 1.25;
   const scrollRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
   const dragLayer = useRef<string | undefined>(undefined);
@@ -609,6 +625,33 @@ export function Timeline() {
             <Gauge size={12} />
             {Math.round(composition.frameRate.numerator / composition.frameRate.denominator)} fps
           </span>
+          <button
+            aria-label={
+              compositionMotionBlur.enabled
+                ? t("timeline.motionBlur.disableComposition")
+                : t("timeline.motionBlur.enableComposition")
+            }
+            className={compositionMotionBlur.enabled ? "enabled" : ""}
+            onClick={() =>
+              dispatch({
+                type: "operation",
+                operations: [
+                  {
+                    type: "setCompositionMotionBlur",
+                    compositionId: composition.id,
+                    motionBlur: {
+                      ...compositionMotionBlur,
+                      enabled: !compositionMotionBlur.enabled,
+                    },
+                  },
+                ],
+              })
+            }
+            title={t("timeline.motionBlur.compositionSwitch")}
+            type="button"
+          >
+            <Wind size={12} />
+          </button>
           <span className="keyframe-selection-count">
             {t(
               state.selectedKeyframes.length === 1
@@ -701,6 +744,7 @@ export function Timeline() {
                 <Volume2 size={11} />
                 <Lock size={11} />
                 <Box size={11} />
+                <Wind size={11} />
               </div>
             </div>
             <div
@@ -717,6 +761,17 @@ export function Timeline() {
               }}
               style={{ left: LABEL_WIDTH, width: composition.duration * pixelsPerSecond }}
             >
+              {showShutterRegion && (
+                <div
+                  aria-hidden="true"
+                  className="timeline-shutter-region"
+                  style={{
+                    left: shutterInterval.openTime * pixelsPerSecond,
+                    width: Math.max(1, shutterInterval.duration * pixelsPerSecond),
+                  }}
+                  title={t("timeline.motionBlur.shutterRegion")}
+                />
+              )}
               {ticks.map((time) => (
                 <div
                   className={Number.isInteger(time) ? "major tick" : "tick"}
@@ -812,6 +867,8 @@ export function Timeline() {
           hasSource={Boolean(menuLayer?.sourceId || menuLayer?.sourceCompositionId)}
           is3d={Boolean(menuLayer?.threeDimensional)}
           isAdjustment={menuLayer?.kind === "adjustment"}
+          isMotionBlur={Boolean(menuLayer?.motionBlur)}
+          canMotionBlur={Boolean(menuLayer && layerSupportsMotionBlur(menuLayer))}
           isLayerTarget={Boolean(menuLayer)}
           locked={contextLayers.some((layer) => layer.locked)}
           onClose={contextMenu.close}
@@ -830,6 +887,13 @@ export function Timeline() {
               operations: [
                 { type: "toggleLayer", layerId: menuLayer.id, field: "threeDimensional" },
               ],
+            });
+          }}
+          toggleMotionBlur={() => {
+            if (!menuLayer) return;
+            dispatch({
+              type: "operation",
+              operations: [{ type: "toggleLayer", layerId: menuLayer.id, field: "motionBlur" }],
             });
           }}
           x={contextMenu.point.x}

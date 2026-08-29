@@ -1,10 +1,6 @@
-export interface MotionBlurSettings {
-  enabled: boolean;
-  shutterAngle: number;
-  shutterPhase: number;
-  samplesPerFrame: number;
-  adaptiveSampleLimit: number;
-}
+import type { Composition, Layer, MotionBlurSettings } from "./types";
+
+export type { MotionBlurSettings } from "./types";
 
 export interface MotionBlurLayerCapabilities {
   enabled: boolean;
@@ -22,7 +18,7 @@ export interface MotionBlurInterval {
   sampleTimes: readonly number[];
 }
 
-export type MotionBlurStrategy = "disabled" | "vector" | "accumulation";
+export type MotionBlurStrategy = "disabled" | "vector";
 
 export interface MotionBlurPlan {
   strategy: MotionBlurStrategy;
@@ -39,24 +35,42 @@ export const DEFAULT_MOTION_BLUR_SETTINGS: MotionBlurSettings = Object.freeze({
   adaptiveSampleLimit: 32,
 });
 
+export function compositionMotionBlurSettings(
+  composition: Pick<Composition, "motionBlur">,
+): MotionBlurSettings {
+  return normalizeMotionBlurSettings(composition.motionBlur ?? DEFAULT_MOTION_BLUR_SETTINGS);
+}
+
+export function layerMotionBlurEnabled(layer: Pick<Layer, "motionBlur">): boolean {
+  return layer.motionBlur === true;
+}
+
+export function layerSupportsMotionBlur(layer: Pick<Layer, "kind">): boolean {
+  return !["audio", "null", "camera", "light", "adjustment", "generator"].includes(layer.kind);
+}
+
 export function normalizeMotionBlurSettings(
   value: Partial<MotionBlurSettings>,
 ): MotionBlurSettings {
+  const samplesPerFrame = boundedInteger(
+    value.samplesPerFrame,
+    2,
+    64,
+    DEFAULT_MOTION_BLUR_SETTINGS.samplesPerFrame,
+  );
   return {
-    enabled: value.enabled ?? DEFAULT_MOTION_BLUR_SETTINGS.enabled,
+    enabled: value.enabled === true,
     shutterAngle: bounded(value.shutterAngle, 0, 720, DEFAULT_MOTION_BLUR_SETTINGS.shutterAngle),
     shutterPhase: bounded(value.shutterPhase, -720, 720, DEFAULT_MOTION_BLUR_SETTINGS.shutterPhase),
-    samplesPerFrame: boundedInteger(
-      value.samplesPerFrame,
-      2,
-      64,
-      DEFAULT_MOTION_BLUR_SETTINGS.samplesPerFrame,
-    ),
-    adaptiveSampleLimit: boundedInteger(
-      value.adaptiveSampleLimit,
-      2,
-      128,
-      DEFAULT_MOTION_BLUR_SETTINGS.adaptiveSampleLimit,
+    samplesPerFrame,
+    adaptiveSampleLimit: Math.max(
+      samplesPerFrame,
+      boundedInteger(
+        value.adaptiveSampleLimit,
+        2,
+        128,
+        DEFAULT_MOTION_BLUR_SETTINGS.adaptiveSampleLimit,
+      ),
     ),
   };
 }
@@ -84,8 +98,8 @@ export function motionBlurInterval(
 }
 
 /**
- * Selects a deterministic GPU strategy. Affine/vector-capable layers use one beauty render plus an
- * endpoint vector pass; video, temporal effects, and nonlinear deformation use HDR accumulation.
+ * Selects the deterministic endpoint-vector strategy. Unsupported topology is explicitly disabled
+ * instead of silently depending on a previously rendered frame.
  */
 export function planLayerMotionBlur(
   frameTime: number,
@@ -94,20 +108,19 @@ export function planLayerMotionBlur(
   layer: MotionBlurLayerCapabilities,
   estimatedPixelTravel = 0,
 ): MotionBlurPlan {
-  if (!settings.enabled || !layer.enabled || settings.shutterAngle <= 0) {
+  if (
+    !settings.enabled ||
+    !layer.enabled ||
+    settings.shutterAngle <= 0 ||
+    !layer.supportsMotionVectors
+  ) {
     return {
       strategy: "disabled",
       interval: motionBlurInterval(frameTime, frameRate, { ...settings, shutterAngle: 0 }),
     };
   }
-  const needsAccumulation =
-    layer.hasVideo ||
-    layer.hasNonlinearDeformation ||
-    layer.hasTemporalEffect ||
-    !layer.supportsMotionVectors;
   const adaptiveSamples = adaptiveMotionBlurSampleCount(settings, estimatedPixelTravel);
   const interval = motionBlurInterval(frameTime, frameRate, settings, adaptiveSamples);
-  if (needsAccumulation) return { strategy: "accumulation", interval };
   return {
     strategy: "vector",
     interval,

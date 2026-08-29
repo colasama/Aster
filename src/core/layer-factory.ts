@@ -61,6 +61,7 @@ function createLayer(kind: LayerKind, composition: Composition, currentTime: num
     visible: !isCamera && kind !== "audio",
     solo: false,
     locked: false,
+    motionBlur: false,
     audioEnabled: hasAudio ? true : undefined,
     audio: hasAudio ? { levelsDb: [0, 0], pan: 0, muted: false, reversed: false } : undefined,
     threeDimensional: kind === "mesh" || kind === "camera" || kind === "light",

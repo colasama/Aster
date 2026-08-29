@@ -104,6 +104,8 @@ export interface Layer {
   visible: boolean;
   solo: boolean;
   locked: boolean;
+  /** AE-style per-layer switch; the composition switch must also be enabled. */
+  motionBlur: boolean;
   audioEnabled?: boolean;
   audio?: AudioLayerSettings;
   threeDimensional: boolean;
@@ -295,8 +297,17 @@ export interface Composition {
   duration: number;
   workArea: { start: number; end: number };
   background: [number, number, number, number];
+  motionBlur: MotionBlurSettings;
   environment?: EnvironmentLighting;
   layers: Layer[];
+}
+
+export interface MotionBlurSettings {
+  enabled: boolean;
+  shutterAngle: number;
+  shutterPhase: number;
+  samplesPerFrame: number;
+  adaptiveSampleLimit: number;
 }
 
 export interface EnvironmentLighting {
@@ -330,7 +341,7 @@ export interface ProjectFolder {
 }
 
 export interface Project {
-  schemaVersion: 6;
+  schemaVersion: 7;
   id: Id;
   name: string;
   activeCompositionId: Id;
