@@ -90,4 +90,23 @@ describe("DiagnosticBanner", () => {
     act(() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" })));
     expect(document.body.querySelector('[role="dialog"]')).toBeNull();
   });
+
+  it("shows the full project-to-property diagnostic scope", () => {
+    act(() => {
+      store.report({
+        code: "property",
+        title: "Property failed",
+        scope: {
+          area: "property",
+          projectId: "project-1",
+          compositionId: "composition-2",
+          layerId: "layer-3",
+          propertyPath: "transform.position",
+        },
+      });
+    });
+    expect(container.textContent).toContain(
+      "property / project-1 / composition-2 / layer-3 / transform.position",
+    );
+  });
 });

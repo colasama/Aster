@@ -28,6 +28,7 @@ import {
   revokeFullAccess,
   runAgent,
 } from "../desktop/api";
+import { reportUiError } from "../errors/report-ui-error";
 import type { PlainMessageKey, Translate } from "../i18n/core";
 import { translateUiMessage, type UiMessageDescriptor, uiError, uiMessage } from "../i18n/errors";
 import { useI18n } from "../i18n/react";
@@ -181,10 +182,17 @@ export function AiPanel() {
         });
         setPrompt("");
         return;
-      } catch {
+      } catch (error) {
         service.abort();
         if (cancelled.current) return;
         setError(uiError("aiRequest"));
+        reportUiError(t, "aiRequest", error, {
+          scope: {
+            area: "composition",
+            projectId: state.project.id,
+            compositionId: composition.id,
+          },
+        });
       } finally {
         setLoading(false);
       }
@@ -309,7 +317,12 @@ export function AiPanel() {
                       setFullAccessGrant(grant);
                       setFullAccessConfirmation("");
                     })
-                    .catch(() => setError(uiMessage("ai.fullAccessRequired")));
+                    .catch((error: unknown) => {
+                      setError(uiMessage("ai.fullAccessRequired"));
+                      reportUiError(t, "aiRequest", error, {
+                        scope: { area: "project", projectId: state.project.id },
+                      });
+                    });
                 }}
                 type="button"
               >

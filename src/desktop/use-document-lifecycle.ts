@@ -10,6 +10,8 @@ import {
   readRecoverySnapshotForCurrentProject,
   saveProjectDocument,
 } from "../core/project-file";
+import { reportUiError } from "../errors/report-ui-error";
+import { useI18n } from "../i18n/react";
 import type { EditorAction, EditorState } from "../state/editor-store";
 import { isProjectDirty } from "../state/editor-store";
 import {
@@ -35,6 +37,7 @@ export function useDocumentLifecycle(
   state: EditorState,
   dispatch: Dispatch<EditorAction>,
 ): DocumentLifecycleController {
+  const { t } = useI18n();
   const latestState = useRef(state);
   const startupProjectId = useRef(state.project.id);
   const handlingSystemRequest = useRef(false);
@@ -123,12 +126,14 @@ export function useDocumentLifecycle(
       }
       await refreshPreferences();
     } catch (error) {
-      logger.error("project", "system_open_failed", error);
+      reportUiError(t, "projectOpen", error, {
+        scope: { area: "project", projectId: latestState.current.project.id },
+      });
     } finally {
       handlingSystemRequest.current = false;
       if (handledRequest) window.setTimeout(() => void applySystemRequest(), 0);
     }
-  }, [dispatch, guardReplacement, refreshPreferences]);
+  }, [dispatch, guardReplacement, refreshPreferences, t]);
 
   const openRecent = useCallback(
     async (path: string) => {
@@ -143,11 +148,13 @@ export function useDocumentLifecycle(
         await refreshPreferences();
         return true;
       } catch (error) {
-        logger.error("project", "recent_open_failed", error);
+        reportUiError(t, "projectOpen", error, {
+          scope: { area: "project", projectId: latestState.current.project.id },
+        });
         return false;
       }
     },
-    [dispatch, guardReplacement, refreshPreferences],
+    [dispatch, guardReplacement, refreshPreferences, t],
   );
 
   useEffect(() => {
@@ -203,7 +210,9 @@ export function useDocumentLifecycle(
           dispatch({ type: "loadProject", project: recovery, markSaved: false });
         } catch (error) {
           if (nativeContext) clearCurrentProjectPath();
-          logger.error("project", "recovery_prompt_failed", error);
+          reportUiError(t, "projectRecovery", error, {
+            scope: { area: "project", projectId: latestState.current.project.id },
+          });
         } finally {
           handlingSystemRequest.current = false;
           if (!disposed) void applySystemRequest();
@@ -214,7 +223,7 @@ export function useDocumentLifecycle(
       disposed = true;
       window.clearTimeout(timer);
     };
-  }, [applySystemRequest, dispatch]);
+  }, [applySystemRequest, dispatch, t]);
 
   useLayoutEffect(() => {
     if (!isDesktopRuntime()) return;
@@ -230,7 +239,11 @@ export function useDocumentLifecycle(
       if (action === "discard") {
         void clearRecoverySnapshot()
           .then(() => documentLifecycle().confirmClose())
-          .catch((error: unknown) => logger.error("project", "close_discard_failed", error));
+          .catch((error: unknown) => {
+            reportUiError(t, "projectRecovery", error, {
+              scope: { area: "project", projectId: latestState.current.project.id },
+            });
+          });
         return;
       }
       void save()
@@ -238,7 +251,11 @@ export function useDocumentLifecycle(
           if (path) return documentLifecycle().confirmClose();
           return undefined;
         })
-        .catch((error: unknown) => logger.error("project", "close_save_failed", error));
+        .catch((error: unknown) => {
+          reportUiError(t, "projectSave", error, {
+            scope: { area: "project", projectId: latestState.current.project.id },
+          });
+        });
     });
     const removeProjectListener = onProjectOpenAvailable(() => void applySystemRequest());
     void applySystemRequest();
@@ -246,7 +263,7 @@ export function useDocumentLifecycle(
       removeCloseListener();
       removeProjectListener();
     };
-  }, [applySystemRequest, save]);
+  }, [applySystemRequest, save, t]);
 
   return {
     dirty,

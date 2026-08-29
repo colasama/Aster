@@ -15,9 +15,9 @@ import {
   WorkspaceTimelineSurface,
 } from "./components/workspace/WorkspacePanelSurfaces";
 import type { WorkspacePanelDefinition } from "./components/workspace/workspace-types";
-import { logger } from "./core/logger";
 import { activeComposition } from "./core/project";
 import { projectPluginReferences } from "./core/project-plugin-references";
+import { reportUiError } from "./errors/report-ui-error";
 import { I18nProvider, useI18n } from "./i18n/react";
 import { EditorProvider, useEditor } from "./state/editor-store";
 import "./styles/index.css";
@@ -68,11 +68,15 @@ function Studio() {
       .then(({ setProjectPluginRuntimes }) =>
         active ? setProjectPluginRuntimes(pluginIds) : undefined,
       )
-      .catch((error: unknown) => logger.error("plugins", "project_activation_failed", error));
+      .catch((error: unknown) =>
+        reportUiError(t, "pluginOperation", error, {
+          scope: { area: "project", projectId: state.project.id },
+        }),
+      );
     return () => {
       active = false;
     };
-  }, [referencedPluginKey]);
+  }, [referencedPluginKey, state.project.id, t]);
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;

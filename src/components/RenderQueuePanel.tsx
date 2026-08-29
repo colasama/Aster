@@ -4,6 +4,7 @@ import { activeComposition } from "../core/project";
 import type { RenderJobStatus, RenderQueueViewItem } from "../core/render-queue";
 import { isDesktopRuntime, open, save } from "../desktop/api";
 import { revealRenderOutput } from "../desktop/render-output";
+import { reportUiError } from "../errors/report-ui-error";
 import { useI18n } from "../i18n/react";
 import {
   appendRenderSequenceName,
@@ -54,7 +55,16 @@ export function RenderQueuePanel({
               for (const item of paused)
                 void queueStore
                   .command({ type: "resume", jobId: item.manifest.id })
-                  .catch(() => undefined);
+                  .catch((error: unknown) => {
+                    queueStore.reportError(error);
+                    reportUiError(t, "backgroundRender", error, {
+                      scope: {
+                        area: "render",
+                        compositionId: item.manifest.compositionId,
+                        renderJobId: item.manifest.id,
+                      },
+                    });
+                  });
             }}
             title={t("renderQueue.start")}
             type="button"
@@ -133,6 +143,13 @@ function AddRenderJob({
       onClose();
     } catch (error) {
       queueStore.reportError(error);
+      reportUiError(t, "backgroundRender", error, {
+        scope: {
+          area: "render",
+          projectId: state.project.id,
+          compositionId: composition.id,
+        },
+      });
     } finally {
       setAdding(false);
     }
@@ -197,7 +214,16 @@ function RenderQueueRow({
     : 0;
   const canRemove = !ACTIVE_STATUSES.has(item.status);
   const command = (type: "pause" | "resume" | "cancel" | "retry" | "remove") => {
-    void queueStore.command({ type, jobId: item.manifest.id }).catch(() => undefined);
+    void queueStore.command({ type, jobId: item.manifest.id }).catch((error: unknown) => {
+      queueStore.reportError(error);
+      reportUiError(t, "backgroundRender", error, {
+        scope: {
+          area: "render",
+          compositionId: item.manifest.compositionId,
+          renderJobId: item.manifest.id,
+        },
+      });
+    });
   };
   return (
     <li className={`render-queue-item status-${item.status}`} data-job-row>
@@ -234,9 +260,16 @@ function RenderQueueRow({
             disabled={item.status !== "completed"}
             key={output.id}
             onClick={() =>
-              void revealRenderOutput(output.destination).catch((error: unknown) =>
-                queueStore.reportError(error),
-              )
+              void revealRenderOutput(output.destination).catch((error: unknown) => {
+                queueStore.reportError(error);
+                reportUiError(t, "backgroundRender", error, {
+                  scope: {
+                    area: "render",
+                    compositionId: item.manifest.compositionId,
+                    renderJobId: item.manifest.id,
+                  },
+                });
+              })
             }
             title={output.destination}
             type="button"

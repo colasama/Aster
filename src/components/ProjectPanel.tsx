@@ -82,6 +82,7 @@ import {
   removeUserEffectPreset,
   writeUserEffectPresets,
 } from "../effects/user-presets";
+import { reportUiError } from "../errors/report-ui-error";
 import { type UiErrorCode, uiErrorMessage } from "../i18n/errors";
 import { useI18n } from "../i18n/react";
 import {
@@ -344,8 +345,16 @@ export function ProjectPanel() {
       setUserPresets((current) => addUserEffectPreset(current, preset));
       setPresetName("");
       setPresetError(undefined);
-    } catch {
+    } catch (error) {
       setPresetError("presetSave");
+      reportUiError(t, "presetSave", error, {
+        scope: {
+          area: "layer",
+          projectId: state.project.id,
+          compositionId: composition.id,
+          layerId: selectedLayer.id,
+        },
+      });
     }
   };
   const importMedia = async (kind: ImportMediaKind, file: File, folderId?: Id) => {
@@ -370,8 +379,22 @@ export function ProjectPanel() {
       });
       setExpandedFolders((current) => new Set(current).add(folderId ?? ROOT_ASSETS_ID));
       setAddTarget(undefined);
-    } catch {
-      setAssetError(kind === "image" ? "assetImageImport" : "assetVideoImport");
+    } catch (error) {
+      const code =
+        kind === "image"
+          ? "assetImageImport"
+          : kind === "video"
+            ? "assetVideoImport"
+            : "mediaImport";
+      setAssetError(code);
+      reportUiError(t, code, error, {
+        scope: {
+          area: "asset",
+          projectId: state.project.id,
+          compositionId: composition.id,
+          assetName: file.name,
+        },
+      });
     }
   };
   const commitAdvancedImport = (result: AdvancedImportResult, folderId?: Id) => {
@@ -410,13 +433,21 @@ export function ProjectPanel() {
     setExpandedFolders((current) => new Set(current).add(folderId ?? ROOT_ASSETS_ID));
     setAddTarget(undefined);
   };
-  const reportAdvancedImportError = (error: unknown) => {
+  const reportAdvancedImportError = (error: unknown, assetName?: string) => {
     setAssetError("assetImageImport");
     setAssetWarningCount(0);
     setAssetErrorDetail(
       (error instanceof Error ? error.message : String(error)).slice(0, 500) ||
         t("project.asset.importUnknown"),
     );
+    reportUiError(t, "assetImageImport", error, {
+      scope: {
+        area: "asset",
+        projectId: state.project.id,
+        compositionId: composition.id,
+        ...(assetName ? { assetName } : {}),
+      },
+    });
   };
   const importSvg = async (file: Pick<File, "name" | "text">, folderId = addTarget?.folderId) => {
     try {
@@ -424,7 +455,7 @@ export function ProjectPanel() {
       setAssetErrorDetail(undefined);
       commitAdvancedImport(await importSvgFile(file, composition, state.currentTime), folderId);
     } catch (error) {
-      reportAdvancedImportError(error);
+      reportAdvancedImportError(error, file.name);
     }
   };
   const importPsd = async (
@@ -439,7 +470,7 @@ export function ProjectPanel() {
         folderId,
       );
     } catch (error) {
-      reportAdvancedImportError(error);
+      reportAdvancedImportError(error, file.name);
     }
   };
   const importSequence = async (
@@ -463,7 +494,7 @@ export function ProjectPanel() {
       committed = true;
       commitAdvancedImport(result, folderId);
     } catch (error) {
-      reportAdvancedImportError(error);
+      reportAdvancedImportError(error, input.selection.pattern);
     } finally {
       if (!committed) input.dispose?.();
     }
@@ -510,6 +541,7 @@ export function ProjectPanel() {
   };
   const chooseSequence = async () => {
     const folderId = addTarget?.folderId;
+    let selectedPath: string | undefined;
     if (!isDesktopRuntime()) {
       sequencePickerRef.current?.click();
       return;
@@ -525,6 +557,7 @@ export function ProjectPanel() {
         ],
       });
       if (typeof path !== "string") return;
+      selectedPath = path;
       const files = await discoverImageSequence(path);
       const runtimeFiles = files.map(
         (file) => ({ ...file, url: convertFileSrc(file.path) }) satisfies RuntimeSequenceFile,
@@ -534,7 +567,7 @@ export function ProjectPanel() {
         folderId,
       );
     } catch (error) {
-      reportAdvancedImportError(error);
+      reportAdvancedImportError(error, selectedPath ? fileNameFromPath(selectedPath) : undefined);
     }
   };
   const toggleFolder = (folderId: Id) => {
@@ -575,8 +608,15 @@ export function ProjectPanel() {
           type: "operation",
           operations: [{ type: "reloadSource", sourceId: selectedSource.id, source }],
         });
-    } catch {
+    } catch (error) {
       setAssetError("assetRelink");
+      reportUiError(t, "assetRelink", error, {
+        scope: {
+          area: "asset",
+          projectId: state.project.id,
+          assetName: selectedSource.name,
+        },
+      });
     }
   };
   const normalizedQuery = query.trim().toLowerCase();
@@ -846,7 +886,7 @@ export function ProjectPanel() {
           if (files.length > 0) {
             void createBrowserSequenceInput(files, files[0]?.name)
               .then(importSequence)
-              .catch(reportAdvancedImportError);
+              .catch((error: unknown) => reportAdvancedImportError(error, files[0]?.name));
           }
           event.target.value = "";
         }}

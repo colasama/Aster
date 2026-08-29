@@ -13,6 +13,7 @@ export type UiErrorCode =
   | "assetImageImport"
   | "assetRelink"
   | "assetVideoImport"
+  | "backgroundRender"
   | "diagnosticsExport"
   | "expression"
   | "frameExport"
@@ -34,6 +35,7 @@ const errorKeys: Record<UiErrorCode, PlainMessageKey> = {
   assetImageImport: "ui.error.assetImageImport",
   assetRelink: "ui.error.assetRelink",
   assetVideoImport: "ui.error.assetVideoImport",
+  backgroundRender: "ui.error.backgroundRender",
   diagnosticsExport: "ui.error.diagnosticsExport",
   expression: "ui.error.expression",
   frameExport: "ui.error.frameExport",

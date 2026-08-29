@@ -1,6 +1,7 @@
 export const errorsEn = {
   "ui.error.assetImageImport": "Could not import the image. Check the file and try again.",
   "ui.error.assetVideoImport": "Could not import the video. Check the file and try again.",
+  "ui.error.backgroundRender": "The background render request could not be completed.",
   "ui.error.assetRelink": "Could not relink this asset. Choose a supported source file.",
   "ui.error.presetSave": "Could not save this preset. Check its name and effect chain.",
   "ui.error.pluginOperation": "The plugin operation could not be completed.",

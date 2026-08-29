@@ -31,7 +31,6 @@ import { importMediaLayer } from "../core/assets";
 import { createParticleLayerForComposition } from "../core/bundled-particle";
 import { createGltfLayerFromFile } from "../core/gltf";
 import { createLayerForComposition } from "../core/layer-factory";
-import { logger } from "../core/logger";
 import { getProperty } from "../core/operations";
 import { planPrecomposition } from "../core/precomposition";
 import { activeComposition, createBlankComposition, createBlankProject } from "../core/project";
@@ -57,7 +56,8 @@ import { createId, type LayerKind, type Project } from "../core/types";
 import { exportDiagnostics } from "../desktop/api";
 import { useDocumentLifecycle } from "../desktop/use-document-lifecycle";
 import { createEffect } from "../effects/registry";
-import type { PlainMessageKey } from "../i18n/core";
+import { reportUiError } from "../errors/report-ui-error";
+import type { PlainMessageKey, Translate } from "../i18n/core";
 import { useI18n } from "../i18n/react";
 import { useEditor } from "../state/editor-store";
 import { findMenuEntry, type MenuId, type MenuItemId, menuDefinitions } from "./topbar-menu";
@@ -125,12 +125,15 @@ export function TopBar() {
           requestToken,
         );
         return true;
-      } catch {
+      } catch (error) {
+        reportUiError(t, "projectSave", error, {
+          scope: { area: "project", projectId: state.project.id },
+        });
         toastActions.show(toastError("projectSave"), requestToken);
         return false;
       }
     },
-    [lifecycle.save, toastActions],
+    [lifecycle.save, state.project.id, t, toastActions],
   );
   const commands = useMemo(
     () => [
@@ -227,6 +230,7 @@ export function TopBar() {
         toastActions,
         lifecycle.guardReplacement,
         lifecycle.refreshPreferences,
+        t,
       );
     else if (item === "openPacked")
       void openPackedProject(
@@ -234,6 +238,7 @@ export function TopBar() {
         toastActions,
         lifecycle.guardReplacement,
         lifecycle.refreshPreferences,
+        t,
       );
     else if (item === "recoverAutosave") {
       const requestToken = toastActions.beginRequest();
@@ -247,9 +252,15 @@ export function TopBar() {
           } else if (recovery === undefined)
             toastActions.show(toastMessage("topbar.toast.noRecovery"), requestToken);
         })
-        .catch(() => toastActions.show(toastError("projectRecovery"), requestToken));
+        .catch((error: unknown) => {
+          reportUiError(t, "projectRecovery", error, {
+            scope: { area: "project", projectId: state.project.id },
+          });
+          toastActions.show(toastError("projectRecovery"), requestToken);
+        });
     } else if (item === "saveProject" || item === "saveAs") void saveWithToast(item === "saveAs");
-    else if (item === "packProject") void packProject(state.project, lifecycle.save, toastActions);
+    else if (item === "packProject")
+      void packProject(state.project, lifecycle.save, toastActions, t);
     else if (item === "undo") dispatch({ type: "undo" });
     else if (item === "redo") dispatch({ type: "redo" });
     else if (item === "duplicate" && selectedLayer) {
@@ -311,7 +322,16 @@ export function TopBar() {
             requestToken,
           );
         })
-        .catch(() => toastActions.show(toastError("mediaImport"), requestToken));
+        .catch((error: unknown) => {
+          reportUiError(t, "mediaImport", error, {
+            scope: {
+              area: "composition",
+              projectId: state.project.id,
+              compositionId: composition.id,
+            },
+          });
+          toastActions.show(toastError("mediaImport"), requestToken);
+        });
     } else if (item === "importMesh") {
       meshInputRef.current?.click();
     } else if (layerTypes[item]) {
@@ -396,7 +416,10 @@ export function TopBar() {
               requestToken,
             );
         })
-        .catch(() => toastActions.show(toastError("diagnosticsExport"), requestToken));
+        .catch((error: unknown) => {
+          reportUiError(t, "diagnosticsExport", error, { scope: { area: "application" } });
+          toastActions.show(toastError("diagnosticsExport"), requestToken);
+        });
     } else {
       const definition = findMenuEntry(item);
       if (definition) toastActions.show({ kind: "nextStep", itemKey: definition.labelKey });
@@ -424,7 +447,17 @@ export function TopBar() {
                 requestToken,
               );
             })
-            .catch(() => toastActions.show(toastError("meshImport"), requestToken));
+            .catch((error: unknown) => {
+              reportUiError(t, "meshImport", error, {
+                scope: {
+                  area: "asset",
+                  projectId: state.project.id,
+                  compositionId: activeComposition(state.project).id,
+                  assetName: file.name,
+                },
+              });
+              toastActions.show(toastError("meshImport"), requestToken);
+            });
         }}
         ref={meshInputRef}
         style={{ display: "none" }}
@@ -729,7 +762,13 @@ export function TopBar() {
                     }
                     setRenderOpen(false);
                   } catch (error) {
-                    logger.error("export", "request_failed", error, { format: renderFormat });
+                    reportUiError(t, "frameExport", error, {
+                      scope: {
+                        area: "render",
+                        projectId: state.project.id,
+                        compositionId: activeComposition(state.project).id,
+                      },
+                    });
                     toastActions.show(toastError("frameExport"), requestToken);
                   } finally {
                     setRendering(false);
@@ -779,6 +818,7 @@ async function openProjectFile(
   toast: TopBarToastActions,
   guardReplacement: () => Promise<boolean>,
   refreshPreferences: () => Promise<unknown>,
+  t: Translate,
 ) {
   const requestToken = toast.beginRequest();
   try {
@@ -787,7 +827,8 @@ async function openProjectFile(
     dispatch({ type: "loadProject", project: selected.project, markSaved: true });
     await refreshPreferences();
     toast.show(toastMessage("topbar.toast.opened", { name: selected.name }), requestToken);
-  } catch {
+  } catch (error) {
+    reportUiError(t, "projectOpen", error, { scope: { area: "project" } });
     toast.show(toastError("projectOpen"), requestToken);
   }
 }
@@ -797,6 +838,7 @@ async function openPackedProject(
   toast: TopBarToastActions,
   guardReplacement: () => Promise<boolean>,
   refreshPreferences: () => Promise<unknown>,
+  t: Translate,
 ) {
   const requestToken = toast.beginRequest();
   try {
@@ -805,7 +847,8 @@ async function openPackedProject(
     dispatch({ type: "loadProject", project: selected.project, markSaved: true });
     await refreshPreferences();
     toast.show(toastMessage("topbar.toast.unpacked", { name: selected.name }), requestToken);
-  } catch {
+  } catch (error) {
+    reportUiError(t, "projectPackedOpen", error, { scope: { area: "project" } });
     toast.show(toastError("projectPackedOpen"), requestToken);
   }
 }
@@ -814,6 +857,7 @@ async function packProject(
   project: Project,
   saveProject: () => Promise<string | undefined>,
   toast: TopBarToastActions,
+  t: Translate,
 ): Promise<void> {
   const requestToken = toast.beginRequest();
   try {
@@ -824,7 +868,10 @@ async function packProject(
         toastMessage("topbar.toast.packed", { name: path.split(/[\\/]/).pop() || path }),
         requestToken,
       );
-  } catch {
+  } catch (error) {
+    reportUiError(t, "projectPack", error, {
+      scope: { area: "project", projectId: project.id },
+    });
     toast.show(toastError("projectPack"), requestToken);
   }
 }

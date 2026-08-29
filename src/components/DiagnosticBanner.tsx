@@ -209,6 +209,7 @@ function formatScope(diagnostic: EditorDiagnostic): string {
   const scope = diagnostic.scope;
   return [
     scope.area,
+    scope.projectId,
     scope.compositionId,
     scope.layerId,
     scope.propertyPath,

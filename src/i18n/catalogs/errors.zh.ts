@@ -3,6 +3,7 @@ import type { errorsEn } from "./errors.en";
 export const errorsZh = {
   "ui.error.assetImageImport": "无法导入图像。请检查文件后重试。",
   "ui.error.assetVideoImport": "无法导入视频。请检查文件后重试。",
+  "ui.error.backgroundRender": "无法完成后台渲染请求。",
   "ui.error.assetRelink": "无法重新链接此素材。请选择受支持的源文件。",
   "ui.error.presetSave": "无法保存此预设。请检查名称和效果链。",
   "ui.error.pluginOperation": "无法完成插件操作。",

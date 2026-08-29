@@ -68,6 +68,12 @@ and GPU metadata, non-sensitive preference fields, and recent structured log ent
 preferences never contribute recent-project or last-project paths to this report, and exporting does
 not upload it.
 
+Caught failures from user actions are also promoted to the in-editor diagnostic surface. Each one
+has a stable error code, a correlation ID shared with its structured log entry, the precise project,
+composition, layer, asset, or render scope, a bounded cause chain and stack, and actions for details
+and copying. Operations that can be repeated safely may also expose Retry; a successful retry
+resolves the original diagnostic. Expected file-picker and abort cancellation stays silent.
+
 ## Adding events
 
 Renderer code should use `src/core/logger.ts`, Electron code should use the process-wide

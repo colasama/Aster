@@ -16,6 +16,7 @@ import {
   setPluginHotReload,
   setPluginSafeMode,
 } from "../core/plugins";
+import { reportUiError } from "../errors/report-ui-error";
 import type { Translate } from "../i18n/core";
 import { createTranslator } from "../i18n/core";
 import { type UiErrorCode, uiErrorMessage } from "../i18n/errors";
@@ -99,13 +100,16 @@ export function PluginManager() {
         const next = await operation();
         if (next && reconcile) await reconcilePluginRuntimes(next);
         if (next && coordinator.canCommitManual(token)) commitStatus(next);
-      } catch {
-        if (coordinator.canCommitManual(token)) setInstalledError("pluginOperation");
+      } catch (error) {
+        if (coordinator.canCommitManual(token)) {
+          setInstalledError("pluginOperation");
+          reportUiError(t, "pluginOperation", error, { scope: { area: "application" } });
+        }
       } finally {
         if (coordinator.finishManual(token)) setPending(false);
       }
     },
-    [commitStatus],
+    [commitStatus, t],
   );
 
   const loadCatalog = useCallback(async () => {
@@ -113,12 +117,13 @@ export function PluginManager() {
     setCatalogError(undefined);
     try {
       setCatalog(await readPluginRegistryCatalog());
-    } catch {
+    } catch (error) {
       setCatalogError("pluginCatalog");
+      reportUiError(t, "pluginCatalog", error, { scope: { area: "application" } });
     } finally {
       setCatalogPending(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     void run(readPluginStatus);
