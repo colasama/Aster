@@ -6,7 +6,12 @@ import type {
   FullAccessActivationRequest,
   FullAccessGrant,
 } from "../ai/agent-protocol";
-import type { EnqueueRenderJobInput, RenderQueueState } from "../core/render-queue";
+import type {
+  EnqueueRenderJobInput,
+  RenderJobManifest,
+  RenderJobProgress,
+  RenderQueueState,
+} from "../core/render-queue";
 import type { UiScale } from "../ui/ui-scale";
 import type { AppPreferences, UserPreferencePatch } from "./preferences";
 
@@ -90,6 +95,71 @@ export interface DesktopRenderQueue {
   onChanged(listener: (queue: RenderQueueState) => void): () => void;
 }
 
+export interface DesktopRenderHostAssignment {
+  jobId: string;
+  leaseId: string;
+  manifest: RenderJobManifest;
+  initialControl?: "pause" | "cancel";
+}
+
+export interface DesktopRenderHostControl {
+  jobId: string;
+  leaseId: string;
+  command: "pause" | "cancel";
+}
+
+export type DesktopRenderHostReport =
+  | { type: "prepared" | "paused" | "cancelled" | "completed"; jobId: string; leaseId: string }
+  | {
+      type: "progress";
+      jobId: string;
+      leaseId: string;
+      progress: RenderJobProgress;
+    }
+  | {
+      type: "failed";
+      jobId: string;
+      leaseId: string;
+      error: { code: string; message: string; correlationId?: string };
+    };
+
+export type DesktopRenderHostOutputRequest =
+  | {
+      type: "startMp4";
+      jobId: string;
+      leaseId: string;
+      outputId: string;
+      pixelFormat: Mp4PixelFormat;
+    }
+  | {
+      type: "writeMp4Frame";
+      jobId: string;
+      leaseId: string;
+      outputId: string;
+      pixels: ArrayBuffer;
+    }
+  | {
+      type: "finishMp4";
+      jobId: string;
+      leaseId: string;
+      outputId: string;
+    }
+  | {
+      type: "writePng";
+      jobId: string;
+      leaseId: string;
+      outputId: string;
+      frame: number;
+      pixels: ArrayBuffer;
+    };
+
+export interface DesktopRenderHost {
+  take(): Promise<DesktopRenderHostAssignment>;
+  output(request: DesktopRenderHostOutputRequest): Promise<unknown>;
+  report(report: DesktopRenderHostReport): Promise<void>;
+  onControl(listener: (control: DesktopRenderHostControl) => void): () => void;
+}
+
 export interface ProjectOpenRequest {
   path?: string;
   recoverAutosave: boolean;
@@ -121,6 +191,7 @@ export interface AsterDesktopApi {
   updatePreferences(preferences: UserPreferencePatch): Promise<AppPreferences>;
   migrateLegacyPreferences(preferences: UserPreferencePatch): Promise<AppPreferences>;
   renderQueue: DesktopRenderQueue;
+  renderHost?: DesktopRenderHost;
   onDisplayMetricsChanged(listener: (metrics: DesktopDisplayMetrics) => void): () => void;
   authorizeRecentProject(path: string): Promise<boolean>;
   rememberProject(path: string): Promise<AppPreferences>;
@@ -207,6 +278,12 @@ export function onDisplayMetricsChanged(
 
 export function desktopRenderQueue(): DesktopRenderQueue {
   return desktopApi().renderQueue;
+}
+
+export function desktopRenderHost(): DesktopRenderHost {
+  const renderHost = desktopApi().renderHost;
+  if (!renderHost) throw new Error("Aster RenderHost API is unavailable");
+  return renderHost;
 }
 
 export function authorizeRecentProject(path: string): Promise<boolean> {

@@ -13,10 +13,33 @@ Runnable items are ordered by priority, creation time, and stable ID. The schedu
 leases from a bounded concurrency limit. Queue snapshots have strict item, output, project-document,
 frame-count, dimension, string, and numeric limits before persistence or worker launch.
 
-The Electron job manager and render host consume this model. They must persist transitions atomically,
-launch from the immutable snapshot, write outputs to temporary destinations, and publish atomically
-only after every selected output module completes. Interactive preview code must not be the render
-host.
+The Electron job manager claims work with a fresh UUID lease and launches one sandboxed, hidden
+`BrowserWindow` per active item. The default scheduler concurrency is one and its bounded host-factory
+contract supports increasing that limit without coupling a task to an editor window. The hidden host
+uses the same context isolation, navigation denial, sandbox, and permission policy as the editor. A
+dedicated minimal preload exposes only logging and sender-authorized RenderHost IPC, through which the
+window receives its immutable assignment. Closing or hiding the editor therefore does not interrupt
+work already owned by a RenderHost.
+
+The RenderHost parses and validates the captured project, verifies the composition dimensions and
+rational frame rate against the manifest, and evaluates every frame from its absolute integer index.
+It creates the same production beauty-frame request used by the viewport/export path and reads the
+same post-processed GPU result. Debug buffer visualization is not a production preview or background
+render mode. Video sources use deterministic seek-and-await synchronization; a Canvas fallback
+rejects deterministic video instead of silently encoding stale frames.
+
+Pause and cancel controls are correlated by both job and lease and are observed only after all output
+writes for the current frame finish. A paused retry or failed task restarts from frame zero under a new
+lease. A renderer crash, unexpected close, load failure, or stale report cannot complete the item.
+Application shutdown disposes active encoders and hidden hosts, marks their leases failed, removes
+temporary data, and flushes the queue before exit.
+
+PNG stills and PNG sequences are encoded from the canonical raw beauty buffer. H.264 output receives
+that same raw RGBA/BGRA buffer and uses the manifest's rational rate. Every output is staged beside its
+destination; existing destinations are backed up and all modules are renamed into place only after
+every frame and encoder completes. Publish failure rolls back replaced destinations, while failure or
+cancel removes staging data. The current background H.264 module intentionally rejects H.265 and
+embedded audio, and the still module rejects EXR, rather than producing a misleading partial result.
 
 `RenderQueueStore` owns the process-wide queue document in the Electron user-data directory. Writes
 are serialized, flushed through a temporary file, and atomically renamed while retaining the previous

@@ -38,6 +38,7 @@ import { describeFullAccessTarget, FullAccessToolService } from "./full-access-t
 import { AsterLogger, isRendererLogPayload, type LogLevel, parseLogLevel } from "./logger.js";
 import { Mp4ExportManager } from "./mp4-export.js";
 import { developmentProfileDirectory } from "./profile-paths.js";
+import { ElectronRenderHostController } from "./render-queue-host.js";
 import { RenderQueueManager } from "./render-queue-manager.js";
 import { RenderQueueStore } from "./render-queue-store.js";
 
@@ -234,6 +235,7 @@ let mp4ExportManager: Mp4ExportManager | undefined;
 let applicationLogger: AsterLogger | undefined;
 let appPreferences: AppPreferencesStore | undefined;
 let renderQueueManager: RenderQueueManager | undefined;
+let renderHostController: ElectronRenderHostController | undefined;
 let primaryWindow: BrowserWindow | undefined;
 let activeProjectPath: string | undefined;
 let rendererRecoveryDialogOpen = false;
@@ -425,6 +427,17 @@ function collectAssetPaths(value: unknown): void {
   }
 }
 
+function assertRenderOutputPathsAuthorized(value: unknown): void {
+  if (!isRecord(value) || !Array.isArray(value.outputs))
+    throw new Error("Render queue manifest outputs are invalid");
+  for (const output of value.outputs) {
+    if (!isRecord(output) || typeof output.destination !== "string")
+      throw new Error("Render queue output destination is invalid");
+    if (!grantedPaths.has(normalizeAssetPath(output.destination)))
+      throw new Error("Render queue output destination was not selected by the user");
+  }
+}
+
 function registerAssetProtocol(): void {
   protocol.handle(ASSET_SCHEME, async (request) => {
     try {
@@ -561,9 +574,10 @@ function registerIpc(
   ipcMain.handle("aster:preferences-get", () => preferences.snapshot());
 
   ipcMain.handle("aster:render-queue-get", () => renderQueue.snapshot());
-  ipcMain.handle("aster:render-queue-enqueue", (_event, value: unknown) =>
-    renderQueue.enqueue(value),
-  );
+  ipcMain.handle("aster:render-queue-enqueue", (_event, value: unknown) => {
+    assertRenderOutputPathsAuthorized(value);
+    return renderQueue.enqueue(value);
+  });
   ipcMain.handle("aster:render-queue-command", (_event, value: unknown) =>
     renderQueue.command(value),
   );
@@ -925,7 +939,9 @@ function registerIpc(
 }
 
 function applyUiScaleToAllWindows(scale: UiScale): void {
-  for (const window of BrowserWindow.getAllWindows()) applyUiScaleToWindow(window, scale);
+  for (const window of BrowserWindow.getAllWindows())
+    if (!renderHostController?.isRenderHost(window.webContents.id))
+      applyUiScaleToWindow(window, scale);
 }
 
 function applyUiScaleToWindow(window: BrowserWindow, scale: UiScale): void {
@@ -1194,7 +1210,8 @@ if (hasSingleInstanceLock)
         });
       renderQueueManager = new RenderQueueManager(renderQueueStore, (state) => {
         for (const window of BrowserWindow.getAllWindows())
-          window.webContents.send("aster:render-queue-changed", state);
+          if (!renderHostController?.isRenderHost(window.webContents.id))
+            window.webContents.send("aster:render-queue-changed", state);
       });
       const executable = bridgeExecutable();
       if (!existsSync(executable)) {
@@ -1236,15 +1253,24 @@ if (hasSingleInstanceLock)
         },
       );
       mp4ExportManager = new Mp4ExportManager(ffmpegExecutable());
+      renderHostController = new ElectronRenderHostController({
+        appPath: app.getAppPath(),
+        developmentUrl: DEVELOPMENT_URL,
+        ffmpegExecutable: ffmpegExecutable(),
+        logger,
+        packaged: app.isPackaged,
+      });
       Menu.setApplicationMenu(null);
       registerAssetProtocol();
       registerIpc(logger, preferences, renderQueueManager);
+      renderHostController.registerIpc();
       session.defaultSession.setPermissionRequestHandler((_webContents, _permission, callback) => {
         callback(false);
       });
+      await renderQueueManager.startScheduler(renderHostController, 1);
       await createWindow(logger, preferences);
       app.on("activate", () => {
-        if (BrowserWindow.getAllWindows().length === 0) void createWindow(logger, preferences);
+        if (!primaryWindow) void createWindow(logger, preferences);
       });
     })
     .catch((error: unknown) => {
@@ -1267,12 +1293,15 @@ app.on("will-quit", (event) => {
   finalizingApplication = true;
   desktopBridge?.dispose();
   piAgentHost?.dispose();
-  void Promise.all([
-    mp4ExportManager?.dispose(),
-    appPreferences?.flush(),
-    renderQueueManager?.flush(),
-    applicationLogger?.flush(),
-  ]).finally(() => app.exit(0));
+  void (async () => {
+    await renderQueueManager?.shutdown();
+    await renderHostController?.dispose();
+    await Promise.all([
+      mp4ExportManager?.dispose(),
+      appPreferences?.flush(),
+      applicationLogger?.flush(),
+    ]);
+  })().finally(() => app.exit(0));
 });
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
