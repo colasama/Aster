@@ -746,6 +746,7 @@ export function TopBar() {
                       );
                     } else {
                       const result = await renderPngSequence(
+                        state.project,
                         activeComposition(state.project),
                         setRenderProgress,
                         () => cancelRenderRef.current,

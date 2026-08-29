@@ -1,9 +1,15 @@
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { BrowserWindow, ipcMain } from "electron";
-import type { RenderOutputModule, RenderQueueItem } from "../src/core/render-queue.js";
+import type {
+  RenderJobManifest,
+  RenderOutputModule,
+  RenderQueueItem,
+} from "../src/core/render-queue.js";
 import type { AsterLogger } from "./logger.js";
 import { Mp4ExportManager } from "./mp4-export.js";
+import { prepareAuthorizedRenderHost } from "./render-host-launch-barrier.js";
+import type { RenderMediaAuthorizationLease } from "./render-media-snapshot-store.js";
 import { parseRenderHostOutputRequest } from "./render-queue-host-protocol.js";
 import type {
   RenderHostReport,
@@ -18,6 +24,7 @@ export interface ElectronRenderHostControllerOptions {
   developmentUrl: string;
   ffmpegExecutable: string;
   logger: AsterLogger;
+  authorizeMedia?: (manifest: RenderJobManifest) => Promise<RenderMediaAuthorizationLease>;
   packaged: boolean;
 }
 
@@ -60,7 +67,17 @@ export class ElectronRenderHostController implements RenderQueueHostFactory {
     report: (event: RenderHostReport) => Promise<void>,
   ): Promise<RenderQueueHostHandle> {
     const publisher = new AtomicRenderOutputPublisher(item.manifest, leaseId);
-    await publisher.prepare();
+    const mediaAuthorization = await prepareAuthorizedRenderHost(
+      this.#options.authorizeMedia
+        ? () => {
+            const authorizeMedia = this.#options.authorizeMedia;
+            if (!authorizeMedia) throw new Error("Render media authorization is unavailable");
+            return authorizeMedia(item.manifest);
+          }
+        : undefined,
+      () => publisher.prepare(),
+      (authorization) => authorization.dispose(),
+    );
     let window: BrowserWindow;
     try {
       window = new BrowserWindow({
@@ -82,6 +99,7 @@ export class ElectronRenderHostController implements RenderQueueHostFactory {
       });
     } catch (error) {
       await publisher.cleanup();
+      mediaAuthorization?.dispose();
       throw error;
     }
     const senderId = window.webContents.id;
@@ -90,6 +108,7 @@ export class ElectronRenderHostController implements RenderQueueHostFactory {
       item,
       leaseId,
       publisher,
+      mediaAuthorization,
       report,
       ffmpegExecutable: this.#options.ffmpegExecutable,
       logger: this.#options.logger,
@@ -130,6 +149,7 @@ interface WorkerOptions {
   item: RenderQueueItem;
   leaseId: string;
   publisher: AtomicRenderOutputPublisher;
+  mediaAuthorization?: RenderMediaAuthorizationLease;
   report: (event: RenderHostReport) => Promise<void>;
   ffmpegExecutable: string;
   logger: AsterLogger;
@@ -142,6 +162,7 @@ class ElectronRenderHostWorker implements RenderQueueHostHandle {
   readonly #window: BrowserWindow;
   readonly #item: RenderQueueItem;
   readonly #publisher: AtomicRenderOutputPublisher;
+  readonly #mediaAuthorization?: RenderMediaAuthorizationLease;
   readonly #report: (event: RenderHostReport) => Promise<void>;
   readonly #ffmpegExecutable: string;
   readonly #logger: AsterLogger;
@@ -159,6 +180,7 @@ class ElectronRenderHostWorker implements RenderQueueHostHandle {
     this.#window = options.window;
     this.#item = options.item;
     this.#publisher = options.publisher;
+    this.#mediaAuthorization = options.mediaAuthorization;
     this.#report = options.report;
     this.#ffmpegExecutable = options.ffmpegExecutable;
     this.#logger = options.logger;
@@ -352,6 +374,7 @@ class ElectronRenderHostWorker implements RenderQueueHostHandle {
     this.#mp4.clear();
     await Promise.allSettled(managers);
     await this.#publisher.cleanup();
+    this.#mediaAuthorization?.dispose();
   }
 
   #assertCorrelation(jobId: unknown, leaseId: unknown): void {

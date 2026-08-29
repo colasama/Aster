@@ -5,6 +5,10 @@ import { logger } from "../../core/logger";
 import type { FootageSource } from "../../core/types";
 import { desktopRenderHost } from "../../desktop/api";
 import {
+  EMPTY_RENDER_MEDIA_SNAPSHOT,
+  hydrateRenderMediaSnapshot,
+} from "../../render-queue/render-media-manifest";
+import {
   createBeautyFrameRequest,
   createViewportBeautyFrameBackend,
   ProductionBeautyFramePipeline,
@@ -41,39 +45,49 @@ export function RenderHost() {
       correlation = assignment;
       requestedControl = assignment.initialControl;
       const validated = validateRenderHostAssignment(assignment);
-      canvas.width = validated.manifest.width;
-      canvas.height = validated.manifest.height;
-      const renderer = await WebGpuRenderer.create(canvas).catch((error: unknown) => {
-        logger.error("render_host", "webgpu_fallback_activated", error);
-        return new CanvasFallbackRenderer(canvas);
-      });
-      if (stopped) return;
-      const pipeline = new ProductionBeautyFramePipeline(
-        createViewportBeautyFrameBackend(renderer, canvas),
+      const mediaLease = await hydrateRenderMediaSnapshot(
+        validated.project,
+        validated.manifest.renderMediaSnapshot ?? EMPTY_RENDER_MEDIA_SNAPSHOT,
       );
-      pipeline.resize(validated.manifest.width, validated.manifest.height);
-      const audioRuntime = validated.manifest.outputs.some(
-        (output) => output.kind === "mp4" && output.includeAudio,
-      )
-        ? {
-            cache: new AudioDecodeCache(),
-            context: new OfflineAudioContext(2, 1, 48_000),
-            abort: new AbortController(),
-          }
-        : undefined;
-      audioAbort = audioRuntime?.abort;
+      let renderer: WebGpuRenderer | CanvasFallbackRenderer | undefined;
+      let audioRuntime:
+        | { cache: AudioDecodeCache; context: OfflineAudioContext; abort: AbortController }
+        | undefined;
       try {
+        if (stopped) return;
+        canvas.width = validated.manifest.width;
+        canvas.height = validated.manifest.height;
+        renderer = await WebGpuRenderer.create(canvas).catch((error: unknown) => {
+          logger.error("render_host", "webgpu_fallback_activated", error);
+          return new CanvasFallbackRenderer(canvas);
+        });
+        if (stopped) return;
+        const pipeline = new ProductionBeautyFramePipeline(
+          createViewportBeautyFrameBackend(renderer, canvas),
+        );
+        pipeline.resize(validated.manifest.width, validated.manifest.height);
+        audioRuntime = validated.manifest.outputs.some(
+          (output) => output.kind === "mp4" && output.includeAudio,
+        )
+          ? {
+              cache: new AudioDecodeCache(),
+              context: new OfflineAudioContext(2, 1, 48_000),
+              abort: new AbortController(),
+            }
+          : undefined;
+        audioAbort = audioRuntime?.abort;
+        const activeAudioRuntime = audioRuntime;
         await runRenderHostFrameLoop({
           assignment: validated,
           pixelFormat: pipeline.pixelFormat,
-          ...(audioRuntime
+          ...(activeAudioRuntime
             ? {
                 audioDecoder: (source: Extract<FootageSource, { kind: "audio" | "video" }>) =>
                   decodeSourcePcm(
-                    audioRuntime.cache,
-                    audioRuntime.context,
+                    activeAudioRuntime.cache,
+                    activeAudioRuntime.context,
                     source,
-                    audioRuntime.abort.signal,
+                    activeAudioRuntime.abort.signal,
                   ),
               }
             : {}),
@@ -100,6 +114,8 @@ export function RenderHost() {
         audioRuntime?.abort.abort(new DOMException("RenderHost session ended", "AbortError"));
         audioRuntime?.cache.clear();
         audioAbort = undefined;
+        renderer?.dispose();
+        mediaLease.dispose();
       }
     })().catch(async (error: unknown) => {
       logger.error("render_host", "session_failed", error, correlation);

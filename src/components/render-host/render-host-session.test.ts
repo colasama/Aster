@@ -361,4 +361,94 @@ describe("RenderHost frame session", () => {
     expect(outputs.some((output) => output.type === "finishMp4")).toBe(false);
     expect(reports[reports.length - 1]?.type).toBe("cancelled");
   });
+
+  it("drains an accepted PCM write before acknowledging a terminal control boundary", async () => {
+    const fixture = assignmentWithAudio({ start: 0, end: 48 });
+    const validated = validateRenderHostAssignment(fixture.assignment);
+    const pcmGate = deferred<void>();
+    const pcmStarted = deferred<void>();
+    const reports: DesktopRenderHostReport[] = [];
+    let control: "cancel" | undefined;
+
+    const session = runRenderHostFrameLoop({
+      assignment: validated,
+      pixelFormat: "rgba",
+      audioDecoder: async () => ({
+        sampleRate: 48_000,
+        channels: [new Float32Array(96_000)],
+      }),
+      requestedControl: () => control,
+      renderFrame: async () => ({
+        pixels: new ArrayBuffer(
+          fixture.assignment.manifest.width * fixture.assignment.manifest.height * 4,
+        ),
+        pixelFormat: "rgba",
+      }),
+      encodePng: async () => new ArrayBuffer(8),
+      output: async (request) => {
+        if (request.type !== "writeMp4Audio") return;
+        control = "cancel";
+        pcmStarted.resolve(undefined);
+        await pcmGate.promise;
+      },
+      report: async (report) => {
+        reports.push(report);
+      },
+    });
+
+    await pcmStarted.promise;
+    await Promise.resolve();
+    expect(reports.some((report) => report.type === "cancelled")).toBe(false);
+    pcmGate.resolve(undefined);
+    await expect(session).resolves.toBe("cancelled");
+    expect(reports[reports.length - 1]?.type).toBe("cancelled");
+  });
+
+  it("drains accepted audio output before propagating a beauty-frame failure", async () => {
+    const fixture = assignmentWithAudio({ start: 0, end: 48 });
+    const validated = validateRenderHostAssignment(fixture.assignment);
+    const pcmGate = deferred<void>();
+    const pcmStarted = deferred<void>();
+    let rejected = false;
+
+    const session = runRenderHostFrameLoop({
+      assignment: validated,
+      pixelFormat: "rgba",
+      audioDecoder: async () => ({
+        sampleRate: 48_000,
+        channels: [new Float32Array(96_000)],
+      }),
+      requestedControl: () => undefined,
+      renderFrame: async () => {
+        throw new Error("beauty readback failed");
+      },
+      encodePng: async () => new ArrayBuffer(8),
+      output: async (request) => {
+        if (request.type !== "writeMp4Audio") return;
+        pcmStarted.resolve(undefined);
+        await pcmGate.promise;
+      },
+      report: async () => undefined,
+    }).catch((error: unknown) => {
+      rejected = true;
+      throw error;
+    });
+
+    await pcmStarted.promise;
+    await Promise.resolve();
+    expect(rejected).toBe(false);
+    pcmGate.resolve(undefined);
+    await expect(session).rejects.toThrow("beauty readback failed");
+    expect(rejected).toBe(true);
+  });
 });
+
+function deferred<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve;
+    reject = promiseReject;
+  });
+  return { promise, resolve, reject };
+}

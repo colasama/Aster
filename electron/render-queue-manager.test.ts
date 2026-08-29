@@ -60,6 +60,33 @@ class FakeHostFactory implements RenderQueueHostFactory {
   }
 }
 
+class GatedHostFactory extends FakeHostFactory {
+  readonly started = deferred<void>();
+  readonly release = deferred<void>();
+
+  override async launch(
+    item: RenderQueueItem,
+    leaseId: string,
+    report: (event: RenderHostReport) => Promise<void>,
+  ): Promise<RenderQueueHostHandle> {
+    const worker = await super.launch(item, leaseId, report);
+    this.started.resolve(undefined);
+    await this.release.promise;
+    return worker;
+  }
+}
+
+class GatedFailureFactory implements RenderQueueHostFactory {
+  readonly started = deferred<void>();
+  readonly release = deferred<void>();
+
+  async launch(): Promise<RenderQueueHostHandle> {
+    this.started.resolve(undefined);
+    await this.release.promise;
+    throw new Error("authorization failed after cancel");
+  }
+}
+
 const job = {
   id: "queued-job",
   compositionId: "composition",
@@ -256,4 +283,84 @@ describe("RenderQueueManager", () => {
     expect(parallelHosts.workers).toHaveLength(2);
     expect(parallelContext.manager.activeHostCount).toBe(2);
   });
+
+  it("does not reuse a cancelled worker slot until the hidden host finishes cleanup", async () => {
+    const context = await manager();
+    const hosts = new FakeHostFactory();
+    await context.manager.enqueue({ ...job, id: "cancel-before-cleanup" });
+    await context.manager.enqueue({ ...job, id: "wait-for-cleanup" });
+    await context.manager.startScheduler(hosts, 1);
+    const cancelled = hosts.workers[0];
+    await cancelled.report({
+      type: "prepared",
+      jobId: cancelled.jobId,
+      leaseId: cancelled.leaseId,
+    });
+
+    await context.manager.command({ type: "cancel", jobId: cancelled.jobId });
+    expect(
+      context.manager.snapshot().items.find((item) => item.manifest.id === cancelled.jobId)?.status,
+    ).toBe("cancelled");
+    expect(context.manager.activeHostCount).toBe(1);
+    expect(hosts.workers).toHaveLength(1);
+
+    await cancelled.report({
+      type: "cancelled",
+      jobId: cancelled.jobId,
+      leaseId: cancelled.leaseId,
+    });
+    expect(cancelled.disposed).toBe(true);
+    expect(hosts.workers).toHaveLength(2);
+    expect(hosts.workers[1]?.item.manifest.id).not.toBe(cancelled.jobId);
+    expect(context.manager.activeHostCount).toBe(1);
+  });
+
+  it("disposes a launch whose worker lease was cancelled during media preparation", async () => {
+    const context = await manager();
+    const hosts = new GatedHostFactory();
+    await context.manager.enqueue({ ...job, id: "cancel-during-launch" });
+    const scheduler = context.manager.startScheduler(hosts, 1);
+    await hosts.started.promise;
+
+    const cancellation = context.manager.command({
+      type: "cancel",
+      jobId: "cancel-during-launch",
+    });
+    await vi.waitFor(() => expect(context.manager.snapshot().items[0]?.status).toBe("cancelled"));
+    hosts.release.resolve(undefined);
+    await Promise.all([scheduler, cancellation]);
+
+    expect(hosts.workers[0]?.controls).toEqual(["cancel"]);
+    expect(hosts.workers[0]?.disposed).toBe(true);
+    expect(context.manager.activeHostCount).toBe(0);
+  });
+
+  it("does not publish launch failure through a lease retired by cancellation", async () => {
+    const context = await manager();
+    const hosts = new GatedFailureFactory();
+    await context.manager.enqueue({ ...job, id: "cancel-before-launch-failure" });
+    const scheduler = context.manager.startScheduler(hosts, 1);
+    await hosts.started.promise;
+    const cancellation = context.manager.command({
+      type: "cancel",
+      jobId: "cancel-before-launch-failure",
+    });
+    await vi.waitFor(() => expect(context.manager.snapshot().items[0]?.status).toBe("cancelled"));
+
+    hosts.release.resolve(undefined);
+    await Promise.all([scheduler, cancellation]);
+    const item = context.manager.snapshot().items[0];
+    expect(item?.status).toBe("cancelled");
+    expect(item).not.toHaveProperty("error");
+  });
 });
+
+function deferred<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve;
+    reject = promiseReject;
+  });
+  return { promise, resolve, reject };
+}

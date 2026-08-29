@@ -9,6 +9,13 @@ import {
   writeMp4Audio,
   writeMp4Frame,
 } from "../desktop/api";
+import {
+  captureRenderMediaManifest,
+  hydrateRenderMediaSnapshot,
+  parseRenderMediaManifest,
+  type RenderMediaHydrationLease,
+  serializeRenderMediaManifest,
+} from "../render-queue/render-media-manifest";
 import type { RawFramePixelFormat, RawVideoFrame } from "../renderer/frame-readback";
 import {
   alignedAudioFrameCount,
@@ -111,6 +118,7 @@ export async function renderSingleFrame(time: number): Promise<Blob> {
 }
 
 export async function renderPngSequence(
+  project: Project,
   composition: Composition,
   onProgress: (progress: RenderSequenceProgress) => void,
   cancelled: () => boolean,
@@ -124,13 +132,21 @@ export async function renderPngSequence(
     title: "Choose a PNG sequence output folder",
   });
   if (typeof directory !== "string") return undefined;
+  const foreground = await captureForegroundRenderProjectSnapshot(project, composition);
+  ({ project, composition } = foreground);
   const frameCount = Math.max(
     1,
     Math.ceil(
       (composition.duration * composition.frameRate.numerator) / composition.frameRate.denominator,
     ),
   );
-  const session = await openFrameRenderSession();
+  let session: FrameRenderSession;
+  try {
+    session = await openFrameRenderSession({ project });
+  } catch (error) {
+    foreground.mediaLease.dispose();
+    throw error;
+  }
   const startedAt = performance.now();
   logger.info("export", "png_sequence_started", {
     frameCount,
@@ -155,7 +171,11 @@ export async function renderPngSequence(
     logger.error("export", "png_sequence_failed", error, { completed, frameCount });
     throw error;
   } finally {
-    session.close();
+    try {
+      session.close();
+    } finally {
+      foreground.mediaLease.dispose();
+    }
   }
   onProgress({ current: completed, total: frameCount });
   logger.info(
@@ -186,20 +206,34 @@ export async function renderMp4(
     filters: [{ name: "MPEG-4 Video", extensions: ["mp4"] }],
   });
   if (!outputPath) return undefined;
+  const foreground = await captureForegroundRenderProjectSnapshot(project, composition);
+  ({ project, composition } = foreground);
   const frameCount = Math.max(
     1,
     Math.ceil(
       (composition.duration * composition.frameRate.numerator) / composition.frameRate.denominator,
     ),
   );
-  const decodedAudio = await decodeAudibleSources(project, composition, (source) =>
-    sharedAudioPlaybackEngine.decodedPcm(source),
-  );
+  let decodedAudio: Awaited<ReturnType<typeof decodeAudibleSources>>;
+  try {
+    decodedAudio = await decodeAudibleSources(project, composition, (source) =>
+      sharedAudioPlaybackEngine.decodedPcm(source),
+    );
+  } catch (error) {
+    foreground.mediaLease.dispose();
+    throw error;
+  }
   const audioFrameCount =
     decodedAudio.size > 0
       ? alignedAudioFrameCount(frameCount, composition.frameRate, EXPORT_AUDIO_SAMPLE_RATE)
       : 0;
-  const session = await openFrameRenderSession();
+  let session: FrameRenderSession;
+  try {
+    session = await openFrameRenderSession({ project });
+  } catch (error) {
+    foreground.mediaLease.dispose();
+    throw error;
+  }
   const startedAt = performance.now();
   logger.info("export", "mp4_pipeline_started", {
     frameCount,
@@ -298,8 +332,70 @@ export async function renderMp4(
     logger.error("export", "mp4_pipeline_failed", error, { completed, frameCount });
     throw error;
   } finally {
-    session.close();
+    try {
+      session.close();
+    } finally {
+      foreground.mediaLease.dispose();
+    }
   }
+}
+
+/** Captures one immutable document and makes the requested composition authoritative for a job. */
+export function captureRenderProjectSnapshot(
+  project: Project,
+  composition: Composition,
+): { project: Project; composition: Composition } {
+  // Production export is an in-process runtime operation. Keep ephemeral media locators in the
+  // immutable capture; the persistence sanitizer deliberately removes them and would make linked
+  // still/video/audio sources go offline before the first exported frame.
+  const snapshot = structuredClone(project);
+  const capturedComposition = snapshot.compositions.find(
+    (candidate) => candidate.id === composition.id,
+  );
+  if (!capturedComposition)
+    throw new Error("Render composition is not present in the captured project snapshot");
+  snapshot.activeCompositionId = capturedComposition.id;
+  return { project: snapshot, composition: capturedComposition };
+}
+
+export async function captureForegroundRenderProjectSnapshot(
+  project: Project,
+  composition: Composition,
+): Promise<{
+  project: Project;
+  composition: Composition;
+  mediaLease: RenderMediaHydrationLease;
+}> {
+  // Start Blob/asset reads and clone registry-owned bytes before the first await. The editor may
+  // continue mutating after this call returns a promise, but the export observes only this capture.
+  const mediaCapture = captureRenderMediaManifest(project, composition.id);
+  const captured = captureRenderProjectSnapshot(project, composition);
+  const mediaManifest = parseRenderMediaManifest(await serializeRenderMediaManifest(mediaCapture));
+  const remappedIds = new Map<string, string>();
+  for (const entry of mediaManifest.entries) {
+    const temporaryId = `render-${crypto.randomUUID()}`;
+    remappedIds.set(entry.sourceId, temporaryId);
+    entry.sourceId = temporaryId;
+  }
+  for (const source of captured.project.sources) {
+    const temporaryId = remappedIds.get(source.id);
+    if (temporaryId) source.id = temporaryId;
+  }
+  for (const candidate of captured.project.compositions)
+    for (const layer of candidate.layers) {
+      const temporaryId = layer.sourceId ? remappedIds.get(layer.sourceId) : undefined;
+      if (temporaryId) layer.sourceId = temporaryId;
+    }
+  for (const [sourceId, temporaryId] of remappedIds) {
+    const folderId = captured.project.itemFolderIds[sourceId];
+    if (folderId) captured.project.itemFolderIds[temporaryId] = folderId;
+    delete captured.project.itemFolderIds[sourceId];
+  }
+  const mediaLease = await hydrateRenderMediaSnapshot(
+    captured.project,
+    JSON.stringify(mediaManifest),
+  );
+  return { ...captured, mediaLease };
 }
 
 /** Converts an integer output frame index directly through the rational rate without accumulation. */

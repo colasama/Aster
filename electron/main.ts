@@ -41,6 +41,7 @@ import { discoverDesktopImageSequence } from "./media-import.js";
 import { Mp4ExportManager } from "./mp4-export.js";
 import { developmentProfileDirectory } from "./profile-paths.js";
 import { authorizeProjectMediaExternalPaths } from "./project-media-authorization.js";
+import { RenderMediaSnapshotStore } from "./render-media-snapshot-store.js";
 import { ElectronRenderHostController } from "./render-queue-host.js";
 import { RenderQueueManager } from "./render-queue-manager.js";
 import {
@@ -445,6 +446,23 @@ function assertRenderOutputPathsAuthorized(value: unknown): void {
   }
 }
 
+async function prepareAuthorizedRenderQueueInput(
+  value: unknown,
+  mediaSnapshots: RenderMediaSnapshotStore,
+): Promise<{ jobId: string; input: Record<string, unknown> }> {
+  if (!isRecord(value)) throw new Error("Render queue manifest is invalid");
+  if (typeof value.id !== "string" || value.id.length < 1 || value.id.length > 256)
+    throw new Error("Render queue job id is invalid");
+  const renderMediaSnapshot = await mediaSnapshots.capture(
+    value.id,
+    typeof value.renderMediaSnapshot === "string"
+      ? value.renderMediaSnapshot
+      : '{"version":1,"entries":[],"payloads":[]}',
+    { allowedAssets },
+  );
+  return { jobId: value.id, input: { ...value, renderMediaSnapshot } };
+}
+
 function isAuthorizedRenderDestination(destination: string): boolean {
   return isRenderDestinationAuthorized(destination, grantedPaths);
 }
@@ -573,6 +591,7 @@ function registerIpc(
   logger: AsterLogger,
   preferences: AppPreferencesStore,
   renderQueue: RenderQueueManager,
+  mediaSnapshots: RenderMediaSnapshotStore,
 ): void {
   ipcMain.on("aster:log", (event, value: unknown) => {
     if (!isRendererLogPayload(value)) {
@@ -587,7 +606,25 @@ function registerIpc(
   ipcMain.handle("aster:render-queue-get", () => renderQueueView(renderQueue.snapshot()));
   ipcMain.handle("aster:render-queue-enqueue", async (_event, value: unknown) => {
     assertRenderOutputPathsAuthorized(value);
-    return renderQueueView(await renderQueue.enqueue(value));
+    if (
+      isRecord(value) &&
+      typeof value.id === "string" &&
+      renderQueue.snapshot().items.some((item) => item.manifest.id === value.id)
+    )
+      throw new Error(`Render job ${value.id} already exists`);
+    const prepared = await prepareAuthorizedRenderQueueInput(value, mediaSnapshots);
+    try {
+      const state = await renderQueue.enqueue(prepared.input);
+      mediaSnapshots.commit(prepared.jobId);
+      return renderQueueView(state);
+    } catch (error) {
+      // A scheduler-side failure may happen after the durable enqueue update. Keep the media in
+      // that case so the persisted failed item can still be retried; discard only an uncommitted job.
+      if (renderQueue.snapshot().items.some((item) => item.manifest.id === prepared.jobId))
+        mediaSnapshots.commit(prepared.jobId);
+      else await mediaSnapshots.discard(prepared.jobId);
+      throw error;
+    }
   });
   ipcMain.handle("aster:render-queue-command", async (_event, value: unknown) =>
     renderQueueView(await renderQueue.command(value)),
@@ -1241,6 +1278,15 @@ if (hasSingleInstanceLock)
         logger.warn("preferences", "future_document_preserved");
       const renderQueueStore = new RenderQueueStore(app.getPath("userData"));
       const renderQueueStatus = await renderQueueStore.initialize();
+      const renderMediaSnapshots = new RenderMediaSnapshotStore(
+        join(app.getPath("userData"), "render-media-snapshots"),
+      );
+      // A newer queue schema may reference snapshot layouts this build cannot enumerate. Preserve
+      // them verbatim together with the future queue document instead of treating them as orphans.
+      if (!renderQueueStatus.incompatibleFuture)
+        await renderMediaSnapshots.prune(
+          new Set(renderQueueStore.snapshot().items.map((item) => item.manifest.id)),
+        );
       if (renderQueueStatus.recoveredBackup) logger.warn("render_queue", "backup_recovered");
       if (renderQueueStatus.resetInvalid) logger.warn("render_queue", "invalid_document_reset");
       if (renderQueueStatus.incompatibleFuture)
@@ -1250,6 +1296,13 @@ if (hasSingleInstanceLock)
           count: renderQueueStatus.interruptedJobs,
         });
       renderQueueManager = new RenderQueueManager(renderQueueStore, (state) => {
+        void renderMediaSnapshots
+          .prune(new Set(state.items.map((item) => item.manifest.id)))
+          .catch((error: unknown) =>
+            logger.warn("render_queue", "media_snapshot_prune_failed", {
+              error: error instanceof Error ? error.message : String(error),
+            }),
+          );
         const view = renderQueueView(state);
         for (const window of BrowserWindow.getAllWindows())
           if (!renderHostController?.isRenderHost(window.webContents.id))
@@ -1301,10 +1354,16 @@ if (hasSingleInstanceLock)
         ffmpegExecutable: ffmpegExecutable(),
         logger,
         packaged: app.isPackaged,
+        authorizeMedia: (manifest) =>
+          renderMediaSnapshots.authorizeLaunch(
+            manifest.id,
+            manifest.renderMediaSnapshot ?? '{"version":1,"entries":[],"payloads":[]}',
+            { allowedAssets },
+          ),
       });
       Menu.setApplicationMenu(null);
       registerAssetProtocol();
-      registerIpc(logger, preferences, renderQueueManager);
+      registerIpc(logger, preferences, renderQueueManager, renderMediaSnapshots);
       renderHostController.registerIpc();
       session.defaultSession.setPermissionRequestHandler((_webContents, _permission, callback) => {
         callback(false);

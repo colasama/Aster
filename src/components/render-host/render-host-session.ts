@@ -208,6 +208,10 @@ export async function runRenderHostFrameLoop(
     return "completed";
   } catch (error) {
     audioAborted = true;
+    // Do not let an in-flight PCM IPC write race the worker's failure cleanup. The audio promise
+    // owns its own rejection capture above, so draining it here is bounded by output backpressure
+    // and preserves the original frame/output failure as the session error.
+    await audioPipeline;
     throw error;
   }
 }
@@ -349,7 +353,9 @@ async function stopAtControlBoundary(
   audioPipeline: Promise<number>,
 ): Promise<"paused" | "cancelled"> {
   abortAudio();
-  const result = await reportControlBoundary(report, shared, control);
+  // A terminal report lets Electron dispose the encoder and staged outputs immediately. Drain any
+  // PCM write already accepted by IPC before publishing that boundary so it cannot write into a
+  // disposed worker after pause/cancel acknowledgement.
   await audioPipeline;
-  return result;
+  return await reportControlBoundary(report, shared, control);
 }

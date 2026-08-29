@@ -46,6 +46,8 @@ export interface RenderJobManifest {
   projectRevision: number;
   /** Immutable serialized project document captured when the item is queued. */
   projectSnapshot: string;
+  /** Versioned runtime media registry/locator capture hydrated by an isolated RenderHost. */
+  renderMediaSnapshot?: string;
   width: number;
   height: number;
   frameRate: { numerator: number; denominator: number };
@@ -80,7 +82,10 @@ export interface RenderQueueState {
   items: RenderQueueItem[];
 }
 
-export type RenderQueueViewManifest = Omit<RenderJobManifest, "projectSnapshot">;
+export type RenderQueueViewManifest = Omit<
+  RenderJobManifest,
+  "projectSnapshot" | "renderMediaSnapshot"
+>;
 
 export interface RenderQueueViewItem extends Omit<RenderQueueItem, "manifest" | "workerLeaseId"> {
   manifest: RenderQueueViewManifest;
@@ -108,7 +113,11 @@ export function renderQueueView(state: RenderQueueState): RenderQueueViewState {
     revision: state.revision,
     items: state.items.map((item) => {
       const { workerLeaseId: _workerLeaseId, manifest: sourceManifest, ...summary } = item;
-      const { projectSnapshot: _projectSnapshot, ...manifest } = sourceManifest;
+      const {
+        projectSnapshot: _projectSnapshot,
+        renderMediaSnapshot: _renderMediaSnapshot,
+        ...manifest
+      } = sourceManifest;
       return {
         ...summary,
         manifest: {
@@ -460,6 +469,18 @@ function normalizeManifest(value: unknown, path: string): RenderJobManifest {
   } catch {
     throw new Error(`${path}.projectSnapshot must be valid JSON`);
   }
+  const renderMediaSnapshot = boundedString(
+    value.renderMediaSnapshot ?? '{"version":1,"entries":[],"payloads":[]}',
+    MAX_RENDER_SNAPSHOT_BYTES / 2,
+    `${path}.renderMediaSnapshot`,
+  );
+  if (projectSnapshot.length + renderMediaSnapshot.length > MAX_RENDER_SNAPSHOT_BYTES / 2)
+    throw new Error(`${path} snapshot payload exceeds the supported limit`);
+  try {
+    JSON.parse(renderMediaSnapshot);
+  } catch {
+    throw new Error(`${path}.renderMediaSnapshot must be valid JSON`);
+  }
   const width = boundedInteger(value.width, 1, 32_768, `${path}.width`);
   const height = boundedInteger(value.height, 1, 32_768, `${path}.height`);
   if (!isRecord(value.frameRate)) throw new Error(`${path}.frameRate is invalid`);
@@ -502,6 +523,7 @@ function normalizeManifest(value: unknown, path: string): RenderJobManifest {
     compositionName,
     projectRevision,
     projectSnapshot,
+    renderMediaSnapshot,
     width,
     height,
     frameRate,

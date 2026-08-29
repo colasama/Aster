@@ -205,6 +205,7 @@ describe("render queue", () => {
     const view = renderQueueView(state);
     expect(view).toMatchObject({ revision: state.revision, items: [{ manifest: { id: "job" } }] });
     expect(view.items[0]?.manifest).not.toHaveProperty("projectSnapshot");
+    expect(view.items[0]?.manifest).not.toHaveProperty("renderMediaSnapshot");
     expect(view.items[0]).not.toHaveProperty("workerLeaseId");
     expect(view.items[0]?.manifest.outputs).not.toBe(state.items[0]?.manifest.outputs);
   });

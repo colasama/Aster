@@ -6,6 +6,11 @@ import {
   type RenderOutputModule,
 } from "../core/render-queue";
 import { type Composition, createId, type Project } from "../core/types";
+import {
+  captureRenderMediaManifest,
+  serializeRenderMediaManifest,
+  serializeRenderMediaManifestSync,
+} from "./render-media-manifest";
 
 export type RenderQueueOutputKind = "mp4" | "pngSequence" | "still";
 export type RenderQueueRange = "workArea" | "composition" | "currentFrame";
@@ -21,30 +26,54 @@ export interface RenderQueueJobOptions {
 }
 
 export function createRenderQueueJob(options: RenderQueueJobOptions): EnqueueRenderJobInput {
-  return createJobWithSnapshot(options, serializeProject(options.project));
+  const composition = compositionFromProject(options.project, options.composition.id);
+  const renderMediaSnapshot = serializeRenderMediaManifestSync(
+    captureRenderMediaManifest(options.project, composition.id),
+  );
+  return createJobWithSnapshot(
+    { ...options, composition },
+    serializeProject(options.project),
+    renderMediaSnapshot,
+  );
 }
 
 export async function createRenderQueueJobAsync(
   options: RenderQueueJobOptions,
 ): Promise<EnqueueRenderJobInput> {
-  const projectSnapshot = await runCpuTask(
-    {
-      kind: "serialize-json",
-      maxOutputCharacters: MAX_RENDER_SNAPSHOT_BYTES / 2,
-      spacing: 2,
-      trailingNewline: true,
-      value: projectDocumentForPersistence(options.project),
-    },
-    { priority: "interactive", timeoutMs: 120_000 },
+  // Capture the document and composition descriptor before yielding to the CPU worker. Queue
+  // manifests must describe the exact serialized snapshot even if the editor advances meanwhile.
+  const runtimeComposition = compositionFromProject(options.project, options.composition.id);
+  const mediaCapture = captureRenderMediaManifest(options.project, runtimeComposition.id);
+  const project = projectDocumentForPersistence(options.project);
+  const composition = compositionFromProject(project, options.composition.id);
+  const [projectSnapshot, renderMediaSnapshot] = await Promise.all([
+    runCpuTask(
+      {
+        kind: "serialize-json",
+        maxOutputCharacters: MAX_RENDER_SNAPSHOT_BYTES / 2,
+        spacing: 2,
+        trailingNewline: true,
+        value: project,
+      },
+      { priority: "interactive", timeoutMs: 120_000 },
+    ),
+    serializeRenderMediaManifest(mediaCapture),
+  ]);
+  return createJobWithSnapshot(
+    { ...options, project, composition },
+    projectSnapshot,
+    renderMediaSnapshot,
   );
-  return createJobWithSnapshot(options, projectSnapshot);
 }
 
 function createJobWithSnapshot(
   options: RenderQueueJobOptions,
   projectSnapshot: string,
+  renderMediaSnapshot: string,
 ): EnqueueRenderJobInput {
-  const { composition } = options;
+  if (projectSnapshot.length + renderMediaSnapshot.length > MAX_RENDER_SNAPSHOT_BYTES / 2)
+    throw new Error("Render project and media snapshots exceed the supported job limit");
+  const composition = compositionFromProject(options.project, options.composition.id);
   const frameRange = resolveFrameRange(composition, options.range, options.currentTime);
   if (options.outputKind === "mp4" && (composition.width % 2 !== 0 || composition.height % 2 !== 0))
     throw new Error("H.264 output dimensions must be even");
@@ -53,6 +82,7 @@ function createJobWithSnapshot(
     compositionName: composition.name,
     projectRevision: options.projectRevision,
     projectSnapshot,
+    renderMediaSnapshot,
     width: composition.width,
     height: composition.height,
     frameRate: { ...composition.frameRate },
@@ -60,6 +90,13 @@ function createJobWithSnapshot(
     endFrameExclusive: frameRange.end,
     outputs: [createOutput(options.outputKind, options.destination, frameRange.start)],
   };
+}
+
+function compositionFromProject(project: Project, compositionId: string): Composition {
+  const composition = project.compositions.find((candidate) => candidate.id === compositionId);
+  if (!composition)
+    throw new Error("Render queue composition is not present in the captured project snapshot");
+  return composition;
 }
 
 export function appendRenderSequenceName(parent: string, compositionName: string): string {

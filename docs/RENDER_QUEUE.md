@@ -9,9 +9,28 @@ failed, and cancelled states. Each worker claim receives a unique lease. Progres
 and failure events with a stale lease are rejected, preventing a replaced or crashed worker from
 publishing into a retried job. Progress is monotonic and bounded by the manifest frame range.
 
+The scheduler counts live hidden-host handles in addition to persistent running states. Cancelling a
+job changes its visible state immediately, but its slot is not reusable until the correlated host has
+drained encoder and IPC work, removed staging data, acknowledged the terminal boundary, and disposed.
+
 Runnable items are ordered by priority, creation time, and stable ID. The scheduler subtracts active
 leases from a bounded concurrency limit. Queue snapshots have strict item, output, project-document,
-frame-count, dimension, string, and numeric limits before persistence or worker launch.
+render-media, frame-count, dimension, string, and numeric limits before persistence or worker launch.
+Large immutable snapshots are omitted from every editor-facing progress projection.
+
+Each job pairs the persistence-safe project document with a versioned `RenderMediaManifest` keyed by
+source ID and content identity. Embedded still/video/audio data remains in the document. At enqueue,
+every linked local source is copied and SHA-256 verified into a content-addressed, job-owned snapshot
+under application data. The queued locator is rewritten to that snapshot, so later edits to the
+original still, video, or audio file cannot change a frame or sample during a long render. Snapshot
+roots are constrained to the job ID and reverified before launch; they survive restart and retry, and
+are pruned only after the durable queue item is removed. Asset-protocol grants are transactional and
+leased to the correlated hidden host, so a failed authorization publishes no partial grant and worker
+cleanup revokes snapshot URLs. SVG stores sanitized markup, one compressed PSD document payload is
+shared by all of its layer recipes, and Blob/data-URL image-sequence frames are pinned as bounded
+inline resources. Native sequence frames remain locators until Electron streams them once into the same
+job-owned snapshot, upgrades persisted FNV/metadata identity to SHA-256, and uses only that digest at
+launch. The queue never duplicates decoded PSD RGBA when original document bytes are available.
 
 The Electron job manager claims work with a fresh UUID lease and launches one sandboxed, hidden
 `BrowserWindow` per active item. The default scheduler concurrency is one and its bounded host-factory
@@ -22,11 +41,13 @@ window receives its immutable assignment. Closing or hiding the editor therefore
 work already owned by a RenderHost.
 
 The RenderHost parses and validates the captured project, verifies the composition dimensions and
-rational frame rate against the manifest, and evaluates every frame from its absolute integer index.
-It creates the same production beauty-frame request used by the viewport/export path and reads the
-same post-processed GPU result. Debug buffer visualization is not a production preview or background
-render mode. Video sources use deterministic seek-and-await synchronization; a Canvas fallback
-rejects deterministic video instead of silently encoding stale frames.
+rational frame rate against the manifest, validates every render-media kind and identity, then
+hydrates its isolated runtime registry before creating the renderer or submitting frame one. Missing,
+changed, unauthorized, oversized, or malformed resources fail the job instead of rendering a
+placeholder. It creates the same production beauty-frame request used by the viewport/export path and
+reads the same post-processed GPU result. Debug buffer visualization is not a production preview or
+background render mode. Video sources use deterministic seek-and-await synchronization; Canvas and
+WebGPU both wait for current-generation media before accepting readback pixels.
 
 Pause and cancel controls are correlated by both job and lease and are observed only after all output
 writes for the current frame finish. A paused retry or failed task restarts from frame zero under a new
@@ -44,6 +65,10 @@ writes run concurrently with awaited IPC backpressure, and a pause, cancel, rend
 failure, or encoder failure disposes both FFmpeg pipes and removes staged output. If the snapshot has
 no audible audio/video source, an audio-enabled module intentionally produces a video-only MP4 rather
 than manufacturing a silent track.
+
+Pause, cancel, and failure paths first stop and drain any PCM write already accepted by IPC. Only then
+does the RenderHost publish a terminal report that authorizes Electron to dispose the encoder and
+staged publisher, preventing late audio writes from racing a closed worker.
 
 Every output is staged beside its destination; existing destinations are backed up and all modules
 are renamed into place only after every frame, audio chunk, and encoder completes. Publish failure

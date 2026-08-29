@@ -245,7 +245,15 @@ export class RenderQueueManager {
   async #schedulePass(): Promise<void> {
     const factory = this.#hostFactory;
     if (!factory) return;
-    const runnable = nextRunnableRenderJobs(this.snapshot(), this.#maximumConcurrency);
+    // A cancelled item leaves the persistent state immediately but its hidden host still owns GPU,
+    // encoder, and staging resources until it acknowledges the control boundary. Bound launches by
+    // live host handles as well as domain state so cleanup never creates a transient extra worker.
+    const availableHostSlots = Math.max(0, this.#maximumConcurrency - this.#active.size);
+    if (availableHostSlots === 0) return;
+    const runnable = nextRunnableRenderJobs(this.snapshot(), this.#maximumConcurrency).slice(
+      0,
+      availableHostSlots,
+    );
     for (const item of runnable) {
       const jobId = item.manifest.id;
       const leaseId = this.#createLeaseId();
@@ -256,14 +264,28 @@ export class RenderQueueManager {
         const handle = await factory.launch(claimed, leaseId, (event) => this.report(event));
         if (handle.jobId !== jobId || handle.leaseId !== leaseId)
           throw new Error("Render host returned a mismatched job lease");
+        const current = this.snapshot().items.find((candidate) => candidate.manifest.id === jobId);
+        if (!current || current.workerLeaseId !== leaseId) {
+          // Cancel/retry can advance the durable item while slow media authorization or publisher
+          // preparation is still launching. Never attach that now-stale host to the replacement job.
+          await Promise.resolve(handle.control("cancel")).catch(() => undefined);
+          await Promise.resolve(handle.dispose()).catch(() => undefined);
+          this.#scheduleAgain = true;
+          continue;
+        }
         this.#active.set(jobId, { handle, leaseId });
       } catch (error) {
-        await this.#update((state) =>
-          failRenderJob(state, jobId, leaseId, {
-            code: "render_host_launch_failed",
-            message: error instanceof Error ? error.message : String(error),
-          }),
-        );
+        const current = this.snapshot().items.find((candidate) => candidate.manifest.id === jobId);
+        // Cancellation or retry may already have retired this launch lease while authorization was
+        // pending. Preserve that newer state instead of trying to publish failure through a stale
+        // lease (which would itself violate the queue transition contract).
+        if (current?.workerLeaseId === leaseId)
+          await this.#update((state) =>
+            failRenderJob(state, jobId, leaseId, {
+              code: "render_host_launch_failed",
+              message: error instanceof Error ? error.message : String(error),
+            }),
+          );
         this.#scheduleAgain = true;
       }
     }
