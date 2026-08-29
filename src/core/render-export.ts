@@ -19,12 +19,19 @@ export interface FrameRenderSession {
   width: number;
   height: number;
   maxInFlightFrames: number;
+  videoSynchronization: "none" | "seek-and-await";
   close: () => void;
 }
 
 export interface FrameRenderSessionOptions {
   project?: Project;
   maxDimension?: number;
+}
+
+export interface FrameRenderSessionOpenRequest {
+  options: FrameRenderSessionOptions;
+  resolve: (session: FrameRenderSession) => void;
+  reject: (error: Error) => void;
 }
 
 export interface RenderSequenceProgress {
@@ -58,13 +65,27 @@ export function nativeMp4ExportAvailable(): boolean {
 export async function openFrameRenderSession(
   options: FrameRenderSessionOptions = {},
 ): Promise<FrameRenderSession> {
-  const session = await new Promise<FrameRenderSession | undefined>((resolve) => {
+  return new Promise<FrameRenderSession>((resolve, reject) => {
+    let handled = false;
     window.dispatchEvent(
-      new CustomEvent("aster:open-render-session", { detail: { resolve, options } }),
+      new CustomEvent<FrameRenderSessionOpenRequest>("aster:open-render-session", {
+        detail: {
+          options,
+          resolve: (session) => {
+            handled = true;
+            resolve(session);
+          },
+          reject: (error) => {
+            handled = true;
+            reject(error);
+          },
+        },
+      }),
     );
+    queueMicrotask(() => {
+      if (!handled) reject(new Error("Renderer did not handle the frame session request"));
+    });
   });
-  if (!session) throw new Error("Renderer did not open a frame session");
-  return session;
 }
 
 export async function renderSingleFrame(time: number): Promise<Blob> {
@@ -95,8 +116,12 @@ export async function renderPngSequence(
     title: "Choose a PNG sequence output folder",
   });
   if (typeof directory !== "string") return undefined;
-  const frameRate = composition.frameRate.numerator / composition.frameRate.denominator;
-  const frameCount = Math.max(1, Math.ceil(composition.duration * frameRate));
+  const frameCount = Math.max(
+    1,
+    Math.ceil(
+      (composition.duration * composition.frameRate.numerator) / composition.frameRate.denominator,
+    ),
+  );
   const session = await openFrameRenderSession();
   const startedAt = performance.now();
   logger.info("export", "png_sequence_started", {
@@ -109,7 +134,7 @@ export async function renderPngSequence(
     for (let frame = 0; frame < frameCount; frame += 1) {
       if (cancelled()) break;
       onProgress({ current: frame, total: frameCount });
-      const blob = await session.renderFrame(frame / frameRate);
+      const blob = await session.renderFrame(frameTimeAtIndex(frame, composition.frameRate));
       const fileName = `frame_${String(frame + 1).padStart(6, "0")}.png`;
       await invoke("save_render_frame", {
         directory,
@@ -166,6 +191,7 @@ export async function renderMp4(
     height: composition.height,
     pixelFormat: session.rawPixelFormat,
     maxInFlightFrames: session.maxInFlightFrames,
+    videoSynchronization: session.videoSynchronization,
   });
   let jobId: string | undefined;
   let completed = 0;
@@ -184,10 +210,7 @@ export async function renderMp4(
       frameCount,
       maxInFlight: session.maxInFlightFrames,
       cancelled,
-      render: (frame) =>
-        session.renderRawFrame(
-          (frame * composition.frameRate.denominator) / composition.frameRate.numerator,
-        ),
+      render: (frame) => session.renderRawFrame(frameTimeAtIndex(frame, composition.frameRate)),
       write: async (frame) => {
         if (frame.pixelFormat !== session.rawPixelFormat)
           throw new Error("Renderer changed MP4 pixel format during export");
@@ -228,6 +251,23 @@ export async function renderMp4(
   } finally {
     session.close();
   }
+}
+
+/** Converts an integer output frame index directly through the rational rate without accumulation. */
+export function frameTimeAtIndex(
+  frame: number,
+  frameRate: { numerator: number; denominator: number },
+): number {
+  if (!Number.isSafeInteger(frame) || frame < 0)
+    throw new Error("Output frame index must be a non-negative safe integer");
+  if (
+    !Number.isSafeInteger(frameRate.numerator) ||
+    !Number.isSafeInteger(frameRate.denominator) ||
+    frameRate.numerator < 1 ||
+    frameRate.denominator < 1
+  )
+    throw new Error("Output frame rate must be a positive rational number");
+  return (frame * frameRate.denominator) / frameRate.numerator;
 }
 
 interface FramePipelineOptions<Frame> {

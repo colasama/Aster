@@ -14,16 +14,27 @@ import { createLayerForComposition } from "../core/layer-factory";
 import { logger } from "../core/logger";
 import type { Operation } from "../core/operations";
 import { activeComposition } from "../core/project";
-import type { FrameRenderSession, FrameRenderSessionOptions } from "../core/render-export";
+import type { FrameRenderSessionOpenRequest } from "../core/render-export";
+import {
+  BoundedRenderSessionController,
+  ExclusiveRenderSessionGuard,
+  type RenderSessionLease,
+} from "../core/render-session-guard";
 import { evaluateWorldTransform, flattenSceneLayers } from "../core/scene-evaluation";
 import { evaluateAnimatable } from "../core/timeline";
 import type { Composition, GpuDiagnostics, Project } from "../core/types";
 import { isDesktopRuntime, onDisplayMetricsChanged } from "../desktop/api";
 import type { PlainMessageKey, Translate } from "../i18n/core";
 import { useI18n } from "../i18n/react";
+import {
+  createBeautyFrameRequest,
+  createViewportBeautyFrameBackend,
+  ProductionBeautyFramePipeline,
+} from "../renderer/beauty-frame";
 import { CanvasFallbackRenderer } from "../renderer/canvas-fallback";
 import { type GpuBenchmarkRequest, runGpuBenchmark } from "../renderer/gpu-benchmark";
 import { calculatePreviewSize } from "../renderer/preview-size";
+import { encodeRawFramePng } from "../renderer/raw-frame-png";
 import { BUFFER_VISUALIZATIONS, type BufferVisualization } from "../renderer/render-buffers";
 import { createDefaultBezierPath } from "../renderer/vector-path";
 import { WebGpuRenderer } from "../renderer/webgpu-renderer";
@@ -41,6 +52,8 @@ export function Viewport() {
   const mirrorCanvasRef = useRef<HTMLCanvasElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<Renderer | undefined>(undefined);
+  const beautyPipelineRef = useRef<ProductionBeautyFramePipeline | undefined>(undefined);
+  const renderSessionGuardRef = useRef(new ExclusiveRenderSessionGuard());
   const previewQualityRef = useRef(state.previewQuality);
   const lastMetricUpdate = useRef(0);
   const hasGpuPassMetrics = useRef(false);
@@ -50,6 +63,20 @@ export function Viewport() {
   const [view, setView] = useState<"active" | "custom">("active");
   const [viewCount, setViewCount] = useState(1);
   const [bufferView, setBufferView] = useState<BufferVisualization>("beauty");
+  const previewRestoreRef = useRef({
+    bufferView,
+    composition,
+    project: state.project,
+    selectedLayerId: state.selection[0],
+    time: state.currentTime,
+  });
+  previewRestoreRef.current = {
+    bufferView,
+    composition,
+    project: state.project,
+    selectedLayerId: state.selection[0],
+    time: state.currentTime,
+  };
   const [space, setSpace] = useState<"local" | "world">("local");
   const [editingTextLayerId, setEditingTextLayerId] = useState<string>();
   const textEditRef = useRef<
@@ -76,6 +103,7 @@ export function Viewport() {
     [composition, selectedLayer, state.currentTime],
   );
   const resize = useCallback(() => {
+    if (renderSessionGuardRef.current.active) return;
     const canvas = canvasRef.current;
     const stage = stageRef.current;
     if (!canvas || !stage) return;
@@ -88,9 +116,13 @@ export function Viewport() {
       maxDimension: rendererRef.current?.diagnostics.maxTextureSize || undefined,
     });
     if (canvas.width === preview.width && canvas.height === preview.height) return;
-    canvas.width = preview.width;
-    canvas.height = preview.height;
-    rendererRef.current?.resize(preview.width, preview.height);
+    const pipeline = beautyPipelineRef.current;
+    if (pipeline) pipeline.resize(preview.width, preview.height);
+    else {
+      canvas.width = preview.width;
+      canvas.height = preview.height;
+      rendererRef.current?.resize(preview.width, preview.height);
+    }
     setRendererRevision((revision) => revision + 1);
   }, []);
 
@@ -105,6 +137,7 @@ export function Viewport() {
   }, [resize]);
 
   useEffect(() => {
+    if (renderSessionGuardRef.current.active) return;
     const renderer = rendererRef.current;
     if (!(renderer instanceof WebGpuRenderer)) return;
     const actual = renderer.setBufferVisualization(bufferView);
@@ -133,6 +166,9 @@ export function Viewport() {
           adapter: renderer.diagnostics.adapter,
         });
         rendererRef.current = renderer;
+        beautyPipelineRef.current = new ProductionBeautyFramePipeline(
+          createViewportBeautyFrameBackend(renderer, canvas),
+        );
         setDiagnostics(renderer.diagnostics);
         resize();
         renderer.resize(canvas.width, canvas.height);
@@ -156,15 +192,29 @@ export function Viewport() {
     void rendererRevision;
     void viewCount;
     if (!rendererReady) return;
+    if (renderSessionGuardRef.current.active) return;
     const renderer = rendererRef.current;
     if (!renderer) return;
-    const metrics = renderer.render(
-      composition,
-      state.currentTime,
-      state.playing,
-      state.project,
-      state.selection[0],
-    );
+    const pipeline = beautyPipelineRef.current;
+    const metrics =
+      bufferView === "beauty" && pipeline
+        ? pipeline.present(
+            createBeautyFrameRequest({
+              composition,
+              project: state.project,
+              time: state.currentTime,
+              width: canvasRef.current?.width ?? 1,
+              height: canvasRef.current?.height ?? 1,
+            }),
+            state.selection[0],
+          )
+        : renderer.render(
+            composition,
+            state.currentTime,
+            state.playing,
+            state.project,
+            state.selection[0],
+          );
     syncMirrorCanvas(canvasRef.current, mirrorCanvasRef.current);
     const now = performance.now();
     const firstPassBreakdown = Boolean(metrics.passTimings) && !hasGpuPassMetrics.current;
@@ -183,25 +233,21 @@ export function Viewport() {
     state.selection,
     viewCount,
     state.project,
+    bufferView,
   ]);
 
   useEffect(() => {
     const openRenderSession = (event: Event) => {
-      const request = event as CustomEvent<{
-        resolve: (session?: FrameRenderSession) => void;
-        options?: FrameRenderSessionOptions;
-      }>;
+      const request = event as CustomEvent<FrameRenderSessionOpenRequest>;
       const canvas = canvasRef.current;
       const renderer = rendererRef.current;
-      if (!canvas || !renderer) {
-        request.detail.resolve();
+      const pipeline = beautyPipelineRef.current;
+      if (!canvas || !renderer || !pipeline) {
+        request.detail.reject(new Error("Renderer did not open a frame session"));
         return;
       }
       const previewWidth = canvas.width;
       const previewHeight = canvas.height;
-      const previewBufferView =
-        renderer instanceof WebGpuRenderer ? renderer.bufferVisualization : undefined;
-      if (renderer instanceof WebGpuRenderer) renderer.setBufferVisualization("beauty");
       const renderProject = request.detail.options?.project ?? state.project;
       const renderComposition = activeComposition(renderProject);
       const maxDimension = request.detail.options?.maxDimension;
@@ -212,57 +258,81 @@ export function Viewport() {
       const renderWidth = Math.max(1, Math.round(renderComposition.width * renderScale));
       const renderHeight = Math.max(1, Math.round(renderComposition.height * renderScale));
       const synchronizeVideo = compositionContainsVideo(renderComposition, renderProject);
-      canvas.width = renderWidth;
-      canvas.height = renderHeight;
-      renderer.resize(renderWidth, renderHeight);
-      let closed = false;
+      let lease: RenderSessionLease;
+      try {
+        lease = renderSessionGuardRef.current.acquire(() => {
+          try {
+            const preview = previewRestoreRef.current;
+            pipeline.resize(previewWidth, previewHeight);
+            if (preview.bufferView !== "beauty") {
+              if (renderer instanceof WebGpuRenderer)
+                renderer.setBufferVisualization(preview.bufferView);
+              renderer.render(
+                preview.composition,
+                preview.time,
+                false,
+                preview.project,
+                preview.selectedLayerId,
+              );
+            } else
+              pipeline.present(
+                createBeautyFrameRequest({
+                  composition: preview.composition,
+                  project: preview.project,
+                  time: preview.time,
+                  width: previewWidth,
+                  height: previewHeight,
+                }),
+                preview.selectedLayerId,
+              );
+            setRendererRevision((revision) => revision + 1);
+          } finally {
+            queueMicrotask(resize);
+          }
+        });
+      } catch (error) {
+        request.detail.reject(error instanceof Error ? error : new Error(String(error)));
+        return;
+      }
+      const maximumInFlight = synchronizeVideo ? 1 : pipeline.maxConcurrentReadbacks;
+      const restore = () => {
+        try {
+          lease.close();
+        } catch (error) {
+          logger.error("export", "preview_restore_failed", error);
+        }
+      };
+      const sessionController = new BoundedRenderSessionController(
+        { close: restore },
+        maximumInFlight,
+      );
+      const renderRequestAt = (time: number) =>
+        createBeautyFrameRequest({
+          composition: renderComposition,
+          project: renderProject,
+          time,
+          width: renderWidth,
+          height: renderHeight,
+        });
       request.detail.resolve({
-        rawPixelFormat:
-          renderer instanceof WebGpuRenderer ? renderer.exportPixelFormat : ("rgba" as const),
+        rawPixelFormat: pipeline.pixelFormat,
         width: renderWidth,
         height: renderHeight,
-        maxInFlightFrames: renderer instanceof WebGpuRenderer && !synchronizeVideo ? 3 : 1,
-        renderFrame: async (time) => {
-          if (closed) throw new Error("Render session is already closed");
-          renderer.render(renderComposition, time, false, renderProject);
-          await renderer.complete();
-          const blob = await new Promise<Blob | undefined>((resolveBlob) =>
-            canvas.toBlob((value) => resolveBlob(value ?? undefined), "image/png"),
-          );
-          if (!blob) throw new Error("Renderer did not encode a PNG frame");
-          return blob;
-        },
-        renderRawFrame: async (time) => {
-          if (closed) throw new Error("Render session is already closed");
-          if (renderer instanceof WebGpuRenderer)
-            return renderer.renderRawFrame(
-              renderComposition,
-              time,
-              renderProject,
-              synchronizeVideo,
-            );
-          renderer.render(renderComposition, time, false, renderProject);
-          await renderer.complete();
-          const context = canvas.getContext("2d");
-          if (!context) throw new Error("Canvas fallback pixels are unavailable");
-          const source = context.getImageData(0, 0, canvas.width, canvas.height).data;
-          return { pixels: new Uint8Array(source).slice().buffer, pixelFormat: "rgba" };
-        },
-        close: () => {
-          if (closed) return;
-          closed = true;
-          canvas.width = previewWidth;
-          canvas.height = previewHeight;
-          renderer.resize(previewWidth, previewHeight);
-          if (previewBufferView && renderer instanceof WebGpuRenderer)
-            renderer.setBufferVisualization(previewBufferView);
-          renderer.render(composition, state.currentTime, false, state.project, state.selection[0]);
-        },
+        maxInFlightFrames: maximumInFlight,
+        videoSynchronization: synchronizeVideo ? "seek-and-await" : "none",
+        renderFrame: (time) =>
+          sessionController.run(async () => {
+            const raw = await pipeline.readback(renderRequestAt(time), synchronizeVideo);
+            return await encodeRawFramePng(raw, renderWidth, renderHeight);
+          }),
+        renderRawFrame: (time) =>
+          sessionController.run(() => pipeline.readback(renderRequestAt(time), synchronizeVideo)),
+        close: () => sessionController.close(),
       });
     };
     window.addEventListener("aster:open-render-session", openRenderSession);
     return () => window.removeEventListener("aster:open-render-session", openRenderSession);
-  }, [composition, state.currentTime, state.project, state.selection]);
+  }, [resize, state.project]);
 
   useEffect(() => {
     let running = false;
@@ -270,10 +340,11 @@ export function Viewport() {
       const request = event as CustomEvent<GpuBenchmarkRequest>;
       const canvas = canvasRef.current;
       const renderer = rendererRef.current;
-      if (!canvas || !renderer || running) {
+      if (!canvas || !renderer || running || renderSessionGuardRef.current.active) {
         request.detail.resolve();
         return;
       }
+      const lease = renderSessionGuardRef.current.acquire(() => undefined);
       running = true;
       const benchmarkStartedAt = performance.now();
       logger.info("gpu_benchmark", "started", { sampleFrames: request.detail.sampleFrames });
@@ -304,11 +375,13 @@ export function Viewport() {
         })
         .finally(() => {
           running = false;
+          lease.close();
+          queueMicrotask(resize);
         });
     };
     window.addEventListener("aster:run-gpu-benchmark", runBenchmark);
     return () => window.removeEventListener("aster:run-gpu-benchmark", runBenchmark);
-  }, [composition, state.currentTime, state.project]);
+  }, [composition, resize, state.currentTime, state.project]);
 
   useEffect(() => {
     if (editingTextLayerId) textEditorRef.current?.focus();

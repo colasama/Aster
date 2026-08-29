@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { streamFramePipeline } from "./render-export";
+import { frameTimeAtIndex, streamFramePipeline } from "./render-export";
 
 describe("MP4 frame pipeline", () => {
+  it("addresses fractional-rate video frames without cumulative time drift", () => {
+    const rate = { numerator: 30_000, denominator: 1_001 };
+    expect(frameTimeAtIndex(0, rate)).toBe(0);
+    expect(frameTimeAtIndex(17_982, rate)).toBe((17_982 * 1_001) / 30_000);
+    expect(() => frameTimeAtIndex(-1, rate)).toThrow("frame index");
+  });
+
   it("keeps a bounded render window and writes frames in timeline order", async () => {
     const rendered: number[] = [];
     const written: number[] = [];
