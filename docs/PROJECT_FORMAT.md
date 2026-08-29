@@ -1,4 +1,4 @@
-# Aster project format v7
+# Aster project format v8
 
 The development editor currently exchanges a readable JSON document named `*.aster.json`. The Rust
 bundle layer stores the same versioned domain model inside an atomically replaced project path. Cache,
@@ -8,7 +8,7 @@ proxy, and preview data are deliberately excluded.
 
 ```json
 {
-  "schemaVersion": 7,
+  "schemaVersion": 8,
   "id": "stable-uuid",
   "name": "Project name",
   "activeCompositionId": "stable-uuid",
@@ -33,6 +33,15 @@ Version 7 persists AE-style motion blur as two independent switches. A compositi
 Every layer has its own required `motionBlur` boolean. Both switches must be true before the renderer
 evaluates shutter endpoints. The default 180 degree angle and -90 degree phase center the exposure on
 the current frame.
+
+Version 8 replaces the legacy single staggered text reveal with ordered animator groups. Each group
+has a stable ID and name, a bounded property stack, and zero or more ordered Range, Wiggly, or
+Expression selectors with their own stable IDs and editable names. Numeric selector controls and animator properties use the same static/keyframe
+track representation as layer transforms, so evaluation is seekable and deterministic. A group with
+no selectors affects every grapheme. Expression source is bounded and evaluated by a numeric AST
+host; arbitrary JavaScript is never stored as executable renderer code. Line Anchor is a scalar
+0–100% tracking alignment, and Character Offset/Value require an explicit Preserve Case & Digits or
+Full Unicode Character Range.
 
 Layers use stable UUIDs, time bounds, kind, blend mode, transform properties, and
 effects. An animatable property is either a static value or an ordered keyframe array. Effects are
@@ -137,10 +146,13 @@ and [Advanced 3D depth-of-field controls](https://helpx.adobe.com/ca/after-effec
   supplies deterministic one-node and depth-of-field defaults.
   The v6 → v7 migration adds a disabled composition Motion Blur switch with the centered 180/-90
   shutter defaults and disables the switch on every existing layer, preserving all previous pixels.
+  The v7 → v8 migration converts each legacy staggered text reveal to one deterministic animator
+  group with an equivalent bounded expression selector; layer IDs derive stable group and selector
+  IDs, and the cubic reveal remains pixel-equivalent at arbitrary seek times.
   Older, future, missing, or fractional versions fail
   before partially applying the document.
-- The native bundle boundary accepts v1 through v7 on read so the renderer can run migrations, but
-  new primary saves and autosaves must already be validated v7 documents.
+- The native bundle boundary accepts v1 through v8 on read so the renderer can run migrations, but
+  new primary saves and autosaves must already be validated v8 documents.
 - Every future historical transform must preserve the source document, set exactly the next integer
   version, and gain a compatibility fixture before the current schema version increases.
 - Unknown effect types and parameters must be preserved and disabled when execution is unavailable.

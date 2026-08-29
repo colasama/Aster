@@ -10,7 +10,7 @@ import { createLayerForComposition } from "./layer-factory";
 import { createDefaultParticleSettings } from "./particle-settings";
 import { createBlankProject } from "./project";
 import { serializeProject, storeRecoverySnapshot, validateProjectDocument } from "./project-file";
-import type { Layer, ProjectFolder } from "./types";
+import { type Layer, type ProjectFolder, staticValue } from "./types";
 
 describe("project document boundary", () => {
   it("roundtrips shared sources once and rejects invalid references or metadata", () => {
@@ -60,7 +60,7 @@ describe("project document boundary", () => {
     composition.layers = [nullLayer, solid];
 
     const roundtrip = validateProjectDocument(JSON.parse(serializeProject(project)));
-    expect(roundtrip.schemaVersion).toBe(7);
+    expect(roundtrip.schemaVersion).toBe(8);
     expect(roundtrip.compositions[0].layers).toEqual([nullLayer, solid]);
   });
 
@@ -647,6 +647,28 @@ describe("project document boundary", () => {
       text: text.text,
       textStyle: text.textStyle,
     });
+  });
+
+  it("roundtrips text line anchoring and explicit character ranges", () => {
+    const project = createBlankProject();
+    const composition = project.compositions[0];
+    const text = createLayerForComposition("text", composition);
+    const group = text.textAnimator?.groups[0];
+    if (!group) throw new Error("Expected the default text animator group");
+    group.properties = {
+      tracking: staticValue(24),
+      lineAnchor: staticValue(50),
+      characterOffset: staticValue(3),
+      characterRange: "preserveCaseAndDigits",
+    };
+    composition.layers.push(text);
+
+    const roundtrip = validateProjectDocument(JSON.parse(serializeProject(project)));
+    expect(roundtrip.compositions[0].layers[1].textAnimator?.groups[0]?.properties).toEqual(
+      group.properties,
+    );
+    delete group.properties.characterRange;
+    expect(() => validateProjectDocument(project)).toThrow("characterRange is unsupported");
   });
 
   it("roundtrips bounded cloners and rejects oversized grids", () => {

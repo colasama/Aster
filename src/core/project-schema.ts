@@ -5,8 +5,9 @@ import {
 } from "./bundled-particle";
 import { sourceContentIdentity } from "./footage-source";
 import { assertParticleSettings } from "./particle-settings";
+import { migrateLegacyTextAnimator } from "./text-animator-migration";
 
-export const CURRENT_PROJECT_SCHEMA_VERSION = 7 as const;
+export const CURRENT_PROJECT_SCHEMA_VERSION = 8 as const;
 
 type ProjectDocument = Record<string, unknown>;
 type ProjectMigration = (document: ProjectDocument) => ProjectDocument;
@@ -231,6 +232,28 @@ const PROJECT_MIGRATIONS = new Map<number, ProjectMigration>([
         }
       }
       document.schemaVersion = 7;
+      return document;
+    },
+  ],
+  [
+    7,
+    (document) => {
+      const compositions = Array.isArray(document.compositions) ? document.compositions : [];
+      for (const compositionValue of compositions) {
+        if (!compositionValue || typeof compositionValue !== "object") continue;
+        const composition = compositionValue as Record<string, unknown>;
+        const layers = Array.isArray(composition.layers) ? composition.layers : [];
+        for (const layerValue of layers) {
+          if (!layerValue || typeof layerValue !== "object") continue;
+          const layer = layerValue as Record<string, unknown>;
+          if (!layer.textAnimator || typeof layer.textAnimator !== "object") continue;
+          const legacy = layer.textAnimator as Record<string, unknown>;
+          if (Array.isArray(legacy.groups)) continue;
+          const layerId = typeof layer.id === "string" ? layer.id : "text-layer";
+          layer.textAnimator = migrateLegacyTextAnimator(legacy, layerId);
+        }
+      }
+      document.schemaVersion = 8;
       return document;
     },
   ],

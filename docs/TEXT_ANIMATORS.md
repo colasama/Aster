@@ -13,15 +13,45 @@ second, correlation, temporal phase, and spatial phase. Expression selectors rec
 `textIndex`, `textTotal`, `selectorValue`, and time through Aster's bounded expression host rather than
 executing arbitrary JavaScript in the renderer.
 
+Start, End, Offset, Amount, range shaping controls, Wiggly controls, and every numeric animator
+property are regular Aster animation tracks. Inspector edits at an animated property create or
+replace a keyframe at the addressed layer time. Removing the final selector deliberately restores
+After Effects' all-characters behavior.
+
+Animator groups and selectors carry bounded, user-editable names. The Inspector can add, duplicate,
+remove, rename, and reorder both groups and selector stacks. Duplication inserts after the source and
+creates independent nested tracks with fresh persistent and keyframe IDs.
+
 Selector evaluation is time-addressable and stateless: evaluating the same text, selector stack, and
 time produces the same values during interactive preview, seeking, background rendering, and export.
 Randomized range order never depends on call order or frame history.
+
+Expressions are tokenized and compiled to a bounded numeric AST once per source, with a 128-entry
+LRU. Both compile and non-finite runtime failures are latched: rendering falls back to the upstream
+`selectorValue`, while the Inspector exposes the same error beside the source. Selector tracks and
+property tracks are evaluated once per selector/property object and time sample, not once per
+grapheme. Segmentation uses a bounded 64-entry/32768-unit LRU.
 
 Animator groups are evaluated in stack order. Position, anchor point, 3D rotation, skew, tracking,
 line layout, character offset, and blur are additive; scale and opacity preserve their AE neutral
 values of 100%; fill and stroke colors blend in group order. Grapheme segmentation produces all
 Characters, Characters Excluding Spaces, Words, and Lines indices once per text layout, so selector
 work remains linear and can be cached by text content.
+
+The shared text raster path applies per-grapheme anchor, XYZ position, XYZ rotation, scale, skew and
+axis, opacity, fill, stroke, stroke width, tracking, line anchor/spacing, character replacement, and
+blur. Line Anchor is a scalar tracking alignment: 0% keeps the left edge fixed, 50% centers the
+tracking expansion, and 100% keeps the right edge fixed. It offsets each line once from the total
+animator tracking delta, weighted by the Line Anchor of each affected glyph gap; it never adds a
+per-glyph Y offset. Line Spacing accumulates by visual line index, so the first line stays fixed and
+later baselines move relative to it. Character Offset and Character Value always persist Character
+Range. Preserve Case & Digits wraps uppercase Latin, lowercase Latin, and digits inside their
+respective groups; Full Unicode addresses the complete valid code-point range.
+
+X/Y rotation, Z position, Z anchor, and Z scale use a deterministic 2.5D projection into the layer
+texture. This is intentionally not a claim of camera-space glyph meshes, inter-glyph depth sorting,
+or occlusion. WebGPU preview, Canvas fallback, seeking, background render, and export all call the
+same time-addressed evaluator; only the final texture upload differs.
 
 Adobe behavior reference:
 

@@ -545,10 +545,7 @@ function describeOperation(operation: Operation, composition: Composition, t: Tr
     case "toggleLayer":
       return t("ai.operation.toggle", { target, field: operation.field });
     case "setTextAnimator":
-      return t("ai.operation.stagger", {
-        target,
-        seconds: operation.textAnimator.stagger.toFixed(2),
-      });
+      return t("ai.operation.toggle", { target, field: "textAnimator" });
     case "easeLayer":
       return t("ai.operation.ease", { target });
     case "setLayerTiming":

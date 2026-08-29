@@ -1,7 +1,9 @@
-import { createDefaultTextAnimator, TEXT_ANIMATOR_LIMITS } from "../core/text-animator";
-import type { Layer, TextAnimatorSettings, TextStyle } from "../core/types";
+import { evaluateLayerSourceTime } from "../core/layer-time";
+import { createDefaultTextAnimator } from "../core/text-animator";
+import type { Layer, TextStyle } from "../core/types";
 import { useI18n } from "../i18n/react";
 import { useEditor } from "../state/editor-store";
+import { TextAnimatorControls } from "./TextAnimatorControls";
 
 const DEFAULT_STYLE: TextStyle = {
   fontFamily: "Inter, Segoe UI, sans-serif",
@@ -15,7 +17,7 @@ const DEFAULT_STYLE: TextStyle = {
 };
 
 export function TextControls({ layer }: { layer: Layer }) {
-  const { dispatch } = useEditor();
+  const { dispatch, state } = useEditor();
   const { t } = useI18n();
   if (layer.kind !== "text") return null;
   const style = layer.textStyle ?? DEFAULT_STYLE;
@@ -44,17 +46,14 @@ export function TextControls({ layer }: { layer: Layer }) {
       ],
     });
   };
-  const updateAnimator = <Field extends keyof TextAnimatorSettings>(
-    field: Field,
-    value: TextAnimatorSettings[Field],
-  ) => {
+  const updateAnimator = (textAnimator: typeof animator) => {
     dispatch({
       type: "operation",
       operations: [
         {
           type: "setTextAnimator",
           layerId: layer.id,
-          textAnimator: { ...animator, [field]: value },
+          textAnimator,
         },
       ],
     });
@@ -157,71 +156,11 @@ export function TextControls({ layer }: { layer: Layer }) {
           value={colorInput(style.strokeColor)}
         />
       </label>
-      <label>
-        {t("text.animator")}
-        <input
-          aria-label={t("text.animator")}
-          checked={animator.enabled}
-          onChange={(event) => updateAnimator("enabled", event.target.checked)}
-          type="checkbox"
-        />
-      </label>
-      {animator.enabled ? (
-        <>
-          <TextNumber
-            label={t("text.animatorDelay")}
-            max={TEXT_ANIMATOR_LIMITS.delay[1]}
-            min={TEXT_ANIMATOR_LIMITS.delay[0]}
-            onChange={(value) => updateAnimator("delay", value)}
-            step={0.01}
-            value={animator.delay}
-          />
-          <TextNumber
-            label={t("text.characterStagger")}
-            max={TEXT_ANIMATOR_LIMITS.stagger[1]}
-            min={TEXT_ANIMATOR_LIMITS.stagger[0]}
-            onChange={(value) => updateAnimator("stagger", value)}
-            step={0.01}
-            value={animator.stagger}
-          />
-          <TextNumber
-            label={t("text.characterDuration")}
-            max={TEXT_ANIMATOR_LIMITS.duration[1]}
-            min={TEXT_ANIMATOR_LIMITS.duration[0]}
-            onChange={(value) => updateAnimator("duration", value)}
-            step={0.01}
-            value={animator.duration}
-          />
-          <TextNumber
-            label={t("text.startPositionX")}
-            max={TEXT_ANIMATOR_LIMITS.position[1]}
-            min={TEXT_ANIMATOR_LIMITS.position[0]}
-            onChange={(value) => updateAnimator("position", [value, animator.position[1]])}
-            value={animator.position[0]}
-          />
-          <TextNumber
-            label={t("text.startPositionY")}
-            max={TEXT_ANIMATOR_LIMITS.position[1]}
-            min={TEXT_ANIMATOR_LIMITS.position[0]}
-            onChange={(value) => updateAnimator("position", [animator.position[0], value])}
-            value={animator.position[1]}
-          />
-          <TextNumber
-            label={t("text.startScale")}
-            max={TEXT_ANIMATOR_LIMITS.scale[1]}
-            min={TEXT_ANIMATOR_LIMITS.scale[0]}
-            onChange={(value) => updateAnimator("scale", value)}
-            value={animator.scale}
-          />
-          <TextNumber
-            label={t("text.startOpacity")}
-            max={TEXT_ANIMATOR_LIMITS.opacity[1]}
-            min={TEXT_ANIMATOR_LIMITS.opacity[0]}
-            onChange={(value) => updateAnimator("opacity", value)}
-            value={animator.opacity}
-          />
-        </>
-      ) : null}
+      <TextAnimatorControls
+        onChange={updateAnimator}
+        settings={animator}
+        time={evaluateLayerSourceTime(layer, state.currentTime)}
+      />
     </>
   );
 }

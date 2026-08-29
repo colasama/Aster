@@ -1,4 +1,10 @@
-import { evaluateTextCharacter } from "../core/text-animator";
+import {
+  type EvaluatedTextAnimatorCharacter,
+  evaluateTextAnimatorStack,
+  segmentTextLayoutUnits,
+  type TextLayoutUnit,
+} from "../core/text-animator-stack";
+import { safeEvaluateTextSelectorExpression } from "../core/text-selector-expression";
 import type { Layer, TextStyle } from "../core/types";
 
 export interface RasterizedText {
@@ -61,7 +67,16 @@ export function drawTextLayer(
   const blockHeight = fontSize + Math.max(0, lines.length - 1) * leading;
   const firstBaseline = (height - blockHeight) / 2 + fontSize / 2;
   const animation = layer.textAnimator?.enabled
-    ? { characterIndex: 0, localTime, sourceScale }
+    ? {
+        characterIndex: 0,
+        groups: layer.textAnimator.groups,
+        localTime,
+        fillColor: layer.color,
+        sourceScale,
+        strokeColor: style.strokeColor,
+        strokeWidth: style.strokeWidth,
+        units: segmentTextLayoutUnits(lines.join("\n")),
+      }
     : undefined;
   for (let index = 0; index < lines.length; index += 1) {
     drawTrackedLine(
@@ -73,16 +88,21 @@ export function drawTextLayer(
       maximumWidth,
       style.alignment,
       strokeWidth > 0,
-      layer,
       animation,
+      index,
     );
   }
 }
 
 interface TextAnimationCursor {
   characterIndex: number;
+  fillColor: [number, number, number, number];
+  groups: NonNullable<Layer["textAnimator"]>["groups"];
   localTime: number;
   sourceScale: number;
+  strokeColor: [number, number, number, number];
+  strokeWidth: number;
+  units: readonly TextLayoutUnit[];
 }
 
 function drawTrackedLine(
@@ -94,8 +114,8 @@ function drawTrackedLine(
   maximumWidth: number,
   alignment: TextStyle["alignment"],
   stroke: boolean,
-  layer: Layer,
   animation: TextAnimationCursor | undefined,
+  visualLineIndex: number,
 ): void {
   const glyphs = graphemes(text);
   const widths = glyphs.map((glyph) => context.measureText(glyph).width);
@@ -117,33 +137,153 @@ function drawTrackedLine(
     context.restore();
     return;
   }
+  const states = animation ? glyphs.map((glyph) => evaluateGlyph(animation, glyph)) : undefined;
+  const renderedGlyphs =
+    states?.map((state, index) => replacementGlyph(state, glyphs[index])) ?? glyphs;
+  const renderedWidths = renderedGlyphs.map((glyph) => context.measureText(glyph).width);
+  let trackingDelta = 0;
+  let lineAnchorCompensation = 0;
+  if (states)
+    for (let index = 0; index < states.length - 1; index += 1) {
+      const state = states[index];
+      const delta = (state?.tracking ?? 0) * (animation?.sourceScale ?? 1);
+      trackingDelta += delta;
+      lineAnchorCompensation += delta * ((state?.lineAnchor ?? 50) / 100);
+    }
+  const animatedWidth = states
+    ? renderedWidths.reduce(
+        (total, glyphWidth, index) =>
+          total +
+          glyphWidth +
+          (index < renderedWidths.length - 1
+            ? tracking + (states[index]?.tracking ?? 0) * (animation?.sourceScale ?? 1)
+            : 0),
+        0,
+      )
+    : naturalWidth;
+  const animatedScale = Math.min(horizontalScale, maximumWidth / Math.max(animatedWidth, 1));
+  if (states) {
+    context.restore();
+    context.save();
+    const widthBeforeAnimatorTracking = animatedWidth - trackingDelta;
+    const baseAlignedLeft =
+      alignment === "left"
+        ? left
+        : alignment === "right"
+          ? left + maximumWidth - widthBeforeAnimatorTracking * animatedScale
+          : left + (maximumWidth - widthBeforeAnimatorTracking * animatedScale) / 2;
+    const animatedLeft = baseAlignedLeft - lineAnchorCompensation * animatedScale;
+    context.translate(animatedLeft, baseline);
+    context.scale(animatedScale, 1);
+  }
   let cursor = 0;
   for (let index = 0; index < glyphs.length; index += 1) {
-    const glyph = glyphs[index];
-    const glyphWidth = widths[index];
-    if (animation) {
-      const state = evaluateTextCharacter(
-        layer.textAnimator,
-        animation.localTime,
-        animation.characterIndex,
+    const glyph = renderedGlyphs[index] ?? glyphs[index] ?? "";
+    const glyphWidth = renderedWidths[index] ?? widths[index] ?? 0;
+    const state = states?.[index];
+    if (animation && state) {
+      drawAnimatedGlyph(
+        context,
+        glyph,
+        glyphWidth,
+        cursor,
+        state,
+        animation.sourceScale,
+        stroke,
+        visualLineIndex,
       );
-      context.save();
-      context.globalAlpha *= state.opacity;
-      context.translate(
-        cursor + glyphWidth / 2 + state.position[0] * animation.sourceScale,
-        state.position[1] * animation.sourceScale,
-      );
-      context.scale(state.scale, state.scale);
-      if (stroke) context.strokeText(glyph, -glyphWidth / 2, 0);
-      context.fillText(glyph, -glyphWidth / 2, 0);
-      context.restore();
-      animation.characterIndex += 1;
     } else {
       if (stroke) context.strokeText(glyph, cursor, 0);
       context.fillText(glyph, cursor, 0);
     }
-    cursor += glyphWidth + tracking;
+    cursor += glyphWidth + tracking + (state?.tracking ?? 0) * (animation?.sourceScale ?? 1);
   }
+  context.restore();
+}
+
+function evaluateGlyph(
+  animation: TextAnimationCursor,
+  glyph: string,
+): EvaluatedTextAnimatorCharacter {
+  const unit = animation.units[animation.characterIndex];
+  animation.characterIndex += 1;
+  const codePoint = glyph.codePointAt(0) ?? 0xfffd;
+  return evaluateTextAnimatorStack(
+    animation.groups,
+    unit ?? {
+      characterIndex: animation.characterIndex - 1,
+      characterCount: animation.units.length,
+      characterExcludingSpacesIndex: animation.characterIndex - 1,
+      characterExcludingSpacesCount: animation.units.length,
+      wordIndex: 0,
+      wordCount: 1,
+      lineIndex: 0,
+      lineCount: 1,
+      isWhitespace: /^\s+$/u.test(glyph),
+    },
+    {
+      time: animation.localTime,
+      evaluateExpression: safeEvaluateTextSelectorExpression,
+      baseStyle: {
+        codePoint,
+        fillColor: animation.fillColor,
+        strokeColor: animation.strokeColor,
+        strokeWidth: animation.strokeWidth,
+      },
+    },
+  );
+}
+
+function replacementGlyph(
+  state: EvaluatedTextAnimatorCharacter,
+  original: string | undefined,
+): string {
+  const originalCodePoint = original?.codePointAt(0) ?? 0xfffd;
+  return state.codePoint === originalCodePoint
+    ? (original ?? "")
+    : String.fromCodePoint(state.codePoint);
+}
+
+function drawAnimatedGlyph(
+  context: CanvasRenderingContext2D,
+  glyph: string,
+  glyphWidth: number,
+  cursor: number,
+  state: EvaluatedTextAnimatorCharacter,
+  sourceScale: number,
+  stroke: boolean,
+  visualLineIndex: number,
+): void {
+  const radians = Math.PI / 180;
+  const projectedZ = state.position[2] + state.anchorPoint[2] * (1 - state.scale[2]);
+  const depth = Math.max(0.01, Math.min(100, 1 / (1 + projectedZ / 1000)));
+  const scaleX = state.scale[0] * Math.cos(state.rotation[1] * radians) * depth;
+  const scaleY = state.scale[1] * Math.cos(state.rotation[0] * radians) * depth;
+  const anchorX = state.anchorPoint[0] * sourceScale;
+  const anchorY = state.anchorPoint[1] * sourceScale;
+  const lineOffsetX = state.lineSpacing[0] * sourceScale * visualLineIndex;
+  const lineOffsetY = state.lineSpacing[1] * sourceScale * visualLineIndex;
+  context.save();
+  context.globalAlpha *= state.opacity;
+  context.fillStyle = cssColor(state.fillColor ?? [1, 1, 1, 1]);
+  context.strokeStyle = cssColor(state.strokeColor ?? [0, 0, 0, 1]);
+  context.lineWidth = state.strokeWidth * sourceScale * 2;
+  context.filter = `blur(${Math.max(state.blur[0], state.blur[1]) * sourceScale}px)`;
+  context.translate(
+    cursor + glyphWidth / 2 + state.position[0] * sourceScale + lineOffsetX,
+    state.position[1] * sourceScale + lineOffsetY,
+  );
+  context.rotate(state.rotation[2] * radians);
+  if (Math.abs(state.skew) > 0.000_01) {
+    context.rotate(-state.skewAxis * radians);
+    context.transform(1, Math.tan(state.skew * radians), 0, 1, 0, 0);
+    context.rotate(state.skewAxis * radians);
+  }
+  context.scale(scaleX, scaleY);
+  context.translate(-anchorX, -anchorY);
+  if ((stroke || state.strokeWidth > 0) && state.strokeWidth > 0)
+    context.strokeText(glyph, -glyphWidth / 2, 0);
+  context.fillText(glyph, -glyphWidth / 2, 0);
   context.restore();
 }
 

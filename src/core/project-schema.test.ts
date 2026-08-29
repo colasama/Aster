@@ -30,7 +30,7 @@ describe("project schema migration gate", () => {
       schemaVersion: number;
       compositions: Array<{ layers: Array<Record<string, unknown>> }>;
     };
-    expect(migrated.schemaVersion).toBe(7);
+    expect(migrated.schemaVersion).toBe(8);
     expect(migrated.compositions[0].layers[0]).toMatchObject({
       kind: "generator",
       generator: { pluginId: "org.aster.builtin.particles", nodeType: "particle_system" },
@@ -50,14 +50,14 @@ describe("project schema migration gate", () => {
     );
   });
 
-  it("migrates v2 documents through v7 without rewriting source-free layers", () => {
+  it("migrates v2 documents through v8 without rewriting source-free layers", () => {
     const previous = createBlankProject() as unknown as Record<string, unknown>;
     previous.schemaVersion = 2;
     const migrated = cloneCurrentProjectDocument(previous) as {
       schemaVersion: number;
       compositions: Array<Record<string, unknown>>;
     };
-    expect(migrated.schemaVersion).toBe(7);
+    expect(migrated.schemaVersion).toBe(8);
     expect(migrated.compositions[0]).toMatchObject({
       motionBlur: {
         enabled: false,
@@ -96,7 +96,7 @@ describe("project schema migration gate", () => {
       sources: Array<Record<string, unknown>>;
       compositions: Array<{ layers: Array<Record<string, unknown>> }>;
     };
-    expect(migrated.schemaVersion).toBe(7);
+    expect(migrated.schemaVersion).toBe(8);
     expect(migrated.sources).toHaveLength(1);
     expect(migrated.compositions[0].layers.slice(-2).map((layer) => layer.sourceId)).toEqual([
       migrated.sources[0].id,
@@ -117,7 +117,7 @@ describe("project schema migration gate", () => {
       schemaVersion: number;
       compositions: Array<{ layers: Array<Record<string, unknown>> }>;
     };
-    expect(migrated.schemaVersion).toBe(7);
+    expect(migrated.schemaVersion).toBe(8);
     const audio = migrated.compositions[0].layers[0].audio as {
       levelsDb: [number, number];
       pan: number;
@@ -162,7 +162,7 @@ describe("project schema migration gate", () => {
       }
     ).position;
 
-    expect(migrated.schemaVersion).toBe(7);
+    expect(migrated.schemaVersion).toBe(8);
     expect(migratedCamera).toMatchObject({
       mode: "oneNode",
       zoom,
@@ -189,7 +189,7 @@ describe("project schema migration gate", () => {
         layers: Array<Record<string, unknown>>;
       }>;
     };
-    expect(migrated.schemaVersion).toBe(7);
+    expect(migrated.schemaVersion).toBe(8);
     expect(migrated.compositions[0].motionBlur).toEqual({
       enabled: false,
       shutterAngle: 180,
@@ -200,7 +200,53 @@ describe("project schema migration gate", () => {
     expect(migrated.compositions[0].layers.every((layer) => layer.motionBlur === false)).toBe(true);
   });
 
-  it.each([8, undefined, 1.5])("rejects unsupported schema %s", (schemaVersion) => {
+  it("migrates v7 staggered text reveals into deterministic animator groups", () => {
+    const previous = createBlankProject() as unknown as Record<string, unknown>;
+    previous.schemaVersion = 7;
+    const composition = (
+      previous.compositions as Array<{ layers: Array<Record<string, unknown>> }>
+    )[0];
+    const text = createLayerForComposition("text", composition as never) as unknown as Record<
+      string,
+      unknown
+    >;
+    text.id = "legacy-title";
+    text.textAnimator = {
+      enabled: true,
+      delay: 0.25,
+      stagger: 0.1,
+      duration: 0.5,
+      position: [20, 80],
+      scale: 75,
+      opacity: 0,
+    };
+    composition.layers.push(text);
+
+    const migrated = cloneCurrentProjectDocument(previous) as {
+      schemaVersion: number;
+      compositions: Array<{ layers: Array<Record<string, unknown>> }>;
+    };
+    expect(migrated.schemaVersion).toBe(8);
+    const layers = migrated.compositions[0].layers;
+    expect(layers[layers.length - 1]?.textAnimator).toMatchObject({
+      enabled: true,
+      groups: [
+        {
+          id: "legacy-title:animator:1",
+          selectors: [
+            {
+              id: "legacy-title:selector:1",
+              kind: "expression",
+              expression:
+                "100 * pow(1 - clamp((time - 0.25 - (textIndex - 1) * 0.1) / 0.5, 0, 1), 3)",
+            },
+          ],
+        },
+      ],
+    });
+  });
+
+  it.each([9, undefined, 1.5])("rejects unsupported schema %s", (schemaVersion) => {
     expect(() => cloneCurrentProjectDocument({ schemaVersion })).toThrow("Aster project schema");
   });
 });

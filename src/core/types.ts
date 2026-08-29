@@ -1,5 +1,6 @@
 import type { ClonerSettings } from "./cloner";
 import type { ShapeGraph } from "./shape-graph";
+import type { TextAnimatorStackSettings } from "./text-animator-stack";
 
 export type Id = string;
 
@@ -273,20 +274,7 @@ export interface TextStyle {
   strokeColor: [number, number, number, number];
 }
 
-export interface TextAnimatorSettings {
-  enabled: boolean;
-  /** Seconds before the first character begins. */
-  delay: number;
-  /** Additional delay in seconds for each grapheme cluster. */
-  stagger: number;
-  duration: number;
-  /** Starting offset in text-layer pixels; animation resolves to zero. */
-  position: [number, number];
-  /** Starting uniform scale percentage; animation resolves to 100. */
-  scale: number;
-  /** Starting opacity percentage; animation resolves to 100. */
-  opacity: number;
-}
+export interface TextAnimatorSettings extends TextAnimatorStackSettings {}
 
 export interface Composition {
   id: Id;
@@ -341,7 +329,7 @@ export interface ProjectFolder {
 }
 
 export interface Project {
-  schemaVersion: 7;
+  schemaVersion: 8;
   id: Id;
   name: string;
   activeCompositionId: Id;

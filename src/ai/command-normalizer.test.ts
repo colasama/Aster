@@ -294,6 +294,26 @@ describe("AI command normalization", () => {
     expect(layers[0].shape?.trim).toEqual({ start: 10, end: 90, offset: 5 });
   });
 
+  it("toggles an existing text animator without replacing its ordered stack", () => {
+    const project = createBlankProject();
+    const composition = project.compositions[0];
+    const text = createLayerForComposition("text", composition);
+    const group = text.textAnimator?.groups[0];
+    if (!group) throw new Error("Expected the default text animator group");
+    group.name = "Custom reveal";
+    composition.layers.push(text);
+
+    const result = normalizeAiCommands(
+      [{ type: "setTextAnimator", layerId: text.id, enabled: false }],
+      project,
+      0,
+    );
+
+    const updated = result.project.compositions[0].layers.find((layer) => layer.id === text.id);
+    expect(updated?.textAnimator?.enabled).toBe(false);
+    expect(updated?.textAnimator?.groups[0]?.name).toBe("Custom reveal");
+  });
+
   it("validates ownership for transform and effect keyframe commands", () => {
     const project = createBlankProject();
     const layerId = project.compositions[0].layers[0].id;

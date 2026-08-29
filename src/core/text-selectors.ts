@@ -1,3 +1,6 @@
+import { evaluateAnimatable } from "./timeline";
+import type { Animatable } from "./types";
+
 export type TextSelectorMode = "add" | "subtract" | "intersect" | "min" | "max" | "difference";
 export type TextSelectorBasedOn = "characters" | "charactersExcludingSpaces" | "words" | "lines";
 export type TextRangeUnits = "percentage" | "index";
@@ -17,34 +20,35 @@ export interface TextUnitContext {
 
 interface CommonTextSelector {
   id: string;
+  name: string;
   enabled: boolean;
   mode: TextSelectorMode;
-  amount: number;
+  amount: Animatable;
   basedOn: TextSelectorBasedOn;
 }
 
 export interface TextRangeSelector extends CommonTextSelector {
   kind: "range";
   units: TextRangeUnits;
-  start: number;
-  end: number;
-  offset: number;
+  start: Animatable;
+  end: Animatable;
+  offset: Animatable;
   shape: TextRangeShape;
-  smoothness: number;
-  easeHigh: number;
-  easeLow: number;
+  smoothness: Animatable;
+  easeHigh: Animatable;
+  easeLow: Animatable;
   randomizeOrder: boolean;
   randomSeed: number;
 }
 
 export interface TextWigglySelector extends CommonTextSelector {
   kind: "wiggly";
-  minimumAmount: number;
-  maximumAmount: number;
-  wigglesPerSecond: number;
-  correlation: number;
-  temporalPhase: number;
-  spatialPhase: number;
+  minimumAmount: Animatable;
+  maximumAmount: Animatable;
+  wigglesPerSecond: Animatable;
+  correlation: Animatable;
+  temporalPhase: Animatable;
+  spatialPhase: Animatable;
   randomSeed: number;
 }
 
@@ -71,7 +75,28 @@ export interface TextSelectorEvaluationOptions {
   time: number;
   animatorSeed?: number;
   evaluateExpression?: TextExpressionSelectorEvaluator;
+  /** Value produced by selectors above this one, in AE's -100 through 100 scale. */
+  selectorValue?: number;
 }
+
+interface EvaluatedSelectorTracks {
+  time: number;
+  amount: number;
+  start?: number;
+  end?: number;
+  offset?: number;
+  smoothness?: number;
+  easeHigh?: number;
+  easeLow?: number;
+  minimumAmount?: number;
+  maximumAmount?: number;
+  wigglesPerSecond?: number;
+  correlation?: number;
+  temporalPhase?: number;
+  spatialPhase?: number;
+}
+
+const evaluatedSelectorCache = new WeakMap<TextSelector, EvaluatedSelectorTracks>();
 
 export function evaluateTextSelectors(
   selectors: readonly TextSelector[],
@@ -82,8 +107,12 @@ export function evaluateTextSelectors(
   let evaluated = false;
   for (const selector of selectors) {
     if (!selector.enabled) continue;
-    const value = evaluateTextSelector(selector, unit, options);
-    combined = evaluated ? combineSelectorValue(combined, value, selector.mode) : value;
+    if (!evaluated) combined = initialSelectorValue(selector.mode);
+    const value = evaluateTextSelector(selector, unit, {
+      ...options,
+      selectorValue: evaluated ? combined * 100 : 100,
+    });
+    combined = combineSelectorValue(combined, value, selector.mode);
     evaluated = true;
   }
   return clamp(combined, -1, 1);
@@ -96,22 +125,28 @@ export function evaluateTextSelector(
 ): number {
   const domain = selectorDomain(unit, selector.basedOn);
   if (!domain || domain.count < 1) return 0;
-  const selectorAmount = bounded(selector.amount, -100, 100, 100) / 100;
+  const tracks = evaluatedSelectorTracks(selector, options.time);
+  const selectorAmount = bounded(tracks.amount, -100, 100, 100) / 100;
   if (selector.kind === "range")
     return (
-      evaluateRangeSelector(selector, domain.index, domain.count, options.animatorSeed) *
-      selectorAmount
+      evaluateRangeSelector(selector, tracks, domain.index, domain.count, options) * selectorAmount
     );
   if (selector.kind === "wiggly")
-    return evaluateWigglySelector(selector, domain.index, domain.count, options) * selectorAmount;
-  const selectorValue = selectorAmount * 100;
+    return (
+      evaluateWigglySelector(selector, tracks, domain.index, domain.count, options) * selectorAmount
+    );
+  const selectorValue = bounded(options.selectorValue, -100, 100, 100);
   const evaluated = options.evaluateExpression?.(selector.expression, {
     textIndex: domain.index + 1,
     textTotal: domain.count,
     selectorValue,
     time: options.time,
   });
-  return bounded(evaluated, -100, 100, selectorValue) / 100;
+  return (bounded(evaluated, -100, 100, selectorValue) / 100) * selectorAmount;
+}
+
+function initialSelectorValue(mode: TextSelectorMode): number {
+  return mode === "subtract" || mode === "intersect" || mode === "min" ? 1 : 0;
 }
 
 export function combineSelectorValue(
@@ -137,17 +172,19 @@ export function combineSelectorValue(
 
 function evaluateRangeSelector(
   selector: TextRangeSelector,
+  tracks: EvaluatedSelectorTracks,
   sourceIndex: number,
   count: number,
-  animatorSeed = 0,
+  options: TextSelectorEvaluationOptions,
 ): number {
   const index = selector.randomizeOrder
-    ? randomizedIndex(sourceIndex, count, selector.randomSeed || animatorSeed)
+    ? randomizedIndex(sourceIndex, count, selector.randomSeed || options.animatorSeed || 0)
     : sourceIndex;
   const position = selector.units === "percentage" ? ((index + 0.5) / count) * 100 : index + 0.5;
   const domainSize = selector.units === "percentage" ? 100 : count;
-  const start = selector.start + selector.offset;
-  const end = selector.end + selector.offset;
+  const offset = tracks.offset ?? 0;
+  const start = (tracks.start ?? 0) + offset;
+  const end = (tracks.end ?? 100) + offset;
   const reversed = start > end;
   const low = Math.min(start, end);
   const high = Math.max(start, end);
@@ -157,7 +194,7 @@ function evaluateRangeSelector(
   let value: number;
   switch (selector.shape) {
     case "square":
-      value = squareSelection(wrapped, low, high, selector.smoothness, domainSize);
+      value = squareSelection(wrapped, low, high, tracks.smoothness ?? 100, domainSize);
       break;
     case "rampUp":
       value = progress;
@@ -179,28 +216,60 @@ function evaluateRangeSelector(
   }
   if (wrapped < low || wrapped > high) value = 0;
   if (reversed) value = 1 - value;
-  return applySelectorEase(clamp(value, 0, 1), selector.easeLow, selector.easeHigh);
+  return applySelectorEase(clamp(value, 0, 1), tracks.easeLow ?? 0, tracks.easeHigh ?? 0);
 }
 
 function evaluateWigglySelector(
   selector: TextWigglySelector,
+  tracks: EvaluatedSelectorTracks,
   index: number,
   count: number,
   options: TextSelectorEvaluationOptions,
 ): number {
-  const rate = bounded(selector.wigglesPerSecond, 0, 100, 2);
-  const temporal = options.time * rate + selector.temporalPhase;
+  const rate = bounded(tracks.wigglesPerSecond, 0, 100, 2);
+  const temporal = options.time * rate + (tracks.temporalPhase ?? 0);
   const lower = Math.floor(temporal);
   const mix = smoothStep(temporal - lower);
   const seed = selector.randomSeed || options.animatorSeed || hashString(selector.id);
   const common = interpolateNoise(seed, lower, mix, 0);
-  const spatialCoordinate = (index / Math.max(1, count)) * selector.spatialPhase;
+  const spatialCoordinate = (index / Math.max(1, count)) * (tracks.spatialPhase ?? 1);
   const individual = interpolateNoise(seed, lower, mix, index + spatialCoordinate);
-  const correlation = bounded(selector.correlation, 0, 100, 0) / 100;
+  const correlation = bounded(tracks.correlation, 0, 100, 0) / 100;
   const noise = individual * (1 - correlation) + common * correlation;
-  const minimum = bounded(selector.minimumAmount, -100, 100, -100) / 100;
-  const maximum = bounded(selector.maximumAmount, -100, 100, 100) / 100;
+  const minimum = bounded(tracks.minimumAmount, -100, 100, -100) / 100;
+  const maximum = bounded(tracks.maximumAmount, -100, 100, 100) / 100;
   return minimum + (maximum - minimum) * noise;
+}
+
+function evaluatedSelectorTracks(selector: TextSelector, rawTime: number): EvaluatedSelectorTracks {
+  const time = Number.isFinite(rawTime) ? rawTime : 0;
+  const cached = evaluatedSelectorCache.get(selector);
+  if (cached && Object.is(cached.time, time)) return cached;
+  const common = { time, amount: evaluateAnimatable(selector.amount, time) };
+  const evaluated: EvaluatedSelectorTracks =
+    selector.kind === "range"
+      ? {
+          ...common,
+          start: evaluateAnimatable(selector.start, time),
+          end: evaluateAnimatable(selector.end, time),
+          offset: evaluateAnimatable(selector.offset, time),
+          smoothness: evaluateAnimatable(selector.smoothness, time),
+          easeHigh: evaluateAnimatable(selector.easeHigh, time),
+          easeLow: evaluateAnimatable(selector.easeLow, time),
+        }
+      : selector.kind === "wiggly"
+        ? {
+            ...common,
+            minimumAmount: evaluateAnimatable(selector.minimumAmount, time),
+            maximumAmount: evaluateAnimatable(selector.maximumAmount, time),
+            wigglesPerSecond: evaluateAnimatable(selector.wigglesPerSecond, time),
+            correlation: evaluateAnimatable(selector.correlation, time),
+            temporalPhase: evaluateAnimatable(selector.temporalPhase, time),
+            spatialPhase: evaluateAnimatable(selector.spatialPhase, time),
+          }
+        : common;
+  evaluatedSelectorCache.set(selector, evaluated);
+  return evaluated;
 }
 
 function selectorDomain(
@@ -247,14 +316,19 @@ function applySelectorEase(value: number, easeLow: number, easeHigh: number): nu
 }
 
 function randomizedIndex(index: number, count: number, seed: number): number {
-  const order = Array.from({ length: count }, (_, item) => item);
-  let state = (Math.trunc(seed) || 0x6d2b79f5) >>> 0;
-  for (let cursor = count - 1; cursor > 0; cursor -= 1) {
-    state = nextRandom(state);
-    const target = state % (cursor + 1);
-    [order[cursor], order[target]] = [order[target] as number, order[cursor] as number];
-  }
-  return order.indexOf(index);
+  if (count <= 1) return 0;
+  let state = nextRandom((Math.trunc(seed) || 0x6d2b79f5) >>> 0);
+  let multiplier = (state % count) | 1;
+  while (greatestCommonDivisor(multiplier, count) !== 1) multiplier = (multiplier + 2) % count || 1;
+  state = nextRandom(state);
+  return (Math.imul(multiplier, index) + (state % count)) % count;
+}
+
+function greatestCommonDivisor(left: number, right: number): number {
+  let a = Math.abs(left);
+  let b = Math.abs(right);
+  while (b > 0) [a, b] = [b, a % b];
+  return a;
 }
 
 function interpolateNoise(seed: number, time: number, mix: number, spatial: number): number {

@@ -5,6 +5,7 @@ import { activeComposition } from "../core/project";
 import { validateProjectDocument } from "../core/project-file";
 import { applySolidSettings } from "../core/solid-layer";
 import { createDefaultTextAnimator, normalizeTextAnimatorSettings } from "../core/text-animator";
+import { migrateLegacyTextAnimator } from "../core/text-animator-migration";
 import { createId, type LayerKind, type Project } from "../core/types";
 import { createEffect, EFFECT_BY_TYPE } from "../effects/registry";
 import { getCommandDescriptors, type JsonSchema } from "./command-registry";
@@ -199,21 +200,36 @@ function normalizeCommand(
     case "setTextAnimator": {
       const existing = requireLayer(layer, layerId);
       if (existing.kind !== "text") throw new Error("Text animation requires a text layer");
-      const current = existing.textAnimator ?? createDefaultTextAnimator(true);
+      const hasLegacyReveal = [
+        input.delay,
+        input.stagger,
+        input.duration,
+        input.position,
+        input.scale,
+        input.opacity,
+      ].some((value) => value !== undefined);
+      const base = hasLegacyReveal
+        ? migrateLegacyTextAnimator(
+            {
+              enabled: typeof input.enabled === "boolean" ? input.enabled : true,
+              delay: typeof input.delay === "number" ? input.delay : 0,
+              stagger: typeof input.stagger === "number" ? input.stagger : 0.04,
+              duration: typeof input.duration === "number" ? input.duration : 0.5,
+              position: Array.isArray(input.position)
+                ? [Number(input.position[0]), Number(input.position[1])]
+                : [0, 64],
+              scale: typeof input.scale === "number" ? input.scale : 80,
+              opacity: typeof input.opacity === "number" ? input.opacity : 0,
+            },
+            `${existing.id}:ai`,
+          )
+        : (existing.textAnimator ?? createDefaultTextAnimator(true));
       return {
         type: "setTextAnimator",
         layerId,
         textAnimator: normalizeTextAnimatorSettings({
-          ...current,
-          enabled: typeof input.enabled === "boolean" ? input.enabled : true,
-          delay: typeof input.delay === "number" ? input.delay : current.delay,
-          stagger: typeof input.stagger === "number" ? input.stagger : current.stagger,
-          duration: typeof input.duration === "number" ? input.duration : current.duration,
-          position: Array.isArray(input.position)
-            ? [Number(input.position[0]), Number(input.position[1])]
-            : current.position,
-          scale: typeof input.scale === "number" ? input.scale : current.scale,
-          opacity: typeof input.opacity === "number" ? input.opacity : current.opacity,
+          ...base,
+          enabled: typeof input.enabled === "boolean" ? input.enabled : base.enabled,
         }),
       };
     }
