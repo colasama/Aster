@@ -516,7 +516,7 @@ fn plugin_status_inner(
     let mut runtime = runtime
         .lock()
         .map_err(|_| "plugin hot reload state is unavailable".to_owned())?;
-    let (report, hot_reload) = if preferences.hot_reload_enabled && !preferences.safe_mode {
+    let (mut report, hot_reload) = if preferences.hot_reload_enabled && !preferences.safe_mode {
         let view = if force_reload {
             runtime.force_reload(&root)
         } else {
@@ -525,17 +525,63 @@ fn plugin_status_inner(
         .map_err(|error| error.to_string())?;
         (view.report, view.status)
     } else {
-        let report = aster_plugin::discover(&root).map_err(|error| error.to_string())?;
+        let report = aster_plugin::discover_metadata(&root).map_err(|error| error.to_string())?;
         let status = runtime
             .inactive_view(preferences.hot_reload_enabled, preferences.safe_mode)
             .status;
-        (redact_plugin_report(&root, report), status)
+        (report, status)
     };
+    report.shader_sources.clear();
     Ok(PluginStatus {
-        directory: root,
+        directory: root.clone(),
         safe_mode: preferences.safe_mode,
         disabled: preferences.disabled,
-        report,
+        report: redact_plugin_report(&root, report),
+        hot_reload,
+    })
+}
+
+fn load_plugin_runtime(
+    app_data: &Path,
+    runtime: &Mutex<aster_plugin::hot_reload::HotReloadController>,
+    plugin_ids: BTreeSet<String>,
+) -> Result<PluginStatus, String> {
+    if plugin_ids.len() > 256 {
+        return Err("too many plugin runtimes requested".to_owned());
+    }
+    let root = plugin_root(app_data);
+    fs::create_dir_all(&root).map_err(|error| error.to_string())?;
+    let preferences = read_plugin_preferences(app_data)?;
+    let requested = if preferences.safe_mode {
+        BTreeSet::new()
+    } else {
+        plugin_ids
+            .into_iter()
+            .filter(|plugin_id| !preferences.disabled.contains(plugin_id))
+            .collect()
+    };
+    let mut runtime = runtime
+        .lock()
+        .map_err(|_| "plugin hot reload state is unavailable".to_owned())?;
+    let (mut report, hot_reload) = if preferences.hot_reload_enabled && !preferences.safe_mode {
+        let view = runtime.poll(&root).map_err(|error| error.to_string())?;
+        (view.report, view.status)
+    } else {
+        let report = aster_plugin::discover_selected(&root, &requested)
+            .map_err(|error| error.to_string())?;
+        let status = runtime
+            .inactive_view(preferences.hot_reload_enabled, preferences.safe_mode)
+            .status;
+        (report, status)
+    };
+    report
+        .shader_sources
+        .retain(|plugin_id, _| requested.contains(plugin_id));
+    Ok(PluginStatus {
+        directory: root.clone(),
+        safe_mode: preferences.safe_mode,
+        disabled: preferences.disabled,
+        report: redact_plugin_report(&root, report),
         hot_reload,
     })
 }
@@ -557,7 +603,7 @@ fn set_plugin_enabled(
     enabled: bool,
 ) -> Result<PluginStatus, String> {
     let root = plugin_root(app_data);
-    let report = aster_plugin::discover(&root).map_err(|error| error.to_string())?;
+    let report = aster_plugin::discover_metadata(&root).map_err(|error| error.to_string())?;
     if !report
         .plugins
         .iter()
@@ -769,6 +815,12 @@ struct PluginEnabledArgs {
 }
 
 #[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct PluginRuntimeArgs {
+    plugin_ids: BTreeSet<String>,
+}
+
+#[derive(Deserialize)]
 struct EnabledArgs {
     enabled: bool,
 }
@@ -968,6 +1020,14 @@ fn dispatch(
         }
         "plugin_registry_catalog" => serialize(plugin_registry_catalog()?),
         "plugin_status" => serialize(plugin_status(&runtime.app_data, &runtime.hot_reload)?),
+        "load_plugin_runtime" => {
+            let args: PluginRuntimeArgs = parse_args(args)?;
+            serialize(load_plugin_runtime(
+                &runtime.app_data,
+                &runtime.hot_reload,
+                args.plugin_ids,
+            )?)
+        }
         "poll_plugin_hot_reload" => serialize(poll_plugin_hot_reload(
             &runtime.app_data,
             &runtime.hot_reload,

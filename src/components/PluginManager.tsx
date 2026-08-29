@@ -1,6 +1,12 @@
 import { AlertTriangle, FolderPlus, Puzzle, RefreshCw, Search, ShieldCheck } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { type PluginRegistryCatalog, readPluginRegistryCatalog } from "../core/plugin-catalog";
+import {
+  activatePluginRuntimes,
+  getLoadedPluginIds,
+  reconcilePluginRuntimes,
+  subscribeLoadedPluginIds,
+} from "../core/plugin-runtime";
 import {
   installPluginFromFolder,
   type PluginStatus,
@@ -10,8 +16,6 @@ import {
   setPluginHotReload,
   setPluginSafeMode,
 } from "../core/plugins";
-import { synchronizeSceneGeneratorDefinitions } from "../core/scene-generator-registry";
-import { synchronizePluginEffectDefinitions } from "../effects/plugin-registry";
 import type { Translate } from "../i18n/core";
 import { createTranslator } from "../i18n/core";
 import { type UiErrorCode, uiErrorMessage } from "../i18n/errors";
@@ -73,25 +77,27 @@ export function PluginManager() {
   const [catalog, setCatalog] = useState<PluginRegistryCatalog>();
   const [catalogError, setCatalogError] = useState<UiErrorCode>();
   const [catalogPending, setCatalogPending] = useState(true);
+  const loadedPluginIds = useSyncExternalStore(
+    subscribeLoadedPluginIds,
+    getLoadedPluginIds,
+    getLoadedPluginIds,
+  );
   const coordinatorRef = useRef<PluginStatusCoordinator>(new PluginStatusCoordinator());
 
   const commitStatus = useCallback((next: PluginStatus) => {
-    const failures = [
-      ...synchronizePluginEffectDefinitions(next),
-      ...synchronizeSceneGeneratorDefinitions(next),
-    ];
-    setInstalledError(failures.length > 0 ? "pluginOperation" : undefined);
+    setInstalledError(undefined);
     setStatus(next);
   }, []);
 
   const run = useCallback(
-    async (operation: () => Promise<PluginStatus | undefined>) => {
+    async (operation: () => Promise<PluginStatus | undefined>, reconcile = true) => {
       const coordinator = coordinatorRef.current;
       const token = coordinator.beginManual();
       setPending(true);
       setInstalledError(undefined);
       try {
         const next = await operation();
+        if (next && reconcile) await reconcilePluginRuntimes(next);
         if (next && coordinator.canCommitManual(token)) commitStatus(next);
       } catch {
         if (coordinator.canCommitManual(token)) setInstalledError("pluginOperation");
@@ -128,7 +134,8 @@ export function PluginManager() {
       const token = coordinator.beginPoll();
       if (token === undefined) return;
       void pollPluginHotReload()
-        .then((next) => {
+        .then(async (next) => {
+          await reconcilePluginRuntimes(next);
           if (coordinator.canCommitPoll(token)) commitStatus(next);
         })
         .catch(() => {
@@ -231,6 +238,7 @@ export function PluginManager() {
             {status &&
               visiblePlugins.map((manifest) => {
                 const disabled = status.safeMode || status.disabled.includes(manifest.plugin.id);
+                const loaded = loadedPluginIds.has(manifest.plugin.id);
                 return (
                   <article className={disabled ? "disabled" : undefined} key={manifest.plugin.id}>
                     <Puzzle size={18} />
@@ -245,6 +253,19 @@ export function PluginManager() {
                         {t("plugin.parameterCount", { count: manifest.parameters.length })}
                       </small>
                     </div>
+                    <button
+                      className="plugin-load-button"
+                      disabled={pending || disabled || loaded}
+                      onClick={() =>
+                        void run(async () => {
+                          const next = await activatePluginRuntimes([manifest.plugin.id]);
+                          return next ?? status;
+                        }, false)
+                      }
+                      type="button"
+                    >
+                      {loaded ? t("plugin.runtimeLoaded") : t("plugin.loadRuntime")}
+                    </button>
                     <label>
                       <input
                         checked={!disabled}

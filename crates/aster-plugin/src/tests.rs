@@ -209,6 +209,42 @@ fn discovery_isolates_duplicate_plugin_ids_before_sources_are_projected() {
 }
 
 #[test]
+fn metadata_discovery_does_not_open_shader_payloads() {
+    let nonce = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let root = std::env::temp_dir().join(format!("aster-plugin-metadata-{nonce}"));
+    let directory = root.join("metadata-only");
+    fs::create_dir_all(&directory).unwrap();
+    fs::write(
+        directory.join("plugin.toml"),
+        r#"
+                capabilities = ["gpu_render"]
+
+                [plugin]
+                id = "org.example.metadata"
+                name = "Metadata only"
+                version = "1.0.0"
+                api_version = 1
+                shader = "missing.wgsl"
+            "#,
+    )
+    .unwrap();
+
+    let metadata = discover_metadata(&root).unwrap();
+    assert_eq!(metadata.plugins.len(), 1);
+    assert!(metadata.shader_sources.is_empty());
+    assert!(metadata.failures.is_empty());
+
+    let selected = BTreeSet::from(["org.example.metadata".to_owned()]);
+    let runtime = discover_selected(&root, &selected).unwrap();
+    assert!(runtime.plugins.is_empty());
+    assert_eq!(runtime.failures.len(), 1);
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
 fn installs_only_declared_plugin_files_and_replaces_versions() {
     let nonce = SystemTime::now()
         .duration_since(UNIX_EPOCH)

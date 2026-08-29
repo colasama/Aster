@@ -17,7 +17,16 @@ import {
   Undo2,
   X,
 } from "lucide-react";
-import { type ComponentType, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  type ComponentType,
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { importMediaLayer } from "../core/assets";
 import { createParticleLayerForComposition } from "../core/bundled-particle";
 import { createGltfLayerFromFile } from "../core/gltf";
@@ -60,7 +69,11 @@ import {
   useTopBarToast,
 } from "./topbar-toast";
 import { WindowControls } from "./WindowControls";
-import { WorkspaceDialog, type WorkspaceDialogKind } from "./WorkspaceDialog";
+import type { WorkspaceDialogKind } from "./WorkspaceDialog";
+
+const WorkspaceDialog = lazy(() =>
+  import("./WorkspaceDialog").then((module) => ({ default: module.WorkspaceDialog })),
+);
 
 interface ToolDefinition {
   id: string;
@@ -711,7 +724,9 @@ export function TopBar() {
         </div>
       )}
       {workspaceDialog && (
-        <WorkspaceDialog kind={workspaceDialog} onClose={() => setWorkspaceDialog(undefined)} />
+        <Suspense fallback={null}>
+          <WorkspaceDialog kind={workspaceDialog} onClose={() => setWorkspaceDialog(undefined)} />
+        </Suspense>
       )}
       {toast.toast && (
         <div className="app-toast">{renderTopBarToast(t, toast.toast.descriptor)}</div>

@@ -43,6 +43,7 @@ const BRIDGE_COMMANDS = new Set([
   "clear_autosave",
   "install_plugin",
   "link_project_asset",
+  "load_plugin_runtime",
   "load_project",
   "pack_project",
   "plugin_registry_catalog",

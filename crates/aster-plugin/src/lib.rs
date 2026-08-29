@@ -168,22 +168,20 @@ impl PluginManifest {
 
     pub fn load(path: impl AsRef<Path>) -> Result<Self, PluginError> {
         let path = path.as_ref();
+        let manifest = Self::load_metadata(path)?;
+        let directory = path.parent().unwrap_or_else(|| Path::new("."));
+        let sources = read_shader_sources(directory, &manifest)?;
+        validate_shader_sources(&manifest, &sources)?;
+        Ok(manifest)
+    }
+
+    pub fn load_metadata(path: impl AsRef<Path>) -> Result<Self, PluginError> {
+        let path = path.as_ref();
         let manifest_bytes = fs::metadata(path)?.len();
         if manifest_bytes > MAX_MANIFEST_BYTES {
             return Err(PluginError::ManifestTooLarge(manifest_bytes));
         }
-        let manifest = Self::parse(&fs::read_to_string(path)?)?;
-        let directory = path.parent().unwrap_or_else(|| Path::new("."));
-        let sources = read_shader_sources(directory, &manifest)?;
-        match manifest.plugin.kind {
-            PluginKind::Effect => validate_effect_shader(
-                sources
-                    .get(&manifest.plugin.shader)
-                    .expect("primary shader was collected"),
-            )?,
-            PluginKind::SceneGenerator => validate_scene_generator_sources(&manifest, &sources)?,
-        }
-        Ok(manifest)
+        Self::parse(&fs::read_to_string(path)?)
     }
 }
 
@@ -266,7 +264,30 @@ pub struct PluginLoadFailure {
 }
 
 pub fn discover(root: impl AsRef<Path>) -> Result<DiscoveryReport, PluginError> {
-    let root = root.as_ref();
+    discover_with_runtime(root.as_ref(), |_| true)
+}
+
+/// Discovers only plugin manifests and preferences-facing metadata.
+///
+/// Shader files are deliberately not opened or validated here. The desktop shell uses this path
+/// to populate the plugin manager without paying the I/O and WGSL validation cost for plugins the
+/// current project never activates.
+pub fn discover_metadata(root: impl AsRef<Path>) -> Result<DiscoveryReport, PluginError> {
+    discover_with_runtime(root.as_ref(), |_| false)
+}
+
+/// Discovers every manifest while loading runtime shader sources only for selected plugin IDs.
+pub fn discover_selected(
+    root: impl AsRef<Path>,
+    plugin_ids: &BTreeSet<String>,
+) -> Result<DiscoveryReport, PluginError> {
+    discover_with_runtime(root.as_ref(), |plugin_id| plugin_ids.contains(plugin_id))
+}
+
+fn discover_with_runtime(
+    root: &Path,
+    should_load_runtime: impl Fn(&str) -> bool,
+) -> Result<DiscoveryReport, PluginError> {
     if !root.exists() {
         return Ok(DiscoveryReport::default());
     }
@@ -286,7 +307,7 @@ pub fn discover(root: impl AsRef<Path>) -> Result<DiscoveryReport, PluginError> 
     let mut report = DiscoveryReport::default();
     let mut ids = BTreeSet::new();
     for manifest in manifests {
-        match PluginManifest::load(&manifest) {
+        match PluginManifest::load_metadata(&manifest) {
             Ok(plugin) => {
                 if let Err(error) = validate_third_party_id(&plugin.plugin.id) {
                     report.failures.push(PluginLoadFailure {
@@ -302,18 +323,29 @@ pub fn discover(root: impl AsRef<Path>) -> Result<DiscoveryReport, PluginError> 
                     });
                     continue;
                 }
-                let directory = manifest.parent().unwrap_or_else(|| Path::new("."));
-                match read_shader_sources(directory, &plugin) {
-                    Ok(sources) => {
-                        report
-                            .shader_sources
-                            .insert(plugin.plugin.id.clone(), sources);
-                        report.plugins.push(plugin);
+                if should_load_runtime(&plugin.plugin.id) {
+                    let directory = manifest.parent().unwrap_or_else(|| Path::new("."));
+                    match read_shader_sources(directory, &plugin) {
+                        Ok(sources) => {
+                            if let Err(error) = validate_shader_sources(&plugin, &sources) {
+                                report.failures.push(PluginLoadFailure {
+                                    manifest,
+                                    message: error.to_string(),
+                                });
+                                continue;
+                            }
+                            report
+                                .shader_sources
+                                .insert(plugin.plugin.id.clone(), sources);
+                            report.plugins.push(plugin);
+                        }
+                        Err(error) => report.failures.push(PluginLoadFailure {
+                            manifest,
+                            message: error.to_string(),
+                        }),
                     }
-                    Err(error) => report.failures.push(PluginLoadFailure {
-                        manifest,
-                        message: error.to_string(),
-                    }),
+                } else {
+                    report.plugins.push(plugin);
                 }
             }
             Err(error) => report.failures.push(PluginLoadFailure {
@@ -399,6 +431,20 @@ fn validate_effect_shader(source: &str) -> Result<(), PluginError> {
     .validate(&module)
     .map_err(|error| PluginError::ShaderValidation(error.to_string()))?;
     abi::validate_effect_abi(&module).map_err(PluginError::ShaderAbi)
+}
+
+pub(crate) fn validate_shader_sources(
+    manifest: &PluginManifest,
+    sources: &BTreeMap<String, String>,
+) -> Result<(), PluginError> {
+    match manifest.plugin.kind {
+        PluginKind::Effect => validate_effect_shader(
+            sources
+                .get(&manifest.plugin.shader)
+                .expect("primary shader was collected"),
+        ),
+        PluginKind::SceneGenerator => validate_scene_generator_sources(manifest, sources),
+    }
 }
 
 fn declared_shader_paths(manifest: &PluginManifest) -> BTreeSet<&str> {

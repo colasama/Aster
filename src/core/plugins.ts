@@ -142,6 +142,15 @@ export async function readPluginStatus(): Promise<PluginStatus> {
   };
 }
 
+/** Loads validated shader payloads only for plugins that are about to execute. */
+export async function loadPluginRuntime(pluginIds: readonly string[]): Promise<PluginStatus> {
+  if (!isDesktopRuntime()) return readPluginStatus();
+  const status = await invoke<Omit<PluginStatus, "native">>("load_plugin_runtime", {
+    pluginIds: [...new Set(pluginIds)].sort(),
+  });
+  return { ...status, native: true };
+}
+
 export async function pollPluginHotReload(): Promise<PluginStatus> {
   if (!isDesktopRuntime()) return readPluginStatus();
   const status = await invoke<Omit<PluginStatus, "native">>("poll_plugin_hot_reload");

@@ -15,10 +15,11 @@ the same manifest, WGSL, ABI, capability, and parameter validation used by the h
 4. **Native** — explicitly trusted binary extension; disabled by default in untrusted projects.
 
 Capabilities currently cover GPU render/compute, file read, and network access. Undeclared
-capabilities are denied. Loading rejects unknown manifest fields, invalid IDs and versions, unsafe
-or non-WGSL entry paths, missing/oversized shaders, WGSL parse or validation failures, invalid
-parameter ranges, duplicate keys, and third-party use of the reserved `org.aster.builtin.*` IDs.
-Directory discovery isolates failures so one broken plugin cannot prevent other plugins loading.
+capabilities are denied. Manifest discovery rejects unknown fields, invalid IDs and versions,
+invalid parameter ranges, duplicate keys, and third-party use of the reserved
+`org.aster.builtin.*` IDs. Installation and runtime activation additionally reject unsafe or
+non-WGSL entry paths, missing/oversized shaders, and WGSL parse or validation failures. Both phases
+isolate failures so one broken plugin cannot prevent other plugins loading.
 Manifests are capped at 1 MiB, display strings and choice sets are bounded, and duplicate plugin IDs
 are isolated before executable sources enter the renderer-facing registry.
 
@@ -32,6 +33,16 @@ same plugin ID upgrades it without exposing a partially copied version.
 
 Safe mode leaves individual enable/disable preferences intact but suppresses every third-party
 plugin. Manifest and WGSL failures appear in the manager and never block other valid plugins.
+
+## Runtime activation
+
+Plugin discovery and plugin execution are separate phases. Opening the plugin manager reads bounded
+`plugin.toml` metadata only, so an installed package can be listed without opening, transferring, or
+compiling its WGSL payload. A runtime is activated only when the user selects **Load** or when an
+opened project references the plugin ID in an effect or Scene Generator node. The desktop bridge then
+reads and validates shaders for exactly the requested IDs, and the renderer registry receives only
+those validated payloads. Missing or disabled project plugins remain preserved as isolated no-op
+nodes until their runtime becomes available.
 
 ## Minimal manifest
 

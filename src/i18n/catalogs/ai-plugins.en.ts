@@ -72,6 +72,8 @@ export const aiPluginsEn = {
   "plugin.found": "{count} found",
   "plugin.noCapabilities": "No privileged capabilities",
   "plugin.parameterCount": "{count} parameters",
+  "plugin.loadRuntime": "Load",
+  "plugin.runtimeLoaded": "Loaded",
   "plugin.emptyInstalled": "No third-party plugins installed",
   "plugin.emptySearch": "No plugins match this search",
   "plugin.emptySearchHint":

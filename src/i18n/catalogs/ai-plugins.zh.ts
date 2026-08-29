@@ -74,6 +74,8 @@ export const aiPluginsZh = {
   "plugin.found": "找到 {count} 个",
   "plugin.noCapabilities": "无特权能力",
   "plugin.parameterCount": "{count} 个参数",
+  "plugin.loadRuntime": "加载",
+  "plugin.runtimeLoaded": "已加载",
   "plugin.emptyInstalled": "未安装第三方插件",
   "plugin.emptySearch": "没有插件与此搜索匹配",
   "plugin.emptySearchHint": "请尝试插件名称、反向域名 ID、版本或声明的能力。",

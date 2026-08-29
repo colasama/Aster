@@ -1,5 +1,5 @@
 import { Gauge, Settings2, Sparkles, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { runCpuTask } from "../core/cpu-scheduler";
 import { evaluateExpression } from "../core/expressions";
 import { logger } from "../core/logger";
@@ -13,7 +13,10 @@ import type { Locale, PlainMessageKey, Translate } from "../i18n/core";
 import { type UiErrorCode, uiErrorMessage } from "../i18n/errors";
 import { useI18n } from "../i18n/react";
 import { useEditor } from "../state/editor-store";
-import { PluginManager } from "./PluginManager";
+
+const PluginManager = lazy(() =>
+  import("./PluginManager").then((module) => ({ default: module.PluginManager })),
+);
 
 export type WorkspaceDialogKind =
   | "preferences"
@@ -458,7 +461,11 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
             ))}
           </div>
         )}
-        {kind === "plugins" && <PluginManager />}
+        {kind === "plugins" && (
+          <Suspense fallback={<div className="plugin-manager">{t("plugin.loadingDirectory")}</div>}>
+            <PluginManager />
+          </Suspense>
+        )}
         {kind === "about" && (
           <div className="about-dialog">
             <div className="about-mark">A</div>

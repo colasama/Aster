@@ -719,6 +719,20 @@
   color: #969dab;
   font-size: 8px;
 }
+.plugin-load-button {
+  height: 24px;
+  padding: 0 8px;
+  border: 1px solid #405b8f;
+  border-radius: 3px;
+  color: #b7c9ee;
+  background: #223250;
+  font-size: 8px;
+}
+.plugin-load-button:disabled {
+  border-color: #333842;
+  color: #697282;
+  background: #1a1d24;
+}
 .plugin-registry-notice {
   display: flex;
   align-items: flex-start;

@@ -34,7 +34,6 @@ import {
   createLayerForComposition,
   type StandardLayerKind,
 } from "../core/layer-factory";
-import { readPluginStatus } from "../core/plugins";
 import { activeComposition, createBlankComposition } from "../core/project";
 import { relinkProjectAsset } from "../core/project-file";
 import {
@@ -42,7 +41,6 @@ import {
   getSceneGeneratorDefinitions,
   type SceneGeneratorDefinition,
   subscribeSceneGeneratorDefinitions,
-  synchronizeSceneGeneratorDefinitions,
 } from "../core/scene-generator-registry";
 import { createId, type Id, type Layer, type ProjectFolder } from "../core/types";
 import {
@@ -54,7 +52,6 @@ import {
 import {
   getPluginEffectDefinitions,
   subscribePluginEffectDefinitions,
-  synchronizePluginEffectDefinitions,
 } from "../effects/plugin-registry";
 import { createEffectsFromPreset, LOOK_PRESETS } from "../effects/presets";
 import {
@@ -179,20 +176,6 @@ export function ProjectPanel() {
   useEffect(() => {
     writeEffectBrowserPreferences(localPreferenceStorage(), effectPreferences);
   }, [effectPreferences]);
-  useEffect(() => {
-    let active = true;
-    void readPluginStatus()
-      .then((status) => {
-        if (active) {
-          synchronizePluginEffectDefinitions(status);
-          synchronizeSceneGeneratorDefinitions(status);
-        }
-      })
-      .catch(() => undefined);
-    return () => {
-      active = false;
-    };
-  }, []);
   useEffect(() => {
     writeUserEffectPresets(localPreferenceStorage(), userPresets);
   }, [userPresets]);
