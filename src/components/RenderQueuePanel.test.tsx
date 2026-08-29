@@ -4,6 +4,7 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  cancelRenderJob,
   claimRenderJob,
   completeRenderJob,
   createRenderQueue,
@@ -139,5 +140,39 @@ describe("RenderQueuePanel", () => {
       await Promise.resolve();
     });
     expect(context.client.command).toHaveBeenCalledWith({ type: "pause", jobId: "active" });
+  });
+
+  it("routes retry and remove immediately from a cancelled row", async () => {
+    let state = enqueueRenderJob(createRenderQueue(), input("cancelled"));
+    state = cancelRenderJob(state, "cancelled");
+    const context = harness(state);
+    act(() => {
+      root.render(
+        <I18nProvider>
+          <RenderQueuePanel queueStore={context.queueStore} />
+        </I18nProvider>,
+      );
+    });
+    await act(async () => {
+      await Promise.resolve();
+      context.flush();
+    });
+
+    await act(async () => {
+      container.querySelector<HTMLButtonElement>('button[aria-label="Retry"]')?.click();
+      await Promise.resolve();
+    });
+    await act(async () => {
+      container.querySelector<HTMLButtonElement>('button[aria-label="Remove"]')?.click();
+      await Promise.resolve();
+    });
+    expect(context.client.command).toHaveBeenNthCalledWith(1, {
+      type: "retry",
+      jobId: "cancelled",
+    });
+    expect(context.client.command).toHaveBeenNthCalledWith(2, {
+      type: "remove",
+      jobId: "cancelled",
+    });
   });
 });

@@ -60,6 +60,8 @@ export interface RenderQueueHostFactory {
 interface ActiveHost {
   handle: RenderQueueHostHandle;
   leaseId: string;
+  /** Durable state may already be retried or removed while this cancelled lease drains. */
+  cancellationRequested: boolean;
 }
 
 export class RenderQueueManager {
@@ -115,6 +117,25 @@ export class RenderQueueManager {
 
   async command(value: unknown): Promise<RenderQueueState> {
     const command = parseCommand(value);
+    const cancellingHost = command.type === "cancel" ? this.#active.get(command.jobId) : undefined;
+    if (cancellingHost) {
+      // Mark the lease before the durable write or control IPC can yield. Reports already in flight
+      // from this retired generation must never be applied to an immediate retry/remove generation.
+      cancellingHost.cancellationRequested = true;
+      try {
+        await cancellingHost.handle.control("cancel");
+      } catch (error) {
+        await this.report({
+          type: "failed",
+          jobId: command.jobId,
+          leaseId: cancellingHost.leaseId,
+          error: {
+            code: "render_host_control_failed",
+            message: error instanceof Error ? error.message : String(error),
+          },
+        });
+      }
+    }
     await this.#update((state) => {
       switch (command.type) {
         case "pause":
@@ -132,9 +153,9 @@ export class RenderQueueManager {
       }
     });
     const active = this.#active.get(command.jobId);
-    if (active && (command.type === "pause" || command.type === "cancel")) {
+    if (active && command.type === "pause") {
       try {
-        await active.handle.control(command.type);
+        await active.handle.control("pause");
       } catch (error) {
         await this.report({
           type: "failed",
@@ -156,19 +177,19 @@ export class RenderQueueManager {
     const active = this.#active.get(event.jobId);
     if (!active || active.leaseId !== event.leaseId)
       throw new Error(`Stale render host lease for ${event.jobId}`);
+
+    if (active.cancellationRequested) {
+      // Cancellation is terminal for this lease even when the durable item was immediately retried
+      // or removed. Ignore in-flight progress from the old generation and release its resources on
+      // any terminal boundary without touching the replacement attempt.
+      if (event.type !== "prepared" && event.type !== "progress")
+        await this.#finishHost(event.jobId, active);
+      return;
+    }
+    if (event.type === "cancelled")
+      throw new Error(`Render host cancelled ${event.jobId} without a cancel request`);
     const item = this.snapshot().items.find((candidate) => candidate.manifest.id === event.jobId);
     if (!item) throw new Error(`Unknown render job ${event.jobId}`);
-
-    if (event.type === "cancelled") {
-      if (item.status !== "cancelled")
-        throw new Error(`Render host cancelled ${event.jobId} without a cancel request`);
-      await this.#finishHost(event.jobId, active);
-      return;
-    }
-    if (event.type === "failed" && item.status === "cancelled") {
-      await this.#finishHost(event.jobId, active);
-      return;
-    }
 
     switch (event.type) {
       case "prepared":
@@ -273,7 +294,7 @@ export class RenderQueueManager {
           this.#scheduleAgain = true;
           continue;
         }
-        this.#active.set(jobId, { handle, leaseId });
+        this.#active.set(jobId, { handle, leaseId, cancellationRequested: false });
       } catch (error) {
         const current = this.snapshot().items.find((candidate) => candidate.manifest.id === jobId);
         // Cancellation or retry may already have retired this launch lease while authorization was

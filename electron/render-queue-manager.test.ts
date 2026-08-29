@@ -315,6 +315,122 @@ describe("RenderQueueManager", () => {
     expect(context.manager.activeHostCount).toBe(1);
   });
 
+  it("retries immediately without letting the cancelled lease reject or block its replacement", async () => {
+    const context = await manager();
+    const hosts = new FakeHostFactory();
+    await context.manager.enqueue({ ...job, id: "cancel-and-retry" });
+    await context.manager.startScheduler(hosts, 1);
+    const cancelled = hosts.workers[0];
+    await cancelled.report({
+      type: "prepared",
+      jobId: cancelled.jobId,
+      leaseId: cancelled.leaseId,
+    });
+
+    await context.manager.command({ type: "cancel", jobId: cancelled.jobId });
+    await context.manager.command({ type: "retry", jobId: cancelled.jobId });
+    expect(context.manager.snapshot().items[0]).toMatchObject({
+      status: "queued",
+      attempts: 1,
+    });
+    expect(context.manager.activeHostCount).toBe(1);
+    expect(hosts.workers).toHaveLength(1);
+
+    await expect(
+      cancelled.report({
+        type: "progress",
+        jobId: cancelled.jobId,
+        leaseId: cancelled.leaseId,
+        progress: { completedFrames: 29, totalFrames: 30, elapsedMs: 900 },
+      }),
+    ).resolves.toBeUndefined();
+    expect(context.manager.snapshot().items[0]).toMatchObject({
+      status: "queued",
+      attempts: 1,
+      progress: { completedFrames: 0 },
+    });
+
+    await expect(
+      cancelled.report({
+        type: "cancelled",
+        jobId: cancelled.jobId,
+        leaseId: cancelled.leaseId,
+      }),
+    ).resolves.toBeUndefined();
+    expect(cancelled.disposed).toBe(true);
+    expect(hosts.workers).toHaveLength(2);
+    expect(hosts.workers[1]?.leaseId).not.toBe(cancelled.leaseId);
+    expect(context.manager.snapshot().items[0]).toMatchObject({
+      status: "preparing",
+      attempts: 2,
+      workerLeaseId: hosts.workers[1]?.leaseId,
+    });
+  });
+
+  it("removes immediately while a cancelled lease failure still releases the worker", async () => {
+    const context = await manager();
+    const hosts = new FakeHostFactory();
+    await context.manager.enqueue({ ...job, id: "cancel-and-remove" });
+    await context.manager.startScheduler(hosts, 1);
+    const cancelled = hosts.workers[0];
+    await cancelled.report({
+      type: "prepared",
+      jobId: cancelled.jobId,
+      leaseId: cancelled.leaseId,
+    });
+
+    await context.manager.command({ type: "cancel", jobId: cancelled.jobId });
+    await context.manager.command({ type: "remove", jobId: cancelled.jobId });
+    expect(context.manager.snapshot().items).toEqual([]);
+    expect(context.manager.activeHostCount).toBe(1);
+
+    await expect(
+      cancelled.report({
+        type: "failed",
+        jobId: cancelled.jobId,
+        leaseId: cancelled.leaseId,
+        error: { code: "cancel_drain_failed", message: "encoder stopped while cancelling" },
+      }),
+    ).resolves.toBeUndefined();
+    expect(cancelled.disposed).toBe(true);
+    expect(context.manager.activeHostCount).toBe(0);
+    expect(context.manager.snapshot().items).toEqual([]);
+  });
+
+  it("still rejects an unsolicited cancelled report from an active lease", async () => {
+    const context = await manager();
+    const hosts = new FakeHostFactory();
+    await context.manager.enqueue({ ...job, id: "unsolicited-cancel" });
+    await context.manager.startScheduler(hosts, 1);
+    const worker = hosts.workers[0];
+
+    await expect(
+      worker.report({ type: "cancelled", jobId: worker.jobId, leaseId: worker.leaseId }),
+    ).rejects.toThrow("without a cancel request");
+    expect(worker.disposed).toBe(false);
+    expect(context.manager.activeHostCount).toBe(1);
+  });
+
+  it("marks cancellation before a host can synchronously acknowledge control", async () => {
+    const context = await manager();
+    const hosts = new FakeHostFactory();
+    await context.manager.enqueue({ ...job, id: "synchronous-cancel" });
+    await context.manager.startScheduler(hosts, 1);
+    const worker = hosts.workers[0];
+    await worker.report({ type: "prepared", jobId: worker.jobId, leaseId: worker.leaseId });
+    worker.control = async (command) => {
+      worker.controls.push(command);
+      await worker.report({ type: "cancelled", jobId: worker.jobId, leaseId: worker.leaseId });
+    };
+
+    await expect(
+      context.manager.command({ type: "cancel", jobId: worker.jobId }),
+    ).resolves.toMatchObject({ items: [{ status: "cancelled" }] });
+    expect(worker.controls).toEqual(["cancel"]);
+    expect(worker.disposed).toBe(true);
+    expect(context.manager.activeHostCount).toBe(0);
+  });
+
   it("disposes a launch whose worker lease was cancelled during media preparation", async () => {
     const context = await manager();
     const hosts = new GatedHostFactory();
