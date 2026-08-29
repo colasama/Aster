@@ -261,7 +261,7 @@ describe("RenderHost frame session", () => {
       new Float32Array([0.75, 0.75, 0, 0]),
     );
     expect(outputs.filter((output) => output.type === "writeMp4Frame")).toHaveLength(2);
-    expect(outputs.at(-1)?.type).toBe("finishMp4");
+    expect(outputs[outputs.length - 1]?.type).toBe("finishMp4");
   });
 
   it("omits a requested audio track when the immutable snapshot has no audible source", async () => {
@@ -321,7 +321,10 @@ describe("RenderHost frame session", () => {
     composition.duration = 3;
     composition.workArea = { start: 0, end: 3 };
     composition.layers[0].outPoint = 3;
-    fixture.project.sources[0].duration = 3;
+    const source = fixture.project.sources[0];
+    if (!source || (source.kind !== "audio" && source.kind !== "video"))
+      throw new Error("fixture mismatch");
+    source.duration = 3;
     fixture.assignment.manifest.projectSnapshot = JSON.stringify(fixture.project);
     const decode = vi.fn(async () => ({
       sampleRate: 48_000,
@@ -356,6 +359,6 @@ describe("RenderHost frame session", () => {
     expect(result).toBe("cancelled");
     expect(outputs.filter((output) => output.type === "writeMp4Audio")).toHaveLength(1);
     expect(outputs.some((output) => output.type === "finishMp4")).toBe(false);
-    expect(reports.at(-1)?.type).toBe("cancelled");
+    expect(reports[reports.length - 1]?.type).toBe("cancelled");
   });
 });
