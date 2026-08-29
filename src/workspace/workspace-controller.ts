@@ -12,7 +12,7 @@ export interface WorkspaceController {
   readonly catalog: WorkspaceCatalog;
   readonly currentWorkspace: NamedWorkspace;
   readonly panels: readonly WorkspacePanelSummary[];
-  deleteCurrentWorkspace(): void;
+  deleteWorkspace(workspaceId: string): void;
   renameCurrentWorkspace(name: string): void;
   resetToSavedLayout(): void;
   saveAs(name: string): void;

@@ -6,20 +6,24 @@ export type WorkspaceActionDialogMode = "saveAs" | "rename" | "delete";
 
 export function WorkspaceActionDialog({
   currentName,
+  deleteOptions = [],
   mode,
   onClose,
   onSubmit,
 }: {
   readonly currentName: string;
+  readonly deleteOptions?: readonly { readonly id: string; readonly name: string }[];
   readonly mode: WorkspaceActionDialogMode;
   readonly onClose: () => void;
   readonly onSubmit: (name: string) => void;
 }) {
   const { t } = useI18n();
-  const [name, setName] = useState(mode === "rename" ? currentName : currentName);
+  const [name, setName] = useState(mode === "delete" ? (deleteOptions[0]?.id ?? "") : currentName);
   const inputRef = useRef<HTMLInputElement>(null);
+  const selectRef = useRef<HTMLSelectElement>(null);
   useEffect(() => {
     inputRef.current?.select();
+    selectRef.current?.focus();
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
     };
@@ -28,10 +32,11 @@ export function WorkspaceActionDialog({
   }, [onClose]);
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    if (mode !== "delete" && !name.trim()) return;
+    if (!name.trim()) return;
     onSubmit(name);
   };
   const title = t(`workspace.action.${mode}`);
+  const deleteName = deleteOptions.find((workspace) => workspace.id === name)?.name ?? currentName;
   return createPortal(
     <div className="modal-backdrop" role="presentation">
       <form
@@ -43,7 +48,21 @@ export function WorkspaceActionDialog({
       >
         <header>{title}</header>
         {mode === "delete" ? (
-          <p>{t("workspace.confirm.delete", { name: currentName })}</p>
+          <>
+            <select
+              aria-label={t("workspace.name")}
+              onChange={(event) => setName(event.target.value)}
+              ref={selectRef}
+              value={name}
+            >
+              {deleteOptions.map((workspace) => (
+                <option key={workspace.id} value={workspace.id}>
+                  {workspace.name}
+                </option>
+              ))}
+            </select>
+            <p>{t("workspace.confirm.delete", { name: deleteName })}</p>
+          </>
         ) : (
           <input
             aria-label={t("workspace.name")}

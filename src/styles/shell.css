@@ -1409,11 +1409,13 @@
   font-weight: 600;
 }
 .workspace-action-dialog > input,
+.workspace-action-dialog > select,
 .workspace-action-dialog > p {
   width: calc(100% - 26px);
   margin: 13px;
 }
-.workspace-action-dialog > input {
+.workspace-action-dialog > input,
+.workspace-action-dialog > select {
   height: 30px;
   padding: 0 8px;
   border: 1px solid #3a4050;
@@ -1422,7 +1424,8 @@
   background: #111217;
   color: #e1e4eb;
 }
-.workspace-action-dialog > input:focus {
+.workspace-action-dialog > input:focus,
+.workspace-action-dialog > select:focus {
   border-color: #5d82ce;
 }
 .workspace-action-dialog > p {

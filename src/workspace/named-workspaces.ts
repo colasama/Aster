@@ -135,10 +135,9 @@ export function renameWorkspace(
 
 export function deleteWorkspace(catalog: WorkspaceCatalog, workspaceId: string): WorkspaceCatalog {
   const workspace = workspaceById(catalog, workspaceId);
-  if (!workspace || workspace.builtIn) return catalog;
+  if (!workspace || workspace.builtIn || workspaceId === catalog.currentWorkspaceId) return catalog;
   return {
-    currentWorkspaceId:
-      catalog.currentWorkspaceId === workspaceId ? "default" : catalog.currentWorkspaceId,
+    currentWorkspaceId: catalog.currentWorkspaceId,
     workspaces: catalog.workspaces.filter((candidate) => candidate.id !== workspaceId),
   };
 }

@@ -1,5 +1,11 @@
 import { ExternalLink, GripVertical, Maximize2, Minimize2, X } from "lucide-react";
-import { type DragEvent, type KeyboardEvent, type MouseEvent, useState } from "react";
+import {
+  type DragEvent,
+  type KeyboardEvent,
+  type MouseEvent,
+  useState,
+  type WheelEvent,
+} from "react";
 import type { Translate } from "../../i18n/core";
 import { useI18n } from "../../i18n/react";
 import { nextTabIndex, type WorkspaceDrag } from "../../workspace/interaction";
@@ -144,6 +150,16 @@ export function DockGroup({
       (tabList?.querySelectorAll<HTMLButtonElement>("[role=tab]")[next] ?? null)?.focus(),
     );
   };
+  const onTabWheel = (event: WheelEvent<HTMLDivElement>) => {
+    if (event.ctrlKey || event.metaKey || group.panels.length < 2) return;
+    const delta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
+    if (delta === 0) return;
+    event.preventDefault();
+    const current = group.panels.indexOf(group.activePanelId);
+    const next = (current + (delta > 0 ? 1 : -1) + group.panels.length) % group.panels.length;
+    const nextPanel = group.panels[next];
+    if (nextPanel) onActivate(group.id, nextPanel);
+  };
   const groupDomId = domId(group.id);
   const activeTabId = `workspace-tab-${groupDomId}-${domId(group.activePanelId)}`;
   return (
@@ -173,7 +189,12 @@ export function DockGroup({
         >
           <GripVertical size={12} />
         </button>
-        <div aria-label={t("workspace.panelTabs")} className="workspace-tabs" role="tablist">
+        <div
+          aria-label={t("workspace.panelTabs")}
+          className="workspace-tabs"
+          onWheel={onTabWheel}
+          role="tablist"
+        >
           {group.panels.map((panelId, tabIndex) => {
             const panel = panels.get(panelId);
             if (!panel) return null;

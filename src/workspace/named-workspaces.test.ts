@@ -59,11 +59,15 @@ describe("named workspaces", () => {
     expect(workspaceById(renamed, renamed.currentWorkspaceId)?.name).toBe("Animation 2");
   });
 
-  it("deletes custom workspaces and returns the current selection to Default", () => {
-    const saved = saveWorkspaceAs(createWorkspaceCatalog(), "Review", DEFAULT_WORKSPACE_LAYOUT);
-    const deleted = deleteWorkspace(saved, saved.currentWorkspaceId);
-    expect(deleted.currentWorkspaceId).toBe("default");
-    expect(deleted.workspaces).toHaveLength(3);
+  it("protects the active workspace and deletes an inactive custom workspace", () => {
+    const first = saveWorkspaceAs(createWorkspaceCatalog(), "Review", DEFAULT_WORKSPACE_LAYOUT);
+    expect(deleteWorkspace(first, first.currentWorkspaceId)).toBe(first);
+    const firstId = first.currentWorkspaceId;
+    const second = saveWorkspaceAs(first, "Delivery", DEFAULT_WORKSPACE_LAYOUT);
+    const deleted = deleteWorkspace(second, firstId);
+    expect(deleted.currentWorkspaceId).toBe(second.currentWorkspaceId);
+    expect(workspaceById(deleted, firstId)).toBeUndefined();
+    expect(deleted.workspaces).toHaveLength(4);
   });
 
   it("round-trips custom snapshots and restores the current named workspace", () => {

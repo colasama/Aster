@@ -102,6 +102,44 @@ describe("DockWorkspace", () => {
     ).toMatchObject({ root: { panels: ["b", "a"], activePanelId: "a" } });
   });
 
+  it("cycles tabs from the wheel without moving keyboard focus", () => {
+    const tabList = container.querySelector<HTMLElement>('[role="tablist"]');
+    const firstTab = container.querySelector<HTMLButtonElement>('[role="tab"]');
+    firstTab?.focus();
+    act(() =>
+      tabList?.dispatchEvent(
+        new WheelEvent("wheel", { bubbles: true, cancelable: true, deltaY: 120 }),
+      ),
+    );
+    expect(container.querySelector('[role="tab"][aria-selected="true"]')?.textContent).toBe("B");
+    expect(document.activeElement).toBe(firstTab);
+  });
+
+  it("closes the focused panel or panel group with AE keyboard commands", () => {
+    const firstTab = container.querySelector<HTMLButtonElement>('[role="tab"]');
+    firstTab?.focus();
+    act(() =>
+      window.dispatchEvent(
+        new KeyboardEvent("keydown", { bubbles: true, ctrlKey: true, key: "w" }),
+      ),
+    );
+    expect(container.querySelectorAll('[role="tab"]')).toHaveLength(1);
+    const remainingTab = container.querySelector<HTMLButtonElement>('[role="tab"]');
+    remainingTab?.focus();
+    act(() =>
+      window.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          bubbles: true,
+          ctrlKey: true,
+          key: "w",
+          shiftKey: true,
+        }),
+      ),
+    );
+    expect(container.querySelectorAll('[role="tab"]')).toHaveLength(0);
+    expect(container.querySelector(".workspace-empty")).not.toBeNull();
+  });
+
   it("closes and reopens panels through the workspace API and persists a versioned commit", () => {
     act(() => container.querySelector<HTMLButtonElement>('button[aria-label="Close A"]')?.click());
     expect(container.querySelectorAll('[role="tab"]')).toHaveLength(1);

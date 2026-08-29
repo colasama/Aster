@@ -117,15 +117,29 @@ describe("WorkspaceWindowMenu", () => {
     const deleteButton = [
       ...container.querySelectorAll<HTMLButtonElement>('[role="menuitem"]'),
     ].find((button) => button.textContent?.includes("Delete Workspace"));
+    expect(deleteButton?.disabled).toBe(true);
+    act(() => saveAs?.click());
+    const secondSave = document.body.querySelector<HTMLFormElement>('[role="dialog"]');
+    act(() =>
+      secondSave?.dispatchEvent(new SubmitEvent("submit", { bubbles: true, cancelable: true })),
+    );
+    const catalogBeforeDelete = JSON.parse(
+      window.localStorage.getItem(WORKSPACE_CATALOG_STORAGE_KEY) ?? "null",
+    );
+    expect(catalogBeforeDelete.customWorkspaces).toHaveLength(2);
+    expect(deleteButton?.disabled).toBe(false);
     act(() => deleteButton?.click());
     const confirm = document.body.querySelector<HTMLFormElement>('[role="dialog"]');
     expect(confirm?.textContent).toContain("Delete Default 2?");
     act(() =>
       confirm?.dispatchEvent(new SubmitEvent("submit", { bubbles: true, cancelable: true })),
     );
-    expect(
-      JSON.parse(window.localStorage.getItem(WORKSPACE_CATALOG_STORAGE_KEY) ?? "null"),
-    ).toMatchObject({ currentWorkspaceId: "default", customWorkspaces: [] });
+    const catalogAfterDelete = JSON.parse(
+      window.localStorage.getItem(WORKSPACE_CATALOG_STORAGE_KEY) ?? "null",
+    );
+    expect(catalogAfterDelete.currentWorkspaceId).toBe(catalogBeforeDelete.currentWorkspaceId);
+    expect(catalogAfterDelete.customWorkspaces).toHaveLength(1);
+    expect(catalogAfterDelete.customWorkspaces[0].name).toBe("Default 2 2");
   });
 
   it("checks all panel visibility and closes a panel through the Window menu", () => {

@@ -38,6 +38,9 @@ export function WorkspaceWindowMenu({ onClose }: { readonly onClose: () => void 
   };
   if (!controller) return null;
   const current = controller.currentWorkspace;
+  const deletableWorkspaces = controller.catalog.workspaces.filter(
+    (workspace) => !workspace.builtIn && workspace.id !== current.id,
+  );
   return (
     <div
       aria-label={t("workspace.windowMenu")}
@@ -77,7 +80,7 @@ export function WorkspaceWindowMenu({ onClose }: { readonly onClose: () => void 
       </button>
       <button
         className="destructive"
-        disabled={current.builtIn}
+        disabled={deletableWorkspaces.length === 0}
         onClick={() => setDialog("delete")}
         role="menuitem"
         type="button"
@@ -125,12 +128,13 @@ export function WorkspaceWindowMenu({ onClose }: { readonly onClose: () => void 
       {dialog ? (
         <WorkspaceActionDialog
           currentName={current.name}
+          deleteOptions={deletableWorkspaces}
           mode={dialog}
           onClose={() => setDialog(undefined)}
           onSubmit={(name) => {
             if (dialog === "saveAs") controller.saveAs(name);
             else if (dialog === "rename") controller.renameCurrentWorkspace(name);
-            else controller.deleteCurrentWorkspace();
+            else controller.deleteWorkspace(name);
             setDialog(undefined);
             onClose();
           }}

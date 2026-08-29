@@ -70,6 +70,9 @@ Panel and group drags expose four edge zones for splitting and one center zone f
 maps to exactly one model operation and one persistence write. Closing records the panel ID and the
 workspace API can reopen it into a chosen or most recently hovered group. Double-clicking a group
 header, or pressing the backtick key over a group, maximizes it without changing the durable tree.
+Rolling the pointer wheel over a tab strip switches its active panel without stealing keyboard focus.
+`Ctrl/Cmd+W` closes the active panel and `Ctrl/Cmd+Shift+W` closes its focused panel group. Tab
+activation, reordering, and group focus use roving-tab keyboard semantics.
 
 Splitter movement is an explicit preview transaction. Raw pointer values are coalesced with
 `requestAnimationFrame`, but only a lightweight divider preview moves. The split ratio and real DOM
@@ -88,7 +91,8 @@ The versioned catalog at `aster.workspace.catalog.v1` records the current worksp
 workspace snapshots. Default, Animation, and Minimal are built-in snapshots and cannot be renamed or
 deleted. Save As captures the current immutable layout, normalizes the name, and adds a deterministic
 numeric suffix when the name already exists. Custom workspaces can be renamed or deleted; deletion
-requires confirmation and returns an active deleted workspace to Default.
+requires confirmation, presents only inactive custom workspaces, and rejects active-workspace deletion
+at the immutable catalog boundary.
 
 The live layout and named snapshot are intentionally distinct. Startup restores both the current
 workspace identity and its last live layout. Selecting a workspace loads its saved snapshot, while

@@ -87,7 +87,9 @@ export function DockWorkspace({
   const [activeFloatingId, setActiveFloatingId] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const layoutHistory = useRef<WorkspaceLayout[]>([]);
+  const layoutRef = useRef(layout);
   const hoveredGroupRef = useRef<string | null>(null);
+  layoutRef.current = layout;
   hoveredGroupRef.current = hoveredGroupId;
 
   const commit = useCallback((update: (current: WorkspaceLayout) => WorkspaceLayout) => {
@@ -121,6 +123,21 @@ export function DockWorkspace({
         undoLayoutChange();
         return;
       }
+      if ((event.ctrlKey || event.metaKey) && !event.altKey && event.key.toLowerCase() === "w") {
+        const focusedGroupId = (document.activeElement as HTMLElement | null)?.closest<HTMLElement>(
+          "[data-workspace-group]",
+        )?.dataset.workspaceGroup;
+        const groupId = focusedGroupId ?? hoveredGroupRef.current;
+        const group = workspaceTabGroups(layoutRef.current).find(
+          (candidate) => candidate.group.id === groupId,
+        )?.group;
+        if (!group) return;
+        event.preventDefault();
+        if (event.shiftKey) commit((current) => closeGroup(current, group.id));
+        else commit((current) => closePanel(current, group.activePanelId));
+        setMaximizedGroupId(null);
+        return;
+      }
       if ((event.ctrlKey || event.metaKey) && event.key === "F6") {
         const tabs = [
           ...(rootRef.current?.querySelectorAll<HTMLButtonElement>(
@@ -149,7 +166,7 @@ export function DockWorkspace({
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [toggleMaximize, undoLayoutChange]);
+  }, [commit, toggleMaximize, undoLayoutChange]);
 
   const close = useCallback(
     (panelId: string) => {
@@ -201,19 +218,15 @@ export function DockWorkspace({
     },
     [catalog],
   );
-  const deleteCurrentWorkspace = useCallback(() => {
-    const next = deleteWorkspace(catalog, catalog.currentWorkspaceId);
-    if (next === catalog) return;
-    const nextWorkspace = workspaceById(next, next.currentWorkspaceId);
-    setCatalog(next);
-    saveWorkspaceCatalog(next);
-    if (nextWorkspace) {
-      layoutHistory.current = [];
-      setLayout(nextWorkspace.layout);
-      saveWorkspaceLayout(nextWorkspace.layout);
-    }
-    setMaximizedGroupId(null);
-  }, [catalog]);
+  const deleteNamedWorkspace = useCallback(
+    (workspaceId: string) => {
+      const next = deleteWorkspace(catalog, workspaceId);
+      if (next === catalog) return;
+      setCatalog(next);
+      saveWorkspaceCatalog(next);
+    },
+    [catalog],
+  );
   const resetToSavedLayout = useCallback(() => {
     const workspace = workspaceById(catalog, catalog.currentWorkspaceId);
     if (workspace) commit(() => workspace.layout);
@@ -233,7 +246,7 @@ export function DockWorkspace({
         label: panel.label,
         visible: visiblePanelIds.has(panel.id),
       })),
-      deleteCurrentWorkspace,
+      deleteWorkspace: deleteNamedWorkspace,
       renameCurrentWorkspace,
       resetToSavedLayout,
       saveAs: saveAsNamedWorkspace,
@@ -248,7 +261,7 @@ export function DockWorkspace({
       catalog,
       commit,
       currentWorkspace,
-      deleteCurrentWorkspace,
+      deleteNamedWorkspace,
       panels,
       renameCurrentWorkspace,
       resetToSavedLayout,
