@@ -365,7 +365,10 @@ fn valid_render_frame_name(name: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::{link_asset, safe_relative_path, valid_render_frame_name, write_render_frame};
+    use super::{
+        link_asset, read_plugin_preferences, safe_relative_path, valid_render_frame_name,
+        write_render_frame,
+    };
     use std::fs;
 
     #[test]
@@ -430,14 +433,52 @@ mod tests {
         assert!(!directory.join(".frame_000001.png.tmp").exists());
         fs::remove_dir_all(directory).expect("remove render test directory");
     }
+
+    #[test]
+    fn legacy_plugin_preferences_are_migrated_to_the_versioned_document() {
+        let directory = std::env::temp_dir().join(format!(
+            "aster-plugin-preferences-test-{}",
+            std::process::id()
+        ));
+        fs::create_dir_all(&directory).expect("create preferences directory");
+        fs::write(
+            directory.join("plugin-preferences.json"),
+            r#"{"safeMode":true,"disabled":["example.effect"]}"#,
+        )
+        .expect("write legacy preferences");
+
+        let preferences = read_plugin_preferences(&directory).expect("migrate preferences");
+        assert_eq!(preferences.schema_version, 1);
+        assert!(preferences.safe_mode);
+        let persisted: serde_json::Value = serde_json::from_slice(
+            &fs::read(directory.join("plugin-preferences.json")).expect("read preferences"),
+        )
+        .expect("parse preferences");
+        assert_eq!(persisted["schemaVersion"], 1);
+        fs::remove_dir_all(directory).expect("remove preferences directory");
+    }
 }
 
-#[derive(Default, Deserialize, Serialize)]
+const CURRENT_PLUGIN_PREFERENCES_VERSION: u32 = 1;
+
+#[derive(Deserialize, Serialize)]
 #[serde(default, deny_unknown_fields, rename_all = "camelCase")]
 struct PluginPreferences {
+    schema_version: u32,
     safe_mode: bool,
     hot_reload_enabled: bool,
     disabled: BTreeSet<String>,
+}
+
+impl Default for PluginPreferences {
+    fn default() -> Self {
+        Self {
+            schema_version: CURRENT_PLUGIN_PREFERENCES_VERSION,
+            safe_mode: false,
+            hot_reload_enabled: false,
+            disabled: BTreeSet::new(),
+        }
+    }
 }
 
 #[derive(Serialize)]
@@ -585,8 +626,37 @@ fn read_plugin_preferences(app_data: &Path) -> Result<PluginPreferences, String>
     if !path.exists() {
         return Ok(PluginPreferences::default());
     }
-    let source = fs::read_to_string(path).map_err(|error| error.to_string())?;
-    serde_json::from_str(&source).map_err(|error| error.to_string())
+    let source = fs::read_to_string(&path).map_err(|error| error.to_string())?;
+    let mut document: serde_json::Value =
+        serde_json::from_str(&source).map_err(|error| error.to_string())?;
+    let version = document
+        .get("schemaVersion")
+        .and_then(serde_json::Value::as_u64)
+        .unwrap_or(0);
+    if version > u64::from(CURRENT_PLUGIN_PREFERENCES_VERSION) {
+        return Err(format!(
+            "plugin preferences v{version} are newer than this build"
+        ));
+    }
+    let migrated = version == 0;
+    if migrated {
+        let object = document
+            .as_object_mut()
+            .ok_or_else(|| "plugin preferences must be an object".to_owned())?;
+        object.insert(
+            "schemaVersion".to_owned(),
+            serde_json::Value::from(CURRENT_PLUGIN_PREFERENCES_VERSION),
+        );
+    }
+    let preferences: PluginPreferences =
+        serde_json::from_value(document).map_err(|error| error.to_string())?;
+    if preferences.schema_version != CURRENT_PLUGIN_PREFERENCES_VERSION {
+        return Err("plugin preferences schema version is invalid".to_owned());
+    }
+    if migrated {
+        write_plugin_preferences(app_data, &preferences)?;
+    }
+    Ok(preferences)
 }
 
 fn write_plugin_preferences(

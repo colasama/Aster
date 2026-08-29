@@ -66,6 +66,14 @@
       "dist-electron/**/*",
       "package.json"
     ],
+    "fileAssociations": [
+      {
+        "ext": "aster",
+        "name": "Aster Project",
+        "description": "Packed Aster project",
+        "role": "Editor"
+      }
+    ],
     "extraResources": [
       {
         "from": "target/release",

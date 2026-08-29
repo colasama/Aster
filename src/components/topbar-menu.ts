@@ -111,6 +111,7 @@ export const menuDefinitions = [
       { id: "commandPalette", labelKey: "topbar.item.commandPalette", shortcut: "Ctrl K" },
       { id: "keyboardShortcuts", labelKey: "topbar.item.keyboardShortcuts" },
       { id: "gpuDiagnostics", labelKey: "topbar.item.gpuDiagnostics" },
+      { id: "exportDiagnostics", labelKey: "topbar.item.exportDiagnostics" },
       { id: "about", labelKey: "topbar.item.about" },
     ],
   },

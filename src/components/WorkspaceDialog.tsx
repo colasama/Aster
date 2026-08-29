@@ -2,10 +2,13 @@ import { Gauge, Settings2, Sparkles, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { runCpuTask } from "../core/cpu-scheduler";
 import { evaluateExpression } from "../core/expressions";
+import { logger } from "../core/logger";
 import { getProperty, type PropertyPath } from "../core/operations";
 import { activeComposition } from "../core/project";
 import { evaluateAnimatable } from "../core/timeline";
 import type { EnvironmentLighting } from "../core/types";
+import { getPreferences, isDesktopRuntime, updatePreferences } from "../desktop/api";
+import { APP_PREFERENCES_CHANGED_EVENT } from "../desktop/preferences";
 import type { Locale, PlainMessageKey, Translate } from "../i18n/core";
 import { type UiErrorCode, uiErrorMessage } from "../i18n/errors";
 import { useI18n } from "../i18n/react";
@@ -75,6 +78,17 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
     : undefined;
 
   useEffect(() => () => hdrValidationAbort.current?.abort(), []);
+  useEffect(() => {
+    if (kind !== "preferences" || !isDesktopRuntime()) return;
+    void getPreferences()
+      .then((preferences) => {
+        setAutosaveSeconds(preferences.autosaveSeconds);
+        setReducedMotion(preferences.reducedMotion);
+        setGpuMemoryBudgetMb(preferences.gpuMemoryBudgetMb);
+        if (preferences.locale) setPreferredLocale(preferences.locale);
+      })
+      .catch((error: unknown) => logger.warn("preferences", "read_failed", undefined, error));
+  }, [kind]);
 
   const saveComposition = () => {
     dispatch({
@@ -105,9 +119,19 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
       ["aster.reducedMotion", String(reducedMotion)],
       ["aster.gpuMemoryBudgetMb", String(gpuMemoryBudgetMb)],
     ]);
+    window.dispatchEvent(new Event(APP_PREFERENCES_CHANGED_EVENT));
     dispatch({ type: "setPreviewQuality", quality: previewQuality });
     dispatch({ type: "setGpuMemoryBudget", budget: gpuMemoryBudgetMb });
     setLocale(preferredLocale);
+    if (isDesktopRuntime())
+      void updatePreferences({
+        autosaveSeconds: [0, 15, 30, 60].includes(autosaveSeconds)
+          ? (autosaveSeconds as 0 | 15 | 30 | 60)
+          : 30,
+        reducedMotion,
+        gpuMemoryBudgetMb,
+        locale: preferredLocale,
+      }).catch((error: unknown) => logger.warn("preferences", "write_failed", undefined, error));
     if (typeof document !== "undefined") {
       document.documentElement.classList.toggle("reduced-motion", reducedMotion);
     }

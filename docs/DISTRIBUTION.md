@@ -24,8 +24,9 @@ Auto-update remains disabled for the MVP. Enabling it requires all of the follow
    before stable metadata is updated.
 
 The updater may replace application binaries only. It never rewrites project files, plugins, caches,
-or preferences. Because the MVP has no legacy project migration, release notes must call out project
-schema changes before users save with a new build.
+or preferences. The project loader now has a sequential migration registry, but version 1 remains the
+earliest supported schema; release notes must call out schema changes and their registered migration
+range before users save with a new build.
 
 ## Crash reporting opt-in
 

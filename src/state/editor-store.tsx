@@ -2,21 +2,33 @@ import {
   createContext,
   type Dispatch,
   type PropsWithChildren,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
   useReducer,
+  useRef,
+  useState,
 } from "react";
 import { recordCommandMarker, recordOperations } from "../core/command-log";
 import { applyOperations, type Operation } from "../core/operations";
 import { createDemoProject } from "../core/project";
 import { storeRecoverySnapshot } from "../core/project-file";
 import type { Id, Project, RendererMetrics } from "../core/types";
+import { isDesktopRuntime, migrateLegacyPreferences } from "../desktop/api";
+import { APP_PREFERENCES_CHANGED_EVENT, type UserPreferencePatch } from "../desktop/preferences";
 
 export interface EditorState {
   project: Project;
   /** Monotonic live-editor revision used to reject stale agent workspaces. */
   projectRevision: number;
+  /** Revision written to the primary project file, or null for an untitled/recovered document. */
+  savedProjectRevision: number | null;
+  autosave: {
+    status: "idle" | "saving" | "saved" | "error";
+    revision?: number;
+    at?: string;
+  };
   selection: Id[];
   selectedKeyframes: Id[];
   currentTime: number;
@@ -70,7 +82,11 @@ export type EditorAction =
   | { type: "toggleView"; view: "grid" | "guides" | "origin" | "layerControls" }
   | { type: "setMetrics"; metrics: RendererMetrics }
   | { type: "setActiveComposition"; compositionId: Id }
-  | { type: "loadProject"; project: Project };
+  | { type: "loadProject"; project: Project; markSaved?: boolean }
+  | { type: "markSaved"; projectId: Id; revision: number }
+  | { type: "autosaveStarted"; projectId: Id; revision: number }
+  | { type: "autosaveCompleted"; projectId: Id; revision: number; at: string }
+  | { type: "autosaveFailed"; projectId: Id; revision: number };
 
 const initialMetrics: RendererMetrics = {
   fps: 0,
@@ -91,6 +107,8 @@ export function createInitialState(): EditorState {
     selectedKeyframes: [],
     project,
     projectRevision: 0,
+    savedProjectRevision: 0,
+    autosave: { status: "idle" },
     currentTime: 0.72,
     playing: false,
     timelineZoom: 1,
@@ -120,6 +138,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         ...state,
         project,
         projectRevision: state.projectRevision + 1,
+        autosave: { status: "idle" },
         selection: action.select ?? state.selection,
         history: {
           past: [...state.history.past.slice(-99), action.historyBase ?? state.project],
@@ -134,6 +153,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         ...state,
         project: applyOperations(state.project, action.operations),
         projectRevision: state.projectRevision + 1,
+        autosave: { status: "idle" },
       };
     case "undo": {
       const project = state.history.past[state.history.past.length - 1];
@@ -145,6 +165,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         ...state,
         project: restored,
         projectRevision: state.projectRevision + 1,
+        autosave: { status: "idle" },
         selection: validSelection(restored, state.selection, true),
         history: {
           past: state.history.past.slice(0, -1),
@@ -162,6 +183,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         ...state,
         project: restored,
         projectRevision: state.projectRevision + 1,
+        autosave: { status: "idle" },
         selection: validSelection(restored, state.selection, true),
         history: { past: [...state.history.past, state.project], future },
       };
@@ -216,6 +238,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         ...state,
         project,
         projectRevision: state.projectRevision + 1,
+        autosave: { status: "idle" },
         selection: composition.layers[0] ? [composition.layers[0].id] : [],
         selectedKeyframes: [],
         currentTime: 0,
@@ -229,12 +252,39 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         ...initial,
         project: action.project,
         projectRevision: 0,
+        savedProjectRevision: action.markSaved === true ? 0 : null,
+        autosave: { status: "idle" },
         auditLog: action.project.commandLog.filter((entry) => entry.source === "ai").slice(-100),
         selection: validSelection(action.project, [], true),
         currentTime: 0,
       };
     }
+    case "markSaved":
+      if (state.project.id !== action.projectId || action.revision > state.projectRevision)
+        return state;
+      return { ...state, savedProjectRevision: action.revision, autosave: { status: "idle" } };
+    case "autosaveStarted":
+      if (state.project.id !== action.projectId || action.revision > state.projectRevision)
+        return state;
+      return { ...state, autosave: { status: "saving", revision: action.revision } };
+    case "autosaveCompleted":
+      if (state.project.id !== action.projectId || action.revision > state.projectRevision)
+        return state;
+      return {
+        ...state,
+        autosave: { status: "saved", revision: action.revision, at: action.at },
+      };
+    case "autosaveFailed":
+      if (state.project.id !== action.projectId || action.revision > state.projectRevision)
+        return state;
+      return { ...state, autosave: { status: "error", revision: action.revision } };
   }
+}
+
+export function isProjectDirty(
+  state: Pick<EditorState, "projectRevision" | "savedProjectRevision">,
+) {
+  return state.savedProjectRevision !== state.projectRevision;
 }
 
 function readGpuMemoryBudget(): EditorState["gpuMemoryBudgetMb"] {
@@ -264,15 +314,147 @@ const EditorContext = createContext<
 
 export function EditorProvider({ children }: PropsWithChildren) {
   const [state, dispatch] = useReducer(editorReducer, undefined, createInitialState);
+  const [autosaveSeconds, setAutosaveSeconds] = useState(readAutosaveSeconds);
+  const latestState = useRef(state);
+  const autosaveInFlight = useRef(false);
+  const dirty = isProjectDirty(state);
+  latestState.current = state;
+
+  const persistRecovery = useCallback(async (candidate: EditorState) => {
+    if (
+      autosaveInFlight.current ||
+      !isProjectDirty(candidate) ||
+      candidate.projectRevision === 0 ||
+      (candidate.autosave.status === "saved" &&
+        candidate.autosave.revision === candidate.projectRevision)
+    )
+      return;
+    const projectId = candidate.project.id;
+    const revision = candidate.projectRevision;
+    autosaveInFlight.current = true;
+    dispatch({ type: "autosaveStarted", projectId, revision });
+    try {
+      await storeRecoverySnapshot(candidate.project);
+      dispatch({
+        type: "autosaveCompleted",
+        projectId,
+        revision,
+        at: new Date().toISOString(),
+      });
+    } catch {
+      dispatch({ type: "autosaveFailed", projectId, revision });
+    } finally {
+      autosaveInFlight.current = false;
+    }
+  }, []);
+
   useEffect(() => {
-    if (!state.history.past.length) return;
-    const seconds = Number(localStorage.getItem("aster.autosaveSeconds") ?? 30);
-    if (!Number.isFinite(seconds) || seconds <= 0) return;
-    const timer = window.setTimeout(() => storeRecoverySnapshot(state.project), seconds * 1000);
+    if (!isDesktopRuntime()) return;
+    void migrateLegacyPreferences(readLegacyRendererPreferences())
+      .then((preferences) => {
+        try {
+          localStorage.setItem("aster.autosaveSeconds", String(preferences.autosaveSeconds));
+          localStorage.setItem("aster.reducedMotion", String(preferences.reducedMotion));
+          localStorage.setItem("aster.gpuMemoryBudgetMb", String(preferences.gpuMemoryBudgetMb));
+          if (preferences.locale) localStorage.setItem("aster.locale", preferences.locale);
+          setAutosaveSeconds(preferences.autosaveSeconds);
+        } catch {
+          // Electron preferences remain authoritative when renderer storage is unavailable.
+        }
+      })
+      .catch(() => undefined);
+  }, []);
+
+  useEffect(() => {
+    const handlePreferencesChanged = () => setAutosaveSeconds(readAutosaveSeconds());
+    window.addEventListener(APP_PREFERENCES_CHANGED_EVENT, handlePreferencesChanged);
+    return () =>
+      window.removeEventListener(APP_PREFERENCES_CHANGED_EVENT, handlePreferencesChanged);
+  }, []);
+
+  useEffect(() => {
+    if (!dirty || state.projectRevision === 0) return;
+    if (state.autosave.status === "saved" && state.autosave.revision === state.projectRevision)
+      return;
+    if (autosaveSeconds <= 0) return;
+    const timer = window.setTimeout(
+      () => void persistRecovery(latestState.current),
+      autosaveSeconds * 1000,
+    );
     return () => window.clearTimeout(timer);
-  }, [state.history.past.length, state.project]);
+  }, [
+    dirty,
+    persistRecovery,
+    autosaveSeconds,
+    state.autosave.revision,
+    state.autosave.status,
+    state.projectRevision,
+  ]);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      if (autosaveSeconds > 0) void persistRecovery(latestState.current);
+    }, 60_000);
+    const flushWhenHidden = () => {
+      if (autosaveSeconds > 0 && document.visibilityState === "hidden")
+        void persistRecovery(latestState.current);
+    };
+    const warnBeforeBrowserUnload = (event: BeforeUnloadEvent) => {
+      if (!isProjectDirty(latestState.current)) return;
+      if (autosaveSeconds > 0) void persistRecovery(latestState.current);
+      if (!isDesktopRuntime()) event.preventDefault();
+    };
+    document.addEventListener("visibilitychange", flushWhenHidden);
+    window.addEventListener("beforeunload", warnBeforeBrowserUnload);
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", flushWhenHidden);
+      window.removeEventListener("beforeunload", warnBeforeBrowserUnload);
+    };
+  }, [autosaveSeconds, persistRecovery]);
   const value = useMemo(() => ({ state, dispatch }), [state]);
   return <EditorContext.Provider value={value}>{children}</EditorContext.Provider>;
+}
+
+function readAutosaveSeconds(): number {
+  try {
+    const seconds = Number(localStorage.getItem("aster.autosaveSeconds") ?? 30);
+    return seconds === 0 || seconds === 15 || seconds === 30 || seconds === 60 ? seconds : 30;
+  } catch {
+    return 30;
+  }
+}
+
+function readLegacyRendererPreferences(): UserPreferencePatch {
+  try {
+    const autosaveValue = localStorage.getItem("aster.autosaveSeconds");
+    const autosave = Number(autosaveValue);
+    const gpuBudget = localStorage.getItem("aster.gpuMemoryBudgetMb");
+    const locale = localStorage.getItem("aster.locale");
+    const patch: UserPreferencePatch = {
+      ...(autosaveValue !== null &&
+      (autosave === 0 || autosave === 15 || autosave === 30 || autosave === 60)
+        ? { autosaveSeconds: autosave }
+        : {}),
+      ...(localStorage.getItem("aster.reducedMotion") === "true" ? { reducedMotion: true } : {}),
+      ...(locale === "en-US" || locale === "zh-CN" ? { locale } : {}),
+    };
+    if (gpuBudget === "auto") patch.gpuMemoryBudgetMb = "auto";
+    else {
+      const megabytes = Number(gpuBudget);
+      if (
+        megabytes === 32 ||
+        megabytes === 64 ||
+        megabytes === 128 ||
+        megabytes === 256 ||
+        megabytes === 512
+      )
+        patch.gpuMemoryBudgetMb = megabytes;
+    }
+    return patch;
+  } catch {
+    return {};
+  }
 }
 
 export function useEditor() {

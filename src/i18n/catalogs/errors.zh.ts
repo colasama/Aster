@@ -19,4 +19,5 @@ export const errorsZh = {
   "ui.error.meshImport": "无法导入此 3D 素材。",
   "ui.error.frameExport": "无法导出帧。",
   "ui.error.expression": "无法计算此表达式。",
+  "ui.error.diagnosticsExport": "无法导出诊断报告。",
 } as const satisfies Record<keyof typeof errorsEn, string>;

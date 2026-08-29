@@ -40,7 +40,7 @@ describe("serialized command log", () => {
     const legacy = createBlankProject() as unknown as Record<string, unknown>;
     legacy.schemaVersion = 0;
     delete legacy.commandLog;
-    expect(() => validateProjectDocument(legacy)).toThrow("MVP accepts only v1");
+    expect(() => validateProjectDocument(legacy)).toThrow("migration is registered from v0 to v1");
 
     const project = createBlankProject();
     recordOperations(project, [

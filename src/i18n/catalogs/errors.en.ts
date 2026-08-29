@@ -18,4 +18,5 @@ export const errorsEn = {
   "ui.error.meshImport": "Could not import this 3D asset.",
   "ui.error.frameExport": "Could not export the frame.",
   "ui.error.expression": "The expression could not be evaluated.",
+  "ui.error.diagnosticsExport": "Could not export the diagnostic report.",
 } as const;

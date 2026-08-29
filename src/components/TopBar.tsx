@@ -17,7 +17,7 @@ import {
   Undo2,
   X,
 } from "lucide-react";
-import { type ComponentType, useEffect, useMemo, useRef, useState } from "react";
+import { type ComponentType, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { importMediaLayer } from "../core/assets";
 import { createGltfLayerFromFile } from "../core/gltf";
 import { createLayerForComposition } from "../core/layer-factory";
@@ -26,13 +26,13 @@ import { getProperty } from "../core/operations";
 import { planPrecomposition } from "../core/precomposition";
 import { activeComposition, createBlankComposition, createBlankProject } from "../core/project";
 import {
+  clearCurrentProjectPath,
   clearRecoverySnapshot,
   downloadBlob,
   packCurrentProject,
   pickPackedProject,
   pickProjectFile,
   readRecoverySnapshotForCurrentProject,
-  saveProjectDocument,
 } from "../core/project-file";
 import {
   nativeMp4ExportAvailable,
@@ -44,6 +44,8 @@ import {
 } from "../core/render-export";
 import { evaluateAnimatable } from "../core/timeline";
 import { createId, type LayerKind, type Project } from "../core/types";
+import { exportDiagnostics } from "../desktop/api";
+import { useDocumentLifecycle } from "../desktop/use-document-lifecycle";
 import { createEffect } from "../effects/registry";
 import type { PlainMessageKey } from "../i18n/core";
 import { useI18n } from "../i18n/react";
@@ -97,11 +99,29 @@ export function TopBar() {
   const paletteInputRef = useRef<HTMLInputElement>(null);
   const meshInputRef = useRef<HTMLInputElement>(null);
   const cancelRenderRef = useRef(false);
+  const lifecycle = useDocumentLifecycle(state, dispatch);
+  const saveWithToast = useCallback(
+    async (chooseDirectory = false, requestToken = toastActions.beginRequest()) => {
+      try {
+        const path = await lifecycle.save(chooseDirectory);
+        if (!path) return false;
+        toastActions.show(
+          toastMessage("topbar.toast.saved", { name: path.split(/[\\/]/).pop() || path }),
+          requestToken,
+        );
+        return true;
+      } catch {
+        toastActions.show(toastError("projectSave"), requestToken);
+        return false;
+      }
+    },
+    [lifecycle.save, toastActions],
+  );
   const commands = useMemo(
     () => [
       {
         label: t("topbar.command.save"),
-        action: () => saveProject(state.project, toastActions),
+        action: () => void saveWithToast(),
       },
       {
         label: t("topbar.command.graph"),
@@ -118,7 +138,7 @@ export function TopBar() {
       },
       { label: t("topbar.command.render"), action: () => setRenderOpen(true) },
     ],
-    [dispatch, state.playing, state.project, t, toastActions],
+    [dispatch, saveWithToast, state.playing, t],
   );
   const filteredCommands = commands.filter((command) =>
     command.label.toLowerCase().includes(paletteQuery.toLowerCase()),
@@ -133,7 +153,7 @@ export function TopBar() {
         setPaletteOpen(true);
       } else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
         event.preventDefault();
-        saveProject(state.project, toastActions);
+        void saveWithToast();
       } else if (event.key === "Escape") {
         setPaletteOpen(false);
         if (rendering) cancelRenderRef.current = true;
@@ -154,7 +174,7 @@ export function TopBar() {
     };
     window.addEventListener("keydown", shortcut);
     return () => window.removeEventListener("keydown", shortcut);
-  }, [dispatch, rendering, state.project, toastActions]);
+  }, [dispatch, rendering, saveWithToast]);
   useEffect(() => {
     if (paletteOpen) paletteInputRef.current?.focus();
   }, [paletteOpen]);
@@ -177,23 +197,41 @@ export function TopBar() {
       looks: "looks-color-lab",
     };
     if (item === "newProject") {
-      clearRecoverySnapshot();
-      dispatch({ type: "loadProject", project: createBlankProject() });
-    } else if (item === "open") openProjectFile(dispatch, toastActions);
-    else if (item === "openPacked") openPackedProject(dispatch, toastActions);
+      void lifecycle.guardReplacement().then(async (confirmed) => {
+        if (!confirmed) return;
+        await clearRecoverySnapshot();
+        clearCurrentProjectPath();
+        dispatch({ type: "loadProject", project: createBlankProject(), markSaved: false });
+      });
+    } else if (item === "open")
+      void openProjectFile(
+        dispatch,
+        toastActions,
+        lifecycle.guardReplacement,
+        lifecycle.refreshPreferences,
+      );
+    else if (item === "openPacked")
+      void openPackedProject(
+        dispatch,
+        toastActions,
+        lifecycle.guardReplacement,
+        lifecycle.refreshPreferences,
+      );
     else if (item === "recoverAutosave") {
       const requestToken = toastActions.beginRequest();
-      void readRecoverySnapshotForCurrentProject()
+      void lifecycle
+        .guardReplacement()
+        .then((confirmed) => (confirmed ? readRecoverySnapshotForCurrentProject() : null))
         .then((recovery) => {
           if (recovery) {
-            dispatch({ type: "loadProject", project: recovery });
+            dispatch({ type: "loadProject", project: recovery, markSaved: false });
             toastActions.show(toastMessage("topbar.toast.recovered"), requestToken);
-          } else toastActions.show(toastMessage("topbar.toast.noRecovery"), requestToken);
+          } else if (recovery === undefined)
+            toastActions.show(toastMessage("topbar.toast.noRecovery"), requestToken);
         })
         .catch(() => toastActions.show(toastError("projectRecovery"), requestToken));
-    } else if (item === "saveProject" || item === "saveAs")
-      saveProject(state.project, toastActions, item === "saveAs");
-    else if (item === "packProject") packProject(state.project, toastActions);
+    } else if (item === "saveProject" || item === "saveAs") void saveWithToast(item === "saveAs");
+    else if (item === "packProject") void packProject(state.project, lifecycle.save, toastActions);
     else if (item === "undo") dispatch({ type: "undo" });
     else if (item === "redo") dispatch({ type: "redo" });
     else if (item === "duplicate" && selectedLayer) {
@@ -316,6 +354,19 @@ export function TopBar() {
           passes: state.metrics.passCount,
         }),
       );
+    } else if (item === "exportDiagnostics") {
+      const requestToken = toastActions.beginRequest();
+      void exportDiagnostics()
+        .then((path) => {
+          if (path)
+            toastActions.show(
+              toastMessage("topbar.toast.diagnosticsExported", {
+                name: path.split(/[\\/]/).pop() || path,
+              }),
+              requestToken,
+            );
+        })
+        .catch(() => toastActions.show(toastError("diagnosticsExport"), requestToken));
     } else {
       const definition = findMenuEntry(item);
       if (definition) toastActions.show({ kind: "nextStep", itemKey: definition.labelKey });
@@ -369,13 +420,38 @@ export function TopBar() {
                       {"shortcut" in item && <kbd>{item.shortcut}</kbd>}
                     </button>
                   ))}
+                  {menu.id === "file" && lifecycle.recentProjects.length > 0 && (
+                    <>
+                      <div className="app-menu-heading">{t("topbar.recentProjects")}</div>
+                      {lifecycle.recentProjects.map((path) => (
+                        <button
+                          key={path}
+                          onClick={() => {
+                            setActiveMenu(undefined);
+                            void lifecycle.openRecent(path).then((opened) => {
+                              if (!opened) toastActions.show(toastError("projectOpen"));
+                            });
+                          }}
+                          title={path}
+                          type="button"
+                        >
+                          <span>{path.split(/[\\/]/).pop() || path}</span>
+                        </button>
+                      ))}
+                    </>
+                  )}
                 </div>
               )}
             </div>
           ))}
         </div>
         <div className="document-title">
-          <span className="unsaved-dot" /> {state.project.name} — Aster
+          {lifecycle.dirty && <span className="unsaved-dot" />} {state.project.name} — Aster
+          {state.autosave.status !== "idle" && (
+            <small className={`autosave-state ${state.autosave.status}`}>
+              {t(`topbar.autosave.${state.autosave.status}`)}
+            </small>
+          )}
         </div>
         <div className="title-actions">
           <button className="command-hint" onClick={() => setPaletteOpen(true)} type="button">
@@ -551,8 +627,7 @@ export function TopBar() {
                   setRenderProgress(undefined);
                   setRendering(true);
                   try {
-                    if (renderFormat === "project")
-                      saveProject(state.project, toastActions, false, requestToken);
+                    if (renderFormat === "project") await saveWithToast(false, requestToken);
                     else if (renderFormat === "png") {
                       const blob = await renderSingleFrame(state.currentTime);
                       downloadBlob(blob, "aster-frame-4k.png");
@@ -643,12 +718,15 @@ export function TopBar() {
 async function openProjectFile(
   dispatch: ReturnType<typeof useEditor>["dispatch"],
   toast: TopBarToastActions,
+  guardReplacement: () => Promise<boolean>,
+  refreshPreferences: () => Promise<unknown>,
 ) {
   const requestToken = toast.beginRequest();
   try {
-    const selected = await pickProjectFile();
+    const selected = await pickProjectFile(guardReplacement);
     if (!selected) return;
-    dispatch({ type: "loadProject", project: selected.project });
+    dispatch({ type: "loadProject", project: selected.project, markSaved: true });
+    await refreshPreferences();
     toast.show(toastMessage("topbar.toast.opened", { name: selected.name }), requestToken);
   } catch {
     toast.show(toastError("projectOpen"), requestToken);
@@ -658,51 +736,36 @@ async function openProjectFile(
 async function openPackedProject(
   dispatch: ReturnType<typeof useEditor>["dispatch"],
   toast: TopBarToastActions,
+  guardReplacement: () => Promise<boolean>,
+  refreshPreferences: () => Promise<unknown>,
 ) {
   const requestToken = toast.beginRequest();
   try {
-    const selected = await pickPackedProject();
+    const selected = await pickPackedProject(guardReplacement);
     if (!selected) return;
-    dispatch({ type: "loadProject", project: selected.project });
+    dispatch({ type: "loadProject", project: selected.project, markSaved: true });
+    await refreshPreferences();
     toast.show(toastMessage("topbar.toast.unpacked", { name: selected.name }), requestToken);
   } catch {
     toast.show(toastError("projectPackedOpen"), requestToken);
   }
 }
 
-function packProject(project: Project, toast: TopBarToastActions): void {
-  const requestToken = toast.beginRequest();
-  void saveProjectDocument(project)
-    .then((saved) => (saved ? packCurrentProject(project.name) : undefined))
-    .then((path) => {
-      if (path) {
-        toast.show(
-          toastMessage("topbar.toast.packed", { name: path.split(/[\\/]/).pop() || path }),
-          requestToken,
-        );
-      }
-    })
-    .catch(() => {
-      toast.show(toastError("projectPack"), requestToken);
-    });
-}
-
-function saveProject(
+async function packProject(
   project: Project,
+  saveProject: () => Promise<string | undefined>,
   toast: TopBarToastActions,
-  chooseDirectory = false,
-  requestToken = toast.beginRequest(),
-): void {
-  void saveProjectDocument(project, chooseDirectory)
-    .then((path) => {
-      if (path) {
-        toast.show(
-          toastMessage("topbar.toast.saved", { name: path.split(/[\\/]/).pop() || path }),
-          requestToken,
-        );
-      }
-    })
-    .catch(() => {
-      toast.show(toastError("projectSave"), requestToken);
-    });
+): Promise<void> {
+  const requestToken = toast.beginRequest();
+  try {
+    const saved = await saveProject();
+    const path = saved ? await packCurrentProject(project.name) : undefined;
+    if (path)
+      toast.show(
+        toastMessage("topbar.toast.packed", { name: path.split(/[\\/]/).pop() || path }),
+        requestToken,
+      );
+  } catch {
+    toast.show(toastError("projectPack"), requestToken);
+  }
 }

@@ -58,10 +58,14 @@ handedness exactly -1 or 1. Tangents, UVs, normal-map scale, and source dimensio
 before the material enters the GPU path. HDR imports are fully decoded and validated in a cancellable
 worker before their source is admitted to the project document.
 
-## MVP schema policy
+## Schema and migration policy
 
-- Readers accept only the current `schemaVersion` and reject older, future, missing, or fractional
-  versions before partially applying them. The MVP intentionally provides no legacy migrations.
+- Readers clone the input and pass it through a sequential `vN -> vN+1` migration registry before
+  validating the current `schemaVersion`. Version 1 is the earliest published schema, so no
+  historical transform is registered yet; older, future, missing, or fractional versions fail
+  before partially applying the document.
+- Every future historical transform must preserve the source document, set exactly the next integer
+  version, and gain a compatibility fixture before the current schema version increases.
 - Unknown effect types and parameters must be preserved and disabled when execution is unavailable.
 - IDs are stable across saves; duplicate/copy operations issue new IDs.
 - Relative asset paths resolve against the project directory and may not escape it after
@@ -74,5 +78,8 @@ worker before their source is admitted to the project document.
 Write and validate a sibling temporary file, flush it, move the previous project to a backup, replace
 the target, and remove the backup only after success. A startup recovery pass may offer a valid newer
 temporary/autosave file; it never silently overwrites the source. The native filenames are
-`project.json` and `project.autosave.json`; the browser editor keeps an equivalent validated recovery
-snapshot in local storage.
+`project.json` and `project.autosave.json`; unsaved or browser-only projects keep an equivalent
+validated recovery snapshot in local storage, which is also the fallback when a native autosave
+fails. Recovery autosaves run after the configured idle interval, at least once per minute during
+continuous editing, and when the editor moves into the background while autosave is enabled. They
+never advance the primary saved revision.

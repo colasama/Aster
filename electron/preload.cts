@@ -22,6 +22,37 @@ contextBridge.exposeInMainWorld(
     open: (options: Record<string, unknown>) => ipcRenderer.invoke("aster:open", options),
     save: (options: Record<string, unknown>) => ipcRenderer.invoke("aster:save", options),
     convertFileSrc: (path: string) => `aster-asset://local/${encodeURIComponent(path)}`,
+    getPreferences: () => ipcRenderer.invoke("aster:preferences-get"),
+    updatePreferences: (preferences: Record<string, unknown>) =>
+      ipcRenderer.invoke("aster:preferences-update", preferences),
+    migrateLegacyPreferences: (preferences: Record<string, unknown>) =>
+      ipcRenderer.invoke("aster:preferences-migrate-legacy", preferences),
+    authorizeRecentProject: (path: string) =>
+      ipcRenderer.invoke("aster:project-authorize-recent", path),
+    rememberProject: (path: string) => ipcRenderer.invoke("aster:project-remember", path),
+    forgetActiveProject: () => ipcRenderer.invoke("aster:project-forget-active"),
+    takeNextProjectOpen: () => ipcRenderer.invoke("aster:project-open-take"),
+    onProjectOpenAvailable: (listener: () => void) => {
+      const handleProjectOpen = () => listener();
+      ipcRenderer.on("aster:project-open-available", handleProjectOpen);
+      return () => ipcRenderer.removeListener("aster:project-open-available", handleProjectOpen);
+    },
+    documentLifecycle: Object.freeze({
+      updateState: (state: Record<string, unknown>) =>
+        ipcRenderer.send("aster:document-state", state),
+      confirmReplace: (state: Record<string, unknown>) =>
+        ipcRenderer.invoke("aster:document-confirm-replace", state),
+      confirmClose: () => ipcRenderer.invoke("aster:document-confirm-close"),
+      confirmRecovery: (projectName: string) =>
+        ipcRenderer.invoke("aster:document-confirm-recovery", projectName),
+      onCloseRequested: (listener: (action: "save" | "discard") => void) => {
+        const handleCloseRequested = (_event: IpcRendererEvent, action: "save" | "discard") =>
+          listener(action);
+        ipcRenderer.on("aster:close-requested", handleCloseRequested);
+        return () => ipcRenderer.removeListener("aster:close-requested", handleCloseRequested);
+      },
+    }),
+    exportDiagnostics: () => ipcRenderer.invoke("aster:diagnostics-export"),
     startMp4Export: (options: Record<string, unknown>) =>
       ipcRenderer.invoke("aster:mp4-start", options),
     writeMp4Frame: (jobId: string, pixels: ArrayBuffer) =>

@@ -1,4 +1,11 @@
-import { convertFileSrc, invoke, isDesktopRuntime, open, save } from "../desktop/api";
+import {
+  convertFileSrc,
+  forgetActiveProject,
+  invoke,
+  isDesktopRuntime,
+  open,
+  save,
+} from "../desktop/api";
 import { assertAdjustmentLayerInvariants } from "./adjustment-layer";
 import { validateClonerSettings } from "./cloner";
 import {
@@ -20,6 +27,7 @@ const RECOVERY_KEY = "aster.recoveryProject.v0";
 const MAX_EMBEDDED_ASSET_CHARACTERS = 136 * 1024 * 1024;
 let nativeProjectPath: string | undefined;
 let nativeAutosaveFailureReported = false;
+let nativePersistenceQueue: Promise<void> = Promise.resolve();
 
 interface RecoveryStorage {
   getItem(key: string): string | null;
@@ -129,13 +137,14 @@ export async function saveProjectDocument(
   const startedAt = performance.now();
   if (!isDesktopRuntime()) {
     await downloadProject(project);
-    clearRecoverySnapshot();
+    await clearRecoverySnapshot();
     logger.info("project", "downloaded", {
       compositionCount: project.compositions.length,
       durationMs: performance.now() - startedAt,
     });
     return `${safeFileName(project.name)}.aster.json`;
   }
+  const previousPath = nativeProjectPath;
   if (chooseDirectory || !nativeProjectPath) {
     const selected = await open({
       directory: true,
@@ -145,11 +154,20 @@ export async function saveProjectDocument(
     if (typeof selected !== "string") return undefined;
     nativeProjectPath = selected;
   }
-  await invoke("save_project", {
-    path: nativeProjectPath,
-    project: projectDocumentForPersistence(project),
-  });
-  clearRecoverySnapshot();
+  const destination = nativeProjectPath;
+  try {
+    await queueNativePersistence(async () => {
+      await invoke("save_project", {
+        path: destination,
+        project: projectDocumentForPersistence(project),
+      });
+      await invoke("clear_autosave", { path: destination });
+    });
+  } catch (error) {
+    nativeProjectPath = previousPath;
+    throw error;
+  }
+  removeBrowserRecoverySnapshot();
   logger.info("project", "saved", {
     compositionCount: project.compositions.length,
     durationMs: performance.now() - startedAt,
@@ -157,7 +175,9 @@ export async function saveProjectDocument(
   return nativeProjectPath;
 }
 
-export async function pickProjectFile(): Promise<{ project: Project; name: string } | undefined> {
+export async function pickProjectFile(
+  beforeLoad?: () => Promise<boolean>,
+): Promise<{ project: Project; name: string } | undefined> {
   if (isDesktopRuntime()) {
     const selected = await open({
       directory: true,
@@ -165,6 +185,7 @@ export async function pickProjectFile(): Promise<{ project: Project; name: strin
       title: "Open an Aster project folder",
     });
     if (typeof selected !== "string") return undefined;
+    if (beforeLoad && !(await beforeLoad())) return undefined;
     const project = validateProjectDocument(
       hydrateRuntimeAssetUrls(await invoke("load_project", { path: selected })),
     );
@@ -185,6 +206,10 @@ export async function pickProjectFile(): Promise<{ project: Project; name: strin
           return;
         }
         try {
+          if (beforeLoad && !(await beforeLoad())) {
+            resolve(undefined);
+            return;
+          }
           const project = validateProjectDocument(JSON.parse(await file.text()));
           logger.info("project", "loaded", { compositionCount: project.compositions.length });
           resolve({
@@ -201,6 +226,33 @@ export async function pickProjectFile(): Promise<{ project: Project; name: strin
   });
 }
 
+export async function loadProjectFromPath(
+  path: string,
+): Promise<{ project: Project; name: string }> {
+  if (!isDesktopRuntime())
+    throw new Error("System project opening requires the desktop application");
+  const project = validateProjectDocument(
+    hydrateRuntimeAssetUrls(await invoke("load_project", { path })),
+  );
+  nativeProjectPath = path;
+  logger.info("project", "loaded", { compositionCount: project.compositions.length });
+  return { project, name: path.split(/[\\/]/).pop() || path };
+}
+
+export async function openProjectFromSystemPath(
+  path: string,
+  beforeLoad?: () => Promise<boolean>,
+): Promise<{ project: Project; name: string } | undefined> {
+  if (path.toLocaleLowerCase().endsWith(".aster")) return unpackPackedProject(path, beforeLoad);
+  if (beforeLoad && !(await beforeLoad())) return undefined;
+  return loadProjectFromPath(path);
+}
+
+export function clearCurrentProjectPath(): void {
+  nativeProjectPath = undefined;
+  if (isDesktopRuntime()) void forgetActiveProject();
+}
+
 export async function packCurrentProject(projectName: string): Promise<string | undefined> {
   if (!nativeProjectPath || !isDesktopRuntime())
     throw new Error("Save this project in the native app before packing it");
@@ -214,7 +266,9 @@ export async function packCurrentProject(projectName: string): Promise<string | 
   return destination;
 }
 
-export async function pickPackedProject(): Promise<{ project: Project; name: string } | undefined> {
+export async function pickPackedProject(
+  beforeLoad?: () => Promise<boolean>,
+): Promise<{ project: Project; name: string } | undefined> {
   if (!isDesktopRuntime())
     throw new Error("Packed projects are available in the native Aster application");
   const archive = await open({
@@ -224,12 +278,20 @@ export async function pickPackedProject(): Promise<{ project: Project; name: str
     filters: [{ name: "Aster packed project", extensions: ["aster"] }],
   });
   if (typeof archive !== "string") return undefined;
+  return unpackPackedProject(archive, beforeLoad);
+}
+
+async function unpackPackedProject(
+  archive: string,
+  beforeLoad?: () => Promise<boolean>,
+): Promise<{ project: Project; name: string } | undefined> {
   const parent = await open({
     directory: true,
     multiple: false,
     title: "Choose where to unpack the project",
   });
   if (typeof parent !== "string") return undefined;
+  if (beforeLoad && !(await beforeLoad())) return undefined;
   const destination = await invoke<string>("unpack_project", { archive, parent });
   const project = validateProjectDocument(
     hydrateRuntimeAssetUrls(await invoke("load_project", { path: destination })),
@@ -241,28 +303,37 @@ export async function pickPackedProject(): Promise<{ project: Project; name: str
   return { project, name: destination.split(/[\\/]/).pop() || destination };
 }
 
-export function storeRecoverySnapshot(
+export async function storeRecoverySnapshot(
   project: Project,
   storage: RecoveryStorage = localStorage,
-): void {
+): Promise<void> {
+  const autosavePath = nativeProjectPath;
+  let nativeError: unknown;
+  if (autosavePath) {
+    try {
+      await queueNativePersistence(() =>
+        invoke("save_autosave", {
+          path: autosavePath,
+          project: projectDocumentForPersistence(project),
+        }),
+      );
+      nativeAutosaveFailureReported = false;
+      removeBrowserRecoverySnapshot(storage);
+      return;
+    } catch (error) {
+      nativeError = error;
+      if (!nativeAutosaveFailureReported) {
+        nativeAutosaveFailureReported = true;
+        logger.warn("project", "native_autosave_failed", undefined, error);
+      }
+    }
+  }
   try {
     storage.setItem(RECOVERY_KEY, serializeProject(project));
-  } catch {
-    storage.removeItem(RECOVERY_KEY);
+  } catch (error) {
+    removeBrowserRecoverySnapshot(storage);
+    throw nativeError ?? error;
   }
-  if (nativeProjectPath)
-    void invoke("save_autosave", {
-      path: nativeProjectPath,
-      project: projectDocumentForPersistence(project),
-    })
-      .then(() => {
-        nativeAutosaveFailureReported = false;
-      })
-      .catch((error: unknown) => {
-        if (nativeAutosaveFailureReported) return;
-        nativeAutosaveFailureReported = true;
-        logger.warn("project", "autosave_failed", undefined, error);
-      });
 }
 
 export function readRecoverySnapshot(storage: RecoveryStorage = localStorage): Project | undefined {
@@ -277,19 +348,40 @@ export function readRecoverySnapshot(storage: RecoveryStorage = localStorage): P
 }
 
 export async function readRecoverySnapshotForCurrentProject(): Promise<Project | undefined> {
-  if (nativeProjectPath) {
-    const candidate = await invoke<unknown>("recovery_candidate", {
-      path: nativeProjectPath,
-    });
-    if (candidate) return validateProjectDocument(hydrateRuntimeAssetUrls(candidate));
-  }
-  return readRecoverySnapshot();
+  return (await readNativeRecoverySnapshotForCurrentProject()) ?? readRecoverySnapshot();
 }
 
-export function clearRecoverySnapshot(storage: RecoveryStorage = localStorage): void {
-  storage.removeItem(RECOVERY_KEY);
-  if (nativeProjectPath)
-    void invoke("clear_autosave", { path: nativeProjectPath }).catch(() => undefined);
+export async function readNativeRecoverySnapshotForCurrentProject(): Promise<Project | undefined> {
+  if (!nativeProjectPath) return undefined;
+  const candidate = await invoke<unknown>("recovery_candidate", {
+    path: nativeProjectPath,
+  });
+  return candidate ? validateProjectDocument(hydrateRuntimeAssetUrls(candidate)) : undefined;
+}
+
+export async function clearRecoverySnapshot(
+  storage: RecoveryStorage = localStorage,
+): Promise<void> {
+  removeBrowserRecoverySnapshot(storage);
+  const autosavePath = nativeProjectPath;
+  if (autosavePath)
+    await queueNativePersistence(() => invoke("clear_autosave", { path: autosavePath })).catch(
+      () => undefined,
+    );
+}
+
+function removeBrowserRecoverySnapshot(storage: RecoveryStorage = localStorage): void {
+  try {
+    storage.removeItem(RECOVERY_KEY);
+  } catch {
+    // Recovery cleanup must not interrupt a completed primary save or a document transition.
+  }
+}
+
+function queueNativePersistence(task: () => Promise<unknown>): Promise<void> {
+  const queued = nativePersistenceQueue.then(task, task).then(() => undefined);
+  nativePersistenceQueue = queued.catch(() => undefined);
+  return queued;
 }
 
 export async function relinkProjectAsset(layer: Layer): Promise<Layer["asset"] | undefined> {

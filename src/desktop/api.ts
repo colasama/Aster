@@ -6,6 +6,7 @@ import type {
   FullAccessActivationRequest,
   FullAccessGrant,
 } from "../ai/agent-protocol";
+import type { AppPreferences, UserPreferencePatch } from "./preferences";
 
 export interface DesktopFileFilter {
   name: string;
@@ -70,6 +71,21 @@ export interface DesktopWindowControls {
   onMaximizedChange(listener: (maximized: boolean) => void): () => void;
 }
 
+export interface ProjectOpenRequest {
+  path?: string;
+  recoverAutosave: boolean;
+}
+
+export type UnsavedChangesDecision = "save" | "discard" | "cancel";
+
+export interface DesktopDocumentLifecycle {
+  updateState(state: { dirty: boolean; projectName: string }): void;
+  confirmReplace(state: { dirty: boolean; projectName: string }): Promise<UnsavedChangesDecision>;
+  confirmClose(): Promise<void>;
+  confirmRecovery(projectName: string): Promise<boolean>;
+  onCloseRequested(listener: (action: "save" | "discard") => void): () => void;
+}
+
 export interface AsterDesktopApi {
   invoke<T>(command: string, args?: Record<string, unknown>): Promise<T>;
   runAgent(request: AgentRunRequest): Promise<AgentRunResult>;
@@ -82,6 +98,16 @@ export interface AsterDesktopApi {
   open(options: DesktopOpenOptions): Promise<string | string[] | null>;
   save(options: DesktopSaveOptions): Promise<string | null>;
   convertFileSrc(path: string): string;
+  getPreferences(): Promise<AppPreferences>;
+  updatePreferences(preferences: UserPreferencePatch): Promise<AppPreferences>;
+  migrateLegacyPreferences(preferences: UserPreferencePatch): Promise<AppPreferences>;
+  authorizeRecentProject(path: string): Promise<boolean>;
+  rememberProject(path: string): Promise<AppPreferences>;
+  forgetActiveProject(): Promise<void>;
+  takeNextProjectOpen(): Promise<ProjectOpenRequest | undefined>;
+  onProjectOpenAvailable(listener: () => void): () => void;
+  documentLifecycle: DesktopDocumentLifecycle;
+  exportDiagnostics(): Promise<string | undefined>;
   startMp4Export(options: Mp4ExportStartOptions): Promise<Mp4ExportStarted>;
   writeMp4Frame(jobId: string, pixels: ArrayBuffer): Promise<void>;
   finishMp4Export(jobId: string): Promise<Mp4ExportReport>;
@@ -136,6 +162,48 @@ export function save(options: DesktopSaveOptions): Promise<string | null> {
 
 export function convertFileSrc(path: string): string {
   return desktopApi().convertFileSrc(path);
+}
+
+export function getPreferences(): Promise<AppPreferences> {
+  return desktopApi().getPreferences();
+}
+
+export function updatePreferences(preferences: UserPreferencePatch): Promise<AppPreferences> {
+  return desktopApi().updatePreferences(preferences);
+}
+
+export function migrateLegacyPreferences(
+  preferences: UserPreferencePatch,
+): Promise<AppPreferences> {
+  return desktopApi().migrateLegacyPreferences(preferences);
+}
+
+export function authorizeRecentProject(path: string): Promise<boolean> {
+  return desktopApi().authorizeRecentProject(path);
+}
+
+export function rememberProject(path: string): Promise<AppPreferences> {
+  return desktopApi().rememberProject(path);
+}
+
+export function forgetActiveProject(): Promise<void> {
+  return desktopApi().forgetActiveProject();
+}
+
+export function takeNextProjectOpen(): Promise<ProjectOpenRequest | undefined> {
+  return desktopApi().takeNextProjectOpen();
+}
+
+export function onProjectOpenAvailable(listener: () => void): () => void {
+  return desktopApi().onProjectOpenAvailable(listener);
+}
+
+export function documentLifecycle(): DesktopDocumentLifecycle {
+  return desktopApi().documentLifecycle;
+}
+
+export function exportDiagnostics(): Promise<string | undefined> {
+  return desktopApi().exportDiagnostics();
 }
 
 export function startMp4Export(options: Mp4ExportStartOptions): Promise<Mp4ExportStarted> {

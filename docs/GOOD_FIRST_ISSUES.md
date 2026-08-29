@@ -16,7 +16,7 @@ opening one, confirm the checkbox is still unclaimed in the linked issue tracker
 - Acceptance: one malformed current-schema document is rejected with a stable, useful error and the
   input object remains unchanged.
 - Validation: `pnpm exec vitest run src/core/project-file.test.ts`.
-- Avoid: adding legacy migrations; the MVP accepts only the current schema.
+- Avoid: inventing a legacy migration without a published source fixture and compatibility policy.
 
 ## Add one WGSL effect example
 

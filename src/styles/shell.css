@@ -88,11 +88,30 @@
     8px "Cascadia Mono",
     monospace;
 }
+
+.app-menu-heading {
+  margin: 4px 6px 2px;
+  padding-top: 5px;
+  border-top: 1px solid #30333d;
+  color: #6e7480;
+  font-size: 8px;
+  letter-spacing: 0.08em;
+}
 .document-title {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
   color: #9296a3;
+}
+
+.autosave-state {
+  margin-left: 8px;
+  color: #6e7480;
+  font-size: 9px;
+}
+
+.autosave-state.error {
+  color: #e17979;
 }
 .unsaved-dot {
   display: inline-block;

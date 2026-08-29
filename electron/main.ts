@@ -14,6 +14,7 @@ import {
   type OpenDialogOptions,
   protocol,
   type SaveDialogOptions,
+  screen,
   session,
   shell,
 } from "electron";
@@ -22,8 +23,15 @@ import type {
   AgentToolResponse,
   FullAccessActivationRequest,
 } from "../src/ai/agent-protocol.js";
+import type {
+  AppPreferences,
+  PersistedWindowState,
+  UserPreferencePatch,
+} from "../src/desktop/preferences.js";
 import { FullAccessGrantManager } from "./agent-grants.js";
 import { PiAgentHost } from "./agent-host.js";
+import { AppPreferencesStore } from "./app-preferences.js";
+import { createDiagnosticBundle, writeDiagnosticBundle } from "./diagnostics.js";
 import { fullAccessDesktopBridgeRequest } from "./full-access-aster-tools.js";
 import { describeFullAccessTarget, FullAccessToolService } from "./full-access-tools.js";
 import { AsterLogger, isRendererLogPayload, type LogLevel, parseLogLevel } from "./logger.js";
@@ -219,6 +227,16 @@ let desktopBridge: DesktopBridge | undefined;
 let piAgentHost: PiAgentHost | undefined;
 let mp4ExportManager: Mp4ExportManager | undefined;
 let applicationLogger: AsterLogger | undefined;
+let appPreferences: AppPreferencesStore | undefined;
+let primaryWindow: BrowserWindow | undefined;
+let activeProjectPath: string | undefined;
+let rendererRecoveryDialogOpen = false;
+const MAX_PENDING_PROJECT_OPEN_REQUESTS = 32;
+const pendingProjectOpenRequests: ProjectOpenRequest[] = [];
+const documentStates = new Map<number, DocumentState>();
+const closeAllowed = new Set<number>();
+const closePromptActive = new Set<number>();
+const closeAuthorizationPending = new Set<number>();
 const fullAccessGrants = new FullAccessGrantManager();
 const fullAccessTools = new FullAccessToolService(async (toolName, input, signal) => {
   if (signal.aborted) throw new Error("Full Access Aster tool was cancelled");
@@ -232,6 +250,16 @@ const fullAccessTools = new FullAccessToolService(async (toolName, input, signal
 });
 const allowedAssets = new Map<string, string>();
 const grantedPaths = new Set<string>();
+
+interface ProjectOpenRequest {
+  path?: string;
+  recoverAutosave: boolean;
+}
+
+interface DocumentState {
+  dirty: boolean;
+  projectName: string;
+}
 
 function bridgeExecutable(): string {
   const name = process.platform === "win32" ? "aster-desktop-bridge.exe" : "aster-desktop-bridge";
@@ -258,6 +286,113 @@ function normalizeAssetPath(path: string): string {
 
 function grantPath(path: string): void {
   grantedPaths.add(normalizeAssetPath(path));
+}
+
+function queueProjectOpen(request: ProjectOpenRequest): void {
+  const path = request.path ? resolve(request.path) : undefined;
+  if (path) grantPath(path);
+  const key = `${path ?? "recovery"}:${String(request.recoverAutosave)}`;
+  if (
+    !pendingProjectOpenRequests.some(
+      (candidate) =>
+        `${candidate.path ? resolve(candidate.path) : "recovery"}:${String(candidate.recoverAutosave)}` ===
+        key,
+    )
+  ) {
+    pendingProjectOpenRequests.push({ ...request, ...(path ? { path } : {}) });
+    if (pendingProjectOpenRequests.length > MAX_PENDING_PROJECT_OPEN_REQUESTS)
+      pendingProjectOpenRequests.splice(
+        0,
+        pendingProjectOpenRequests.length - MAX_PENDING_PROJECT_OPEN_REQUESTS,
+      );
+  }
+  notifyProjectOpenAvailable();
+}
+
+function notifyProjectOpenAvailable(): void {
+  const window = primaryWindow;
+  if (!window || window.isDestroyed() || window.webContents.isDestroyed()) return;
+  window.webContents.send("aster:project-open-available");
+  if (window.isMinimized()) window.restore();
+  window.show();
+  window.focus();
+}
+
+function projectPathsFromCommandLine(commandLine: readonly string[]): string[] {
+  return commandLine.flatMap((argument) => {
+    if (!argument || argument.length > 4_096 || !argument.toLocaleLowerCase().endsWith(".aster"))
+      return [];
+    const path = resolve(argument);
+    return existsSync(path) ? [path] : [];
+  });
+}
+
+function parseDocumentState(value: unknown): DocumentState {
+  if (
+    !isRecord(value) ||
+    typeof value.dirty !== "boolean" ||
+    typeof value.projectName !== "string" ||
+    value.projectName.length > 512
+  )
+    throw new Error("Document state is invalid");
+  return { dirty: value.dirty, projectName: value.projectName };
+}
+
+async function recordRecentProject(path: string): Promise<AppPreferences | undefined> {
+  activeProjectPath = resolve(path);
+  const preferences = await appPreferences?.recordRecentProject(activeProjectPath);
+  if (activeProjectPath.toLocaleLowerCase().endsWith(".aster"))
+    app.addRecentDocument(activeProjectPath);
+  return preferences;
+}
+
+async function confirmUnsavedChanges(
+  owner: BrowserWindow | undefined,
+  projectName: string,
+): Promise<"save" | "discard" | "cancel"> {
+  const locale = appPreferences?.snapshot().locale;
+  const chinese = locale === "zh-CN";
+  const options = {
+    type: "warning" as const,
+    title: chinese ? "未保存的更改" : "Unsaved changes",
+    message: chinese
+      ? `要保存对“${projectName}”的更改吗？`
+      : `Do you want to save changes to “${projectName}”?`,
+    detail: chinese
+      ? "不保存将丢弃自上次保存后的更改。自动恢复快照也会被清除。"
+      : "Choosing Don’t Save discards changes made since the last save and clears the recovery snapshot.",
+    buttons: chinese ? ["取消", "不保存", "保存"] : ["Cancel", "Don’t Save", "Save"],
+    defaultId: 2,
+    cancelId: 0,
+    noLink: true,
+  };
+  const result = owner
+    ? await dialog.showMessageBox(owner, options)
+    : await dialog.showMessageBox(options);
+  return result.response === 2 ? "save" : result.response === 1 ? "discard" : "cancel";
+}
+
+function visibleWindowState(
+  saved: PersistedWindowState | undefined,
+): PersistedWindowState | undefined {
+  if (!saved) return undefined;
+  const candidate = { x: saved.x, y: saved.y, width: saved.width, height: saved.height };
+  const display = screen.getDisplayMatching(candidate);
+  const intersects =
+    candidate.x + candidate.width >= display.workArea.x + 80 &&
+    candidate.x <= display.workArea.x + display.workArea.width - 80 &&
+    candidate.y + candidate.height >= display.workArea.y + 60 &&
+    candidate.y <= display.workArea.y + display.workArea.height - 60;
+  const workArea = intersects ? display.workArea : screen.getPrimaryDisplay().workArea;
+  const width = Math.min(Math.max(candidate.width, 1_100), workArea.width);
+  const height = Math.min(Math.max(candidate.height, 700), workArea.height);
+  return {
+    x: Math.min(Math.max(candidate.x, workArea.x), workArea.x + workArea.width - width),
+    y: Math.min(Math.max(candidate.y, workArea.y), workArea.y + workArea.height - height),
+    width,
+    height,
+    maximized: saved.maximized,
+  };
 }
 
 function assertGrantedCommandPaths(command: string, args: Record<string, unknown>): void {
@@ -404,13 +539,149 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
-function registerIpc(logger: AsterLogger): void {
+function registerIpc(logger: AsterLogger, preferences: AppPreferencesStore): void {
   ipcMain.on("aster:log", (event, value: unknown) => {
     if (!isRendererLogPayload(value)) {
       logger.warn("ipc", "renderer_log_rejected", { rendererId: event.sender.id });
       return;
     }
     logger.ingestRenderer(value, event.sender.id);
+  });
+
+  ipcMain.handle("aster:preferences-get", () => preferences.snapshot());
+
+  ipcMain.handle("aster:preferences-update", (_event, value: unknown) => {
+    if (!isRecord(value)) throw new Error("Application preferences update must be an object");
+    return preferences.updateUserPreferences(value as UserPreferencePatch);
+  });
+
+  ipcMain.handle("aster:preferences-migrate-legacy", (_event, value: unknown) => {
+    if (!isRecord(value)) throw new Error("Legacy application preferences must be an object");
+    return preferences.migrateLegacyRendererPreferences(value as UserPreferencePatch);
+  });
+
+  ipcMain.handle("aster:project-authorize-recent", async (_event, value: unknown) => {
+    if (typeof value !== "string" || value.length > 4_096) return false;
+    const normalized = normalizeAssetPath(value);
+    const known = preferences
+      .snapshot()
+      .recentProjects.some((path) => normalizeAssetPath(path) === normalized);
+    if (!known) return false;
+    if (!existsSync(resolve(value))) {
+      await preferences.removeRecentProject(value);
+      return false;
+    }
+    grantPath(value);
+    return true;
+  });
+
+  ipcMain.handle("aster:project-remember", (_event, value: unknown) => {
+    if (
+      typeof value !== "string" ||
+      value.length > 4_096 ||
+      !grantedPaths.has(normalizeAssetPath(value))
+    )
+      throw new Error("Recent project path is not authorized");
+    return recordRecentProject(value);
+  });
+
+  ipcMain.handle("aster:project-forget-active", () => {
+    activeProjectPath = undefined;
+  });
+
+  ipcMain.handle("aster:project-open-take", () => pendingProjectOpenRequests.shift());
+
+  ipcMain.on("aster:document-state", (event, value: unknown) => {
+    try {
+      const state = parseDocumentState(value);
+      documentStates.set(event.sender.id, state);
+      BrowserWindow.fromWebContents(event.sender)?.setTitle(
+        `${state.dirty ? "• " : ""}${state.projectName} — Aster`,
+      );
+    } catch (error) {
+      logger.warn("ipc", "document_state_rejected", {
+        rendererId: event.sender.id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
+  ipcMain.handle("aster:document-confirm-replace", (event, value: unknown) => {
+    const state = parseDocumentState(value);
+    documentStates.set(event.sender.id, state);
+    if (!state?.dirty) return "discard";
+    return confirmUnsavedChanges(
+      BrowserWindow.fromWebContents(event.sender) ?? undefined,
+      state.projectName,
+    );
+  });
+
+  ipcMain.handle("aster:document-confirm-close", (event) => {
+    const window = BrowserWindow.fromWebContents(event.sender);
+    if (!window) return;
+    if (!closeAuthorizationPending.delete(window.id))
+      throw new Error("No document close confirmation is pending");
+    closeAllowed.add(window.id);
+    documentStates.set(event.sender.id, {
+      ...(documentStates.get(event.sender.id) ?? { projectName: "Untitled Project" }),
+      dirty: false,
+    });
+    window.close();
+  });
+
+  ipcMain.handle("aster:document-confirm-recovery", async (event, projectName: unknown) => {
+    if (typeof projectName !== "string" || projectName.length > 512)
+      throw new Error("Recovery project name is invalid");
+    const owner = BrowserWindow.fromWebContents(event.sender) ?? undefined;
+    const chinese = preferences.snapshot().locale === "zh-CN";
+    const options = {
+      type: "question" as const,
+      title: chinese ? "恢复未保存的项目" : "Recover unsaved project",
+      message: chinese
+        ? `Aster 找到了“${projectName}”的自动恢复快照。`
+        : `Aster found an autosaved recovery snapshot for “${projectName}”.`,
+      detail: chinese
+        ? "该快照可能来自上一次异常退出。是否恢复？"
+        : "It may be from an interrupted previous session. Do you want to recover it?",
+      buttons: chinese ? ["丢弃", "恢复"] : ["Discard", "Recover"],
+      defaultId: 1,
+      cancelId: 0,
+      noLink: true,
+    };
+    const result = owner
+      ? await dialog.showMessageBox(owner, options)
+      : await dialog.showMessageBox(options);
+    return result.response === 1;
+  });
+
+  ipcMain.handle("aster:diagnostics-export", async (event) => {
+    const owner = BrowserWindow.fromWebContents(event.sender);
+    const defaultPath = `Aster-${app.getVersion()}-diagnostics.json`;
+    const result = owner
+      ? await dialog.showSaveDialog(owner, {
+          title: "Export Aster diagnostics",
+          defaultPath,
+          filters: [{ name: "Aster diagnostics", extensions: ["json"] }],
+        })
+      : await dialog.showSaveDialog({
+          title: "Export Aster diagnostics",
+          defaultPath,
+          filters: [{ name: "Aster diagnostics", extensions: ["json"] }],
+        });
+    if (result.canceled || !result.filePath) return undefined;
+    await logger.flush();
+    const bundle = await createDiagnosticBundle({
+      version: app.getVersion(),
+      platform: process.platform,
+      architecture: process.arch,
+      gpuFeatureStatus: app.getGPUFeatureStatus(),
+      gpuInfo: await app.getGPUInfo("basic"),
+      preferences: preferences.snapshot(),
+      logFile: logger.filePath,
+    });
+    await writeDiagnosticBundle(result.filePath, bundle);
+    logger.info("diagnostics", "bundle_exported");
+    return result.filePath;
   });
 
   ipcMain.handle("aster:invoke", async (_event, command: unknown, args: unknown) => {
@@ -427,6 +698,13 @@ function registerIpc(logger: AsterLogger): void {
       const result = await desktopBridge.invoke(command, commandArgs);
       if (command === "unpack_project" && typeof result === "string") grantPath(result);
       collectAssetPaths(result);
+      if (
+        (command === "load_project" || command === "save_project") &&
+        typeof commandArgs.path === "string"
+      )
+        await recordRecentProject(commandArgs.path);
+      else if (command === "unpack_project" && typeof result === "string")
+        await recordRecentProject(result);
       return result;
     } catch (error) {
       logger.warn("ipc", "bridge_request_rejected", {
@@ -622,15 +900,21 @@ function registerIpc(logger: AsterLogger): void {
   });
 }
 
-async function createWindow(logger: AsterLogger): Promise<BrowserWindow> {
+async function createWindow(
+  logger: AsterLogger,
+  preferences: AppPreferencesStore,
+): Promise<BrowserWindow> {
+  const restored = visibleWindowState(preferences.snapshot().windowState);
+  const primaryWorkArea = screen.getPrimaryDisplay().workArea;
   const window = new BrowserWindow({
     title: "Aster — Untitled Project",
     frame: false,
     autoHideMenuBar: true,
-    width: 1440,
-    height: 900,
-    minWidth: 1100,
-    minHeight: 700,
+    width: restored?.width ?? 1440,
+    height: restored?.height ?? 900,
+    ...(restored ? { x: restored.x, y: restored.y } : {}),
+    minWidth: Math.min(1_100, primaryWorkArea.width),
+    minHeight: Math.min(700, primaryWorkArea.height),
     backgroundColor: "#111216",
     webPreferences: {
       preload: join(dirname(fileURLToPath(import.meta.url)), "preload.cjs"),
@@ -641,6 +925,22 @@ async function createWindow(logger: AsterLogger): Promise<BrowserWindow> {
       spellcheck: false,
     },
   });
+  primaryWindow = window;
+  const rendererId = window.webContents.id;
+  let windowStateTimer: NodeJS.Timeout | undefined;
+  const persistWindowState = () => {
+    if (window.isDestroyed()) return;
+    const bounds = window.isMaximized() ? window.getNormalBounds() : window.getBounds();
+    void preferences
+      .saveWindowState({ ...bounds, maximized: window.isMaximized() })
+      .catch((error: unknown) =>
+        logger.warn("preferences", "window_state_save_failed", { error: String(error) }),
+      );
+  };
+  const scheduleWindowState = () => {
+    if (windowStateTimer) clearTimeout(windowStateTimer);
+    windowStateTimer = setTimeout(persistWindowState, 400);
+  };
   const sendMaximizedState = () => {
     if (!window.isDestroyed()) {
       window.webContents.send("aster:window-maximized", window.isMaximized());
@@ -648,9 +948,47 @@ async function createWindow(logger: AsterLogger): Promise<BrowserWindow> {
   };
   window.on("maximize", sendMaximizedState);
   window.on("unmaximize", sendMaximizedState);
+  window.on("maximize", scheduleWindowState);
+  window.on("unmaximize", scheduleWindowState);
+  window.on("move", scheduleWindowState);
+  window.on("resize", scheduleWindowState);
+  window.on("close", (event) => {
+    persistWindowState();
+    if (closeAllowed.delete(window.id)) return;
+    const state = documentStates.get(window.webContents.id);
+    if (!state?.dirty || window.webContents.isDestroyed()) return;
+    event.preventDefault();
+    if (closePromptActive.has(window.id)) return;
+    closePromptActive.add(window.id);
+    void confirmUnsavedChanges(window, state.projectName)
+      .then((decision) => {
+        closePromptActive.delete(window.id);
+        if (decision === "save" || decision === "discard") {
+          closeAuthorizationPending.add(window.id);
+          setTimeout(() => closeAuthorizationPending.delete(window.id), 60_000);
+          window.webContents.send("aster:close-requested", decision);
+        }
+      })
+      .catch((error: unknown) => {
+        closePromptActive.delete(window.id);
+        logger.error("window", "close_prompt_failed", error);
+      });
+  });
+  window.on("closed", () => {
+    if (windowStateTimer) clearTimeout(windowStateTimer);
+    documentStates.delete(rendererId);
+    closeAllowed.delete(window.id);
+    closePromptActive.delete(window.id);
+    closeAuthorizationPending.delete(window.id);
+    if (primaryWindow === window) {
+      primaryWindow = undefined;
+      activeProjectPath = undefined;
+    }
+  });
   window.webContents.on("did-finish-load", sendMaximizedState);
   window.webContents.on("did-finish-load", () => {
     logger.info("window", "renderer_loaded", { rendererId: window.webContents.id });
+    notifyProjectOpenAvailable();
   });
   window.webContents.setWindowOpenHandler(({ url }) => {
     try {
@@ -680,7 +1018,40 @@ async function createWindow(logger: AsterLogger): Promise<BrowserWindow> {
     piAgentHost?.cancelOwner(window.webContents.id);
     fullAccessGrants.revokeOwner(window.webContents.id);
     fullAccessTools.abortOwner(window.webContents.id);
+    documentStates.delete(window.webContents.id);
+    if (rendererRecoveryDialogOpen || window.isDestroyed()) return;
+    rendererRecoveryDialogOpen = true;
+    void dialog
+      .showMessageBox(window, {
+        type: "error",
+        title: "Aster renderer stopped",
+        message: "The editor renderer stopped unexpectedly.",
+        detail:
+          "Aster can reload the editor and offer the latest valid autosave. Running exports and AI operations were cancelled.",
+        buttons: ["Quit", "Reload and Recover"],
+        defaultId: 1,
+        cancelId: 0,
+        noLink: true,
+      })
+      .then((result) => {
+        rendererRecoveryDialogOpen = false;
+        if (result.response === 1) {
+          queueProjectOpen({
+            ...(activeProjectPath ? { path: activeProjectPath } : {}),
+            recoverAutosave: true,
+          });
+          window.reload();
+        } else {
+          closeAllowed.add(window.id);
+          window.close();
+        }
+      })
+      .catch((error: unknown) => {
+        rendererRecoveryDialogOpen = false;
+        logger.error("window", "renderer_recovery_prompt_failed", error);
+      });
   });
+  if (restored?.maximized) window.maximize();
   if (app.isPackaged) await window.loadFile(join(app.getAppPath(), "dist", "index.html"));
   else await window.loadURL(DEVELOPMENT_URL);
   logger.debug("window", "created", { rendererId: window.webContents.id });
@@ -690,6 +1061,24 @@ async function createWindow(logger: AsterLogger): Promise<BrowserWindow> {
 app.setName("Aster");
 app.setAppUserModelId("io.github.aster-mograph.aster");
 
+const hasSingleInstanceLock = app.requestSingleInstanceLock();
+if (hasSingleInstanceLock) {
+  for (const path of projectPathsFromCommandLine(process.argv))
+    queueProjectOpen({ path, recoverAutosave: false });
+  app.on("second-instance", (_event, commandLine) => {
+    for (const path of projectPathsFromCommandLine(commandLine))
+      queueProjectOpen({ path, recoverAutosave: false });
+    notifyProjectOpenAvailable();
+  });
+  app.on("open-file", (event, path) => {
+    event.preventDefault();
+    if (path.toLocaleLowerCase().endsWith(".aster") && existsSync(path))
+      queueProjectOpen({ path, recoverAutosave: false });
+  });
+} else {
+  app.quit();
+}
+
 process.on("uncaughtExceptionMonitor", (error) => {
   applicationLogger?.error("application", "uncaught_exception", error);
 });
@@ -697,87 +1086,108 @@ process.on("unhandledRejection", (reason) => {
   applicationLogger?.error("application", "unhandled_rejection", reason);
 });
 
-void app
-  .whenReady()
-  .then(async () => {
-    const logLevel = parseLogLevel(process.env.ASTER_LOG, app.isPackaged ? "info" : "debug");
-    const logger = new AsterLogger({
-      directory: join(app.getPath("userData"), "logs"),
-      level: logLevel,
-    });
-    applicationLogger = logger;
-    await logger.initialize();
-    logger.info("application", "started", {
-      version: app.getVersion(),
-      packaged: app.isPackaged,
-      platform: process.platform,
-      architecture: process.arch,
-      logLevel,
-      logFile: logger.filePath,
-    });
-    const executable = bridgeExecutable();
-    if (!existsSync(executable)) {
-      logger.error("application", "bridge_missing", new Error("Desktop bridge was not found"), {
-        executable,
+if (hasSingleInstanceLock)
+  void app
+    .whenReady()
+    .then(async () => {
+      const logLevel = parseLogLevel(process.env.ASTER_LOG, app.isPackaged ? "info" : "debug");
+      const logger = new AsterLogger({
+        directory: join(app.getPath("userData"), "logs"),
+        level: logLevel,
       });
-      dialog.showErrorBox("Aster could not start", `Desktop bridge was not found at ${executable}`);
+      applicationLogger = logger;
+      await logger.initialize();
+      logger.info("application", "started", {
+        version: app.getVersion(),
+        packaged: app.isPackaged,
+        platform: process.platform,
+        architecture: process.arch,
+        logLevel,
+        logFile: logger.filePath,
+      });
+      const preferences = new AppPreferencesStore(app.getPath("userData"));
+      const preferencesStatus = await preferences.initialize();
+      appPreferences = preferences;
+      if (preferencesStatus.recoveredBackup) logger.warn("preferences", "backup_recovered");
+      if (preferencesStatus.resetInvalid) logger.warn("preferences", "invalid_document_reset");
+      if (preferencesStatus.incompatibleFuture)
+        logger.warn("preferences", "future_document_preserved");
+      const executable = bridgeExecutable();
+      if (!existsSync(executable)) {
+        logger.error("application", "bridge_missing", new Error("Desktop bridge was not found"), {
+          executable,
+        });
+        dialog.showErrorBox(
+          "Aster could not start",
+          `Desktop bridge was not found at ${executable}`,
+        );
+        app.quit();
+        return;
+      }
+      desktopBridge = new DesktopBridge(executable, app.getPath("userData"), logger, logLevel);
+      piAgentHost = new PiAgentHost(
+        logger,
+        async (ownerId, sessionId, grantId, toolName, argumentsValue) => {
+          fullAccessGrants.requireActive(ownerId, grantId);
+          const target = describeFullAccessTarget(toolName, argumentsValue);
+          logger.warn("agent", "full_access_tool_started", { sessionId, toolName, target });
+          try {
+            const result = await fullAccessTools.execute(
+              ownerId,
+              sessionId,
+              toolName,
+              argumentsValue,
+            );
+            logger.warn("agent", "full_access_tool_completed", { sessionId, toolName, target });
+            return result;
+          } catch (error) {
+            logger.warn("agent", "full_access_tool_failed", {
+              sessionId,
+              toolName,
+              target,
+              error: error instanceof Error ? error.message : String(error),
+            });
+            throw error;
+          }
+        },
+      );
+      mp4ExportManager = new Mp4ExportManager(ffmpegExecutable());
+      Menu.setApplicationMenu(null);
+      registerAssetProtocol();
+      registerIpc(logger, preferences);
+      session.defaultSession.setPermissionRequestHandler((_webContents, _permission, callback) => {
+        callback(false);
+      });
+      await createWindow(logger, preferences);
+      app.on("activate", () => {
+        if (BrowserWindow.getAllWindows().length === 0) void createWindow(logger, preferences);
+      });
+    })
+    .catch((error: unknown) => {
+      applicationLogger?.error("application", "startup_failed", error);
+      dialog.showErrorBox(
+        "Aster could not start",
+        error instanceof Error ? error.message : "Unexpected startup failure",
+      );
       app.quit();
-      return;
-    }
-    desktopBridge = new DesktopBridge(executable, app.getPath("userData"), logger, logLevel);
-    piAgentHost = new PiAgentHost(
-      logger,
-      async (ownerId, sessionId, grantId, toolName, argumentsValue) => {
-        fullAccessGrants.requireActive(ownerId, grantId);
-        const target = describeFullAccessTarget(toolName, argumentsValue);
-        logger.warn("agent", "full_access_tool_started", { sessionId, toolName, target });
-        try {
-          const result = await fullAccessTools.execute(
-            ownerId,
-            sessionId,
-            toolName,
-            argumentsValue,
-          );
-          logger.warn("agent", "full_access_tool_completed", { sessionId, toolName, target });
-          return result;
-        } catch (error) {
-          logger.warn("agent", "full_access_tool_failed", {
-            sessionId,
-            toolName,
-            target,
-            error: error instanceof Error ? error.message : String(error),
-          });
-          throw error;
-        }
-      },
-    );
-    mp4ExportManager = new Mp4ExportManager(ffmpegExecutable());
-    Menu.setApplicationMenu(null);
-    registerAssetProtocol();
-    registerIpc(logger);
-    session.defaultSession.setPermissionRequestHandler((_webContents, _permission, callback) => {
-      callback(false);
     });
-    await createWindow(logger);
-    app.on("activate", () => {
-      if (BrowserWindow.getAllWindows().length === 0) void createWindow(logger);
-    });
-  })
-  .catch((error: unknown) => {
-    applicationLogger?.error("application", "startup_failed", error);
-    dialog.showErrorBox(
-      "Aster could not start",
-      error instanceof Error ? error.message : "Unexpected startup failure",
-    );
-    app.quit();
-  });
 
 app.on("before-quit", () => {
   applicationLogger?.info("application", "stopping");
+});
+
+let finalizingApplication = false;
+app.on("will-quit", (event) => {
+  if (finalizingApplication) return;
+  event.preventDefault();
+  finalizingApplication = true;
   desktopBridge?.dispose();
   piAgentHost?.dispose();
-  void mp4ExportManager?.dispose();
-  void applicationLogger?.flush();
+  void Promise.all([
+    mp4ExportManager?.dispose(),
+    appPreferences?.flush(),
+    applicationLogger?.flush(),
+  ]).finally(() => app.exit(0));
 });
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();

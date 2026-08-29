@@ -12,6 +12,11 @@ visual system. The frameless window exposes only minimize, maximize/restore, and
 context-isolated preload boundary; the renderer has no direct Electron access. The sandboxed preload
 is emitted as CommonJS because Electron does not support ESM imports inside sandboxed preload scripts.
 
+The main process also owns the versioned application preference store, single-instance/file-open
+queue, display-clamped window state, unsaved-document close contract, and local diagnostic export.
+Recovery autosaves remain distinct from primary project saves and are serialized with them so a stale
+autosave cannot win a persistence race. See [Desktop application foundations](DESKTOP_FOUNDATIONS.md).
+
 ## Pi agent runtime
 
 The desktop host runs Pi in an Electron utility process. Pi receives only Aster-owned meta-tools by

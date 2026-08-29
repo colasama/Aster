@@ -4,10 +4,23 @@ import { createEffect } from "../effects/registry";
 import { createLayerForComposition } from "./layer-factory";
 import { createDefaultParticleSettings } from "./particle-settings";
 import { createBlankProject } from "./project";
-import { serializeProject, validateProjectDocument } from "./project-file";
+import { serializeProject, storeRecoverySnapshot, validateProjectDocument } from "./project-file";
 import type { ProjectFolder } from "./types";
 
 describe("project document boundary", () => {
+  it("reports recovery storage exhaustion for an unsaved browser project", async () => {
+    const storage = {
+      getItem: () => null,
+      removeItem: () => undefined,
+      setItem: () => {
+        throw new Error("quota exceeded");
+      },
+    };
+    await expect(storeRecoverySnapshot(createBlankProject(), storage)).rejects.toThrow(
+      "quota exceeded",
+    );
+  });
+
   it("rejects render states the bounded flat renderer cannot represent", () => {
     const project = createBlankProject();
     const root = project.compositions[0];

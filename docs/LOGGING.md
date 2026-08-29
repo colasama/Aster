@@ -63,6 +63,11 @@ writing.
 Logs can still contain local file paths and error messages needed for diagnosis. Treat a shared log
 bundle as potentially sensitive and inspect it before publishing.
 
+The desktop Help menu can export a bounded local diagnostics JSON document. It contains application
+and GPU metadata, non-sensitive preference fields, and recent structured log entries. Application
+preferences never contribute recent-project or last-project paths to this report, and exporting does
+not upload it.
+
 ## Adding events
 
 Renderer code should use `src/core/logger.ts`, Electron code should use the process-wide
