@@ -46,7 +46,10 @@ describe("viewportContextMenuItems", () => {
   it("exposes nested preview choices, overlays, and capture availability", () => {
     const items = viewportContextMenuItems(actions(), createTranslator("en-US"));
     const zoom = items.find((item) => item.kind === "submenu" && item.id === "zoom");
-    expect(zoom?.kind === "submenu" && zoom.items).toHaveLength(4);
+    expect(zoom?.kind === "submenu" && zoom.items).toHaveLength(6);
+    expect(
+      zoom?.kind === "submenu" && zoom.items.find((item) => item.id === "zoom-8"),
+    ).toMatchObject({ label: "800%" });
     expect(items.find((item) => item.id === "copy-frame")).toMatchObject({
       disabled: true,
       disabledReason: "Not ready",

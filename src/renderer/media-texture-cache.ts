@@ -171,6 +171,7 @@ export class MediaTextureCache {
     time: number,
     playing: boolean,
     instanceId: string,
+    resolutionScale = 1,
   ): void {
     if (this.#destroyed) throw new Error("Media texture cache is destroyed");
     const source = sourceLocator(footage);
@@ -183,7 +184,7 @@ export class MediaTextureCache {
       return;
     }
     if (runtime?.kind === "svg") {
-      this.#prepareSvg(runtime, layer, footage, time, instanceId, source);
+      this.#prepareSvg(runtime, layer, footage, time, instanceId, source, resolutionScale);
       return;
     }
     if (runtime?.kind === "imageSequence") {
@@ -307,11 +308,13 @@ export class MediaTextureCache {
     time: number,
     instanceId: string,
     locator: string,
+    resolutionScale: number,
   ): void {
     const transform = evaluateLayerTransform(layer, time);
-    const target = bucketSvgTarget(
+    const target = svgPreviewRasterTarget(
       Math.abs((layer.size[0] * transform.scale[0]) / 100),
       Math.abs((layer.size[1] * transform.scale[1]) / 100),
+      resolutionScale,
       Math.min(MAX_MEDIA_TEXTURE_DIMENSION, this.#device.limits.maxTextureDimension2D),
     );
     const source = `${locator}|${target.width}x${target.height}`;
@@ -439,12 +442,19 @@ export class MediaTextureCache {
     void pending.promise.catch(() => undefined);
   }
 
-  prepareText(layer: Layer, instanceId: string, localTime: number, frameRate: number): void {
+  prepareText(
+    layer: Layer,
+    instanceId: string,
+    localTime: number,
+    frameRate: number,
+    resolutionScale = 1,
+  ): void {
     const characterCount = countAnimatedTextCharacters(layer.text ?? layer.name);
     const animationTime = clampTextAnimationTime(layer.textAnimator, localTime, characterCount);
     const sampleRate = Number.isFinite(frameRate) ? Math.max(1, Math.min(240, frameRate)) : 60;
     const sampledAnimationTime =
       animationTime === undefined ? undefined : Math.round(animationTime * sampleRate) / sampleRate;
+    const rasterScale = bucketResolutionScale(resolutionScale);
     const source = JSON.stringify([
       layer.text,
       layer.name,
@@ -453,6 +463,7 @@ export class MediaTextureCache {
       layer.textStyle,
       layer.textAnimator,
       sampledAnimationTime,
+      rasterScale,
     ]);
     const existing = this.#resources.get(instanceId);
     if (existing?.kind === "text" && existing.source === source) {
@@ -465,8 +476,9 @@ export class MediaTextureCache {
     this.#resources.set(instanceId, resource);
     const raster = rasterizeTextLayer(
       layer,
-      Math.min(4096, this.#device.limits.maxTextureDimension2D),
+      Math.min(MAX_MEDIA_TEXTURE_DIMENSION, this.#device.limits.maxTextureDimension2D),
       sampledAnimationTime,
+      rasterScale,
     );
     const texture = this.#device.createTexture({
       label: `GPU text cache · ${layer.name}`,
@@ -863,6 +875,21 @@ function bucketSvgTarget(displayWidth: number, displayHeight: number, maximumDim
     maxTextureDimension: maximumDimension,
     maxPixels: MAX_MEDIA_TEXTURE_BYTES / 4,
   });
+}
+
+export function svgPreviewRasterTarget(
+  displayWidth: number,
+  displayHeight: number,
+  resolutionScale: number,
+  maximumDimension: number,
+) {
+  const scale = Number.isFinite(resolutionScale) ? Math.max(1, resolutionScale) : 1;
+  return bucketSvgTarget(displayWidth * scale, displayHeight * scale, maximumDimension);
+}
+
+function bucketResolutionScale(value: number): number {
+  const bounded = Number.isFinite(value) ? Math.max(1, Math.min(8, value)) : 1;
+  return Math.min(8, 1.25 ** Math.ceil(Math.log(bounded) / Math.log(1.25)));
 }
 
 function remainingTimeout(started: number, timeoutMs: number): number {

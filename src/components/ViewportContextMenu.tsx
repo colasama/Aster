@@ -2,6 +2,7 @@ import type { Translate } from "../i18n/core";
 import { useI18n } from "../i18n/react";
 import type { BufferVisualization } from "../renderer/render-buffers";
 import { BUFFER_VISUALIZATIONS } from "../renderer/render-buffers";
+import { DEFAULT_VIEWPORT_ZOOM, VIEWPORT_ZOOM_PRESETS } from "../ui/viewport-zoom";
 import { ContextMenu } from "./context-menu/ContextMenu";
 import type { ContextMenuItem } from "./context-menu/context-menu-model";
 
@@ -47,7 +48,6 @@ export function viewportContextMenuItems(
   actions: ViewportContextMenuActions,
   t: Translate,
 ): ContextMenuItem[] {
-  const zooms = [0.25, 0.5, 1, 2] as const;
   return [
     ...(actions.canEditComposition
       ? [
@@ -97,13 +97,13 @@ export function viewportContextMenuItems(
       kind: "command",
       label: t("viewport.menu.fit"),
       shortcut: "Shift+/",
-      onSelect: () => actions.setZoom(0.22),
+      onSelect: () => actions.setZoom(DEFAULT_VIEWPORT_ZOOM),
     },
     {
       id: "zoom",
       kind: "submenu",
       label: t("viewport.menu.zoom"),
-      items: zooms.map((zoom) => ({
+      items: VIEWPORT_ZOOM_PRESETS.map((zoom) => ({
         checked: Math.abs(actions.zoom - zoom) < 0.001,
         group: "viewport-zoom",
         id: `zoom-${zoom}`,

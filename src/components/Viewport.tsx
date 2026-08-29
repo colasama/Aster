@@ -38,6 +38,12 @@ import { BUFFER_VISUALIZATIONS, type BufferVisualization } from "../renderer/ren
 import { createDefaultBezierPath } from "../renderer/vector-path";
 import { WebGpuRenderer } from "../renderer/webgpu-renderer";
 import { useEditor } from "../state/editor-store";
+import {
+  DEFAULT_VIEWPORT_ZOOM,
+  MAX_VIEWPORT_ZOOM,
+  MIN_VIEWPORT_ZOOM,
+  viewportZoomPercent,
+} from "../ui/viewport-zoom";
 import { hitTestViewportTransform } from "../viewport/transform-interaction";
 import { resolveWorkspaceViewerComposition } from "../workspace/viewer-context";
 import { CameraGizmo } from "./CameraGizmo";
@@ -898,8 +904,8 @@ export function Viewport() {
         </button>
         <input
           aria-label={t("viewport.zoom")}
-          max="1"
-          min="0.05"
+          max={MAX_VIEWPORT_ZOOM}
+          min={MIN_VIEWPORT_ZOOM}
           onChange={(event) =>
             dispatch({ type: "setViewportZoom", zoom: Number(event.target.value) })
           }
@@ -907,14 +913,23 @@ export function Viewport() {
           type="range"
           value={state.viewportZoom}
         />
-        <button
+        <input
+          aria-label={t("viewport.zoom")}
           className="zoom-value"
-          onClick={() => dispatch({ type: "setViewportZoom", zoom: 0.22 })}
+          max={MAX_VIEWPORT_ZOOM * 100}
+          min={MIN_VIEWPORT_ZOOM * 100}
+          onChange={(event) =>
+            dispatch({ type: "setViewportZoom", zoom: event.currentTarget.valueAsNumber / 100 })
+          }
+          onDoubleClick={() => dispatch({ type: "setViewportZoom", zoom: DEFAULT_VIEWPORT_ZOOM })}
+          step="1"
           title={t("viewport.resetZoom")}
-          type="button"
-        >
-          {Math.round(state.viewportZoom * 100)}%
-        </button>
+          type="number"
+          value={viewportZoomPercent(state.viewportZoom)}
+        />
+        <span aria-hidden="true" className="zoom-value-unit">
+          %
+        </span>
         <button
           aria-label={t("viewport.zoomIn")}
           onClick={() => dispatch({ type: "setViewportZoom", zoom: state.viewportZoom * 1.15 })}

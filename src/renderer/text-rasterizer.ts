@@ -17,12 +17,9 @@ export function rasterizeTextLayer(
   layer: Layer,
   maximumDimension: number,
   localTime = 0,
+  resolutionScale = 1,
 ): RasterizedText {
-  const sourceWidth = Math.max(1, layer.size[0]);
-  const sourceHeight = Math.max(1, layer.size[1]);
-  const scale = Math.min(1, maximumDimension / Math.max(sourceWidth, sourceHeight));
-  const width = Math.max(1, Math.ceil(sourceWidth * scale));
-  const height = Math.max(1, Math.ceil(sourceHeight * scale));
+  const { width, height } = textRasterSize(layer, maximumDimension, resolutionScale);
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
@@ -30,6 +27,24 @@ export function rasterizeTextLayer(
   if (!context) throw new Error("Text rasterization canvas is unavailable");
   drawTextLayer(context, layer, width, height, localTime);
   return { width, height, pixels: context.getImageData(0, 0, width, height).data };
+}
+
+export function textRasterSize(
+  layer: Pick<Layer, "size">,
+  maximumDimension: number,
+  resolutionScale = 1,
+): { width: number; height: number } {
+  const sourceWidth = Math.max(1, layer.size[0]);
+  const sourceHeight = Math.max(1, layer.size[1]);
+  const requestedScale = Number.isFinite(resolutionScale) ? Math.max(1, resolutionScale) : 1;
+  const scale = Math.min(
+    requestedScale,
+    Math.max(1, maximumDimension) / Math.max(sourceWidth, sourceHeight),
+  );
+  return {
+    width: Math.max(1, Math.ceil(sourceWidth * scale)),
+    height: Math.max(1, Math.ceil(sourceHeight * scale)),
+  };
 }
 
 export function drawTextLayer(

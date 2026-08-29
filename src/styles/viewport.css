@@ -315,9 +315,25 @@
   accent-color: var(--blue);
 }
 .viewport-status .zoom-value {
-  min-width: 34px;
+  width: 38px;
+  height: 18px;
   padding: 0 3px;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: transparent;
+  color: inherit;
   font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 9px;
+  text-align: right;
+}
+.viewport-status .zoom-value:hover,
+.viewport-status .zoom-value:focus-visible {
+  border-color: #353944;
+  outline: none;
+}
+.viewport-status .zoom-value-unit {
+  margin-left: -12px;
+  pointer-events: none;
 }
 .viewport-status span {
   overflow: hidden;

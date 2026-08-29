@@ -3,7 +3,7 @@ import { createLayerForComposition } from "../core/layer-factory";
 import { createBlankComposition } from "../core/project";
 import type { FootageSource } from "../core/types";
 import { mediaImportRuntime } from "../importers/media-import-runtime";
-import { MediaTextureCache } from "./media-texture-cache";
+import { MediaTextureCache, svgPreviewRasterTarget } from "./media-texture-cache";
 
 beforeEach(() => {
   vi.stubGlobal("GPUTextureUsage", {
@@ -17,6 +17,13 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("exact-frame media resource barrier", () => {
+  it("requests high-magnification SVG rasters instead of stretching the base texture", () => {
+    const target = svgPreviewRasterTarget(400, 200, 8, 4_096);
+    expect(target.width).toBeGreaterThanOrEqual(3_200);
+    expect(target.height).toBeGreaterThanOrEqual(1_600);
+    expect(target.width).toBeLessThanOrEqual(4_096);
+  });
+
   it("waits for the current still generation and ignores stale completion", async () => {
     const first = deferred<ImageBitmap>();
     const second = deferred<ImageBitmap>();

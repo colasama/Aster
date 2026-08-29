@@ -17,6 +17,7 @@ import { storeRecoverySnapshot } from "../core/project-file";
 import type { Id, Project, RendererMetrics } from "../core/types";
 import { isDesktopRuntime, migrateLegacyPreferences } from "../desktop/api";
 import { APP_PREFERENCES_CHANGED_EVENT, type UserPreferencePatch } from "../desktop/preferences";
+import { DEFAULT_VIEWPORT_ZOOM, normalizeViewportZoom } from "../ui/viewport-zoom";
 
 export interface EditorState {
   project: Project;
@@ -112,7 +113,7 @@ export function createInitialState(): EditorState {
     currentTime: 0.72,
     playing: false,
     timelineZoom: 1,
-    viewportZoom: 0.22,
+    viewportZoom: DEFAULT_VIEWPORT_ZOOM,
     previewQuality: 1,
     gpuMemoryBudgetMb: readGpuMemoryBudget(),
     leftTab: "project",
@@ -199,7 +200,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
     case "setTimelineZoom":
       return { ...state, timelineZoom: Math.max(0.5, Math.min(8, action.zoom)) };
     case "setViewportZoom":
-      return { ...state, viewportZoom: Math.max(0.05, Math.min(2, action.zoom)) };
+      return { ...state, viewportZoom: normalizeViewportZoom(action.zoom) };
     case "setPreviewQuality":
       return { ...state, previewQuality: action.quality };
     case "setGpuMemoryBudget":

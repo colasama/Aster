@@ -592,6 +592,10 @@ export class WebGpuRenderer {
         },
       );
     this.#materialTextures?.prepare(composition, geometry.batches);
+    const previewResolutionScale = Math.max(
+      this.#width / Math.max(1, composition.width),
+      this.#height / Math.max(1, composition.height),
+    );
     for (const scene of sceneLayers) {
       if (scene.layer.kind === "text") {
         this.#mediaTextures.prepareText(
@@ -599,6 +603,7 @@ export class WebGpuRenderer {
           scene.resourceInstanceId,
           evaluateLayerSourceTime(scene.layer, scene.localTime),
           composition.frameRate.numerator / composition.frameRate.denominator,
+          previewResolutionScale,
         );
       } else if (
         (scene.layer.kind === "image" || scene.layer.kind === "video") &&
@@ -612,6 +617,7 @@ export class WebGpuRenderer {
           scene.localTime,
           playing,
           scene.resourceInstanceId,
+          previewResolutionScale,
         );
       }
     }

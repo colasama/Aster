@@ -2,13 +2,28 @@ import { describe, expect, it, vi } from "vitest";
 import { createLayerForComposition } from "../core/layer-factory";
 import { createBlankComposition } from "../core/project";
 import { staticValue } from "../core/types";
-import { breakTextLines, drawTextLayer } from "./text-rasterizer";
+import { breakTextLines, drawTextLayer, textRasterSize } from "./text-rasterizer";
 
 const monospace = (text: string) => Array.from(text).length * 10;
 const graphemeMeasure = (text: string) =>
   Array.from(new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(text)).length * 10;
 
 describe("Unicode text line breaking", () => {
+  it("supersamples text for high-magnification previews within the GPU limit", () => {
+    expect(textRasterSize({ size: [400, 100] }, 4_096, 8)).toEqual({
+      width: 3_200,
+      height: 800,
+    });
+    expect(textRasterSize({ size: [1_000, 250] }, 8_192, 8)).toEqual({
+      width: 8_000,
+      height: 2_000,
+    });
+    expect(textRasterSize({ size: [2_000, 500] }, 8_192, 8)).toEqual({
+      width: 8_192,
+      height: 2_048,
+    });
+  });
+
   it("wraps words while preserving explicit line breaks", () => {
     expect(breakTextLines("GPU first motion\nAster", 90, monospace)).toEqual([
       "GPU first",
