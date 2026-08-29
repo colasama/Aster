@@ -175,7 +175,7 @@ export function useDocumentLifecycle(
         handlingSystemRequest.current = true;
         let nativeContext = false;
         try {
-          let recovery = readRecoverySnapshot();
+          let recovery = await readRecoverySnapshot();
           if (isDesktopRuntime()) {
             const preferences = await getPreferences();
             const path = preferences.lastProjectPath;

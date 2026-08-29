@@ -40,6 +40,7 @@ import { AsterLogger, isRendererLogPayload, type LogLevel, parseLogLevel } from 
 import { discoverDesktopImageSequence } from "./media-import.js";
 import { Mp4ExportManager } from "./mp4-export.js";
 import { developmentProfileDirectory } from "./profile-paths.js";
+import { authorizeProjectMediaExternalPaths } from "./project-media-authorization.js";
 import { ElectronRenderHostController } from "./render-queue-host.js";
 import { RenderQueueManager } from "./render-queue-manager.js";
 import {
@@ -746,6 +747,8 @@ function registerIpc(
       if (!desktopBridge) throw new Error("Aster desktop bridge is unavailable");
       const commandArgs = args as Record<string, unknown>;
       assertGrantedCommandPaths(command, commandArgs);
+      if (command === "save_project" || command === "save_autosave")
+        authorizeProjectMediaExternalPaths(commandArgs.project, { allowedAssets });
       const result = await desktopBridge.invoke(command, commandArgs);
       if (command === "unpack_project" && typeof result === "string") grantPath(result);
       collectAssetPaths(result);

@@ -57,11 +57,34 @@ Sources are discriminated as `still`, `video`, `audio`, `imageSequence`, `svg`, 
 has a stable ID, MIME type, bounded content identity, optional embedded/relative/runtime locator, and
 explicit alpha/color-space/frame-rate interpretation. Kind-specific dimensions, durations, channel
 metadata, sequence ranges, and PSD layer counts are bounded before use. Current importers produce
-`still`, `video`, and first-class `audio` sources. Audio admits bounded WAV, MP3, AAC, M4A, OGG, and
+all six source kinds. Audio admits bounded WAV, MP3, AAC, M4A, OGG, and
 FLAC inputs only after the browser decoder proves support; the native link boundary records the
-selected stream index, channel count, and sample rate from FFprobe. The remaining discriminants
-reserve compatible project data without claiming a decoder. Importers implement the fixed `probe`,
-`validate`, and `import` contract and must validate before admitting a source.
+selected stream index, channel count, and sample rate from FFprobe. Importers implement the fixed
+`probe`, `validate`, and `import` contract and must validate before admitting a source.
+
+## Recoverable advanced media
+
+SVG, PSD, and image-sequence decoder state is runtime-owned, but version 8 project documents may
+carry a bounded `mediaImports` sidecar that can recreate it. Entries map stable source IDs to a
+deduplicated payload table. SVG payloads retain sanitized vector markup for resolution-independent
+rerasterization. Every PSD layer stores only its import mode and stable layer key; all layers from the
+same document reference one compressed original document payload. Sequence payloads retain immutable
+pattern, rational frame-rate, missing-frame policy, and per-frame identity metadata.
+
+Browser JSON downloads and browser recovery snapshots embed at most 128 MiB of validated payload
+bytes. Native saves and autosaves accept only picker-authorized external inputs, verify byte identity
+while streaming, and atomically materialize content-addressed files below `assets/imports`. Persisted
+`project.json` contains only bundle-relative paths and identities: absolute paths, `blob:` URLs,
+`aster-asset:` URLs, decoded PSD planes, and load-only `resolvedPath` fields are never written. Native
+load canonicalizes every path, rejects traversal, symbolic links, junction/reparse points, missing
+files, mutations, kind mismatches, and bound mismatches before atomically replacing the runtime
+registry. Packed `.aster` archives therefore remain usable after the originally imported files move
+or are deleted.
+
+Managed import files are content-addressed and shared by primary saves and recovery autosaves. Save
+does not delete unreferenced files because an older recovery snapshot may still reference them; pack
+currently includes those conservative stale files. A future garbage collector must trace both the
+primary document and every recoverable autosave before reclaiming them.
 
 Version 5 gives audio-bearing layers a required `audio` object with stereo `levelsDb`, `pan`, `muted`,
 and `reversed` fields. Audio-only layers use `kind: "audio"`, never emit visual geometry, and reference

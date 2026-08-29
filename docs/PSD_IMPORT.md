@@ -18,6 +18,11 @@ avoiding a document-sized CPU allocation per layer. PSD blend modes with exact A
 preserved; unsupported modes produce a per-layer warning and a deterministic Normal fallback rather
 than silently claiming parity.
 
+Project persistence keeps the original compressed PSD once per document identity. Separate imported
+layers reference stable plan keys, so save, autosave, reopen, recovery, and packed-project hydration
+reparse one bounded document instead of duplicating original bytes or decoded planes per layer.
+Native saves stream the selected document into the bundle and never persist its absolute path.
+
 Adobe behavior reference:
 
 - <https://helpx.adobe.com/after-effects/using/preparing-importing-still-images.html>

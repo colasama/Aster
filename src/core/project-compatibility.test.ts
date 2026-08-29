@@ -100,18 +100,18 @@ describe("project compatibility fallbacks", () => {
     expect(() => validateProjectDocument(project)).toThrow("stay inside the project bundle");
   });
 
-  it("discards a corrupted recovery snapshot without replacing the project", () => {
+  it("discards a corrupted recovery snapshot without replacing the project", async () => {
     const entries = new Map<string, string>();
     const storage = {
       getItem: (key: string) => entries.get(key) ?? null,
       setItem: (key: string, value: string) => entries.set(key, value),
       removeItem: (key: string) => entries.delete(key),
     };
-    storeRecoverySnapshot(createBlankProject(), storage);
+    await storeRecoverySnapshot(createBlankProject(), storage);
     const recoveryKey = [...entries.keys()][0];
     entries.set(recoveryKey, "{ truncated project");
 
-    expect(readRecoverySnapshot(storage)).toBeUndefined();
+    expect(await readRecoverySnapshot(storage)).toBeUndefined();
     expect(entries.has(recoveryKey)).toBe(false);
   });
 });

@@ -13,7 +13,9 @@ use std::{
 
 mod logging;
 mod plugin_registry;
+mod project_media;
 use plugin_registry::plugin_registry_catalog;
+use project_media::{materialize_project_media, resolve_project_media_paths};
 
 pub use logging::init as init_logging;
 
@@ -36,9 +38,12 @@ fn renderer_capabilities() -> RendererCapabilities {
     }
 }
 
-async fn save_project(path: String, project: serde_json::Value) -> Result<(), String> {
+async fn save_project(path: String, mut project: serde_json::Value) -> Result<(), String> {
     blocking_io(move || {
-        aster_project::save_editor_bundle(path, &project).map_err(|error| error.to_string())
+        let bundle = PathBuf::from(path);
+        aster_project::validate_editor_project(&project).map_err(|error| error.to_string())?;
+        materialize_project_media(&bundle, &mut project)?;
+        aster_project::save_editor_bundle(bundle, &project).map_err(|error| error.to_string())
     })
     .await
 }
@@ -142,9 +147,12 @@ async fn link_project_asset(
     blocking_io(move || link_asset(&bundle, &source, &kind)).await
 }
 
-async fn save_autosave(path: String, project: serde_json::Value) -> Result<(), String> {
+async fn save_autosave(path: String, mut project: serde_json::Value) -> Result<(), String> {
     blocking_io(move || {
-        aster_project::save_autosave(path, &project).map_err(|error| error.to_string())
+        let bundle = PathBuf::from(path);
+        aster_project::validate_editor_project(&project).map_err(|error| error.to_string())?;
+        materialize_project_media(&bundle, &mut project)?;
+        aster_project::save_autosave(bundle, &project).map_err(|error| error.to_string())
     })
     .await
 }
@@ -157,7 +165,11 @@ async fn recovery_candidate(path: String) -> Result<Option<serde_json::Value>, S
         let mut candidate =
             aster_project::recovery_candidate(&bundle).map_err(|error| error.to_string())?;
         let assets = match candidate.as_mut() {
-            Some(project) => resolve_project_asset_paths(&bundle, project)?,
+            Some(project) => {
+                let mut assets = resolve_project_asset_paths(&bundle, project)?;
+                assets.extend(resolve_project_media_paths(&bundle, project)?);
+                assets
+            }
             None => Vec::new(),
         };
         Ok((candidate, assets))
@@ -214,7 +226,8 @@ fn load_project_assets(path: &str) -> Result<(serde_json::Value, Vec<PathBuf>), 
         .map_err(|error| error.to_string())?;
     let mut project =
         aster_project::load_editor_bundle(&bundle).map_err(|error| error.to_string())?;
-    let assets = resolve_project_asset_paths(&bundle, &mut project)?;
+    let mut assets = resolve_project_asset_paths(&bundle, &mut project)?;
+    assets.extend(resolve_project_media_paths(&bundle, &mut project)?);
     Ok((project, assets))
 }
 
@@ -474,9 +487,11 @@ fn valid_render_frame_name(name: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::{
-        link_asset, read_plugin_preferences, safe_relative_path, sha256_file_identity,
+        link_asset, load_project, pack_project, read_plugin_preferences, recovery_candidate,
+        safe_relative_path, save_autosave, save_project, sha256_file_identity, unpack_project,
         valid_render_frame_name, write_render_frame,
     };
+    use serde_json::json;
     use std::fs;
 
     #[test]
@@ -526,6 +541,86 @@ mod tests {
     }
 
     #[test]
+    fn advanced_media_survives_save_recovery_and_pack_without_its_original() {
+        tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .expect("create test runtime")
+            .block_on(advanced_media_lifecycle());
+    }
+
+    async fn advanced_media_lifecycle() {
+        let suffix = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("system clock")
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!("aster-media-lifecycle-{suffix}"));
+        let bundle = root.join("project");
+        let unpack_parent = root.join("unpacked");
+        let archive = root.join("packed.aster");
+        let original = root.join("original.svg");
+        fs::create_dir_all(&unpack_parent).expect("create unpack parent");
+        let bytes = b"<svg viewBox=\"0 0 10 10\"/>";
+        fs::write(&original, bytes).expect("write original media");
+        let identity = test_fnv64_identity(bytes);
+        let project = json!({
+            "schemaVersion": 8,
+            "activeCompositionId": "main",
+            "compositions": [{ "id": "main", "layers": [] }],
+            "mediaImports": {
+                "version": 1,
+                "entries": [{ "sourceId": "svg", "kind": "svg", "contentIdentity": identity, "payloadId": "svg:payload" }],
+                "payloads": [{
+                    "id": "svg:payload",
+                    "kind": "svg",
+                    "contentIdentity": identity,
+                    "width": 10,
+                    "height": 10,
+                    "storage": { "kind": "external", "externalPath": original, "byteIdentity": identity }
+                }]
+            }
+        });
+
+        save_project(bundle.to_string_lossy().into_owned(), project)
+            .await
+            .expect("save project");
+        fs::remove_file(&original).expect("remove original media");
+        let persisted = fs::read_to_string(bundle.join("project.json")).expect("read project");
+        assert!(!persisted.contains("externalPath"));
+        assert!(!persisted.contains("resolvedPath"));
+        assert!(!persisted.contains("\"data\""));
+
+        let loaded = load_project(bundle.to_string_lossy().into_owned())
+            .await
+            .expect("load project");
+        assert!(loaded["mediaImports"]["payloads"][0]["storage"]["resolvedPath"].is_string());
+        save_autosave(bundle.to_string_lossy().into_owned(), loaded)
+            .await
+            .expect("save autosave");
+        let recovered = recovery_candidate(bundle.to_string_lossy().into_owned())
+            .await
+            .expect("read recovery")
+            .expect("recovery candidate");
+        assert!(recovered["mediaImports"]["payloads"][0]["storage"]["resolvedPath"].is_string());
+
+        pack_project(
+            bundle.to_string_lossy().into_owned(),
+            archive.to_string_lossy().into_owned(),
+        )
+        .await
+        .expect("pack project");
+        let unpacked = unpack_project(
+            archive.to_string_lossy().into_owned(),
+            unpack_parent.to_string_lossy().into_owned(),
+        )
+        .await
+        .expect("unpack project");
+        let packed = load_project(unpacked).await.expect("load packed project");
+        assert!(packed["mediaImports"]["payloads"][0]["storage"]["resolvedPath"].is_string());
+        fs::remove_dir_all(root).expect("remove lifecycle test directory");
+    }
+
+    #[test]
     fn render_frames_are_atomically_written() {
         let directory =
             std::env::temp_dir().join(format!("aster-render-frame-test-{}", std::process::id()));
@@ -568,6 +663,16 @@ mod tests {
         .expect("parse preferences");
         assert_eq!(persisted["schemaVersion"], 1);
         fs::remove_dir_all(directory).expect("remove preferences directory");
+    }
+
+    fn test_fnv64_identity(bytes: &[u8]) -> String {
+        let mut left = 0x811c9dc5_u32;
+        let mut right = 0x9e3779b9_u32;
+        for byte in bytes {
+            left = (left ^ u32::from(*byte)).wrapping_mul(0x01000193);
+            right = (right ^ u32::from(*byte)).wrapping_mul(0x85ebca6b);
+        }
+        format!("fnv64:{left:08x}{right:08x}:{}", bytes.len())
     }
 }
 

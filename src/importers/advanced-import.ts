@@ -3,6 +3,7 @@ import type { Composition, FootageSource, Layer } from "../core/types";
 import { createId, staticValue } from "../core/types";
 import { detectImageSequence, type ImageSequenceSelection } from "./image-sequence";
 import type { MissingSequenceFramePolicy } from "./image-sequence-runtime";
+import { mediaBytesIdentity, mediaTextIdentity } from "./media-import-identity";
 import {
   mediaImportRuntime,
   type RuntimeSequenceFile,
@@ -45,11 +46,17 @@ export function detectAdvancedImportKind(
 }
 
 export async function importSvgFile(
-  file: Pick<File, "name" | "text">,
+  file: Pick<File, "name" | "text"> & { runtimeUrl?: string },
   composition: Composition,
   currentTime: number,
 ): Promise<AdvancedImportResult> {
-  return createSvgImport(parseSvgSource(await file.text()), file.name, composition, currentTime);
+  return createSvgImport(
+    parseSvgSource(await file.text()),
+    file.name,
+    composition,
+    currentTime,
+    file.runtimeUrl,
+  );
 }
 
 export function createSvgImport(
@@ -57,6 +64,7 @@ export function createSvgImport(
   fileName: string,
   composition: Composition,
   currentTime: number,
+  runtimeUrl?: string,
 ): AdvancedImportResult {
   const sourceId = createId();
   const source: FootageSource = {
@@ -64,8 +72,8 @@ export function createSvgImport(
     kind: "svg",
     name: fileName,
     mimeType: "image/svg+xml",
-    contentIdentity: textIdentity(parsed.sanitized),
-    runtimeUrl: runtimeSourceLocator(sourceId),
+    contentIdentity: mediaTextIdentity(parsed.sanitized),
+    runtimeUrl: runtimeUrl ?? runtimeSourceLocator(sourceId),
     interpretation: { alpha: "straight", colorSpace: "srgb" },
     width: parsed.width,
     height: parsed.height,
@@ -76,13 +84,13 @@ export function createSvgImport(
 }
 
 export async function importPsdFile(
-  file: Pick<File, "name" | "arrayBuffer">,
+  file: Pick<File, "name" | "arrayBuffer"> & { runtimeUrl?: string; sourcePath?: string },
   mode: PsdImportMode,
   composition: Composition,
   currentTime: number,
 ): Promise<AdvancedImportResult> {
   const buffer = await file.arrayBuffer();
-  const identity = bufferIdentity(buffer);
+  const identity = mediaBytesIdentity(new Uint8Array(buffer));
   return createPsdImport(
     await parsePsd(buffer),
     mode,
@@ -90,6 +98,9 @@ export async function importPsdFile(
     identity,
     composition,
     currentTime,
+    new Uint8Array(buffer.slice(0)),
+    file.runtimeUrl,
+    file.sourcePath,
   );
 }
 
@@ -100,6 +111,9 @@ export function createPsdImport(
   documentIdentity: string,
   activeComposition: Composition,
   currentTime: number,
+  documentBytes?: Uint8Array,
+  runtimeUrl?: string,
+  originalPath?: string,
 ): AdvancedImportResult {
   const name = withoutExtension(fileName);
   const plan = planPsdImport(document, mode, name);
@@ -122,7 +136,7 @@ export function createPsdImport(
       name: planned.name,
       mimeType: "image/vnd.adobe.photoshop",
       contentIdentity: `${documentIdentity}:${mode}:${planned.key}`,
-      runtimeUrl: runtimeSourceLocator(sourceId),
+      runtimeUrl: runtimeUrl ?? runtimeSourceLocator(sourceId),
       interpretation: { alpha: "straight", colorSpace: "srgb" },
       width: planned.sourceSize[0],
       height: planned.sourceSize[1],
@@ -132,6 +146,9 @@ export function createPsdImport(
       kind: "psd",
       documentIdentity,
       importMode: mode,
+      layerKey: planned.key,
+      ...(documentBytes ? { documentBytes } : {}),
+      ...(originalPath ? { originalPath } : {}),
       decodedWidth: Math.max(1, planned.sourceRectangle.right - planned.sourceRectangle.left),
       decodedHeight: Math.max(1, planned.sourceRectangle.bottom - planned.sourceRectangle.top),
       crop: [cropX, cropY, cropWidth, cropHeight],
@@ -318,33 +335,13 @@ function validateFrameRate(frameRate: { numerator: number; denominator: number }
 }
 
 function sequenceIdentity(selection: ImageSequenceSelection<RuntimeSequenceFile>): string {
-  return textIdentity(
+  return mediaTextIdentity(
     selection.frames
       .map(
         ({ frame, file }) => `${frame}:${file.name}:${file.size}:${file.lastModified}:${file.type}`,
       )
       .join("|"),
   );
-}
-
-function textIdentity(value: string): string {
-  return bytesIdentity(new TextEncoder().encode(value));
-}
-
-function bufferIdentity(value: ArrayBuffer): string {
-  return bytesIdentity(new Uint8Array(value));
-}
-
-function bytesIdentity(bytes: Uint8Array): string {
-  let left = 0x811c9dc5;
-  let right = 0x9e3779b9;
-  for (const byte of bytes) {
-    left = Math.imul(left ^ byte, 0x01000193);
-    right = Math.imul(right ^ byte, 0x85ebca6b);
-  }
-  return `fnv64:${(left >>> 0).toString(16).padStart(8, "0")}${(right >>> 0)
-    .toString(16)
-    .padStart(8, "0")}:${bytes.byteLength}`;
 }
 
 function withoutExtension(value: string): string {

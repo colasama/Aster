@@ -6,6 +6,13 @@ import {
   open,
   save,
 } from "../desktop/api";
+import {
+  createPersistedMediaImports,
+  hydratePersistedMediaImports,
+  type MediaImportPersistenceMode,
+  type PersistedMediaImports,
+} from "../importers/media-import-persistence";
+import { mediaImportRuntime } from "../importers/media-import-runtime";
 import { assertAdjustmentLayerInvariants } from "./adjustment-layer";
 import {
   MAX_AUDIO_LEVEL_DB,
@@ -154,13 +161,14 @@ export function serializeProject(project: Project): string {
 }
 
 export async function downloadProject(project: Project): Promise<void> {
+  const document = await projectDocumentWithMediaImports(project, "portable");
   const serialized = await runCpuTask(
     {
       kind: "serialize-json",
       maxOutputCharacters: MAX_EMBEDDED_ASSET_CHARACTERS + 16 * 1024 * 1024,
       spacing: 2,
       trailingNewline: true,
-      value: projectDocumentForPersistence(project),
+      value: document,
     },
     { priority: "interactive" },
   );
@@ -196,10 +204,11 @@ export async function saveProjectDocument(
   }
   const destination = nativeProjectPath;
   try {
+    const document = await projectDocumentWithMediaImports(project, "native");
     await queueNativePersistence(async () => {
       await invoke("save_project", {
         path: destination,
-        project: projectDocumentForPersistence(project),
+        project: document,
       });
       await invoke("clear_autosave", { path: destination });
     });
@@ -226,8 +235,9 @@ export async function pickProjectFile(
     });
     if (typeof selected !== "string") return undefined;
     if (beforeLoad && !(await beforeLoad())) return undefined;
-    const project = validateProjectDocument(
+    const project = await openPersistedProjectDocument(
       hydrateRuntimeAssetUrls(await invoke("load_project", { path: selected })),
+      true,
     );
     nativeProjectPath = selected;
     logger.info("project", "loaded", { compositionCount: project.compositions.length });
@@ -250,7 +260,7 @@ export async function pickProjectFile(
             resolve(undefined);
             return;
           }
-          const project = validateProjectDocument(JSON.parse(await file.text()));
+          const project = await openPersistedProjectDocument(JSON.parse(await file.text()), false);
           logger.info("project", "loaded", { compositionCount: project.compositions.length });
           resolve({
             project,
@@ -271,8 +281,9 @@ export async function loadProjectFromPath(
 ): Promise<{ project: Project; name: string }> {
   if (!isDesktopRuntime())
     throw new Error("System project opening requires the desktop application");
-  const project = validateProjectDocument(
+  const project = await openPersistedProjectDocument(
     hydrateRuntimeAssetUrls(await invoke("load_project", { path })),
+    true,
   );
   nativeProjectPath = path;
   logger.info("project", "loaded", { compositionCount: project.compositions.length });
@@ -290,6 +301,7 @@ export async function openProjectFromSystemPath(
 
 export function clearCurrentProjectPath(): void {
   nativeProjectPath = undefined;
+  mediaImportRuntime.clear();
   if (isDesktopRuntime()) void forgetActiveProject();
 }
 
@@ -333,8 +345,9 @@ async function unpackPackedProject(
   if (typeof parent !== "string") return undefined;
   if (beforeLoad && !(await beforeLoad())) return undefined;
   const destination = await invoke<string>("unpack_project", { archive, parent });
-  const project = validateProjectDocument(
+  const project = await openPersistedProjectDocument(
     hydrateRuntimeAssetUrls(await invoke("load_project", { path: destination })),
+    true,
   );
   nativeProjectPath = destination;
   logger.info("project", "packed_project_loaded", {
@@ -351,10 +364,11 @@ export async function storeRecoverySnapshot(
   let nativeError: unknown;
   if (autosavePath) {
     try {
+      const document = await projectDocumentWithMediaImports(project, "native");
       await queueNativePersistence(() =>
         invoke("save_autosave", {
           path: autosavePath,
-          project: projectDocumentForPersistence(project),
+          project: document,
         }),
       );
       nativeAutosaveFailureReported = false;
@@ -369,18 +383,23 @@ export async function storeRecoverySnapshot(
     }
   }
   try {
-    storage.setItem(RECOVERY_KEY, serializeProject(project));
+    storage.setItem(
+      RECOVERY_KEY,
+      `${JSON.stringify(await projectDocumentWithMediaImports(project, "portable"), null, 2)}\n`,
+    );
   } catch (error) {
     removeBrowserRecoverySnapshot(storage);
     throw nativeError ?? error;
   }
 }
 
-export function readRecoverySnapshot(storage: RecoveryStorage = localStorage): Project | undefined {
+export async function readRecoverySnapshot(
+  storage: RecoveryStorage = localStorage,
+): Promise<Project | undefined> {
   const document = storage.getItem(RECOVERY_KEY);
   if (!document) return undefined;
   try {
-    return validateProjectDocument(JSON.parse(document));
+    return await openPersistedProjectDocument(JSON.parse(document), false);
   } catch {
     storage.removeItem(RECOVERY_KEY);
     return undefined;
@@ -388,7 +407,7 @@ export function readRecoverySnapshot(storage: RecoveryStorage = localStorage): P
 }
 
 export async function readRecoverySnapshotForCurrentProject(): Promise<Project | undefined> {
-  return (await readNativeRecoverySnapshotForCurrentProject()) ?? readRecoverySnapshot();
+  return (await readNativeRecoverySnapshotForCurrentProject()) ?? (await readRecoverySnapshot());
 }
 
 export async function readNativeRecoverySnapshotForCurrentProject(): Promise<Project | undefined> {
@@ -396,7 +415,9 @@ export async function readNativeRecoverySnapshotForCurrentProject(): Promise<Pro
   const candidate = await invoke<unknown>("recovery_candidate", {
     path: nativeProjectPath,
   });
-  return candidate ? validateProjectDocument(hydrateRuntimeAssetUrls(candidate)) : undefined;
+  return candidate
+    ? await openPersistedProjectDocument(hydrateRuntimeAssetUrls(candidate), true)
+    : undefined;
 }
 
 export async function clearRecoverySnapshot(
@@ -505,6 +526,40 @@ export function projectDocumentForPersistence(project: Project): Project {
     itemFolderIds: { ...project.itemFolderIds },
     commandLog: project.commandLog.map((entry) => ({ ...entry })),
   };
+}
+
+export async function projectDocumentWithMediaImports(
+  project: Project,
+  mode: MediaImportPersistenceMode,
+): Promise<Project & { mediaImports?: PersistedMediaImports }> {
+  const document = projectDocumentForPersistence(project) as Project & {
+    mediaImports?: PersistedMediaImports;
+  };
+  const mediaImports = await createPersistedMediaImports(project, mode);
+  if (mediaImports) document.mediaImports = mediaImports;
+  return document;
+}
+
+export async function openPersistedProjectDocument(
+  value: unknown,
+  allowResolvedMediaPaths = false,
+): Promise<Project> {
+  const { document, mediaImports } = splitPersistedMediaImports(value);
+  const project = validateProjectDocument(document);
+  await hydratePersistedMediaImports(project, mediaImports, {
+    allowResolvedPaths: allowResolvedMediaPaths,
+  });
+  return project;
+}
+
+function splitPersistedMediaImports(value: unknown): {
+  document: unknown;
+  mediaImports: unknown;
+} {
+  if (!value || typeof value !== "object" || Array.isArray(value))
+    return { document: value, mediaImports: undefined };
+  const { mediaImports, ...document } = value as Record<string, unknown>;
+  return { document, mediaImports };
 }
 
 function hydrateRuntimeAssetUrls(value: unknown): unknown {

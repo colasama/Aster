@@ -14,6 +14,11 @@ receive a new identity, and old ImageBitmap/GPU resources are closed through the
 This avoids blurry intrinsic-size upscaling and prevents interactive zooming from growing memory
 without limit.
 
+Save, autosave, recovery, and packed projects retain the sanitized SVG source, dimensions, and byte
+identity rather than a raster or runtime URL. Native bundles materialize one content-addressed `.svg`
+payload; reopen reparses and revalidates it before restoring the runtime registry, preserving exact
+rerasterization at any later preview or export size.
+
 Adobe behavior reference:
 
 - <https://helpx.adobe.com/after-effects/using/preparing-importing-still-images.html>

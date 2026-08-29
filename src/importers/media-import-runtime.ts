@@ -5,12 +5,22 @@ import type { ParsedSvgSource } from "./svg";
 
 export interface RuntimeSequenceFile extends SequenceFileLike {
   url: string;
+  /** Native source path retained only until the project bundle owns a copy. */
+  path?: string;
+  /** Verified byte identity populated by persisted projects. */
+  byteIdentity?: string;
 }
 
 export interface RuntimePsdLayer {
   kind: "psd";
   documentIdentity: string;
   importMode: PsdImportMode;
+  /** Stable plan key used to recover this layer from one deduplicated PSD document payload. */
+  layerKey: string;
+  /** Original compressed PSD bytes. All layers from one import share this immutable payload. */
+  documentBytes?: Uint8Array;
+  /** Native source path retained only until the project bundle owns a copy. */
+  originalPath?: string;
   decodedWidth: number;
   decodedHeight: number;
   crop: readonly [number, number, number, number];
@@ -36,6 +46,10 @@ type RuntimeEntry = {
   value: RuntimeMediaImport;
   dispose?: () => void;
 };
+
+export interface RuntimeMediaRegistration extends RuntimeEntry {
+  sourceId: string;
+}
 
 /**
  * Keeps heavyweight decoded/import-only state outside project snapshots. Project operations and
@@ -69,6 +83,29 @@ class MediaImportRuntimeRegistry {
   register(sourceId: string, value: RuntimeMediaImport, dispose?: () => void): void {
     this.remove(sourceId);
     this.#entries.set(sourceId, { value, ...(dispose ? { dispose } : {}) });
+    this.#emit();
+  }
+
+  /** Atomically replaces project-owned runtime state after a complete hydration succeeds. */
+  replace(
+    registrations: readonly RuntimeMediaRegistration[],
+    errors: ReadonlyMap<string, string> = new Map(),
+  ): void {
+    const nextIds = new Set<string>();
+    for (const registration of registrations) {
+      if (!registration.sourceId || nextIds.has(registration.sourceId))
+        throw new Error("Runtime media hydration contains a duplicate source id");
+      nextIds.add(registration.sourceId);
+    }
+    for (const entry of this.#entries.values()) entry.dispose?.();
+    this.#entries.clear();
+    this.#errors.clear();
+    for (const registration of registrations)
+      this.#entries.set(registration.sourceId, {
+        value: registration.value,
+        ...(registration.dispose ? { dispose: registration.dispose } : {}),
+      });
+    for (const [sourceId, message] of errors) this.#errors.set(sourceId, message);
     this.#emit();
   }
 
@@ -107,7 +144,11 @@ class MediaImportRuntimeRegistry {
   }
 
   clear(): void {
-    for (const sourceId of [...this.#entries.keys()]) this.remove(sourceId);
+    if (this.#entries.size === 0 && this.#errors.size === 0) return;
+    for (const entry of this.#entries.values()) entry.dispose?.();
+    this.#entries.clear();
+    this.#errors.clear();
+    this.#emit();
   }
 
   #emit(): void {

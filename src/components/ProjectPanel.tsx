@@ -449,7 +449,10 @@ export function ProjectPanel() {
       },
     });
   };
-  const importSvg = async (file: Pick<File, "name" | "text">, folderId = addTarget?.folderId) => {
+  const importSvg = async (
+    file: Pick<File, "name" | "text"> & { runtimeUrl?: string },
+    folderId = addTarget?.folderId,
+  ) => {
     try {
       setAssetError(undefined);
       setAssetErrorDetail(undefined);
@@ -459,7 +462,7 @@ export function ProjectPanel() {
     }
   };
   const importPsd = async (
-    file: Pick<File, "name" | "arrayBuffer">,
+    file: Pick<File, "name" | "arrayBuffer"> & { runtimeUrl?: string; sourcePath?: string },
     folderId = addTarget?.folderId,
   ) => {
     try {
@@ -514,6 +517,7 @@ export function ProjectPanel() {
     await importSvg(
       {
         name: fileNameFromPath(path),
+        runtimeUrl: url,
         text: () => fetchImportResponse(url).then((response) => response.text()),
       },
       folderId,
@@ -534,6 +538,8 @@ export function ProjectPanel() {
     await importPsd(
       {
         name: fileNameFromPath(path),
+        runtimeUrl: url,
+        sourcePath: path,
         arrayBuffer: () => fetchImportResponse(url).then((response) => response.arrayBuffer()),
       },
       folderId,
