@@ -30,4 +30,9 @@ export const errorsZh = {
   "diagnostic.scope": "范围",
   "diagnostic.occurrences": "已发生 {count} 次",
   "diagnostic.actionFailed": "诊断操作失败",
+  "diagnostic.copy": "复制详情",
+  "diagnostic.retry": "重试",
+  "diagnostic.renderTitle": "编辑器无法渲染",
+  "diagnostic.renderMessage": "Aster 遇到了意外的编辑器错误。",
+  "diagnostic.runtimeTitle": "意外运行时错误",
 } as const satisfies Record<keyof typeof errorsEn, string>;

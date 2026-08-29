@@ -193,3 +193,27 @@
   padding-left: 9px;
   border-left: 2px solid #484e5b;
 }
+
+.diagnostic-fatal-fallback {
+  align-items: center;
+  background: #111319;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+  justify-content: center;
+  min-height: 0;
+}
+
+.diagnostic-fatal-fallback strong {
+  color: #ff7a86;
+  font-size: 15px;
+}
+
+.diagnostic-fatal-fallback button {
+  background: #377dff;
+  border: 0;
+  border-radius: 4px;
+  color: white;
+  padding: 6px 14px;
+}

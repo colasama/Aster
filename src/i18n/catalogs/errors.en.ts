@@ -29,4 +29,9 @@ export const errorsEn = {
   "diagnostic.scope": "Scope",
   "diagnostic.occurrences": "Occurred {count} times",
   "diagnostic.actionFailed": "Diagnostic action failed",
+  "diagnostic.copy": "Copy details",
+  "diagnostic.retry": "Retry",
+  "diagnostic.renderTitle": "The editor could not render",
+  "diagnostic.renderMessage": "Aster encountered an unexpected editor error.",
+  "diagnostic.runtimeTitle": "Unexpected runtime error",
 } as const;
