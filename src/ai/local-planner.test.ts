@@ -16,7 +16,7 @@ describe("local AI operation planner", () => {
     const keyframes = updated.compositions[0].layers[0].transform.position[1];
     expect(keyframes.mode).toBe("animated");
     if (keyframes.mode === "animated")
-      expect(keyframes.keyframes[0].easing).toEqual([0.42, 0, 0.58, 1]);
+      expect(keyframes.keyframes[0].easing).toEqual([1 / 3, 0, 2 / 3, 1]);
   });
 
   it("keeps selected subjects clear and blurs only visible background layers", () => {
