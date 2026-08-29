@@ -39,6 +39,11 @@ export interface WorkspaceLayout {
   readonly closedPanels: readonly string[];
 }
 
+export interface WorkspaceGroupLocation {
+  readonly group: WorkspaceTabGroup;
+  readonly floatingId?: string;
+}
+
 export const MIN_SPLIT_RATIO = 0.1;
 export const MAX_SPLIT_RATIO = 0.9;
 
@@ -339,6 +344,25 @@ export function closePanel(layout: WorkspaceLayout, panelId: string): WorkspaceL
   };
 }
 
+export function closeOtherPanels(
+  layout: WorkspaceLayout,
+  groupId: string,
+  panelId: string,
+): WorkspaceLayout {
+  const group = findWorkspaceNode(layout, groupId);
+  if (group?.kind !== "tabGroup" || !group.panels.includes(panelId)) return layout;
+  return group.panels.reduce(
+    (current, candidate) => (candidate === panelId ? current : closePanel(current, candidate)),
+    layout,
+  );
+}
+
+export function closeGroup(layout: WorkspaceLayout, groupId: string): WorkspaceLayout {
+  const group = findWorkspaceNode(layout, groupId);
+  if (group?.kind !== "tabGroup") return layout;
+  return group.panels.reduce((current, panelId) => closePanel(current, panelId), layout);
+}
+
 export function reopenPanel(
   layout: WorkspaceLayout,
   panelId: string,
@@ -361,6 +385,31 @@ export function reopenPanel(
   const destination = targetNodeId ?? firstTabGroupId(layout.root);
   if (!destination || !findWorkspaceNode(layout, destination)) return layout;
   return dockPanel(layout, panelId, destination, position);
+}
+
+export function dockPanelToRoot(layout: WorkspaceLayout, panelId: string): WorkspaceLayout {
+  const location = workspaceTabGroups(layout).find(({ group }) => group.panels.includes(panelId));
+  if (!location?.floatingId) return layout;
+  if (layout.root) return dockPanel(layout, panelId, firstTabGroupId(layout.root), "center");
+  const detached = detachVisiblePanel(layout, panelId);
+  if (!detached.removed) return layout;
+  return {
+    ...detached.layout,
+    root: {
+      kind: "tabGroup",
+      id: nextLayoutId(detached.layout, "tab-group"),
+      panels: [panelId],
+      activePanelId: panelId,
+    },
+  };
+}
+
+export function dockGroupToRoot(layout: WorkspaceLayout, groupId: string): WorkspaceLayout {
+  const location = workspaceTabGroups(layout).find(({ group }) => group.id === groupId);
+  if (!location?.floatingId) return layout;
+  if (layout.root) return dockGroup(layout, groupId, firstTabGroupId(layout.root), "center");
+  const detached = detachWorkspaceNode(layout, groupId);
+  return detached.node ? { ...detached.layout, root: detached.node } : layout;
 }
 
 export function resizeSplit(
@@ -395,6 +444,13 @@ export function workspacePanelIds(layout: WorkspaceLayout): readonly string[] {
     ...(layout.root ? nodePanelIds(layout.root) : []),
     ...layout.floating.flatMap((entry) => nodePanelIds(entry.node)),
   ];
+}
+
+export function workspaceTabGroups(layout: WorkspaceLayout): readonly WorkspaceGroupLocation[] {
+  const groups: WorkspaceGroupLocation[] = [];
+  if (layout.root) collectTabGroups(layout.root, groups);
+  for (const entry of layout.floating) collectTabGroups(entry.node, groups, entry.id);
+  return groups;
 }
 
 function normalizeNode(node: WorkspaceNode, context: NormalizeContext): WorkspaceNode | null {
@@ -593,6 +649,19 @@ function collectNodeIds(node: WorkspaceNode, ids: Set<string>): void {
     collectNodeIds(node.first, ids);
     collectNodeIds(node.second, ids);
   }
+}
+
+function collectTabGroups(
+  node: WorkspaceNode,
+  groups: WorkspaceGroupLocation[],
+  floatingId?: string,
+): void {
+  if (node.kind === "tabGroup") {
+    groups.push({ group: node, ...(floatingId ? { floatingId } : {}) });
+    return;
+  }
+  collectTabGroups(node.first, groups, floatingId);
+  collectTabGroups(node.second, groups, floatingId);
 }
 
 function normalizeBounds(bounds: WorkspaceBounds): WorkspaceBounds {

@@ -1285,3 +1285,78 @@
   flex: 1;
   background: #111217;
 }
+.workspace-window-menu {
+  display: contents;
+}
+.app-menu-popover .workspace-menu-check {
+  width: 14px;
+  flex: 0 0 14px;
+  color: #8eb2ff;
+}
+.app-menu-popover button.destructive {
+  color: #db929c;
+}
+.app-menu-popover button.destructive:hover {
+  color: white;
+  background: #8d3441;
+}
+.workspace-action-dialog {
+  width: min(360px, calc(100vw - 32px));
+  overflow: hidden;
+  border: 1px solid #404550;
+  border-radius: 5px;
+  background: #1b1d24;
+  box-shadow: 0 20px 60px #000b;
+}
+.workspace-action-dialog > header {
+  padding: 11px 13px;
+  border-bottom: 1px solid #30333d;
+  color: #d7dae1;
+  font-size: 11px;
+  font-weight: 600;
+}
+.workspace-action-dialog > input,
+.workspace-action-dialog > p {
+  width: calc(100% - 26px);
+  margin: 13px;
+}
+.workspace-action-dialog > input {
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid #3a4050;
+  border-radius: 3px;
+  outline: none;
+  background: #111217;
+  color: #e1e4eb;
+}
+.workspace-action-dialog > input:focus {
+  border-color: #5d82ce;
+}
+.workspace-action-dialog > p {
+  color: #c6c9d1;
+  font-size: 10px;
+}
+.workspace-action-dialog > footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  padding: 9px 12px;
+  border-top: 1px solid #30333d;
+}
+.workspace-action-dialog > footer button {
+  height: 28px;
+  padding: 0 11px;
+  border: 1px solid #3a3e49;
+  border-radius: 3px;
+  color: #aeb2bd;
+}
+.workspace-action-dialog > footer button.primary {
+  border-color: #4d73c4;
+  color: white;
+  background: #3c68c7;
+}
+.workspace-action-dialog > footer button.destructive {
+  border-color: #9b4350;
+  color: white;
+  background: #82323e;
+}

@@ -100,4 +100,28 @@ describe("DockWorkspace", () => {
     act(() => header?.dispatchEvent(new MouseEvent("dblclick", { bubbles: true })));
     expect(container.querySelector(".workspace-root")?.hasAttribute("data-maximized")).toBe(false);
   });
+
+  it("runs the tab context menu as one persisted transaction and supports undo", () => {
+    const tab = container.querySelector<HTMLButtonElement>('[role="tab"]');
+    act(() =>
+      tab?.dispatchEvent(
+        new MouseEvent("contextmenu", { bubbles: true, clientX: 40, clientY: 50 }),
+      ),
+    );
+    const closeOthers = [
+      ...document.body.querySelectorAll<HTMLButtonElement>('[role="menuitem"]'),
+    ].find((button) => button.textContent?.includes("Close Others"));
+    expect(closeOthers).toBeDefined();
+    act(() => closeOthers?.click());
+    expect(container.querySelectorAll('[role="tab"]')).toHaveLength(1);
+    expect(
+      JSON.parse(window.localStorage.getItem(WORKSPACE_LAYOUT_STORAGE_KEY) ?? "null"),
+    ).toMatchObject({ closedPanels: ["b"] });
+    act(() =>
+      window.dispatchEvent(
+        new KeyboardEvent("keydown", { altKey: true, bubbles: true, ctrlKey: true, key: "z" }),
+      ),
+    );
+    expect(container.querySelectorAll('[role="tab"]')).toHaveLength(2);
+  });
 });

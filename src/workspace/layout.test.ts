@@ -1,9 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
   activatePanel,
+  closeGroup,
+  closeOtherPanels,
   closePanel,
   dockGroup,
+  dockGroupToRoot,
   dockPanel,
+  dockPanelToRoot,
   findWorkspaceNode,
   floatGroup,
   floatPanel,
@@ -15,6 +19,7 @@ import {
   type WorkspaceLayout,
   type WorkspaceNode,
   workspacePanelIds,
+  workspaceTabGroups,
 } from "./layout";
 
 const tabGroup = (id: string, panels: readonly string[], activePanelId = panels[0] ?? "missing") =>
@@ -248,5 +253,36 @@ describe("workspace layout", () => {
     expect(moved.floating[1].node).toBe(entry.node);
     expect(moved.floating[1].bounds.x).toBe(160);
     expect(setFloatingBounds(moved, entry.id, moved.floating[1].bounds)).toBe(moved);
+  });
+
+  it("closes group selections and docks floating panel or group content back to the root", () => {
+    const layout = nestedLayout();
+    const closedOthers = closeOtherPanels(layout, "project-tabs", "project");
+    expect(findWorkspaceNode(closedOthers, "project-tabs")).toEqual(
+      tabGroup("project-tabs", ["project"]),
+    );
+    expect(closedOthers.closedPanels).toEqual(["audio", "effects"]);
+    const closed = closeGroup(layout, "project-tabs");
+    expect(findWorkspaceNode(closed, "project-tabs")).toBeUndefined();
+    expect(closed.closedPanels).toEqual(["audio", "effects", "project"]);
+
+    const panelDocked = dockPanelToRoot(layout, "inspector");
+    expect(panelDocked.floating).toHaveLength(0);
+    expect(findWorkspaceNode(panelDocked, "project-tabs")).toMatchObject({
+      panels: ["project", "effects", "inspector"],
+    });
+    const groupDocked = dockGroupToRoot(layout, "inspector-tabs");
+    expect(groupDocked.floating).toHaveLength(0);
+    expect(findWorkspaceNode(groupDocked, "project-tabs")).toMatchObject({
+      panels: ["project", "effects", "inspector"],
+    });
+    expect(
+      workspaceTabGroups(layout).map(({ group, floatingId }) => [group.id, floatingId]),
+    ).toEqual([
+      ["project-tabs", undefined],
+      ["viewport-tabs", undefined],
+      ["timeline-tabs", undefined],
+      ["inspector-tabs", "floating-1"],
+    ]);
   });
 });

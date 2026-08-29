@@ -82,6 +82,26 @@ schema boundary; malformed JSON, rejected storage access, invalid data, and futu
 fall back atomically to the default layout. Layout preferences remain separate from `.aster` project
 documents.
 
+## Named workspaces
+
+The versioned catalog at `aster.workspace.catalog.v1` records the current workspace and custom
+workspace snapshots. Default, Animation, and Minimal are built-in snapshots and cannot be renamed or
+deleted. Save As captures the current immutable layout, normalizes the name, and adds a deterministic
+numeric suffix when the name already exists. Custom workspaces can be renamed or deleted; deletion
+requires confirmation and returns an active deleted workspace to Default.
+
+The live layout and named snapshot are intentionally distinct. Startup restores both the current
+workspace identity and its last live layout. Selecting a workspace loads its saved snapshot, while
+Reset to Saved Layout discards live changes through the same undoable layout transaction used by
+docking. This matches the expectation that reset has a stable target instead of continuously
+overwriting the saved snapshot during pointer interaction.
+
+The Window menu exposes every registered panel as a checked menu item, so closing and reopening are
+the same model operations whether invoked from a tab or the application menu. Tab and group context
+menus provide close, close others, close group, float or dock, maximize, grouping, and split moves.
+Layout-destructive commands enter a bounded undo stack and can be reverted with the menu command or
+`Ctrl/Cmd+Alt+Z`; deleting a named workspace uses an explicit confirmation instead.
+
 Native multi-window floating and monitor-removal remapping remain later integration work. Monitor
 changes must adjust window bounds without creating another panel-tree representation.
 

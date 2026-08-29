@@ -70,6 +70,7 @@ import {
 } from "./topbar-toast";
 import { WindowControls } from "./WindowControls";
 import type { WorkspaceDialogKind } from "./WorkspaceDialog";
+import { WorkspaceWindowMenu } from "./workspace/WorkspaceWindowMenu";
 
 const WorkspaceDialog = lazy(() =>
   import("./WorkspaceDialog").then((module) => ({ default: module.WorkspaceDialog })),
@@ -426,20 +427,46 @@ export function TopBar() {
           {menuDefinitions.map((menu) => (
             <div className="menu-root" key={menu.id}>
               <button
+                aria-controls={`app-menu-${menu.id}`}
+                aria-expanded={activeMenu === menu.id}
+                aria-haspopup="menu"
                 className={activeMenu === menu.id ? "active" : ""}
                 onClick={() => setActiveMenu(activeMenu === menu.id ? undefined : menu.id)}
+                onKeyDown={(event) => {
+                  if (event.key !== "ArrowDown") return;
+                  event.preventDefault();
+                  setActiveMenu(menu.id);
+                  queueMicrotask(() =>
+                    document
+                      .querySelector<HTMLButtonElement>(`#app-menu-${menu.id} [role^=menuitem]`)
+                      ?.focus(),
+                  );
+                }}
                 type="button"
               >
                 {t(menu.labelKey)}
               </button>
               {activeMenu === menu.id && (
-                <div className="app-menu-popover">
-                  {menu.items.map((item) => (
-                    <button key={item.id} onClick={() => handleMenuItem(item.id)} type="button">
-                      <span>{t(item.labelKey)}</span>
-                      {"shortcut" in item && <kbd>{item.shortcut}</kbd>}
-                    </button>
-                  ))}
+                <div
+                  className="app-menu-popover"
+                  id={`app-menu-${menu.id}`}
+                  role={menu.id === "window" ? undefined : "menu"}
+                >
+                  {menu.id === "window" ? (
+                    <WorkspaceWindowMenu onClose={() => setActiveMenu(undefined)} />
+                  ) : (
+                    menu.items.map((item) => (
+                      <button
+                        key={item.id}
+                        onClick={() => handleMenuItem(item.id)}
+                        role="menuitem"
+                        type="button"
+                      >
+                        <span>{t(item.labelKey)}</span>
+                        {"shortcut" in item && <kbd>{item.shortcut}</kbd>}
+                      </button>
+                    ))
+                  )}
                   {menu.id === "file" && lifecycle.recentProjects.length > 0 && (
                     <>
                       <div className="app-menu-heading">{t("topbar.recentProjects")}</div>
