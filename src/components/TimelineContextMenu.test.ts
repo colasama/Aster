@@ -93,6 +93,19 @@ describe("timelineContextMenuItems", () => {
     expect(toggleMotionBlur).toHaveBeenCalledOnce();
   });
 
+  it("blocks rename and precompose when any target layer is locked", () => {
+    const items = timelineContextMenuItems(
+      { ...actions(), locked: true, selectedLayerCount: 2 },
+      createTranslator("en-US"),
+    );
+    for (const id of ["rename", "precompose"]) {
+      expect(items.find((item) => item.id === id)).toMatchObject({
+        disabled: true,
+        disabledReason: "The selected layer is locked",
+      });
+    }
+  });
+
   it("offers all source-free layer kinds on empty timeline space", () => {
     const empty = { ...actions(), isLayerTarget: false };
     const items = timelineContextMenuItems(empty, createTranslator("en-US"));

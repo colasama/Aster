@@ -333,7 +333,7 @@ export function Timeline() {
   };
   const renameContextLayer = () => {
     const target = contextLayers[0];
-    if (!target || contextLayers.length !== 1) return;
+    if (!target || target.locked || contextLayers.length !== 1) return;
     const name = window.prompt(t("timeline.menu.renamePrompt"), target.name)?.trim();
     if (!name || name === target.name) return;
     dispatch({
@@ -342,6 +342,7 @@ export function Timeline() {
     });
   };
   const precomposeContextLayers = () => {
+    if (contextLayers.length === 0 || editableContextLayers.length !== contextLayers.length) return;
     const plan = planPrecomposition(
       state.project,
       contextLayers.map((layer) => layer.id),

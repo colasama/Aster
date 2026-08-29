@@ -110,8 +110,8 @@ export function timelineContextMenuItems(
       },
       { id: "edit-separator", kind: "separator" },
       {
-        disabled: actions.selectedLayerCount !== 1,
-        disabledReason: t("timeline.menu.renameSingle"),
+        disabled: actions.locked || actions.selectedLayerCount !== 1,
+        disabledReason: actions.locked ? locked : t("timeline.menu.renameSingle"),
         id: "rename",
         kind: "command",
         label: t("timeline.menu.rename"),
@@ -127,8 +127,8 @@ export function timelineContextMenuItems(
         onSelect: actions.splitLayers,
       },
       {
-        disabled: actions.selectedLayerCount === 0,
-        disabledReason: noLayers,
+        disabled: actions.locked || actions.selectedLayerCount === 0,
+        disabledReason: actions.locked ? locked : noLayers,
         id: "precompose",
         kind: "command",
         label: t("timeline.menu.precompose"),
