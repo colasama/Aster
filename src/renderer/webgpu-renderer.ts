@@ -267,7 +267,12 @@ export class WebGpuRenderer {
     const requiredFeatures: GPUFeatureName[] = timestampQueries ? ["timestamp-query"] : [];
     const device = await adapter.requestDevice({ requiredFeatures });
     device.addEventListener("uncapturederror", (event) => {
-      logger.error("webgpu", "uncaptured_error", event.error);
+      logger.error(
+        "webgpu",
+        "uncaptured_error",
+        new Error(event.error.message || "WebGPU validation failed"),
+        { gpuErrorType: event.error.constructor.name },
+      );
     });
     void device.lost.then((info) => {
       logger.warn("webgpu", "device_lost", { reason: info.reason, message: info.message });

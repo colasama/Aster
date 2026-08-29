@@ -163,6 +163,8 @@ pnpm dev
 
 For the browser editor only, run `pnpm dev:web`. Production assets and the Rust desktop bridge are
 built with `pnpm build`; a platform installer is produced with `pnpm artifact:build`.
+Vite full-bundle development is enabled by default for fast startup; set `ASTER_BUNDLED_DEV=0` to
+temporarily use the traditional module-by-module server for compatibility diagnostics.
 Desktop bundle commands, CI artifact targets, and the MVP feature-flag policy are documented in
 [Desktop Builds and Feature Flags](docs/BUILD_AND_FEATURES.md).
 Updater, crash-reporting, plugin trust, and public stability criteria are defined in the

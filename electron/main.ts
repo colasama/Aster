@@ -1,5 +1,5 @@
 import { type ChildProcessWithoutNullStreams, spawn } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, mkdirSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { createInterface } from "node:readline";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -36,6 +36,7 @@ import { fullAccessDesktopBridgeRequest } from "./full-access-aster-tools.js";
 import { describeFullAccessTarget, FullAccessToolService } from "./full-access-tools.js";
 import { AsterLogger, isRendererLogPayload, type LogLevel, parseLogLevel } from "./logger.js";
 import { Mp4ExportManager } from "./mp4-export.js";
+import { developmentProfileDirectory } from "./profile-paths.js";
 
 const ASSET_SCHEME = "aster-asset";
 const DEVELOPMENT_URL = "http://127.0.0.1:1420";
@@ -1060,6 +1061,16 @@ async function createWindow(
 }
 
 app.setName("Aster");
+const developmentProfile = developmentProfileDirectory(
+  app.getPath("appData"),
+  app.isPackaged,
+  app.commandLine.hasSwitch("user-data-dir"),
+);
+if (developmentProfile) {
+  mkdirSync(developmentProfile, { recursive: true });
+  app.setPath("userData", developmentProfile);
+  app.setPath("sessionData", developmentProfile);
+}
 app.setAppUserModelId("io.github.aster-mograph.aster");
 
 const hasSingleInstanceLock = app.requestSingleInstanceLock();

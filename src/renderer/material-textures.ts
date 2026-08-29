@@ -271,7 +271,7 @@ export class MaterialTextureRenderer {
           throw new Error("Encoded normal map exceeds the 64 MiB limit");
         return createImageBitmap(blob, { colorSpaceConversion: "none" });
       })
-      .then((bitmap) => {
+      .then(async (bitmap) => {
         if (this.#normals.get(instanceId) !== resource) {
           bitmap.close();
           return;
@@ -288,18 +288,34 @@ export class MaterialTextureRenderer {
           bitmap.close();
           throw new Error("Normal map exceeds the 4096px or 64 MiB limit");
         }
-        const texture = this.#device.createTexture({
-          label: `Linear mesh normal map · ${instanceId}`,
-          size: [bitmap.width, bitmap.height],
-          format: "rgba8unorm",
-          usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
-        });
-        this.#device.queue.copyExternalImageToTexture(
-          { source: bitmap, flipY: false },
-          { texture },
-          [bitmap.width, bitmap.height],
-        );
-        bitmap.close();
+        this.#device.pushErrorScope("validation");
+        let texture: GPUTexture | undefined;
+        try {
+          texture = this.#device.createTexture({
+            label: `Linear mesh normal map · ${instanceId}`,
+            size: [bitmap.width, bitmap.height],
+            format: "rgba8unorm",
+            // Dawn uses a render pass for external-image copies, so the destination must support
+            // both the explicit copy and render-attachment paths.
+            usage:
+              GPUTextureUsage.TEXTURE_BINDING |
+              GPUTextureUsage.COPY_DST |
+              GPUTextureUsage.RENDER_ATTACHMENT,
+          });
+          this.#device.queue.copyExternalImageToTexture(
+            { source: bitmap, flipY: false },
+            { texture },
+            [bitmap.width, bitmap.height],
+          );
+          const validationError = await this.#device.popErrorScope();
+          if (validationError)
+            throw new Error(`Normal map GPU upload failed: ${validationError.message}`);
+        } catch (error) {
+          texture?.destroy();
+          throw error;
+        } finally {
+          bitmap.close();
+        }
         resource.texture = texture;
         resource.bytes = bytes;
         resource.state = "ready";
@@ -368,24 +384,34 @@ export class MaterialTextureRenderer {
           },
         ),
       )
-      .then((decoded) => {
+      .then(async (decoded) => {
         if (this.#environment !== resource || abort.signal.aborted) return;
         if (!decoded.pixels) throw new Error("HDR worker returned no upload payload");
         const maximum = this.#device.limits.maxTextureDimension2D;
         if (decoded.width > maximum || decoded.height > maximum)
           throw new Error("HDR environment exceeds the GPU texture dimension limit");
-        const texture = this.#device.createTexture({
-          label: `Linear HDR environment · ${sourceName}`,
-          size: [decoded.width, decoded.height],
-          format: "rgba16float",
-          usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
-        });
-        this.#device.queue.writeTexture(
-          { texture },
-          decoded.pixels,
-          { bytesPerRow: decoded.bytesPerRow, rowsPerImage: decoded.height },
-          [decoded.width, decoded.height],
-        );
+        this.#device.pushErrorScope("validation");
+        let texture: GPUTexture | undefined;
+        try {
+          texture = this.#device.createTexture({
+            label: `Linear HDR environment · ${sourceName}`,
+            size: [decoded.width, decoded.height],
+            format: "rgba16float",
+            usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+          });
+          this.#device.queue.writeTexture(
+            { texture },
+            decoded.pixels,
+            { bytesPerRow: decoded.bytesPerRow, rowsPerImage: decoded.height },
+            [decoded.width, decoded.height],
+          );
+          const validationError = await this.#device.popErrorScope();
+          if (validationError)
+            throw new Error(`HDR environment GPU upload failed: ${validationError.message}`);
+        } catch (error) {
+          texture?.destroy();
+          throw error;
+        }
         if (this.#environment !== resource) {
           texture.destroy();
           return;

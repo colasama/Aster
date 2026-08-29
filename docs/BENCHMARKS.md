@@ -9,6 +9,17 @@ must cite that exact manifest and satisfy its run conditions; a changed driver, 
 topology, power mode, or selected adapter starts a separate baseline series. Hardware capture and
 adapter-verification steps are documented in [`benchmarks/hardware`](../benchmarks/hardware).
 
+Development startup is measured separately from release performance. On the same Windows checkout,
+capture Vite's `vite:time` log from the first `index.html` request through the renderer's
+`renderer_started` event, with caches left in their normal development state. On 2026-08-30, the
+request-by-request server spent about 10.1 seconds serving the entry stage and 13.8 seconds expanding
+the editor graph, with renderer mount about 28 seconds after the desktop bridge became ready. Vite 8
+full-bundle development mode served `index.html` in 1.7 ms and the generated editor bundle in 17 ms;
+the renderer mounted in under 0.3 seconds and the warmed WebGPU renderer became ready in about one
+second. These are local diagnostic observations, not release baselines or cross-machine targets.
+Record the `ASTER_BUNDLED_DEV` setting with startup diagnostics; set it to `0` only when deliberately
+reproducing the request-by-request baseline.
+
 Any public comparison with another application follows the preregistered
 [`competitor-comparison-v1.md`](../benchmarks/protocols/competitor-comparison-v1.md) protocol. It
 requires equivalent visible output and quality, rotating application order, three raw runs, declared

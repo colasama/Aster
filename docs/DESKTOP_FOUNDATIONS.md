@@ -4,12 +4,44 @@ Aster's Electron shell owns operating-system integration and durable application
 sandboxed renderer owns editor interaction state, while project documents continue to cross the
 validated Rust bridge boundary for native filesystem persistence.
 
+## Development startup
+
+Vite 8 full-bundle development mode is enabled because the editor has a broad GPU and effect module
+graph. Request-by-request pre-transformation delayed the first renderer mount until the whole graph
+had completed a transform waterfall; Rolldown now creates one development bundle while retaining
+Vite reload and Fast Refresh behavior. Production-only manual chunk groups are not applied to this
+development bundle because the built-in Scene Generator registry has an intentional cross-module
+initialization order.
+
+Full-bundle development is enabled by default. Set `ASTER_BUNDLED_DEV=0` (also accepts `false`,
+`no`, or `off`) to fall back to Vite's request-by-request server when diagnosing an experimental
+bundler or HMR compatibility problem. The setting can be supplied by the process environment or an
+untracked `.env.development.local` file. Remove the setting, or use `1`, `true`, `yes`, or `on`, to
+restore the default. For example:
+
+```powershell
+$env:ASTER_BUNDLED_DEV = "0"
+pnpm dev
+Remove-Item Env:ASTER_BUNDLED_DEV
+```
+
+The switch only affects the development server. It does not change production chunking, packaged
+artifacts, or plugin runtime activation.
+
+React development `StrictMode` is not wrapped around the editor root. Its deliberate mount/unmount
+replay would create two WebGPU devices and prewarm the same pipelines twice; GPU resource ownership
+is instead covered by explicit lifecycle tests and renderer diagnostics.
+
 ## Application preferences
 
-Electron stores `preferences.json` below `app.getPath("userData")`. The document is versioned,
-validated on every read and update, written through a flushed sibling temporary file, and recovered
-from a backup when the primary document is invalid. Renderer IPC can update only user-facing
-preferences; window state, recent projects, and the last project path remain main-process-owned.
+Electron stores `preferences.json` below `app.getPath("userData")`. Unpackaged development runs use
+an `Aster Development` profile below the platform app-data directory so their preferences, logs,
+single-instance lock, and Chromium session cache cannot collide with an installed Aster build. An
+explicit Chromium `--user-data-dir` remains authoritative for isolated automation and diagnostics.
+The preferences document is versioned, validated on every read and update, written through a flushed
+sibling temporary file, and recovered from a backup when the primary document is invalid. Renderer
+IPC can update only user-facing preferences; window state, recent projects, and the last project path
+remain main-process-owned.
 
 Version 1 contains:
 
