@@ -13,6 +13,12 @@
     "rootDir": "..",
     "outDir": "../dist-electron"
   },
-  "include": ["*.ts", "*.cts", "../src/ai/agent-protocol.ts", "../src/desktop/preferences.ts"],
+  "include": [
+    "*.ts",
+    "*.cts",
+    "../src/ai/agent-protocol.ts",
+    "../src/core/render-queue.ts",
+    "../src/desktop/preferences.ts"
+  ],
   "exclude": ["*.test.ts"]
 }

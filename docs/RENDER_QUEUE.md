@@ -18,6 +18,13 @@ launch from the immutable snapshot, write outputs to temporary destinations, and
 only after every selected output module completes. Interactive preview code must not be the render
 host.
 
+`RenderQueueStore` owns the process-wide queue document in the Electron user-data directory. Writes
+are serialized, flushed through a temporary file, and atomically renamed while retaining the previous
+successful revision as a recovery point. Corrupt primary documents recover from that backup. A queue
+created by a newer Aster build is left byte-for-byte untouched. On startup, stale worker leases become
+failed jobs with their last progress retained; retry creates a fresh lease and restarts from frame zero,
+so a partial temporary output can never be mistaken for a published render.
+
 Adobe behavior references:
 
 - <https://helpx.adobe.com/after-effects/desktop/render-and-export/basics-of-rendering-and-exporting/basics-rendering-exporting.html>

@@ -10,6 +10,7 @@ import {
   markRenderJobRunning,
   migrateRenderQueue,
   nextRunnableRenderJobs,
+  recoverInterruptedRenderJobs,
   reprioritizeRenderJob,
   requestRenderPause,
   resumeRenderJob,
@@ -156,5 +157,31 @@ describe("render queue", () => {
         items: [state.items[0], state.items[0]],
       }),
     ).toThrow("Duplicate render job");
+  });
+
+  it("invalidates interrupted worker leases without publishing partial output", () => {
+    let state = enqueueRenderJob(createRenderQueue(), input("job"));
+    state = claimRenderJob(state, "job", "dead-worker");
+    state = markRenderJobRunning(state, "job", "dead-worker");
+    state = updateRenderProgress(state, "job", "dead-worker", {
+      completedFrames: 7,
+      totalFrames: 10,
+      elapsedMs: 700,
+    });
+    const recovered = recoverInterruptedRenderJobs(state, new Date("2026-08-30T00:01:00Z"));
+    expect(recovered.items[0]).toMatchObject({
+      status: "failed",
+      workerLeaseId: undefined,
+      finishedAt: "2026-08-30T00:01:00.000Z",
+      progress: { completedFrames: 7 },
+      error: { code: "render_host_interrupted" },
+    });
+    expect(recoverInterruptedRenderJobs(recovered)).toBe(recovered);
+    const retried = retryRenderJob(recovered, "job");
+    expect(retried.items[0]).toMatchObject({
+      status: "queued",
+      progress: { completedFrames: 0 },
+      error: undefined,
+    });
   });
 });

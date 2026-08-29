@@ -1,4 +1,4 @@
-import type { Id } from "./types";
+type Id = string;
 
 export const CURRENT_RENDER_QUEUE_VERSION = 1 as const;
 export const MAX_RENDER_QUEUE_ITEMS = 256;
@@ -300,6 +300,34 @@ export function nextRunnableRenderJobs(
         left.manifest.id.localeCompare(right.manifest.id),
     )
     .slice(0, available);
+}
+
+/**
+ * Invalidates leases left behind by a terminated render host. Partial outputs are never resumed in
+ * place: workers publish atomically, so an interrupted item must be explicitly retried from frame
+ * zero before it can replace its destination.
+ */
+export function recoverInterruptedRenderJobs(
+  state: RenderQueueState,
+  now = new Date(),
+): RenderQueueState {
+  let changed = false;
+  const finishedAt = now.toISOString();
+  const items = state.items.map((item) => {
+    if (!RUNNING_STATUSES.has(item.status)) return item;
+    changed = true;
+    return {
+      ...item,
+      status: "failed" as const,
+      workerLeaseId: undefined,
+      finishedAt,
+      error: {
+        code: "render_host_interrupted",
+        message: "The render host stopped before publishing its outputs. Retry to render again.",
+      },
+    };
+  });
+  return changed ? revise(state, items) : state;
 }
 
 export function serializeRenderQueue(state: RenderQueueState): string {
