@@ -88,6 +88,20 @@ export function sequenceFrameAtTime(
     : Math.min(sequence.endFrame, sequence.startFrame + elapsedFrames);
 }
 
+function numberedName(name: string): {
+  prefix: string;
+  extension: string;
+  padding: number;
+  frame: number;
+};
+function numberedName(
+  name: string,
+  required: true,
+): { prefix: string; extension: string; padding: number; frame: number };
+function numberedName(
+  name: string,
+  required: false,
+): { prefix: string; extension: string; padding: number; frame: number } | undefined;
 function numberedName(
   name: string,
   required = true,

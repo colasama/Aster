@@ -29,7 +29,7 @@ export class DiagnosticErrorBoundary extends Component<BoundaryProps, BoundarySt
   }
 
   componentDidCatch(error: Error, info: ErrorInfo): void {
-    const detailed = new Error(error.message, {
+    const detailed = Object.assign(new Error(error.message), {
       cause: new Error(info.componentStack ?? "React component stack unavailable"),
     });
     detailed.name = error.name;

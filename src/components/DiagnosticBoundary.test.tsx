@@ -31,7 +31,8 @@ describe("DiagnosticErrorBoundary", () => {
     const store = new DiagnosticStore();
     let fail = true;
     const Child = () => {
-      if (fail) throw new Error("GPU pipeline failed", { cause: new Error("device lost") });
+      if (fail)
+        throw Object.assign(new Error("GPU pipeline failed"), { cause: new Error("device lost") });
       return <span>Recovered</span>;
     };
     container = document.createElement("div");
