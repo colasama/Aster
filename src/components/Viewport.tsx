@@ -9,7 +9,7 @@ import {
   Scan,
   Sparkles,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { planCompositionCrop } from "../core/composition-crop";
 import { createLayerForComposition } from "../core/layer-factory";
 import { logger } from "../core/logger";
@@ -51,11 +51,14 @@ import { useContextMenuTrigger } from "./context-menu/use-context-menu-trigger";
 import { Panel } from "./Panel";
 import { ViewportContextMenu } from "./ViewportContextMenu";
 import { ViewportTransformControls } from "./ViewportTransformControls";
-import { WorkspaceDialog } from "./WorkspaceDialog";
 import { useWorkspaceApi } from "./workspace/DockWorkspace";
 import { useWorkspaceViewerIdentity } from "./workspace/WorkspaceViewerIdentity";
 
 type Renderer = WebGpuRenderer | CanvasFallbackRenderer;
+
+const WorkspaceDialog = lazy(() =>
+  import("./WorkspaceDialog").then((module) => ({ default: module.WorkspaceDialog })),
+);
 
 // Split viewers share these window-level commands. Claim each dispatched event once so
 // the first ready surface becomes the bounded render host instead of every canvas
@@ -893,7 +896,9 @@ export function Viewport() {
         />
       )}
       {compositionSettingsOpen && (
-        <WorkspaceDialog kind="composition" onClose={() => setCompositionSettingsOpen(false)} />
+        <Suspense fallback={null}>
+          <WorkspaceDialog kind="composition" onClose={() => setCompositionSettingsOpen(false)} />
+        </Suspense>
       )}
       <div className="viewport-status">
         <button

@@ -17,7 +17,7 @@ import {
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { sharedAudioPlaybackEngine } from "../core/audio-playback-engine";
 import { createParticleLayerForComposition } from "../core/bundled-particle";
 import {
@@ -46,7 +46,6 @@ import type { Layer } from "../core/types";
 import { useI18n } from "../i18n/react";
 import { useEditor } from "../state/editor-store";
 import { useContextMenuTrigger } from "./context-menu/use-context-menu-trigger";
-import { GraphEditor } from "./GraphEditor";
 import { Panel, PanelTabs } from "./Panel";
 import { TimelineContextMenu, type TimelineCreateKind } from "./TimelineContextMenu";
 import { collectTimelineLayerKeyframes, TimelineLayerRow } from "./TimelineLayerRow";
@@ -68,6 +67,10 @@ import { duplicateTimelineLayers, splitTimelineLayers } from "./timeline-layer-c
 import type { KeyframeTimePreview } from "./timeline-property-tracks";
 import { useWindowPointerDrag } from "./use-window-pointer-drag";
 import { useWorkspaceApi } from "./workspace/DockWorkspace";
+
+const GraphEditor = lazy(() =>
+  import("./GraphEditor").then((module) => ({ default: module.GraphEditor })),
+);
 
 const LABEL_WIDTH = 286;
 const BASE_PIXELS_PER_SECOND = 82;
@@ -761,7 +764,9 @@ export function Timeline() {
         </div>
       </div>
       {state.bottomMode === "graph" ? (
-        <GraphEditor />
+        <Suspense fallback={null}>
+          <GraphEditor />
+        </Suspense>
       ) : (
         <div
           aria-label={t("timeline.menu.emptyLabel")}

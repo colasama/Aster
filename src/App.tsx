@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef } from "react";
 import { DiagnosticBanner } from "./components/DiagnosticBanner";
 import {
   ApplicationDiagnosticBoundary,
@@ -6,7 +6,6 @@ import {
 } from "./components/DiagnosticBoundary";
 import { Inspector } from "./components/Inspector";
 import { ProjectPanel } from "./components/ProjectPanel";
-import { RenderQueuePanel } from "./components/RenderQueuePanel";
 import { TopBar } from "./components/TopBar";
 import { Viewport } from "./components/Viewport";
 import { DockWorkspace } from "./components/workspace/DockWorkspace";
@@ -21,6 +20,12 @@ import { reportUiError } from "./errors/report-ui-error";
 import { I18nProvider, useI18n } from "./i18n/react";
 import { EditorProvider, useEditor } from "./state/editor-store";
 import "./styles/index.css";
+
+const RenderQueuePanel = lazy(() =>
+  import("./components/RenderQueuePanel").then((module) => ({
+    default: module.RenderQueuePanel,
+  })),
+);
 
 function Studio() {
   const { state, dispatch } = useEditor();
@@ -59,7 +64,11 @@ function Studio() {
       {
         id: "renderQueue",
         label: t("renderQueue.panelTitle"),
-        element: <RenderQueuePanel />,
+        element: (
+          <Suspense fallback={null}>
+            <RenderQueuePanel />
+          </Suspense>
+        ),
       },
     ],
     [t],
