@@ -417,13 +417,23 @@
   width: 410px;
 }
 .workspace-dialog {
+  display: flex;
   width: min(520px, calc(100vw - 32px));
+  max-height: 72vh;
+  flex-direction: column;
 }
 .workspace-dialog > header,
 .workspace-dialog > footer {
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   padding: 10px 13px;
+}
+.workspace-dialog > :not(header):not(footer) {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
 }
 .workspace-dialog > header {
   border-bottom: 1px solid #30333d;

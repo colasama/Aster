@@ -1,5 +1,7 @@
 // @vitest-environment happy-dom
 
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -9,6 +11,7 @@ import { EditorProvider } from "../state/editor-store";
 import { WorkspaceDialog } from "./WorkspaceDialog";
 
 let root: Root | undefined;
+const shellStyles = readFileSync(resolve(process.cwd(), "src/styles/shell.css"), "utf8");
 
 function clearDiagnostics() {
   for (const diagnostic of diagnosticStore.snapshot()) diagnosticStore.resolve(diagnostic.id);
@@ -71,5 +74,42 @@ describe("WorkspaceDialog diagnostics", () => {
       details: { message: "HDR environment must be between 1 byte and 48 MiB" },
     });
     expect(diagnosticStore.snapshot()[0]?.scope.compositionId).toBeTruthy();
+  });
+});
+
+describe("WorkspaceDialog scaled layout", () => {
+  it("bounds the dialog and scrolls its body without moving header or footer actions", () => {
+    const container = document.createElement("div");
+    document.body.append(container);
+    root = createRoot(container);
+    act(() =>
+      root?.render(
+        <I18nProvider>
+          <EditorProvider>
+            <WorkspaceDialog kind="preferences" onClose={() => undefined} />
+          </EditorProvider>
+        </I18nProvider>,
+      ),
+    );
+
+    const dialog = container.querySelector<HTMLElement>(".workspace-dialog");
+    const body = dialog?.querySelector<HTMLElement>(":scope > .preferences-form");
+    const header = dialog?.querySelector<HTMLElement>(":scope > header");
+    const footer = dialog?.querySelector<HTMLElement>(":scope > footer");
+    if (!dialog || !body || !header || !footer) throw new Error("Expected preferences dialog");
+
+    expect(shellStyles).toMatch(
+      /\.workspace-dialog\s*\{[^}]*display:\s*flex;[^}]*max-height:\s*72vh;[^}]*flex-direction:\s*column;/s,
+    );
+    expect(shellStyles).toMatch(
+      /\.workspace-dialog > header,\s*\.workspace-dialog > footer\s*\{[^}]*flex:\s*0 0 auto;/s,
+    );
+    expect(shellStyles).toMatch(
+      /\.workspace-dialog > :not\(header\):not\(footer\)\s*\{[^}]*min-height:\s*0;[^}]*overflow-y:\s*auto;/s,
+    );
+    expect([...dialog.children]).toEqual([header, body, footer]);
+    expect(footer.querySelector('button[type="button"].primary')?.textContent).toContain(
+      "Save preferences",
+    );
   });
 });
