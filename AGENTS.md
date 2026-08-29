@@ -14,6 +14,11 @@
 - Format Rust with `cargo fmt` and lint Rust with Clippy, treating warnings as errors.
 - Run the relevant tests and builds before declaring work complete.
 
+## Frontend Aesthetics
+
+- Do not place explanatory subtitles, eyebrow text, feature descriptions, or usage instructions beneath headings.
+- Do not add supplementary copy; minimize unnecessary explanatory text wherever possible.
+
 ## Git
 
 - Preserve unrelated user changes in the working tree.
