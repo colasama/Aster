@@ -7,7 +7,11 @@ import { createBlankProject } from "../core/project";
 import { flattenSceneLayers } from "../core/scene-evaluation";
 import { createEffect } from "../effects/registry";
 import { MediaTextureCache } from "./media-texture-cache";
-import { MAX_PRECOMPOSITION_SURFACE_BYTES } from "./precomposition-surface-plan";
+import {
+  createPrecompositionSurfaceBudget,
+  MAX_PRECOMPOSITION_SURFACE_BYTES,
+  planPrecompositionSurface,
+} from "./precomposition-surface-plan";
 import {
   PrecompositionSurfaceRenderer,
   precompositionSurfaceShader,
@@ -151,6 +155,70 @@ describe("GPU precomposition surfaces", () => {
     expect(events.indexOf("generator-compute")).toBeLessThan(events.indexOf("generator-draw"));
     expect(events).toContain("pass:Layer source · Scene Generator");
     expect(events).toContain("pass:Fused layer effects · Scene Generator");
+  });
+
+  it("uses the isolated surface scale and namespaced exact-time plan for animated text", () => {
+    installGpuConstants();
+    const device = mockDevice([], vi.fn());
+    const layout = device.createBindGroupLayout({ entries: [] });
+    const sampler = device.createSampler();
+    const prepareText = vi.fn();
+    const media = { prepareText, prepareMedia: vi.fn() } as unknown as MediaTextureCache;
+    const pipelines = blendPipelines();
+    const renderer = new PrecompositionSurfaceRenderer(device, {
+      mediaTextures: media,
+      mediaLayout: layout,
+      mediaSampler: sampler,
+      lightingLayout: layout,
+      shapePipelines: pipelines,
+      imagePipelines: pipelines,
+    });
+    const project = createBlankProject();
+    const root = project.compositions[0];
+    const nested = structuredClone(root);
+    nested.id = crypto.randomUUID();
+    nested.name = "Animated text surface";
+    nested.motionBlur.enabled = true;
+    const text = createLayerForComposition("text", nested);
+    text.motionBlur = true;
+    const position = text.textAnimator?.groups[0]?.properties.position;
+    if (!position) throw new Error("Expected text animator position");
+    position[0] = {
+      mode: "animated",
+      keyframes: [
+        { id: "text-open", time: 0, value: 0, interpolation: "linear" },
+        { id: "text-close", time: 2, value: 240, interpolation: "linear" },
+      ],
+    };
+    nested.layers = [text];
+    const wrapper = createLayerForComposition("precomposition", root);
+    wrapper.sourceCompositionId = nested.id;
+    wrapper.threeDimensional = true;
+    root.layers = [wrapper];
+    project.compositions.push(nested);
+    const sceneLayers = flattenSceneLayers(root, project, 1);
+    const surfacePlan = planPrecompositionSurface(
+      {
+        scene: sceneLayers[0],
+        deviceMaxTextureDimension: device.limits.maxTextureDimension2D,
+        memoryBudgetMb: 1,
+        hasEffects: false,
+      },
+      createPrecompositionSurfaceBudget(),
+    );
+    if (surfacePlan.status !== "ready") throw new Error("Expected a precomposition surface");
+
+    renderer.prepare(project, sceneLayers, false, 1, true);
+
+    expect(prepareText).toHaveBeenCalledTimes(1);
+    const call = prepareText.mock.calls[0];
+    expect(call[1]).toContain(`surface:root/${wrapper.id}/root/${text.id}`);
+    expect(call[4]).toBeCloseTo(
+      Math.max(surfacePlan.width / nested.width, surfacePlan.height / nested.height),
+    );
+    expect(call[5]).toMatchObject({ sampleCount: expect.any(Number) });
+    expect(call[5].samples.length).toBeGreaterThan(1);
+    renderer.destroy();
   });
 
   it("evicts time-addressed targets before resident bytes exceed the hard ceiling", () => {

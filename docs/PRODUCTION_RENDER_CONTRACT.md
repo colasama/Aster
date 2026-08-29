@@ -59,6 +59,14 @@ propagates decode failures and timeouts, and requires a redraw before accepting 
 first render discovered pending resources. Cached stills and synchronous text rasterization retain a
 single GPU submission; only a newly requested asynchronous generation is prepared and recaptured.
 
+Text animator motion blur is part of that same beauty request. Preview presentation, foreground
+readback, and the isolated RenderHost derive identical shutter midpoint times, layer-source time
+mapping, adaptive limit, and texture generation identities from the immutable project snapshot.
+Time-varying glyph rasters are uploaded and accumulated before the scene pass in the same command
+buffer, so the media barrier cannot observe a placeholder generation. Their transient sample and
+linear-HDR accumulation textures are released after submission; static text and disabled composition
+or layer switches retain the ordinary single-raster/single-submit path.
+
 Advanced 3D depth of field is allocated before GPU texture creation against the auxiliary share of
 the configured memory budget. The Base surface-data pass retains its existing MRT cost. K1 adds
 16 bytes per output pixel for exact front color plus aggregate transparent depth; K2 adds 36 bytes

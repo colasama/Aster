@@ -18,6 +18,7 @@ import { evaluateSceneCamera } from "./scene-camera";
 import type { PreparedSceneGenerator, SceneGeneratorHost } from "./scene-generator-host";
 import { buildSceneLighting, SCENE_LIGHTING_BYTES } from "./scene-lighting";
 import { IMAGE_VERTEX_BUFFERS } from "./scene-pipelines";
+import { planTextMotionBlurFrame, type TextMotionBlurPlan } from "./text-motion-blur-plan";
 
 const SURFACE_FORMAT: GPUTextureFormat = "rgba16float";
 const INITIAL_VERTEX_BYTES = 6 * FLOATS_PER_VERTEX * Float32Array.BYTES_PER_ELEMENT;
@@ -122,6 +123,7 @@ export class PrecompositionSurfaceRenderer {
     sceneLayers: readonly FlattenedSceneLayer[],
     playing: boolean,
     memoryBudgetMb?: number,
+    enableTextMotionBlur = true,
   ): PrecompositionSurfaceFrame {
     this.#frame += 1;
     if (this.#project !== project) {
@@ -149,6 +151,7 @@ export class PrecompositionSurfaceRenderer {
           preparedKeys,
           preparedSources,
           diagnostics,
+          enableTextMotionBlur,
         );
       }
     }
@@ -202,6 +205,7 @@ export class PrecompositionSurfaceRenderer {
     preparedKeys: Set<string>,
     preparedSources: Map<string, SurfaceEntry>,
     diagnostics: string[],
+    enableTextMotionBlur: boolean,
   ): void {
     const surface = scene.precompositionSurface;
     if (!surface) return;
@@ -214,27 +218,11 @@ export class PrecompositionSurfaceRenderer {
     }
     let childLayers: FlattenedSceneLayer[];
     try {
-      childLayers = flattenSceneLayers(surface.composition, project, surface.time).map((child) => ({
-        ...child,
-        // Standalone evaluation starts every source at `root`. Namespace both
-        // identities by the stable outer wrapper resource path: separate
-        // wrappers cannot overwrite each other, clones share, and playback
-        // does not churn media resources merely because the sample time moved.
-        instanceId: namespaceSurfaceChild(scene.resourceInstanceId, child.instanceId),
-        resourceInstanceId: namespaceSurfaceChild(
-          scene.resourceInstanceId,
-          child.resourceInstanceId,
-        ),
-        precompositionSurface: child.precompositionSurface
-          ? {
-              ...child.precompositionSurface,
-              compositionPath: [
-                ...surface.compositionPath,
-                ...child.precompositionSurface.compositionPath,
-              ],
-            }
-          : undefined,
-      }));
+      childLayers = namespaceSurfaceLayers(
+        flattenSceneLayers(surface.composition, project, surface.time),
+        scene.resourceInstanceId,
+        surface.compositionPath,
+      );
     } catch (error) {
       diagnostics.push(error instanceof Error ? error.message : String(error));
       return;
@@ -271,8 +259,38 @@ export class PrecompositionSurfaceRenderer {
     if (preparedKeys.has(key)) return;
     preparedKeys.add(key);
 
+    const resolutionScale = Math.max(
+      entry.width / Math.max(1, surface.composition.width),
+      entry.height / Math.max(1, surface.composition.height),
+    );
+    const textMotionBlur = enableTextMotionBlur
+      ? planTextMotionBlurFrame({
+          composition: surface.composition,
+          project,
+          frameTime: surface.time,
+          sceneLayers: childLayers,
+          resolutionScale,
+          evaluateSceneLayers: (sampleTime) =>
+            namespaceSurfaceLayers(
+              flattenSceneLayers(surface.composition, project, sampleTime),
+              scene.resourceInstanceId,
+              surface.compositionPath,
+            ),
+        })
+      : {
+          sampleCount: 0,
+          plans: new Map(),
+          exposureSceneLayers: [],
+          renderSceneLayers: childLayers,
+        };
+    childLayers = [...textMotionBlur.renderSceneLayers];
     for (const child of childLayers) {
-      this.#prepareMedia(child, playing);
+      this.#prepareMedia(
+        child,
+        playing,
+        resolutionScale,
+        textMotionBlur.plans.get(child.resourceInstanceId),
+      );
       if (child.precompositionSurface)
         this.#prepareSurface(
           child,
@@ -283,6 +301,7 @@ export class PrecompositionSurfaceRenderer {
           preparedKeys,
           preparedSources,
           diagnostics,
+          enableTextMotionBlur,
         );
     }
     const camera = evaluateSceneCamera(surface.composition, surface.time);
@@ -344,13 +363,20 @@ export class PrecompositionSurfaceRenderer {
     });
   }
 
-  #prepareMedia(scene: FlattenedSceneLayer, playing: boolean): void {
+  #prepareMedia(
+    scene: FlattenedSceneLayer,
+    playing: boolean,
+    resolutionScale: number,
+    textMotionBlur?: TextMotionBlurPlan,
+  ): void {
     if (scene.layer.kind === "text") {
       this.#mediaTextures.prepareText(
         scene.layer,
         scene.resourceInstanceId,
         evaluateLayerSourceTime(scene.layer, scene.localTime),
         scene.sourceComposition.frameRate.numerator / scene.sourceComposition.frameRate.denominator,
+        resolutionScale,
+        textMotionBlur,
       );
       this.#mediaInstanceIds.add(scene.resourceInstanceId);
       return;
@@ -682,6 +708,27 @@ function destroyEntry(entry: SurfaceEntry): void {
   entry.depth.destroy();
   entry.vertexBuffer.destroy();
   entry.lightingBuffer.destroy();
+}
+
+function namespaceSurfaceLayers(
+  layers: readonly FlattenedSceneLayer[],
+  surfaceKey: string,
+  compositionPath: readonly string[],
+): FlattenedSceneLayer[] {
+  return layers.map((child) => ({
+    ...child,
+    // Standalone evaluation starts every source at `root`. Namespace both identities by the stable
+    // outer wrapper resource path: separate wrappers cannot overwrite each other, clones share,
+    // and playback does not churn media resources merely because the sample time moved.
+    instanceId: namespaceSurfaceChild(surfaceKey, child.instanceId),
+    resourceInstanceId: namespaceSurfaceChild(surfaceKey, child.resourceInstanceId),
+    precompositionSurface: child.precompositionSurface
+      ? {
+          ...child.precompositionSurface,
+          compositionPath: [...compositionPath, ...child.precompositionSurface.compositionPath],
+        }
+      : undefined,
+  }));
 }
 
 function namespaceSurfaceChild(surfaceKey: string, relativeId: string): string {

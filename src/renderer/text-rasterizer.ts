@@ -13,6 +13,12 @@ export interface RasterizedText {
   pixels: Uint8ClampedArray;
 }
 
+/** Shared preview/export bucket used by ordinary and temporal text raster generations. */
+export function textRasterResolutionScale(value: number): number {
+  const bounded = Number.isFinite(value) ? Math.max(1, Math.min(8, value)) : 1;
+  return Math.min(8, 1.25 ** Math.ceil(Math.log(bounded) / Math.log(1.25)));
+}
+
 export function rasterizeTextLayer(
   layer: Layer,
   maximumDimension: number,

@@ -30,7 +30,7 @@ import {
   type RawFramePixelFormat,
   type RawVideoFrame,
 } from "./frame-readback";
-import { FLOATS_PER_VERTEX, type GeometryBatch } from "./geometry";
+import { buildSceneGeometry, FLOATS_PER_VERTEX, type GeometryBatch } from "./geometry";
 import { planGpuMemory } from "./gpu-memory-budget";
 import { GpuTimestampProfiler } from "./gpu-timestamp-profiler";
 import { LayerEffectRenderer } from "./layer-effects";
@@ -61,6 +61,7 @@ import {
 } from "./scene-pipelines";
 import { validateShaderSources } from "./shader-validation";
 import { SurfacePostEffectsRenderer, selectedRenderId } from "./surface-post-effects";
+import { planTextMotionBlurFrame } from "./text-motion-blur-plan";
 import { buildTimeAddressedMotionVectors } from "./time-addressed-motion-vectors";
 
 const MAX_SHAPE_VERTICES = 6 * 128;
@@ -433,6 +434,20 @@ export class WebGpuRenderer {
     project?: Project,
     selectedLayerId?: string,
   ): RendererMetrics {
+    try {
+      return this.#renderFrame(composition, time, playing, project, selectedLayerId);
+    } catch (error) {
+      this.#mediaTextures.abortFrame();
+      throw error;
+    }
+  }
+  #renderFrame(
+    composition: Composition,
+    time: number,
+    playing = false,
+    project?: Project,
+    selectedLayerId?: string,
+  ): RendererMetrics {
     this.#assertActive();
     const started = performance.now();
     const frameInterval = this.#lastFrameStarted ? started - this.#lastFrameStarted : 16.67;
@@ -444,9 +459,40 @@ export class WebGpuRenderer {
       this.#width,
       this.#height,
     );
-    const { sceneLayers, geometry } = evaluation;
-    const renderStack = planSceneRenderStack(sceneLayers, geometry.batches);
+    this.#mediaTextures.beginFrame();
     const motionBlurSettings = compositionMotionBlurSettings(composition);
+    const previewResolutionScale = Math.max(
+      this.#width / Math.max(1, composition.width),
+      this.#height / Math.max(1, composition.height),
+    );
+    const textMotionBlurRequested =
+      this.#bufferVisualization === "beauty" &&
+      motionBlurSettings.enabled &&
+      motionBlurSettings.shutterAngle > 0;
+    const textMotionBlur = textMotionBlurRequested
+      ? planTextMotionBlurFrame({
+          composition,
+          project,
+          frameTime: time,
+          sceneLayers: evaluation.sceneLayers,
+          resolutionScale: previewResolutionScale,
+        })
+      : {
+          sampleCount: 0,
+          plans: new Map(),
+          exposureSceneLayers: [],
+          renderSceneLayers: evaluation.sceneLayers,
+        };
+    const camera = evaluateSceneCamera(composition, time);
+    const sceneLayers =
+      textMotionBlur.exposureSceneLayers.length > 0
+        ? [...textMotionBlur.renderSceneLayers]
+        : evaluation.sceneLayers;
+    const geometry =
+      textMotionBlur.exposureSceneLayers.length > 0
+        ? buildSceneGeometry(composition, [...sceneLayers], camera)
+        : evaluation.geometry;
+    const renderStack = planSceneRenderStack(sceneLayers, geometry.batches);
     const motionBlurSelectionIds = new Set(
       geometry.batches
         .filter(
@@ -472,11 +518,11 @@ export class WebGpuRenderer {
       sceneLayers,
       playing,
       this.#memoryBudgetMb,
+      this.#bufferVisualization === "beauty",
     );
     this.diagnostics.precompositionSurfaceError =
       surfaceFrame.diagnostics.length > 0 ? surfaceFrame.diagnostics.join("; ") : undefined;
     const primaryLight = sceneLayers.find((scene) => scene.layer.kind === "light")?.layer.light;
-    const camera = evaluateSceneCamera(composition, time);
     const cameraPosition = camera?.pose.position;
     const beautyDepthOfField =
       this.#bufferVisualization === "beauty" &&
@@ -592,10 +638,6 @@ export class WebGpuRenderer {
         },
       );
     this.#materialTextures?.prepare(composition, geometry.batches);
-    const previewResolutionScale = Math.max(
-      this.#width / Math.max(1, composition.width),
-      this.#height / Math.max(1, composition.height),
-    );
     for (const scene of sceneLayers) {
       if (scene.layer.kind === "text") {
         this.#mediaTextures.prepareText(
@@ -604,6 +646,7 @@ export class WebGpuRenderer {
           evaluateLayerSourceTime(scene.layer, scene.localTime),
           composition.frameRate.numerator / composition.frameRate.denominator,
           previewResolutionScale,
+          textMotionBlur.plans.get(scene.resourceInstanceId),
         );
       } else if (
         (scene.layer.kind === "image" || scene.layer.kind === "video") &&
@@ -938,6 +981,8 @@ export class WebGpuRenderer {
     this.#pendingFrameReadback?.encode(encoder, outputTexture);
     const collectTimestamps = this.#gpuProfiler.encodeReadback(encoder);
     this.#device.queue.submit([encoder.finish()]);
+    this.#mediaTextures.submitted();
+    const textMotionBlurStats = this.#mediaTextures.textMotionBlurFrameStats;
     if (collectTimestamps) this.#gpuProfiler.readback();
     const cpuMs = performance.now() - started;
     const sample = frameInterval > 100 ? 16.67 : Math.max(frameInterval, 0.1);
@@ -958,7 +1003,8 @@ export class WebGpuRenderer {
         shadowDrawCalls +
         effectLayerCount * 2 +
         adjustmentEffectLayerCount +
-        generatorDrawCount,
+        generatorDrawCount +
+        textMotionBlurStats.drawCount,
       passCount:
         3 +
         (beautyMotionBlurValid ? 3 : 0) +
@@ -966,12 +1012,16 @@ export class WebGpuRenderer {
         scenePassCount +
         effectLayerCount * 3 +
         adjustmentEffectLayerCount +
-        surfaceFrame.surfaceCount,
+        surfaceFrame.surfaceCount +
+        textMotionBlurStats.passCount,
       dirtyNodes: (evaluation.cacheHit ? 0 : sceneLayers.length) + effectOperationCount,
       cacheHitRate: this.#evaluationCache.hitRate(),
       estimatedVramMb: memory.estimatedBytes / 1024 / 1024,
       transientTextureCount:
-        6 + (beautyMotionBlurValid ? 3 : 0) + surfaceFrame.residentTextureCount,
+        6 +
+        (beautyMotionBlurValid ? 3 : 0) +
+        surfaceFrame.residentTextureCount +
+        textMotionBlurStats.transientTextureCount,
       memoryBudgetMb: memory.budgetMb,
       memoryPressure: memory.pressure,
       shadowMapSize: memory.shadowMapSize,

@@ -2,7 +2,12 @@ import { describe, expect, it, vi } from "vitest";
 import { createLayerForComposition } from "../core/layer-factory";
 import { createBlankComposition } from "../core/project";
 import { staticValue } from "../core/types";
-import { breakTextLines, drawTextLayer, textRasterSize } from "./text-rasterizer";
+import {
+  breakTextLines,
+  drawTextLayer,
+  textRasterResolutionScale,
+  textRasterSize,
+} from "./text-rasterizer";
 
 const monospace = (text: string) => Array.from(text).length * 10;
 const graphemeMeasure = (text: string) =>
@@ -22,6 +27,19 @@ describe("Unicode text line breaking", () => {
       width: 8_192,
       height: 2_048,
     });
+  });
+
+  it("buckets ordinary and motion-blurred text at the same bounded resolution scale", () => {
+    expect(textRasterResolutionScale(Number.NaN)).toBe(1);
+    expect(textRasterResolutionScale(1)).toBe(1);
+    expect(textRasterResolutionScale(1.01)).toBe(1.25);
+    expect(textRasterResolutionScale(3)).toBe(3.0517578125);
+    expect(textRasterResolutionScale(8)).toBe(8);
+    expect(textRasterResolutionScale(12)).toBe(8);
+    for (let exponent = 0; exponent < 10; exponent += 1) {
+      const bucket = Math.min(8, 1.25 ** exponent);
+      expect(textRasterResolutionScale(bucket)).toBe(bucket);
+    }
   });
 
   it("wraps words while preserving explicit line breaks", () => {

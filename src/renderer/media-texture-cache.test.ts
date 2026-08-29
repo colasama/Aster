@@ -12,6 +12,8 @@ beforeEach(() => {
     COPY_SRC: 4,
     RENDER_ATTACHMENT: 8,
   });
+  vi.stubGlobal("GPUBufferUsage", { UNIFORM: 1, COPY_DST: 2, COPY_SRC: 4 });
+  vi.stubGlobal("GPUShaderStage", { FRAGMENT: 1 });
 });
 
 afterEach(() => vi.unstubAllGlobals());
@@ -150,6 +152,109 @@ describe("exact-frame media resource barrier", () => {
       "destroyed",
     );
   });
+
+  it("lazily encodes exact text samples and releases their transient generation after submit", () => {
+    vi.stubGlobal("document", {
+      createElement: (name: string) => {
+        if (name !== "canvas") throw new Error(`Unexpected element ${name}`);
+        return new MockTextCanvas();
+      },
+    });
+    const textures: Array<{ label: string; destroy: ReturnType<typeof vi.fn> }> = [];
+    const passes: Array<{ label: string; draws: number }> = [];
+    const createShaderModule = vi.fn(() => ({}));
+    const device = {
+      limits: { maxTextureDimension2D: 8_192, maxBufferSize: 1_073_741_824 },
+      queue: {
+        copyExternalImageToTexture: vi.fn(),
+        writeBuffer: vi.fn(),
+        writeTexture: vi.fn(),
+      },
+      createBindGroupLayout: vi.fn(() => ({})),
+      createPipelineLayout: vi.fn(() => ({})),
+      createShaderModule,
+      createRenderPipeline: vi.fn(() => ({})),
+      createTexture: vi.fn((descriptor: GPUTextureDescriptor) => {
+        const record = { label: String(descriptor.label ?? ""), destroy: vi.fn() };
+        textures.push(record);
+        return { createView: vi.fn(() => ({})), destroy: record.destroy };
+      }),
+      createBuffer: vi.fn((descriptor: GPUBufferDescriptor) => ({
+        size: descriptor.size,
+        destroy: vi.fn(),
+      })),
+      createBindGroup: vi.fn(() => ({})),
+    } as unknown as GPUDevice;
+    const cache = new MediaTextureCache(
+      device,
+      {} as GPUBindGroupLayout,
+      {} as GPUSampler,
+      vi.fn(),
+    );
+    const layer = createLayerForComposition("text", createBlankComposition());
+    layer.size = [8, 4];
+    const encoder = mockTextEncoder(passes);
+
+    cache.prepareText(layer, "text-instance", 1, 24, 1);
+    cache.flush(encoder);
+    cache.submitted();
+    expect(createShaderModule).not.toHaveBeenCalled();
+    expect(passes).toEqual([]);
+
+    cache.prepareText(layer, "text-instance", 1, 24, 1, {
+      frameTime: 1,
+      sampleCount: 2,
+      transparentWeight: 0,
+      samples: [
+        { localTime: 0.99, timeBucket: 990_000, weight: 0.5 },
+        { localTime: 1.01, timeBucket: 1_010_000, weight: 0.5 },
+      ],
+    });
+    cache.flush(encoder);
+    expect(passes).toEqual([
+      { label: "Temporal text premultiplied linear accumulation", draws: 2 },
+      { label: "Temporal text straight-alpha sRGB resolve", draws: 1 },
+    ]);
+    expect(cache.textMotionBlurFrameStats).toEqual({
+      drawCount: 3,
+      passCount: 2,
+      transientTextureCount: 3,
+      resolutionScaleReductionCount: 0,
+    });
+    cache.submitted();
+    const output = textures.find((record) => record.label.includes("Temporal text output"));
+    expect(output?.destroy).not.toHaveBeenCalled();
+    expect(
+      textures
+        .filter(
+          (record) =>
+            record.label.includes("Temporal text sample") ||
+            record.label.includes("Temporal text linear accumulation"),
+        )
+        .every((record) => record.destroy.mock.calls.length === 1),
+    ).toBe(true);
+    const firstBindGroup = cache.bindGroup("text-instance");
+    cache.beginFrame();
+    cache.prepareText(layer, "text-instance", 1.1, 24, 1, {
+      frameTime: 1.1,
+      sampleCount: 2,
+      transparentWeight: 0,
+      samples: [
+        { localTime: 1.09, timeBucket: 1_090_000, weight: 0.5 },
+        { localTime: 1.11, timeBucket: 1_110_000, weight: 0.5 },
+      ],
+    });
+    expect(cache.bindGroup("text-instance")).toBe(firstBindGroup);
+    expect(output?.destroy).not.toHaveBeenCalled();
+    cache.flush(encoder);
+    cache.submitted();
+    expect(textures.filter((record) => record.label.includes("Temporal text output"))).toHaveLength(
+      1,
+    );
+    expect(output?.destroy).not.toHaveBeenCalled();
+    cache.destroy();
+    expect(output?.destroy).toHaveBeenCalledTimes(1);
+  });
 });
 
 function createCache(): MediaTextureCache {
@@ -250,4 +355,44 @@ class MockCanvas {
 
   remove(): void {}
   setAttribute(_name: string, _value: string): void {}
+}
+
+class MockTextCanvas {
+  height = 1;
+  width = 1;
+
+  getContext(): CanvasRenderingContext2D {
+    return {
+      fillText: vi.fn(),
+      filter: "none",
+      getImageData: vi.fn(() => ({ data: new Uint8ClampedArray(this.width * this.height * 4) })),
+      globalAlpha: 1,
+      measureText: vi.fn((text: string) => ({ width: text.length })),
+      restore: vi.fn(),
+      rotate: vi.fn(),
+      save: vi.fn(),
+      scale: vi.fn(),
+      strokeText: vi.fn(),
+      transform: vi.fn(),
+      translate: vi.fn(),
+    } as unknown as CanvasRenderingContext2D;
+  }
+}
+
+function mockTextEncoder(records: Array<{ label: string; draws: number }>): GPUCommandEncoder {
+  return {
+    copyBufferToTexture: vi.fn(),
+    beginRenderPass: vi.fn((descriptor: GPURenderPassDescriptor) => {
+      const record = { label: String(descriptor.label ?? ""), draws: 0 };
+      records.push(record);
+      return {
+        setPipeline: vi.fn(),
+        setBindGroup: vi.fn(),
+        draw: vi.fn(() => {
+          record.draws += 1;
+        }),
+        end: vi.fn(),
+      };
+    }),
+  } as unknown as GPUCommandEncoder;
 }

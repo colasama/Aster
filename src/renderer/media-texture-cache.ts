@@ -30,7 +30,12 @@ import {
   reportVideoUploadError,
   sweepMediaResources,
 } from "./media-resource";
-import { rasterizeTextLayer } from "./text-rasterizer";
+import type { TextMotionBlurPlan } from "./text-motion-blur-plan";
+import {
+  TextMotionBlurRasterCache,
+  type TextMotionBlurRasterFrameStats,
+} from "./text-motion-blur-raster-cache";
+import { rasterizeTextLayer, textRasterResolutionScale } from "./text-rasterizer";
 import { TextureUploadBatch } from "./texture-upload-batch";
 import { VideoExternalUpload, type VideoExternalUploadStatus } from "./video-external-upload";
 
@@ -60,6 +65,7 @@ export class MediaTextureCache {
   readonly #videoFrameTargets = new Map<string, VideoFrameTarget>();
   readonly #decodePool = new AsyncWorkPool(4);
   readonly #uploads: TextureUploadBatch;
+  #textMotionBlur?: TextMotionBlurRasterCache;
   readonly #sequenceFrames = new ImageSequenceFrameCache<RuntimeSequenceFile, ImageBitmap>({
     decode: (file) => this.#decodeImage(file.url),
     estimateBytes: (bitmap) => bitmap.width * bitmap.height * 4,
@@ -89,7 +95,11 @@ export class MediaTextureCache {
   }
 
   get estimatedBytes(): number {
-    return mediaTextureBytes(this.#resources) + this.#uploads.capacityBytes;
+    return (
+      mediaTextureBytes(this.#resources) +
+      this.#uploads.capacityBytes +
+      (this.#textMotionBlur?.estimatedBytes ?? 0)
+    );
   }
 
   get hasPendingFrameResources(): boolean {
@@ -97,6 +107,17 @@ export class MediaTextureCache {
     for (const [instanceId, resource] of this.#resources)
       if (resource.kind === "video" && !this.#videoFrameIsExact(instanceId, resource)) return true;
     return false;
+  }
+
+  get textMotionBlurFrameStats(): TextMotionBlurRasterFrameStats {
+    return (
+      this.#textMotionBlur?.frameStats ?? {
+        drawCount: 0,
+        passCount: 0,
+        transientTextureCount: 0,
+        resolutionScaleReductionCount: 0,
+      }
+    );
   }
 
   destroy(): void {
@@ -110,14 +131,29 @@ export class MediaTextureCache {
     this.#sequenceFrames.clear();
     this.#svgRasters.clear();
     this.#uploads.destroy();
+    this.#textMotionBlur?.destroy();
+    this.#textMotionBlur = undefined;
   }
 
   bindGroup(instanceId: string): GPUBindGroup | undefined {
     return this.#resources.get(instanceId)?.bindGroup;
   }
 
+  beginFrame(): void {
+    this.#textMotionBlur?.beginFrame();
+  }
+
   flush(encoder: GPUCommandEncoder): void {
     this.#uploads.flush(encoder);
+    this.#textMotionBlur?.encode(encoder);
+  }
+
+  submitted(): void {
+    this.#textMotionBlur?.submitted();
+  }
+
+  abortFrame(): void {
+    this.#textMotionBlur?.abortSubmission();
   }
 
   sweep(activeInstanceIds: ReadonlySet<string>): void {
@@ -128,6 +164,7 @@ export class MediaTextureCache {
       if (!activeInstanceIds.has(instanceId)) this.#frameResourceErrors.delete(instanceId);
     for (const instanceId of this.#videoFrameTargets.keys())
       if (!activeInstanceIds.has(instanceId)) this.#videoFrameTargets.delete(instanceId);
+    this.#textMotionBlur?.sweep(activeInstanceIds);
   }
 
   async waitForVideoFrames(timeoutMs = 10_000): Promise<void> {
@@ -448,13 +485,42 @@ export class MediaTextureCache {
     localTime: number,
     frameRate: number,
     resolutionScale = 1,
+    motionBlur?: TextMotionBlurPlan,
   ): void {
+    if (this.#destroyed) throw new Error("Media texture cache is destroyed");
+    const rasterScale = textRasterResolutionScale(resolutionScale);
+    if (motionBlur) {
+      this.#textMotionBlur ??= new TextMotionBlurRasterCache(
+        this.#device,
+        this.#layout,
+        this.#sampler,
+      );
+      const temporal = this.#textMotionBlur.prepare(layer, instanceId, motionBlur, resolutionScale);
+      if (temporal) {
+        const existing = this.#resources.get(instanceId);
+        this.#frameResourceErrors.delete(instanceId);
+        if (
+          existing?.kind === "text" &&
+          existing.source === temporal.source &&
+          existing.bindGroup === temporal.bindGroup
+        )
+          return;
+        destroyMediaResource(existing);
+        this.#resources.set(instanceId, {
+          source: temporal.source,
+          kind: "text",
+          bindGroup: temporal.bindGroup,
+          textureBytes: temporal.textureBytes,
+        });
+        return;
+      }
+    }
+    this.#textMotionBlur?.delete(instanceId);
     const characterCount = countAnimatedTextCharacters(layer.text ?? layer.name);
     const animationTime = clampTextAnimationTime(layer.textAnimator, localTime, characterCount);
     const sampleRate = Number.isFinite(frameRate) ? Math.max(1, Math.min(240, frameRate)) : 60;
     const sampledAnimationTime =
       animationTime === undefined ? undefined : Math.round(animationTime * sampleRate) / sampleRate;
-    const rasterScale = bucketResolutionScale(resolutionScale);
     const source = JSON.stringify([
       layer.text,
       layer.name,
@@ -885,11 +951,6 @@ export function svgPreviewRasterTarget(
 ) {
   const scale = Number.isFinite(resolutionScale) ? Math.max(1, resolutionScale) : 1;
   return bucketSvgTarget(displayWidth * scale, displayHeight * scale, maximumDimension);
-}
-
-function bucketResolutionScale(value: number): number {
-  const bounded = Number.isFinite(value) ? Math.max(1, Math.min(8, value)) : 1;
-  return Math.min(8, 1.25 ** Math.ceil(Math.log(bounded) / Math.log(1.25)));
 }
 
 function remainingTimeout(started: number, timeoutMs: number): number {

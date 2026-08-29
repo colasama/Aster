@@ -53,6 +53,20 @@ texture. This is intentionally not a claim of camera-space glyph meshes, inter-g
 or occlusion. WebGPU preview, Canvas fallback, seeking, background render, and export all call the
 same time-addressed evaluator; only the final texture upload differs.
 
+When the composition and text-layer Motion Blur switches are both enabled, time-varying animator
+geometry bypasses the ordinary frame-rate raster cache. The renderer evaluates the canonical shutter
+samples at exact layer-source times, including time remapping and isolated 3D precomposition
+namespaces. Adaptive sampling uses a conservative displacement bound across anchor, position, scale,
+rotation, skew, tracking, line layout, character replacement, and blur. Static text and disabled
+switches do not create a temporal pipeline, extra raster, or extra GPU pass.
+
+Each sample includes the animator's visual Gaussian blur before motion-blur accumulation. WebGPU
+accumulates linear premultiplied color and alpha in HDR precision, then resolves once to the
+straight-alpha sRGB texture contract consumed by the normal text/material shader. Texture-local
+glyph motion and the layer quad's world-space motion vectors remain separate, so a static layer can
+show character motion, a moving layer with static characters stays on the vector-only fast path, and
+both types of motion can be combined without counting either transform twice.
+
 Adobe behavior reference:
 
 - <https://helpx.adobe.com/after-effects/desktop/animating-text/text-animation/animating-text.html>

@@ -13,6 +13,7 @@ import {
   shapeShader,
 } from "./shaders";
 import { surfacePostEffectsShader } from "./surface-post-effects";
+import { textMotionBlurRasterShader } from "./text-motion-blur-raster-cache";
 
 export async function validateShaderSources(device: GPUDevice): Promise<void> {
   const sources = [
@@ -26,6 +27,7 @@ export async function validateShaderSources(device: GPUDevice): Promise<void> {
     ["auxiliary surface MRT", auxiliarySurfaceShader],
     ["depth effects", depthEffectsShader],
     ["time-addressed vector motion blur", motionBlurShader],
+    ["texture-local temporal text motion blur", textMotionBlurRasterShader],
     ["object isolation and vector motion blur", surfacePostEffectsShader],
   ] as const;
   for (const [label, code] of sources) {
