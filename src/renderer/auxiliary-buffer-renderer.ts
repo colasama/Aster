@@ -1,25 +1,34 @@
 import { logger } from "../core/logger";
-import type { Layer } from "../core/types";
+import {
+  type DepthOfFieldSurfaceTier,
+  planAuxiliarySurfaceAllocation,
+} from "./auxiliary-buffer-budget";
+import {
+  buildAuxiliaryBatchIds,
+  idBufferCapacityBytes,
+  transparencyFallbackDiagnostic,
+} from "./auxiliary-buffer-data";
+import {
+  beginAuxiliaryAggregatePass,
+  beginAuxiliaryFrontColorPass,
+  beginAuxiliaryMrtPass,
+  beginAuxiliaryPeelPass,
+} from "./auxiliary-buffer-passes";
+import { createAuxiliaryBufferPipelines } from "./auxiliary-buffer-pipelines";
 import type { SceneBufferVisualizer } from "./buffer-visualizer";
 import type { GeometryBatch } from "./geometry";
 import {
-  AUXILIARY_BUFFER_DESCRIPTORS,
-  AUXILIARY_BUFFER_KINDS,
   type AuxiliaryBufferKind,
   auxiliaryRenderPassBytes,
   type BufferVisualization,
   createAuxiliaryBufferTextures,
   destroyAuxiliaryBufferTextures,
-  encodeRenderId,
   isAuxiliaryBuffer,
   planAuxiliaryBuffers,
   supportsAuxiliaryMrt,
   usesAuxiliarySurfaceData,
 } from "./render-buffers";
-import { SHAPE_VERTEX_BUFFERS } from "./scene-pipelines";
 import { GpuTimeAddressedMotionVectors } from "./time-addressed-motion-vectors";
-
-const ID_RECORD_BYTES = 8;
 
 export interface GeneratorDraw {
   pipeline: GPURenderPipeline;
@@ -42,9 +51,21 @@ export class AuxiliaryBufferRenderer {
   readonly #device: GPUDevice;
   readonly #shapePipeline: GPURenderPipeline;
   readonly #mediaPipeline: GPURenderPipeline;
+  readonly #transparentShapePipeline: GPURenderPipeline;
+  readonly #transparentMediaPipeline: GPURenderPipeline;
+  readonly #peelShapePipeline: GPURenderPipeline;
+  readonly #peelMediaPipeline: GPURenderPipeline;
+  readonly #frontColorShapePipeline: GPURenderPipeline;
+  readonly #frontColorMediaPipeline: GPURenderPipeline;
+  readonly #peelBindGroupLayout: GPUBindGroupLayout;
   readonly #motionVectors: GpuTimeAddressedMotionVectors;
   #textures = new Map<AuxiliaryBufferKind, GPUTexture>();
   #depth?: GPUTexture;
+  #transparentWorldPosition?: GPUTexture;
+  #peeledWorldPosition?: GPUTexture;
+  #frontLayerColor?: GPUTexture;
+  #peeledLayerColor?: GPUTexture;
+  #peelDepth?: GPUTexture;
   #idBuffer?: GPUBuffer;
   #idBufferBytes = 0;
   #width = 1;
@@ -55,56 +76,28 @@ export class AuxiliaryBufferRenderer {
   #motionShutterScale = 0;
   #allocationFailureReported = false;
   #budgetFailureReported = false;
+  #aggregateFallbackReported = false;
+  #transparencyFallbackDiagnostic?: string;
+  #unavailableReported = false;
+  #depthOfFieldTier: DepthOfFieldSurfaceTier = -1;
+  #depthOfFieldDiagnostic?: string;
+  #degradedTierReported?: DepthOfFieldSurfaceTier;
   readonly supported: boolean;
 
   constructor(device: GPUDevice, imageBindGroupLayout: GPUBindGroupLayout) {
     this.#device = device;
     this.#motionVectors = new GpuTimeAddressedMotionVectors(device);
     this.supported = supportsAuxiliaryMrt(device.limits);
-    const module = device.createShaderModule({
-      label: "Auxiliary MRT surface shader",
-      code: auxiliarySurfaceShader,
-    });
-    const targets = AUXILIARY_BUFFER_KINDS.map((kind) => ({
-      format: AUXILIARY_BUFFER_DESCRIPTORS[kind].format,
-    }));
-    const vertexBuffers: GPUVertexBufferLayout[] = [
-      ...SHAPE_VERTEX_BUFFERS,
-      {
-        arrayStride: ID_RECORD_BYTES,
-        stepMode: "instance",
-        attributes: [
-          { shaderLocation: 12, offset: 0, format: "uint32" },
-          { shaderLocation: 13, offset: 4, format: "uint32" },
-        ],
-      },
-      {
-        arrayStride: 8,
-        stepMode: "vertex",
-        attributes: [{ shaderLocation: 14, offset: 0, format: "float32x2" }],
-      },
-    ];
-    const base: Omit<GPURenderPipelineDescriptor, "fragment" | "layout"> = {
-      vertex: { module, entryPoint: "surface_vertex", buffers: vertexBuffers },
-      primitive: { topology: "triangle-list", cullMode: "none" },
-      depthStencil: {
-        format: "depth24plus",
-        depthWriteEnabled: true,
-        depthCompare: "less-equal",
-      },
-    };
-    this.#shapePipeline = device.createRenderPipeline({
-      ...base,
-      label: "Auxiliary MRT geometry pipeline",
-      layout: "auto",
-      fragment: { module, entryPoint: "surface_fragment", targets },
-    });
-    this.#mediaPipeline = device.createRenderPipeline({
-      ...base,
-      label: "Auxiliary MRT alpha-tested media pipeline",
-      layout: device.createPipelineLayout({ bindGroupLayouts: [imageBindGroupLayout] }),
-      fragment: { module, entryPoint: "media_fragment", targets },
-    });
+    const pipelines = createAuxiliaryBufferPipelines(device, imageBindGroupLayout);
+    this.#shapePipeline = pipelines.shape;
+    this.#mediaPipeline = pipelines.media;
+    this.#transparentShapePipeline = pipelines.transparentShape;
+    this.#transparentMediaPipeline = pipelines.transparentMedia;
+    this.#peelShapePipeline = pipelines.peelShape;
+    this.#peelMediaPipeline = pipelines.peelMedia;
+    this.#frontColorShapePipeline = pipelines.frontColorShape;
+    this.#frontColorMediaPipeline = pipelines.frontColorMedia;
+    this.#peelBindGroupLayout = pipelines.peelBindGroupLayout;
   }
 
   get estimatedBytes(): number {
@@ -115,21 +108,78 @@ export class AuxiliaryBufferRenderer {
     return this.#textures;
   }
 
+  get transparentWorldPosition(): GPUTexture | undefined {
+    return this.#transparentWorldPosition;
+  }
+
+  get peeledWorldPosition(): GPUTexture | undefined {
+    return this.#peeledWorldPosition;
+  }
+
+  get frontLayerColor(): GPUTexture | undefined {
+    return this.#frontLayerColor;
+  }
+
+  get peeledLayerColor(): GPUTexture | undefined {
+    return this.#peeledLayerColor;
+  }
+
   get motionShutterScale(): number {
     return this.#motionShutterScale;
+  }
+
+  get transparencyFallbackDiagnostic(): string | undefined {
+    return this.#transparencyFallbackDiagnostic;
   }
 
   get enabled(): boolean {
     return this.#enabled;
   }
 
-  enable(width: number, height: number, byteBudget: number): boolean {
-    if (!this.supported) return false;
+  get depthOfFieldTier(): DepthOfFieldSurfaceTier {
+    return this.#depthOfFieldTier;
+  }
+
+  get depthOfFieldDiagnostic(): string | undefined {
+    return this.#depthOfFieldDiagnostic;
+  }
+
+  enable(width: number, height: number, byteBudget: number, depthOfField = false): boolean {
+    if (!this.supported) {
+      this.#depthOfFieldDiagnostic = depthOfField
+        ? "Depth of field unavailable: this GPU cannot create the required surface-data MRT"
+        : undefined;
+      return false;
+    }
     this.#byteBudget = Math.max(0, byteBudget);
     const plan = planAuxiliaryBuffers(width, height);
-    const requiredBytes = auxiliaryRenderPassBytes(plan);
-    if (requiredBytes + this.#idBufferBytes + 48 > this.#byteBudget) return false;
-    if (this.#enabled && plan.width === this.#width && plan.height === this.#height) {
+    const allocation = planAuxiliarySurfaceAllocation(
+      plan.width,
+      plan.height,
+      this.#byteBudget,
+      depthOfField,
+      this.#idBufferBytes + 48,
+    );
+    if (!allocation) {
+      if (this.#enabled) this.#destroyTargets();
+      this.#depthOfFieldDiagnostic = depthOfField
+        ? "Depth of field unavailable: the base surface-data pass exceeds the GPU memory budget"
+        : undefined;
+      if (!this.#budgetFailureReported) {
+        this.#budgetFailureReported = true;
+        logger.warn("webgpu", "auxiliary_buffer_budget_exceeded", {
+          plannedBytes: auxiliaryRenderPassBytes(plan) + this.#idBufferBytes + 48,
+          byteBudget: this.#byteBudget,
+        });
+      }
+      return false;
+    }
+    if (
+      this.#enabled &&
+      plan.width === this.#width &&
+      plan.height === this.#height &&
+      allocation.depthOfFieldTier === this.#depthOfFieldTier
+    ) {
       if (this.estimatedBytes <= this.#byteBudget) return true;
       this.#destroyTargets();
       return false;
@@ -141,13 +191,54 @@ export class AuxiliaryBufferRenderer {
         label: "Auxiliary MRT depth",
         size: [plan.width, plan.height],
         format: "depth24plus",
-        usage: GPUTextureUsage.RENDER_ATTACHMENT,
+        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
       });
+      if (allocation.depthOfFieldTier >= 1) {
+        this.#transparentWorldPosition = this.#createLayerTexture(
+          "Transparency-weighted world positions",
+          plan.width,
+          plan.height,
+        );
+        this.#frontLayerColor = this.#createLayerTexture(
+          "Front transparent layer color",
+          plan.width,
+          plan.height,
+        );
+      }
+      if (allocation.depthOfFieldTier >= 2) {
+        this.#peeledWorldPosition = this.#createLayerTexture(
+          "Second peeled world-position layer",
+          plan.width,
+          plan.height,
+        );
+        this.#peeledLayerColor = this.#createLayerTexture(
+          "Second peeled layer color",
+          plan.width,
+          plan.height,
+        );
+        this.#peelDepth = this.#device.createTexture({
+          label: "Second transparent layer peel depth",
+          size: [plan.width, plan.height],
+          format: "depth24plus",
+          usage: GPUTextureUsage.RENDER_ATTACHMENT,
+        });
+      }
       this.#width = plan.width;
       this.#height = plan.height;
-      this.#estimatedBytes = requiredBytes;
+      this.#estimatedBytes = allocation.bytes;
+      this.#depthOfFieldTier = allocation.depthOfFieldTier;
+      this.#depthOfFieldDiagnostic = allocation.diagnostic;
       this.#enabled = true;
       this.#allocationFailureReported = false;
+      this.#budgetFailureReported = false;
+      this.#unavailableReported = false;
+      if (allocation.diagnostic && this.#degradedTierReported !== allocation.depthOfFieldTier) {
+        this.#degradedTierReported = allocation.depthOfFieldTier;
+        logger.warn("webgpu", "depth_of_field_transparency_degraded", {
+          tier: allocation.depthOfFieldTier,
+          diagnostic: allocation.diagnostic,
+        });
+      }
       return true;
     } catch (error) {
       this.#destroyTargets();
@@ -156,7 +247,7 @@ export class AuxiliaryBufferRenderer {
         logger.warn(
           "webgpu",
           "auxiliary_buffer_allocation_failed",
-          { width, height, requiredBytes },
+          { width, height, requiredBytes: allocation.bytes },
           error,
         );
       }
@@ -175,19 +266,27 @@ export class AuxiliaryBufferRenderer {
     height: number,
     budgetMb?: number,
     forceSurfaceData = false,
+    depthOfField = false,
   ): BufferVisualization {
     if (!usesAuxiliarySurfaceData(mode) && !forceSurfaceData) {
       this.disable();
       visualizer.clearAuxiliarySources();
       return mode;
     }
-    if (!this.enable(width, height, (budgetMb ?? 512) * 1024 * 1024 * 0.5)) {
-      logger.warn("webgpu", "auxiliary_buffers_unavailable", {
-        supported: this.supported,
-        width,
-        height,
-        budgetMb,
-      });
+    if (!this.enable(width, height, (budgetMb ?? 512) * 1024 * 1024 * 0.5, depthOfField)) {
+      if (
+        !this.#budgetFailureReported &&
+        !this.#allocationFailureReported &&
+        !this.#unavailableReported
+      ) {
+        this.#unavailableReported = true;
+        logger.warn("webgpu", "auxiliary_buffers_unavailable", {
+          supported: this.supported,
+          width,
+          height,
+          budgetMb,
+        });
+      }
       visualizer.clearAuxiliarySources();
       return "beauty";
     }
@@ -212,11 +311,47 @@ export class AuxiliaryBufferRenderer {
           byteBudget: this.#byteBudget,
         });
       }
-      this.#beginPass(request.encoder, "Auxiliary MRT budget fallback · cleared").end();
+      beginAuxiliaryMrtPass(
+        request.encoder,
+        "Auxiliary MRT budget fallback · cleared",
+        this.#textures,
+        this.#depth,
+      ).end();
+      if (this.#depthOfFieldTier >= 1) {
+        beginAuxiliaryFrontColorPass(
+          request.encoder,
+          "Auxiliary front color fallback · cleared",
+          this.#frontLayerColor,
+          this.#depth,
+        ).end();
+        beginAuxiliaryAggregatePass(
+          request.encoder,
+          "Auxiliary transparency fallback · cleared",
+          this.#transparentWorldPosition,
+        ).end();
+      }
+      if (this.#depthOfFieldTier >= 2)
+        beginAuxiliaryPeelPass(
+          request.encoder,
+          "Auxiliary depth peel fallback · cleared",
+          this.#peeledWorldPosition,
+          this.#peeledLayerColor,
+          this.#peelDepth,
+        ).end();
       this.#motionShutterScale = 0;
       return false;
     }
     this.#budgetFailureReported = false;
+    this.#transparencyFallbackDiagnostic = transparencyFallbackDiagnostic(
+      this.#depthOfFieldTier >= 0 ? (request.generators?.length ?? 0) : 0,
+    );
+    if (this.#transparencyFallbackDiagnostic && !this.#aggregateFallbackReported) {
+      this.#aggregateFallbackReported = true;
+      logger.warn("webgpu", "dof_transparency_aggregate_fallback", {
+        reason: this.#transparencyFallbackDiagnostic,
+        generatorCount: request.generators?.length ?? 0,
+      });
+    }
     this.#uploadBatchIds(request.batches);
     const idBuffer = this.#idBuffer;
     if (!idBuffer) return false;
@@ -225,9 +360,11 @@ export class AuxiliaryBufferRenderer {
       throw new Error("Auxiliary motion vectors must match the current geometry vertex count");
     const motionBuffer = this.#motionVectors.upload(vectors);
     this.#motionShutterScale = request.motionVectors ? 1 : 0;
-    const pass = this.#beginPass(
+    const pass = beginAuxiliaryMrtPass(
       request.encoder,
       "Normal + IDs + World Position + Motion Vector MRT",
+      this.#textures,
+      this.#depth,
     );
     pass.setVertexBuffer(0, request.vertexBuffer);
     pass.setVertexBuffer(1, idBuffer);
@@ -245,25 +382,90 @@ export class AuxiliaryBufferRenderer {
       pass.drawIndirect(generator.indirectBuffer, 0);
     }
     pass.end();
+    if (this.#depthOfFieldTier >= 1) this.#encodeFrontAndAggregate(request, idBuffer, motionBuffer);
+    if (this.#depthOfFieldTier >= 2) this.#encodeSecondPeel(request, idBuffer, motionBuffer);
     return true;
   }
 
-  #beginPass(encoder: GPUCommandEncoder, label: string): GPURenderPassEncoder {
-    if (!this.#depth) throw new Error("Auxiliary MRT depth target is unavailable");
-    return encoder.beginRenderPass({
+  #encodeFrontAndAggregate(
+    request: AuxiliaryEncodeRequest,
+    idBuffer: GPUBuffer,
+    motionBuffer: GPUBuffer,
+  ): void {
+    const front = beginAuxiliaryFrontColorPass(
+      request.encoder,
+      "Front layer color surface",
+      this.#frontLayerColor,
+      this.#depth,
+    );
+    front.setVertexBuffer(0, request.vertexBuffer);
+    front.setVertexBuffer(1, idBuffer);
+    front.setVertexBuffer(2, motionBuffer);
+    for (let index = 0; index < request.batches.length; index += 1) {
+      const batch = request.batches[index];
+      const media = request.mediaBindGroup(batch);
+      front.setPipeline(media ? this.#frontColorMediaPipeline : this.#frontColorShapePipeline);
+      if (media) front.setBindGroup(0, media);
+      front.draw(batch.vertexCount, 1, batch.firstVertex, index);
+    }
+    front.end();
+
+    const aggregate = beginAuxiliaryAggregatePass(
+      request.encoder,
+      "Transparency-weighted world-position surface",
+      this.#transparentWorldPosition,
+    );
+    aggregate.setVertexBuffer(0, request.vertexBuffer);
+    aggregate.setVertexBuffer(1, idBuffer);
+    aggregate.setVertexBuffer(2, motionBuffer);
+    for (const [index, batch] of request.batches.entries()) {
+      const media = request.mediaBindGroup(batch);
+      aggregate.setPipeline(
+        media ? this.#transparentMediaPipeline : this.#transparentShapePipeline,
+      );
+      if (media) aggregate.setBindGroup(0, media);
+      aggregate.draw(batch.vertexCount, 1, batch.firstVertex, index);
+    }
+    aggregate.end();
+  }
+
+  #encodeSecondPeel(
+    request: AuxiliaryEncodeRequest,
+    idBuffer: GPUBuffer,
+    motionBuffer: GPUBuffer,
+  ): void {
+    if (!this.#depth) throw new Error("Auxiliary front depth is unavailable");
+    const peelBindGroup = this.#device.createBindGroup({
+      label: "Auxiliary front-depth peel source",
+      layout: this.#peelBindGroupLayout,
+      entries: [{ binding: 0, resource: this.#depth.createView() }],
+    });
+    const peel = beginAuxiliaryPeelPass(
+      request.encoder,
+      "Second transparent depth layer peel",
+      this.#peeledWorldPosition,
+      this.#peeledLayerColor,
+      this.#peelDepth,
+    );
+    peel.setVertexBuffer(0, request.vertexBuffer);
+    peel.setVertexBuffer(1, idBuffer);
+    peel.setVertexBuffer(2, motionBuffer);
+    for (const [index, batch] of request.batches.entries()) {
+      const media = request.mediaBindGroup(batch);
+      peel.setPipeline(media ? this.#peelMediaPipeline : this.#peelShapePipeline);
+      if (media) peel.setBindGroup(0, media);
+      peel.setBindGroup(1, peelBindGroup);
+      peel.draw(batch.vertexCount, 1, batch.firstVertex, index);
+    }
+    peel.end();
+  }
+
+  #createLayerTexture(label: string, width: number, height: number): GPUTexture {
+    return this.#device.createTexture({
       label,
-      colorAttachments: AUXILIARY_BUFFER_KINDS.map((kind) => ({
-        view: this.#requiredTexture(kind).createView(),
-        clearValue: AUXILIARY_BUFFER_DESCRIPTORS[kind].clearValue,
-        loadOp: "clear" as const,
-        storeOp: "store" as const,
-      })),
-      depthStencilAttachment: {
-        view: this.#depth.createView(),
-        depthClearValue: 1,
-        depthLoadOp: "clear",
-        depthStoreOp: "discard",
-      },
+      size: [width, height],
+      format: "rgba16float",
+      usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
     });
   }
 
@@ -290,129 +492,32 @@ export class AuxiliaryBufferRenderer {
     if (records.byteLength > 0) this.#device.queue.writeBuffer(this.#idBuffer, 0, records);
   }
 
-  #requiredTexture(kind: AuxiliaryBufferKind): GPUTexture {
-    const texture = this.#textures.get(kind);
-    if (!texture) throw new Error(`Auxiliary ${kind} target is unavailable`);
-    return texture;
-  }
-
   #destroyTargets(): void {
     destroyAuxiliaryBufferTextures(this.#textures);
     this.#textures.clear();
     this.#depth?.destroy();
     this.#depth = undefined;
+    this.#transparentWorldPosition?.destroy();
+    this.#transparentWorldPosition = undefined;
+    this.#peeledWorldPosition?.destroy();
+    this.#peeledWorldPosition = undefined;
+    this.#frontLayerColor?.destroy();
+    this.#frontLayerColor = undefined;
+    this.#peeledLayerColor?.destroy();
+    this.#peeledLayerColor = undefined;
+    this.#peelDepth?.destroy();
+    this.#peelDepth = undefined;
     this.#estimatedBytes = 0;
     this.#enabled = false;
+    this.#depthOfFieldTier = -1;
+    this.#depthOfFieldDiagnostic = undefined;
     this.#motionVectors.release();
     this.#motionShutterScale = 0;
   }
 }
 
-function idBufferCapacityBytes(instanceCount: number): number {
-  const requiredBytes = Math.max(ID_RECORD_BYTES, instanceCount * ID_RECORD_BYTES);
-  return 2 ** Math.ceil(Math.log2(requiredBytes));
-}
+/** Base MRT + depth + K=2 color/depth + aggregate transparency allocation. */
+export { auxiliaryDepthOfFieldSurfaceBytes } from "./auxiliary-buffer-budget";
+export { buildAuxiliaryBatchIds, transparencyFallbackDiagnostic } from "./auxiliary-buffer-data";
 
-export function buildAuxiliaryBatchIds(
-  batches: readonly Pick<GeometryBatch, "selectionId" | "layer">[],
-): Uint32Array {
-  const records = new Uint32Array(batches.length * 2);
-  for (let index = 0; index < batches.length; index += 1) {
-    const batch = batches[index];
-    records[index * 2] = encodeRenderId(batch.selectionId);
-    records[index * 2 + 1] = encodeRenderId(materialKey(batch.layer));
-  }
-  return records;
-}
-
-function materialKey(layer: Layer): string {
-  return `material:${JSON.stringify(layer.material ?? layer.mesh?.sourceMaterial ?? layer.kind)}`;
-}
-
-export const auxiliarySurfaceShader = /* wgsl */ `
-struct SurfaceOutput {
-  @location(0) normal: vec4f,
-  @location(1) object_id: u32,
-  @location(2) material_id: u32,
-  @location(3) world_position: vec4f,
-  @location(4) motion_vector: vec2f,
-}
-struct SurfaceVertex {
-  @builtin(position) position: vec4f,
-  @location(0) uv: vec2f,
-  @location(1) color: vec4f,
-  @location(2) normal: vec3f,
-  @location(3) world_position: vec3f,
-  @location(4) shape_parameters: vec4f,
-  @location(5) @interpolate(flat) object_id: u32,
-  @location(6) @interpolate(flat) material_id: u32,
-  @location(7) motion_vector: vec2f,
-}
-
-@vertex fn surface_vertex(
-  @location(0) position: vec3f,
-  @location(1) uv: vec2f,
-  @location(2) color: vec4f,
-  @location(4) normal: vec3f,
-  @location(6) world_position: vec3f,
-  @location(8) shape_parameters: vec4f,
-  @location(12) object_id: u32,
-  @location(13) material_id: u32,
-  @location(14) motion_vector: vec2f,
-) -> SurfaceVertex {
-  var output: SurfaceVertex;
-  output.position = vec4f(position, 1.0);
-  output.uv = uv;
-  output.color = color;
-  output.normal = normal;
-  output.world_position = world_position;
-  output.shape_parameters = shape_parameters;
-  output.object_id = object_id;
-  output.material_id = material_id;
-  output.motion_vector = motion_vector;
-  return output;
-}
-
-fn write_surface(input: SurfaceVertex) -> SurfaceOutput {
-  var output: SurfaceOutput;
-  output.normal = vec4f(normalize(input.normal), 1.0);
-  output.object_id = input.object_id;
-  output.material_id = input.material_id;
-  output.world_position = vec4f(input.world_position, 1.0);
-  output.motion_vector = input.motion_vector;
-  return output;
-}
-
-fn shape_coverage(input: SurfaceVertex) -> f32 {
-  if (input.color.a <= 0.00001) { return 0.0; }
-  let kind = input.shape_parameters.z;
-  let centered = input.uv - vec2f(0.5);
-  if (kind > 1.5 && kind < 2.5) {
-    return select(0.0, 1.0, length(centered * 2.0) <= 1.0);
-  }
-  if (kind > 0.5 && kind < 1.5) {
-    let radius = input.shape_parameters.y;
-    let rounded = abs(centered) - vec2f(0.5 - radius);
-    let distance = length(max(rounded, vec2f(0.0))) + min(max(rounded.x, rounded.y), 0.0) - radius;
-    return select(0.0, 1.0, distance <= 0.0);
-  }
-  if (kind > 2.5 && kind < 3.5) {
-    let line_radius = max(input.shape_parameters.x * 0.5, 0.003);
-    return select(0.0, 1.0, abs(centered.y) <= line_radius && abs(centered.x) <= 0.5);
-  }
-  return 1.0;
-}
-
-@fragment fn surface_fragment(input: SurfaceVertex) -> SurfaceOutput {
-  if (shape_coverage(input) <= 0.0) { discard; }
-  return write_surface(input);
-}
-
-@group(0) @binding(0) var media_texture: texture_2d<f32>;
-@group(0) @binding(1) var media_sampler: sampler;
-
-@fragment fn media_fragment(input: SurfaceVertex) -> SurfaceOutput {
-  if (textureSample(media_texture, media_sampler, input.uv).a * input.color.a <= 0.00001) { discard; }
-  return write_surface(input);
-}
-`;
+export { auxiliarySurfaceShader } from "./auxiliary-surface-shader";

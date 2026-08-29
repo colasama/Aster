@@ -9,7 +9,7 @@ describe("minimal golden project fixture", () => {
     const project = validateProjectDocument(structuredClone(fixture));
     const composition = project.compositions[0];
 
-    expect(project.schemaVersion).toBe(8);
+    expect(project.schemaVersion).toBe(9);
     expect(project.id).toBe("11111111-1111-4111-8111-111111111111");
     expect(project.commandLog).toEqual([]);
     expect(composition.id).toBe(project.activeCompositionId);

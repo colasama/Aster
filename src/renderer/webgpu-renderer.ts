@@ -1,4 +1,3 @@
-import { depthOfFieldSampleCount } from "../core/camera-optics";
 import { evaluateCameraBasis } from "../core/camera-rig";
 import { sourceForLayer, sourceLocator } from "../core/footage-source";
 import { evaluateLayerSourceTime } from "../core/layer-time";
@@ -17,10 +16,11 @@ import type {
   Project,
   RendererMetrics,
 } from "../core/types";
+import { productionDepthOfFieldAllocationError } from "./auxiliary-buffer-budget";
 import { AuxiliaryBufferRenderer } from "./auxiliary-buffer-renderer";
 import { SceneBufferVisualizer } from "./buffer-visualizer";
 import { bundledParticleDefinition } from "./bundled-particle-generator";
-import { DepthEffectsRenderer } from "./depth-effects";
+import { DepthEffectsRenderer, depthEffectSettingsFromCameraOptics } from "./depth-effects";
 import { analyzeEffectFusion } from "./effect-fusion";
 import { FLOATS_PER_EFFECT_OPERATION, MAX_EFFECT_OPERATIONS } from "./effect-program";
 import { captureAfterExactFrameResources } from "./exact-frame-resource-barrier";
@@ -381,6 +381,13 @@ export class WebGpuRenderer {
   get exportPixelFormat(): RawFramePixelFormat {
     return this.#frameReadback.pixelFormat;
   }
+  get productionRenderError(): string | undefined {
+    return productionDepthOfFieldAllocationError(
+      this.#beautyDepthOfFieldActive,
+      this.#auxiliaryBuffers.depthOfFieldTier,
+      this.#auxiliaryBuffers.depthOfFieldDiagnostic,
+    );
+  }
   async renderRawFrame(
     composition: Composition,
     time: number,
@@ -409,6 +416,8 @@ export class WebGpuRenderer {
     this.#pendingFrameReadback = ticket;
     try {
       this.render(composition, time, false, project);
+      const productionError = this.productionRenderError;
+      if (productionError) throw new Error(productionError);
     } catch (error) {
       ticket.abort();
       throw error;
@@ -510,20 +519,11 @@ export class WebGpuRenderer {
     }
     if (camera) {
       const basis = evaluateCameraBasis(camera.pose);
-      const resolutionScale = this.#width / Math.max(composition.width, 1);
       this.#depthEffects.setSettings({
         cameraPosition: camera.pose.position,
         cameraForward: basis.forward,
-        focusDistance: camera.optics.focusDistance,
-        focusAreaWidth: camera.optics.focusAreaWidth,
-        aperture: camera.optics.aperture,
-        filmSize: camera.optics.filmSize,
-        zoom: camera.optics.zoom,
-        blurLevel: camera.optics.blurLevel,
-        nearBlurLevel: camera.optics.nearBlurLevel,
-        farBlurLevel: camera.optics.farBlurLevel,
-        maximumBlurRadius: Math.max(1, Math.min(256, 256 * resolutionScale)),
-        sampleCount: depthOfFieldSampleCount(camera.optics.renderQuality),
+        ...depthEffectSettingsFromCameraOptics(camera.optics, composition.width, this.#width),
+        transparencyTier: this.#auxiliaryBuffers.depthOfFieldTier,
       });
     }
     const shadowQuality = primaryLight?.shadowQuality ?? "medium";
@@ -879,6 +879,10 @@ export class WebGpuRenderer {
         this.#height,
         beautyMotionBlurValid ? this.#motionBlur.outputTexture : this.#sceneTexture,
         this.#auxiliaryBuffers.textures.get("worldPosition"),
+        this.#auxiliaryBuffers.transparentWorldPosition,
+        this.#auxiliaryBuffers.peeledWorldPosition,
+        this.#auxiliaryBuffers.frontLayerColor,
+        this.#auxiliaryBuffers.peeledLayerColor,
       );
     }
     this.#surfacePostEffects.setSelection(
@@ -1032,7 +1036,9 @@ export class WebGpuRenderer {
       this.#height,
       this.#memoryBudgetMb,
       this.#beautyDepthOfFieldActive || this.#beautyMotionBlurActive,
+      this.#beautyDepthOfFieldActive,
     );
+    this.diagnostics.depthOfFieldDegradedReason = this.#auxiliaryBuffers.depthOfFieldDiagnostic;
     this.#motionBlur.setSources(
       this.#width,
       this.#height,
@@ -1052,6 +1058,10 @@ export class WebGpuRenderer {
       this.#height,
       this.#sceneTexture,
       this.#auxiliaryBuffers.textures.get("worldPosition"),
+      this.#auxiliaryBuffers.transparentWorldPosition,
+      this.#auxiliaryBuffers.peeledWorldPosition,
+      this.#auxiliaryBuffers.frontLayerColor,
+      this.#auxiliaryBuffers.peeledLayerColor,
     );
     this.#surfacePostEffects.setSources(
       this.#width,

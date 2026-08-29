@@ -1,10 +1,20 @@
 import {
+  apertureFromFStop,
   type CameraOptics,
   DEFAULT_CAMERA_OPTICS,
+  fStopFromAperture,
   lensFromFocalLength,
+  lensFromZoom,
   normalizeCameraOptics,
 } from "./camera-optics";
+import {
+  CAMERA_ANIMATABLE_FIELDS,
+  evaluateCameraProperty,
+  normalizeCameraAnimatable,
+  setCameraPropertyAtTime,
+} from "./camera-properties";
 import { type CameraPose, type CameraProjection, createDefaultCameraPose } from "./camera-rig";
+import { isLayerActiveAtTime } from "./scene-evaluation";
 import { evaluateAnimatable } from "./timeline";
 import type { CameraSettings, Composition, EvaluatedTransform, Layer, Transform } from "./types";
 import { createTransform, staticValue } from "./types";
@@ -24,15 +34,30 @@ export function createDefaultCameraSettings(
   const lens = lensFromFocalLength(DEFAULT_CAMERA_OPTICS.focalLength, 36, width);
   const pose = createDefaultCameraPose(width, height, lens.zoom);
   return {
-    ...DEFAULT_CAMERA_OPTICS,
-    zoom: lens.zoom,
-    focalLength: lens.focalLength,
-    filmSize: lens.filmSize,
-    focusDistance: lens.zoom,
     mode: pose.mode,
-    orthographicSize: height,
+    projection: DEFAULT_CAMERA_OPTICS.projection,
+    zoom: staticValue(lens.zoom),
+    filmSize: staticValue(lens.filmSize),
+    orthographicSize: staticValue(height),
     pointOfInterest: pose.pointOfInterest.map(staticValue) as CameraSettings["pointOfInterest"],
     orientation: pose.orientation.map(staticValue) as CameraSettings["orientation"],
+    depthOfField: DEFAULT_CAMERA_OPTICS.depthOfField,
+    focusDistance: staticValue(lens.zoom),
+    lockFocusToZoom: DEFAULT_CAMERA_OPTICS.lockFocusToZoom,
+    aperture: staticValue(DEFAULT_CAMERA_OPTICS.aperture),
+    blurLevel: staticValue(DEFAULT_CAMERA_OPTICS.blurLevel),
+    focusAreaWidth: staticValue(DEFAULT_CAMERA_OPTICS.focusAreaWidth),
+    nearBlurLevel: staticValue(DEFAULT_CAMERA_OPTICS.nearBlurLevel),
+    farBlurLevel: staticValue(DEFAULT_CAMERA_OPTICS.farBlurLevel),
+    irisShape: DEFAULT_CAMERA_OPTICS.irisShape,
+    irisRotation: staticValue(DEFAULT_CAMERA_OPTICS.irisRotation),
+    irisRoundness: staticValue(DEFAULT_CAMERA_OPTICS.irisRoundness),
+    irisAspectRatio: staticValue(DEFAULT_CAMERA_OPTICS.irisAspectRatio),
+    irisDiffractionFringe: staticValue(DEFAULT_CAMERA_OPTICS.irisDiffractionFringe),
+    highlightGain: staticValue(DEFAULT_CAMERA_OPTICS.highlightGain),
+    highlightThreshold: staticValue(DEFAULT_CAMERA_OPTICS.highlightThreshold),
+    highlightSaturation: staticValue(DEFAULT_CAMERA_OPTICS.highlightSaturation),
+    renderQuality: DEFAULT_CAMERA_OPTICS.renderQuality,
   };
 }
 
@@ -41,7 +66,8 @@ export function createDefaultCameraTransform(
   compositionHeight: number,
   settings = createDefaultCameraSettings(compositionWidth, compositionHeight),
 ): Transform {
-  const pose = createDefaultCameraPose(compositionWidth, compositionHeight, settings.zoom);
+  const zoom = evaluateCameraProperty(settings, "zoom", 0);
+  const pose = createDefaultCameraPose(compositionWidth, compositionHeight, zoom);
   return createTransform(pose.position);
 }
 
@@ -51,13 +77,36 @@ export function normalizeCameraSettings(
   compositionHeight: number,
 ): CameraSettings {
   const defaults = createDefaultCameraSettings(compositionWidth, compositionHeight);
-  const optics = normalizeCameraOptics(value, compositionWidth);
+  const camera = { ...defaults, ...value };
+  for (const field of CAMERA_ANIMATABLE_FIELDS) {
+    const fallback = field === "orthographicSize" ? compositionHeight : undefined;
+    camera[field] = normalizeCameraAnimatable(value[field], field, fallback);
+  }
   return {
-    ...optics,
     mode: value.mode === "oneNode" ? "oneNode" : "twoNode",
-    orthographicSize: bounded(value.orthographicSize, 1, 10_000_000, compositionHeight),
+    projection: value.projection === "orthographic" ? "orthographic" : "perspective",
+    zoom: camera.zoom,
+    filmSize: camera.filmSize,
+    orthographicSize: camera.orthographicSize,
     pointOfInterest: cloneVector(value.pointOfInterest, defaults.pointOfInterest),
     orientation: cloneVector(value.orientation, defaults.orientation),
+    depthOfField: value.depthOfField ?? defaults.depthOfField,
+    focusDistance: camera.focusDistance,
+    lockFocusToZoom: value.lockFocusToZoom ?? defaults.lockFocusToZoom,
+    aperture: camera.aperture,
+    blurLevel: camera.blurLevel,
+    focusAreaWidth: camera.focusAreaWidth,
+    nearBlurLevel: camera.nearBlurLevel,
+    farBlurLevel: camera.farBlurLevel,
+    irisShape: normalizeIrisShape(value.irisShape),
+    irisRotation: camera.irisRotation,
+    irisRoundness: camera.irisRoundness,
+    irisAspectRatio: camera.irisAspectRatio,
+    irisDiffractionFringe: camera.irisDiffractionFringe,
+    highlightGain: camera.highlightGain,
+    highlightThreshold: camera.highlightThreshold,
+    highlightSaturation: camera.highlightSaturation,
+    renderQuality: bounded(value.renderQuality, 1, 100, DEFAULT_CAMERA_OPTICS.renderQuality),
   };
 }
 
@@ -67,7 +116,32 @@ export function evaluateCameraSettings(
   time: number,
   compositionWidth: number,
 ): EvaluatedCamera {
-  const optics = normalizeCameraOptics(settings, compositionWidth);
+  const optics = normalizeCameraOptics(
+    {
+      projection: settings.projection,
+      depthOfField: settings.depthOfField,
+      lockFocusToZoom: settings.lockFocusToZoom,
+      irisShape: settings.irisShape,
+      renderQuality: settings.renderQuality,
+      zoom: evaluateCameraProperty(settings, "zoom", time),
+      filmSize: evaluateCameraProperty(settings, "filmSize", time),
+      orthographicSize: evaluateCameraProperty(settings, "orthographicSize", time),
+      focusDistance: evaluateCameraProperty(settings, "focusDistance", time),
+      aperture: evaluateCameraProperty(settings, "aperture", time),
+      blurLevel: evaluateCameraProperty(settings, "blurLevel", time),
+      focusAreaWidth: evaluateCameraProperty(settings, "focusAreaWidth", time),
+      nearBlurLevel: evaluateCameraProperty(settings, "nearBlurLevel", time),
+      farBlurLevel: evaluateCameraProperty(settings, "farBlurLevel", time),
+      irisRotation: evaluateCameraProperty(settings, "irisRotation", time),
+      irisRoundness: evaluateCameraProperty(settings, "irisRoundness", time),
+      irisAspectRatio: evaluateCameraProperty(settings, "irisAspectRatio", time),
+      irisDiffractionFringe: evaluateCameraProperty(settings, "irisDiffractionFringe", time),
+      highlightGain: evaluateCameraProperty(settings, "highlightGain", time),
+      highlightThreshold: evaluateCameraProperty(settings, "highlightThreshold", time),
+      highlightSaturation: evaluateCameraProperty(settings, "highlightSaturation", time),
+    },
+    compositionWidth,
+  );
   const pose: CameraPose = {
     mode: settings.mode,
     position: [...transform.position],
@@ -81,11 +155,43 @@ export function evaluateCameraSettings(
     projection: {
       kind: settings.projection,
       zoom: optics.zoom,
-      orthographicSize: settings.orthographicSize,
+      orthographicSize: optics.orthographicSize,
       near: 0.1,
       far: 10_000_000,
     },
   };
+}
+
+export function setDerivedCameraPropertyAtTime(
+  camera: CameraSettings,
+  field: "focalLength" | "fStop",
+  value: number,
+  time: number,
+  compositionWidth: number,
+): CameraSettings {
+  const zoom = evaluateCameraProperty(camera, "zoom", time);
+  const filmSize = evaluateCameraProperty(camera, "filmSize", time);
+  const lens = lensFromZoom(zoom, filmSize, compositionWidth);
+  if (field === "focalLength") {
+    const fStop = fStopFromAperture(
+      lens.focalLength,
+      evaluateCameraProperty(camera, "aperture", time),
+    );
+    const nextLens = lensFromFocalLength(value, filmSize, compositionWidth);
+    const withZoom = setCameraPropertyAtTime(camera, "zoom", time, nextLens.zoom);
+    return setCameraPropertyAtTime(
+      withZoom,
+      "aperture",
+      time,
+      apertureFromFStop(nextLens.focalLength, fStop),
+    );
+  }
+  return setCameraPropertyAtTime(
+    camera,
+    "aperture",
+    time,
+    apertureFromFStop(lens.focalLength, value),
+  );
 }
 
 export function createDefaultEvaluatedCamera(
@@ -93,25 +199,25 @@ export function createDefaultEvaluatedCamera(
   compositionHeight: number,
 ): EvaluatedCamera {
   const settings = createDefaultCameraSettings(compositionWidth, compositionHeight);
-  const pose = createDefaultCameraPose(compositionWidth, compositionHeight, settings.zoom);
-  return {
-    pose,
-    optics: normalizeCameraOptics(settings, compositionWidth),
-    projection: {
-      kind: settings.projection,
-      zoom: settings.zoom,
-      orthographicSize: settings.orthographicSize,
-      near: 0.1,
-      far: 10_000_000,
-    },
-  };
+  const zoom = evaluateCameraProperty(settings, "zoom", 0);
+  const pose = createDefaultCameraPose(compositionWidth, compositionHeight, zoom);
+  return evaluateCameraSettings(
+    settings,
+    defaultEvaluatedTransform(pose.position),
+    0,
+    compositionWidth,
+  );
 }
 
 /** AE chooses the highest timeline camera whose span contains the current time. */
 export function activeCameraLayerAtTime(composition: Composition, time: number): Layer | undefined {
   return composition.layers.find(
-    (layer) => layer.kind === "camera" && time >= layer.inPoint && time <= layer.outPoint,
+    (layer) => layer.kind === "camera" && isLayerActiveAtTime(layer, time),
   );
+}
+
+function defaultEvaluatedTransform(position: [number, number, number]): EvaluatedTransform {
+  return { position, rotation: [0, 0, 0], scale: [100, 100, 100], anchor: [0, 0, 0], opacity: 1 };
 }
 
 function evaluateVector(
@@ -127,6 +233,22 @@ function cloneVector(
 ): CameraSettings["pointOfInterest"] {
   if (!Array.isArray(value) || value.length !== 3) return structuredClone(fallback);
   return structuredClone(value);
+}
+
+function normalizeIrisShape(value: CameraSettings["irisShape"] | undefined) {
+  const valid: readonly CameraSettings["irisShape"][] = [
+    "fastRectangle",
+    "square",
+    "triangle",
+    "pentagon",
+    "hexagon",
+    "heptagon",
+    "octagon",
+    "nonagon",
+    "decagon",
+    "circle",
+  ];
+  return value && valid.includes(value) ? value : DEFAULT_CAMERA_OPTICS.irisShape;
 }
 
 function bounded(

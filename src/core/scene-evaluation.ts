@@ -25,10 +25,13 @@ export interface FlattenedSceneLayer {
 }
 
 export function visibleLayersAtTime(composition: Composition, time: number): Layer[] {
-  const timed = composition.layers.filter(
-    (layer) => layer.visible && time >= layer.inPoint && time <= layer.outPoint,
-  );
+  const timed = composition.layers.filter((layer) => isLayerActiveAtTime(layer, time));
   return timed.some((layer) => layer.solo) ? timed.filter((layer) => layer.solo) : timed;
+}
+
+/** Layer spans are half-open, so adjacent edits cannot render twice at their shared cut. */
+export function isLayerActiveAtTime(layer: Layer, time: number): boolean {
+  return layer.visible && time >= layer.inPoint && time < layer.outPoint;
 }
 
 export function evaluateWorldTransform(

@@ -59,6 +59,17 @@ propagates decode failures and timeouts, and requires a redraw before accepting 
 first render discovered pending resources. Cached stills and synchronous text rasterization retain a
 single GPU submission; only a newly requested asynchronous generation is prepared and recaptured.
 
+Advanced 3D depth of field is allocated before GPU texture creation against the auxiliary share of
+the configured memory budget. The Base surface-data pass retains its existing MRT cost. K1 adds
+16 bytes per output pixel for exact front color plus aggregate transparent depth; K2 adds 36 bytes
+per pixel for front/second color, second/aggregate position, and peel depth. Interactive preview may
+use K1 (exact front, aggregate deeper transparency) or K0 (canonical beauty at primary depth) and
+publishes `depthOfFieldDegradedReason`. Production readback requires K2 and fails with an actionable
+allocation error when the budget cannot preserve two independent transparent focal surfaces. A
+composition without active depth of field allocates only Base, so normal/ID/motion-vector views and
+ordinary Beauty do not pay for layered targets. Resize and tier changes destroy the prior targets
+before allocating replacements.
+
 ## Session ownership and recovery
 
 Only one renderer-resizing production session or GPU benchmark may own the viewport renderer at a

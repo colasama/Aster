@@ -3,8 +3,13 @@ import {
   createParticleSceneGenerator,
   particleSettingsFromGenerator,
 } from "../core/bundled-particle";
-import { apertureFromFStop, lensFromFocalLength, lensFromZoom } from "../core/camera-optics";
-import { createDefaultCameraSettings } from "../core/camera-settings";
+import type { CameraAnimatableField } from "../core/camera-properties";
+import { setCameraPropertyAtTime } from "../core/camera-properties";
+import {
+  createDefaultCameraSettings,
+  evaluateCameraSettings,
+  setDerivedCameraPropertyAtTime,
+} from "../core/camera-settings";
 import type { PropertyPath } from "../core/operations";
 import { createDefaultParticleSettings, type ParticleSettings } from "../core/particle-settings";
 import type { PluginParameter } from "../core/plugins";
@@ -13,7 +18,7 @@ import {
   getSceneGeneratorDefinitions,
   subscribeSceneGeneratorDefinitions,
 } from "../core/scene-generator-registry";
-import { evaluateAnimatable } from "../core/timeline";
+import { evaluateAnimatable, evaluateTransform } from "../core/timeline";
 import type {
   CameraSettings,
   Layer,
@@ -35,6 +40,12 @@ export function Scene3dControls({ layer }: { layer: Layer }) {
   const camera =
     layer.camera ??
     createDefaultCameraSettings(composition?.width ?? 1920, composition?.height ?? 1080);
+  const evaluatedCamera = evaluateCameraSettings(
+    camera,
+    evaluateTransform(layer.transform, state.currentTime),
+    state.currentTime,
+    composition?.width ?? 1920,
+  );
   useSyncExternalStore(
     subscribeSceneGeneratorDefinitions,
     getSceneGeneratorDefinitions,
@@ -87,21 +98,6 @@ export function Scene3dControls({ layer }: { layer: Layer }) {
     value: CameraSettings[Field],
   ) => {
     const next: CameraSettings = { ...camera, [field]: value };
-    const width = composition?.width ?? 1920;
-    if (field === "zoom") {
-      const lens = lensFromZoom(Number(value), next.filmSize, width);
-      next.zoom = lens.zoom;
-      next.focalLength = lens.focalLength;
-    } else if (field === "focalLength") {
-      const lens = lensFromFocalLength(Number(value), next.filmSize, width);
-      next.zoom = lens.zoom;
-      next.focalLength = lens.focalLength;
-    } else if (field === "filmSize") {
-      const lens = lensFromZoom(next.zoom, Number(value), width);
-      next.filmSize = lens.filmSize;
-      next.focalLength = lens.focalLength;
-    } else if (field === "fStop")
-      next.aperture = apertureFromFStop(next.focalLength, Number(value));
     dispatch({
       type: "operation",
       operations: [
@@ -111,6 +107,29 @@ export function Scene3dControls({ layer }: { layer: Layer }) {
           camera: next,
         },
       ],
+    });
+  };
+
+  const updateCameraTrack = (field: CameraAnimatableField, value: number) => {
+    const next = setCameraPropertyAtTime(camera, field, state.currentTime, value);
+    if (field === "focusDistance" || field === "zoom") next.lockFocusToZoom = false;
+    dispatch({
+      type: "operation",
+      operations: [{ type: "setCameraSettings", layerId: layer.id, camera: next }],
+    });
+  };
+
+  const updateDerivedCamera = (field: "focalLength" | "fStop", value: number) => {
+    const next = setDerivedCameraPropertyAtTime(
+      camera,
+      field,
+      value,
+      state.currentTime,
+      composition?.width ?? 1920,
+    );
+    dispatch({
+      type: "operation",
+      operations: [{ type: "setCameraSettings", layerId: layer.id, camera: next }],
     });
   };
 
@@ -265,25 +284,25 @@ export function Scene3dControls({ layer }: { layer: Layer }) {
               label={t("scene3d.camera.zoom")}
               max={1_000_000}
               min={0.1}
-              onChange={(value) => updateCamera("zoom", value)}
+              onChange={(value) => updateCameraTrack("zoom", value)}
               step={1}
-              value={camera.zoom}
+              value={evaluatedCamera.optics.zoom}
             />
             <NumericControl
               label={t("scene3d.camera.focalLength")}
               max={10_000}
               min={0.1}
-              onChange={(value) => updateCamera("focalLength", value)}
+              onChange={(value) => updateDerivedCamera("focalLength", value)}
               step={0.1}
-              value={camera.focalLength}
+              value={evaluatedCamera.optics.focalLength}
             />
             <NumericControl
               label={t("scene3d.camera.filmSize")}
               max={1_000}
               min={0.1}
-              onChange={(value) => updateCamera("filmSize", value)}
+              onChange={(value) => updateCameraTrack("filmSize", value)}
               step={0.1}
-              value={camera.filmSize}
+              value={evaluatedCamera.optics.filmSize}
             />
           </>
         ) : (
@@ -291,9 +310,9 @@ export function Scene3dControls({ layer }: { layer: Layer }) {
             label={t("scene3d.camera.orthographicSize")}
             max={100_000}
             min={1}
-            onChange={(value) => updateCamera("orthographicSize", value)}
+            onChange={(value) => updateCameraTrack("orthographicSize", value)}
             step={10}
-            value={camera.orthographicSize}
+            value={evaluatedCamera.optics.orthographicSize}
           />
         )}
         <BooleanControl
@@ -312,57 +331,134 @@ export function Scene3dControls({ layer }: { layer: Layer }) {
               label={t("scene3d.camera.focusDistance")}
               max={10_000_000}
               min={0.1}
-              onChange={(value) => updateCamera("focusDistance", value)}
+              onChange={(value) => updateCameraTrack("focusDistance", value)}
               step={1}
-              value={camera.focusDistance}
+              value={evaluatedCamera.optics.focusDistance}
             />
             <NumericControl
               label={t("scene3d.camera.aperture")}
               max={10_000}
               min={0.001}
-              onChange={(value) => updateCamera("aperture", value)}
+              onChange={(value) => updateCameraTrack("aperture", value)}
               step={0.1}
-              value={camera.aperture}
+              value={evaluatedCamera.optics.aperture}
             />
             <NumericControl
               label={t("scene3d.camera.fStop")}
               max={1_000}
               min={0.1}
-              onChange={(value) => updateCamera("fStop", value)}
+              onChange={(value) => updateDerivedCamera("fStop", value)}
               step={0.1}
-              value={camera.fStop}
+              value={evaluatedCamera.optics.fStop}
             />
             <NumericControl
               label={t("scene3d.camera.blurLevel")}
               max={1_000}
               min={0}
-              onChange={(value) => updateCamera("blurLevel", value)}
+              onChange={(value) => updateCameraTrack("blurLevel", value)}
               step={1}
-              value={camera.blurLevel}
+              value={evaluatedCamera.optics.blurLevel}
             />
             <NumericControl
               label={t("scene3d.camera.focusAreaWidth")}
               max={10_000_000}
               min={0}
-              onChange={(value) => updateCamera("focusAreaWidth", value)}
+              onChange={(value) => updateCameraTrack("focusAreaWidth", value)}
               step={1}
-              value={camera.focusAreaWidth}
+              value={evaluatedCamera.optics.focusAreaWidth}
             />
             <NumericControl
               label={t("scene3d.camera.nearBlurLevel")}
               max={1_000}
               min={0}
-              onChange={(value) => updateCamera("nearBlurLevel", value)}
+              onChange={(value) => updateCameraTrack("nearBlurLevel", value)}
               step={1}
-              value={camera.nearBlurLevel}
+              value={evaluatedCamera.optics.nearBlurLevel}
             />
             <NumericControl
               label={t("scene3d.camera.farBlurLevel")}
               max={1_000}
               min={0}
-              onChange={(value) => updateCamera("farBlurLevel", value)}
+              onChange={(value) => updateCameraTrack("farBlurLevel", value)}
               step={1}
-              value={camera.farBlurLevel}
+              value={evaluatedCamera.optics.farBlurLevel}
+            />
+            <label>
+              {t("scene3d.camera.irisShape")}
+              <select
+                aria-label={t("scene3d.camera.irisShape")}
+                onChange={(event) =>
+                  updateCamera("irisShape", event.target.value as CameraSettings["irisShape"])
+                }
+                value={camera.irisShape}
+              >
+                <option value="fastRectangle">{t("scene3d.camera.irisShape.fastRectangle")}</option>
+                <option value="square">{t("scene3d.camera.irisShape.square")}</option>
+                <option value="triangle">{t("scene3d.camera.irisShape.triangle")}</option>
+                <option value="pentagon">{t("scene3d.camera.irisShape.pentagon")}</option>
+                <option value="hexagon">{t("scene3d.camera.irisShape.hexagon")}</option>
+                <option value="heptagon">{t("scene3d.camera.irisShape.heptagon")}</option>
+                <option value="octagon">{t("scene3d.camera.irisShape.octagon")}</option>
+                <option value="nonagon">{t("scene3d.camera.irisShape.nonagon")}</option>
+                <option value="decagon">{t("scene3d.camera.irisShape.decagon")}</option>
+                <option value="circle">{t("scene3d.camera.irisShape.circle")}</option>
+              </select>
+            </label>
+            <NumericControl
+              label={t("scene3d.camera.irisRotation")}
+              max={360}
+              min={-360}
+              onChange={(value) => updateCameraTrack("irisRotation", value)}
+              step={1}
+              value={evaluatedCamera.optics.irisRotation}
+            />
+            <NumericControl
+              label={t("scene3d.camera.irisRoundness")}
+              max={100}
+              min={0}
+              onChange={(value) => updateCameraTrack("irisRoundness", value)}
+              step={1}
+              value={evaluatedCamera.optics.irisRoundness}
+            />
+            <NumericControl
+              label={t("scene3d.camera.irisAspectRatio")}
+              max={100}
+              min={1}
+              onChange={(value) => updateCameraTrack("irisAspectRatio", value)}
+              step={1}
+              value={evaluatedCamera.optics.irisAspectRatio}
+            />
+            <NumericControl
+              label={t("scene3d.camera.irisDiffractionFringe")}
+              max={100}
+              min={0}
+              onChange={(value) => updateCameraTrack("irisDiffractionFringe", value)}
+              step={1}
+              value={evaluatedCamera.optics.irisDiffractionFringe}
+            />
+            <NumericControl
+              label={t("scene3d.camera.highlightGain")}
+              max={100}
+              min={0}
+              onChange={(value) => updateCameraTrack("highlightGain", value)}
+              step={1}
+              value={evaluatedCamera.optics.highlightGain}
+            />
+            <NumericControl
+              label={t("scene3d.camera.highlightThreshold")}
+              max={1}
+              min={0}
+              onChange={(value) => updateCameraTrack("highlightThreshold", value)}
+              step={0.01}
+              value={evaluatedCamera.optics.highlightThreshold}
+            />
+            <NumericControl
+              label={t("scene3d.camera.highlightSaturation")}
+              max={100}
+              min={0}
+              onChange={(value) => updateCameraTrack("highlightSaturation", value)}
+              step={1}
+              value={evaluatedCamera.optics.highlightSaturation}
             />
             <NumericControl
               label={t("scene3d.camera.renderQuality")}

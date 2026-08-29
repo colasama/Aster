@@ -3,6 +3,11 @@ import {
   createCanonicalAdjustmentTransform,
 } from "./adjustment-layer";
 import { layerHasAudio, linearToDecibels, normalizeAudioLayerSettings } from "./audio-layer";
+import {
+  CAMERA_ANIMATABLE_FIELDS,
+  isCameraAnimatableField,
+  normalizeCameraAnimatable,
+} from "./camera-properties";
 import { normalizeCameraSettings } from "./camera-settings";
 import { type ClonerSettings, normalizeClonerSettings } from "./cloner";
 import { referencedSourceIds, sourceSupportsLayer } from "./footage-source";
@@ -69,6 +74,22 @@ export type PropertyPath =
   | "camera.orientation.0"
   | "camera.orientation.1"
   | "camera.orientation.2"
+  | "camera.zoom"
+  | "camera.filmSize"
+  | "camera.orthographicSize"
+  | "camera.focusDistance"
+  | "camera.aperture"
+  | "camera.blurLevel"
+  | "camera.focusAreaWidth"
+  | "camera.nearBlurLevel"
+  | "camera.farBlurLevel"
+  | "camera.irisRotation"
+  | "camera.irisRoundness"
+  | "camera.irisAspectRatio"
+  | "camera.irisDiffractionFringe"
+  | "camera.highlightGain"
+  | "camera.highlightThreshold"
+  | "camera.highlightSaturation"
   | "opacity";
 
 export type Operation =
@@ -799,6 +820,11 @@ export function applyOperation(project: Project, operation: Operation): void {
             : entry,
         )
         .sort((left, right) => left.time - right.time);
+      const cameraPath = operation.path.startsWith("camera.")
+        ? operation.path.slice("camera.".length)
+        : "";
+      if (isCameraAnimatableField(cameraPath))
+        setProperty(layer, operation.path, normalizeCameraAnimatable(property, cameraPath));
       break;
     }
     case "removeKeyframe": {
@@ -1161,7 +1187,15 @@ function easeTransform(layer: Layer): void {
     ...layer.transform.scale,
     ...layer.transform.anchor,
     layer.transform.opacity,
-    ...(layer.camera ? [...layer.camera.pointOfInterest, ...layer.camera.orientation] : []),
+    ...(layer.camera
+      ? [
+          ...layer.camera.pointOfInterest,
+          ...layer.camera.orientation,
+          ...CAMERA_ANIMATABLE_FIELDS.map((field) => layer.camera?.[field]).filter(
+            (property): property is Animatable => property !== undefined,
+          ),
+        ]
+      : []),
   ];
   for (const property of properties) {
     if (property.mode !== "animated") continue;
@@ -1176,6 +1210,8 @@ export function getProperty(layer: Layer, path: PropertyPath): Animatable {
   if (path === "opacity") return layer.transform.opacity;
   if (path.startsWith("camera.")) {
     if (!layer.camera) throw new Error("Camera property requires a camera layer");
+    const cameraPath = path.slice("camera.".length);
+    if (isCameraAnimatableField(cameraPath)) return layer.camera[cameraPath];
     const [, group, component] = path.split(".") as [
       "camera",
       "pointOfInterest" | "orientation",
@@ -1197,6 +1233,13 @@ function setProperty(layer: Layer, path: PropertyPath, value: Animatable): void 
   }
   if (path.startsWith("camera.")) {
     if (!layer.camera) throw new Error("Camera property requires a camera layer");
+    const cameraPath = path.slice("camera.".length);
+    if (isCameraAnimatableField(cameraPath)) {
+      layer.camera[cameraPath] = normalizeCameraAnimatable(value, cameraPath);
+      if (cameraPath === "zoom" || cameraPath === "focusDistance")
+        layer.camera.lockFocusToZoom = false;
+      return;
+    }
     const [, group, component] = path.split(".") as [
       "camera",
       "pointOfInterest" | "orientation",

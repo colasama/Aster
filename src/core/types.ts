@@ -172,23 +172,39 @@ export interface CameraSettings {
   mode: "oneNode" | "twoNode";
   projection: "perspective" | "orthographic";
   /** AE Zoom in composition pixels. */
-  zoom: number;
+  zoom: Animatable;
   /** Horizontal film-back width in millimetres. */
-  filmSize: number;
-  /** Derived physical focal length in millimetres. */
-  focalLength: number;
-  orthographicSize: number;
+  filmSize: Animatable;
+  orthographicSize: Animatable;
   pointOfInterest: [Animatable, Animatable, Animatable];
   orientation: [Animatable, Animatable, Animatable];
   depthOfField: boolean;
-  focusDistance: number;
+  focusDistance: Animatable;
   lockFocusToZoom: boolean;
-  aperture: number;
-  fStop: number;
-  blurLevel: number;
-  focusAreaWidth: number;
-  nearBlurLevel: number;
-  farBlurLevel: number;
+  /** Authoritative AE Aperture property in virtual-camera pixels. */
+  aperture: Animatable;
+  blurLevel: Animatable;
+  focusAreaWidth: Animatable;
+  nearBlurLevel: Animatable;
+  farBlurLevel: Animatable;
+  irisShape:
+    | "fastRectangle"
+    | "square"
+    | "triangle"
+    | "pentagon"
+    | "hexagon"
+    | "heptagon"
+    | "octagon"
+    | "nonagon"
+    | "decagon"
+    | "circle";
+  irisRotation: Animatable;
+  irisRoundness: Animatable;
+  irisAspectRatio: Animatable;
+  irisDiffractionFringe: Animatable;
+  highlightGain: Animatable;
+  highlightThreshold: Animatable;
+  highlightSaturation: Animatable;
   renderQuality: number;
 }
 
@@ -329,7 +345,7 @@ export interface ProjectFolder {
 }
 
 export interface Project {
-  schemaVersion: 8;
+  schemaVersion: 9;
   id: Id;
   name: string;
   activeCompositionId: Id;
@@ -440,6 +456,7 @@ export interface GpuDiagnostics {
   adjustmentLayerError?: string;
   precompositionSurfaceError?: string;
   sceneGeneratorError?: string;
+  depthOfFieldDegradedReason?: string;
 }
 
 export const createId = (): Id => crypto.randomUUID();

@@ -317,7 +317,7 @@ function sceneCamera(): SceneCamera {
   const settings = createDefaultCameraSettings(1920, 1080);
   settings.mode = "oneNode";
   settings.projection = "orthographic";
-  settings.orthographicSize = 720;
+  settings.orthographicSize = { mode: "static", value: 720 };
   const transform = {
     position: [10, 20, 30] as [number, number, number],
     rotation: [4, 5, 6] as [number, number, number],

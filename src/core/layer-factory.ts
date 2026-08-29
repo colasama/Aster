@@ -58,7 +58,7 @@ function createLayer(kind: LayerKind, composition: Composition, currentTime: num
     name: names[kind],
     kind,
     text: isText ? "NEW TEXT" : undefined,
-    visible: !isCamera && kind !== "audio",
+    visible: kind !== "audio",
     solo: false,
     locked: false,
     motionBlur: false,

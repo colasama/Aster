@@ -18,17 +18,22 @@ describe("camera optics", () => {
     expect(lensFromZoom(lens.zoom, 36, 1920).focalLength).toBeCloseTo(50);
   });
 
-  it("keeps aperture and f-stop reciprocal and lock-focus tied to zoom", () => {
+  it("keeps pixel aperture and f-stop reciprocal and lock-focus tied to pixel Zoom", () => {
     const aperture = apertureFromFStop(80, 2);
-    expect(aperture).toBe(40);
+    expect(aperture).toBeCloseTo((40 * 72) / 25.4);
     expect(fStopFromAperture(80, aperture)).toBe(2);
     const optics = normalizeCameraOptics(
-      { focalLength: 80, filmSize: 36, fStop: 2, lockFocusToZoom: true },
+      {
+        zoom: lensFromFocalLength(80, 36, 1920).zoom,
+        filmSize: 36,
+        aperture,
+        lockFocusToZoom: true,
+      },
       1920,
     );
     expect(optics.zoom).toBeCloseTo(4266.666_667);
     expect(optics.focusDistance).toBe(optics.zoom);
-    expect(optics.aperture).toBe(40);
+    expect(optics.aperture).toBeCloseTo(aperture);
   });
 
   it("creates signed near/far blur, a sharp focus area, and resolution-scaled radii", () => {
@@ -39,7 +44,7 @@ describe("camera optics", () => {
         lockFocusToZoom: false,
         focusDistance: 1000,
         focusAreaWidth: 100,
-        aperture: 1,
+        aperture: DEFAULT_CAMERA_OPTICS.zoom / 50,
         nearBlurLevel: 25,
         farBlurLevel: 100,
       },
@@ -64,5 +69,21 @@ describe("camera optics", () => {
     expect(depthOfFieldSampleCount(1)).toBeGreaterThanOrEqual(8);
     expect(depthOfFieldSampleCount(100)).toBe(64);
     expect(depthOfFieldSampleCount(Infinity)).toBe(depthOfFieldSampleCount(50));
+  });
+
+  it("keeps the locked default lens non-degenerate in AE virtual-camera pixel units", () => {
+    const optics = normalizeCameraOptics(
+      { ...DEFAULT_CAMERA_OPTICS, depthOfField: true, lockFocusToZoom: true },
+      1920,
+    );
+    expect(optics.focusDistance).toBe(optics.zoom);
+    expect(optics.focalLength).toBeCloseTo(50);
+    expect(optics.fStop).toBeCloseTo(5.6);
+    expect(optics.aperture).toBeCloseTo(25.31, 2);
+    const radius = circleOfConfusionRadius(optics, 0, optics.zoom * 2, 1920);
+    expect(radius).toBeGreaterThan(0);
+    expect(circleOfConfusionRadius(optics, 0, optics.zoom * 2, 1920, 960)).toBeCloseTo(
+      radius * 0.5,
+    );
   });
 });

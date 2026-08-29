@@ -798,6 +798,7 @@ export function Viewport() {
                   dispatch={dispatch}
                   layer={selectedLayer}
                   project={state.project}
+                  time={state.currentTime}
                   transform={selectedTransform}
                   zoom={displayZoom}
                 />

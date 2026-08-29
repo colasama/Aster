@@ -36,6 +36,22 @@ describe("editor scene evaluation", () => {
     expect(visibleLayersAtTime(composition, 3)).toEqual([second]);
   });
 
+  it("uses half-open spans at adjacent cuts while preserving the last rendered frame", () => {
+    const composition = createBlankProject().compositions[0];
+    const first = composition.layers[0];
+    const second = structuredClone(first);
+    second.id = crypto.randomUUID();
+    first.inPoint = 0;
+    first.outPoint = 1;
+    second.inPoint = 1;
+    second.outPoint = composition.duration;
+    composition.layers = [first, second];
+
+    expect(visibleLayersAtTime(composition, 1)).toEqual([second]);
+    expect(visibleLayersAtTime(composition, composition.duration - 1 / 24)).toEqual([second]);
+    expect(visibleLayersAtTime(composition, composition.duration)).toEqual([]);
+  });
+
   it("expands nested compositions with wrapper transforms", () => {
     const project = createBlankProject();
     const root = project.compositions[0];

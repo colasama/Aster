@@ -60,7 +60,7 @@ describe("project document boundary", () => {
     composition.layers = [nullLayer, solid];
 
     const roundtrip = validateProjectDocument(JSON.parse(serializeProject(project)));
-    expect(roundtrip.schemaVersion).toBe(8);
+    expect(roundtrip.schemaVersion).toBe(9);
     expect(roundtrip.compositions[0].layers).toEqual([nullLayer, solid]);
   });
 
@@ -408,13 +408,34 @@ describe("project document boundary", () => {
     const composition = project.compositions[0];
     const camera = createLayerForComposition("camera", composition);
     if (!camera.camera) throw new Error("Expected camera settings");
-    camera.camera = { ...camera.camera, projection: "orthographic", orthographicSize: 1400 };
+    camera.camera = {
+      ...camera.camera,
+      projection: "orthographic",
+      orthographicSize: { mode: "static", value: 1400 },
+    };
     composition.layers.push(camera);
 
     const roundtrip = validateProjectDocument(JSON.parse(serializeProject(project)));
     expect(roundtrip.compositions[0].layers[1].camera).toEqual(camera.camera);
-    camera.camera.zoom = 0;
-    expect(() => validateProjectDocument(project)).toThrow("camera.zoom must be between 0.1");
+    camera.camera.zoom = { mode: "static", value: 0 };
+    expect(() => validateProjectDocument(project)).toThrow("camera.zoom.value must be between 0.1");
+    camera.camera.zoom = { mode: "static", value: 1000 };
+    camera.camera.highlightThreshold = { mode: "static", value: 1.01 };
+    expect(() => validateProjectDocument(project)).toThrow(
+      "camera.highlightThreshold.value must be between 0 and 1",
+    );
+  });
+
+  it("rejects redundant derived camera optics in current-schema documents", () => {
+    const project = createBlankProject();
+    const composition = project.compositions[0];
+    const camera = createLayerForComposition("camera", composition);
+    if (!camera.camera) throw new Error("Expected camera settings");
+    (camera.camera as unknown as Record<string, unknown>).fStop = 2.8;
+    composition.layers.push(camera);
+    expect(() => validateProjectDocument(project)).toThrow(
+      "camera must not persist derived focal length or f-stop",
+    );
   });
 
   it("roundtrips bounded imported mesh buffers", () => {

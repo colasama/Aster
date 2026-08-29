@@ -158,6 +158,9 @@
         }
       ]
     },
+    "cameraAnimatableInput": {
+      "oneOf": [{ "type": "number" }, { "$ref": "#/$defs/animatable" }]
+    },
     "material3d": {
       "type": "object",
       "additionalProperties": false,
@@ -190,7 +193,6 @@
         "projection",
         "zoom",
         "filmSize",
-        "focalLength",
         "orthographicSize",
         "pointOfInterest",
         "orientation",
@@ -198,20 +200,26 @@
         "focusDistance",
         "lockFocusToZoom",
         "aperture",
-        "fStop",
         "blurLevel",
         "focusAreaWidth",
         "nearBlurLevel",
         "farBlurLevel",
+        "irisShape",
+        "irisRotation",
+        "irisRoundness",
+        "irisAspectRatio",
+        "irisDiffractionFringe",
+        "highlightGain",
+        "highlightThreshold",
+        "highlightSaturation",
         "renderQuality"
       ],
       "properties": {
         "mode": { "enum": ["oneNode", "twoNode"] },
         "projection": { "enum": ["perspective", "orthographic"] },
-        "zoom": { "type": "number", "minimum": 0.1, "maximum": 1000000 },
-        "filmSize": { "type": "number", "minimum": 0.1, "maximum": 1000 },
-        "focalLength": { "type": "number", "minimum": 0.1, "maximum": 10000 },
-        "orthographicSize": { "type": "number", "minimum": 1, "maximum": 10000000 },
+        "zoom": { "$ref": "#/$defs/cameraAnimatableInput" },
+        "filmSize": { "$ref": "#/$defs/cameraAnimatableInput" },
+        "orthographicSize": { "$ref": "#/$defs/cameraAnimatableInput" },
         "pointOfInterest": {
           "type": "array",
           "minItems": 3,
@@ -225,14 +233,34 @@
           "items": { "$ref": "#/$defs/animatable" }
         },
         "depthOfField": { "type": "boolean" },
-        "focusDistance": { "type": "number", "minimum": 0.1, "maximum": 10000000 },
+        "focusDistance": { "$ref": "#/$defs/cameraAnimatableInput" },
         "lockFocusToZoom": { "type": "boolean" },
-        "aperture": { "type": "number", "minimum": 0.001, "maximum": 10000 },
-        "fStop": { "type": "number", "minimum": 0.1, "maximum": 1000 },
-        "blurLevel": { "type": "number", "minimum": 0, "maximum": 1000 },
-        "focusAreaWidth": { "type": "number", "minimum": 0, "maximum": 10000000 },
-        "nearBlurLevel": { "type": "number", "minimum": 0, "maximum": 1000 },
-        "farBlurLevel": { "type": "number", "minimum": 0, "maximum": 1000 },
+        "aperture": { "$ref": "#/$defs/cameraAnimatableInput" },
+        "blurLevel": { "$ref": "#/$defs/cameraAnimatableInput" },
+        "focusAreaWidth": { "$ref": "#/$defs/cameraAnimatableInput" },
+        "nearBlurLevel": { "$ref": "#/$defs/cameraAnimatableInput" },
+        "farBlurLevel": { "$ref": "#/$defs/cameraAnimatableInput" },
+        "irisShape": {
+          "enum": [
+            "fastRectangle",
+            "square",
+            "triangle",
+            "pentagon",
+            "hexagon",
+            "heptagon",
+            "octagon",
+            "nonagon",
+            "decagon",
+            "circle"
+          ]
+        },
+        "irisRotation": { "$ref": "#/$defs/cameraAnimatableInput" },
+        "irisRoundness": { "$ref": "#/$defs/cameraAnimatableInput" },
+        "irisAspectRatio": { "$ref": "#/$defs/cameraAnimatableInput" },
+        "irisDiffractionFringe": { "$ref": "#/$defs/cameraAnimatableInput" },
+        "highlightGain": { "$ref": "#/$defs/cameraAnimatableInput" },
+        "highlightThreshold": { "$ref": "#/$defs/cameraAnimatableInput" },
+        "highlightSaturation": { "$ref": "#/$defs/cameraAnimatableInput" },
         "renderQuality": { "type": "number", "minimum": 1, "maximum": 100 }
       }
     },

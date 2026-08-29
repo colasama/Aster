@@ -236,7 +236,7 @@ export function createDemoProject(): Project {
     color: [1, 1, 1, 1],
     size: [0, 0],
     threeDimensional: true,
-    visible: false,
+    visible: true,
     transform: createDefaultCameraTransform(3840, 2160),
     camera: createDefaultCameraSettings(3840, 2160),
   });
@@ -269,7 +269,7 @@ export function createDemoProject(): Project {
     layers: [title, subtitle, ribbon, orb, materialStudy, particles, background, camera],
   };
   return {
-    schemaVersion: 8,
+    schemaVersion: 9,
     id: createId(),
     name: "Aster Launch",
     activeCompositionId: compositionId,
@@ -328,7 +328,7 @@ export function createBlankComposition(name = "Composition 1"): Composition {
 export function createBlankProject(): Project {
   const composition = createBlankComposition();
   return {
-    schemaVersion: 8,
+    schemaVersion: 9,
     id: createId(),
     name: "Untitled Project",
     activeCompositionId: composition.id,

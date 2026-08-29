@@ -20,6 +20,11 @@ import {
   MIN_AUDIO_LEVEL_DB,
   MIN_AUDIO_PAN,
 } from "./audio-layer";
+import {
+  CAMERA_ANIMATABLE_FIELDS,
+  CAMERA_PROPERTY_LIMITS,
+  type CameraAnimatableField,
+} from "./camera-properties";
 import { validateClonerSettings } from "./cloner";
 import {
   MAX_COMMAND_LOG_ENTRIES,
@@ -66,7 +71,7 @@ interface RecoveryStorage {
 export function validateProjectDocument(value: unknown): Project {
   const current = cloneCurrentProjectDocument(value);
   const project = requireObject(current, "project");
-  if (project.schemaVersion !== 8) throw new Error("Unsupported Aster project schema");
+  if (project.schemaVersion !== 9) throw new Error("Unsupported Aster project schema");
   requireString(project.id, "project.id");
   requireString(project.name, "project.name");
   const activeCompositionId = requireString(
@@ -776,14 +781,10 @@ function validateLayer(
       throw new Error(`${path}.camera.mode is invalid`);
     if (!["perspective", "orthographic"].includes(String(camera.projection)))
       throw new Error(`${path}.camera.projection is invalid`);
-    validateBoundedNumber(camera.zoom, `${path}.camera.zoom`, [0.1, 1_000_000]);
-    validateBoundedNumber(camera.filmSize, `${path}.camera.filmSize`, [0.1, 1_000]);
-    validateBoundedNumber(camera.focalLength, `${path}.camera.focalLength`, [0.1, 10_000]);
-    validateBoundedNumber(
-      camera.orthographicSize,
-      `${path}.camera.orthographicSize`,
-      [1, 10_000_000],
-    );
+    if ("focalLength" in camera || "fStop" in camera)
+      throw new Error(`${path}.camera must not persist derived focal length or f-stop`);
+    for (const field of CAMERA_ANIMATABLE_FIELDS)
+      validateBoundedCameraProperty(camera[field], `${path}.camera.${field}`, field);
     for (const field of ["pointOfInterest", "orientation"] as const) {
       if (!Array.isArray(camera[field]) || camera[field].length !== 3)
         throw new Error(`${path}.camera.${field} must contain three animated properties`);
@@ -793,34 +794,22 @@ function validateLayer(
     for (const field of ["depthOfField", "lockFocusToZoom"] as const)
       if (typeof camera[field] !== "boolean")
         throw new Error(`${path}.camera.${field} must be a boolean`);
-    validateBoundedNumber(camera.focusDistance, `${path}.camera.focusDistance`, [0.1, 10_000_000]);
-    validateBoundedNumber(camera.aperture, `${path}.camera.aperture`, [0.001, 10_000]);
-    validateBoundedNumber(camera.fStop, `${path}.camera.fStop`, [0.1, 1_000]);
-    validateBoundedNumber(camera.blurLevel, `${path}.camera.blurLevel`, [0, 1_000]);
-    validateBoundedNumber(camera.focusAreaWidth, `${path}.camera.focusAreaWidth`, [0, 10_000_000]);
-    validateBoundedNumber(camera.nearBlurLevel, `${path}.camera.nearBlurLevel`, [0, 1_000]);
-    validateBoundedNumber(camera.farBlurLevel, `${path}.camera.farBlurLevel`, [0, 1_000]);
+    if (
+      ![
+        "fastRectangle",
+        "square",
+        "triangle",
+        "pentagon",
+        "hexagon",
+        "heptagon",
+        "octagon",
+        "nonagon",
+        "decagon",
+        "circle",
+      ].includes(String(camera.irisShape))
+    )
+      throw new Error(`${path}.camera.irisShape is invalid`);
     validateBoundedNumber(camera.renderQuality, `${path}.camera.renderQuality`, [1, 100]);
-    const zoom = Number(camera.zoom);
-    const filmSize = Number(camera.filmSize);
-    const focalLength = Number(camera.focalLength);
-    const aperture = Number(camera.aperture);
-    requireApproximately(
-      focalLength,
-      (zoom * filmSize) / composition.width,
-      `${path}.camera.focalLength must match Zoom and film size`,
-    );
-    requireApproximately(
-      Number(camera.fStop),
-      Math.max(0.1, Math.min(1_000, focalLength / aperture)),
-      `${path}.camera.fStop must match focal length and aperture`,
-    );
-    if (camera.lockFocusToZoom === true)
-      requireApproximately(
-        Number(camera.focusDistance),
-        zoom,
-        `${path}.camera.focusDistance must match Zoom while focus lock is enabled`,
-      );
   }
   if (layer.kind === "camera" && layer.camera === undefined)
     throw new Error(`${path}.camera is required for camera layers`);
@@ -1152,11 +1141,6 @@ function validateBoundedNumber(
     throw new Error(`${path} must be between ${bounds[0]} and ${bounds[1]}`);
 }
 
-function requireApproximately(value: number, expected: number, message: string): void {
-  const tolerance = Math.max(1e-6, Math.abs(expected) * 1e-6);
-  if (Math.abs(value - expected) > tolerance) throw new Error(message);
-}
-
 function validateFootageSource(value: unknown, path: string): asserts value is FootageSource {
   const source = requireObject(value, path);
   if (requireString(source.id, `${path}.id`).length > 256)
@@ -1312,6 +1296,29 @@ function validateAnimatable(value: unknown, path: string): void {
       throw new Error(`${path}.keyframes has invalid interpolation`);
     validateKeyframeHandles(keyframe, `${path}.keyframes[${index}]`);
     previousTime = time;
+  }
+}
+
+function validateBoundedCameraProperty(
+  value: unknown,
+  path: string,
+  field: CameraAnimatableField,
+): void {
+  validateAnimatable(value, path);
+  const property = value as {
+    mode: "static" | "animated";
+    value?: number;
+    keyframes?: Array<{ value: number }>;
+  };
+  const limit = CAMERA_PROPERTY_LIMITS[field];
+  const values =
+    property.mode === "static"
+      ? [property.value]
+      : (property.keyframes ?? []).map((keyframe) => keyframe.value);
+  for (const [index, entry] of values.entries()) {
+    const valuePath =
+      property.mode === "static" ? `${path}.value` : `${path}.keyframes[${index}].value`;
+    validateBoundedNumber(entry, valuePath, [limit.minimum, limit.maximum]);
   }
 }
 

@@ -1,4 +1,4 @@
-# Aster project format v8
+# Aster project format v9
 
 The development editor currently exchanges a readable JSON document named `*.aster.json`. The Rust
 bundle layer stores the same versioned domain model inside an atomically replaced project path. Cache,
@@ -8,7 +8,7 @@ proxy, and preview data are deliberately excluded.
 
 ```json
 {
-  "schemaVersion": 8,
+  "schemaVersion": 9,
   "id": "stable-uuid",
   "name": "Project name",
   "activeCompositionId": "stable-uuid",
@@ -145,14 +145,15 @@ before the material enters the GPU path. HDR imports are fully decoded and valid
 worker before their source is admitted to the project document.
 
 Camera layers store one-node/two-node mode, animated point of interest and orientation vectors,
-horizontal film size, AE-compatible Zoom in composition pixels, derived physical focal length,
-orthographic size, and bounded depth-of-field optics. The default 50 mm camera is centered one Zoom
+horizontal film size, AE-compatible Zoom in composition pixels, orthographic size, and bounded
+depth-of-field optics. Derived focal length and f-stop are never persisted, preventing animation
+and UI edits from creating inconsistent lens state. The default 50 mm camera is centered one Zoom
 behind the composition plane. At a given time, the first camera in timeline order whose in/out span
 contains that time is active; its visibility switch does not create a drawable surface. Beauty
 preview and export evaluate the same camera, world-position pass, circle-of-confusion function, and
 ACES display transform. Preview resolution only scales the sampling radius. This follows Adobe's
-[camera and point-of-interest model](https://helpx.adobe.com/ca/after-effects/desktop/work-with-layers/camera-layer/cameras-lights-points-interest.html)
-and [Advanced 3D depth-of-field controls](https://helpx.adobe.com/ca/after-effects/desktop/work-with-3d-composition/work-with-3d-scene-depth-data/enable-in_engine-depth-of-field-in-advanced-3d.html).
+[camera and point-of-interest model](https://helpx.adobe.com/after-effects/using/cameras-lights-points-interest.html)
+and [Advanced 3D depth-of-field controls](https://helpx.adobe.com/after-effects/desktop/work-with-3d-composition/work-with-3d-scene-depth-data/enable-in_engine-depth-of-field-in-advanced-3d.html).
 
 ## Schema and migration policy
 
@@ -172,10 +173,15 @@ and [Advanced 3D depth-of-field controls](https://helpx.adobe.com/ca/after-effec
   The v7 → v8 migration converts each legacy staggered text reveal to one deterministic animator
   group with an equivalent bounded expression selector; layer IDs derive stable group and selector
   IDs, and the cubic reveal remains pixel-equivalent at arbitrary seek times.
+  The v8 → v9 migration turns every static camera optical scalar into a static `Animatable`, removes
+  redundant focal-length and f-stop storage, and adds deterministic iris and highlight defaults.
+  Zoom, film size, and AE Aperture pixels are authoritative; focal length and f-stop are derived at
+  the requested evaluation time. Aperture conversion uses Adobe's 72-dpi convention
+  (`focalLengthMm / fStop × 72 / 25.4`), locking the 50 mm f/5.6 baseline to 25.31 px.
   Older, future, missing, or fractional versions fail
   before partially applying the document.
-- The native bundle boundary accepts v1 through v8 on read so the renderer can run migrations, but
-  new primary saves and autosaves must already be validated v8 documents.
+- The native bundle boundary accepts v1 through v9 on read so the renderer can run migrations, but
+  new primary saves and autosaves must already be validated v9 documents.
 - Every future historical transform must preserve the source document, set exactly the next integer
   version, and gain a compatibility fixture before the current schema version increases.
 - Unknown effect types and parameters must be preserved and disabled when execution is unavailable.

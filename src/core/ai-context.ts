@@ -30,6 +30,22 @@ const cameraPropertyPaths: PropertyPath[] = [
   "camera.orientation.0",
   "camera.orientation.1",
   "camera.orientation.2",
+  "camera.zoom",
+  "camera.filmSize",
+  "camera.orthographicSize",
+  "camera.focusDistance",
+  "camera.aperture",
+  "camera.blurLevel",
+  "camera.focusAreaWidth",
+  "camera.nearBlurLevel",
+  "camera.farBlurLevel",
+  "camera.irisRotation",
+  "camera.irisRoundness",
+  "camera.irisAspectRatio",
+  "camera.irisDiffractionFringe",
+  "camera.highlightGain",
+  "camera.highlightThreshold",
+  "camera.highlightSaturation",
 ];
 
 export interface AiProjectContext {

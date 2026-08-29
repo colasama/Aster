@@ -1,3 +1,4 @@
+import { normalizeCameraSettings } from "../core/camera-settings";
 import type { ClonerSettings } from "../core/cloner";
 import type { Operation, PropertyPath } from "../core/operations";
 import { planPrecomposition } from "../core/precomposition";
@@ -269,7 +270,11 @@ export function normalizeExtendedAiCommand(
       return {
         type: "setCameraSettings",
         layerId,
-        camera: structuredClone(input.camera as CameraSettings),
+        camera: normalizeCameraSettings(
+          input.camera as Partial<CameraSettings>,
+          composition.width,
+          composition.height,
+        ),
       };
     case "setSceneGenerator":
       requireLayerKind(layer, layerId, "generator");

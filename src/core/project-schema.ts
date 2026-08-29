@@ -7,7 +7,7 @@ import { sourceContentIdentity } from "./footage-source";
 import { assertParticleSettings } from "./particle-settings";
 import { migrateLegacyTextAnimator } from "./text-animator-migration";
 
-export const CURRENT_PROJECT_SCHEMA_VERSION = 8 as const;
+export const CURRENT_PROJECT_SCHEMA_VERSION = 9 as const;
 
 type ProjectDocument = Record<string, unknown>;
 type ProjectMigration = (document: ProjectDocument) => ProjectDocument;
@@ -254,6 +254,65 @@ const PROJECT_MIGRATIONS = new Map<number, ProjectMigration>([
         }
       }
       document.schemaVersion = 8;
+      return document;
+    },
+  ],
+  [
+    8,
+    (document) => {
+      const compositions = Array.isArray(document.compositions) ? document.compositions : [];
+      for (const compositionValue of compositions) {
+        if (!compositionValue || typeof compositionValue !== "object") continue;
+        const composition = compositionValue as Record<string, unknown>;
+        const width = positiveNumber(composition.width, 1920);
+        const height = positiveNumber(composition.height, 1080);
+        const layers = Array.isArray(composition.layers) ? composition.layers : [];
+        for (const layerValue of layers) {
+          if (!layerValue || typeof layerValue !== "object") continue;
+          const layer = layerValue as Record<string, unknown>;
+          if (layer.kind !== "camera" || !layer.camera || typeof layer.camera !== "object")
+            continue;
+          const legacy = layer.camera as Record<string, unknown>;
+          const zoom = boundedNumber(legacy.zoom, 0.1, 1_000_000, 2666.666_666_666_666_5);
+          const fStop = boundedNumber(legacy.fStop, 0.1, 1_000, 2.8);
+          const filmSize = boundedNumber(legacy.filmSize, 0.1, 1_000, 36);
+          const focalLength = boundedNumber(
+            legacy.focalLength,
+            0.1,
+            10_000,
+            (zoom * filmSize) / width,
+          );
+          const migrated: Record<string, unknown> = {
+            ...legacy,
+            zoom: staticProperty(zoom),
+            filmSize: staticProperty(filmSize),
+            orthographicSize: staticProperty(
+              boundedNumber(legacy.orthographicSize, 1, 10_000_000, height),
+            ),
+            focusDistance: staticProperty(
+              boundedNumber(legacy.focusDistance, 0.1, 10_000_000, zoom),
+            ),
+            aperture: staticProperty((focalLength / fStop) * (72 / 25.4)),
+            blurLevel: staticProperty(boundedNumber(legacy.blurLevel, 0, 1_000, 100)),
+            focusAreaWidth: staticProperty(boundedNumber(legacy.focusAreaWidth, 0, 10_000_000, 0)),
+            nearBlurLevel: staticProperty(boundedNumber(legacy.nearBlurLevel, 0, 1_000, 100)),
+            farBlurLevel: staticProperty(boundedNumber(legacy.farBlurLevel, 0, 1_000, 100)),
+            irisShape: "fastRectangle",
+            irisRotation: staticProperty(0),
+            irisRoundness: staticProperty(0),
+            irisAspectRatio: staticProperty(1),
+            irisDiffractionFringe: staticProperty(0),
+            highlightGain: staticProperty(0),
+            highlightThreshold: staticProperty(1),
+            highlightSaturation: staticProperty(100),
+          };
+          delete migrated.focalLength;
+          delete migrated.fStop;
+          if (typeof layer.visible !== "boolean") layer.visible = true;
+          layer.camera = migrated;
+        }
+      }
+      document.schemaVersion = 9;
       return document;
     },
   ],

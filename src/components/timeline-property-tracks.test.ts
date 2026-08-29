@@ -14,8 +14,11 @@ describe("expanded timeline property tracks", () => {
     const testLayer = layer();
     const groups = collectTimelinePropertyGroups(testLayer);
 
-    expect(groups[0].tracks).toHaveLength(10);
+    expect(groups[0].tracks).toHaveLength(13);
     expect(groups[0].tracks.map((track) => track.id)).toContain("opacity");
+    expect(groups[0].tracks.map((track) => track.id)).toEqual(
+      expect.arrayContaining(["anchor.0", "anchor.1", "anchor.2"]),
+    );
     expect(groups[1]).toMatchObject({ label: "Gaussian Blur", source: "effect" });
     expect(groups[1].tracks.map((track) => track.id)).toContain("blur:radius");
   });
@@ -66,6 +69,22 @@ describe("expanded timeline property tracks", () => {
       "camera.orientation.0",
       "camera.orientation.1",
       "camera.orientation.2",
+      "camera.zoom",
+      "camera.filmSize",
+      "camera.orthographicSize",
+      "camera.focusDistance",
+      "camera.aperture",
+      "camera.blurLevel",
+      "camera.focusAreaWidth",
+      "camera.nearBlurLevel",
+      "camera.farBlurLevel",
+      "camera.irisRotation",
+      "camera.irisRoundness",
+      "camera.irisAspectRatio",
+      "camera.irisDiffractionFringe",
+      "camera.highlightGain",
+      "camera.highlightThreshold",
+      "camera.highlightSaturation",
     ]);
   });
 });

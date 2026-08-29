@@ -652,8 +652,8 @@ describe("structured project operations", () => {
         camera: {
           ...camera.camera,
           projection: "orthographic",
-          zoom: 2_000_000,
-          orthographicSize: 0,
+          zoom: { mode: "static", value: 2_000_000 },
+          orthographicSize: { mode: "static", value: 0 },
         },
       },
     ]);
@@ -662,8 +662,8 @@ describe("structured project operations", () => {
       activeComposition(next).layers.find((layer) => layer.id === camera.id)?.camera,
     ).toMatchObject({
       projection: "orthographic",
-      zoom: 1_000_000,
-      orthographicSize: 1,
+      zoom: { mode: "static", value: 1_000_000 },
+      orthographicSize: { mode: "static", value: 1 },
     });
     expect(camera.camera.projection).toBe("perspective");
   });
@@ -692,6 +692,60 @@ describe("structured project operations", () => {
         ?.pointOfInterest[0],
     ).toMatchObject({ mode: "animated", keyframes: [{ value: 1500 }] });
     expect(camera.camera.pointOfInterest[0]).toMatchObject({ mode: "static" });
+  });
+
+  it("keyframes authoritative camera optics through shared timeline operations", () => {
+    const source = createDemoProject();
+    const camera = activeComposition(source).layers.find((layer) => layer.kind === "camera");
+    if (!camera?.camera) throw new Error("Expected demo camera");
+    const next = applyOperations(source, [
+      {
+        type: "addKeyframe",
+        layerId: camera.id,
+        path: "camera.aperture",
+        keyframe: { id: "camera-fstop", time: 1, value: 5.6, interpolation: "linear" },
+      },
+    ]);
+    const result = activeComposition(next).layers.find((layer) => layer.id === camera.id)?.camera;
+    expect(result?.aperture).toEqual({
+      mode: "animated",
+      keyframes: [{ id: "camera-fstop", time: 1, value: 5.6, interpolation: "linear" }],
+    });
+    const bounded = applyOperations(next, [
+      {
+        type: "updateKeyframe",
+        layerId: camera.id,
+        path: "camera.aperture",
+        keyframeId: "camera-fstop",
+        time: 1,
+        value: 50_000,
+        interpolation: "linear",
+      },
+    ]);
+    expect(
+      activeComposition(bounded).layers.find((layer) => layer.id === camera.id)?.camera?.aperture,
+    ).toMatchObject({ keyframes: [{ value: 10_000 }] });
+  });
+
+  it("unlocks focus when timeline operations edit Zoom or Focus Distance", () => {
+    const source = createDemoProject();
+    const camera = activeComposition(source).layers.find((layer) => layer.kind === "camera");
+    if (!camera?.camera) throw new Error("Expected demo camera");
+    expect(camera.camera.lockFocusToZoom).toBe(true);
+    const zoomEdited = applyOperations(source, [
+      { type: "setProperty", layerId: camera.id, path: "camera.zoom", value: 2000 },
+    ]);
+    expect(
+      activeComposition(zoomEdited).layers.find((layer) => layer.id === camera.id)?.camera
+        ?.lockFocusToZoom,
+    ).toBe(false);
+    const focusEdited = applyOperations(source, [
+      { type: "setProperty", layerId: camera.id, path: "camera.focusDistance", value: 1800 },
+    ]);
+    expect(
+      activeComposition(focusEdited).layers.find((layer) => layer.id === camera.id)?.camera
+        ?.lockFocusToZoom,
+    ).toBe(false);
   });
 
   it("bounds bundled particle generator parameters through the generic operation", () => {

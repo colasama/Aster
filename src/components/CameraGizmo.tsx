@@ -1,5 +1,6 @@
 import type { Dispatch } from "react";
 import { lensFromZoom } from "../core/camera-optics";
+import { evaluateCameraProperty } from "../core/camera-properties";
 import type { EvaluatedTransform, Layer, Project } from "../core/types";
 import { useI18n } from "../i18n/react";
 import type { EditorAction } from "../state/editor-store";
@@ -10,6 +11,7 @@ interface CameraGizmoProps {
   layer: Layer;
   project: Project;
   transform: EvaluatedTransform;
+  time: number;
   zoom: number;
 }
 
@@ -19,6 +21,7 @@ export function CameraGizmo({
   layer,
   project,
   transform,
+  time,
   zoom,
 }: CameraGizmoProps) {
   const { t } = useI18n();
@@ -27,8 +30,8 @@ export function CameraGizmo({
     project.compositions.find((candidate) => candidate.id === project.activeCompositionId) ??
     project.compositions[0];
   const angleOfView = lensFromZoom(
-    layer.camera.zoom,
-    layer.camera.filmSize,
+    evaluateCameraProperty(layer.camera, "zoom", time),
+    evaluateCameraProperty(layer.camera, "filmSize", time),
     composition?.width ?? 1920,
   ).angleOfViewDegrees;
   const geometry = cameraGizmoGeometry(layer.camera.projection, angleOfView);
@@ -137,7 +140,9 @@ export function CameraGizmo({
       title={
         layer.camera.projection === "perspective"
           ? t("viewport.camera.perspectiveHint", { degrees: Math.round(angleOfView) })
-          : t("viewport.camera.orthographicHint", { pixels: layer.camera.orthographicSize })
+          : t("viewport.camera.orthographicHint", {
+              pixels: Math.round(evaluateCameraProperty(layer.camera, "orthographicSize", time)),
+            })
       }
       type="button"
     >
