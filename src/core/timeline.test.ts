@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createEffect } from "../effects/registry";
 import {
   evaluateAnimatable,
+  evaluateAnimatableSpeed,
   evaluateEffectParameter,
   frameAt,
   insertKeyframe,
@@ -20,6 +21,63 @@ describe("time-addressable animation", () => {
     };
     expect(evaluateAnimatable(property, 0.5)).toBe(15);
     expect(evaluateAnimatable(property, 9)).toBe(30);
+  });
+
+  it("evaluates exact linear, temporal Bezier, hold, and spatial derivatives", () => {
+    const linear: Animatable = {
+      mode: "animated",
+      keyframes: [
+        { id: "a", time: 0, value: 0, interpolation: "linear" },
+        { id: "b", time: 2, value: 20, interpolation: "linear" },
+      ],
+    };
+    expect(evaluateAnimatableSpeed(linear, 1)).toBeCloseTo(10, 10);
+    expect(evaluateAnimatableSpeed(linear, -1)).toBe(0);
+    expect(evaluateAnimatableSpeed(linear, 2)).toBeCloseTo(10, 10);
+    expect(evaluateAnimatableSpeed(linear, 2.1)).toBe(0);
+
+    const eased: Animatable = {
+      mode: "animated",
+      keyframes: [
+        {
+          id: "a",
+          time: 0,
+          value: 0,
+          interpolation: "bezier",
+          easing: [0.25, 0, 0.75, 1],
+        },
+        { id: "b", time: 1, value: 100, interpolation: "linear" },
+      ],
+    };
+    const epsilon = 1e-5;
+    const numerical =
+      (evaluateAnimatable(eased, 0.5 + epsilon) - evaluateAnimatable(eased, 0.5 - epsilon)) /
+      (2 * epsilon);
+    expect(evaluateAnimatableSpeed(eased, 0.5)).toBeCloseTo(numerical, 4);
+
+    const spatial: Animatable = {
+      mode: "animated",
+      keyframes: [
+        { id: "a", time: 0, value: 0, interpolation: "linear", spatialOut: 50 },
+        { id: "b", time: 1, value: 100, interpolation: "linear", spatialIn: -20 },
+      ],
+    };
+    const spatialNumerical =
+      (evaluateAnimatable(spatial, 0.5 + epsilon) - evaluateAnimatable(spatial, 0.5 - epsilon)) /
+      (2 * epsilon);
+    expect(evaluateAnimatableSpeed(spatial, 0.5)).toBeCloseTo(spatialNumerical, 4);
+    expect(
+      evaluateAnimatableSpeed(
+        {
+          mode: "animated",
+          keyframes: [
+            { id: "a", time: 0, value: 0, interpolation: "step" },
+            { id: "b", time: 1, value: 100, interpolation: "linear" },
+          ],
+        },
+        0.5,
+      ),
+    ).toBe(0);
   });
 
   it("maintains sorted keyframes and replaces timestamps", () => {

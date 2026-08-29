@@ -85,6 +85,7 @@ export const panelsEn = {
   "graph.type.speed": "Speed Graph",
   "graph.badge.value": "VALUE",
   "graph.badge.speed": "SPEED",
+  "graph.track.positionSpeed": "Position Speed",
   "graph.track.show": "Show {label} graph",
   "graph.track.hide": "Hide {label} graph",
   "graph.fitSelection": "Fit Selection",

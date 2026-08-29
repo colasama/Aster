@@ -29,6 +29,11 @@ import {
   graphCurveValueAtTime,
   graphDraggedKeyframeValue,
   graphSpeedSegment,
+  graphTrackKeyframesAtTime,
+  graphTrackLabelKey,
+  graphTrackSegmentBaseSpeed,
+  graphTrackSegmentKeyframes,
+  graphTracksForType,
   previewGraphTrack,
   resolveGraphType,
   sampleGraphTrack,
@@ -118,13 +123,23 @@ export function GraphEditor() {
     () => tracks.map((track) => previewGraphTrack(track, keyframePreview, easingPreview)),
     [easingPreview, keyframePreview, tracks],
   );
-  const visibleTracks = useMemo(
-    () => displayedTracks.filter((track) => !hiddenTracks.has(track.id)),
-    [displayedTracks, hiddenTracks],
+  const activeTracks = useMemo(
+    () => graphTracksForType(displayedTracks, graphType),
+    [displayedTracks, graphType],
   );
+  const visibleTracks = useMemo(
+    () => activeTracks.filter((track) => !hiddenTracks.has(track.id)),
+    [activeTracks, hiddenTracks],
+  );
+  const sidebarTracks = useMemo(() => graphTracksForType(tracks, graphType), [graphType, tracks]);
   const visibleTrackPaths = useMemo(
-    () => new Set(tracks.filter((track) => !hiddenTracks.has(track.id)).map((track) => track.path)),
-    [hiddenTracks, tracks],
+    () =>
+      new Set(
+        graphTracksForType(tracks, graphType)
+          .filter((track) => !hiddenTracks.has(track.id))
+          .map((track) => track.path),
+      ),
+    [graphType, hiddenTracks, tracks],
   );
   const curves = useMemo(
     () =>
@@ -321,7 +336,7 @@ export function GraphEditor() {
       return;
     }
     if (!alreadySelected) dispatch({ type: "selectKeyframes", ids: [keyframe.id] });
-    const draggedEntries = alreadySelected
+    const selectedForDrag = alreadySelected
       ? selectedEntries
       : [
           {
@@ -331,6 +346,23 @@ export function GraphEditor() {
             keyframe,
           },
         ];
+    const draggedEntries =
+      curve.type === "speed" && sourceTrack.spatialProperties
+        ? deduplicateTransformEntries(
+            selectedForDrag.flatMap((entry) =>
+              entry.path === sourceTrack.path
+                ? graphTrackKeyframesAtTime(sourceTrack, entry.keyframe.time).map(
+                    ({ path, keyframe: spatialKeyframe }) => ({
+                      source: "transform" as const,
+                      layerId: layer.id,
+                      path,
+                      keyframe: spatialKeyframe,
+                    }),
+                  )
+                : [entry],
+            ),
+          )
+        : selectedForDrag;
     const draggedTimes = new Set(draggedEntries.map((entry) => entry.keyframe.time));
     const dragSnapTargets = graphSnapTargets.filter((target) => !draggedTimes.has(target));
     let next = {
@@ -418,7 +450,7 @@ export function GraphEditor() {
     const sourceKeyframe = sourceTrack?.property.keyframes.find(
       (entry) => entry.id === keyframe.id,
     );
-    if (!svg || !sourceTrack || !sourceKeyframe) return;
+    if (!svg || !sourceTrack || !sourceKeyframe || !layer) return;
     const start = keyframePoint(keyframe, timeRange, valueRange);
     const finish = keyframePoint(nextKeyframe, timeRange, valueRange);
     let easing = keyframe.easing ?? [0.42, 0, 0.58, 1];
@@ -437,6 +469,7 @@ export function GraphEditor() {
           handle,
           influence,
           Math.max(0, graphYToValue(point.y, valueRange)),
+          graphTrackSegmentBaseSpeed(sourceTrack, keyframe, nextKeyframe),
         );
       } else {
         const x = Math.max(0, Math.min(1, (point.x - start.x) / signedNonZero(finish.x - start.x)));
@@ -454,14 +487,26 @@ export function GraphEditor() {
     const end = () => {
       removeWindowPointerListeners(move, end);
       setEasingPreview(undefined);
-      updateKeyframe(
+      const segmentKeyframes = graphTrackSegmentKeyframes(
         sourceTrack,
-        sourceKeyframe,
         sourceKeyframe.time,
-        sourceKeyframe.value,
-        easing,
-        "bezier",
+        nextKeyframe.time,
       );
+      dispatch({
+        type: "operation",
+        operations: segmentKeyframes.map(({ path, keyframe: segmentKeyframe }) => ({
+          type: "updateKeyframe" as const,
+          layerId: layer.id,
+          path,
+          keyframeId: segmentKeyframe.id,
+          time: segmentKeyframe.time,
+          value: segmentKeyframe.value,
+          interpolation: "bezier" as const,
+          easing,
+          spatialIn: segmentKeyframe.spatialIn,
+          spatialOut: segmentKeyframe.spatialOut,
+        })),
+      });
     };
     addWindowPointerListeners(move, end);
   };
@@ -596,10 +641,10 @@ export function GraphEditor() {
       <div className="graph-sidebar">
         <strong>{layer?.name ?? t("graph.noSelection")}</strong>
         <div className="graph-track-list">
-          {tracks.map((track) => {
+          {sidebarTracks.map((track) => {
             const visible = !hiddenTracks.has(track.id);
             const resolved = resolveGraphType(graphType, track);
-            const label = t(track.labelKey);
+            const label = t(graphTrackLabelKey(track, graphType));
             return (
               <button
                 aria-label={t(visible ? "graph.track.hide" : "graph.track.show", { label })}
@@ -781,7 +826,7 @@ export function GraphEditor() {
             )}
             {curves.map((curve) => (
               <path
-                aria-label={`${t(curve.track.labelKey)} · ${t(curve.type === "speed" ? "graph.type.speed" : "graph.type.value")}`}
+                aria-label={`${t(graphTrackLabelKey(curve.track, graphType))} · ${t(curve.type === "speed" ? "graph.type.speed" : "graph.type.value")}`}
                 className="graph-curve"
                 d={curvePath(curve, timeRange, valueRange)}
                 fill="none"
@@ -821,7 +866,13 @@ export function GraphEditor() {
                       ),
                     }
                   : undefined;
-                const speed = next ? graphSpeedSegment({ ...keyframe, easing }, next) : undefined;
+                const speed = next
+                  ? graphSpeedSegment(
+                      { ...keyframe, easing },
+                      next,
+                      graphTrackSegmentBaseSpeed(curve.track, keyframe, next),
+                    )
+                  : undefined;
                 const outHandle =
                   next && nextPoint
                     ? curve.type === "value"
@@ -848,7 +899,7 @@ export function GraphEditor() {
                           y: valueToGraphY(speed?.incomingSpeed ?? 0, valueRange),
                         }
                     : undefined;
-                const label = t(curve.track.labelKey);
+                const label = t(graphTrackLabelKey(curve.track, graphType));
                 const nextSelected = Boolean(next && state.selectedKeyframes.includes(next.id));
                 return (
                   <g key={`${curve.track.id}:${keyframe.id}`}>
@@ -1036,6 +1087,18 @@ function interpolatePoint(
 function signedNonZero(value: number): number {
   if (Math.abs(value) > POINTER_EPSILON) return value;
   return value < 0 ? -1 : 1;
+}
+
+function deduplicateTransformEntries(
+  entries: readonly TransformKeyframeEntry[],
+): TransformKeyframeEntry[] {
+  const seen = new Set<string>();
+  return entries.filter((entry) => {
+    const key = `${entry.layerId}:${entry.path}:${entry.keyframe.id}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 function roundPath(value: number): number {

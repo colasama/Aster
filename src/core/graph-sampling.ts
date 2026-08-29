@@ -5,6 +5,8 @@ export interface GraphSamplingRequest {
   evaluate: GraphEvaluator;
   /** Optional analytic derivative. Its result must be expressed in value/second. */
   evaluateSpeed?: GraphEvaluator;
+  /** Optional displayed curve used only to drive screen-error subdivision. */
+  adaptiveEvaluate?: GraphEvaluator;
   /** Inclusive visible interval, in seconds. */
   startTime: number;
   /** Inclusive visible interval, in seconds. */
@@ -51,6 +53,8 @@ interface SamplePoint {
   time: number;
   value: number;
   valid: boolean;
+  adaptiveValue?: number;
+  adaptiveValid?: boolean;
 }
 
 /**
@@ -95,7 +99,11 @@ export function sampleGraph(request: GraphSamplingRequest): GraphSampleBuffer {
 
   if (request.evaluateSpeed) {
     for (let index = 0; index < points.length; index += 1) {
-      const speed = request.evaluateSpeed(target.times[index]);
+      const point = points[index] as SamplePoint;
+      const speed =
+        request.adaptiveEvaluate === request.evaluateSpeed && point.adaptiveValid
+          ? (point.adaptiveValue ?? 0)
+          : request.evaluateSpeed(target.times[index]);
       target.speeds[index] = finiteOrZero(speed);
     }
   } else {
@@ -123,7 +131,7 @@ function sampleBasePoints(
   }
   return [...times]
     .sort((left, right) => left - right)
-    .map((time) => evaluatePoint(request.evaluate, time));
+    .map((time) => evaluatePoint(request.evaluate, time, request.adaptiveEvaluate));
 }
 
 function refineGraphPoints(
@@ -135,9 +143,10 @@ function refineGraphPoints(
   let minimum = Number.POSITIVE_INFINITY;
   let maximum = Number.NEGATIVE_INFINITY;
   for (const point of base) {
-    if (!point.valid) continue;
-    minimum = Math.min(minimum, point.value);
-    maximum = Math.max(maximum, point.value);
+    const sample = adaptivePoint(point, Boolean(request.adaptiveEvaluate));
+    if (!sample.valid) continue;
+    minimum = Math.min(minimum, sample.value);
+    maximum = Math.max(maximum, sample.value);
   }
   const valueSpan = Math.max(
     1e-9,
@@ -152,7 +161,16 @@ function refineGraphPoints(
     const start = base[index] as SamplePoint;
     const end = base[index + 1] as SamplePoint;
     const refined: SamplePoint[] = [];
-    remaining = refineSegment(request.evaluate, start, end, tolerance, 0, remaining, refined);
+    remaining = refineSegment(
+      request.evaluate,
+      request.adaptiveEvaluate,
+      start,
+      end,
+      tolerance,
+      0,
+      remaining,
+      refined,
+    );
     result.push(...refined, end);
   }
   return result;
@@ -160,6 +178,7 @@ function refineGraphPoints(
 
 function refineSegment(
   evaluate: GraphEvaluator,
+  adaptiveEvaluate: GraphEvaluator | undefined,
   start: SamplePoint,
   end: SamplePoint,
   tolerance: number,
@@ -170,22 +189,29 @@ function refineSegment(
   if (remaining <= 0 || depth >= MAX_ADAPTIVE_DEPTH) return remaining;
   const duration = end.time - start.time;
   if (duration <= Number.EPSILON) return remaining;
-  const middle = evaluatePoint(evaluate, start.time + duration * 0.5);
-  const quarter = evaluatePoint(evaluate, start.time + duration * 0.25);
-  const threeQuarter = evaluatePoint(evaluate, start.time + duration * 0.75);
+  const middle = evaluatePoint(evaluate, start.time + duration * 0.5, adaptiveEvaluate);
+  const quarter = evaluatePoint(evaluate, start.time + duration * 0.25, adaptiveEvaluate);
+  const threeQuarter = evaluatePoint(evaluate, start.time + duration * 0.75, adaptiveEvaluate);
+  const adaptive = Boolean(adaptiveEvaluate);
+  const adaptiveStart = adaptivePoint(start, adaptive);
+  const adaptiveEnd = adaptivePoint(end, adaptive);
+  const adaptiveMiddle = adaptivePoint(middle, adaptive);
+  const adaptiveQuarter = adaptivePoint(quarter, adaptive);
+  const adaptiveThreeQuarter = adaptivePoint(threeQuarter, adaptive);
   const needsRefinement =
-    !start.valid ||
-    !end.valid ||
-    !middle.valid ||
-    !quarter.valid ||
-    !threeQuarter.valid ||
-    pointDeviation(quarter, start, end, 0.25) > tolerance ||
-    pointDeviation(middle, start, end, 0.5) > tolerance ||
-    pointDeviation(threeQuarter, start, end, 0.75) > tolerance;
+    !adaptiveStart.valid ||
+    !adaptiveEnd.valid ||
+    !adaptiveMiddle.valid ||
+    !adaptiveQuarter.valid ||
+    !adaptiveThreeQuarter.valid ||
+    pointDeviation(adaptiveQuarter, adaptiveStart, adaptiveEnd, 0.25) > tolerance ||
+    pointDeviation(adaptiveMiddle, adaptiveStart, adaptiveEnd, 0.5) > tolerance ||
+    pointDeviation(adaptiveThreeQuarter, adaptiveStart, adaptiveEnd, 0.75) > tolerance;
   if (!needsRefinement) return remaining;
   const remainingAfterMiddle = remaining - 1;
   let available = refineSegment(
     evaluate,
+    adaptiveEvaluate,
     start,
     middle,
     tolerance,
@@ -194,14 +220,23 @@ function refineSegment(
     output,
   );
   output.push(middle);
-  available = refineSegment(evaluate, middle, end, tolerance, depth + 1, available, output);
+  available = refineSegment(
+    evaluate,
+    adaptiveEvaluate,
+    middle,
+    end,
+    tolerance,
+    depth + 1,
+    available,
+    output,
+  );
   return available;
 }
 
 function pointDeviation(
-  point: SamplePoint,
-  start: SamplePoint,
-  end: SamplePoint,
+  point: Pick<SamplePoint, "value" | "valid">,
+  start: Pick<SamplePoint, "value" | "valid">,
+  end: Pick<SamplePoint, "value" | "valid">,
   progress: number,
 ): number {
   if (!point.valid || !start.valid || !end.valid) return Number.POSITIVE_INFINITY;
@@ -209,10 +244,32 @@ function pointDeviation(
   return Math.abs(point.value - linear);
 }
 
-function evaluatePoint(evaluate: GraphEvaluator, time: number): SamplePoint {
+function evaluatePoint(
+  evaluate: GraphEvaluator,
+  time: number,
+  adaptiveEvaluate?: GraphEvaluator,
+): SamplePoint {
   const value = evaluate(time);
   const valid = Number.isFinite(value);
-  return { time, value: valid ? value : 0, valid };
+  if (!adaptiveEvaluate) return { time, value: valid ? value : 0, valid };
+  const adaptiveValue = adaptiveEvaluate(time);
+  const adaptiveValid = Number.isFinite(adaptiveValue);
+  return {
+    time,
+    value: valid ? value : 0,
+    valid,
+    adaptiveValue: adaptiveValid ? adaptiveValue : 0,
+    adaptiveValid,
+  };
+}
+
+function adaptivePoint(
+  point: SamplePoint,
+  adaptive: boolean,
+): Pick<SamplePoint, "value" | "valid"> {
+  return adaptive
+    ? { value: point.adaptiveValue ?? 0, valid: point.adaptiveValid === true }
+    : point;
 }
 
 function uniformTimeStep(points: readonly SamplePoint[]): number {
@@ -251,6 +308,8 @@ function validateRequest(request: GraphSamplingRequest): void {
     throw new TypeError("Graph sampling requires a time-addressable evaluator");
   if (request.evaluateSpeed !== undefined && typeof request.evaluateSpeed !== "function")
     throw new TypeError("Graph speed evaluator must be a function");
+  if (request.adaptiveEvaluate !== undefined && typeof request.adaptiveEvaluate !== "function")
+    throw new TypeError("Graph adaptive evaluator must be a function");
   if (!Number.isFinite(request.startTime) || !Number.isFinite(request.endTime))
     throw new RangeError("Graph sampling times must be finite");
   if (request.endTime < request.startTime)

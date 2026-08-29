@@ -134,6 +134,28 @@ describe("time-addressable graph sampling", () => {
     );
   });
 
+  it("adapts to a sharp displayed speed curve even when the value curve is linear", () => {
+    const speed = (time: number) => {
+      const distance = (time - 0.25) / 0.02;
+      return Math.exp(-(distance * distance));
+    };
+    const samples = sampleGraph({
+      evaluate: (time) => time,
+      evaluateSpeed: speed,
+      adaptiveEvaluate: speed,
+      startTime: 0,
+      endTime: 1,
+      pixelWidth: 2,
+      pixelHeight: 400,
+      maxSamples: 128,
+    });
+
+    expect(samples.count).toBeGreaterThan(3);
+    expect([...samples.times.subarray(0, samples.count)]).toContain(0.25);
+    const peakIndex = [...samples.times.subarray(0, samples.count)].indexOf(0.25);
+    expect(samples.speeds[peakIndex]).toBeCloseTo(1, 12);
+  });
+
   it("samples visible breakpoints exactly without losing the interval endpoints", () => {
     const samples = sampleGraph({
       evaluate: (time) => time,

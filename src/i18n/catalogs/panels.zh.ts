@@ -87,6 +87,7 @@ export const panelsZh = {
   "graph.type.speed": "速度图表",
   "graph.badge.value": "数值",
   "graph.badge.speed": "速度",
+  "graph.track.positionSpeed": "位置速度",
   "graph.track.show": "显示{label}图表",
   "graph.track.hide": "隐藏{label}图表",
   "graph.fitSelection": "适合所选",

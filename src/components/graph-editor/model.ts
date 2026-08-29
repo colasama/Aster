@@ -1,6 +1,6 @@
 import { type GraphSampleBuffer, sampleGraph } from "../../core/graph-sampling";
 import { getProperty, type PropertyPath } from "../../core/operations";
-import { evaluateAnimatable } from "../../core/timeline";
+import { evaluateAnimatable, evaluateAnimatableSpeed } from "../../core/timeline";
 import type { Animatable, Keyframe, Layer } from "../../core/types";
 import type { PlainMessageKey } from "../../i18n/core";
 
@@ -15,6 +15,11 @@ export interface GraphTrack {
   color: string;
   step: number;
   property: AnimatedProperty;
+  /** Unseparated spatial components used to produce one AE-style speed magnitude. */
+  spatialProperties?: readonly Animatable[];
+  spatialPaths?: readonly PropertyPath[];
+  spatialPrimary?: boolean;
+  speedLabelKey?: PlainMessageKey;
 }
 
 export interface GraphKeyframePreview {
@@ -127,12 +132,46 @@ const TRACK_DEFINITIONS: ReadonlyArray<
 
 export function collectAnimatedGraphTracks(layer: Layer | undefined): GraphTrack[] {
   if (!layer) return [];
+  const animatedPositionPaths = TRACK_DEFINITIONS.filter((definition) =>
+    definition.path.startsWith("position."),
+  ).flatMap((definition) => {
+    const property = getProperty(layer, definition.path);
+    return property.mode === "animated" && property.keyframes.length > 0 ? [definition.path] : [];
+  });
+  const primaryPositionPath = animatedPositionPaths[0];
   return TRACK_DEFINITIONS.flatMap((definition) => {
     const property = getProperty(layer, definition.path);
     return property.mode === "animated" && property.keyframes.length > 0
-      ? [{ ...definition, property }]
+      ? [
+          {
+            ...definition,
+            property,
+            ...(definition.path.startsWith("position.")
+              ? {
+                  spatialProperties: layer.transform.position,
+                  spatialPaths: ["position.0", "position.1", "position.2"] as PropertyPath[],
+                  spatialPrimary: definition.path === primaryPositionPath,
+                  speedLabelKey: "graph.track.positionSpeed" as PlainMessageKey,
+                }
+              : {}),
+          },
+        ]
       : [];
   });
+}
+
+/** Hides duplicate component curves when an unseparated spatial property is shown as speed. */
+export function graphTracksForType(tracks: readonly GraphTrack[], type: GraphType): GraphTrack[] {
+  return tracks.filter(
+    (track) =>
+      !track.spatialProperties || resolveGraphType(type, track) === "value" || track.spatialPrimary,
+  );
+}
+
+export function graphTrackLabelKey(track: GraphTrack, type: GraphType): PlainMessageKey {
+  return resolveGraphType(type, track) === "speed" && track.speedLabelKey
+    ? track.speedLabelKey
+    : track.labelKey;
 }
 
 export function resolveGraphType(
@@ -159,7 +198,34 @@ export function previewGraphTrack(
       return previewed;
     })
     .sort((left, right) => left.time - right.time);
-  return { ...track, property: { mode: "animated", keyframes } };
+  const property = { mode: "animated" as const, keyframes };
+  if (!track.spatialProperties || !track.spatialPaths) return { ...track, property };
+  const activePreview = keyframePreview ?? easingPreview;
+  const source = activePreview
+    ? track.property.keyframes.find((keyframe) => keyframe.id === activePreview.keyframeId)
+    : undefined;
+  const component = track.spatialPaths.indexOf(track.path);
+  const spatialProperties = track.spatialProperties.map((candidate, index) => {
+    if (index === component) return property;
+    if (!source || candidate.mode !== "animated") return candidate;
+    return {
+      mode: "animated" as const,
+      keyframes: candidate.keyframes
+        .map((keyframe) => {
+          if (Math.abs(keyframe.time - source.time) > 0.000_001) return keyframe;
+          if (keyframePreview) return { ...keyframe, time: keyframePreview.time };
+          if (easingPreview)
+            return {
+              ...keyframe,
+              interpolation: "bezier" as const,
+              easing: easingPreview.easing,
+            };
+          return keyframe;
+        })
+        .sort((left, right) => left.time - right.time),
+    };
+  });
+  return { ...track, property, spatialProperties };
 }
 
 export function sampleGraphTrack(
@@ -171,17 +237,27 @@ export function sampleGraphTrack(
   target?: GraphSampleBuffer,
   pixelHeight = 512,
 ): GraphCurve {
+  const sampledType = resolveGraphType(type, track);
+  const speedProperties = track.spatialProperties ?? [track.property];
+  const evaluateSpeed = (time: number) =>
+    Math.hypot(...speedProperties.map((property) => evaluateAnimatableSpeed(property, time)));
+  const breakpoints = new Set<number>();
+  for (const property of speedProperties)
+    if (property.mode === "animated")
+      for (const keyframe of property.keyframes) breakpoints.add(keyframe.time);
   return {
     track,
-    type: resolveGraphType(type, track),
+    type: sampledType,
     samples: sampleGraph({
       evaluate: (time) => evaluateAnimatable(track.property, time),
+      evaluateSpeed,
+      ...(sampledType === "speed" ? { adaptiveEvaluate: evaluateSpeed } : {}),
       startTime,
       endTime,
       pixelWidth,
       pixelHeight,
       samplesPerPixel: 1,
-      breakpoints: track.property.keyframes.map((keyframe) => keyframe.time),
+      breakpoints: [...breakpoints],
       target,
     }),
   };
@@ -225,9 +301,13 @@ export function graphDraggedKeyframeValue(
 export function graphSpeedSegment(
   start: Pick<Keyframe, "time" | "value" | "easing">,
   end: Pick<Keyframe, "time" | "value">,
+  baseSpeedOverride?: number,
 ): GraphSpeedSegment {
   const duration = Math.max(Number.EPSILON, end.time - start.time);
-  const baseSpeed = Math.abs((end.value - start.value) / duration);
+  const baseSpeed =
+    baseSpeedOverride === undefined
+      ? Math.abs((end.value - start.value) / duration)
+      : finiteSpeed(baseSpeedOverride);
   const [x1, y1, x2, y2] = start.easing ?? [0.42, 0, 0.58, 1];
   const outgoingInfluence = boundedInfluence(x1);
   const incomingInfluence = boundedInfluence(1 - x2);
@@ -246,10 +326,14 @@ export function easingFromGraphSpeedHandle(
   handle: "out" | "in",
   influence: number,
   speed: number,
+  baseSpeedOverride?: number,
 ): [number, number, number, number] {
   const easing = [...(start.easing ?? [0.42, 0, 0.58, 1])] as [number, number, number, number];
   const duration = Math.max(Number.EPSILON, end.time - start.time);
-  const baseSpeed = Math.abs((end.value - start.value) / duration);
+  const baseSpeed =
+    baseSpeedOverride === undefined
+      ? Math.abs((end.value - start.value) / duration)
+      : finiteSpeed(baseSpeedOverride);
   if (baseSpeed <= Number.EPSILON) return easing;
   const safeInfluence = boundedInfluence(influence);
   const normalizedSlope = finiteSpeed(speed) / baseSpeed;
@@ -261,6 +345,59 @@ export function easingFromGraphSpeedHandle(
     easing[3] = Math.max(-15, 1 - normalizedSlope * safeInfluence);
   }
   return easing;
+}
+
+export function graphTrackSegmentBaseSpeed(
+  track: GraphTrack,
+  start: Pick<Keyframe, "time" | "value">,
+  end: Pick<Keyframe, "time" | "value">,
+): number {
+  const duration = Math.max(Number.EPSILON, end.time - start.time);
+  if (!track.spatialProperties) return Math.abs((end.value - start.value) / duration);
+  return (
+    Math.hypot(
+      ...track.spatialProperties.map(
+        (property) =>
+          evaluateAnimatable(property, end.time) - evaluateAnimatable(property, start.time),
+      ),
+    ) / duration
+  );
+}
+
+export function graphTrackSegmentKeyframes(
+  track: GraphTrack,
+  startTime: number,
+  endTime: number,
+): Array<{ path: PropertyPath; keyframe: Keyframe }> {
+  if (!track.spatialProperties || !track.spatialPaths)
+    return track.property.keyframes
+      .filter((keyframe) => keyframe.time === startTime)
+      .map((keyframe) => ({ path: track.path, keyframe }));
+  return track.spatialProperties.flatMap((property, index) => {
+    if (property.mode !== "animated") return [];
+    const start = property.keyframes.find((keyframe) => keyframe.time === startTime);
+    const end = property.keyframes.find((keyframe) => keyframe.time === endTime);
+    const path = track.spatialPaths?.[index];
+    return start && end && path ? [{ path, keyframe: start }] : [];
+  });
+}
+
+export function graphTrackKeyframesAtTime(
+  track: GraphTrack,
+  time: number,
+): Array<{ path: PropertyPath; keyframe: Keyframe }> {
+  if (!track.spatialProperties || !track.spatialPaths)
+    return track.property.keyframes
+      .filter((keyframe) => Math.abs(keyframe.time - time) <= 0.000_001)
+      .map((keyframe) => ({ path: track.path, keyframe }));
+  return track.spatialProperties.flatMap((property, index) => {
+    if (property.mode !== "animated") return [];
+    const keyframe = property.keyframes.find(
+      (candidate) => Math.abs(candidate.time - time) <= 0.000_001,
+    );
+    const path = track.spatialPaths?.[index];
+    return keyframe && path ? [{ path, keyframe }] : [];
+  });
 }
 
 /** Builds the segment-owned temporal handles affected by AE Easy Ease In, Out, or Both. */

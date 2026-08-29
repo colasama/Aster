@@ -9,6 +9,10 @@ import {
   graphCurveRange,
   graphDraggedKeyframeValue,
   graphSpeedSegment,
+  graphTrackKeyframesAtTime,
+  graphTrackSegmentBaseSpeed,
+  graphTrackSegmentKeyframes,
+  graphTracksForType,
   previewGraphTrack,
   resolveGraphType,
   sampleGraphTrack,
@@ -59,6 +63,48 @@ describe("graph editor track model", () => {
     expect(resolveGraphType("auto", position)).toBe("speed");
     expect(resolveGraphType("auto", rotation)).toBe("value");
     expect(resolveGraphType("speed", rotation)).toBe("speed");
+  });
+
+  it("combines unseparated Position dimensions into one spatial speed magnitude", () => {
+    const composition = activeComposition(createDemoProject());
+    const layer = createLayerForComposition("shape", composition);
+    layer.transform.position[0] = animated(0, 3);
+    layer.transform.position[1] = animated(0, 4);
+    const tracks = collectAnimatedGraphTracks(layer);
+    const autoTracks = graphTracksForType(tracks, "auto");
+    const valueTracks = graphTracksForType(tracks, "value");
+    const curve = sampleGraphTrack(autoTracks[0], "auto", 0, 1, 32);
+
+    expect(autoTracks).toHaveLength(1);
+    expect(valueTracks).toHaveLength(2);
+    expect(autoTracks[0]?.speedLabelKey).toBe("graph.track.positionSpeed");
+    expect(curve.samples.speeds[Math.floor(curve.samples.count / 2)]).toBeCloseTo(5, 8);
+    expect(
+      graphTrackSegmentBaseSpeed(
+        autoTracks[0],
+        autoTracks[0].property.keyframes[0],
+        autoTracks[0].property.keyframes[1],
+      ),
+    ).toBeCloseTo(5, 8);
+    expect(graphTrackSegmentKeyframes(autoTracks[0], 0, 1).map(({ path }) => path)).toEqual([
+      "position.0",
+      "position.1",
+    ]);
+    expect(graphTrackKeyframesAtTime(autoTracks[0], 0).map(({ path }) => path)).toEqual([
+      "position.0",
+      "position.1",
+    ]);
+    const previewed = previewGraphTrack(autoTracks[0], {
+      trackId: autoTracks[0].id,
+      keyframeId: "start",
+      time: 0.25,
+      value: 0,
+    });
+    expect(
+      previewed.spatialProperties?.flatMap((property) =>
+        property.mode === "animated" ? [property.keyframes[0]?.time] : [],
+      ),
+    ).toEqual([0.25, 0.25]);
   });
 
   it("allows value editing only on the Value Graph", () => {
@@ -125,6 +171,17 @@ describe("graph editor track model", () => {
     const range = graphCurveRange([wide]);
     expect(range.max).toBeGreaterThan(100);
     expect(range.min).toBeLessThanOrEqual(0);
+  });
+
+  it("uses the canonical non-negative analytic speed for descending properties", () => {
+    const composition = activeComposition(createDemoProject());
+    const layer = createLayerForComposition("shape", composition);
+    layer.transform.opacity = animated(100, 0);
+    const [track] = collectAnimatedGraphTracks(layer);
+    const curve = sampleGraphTrack(track, "speed", 0, 1, 32);
+
+    for (let index = 0; index < curve.samples.count; index += 1)
+      expect(curve.samples.speeds[index]).toBeCloseTo(100, 8);
   });
 
   it("previews one keyframe without mutating the source track and keeps time order", () => {

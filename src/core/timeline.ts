@@ -30,6 +30,43 @@ export function evaluateAnimatable(property: Animatable, time: number): number {
   return previous.value + (next.value - previous.value) * eased;
 }
 
+/** Returns the canonical time derivative in value units per second. */
+export function evaluateAnimatableSpeed(property: Animatable, time: number): number {
+  if (property.mode === "static" || property.keyframes.length < 2) return 0;
+  const { keyframes } = property;
+  let low = 0;
+  let high = keyframes.length;
+  while (low < high) {
+    const middle = (low + high) >>> 1;
+    if (keyframes[middle].time <= time) low = middle + 1;
+    else high = middle;
+  }
+  if (low === 0) return 0;
+  let segmentEnd = low;
+  if (low === keyframes.length) {
+    if (time > keyframes[keyframes.length - 1].time) return 0;
+    segmentEnd = keyframes.length - 1;
+  }
+  const previous = keyframes[segmentEnd - 1];
+  const next = keyframes[segmentEnd];
+  const span = next.time - previous.time;
+  if (span <= Number.EPSILON || previous.interpolation === "step") return 0;
+  const progress = Math.max(0, Math.min(1, (time - previous.time) / span));
+  const temporal = interpolateProgressAndSlope(previous, progress);
+  const valueSlope =
+    previous.spatialOut !== undefined || next.spatialIn !== undefined
+      ? cubicValueDerivative(
+          temporal.value,
+          previous.value,
+          previous.value + (previous.spatialOut ?? 0),
+          next.value + (next.spatialIn ?? 0),
+          next.value,
+        )
+      : next.value - previous.value;
+  const speed = (valueSlope * temporal.slope) / span;
+  return Number.isFinite(speed) ? speed : 0;
+}
+
 export function evaluateTransform(transform: Transform, time: number): EvaluatedTransform {
   const evaluateVector = (properties: [Animatable, Animatable, Animatable]) =>
     properties.map((property) => evaluateAnimatable(property, time)) as [number, number, number];
@@ -78,8 +115,15 @@ export function timeAtFrame(
 }
 
 function interpolateProgress(keyframe: Keyframe, progress: number): number {
-  if (keyframe.interpolation === "step") return 0;
-  if (keyframe.interpolation === "linear") return progress;
+  return interpolateProgressAndSlope(keyframe, progress).value;
+}
+
+function interpolateProgressAndSlope(
+  keyframe: Keyframe,
+  progress: number,
+): { value: number; slope: number } {
+  if (keyframe.interpolation === "step") return { value: 0, slope: 0 };
+  if (keyframe.interpolation === "linear") return { value: progress, slope: 1 };
   const [x1, y1, x2, y2] = keyframe.easing ?? [0.42, 0, 0.58, 1];
   let parameter = progress;
   for (let iteration = 0; iteration < 6; iteration += 1) {
@@ -88,7 +132,12 @@ function interpolateProgress(keyframe: Keyframe, progress: number): number {
     if (Math.abs(slope) < 1e-7) break;
     parameter = Math.max(0, Math.min(1, parameter - error / slope));
   }
-  return cubic(parameter, y1, y2);
+  const xSlope = cubicDerivative(parameter, x1, x2);
+  const ySlope = cubicDerivative(parameter, y1, y2);
+  return {
+    value: cubic(parameter, y1, y2),
+    slope: Math.abs(xSlope) < 1e-9 ? 0 : ySlope / xSlope,
+  };
 }
 
 function cubic(time: number, control1: number, control2: number): number {
@@ -115,5 +164,20 @@ function cubicValue(time: number, start: number, control1: number, control2: num
     3 * inverse * inverse * time * control1 +
     3 * inverse * time * time * control2 +
     time ** 3 * end
+  );
+}
+
+function cubicValueDerivative(
+  time: number,
+  start: number,
+  control1: number,
+  control2: number,
+  end: number,
+): number {
+  const inverse = 1 - time;
+  return (
+    3 * inverse * inverse * (control1 - start) +
+    6 * inverse * time * (control2 - control1) +
+    3 * time * time * (end - control2)
   );
 }
