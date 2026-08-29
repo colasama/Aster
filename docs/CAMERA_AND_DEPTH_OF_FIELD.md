@@ -18,6 +18,13 @@ uses exactly half the radius in pixels and therefore retains the same compositio
 Orthographic cameras do not apply lens depth of field. Render Quality maps to a bounded 8–64 sample
 budget and never changes lens geometry.
 
+The camera rig uses AE composition coordinates (right, down, forward). Its default two-node camera is
+centered at `[width / 2, height / 2, -Zoom]` and points at the composition center, so the `z = 0`
+plane maps one-to-one to composition pixels. One-node cameras use Orientation plus XYZ Rotation;
+two-node cameras first construct a stable Point of Interest frame and then apply those rotations.
+World/project conversion, orthographic projection, screen rays, orbit, pan, and dolly share the same
+orthonormal basis. Degenerate coincident or vertical camera poses use deterministic fallback axes.
+
 Adobe behavior references:
 
 - <https://helpx.adobe.com/ca/after-effects/desktop/work-with-layers/camera-layer/cameras-lights-points-interest.html>
