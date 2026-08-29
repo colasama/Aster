@@ -37,6 +37,7 @@ import { BUFFER_VISUALIZATIONS, type BufferVisualization } from "../renderer/ren
 import { createDefaultBezierPath } from "../renderer/vector-path";
 import { WebGpuRenderer } from "../renderer/webgpu-renderer";
 import { useEditor } from "../state/editor-store";
+import { hitTestViewportTransform } from "../viewport/transform-interaction";
 import { CameraGizmo } from "./CameraGizmo";
 import { useContextMenuTrigger } from "./context-menu/use-context-menu-trigger";
 import { Panel } from "./Panel";
@@ -919,14 +920,17 @@ function hitTestLayer(
       layer.kind === "adjustment"
     )
       return false;
-    const radians = (-transform.rotation[2] * Math.PI) / 180;
-    const deltaX = x - transform.position[0];
-    const deltaY = y - transform.position[1];
-    const localX = deltaX * Math.cos(radians) - deltaY * Math.sin(radians);
-    const localY = deltaX * Math.sin(radians) + deltaY * Math.cos(radians);
-    const halfWidth = (layer.size[0] * Math.abs(transform.scale[0])) / 200;
-    const halfHeight = (layer.size[1] * Math.abs(transform.scale[1])) / 200;
-    return Math.abs(localX) <= halfWidth && Math.abs(localY) <= halfHeight;
+    return hitTestViewportTransform(
+      [x, y],
+      {
+        position: [transform.position[0], transform.position[1]],
+        scale: [transform.scale[0], transform.scale[1]],
+        rotation: transform.rotation[2],
+        anchor: [transform.anchor[0], transform.anchor[1]],
+        size: layer.size,
+      },
+      2,
+    );
   });
   return hit ? composition.layers.find((layer) => layer.id === hit.selectionId) : undefined;
 }
