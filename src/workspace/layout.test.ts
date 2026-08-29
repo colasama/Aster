@@ -12,6 +12,7 @@ import {
   floatGroup,
   floatPanel,
   groupPanel,
+  movePanelToTabSlot,
   normalizeWorkspaceLayout,
   reopenPanel,
   resizeSplit,
@@ -126,6 +127,24 @@ describe("workspace layout", () => {
     );
     expect(workspacePanelIds(grouped).filter((panel) => panel === "effects")).toHaveLength(1);
     expect(groupPanel(grouped, "effects", "viewport-tabs")).toBe(grouped);
+  });
+
+  it("reorders tabs and inserts across groups using pre-detach tab slots", () => {
+    const layout = nestedLayout();
+    const reordered = movePanelToTabSlot(layout, "effects", "project-tabs", 0);
+    expect(findWorkspaceNode(reordered, "project-tabs")).toEqual(
+      tabGroup("project-tabs", ["effects", "project"], "effects"),
+    );
+
+    const moved = movePanelToTabSlot(layout, "effects", "viewport-tabs", 0);
+    expect(findWorkspaceNode(moved, "project-tabs")).toEqual(
+      tabGroup("project-tabs", ["project"], "project"),
+    );
+    expect(findWorkspaceNode(moved, "viewport-tabs")).toEqual(
+      tabGroup("viewport-tabs", ["effects", "viewport"], "effects"),
+    );
+    expect(workspacePanelIds(moved).filter((panel) => panel === "effects")).toHaveLength(1);
+    expect(movePanelToTabSlot(moved, "effects", "viewport-tabs", 1)).toBe(moved);
   });
 
   it("docks panels on deterministic split sides and rejects invalid targets", () => {

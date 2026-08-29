@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { applyWorkspaceDrop, nextTabIndex } from "./interaction";
+import {
+  applyWorkspaceDrop,
+  clampSplitRatioToPixels,
+  nextTabIndex,
+  resizeFloatingBounds,
+  splitRatioBounds,
+} from "./interaction";
 import type { WorkspaceLayout } from "./layout";
 
 const layout: WorkspaceLayout = {
@@ -42,5 +48,27 @@ describe("workspace interaction", () => {
     expect(nextTabIndex(2, 4, "Home")).toBe(0);
     expect(nextTabIndex(1, 4, "End")).toBe(3);
     expect(nextTabIndex(0, 0, "ArrowRight")).toBe(-1);
+  });
+
+  it("derives pixel-safe split limits for pointer and keyboard resizing", () => {
+    expect(splitRatioBounds(1000, 160, 160)).toEqual({ minimum: 0.16, maximum: 0.84 });
+    expect(clampSplitRatioToPixels(0.05, 1000, 160, 160)).toBe(0.16);
+    expect(clampSplitRatioToPixels(0.95, 1000, 160, 160)).toBe(0.84);
+    expect(splitRatioBounds(240, 160, 160)).toEqual({ minimum: 0.5, maximum: 0.5 });
+  });
+
+  it("resizes floating frames from edges without crossing minimum dimensions", () => {
+    expect(
+      resizeFloatingBounds({ x: 100, y: 80, width: 400, height: 300 }, 80, 50, {
+        left: true,
+        top: true,
+      }),
+    ).toEqual({ x: 180, y: 130, width: 320, height: 250 });
+    expect(
+      resizeFloatingBounds({ x: 100, y: 80, width: 300, height: 200 }, 200, 100, {
+        left: true,
+        top: true,
+      }),
+    ).toEqual({ x: 160, y: 120, width: 240, height: 160 });
   });
 });

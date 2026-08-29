@@ -80,6 +80,28 @@ describe("DockWorkspace", () => {
     expect(container.textContent).toContain("B body");
   });
 
+  it("reorders active tabs from the keyboard as one persisted workspace change", () => {
+    const firstTab = container.querySelector<HTMLButtonElement>('[role="tab"]');
+    act(() =>
+      firstTab?.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          bubbles: true,
+          ctrlKey: true,
+          key: "PageDown",
+          shiftKey: true,
+        }),
+      ),
+    );
+    expect([...container.querySelectorAll('[role="tab"]')].map((tab) => tab.textContent)).toEqual([
+      "B",
+      "A",
+    ]);
+    expect(container.querySelector('[role="tab"][aria-selected="true"]')?.textContent).toBe("A");
+    expect(
+      JSON.parse(window.localStorage.getItem(WORKSPACE_LAYOUT_STORAGE_KEY) ?? "null"),
+    ).toMatchObject({ root: { panels: ["b", "a"], activePanelId: "a" } });
+  });
+
   it("closes and reopens panels through the workspace API and persists a versioned commit", () => {
     act(() => container.querySelector<HTMLButtonElement>('button[aria-label="Close A"]')?.click());
     expect(container.querySelectorAll('[role="tab"]')).toHaveLength(1);

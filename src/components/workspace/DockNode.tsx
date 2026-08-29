@@ -41,6 +41,7 @@ export interface DockNodeProps {
     targetGroupId: string,
     position: WorkspaceDockPosition,
   ) => void;
+  readonly onTabDrop: (panelId: string, targetGroupId: string, slot: number) => void;
   readonly onResize: (splitId: string, ratio: number) => void;
   readonly onUndo: () => void;
 }
@@ -69,6 +70,7 @@ export function DockNode(props: DockNodeProps) {
       onMaximize={props.onMaximize}
       onMoveGroup={props.onMoveGroup}
       onMovePanel={props.onMovePanel}
+      onTabDrop={props.onTabDrop}
       onUndo={props.onUndo}
       panels={props.panels}
     />

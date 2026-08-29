@@ -182,6 +182,48 @@ export function groupPanel(
   return dockPanel(layout, panelId, targetGroupId, "center");
 }
 
+/**
+ * Moves a panel to an exact insertion slot in a tab strip. Slots are measured against the
+ * target strip before the panel is detached, so native drag events can use the hovered tab edge
+ * without compensating for same-group moves. Empty source groups collapse atomically.
+ */
+export function movePanelToTabSlot(
+  layout: WorkspaceLayout,
+  panelId: string,
+  targetGroupId: string,
+  slot: number,
+): WorkspaceLayout {
+  if (!validId(panelId) || !validId(targetGroupId) || !Number.isFinite(slot)) return layout;
+  const target = findWorkspaceNode(layout, targetGroupId);
+  if (target?.kind !== "tabGroup") return layout;
+  const source = workspaceTabGroups(layout).find(({ group }) => group.panels.includes(panelId));
+  if (!source) return layout;
+
+  const requestedSlot = Math.max(0, Math.min(target.panels.length, Math.trunc(slot)));
+  const sourceIndex = source.group.id === targetGroupId ? source.group.panels.indexOf(panelId) : -1;
+  const detached = detachVisiblePanel(layout, panelId);
+  if (!detached.removed) return layout;
+  const nextTarget = findWorkspaceNode(detached.layout, targetGroupId);
+  if (nextTarget?.kind !== "tabGroup") return layout;
+  const adjustedSlot =
+    sourceIndex >= 0 && requestedSlot > sourceIndex ? requestedSlot - 1 : requestedSlot;
+  const insertionIndex = Math.max(0, Math.min(nextTarget.panels.length, adjustedSlot));
+  const panels = [...nextTarget.panels];
+  panels.splice(insertionIndex, 0, panelId);
+  const unchanged =
+    source.group.id === targetGroupId &&
+    panels.length === source.group.panels.length &&
+    panels.every((candidate, index) => candidate === source.group.panels[index]);
+  if (unchanged) return activatePanel(layout, targetGroupId, panelId);
+
+  const base = removeClosedPanel(detached.layout, panelId);
+  return (
+    replaceNodeInLayout(base, targetGroupId, (node) =>
+      node.kind === "tabGroup" ? { ...node, panels, activePanelId: panelId } : node,
+    ) ?? layout
+  );
+}
+
 export function activatePanel(
   layout: WorkspaceLayout,
   groupId: string,

@@ -12,6 +12,8 @@ export const workspaceEn = {
   "workspace.maximizeGroup": "Maximize panel group",
   "workspace.restoreGroup": "Restore panel group",
   "workspace.resizePanels": "Resize panels",
+  "workspace.moveFloating": "Move floating panel group",
+  "workspace.resizeFloating": "Resize floating panel group",
   "workspace.closePanel": "Close {panel}",
   "workspace.drop.left": "Dock left",
   "workspace.drop.right": "Dock right",

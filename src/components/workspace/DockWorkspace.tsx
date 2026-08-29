@@ -22,6 +22,7 @@ import {
   findWorkspaceNode,
   floatGroup,
   floatPanel,
+  movePanelToTabSlot,
   reopenPanel,
   resizeSplit,
   setFloatingBounds,
@@ -83,6 +84,8 @@ export function DockWorkspace({
   const [drag, setDrag] = useState<WorkspaceDrag | null>(null);
   const [hoveredGroupId, setHoveredGroupId] = useState<string | null>(null);
   const [maximizedGroupId, setMaximizedGroupId] = useState<string | null>(null);
+  const [activeFloatingId, setActiveFloatingId] = useState<string | null>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
   const layoutHistory = useRef<WorkspaceLayout[]>([]);
   const hoveredGroupRef = useRef<string | null>(null);
   hoveredGroupRef.current = hoveredGroupId;
@@ -116,6 +119,26 @@ export function DockWorkspace({
       if ((event.ctrlKey || event.metaKey) && event.altKey && event.key.toLowerCase() === "z") {
         event.preventDefault();
         undoLayoutChange();
+        return;
+      }
+      if ((event.ctrlKey || event.metaKey) && event.key === "F6") {
+        const tabs = [
+          ...(rootRef.current?.querySelectorAll<HTMLButtonElement>(
+            '[role="tab"][aria-selected="true"]',
+          ) ?? []),
+        ];
+        if (tabs.length === 0) return;
+        event.preventDefault();
+        const currentGroup = (document.activeElement as HTMLElement | null)?.closest(
+          ".workspace-group",
+        );
+        const currentIndex = tabs.findIndex(
+          (tab) => tab.closest(".workspace-group") === currentGroup,
+        );
+        const direction = event.shiftKey ? -1 : 1;
+        const origin = currentIndex < 0 ? (event.shiftKey ? 0 : -1) : currentIndex;
+        const nextIndex = (origin + direction + tabs.length) % tabs.length;
+        tabs[nextIndex]?.focus();
         return;
       }
       if (event.code !== "Backquote" || event.ctrlKey || event.metaKey || event.altKey) return;
@@ -295,6 +318,8 @@ export function DockWorkspace({
       commit((current) => dockGroup(current, sourceGroupId, targetGroupId, position)),
     onMovePanel: (panelId: string, targetGroupId: string, position: WorkspaceDockPosition) =>
       commit((current) => dockPanel(current, panelId, targetGroupId, position)),
+    onTabDrop: (panelId: string, targetGroupId: string, slot: number) =>
+      commit((current) => movePanelToTabSlot(current, panelId, targetGroupId, slot)),
     onResize: (splitId: string, ratio: number) =>
       commit((current) => resizeSplit(current, splitId, ratio)),
     onUndo: undoLayoutChange,
@@ -306,14 +331,17 @@ export function DockWorkspace({
       <div
         className="editor-grid workspace-root"
         data-maximized={maximizedNode ? "true" : undefined}
+        ref={rootRef}
       >
         {renderedRoot ? <DockNode {...common} node={renderedRoot} /> : <EmptyWorkspace />}
         {!maximizedNode
           ? layout.floating.map((entry) => (
               <FloatingWorkspaceFrame
                 {...common}
+                active={activeFloatingId === entry.id}
                 entry={entry}
                 key={entry.id}
+                onFocus={() => setActiveFloatingId(entry.id)}
                 onMove={(floatingId, bounds) =>
                   commit((current) => setFloatingBounds(current, floatingId, bounds))
                 }

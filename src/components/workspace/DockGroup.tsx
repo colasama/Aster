@@ -47,6 +47,7 @@ interface DockGroupProps {
     targetGroupId: string,
     position: WorkspaceDockPosition,
   ) => void;
+  readonly onTabDrop: (panelId: string, targetGroupId: string, slot: number) => void;
   readonly onUndo: () => void;
 }
 
@@ -71,10 +72,17 @@ export function DockGroup({
   onMaximize,
   onMoveGroup,
   onMovePanel,
+  onTabDrop,
   onUndo,
 }: DockGroupProps) {
   const { t } = useI18n();
   const [headerHost, setHeaderHost] = useState<HTMLDivElement | null>(null);
+  const [tabDrop, setTabDrop] = useState<{
+    readonly panelId: string;
+    readonly tabIndex: number;
+    readonly slot: number;
+    readonly side: "before" | "after";
+  }>();
   const [contextMenu, setContextMenu] = useState<{
     readonly kind: "group" | "panel";
     readonly panelId?: string;
@@ -108,6 +116,17 @@ export function DockGroup({
   };
   const onTabKeyDown = (event: KeyboardEvent<HTMLButtonElement>, panelId: string) => {
     if (
+      (event.ctrlKey || event.metaKey) &&
+      event.shiftKey &&
+      (event.key === "PageUp" || event.key === "PageDown")
+    ) {
+      event.preventDefault();
+      const current = group.panels.indexOf(panelId);
+      const slot = event.key === "PageUp" ? current - 1 : current + 2;
+      onTabDrop(panelId, group.id, slot);
+      return;
+    }
+    if (
       event.key !== "ArrowLeft" &&
       event.key !== "ArrowRight" &&
       event.key !== "Home" &&
@@ -125,10 +144,14 @@ export function DockGroup({
       (tabList?.querySelectorAll<HTMLButtonElement>("[role=tab]")[next] ?? null)?.focus(),
     );
   };
+  const groupDomId = domId(group.id);
+  const activeTabId = `workspace-tab-${groupDomId}-${domId(group.activePanelId)}`;
   return (
     <section
+      aria-label={active?.label ?? group.activePanelId}
       className={`workspace-group ${maximized ? "maximized" : ""}`}
       data-workspace-group={group.id}
+      onFocusCapture={() => onHover(group.id)}
       onPointerEnter={() => onHover(group.id)}
     >
       {/* biome-ignore lint/a11y/noStaticElementInteractions: The header supports AE-style double-click group maximize. */}
@@ -151,19 +174,47 @@ export function DockGroup({
           <GripVertical size={12} />
         </button>
         <div aria-label={t("workspace.panelTabs")} className="workspace-tabs" role="tablist">
-          {group.panels.map((panelId) => {
+          {group.panels.map((panelId, tabIndex) => {
             const panel = panels.get(panelId);
             if (!panel) return null;
             const selected = panelId === group.activePanelId;
             return (
               <button
+                aria-controls={`workspace-panel-${groupDomId}`}
                 aria-selected={selected}
-                className={selected ? "active" : ""}
+                className={`${selected ? "active" : ""} ${
+                  tabDrop?.tabIndex === tabIndex ? `drop-${tabDrop.side}` : ""
+                }`}
                 draggable
+                id={`workspace-tab-${groupDomId}-${domId(panelId)}`}
                 key={panelId}
                 onClick={() => onActivate(group.id, panelId)}
-                onDragEnd={() => onDragChange(null)}
+                onDragEnd={() => {
+                  setTabDrop(undefined);
+                  onDragChange(null);
+                }}
+                onDragOver={(event) => {
+                  if (drag?.kind !== "panel") return;
+                  event.preventDefault();
+                  event.stopPropagation();
+                  const bounds = event.currentTarget.getBoundingClientRect();
+                  const side = event.clientX < bounds.left + bounds.width / 2 ? "before" : "after";
+                  setTabDrop({
+                    panelId: drag.panelId,
+                    tabIndex,
+                    slot: tabIndex + (side === "after" ? 1 : 0),
+                    side,
+                  });
+                }}
                 onDragStart={(event) => startDrag(event, { kind: "panel", panelId })}
+                onDrop={(event) => {
+                  if (!tabDrop || drag?.kind !== "panel") return;
+                  event.preventDefault();
+                  event.stopPropagation();
+                  onTabDrop(tabDrop.panelId, group.id, tabDrop.slot);
+                  setTabDrop(undefined);
+                  onDragChange(null);
+                }}
                 onKeyDown={(event) => onTabKeyDown(event, panelId)}
                 onContextMenu={(event) => openContextMenu(event, "panel", panelId)}
                 role="tab"
@@ -212,7 +263,12 @@ export function DockGroup({
           </button>
         </div>
       </header>
-      <div className="workspace-group-content" role="tabpanel">
+      <div
+        aria-labelledby={activeTabId}
+        className="workspace-group-content"
+        id={`workspace-panel-${groupDomId}`}
+        role="tabpanel"
+      >
         {active ? (
           <WorkspacePanelHostContext.Provider value={{ headerHost }}>
             {active.element}
@@ -256,6 +312,10 @@ export function DockGroup({
       />
     </section>
   );
+}
+
+function domId(value: string): string {
+  return value.replace(/[^a-zA-Z0-9_-]/g, "-");
 }
 
 interface WorkspaceContextMenuOptions {

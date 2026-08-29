@@ -1,5 +1,10 @@
 import { type KeyboardEvent, type PointerEvent, useEffect, useMemo, useRef } from "react";
 import { useI18n } from "../../i18n/react";
+import {
+  clampSplitRatioToPixels,
+  MIN_HORIZONTAL_PANE_PIXELS,
+  MIN_VERTICAL_PANE_PIXELS,
+} from "../../workspace/interaction";
 import { MAX_SPLIT_RATIO, MIN_SPLIT_RATIO, type WorkspaceSplit } from "../../workspace/layout";
 import { browserAnimationFrameHost, RafCoalescer } from "../../workspace/raf-coalescer";
 import type { DockNodeProps } from "./DockNode";
@@ -29,7 +34,11 @@ export function DockSplit({ node, ...props }: DockNodeProps & { readonly node: W
       node.axis === "horizontal"
         ? (event.clientX - bounds.left) / bounds.width
         : (event.clientY - bounds.top) / bounds.height;
-    return Math.max(MIN_SPLIT_RATIO, Math.min(MAX_SPLIT_RATIO, raw));
+    const available = (node.axis === "horizontal" ? bounds.width : bounds.height) - 4;
+    const minimum =
+      node.axis === "horizontal" ? MIN_HORIZONTAL_PANE_PIXELS : MIN_VERTICAL_PANE_PIXELS;
+    const pixelSafe = clampSplitRatioToPixels(raw, available, minimum, minimum);
+    return Math.max(MIN_SPLIT_RATIO, Math.min(MAX_SPLIT_RATIO, pixelSafe));
   };
   const commitKeyboardResize = (event: KeyboardEvent<HTMLHRElement>) => {
     const negative = node.axis === "horizontal" ? "ArrowLeft" : "ArrowUp";
@@ -42,17 +51,31 @@ export function DockSplit({ node, ...props }: DockNodeProps & { readonly node: W
     )
       return;
     event.preventDefault();
-    const ratio =
+    const requestedRatio =
       event.key === "Home"
         ? MIN_SPLIT_RATIO
         : event.key === "End"
           ? MAX_SPLIT_RATIO
           : node.ratio + (event.key === negative ? -0.02 : 0.02);
+    const bounds = rootRef.current?.getBoundingClientRect();
+    const available = bounds ? (node.axis === "horizontal" ? bounds.width : bounds.height) - 4 : 0;
+    const minimum =
+      node.axis === "horizontal" ? MIN_HORIZONTAL_PANE_PIXELS : MIN_VERTICAL_PANE_PIXELS;
+    const ratio = bounds
+      ? clampSplitRatioToPixels(requestedRatio, available, minimum, minimum)
+      : requestedRatio;
     props.onResize(node.id, ratio);
   };
+  const paneMinimum =
+    node.axis === "horizontal" ? MIN_HORIZONTAL_PANE_PIXELS : MIN_VERTICAL_PANE_PIXELS;
   return (
     <div className={`workspace-split ${node.axis}`} ref={rootRef}>
-      <div className="workspace-split-pane first" style={{ flexBasis: `${node.ratio * 100}%` }}>
+      <div
+        className="workspace-split-pane first"
+        style={{
+          flexBasis: `clamp(${paneMinimum}px, ${node.ratio * 100}%, calc(100% - ${paneMinimum + 4}px))`,
+        }}
+      >
         <DockNode {...props} node={node.first} />
       </div>
       <hr

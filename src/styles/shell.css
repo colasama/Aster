@@ -1203,6 +1203,23 @@
   height: 2px;
   background: var(--blue);
 }
+.workspace-tabs > button.drop-before::before,
+.workspace-tabs > button.drop-after::before {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  top: 3px;
+  bottom: 3px;
+  width: 2px;
+  background: #8cb1ff;
+  box-shadow: 0 0 5px #477edb;
+}
+.workspace-tabs > button.drop-before::before {
+  left: 0;
+}
+.workspace-tabs > button.drop-after::before {
+  right: 0;
+}
 .workspace-panel-header-host {
   min-width: 0;
   display: flex;
@@ -1273,6 +1290,10 @@
   background: var(--bg-panel);
   box-shadow: 0 18px 55px #000b;
 }
+.workspace-floating.active {
+  z-index: 91;
+  border-color: #7396db;
+}
 .workspace-floating-move {
   position: absolute;
   z-index: 10;
@@ -1280,6 +1301,78 @@
   right: 74px;
   height: 23px;
   cursor: move;
+}
+.workspace-floating-resize {
+  position: absolute;
+  z-index: 12;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.workspace-floating-resize.top,
+.workspace-floating-resize.bottom {
+  right: 8px;
+  left: 8px;
+  height: 6px;
+  cursor: ns-resize;
+}
+.workspace-floating-resize.top {
+  top: 0;
+}
+.workspace-floating-resize.bottom {
+  bottom: 0;
+}
+.workspace-floating-resize.left,
+.workspace-floating-resize.right {
+  top: 8px;
+  bottom: 8px;
+  width: 6px;
+  cursor: ew-resize;
+}
+.workspace-floating-resize.left {
+  left: 0;
+}
+.workspace-floating-resize.right {
+  right: 0;
+}
+.workspace-floating-resize.top-left,
+.workspace-floating-resize.top-right,
+.workspace-floating-resize.bottom-right,
+.workspace-floating-resize.bottom-left {
+  width: 10px;
+  height: 10px;
+}
+.workspace-floating-resize.top-left {
+  top: 0;
+  left: 0;
+  cursor: nwse-resize;
+}
+.workspace-floating-resize.top-right {
+  top: 0;
+  right: 0;
+  cursor: nesw-resize;
+}
+.workspace-floating-resize.bottom-right {
+  right: 0;
+  bottom: 0;
+  cursor: nwse-resize;
+}
+.workspace-floating-resize.bottom-left {
+  bottom: 0;
+  left: 0;
+  cursor: nesw-resize;
+}
+.workspace-floating-resize-preview {
+  position: fixed;
+  z-index: 100;
+  display: none;
+  pointer-events: none;
+  border: 1px solid #8cb1ff;
+  background: rgb(62 103 184 / 10%);
+  box-shadow: 0 0 8px #3c6cd8;
+}
+.workspace-floating-resize-preview.active {
+  display: block;
 }
 .workspace-empty {
   flex: 1;

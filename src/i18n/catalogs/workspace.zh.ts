@@ -14,6 +14,8 @@ export const workspaceZh = {
   "workspace.maximizeGroup": "最大化面板组",
   "workspace.restoreGroup": "还原面板组",
   "workspace.resizePanels": "调整面板大小",
+  "workspace.moveFloating": "移动浮动面板组",
+  "workspace.resizeFloating": "调整浮动面板组大小",
   "workspace.closePanel": "关闭{panel}",
   "workspace.drop.left": "停靠到左侧",
   "workspace.drop.right": "停靠到右侧",
