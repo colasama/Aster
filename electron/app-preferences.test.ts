@@ -33,7 +33,8 @@ describe("AppPreferencesStore", () => {
       windowState: { x: 120, y: 80, width: 1440, height: 900, maximized: true },
     });
     expect(JSON.parse(await readFile(join(root, "preferences.json"), "utf8"))).toMatchObject({
-      schemaVersion: 1,
+      schemaVersion: 2,
+      uiScale: "auto",
     });
   });
 

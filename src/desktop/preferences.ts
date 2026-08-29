@@ -1,4 +1,6 @@
-export const CURRENT_APP_PREFERENCES_VERSION = 1 as const;
+import { isUiScale, type UiScale } from "../ui/ui-scale.js";
+
+export const CURRENT_APP_PREFERENCES_VERSION = 2 as const;
 export const APP_PREFERENCES_CHANGED_EVENT = "aster:preferences-changed";
 
 export type AppLocale = "en-US" | "zh-CN";
@@ -19,13 +21,17 @@ export interface AppPreferences {
   autosaveSeconds: AutosaveSeconds;
   reducedMotion: boolean;
   gpuMemoryBudgetMb: GpuMemoryBudgetMb;
+  uiScale: UiScale;
   recentProjects: string[];
   lastProjectPath?: string;
   windowState?: PersistedWindowState;
 }
 
 export type UserPreferencePatch = Partial<
-  Pick<AppPreferences, "locale" | "autosaveSeconds" | "reducedMotion" | "gpuMemoryBudgetMb">
+  Pick<
+    AppPreferences,
+    "locale" | "autosaveSeconds" | "reducedMotion" | "gpuMemoryBudgetMb" | "uiScale"
+  >
 >;
 
 const DEFAULT_PREFERENCES: AppPreferences = {
@@ -33,6 +39,7 @@ const DEFAULT_PREFERENCES: AppPreferences = {
   autosaveSeconds: 30,
   reducedMotion: false,
   gpuMemoryBudgetMb: "auto",
+  uiScale: "auto",
   recentProjects: [],
 };
 
@@ -68,7 +75,13 @@ export function migrateAppPreferences(value: unknown): AppPreferences {
 
 export function applyUserPreferencePatch(current: AppPreferences, value: unknown): AppPreferences {
   if (!isRecord(value)) throw new Error("Application preferences update must be an object");
-  const allowed = new Set(["locale", "autosaveSeconds", "reducedMotion", "gpuMemoryBudgetMb"]);
+  const allowed = new Set([
+    "locale",
+    "autosaveSeconds",
+    "reducedMotion",
+    "gpuMemoryBudgetMb",
+    "uiScale",
+  ]);
   for (const key of Object.keys(value))
     if (!allowed.has(key)) throw new Error(`Application preference ${key} cannot be updated here`);
   return normalizeCurrentPreferences({ ...current, ...value });
@@ -117,6 +130,14 @@ const APP_PREFERENCE_MIGRATIONS = new Map<
       recentProjects: document.recentProjects ?? [],
     }),
   ],
+  [
+    1,
+    (document) => ({
+      ...document,
+      schemaVersion: 2,
+      uiScale: document.uiScale ?? "auto",
+    }),
+  ],
 ]);
 
 function normalizeCurrentPreferences(value: Record<string, unknown>): AppPreferences {
@@ -145,6 +166,7 @@ function normalizeCurrentPreferences(value: Record<string, unknown>): AppPrefere
     autosaveSeconds,
     reducedMotion: value.reducedMotion === true,
     gpuMemoryBudgetMb,
+    uiScale: isUiScale(value.uiScale) ? value.uiScale : "auto",
     recentProjects,
     ...(lastProjectPath ? { lastProjectPath } : {}),
     ...(windowState ? { windowState } : {}),

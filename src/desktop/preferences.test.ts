@@ -17,10 +17,11 @@ describe("application preferences", () => {
         recentProjects: ["C:\\projects\\one", "C:\\projects\\ONE", 7],
       }),
     ).toMatchObject({
-      schemaVersion: 1,
+      schemaVersion: 2,
       autosaveSeconds: 15,
       reducedMotion: true,
       gpuMemoryBudgetMb: 128,
+      uiScale: "auto",
       recentProjects: ["C:\\projects\\ONE"],
     });
   });
@@ -32,9 +33,18 @@ describe("application preferences", () => {
   it("restricts renderer updates to user-facing preferences", () => {
     const current = defaultAppPreferences();
     expect(applyUserPreferencePatch(current, { autosaveSeconds: 60 }).autosaveSeconds).toBe(60);
+    expect(applyUserPreferencePatch(current, { uiScale: 1.25 }).uiScale).toBe(1.25);
+    expect(applyUserPreferencePatch(current, { uiScale: 1.2 as 1.25 }).uiScale).toBe("auto");
     expect(() => applyUserPreferencePatch(current, { recentProjects: ["injected"] })).toThrow(
       "cannot be updated here",
     );
+  });
+
+  it("migrates v1 preferences to a system-following UI scale", () => {
+    expect(migrateAppPreferences({ schemaVersion: 1, autosaveSeconds: 30 })).toMatchObject({
+      schemaVersion: 2,
+      uiScale: "auto",
+    });
   });
 
   it("keeps recent projects unique, ordered, and bounded", () => {

@@ -18,6 +18,7 @@ import type { FrameRenderSession, FrameRenderSessionOptions } from "../core/rend
 import { evaluateWorldTransform, flattenSceneLayers } from "../core/scene-evaluation";
 import { evaluateAnimatable } from "../core/timeline";
 import type { Composition, GpuDiagnostics, Project } from "../core/types";
+import { isDesktopRuntime, onDisplayMetricsChanged } from "../desktop/api";
 import type { PlainMessageKey, Translate } from "../i18n/core";
 import { useI18n } from "../i18n/react";
 import { CanvasFallbackRenderer } from "../renderer/canvas-fallback";
@@ -97,6 +98,11 @@ export function Viewport() {
     previewQualityRef.current = state.previewQuality;
     resize();
   }, [resize, state.previewQuality]);
+
+  useEffect(() => {
+    if (!isDesktopRuntime()) return;
+    return onDisplayMetricsChanged(() => resize());
+  }, [resize]);
 
   useEffect(() => {
     const renderer = rendererRef.current;

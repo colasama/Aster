@@ -24,6 +24,8 @@ export const workspaceEn = {
   "workspace.preferences.halfResolution": "Half resolution",
   "workspace.preferences.quarterResolution": "Quarter resolution",
   "workspace.preferences.recoveryInterval": "Recovery snapshot interval",
+  "workspace.preferences.uiScale": "Interface scale",
+  "workspace.preferences.uiScaleAuto": "Auto (system)",
   "workspace.preferences.afterEditing": "{seconds} seconds after editing",
   "workspace.preferences.gpuBudget": "GPU memory budget",
   "workspace.preferences.autoBudget": "Auto (512 MB)",

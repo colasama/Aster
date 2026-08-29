@@ -28,6 +28,7 @@ import type {
   PersistedWindowState,
   UserPreferencePatch,
 } from "../src/desktop/preferences.js";
+import { type UiScale, uiScaleFactor } from "../src/ui/ui-scale.js";
 import { FullAccessGrantManager } from "./agent-grants.js";
 import { PiAgentHost } from "./agent-host.js";
 import { AppPreferencesStore } from "./app-preferences.js";
@@ -552,14 +553,20 @@ function registerIpc(logger: AsterLogger, preferences: AppPreferencesStore): voi
 
   ipcMain.handle("aster:preferences-get", () => preferences.snapshot());
 
-  ipcMain.handle("aster:preferences-update", (_event, value: unknown) => {
+  ipcMain.handle("aster:preferences-update", async (_event, value: unknown) => {
     if (!isRecord(value)) throw new Error("Application preferences update must be an object");
-    return preferences.updateUserPreferences(value as UserPreferencePatch);
+    const updated = await preferences.updateUserPreferences(value as UserPreferencePatch);
+    applyUiScaleToAllWindows(updated.uiScale);
+    return updated;
   });
 
-  ipcMain.handle("aster:preferences-migrate-legacy", (_event, value: unknown) => {
+  ipcMain.handle("aster:preferences-migrate-legacy", async (_event, value: unknown) => {
     if (!isRecord(value)) throw new Error("Legacy application preferences must be an object");
-    return preferences.migrateLegacyRendererPreferences(value as UserPreferencePatch);
+    const updated = await preferences.migrateLegacyRendererPreferences(
+      value as UserPreferencePatch,
+    );
+    applyUiScaleToAllWindows(updated.uiScale);
+    return updated;
   });
 
   ipcMain.handle("aster:project-authorize-recent", async (_event, value: unknown) => {
@@ -902,6 +909,26 @@ function registerIpc(logger: AsterLogger, preferences: AppPreferencesStore): voi
   });
 }
 
+function applyUiScaleToAllWindows(scale: UiScale): void {
+  for (const window of BrowserWindow.getAllWindows()) applyUiScaleToWindow(window, scale);
+}
+
+function applyUiScaleToWindow(window: BrowserWindow, scale: UiScale): void {
+  if (window.isDestroyed() || window.webContents.isDestroyed()) return;
+  window.webContents.setZoomFactor(uiScaleFactor(scale));
+  sendDisplayMetrics(window, scale);
+}
+
+function sendDisplayMetrics(window: BrowserWindow, scale: UiScale): void {
+  if (window.isDestroyed() || window.webContents.isDestroyed()) return;
+  const deviceScaleFactor = screen.getDisplayMatching(window.getBounds()).scaleFactor;
+  window.webContents.send("aster:display-metrics-changed", {
+    deviceScaleFactor,
+    effectiveScaleFactor: deviceScaleFactor * uiScaleFactor(scale),
+    uiScale: scale,
+  });
+}
+
 async function createWindow(
   logger: AsterLogger,
   preferences: AppPreferencesStore,
@@ -927,6 +954,8 @@ async function createWindow(
       spellcheck: false,
     },
   });
+  const uiScale = preferences.snapshot().uiScale;
+  window.webContents.setZoomFactor(uiScaleFactor(uiScale));
   primaryWindow = window;
   const rendererId = window.webContents.id;
   let windowStateTimer: NodeJS.Timeout | undefined;
@@ -948,11 +977,23 @@ async function createWindow(
       window.webContents.send("aster:window-maximized", window.isMaximized());
     }
   };
+  const handleDisplayMetricsChange = (
+    _event: Electron.Event,
+    display: Electron.Display,
+    changedMetrics: string[],
+  ) => {
+    if (!changedMetrics.includes("scaleFactor")) return;
+    const currentDisplay = screen.getDisplayMatching(window.getBounds());
+    if (currentDisplay.id === display.id)
+      sendDisplayMetrics(window, preferences.snapshot().uiScale);
+  };
+  screen.on("display-metrics-changed", handleDisplayMetricsChange);
   window.on("maximize", sendMaximizedState);
   window.on("unmaximize", sendMaximizedState);
   window.on("maximize", scheduleWindowState);
   window.on("unmaximize", scheduleWindowState);
   window.on("move", scheduleWindowState);
+  window.on("move", () => sendDisplayMetrics(window, preferences.snapshot().uiScale));
   window.on("resize", scheduleWindowState);
   window.on("close", (event) => {
     persistWindowState();
@@ -978,6 +1019,7 @@ async function createWindow(
   });
   window.on("closed", () => {
     if (windowStateTimer) clearTimeout(windowStateTimer);
+    screen.removeListener("display-metrics-changed", handleDisplayMetricsChange);
     documentStates.delete(rendererId);
     closeAllowed.delete(window.id);
     closePromptActive.delete(window.id);
@@ -990,6 +1032,7 @@ async function createWindow(
   window.webContents.on("did-finish-load", sendMaximizedState);
   window.webContents.on("did-finish-load", () => {
     logger.info("window", "renderer_loaded", { rendererId: window.webContents.id });
+    sendDisplayMetrics(window, preferences.snapshot().uiScale);
     notifyProjectOpenAvailable();
   });
   window.webContents.setWindowOpenHandler(({ url }) => {

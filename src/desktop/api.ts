@@ -6,6 +6,7 @@ import type {
   FullAccessActivationRequest,
   FullAccessGrant,
 } from "../ai/agent-protocol";
+import type { UiScale } from "../ui/ui-scale";
 import type { AppPreferences, UserPreferencePatch } from "./preferences";
 
 export interface DesktopFileFilter {
@@ -71,6 +72,12 @@ export interface DesktopWindowControls {
   onMaximizedChange(listener: (maximized: boolean) => void): () => void;
 }
 
+export interface DesktopDisplayMetrics {
+  deviceScaleFactor: number;
+  effectiveScaleFactor: number;
+  uiScale: UiScale;
+}
+
 export interface ProjectOpenRequest {
   path?: string;
   recoverAutosave: boolean;
@@ -101,6 +108,7 @@ export interface AsterDesktopApi {
   getPreferences(): Promise<AppPreferences>;
   updatePreferences(preferences: UserPreferencePatch): Promise<AppPreferences>;
   migrateLegacyPreferences(preferences: UserPreferencePatch): Promise<AppPreferences>;
+  onDisplayMetricsChanged(listener: (metrics: DesktopDisplayMetrics) => void): () => void;
   authorizeRecentProject(path: string): Promise<boolean>;
   rememberProject(path: string): Promise<AppPreferences>;
   forgetActiveProject(): Promise<void>;
@@ -176,6 +184,12 @@ export function migrateLegacyPreferences(
   preferences: UserPreferencePatch,
 ): Promise<AppPreferences> {
   return desktopApi().migrateLegacyPreferences(preferences);
+}
+
+export function onDisplayMetricsChanged(
+  listener: (metrics: DesktopDisplayMetrics) => void,
+): () => void {
+  return desktopApi().onDisplayMetricsChanged(listener);
 }
 
 export function authorizeRecentProject(path: string): Promise<boolean> {

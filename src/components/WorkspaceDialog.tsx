@@ -13,6 +13,8 @@ import type { Locale, PlainMessageKey, Translate } from "../i18n/core";
 import { type UiErrorCode, uiErrorMessage } from "../i18n/errors";
 import { useI18n } from "../i18n/react";
 import { useEditor } from "../state/editor-store";
+import { applyBrowserUiScale } from "../ui/browser-ui-scale";
+import { parseUiScale, type UiScale } from "../ui/ui-scale";
 
 const PluginManager = lazy(() =>
   import("./PluginManager").then((module) => ({ default: module.PluginManager })),
@@ -68,6 +70,9 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
   const [reducedMotion, setReducedMotion] = useState(
     () => readPreference("aster.reducedMotion") === "true",
   );
+  const [uiScale, setUiScale] = useState<UiScale>(() =>
+    parseUiScale(readPreference("aster.uiScale")),
+  );
   const [preferredLocale, setPreferredLocale] = useState<Locale>(locale);
   const [expressionPath, setExpressionPath] = useState<PropertyPath>("opacity");
   const [expression, setExpression] = useState(selectedLayer?.expressions?.opacity ?? "value");
@@ -88,6 +93,7 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
         setAutosaveSeconds(preferences.autosaveSeconds);
         setReducedMotion(preferences.reducedMotion);
         setGpuMemoryBudgetMb(preferences.gpuMemoryBudgetMb);
+        setUiScale(preferences.uiScale);
         if (preferences.locale) setPreferredLocale(preferences.locale);
       })
       .catch((error: unknown) => logger.warn("preferences", "read_failed", undefined, error));
@@ -121,6 +127,7 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
       ["aster.autosaveSeconds", String(autosaveSeconds)],
       ["aster.reducedMotion", String(reducedMotion)],
       ["aster.gpuMemoryBudgetMb", String(gpuMemoryBudgetMb)],
+      ["aster.uiScale", String(uiScale)],
     ]);
     window.dispatchEvent(new Event(APP_PREFERENCES_CHANGED_EVENT));
     dispatch({ type: "setPreviewQuality", quality: previewQuality });
@@ -133,10 +140,12 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
           : 30,
         reducedMotion,
         gpuMemoryBudgetMb,
+        uiScale,
         locale: preferredLocale,
       }).catch((error: unknown) => logger.warn("preferences", "write_failed", undefined, error));
     if (typeof document !== "undefined") {
       document.documentElement.classList.toggle("reduced-motion", reducedMotion);
+      if (!isDesktopRuntime()) applyBrowserUiScale(uiScale);
     }
     onClose();
   };
@@ -366,6 +375,23 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
                   </option>
                 ))}
                 <option value="0">{t("common.disabled")}</option>
+              </select>
+            </label>
+            <label className="wide">
+              {t("workspace.preferences.uiScale")}
+              <select
+                onChange={(event) => setUiScale(parseUiScale(event.target.value))}
+                value={uiScale}
+              >
+                <option value="auto">{t("workspace.preferences.uiScaleAuto")}</option>
+                <option value="0.75">75%</option>
+                <option value="0.875">87.5%</option>
+                <option value="1">100%</option>
+                <option value="1.125">112.5%</option>
+                <option value="1.25">125%</option>
+                <option value="1.5">150%</option>
+                <option value="1.75">175%</option>
+                <option value="2">200%</option>
               </select>
             </label>
             <label className="wide">

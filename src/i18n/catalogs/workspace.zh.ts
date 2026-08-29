@@ -26,6 +26,8 @@ export const workspaceZh = {
   "workspace.preferences.halfResolution": "一半分辨率",
   "workspace.preferences.quarterResolution": "四分之一分辨率",
   "workspace.preferences.recoveryInterval": "恢复快照间隔",
+  "workspace.preferences.uiScale": "界面缩放",
+  "workspace.preferences.uiScaleAuto": "自动（跟随系统）",
   "workspace.preferences.afterEditing": "编辑后 {seconds} 秒",
   "workspace.preferences.gpuBudget": "GPU 内存预算",
   "workspace.preferences.autoBudget": "自动（512 MB）",

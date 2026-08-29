@@ -27,6 +27,11 @@ contextBridge.exposeInMainWorld(
       ipcRenderer.invoke("aster:preferences-update", preferences),
     migrateLegacyPreferences: (preferences: Record<string, unknown>) =>
       ipcRenderer.invoke("aster:preferences-migrate-legacy", preferences),
+    onDisplayMetricsChanged: (listener: (metrics: unknown) => void) => {
+      const handleMetrics = (_event: IpcRendererEvent, metrics: unknown) => listener(metrics);
+      ipcRenderer.on("aster:display-metrics-changed", handleMetrics);
+      return () => ipcRenderer.removeListener("aster:display-metrics-changed", handleMetrics);
+    },
     authorizeRecentProject: (path: string) =>
       ipcRenderer.invoke("aster:project-authorize-recent", path),
     rememberProject: (path: string) => ipcRenderer.invoke("aster:project-remember", path),
