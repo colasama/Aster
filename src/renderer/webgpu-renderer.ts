@@ -299,7 +299,7 @@ export class WebGpuRenderer {
     });
     let renderer: WebGpuRenderer | undefined;
     void device.lost.then((info) => {
-      if (!shouldReportGpuDeviceLoss(renderer?.#disposed ?? false)) return;
+      if (!shouldReportGpuDeviceLoss(renderer ? renderer.#disposed : false)) return;
       logger.warn("webgpu", "device_lost", { reason: info.reason, message: info.message });
     });
     const format = navigator.gpu.getPreferredCanvasFormat();
