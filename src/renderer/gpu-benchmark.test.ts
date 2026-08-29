@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { particleSettingsFromGenerator } from "../core/bundled-particle";
 import { activeComposition, createDemoProject } from "../core/project";
 import { buildBenchmarkScenarios, summarizeSamples } from "./gpu-benchmark";
 
@@ -18,7 +19,12 @@ describe("GPU benchmark harness", () => {
     expect(scenarios[2].composition.layers).toHaveLength(20);
     expect(scenarios[3].composition.layers[0].effects).toHaveLength(5);
     expect(
-      scenarios.slice(4).map((scenario) => scenario.composition.layers[0].particle?.count),
+      scenarios
+        .slice(4)
+        .map(
+          (scenario) =>
+            particleSettingsFromGenerator(scenario.composition.layers[0].generator)?.count,
+        ),
     ).toEqual([100_000, 500_000, 1_000_000]);
   });
 

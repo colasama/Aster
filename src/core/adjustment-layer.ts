@@ -8,7 +8,7 @@ const SOURCE_FIELDS = [
   "light",
   "camera",
   "mesh",
-  "particle",
+  "generator",
   "cloner",
   "shape",
   "shapeGraph",

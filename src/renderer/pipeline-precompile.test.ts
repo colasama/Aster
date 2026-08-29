@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { bundledParticleDefinition } from "./bundled-particle-generator";
 import { precompileGpuPipelines } from "./pipeline-precompile";
 
 describe("asynchronous GPU pipeline precompilation", () => {
@@ -11,10 +12,10 @@ describe("asynchronous GPU pipeline precompilation", () => {
       createComputePipelineAsync,
     } as unknown as GPUDevice;
 
-    const report = await precompileGpuPipelines(device, "bgra8unorm");
-    expect(report.count).toBe(14);
+    const report = await precompileGpuPipelines(device, "bgra8unorm", [bundledParticleDefinition]);
+    expect(report.count).toBe(22);
     expect(report.durationMs).toBeGreaterThanOrEqual(0);
-    expect(createRenderPipelineAsync).toHaveBeenCalledTimes(13);
+    expect(createRenderPipelineAsync).toHaveBeenCalledTimes(21);
     expect(createComputePipelineAsync).toHaveBeenCalledTimes(1);
   });
 });

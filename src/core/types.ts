@@ -33,7 +33,7 @@ export type LayerKind =
   | "image"
   | "video"
   | "mesh"
-  | "particle"
+  | "generator"
   | "precomposition"
   | "adjustment"
   | "camera"
@@ -45,7 +45,7 @@ export const LAYER_KINDS = [
   "image",
   "video",
   "mesh",
-  "particle",
+  "generator",
   "precomposition",
   "adjustment",
   "camera",
@@ -129,7 +129,7 @@ export interface Layer {
   light?: LightSettings;
   camera?: CameraSettings;
   mesh?: MeshAsset;
-  particle?: ParticleSettings;
+  generator?: SceneGeneratorInstance;
   cloner?: ClonerSettings;
   shape?: ShapeSettings;
   shapeGraph?: ShapeGraph;
@@ -187,30 +187,13 @@ export interface MeshMaterialTextures {
   emissive?: MeshTexture;
 }
 
-export interface ParticleSettings {
-  renderMode: "billboard" | "streak" | "mesh";
-  meshPrimitive: "cube";
-  count: number;
-  seed: number;
-  lifetime: number;
-  emitterShape: "point" | "box" | "sphere" | "ring" | "line";
-  emitterPosition: [number, number, number];
-  emitterSize: [number, number, number];
-  emitterSpread: number;
-  velocity: [number, number, number];
-  gravity: [number, number, number];
-  drag: number;
-  turbulence: number;
-  turbulenceScale: number;
-  startColor: [number, number, number];
-  endColor: [number, number, number];
-  startOpacity: number;
-  endOpacity: number;
-  startSize: number;
-  endSize: number;
-  startRotation: number;
-  endRotation: number;
-  streakLength: number;
+export type SceneGeneratorParameterValue = number | string | boolean | number[];
+
+export interface SceneGeneratorInstance {
+  pluginId: string;
+  nodeType: string;
+  apiVersion: number;
+  parameters: Record<string, SceneGeneratorParameterValue>;
 }
 
 export interface BezierVertex {
@@ -317,7 +300,7 @@ export interface ProjectFolder {
 }
 
 export interface Project {
-  schemaVersion: 1;
+  schemaVersion: 2;
   id: Id;
   name: string;
   activeCompositionId: Id;
@@ -376,6 +359,7 @@ export interface GpuDiagnostics {
   materialResourceError?: string;
   adjustmentLayerError?: string;
   precompositionSurfaceError?: string;
+  sceneGeneratorError?: string;
 }
 
 export const createId = (): Id => crypto.randomUUID();

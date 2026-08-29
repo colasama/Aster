@@ -90,7 +90,7 @@ export function buildSceneGeometry(
   const batches: GeometryBatch[] = [];
   const visible = sceneLayers.filter(
     (scene) =>
-      scene.layer.kind !== "particle" &&
+      scene.layer.kind !== "generator" &&
       scene.layer.kind !== "adjustment" &&
       scene.layer.kind !== "camera" &&
       scene.layer.kind !== "light",

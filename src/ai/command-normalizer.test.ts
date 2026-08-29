@@ -1,4 +1,9 @@
 import { describe, expect, it } from "vitest";
+import {
+  createParticleLayerForComposition,
+  createParticleSceneGenerator,
+  particleSettingsFromGenerator,
+} from "../core/bundled-particle";
 import { createLayerForComposition } from "../core/layer-factory";
 import { createDefaultParticleSettings } from "../core/particle-settings";
 import { createBlankComposition, createBlankProject } from "../core/project";
@@ -120,7 +125,7 @@ describe("AI command normalization", () => {
     const project = createBlankProject();
     const composition = project.compositions[0];
     const text = createLayerForComposition("text", composition);
-    const particle = createLayerForComposition("particle", composition);
+    const particle = createParticleLayerForComposition(composition);
     const camera = createLayerForComposition("camera", composition);
     const light = createLayerForComposition("light", composition);
     composition.layers.push(text, particle, camera, light);
@@ -133,7 +138,11 @@ describe("AI command normalization", () => {
           layerId: text.id,
           textStyle: { ...text.textStyle, fontSize: 96 },
         },
-        { type: "setParticleSettings", layerId: particle.id, particle: particleSettings },
+        {
+          type: "setSceneGenerator",
+          layerId: particle.id,
+          generator: createParticleSceneGenerator(particleSettings),
+        },
         {
           type: "setCameraSettings",
           layerId: camera.id,
@@ -164,7 +173,10 @@ describe("AI command normalization", () => {
     );
     const layers = result.project.compositions[0].layers;
     expect(layers.find((layer) => layer.id === text.id)?.text).toBe("Agent typography");
-    expect(layers.find((layer) => layer.id === particle.id)?.particle?.count).toBe(2048);
+    expect(
+      particleSettingsFromGenerator(layers.find((layer) => layer.id === particle.id)?.generator)
+        ?.count,
+    ).toBe(2048);
     expect(layers[0].shape?.trim).toEqual({ start: 10, end: 90, offset: 5 });
   });
 

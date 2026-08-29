@@ -3,7 +3,6 @@ import {
   createCanonicalAdjustmentTransform,
 } from "./adjustment-layer";
 import { type ClonerSettings, normalizeClonerSettings } from "./cloner";
-import { normalizeParticleSettings } from "./particle-settings";
 import { applyPrecompositionPlan, type PrecompositionPlan } from "./precomposition";
 import { activeComposition } from "./project";
 import {
@@ -12,6 +11,7 @@ import {
   assertLayerEffectLimits,
   assertProjectRenderBoundaries,
 } from "./project-render-boundaries";
+import { assertSceneGeneratorInstance } from "./scene-generator";
 import type { ShapeGraph } from "./shape-graph";
 import { validateShapeGraph } from "./shape-graph";
 import { normalizeTextAnimatorSettings } from "./text-animator";
@@ -31,9 +31,9 @@ import type {
   LightSettings,
   Lut3dResource,
   Material3d,
-  ParticleSettings,
   Project,
   ProjectFolder,
+  SceneGeneratorInstance,
   ShapeSettings,
   TextAnimatorSettings,
   TextStyle,
@@ -93,7 +93,7 @@ export type Operation =
   | { type: "setLayerColor"; layerId: Id; color: Layer["color"] }
   | { type: "setLayerAsset"; layerId: Id; asset?: Layer["asset"] }
   | { type: "setCameraSettings"; layerId: Id; camera: CameraSettings }
-  | { type: "setParticleSettings"; layerId: Id; particle: ParticleSettings }
+  | { type: "setSceneGenerator"; layerId: Id; generator: SceneGeneratorInstance }
   | { type: "setClonerSettings"; layerId: Id; cloner?: ClonerSettings }
   | { type: "setShapeSettings"; layerId: Id; shape: ShapeSettings }
   | { type: "setShapeGraph"; layerId: Id; shapeGraph?: ShapeGraph }
@@ -186,7 +186,7 @@ export const OPERATION_TYPES = [
   "setLayerColor",
   "setLayerAsset",
   "setCameraSettings",
-  "setParticleSettings",
+  "setSceneGenerator",
   "setClonerSettings",
   "setShapeSettings",
   "setShapeGraph",
@@ -430,12 +430,13 @@ export function applyOperation(project: Project, operation: Operation): void {
         orthographicSize: clamp(operation.camera.orthographicSize, 1, 100_000),
       };
       break;
-    case "setParticleSettings": {
-      if (layer.kind !== "particle")
-        throw new Error("Particle settings require a GPU particle layer");
-      const nextLayer = { ...layer, particle: normalizeParticleSettings(operation.particle) };
+    case "setSceneGenerator": {
+      if (layer.kind !== "generator")
+        throw new Error("Scene generator settings require a generator layer");
+      assertSceneGeneratorInstance(operation.generator);
+      const nextLayer = { ...layer, generator: structuredClone(operation.generator) };
       assertCanUpdateLayer(project, composition, nextLayer);
-      layer.particle = nextLayer.particle;
+      layer.generator = nextLayer.generator;
       break;
     }
     case "setClonerSettings":
@@ -713,7 +714,7 @@ function assertAdjustmentOperationSupported(layer: Layer, operation: Operation):
     "setLayerColor",
     "setLayerAsset",
     "setCameraSettings",
-    "setParticleSettings",
+    "setSceneGenerator",
     "setClonerSettings",
     "setShapeSettings",
     "setShapeGraph",

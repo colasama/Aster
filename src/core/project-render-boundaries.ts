@@ -3,14 +3,6 @@ import type { Composition, Layer, Project } from "./types";
 
 export const NESTED_ADJUSTMENT_ERROR =
   "Adjustment layers in precomposition sources require a 3D texture surface wrapper";
-export const PARTICLE_LAYER_LIMIT_ERROR =
-  "A composition can contain at most one GPU particle layer in the MVP renderer";
-export const NESTED_PARTICLE_ERROR =
-  "Precomposition sources cannot contain GPU particle layers in the MVP renderer";
-export const PARTICLE_CLONER_ERROR =
-  "GPU particle layers cannot use cloners in the single-simulation MVP renderer";
-export const PARTICLE_ADDITIVE_BLEND_ERROR =
-  "Billboard and streak GPU particles require add blend mode in the MVP renderer";
 export const ENABLED_LUT_LIMIT_ERROR = "A layer can contain at most one enabled 3D LUT effect";
 
 export function assertLayerEffectLimits(layer: Pick<Layer, "effects">, path = "layer"): void {
@@ -24,17 +16,7 @@ export function assertCompositionRenderBoundaries(
   composition: Pick<Composition, "layers" | "width" | "height">,
   path = "composition",
 ): void {
-  if (composition.layers.filter((layer) => layer.kind === "particle").length > 1)
-    throw new Error(`${path}: ${PARTICLE_LAYER_LIMIT_ERROR}`);
   for (const [index, layer] of composition.layers.entries()) {
-    if (layer.kind === "particle" && layer.cloner !== undefined)
-      throw new Error(`${path}.layers[${index}]: ${PARTICLE_CLONER_ERROR}`);
-    if (
-      layer.kind === "particle" &&
-      layer.particle?.renderMode !== "mesh" &&
-      layer.blendMode !== "add"
-    )
-      throw new Error(`${path}.layers[${index}]: ${PARTICLE_ADDITIVE_BLEND_ERROR}`);
     assertAdjustmentLayerInvariants(layer, composition, `${path}.layers[${index}]`);
     assertLayerEffectLimits(layer, `${path}.layers[${index}]`);
   }
@@ -58,8 +40,6 @@ export function assertProjectRenderBoundaries(
         flatRenderTreeContainsAdjustment(source, compositions, new Set())
       )
         throw new Error(NESTED_ADJUSTMENT_ERROR);
-      if (source && compositionRenderTreeContainsParticle(source, compositions, new Set()))
-        throw new Error(NESTED_PARTICLE_ERROR);
     }
   }
 }
@@ -110,22 +90,5 @@ function assertProjectWithLayers(
     compositions: project.compositions.map((candidate) =>
       candidate.id === composition.id ? updatedComposition : candidate,
     ),
-  });
-}
-
-function compositionRenderTreeContainsParticle(
-  composition: Composition,
-  compositions: ReadonlyMap<string, Composition>,
-  visiting: Set<string>,
-): boolean {
-  if (composition.layers.some((layer) => layer.kind === "particle")) return true;
-  if (visiting.has(composition.id)) return false;
-  const nextVisiting = new Set(visiting).add(composition.id);
-  return composition.layers.some((layer) => {
-    if (layer.kind !== "precomposition" || !layer.sourceCompositionId) return false;
-    const source = compositions.get(layer.sourceCompositionId);
-    return source
-      ? compositionRenderTreeContainsParticle(source, compositions, nextVisiting)
-      : false;
   });
 }

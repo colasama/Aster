@@ -1,0 +1,65 @@
+capabilities = ["gpu_compute", "gpu_render"]
+
+[plugin]
+id = "org.aster.example.point-cloud"
+name = "Point Cloud"
+version = "1.0.0"
+api_version = 1
+shader = "compute.wgsl"
+kind = "scene_generator"
+
+[scene_generator]
+api_version = 1
+node_type = "point_cloud"
+capacity_parameter = "count"
+max_instances = 250000
+instance_stride = 16
+
+[[scene_generator.compute_passes]]
+id = "generate"
+shader = "compute.wgsl"
+entry_point = "compute_main"
+workgroup_size = [256, 1, 1]
+phase = "simulation"
+
+[[scene_generator.render_variants]]
+id = "points"
+shader = "render.wgsl"
+vertex_entry = "vertex_main"
+fragment_entry = "fragment_main"
+vertex_count = 6
+blend = "add"
+depth = "none"
+cull = "none"
+
+[[parameters]]
+type = "number"
+name = "count"
+label = "Point count"
+default = 50000.0
+min = 1.0
+max = 250000.0
+
+[[parameters]]
+type = "number"
+name = "radius"
+label = "Radius"
+default = 0.65
+min = 0.01
+max = 2.0
+
+[[parameters]]
+type = "number"
+name = "size"
+label = "Point size"
+default = 2.0
+min = 0.25
+max = 32.0
+
+[[parameters]]
+type = "vector"
+name = "color"
+label = "HDR color"
+default = [0.3, 0.7, 1.4]
+min = 0.0
+max = 16.0

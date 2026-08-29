@@ -15,9 +15,9 @@ import {
 } from "./command-log";
 import { runCpuTask } from "./cpu-scheduler";
 import { logger } from "./logger";
-import { assertParticleSettings } from "./particle-settings";
 import { assertProjectRenderBoundaries } from "./project-render-boundaries";
 import { cloneCurrentProjectDocument } from "./project-schema";
+import { assertSceneGeneratorInstance } from "./scene-generator";
 import { validateShapeGraph } from "./shape-graph";
 import { TEXT_ANIMATOR_LIMITS } from "./text-animator";
 import { normalizeWorkArea } from "./timeline-editing";
@@ -38,7 +38,7 @@ interface RecoveryStorage {
 export function validateProjectDocument(value: unknown): Project {
   const current = cloneCurrentProjectDocument(value);
   const project = requireObject(current, "project");
-  if (project.schemaVersion !== 1) throw new Error("Unsupported Aster project schema");
+  if (project.schemaVersion !== 2) throw new Error("Unsupported Aster project schema");
   requireString(project.id, "project.id");
   requireString(project.name, "project.name");
   const activeCompositionId = requireString(
@@ -624,12 +624,13 @@ function validateLayer(
           );
     }
   }
-  if (layer.particle !== undefined) {
-    if (layer.kind !== "particle") throw new Error(`${path}.particle requires particle layer kind`);
-    assertParticleSettings(layer.particle, `${path}.particle`);
+  if (layer.generator !== undefined) {
+    if (layer.kind !== "generator")
+      throw new Error(`${path}.generator requires generator layer kind`);
+    assertSceneGeneratorInstance(layer.generator, `${path}.generator`);
   }
-  if (layer.kind === "particle" && layer.particle === undefined)
-    throw new Error(`${path}.particle is required for particle layers`);
+  if (layer.kind === "generator" && layer.generator === undefined)
+    throw new Error(`${path}.generator is required for generator layers`);
   if (layer.cloner !== undefined) validateClonerSettings(layer.cloner, `${path}.cloner`);
   if (layer.shape !== undefined) {
     const shape = requireObject(layer.shape, `${path}.shape`);

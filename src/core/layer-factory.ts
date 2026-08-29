@@ -1,8 +1,9 @@
 import { createCanonicalAdjustmentTransform } from "./adjustment-layer";
-import { createDefaultParticleSettings } from "./particle-settings";
 import { createDefaultTextAnimator } from "./text-animator";
-import type { Composition, Layer, LayerKind } from "./types";
+import type { Composition, Layer, LayerKind, SceneGeneratorInstance } from "./types";
 import { createId, createTransform } from "./types";
+
+export type StandardLayerKind = Exclude<LayerKind, "generator">;
 
 const names: Record<LayerKind, string> = {
   shape: "Shape Layer",
@@ -10,7 +11,7 @@ const names: Record<LayerKind, string> = {
   image: "Image Layer",
   video: "Video Layer",
   mesh: "3D Layer",
-  particle: "GPU Particle Layer",
+  generator: "Scene Generator",
   precomposition: "Precomposition",
   adjustment: "Adjustment Layer",
   camera: "Camera",
@@ -18,10 +19,23 @@ const names: Record<LayerKind, string> = {
 };
 
 export function createLayerForComposition(
-  kind: LayerKind,
+  kind: StandardLayerKind,
   composition: Composition,
   currentTime = 0,
 ): Layer {
+  return createLayer(kind, composition, currentTime);
+}
+
+export function createGeneratorLayerForComposition(
+  composition: Composition,
+  generator: SceneGeneratorInstance,
+  currentTime = 0,
+  name = "Scene Generator",
+): Layer {
+  return { ...createLayer("generator", composition, currentTime), name, generator };
+}
+
+function createLayer(kind: LayerKind, composition: Composition, currentTime: number): Layer {
   const isCamera = kind === "camera";
   const isText = kind === "text";
   const isAdjustment = kind === "adjustment";
@@ -38,7 +52,7 @@ export function createLayerForComposition(
     threeDimensional: kind === "mesh" || kind === "camera" || kind === "light",
     inPoint: currentTime,
     outPoint: composition.duration,
-    blendMode: kind === "particle" ? "add" : "normal",
+    blendMode: "normal",
     color: isAdjustment ? [0, 0, 0, 0] : isText ? [0.95, 0.97, 1, 1] : [0.3, 0.55, 1, 1],
     size: isCamera
       ? [0, 0]
@@ -75,7 +89,6 @@ export function createLayerForComposition(
       kind === "camera"
         ? { projection: "perspective", fieldOfView: 50, orthographicSize: composition.height }
         : undefined,
-    particle: kind === "particle" ? createDefaultParticleSettings() : undefined,
     shape:
       kind === "shape"
         ? {

@@ -30,7 +30,7 @@ describe("AI command registry", () => {
       "removeEffectParameterKeyframe",
       "moveEffectParameterKeyframe",
     ]);
-    expect(JSON.stringify(getCommandDescriptors(["setParticleSettings"]))).not.toContain("$ref");
+    expect(JSON.stringify(getCommandDescriptors(["setSceneGenerator"]))).not.toContain("$ref");
     expect(() => getCommandDescriptors(["runShell"])).toThrow("Unknown Aster command");
   });
 });

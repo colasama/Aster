@@ -131,11 +131,20 @@ impl Default for Transform3d {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum Renderable {
-    Plane2d { size: [f32; 2] },
-    Mesh { asset: Uuid, material: Uuid },
+    Plane2d {
+        size: [f32; 2],
+    },
+    Mesh {
+        asset: Uuid,
+        material: Uuid,
+    },
     Camera(Camera),
     Light(Light),
-    Particle { capacity: u32 },
+    Generator {
+        plugin_id: String,
+        node_type: String,
+        api_version: u32,
+    },
     None,
 }
 

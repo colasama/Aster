@@ -10,6 +10,7 @@ import {
   setPluginHotReload,
   setPluginSafeMode,
 } from "../core/plugins";
+import { synchronizeSceneGeneratorDefinitions } from "../core/scene-generator-registry";
 import { synchronizePluginEffectDefinitions } from "../effects/plugin-registry";
 import type { Translate } from "../i18n/core";
 import { createTranslator } from "../i18n/core";
@@ -75,7 +76,10 @@ export function PluginManager() {
   const coordinatorRef = useRef<PluginStatusCoordinator>(new PluginStatusCoordinator());
 
   const commitStatus = useCallback((next: PluginStatus) => {
-    const failures = synchronizePluginEffectDefinitions(next);
+    const failures = [
+      ...synchronizePluginEffectDefinitions(next),
+      ...synchronizeSceneGeneratorDefinitions(next),
+    ];
     setInstalledError(failures.length > 0 ? "pluginOperation" : undefined);
     setStatus(next);
   }, []);

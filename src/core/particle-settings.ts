@@ -1,4 +1,28 @@
-import type { ParticleSettings } from "./types";
+export interface ParticleSettings {
+  renderMode: "billboard" | "streak" | "mesh";
+  meshPrimitive: "cube";
+  count: number;
+  seed: number;
+  lifetime: number;
+  emitterShape: "point" | "box" | "sphere" | "ring" | "line";
+  emitterPosition: [number, number, number];
+  emitterSize: [number, number, number];
+  emitterSpread: number;
+  velocity: [number, number, number];
+  gravity: [number, number, number];
+  drag: number;
+  turbulence: number;
+  turbulenceScale: number;
+  startColor: [number, number, number];
+  endColor: [number, number, number];
+  startOpacity: number;
+  endOpacity: number;
+  startSize: number;
+  endSize: number;
+  startRotation: number;
+  endRotation: number;
+  streakLength: number;
+}
 
 export const PARTICLE_LIMITS = {
   count: [1, 1_000_000],

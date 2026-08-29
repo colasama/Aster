@@ -52,6 +52,9 @@ export const scene3dEn = {
   "scene3d.particle.startRotation": "Start rotation",
   "scene3d.particle.endRotation": "End rotation",
   "scene3d.particle.streakLength": "Streak length",
+  "scene3d.generator.missing": "Scene generator unavailable",
+  "scene3d.generator.missingHint":
+    "Install or enable the matching plugin to restore rendering and controls.",
   "scene3d.light.type": "Light type",
   "scene3d.light.directional": "Directional",
   "scene3d.light.point": "Point",

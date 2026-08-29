@@ -1,9 +1,7 @@
+import type { SceneGeneratorDefinition } from "../core/scene-generator-registry";
+import type { BlendMode } from "../core/types";
+import { gpuBlendState } from "./blend-state";
 import { depthEffectsShader } from "./depth-effects";
-import {
-  PARTICLE_MESH_BLEND_MODES,
-  particleMeshRenderShader,
-  particlePipelineDescriptor,
-} from "./particle-mesh";
 import {
   IMAGE_VERTEX_BUFFERS,
   SHADOW_VERTEX_BUFFERS,
@@ -11,9 +9,6 @@ import {
 } from "./scene-pipelines";
 import {
   imageShader,
-  particleComputeShader,
-  particleRenderShader,
-  particleStreakRenderShader,
   postProcessShader,
   shadowShader,
   shapeShader,
@@ -30,23 +25,59 @@ export interface PipelinePrecompileReport {
 export async function precompileGpuPipelines(
   device: GPUDevice,
   canvasFormat: GPUTextureFormat,
+  bundledGenerators: readonly SceneGeneratorDefinition[] = [],
 ): Promise<PipelinePrecompileReport> {
   const started = performance.now();
   const module = (label: string, code: string) => device.createShaderModule({ label, code });
   const shape = module("Async precompile · shape", shapeShader);
   const image = module("Async precompile · image", imageShader);
   const shadow = module("Async precompile · shadow", shadowShader);
-  const particles = module("Async precompile · particle render", particleRenderShader);
-  const streakParticles = module(
-    "Async precompile · particle streak render",
-    particleStreakRenderShader,
-  );
-  const meshParticles = module("Async precompile · particle mesh render", particleMeshRenderShader);
-  const compute = module("Async precompile · particle compute", particleComputeShader);
   const post = module("Async precompile · post process", postProcessShader);
   const depthEffects = module("Async precompile · depth effects", depthEffectsShader);
   const composite = module("Async precompile · texture composite", textureCompositeShader);
-  await Promise.all([
+  const generatorModules = new Map<string, GPUShaderModule>();
+  const generatorModule = (definition: SceneGeneratorDefinition, path: string) => {
+    const key = `${definition.runtimeKey}:${path}`;
+    const existing = generatorModules.get(key);
+    if (existing) return existing;
+    const source = definition.shaderSources[path];
+    if (!source) throw new Error(`${definition.pluginName} is missing runtime shader ${path}`);
+    const created = module(`Async precompile · ${definition.pluginName} · ${path}`, source);
+    generatorModules.set(key, created);
+    return created;
+  };
+  const generatorTasks = bundledGenerators.flatMap((definition) => [
+    ...definition.graph.render_variants.flatMap((variant) =>
+      generatorBlendModes(variant.blend).map((blendMode) =>
+        device.createRenderPipelineAsync({
+          label: `Async precompile · ${definition.pluginName} · ${variant.id} · ${blendMode}`,
+          layout: "auto",
+          vertex: {
+            module: generatorModule(definition, variant.shader),
+            entryPoint: variant.vertex_entry,
+          },
+          fragment: {
+            module: generatorModule(definition, variant.shader),
+            entryPoint: variant.fragment_entry,
+            targets: [{ format: SCENE_FORMAT, blend: gpuBlendState(blendMode) }],
+          },
+          primitive: { topology: "triangle-list", cullMode: variant.cull },
+          depthStencil: generatorDepthState(variant.depth),
+        }),
+      ),
+    ),
+    ...definition.graph.compute_passes.map((pass) =>
+      device.createComputePipelineAsync({
+        label: `Async precompile · ${definition.pluginName} · ${pass.id}`,
+        layout: "auto",
+        compute: {
+          module: generatorModule(definition, pass.shader),
+          entryPoint: pass.entry_point,
+        },
+      }),
+    ),
+  ]);
+  const tasks = [
     device.createRenderPipelineAsync({
       label: "Async precompile · shape pipeline",
       layout: "auto",
@@ -78,17 +109,7 @@ export async function precompileGpuPipelines(
       primitive: { topology: "triangle-list", cullMode: "back" },
       depthStencil: { format: "depth24plus", depthWriteEnabled: true, depthCompare: "less" },
     }),
-    device.createRenderPipelineAsync(
-      particlePipelineDescriptor("billboard", particles, SCENE_FORMAT, "auto"),
-    ),
-    device.createRenderPipelineAsync(
-      particlePipelineDescriptor("streak", streakParticles, SCENE_FORMAT, "auto"),
-    ),
-    ...PARTICLE_MESH_BLEND_MODES.map((blendMode) =>
-      device.createRenderPipelineAsync(
-        particlePipelineDescriptor("mesh", meshParticles, SCENE_FORMAT, "auto", blendMode),
-      ),
-    ),
+    ...generatorTasks,
     device.createRenderPipelineAsync(fullscreenDescriptor("post process", post, canvasFormat)),
     device.createRenderPipelineAsync(
       fullscreenDescriptor("depth effects", depthEffects, canvasFormat),
@@ -96,13 +117,21 @@ export async function precompileGpuPipelines(
     device.createRenderPipelineAsync(
       fullscreenDescriptor("texture composite", composite, SCENE_FORMAT),
     ),
-    device.createComputePipelineAsync({
-      label: "Async precompile · particle compute pipeline",
-      layout: "auto",
-      compute: { module: compute, entryPoint: "compute_main" },
-    }),
-  ]);
-  return { count: 9 + PARTICLE_MESH_BLEND_MODES.length, durationMs: performance.now() - started };
+  ];
+  await Promise.all(tasks);
+  return { count: tasks.length, durationMs: performance.now() - started };
+}
+
+function generatorBlendModes(blend: BlendMode | "layer"): readonly BlendMode[] {
+  return blend === "layer" ? ["normal", "add", "multiply", "screen", "overlay"] : [blend];
+}
+
+function generatorDepthState(depth: "none" | "read" | "read_write"): GPUDepthStencilState {
+  return {
+    format: "depth24plus",
+    depthWriteEnabled: depth === "read_write",
+    depthCompare: depth === "none" ? "always" : "less-equal",
+  };
 }
 
 function fullscreenDescriptor(

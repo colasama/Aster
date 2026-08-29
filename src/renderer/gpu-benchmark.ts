@@ -1,4 +1,7 @@
-import { createLayerForComposition } from "../core/layer-factory";
+import {
+  createParticleLayerForComposition,
+  createParticleSceneGenerator,
+} from "../core/bundled-particle";
 import { createDefaultParticleSettings } from "../core/particle-settings";
 import type { Composition, Project, RendererMetrics } from "../core/types";
 import { createId } from "../core/types";
@@ -179,18 +182,18 @@ export function buildBenchmarkScenarios(source: Composition): BenchmarkScenario[
   const particleScenario = (count: number): BenchmarkScenario => {
     const label = count === 1_000_000 ? "1M" : `${count / 1000}K`;
     const scenario = resolution(`${label} GPU particles`, 1920, 1080);
-    const sourceParticle = source.layers.find((layer) => layer.kind === "particle");
+    const sourceParticle = source.layers.find((layer) => layer.kind === "generator");
     const particle = sourceParticle
       ? structuredClone(sourceParticle)
-      : createLayerForComposition("particle", scenario.composition);
+      : createParticleLayerForComposition(scenario.composition);
     particle.id = createId();
     particle.parentId = undefined;
     particle.name = `${label} GPU particles`;
-    particle.particle = {
+    particle.generator = createParticleSceneGenerator({
       ...createDefaultParticleSettings(),
       renderMode: "billboard",
       count,
-    };
+    });
     scenario.composition.layers = [particle];
     return scenario;
   };

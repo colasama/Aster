@@ -30,6 +30,8 @@ export const panelsEn = {
   "project.add.shape": "Shape",
   "project.add.adjustment": "Adjustment",
   "project.add.mesh": "3D",
+  "project.add.generator": "Generator",
+  "project.add.particles": "Particles",
   "project.asset.relink": "Relink",
   "project.preset.name": "Custom effect preset name",
   "project.preset.placeholder": "Save selected chain as preset",

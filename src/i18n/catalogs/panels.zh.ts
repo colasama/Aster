@@ -32,6 +32,8 @@ export const panelsZh = {
   "project.add.shape": "形状",
   "project.add.adjustment": "调整图层",
   "project.add.mesh": "3D",
+  "project.add.generator": "生成器",
+  "project.add.particles": "粒子系统",
   "project.asset.relink": "重新链接",
   "project.preset.name": "自定义效果预设名称",
   "project.preset.placeholder": "将所选效果链保存为预设",

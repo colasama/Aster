@@ -1,13 +1,13 @@
 import { auxiliarySurfaceShader } from "./auxiliary-buffer-renderer";
+import {
+  particleGeneratorComputeShader,
+  particleGeneratorRenderShader,
+} from "./bundled-particle-generator";
 import { depthEffectsShader } from "./depth-effects";
 import { extractPositionsShader } from "./motion-vector-history";
-import { particleMeshRenderShader } from "./particle-mesh";
 import {
   imageShader,
   materialShapeShader,
-  particleComputeShader,
-  particleRenderShader,
-  particleStreakRenderShader,
   postProcessShader,
   shadowShader,
   shapeShader,
@@ -19,10 +19,8 @@ export async function validateShaderSources(device: GPUDevice): Promise<void> {
     ["shape", shapeShader],
     ["normal-mapped HDR environment", materialShapeShader],
     ["image", imageShader],
-    ["particle compute", particleComputeShader],
-    ["particle render", particleRenderShader],
-    ["particle streak render", particleStreakRenderShader],
-    ["particle mesh render", particleMeshRenderShader],
+    ["scene generator ABI particle compute", particleGeneratorComputeShader],
+    ["scene generator ABI particle render", particleGeneratorRenderShader],
     ["shadow", shadowShader],
     ["post process", postProcessShader],
     ["auxiliary surface MRT", auxiliarySurfaceShader],

@@ -1,3 +1,4 @@
+import { createParticleLayerForComposition } from "../core/bundled-particle";
 import { createLayerForComposition } from "../core/layer-factory";
 import { applyOperations, type Operation, type PropertyPath } from "../core/operations";
 import { activeComposition } from "../core/project";
@@ -29,7 +30,7 @@ const AI_LAYER_KINDS = new Set<LayerKind>([
   "image",
   "video",
   "mesh",
-  "particle",
+  "generator",
   "precomposition",
   "adjustment",
   "camera",
@@ -84,7 +85,10 @@ function normalizeCommand(
     case "addLayer": {
       const kind = input.kind as LayerKind;
       if (!AI_LAYER_KINDS.has(kind)) throw new Error("Layer kind is unavailable to the AI");
-      const created = createLayerForComposition(kind, composition, finiteTime(currentTime));
+      const created =
+        kind === "generator"
+          ? createParticleLayerForComposition(composition, finiteTime(currentTime))
+          : createLayerForComposition(kind, composition, finiteTime(currentTime));
       if (typeof input.name === "string") created.name = input.name.trim().slice(0, 256);
       if (typeof input.text === "string" && created.kind === "text") created.text = input.text;
       if (created.kind === "precomposition") {

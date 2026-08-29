@@ -326,7 +326,7 @@ mod tests {
     fn project() -> Project {
         let composition_id = Uuid::new_v4();
         Project {
-            schema_version: 0,
+            schema_version: Project::SCHEMA_VERSION,
             id: Uuid::new_v4(),
             name: "Test".into(),
             active_composition: composition_id,

@@ -1,5 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createLayerForComposition } from "../core/layer-factory";
+import {
+  createGeneratorLayerForComposition,
+  createLayerForComposition,
+} from "../core/layer-factory";
 import { createBlankProject } from "../core/project";
 import { flattenSceneLayers } from "../core/scene-evaluation";
 import { createEffect } from "../effects/registry";
@@ -9,6 +12,7 @@ import {
   PrecompositionSurfaceRenderer,
   precompositionSurfaceShader,
 } from "./precomposition-surface-renderer";
+import type { SceneGeneratorHost } from "./scene-generator-host";
 
 describe("GPU precomposition surfaces", () => {
   afterEach(() => vi.unstubAllGlobals());
@@ -79,6 +83,74 @@ describe("GPU precomposition surfaces", () => {
 
     renderer.destroy();
     expect(destroy).toHaveBeenCalled();
+  });
+
+  it("evaluates nested generators through the shared host before drawing them in stack order", () => {
+    installGpuConstants();
+    const events: string[] = [];
+    const device = mockDevice([], vi.fn());
+    const layout = device.createBindGroupLayout({ entries: [] });
+    const sampler = device.createSampler();
+    const pipelines = blendPipelines();
+    const prepared = { instanceId: "", selectionId: "" };
+    const sceneGenerators = {
+      supports: vi.fn((scene) => scene.layer.kind === "generator"),
+      prepare: vi.fn((scene) => ({
+        ...prepared,
+        instanceId: scene.instanceId,
+        selectionId: scene.selectionId,
+      })),
+      encodeCompute: vi.fn(() => events.push("generator-compute")),
+      draw: vi.fn(() => events.push("generator-draw")),
+    } as unknown as SceneGeneratorHost;
+    const renderer = new PrecompositionSurfaceRenderer(device, {
+      mediaTextures: new MediaTextureCache(device, layout, sampler, vi.fn()),
+      mediaLayout: layout,
+      mediaSampler: sampler,
+      lightingLayout: layout,
+      shapePipelines: pipelines,
+      imagePipelines: pipelines,
+      sceneGenerators,
+    });
+    const project = createBlankProject();
+    const root = project.compositions[0];
+    const nested = structuredClone(root);
+    nested.id = crypto.randomUUID();
+    nested.name = "Generated Nested";
+    const generator = createGeneratorLayerForComposition(nested, {
+      pluginId: "org.example.nested-generator",
+      nodeType: "nested",
+      apiVersion: 1,
+      parameters: { count: 64 },
+    });
+    generator.effects = [createEffect("exposure")];
+    nested.layers = [generator];
+    const wrapper = createLayerForComposition("precomposition", root);
+    wrapper.sourceCompositionId = nested.id;
+    wrapper.threeDimensional = true;
+    wrapper.timeRemap = { mode: "static", value: 2.5 };
+    root.layers = [wrapper];
+    project.compositions.push(nested);
+
+    renderer.prepare(project, flattenSceneLayers(root, project, 0), false);
+    renderer.encode(mockEncoder(events));
+
+    expect(sceneGenerators.prepare).toHaveBeenCalledWith(
+      expect.objectContaining({
+        layer: expect.objectContaining({ id: generator.id, kind: "generator" }),
+        localTime: 2.5,
+      }),
+      nested,
+      root.width,
+      root.height,
+      undefined,
+      undefined,
+    );
+    expect(sceneGenerators.encodeCompute).toHaveBeenCalledOnce();
+    expect(sceneGenerators.draw).toHaveBeenCalledOnce();
+    expect(events.indexOf("generator-compute")).toBeLessThan(events.indexOf("generator-draw"));
+    expect(events).toContain("pass:Layer source · Scene Generator");
+    expect(events).toContain("pass:Fused layer effects · Scene Generator");
   });
 
   it("evicts time-addressed targets before resident bytes exceed the hard ceiling", () => {
@@ -453,6 +525,15 @@ function mockDevice(
 function mockEncoder(events: string[]): GPUCommandEncoder {
   return {
     copyTextureToTexture: vi.fn(() => events.push("copy")),
+    beginComputePass: vi.fn((descriptor: GPUComputePassDescriptor) => {
+      events.push(`compute:${descriptor.label ?? "unnamed"}`);
+      return {
+        setPipeline: vi.fn(),
+        setBindGroup: vi.fn(),
+        dispatchWorkgroups: vi.fn(),
+        end: vi.fn(() => events.push("compute-end")),
+      };
+    }),
     beginRenderPass: vi.fn((descriptor: GPURenderPassDescriptor) => {
       events.push(`pass:${descriptor.label ?? "unnamed"}`);
       return {

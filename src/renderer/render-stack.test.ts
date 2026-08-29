@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { createParticleLayerForComposition } from "../core/bundled-particle";
 import { createLayerForComposition } from "../core/layer-factory";
 import { createBlankProject } from "../core/project";
 import { flattenSceneLayers } from "../core/scene-evaluation";
@@ -29,18 +30,18 @@ describe("scene render-stack planning", () => {
     expect(geometry.batches.map((batch) => batch.layer.name)).toEqual(["Lower", "Upper"]);
   });
 
-  it("keeps particles at their stack position without fake geometry", () => {
+  it("keeps scene generators at their stack position without fake geometry", () => {
     const project = createBlankProject();
     const composition = project.compositions[0];
-    const particle = createLayerForComposition("particle", composition);
+    const generator = createParticleLayerForComposition(composition);
     const adjustment = createLayerForComposition("adjustment", composition);
-    composition.layers = [adjustment, particle, composition.layers[0]];
+    composition.layers = [adjustment, generator, composition.layers[0]];
 
     const scene = flattenSceneLayers(composition, project, 0);
     const geometry = buildSceneGeometry(composition, scene);
     const stack = planSceneRenderStack(scene, geometry.batches);
 
-    expect(stack.map((item) => item.kind)).toEqual(["geometry", "particle", "adjustment"]);
+    expect(stack.map((item) => item.kind)).toEqual(["geometry", "generator", "adjustment"]);
     expect(geometry.batches).toHaveLength(1);
   });
 });

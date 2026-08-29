@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { createParticleLayerForComposition } from "./bundled-particle";
 import { createLayerForComposition } from "./layer-factory";
 import { precomposeLayers } from "./precomposition";
 import { createBlankProject, createDemoProject } from "./project";
@@ -23,13 +24,18 @@ describe("precomposition creation", () => {
     });
   });
 
-  it("keeps the single GPU particle simulation out of nested precompositions", () => {
+  it("moves GPU scene generators into nested precompositions", () => {
     const project = createBlankProject();
     const composition = project.compositions[0];
-    const particle = createLayerForComposition("particle", composition);
+    const particle = createParticleLayerForComposition(composition);
     composition.layers.unshift(particle);
 
-    expect(precomposeLayers(project, [particle.id])).toBeUndefined();
+    const result = precomposeLayers(project, [particle.id]);
+    const nested = result?.project.compositions.find(
+      (composition) => composition.id === result.nestedCompositionId,
+    );
+    expect(nested?.layers[0].kind).toBe("generator");
+    expect(result?.project.compositions[0].layers[0].threeDimensional).toBe(true);
   });
 
   it("preserves evaluated appearance and stacking at the same project time", () => {

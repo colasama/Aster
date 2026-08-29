@@ -15,7 +15,7 @@ pub struct Project {
 }
 
 impl Project {
-    pub const SCHEMA_VERSION: u32 = 0;
+    pub const SCHEMA_VERSION: u32 = 1;
 
     pub fn composition(&self, id: Uuid) -> Option<&Composition> {
         self.compositions
@@ -86,9 +86,11 @@ pub enum LayerKind {
     Mesh {
         asset_id: Uuid,
     },
-    Particle {
-        capacity: u32,
-        seed: u64,
+    Generator {
+        plugin_id: String,
+        node_type: String,
+        api_version: u32,
+        parameters: BTreeMap<String, GeneratorParameterValue>,
     },
     Camera {
         perspective: bool,
@@ -101,6 +103,15 @@ pub enum LayerKind {
     Precomposition {
         composition_id: Uuid,
     },
+}
+
+#[derive(Clone, Debug, Deserialize, JsonSchema, PartialEq, Serialize)]
+#[serde(untagged)]
+pub enum GeneratorParameterValue {
+    Number(f64),
+    Choice(String),
+    Boolean(bool),
+    Vector(Vec<f64>),
 }
 
 #[derive(Clone, Copy, Debug, Default, Deserialize, JsonSchema, PartialEq, Serialize)]

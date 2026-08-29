@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { type ComponentType, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { importMediaLayer } from "../core/assets";
+import { createParticleLayerForComposition } from "../core/bundled-particle";
 import { createGltfLayerFromFile } from "../core/gltf";
 import { createLayerForComposition } from "../core/layer-factory";
 import { logger } from "../core/logger";
@@ -188,7 +189,7 @@ export function TopBar() {
       newMesh: "mesh",
       newCamera: "camera",
       newLight: "light",
-      newParticles: "particle",
+      newParticles: "generator",
     };
     const effectTypes: Partial<Record<MenuItemId, string>> = {
       glow: "glow",
@@ -289,7 +290,11 @@ export function TopBar() {
     } else if (item === "importMesh") {
       meshInputRef.current?.click();
     } else if (layerTypes[item]) {
-      const layer = createLayerForComposition(layerTypes[item], composition, state.currentTime);
+      const kind = layerTypes[item];
+      const layer =
+        kind === "generator"
+          ? createParticleLayerForComposition(composition, state.currentTime)
+          : createLayerForComposition(kind, composition, state.currentTime);
       dispatch({
         type: "operation",
         operations: [{ type: "addLayer", layer }],

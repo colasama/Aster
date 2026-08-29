@@ -3,8 +3,7 @@
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createDefaultParticleSettings } from "../core/particle-settings";
-import type { ParticleSettings } from "../core/types";
+import { createDefaultParticleSettings, type ParticleSettings } from "../core/particle-settings";
 import { I18nProvider } from "../i18n/react";
 import { ParticleControls } from "./ParticleControls";
 

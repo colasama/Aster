@@ -4,11 +4,11 @@ import type { GeometryBatch } from "./geometry";
 export type SceneRenderItem =
   | { kind: "geometry"; batch: GeometryBatch }
   | { kind: "adjustment"; scene: FlattenedSceneLayer }
-  | { kind: "particle"; scene: FlattenedSceneLayer };
+  | { kind: "generator"; scene: FlattenedSceneLayer };
 
 /**
  * Routes the editor's top-first layer model into a bottom-first GPU render stack.
- * Adjustment and particle entries stay at their exact layer position without
+ * Adjustment and scene-generator entries stay at their exact layer position without
  * manufacturing geometry or auxiliary-buffer identities.
  */
 export function planSceneRenderStack(
@@ -25,8 +25,8 @@ export function planSceneRenderStack(
       stack.push({ kind: "adjustment", scene });
       continue;
     }
-    if (scene.layer.kind === "particle") {
-      stack.push({ kind: "particle", scene });
+    if (scene.layer.kind === "generator") {
+      stack.push({ kind: "generator", scene });
       continue;
     }
     const batch = geometryByInstance.get(scene.instanceId);

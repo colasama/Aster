@@ -282,6 +282,6 @@ function layerIcon(layer: Layer) {
   if (layer.kind === "text") return Type;
   if (layer.kind === "video") return Film;
   if (layer.kind === "camera") return Layers3;
-  if (layer.kind === "particle") return Gauge;
+  if (layer.kind === "generator") return Gauge;
   return Box;
 }

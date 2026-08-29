@@ -1,11 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Layer } from "../core/types";
-import {
-  auxiliarySurfaceShader,
-  buildAuxiliaryBatchIds,
-  buildAuxiliaryParticleIdentity,
-} from "./auxiliary-buffer-renderer";
-import { encodeRenderId } from "./render-buffers";
+import { auxiliarySurfaceShader, buildAuxiliaryBatchIds } from "./auxiliary-buffer-renderer";
 
 const layer = (id: string, roughness: number): Layer =>
   ({
@@ -28,41 +23,11 @@ describe("auxiliary MRT identities", () => {
     expect([...ids].every((id) => id !== 0)).toBe(true);
   });
 
-  it("writes signed previous-to-current UV motion for geometry and GPU particles", () => {
+  it("writes signed previous-to-current UV motion for geometry", () => {
     expect(auxiliarySurfaceShader).toContain("@location(4) motion_vector: vec2f");
     expect(auxiliarySurfaceShader).toContain(
       "(position.xy - previous_position.xy) * vec2f(0.5, -0.5)",
     );
-    expect(auxiliarySurfaceShader).toContain(
-      "(record.current.xy - record.previous.xy) * vec2f(0.5, -0.5)",
-    );
     expect(auxiliarySurfaceShader).toContain("output.motion_vector = input.motion_vector");
-  });
-
-  it("rebuilds previous mesh vertices and keeps auxiliary depth identical to Beauty", () => {
-    expect(auxiliarySurfaceShader).toContain("let previous_size = mix");
-    expect(auxiliarySurfaceShader).toContain("let previous_rotation = mix");
-    expect(auxiliarySurfaceShader).toContain("particle_mesh_clip(");
-    expect(auxiliarySurfaceShader).toContain("particle_streak_vertex");
-    expect(auxiliarySurfaceShader).toContain("output.position = vec4f(clip, 1.0)");
-    expect(auxiliarySurfaceShader).toContain("(clip.xy - previous_clip.xy) * vec2f(0.5, -0.5)");
-  });
-
-  it("matches Beauty coverage independently for billboard, streak, and mesh particles", () => {
-    expect(auxiliarySurfaceShader).toContain("@fragment fn particle_billboard_fragment");
-    expect(auxiliarySurfaceShader).toContain("if (length(input.local) >= 1.0) { discard; }");
-    expect(auxiliarySurfaceShader).toContain("@fragment fn particle_streak_fragment");
-    expect(auxiliarySurfaceShader).toContain("if (abs(input.local.y) >= 1.0) { discard; }");
-    expect(auxiliarySurfaceShader).toContain("@fragment fn particle_mesh_fragment");
-    expect(auxiliarySurfaceShader).not.toContain("input.local * vec2f(0.64, 1.0)");
-  });
-
-  it("gives the particle surface its selectable root layer ID", () => {
-    const identity = buildAuxiliaryParticleIdentity("particle-layer", 1920, 1080);
-    expect([...new Uint32Array(identity, 0, 2)]).toEqual([
-      encodeRenderId("particle-layer"),
-      encodeRenderId("material:particle"),
-    ]);
-    expect([...new Float32Array(identity, 16, 2)]).toEqual([1920, 1080]);
   });
 });

@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { createEffect } from "../effects/registry";
+import {
+  createParticleLayerForComposition,
+  createParticleSceneGenerator,
+  particleSettingsFromGenerator,
+} from "./bundled-particle";
 import { createLayerForComposition } from "./layer-factory";
 import { applyOperations } from "./operations";
 import { createDefaultParticleSettings } from "./particle-settings";
@@ -47,27 +52,31 @@ describe("structured project operations", () => {
     ).toThrow("has no visual meaning for adjustment layers");
   });
 
-  it("enforces bounded adjustment, particle, and LUT render resources", () => {
+  it("supports multiple cloned scene generators and bounds adjustment and LUT resources", () => {
     const project = createDemoProject();
     const composition = activeComposition(project);
-    const secondParticle = createLayerForComposition("particle", composition);
-    expect(() => applyOperations(project, [{ type: "addLayer", layer: secondParticle }])).toThrow(
-      "at most one GPU particle layer",
-    );
-    const particle = composition.layers.find((layer) => layer.kind === "particle");
-    if (!particle) throw new Error("Expected demo particle layer");
-    expect(() =>
-      applyOperations(project, [
-        {
-          type: "setClonerSettings",
-          layerId: particle.id,
-          cloner: {
-            distribution: { kind: "grid", count: [2, 1, 1], spacing: [100, 0, 0] },
-            effectors: [],
-          },
+    const secondGenerator = createParticleLayerForComposition(composition);
+    const withSecondGenerator = applyOperations(project, [
+      { type: "addLayer", layer: secondGenerator },
+    ]);
+    expect(
+      activeComposition(withSecondGenerator).layers.filter((layer) => layer.kind === "generator"),
+    ).toHaveLength(2);
+    const generator = composition.layers.find((layer) => layer.kind === "generator");
+    if (!generator) throw new Error("Expected demo scene generator layer");
+    const cloned = applyOperations(project, [
+      {
+        type: "setClonerSettings",
+        layerId: generator.id,
+        cloner: {
+          distribution: { kind: "grid", count: [2, 1, 1], spacing: [100, 0, 0] },
+          effectors: [],
         },
-      ]),
-    ).toThrow("GPU particle layers cannot use cloners");
+      },
+    ]);
+    expect(
+      activeComposition(cloned).layers.find((layer) => layer.id === generator.id)?.cloner,
+    ).toBeDefined();
 
     const layer = composition.layers[0];
     layer.effects = [];
@@ -121,29 +130,29 @@ describe("structured project operations", () => {
     expect(flattened.compositions[0].layers[0].threeDimensional).toBe(false);
   });
 
-  it("rejects every operation that could nest or clone a GPU particle source", () => {
+  it("allows GPU scene generators in nested and cloned precompositions", () => {
     const project = createBlankProject();
     const root = project.compositions[0];
     const nested = createBlankComposition("Particle source");
-    nested.layers = [createLayerForComposition("particle", nested)];
+    nested.layers = [createParticleLayerForComposition(nested)];
     project.compositions.push(nested);
 
     const wrapper = createLayerForComposition("precomposition", root);
     wrapper.sourceCompositionId = nested.id;
-    expect(() => applyOperations(project, [{ type: "addLayer", layer: wrapper }])).toThrow(
-      "Precomposition sources cannot contain GPU particle layers",
-    );
+    const withWrapper = applyOperations(project, [{ type: "addLayer", layer: wrapper }]);
+    expect(withWrapper.compositions[0].layers.some((layer) => layer.id === wrapper.id)).toBe(true);
 
     const referenced = createBlankComposition("Referenced later");
     const unresolvedWrapper = createLayerForComposition("precomposition", root);
     unresolvedWrapper.sourceCompositionId = referenced.id;
     root.layers.unshift(unresolvedWrapper);
-    referenced.layers = [createLayerForComposition("particle", referenced)];
-    expect(() =>
-      applyOperations(project, [
-        { type: "addComposition", composition: referenced, activate: false },
-      ]),
-    ).toThrow("Precomposition sources cannot contain GPU particle layers");
+    referenced.layers = [createParticleLayerForComposition(referenced)];
+    const withReferenced = applyOperations(project, [
+      { type: "addComposition", composition: referenced, activate: false },
+    ]);
+    expect(
+      withReferenced.compositions.some((composition) => composition.id === referenced.id),
+    ).toBe(true);
 
     const referencedRoot = createBlankProject();
     const referencedComposition = createBlankComposition("Referenced");
@@ -155,28 +164,26 @@ describe("structured project operations", () => {
     validWrapper.sourceCompositionId = referencedComposition.id;
     referencedRoot.compositions[0].layers.unshift(validWrapper);
     referencedRoot.activeCompositionId = referencedComposition.id;
-    expect(() =>
-      applyOperations(referencedRoot, [
-        {
-          type: "addLayer",
-          layer: createLayerForComposition("particle", referencedComposition),
-        },
-      ]),
-    ).toThrow("Precomposition sources cannot contain GPU particle layers");
+    const updatedReferencedRoot = applyOperations(referencedRoot, [
+      {
+        type: "addLayer",
+        layer: createParticleLayerForComposition(referencedComposition),
+      },
+    ]);
+    expect(updatedReferencedRoot.compositions[1].layers[0].kind).toBe("generator");
 
     root.layers = [wrapper];
-    expect(() =>
-      applyOperations(project, [
-        {
-          type: "setClonerSettings",
-          layerId: wrapper.id,
-          cloner: {
-            distribution: { kind: "grid", count: [2, 1, 1], spacing: [100, 0, 0] },
-            effectors: [],
-          },
+    const cloned = applyOperations(project, [
+      {
+        type: "setClonerSettings",
+        layerId: wrapper.id,
+        cloner: {
+          distribution: { kind: "grid", count: [2, 1, 1], spacing: [100, 0, 0] },
+          effectors: [],
         },
-      ]),
-    ).toThrow("Precomposition sources cannot contain GPU particle layers");
+      },
+    ]);
+    expect(cloned.compositions[0].layers[0].cloner).toBeDefined();
   });
 
   it("does not mutate the source project", () => {
@@ -425,15 +432,15 @@ describe("structured project operations", () => {
     expect(camera.camera?.projection).toBe("perspective");
   });
 
-  it("bounds GPU particle count and deterministic seed settings", () => {
+  it("bounds bundled particle generator parameters through the generic operation", () => {
     const source = createDemoProject();
-    const particles = activeComposition(source).layers.find((layer) => layer.kind === "particle");
-    if (!particles) throw new Error("Expected demo particle layer");
+    const particles = activeComposition(source).layers.find((layer) => layer.kind === "generator");
+    if (!particles) throw new Error("Expected demo scene generator layer");
     const next = applyOperations(source, [
       {
-        type: "setParticleSettings",
+        type: "setSceneGenerator",
         layerId: particles.id,
-        particle: {
+        generator: createParticleSceneGenerator({
           ...createDefaultParticleSettings(),
           renderMode: "mesh",
           count: 2_000_000,
@@ -441,12 +448,14 @@ describe("structured project operations", () => {
           startRotation: -80_000,
           endRotation: 80_000,
           emitterPosition: [Number.NaN, -20, 20],
-        },
+        }),
       },
     ]);
 
     expect(
-      activeComposition(next).layers.find((layer) => layer.id === particles.id)?.particle,
+      particleSettingsFromGenerator(
+        activeComposition(next).layers.find((layer) => layer.id === particles.id)?.generator,
+      ),
     ).toEqual({
       ...createDefaultParticleSettings(),
       renderMode: "mesh",
@@ -456,43 +465,54 @@ describe("structured project operations", () => {
       endRotation: 36_000,
       emitterPosition: [0, -4, 4],
     });
-    expect(particles.particle).toMatchObject({ count: 100_000, seed: 13_337 });
+    expect(particleSettingsFromGenerator(particles.generator)).toMatchObject({
+      count: 100_000,
+      seed: 13_337,
+    });
 
-    expect(() =>
-      applyOperations(source, [
-        { type: "setBlendMode", layerId: particles.id, blendMode: "normal" },
-      ]),
-    ).toThrow("require add blend mode");
+    const billboardWithNormalBlend = applyOperations(source, [
+      { type: "setBlendMode", layerId: particles.id, blendMode: "normal" },
+    ]);
+    expect(
+      activeComposition(billboardWithNormalBlend).layers.find((layer) => layer.id === particles.id)
+        ?.blendMode,
+    ).toBe("normal");
 
     const meshWithNormalBlend = applyOperations(source, [
       {
-        type: "setParticleSettings",
+        type: "setSceneGenerator",
         layerId: particles.id,
-        particle: { ...createDefaultParticleSettings(), renderMode: "mesh" },
+        generator: createParticleSceneGenerator({
+          ...createDefaultParticleSettings(),
+          renderMode: "mesh",
+        }),
       },
       { type: "setBlendMode", layerId: particles.id, blendMode: "normal" },
     ]);
-    expect(() =>
-      applyOperations(meshWithNormalBlend, [
-        {
-          type: "setParticleSettings",
-          layerId: particles.id,
-          particle: createDefaultParticleSettings(),
-        },
-      ]),
-    ).toThrow("require add blend mode");
+    const billboardWithPreservedBlend = applyOperations(meshWithNormalBlend, [
+      {
+        type: "setSceneGenerator",
+        layerId: particles.id,
+        generator: createParticleSceneGenerator(),
+      },
+    ]);
+    expect(
+      activeComposition(billboardWithPreservedBlend).layers.find(
+        (layer) => layer.id === particles.id,
+      )?.blendMode,
+    ).toBe("normal");
 
     const shape = activeComposition(source).layers.find((layer) => layer.kind === "shape");
     if (!shape) throw new Error("Expected demo shape layer");
     expect(() =>
       applyOperations(source, [
         {
-          type: "setParticleSettings",
+          type: "setSceneGenerator",
           layerId: shape.id,
-          particle: createDefaultParticleSettings(),
+          generator: createParticleSceneGenerator(),
         },
       ]),
-    ).toThrow("Particle settings require a GPU particle layer");
+    ).toThrow("Scene generator settings require a generator layer");
   });
 
   it("updates bounded vector fill and stroke settings", () => {

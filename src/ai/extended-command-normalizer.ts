@@ -13,8 +13,8 @@ import {
   type LightSettings,
   type Lut3dResource,
   type Material3d,
-  type ParticleSettings,
   type Project,
+  type SceneGeneratorInstance,
   type ShapeSettings,
   type TextStyle,
 } from "../core/types";
@@ -190,12 +190,12 @@ export function normalizeExtendedAiCommand(
         layerId,
         camera: structuredClone(input.camera as CameraSettings),
       };
-    case "setParticleSettings":
-      requireLayerKind(layer, layerId, "particle");
+    case "setSceneGenerator":
+      requireLayerKind(layer, layerId, "generator");
       return {
-        type: "setParticleSettings",
+        type: "setSceneGenerator",
         layerId,
-        particle: structuredClone(input.particle as ParticleSettings),
+        generator: structuredClone(input.generator as SceneGeneratorInstance),
       };
     case "setClonerSettings":
       requireLayer(layer, layerId);

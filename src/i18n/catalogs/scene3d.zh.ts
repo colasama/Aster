@@ -54,6 +54,8 @@ export const scene3dZh = {
   "scene3d.particle.startRotation": "起始旋转",
   "scene3d.particle.endRotation": "结束旋转",
   "scene3d.particle.streakLength": "拖尾长度",
+  "scene3d.generator.missing": "场景生成器不可用",
+  "scene3d.generator.missingHint": "安装或启用对应插件后即可恢复渲染和参数控制。",
   "scene3d.light.type": "灯光类型",
   "scene3d.light.directional": "平行光",
   "scene3d.light.point": "点光源",

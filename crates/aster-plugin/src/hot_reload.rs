@@ -56,6 +56,7 @@ pub struct HotReloadView {
 #[derive(Default)]
 pub struct HotReloadController {
     active: BTreeMap<String, PluginManifest>,
+    active_shader_sources: BTreeMap<String, BTreeMap<String, String>>,
     failures: Vec<PluginLoadFailure>,
     diagnostics: VecDeque<HotReloadDiagnostic>,
     observed_fingerprint: Option<u64>,
@@ -111,14 +112,24 @@ impl HotReloadController {
     fn reload(&mut self, root: &Path) -> Result<(), PluginError> {
         self.revision = self.revision.saturating_add(1);
         let previous = std::mem::take(&mut self.active);
+        let previous_sources = std::mem::take(&mut self.active_shader_sources);
         let mut active = BTreeMap::new();
+        let mut active_shader_sources = BTreeMap::new();
         let mut failures = Vec::new();
         let mut ids = BTreeSet::new();
         let mut rejected = 0_u64;
 
         for (key, path) in candidates(root)? {
-            match PluginManifest::load(&path) {
+            match PluginManifest::load(&path).and_then(|manifest| {
+                crate::validate_third_party_id(&manifest.plugin.id)?;
+                Ok(manifest)
+            }) {
                 Ok(manifest) if ids.insert(manifest.plugin.id.clone()) => {
+                    let sources = crate::read_shader_sources(
+                        path.parent().unwrap_or_else(|| Path::new(".")),
+                        &manifest,
+                    )?;
+                    active_shader_sources.insert(manifest.plugin.id.clone(), sources);
                     active.insert(key, manifest);
                 }
                 Ok(manifest) => {
@@ -144,7 +155,16 @@ impl HotReloadController {
             }
         }
 
+        for manifest in active.values() {
+            if !active_shader_sources.contains_key(&manifest.plugin.id)
+                && let Some(sources) = previous_sources.get(&manifest.plugin.id)
+            {
+                active_shader_sources.insert(manifest.plugin.id.clone(), sources.clone());
+            }
+        }
+
         self.active = active;
+        self.active_shader_sources = active_shader_sources;
         self.failures = failures;
         if rejected == 0 {
             self.successful_reloads = self.successful_reloads.saturating_add(1);
@@ -176,6 +196,7 @@ impl HotReloadController {
             report: DiscoveryReport {
                 plugins: self.active.values().cloned().collect(),
                 failures: self.failures.clone(),
+                shader_sources: self.active_shader_sources.clone(),
             },
             status: HotReloadStatus {
                 enabled,
@@ -388,6 +409,24 @@ fn aster_effect(@location(0) uv: vec2f) -> @location(0) vec4f {
             .unwrap();
         assert_eq!(updated.report.plugins[0].plugin.version, "1.1.0");
         assert_eq!(updated.status.successful_reloads, 2);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn rejects_the_host_reserved_namespace_during_hot_reload() {
+        let root = temp_root("reserved");
+        write_plugin(&root, "1.0.0", VALID_EFFECT);
+        let manifest_path = root.join("example/plugin.toml");
+        let source = fs::read_to_string(&manifest_path)
+            .unwrap()
+            .replace("com.example.reload", "org.aster.builtin.replacement");
+        fs::write(manifest_path, source).unwrap();
+
+        let mut controller = HotReloadController::default();
+        let view = controller.force_reload(&root).unwrap();
+        assert!(view.report.plugins.is_empty());
+        assert_eq!(view.status.rejected_reloads, 1);
+        assert!(view.report.failures[0].message.contains("host-reserved"));
         fs::remove_dir_all(root).unwrap();
     }
 

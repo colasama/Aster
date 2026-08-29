@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { parseCubeLut } from "../effects/cube-lut";
 import { createEffect } from "../effects/registry";
+import {
+  createParticleLayerForComposition,
+  createParticleSceneGenerator,
+  particleSettingsFromGenerator,
+} from "./bundled-particle";
 import { createLayerForComposition } from "./layer-factory";
 import { createDefaultParticleSettings } from "./particle-settings";
 import { createBlankProject } from "./project";
@@ -41,11 +46,10 @@ describe("project document boundary", () => {
     wrapper.threeDimensional = false;
     nested.layers.shift();
 
-    const nestedParticle = createLayerForComposition("particle", nested);
+    const nestedParticle = createParticleLayerForComposition(nested);
     nested.layers.push(nestedParticle);
-    expect(() => validateProjectDocument(project)).toThrow(
-      "Precomposition sources cannot contain GPU particle layers",
-    );
+    const validatedNestedLayers = validateProjectDocument(project).compositions[1].layers;
+    expect(validatedNestedLayers[validatedNestedLayers.length - 1]?.kind).toBe("generator");
 
     const secondWrapper = createLayerForComposition("precomposition", root);
     secondWrapper.sourceCompositionId = nested.id;
@@ -54,23 +58,27 @@ describe("project document boundary", () => {
       effectors: [],
     };
     root.layers.unshift(secondWrapper);
-    expect(() => validateProjectDocument(project)).toThrow(
-      "Precomposition sources cannot contain GPU particle layers",
-    );
+    expect(validateProjectDocument(project).compositions[0].layers[0].cloner).toBeDefined();
 
     root.layers = root.layers.filter((layer) => layer.kind !== "precomposition");
-    nested.layers.push(createLayerForComposition("particle", nested));
-    expect(() => validateProjectDocument(project)).toThrow("at most one GPU particle layer");
+    nested.layers.push(createParticleLayerForComposition(nested));
+    expect(
+      validateProjectDocument(project).compositions[1].layers.filter(
+        (layer) => layer.kind === "generator",
+      ),
+    ).toHaveLength(2);
     nested.layers.pop();
     nestedParticle.cloner = {
       distribution: { kind: "grid", count: [2, 1, 1], spacing: [100, 0, 0] },
       effectors: [],
     };
-    expect(() => validateProjectDocument(project)).toThrow(
-      "GPU particle layers cannot use cloners",
-    );
+    expect(
+      validateProjectDocument(project).compositions[1].layers.find(
+        (layer) => layer.id === nestedParticle.id,
+      )?.cloner,
+    ).toBeDefined();
     nestedParticle.cloner = undefined;
-    nested.layers = nested.layers.filter((layer) => layer.kind !== "particle");
+    nested.layers = nested.layers.filter((layer) => layer.kind !== "generator");
 
     const firstLut = createEffect("lut");
     const secondLut = createEffect("lut");
@@ -382,11 +390,11 @@ describe("project document boundary", () => {
     expect(() => validateProjectDocument(project)).toThrow("handedness must be -1 or 1");
   });
 
-  it("roundtrips bounded deterministic particle settings", () => {
+  it("roundtrips plugin-owned particle settings through the generic envelope", () => {
     const project = createBlankProject();
     const composition = project.compositions[0];
-    const particles = createLayerForComposition("particle", composition);
-    particles.particle = {
+    const particles = createParticleLayerForComposition(composition);
+    particles.generator = createParticleSceneGenerator({
       ...createDefaultParticleSettings(),
       renderMode: "mesh",
       count: 500_000,
@@ -399,38 +407,35 @@ describe("project document boundary", () => {
       endSize: 0.2,
       startRotation: -45,
       endRotation: 270,
-    };
+    });
     composition.layers.push(particles);
 
     const roundtrip = validateProjectDocument(JSON.parse(serializeProject(project)));
-    expect(roundtrip.compositions[0].layers[1].particle).toEqual(particles.particle);
-    if (!particles.particle) throw new Error("Expected particle settings");
-    particles.particle.count = 1_000_001;
-    expect(() => validateProjectDocument(project)).toThrow("between 1 and 1000000");
-    particles.particle.count = 500_000;
-    (particles.particle as { renderMode: string }).renderMode = "sprite";
-    expect(() => validateProjectDocument(project)).toThrow("renderMode");
-    particles.particle.renderMode = "mesh";
-    particles.particle.velocity[0] = Number.POSITIVE_INFINITY;
-    expect(() => validateProjectDocument(project)).toThrow("velocity[0] must be a finite number");
-    particles.particle.velocity[0] = 0.25;
-    particles.particle.startSize = 257;
-    expect(() => validateProjectDocument(project)).toThrow(
-      "startSize must be between 0.01 and 256",
+    expect(particleSettingsFromGenerator(roundtrip.compositions[0].layers[1].generator)).toEqual(
+      particleSettingsFromGenerator(particles.generator),
     );
-    particles.particle.startSize = 3;
-    particles.particle.renderMode = "billboard";
+    if (!particles.generator) throw new Error("Expected particle generator settings");
+    particles.generator.parameters.count = 1_000_001;
+    particles.generator.parameters.renderMode = "sprite";
+    particles.generator.parameters.startSize = 257;
     particles.blendMode = "normal";
-    expect(() => validateProjectDocument(project)).toThrow("require add blend mode");
-    particles.particle.renderMode = "mesh";
-    particles.blendMode = "normal";
-    particles.particle.lifetime = 3601;
-    expect(() => validateProjectDocument(project)).toThrow(
-      "lifetime must be between 0.05 and 3600",
-    );
-    particles.particle.lifetime = 4;
-    (particles.particle as unknown as Record<string, unknown>).legacySpeed = 0.25;
-    expect(() => validateProjectDocument(project)).toThrow("legacySpeed is not supported");
+    particles.generator.parameters.lifetime = 3601;
+    particles.generator.parameters.legacySpeed = 0.25;
+    const pluginOwned = validateProjectDocument(project).compositions[0].layers[1];
+    expect(pluginOwned.blendMode).toBe("normal");
+    expect(pluginOwned.generator?.parameters).toMatchObject({
+      count: 1_000_001,
+      renderMode: "sprite",
+      startSize: 257,
+      lifetime: 3601,
+      legacySpeed: 0.25,
+    });
+
+    (particles.generator.parameters.velocity as number[])[0] = Number.POSITIVE_INFINITY;
+    expect(() => validateProjectDocument(project)).toThrow("velocity has an unsupported value");
+    (particles.generator.parameters.velocity as number[])[0] = 0.25;
+    particles.generator.parameters.renderMode = "x".repeat(257);
+    expect(() => validateProjectDocument(project)).toThrow("renderMode is too long");
   });
 
   it("roundtrips explicit vector shape styling", () => {

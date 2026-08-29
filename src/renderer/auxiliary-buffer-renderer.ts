@@ -3,7 +3,6 @@ import type { Layer } from "../core/types";
 import type { SceneBufferVisualizer } from "./buffer-visualizer";
 import type { GeometryBatch } from "./geometry";
 import { GpuMotionVectorHistory } from "./motion-vector-history";
-import { type ParticleRenderMode, particleMeshGeometryShader } from "./particle-mesh";
 import {
   AUXILIARY_BUFFER_DESCRIPTORS,
   AUXILIARY_BUFFER_KINDS,
@@ -22,11 +21,10 @@ import { SHAPE_VERTEX_BUFFERS } from "./scene-pipelines";
 
 const ID_RECORD_BYTES = 8;
 
-interface ParticleDraw {
+export interface GeneratorDraw {
+  pipeline: GPURenderPipeline;
   bindGroup: GPUBindGroup;
   indirectBuffer: GPUBuffer;
-  selectionId: string;
-  renderMode: ParticleRenderMode;
 }
 
 export interface AuxiliaryEncodeRequest {
@@ -37,7 +35,7 @@ export interface AuxiliaryEncodeRequest {
   frameRate: number;
   batches: readonly GeometryBatch[];
   mediaBindGroup: (batch: GeometryBatch) => GPUBindGroup | undefined;
-  particle?: ParticleDraw;
+  generators?: readonly GeneratorDraw[];
 }
 
 /** Owns the transient MRT surface-data pass used by the viewport debugger. */
@@ -45,9 +43,6 @@ export class AuxiliaryBufferRenderer {
   readonly #device: GPUDevice;
   readonly #shapePipeline: GPURenderPipeline;
   readonly #mediaPipeline: GPURenderPipeline;
-  readonly #particlePipelines: Record<ParticleRenderMode, GPURenderPipeline>;
-  readonly #particleUniform: GPUBuffer;
-  readonly #particleUniformBindGroup: GPUBindGroup;
   readonly #motionHistory: GpuMotionVectorHistory;
   #textures = new Map<AuxiliaryBufferKind, GPUTexture>();
   #depth?: GPUTexture;
@@ -63,11 +58,7 @@ export class AuxiliaryBufferRenderer {
   #budgetFailureReported = false;
   readonly supported: boolean;
 
-  constructor(
-    device: GPUDevice,
-    imageBindGroupLayout: GPUBindGroupLayout,
-    particleBindGroupLayout: GPUBindGroupLayout,
-  ) {
+  constructor(device: GPUDevice, imageBindGroupLayout: GPUBindGroupLayout) {
     this.#device = device;
     this.#motionHistory = new GpuMotionVectorHistory(device);
     this.supported = supportsAuxiliaryMrt(device.limits);
@@ -115,60 +106,10 @@ export class AuxiliaryBufferRenderer {
       layout: device.createPipelineLayout({ bindGroupLayouts: [imageBindGroupLayout] }),
       fragment: { module, entryPoint: "media_fragment", targets },
     });
-    const particleUniformLayout = device.createBindGroupLayout({
-      label: "Auxiliary particle identity layout",
-      entries: [
-        {
-          binding: 0,
-          visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-          buffer: { type: "uniform" },
-        },
-      ],
-    });
-    this.#particleUniform = device.createBuffer({
-      label: "Auxiliary particle identity",
-      size: 32,
-      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-    });
-    this.#particleUniformBindGroup = device.createBindGroup({
-      label: "Auxiliary particle identity resources",
-      layout: particleUniformLayout,
-      entries: [{ binding: 0, resource: { buffer: this.#particleUniform } }],
-    });
-    const particleLayout = device.createPipelineLayout({
-      label: "Auxiliary particle pipeline layout",
-      bindGroupLayouts: [particleBindGroupLayout, particleUniformLayout],
-    });
-    const particlePipeline = (
-      mode: ParticleRenderMode,
-      entryPoint: string,
-      depthWriteEnabled: boolean,
-      depthCompare: GPUCompareFunction,
-    ) => {
-      const fragmentEntryPoint =
-        mode === "billboard"
-          ? "particle_billboard_fragment"
-          : mode === "streak"
-            ? "particle_streak_fragment"
-            : "particle_mesh_fragment";
-      return device.createRenderPipeline({
-        label: `Auxiliary MRT ${mode} particle pipeline`,
-        layout: particleLayout,
-        vertex: { module, entryPoint },
-        fragment: { module, entryPoint: fragmentEntryPoint, targets },
-        primitive: { topology: "triangle-list", cullMode: mode === "mesh" ? "back" : "none" },
-        depthStencil: { format: "depth24plus", depthWriteEnabled, depthCompare },
-      });
-    };
-    this.#particlePipelines = {
-      billboard: particlePipeline("billboard", "particle_vertex", false, "always"),
-      streak: particlePipeline("streak", "particle_streak_vertex", false, "always"),
-      mesh: particlePipeline("mesh", "particle_mesh_vertex", true, "less-equal"),
-    };
   }
 
   get estimatedBytes(): number {
-    return this.#estimatedBytes + this.#idBufferBytes + 32 + this.#motionHistory.estimatedBytes;
+    return this.#estimatedBytes + this.#idBufferBytes + this.#motionHistory.estimatedBytes;
   }
 
   get textures(): ReadonlyMap<AuxiliaryBufferKind, GPUTexture> {
@@ -258,7 +199,6 @@ export class AuxiliaryBufferRenderer {
     const plannedBytes =
       this.#estimatedBytes +
       Math.max(this.#idBufferBytes, nextIdBytes) +
-      32 +
       this.#motionHistory.plannedBytes(request.vertexCount);
     if (plannedBytes > this.#byteBudget) {
       if (!this.#budgetFailureReported) {
@@ -300,12 +240,10 @@ export class AuxiliaryBufferRenderer {
       if (media) pass.setBindGroup(0, media);
       pass.draw(batch.vertexCount, 1, batch.firstVertex, index);
     }
-    if (request.particle) {
-      this.#uploadParticle(request.particle.selectionId);
-      pass.setPipeline(this.#particlePipelines[request.particle.renderMode]);
-      pass.setBindGroup(0, request.particle.bindGroup);
-      pass.setBindGroup(1, this.#particleUniformBindGroup);
-      pass.drawIndirect(request.particle.indirectBuffer, 0);
+    for (const generator of request.generators ?? []) {
+      pass.setPipeline(generator.pipeline);
+      pass.setBindGroup(0, generator.bindGroup);
+      pass.drawIndirect(generator.indirectBuffer, 0);
     }
     pass.end();
     this.#motionHistory.commit(request.encoder, request.vertexBuffer, request.vertexCount, motion);
@@ -336,7 +274,6 @@ export class AuxiliaryBufferRenderer {
     this.#idBuffer?.destroy();
     this.#idBuffer = undefined;
     this.#idBufferBytes = 0;
-    this.#particleUniform.destroy();
     this.#motionHistory.destroy();
   }
 
@@ -353,14 +290,6 @@ export class AuxiliaryBufferRenderer {
       });
     }
     if (records.byteLength > 0) this.#device.queue.writeBuffer(this.#idBuffer, 0, records);
-  }
-
-  #uploadParticle(selectionId: string): void {
-    this.#device.queue.writeBuffer(
-      this.#particleUniform,
-      0,
-      buildAuxiliaryParticleIdentity(selectionId, this.#width, this.#height),
-    );
   }
 
   #requiredTexture(kind: AuxiliaryBufferKind): GPUTexture {
@@ -396,19 +325,6 @@ export function buildAuxiliaryBatchIds(
     records[index * 2 + 1] = encodeRenderId(materialKey(batch.layer));
   }
   return records;
-}
-
-export function buildAuxiliaryParticleIdentity(
-  selectionId: string,
-  width: number,
-  height: number,
-): ArrayBuffer {
-  const data = new ArrayBuffer(32);
-  const ids = new Uint32Array(data, 0, 4);
-  ids[0] = encodeRenderId(selectionId);
-  ids[1] = encodeRenderId("material:particle");
-  new Float32Array(data, 16, 4).set([width, height, 0, 0]);
-  return data;
 }
 
 function materialKey(layer: Layer): string {
@@ -500,155 +416,5 @@ fn shape_coverage(input: SurfaceVertex) -> f32 {
 @fragment fn media_fragment(input: SurfaceVertex) -> SurfaceOutput {
   if (textureSample(media_texture, media_sampler, input.uv).a * input.color.a <= 0.00001) { discard; }
   return write_surface(input);
-}
-
-struct Simulation {
-  header: vec4f, lifecycle: vec4f,
-  emitter_position_shape: vec4f, emitter_size_spread: vec4f,
-  velocity_scale: vec4f, gravity_streak: vec4f, appearance: vec4f,
-  start_color: vec4f, end_color: vec4f,
-}
-struct ParticleIdentity { ids: vec4u, resolution: vec4f }
-struct ParticleVertex {
-  @builtin(position) position: vec4f,
-  @location(0) local: vec2f,
-  @location(1) world_position: vec3f,
-  @location(2) normal: vec3f,
-  @location(3) motion_vector: vec2f,
-}
-struct Particle { current: vec4f, previous: vec4f, appearance: vec4f }
-@group(0) @binding(0) var<storage, read> particles: array<Particle>;
-@group(0) @binding(1) var<uniform> simulation: Simulation;
-@group(1) @binding(0) var<uniform> particle_identity: ParticleIdentity;
-
-${particleMeshGeometryShader}
-
-@vertex fn particle_vertex(
-  @builtin(vertex_index) vertex: u32,
-  @builtin(instance_index) instance: u32,
-) -> ParticleVertex {
-  let corners = array<vec2f, 6>(
-    vec2f(-1.0, -1.0), vec2f(1.0, -1.0), vec2f(-1.0, 1.0),
-    vec2f(-1.0, 1.0), vec2f(1.0, -1.0), vec2f(1.0, 1.0)
-  );
-  let record = particles[instance];
-  let particle = record.current;
-  let rotation_cos = record.appearance.y;
-  let rotation_sin = record.appearance.z;
-  let unit = corners[vertex];
-  let rotated = vec2f(
-    unit.x * rotation_cos - unit.y * rotation_sin,
-    unit.x * rotation_sin + unit.y * rotation_cos,
-  );
-  let clip = particle.xy + rotated * particle.w / 900.0;
-  let depth = clamp(0.5 - particle.z * 0.1, 0.001, 0.999);
-  var output: ParticleVertex;
-  output.position = vec4f(clip, depth, 1.0);
-  output.local = unit;
-  output.normal = vec3f(0.0, 0.0, 1.0);
-  output.motion_vector = (particle.xy - record.previous.xy) * vec2f(0.5, -0.5)
-    * record.previous.w;
-  output.world_position = vec3f(
-    (clip.x * 0.5 + 0.5) * particle_identity.resolution.x,
-    (0.5 - clip.y * 0.5) * particle_identity.resolution.y,
-    particle.z,
-  );
-  return output;
-}
-
-@vertex fn particle_streak_vertex(
-  @builtin(vertex_index) vertex: u32,
-  @builtin(instance_index) instance: u32,
-) -> ParticleVertex {
-  let along = array<f32, 6>(0.0, 0.0, 1.0, 1.0, 0.0, 1.0);
-  let side = array<f32, 6>(-1.0, 1.0, -1.0, -1.0, 1.0, 1.0);
-  let record = particles[instance];
-  let motion = (record.current.xy - record.previous.xy)
-    * record.previous.w * simulation.gravity_streak.w;
-  var direction = vec2f(1.0, 0.0);
-  if length(motion) > 0.000001 { direction = normalize(motion); }
-  let normal = vec2f(-direction.y, direction.x);
-  let half_width = record.current.w / 900.0;
-  let clip = record.current.xy - motion * along[vertex] + normal * side[vertex] * half_width;
-  let depth = clamp(0.5 - record.current.z * 0.1, 0.001, 0.999);
-  var output: ParticleVertex;
-  output.position = vec4f(clip, depth, 1.0);
-  output.local = vec2f(along[vertex] * 2.0 - 1.0, side[vertex]);
-  output.normal = vec3f(0.0, 0.0, 1.0);
-  output.motion_vector = (record.current.xy - record.previous.xy) * vec2f(0.5, -0.5)
-    * record.previous.w;
-  output.world_position = vec3f(
-    (clip.x * 0.5 + 0.5) * particle_identity.resolution.x,
-    (0.5 - clip.y * 0.5) * particle_identity.resolution.y,
-    record.current.z,
-  );
-  return output;
-}
-
-@vertex fn particle_mesh_vertex(
-  @builtin(vertex_index) vertex: u32,
-  @builtin(instance_index) instance: u32,
-) -> ParticleVertex {
-  let record = particles[instance];
-  let particle = record.current;
-  let rotation_cos = record.appearance.y;
-  let rotation_sin = record.appearance.z;
-  let surface = particle_cube_surface(vertex);
-  let local = particle_orient(surface.position, rotation_cos, rotation_sin);
-  let clip = particle_mesh_clip(particle.xyz, particle.w, local);
-  let previous_age = select(
-    record.appearance.x,
-    max(record.appearance.x - simulation.lifecycle.y / max(simulation.lifecycle.x, 0.05), 0.0),
-    record.previous.w > 0.5,
-  );
-  let previous_rotation = mix(simulation.appearance.z, simulation.appearance.w, previous_age)
-    * 0.01745329252;
-  let previous_local = particle_orient(
-    surface.position,
-    cos(previous_rotation),
-    sin(previous_rotation),
-  );
-  let previous_size = mix(simulation.appearance.x, simulation.appearance.y, previous_age);
-  let previous_clip = particle_mesh_clip(
-    record.previous.xyz,
-    previous_size,
-    previous_local,
-  );
-  var output: ParticleVertex;
-  output.position = vec4f(clip, 1.0);
-  output.local = vec2f(0.0);
-  output.normal = normalize(particle_orient(surface.normal, rotation_cos, rotation_sin));
-  output.world_position = vec3f(
-    (clip.x * 0.5 + 0.5) * particle_identity.resolution.x,
-    (0.5 - clip.y * 0.5) * particle_identity.resolution.y,
-    clip.z,
-  );
-  output.motion_vector = (clip.xy - previous_clip.xy) * vec2f(0.5, -0.5)
-    * record.previous.w;
-  return output;
-}
-
-fn write_particle_surface(input: ParticleVertex) -> SurfaceOutput {
-  var output: SurfaceOutput;
-  output.normal = vec4f(normalize(input.normal), 1.0);
-  output.object_id = particle_identity.ids.x;
-  output.material_id = particle_identity.ids.y;
-  output.world_position = vec4f(input.world_position, 1.0);
-  output.motion_vector = input.motion_vector;
-  return output;
-}
-
-@fragment fn particle_billboard_fragment(input: ParticleVertex) -> SurfaceOutput {
-  if (length(input.local) >= 1.0) { discard; }
-  return write_particle_surface(input);
-}
-
-@fragment fn particle_streak_fragment(input: ParticleVertex) -> SurfaceOutput {
-  if (abs(input.local.y) >= 1.0) { discard; }
-  return write_particle_surface(input);
-}
-
-@fragment fn particle_mesh_fragment(input: ParticleVertex) -> SurfaceOutput {
-  return write_particle_surface(input);
 }
 `;

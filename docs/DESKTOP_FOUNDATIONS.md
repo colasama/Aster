@@ -66,9 +66,10 @@ Three persistence domains have independent version boundaries:
 
 1. Application preferences migrate the legacy unversioned document to version 1.
 2. Plugin preferences migrate the legacy unversioned document to version 1 before plugin discovery.
-3. Project loading runs through a sequential migration registry. Project schema v1 is currently the
-   earliest published schema, so no historical project transform is registered yet; older or future
-   versions fail without modifying their source document.
+3. Project loading runs through a sequential migration registry. The v1 to v2 transform converts
+   legacy `particle` layers into built-in `generator` layers while preserving their identity,
+   timing, transforms, cloners, and settings. Older unsupported or future versions fail without
+   modifying their source document.
 
 Migrations must be deterministic, operate on a clone, validate their output version, preserve a
 recoverable original, and have fixtures for every supported source version.

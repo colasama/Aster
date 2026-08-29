@@ -23,7 +23,8 @@ use zip::{CompressionMethod, ZipArchive, ZipWriter, write::SimpleFileOptions};
 
 pub const PROJECT_FILE: &str = "project.json";
 pub const AUTOSAVE_FILE: &str = "project.autosave.json";
-pub const EDITOR_SCHEMA_VERSION: u64 = 1;
+pub const EDITOR_SCHEMA_VERSION: u64 = 2;
+const MIN_EDITOR_SCHEMA_VERSION: u64 = 1;
 const MAX_PACKED_ENTRIES: usize = 4_096;
 const MAX_PACKED_BYTES: u64 = 2 * 1024 * 1024 * 1024;
 
@@ -65,7 +66,7 @@ pub fn load_editor_bundle(bundle: impl AsRef<Path>) -> Result<Value, ProjectErro
     let project: Value = serde_json::from_reader(BufReader::new(File::open(
         bundle.as_ref().join(PROJECT_FILE),
     )?))?;
-    validate_editor_project(&project)?;
+    validate_editor_project_for_read(&project)?;
     Ok(project)
 }
 
@@ -212,7 +213,7 @@ pub fn recovery_candidate(bundle: impl AsRef<Path>) -> Result<Option<Value>, Pro
         return Ok(None);
     }
     let project = serde_json::from_reader(BufReader::new(File::open(autosave_path)?))?;
-    validate_editor_project(&project)?;
+    validate_editor_project_for_read(&project)?;
     Ok(Some(project))
 }
 
@@ -225,6 +226,17 @@ pub fn clear_autosave(bundle: impl AsRef<Path>) -> Result<(), ProjectError> {
 }
 
 pub fn validate_editor_project(project: &Value) -> Result<(), ProjectError> {
+    validate_editor_project_version(project, false)
+}
+
+fn validate_editor_project_for_read(project: &Value) -> Result<(), ProjectError> {
+    validate_editor_project_version(project, true)
+}
+
+fn validate_editor_project_version(
+    project: &Value,
+    allow_legacy: bool,
+) -> Result<(), ProjectError> {
     let object = project
         .as_object()
         .ok_or(ProjectError::InvalidEditorDocument(
@@ -233,7 +245,10 @@ pub fn validate_editor_project(project: &Value) -> Result<(), ProjectError> {
     let version = object.get("schemaVersion").and_then(Value::as_u64).ok_or(
         ProjectError::InvalidEditorDocument("schemaVersion must be an unsigned integer"),
     )?;
-    if version != EDITOR_SCHEMA_VERSION {
+    if version > EDITOR_SCHEMA_VERSION
+        || (allow_legacy && version < MIN_EDITOR_SCHEMA_VERSION)
+        || (!allow_legacy && version != EDITOR_SCHEMA_VERSION)
+    {
         return Err(ProjectError::UnsupportedSchema {
             found: u32::try_from(version).unwrap_or(u32::MAX),
             supported: EDITOR_SCHEMA_VERSION as u32,
@@ -442,7 +457,7 @@ mod tests {
 
     fn editor_project() -> Value {
         serde_json::json!({
-            "schemaVersion": 1,
+            "schemaVersion": 2,
             "id": Uuid::new_v4().to_string(),
             "name": "Editor roundtrip",
             "activeCompositionId": "main",
@@ -459,6 +474,29 @@ mod tests {
         let expected = editor_project();
         save_editor_bundle(&directory, &expected).unwrap();
         assert_eq!(load_editor_bundle(&directory).unwrap(), expected);
+        fs::remove_dir_all(directory).unwrap();
+    }
+
+    #[test]
+    fn editor_bundle_reads_v1_for_renderer_side_migration_but_writes_only_v2() {
+        let directory = std::env::temp_dir().join(format!("aster-editor-v1-{}", Uuid::new_v4()));
+        fs::create_dir_all(&directory).unwrap();
+        let mut legacy = editor_project();
+        legacy["schemaVersion"] = Value::from(1);
+        fs::write(
+            directory.join(PROJECT_FILE),
+            serde_json::to_vec_pretty(&legacy).unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(load_editor_bundle(&directory).unwrap(), legacy);
+        assert!(matches!(
+            save_editor_bundle(&directory, &legacy),
+            Err(ProjectError::UnsupportedSchema {
+                found: 1,
+                supported: 2
+            })
+        ));
         fs::remove_dir_all(directory).unwrap();
     }
 

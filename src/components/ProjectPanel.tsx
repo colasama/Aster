@@ -28,11 +28,23 @@ import {
   useSyncExternalStore,
 } from "react";
 import { createMediaLayerFromFile } from "../core/assets";
-import { createLayerForComposition } from "../core/layer-factory";
+import { createParticleLayerForComposition } from "../core/bundled-particle";
+import {
+  createGeneratorLayerForComposition,
+  createLayerForComposition,
+  type StandardLayerKind,
+} from "../core/layer-factory";
 import { readPluginStatus } from "../core/plugins";
 import { activeComposition, createBlankComposition } from "../core/project";
 import { relinkProjectAsset } from "../core/project-file";
-import { createId, type Id, type Layer, type LayerKind, type ProjectFolder } from "../core/types";
+import {
+  createSceneGeneratorInstance,
+  getSceneGeneratorDefinitions,
+  type SceneGeneratorDefinition,
+  subscribeSceneGeneratorDefinitions,
+  synchronizeSceneGeneratorDefinitions,
+} from "../core/scene-generator-registry";
+import { createId, type Id, type Layer, type ProjectFolder } from "../core/types";
 import {
   readEffectBrowserPreferences,
   recordRecentEffect,
@@ -94,6 +106,11 @@ export function ProjectPanel() {
     subscribePluginEffectDefinitions,
     getPluginEffectDefinitions,
     getPluginEffectDefinitions,
+  );
+  const pluginGenerators = useSyncExternalStore(
+    subscribeSceneGeneratorDefinitions,
+    getSceneGeneratorDefinitions,
+    getSceneGeneratorDefinitions,
   );
   const imagePickerRef = useRef<HTMLInputElement>(null);
   const videoPickerRef = useRef<HTMLInputElement>(null);
@@ -166,7 +183,10 @@ export function ProjectPanel() {
     let active = true;
     void readPluginStatus()
       .then((status) => {
-        if (active) synchronizePluginEffectDefinitions(status);
+        if (active) {
+          synchronizePluginEffectDefinitions(status);
+          synchronizeSceneGeneratorDefinitions(status);
+        }
       })
       .catch(() => undefined);
     return () => {
@@ -184,8 +204,31 @@ export function ProjectPanel() {
     document.addEventListener("pointerdown", closeMenu, true);
     return () => document.removeEventListener("pointerdown", closeMenu, true);
   }, [addTarget]);
-  const addLayer = (kind: LayerKind) => {
+  const addLayer = (kind: StandardLayerKind) => {
     const layer = createLayerForComposition(kind, composition, state.currentTime);
+    dispatch({
+      type: "operation",
+      operations: [{ type: "addLayer", layer }],
+      select: [layer.id],
+    });
+    setAddTarget(undefined);
+  };
+  const addParticles = () => {
+    const layer = createParticleLayerForComposition(composition, state.currentTime);
+    dispatch({
+      type: "operation",
+      operations: [{ type: "addLayer", layer }],
+      select: [layer.id],
+    });
+    setAddTarget(undefined);
+  };
+  const addGenerator = (definition: SceneGeneratorDefinition) => {
+    const layer = createGeneratorLayerForComposition(
+      composition,
+      createSceneGeneratorInstance(definition),
+      state.currentTime,
+      definition.pluginName,
+    );
     dispatch({
       type: "operation",
       operations: [{ type: "addLayer", layer }],
@@ -809,6 +852,19 @@ export function ProjectPanel() {
               <button onClick={() => addLayer("mesh")} type="button">
                 <Box size={15} /> {t("project.add.mesh")}
               </button>
+              <button onClick={addParticles} type="button">
+                <Sparkles size={15} /> {t("project.add.particles")}
+              </button>
+              {pluginGenerators.map((definition) => (
+                <button
+                  key={`${definition.pluginId}:${definition.nodeType}`}
+                  onClick={() => addGenerator(definition)}
+                  title={`${definition.pluginId} · v${definition.pluginVersion}`}
+                  type="button"
+                >
+                  <Sparkles size={15} /> {definition.pluginName}
+                </button>
+              ))}
             </div>
           </div>
           {selectedLayer?.asset && (

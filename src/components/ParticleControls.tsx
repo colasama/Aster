@@ -1,5 +1,4 @@
-import { PARTICLE_LIMITS } from "../core/particle-settings";
-import type { ParticleSettings } from "../core/types";
+import { PARTICLE_LIMITS, type ParticleSettings } from "../core/particle-settings";
 import { useI18n } from "../i18n/react";
 
 interface ParticleControlsProps {

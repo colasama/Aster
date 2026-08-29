@@ -8,6 +8,7 @@ mod operation;
 pub use cache::{CacheStatistics, EvaluationCache, EvaluationCacheKey, EvaluationResolution};
 pub use dependency::{DependencyError, DependencyGraph, EvaluationStats, NodeId};
 pub use model::{
-    BlendMode, Composition, Effect, Layer, LayerKind, Project, Transform, TransformSnapshot,
+    BlendMode, Composition, Effect, GeneratorParameterValue, Layer, LayerKind, Project, Transform,
+    TransformSnapshot,
 };
 pub use operation::{Operation, OperationError, OperationHistory, PropertyKey};

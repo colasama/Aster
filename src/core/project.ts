@@ -1,4 +1,4 @@
-import { createDefaultParticleSettings } from "./particle-settings";
+import { createParticleSceneGenerator } from "./bundled-particle";
 import {
   type Composition,
   createId,
@@ -190,11 +190,11 @@ export function createDemoProject(): Project {
   };
   const particles = layer({
     name: "GPU Particles · 100K",
-    kind: "particle",
+    kind: "generator",
     color: [0.5, 0.74, 1, 0.65],
     size: [3840, 2160],
     blendMode: "add",
-    particle: createDefaultParticleSettings(),
+    generator: createParticleSceneGenerator(),
   });
   const materialStudy = layer({
     name: "Normal + HDR Material",
@@ -259,7 +259,7 @@ export function createDemoProject(): Project {
     layers: [title, subtitle, ribbon, orb, materialStudy, particles, background, camera],
   };
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     id: createId(),
     name: "Aster Launch",
     activeCompositionId: compositionId,
@@ -310,7 +310,7 @@ export function createBlankComposition(name = "Composition 1"): Composition {
 export function createBlankProject(): Project {
   const composition = createBlankComposition();
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     id: createId(),
     name: "Untitled Project",
     activeCompositionId: composition.id,

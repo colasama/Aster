@@ -46,7 +46,7 @@ because they have different authority, cancellation, and audit requirements.
 | `setLayerColor` | Layers | Sets linear RGBA layer color. |
 | `setLayerAsset` | Assets | Clears or reuses an already imported layer asset. |
 | `setCameraSettings` | 3D | Replaces camera settings. |
-| `setParticleSettings` | Particles | Replaces bounded GPU particle settings. |
+| `setSceneGenerator` | Scene generators | Replaces a generator plugin instance and its bounded parameters. |
 | `setClonerSettings` | Cloners | Replaces or clears cloner distribution and effectors. |
 | `setShapeSettings` | Shapes | Replaces primitive, path, fill, stroke, and trim settings. |
 | `setShapeGraph` | Shapes | Replaces or clears a validated reusable shape graph. |

@@ -12,11 +12,13 @@ const MODE_CODES: Readonly<Record<SurfaceEffectVisualization, number>> = {
 export function selectedRenderId(
   batches: readonly Pick<GeometryBatch, "selectionId">[],
   selectedLayerId: string | undefined,
-  particleSelectionId?: string,
+  generatorSelectionIds: readonly string[] | string = [],
 ): number {
   if (!selectedLayerId) return 0;
+  const generatorIds =
+    typeof generatorSelectionIds === "string" ? [generatorSelectionIds] : generatorSelectionIds;
   const visible =
-    particleSelectionId === selectedLayerId ||
+    generatorIds.includes(selectedLayerId) ||
     batches.some((batch) => batch.selectionId === selectedLayerId);
   return visible ? encodeRenderId(selectedLayerId) : 0;
 }

@@ -77,13 +77,21 @@ frame data are excluded, and successful hot-path operations are intentionally si
    pipeline, fallback texels, and map uploads are created lazily only when a ready normal map or
    enabled environment needs them. Mesh cubes carry clip depth and use the active camera transform
    plus a shared `depth24plus` target.
-5. Compute particles run as an analytic, absolute-time field. A 256-thread compute kernel evaluates
-   bounded emitter shape, cone velocity, closed-form gravity/drag, and turbulence for each slot,
-   then GPU-compacts visible records into an indirect billboard, streak, or cube-mesh draw. No
-   per-particle state crosses the CPU boundary. Per-slot state is deterministic for project seed and
-   time; atomic compaction order is deliberately unspecified. Each effected layer uses a fused
+5. Scene generators execute through the versioned plugin ABI. The host resolves a declarative graph,
+   allocates quota-bounded GPU storage, packs standard frame/transform/camera and parameter uniforms,
+   runs ordered compute phases, then issues plugin-selected indirect draws at the layer's stack
+   position. The bundled particle generator uses exactly this path: its 256-thread analytic kernel
+   evaluates emitter shape, velocity, gravity/drag, and turbulence and GPU-compacts visible records.
+   No generated instance state crosses the CPU boundary. Per-slot state is deterministic for seed
+   and layer-local time; atomic compaction order is deliberately unspecified. Missing plugins isolate
+   only their nodes and preserve project data. Each effected layer uses a fused
    offscreen chain before its blend-mode composite; unaffected adjacent layers stay batched directly
    into the `rgba16float` scene target.
+
+The generic layer factory requires an explicit plugin instance and the generic runtime receives
+bundled definitions through constructor injection. Only application composition roots and the
+bundled-particle adapter select particles as a convenient default; core layer creation, project I/O,
+render-stack planning, precompilation, and GPU resource ownership contain no particle branch.
 6. One composition-level ACES display pass presents the linear HDR result to the surface. Depth
    previews reuse the on-demand auxiliary MRT world-position attachment: exponential fog derives
    distance from its world-space Z value, while depth of field applies a bounded 16-tap circular

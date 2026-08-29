@@ -1,23 +1,29 @@
 //! Versioned manifest and parameter ABI for portable WGSL effects.
 
 mod abi;
+mod error;
+pub mod generator;
+mod generator_shader;
 pub mod graph;
 pub mod hot_reload;
 pub mod registry;
 
 pub use abi::{EFFECT_ENTRY_POINT, EFFECT_PARAMETER_VECTORS, EFFECT_UNIFORM_SIZE};
+pub use error::PluginError;
+pub use generator_shader::validate_scene_generator_sources;
 
 use std::{
-    collections::BTreeSet,
+    collections::{BTreeMap, BTreeSet},
     fs,
     path::{Component, Path, PathBuf},
 };
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use thiserror::Error;
 
 const MAX_SHADER_BYTES: u64 = 4 * 1024 * 1024;
+const MAX_PLUGIN_SHADER_BYTES: u64 = 16 * 1024 * 1024;
+const MAX_MANIFEST_BYTES: u64 = 1024 * 1024;
 pub const HOST_PLUGIN_API_VERSION: u32 = 1;
 
 #[derive(Clone, Debug, Deserialize, JsonSchema, Serialize)]
@@ -28,10 +34,15 @@ pub struct PluginManifest {
     pub capabilities: BTreeSet<Capability>,
     #[serde(default)]
     pub parameters: Vec<Parameter>,
+    #[serde(default)]
+    pub scene_generator: Option<generator::SceneGeneratorGraph>,
 }
 
 impl PluginManifest {
     pub fn parse(source: &str) -> Result<Self, PluginError> {
+        if source.len() as u64 > MAX_MANIFEST_BYTES {
+            return Err(PluginError::ManifestTooLarge(source.len() as u64));
+        }
         let manifest: Self = toml::from_str(source)?;
         manifest.validate()?;
         Ok(manifest)
@@ -40,6 +51,9 @@ impl PluginManifest {
     pub fn validate(&self) -> Result<(), PluginError> {
         if !valid_plugin_id(&self.plugin.id) {
             return Err(PluginError::InvalidId(self.plugin.id.clone()));
+        }
+        if !valid_display_text(&self.plugin.name, 256) {
+            return Err(PluginError::InvalidName(self.plugin.name.clone()));
         }
         if self.plugin.api_version != HOST_PLUGIN_API_VERSION {
             return Err(PluginError::UnsupportedApi(self.plugin.api_version));
@@ -50,8 +64,15 @@ impl PluginManifest {
         if !valid_shader_path(&self.plugin.shader) {
             return Err(PluginError::InvalidShaderPath(self.plugin.shader.clone()));
         }
-        if self.parameters.len() > EFFECT_PARAMETER_VECTORS as usize {
-            return Err(PluginError::TooManyParameters(self.parameters.len()));
+        let parameter_limit = match self.plugin.kind {
+            PluginKind::Effect => EFFECT_PARAMETER_VECTORS as usize,
+            PluginKind::SceneGenerator => generator::MAX_GENERATOR_PARAMETERS,
+        };
+        if self.parameters.len() > parameter_limit {
+            return Err(PluginError::TooManyParameters {
+                actual: self.parameters.len(),
+                limit: parameter_limit,
+            });
         }
         let mut names = BTreeSet::new();
         for parameter in &self.parameters {
@@ -60,27 +81,108 @@ impl PluginManifest {
             }
             parameter.validate()?;
         }
+        match (&self.plugin.kind, &self.scene_generator) {
+            (PluginKind::Effect, None) => {
+                if self
+                    .parameters
+                    .iter()
+                    .any(|parameter| matches!(parameter, Parameter::Vector { .. }))
+                {
+                    return Err(PluginError::UnsupportedParameterForKind("vector"));
+                }
+            }
+            (PluginKind::Effect, Some(_)) => return Err(PluginError::UnexpectedSceneGenerator),
+            (PluginKind::SceneGenerator, Some(graph)) => {
+                if self
+                    .parameters
+                    .iter()
+                    .any(|parameter| matches!(parameter, Parameter::Texture { .. }))
+                {
+                    return Err(PluginError::UnsupportedParameterForKind("texture"));
+                }
+                graph.validate()?;
+                if !self.capabilities.contains(&Capability::GpuCompute)
+                    || !self.capabilities.contains(&Capability::GpuRender)
+                {
+                    return Err(PluginError::MissingGeneratorCapabilities);
+                }
+                match self
+                    .parameters
+                    .iter()
+                    .find(|parameter| parameter.name() == graph.capacity_parameter)
+                {
+                    Some(Parameter::Number { .. }) => {}
+                    Some(_) => {
+                        return Err(PluginError::InvalidGeneratorParameterRole {
+                            parameter: graph.capacity_parameter.clone(),
+                            expected: "number",
+                        });
+                    }
+                    None => {
+                        return Err(PluginError::MissingCapacityParameter(
+                            graph.capacity_parameter.clone(),
+                        ));
+                    }
+                }
+                if let Some(render_parameter) = &graph.render_parameter {
+                    match self
+                        .parameters
+                        .iter()
+                        .find(|parameter| parameter.name() == render_parameter)
+                    {
+                        Some(Parameter::Choice { choices, .. }) => {
+                            if graph.render_variants.iter().any(|variant| {
+                                variant
+                                    .selector_value
+                                    .as_ref()
+                                    .is_none_or(|selector| !choices.contains(selector))
+                            }) {
+                                return Err(PluginError::InvalidRenderSelectorChoice(
+                                    render_parameter.clone(),
+                                ));
+                            }
+                        }
+                        Some(_) => {
+                            return Err(PluginError::InvalidGeneratorParameterRole {
+                                parameter: render_parameter.clone(),
+                                expected: "choice",
+                            });
+                        }
+                        None => {
+                            return Err(PluginError::MissingRenderParameter(
+                                render_parameter.clone(),
+                            ));
+                        }
+                    }
+                }
+                if !graph.shader_paths().contains(self.plugin.shader.as_str()) {
+                    return Err(PluginError::PrimaryShaderNotDeclared(
+                        self.plugin.shader.clone(),
+                    ));
+                }
+            }
+            (PluginKind::SceneGenerator, None) => return Err(PluginError::MissingSceneGenerator),
+        }
         Ok(())
     }
 
     pub fn load(path: impl AsRef<Path>) -> Result<Self, PluginError> {
         let path = path.as_ref();
+        let manifest_bytes = fs::metadata(path)?.len();
+        if manifest_bytes > MAX_MANIFEST_BYTES {
+            return Err(PluginError::ManifestTooLarge(manifest_bytes));
+        }
         let manifest = Self::parse(&fs::read_to_string(path)?)?;
         let directory = path.parent().unwrap_or_else(|| Path::new("."));
-        let shader = directory.join(&manifest.plugin.shader);
-        if !shader.is_file() {
-            return Err(PluginError::MissingShader(shader));
+        let sources = read_shader_sources(directory, &manifest)?;
+        match manifest.plugin.kind {
+            PluginKind::Effect => validate_effect_shader(
+                sources
+                    .get(&manifest.plugin.shader)
+                    .expect("primary shader was collected"),
+            )?,
+            PluginKind::SceneGenerator => validate_scene_generator_sources(&manifest, &sources)?,
         }
-        let metadata = fs::metadata(&shader)?;
-        if metadata.len() > MAX_SHADER_BYTES {
-            return Err(PluginError::ShaderTooLarge(metadata.len()));
-        }
-        let resolved_directory = directory.canonicalize()?;
-        let resolved_shader = shader.canonicalize()?;
-        if !resolved_shader.starts_with(&resolved_directory) {
-            return Err(PluginError::ShaderOutsidePlugin(resolved_shader));
-        }
-        validate_shader(&fs::read_to_string(resolved_shader)?)?;
         Ok(manifest)
     }
 }
@@ -93,6 +195,16 @@ pub struct PluginMetadata {
     pub version: String,
     pub api_version: u32,
     pub shader: String,
+    #[serde(default)]
+    pub kind: PluginKind,
+}
+
+#[derive(Clone, Copy, Debug, Default, Deserialize, JsonSchema, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PluginKind {
+    #[default]
+    Effect,
+    SceneGenerator,
 }
 
 #[derive(
@@ -121,6 +233,13 @@ pub enum Parameter {
         label: String,
         default: [f32; 4],
     },
+    Vector {
+        name: String,
+        label: String,
+        default: Vec<f32>,
+        min: f32,
+        max: f32,
+    },
     Choice {
         name: String,
         label: String,
@@ -137,6 +256,7 @@ pub enum Parameter {
 pub struct DiscoveryReport {
     pub plugins: Vec<PluginManifest>,
     pub failures: Vec<PluginLoadFailure>,
+    pub shader_sources: BTreeMap<String, BTreeMap<String, String>>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -164,9 +284,38 @@ pub fn discover(root: impl AsRef<Path>) -> Result<DiscoveryReport, PluginError> 
     }
     manifests.sort();
     let mut report = DiscoveryReport::default();
+    let mut ids = BTreeSet::new();
     for manifest in manifests {
         match PluginManifest::load(&manifest) {
-            Ok(plugin) => report.plugins.push(plugin),
+            Ok(plugin) => {
+                if let Err(error) = validate_third_party_id(&plugin.plugin.id) {
+                    report.failures.push(PluginLoadFailure {
+                        manifest,
+                        message: error.to_string(),
+                    });
+                    continue;
+                }
+                if !ids.insert(plugin.plugin.id.clone()) {
+                    report.failures.push(PluginLoadFailure {
+                        manifest,
+                        message: PluginError::DuplicatePluginId(plugin.plugin.id).to_string(),
+                    });
+                    continue;
+                }
+                let directory = manifest.parent().unwrap_or_else(|| Path::new("."));
+                match read_shader_sources(directory, &plugin) {
+                    Ok(sources) => {
+                        report
+                            .shader_sources
+                            .insert(plugin.plugin.id.clone(), sources);
+                        report.plugins.push(plugin);
+                    }
+                    Err(error) => report.failures.push(PluginLoadFailure {
+                        manifest,
+                        message: error.to_string(),
+                    }),
+                }
+            }
             Err(error) => report.failures.push(PluginLoadFailure {
                 manifest,
                 message: error.to_string(),
@@ -178,7 +327,7 @@ pub fn discover(root: impl AsRef<Path>) -> Result<DiscoveryReport, PluginError> 
 
 /// Installs a validated WGSL plugin using a same-volume atomic directory swap.
 ///
-/// Only the manifest and its declared shader are copied. This keeps the v1 plugin surface
+/// Only the manifest and its declared shaders are copied. This keeps the v1 plugin surface
 /// capability-bounded and prevents undeclared native payloads from entering the plugin directory.
 pub fn install(
     source: impl AsRef<Path>,
@@ -187,10 +336,8 @@ pub fn install(
     let source = source.as_ref().canonicalize()?;
     let manifest_path = source.join("plugin.toml");
     let manifest = PluginManifest::load(&manifest_path)?;
-    let shader_source = source.join(&manifest.plugin.shader).canonicalize()?;
-    if !shader_source.starts_with(&source) {
-        return Err(PluginError::ShaderOutsidePlugin(shader_source));
-    }
+    validate_third_party_id(&manifest.plugin.id)?;
+    let shader_paths = declared_shader_paths(&manifest);
 
     let root = root.as_ref();
     fs::create_dir_all(root)?;
@@ -202,11 +349,17 @@ pub fn install(
     remove_directory_if_present(&backup)?;
     fs::create_dir_all(&staging)?;
     fs::copy(&manifest_path, staging.join("plugin.toml"))?;
-    let shader_destination = staging.join(&manifest.plugin.shader);
-    if let Some(parent) = shader_destination.parent() {
-        fs::create_dir_all(parent)?;
+    for shader_path in shader_paths {
+        let shader_source = source.join(shader_path).canonicalize()?;
+        if !shader_source.starts_with(&source) {
+            return Err(PluginError::ShaderOutsidePlugin(shader_source));
+        }
+        let shader_destination = staging.join(shader_path);
+        if let Some(parent) = shader_destination.parent() {
+            fs::create_dir_all(parent)?;
+        }
+        fs::copy(shader_source, shader_destination)?;
     }
-    fs::copy(shader_source, shader_destination)?;
     PluginManifest::load(staging.join("plugin.toml"))?;
 
     if destination.exists() {
@@ -229,7 +382,14 @@ fn remove_directory_if_present(path: &Path) -> Result<(), PluginError> {
     Ok(())
 }
 
-fn validate_shader(source: &str) -> Result<(), PluginError> {
+pub(crate) fn validate_third_party_id(id: &str) -> Result<(), PluginError> {
+    if id.starts_with("org.aster.builtin.") {
+        return Err(PluginError::ReservedId(id.to_owned()));
+    }
+    Ok(())
+}
+
+fn validate_effect_shader(source: &str) -> Result<(), PluginError> {
     let module = naga::front::wgsl::parse_str(source)
         .map_err(|error| PluginError::ShaderParse(error.emit_to_string(source)))?;
     naga::valid::Validator::new(
@@ -241,11 +401,49 @@ fn validate_shader(source: &str) -> Result<(), PluginError> {
     abi::validate_effect_abi(&module).map_err(PluginError::ShaderAbi)
 }
 
+fn declared_shader_paths(manifest: &PluginManifest) -> BTreeSet<&str> {
+    let mut paths = BTreeSet::from([manifest.plugin.shader.as_str()]);
+    if let Some(graph) = &manifest.scene_generator {
+        paths.extend(graph.shader_paths());
+    }
+    paths
+}
+
+pub(crate) fn read_shader_sources(
+    directory: &Path,
+    manifest: &PluginManifest,
+) -> Result<BTreeMap<String, String>, PluginError> {
+    let resolved_directory = directory.canonicalize()?;
+    let mut sources = BTreeMap::new();
+    let mut total_bytes = 0_u64;
+    for relative in declared_shader_paths(manifest) {
+        let shader = directory.join(relative);
+        if !shader.is_file() {
+            return Err(PluginError::MissingShader(shader));
+        }
+        let metadata = fs::metadata(&shader)?;
+        if metadata.len() > MAX_SHADER_BYTES {
+            return Err(PluginError::ShaderTooLarge(metadata.len()));
+        }
+        total_bytes = total_bytes.saturating_add(metadata.len());
+        if total_bytes > MAX_PLUGIN_SHADER_BYTES {
+            return Err(PluginError::ShaderPackageTooLarge(total_bytes));
+        }
+        let resolved_shader = shader.canonicalize()?;
+        if !resolved_shader.starts_with(&resolved_directory) {
+            return Err(PluginError::ShaderOutsidePlugin(resolved_shader));
+        }
+        sources.insert(relative.to_owned(), fs::read_to_string(resolved_shader)?);
+    }
+    Ok(sources)
+}
+
 impl Parameter {
     pub fn name(&self) -> &str {
         match self {
             Self::Number { name, .. }
             | Self::Color { name, .. }
+            | Self::Vector { name, .. }
             | Self::Choice { name, .. }
             | Self::Texture { name, .. } => name,
         }
@@ -258,10 +456,11 @@ impl Parameter {
         let label = match self {
             Self::Number { label, .. }
             | Self::Color { label, .. }
+            | Self::Vector { label, .. }
             | Self::Choice { label, .. }
             | Self::Texture { label, .. } => label,
         };
-        if label.trim().is_empty() {
+        if !valid_display_text(label, 256) {
             return Err(PluginError::InvalidParameter(self.name().into()));
         }
         match self {
@@ -287,14 +486,34 @@ impl Parameter {
             {
                 Err(PluginError::InvalidParameter(name.clone()))
             }
+            Self::Vector {
+                name,
+                default,
+                min,
+                max,
+                ..
+            } if default.len() < 2
+                || default.len() > 4
+                || !min.is_finite()
+                || !max.is_finite()
+                || min > max
+                || default
+                    .iter()
+                    .any(|channel| !channel.is_finite() || channel < min || channel > max) =>
+            {
+                Err(PluginError::InvalidParameter(name.clone()))
+            }
             Self::Choice {
                 name,
                 default,
                 choices,
                 ..
             } if choices.is_empty()
+                || choices.len() > 256
                 || !choices.contains(default)
-                || choices.iter().any(|choice| choice.trim().is_empty())
+                || choices
+                    .iter()
+                    .any(|choice| !valid_display_text(choice, 128))
                 || choices.iter().collect::<BTreeSet<_>>().len() != choices.len() =>
             {
                 Err(PluginError::InvalidParameter(name.clone()))
@@ -306,9 +525,10 @@ impl Parameter {
 
 fn valid_parameter_name(name: &str) -> bool {
     let mut characters = name.chars();
-    characters
-        .next()
-        .is_some_and(|character| character.is_ascii_alphabetic() || character == '_')
+    name.len() <= 128
+        && characters
+            .next()
+            .is_some_and(|character| character.is_ascii_alphabetic() || character == '_')
         && characters.all(|character| character.is_ascii_alphanumeric() || character == '_')
 }
 
@@ -334,10 +554,15 @@ pub fn valid_plugin_id(id: &str) -> bool {
 
 fn valid_version(version: &str) -> bool {
     let parts = version.split('.').collect::<Vec<_>>();
-    parts.len() == 3
+    version.len() <= 64
+        && parts.len() == 3
         && parts.iter().all(|part| {
             !part.is_empty() && part.chars().all(|character| character.is_ascii_digit())
         })
+}
+
+fn valid_display_text(value: &str, maximum: usize) -> bool {
+    !value.trim().is_empty() && value.len() <= maximum && !value.chars().any(char::is_control)
 }
 
 fn valid_shader_path(shader: &str) -> bool {
@@ -348,237 +573,5 @@ fn valid_shader_path(shader: &str) -> bool {
             .all(|component| matches!(component, Component::Normal(_)))
 }
 
-#[derive(Debug, Error)]
-pub enum PluginError {
-    #[error("plugin manifest I/O failed: {0}")]
-    Io(#[from] std::io::Error),
-    #[error("plugin manifest is invalid TOML: {0}")]
-    Toml(#[from] toml::de::Error),
-    #[error("plugin id `{0}` must be a reverse-domain identifier")]
-    InvalidId(String),
-    #[error("plugin API version {0} is not supported")]
-    UnsupportedApi(u32),
-    #[error("plugin version `{0}` must use major.minor.patch numeric form")]
-    InvalidVersion(String),
-    #[error("plugin shader path `{0}` must be a relative .wgsl path")]
-    InvalidShaderPath(String),
-    #[error("plugin shader was not found at {0}")]
-    MissingShader(PathBuf),
-    #[error("plugin shader is {0} bytes; the v1 limit is 4194304 bytes")]
-    ShaderTooLarge(u64),
-    #[error("plugin shader resolves outside its plugin directory: {0}")]
-    ShaderOutsidePlugin(PathBuf),
-    #[error("plugin shader WGSL could not be parsed: {0}")]
-    ShaderParse(String),
-    #[error("plugin shader WGSL failed validation: {0}")]
-    ShaderValidation(String),
-    #[error("plugin shader does not implement Aster effect ABI v1: {0}")]
-    ShaderAbi(String),
-    #[error("parameter `{0}` is invalid")]
-    InvalidParameter(String),
-    #[error("parameter `{0}` is declared more than once")]
-    DuplicateParameter(String),
-    #[error("effect declares {0} parameters; ABI v1 supports at most 16")]
-    TooManyParameters(usize),
-}
-
 #[cfg(test)]
-mod tests {
-    use std::time::{SystemTime, UNIX_EPOCH};
-
-    use super::*;
-
-    const VALID_EFFECT: &str = r#"
-struct AsterEffectUniforms {
-    resolution: vec2f,
-    time: f32,
-    parameter_count: u32,
-    parameters: array<vec4f, 16>,
-}
-
-@group(0) @binding(0) var aster_source: texture_2d<f32>;
-@group(0) @binding(1) var aster_sampler: sampler;
-@group(0) @binding(2) var<uniform> aster: AsterEffectUniforms;
-
-@fragment
-fn aster_effect(@location(0) uv: vec2f) -> @location(0) vec4f {
-    let source = textureSample(aster_source, aster_sampler, uv);
-    return vec4f(source.rgb * aster.parameters[0].x, source.a);
-}
-"#;
-
-    #[test]
-    fn parses_wgsl_effect_manifest() {
-        let manifest = PluginManifest::parse(
-            r#"
-                [plugin]
-                id = "org.aster.tint"
-                name = "Tint"
-                version = "1.0.0"
-                api_version = 1
-                shader = "effect.wgsl"
-
-                [[parameters]]
-                type = "number"
-                name = "amount"
-                label = "Amount"
-                default = 1.0
-                min = 0.0
-                max = 1.0
-            "#,
-        )
-        .unwrap();
-        assert_eq!(manifest.plugin.id, "org.aster.tint");
-        assert_eq!(manifest.parameters.len(), 1);
-    }
-
-    #[test]
-    fn validates_parameter_schema_before_exposing_it_to_the_host() {
-        let invalid_color = PluginManifest::parse(
-            r#"
-                [plugin]
-                id = "org.aster.invalid-color"
-                name = "Invalid Color"
-                version = "1.0.0"
-                api_version = 1
-                shader = "effect.wgsl"
-
-                [[parameters]]
-                type = "color"
-                name = "tint"
-                label = "Tint"
-                default = [1.2, 0.5, 0.5, 1.0]
-            "#,
-        )
-        .unwrap_err();
-        assert!(matches!(invalid_color, PluginError::InvalidParameter(name) if name == "tint"));
-
-        let invalid_name = PluginManifest::parse(
-            r#"
-                [plugin]
-                id = "org.aster.invalid-name"
-                name = "Invalid Name"
-                version = "1.0.0"
-                api_version = 1
-                shader = "effect.wgsl"
-
-                [[parameters]]
-                type = "texture"
-                name = "source texture"
-                label = "Source"
-            "#,
-        )
-        .unwrap_err();
-        assert!(
-            matches!(invalid_name, PluginError::InvalidParameter(name) if name == "source texture")
-        );
-    }
-
-    #[test]
-    fn discovers_valid_plugins_and_reports_isolated_failures() {
-        let nonce = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_nanos();
-        let root = std::env::temp_dir().join(format!("aster-plugin-{nonce}"));
-        let valid = root.join("valid");
-        let invalid = root.join("invalid");
-        fs::create_dir_all(&valid).unwrap();
-        fs::create_dir_all(&invalid).unwrap();
-        fs::write(
-            valid.join("plugin.toml"),
-            r#"
-                capabilities = ["gpu_render"]
-
-                [plugin]
-                id = "org.aster.valid"
-                name = "Valid"
-                version = "1.2.3"
-                api_version = 1
-                shader = "effect.wgsl"
-            "#,
-        )
-        .unwrap();
-        fs::write(valid.join("effect.wgsl"), VALID_EFFECT).unwrap();
-        fs::write(
-            invalid.join("plugin.toml"),
-            r#"
-                [plugin]
-                id = "org.aster.invalid"
-                name = "Invalid"
-                version = "latest"
-                api_version = 1
-                shader = "../escape.wgsl"
-            "#,
-        )
-        .unwrap();
-
-        let report = discover(&root).unwrap();
-        assert_eq!(report.plugins.len(), 1);
-        assert_eq!(report.failures.len(), 1);
-        assert!(report.failures[0].message.contains("version"));
-        fs::remove_dir_all(root).unwrap();
-    }
-
-    #[test]
-    fn installs_only_declared_plugin_files_and_replaces_versions() {
-        let nonce = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_nanos();
-        let base = std::env::temp_dir().join(format!("aster-plugin-install-{nonce}"));
-        let source = base.join("source");
-        let installed = base.join("installed");
-        fs::create_dir_all(&source).unwrap();
-        fs::write(
-            source.join("plugin.toml"),
-            r#"
-                [plugin]
-                id = "org.aster.install"
-                name = "Install Test"
-                version = "1.0.0"
-                api_version = 1
-                shader = "shaders/effect.wgsl"
-            "#,
-        )
-        .unwrap();
-        fs::create_dir_all(source.join("shaders")).unwrap();
-        fs::write(source.join("shaders/effect.wgsl"), VALID_EFFECT).unwrap();
-        fs::write(source.join("undeclared.dll"), "not copied").unwrap();
-
-        let manifest = install(&source, &installed).unwrap();
-        let destination = installed.join("org.aster.install");
-        assert_eq!(manifest.plugin.version, "1.0.0");
-        assert!(destination.join("plugin.toml").is_file());
-        assert!(destination.join("shaders/effect.wgsl").is_file());
-        assert!(!destination.join("undeclared.dll").exists());
-
-        let next_manifest = fs::read_to_string(source.join("plugin.toml"))
-            .unwrap()
-            .replace("1.0.0", "1.1.0");
-        fs::write(source.join("plugin.toml"), next_manifest).unwrap();
-        assert_eq!(
-            install(&source, &installed).unwrap().plugin.version,
-            "1.1.0"
-        );
-        fs::remove_dir_all(base).unwrap();
-    }
-
-    #[test]
-    fn rejects_valid_wgsl_with_an_incompatible_effect_interface() {
-        let error =
-            validate_shader("@fragment fn main() -> @location(0) vec4f { return vec4f(1.0); }")
-                .unwrap_err();
-        assert!(matches!(error, PluginError::ShaderAbi(_)));
-        assert!(error.to_string().contains("aster_effect"));
-    }
-
-    #[test]
-    fn bundled_effect_examples_implement_the_v1_abi() {
-        let examples = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/plugins");
-        for name in ["tint", "chromatic-aberration", "crt"] {
-            PluginManifest::load(examples.join(name).join("plugin.toml"))
-                .unwrap_or_else(|error| panic!("{name} example failed: {error}"));
-        }
-    }
-}
+mod tests;

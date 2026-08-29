@@ -40,11 +40,6 @@ export {
   shapeShader,
   textureCompositeShader,
 } from "./base-shaders";
-export {
-  particleBillboardRenderShader as particleRenderShader,
-  particleComputeShader,
-  particleStreakRenderShader,
-} from "./particle-system";
 
 export const postProcessShader = /* wgsl */ `
 struct PostProcess {

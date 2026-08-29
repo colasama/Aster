@@ -1,10 +1,45 @@
-export const CURRENT_PROJECT_SCHEMA_VERSION = 1 as const;
+import {
+  BUILTIN_PARTICLE_API_VERSION,
+  BUILTIN_PARTICLE_NODE_TYPE,
+  BUILTIN_PARTICLE_PLUGIN_ID,
+} from "./bundled-particle";
+import { assertParticleSettings } from "./particle-settings";
+
+export const CURRENT_PROJECT_SCHEMA_VERSION = 2 as const;
 
 type ProjectDocument = Record<string, unknown>;
 type ProjectMigration = (document: ProjectDocument) => ProjectDocument;
 
 /** Add one deterministic vN -> vN+1 transform for every supported historical project schema. */
-const PROJECT_MIGRATIONS = new Map<number, ProjectMigration>();
+const PROJECT_MIGRATIONS = new Map<number, ProjectMigration>([
+  [
+    1,
+    (document) => {
+      const compositions = Array.isArray(document.compositions) ? document.compositions : [];
+      for (const compositionValue of compositions) {
+        if (!compositionValue || typeof compositionValue !== "object") continue;
+        const composition = compositionValue as Record<string, unknown>;
+        const layers = Array.isArray(composition.layers) ? composition.layers : [];
+        for (const layerValue of layers) {
+          if (!layerValue || typeof layerValue !== "object") continue;
+          const layer = layerValue as Record<string, unknown>;
+          if (layer.kind !== "particle" || !layer.particle) continue;
+          assertParticleSettings(layer.particle, "legacy particle settings");
+          layer.kind = "generator";
+          layer.generator = {
+            pluginId: BUILTIN_PARTICLE_PLUGIN_ID,
+            nodeType: BUILTIN_PARTICLE_NODE_TYPE,
+            apiVersion: BUILTIN_PARTICLE_API_VERSION,
+            parameters: layer.particle,
+          };
+          delete layer.particle;
+        }
+      }
+      document.schemaVersion = 2;
+      return document;
+    },
+  ],
+]);
 
 export function cloneCurrentProjectDocument(value: unknown): ProjectDocument {
   if (!value || typeof value !== "object" || Array.isArray(value))

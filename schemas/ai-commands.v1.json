@@ -116,58 +116,32 @@
         "orthographicSize": { "type": "number", "minimum": 1, "maximum": 100000 }
       }
     },
-    "particle": {
+    "sceneGeneratorParameter": {
+      "oneOf": [
+        { "type": "number" },
+        { "type": "string", "maxLength": 256 },
+        { "type": "boolean" },
+        {
+          "type": "array",
+          "maxItems": 16,
+          "items": { "type": "number" }
+        }
+      ]
+    },
+    "sceneGenerator": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "renderMode",
-        "meshPrimitive",
-        "count",
-        "seed",
-        "lifetime",
-        "emitterShape",
-        "emitterPosition",
-        "emitterSize",
-        "emitterSpread",
-        "velocity",
-        "gravity",
-        "drag",
-        "turbulence",
-        "turbulenceScale",
-        "startColor",
-        "endColor",
-        "startOpacity",
-        "endOpacity",
-        "startSize",
-        "endSize",
-        "startRotation",
-        "endRotation",
-        "streakLength"
-      ],
+      "required": ["pluginId", "nodeType", "apiVersion", "parameters"],
       "properties": {
-        "renderMode": { "enum": ["billboard", "streak", "mesh"] },
-        "meshPrimitive": { "const": "cube" },
-        "count": { "type": "integer", "minimum": 1, "maximum": 1000000 },
-        "seed": { "type": "integer", "minimum": 0, "maximum": 16777215 },
-        "lifetime": { "type": "number", "minimum": 0.05, "maximum": 3600 },
-        "emitterShape": { "enum": ["point", "box", "sphere", "ring", "line"] },
-        "emitterPosition": { "$ref": "#/$defs/vec3" },
-        "emitterSize": { "$ref": "#/$defs/vec3" },
-        "emitterSpread": { "type": "number", "minimum": 0, "maximum": 180 },
-        "velocity": { "$ref": "#/$defs/vec3" },
-        "gravity": { "$ref": "#/$defs/vec3" },
-        "drag": { "type": "number", "minimum": 0, "maximum": 10 },
-        "turbulence": { "type": "number", "minimum": 0, "maximum": 10 },
-        "turbulenceScale": { "type": "number", "minimum": 0.01, "maximum": 100 },
-        "startColor": { "$ref": "#/$defs/vec3" },
-        "endColor": { "$ref": "#/$defs/vec3" },
-        "startOpacity": { "type": "number", "minimum": 0, "maximum": 1 },
-        "endOpacity": { "type": "number", "minimum": 0, "maximum": 1 },
-        "startSize": { "type": "number", "minimum": 0.01, "maximum": 256 },
-        "endSize": { "type": "number", "minimum": 0.01, "maximum": 256 },
-        "startRotation": { "type": "number", "minimum": -36000, "maximum": 36000 },
-        "endRotation": { "type": "number", "minimum": -36000, "maximum": 36000 },
-        "streakLength": { "type": "number", "minimum": 0.01, "maximum": 5 }
+        "pluginId": { "$ref": "#/$defs/id" },
+        "nodeType": { "$ref": "#/$defs/id" },
+        "apiVersion": { "type": "integer", "minimum": 1 },
+        "parameters": {
+          "type": "object",
+          "maxProperties": 128,
+          "propertyNames": { "pattern": "^[A-Za-z_][A-Za-z0-9_]*$" },
+          "additionalProperties": { "$ref": "#/$defs/sceneGeneratorParameter" }
+        }
       }
     },
     "bezierVertex": {
@@ -525,7 +499,7 @@
               "image",
               "video",
               "mesh",
-              "particle",
+              "generator",
               "precomposition",
               "adjustment",
               "camera",
@@ -1204,10 +1178,10 @@
       }
     },
     {
-      "name": "setParticleSettings",
+      "name": "setSceneGenerator",
       "version": 1,
-      "category": "particles",
-      "description": "Replace the complete bounded GPU particle simulation settings.",
+      "category": "scene-generators",
+      "description": "Replace a scene generator plugin instance and its bounded parameters.",
       "requiredPermissions": ["project.edit"],
       "risk": "reversible",
       "undoable": true,
@@ -1215,11 +1189,11 @@
       "inputSchema": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["type", "layerId", "particle"],
+        "required": ["type", "layerId", "generator"],
         "properties": {
-          "type": { "const": "setParticleSettings" },
+          "type": { "const": "setSceneGenerator" },
           "layerId": { "$ref": "#/$defs/id" },
-          "particle": { "$ref": "#/$defs/particle" }
+          "generator": { "$ref": "#/$defs/sceneGenerator" }
         }
       }
     },

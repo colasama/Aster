@@ -19,7 +19,7 @@ substituting an easier workload or using unmatched timing sources in one perform
 
 - 1080p and 4K 20-layer 2D composite.
 - Large-radius blur, glow, and mixed effect chains.
-- 100,000 and 1,000,000 compute particles.
+- 100,000, 500,000, and 1,000,000 instances through the bundled particle Scene Generator plugin.
 - 3D scene with PBR lights and auxiliary buffers.
 - Hardware decode, seek, frame upload, full-resolution export, and sustained PNG sequence export.
 

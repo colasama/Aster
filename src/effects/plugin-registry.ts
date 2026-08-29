@@ -28,6 +28,7 @@ export function synchronizePluginEffectDefinitions(status: PluginStatus): readon
   if (!status.safeMode) {
     for (const manifest of status.report.plugins) {
       if (status.disabled.includes(manifest.plugin.id)) continue;
+      if (manifest.plugin.kind === "scene_generator") continue;
       try {
         if (pluginIds.has(manifest.plugin.id))
           throw new Error(`Plugin id ${manifest.plugin.id} is installed more than once`);
@@ -124,6 +125,8 @@ export function pluginParameterToEffectParameter(
         kind: "color",
         defaultValue: packRgb(parameter.default),
       };
+    case "vector":
+      throw new Error(`Vector parameter ${parameter.name} is available only to scene generators`);
     case "choice": {
       if (
         parameter.choices.length === 0 ||

@@ -51,7 +51,7 @@ export class CanvasFallbackRenderer {
     const sceneLayers = flattenSceneLayers(composition, project, time);
     for (const scene of sceneLayers.reverse()) {
       const { layer, transform } = scene;
-      if (layer.kind === "camera" || layer.kind === "particle" || layer.kind === "light") continue;
+      if (layer.kind === "camera" || layer.kind === "generator" || layer.kind === "light") continue;
       const media = this.#prepareMedia(layer, scene.localTime, playing, scene.instanceId);
       if (media) activeMedia.add(scene.instanceId);
       context.save();

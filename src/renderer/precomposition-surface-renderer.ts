@@ -17,6 +17,7 @@ import {
   precompositionSurfaceCacheKey,
 } from "./precomposition-surface-plan";
 import { planSceneRenderStack } from "./render-stack";
+import type { PreparedSceneGenerator, SceneGeneratorHost } from "./scene-generator-host";
 import { buildSceneLighting, SCENE_LIGHTING_BYTES } from "./scene-lighting";
 import { IMAGE_VERTEX_BUFFERS } from "./scene-pipelines";
 
@@ -47,6 +48,7 @@ interface SurfaceJob {
   time: number;
   sceneLayers: FlattenedSceneLayer[];
   geometry: ReturnType<typeof buildSceneGeometry>;
+  generators: PreparedSceneGenerator[];
 }
 
 export interface PrecompositionSurfaceFrame {
@@ -66,6 +68,7 @@ interface SurfaceRendererOptions {
   lightingLayout: GPUBindGroupLayout;
   shapePipelines: Record<BlendMode, GPURenderPipeline>;
   imagePipelines: Record<BlendMode, GPURenderPipeline>;
+  sceneGenerators?: SceneGeneratorHost;
 }
 
 /**
@@ -81,6 +84,7 @@ export class PrecompositionSurfaceRenderer {
   readonly #lightingLayout: GPUBindGroupLayout;
   readonly #shapePipelines: Record<BlendMode, GPURenderPipeline>;
   readonly #imagePipelines: Record<BlendMode, GPURenderPipeline>;
+  readonly #sceneGenerators?: SceneGeneratorHost;
   readonly #surfacePipelines: Record<BlendMode, GPURenderPipeline>;
   readonly #shadowTexture: GPUTexture;
   readonly #shadowSampler: GPUSampler;
@@ -101,6 +105,7 @@ export class PrecompositionSurfaceRenderer {
     this.#lightingLayout = options.lightingLayout;
     this.#shapePipelines = options.shapePipelines;
     this.#imagePipelines = options.imagePipelines;
+    this.#sceneGenerators = options.sceneGenerators;
     this.#surfacePipelines = createSurfacePipelines(device, options.mediaLayout);
     this.#shadowTexture = device.createTexture({
       label: "Precomposition surface unshadowed depth",
@@ -236,10 +241,6 @@ export class PrecompositionSurfaceRenderer {
       diagnostics.push(error instanceof Error ? error.message : String(error));
       return;
     }
-    if (childLayers.some((child) => child.layer.kind === "particle")) {
-      diagnostics.push(`${surface.composition.name}: nested GPU particles are not supported`);
-      return;
-    }
     const hasEffects = childLayers.some(
       (child) =>
         child.layer.kind === "adjustment" || child.layer.effects.some((effect) => effect.enabled),
@@ -339,6 +340,21 @@ export class PrecompositionSurfaceRenderer {
       time: surface.time,
       sceneLayers: childLayers,
       geometry,
+      generators: this.#sceneGenerators
+        ? childLayers
+            .filter((child) => this.#sceneGenerators?.supports(child))
+            .map((child) =>
+              this.#sceneGenerators?.prepare(
+                child,
+                surface.composition,
+                entry.width,
+                entry.height,
+                memoryBudgetMb,
+                camera,
+              ),
+            )
+            .filter((generator): generator is PreparedSceneGenerator => Boolean(generator))
+        : [],
     });
   }
 
@@ -472,12 +488,43 @@ export class PrecompositionSurfaceRenderer {
   }
 
   #encodeJob(encoder: GPUCommandEncoder, job: SurfaceJob): void {
-    const { entry, composition, geometry, sceneLayers, time } = job;
+    const { entry, composition, geometry, sceneLayers, time, generators } = job;
+    if (generators.length > 0) {
+      const compute = encoder.beginComputePass({
+        label: `Precomposition scene generators · ${composition.name}`,
+      });
+      for (const generator of generators) this.#sceneGenerators?.encodeCompute(compute, generator);
+      compute.end();
+    }
+    const generatorByInstance = new Map(
+      generators.map((generator) => [generator.instanceId, generator]),
+    );
     const stack = planSceneRenderStack(sceneLayers, geometry.batches);
     let pass: GPURenderPassEncoder | undefined = this.#beginPass(encoder, entry, composition);
     const activeEffects = new Set<string>();
     for (const item of stack) {
-      if (item.kind === "particle") continue;
+      if (item.kind === "generator") {
+        const generator = generatorByInstance.get(item.scene.instanceId);
+        if (!generator) continue;
+        if (item.scene.layer.effects.some((effect) => effect.enabled)) {
+          pass?.end();
+          pass = undefined;
+          activeEffects.add(item.scene.instanceId);
+          entry.effects?.encode(
+            encoder,
+            entry.color.createView(),
+            composition,
+            item.scene.layer,
+            item.scene.instanceId,
+            time,
+            (layerPass) => this.#sceneGenerators?.draw(layerPass, generator),
+          );
+          continue;
+        }
+        pass ??= this.#resumePass(encoder, entry);
+        this.#sceneGenerators?.draw(pass, generator);
+        continue;
+      }
       if (item.kind === "adjustment") {
         if (!item.scene.layer.effects.some((effect) => effect.enabled)) continue;
         pass?.end();
