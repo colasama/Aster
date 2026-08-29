@@ -49,6 +49,10 @@ reads the same post-processed GPU result. Debug buffer visualization is not a pr
 background render mode. Video sources use deterministic seek-and-await synchronization; Canvas and
 WebGPU both wait for current-generation media before accepting readback pixels.
 
+Hidden workers never downgrade a queued job to Canvas 2D. Background output requires the WebGPU
+production beauty backend and reports `render_host_webgpu_unavailable` when it cannot initialize;
+this prevents an incomplete compatibility frame from being atomically published as a successful job.
+
 Pause and cancel controls are correlated by both job and lease and are observed only after all output
 writes for the current frame finish. A paused retry or failed task restarts from frame zero under a new
 lease. A renderer crash, unexpected close, load failure, or stale report cannot complete the item.

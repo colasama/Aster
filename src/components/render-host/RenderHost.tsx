@@ -13,9 +13,9 @@ import {
   createViewportBeautyFrameBackend,
   ProductionBeautyFramePipeline,
 } from "../../renderer/beauty-frame";
-import { CanvasFallbackRenderer } from "../../renderer/canvas-fallback";
 import { encodeRawFramePng } from "../../renderer/raw-frame-png";
 import { WebGpuRenderer } from "../../renderer/webgpu-renderer";
+import { createProductionRenderHostRenderer, renderHostFailure } from "./render-host-renderer";
 import {
   mergeRenderHostControl,
   runRenderHostFrameLoop,
@@ -49,7 +49,7 @@ export function RenderHost() {
         validated.project,
         validated.manifest.renderMediaSnapshot ?? EMPTY_RENDER_MEDIA_SNAPSHOT,
       );
-      let renderer: WebGpuRenderer | CanvasFallbackRenderer | undefined;
+      let renderer: WebGpuRenderer | undefined;
       let audioRuntime:
         | { cache: AudioDecodeCache; context: OfflineAudioContext; abort: AbortController }
         | undefined;
@@ -57,10 +57,7 @@ export function RenderHost() {
         if (stopped) return;
         canvas.width = validated.manifest.width;
         canvas.height = validated.manifest.height;
-        renderer = await WebGpuRenderer.create(canvas).catch((error: unknown) => {
-          logger.error("render_host", "webgpu_fallback_activated", error);
-          return new CanvasFallbackRenderer(canvas);
-        });
+        renderer = await createProductionRenderHostRenderer(canvas, WebGpuRenderer.create);
         if (stopped) return;
         const pipeline = new ProductionBeautyFramePipeline(
           createViewportBeautyFrameBackend(renderer, canvas),
@@ -120,13 +117,13 @@ export function RenderHost() {
     })().catch(async (error: unknown) => {
       logger.error("render_host", "session_failed", error, correlation);
       if (!correlation) return;
+      const failure = renderHostFailure(error);
       await host
         .report({
           type: "failed",
           ...correlation,
           error: {
-            code: "render_host_failed",
-            message: error instanceof Error ? error.message : String(error),
+            ...failure,
             correlationId: crypto.randomUUID(),
           },
         })

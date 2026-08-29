@@ -1,11 +1,34 @@
 import { describe, expect, it, vi } from "vitest";
 import { captureAfterExactFrameResources } from "./exact-frame-resource-barrier";
-import { shouldReportGpuDeviceLoss } from "./webgpu-renderer";
+import { releaseFailedWebGpuInitialization, shouldReportGpuDeviceLoss } from "./webgpu-renderer";
 
 describe("exact-frame resource capture", () => {
   it("suppresses intentional device loss after renderer disposal only", () => {
     expect(shouldReportGpuDeviceLoss(true)).toBe(false);
     expect(shouldReportGpuDeviceLoss(false)).toBe(true);
+    expect(shouldReportGpuDeviceLoss(false, true)).toBe(false);
+  });
+
+  it("releases a failed WebGPU initialization without destroying the device twice", () => {
+    const device = { destroy: vi.fn() };
+    const renderer = { dispose: vi.fn() };
+
+    releaseFailedWebGpuInitialization(renderer, device);
+    expect(renderer.dispose).toHaveBeenCalledOnce();
+    expect(device.destroy).not.toHaveBeenCalled();
+
+    releaseFailedWebGpuInitialization(undefined, device);
+    expect(device.destroy).toHaveBeenCalledOnce();
+
+    const failingRenderer = {
+      dispose: vi.fn(() => {
+        throw new Error("dispose failed");
+      }),
+    };
+    expect(() => releaseFailedWebGpuInitialization(failingRenderer, device)).toThrow(
+      "dispose failed",
+    );
+    expect(device.destroy).toHaveBeenCalledTimes(2);
   });
 
   it("keeps cached frames on one capture after the resource error barrier", async () => {

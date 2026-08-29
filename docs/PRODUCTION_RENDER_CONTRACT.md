@@ -53,6 +53,11 @@ then capture the beauty output. Compositions without video can use up to three o
 readbacks. The Canvas 2D fallback rejects deterministic video export instead of encoding a stale
 decoded frame.
 
+The isolated background RenderHost requires WebGPU. Canvas 2D remains an interactive compatibility
+backend, but it does not implement the complete production 3D, effect, depth-of-field, motion-blur,
+and linear-HDR pass graph. A WebGPU initialization failure therefore fails the queued job with the
+actionable `render_host_webgpu_unavailable` code instead of publishing valid-looking fallback pixels.
+
 Exact-frame capture also treats initial image decode, SVG rasterization, and image-sequence frame
 decode as frame dependencies. A current-generation resource barrier ignores stale completions,
 propagates decode failures and timeouts, and requires a redraw before accepting pixels whenever the

@@ -68,8 +68,27 @@ const MAX_SHAPE_VERTICES = 6 * 128;
 const SCENE_FORMAT: GPUTextureFormat = "rgba16float";
 const DEFAULT_SHADOW_MAP_SIZE = 1024;
 
-export function shouldReportGpuDeviceLoss(rendererDisposed: boolean): boolean {
-  return !rendererDisposed;
+export function shouldReportGpuDeviceLoss(
+  rendererDisposed: boolean,
+  initializationAborted = false,
+): boolean {
+  return !rendererDisposed && !initializationAborted;
+}
+
+export function releaseFailedWebGpuInitialization(
+  renderer: { dispose(): void } | undefined,
+  device: Pick<GPUDevice, "destroy">,
+): void {
+  if (!renderer) {
+    device.destroy();
+    return;
+  }
+  try {
+    renderer.dispose();
+  } catch (error) {
+    device.destroy();
+    throw error;
+  }
 }
 
 export class WebGpuRenderer {
@@ -299,42 +318,56 @@ export class WebGpuRenderer {
       );
     });
     let renderer: WebGpuRenderer | undefined;
+    let initializationAborted = false;
     void device.lost.then((info) => {
-      if (!shouldReportGpuDeviceLoss(renderer ? renderer.#disposed : false)) return;
+      if (!shouldReportGpuDeviceLoss(renderer ? renderer.#disposed : false, initializationAborted))
+        return;
       logger.warn("webgpu", "device_lost", { reason: info.reason, message: info.message });
     });
-    const format = navigator.gpu.getPreferredCanvasFormat();
-    const [, precompile] = await Promise.all([
-      validateShaderSources(device),
-      precompileGpuPipelines(device, format, [bundledParticleDefinition]),
-    ]);
-    const context = canvas.getContext("webgpu");
-    if (!context) throw new Error("Unable to create a WebGPU canvas context");
-    const info = adapter.info;
-    const diagnostics: GpuDiagnostics = {
-      available: true,
-      adapter: info.device || info.description || "High-performance adapter",
-      architecture: info.architecture || "native",
-      description: `${info.vendor || "GPU"} · ${info.description || info.device || "WebGPU"}`,
-      maxTextureSize: device.limits.maxTextureDimension2D,
-      timestampQueries,
-      pipelineCompileMs: precompile.durationMs,
-      prewarmedPipelines: precompile.count,
-    };
-    device.pushErrorScope("validation");
-    renderer = new WebGpuRenderer(device, context, format, diagnostics, invalidate);
-    const validationError = await device.popErrorScope();
-    if (validationError)
-      throw new Error(`WebGPU renderer validation failed: ${validationError.message}`);
-    logger.info("webgpu", "initialized", {
-      adapter: diagnostics.adapter,
-      architecture: diagnostics.architecture,
-      timestampQueries,
-      maxTextureSize: diagnostics.maxTextureSize,
-      prewarmedPipelines: diagnostics.prewarmedPipelines,
-      pipelineCompileMs: diagnostics.pipelineCompileMs,
-    });
-    return renderer;
+    try {
+      const format = navigator.gpu.getPreferredCanvasFormat();
+      const [, precompile] = await Promise.all([
+        validateShaderSources(device),
+        precompileGpuPipelines(device, format, [bundledParticleDefinition]),
+      ]);
+      const context = canvas.getContext("webgpu");
+      if (!context) throw new Error("Unable to create a WebGPU canvas context");
+      const info = adapter.info;
+      const diagnostics: GpuDiagnostics = {
+        available: true,
+        adapter: info.device || info.description || "High-performance adapter",
+        architecture: info.architecture || "native",
+        description: `${info.vendor || "GPU"} · ${info.description || info.device || "WebGPU"}`,
+        maxTextureSize: device.limits.maxTextureDimension2D,
+        timestampQueries,
+        pipelineCompileMs: precompile.durationMs,
+        prewarmedPipelines: precompile.count,
+      };
+      device.pushErrorScope("validation");
+      renderer = new WebGpuRenderer(device, context, format, diagnostics, invalidate);
+      const validationError = await device.popErrorScope();
+      if (validationError)
+        throw new Error(`WebGPU renderer validation failed: ${validationError.message}`);
+      logger.info("webgpu", "initialized", {
+        adapter: diagnostics.adapter,
+        architecture: diagnostics.architecture,
+        timestampQueries,
+        maxTextureSize: diagnostics.maxTextureSize,
+        prewarmedPipelines: diagnostics.prewarmedPipelines,
+        pipelineCompileMs: diagnostics.pipelineCompileMs,
+      });
+      return renderer;
+    } catch (error) {
+      initializationAborted = true;
+      try {
+        releaseFailedWebGpuInitialization(renderer, device);
+      } catch (cleanupError) {
+        logger.warn("webgpu", "initialization_cleanup_failed", {
+          error: cleanupError instanceof Error ? cleanupError.message : String(cleanupError),
+        });
+      }
+      throw error;
+    }
   }
   resize(width: number, height: number): void {
     this.#assertActive();
