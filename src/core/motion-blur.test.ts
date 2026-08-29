@@ -25,7 +25,7 @@ describe("motion blur", () => {
     expect(interval.duration).toBeCloseTo(0.5 / 24);
     expect(interval.sampleTimes).toHaveLength(8);
     expect(interval.sampleTimes[0]).toBeGreaterThan(interval.openTime);
-    expect(interval.sampleTimes.at(-1)).toBeLessThan(interval.closeTime);
+    expect(interval.sampleTimes[interval.sampleTimes.length - 1]).toBeLessThan(interval.closeTime);
   });
 
   it("uses time-addressed shutter endpoints rather than render history", () => {
