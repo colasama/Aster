@@ -1,10 +1,20 @@
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { GraphSampleBuffer } from "../core/graph-sampling";
+import {
+  copyKeyframes,
+  type EditableKeyframe,
+  selectedKeyframes as findSelectedKeyframes,
+  type KeyframeClipboard,
+  pasteKeyframes,
+  removeKeyframes,
+} from "../core/keyframe-editing";
 import type { PropertyPath } from "../core/operations";
 import { activeComposition } from "../core/project";
 import type { Keyframe } from "../core/types";
 import { useI18n } from "../i18n/react";
 import { useEditor } from "../state/editor-store";
+import { useContextMenuTrigger } from "./context-menu/use-context-menu-trigger";
+import { GraphContextMenu } from "./GraphContextMenu";
 import {
   collectAnimatedGraphTracks,
   type GraphCurve,
@@ -39,6 +49,7 @@ import {
 } from "./graph-editor/viewport";
 
 const POINTER_EPSILON = 0.000_001;
+type TransformKeyframeEntry = Extract<EditableKeyframe, { source: "transform" }>;
 
 export { graphMarkerRadii } from "./graph-editor/viewport";
 
@@ -54,6 +65,8 @@ export function GraphEditor() {
   const resetKeyRef = useRef(resetKey);
   const tracks = useMemo(() => collectAnimatedGraphTracks(layer), [layer]);
   const [graphType, setGraphType] = useState<GraphType>("auto");
+  const [keyframeClipboard, setKeyframeClipboard] = useState<KeyframeClipboard>();
+  const contextMenu = useContextMenuTrigger();
   const [hiddenTracks, setHiddenTracks] = useState<Set<PropertyPath>>(() => new Set());
   const [timeRange, setTimeRange] = useState<GraphTimeRange>(() => ({
     start: 0,
@@ -103,6 +116,10 @@ export function GraphEditor() {
     () => displayedTracks.filter((track) => !hiddenTracks.has(track.id)),
     [displayedTracks, hiddenTracks],
   );
+  const visibleTrackPaths = useMemo(
+    () => new Set(tracks.filter((track) => !hiddenTracks.has(track.id)).map((track) => track.path)),
+    [hiddenTracks, tracks],
+  );
   const curves = useMemo(
     () =>
       visibleTracks.map((track) => {
@@ -124,6 +141,25 @@ export function GraphEditor() {
   const keyRadii = graphMarkerRadii(viewportSize.width, viewportSize.height, 5);
   const handleRadii = graphMarkerRadii(viewportSize.width, viewportSize.height, 4);
   const pixelsPerSecond = viewportSize.width / Math.max(timeRange.end - timeRange.start, 1e-9);
+  const selectedEntries = useMemo(
+    () =>
+      findSelectedKeyframes(composition, state.selectedKeyframes).filter(
+        (entry): entry is TransformKeyframeEntry =>
+          entry.source === "transform" &&
+          entry.layerId === layer?.id &&
+          visibleTrackPaths.has(entry.path),
+      ),
+    [composition, layer?.id, state.selectedKeyframes, visibleTrackPaths],
+  );
+  const canEditSelection = Boolean(layer && !layer.locked && selectedEntries.length);
+  const canPasteClipboard =
+    Boolean(keyframeClipboard) &&
+    Boolean(
+      keyframeClipboard?.entries.every((entry) => {
+        const target = composition.layers.find((candidate) => candidate.id === entry.layerId);
+        return Boolean(target && !target.locked);
+      }),
+    );
 
   const updateKeyframe = (
     track: GraphTrack,
@@ -340,7 +376,41 @@ export function GraphEditor() {
     );
     setAutoZoomHeight(true);
   };
+  const setSelectedInterpolation = (
+    interpolation: "linear" | "bezier" | "step",
+    easing?: [number, number, number, number],
+  ) => {
+    if (!canEditSelection) return;
+    dispatch({
+      type: "operation",
+      operations: selectedEntries.map((entry) => ({
+        type: "updateKeyframe" as const,
+        layerId: entry.layerId,
+        path: entry.path,
+        keyframeId: entry.keyframe.id,
+        time: entry.keyframe.time,
+        value: entry.keyframe.value,
+        interpolation,
+        easing: interpolation === "bezier" ? (easing ?? entry.keyframe.easing) : undefined,
+        spatialIn: entry.keyframe.spatialIn,
+        spatialOut: entry.keyframe.spatialOut,
+      })),
+    });
+  };
+  const copySelection = () => setKeyframeClipboard(copyKeyframes(selectedEntries));
+  const pasteSelection = () => {
+    if (!keyframeClipboard || !canPasteClipboard) return;
+    const pasted = pasteKeyframes(keyframeClipboard, state.currentTime, composition.duration);
+    dispatch({ type: "operation", operations: pasted.operations });
+    dispatch({ type: "selectKeyframes", ids: pasted.selectedIds });
+  };
+  const deleteSelection = () => {
+    if (!canEditSelection) return;
+    dispatch({ type: "operation", operations: removeKeyframes(selectedEntries) });
+    dispatch({ type: "selectKeyframes", ids: [] });
+  };
   const surfaceKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
+    if (contextMenu.openFromKeyboard(event)) return;
     const frameDirection = event.key === "ArrowLeft" ? -1 : event.key === "ArrowRight" ? 1 : 0;
     if (frameDirection) {
       event.preventDefault();
@@ -443,6 +513,7 @@ export function GraphEditor() {
         <div
           aria-label={t("graph.a11y")}
           className="graph-surface"
+          onContextMenu={contextMenu.openFromPointer}
           onKeyDown={surfaceKeyDown}
           role="application"
           /* biome-ignore lint/a11y/noNoninteractiveTabindex: The graph canvas is an application-style keyboard interaction surface. */
@@ -601,7 +672,21 @@ export function GraphEditor() {
                       className={selected ? "graph-key selected" : "graph-key"}
                       cx={point.x}
                       cy={point.y}
-                      onKeyDown={(event) => keyboardEditKeyframe(event, curve, keyframe)}
+                      onKeyDown={(event) => {
+                        if (
+                          event.key === "ContextMenu" ||
+                          (event.shiftKey && event.key === "F10")
+                        ) {
+                          if (!selected) dispatch({ type: "selectKeyframes", ids: [keyframe.id] });
+                          contextMenu.openFromKeyboard(event);
+                          return;
+                        }
+                        keyboardEditKeyframe(event, curve, keyframe);
+                      }}
+                      onContextMenu={(event) => {
+                        if (!selected) dispatch({ type: "selectKeyframes", ids: [keyframe.id] });
+                        contextMenu.openFromPointer(event);
+                      }}
                       onPointerDown={(event) => startKeyframeDrag(event, curve, keyframe)}
                       role="button"
                       rx={keyRadii.x}
@@ -622,6 +707,28 @@ export function GraphEditor() {
             />
           </svg>
         </div>
+        {contextMenu.point && (
+          <GraphContextMenu
+            canEdit={canEditSelection}
+            canPaste={canPasteClipboard}
+            copy={copySelection}
+            delete={deleteSelection}
+            disabledReason={layer?.locked ? t("graph.menu.locked") : t("graph.menu.noSelection")}
+            easyEase={() => setSelectedInterpolation("bezier", [0.16, 1, 0.3, 1])}
+            fitAll={fitAll}
+            fitSelection={fitSelection}
+            graphType={graphType}
+            hasClipboard={Boolean(keyframeClipboard)}
+            hasSelection={selectedEntries.length > 0}
+            hasTracks={visibleTracks.length > 0}
+            onClose={contextMenu.close}
+            paste={pasteSelection}
+            setGraphType={setGraphType}
+            setInterpolation={setSelectedInterpolation}
+            x={contextMenu.point.x}
+            y={contextMenu.point.y}
+          />
+        )}
       </div>
     </div>
   );

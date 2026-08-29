@@ -158,6 +158,11 @@
 .number-field input::-webkit-inner-spin-button {
   display: none;
 }
+.number-field input:focus-visible,
+.slider-property input[type="number"]:focus-visible {
+  outline: 1px solid #5f8ff2;
+  outline-offset: 1px;
+}
 .number-field small {
   margin-right: 2px;
   color: #515662;

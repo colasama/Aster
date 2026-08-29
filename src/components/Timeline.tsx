@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { sharedAudioPlaybackEngine } from "../core/audio-playback-engine";
+import { createParticleLayerForComposition } from "../core/bundled-particle";
 import {
   copyKeyframes,
   selectedKeyframes as findSelectedKeyframes,
@@ -25,7 +26,9 @@ import {
   pasteKeyframes,
   removeKeyframes,
 } from "../core/keyframe-editing";
+import { createLayerForComposition } from "../core/layer-factory";
 import { logger } from "../core/logger";
+import { planPrecomposition } from "../core/precomposition";
 import { activeComposition } from "../core/project";
 import { frameAt } from "../core/timeline";
 import {
@@ -36,8 +39,10 @@ import {
 import type { Layer } from "../core/types";
 import { useI18n } from "../i18n/react";
 import { useEditor } from "../state/editor-store";
+import { useContextMenuTrigger } from "./context-menu/use-context-menu-trigger";
 import { GraphEditor } from "./GraphEditor";
 import { Panel, PanelTabs } from "./Panel";
+import { TimelineContextMenu, type TimelineCreateKind } from "./TimelineContextMenu";
 import { collectTimelineLayerKeyframes, TimelineLayerRow } from "./TimelineLayerRow";
 import { TimelineWorkArea } from "./TimelineWorkArea";
 import {
@@ -53,6 +58,7 @@ import {
   timelineContentPoint,
   timelineMarqueeRect,
 } from "./timeline-interactions";
+import { duplicateTimelineLayers } from "./timeline-layer-clipboard";
 import type { KeyframeTimePreview } from "./timeline-property-tracks";
 import { useWindowPointerDrag } from "./use-window-pointer-drag";
 
@@ -77,6 +83,9 @@ export function Timeline() {
   const canvasRef = useRef<HTMLDivElement>(null);
   const dragLayer = useRef<string | undefined>(undefined);
   const [keyframeClipboard, setKeyframeClipboard] = useState<KeyframeClipboard>();
+  const [layerClipboard, setLayerClipboard] = useState<Layer[]>();
+  const [menuLayerId, setMenuLayerId] = useState<string>();
+  const contextMenu = useContextMenuTrigger();
   const [keyframeTimePreview, setKeyframeTimePreview] = useState<KeyframeTimePreview>();
   const [timingPreview, setTimingPreview] = useState<TimingPreview>();
   const [marquee, setMarquee] = useState<TimelineMarquee>();
@@ -107,6 +116,41 @@ export function Timeline() {
     () => findSelectedKeyframes(composition, state.selectedKeyframes),
     [composition, state.selectedKeyframes],
   );
+  const selectedLayers = useMemo(
+    () => composition.layers.filter((layer) => state.selection.includes(layer.id)),
+    [composition.layers, state.selection],
+  );
+  const menuLayer = useMemo(
+    () => composition.layers.find((layer) => layer.id === menuLayerId),
+    [composition.layers, menuLayerId],
+  );
+  const contextLayers = useMemo(
+    () => (menuLayer && !state.selection.includes(menuLayer.id) ? [menuLayer] : selectedLayers),
+    [menuLayer, selectedLayers, state.selection],
+  );
+  const editableContextLayers = useMemo(
+    () => contextLayers.filter((layer) => !layer.locked),
+    [contextLayers],
+  );
+  const canDeleteContextLayers =
+    editableContextLayers.length === contextLayers.length &&
+    editableContextLayers.length > 0 &&
+    composition.layers.length - editableContextLayers.length >= 1;
+  const canEditSelectedKeyframes =
+    selectedEntries.length > 0 &&
+    selectedEntries.every(
+      (entry) => !composition.layers.find((layer) => layer.id === entry.layerId)?.locked,
+    );
+  const canInterpolateSelectedKeyframes =
+    canEditSelectedKeyframes && selectedEntries.every((entry) => entry.source === "transform");
+  const canPasteKeyframeClipboard =
+    Boolean(keyframeClipboard) &&
+    Boolean(
+      keyframeClipboard?.entries.every((entry) => {
+        const target = composition.layers.find((layer) => layer.id === entry.layerId);
+        return Boolean(target && !target.locked);
+      }),
+    );
   useEffect(() => {
     if (composition.id) {
       pointerDrag.cancel();
@@ -172,7 +216,7 @@ export function Timeline() {
     setKeyframeClipboard(copyKeyframes(selectedEntries));
   };
   const pasteSelection = () => {
-    if (!keyframeClipboard) return;
+    if (!keyframeClipboard || !canPasteKeyframeClipboard) return;
     const pasted = pasteKeyframes(keyframeClipboard, state.currentTime, composition.duration);
     dispatch({ type: "operation", operations: pasted.operations });
     dispatch({ type: "selectKeyframes", ids: pasted.selectedIds });
@@ -181,6 +225,100 @@ export function Timeline() {
     if (!selectedEntries.length) return;
     dispatch({ type: "operation", operations: removeKeyframes(selectedEntries) });
     dispatch({ type: "selectKeyframes", ids: [] });
+  };
+  const copyContextLayers = () => {
+    if (contextLayers.length) setLayerClipboard(structuredClone(contextLayers));
+  };
+  const pasteContextLayers = () => {
+    if (!layerClipboard?.length) return;
+    const layers = duplicateTimelineLayers(layerClipboard);
+    dispatch({
+      type: "operation",
+      operations: layers.map((layer) => ({ type: "addLayer" as const, layer })),
+      select: layers.map((layer) => layer.id),
+    });
+  };
+  const deleteContextLayers = () => {
+    if (!canDeleteContextLayers) return;
+    dispatch({
+      type: "operation",
+      operations: editableContextLayers.map((layer) => ({
+        type: "removeLayer" as const,
+        layerId: layer.id,
+      })),
+      select: [],
+    });
+  };
+  const cutContextLayers = () => {
+    if (!canDeleteContextLayers) return;
+    copyContextLayers();
+    deleteContextLayers();
+  };
+  const duplicateContextLayers = () => {
+    if (!contextLayers.length) return;
+    const layers = duplicateTimelineLayers(contextLayers);
+    dispatch({
+      type: "operation",
+      operations: layers.map((layer) => ({ type: "addLayer" as const, layer })),
+      select: layers.map((layer) => layer.id),
+    });
+  };
+  const renameContextLayer = () => {
+    const target = contextLayers[0];
+    if (!target || contextLayers.length !== 1) return;
+    const name = window.prompt(t("timeline.menu.renamePrompt"), target.name)?.trim();
+    if (!name || name === target.name) return;
+    dispatch({
+      type: "operation",
+      operations: [{ type: "renameLayer", layerId: target.id, name }],
+    });
+  };
+  const precomposeContextLayers = () => {
+    const plan = planPrecomposition(
+      state.project,
+      contextLayers.map((layer) => layer.id),
+    );
+    if (!plan) return;
+    dispatch({
+      type: "operation",
+      operations: [{ type: "precomposeLayers", ...plan }],
+      select: [plan.wrapper.id],
+    });
+  };
+  const createTimelineLayer = (kind: TimelineCreateKind) => {
+    const layer =
+      kind === "generator"
+        ? createParticleLayerForComposition(composition, state.currentTime)
+        : createLayerForComposition(kind, composition, state.currentTime);
+    dispatch({
+      type: "operation",
+      operations: [{ type: "addLayer", layer }],
+      select: [layer.id],
+    });
+  };
+  const setSelectedInterpolation = (interpolation: "linear" | "bezier" | "step") => {
+    if (!canInterpolateSelectedKeyframes) return;
+    dispatch({
+      type: "operation",
+      operations: selectedEntries.flatMap((entry) =>
+        entry.source === "transform"
+          ? [
+              {
+                type: "updateKeyframe" as const,
+                layerId: entry.layerId,
+                path: entry.path,
+                keyframeId: entry.keyframe.id,
+                time: entry.keyframe.time,
+                value: entry.keyframe.value,
+                interpolation,
+                easing: interpolation === "bezier" ? entry.keyframe.easing : undefined,
+                spatialIn: entry.keyframe.spatialIn,
+                spatialOut: entry.keyframe.spatialOut,
+              },
+            ]
+          : [],
+      ),
+    });
   };
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -533,7 +671,24 @@ export function Timeline() {
       {state.bottomMode === "graph" ? (
         <GraphEditor />
       ) : (
-        <div className="timeline-scroll" ref={scrollRef}>
+        <div
+          aria-label={t("timeline.menu.emptyLabel")}
+          className="timeline-scroll"
+          onContextMenu={(event) => {
+            if ((event.target as Element).closest("[data-timeline-row]")) return;
+            setMenuLayerId(undefined);
+            contextMenu.openFromPointer(event);
+          }}
+          onKeyDown={(event) => {
+            if (event.target !== event.currentTarget) return;
+            setMenuLayerId(undefined);
+            contextMenu.openFromKeyboard(event);
+          }}
+          ref={scrollRef}
+          role="application"
+          /* biome-ignore lint/a11y/noNoninteractiveTabindex: The timeline canvas is an application-style keyboard interaction surface. */
+          tabIndex={0}
+        >
           <div
             className="timeline-canvas"
             ref={canvasRef}
@@ -603,6 +758,20 @@ export function Timeline() {
                     dragLayer.current = undefined;
                   }}
                   onKeyframeTimePreview={setKeyframeTimePreview}
+                  onContextMenu={(event) => {
+                    if (!state.selection.includes(layer.id))
+                      dispatch({ type: "select", ids: [layer.id] });
+                    setMenuLayerId(layer.id);
+                    contextMenu.openFromPointer(event);
+                  }}
+                  onContextMenuKeyDown={(event) => {
+                    if (event.key !== "ContextMenu" && !(event.shiftKey && event.key === "F10"))
+                      return;
+                    if (!state.selection.includes(layer.id))
+                      dispatch({ type: "select", ids: [layer.id] });
+                    setMenuLayerId(layer.id);
+                    contextMenu.openFromKeyboard(event);
+                  }}
                   onMarqueeStart={(event) => startMarquee(event, index)}
                   onTimingDragStart={(event, mode) => startLayerTimingDrag(event, layer, mode)}
                   pixelsPerSecond={pixelsPerSecond}
@@ -623,6 +792,49 @@ export function Timeline() {
             </div>
           </div>
         </div>
+      )}
+      {contextMenu.point && (
+        <TimelineContextMenu
+          canDeleteLayers={canDeleteContextLayers}
+          canEditKeyframes={canEditSelectedKeyframes}
+          canInterpolate={canInterpolateSelectedKeyframes}
+          canPasteKeyframes={canPasteKeyframeClipboard}
+          canPasteLayers={Boolean(layerClipboard?.length)}
+          copyKeyframes={copySelection}
+          copyLayers={copyContextLayers}
+          createLayer={createTimelineLayer}
+          cutLayers={cutContextLayers}
+          deleteKeyframes={deleteSelection}
+          deleteLayers={deleteContextLayers}
+          duplicateLayers={duplicateContextLayers}
+          hasKeyframeSelection={selectedEntries.length > 0}
+          hasKeyframeClipboard={Boolean(keyframeClipboard)}
+          hasSource={Boolean(menuLayer?.sourceId || menuLayer?.sourceCompositionId)}
+          is3d={Boolean(menuLayer?.threeDimensional)}
+          isAdjustment={menuLayer?.kind === "adjustment"}
+          isLayerTarget={Boolean(menuLayer)}
+          locked={contextLayers.some((layer) => layer.locked)}
+          onClose={contextMenu.close}
+          openGraph={() => dispatch({ type: "setBottomMode", mode: "graph" })}
+          pasteKeyframes={pasteSelection}
+          pasteLayers={pasteContextLayers}
+          precompose={precomposeContextLayers}
+          rename={renameContextLayer}
+          revealSource={() => dispatch({ type: "setLeftTab", tab: "project" })}
+          selectedLayerCount={contextLayers.length}
+          setInterpolation={setSelectedInterpolation}
+          toggle3d={() => {
+            if (!menuLayer) return;
+            dispatch({
+              type: "operation",
+              operations: [
+                { type: "toggleLayer", layerId: menuLayer.id, field: "threeDimensional" },
+              ],
+            });
+          }}
+          x={contextMenu.point.x}
+          y={contextMenu.point.y}
+        />
       )}
     </Panel>
   );

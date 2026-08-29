@@ -86,6 +86,10 @@
   overflow: auto;
   background: #111216;
 }
+.timeline-scroll:focus-visible {
+  outline: 1px solid #5f8ff2;
+  outline-offset: -1px;
+}
 .timeline-canvas {
   position: relative;
   min-height: 100%;

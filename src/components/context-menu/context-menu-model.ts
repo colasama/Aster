@@ -6,6 +6,7 @@ interface ContextMenuItemBase {
   icon?: ReactNode;
   shortcut?: string;
   disabled?: boolean;
+  disabledReason?: string;
   destructive?: boolean;
 }
 
@@ -46,26 +47,30 @@ export type ContextMenuItem =
 
 export type ContextMenuItemDefinition<Context> =
   | ContextMenuSeparator
-  | (Omit<ContextMenuCommand, "disabled" | "onSelect"> & {
+  | (Omit<ContextMenuCommand, "disabled" | "disabledReason" | "onSelect"> & {
       when?: (context: Context) => boolean;
       disabled?: boolean | ((context: Context) => boolean);
+      disabledReason?: string | ((context: Context) => string | undefined);
       onSelect: (context: Context) => void;
     })
-  | (Omit<ContextMenuCheckbox, "checked" | "disabled" | "onSelect"> & {
+  | (Omit<ContextMenuCheckbox, "checked" | "disabled" | "disabledReason" | "onSelect"> & {
       when?: (context: Context) => boolean;
       checked: boolean | ((context: Context) => boolean);
       disabled?: boolean | ((context: Context) => boolean);
+      disabledReason?: string | ((context: Context) => string | undefined);
       onSelect: (context: Context) => void;
     })
-  | (Omit<ContextMenuRadio, "checked" | "disabled" | "onSelect"> & {
+  | (Omit<ContextMenuRadio, "checked" | "disabled" | "disabledReason" | "onSelect"> & {
       when?: (context: Context) => boolean;
       checked: boolean | ((context: Context) => boolean);
       disabled?: boolean | ((context: Context) => boolean);
+      disabledReason?: string | ((context: Context) => string | undefined);
       onSelect: (context: Context) => void;
     })
-  | (Omit<ContextMenuSubmenu, "disabled" | "items"> & {
+  | (Omit<ContextMenuSubmenu, "disabled" | "disabledReason" | "items"> & {
       when?: (context: Context) => boolean;
       disabled?: boolean | ((context: Context) => boolean);
+      disabledReason?: string | ((context: Context) => string | undefined);
       items: ContextMenuItemDefinition<Context>[];
     });
 
@@ -81,6 +86,7 @@ export function resolveContextMenu<Context>(
     }
     if (definition.when && !definition.when(context)) continue;
     const disabled = resolveFlag(definition.disabled, context);
+    const disabledReason = disabled ? resolveValue(definition.disabledReason, context) : undefined;
     if (definition.kind === "submenu") {
       const items = normalizeSeparators(resolveContextMenu(definition.items, context));
       if (items.length > 0)
@@ -92,6 +98,7 @@ export function resolveContextMenu<Context>(
           shortcut: definition.shortcut,
           destructive: definition.destructive,
           disabled,
+          disabledReason,
           items,
         });
       continue;
@@ -106,6 +113,7 @@ export function resolveContextMenu<Context>(
         shortcut: definition.shortcut,
         destructive: definition.destructive,
         disabled,
+        disabledReason,
         onSelect,
       });
       continue;
@@ -118,6 +126,7 @@ export function resolveContextMenu<Context>(
       destructive: definition.destructive,
       checked: resolveFlag(definition.checked, context),
       disabled,
+      disabledReason,
       onSelect,
     };
     resolved.push(
@@ -147,4 +156,11 @@ function resolveFlag<Context>(
   context: Context,
 ): boolean {
   return typeof value === "function" ? value(context) : Boolean(value);
+}
+
+function resolveValue<Context>(
+  value: string | ((context: Context) => string | undefined) | undefined,
+  context: Context,
+): string | undefined {
+  return typeof value === "function" ? value(context) : value;
 }

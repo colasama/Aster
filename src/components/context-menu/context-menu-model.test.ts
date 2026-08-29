@@ -12,6 +12,7 @@ describe("context menu model", () => {
           kind: "command",
           label: "Rename",
           disabled: (context: { locked: boolean }) => context.locked,
+          disabledReason: (context) => (context.locked ? "Layer is locked" : undefined),
           onSelect: rename,
         },
         {
@@ -30,6 +31,20 @@ describe("context menu model", () => {
     if (item?.kind !== "command") throw new Error("Expected command");
     item.onSelect();
     expect(rename).toHaveBeenCalledWith({ locked: false });
+    const lockedItems = resolveContextMenu(
+      [
+        {
+          id: "rename",
+          kind: "command",
+          label: "Rename",
+          disabled: (context: { locked: boolean }) => context.locked,
+          disabledReason: (context) => (context.locked ? "Layer is locked" : undefined),
+          onSelect: rename,
+        },
+      ],
+      { locked: true },
+    );
+    expect(lockedItems[0]).toMatchObject({ disabled: true, disabledReason: "Layer is locked" });
   });
 
   it("normalizes nested groups and computes checked and disabled state", () => {

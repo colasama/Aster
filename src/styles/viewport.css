@@ -57,6 +57,10 @@
 .viewport-space.panning {
   cursor: grabbing;
 }
+.viewport-space:focus-visible {
+  outline: 1px solid #5f8ff2;
+  outline-offset: -1px;
+}
 .stage-centering {
   min-width: 100%;
   min-height: 100%;

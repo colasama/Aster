@@ -224,6 +224,7 @@ function MenuSurface({
                 item.kind === "checkbox" || item.kind === "radio" ? item.checked : undefined
               }
               aria-disabled={item.disabled || undefined}
+              aria-description={item.disabled ? item.disabledReason : undefined}
               aria-expanded={item.kind === "submenu" ? submenuOpen : undefined}
               aria-haspopup={item.kind === "submenu" ? "menu" : undefined}
               className={`${item.destructive ? "destructive" : ""} ${submenuOpen ? "submenu-open" : ""}`}
@@ -240,6 +241,7 @@ function MenuSurface({
               }}
               role={role}
               tabIndex={index === activeIndex ? 0 : -1}
+              title={item.disabled ? item.disabledReason : undefined}
               type="button"
             >
               <span aria-hidden="true" className="context-menu-mark">

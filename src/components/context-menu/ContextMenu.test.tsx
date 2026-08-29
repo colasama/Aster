@@ -33,7 +33,14 @@ describe("ContextMenu", () => {
     const run = vi.fn();
     const close = vi.fn();
     const items: ContextMenuItem[] = [
-      { id: "disabled", kind: "command", label: "Disabled", disabled: true, onSelect: vi.fn() },
+      {
+        id: "disabled",
+        kind: "command",
+        label: "Disabled",
+        disabled: true,
+        disabledReason: "Nothing is selected",
+        onSelect: vi.fn(),
+      },
       { id: "run", kind: "command", label: "Run", onSelect: run },
     ];
     act(() =>
@@ -43,6 +50,9 @@ describe("ContextMenu", () => {
     );
     const menu = document.body.querySelector('[role="menu"]');
     expect(menu?.getAttribute("aria-label")).toBe("Layer menu");
+    const disabled = document.body.querySelector('[aria-disabled="true"]');
+    expect(disabled?.getAttribute("title")).toBe("Nothing is selected");
+    expect(disabled?.getAttribute("aria-description")).toBe("Nothing is selected");
     expect(document.activeElement?.textContent).toBe("Run");
     act(() => (document.activeElement as HTMLButtonElement).click());
     expect(run).toHaveBeenCalledOnce();

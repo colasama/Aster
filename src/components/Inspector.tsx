@@ -17,7 +17,7 @@ import {
   Timer,
   Trash2,
 } from "lucide-react";
-import { useRef, useState } from "react";
+import { type KeyboardEvent, type MouseEvent, useRef, useState } from "react";
 import { evaluateLayerSourceTime } from "../core/layer-time";
 import { getProperty, type PropertyPath } from "../core/operations";
 import { activeComposition } from "../core/project";
@@ -33,8 +33,10 @@ import { useEditor } from "../state/editor-store";
 import { AiPanel } from "./AiPanel";
 import { AudioControls } from "./AudioControls";
 import { ClonerControls } from "./ClonerControls";
+import { useContextMenuTrigger } from "./context-menu/use-context-menu-trigger";
 import { EffectMaskEditor } from "./EffectMaskEditor";
 import { EffectParameter } from "./EffectParameter";
+import { InspectorPropertyContextMenu } from "./InspectorPropertyContextMenu";
 import { Panel, PanelTabs } from "./Panel";
 import { Scene3dControls } from "./Scene3dControls";
 import { ShapeControls } from "./ShapeControls";
@@ -67,15 +69,23 @@ export function Inspector() {
   const isAdjustment = layer?.kind === "adjustment";
   const [transformOpen, setTransformOpen] = useState(true);
   const [compositingOpen, setCompositingOpen] = useState(false);
+  const [propertyClipboard, setPropertyClipboard] = useState<number>();
+  const [propertyMenuTarget, setPropertyMenuTarget] = useState<{
+    defaultValue: number;
+    label: string;
+    path: PropertyPath;
+    value: number;
+  }>();
+  const contextMenu = useContextMenuTrigger();
   const updateProperty = (path: PropertyPath, value: number) => {
-    if (!layer || isAdjustment || !Number.isFinite(value)) return;
+    if (!layer || layer.locked || isAdjustment || !Number.isFinite(value)) return;
     dispatch({
       type: "operation",
       operations: [{ type: "setProperty", layerId: layer.id, path, value }],
     });
   };
   const addKeyframe = (path: PropertyPath) => {
-    if (!layer || isAdjustment) return;
+    if (!layer || layer.locked || isAdjustment) return;
     const value = evaluateAnimatable(getProperty(layer, path), state.currentTime);
     dispatch({
       type: "operation",
@@ -96,7 +106,7 @@ export function Inspector() {
     });
   };
   const resetTransform = () => {
-    if (!layer || isAdjustment) return;
+    if (!layer || layer.locked || isAdjustment) return;
     const defaults: [PropertyPath, number][] = [
       ["position.0", composition.width / 2],
       ["position.1", composition.height / 2],
@@ -118,6 +128,48 @@ export function Inspector() {
         value,
       })),
     });
+  };
+  const propertyDefault = (path: PropertyPath): number => {
+    if (path === "position.0") return composition.width / 2;
+    if (path === "position.1") return composition.height / 2;
+    if (path.startsWith("scale.") || path === "opacity") return 100;
+    return 0;
+  };
+  const setPropertyMenu = (path: PropertyPath, label: string) => {
+    if (!layer) return;
+    setPropertyMenuTarget({
+      defaultValue: propertyDefault(path),
+      label,
+      path,
+      value: evaluateAnimatable(getProperty(layer, path), state.currentTime),
+    });
+  };
+  const openPropertyPointer = (
+    event: MouseEvent<HTMLElement>,
+    path: PropertyPath,
+    label: string,
+  ) => {
+    setPropertyMenu(path, label);
+    contextMenu.openFromPointer(event);
+  };
+  const openPropertyKeyboard = (
+    event: KeyboardEvent<HTMLElement>,
+    path: PropertyPath,
+    label: string,
+  ) => {
+    if (event.key !== "ContextMenu" && !(event.shiftKey && event.key === "F10")) return;
+    setPropertyMenu(path, label);
+    contextMenu.openFromKeyboard(event);
+  };
+  const hasPropertyKeyframe = (path: PropertyPath): boolean => {
+    if (!layer) return false;
+    const property = getProperty(layer, path);
+    return (
+      property.mode === "animated" &&
+      property.keyframes.some(
+        (keyframe) => Math.abs(keyframe.time - state.currentTime) <= 0.000_001,
+      )
+    );
   };
   return (
     <Panel
@@ -222,6 +274,21 @@ export function Inspector() {
                               {["X", "Y", "Z"][index]}
                             </span>
                             <input
+                              aria-label={`${t(field.labelKey)} ${["X", "Y", "Z"][index]}`}
+                              onContextMenu={(event) =>
+                                openPropertyPointer(
+                                  event,
+                                  path,
+                                  `${t(field.labelKey)} ${["X", "Y", "Z"][index]}`,
+                                )
+                              }
+                              onKeyDown={(event) =>
+                                openPropertyKeyboard(
+                                  event,
+                                  path,
+                                  `${t(field.labelKey)} ${["X", "Y", "Z"][index]}`,
+                                )
+                              }
                               onChange={(event) => updateProperty(path, Number(event.target.value))}
                               type="number"
                               value={
@@ -248,13 +315,27 @@ export function Inspector() {
                     <div className="property-label">{t("inspector.transform.opacity")}</div>
                     <div className="slider-property">
                       <input
+                        aria-label={t("inspector.transform.opacity")}
                         max="100"
                         min="0"
                         onChange={(event) => updateProperty("opacity", Number(event.target.value))}
+                        onContextMenu={(event) =>
+                          openPropertyPointer(event, "opacity", t("inspector.transform.opacity"))
+                        }
+                        onKeyDown={(event) =>
+                          openPropertyKeyboard(event, "opacity", t("inspector.transform.opacity"))
+                        }
                         type="range"
                         value={evaluateAnimatable(layer.transform.opacity, state.currentTime)}
                       />
                       <input
+                        aria-label={t("inspector.transform.opacity")}
+                        onContextMenu={(event) =>
+                          openPropertyPointer(event, "opacity", t("inspector.transform.opacity"))
+                        }
+                        onKeyDown={(event) =>
+                          openPropertyKeyboard(event, "opacity", t("inspector.transform.opacity"))
+                        }
                         onChange={(event) => updateProperty("opacity", Number(event.target.value))}
                         type="number"
                         value={Math.round(
@@ -558,6 +639,50 @@ export function Inspector() {
         </div>
       ) : (
         <div className="empty-inspector">{t("inspector.empty")}</div>
+      )}
+      {layer && propertyMenuTarget && contextMenu.point && (
+        <InspectorPropertyContextMenu
+          addKeyframe={() => addKeyframe(propertyMenuTarget.path)}
+          canEdit={!layer.locked && !isAdjustment}
+          canPaste={propertyClipboard !== undefined}
+          copy={() => setPropertyClipboard(propertyMenuTarget.value)}
+          disabledReason={
+            layer.locked ? t("inspector.menu.locked") : t("inspector.menu.unsupported")
+          }
+          hasKeyframe={hasPropertyKeyframe(propertyMenuTarget.path)}
+          label={propertyMenuTarget.label}
+          onClose={contextMenu.close}
+          paste={() => {
+            if (propertyClipboard !== undefined)
+              updateProperty(propertyMenuTarget.path, propertyClipboard);
+          }}
+          removeKeyframe={() => {
+            const property = getProperty(layer, propertyMenuTarget.path);
+            if (property.mode !== "animated") return;
+            const keyframe = property.keyframes.find(
+              (entry) => Math.abs(entry.time - state.currentTime) <= 0.000_001,
+            );
+            if (!keyframe) return;
+            dispatch({
+              type: "operation",
+              operations: [
+                {
+                  type: "removeKeyframe",
+                  layerId: layer.id,
+                  path: propertyMenuTarget.path,
+                  keyframeId: keyframe.id,
+                },
+              ],
+            });
+          }}
+          reset={() => updateProperty(propertyMenuTarget.path, propertyMenuTarget.defaultValue)}
+          revealInTimeline={() => {
+            dispatch({ type: "select", ids: [layer.id] });
+            dispatch({ type: "setBottomMode", mode: "timeline" });
+          }}
+          x={contextMenu.point.x}
+          y={contextMenu.point.y}
+        />
       )}
     </Panel>
   );

@@ -40,7 +40,9 @@ import { createDefaultBezierPath } from "../renderer/vector-path";
 import { WebGpuRenderer } from "../renderer/webgpu-renderer";
 import { useEditor } from "../state/editor-store";
 import { CameraGizmo } from "./CameraGizmo";
+import { useContextMenuTrigger } from "./context-menu/use-context-menu-trigger";
 import { Panel } from "./Panel";
+import { ViewportContextMenu } from "./ViewportContextMenu";
 
 type Renderer = WebGpuRenderer | CanvasFallbackRenderer;
 
@@ -63,6 +65,7 @@ export function Viewport() {
   const [view, setView] = useState<"active" | "custom">("active");
   const [viewCount, setViewCount] = useState(1);
   const [bufferView, setBufferView] = useState<BufferVisualization>("beauty");
+  const contextMenu = useContextMenuTrigger();
   const previewRestoreRef = useRef({
     bufferView,
     composition,
@@ -420,6 +423,35 @@ export function Viewport() {
       operations: [{ type: "setTextContent", layerId, text: edit.initialText }],
     });
   };
+  const frameBlob = () =>
+    new Promise<Blob>((resolve, reject) => {
+      const canvas = canvasRef.current;
+      if (!canvas) {
+        reject(new Error("Viewport canvas is unavailable"));
+        return;
+      }
+      canvas.toBlob(
+        (blob) => (blob ? resolve(blob) : reject(new Error("Frame capture failed"))),
+        "image/png",
+      );
+    });
+  const copyFrame = () => {
+    void frameBlob()
+      .then((blob) => navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]))
+      .catch((error: unknown) => logger.error("viewport", "copy_frame_failed", error));
+  };
+  const exportFrame = () => {
+    void frameBlob()
+      .then((blob) => {
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.download = `${composition.name}-${Math.round(state.currentTime * 1000)}ms.png`;
+        anchor.href = url;
+        anchor.click();
+        URL.revokeObjectURL(url);
+      })
+      .catch((error: unknown) => logger.error("viewport", "export_frame_failed", error));
+  };
 
   return (
     <Panel
@@ -511,7 +543,10 @@ export function Viewport() {
         </button>
       </div>
       <div
+        aria-label={t("viewport.menu.label")}
         className="viewport-space"
+        onContextMenu={contextMenu.openFromPointer}
+        onKeyDown={contextMenu.openFromKeyboard}
         onPointerDown={(event) => {
           if (
             event.button === 0 &&
@@ -600,6 +635,9 @@ export function Viewport() {
             zoom: state.viewportZoom * (event.deltaY < 0 ? 1.12 : 1 / 1.12),
           });
         }}
+        role="application"
+        /* biome-ignore lint/a11y/noNoninteractiveTabindex: The composition canvas is an application-style keyboard interaction surface. */
+        tabIndex={0}
       >
         <div className={`stage-centering ${viewCount === 2 ? "multiview" : ""}`}>
           <div
@@ -960,6 +998,43 @@ export function Viewport() {
           )}
         </div>
       </div>
+      {contextMenu.point && (
+        <ViewportContextMenu
+          bufferView={bufferView}
+          canCopyFrame={
+            rendererReady &&
+            typeof ClipboardItem !== "undefined" &&
+            typeof navigator.clipboard?.write === "function"
+          }
+          canExportFrame={rendererReady}
+          copyFrame={copyFrame}
+          copyUnavailableReason={
+            rendererReady
+              ? t("viewport.menu.clipboardUnavailable")
+              : t("viewport.menu.rendererUnavailable")
+          }
+          exportFrame={exportFrame}
+          exportUnavailableReason={t("viewport.menu.rendererUnavailable")}
+          onClose={contextMenu.close}
+          previewQuality={state.previewQuality}
+          setBufferView={setBufferView}
+          setPreviewQuality={(quality) => dispatch({ type: "setPreviewQuality", quality })}
+          setViewCount={setViewCount}
+          setZoom={(zoom) => dispatch({ type: "setViewportZoom", zoom })}
+          showGrid={state.showGrid}
+          showGuides={state.showGuides}
+          showLayerControls={state.showLayerControls}
+          showOrigin={state.showOrigin}
+          toggleGrid={() => dispatch({ type: "toggleView", view: "grid" })}
+          toggleGuides={() => dispatch({ type: "toggleView", view: "guides" })}
+          toggleLayerControls={() => dispatch({ type: "toggleView", view: "layerControls" })}
+          toggleOrigin={() => dispatch({ type: "toggleView", view: "origin" })}
+          viewCount={viewCount}
+          x={contextMenu.point.x}
+          y={contextMenu.point.y}
+          zoom={state.viewportZoom}
+        />
+      )}
       <div className="viewport-status">
         <button
           aria-label={t("viewport.zoomOut")}

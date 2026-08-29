@@ -18,7 +18,12 @@ import {
   Volume2,
   VolumeX,
 } from "lucide-react";
-import { type PointerEvent as ReactPointerEvent, useState } from "react";
+import {
+  type KeyboardEvent as ReactKeyboardEvent,
+  type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent,
+  useState,
+} from "react";
 import type { activeComposition } from "../core/project";
 import type { Keyframe, Layer } from "../core/types";
 import { useI18n } from "../i18n/react";
@@ -51,6 +56,8 @@ export function TimelineLayerRow({
   onDragEnd,
   onDrop,
   onKeyframeTimePreview,
+  onContextMenu,
+  onContextMenuKeyDown,
   onMarqueeStart,
   onTimingDragStart,
   pixelsPerSecond,
@@ -67,6 +74,8 @@ export function TimelineLayerRow({
   onDragEnd: () => void;
   onDrop: () => void;
   onKeyframeTimePreview: (preview?: KeyframeTimePreview) => void;
+  onContextMenu: (event: ReactMouseEvent<HTMLDivElement>) => void;
+  onContextMenuKeyDown: (event: ReactKeyboardEvent<HTMLDivElement>) => void;
   onMarqueeStart: (event: ReactPointerEvent) => void;
   onTimingDragStart: (event: ReactPointerEvent, mode: LayerTimingDrag) => void;
   pixelsPerSecond: number;
@@ -87,6 +96,12 @@ export function TimelineLayerRow({
     <div
       className={`timeline-layer ${selected ? "selected" : ""}`}
       data-timeline-row={index}
+      onContextMenu={(event) => {
+        event.currentTarget
+          .querySelector<HTMLElement>(".layer-label")
+          ?.focus({ preventScroll: true });
+        onContextMenu(event);
+      }}
       onDragOver={(event) => event.preventDefault()}
       onDragEnd={onDragEnd}
       onDrop={onDrop}
@@ -104,6 +119,7 @@ export function TimelineLayerRow({
           dispatch({ type: "select", ids });
         }}
         onKeyDown={(event) => {
+          onContextMenuKeyDown(event);
           if (event.key === "Enter" || event.key === " ") {
             event.preventDefault();
             dispatch({ type: "select", ids: [layer.id] });
