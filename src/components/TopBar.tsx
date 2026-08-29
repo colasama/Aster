@@ -199,6 +199,8 @@ export function TopBar() {
     const layerTypes: Partial<Record<MenuItemId, LayerKind>> = {
       newText: "text",
       newShape: "shape",
+      newSolid: "solid",
+      newNull: "null",
       newMesh: "mesh",
       newCamera: "camera",
       newLight: "light",

@@ -28,6 +28,8 @@ export const topBarEn = {
   "topbar.item.importMesh": "Import glTF / GLB…",
   "topbar.item.newText": "New Text Layer",
   "topbar.item.newShape": "New Shape Layer",
+  "topbar.item.newSolid": "New Solid Layer",
+  "topbar.item.newNull": "New Null Object",
   "topbar.item.newMesh": "New 3D Object",
   "topbar.item.newCamera": "New Camera",
   "topbar.item.newLight": "New Light",

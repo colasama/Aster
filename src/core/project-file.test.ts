@@ -13,6 +13,40 @@ import { serializeProject, storeRecoverySnapshot, validateProjectDocument } from
 import type { ProjectFolder } from "./types";
 
 describe("project document boundary", () => {
+  it("roundtrips canonical solid sources and transform-only null layers", () => {
+    const project = createBlankProject();
+    const composition = project.compositions[0];
+    const solid = createLayerForComposition("solid", composition);
+    const nullLayer = createLayerForComposition("null", composition);
+    solid.parentId = nullLayer.id;
+    nullLayer.threeDimensional = true;
+    composition.layers = [nullLayer, solid];
+
+    const roundtrip = validateProjectDocument(JSON.parse(serializeProject(project)));
+    expect(roundtrip.schemaVersion).toBe(3);
+    expect(roundtrip.compositions[0].layers).toEqual([nullLayer, solid]);
+  });
+
+  it("rejects missing, oversized, and internally inconsistent solid sources", () => {
+    const project = createBlankProject();
+    const solid = createLayerForComposition("solid", project.compositions[0]);
+    project.compositions[0].layers = [solid];
+    solid.solid = undefined;
+    expect(() => validateProjectDocument(project)).toThrow("solid is required");
+
+    solid.solid = { width: 30_001, height: 100, color: [1, 1, 1, 1] };
+    solid.size = [30_001, 100];
+    solid.color = [1, 1, 1, 1];
+    expect(() => validateProjectDocument(project)).toThrow("solid.width must be an integer");
+
+    solid.solid.width = 100;
+    expect(() => validateProjectDocument(project)).toThrow("size must mirror");
+    solid.size = [100, 100];
+    solid.solid.color = [1, 1, 1, 2];
+    solid.color = [1, 1, 1, 2];
+    expect(() => validateProjectDocument(project)).toThrow("channels from 0 through 1");
+  });
+
   it("reports recovery storage exhaustion for an unsaved browser project", async () => {
     const storage = {
       getItem: () => null,

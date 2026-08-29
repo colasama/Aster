@@ -23,7 +23,7 @@ use zip::{CompressionMethod, ZipArchive, ZipWriter, write::SimpleFileOptions};
 
 pub const PROJECT_FILE: &str = "project.json";
 pub const AUTOSAVE_FILE: &str = "project.autosave.json";
-pub const EDITOR_SCHEMA_VERSION: u64 = 2;
+pub const EDITOR_SCHEMA_VERSION: u64 = 3;
 const MIN_EDITOR_SCHEMA_VERSION: u64 = 1;
 const MAX_PACKED_ENTRIES: usize = 4_096;
 const MAX_PACKED_BYTES: u64 = 2 * 1024 * 1024 * 1024;
@@ -457,7 +457,7 @@ mod tests {
 
     fn editor_project() -> Value {
         serde_json::json!({
-            "schemaVersion": 2,
+            "schemaVersion": 3,
             "id": Uuid::new_v4().to_string(),
             "name": "Editor roundtrip",
             "activeCompositionId": "main",
@@ -478,7 +478,7 @@ mod tests {
     }
 
     #[test]
-    fn editor_bundle_reads_v1_for_renderer_side_migration_but_writes_only_v2() {
+    fn editor_bundle_reads_legacy_versions_but_writes_only_current() {
         let directory = std::env::temp_dir().join(format!("aster-editor-v1-{}", Uuid::new_v4()));
         fs::create_dir_all(&directory).unwrap();
         let mut legacy = editor_project();
@@ -494,7 +494,22 @@ mod tests {
             save_editor_bundle(&directory, &legacy),
             Err(ProjectError::UnsupportedSchema {
                 found: 1,
-                supported: 2
+                supported: 3
+            })
+        ));
+        let mut previous = editor_project();
+        previous["schemaVersion"] = Value::from(2);
+        fs::write(
+            directory.join(PROJECT_FILE),
+            serde_json::to_vec_pretty(&previous).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(load_editor_bundle(&directory).unwrap(), previous);
+        assert!(matches!(
+            save_editor_bundle(&directory, &previous),
+            Err(ProjectError::UnsupportedSchema {
+                found: 2,
+                supported: 3
             })
         ));
         fs::remove_dir_all(directory).unwrap();

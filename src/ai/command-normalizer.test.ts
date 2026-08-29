@@ -10,6 +10,44 @@ import { createBlankComposition, createBlankProject } from "../core/project";
 import { normalizeAiCommands } from "./command-normalizer";
 
 describe("AI command normalization", () => {
+  it("creates and updates bounded solid sources while keeping nulls source-free", () => {
+    const project = createBlankProject();
+    const added = normalizeAiCommands(
+      [
+        {
+          type: "addLayer",
+          kind: "solid",
+          solid: { width: 1920, height: 1080, color: [0.1, 0.2, 0.3, 1] },
+        },
+        { type: "addLayer", kind: "null" },
+      ],
+      project,
+      0,
+    );
+    const solid = added.project.compositions[0].layers.find((layer) => layer.kind === "solid");
+    const nullLayer = added.project.compositions[0].layers.find((layer) => layer.kind === "null");
+    expect(solid?.solid).toEqual({ width: 1920, height: 1080, color: [0.1, 0.2, 0.3, 1] });
+    expect(nullLayer?.solid).toBeUndefined();
+    if (!solid) throw new Error("Expected solid layer");
+    const updated = normalizeAiCommands(
+      [
+        {
+          type: "setSolidSettings",
+          layerId: solid.id,
+          solid: { width: 800, height: 600, color: [0.8, 0.7, 0.6, 0.5] },
+        },
+      ],
+      added.project,
+      0,
+    );
+    expect(
+      updated.project.compositions[0].layers.find((layer) => layer.id === solid.id),
+    ).toMatchObject({
+      solid: { width: 800, height: 600, color: [0.8, 0.7, 0.6, 0.5] },
+      size: [800, 600],
+    });
+  });
+
   it("validates and atomically applies a typed command batch", () => {
     const project = createBlankProject();
     const layer = project.compositions[0].layers[0];

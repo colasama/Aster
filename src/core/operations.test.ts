@@ -18,6 +18,29 @@ import {
 import type { Lut3dResource } from "./types";
 
 describe("structured project operations", () => {
+  it("updates dedicated solid settings atomically and preserves them through copy-safe snapshots", () => {
+    const project = createBlankProject();
+    const composition = activeComposition(project);
+    const solid = createLayerForComposition("solid", composition);
+    composition.layers = [solid];
+    const updated = applyOperations(project, [
+      {
+        type: "setSolidSettings",
+        layerId: solid.id,
+        solid: { width: 40_000, height: 0, color: [-1, 0.25, 2, 0.5] },
+      },
+    ]);
+    expect(activeComposition(updated).layers[0]).toMatchObject({
+      solid: { width: 30_000, height: 1, color: [0, 0.25, 1, 0.5] },
+      size: [30_000, 1],
+      color: [0, 0.25, 1, 0.5],
+    });
+    const recolored = applyOperations(updated, [
+      { type: "setLayerColor", layerId: solid.id, color: [0.1, 0.2, 0.3, 0.4] },
+    ]);
+    expect(activeComposition(recolored).layers[0].solid?.color).toEqual([0.1, 0.2, 0.3, 0.4]);
+  });
+
   it("adds strict adjustment layers and rejects source-layer mutations", () => {
     const source = createDemoProject();
     const composition = activeComposition(source);

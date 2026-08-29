@@ -100,7 +100,8 @@ Three persistence domains have independent version boundaries:
 2. Plugin preferences migrate the legacy unversioned document to version 1 before plugin discovery.
 3. Project loading runs through a sequential migration registry. The v1 to v2 transform converts
    legacy `particle` layers into built-in `generator` layers while preserving their identity,
-   timing, transforms, cloners, and settings. Older unsupported or future versions fail without
+   timing, transforms, cloners, and settings. The v2 to v3 transform introduces explicit null and
+   solid source semantics without rewriting prior layers. Older unsupported or future versions fail without
    modifying their source document.
 
 Migrations must be deterministic, operate on a clone, validate their output version, preserve a

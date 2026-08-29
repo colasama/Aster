@@ -7,6 +7,20 @@ import { buildSceneGeometry } from "./geometry";
 import { planSceneRenderStack } from "./render-stack";
 
 describe("scene render-stack planning", () => {
+  it("omits null layers and their effects from the GPU stack", () => {
+    const project = createBlankProject();
+    const composition = project.compositions[0];
+    const nullLayer = createLayerForComposition("null", composition);
+    nullLayer.effects = [
+      { id: "null-effect", type: "glow", name: "Glow", enabled: true, parameters: {} },
+    ];
+    composition.layers = [nullLayer];
+    const scene = flattenSceneLayers(composition, project, 0);
+    const geometry = buildSceneGeometry(composition, scene);
+    expect(planSceneRenderStack(scene, geometry.batches)).toEqual([]);
+    expect(geometry.batches).toEqual([]);
+  });
+
   it("routes lower geometry, adjustment, then upper geometry", () => {
     const project = createBlankProject();
     const composition = project.compositions[0];

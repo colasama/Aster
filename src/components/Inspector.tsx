@@ -38,6 +38,7 @@ import { EffectParameter } from "./EffectParameter";
 import { Panel, PanelTabs } from "./Panel";
 import { Scene3dControls } from "./Scene3dControls";
 import { ShapeControls } from "./ShapeControls";
+import { SolidControls } from "./SolidControls";
 import { TextControls } from "./TextControls";
 
 const fields: { labelKey: PlainMessageKey; paths: PropertyPath[]; suffix: string }[] = [
@@ -546,6 +547,7 @@ export function Inspector() {
                   </label>
                   <Scene3dControls layer={layer} />
                   <ShapeControls layer={layer} />
+                  <SolidControls layer={layer} />
                   <ClonerControls layer={layer} />
                   <TextControls layer={layer} />
                   <AudioControls layer={layer} />

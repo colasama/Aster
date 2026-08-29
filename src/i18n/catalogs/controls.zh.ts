@@ -1,6 +1,10 @@
 import type { controlsEn } from "./controls.en";
 
 export const controlsZh = {
+  "solid.width": "纯色宽度",
+  "solid.height": "纯色高度",
+  "solid.color": "纯色颜色",
+  "solid.opacity": "纯色不透明度 %",
   "audio.preview": "预览音频",
   "audio.gain": "音频增益",
   "cloner.enable": "启用程序化克隆器",

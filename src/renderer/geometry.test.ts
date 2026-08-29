@@ -6,6 +6,40 @@ import { buildSceneGeometry, FLOATS_PER_VERTEX, VERTEX_FLOAT_OFFSETS } from "./g
 import { createDefaultBezierPath } from "./vector-path";
 
 describe("GPU scene geometry", () => {
+  it("emits an untextured solid quad and never emits null pixels or effect geometry", () => {
+    const project = createBlankProject();
+    const composition = project.compositions[0];
+    const solid = createLayerForComposition("solid", composition);
+    const nullLayer = createLayerForComposition("null", composition);
+    if (!solid.solid) throw new Error("Expected solid settings");
+    solid.solid = { width: 640, height: 320, color: [0.2, 0.4, 0.6, 0.8] };
+    solid.size = [1, 1];
+    solid.color = [1, 0, 0, 1];
+    nullLayer.effects.push({
+      id: "null-glow",
+      type: "glow",
+      name: "Glow",
+      enabled: true,
+      parameters: {},
+    });
+    nullLayer.threeDimensional = true;
+    composition.layers = [nullLayer, solid];
+
+    const geometry = buildSceneGeometry(composition, flattenSceneLayers(composition, project, 0));
+    expect(geometry.batches).toHaveLength(1);
+    expect(geometry.batches[0]).toMatchObject({ layer: solid, vertexCount: 6 });
+    expect(geometry.data[VERTEX_FLOAT_OFFSETS.mediaType]).toBe(0);
+    expect(geometry.data[VERTEX_FLOAT_OFFSETS.color]).toBeCloseTo(0.2);
+    expect(geometry.data[VERTEX_FLOAT_OFFSETS.color + 3]).toBeCloseTo(0.8);
+    expect(geometry.data[VERTEX_FLOAT_OFFSETS.position]).toBeCloseTo(-640 / composition.width);
+    expect(geometry.data[VERTEX_FLOAT_OFFSETS.position + 1]).toBeCloseTo(320 / composition.height);
+    expect(geometry.data[VERTEX_FLOAT_OFFSETS.material + 3]).toBe(0);
+
+    solid.threeDimensional = true;
+    const geometry3d = buildSceneGeometry(composition, flattenSceneLayers(composition, project, 0));
+    expect(geometry3d.data[VERTEX_FLOAT_OFFSETS.material + 3]).toBe(1);
+  });
+
   it("projects 3D rotation and depth into screen-space vertices", () => {
     const project = createBlankProject();
     const composition = project.compositions[0];

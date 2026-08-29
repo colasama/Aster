@@ -30,6 +30,8 @@ export const panelsZh = {
   "project.add.composition": "合成",
   "project.add.text": "文本",
   "project.add.shape": "形状",
+  "project.add.solid": "纯色",
+  "project.add.null": "空对象",
   "project.add.adjustment": "调整图层",
   "project.add.mesh": "3D",
   "project.add.generator": "生成器",

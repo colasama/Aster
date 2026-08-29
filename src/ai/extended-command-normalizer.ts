@@ -16,6 +16,7 @@ import {
   type Project,
   type SceneGeneratorInstance,
   type ShapeSettings,
+  type SolidSettings,
   type TextStyle,
 } from "../core/types";
 
@@ -173,6 +174,13 @@ export function normalizeExtendedAiCommand(
     case "setLayerColor":
       requireLayer(layer, layerId);
       return { type: "setLayerColor", layerId, color: [...(input.color as Layer["color"])] };
+    case "setSolidSettings":
+      requireLayerKind(layer, layerId, "solid");
+      return {
+        type: "setSolidSettings",
+        layerId,
+        solid: structuredClone(input.solid as SolidSettings),
+      };
     case "setLayerAsset": {
       requireLayer(layer, layerId);
       const sourceLayerId = optionalId(input.sourceLayerId);

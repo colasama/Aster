@@ -28,6 +28,8 @@ export const panelsEn = {
   "project.add.composition": "Composition",
   "project.add.text": "Text",
   "project.add.shape": "Shape",
+  "project.add.solid": "Solid",
+  "project.add.null": "Null",
   "project.add.adjustment": "Adjustment",
   "project.add.mesh": "3D",
   "project.add.generator": "Generator",

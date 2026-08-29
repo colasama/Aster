@@ -22,6 +22,21 @@
       "maxItems": 4,
       "items": { "type": "number", "minimum": 0, "maximum": 16 }
     },
+    "solidSettings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["width", "height", "color"],
+      "properties": {
+        "width": { "type": "integer", "minimum": 1, "maximum": 30000 },
+        "height": { "type": "integer", "minimum": 1, "maximum": 30000 },
+        "color": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": { "type": "number", "minimum": 0, "maximum": 1 }
+        }
+      }
+    },
     "propertyPath": {
       "enum": [
         "position.0",
@@ -495,6 +510,8 @@
           "kind": {
             "enum": [
               "shape",
+              "solid",
+              "null",
               "text",
               "image",
               "video",
@@ -508,7 +525,8 @@
           },
           "name": { "type": "string", "minLength": 1, "maxLength": 256 },
           "text": { "type": "string", "maxLength": 20000 },
-          "sourceCompositionId": { "$ref": "#/$defs/id" }
+          "sourceCompositionId": { "$ref": "#/$defs/id" },
+          "solid": { "$ref": "#/$defs/solidSettings" }
         }
       }
     },
@@ -1134,6 +1152,26 @@
           "type": { "const": "setLayerColor" },
           "layerId": { "$ref": "#/$defs/id" },
           "color": { "$ref": "#/$defs/color4" }
+        }
+      }
+    },
+    {
+      "name": "setSolidSettings",
+      "version": 1,
+      "category": "layers",
+      "description": "Replace the bounded dimensions and RGBA color of a solid layer.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "layerId", "solid"],
+        "properties": {
+          "type": { "const": "setSolidSettings" },
+          "layerId": { "$ref": "#/$defs/id" },
+          "solid": { "$ref": "#/$defs/solidSettings" }
         }
       }
     },

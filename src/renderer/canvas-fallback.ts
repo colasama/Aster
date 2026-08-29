@@ -1,6 +1,7 @@
 import { configurePreviewVideoAudio } from "../core/audio-preview";
 import { evaluateLayerSourceTime } from "../core/layer-time";
 import { flattenSceneLayers } from "../core/scene-evaluation";
+import { solidRenderColor, solidRenderSize } from "../core/solid-layer";
 import type { Composition, GpuDiagnostics, Layer, Project, RendererMetrics } from "../core/types";
 import { drawTextLayer } from "./text-rasterizer";
 
@@ -49,22 +50,33 @@ export class CanvasFallbackRenderer {
     const scale = this.#width / composition.width;
     const activeMedia = new Set<string>();
     const sceneLayers = flattenSceneLayers(composition, project, time);
+    let drawCalls = 0;
     for (const scene of sceneLayers.reverse()) {
       const { layer, transform } = scene;
-      if (layer.kind === "camera" || layer.kind === "generator" || layer.kind === "light") continue;
+      if (
+        layer.kind === "camera" ||
+        layer.kind === "generator" ||
+        layer.kind === "light" ||
+        layer.kind === "adjustment" ||
+        layer.kind === "null"
+      )
+        continue;
+      drawCalls += 1;
+      const resolvedColor = solidRenderColor(layer);
+      const resolvedSize = solidRenderSize(layer);
       const media = this.#prepareMedia(layer, scene.localTime, playing, scene.instanceId);
       if (media) activeMedia.add(scene.instanceId);
       context.save();
       context.globalCompositeOperation = canvasBlendMode(layer.blendMode);
       context.translate(transform.position[0] * scale, transform.position[1] * scale);
       context.rotate((transform.rotation[2] * Math.PI) / 180);
-      context.globalAlpha = transform.opacity * layer.color[3];
-      context.fillStyle = `rgb(${layer.color
+      context.globalAlpha = transform.opacity * resolvedColor[3];
+      context.fillStyle = `rgb(${resolvedColor
         .slice(0, 3)
         .map((channel) => Math.round(channel * 255))
         .join(" ")})`;
-      const width = (layer.size[0] * transform.scale[0] * scale) / 100;
-      const height = (layer.size[1] * transform.scale[1] * scale) / 100;
+      const width = (resolvedSize[0] * transform.scale[0] * scale) / 100;
+      const height = (resolvedSize[1] * transform.scale[1] * scale) / 100;
       if (layer.kind === "text") {
         context.translate(-width / 2, -height / 2);
         drawTextLayer(
@@ -85,7 +97,7 @@ export class CanvasFallbackRenderer {
       fps: Math.min(60, 1000 / Math.max(cpuMs, 16.67)),
       frameMs: Math.max(cpuMs, 16.67),
       cpuMs,
-      drawCalls: sceneLayers.length,
+      drawCalls,
       passCount: 1,
       dirtyNodes: sceneLayers.length,
       cacheHitRate: 0,

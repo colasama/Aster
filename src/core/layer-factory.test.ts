@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createParticleLayerForComposition } from "./bundled-particle";
-import { createGeneratorLayerForComposition } from "./layer-factory";
+import { createGeneratorLayerForComposition, createLayerForComposition } from "./layer-factory";
 import { createBlankComposition } from "./project";
 
 describe("scene-generator layer construction", () => {
@@ -35,5 +35,35 @@ describe("scene-generator layer construction", () => {
         apiVersion: 1,
       },
     });
+  });
+});
+
+describe("null and solid layer construction", () => {
+  it("creates a selectable transform-only null without a render source", () => {
+    const composition = createBlankComposition();
+    const layer = createLayerForComposition("null", composition, 1.5);
+    expect(layer).toMatchObject({
+      kind: "null",
+      name: "Null Object",
+      visible: true,
+      inPoint: 1.5,
+      threeDimensional: false,
+      solid: undefined,
+    });
+    expect(
+      layer.transform.position.map((axis) => (axis.mode === "static" ? axis.value : NaN)),
+    ).toEqual([composition.width / 2, composition.height / 2, 0]);
+  });
+
+  it("creates a composition-sized solid with a dedicated bounded source", () => {
+    const composition = createBlankComposition();
+    const layer = createLayerForComposition("solid", composition);
+    expect(layer.solid).toEqual({
+      width: composition.width,
+      height: composition.height,
+      color: [0.3, 0.55, 1, 1],
+    });
+    expect(layer.size).toEqual([composition.width, composition.height]);
+    expect(layer.color).toEqual(layer.solid?.color);
   });
 });

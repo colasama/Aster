@@ -1,4 +1,5 @@
 import { createCanonicalAdjustmentTransform } from "./adjustment-layer";
+import { MAX_SOLID_DIMENSION } from "./solid-layer";
 import { createDefaultTextAnimator } from "./text-animator";
 import type { Composition, Layer, LayerKind, SceneGeneratorInstance } from "./types";
 import { createId, createTransform } from "./types";
@@ -6,6 +7,8 @@ import { createId, createTransform } from "./types";
 export type StandardLayerKind = Exclude<LayerKind, "generator">;
 
 const names: Record<LayerKind, string> = {
+  null: "Null Object",
+  solid: "Solid Layer",
   shape: "Shape Layer",
   text: "New Text",
   image: "Image Layer",
@@ -39,6 +42,14 @@ function createLayer(kind: LayerKind, composition: Composition, currentTime: num
   const isCamera = kind === "camera";
   const isText = kind === "text";
   const isAdjustment = kind === "adjustment";
+  const solid =
+    kind === "solid"
+      ? {
+          width: Math.min(composition.width, MAX_SOLID_DIMENSION),
+          height: Math.min(composition.height, MAX_SOLID_DIMENSION),
+          color: [0.3, 0.55, 1, 1] as const,
+        }
+      : undefined;
   return {
     id: createId(),
     name: names[kind],
@@ -53,18 +64,31 @@ function createLayer(kind: LayerKind, composition: Composition, currentTime: num
     inPoint: currentTime,
     outPoint: composition.duration,
     blendMode: "normal",
-    color: isAdjustment ? [0, 0, 0, 0] : isText ? [0.95, 0.97, 1, 1] : [0.3, 0.55, 1, 1],
+    color: solid
+      ? [...solid.color]
+      : isAdjustment
+        ? [0, 0, 0, 0]
+        : isText
+          ? [0.95, 0.97, 1, 1]
+          : kind === "null"
+            ? [0, 0, 0, 0]
+            : [0.3, 0.55, 1, 1],
     size: isCamera
       ? [0, 0]
-      : isAdjustment
-        ? [composition.width, composition.height]
-        : isText
-          ? [1200, 260]
-          : [720, 720],
+      : solid
+        ? [solid.width, solid.height]
+        : isAdjustment
+          ? [composition.width, composition.height]
+          : isText
+            ? [1200, 260]
+            : kind === "null"
+              ? [100, 100]
+              : [720, 720],
     transform: isAdjustment
       ? createCanonicalAdjustmentTransform(composition)
       : createTransform([composition.width / 2, composition.height / 2, 0]),
     effects: [],
+    solid: solid ? { ...solid, color: [...solid.color] } : undefined,
     material:
       kind === "mesh"
         ? {

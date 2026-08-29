@@ -1,4 +1,5 @@
 import type { FlattenedSceneLayer } from "../core/scene-evaluation";
+import { solidRenderColor, solidRenderSize } from "../core/solid-layer";
 import type { CameraSettings, Composition, EvaluatedTransform, Layer } from "../core/types";
 import {
   flattenBezierPath,
@@ -92,17 +93,19 @@ export function buildSceneGeometry(
     (scene) =>
       scene.layer.kind !== "generator" &&
       scene.layer.kind !== "adjustment" &&
+      scene.layer.kind !== "null" &&
       scene.layer.kind !== "camera" &&
       scene.layer.kind !== "light",
   );
   for (const scene of visible.reverse()) {
     const { layer, transform } = scene;
     const firstVertex = output.length / FLOATS_PER_VERTEX;
+    const resolvedColor = solidRenderColor(layer);
     const color = [
-      layer.kind === "text" ? 1 : Math.min(4, layer.color[0]),
-      layer.kind === "text" ? 1 : Math.min(4, layer.color[1]),
-      layer.kind === "text" ? 1 : Math.min(4, layer.color[2]),
-      layer.color[3] * transform.opacity,
+      layer.kind === "text" ? 1 : Math.min(4, resolvedColor[0]),
+      layer.kind === "text" ? 1 : Math.min(4, resolvedColor[1]),
+      layer.kind === "text" ? 1 : Math.min(4, resolvedColor[2]),
+      resolvedColor[3] * transform.opacity,
     ] as const;
     const layerMaterial = layer.material ?? layer.mesh?.sourceMaterial;
     const material = [
@@ -116,7 +119,7 @@ export function buildSceneGeometry(
           scene.precompositionSurface.composition.width,
           scene.precompositionSurface.composition.height,
         ]
-      : layer.size;
+      : solidRenderSize(layer);
     const width = (sourceSize[0] * transform.scale[0]) / 100;
     const height = (sourceSize[1] * transform.scale[1]) / 100;
     const mediaType = layer.kind === "video" ? 2 : 0;

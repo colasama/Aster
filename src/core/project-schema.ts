@@ -5,7 +5,7 @@ import {
 } from "./bundled-particle";
 import { assertParticleSettings } from "./particle-settings";
 
-export const CURRENT_PROJECT_SCHEMA_VERSION = 2 as const;
+export const CURRENT_PROJECT_SCHEMA_VERSION = 3 as const;
 
 type ProjectDocument = Record<string, unknown>;
 type ProjectMigration = (document: ProjectDocument) => ProjectDocument;
@@ -36,6 +36,13 @@ const PROJECT_MIGRATIONS = new Map<number, ProjectMigration>([
         }
       }
       document.schemaVersion = 2;
+      return document;
+    },
+  ],
+  [
+    2,
+    (document) => {
+      document.schemaVersion = 3;
       return document;
     },
   ],

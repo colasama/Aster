@@ -29,7 +29,7 @@ describe("project schema migration gate", () => {
       schemaVersion: number;
       compositions: Array<{ layers: Array<Record<string, unknown>> }>;
     };
-    expect(migrated.schemaVersion).toBe(2);
+    expect(migrated.schemaVersion).toBe(3);
     expect(migrated.compositions[0].layers[0]).toMatchObject({
       kind: "generator",
       generator: { pluginId: "org.aster.builtin.particles", nodeType: "particle_system" },
@@ -49,7 +49,15 @@ describe("project schema migration gate", () => {
     );
   });
 
-  it.each([3, undefined, 1.5])("rejects unsupported schema %s", (schemaVersion) => {
+  it("migrates v2 documents to v3 without rewriting existing layers", () => {
+    const previous = createBlankProject() as unknown as Record<string, unknown>;
+    previous.schemaVersion = 2;
+    const migrated = cloneCurrentProjectDocument(previous);
+    expect(migrated.schemaVersion).toBe(3);
+    expect(migrated.compositions).toEqual(previous.compositions);
+  });
+
+  it.each([4, undefined, 1.5])("rejects unsupported schema %s", (schemaVersion) => {
     expect(() => cloneCurrentProjectDocument({ schemaVersion })).toThrow("Aster project schema");
   });
 });

@@ -14,6 +14,7 @@ import {
 import { assertSceneGeneratorInstance } from "./scene-generator";
 import type { ShapeGraph } from "./shape-graph";
 import { validateShapeGraph } from "./shape-graph";
+import { applySolidSettings } from "./solid-layer";
 import { normalizeTextAnimatorSettings } from "./text-animator";
 import { insertKeyframe } from "./timeline";
 import { normalizeWorkArea } from "./timeline-editing";
@@ -35,6 +36,7 @@ import type {
   ProjectFolder,
   SceneGeneratorInstance,
   ShapeSettings,
+  SolidSettings,
   TextAnimatorSettings,
   TextStyle,
 } from "./types";
@@ -91,6 +93,7 @@ export type Operation =
   | { type: "setMaterial3d"; layerId: Id; material: Material3d }
   | { type: "setLightSettings"; layerId: Id; light: LightSettings }
   | { type: "setLayerColor"; layerId: Id; color: Layer["color"] }
+  | { type: "setSolidSettings"; layerId: Id; solid: SolidSettings }
   | { type: "setLayerAsset"; layerId: Id; asset?: Layer["asset"] }
   | { type: "setCameraSettings"; layerId: Id; camera: CameraSettings }
   | { type: "setSceneGenerator"; layerId: Id; generator: SceneGeneratorInstance }
@@ -184,6 +187,7 @@ export const OPERATION_TYPES = [
   "setMaterial3d",
   "setLightSettings",
   "setLayerColor",
+  "setSolidSettings",
   "setLayerAsset",
   "setCameraSettings",
   "setSceneGenerator",
@@ -416,9 +420,15 @@ export function applyOperation(project: Project, operation: Operation): void {
       };
       break;
     case "setLayerColor":
-      layer.color = operation.color.map((channel, index) =>
-        clamp(channel, 0, index === 3 ? 1 : 16),
-      ) as Layer["color"];
+      if (layer.kind === "solid" && layer.solid)
+        applySolidSettings(layer, { ...layer.solid, color: operation.color });
+      else
+        layer.color = operation.color.map((channel, index) =>
+          clamp(channel, 0, index === 3 ? 1 : 16),
+        ) as Layer["color"];
+      break;
+    case "setSolidSettings":
+      applySolidSettings(layer, operation.solid);
       break;
     case "setLayerAsset":
       layer.asset = operation.asset ? structuredClone(operation.asset) : undefined;
@@ -712,6 +722,7 @@ function assertAdjustmentOperationSupported(layer: Layer, operation: Operation):
     "setMaterial3d",
     "setLightSettings",
     "setLayerColor",
+    "setSolidSettings",
     "setLayerAsset",
     "setCameraSettings",
     "setSceneGenerator",

@@ -19,6 +19,7 @@ import { assertProjectRenderBoundaries } from "./project-render-boundaries";
 import { cloneCurrentProjectDocument } from "./project-schema";
 import { assertSceneGeneratorInstance } from "./scene-generator";
 import { validateShapeGraph } from "./shape-graph";
+import { MAX_SOLID_DIMENSION } from "./solid-layer";
 import { TEXT_ANIMATOR_LIMITS } from "./text-animator";
 import { normalizeWorkArea } from "./timeline-editing";
 import { type Composition, type Effect, isLayerKind, type Layer, type Project } from "./types";
@@ -38,7 +39,7 @@ interface RecoveryStorage {
 export function validateProjectDocument(value: unknown): Project {
   const current = cloneCurrentProjectDocument(value);
   const project = requireObject(current, "project");
-  if (project.schemaVersion !== 2) throw new Error("Unsupported Aster project schema");
+  if (project.schemaVersion !== 3) throw new Error("Unsupported Aster project schema");
   requireString(project.id, "project.id");
   requireString(project.name, "project.name");
   const activeCompositionId = requireString(
@@ -528,6 +529,34 @@ function validateLayer(
     if (gain < 0 || gain > 1) throw new Error(`${path}.audioGain must be between 0 and 1`);
   }
   if (layer.asset !== undefined) validateAsset(layer.asset, `${path}.asset`);
+  if (layer.solid !== undefined) {
+    if (layer.kind !== "solid") throw new Error(`${path}.solid requires solid layer kind`);
+    const solid = requireObject(layer.solid, `${path}.solid`);
+    for (const field of ["width", "height"] as const) {
+      const dimension = requireFiniteNumber(solid[field], `${path}.solid.${field}`);
+      if (!Number.isSafeInteger(dimension) || dimension < 1 || dimension > MAX_SOLID_DIMENSION)
+        throw new Error(
+          `${path}.solid.${field} must be an integer from 1 through ${MAX_SOLID_DIMENSION}`,
+        );
+    }
+    const solidColor = requireNumberArray(solid.color, `${path}.solid.color`, 4);
+    if (solidColor.length !== 4 || solidColor.some((channel) => channel < 0 || channel > 1))
+      throw new Error(`${path}.solid.color must contain four channels from 0 through 1`);
+    if (
+      !Array.isArray(layer.size) ||
+      layer.size[0] !== solid.width ||
+      layer.size[1] !== solid.height
+    )
+      throw new Error(`${path}.size must mirror the dedicated solid dimensions`);
+    if (
+      !Array.isArray(layer.color) ||
+      layer.color.length !== 4 ||
+      layer.color.some((channel, index) => channel !== solidColor[index])
+    )
+      throw new Error(`${path}.color must mirror the dedicated solid color`);
+  }
+  if (layer.kind === "solid" && layer.solid === undefined)
+    throw new Error(`${path}.solid is required for solid layers`);
   if (layer.text !== undefined && (typeof layer.text !== "string" || layer.text.length > 20_000))
     throw new Error(`${path}.text must be a string at most 20000 characters`);
   requirePositiveNumber(layer.outPoint, `${path}.outPoint`);

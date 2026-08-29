@@ -1,4 +1,4 @@
-# Aster project format v2
+# Aster project format v3
 
 The development editor currently exchanges a readable JSON document named `*.aster.json`. The Rust
 bundle layer stores the same versioned domain model inside an atomically replaced project path. Cache,
@@ -8,7 +8,7 @@ proxy, and preview data are deliberately excluded.
 
 ```json
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "id": "stable-uuid",
   "name": "Project name",
   "activeCompositionId": "stable-uuid",
@@ -33,6 +33,13 @@ safe. An effect may carry per-parameter ordered keyframe tracks without changing
 map. Precomposition layers reference another composition by stable ID. Development image/video
 imports may use bounded `data:` URLs for portable single-file projects; the native bundle layer will
 externalize large media into an asset directory without changing layer references.
+
+Null and solid layers have explicit source semantics. A `null` remains selectable, parentable,
+time-addressable, and 2D/3D-transformable, but emits no render geometry; effects attached to it are
+preserved without producing pixels. A `solid` owns required `solid` settings containing integer
+`width` and `height` from 1 through 30000 plus four normalized RGBA channels. The legacy generic
+`size` and `color` fields mirror those settings for common tooling and are rejected when they drift;
+the dedicated settings are the canonical solid source persisted through copy/save operations.
 
 GPU-generated content uses the generic `generator` layer kind. The project stores only a portable
 plugin reference and bounded parameter values; GPU pipelines and buffers remain runtime-owned:
@@ -84,10 +91,11 @@ worker before their source is admitted to the project document.
 - Readers clone the input and pass it through a sequential `vN -> vN+1` migration registry before
   validating the current `schemaVersion`. The v1 → v2 migration converts legacy `particle` layers
   into `generator` layers backed by `org.aster.builtin.particles` without changing IDs, timing,
-  transforms, cloners, or settings. Older, future, missing, or fractional versions fail before
-  partially applying the document.
-- The native bundle boundary accepts v1 or v2 on read so the renderer can run that migration, but
-  new primary saves and autosaves must already be validated v2 documents.
+  transforms, cloners, or settings. The v2 → v3 migration establishes the explicit null/solid layer
+  vocabulary without rewriting existing layers. Older, future, missing, or fractional versions fail
+  before partially applying the document.
+- The native bundle boundary accepts v1 through v3 on read so the renderer can run migrations, but
+  new primary saves and autosaves must already be validated v3 documents.
 - Every future historical transform must preserve the source document, set exactly the next integer
   version, and gain a compatibility fixture before the current schema version increases.
 - Unknown effect types and parameters must be preserved and disabled when execution is unavailable.

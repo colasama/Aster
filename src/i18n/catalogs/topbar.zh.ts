@@ -30,6 +30,8 @@ export const topBarZh = {
   "topbar.item.importMesh": "导入 glTF / GLB…",
   "topbar.item.newText": "新建文本图层",
   "topbar.item.newShape": "新建形状图层",
+  "topbar.item.newSolid": "新建纯色图层",
+  "topbar.item.newNull": "新建空对象",
   "topbar.item.newMesh": "新建 3D 对象",
   "topbar.item.newCamera": "新建摄像机",
   "topbar.item.newLight": "新建灯光",

@@ -3,6 +3,7 @@ import { createLayerForComposition } from "../core/layer-factory";
 import { applyOperations, type Operation, type PropertyPath } from "../core/operations";
 import { activeComposition } from "../core/project";
 import { validateProjectDocument } from "../core/project-file";
+import { applySolidSettings } from "../core/solid-layer";
 import { createDefaultTextAnimator, normalizeTextAnimatorSettings } from "../core/text-animator";
 import { createId, type LayerKind, type Project } from "../core/types";
 import { createEffect, EFFECT_BY_TYPE } from "../effects/registry";
@@ -26,6 +27,8 @@ const PROPERTY_PATHS = new Set<PropertyPath>([
 
 const AI_LAYER_KINDS = new Set<LayerKind>([
   "shape",
+  "solid",
+  "null",
   "text",
   "image",
   "video",
@@ -91,6 +94,11 @@ function normalizeCommand(
           : createLayerForComposition(kind, composition, finiteTime(currentTime));
       if (typeof input.name === "string") created.name = input.name.trim().slice(0, 256);
       if (typeof input.text === "string" && created.kind === "text") created.text = input.text;
+      if (created.kind === "solid" && input.solid)
+        applySolidSettings(
+          created,
+          structuredClone(input.solid as NonNullable<typeof created.solid>),
+        );
       if (created.kind === "precomposition") {
         const sourceCompositionId = String(input.sourceCompositionId ?? "");
         const source = project.compositions.find(

@@ -28,6 +28,8 @@ export interface Transform {
 }
 
 export type LayerKind =
+  | "null"
+  | "solid"
   | "shape"
   | "text"
   | "image"
@@ -40,6 +42,8 @@ export type LayerKind =
   | "light";
 
 export const LAYER_KINDS = [
+  "null",
+  "solid",
   "shape",
   "text",
   "image",
@@ -135,6 +139,13 @@ export interface Layer {
   shapeGraph?: ShapeGraph;
   textStyle?: TextStyle;
   textAnimator?: TextAnimatorSettings;
+  solid?: SolidSettings;
+}
+
+export interface SolidSettings {
+  width: number;
+  height: number;
+  color: [number, number, number, number];
 }
 
 export interface Material3d {
@@ -300,7 +311,7 @@ export interface ProjectFolder {
 }
 
 export interface Project {
-  schemaVersion: 2;
+  schemaVersion: 3;
   id: Id;
   name: string;
   activeCompositionId: Id;

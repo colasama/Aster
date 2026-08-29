@@ -2,6 +2,7 @@ import {
   Box,
   ChevronDown,
   ChevronRight,
+  CircleDashed,
   Clock3,
   FileImage,
   Film,
@@ -14,6 +15,7 @@ import {
   Shapes,
   SlidersHorizontal,
   Sparkles,
+  Square,
   Star,
   Trash2,
   Type,
@@ -828,6 +830,12 @@ export function ProjectPanel() {
               </button>
               <button onClick={() => addLayer("shape")} type="button">
                 <Shapes size={15} /> {t("project.add.shape")}
+              </button>
+              <button onClick={() => addLayer("solid")} type="button">
+                <Square size={15} /> {t("project.add.solid")}
+              </button>
+              <button onClick={() => addLayer("null")} type="button">
+                <CircleDashed size={15} /> {t("project.add.null")}
               </button>
               <button onClick={() => addLayer("adjustment")} type="button">
                 <SlidersHorizontal size={15} /> {t("project.add.adjustment")}

@@ -1,4 +1,8 @@
 export const controlsEn = {
+  "solid.width": "Solid width",
+  "solid.height": "Solid height",
+  "solid.color": "Solid color",
+  "solid.opacity": "Solid opacity %",
   "audio.preview": "Preview audio",
   "audio.gain": "Audio gain",
   "cloner.enable": "Enable procedural cloner",

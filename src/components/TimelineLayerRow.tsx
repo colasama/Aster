@@ -2,6 +2,7 @@ import {
   Box,
   ChevronDown,
   ChevronRight,
+  CircleDashed,
   Eye,
   EyeOff,
   Film,
@@ -10,6 +11,7 @@ import {
   Layers3,
   Lock,
   LockOpen,
+  Square,
   Type,
   Volume2,
   VolumeX,
@@ -279,6 +281,8 @@ function timelineKeyframeEntry(
 }
 
 function layerIcon(layer: Layer) {
+  if (layer.kind === "null") return CircleDashed;
+  if (layer.kind === "solid") return Square;
   if (layer.kind === "text") return Type;
   if (layer.kind === "video") return Film;
   if (layer.kind === "camera") return Layers3;
