@@ -58,6 +58,9 @@ export type PropertyPath =
   | "scale.0"
   | "scale.1"
   | "scale.2"
+  | "anchor.0"
+  | "anchor.1"
+  | "anchor.2"
   | "camera.pointOfInterest.0"
   | "camera.pointOfInterest.1"
   | "camera.pointOfInterest.2"
@@ -1079,7 +1082,7 @@ export function getProperty(layer: Layer, path: PropertyPath): Animatable {
     return layer.camera[group][Number(component)];
   }
   const [group, component] = path.split(".") as [
-    "position" | "rotation" | "scale",
+    "position" | "rotation" | "scale" | "anchor",
     "0" | "1" | "2",
   ];
   return layer.transform[group][Number(component)];
@@ -1101,7 +1104,7 @@ function setProperty(layer: Layer, path: PropertyPath, value: Animatable): void 
     return;
   }
   const [group, component] = path.split(".") as [
-    "position" | "rotation" | "scale",
+    "position" | "rotation" | "scale" | "anchor",
     "0" | "1" | "2",
   ];
   layer.transform[group][Number(component)] = value;

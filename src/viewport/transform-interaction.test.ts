@@ -4,11 +4,15 @@ import {
   hitTestViewportTransform,
   localToComposition,
   moveAnchorPreservingGeometry,
+  moveViewportSelection,
+  resizeViewportSelection,
   resizeViewportTransform,
+  rotateViewportSelectionFromPointer,
   rotateViewportTransformFromPointer,
   snapViewportPosition,
   ViewportPreviewCoalescer,
   type ViewportTransform2d,
+  viewportSelectionBounds,
   viewportSnapTargets,
   viewportTransformBounds,
 } from "./transform-interaction";
@@ -152,5 +156,48 @@ describe("viewport transform interaction", () => {
     coalescer.flush();
     expect(publish).toHaveBeenLastCalledWith(3);
     expect(callbacks.size).toBe(0);
+  });
+
+  it("moves, snaps, resizes, and rotates multi-selection bounds as one rigid group", () => {
+    const members = [
+      {
+        id: "a",
+        transform: {
+          position: [100, 100] as const,
+          scale: [100, 100] as const,
+          rotation: 0,
+          anchor: [50, 50] as const,
+          size: [100, 100] as const,
+        },
+      },
+      {
+        id: "b",
+        transform: {
+          position: [300, 100] as const,
+          scale: [100, 100] as const,
+          rotation: 0,
+          anchor: [50, 50] as const,
+          size: [100, 100] as const,
+        },
+      },
+    ];
+    expect(viewportSelectionBounds(members)).toEqual({
+      left: 50,
+      top: 50,
+      right: 350,
+      bottom: 150,
+    });
+    const moved = moveViewportSelection(members, [45, 0], viewportSnapTargets([800, 600]), 6, 1);
+    expect(moved.members.map((member) => member.transform.position[0])).toEqual([150, 350]);
+    expect(moved.snapped.map((target) => target.id)).toContain("composition-center-x");
+
+    const resized = resizeViewportSelection(members, "east", [500, 100]);
+    expect(resized[0]?.transform.position[0]).toBeCloseTo(125, 5);
+    expect(resized[1]?.transform.position[0]).toBeCloseTo(425, 5);
+    expect(resized[0]?.transform.scale[0]).toBeCloseTo(150, 5);
+    const rotated = rotateViewportSelectionFromPointer(members, [200, 0], [300, 100], 15);
+    expect(rotated[0]?.transform.position).toEqual([200, 0]);
+    expect(rotated[1]?.transform.position).toEqual([200, 200]);
+    expect(rotated.map((member) => member.transform.rotation)).toEqual([90, 90]);
   });
 });

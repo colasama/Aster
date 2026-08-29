@@ -134,80 +134,86 @@
   letter-spacing: 0.07em;
   text-transform: uppercase;
 }
-.selection-bounds {
+.viewport-transform-controls {
   position: absolute;
   z-index: 4;
-  min-width: 4px;
-  min-height: 4px;
-  border: 1px solid #79a7ff;
-  cursor: move;
+  inset: 0;
+  overflow: visible;
+  pointer-events: none;
   touch-action: none;
-  box-shadow: 0 0 0 1px #102b5e99;
 }
-.selection-bounds.locked {
-  border-color: #ec8d98;
-  cursor: not-allowed;
+.viewport-selection-outline,
+.viewport-selection-group-outline,
+.viewport-rotation-stem,
+.viewport-snap-line {
+  fill: none;
+  pointer-events: none;
+  stroke: #79a7ff;
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
 }
-.selection-bounds .handle {
-  position: absolute;
-  width: 7px;
-  height: 7px;
-  border: 1px solid #31568f;
-  background: #dce9ff;
+.viewport-selection-outline.locked {
+  stroke: #ec8d98;
+  stroke-dasharray: 4 3;
 }
-.selection-bounds .top-left {
-  top: -4px;
-  left: -4px;
+.viewport-selection-group-outline {
+  stroke-dasharray: 3 2;
 }
-.selection-bounds .top-right {
-  top: -4px;
-  right: -4px;
+.viewport-selection-hit {
+  fill: transparent;
+  pointer-events: all;
+  stroke: transparent;
+  cursor: move;
+  outline: none;
 }
-.selection-bounds .bottom-left {
-  bottom: -4px;
-  left: -4px;
+.viewport-selection-hit:focus-visible {
+  stroke: #fff;
+  stroke-dasharray: 3 2;
+  stroke-width: 1;
 }
-.selection-bounds .bottom-right {
-  right: -4px;
-  bottom: -4px;
+.viewport-resize-handle,
+.viewport-rotation-handle,
+.viewport-anchor-handle {
+  fill: #dce9ff;
+  pointer-events: all;
+  stroke: #31568f;
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
 }
-.selection-bounds .rotation-stem {
-  position: absolute;
-  bottom: 100%;
-  left: 50%;
-  width: 1px;
-  height: 18px;
-  background: #79a7ff;
+.viewport-resize-handle:focus-visible,
+.viewport-rotation-handle:focus-visible,
+.viewport-anchor-handle:focus-visible {
+  outline: none;
+  stroke: #fff;
+  stroke-width: 2;
 }
-.selection-bounds .rotation-handle {
-  position: absolute;
-  bottom: calc(100% + 14px);
-  left: 50%;
-  width: 9px;
-  height: 9px;
-  border: 1px solid #31568f;
-  border-radius: 50%;
-  transform: translateX(-4px);
-  background: #dce9ff;
+.viewport-rotation-handle {
   cursor: grab;
 }
-.selection-bounds .top-left,
-.selection-bounds .bottom-right {
+.viewport-resize-handle.northWest,
+.viewport-resize-handle.southEast {
   cursor: nwse-resize;
 }
-.selection-bounds .top-right,
-.selection-bounds .bottom-left {
+.viewport-resize-handle.northEast,
+.viewport-resize-handle.southWest {
   cursor: nesw-resize;
 }
-.selection-bounds .anchor-handle {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 8px;
-  height: 8px;
-  border: 1px solid #f16d79;
-  transform: translate(-50%, -50%) rotate(45deg);
-  background: #10141d;
+.viewport-resize-handle.north,
+.viewport-resize-handle.south {
+  cursor: ns-resize;
+}
+.viewport-resize-handle.east,
+.viewport-resize-handle.west {
+  cursor: ew-resize;
+}
+.viewport-anchor-handle {
+  fill: #10141d;
+  stroke: #f16d79;
+  cursor: crosshair;
+}
+.viewport-snap-line {
+  stroke: #e96fa5;
+  stroke-dasharray: 4 3;
 }
 .viewport-text-editor {
   position: absolute;

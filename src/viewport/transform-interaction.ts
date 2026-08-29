@@ -27,6 +27,16 @@ export interface ViewportSnapResult {
   snapped: readonly ViewportSnapTarget[];
 }
 
+export interface ViewportSelectionMember {
+  readonly id: string;
+  readonly transform: ViewportTransform2d;
+}
+
+export interface ViewportSelectionResult {
+  readonly members: readonly ViewportSelectionMember[];
+  readonly snapped: readonly ViewportSnapTarget[];
+}
+
 export type ViewportResizeHandle =
   | "northWest"
   | "north"
@@ -88,6 +98,139 @@ export function viewportTransformBounds(transform: ViewportTransform2d): Viewpor
     right: Math.max(...corners.map((point) => point[0])),
     bottom: Math.max(...corners.map((point) => point[1])),
   };
+}
+
+export function viewportSelectionBounds(
+  members: readonly ViewportSelectionMember[],
+): ViewportBounds2d | undefined {
+  if (members.length === 0) return undefined;
+  const bounds = members.map((member) => viewportTransformBounds(member.transform));
+  return {
+    left: Math.min(...bounds.map((entry) => entry.left)),
+    top: Math.min(...bounds.map((entry) => entry.top)),
+    right: Math.max(...bounds.map((entry) => entry.right)),
+    bottom: Math.max(...bounds.map((entry) => entry.bottom)),
+  };
+}
+
+/** Moves a selection as one rigid group and snaps its outer/center lines in screen space. */
+export function moveViewportSelection(
+  members: readonly ViewportSelectionMember[],
+  delta: Point2,
+  targets: readonly ViewportSnapTarget[] = [],
+  toleranceScreenPixels = 0,
+  displayScale = 1,
+): ViewportSelectionResult {
+  const bounds = viewportSelectionBounds(members);
+  if (!bounds) return { members, snapped: [] };
+  const width = Math.max(1e-4, bounds.right - bounds.left);
+  const height = Math.max(1e-4, bounds.bottom - bounds.top);
+  const center: Point2 = [(bounds.left + bounds.right) * 0.5, (bounds.top + bounds.bottom) * 0.5];
+  const group: ViewportTransform2d = {
+    position: [center[0] + delta[0], center[1] + delta[1]],
+    scale: [100, 100],
+    rotation: 0,
+    anchor: [width * 0.5, height * 0.5],
+    size: [width, height],
+  };
+  const snap = snapViewportPosition(
+    group.position,
+    group,
+    targets,
+    toleranceScreenPixels,
+    displayScale,
+  );
+  const applied: Point2 = [snap.position[0] - center[0], snap.position[1] - center[1]];
+  return {
+    members: members.map((member) => ({
+      ...member,
+      transform: {
+        ...member.transform,
+        position: [
+          member.transform.position[0] + applied[0],
+          member.transform.position[1] + applied[1],
+        ],
+      },
+    })),
+    snapped: snap.snapped,
+  };
+}
+
+/** Resizes one rotated layer in local axes, or a multi-selection in its shared axis-aligned box. */
+export function resizeViewportSelection(
+  members: readonly ViewportSelectionMember[],
+  handle: ViewportResizeHandle,
+  pointer: Point2,
+  options: ViewportResizeOptions = {},
+): readonly ViewportSelectionMember[] {
+  if (members.length === 1) {
+    const member = members[0];
+    return member
+      ? [
+          {
+            ...member,
+            transform: resizeViewportTransform(member.transform, handle, pointer, options),
+          },
+        ]
+      : members;
+  }
+  const bounds = viewportSelectionBounds(members);
+  if (!bounds) return members;
+  const width = Math.max(1e-4, bounds.right - bounds.left);
+  const height = Math.max(1e-4, bounds.bottom - bounds.top);
+  const group: ViewportTransform2d = {
+    position: [(bounds.left + bounds.right) * 0.5, (bounds.top + bounds.bottom) * 0.5],
+    scale: [100, 100],
+    rotation: 0,
+    anchor: [width * 0.5, height * 0.5],
+    size: [width, height],
+  };
+  const resized = resizeViewportTransform(group, handle, pointer, options);
+  const factorX = resized.scale[0] / 100;
+  const factorY = resized.scale[1] / 100;
+  return members.map((member) => ({
+    ...member,
+    transform: {
+      ...member.transform,
+      position: localToComposition(
+        [member.transform.position[0] - bounds.left, member.transform.position[1] - bounds.top],
+        resized,
+      ),
+      scale: [member.transform.scale[0] * factorX, member.transform.scale[1] * factorY],
+    },
+  }));
+}
+
+/** Rotates every member around the shared rendered center while retaining relative geometry. */
+export function rotateViewportSelectionFromPointer(
+  members: readonly ViewportSelectionMember[],
+  startPointer: Point2,
+  pointer: Point2,
+  snapDegrees = 0,
+): readonly ViewportSelectionMember[] {
+  const bounds = viewportSelectionBounds(members);
+  if (!bounds) return members;
+  const center: Point2 = [(bounds.left + bounds.right) * 0.5, (bounds.top + bounds.bottom) * 0.5];
+  const startAngle = Math.atan2(startPointer[1] - center[1], startPointer[0] - center[0]);
+  const angle = Math.atan2(pointer[1] - center[1], pointer[0] - center[0]);
+  let delta = ((angle - startAngle) * 180) / Math.PI;
+  const increment = Math.abs(Number.isFinite(snapDegrees) ? snapDegrees : 0);
+  if (increment > 1e-6) delta = Math.round(delta / increment) * increment;
+  if (!Number.isFinite(delta)) delta = 0;
+  return members.map((member) => {
+    const offset = rotate(
+      [member.transform.position[0] - center[0], member.transform.position[1] - center[1]],
+      delta,
+    );
+    return {
+      ...member,
+      transform: {
+        ...member.transform,
+        position: [center[0] + offset[0], center[1] + offset[1]],
+        rotation: member.transform.rotation + delta,
+      },
+    };
+  });
 }
 
 /** Moves the anchor without moving any rendered point. */

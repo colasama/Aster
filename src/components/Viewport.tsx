@@ -12,7 +12,6 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createLayerForComposition } from "../core/layer-factory";
 import { logger } from "../core/logger";
-import type { Operation } from "../core/operations";
 import { activeComposition } from "../core/project";
 import type { FrameRenderSessionOpenRequest } from "../core/render-export";
 import {
@@ -21,7 +20,6 @@ import {
   type RenderSessionLease,
 } from "../core/render-session-guard";
 import { evaluateWorldTransform, flattenSceneLayers } from "../core/scene-evaluation";
-import { evaluateAnimatable } from "../core/timeline";
 import type { Composition, GpuDiagnostics, Project } from "../core/types";
 import { isDesktopRuntime, onDisplayMetricsChanged } from "../desktop/api";
 import type { PlainMessageKey, Translate } from "../i18n/core";
@@ -43,6 +41,7 @@ import { CameraGizmo } from "./CameraGizmo";
 import { useContextMenuTrigger } from "./context-menu/use-context-menu-trigger";
 import { Panel } from "./Panel";
 import { ViewportContextMenu } from "./ViewportContextMenu";
+import { ViewportTransformControls } from "./ViewportTransformControls";
 
 type Renderer = WebGpuRenderer | CanvasFallbackRenderer;
 
@@ -602,7 +601,16 @@ export function Viewport() {
             const x = ((event.clientX - bounds.left) / bounds.width) * composition.width;
             const y = ((event.clientY - bounds.top) / bounds.height) * composition.height;
             const hit = hitTestLayer(composition, state.project, state.currentTime, x, y);
-            dispatch({ type: "select", ids: hit ? [hit.id] : [] });
+            const ids = event.shiftKey
+              ? hit
+                ? state.selection.includes(hit.id)
+                  ? state.selection.filter((id) => id !== hit.id)
+                  : [...state.selection, hit.id]
+                : state.selection
+              : hit
+                ? [hit.id]
+                : [];
+            dispatch({ type: "select", ids });
             return;
           }
           if (event.button !== 1 && !(event.button === 0 && state.activeTool === "hand")) return;
@@ -655,270 +663,19 @@ export function Viewport() {
                 <span />
               </div>
             )}
-            {state.showLayerControls &&
-              selectedLayer &&
-              selectedTransform &&
-              selectedLayer.kind !== "camera" &&
-              selectedLayer.kind !== "adjustment" && (
-                <button
-                  aria-label={t("viewport.transformLayer", { name: selectedLayer.name })}
-                  className={`selection-bounds ${selectedLayer.locked ? "locked" : ""}`}
-                  onDoubleClick={(event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    beginTextEditing(selectedLayer.id);
-                  }}
-                  onKeyDown={(event) => {
-                    if (selectedLayer.locked || !event.key.startsWith("Arrow")) return;
-                    event.preventDefault();
-                    const amount = event.shiftKey ? 10 : 1;
-                    const x = evaluateAnimatable(
-                      selectedLayer.transform.position[0],
-                      state.currentTime,
-                    );
-                    const y = evaluateAnimatable(
-                      selectedLayer.transform.position[1],
-                      state.currentTime,
-                    );
-                    dispatch({
-                      type: "operation",
-                      operations: [
-                        {
-                          type: "setProperty",
-                          layerId: selectedLayer.id,
-                          path: "position.0",
-                          value:
-                            x +
-                            (event.key === "ArrowLeft"
-                              ? -amount
-                              : event.key === "ArrowRight"
-                                ? amount
-                                : 0),
-                        },
-                        {
-                          type: "setProperty",
-                          layerId: selectedLayer.id,
-                          path: "position.1",
-                          value:
-                            y +
-                            (event.key === "ArrowUp"
-                              ? -amount
-                              : event.key === "ArrowDown"
-                                ? amount
-                                : 0),
-                        },
-                      ],
-                    });
-                  }}
-                  onPointerDown={(event) => {
-                    if (selectedLayer.locked) return;
-                    event.preventDefault();
-                    event.stopPropagation();
-                    const startX = event.clientX;
-                    const startY = event.clientY;
-                    const pointerId = event.pointerId;
-                    const scaleHandle = (event.target as HTMLElement).closest<HTMLElement>(
-                      "[data-scale-handle]",
-                    )?.dataset.scaleHandle;
-                    const rotateHandle = Boolean(
-                      (event.target as HTMLElement).closest("[data-rotate-handle]"),
-                    );
-                    const mode =
-                      rotateHandle || state.activeTool === "rotate"
-                        ? "rotate"
-                        : scaleHandle
-                          ? "scale"
-                          : "move";
-                    const historyBase = state.project;
-                    const initialX = evaluateAnimatable(
-                      selectedLayer.transform.position[0],
-                      state.currentTime,
-                    );
-                    const initialY = evaluateAnimatable(
-                      selectedLayer.transform.position[1],
-                      state.currentTime,
-                    );
-                    const initialRotation = evaluateAnimatable(
-                      selectedLayer.transform.rotation[2],
-                      state.currentTime,
-                    );
-                    const initialScaleX = evaluateAnimatable(
-                      selectedLayer.transform.scale[0],
-                      state.currentTime,
-                    );
-                    const initialScaleY = evaluateAnimatable(
-                      selectedLayer.transform.scale[1],
-                      state.currentTime,
-                    );
-                    const bounds = stageRef.current?.getBoundingClientRect();
-                    const centerX = bounds
-                      ? bounds.left +
-                        (selectedTransform.position[0] / composition.width) * bounds.width
-                      : startX;
-                    const centerY = bounds
-                      ? bounds.top +
-                        (selectedTransform.position[1] / composition.height) * bounds.height
-                      : startY;
-                    const startAngle = Math.atan2(startY - centerY, startX - centerX);
-                    const startLocal = rotateViewportPoint(
-                      startX - centerX,
-                      startY - centerY,
-                      -initialRotation,
-                    );
-                    let nextX = initialX;
-                    let nextY = initialY;
-                    let nextRotation = initialRotation;
-                    let nextScaleX = initialScaleX;
-                    let nextScaleY = initialScaleY;
-                    const move = (moveEvent: PointerEvent) => {
-                      if (moveEvent.pointerId !== pointerId) return;
-                      let operations: Operation[];
-                      if (mode === "rotate") {
-                        const angle = Math.atan2(
-                          moveEvent.clientY - centerY,
-                          moveEvent.clientX - centerX,
-                        );
-                        nextRotation = initialRotation + ((angle - startAngle) * 180) / Math.PI;
-                        operations = [
-                          {
-                            type: "setProperty",
-                            layerId: selectedLayer.id,
-                            path: "rotation.2",
-                            value: nextRotation,
-                          },
-                        ];
-                      } else if (mode === "scale") {
-                        const local = rotateViewportPoint(
-                          moveEvent.clientX - centerX,
-                          moveEvent.clientY - centerY,
-                          -initialRotation,
-                        );
-                        const uniform = moveEvent.shiftKey;
-                        const ratioX = safeScaleRatio(local[0], startLocal[0]);
-                        const ratioY = safeScaleRatio(local[1], startLocal[1]);
-                        const uniformRatio = Math.abs(ratioX) > Math.abs(ratioY) ? ratioX : ratioY;
-                        nextScaleX = clampScale(initialScaleX * (uniform ? uniformRatio : ratioX));
-                        nextScaleY = clampScale(initialScaleY * (uniform ? uniformRatio : ratioY));
-                        operations = [
-                          {
-                            type: "setProperty",
-                            layerId: selectedLayer.id,
-                            path: "scale.0",
-                            value: nextScaleX,
-                          },
-                          {
-                            type: "setProperty",
-                            layerId: selectedLayer.id,
-                            path: "scale.1",
-                            value: nextScaleY,
-                          },
-                        ];
-                      } else {
-                        nextX = initialX + (moveEvent.clientX - startX) / displayZoom;
-                        nextY = initialY + (moveEvent.clientY - startY) / displayZoom;
-                        operations = [
-                          {
-                            type: "setProperty",
-                            layerId: selectedLayer.id,
-                            path: "position.0",
-                            value: nextX,
-                          },
-                          {
-                            type: "setProperty",
-                            layerId: selectedLayer.id,
-                            path: "position.1",
-                            value: nextY,
-                          },
-                        ];
-                      }
-                      dispatch({ type: "previewOperation", operations });
-                    };
-                    const up = (upEvent: PointerEvent) => {
-                      if (upEvent.pointerId !== pointerId) return;
-                      window.removeEventListener("pointermove", move);
-                      window.removeEventListener("pointerup", up);
-                      window.removeEventListener("pointercancel", up);
-                      if (mode === "rotate") {
-                        if (Math.abs(nextRotation - initialRotation) < 0.01) return;
-                        dispatch({
-                          type: "operation",
-                          historyBase,
-                          operations: [
-                            {
-                              type: "setProperty",
-                              layerId: selectedLayer.id,
-                              path: "rotation.2",
-                              value: nextRotation,
-                            },
-                          ],
-                        });
-                      } else if (mode === "scale") {
-                        if (
-                          Math.hypot(nextScaleX - initialScaleX, nextScaleY - initialScaleY) < 0.01
-                        )
-                          return;
-                        dispatch({
-                          type: "operation",
-                          historyBase,
-                          operations: [
-                            {
-                              type: "setProperty",
-                              layerId: selectedLayer.id,
-                              path: "scale.0",
-                              value: nextScaleX,
-                            },
-                            {
-                              type: "setProperty",
-                              layerId: selectedLayer.id,
-                              path: "scale.1",
-                              value: nextScaleY,
-                            },
-                          ],
-                        });
-                      } else {
-                        if (Math.hypot(nextX - initialX, nextY - initialY) < 0.01) return;
-                        dispatch({
-                          type: "operation",
-                          historyBase,
-                          operations: [
-                            {
-                              type: "setProperty",
-                              layerId: selectedLayer.id,
-                              path: "position.0",
-                              value: nextX,
-                            },
-                            {
-                              type: "setProperty",
-                              layerId: selectedLayer.id,
-                              path: "position.1",
-                              value: nextY,
-                            },
-                          ],
-                        });
-                      }
-                    };
-                    window.addEventListener("pointermove", move);
-                    window.addEventListener("pointerup", up);
-                    window.addEventListener("pointercancel", up);
-                  }}
-                  style={{
-                    height: `${(selectedLayer.size[1] * Math.abs(selectedTransform.scale[1]) * displayZoom) / 100}px`,
-                    left: `${selectedTransform.position[0] * displayZoom}px`,
-                    top: `${selectedTransform.position[1] * displayZoom}px`,
-                    transform: `translate(-50%, -50%) rotate(${selectedTransform.rotation[2]}deg)`,
-                    width: `${(selectedLayer.size[0] * Math.abs(selectedTransform.scale[0]) * displayZoom) / 100}px`,
-                  }}
-                  type="button"
-                >
-                  <i className="rotation-stem" />
-                  <i className="rotation-handle" data-rotate-handle />
-                  <i className="handle top-left" data-scale-handle="top-left" />
-                  <i className="handle top-right" data-scale-handle="top-right" />
-                  <i className="handle bottom-left" data-scale-handle="bottom-left" />
-                  <i className="handle bottom-right" data-scale-handle="bottom-right" />
-                  <i className="anchor-handle" />
-                </button>
-              )}
+            {state.showLayerControls ? (
+              <ViewportTransformControls
+                activeTool={state.activeTool}
+                composition={composition}
+                dispatch={dispatch}
+                onEditText={beginTextEditing}
+                project={state.project}
+                selection={state.selection}
+                showGuides={state.showGuides}
+                time={state.currentTime}
+                zoom={displayZoom}
+              />
+            ) : null}
             {editingTextLayer && selectedTransform && (
               <textarea
                 aria-label={t("viewport.editText", { name: editingTextLayer.name })}
@@ -956,13 +713,14 @@ export function Viewport() {
                   fontFamily: editingTextLayer.textStyle?.fontFamily,
                   fontSize: `${(editingTextLayer.textStyle?.fontSize ?? 144) * displayZoom}px`,
                   fontWeight: editingTextLayer.textStyle?.fontWeight,
-                  height: `${(editingTextLayer.size[1] * Math.abs(selectedTransform.scale[1]) * displayZoom) / 100}px`,
-                  left: `${selectedTransform.position[0] * displayZoom}px`,
+                  height: `${editingTextLayer.size[1] * displayZoom}px`,
+                  left: 0,
                   lineHeight: `${(editingTextLayer.textStyle?.leading ?? 172) * displayZoom}px`,
                   textAlign: editingTextLayer.textStyle?.alignment ?? "center",
-                  top: `${selectedTransform.position[1] * displayZoom}px`,
-                  transform: `translate(-50%, -50%) rotate(${selectedTransform.rotation[2]}deg)`,
-                  width: `${(editingTextLayer.size[0] * Math.abs(selectedTransform.scale[0]) * displayZoom) / 100}px`,
+                  top: 0,
+                  transform: viewportCssMatrix(selectedTransform, displayZoom),
+                  transformOrigin: "0 0",
+                  width: `${editingTextLayer.size[0] * displayZoom}px`,
                 }}
                 value={editingTextLayer.text ?? ""}
               />
@@ -1152,7 +910,14 @@ function hitTestLayer(
 ) {
   const hit = flattenSceneLayers(composition, project, time).find((scene) => {
     const { layer, transform } = scene;
-    if (layer.kind === "camera" || layer.kind === "light" || layer.kind === "adjustment")
+    if (
+      layer.locked ||
+      layer.threeDimensional ||
+      layer.kind === "audio" ||
+      layer.kind === "camera" ||
+      layer.kind === "light" ||
+      layer.kind === "adjustment"
+    )
       return false;
     const radians = (-transform.rotation[2] * Math.PI) / 180;
     const deltaX = x - transform.position[0];
@@ -1182,6 +947,29 @@ export function clampScale(value: number): number {
   if (!Number.isFinite(value)) return 100;
   const sign = value < 0 ? -1 : 1;
   return sign * Math.max(0.1, Math.min(10_000, Math.abs(value)));
+}
+
+export function viewportCssMatrix(
+  transform: {
+    position: readonly number[];
+    rotation: readonly number[];
+    scale: readonly number[];
+    anchor: readonly number[];
+  },
+  zoom: number,
+): string {
+  const radians = (transform.rotation[2] * Math.PI) / 180;
+  const cosine = Math.cos(radians);
+  const sine = Math.sin(radians);
+  const scaleX = transform.scale[0] / 100;
+  const scaleY = transform.scale[1] / 100;
+  const a = cosine * scaleX;
+  const b = sine * scaleX;
+  const c = -sine * scaleY;
+  const d = cosine * scaleY;
+  const e = (transform.position[0] - a * transform.anchor[0] - c * transform.anchor[1]) * zoom;
+  const f = (transform.position[1] - b * transform.anchor[0] - d * transform.anchor[1]) * zoom;
+  return `matrix(${a}, ${b}, ${c}, ${d}, ${e}, ${f})`;
 }
 
 function cssColor(color: readonly [number, number, number, number]): string {

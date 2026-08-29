@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { activeComposition } from "../core/project";
 import { evaluateAnimatable } from "../core/timeline";
 import { createInitialState, editorReducer } from "../state/editor-store";
-import { clampScale, rotateViewportPoint, safeScaleRatio } from "./Viewport";
+import { clampScale, rotateViewportPoint, safeScaleRatio, viewportCssMatrix } from "./Viewport";
 
 describe("viewport direct manipulation", () => {
   it("keeps live previews out of undo history and commits from the gesture start", () => {
@@ -50,5 +50,19 @@ describe("viewport direct manipulation", () => {
     expect(safeScaleRatio(20, 0)).toBe(1);
     expect(clampScale(0)).toBe(0.1);
     expect(clampScale(-20_000)).toBe(-10_000);
+  });
+
+  it("maps text editing overlays through the same anchor, rotation, flip, and zoom matrix", () => {
+    expect(
+      viewportCssMatrix(
+        {
+          position: [400, 300, 0],
+          rotation: [0, 0, 0],
+          scale: [-100, 50, 100],
+          anchor: [100, 50, 0],
+        },
+        0.5,
+      ),
+    ).toBe("matrix(-1, 0, 0, 0.5, 250, 137.5)");
   });
 });
