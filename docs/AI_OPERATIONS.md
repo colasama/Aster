@@ -17,7 +17,7 @@ on demand, executes them in an isolated workspace, and submits a cumulative type
 6. Freeze one cumulative semantic diff and reject a stale live revision.
 7. Apply accepted work as one undoable transaction and append a secret-free audit record.
 
-The registry covers all 58 variants in the live TypeScript `Operation` union. Asset import, project
+The registry covers all 62 variants in the live TypeScript `Operation` union. Asset import, project
 I/O, plugin installation, export, filesystem, process, and network actions remain separate services
 because they have different authority, cancellation, and audit requirements.
 
@@ -26,7 +26,11 @@ because they have different authority, cancellation, and audit requirements.
 | `setActiveComposition` | Compositions | Activates an existing composition. |
 | `addComposition` | Compositions | Creates a bounded blank composition. |
 | `addProjectFolder` | Project | Creates a project-panel folder. |
+| `renameProjectItem` | Project | Renames a composition, footage source, or project folder. |
 | `moveProjectItem` | Project | Moves a composition or media item between folders. |
+| `moveProjectFolder` | Project | Moves a project folder within the folder hierarchy. |
+| `removeProjectFolder` | Project | Removes an empty project folder. |
+| `removeComposition` | Compositions | Removes a non-active composition. |
 | `setCompositionSettings` | Compositions | Changes name, dimensions, frame rate, and duration. |
 | `setCompositionMotionBlur` | Compositions | Sets the bounded shutter and adaptive sample policy. |
 | `setCompositionEnvironment` | Compositions | Updates or clears an imported HDR environment. |

@@ -24,7 +24,10 @@ describe("Aster agent application service", () => {
     const discovered = (await service.executeTool("search_capabilities", {
       query: "rename",
     })) as { commands: Array<{ name: string }> };
-    expect(discovered.commands.map(({ name }) => name)).toEqual(["renameLayer"]);
+    expect(discovered.commands.map(({ name }) => name)).toEqual([
+      "renameLayer",
+      "renameProjectItem",
+    ]);
     const complexSchema = (await service.executeTool("get_command_schemas", {
       names: ["setShapeGraph"],
     })) as { commands: Array<{ inputSchema: unknown }> };
