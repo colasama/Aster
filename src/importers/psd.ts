@@ -14,6 +14,7 @@ export interface ParsedPsdLayer {
   opacity: number;
   visible: boolean;
   blendMode: string;
+  sectionType?: "openFolder" | "closedFolder" | "sectionDivider";
   pixels: Uint8ClampedArray;
 }
 
@@ -42,6 +43,7 @@ interface LayerRecord {
   opacity: number;
   visible: boolean;
   blendMode: string;
+  sectionType?: ParsedPsdLayer["sectionType"];
   channels: readonly ChannelRecord[];
 }
 
@@ -162,6 +164,7 @@ function readLayerRecord(reader: PsdReader): LayerRecord {
   reader.skip((4 - ((pascalLength + 1) % 4)) % 4);
   let name = pascalName || "Layer";
   let id: number | undefined;
+  let sectionType: ParsedPsdLayer["sectionType"];
   while (reader.offset + 12 <= extraEnd) {
     const signature = reader.ascii(4);
     const key = reader.ascii(4);
@@ -172,6 +175,7 @@ function readLayerRecord(reader: PsdReader): LayerRecord {
     reader.require(length, `layer tagged block ${key}`);
     if (key === "luni" && length >= 4) name = readUnicodeString(reader, dataEnd) || name;
     else if (key === "lyid" && length >= 4) id = reader.u32();
+    else if (key === "lsct" && length >= 4) sectionType = layerSectionType(reader.u32());
     reader.seek(dataEnd, `layer tagged block ${key} end`);
     if (length % 2 === 1) reader.skip(1);
   }
@@ -185,8 +189,16 @@ function readLayerRecord(reader: PsdReader): LayerRecord {
     opacity,
     visible: (flags & 0x02) === 0,
     blendMode,
+    ...(sectionType ? { sectionType } : {}),
     channels,
   };
+}
+
+function layerSectionType(value: number): ParsedPsdLayer["sectionType"] {
+  if (value === 1) return "openFolder";
+  if (value === 2) return "closedFolder";
+  if (value === 3) return "sectionDivider";
+  return undefined;
 }
 
 function decodeLayers(

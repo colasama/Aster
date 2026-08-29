@@ -28,6 +28,7 @@ describe("PSD importer", () => {
       opacity: 1,
       visible: true,
       blendMode: "norm",
+      sectionType: "openFolder",
     });
     expect(Array.from(document.layers[0]?.pixels ?? [])).toEqual([255, 0, 0, 255, 0, 255, 0, 128]);
     expect(Array.from(document.composite ?? [])).toEqual([255, 0, 0, 255, 0, 255, 0, 255]);
@@ -70,6 +71,7 @@ function minimalPsd(): ArrayBuffer {
   for (const character of "Red Green") writer.u16(character.charCodeAt(0));
   writer.patchU32(unicodeLength, writer.length - unicodeStart);
   writer.ascii("8BIM").ascii("lyid").u32(4).u32(42);
+  writer.ascii("8BIM").ascii("lsct").u32(4).u32(1);
   writer.patchU32(extraLength, writer.length - extraStart);
   for (const plane of [
     [255, 0],
