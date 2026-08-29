@@ -4,7 +4,9 @@ import {
   ChevronRight,
   CircleDashed,
   Clock3,
+  FileCode2,
   FileImage,
+  Files,
   Film,
   Folder,
   Layers3,
@@ -37,6 +39,7 @@ import {
   createLayerForComposition,
   type StandardLayerKind,
 } from "../core/layer-factory";
+import type { Operation } from "../core/operations";
 import { activeComposition, createBlankComposition } from "../core/project";
 import { relinkProjectSource } from "../core/project-file";
 import {
@@ -52,6 +55,7 @@ import {
   type Layer,
   type ProjectFolder,
 } from "../core/types";
+import { convertFileSrc, discoverImageSequence, isDesktopRuntime, open } from "../desktop/api";
 import {
   readEffectBrowserPreferences,
   recordRecentEffect,
@@ -80,6 +84,18 @@ import {
 } from "../effects/user-presets";
 import { type UiErrorCode, uiErrorMessage } from "../i18n/errors";
 import { useI18n } from "../i18n/react";
+import {
+  type AdvancedImportResult,
+  createBrowserSequenceInput,
+  createImageSequenceImport,
+  imageDimensionsFromUrl,
+  importPsdFile,
+  importSvgFile,
+} from "../importers/advanced-import";
+import { detectImageSequence } from "../importers/image-sequence";
+import type { MissingSequenceFramePolicy } from "../importers/image-sequence-runtime";
+import { mediaImportRuntime, type RuntimeSequenceFile } from "../importers/media-import-runtime";
+import type { PsdImportMode } from "../importers/psd-composition";
 import { useEditor } from "../state/editor-store";
 import { Panel, PanelTabs } from "./Panel";
 
@@ -96,6 +112,12 @@ export function ProjectPanel() {
   const { t } = useI18n();
   const [query, setQuery] = useState("");
   const [assetError, setAssetError] = useState<UiErrorCode>();
+  const [assetErrorDetail, setAssetErrorDetail] = useState<string>();
+  const [assetWarningCount, setAssetWarningCount] = useState(0);
+  const [psdImportMode, setPsdImportMode] = useState<PsdImportMode>("merged");
+  const [sequenceFrameRate, setSequenceFrameRate] = useState({ numerator: 24, denominator: 1 });
+  const [missingFramePolicy, setMissingFramePolicy] =
+    useState<MissingSequenceFramePolicy>("holdPrevious");
   const [presetError, setPresetError] = useState<UiErrorCode>();
   const [presetName, setPresetName] = useState("");
   const [addTarget, setAddTarget] = useState<{ folderId?: Id; label: string }>();
@@ -118,9 +140,17 @@ export function ProjectPanel() {
     getSceneGeneratorDefinitions,
     getSceneGeneratorDefinitions,
   );
+  useSyncExternalStore(
+    mediaImportRuntime.subscribe,
+    mediaImportRuntime.revision,
+    mediaImportRuntime.revision,
+  );
   const imagePickerRef = useRef<HTMLInputElement>(null);
   const videoPickerRef = useRef<HTMLInputElement>(null);
   const audioPickerRef = useRef<HTMLInputElement>(null);
+  const svgPickerRef = useRef<HTMLInputElement>(null);
+  const psdPickerRef = useRef<HTMLInputElement>(null);
+  const sequencePickerRef = useRef<HTMLInputElement>(null);
   const addMenuRef = useRef<HTMLElement>(null);
   const composition = activeComposition(state.project);
   const mediaItems = useMemo<MediaProjectItem[]>(
@@ -344,6 +374,169 @@ export function ProjectPanel() {
       setAssetError(kind === "image" ? "assetImageImport" : "assetVideoImport");
     }
   };
+  const commitAdvancedImport = (result: AdvancedImportResult, folderId?: Id) => {
+    const operations: Operation[] = [
+      ...result.sources.map((source) => ({ type: "addSource" as const, source })),
+      ...(result.composition
+        ? [{ type: "addComposition" as const, composition: result.composition, activate: true }]
+        : result.layers.map((layer) => ({ type: "addLayer" as const, layer }))),
+      ...(folderId
+        ? [
+            ...result.sources.map((source) => ({
+              type: "moveProjectItem" as const,
+              itemId: source.id,
+              folderId,
+            })),
+            ...(result.composition
+              ? [
+                  {
+                    type: "moveProjectItem" as const,
+                    itemId: result.composition.id,
+                    folderId,
+                  },
+                ]
+              : []),
+          ]
+        : []),
+    ];
+    dispatch({
+      type: "operation",
+      operations,
+      select: result.layers[0] ? [result.layers[0].id] : [],
+    });
+    setAssetError(undefined);
+    setAssetErrorDetail(undefined);
+    setAssetWarningCount(result.warnings.length);
+    setExpandedFolders((current) => new Set(current).add(folderId ?? ROOT_ASSETS_ID));
+    setAddTarget(undefined);
+  };
+  const reportAdvancedImportError = (error: unknown) => {
+    setAssetError("assetImageImport");
+    setAssetWarningCount(0);
+    setAssetErrorDetail(
+      (error instanceof Error ? error.message : String(error)).slice(0, 500) ||
+        t("project.asset.importUnknown"),
+    );
+  };
+  const importSvg = async (file: Pick<File, "name" | "text">, folderId = addTarget?.folderId) => {
+    try {
+      setAssetError(undefined);
+      setAssetErrorDetail(undefined);
+      commitAdvancedImport(await importSvgFile(file, composition, state.currentTime), folderId);
+    } catch (error) {
+      reportAdvancedImportError(error);
+    }
+  };
+  const importPsd = async (
+    file: Pick<File, "name" | "arrayBuffer">,
+    folderId = addTarget?.folderId,
+  ) => {
+    try {
+      setAssetError(undefined);
+      setAssetErrorDetail(undefined);
+      commitAdvancedImport(
+        await importPsdFile(file, psdImportMode, composition, state.currentTime),
+        folderId,
+      );
+    } catch (error) {
+      reportAdvancedImportError(error);
+    }
+  };
+  const importSequence = async (
+    input: Awaited<ReturnType<typeof createBrowserSequenceInput>>,
+    folderId = addTarget?.folderId,
+  ) => {
+    let committed = false;
+    try {
+      setAssetError(undefined);
+      setAssetErrorDetail(undefined);
+      const firstFrame = input.selection.frames[0];
+      if (!firstFrame) throw new Error("Image sequence contains no readable frames");
+      const dimensions = await imageDimensionsFromUrl(firstFrame.file.url);
+      const result = createImageSequenceImport(
+        input,
+        dimensions,
+        { frameRate: sequenceFrameRate, missingFramePolicy },
+        composition,
+        state.currentTime,
+      );
+      committed = true;
+      commitAdvancedImport(result, folderId);
+    } catch (error) {
+      reportAdvancedImportError(error);
+    } finally {
+      if (!committed) input.dispose?.();
+    }
+  };
+  const chooseSvg = async () => {
+    const folderId = addTarget?.folderId;
+    if (!isDesktopRuntime()) {
+      svgPickerRef.current?.click();
+      return;
+    }
+    const path = await open({
+      title: t("project.asset.chooseSvg"),
+      filters: [{ name: "SVG", extensions: ["svg"] }],
+    });
+    if (typeof path !== "string") return;
+    const url = convertFileSrc(path);
+    await importSvg(
+      {
+        name: fileNameFromPath(path),
+        text: () => fetchImportResponse(url).then((response) => response.text()),
+      },
+      folderId,
+    );
+  };
+  const choosePsd = async () => {
+    const folderId = addTarget?.folderId;
+    if (!isDesktopRuntime()) {
+      psdPickerRef.current?.click();
+      return;
+    }
+    const path = await open({
+      title: t("project.asset.choosePsd"),
+      filters: [{ name: "Photoshop", extensions: ["psd"] }],
+    });
+    if (typeof path !== "string") return;
+    const url = convertFileSrc(path);
+    await importPsd(
+      {
+        name: fileNameFromPath(path),
+        arrayBuffer: () => fetchImportResponse(url).then((response) => response.arrayBuffer()),
+      },
+      folderId,
+    );
+  };
+  const chooseSequence = async () => {
+    const folderId = addTarget?.folderId;
+    if (!isDesktopRuntime()) {
+      sequencePickerRef.current?.click();
+      return;
+    }
+    try {
+      const path = await open({
+        title: t("project.asset.chooseSequence"),
+        filters: [
+          {
+            name: t("project.asset.imageFrames"),
+            extensions: ["png", "jpg", "jpeg", "webp", "avif", "tif", "tiff", "bmp", "gif"],
+          },
+        ],
+      });
+      if (typeof path !== "string") return;
+      const files = await discoverImageSequence(path);
+      const runtimeFiles = files.map(
+        (file) => ({ ...file, url: convertFileSrc(file.path) }) satisfies RuntimeSequenceFile,
+      );
+      await importSequence(
+        { selection: detectImageSequence(runtimeFiles, fileNameFromPath(path)) },
+        folderId,
+      );
+    } catch (error) {
+      reportAdvancedImportError(error);
+    }
+  };
   const toggleFolder = (folderId: Id) => {
     setExpandedFolders((current) => {
       const next = new Set(current);
@@ -432,11 +625,12 @@ export function ProjectPanel() {
       );
     }
     const { source, instances } = item.media;
+    const runtimeError = mediaImportRuntime.error(source.id);
     const preferredInstance =
       instances.find((instance) => instance.compositionId === composition.id) ?? instances[0];
     return (
       <button
-        className={`tree-row asset project-item ${preferredInstance && state.selection.includes(preferredInstance.layer.id) ? "selected" : ""} ${source.dataUrl || source.runtimeUrl ? "" : "missing"} ${draggedItemId === source.id ? "dragging" : ""}`}
+        className={`tree-row asset project-item ${preferredInstance && state.selection.includes(preferredInstance.layer.id) ? "selected" : ""} ${source.dataUrl || source.runtimeUrl ? "" : "missing"} ${runtimeError ? "runtime-error" : ""} ${draggedItemId === source.id ? "dragging" : ""}`}
         draggable
         key={`source:${source.id}`}
         onClick={() => {
@@ -452,9 +646,11 @@ export function ProjectPanel() {
         onDragStart={(event) => startItemDrag(event, source.id)}
         style={{ "--tree-depth": depth } as CSSProperties}
         title={
-          source.dataUrl || source.runtimeUrl
-            ? t("project.asset.locate", { name: source.name })
-            : t("project.asset.missingTitle", { name: source.name })
+          runtimeError
+            ? runtimeError
+            : source.dataUrl || source.runtimeUrl
+              ? t("project.asset.locate", { name: source.name })
+              : t("project.asset.missingTitle", { name: source.name })
         }
         type="button"
       >
@@ -467,7 +663,9 @@ export function ProjectPanel() {
         )}
         <span>{source.name}</span>
         <small>
-          {source.dataUrl || source.runtimeUrl ? (
+          {runtimeError ? (
+            t("project.asset.runtimeError")
+          ) : source.dataUrl || source.runtimeUrl ? (
             <>
               {"width" in source && "height" in source ? `${source.width}×${source.height}` : ""}
               {"duration" in source ? ` · ${source.duration.toFixed(1)}s` : ""}
@@ -579,7 +777,7 @@ export function ProjectPanel() {
       }
     >
       <input
-        accept="image/*"
+        accept="image/png,image/jpeg,image/webp,image/avif,image/gif,image/bmp,image/tiff,.png,.jpg,.jpeg,.webp,.avif,.gif,.bmp,.tif,.tiff"
         aria-label={t("project.asset.chooseImage")}
         hidden
         onChange={(event) => {
@@ -612,6 +810,47 @@ export function ProjectPanel() {
           event.target.value = "";
         }}
         ref={audioPickerRef}
+        type="file"
+      />
+      <input
+        accept="image/svg+xml,.svg"
+        aria-label={t("project.asset.chooseSvg")}
+        hidden
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          if (file) void importSvg(file);
+          event.target.value = "";
+        }}
+        ref={svgPickerRef}
+        type="file"
+      />
+      <input
+        accept="image/vnd.adobe.photoshop,.psd"
+        aria-label={t("project.asset.choosePsd")}
+        hidden
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          if (file) void importPsd(file);
+          event.target.value = "";
+        }}
+        ref={psdPickerRef}
+        type="file"
+      />
+      <input
+        accept="image/png,image/jpeg,image/webp,image/avif,image/gif,image/bmp,image/tiff,.png,.jpg,.jpeg,.webp,.avif,.gif,.bmp,.tif,.tiff"
+        aria-label={t("project.asset.chooseSequence")}
+        hidden
+        multiple
+        onChange={(event) => {
+          const files = [...(event.target.files ?? [])];
+          if (files.length > 0) {
+            void createBrowserSequenceInput(files, files[0]?.name)
+              .then(importSequence)
+              .catch(reportAdvancedImportError);
+          }
+          event.target.value = "";
+        }}
+        ref={sequencePickerRef}
         type="file"
       />
       <div className="panel-search">
@@ -686,7 +925,19 @@ export function ProjectPanel() {
               {renderItemsInFolder(undefined, 1)}
             </>
           )}
-          {assetError && <div className="project-error">{uiErrorMessage(t, assetError)}</div>}
+          {assetError && (
+            <div className="project-error" role="alert">
+              <span>{uiErrorMessage(t, assetError)}</span>
+              {assetErrorDetail && (
+                <small className="project-error-detail">{assetErrorDetail}</small>
+              )}
+            </div>
+          )}
+          {assetWarningCount > 0 && (
+            <div className="project-warning" role="status">
+              {t("project.asset.importWarnings", { count: assetWarningCount })}
+            </div>
+          )}
         </div>
       ) : (
         <div className="effect-list">
@@ -862,12 +1113,85 @@ export function ProjectPanel() {
               <button onClick={() => imagePickerRef.current?.click()} type="button">
                 <FileImage size={15} /> {t("project.add.image")}
               </button>
+              <button onClick={() => void chooseSvg()} type="button">
+                <FileCode2 size={15} /> {t("project.add.svg")}
+              </button>
+              <button onClick={() => void choosePsd()} type="button">
+                <Layers3 size={15} /> {t("project.add.psd")}
+              </button>
+              <button onClick={() => void chooseSequence()} type="button">
+                <Files size={15} /> {t("project.add.imageSequence")}
+              </button>
               <button onClick={() => videoPickerRef.current?.click()} type="button">
                 <Film size={15} /> {t("project.add.video")}
               </button>
               <button onClick={() => audioPickerRef.current?.click()} type="button">
                 <Music2 size={15} /> {t("project.add.audio")}
               </button>
+            </div>
+            <div className="advanced-import-settings">
+              <label>
+                <span>{t("project.asset.psdMode")}</span>
+                <select
+                  aria-label={t("project.asset.psdMode")}
+                  onChange={(event) => setPsdImportMode(event.target.value as PsdImportMode)}
+                  value={psdImportMode}
+                >
+                  <option value="merged">{t("project.asset.psdMode.merged")}</option>
+                  <option value="composition">{t("project.asset.psdMode.composition")}</option>
+                  <option value="compositionRetainLayerSizes">
+                    {t("project.asset.psdMode.retainSizes")}
+                  </option>
+                </select>
+              </label>
+              <label>
+                <span>{t("project.asset.sequenceRate")}</span>
+                <span className="sequence-rate-input">
+                  <input
+                    aria-label={t("project.asset.sequenceRateNumerator")}
+                    max={1000000}
+                    min={1}
+                    onChange={(event) =>
+                      setSequenceFrameRate((current) => ({
+                        ...current,
+                        numerator: event.currentTarget.valueAsNumber,
+                      }))
+                    }
+                    type="number"
+                    value={sequenceFrameRate.numerator}
+                  />
+                  <span>/</span>
+                  <input
+                    aria-label={t("project.asset.sequenceRateDenominator")}
+                    max={1000000}
+                    min={1}
+                    onChange={(event) =>
+                      setSequenceFrameRate((current) => ({
+                        ...current,
+                        denominator: event.currentTarget.valueAsNumber,
+                      }))
+                    }
+                    type="number"
+                    value={sequenceFrameRate.denominator}
+                  />
+                </span>
+              </label>
+              <label>
+                <span>{t("project.asset.missingFrames")}</span>
+                <select
+                  aria-label={t("project.asset.missingFrames")}
+                  onChange={(event) =>
+                    setMissingFramePolicy(event.target.value as MissingSequenceFramePolicy)
+                  }
+                  value={missingFramePolicy}
+                >
+                  <option value="error">{t("project.asset.missingFrames.error")}</option>
+                  <option value="holdPrevious">
+                    {t("project.asset.missingFrames.holdPrevious")}
+                  </option>
+                  <option value="nearest">{t("project.asset.missingFrames.nearest")}</option>
+                </select>
+              </label>
             </div>
           </div>
           <div className="asset-add-group">
@@ -919,6 +1243,17 @@ export function ProjectPanel() {
       )}
     </Panel>
   );
+}
+
+function fileNameFromPath(path: string): string {
+  const parts = path.split(/[\\/]/);
+  return parts[parts.length - 1] || "Imported asset";
+}
+
+async function fetchImportResponse(url: string): Promise<Response> {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`Asset request failed with HTTP ${response.status}`);
+  return response;
 }
 
 function EffectCatalogGroup({

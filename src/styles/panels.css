@@ -336,6 +336,41 @@ button.tree-row {
   flex: 0 0 auto;
   color: #7fa5e8;
 }
+.advanced-import-settings {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-soft);
+}
+.advanced-import-settings label {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(92px, 1.25fr);
+  align-items: center;
+  gap: 8px;
+  color: #777e8d;
+  font-size: 8px;
+}
+.advanced-import-settings select,
+.advanced-import-settings input {
+  min-width: 0;
+  height: 24px;
+  padding: 0 5px;
+  border: 1px solid #303440;
+  border-radius: 3px;
+  color: #bdc2cd;
+  background: #20232b;
+  font-size: 8px;
+}
+.sequence-rate-input {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 3px;
+}
+.sequence-rate-input input {
+  width: 100%;
+}
 .asset-relink {
   width: 100%;
   margin-top: 14px;
@@ -364,6 +399,22 @@ button.tree-row {
   background: #28161a;
   font-size: 8px;
   line-height: 1.4;
+}
+.project-error-detail {
+  display: block;
+}
+.project-error-detail {
+  margin-top: 3px;
+  color: #b86f7a;
+}
+.project-warning {
+  margin: 6px 8px;
+  padding: 6px;
+  border: 1px solid #665226;
+  border-radius: 3px;
+  color: #d2b873;
+  background: #292314;
+  font-size: 8px;
 }
 .project-footer button {
   flex: 1;
@@ -597,4 +648,8 @@ button.tree-row {
 .tree-row.asset.missing svg,
 .tree-row.asset.missing small {
   color: #d7955c;
+}
+.tree-row.asset.runtime-error,
+.tree-row.asset.runtime-error small {
+  color: #dc8c98;
 }

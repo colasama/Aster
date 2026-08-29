@@ -33,6 +33,14 @@ export interface DesktopSaveOptions {
   filters?: DesktopFileFilter[];
 }
 
+export interface DesktopImageSequenceFile {
+  path: string;
+  name: string;
+  size: number;
+  lastModified: number;
+  type: string;
+}
+
 export type Mp4PixelFormat = "bgra" | "rgba";
 
 export interface Mp4ExportAudioOptions {
@@ -202,6 +210,7 @@ export interface AsterDesktopApi {
   revokeFullAccess(grantId: string): Promise<void>;
   emergencyStopAgent(sessionId: string, grantId?: string): Promise<void>;
   open(options: DesktopOpenOptions): Promise<string | string[] | null>;
+  discoverImageSequence(path: string): Promise<DesktopImageSequenceFile[]>;
   save(options: DesktopSaveOptions): Promise<string | null>;
   convertFileSrc(path: string): string;
   getPreferences(): Promise<AppPreferences>;
@@ -264,6 +273,10 @@ export function emergencyStopAgent(sessionId: string, grantId?: string): Promise
 
 export function open(options: DesktopOpenOptions): Promise<string | string[] | null> {
   return desktopApi().open(options);
+}
+
+export function discoverImageSequence(path: string): Promise<DesktopImageSequenceFile[]> {
+  return desktopApi().discoverImageSequence(path);
 }
 
 export function save(options: DesktopSaveOptions): Promise<string | null> {

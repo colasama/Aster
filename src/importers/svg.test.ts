@@ -11,7 +11,7 @@ describe("SVG importer", () => {
     expect(parsed.width).toBeCloseTo(96);
     expect(parsed.height).toBe(96);
     expect(parsed.viewBox).toEqual([0, 0, 100, 100]);
-    expect(parsed.dataUrl).toMatch(/^data:image\/svg\+xml;base64,/);
+    expect(parsed.sanitized).toContain("<svg");
   });
 
   it("derives missing dimensions from the viewBox", () => {

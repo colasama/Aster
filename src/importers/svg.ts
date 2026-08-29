@@ -3,7 +3,6 @@ export interface ParsedSvgSource {
   height: number;
   viewBox: readonly [number, number, number, number];
   sanitized: string;
-  dataUrl: string;
   nodeCount: number;
 }
 
@@ -46,7 +45,6 @@ export function parseSvgSource(source: string): ParsedSvgSource {
     height,
     viewBox: normalizedViewBox,
     sanitized,
-    dataUrl: `data:image/svg+xml;base64,${utf8Base64(sanitized)}`,
     nodeCount: elements.length,
   };
 }
@@ -125,12 +123,4 @@ function cssLengthInPixels(value: string): number | undefined {
       in: 96,
     }[match[2]?.toLowerCase() ?? "px"] ?? 1;
   return amount * scale;
-}
-
-function utf8Base64(value: string): string {
-  const bytes = new TextEncoder().encode(value);
-  let binary = "";
-  for (let offset = 0; offset < bytes.length; offset += 0x8000)
-    binary += String.fromCharCode(...bytes.subarray(offset, offset + 0x8000));
-  return btoa(binary);
 }

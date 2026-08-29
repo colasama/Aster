@@ -1,9 +1,27 @@
 import { AsyncWorkPool } from "../core/async-work-pool";
 import { configurePreviewVideoAudio } from "../core/audio-preview";
+import { evaluateLayerTransform } from "../core/expressions";
 import { sourceLocator } from "../core/footage-source";
 import { evaluateLayerSourceTime } from "../core/layer-time";
 import { clampTextAnimationTime, countAnimatedTextCharacters } from "../core/text-animator";
 import type { FootageSource, Layer } from "../core/types";
+import {
+  ImageSequenceFrameCache,
+  type ResolvedSequenceFrame,
+  resolveImageSequenceFrame,
+} from "../importers/image-sequence-runtime";
+import {
+  mediaImportRuntime,
+  type RuntimeImageSequence,
+  type RuntimePsdLayer,
+  type RuntimeSequenceFile,
+  type RuntimeSvgSource,
+} from "../importers/media-import-runtime";
+import {
+  computeSvgRasterTarget,
+  rasterizeSvgToImageBitmap,
+  SvgRasterCache,
+} from "../importers/svg-raster-cache";
 import {
   destroyMediaResource,
   type MediaResource,
@@ -26,8 +44,22 @@ export class MediaTextureCache {
   readonly #sampler: GPUSampler;
   readonly #invalidate: () => void;
   readonly #resources = new Map<string, MediaResource>();
+  readonly #pendingImageSources = new Map<string, string>();
   readonly #decodePool = new AsyncWorkPool(4);
   readonly #uploads: TextureUploadBatch;
+  readonly #sequenceFrames = new ImageSequenceFrameCache<RuntimeSequenceFile, ImageBitmap>({
+    decode: (file) => this.#decodeImage(file.url),
+    estimateBytes: (bitmap) => bitmap.width * bitmap.height * 4,
+    dispose: (bitmap) => bitmap.close(),
+    maxEntries: 24,
+    maxBytes: 384 * 1024 * 1024,
+  });
+  readonly #svgRasters = new SvgRasterCache<ImageBitmap>({
+    rasterize: rasterizeSvgToImageBitmap,
+    dispose: (bitmap) => bitmap.close(),
+    maxEntries: 12,
+    maxBytes: 256 * 1024 * 1024,
+  });
 
   constructor(
     device: GPUDevice,
@@ -56,6 +88,8 @@ export class MediaTextureCache {
 
   sweep(activeInstanceIds: ReadonlySet<string>): void {
     sweepMediaResources(this.#resources, activeInstanceIds);
+    for (const instanceId of this.#pendingImageSources.keys())
+      if (!activeInstanceIds.has(instanceId)) this.#pendingImageSources.delete(instanceId);
   }
 
   async waitForVideoFrames(timeoutMs = 10_000): Promise<void> {
@@ -74,11 +108,26 @@ export class MediaTextureCache {
   ): void {
     const source = sourceLocator(footage);
     if (!source) return;
+    const runtime = mediaImportRuntime.get(footage.id);
+    if (runtime?.kind === "psd") {
+      this.#pendingImageSources.delete(instanceId);
+      this.#preparePsd(runtime, layer, footage, instanceId, source);
+      return;
+    }
+    if (runtime?.kind === "svg") {
+      this.#prepareSvg(runtime, layer, footage, time, instanceId, source);
+      return;
+    }
+    if (runtime?.kind === "imageSequence") {
+      this.#prepareImageSequence(runtime, layer, footage, time, instanceId, source);
+      return;
+    }
     const existing = this.#resources.get(instanceId);
     if (existing?.source === source && existing.kind === layer.kind) {
       if (existing.kind === "video") this.#updateVideo(existing, layer, footage, time, playing);
       return;
     }
+    this.#pendingImageSources.delete(instanceId);
     destroyMediaResource(existing);
     const resource: MediaResource = { source, kind: layer.kind === "video" ? "video" : "image" };
     this.#resources.set(instanceId, resource);
@@ -96,6 +145,182 @@ export class MediaTextureCache {
       .catch(() => {
         if (this.#resources.get(instanceId) === resource) this.#resources.delete(instanceId);
       });
+  }
+
+  #preparePsd(
+    runtime: RuntimePsdLayer,
+    layer: Layer,
+    footage: FootageSource,
+    instanceId: string,
+    locator: string,
+  ): void {
+    const [cropX, cropY, width, height] = runtime.crop;
+    const source = `${locator}|${runtime.documentIdentity}|${cropX},${cropY},${width},${height}`;
+    const existing = this.#resources.get(instanceId);
+    if (existing?.kind === "image" && existing.source === source) {
+      mediaImportRuntime.clearError(footage.id);
+      return;
+    }
+    destroyMediaResource(existing);
+    this.#resources.delete(instanceId);
+    const maximumDimension = Math.min(
+      MAX_MEDIA_TEXTURE_DIMENSION,
+      this.#device.limits.maxTextureDimension2D,
+    );
+    if (
+      width < 1 ||
+      height < 1 ||
+      width > maximumDimension ||
+      height > maximumDimension ||
+      width * height * 4 > MAX_MEDIA_TEXTURE_BYTES ||
+      cropX < 0 ||
+      cropY < 0 ||
+      cropX + width > runtime.decodedWidth ||
+      cropY + height > runtime.decodedHeight
+    ) {
+      mediaImportRuntime.reportError(
+        footage.id,
+        new Error("PSD layer crop exceeds the available GPU texture or decoded pixel bounds"),
+      );
+      return;
+    }
+    const requiredBytes = runtime.decodedWidth * runtime.decodedHeight * 4;
+    if (runtime.pixels.byteLength < requiredBytes) {
+      mediaImportRuntime.reportError(footage.id, new Error("PSD decoded pixel plane is truncated"));
+      return;
+    }
+    const resource: MediaResource = { source, kind: "image" };
+    this.#resources.set(instanceId, resource);
+    const texture = this.#device.createTexture({
+      label: `Imported PSD layer · ${footage.name}`,
+      size: [width, height],
+      format: "rgba8unorm-srgb",
+      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+    });
+    this.#device.queue.writeTexture(
+      { texture },
+      runtime.pixels,
+      {
+        offset: (cropY * runtime.decodedWidth + cropX) * 4,
+        bytesPerRow: runtime.decodedWidth * 4,
+        rowsPerImage: runtime.decodedHeight,
+      },
+      [width, height],
+    );
+    resource.texture = texture;
+    resource.textureBytes = width * height * 4;
+    resource.bindGroup = this.#createBindGroup(texture, `Imported PSD resources · ${layer.id}`);
+    mediaImportRuntime.clearError(footage.id);
+    this.#invalidate();
+  }
+
+  #prepareSvg(
+    runtime: RuntimeSvgSource,
+    layer: Layer,
+    footage: FootageSource,
+    time: number,
+    instanceId: string,
+    locator: string,
+  ): void {
+    const transform = evaluateLayerTransform(layer, time);
+    const target = bucketSvgTarget(
+      Math.abs((layer.size[0] * transform.scale[0]) / 100),
+      Math.abs((layer.size[1] * transform.scale[1]) / 100),
+      Math.min(MAX_MEDIA_TEXTURE_DIMENSION, this.#device.limits.maxTextureDimension2D),
+    );
+    const source = `${locator}|${target.width}x${target.height}`;
+    const existing = this.#resources.get(instanceId);
+    if (existing?.kind === "image" && existing.source === source) return;
+    if (this.#pendingImageSources.get(instanceId) === source) return;
+    this.#installCachedBitmapWhenReady(
+      source,
+      this.#svgRasters.get(footage.contentIdentity, runtime.parsed, target),
+      layer,
+      footage,
+      instanceId,
+    );
+  }
+
+  #prepareImageSequence(
+    runtime: RuntimeImageSequence,
+    layer: Layer,
+    footage: FootageSource,
+    time: number,
+    instanceId: string,
+    locator: string,
+  ): void {
+    let resolved: ResolvedSequenceFrame<RuntimeSequenceFile>;
+    try {
+      const duration =
+        ((runtime.selection.endFrame - runtime.selection.startFrame + 1) *
+          runtime.frameRate.denominator) /
+        runtime.frameRate.numerator;
+      const mediaTime = evaluateLayerSourceTime(layer, time, duration);
+      resolved = resolveImageSequenceFrame(runtime.selection, mediaTime, runtime.frameRate, {
+        loop: runtime.loop,
+        missingFramePolicy: runtime.missingFramePolicy,
+      });
+    } catch (error) {
+      mediaImportRuntime.reportError(footage.id, error);
+      destroyMediaResource(this.#resources.get(instanceId));
+      this.#resources.delete(instanceId);
+      return;
+    }
+    const frame = { frame: resolved.actualFrame, file: resolved.file };
+    const source = `${locator}|${resolved.actualFrame}|${resolved.file.url}`;
+    const existing = this.#resources.get(instanceId);
+    if (existing?.kind === "image" && existing.source === source) return;
+    if (this.#pendingImageSources.get(instanceId) !== source)
+      this.#installCachedBitmapWhenReady(
+        source,
+        this.#sequenceFrames.get(frame),
+        layer,
+        footage,
+        instanceId,
+      );
+    void this.#sequenceFrames
+      .preload(runtime.selection.frames, resolved.actualFrame, runtime.loop ? 2 : 3, 2)
+      .catch(() => undefined);
+  }
+
+  async #decodeImage(url: string): Promise<ImageBitmap> {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`Media request failed with HTTP ${response.status}`);
+    return createImageBitmap(await response.blob());
+  }
+
+  #installCachedBitmapWhenReady(
+    source: string,
+    pending: Promise<ImageBitmap>,
+    layer: Layer,
+    footage: FootageSource,
+    instanceId: string,
+  ): void {
+    this.#pendingImageSources.set(instanceId, source);
+    void pending.then(
+      (bitmap) => {
+        if (this.#pendingImageSources.get(instanceId) !== source) return;
+        this.#pendingImageSources.delete(instanceId);
+        const previous = this.#resources.get(instanceId);
+        const resource: MediaResource = { source, kind: "image" };
+        this.#resources.set(instanceId, resource);
+        try {
+          this.#installBitmap(resource, bitmap, layer, footage, instanceId, false);
+          destroyMediaResource(previous);
+          mediaImportRuntime.clearError(footage.id);
+        } catch (error) {
+          destroyMediaResource(resource);
+          if (previous) this.#resources.set(instanceId, previous);
+          else this.#resources.delete(instanceId);
+          mediaImportRuntime.reportError(footage.id, error);
+        }
+      },
+      (error: unknown) => {
+        if (this.#pendingImageSources.get(instanceId) !== source) return;
+        this.#pendingImageSources.delete(instanceId);
+        mediaImportRuntime.reportError(footage.id, error);
+      },
+    );
   }
 
   prepareText(layer: Layer, instanceId: string, localTime: number, frameRate: number): void {
@@ -141,6 +366,7 @@ export class MediaTextureCache {
     layer: Layer,
     footage: FootageSource,
     instanceId: string,
+    closeBitmap = true,
   ): void {
     const maximumDimension = Math.min(
       MAX_MEDIA_TEXTURE_DIMENSION,
@@ -154,7 +380,7 @@ export class MediaTextureCache {
       bitmap.height > maximumDimension ||
       textureBytes > MAX_MEDIA_TEXTURE_BYTES
     ) {
-      bitmap.close();
+      if (closeBitmap) bitmap.close();
       throw new Error("Decoded media exceeds the GPU texture limits");
     }
     const texture = this.#device.createTexture({
@@ -167,7 +393,7 @@ export class MediaTextureCache {
       bitmap.width,
       bitmap.height,
     ]);
-    bitmap.close();
+    if (closeBitmap) bitmap.close();
     if (this.#resources.get(instanceId) !== resource) {
       texture.destroy();
       return;
@@ -441,4 +667,20 @@ function hiddenMediaStyle(top: number): Partial<CSSStyleDeclaration> {
     top: `${top}px`,
     width: "1px",
   };
+}
+
+function bucketSvgTarget(displayWidth: number, displayHeight: number, maximumDimension: number) {
+  const largest = Math.max(1, displayWidth, displayHeight);
+  const bucketedLargest = Math.min(
+    maximumDimension,
+    1.25 ** Math.ceil(Math.log(largest) / Math.log(1.25)),
+  );
+  const scale = bucketedLargest / largest;
+  return computeSvgRasterTarget({
+    displayWidth: displayWidth * scale,
+    displayHeight: displayHeight * scale,
+    resolutionScale: 1,
+    maxTextureDimension: maximumDimension,
+    maxPixels: MAX_MEDIA_TEXTURE_BYTES / 4,
+  });
 }

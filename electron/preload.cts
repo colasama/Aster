@@ -20,6 +20,8 @@ contextBridge.exposeInMainWorld(
     emergencyStopAgent: (sessionId: string, grantId?: string) =>
       ipcRenderer.invoke("aster:agent-emergency-stop", sessionId, grantId),
     open: (options: Record<string, unknown>) => ipcRenderer.invoke("aster:open", options),
+    discoverImageSequence: (path: string) =>
+      ipcRenderer.invoke("aster:media-sequence-discover", path),
     save: (options: Record<string, unknown>) => ipcRenderer.invoke("aster:save", options),
     convertFileSrc: (path: string) => `aster-asset://local/${encodeURIComponent(path)}`,
     getPreferences: () => ipcRenderer.invoke("aster:preferences-get"),

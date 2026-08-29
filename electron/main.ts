@@ -37,6 +37,7 @@ import { createDiagnosticBundle, writeDiagnosticBundle } from "./diagnostics.js"
 import { fullAccessDesktopBridgeRequest } from "./full-access-aster-tools.js";
 import { describeFullAccessTarget, FullAccessToolService } from "./full-access-tools.js";
 import { AsterLogger, isRendererLogPayload, type LogLevel, parseLogLevel } from "./logger.js";
+import { discoverDesktopImageSequence } from "./media-import.js";
 import { Mp4ExportManager } from "./mp4-export.js";
 import { developmentProfileDirectory } from "./profile-paths.js";
 import { ElectronRenderHostController } from "./render-queue-host.js";
@@ -857,8 +858,19 @@ function registerIpc(
       selectedCount: result.filePaths.length,
     });
     if (result.canceled) return null;
-    for (const path of result.filePaths) grantPath(path);
+    for (const path of result.filePaths) {
+      grantPath(path);
+      if (input.directory !== true) allowedAssets.set(normalizeAssetPath(path), resolve(path));
+    }
     return input.multiple === true ? result.filePaths : (result.filePaths[0] ?? null);
+  });
+
+  ipcMain.handle("aster:media-sequence-discover", async (_event, value: unknown) => {
+    if (typeof value !== "string" || !grantedPaths.has(normalizeAssetPath(value)))
+      throw new Error("Image sequence seed was not selected by the user");
+    const files = await discoverDesktopImageSequence(value);
+    for (const file of files) allowedAssets.set(normalizeAssetPath(file.path), resolve(file.path));
+    return files;
   });
 
   ipcMain.handle("aster:save", async (_event, value: unknown) => {
