@@ -27,6 +27,22 @@ export interface ViewportSnapResult {
   snapped: readonly ViewportSnapTarget[];
 }
 
+export type ViewportResizeHandle =
+  | "northWest"
+  | "north"
+  | "northEast"
+  | "east"
+  | "southEast"
+  | "south"
+  | "southWest"
+  | "west";
+
+export interface ViewportResizeOptions {
+  preserveAspectRatio?: boolean;
+  fromAnchor?: boolean;
+  minimumScale?: number;
+}
+
 export function localToComposition(point: Point2, transform: ViewportTransform2d): Point2 {
   const scaled: Point2 = [
     (point[0] - transform.anchor[0]) * (transform.scale[0] / 100),
@@ -88,6 +104,69 @@ export function moveAnchorPreservingGeometry(
     ...transform,
     anchor,
     position: [transform.position[0] + positionDelta[0], transform.position[1] + positionDelta[1]],
+  };
+}
+
+/** Resizes in layer-local axes while keeping the opposite handle (or anchor) fixed in composition. */
+export function resizeViewportTransform(
+  transform: ViewportTransform2d,
+  handle: ViewportResizeHandle,
+  pointer: Point2,
+  options: ViewportResizeOptions = {},
+): ViewportTransform2d {
+  const handlePoint = resizeHandlePoint(handle, transform.size);
+  const fixedPoint = options.fromAnchor
+    ? transform.anchor
+    : resizeHandlePoint(oppositeResizeHandle(handle), transform.size);
+  const fixedComposition = localToComposition(fixedPoint, transform);
+  const pointerDelta = rotate(
+    [pointer[0] - fixedComposition[0], pointer[1] - fixedComposition[1]],
+    -transform.rotation,
+  );
+  const localDelta: Point2 = [handlePoint[0] - fixedPoint[0], handlePoint[1] - fixedPoint[1]];
+  const horizontal = handleHasHorizontalAxis(handle) && Math.abs(localDelta[0]) > 1e-6;
+  const vertical = handleHasVerticalAxis(handle) && Math.abs(localDelta[1]) > 1e-6;
+  let scaleX = horizontal ? (pointerDelta[0] / localDelta[0]) * 100 : transform.scale[0];
+  let scaleY = vertical ? (pointerDelta[1] / localDelta[1]) * 100 : transform.scale[1];
+  if (options.preserveAspectRatio && horizontal && vertical) {
+    const factorX = scaleX / safeScale(transform.scale[0]);
+    const factorY = scaleY / safeScale(transform.scale[1]);
+    const factor = Math.abs(factorX - 1) >= Math.abs(factorY - 1) ? factorX : factorY;
+    scaleX = transform.scale[0] * factor;
+    scaleY = transform.scale[1] * factor;
+  }
+  const minimum = Math.max(1e-4, Math.abs(options.minimumScale ?? 0.01));
+  const scale: Point2 = [boundedSignedScale(scaleX, minimum), boundedSignedScale(scaleY, minimum)];
+  const fixedOffset = rotate(
+    [
+      (fixedPoint[0] - transform.anchor[0]) * (scale[0] / 100),
+      (fixedPoint[1] - transform.anchor[1]) * (scale[1] / 100),
+    ],
+    transform.rotation,
+  );
+  return {
+    ...transform,
+    scale,
+    position: [fixedComposition[0] - fixedOffset[0], fixedComposition[1] - fixedOffset[1]],
+  };
+}
+
+/** Applies pointer-angle delta around the rendered anchor, optionally snapping to fixed degrees. */
+export function rotateViewportTransformFromPointer(
+  transform: ViewportTransform2d,
+  startPointer: Point2,
+  pointer: Point2,
+  snapDegrees = 0,
+): ViewportTransform2d {
+  const center = transform.position;
+  const startAngle = Math.atan2(startPointer[1] - center[1], startPointer[0] - center[0]);
+  const angle = Math.atan2(pointer[1] - center[1], pointer[0] - center[0]);
+  const delta = ((angle - startAngle) * 180) / Math.PI;
+  const unsnapped = transform.rotation + (Number.isFinite(delta) ? delta : 0);
+  const increment = Math.abs(Number.isFinite(snapDegrees) ? snapDegrees : 0);
+  return {
+    ...transform,
+    rotation: increment > 1e-6 ? Math.round(unsnapped / increment) * increment : unsnapped,
   };
 }
 
@@ -233,4 +312,42 @@ function rotate(point: Point2, degrees: number): Point2 {
 function safeScale(value: number): number {
   if (Math.abs(value) >= 1e-6) return value;
   return value < 0 ? -1e-6 : 1e-6;
+}
+
+function resizeHandlePoint(handle: ViewportResizeHandle, size: Point2): Point2 {
+  const x =
+    handle.includes("West") || handle === "west"
+      ? 0
+      : handle.includes("East") || handle === "east"
+        ? size[0]
+        : size[0] * 0.5;
+  const y = handle.includes("north") ? 0 : handle.includes("south") ? size[1] : size[1] * 0.5;
+  return [x, y];
+}
+
+function oppositeResizeHandle(handle: ViewportResizeHandle): ViewportResizeHandle {
+  return {
+    northWest: "southEast",
+    north: "south",
+    northEast: "southWest",
+    east: "west",
+    southEast: "northWest",
+    south: "north",
+    southWest: "northEast",
+    west: "east",
+  }[handle] as ViewportResizeHandle;
+}
+
+function handleHasHorizontalAxis(handle: ViewportResizeHandle): boolean {
+  return handle !== "north" && handle !== "south";
+}
+
+function handleHasVerticalAxis(handle: ViewportResizeHandle): boolean {
+  return handle !== "east" && handle !== "west";
+}
+
+function boundedSignedScale(value: number, minimum: number): number {
+  if (!Number.isFinite(value)) return minimum;
+  if (Math.abs(value) >= minimum) return value;
+  return value < 0 ? -minimum : minimum;
 }

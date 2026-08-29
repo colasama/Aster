@@ -4,6 +4,8 @@ import {
   hitTestViewportTransform,
   localToComposition,
   moveAnchorPreservingGeometry,
+  resizeViewportTransform,
+  rotateViewportTransformFromPointer,
   snapViewportPosition,
   ViewportPreviewCoalescer,
   type ViewportTransform2d,
@@ -59,6 +61,70 @@ describe("viewport transform interaction", () => {
       "composition-center-y",
     ]);
     expect(snapViewportPosition([393, 300], simple, targets, 8, 2).position[0]).toBe(393);
+  });
+
+  it("resizes in rotated local axes while preserving the opposite edge", () => {
+    const simple: ViewportTransform2d = {
+      position: [300, 200],
+      scale: [100, 100],
+      rotation: 30,
+      anchor: [50, 50],
+      size: [100, 100],
+    };
+    const fixed = localToComposition([0, 50], simple);
+    const pointer = localToComposition([200, 50], { ...simple, scale: [100, 100] });
+    const resized = resizeViewportTransform(simple, "east", pointer);
+    expect(resized.scale).toEqual(expect.arrayContaining([expect.closeTo(200, 8), 100]));
+    expect(localToComposition([0, 50], resized)).toEqual(
+      expect.arrayContaining([expect.closeTo(fixed[0], 8), expect.closeTo(fixed[1], 8)]),
+    );
+  });
+
+  it("supports proportional, anchor-centered, and mirrored scaling without geometry drift", () => {
+    const simple: ViewportTransform2d = {
+      position: [300, 200],
+      scale: [100, 50],
+      rotation: -20,
+      anchor: [50, 50],
+      size: [100, 100],
+    };
+    const fixed = localToComposition([0, 0], simple);
+    const target = localToComposition([200, 150], { ...simple, scale: [100, 100] });
+    const proportional = resizeViewportTransform(simple, "southEast", target, {
+      preserveAspectRatio: true,
+    });
+    expect(proportional.scale[0] / simple.scale[0]).toBeCloseTo(
+      proportional.scale[1] / simple.scale[1],
+    );
+    expect(localToComposition([0, 0], proportional)).toEqual(
+      expect.arrayContaining([expect.closeTo(fixed[0], 8), expect.closeTo(fixed[1], 8)]),
+    );
+    const anchorBefore = localToComposition(simple.anchor, simple);
+    const anchorScaled = resizeViewportTransform(
+      simple,
+      "southEast",
+      localToComposition([150, 150], simple),
+      { fromAnchor: true },
+    );
+    expect(localToComposition(simple.anchor, anchorScaled)).toEqual(anchorBefore);
+    const mirrored = resizeViewportTransform(simple, "east", localToComposition([-50, 50], simple));
+    expect(mirrored.scale[0]).toBeLessThan(0);
+  });
+
+  it("rotates around the rendered anchor with optional angle snapping", () => {
+    const simple: ViewportTransform2d = {
+      position: [100, 100],
+      scale: [100, 100],
+      rotation: 5,
+      anchor: [50, 50],
+      size: [100, 100],
+    };
+    expect(rotateViewportTransformFromPointer(simple, [200, 100], [100, 200]).rotation).toBeCloseTo(
+      95,
+    );
+    expect(rotateViewportTransformFromPointer(simple, [200, 100], [100, 200], 15).rotation).toBe(
+      90,
+    );
   });
 
   it("coalesces pointer previews and flushes the final value", () => {
