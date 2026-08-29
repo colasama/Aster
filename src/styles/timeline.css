@@ -717,6 +717,18 @@
 .graph-curve {
   stroke-width: 2px;
 }
+.graph-reference-curve {
+  opacity: 0.28;
+  stroke-dasharray: 5 4;
+  stroke-width: 1px;
+}
+.graph-layer-bound {
+  pointer-events: none;
+  stroke: rgb(202 211 232 / 45%);
+  stroke-dasharray: 3 3;
+  stroke-width: 1px;
+  vector-effect: non-scaling-stroke;
+}
 .graph-key {
   cursor: move;
   fill: #d7e5ff;

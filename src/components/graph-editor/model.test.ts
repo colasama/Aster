@@ -4,8 +4,11 @@ import { activeComposition, createDemoProject } from "../../core/project";
 import type { Animatable } from "../../core/types";
 import {
   collectAnimatedGraphTracks,
+  easeGraphTrack,
+  easingFromGraphSpeedHandle,
   graphCurveRange,
   graphDraggedKeyframeValue,
+  graphSpeedSegment,
   previewGraphTrack,
   resolveGraphType,
   sampleGraphTrack,
@@ -62,6 +65,50 @@ describe("graph editor track model", () => {
     expect(graphDraggedKeyframeValue("value", 25, -40)).toBe(-40);
     expect(graphDraggedKeyframeValue("speed", 25, -40)).toBe(25);
     expect(graphDraggedKeyframeValue("value", 25, Number.NaN)).toBe(25);
+  });
+
+  it("round-trips AE speed and influence handles through temporal cubic easing", () => {
+    const start = {
+      id: "start",
+      time: 2,
+      value: 10,
+      interpolation: "bezier" as const,
+      easing: [0.25, 0.5, 0.7, 0.8] as [number, number, number, number],
+    };
+    const end = { id: "end", time: 4, value: 50, interpolation: "linear" as const };
+    const initial = graphSpeedSegment(start, end);
+    expect(initial.outgoingSpeed).toBeCloseTo(40);
+    expect(initial.incomingSpeed).toBeCloseTo(40 / 3);
+    expect(initial.outgoingInfluence).toBeCloseTo(0.25);
+    expect(initial.incomingInfluence).toBeCloseTo(0.3);
+
+    const outgoing = easingFromGraphSpeedHandle(start, end, "out", 0.4, 30);
+    const incoming = easingFromGraphSpeedHandle({ ...start, easing: outgoing }, end, "in", 0.2, 50);
+    const result = graphSpeedSegment({ ...start, easing: incoming }, end);
+    expect(result.outgoingInfluence).toBeCloseTo(0.4);
+    expect(result.outgoingSpeed).toBeCloseTo(30);
+    expect(result.incomingInfluence).toBeCloseTo(0.2);
+    expect(result.incomingSpeed).toBeCloseTo(50);
+  });
+
+  it("applies Easy Ease In and Out to the owning sides of adjacent segments", () => {
+    const composition = activeComposition(createDemoProject());
+    const layer = createLayerForComposition("shape", composition);
+    layer.transform.opacity = {
+      mode: "animated",
+      keyframes: [
+        { id: "a", time: 0, value: 0, interpolation: "linear" },
+        { id: "b", time: 1, value: 50, interpolation: "linear" },
+        { id: "c", time: 2, value: 100, interpolation: "linear" },
+      ],
+    };
+    const [track] = collectAnimatedGraphTracks(layer);
+    const both = easeGraphTrack(track, new Set(["b"]), "both");
+    expect(both.map(({ keyframe }) => keyframe.id)).toEqual(["b", "a"]);
+    expect(both.find(({ keyframe }) => keyframe.id === "b")?.easing).toEqual([1 / 3, 0, 2 / 3, 1]);
+    expect(both.find(({ keyframe }) => keyframe.id === "a")?.easing).toEqual([1 / 3, 0, 2 / 3, 1]);
+    expect(easeGraphTrack(track, new Set(["a"]), "in")).toEqual([]);
+    expect(easeGraphTrack(track, new Set(["c"]), "out")).toEqual([]);
   });
 
   it("uses the graph sampling pixel budget and includes Bezier overshoot in visible range", () => {

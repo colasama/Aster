@@ -11,6 +11,8 @@ describe("graphContextMenuItems", () => {
       delete: vi.fn(),
       disabledReason: "Locked",
       easyEase: vi.fn(),
+      easyEaseIn: vi.fn(),
+      easyEaseOut: vi.fn(),
       fitAll: vi.fn(),
       fitSelection: vi.fn(),
       graphType: "value",
@@ -28,5 +30,11 @@ describe("graphContextMenuItems", () => {
     const interpolation = items.find((item) => item.id === "interpolation");
     expect(interpolation).toMatchObject({ disabled: true, disabledReason: "Locked" });
     expect(interpolation?.kind === "submenu" && interpolation.items).toHaveLength(3);
+    const graphType = items.find((item) => item.id === "graph-type");
+    expect(graphType?.kind === "submenu" && graphType.items.map((item) => item.id)).toEqual([
+      "graph-auto",
+      "graph-value",
+      "graph-speed",
+    ]);
   });
 });

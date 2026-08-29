@@ -1085,7 +1085,7 @@ function easeTransform(layer: Layer): void {
     if (property.mode !== "animated") continue;
     for (const keyframe of property.keyframes) {
       keyframe.interpolation = "bezier";
-      keyframe.easing = [0.42, 0, 0.58, 1];
+      keyframe.easing = [1 / 3, 0, 2 / 3, 1];
     }
   }
 }

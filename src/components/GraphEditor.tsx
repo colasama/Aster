@@ -8,7 +8,7 @@ import {
   pasteKeyframes,
   removeKeyframes,
 } from "../core/keyframe-editing";
-import type { PropertyPath } from "../core/operations";
+import type { Operation, PropertyPath } from "../core/operations";
 import { activeComposition } from "../core/project";
 import type { Keyframe } from "../core/types";
 import { useI18n } from "../i18n/react";
@@ -17,6 +17,8 @@ import { useContextMenuTrigger } from "./context-menu/use-context-menu-trigger";
 import { GraphContextMenu } from "./GraphContextMenu";
 import {
   collectAnimatedGraphTracks,
+  easeGraphTrack,
+  easingFromGraphSpeedHandle,
   type GraphCurve,
   type GraphEasingPreview,
   type GraphKeyframePreview,
@@ -26,6 +28,7 @@ import {
   graphCurveValue,
   graphCurveValueAtTime,
   graphDraggedKeyframeValue,
+  graphSpeedSegment,
   previewGraphTrack,
   resolveGraphType,
   sampleGraphTrack,
@@ -65,6 +68,9 @@ export function GraphEditor() {
   const resetKeyRef = useRef(resetKey);
   const tracks = useMemo(() => collectAnimatedGraphTracks(layer), [layer]);
   const [graphType, setGraphType] = useState<GraphType>("auto");
+  const [showReferenceGraph, setShowReferenceGraph] = useState(false);
+  const [showLayerBounds, setShowLayerBounds] = useState(true);
+  const [allowBetweenFrames, setAllowBetweenFrames] = useState(false);
   const [keyframeClipboard, setKeyframeClipboard] = useState<KeyframeClipboard>();
   const contextMenu = useContextMenuTrigger();
   const [hiddenTracks, setHiddenTracks] = useState<Set<PropertyPath>>(() => new Set());
@@ -136,11 +142,54 @@ export function GraphEditor() {
       }),
     [graphType, timeRange.end, timeRange.start, viewportSize.width, visibleTracks],
   );
+  const referenceCurves = useMemo(
+    () =>
+      showReferenceGraph
+        ? visibleTracks.map((track) => {
+            const primary = resolveGraphType(graphType, track);
+            return sampleGraphTrack(
+              track,
+              primary === "value" ? "speed" : "value",
+              timeRange.start,
+              timeRange.end,
+              Math.max(1, viewportSize.width),
+            );
+          })
+        : [],
+    [
+      graphType,
+      showReferenceGraph,
+      timeRange.end,
+      timeRange.start,
+      viewportSize.width,
+      visibleTracks,
+    ],
+  );
   const sampledValueRange = useMemo(() => graphCurveRange(curves), [curves]);
+  const referenceValueRange = useMemo(() => graphCurveRange(referenceCurves), [referenceCurves]);
   const valueRange = autoZoomHeight ? sampledValueRange : manualValueRange;
   const keyRadii = graphMarkerRadii(viewportSize.width, viewportSize.height, 5);
   const handleRadii = graphMarkerRadii(viewportSize.width, viewportSize.height, 4);
   const pixelsPerSecond = viewportSize.width / Math.max(timeRange.end - timeRange.start, 1e-9);
+  const graphSnapTargets = useMemo(
+    () => [
+      0,
+      composition.duration,
+      composition.workArea.start,
+      composition.workArea.end,
+      ...(layer ? [layer.inPoint, layer.outPoint] : []),
+      ...visibleTracks.flatMap((track) =>
+        track.property.keyframes.map((keyframe) => keyframe.time),
+      ),
+    ],
+    [
+      composition.duration,
+      composition.workArea.end,
+      composition.workArea.start,
+      layer,
+      visibleTracks,
+    ],
+  );
   const selectedEntries = useMemo(
     () =>
       findSelectedKeyframes(composition, state.selectedKeyframes).filter(
@@ -198,6 +247,8 @@ export function GraphEditor() {
       state.currentTime,
       pixelsPerSecond,
       bypass,
+      graphSnapTargets,
+      allowBetweenFrames,
     );
     dispatch({ type: "setTime", time: Math.max(0, Math.min(composition.duration, time)) });
   };
@@ -247,8 +298,30 @@ export function GraphEditor() {
     event.stopPropagation();
     const svg = event.currentTarget.ownerSVGElement;
     const sourceTrack = tracks.find((track) => track.id === curve.track.id);
-    if (!svg || !sourceTrack) return;
-    dispatch({ type: "selectKeyframes", ids: [keyframe.id] });
+    if (!svg || !sourceTrack || !layer) return;
+    const alreadySelected = state.selectedKeyframes.includes(keyframe.id);
+    if (event.shiftKey) {
+      dispatch({
+        type: "selectKeyframes",
+        ids: alreadySelected
+          ? state.selectedKeyframes.filter((id) => id !== keyframe.id)
+          : [...state.selectedKeyframes, keyframe.id],
+      });
+      return;
+    }
+    if (!alreadySelected) dispatch({ type: "selectKeyframes", ids: [keyframe.id] });
+    const draggedEntries = alreadySelected
+      ? selectedEntries
+      : [
+          {
+            source: "transform" as const,
+            layerId: layer.id,
+            path: sourceTrack.path,
+            keyframe,
+          },
+        ];
+    const draggedTimes = new Set(draggedEntries.map((entry) => entry.keyframe.time));
+    const dragSnapTargets = graphSnapTargets.filter((target) => !draggedTimes.has(target));
     let next = {
       trackId: sourceTrack.id,
       keyframeId: keyframe.id,
@@ -269,6 +342,8 @@ export function GraphEditor() {
               state.currentTime,
               pixelsPerSecond,
               moveEvent.ctrlKey || moveEvent.metaKey,
+              dragSnapTargets,
+              allowBetweenFrames,
             ),
           ),
         ),
@@ -286,8 +361,33 @@ export function GraphEditor() {
       if (
         Math.abs(next.time - keyframe.time) > POINTER_EPSILON ||
         Math.abs(next.value - keyframe.value) > POINTER_EPSILON
-      )
-        updateKeyframe(sourceTrack, keyframe, next.time, next.value);
+      ) {
+        const earliest = Math.min(...draggedEntries.map((entry) => entry.keyframe.time));
+        const latest = Math.max(...draggedEntries.map((entry) => entry.keyframe.time));
+        const timeDelta = Math.max(
+          -earliest,
+          Math.min(composition.duration - latest, next.time - keyframe.time),
+        );
+        const valueDelta = next.value - keyframe.value;
+        dispatch({
+          type: "operation",
+          operations: draggedEntries.map((entry) => ({
+            type: "updateKeyframe" as const,
+            layerId: entry.layerId,
+            path: entry.path,
+            keyframeId: entry.keyframe.id,
+            time: entry.keyframe.time + timeDelta,
+            value:
+              curve.type === "value" && entry.path === sourceTrack.path
+                ? entry.keyframe.value + valueDelta
+                : entry.keyframe.value,
+            interpolation: entry.keyframe.interpolation,
+            easing: entry.keyframe.easing,
+            spatialIn: entry.keyframe.spatialIn,
+            spatialOut: entry.keyframe.spatialOut,
+          })),
+        });
+      }
     };
     addWindowPointerListeners(move, end);
   };
@@ -299,7 +399,7 @@ export function GraphEditor() {
     nextKeyframe: Keyframe,
     handle: "out" | "in",
   ) => {
-    if (curve.type !== "value" || event.button !== 0 || layer?.locked) return;
+    if (event.button !== 0 || layer?.locked) return;
     event.preventDefault();
     event.stopPropagation();
     const svg = event.currentTarget.ownerSVGElement;
@@ -313,12 +413,31 @@ export function GraphEditor() {
     let easing = keyframe.easing ?? [0.42, 0, 0.58, 1];
     const move = (moveEvent: PointerEvent) => {
       const point = clientGraphPoint(svg, moveEvent.clientX, moveEvent.clientY);
-      const x = Math.max(0, Math.min(1, (point.x - start.x) / signedNonZero(finish.x - start.x)));
-      const y = Math.max(-4, Math.min(5, (point.y - start.y) / signedNonZero(finish.y - start.y)));
-      easing =
-        handle === "out"
-          ? [Math.min(x, easing[2]), y, easing[2], easing[3]]
-          : [easing[0], easing[1], Math.max(x, easing[0]), y];
+      if (curve.type === "speed") {
+        const time = graphXToTime(point.x, timeRange);
+        const duration = Math.max(Number.EPSILON, nextKeyframe.time - keyframe.time);
+        const influence =
+          handle === "out"
+            ? (time - keyframe.time) / duration
+            : (nextKeyframe.time - time) / duration;
+        easing = easingFromGraphSpeedHandle(
+          { ...keyframe, easing },
+          nextKeyframe,
+          handle,
+          influence,
+          Math.max(0, graphYToValue(point.y, valueRange)),
+        );
+      } else {
+        const x = Math.max(0, Math.min(1, (point.x - start.x) / signedNonZero(finish.x - start.x)));
+        const y = Math.max(
+          -4,
+          Math.min(5, (point.y - start.y) / signedNonZero(finish.y - start.y)),
+        );
+        easing =
+          handle === "out"
+            ? [Math.min(x, easing[2]), y, easing[2], easing[3]]
+            : [easing[0], easing[1], Math.max(x, easing[0]), y];
+      }
       setEasingPreview({ trackId: sourceTrack.id, keyframeId: keyframe.id, easing });
     };
     const end = () => {
@@ -396,6 +515,25 @@ export function GraphEditor() {
         spatialOut: entry.keyframe.spatialOut,
       })),
     });
+  };
+  const easeSelectedKeyframes = (mode: "both" | "in" | "out") => {
+    if (!canEditSelection || !layer) return;
+    const selectedIds = new Set(selectedEntries.map((entry) => entry.keyframe.id));
+    const operations: Operation[] = tracks.flatMap((track) =>
+      easeGraphTrack(track, selectedIds, mode).map(({ keyframe, easing }) => ({
+        type: "updateKeyframe" as const,
+        layerId: layer.id,
+        path: track.path,
+        keyframeId: keyframe.id,
+        time: keyframe.time,
+        value: keyframe.value,
+        interpolation: "bezier" as const,
+        easing,
+        spatialIn: keyframe.spatialIn,
+        spatialOut: keyframe.spatialOut,
+      })),
+    );
+    if (operations.length) dispatch({ type: "operation", operations });
   };
   const copySelection = () => setKeyframeClipboard(copyKeyframes(selectedEntries));
   const pasteSelection = () => {
@@ -509,6 +647,30 @@ export function GraphEditor() {
           >
             {t("graph.autoZoomHeight")}
           </button>
+          <button
+            aria-pressed={showReferenceGraph}
+            className={showReferenceGraph ? "active" : ""}
+            onClick={() => setShowReferenceGraph((value) => !value)}
+            type="button"
+          >
+            {t("graph.showReference")}
+          </button>
+          <button
+            aria-pressed={showLayerBounds}
+            className={showLayerBounds ? "active" : ""}
+            onClick={() => setShowLayerBounds((value) => !value)}
+            type="button"
+          >
+            {t("graph.showLayerBounds")}
+          </button>
+          <button
+            aria-pressed={allowBetweenFrames}
+            className={allowBetweenFrames ? "active" : ""}
+            onClick={() => setAllowBetweenFrames((value) => !value)}
+            type="button"
+          >
+            {t("graph.allowBetweenFrames")}
+          </button>
         </div>
         <div
           aria-label={t("graph.a11y")}
@@ -577,6 +739,35 @@ export function GraphEditor() {
               </pattern>
             </defs>
             <rect fill={`url(#${gridId})`} height={GRAPH_HEIGHT} width={GRAPH_WIDTH} />
+            {referenceCurves.map((curve) => (
+              <path
+                className="graph-reference-curve"
+                d={curvePath(curve, timeRange, referenceValueRange)}
+                fill="none"
+                key={`reference:${curve.track.id}`}
+                pointerEvents="none"
+                stroke={curve.track.color}
+                vectorEffect="non-scaling-stroke"
+              />
+            ))}
+            {showLayerBounds && layer && (
+              <>
+                <line
+                  className="graph-layer-bound"
+                  x1={timeToGraphX(layer.inPoint, timeRange)}
+                  x2={timeToGraphX(layer.inPoint, timeRange)}
+                  y1="0"
+                  y2={GRAPH_HEIGHT}
+                />
+                <line
+                  className="graph-layer-bound"
+                  x1={timeToGraphX(layer.outPoint, timeRange)}
+                  x2={timeToGraphX(layer.outPoint, timeRange)}
+                  y1="0"
+                  y2={GRAPH_HEIGHT}
+                />
+              </>
+            )}
             {curves.map((curve) => (
               <path
                 aria-label={`${t(curve.track.labelKey)} · ${t(curve.type === "speed" ? "graph.type.speed" : "graph.type.value")}`}
@@ -608,60 +799,105 @@ export function GraphEditor() {
                   easingPreview.keyframeId === keyframe.id
                     ? easingPreview.easing
                     : (keyframe.easing ?? [0.42, 0, 0.58, 1]);
-                const nextPoint = next ? keyframePoint(next, timeRange, valueRange) : undefined;
-                const outHandle = nextPoint
-                  ? interpolatePoint(point, nextPoint, easing[0], easing[1])
+                const nextPoint = next
+                  ? {
+                      x: timeToGraphX(next.time, timeRange),
+                      y: valueToGraphY(
+                        curve.type === "value"
+                          ? next.value
+                          : graphCurveValueAtTime(curve, next.time),
+                        valueRange,
+                      ),
+                    }
                   : undefined;
-                const inHandle = nextPoint
-                  ? interpolatePoint(point, nextPoint, easing[2], easing[3])
-                  : undefined;
+                const speed = next ? graphSpeedSegment({ ...keyframe, easing }, next) : undefined;
+                const outHandle =
+                  next && nextPoint
+                    ? curve.type === "value"
+                      ? interpolatePoint(point, nextPoint, easing[0], easing[1])
+                      : {
+                          x: timeToGraphX(
+                            keyframe.time +
+                              (next.time - keyframe.time) * (speed?.outgoingInfluence ?? 0.3333),
+                            timeRange,
+                          ),
+                          y: valueToGraphY(speed?.outgoingSpeed ?? 0, valueRange),
+                        }
+                    : undefined;
+                const inHandle =
+                  next && nextPoint
+                    ? curve.type === "value"
+                      ? interpolatePoint(point, nextPoint, easing[2], easing[3])
+                      : {
+                          x: timeToGraphX(
+                            next.time -
+                              (next.time - keyframe.time) * (speed?.incomingInfluence ?? 0.3333),
+                            timeRange,
+                          ),
+                          y: valueToGraphY(speed?.incomingSpeed ?? 0, valueRange),
+                        }
+                    : undefined;
                 const label = t(curve.track.labelKey);
+                const nextSelected = Boolean(next && state.selectedKeyframes.includes(next.id));
                 return (
                   <g key={`${curve.track.id}:${keyframe.id}`}>
-                    {curve.type === "value" && selected && next && outHandle && inHandle && (
-                      <>
-                        <line
-                          className="graph-handle-line"
-                          style={{ stroke: curve.track.color }}
-                          x1={point.x}
-                          x2={outHandle.x}
-                          y1={point.y}
-                          y2={outHandle.y}
-                        />
-                        <line
-                          className="graph-handle-line"
-                          style={{ stroke: curve.track.color }}
-                          x1={nextPoint?.x}
-                          x2={inHandle.x}
-                          y1={nextPoint?.y}
-                          y2={inHandle.y}
-                        />
-                        <ellipse
-                          aria-label={t("graph.handle.outgoing", { label })}
-                          className="graph-handle"
-                          cx={outHandle.x}
-                          cy={outHandle.y}
-                          onPointerDown={(event) =>
-                            startHandleDrag(event, curve, keyframe, next, "out")
-                          }
-                          rx={handleRadii.x}
-                          ry={handleRadii.y}
-                          style={{ stroke: curve.track.color }}
-                        />
-                        <ellipse
-                          aria-label={t("graph.handle.incoming", { label })}
-                          className="graph-handle"
-                          cx={inHandle.x}
-                          cy={inHandle.y}
-                          onPointerDown={(event) =>
-                            startHandleDrag(event, curve, keyframe, next, "in")
-                          }
-                          rx={handleRadii.x}
-                          ry={handleRadii.y}
-                          style={{ stroke: curve.track.color }}
-                        />
-                      </>
-                    )}
+                    {keyframe.interpolation === "bezier" &&
+                      (selected || nextSelected) &&
+                      next &&
+                      nextPoint &&
+                      outHandle &&
+                      inHandle && (
+                        <>
+                          {selected && (
+                            <>
+                              <line
+                                className="graph-handle-line"
+                                style={{ stroke: curve.track.color }}
+                                x1={point.x}
+                                x2={outHandle.x}
+                                y1={point.y}
+                                y2={outHandle.y}
+                              />
+                              <ellipse
+                                aria-label={t("graph.handle.outgoing", { label })}
+                                className="graph-handle"
+                                cx={outHandle.x}
+                                cy={outHandle.y}
+                                onPointerDown={(event) =>
+                                  startHandleDrag(event, curve, keyframe, next, "out")
+                                }
+                                rx={handleRadii.x}
+                                ry={handleRadii.y}
+                                style={{ stroke: curve.track.color }}
+                              />
+                            </>
+                          )}
+                          {nextSelected && (
+                            <>
+                              <line
+                                className="graph-handle-line"
+                                style={{ stroke: curve.track.color }}
+                                x1={nextPoint.x}
+                                x2={inHandle.x}
+                                y1={nextPoint.y}
+                                y2={inHandle.y}
+                              />
+                              <ellipse
+                                aria-label={t("graph.handle.incoming", { label })}
+                                className="graph-handle"
+                                cx={inHandle.x}
+                                cy={inHandle.y}
+                                onPointerDown={(event) =>
+                                  startHandleDrag(event, curve, keyframe, next, "in")
+                                }
+                                rx={handleRadii.x}
+                                ry={handleRadii.y}
+                                style={{ stroke: curve.track.color }}
+                              />
+                            </>
+                          )}
+                        </>
+                      )}
                     {/* biome-ignore lint/a11y/useSemanticElements: SVG keyframe geometry cannot be an HTML button. */}
                     <ellipse
                       aria-label={t("graph.keyframe", {
@@ -714,7 +950,9 @@ export function GraphEditor() {
             copy={copySelection}
             delete={deleteSelection}
             disabledReason={layer?.locked ? t("graph.menu.locked") : t("graph.menu.noSelection")}
-            easyEase={() => setSelectedInterpolation("bezier", [0.16, 1, 0.3, 1])}
+            easyEase={() => easeSelectedKeyframes("both")}
+            easyEaseIn={() => easeSelectedKeyframes("in")}
+            easyEaseOut={() => easeSelectedKeyframes("out")}
             fitAll={fitAll}
             fitSelection={fitSelection}
             graphType={graphType}

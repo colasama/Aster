@@ -11,6 +11,8 @@ export interface GraphContextMenuActions {
   delete(): void;
   disabledReason: string;
   easyEase(): void;
+  easyEaseIn(): void;
+  easyEaseOut(): void;
   fitAll(): void;
   fitSelection(): void;
   graphType: GraphType;
@@ -37,12 +39,18 @@ export function graphContextMenuItems(
       id: "graph-type",
       kind: "submenu",
       label: t("graph.type.label"),
-      items: (["value", "speed"] as const).map((type) => ({
+      items: (["auto", "value", "speed"] as const).map((type) => ({
         checked: actions.graphType === type,
         group: "graph-type",
         id: `graph-${type}`,
         kind: "radio" as const,
-        label: t(type === "value" ? "graph.type.value" : "graph.type.speed"),
+        label: t(
+          type === "auto"
+            ? "graph.type.auto"
+            : type === "value"
+              ? "graph.type.value"
+              : "graph.type.speed",
+        ),
         onSelect: () => actions.setGraphType(type),
       })),
     },
@@ -98,6 +106,22 @@ export function graphContextMenuItems(
       label: t("graph.menu.easyEase"),
       shortcut: "F9",
       onSelect: actions.easyEase,
+    },
+    {
+      disabled: !actions.canEdit,
+      disabledReason: selectionUnavailable,
+      id: "easy-ease-in",
+      kind: "command",
+      label: t("graph.menu.easyEaseIn"),
+      onSelect: actions.easyEaseIn,
+    },
+    {
+      disabled: !actions.canEdit,
+      disabledReason: selectionUnavailable,
+      id: "easy-ease-out",
+      kind: "command",
+      label: t("graph.menu.easyEaseOut"),
+      onSelect: actions.easyEaseOut,
     },
     { id: "clipboard-separator", kind: "separator" },
     {

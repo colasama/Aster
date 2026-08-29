@@ -130,14 +130,26 @@ export function snapGraphTime(
   currentTime: number,
   pixelsPerSecond: number,
   bypass = false,
+  targets: readonly number[] = [],
+  allowBetweenFrames = false,
 ): number {
   if (!Number.isFinite(time)) return 0;
   if (bypass) return time;
   const frame = Number.isFinite(frameDuration) && frameDuration > 0 ? frameDuration : 1 / 60;
   const frameTime = Math.round(time / frame) * frame;
-  const currentDistance = Math.abs(currentTime - time);
   const snapDistance = 8 / Math.max(1, pixelsPerSecond);
-  return Number.isFinite(currentTime) && currentDistance <= snapDistance ? currentTime : frameTime;
+  let nearest = Number.isFinite(currentTime) ? currentTime : frameTime;
+  let nearestDistance = Math.abs(nearest - time);
+  for (const target of targets) {
+    if (!Number.isFinite(target)) continue;
+    const distance = Math.abs(target - time);
+    if (distance < nearestDistance) {
+      nearest = target;
+      nearestDistance = distance;
+    }
+  }
+  if (nearestDistance <= snapDistance) return nearest;
+  return allowBetweenFrames ? time : frameTime;
 }
 
 export function clampGraphTimeRange(

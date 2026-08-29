@@ -893,6 +893,8 @@ describe("structured project operations", () => {
     if (movedOpacity.mode !== "animated") return;
     expect(movedOpacity.keyframes.find((entry) => entry.id === keyframe.id)?.time).toBe(0.25);
     expect(movedOpacity.keyframes.every((entry) => entry.interpolation === "bezier")).toBe(true);
+    expect(movedOpacity.keyframes.every((entry) => entry.easing?.[0] === 1 / 3)).toBe(true);
+    expect(movedOpacity.keyframes.every((entry) => entry.easing?.[2] === 2 / 3)).toBe(true);
 
     const removed = applyOperations(moved, [
       { type: "removeKeyframe", layerId: layer.id, path: "opacity", keyframeId: keyframe.id },
