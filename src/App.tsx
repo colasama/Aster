@@ -6,6 +6,7 @@ import {
 } from "./components/DiagnosticBoundary";
 import { Inspector } from "./components/Inspector";
 import { ProjectPanel } from "./components/ProjectPanel";
+import { RenderQueuePanel } from "./components/RenderQueuePanel";
 import { TopBar } from "./components/TopBar";
 import { Viewport } from "./components/Viewport";
 import { DockWorkspace } from "./components/workspace/DockWorkspace";
@@ -49,6 +50,11 @@ function Studio() {
         id: "profiler",
         label: t("workspace.panel.profiler"),
         element: <WorkspaceProfilerSurface />,
+      },
+      {
+        id: "renderQueue",
+        label: t("renderQueue.panelTitle"),
+        element: <RenderQueuePanel />,
       },
     ],
     [t],

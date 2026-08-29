@@ -80,6 +80,17 @@ export interface RenderQueueState {
   items: RenderQueueItem[];
 }
 
+export type RenderQueueViewManifest = Omit<RenderJobManifest, "projectSnapshot">;
+
+export interface RenderQueueViewItem extends Omit<RenderQueueItem, "manifest" | "workerLeaseId"> {
+  manifest: RenderQueueViewManifest;
+}
+
+/** Lightweight renderer projection: immutable project captures never cross progress IPC. */
+export interface RenderQueueViewState extends Omit<RenderQueueState, "items"> {
+  items: RenderQueueViewItem[];
+}
+
 export interface EnqueueRenderJobInput
   extends Omit<RenderJobManifest, "id" | "createdAt" | "priority"> {
   id?: Id;
@@ -89,6 +100,27 @@ export interface EnqueueRenderJobInput
 
 export function createRenderQueue(): RenderQueueState {
   return { schemaVersion: CURRENT_RENDER_QUEUE_VERSION, revision: 0, items: [] };
+}
+
+export function renderQueueView(state: RenderQueueState): RenderQueueViewState {
+  return {
+    schemaVersion: state.schemaVersion,
+    revision: state.revision,
+    items: state.items.map((item) => {
+      const { workerLeaseId: _workerLeaseId, manifest: sourceManifest, ...summary } = item;
+      const { projectSnapshot: _projectSnapshot, ...manifest } = sourceManifest;
+      return {
+        ...summary,
+        manifest: {
+          ...manifest,
+          frameRate: { ...manifest.frameRate },
+          outputs: manifest.outputs.map((output) => ({ ...output })),
+        },
+        progress: { ...item.progress },
+        ...(item.error ? { error: { ...item.error } } : {}),
+      };
+    }),
+  };
 }
 
 export function enqueueRenderJob(
@@ -270,6 +302,22 @@ export function retryRenderJob(state: RenderQueueState, jobId: Id): RenderQueueS
       progress: emptyProgress(item.manifest),
     };
   });
+}
+
+/**
+ * Removes a job only after it no longer owns a render-host lease. Active jobs must be cancelled
+ * first so their worker can acknowledge the frame boundary and dispose staged output safely.
+ */
+export function removeRenderJob(state: RenderQueueState, jobId: Id): RenderQueueState {
+  const index = state.items.findIndex((item) => item.manifest.id === jobId);
+  if (index < 0) throw new Error(`Unknown render job ${jobId}`);
+  const item = state.items[index] as RenderQueueItem;
+  if (RUNNING_STATUSES.has(item.status) || item.workerLeaseId)
+    throw invalidTransition(item, "removed");
+  return revise(
+    state,
+    state.items.filter((candidate) => candidate.manifest.id !== jobId),
+  );
 }
 
 export function reprioritizeRenderJob(

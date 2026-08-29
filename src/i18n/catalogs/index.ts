@@ -10,6 +10,8 @@ import { inspectorEn } from "./inspector.en";
 import { inspectorZh } from "./inspector.zh";
 import { panelsEn } from "./panels.en";
 import { panelsZh } from "./panels.zh";
+import { renderQueueEn } from "./render-queue.en";
+import { renderQueueZh } from "./render-queue.zh";
 import { scene3dEn } from "./scene3d.en";
 import { scene3dZh } from "./scene3d.zh";
 import { timelineEn } from "./timeline.en";
@@ -26,6 +28,7 @@ export const enUS = {
   ...errorsEn,
   ...inspectorEn,
   ...panelsEn,
+  ...renderQueueEn,
   ...scene3dEn,
   ...timelineEn,
   ...topBarEn,
@@ -42,6 +45,7 @@ export const zhCN = {
   ...errorsZh,
   ...inspectorZh,
   ...panelsZh,
+  ...renderQueueZh,
   ...scene3dZh,
   ...timelineZh,
   ...topBarZh,

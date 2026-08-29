@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_WORKSPACE_LAYOUT } from "./default-layout";
+import { workspacePanelIds } from "./layout";
 import type { WorkspaceStorage } from "./layout-storage";
 import {
   createWorkspaceCatalog,
@@ -39,6 +40,13 @@ describe("named workspaces", () => {
     expect(selectWorkspace(selected, "animation")).toBe(selected);
     expect(renameWorkspace(selected, "animation", "Motion")).toBe(selected);
     expect(deleteWorkspace(selected, "animation")).toBe(selected);
+    expect(workspacePanelIds(catalog.workspaces[0]?.layout ?? DEFAULT_WORKSPACE_LAYOUT)).toContain(
+      "renderQueue",
+    );
+    expect(workspacePanelIds(catalog.workspaces[1]?.layout ?? DEFAULT_WORKSPACE_LAYOUT)).toContain(
+      "renderQueue",
+    );
+    expect(catalog.workspaces[2]?.layout.closedPanels).toContain("renderQueue");
   });
 
   it("normalizes and de-duplicates Save As and Rename names deterministically", () => {

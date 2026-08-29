@@ -52,7 +52,7 @@ const ANIMATION_WORKSPACE_LAYOUT: WorkspaceLayout = {
         second: {
           kind: "tabGroup",
           id: "animation-inspector",
-          panels: ["inspector"],
+          panels: ["inspector", "renderQueue"],
           activePanelId: "inspector",
         },
       },
@@ -74,7 +74,7 @@ const MINIMAL_WORKSPACE_LAYOUT: WorkspaceLayout = {
     activePanelId: "viewport",
   },
   floating: [],
-  closedPanels: ["graph", "inspector", "profiler", "project", "timeline"],
+  closedPanels: ["graph", "inspector", "profiler", "project", "renderQueue", "timeline"],
 };
 
 export const BUILT_IN_WORKSPACES: readonly NamedWorkspace[] = [

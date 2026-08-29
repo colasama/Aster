@@ -15,6 +15,13 @@ export interface RenderQueueLoadReport {
   interruptedJobs: number;
 }
 
+export interface RenderQueueUpdateOptions {
+  /** Progress can be checkpointed in batches; commands and terminal transitions stay immediate. */
+  durability?: "deferred" | "immediate";
+}
+
+const PROGRESS_CHECKPOINT_INTERVAL_MS = 500;
+
 /** Atomic, version-aware storage for the process-owned background render queue. */
 export class RenderQueueStore {
   readonly #path: string;
@@ -23,6 +30,9 @@ export class RenderQueueStore {
   #document = createRenderQueue();
   #writeQueue: Promise<void> = Promise.resolve();
   #writeProtected = false;
+  #deferredDocument?: RenderQueueState;
+  #deferredTimer?: ReturnType<typeof setTimeout>;
+  #persistenceError?: unknown;
 
   constructor(userDataDirectory: string) {
     this.#path = join(userDataDirectory, "render-queue.json");
@@ -67,20 +77,58 @@ export class RenderQueueStore {
     return structuredClone(this.#document);
   }
 
-  update(update: (state: RenderQueueState) => RenderQueueState): Promise<RenderQueueState> {
+  update(
+    update: (state: RenderQueueState) => RenderQueueState,
+    options: RenderQueueUpdateOptions = {},
+  ): Promise<RenderQueueState> {
     if (this.#writeProtected)
       return Promise.reject(new Error("Render queue is from a newer build"));
+    if (this.#persistenceError) return Promise.reject(this.#persistenceError);
     const next = migrateRenderQueue(update(this.snapshot()));
     if (next.revision < this.#document.revision)
       return Promise.reject(new Error("Render queue revision cannot move backwards"));
     this.#document = next;
     const snapshot = this.snapshot();
-    this.#writeQueue = this.#writeQueue.then(() => this.#persist(snapshot));
-    return this.#writeQueue.then(() => structuredClone(snapshot));
+    if (options.durability === "deferred") {
+      this.#deferredDocument = snapshot;
+      this.#scheduleDeferredPersist();
+      return Promise.resolve(snapshot);
+    }
+    this.#cancelDeferredPersist();
+    this.#deferredDocument = undefined;
+    return this.#enqueuePersist(snapshot).then(() => snapshot);
   }
 
   async flush(): Promise<void> {
+    this.#cancelDeferredPersist();
+    const pending = this.#deferredDocument;
+    this.#deferredDocument = undefined;
+    if (pending) await this.#enqueuePersist(pending);
     await this.#writeQueue;
+    if (this.#persistenceError) throw this.#persistenceError;
+  }
+
+  #scheduleDeferredPersist(): void {
+    if (this.#deferredTimer) return;
+    this.#deferredTimer = setTimeout(() => {
+      this.#deferredTimer = undefined;
+      const pending = this.#deferredDocument;
+      this.#deferredDocument = undefined;
+      if (pending) void this.#enqueuePersist(pending).catch(() => undefined);
+    }, PROGRESS_CHECKPOINT_INTERVAL_MS);
+  }
+
+  #cancelDeferredPersist(): void {
+    if (this.#deferredTimer) clearTimeout(this.#deferredTimer);
+    this.#deferredTimer = undefined;
+  }
+
+  #enqueuePersist(document: RenderQueueState): Promise<void> {
+    const persistence = this.#writeQueue.then(() => this.#persist(document));
+    this.#writeQueue = persistence.catch((error: unknown) => {
+      this.#persistenceError = error;
+    });
+    return persistence;
   }
 
   async #read(path: string): Promise<{ document?: RenderQueueState; incompatibleFuture: boolean }> {

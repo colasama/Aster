@@ -98,7 +98,9 @@ describe("RenderQueueManager", () => {
       priority: 42,
     });
     expect(prioritized.items[0]?.manifest.priority).toBe(42);
-    expect(context.publish).toHaveBeenCalledTimes(4);
+    const removed = await context.manager.command({ type: "remove", jobId: "queued-job" });
+    expect(removed.items).toEqual([]);
+    expect(context.publish).toHaveBeenCalledTimes(5);
   });
 
   it("rejects malformed input at the process boundary", async () => {

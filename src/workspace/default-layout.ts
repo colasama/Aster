@@ -38,7 +38,7 @@ export const DEFAULT_WORKSPACE_LAYOUT: WorkspaceLayout = {
       second: {
         kind: "tabGroup",
         id: "inspector-group",
-        panels: ["inspector"],
+        panels: ["inspector", "renderQueue"],
         activePanelId: "inspector",
       },
     },

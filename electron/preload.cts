@@ -33,6 +33,7 @@ contextBridge.exposeInMainWorld(
         ipcRenderer.invoke("aster:render-queue-enqueue", manifest),
       command: (command: Record<string, unknown>) =>
         ipcRenderer.invoke("aster:render-queue-command", command),
+      reveal: (path: string) => ipcRenderer.invoke("aster:render-queue-reveal", path),
       onChanged: (listener: (queue: unknown) => void) => {
         const handleQueue = (_event: IpcRendererEvent, queue: unknown) => listener(queue);
         ipcRenderer.on("aster:render-queue-changed", handleQueue);

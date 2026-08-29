@@ -11,6 +11,8 @@ import {
   migrateRenderQueue,
   nextRunnableRenderJobs,
   recoverInterruptedRenderJobs,
+  removeRenderJob,
+  renderQueueView,
   reprioritizeRenderJob,
   requestRenderPause,
   resumeRenderJob,
@@ -183,5 +185,27 @@ describe("render queue", () => {
       progress: { completedFrames: 0 },
       error: undefined,
     });
+  });
+
+  it("removes inactive jobs but never drops an active worker lease", () => {
+    let state = enqueueRenderJob(createRenderQueue(), input("job"));
+    const empty = removeRenderJob(state, "job");
+    expect(empty.items).toEqual([]);
+    expect(empty.revision).toBe(state.revision + 1);
+    expect(() => removeRenderJob(empty, "job")).toThrow("Unknown render job");
+
+    state = enqueueRenderJob(createRenderQueue(), input("active"));
+    state = claimRenderJob(state, "active", "lease");
+    expect(() => removeRenderJob(state, "active")).toThrow("cannot transition");
+  });
+
+  it("projects progress without sending immutable project snapshots to the renderer", () => {
+    let state = enqueueRenderJob(createRenderQueue(), input("job"));
+    state = claimRenderJob(state, "job", "private-lease");
+    const view = renderQueueView(state);
+    expect(view).toMatchObject({ revision: state.revision, items: [{ manifest: { id: "job" } }] });
+    expect(view.items[0]?.manifest).not.toHaveProperty("projectSnapshot");
+    expect(view.items[0]).not.toHaveProperty("workerLeaseId");
+    expect(view.items[0]?.manifest.outputs).not.toBe(state.items[0]?.manifest.outputs);
   });
 });

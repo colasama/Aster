@@ -23,6 +23,7 @@ import type {
   AgentToolResponse,
   FullAccessActivationRequest,
 } from "../src/ai/agent-protocol.js";
+import { renderQueueView } from "../src/core/render-queue.js";
 import type {
   AppPreferences,
   PersistedWindowState,
@@ -40,6 +41,11 @@ import { Mp4ExportManager } from "./mp4-export.js";
 import { developmentProfileDirectory } from "./profile-paths.js";
 import { ElectronRenderHostController } from "./render-queue-host.js";
 import { RenderQueueManager } from "./render-queue-manager.js";
+import {
+  isRenderDestinationAuthorized,
+  ownedRenderOutputPath,
+  renderPathKey,
+} from "./render-queue-paths.js";
 import { RenderQueueStore } from "./render-queue-store.js";
 
 const ASSET_SCHEME = "aster-asset";
@@ -288,8 +294,7 @@ function ffmpegExecutable(): string {
 }
 
 function normalizeAssetPath(path: string): string {
-  const normalized = resolve(path);
-  return process.platform === "win32" ? normalized.toLowerCase() : normalized;
+  return renderPathKey(path);
 }
 
 function grantPath(path: string): void {
@@ -433,9 +438,13 @@ function assertRenderOutputPathsAuthorized(value: unknown): void {
   for (const output of value.outputs) {
     if (!isRecord(output) || typeof output.destination !== "string")
       throw new Error("Render queue output destination is invalid");
-    if (!grantedPaths.has(normalizeAssetPath(output.destination)))
+    if (!isAuthorizedRenderDestination(output.destination))
       throw new Error("Render queue output destination was not selected by the user");
   }
+}
+
+function isAuthorizedRenderDestination(destination: string): boolean {
+  return isRenderDestinationAuthorized(destination, grantedPaths);
 }
 
 function registerAssetProtocol(): void {
@@ -573,14 +582,17 @@ function registerIpc(
 
   ipcMain.handle("aster:preferences-get", () => preferences.snapshot());
 
-  ipcMain.handle("aster:render-queue-get", () => renderQueue.snapshot());
-  ipcMain.handle("aster:render-queue-enqueue", (_event, value: unknown) => {
+  ipcMain.handle("aster:render-queue-get", () => renderQueueView(renderQueue.snapshot()));
+  ipcMain.handle("aster:render-queue-enqueue", async (_event, value: unknown) => {
     assertRenderOutputPathsAuthorized(value);
-    return renderQueue.enqueue(value);
+    return renderQueueView(await renderQueue.enqueue(value));
   });
-  ipcMain.handle("aster:render-queue-command", (_event, value: unknown) =>
-    renderQueue.command(value),
+  ipcMain.handle("aster:render-queue-command", async (_event, value: unknown) =>
+    renderQueueView(await renderQueue.command(value)),
   );
+  ipcMain.handle("aster:render-queue-reveal", (_event, value: unknown) => {
+    shell.showItemInFolder(ownedRenderOutputPath(renderQueue.snapshot(), value));
+  });
 
   ipcMain.handle("aster:preferences-update", async (_event, value: unknown) => {
     if (!isRecord(value)) throw new Error("Application preferences update must be an object");
@@ -1214,9 +1226,10 @@ if (hasSingleInstanceLock)
           count: renderQueueStatus.interruptedJobs,
         });
       renderQueueManager = new RenderQueueManager(renderQueueStore, (state) => {
+        const view = renderQueueView(state);
         for (const window of BrowserWindow.getAllWindows())
           if (!renderHostController?.isRenderHost(window.webContents.id))
-            window.webContents.send("aster:render-queue-changed", state);
+            window.webContents.send("aster:render-queue-changed", view);
       });
       const executable = bridgeExecutable();
       if (!existsSync(executable)) {

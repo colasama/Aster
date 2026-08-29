@@ -12,6 +12,7 @@ import {
   type RenderJobProgress,
   type RenderQueueItem,
   type RenderQueueState,
+  removeRenderJob,
   reprioritizeRenderJob,
   requestRenderPause,
   resumeRenderJob,
@@ -25,6 +26,7 @@ export type RenderQueueCommand =
   | { type: "resume"; jobId: string }
   | { type: "cancel"; jobId: string }
   | { type: "retry"; jobId: string }
+  | { type: "remove"; jobId: string }
   | { type: "reprioritize"; jobId: string; priority: number };
 
 export type RenderHostReport =
@@ -123,6 +125,8 @@ export class RenderQueueManager {
           return cancelRenderJob(state, command.jobId);
         case "retry":
           return retryRenderJob(state, command.jobId);
+        case "remove":
+          return removeRenderJob(state, command.jobId);
         case "reprioritize":
           return reprioritizeRenderJob(state, command.jobId, command.priority);
       }
@@ -171,8 +175,9 @@ export class RenderQueueManager {
         await this.#update((state) => markRenderJobRunning(state, event.jobId, event.leaseId));
         break;
       case "progress":
-        await this.#update((state) =>
-          updateRenderProgress(state, event.jobId, event.leaseId, event.progress),
+        await this.#update(
+          (state) => updateRenderProgress(state, event.jobId, event.leaseId, event.progress),
+          "deferred",
         );
         break;
       case "paused":
@@ -271,8 +276,11 @@ export class RenderQueueManager {
     await this.#schedule();
   }
 
-  async #update(update: (state: RenderQueueState) => RenderQueueState): Promise<RenderQueueState> {
-    const state = await this.#store.update(update);
+  async #update(
+    update: (state: RenderQueueState) => RenderQueueState,
+    durability: "deferred" | "immediate" = "immediate",
+  ): Promise<RenderQueueState> {
+    const state = await this.#store.update(update, { durability });
     this.#publish(state);
     return state;
   }
@@ -282,9 +290,12 @@ function parseCommand(value: unknown): RenderQueueCommand {
   if (!isRecord(value) || typeof value.type !== "string")
     throw new Error("Render queue command is invalid");
   const jobId = boundedId(value.jobId, "Render queue job ID");
-  if (["pause", "resume", "cancel", "retry"].includes(value.type)) {
+  if (["pause", "resume", "cancel", "retry", "remove"].includes(value.type)) {
     assertKeys(value, ["type", "jobId"], "Render queue command");
-    return { type: value.type as "pause" | "resume" | "cancel" | "retry", jobId };
+    return {
+      type: value.type as "pause" | "resume" | "cancel" | "retry" | "remove",
+      jobId,
+    };
   }
   if (value.type === "reprioritize") {
     assertKeys(value, ["type", "jobId", "priority"], "Render queue command");

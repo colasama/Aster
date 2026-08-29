@@ -48,6 +48,23 @@ created by a newer Aster build is left byte-for-byte untouched. On startup, stal
 failed jobs with their last progress retained; retry creates a fresh lease and restarts from frame zero,
 so a partial temporary output can never be mistaken for a published render.
 
+The dockable Render Queue panel restores this process-owned document when it mounts and receives
+subsequent revisions through a renderer subscription. High-frequency progress revisions are reduced
+to at most one React external-store publication per animation frame, so background frames do not
+invalidate the editor tree. IPC projections omit immutable project snapshots, and progress
+checkpoints are coalesced to a bounded 500 ms cadence while commands and terminal transitions remain
+immediately durable. Each job shows its state, monotonic frame progress, elapsed/remaining
+time, output target, attempts, and correlated worker error. Command buttons follow the domain state
+machine: active leases cannot be removed, pause-requested work cannot receive duplicate controls,
+and completed work can reveal its queue-owned destination in the operating-system file browser.
+
+Adding an item captures the current project revision and composition into an immutable snapshot.
+Work-area, full-composition, and current-frame ranges are converted with the composition's rational
+frame rate. H.264, PNG sequence, and PNG still modules use paths explicitly selected through the
+desktop picker. Sequence output is limited to one filesystem-safe child of the selected parent
+directory. Queue state and errors remain available after closing, reopening, or rearranging the
+panel.
+
 Adobe behavior references:
 
 - <https://helpx.adobe.com/after-effects/desktop/render-and-export/basics-of-rendering-and-exporting/basics-rendering-exporting.html>

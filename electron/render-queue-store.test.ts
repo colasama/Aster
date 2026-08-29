@@ -1,12 +1,13 @@
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   claimRenderJob,
   enqueueRenderJob,
   markRenderJobRunning,
   type RenderQueueState,
+  updateRenderProgress,
 } from "../src/core/render-queue";
 import { RenderQueueStore } from "./render-queue-store";
 
@@ -100,5 +101,33 @@ describe("RenderQueueStore", () => {
     expect(await store.initialize()).toMatchObject({ incompatibleFuture: true });
     await expect(store.update((state) => state)).rejects.toThrow("newer build");
     expect(await readFile(path, "utf8")).toBe(future);
+  });
+
+  it("coalesces progress checkpoints while commands remain immediately durable", async () => {
+    vi.useFakeTimers();
+    try {
+      const { root, store } = await temporaryStore();
+      await store.initialize();
+      await store.update((state) => {
+        const queued = enqueue(state, "progress");
+        const claimed = claimRenderJob(queued, "progress", "worker");
+        return markRenderJobRunning(claimed, "progress", "worker");
+      });
+      await store.update(
+        (state) =>
+          updateRenderProgress(state, "progress", "worker", {
+            completedFrames: 5,
+            totalFrames: 24,
+            elapsedMs: 200,
+          }),
+        { durability: "deferred" },
+      );
+      const path = join(root, "render-queue.json");
+      expect(JSON.parse(await readFile(path, "utf8")).items[0].progress.completedFrames).toBe(0);
+      await store.flush();
+      expect(JSON.parse(await readFile(path, "utf8")).items[0].progress.completedFrames).toBe(5);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

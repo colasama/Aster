@@ -10,7 +10,7 @@ import type {
   EnqueueRenderJobInput,
   RenderJobManifest,
   RenderJobProgress,
-  RenderQueueState,
+  RenderQueueViewState,
 } from "../core/render-queue";
 import type { UiScale } from "../ui/ui-scale";
 import type { AppPreferences, UserPreferencePatch } from "./preferences";
@@ -91,14 +91,15 @@ export interface DesktopDisplayMetrics {
 }
 
 export type DesktopRenderQueueCommand =
-  | { type: "pause" | "resume" | "cancel" | "retry"; jobId: string }
+  | { type: "pause" | "resume" | "cancel" | "retry" | "remove"; jobId: string }
   | { type: "reprioritize"; jobId: string; priority: number };
 
 export interface DesktopRenderQueue {
-  snapshot(): Promise<RenderQueueState>;
-  enqueue(manifest: EnqueueRenderJobInput): Promise<RenderQueueState>;
-  command(command: DesktopRenderQueueCommand): Promise<RenderQueueState>;
-  onChanged(listener: (queue: RenderQueueState) => void): () => void;
+  snapshot(): Promise<RenderQueueViewState>;
+  enqueue(manifest: EnqueueRenderJobInput): Promise<RenderQueueViewState>;
+  command(command: DesktopRenderQueueCommand): Promise<RenderQueueViewState>;
+  reveal(path: string): Promise<void>;
+  onChanged(listener: (queue: RenderQueueViewState) => void): () => void;
 }
 
 export interface DesktopRenderHostAssignment {
