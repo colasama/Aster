@@ -27,6 +27,18 @@ contextBridge.exposeInMainWorld(
       ipcRenderer.invoke("aster:preferences-update", preferences),
     migrateLegacyPreferences: (preferences: Record<string, unknown>) =>
       ipcRenderer.invoke("aster:preferences-migrate-legacy", preferences),
+    renderQueue: Object.freeze({
+      snapshot: () => ipcRenderer.invoke("aster:render-queue-get"),
+      enqueue: (manifest: Record<string, unknown>) =>
+        ipcRenderer.invoke("aster:render-queue-enqueue", manifest),
+      command: (command: Record<string, unknown>) =>
+        ipcRenderer.invoke("aster:render-queue-command", command),
+      onChanged: (listener: (queue: unknown) => void) => {
+        const handleQueue = (_event: IpcRendererEvent, queue: unknown) => listener(queue);
+        ipcRenderer.on("aster:render-queue-changed", handleQueue);
+        return () => ipcRenderer.removeListener("aster:render-queue-changed", handleQueue);
+      },
+    }),
     onDisplayMetricsChanged: (listener: (metrics: unknown) => void) => {
       const handleMetrics = (_event: IpcRendererEvent, metrics: unknown) => listener(metrics);
       ipcRenderer.on("aster:display-metrics-changed", handleMetrics);

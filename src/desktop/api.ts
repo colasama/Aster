@@ -6,6 +6,7 @@ import type {
   FullAccessActivationRequest,
   FullAccessGrant,
 } from "../ai/agent-protocol";
+import type { EnqueueRenderJobInput, RenderQueueState } from "../core/render-queue";
 import type { UiScale } from "../ui/ui-scale";
 import type { AppPreferences, UserPreferencePatch } from "./preferences";
 
@@ -78,6 +79,17 @@ export interface DesktopDisplayMetrics {
   uiScale: UiScale;
 }
 
+export type DesktopRenderQueueCommand =
+  | { type: "pause" | "resume" | "cancel" | "retry"; jobId: string }
+  | { type: "reprioritize"; jobId: string; priority: number };
+
+export interface DesktopRenderQueue {
+  snapshot(): Promise<RenderQueueState>;
+  enqueue(manifest: EnqueueRenderJobInput): Promise<RenderQueueState>;
+  command(command: DesktopRenderQueueCommand): Promise<RenderQueueState>;
+  onChanged(listener: (queue: RenderQueueState) => void): () => void;
+}
+
 export interface ProjectOpenRequest {
   path?: string;
   recoverAutosave: boolean;
@@ -108,6 +120,7 @@ export interface AsterDesktopApi {
   getPreferences(): Promise<AppPreferences>;
   updatePreferences(preferences: UserPreferencePatch): Promise<AppPreferences>;
   migrateLegacyPreferences(preferences: UserPreferencePatch): Promise<AppPreferences>;
+  renderQueue: DesktopRenderQueue;
   onDisplayMetricsChanged(listener: (metrics: DesktopDisplayMetrics) => void): () => void;
   authorizeRecentProject(path: string): Promise<boolean>;
   rememberProject(path: string): Promise<AppPreferences>;
@@ -190,6 +203,10 @@ export function onDisplayMetricsChanged(
   listener: (metrics: DesktopDisplayMetrics) => void,
 ): () => void {
   return desktopApi().onDisplayMetricsChanged(listener);
+}
+
+export function desktopRenderQueue(): DesktopRenderQueue {
+  return desktopApi().renderQueue;
 }
 
 export function authorizeRecentProject(path: string): Promise<boolean> {

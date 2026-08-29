@@ -38,6 +38,8 @@ import { describeFullAccessTarget, FullAccessToolService } from "./full-access-t
 import { AsterLogger, isRendererLogPayload, type LogLevel, parseLogLevel } from "./logger.js";
 import { Mp4ExportManager } from "./mp4-export.js";
 import { developmentProfileDirectory } from "./profile-paths.js";
+import { RenderQueueManager } from "./render-queue-manager.js";
+import { RenderQueueStore } from "./render-queue-store.js";
 
 const ASSET_SCHEME = "aster-asset";
 const DEVELOPMENT_URL = "http://127.0.0.1:1420";
@@ -231,6 +233,7 @@ let piAgentHost: PiAgentHost | undefined;
 let mp4ExportManager: Mp4ExportManager | undefined;
 let applicationLogger: AsterLogger | undefined;
 let appPreferences: AppPreferencesStore | undefined;
+let renderQueueManager: RenderQueueManager | undefined;
 let primaryWindow: BrowserWindow | undefined;
 let activeProjectPath: string | undefined;
 let rendererRecoveryDialogOpen = false;
@@ -542,7 +545,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
-function registerIpc(logger: AsterLogger, preferences: AppPreferencesStore): void {
+function registerIpc(
+  logger: AsterLogger,
+  preferences: AppPreferencesStore,
+  renderQueue: RenderQueueManager,
+): void {
   ipcMain.on("aster:log", (event, value: unknown) => {
     if (!isRendererLogPayload(value)) {
       logger.warn("ipc", "renderer_log_rejected", { rendererId: event.sender.id });
@@ -552,6 +559,14 @@ function registerIpc(logger: AsterLogger, preferences: AppPreferencesStore): voi
   });
 
   ipcMain.handle("aster:preferences-get", () => preferences.snapshot());
+
+  ipcMain.handle("aster:render-queue-get", () => renderQueue.snapshot());
+  ipcMain.handle("aster:render-queue-enqueue", (_event, value: unknown) =>
+    renderQueue.enqueue(value),
+  );
+  ipcMain.handle("aster:render-queue-command", (_event, value: unknown) =>
+    renderQueue.command(value),
+  );
 
   ipcMain.handle("aster:preferences-update", async (_event, value: unknown) => {
     if (!isRecord(value)) throw new Error("Application preferences update must be an object");
@@ -1167,6 +1182,20 @@ if (hasSingleInstanceLock)
       if (preferencesStatus.resetInvalid) logger.warn("preferences", "invalid_document_reset");
       if (preferencesStatus.incompatibleFuture)
         logger.warn("preferences", "future_document_preserved");
+      const renderQueueStore = new RenderQueueStore(app.getPath("userData"));
+      const renderQueueStatus = await renderQueueStore.initialize();
+      if (renderQueueStatus.recoveredBackup) logger.warn("render_queue", "backup_recovered");
+      if (renderQueueStatus.resetInvalid) logger.warn("render_queue", "invalid_document_reset");
+      if (renderQueueStatus.incompatibleFuture)
+        logger.warn("render_queue", "future_document_preserved");
+      if (renderQueueStatus.interruptedJobs > 0)
+        logger.warn("render_queue", "interrupted_jobs_recovered", {
+          count: renderQueueStatus.interruptedJobs,
+        });
+      renderQueueManager = new RenderQueueManager(renderQueueStore, (state) => {
+        for (const window of BrowserWindow.getAllWindows())
+          window.webContents.send("aster:render-queue-changed", state);
+      });
       const executable = bridgeExecutable();
       if (!existsSync(executable)) {
         logger.error("application", "bridge_missing", new Error("Desktop bridge was not found"), {
@@ -1209,7 +1238,7 @@ if (hasSingleInstanceLock)
       mp4ExportManager = new Mp4ExportManager(ffmpegExecutable());
       Menu.setApplicationMenu(null);
       registerAssetProtocol();
-      registerIpc(logger, preferences);
+      registerIpc(logger, preferences, renderQueueManager);
       session.defaultSession.setPermissionRequestHandler((_webContents, _permission, callback) => {
         callback(false);
       });
@@ -1241,6 +1270,7 @@ app.on("will-quit", (event) => {
   void Promise.all([
     mp4ExportManager?.dispose(),
     appPreferences?.flush(),
+    renderQueueManager?.flush(),
     applicationLogger?.flush(),
   ]).finally(() => app.exit(0));
 });
