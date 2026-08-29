@@ -11,7 +11,11 @@ Until the first stable release, only the latest commit on the default branch rec
 
 - Project bundles are untrusted input and must be schema-validated before use.
 - Plugins are denied undeclared filesystem, network, GPU, and process capabilities.
-- AI providers return proposed typed operations; users review and explicitly accept them.
+- Pi runs in an isolated utility process with Aster-owned tools only. Project edits are typed,
+  revision-addressed, staged, and merged as one undoable transaction.
+- Full Access requires typed confirmation plus a native warning, is scope/expiry bound, and can be
+  revoked with an emergency stop. Privileged tools remain unavailable without an effective grant;
+  plugin management, project packaging, and asset linking reuse the typed native bridge.
 - API keys are read from memory or `ASTER_AI_API_KEY`, never serialized or logged.
 - Native paths use canonicalization, bounded sizes, and atomic replacement where applicable.
 

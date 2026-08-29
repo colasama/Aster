@@ -5,6 +5,20 @@ contextBridge.exposeInMainWorld(
   Object.freeze({
     invoke: (command: string, args: Record<string, unknown> = {}) =>
       ipcRenderer.invoke("aster:invoke", command, args),
+    runAgent: (request: Record<string, unknown>) => ipcRenderer.invoke("aster:agent-run", request),
+    respondAgentTool: (response: Record<string, unknown>) =>
+      ipcRenderer.invoke("aster:agent-tool-response", response),
+    cancelAgent: (sessionId: string) => ipcRenderer.invoke("aster:agent-cancel", sessionId),
+    onAgentEvent: (listener: (event: unknown) => void) => {
+      const handleAgentEvent = (_event: IpcRendererEvent, value: unknown) => listener(value);
+      ipcRenderer.on("aster:agent-event", handleAgentEvent);
+      return () => ipcRenderer.removeListener("aster:agent-event", handleAgentEvent);
+    },
+    activateFullAccess: (request: Record<string, unknown>) =>
+      ipcRenderer.invoke("aster:full-access-activate", request),
+    revokeFullAccess: (grantId: string) => ipcRenderer.invoke("aster:full-access-revoke", grantId),
+    emergencyStopAgent: (sessionId: string, grantId?: string) =>
+      ipcRenderer.invoke("aster:agent-emergency-stop", sessionId, grantId),
     open: (options: Record<string, unknown>) => ipcRenderer.invoke("aster:open", options),
     save: (options: Record<string, unknown>) => ipcRenderer.invoke("aster:save", options),
     convertFileSrc: (path: string) => `aster-asset://local/${encodeURIComponent(path)}`,

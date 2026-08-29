@@ -10,14 +10,21 @@ import {
 } from "../desktop/api";
 import type { RawFramePixelFormat, RawVideoFrame } from "../renderer/frame-readback";
 import { logger } from "./logger";
-import type { Composition } from "./types";
+import type { Composition, Project } from "./types";
 
 export interface FrameRenderSession {
   renderFrame: (time: number) => Promise<Blob>;
   renderRawFrame: (time: number) => Promise<RawVideoFrame>;
   rawPixelFormat: RawFramePixelFormat;
+  width: number;
+  height: number;
   maxInFlightFrames: number;
   close: () => void;
+}
+
+export interface FrameRenderSessionOptions {
+  project?: Project;
+  maxDimension?: number;
 }
 
 export interface RenderSequenceProgress {
@@ -48,9 +55,13 @@ export function nativeMp4ExportAvailable(): boolean {
   return isDesktopRuntime();
 }
 
-export async function openFrameRenderSession(): Promise<FrameRenderSession> {
+export async function openFrameRenderSession(
+  options: FrameRenderSessionOptions = {},
+): Promise<FrameRenderSession> {
   const session = await new Promise<FrameRenderSession | undefined>((resolve) => {
-    window.dispatchEvent(new CustomEvent("aster:open-render-session", { detail: { resolve } }));
+    window.dispatchEvent(
+      new CustomEvent("aster:open-render-session", { detail: { resolve, options } }),
+    );
   });
   if (!session) throw new Error("Renderer did not open a frame session");
   return session;

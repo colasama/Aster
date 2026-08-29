@@ -9,9 +9,10 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "skipLibCheck": true,
-    "rootDir": ".",
+    "resolveJsonModule": true,
+    "rootDir": "..",
     "outDir": "../dist-electron"
   },
-  "include": ["*.ts", "*.cts"],
+  "include": ["*.ts", "*.cts", "../src/ai/agent-protocol.ts"],
   "exclude": ["*.test.ts"]
 }

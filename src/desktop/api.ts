@@ -1,3 +1,12 @@
+import type {
+  AgentHostEvent,
+  AgentRunRequest,
+  AgentRunResult,
+  AgentToolResponse,
+  FullAccessActivationRequest,
+  FullAccessGrant,
+} from "../ai/agent-protocol";
+
 export interface DesktopFileFilter {
   name: string;
   extensions: string[];
@@ -63,6 +72,13 @@ export interface DesktopWindowControls {
 
 export interface AsterDesktopApi {
   invoke<T>(command: string, args?: Record<string, unknown>): Promise<T>;
+  runAgent(request: AgentRunRequest): Promise<AgentRunResult>;
+  respondAgentTool(response: AgentToolResponse): Promise<void>;
+  cancelAgent(sessionId: string): Promise<void>;
+  onAgentEvent(listener: (event: AgentHostEvent) => void): () => void;
+  activateFullAccess(request: FullAccessActivationRequest): Promise<FullAccessGrant>;
+  revokeFullAccess(grantId: string): Promise<void>;
+  emergencyStopAgent(sessionId: string, grantId?: string): Promise<void>;
   open(options: DesktopOpenOptions): Promise<string | string[] | null>;
   save(options: DesktopSaveOptions): Promise<string | null>;
   convertFileSrc(path: string): string;
@@ -80,6 +96,34 @@ export function isDesktopRuntime(): boolean {
 
 export function invoke<T>(command: string, args: Record<string, unknown> = {}): Promise<T> {
   return desktopApi().invoke<T>(command, args);
+}
+
+export function runAgent(request: AgentRunRequest): Promise<AgentRunResult> {
+  return desktopApi().runAgent(request);
+}
+
+export function respondAgentTool(response: AgentToolResponse): Promise<void> {
+  return desktopApi().respondAgentTool(response);
+}
+
+export function cancelAgent(sessionId: string): Promise<void> {
+  return desktopApi().cancelAgent(sessionId);
+}
+
+export function onAgentEvent(listener: (event: AgentHostEvent) => void): () => void {
+  return desktopApi().onAgentEvent(listener);
+}
+
+export function activateFullAccess(request: FullAccessActivationRequest): Promise<FullAccessGrant> {
+  return desktopApi().activateFullAccess(request);
+}
+
+export function revokeFullAccess(grantId: string): Promise<void> {
+  return desktopApi().revokeFullAccess(grantId);
+}
+
+export function emergencyStopAgent(sessionId: string, grantId?: string): Promise<void> {
+  return desktopApi().emergencyStopAgent(sessionId, grantId);
 }
 
 export function open(options: DesktopOpenOptions): Promise<string | string[] | null> {

@@ -15,6 +15,8 @@ import type { Id, Project, RendererMetrics } from "../core/types";
 
 export interface EditorState {
   project: Project;
+  /** Monotonic live-editor revision used to reject stale agent workspaces. */
+  projectRevision: number;
   selection: Id[];
   selectedKeyframes: Id[];
   currentTime: number;
@@ -88,6 +90,7 @@ export function createInitialState(): EditorState {
     selection: [project.compositions[0].layers[0].id],
     selectedKeyframes: [],
     project,
+    projectRevision: 0,
     currentTime: 0.72,
     playing: false,
     timelineZoom: 1,
@@ -116,6 +119,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       return {
         ...state,
         project,
+        projectRevision: state.projectRevision + 1,
         selection: action.select ?? state.selection,
         history: {
           past: [...state.history.past.slice(-99), action.historyBase ?? state.project],
@@ -126,7 +130,11 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       };
     }
     case "previewOperation":
-      return { ...state, project: applyOperations(state.project, action.operations) };
+      return {
+        ...state,
+        project: applyOperations(state.project, action.operations),
+        projectRevision: state.projectRevision + 1,
+      };
     case "undo": {
       const project = state.history.past[state.history.past.length - 1];
       if (!project) return state;
@@ -136,6 +144,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       return {
         ...state,
         project: restored,
+        projectRevision: state.projectRevision + 1,
         selection: validSelection(restored, state.selection, true),
         history: {
           past: state.history.past.slice(0, -1),
@@ -152,6 +161,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       return {
         ...state,
         project: restored,
+        projectRevision: state.projectRevision + 1,
         selection: validSelection(restored, state.selection, true),
         history: { past: [...state.history.past, state.project], future },
       };
@@ -205,6 +215,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       return {
         ...state,
         project,
+        projectRevision: state.projectRevision + 1,
         selection: composition.layers[0] ? [composition.layers[0].id] : [],
         selectedKeyframes: [],
         currentTime: 0,
@@ -217,6 +228,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       return {
         ...initial,
         project: action.project,
+        projectRevision: 0,
         auditLog: action.project.commandLog.filter((entry) => entry.source === "ai").slice(-100),
         selection: validSelection(action.project, [], true),
         currentTime: 0,

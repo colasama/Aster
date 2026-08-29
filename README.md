@@ -8,7 +8,7 @@ frames. Rendering, effects, particles, and composition are designed to remain GP
 
 > Aster is under active development. The current vertical slice proves the editor shell, motion
 > model, structured operations, project persistence, render graph, HDR WebGPU renderer, effect
-> catalog, GPU particles, plugins, and guarded AI operation planning.
+> catalog, GPU particles, plugins, and an isolated Pi agent workflow.
 
 ![Aster WebGPU editor cycling through Beauty, depth fog, depth of field, normal, and motion-vector views](docs/assets/aster-gpu-demo.gif)
 
@@ -129,8 +129,8 @@ _Live WebGPU preview: Beauty → depth fog → depth of field → normals → mo
   and DOT/JSON diagnostics.
 - The Rust renderer provides budgeted descriptor-matched GPU resource pooling, LRU shader/pipeline/
   bind-group object caches, lease diagnostics, VRAM estimates, and oldest-idle eviction.
-- Open project bundle, a native WGSL plugin manager with safe mode, permission-checked AI operation
-  plans, and an OpenAI-compatible provider boundary with in-memory secrets.
+- Open project bundle, a native WGSL plugin manager with safe mode, and an isolated Pi agent that
+  stages typed, revision-checked operations through an OpenAI-compatible provider boundary.
 - Browser compatibility renderer when WebGPU is unavailable.
 
 ## Architecture
@@ -139,14 +139,15 @@ _Live WebGPU preview: Beauty → depth fog → depth of field → normals → mo
 Sandboxed React/Electron renderer ── structured operations ── aster-core / aster-timeline
        │
        ├── WebGPU preview ───────────────────────── HDR graph/effects ── aster-render
+       ├── revisioned AI service ⇄ Electron Pi utility ── model provider
        └── preload + allowlisted IPC ── desktop bridge
                                           ├── project bundle ───────── aster-project
-                                          ├── plugin manifests ─────── aster-plugin
-                                          └── guarded plans ────────── aster-ai
+                                          └── plugin manifests ─────── aster-plugin
 ```
 
 See [Architecture](docs/ARCHITECTURE.md), [Project Format](docs/PROJECT_FORMAT.md),
-[Plugin Model](docs/PLUGINS.md), and [AI Operations](docs/AI_OPERATIONS.md).
+[Plugin Model](docs/PLUGINS.md), [AI Operations](docs/AI_OPERATIONS.md), and the
+[Pi Agent Integration](docs/PI_AGENT_INTEGRATION.md).
 
 ## Build from source
 
@@ -179,9 +180,10 @@ and release credit follow the [Contributor Recognition Policy](docs/CONTRIBUTOR_
 
 ## Security and privacy
 
-AI changes are previews of typed operations and require explicit acceptance. Provider keys remain in
-memory or environment variables and are never stored in project files. Embedded media is bounded by
-import limits; do not open untrusted projects without reviewing their origin. See
+AI changes use typed staged operations. Review and Agent modes require explicit acceptance; an
+explicitly activated Full Access grant may commit without per-action approval. Provider keys remain
+in memory or environment variables and are never stored in project files. Embedded media is bounded
+by import limits; do not open untrusted projects without reviewing their origin. See
 [SECURITY.md](SECURITY.md).
 
 ## License

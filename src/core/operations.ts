@@ -162,6 +162,62 @@ export type Operation =
     }
   | { type: "setEffectParameter"; layerId: Id; effectId: Id; parameter: string; value: number };
 
+export const OPERATION_TYPES = [
+  "setActiveComposition",
+  "addComposition",
+  "addProjectFolder",
+  "moveProjectItem",
+  "setCompositionSettings",
+  "setCompositionEnvironment",
+  "setCompositionWorkArea",
+  "precomposeLayers",
+  "addLayer",
+  "removeLayer",
+  "renameLayer",
+  "reorderLayer",
+  "setBlendMode",
+  "setParent",
+  "setLayerTiming",
+  "setLayerTimeMapping",
+  "setLayerTimeRemap",
+  "setLayerAudioGain",
+  "setMaterial3d",
+  "setLightSettings",
+  "setLayerColor",
+  "setLayerAsset",
+  "setCameraSettings",
+  "setParticleSettings",
+  "setClonerSettings",
+  "setShapeSettings",
+  "setShapeGraph",
+  "setTextContent",
+  "setTextStyle",
+  "setTextAnimator",
+  "toggleLayer",
+  "setProperty",
+  "addKeyframe",
+  "moveKeyframe",
+  "updateKeyframe",
+  "removeKeyframe",
+  "easeLayer",
+  "setExpression",
+  "addEffect",
+  "removeEffect",
+  "moveEffect",
+  "setEffectMask",
+  "toggleEffect",
+  "setEffectLut",
+  "setEffectParameterAtTime",
+  "addEffectParameterKeyframe",
+  "removeEffectParameterKeyframe",
+  "moveEffectParameterKeyframe",
+  "setEffectParameter",
+] as const satisfies readonly Operation["type"][];
+
+type MissingOperationType = Exclude<Operation["type"], (typeof OPERATION_TYPES)[number]>;
+const operationTypeListIsExhaustive: MissingOperationType extends never ? true : false = true;
+void operationTypeListIsExhaustive;
+
 export function applyOperations(project: Project, operations: Operation[]): Project {
   const next = structuredClone(project);
   for (const operation of operations) applyOperation(next, operation);
@@ -410,6 +466,7 @@ export function applyOperation(project: Project, operation: Operation): void {
         lineCap: operation.shape.lineCap,
         lineJoin: operation.shape.lineJoin ?? "round",
         path: operation.shape.path ? structuredClone(operation.shape.path) : undefined,
+        trim: operation.shape.trim ? structuredClone(operation.shape.trim) : undefined,
       };
       break;
     case "setShapeGraph":

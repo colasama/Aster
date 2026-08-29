@@ -12,6 +12,29 @@ visual system. The frameless window exposes only minimize, maximize/restore, and
 context-isolated preload boundary; the renderer has no direct Electron access. The sandboxed preload
 is emitted as CommonJS because Electron does not support ESM imports inside sandboxed preload scripts.
 
+## Pi agent runtime
+
+The desktop host runs Pi in an Electron utility process. Pi receives only Aster-owned meta-tools by
+default; no global/project Pi resource discovery or coding tools are enabled. Tool calls are brokered
+through context-isolated IPC to a renderer-owned application service that keeps a cloned,
+revision-addressed edit workspace. Command batches are atomic, query/tool payloads are byte-bounded,
+evaluation is time-addressed, and a submitted workspace can merge only when its live base revision is
+still current. The merge is one regular editor transaction, preserving undo and command-log budgets.
+
+Review and Agent modes expose only staged semantic commands. Full Access is created outside the Pi
+tool surface through typed renderer confirmation plus an Electron native warning. Its grant is bound
+to the renderer, project, model, provider host, and expiry. Only then does Pi receive bounded file,
+process, network, plugin-management, project pack/unpack, and asset-link tools. Aster-native actions
+reuse the validated desktop bridge; they do not fall back to shell parsing. Revocation, renderer loss,
+or emergency stop aborts active privileged work. Provider credentials remain memory-only and never
+enter tool or project audit records.
+
+Agent preview requests reuse the renderer's bounded frame-session path against the cloned staged
+project, capped to 384 pixels on the longest edge and 8 MiB of encoded PNG data. WebGPU readback stays
+bounded; Canvas2D remains the compatibility path. Trusted model metadata controls whether Pi receives
+native image content. Text-only models receive only secret-free pixel measurements and never gain a
+visual-verification claim from those metrics.
+
 ## Logging and diagnostics
 
 Renderer events cross a bounded, one-way preload IPC surface and join Electron lifecycle/export
@@ -31,8 +54,7 @@ frame data are excluded, and successful hot-path operations are intentionally si
 | `aster-profiler` | RAII CPU timing and rolling metrics |
 | `aster-project` | Versioned bundle validation and atomic persistence |
 | `aster-plugin` | Manifest, parameter, permission, and capability validation |
-| `aster-ai` | Permission-checked operation planning, audit, provider boundary |
-| `aster-desktop-bridge` | Electron sidecar protocol, native project I/O, AI, and plugin runtime |
+| `aster-desktop-bridge` | Electron sidecar protocol, native project I/O, and plugin runtime |
 
 ## Frame flow
 

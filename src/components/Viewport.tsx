@@ -14,7 +14,7 @@ import { createLayerForComposition } from "../core/layer-factory";
 import { logger } from "../core/logger";
 import type { Operation } from "../core/operations";
 import { activeComposition } from "../core/project";
-import type { FrameRenderSession } from "../core/render-export";
+import type { FrameRenderSession, FrameRenderSessionOptions } from "../core/render-export";
 import { evaluateWorldTransform, flattenSceneLayers } from "../core/scene-evaluation";
 import { evaluateAnimatable } from "../core/timeline";
 import type { Composition, GpuDiagnostics, Project } from "../core/types";
@@ -183,6 +183,7 @@ export function Viewport() {
     const openRenderSession = (event: Event) => {
       const request = event as CustomEvent<{
         resolve: (session?: FrameRenderSession) => void;
+        options?: FrameRenderSessionOptions;
       }>;
       const canvas = canvasRef.current;
       const renderer = rendererRef.current;
@@ -195,18 +196,29 @@ export function Viewport() {
       const previewBufferView =
         renderer instanceof WebGpuRenderer ? renderer.bufferVisualization : undefined;
       if (renderer instanceof WebGpuRenderer) renderer.setBufferVisualization("beauty");
-      const synchronizeVideo = compositionContainsVideo(composition, state.project);
-      canvas.width = composition.width;
-      canvas.height = composition.height;
-      renderer.resize(composition.width, composition.height);
+      const renderProject = request.detail.options?.project ?? state.project;
+      const renderComposition = activeComposition(renderProject);
+      const maxDimension = request.detail.options?.maxDimension;
+      const renderScale =
+        typeof maxDimension === "number" && Number.isFinite(maxDimension) && maxDimension > 0
+          ? Math.min(1, maxDimension / Math.max(renderComposition.width, renderComposition.height))
+          : 1;
+      const renderWidth = Math.max(1, Math.round(renderComposition.width * renderScale));
+      const renderHeight = Math.max(1, Math.round(renderComposition.height * renderScale));
+      const synchronizeVideo = compositionContainsVideo(renderComposition, renderProject);
+      canvas.width = renderWidth;
+      canvas.height = renderHeight;
+      renderer.resize(renderWidth, renderHeight);
       let closed = false;
       request.detail.resolve({
         rawPixelFormat:
           renderer instanceof WebGpuRenderer ? renderer.exportPixelFormat : ("rgba" as const),
+        width: renderWidth,
+        height: renderHeight,
         maxInFlightFrames: renderer instanceof WebGpuRenderer && !synchronizeVideo ? 3 : 1,
         renderFrame: async (time) => {
           if (closed) throw new Error("Render session is already closed");
-          renderer.render(composition, time, false, state.project);
+          renderer.render(renderComposition, time, false, renderProject);
           await renderer.complete();
           const blob = await new Promise<Blob | undefined>((resolveBlob) =>
             canvas.toBlob((value) => resolveBlob(value ?? undefined), "image/png"),
@@ -217,8 +229,13 @@ export function Viewport() {
         renderRawFrame: async (time) => {
           if (closed) throw new Error("Render session is already closed");
           if (renderer instanceof WebGpuRenderer)
-            return renderer.renderRawFrame(composition, time, state.project, synchronizeVideo);
-          renderer.render(composition, time, false, state.project);
+            return renderer.renderRawFrame(
+              renderComposition,
+              time,
+              renderProject,
+              synchronizeVideo,
+            );
+          renderer.render(renderComposition, time, false, renderProject);
           await renderer.complete();
           const context = canvas.getContext("2d");
           if (!context) throw new Error("Canvas fallback pixels are unavailable");

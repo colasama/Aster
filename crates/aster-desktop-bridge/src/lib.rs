@@ -35,20 +35,6 @@ fn renderer_capabilities() -> RendererCapabilities {
     }
 }
 
-fn operation_schema() -> Result<serde_json::Value, String> {
-    aster_ai::operation_schema().map_err(|error| error.to_string())
-}
-
-async fn generate_ai_plan(
-    config: aster_ai::AiProviderConfig,
-    prompt: String,
-    project_summary: String,
-) -> Result<aster_ai::GeneratedPlan, String> {
-    aster_ai::generate_plan(config, &prompt, &project_summary)
-        .await
-        .map_err(|error| error.to_string())
-}
-
 async fn save_project(path: String, project: serde_json::Value) -> Result<(), String> {
     blocking_io(move || {
         aster_project::save_editor_bundle(path, &project).map_err(|error| error.to_string())
@@ -694,14 +680,6 @@ struct LinkAssetArgs {
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct GeneratePlanArgs {
-    config: aster_ai::AiProviderConfig,
-    prompt: String,
-    project_summary: String,
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
 struct RenderFrameArgs {
     directory: String,
     file_name: String,
@@ -856,16 +834,6 @@ fn dispatch(
     let BridgeRequest { command, args, .. } = request;
     match command.as_str() {
         "renderer_capabilities" => serialize(renderer_capabilities()),
-        "operation_schema" => operation_schema(),
-        "generate_ai_plan" => {
-            let args: GeneratePlanArgs = parse_args(args)?;
-            let result = runtime.async_runtime.block_on(generate_ai_plan(
-                args.config,
-                args.prompt,
-                args.project_summary,
-            ))?;
-            serialize(result)
-        }
         "save_project" => {
             let args: ProjectArgs = parse_args(args)?;
             runtime

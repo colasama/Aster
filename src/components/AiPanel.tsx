@@ -5,20 +5,29 @@ import {
   Loader2,
   Send,
   Settings2,
+  ShieldAlert,
   Sparkles,
   WandSparkles,
   X,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { AgentAccessMode, AgentHostEvent, FullAccessGrant } from "../ai/agent-protocol";
+import { AsterAgentApplicationService } from "../ai/application-service";
 import { planLocalAiOperations } from "../ai/local-planner";
-import { buildAiContext } from "../core/ai-context";
-import { createLayerForComposition } from "../core/layer-factory";
-import type { Operation, PropertyPath } from "../core/operations";
+import { renderAgentPreview } from "../ai/render-preview";
+import type { Operation } from "../core/operations";
 import { activeComposition } from "../core/project";
-import { createDefaultTextAnimator, normalizeTextAnimatorSettings } from "../core/text-animator";
-import { type Composition, createId, type LayerKind } from "../core/types";
-import { invoke, isDesktopRuntime } from "../desktop/api";
-import { createEffect, EFFECT_BY_TYPE } from "../effects/registry";
+import type { Composition } from "../core/types";
+import {
+  activateFullAccess,
+  cancelAgent,
+  emergencyStopAgent,
+  isDesktopRuntime,
+  onAgentEvent,
+  respondAgentTool,
+  revokeFullAccess,
+  runAgent,
+} from "../desktop/api";
 import type { PlainMessageKey, Translate } from "../i18n/core";
 import { translateUiMessage, type UiMessageDescriptor, uiError, uiMessage } from "../i18n/errors";
 import { useI18n } from "../i18n/react";
@@ -38,51 +47,143 @@ export function AiPanel() {
     summary: string;
     operations: Operation[];
     included: boolean[];
+    baseRevision: number;
+    verification: "verified_by_primary_model" | "metrics_only" | "not_verified";
   }>();
   const [providerOpen, setProviderOpen] = useState(false);
   const [provider, setProvider] = useState({
     baseUrl: "https://88996api.cloud/v1",
     apiKey: "",
     model: "deepseek-v4-flash-0731",
+    supportsImages: false,
   });
   const [loading, setLoading] = useState(false);
+  const [accessMode, setAccessMode] = useState<AgentAccessMode>("agent");
+  const [agentOutput, setAgentOutput] = useState("");
+  const [activeTool, setActiveTool] = useState<string>();
+  const [fullAccessConfirmation, setFullAccessConfirmation] = useState("");
+  const [fullAccessGrant, setFullAccessGrant] = useState<FullAccessGrant>();
   const [error, setError] = useState<UiMessageDescriptor>();
+  const sessionId = useRef(crypto.randomUUID());
+  const agentService = useRef<AsterAgentApplicationService | undefined>(undefined);
+  const cancelled = useRef(false);
+  useEffect(() => {
+    if (!isDesktopRuntime()) return;
+    return onAgentEvent((event: AgentHostEvent) => {
+      if (event.sessionId !== sessionId.current) return;
+      if (event.type === "text_delta") setAgentOutput((value) => `${value}${event.delta}`);
+      else if (event.type === "tool_started") setActiveTool(event.toolName);
+      else if (event.type === "tool_finished") setActiveTool(undefined);
+      else if (event.type === "tool_request") {
+        const service = agentService.current;
+        if (!service) {
+          void respondAgentTool({
+            requestId: event.requestId,
+            error: "Aster agent application service is unavailable",
+          });
+          return;
+        }
+        void service
+          .executeTool(event.toolName, event.arguments)
+          .then((result) => respondAgentTool({ requestId: event.requestId, result }))
+          .catch((toolError: unknown) =>
+            respondAgentTool({
+              requestId: event.requestId,
+              error: toolError instanceof Error ? toolError.message : String(toolError),
+            }),
+          );
+      }
+    });
+  }, []);
+  useEffect(() => {
+    if (!fullAccessGrant) return;
+    let providerHost = "";
+    try {
+      providerHost = new URL(provider.baseUrl).host;
+    } catch {
+      // An invalid provider URL cannot retain a scoped Full Access grant.
+    }
+    const expiresIn = Date.parse(fullAccessGrant.expiresAt) - Date.now();
+    const scopeChanged =
+      fullAccessGrant.projectId !== state.project.id ||
+      fullAccessGrant.model !== provider.model ||
+      fullAccessGrant.providerHost !== providerHost;
+    const revoke = () => {
+      void revokeFullAccess(fullAccessGrant.id).catch(() => undefined);
+      setFullAccessGrant(undefined);
+      setAccessMode("agent");
+    };
+    if (scopeChanged || expiresIn <= 0) {
+      revoke();
+      return;
+    }
+    const expiryTimer = window.setTimeout(revoke, Math.min(expiresIn, 2_147_483_647));
+    return () => window.clearTimeout(expiryTimer);
+  }, [fullAccessGrant, provider.baseUrl, provider.model, state.project.id]);
   const createPreview = async (intent: string) => {
-    const layerId = state.selection[0];
+    cancelled.current = false;
     setError(undefined);
+    setAgentOutput("");
     if (isDesktopRuntime() && intent.trim()) {
+      if (accessMode === "full_access" && !fullAccessGrant) {
+        setError(uiMessage("ai.fullAccessRequired"));
+        return;
+      }
       setLoading(true);
+      const service = new AsterAgentApplicationService({
+        project: state.project,
+        projectRevision: state.projectRevision,
+        selection: state.selection,
+        currentTime: state.currentTime,
+        accessMode,
+        primaryModelSupportsImages: provider.supportsImages,
+        renderPreview: renderAgentPreview,
+      });
+      agentService.current = service;
       try {
-        const generated = await invoke<{ summary: string; operations: unknown[] }>(
-          "generate_ai_plan",
-          {
-            config: {
-              apiKey: provider.apiKey || null,
-              baseUrl: provider.baseUrl,
-              model: provider.model,
-            },
-            projectSummary: JSON.stringify(
-              buildAiContext(state.project, state.selection, state.currentTime),
-            ),
-            prompt: intent,
+        const result = await runAgent({
+          sessionId: sessionId.current,
+          prompt: intent,
+          projectId: state.project.id,
+          projectName: state.project.name,
+          projectRevision: state.projectRevision,
+          accessMode,
+          ...(fullAccessGrant ? { grantId: fullAccessGrant.id } : {}),
+          provider: {
+            apiKey: provider.apiKey || null,
+            baseUrl: provider.baseUrl,
+            model: provider.model,
+            supportsImages: provider.supportsImages,
           },
-        );
-        const operations = normalizeOperations(
-          generated.operations,
-          composition,
-          layerId ?? "",
-          state.currentTime,
-        );
-        if (operations.length === 0)
-          throw new Error("The provider returned no supported operations");
+        });
+        const submitted = service.submittedWorkspace();
+        if (!submitted || result.submittedWorkspaceId !== submitted.workspaceId)
+          throw new Error("The agent did not submit a valid edit workspace");
+        setAgentOutput(result.text);
+        if (accessMode === "full_access") {
+          if (state.projectRevision !== submitted.baseRevision)
+            throw new Error("The live project changed while the agent was working");
+          dispatch({
+            type: "operation",
+            operations: submitted.operations,
+            metadata: { source: "ai", summary: submitted.summary },
+          });
+          agentService.current = undefined;
+          setPrompt("");
+          return;
+        }
         setPreview({
-          summary: generated.summary,
-          operations,
-          included: operations.map(() => true),
+          summary: submitted.summary,
+          operations: submitted.operations,
+          included: submitted.operations.map(() => true),
+          baseRevision: submitted.baseRevision,
+          verification: submitted.verification,
         });
         setPrompt("");
         return;
       } catch {
+        service.abort();
+        if (cancelled.current) return;
         setError(uiError("aiRequest"));
       } finally {
         setLoading(false);
@@ -97,8 +198,20 @@ export function AiPanel() {
       summary: local.summary,
       operations: local.operations,
       included: local.operations.map(() => true),
+      baseRevision: state.projectRevision,
+      verification: "not_verified",
     });
     setPrompt("");
+  };
+  const commitPreview = (operations: Operation[], summary: string, baseRevision: number) => {
+    if (state.projectRevision !== baseRevision) {
+      setPreview(undefined);
+      setError(uiError("aiRequest"));
+      return;
+    }
+    dispatch({ type: "operation", operations, metadata: { source: "ai", summary } });
+    agentService.current = undefined;
+    setPreview(undefined);
   };
   const composition = activeComposition(state.project);
   return (
@@ -149,11 +262,90 @@ export function AiPanel() {
               value={provider.apiKey}
             />
           </label>
+          <label className="provider-capability">
+            <input
+              checked={provider.supportsImages}
+              onChange={(event) =>
+                setProvider({ ...provider, supportsImages: event.target.checked })
+              }
+              type="checkbox"
+            />
+            {t("ai.supportsImages")}
+          </label>
+          <label>
+            {t("ai.accessMode")}
+            <select
+              onChange={(event) => setAccessMode(event.target.value as AgentAccessMode)}
+              value={accessMode}
+            >
+              <option value="review">{t("ai.access.review")}</option>
+              <option value="agent">{t("ai.access.agent")}</option>
+              <option value="full_access">{t("ai.access.full")}</option>
+            </select>
+          </label>
+          {accessMode === "full_access" && !fullAccessGrant && (
+            <div className="full-access-activation">
+              <small>{t("ai.fullAccessHint", { project: state.project.name })}</small>
+              <input
+                autoComplete="off"
+                onChange={(event) => setFullAccessConfirmation(event.target.value)}
+                placeholder={state.project.name}
+                value={fullAccessConfirmation}
+              />
+              <button
+                disabled={
+                  fullAccessConfirmation !== state.project.name &&
+                  fullAccessConfirmation !== "FULL ACCESS"
+                }
+                onClick={() => {
+                  void activateFullAccess({
+                    projectId: state.project.id,
+                    projectName: state.project.name,
+                    model: provider.model,
+                    providerBaseUrl: provider.baseUrl,
+                    confirmation: fullAccessConfirmation,
+                  })
+                    .then((grant) => {
+                      setFullAccessGrant(grant);
+                      setFullAccessConfirmation("");
+                    })
+                    .catch(() => setError(uiMessage("ai.fullAccessRequired")));
+                }}
+                type="button"
+              >
+                {t("ai.activateFullAccess")}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+      {fullAccessGrant && (
+        <div className="full-access-indicator">
+          <ShieldAlert size={13} />
+          <span>{t("ai.fullAccessActive")}</span>
+          <button
+            onClick={() => {
+              void emergencyStopAgent(sessionId.current, fullAccessGrant.id);
+              agentService.current?.abort();
+              setFullAccessGrant(undefined);
+              setAccessMode("agent");
+              setLoading(false);
+            }}
+            type="button"
+          >
+            {t("ai.emergencyStop")}
+          </button>
         </div>
       )}
       {error && (
         <div className="ai-error">
           {translateUiMessage(t, error)} · {t("ai.errorFallback")}
+        </div>
+      )}
+      {(activeTool || agentOutput) && !preview && (
+        <div className="ai-agent-status">
+          {activeTool && <small>{t("ai.agentRunning", { tool: activeTool })}</small>}
+          {agentOutput && <p>{agentOutput}</p>}
         </div>
       )}
       {!preview ? (
@@ -198,6 +390,7 @@ export function AiPanel() {
             <strong>{t("ai.preview")}</strong>
           </div>
           <p>{preview.summary}</p>
+          <small>{verificationText(t, preview.verification)}</small>
           <div className="operation-list">
             {preview.operations.map((operation, index) => (
               <div
@@ -227,19 +420,22 @@ export function AiPanel() {
             ))}
           </div>
           <div className="preview-actions">
-            <button onClick={() => setPreview(undefined)} type="button">
+            <button
+              onClick={() => {
+                cancelled.current = true;
+                agentService.current?.abort();
+                agentService.current = undefined;
+                setPreview(undefined);
+              }}
+              type="button"
+            >
               <X size={13} /> {t("ai.reject")}
             </button>
             <button
               disabled={!preview.included.some(Boolean)}
               onClick={() => {
                 const selected = preview.operations.filter((_, index) => preview.included[index]);
-                dispatch({
-                  type: "operation",
-                  operations: selected,
-                  metadata: { source: "ai", summary: preview.summary },
-                });
-                setPreview(undefined);
+                commitPreview(selected, preview.summary, preview.baseRevision);
               }}
               type="button"
             >
@@ -247,14 +443,9 @@ export function AiPanel() {
             </button>
             <button
               className="accept"
-              onClick={() => {
-                dispatch({
-                  type: "operation",
-                  operations: preview.operations,
-                  metadata: { source: "ai", summary: preview.summary },
-                });
-                setPreview(undefined);
-              }}
+              onClick={() =>
+                commitPreview(preview.operations, preview.summary, preview.baseRevision)
+              }
               type="button"
             >
               <Check size={13} /> {t("ai.acceptAll")}
@@ -277,9 +468,23 @@ export function AiPanel() {
         />
         <div>
           <span>{t("ai.boundary")}</span>
-          <button disabled={!prompt.trim() || loading} type="submit">
-            {loading ? <Loader2 className="spin" size={14} /> : <Send size={14} />}
-          </button>
+          {loading ? (
+            <button
+              aria-label={t("ai.cancel")}
+              onClick={() => {
+                cancelled.current = true;
+                agentService.current?.abort();
+                void cancelAgent(sessionId.current);
+              }}
+              type="button"
+            >
+              <Loader2 className="spin" size={14} />
+            </button>
+          ) : (
+            <button disabled={!prompt.trim()} type="submit">
+              <Send size={14} />
+            </button>
+          )}
         </div>
       </form>
     </div>
@@ -344,174 +549,16 @@ function describeOperation(operation: Operation, composition: Composition, t: Tr
   }
 }
 
-function normalizeOperations(
-  values: unknown[],
-  composition: Composition,
-  selectedLayerId: string,
-  currentTime: number,
-): Operation[] {
-  const supported: Operation[] = [];
-  const layerIds = new Set(composition.layers.map((layer) => layer.id));
-  const paths = new Set<PropertyPath>([
-    "position.0",
-    "position.1",
-    "position.2",
-    "rotation.0",
-    "rotation.1",
-    "rotation.2",
-    "scale.0",
-    "scale.1",
-    "scale.2",
-    "opacity",
-  ]);
-  for (const value of values) {
-    if (!value || typeof value !== "object" || !("type" in value)) continue;
-    const input = value as Record<string, unknown>;
-    const layerId = typeof input.layerId === "string" ? input.layerId : selectedLayerId;
-    if (input.type !== "addLayer" && !layerIds.has(layerId)) continue;
-    if (
-      input.type === "setProperty" &&
-      typeof input.path === "string" &&
-      typeof input.value === "number"
-    ) {
-      if (paths.has(input.path as PropertyPath)) {
-        supported.push({
-          type: "setProperty",
-          layerId,
-          path: input.path as PropertyPath,
-          value: input.value,
-        });
-      }
-    } else if (input.type === "addEffect") {
-      const raw =
-        input.effect && typeof input.effect === "object"
-          ? (input.effect as Record<string, unknown>)
-          : input;
-      const effectType =
-        typeof raw.effectType === "string"
-          ? raw.effectType
-          : typeof raw.type === "string" && raw.type !== "addEffect"
-            ? raw.type
-            : "glow";
-      if (EFFECT_BY_TYPE.has(effectType)) {
-        const effect = createEffect(effectType);
-        if (typeof raw.name === "string") effect.name = raw.name;
-        if (typeof raw.parameters === "object" && raw.parameters) {
-          for (const [key, value] of Object.entries(raw.parameters))
-            if (typeof value === "number" && Number.isFinite(value)) effect.parameters[key] = value;
-        }
-        supported.push({
-          type: "addEffect",
-          layerId,
-          effect,
-        });
-      }
-    } else if (input.type === "renameLayer" && typeof input.name === "string") {
-      supported.push({ type: "renameLayer", layerId, name: input.name });
-    } else if (input.type === "addKeyframe") {
-      const path = typeof input.path === "string" ? input.path : "position.1";
-      const keyframe =
-        input.keyframe && typeof input.keyframe === "object"
-          ? (input.keyframe as Record<string, unknown>)
-          : input;
-      if (paths.has(path as PropertyPath))
-        supported.push({
-          type: "addKeyframe",
-          layerId,
-          path: path as PropertyPath,
-          keyframe: {
-            id: createId(),
-            time: typeof keyframe.time === "number" ? Math.max(0, keyframe.time) : currentTime,
-            value: typeof keyframe.value === "number" ? keyframe.value : 0,
-            interpolation: "bezier",
-            easing: [0.16, 1, 0.3, 1],
-          },
-        });
-    } else if (input.type === "addLayer" && typeof input.kind === "string") {
-      const kinds = new Set<LayerKind>([
-        "shape",
-        "text",
-        "image",
-        "video",
-        "mesh",
-        "particle",
-        "camera",
-        "light",
-      ]);
-      if (!kinds.has(input.kind as LayerKind)) continue;
-      const layer = createLayerForComposition(input.kind as LayerKind, composition, currentTime);
-      if (typeof input.name === "string") layer.name = input.name;
-      if (typeof input.text === "string" && layer.kind === "text") layer.text = input.text;
-      supported.push({ type: "addLayer", layer });
-      layerIds.add(layer.id);
-    } else if (input.type === "removeLayer") {
-      supported.push({ type: "removeLayer", layerId });
-    } else if (input.type === "reorderLayer" && typeof input.index === "number") {
-      supported.push({
-        type: "reorderLayer",
-        layerId,
-        index: Math.max(0, Math.floor(input.index)),
-      });
-    } else if (
-      input.type === "toggleLayer" &&
-      typeof input.field === "string" &&
-      ["visible", "solo", "locked", "audioEnabled", "threeDimensional"].includes(input.field)
-    ) {
-      supported.push({
-        type: "toggleLayer",
-        layerId,
-        field: input.field as "visible",
-      });
-    } else if (input.type === "removeEffect" && typeof input.effectId === "string") {
-      const layer = composition.layers.find((candidate) => candidate.id === layerId);
-      if (layer?.effects.some((effect) => effect.id === input.effectId))
-        supported.push({ type: "removeEffect", layerId, effectId: input.effectId });
-    } else if (
-      input.type === "setEffectParameter" &&
-      typeof input.effectId === "string" &&
-      typeof input.parameter === "string" &&
-      typeof input.value === "number" &&
-      Number.isFinite(input.value)
-    ) {
-      const layer = composition.layers.find((candidate) => candidate.id === layerId);
-      if (layer?.effects.some((effect) => effect.id === input.effectId))
-        supported.push({
-          type: "setEffectParameter",
-          layerId,
-          effectId: input.effectId,
-          parameter: input.parameter,
-          value: input.value,
-        });
-    } else if (input.type === "setTextAnimator") {
-      const layer = composition.layers.find((candidate) => candidate.id === layerId);
-      if (layer?.kind !== "text") continue;
-      const current = layer.textAnimator ?? createDefaultTextAnimator(true);
-      const position = finitePair(input.position) ?? current.position;
-      supported.push({
-        type: "setTextAnimator",
-        layerId,
-        textAnimator: normalizeTextAnimatorSettings({
-          ...current,
-          enabled: typeof input.enabled === "boolean" ? input.enabled : true,
-          delay: finiteNumber(input.delay) ?? current.delay,
-          stagger: finiteNumber(input.stagger) ?? current.stagger,
-          duration: finiteNumber(input.duration) ?? current.duration,
-          position,
-          scale: finiteNumber(input.scale) ?? current.scale,
-          opacity: finiteNumber(input.opacity) ?? current.opacity,
-        }),
-      });
-    }
+function verificationText(
+  t: Translate,
+  verification: "verified_by_primary_model" | "metrics_only" | "not_verified",
+): string {
+  switch (verification) {
+    case "verified_by_primary_model":
+      return t("ai.verification.verified_by_primary_model");
+    case "metrics_only":
+      return t("ai.verification.metrics_only");
+    case "not_verified":
+      return t("ai.verification.not_verified");
   }
-  return supported;
-}
-
-function finiteNumber(value: unknown): number | undefined {
-  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
-}
-
-function finitePair(value: unknown): [number, number] | undefined {
-  if (!Array.isArray(value) || value.length !== 2) return undefined;
-  const pair = value.map(finiteNumber);
-  return pair.every((entry) => entry !== undefined) ? (pair as [number, number]) : undefined;
 }

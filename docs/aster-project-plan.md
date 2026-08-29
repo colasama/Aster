@@ -922,7 +922,6 @@ aster/
  │   ├─ aster-text/
  │   ├─ aster-project/
  │   ├─ aster-plugin/
- │   ├─ aster-ai/
  │   └─ aster-profiler/
  │
  ├─ plugins/
@@ -1569,7 +1568,7 @@ aster/
 
 ### Operation API
 
-- [x] 创建 `aster-ai` crate。
+- [x] 以 Electron Pi utility process、TypeScript application service 和版本化命令注册表建立唯一 AI runtime。
 - [x] 列出全部可供 AI 调用的基础 Operation。
 - [x] 定义 JSON Schema。
 - [x] 定义 parameter validation。

@@ -17,6 +17,15 @@ import {
   session,
   shell,
 } from "electron";
+import type {
+  AgentRunRequest,
+  AgentToolResponse,
+  FullAccessActivationRequest,
+} from "../src/ai/agent-protocol.js";
+import { FullAccessGrantManager } from "./agent-grants.js";
+import { PiAgentHost } from "./agent-host.js";
+import { fullAccessDesktopBridgeRequest } from "./full-access-aster-tools.js";
+import { describeFullAccessTarget, FullAccessToolService } from "./full-access-tools.js";
 import { AsterLogger, isRendererLogPayload, type LogLevel, parseLogLevel } from "./logger.js";
 import { Mp4ExportManager } from "./mp4-export.js";
 
@@ -24,11 +33,9 @@ const ASSET_SCHEME = "aster-asset";
 const DEVELOPMENT_URL = "http://127.0.0.1:1420";
 const BRIDGE_COMMANDS = new Set([
   "clear_autosave",
-  "generate_ai_plan",
   "install_plugin",
   "link_project_asset",
   "load_project",
-  "operation_schema",
   "pack_project",
   "plugin_registry_catalog",
   "plugin_status",
@@ -209,15 +216,27 @@ class DesktopBridge {
 }
 
 let desktopBridge: DesktopBridge | undefined;
+let piAgentHost: PiAgentHost | undefined;
 let mp4ExportManager: Mp4ExportManager | undefined;
 let applicationLogger: AsterLogger | undefined;
+const fullAccessGrants = new FullAccessGrantManager();
+const fullAccessTools = new FullAccessToolService(async (toolName, input, signal) => {
+  if (signal.aborted) throw new Error("Full Access Aster tool was cancelled");
+  if (!desktopBridge) throw new Error("Aster desktop bridge is unavailable");
+  const request = fullAccessDesktopBridgeRequest(toolName, input);
+  const result = await desktopBridge.invoke(request.command, request.arguments);
+  if (signal.aborted) throw new Error("Full Access Aster tool was cancelled");
+  if (toolName === "unpack_project" && typeof result === "string") grantPath(result);
+  if (toolName === "link_project_asset") collectAssetPaths(result);
+  return result;
+});
 const allowedAssets = new Map<string, string>();
 const grantedPaths = new Set<string>();
 
 function bridgeExecutable(): string {
   const name = process.platform === "win32" ? "aster-desktop-bridge.exe" : "aster-desktop-bridge";
   if (app.isPackaged) return join(process.resourcesPath, "bin", name);
-  const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+  const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
   const debug = join(projectRoot, "target", "debug", name);
   const release = join(projectRoot, "target", "release", name);
   return existsSync(debug) ? debug : release;
@@ -295,6 +314,96 @@ function filters(value: unknown): FileFilter[] | undefined {
   return result.length > 0 ? result : undefined;
 }
 
+function parseAgentRequest(value: unknown): AgentRunRequest {
+  if (!isRecord(value)) throw new Error("Agent request must be an object");
+  const provider = value.provider;
+  if (!isRecord(provider)) throw new Error("Agent provider config must be an object");
+  const accessMode = value.accessMode;
+  if (!(["review", "agent", "full_access"] as const).some((mode) => mode === accessMode))
+    throw new Error("Agent access mode is invalid");
+  if (
+    typeof value.prompt !== "string" ||
+    typeof value.projectId !== "string" ||
+    typeof value.projectName !== "string" ||
+    typeof value.projectRevision !== "number" ||
+    typeof provider.baseUrl !== "string" ||
+    typeof provider.model !== "string" ||
+    typeof provider.supportsImages !== "boolean" ||
+    !(
+      provider.apiKey === null ||
+      provider.apiKey === undefined ||
+      typeof provider.apiKey === "string"
+    ) ||
+    !(value.sessionId === undefined || typeof value.sessionId === "string") ||
+    !(value.grantId === undefined || typeof value.grantId === "string")
+  )
+    throw new Error("Agent request fields are invalid");
+  if (
+    value.prompt.length > 32_000 ||
+    value.projectId.length > 256 ||
+    value.projectName.length > 512 ||
+    provider.baseUrl.length > 2_048 ||
+    provider.model.length > 256 ||
+    (typeof provider.apiKey === "string" && provider.apiKey.length > 16_384) ||
+    (typeof value.sessionId === "string" && value.sessionId.length > 256) ||
+    (typeof value.grantId === "string" && value.grantId.length > 256)
+  )
+    throw new Error("Agent request exceeds its protocol bounds");
+  return {
+    prompt: value.prompt,
+    projectId: value.projectId,
+    projectName: value.projectName,
+    projectRevision: value.projectRevision,
+    accessMode: accessMode as AgentRunRequest["accessMode"],
+    provider: {
+      baseUrl: provider.baseUrl,
+      model: provider.model,
+      apiKey: provider.apiKey ?? null,
+      supportsImages: provider.supportsImages,
+    },
+    ...(value.sessionId ? { sessionId: value.sessionId } : {}),
+    ...(value.grantId ? { grantId: value.grantId } : {}),
+  };
+}
+
+function parseFullAccessActivation(value: unknown): FullAccessActivationRequest {
+  if (!isRecord(value)) throw new Error("Full Access activation must be an object");
+  for (const field of [
+    "projectId",
+    "projectName",
+    "model",
+    "providerBaseUrl",
+    "confirmation",
+  ] as const)
+    if (typeof value[field] !== "string") throw new Error(`Full Access ${field} is invalid`);
+  return {
+    projectId: value.projectId as string,
+    projectName: value.projectName as string,
+    model: value.model as string,
+    providerBaseUrl: value.providerBaseUrl as string,
+    confirmation: value.confirmation as string,
+  };
+}
+
+function parseAgentToolResponse(value: unknown): AgentToolResponse {
+  if (!isRecord(value) || typeof value.requestId !== "string")
+    throw new Error("Agent tool response is invalid");
+  if (!(value.error === undefined || typeof value.error === "string"))
+    throw new Error("Agent tool response error is invalid");
+  if (typeof value.error === "string" && value.error.length > 2_000)
+    throw new Error("Agent tool response error is too long");
+  if (Buffer.byteLength(JSON.stringify(value.result ?? null)) > 16 * 1024 * 1024)
+    throw new Error("Agent tool response exceeded its protocol budget");
+  return {
+    requestId: value.requestId,
+    ...(value.error ? { error: value.error.slice(0, 1000) } : { result: value.result }),
+  };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
 function registerIpc(logger: AsterLogger): void {
   ipcMain.on("aster:log", (event, value: unknown) => {
     if (!isRendererLogPayload(value)) {
@@ -326,6 +435,80 @@ function registerIpc(logger: AsterLogger): void {
       });
       throw error;
     }
+  });
+
+  ipcMain.handle("aster:agent-run", (event, value: unknown) => {
+    if (!piAgentHost) throw new Error("Aster Pi agent is unavailable");
+    const request = parseAgentRequest(value);
+    if (request.accessMode === "full_access")
+      fullAccessGrants.require(
+        event.sender.id,
+        request.grantId,
+        request.projectId,
+        request.provider.model,
+        request.provider.baseUrl,
+      );
+    return piAgentHost.run(event.sender, request);
+  });
+
+  ipcMain.handle("aster:full-access-activate", async (event, value: unknown) => {
+    const request = parseFullAccessActivation(value);
+    const owner = BrowserWindow.fromWebContents(event.sender);
+    const grant = await fullAccessGrants.activate(event.sender.id, request, async () => {
+      const options = {
+        type: "warning" as const,
+        title: "Activate Full Access",
+        message: `Grant Full Access to ${request.model} for ${request.projectName}?`,
+        detail:
+          "Full Access allows the AI to modify or delete project content, read and write files, run programs, access the network, install plugins, overwrite exports, and send project data or preview images to the configured model provider without asking for each action. Some actions cannot be undone and may cause data loss, cost, or disclosure of private information.",
+        buttons: ["Cancel", "Activate Full Access"],
+        defaultId: 0,
+        cancelId: 0,
+        noLink: true,
+      };
+      const result = owner
+        ? await dialog.showMessageBox(owner, options)
+        : await dialog.showMessageBox(options);
+      return result.response === 1;
+    });
+    logger.warn("agent", "full_access_activated", {
+      grantId: grant.id,
+      projectId: grant.projectId,
+      model: grant.model,
+      providerHost: grant.providerHost,
+      expiresAt: grant.expiresAt,
+    });
+    return grant;
+  });
+
+  ipcMain.handle("aster:full-access-revoke", (event, grantId: unknown) => {
+    if (typeof grantId !== "string" || !fullAccessGrants.revoke(event.sender.id, grantId))
+      throw new Error("Full Access grant is not active");
+    piAgentHost?.cancelOwner(event.sender.id);
+    fullAccessTools.abortOwner(event.sender.id);
+    logger.warn("agent", "full_access_revoked", { grantId });
+  });
+
+  ipcMain.handle("aster:agent-emergency-stop", (event, sessionId: unknown, grantId: unknown) => {
+    if (typeof sessionId !== "string") throw new Error("Agent session id is required");
+    if (typeof grantId === "string") fullAccessGrants.revoke(event.sender.id, grantId);
+    piAgentHost?.cancelOwner(event.sender.id);
+    fullAccessTools.abortOwner(event.sender.id);
+    void mp4ExportManager?.cancelOwner(event.sender.id);
+    logger.warn("agent", "emergency_stop", { sessionId, rendererId: event.sender.id });
+  });
+
+  ipcMain.handle("aster:agent-tool-response", (event, value: unknown) => {
+    if (!piAgentHost) throw new Error("Aster Pi agent is unavailable");
+    piAgentHost.respond(event.sender, parseAgentToolResponse(value));
+  });
+
+  ipcMain.handle("aster:agent-cancel", (event, sessionId: unknown) => {
+    if (!piAgentHost) throw new Error("Aster Pi agent is unavailable");
+    if (typeof sessionId !== "string" || !sessionId.trim())
+      throw new Error("Agent session id is required");
+    piAgentHost.cancel(event.sender, sessionId);
+    fullAccessTools.abortSession(sessionId);
   });
 
   ipcMain.handle("aster:open", async (_event, value: unknown) => {
@@ -494,6 +677,9 @@ async function createWindow(logger: AsterLogger): Promise<BrowserWindow> {
       exitCode: details.exitCode,
     });
     void mp4ExportManager?.cancelOwner(window.webContents.id);
+    piAgentHost?.cancelOwner(window.webContents.id);
+    fullAccessGrants.revokeOwner(window.webContents.id);
+    fullAccessTools.abortOwner(window.webContents.id);
   });
   if (app.isPackaged) await window.loadFile(join(app.getAppPath(), "dist", "index.html"));
   else await window.loadURL(DEVELOPMENT_URL);
@@ -539,6 +725,32 @@ void app
       return;
     }
     desktopBridge = new DesktopBridge(executable, app.getPath("userData"), logger, logLevel);
+    piAgentHost = new PiAgentHost(
+      logger,
+      async (ownerId, sessionId, grantId, toolName, argumentsValue) => {
+        fullAccessGrants.requireActive(ownerId, grantId);
+        const target = describeFullAccessTarget(toolName, argumentsValue);
+        logger.warn("agent", "full_access_tool_started", { sessionId, toolName, target });
+        try {
+          const result = await fullAccessTools.execute(
+            ownerId,
+            sessionId,
+            toolName,
+            argumentsValue,
+          );
+          logger.warn("agent", "full_access_tool_completed", { sessionId, toolName, target });
+          return result;
+        } catch (error) {
+          logger.warn("agent", "full_access_tool_failed", {
+            sessionId,
+            toolName,
+            target,
+            error: error instanceof Error ? error.message : String(error),
+          });
+          throw error;
+        }
+      },
+    );
     mp4ExportManager = new Mp4ExportManager(ffmpegExecutable());
     Menu.setApplicationMenu(null);
     registerAssetProtocol();
@@ -563,6 +775,7 @@ void app
 app.on("before-quit", () => {
   applicationLogger?.info("application", "stopping");
   desktopBridge?.dispose();
+  piAgentHost?.dispose();
   void mp4ExportManager?.dispose();
   void applicationLogger?.flush();
 });

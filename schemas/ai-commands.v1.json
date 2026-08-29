@@ -1,0 +1,1624 @@
+{
+  "schemaVersion": 1,
+  "$defs": {
+    "id": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "name": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "number": { "type": "number" },
+    "vec2": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": { "type": "number" }
+    },
+    "vec3": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": { "type": "number" }
+    },
+    "color4": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": { "type": "number", "minimum": 0, "maximum": 16 }
+    },
+    "propertyPath": {
+      "enum": [
+        "position.0",
+        "position.1",
+        "position.2",
+        "rotation.0",
+        "rotation.1",
+        "rotation.2",
+        "scale.0",
+        "scale.1",
+        "scale.2",
+        "opacity"
+      ]
+    },
+    "keyframe": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "time", "value", "interpolation"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "time": { "type": "number", "minimum": 0, "maximum": 86400 },
+        "value": { "type": "number" },
+        "interpolation": { "enum": ["linear", "step", "bezier"] },
+        "easing": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": { "type": "number" }
+        },
+        "spatialIn": { "type": "number" },
+        "spatialOut": { "type": "number" }
+      }
+    },
+    "animatable": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["mode", "value"],
+          "properties": {
+            "mode": { "const": "static" },
+            "value": { "type": "number" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["mode", "keyframes"],
+          "properties": {
+            "mode": { "const": "animated" },
+            "keyframes": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 4096,
+              "items": { "$ref": "#/$defs/keyframe" }
+            }
+          }
+        }
+      ]
+    },
+    "material3d": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["metallic", "roughness", "emissive", "alphaMode", "alphaCutoff"],
+      "properties": {
+        "metallic": { "type": "number", "minimum": 0, "maximum": 1 },
+        "roughness": { "type": "number", "minimum": 0.04, "maximum": 1 },
+        "emissive": { "type": "number", "minimum": 0, "maximum": 16 },
+        "alphaMode": { "enum": ["opaque", "mask", "blend"] },
+        "alphaCutoff": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "light": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "intensity", "range", "coneAngle", "shadowQuality"],
+      "properties": {
+        "kind": { "enum": ["directional", "point", "spot"] },
+        "intensity": { "type": "number", "minimum": 0, "maximum": 100 },
+        "range": { "type": "number", "minimum": 1, "maximum": 100000 },
+        "coneAngle": { "type": "number", "minimum": 1, "maximum": 179 },
+        "shadowQuality": { "enum": ["off", "low", "medium", "high"] }
+      }
+    },
+    "camera": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["projection", "fieldOfView", "orthographicSize"],
+      "properties": {
+        "projection": { "enum": ["perspective", "orthographic"] },
+        "fieldOfView": { "type": "number", "minimum": 1, "maximum": 179 },
+        "orthographicSize": { "type": "number", "minimum": 1, "maximum": 100000 }
+      }
+    },
+    "particle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "renderMode",
+        "meshPrimitive",
+        "count",
+        "seed",
+        "lifetime",
+        "emitterShape",
+        "emitterPosition",
+        "emitterSize",
+        "emitterSpread",
+        "velocity",
+        "gravity",
+        "drag",
+        "turbulence",
+        "turbulenceScale",
+        "startColor",
+        "endColor",
+        "startOpacity",
+        "endOpacity",
+        "startSize",
+        "endSize",
+        "startRotation",
+        "endRotation",
+        "streakLength"
+      ],
+      "properties": {
+        "renderMode": { "enum": ["billboard", "streak", "mesh"] },
+        "meshPrimitive": { "const": "cube" },
+        "count": { "type": "integer", "minimum": 1, "maximum": 1000000 },
+        "seed": { "type": "integer", "minimum": 0, "maximum": 16777215 },
+        "lifetime": { "type": "number", "minimum": 0.05, "maximum": 3600 },
+        "emitterShape": { "enum": ["point", "box", "sphere", "ring", "line"] },
+        "emitterPosition": { "$ref": "#/$defs/vec3" },
+        "emitterSize": { "$ref": "#/$defs/vec3" },
+        "emitterSpread": { "type": "number", "minimum": 0, "maximum": 180 },
+        "velocity": { "$ref": "#/$defs/vec3" },
+        "gravity": { "$ref": "#/$defs/vec3" },
+        "drag": { "type": "number", "minimum": 0, "maximum": 10 },
+        "turbulence": { "type": "number", "minimum": 0, "maximum": 10 },
+        "turbulenceScale": { "type": "number", "minimum": 0.01, "maximum": 100 },
+        "startColor": { "$ref": "#/$defs/vec3" },
+        "endColor": { "$ref": "#/$defs/vec3" },
+        "startOpacity": { "type": "number", "minimum": 0, "maximum": 1 },
+        "endOpacity": { "type": "number", "minimum": 0, "maximum": 1 },
+        "startSize": { "type": "number", "minimum": 0.01, "maximum": 256 },
+        "endSize": { "type": "number", "minimum": 0.01, "maximum": 256 },
+        "startRotation": { "type": "number", "minimum": -36000, "maximum": 36000 },
+        "endRotation": { "type": "number", "minimum": -36000, "maximum": 36000 },
+        "streakLength": { "type": "number", "minimum": 0.01, "maximum": 5 }
+      }
+    },
+    "bezierVertex": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["position", "inTangent", "outTangent"],
+      "properties": {
+        "position": { "$ref": "#/$defs/vec2" },
+        "inTangent": { "$ref": "#/$defs/vec2" },
+        "outTangent": { "$ref": "#/$defs/vec2" }
+      }
+    },
+    "bezierPath": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["closed", "vertices"],
+      "properties": {
+        "closed": { "type": "boolean" },
+        "vertices": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 512,
+          "items": { "$ref": "#/$defs/bezierVertex" }
+        }
+      }
+    },
+    "shape": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "roundness",
+        "strokeWidth",
+        "strokeColor",
+        "fillMode",
+        "gradientColor",
+        "gradientAngle",
+        "dashLength",
+        "dashGap",
+        "lineCap"
+      ],
+      "properties": {
+        "kind": { "enum": ["rectangle", "ellipse", "line", "bezier"] },
+        "roundness": { "type": "number", "minimum": 0, "maximum": 100000 },
+        "strokeWidth": { "type": "number", "minimum": 0, "maximum": 100000 },
+        "strokeColor": { "$ref": "#/$defs/color4" },
+        "fillMode": { "enum": ["solid", "linear", "radial"] },
+        "gradientColor": { "$ref": "#/$defs/color4" },
+        "gradientAngle": { "type": "number", "minimum": -36000, "maximum": 36000 },
+        "dashLength": { "type": "number", "minimum": 0, "maximum": 100000 },
+        "dashGap": { "type": "number", "minimum": 0, "maximum": 100000 },
+        "lineCap": { "enum": ["butt", "round"] },
+        "lineJoin": { "enum": ["miter", "bevel", "round"] },
+        "path": { "$ref": "#/$defs/bezierPath" },
+        "trim": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["start", "end", "offset"],
+          "properties": {
+            "start": { "type": "number" },
+            "end": { "type": "number" },
+            "offset": { "type": "number" }
+          }
+        }
+      }
+    },
+    "textStyle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fontFamily",
+        "fontSize",
+        "fontWeight",
+        "alignment",
+        "tracking",
+        "leading",
+        "strokeWidth",
+        "strokeColor"
+      ],
+      "properties": {
+        "fontFamily": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "fontSize": { "type": "number", "minimum": 1, "maximum": 4096 },
+        "fontWeight": { "type": "number", "minimum": 100, "maximum": 900 },
+        "alignment": { "enum": ["left", "center", "right"] },
+        "tracking": { "type": "number", "minimum": -1000, "maximum": 1000 },
+        "leading": { "type": "number", "minimum": 1, "maximum": 8192 },
+        "strokeWidth": { "type": "number", "minimum": 0, "maximum": 512 },
+        "strokeColor": { "$ref": "#/$defs/color4" }
+      }
+    },
+    "effectMask": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["shape", "center", "size", "feather", "opacity", "invert"],
+      "properties": {
+        "shape": { "enum": ["ellipse", "rectangle", "path"] },
+        "pathId": { "$ref": "#/$defs/id" },
+        "center": { "$ref": "#/$defs/vec2" },
+        "size": { "$ref": "#/$defs/vec2" },
+        "feather": { "type": "number", "minimum": 0, "maximum": 100000 },
+        "opacity": { "type": "number", "minimum": 0, "maximum": 1 },
+        "invert": { "type": "boolean" }
+      }
+    },
+    "lut3d": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "name", "size", "data", "domainMin", "domainMax", "checksum"],
+      "properties": {
+        "kind": { "const": "lut3d" },
+        "name": { "$ref": "#/$defs/name" },
+        "title": { "type": "string", "maxLength": 256 },
+        "size": { "type": "integer", "minimum": 2, "maximum": 64 },
+        "data": {
+          "type": "array",
+          "minItems": 24,
+          "maxItems": 786432,
+          "items": { "type": "number" }
+        },
+        "domainMin": { "$ref": "#/$defs/vec3" },
+        "domainMax": { "$ref": "#/$defs/vec3" },
+        "checksum": { "type": "string", "minLength": 1, "maxLength": 256 }
+      }
+    },
+    "shapeGroupTransform": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["position", "scale", "rotation", "opacity"],
+      "properties": {
+        "position": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": { "$ref": "#/$defs/animatable" }
+        },
+        "scale": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": { "$ref": "#/$defs/animatable" }
+        },
+        "rotation": { "$ref": "#/$defs/animatable" },
+        "opacity": { "$ref": "#/$defs/animatable" }
+      }
+    },
+    "shapeChild": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "id", "pathId", "visible"],
+          "properties": {
+            "kind": { "const": "path" },
+            "id": { "$ref": "#/$defs/id" },
+            "pathId": { "$ref": "#/$defs/id" },
+            "visible": { "type": "boolean" },
+            "transform": { "$ref": "#/$defs/shapeGroupTransform" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "id", "groupId"],
+          "properties": {
+            "kind": { "const": "group" },
+            "id": { "$ref": "#/$defs/id" },
+            "groupId": { "$ref": "#/$defs/id" }
+          }
+        }
+      ]
+    },
+    "shapeGraph": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "revision", "paths", "groups", "rootGroupIds"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "revision": { "type": "integer", "minimum": 0 },
+        "paths": {
+          "type": "array",
+          "maxItems": 1024,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "revision", "path"],
+            "properties": {
+              "id": { "$ref": "#/$defs/id" },
+              "revision": { "type": "integer", "minimum": 0 },
+              "path": { "$ref": "#/$defs/bezierPath" }
+            }
+          }
+        },
+        "groups": {
+          "type": "array",
+          "maxItems": 512,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "name", "visible", "transform", "children"],
+            "properties": {
+              "id": { "$ref": "#/$defs/id" },
+              "name": { "$ref": "#/$defs/name" },
+              "visible": { "type": "boolean" },
+              "transform": { "$ref": "#/$defs/shapeGroupTransform" },
+              "children": {
+                "type": "array",
+                "maxItems": 1024,
+                "items": { "$ref": "#/$defs/shapeChild" }
+              }
+            }
+          }
+        },
+        "rootGroupIds": {
+          "type": "array",
+          "maxItems": 512,
+          "items": { "$ref": "#/$defs/id" }
+        }
+      }
+    },
+    "clonerEffector": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "id",
+            "enabled",
+            "strength",
+            "seed",
+            "position",
+            "scale",
+            "rotation"
+          ],
+          "properties": {
+            "kind": { "const": "random" },
+            "id": { "$ref": "#/$defs/id" },
+            "enabled": { "type": "boolean" },
+            "strength": { "type": "number" },
+            "seed": { "type": "number" },
+            "position": { "$ref": "#/$defs/vec3" },
+            "scale": { "$ref": "#/$defs/vec3" },
+            "rotation": { "$ref": "#/$defs/vec3" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "id", "enabled", "strength", "value"],
+          "properties": {
+            "kind": { "enum": ["position", "scale", "rotation"] },
+            "id": { "$ref": "#/$defs/id" },
+            "enabled": { "type": "boolean" },
+            "strength": { "type": "number" },
+            "value": { "$ref": "#/$defs/vec3" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "id",
+            "enabled",
+            "strength",
+            "band",
+            "gain",
+            "position",
+            "scale",
+            "rotation"
+          ],
+          "properties": {
+            "kind": { "const": "audio" },
+            "id": { "$ref": "#/$defs/id" },
+            "enabled": { "type": "boolean" },
+            "strength": { "type": "number" },
+            "band": { "$ref": "#/$defs/vec2" },
+            "gain": { "type": "number" },
+            "position": { "$ref": "#/$defs/vec3" },
+            "scale": { "$ref": "#/$defs/vec3" },
+            "rotation": { "$ref": "#/$defs/vec3" }
+          }
+        }
+      ]
+    },
+    "cloner": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["distribution", "effectors"],
+      "properties": {
+        "distribution": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["kind", "count", "spacing"],
+              "properties": {
+                "kind": { "const": "grid" },
+                "count": { "$ref": "#/$defs/vec3" },
+                "spacing": { "$ref": "#/$defs/vec3" }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "kind",
+                "count",
+                "radius",
+                "startAngle",
+                "endAngle",
+                "axis",
+                "alignRotation"
+              ],
+              "properties": {
+                "kind": { "const": "radial" },
+                "count": { "type": "integer", "minimum": 1, "maximum": 65536 },
+                "radius": { "type": "number", "minimum": 0 },
+                "startAngle": { "type": "number" },
+                "endAngle": { "type": "number" },
+                "axis": { "enum": ["x", "y", "z"] },
+                "alignRotation": { "type": "boolean" }
+              }
+            }
+          ]
+        },
+        "effectors": {
+          "type": "array",
+          "maxItems": 32,
+          "items": { "$ref": "#/$defs/clonerEffector" }
+        }
+      }
+    }
+  },
+  "commands": [
+    {
+      "name": "addLayer",
+      "version": 1,
+      "category": "layers",
+      "description": "Add an editable layer to the active composition.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "kind"],
+        "properties": {
+          "type": { "const": "addLayer" },
+          "kind": {
+            "enum": [
+              "shape",
+              "text",
+              "image",
+              "video",
+              "mesh",
+              "particle",
+              "precomposition",
+              "adjustment",
+              "camera",
+              "light"
+            ]
+          },
+          "name": { "type": "string", "minLength": 1, "maxLength": 256 },
+          "text": { "type": "string", "maxLength": 20000 },
+          "sourceCompositionId": { "$ref": "#/$defs/id" }
+        }
+      }
+    },
+    {
+      "name": "removeLayer",
+      "version": 1,
+      "category": "layers",
+      "description": "Remove an existing layer from the active composition.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "layerId"],
+        "properties": {
+          "type": { "const": "removeLayer" },
+          "layerId": { "type": "string", "minLength": 1, "maxLength": 128 }
+        }
+      }
+    },
+    {
+      "name": "renameLayer",
+      "version": 1,
+      "category": "layers",
+      "description": "Rename an existing layer.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "layerId", "name"],
+        "properties": {
+          "type": { "const": "renameLayer" },
+          "layerId": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "name": { "type": "string", "minLength": 1, "maxLength": 256 }
+        }
+      }
+    },
+    {
+      "name": "reorderLayer",
+      "version": 1,
+      "category": "layers",
+      "description": "Move a layer to a bounded stack index.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "layerId", "index"],
+        "properties": {
+          "type": { "const": "reorderLayer" },
+          "layerId": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "index": { "type": "integer", "minimum": 0, "maximum": 4095 }
+        }
+      }
+    },
+    {
+      "name": "toggleLayer",
+      "version": 1,
+      "category": "layers",
+      "description": "Toggle one supported boolean layer flag.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "layerId", "field"],
+        "properties": {
+          "type": { "const": "toggleLayer" },
+          "layerId": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "field": { "enum": ["visible", "solo", "locked", "audioEnabled", "threeDimensional"] }
+        }
+      }
+    },
+    {
+      "name": "setProperty",
+      "version": 1,
+      "category": "animation",
+      "description": "Set a supported transform or opacity property to a finite value.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "layerId", "path", "value"],
+        "properties": {
+          "type": { "const": "setProperty" },
+          "layerId": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "path": {
+            "enum": [
+              "position.0",
+              "position.1",
+              "position.2",
+              "rotation.0",
+              "rotation.1",
+              "rotation.2",
+              "scale.0",
+              "scale.1",
+              "scale.2",
+              "opacity"
+            ]
+          },
+          "value": { "type": "number" }
+        }
+      }
+    },
+    {
+      "name": "addKeyframe",
+      "version": 1,
+      "category": "animation",
+      "description": "Add a bezier keyframe to a supported property.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "layerId", "path", "time", "value"],
+        "properties": {
+          "type": { "const": "addKeyframe" },
+          "layerId": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "path": {
+            "enum": [
+              "position.0",
+              "position.1",
+              "position.2",
+              "rotation.0",
+              "rotation.1",
+              "rotation.2",
+              "scale.0",
+              "scale.1",
+              "scale.2",
+              "opacity"
+            ]
+          },
+          "time": { "type": "number", "minimum": 0, "maximum": 86400 },
+          "value": { "type": "number" }
+        }
+      }
+    },
+    {
+      "name": "addEffect",
+      "version": 1,
+      "category": "effects",
+      "description": "Add a registered GPU effect to an existing layer.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "layerId", "effectType"],
+        "properties": {
+          "type": { "const": "addEffect" },
+          "layerId": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "effectType": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "name": { "type": "string", "minLength": 1, "maxLength": 256 },
+          "parameters": {
+            "type": "object",
+            "maxProperties": 64,
+            "additionalProperties": { "type": "number" }
+          }
+        }
+      }
+    },
+    {
+      "name": "removeEffect",
+      "version": 1,
+      "category": "effects",
+      "description": "Remove an effect owned by an existing layer.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "layerId", "effectId"],
+        "properties": {
+          "type": { "const": "removeEffect" },
+          "layerId": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "effectId": { "type": "string", "minLength": 1, "maxLength": 128 }
+        }
+      }
+    },
+    {
+      "name": "setEffectParameter",
+      "version": 1,
+      "category": "effects",
+      "description": "Set a finite parameter on an effect owned by a layer.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "layerId", "effectId", "parameter", "value"],
+        "properties": {
+          "type": { "const": "setEffectParameter" },
+          "layerId": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "effectId": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "parameter": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "value": { "type": "number" }
+        }
+      }
+    },
+    {
+      "name": "setTextAnimator",
+      "version": 1,
+      "category": "typography",
+      "description": "Configure bounded per-character text animation on a text layer.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "layerId"],
+        "properties": {
+          "type": { "const": "setTextAnimator" },
+          "layerId": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "enabled": { "type": "boolean" },
+          "delay": { "type": "number", "minimum": 0, "maximum": 3600 },
+          "stagger": { "type": "number", "minimum": 0, "maximum": 60 },
+          "duration": { "type": "number", "minimum": 0.001, "maximum": 3600 },
+          "position": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": { "type": "number" }
+          },
+          "scale": { "type": "number", "minimum": 0, "maximum": 100 },
+          "opacity": { "type": "number", "minimum": 0, "maximum": 1 }
+        }
+      }
+    },
+    {
+      "name": "setActiveComposition",
+      "version": 1,
+      "category": "compositions",
+      "description": "Activate an existing composition by ID.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "compositionId"],
+        "properties": {
+          "type": { "const": "setActiveComposition" },
+          "compositionId": { "$ref": "#/$defs/id" }
+        }
+      }
+    },
+    {
+      "name": "addComposition",
+      "version": 1,
+      "category": "compositions",
+      "description": "Create a bounded blank composition and optionally activate it.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "type",
+          "name",
+          "width",
+          "height",
+          "frameRateNumerator",
+          "frameRateDenominator",
+          "duration",
+          "activate"
+        ],
+        "properties": {
+          "type": { "const": "addComposition" },
+          "name": { "$ref": "#/$defs/name" },
+          "width": { "type": "integer", "minimum": 16, "maximum": 16384 },
+          "height": { "type": "integer", "minimum": 16, "maximum": 16384 },
+          "frameRateNumerator": { "type": "integer", "minimum": 1, "maximum": 240000 },
+          "frameRateDenominator": { "type": "integer", "minimum": 1, "maximum": 240000 },
+          "duration": { "type": "number", "minimum": 0.1, "maximum": 86400 },
+          "activate": { "type": "boolean" }
+        }
+      }
+    },
+    {
+      "name": "addProjectFolder",
+      "version": 1,
+      "category": "project",
+      "description": "Create a project-panel folder under an optional parent folder.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "name"],
+        "properties": {
+          "type": { "const": "addProjectFolder" },
+          "name": { "$ref": "#/$defs/name" },
+          "parentId": { "$ref": "#/$defs/id" }
+        }
+      }
+    },
+    {
+      "name": "moveProjectItem",
+      "version": 1,
+      "category": "project",
+      "description": "Move a composition or media project item into or out of a folder.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "itemId"],
+        "properties": {
+          "type": { "const": "moveProjectItem" },
+          "itemId": { "$ref": "#/$defs/id" },
+          "folderId": { "$ref": "#/$defs/id" }
+        }
+      }
+    },
+    {
+      "name": "setCompositionSettings",
+      "version": 1,
+      "category": "compositions",
+      "description": "Update bounded composition identity, dimensions, frame rate, and duration.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "type",
+          "compositionId",
+          "name",
+          "width",
+          "height",
+          "frameRateNumerator",
+          "frameRateDenominator",
+          "duration"
+        ],
+        "properties": {
+          "type": { "const": "setCompositionSettings" },
+          "compositionId": { "$ref": "#/$defs/id" },
+          "name": { "$ref": "#/$defs/name" },
+          "width": { "type": "integer", "minimum": 16, "maximum": 16384 },
+          "height": { "type": "integer", "minimum": 16, "maximum": 16384 },
+          "frameRateNumerator": { "type": "integer", "minimum": 1, "maximum": 240000 },
+          "frameRateDenominator": { "type": "integer", "minimum": 1, "maximum": 240000 },
+          "duration": { "type": "number", "minimum": 0.1, "maximum": 86400 }
+        }
+      }
+    },
+    {
+      "name": "setCompositionEnvironment",
+      "version": 1,
+      "category": "compositions",
+      "description": "Update or clear the active HDR environment while preserving its imported source.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "compositionId"],
+        "properties": {
+          "type": { "const": "setCompositionEnvironment" },
+          "compositionId": { "$ref": "#/$defs/id" },
+          "clear": { "type": "boolean" },
+          "enabled": { "type": "boolean" },
+          "intensity": { "type": "number", "minimum": 0, "maximum": 32 },
+          "rotation": { "type": "number", "minimum": -1000000, "maximum": 1000000 }
+        }
+      }
+    },
+    {
+      "name": "setCompositionWorkArea",
+      "version": 1,
+      "category": "compositions",
+      "description": "Set the frame-aligned work area of a composition.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "compositionId", "start", "end"],
+        "properties": {
+          "type": { "const": "setCompositionWorkArea" },
+          "compositionId": { "$ref": "#/$defs/id" },
+          "start": { "type": "number", "minimum": 0, "maximum": 86400 },
+          "end": { "type": "number", "minimum": 0, "maximum": 86400 }
+        }
+      }
+    },
+    {
+      "name": "precomposeLayers",
+      "version": 1,
+      "category": "compositions",
+      "description": "Move selected layers into a generated nested composition and insert a wrapper.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "layerIds"],
+        "properties": {
+          "type": { "const": "precomposeLayers" },
+          "layerIds": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 64,
+            "items": { "$ref": "#/$defs/id" }
+          },
+          "name": { "$ref": "#/$defs/name" }
+        }
+      }
+    },
+    {
+      "name": "setBlendMode",
+      "version": 1,
+      "category": "layers",
+      "description": "Set a supported layer blend mode.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "layerId", "blendMode"],
+        "properties": {
+          "type": { "const": "setBlendMode" },
+          "layerId": { "$ref": "#/$defs/id" },
+          "blendMode": { "enum": ["normal", "add", "multiply", "screen", "overlay"] }
+        }
+      }
+    },
+    {
+      "name": "setParent",
+      "version": 1,
+      "category": "layers",
+      "description": "Set or clear a layer parent with cycle validation.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "layerId"],
+        "properties": {
+          "type": { "const": "setParent" },
+          "layerId": { "$ref": "#/$defs/id" },
+          "parentId": { "$ref": "#/$defs/id" }
+        }
+      }
+    },
+    {
+      "name": "setLayerTiming",
+      "version": 1,
+      "category": "layers",
+      "description": "Set bounded layer in and out points.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "layerId", "inPoint", "outPoint"],
+        "properties": {
+          "type": { "const": "setLayerTiming" },
+          "layerId": { "$ref": "#/$defs/id" },
+          "inPoint": { "type": "number", "minimum": 0, "maximum": 86400 },
+          "outPoint": { "type": "number", "minimum": 0, "maximum": 86400 }
+        }
+      }
+    },
+    {
+      "name": "setLayerTimeMapping",
+      "version": 1,
+      "category": "layers",
+      "description": "Set layer source-time offset and stretch.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "layerId", "offset", "stretch"],
+        "properties": {
+          "type": { "const": "setLayerTimeMapping" },
+          "layerId": { "$ref": "#/$defs/id" },
+          "offset": { "type": "number", "minimum": 0, "maximum": 86400 },
+          "stretch": { "type": "number", "minimum": 0.01, "maximum": 1000000 }
+        }
+      }
+    },
+    {
+      "name": "setLayerTimeRemap",
+      "version": 1,
+      "category": "animation",
+      "description": "Set or clear a validated static or keyframed layer time-remap track.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "layerId"],
+        "properties": {
+          "type": { "const": "setLayerTimeRemap" },
+          "layerId": { "$ref": "#/$defs/id" },
+          "value": { "$ref": "#/$defs/animatable" }
+        }
+      }
+    },
+    {
+      "name": "setLayerAudioGain",
+      "version": 1,
+      "category": "layers",
+      "description": "Set normalized layer audio preview gain.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "layerId", "gain"],
+        "properties": {
+          "type": { "const": "setLayerAudioGain" },
+          "layerId": { "$ref": "#/$defs/id" },
+          "gain": { "type": "number", "minimum": 0, "maximum": 1 }
+        }
+      }
+    },
+    {
+      "name": "setMaterial3d",
+      "version": 1,
+      "category": "3d",
+      "description": "Replace a layer's bounded physically based material settings.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "layerId", "material"],
+        "properties": {
+          "type": { "const": "setMaterial3d" },
+          "layerId": { "$ref": "#/$defs/id" },
+          "material": { "$ref": "#/$defs/material3d" }
+        }
+      }
+    },
+    {
+      "name": "setLightSettings",
+      "version": 1,
+      "category": "3d",
+      "description": "Replace the settings of a light layer.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "layerId", "light"],
+        "properties": {
+          "type": { "const": "setLightSettings" },
+          "layerId": { "$ref": "#/$defs/id" },
+          "light": { "$ref": "#/$defs/light" }
+        }
+      }
+    },
+    {
+      "name": "setLayerColor",
+      "version": 1,
+      "category": "layers",
+      "description": "Set a bounded linear RGBA layer color.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "layerId", "color"],
+        "properties": {
+          "type": { "const": "setLayerColor" },
+          "layerId": { "$ref": "#/$defs/id" },
+          "color": { "$ref": "#/$defs/color4" }
+        }
+      }
+    },
+    {
+      "name": "setLayerAsset",
+      "version": 1,
+      "category": "assets",
+      "description": "Clear a layer asset or copy an already imported asset from another layer.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "layerId"],
+        "properties": {
+          "type": { "const": "setLayerAsset" },
+          "layerId": { "$ref": "#/$defs/id" },
+          "sourceLayerId": { "$ref": "#/$defs/id" }
+        }
+      }
+    },
+    {
+      "name": "setCameraSettings",
+      "version": 1,
+      "category": "3d",
+      "description": "Replace the settings of a camera layer.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "layerId", "camera"],
+        "properties": {
+          "type": { "const": "setCameraSettings" },
+          "layerId": { "$ref": "#/$defs/id" },
+          "camera": { "$ref": "#/$defs/camera" }
+        }
+      }
+    },
+    {
+      "name": "setParticleSettings",
+      "version": 1,
+      "category": "particles",
+      "description": "Replace the complete bounded GPU particle simulation settings.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "layerId", "particle"],
+        "properties": {
+          "type": { "const": "setParticleSettings" },
+          "layerId": { "$ref": "#/$defs/id" },
+          "particle": { "$ref": "#/$defs/particle" }
+        }
+      }
+    },
+    {
+      "name": "setClonerSettings",
+      "version": 1,
+      "category": "cloners",
+      "description": "Replace or clear a bounded layer cloner distribution and effector stack.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "layerId"],
+        "properties": {
+          "type": { "const": "setClonerSettings" },
+          "layerId": { "$ref": "#/$defs/id" },
+          "cloner": { "$ref": "#/$defs/cloner" }
+        }
+      }
+    },
+    {
+      "name": "setShapeSettings",
+      "version": 1,
+      "category": "shapes",
+      "description": "Replace a shape layer's bounded primitive, stroke, fill, path, and trim settings.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "layerId", "shape"],
+        "properties": {
+          "type": { "const": "setShapeSettings" },
+          "layerId": { "$ref": "#/$defs/id" },
+          "shape": { "$ref": "#/$defs/shape" }
+        }
+      }
+    },
+    {
+      "name": "setShapeGraph",
+      "version": 1,
+      "category": "shapes",
+      "description": "Replace or clear a validated reusable shape graph.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "layerId"],
+        "properties": {
+          "type": { "const": "setShapeGraph" },
+          "layerId": { "$ref": "#/$defs/id" },
+          "shapeGraph": { "$ref": "#/$defs/shapeGraph" }
+        }
+      }
+    },
+    {
+      "name": "setTextContent",
+      "version": 1,
+      "category": "typography",
+      "description": "Set bounded text content on a text layer.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "layerId", "text"],
+        "properties": {
+          "type": { "const": "setTextContent" },
+          "layerId": { "$ref": "#/$defs/id" },
+          "text": { "type": "string", "maxLength": 20000 }
+        }
+      }
+    },
+    {
+      "name": "setTextStyle",
+      "version": 1,
+      "category": "typography",
+      "description": "Replace a text layer's bounded typography and stroke settings.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "layerId", "textStyle"],
+        "properties": {
+          "type": { "const": "setTextStyle" },
+          "layerId": { "$ref": "#/$defs/id" },
+          "textStyle": { "$ref": "#/$defs/textStyle" }
+        }
+      }
+    },
+    {
+      "name": "moveKeyframe",
+      "version": 1,
+      "category": "animation",
+      "description": "Move a transform keyframe to a bounded time.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "layerId", "path", "keyframeId", "time"],
+        "properties": {
+          "type": { "const": "moveKeyframe" },
+          "layerId": { "$ref": "#/$defs/id" },
+          "path": { "$ref": "#/$defs/propertyPath" },
+          "keyframeId": { "$ref": "#/$defs/id" },
+          "time": { "type": "number", "minimum": 0, "maximum": 86400 }
+        }
+      }
+    },
+    {
+      "name": "updateKeyframe",
+      "version": 1,
+      "category": "animation",
+      "description": "Update a transform keyframe's time, value, interpolation, easing, and spatial tangents.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "layerId", "path", "keyframeId", "time", "value", "interpolation"],
+        "properties": {
+          "type": { "const": "updateKeyframe" },
+          "layerId": { "$ref": "#/$defs/id" },
+          "path": { "$ref": "#/$defs/propertyPath" },
+          "keyframeId": { "$ref": "#/$defs/id" },
+          "time": { "type": "number", "minimum": 0, "maximum": 86400 },
+          "value": { "type": "number" },
+          "interpolation": { "enum": ["linear", "step", "bezier"] },
+          "easing": {
+            "type": "array",
+            "minItems": 4,
+            "maxItems": 4,
+            "items": { "type": "number" }
+          },
+          "spatialIn": { "type": "number" },
+          "spatialOut": { "type": "number" }
+        }
+      }
+    },
+    {
+      "name": "removeKeyframe",
+      "version": 1,
+      "category": "animation",
+      "description": "Remove an existing transform keyframe.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "layerId", "path", "keyframeId"],
+        "properties": {
+          "type": { "const": "removeKeyframe" },
+          "layerId": { "$ref": "#/$defs/id" },
+          "path": { "$ref": "#/$defs/propertyPath" },
+          "keyframeId": { "$ref": "#/$defs/id" }
+        }
+      }
+    },
+    {
+      "name": "easeLayer",
+      "version": 1,
+      "category": "animation",
+      "description": "Apply the editor's standard easing to animated transform tracks on a layer.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "layerId"],
+        "properties": {
+          "type": { "const": "easeLayer" },
+          "layerId": { "$ref": "#/$defs/id" }
+        }
+      }
+    },
+    {
+      "name": "setExpression",
+      "version": 1,
+      "category": "animation",
+      "description": "Set or clear a bounded expression on a supported property.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "layerId", "path", "expression"],
+        "properties": {
+          "type": { "const": "setExpression" },
+          "layerId": { "$ref": "#/$defs/id" },
+          "path": { "$ref": "#/$defs/propertyPath" },
+          "expression": { "type": "string", "maxLength": 10000 }
+        }
+      }
+    },
+    {
+      "name": "moveEffect",
+      "version": 1,
+      "category": "effects",
+      "description": "Move an owned effect to a bounded stack index.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "layerId", "effectId", "toIndex"],
+        "properties": {
+          "type": { "const": "moveEffect" },
+          "layerId": { "$ref": "#/$defs/id" },
+          "effectId": { "$ref": "#/$defs/id" },
+          "toIndex": { "type": "integer", "minimum": 0, "maximum": 4095 }
+        }
+      }
+    },
+    {
+      "name": "setEffectMask",
+      "version": 1,
+      "category": "effects",
+      "description": "Replace or clear a validated effect mask.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "layerId", "effectId"],
+        "properties": {
+          "type": { "const": "setEffectMask" },
+          "layerId": { "$ref": "#/$defs/id" },
+          "effectId": { "$ref": "#/$defs/id" },
+          "mask": { "$ref": "#/$defs/effectMask" }
+        }
+      }
+    },
+    {
+      "name": "toggleEffect",
+      "version": 1,
+      "category": "effects",
+      "description": "Toggle an owned effect's enabled state.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "layerId", "effectId"],
+        "properties": {
+          "type": { "const": "toggleEffect" },
+          "layerId": { "$ref": "#/$defs/id" },
+          "effectId": { "$ref": "#/$defs/id" }
+        }
+      }
+    },
+    {
+      "name": "setEffectLut",
+      "version": 1,
+      "category": "effects",
+      "description": "Replace or clear the bounded resource on a 3D LUT effect.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "layerId", "effectId"],
+        "properties": {
+          "type": { "const": "setEffectLut" },
+          "layerId": { "$ref": "#/$defs/id" },
+          "effectId": { "$ref": "#/$defs/id" },
+          "resource": { "$ref": "#/$defs/lut3d" }
+        }
+      }
+    },
+    {
+      "name": "setEffectParameterAtTime",
+      "version": 1,
+      "category": "effects",
+      "description": "Set an effect parameter at an explicit time using an existing or generated keyframe ID.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "layerId", "effectId", "parameter", "time", "value"],
+        "properties": {
+          "type": { "const": "setEffectParameterAtTime" },
+          "layerId": { "$ref": "#/$defs/id" },
+          "effectId": { "$ref": "#/$defs/id" },
+          "parameter": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "time": { "type": "number", "minimum": 0, "maximum": 86400 },
+          "value": { "type": "number" },
+          "keyframeId": { "$ref": "#/$defs/id" }
+        }
+      }
+    },
+    {
+      "name": "addEffectParameterKeyframe",
+      "version": 1,
+      "category": "effects",
+      "description": "Add a validated keyframe to an owned effect parameter.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "layerId", "effectId", "parameter", "time", "value"],
+        "properties": {
+          "type": { "const": "addEffectParameterKeyframe" },
+          "layerId": { "$ref": "#/$defs/id" },
+          "effectId": { "$ref": "#/$defs/id" },
+          "parameter": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "time": { "type": "number", "minimum": 0, "maximum": 86400 },
+          "value": { "type": "number" },
+          "interpolation": { "enum": ["linear", "step", "bezier"] },
+          "easing": {
+            "type": "array",
+            "minItems": 4,
+            "maxItems": 4,
+            "items": { "type": "number" }
+          }
+        }
+      }
+    },
+    {
+      "name": "removeEffectParameterKeyframe",
+      "version": 1,
+      "category": "effects",
+      "description": "Remove a keyframe from an owned effect parameter.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "layerId", "effectId", "parameter", "keyframeId"],
+        "properties": {
+          "type": { "const": "removeEffectParameterKeyframe" },
+          "layerId": { "$ref": "#/$defs/id" },
+          "effectId": { "$ref": "#/$defs/id" },
+          "parameter": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "keyframeId": { "$ref": "#/$defs/id" }
+        }
+      }
+    },
+    {
+      "name": "moveEffectParameterKeyframe",
+      "version": 1,
+      "category": "effects",
+      "description": "Move an effect parameter keyframe to a bounded time.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "layerId", "effectId", "parameter", "keyframeId", "time"],
+        "properties": {
+          "type": { "const": "moveEffectParameterKeyframe" },
+          "layerId": { "$ref": "#/$defs/id" },
+          "effectId": { "$ref": "#/$defs/id" },
+          "parameter": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "keyframeId": { "$ref": "#/$defs/id" },
+          "time": { "type": "number", "minimum": 0, "maximum": 86400 }
+        }
+      }
+    }
+  ]
+}
