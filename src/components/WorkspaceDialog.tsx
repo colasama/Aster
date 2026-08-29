@@ -9,6 +9,7 @@ import { evaluateAnimatable } from "../core/timeline";
 import type { EnvironmentLighting } from "../core/types";
 import { getPreferences, isDesktopRuntime, updatePreferences } from "../desktop/api";
 import { APP_PREFERENCES_CHANGED_EVENT } from "../desktop/preferences";
+import { reportUiError } from "../errors/report-ui-error";
 import type { Locale, PlainMessageKey, Translate } from "../i18n/core";
 import { type UiErrorCode, uiErrorMessage } from "../i18n/errors";
 import { useI18n } from "../i18n/react";
@@ -302,9 +303,16 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
                         source,
                       }),
                     )
-                    .catch(() => {
+                    .catch((error: unknown) => {
                       if (abort.signal.aborted) return;
                       setEnvironmentError("hdrImport");
+                      reportUiError(t, "hdrImport", error, {
+                        scope: {
+                          area: "asset",
+                          compositionId: composition.id,
+                          assetName: file.name,
+                        },
+                      });
                     })
                     .finally(() => {
                       if (hdrValidationAbort.current !== abort) return;

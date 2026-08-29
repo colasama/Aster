@@ -26,6 +26,7 @@ import { type BlendMode, createId, type Effect } from "../core/types";
 import { parseCubeLutFile } from "../effects/cube-lut";
 import { createEffect, EFFECT_BY_TYPE } from "../effects/registry";
 import type { EffectParameterDefinition } from "../effects/types";
+import { reportUiError } from "../errors/report-ui-error";
 import type { PlainMessageKey } from "../i18n/core";
 import { type UiErrorCode, uiErrorMessage } from "../i18n/errors";
 import { useI18n } from "../i18n/react";
@@ -892,7 +893,16 @@ function EffectEditor({ effect, layerId }: { effect: Effect; layerId: string }) 
                     });
                     setResourceError(undefined);
                   })
-                  .catch(() => setResourceError("lutImport"));
+                  .catch((error: unknown) => {
+                    setResourceError("lutImport");
+                    reportUiError(t, "lutImport", error, {
+                      scope: {
+                        area: "property",
+                        layerId,
+                        propertyPath: `effects.${effect.id}.lut`,
+                      },
+                    });
+                  });
               event.target.value = "";
             }}
             ref={lutPickerRef}
