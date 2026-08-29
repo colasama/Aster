@@ -158,6 +158,34 @@ describe("viewport transform interaction", () => {
     expect(callbacks.size).toBe(0);
   });
 
+  it("keeps the Window receiver for browser animation-frame methods", () => {
+    let scheduled: FrameRequestCallback | undefined;
+    const requestFrame = vi.fn(function (this: typeof globalThis, callback) {
+      expect(this).toBe(globalThis);
+      scheduled = callback;
+      return 17;
+    });
+    const cancelFrame = vi.fn(function (this: typeof globalThis, handle) {
+      expect(this).toBe(globalThis);
+      expect(handle).toBe(17);
+    });
+    vi.stubGlobal("requestAnimationFrame", requestFrame);
+    vi.stubGlobal("cancelAnimationFrame", cancelFrame);
+    try {
+      const publish = vi.fn();
+      const coalescer = new ViewportPreviewCoalescer(publish);
+      coalescer.update(1);
+      scheduled?.(0);
+      expect(publish).toHaveBeenCalledWith(1);
+      coalescer.update(2);
+      coalescer.cancel();
+      expect(requestFrame).toHaveBeenCalledTimes(2);
+      expect(cancelFrame).toHaveBeenCalledOnce();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("moves, snaps, resizes, and rotates multi-selection bounds as one rigid group", () => {
     const members = [
       {

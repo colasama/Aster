@@ -411,8 +411,9 @@ export class ViewportPreviewCoalescer<Value> {
 
   constructor(
     publish: (value: Value) => void,
-    requestFrame: (callback: FrameRequestCallback) => number = requestAnimationFrame,
-    cancelFrame: (handle: number) => void = cancelAnimationFrame,
+    requestFrame: (callback: FrameRequestCallback) => number = (callback) =>
+      globalThis.requestAnimationFrame(callback),
+    cancelFrame: (handle: number) => void = (handle) => globalThis.cancelAnimationFrame(handle),
   ) {
     this.#publish = publish;
     this.#requestFrame = requestFrame;
