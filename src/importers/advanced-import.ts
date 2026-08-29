@@ -173,8 +173,11 @@ export function createPsdImport(
     layer.blendMode = planned.blendMode;
     layer.transform.position[0] = staticValue(position[0]);
     layer.transform.position[1] = staticValue(position[1]);
-    layer.transform.anchor[0] = staticValue(planned.anchor[0]);
-    layer.transform.anchor[1] = staticValue(planned.anchor[1]);
+    // The runtime deliberately uploads only the drawable crop instead of allocating a
+    // document-sized transparent texture. Keep the layer-space anchor in that compact surface so
+    // viewport hit testing and direct transforms address the same geometry the renderer draws.
+    layer.transform.anchor[0] = staticValue(cropWidth * 0.5);
+    layer.transform.anchor[1] = staticValue(cropHeight * 0.5);
     layer.transform.opacity = staticValue(planned.opacity * 100);
     sources.push(source);
     layers.push(layer);

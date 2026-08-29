@@ -2,6 +2,7 @@
 
 import { afterEach, describe, expect, it } from "vitest";
 import { createBlankProject } from "../core/project";
+import { viewportTransformBounds } from "../viewport/transform-interaction";
 import { createImageSequenceImport, createPsdImport, createSvgImport } from "./advanced-import";
 import { detectImageSequence } from "./image-sequence";
 import { mediaImportRuntime, type RuntimeSequenceFile } from "./media-import-runtime";
@@ -53,6 +54,27 @@ describe("advanced media import wiring", () => {
       { mode: "static", value: 30 },
       { mode: "static", value: 35 },
     ]);
+    const fullLayer = full.layers[0];
+    expect(fullLayer?.transform.anchor.slice(0, 2)).toEqual([
+      { mode: "static", value: 20 },
+      { mode: "static", value: 15 },
+    ]);
+    if (!fullLayer) throw new Error("Expected a drawable PSD layer");
+    const position = fullLayer.transform.position.map((property) =>
+      property.mode === "static" ? property.value : Number.NaN,
+    );
+    const anchor = fullLayer.transform.anchor.map((property) =>
+      property.mode === "static" ? property.value : Number.NaN,
+    );
+    expect(
+      viewportTransformBounds({
+        position: [position[0] ?? 0, position[1] ?? 0],
+        rotation: 0,
+        scale: [100, 100],
+        anchor: [anchor[0] ?? 0, anchor[1] ?? 0],
+        size: fullLayer.size,
+      }),
+    ).toEqual({ left: 10, top: 20, right: 50, bottom: 50 });
     const runtime = full.sources[0] && mediaImportRuntime.get(full.sources[0].id);
     expect(runtime).toMatchObject({ kind: "psd", crop: [0, 0, 40, 30] });
     expect(runtime?.kind === "psd" && runtime.pixels).toBe(document.layers[0]?.pixels);
