@@ -1,5 +1,6 @@
 import react from "@vitejs/plugin-react";
 import { defineConfig, loadEnv } from "vite";
+import { configDefaults } from "vitest/config";
 
 const DISABLED_BUNDLED_DEV_VALUES = new Set(["0", "false", "no", "off"]);
 const ENABLED_BUNDLED_DEV_VALUES = new Set(["1", "true", "yes", "on"]);
@@ -77,6 +78,9 @@ export default defineConfig(({ command, mode }) => {
 
     // Keep Electron's development URL stable so navigation policy and HMR remain deterministic.
     clearScreen: false,
+    test: {
+      exclude: [...configDefaults.exclude, "scripts/**/*.test.mjs"],
+    },
     server: {
       port: 1420,
       strictPort: true,
