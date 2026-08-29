@@ -40,15 +40,17 @@ sidecar architecture always matches the bundled Electron runtime.
 
 ## MP4 encoder dependency
 
-The MVP MP4 path launches an FFmpeg executable from Electron's main process. Development resolves
-`ASTER_FFMPEG_PATH` first and otherwise uses `ffmpeg`/`ffmpeg.exe` from `PATH`. A packaged build first
-looks for `resources/bin/ffmpeg` (or `ffmpeg.exe`), then applies the same development fallback.
+The MP4 path launches an FFmpeg executable from Electron's main process. Development resolves
+`ASTER_FFMPEG_PATH` first and otherwise uses `ffmpeg`/`ffmpeg.exe` from `PATH`. `pnpm artifact:build`
+validates that executable, copies it into the ignored `build/ffmpeg` staging directory, records its
+source/version, and packages it as `resources/bin/ffmpeg` (or `ffmpeg.exe`). Packaged applications
+always prefer that controlled copy before applying the development fallback.
 
-The artifact workflow does not yet bundle FFmpeg. A release that advertises MP4 export must add a
-reproducible, platform-specific FFmpeg artifact under `resources/bin`, publish its configuration and
-licenses, verify NVENC and software fallback probes, and pass the codec/legal gates in
-`MEDIA_BACKENDS.md`. Missing FFmpeg produces an actionable export error and never falls back to PNG
-intermediates.
+Artifact producers remain responsible for the selected FFmpeg distribution and its licenses. Release
+automation must use a reproducible platform-specific `ASTER_FFMPEG_PATH`, publish its configuration
+and licenses, verify NVENC and software fallback probes, and pass the codec/legal gates in
+`MEDIA_BACKENDS.md`. Missing or non-executable FFmpeg fails artifact preparation and produces an
+actionable export error at runtime; MP4 jobs never silently fall back to PNG.
 
 ## MVP feature-flag policy
 

@@ -25,6 +25,10 @@ pnpm dev
 Remove-Item Env:ASTER_BUNDLED_DEV
 ```
 
+`pnpm dev` and its `pnpm electron` alias build the Rust bridge and Electron main/preload bundle, then
+start Vite before launching Electron. A clean checkout therefore never depends on ignored or stale
+bridge, `dist-electron`, or development-server output.
+
 The switch only affects the development server. It does not change production chunking, packaged
 artifacts, or plugin runtime activation.
 

@@ -67,7 +67,13 @@ export class Mp4ExportManager {
     if (this.#active) throw new Error("Another MP4 export is already active");
     const request = await validateMp4ExportRequest(value);
     if (!this.#encoderProbe) this.#encoderProbe = selectEncoder(this.#ffmpegExecutable);
-    const encoder = await this.#encoderProbe;
+    let encoder: Mp4Encoder;
+    try {
+      encoder = await this.#encoderProbe;
+    } catch (error) {
+      this.#encoderProbe = undefined;
+      throw error;
+    }
     const session = new Mp4ExportSession(this.#ffmpegExecutable, request, encoder, ownerId);
     this.#active = session;
     return { jobId: session.jobId, encoder };
@@ -372,10 +378,61 @@ function boundedInteger(value: unknown, label: string, minimum: number, maximum:
   return value as number;
 }
 
-async function selectEncoder(executable: string): Promise<Mp4Encoder> {
+export async function selectEncoder(executable: string): Promise<Mp4Encoder> {
+  await assertFfmpegAvailable(executable);
   if (await probeEncoder(executable, "h264_nvenc")) return "h264_nvenc";
   if (await probeEncoder(executable, "libx264")) return "libx264";
   throw new Error("FFmpeg has no working H.264 NVENC or libx264 encoder");
+}
+
+async function assertFfmpegAvailable(executable: string): Promise<void> {
+  const child = spawn(executable, ["-hide_banner", "-version"], {
+    stdio: ["ignore", "ignore", "ignore"],
+    windowsHide: true,
+  });
+  await new Promise<void>((resolveAvailable, rejectAvailable) => {
+    let settled = false;
+    const settle = (action: () => void) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      action();
+    };
+    const timeout = setTimeout(() => {
+      child.kill();
+      settle(() =>
+        rejectAvailable(
+          new Error(
+            `FFmpeg availability check timed out (${executable}). Verify the executable or set ASTER_FFMPEG_PATH.`,
+          ),
+        ),
+      );
+    }, ENCODER_PROBE_TIMEOUT_MS);
+    child.once("error", (error: NodeJS.ErrnoException) => {
+      const guidance =
+        "Install FFmpeg, set ASTER_FFMPEG_PATH, or rebuild the application with a bundled FFmpeg executable.";
+      settle(() =>
+        rejectAvailable(
+          new Error(
+            error.code === "ENOENT"
+              ? `FFmpeg executable was not found (${executable}). ${guidance}`
+              : `FFmpeg could not be started (${executable}): ${error.message}. ${guidance}`,
+          ),
+        ),
+      );
+    });
+    child.once("exit", (code, signal) => {
+      if (code === 0) settle(resolveAvailable);
+      else
+        settle(() =>
+          rejectAvailable(
+            new Error(
+              `FFmpeg availability check failed (${executable}, ${signal ?? `exit ${String(code)}`}). Verify the executable or set ASTER_FFMPEG_PATH.`,
+            ),
+          ),
+        );
+    });
+  });
 }
 
 async function probeEncoder(executable: string, encoder: Mp4Encoder): Promise<boolean> {

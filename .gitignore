@@ -17,6 +17,7 @@ artifacts-final
 *.local
 *.tsbuildinfo
 target/
+build/ffmpeg/
 .aster-cache/
 *.aster.autosave
 

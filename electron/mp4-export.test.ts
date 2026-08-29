@@ -4,7 +4,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { buildExportArguments, validateMp4ExportRequest } from "./mp4-export";
+import { buildExportArguments, selectEncoder, validateMp4ExportRequest } from "./mp4-export";
 
 const temporaryRoots: string[] = [];
 
@@ -19,6 +19,12 @@ function outputPath(): string {
 }
 
 describe("MP4 export validation", () => {
+  it("reports actionable setup guidance when FFmpeg is unavailable", async () => {
+    await expect(selectEncoder(join(tmpdir(), "aster-missing-ffmpeg"))).rejects.toThrow(
+      /Install FFmpeg, set ASTER_FFMPEG_PATH, or rebuild the application/,
+    );
+  });
+
   it("accepts a bounded rational-rate BGRA export", async () => {
     const request = await validateMp4ExportRequest({
       outputPath: outputPath(),

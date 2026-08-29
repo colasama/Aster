@@ -9,22 +9,24 @@
   "main": "dist-electron/electron/main.js",
   "packageManager": "pnpm@10.15.0",
   "scripts": {
-    "dev": "pnpm electron:bridge:dev && concurrently -k -s first \"vite --host 127.0.0.1\" \"wait-on tcp:1420 && electron .\"",
+    "dev": "pnpm electron:bridge:dev && pnpm electron:compile && concurrently -k -s first \"vite --host 127.0.0.1\" \"wait-on tcp:1420 && electron .\"",
     "dev:web": "vite",
-    "artifact:build": "pnpm build && electron-builder",
+    "artifact:build": "pnpm artifact:prepare-ffmpeg && pnpm build && electron-builder",
+    "artifact:prepare-ffmpeg": "node scripts/prepare-ffmpeg.mjs",
     "build": "pnpm typecheck && vite build && pnpm electron:compile && pnpm electron:bridge:build",
     "check": "pnpm check:frontend && pnpm check:rust",
-    "check:frontend": "biome check . && pnpm typecheck && vitest run",
+    "check:frontend": "biome check . && pnpm typecheck && vitest run && pnpm test:packaging",
     "check:rust": "cargo fmt --all --check && cargo clippy --workspace --all-targets --all-features -- -D warnings && cargo test --workspace --all-features",
     "format": "biome check --write . && cargo fmt --all",
     "lint": "biome lint .",
     "preview": "vite preview",
     "prepare": "lefthook install",
-    "electron": "electron .",
+    "electron": "pnpm dev",
     "electron:bridge:build": "cargo build --release -p aster-desktop-bridge",
     "electron:bridge:dev": "cargo build -p aster-desktop-bridge",
     "electron:compile": "node -e \"require('node:fs').rmSync('dist-electron',{recursive:true,force:true})\" && tsc -p electron/tsconfig.json",
     "test": "vitest run",
+    "test:packaging": "node --test scripts/prepare-ffmpeg.test.mjs",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p electron/tsconfig.json"
   },
@@ -81,6 +83,14 @@
         "filter": [
           "aster-desktop-bridge",
           "aster-desktop-bridge.exe"
+        ]
+      },
+      {
+        "from": "build/ffmpeg",
+        "to": "bin",
+        "filter": [
+          "ffmpeg",
+          "ffmpeg.exe"
         ]
       }
     ],
