@@ -127,6 +127,17 @@ export function queryTimeline(composition: Composition) {
     outPoint: finite(layer.outPoint),
     sourceOffset: finite(layer.timeOffset ?? 0),
     sourceStretch: finite(layer.timeStretch ?? 1),
+    audio:
+      layer.audio && (layer.kind === "audio" || layer.kind === "video")
+        ? {
+            enabled: layer.audioEnabled !== false,
+            solo: layer.solo,
+            levelsDb: layer.audio.levelsDb.map(finite),
+            pan: finite(layer.audio.pan),
+            muted: layer.audio.muted,
+            reversed: layer.audio.reversed,
+          }
+        : undefined,
     keyframeCount: countLayerKeyframes(layer),
     effectTypes: layer.effects.slice(0, MAX_EFFECTS_PER_LAYER).map((effect) => effect.type),
   }));
@@ -158,6 +169,16 @@ export function queryAssets(project: Project) {
     width: "width" in source ? source.width : undefined,
     height: "height" in source ? source.height : undefined,
     duration: "duration" in source ? source.duration : undefined,
+    audio:
+      source.kind === "audio"
+        ? {
+            streamIndex: source.streamIndex,
+            channels: source.channels,
+            sampleRate: source.sampleRate,
+          }
+        : source.kind === "video"
+          ? source.audio
+          : undefined,
   }));
 }
 

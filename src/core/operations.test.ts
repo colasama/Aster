@@ -717,16 +717,48 @@ describe("structured project operations", () => {
 
   it("sets bounded preview audio gain without mutating the source", () => {
     const source = createDemoProject();
-    const layer = activeComposition(source).layers[0];
+    const composition = activeComposition(source);
+    const layer = createLayerForComposition("video", composition);
+    composition.layers.unshift(layer);
     const louder = applyOperations(source, [
       { type: "setLayerAudioGain", layerId: layer.id, gain: 8 },
     ]);
     const silent = applyOperations(source, [
       { type: "setLayerAudioGain", layerId: layer.id, gain: -1 },
     ]);
-    expect(activeComposition(louder).layers[0].audioGain).toBe(1);
-    expect(activeComposition(silent).layers[0].audioGain).toBe(0);
-    expect(layer.audioGain).toBeUndefined();
+    expect(activeComposition(louder).layers[0].audio?.levelsDb).toEqual([0, 0]);
+    expect(activeComposition(silent).layers[0].audio?.levelsDb).toEqual([-192, -192]);
+    expect(layer.audio?.levelsDb).toEqual([0, 0]);
+  });
+
+  it("sets bounded stereo audio controls only on audio-capable layers", () => {
+    const source = createDemoProject();
+    const composition = activeComposition(source);
+    const audio = createLayerForComposition("audio", composition);
+    composition.layers.unshift(audio);
+    const next = applyOperations(source, [
+      {
+        type: "setLayerAudioSettings",
+        layerId: audio.id,
+        audio: { levelsDb: [-300, 40], pan: 2, muted: true, reversed: true },
+      },
+    ]);
+    expect(activeComposition(next).layers[0].audio).toEqual({
+      levelsDb: [-192, 24],
+      pan: 1,
+      muted: true,
+      reversed: true,
+    });
+    expect(audio.audio).toEqual({ levelsDb: [0, 0], pan: 0, muted: false, reversed: false });
+    expect(() =>
+      applyOperations(source, [
+        {
+          type: "setLayerAudioSettings",
+          layerId: composition.layers[1].id,
+          audio: { levelsDb: [0, 0], pan: 0, muted: false, reversed: false },
+        },
+      ]),
+    ).toThrow("does not contain audio");
   });
 
   it("reorders effects through a bounded operation", () => {

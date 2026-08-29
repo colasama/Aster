@@ -43,6 +43,11 @@ export interface Mp4ExportStartOptions {
   frameRateDenominator: number;
   frameCount: number;
   pixelFormat: Mp4PixelFormat;
+  audio?: {
+    sampleRate: number;
+    channels: 2;
+    frameCount: number;
+  };
 }
 
 export interface Mp4ExportStarted {
@@ -53,6 +58,7 @@ export interface Mp4ExportStarted {
 export interface Mp4ExportReport extends Mp4ExportStarted {
   outputPath: string;
   frameCount: number;
+  audioFrameCount: number;
   bytesWritten: number;
   elapsedMs: number;
 }
@@ -202,6 +208,7 @@ export interface AsterDesktopApi {
   exportDiagnostics(): Promise<string | undefined>;
   startMp4Export(options: Mp4ExportStartOptions): Promise<Mp4ExportStarted>;
   writeMp4Frame(jobId: string, pixels: ArrayBuffer): Promise<void>;
+  writeMp4Audio(jobId: string, samples: ArrayBuffer): Promise<void>;
   finishMp4Export(jobId: string): Promise<Mp4ExportReport>;
   cancelMp4Export(jobId: string): Promise<void>;
   log(entry: DesktopLogEntry): void;
@@ -320,6 +327,10 @@ export function startMp4Export(options: Mp4ExportStartOptions): Promise<Mp4Expor
 
 export function writeMp4Frame(jobId: string, pixels: ArrayBuffer): Promise<void> {
   return desktopApi().writeMp4Frame(jobId, pixels);
+}
+
+export function writeMp4Audio(jobId: string, samples: ArrayBuffer): Promise<void> {
+  return desktopApi().writeMp4Audio(jobId, samples);
 }
 
 export function finishMp4Export(jobId: string): Promise<Mp4ExportReport> {

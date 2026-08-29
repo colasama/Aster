@@ -86,6 +86,43 @@ describe("AI command normalization", () => {
     });
   });
 
+  it("normalizes first-class audio controls and rejects visual layers", () => {
+    const project = createBlankProject();
+    const composition = project.compositions[0];
+    const audio = createLayerForComposition("audio", composition);
+    composition.layers.unshift(audio);
+    const result = normalizeAiCommands(
+      [
+        {
+          type: "setLayerAudioSettings",
+          layerId: audio.id,
+          audio: { levelsDb: [-12, -9], pan: -0.4, muted: false, reversed: true },
+        },
+      ],
+      project,
+      0,
+    );
+    expect(result.project.compositions[0].layers[0].audio).toEqual({
+      levelsDb: [-12, -9],
+      pan: -0.4,
+      muted: false,
+      reversed: true,
+    });
+    expect(() =>
+      normalizeAiCommands(
+        [
+          {
+            type: "setLayerAudioSettings",
+            layerId: composition.layers[1].id,
+            audio: { levelsDb: [0, 0], pan: 0, muted: false, reversed: false },
+          },
+        ],
+        project,
+        0,
+      ),
+    ).toThrow("audio-capable layer");
+  });
+
   it("validates and atomically applies a typed command batch", () => {
     const project = createBlankProject();
     const layer = project.compositions[0].layers[0];

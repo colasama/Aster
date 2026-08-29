@@ -29,6 +29,7 @@ const AI_LAYER_KINDS = new Set<LayerKind>([
   "shape",
   "solid",
   "null",
+  "audio",
   "text",
   "image",
   "video",

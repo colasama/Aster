@@ -28,6 +28,8 @@ export const timelineEn = {
   "timeline.layer.show": "Show {name}",
   "timeline.layer.hide": "Hide {name}",
   "timeline.layer.toggleAudio": "Toggle {name} audio",
+  "timeline.layer.enableSolo": "Solo {name}",
+  "timeline.layer.disableSolo": "Unsolo {name}",
   "timeline.layer.noAudio": "{name} has no audio",
   "timeline.layer.lock": "Lock {name}",
   "timeline.layer.unlock": "Unlock {name}",

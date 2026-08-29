@@ -60,7 +60,7 @@ describe("project document boundary", () => {
     composition.layers = [nullLayer, solid];
 
     const roundtrip = validateProjectDocument(JSON.parse(serializeProject(project)));
-    expect(roundtrip.schemaVersion).toBe(4);
+    expect(roundtrip.schemaVersion).toBe(5);
     expect(roundtrip.compositions[0].layers).toEqual([nullLayer, solid]);
   });
 
@@ -317,16 +317,35 @@ describe("project document boundary", () => {
 
   it("roundtrips bounded preview audio state", () => {
     const project = createBlankProject();
-    const layer = project.compositions[0].layers[0];
+    const layer = createLayerForComposition("audio", project.compositions[0]);
+    const source = {
+      id: crypto.randomUUID(),
+      kind: "audio" as const,
+      name: "voice.flac",
+      mimeType: "audio/flac",
+      contentIdentity: "sha256:voice",
+      duration: 5,
+      channels: 2,
+      sampleRate: 48_000,
+      streamIndex: 1,
+      interpretation: { alpha: "ignore" as const, colorSpace: "srgb" as const },
+    };
+    project.sources.push(source);
+    layer.sourceId = source.id;
+    project.compositions[0].layers.unshift(layer);
     layer.audioEnabled = false;
-    layer.audioGain = 0.35;
+    layer.audio = { levelsDb: [-9, -6], pan: 0.25, muted: true, reversed: true };
     const roundtrip = validateProjectDocument(JSON.parse(serializeProject(project)));
     expect(roundtrip.compositions[0].layers[0]).toMatchObject({
       audioEnabled: false,
-      audioGain: 0.35,
+      audio: { levelsDb: [-9, -6], pan: 0.25, muted: true, reversed: true },
     });
-    layer.audioGain = 1.1;
-    expect(() => validateProjectDocument(project)).toThrow("audioGain must be between 0 and 1");
+    expect(roundtrip.sources[0]).toEqual(source);
+    layer.audio.levelsDb[0] = 25;
+    expect(() => validateProjectDocument(project)).toThrow("audio.levelsDb");
+    layer.audio.levelsDb[0] = 0;
+    source.streamIndex = 128;
+    expect(() => validateProjectDocument(project)).toThrow("streamIndex is unsupported");
   });
 
   it("roundtrips GPU material and physical light settings", () => {

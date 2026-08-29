@@ -66,7 +66,8 @@ export class CanvasFallbackRenderer {
         layer.kind === "generator" ||
         layer.kind === "light" ||
         layer.kind === "adjustment" ||
-        layer.kind === "null"
+        layer.kind === "null" ||
+        layer.kind === "audio"
       )
         continue;
       drawCalls += 1;

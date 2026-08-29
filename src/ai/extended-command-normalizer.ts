@@ -5,6 +5,7 @@ import { activeComposition, createBlankComposition } from "../core/project";
 import type { ShapeGraph } from "../core/shape-graph";
 import {
   type Animatable,
+  type AudioLayerSettings,
   type CameraSettings,
   createId,
   type EffectMask,
@@ -187,6 +188,13 @@ export function normalizeExtendedAiCommand(
     case "setLayerAudioGain":
       requireLayer(layer, layerId);
       return { type: "setLayerAudioGain", layerId, gain: Number(input.gain) };
+    case "setLayerAudioSettings":
+      requireAudioLayer(layer, layerId);
+      return {
+        type: "setLayerAudioSettings",
+        layerId,
+        audio: audioSettings(input.audio),
+      };
     case "setMaterial3d":
       requireLayer(layer, layerId);
       return {
@@ -433,6 +441,34 @@ function requireLayerKind(layer: Layer | undefined, id: string, kind: Layer["kin
   const existing = requireLayer(layer, id);
   if (existing.kind !== kind) throw new Error(`Command requires a ${kind} layer`);
   return existing;
+}
+
+function requireAudioLayer(layer: Layer | undefined, id: string): Layer {
+  const existing = requireLayer(layer, id);
+  if (existing.kind !== "audio" && existing.kind !== "video")
+    throw new Error("Command requires an audio-capable layer");
+  return existing;
+}
+
+function audioSettings(value: unknown): AudioLayerSettings {
+  if (!value || typeof value !== "object" || Array.isArray(value))
+    throw new Error("audio must be an object");
+  const input = value as Partial<AudioLayerSettings>;
+  if (
+    !Array.isArray(input.levelsDb) ||
+    input.levelsDb.length !== 2 ||
+    input.levelsDb.some((level) => !Number.isFinite(level)) ||
+    !Number.isFinite(input.pan) ||
+    typeof input.muted !== "boolean" ||
+    typeof input.reversed !== "boolean"
+  )
+    throw new Error("audio settings must contain finite L/R levels, pan, mute, and reverse");
+  return {
+    levelsDb: [input.levelsDb[0], input.levelsDb[1]],
+    pan: Number(input.pan),
+    muted: input.muted,
+    reversed: input.reversed,
+  };
 }
 
 function requireEffect(layer: Layer, effectId: string) {

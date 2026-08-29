@@ -67,6 +67,7 @@ dependencies = [
  "aster-plugin",
  "aster-project",
  "aster-render",
+ "aster-video",
  "base64",
  "serde",
  "serde_json",

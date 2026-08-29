@@ -110,6 +110,28 @@ struct LinkedProjectAsset {
     resolved_path: PathBuf,
     name: String,
     content_identity: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    media_metadata: Option<LinkedMediaMetadata>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct LinkedMediaMetadata {
+    duration: f64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    width: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    height: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    audio: Option<LinkedAudioMetadata>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct LinkedAudioMetadata {
+    stream_index: u32,
+    channels: u8,
+    sample_rate: u32,
 }
 
 async fn link_project_asset(
@@ -311,6 +333,7 @@ fn link_asset(bundle: &str, source: &str, kind: &str) -> Result<LinkedProjectAss
         .collect::<Vec<_>>()
         .join("/");
     let content_identity = sha256_file_identity(&resolved)?;
+    let media_metadata = probe_linked_media(&resolved, kind)?;
     Ok(LinkedProjectAsset {
         relative_path,
         name: resolved
@@ -319,8 +342,43 @@ fn link_asset(bundle: &str, source: &str, kind: &str) -> Result<LinkedProjectAss
             .unwrap_or("asset")
             .to_owned(),
         content_identity,
+        media_metadata,
         resolved_path: resolved,
     })
+}
+
+fn probe_linked_media(path: &Path, kind: &str) -> Result<Option<LinkedMediaMetadata>, String> {
+    if kind != "audio" && kind != "video" {
+        return Ok(None);
+    }
+    let metadata = aster_video::FfprobeBackend::default()
+        .probe(path, &aster_video::CancellationToken::default())
+        .map_err(|error| format!("unable to inspect linked {kind} metadata: {error}"))?;
+    let duration = metadata.timebase.seconds(metadata.duration_ticks);
+    if !duration.is_finite() || duration <= 0.0 || duration > 86_400.0 {
+        return Err("linked media duration exceeds the supported range".to_owned());
+    }
+    let audio = aster_video::select_audio_stream(&metadata)
+        .ok()
+        .map(|stream| LinkedAudioMetadata {
+            stream_index: stream.index,
+            channels: stream.channels,
+            sample_rate: stream.sample_rate,
+        });
+    if kind == "audio" && audio.is_none() {
+        return Err("linked audio file has no usable audio stream".to_owned());
+    }
+    let video = if kind == "video" {
+        Some(aster_video::select_video_stream(&metadata).map_err(|error| error.to_string())?)
+    } else {
+        None
+    };
+    Ok(Some(LinkedMediaMetadata {
+        duration,
+        width: video.map(|stream| stream.width),
+        height: video.map(|stream| stream.height),
+        audio,
+    }))
 }
 
 fn sha256_file_identity(path: &Path) -> Result<String, String> {
@@ -361,6 +419,7 @@ fn valid_asset_extension(path: &Path, kind: &str) -> bool {
             ["png", "jpg", "jpeg", "webp", "gif", "bmp", "avif"].contains(&extension.as_str())
         }
         "video" => ["mp4", "webm", "mov", "m4v", "ogv"].contains(&extension.as_str()),
+        "audio" => ["wav", "mp3", "aac", "m4a", "ogg", "flac"].contains(&extension.as_str()),
         _ => false,
     }
 }

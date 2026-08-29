@@ -6,7 +6,7 @@ import {
 import { sourceContentIdentity } from "./footage-source";
 import { assertParticleSettings } from "./particle-settings";
 
-export const CURRENT_PROJECT_SCHEMA_VERSION = 4 as const;
+export const CURRENT_PROJECT_SCHEMA_VERSION = 5 as const;
 
 type ProjectDocument = Record<string, unknown>;
 type ProjectMigration = (document: ProjectDocument) => ProjectDocument;
@@ -114,6 +114,42 @@ const PROJECT_MIGRATIONS = new Map<number, ProjectMigration>([
       document.sources = sources;
       document.itemFolderIds = assignments;
       document.schemaVersion = 4;
+      return document;
+    },
+  ],
+  [
+    4,
+    (document) => {
+      const sources = Array.isArray(document.sources) ? document.sources : [];
+      for (const sourceValue of sources) {
+        if (!sourceValue || typeof sourceValue !== "object") continue;
+        const source = sourceValue as Record<string, unknown>;
+        if (source.kind === "audio" && source.streamIndex === undefined) source.streamIndex = 0;
+      }
+      const compositions = Array.isArray(document.compositions) ? document.compositions : [];
+      for (const compositionValue of compositions) {
+        if (!compositionValue || typeof compositionValue !== "object") continue;
+        const composition = compositionValue as Record<string, unknown>;
+        const layers = Array.isArray(composition.layers) ? composition.layers : [];
+        for (const layerValue of layers) {
+          if (!layerValue || typeof layerValue !== "object") continue;
+          const layer = layerValue as Record<string, unknown>;
+          if (layer.kind !== "video" && layer.kind !== "audio") continue;
+          const normalizedGain =
+            typeof layer.audioGain === "number" && Number.isFinite(layer.audioGain)
+              ? Math.max(0, Math.min(1, layer.audioGain))
+              : 1;
+          const levelDb = normalizedGain <= 0 ? -192 : 20 * Math.log10(normalizedGain);
+          layer.audio ??= {
+            levelsDb: [levelDb, levelDb],
+            pan: 0,
+            muted: layer.audioEnabled === false,
+            reversed: false,
+          };
+          delete layer.audioGain;
+        }
+      }
+      document.schemaVersion = 5;
       return document;
     },
   ],

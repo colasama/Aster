@@ -2,6 +2,7 @@ import {
   assertAdjustmentLayerInvariants,
   createCanonicalAdjustmentTransform,
 } from "./adjustment-layer";
+import { layerHasAudio, linearToDecibels, normalizeAudioLayerSettings } from "./audio-layer";
 import { type ClonerSettings, normalizeClonerSettings } from "./cloner";
 import { referencedSourceIds, sourceSupportsLayer } from "./footage-source";
 import { applyPrecompositionPlan, type PrecompositionPlan } from "./precomposition";
@@ -21,6 +22,7 @@ import { insertKeyframe } from "./timeline";
 import { normalizeWorkArea } from "./timeline-editing";
 import type {
   Animatable,
+  AudioLayerSettings,
   BlendMode,
   CameraSettings,
   Composition,
@@ -96,6 +98,7 @@ export type Operation =
   | { type: "setLayerTimeMapping"; layerId: Id; offset: number; stretch: number }
   | { type: "setLayerTimeRemap"; layerId: Id; value?: Animatable }
   | { type: "setLayerAudioGain"; layerId: Id; gain: number }
+  | { type: "setLayerAudioSettings"; layerId: Id; audio: AudioLayerSettings }
   | { type: "setMaterial3d"; layerId: Id; material: Material3d }
   | { type: "setLightSettings"; layerId: Id; light: LightSettings }
   | { type: "setLayerColor"; layerId: Id; color: Layer["color"] }
@@ -204,6 +207,7 @@ export const OPERATION_TYPES = [
   "setLayerTimeMapping",
   "setLayerTimeRemap",
   "setLayerAudioGain",
+  "setLayerAudioSettings",
   "setMaterial3d",
   "setLightSettings",
   "setLayerColor",
@@ -507,7 +511,18 @@ export function applyOperation(project: Project, operation: Operation): void {
       layer.timeRemap = operation.value;
       break;
     case "setLayerAudioGain":
-      layer.audioGain = clamp(operation.gain, 0, 1);
+      if (!layerHasAudio(layer)) throw new Error("Layer does not contain audio");
+      layer.audio = normalizeAudioLayerSettings({
+        ...(layer.audio ?? { levelsDb: [0, 0], pan: 0, muted: false, reversed: false }),
+        levelsDb: [
+          linearToDecibels(clamp(operation.gain, 0, 1)),
+          linearToDecibels(clamp(operation.gain, 0, 1)),
+        ],
+      });
+      break;
+    case "setLayerAudioSettings":
+      if (!layerHasAudio(layer)) throw new Error("Layer does not contain audio");
+      layer.audio = normalizeAudioLayerSettings(operation.audio);
       break;
     case "setMaterial3d":
       layer.material = {
@@ -836,6 +851,7 @@ function assertAdjustmentOperationSupported(layer: Layer, operation: Operation):
     throw new Error(`Adjustment layers cannot toggle ${operation.field}`);
   const sourceOperations: readonly Operation["type"][] = [
     "setLayerAudioGain",
+    "setLayerAudioSettings",
     "setMaterial3d",
     "setLightSettings",
     "setLayerColor",
@@ -866,7 +882,11 @@ export function cloneProjectSnapshot(project: Project): Project {
 }
 
 function copySourceForOperation(source: FootageSource): FootageSource {
-  return { ...source, interpretation: { ...source.interpretation } } as FootageSource;
+  return {
+    ...source,
+    interpretation: { ...source.interpretation },
+    ...(source.kind === "video" && source.audio ? { audio: { ...source.audio } } : {}),
+  } as FootageSource;
 }
 
 function normalizeSourceInterpretation(interpretation: SourceInterpretation): SourceInterpretation {
@@ -938,6 +958,27 @@ function assertOperationalSource(source: FootageSource): void {
       source.sampleRate > 384_000)
   )
     throw new Error("Footage source sample rate is invalid");
+  if (
+    source.kind === "audio" &&
+    (!Number.isSafeInteger(source.streamIndex) ||
+      source.streamIndex < 0 ||
+      source.streamIndex >= 128)
+  )
+    throw new Error("Footage source stream index is invalid");
+  if (source.kind === "video" && source.audio) {
+    if (
+      !Number.isSafeInteger(source.audio.streamIndex) ||
+      source.audio.streamIndex < 0 ||
+      source.audio.streamIndex >= 128 ||
+      !Number.isSafeInteger(source.audio.channels) ||
+      source.audio.channels < 1 ||
+      source.audio.channels > 32 ||
+      !Number.isSafeInteger(source.audio.sampleRate) ||
+      source.audio.sampleRate < 8_000 ||
+      source.audio.sampleRate > 384_000
+    )
+      throw new Error("Video source audio metadata is invalid");
+  }
   if (
     source.kind === "imageSequence" &&
     (!source.pattern ||

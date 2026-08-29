@@ -1,3 +1,4 @@
+import { decibelsToLinear } from "./audio-layer";
 import type { Layer } from "./types";
 
 export const MIN_PREVIEW_AUDIO_GAIN = 0;
@@ -16,18 +17,27 @@ export function normalizePreviewAudioGain(value: number | undefined): number {
 }
 
 export function resolvePreviewAudioState(
-  layer: Pick<Layer, "audioEnabled" | "audioGain">,
+  layer: Pick<Layer, "audioEnabled" | "audio">,
 ): PreviewAudioState {
   const enabled = layer.audioEnabled !== false;
-  const gain = normalizePreviewAudioGain(layer.audioGain);
-  return { enabled, gain, muted: !enabled || gain <= Number.EPSILON };
+  const gain = normalizePreviewAudioGain(
+    layer.audio
+      ? (decibelsToLinear(layer.audio.levelsDb[0]) + decibelsToLinear(layer.audio.levelsDb[1])) / 2
+      : 1,
+  );
+  return {
+    enabled,
+    gain,
+    muted: !enabled || layer.audio?.muted === true || gain <= Number.EPSILON,
+  };
 }
 
 export function configurePreviewVideoAudio(
   video: HTMLVideoElement,
-  layer: Pick<Layer, "audioEnabled" | "audioGain">,
+  _layer: Pick<Layer, "audioEnabled">,
 ): void {
-  const state = resolvePreviewAudioState(layer);
-  video.volume = state.gain;
-  video.muted = state.muted;
+  // Video elements are visual decode clocks only. The shared Web Audio graph owns all output so
+  // seeks, layer mixing, loop boundaries, and export use one deterministic audio path.
+  video.volume = 0;
+  video.muted = true;
 }

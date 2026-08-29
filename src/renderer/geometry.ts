@@ -94,6 +94,7 @@ export function buildSceneGeometry(
       scene.layer.kind !== "generator" &&
       scene.layer.kind !== "adjustment" &&
       scene.layer.kind !== "null" &&
+      scene.layer.kind !== "audio" &&
       scene.layer.kind !== "camera" &&
       scene.layer.kind !== "light",
   );

@@ -30,7 +30,7 @@ describe("project schema migration gate", () => {
       schemaVersion: number;
       compositions: Array<{ layers: Array<Record<string, unknown>> }>;
     };
-    expect(migrated.schemaVersion).toBe(4);
+    expect(migrated.schemaVersion).toBe(5);
     expect(migrated.compositions[0].layers[0]).toMatchObject({
       kind: "generator",
       generator: { pluginId: "org.aster.builtin.particles", nodeType: "particle_system" },
@@ -50,11 +50,11 @@ describe("project schema migration gate", () => {
     );
   });
 
-  it("migrates v2 documents through v4 without rewriting source-free layers", () => {
+  it("migrates v2 documents through v5 without rewriting source-free layers", () => {
     const previous = createBlankProject() as unknown as Record<string, unknown>;
     previous.schemaVersion = 2;
     const migrated = cloneCurrentProjectDocument(previous);
-    expect(migrated.schemaVersion).toBe(4);
+    expect(migrated.schemaVersion).toBe(5);
     expect(migrated.compositions).toEqual(previous.compositions);
   });
 
@@ -85,7 +85,7 @@ describe("project schema migration gate", () => {
       sources: Array<Record<string, unknown>>;
       compositions: Array<{ layers: Array<Record<string, unknown>> }>;
     };
-    expect(migrated.schemaVersion).toBe(4);
+    expect(migrated.schemaVersion).toBe(5);
     expect(migrated.sources).toHaveLength(1);
     expect(migrated.compositions[0].layers.slice(-2).map((layer) => layer.sourceId)).toEqual([
       migrated.sources[0].id,
@@ -94,7 +94,32 @@ describe("project schema migration gate", () => {
     expect(migrated.compositions[0].layers.slice(-2).every((layer) => !layer.asset)).toBe(true);
   });
 
-  it.each([5, undefined, 1.5])("rejects unsupported schema %s", (schemaVersion) => {
+  it("migrates normalized video gain into stereo dB audio settings", () => {
+    const previous = createBlankProject() as unknown as Record<string, unknown>;
+    previous.schemaVersion = 4;
+    const layer = (previous.compositions as Array<{ layers: Array<Record<string, unknown>> }>)[0]
+      .layers[0];
+    layer.kind = "video";
+    layer.audioEnabled = false;
+    layer.audioGain = 0.5;
+    const migrated = cloneCurrentProjectDocument(previous) as {
+      schemaVersion: number;
+      compositions: Array<{ layers: Array<Record<string, unknown>> }>;
+    };
+    expect(migrated.schemaVersion).toBe(5);
+    const audio = migrated.compositions[0].layers[0].audio as {
+      levelsDb: [number, number];
+      pan: number;
+      muted: boolean;
+      reversed: boolean;
+    };
+    expect(audio.levelsDb[0]).toBeCloseTo(-6.0206, 4);
+    expect(audio.levelsDb[1]).toBeCloseTo(-6.0206, 4);
+    expect(audio).toMatchObject({ pan: 0, muted: true, reversed: false });
+    expect(migrated.compositions[0].layers[0].audioGain).toBeUndefined();
+  });
+
+  it.each([6, undefined, 1.5])("rejects unsupported schema %s", (schemaVersion) => {
     expect(() => cloneCurrentProjectDocument({ schemaVersion })).toThrow("Aster project schema");
   });
 });

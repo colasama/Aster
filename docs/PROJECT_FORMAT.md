@@ -1,4 +1,4 @@
-# Aster project format v4
+# Aster project format v5
 
 The development editor currently exchanges a readable JSON document named `*.aster.json`. The Rust
 bundle layer stores the same versioned domain model inside an atomically replaced project path. Cache,
@@ -8,7 +8,7 @@ proxy, and preview data are deliberately excluded.
 
 ```json
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "id": "stable-uuid",
   "name": "Project name",
   "activeCompositionId": "stable-uuid",
@@ -41,9 +41,17 @@ Sources are discriminated as `still`, `video`, `audio`, `imageSequence`, `svg`, 
 has a stable ID, MIME type, bounded content identity, optional embedded/relative/runtime locator, and
 explicit alpha/color-space/frame-rate interpretation. Kind-specific dimensions, durations, channel
 metadata, sequence ranges, and PSD layer counts are bounded before use. Current importers produce
-`still` and `video`; the other discriminants reserve compatible project data without claiming a
-decoder. Importers implement the fixed `probe`, `validate`, and `import` contract and must validate
-before admitting a source.
+`still`, `video`, and first-class `audio` sources. Audio admits bounded WAV, MP3, AAC, M4A, OGG, and
+FLAC inputs only after the browser decoder proves support; the native link boundary records the
+selected stream index, channel count, and sample rate from FFprobe. The remaining discriminants
+reserve compatible project data without claiming a decoder. Importers implement the fixed `probe`,
+`validate`, and `import` contract and must validate before admitting a source.
+
+Version 5 gives audio-bearing layers a required `audio` object with stereo `levelsDb`, `pan`, `muted`,
+and `reversed` fields. Audio-only layers use `kind: "audio"`, never emit visual geometry, and reference
+an `audio` source. Video layers may reference optional embedded audio stream metadata and use the same
+audio controls. The layer `audioEnabled` switch remains independent of visual visibility and soloing
+is evaluated in separate audio and video layer groups.
 
 Null and solid layers have explicit source semantics. A `null` remains selectable, parentable,
 time-addressable, and 2D/3D-transformable, but emits no render geometry; effects attached to it are
@@ -105,10 +113,12 @@ worker before their source is admitted to the project document.
   transforms, cloners, or settings. The v2 → v3 migration establishes the explicit null/solid layer
   vocabulary without rewriting existing layers. The v3 → v4 migration lifts nested image/video
   assets into `sources`, deduplicates exact repeated content, and replaces each nested payload with a
-  stable `sourceId`. Older, future, missing, or fractional versions fail
+  stable `sourceId`. The v4 → v5 migration adds first-class audio-layer settings, maps the legacy
+  normalized audio gain to stereo decibels, and supplies selected-stream metadata for audio sources.
+  Older, future, missing, or fractional versions fail
   before partially applying the document.
-- The native bundle boundary accepts v1 through v4 on read so the renderer can run migrations, but
-  new primary saves and autosaves must already be validated v4 documents.
+- The native bundle boundary accepts v1 through v5 on read so the renderer can run migrations, but
+  new primary saves and autosaves must already be validated v5 documents.
 - Every future historical transform must preserve the source document, set exactly the next integer
   version, and gain a compatibility fixture before the current schema version increases.
 - Unknown effect types and parameters must be preserved and disabled when execution is unavailable.

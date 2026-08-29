@@ -11,20 +11,25 @@ describe("preview audio", () => {
     expect(normalizePreviewAudioGain(Number.NaN)).toBe(1);
     expect(normalizePreviewAudioGain(-2)).toBe(0);
     expect(normalizePreviewAudioGain(2)).toBe(1);
-    expect(resolvePreviewAudioState({ audioEnabled: true, audioGain: 0.35 })).toEqual({
+    expect(
+      resolvePreviewAudioState({
+        audioEnabled: true,
+        audio: { levelsDb: [-6.0206, -6.0206], pan: 0, muted: false, reversed: false },
+      }),
+    ).toEqual({
       enabled: true,
-      gain: 0.35,
+      gain: expect.closeTo(0.5, 4),
       muted: false,
     });
-    expect(resolvePreviewAudioState({ audioEnabled: false, audioGain: 1 }).muted).toBe(true);
+    expect(resolvePreviewAudioState({ audioEnabled: false }).muted).toBe(true);
   });
 
   it("applies bounded volume and mute to the media element", () => {
     const video = { muted: false, volume: 0 } as HTMLVideoElement;
-    configurePreviewVideoAudio(video, { audioEnabled: true, audioGain: 0.6 });
-    expect(video.volume).toBe(0.6);
-    expect(video.muted).toBe(false);
-    configurePreviewVideoAudio(video, { audioEnabled: false, audioGain: 0.6 });
+    configurePreviewVideoAudio(video, { audioEnabled: true });
+    expect(video.volume).toBe(0);
+    expect(video.muted).toBe(true);
+    configurePreviewVideoAudio(video, { audioEnabled: false });
     expect(video.muted).toBe(true);
   });
 });

@@ -3,10 +3,12 @@ import { randomUUID } from "node:crypto";
 import { lstat, rename, rm, stat } from "node:fs/promises";
 import { dirname, extname, join } from "node:path";
 import { performance } from "node:perf_hooks";
+import type { Writable } from "node:stream";
 
 const MAX_DIMENSION = 16_384;
 const MAX_FRAME_BYTES = 64 * 1024 * 1024;
 const MAX_FRAME_COUNT = 10_000_000;
+const MAX_AUDIO_CHUNK_BYTES = 8 * 1024 * 1024;
 const MAX_STDERR_BYTES = 1024 * 1024;
 const MAX_DURATION_SECONDS = 24 * 60 * 60;
 const ENCODER_PROBE_TIMEOUT_MS = 10_000;
@@ -23,6 +25,11 @@ export interface Mp4ExportStartRequest {
   frameRateDenominator: number;
   frameCount: number;
   pixelFormat: Mp4PixelFormat;
+  audio?: {
+    sampleRate: number;
+    channels: 2;
+    frameCount: number;
+  };
 }
 
 export interface Mp4ExportStarted {
@@ -33,6 +40,7 @@ export interface Mp4ExportStarted {
 export interface Mp4ExportReport extends Mp4ExportStarted {
   outputPath: string;
   frameCount: number;
+  audioFrameCount: number;
   bytesWritten: number;
   elapsedMs: number;
 }
@@ -69,6 +77,13 @@ export class Mp4ExportManager {
     const session = this.#ownedSession(jobId, ownerId);
     if (!(pixels instanceof ArrayBuffer)) throw new Error("MP4 frame must be an ArrayBuffer");
     await session.write(pixels);
+  }
+
+  async writeAudio(jobId: unknown, samples: unknown, ownerId: number): Promise<void> {
+    const session = this.#ownedSession(jobId, ownerId);
+    if (!(samples instanceof ArrayBuffer))
+      throw new Error("MP4 audio samples must be an ArrayBuffer");
+    await session.writeAudio(samples);
   }
 
   async finish(jobId: unknown, ownerId: number): Promise<Mp4ExportReport> {
@@ -118,11 +133,13 @@ class Mp4ExportSession {
   readonly #encoder: Mp4Encoder;
   readonly #temporaryPath: string;
   readonly #child: ChildProcessWithoutNullStreams;
+  readonly #audioInput?: Writable;
   readonly #exit: Promise<ProcessExit>;
   readonly #startedAt = performance.now();
   #stderr = Buffer.alloc(0);
   #stderrTruncated = false;
   #receivedFrames = 0;
+  #receivedAudioFrames = 0;
   #closed = false;
   #exited?: ProcessExit;
 
@@ -135,11 +152,15 @@ class Mp4ExportSession {
       `.aster-export-${process.pid}-${this.jobId}.mp4`,
     );
     this.#child = spawn(executable, buildExportArguments(request, encoder, this.#temporaryPath), {
-      stdio: ["pipe", "pipe", "pipe"],
+      stdio: ["pipe", "pipe", "pipe", "pipe"],
       windowsHide: true,
     });
+    const auxiliaryInput = this.#child.stdio[3] as Writable;
+    this.#audioInput = request.audio ? auxiliaryInput : undefined;
+    if (!request.audio) auxiliaryInput.end();
     this.#child.stdout.resume();
     this.#child.stdin.on("error", () => undefined);
+    this.#audioInput?.on("error", () => undefined);
     this.#child.stderr.on("data", (chunk: Buffer) => this.#collectStderr(chunk));
     this.#exit = new Promise<ProcessExit>((resolveExit, rejectExit) => {
       this.#child.once("error", rejectExit);
@@ -160,9 +181,29 @@ class Mp4ExportSession {
         `MP4 frame ${this.#receivedFrames} contained ${pixels.byteLength} bytes; expected ${this.#request.frameBytes}`,
       );
     this.#assertRunning();
-    await writeChunk(this.#child, Buffer.from(pixels));
+    await writeChunk(this.#child.stdin, Buffer.from(pixels));
     this.#assertRunning();
     this.#receivedFrames += 1;
+  }
+
+  async writeAudio(samples: ArrayBuffer): Promise<void> {
+    if (this.#closed) throw new Error("MP4 export input is already closed");
+    const audio = this.#request.audio;
+    const input = this.#audioInput;
+    if (!audio || !input) throw new Error("MP4 export was not configured for audio");
+    if (
+      samples.byteLength === 0 ||
+      samples.byteLength > MAX_AUDIO_CHUNK_BYTES ||
+      samples.byteLength % (audio.channels * Float32Array.BYTES_PER_ELEMENT) !== 0
+    )
+      throw new Error("MP4 audio chunk must contain bounded interleaved Float32 stereo samples");
+    const frames = samples.byteLength / (audio.channels * Float32Array.BYTES_PER_ELEMENT);
+    if (this.#receivedAudioFrames + frames > audio.frameCount)
+      throw new Error("MP4 export received more audio frames than declared");
+    this.#assertRunning();
+    await writeChunk(input, Buffer.from(samples));
+    this.#assertRunning();
+    this.#receivedAudioFrames += frames;
   }
 
   async finish(): Promise<Mp4ExportReport> {
@@ -171,9 +212,16 @@ class Mp4ExportSession {
       throw new Error(
         `MP4 export received ${this.#receivedFrames} frames; expected ${this.#request.frameCount}`,
       );
+    if (this.#request.audio && this.#receivedAudioFrames !== this.#request.audio.frameCount)
+      throw new Error(
+        `MP4 export received ${this.#receivedAudioFrames} audio frames; expected ${this.#request.audio.frameCount}`,
+      );
     this.#closed = true;
     try {
-      await closeInput(this.#child);
+      await Promise.all([
+        closeInput(this.#child.stdin),
+        this.#audioInput ? closeInput(this.#audioInput) : Promise.resolve(),
+      ]);
       const exit = await this.#exit;
       if (exit.code !== 0) throw this.#processError(exit);
       const metadata = await stat(this.#temporaryPath);
@@ -183,6 +231,7 @@ class Mp4ExportSession {
         encoder: this.#encoder,
         outputPath: this.#request.outputPath,
         frameCount: this.#receivedFrames,
+        audioFrameCount: this.#receivedAudioFrames,
         bytesWritten: metadata.size,
         elapsedMs: performance.now() - this.#startedAt,
       };
@@ -197,6 +246,7 @@ class Mp4ExportSession {
     if (!this.#closed) {
       this.#closed = true;
       this.#child.stdin.destroy();
+      this.#audioInput?.destroy();
       if (this.#exited === undefined) this.#child.kill();
     }
     await Promise.race([
@@ -277,6 +327,32 @@ export async function validateMp4ExportRequest(value: unknown): Promise<Validate
     throw error;
   });
   if (existing && !existing.isFile()) throw new Error("MP4 output must be a regular file");
+  let audio: ValidatedRequest["audio"];
+  if (candidate.audio !== undefined) {
+    if (!candidate.audio || typeof candidate.audio !== "object" || Array.isArray(candidate.audio))
+      throw new Error("MP4 audio options must be an object");
+    const sampleRate = boundedInteger(
+      candidate.audio.sampleRate,
+      "audio sample rate",
+      8_000,
+      192_000,
+    );
+    if (candidate.audio.channels !== 2) throw new Error("MP4 audio must use interleaved stereo");
+    const audioFrameCount = boundedInteger(
+      candidate.audio.frameCount,
+      "audio frame count",
+      1,
+      Math.ceil(MAX_DURATION_SECONDS * sampleRate),
+    );
+    const expectedAudioFrames = Math.round(
+      (frameCount / frameRateNumerator) * frameRateDenominator * sampleRate,
+    );
+    if (audioFrameCount !== expectedAudioFrames)
+      throw new Error(
+        `MP4 audio frame count must align to the rational video duration (${expectedAudioFrames})`,
+      );
+    audio = { sampleRate, channels: 2, frameCount: audioFrameCount };
+  }
   return {
     outputPath,
     width,
@@ -286,6 +362,7 @@ export async function validateMp4ExportRequest(value: unknown): Promise<Validate
     frameCount,
     pixelFormat: candidate.pixelFormat,
     frameBytes,
+    audio,
   };
 }
 
@@ -346,11 +423,26 @@ async function probeEncoder(executable: string, encoder: Mp4Encoder): Promise<bo
   }
 }
 
-function buildExportArguments(
+export function buildExportArguments(
   request: ValidatedRequest,
   encoder: Mp4Encoder,
   temporaryPath: string,
 ): string[] {
+  const audioInput = request.audio
+    ? [
+        "-f",
+        "f32le",
+        "-ar",
+        request.audio.sampleRate.toString(),
+        "-ac",
+        request.audio.channels.toString(),
+        "-i",
+        "pipe:3",
+      ]
+    : [];
+  const audioOutput = request.audio
+    ? ["-map", "1:a:0", "-c:a", "aac", "-b:a", "192k", "-ar", request.audio.sampleRate.toString()]
+    : ["-an"];
   return [
     "-hide_banner",
     "-v",
@@ -366,9 +458,10 @@ function buildExportArguments(
     `${request.frameRateNumerator}/${request.frameRateDenominator}`,
     "-i",
     "pipe:0",
+    ...audioInput,
     "-map",
     "0:v:0",
-    "-an",
+    ...audioOutput,
     "-sn",
     "-dn",
     "-c:v",
@@ -403,21 +496,21 @@ function encoderOptions(encoder: Mp4Encoder): string[] {
     : ["-preset", "veryfast", "-crf", "18"];
 }
 
-function writeChunk(child: ChildProcessWithoutNullStreams, chunk: Buffer): Promise<void> {
+function writeChunk(input: Writable, chunk: Buffer): Promise<void> {
   return new Promise((resolveWrite, rejectWrite) => {
-    child.stdin.write(chunk, (error) => {
+    input.write(chunk, (error) => {
       if (error) rejectWrite(error);
       else resolveWrite();
     });
   });
 }
 
-function closeInput(child: ChildProcessWithoutNullStreams): Promise<void> {
+function closeInput(input: Writable): Promise<void> {
   return new Promise((resolveClose, rejectClose) => {
     const onError = (error: Error) => rejectClose(error);
-    child.stdin.once("error", onError);
-    child.stdin.end(() => {
-      child.stdin.off("error", onError);
+    input.once("error", onError);
+    input.end(() => {
+      input.off("error", onError);
       resolveClose();
     });
   });

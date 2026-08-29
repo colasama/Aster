@@ -575,6 +575,10 @@ struct RawStream {
     #[serde(default)]
     avg_frame_rate: Option<String>,
     #[serde(default)]
+    sample_rate: Option<String>,
+    #[serde(default)]
+    channels: u8,
+    #[serde(default)]
     color_primaries: Option<String>,
     #[serde(default)]
     color_transfer: Option<String>,
@@ -646,6 +650,13 @@ fn convert_stream(raw: RawStream) -> Result<StreamMetadata, FfprobeError> {
         width: raw.width,
         height: raw.height,
         frame_rate,
+        sample_rate: match raw.sample_rate.as_deref() {
+            None | Some("N/A") => 0,
+            Some(value) => value
+                .parse::<u32>()
+                .map_err(|_| FfprobeError::InvalidMetadata("invalid audio sample rate".into()))?,
+        },
+        channels: raw.channels,
         color: ColorMetadata {
             primaries: match raw.color_primaries.as_deref() {
                 Some("bt709") => ColorPrimaries::Bt709,
@@ -745,7 +756,7 @@ mod tests {
         },
         {
           "index": 1, "codec_name": "aac", "codec_type": "audio",
-          "time_base": "1/48000"
+          "time_base": "1/48000", "sample_rate": "48000", "channels": 2
         }
       ],
       "format": {"format_name": "mov,mp4,m4a,3gp,3g2,mj2", "duration": "12.345000"}
@@ -765,6 +776,9 @@ mod tests {
         assert_eq!(video.color.matrix, MatrixCoefficients::Bt2020NonConstant);
         assert!(video.color.full_range);
         assert!(video.default);
+        let audio = &metadata.streams[1];
+        assert_eq!(audio.sample_rate, 48_000);
+        assert_eq!(audio.channels, 2);
     }
 
     #[test]

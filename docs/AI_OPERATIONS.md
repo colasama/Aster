@@ -17,7 +17,7 @@ on demand, executes them in an isolated workspace, and submits a cumulative type
 6. Freeze one cumulative semantic diff and reject a stale live revision.
 7. Apply accepted work as one undoable transaction and append a secret-free audit record.
 
-The registry covers all 56 variants in the live TypeScript `Operation` union. Asset import, project
+The registry covers all 57 variants in the live TypeScript `Operation` union. Asset import, project
 I/O, plugin installation, export, filesystem, process, and network actions remain separate services
 because they have different authority, cancellation, and audit requirements.
 
@@ -41,6 +41,7 @@ because they have different authority, cancellation, and audit requirements.
 | `setLayerTimeMapping` | Layers | Sets source-time offset and stretch. |
 | `setLayerTimeRemap` | Animation | Replaces or clears a time-remap track. |
 | `setLayerAudioGain` | Layers | Sets normalized preview audio gain. |
+| `setLayerAudioSettings` | Layers | Replaces stereo dB levels, pan, mute, and reverse settings. |
 | `setMaterial3d` | 3D | Replaces bounded material settings. |
 | `setLightSettings` | 3D | Replaces light settings. |
 | `setLayerColor` | Layers | Sets linear RGBA layer color. |

@@ -8,11 +8,13 @@ persistent canvas and `GPUQueue.writeTexture`. `aster-video` owns backend-indepe
 exact timestamps, color metadata, bounded caches, process-isolated FFprobe/software decode, and a
 typed FFmpeg H.264/H.265 export backend.
 
-The Electron MVP exposes silent SDR H.264 MP4 export. It keeps at most three WebGPU readbacks in
+The Electron MVP exposes SDR H.264/AAC MP4 export. It keeps at most three WebGPU readbacks in
 flight, sends packed BGRA/RGBA frames over a dedicated binary IPC method, probes a real NVENC frame,
-falls back to `libx264`, and atomically publishes the completed MP4. It deliberately does not claim
+falls back to `libx264`, mixes bounded Float32 stereo chunks through a separate FFmpeg pipe, and
+atomically publishes the completed MP4. The PCM sample count derives from the same rational frame
+range as video; shared source decodes are cached instead of repeated per layer instance. It deliberately does not claim
 zero-copy: the display-referred frame travels from GPU memory to CPU memory and is uploaded again for
-hardware encoding. Project audio mixing, HDR/10-bit delivery, alpha video, packaged FFmpeg artifacts,
+hardware encoding. HDR/10-bit delivery, alpha video, packaged FFmpeg artifacts,
 native platform decode/encode surfaces, and zero-copy interop remain future work.
 
 The MVP keeps one project model and one rendering contract. Media backends are replaceable adapters;

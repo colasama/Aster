@@ -113,7 +113,10 @@ evaluate each frame directly from its rational timeline time. Native PNG sequenc
 frame at a time through a restricted filename boundary and a same-directory temporary file. The MVP
 H.264 MP4 path copies the display-transformed canvas texture into three bounded WebGPU readback
 buffers, transfers packed BGRA/RGBA frames through a dedicated binary Electron IPC surface, and
-streams them into an FFmpeg child process. Frames are submitted to the encoder in timeline order even
+streams them into an FFmpeg child process. Audio is decoded once per shared footage source, mixed in
+bounded one-second Float32 stereo chunks, hard-limited at the output boundary, and written to a
+separate FFmpeg pipe for AAC muxing. The PCM frame count derives from the exact rational video frame
+count so fractional rates do not accumulate A/V drift. Frames are submitted to the encoder in timeline order even
 when GPU mappings finish out of order. A real one-frame probe selects NVENC when it works and otherwise
 falls back to `libx264`; MP4 publication replaces the selected output only after FFmpeg writes the
 trailer successfully. Compositions containing video layers, including nested compositions, use one

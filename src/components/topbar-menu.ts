@@ -52,11 +52,13 @@ export const menuDefinitions = [
     items: [
       { id: "importImage", labelKey: "topbar.item.importImage" },
       { id: "importVideo", labelKey: "topbar.item.importVideo" },
+      { id: "importAudio", labelKey: "topbar.item.importAudio" },
       { id: "importMesh", labelKey: "topbar.item.importMesh" },
       { id: "newText", labelKey: "topbar.item.newText" },
       { id: "newShape", labelKey: "topbar.item.newShape" },
       { id: "newSolid", labelKey: "topbar.item.newSolid" },
       { id: "newNull", labelKey: "topbar.item.newNull" },
+      { id: "newAudio", labelKey: "topbar.item.newAudio" },
       { id: "newMesh", labelKey: "topbar.item.newMesh" },
       { id: "newCamera", labelKey: "topbar.item.newCamera" },
       { id: "newLight", labelKey: "topbar.item.newLight" },

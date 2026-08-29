@@ -64,7 +64,7 @@ _Live WebGPU preview: Beauty → depth fog → depth of field → normals → mo
 - Retained GPU text textures participate in HDR layer effects, blend modes, precompositions, and
   lossless frame export.
 - Full/Half/Quarter preview resolution, dual Active/Custom views, lossless 4K PNG frame export,
-  cancellable native PNG sequences, and silent SDR H.264 MP4 export with three bounded WebGPU
+  cancellable native PNG sequences, and SDR H.264/AAC MP4 export with three bounded WebGPU
   readbacks, probed NVENC acceleration, `libx264` fallback, progress, cancellation, and atomic
   publication when FFmpeg is available.
 - Data-driven catalog of 266 blur, color, channel, distort, generate, stylize, keying, time,

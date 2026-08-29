@@ -6,6 +6,10 @@ import { createId } from "./types";
 
 const MAX_IMAGE_BYTES = 32 * 1024 * 1024;
 const MAX_VIDEO_BYTES = 96 * 1024 * 1024;
+const MAX_AUDIO_BYTES = 96 * 1024 * 1024;
+const AUDIO_EXTENSION = /\.(wav|mp3|aac|m4a|ogg|flac)$/i;
+
+export type ImportMediaKind = "image" | "video" | "audio";
 
 export interface ImportedMediaLayer {
   source: FootageSource;
@@ -15,19 +19,26 @@ export interface ImportedMediaLayer {
 export const mediaImporterRegistry = new ImporterRegistry();
 mediaImporterRegistry.register(createStillImporter());
 mediaImporterRegistry.register(createVideoImporter());
+mediaImporterRegistry.register(createAudioImporter());
 
 export async function importMediaLayer(
-  kind: "image" | "video",
+  kind: ImportMediaKind,
   composition: Composition,
   currentTime: number,
 ): Promise<ImportedMediaLayer | undefined> {
-  const file = await pickFile(kind === "image" ? "image/*" : "video/*");
+  const file = await pickFile(
+    kind === "image"
+      ? "image/*"
+      : kind === "video"
+        ? "video/*"
+        : "audio/wav,audio/mpeg,audio/aac,audio/mp4,audio/ogg,audio/flac,.wav,.mp3,.aac,.m4a,.ogg,.flac",
+  );
   if (!file) return undefined;
   return createMediaLayerFromFile(kind, file, composition, currentTime);
 }
 
 export async function createMediaLayerFromFile(
-  kind: "image" | "video",
+  kind: ImportMediaKind,
   file: File,
   composition: Composition,
   currentTime: number,
@@ -35,14 +46,14 @@ export async function createMediaLayerFromFile(
   const source = await mediaImporterRegistry.import(
     file,
     { composition, currentTime },
-    kind === "image" ? "aster.still" : "aster.video",
+    kind === "image" ? "aster.still" : kind === "video" ? "aster.video" : "aster.audio",
   );
   const layer = createLayerForComposition(kind, composition, currentTime);
   layer.name = file.name.replace(/\.[^.]+$/, "") || layer.name;
   layer.sourceId = source.id;
   if ("width" in source && "height" in source)
     layer.size = fitInside(source.width, source.height, composition.width, composition.height);
-  if (source.kind === "video")
+  if (source.kind === "video" || source.kind === "audio")
     layer.outPoint = Math.min(composition.duration, currentTime + source.duration);
   layer.color = [1, 1, 1, 1];
   return { source, layer };
@@ -81,26 +92,122 @@ function createVideoImporter(): SourceImporter {
     import: async (file) => {
       const [dataUrl, bytes] = await Promise.all([fileToDataUrl(file), file.arrayBuffer()]);
       const metadata = await readVideoMetadata(dataUrl);
+      const contentIdentity = await sha256Identity(bytes);
+      const audio = await tryDecodeAudioMetadata(bytes);
       return {
         id: createId(),
         kind: "video",
         name: file.name,
         mimeType: file.type,
-        contentIdentity: await sha256Identity(bytes),
+        contentIdentity,
         dataUrl,
         ...metadata,
+        ...(audio ? { audio: { ...audio, streamIndex: 0 } } : {}),
         interpretation: { ...DEFAULT_SOURCE_INTERPRETATION },
       };
     },
   };
 }
 
-function validateFile(file: File, kind: "image" | "video", limit: number): void {
+function createAudioImporter(): SourceImporter {
+  return {
+    id: "aster.audio",
+    probe: (file) => (file.type.startsWith("audio/") || AUDIO_EXTENSION.test(file.name) ? 1 : 0),
+    validate: (file) => {
+      if (!AUDIO_EXTENSION.test(file.name))
+        throw new Error("Audio import supports WAV, MP3, AAC, M4A, OGG, and FLAC files");
+      if (file.size > MAX_AUDIO_BYTES)
+        throw new Error("Audio exceeds the 96 MiB embedded-asset limit");
+      if (file.type && !file.type.startsWith("audio/") && file.type !== "video/mp4")
+        throw new Error("Selected file is not a valid audio file");
+    },
+    import: async (file) => {
+      const [dataUrl, bytes] = await Promise.all([fileToDataUrl(file), file.arrayBuffer()]);
+      const contentIdentity = await sha256Identity(bytes);
+      const metadata = await decodeAudioMetadata(bytes, file.name);
+      return {
+        id: createId(),
+        kind: "audio",
+        name: file.name,
+        mimeType: file.type || audioMimeType(file.name),
+        contentIdentity,
+        dataUrl,
+        ...metadata,
+        streamIndex: 0,
+        interpretation: { ...DEFAULT_SOURCE_INTERPRETATION },
+      };
+    },
+  };
+}
+
+function validateFile(file: File, kind: ImportMediaKind, limit: number): void {
   if (file.size > limit)
     throw new Error(
-      `${kind === "image" ? "Image" : "Video"} exceeds the ${Math.round(limit / 1024 / 1024)} MiB embedded-asset limit`,
+      `${kind === "image" ? "Image" : kind === "video" ? "Video" : "Audio"} exceeds the ${Math.round(limit / 1024 / 1024)} MiB embedded-asset limit`,
     );
-  if (!file.type.startsWith(`${kind}/`)) throw new Error(`Selected file is not a valid ${kind}`);
+  if (file.type && !file.type.startsWith(`${kind}/`))
+    throw new Error(`Selected file is not a valid ${kind}`);
+}
+
+async function decodeAudioMetadata(
+  bytes: ArrayBuffer,
+  name: string,
+): Promise<{ duration: number; channels: number; sampleRate: number }> {
+  const Context = globalThis.AudioContext;
+  if (!Context)
+    throw new Error("Audio decoding is unavailable in this browser; use the native importer");
+  const context = new Context({ latencyHint: "playback" });
+  try {
+    const buffer = await context.decodeAudioData(bytes);
+    if (
+      !Number.isFinite(buffer.duration) ||
+      buffer.duration <= 0 ||
+      buffer.duration > 86_400 ||
+      buffer.numberOfChannels < 1 ||
+      buffer.numberOfChannels > 32 ||
+      buffer.sampleRate < 8_000 ||
+      buffer.sampleRate > 384_000
+    )
+      throw new Error("Decoded audio metadata exceeds supported bounds");
+    return {
+      duration: buffer.duration,
+      channels: buffer.numberOfChannels,
+      sampleRate: buffer.sampleRate,
+    };
+  } catch (error) {
+    const failure = new Error(
+      `This browser cannot decode ${name}; verify the codec or use Aster's native importer`,
+    );
+    (failure as Error & { cause?: unknown }).cause = error;
+    throw failure;
+  } finally {
+    await context.close();
+  }
+}
+
+async function tryDecodeAudioMetadata(
+  bytes: ArrayBuffer,
+): Promise<{ channels: number; sampleRate: number } | undefined> {
+  try {
+    const { channels, sampleRate } = await decodeAudioMetadata(bytes, "the video's audio stream");
+    return { channels, sampleRate };
+  } catch {
+    return undefined;
+  }
+}
+
+function audioMimeType(name: string): string {
+  const extension = name.split(".").pop()?.toLowerCase();
+  return (
+    {
+      wav: "audio/wav",
+      mp3: "audio/mpeg",
+      aac: "audio/aac",
+      m4a: "audio/mp4",
+      ogg: "audio/ogg",
+      flac: "audio/flac",
+    }[extension ?? ""] ?? "application/octet-stream"
+  );
 }
 
 async function sha256Identity(bytes: ArrayBuffer): Promise<string> {

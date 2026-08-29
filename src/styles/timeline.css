@@ -731,3 +731,10 @@
   stroke-width: 1.5px;
   vector-effect: non-scaling-stroke;
 }
+.timeline-audio-waveform {
+  height: 28px;
+  opacity: 0.74;
+  pointer-events: none;
+  position: absolute;
+  top: 3px;
+}

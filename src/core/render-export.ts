@@ -6,9 +6,17 @@ import {
   open,
   save,
   startMp4Export,
+  writeMp4Audio,
   writeMp4Frame,
 } from "../desktop/api";
 import type { RawFramePixelFormat, RawVideoFrame } from "../renderer/frame-readback";
+import {
+  alignedAudioFrameCount,
+  decodeAudibleSources,
+  EXPORT_AUDIO_SAMPLE_RATE,
+  streamCompositionAudio,
+} from "./audio-export";
+import { sharedAudioPlaybackEngine } from "./audio-playback-engine";
 import { logger } from "./logger";
 import type { Composition, Project } from "./types";
 
@@ -163,6 +171,7 @@ export async function renderPngSequence(
 }
 
 export async function renderMp4(
+  project: Project,
   composition: Composition,
   onProgress: (progress: RenderSequenceProgress) => void,
   cancelled: () => boolean,
@@ -183,6 +192,13 @@ export async function renderMp4(
       (composition.duration * composition.frameRate.numerator) / composition.frameRate.denominator,
     ),
   );
+  const decodedAudio = await decodeAudibleSources(project, composition, (source) =>
+    sharedAudioPlaybackEngine.decodedPcm(source),
+  );
+  const audioFrameCount =
+    decodedAudio.size > 0
+      ? alignedAudioFrameCount(frameCount, composition.frameRate, EXPORT_AUDIO_SAMPLE_RATE)
+      : 0;
   const session = await openFrameRenderSession();
   const startedAt = performance.now();
   logger.info("export", "mp4_pipeline_started", {
@@ -204,12 +220,22 @@ export async function renderMp4(
       frameRateDenominator: composition.frameRate.denominator,
       frameCount,
       pixelFormat: session.rawPixelFormat,
+      audio:
+        audioFrameCount > 0
+          ? {
+              sampleRate: EXPORT_AUDIO_SAMPLE_RATE,
+              channels: 2,
+              frameCount: audioFrameCount,
+            }
+          : undefined,
     });
     jobId = started.jobId;
-    completed = await streamFramePipeline({
+    let pipelineAborted = false;
+    const pipelineCancelled = () => pipelineAborted || cancelled();
+    const videoPipeline = streamFramePipeline({
       frameCount,
       maxInFlight: session.maxInFlightFrames,
-      cancelled,
+      cancelled: pipelineCancelled,
       render: (frame) => session.renderRawFrame(frameTimeAtIndex(frame, composition.frameRate)),
       write: async (frame) => {
         if (frame.pixelFormat !== session.rawPixelFormat)
@@ -217,8 +243,30 @@ export async function renderMp4(
         await writeMp4Frame(started.jobId, frame.pixels);
       },
       onProgress,
+    }).catch((error) => {
+      pipelineAborted = true;
+      throw error;
     });
-    if (completed < frameCount) {
+    const audioPipeline =
+      audioFrameCount > 0
+        ? streamCompositionAudio(
+            project,
+            composition,
+            decodedAudio,
+            audioFrameCount,
+            async (samples) => writeMp4Audio(started.jobId, samples.buffer as ArrayBuffer),
+            pipelineCancelled,
+            EXPORT_AUDIO_SAMPLE_RATE,
+          ).catch((error) => {
+            pipelineAborted = true;
+            throw error;
+          })
+        : Promise.resolve(0);
+    const [videoResult, audioResult] = await Promise.allSettled([videoPipeline, audioPipeline]);
+    if (videoResult.status === "rejected") throw videoResult.reason;
+    if (audioResult.status === "rejected") throw audioResult.reason;
+    completed = videoResult.value;
+    if (completed < frameCount || (audioFrameCount > 0 && audioResult.value < audioFrameCount)) {
       await cancelMp4Export(started.jobId);
       jobId = undefined;
       logger.info("export", "mp4_pipeline_cancelled", {
@@ -232,6 +280,7 @@ export async function renderMp4(
     jobId = undefined;
     logger.info("export", "mp4_pipeline_completed", {
       frameCount: report.frameCount,
+      audioFrameCount: report.audioFrameCount,
       encoder: report.encoder,
       bytesWritten: report.bytesWritten,
       durationMs: performance.now() - startedAt,

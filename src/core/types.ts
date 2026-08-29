@@ -30,6 +30,7 @@ export interface Transform {
 export type LayerKind =
   | "null"
   | "solid"
+  | "audio"
   | "shape"
   | "text"
   | "image"
@@ -44,6 +45,7 @@ export type LayerKind =
 export const LAYER_KINDS = [
   "null",
   "solid",
+  "audio",
   "shape",
   "text",
   "image",
@@ -103,8 +105,7 @@ export interface Layer {
   solo: boolean;
   locked: boolean;
   audioEnabled?: boolean;
-  /** Preview gain in the HTML media element's normalized 0..1 range. */
-  audioGain?: number;
+  audio?: AudioLayerSettings;
   threeDimensional: boolean;
   inPoint: number;
   outPoint: number;
@@ -137,6 +138,15 @@ export interface SolidSettings {
   width: number;
   height: number;
   color: [number, number, number, number];
+}
+
+export interface AudioLayerSettings {
+  /** Independent left and right gain in decibels. */
+  levelsDb: [number, number];
+  /** Constant-power stereo pan from full left (-1) to full right (+1). */
+  pan: number;
+  muted: boolean;
+  reversed: boolean;
 }
 
 export interface Material3d {
@@ -302,7 +312,7 @@ export interface ProjectFolder {
 }
 
 export interface Project {
-  schemaVersion: 4;
+  schemaVersion: 5;
   id: Id;
   name: string;
   activeCompositionId: Id;
@@ -320,6 +330,12 @@ export interface SourceInterpretation {
   frameRate?: { numerator: number; denominator: number };
 }
 
+export interface AudioStreamMetadata {
+  streamIndex: number;
+  channels: number;
+  sampleRate: number;
+}
+
 interface FootageSourceBase {
   id: Id;
   name: string;
@@ -333,12 +349,19 @@ interface FootageSourceBase {
 
 export type FootageSource =
   | (FootageSourceBase & { kind: "still"; width: number; height: number })
-  | (FootageSourceBase & { kind: "video"; width: number; height: number; duration: number })
+  | (FootageSourceBase & {
+      kind: "video";
+      width: number;
+      height: number;
+      duration: number;
+      audio?: AudioStreamMetadata;
+    })
   | (FootageSourceBase & {
       kind: "audio";
       duration: number;
       channels: number;
       sampleRate: number;
+      streamIndex: number;
     })
   | (FootageSourceBase & {
       kind: "imageSequence";

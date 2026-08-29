@@ -15,7 +15,7 @@ const SOURCE_FIELDS = [
   "textStyle",
   "textAnimator",
   "audioEnabled",
-  "audioGain",
+  "audio",
   "expressions",
   "timeOffset",
   "timeStretch",

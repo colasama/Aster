@@ -7,6 +7,12 @@ import {
   save,
 } from "../desktop/api";
 import { assertAdjustmentLayerInvariants } from "./adjustment-layer";
+import {
+  MAX_AUDIO_LEVEL_DB,
+  MAX_AUDIO_PAN,
+  MIN_AUDIO_LEVEL_DB,
+  MIN_AUDIO_PAN,
+} from "./audio-layer";
 import { validateClonerSettings } from "./cloner";
 import {
   MAX_COMMAND_LOG_ENTRIES,
@@ -52,7 +58,7 @@ interface RecoveryStorage {
 export function validateProjectDocument(value: unknown): Project {
   const current = cloneCurrentProjectDocument(value);
   const project = requireObject(current, "project");
-  if (project.schemaVersion !== 4) throw new Error("Unsupported Aster project schema");
+  if (project.schemaVersion !== 5) throw new Error("Unsupported Aster project schema");
   requireString(project.id, "project.id");
   requireString(project.name, "project.name");
   const activeCompositionId = requireString(
@@ -422,19 +428,21 @@ export async function relinkProjectSource(
 ): Promise<FootageSource | undefined> {
   if (!nativeProjectPath || !isDesktopRuntime())
     throw new Error("Save or open this project in the native app before linking an asset");
-  if (source.kind !== "still" && source.kind !== "video")
-    throw new Error("Only still and video sources can link project assets");
+  if (source.kind !== "still" && source.kind !== "video" && source.kind !== "audio")
+    throw new Error("Only still, video, and audio sources can link project assets");
   const selected = await open({
     directory: false,
     multiple: false,
     title: `Link ${source.kind} source`,
     filters: [
       {
-        name: source.kind === "still" ? "Images" : "Videos",
+        name: source.kind === "still" ? "Images" : source.kind === "video" ? "Videos" : "Audio",
         extensions:
           source.kind === "still"
             ? ["png", "jpg", "jpeg", "webp", "gif", "bmp", "avif"]
-            : ["mp4", "webm", "mov", "m4v", "ogv"],
+            : source.kind === "video"
+              ? ["mp4", "webm", "mov", "m4v", "ogv"]
+              : ["wav", "mp3", "aac", "m4a", "ogg", "flac"],
       },
     ],
   });
@@ -444,19 +452,47 @@ export async function relinkProjectSource(
     resolvedPath: string;
     name: string;
     contentIdentity: string;
+    mediaMetadata?: {
+      duration: number;
+      width?: number;
+      height?: number;
+      audio?: { streamIndex: number; channels: number; sampleRate: number };
+    };
   }>("link_project_asset", {
     bundle: nativeProjectPath,
     source: selected,
-    kind: source.kind === "still" ? "image" : "video",
+    kind: source.kind === "still" ? "image" : source.kind,
   });
-  return {
-    ...source,
+  const locator = {
     name: linked.name,
     contentIdentity: linked.contentIdentity,
     dataUrl: undefined,
     relativePath: linked.relativePath,
     runtimeUrl: convertFileSrc(linked.resolvedPath),
   };
+  if (source.kind === "audio") {
+    const audio = linked.mediaMetadata?.audio;
+    if (!audio || !linked.mediaMetadata) throw new Error("Linked audio metadata is unavailable");
+    return {
+      ...source,
+      ...locator,
+      duration: linked.mediaMetadata.duration,
+      channels: audio.channels,
+      sampleRate: audio.sampleRate,
+      streamIndex: audio.streamIndex,
+    };
+  }
+  if (source.kind === "video" && linked.mediaMetadata) {
+    return {
+      ...source,
+      ...locator,
+      duration: linked.mediaMetadata.duration,
+      width: linked.mediaMetadata.width ?? source.width,
+      height: linked.mediaMetadata.height ?? source.height,
+      audio: linked.mediaMetadata.audio,
+    };
+  }
+  return { ...source, ...locator };
 }
 
 export function projectDocumentForPersistence(project: Project): Project {
@@ -569,10 +605,34 @@ function validateLayer(
   if (!isLayerKind(layer.kind)) throw new Error(`${path}.kind is unsupported`);
   if (layer.audioEnabled !== undefined && typeof layer.audioEnabled !== "boolean")
     throw new Error(`${path}.audioEnabled must be a boolean`);
-  if (layer.audioGain !== undefined) {
-    const gain = requireFiniteNumber(layer.audioGain, `${path}.audioGain`);
-    if (gain < 0 || gain > 1) throw new Error(`${path}.audioGain must be between 0 and 1`);
+  if (layer.audio !== undefined) {
+    if (layer.kind !== "audio" && layer.kind !== "video")
+      throw new Error(`${path}.audio requires an audio-capable layer`);
+    const audio = requireObject(layer.audio, `${path}.audio`);
+    const levelsDb = requireNumberArray(audio.levelsDb, `${path}.audio.levelsDb`, 2);
+    if (
+      levelsDb.length !== 2 ||
+      levelsDb.some((level) => level < MIN_AUDIO_LEVEL_DB || level > MAX_AUDIO_LEVEL_DB)
+    )
+      throw new Error(
+        `${path}.audio.levelsDb must contain left/right levels from ${MIN_AUDIO_LEVEL_DB} through ${MAX_AUDIO_LEVEL_DB} dB`,
+      );
+    const pan = requireFiniteNumber(audio.pan, `${path}.audio.pan`);
+    if (pan < MIN_AUDIO_PAN || pan > MAX_AUDIO_PAN)
+      throw new Error(`${path}.audio.pan must be between ${MIN_AUDIO_PAN} and ${MAX_AUDIO_PAN}`);
+    for (const field of ["muted", "reversed"])
+      if (typeof audio[field] !== "boolean")
+        throw new Error(`${path}.audio.${field} must be a boolean`);
   }
+  if ((layer.kind === "audio" || layer.kind === "video") && layer.audio === undefined)
+    throw new Error(`${path}.audio is required for audio-capable layers`);
+  if (
+    layer.kind === "audio" &&
+    (layer.visible !== false ||
+      layer.threeDimensional !== false ||
+      (Array.isArray(layer.size) && layer.size.some((value) => Number(value) !== 0)))
+  )
+    throw new Error(`${path} audio layers cannot have a visual surface`);
   if (layer.sourceId !== undefined) requireString(layer.sourceId, `${path}.sourceId`);
   if (layer.solid !== undefined) {
     if (layer.kind !== "solid") throw new Error(`${path}.solid requires solid layer kind`);
@@ -866,6 +926,23 @@ function validateFootageSource(value: unknown, path: string): asserts value is F
       throw new Error(`${path}.channels must be an integer from 1 through 32`);
     if (!Number.isSafeInteger(sampleRate) || sampleRate < 8_000 || sampleRate > 384_000)
       throw new Error(`${path}.sampleRate is unsupported`);
+    const streamIndex = requireFiniteNumber(source.streamIndex, `${path}.streamIndex`);
+    if (!Number.isSafeInteger(streamIndex) || streamIndex < 0 || streamIndex >= 128)
+      throw new Error(`${path}.streamIndex is unsupported`);
+  }
+  if (source.kind === "video" && source.audio !== undefined) {
+    const audio = requireObject(source.audio, `${path}.audio`);
+    for (const field of ["streamIndex", "channels", "sampleRate"] as const) {
+      const value = requireFiniteNumber(audio[field], `${path}.audio.${field}`);
+      if (!Number.isSafeInteger(value))
+        throw new Error(`${path}.audio.${field} must be an integer`);
+    }
+    if ((audio.streamIndex as number) < 0 || (audio.streamIndex as number) >= 128)
+      throw new Error(`${path}.audio.streamIndex is unsupported`);
+    if ((audio.channels as number) < 1 || (audio.channels as number) > 32)
+      throw new Error(`${path}.audio.channels is unsupported`);
+    if ((audio.sampleRate as number) < 8_000 || (audio.sampleRate as number) > 384_000)
+      throw new Error(`${path}.audio.sampleRate is unsupported`);
   }
   if (source.kind === "imageSequence") {
     if (requireString(source.pattern, `${path}.pattern`).trim().length === 0)

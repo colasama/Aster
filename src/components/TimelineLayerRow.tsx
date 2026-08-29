@@ -8,9 +8,11 @@ import {
   Film,
   Gauge,
   GripVertical,
+  Headphones,
   Layers3,
   Lock,
   LockOpen,
+  Music2,
   Square,
   Type,
   Volume2,
@@ -21,6 +23,7 @@ import type { activeComposition } from "../core/project";
 import type { Keyframe, Layer } from "../core/types";
 import { useI18n } from "../i18n/react";
 import { useEditor } from "../state/editor-store";
+import { AudioWaveform } from "./AudioWaveform";
 import { LayerTimingBar } from "./LayerTimingBar";
 import { TimelineKeyframe, type TimelineKeyframeEntry } from "./TimelineKeyframe";
 import { TimelinePropertyRows } from "./TimelinePropertyRows";
@@ -78,6 +81,7 @@ export function TimelineLayerRow({
   const frameDuration = compositionFrameDuration(composition);
   const keyframes = collectTimelineLayerKeyframes(layer);
   const Icon = layerIcon(layer);
+  const audioSource = state.project.sources.find((source) => source.id === layer.sourceId);
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: Native drag-and-drop requires row-level handlers.
     <div
@@ -136,6 +140,9 @@ export function TimelineLayerRow({
           pixelsPerSecond={pixelsPerSecond}
           timing={timing}
         />
+        {audioSource && (layer.kind === "audio" || layer.kind === "video") && (
+          <AudioWaveform layer={layer} pixelsPerSecond={pixelsPerSecond} source={audioSource} />
+        )}
         {keyframes.map((entry) => (
           <TimelineKeyframe
             compositionDuration={composition.duration}
@@ -170,7 +177,7 @@ export function TimelineLayerRow({
 function LayerSwitches({ layer }: { layer: Layer }) {
   const { dispatch } = useEditor();
   const { t } = useI18n();
-  const toggle = (field: "visible" | "audioEnabled" | "locked" | "threeDimensional") =>
+  const toggle = (field: "visible" | "solo" | "audioEnabled" | "locked" | "threeDimensional") =>
     dispatch({
       type: "operation",
       operations: [{ type: "toggleLayer", layerId: layer.id, field }],
@@ -187,23 +194,39 @@ function LayerSwitches({ layer }: { layer: Layer }) {
           event.stopPropagation();
           toggle("visible");
         }}
+        disabled={layer.kind === "audio"}
         type="button"
       >
         {layer.visible ? <Eye size={11} /> : <EyeOff size={11} />}
       </button>
       <button
         aria-label={
-          layer.kind === "video"
+          layer.solo
+            ? t("timeline.layer.disableSolo", { name: layer.name })
+            : t("timeline.layer.enableSolo", { name: layer.name })
+        }
+        className={layer.solo ? "enabled" : ""}
+        onClick={(event) => {
+          event.stopPropagation();
+          toggle("solo");
+        }}
+        type="button"
+      >
+        <Headphones size={11} />
+      </button>
+      <button
+        aria-label={
+          layer.kind === "video" || layer.kind === "audio"
             ? t("timeline.layer.toggleAudio", { name: layer.name })
             : t("timeline.layer.noAudio", { name: layer.name })
         }
-        disabled={layer.kind !== "video"}
+        disabled={layer.kind !== "video" && layer.kind !== "audio"}
         onClick={(event) => {
           event.stopPropagation();
           toggle("audioEnabled");
         }}
         title={
-          layer.kind === "video"
+          layer.kind === "video" || layer.kind === "audio"
             ? t("timeline.layer.toggleAudio", { name: layer.name })
             : t("timeline.layer.noAudio", { name: layer.name })
         }
@@ -227,14 +250,14 @@ function LayerSwitches({ layer }: { layer: Layer }) {
       </button>
       <button
         aria-label={
-          layer.kind === "adjustment"
+          layer.kind === "adjustment" || layer.kind === "audio"
             ? t("timeline.layer.adjustmentNo3d")
             : layer.threeDimensional
               ? t("timeline.layer.disable3d", { name: layer.name })
               : t("timeline.layer.enable3d", { name: layer.name })
         }
         className={layer.threeDimensional ? "enabled" : ""}
-        disabled={layer.kind === "adjustment"}
+        disabled={layer.kind === "adjustment" || layer.kind === "audio"}
         onClick={(event) => {
           event.stopPropagation();
           toggle("threeDimensional");
@@ -285,6 +308,7 @@ function layerIcon(layer: Layer) {
   if (layer.kind === "solid") return Square;
   if (layer.kind === "text") return Type;
   if (layer.kind === "video") return Film;
+  if (layer.kind === "audio") return Music2;
   if (layer.kind === "camera") return Layers3;
   if (layer.kind === "generator") return Gauge;
   return Box;

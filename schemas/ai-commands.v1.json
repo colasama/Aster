@@ -55,6 +55,16 @@
         }
       }
     },
+    "audioStreamMetadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["streamIndex", "channels", "sampleRate"],
+      "properties": {
+        "streamIndex": { "type": "integer", "minimum": 0, "maximum": 127 },
+        "channels": { "type": "integer", "minimum": 1, "maximum": 32 },
+        "sampleRate": { "type": "integer", "minimum": 8000, "maximum": 384000 }
+      }
+    },
     "footageSource": {
       "type": "object",
       "additionalProperties": false,
@@ -73,6 +83,8 @@
         "duration": { "type": "number", "minimum": 0.001, "maximum": 86400 },
         "channels": { "type": "integer", "minimum": 1, "maximum": 32 },
         "sampleRate": { "type": "integer", "minimum": 8000, "maximum": 384000 },
+        "streamIndex": { "type": "integer", "minimum": 0, "maximum": 127 },
+        "audio": { "$ref": "#/$defs/audioStreamMetadata" },
         "pattern": { "type": "string", "minLength": 1, "maxLength": 1024 },
         "startFrame": { "type": "integer" },
         "endFrame": { "type": "integer" },
@@ -555,6 +567,7 @@
               "shape",
               "solid",
               "null",
+              "audio",
               "text",
               "image",
               "video",
@@ -1135,6 +1148,41 @@
           "type": { "const": "setLayerAudioGain" },
           "layerId": { "$ref": "#/$defs/id" },
           "gain": { "type": "number", "minimum": 0, "maximum": 1 }
+        }
+      }
+    },
+    {
+      "name": "setLayerAudioSettings",
+      "version": 1,
+      "category": "layers",
+      "description": "Replace bounded stereo audio levels, pan, mute, and reverse settings.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "layerId", "audio"],
+        "properties": {
+          "type": { "const": "setLayerAudioSettings" },
+          "layerId": { "$ref": "#/$defs/id" },
+          "audio": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["levelsDb", "pan", "muted", "reversed"],
+            "properties": {
+              "levelsDb": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 2,
+                "items": { "type": "number", "minimum": -192, "maximum": 24 }
+              },
+              "pan": { "type": "number", "minimum": -1, "maximum": 1 },
+              "muted": { "type": "boolean" },
+              "reversed": { "type": "boolean" }
+            }
+          }
         }
       }
     },

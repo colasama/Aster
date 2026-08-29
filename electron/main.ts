@@ -889,6 +889,11 @@ function registerIpc(
     return mp4ExportManager.write(jobId, pixels, event.sender.id);
   });
 
+  ipcMain.handle("aster:mp4-audio", (event, jobId: unknown, samples: unknown) => {
+    if (!mp4ExportManager) throw new Error("MP4 export is unavailable");
+    return mp4ExportManager.writeAudio(jobId, samples, event.sender.id);
+  });
+
   ipcMain.handle("aster:mp4-finish", async (event, jobId: unknown) => {
     if (!mp4ExportManager) throw new Error("MP4 export is unavailable");
     try {

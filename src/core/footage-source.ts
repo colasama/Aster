@@ -19,6 +19,7 @@ export function sourceForLayer(
 export function sourceSupportsLayer(source: FootageSource, layer: Layer): boolean {
   if (layer.kind === "image") return source.kind === "still";
   if (layer.kind === "video") return source.kind === "video";
+  if (layer.kind === "audio") return source.kind === "audio" || source.kind === "video";
   return false;
 }
 
@@ -71,5 +72,6 @@ export function copySourceWithoutRuntimeUrl(source: FootageSource): FootageSourc
   return {
     ...persisted,
     interpretation: { ...persisted.interpretation },
+    ...(persisted.kind === "video" && persisted.audio ? { audio: { ...persisted.audio } } : {}),
   } as FootageSource;
 }

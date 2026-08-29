@@ -30,6 +30,8 @@ export const timelineZh = {
   "timeline.layer.show": "显示 {name}",
   "timeline.layer.hide": "隐藏 {name}",
   "timeline.layer.toggleAudio": "切换 {name} 的音频",
+  "timeline.layer.enableSolo": "独奏 {name}",
+  "timeline.layer.disableSolo": "取消独奏 {name}",
   "timeline.layer.noAudio": "{name} 没有音频",
   "timeline.layer.lock": "锁定 {name}",
   "timeline.layer.unlock": "解锁 {name}",

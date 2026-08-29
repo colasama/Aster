@@ -9,6 +9,7 @@ export type StandardLayerKind = Exclude<LayerKind, "generator">;
 const names: Record<LayerKind, string> = {
   null: "Null Object",
   solid: "Solid Layer",
+  audio: "Audio Layer",
   shape: "Shape Layer",
   text: "New Text",
   image: "Image Layer",
@@ -42,6 +43,7 @@ function createLayer(kind: LayerKind, composition: Composition, currentTime: num
   const isCamera = kind === "camera";
   const isText = kind === "text";
   const isAdjustment = kind === "adjustment";
+  const hasAudio = kind === "audio" || kind === "video";
   const solid =
     kind === "solid"
       ? {
@@ -55,11 +57,11 @@ function createLayer(kind: LayerKind, composition: Composition, currentTime: num
     name: names[kind],
     kind,
     text: isText ? "NEW TEXT" : undefined,
-    visible: !isCamera,
+    visible: !isCamera && kind !== "audio",
     solo: false,
     locked: false,
-    audioEnabled: kind === "video" ? true : undefined,
-    audioGain: kind === "video" ? 1 : undefined,
+    audioEnabled: hasAudio ? true : undefined,
+    audio: hasAudio ? { levelsDb: [0, 0], pan: 0, muted: false, reversed: false } : undefined,
     threeDimensional: kind === "mesh" || kind === "camera" || kind === "light",
     inPoint: currentTime,
     outPoint: composition.duration,
@@ -73,17 +75,20 @@ function createLayer(kind: LayerKind, composition: Composition, currentTime: num
           : kind === "null"
             ? [0, 0, 0, 0]
             : [0.3, 0.55, 1, 1],
-    size: isCamera
-      ? [0, 0]
-      : solid
-        ? [solid.width, solid.height]
-        : isAdjustment
-          ? [composition.width, composition.height]
-          : isText
-            ? [1200, 260]
-            : kind === "null"
-              ? [100, 100]
-              : [720, 720],
+    size:
+      kind === "audio"
+        ? [0, 0]
+        : isCamera
+          ? [0, 0]
+          : solid
+            ? [solid.width, solid.height]
+            : isAdjustment
+              ? [composition.width, composition.height]
+              : isText
+                ? [1200, 260]
+                : kind === "null"
+                  ? [100, 100]
+                  : [720, 720],
     transform: isAdjustment
       ? createCanonicalAdjustmentTransform(composition)
       : createTransform([composition.width / 2, composition.height / 2, 0]),

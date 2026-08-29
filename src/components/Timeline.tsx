@@ -17,6 +17,7 @@ import {
   ZoomOut,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { sharedAudioPlaybackEngine } from "../core/audio-playback-engine";
 import {
   copyKeyframes,
   selectedKeyframes as findSelectedKeyframes,
@@ -24,6 +25,7 @@ import {
   pasteKeyframes,
   removeKeyframes,
 } from "../core/keyframe-editing";
+import { logger } from "../core/logger";
 import { activeComposition } from "../core/project";
 import { frameAt } from "../core/timeline";
 import {
@@ -138,7 +140,7 @@ export function Timeline() {
     timelineTargets,
     workArea,
   };
-  usePlayback(workArea);
+  usePlayback(composition, workArea);
   const ticks = useMemo(
     () => Array.from({ length: Math.floor(composition.duration * 2) + 1 }, (_, index) => index / 2),
     [composition.duration],
@@ -626,30 +628,77 @@ export function Timeline() {
   );
 }
 
-function usePlayback(workArea: TimelineWorkAreaValue) {
+function usePlayback(
+  composition: ReturnType<typeof activeComposition>,
+  workArea: TimelineWorkAreaValue,
+) {
   const { state, dispatch } = useEditor();
   const currentTime = useRef(state.currentTime);
   currentTime.current = state.currentTime;
   useEffect(() => {
     if (!state.playing) return;
-    const startedAt = performance.now();
-    const duration = Math.max(0.000_001, workArea.end - workArea.start);
     const initialTime =
       currentTime.current >= workArea.start && currentTime.current < workArea.end
         ? currentTime.current
         : workArea.start;
     let frame = 0;
-    const tick = (now: number) => {
-      dispatch({
-        type: "setTime",
-        time:
-          workArea.start + ((initialTime - workArea.start + (now - startedAt) / 1000) % duration),
-      });
-      frame = requestAnimationFrame(tick);
+    let disposed = false;
+    let lastDispatched = initialTime;
+    let audioClock = false;
+    let fallbackAnchorTime = initialTime;
+    let fallbackAnchorHost = performance.now();
+    const schedule = () => {
+      frame = requestAnimationFrame(() => void tick());
     };
-    frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
-  }, [dispatch, state.playing, workArea.end, workArea.start]);
+    const restart = async (time: number) => {
+      try {
+        await sharedAudioPlaybackEngine.play(state.project, composition, time, workArea.end);
+        audioClock = true;
+      } catch (error) {
+        audioClock = false;
+        fallbackAnchorTime = time;
+        fallbackAnchorHost = performance.now();
+        logger.warn("audio", "fallback_monotonic_clock", undefined, error);
+      }
+      lastDispatched = time;
+    };
+    const tick = async () => {
+      if (disposed) return;
+      const predicted = audioClock
+        ? sharedAudioPlaybackEngine.compositionTime()
+        : Math.min(
+            workArea.end,
+            fallbackAnchorTime + (performance.now() - fallbackAnchorHost) / 1_000,
+          );
+      const externalSeek =
+        Math.abs(currentTime.current - lastDispatched) > 1 / 120 &&
+        Math.abs(currentTime.current - predicted) > 1 / 120;
+      if (externalSeek) {
+        await restart(
+          Math.max(workArea.start, Math.min(workArea.end - 1 / 240, currentTime.current)),
+        );
+        if (!disposed) schedule();
+        return;
+      }
+      if (predicted >= workArea.end - 1 / 240) {
+        dispatch({ type: "setTime", time: workArea.start });
+        await restart(workArea.start);
+        if (!disposed) schedule();
+        return;
+      }
+      lastDispatched = predicted;
+      dispatch({ type: "setTime", time: predicted });
+      schedule();
+    };
+    void restart(initialTime).then(() => {
+      if (!disposed) schedule();
+    });
+    return () => {
+      disposed = true;
+      cancelAnimationFrame(frame);
+      sharedAudioPlaybackEngine.pause();
+    };
+  }, [composition, dispatch, state.playing, state.project, workArea.end, workArea.start]);
 }
 
 function formatTimecode(

@@ -202,6 +202,7 @@ export function TopBar() {
       newShape: "shape",
       newSolid: "solid",
       newNull: "null",
+      newAudio: "audio",
       newMesh: "mesh",
       newCamera: "camera",
       newLight: "light",
@@ -286,8 +287,8 @@ export function TopBar() {
       toastActions.show(
         toastMessage("topbar.toast.created", { name: plan.nestedComposition.name }),
       );
-    } else if (item === "importImage" || item === "importVideo") {
-      const kind = item === "importImage" ? "image" : "video";
+    } else if (item === "importImage" || item === "importVideo" || item === "importAudio") {
+      const kind = item === "importImage" ? "image" : item === "importVideo" ? "video" : "audio";
       const requestToken = toastActions.beginRequest();
       void importMediaLayer(kind, composition, state.currentTime)
         .then((imported) => {
@@ -695,6 +696,7 @@ export function TopBar() {
                       );
                     } else if (renderFormat === "mp4") {
                       const result = await renderMp4(
+                        state.project,
                         activeComposition(state.project),
                         setRenderProgress,
                         () => cancelRenderRef.current,

@@ -9,6 +9,7 @@ import {
   Folder,
   Layers3,
   Link2,
+  Music2,
   Plus,
   Save,
   Search,
@@ -29,7 +30,7 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
-import { createMediaLayerFromFile } from "../core/assets";
+import { createMediaLayerFromFile, type ImportMediaKind } from "../core/assets";
 import { createParticleLayerForComposition } from "../core/bundled-particle";
 import {
   createGeneratorLayerForComposition,
@@ -119,6 +120,7 @@ export function ProjectPanel() {
   );
   const imagePickerRef = useRef<HTMLInputElement>(null);
   const videoPickerRef = useRef<HTMLInputElement>(null);
+  const audioPickerRef = useRef<HTMLInputElement>(null);
   const addMenuRef = useRef<HTMLElement>(null);
   const composition = activeComposition(state.project);
   const mediaItems = useMemo<MediaProjectItem[]>(
@@ -316,7 +318,7 @@ export function ProjectPanel() {
       setPresetError("presetSave");
     }
   };
-  const importMedia = async (kind: "image" | "video", file: File, folderId?: Id) => {
+  const importMedia = async (kind: ImportMediaKind, file: File, folderId?: Id) => {
     try {
       setAssetError(undefined);
       const imported = await createMediaLayerFromFile(kind, file, composition, state.currentTime);
@@ -456,7 +458,13 @@ export function ProjectPanel() {
         }
         type="button"
       >
-        {source.kind === "video" ? <Film size={14} /> : <FileImage size={14} />}
+        {source.kind === "video" ? (
+          <Film size={14} />
+        ) : source.kind === "audio" ? (
+          <Music2 size={14} />
+        ) : (
+          <FileImage size={14} />
+        )}
         <span>{source.name}</span>
         <small>
           {source.dataUrl || source.runtimeUrl ? (
@@ -592,6 +600,18 @@ export function ProjectPanel() {
           event.target.value = "";
         }}
         ref={videoPickerRef}
+        type="file"
+      />
+      <input
+        accept="audio/wav,audio/mpeg,audio/aac,audio/mp4,audio/ogg,audio/flac,.wav,.mp3,.aac,.m4a,.ogg,.flac"
+        aria-label={t("project.asset.chooseAudio")}
+        hidden
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          if (file) void importMedia("audio", file, addTarget?.folderId);
+          event.target.value = "";
+        }}
+        ref={audioPickerRef}
         type="file"
       />
       <div className="panel-search">
@@ -844,6 +864,9 @@ export function ProjectPanel() {
               </button>
               <button onClick={() => videoPickerRef.current?.click()} type="button">
                 <Film size={15} /> {t("project.add.video")}
+              </button>
+              <button onClick={() => audioPickerRef.current?.click()} type="button">
+                <Music2 size={15} /> {t("project.add.audio")}
               </button>
             </div>
           </div>

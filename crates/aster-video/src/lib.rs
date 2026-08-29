@@ -171,6 +171,10 @@ pub struct StreamMetadata {
     #[serde(default)]
     pub frame_rate: Option<Timebase>,
     #[serde(default)]
+    pub sample_rate: u32,
+    #[serde(default)]
+    pub channels: u8,
+    #[serde(default)]
     pub color: ColorMetadata,
 }
 
@@ -225,6 +229,12 @@ fn validate_probe(metadata: &ContainerMetadata) -> Result<(), VideoError> {
         {
             return Err(VideoError::InvalidProbe("invalid video dimensions".into()));
         }
+        if stream.kind == StreamKind::Audio
+            && (!(8_000..=384_000).contains(&stream.sample_rate)
+                || !(1..=32).contains(&stream.channels))
+        {
+            return Err(VideoError::InvalidProbe("invalid audio metadata".into()));
+        }
     }
     Ok(())
 }
@@ -245,6 +255,24 @@ pub fn select_video_stream(metadata: &ContainerMetadata) -> Result<&StreamMetada
                 .then_with(|| right.index.cmp(&left.index))
         })
         .ok_or(VideoError::NoVideoStream)
+}
+
+/// Select the default audio stream first, then channel/sample-rate quality and stable index.
+pub fn select_audio_stream(metadata: &ContainerMetadata) -> Result<&StreamMetadata, VideoError> {
+    metadata
+        .streams
+        .iter()
+        .filter(|stream| stream.kind == StreamKind::Audio)
+        .max_by(|left, right| {
+            left.default
+                .cmp(&right.default)
+                .then(left.channels.cmp(&right.channels))
+                .then(left.sample_rate.cmp(&right.sample_rate))
+                .then_with(|| right.index.cmp(&left.index))
+        })
+        .ok_or(VideoError::InvalidProbe(
+            "no usable audio stream was found".into(),
+        ))
 }
 
 fn frame_rate_score(stream: &StreamMetadata) -> u64 {
@@ -525,6 +553,8 @@ mod tests {
             width,
             height,
             frame_rate: Some(Timebase::new(1, 60).unwrap()),
+            sample_rate: 0,
+            channels: 0,
             color: ColorMetadata::default(),
         }
     }

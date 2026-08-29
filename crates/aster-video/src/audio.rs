@@ -216,6 +216,8 @@ mod tests {
             width: 0,
             height: 0,
             frame_rate: None,
+            sample_rate: 48_000,
+            channels: 2,
             color: ColorMetadata::default(),
         }
     }
