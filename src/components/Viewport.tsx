@@ -39,6 +39,7 @@ import { createDefaultBezierPath } from "../renderer/vector-path";
 import { WebGpuRenderer } from "../renderer/webgpu-renderer";
 import { useEditor } from "../state/editor-store";
 import { hitTestViewportTransform } from "../viewport/transform-interaction";
+import { resolveWorkspaceViewerComposition } from "../workspace/viewer-context";
 import { CameraGizmo } from "./CameraGizmo";
 import { useContextMenuTrigger } from "./context-menu/use-context-menu-trigger";
 import { Panel } from "./Panel";
@@ -46,14 +47,25 @@ import { ViewportContextMenu } from "./ViewportContextMenu";
 import { ViewportTransformControls } from "./ViewportTransformControls";
 import { WorkspaceDialog } from "./WorkspaceDialog";
 import { useWorkspaceApi } from "./workspace/DockWorkspace";
+import { useWorkspaceViewerIdentity } from "./workspace/WorkspaceViewerIdentity";
 
 type Renderer = WebGpuRenderer | CanvasFallbackRenderer;
+
+// Split viewers share these window-level commands. Claim each dispatched event once so
+// the first ready surface becomes the bounded render host instead of every canvas
+// opening an identical session or benchmark concurrently.
+const claimedRenderSessionEvents = new WeakSet<Event>();
+const claimedGpuBenchmarkEvents = new WeakSet<Event>();
 
 export function Viewport() {
   const { state, dispatch } = useEditor();
   const workspace = useWorkspaceApi();
   const { t } = useI18n();
-  const composition = activeComposition(state.project);
+  const viewerIdentity = useWorkspaceViewerIdentity();
+  const { composition, readOnly: viewerReadOnly } = resolveWorkspaceViewerComposition(
+    state.project,
+    viewerIdentity,
+  );
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const mirrorCanvasRef = useRef<HTMLCanvasElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -105,10 +117,10 @@ export function Viewport() {
     .map((layer) => layer.id);
   const compositionCrop = useMemo(
     () =>
-      contextMenu.point
+      contextMenu.point && !viewerReadOnly
         ? planCompositionCrop(composition, state.selection, state.currentTime)
         : undefined,
-    [composition, contextMenu.point, state.currentTime, state.selection],
+    [composition, contextMenu.point, state.currentTime, state.selection, viewerReadOnly],
   );
   const editingTextLayer =
     editingTextLayerId === selectedLayer?.id && selectedLayer?.kind === "text"
@@ -179,7 +191,10 @@ export function Viewport() {
         return new CanvasFallbackRenderer(canvas);
       })
       .then((renderer) => {
-        if (cancelled) return;
+        if (cancelled) {
+          disposeRenderer(renderer);
+          return;
+        }
         logger.info("viewport", "renderer_ready", {
           backend: renderer instanceof WebGpuRenderer ? "webgpu" : "canvas2d",
           adapter: renderer.diagnostics.adapter,
@@ -196,6 +211,10 @@ export function Viewport() {
     return () => {
       cancelled = true;
       observer.disconnect();
+      const renderer = rendererRef.current;
+      rendererRef.current = undefined;
+      beautyPipelineRef.current = undefined;
+      disposeRenderer(renderer);
     };
   }, [resize]);
 
@@ -258,13 +277,19 @@ export function Viewport() {
   useEffect(() => {
     const openRenderSession = (event: Event) => {
       const request = event as CustomEvent<FrameRenderSessionOpenRequest>;
+      if (claimedRenderSessionEvents.has(event)) return;
       const canvas = canvasRef.current;
       const renderer = rendererRef.current;
       const pipeline = beautyPipelineRef.current;
-      if (!canvas || !renderer || !pipeline) {
-        request.detail.reject(new Error("Renderer did not open a frame session"));
+      if (!canvas || !renderer || !pipeline || renderSessionGuardRef.current.active) {
+        queueMicrotask(() => {
+          if (claimedRenderSessionEvents.has(event)) return;
+          claimedRenderSessionEvents.add(event);
+          request.detail.reject(new Error("Renderer did not open a frame session"));
+        });
         return;
       }
+      claimedRenderSessionEvents.add(event);
       const previewWidth = canvas.width;
       const previewHeight = canvas.height;
       const renderProject = request.detail.options?.project ?? state.project;
@@ -357,20 +382,27 @@ export function Viewport() {
     let running = false;
     const runBenchmark = (event: Event) => {
       const request = event as CustomEvent<GpuBenchmarkRequest>;
+      if (claimedGpuBenchmarkEvents.has(event)) return;
       const canvas = canvasRef.current;
       const renderer = rendererRef.current;
       if (!canvas || !renderer || running || renderSessionGuardRef.current.active) {
-        request.detail.resolve();
+        queueMicrotask(() => {
+          if (claimedGpuBenchmarkEvents.has(event)) return;
+          claimedGpuBenchmarkEvents.add(event);
+          request.detail.resolve();
+        });
         return;
       }
+      claimedGpuBenchmarkEvents.add(event);
       const lease = renderSessionGuardRef.current.acquire(() => undefined);
       running = true;
       const benchmarkStartedAt = performance.now();
+      const benchmarkComposition = activeComposition(state.project);
       logger.info("gpu_benchmark", "started", { sampleFrames: request.detail.sampleFrames });
       void runGpuBenchmark(
         renderer,
         canvas,
-        composition,
+        benchmarkComposition,
         state.project,
         state.currentTime,
         renderer.diagnostics.adapter,
@@ -400,13 +432,21 @@ export function Viewport() {
     };
     window.addEventListener("aster:run-gpu-benchmark", runBenchmark);
     return () => window.removeEventListener("aster:run-gpu-benchmark", runBenchmark);
-  }, [composition, resize, state.currentTime, state.project]);
+  }, [resize, state.currentTime, state.project]);
 
   useEffect(() => {
     if (editingTextLayerId) textEditorRef.current?.focus();
   }, [editingTextLayerId]);
 
+  useEffect(() => {
+    if (!viewerReadOnly) return;
+    textEditRef.current = undefined;
+    setEditingTextLayerId(undefined);
+    setCompositionSettingsOpen(false);
+  }, [viewerReadOnly]);
+
   const beginTextEditing = (layerId: string) => {
+    if (viewerReadOnly) return;
     const layer = composition.layers.find((candidate) => candidate.id === layerId);
     if (layer?.kind !== "text" || layer.locked) return;
     textEditRef.current = {
@@ -564,6 +604,7 @@ export function Viewport() {
         onContextMenu={contextMenu.openFromPointer}
         onKeyDown={contextMenu.openFromKeyboard}
         onPointerDown={(event) => {
+          if (viewerReadOnly && event.button === 0 && state.activeTool !== "hand") return;
           if (
             event.button === 0 &&
             ["shape", "ellipse", "pen", "text", "3d"].includes(state.activeTool)
@@ -680,7 +721,7 @@ export function Viewport() {
                 <span />
               </div>
             )}
-            {state.showLayerControls ? (
+            {state.showLayerControls && !viewerReadOnly ? (
               <ViewportTransformControls
                 activeTool={state.activeTool}
                 composition={composition}
@@ -693,7 +734,7 @@ export function Viewport() {
                 zoom={displayZoom}
               />
             ) : null}
-            {editingTextLayer && selectedTransform && (
+            {!viewerReadOnly && editingTextLayer && selectedTransform && (
               <textarea
                 aria-label={t("viewport.editText", { name: editingTextLayer.name })}
                 className="viewport-text-editor"
@@ -742,16 +783,19 @@ export function Viewport() {
                 value={editingTextLayer.text ?? ""}
               />
             )}
-            {state.showLayerControls && selectedLayer?.kind === "camera" && selectedTransform && (
-              <CameraGizmo
-                activeTool={state.activeTool === "rotate" ? "rotate" : "select"}
-                dispatch={dispatch}
-                layer={selectedLayer}
-                project={state.project}
-                transform={selectedTransform}
-                zoom={displayZoom}
-              />
-            )}
+            {state.showLayerControls &&
+              !viewerReadOnly &&
+              selectedLayer?.kind === "camera" &&
+              selectedTransform && (
+                <CameraGizmo
+                  activeTool={state.activeTool === "rotate" ? "rotate" : "select"}
+                  dispatch={dispatch}
+                  layer={selectedLayer}
+                  project={state.project}
+                  transform={selectedTransform}
+                  zoom={displayZoom}
+                />
+              )}
             {state.showOrigin && (
               <div className="viewport-origin">
                 <span className="axis x" />
@@ -781,10 +825,11 @@ export function Viewport() {
             typeof ClipboardItem !== "undefined" &&
             typeof navigator.clipboard?.write === "function"
           }
+          canEditComposition={!viewerReadOnly}
           canCropComposition={Boolean(compositionCrop)}
           canExportFrame={rendererReady}
-          canInvertSelection={state.selection.length > 0}
-          canSelectChildren={childLayerIds.length > 0}
+          canInvertSelection={!viewerReadOnly && state.selection.length > 0}
+          canSelectChildren={!viewerReadOnly && childLayerIds.length > 0}
           copyFrame={copyFrame}
           copyUnavailableReason={
             rendererReady
@@ -807,7 +852,9 @@ export function Viewport() {
             });
           }}
           onClose={contextMenu.close}
-          openCompositionSettings={() => setCompositionSettingsOpen(true)}
+          openCompositionSettings={() => {
+            if (!viewerReadOnly) setCompositionSettingsOpen(true);
+          }}
           previewQuality={state.previewQuality}
           revealComposition={() => {
             dispatch({ type: "setLeftTab", tab: "project" });
@@ -1047,4 +1094,8 @@ function compositionContainsVideo(
     );
     return source ? compositionContainsVideo(source, project, visited) : false;
   });
+}
+
+function disposeRenderer(renderer: Renderer | undefined): void {
+  renderer?.dispose();
 }

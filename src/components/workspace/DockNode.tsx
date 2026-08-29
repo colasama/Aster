@@ -31,6 +31,26 @@ export interface DockNodeProps {
   readonly onFloatPanel: (panelId: string, bounds: DOMRect) => void;
   readonly onHover: (groupId: string) => void;
   readonly onMaximize: (groupId: string) => void;
+  readonly onSetPresentation: (groupId: string, presentation: "tabs" | "stacked") => void;
+  readonly onToggleStackPanel: (
+    groupId: string,
+    panelId: string,
+    simultaneous: boolean,
+    toggleSolo: boolean,
+  ) => void;
+  readonly onToggleStackSolo: (groupId: string) => void;
+  readonly onToggleViewerLock: (
+    panelId: string,
+    sourcePanelId: string,
+    viewerType: string,
+    locked: boolean,
+  ) => void;
+  readonly onCreateViewer: (
+    panelId: string,
+    sourcePanelId: string,
+    viewerType: string,
+    split: boolean,
+  ) => void;
   readonly onMoveGroup: (
     sourceGroupId: string,
     targetGroupId: string,
@@ -68,6 +88,11 @@ export function DockNode(props: DockNodeProps) {
       onFloatPanel={props.onFloatPanel}
       onHover={props.onHover}
       onMaximize={props.onMaximize}
+      onSetPresentation={props.onSetPresentation}
+      onToggleStackPanel={props.onToggleStackPanel}
+      onToggleStackSolo={props.onToggleStackSolo}
+      onToggleViewerLock={props.onToggleViewerLock}
+      onCreateViewer={props.onCreateViewer}
       onMoveGroup={props.onMoveGroup}
       onMovePanel={props.onMovePanel}
       onTabDrop={props.onTabDrop}

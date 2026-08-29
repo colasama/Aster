@@ -4,15 +4,18 @@ import {
   type WorkspaceBounds,
   type WorkspaceLayout,
   type WorkspaceNode,
+  type WorkspaceViewerInstance,
 } from "./layout";
 
-export const CURRENT_WORKSPACE_LAYOUT_VERSION = 1 as const;
+export const CURRENT_WORKSPACE_LAYOUT_VERSION = 2 as const;
 
 export interface WorkspaceLayoutDocument {
   readonly schemaVersion: typeof CURRENT_WORKSPACE_LAYOUT_VERSION;
   readonly root: WorkspaceNode | null;
   readonly floating: readonly FloatingWorkspace[];
   readonly closedPanels: readonly string[];
+  readonly maximizedGroupId?: string;
+  readonly viewers: readonly WorkspaceViewerInstance[];
 }
 
 const MAX_NODES = 256;
@@ -45,6 +48,14 @@ export function serializeWorkspaceLayout(layout: WorkspaceLayout): WorkspaceLayo
       ...(entry.displayId ? { displayId: entry.displayId } : {}),
     })),
     closedPanels: [...normalized.closedPanels],
+    ...(normalized.maximizedGroupId ? { maximizedGroupId: normalized.maximizedGroupId } : {}),
+    viewers: (normalized.viewers ?? []).map((viewer) => ({
+      id: viewer.id,
+      sourcePanelId: viewer.sourcePanelId,
+      viewerType: viewer.viewerType,
+      // Adobe does not persist project-bound locked viewers in workspace preferences.
+      locked: false,
+    })),
   };
 }
 
@@ -76,7 +87,20 @@ export function deserializeWorkspaceLayout(
     const closedPanels = closedValue.map((panelId, index) =>
       requireId(panelId, `closedPanels[${index}]`),
     );
-    return normalizeWorkspaceLayout({ root, floating, closedPanels });
+    const maximizedGroupId =
+      document.maximizedGroupId === undefined
+        ? undefined
+        : requireId(document.maximizedGroupId, "maximizedGroupId");
+    const viewersValue = requireArray(document.viewers, "viewers");
+    if (viewersValue.length > MAX_PANELS) throw new InvalidWorkspaceLayout("Too many viewers");
+    const viewers = viewersValue.map((viewer, index) => decodeViewer(viewer, index));
+    return normalizeWorkspaceLayout({
+      root,
+      floating,
+      closedPanels,
+      ...(maximizedGroupId ? { maximizedGroupId } : {}),
+      ...(viewers.length > 0 ? { viewers } : {}),
+    });
   } catch {
     return normalizedFallback;
   }
@@ -89,7 +113,7 @@ function migrateDocument(value: unknown): Record<string, unknown> {
     throw new InvalidWorkspaceLayout("Invalid workspace schema version");
   if (Number(version) > CURRENT_WORKSPACE_LAYOUT_VERSION)
     throw new InvalidWorkspaceLayout("Future workspace schema version");
-  if (Number(version) === 0) return { ...source, schemaVersion: 1 };
+  if (Number(version) <= 1) return { ...source, schemaVersion: 2, viewers: source.viewers ?? [] };
   return source;
 }
 
@@ -113,7 +137,29 @@ function decodeNode(value: unknown, state: DecodeState, depth: number): Workspac
     const activePanelId = requireId(source.activePanelId, `tab group ${id}.activePanelId`);
     if (!panels.includes(activePanelId))
       throw new InvalidWorkspaceLayout("The active panel is not in its tab group");
-    return { kind: "tabGroup", id, panels, activePanelId };
+    const presentation = source.presentation === undefined ? undefined : source.presentation;
+    if (presentation !== undefined && presentation !== "tabs" && presentation !== "stacked")
+      throw new InvalidWorkspaceLayout("Invalid tab group presentation");
+    if (presentation !== "stacked") return { kind: "tabGroup", id, panels, activePanelId };
+    if (source.stackSolo !== undefined && typeof source.stackSolo !== "boolean")
+      throw new InvalidWorkspaceLayout("Invalid stack solo state");
+    const expandedValue = requireArray(source.expandedPanelIds ?? [], `tab group ${id}.expanded`);
+    if (expandedValue.length > panels.length)
+      throw new InvalidWorkspaceLayout("Too many expanded stack panels");
+    const expandedPanelIds = expandedValue.map((panelId, index) =>
+      requireId(panelId, `tab group ${id}.expanded[${index}]`),
+    );
+    if (expandedPanelIds.some((panelId) => !panels.includes(panelId)))
+      throw new InvalidWorkspaceLayout("Expanded stack panel is not in its group");
+    return {
+      kind: "tabGroup",
+      id,
+      panels,
+      activePanelId,
+      presentation: "stacked",
+      stackSolo: source.stackSolo !== false,
+      expandedPanelIds,
+    };
   }
   if (source.kind !== "split") throw new InvalidWorkspaceLayout("Unknown workspace node kind");
   if (source.axis !== "horizontal" && source.axis !== "vertical")
@@ -127,6 +173,23 @@ function decodeNode(value: unknown, state: DecodeState, depth: number): Workspac
     ratio,
     first: decodeNode(source.first, state, depth + 1),
     second: decodeNode(source.second, state, depth + 1),
+  };
+}
+
+function decodeViewer(value: unknown, index: number): WorkspaceViewerInstance {
+  const source = requireRecord(value, `viewers[${index}]`);
+  if (typeof source.locked !== "boolean")
+    throw new InvalidWorkspaceLayout(`viewers[${index}].locked must be a boolean`);
+  const contextId =
+    source.contextId === undefined
+      ? undefined
+      : requireId(source.contextId, `viewers[${index}].contextId`);
+  return {
+    id: requireId(source.id, `viewers[${index}].id`),
+    sourcePanelId: requireId(source.sourcePanelId, `viewers[${index}].sourcePanelId`),
+    viewerType: requireId(source.viewerType, `viewers[${index}].viewerType`),
+    locked: source.locked,
+    ...(source.locked && contextId ? { contextId } : {}),
   };
 }
 
@@ -169,7 +232,11 @@ function decodeBounds(value: unknown, path: string): WorkspaceBounds {
 
 function cloneNode(node: WorkspaceNode): WorkspaceNode {
   return node.kind === "tabGroup"
-    ? { ...node, panels: [...node.panels] }
+    ? {
+        ...node,
+        panels: [...node.panels],
+        ...(node.expandedPanelIds ? { expandedPanelIds: [...node.expandedPanelIds] } : {}),
+      }
     : {
         ...node,
         first: cloneNode(node.first),

@@ -34,7 +34,12 @@ function Studio() {
   const workspacePanels = useMemo<readonly WorkspacePanelDefinition[]>(
     () => [
       { id: "project", label: t("workspace.panel.project"), element: <ProjectPanel /> },
-      { id: "viewport", label: t("workspace.panel.viewport"), element: <Viewport /> },
+      {
+        id: "viewport",
+        label: t("workspace.panel.viewport"),
+        element: <Viewport />,
+        viewerType: "composition",
+      },
       { id: "inspector", label: t("workspace.panel.inspector"), element: <Inspector /> },
       {
         id: "timeline",
@@ -107,7 +112,7 @@ function Studio() {
   return (
     <main className="aster-studio">
       <TopBar />
-      <DockWorkspace panels={workspacePanels} />
+      <DockWorkspace panels={workspacePanels} viewerContextId={state.project.activeCompositionId} />
       <footer className="status-bar">
         <span>
           <i className="status-dot" /> {t("app.status.ready")}

@@ -62,6 +62,74 @@ describe("workspace layout persistence", () => {
     ).toEqual(defaultLayout());
   });
 
+  it("migrates a valid version-one workspace without presentation or viewers", () => {
+    const current = serializeWorkspaceLayout(defaultLayout());
+    const { viewers: _viewers, ...versionOne } = current;
+    expect(
+      deserializeWorkspaceLayout(
+        { ...versionOne, schemaVersion: 1 },
+        {
+          root: null,
+          floating: [],
+          closedPanels: [],
+        },
+      ),
+    ).toEqual(defaultLayout());
+  });
+
+  it("round-trips stack and maximize state while unbinding locked viewer project context", () => {
+    const layout: WorkspaceLayout = {
+      ...defaultLayout(),
+      root: {
+        kind: "tabGroup",
+        id: "viewer-tabs",
+        panels: ["viewport", "viewport::viewer-2"],
+        activePanelId: "viewport",
+        presentation: "stacked",
+        stackSolo: false,
+        expandedPanelIds: ["viewport", "viewport::viewer-2"],
+      },
+      maximizedGroupId: "viewer-tabs",
+      viewers: [
+        {
+          id: "viewport",
+          sourcePanelId: "viewport",
+          viewerType: "composition",
+          locked: true,
+          contextId: "project-local-composition",
+        },
+        {
+          id: "viewport::viewer-2",
+          sourcePanelId: "viewport",
+          viewerType: "composition",
+          locked: false,
+        },
+      ],
+    };
+    const document = serializeWorkspaceLayout(layout);
+    expect(document).toMatchObject({
+      schemaVersion: 2,
+      maximizedGroupId: "viewer-tabs",
+      viewers: [
+        { id: "viewport", locked: false },
+        { id: "viewport::viewer-2", locked: false },
+      ],
+    });
+    expect(document.viewers[0]).not.toHaveProperty("contextId");
+    expect(deserializeWorkspaceLayout(document, defaultLayout())).toMatchObject({
+      root: {
+        presentation: "stacked",
+        stackSolo: false,
+        expandedPanelIds: ["viewport", "viewport::viewer-2"],
+      },
+      maximizedGroupId: "viewer-tabs",
+      viewers: [
+        { id: "viewport", locked: false },
+        { id: "viewport::viewer-2", locked: false },
+      ],
+    });
+  });
+
   it("normalizes bounded recoverable values after decoding", () => {
     const document = serializeWorkspaceLayout(defaultLayout());
     const source = structuredClone(document) as {

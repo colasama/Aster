@@ -98,6 +98,7 @@ export interface DesktopDisplayMetrics {
   deviceScaleFactor: number;
   effectiveScaleFactor: number;
   uiScale: UiScale;
+  currentDisplayId?: string;
 }
 
 export type DesktopRenderQueueCommand =

@@ -1,4 +1,13 @@
-import { ExternalLink, GripVertical, Maximize2, Minimize2, X } from "lucide-react";
+import {
+  Columns2,
+  ExternalLink,
+  GripVertical,
+  Lock,
+  Maximize2,
+  Minimize2,
+  Unlock,
+  X,
+} from "lucide-react";
 import {
   type DragEvent,
   type KeyboardEvent,
@@ -17,6 +26,7 @@ import type {
 import { ContextMenu } from "../context-menu/ContextMenu";
 import type { ContextMenuItem } from "../context-menu/context-menu-model";
 import { DropZones } from "./DropZones";
+import { StackedPanelGroup } from "./StackedPanelGroup";
 import { WorkspacePanelHostContext } from "./WorkspacePanelHost";
 import type { WorkspacePanelDefinition } from "./workspace-types";
 
@@ -43,6 +53,26 @@ interface DockGroupProps {
   readonly onFloatPanel: (panelId: string, bounds: DOMRect) => void;
   readonly onHover: (groupId: string) => void;
   readonly onMaximize: (groupId: string) => void;
+  readonly onSetPresentation: (groupId: string, presentation: "tabs" | "stacked") => void;
+  readonly onToggleStackPanel: (
+    groupId: string,
+    panelId: string,
+    simultaneous: boolean,
+    toggleSolo: boolean,
+  ) => void;
+  readonly onToggleStackSolo: (groupId: string) => void;
+  readonly onToggleViewerLock: (
+    panelId: string,
+    sourcePanelId: string,
+    viewerType: string,
+    locked: boolean,
+  ) => void;
+  readonly onCreateViewer: (
+    panelId: string,
+    sourcePanelId: string,
+    viewerType: string,
+    split: boolean,
+  ) => void;
   readonly onMoveGroup: (
     sourceGroupId: string,
     targetGroupId: string,
@@ -76,6 +106,11 @@ export function DockGroup({
   onFloatPanel,
   onHover,
   onMaximize,
+  onSetPresentation,
+  onToggleStackPanel,
+  onToggleStackSolo,
+  onToggleViewerLock,
+  onCreateViewer,
   onMoveGroup,
   onMovePanel,
   onTabDrop,
@@ -97,6 +132,7 @@ export function DockGroup({
     readonly bounds: DOMRect;
   }>();
   const active = panels.get(group.activePanelId);
+  const viewer = active?.viewerIdentity;
   const location = groups.find((candidate) => candidate.group.id === group.id);
   const floating = Boolean(location?.floatingId);
   const openContextMenu = (event: MouseEvent, kind: "group" | "panel", panelId?: string) => {
@@ -189,67 +225,108 @@ export function DockGroup({
         >
           <GripVertical size={12} />
         </button>
-        <div
-          aria-label={t("workspace.panelTabs")}
-          className="workspace-tabs"
-          onWheel={onTabWheel}
-          role="tablist"
-        >
-          {group.panels.map((panelId, tabIndex) => {
-            const panel = panels.get(panelId);
-            if (!panel) return null;
-            const selected = panelId === group.activePanelId;
-            return (
-              <button
-                aria-controls={`workspace-panel-${groupDomId}`}
-                aria-selected={selected}
-                className={`${selected ? "active" : ""} ${
-                  tabDrop?.tabIndex === tabIndex ? `drop-${tabDrop.side}` : ""
-                }`}
-                draggable
-                id={`workspace-tab-${groupDomId}-${domId(panelId)}`}
-                key={panelId}
-                onClick={() => onActivate(group.id, panelId)}
-                onDragEnd={() => {
-                  setTabDrop(undefined);
-                  onDragChange(null);
-                }}
-                onDragOver={(event) => {
-                  if (drag?.kind !== "panel") return;
-                  event.preventDefault();
-                  event.stopPropagation();
-                  const bounds = event.currentTarget.getBoundingClientRect();
-                  const side = event.clientX < bounds.left + bounds.width / 2 ? "before" : "after";
-                  setTabDrop({
-                    panelId: drag.panelId,
-                    tabIndex,
-                    slot: tabIndex + (side === "after" ? 1 : 0),
-                    side,
-                  });
-                }}
-                onDragStart={(event) => startDrag(event, { kind: "panel", panelId })}
-                onDrop={(event) => {
-                  if (!tabDrop || drag?.kind !== "panel") return;
-                  event.preventDefault();
-                  event.stopPropagation();
-                  onTabDrop(tabDrop.panelId, group.id, tabDrop.slot);
-                  setTabDrop(undefined);
-                  onDragChange(null);
-                }}
-                onKeyDown={(event) => onTabKeyDown(event, panelId)}
-                onContextMenu={(event) => openContextMenu(event, "panel", panelId)}
-                role="tab"
-                tabIndex={selected ? 0 : -1}
-                title={panel.label}
-                type="button"
-              >
-                {panel.label}
-              </button>
-            );
-          })}
-        </div>
+        {group.presentation === "stacked" ? (
+          <div className="workspace-stack-group-title">{active?.label}</div>
+        ) : (
+          <div
+            aria-label={t("workspace.panelTabs")}
+            className="workspace-tabs"
+            onWheel={onTabWheel}
+            role="tablist"
+          >
+            {group.panels.map((panelId, tabIndex) => {
+              const panel = panels.get(panelId);
+              if (!panel) return null;
+              const selected = panelId === group.activePanelId;
+              return (
+                <button
+                  aria-controls={`workspace-panel-${groupDomId}`}
+                  aria-selected={selected}
+                  className={`${selected ? "active" : ""} ${
+                    tabDrop?.tabIndex === tabIndex ? `drop-${tabDrop.side}` : ""
+                  }`}
+                  draggable
+                  id={`workspace-tab-${groupDomId}-${domId(panelId)}`}
+                  key={panelId}
+                  onClick={() => onActivate(group.id, panelId)}
+                  onDragEnd={() => {
+                    setTabDrop(undefined);
+                    onDragChange(null);
+                  }}
+                  onDragOver={(event) => {
+                    if (drag?.kind !== "panel") return;
+                    event.preventDefault();
+                    event.stopPropagation();
+                    const bounds = event.currentTarget.getBoundingClientRect();
+                    const side =
+                      event.clientX < bounds.left + bounds.width / 2 ? "before" : "after";
+                    setTabDrop({
+                      panelId: drag.panelId,
+                      tabIndex,
+                      slot: tabIndex + (side === "after" ? 1 : 0),
+                      side,
+                    });
+                  }}
+                  onDragStart={(event) => startDrag(event, { kind: "panel", panelId })}
+                  onDrop={(event) => {
+                    if (!tabDrop || drag?.kind !== "panel") return;
+                    event.preventDefault();
+                    event.stopPropagation();
+                    onTabDrop(tabDrop.panelId, group.id, tabDrop.slot);
+                    setTabDrop(undefined);
+                    onDragChange(null);
+                  }}
+                  onKeyDown={(event) => onTabKeyDown(event, panelId)}
+                  onContextMenu={(event) => openContextMenu(event, "panel", panelId)}
+                  role="tab"
+                  tabIndex={selected ? 0 : -1}
+                  title={panel.label}
+                  type="button"
+                >
+                  {panel.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
         <div className="workspace-panel-header-host" ref={setHeaderHost} />
         <div className="workspace-group-actions">
+          {viewer ? (
+            <>
+              <button
+                aria-label={
+                  viewer.locked ? t("workspace.viewer.unlock") : t("workspace.viewer.lock")
+                }
+                onClick={() =>
+                  onToggleViewerLock(
+                    viewer.id,
+                    viewer.sourcePanelId,
+                    viewer.viewerType,
+                    !viewer.locked,
+                  )
+                }
+                title={viewer.locked ? t("workspace.viewer.unlock") : t("workspace.viewer.lock")}
+                type="button"
+              >
+                {viewer.locked ? <Lock size={11} /> : <Unlock size={11} />}
+              </button>
+              <button
+                aria-label={t("workspace.viewer.split")}
+                disabled={!active?.viewerCanCreate}
+                onClick={() =>
+                  onCreateViewer(viewer.id, viewer.sourcePanelId, viewer.viewerType, true)
+                }
+                title={
+                  active?.viewerCanCreate
+                    ? t("workspace.viewer.split")
+                    : t("workspace.viewer.limit")
+                }
+                type="button"
+              >
+                <Columns2 size={11} />
+              </button>
+            </>
+          ) : null}
           <button
             aria-label={floating ? t("workspace.dockGroup") : t("workspace.floatGroup")}
             onClick={(event) => {
@@ -284,18 +361,32 @@ export function DockGroup({
           </button>
         </div>
       </header>
-      <div
-        aria-labelledby={activeTabId}
-        className="workspace-group-content"
-        id={`workspace-panel-${groupDomId}`}
-        role="tabpanel"
-      >
-        {active ? (
-          <WorkspacePanelHostContext.Provider value={{ headerHost }}>
-            {active.element}
-          </WorkspacePanelHostContext.Provider>
-        ) : null}
-      </div>
+      {group.presentation === "stacked" ? (
+        <StackedPanelGroup
+          group={group}
+          onActivate={(panelId) => onActivate(group.id, panelId)}
+          onClose={onClose}
+          onContextMenu={(event, panelId) => openContextMenu(event, "panel", panelId)}
+          onDragChange={onDragChange}
+          onToggle={(panelId, simultaneous, toggleSolo) =>
+            onToggleStackPanel(group.id, panelId, simultaneous, toggleSolo)
+          }
+          panels={panels}
+        />
+      ) : (
+        <div
+          aria-labelledby={activeTabId}
+          className="workspace-group-content"
+          id={`workspace-panel-${groupDomId}`}
+          role="tabpanel"
+        >
+          {active ? (
+            <WorkspacePanelHostContext.Provider value={{ headerHost }}>
+              {active.element}
+            </WorkspacePanelHostContext.Provider>
+          ) : null}
+        </div>
+      )}
       {drag ? <DropZones onDrop={(position) => onDrop(drag, group.id, position)} /> : null}
       <ContextMenu
         ariaLabel={t("workspace.contextMenu")}
@@ -317,6 +408,10 @@ export function DockGroup({
                 onFloat,
                 onFloatPanel,
                 onMaximize,
+                onSetPresentation,
+                onToggleStackSolo,
+                onToggleViewerLock,
+                onCreateViewer,
                 onMoveGroup,
                 onMovePanel,
                 onUndo,
@@ -358,6 +453,20 @@ interface WorkspaceContextMenuOptions {
   readonly onFloat: (groupId: string, bounds: DOMRect) => void;
   readonly onFloatPanel: (panelId: string, bounds: DOMRect) => void;
   readonly onMaximize: (groupId: string) => void;
+  readonly onSetPresentation: (groupId: string, presentation: "tabs" | "stacked") => void;
+  readonly onToggleStackSolo: (groupId: string) => void;
+  readonly onToggleViewerLock: (
+    panelId: string,
+    sourcePanelId: string,
+    viewerType: string,
+    locked: boolean,
+  ) => void;
+  readonly onCreateViewer: (
+    panelId: string,
+    sourcePanelId: string,
+    viewerType: string,
+    split: boolean,
+  ) => void;
   readonly onMoveGroup: (
     sourceGroupId: string,
     targetGroupId: string,
@@ -373,6 +482,8 @@ interface WorkspaceContextMenuOptions {
 
 function workspaceContextMenuItems(options: WorkspaceContextMenuOptions): ContextMenuItem[] {
   const { bounds, canUndo, floating, group, groups, kind, maximized, panelId, panels, t } = options;
+  const panel = panels.get(panelId ?? group.activePanelId);
+  const viewer = panel?.viewerIdentity;
   const otherGroups = groups.filter((candidate) => candidate.group.id !== group.id);
   const panelMoveItems: ContextMenuItem[] = otherGroups.map((candidate) => ({
     id: `move-panel-${candidate.group.id}`,
@@ -458,6 +569,37 @@ function workspaceContextMenuItems(options: WorkspaceContextMenuOptions): Contex
       onSelect: () => options.onMaximize(group.id),
     },
     {
+      id: "group-presentation",
+      kind: "submenu",
+      label: t("workspace.menu.groupSettings"),
+      items: [
+        {
+          id: "presentation-tabs",
+          kind: "radio",
+          group: "workspace-presentation",
+          checked: group.presentation !== "stacked",
+          label: t("workspace.menu.tabbedGroup"),
+          onSelect: () => options.onSetPresentation(group.id, "tabs"),
+        },
+        {
+          id: "presentation-stacked",
+          kind: "radio",
+          group: "workspace-presentation",
+          checked: group.presentation === "stacked",
+          label: t("workspace.menu.stackedGroup"),
+          onSelect: () => options.onSetPresentation(group.id, "stacked"),
+        },
+        {
+          id: "stack-solo",
+          kind: "checkbox",
+          checked: group.stackSolo ?? true,
+          disabled: group.presentation !== "stacked",
+          label: t("workspace.menu.soloStack"),
+          onSelect: () => options.onToggleStackSolo(group.id),
+        },
+      ],
+    },
+    {
       id: "move-group",
       kind: "submenu",
       label: t("workspace.menu.moveToGroup"),
@@ -471,6 +613,43 @@ function workspaceContextMenuItems(options: WorkspaceContextMenuOptions): Contex
       disabled: kind === "panel" ? group.panels.length <= 1 : groupSplitItems.length === 0,
       items: kind === "panel" ? panelSplitItems : groupSplitItems,
     },
+    ...(viewer
+      ? ([
+          { id: "separator-viewer", kind: "separator" },
+          {
+            id: "viewer-lock",
+            kind: "checkbox",
+            checked: viewer.locked,
+            label: t("workspace.viewer.locked"),
+            onSelect: () =>
+              options.onToggleViewerLock(
+                viewer.id,
+                viewer.sourcePanelId,
+                viewer.viewerType,
+                !viewer.locked,
+              ),
+          },
+          {
+            id: "viewer-new",
+            kind: "command",
+            label: t("workspace.viewer.new"),
+            disabled: !panel?.viewerCanCreate,
+            disabledReason: t("workspace.viewer.limit"),
+            onSelect: () =>
+              options.onCreateViewer(viewer.id, viewer.sourcePanelId, viewer.viewerType, false),
+          },
+          {
+            id: "viewer-split",
+            kind: "command",
+            label: t("workspace.viewer.split"),
+            shortcut: "Ctrl Alt Shift N",
+            disabled: !panel?.viewerCanCreate,
+            disabledReason: t("workspace.viewer.limit"),
+            onSelect: () =>
+              options.onCreateViewer(viewer.id, viewer.sourcePanelId, viewer.viewerType, true),
+          },
+        ] satisfies ContextMenuItem[])
+      : []),
     { id: "separator-undo", kind: "separator" },
     {
       id: "undo-layout",

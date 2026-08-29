@@ -9,6 +9,7 @@ export interface ViewportContextMenuActions {
   bufferView: BufferVisualization;
   canCopyFrame: boolean;
   canCropComposition: boolean;
+  canEditComposition: boolean;
   canExportFrame: boolean;
   canInvertSelection: boolean;
   canSelectChildren: boolean;
@@ -48,13 +49,17 @@ export function viewportContextMenuItems(
 ): ContextMenuItem[] {
   const zooms = [0.25, 0.5, 1, 2] as const;
   return [
-    {
-      id: "composition-settings",
-      kind: "command",
-      label: t("viewport.menu.compositionSettings"),
-      shortcut: "Ctrl/Cmd+K",
-      onSelect: actions.openCompositionSettings,
-    },
+    ...(actions.canEditComposition
+      ? [
+          {
+            id: "composition-settings",
+            kind: "command" as const,
+            label: t("viewport.menu.compositionSettings"),
+            shortcut: "Ctrl/Cmd+K",
+            onSelect: actions.openCompositionSettings,
+          },
+        ]
+      : []),
     {
       id: "reveal-composition",
       kind: "command",

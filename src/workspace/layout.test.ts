@@ -4,6 +4,7 @@ import {
   closeGroup,
   closeOtherPanels,
   closePanel,
+  createViewer,
   dockGroup,
   dockGroupToRoot,
   dockPanel,
@@ -17,6 +18,11 @@ import {
   reopenPanel,
   resizeSplit,
   setFloatingBounds,
+  setGroupPresentation,
+  setViewerLock,
+  toggleMaximizedGroup,
+  toggleStackPanel,
+  toggleStackSolo,
   type WorkspaceLayout,
   type WorkspaceNode,
   workspacePanelIds,
@@ -303,5 +309,123 @@ describe("workspace layout", () => {
       ["timeline-tabs", undefined],
       ["inspector-tabs", "floating-1"],
     ]);
+  });
+
+  it("persists stacked presentation, solo expansion, and simultaneous stack toggles", () => {
+    const layout = nestedLayout();
+    const stacked = setGroupPresentation(layout, "project-tabs", "stacked");
+    expect(findWorkspaceNode(stacked, "project-tabs")).toMatchObject({
+      presentation: "stacked",
+      stackSolo: true,
+      expandedPanelIds: ["project"],
+    });
+    expect(
+      findWorkspaceNode(
+        toggleStackPanel(stacked, "project-tabs", "effects", false, true),
+        "project-tabs",
+      ),
+    ).toMatchObject({
+      activePanelId: "effects",
+      stackSolo: false,
+      expandedPanelIds: ["project", "effects"],
+    });
+
+    const soloed = toggleStackPanel(stacked, "project-tabs", "effects");
+    expect(findWorkspaceNode(soloed, "project-tabs")).toMatchObject({
+      activePanelId: "effects",
+      expandedPanelIds: ["effects"],
+    });
+    const allExpanded = toggleStackPanel(soloed, "project-tabs", "project", true);
+    expect(findWorkspaceNode(allExpanded, "project-tabs")).toMatchObject({
+      expandedPanelIds: ["project", "effects"],
+    });
+    const multi = toggleStackSolo(allExpanded, "project-tabs");
+    expect(findWorkspaceNode(multi, "project-tabs")).toMatchObject({ stackSolo: false });
+    const collapsedOne = toggleStackPanel(multi, "project-tabs", "effects");
+    expect(findWorkspaceNode(collapsedOne, "project-tabs")).toMatchObject({
+      expandedPanelIds: ["project"],
+    });
+    expect(
+      findWorkspaceNode(setGroupPresentation(collapsedOne, "project-tabs", "tabs"), "project-tabs"),
+    ).toEqual(tabGroup("project-tabs", ["project", "effects"], "effects"));
+  });
+
+  it("stores maximize in the layout and clears a stale maximized group during normalization", () => {
+    const layout = nestedLayout();
+    const maximized = toggleMaximizedGroup(layout, "viewport-tabs");
+    expect(maximized.maximizedGroupId).toBe("viewport-tabs");
+    expect(toggleMaximizedGroup(maximized, "viewport-tabs").maximizedGroupId).toBeUndefined();
+    const closed = closePanel(maximized, "viewport");
+    expect(normalizeWorkspaceLayout(closed).maximizedGroupId).toBeUndefined();
+  });
+
+  it("creates stable viewer identities and splits with opposite lock state", () => {
+    const layout = nestedLayout();
+    const locked = setViewerLock(
+      layout,
+      "viewport",
+      "viewport",
+      "composition",
+      true,
+      "composition-1",
+    );
+    expect(locked.viewers).toEqual([
+      {
+        id: "viewport",
+        sourcePanelId: "viewport",
+        viewerType: "composition",
+        locked: true,
+        contextId: "composition-1",
+      },
+    ]);
+    const split = createViewer(
+      locked,
+      "viewport",
+      "viewport",
+      "composition",
+      "composition-1",
+      true,
+    );
+    expect(split.viewers).toEqual([
+      {
+        id: "viewport",
+        sourcePanelId: "viewport",
+        viewerType: "composition",
+        locked: true,
+        contextId: "composition-1",
+      },
+      {
+        id: "viewport::viewer-2",
+        sourcePanelId: "viewport",
+        viewerType: "composition",
+        locked: false,
+      },
+    ]);
+    expect(findWorkspaceNode(split, "split-1")).toMatchObject({
+      axis: "horizontal",
+      first: { id: "viewport-tabs", panels: ["viewport"] },
+      second: { panels: ["viewport::viewer-2"] },
+    });
+    expect(workspacePanelIds(split)).toContain("viewport::viewer-2");
+  });
+
+  it("bounds live viewer instances per source so visible splits stay predictable", () => {
+    let layout = nestedLayout();
+    for (let index = 0; index < 3; index += 1)
+      layout = createViewer(layout, "viewport", "viewport", "composition", "composition-1", true);
+    expect(
+      workspacePanelIds(layout).filter(
+        (panelId) => panelId === "viewport" || panelId.startsWith("viewport::viewer-"),
+      ),
+    ).toHaveLength(4);
+    expect(createViewer(layout, "viewport", "viewport", "composition", "composition-1", true)).toBe(
+      layout,
+    );
+    const closed = closePanel(layout, "viewport::viewer-4");
+    expect(closed.closedPanels).not.toContain("viewport::viewer-4");
+    expect(closed.viewers?.some((viewer) => viewer.id === "viewport::viewer-4")).toBe(false);
+    expect(
+      createViewer(closed, "viewport", "viewport", "composition", "composition-1", true),
+    ).not.toBe(closed);
   });
 });

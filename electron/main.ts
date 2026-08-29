@@ -981,11 +981,13 @@ function applyUiScaleToWindow(window: BrowserWindow, scale: UiScale): void {
 
 function sendDisplayMetrics(window: BrowserWindow, scale: UiScale): void {
   if (window.isDestroyed() || window.webContents.isDestroyed()) return;
-  const deviceScaleFactor = screen.getDisplayMatching(window.getBounds()).scaleFactor;
+  const display = screen.getDisplayMatching(window.getBounds());
+  const deviceScaleFactor = display.scaleFactor;
   window.webContents.send("aster:display-metrics-changed", {
     deviceScaleFactor,
     effectiveScaleFactor: deviceScaleFactor * uiScaleFactor(scale),
     uiScale: scale,
+    currentDisplayId: String(display.id),
   });
 }
 
@@ -1042,11 +1044,16 @@ async function createWindow(
     display: Electron.Display,
     changedMetrics: string[],
   ) => {
-    if (!changedMetrics.includes("scaleFactor")) return;
+    if (!changedMetrics.some((metric) => ["bounds", "scaleFactor", "workArea"].includes(metric)))
+      return;
     const currentDisplay = screen.getDisplayMatching(window.getBounds());
     if (currentDisplay.id === display.id)
       sendDisplayMetrics(window, preferences.snapshot().uiScale);
   };
+  const handleDisplayTopologyChange = () =>
+    sendDisplayMetrics(window, preferences.snapshot().uiScale);
+  screen.on("display-added", handleDisplayTopologyChange);
+  screen.on("display-removed", handleDisplayTopologyChange);
   screen.on("display-metrics-changed", handleDisplayMetricsChange);
   window.on("maximize", sendMaximizedState);
   window.on("unmaximize", sendMaximizedState);
@@ -1079,6 +1086,8 @@ async function createWindow(
   });
   window.on("closed", () => {
     if (windowStateTimer) clearTimeout(windowStateTimer);
+    screen.removeListener("display-added", handleDisplayTopologyChange);
+    screen.removeListener("display-removed", handleDisplayTopologyChange);
     screen.removeListener("display-metrics-changed", handleDisplayMetricsChange);
     documentStates.delete(rendererId);
     closeAllowed.delete(window.id);

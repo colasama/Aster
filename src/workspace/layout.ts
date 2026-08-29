@@ -1,11 +1,26 @@
 export type WorkspaceAxis = "horizontal" | "vertical";
 export type WorkspaceDockPosition = "center" | "left" | "right" | "top" | "bottom";
+export type WorkspaceGroupPresentation = "tabs" | "stacked";
+
+export interface WorkspaceViewerInstance {
+  /** Stable identity for one viewer panel, also used as its layout panel id. */
+  readonly id: string;
+  /** Panel definition that supplies the viewer surface without copying project state. */
+  readonly sourcePanelId: string;
+  readonly viewerType: string;
+  readonly locked: boolean;
+  /** Project-local context. Locked contexts are intentionally not persisted. */
+  readonly contextId?: string;
+}
 
 export interface WorkspaceTabGroup {
   readonly kind: "tabGroup";
   readonly id: string;
   readonly panels: readonly string[];
   readonly activePanelId: string;
+  readonly presentation?: WorkspaceGroupPresentation;
+  readonly stackSolo?: boolean;
+  readonly expandedPanelIds?: readonly string[];
 }
 
 export interface WorkspaceSplit {
@@ -37,6 +52,8 @@ export interface WorkspaceLayout {
   readonly root: WorkspaceNode | null;
   readonly floating: readonly FloatingWorkspace[];
   readonly closedPanels: readonly string[];
+  readonly maximizedGroupId?: string;
+  readonly viewers?: readonly WorkspaceViewerInstance[];
 }
 
 export interface WorkspaceGroupLocation {
@@ -46,6 +63,7 @@ export interface WorkspaceGroupLocation {
 
 export const MIN_SPLIT_RATIO = 0.1;
 export const MAX_SPLIT_RATIO = 0.9;
+export const MAX_VIEWER_INSTANCES_PER_SOURCE = 4;
 
 const MIN_FLOATING_WIDTH = 160;
 const MIN_FLOATING_HEIGHT = 120;
@@ -109,13 +127,173 @@ export function normalizeWorkspaceLayout(layout: WorkspaceLayout): WorkspaceLayo
     .filter((panelId) => !context.panelIds.has(panelId))
     .sort(compareIds);
   const closedChanged = !sameStringArray(closedPanels, layout.closedPanels);
+  const maximizedGroupId =
+    layout.maximizedGroupId &&
+    findNodeInRoots(root, floating, layout.maximizedGroupId)?.kind === "tabGroup"
+      ? layout.maximizedGroupId
+      : undefined;
+  const viewers = normalizeViewers(layout.viewers ?? [], context.panelIds, closedPanels);
+  const viewersChanged = !sameViewers(viewers, layout.viewers ?? []);
   const rootChanged = root !== layout.root;
-  if (!rootChanged && !floatingChanged && !closedChanged) return layout;
+  if (
+    !rootChanged &&
+    !floatingChanged &&
+    !closedChanged &&
+    maximizedGroupId === layout.maximizedGroupId &&
+    !viewersChanged
+  )
+    return layout;
   return {
     root,
     floating: floatingChanged ? floating : layout.floating,
     closedPanels: closedChanged ? closedPanels : layout.closedPanels,
+    ...(maximizedGroupId ? { maximizedGroupId } : {}),
+    ...(viewers.length > 0 ? { viewers: viewersChanged ? viewers : layout.viewers } : {}),
   };
+}
+
+export function setGroupPresentation(
+  layout: WorkspaceLayout,
+  groupId: string,
+  presentation: WorkspaceGroupPresentation,
+): WorkspaceLayout {
+  return (
+    replaceNodeInLayout(layout, groupId, (node) => {
+      if (node.kind !== "tabGroup") return node;
+      const current = node.presentation ?? "tabs";
+      if (current === presentation) return node;
+      if (presentation === "tabs") {
+        const {
+          expandedPanelIds: _expanded,
+          presentation: _presentation,
+          stackSolo: _solo,
+          ...group
+        } = node;
+        return group;
+      }
+      return {
+        ...node,
+        presentation,
+        stackSolo: true,
+        expandedPanelIds: [node.activePanelId],
+      };
+    }) ?? layout
+  );
+}
+
+export function toggleStackSolo(layout: WorkspaceLayout, groupId: string): WorkspaceLayout {
+  return (
+    replaceNodeInLayout(layout, groupId, (node) => {
+      if (node.kind !== "tabGroup" || node.presentation !== "stacked") return node;
+      const stackSolo = !(node.stackSolo ?? true);
+      const expandedPanelIds = stackSolo
+        ? [node.activePanelId]
+        : normalizedExpandedPanels(node, node.expandedPanelIds);
+      return { ...node, stackSolo, expandedPanelIds };
+    }) ?? layout
+  );
+}
+
+export function toggleStackPanel(
+  layout: WorkspaceLayout,
+  groupId: string,
+  panelId: string,
+  simultaneous = false,
+  toggleSoloMode = false,
+): WorkspaceLayout {
+  return (
+    replaceNodeInLayout(layout, groupId, (node) => {
+      if (
+        node.kind !== "tabGroup" ||
+        node.presentation !== "stacked" ||
+        !node.panels.includes(panelId)
+      )
+        return node;
+      const expanded = normalizedExpandedPanels(node, node.expandedPanelIds);
+      const currentlyExpanded = expanded.includes(panelId);
+      const stackSolo = toggleSoloMode ? !(node.stackSolo ?? true) : (node.stackSolo ?? true);
+      let expandedPanelIds: readonly string[];
+      if (simultaneous) {
+        const expandAll = !currentlyExpanded;
+        expandedPanelIds = expandAll ? [...node.panels] : [];
+      } else if (stackSolo) {
+        expandedPanelIds = currentlyExpanded && expanded.length === 1 ? [] : [panelId];
+      } else {
+        expandedPanelIds = currentlyExpanded
+          ? expanded.filter((candidate) => candidate !== panelId)
+          : node.panels.filter(
+              (candidate) => candidate === panelId || expanded.includes(candidate),
+            );
+      }
+      return {
+        ...node,
+        activePanelId: panelId,
+        expandedPanelIds,
+        stackSolo,
+      };
+    }) ?? layout
+  );
+}
+
+export function toggleMaximizedGroup(layout: WorkspaceLayout, groupId: string): WorkspaceLayout {
+  const group = findWorkspaceNode(layout, groupId);
+  if (group?.kind !== "tabGroup") return layout;
+  return layout.maximizedGroupId === groupId
+    ? withoutMaximizedGroup(layout)
+    : { ...layout, maximizedGroupId: groupId };
+}
+
+export function setViewerLock(
+  layout: WorkspaceLayout,
+  panelId: string,
+  sourcePanelId: string,
+  viewerType: string,
+  locked: boolean,
+  contextId?: string,
+): WorkspaceLayout {
+  if (
+    !workspacePanelIds(layout).includes(panelId) ||
+    !validId(sourcePanelId) ||
+    !validId(viewerType)
+  )
+    return layout;
+  const viewers = [...(layout.viewers ?? [])];
+  const index = viewers.findIndex((viewer) => viewer.id === panelId);
+  const current = index >= 0 ? viewers[index] : undefined;
+  const next: WorkspaceViewerInstance = {
+    id: panelId,
+    sourcePanelId: current?.sourcePanelId ?? sourcePanelId,
+    viewerType: current?.viewerType ?? viewerType,
+    locked,
+    ...(locked && validId(contextId ?? "") ? { contextId: contextId?.trim() } : {}),
+  };
+  if (current && sameViewer(current, next)) return layout;
+  if (index >= 0) viewers[index] = next;
+  else viewers.push(next);
+  return { ...layout, viewers };
+}
+
+export function createViewer(
+  layout: WorkspaceLayout,
+  panelId: string,
+  sourcePanelId: string,
+  viewerType: string,
+  contextId?: string,
+  split = false,
+): WorkspaceLayout {
+  const location = workspaceTabGroups(layout).find(({ group }) => group.panels.includes(panelId));
+  if (!location || !validId(sourcePanelId) || !validId(viewerType)) return layout;
+  if (viewerInstanceCount(layout, sourcePanelId) >= MAX_VIEWER_INSTANCES_PER_SOURCE) return layout;
+  const viewerId = nextViewerId(layout, sourcePanelId);
+  const current = setViewerLock(layout, panelId, sourcePanelId, viewerType, split, contextId);
+  const viewers: readonly WorkspaceViewerInstance[] = [
+    ...(current.viewers ?? []),
+    { id: viewerId, sourcePanelId, viewerType, locked: false },
+  ];
+  const withViewer = { ...current, viewers };
+  return split
+    ? dockPanel(withViewer, viewerId, location.group.id, "right")
+    : dockPanel(withViewer, viewerId, location.group.id, "center");
 }
 
 export function dockPanel(
@@ -380,6 +558,13 @@ export function closePanel(layout: WorkspaceLayout, panelId: string): WorkspaceL
   if (!validId(panelId) || layout.closedPanels.includes(panelId)) return layout;
   const detached = detachVisiblePanel(layout, panelId);
   if (!detached.removed) return layout;
+  const viewer = layout.viewers?.find((candidate) => candidate.id === panelId);
+  if (viewer && viewer.id !== viewer.sourcePanelId) {
+    const viewers = (detached.layout.viewers ?? []).filter((candidate) => candidate.id !== panelId);
+    if (viewers.length > 0) return { ...detached.layout, viewers };
+    const { viewers: _removed, ...withoutViewers } = detached.layout;
+    return withoutViewers;
+  }
   return {
     ...detached.layout,
     closedPanels: [...detached.layout.closedPanels, panelId].sort(compareIds),
@@ -505,9 +690,30 @@ function normalizeNode(node: WorkspaceNode, context: NormalizeContext): Workspac
     }
     if (panels.length === 0) return null;
     const activePanelId = panels.includes(node.activePanelId) ? node.activePanelId : panels[0];
-    return sameStringArray(panels, node.panels) && activePanelId === node.activePanelId
+    const presentation: WorkspaceGroupPresentation =
+      node.presentation === "stacked" ? "stacked" : "tabs";
+    if (presentation === "tabs") {
+      const hasStackMetadata =
+        node.presentation !== undefined ||
+        node.stackSolo !== undefined ||
+        node.expandedPanelIds !== undefined;
+      return sameStringArray(panels, node.panels) &&
+        activePanelId === node.activePanelId &&
+        !hasStackMetadata
+        ? node
+        : { kind: "tabGroup", id: node.id, panels, activePanelId };
+    }
+    const stackSolo = node.stackSolo ?? true;
+    const candidate: WorkspaceTabGroup = { ...node, panels, activePanelId };
+    const expanded = normalizedExpandedPanels(candidate, node.expandedPanelIds);
+    const expandedPanelIds = stackSolo && expanded.length > 1 ? [activePanelId] : expanded;
+    return sameStringArray(panels, node.panels) &&
+      activePanelId === node.activePanelId &&
+      node.presentation === presentation &&
+      node.stackSolo === stackSolo &&
+      sameStringArray(expandedPanelIds, node.expandedPanelIds ?? [])
       ? node
-      : { ...node, panels, activePanelId };
+      : { ...node, panels, activePanelId, presentation, stackSolo, expandedPanelIds };
   }
   const first = normalizeNode(node.first, context);
   const second = normalizeNode(node.second, context);
@@ -748,4 +954,107 @@ function sameBounds(left: WorkspaceBounds, right: WorkspaceBounds): boolean {
     left.width === right.width &&
     left.height === right.height
   );
+}
+
+function normalizedExpandedPanels(
+  group: WorkspaceTabGroup,
+  values: readonly string[] | undefined,
+): readonly string[] {
+  const expanded = new Set(values?.filter((panelId) => group.panels.includes(panelId)) ?? []);
+  return group.panels.filter((panelId) => expanded.has(panelId));
+}
+
+function withoutMaximizedGroup(layout: WorkspaceLayout): WorkspaceLayout {
+  const { maximizedGroupId: _maximized, ...rest } = layout;
+  return rest;
+}
+
+function findNodeInRoots(
+  root: WorkspaceNode | null,
+  floating: readonly FloatingWorkspace[],
+  nodeId: string,
+): WorkspaceNode | undefined {
+  const docked = root ? findNode(root, nodeId) : undefined;
+  if (docked) return docked;
+  for (const entry of floating) {
+    const candidate = findNode(entry.node, nodeId);
+    if (candidate) return candidate;
+  }
+  return undefined;
+}
+
+function normalizeViewers(
+  viewers: readonly WorkspaceViewerInstance[],
+  visiblePanelIds: ReadonlySet<string>,
+  closedPanelIds: readonly string[],
+): readonly WorkspaceViewerInstance[] {
+  const retainedPanelIds = new Set([...visiblePanelIds, ...closedPanelIds]);
+  const ids = new Set<string>();
+  const normalized: WorkspaceViewerInstance[] = [];
+  for (const viewer of viewers) {
+    if (
+      !validId(viewer.id) ||
+      !validId(viewer.sourcePanelId) ||
+      !validId(viewer.viewerType) ||
+      ids.has(viewer.id) ||
+      !retainedPanelIds.has(viewer.id)
+    )
+      continue;
+    ids.add(viewer.id);
+    normalized.push({
+      id: viewer.id.trim(),
+      sourcePanelId: viewer.sourcePanelId.trim(),
+      viewerType: viewer.viewerType.trim(),
+      locked: viewer.locked === true,
+      ...(viewer.locked === true && validId(viewer.contextId ?? "")
+        ? { contextId: viewer.contextId?.trim() }
+        : {}),
+    });
+  }
+  return normalized;
+}
+
+function sameViewers(
+  left: readonly WorkspaceViewerInstance[],
+  right: readonly WorkspaceViewerInstance[],
+): boolean {
+  return (
+    left.length === right.length && left.every((viewer, index) => sameViewer(viewer, right[index]))
+  );
+}
+
+function sameViewer(
+  left: WorkspaceViewerInstance,
+  right: WorkspaceViewerInstance | undefined,
+): boolean {
+  return Boolean(
+    right &&
+      left.id === right.id &&
+      left.sourcePanelId === right.sourcePanelId &&
+      left.viewerType === right.viewerType &&
+      left.locked === right.locked &&
+      left.contextId === right.contextId,
+  );
+}
+
+function nextViewerId(layout: WorkspaceLayout, sourcePanelId: string): string {
+  const panelIds = new Set([
+    ...workspacePanelIds(layout),
+    ...layout.closedPanels,
+    ...(layout.viewers ?? []).map((viewer) => viewer.id),
+  ]);
+  let index = 2;
+  while (panelIds.has(`${sourcePanelId}::viewer-${index}`)) index += 1;
+  return `${sourcePanelId}::viewer-${index}`;
+}
+
+function viewerInstanceCount(layout: WorkspaceLayout, sourcePanelId: string): number {
+  const retainedPanelIds = new Set([...workspacePanelIds(layout), ...layout.closedPanels]);
+  const viewerSources = new Map(
+    (layout.viewers ?? []).map((viewer) => [viewer.id, viewer.sourcePanelId]),
+  );
+  let count = 0;
+  for (const panelId of retainedPanelIds)
+    if ((viewerSources.get(panelId) ?? panelId) === sourcePanelId) count += 1;
+  return count;
 }

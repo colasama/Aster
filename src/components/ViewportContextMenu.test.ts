@@ -7,6 +7,7 @@ function actions(): ViewportContextMenuActions {
     bufferView: "beauty",
     canCopyFrame: false,
     canCropComposition: false,
+    canEditComposition: true,
     canExportFrame: true,
     canInvertSelection: false,
     canSelectChildren: false,
@@ -95,5 +96,15 @@ describe("viewportContextMenuItems", () => {
     expect(cropComposition).toHaveBeenCalledOnce();
     expect(invertSelection).toHaveBeenCalledOnce();
     expect(selectChildren).toHaveBeenCalledOnce();
+  });
+
+  it("omits composition editing for a locked non-active viewer", () => {
+    const items = viewportContextMenuItems(
+      { ...actions(), canEditComposition: false },
+      createTranslator("en-US"),
+    );
+    expect(items.some((item) => item.id === "composition-settings")).toBe(false);
+    expect(items.some((item) => item.id === "reveal-composition")).toBe(true);
+    expect(items.some((item) => item.id === "export-frame")).toBe(true);
   });
 });

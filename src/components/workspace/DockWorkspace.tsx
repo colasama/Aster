@@ -8,13 +8,16 @@ import {
   useRef,
   useState,
 } from "react";
+import { isDesktopRuntime, onDisplayMetricsChanged } from "../../desktop/api";
 import { DEFAULT_WORKSPACE_LAYOUT } from "../../workspace/default-layout";
+import { remapFloatingWorkspacesToHost } from "../../workspace/floating-host";
 import { applyWorkspaceDrop, type WorkspaceDrag } from "../../workspace/interaction";
 import {
   activatePanel,
   closeGroup,
   closeOtherPanels,
   closePanel,
+  createViewer,
   dockGroup,
   dockGroupToRoot,
   dockPanel,
@@ -22,10 +25,17 @@ import {
   findWorkspaceNode,
   floatGroup,
   floatPanel,
+  MAX_VIEWER_INSTANCES_PER_SOURCE,
   movePanelToTabSlot,
+  normalizeWorkspaceLayout,
   reopenPanel,
   resizeSplit,
   setFloatingBounds,
+  setGroupPresentation,
+  setViewerLock,
+  toggleMaximizedGroup,
+  toggleStackPanel,
+  toggleStackSolo,
   type WorkspaceDockPosition,
   type WorkspaceLayout,
   workspacePanelIds,
@@ -47,6 +57,8 @@ import {
 } from "../../workspace/workspace-controller";
 import { DockNode } from "./DockNode";
 import { FloatingWorkspaceFrame } from "./FloatingWorkspaceFrame";
+import type { WorkspaceViewerIdentity } from "./WorkspaceViewerIdentity";
+import { WorkspaceViewerIdentityProvider } from "./WorkspaceViewerIdentity";
 import type { WorkspacePanelDefinition } from "./workspace-types";
 
 export interface WorkspaceApi {
@@ -68,11 +80,12 @@ export function useWorkspaceApi(): WorkspaceApi {
 export function DockWorkspace({
   panels,
   initialLayout = DEFAULT_WORKSPACE_LAYOUT,
+  viewerContextId,
 }: {
   readonly panels: readonly WorkspacePanelDefinition[];
   readonly initialLayout?: WorkspaceLayout;
+  readonly viewerContextId?: string;
 }) {
-  const panelMap = useMemo(() => new Map(panels.map((panel) => [panel.id, panel])), [panels]);
   const [catalog, setCatalog] = useState(loadWorkspaceCatalog);
   const [layout, setLayout] = useState(() => {
     const restoredCatalog = loadWorkspaceCatalog();
@@ -83,18 +96,26 @@ export function DockWorkspace({
   });
   const [drag, setDrag] = useState<WorkspaceDrag | null>(null);
   const [hoveredGroupId, setHoveredGroupId] = useState<string | null>(null);
-  const [maximizedGroupId, setMaximizedGroupId] = useState<string | null>(null);
   const [activeFloatingId, setActiveFloatingId] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const layoutHistory = useRef<WorkspaceLayout[]>([]);
   const layoutRef = useRef(layout);
   const hoveredGroupRef = useRef<string | null>(null);
+  const hostDisplayId = useRef<string | undefined>(undefined);
   layoutRef.current = layout;
   hoveredGroupRef.current = hoveredGroupId;
+  const viewerIdentities = useMemo(
+    () => workspaceViewerIdentities(panels, layout, viewerContextId),
+    [layout, panels, viewerContextId],
+  );
+  const panelMap = useMemo(
+    () => workspacePanelDefinitions(panels, viewerIdentities),
+    [panels, viewerIdentities],
+  );
 
   const commit = useCallback((update: (current: WorkspaceLayout) => WorkspaceLayout) => {
     setLayout((current) => {
-      const next = update(current);
+      const next = normalizeWorkspaceLayout(update(current));
       if (next !== current) {
         layoutHistory.current = [...layoutHistory.current.slice(-29), current];
         saveWorkspaceLayout(next);
@@ -102,17 +123,44 @@ export function DockWorkspace({
       return next;
     });
   }, []);
+  const reconcileFloatingHost = useCallback(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    setLayout((current) => {
+      const next = remapFloatingWorkspacesToHost(current, {
+        width: root.clientWidth || window.innerWidth,
+        height: root.clientHeight || window.innerHeight,
+        displayId: hostDisplayId.current,
+      });
+      if (next !== current) saveWorkspaceLayout(next);
+      return next;
+    });
+  }, []);
+  useEffect(() => {
+    reconcileFloatingHost();
+    window.addEventListener("resize", reconcileFloatingHost);
+    const unsubscribe = isDesktopRuntime()
+      ? onDisplayMetricsChanged((metrics) => {
+          hostDisplayId.current = metrics.currentDisplayId;
+          reconcileFloatingHost();
+        })
+      : undefined;
+    return () => {
+      window.removeEventListener("resize", reconcileFloatingHost);
+      unsubscribe?.();
+    };
+  }, [reconcileFloatingHost]);
   const undoLayoutChange = useCallback(() => {
     const previous = layoutHistory.current[layoutHistory.current.length - 1];
     if (!previous) return;
     layoutHistory.current = layoutHistory.current.slice(0, -1);
     setLayout(previous);
     saveWorkspaceLayout(previous);
-    setMaximizedGroupId(null);
   }, []);
-  const toggleMaximize = useCallback((groupId: string) => {
-    setMaximizedGroupId((current) => (current === groupId ? null : groupId));
-  }, []);
+  const toggleMaximize = useCallback(
+    (groupId: string) => commit((current) => toggleMaximizedGroup(current, groupId)),
+    [commit],
+  );
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
@@ -121,6 +169,34 @@ export function DockWorkspace({
       if ((event.ctrlKey || event.metaKey) && event.altKey && event.key.toLowerCase() === "z") {
         event.preventDefault();
         undoLayoutChange();
+        return;
+      }
+      if (
+        (event.ctrlKey || event.metaKey) &&
+        event.altKey &&
+        event.shiftKey &&
+        event.key.toLowerCase() === "n"
+      ) {
+        const focusedGroupId = (document.activeElement as HTMLElement | null)?.closest<HTMLElement>(
+          "[data-workspace-group]",
+        )?.dataset.workspaceGroup;
+        const groupId = focusedGroupId ?? hoveredGroupRef.current;
+        const group = workspaceTabGroups(layoutRef.current).find(
+          (candidate) => candidate.group.id === groupId,
+        )?.group;
+        const definition = group ? panelMap.get(group.activePanelId) : undefined;
+        if (!group || !definition?.viewerType) return;
+        event.preventDefault();
+        commit((current) =>
+          createViewer(
+            current,
+            group.activePanelId,
+            sourcePanelId(current, group.activePanelId),
+            definition.viewerType ?? "viewer",
+            viewerContextId,
+            true,
+          ),
+        );
         return;
       }
       if ((event.ctrlKey || event.metaKey) && !event.altKey && event.key.toLowerCase() === "w") {
@@ -135,7 +211,6 @@ export function DockWorkspace({
         event.preventDefault();
         if (event.shiftKey) commit((current) => closeGroup(current, group.id));
         else commit((current) => closePanel(current, group.activePanelId));
-        setMaximizedGroupId(null);
         return;
       }
       if ((event.ctrlKey || event.metaKey) && event.key === "F6") {
@@ -166,13 +241,10 @@ export function DockWorkspace({
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [commit, toggleMaximize, undoLayoutChange]);
+  }, [commit, panelMap, toggleMaximize, undoLayoutChange, viewerContextId]);
 
   const close = useCallback(
-    (panelId: string) => {
-      commit((current) => closePanel(current, panelId));
-      setMaximizedGroupId(null);
-    },
+    (panelId: string) => commit((current) => closePanel(current, panelId)),
     [commit],
   );
   const reopen = useCallback(
@@ -197,7 +269,6 @@ export function DockWorkspace({
       layoutHistory.current = [];
       setLayout(workspace.layout);
       saveWorkspaceLayout(workspace.layout);
-      setMaximizedGroupId(null);
     },
     [catalog],
   );
@@ -230,7 +301,6 @@ export function DockWorkspace({
   const resetToSavedLayout = useCallback(() => {
     const workspace = workspaceById(catalog, catalog.currentWorkspaceId);
     if (workspace) commit(() => workspace.layout);
-    setMaximizedGroupId(null);
   }, [catalog, commit]);
   const visiblePanelIds = useMemo(() => new Set(workspacePanelIds(layout)), [layout]);
   const currentWorkspace =
@@ -288,13 +358,12 @@ export function DockWorkspace({
     panels: panelMap,
     groups,
     drag,
-    maximizedGroupId,
+    maximizedGroupId: layout.maximizedGroupId ?? null,
     onActivate: (groupId: string, panelId: string) =>
       commit((current) => activatePanel(current, groupId, panelId)),
     onClose: close,
     onCloseGroup: (groupId: string) => {
       commit((current) => closeGroup(current, groupId));
-      setMaximizedGroupId(null);
     },
     onCloseOthers: (groupId: string, panelId: string) =>
       commit((current) => closeOtherPanels(current, groupId, panelId)),
@@ -314,7 +383,6 @@ export function DockWorkspace({
           height: Math.max(180, bounds.height),
         }),
       );
-      setMaximizedGroupId(null);
     },
     onFloatPanel: (panelId: string, bounds: DOMRect) =>
       commit((current) =>
@@ -327,6 +395,23 @@ export function DockWorkspace({
       ),
     onHover: setHoveredGroupId,
     onMaximize: toggleMaximize,
+    onSetPresentation: (groupId: string, presentation: "tabs" | "stacked") =>
+      commit((current) => setGroupPresentation(current, groupId, presentation)),
+    onToggleStackPanel: (
+      groupId: string,
+      panelId: string,
+      simultaneous: boolean,
+      toggleSolo: boolean,
+    ) => commit((current) => toggleStackPanel(current, groupId, panelId, simultaneous, toggleSolo)),
+    onToggleStackSolo: (groupId: string) => commit((current) => toggleStackSolo(current, groupId)),
+    onToggleViewerLock: (panelId: string, sourceId: string, viewerType: string, locked: boolean) =>
+      commit((current) =>
+        setViewerLock(current, panelId, sourceId, viewerType, locked, viewerContextId),
+      ),
+    onCreateViewer: (panelId: string, sourceId: string, viewerType: string, split: boolean) =>
+      commit((current) =>
+        createViewer(current, panelId, sourceId, viewerType, viewerContextId, split),
+      ),
     onMoveGroup: (sourceGroupId: string, targetGroupId: string, position: WorkspaceDockPosition) =>
       commit((current) => dockGroup(current, sourceGroupId, targetGroupId, position)),
     onMovePanel: (panelId: string, targetGroupId: string, position: WorkspaceDockPosition) =>
@@ -337,7 +422,9 @@ export function DockWorkspace({
       commit((current) => resizeSplit(current, splitId, ratio)),
     onUndo: undoLayoutChange,
   } as const;
-  const maximizedNode = maximizedGroupId ? findWorkspaceNode(layout, maximizedGroupId) : undefined;
+  const maximizedNode = layout.maximizedGroupId
+    ? findWorkspaceNode(layout, layout.maximizedGroupId)
+    : undefined;
   const renderedRoot = maximizedNode ?? layout.root;
   return (
     <WorkspaceApiContext.Provider value={api}>
@@ -364,6 +451,65 @@ export function DockWorkspace({
       </div>
     </WorkspaceApiContext.Provider>
   );
+}
+
+function workspacePanelDefinitions(
+  panels: readonly WorkspacePanelDefinition[],
+  identities: ReadonlyMap<string, WorkspaceViewerIdentity>,
+): ReadonlyMap<string, WorkspacePanelDefinition> {
+  const sources = new Map(panels.map((panel) => [panel.id, panel]));
+  const definitions = new Map(sources);
+  for (const [panelId, identity] of identities) {
+    const source = sources.get(identity.sourcePanelId);
+    if (!source) continue;
+    definitions.set(panelId, {
+      ...source,
+      id: panelId,
+      label: panelId === source.id ? source.label : `${source.label} ${viewerOrdinal(panelId)}`,
+      element: (
+        <WorkspaceViewerIdentityProvider identity={identity}>
+          {source.element}
+        </WorkspaceViewerIdentityProvider>
+      ),
+      viewerIdentity: identity,
+      viewerCanCreate:
+        [...identities.values()].filter(
+          (candidate) => candidate.sourcePanelId === identity.sourcePanelId,
+        ).length < MAX_VIEWER_INSTANCES_PER_SOURCE,
+    });
+  }
+  return definitions;
+}
+
+function workspaceViewerIdentities(
+  panels: readonly WorkspacePanelDefinition[],
+  layout: WorkspaceLayout,
+  viewerContextId?: string,
+): ReadonlyMap<string, WorkspaceViewerIdentity> {
+  const definitions = new Map(panels.map((panel) => [panel.id, panel]));
+  const viewers = new Map((layout.viewers ?? []).map((viewer) => [viewer.id, viewer]));
+  const identities = new Map<string, WorkspaceViewerIdentity>();
+  for (const panelId of workspacePanelIds(layout)) {
+    const viewer = viewers.get(panelId);
+    const source = definitions.get(viewer?.sourcePanelId ?? panelId);
+    if (!source?.viewerType) continue;
+    identities.set(panelId, {
+      id: panelId,
+      sourcePanelId: source.id,
+      viewerType: source.viewerType,
+      locked: viewer?.locked ?? false,
+      contextId: viewer?.locked ? viewer.contextId : viewerContextId,
+    });
+  }
+  return identities;
+}
+
+function sourcePanelId(layout: WorkspaceLayout, panelId: string): string {
+  return layout.viewers?.find((viewer) => viewer.id === panelId)?.sourcePanelId ?? panelId;
+}
+
+function viewerOrdinal(panelId: string): string {
+  return /::viewer-(\d+)$/.exec(panelId)?.[1] ?? "2";
 }
 
 function EmptyWorkspace(): ReactNode {
