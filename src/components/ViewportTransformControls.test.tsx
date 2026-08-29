@@ -10,6 +10,7 @@ import { ViewportTransformControls } from "./ViewportTransformControls";
 
 let container: HTMLDivElement;
 let root: Root;
+const capturedPointers = new WeakMap<SVGElement, Set<number>>();
 
 beforeEach(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -17,12 +18,39 @@ beforeEach(() => {
   container = document.createElement("div");
   document.body.append(container);
   root = createRoot(container);
+  vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+    callback(0);
+    return 1;
+  });
+  Object.defineProperties(SVGElement.prototype, {
+    hasPointerCapture: {
+      configurable: true,
+      value(this: SVGElement, pointerId: number) {
+        return capturedPointers.get(this)?.has(pointerId) ?? false;
+      },
+    },
+    releasePointerCapture: {
+      configurable: true,
+      value(this: SVGElement, pointerId: number) {
+        capturedPointers.get(this)?.delete(pointerId);
+      },
+    },
+    setPointerCapture: {
+      configurable: true,
+      value(this: SVGElement, pointerId: number) {
+        const pointers = capturedPointers.get(this) ?? new Set<number>();
+        pointers.add(pointerId);
+        capturedPointers.set(this, pointers);
+      },
+    },
+  });
 });
 
 afterEach(() => {
   act(() => root.unmount());
   document.body.replaceChildren();
   window.localStorage.clear();
+  vi.restoreAllMocks();
 });
 
 describe("ViewportTransformControls", () => {
@@ -97,5 +125,86 @@ describe("ViewportTransformControls", () => {
     layer.visible = false;
     act(() => root.render(render()));
     expect(container.querySelector(".viewport-transform-controls")).toBeNull();
+  });
+
+  it.each<[string, (target: SVGElement, pointerId: number) => void]>([
+    [
+      "Escape",
+      () => window.dispatchEvent(new KeyboardEvent("keydown", { cancelable: true, key: "Escape" })),
+    ],
+    ["window blur", () => window.dispatchEvent(new Event("blur"))],
+    [
+      "pointer cancellation",
+      (target: SVGElement, pointerId: number) =>
+        target.dispatchEvent(new PointerEvent("pointercancel", { bubbles: true, pointerId })),
+    ],
+    [
+      "pointer capture loss",
+      (target: SVGElement, pointerId: number) =>
+        target.dispatchEvent(new PointerEvent("lostpointercapture", { bubbles: true, pointerId })),
+    ],
+  ])("cancels an active gesture on %s without committing history", (_label, cancel) => {
+    const project = createDemoProject();
+    const composition = activeComposition(project);
+    const layer = composition.layers.find(
+      (candidate) => candidate.kind === "shape" && !candidate.threeDimensional,
+    );
+    expect(layer).toBeDefined();
+    if (!layer) return;
+    const dispatch = vi.fn<(action: EditorAction) => void>();
+    act(() =>
+      root.render(
+        <I18nProvider>
+          <ViewportTransformControls
+            activeTool="select"
+            composition={composition}
+            dispatch={dispatch}
+            onEditText={vi.fn()}
+            project={project}
+            selection={[layer.id]}
+            showGuides={false}
+            time={0}
+            zoom={1}
+          />
+        </I18nProvider>,
+      ),
+    );
+    const target = container.querySelector<SVGElement>(".viewport-selection-hit");
+    expect(target).not.toBeNull();
+    if (!target) return;
+    const pointerId = 7;
+    act(() => {
+      target.dispatchEvent(
+        new PointerEvent("pointerdown", {
+          bubbles: true,
+          button: 0,
+          clientX: 100,
+          clientY: 100,
+          pointerId,
+        }),
+      );
+      target.dispatchEvent(
+        new PointerEvent("pointermove", {
+          bubbles: true,
+          clientX: 140,
+          clientY: 120,
+          pointerId,
+        }),
+      );
+    });
+    expect(
+      dispatch.mock.calls.filter(([action]) => action.type === "previewOperation"),
+    ).toHaveLength(1);
+    act(() => cancel(target, pointerId));
+    expect(
+      dispatch.mock.calls.filter(([action]) => action.type === "previewOperation"),
+    ).toHaveLength(2);
+    expect(dispatch.mock.calls.some(([action]) => action.type === "operation")).toBe(false);
+    act(() =>
+      target.dispatchEvent(
+        new PointerEvent("pointerup", { bubbles: true, clientX: 140, clientY: 120, pointerId }),
+      ),
+    );
+    expect(dispatch.mock.calls.some(([action]) => action.type === "operation")).toBe(false);
   });
 });

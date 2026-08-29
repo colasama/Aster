@@ -2,6 +2,7 @@ import {
   type Dispatch,
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -58,6 +59,7 @@ type GestureMode = "move" | "resize" | "rotate" | "anchor";
 
 interface TransformGesture {
   readonly pointerId: number;
+  readonly pointerTarget: SVGElement;
   readonly mode: GestureMode;
   readonly handle?: ViewportResizeHandle;
   readonly start: Point2;
@@ -111,13 +113,47 @@ export function ViewportTransformControls({
     [composition, selection, showGuides, time],
   );
 
-  useEffect(
-    () => () => {
+  const cancelActiveGesture = useCallback(
+    (pointerId?: number) => {
+      const gesture = gestureRef.current;
+      if (!gesture || (pointerId !== undefined && gesture.pointerId !== pointerId)) return false;
+      gestureRef.current = undefined;
+      setSnapped([]);
       coalescerRef.current?.cancel();
       coalescerRef.current = undefined;
+      if (gesture.pointerTarget.hasPointerCapture(gesture.pointerId))
+        gesture.pointerTarget.releasePointerCapture(gesture.pointerId);
+      if (gesture.operations)
+        dispatch({
+          type: "previewOperation",
+          operations: cancelGestureOperations(
+            gesture.initial,
+            operationPaths(gesture.mode, gesture.initial.length),
+            time,
+            gesture.keyframeIds,
+          ),
+        });
+      return true;
     },
-    [],
+    [dispatch, time],
   );
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || !cancelActiveGesture()) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    };
+    const onBlur = () => cancelActiveGesture();
+    window.addEventListener("keydown", onKeyDown, true);
+    window.addEventListener("blur", onBlur);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown, true);
+      window.removeEventListener("blur", onBlur);
+    };
+  }, [cancelActiveGesture]);
+
+  useEffect(() => () => void cancelActiveGesture(), [cancelActiveGesture]);
 
   if (members.length === 0) return null;
   const groupLabel =
@@ -163,6 +199,7 @@ export function ViewportTransformControls({
     const start = pointerInComposition(event, svgRef.current, zoom);
     const gesture: TransformGesture = {
       pointerId: event.pointerId,
+      pointerTarget: event.currentTarget,
       mode,
       handle,
       start,
@@ -235,25 +272,16 @@ export function ViewportTransformControls({
     const gesture = gestureRef.current;
     if (!gesture || gesture.pointerId !== event.pointerId) return;
     event.preventDefault();
-    if (event.currentTarget.hasPointerCapture(event.pointerId))
-      event.currentTarget.releasePointerCapture(event.pointerId);
-    gestureRef.current = undefined;
-    setSnapped([]);
     if (cancelled || !gesture.latest || selectionMembersEqual(gesture.initial, gesture.latest)) {
-      coalescerRef.current?.cancel();
-      if (gesture.operations)
-        dispatch({
-          type: "previewOperation",
-          operations: cancelGestureOperations(
-            gesture.initial,
-            operationPaths(gesture.mode, gesture.initial.length),
-            time,
-            gesture.keyframeIds,
-          ),
-        });
+      cancelActiveGesture(event.pointerId);
       return;
     }
+    gestureRef.current = undefined;
+    setSnapped([]);
+    if (gesture.pointerTarget.hasPointerCapture(gesture.pointerId))
+      gesture.pointerTarget.releasePointerCapture(gesture.pointerId);
     coalescerRef.current?.flush();
+    coalescerRef.current = undefined;
     const operations = operationsFor(
       gesture.latest,
       gesture.mode,
@@ -279,7 +307,12 @@ export function ViewportTransformControls({
   };
 
   const interactionProps = (mode: GestureMode, handle?: ViewportResizeHandle) => ({
-    onPointerCancel: (event: ReactPointerEvent<SVGElement>) => finishGesture(event, true),
+    onLostPointerCapture: (event: ReactPointerEvent<SVGElement>) =>
+      cancelActiveGesture(event.pointerId),
+    onPointerCancel: (event: ReactPointerEvent<SVGElement>) => {
+      event.preventDefault();
+      cancelActiveGesture(event.pointerId);
+    },
     onPointerDown: (event: ReactPointerEvent<SVGElement>) => beginGesture(event, mode, handle),
     onPointerMove: updateGesture,
     onPointerUp: (event: ReactPointerEvent<SVGElement>) => finishGesture(event, false),
