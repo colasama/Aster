@@ -135,6 +135,13 @@ describe("atomic render output publisher", () => {
     expect(
       () =>
         new AtomicRenderOutputPublisher(
+          { ...manifest, outputs: [{ ...video, includeAudio: true }] },
+          "lease",
+        ),
+    ).not.toThrow();
+    expect(
+      () =>
+        new AtomicRenderOutputPublisher(
           { ...manifest, outputs: [{ ...video, codec: "h265" }] },
           "lease",
         ),

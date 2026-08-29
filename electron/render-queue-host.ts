@@ -220,6 +220,8 @@ class ElectronRenderHostWorker implements RenderQueueHostHandle {
     if (request.type === "startMp4") {
       if (this.#mp4.has(request.outputId)) throw new Error("RenderHost MP4 output already started");
       const output = this.#output(request.outputId, "mp4");
+      if (request.audio && !output.includeAudio)
+        throw new Error("RenderHost MP4 audio was not enabled by the immutable manifest");
       const manager = new Mp4ExportManager(this.#ffmpegExecutable);
       const started = await manager.start(
         {
@@ -230,6 +232,7 @@ class ElectronRenderHostWorker implements RenderQueueHostHandle {
           frameRateDenominator: this.#item.manifest.frameRate.denominator,
           frameCount: this.#item.manifest.endFrameExclusive - this.#item.manifest.startFrame,
           pixelFormat: request.pixelFormat,
+          audio: request.audio,
         },
         this.#window.webContents.id,
       );
@@ -240,6 +243,14 @@ class ElectronRenderHostWorker implements RenderQueueHostHandle {
     if (!active) throw new Error("RenderHost MP4 output is not active");
     if (request.type === "writeMp4Frame") {
       await active.manager.write(active.exportJobId, request.pixels, this.#window.webContents.id);
+      return undefined;
+    }
+    if (request.type === "writeMp4Audio") {
+      await active.manager.writeAudio(
+        active.exportJobId,
+        request.samples,
+        this.#window.webContents.id,
+      );
       return undefined;
     }
     await active.manager.finish(active.exportJobId, this.#window.webContents.id);

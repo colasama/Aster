@@ -1,6 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { createLayerForComposition } from "../../core/layer-factory";
 import { createBlankProject } from "../../core/project";
 import type { RenderJobManifest } from "../../core/render-queue";
+import type { Project } from "../../core/types";
 import type {
   DesktopRenderHostAssignment,
   DesktopRenderHostOutputRequest,
@@ -61,6 +63,45 @@ function assignment(): DesktopRenderHostAssignment {
   return { jobId: manifest.id, leaseId: "lease", manifest };
 }
 
+function assignmentWithAudio(range = { start: 6, end: 8 }): {
+  assignment: DesktopRenderHostAssignment;
+  project: Project;
+} {
+  const work = assignment();
+  const project = JSON.parse(work.manifest.projectSnapshot) as Project;
+  const composition = project.compositions[0];
+  const source = {
+    id: "tone-source",
+    kind: "audio" as const,
+    name: "Tone.wav",
+    mimeType: "audio/wav",
+    contentIdentity: "sha256:tone",
+    duration: composition.duration,
+    channels: 1,
+    sampleRate: 48_000,
+    streamIndex: 0,
+    interpretation: { alpha: "ignore" as const, colorSpace: "srgb" as const },
+  };
+  const layer = createLayerForComposition("audio", composition);
+  layer.sourceId = source.id;
+  project.sources = [source];
+  composition.layers = [layer];
+  work.manifest.projectSnapshot = JSON.stringify(project);
+  work.manifest.startFrame = range.start;
+  work.manifest.endFrameExclusive = range.end;
+  work.manifest.outputs = [
+    {
+      id: "video",
+      kind: "mp4",
+      destination: "C:\\renders\\movie.mp4",
+      codec: "h264",
+      bitrateMbps: 16,
+      includeAudio: true,
+    },
+  ];
+  return { assignment: work, project };
+}
+
 describe("RenderHost frame session", () => {
   it("uses rational time and fans one canonical beauty frame into every output", async () => {
     const work = assignment();
@@ -71,7 +112,7 @@ describe("RenderHost frame session", () => {
     let clock = 0;
 
     const result = await runRenderHostFrameLoop({
-      assignment: work,
+      assignment: validateRenderHostAssignment(work),
       pixelFormat: "bgra",
       requestedControl: () => undefined,
       now: () => clock++,
@@ -118,7 +159,7 @@ describe("RenderHost frame session", () => {
     let rendered = 0;
 
     const result = await runRenderHostFrameLoop({
-      assignment: work,
+      assignment: validateRenderHostAssignment(work),
       pixelFormat: "rgba",
       requestedControl: () => control,
       renderFrame: async () => {
@@ -168,7 +209,7 @@ describe("RenderHost frame session", () => {
     const reports: DesktopRenderHostReport[] = [];
 
     const result = await runRenderHostFrameLoop({
-      assignment: work,
+      assignment: validateRenderHostAssignment(work),
       pixelFormat: "rgba",
       requestedControl: () => control,
       renderFrame: async () => ({
@@ -186,5 +227,135 @@ describe("RenderHost frame session", () => {
 
     expect(result).toBe("paused");
     expect(reports.map((report) => report.type)).toEqual(["prepared", "progress", "paused"]);
+  });
+
+  it("streams a bounded rationally aligned PCM range beside canonical beauty frames", async () => {
+    const fixture = assignmentWithAudio();
+    const validated = validateRenderHostAssignment(fixture.assignment);
+    const samples = new Float32Array(96_000);
+    samples[12_012] = 0.75;
+    const decode = vi.fn(async () => ({ sampleRate: 48_000, channels: [samples] }));
+    const outputs: DesktopRenderHostOutputRequest[] = [];
+    const bytes = fixture.assignment.manifest.width * fixture.assignment.manifest.height * 4;
+
+    const result = await runRenderHostFrameLoop({
+      assignment: validated,
+      pixelFormat: "rgba",
+      audioDecoder: decode,
+      requestedControl: () => undefined,
+      renderFrame: async () => ({ pixels: new ArrayBuffer(bytes), pixelFormat: "rgba" }),
+      encodePng: async () => new ArrayBuffer(8),
+      output: async (request) => {
+        outputs.push(request);
+      },
+      report: async () => undefined,
+    });
+
+    expect(result).toBe("completed");
+    expect(decode).toHaveBeenCalledTimes(1);
+    const start = outputs.find((output) => output.type === "startMp4");
+    expect(start?.audio).toEqual({ sampleRate: 48_000, channels: 2, frameCount: 4_004 });
+    const audio = outputs.find((output) => output.type === "writeMp4Audio");
+    expect(audio?.samples.byteLength).toBe(4_004 * 2 * Float32Array.BYTES_PER_ELEMENT);
+    expect(new Float32Array(audio?.samples ?? new ArrayBuffer(0)).slice(0, 4)).toEqual(
+      new Float32Array([0.75, 0.75, 0, 0]),
+    );
+    expect(outputs.filter((output) => output.type === "writeMp4Frame")).toHaveLength(2);
+    expect(outputs.at(-1)?.type).toBe("finishMp4");
+  });
+
+  it("omits a requested audio track when the immutable snapshot has no audible source", async () => {
+    const work = assignment();
+    const video = work.manifest.outputs[0];
+    if (video.kind !== "mp4") throw new Error("fixture mismatch");
+    work.manifest.outputs = [{ ...video, includeAudio: true }];
+    const decode = vi.fn();
+    const outputs: DesktopRenderHostOutputRequest[] = [];
+    const validated = validateRenderHostAssignment(work);
+
+    await runRenderHostFrameLoop({
+      assignment: validated,
+      pixelFormat: "rgba",
+      audioDecoder: decode,
+      requestedControl: () => undefined,
+      renderFrame: async () => ({
+        pixels: new ArrayBuffer(work.manifest.width * work.manifest.height * 4),
+        pixelFormat: "rgba",
+      }),
+      encodePng: async () => new ArrayBuffer(8),
+      output: async (request) => {
+        outputs.push(request);
+      },
+      report: async () => undefined,
+    });
+
+    expect(decode).not.toHaveBeenCalled();
+    expect(outputs.find((output) => output.type === "startMp4")?.audio).toBeUndefined();
+    expect(outputs.some((output) => output.type === "writeMp4Audio")).toBe(false);
+  });
+
+  it("fails before opening encoders when immutable-source audio decode fails", async () => {
+    const fixture = assignmentWithAudio();
+    const output = vi.fn();
+
+    await expect(
+      runRenderHostFrameLoop({
+        assignment: validateRenderHostAssignment(fixture.assignment),
+        pixelFormat: "rgba",
+        audioDecoder: async () => {
+          throw new Error("codec unavailable");
+        },
+        requestedControl: () => undefined,
+        renderFrame: async () => ({ pixels: new ArrayBuffer(64 * 64 * 4), pixelFormat: "rgba" }),
+        encodePng: async () => new ArrayBuffer(8),
+        output,
+        report: async () => undefined,
+      }),
+    ).rejects.toThrow("codec unavailable");
+    expect(output).not.toHaveBeenCalled();
+  });
+
+  it("stops PCM chunks at a cancel boundary and leaves the MP4 unfinished for rollback", async () => {
+    const fixture = assignmentWithAudio({ start: 0, end: 48 });
+    const composition = fixture.project.compositions[0];
+    composition.duration = 3;
+    composition.workArea = { start: 0, end: 3 };
+    composition.layers[0].outPoint = 3;
+    fixture.project.sources[0].duration = 3;
+    fixture.assignment.manifest.projectSnapshot = JSON.stringify(fixture.project);
+    const decode = vi.fn(async () => ({
+      sampleRate: 48_000,
+      channels: [new Float32Array(144_000)],
+    }));
+    let control: "cancel" | undefined;
+    const outputs: DesktopRenderHostOutputRequest[] = [];
+    const reports: DesktopRenderHostReport[] = [];
+    const validated = validateRenderHostAssignment(fixture.assignment);
+
+    const result = await runRenderHostFrameLoop({
+      assignment: validated,
+      pixelFormat: "rgba",
+      audioDecoder: decode,
+      requestedControl: () => control,
+      renderFrame: async () => ({
+        pixels: new ArrayBuffer(
+          fixture.assignment.manifest.width * fixture.assignment.manifest.height * 4,
+        ),
+        pixelFormat: "rgba",
+      }),
+      encodePng: async () => new ArrayBuffer(8),
+      output: async (request) => {
+        outputs.push(request);
+        if (request.type === "writeMp4Audio") control = "cancel";
+      },
+      report: async (report) => {
+        reports.push(report);
+      },
+    });
+
+    expect(result).toBe("cancelled");
+    expect(outputs.filter((output) => output.type === "writeMp4Audio")).toHaveLength(1);
+    expect(outputs.some((output) => output.type === "finishMp4")).toBe(false);
+    expect(reports.at(-1)?.type).toBe("cancelled");
   });
 });

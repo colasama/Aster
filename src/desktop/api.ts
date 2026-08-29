@@ -35,6 +35,12 @@ export interface DesktopSaveOptions {
 
 export type Mp4PixelFormat = "bgra" | "rgba";
 
+export interface Mp4ExportAudioOptions {
+  sampleRate: number;
+  channels: 2;
+  frameCount: number;
+}
+
 export interface Mp4ExportStartOptions {
   outputPath: string;
   width: number;
@@ -43,11 +49,7 @@ export interface Mp4ExportStartOptions {
   frameRateDenominator: number;
   frameCount: number;
   pixelFormat: Mp4PixelFormat;
-  audio?: {
-    sampleRate: number;
-    channels: 2;
-    frameCount: number;
-  };
+  audio?: Mp4ExportAudioOptions;
 }
 
 export interface Mp4ExportStarted {
@@ -137,6 +139,7 @@ export type DesktopRenderHostOutputRequest =
       leaseId: string;
       outputId: string;
       pixelFormat: Mp4PixelFormat;
+      audio?: Mp4ExportAudioOptions;
     }
   | {
       type: "writeMp4Frame";
@@ -144,6 +147,13 @@ export type DesktopRenderHostOutputRequest =
       leaseId: string;
       outputId: string;
       pixels: ArrayBuffer;
+    }
+  | {
+      type: "writeMp4Audio";
+      jobId: string;
+      leaseId: string;
+      outputId: string;
+      samples: ArrayBuffer;
     }
   | {
       type: "finishMp4";

@@ -35,11 +35,20 @@ Application shutdown disposes active encoders and hidden hosts, marks their leas
 temporary data, and flushes the queue before exit.
 
 PNG stills and PNG sequences are encoded from the canonical raw beauty buffer. H.264 output receives
-that same raw RGBA/BGRA buffer and uses the manifest's rational rate. Every output is staged beside its
-destination; existing destinations are backed up and all modules are renamed into place only after
-every frame and encoder completes. Publish failure rolls back replaced destinations, while failure or
-cancel removes staging data. The current background H.264 module intentionally rejects H.265 and
-embedded audio, and the still module rejects EXR, rather than producing a misleading partial result.
+that same raw RGBA/BGRA buffer and uses the manifest's rational rate. When an H.264 output enables
+audio, the RenderHost decodes each audible source once from the same immutable project snapshot and
+mixes stereo Float32 PCM in bounded 48,000-frame chunks. The PCM range begins at the exact rational
+manifest start time, while its total sample count is rounded once from the output video-frame count;
+FFmpeg therefore receives aligned A/V streams without accumulated frame-time drift. Audio and video
+writes run concurrently with awaited IPC backpressure, and a pause, cancel, renderer crash, decode
+failure, or encoder failure disposes both FFmpeg pipes and removes staged output. If the snapshot has
+no audible audio/video source, an audio-enabled module intentionally produces a video-only MP4 rather
+than manufacturing a silent track.
+
+Every output is staged beside its destination; existing destinations are backed up and all modules
+are renamed into place only after every frame, audio chunk, and encoder completes. Publish failure
+rolls back replaced destinations, while failure or cancel removes staging data. The current background
+module intentionally rejects H.265 and EXR stills rather than producing a misleading partial result.
 
 `RenderQueueStore` owns the process-wide queue document in the Electron user-data directory. Writes
 are serialized, flushed through a temporary file, and atomically renamed while retaining the previous

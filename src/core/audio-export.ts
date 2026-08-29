@@ -65,6 +65,7 @@ export function mixAudioExportChunk(
   startFrame: number,
   frameCount: number,
   sampleRate = EXPORT_AUDIO_SAMPLE_RATE,
+  compositionStartTime = 0,
 ): Float32Array {
   if (
     !Number.isSafeInteger(startFrame) ||
@@ -74,10 +75,19 @@ export function mixAudioExportChunk(
     frameCount > EXPORT_AUDIO_CHUNK_FRAMES
   )
     throw new RangeError("Audio export chunk is outside its bounded frame range");
+  if (
+    !Number.isFinite(compositionStartTime) ||
+    compositionStartTime < 0 ||
+    compositionStartTime > composition.duration
+  )
+    throw new RangeError("Audio export composition start time is outside the composition");
   const output = new Float32Array(frameCount * 2);
-  const startTime = startFrame / sampleRate;
+  const startTime = compositionStartTime + startFrame / sampleRate;
   if (startTime >= composition.duration) return output;
-  const endTime = Math.min(composition.duration, (startFrame + frameCount) / sampleRate);
+  const endTime = Math.min(
+    composition.duration,
+    compositionStartTime + (startFrame + frameCount) / sampleRate,
+  );
   const mixed = mixCompositionAudio(project, composition, decodedBySourceId, {
     startTime,
     endTime,
@@ -96,6 +106,7 @@ export async function streamCompositionAudio(
   write: (samples: Float32Array, startFrame: number) => Promise<void>,
   cancelled: () => boolean,
   sampleRate = EXPORT_AUDIO_SAMPLE_RATE,
+  compositionStartTime = 0,
 ): Promise<number> {
   if (!Number.isSafeInteger(totalFrames) || totalFrames < 1)
     throw new RangeError("Audio export total must be a positive safe integer");
@@ -109,6 +120,7 @@ export async function streamCompositionAudio(
       completed,
       frameCount,
       sampleRate,
+      compositionStartTime,
     );
     if (cancelled()) break;
     await write(samples, completed);

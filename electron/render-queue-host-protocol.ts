@@ -5,6 +5,7 @@ export type RenderHostOutputRequest =
       leaseId: string;
       outputId: string;
       pixelFormat: "bgra" | "rgba";
+      audio?: { sampleRate: number; channels: 2; frameCount: number };
     }
   | {
       type: "writeMp4Frame";
@@ -12,6 +13,13 @@ export type RenderHostOutputRequest =
       leaseId: string;
       outputId: string;
       pixels: ArrayBuffer;
+    }
+  | {
+      type: "writeMp4Audio";
+      jobId: string;
+      leaseId: string;
+      outputId: string;
+      samples: ArrayBuffer;
     }
   | {
       type: "finishMp4";
@@ -37,16 +45,39 @@ export function parseRenderHostOutputRequest(value: unknown): RenderHostOutputRe
     outputId: boundedId(value.outputId, "output"),
   };
   if (value.type === "startMp4") {
-    exactKeys(value, ["type", "jobId", "leaseId", "outputId", "pixelFormat"]);
+    exactKeys(value, [
+      "type",
+      "jobId",
+      "leaseId",
+      "outputId",
+      "pixelFormat",
+      ...(value.audio === undefined ? [] : ["audio"]),
+    ]);
     if (value.pixelFormat !== "bgra" && value.pixelFormat !== "rgba")
       throw new Error("RenderHost MP4 pixel format is invalid");
-    return { type: "startMp4", ...shared, pixelFormat: value.pixelFormat };
+    return {
+      type: "startMp4",
+      ...shared,
+      pixelFormat: value.pixelFormat,
+      ...(value.audio === undefined ? {} : { audio: audioOptions(value.audio) }),
+    };
   }
   if (value.type === "writeMp4Frame") {
     exactKeys(value, ["type", "jobId", "leaseId", "outputId", "pixels"]);
     if (!(value.pixels instanceof ArrayBuffer))
       throw new Error("RenderHost MP4 frame must be an ArrayBuffer");
     return { type: "writeMp4Frame", ...shared, pixels: value.pixels };
+  }
+  if (value.type === "writeMp4Audio") {
+    exactKeys(value, ["type", "jobId", "leaseId", "outputId", "samples"]);
+    if (
+      !(value.samples instanceof ArrayBuffer) ||
+      value.samples.byteLength === 0 ||
+      value.samples.byteLength > 8 * 1024 * 1024 ||
+      value.samples.byteLength % (2 * Float32Array.BYTES_PER_ELEMENT) !== 0
+    )
+      throw new Error("RenderHost MP4 audio must be bounded interleaved Float32 stereo PCM");
+    return { type: "writeMp4Audio", ...shared, samples: value.samples };
   }
   if (value.type === "finishMp4") {
     exactKeys(value, ["type", "jobId", "leaseId", "outputId"]);
@@ -61,6 +92,26 @@ export function parseRenderHostOutputRequest(value: unknown): RenderHostOutputRe
     return { type: "writePng", ...shared, frame: Number(value.frame), pixels: value.pixels };
   }
   throw new Error("RenderHost output request type is invalid");
+}
+
+function audioOptions(value: unknown): { sampleRate: number; channels: 2; frameCount: number } {
+  if (!isRecord(value)) throw new Error("RenderHost MP4 audio options are invalid");
+  exactKeys(value, ["sampleRate", "channels", "frameCount"]);
+  if (
+    !Number.isSafeInteger(value.sampleRate) ||
+    Number(value.sampleRate) < 8_000 ||
+    Number(value.sampleRate) > 192_000 ||
+    value.channels !== 2 ||
+    !Number.isSafeInteger(value.frameCount) ||
+    Number(value.frameCount) < 1 ||
+    Number(value.frameCount) > 86_400 * 192_000
+  )
+    throw new Error("RenderHost MP4 audio options are outside supported bounds");
+  return {
+    sampleRate: Number(value.sampleRate),
+    channels: 2,
+    frameCount: Number(value.frameCount),
+  };
 }
 
 function exactKeys(value: Record<string, unknown>, expected: readonly string[]): void {

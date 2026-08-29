@@ -1,5 +1,8 @@
 import { useEffect, useRef } from "react";
+import { AudioDecodeCache } from "../../core/audio-decode-cache";
+import type { DecodedPcm } from "../../core/audio-mixer";
 import { logger } from "../../core/logger";
+import type { FootageSource } from "../../core/types";
 import { desktopRenderHost } from "../../desktop/api";
 import {
   createBeautyFrameRequest,
@@ -26,9 +29,11 @@ export function RenderHost() {
     let stopped = false;
     let requestedControl: "pause" | "cancel" | undefined;
     let correlation: { jobId: string; leaseId: string } | undefined;
+    let audioAbort: AbortController | undefined;
     const unsubscribe = host.onControl((control) => {
       if (!correlation) return;
       requestedControl = mergeRenderHostControl(requestedControl, control, correlation);
+      if (requestedControl) audioAbort?.abort(new DOMException(requestedControl, "AbortError"));
     });
 
     void (async () => {
@@ -47,28 +52,55 @@ export function RenderHost() {
         createViewportBeautyFrameBackend(renderer, canvas),
       );
       pipeline.resize(validated.manifest.width, validated.manifest.height);
-      await runRenderHostFrameLoop({
-        assignment,
-        pixelFormat: pipeline.pixelFormat,
-        requestedControl: () => requestedControl,
-        renderFrame: (_frame, time) =>
-          pipeline.readback(
-            createBeautyFrameRequest({
-              composition: validated.composition,
-              project: validated.project,
-              time,
-              width: validated.manifest.width,
-              height: validated.manifest.height,
-            }),
-            validated.synchronizeVideo,
-          ),
-        encodePng: async (frame) =>
-          (
-            await encodeRawFramePng(frame, validated.manifest.width, validated.manifest.height)
-          ).arrayBuffer(),
-        output: (request) => host.output(request),
-        report: (report) => host.report(report),
-      });
+      const audioRuntime = validated.manifest.outputs.some(
+        (output) => output.kind === "mp4" && output.includeAudio,
+      )
+        ? {
+            cache: new AudioDecodeCache(),
+            context: new OfflineAudioContext(2, 1, 48_000),
+            abort: new AbortController(),
+          }
+        : undefined;
+      audioAbort = audioRuntime?.abort;
+      try {
+        await runRenderHostFrameLoop({
+          assignment: validated,
+          pixelFormat: pipeline.pixelFormat,
+          ...(audioRuntime
+            ? {
+                audioDecoder: (source: Extract<FootageSource, { kind: "audio" | "video" }>) =>
+                  decodeSourcePcm(
+                    audioRuntime.cache,
+                    audioRuntime.context,
+                    source,
+                    audioRuntime.abort.signal,
+                  ),
+              }
+            : {}),
+          requestedControl: () => requestedControl,
+          renderFrame: (_frame, time) =>
+            pipeline.readback(
+              createBeautyFrameRequest({
+                composition: validated.composition,
+                project: validated.project,
+                time,
+                width: validated.manifest.width,
+                height: validated.manifest.height,
+              }),
+              validated.synchronizeVideo,
+            ),
+          encodePng: async (frame) =>
+            (
+              await encodeRawFramePng(frame, validated.manifest.width, validated.manifest.height)
+            ).arrayBuffer(),
+          output: (request) => host.output(request),
+          report: (report) => host.report(report),
+        });
+      } finally {
+        audioRuntime?.abort.abort(new DOMException("RenderHost session ended", "AbortError"));
+        audioRuntime?.cache.clear();
+        audioAbort = undefined;
+      }
     })().catch(async (error: unknown) => {
       logger.error("render_host", "session_failed", error, correlation);
       if (!correlation) return;
@@ -92,4 +124,19 @@ export function RenderHost() {
   }, []);
 
   return <canvas ref={canvasRef} />;
+}
+
+async function decodeSourcePcm(
+  cache: AudioDecodeCache,
+  context: OfflineAudioContext,
+  source: Extract<FootageSource, { kind: "audio" | "video" }>,
+  signal?: AbortSignal,
+): Promise<DecodedPcm> {
+  const buffer = await cache.decode(context, source, signal);
+  return {
+    sampleRate: buffer.sampleRate,
+    channels: Array.from({ length: buffer.numberOfChannels }, (_, channel) =>
+      buffer.getChannelData(channel),
+    ),
+  };
 }

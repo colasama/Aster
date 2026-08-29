@@ -1,3 +1,10 @@
+import {
+  type AudioSourceDecoder,
+  alignedAudioFrameCount,
+  decodeAudibleSources,
+  EXPORT_AUDIO_SAMPLE_RATE,
+  streamCompositionAudio,
+} from "../../core/audio-export";
 import { validateProjectDocument } from "../../core/project-file";
 import { frameTimeAtIndex } from "../../core/render-export";
 import type { RenderJobManifest } from "../../core/render-queue";
@@ -20,8 +27,9 @@ export interface ValidatedRenderHostAssignment {
 }
 
 interface RenderHostFrameLoopOptions {
-  assignment: DesktopRenderHostAssignment;
+  assignment: ValidatedRenderHostAssignment;
   pixelFormat: Mp4PixelFormat;
+  audioDecoder?: AudioSourceDecoder;
   renderFrame(frame: number, time: number): Promise<RawVideoFrame>;
   encodePng(frame: RawVideoFrame): Promise<ArrayBuffer>;
   output(request: DesktopRenderHostOutputRequest): Promise<unknown>;
@@ -32,84 +40,176 @@ interface RenderHostFrameLoopOptions {
 
 export type RenderHostFrameLoopResult = "completed" | "paused" | "cancelled";
 
-/** Executes one lease sequentially so pause and cancel are observed only at completed frame boundaries. */
+/** Evaluates beauty frames sequentially while bounded audio writes run with independent backpressure. */
 export async function runRenderHostFrameLoop(
   options: RenderHostFrameLoopOptions,
 ): Promise<RenderHostFrameLoopResult> {
-  const { assignment } = options;
-  const { manifest } = assignment;
+  const validated = options.assignment;
+  const { assignment, manifest } = validated;
   const shared = { jobId: assignment.jobId, leaseId: assignment.leaseId };
+  const initialControl = options.requestedControl();
+  if (initialControl) return await reportControlBoundary(options.report, shared, initialControl);
   const mp4Outputs = manifest.outputs.filter((output) => output.kind === "mp4");
+  const audioOutputs = mp4Outputs.filter((output) => output.includeAudio);
   const pngOutputs = manifest.outputs.filter(
     (output) => output.kind === "pngSequence" || output.kind === "still",
   );
+  const audio = await prepareAudioPipeline(options, audioOutputs.length > 0);
   for (const output of mp4Outputs)
     await options.output({
       type: "startMp4",
       ...shared,
       outputId: output.id,
       pixelFormat: options.pixelFormat,
+      ...(output.includeAudio && audio
+        ? {
+            audio: {
+              sampleRate: EXPORT_AUDIO_SAMPLE_RATE,
+              channels: 2 as const,
+              frameCount: audio.frameCount,
+            },
+          }
+        : {}),
     });
 
   await options.report({ type: "prepared", ...shared });
+  let audioAborted = false;
+  let audioFailure: { reason: unknown } | undefined;
+  const audioPipeline = audio
+    ? streamCompositionAudio(
+        audio.project,
+        audio.composition,
+        audio.decoded,
+        audio.frameCount,
+        async (samples) => {
+          await Promise.all(
+            audioOutputs.map((output) =>
+              options.output({
+                type: "writeMp4Audio",
+                ...shared,
+                outputId: output.id,
+                samples: samples.buffer as ArrayBuffer,
+              }),
+            ),
+          );
+        },
+        () => audioAborted || options.requestedControl() !== undefined,
+        EXPORT_AUDIO_SAMPLE_RATE,
+        frameTimeAtIndex(manifest.startFrame, manifest.frameRate),
+      ).catch((error: unknown) => {
+        audioFailure = { reason: error };
+        audioAborted = true;
+        return -1;
+      })
+    : Promise.resolve(0);
   const now = options.now ?? (() => performance.now());
   const startedAt = now();
   const totalFrames = manifest.endFrameExclusive - manifest.startFrame;
-  for (let frame = manifest.startFrame; frame < manifest.endFrameExclusive; frame += 1) {
-    const beforeFrame = options.requestedControl();
-    if (beforeFrame) return await reportControlBoundary(options.report, shared, beforeFrame);
-    const raw = await options.renderFrame(frame, frameTimeAtIndex(frame, manifest.frameRate));
-    validateRawFrame(raw, manifest, options.pixelFormat);
+  try {
+    for (let frame = manifest.startFrame; frame < manifest.endFrameExclusive; frame += 1) {
+      throwAudioFailure(audioFailure);
+      const beforeFrame = options.requestedControl();
+      if (beforeFrame)
+        return await stopAtControlBoundary(
+          options.report,
+          shared,
+          beforeFrame,
+          () => {
+            audioAborted = true;
+          },
+          audioPipeline,
+        );
+      const raw = await options.renderFrame(frame, frameTimeAtIndex(frame, manifest.frameRate));
+      validateRawFrame(raw, manifest, options.pixelFormat);
 
-    const needsPng = pngOutputs.some(
-      (output) => output.kind === "pngSequence" || output.frame === frame,
-    );
-    if (needsPng) {
-      const pixels = await options.encodePng(raw);
-      for (const output of pngOutputs) {
-        if (output.kind === "still" && output.frame !== frame) continue;
+      const needsPng = pngOutputs.some(
+        (output) => output.kind === "pngSequence" || output.frame === frame,
+      );
+      if (needsPng) {
+        const pixels = await options.encodePng(raw);
+        for (const output of pngOutputs) {
+          if (output.kind === "still" && output.frame !== frame) continue;
+          await options.output({
+            type: "writePng",
+            ...shared,
+            outputId: output.id,
+            frame,
+            pixels,
+          });
+        }
+      }
+      for (const output of mp4Outputs)
         await options.output({
-          type: "writePng",
+          type: "writeMp4Frame",
           ...shared,
           outputId: output.id,
-          frame,
-          pixels,
+          pixels: raw.pixels,
         });
-      }
-    }
-    for (const output of mp4Outputs)
-      await options.output({
-        type: "writeMp4Frame",
+
+      const completedFrames = frame - manifest.startFrame + 1;
+      const elapsedMs = Math.max(0, now() - startedAt);
+      await options.report({
+        type: "progress",
         ...shared,
-        outputId: output.id,
-        pixels: raw.pixels,
+        progress: {
+          completedFrames,
+          totalFrames,
+          elapsedMs,
+          estimatedRemainingMs:
+            completedFrames < totalFrames
+              ? (elapsedMs / completedFrames) * (totalFrames - completedFrames)
+              : 0,
+        },
       });
+    }
 
-    const completedFrames = frame - manifest.startFrame + 1;
-    const elapsedMs = Math.max(0, now() - startedAt);
-    await options.report({
-      type: "progress",
-      ...shared,
-      progress: {
-        completedFrames,
-        totalFrames,
-        elapsedMs,
-        estimatedRemainingMs:
-          completedFrames < totalFrames
-            ? (elapsedMs / completedFrames) * (totalFrames - completedFrames)
-            : 0,
-      },
-    });
+    const afterLastFrame = options.requestedControl();
+    if (afterLastFrame)
+      return await stopAtControlBoundary(
+        options.report,
+        shared,
+        afterLastFrame,
+        () => {
+          audioAborted = true;
+        },
+        audioPipeline,
+      );
+    const completedAudioFrames = await audioPipeline;
+    throwAudioFailure(audioFailure);
+    const afterAudio = options.requestedControl();
+    if (afterAudio)
+      return await stopAtControlBoundary(
+        options.report,
+        shared,
+        afterAudio,
+        () => {
+          audioAborted = true;
+        },
+        audioPipeline,
+      );
+    if (audio && completedAudioFrames !== audio.frameCount)
+      throw new Error(
+        "RenderHost audio pipeline stopped before the rational frame range completed",
+      );
+    for (const output of mp4Outputs)
+      await options.output({ type: "finishMp4", ...shared, outputId: output.id });
+    const afterEncoders = options.requestedControl();
+    if (afterEncoders)
+      return await stopAtControlBoundary(
+        options.report,
+        shared,
+        afterEncoders,
+        () => {
+          audioAborted = true;
+        },
+        audioPipeline,
+      );
+    await options.report({ type: "completed", ...shared });
+    return "completed";
+  } catch (error) {
+    audioAborted = true;
+    throw error;
   }
-
-  const afterLastFrame = options.requestedControl();
-  if (afterLastFrame) return await reportControlBoundary(options.report, shared, afterLastFrame);
-  for (const output of mp4Outputs)
-    await options.output({ type: "finishMp4", ...shared, outputId: output.id });
-  const afterEncoders = options.requestedControl();
-  if (afterEncoders) return await reportControlBoundary(options.report, shared, afterEncoders);
-  await options.report({ type: "completed", ...shared });
-  return "completed";
 }
 
 /** Parses the immutable snapshot and rejects any manifest/render-document drift before GPU work. */
@@ -198,5 +298,58 @@ async function reportControlBoundary(
 ): Promise<"paused" | "cancelled"> {
   const result = control === "pause" ? "paused" : "cancelled";
   await report({ type: result, ...shared });
+  return result;
+}
+
+async function prepareAudioPipeline(
+  options: RenderHostFrameLoopOptions,
+  requested: boolean,
+): Promise<
+  | {
+      project: Project;
+      composition: Composition;
+      decoded: Awaited<ReturnType<typeof decodeAudibleSources>>;
+      frameCount: number;
+    }
+  | undefined
+> {
+  if (!requested) return undefined;
+  if (!options.audioDecoder)
+    throw new Error("RenderHost audio output requires the immutable project snapshot decoder");
+  const decoded = await decodeAudibleSources(
+    options.assignment.project,
+    options.assignment.composition,
+    options.audioDecoder,
+  );
+  // Match the foreground exporter: requesting audio with no audible footage produces video-only
+  // MP4 instead of manufacturing a silent track.
+  if (decoded.size === 0) return undefined;
+  const { manifest } = options.assignment;
+  return {
+    project: options.assignment.project,
+    composition: options.assignment.composition,
+    decoded,
+    frameCount: alignedAudioFrameCount(
+      manifest.endFrameExclusive - manifest.startFrame,
+      manifest.frameRate,
+      EXPORT_AUDIO_SAMPLE_RATE,
+    ),
+  };
+}
+
+function throwAudioFailure(failure: { reason: unknown } | undefined): void {
+  if (failure) throw failure.reason;
+}
+
+async function stopAtControlBoundary(
+  report: RenderHostFrameLoopOptions["report"],
+  shared: { jobId: string; leaseId: string },
+  control: "pause" | "cancel",
+  abortAudio: () => void,
+  audioPipeline: Promise<number>,
+): Promise<"paused" | "cancelled"> {
+  abortAudio();
+  const result = await reportControlBoundary(report, shared, control);
+  await audioPipeline;
   return result;
 }

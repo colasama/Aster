@@ -74,4 +74,14 @@ describe("audio export", () => {
     expect(completed).toBe(48_001);
     expect(writes).toEqual([48_000, 1]);
   });
+
+  it("mixes a background range from its exact rational composition start", () => {
+    const { project, composition, source } = audioProject();
+    composition.layers = [composition.layers[0]];
+    const samples = new Float32Array(4_000);
+    samples[2_000] = 0.75;
+    const decoded = new Map([[source.id, { sampleRate: 8_000, channels: [samples] }]]);
+    const ranged = mixAudioExportChunk(project, composition, decoded, 0, 2, 8_000, 0.25);
+    expect([...ranged]).toEqual([0.75, 0.75, 0, 0]);
+  });
 });

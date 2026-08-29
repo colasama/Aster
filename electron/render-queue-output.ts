@@ -193,8 +193,6 @@ function assertPublishActive(aborted: () => boolean): void {
 function validateOutput(output: RenderOutputModule, manifest: RenderJobManifest): void {
   if (output.kind === "mp4") {
     if (output.codec !== "h264") throw new Error("Background RenderHost currently supports H.264");
-    if (output.includeAudio)
-      throw new Error("Background RenderHost H.264 output does not yet support audio");
     if (manifest.width % 2 !== 0 || manifest.height % 2 !== 0)
       throw new Error("H.264 output dimensions must be even");
   } else if (output.kind === "still") {
