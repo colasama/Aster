@@ -572,12 +572,15 @@
 .graph-editor {
   min-height: 0;
   display: grid;
-  grid-template-columns: 180px minmax(0, 1fr);
+  grid-template-columns: 220px minmax(0, 1fr);
+  overflow: hidden;
   background: #111217;
 }
 .graph-sidebar {
+  min-height: 0;
   padding: 10px;
   border-right: 1px solid #2b2e36;
+  overflow: auto;
   background: #16181e;
 }
 .graph-sidebar strong {
@@ -586,37 +589,119 @@
   color: #c0c4cd;
   font-size: 9px;
 }
-.graph-sidebar button {
+.graph-track-list {
+  display: grid;
+  gap: 3px;
+}
+.graph-track-list button {
   width: 100%;
   height: 25px;
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #9a9eaa;
-  background: #242936;
+  color: #666b77;
+  background: #1b1e25;
   font-size: 8px;
   text-align: left;
+}
+.graph-track-list button.active {
+  color: #b8bdc8;
+  background: #242936;
+}
+.graph-track-list button:focus-visible,
+.graph-toolbar button:focus-visible,
+.graph-toolbar select:focus-visible {
+  outline: 1px solid #6f9cff;
+  outline-offset: 1px;
 }
 .property-color {
   width: 4px;
   height: 14px;
   margin-left: 5px;
-  background: #5f8ff2;
+  opacity: 0.35;
 }
-.graph-sidebar small {
+.graph-track-list button.active .property-color {
+  opacity: 1;
+}
+.graph-track-list button > span:nth-child(2) {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.graph-track-list small {
+  color: #686f7e;
+  font-size: 6px;
+  letter-spacing: 0.06em;
+}
+.graph-empty {
   display: block;
-  margin: 8px 0 0 6px;
-  color: #535864;
+  padding: 8px 6px;
+  color: #626875;
+  font-size: 8px;
+}
+.graph-main {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: 31px minmax(0, 1fr);
+}
+.graph-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 7px;
+  border-bottom: 1px solid #292c34;
+  background: #17191f;
+}
+.graph-toolbar label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-right: 3px;
+  color: #747a87;
   font-size: 7px;
+}
+.graph-toolbar select,
+.graph-toolbar button {
+  height: 23px;
+  border: 1px solid #30343e;
+  color: #9ca2ae;
+  background: #20232a;
+  font-size: 7px;
+}
+.graph-toolbar button.active {
+  border-color: #466cae;
+  color: #cedcff;
+  background: #253149;
+}
+.graph-toolbar button:disabled {
+  opacity: 0.4;
+}
+.graph-surface {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+.graph-surface:focus-visible {
+  outline: 1px solid #5f8ff2;
+  outline-offset: -1px;
 }
 .graph-editor svg {
   width: 100%;
   height: 100%;
+  min-height: 0;
+  cursor: crosshair;
+  touch-action: none;
+  user-select: none;
+}
+.graph-curve {
+  stroke-width: 2px;
 }
 .graph-key {
   cursor: move;
   fill: #d7e5ff;
-  stroke: #477ef5;
   stroke-width: 2px;
   vector-effect: non-scaling-stroke;
 }
@@ -625,15 +710,18 @@
   stroke: #8fb1ff;
   stroke-width: 3px;
 }
+.graph-key:focus-visible {
+  fill: #fff;
+  outline: none;
+  stroke-width: 4px;
+}
 .graph-handle-line {
-  stroke: #8a70ee;
   stroke-width: 1px;
   vector-effect: non-scaling-stroke;
 }
 .graph-handle {
   cursor: crosshair;
   fill: #17191f;
-  stroke: #ab93ff;
   stroke-width: 2px;
   vector-effect: non-scaling-stroke;
 }
