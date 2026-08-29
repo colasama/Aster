@@ -1,19 +1,27 @@
 import { type GraphSampleBuffer, sampleGraph } from "../../core/graph-sampling";
-import { getProperty, type PropertyPath } from "../../core/operations";
+import type { PropertyPath } from "../../core/operations";
 import { evaluateAnimatable, evaluateAnimatableSpeed } from "../../core/timeline";
 import type { Animatable, Keyframe, Layer } from "../../core/types";
 import type { PlainMessageKey } from "../../i18n/core";
+import {
+  collectTimelinePropertyGroups,
+  type TimelinePropertyTrack,
+  timelineTrackKeyframes,
+} from "../timeline-property-tracks";
 
 export type GraphType = "auto" | "value" | "speed";
 export type ResolvedGraphType = Exclude<GraphType, "auto">;
 type AnimatedProperty = Extract<Animatable, { mode: "animated" }>;
 
-export interface GraphTrack {
-  id: PropertyPath;
-  path: PropertyPath;
-  labelKey: PlainMessageKey;
+interface GraphTrackBase {
+  id: string;
   color: string;
   step: number;
+  unit: string;
+  minimum?: number;
+  maximum?: number;
+  discrete?: boolean;
+  quantizeValue?: boolean;
   property: AnimatedProperty;
   /** Unseparated spatial components used to produce one AE-style speed magnitude. */
   spatialProperties?: readonly Animatable[];
@@ -22,15 +30,39 @@ export interface GraphTrack {
   speedLabelKey?: PlainMessageKey;
 }
 
+export interface TransformGraphTrack extends GraphTrackBase {
+  source: "transform";
+  path: PropertyPath;
+  labelKey: PlainMessageKey;
+}
+
+export interface EffectGraphTrack extends GraphTrackBase {
+  source: "effect";
+  effectId: string;
+  parameter: string;
+  label: string;
+}
+
+export type GraphTrack = TransformGraphTrack | EffectGraphTrack;
+
+export type GraphKeyframeTarget =
+  | { source: "transform"; path: PropertyPath; keyframe: Keyframe }
+  | {
+      source: "effect";
+      effectId: string;
+      parameter: string;
+      keyframe: Keyframe;
+    };
+
 export interface GraphKeyframePreview {
-  trackId: PropertyPath;
+  trackId: string;
   keyframeId: string;
   time: number;
   value: number;
 }
 
 export interface GraphEasingPreview {
-  trackId: PropertyPath;
+  trackId: string;
   keyframeId: string;
   easing: [number, number, number, number];
 }
@@ -55,109 +87,106 @@ export interface GraphEaseUpdate {
   easing: [number, number, number, number];
 }
 
-const TRACK_DEFINITIONS: ReadonlyArray<
-  Omit<GraphTrack, "property"> & { labelKey: PlainMessageKey }
-> = [
+const SPATIAL_GROUPS: ReadonlyArray<{
+  paths: readonly PropertyPath[];
+  speedLabelKey: PlainMessageKey;
+}> = [
   {
-    id: "position.0",
-    path: "position.0",
-    labelKey: "timeline.property.positionX",
-    color: "#ef6678",
-    step: 0.1,
+    paths: ["position.0", "position.1", "position.2"],
+    speedLabelKey: "graph.track.positionSpeed",
   },
   {
-    id: "position.1",
-    path: "position.1",
-    labelKey: "timeline.property.positionY",
-    color: "#65d787",
-    step: 0.1,
+    paths: ["anchor.0", "anchor.1", "anchor.2"],
+    speedLabelKey: "graph.track.anchorSpeed",
   },
   {
-    id: "position.2",
-    path: "position.2",
-    labelKey: "timeline.property.positionZ",
-    color: "#6795f8",
-    step: 0.1,
-  },
-  {
-    id: "rotation.0",
-    path: "rotation.0",
-    labelKey: "timeline.property.rotationX",
-    color: "#f4a261",
-    step: 0.1,
-  },
-  {
-    id: "rotation.1",
-    path: "rotation.1",
-    labelKey: "timeline.property.rotationY",
-    color: "#ad8cff",
-    step: 0.1,
-  },
-  {
-    id: "rotation.2",
-    path: "rotation.2",
-    labelKey: "timeline.property.rotationZ",
-    color: "#31c8bd",
-    step: 0.1,
-  },
-  {
-    id: "scale.0",
-    path: "scale.0",
-    labelKey: "timeline.property.scaleX",
-    color: "#f07ac0",
-    step: 0.1,
-  },
-  {
-    id: "scale.1",
-    path: "scale.1",
-    labelKey: "timeline.property.scaleY",
-    color: "#e7c84f",
-    step: 0.1,
-  },
-  {
-    id: "scale.2",
-    path: "scale.2",
-    labelKey: "timeline.property.scaleZ",
-    color: "#45bfe9",
-    step: 0.1,
-  },
-  {
-    id: "opacity",
-    path: "opacity",
-    labelKey: "timeline.property.opacity",
-    color: "#c1a7ff",
-    step: 1,
+    paths: ["camera.pointOfInterest.0", "camera.pointOfInterest.1", "camera.pointOfInterest.2"],
+    speedLabelKey: "graph.track.pointOfInterestSpeed",
   },
 ];
 
 export function collectAnimatedGraphTracks(layer: Layer | undefined): GraphTrack[] {
   if (!layer) return [];
-  const animatedPositionPaths = TRACK_DEFINITIONS.filter((definition) =>
-    definition.path.startsWith("position."),
-  ).flatMap((definition) => {
-    const property = getProperty(layer, definition.path);
-    return property.mode === "animated" && property.keyframes.length > 0 ? [definition.path] : [];
-  });
-  const primaryPositionPath = animatedPositionPaths[0];
-  return TRACK_DEFINITIONS.flatMap((definition) => {
-    const property = getProperty(layer, definition.path);
-    return property.mode === "animated" && property.keyframes.length > 0
-      ? [
-          {
-            ...definition,
-            property,
-            ...(definition.path.startsWith("position.")
-              ? {
-                  spatialProperties: layer.transform.position,
-                  spatialPaths: ["position.0", "position.1", "position.2"] as PropertyPath[],
-                  spatialPrimary: definition.path === primaryPositionPath,
-                  speedLabelKey: "graph.track.positionSpeed" as PlainMessageKey,
-                }
-              : {}),
-          },
-        ]
-      : [];
-  });
+  const groups = collectTimelinePropertyGroups(layer);
+  const allTracks = groups.flatMap((group) => group.tracks);
+  const result: GraphTrack[] = [];
+  for (const group of groups) {
+    for (const [index, track] of group.tracks.entries()) {
+      const keyframes = timelineTrackKeyframes(track);
+      if (!keyframes.length) continue;
+      const base = {
+        id: track.id,
+        color: graphTrackColor(track.id, index),
+        step: graphTrackStep(track),
+        unit: graphTrackUnit(track),
+        property: { mode: "animated" as const, keyframes },
+      };
+      if (track.source === "effect") {
+        result.push({
+          ...base,
+          source: "effect",
+          effectId: track.effectId,
+          parameter: track.parameter,
+          label: `${group.label} · ${track.definition.label}`,
+          minimum: track.definition.min,
+          maximum: track.definition.max,
+          discrete: track.definition.kind === "toggle" || track.definition.kind === "choice",
+          quantizeValue: true,
+        });
+        continue;
+      }
+      const spatial = SPATIAL_GROUPS.find((candidate) => candidate.paths.includes(track.path));
+      const spatialTracks = spatial
+        ? spatial.paths.flatMap((path) => {
+            const candidate = allTracks.find(
+              (entry) => entry.source === "transform" && entry.path === path,
+            );
+            return candidate?.source === "transform" ? [candidate] : [];
+          })
+        : [];
+      const primaryPath = spatialTracks.find(
+        (candidate) => timelineTrackKeyframes(candidate).length > 0,
+      )?.path;
+      result.push({
+        ...base,
+        source: "transform",
+        path: track.path,
+        labelKey: track.labelKey,
+        minimum: track.min,
+        maximum: track.max,
+        ...(spatial
+          ? {
+              spatialPaths: spatialTracks.map((candidate) => candidate.path),
+              spatialProperties: spatialTracks.map((candidate) => candidate.property),
+              spatialPrimary: track.path === primaryPath,
+              speedLabelKey: spatial.speedLabelKey,
+            }
+          : {}),
+      });
+    }
+  }
+  return result;
+}
+
+function graphTrackStep(track: TimelinePropertyTrack): number {
+  if (track.source === "transform") return track.step;
+  const step = track.definition.step;
+  if (step !== undefined && Number.isFinite(step) && step > 0) return step;
+  return track.definition.kind === "toggle" || track.definition.kind === "choice" ? 1 : 0.1;
+}
+
+function graphTrackUnit(track: TimelinePropertyTrack): string {
+  if (track.source === "transform") return track.unit;
+  return (
+    track.definition.unit ??
+    (track.definition.kind === "angle" ? "°" : track.definition.kind === "percent" ? "%" : "")
+  );
+}
+
+function graphTrackColor(id: string, index: number): string {
+  let hash = 0;
+  for (const character of id) hash = Math.imul(hash ^ character.charCodeAt(0), 16_777_619);
+  return `hsl(${Math.abs(hash + index * 137) % 360} 72% 66%)`;
 }
 
 /** Hides duplicate component curves when an unseparated spatial property is shown as speed. */
@@ -168,18 +197,20 @@ export function graphTracksForType(tracks: readonly GraphTrack[], type: GraphTyp
   );
 }
 
-export function graphTrackLabelKey(track: GraphTrack, type: GraphType): PlainMessageKey {
-  return resolveGraphType(type, track) === "speed" && track.speedLabelKey
-    ? track.speedLabelKey
-    : track.labelKey;
+export function graphTrackLabelKey(
+  track: GraphTrack,
+  type: GraphType,
+): PlainMessageKey | undefined {
+  if (resolveGraphType(type, track) === "speed" && track.speedLabelKey) return track.speedLabelKey;
+  return track.source === "transform" ? track.labelKey : undefined;
 }
 
 export function resolveGraphType(
   type: GraphType,
-  track: Pick<GraphTrack, "path">,
+  track: Pick<GraphTrack, "spatialProperties">,
 ): ResolvedGraphType {
   if (type !== "auto") return type;
-  return track.path.startsWith("position.") ? "speed" : "value";
+  return track.spatialProperties ? "speed" : "value";
 }
 
 export function previewGraphTrack(
@@ -204,6 +235,7 @@ export function previewGraphTrack(
   const source = activePreview
     ? track.property.keyframes.find((keyframe) => keyframe.id === activePreview.keyframeId)
     : undefined;
+  if (track.source !== "transform") return { ...track, property };
   const component = track.spatialPaths.indexOf(track.path);
   const spatialProperties = track.spatialProperties.map((candidate, index) => {
     if (index === component) return property;
@@ -294,6 +326,24 @@ export function graphDraggedKeyframeValue(
   return type === "value" && Number.isFinite(graphValue) ? graphValue : keyframeValue;
 }
 
+export function constrainGraphTrackValue(track: GraphTrack, value: number): number {
+  if (!Number.isFinite(value)) return track.property.keyframes[0]?.value ?? 0;
+  const minimum = track.minimum ?? Number.NEGATIVE_INFINITY;
+  const maximum = track.maximum ?? Number.POSITIVE_INFINITY;
+  const clamped = Math.max(minimum, Math.min(maximum, value));
+  if (!track.quantizeValue || !Number.isFinite(track.step) || track.step <= 0) return clamped;
+  const origin = Number.isFinite(minimum) ? minimum : 0;
+  const quantized = origin + Math.round((clamped - origin) / track.step) * track.step;
+  return Math.max(minimum, Math.min(maximum, Number(quantized.toPrecision(12))));
+}
+
+export function graphTrackInterpolation(
+  track: GraphTrack,
+  interpolation: Keyframe["interpolation"],
+): Keyframe["interpolation"] {
+  return track.discrete ? "step" : interpolation;
+}
+
 /**
  * Converts the temporal cubic stored on a segment into AE-style absolute speed and influence.
  * Influence is expressed as a normalized portion of the segment duration.
@@ -368,36 +418,44 @@ export function graphTrackSegmentKeyframes(
   track: GraphTrack,
   startTime: number,
   endTime: number,
-): Array<{ path: PropertyPath; keyframe: Keyframe }> {
+): GraphKeyframeTarget[] {
   if (!track.spatialProperties || !track.spatialPaths)
     return track.property.keyframes
       .filter((keyframe) => keyframe.time === startTime)
-      .map((keyframe) => ({ path: track.path, keyframe }));
+      .map((keyframe) => graphKeyframeTarget(track, keyframe));
   return track.spatialProperties.flatMap((property, index) => {
     if (property.mode !== "animated") return [];
     const start = property.keyframes.find((keyframe) => keyframe.time === startTime);
     const end = property.keyframes.find((keyframe) => keyframe.time === endTime);
     const path = track.spatialPaths?.[index];
-    return start && end && path ? [{ path, keyframe: start }] : [];
+    return start && end && path ? [{ source: "transform" as const, path, keyframe: start }] : [];
   });
 }
 
-export function graphTrackKeyframesAtTime(
-  track: GraphTrack,
-  time: number,
-): Array<{ path: PropertyPath; keyframe: Keyframe }> {
+export function graphTrackKeyframesAtTime(track: GraphTrack, time: number): GraphKeyframeTarget[] {
   if (!track.spatialProperties || !track.spatialPaths)
     return track.property.keyframes
       .filter((keyframe) => Math.abs(keyframe.time - time) <= 0.000_001)
-      .map((keyframe) => ({ path: track.path, keyframe }));
+      .map((keyframe) => graphKeyframeTarget(track, keyframe));
   return track.spatialProperties.flatMap((property, index) => {
     if (property.mode !== "animated") return [];
     const keyframe = property.keyframes.find(
       (candidate) => Math.abs(candidate.time - time) <= 0.000_001,
     );
     const path = track.spatialPaths?.[index];
-    return keyframe && path ? [{ path, keyframe }] : [];
+    return keyframe && path ? [{ source: "transform" as const, path, keyframe }] : [];
   });
+}
+
+export function graphKeyframeTarget(track: GraphTrack, keyframe: Keyframe): GraphKeyframeTarget {
+  return track.source === "transform"
+    ? { source: "transform", path: track.path, keyframe }
+    : {
+        source: "effect",
+        effectId: track.effectId,
+        parameter: track.parameter,
+        keyframe,
+      };
 }
 
 /** Builds the segment-owned temporal handles affected by AE Easy Ease In, Out, or Both. */

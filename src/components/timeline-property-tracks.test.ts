@@ -16,6 +16,10 @@ describe("expanded timeline property tracks", () => {
 
     expect(groups[0].tracks).toHaveLength(13);
     expect(groups[0].tracks.map((track) => track.id)).toContain("opacity");
+    expect(groups[0].tracks.find((track) => track.id === "opacity")).toMatchObject({
+      min: 0,
+      max: 100,
+    });
     expect(groups[0].tracks.map((track) => track.id)).toEqual(
       expect.arrayContaining(["anchor.0", "anchor.1", "anchor.2"]),
     );
@@ -86,6 +90,18 @@ describe("expanded timeline property tracks", () => {
       "camera.highlightThreshold",
       "camera.highlightSaturation",
     ]);
+    expect(group?.tracks.find((track) => track.id === "camera.aperture")).toMatchObject({
+      min: 0.001,
+      max: 10_000,
+    });
+    expect(group?.tracks.find((track) => track.id === "camera.highlightThreshold")).toMatchObject({
+      min: 0,
+      max: 1,
+    });
+    expect(group?.tracks.find((track) => track.id === "camera.pointOfInterest.0")).toMatchObject({
+      min: undefined,
+      max: undefined,
+    });
   });
 });
 

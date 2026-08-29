@@ -1,15 +1,20 @@
 import { describe, expect, it } from "vitest";
+import { CAMERA_ANIMATABLE_FIELDS } from "../../core/camera-properties";
 import { createLayerForComposition } from "../../core/layer-factory";
 import { activeComposition, createDemoProject } from "../../core/project";
 import type { Animatable } from "../../core/types";
+import { createEffect } from "../../effects/registry";
 import {
   collectAnimatedGraphTracks,
+  constrainGraphTrackValue,
   easeGraphTrack,
   easingFromGraphSpeedHandle,
   graphCurveRange,
   graphDraggedKeyframeValue,
   graphSpeedSegment,
+  graphTrackInterpolation,
   graphTrackKeyframesAtTime,
+  graphTrackLabelKey,
   graphTrackSegmentBaseSpeed,
   graphTrackSegmentKeyframes,
   graphTracksForType,
@@ -22,7 +27,7 @@ const animated = (
   start: number,
   end: number,
   easing?: [number, number, number, number],
-): Animatable => ({
+): Extract<Animatable, { mode: "animated" }> => ({
   mode: "animated",
   keyframes: [
     { id: "start", time: 0, value: start, interpolation: easing ? "bezier" : "linear", easing },
@@ -42,7 +47,7 @@ describe("graph editor track model", () => {
 
     const first = collectAnimatedGraphTracks(layer);
     const second = collectAnimatedGraphTracks(layer);
-    expect(first.map((track) => track.path)).toEqual([
+    expect(first.flatMap((track) => (track.source === "transform" ? [track.path] : []))).toEqual([
       "position.0",
       "position.2",
       "rotation.1",
@@ -51,6 +56,9 @@ describe("graph editor track model", () => {
     ]);
     expect(first.map((track) => track.color)).toEqual(second.map((track) => track.color));
     expect(new Set(first.map((track) => track.color)).size).toBe(first.length);
+    const opacity = first.find((track) => track.source === "transform" && track.path === "opacity");
+    expect(opacity && constrainGraphTrackValue(opacity, -20)).toBe(0);
+    expect(opacity && constrainGraphTrackValue(opacity, 140)).toBe(100);
   });
 
   it("auto-selects speed for Position and value for other transform properties", () => {
@@ -63,6 +71,119 @@ describe("graph editor track model", () => {
     expect(resolveGraphType("auto", position)).toBe("speed");
     expect(resolveGraphType("auto", rotation)).toBe("value");
     expect(resolveGraphType("speed", rotation)).toBe("speed");
+  });
+
+  it("collects Anchor, camera pose and every exposed v9 optics track from the shared surface", () => {
+    const composition = activeComposition(createDemoProject());
+    const shape = createLayerForComposition("shape", composition);
+    shape.transform.anchor[0] = animated(0, 3);
+    shape.transform.anchor[1] = animated(0, 4);
+    const anchorTracks = collectAnimatedGraphTracks(shape);
+    const anchorAuto = graphTracksForType(anchorTracks, "auto");
+    expect(anchorAuto).toHaveLength(1);
+    expect(resolveGraphType("auto", anchorAuto[0])).toBe("speed");
+    const anchorCurve = sampleGraphTrack(anchorAuto[0], "auto", 0, 1, 32);
+    expect(anchorCurve.samples.speeds[Math.floor(anchorCurve.samples.count / 2)]).toBeCloseTo(5, 8);
+    expect(
+      graphTrackKeyframesAtTime(anchorAuto[0], 0).flatMap((target) =>
+        target.source === "transform" ? [target.path] : [],
+      ),
+    ).toEqual(["anchor.0", "anchor.1"]);
+
+    const camera = createLayerForComposition("camera", composition);
+    expect(camera.camera).toBeDefined();
+    if (!camera.camera) return;
+    camera.camera.pointOfInterest[0] = animated(0, 3);
+    camera.camera.pointOfInterest[1] = animated(0, 4);
+    camera.camera.orientation[0] = animated(0, 90);
+    for (const field of CAMERA_ANIMATABLE_FIELDS) camera.camera[field] = animated(1, 2);
+    const cameraTracks = collectAnimatedGraphTracks(camera);
+    const paths = cameraTracks.flatMap((track) =>
+      track.source === "transform" ? [track.path] : [],
+    );
+    expect(paths).toEqual([
+      "camera.pointOfInterest.0",
+      "camera.pointOfInterest.1",
+      "camera.orientation.0",
+      ...CAMERA_ANIMATABLE_FIELDS.map((field) => `camera.${field}`),
+    ]);
+    const cameraAuto = graphTracksForType(cameraTracks, "auto");
+    expect(cameraAuto.filter((track) => track.spatialProperties)).toHaveLength(1);
+    const pointOfInterest = cameraAuto.find((track) => track.id === "camera.pointOfInterest.0");
+    expect(
+      pointOfInterest &&
+        graphTrackKeyframesAtTime(pointOfInterest, 0).flatMap((target) =>
+          target.source === "transform" ? [target.path] : [],
+        ),
+    ).toEqual(["camera.pointOfInterest.0", "camera.pointOfInterest.1"]);
+    const orientation = cameraAuto.find((track) => track.id === "camera.orientation.0");
+    expect(orientation).toMatchObject({
+      source: "transform",
+    });
+    expect(orientation && resolveGraphType("auto", orientation)).toBe("value");
+    const aperture = cameraTracks.find((track) => track.id === "camera.aperture");
+    const threshold = cameraTracks.find((track) => track.id === "camera.highlightThreshold");
+    expect(aperture && constrainGraphTrackValue(aperture, -1)).toBe(0.001);
+    expect(threshold && constrainGraphTrackValue(threshold, 99)).toBe(1);
+  });
+
+  it("uses effect registry labels, units and steps without treating dynamic labels as i18n keys", () => {
+    const composition = activeComposition(createDemoProject());
+    const layer = createLayerForComposition("shape", composition);
+    const effect = createEffect("gaussian-blur");
+    effect.name = "Soft Background";
+    effect.parameterKeyframes = { radius: animated(0, 100).keyframes };
+    layer.effects.push(effect);
+
+    const track = collectAnimatedGraphTracks(layer).find(
+      (candidate) => candidate.source === "effect" && candidate.parameter === "radius",
+    );
+    expect(track).toMatchObject({
+      source: "effect",
+      label: "Soft Background · Blurriness",
+      step: 0.5,
+      unit: "px",
+    });
+    expect(track && graphTrackLabelKey(track, "auto")).toBeUndefined();
+    expect(track && resolveGraphType("auto", track)).toBe("value");
+  });
+
+  it("quantizes discrete effects and clamps numeric and percent tracks to registry bounds", () => {
+    const composition = activeComposition(createDemoProject());
+    const layer = createLayerForComposition("shape", composition);
+    layer.transform.position[0] = animated(0, 100);
+    const blur = createEffect("gaussian-blur");
+    blur.parameterKeyframes = { radius: animated(0, 100).keyframes };
+    const filter = createEffect("photo-filter");
+    filter.parameterKeyframes = { density: animated(0, 100).keyframes };
+    const radial = createEffect("radial-blur");
+    radial.parameterKeyframes = { mode: animated(0, 1).keyframes };
+    layer.effects.push(blur, filter, radial);
+    const tracks = collectAnimatedGraphTracks(layer);
+    const position = tracks.find(
+      (track) => track.source === "transform" && track.path === "position.0",
+    );
+    const radius = tracks.find(
+      (track) =>
+        track.source === "effect" && track.effectId === blur.id && track.parameter === "radius",
+    );
+    const density = tracks.find(
+      (track) =>
+        track.source === "effect" && track.effectId === filter.id && track.parameter === "density",
+    );
+    const mode = tracks.find(
+      (track) =>
+        track.source === "effect" && track.effectId === radial.id && track.parameter === "mode",
+    );
+    expect(position && constrainGraphTrackValue(position, 10.26)).toBe(10.26);
+    expect(radius && constrainGraphTrackValue(radius, 999)).toBe(500);
+    expect(radius && constrainGraphTrackValue(radius, 10.26)).toBe(10.5);
+    expect(density && constrainGraphTrackValue(density, -20)).toBe(0);
+    expect(density && constrainGraphTrackValue(density, 140)).toBe(100);
+    expect(density && constrainGraphTrackValue(density, 44.4)).toBe(44);
+    expect(mode && constrainGraphTrackValue(mode, 0.7)).toBe(1);
+    expect(mode && constrainGraphTrackValue(mode, 99)).toBe(1);
+    expect(mode && graphTrackInterpolation(mode, "bezier")).toBe("step");
   });
 
   it("combines unseparated Position dimensions into one spatial speed magnitude", () => {
@@ -86,14 +207,16 @@ describe("graph editor track model", () => {
         autoTracks[0].property.keyframes[1],
       ),
     ).toBeCloseTo(5, 8);
-    expect(graphTrackSegmentKeyframes(autoTracks[0], 0, 1).map(({ path }) => path)).toEqual([
-      "position.0",
-      "position.1",
-    ]);
-    expect(graphTrackKeyframesAtTime(autoTracks[0], 0).map(({ path }) => path)).toEqual([
-      "position.0",
-      "position.1",
-    ]);
+    expect(
+      graphTrackSegmentKeyframes(autoTracks[0], 0, 1).flatMap((target) =>
+        target.source === "transform" ? [target.path] : [],
+      ),
+    ).toEqual(["position.0", "position.1"]);
+    expect(
+      graphTrackKeyframesAtTime(autoTracks[0], 0).flatMap((target) =>
+        target.source === "transform" ? [target.path] : [],
+      ),
+    ).toEqual(["position.0", "position.1"]);
     const previewed = previewGraphTrack(autoTracks[0], {
       trackId: autoTracks[0].id,
       keyframeId: "start",

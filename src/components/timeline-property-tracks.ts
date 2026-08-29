@@ -1,3 +1,4 @@
+import { CAMERA_PROPERTY_LIMITS, isCameraAnimatableField } from "../core/camera-properties";
 import { getProperty, type PropertyPath } from "../core/operations";
 import { evaluateAnimatable } from "../core/timeline";
 import type { Animatable, Effect, Keyframe, Layer } from "../core/types";
@@ -15,6 +16,8 @@ export interface TransformTimelinePropertyTrack {
   property: Animatable;
   step: number;
   unit: string;
+  min?: number;
+  max?: number;
 }
 
 export interface EffectTimelinePropertyTrack {
@@ -43,6 +46,8 @@ const TRANSFORM_TRACKS: ReadonlyArray<{
   labelKey: PlainMessageKey;
   step: number;
   unit: string;
+  min?: number;
+  max?: number;
 }> = [
   {
     path: "position.0",
@@ -106,6 +111,8 @@ const TRANSFORM_TRACKS: ReadonlyArray<{
     labelKey: "timeline.property.opacity",
     step: 1,
     unit: "%",
+    min: 0,
+    max: 100,
   },
 ];
 
@@ -250,6 +257,8 @@ export function collectTimelinePropertyGroups(layer: Layer): TimelinePropertyGro
         property: getProperty(layer, definition.path),
         step: definition.step,
         unit: definition.unit,
+        min: definition.min,
+        max: definition.max,
       })),
     });
   }
@@ -260,15 +269,21 @@ export function collectTimelinePropertyGroups(layer: Layer): TimelinePropertyGro
       label: "Camera Options",
       labelKey: "timeline.layer.cameraOptions",
       source: "transform",
-      tracks: CAMERA_TRACKS.map((definition) => ({
-        source: "transform",
-        id: definition.path,
-        path: definition.path,
-        labelKey: definition.labelKey,
-        property: getProperty(layer, definition.path),
-        step: definition.step,
-        unit: definition.unit,
-      })),
+      tracks: CAMERA_TRACKS.map((definition) => {
+        const field = definition.path.slice("camera.".length);
+        const limits = isCameraAnimatableField(field) ? CAMERA_PROPERTY_LIMITS[field] : undefined;
+        return {
+          source: "transform",
+          id: definition.path,
+          path: definition.path,
+          labelKey: definition.labelKey,
+          property: getProperty(layer, definition.path),
+          step: definition.step,
+          unit: definition.unit,
+          min: limits?.minimum,
+          max: limits?.maximum,
+        };
+      }),
     });
   }
 

@@ -1,18 +1,29 @@
 # Graph Editor
 
-Aster's Graph Editor evaluates the same `Animatable` tracks used by the timeline and renderer. Value
-graphs show each evaluated scalar component. Speed graphs use the exact analytic time derivative;
-Position is one non-negative vector magnitude instead of three signed component curves. Auto mode
-chooses that Position Speed graph for spatial motion and value graphs for other transform properties.
-The optional reference graph evaluates the other representation into an independent vertical range
-so velocity units never distort the editable value range.
+Aster's Graph Editor consumes the same property groups used by the timeline and renderer. It
+automatically exposes animated Transform properties (including Anchor Point), camera Point of
+Interest, orientation and optics, and every numeric effect parameter. Multiple selected layers share
+one view; track identities are namespaced by layer so identical property paths cannot collide. Effect
+tracks keep registry labels, units, steps and bounds instead of converting runtime names into i18n
+keys.
+
+Value graphs show each evaluated scalar component. Speed graphs use the exact analytic time
+derivative. Position, Anchor Point and camera Point of Interest each become one non-negative vector
+magnitude instead of three signed component curves. Auto mode chooses speed for those spatial
+vectors and value for orientation, optics, effects and other transform properties. The optional
+reference graph evaluates the other representation into an independent vertical range so velocity
+units never distort the editable value range.
 
 Bezier handles store one temporal cubic per segment. Value-graph handles edit the cubic control
 points directly. Speed-graph handles convert height to units per second and horizontal reach to
 normalized temporal influence, then write the equivalent cubic. Easy Ease produces zero endpoint
 speed with one-third influence. Linear, Bezier, and Hold interpolation all use the canonical
-time-addressed evaluator, so the graph, viewport, preview, and export cannot diverge. Moving or
-easing a Position Speed key synchronizes every Position component that has a key at that time.
+time-addressed evaluator, so the graph, viewport, preview, and export cannot diverge. Moving,
+copying/pasting, deleting, changing interpolation, or easing a collapsed spatial Speed key
+synchronizes every keyed component from that same layer atomically. Effect replacements retain their
+keyframe IDs; a complete remove/add replacement is committed inside one undo transaction. Choice and
+toggle tracks are quantized and use Hold interpolation, while all effect values are clamped to their
+registry domains.
 
 Keyframes snap by screen-space distance to the current time, other visible keyframes, layer In/Out,
 work-area bounds, and composition bounds. Frame quantization remains the baseline and can be bypassed
