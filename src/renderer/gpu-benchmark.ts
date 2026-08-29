@@ -52,7 +52,9 @@ export interface BenchmarkRenderer {
 export interface GpuBenchmarkRequest {
   sampleFrames: number;
   onProgress: (scenario: string, completed: number, total: number) => void;
-  resolve: (report?: GpuBenchmarkReport) => void;
+  accept: () => void;
+  reject: (error: unknown) => void;
+  resolve: (report: GpuBenchmarkReport) => void;
 }
 
 interface BenchmarkScenario {

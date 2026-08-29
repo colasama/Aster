@@ -1245,6 +1245,15 @@
   flex: 1;
   overflow: hidden;
 }
+.workspace-panel-surface {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex: 1;
+}
+.workspace-panel-surface[hidden] {
+  display: none;
+}
 .workspace-stack-group-title {
   min-width: 0;
   display: flex;

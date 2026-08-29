@@ -10,6 +10,7 @@ import {
   Zap,
 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { reportUiError } from "../errors/report-ui-error";
 import {
   type MessageDescriptor,
   messageDescriptor,
@@ -25,6 +26,7 @@ import {
 import { useEditor } from "../state/editor-store";
 
 const BENCHMARK_BASELINE_KEY = "aster.gpuBenchmarkBaseline.v1";
+const BENCHMARK_ACCEPT_TIMEOUT_MS = 1_000;
 
 export function Profiler() {
   const { state } = useEditor();
@@ -41,26 +43,22 @@ export function Profiler() {
     if (benchmarkProgress) return;
     setBenchmark(undefined);
     setBenchmarkProgress(messageDescriptor("profiler.preparing"));
-    void new Promise<GpuBenchmarkReport | undefined>((resolve) => {
-      window.dispatchEvent(
-        new CustomEvent<GpuBenchmarkRequest>("aster:run-gpu-benchmark", {
-          detail: {
-            sampleFrames,
-            onProgress: (scenario, completed, total) =>
-              setBenchmarkProgress(
-                messageDescriptor("profiler.progress", {
-                  scenario,
-                  percent: Math.round((completed / total) * 100),
-                }),
-              ),
-            resolve,
-          },
+    void requestGpuBenchmark(sampleFrames, (scenario, completed, total) =>
+      setBenchmarkProgress(
+        messageDescriptor("profiler.progress", {
+          scenario,
+          percent: Math.round((completed / total) * 100),
         }),
-      );
-    }).then((report) => {
-      setBenchmark(report);
-      setBenchmarkProgress(undefined);
-    });
+      ),
+    )
+      .then((report) => setBenchmark(report))
+      .catch((error: unknown) =>
+        reportUiError(t, "gpuBenchmark", error, {
+          scope: { area: "application" },
+          retry: () => runBenchmark(sampleFrames),
+        }),
+      )
+      .finally(() => setBenchmarkProgress(undefined));
   };
   return (
     <div className={`profiler-overlay ${benchmark ? "benchmark-expanded" : ""}`}>
@@ -203,6 +201,44 @@ export function Profiler() {
       )}
     </div>
   );
+}
+
+export function requestGpuBenchmark(
+  sampleFrames: number,
+  onProgress: GpuBenchmarkRequest["onProgress"],
+  acceptTimeoutMs = BENCHMARK_ACCEPT_TIMEOUT_MS,
+): Promise<GpuBenchmarkReport> {
+  return new Promise<GpuBenchmarkReport>((resolve, reject) => {
+    let accepted = false;
+    let settled = false;
+    const finish = (callback: () => void) => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timeoutId);
+      callback();
+    };
+    const timeoutId = window.setTimeout(() => {
+      if (!accepted)
+        finish(() => reject(new Error("No open composition viewer accepted the GPU benchmark.")));
+    }, acceptTimeoutMs);
+    window.dispatchEvent(
+      new CustomEvent<GpuBenchmarkRequest>("aster:run-gpu-benchmark", {
+        detail: {
+          sampleFrames,
+          onProgress,
+          accept: () => {
+            accepted = true;
+            window.clearTimeout(timeoutId);
+          },
+          reject: (error) =>
+            finish(() =>
+              reject(error instanceof Error ? error : new Error("GPU benchmark failed.")),
+            ),
+          resolve: (report) => finish(() => resolve(report)),
+        },
+      }),
+    );
+  });
 }
 
 function formatDelta(percent: number): string {

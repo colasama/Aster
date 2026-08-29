@@ -17,6 +17,7 @@ export type UiErrorCode =
   | "diagnosticsExport"
   | "expression"
   | "frameExport"
+  | "gpuBenchmark"
   | "hdrImport"
   | "lutImport"
   | "mediaImport"
@@ -39,6 +40,7 @@ const errorKeys: Record<UiErrorCode, PlainMessageKey> = {
   diagnosticsExport: "ui.error.diagnosticsExport",
   expression: "ui.error.expression",
   frameExport: "ui.error.frameExport",
+  gpuBenchmark: "ui.error.gpuBenchmark",
   hdrImport: "ui.error.hdrImport",
   lutImport: "ui.error.lutImport",
   mediaImport: "ui.error.mediaImport",

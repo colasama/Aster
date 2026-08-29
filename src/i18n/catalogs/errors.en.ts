@@ -18,6 +18,7 @@ export const errorsEn = {
   "ui.error.mediaImport": "Could not import this media file.",
   "ui.error.meshImport": "Could not import this 3D asset.",
   "ui.error.frameExport": "Could not export the frame.",
+  "ui.error.gpuBenchmark": "Could not complete the GPU benchmark.",
   "ui.error.expression": "The expression could not be evaluated.",
   "ui.error.diagnosticsExport": "Could not export the diagnostic report.",
   "diagnostic.previous": "Previous diagnostic",

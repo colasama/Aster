@@ -398,11 +398,13 @@ export function Viewport() {
         queueMicrotask(() => {
           if (claimedGpuBenchmarkEvents.has(event)) return;
           claimedGpuBenchmarkEvents.add(event);
-          request.detail.resolve();
+          request.detail.accept();
+          request.detail.reject(new Error("The GPU renderer is not ready for benchmarking."));
         });
         return;
       }
       claimedGpuBenchmarkEvents.add(event);
+      request.detail.accept();
       const lease = renderSessionGuardRef.current.acquire(() => undefined);
       running = true;
       const benchmarkStartedAt = performance.now();
@@ -431,7 +433,7 @@ export function Viewport() {
             sampleFrames: request.detail.sampleFrames,
             durationMs: performance.now() - benchmarkStartedAt,
           });
-          request.detail.resolve();
+          request.detail.reject(error);
         })
         .finally(() => {
           running = false;

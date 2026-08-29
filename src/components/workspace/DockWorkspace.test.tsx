@@ -89,6 +89,13 @@ describe("DockWorkspace", () => {
     );
     expect(container.querySelector('[role="tab"][aria-selected="true"]')?.textContent).toBe("B");
     expect(container.textContent).toContain("B body");
+    expect(
+      container.querySelector('[data-workspace-panel-surface="a"]')?.hasAttribute("hidden"),
+    ).toBe(true);
+    expect(container.querySelector('[data-workspace-panel-surface="b"]')).not.toBeNull();
+    expect(container.querySelector(".workspace-panel-header-host")?.textContent).toBe(
+      "Surface action",
+    );
   });
 
   it("reorders active tabs from the keyboard as one persisted workspace change", () => {

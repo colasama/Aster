@@ -19,6 +19,7 @@ export const errorsZh = {
   "ui.error.mediaImport": "无法导入此媒体文件。",
   "ui.error.meshImport": "无法导入此 3D 素材。",
   "ui.error.frameExport": "无法导出帧。",
+  "ui.error.gpuBenchmark": "无法完成 GPU 基准测试。",
   "ui.error.expression": "无法计算此表达式。",
   "ui.error.diagnosticsExport": "无法导出诊断报告。",
   "diagnostic.previous": "上一个诊断",

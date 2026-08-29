@@ -380,11 +380,29 @@ export function DockGroup({
           id={`workspace-panel-${groupDomId}`}
           role="tabpanel"
         >
-          {active ? (
-            <WorkspacePanelHostContext.Provider value={{ headerHost }}>
-              {active.element}
-            </WorkspacePanelHostContext.Provider>
-          ) : null}
+          {group.panels.map((panelId) => {
+            const panel = panels.get(panelId);
+            const selected = panelId === group.activePanelId;
+            // Keep viewer renderers alive behind sibling tabs. Besides preserving GPU caches and
+            // playback state, this lets the profiler benchmark the exact production renderer
+            // while its own tab is active. Non-viewer panels remain demand-mounted.
+            if (!panel || (!selected && !panel.viewerType)) return null;
+            return (
+              <div
+                aria-hidden={selected ? undefined : true}
+                className="workspace-panel-surface"
+                data-workspace-panel-surface={panelId}
+                hidden={!selected}
+                key={panelId}
+              >
+                <WorkspacePanelHostContext.Provider
+                  value={{ headerHost: selected ? headerHost : null }}
+                >
+                  {panel.element}
+                </WorkspacePanelHostContext.Provider>
+              </div>
+            );
+          })}
         </div>
       )}
       {drag ? <DropZones onDrop={(position) => onDrop(drag, group.id, position)} /> : null}
