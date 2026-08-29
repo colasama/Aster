@@ -189,6 +189,9 @@ struct AsterGeneratorContext {
   camera_projection: vec4f,
   composition: vec4f,
   ids: vec4u,
+  camera_right: vec4f,
+  camera_down: vec4f,
+  camera_forward: vec4f,
 }
 
 struct AsterGeneratorParameters {
@@ -202,6 +205,12 @@ struct AsterDrawIndirect {
   first_instance: u32,
 }
 ```
+
+`camera_projection` packs orthographic flag, horizontal angle of view in radians, orthographic
+height, and AE Zoom in composition pixels. The three appended unit basis vectors are authoritative
+for one-node and point-of-interest cameras; `camera_rotation` remains available to older module
+logic and diagnostics. Appending the basis preserves every existing field offset while extending
+the standard context buffer from 160 to 208 bytes.
 
 `aster_instances` must be a runtime-sized array whose WGSL stride equals `instance_stride` in the
 manifest. The record shape is plugin-defined; the host owns its capacity and allocation lifetime.

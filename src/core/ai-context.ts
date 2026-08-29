@@ -23,6 +23,14 @@ const propertyPaths: PropertyPath[] = [
   "scale.2",
   "opacity",
 ];
+const cameraPropertyPaths: PropertyPath[] = [
+  "camera.pointOfInterest.0",
+  "camera.pointOfInterest.1",
+  "camera.pointOfInterest.2",
+  "camera.orientation.0",
+  "camera.orientation.1",
+  "camera.orientation.2",
+];
 
 export interface AiProjectContext {
   schemaVersion: 1;
@@ -85,7 +93,7 @@ export function queryProperties(composition: Composition, selectedLayerIds: Id[]
       name: boundedText(layer.name),
       kind: layer.kind,
       properties: Object.fromEntries(
-        propertyPaths.map((path) => {
+        [...propertyPaths, ...(layer.camera ? cameraPropertyPaths : [])].map((path) => {
           const property = getProperty(layer, path);
           return [
             path,

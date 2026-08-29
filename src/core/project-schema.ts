@@ -6,7 +6,7 @@ import {
 import { sourceContentIdentity } from "./footage-source";
 import { assertParticleSettings } from "./particle-settings";
 
-export const CURRENT_PROJECT_SCHEMA_VERSION = 5 as const;
+export const CURRENT_PROJECT_SCHEMA_VERSION = 6 as const;
 
 type ProjectDocument = Record<string, unknown>;
 type ProjectMigration = (document: ProjectDocument) => ProjectDocument;
@@ -153,7 +153,100 @@ const PROJECT_MIGRATIONS = new Map<number, ProjectMigration>([
       return document;
     },
   ],
+  [
+    5,
+    (document) => {
+      const compositions = Array.isArray(document.compositions) ? document.compositions : [];
+      for (const compositionValue of compositions) {
+        if (!compositionValue || typeof compositionValue !== "object") continue;
+        const composition = compositionValue as Record<string, unknown>;
+        const width = positiveNumber(composition.width, 1920);
+        const height = positiveNumber(composition.height, 1080);
+        const layers = Array.isArray(composition.layers) ? composition.layers : [];
+        for (const layerValue of layers) {
+          if (!layerValue || typeof layerValue !== "object") continue;
+          const layer = layerValue as Record<string, unknown>;
+          if (layer.kind !== "camera" || !layer.camera || typeof layer.camera !== "object")
+            continue;
+          const legacy = layer.camera as Record<string, unknown>;
+          if (typeof legacy.zoom === "number") continue;
+          const fieldOfView = boundedNumber(legacy.fieldOfView, 1, 179, 50);
+          const zoom = height / (2 * Math.tan((fieldOfView * Math.PI) / 360));
+          const filmSize = 36;
+          const focalLength = (zoom * filmSize) / width;
+          layer.camera = {
+            mode: "oneNode",
+            projection: legacy.projection === "orthographic" ? "orthographic" : "perspective",
+            zoom,
+            filmSize,
+            focalLength,
+            orthographicSize: boundedNumber(legacy.orthographicSize, 1, 10_000_000, height),
+            pointOfInterest: [
+              staticProperty(width * 0.5),
+              staticProperty(height * 0.5),
+              staticProperty(0),
+            ],
+            orientation: [staticProperty(0), staticProperty(0), staticProperty(0)],
+            depthOfField: false,
+            focusDistance: zoom,
+            lockFocusToZoom: true,
+            aperture: focalLength / 2.8,
+            fStop: 2.8,
+            blurLevel: 100,
+            focusAreaWidth: 0,
+            nearBlurLevel: 100,
+            farBlurLevel: 100,
+            renderQuality: 50,
+          };
+          const transform =
+            layer.transform && typeof layer.transform === "object"
+              ? (layer.transform as Record<string, unknown>)
+              : undefined;
+          if (transform && Array.isArray(transform.position) && transform.position.length === 3)
+            transform.position[2] = offsetProperty(transform.position[2], -zoom);
+        }
+      }
+      document.schemaVersion = 6;
+      return document;
+    },
+  ],
 ]);
+
+function staticProperty(value: number): Record<string, unknown> {
+  return { mode: "static", value };
+}
+
+function offsetProperty(value: unknown, offset: number): unknown {
+  if (!value || typeof value !== "object") return staticProperty(offset);
+  const property = value as Record<string, unknown>;
+  if (property.mode === "static")
+    return { ...property, value: finiteNumber(property.value, 0) + offset };
+  if (property.mode !== "animated" || !Array.isArray(property.keyframes)) return value;
+  return {
+    ...property,
+    keyframes: property.keyframes.map((keyframe) =>
+      keyframe && typeof keyframe === "object"
+        ? {
+            ...(keyframe as Record<string, unknown>),
+            value: finiteNumber((keyframe as Record<string, unknown>).value, 0) + offset,
+          }
+        : keyframe,
+    ),
+  };
+}
+
+function boundedNumber(value: unknown, minimum: number, maximum: number, fallback: number): number {
+  return Math.max(minimum, Math.min(maximum, finiteNumber(value, fallback)));
+}
+
+function positiveNumber(value: unknown, fallback: number): number {
+  const number = finiteNumber(value, fallback);
+  return number > 0 ? number : fallback;
+}
+
+function finiteNumber(value: unknown, fallback: number): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
 
 function uniqueLegacySourceId(
   identity: string,

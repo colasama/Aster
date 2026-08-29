@@ -1,10 +1,6 @@
 import { sourceForLayer, sourceLocator } from "../core/footage-source";
 import { evaluateLayerSourceTime } from "../core/layer-time";
-import {
-  evaluateWorldTransform,
-  type FlattenedSceneLayer,
-  flattenSceneLayers,
-} from "../core/scene-evaluation";
+import { type FlattenedSceneLayer, flattenSceneLayers } from "../core/scene-evaluation";
 import type { BlendMode, Composition, Project } from "../core/types";
 import { gpuBlendState } from "./blend-state";
 import { buildSceneGeometry, FLOATS_PER_VERTEX, type GeometryBatch } from "./geometry";
@@ -18,6 +14,7 @@ import {
   precompositionSurfaceCacheKey,
 } from "./precomposition-surface-plan";
 import { planSceneRenderStack } from "./render-stack";
+import { evaluateSceneCamera } from "./scene-camera";
 import type { PreparedSceneGenerator, SceneGeneratorHost } from "./scene-generator-host";
 import { buildSceneLighting, SCENE_LIGHTING_BYTES } from "./scene-lighting";
 import { IMAGE_VERTEX_BUFFERS } from "./scene-pipelines";
@@ -288,17 +285,7 @@ export class PrecompositionSurfaceRenderer {
           diagnostics,
         );
     }
-    const cameraLayer = surface.composition.layers.find((layer) => layer.kind === "camera");
-    const camera = cameraLayer
-      ? {
-          transform: evaluateWorldTransform(cameraLayer, surface.composition, surface.time),
-          settings: cameraLayer.camera ?? {
-            projection: "perspective" as const,
-            fieldOfView: 50,
-            orthographicSize: surface.composition.height,
-          },
-        }
-      : undefined;
+    const camera = evaluateSceneCamera(surface.composition, surface.time);
     const geometry = buildSceneGeometry(surface.composition, childLayers, camera);
     if (
       surface.composition.environment?.enabled &&
@@ -327,9 +314,7 @@ export class PrecompositionSurfaceRenderer {
     this.#ensureVertexBuffer(entry, geometry.data.byteLength);
     if (geometry.data.byteLength > 0)
       this.#device.queue.writeBuffer(entry.vertexBuffer, 0, geometry.data);
-    const cameraPosition = cameraLayer
-      ? evaluateWorldTransform(cameraLayer, surface.composition, surface.time).position
-      : undefined;
+    const cameraPosition = camera?.pose.position;
     this.#device.queue.writeBuffer(
       entry.lightingBuffer,
       0,

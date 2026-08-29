@@ -3,6 +3,7 @@ import {
   createCanonicalAdjustmentTransform,
 } from "./adjustment-layer";
 import { layerHasAudio, linearToDecibels, normalizeAudioLayerSettings } from "./audio-layer";
+import { normalizeCameraSettings } from "./camera-settings";
 import { type ClonerSettings, normalizeClonerSettings } from "./cloner";
 import { referencedSourceIds, sourceSupportsLayer } from "./footage-source";
 import { applyPrecompositionPlan, type PrecompositionPlan } from "./precomposition";
@@ -57,6 +58,12 @@ export type PropertyPath =
   | "scale.0"
   | "scale.1"
   | "scale.2"
+  | "camera.pointOfInterest.0"
+  | "camera.pointOfInterest.1"
+  | "camera.pointOfInterest.2"
+  | "camera.orientation.0"
+  | "camera.orientation.1"
+  | "camera.orientation.2"
   | "opacity";
 
 export type Operation =
@@ -566,11 +573,12 @@ export function applyOperation(project: Project, operation: Operation): void {
       break;
     }
     case "setCameraSettings":
-      layer.camera = {
-        projection: operation.camera.projection,
-        fieldOfView: clamp(operation.camera.fieldOfView, 1, 179),
-        orthographicSize: clamp(operation.camera.orthographicSize, 1, 100_000),
-      };
+      if (layer.kind !== "camera") throw new Error("Camera settings require a camera layer");
+      layer.camera = normalizeCameraSettings(
+        operation.camera,
+        composition.width,
+        composition.height,
+      );
       break;
     case "setSceneGenerator": {
       if (layer.kind !== "generator")
@@ -1048,6 +1056,7 @@ function easeTransform(layer: Layer): void {
     ...layer.transform.scale,
     ...layer.transform.anchor,
     layer.transform.opacity,
+    ...(layer.camera ? [...layer.camera.pointOfInterest, ...layer.camera.orientation] : []),
   ];
   for (const property of properties) {
     if (property.mode !== "animated") continue;
@@ -1060,6 +1069,15 @@ function easeTransform(layer: Layer): void {
 
 export function getProperty(layer: Layer, path: PropertyPath): Animatable {
   if (path === "opacity") return layer.transform.opacity;
+  if (path.startsWith("camera.")) {
+    if (!layer.camera) throw new Error("Camera property requires a camera layer");
+    const [, group, component] = path.split(".") as [
+      "camera",
+      "pointOfInterest" | "orientation",
+      "0" | "1" | "2",
+    ];
+    return layer.camera[group][Number(component)];
+  }
   const [group, component] = path.split(".") as [
     "position" | "rotation" | "scale",
     "0" | "1" | "2",
@@ -1070,6 +1088,16 @@ export function getProperty(layer: Layer, path: PropertyPath): Animatable {
 function setProperty(layer: Layer, path: PropertyPath, value: Animatable): void {
   if (path === "opacity") {
     layer.transform.opacity = value;
+    return;
+  }
+  if (path.startsWith("camera.")) {
+    if (!layer.camera) throw new Error("Camera property requires a camera layer");
+    const [, group, component] = path.split(".") as [
+      "camera",
+      "pointOfInterest" | "orientation",
+      "0" | "1" | "2",
+    ];
+    layer.camera[group][Number(component)] = value;
     return;
   }
   const [group, component] = path.split(".") as [

@@ -22,6 +22,12 @@ const PROPERTY_PATHS = new Set<PropertyPath>([
   "scale.0",
   "scale.1",
   "scale.2",
+  "camera.pointOfInterest.0",
+  "camera.pointOfInterest.1",
+  "camera.pointOfInterest.2",
+  "camera.orientation.0",
+  "camera.orientation.1",
+  "camera.orientation.2",
   "opacity",
 ]);
 

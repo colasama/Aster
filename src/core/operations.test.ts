@@ -546,21 +546,54 @@ describe("structured project operations", () => {
   it("updates bounded camera projection settings through an undoable operation", () => {
     const source = createDemoProject();
     const camera = activeComposition(source).layers.find((layer) => layer.kind === "camera");
-    if (!camera) throw new Error("Expected demo camera");
+    if (!camera?.camera) throw new Error("Expected demo camera");
     const next = applyOperations(source, [
       {
         type: "setCameraSettings",
         layerId: camera.id,
-        camera: { projection: "orthographic", fieldOfView: 220, orthographicSize: 0 },
+        camera: {
+          ...camera.camera,
+          projection: "orthographic",
+          zoom: 2_000_000,
+          orthographicSize: 0,
+        },
       },
     ]);
 
-    expect(activeComposition(next).layers.find((layer) => layer.id === camera.id)?.camera).toEqual({
+    expect(
+      activeComposition(next).layers.find((layer) => layer.id === camera.id)?.camera,
+    ).toMatchObject({
       projection: "orthographic",
-      fieldOfView: 179,
+      zoom: 1_000_000,
       orthographicSize: 1,
     });
-    expect(camera.camera?.projection).toBe("perspective");
+    expect(camera.camera.projection).toBe("perspective");
+  });
+
+  it("keyframes camera point of interest through the shared graph property path", () => {
+    const source = createDemoProject();
+    const camera = activeComposition(source).layers.find((layer) => layer.kind === "camera");
+    if (!camera?.camera) throw new Error("Expected demo camera");
+    const next = applyOperations(source, [
+      {
+        type: "addKeyframe",
+        layerId: camera.id,
+        path: "camera.pointOfInterest.0",
+        keyframe: {
+          id: "camera-poi-x",
+          time: 2,
+          value: 1500,
+          interpolation: "bezier",
+          easing: [0.42, 0, 0.58, 1],
+        },
+      },
+    ]);
+
+    expect(
+      activeComposition(next).layers.find((layer) => layer.id === camera.id)?.camera
+        ?.pointOfInterest[0],
+    ).toMatchObject({ mode: "animated", keyframes: [{ value: 1500 }] });
+    expect(camera.camera.pointOfInterest[0]).toMatchObject({ mode: "static" });
   });
 
   it("bounds bundled particle generator parameters through the generic operation", () => {

@@ -1,4 +1,5 @@
 import type { Dispatch } from "react";
+import { lensFromZoom } from "../core/camera-optics";
 import type { EvaluatedTransform, Layer, Project } from "../core/types";
 import { useI18n } from "../i18n/react";
 import type { EditorAction } from "../state/editor-store";
@@ -22,7 +23,15 @@ export function CameraGizmo({
 }: CameraGizmoProps) {
   const { t } = useI18n();
   if (!layer.camera) return null;
-  const geometry = cameraGizmoGeometry(layer.camera.projection, layer.camera.fieldOfView);
+  const composition =
+    project.compositions.find((candidate) => candidate.id === project.activeCompositionId) ??
+    project.compositions[0];
+  const angleOfView = lensFromZoom(
+    layer.camera.zoom,
+    layer.camera.filmSize,
+    composition?.width ?? 1920,
+  ).angleOfViewDegrees;
+  const geometry = cameraGizmoGeometry(layer.camera.projection, angleOfView);
   const moveBy = (x: number, y: number, historyBase?: Project) =>
     dispatch({
       type: "operation",
@@ -127,7 +136,7 @@ export function CameraGizmo({
       }}
       title={
         layer.camera.projection === "perspective"
-          ? t("viewport.camera.perspectiveHint", { degrees: layer.camera.fieldOfView })
+          ? t("viewport.camera.perspectiveHint", { degrees: Math.round(angleOfView) })
           : t("viewport.camera.orthographicHint", { pixels: layer.camera.orthographicSize })
       }
       type="button"
@@ -146,10 +155,10 @@ export function CameraGizmo({
 
 export function cameraGizmoGeometry(
   projection: "perspective" | "orthographic",
-  fieldOfView: number,
+  angleOfView: number,
 ): { path: string; label: string } {
   if (projection === "orthographic") return { path: "M47 24H118M47 56H118M118 24V56", label: "" };
-  const safeFov = Math.max(1, Math.min(179, fieldOfView));
+  const safeFov = Math.max(1, Math.min(179, angleOfView));
   const spread = Math.max(9, Math.min(35, Math.tan((safeFov * Math.PI) / 360) * 28));
   return {
     path: `M47 32L118 ${40 - spread}M47 48L118 ${40 + spread}M118 ${40 - spread}V${40 + spread}`,

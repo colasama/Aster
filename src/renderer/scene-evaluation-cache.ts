@@ -1,11 +1,8 @@
 import { EvaluationCache } from "../core/evaluation-cache";
-import {
-  evaluateWorldTransform,
-  type FlattenedSceneLayer,
-  flattenSceneLayers,
-} from "../core/scene-evaluation";
+import { type FlattenedSceneLayer, flattenSceneLayers } from "../core/scene-evaluation";
 import type { Composition, Project } from "../core/types";
 import { buildSceneGeometry, type GeometryResult } from "./geometry";
+import { evaluateSceneCamera } from "./scene-camera";
 
 export interface CachedSceneEvaluation {
   sceneLayers: FlattenedSceneLayer[];
@@ -56,17 +53,7 @@ export class SceneEvaluationCache {
     const cached = this.#cache.get(key);
     if (cached) return { ...cached, cacheHit: true };
     const sceneLayers = flattenSceneLayers(composition, project, time);
-    const cameraLayer = composition.layers.find((layer) => layer.kind === "camera");
-    const camera = cameraLayer
-      ? {
-          transform: evaluateWorldTransform(cameraLayer, composition, time),
-          settings: cameraLayer.camera ?? {
-            projection: "perspective" as const,
-            fieldOfView: 50,
-            orthographicSize: composition.height,
-          },
-        }
-      : undefined;
+    const camera = evaluateSceneCamera(composition, time);
     const value = {
       sceneLayers,
       geometry: buildSceneGeometry(composition, sceneLayers, camera),

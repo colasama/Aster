@@ -1,10 +1,12 @@
+import { evaluateCameraBasis } from "../core/camera-rig";
+import { createDefaultEvaluatedCamera } from "../core/camera-settings";
 import type { FlattenedSceneLayer } from "../core/scene-evaluation";
 import type { SceneGeneratorDefinition } from "../core/scene-generator-registry";
 import type { Composition, SceneGeneratorInstance } from "../core/types";
 import type { SceneCamera } from "./geometry";
 import { encodeRenderId } from "./render-buffers";
 
-export const SCENE_GENERATOR_CONTEXT_BYTES = 160;
+export const SCENE_GENERATOR_CONTEXT_BYTES = 208;
 export const SCENE_GENERATOR_PARAMETER_VECTORS = 128;
 export const SCENE_GENERATOR_PARAMETER_BYTES = SCENE_GENERATOR_PARAMETER_VECTORS * 16;
 
@@ -26,6 +28,9 @@ struct AsterGeneratorContext {
   camera_projection: vec4f,
   composition: vec4f,
   ids: vec4u,
+  camera_right: vec4f,
+  camera_down: vec4f,
+  camera_forward: vec4f,
 }
 
 struct AsterGeneratorParameters {
@@ -60,27 +65,20 @@ export function buildSceneGeneratorContext(
   floats.set([...scene.transform.position, scene.transform.opacity], 8);
   floats.set([...scene.transform.rotation, scene.layer.threeDimensional ? 1 : 0], 12);
   floats.set([...scene.transform.scale, 0], 16);
-  const cameraPosition = camera?.transform.position ?? [
-    composition.width / 2,
-    composition.height / 2,
-    0,
-  ];
-  const cameraRotation = camera?.transform.rotation ?? [0, 0, 0];
-  const cameraSettings = camera?.settings ?? {
-    projection: "perspective" as const,
-    fieldOfView: 45,
-    orthographicSize: composition.height,
-  };
-  const fovRadians = (cameraSettings.fieldOfView * Math.PI) / 180;
-  const focalLength = composition.height / (2 * Math.tan(fovRadians / 2));
+  const evaluated = camera ?? createDefaultEvaluatedCamera(composition.width, composition.height);
+  const cameraPosition = evaluated.pose.position;
+  const cameraRotation = evaluated.pose.rotation;
+  const cameraSettings = evaluated.optics;
+  const fovRadians = 2 * Math.atan(composition.width / (2 * cameraSettings.zoom));
+  const basis = evaluateCameraBasis(evaluated.pose);
   floats.set([...cameraPosition, 0], 20);
   floats.set([...cameraRotation, 0], 24);
   floats.set(
     [
       cameraSettings.projection === "orthographic" ? 1 : 0,
       fovRadians,
-      cameraSettings.orthographicSize,
-      focalLength,
+      evaluated.projection.orthographicSize,
+      cameraSettings.zoom,
     ],
     28,
   );
@@ -89,6 +87,9 @@ export function buildSceneGeneratorContext(
     [encodeRenderId(scene.selectionId), encodeRenderId(`material:${scene.layer.kind}`), 0, 0],
     36,
   );
+  floats.set([...basis.right, 0], 40);
+  floats.set([...basis.down, 0], 44);
+  floats.set([...basis.forward, 0], 48);
   return buffer;
 }
 

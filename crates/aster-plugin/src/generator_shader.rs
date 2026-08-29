@@ -368,8 +368,8 @@ fn validate_generator_context(
     use naga::{ScalarKind, TypeInner, VectorSize};
 
     let ty = &module.types[variable.ty];
-    let TypeInner::Struct { members, span: 160 } = &ty.inner else {
-        return generator_layout_error("AsterGeneratorContext must be a 160-byte struct");
+    let TypeInner::Struct { members, span: 208 } = &ty.inner else {
+        return generator_layout_error("AsterGeneratorContext must be a 208-byte struct");
     };
     let names = [
         "resolution",
@@ -387,8 +387,13 @@ fn validate_generator_context(
         "camera_projection",
         "composition",
         "ids",
+        "camera_right",
+        "camera_down",
+        "camera_forward",
     ];
-    let offsets = [0, 8, 12, 16, 20, 24, 28, 32, 48, 64, 80, 96, 112, 128, 144];
+    let offsets = [
+        0, 8, 12, 16, 20, 24, 28, 32, 48, 64, 80, 96, 112, 128, 144, 160, 176, 192,
+    ];
     if ty.name.as_deref() != Some("AsterGeneratorContext")
         || members.len() != names.len()
         || members
@@ -412,7 +417,10 @@ fn validate_generator_context(
         && members[7..14]
             .iter()
             .all(|member| is_float_vector(module, member.ty, VectorSize::Quad))
-        && is_uint_vector(module, members[14].ty, VectorSize::Quad);
+        && is_uint_vector(module, members[14].ty, VectorSize::Quad)
+        && members[15..18]
+            .iter()
+            .all(|member| is_float_vector(module, member.ty, VectorSize::Quad));
     if !valid {
         return generator_layout_error("AsterGeneratorContext field types do not match ABI v1");
     }

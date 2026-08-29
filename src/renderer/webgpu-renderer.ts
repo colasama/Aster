@@ -1,7 +1,8 @@
+import { depthOfFieldSampleCount } from "../core/camera-optics";
+import { evaluateCameraBasis } from "../core/camera-rig";
 import { sourceForLayer, sourceLocator } from "../core/footage-source";
 import { evaluateLayerSourceTime } from "../core/layer-time";
 import { logger } from "../core/logger";
-import { evaluateWorldTransform } from "../core/scene-evaluation";
 import type {
   BlendMode,
   Composition,
@@ -41,6 +42,7 @@ import {
 } from "./render-buffers";
 import { planSceneRenderStack } from "./render-stack";
 import { createPostPipeline } from "./runtime-pipelines";
+import { evaluateSceneCamera } from "./scene-camera";
 import { SceneEvaluationCache } from "./scene-evaluation-cache";
 import { type PreparedSceneGenerator, SceneGeneratorHost } from "./scene-generator-host";
 import { buildSceneLighting, SCENE_LIGHTING_BYTES, shadowMapSize } from "./scene-lighting";
@@ -97,6 +99,7 @@ export class WebGpuRenderer {
   #shadowMapSize = DEFAULT_SHADOW_MAP_SIZE;
   #memoryBudgetMb?: number;
   #bufferVisualization: BufferVisualization = "beauty";
+  #beautyDepthOfFieldActive = false;
   readonly #reportedAdjustmentErrors = new Set<string>();
   #smoothedFrameMs = 16.67;
   #lastFrameStarted?: number;
@@ -428,21 +431,34 @@ export class WebGpuRenderer {
     this.diagnostics.precompositionSurfaceError =
       surfaceFrame.diagnostics.length > 0 ? surfaceFrame.diagnostics.join("; ") : undefined;
     const primaryLight = sceneLayers.find((scene) => scene.layer.kind === "light")?.layer.light;
-    const cameraLayer = composition.layers.find((layer) => layer.kind === "camera");
-    const cameraTransform = cameraLayer
-      ? evaluateWorldTransform(cameraLayer, composition, time)
-      : undefined;
-    const cameraPosition = cameraTransform?.position;
-    const camera = cameraTransform
-      ? {
-          transform: cameraTransform,
-          settings: cameraLayer?.camera ?? {
-            projection: "perspective" as const,
-            fieldOfView: 50,
-            orthographicSize: composition.height,
-          },
-        }
-      : undefined;
+    const camera = evaluateSceneCamera(composition, time);
+    const cameraPosition = camera?.pose.position;
+    const beautyDepthOfField =
+      this.#bufferVisualization === "beauty" &&
+      camera?.optics.depthOfField === true &&
+      camera.projection.kind === "perspective";
+    if (beautyDepthOfField !== this.#beautyDepthOfFieldActive) {
+      this.#beautyDepthOfFieldActive = beautyDepthOfField;
+      this.#configureAuxiliaryBuffers();
+    }
+    if (camera) {
+      const basis = evaluateCameraBasis(camera.pose);
+      const resolutionScale = this.#width / Math.max(composition.width, 1);
+      this.#depthEffects.setSettings({
+        cameraPosition: camera.pose.position,
+        cameraForward: basis.forward,
+        focusDistance: camera.optics.focusDistance,
+        focusAreaWidth: camera.optics.focusAreaWidth,
+        aperture: camera.optics.aperture,
+        filmSize: camera.optics.filmSize,
+        zoom: camera.optics.zoom,
+        blurLevel: camera.optics.blurLevel,
+        nearBlurLevel: camera.optics.nearBlurLevel,
+        farBlurLevel: camera.optics.farBlurLevel,
+        maximumBlurRadius: Math.max(1, Math.min(256, 256 * resolutionScale)),
+        sampleCount: depthOfFieldSampleCount(camera.optics.renderQuality),
+      });
+    }
     const shadowQuality = primaryLight?.shadowQuality ?? "medium";
     const sceneGenerators = sceneLayers
       .filter((scene) => this.#sceneGenerators.supports(scene))
@@ -744,7 +760,9 @@ export class WebGpuRenderer {
     }
     const generatorDrawCount = drawnGenerators.size;
     scenePass?.end();
-    let auxiliaryFrameValid = !usesAuxiliarySurfaceData(this.#bufferVisualization);
+    const needsAuxiliarySurfaceData =
+      usesAuxiliarySurfaceData(this.#bufferVisualization) || beautyDepthOfField;
+    let auxiliaryFrameValid = !needsAuxiliarySurfaceData;
     if (!auxiliaryFrameValid) {
       auxiliaryFrameValid = this.#auxiliaryBuffers.encode({
         encoder,
@@ -791,7 +809,9 @@ export class WebGpuRenderer {
       ],
     });
     const postRoute = postRenderRoute(this.#bufferVisualization, auxiliaryFrameValid);
-    if (postRoute === "beauty") {
+    if (beautyDepthOfField && auxiliaryFrameValid) {
+      this.#depthEffects.encode(postPass, "depthOfField");
+    } else if (postRoute === "beauty") {
       postPass.setPipeline(this.#postPipeline);
       postPass.setBindGroup(0, this.#postBindGroup);
       postPass.draw(3);
@@ -863,6 +883,7 @@ export class WebGpuRenderer {
       this.#width,
       this.#height,
       this.#memoryBudgetMb,
+      this.#beautyDepthOfFieldActive,
     );
     this.#depthEffects.setSources(
       this.#width,

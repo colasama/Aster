@@ -166,9 +166,27 @@ export interface LightSettings {
 }
 
 export interface CameraSettings {
+  mode: "oneNode" | "twoNode";
   projection: "perspective" | "orthographic";
-  fieldOfView: number;
+  /** AE Zoom in composition pixels. */
+  zoom: number;
+  /** Horizontal film-back width in millimetres. */
+  filmSize: number;
+  /** Derived physical focal length in millimetres. */
+  focalLength: number;
   orthographicSize: number;
+  pointOfInterest: [Animatable, Animatable, Animatable];
+  orientation: [Animatable, Animatable, Animatable];
+  depthOfField: boolean;
+  focusDistance: number;
+  lockFocusToZoom: boolean;
+  aperture: number;
+  fStop: number;
+  blurLevel: number;
+  focusAreaWidth: number;
+  nearBlurLevel: number;
+  farBlurLevel: number;
+  renderQuality: number;
 }
 
 export interface MeshAsset {
@@ -312,7 +330,7 @@ export interface ProjectFolder {
 }
 
 export interface Project {
-  schemaVersion: 5;
+  schemaVersion: 6;
   id: Id;
   name: string;
   activeCompositionId: Id;

@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { createLayerForComposition } from "../core/layer-factory";
+import { createBlankProject } from "../core/project";
 import type { Layer } from "../core/types";
 import { keyframePreviewFromOperations } from "./TimelineKeyframe";
 import {
@@ -48,6 +50,23 @@ describe("expanded timeline property tracks", () => {
         },
       ]),
     ).toEqual({ a: 2, b: 3 });
+  });
+
+  it("exposes point-of-interest and orientation channels for camera graph editing", () => {
+    const composition = createBlankProject().compositions[0];
+    const camera = createLayerForComposition("camera", composition);
+    const group = collectTimelinePropertyGroups(camera).find(
+      (candidate) => candidate.id === "camera",
+    );
+
+    expect(group?.tracks.map((track) => track.id)).toEqual([
+      "camera.pointOfInterest.0",
+      "camera.pointOfInterest.1",
+      "camera.pointOfInterest.2",
+      "camera.orientation.0",
+      "camera.orientation.1",
+      "camera.orientation.2",
+    ]);
   });
 });
 

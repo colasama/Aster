@@ -106,6 +106,50 @@ const TRANSFORM_TRACKS: ReadonlyArray<{
   },
 ];
 
+const CAMERA_TRACKS: ReadonlyArray<{
+  path: PropertyPath;
+  labelKey: PlainMessageKey;
+  step: number;
+  unit: string;
+}> = [
+  {
+    path: "camera.pointOfInterest.0",
+    labelKey: "timeline.property.pointOfInterestX",
+    step: 0.1,
+    unit: "px",
+  },
+  {
+    path: "camera.pointOfInterest.1",
+    labelKey: "timeline.property.pointOfInterestY",
+    step: 0.1,
+    unit: "px",
+  },
+  {
+    path: "camera.pointOfInterest.2",
+    labelKey: "timeline.property.pointOfInterestZ",
+    step: 0.1,
+    unit: "px",
+  },
+  {
+    path: "camera.orientation.0",
+    labelKey: "timeline.property.orientationX",
+    step: 0.1,
+    unit: "°",
+  },
+  {
+    path: "camera.orientation.1",
+    labelKey: "timeline.property.orientationY",
+    step: 0.1,
+    unit: "°",
+  },
+  {
+    path: "camera.orientation.2",
+    labelKey: "timeline.property.orientationZ",
+    step: 0.1,
+    unit: "°",
+  },
+];
+
 export function collectTimelinePropertyGroups(layer: Layer): TimelinePropertyGroup[] {
   const groups: TimelinePropertyGroup[] = [];
   if (layer.kind !== "adjustment") {
@@ -115,6 +159,24 @@ export function collectTimelinePropertyGroups(layer: Layer): TimelinePropertyGro
       labelKey: "timeline.layer.transform",
       source: "transform",
       tracks: TRANSFORM_TRACKS.map((definition) => ({
+        source: "transform",
+        id: definition.path,
+        path: definition.path,
+        labelKey: definition.labelKey,
+        property: getProperty(layer, definition.path),
+        step: definition.step,
+        unit: definition.unit,
+      })),
+    });
+  }
+
+  if (layer.camera) {
+    groups.push({
+      id: "camera",
+      label: "Camera Options",
+      labelKey: "timeline.layer.cameraOptions",
+      source: "transform",
+      tracks: CAMERA_TRACKS.map((definition) => ({
         source: "transform",
         id: definition.path,
         path: definition.path,

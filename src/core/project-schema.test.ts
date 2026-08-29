@@ -30,7 +30,7 @@ describe("project schema migration gate", () => {
       schemaVersion: number;
       compositions: Array<{ layers: Array<Record<string, unknown>> }>;
     };
-    expect(migrated.schemaVersion).toBe(5);
+    expect(migrated.schemaVersion).toBe(6);
     expect(migrated.compositions[0].layers[0]).toMatchObject({
       kind: "generator",
       generator: { pluginId: "org.aster.builtin.particles", nodeType: "particle_system" },
@@ -50,11 +50,11 @@ describe("project schema migration gate", () => {
     );
   });
 
-  it("migrates v2 documents through v5 without rewriting source-free layers", () => {
+  it("migrates v2 documents through v6 without rewriting source-free layers", () => {
     const previous = createBlankProject() as unknown as Record<string, unknown>;
     previous.schemaVersion = 2;
     const migrated = cloneCurrentProjectDocument(previous);
-    expect(migrated.schemaVersion).toBe(5);
+    expect(migrated.schemaVersion).toBe(6);
     expect(migrated.compositions).toEqual(previous.compositions);
   });
 
@@ -85,7 +85,7 @@ describe("project schema migration gate", () => {
       sources: Array<Record<string, unknown>>;
       compositions: Array<{ layers: Array<Record<string, unknown>> }>;
     };
-    expect(migrated.schemaVersion).toBe(5);
+    expect(migrated.schemaVersion).toBe(6);
     expect(migrated.sources).toHaveLength(1);
     expect(migrated.compositions[0].layers.slice(-2).map((layer) => layer.sourceId)).toEqual([
       migrated.sources[0].id,
@@ -106,7 +106,7 @@ describe("project schema migration gate", () => {
       schemaVersion: number;
       compositions: Array<{ layers: Array<Record<string, unknown>> }>;
     };
-    expect(migrated.schemaVersion).toBe(5);
+    expect(migrated.schemaVersion).toBe(6);
     const audio = migrated.compositions[0].layers[0].audio as {
       levelsDb: [number, number];
       pan: number;
@@ -119,7 +119,51 @@ describe("project schema migration gate", () => {
     expect(migrated.compositions[0].layers[0].audioGain).toBeUndefined();
   });
 
-  it.each([6, undefined, 1.5])("rejects unsupported schema %s", (schemaVersion) => {
+  it("migrates legacy FOV cameras into a physical Zoom lens without hiding the comp plane", () => {
+    const previous = createBlankProject();
+    const composition = previous.compositions[0];
+    const camera = createLayerForComposition("camera", composition) as unknown as Record<
+      string,
+      unknown
+    >;
+    camera.camera = { projection: "perspective", fieldOfView: 60, orthographicSize: 1080 };
+    camera.transform = {
+      ...(camera.transform as Record<string, unknown>),
+      position: [
+        { mode: "static", value: 960 },
+        { mode: "static", value: 540 },
+        { mode: "static", value: 0 },
+      ],
+    };
+    const raw = structuredClone(previous) as unknown as Record<string, unknown>;
+    raw.schemaVersion = 5;
+    (raw.compositions as Array<{ layers: Array<Record<string, unknown>> }>)[0].layers = [camera];
+
+    const migrated = cloneCurrentProjectDocument(raw) as {
+      schemaVersion: number;
+      compositions: Array<{ layers: Array<Record<string, unknown>> }>;
+    };
+    const migratedCamera = migrated.compositions[0].layers[0].camera as Record<string, unknown>;
+    const zoom = 1080 / (2 * Math.tan(Math.PI / 6));
+    const position = (
+      migrated.compositions[0].layers[0].transform as {
+        position: Array<{ value: number }>;
+      }
+    ).position;
+
+    expect(migrated.schemaVersion).toBe(6);
+    expect(migratedCamera).toMatchObject({
+      mode: "oneNode",
+      zoom,
+      filmSize: 36,
+      focusDistance: zoom,
+      lockFocusToZoom: true,
+    });
+    expect(position[2].value).toBeCloseTo(-zoom);
+    expect(migratedCamera.fieldOfView).toBeUndefined();
+  });
+
+  it.each([7, undefined, 1.5])("rejects unsupported schema %s", (schemaVersion) => {
     expect(() => cloneCurrentProjectDocument({ schemaVersion })).toThrow("Aster project schema");
   });
 });

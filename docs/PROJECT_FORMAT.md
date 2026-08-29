@@ -105,6 +105,16 @@ handedness exactly -1 or 1. Tangents, UVs, normal-map scale, and source dimensio
 before the material enters the GPU path. HDR imports are fully decoded and validated in a cancellable
 worker before their source is admitted to the project document.
 
+Camera layers store one-node/two-node mode, animated point of interest and orientation vectors,
+horizontal film size, AE-compatible Zoom in composition pixels, derived physical focal length,
+orthographic size, and bounded depth-of-field optics. The default 50 mm camera is centered one Zoom
+behind the composition plane. At a given time, the first camera in timeline order whose in/out span
+contains that time is active; its visibility switch does not create a drawable surface. Beauty
+preview and export evaluate the same camera, world-position pass, circle-of-confusion function, and
+ACES display transform. Preview resolution only scales the sampling radius. This follows Adobe's
+[camera and point-of-interest model](https://helpx.adobe.com/ca/after-effects/desktop/work-with-layers/camera-layer/cameras-lights-points-interest.html)
+and [Advanced 3D depth-of-field controls](https://helpx.adobe.com/ca/after-effects/desktop/work-with-3d-composition/work-with-3d-scene-depth-data/enable-in_engine-depth-of-field-in-advanced-3d.html).
+
 ## Schema and migration policy
 
 - Readers clone the input and pass it through a sequential `vN -> vN+1` migration registry before
@@ -115,10 +125,13 @@ worker before their source is admitted to the project document.
   assets into `sources`, deduplicates exact repeated content, and replaces each nested payload with a
   stable `sourceId`. The v4 → v5 migration adds first-class audio-layer settings, maps the legacy
   normalized audio gain to stereo decibels, and supplies selected-stream metadata for audio sources.
+  The v5 → v6 migration converts legacy vertical-FOV cameras to a physical film-back/Zoom lens,
+  offsets their camera position by the migrated Zoom so the composition plane remains visible, and
+  supplies deterministic one-node and depth-of-field defaults.
   Older, future, missing, or fractional versions fail
   before partially applying the document.
-- The native bundle boundary accepts v1 through v5 on read so the renderer can run migrations, but
-  new primary saves and autosaves must already be validated v5 documents.
+- The native bundle boundary accepts v1 through v6 on read so the renderer can run migrations, but
+  new primary saves and autosaves must already be validated v6 documents.
 - Every future historical transform must preserve the source document, set exactly the next integer
   version, and gain a compatibility fixture before the current schema version increases.
 - Unknown effect types and parameters must be preserved and disabled when execution is unavailable.

@@ -4,6 +4,7 @@ struct AsterGeneratorContext {
   layer_position_opacity: vec4f, layer_rotation: vec4f, layer_scale: vec4f,
   camera_position: vec4f, camera_rotation: vec4f, camera_projection: vec4f,
   composition: vec4f, ids: vec4u,
+  camera_right: vec4f, camera_down: vec4f, camera_forward: vec4f,
 }
 struct AsterGeneratorParameters { values: array<vec4f, 128> }
 struct AsterDrawIndirect {

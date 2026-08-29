@@ -1,4 +1,5 @@
 import { createCanonicalAdjustmentTransform } from "./adjustment-layer";
+import { createDefaultCameraSettings, createDefaultCameraTransform } from "./camera-settings";
 import { MAX_SOLID_DIMENSION } from "./solid-layer";
 import { createDefaultTextAnimator } from "./text-animator";
 import type { Composition, Layer, LayerKind, SceneGeneratorInstance } from "./types";
@@ -91,7 +92,9 @@ function createLayer(kind: LayerKind, composition: Composition, currentTime: num
                   : [720, 720],
     transform: isAdjustment
       ? createCanonicalAdjustmentTransform(composition)
-      : createTransform([composition.width / 2, composition.height / 2, 0]),
+      : isCamera
+        ? createDefaultCameraTransform(composition.width, composition.height)
+        : createTransform([composition.width / 2, composition.height / 2, 0]),
     effects: [],
     solid: solid ? { ...solid, color: [...solid.color] } : undefined,
     material:
@@ -116,7 +119,7 @@ function createLayer(kind: LayerKind, composition: Composition, currentTime: num
         : undefined,
     camera:
       kind === "camera"
-        ? { projection: "perspective", fieldOfView: 50, orthographicSize: composition.height }
+        ? createDefaultCameraSettings(composition.width, composition.height)
         : undefined,
     shape:
       kind === "shape"

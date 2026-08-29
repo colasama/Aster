@@ -103,6 +103,12 @@
         "scale.0",
         "scale.1",
         "scale.2",
+        "camera.pointOfInterest.0",
+        "camera.pointOfInterest.1",
+        "camera.pointOfInterest.2",
+        "camera.orientation.0",
+        "camera.orientation.1",
+        "camera.orientation.2",
         "opacity"
       ]
     },
@@ -179,11 +185,55 @@
     "camera": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["projection", "fieldOfView", "orthographicSize"],
+      "required": [
+        "mode",
+        "projection",
+        "zoom",
+        "filmSize",
+        "focalLength",
+        "orthographicSize",
+        "pointOfInterest",
+        "orientation",
+        "depthOfField",
+        "focusDistance",
+        "lockFocusToZoom",
+        "aperture",
+        "fStop",
+        "blurLevel",
+        "focusAreaWidth",
+        "nearBlurLevel",
+        "farBlurLevel",
+        "renderQuality"
+      ],
       "properties": {
+        "mode": { "enum": ["oneNode", "twoNode"] },
         "projection": { "enum": ["perspective", "orthographic"] },
-        "fieldOfView": { "type": "number", "minimum": 1, "maximum": 179 },
-        "orthographicSize": { "type": "number", "minimum": 1, "maximum": 100000 }
+        "zoom": { "type": "number", "minimum": 0.1, "maximum": 1000000 },
+        "filmSize": { "type": "number", "minimum": 0.1, "maximum": 1000 },
+        "focalLength": { "type": "number", "minimum": 0.1, "maximum": 10000 },
+        "orthographicSize": { "type": "number", "minimum": 1, "maximum": 10000000 },
+        "pointOfInterest": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": { "$ref": "#/$defs/animatable" }
+        },
+        "orientation": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": { "$ref": "#/$defs/animatable" }
+        },
+        "depthOfField": { "type": "boolean" },
+        "focusDistance": { "type": "number", "minimum": 0.1, "maximum": 10000000 },
+        "lockFocusToZoom": { "type": "boolean" },
+        "aperture": { "type": "number", "minimum": 0.001, "maximum": 10000 },
+        "fStop": { "type": "number", "minimum": 0.1, "maximum": 1000 },
+        "blurLevel": { "type": "number", "minimum": 0, "maximum": 1000 },
+        "focusAreaWidth": { "type": "number", "minimum": 0, "maximum": 10000000 },
+        "nearBlurLevel": { "type": "number", "minimum": 0, "maximum": 1000 },
+        "farBlurLevel": { "type": "number", "minimum": 0, "maximum": 1000 },
+        "renderQuality": { "type": "number", "minimum": 1, "maximum": 100 }
       }
     },
     "sceneGeneratorParameter": {
@@ -692,6 +742,12 @@
               "scale.0",
               "scale.1",
               "scale.2",
+              "camera.pointOfInterest.0",
+              "camera.pointOfInterest.1",
+              "camera.pointOfInterest.2",
+              "camera.orientation.0",
+              "camera.orientation.1",
+              "camera.orientation.2",
               "opacity"
             ]
           },
@@ -726,6 +782,12 @@
               "scale.0",
               "scale.1",
               "scale.2",
+              "camera.pointOfInterest.0",
+              "camera.pointOfInterest.1",
+              "camera.pointOfInterest.2",
+              "camera.orientation.0",
+              "camera.orientation.1",
+              "camera.orientation.2",
               "opacity"
             ]
           },

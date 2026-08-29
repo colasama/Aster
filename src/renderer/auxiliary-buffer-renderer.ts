@@ -120,6 +120,10 @@ export class AuxiliaryBufferRenderer {
     return this.#motionShutterScale;
   }
 
+  get enabled(): boolean {
+    return this.#enabled;
+  }
+
   enable(width: number, height: number, byteBudget: number): boolean {
     if (!this.supported) return false;
     this.#byteBudget = Math.max(0, byteBudget);
@@ -171,8 +175,9 @@ export class AuxiliaryBufferRenderer {
     width: number,
     height: number,
     budgetMb?: number,
+    forceSurfaceData = false,
   ): BufferVisualization {
-    if (!usesAuxiliarySurfaceData(mode)) {
+    if (!usesAuxiliarySurfaceData(mode) && !forceSurfaceData) {
       this.disable();
       visualizer.clearAuxiliarySources();
       return mode;

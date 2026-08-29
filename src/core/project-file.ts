@@ -58,7 +58,7 @@ interface RecoveryStorage {
 export function validateProjectDocument(value: unknown): Project {
   const current = cloneCurrentProjectDocument(value);
   const project = requireObject(current, "project");
-  if (project.schemaVersion !== 5) throw new Error("Unsupported Aster project schema");
+  if (project.schemaVersion !== 6) throw new Error("Unsupported Aster project schema");
   requireString(project.id, "project.id");
   requireString(project.name, "project.name");
   const activeCompositionId = requireString(
@@ -695,14 +695,60 @@ function validateLayer(
       requirePositiveNumber(light[field], `${path}.light.${field}`);
   }
   if (layer.camera !== undefined) {
+    if (layer.kind !== "camera") throw new Error(`${path}.camera requires camera layer kind`);
     const camera = requireObject(layer.camera, `${path}.camera`);
+    if (!["oneNode", "twoNode"].includes(String(camera.mode)))
+      throw new Error(`${path}.camera.mode is invalid`);
     if (!["perspective", "orthographic"].includes(String(camera.projection)))
       throw new Error(`${path}.camera.projection is invalid`);
-    const fieldOfView = requireFiniteNumber(camera.fieldOfView, `${path}.camera.fieldOfView`);
-    if (fieldOfView <= 0 || fieldOfView >= 180)
-      throw new Error(`${path}.camera.fieldOfView must be between 0 and 180 degrees`);
-    requirePositiveNumber(camera.orthographicSize, `${path}.camera.orthographicSize`);
+    validateBoundedNumber(camera.zoom, `${path}.camera.zoom`, [0.1, 1_000_000]);
+    validateBoundedNumber(camera.filmSize, `${path}.camera.filmSize`, [0.1, 1_000]);
+    validateBoundedNumber(camera.focalLength, `${path}.camera.focalLength`, [0.1, 10_000]);
+    validateBoundedNumber(
+      camera.orthographicSize,
+      `${path}.camera.orthographicSize`,
+      [1, 10_000_000],
+    );
+    for (const field of ["pointOfInterest", "orientation"] as const) {
+      if (!Array.isArray(camera[field]) || camera[field].length !== 3)
+        throw new Error(`${path}.camera.${field} must contain three animated properties`);
+      for (const [index, property] of camera[field].entries())
+        validateAnimatable(property, `${path}.camera.${field}[${index}]`);
+    }
+    for (const field of ["depthOfField", "lockFocusToZoom"] as const)
+      if (typeof camera[field] !== "boolean")
+        throw new Error(`${path}.camera.${field} must be a boolean`);
+    validateBoundedNumber(camera.focusDistance, `${path}.camera.focusDistance`, [0.1, 10_000_000]);
+    validateBoundedNumber(camera.aperture, `${path}.camera.aperture`, [0.001, 10_000]);
+    validateBoundedNumber(camera.fStop, `${path}.camera.fStop`, [0.1, 1_000]);
+    validateBoundedNumber(camera.blurLevel, `${path}.camera.blurLevel`, [0, 1_000]);
+    validateBoundedNumber(camera.focusAreaWidth, `${path}.camera.focusAreaWidth`, [0, 10_000_000]);
+    validateBoundedNumber(camera.nearBlurLevel, `${path}.camera.nearBlurLevel`, [0, 1_000]);
+    validateBoundedNumber(camera.farBlurLevel, `${path}.camera.farBlurLevel`, [0, 1_000]);
+    validateBoundedNumber(camera.renderQuality, `${path}.camera.renderQuality`, [1, 100]);
+    const zoom = Number(camera.zoom);
+    const filmSize = Number(camera.filmSize);
+    const focalLength = Number(camera.focalLength);
+    const aperture = Number(camera.aperture);
+    requireApproximately(
+      focalLength,
+      (zoom * filmSize) / composition.width,
+      `${path}.camera.focalLength must match Zoom and film size`,
+    );
+    requireApproximately(
+      Number(camera.fStop),
+      Math.max(0.1, Math.min(1_000, focalLength / aperture)),
+      `${path}.camera.fStop must match focal length and aperture`,
+    );
+    if (camera.lockFocusToZoom === true)
+      requireApproximately(
+        Number(camera.focusDistance),
+        zoom,
+        `${path}.camera.focusDistance must match Zoom while focus lock is enabled`,
+      );
   }
+  if (layer.kind === "camera" && layer.camera === undefined)
+    throw new Error(`${path}.camera is required for camera layers`);
   if (layer.mesh !== undefined) {
     const mesh = requireObject(layer.mesh, `${path}.mesh`);
     requireString(mesh.name, `${path}.mesh.name`);
@@ -891,6 +937,11 @@ function validateBoundedNumber(
   const number = requireFiniteNumber(value, path);
   if (number < bounds[0] || number > bounds[1])
     throw new Error(`${path} must be between ${bounds[0]} and ${bounds[1]}`);
+}
+
+function requireApproximately(value: number, expected: number, message: string): void {
+  const tolerance = Math.max(1e-6, Math.abs(expected) * 1e-6);
+  if (Math.abs(value - expected) > tolerance) throw new Error(message);
 }
 
 function validateFootageSource(value: unknown, path: string): asserts value is FootageSource {

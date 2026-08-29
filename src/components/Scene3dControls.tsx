@@ -3,6 +3,9 @@ import {
   createParticleSceneGenerator,
   particleSettingsFromGenerator,
 } from "../core/bundled-particle";
+import { apertureFromFStop, lensFromFocalLength, lensFromZoom } from "../core/camera-optics";
+import { createDefaultCameraSettings } from "../core/camera-settings";
+import type { PropertyPath } from "../core/operations";
 import { createDefaultParticleSettings, type ParticleSettings } from "../core/particle-settings";
 import type { PluginParameter } from "../core/plugins";
 import {
@@ -10,6 +13,7 @@ import {
   getSceneGeneratorDefinitions,
   subscribeSceneGeneratorDefinitions,
 } from "../core/scene-generator-registry";
+import { evaluateAnimatable } from "../core/timeline";
 import type {
   CameraSettings,
   Layer,
@@ -22,8 +26,15 @@ import { useEditor } from "../state/editor-store";
 import { ParticleControls } from "./ParticleControls";
 
 export function Scene3dControls({ layer }: { layer: Layer }) {
-  const { dispatch } = useEditor();
+  const { dispatch, state } = useEditor();
   const { t } = useI18n();
+  const composition =
+    state.project.compositions.find(
+      (candidate) => candidate.id === state.project.activeCompositionId,
+    ) ?? state.project.compositions[0];
+  const camera =
+    layer.camera ??
+    createDefaultCameraSettings(composition?.width ?? 1920, composition?.height ?? 1080);
   useSyncExternalStore(
     subscribeSceneGeneratorDefinitions,
     getSceneGeneratorDefinitions,
@@ -71,21 +82,42 @@ export function Scene3dControls({ layer }: { layer: Layer }) {
     });
   };
 
-  const updateCamera = (field: keyof CameraSettings, value: string | number) => {
+  const updateCamera = <Field extends keyof CameraSettings>(
+    field: Field,
+    value: CameraSettings[Field],
+  ) => {
+    const next: CameraSettings = { ...camera, [field]: value };
+    const width = composition?.width ?? 1920;
+    if (field === "zoom") {
+      const lens = lensFromZoom(Number(value), next.filmSize, width);
+      next.zoom = lens.zoom;
+      next.focalLength = lens.focalLength;
+    } else if (field === "focalLength") {
+      const lens = lensFromFocalLength(Number(value), next.filmSize, width);
+      next.zoom = lens.zoom;
+      next.focalLength = lens.focalLength;
+    } else if (field === "filmSize") {
+      const lens = lensFromZoom(next.zoom, Number(value), width);
+      next.filmSize = lens.filmSize;
+      next.focalLength = lens.focalLength;
+    } else if (field === "fStop")
+      next.aperture = apertureFromFStop(next.focalLength, Number(value));
     dispatch({
       type: "operation",
       operations: [
         {
           type: "setCameraSettings",
           layerId: layer.id,
-          camera: {
-            projection: layer.camera?.projection ?? "perspective",
-            fieldOfView: layer.camera?.fieldOfView ?? 50,
-            orthographicSize: layer.camera?.orthographicSize ?? 2160,
-            [field]: value,
-          },
+          camera: next,
         },
       ],
+    });
+  };
+
+  const updateCameraProperty = (path: PropertyPath, value: number) => {
+    dispatch({
+      type: "operation",
+      operations: [{ type: "setProperty", layerId: layer.id, path, value }],
     });
   };
 
@@ -173,14 +205,54 @@ export function Scene3dControls({ layer }: { layer: Layer }) {
   }
 
   if (layer.kind === "camera") {
-    const projection = layer.camera?.projection ?? "perspective";
+    const projection = camera.projection;
     return (
       <>
+        <label>
+          {t("scene3d.camera.type")}
+          <select
+            aria-label={t("scene3d.camera.type")}
+            onChange={(event) =>
+              updateCamera("mode", event.target.value === "oneNode" ? "oneNode" : "twoNode")
+            }
+            value={camera.mode}
+          >
+            <option value="oneNode">{t("scene3d.camera.oneNode")}</option>
+            <option value="twoNode">{t("scene3d.camera.twoNode")}</option>
+          </select>
+        </label>
+        {camera.mode === "twoNode" && (
+          <CameraVectorControl
+            label={t("scene3d.camera.pointOfInterest")}
+            onChange={updateCameraProperty}
+            paths={[
+              "camera.pointOfInterest.0",
+              "camera.pointOfInterest.1",
+              "camera.pointOfInterest.2",
+            ]}
+            properties={camera.pointOfInterest}
+            time={state.currentTime}
+            unit="px"
+          />
+        )}
+        <CameraVectorControl
+          label={t("scene3d.camera.orientation")}
+          onChange={updateCameraProperty}
+          paths={["camera.orientation.0", "camera.orientation.1", "camera.orientation.2"]}
+          properties={camera.orientation}
+          time={state.currentTime}
+          unit="°"
+        />
         <label>
           {t("scene3d.camera.projection")}
           <select
             aria-label={t("scene3d.camera.projectionA11y")}
-            onChange={(event) => updateCamera("projection", event.target.value)}
+            onChange={(event) =>
+              updateCamera(
+                "projection",
+                event.target.value === "orthographic" ? "orthographic" : "perspective",
+              )
+            }
             value={projection}
           >
             <option value="perspective">{t("scene3d.camera.perspective")}</option>
@@ -188,14 +260,32 @@ export function Scene3dControls({ layer }: { layer: Layer }) {
           </select>
         </label>
         {projection === "perspective" ? (
-          <NumericControl
-            label={t("scene3d.camera.fieldOfView")}
-            max={179}
-            min={1}
-            onChange={(value) => updateCamera("fieldOfView", value)}
-            step={1}
-            value={layer.camera?.fieldOfView ?? 50}
-          />
+          <>
+            <NumericControl
+              label={t("scene3d.camera.zoom")}
+              max={1_000_000}
+              min={0.1}
+              onChange={(value) => updateCamera("zoom", value)}
+              step={1}
+              value={camera.zoom}
+            />
+            <NumericControl
+              label={t("scene3d.camera.focalLength")}
+              max={10_000}
+              min={0.1}
+              onChange={(value) => updateCamera("focalLength", value)}
+              step={0.1}
+              value={camera.focalLength}
+            />
+            <NumericControl
+              label={t("scene3d.camera.filmSize")}
+              max={1_000}
+              min={0.1}
+              onChange={(value) => updateCamera("filmSize", value)}
+              step={0.1}
+              value={camera.filmSize}
+            />
+          </>
         ) : (
           <NumericControl
             label={t("scene3d.camera.orthographicSize")}
@@ -203,8 +293,86 @@ export function Scene3dControls({ layer }: { layer: Layer }) {
             min={1}
             onChange={(value) => updateCamera("orthographicSize", value)}
             step={10}
-            value={layer.camera?.orthographicSize ?? 2160}
+            value={camera.orthographicSize}
           />
+        )}
+        <BooleanControl
+          checked={camera.depthOfField}
+          label={t("scene3d.camera.depthOfField")}
+          onChange={(value) => updateCamera("depthOfField", value)}
+        />
+        {camera.depthOfField && projection === "perspective" && (
+          <>
+            <BooleanControl
+              checked={camera.lockFocusToZoom}
+              label={t("scene3d.camera.lockFocusToZoom")}
+              onChange={(value) => updateCamera("lockFocusToZoom", value)}
+            />
+            <NumericControl
+              label={t("scene3d.camera.focusDistance")}
+              max={10_000_000}
+              min={0.1}
+              onChange={(value) => updateCamera("focusDistance", value)}
+              step={1}
+              value={camera.focusDistance}
+            />
+            <NumericControl
+              label={t("scene3d.camera.aperture")}
+              max={10_000}
+              min={0.001}
+              onChange={(value) => updateCamera("aperture", value)}
+              step={0.1}
+              value={camera.aperture}
+            />
+            <NumericControl
+              label={t("scene3d.camera.fStop")}
+              max={1_000}
+              min={0.1}
+              onChange={(value) => updateCamera("fStop", value)}
+              step={0.1}
+              value={camera.fStop}
+            />
+            <NumericControl
+              label={t("scene3d.camera.blurLevel")}
+              max={1_000}
+              min={0}
+              onChange={(value) => updateCamera("blurLevel", value)}
+              step={1}
+              value={camera.blurLevel}
+            />
+            <NumericControl
+              label={t("scene3d.camera.focusAreaWidth")}
+              max={10_000_000}
+              min={0}
+              onChange={(value) => updateCamera("focusAreaWidth", value)}
+              step={1}
+              value={camera.focusAreaWidth}
+            />
+            <NumericControl
+              label={t("scene3d.camera.nearBlurLevel")}
+              max={1_000}
+              min={0}
+              onChange={(value) => updateCamera("nearBlurLevel", value)}
+              step={1}
+              value={camera.nearBlurLevel}
+            />
+            <NumericControl
+              label={t("scene3d.camera.farBlurLevel")}
+              max={1_000}
+              min={0}
+              onChange={(value) => updateCamera("farBlurLevel", value)}
+              step={1}
+              value={camera.farBlurLevel}
+            />
+            <NumericControl
+              label={t("scene3d.camera.renderQuality")}
+              max={100}
+              min={1}
+              onChange={(value) => updateCamera("renderQuality", value)}
+              step={1}
+              value={camera.renderQuality}
+            />
+          </>
         )}
       </>
     );
@@ -446,6 +614,62 @@ function NumericControl({
         value={value}
       />
     </label>
+  );
+}
+
+function BooleanControl({
+  checked,
+  label,
+  onChange,
+}: {
+  checked: boolean;
+  label: string;
+  onChange: (value: boolean) => void;
+}) {
+  return (
+    <label>
+      <input
+        checked={checked}
+        onChange={(event) => onChange(event.target.checked)}
+        type="checkbox"
+      />
+      {label}
+    </label>
+  );
+}
+
+function CameraVectorControl({
+  label,
+  onChange,
+  paths,
+  properties,
+  time,
+  unit,
+}: {
+  label: string;
+  onChange: (path: PropertyPath, value: number) => void;
+  paths: readonly [PropertyPath, PropertyPath, PropertyPath];
+  properties: CameraSettings["pointOfInterest"];
+  time: number;
+  unit: string;
+}) {
+  return (
+    <fieldset className="scene-generator-vector">
+      <legend>{label}</legend>
+      {properties.map((property, index) => (
+        <label key={paths[index]}>
+          {"XYZ"[index]}
+          <input
+            aria-label={`${label} ${"XYZ"[index]}`}
+            onChange={(event) => onChange(paths[index], Number(event.target.value))}
+            step={0.1}
+            type="number"
+            value={evaluateAnimatable(property, time)}
+          />
+          <span>{unit}</span>
+        </label>
+      ))}
+    </fieldset>
   );
 }
 

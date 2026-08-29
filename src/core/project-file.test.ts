@@ -60,7 +60,7 @@ describe("project document boundary", () => {
     composition.layers = [nullLayer, solid];
 
     const roundtrip = validateProjectDocument(JSON.parse(serializeProject(project)));
-    expect(roundtrip.schemaVersion).toBe(5);
+    expect(roundtrip.schemaVersion).toBe(6);
     expect(roundtrip.compositions[0].layers).toEqual([nullLayer, solid]);
   });
 
@@ -383,14 +383,14 @@ describe("project document boundary", () => {
     const project = createBlankProject();
     const composition = project.compositions[0];
     const camera = createLayerForComposition("camera", composition);
-    camera.camera = { projection: "orthographic", fieldOfView: 50, orthographicSize: 1400 };
+    if (!camera.camera) throw new Error("Expected camera settings");
+    camera.camera = { ...camera.camera, projection: "orthographic", orthographicSize: 1400 };
     composition.layers.push(camera);
 
     const roundtrip = validateProjectDocument(JSON.parse(serializeProject(project)));
     expect(roundtrip.compositions[0].layers[1].camera).toEqual(camera.camera);
-    if (!camera.camera) throw new Error("Expected camera settings");
-    camera.camera.fieldOfView = 180;
-    expect(() => validateProjectDocument(project)).toThrow("between 0 and 180 degrees");
+    camera.camera.zoom = 0;
+    expect(() => validateProjectDocument(project)).toThrow("camera.zoom must be between 0.1");
   });
 
   it("roundtrips bounded imported mesh buffers", () => {

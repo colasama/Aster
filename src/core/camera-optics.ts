@@ -77,11 +77,22 @@ export function lensFromZoom(
 }
 
 export function apertureFromFStop(focalLength: number, fStop: number): number {
-  return bounded(focalLength, 0.1, 10_000, 50) / bounded(fStop, 0.1, 1_000, 2.8);
+  return bounded(
+    bounded(focalLength, 0.1, 10_000, 50) / bounded(fStop, 0.1, 1_000, 2.8),
+    0.001,
+    10_000,
+    DEFAULT_CAMERA_OPTICS.aperture,
+  );
 }
 
 export function fStopFromAperture(focalLength: number, aperture: number): number {
-  return bounded(focalLength, 0.1, 10_000, 50) / bounded(aperture, 0.001, 10_000, 17.86);
+  return bounded(
+    bounded(focalLength, 0.1, 10_000, 50) /
+      bounded(aperture, 0.001, 10_000, DEFAULT_CAMERA_OPTICS.aperture),
+    0.1,
+    1_000,
+    DEFAULT_CAMERA_OPTICS.fStop,
+  );
 }
 
 export function normalizeCameraOptics(

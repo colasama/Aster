@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createParticleLayerForComposition } from "../core/bundled-particle";
+import { createDefaultCameraSettings, evaluateCameraSettings } from "../core/camera-settings";
 import { createBlankProject } from "../core/project";
 import { flattenSceneLayers } from "../core/scene-evaluation";
 import { bundledParticleDefinition } from "./bundled-particle-generator";
@@ -45,8 +46,11 @@ describe("scene generator ABI packing", () => {
     expect(floats[28]).toBe(1);
     expect(floats[29]).toBeCloseTo(Math.PI / 3);
     expect(floats[30]).toBe(720);
-    expect(floats[31]).toBeCloseTo(composition.height / (2 * Math.tan(Math.PI / 6)));
+    expect(floats[31]).toBeCloseTo(composition.width / (2 * Math.tan(Math.PI / 6)));
     expect(integers[36]).not.toBe(0);
+    expect(Math.hypot(...floats.slice(40, 43))).toBeCloseTo(1);
+    expect(Math.hypot(...floats.slice(44, 47))).toBeCloseTo(1);
+    expect(Math.hypot(...floats.slice(48, 51))).toBeCloseTo(1);
   });
 
   it("packs manifest parameters by declaration order", () => {
@@ -78,14 +82,22 @@ describe("scene generator ABI packing", () => {
 });
 
 function sceneCamera(): SceneCamera {
+  const settings = createDefaultCameraSettings(1920, 1080);
+  settings.mode = "oneNode";
+  settings.projection = "orthographic";
+  settings.zoom = 1920 / (2 * Math.tan(Math.PI / 6));
+  settings.focalLength = (settings.zoom * settings.filmSize) / 1920;
+  settings.orthographicSize = 720;
+  const transform = {
+    position: [10, 20, 30] as [number, number, number],
+    rotation: [4, 5, 6] as [number, number, number],
+    scale: [100, 100, 100] as [number, number, number],
+    anchor: [0, 0, 0] as [number, number, number],
+    opacity: 1,
+  };
   return {
-    transform: {
-      position: [10, 20, 30],
-      rotation: [4, 5, 6],
-      scale: [100, 100, 100],
-      anchor: [0, 0, 0],
-      opacity: 1,
-    },
-    settings: { projection: "orthographic", fieldOfView: 60, orthographicSize: 720 },
+    transform,
+    settings,
+    ...evaluateCameraSettings(settings, transform, 0, 1920),
   };
 }

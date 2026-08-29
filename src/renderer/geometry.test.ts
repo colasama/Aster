@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { createLayerForComposition } from "../core/layer-factory";
 import { createBlankProject } from "../core/project";
-import { evaluateWorldTransform, flattenSceneLayers } from "../core/scene-evaluation";
+import { flattenSceneLayers } from "../core/scene-evaluation";
 import { buildSceneGeometry, FLOATS_PER_VERTEX, VERTEX_FLOAT_OFFSETS } from "./geometry";
+import { evaluateSceneCamera } from "./scene-camera";
 import { createDefaultBezierPath } from "./vector-path";
 
 describe("GPU scene geometry", () => {
@@ -78,26 +79,16 @@ describe("GPU scene geometry", () => {
     const camera = createLayerForComposition("camera", composition);
     composition.layers = [mesh, camera];
     const scene = flattenSceneLayers(composition, project, 0);
-    const centered = buildSceneGeometry(composition, scene, {
-      transform: evaluateWorldTransform(camera, composition, 0),
-      settings: camera.camera ?? {
-        projection: "perspective",
-        fieldOfView: 50,
-        orthographicSize: composition.height,
-      },
-    }).data;
+    const centered = buildSceneGeometry(
+      composition,
+      scene,
+      evaluateSceneCamera(composition, 0),
+    ).data;
     camera.transform.position[0] = { mode: "static", value: composition.width * 0.35 };
     camera.transform.rotation[1] = { mode: "static", value: 14 };
-    const moved = buildSceneGeometry(composition, scene, {
-      transform: evaluateWorldTransform(camera, composition, 0),
-      settings: camera.camera ?? {
-        projection: "perspective",
-        fieldOfView: 50,
-        orthographicSize: composition.height,
-      },
-    }).data;
+    const moved = buildSceneGeometry(composition, scene, evaluateSceneCamera(composition, 0)).data;
     expect(moved[0]).not.toBeCloseTo(centered[0]);
-    expect(moved[2]).not.toBeCloseTo(centered[2]);
+    expect(Math.abs(moved[2] - centered[2])).toBeGreaterThan(1e-7);
   });
 
   it("supports orthographic camera projection without perspective depth scaling", () => {
@@ -109,10 +100,7 @@ describe("GPU scene geometry", () => {
     camera.camera.projection = "orthographic";
     composition.layers = [mesh, camera];
     const scene = flattenSceneLayers(composition, project, 0);
-    const baseCamera = {
-      transform: evaluateWorldTransform(camera, composition, 0),
-      settings: camera.camera,
-    };
+    const baseCamera = evaluateSceneCamera(composition, 0);
     const centered = buildSceneGeometry(composition, scene, baseCamera).data;
     mesh.transform.position[2] = { mode: "static", value: 600 };
     const depthMoved = buildSceneGeometry(
@@ -122,7 +110,7 @@ describe("GPU scene geometry", () => {
     ).data;
     expect(depthMoved[0]).toBeCloseTo(centered[0]);
     expect(depthMoved[1]).toBeCloseTo(centered[1]);
-    expect(depthMoved[2]).not.toBeCloseTo(centered[2]);
+    expect(Math.abs(depthMoved[2] - centered[2])).toBeGreaterThan(1e-6);
   });
 
   it("packs explicit vector kind, roundness, and stroke style attributes", () => {

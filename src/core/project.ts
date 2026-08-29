@@ -1,4 +1,5 @@
 import { createParticleSceneGenerator } from "./bundled-particle";
+import { createDefaultCameraSettings, createDefaultCameraTransform } from "./camera-settings";
 import {
   type Composition,
   createId,
@@ -235,7 +236,8 @@ export function createDemoProject(): Project {
     size: [0, 0],
     threeDimensional: true,
     visible: false,
-    camera: { projection: "perspective", fieldOfView: 50, orthographicSize: 2160 },
+    transform: createDefaultCameraTransform(3840, 2160),
+    camera: createDefaultCameraSettings(3840, 2160),
   });
   const composition: Composition = {
     id: compositionId,
@@ -259,7 +261,7 @@ export function createDemoProject(): Project {
     layers: [title, subtitle, ribbon, orb, materialStudy, particles, background, camera],
   };
   return {
-    schemaVersion: 5,
+    schemaVersion: 6,
     id: createId(),
     name: "Aster Launch",
     activeCompositionId: compositionId,
@@ -311,7 +313,7 @@ export function createBlankComposition(name = "Composition 1"): Composition {
 export function createBlankProject(): Project {
   const composition = createBlankComposition();
   return {
-    schemaVersion: 5,
+    schemaVersion: 6,
     id: createId(),
     name: "Untitled Project",
     activeCompositionId: composition.id,

@@ -1,3 +1,5 @@
+import { projectCameraPoint } from "../core/camera-rig";
+import { createDefaultEvaluatedCamera, type EvaluatedCamera } from "../core/camera-settings";
 import type { FlattenedSceneLayer } from "../core/scene-evaluation";
 import { solidRenderColor, solidRenderSize } from "../core/solid-layer";
 import type { CameraSettings, Composition, EvaluatedTransform, Layer } from "../core/types";
@@ -38,7 +40,7 @@ export interface GeometryResult {
   batches: GeometryBatch[];
 }
 
-export interface SceneCamera {
+export interface SceneCamera extends EvaluatedCamera {
   transform: EvaluatedTransform;
   settings: CameraSettings;
 }
@@ -493,36 +495,13 @@ function projectVertex(
   }
   const [x, y, z] = rotatePoint(localX, localY, localZ, rotation);
   const world: [number, number, number] = [position[0] + x, position[1] + y, position[2] + z];
-  const cameraPosition = camera?.transform.position ?? [
-    composition.width / 2,
-    composition.height / 2,
-    0,
-  ];
-  const relative: [number, number, number] = [
-    world[0] - cameraPosition[0],
-    world[1] - cameraPosition[1],
-    world[2] - cameraPosition[2],
-  ];
-  const [viewX, viewY, viewZ] = applyInverseRotation(
-    relative,
-    camera?.transform.rotation ?? [0, 0, 0],
-  );
-  const settings = camera?.settings ?? {
-    projection: "perspective",
-    fieldOfView: 45,
-    orthographicSize: composition.height,
-  };
-  const focalLength = composition.height / (2 * Math.tan(toRadians(settings.fieldOfView) / 2));
-  const perspective =
-    settings.projection === "orthographic"
-      ? composition.height / settings.orthographicSize
-      : focalLength / Math.max(focalLength * 0.08, focalLength - viewZ);
+  const evaluated = camera ?? createDefaultEvaluatedCamera(composition.width, composition.height);
+  const projected = projectCameraPoint(world, evaluated.pose, evaluated.projection, [
+    composition.width,
+    composition.height,
+  ]);
   return {
-    clip: [
-      composition.width / 2 + viewX * perspective,
-      composition.height / 2 + viewY * perspective,
-      Math.max(0, Math.min(1, 0.5 - viewZ / (focalLength * 2))),
-    ],
+    clip: [projected.screen[0], projected.screen[1], projected.normalizedDepth],
     world,
   };
 }
@@ -601,29 +580,6 @@ function rotatePoint(
   [x, y] = [
     x * Math.cos(rotationZ) - y * Math.sin(rotationZ),
     x * Math.sin(rotationZ) + y * Math.cos(rotationZ),
-  ];
-  return [x, y, z];
-}
-
-function applyInverseRotation(
-  source: [number, number, number],
-  rotation: [number, number, number],
-): [number, number, number] {
-  let [x, y, z] = source;
-  const rotationZ = -toRadians(rotation[2]);
-  const rotationY = -toRadians(rotation[1]);
-  const rotationX = -toRadians(rotation[0]);
-  [x, y] = [
-    x * Math.cos(rotationZ) - y * Math.sin(rotationZ),
-    x * Math.sin(rotationZ) + y * Math.cos(rotationZ),
-  ];
-  [x, z] = [
-    x * Math.cos(rotationY) + z * Math.sin(rotationY),
-    -x * Math.sin(rotationY) + z * Math.cos(rotationY),
-  ];
-  [y, z] = [
-    y * Math.cos(rotationX) - z * Math.sin(rotationX),
-    y * Math.sin(rotationX) + z * Math.cos(rotationX),
   ];
   return [x, y, z];
 }

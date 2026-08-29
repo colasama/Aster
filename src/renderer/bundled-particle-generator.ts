@@ -196,17 +196,26 @@ fn generator_clip(local: vec3f) -> vec3f {
       clamp(0.5 - world.z / max(composition_size.y * 2.0, 1.0), 0.001, 0.999),
     );
   }
-  let view = inverse_rotate_xyz(world - aster_context.camera_position.xyz, aster_context.camera_rotation.xyz);
+  let relative = world - aster_context.camera_position.xyz;
+  let view = vec3f(
+    dot(relative, aster_context.camera_right.xyz),
+    dot(relative, aster_context.camera_down.xyz),
+    dot(relative, aster_context.camera_forward.xyz),
+  );
   let projection = aster_context.camera_projection;
   let perspective = select(
-    projection.w / max(projection.w * 0.08, projection.w - view.z),
+    projection.w / max(view.z, 0.000001),
     composition_size.y / max(projection.z, 1.0),
     projection.x > 0.5,
   );
+  let near = 0.1;
+  let far = 10000000.0;
+  let perspective_depth = far / (far - near) - (far * near) / ((far - near) * max(view.z, 0.000001));
+  let orthographic_depth = (view.z - near) / (far - near);
   return vec3f(
     view.x * perspective / composition_size.x * 2.0,
     -view.y * perspective / composition_size.y * 2.0,
-    clamp(0.5 - view.z / max(projection.w * 2.0, 1.0), 0.001, 0.999),
+    clamp(select(perspective_depth, orthographic_depth, projection.x > 0.5), 0.001, 0.999),
   );
 }
 `;

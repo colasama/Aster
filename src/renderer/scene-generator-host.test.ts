@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { createDefaultCameraSettings, evaluateCameraSettings } from "../core/camera-settings";
 import { createGeneratorLayerForComposition } from "../core/layer-factory";
 import type { PluginManifest, PluginStatus } from "../core/plugins";
 import { createBlankProject } from "../core/project";
@@ -313,15 +314,21 @@ describe("third-party scene generator host integration", () => {
 });
 
 function sceneCamera(): SceneCamera {
+  const settings = createDefaultCameraSettings(1920, 1080);
+  settings.mode = "oneNode";
+  settings.projection = "orthographic";
+  settings.orthographicSize = 720;
+  const transform = {
+    position: [10, 20, 30] as [number, number, number],
+    rotation: [4, 5, 6] as [number, number, number],
+    scale: [100, 100, 100] as [number, number, number],
+    anchor: [0, 0, 0] as [number, number, number],
+    opacity: 1,
+  };
   return {
-    transform: {
-      position: [10, 20, 30],
-      rotation: [4, 5, 6],
-      scale: [100, 100, 100],
-      anchor: [0, 0, 0],
-      opacity: 1,
-    },
-    settings: { projection: "orthographic", fieldOfView: 60, orthographicSize: 720 },
+    transform,
+    settings,
+    ...evaluateCameraSettings(settings, transform, 0, 1920),
   };
 }
 

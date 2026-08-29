@@ -241,6 +241,7 @@ describe("AI command normalization", () => {
     const particle = createParticleLayerForComposition(composition);
     const camera = createLayerForComposition("camera", composition);
     const light = createLayerForComposition("light", composition);
+    if (!camera.camera) throw new Error("Expected camera settings");
     composition.layers.push(text, particle, camera, light);
     const particleSettings = { ...createDefaultParticleSettings(), count: 2048 };
     const result = normalizeAiCommands(
@@ -259,7 +260,7 @@ describe("AI command normalization", () => {
         {
           type: "setCameraSettings",
           layerId: camera.id,
-          camera: { projection: "orthographic", fieldOfView: 50, orthographicSize: 720 },
+          camera: { ...camera.camera, projection: "orthographic", orthographicSize: 720 },
         },
         {
           type: "setLightSettings",
