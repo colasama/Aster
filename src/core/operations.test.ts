@@ -429,6 +429,69 @@ describe("structured project operations", () => {
     expect(source.folders).toEqual([]);
   });
 
+  it("renames each project item kind and safely moves nested folders", () => {
+    const source = createDemoProject();
+    const composition = source.compositions[0];
+    const footage = {
+      id: crypto.randomUUID(),
+      kind: "still" as const,
+      name: "plate.png",
+      mimeType: "image/png",
+      contentIdentity: "test:rename-plate",
+      dataUrl: "data:image/png;base64,AA==",
+      width: 1,
+      height: 1,
+      interpretation: { alpha: "straight" as const, colorSpace: "srgb" as const },
+    };
+    expect(composition).toBeDefined();
+    if (!composition) return;
+    const parent = { id: crypto.randomUUID(), name: "Parent" };
+    const child = { id: crypto.randomUUID(), name: "Child" };
+    const renamed = applyOperations(source, [
+      { type: "addProjectFolder", folder: parent },
+      { type: "addProjectFolder", folder: child },
+      { type: "addSource", source: footage },
+      { type: "renameProjectItem", itemId: composition.id, name: "Main" },
+      { type: "renameProjectItem", itemId: footage.id, name: "Plate" },
+      { type: "renameProjectItem", itemId: child.id, name: "Media" },
+      { type: "moveProjectFolder", folderId: child.id, parentId: parent.id },
+    ]);
+    expect(renamed.compositions[0]?.name).toBe("Main");
+    expect(renamed.sources[0]?.name).toBe("Plate");
+    expect(renamed.folders.find((folder) => folder.id === child.id)).toMatchObject({
+      name: "Media",
+      parentId: parent.id,
+    });
+    expect(() =>
+      applyOperations(renamed, [
+        { type: "moveProjectFolder", folderId: parent.id, parentId: child.id },
+      ]),
+    ).toThrow(/descendant/);
+  });
+
+  it("deletes only empty folders and unreferenced non-final compositions", () => {
+    const source = createDemoProject();
+    const removableComposition = structuredClone(source.compositions[0]);
+    if (!removableComposition) return;
+    removableComposition.id = crypto.randomUUID();
+    removableComposition.name = "Removable";
+    removableComposition.layers = [];
+    const folder = { id: crypto.randomUUID(), name: "Empty" };
+    const removable = applyOperations(source, [
+      { type: "addComposition", composition: removableComposition, activate: false },
+      { type: "addProjectFolder", folder },
+      { type: "removeProjectFolder", folderId: folder.id },
+      { type: "removeComposition", compositionId: removableComposition.id },
+    ]);
+    expect(removable.folders).toHaveLength(0);
+    expect(removable.compositions).toHaveLength(1);
+    expect(() =>
+      applyOperations(removable, [
+        { type: "removeComposition", compositionId: removable.compositions[0]?.id ?? "missing" },
+      ]),
+    ).toThrow(/keep one composition/);
+  });
+
   it("persists frame-aligned work areas and normalizes them when duration shrinks", () => {
     const source = createDemoProject();
     const composition = activeComposition(source);

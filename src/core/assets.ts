@@ -48,15 +48,26 @@ export async function createMediaLayerFromFile(
     { composition, currentTime },
     kind === "image" ? "aster.still" : kind === "video" ? "aster.video" : "aster.audio",
   );
-  const layer = createLayerForComposition(kind, composition, currentTime);
+  const layer = createMediaLayerForSource(source, composition, currentTime);
   layer.name = file.name.replace(/\.[^.]+$/, "") || layer.name;
+  return { source, layer };
+}
+
+export function createMediaLayerForSource(
+  source: FootageSource,
+  composition: Composition,
+  currentTime: number,
+): Layer {
+  const kind = source.kind === "audio" ? "audio" : source.kind === "video" ? "video" : "image";
+  const layer = createLayerForComposition(kind, composition, currentTime);
+  layer.name = source.name.replace(/\.[^.]+$/, "") || layer.name;
   layer.sourceId = source.id;
   if ("width" in source && "height" in source)
     layer.size = fitInside(source.width, source.height, composition.width, composition.height);
   if (source.kind === "video" || source.kind === "audio")
     layer.outPoint = Math.min(composition.duration, currentTime + source.duration);
   layer.color = [1, 1, 1, 1];
-  return { source, layer };
+  return layer;
 }
 
 function createStillImporter(): SourceImporter {

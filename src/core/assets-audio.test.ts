@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createMediaLayerFromFile } from "./assets";
+import { createMediaLayerForSource, createMediaLayerFromFile } from "./assets";
 import { createBlankProject } from "./project";
 
 class FakeAudioContext {
@@ -25,6 +25,26 @@ afterEach(() => {
 });
 
 describe("audio footage importer", () => {
+  it("creates another independent audio layer from an existing source", () => {
+    const composition = createBlankProject().compositions[0];
+    const source = {
+      id: crypto.randomUUID(),
+      kind: "audio" as const,
+      name: "dialogue.wav",
+      mimeType: "audio/wav",
+      contentIdentity: "test:dialogue",
+      dataUrl: "data:audio/wav;base64,AA==",
+      duration: 2,
+      channels: 2,
+      sampleRate: 48_000,
+      streamIndex: 0,
+      interpretation: { alpha: "ignore" as const, colorSpace: "srgb" as const },
+    };
+    const layer = createMediaLayerForSource(source, composition, 1);
+    expect(layer).toMatchObject({ kind: "audio", name: "dialogue", sourceId: source.id });
+    expect(layer.outPoint).toBe(3);
+  });
+
   it("creates a source-backed non-visual audio layer and accepts M4A video/mp4 MIME", async () => {
     vi.stubGlobal("AudioContext", FakeAudioContext);
     const composition = createBlankProject().compositions[0];

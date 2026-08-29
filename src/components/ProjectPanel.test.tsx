@@ -145,4 +145,50 @@ describe("project Assets panel", () => {
     act(() => addToFolder?.click());
     expect(container.textContent).toContain("Destination · Shots");
   });
+
+  it("opens composition actions by pointer and keyboard without duplicating command logic", () => {
+    const container = renderPanel(createBlankProject());
+    const compositionRow = container.querySelector<HTMLButtonElement>(".tree-row.composition");
+    expect(compositionRow).not.toBeNull();
+
+    act(() =>
+      compositionRow?.dispatchEvent(
+        new MouseEvent("contextmenu", {
+          bubbles: true,
+          cancelable: true,
+          clientX: 80,
+          clientY: 90,
+        }),
+      ),
+    );
+    const menu = document.querySelector<HTMLElement>(
+      '[role="menu"][aria-label="Project item menu"]',
+    );
+    expect(menu).not.toBeNull();
+    const duplicate = [
+      ...(menu?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]') ?? []),
+    ].find((button) => button.textContent?.includes("Duplicate"));
+    act(() => duplicate?.click());
+    expect(currentProject?.compositions).toHaveLength(2);
+    expect(currentProject?.compositions[1]?.name).toBe("Composition 1 Copy");
+
+    const duplicatedRow = [
+      ...container.querySelectorAll<HTMLButtonElement>(".tree-row.composition"),
+    ].find((row) => row.textContent?.includes("Composition 1 Copy"));
+    act(() =>
+      duplicatedRow?.dispatchEvent(
+        new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: "ContextMenu" }),
+      ),
+    );
+    const keyboardMenu = document.querySelector<HTMLElement>(
+      '[role="menu"][aria-label="Project item menu"]',
+    );
+    expect(keyboardMenu).not.toBeNull();
+    act(() =>
+      keyboardMenu?.dispatchEvent(
+        new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: "Escape" }),
+      ),
+    );
+    expect(document.querySelector('[role="menu"][aria-label="Project item menu"]')).toBeNull();
+  });
 });

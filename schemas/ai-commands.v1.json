@@ -971,6 +971,26 @@
       }
     },
     {
+      "name": "renameProjectItem",
+      "version": 1,
+      "category": "project",
+      "description": "Rename a composition, footage source, or project folder.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "itemId", "name"],
+        "properties": {
+          "type": { "const": "renameProjectItem" },
+          "itemId": { "$ref": "#/$defs/id" },
+          "name": { "$ref": "#/$defs/name" }
+        }
+      }
+    },
+    {
       "name": "moveProjectItem",
       "version": 1,
       "category": "project",
@@ -987,6 +1007,64 @@
           "type": { "const": "moveProjectItem" },
           "itemId": { "$ref": "#/$defs/id" },
           "folderId": { "$ref": "#/$defs/id" }
+        }
+      }
+    },
+    {
+      "name": "moveProjectFolder",
+      "version": 1,
+      "category": "project",
+      "description": "Move a project folder under another folder or back to the root.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "folderId"],
+        "properties": {
+          "type": { "const": "moveProjectFolder" },
+          "folderId": { "$ref": "#/$defs/id" },
+          "parentId": { "$ref": "#/$defs/id" }
+        }
+      }
+    },
+    {
+      "name": "removeProjectFolder",
+      "version": 1,
+      "category": "project",
+      "description": "Remove an empty project folder.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "destructive",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "folderId"],
+        "properties": {
+          "type": { "const": "removeProjectFolder" },
+          "folderId": { "$ref": "#/$defs/id" }
+        }
+      }
+    },
+    {
+      "name": "removeComposition",
+      "version": 1,
+      "category": "compositions",
+      "description": "Remove an unreferenced composition while preserving at least one composition.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "destructive",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "compositionId"],
+        "properties": {
+          "type": { "const": "removeComposition" },
+          "compositionId": { "$ref": "#/$defs/id" }
         }
       }
     },

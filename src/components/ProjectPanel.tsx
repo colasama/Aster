@@ -23,7 +23,7 @@ import {
   Trash2,
   Type,
 } from "lucide-react";
-import type { DragEvent } from "react";
+import type { DragEvent, KeyboardEvent, MouseEvent } from "react";
 import {
   type CSSProperties,
   useEffect,
@@ -32,7 +32,11 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
-import { createMediaLayerFromFile, type ImportMediaKind } from "../core/assets";
+import {
+  createMediaLayerForSource,
+  createMediaLayerFromFile,
+  type ImportMediaKind,
+} from "../core/assets";
 import { createParticleLayerForComposition } from "../core/bundled-particle";
 import {
   createGeneratorLayerForComposition,
@@ -98,7 +102,18 @@ import type { MissingSequenceFramePolicy } from "../importers/image-sequence-run
 import { mediaImportRuntime, type RuntimeSequenceFile } from "../importers/media-import-runtime";
 import type { PsdImportMode } from "../importers/psd-composition";
 import { useEditor } from "../state/editor-store";
+import { useContextMenuTrigger } from "./context-menu/use-context-menu-trigger";
 import { Panel, PanelTabs } from "./Panel";
+import {
+  ProjectContextMenu,
+  type ProjectContextTarget,
+  type ProjectImportKind,
+} from "./ProjectContextMenu";
+import {
+  duplicateProjectComposition,
+  projectFolderMoveDestinations,
+  projectItemDeleteBlock,
+} from "./project-item-commands";
 
 const ROOT_ASSETS_ID = "root-assets";
 const PROJECT_ITEM_MIME = "application/x-aster-project-item";
@@ -125,6 +140,8 @@ export function ProjectPanel() {
   const [expandedFolders, setExpandedFolders] = useState(() => new Set([ROOT_ASSETS_ID]));
   const [draggedItemId, setDraggedItemId] = useState<Id>();
   const [dropTargetId, setDropTargetId] = useState<Id>();
+  const [projectContextTarget, setProjectContextTarget] = useState<ProjectContextTarget>();
+  const projectContextMenu = useContextMenuTrigger();
   const [effectPreferences, setEffectPreferences] = useState(() =>
     readEffectBrowserPreferences(localPreferenceStorage()),
   );
@@ -270,17 +287,17 @@ export function ProjectPanel() {
     if (state.leftTab !== "project") dispatch({ type: "setLeftTab", tab: "project" });
     setAddTarget({ folderId, label });
   };
-  const createFolder = () => {
+  const createFolder = (folderId = addTarget?.folderId) => {
     const folder: ProjectFolder = {
       id: createId(),
       name: t("project.folder.defaultName", { number: state.project.folders.length + 1 }),
-      ...(addTarget?.folderId ? { parentId: addTarget.folderId } : {}),
+      ...(folderId ? { parentId: folderId } : {}),
     };
     dispatch({ type: "operation", operations: [{ type: "addProjectFolder", folder }] });
-    setExpandedFolders((current) => new Set(current).add(addTarget?.folderId ?? ROOT_ASSETS_ID));
+    setExpandedFolders((current) => new Set(current).add(folderId ?? ROOT_ASSETS_ID));
     setAddTarget(undefined);
   };
-  const createComposition = () => {
+  const createComposition = (folderId = addTarget?.folderId) => {
     const next = createBlankComposition(
       t("project.composition.defaultName", { number: state.project.compositions.length + 1 }),
     );
@@ -288,19 +305,19 @@ export function ProjectPanel() {
       type: "operation",
       operations: [
         { type: "addComposition", composition: next, activate: true },
-        ...(addTarget?.folderId
+        ...(folderId
           ? ([
               {
                 type: "moveProjectItem",
                 itemId: next.id,
-                folderId: addTarget.folderId,
+                folderId,
               },
             ] as const)
           : []),
       ],
       select: [],
     });
-    setExpandedFolders((current) => new Set(current).add(addTarget?.folderId ?? ROOT_ASSETS_ID));
+    setExpandedFolders((current) => new Set(current).add(folderId ?? ROOT_ASSETS_ID));
     setAddTarget(undefined);
   };
   const applyEffect = (type: string) => {
@@ -502,8 +519,7 @@ export function ProjectPanel() {
       if (!committed) input.dispose?.();
     }
   };
-  const chooseSvg = async () => {
-    const folderId = addTarget?.folderId;
+  const chooseSvg = async (folderId = addTarget?.folderId) => {
     if (!isDesktopRuntime()) {
       svgPickerRef.current?.click();
       return;
@@ -523,8 +539,7 @@ export function ProjectPanel() {
       folderId,
     );
   };
-  const choosePsd = async () => {
-    const folderId = addTarget?.folderId;
+  const choosePsd = async (folderId = addTarget?.folderId) => {
     if (!isDesktopRuntime()) {
       psdPickerRef.current?.click();
       return;
@@ -545,8 +560,7 @@ export function ProjectPanel() {
       folderId,
     );
   };
-  const chooseSequence = async () => {
-    const folderId = addTarget?.folderId;
+  const chooseSequence = async (folderId = addTarget?.folderId) => {
     let selectedPath: string | undefined;
     if (!isDesktopRuntime()) {
       sequencePickerRef.current?.click();
@@ -604,15 +618,15 @@ export function ProjectPanel() {
     setDraggedItemId(undefined);
     setDropTargetId(undefined);
   };
-  const relinkSelectedAsset = async () => {
-    if (!selectedSource) return;
+  const relinkAsset = async (selectedAsset = selectedSource) => {
+    if (!selectedAsset) return;
     try {
       setAssetError(undefined);
-      const source = await relinkProjectSource(selectedSource);
+      const source = await relinkProjectSource(selectedAsset);
       if (source)
         dispatch({
           type: "operation",
-          operations: [{ type: "reloadSource", sourceId: selectedSource.id, source }],
+          operations: [{ type: "reloadSource", sourceId: selectedAsset.id, source }],
         });
     } catch (error) {
       setAssetError("assetRelink");
@@ -620,10 +634,89 @@ export function ProjectPanel() {
         scope: {
           area: "asset",
           projectId: state.project.id,
-          assetName: selectedSource.name,
+          assetName: selectedAsset.name,
         },
       });
     }
+  };
+  const openProjectContextFromPointer = (
+    event: MouseEvent<HTMLElement>,
+    target: ProjectContextTarget,
+  ) => {
+    setProjectContextTarget(target);
+    projectContextMenu.openFromPointer(event);
+  };
+  const openProjectContextFromKeyboard = (
+    event: KeyboardEvent<HTMLElement>,
+    target: ProjectContextTarget,
+  ) => {
+    if (!projectContextMenu.openFromKeyboard(event)) return;
+    setProjectContextTarget(target);
+  };
+  const contextImport = (kind: ProjectImportKind) => {
+    const folderId = projectContextTarget?.kind === "folder" ? projectContextTarget.id : undefined;
+    const label =
+      projectContextTarget?.kind === "folder" ? projectContextTarget.name : t("project.assets");
+    setAddTarget({ folderId, label });
+    if (kind === "image") imagePickerRef.current?.click();
+    else if (kind === "video") videoPickerRef.current?.click();
+    else if (kind === "audio") audioPickerRef.current?.click();
+    else if (kind === "svg") void chooseSvg(folderId);
+    else if (kind === "psd") void choosePsd(folderId);
+    else void chooseSequence(folderId);
+  };
+  const renameContextTarget = () => {
+    if (!projectContextTarget || projectContextTarget.kind === "empty") return;
+    const name = window.prompt(t("project.menu.renamePrompt"), projectContextTarget.name);
+    if (!name?.trim()) return;
+    dispatch({
+      type: "operation",
+      operations: [{ type: "renameProjectItem", itemId: projectContextTarget.id, name }],
+    });
+  };
+  const duplicateContextComposition = () => {
+    if (projectContextTarget?.kind !== "composition") return;
+    const source = state.project.compositions.find(
+      (candidate) => candidate.id === projectContextTarget.id,
+    );
+    if (!source) return;
+    const duplicate = duplicateProjectComposition(
+      source,
+      t("project.menu.copyName", { name: source.name }),
+    );
+    const folderId = state.project.itemFolderIds[source.id];
+    dispatch({
+      type: "operation",
+      operations: [
+        { type: "addComposition", composition: duplicate, activate: false },
+        ...(folderId
+          ? ([{ type: "moveProjectItem", itemId: duplicate.id, folderId }] as const)
+          : []),
+      ],
+      select: [],
+    });
+  };
+  const deleteContextTarget = () => {
+    if (!projectContextTarget || projectContextTarget.kind === "empty") return;
+    const operation: Operation =
+      projectContextTarget.kind === "composition"
+        ? { type: "removeComposition", compositionId: projectContextTarget.id }
+        : projectContextTarget.kind === "source"
+          ? { type: "removeSource", sourceId: projectContextTarget.id }
+          : { type: "removeProjectFolder", folderId: projectContextTarget.id };
+    dispatch({ type: "operation", operations: [operation], select: [] });
+  };
+  const moveContextTarget = (folderId?: Id) => {
+    if (!projectContextTarget || projectContextTarget.kind === "empty") return;
+    dispatch({
+      type: "operation",
+      operations: [
+        projectContextTarget.kind === "folder"
+          ? { type: "moveProjectFolder", folderId: projectContextTarget.id, parentId: folderId }
+          : { type: "moveProjectItem", itemId: projectContextTarget.id, folderId },
+      ],
+    });
+    setExpandedFolders((current) => new Set(current).add(folderId ?? ROOT_ASSETS_ID));
   };
   const normalizedQuery = query.trim().toLowerCase();
   const matchingCompositions = state.project.compositions.filter((candidate) =>
@@ -657,8 +750,22 @@ export function ProjectPanel() {
           draggable
           key={`composition:${candidate.id}`}
           onClick={() => dispatch({ type: "setActiveComposition", compositionId: candidate.id })}
+          onContextMenu={(event) =>
+            openProjectContextFromPointer(event, {
+              id: candidate.id,
+              kind: "composition",
+              name: candidate.name,
+            })
+          }
           onDragEnd={() => setDraggedItemId(undefined)}
           onDragStart={(event) => startItemDrag(event, candidate.id)}
+          onKeyDown={(event) =>
+            openProjectContextFromKeyboard(event, {
+              id: candidate.id,
+              kind: "composition",
+              name: candidate.name,
+            })
+          }
           style={{ "--tree-depth": depth } as CSSProperties}
           type="button"
         >
@@ -688,8 +795,18 @@ export function ProjectPanel() {
             });
           dispatch({ type: "select", ids: [preferredInstance.layer.id] });
         }}
+        onContextMenu={(event) =>
+          openProjectContextFromPointer(event, { id: source.id, kind: "source", name: source.name })
+        }
         onDragEnd={() => setDraggedItemId(undefined)}
         onDragStart={(event) => startItemDrag(event, source.id)}
+        onKeyDown={(event) =>
+          openProjectContextFromKeyboard(event, {
+            id: source.id,
+            kind: "source",
+            name: source.name,
+          })
+        }
         style={{ "--tree-depth": depth } as CSSProperties}
         title={
           runtimeError
@@ -744,6 +861,13 @@ export function ProjectPanel() {
         <div
           aria-expanded={expanded}
           className={`tree-row asset-folder ${dropTarget ? "drop-target" : ""}`}
+          onContextMenu={(event) =>
+            openProjectContextFromPointer(event, {
+              id: folder.id,
+              kind: "folder",
+              name: folder.name,
+            })
+          }
           onDragEnter={(event) => {
             event.preventDefault();
             setDropTargetId(folder.id);
@@ -757,6 +881,13 @@ export function ProjectPanel() {
             event.dataTransfer.dropEffect = "move";
           }}
           onDrop={(event) => dropItem(event, folder.id)}
+          onKeyDown={(event) =>
+            openProjectContextFromKeyboard(event, {
+              id: folder.id,
+              kind: "folder",
+              name: folder.name,
+            })
+          }
           role="treeitem"
           style={{ "--tree-depth": depth } as CSSProperties}
           tabIndex={-1}
@@ -798,6 +929,47 @@ export function ProjectPanel() {
       </div>
     );
   };
+  const contextComposition =
+    projectContextTarget?.kind === "composition"
+      ? state.project.compositions.find((candidate) => candidate.id === projectContextTarget.id)
+      : undefined;
+  const contextMedia =
+    projectContextTarget?.kind === "source"
+      ? mediaItems.find((item) => item.source.id === projectContextTarget.id)
+      : undefined;
+  const contextFolder =
+    projectContextTarget?.kind === "folder"
+      ? state.project.folders.find((folder) => folder.id === projectContextTarget.id)
+      : undefined;
+  const contextTargetExists = Boolean(
+    projectContextTarget?.kind === "empty" || contextComposition || contextMedia || contextFolder,
+  );
+  const deleteBlock = projectContextTarget
+    ? projectItemDeleteBlock(state.project, projectContextTarget)
+    : undefined;
+  const deleteUnavailableReason =
+    deleteBlock === "finalComposition"
+      ? t("project.menu.delete.finalComposition")
+      : deleteBlock === "compositionReferenced"
+        ? t("project.menu.delete.compositionReferenced")
+        : deleteBlock === "sourceReferenced"
+          ? t("project.menu.delete.sourceReferenced")
+          : deleteBlock === "folderNotEmpty"
+            ? t("project.menu.delete.folderNotEmpty")
+            : t("project.menu.deleteUnavailable");
+  const moveDestinations =
+    projectContextTarget && projectContextTarget.kind !== "empty"
+      ? (() => {
+          const destinations = projectFolderMoveDestinations(state.project, projectContextTarget);
+          return [
+            ...(destinations.includeRoot ? [{ label: t("project.assets") }] : []),
+            ...destinations.folders.map((folder) => ({
+              id: folder.id,
+              label: projectFolderPath(state.project.folders, folder),
+            })),
+          ];
+        })()
+      : [];
   return (
     <Panel
       className="project-panel"
@@ -908,7 +1080,19 @@ export function ProjectPanel() {
         />
       </div>
       {state.leftTab === "project" ? (
-        <div className="project-tree" role="tree">
+        <div
+          className="project-tree"
+          onContextMenu={(event) => {
+            if (event.target !== event.currentTarget) return;
+            openProjectContextFromPointer(event, { kind: "empty" });
+          }}
+          onKeyDown={(event) => {
+            if (event.target !== event.currentTarget) return;
+            openProjectContextFromKeyboard(event, { kind: "empty" });
+          }}
+          role="tree"
+          tabIndex={0}
+        >
           <div className="tree-row folder">
             <Folder fill="currentColor" size={15} />
             <span>{state.project.name}</span>
@@ -916,6 +1100,7 @@ export function ProjectPanel() {
           <div
             aria-expanded={expandedFolders.has(ROOT_ASSETS_ID)}
             className={`tree-row asset-folder root-assets ${dropTargetId === ROOT_ASSETS_ID ? "drop-target" : ""}`}
+            onContextMenu={(event) => openProjectContextFromPointer(event, { kind: "empty" })}
             onDragEnter={(event) => {
               event.preventDefault();
               setDropTargetId(ROOT_ASSETS_ID);
@@ -929,6 +1114,7 @@ export function ProjectPanel() {
               event.dataTransfer.dropEffect = "move";
             }}
             onDrop={(event) => dropItem(event)}
+            onKeyDown={(event) => openProjectContextFromKeyboard(event, { kind: "empty" })}
             role="treeitem"
             style={{ "--tree-depth": 0 } as CSSProperties}
             tabIndex={-1}
@@ -1132,6 +1318,67 @@ export function ProjectPanel() {
           })}
         </div>
       )}
+      {projectContextMenu.point && projectContextTarget && (
+        <ProjectContextMenu
+          addSourceToComposition={() => {
+            if (!contextMedia) return;
+            const layer = createMediaLayerForSource(
+              contextMedia.source,
+              composition,
+              state.currentTime,
+            );
+            dispatch({
+              type: "operation",
+              operations: [{ type: "addLayer", layer }],
+              select: [layer.id],
+            });
+          }}
+          canAddSourceToComposition={Boolean(contextMedia)}
+          canDelete={contextTargetExists && !deleteBlock}
+          canDuplicate={Boolean(contextComposition)}
+          canRelink={Boolean(
+            contextMedia && ["still", "video", "audio"].includes(contextMedia.source.kind),
+          )}
+          canRename={contextTargetExists && projectContextTarget.kind !== "empty"}
+          canRevealInComposition={Boolean(contextMedia?.instances.length)}
+          createComposition={() =>
+            createComposition(
+              projectContextTarget.kind === "folder" ? projectContextTarget.id : undefined,
+            )
+          }
+          createFolder={() =>
+            createFolder(
+              projectContextTarget.kind === "folder" ? projectContextTarget.id : undefined,
+            )
+          }
+          deleteTarget={deleteContextTarget}
+          deleteUnavailableReason={deleteUnavailableReason}
+          duplicateTarget={duplicateContextComposition}
+          importAsset={contextImport}
+          moveDestinations={moveDestinations}
+          moveTarget={moveContextTarget}
+          onClose={projectContextMenu.close}
+          openComposition={() => {
+            if (contextComposition)
+              dispatch({ type: "setActiveComposition", compositionId: contextComposition.id });
+          }}
+          relinkSource={() => void relinkAsset(contextMedia?.source)}
+          renameTarget={renameContextTarget}
+          revealInComposition={() => {
+            const instance =
+              contextMedia?.instances.find(
+                (candidate) => candidate.compositionId === composition.id,
+              ) ?? contextMedia?.instances[0];
+            if (!instance) return;
+            if (instance.compositionId !== composition.id)
+              dispatch({ type: "setActiveComposition", compositionId: instance.compositionId });
+            dispatch({ type: "select", ids: [instance.layer.id] });
+          }}
+          target={projectContextTarget}
+          x={projectContextMenu.point.x}
+          y={projectContextMenu.point.y}
+        />
+      )}
       {addTarget && (
         <aside aria-label={t("project.add.menuTitle")} className="asset-add-menu" ref={addMenuRef}>
           <div className="asset-add-heading">
@@ -1150,10 +1397,10 @@ export function ProjectPanel() {
           <div className="asset-add-group">
             <span>{t("project.add.projectItems")}</span>
             <div className="asset-add-grid">
-              <button onClick={createFolder} type="button">
+              <button onClick={() => createFolder()} type="button">
                 <Folder size={15} /> {t("project.add.folder")}
               </button>
-              <button onClick={createComposition} type="button">
+              <button onClick={() => createComposition()} type="button">
                 <Layers3 size={15} /> {t("project.add.composition")}
               </button>
               <button onClick={() => imagePickerRef.current?.click()} type="button">
@@ -1277,11 +1524,7 @@ export function ProjectPanel() {
             </div>
           </div>
           {selectedSource && (
-            <button
-              className="asset-relink"
-              onClick={() => void relinkSelectedAsset()}
-              type="button"
-            >
+            <button className="asset-relink" onClick={() => void relinkAsset()} type="button">
               <Link2 size={14} /> {t("project.asset.relink")}
             </button>
           )}
@@ -1294,6 +1537,20 @@ export function ProjectPanel() {
 function fileNameFromPath(path: string): string {
   const parts = path.split(/[\\/]/);
   return parts[parts.length - 1] || "Imported asset";
+}
+
+function projectFolderPath(folders: readonly ProjectFolder[], folder: ProjectFolder): string {
+  const names = [folder.name];
+  const visited = new Set<Id>([folder.id]);
+  let parentId = folder.parentId;
+  while (parentId && !visited.has(parentId)) {
+    visited.add(parentId);
+    const parent = folders.find((candidate) => candidate.id === parentId);
+    if (!parent) break;
+    names.unshift(parent.name);
+    parentId = parent.parentId;
+  }
+  return names.join(" / ");
 }
 
 async function fetchImportResponse(url: string): Promise<Response> {

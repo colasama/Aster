@@ -75,7 +75,11 @@ export type Operation =
   | { type: "setActiveComposition"; compositionId: Id }
   | { type: "addComposition"; composition: Composition; activate: boolean }
   | { type: "addProjectFolder"; folder: ProjectFolder }
+  | { type: "renameProjectItem"; itemId: Id; name: string }
   | { type: "moveProjectItem"; itemId: Id; folderId?: Id }
+  | { type: "moveProjectFolder"; folderId: Id; parentId?: Id }
+  | { type: "removeProjectFolder"; folderId: Id }
+  | { type: "removeComposition"; compositionId: Id }
   | {
       type: "setCompositionSettings";
       compositionId: Id;
@@ -206,7 +210,11 @@ export const OPERATION_TYPES = [
   "setActiveComposition",
   "addComposition",
   "addProjectFolder",
+  "renameProjectItem",
   "moveProjectItem",
+  "moveProjectFolder",
+  "removeProjectFolder",
+  "removeComposition",
   "setCompositionSettings",
   "setCompositionEnvironment",
   "setCompositionMotionBlur",
@@ -307,6 +315,26 @@ export function applyOperation(project: Project, operation: Operation): void {
     });
     return;
   }
+  if (operation.type === "renameProjectItem") {
+    const name = operation.name.trim().slice(0, 256);
+    if (!name) throw new Error("Project item name must not be empty");
+    const composition = project.compositions.find((candidate) => candidate.id === operation.itemId);
+    if (composition) {
+      composition.name = name;
+      return;
+    }
+    const sourceIndex = project.sources.findIndex((candidate) => candidate.id === operation.itemId);
+    if (sourceIndex >= 0) {
+      const source = project.sources[sourceIndex];
+      if (!source) throw new Error("Footage source does not exist");
+      project.sources[sourceIndex] = { ...source, name };
+      return;
+    }
+    const folder = project.folders.find((candidate) => candidate.id === operation.itemId);
+    if (!folder) throw new Error("Project item does not exist");
+    folder.name = name;
+    return;
+  }
   if (operation.type === "moveProjectItem") {
     project.folders ??= [];
     project.itemFolderIds ??= {};
@@ -318,6 +346,60 @@ export function applyOperation(project: Project, operation: Operation): void {
     if (!itemExists) throw new Error("Project item does not exist");
     if (operation.folderId) project.itemFolderIds[operation.itemId] = operation.folderId;
     else delete project.itemFolderIds[operation.itemId];
+    return;
+  }
+  if (operation.type === "moveProjectFolder") {
+    const folder = project.folders.find((candidate) => candidate.id === operation.folderId);
+    if (!folder) throw new Error("Project folder does not exist");
+    if (operation.parentId === operation.folderId)
+      throw new Error("Project folder cannot contain itself");
+    if (operation.parentId) {
+      if (!project.folders.some((candidate) => candidate.id === operation.parentId))
+        throw new Error("Parent project folder does not exist");
+      let ancestorId: Id | undefined = operation.parentId;
+      const visited = new Set<Id>();
+      while (ancestorId) {
+        if (ancestorId === operation.folderId)
+          throw new Error("Project folder cannot move into its descendant");
+        if (visited.has(ancestorId)) throw new Error("Project folder hierarchy contains a cycle");
+        visited.add(ancestorId);
+        ancestorId = project.folders.find((candidate) => candidate.id === ancestorId)?.parentId;
+      }
+      folder.parentId = operation.parentId;
+    } else delete folder.parentId;
+    return;
+  }
+  if (operation.type === "removeProjectFolder") {
+    const index = project.folders.findIndex((candidate) => candidate.id === operation.folderId);
+    if (index < 0) throw new Error("Project folder does not exist");
+    const hasChildFolder = project.folders.some(
+      (candidate) => candidate.parentId === operation.folderId,
+    );
+    const hasProjectItem = Object.values(project.itemFolderIds).includes(operation.folderId);
+    if (hasChildFolder || hasProjectItem)
+      throw new Error("Project folder must be empty before deletion");
+    project.folders.splice(index, 1);
+    return;
+  }
+  if (operation.type === "removeComposition") {
+    if (project.compositions.length <= 1) throw new Error("A project must keep one composition");
+    if (
+      project.compositions.some((composition) =>
+        composition.layers.some((layer) => layer.sourceCompositionId === operation.compositionId),
+      )
+    )
+      throw new Error("Cannot remove a composition while layers still reference it");
+    const index = project.compositions.findIndex(
+      (candidate) => candidate.id === operation.compositionId,
+    );
+    if (index < 0) throw new Error("Composition does not exist");
+    project.compositions.splice(index, 1);
+    delete project.itemFolderIds[operation.compositionId];
+    if (project.activeCompositionId === operation.compositionId) {
+      const fallback = project.compositions[Math.min(index, project.compositions.length - 1)];
+      if (!fallback) throw new Error("A project must keep one composition");
+      project.activeCompositionId = fallback.id;
+    }
     return;
   }
   if (operation.type === "setCompositionSettings") {

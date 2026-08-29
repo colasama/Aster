@@ -86,11 +86,34 @@ export function normalizeExtendedAiCommand(
         folder: { id: createId(), name: String(input.name), ...(parentId ? { parentId } : {}) },
       };
     }
+    case "renameProjectItem":
+      return {
+        type: "renameProjectItem",
+        itemId: requiredId(input.itemId, "itemId"),
+        name: String(input.name),
+      };
     case "moveProjectItem": {
       const itemId = requiredId(input.itemId, "itemId");
       const folderId = optionalId(input.folderId);
       if (folderId) requireFolder(project, folderId);
       return { type: "moveProjectItem", itemId, ...(folderId ? { folderId } : {}) };
+    }
+    case "moveProjectFolder": {
+      const folderId = requiredId(input.folderId, "folderId");
+      requireFolder(project, folderId);
+      const parentId = optionalId(input.parentId);
+      if (parentId) requireFolder(project, parentId);
+      return { type: "moveProjectFolder", folderId, ...(parentId ? { parentId } : {}) };
+    }
+    case "removeProjectFolder": {
+      const folderId = requiredId(input.folderId, "folderId");
+      requireFolder(project, folderId);
+      return { type: "removeProjectFolder", folderId };
+    }
+    case "removeComposition": {
+      const compositionId = requiredId(input.compositionId, "compositionId");
+      requireComposition(project, compositionId);
+      return { type: "removeComposition", compositionId };
     }
     case "setCompositionSettings":
       requireComposition(project, requiredId(input.compositionId, "compositionId"));
