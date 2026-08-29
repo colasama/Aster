@@ -95,4 +95,26 @@ describe("SVG vector raster cache", () => {
     cache.clear();
     expect(new Set(disposed)).toEqual(new Set(["50x50", "100x100", "90x90"]));
   });
+
+  it("does not resurrect an in-flight raster after the source cache is cleared", async () => {
+    let release: ((value: string) => void) | undefined;
+    const cache = new SvgRasterCache({
+      rasterize: () =>
+        new Promise<string>((resolve) => {
+          release = resolve;
+        }),
+    });
+    const parsed = source();
+    const target = computeSvgRasterTarget({
+      displayWidth: 100,
+      displayHeight: 50,
+      resolutionScale: 1,
+    });
+    const pending = cache.get("svg", parsed, target);
+    cache.clear();
+    release?.("stale");
+    await expect(pending).resolves.toBe("stale");
+    expect(cache.size).toBe(0);
+    expect(cache.bytes).toBe(0);
+  });
 });

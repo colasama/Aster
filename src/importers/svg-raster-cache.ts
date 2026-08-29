@@ -89,6 +89,7 @@ export class SvgRasterCache<RasterType> {
   readonly #pending = new Map<string, Promise<RasterType>>();
   #stamp = 0;
   #bytes = 0;
+  #generation = 0;
 
   constructor(options: SvgRasterCacheOptions<RasterType>) {
     this.#rasterize = options.rasterize;
@@ -118,10 +119,13 @@ export class SvgRasterCache<RasterType> {
     }
     const pending = this.#pending.get(key);
     if (pending) return pending;
+    const generation = this.#generation;
     const markup = svgMarkupAtRasterSize(source.sanitized, target.width, target.height);
-    const rasterized = this.#rasterize(markup, target.width, target.height).then(
+    let rasterized: Promise<RasterType>;
+    rasterized = this.#rasterize(markup, target.width, target.height).then(
       (raster) => {
-        this.#pending.delete(key);
+        if (this.#pending.get(key) === rasterized) this.#pending.delete(key);
+        if (generation !== this.#generation) return raster;
         const bytes = target.width * target.height * 4;
         if (bytes > this.#maxBytes) return raster;
         this.#ready.set(key, { raster, bytes, stamp: ++this.#stamp });
@@ -130,7 +134,7 @@ export class SvgRasterCache<RasterType> {
         return raster;
       },
       (error: unknown) => {
-        this.#pending.delete(key);
+        if (this.#pending.get(key) === rasterized) this.#pending.delete(key);
         throw error;
       },
     );
@@ -139,6 +143,8 @@ export class SvgRasterCache<RasterType> {
   }
 
   clear(): void {
+    this.#generation += 1;
+    this.#pending.clear();
     for (const key of [...this.#ready.keys()]) this.#remove(key);
   }
 

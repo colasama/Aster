@@ -68,8 +68,10 @@ export class ImageSequenceFrameCache<FileType extends SequenceFileLike, DecodedT
   readonly #maxBytes: number;
   readonly #ready = new Map<string, ReadyEntry<DecodedType>>();
   readonly #pending = new Map<string, Promise<DecodedType>>();
+  readonly #epochs = new Map<string, number>();
   #bytes = 0;
   #stamp = 0;
+  #generation = 0;
 
   constructor(options: SequenceFrameCacheOptions<FileType, DecodedType>) {
     this.#decode = options.decode;
@@ -96,9 +98,13 @@ export class ImageSequenceFrameCache<FileType extends SequenceFileLike, DecodedT
     }
     const pending = this.#pending.get(key);
     if (pending) return pending;
-    const decoded = this.#decode(frame.file).then(
+    const generation = this.#generation;
+    const epoch = this.#epochs.get(key) ?? 0;
+    let decoded: Promise<DecodedType>;
+    decoded = this.#decode(frame.file).then(
       (value) => {
-        this.#pending.delete(key);
+        if (this.#pending.get(key) === decoded) this.#pending.delete(key);
+        if (generation !== this.#generation || epoch !== (this.#epochs.get(key) ?? 0)) return value;
         const estimate = this.#estimateBytes(value);
         const bytes = Number.isFinite(estimate) && estimate >= 0 ? Math.floor(estimate) : 0;
         if (bytes > this.#maxBytes) return value;
@@ -108,7 +114,7 @@ export class ImageSequenceFrameCache<FileType extends SequenceFileLike, DecodedT
         return value;
       },
       (error: unknown) => {
-        this.#pending.delete(key);
+        if (this.#pending.get(key) === decoded) this.#pending.delete(key);
         throw error;
       },
     );
@@ -144,10 +150,15 @@ export class ImageSequenceFrameCache<FileType extends SequenceFileLike, DecodedT
   }
 
   invalidate(frame: ImageSequenceFrame<FileType>): void {
-    this.#remove(frameCacheKey(frame));
+    const key = frameCacheKey(frame);
+    this.#epochs.set(key, (this.#epochs.get(key) ?? 0) + 1);
+    this.#pending.delete(key);
+    this.#remove(key);
   }
 
   clear(): void {
+    this.#generation += 1;
+    this.#pending.clear();
     for (const key of [...this.#ready.keys()]) this.#remove(key);
   }
 

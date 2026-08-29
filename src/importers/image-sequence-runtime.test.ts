@@ -79,6 +79,26 @@ describe("image sequence runtime", () => {
     expect(new Set(disposed)).toEqual(new Set(["a0001.png", "a0002.png", "a0003.png"]));
   });
 
+  it("does not resurrect an in-flight decode after invalidate or clear", async () => {
+    const releases: Array<(value: string) => void> = [];
+    const cache = new ImageSequenceFrameCache({
+      decode: (source: ReturnType<typeof file>) =>
+        new Promise<string>((resolve) => releases.push(() => resolve(source.name))),
+      estimateBytes: () => 4,
+    });
+    const frame = { frame: 1, file: file("a0001.png") };
+    const invalidated = cache.get(frame);
+    cache.invalidate(frame);
+    releases.shift()?.("a0001.png");
+    await invalidated;
+    expect(cache.size).toBe(0);
+    const cleared = cache.get(frame);
+    cache.clear();
+    releases.shift()?.("a0001.png");
+    await cleared;
+    expect(cache.size).toBe(0);
+  });
+
   it("preloads closest frames first while respecting the concurrency bound", async () => {
     const sequence = detectImageSequence(
       Array.from({ length: 7 }, (_, index) =>
