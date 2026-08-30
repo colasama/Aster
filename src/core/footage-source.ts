@@ -25,7 +25,8 @@ export function sourceSupportsLayer(source: FootageSource, layer: Layer): boolea
       source.kind === "psd"
     );
   if (layer.kind === "video") return source.kind === "video";
-  if (layer.kind === "audio") return source.kind === "audio" || source.kind === "video";
+  if (layer.kind === "audio")
+    return source.kind === "audio" || (source.kind === "video" && source.audio !== undefined);
   return false;
 }
 
