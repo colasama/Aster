@@ -491,6 +491,40 @@ describe("RenderQueueManager", () => {
     expect(hosts.workers[1]?.jobId).not.toBe(paused.jobId);
   });
 
+  it("converges a pause-raced worker failure before cleanup and keeps terminal actions usable", async () => {
+    const context = await manager();
+    const hosts = new GatedDisposeFactory();
+    await context.manager.enqueue({ ...job, id: "pause-raced-failure" });
+    await context.manager.startScheduler(hosts);
+    const worker = hosts.workers[0];
+    await worker.report({ type: "prepared", jobId: worker.jobId, leaseId: worker.leaseId });
+    await context.manager.command({ type: "pause", jobId: worker.jobId });
+    expect(context.manager.snapshot().items[0]?.status).toBe("pauseRequested");
+
+    const failure = worker.report({
+      type: "failed",
+      jobId: worker.jobId,
+      leaseId: worker.leaseId,
+      error: { code: "render_frame_failed", message: "GPU readback failed" },
+    });
+    await hosts.disposalStarted.promise;
+    expect(context.manager.snapshot().items[0]).toMatchObject({
+      status: "failed",
+      error: { code: "render_frame_failed" },
+    });
+
+    await context.manager.command({ type: "cancel", jobId: worker.jobId });
+    await context.manager.command({ type: "retry", jobId: worker.jobId });
+    expect(context.manager.snapshot().items[0]?.status).toBe("queued");
+    await context.manager.command({ type: "cancel", jobId: worker.jobId });
+    await context.manager.command({ type: "remove", jobId: worker.jobId });
+    expect(context.manager.snapshot().items).toEqual([]);
+
+    hosts.releaseDisposal.resolve(undefined);
+    await failure;
+    expect(context.manager.activeHostCount).toBe(0);
+  });
+
   it("fails and disposes a paused lease during application shutdown", async () => {
     const context = await manager();
     const hosts = new FakeHostFactory();

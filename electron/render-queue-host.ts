@@ -9,6 +9,7 @@ import type {
 import type { AsterLogger } from "./logger.js";
 import { Mp4ExportManager } from "./mp4-export.js";
 import { prepareAuthorizedRenderHost } from "./render-host-launch-barrier.js";
+import { settleRenderHostTerminal } from "./render-host-terminal.js";
 import type { RenderMediaAuthorizationLease } from "./render-media-snapshot-store.js";
 import { parseRenderHostOutputRequest } from "./render-queue-host-protocol.js";
 import type {
@@ -172,6 +173,7 @@ class ElectronRenderHostWorker implements RenderQueueHostHandle {
   #terminal = false;
   #completing = false;
   #disposed = false;
+  #disposal?: Promise<void>;
   #control?: "pause" | "cancel";
 
   constructor(options: WorkerOptions) {
@@ -296,21 +298,22 @@ class ElectronRenderHostWorker implements RenderQueueHostHandle {
         await this.#publisher.publish(
           () => this.#control === "cancel" || this.#terminal || this.#disposed,
         );
-        this.#terminal = true;
-        await this.#report({ type: "completed", jobId: this.jobId, leaseId: this.leaseId });
+        await this.#reportTerminal({
+          type: "completed",
+          jobId: this.jobId,
+          leaseId: this.leaseId,
+        });
       } catch (error) {
         const externallyTerminated = this.#terminal || this.#disposed;
-        this.#terminal = true;
-        await this.#cleanup();
         if (externallyTerminated) return;
         if (this.#control === "cancel")
-          await this.#report({
+          await this.#reportTerminal({
             type: "cancelled",
             jobId: this.jobId,
             leaseId: this.leaseId,
           });
         else
-          await this.#report({
+          await this.#reportTerminal({
             type: "failed",
             jobId: this.jobId,
             leaseId: this.leaseId,
@@ -329,9 +332,7 @@ class ElectronRenderHostWorker implements RenderQueueHostHandle {
       return;
     }
     if (report.type === "cancelled" || report.type === "failed") {
-      this.#terminal = true;
-      await this.#cleanup();
-      await this.#report(report);
+      await this.#reportTerminal(report);
       return;
     }
     throw new Error("RenderHost report type is invalid");
@@ -353,12 +354,16 @@ class ElectronRenderHostWorker implements RenderQueueHostHandle {
   }
 
   async dispose(): Promise<void> {
-    if (this.#disposed) return;
-    this.#disposed = true;
-    this.#terminal = true;
-    this.#remove();
-    await this.#cleanup();
-    if (!this.#window.isDestroyed()) this.#window.destroy();
+    if (!this.#disposal) {
+      this.#disposed = true;
+      this.#terminal = true;
+      this.#remove();
+      this.#disposal = (async () => {
+        await this.#cleanup();
+        if (!this.#window.isDestroyed()) this.#window.destroy();
+      })();
+    }
+    await this.#disposal;
   }
 
   async #fail(code: string, message: string): Promise<void> {
@@ -368,8 +373,7 @@ class ElectronRenderHostWorker implements RenderQueueHostHandle {
       jobId: this.jobId,
       leaseId: this.leaseId,
     });
-    await this.#cleanup();
-    await this.#report({
+    await this.#reportTerminal({
       type: "failed",
       jobId: this.jobId,
       leaseId: this.leaseId,
@@ -380,9 +384,38 @@ class ElectronRenderHostWorker implements RenderQueueHostHandle {
   async #cleanup(): Promise<void> {
     const managers = [...this.#mp4.values()].map(({ manager }) => manager.dispose());
     this.#mp4.clear();
-    await Promise.allSettled(managers);
-    await this.#publisher.cleanup();
-    this.#mediaAuthorization?.dispose();
+    const failures: unknown[] = [];
+    for (const result of await Promise.allSettled(managers))
+      if (result.status === "rejected") failures.push(result.reason);
+    try {
+      await this.#publisher.cleanup();
+    } catch (error) {
+      failures.push(error);
+    }
+    try {
+      this.#mediaAuthorization?.dispose();
+    } catch (error) {
+      failures.push(error);
+    }
+    if (failures.length > 0)
+      this.#logger.error(
+        "render_host",
+        "cleanup_failed",
+        new AggregateError(failures, "RenderHost cleanup did not fully complete"),
+        { jobId: this.jobId, leaseId: this.leaseId },
+      );
+  }
+
+  async #reportTerminal(
+    report: Extract<RenderHostReport, { type: "cancelled" | "completed" | "failed" }>,
+  ): Promise<void> {
+    // Publish the durable terminal state before potentially slow encoder and staging cleanup. In
+    // particular, a Windows file lease must never strand the queue in pauseRequested/preparing.
+    this.#terminal = true;
+    await settleRenderHostTerminal(
+      () => this.#report(report),
+      () => this.dispose(),
+    );
   }
 
   #assertCorrelation(jobId: unknown, leaseId: unknown): void {
