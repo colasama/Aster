@@ -262,9 +262,12 @@
   overflow: hidden;
   border: 1px solid #b9d1ff;
   outline: 2px solid #3764c799;
-  background: #080b14d9;
-  caret-color: #fff;
+  background: transparent;
+  text-shadow: none;
   white-space: pre-wrap;
+}
+.viewport-text-editor::selection {
+  background: #7097e466;
 }
 .camera-gizmo {
   position: absolute;

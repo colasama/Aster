@@ -61,7 +61,7 @@ export function drawTextLayer(
   localTime = 0,
 ): void {
   const sourceScale = width / Math.max(1, layer.size[0]);
-  const style = resolvedStyle(layer);
+  const style = resolveTextStyle(layer);
   const fontSize = style.fontSize * sourceScale;
   const tracking = style.tracking * sourceScale;
   const leading = style.leading * sourceScale;
@@ -367,7 +367,7 @@ function words(text: string): string[] {
   );
 }
 
-function resolvedStyle(layer: Layer): TextStyle {
+export function resolveTextStyle(layer: Pick<Layer, "name" | "size" | "textStyle">): TextStyle {
   const hero = layer.name === "ASTER";
   return (
     layer.textStyle ?? {

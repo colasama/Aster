@@ -76,6 +76,17 @@ glyph motion and the layer quad's world-space motion vectors remain separate, so
 show character motion, a moving layer with static characters stays on the vector-only fast path, and
 both types of motion can be combined without counting either transform twice.
 
+Composition Viewer source-text editing keeps the committed project immutable while typing. Each
+input produces a structurally shared renderer-only project snapshot, so the normal Beauty path
+rerasterizes the current source text with its actual animator stack, effects, stroke, tracking, and
+transform. The transparent textarea supplies only native input, selection, and caret behavior; its
+font, tracking, leading, alignment, text-box insets, transform, and viewer magnification match the
+text raster layout. Ctrl/Command+Enter or blur commits the complete source-text change as one undo
+entry, while Escape discards the draft without touching project revision, autosave, or history.
+Same-size drafts upload into the resident text texture and retain its bind group instead of allocating
+a new GPU texture for every keystroke.
+
 Adobe behavior reference:
 
 - <https://helpx.adobe.com/after-effects/desktop/animating-text/text-animation/animating-text.html>
+- <https://helpx.adobe.com/after-effects/desktop/add-text/create-and-edit-text-layers/creating-editing-text-layers.html>

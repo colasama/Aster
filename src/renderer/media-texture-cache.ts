@@ -537,15 +537,30 @@ export class MediaTextureCache {
       return;
     }
     this.#frameResourceErrors.delete(instanceId);
-    destroyMediaResource(existing);
-    const resource: MediaResource = { source, kind: "text" };
-    this.#resources.set(instanceId, resource);
     const raster = rasterizeTextLayer(
       layer,
       Math.min(MAX_MEDIA_TEXTURE_DIMENSION, this.#device.limits.maxTextureDimension2D),
       sampledAnimationTime,
       rasterScale,
     );
+    if (
+      existing?.kind === "text" &&
+      existing.texture &&
+      existing.textureWidth === raster.width &&
+      existing.textureHeight === raster.height
+    ) {
+      existing.source = source;
+      this.#uploads.enqueue(existing.texture, raster.pixels, raster.width, raster.height);
+      return;
+    }
+    destroyMediaResource(existing);
+    const resource: MediaResource = {
+      source,
+      kind: "text",
+      textureWidth: raster.width,
+      textureHeight: raster.height,
+    };
+    this.#resources.set(instanceId, resource);
     const texture = this.#device.createTexture({
       label: `GPU text cache · ${layer.name}`,
       size: [raster.width, raster.height],

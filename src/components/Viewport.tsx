@@ -42,6 +42,14 @@ import { WebGpuRenderer } from "../renderer/webgpu-renderer";
 import { useEditor } from "../state/editor-store";
 import { viewportRendererStatus } from "../ui/viewport-renderer-status";
 import {
+  beginViewportTextEdit,
+  canEditViewportText,
+  commitViewportTextEdit,
+  previewViewportTextEdit,
+  updateViewportTextEdit,
+  type ViewportTextEditSession,
+} from "../ui/viewport-text-editing";
+import {
   DEFAULT_VIEWPORT_ZOOM,
   MAX_VIEWPORT_ZOOM,
   MIN_VIEWPORT_ZOOM,
@@ -54,6 +62,7 @@ import { useContextMenuTrigger } from "./context-menu/use-context-menu-trigger";
 import { Panel } from "./Panel";
 import { Viewport3dTransformControls } from "./Viewport3dTransformControls";
 import { ViewportContextMenu } from "./ViewportContextMenu";
+import { ViewportTextEditor } from "./ViewportTextEditor";
 import { ViewportTransformControls } from "./ViewportTransformControls";
 import { useWorkspaceApi } from "./workspace/DockWorkspace";
 import { useWorkspaceViewerIdentity } from "./workspace/WorkspaceViewerIdentity";
@@ -102,31 +111,33 @@ export function Viewport() {
   const [compositionSettingsOpen, setCompositionSettingsOpen] = useState(false);
   const [bufferView, setBufferView] = useState<BufferVisualization>("beauty");
   const contextMenu = useContextMenuTrigger();
+  const [space, setSpace] = useState<"local" | "world">("local");
+  const [textEditSession, setTextEditSession] = useState<ViewportTextEditSession>();
+  const textEditRef = useRef<ViewportTextEditSession | undefined>(undefined);
+  const textEditorRef = useRef<HTMLTextAreaElement>(null);
+  const previewProject = useMemo(
+    () => previewViewportTextEdit(state.project, composition, state.currentTime, textEditSession),
+    [composition, state.currentTime, state.project, textEditSession],
+  );
+  const previewComposition =
+    previewProject === state.project
+      ? composition
+      : (previewProject.compositions.find((candidate) => candidate.id === composition.id) ??
+        composition);
   const previewRestoreRef = useRef({
     bufferView,
-    composition,
-    project: state.project,
+    composition: previewComposition,
+    project: previewProject,
     selectedLayerId: state.selection[0],
     time: state.currentTime,
   });
   previewRestoreRef.current = {
     bufferView,
-    composition,
-    project: state.project,
+    composition: previewComposition,
+    project: previewProject,
     selectedLayerId: state.selection[0],
     time: state.currentTime,
   };
-  const [space, setSpace] = useState<"local" | "world">("local");
-  const [editingTextLayerId, setEditingTextLayerId] = useState<string>();
-  const textEditRef = useRef<
-    | {
-        historyBase: Project;
-        initialText: string;
-        value: string;
-      }
-    | undefined
-  >(undefined);
-  const textEditorRef = useRef<HTMLTextAreaElement>(null);
   const displayZoom = state.viewportZoom * (viewCount === 2 ? 0.5 : 1);
   const pan = useRef({ active: false, x: 0, y: 0, left: 0, top: 0 });
   const selectedLayer = composition.layers.find((layer) => layer.id === state.selection[0]);
@@ -141,16 +152,17 @@ export function Viewport() {
         : undefined,
     [composition, contextMenu.point, state.currentTime, state.selection, viewerReadOnly],
   );
+  const editingTextLayerId = textEditSession?.layerId;
   const editingTextLayer =
-    editingTextLayerId === selectedLayer?.id && selectedLayer?.kind === "text"
-      ? selectedLayer
+    editingTextLayerId === selectedLayer?.id
+      ? previewComposition.layers.find((layer) => layer.id === editingTextLayerId)
       : undefined;
   const selectedTransform = useMemo(
     () =>
       selectedLayer
-        ? evaluateWorldTransform(selectedLayer, composition, state.currentTime)
+        ? evaluateWorldTransform(selectedLayer, previewComposition, state.currentTime)
         : undefined,
-    [composition, selectedLayer, state.currentTime],
+    [previewComposition, selectedLayer, state.currentTime],
   );
   const resize = useCallback(() => {
     if (renderSessionGuardRef.current.active) return;
@@ -257,8 +269,8 @@ export function Viewport() {
       bufferView === "beauty" && pipeline
         ? pipeline.present(
             createBeautyFrameRequest({
-              composition,
-              project: state.project,
+              composition: previewComposition,
+              project: previewProject,
               time: state.currentTime,
               width: canvasRef.current?.width ?? 1,
               height: canvasRef.current?.height ?? 1,
@@ -266,10 +278,10 @@ export function Viewport() {
             state.selection[0],
           )
         : renderer.render(
-            composition,
+            previewComposition,
             state.currentTime,
             state.playing,
-            state.project,
+            previewProject,
             state.selection[0],
           );
     publishDiagnostics(renderer.diagnostics);
@@ -282,7 +294,8 @@ export function Viewport() {
       dispatch({ type: "setMetrics", metrics });
     }
   }, [
-    composition,
+    previewComposition,
+    previewProject,
     dispatch,
     rendererReady,
     rendererRevision,
@@ -290,7 +303,6 @@ export function Viewport() {
     state.playing,
     state.selection,
     viewCount,
-    state.project,
     bufferView,
     publishDiagnostics,
   ]);
@@ -457,51 +469,77 @@ export function Viewport() {
     return () => window.removeEventListener("aster:run-gpu-benchmark", runBenchmark);
   }, [resize, state.currentTime, state.project]);
 
+  const beginTextEditing = useCallback(
+    (layerId: string) => {
+      if (viewerReadOnly) return;
+      const session = beginViewportTextEdit(state.project, composition, layerId, state.currentTime);
+      if (!session) return;
+      textEditRef.current = session;
+      setTextEditSession(session);
+    },
+    [composition, state.currentTime, state.project, viewerReadOnly],
+  );
+  const finishTextEditing = useCallback(() => {
+    const edit = textEditRef.current;
+    textEditRef.current = undefined;
+    setTextEditSession(undefined);
+    if (
+      !edit ||
+      edit.historyBase !== state.project ||
+      edit.compositionId !== composition.id ||
+      !canEditViewportText(composition, edit.layerId, state.currentTime)
+    )
+      return;
+    const transaction = commitViewportTextEdit(edit);
+    if (!transaction) return;
+    dispatch({
+      type: "operation",
+      historyBase: transaction.historyBase,
+      operations: [...transaction.operations],
+    });
+  }, [composition, dispatch, state.currentTime, state.project]);
+  const cancelTextEditing = useCallback(() => {
+    textEditRef.current = undefined;
+    setTextEditSession(undefined);
+  }, []);
+  const previewTextEditing = useCallback((value: string) => {
+    const edit = textEditRef.current;
+    if (!edit) return;
+    const next = updateViewportTextEdit(edit, value);
+    textEditRef.current = next;
+    setTextEditSession(next);
+  }, []);
+
   useEffect(() => {
     if (editingTextLayerId) textEditorRef.current?.focus();
   }, [editingTextLayerId]);
 
   useEffect(() => {
-    if (!viewerReadOnly) return;
-    textEditRef.current = undefined;
-    setEditingTextLayerId(undefined);
-    setCompositionSettingsOpen(false);
-  }, [viewerReadOnly]);
-
-  const beginTextEditing = (layerId: string) => {
-    if (viewerReadOnly) return;
-    const layer = composition.layers.find((candidate) => candidate.id === layerId);
-    if (layer?.kind !== "text" || layer.locked) return;
-    textEditRef.current = {
-      historyBase: state.project,
-      initialText: layer.text ?? "",
-      value: layer.text ?? "",
-    };
-    setEditingTextLayerId(layerId);
-  };
-  const finishTextEditing = () => {
     const edit = textEditRef.current;
-    const layerId = editingTextLayerId;
-    textEditRef.current = undefined;
-    setEditingTextLayerId(undefined);
-    if (!edit || !layerId || edit.value === edit.initialText) return;
-    dispatch({
-      type: "operation",
-      historyBase: edit.historyBase,
-      operations: [{ type: "setTextContent", layerId, text: edit.value }],
-    });
-  };
-  const cancelTextEditing = () => {
-    const edit = textEditRef.current;
-    const layerId = editingTextLayerId;
-    textEditRef.current = undefined;
-    setEditingTextLayerId(undefined);
-    if (!edit || !layerId || edit.value === edit.initialText) return;
-    dispatch({
-      type: "previewOperation",
-      operations: [{ type: "setTextContent", layerId, text: edit.initialText }],
-    });
-  };
+    if (!edit) {
+      if (viewerReadOnly) setCompositionSettingsOpen(false);
+      return;
+    }
+    if (
+      viewerReadOnly ||
+      edit.historyBase !== state.project ||
+      edit.compositionId !== composition.id ||
+      !canEditViewportText(composition, edit.layerId, state.currentTime)
+    ) {
+      cancelTextEditing();
+      if (viewerReadOnly) setCompositionSettingsOpen(false);
+      return;
+    }
+    if (state.selection[0] !== edit.layerId) finishTextEditing();
+  }, [
+    cancelTextEditing,
+    composition,
+    finishTextEditing,
+    state.currentTime,
+    state.project,
+    state.selection,
+    viewerReadOnly,
+  ]);
   const frameBlob = () =>
     new Promise<Blob>((resolve, reject) => {
       const canvas = canvasRef.current;
@@ -769,52 +807,16 @@ export function Viewport() {
               </>
             ) : null}
             {!viewerReadOnly && editingTextLayer && selectedTransform && (
-              <textarea
-                aria-label={t("viewport.editText", { name: editingTextLayer.name })}
-                className="viewport-text-editor"
-                maxLength={20_000}
-                onBlur={finishTextEditing}
-                onChange={(event) => {
-                  if (!textEditRef.current) return;
-                  textEditRef.current.value = event.target.value;
-                  dispatch({
-                    type: "previewOperation",
-                    operations: [
-                      {
-                        type: "setTextContent",
-                        layerId: editingTextLayer.id,
-                        text: event.target.value,
-                      },
-                    ],
-                  });
-                }}
-                onKeyDown={(event) => {
-                  if (event.key === "Escape") {
-                    event.preventDefault();
-                    cancelTextEditing();
-                  } else if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
-                    event.preventDefault();
-                    finishTextEditing();
-                  }
-                }}
-                onPointerDown={(event) => event.stopPropagation()}
+              <ViewportTextEditor
+                label={t("viewport.editText", { name: editingTextLayer.name })}
+                layer={editingTextLayer}
+                onCancel={cancelTextEditing}
+                onChange={previewTextEditing}
+                onCommit={finishTextEditing}
                 ref={textEditorRef}
-                spellCheck="true"
-                style={{
-                  color: cssColor(editingTextLayer.color),
-                  fontFamily: editingTextLayer.textStyle?.fontFamily,
-                  fontSize: `${(editingTextLayer.textStyle?.fontSize ?? 144) * displayZoom}px`,
-                  fontWeight: editingTextLayer.textStyle?.fontWeight,
-                  height: `${editingTextLayer.size[1] * displayZoom}px`,
-                  left: 0,
-                  lineHeight: `${(editingTextLayer.textStyle?.leading ?? 172) * displayZoom}px`,
-                  textAlign: editingTextLayer.textStyle?.alignment ?? "center",
-                  top: 0,
-                  transform: viewportCssMatrix(selectedTransform, displayZoom),
-                  transformOrigin: "0 0",
-                  width: `${editingTextLayer.size[0] * displayZoom}px`,
-                }}
-                value={editingTextLayer.text ?? ""}
+                transformMatrix={viewportCssMatrix(selectedTransform, displayZoom)}
+                value={textEditSession?.value ?? ""}
+                zoom={displayZoom}
               />
             )}
             {state.showLayerControls &&
@@ -1075,15 +1077,6 @@ export function viewportCssMatrix(
   const e = (transform.position[0] - a * transform.anchor[0] - c * transform.anchor[1]) * zoom;
   const f = (transform.position[1] - b * transform.anchor[0] - d * transform.anchor[1]) * zoom;
   return `matrix(${a}, ${b}, ${c}, ${d}, ${e}, ${f})`;
-}
-
-function cssColor(color: readonly [number, number, number, number]): string {
-  const channels = color.map((value, index) =>
-    index === 3
-      ? Math.max(0, Math.min(1, value))
-      : Math.round(Math.max(0, Math.min(1, value)) * 255),
-  );
-  return `rgba(${channels.join(", ")})`;
 }
 
 function compositionContainsVideo(

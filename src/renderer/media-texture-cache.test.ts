@@ -153,6 +153,56 @@ describe("exact-frame media resource barrier", () => {
     );
   });
 
+  it("invalidates the GPU text generation for each live source-text draft", () => {
+    vi.stubGlobal("document", {
+      createElement: (name: string) => {
+        if (name !== "canvas") throw new Error(`Unexpected element ${name}`);
+        return new MockTextCanvas();
+      },
+    });
+    const textures: Array<{ destroy: ReturnType<typeof vi.fn> }> = [];
+    const device = {
+      limits: { maxTextureDimension2D: 8_192, maxBufferSize: 1_073_741_824 },
+      queue: { writeBuffer: vi.fn(), writeTexture: vi.fn() },
+      createTexture: vi.fn(() => {
+        const texture = { createView: vi.fn(() => ({})), destroy: vi.fn() };
+        textures.push(texture);
+        return texture;
+      }),
+      createBuffer: vi.fn(() => ({ destroy: vi.fn() })),
+      createBindGroup: vi.fn(() => ({})),
+    } as unknown as GPUDevice;
+    const cache = new MediaTextureCache(
+      device,
+      {} as GPUBindGroupLayout,
+      {} as GPUSampler,
+      vi.fn(),
+    );
+    const layer = createLayerForComposition("text", createBlankComposition());
+    layer.size = [8, 4];
+    layer.text = "Before";
+    cache.prepareText(layer, "inline-text", 0, 24);
+    const beforeBindGroup = cache.bindGroup("inline-text");
+    const copyBufferToTexture = vi.fn();
+    const encoder = { copyBufferToTexture } as unknown as GPUCommandEncoder;
+    cache.flush(encoder);
+    cache.submitted();
+
+    layer.text = "After";
+    cache.prepareText(layer, "inline-text", 0, 24);
+
+    expect(textures).toHaveLength(1);
+    expect(textures[0].destroy).not.toHaveBeenCalled();
+    expect(cache.bindGroup("inline-text")).toBe(beforeBindGroup);
+    cache.flush(encoder);
+    expect(copyBufferToTexture).toHaveBeenCalledTimes(2);
+
+    layer.size = [9, 4];
+    cache.prepareText(layer, "inline-text", 0, 24);
+    expect(textures).toHaveLength(2);
+    expect(textures[0].destroy).toHaveBeenCalledTimes(1);
+  });
+
   it("lazily encodes exact text samples and releases their transient generation after submit", () => {
     vi.stubGlobal("document", {
       createElement: (name: string) => {
