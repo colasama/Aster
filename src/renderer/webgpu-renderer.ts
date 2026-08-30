@@ -415,6 +415,12 @@ export class WebGpuRenderer {
   get exportPixelFormat(): RawFramePixelFormat {
     return this.#frameReadback.pixelFormat;
   }
+  get outputWidth(): number {
+    return this.#width;
+  }
+  get outputHeight(): number {
+    return this.#height;
+  }
   get productionRenderError(): string | undefined {
     return productionDepthOfFieldAllocationError(
       this.#beautyDepthOfFieldActive,

@@ -72,6 +72,14 @@ export class CanvasFallbackRenderer {
     this.#height = height;
   }
 
+  get outputWidth(): number {
+    return this.#width;
+  }
+
+  get outputHeight(): number {
+    return this.#height;
+  }
+
   render(
     composition: Composition,
     time: number,

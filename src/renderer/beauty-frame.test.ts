@@ -5,9 +5,11 @@ import {
   type BeautyFrameBackend,
   type BeautyFrameRequest,
   createBeautyFrameRequest,
+  createViewportBeautyFrameBackend,
   PRODUCTION_BEAUTY_SETTINGS,
   ProductionBeautyFramePipeline,
 } from "./beauty-frame";
+import type { CanvasFallbackRenderer } from "./canvas-fallback";
 import type { RawVideoFrame } from "./frame-readback";
 
 class FakeBeautyBackend implements BeautyFrameBackend {
@@ -95,13 +97,52 @@ describe("production beauty frame pipeline", () => {
       height: 1,
     });
 
-    await expect(pipeline.readback(request)).rejects.toThrow("packed 8-bit pixel buffer");
+    await expect(pipeline.readback(request)).rejects.toThrow(
+      "returned 3 bytes; expected 4 for 1x1 packed 8-bit pixels",
+    );
     expect(() =>
       pipeline.present({
         ...request,
         settings: { ...PRODUCTION_BEAUTY_SETTINGS },
       } as BeautyFrameRequest),
     ).toThrow("cannot be overridden");
+  });
+
+  it("configures the renderer when a hidden render canvas was pre-sized to 4K", () => {
+    const project = createDemoProject();
+    const composition = activeComposition(project);
+    const canvas = { width: 3_840, height: 2_160 } as HTMLCanvasElement;
+    let outputWidth = 1;
+    let outputHeight = 1;
+    const renderer = {
+      get outputWidth() {
+        return outputWidth;
+      },
+      get outputHeight() {
+        return outputHeight;
+      },
+      resize(width: number, height: number) {
+        outputWidth = width;
+        outputHeight = height;
+      },
+      render: () => fakeMetrics(),
+    } as unknown as CanvasFallbackRenderer;
+    const pipeline = new ProductionBeautyFramePipeline(
+      createViewportBeautyFrameBackend(renderer, canvas),
+    );
+    const request = createBeautyFrameRequest({
+      composition,
+      project,
+      time: 0,
+      width: 3_840,
+      height: 2_160,
+    });
+
+    pipeline.present(request);
+
+    expect(renderer.outputWidth).toBe(3_840);
+    expect(renderer.outputHeight).toBe(2_160);
+    expect(canvas).toMatchObject({ width: 3_840, height: 2_160 });
   });
 });
 

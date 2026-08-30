@@ -89,8 +89,12 @@ export class ProductionBeautyFramePipeline {
     const frame = await this.#backend.readback(request, synchronizeVideo);
     if (frame.pixelFormat !== this.pixelFormat)
       throw new Error("Beauty frame backend changed pixel format during a render session");
-    if (frame.pixels.byteLength !== request.target.width * request.target.height * 4)
-      throw new Error("Beauty frame readback did not return one packed 8-bit pixel buffer");
+    const expectedBytes = request.target.width * request.target.height * 4;
+    if (frame.pixels.byteLength !== expectedBytes)
+      throw new Error(
+        `Beauty frame readback returned ${frame.pixels.byteLength} bytes; expected ${expectedBytes} ` +
+          `for ${request.target.width}x${request.target.height} packed 8-bit pixels`,
+      );
     return frame;
   }
 }
@@ -106,7 +110,9 @@ export function createViewportBeautyFrameBackend(
   return {
     pixelFormat: renderer instanceof WebGpuRenderer ? renderer.exportPixelFormat : "rgba",
     maxConcurrentReadbacks: renderer instanceof WebGpuRenderer ? 3 : 1,
-    currentTarget: () => ({ width: canvas.width, height: canvas.height }),
+    // Canvas dimensions are presentation state, not proof that the renderer has allocated a
+    // matching render graph. RenderHost sizes its hidden canvas while a new renderer is still 1x1.
+    currentTarget: () => ({ width: renderer.outputWidth, height: renderer.outputHeight }),
     resize: (width, height) => {
       canvas.width = width;
       canvas.height = height;

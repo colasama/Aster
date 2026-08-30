@@ -24,6 +24,22 @@ describe("video export frame readback", () => {
     ]);
   });
 
+  it("returns one packed 4K frame from a production-aligned mapped range", () => {
+    const width = 3_840;
+    const height = 2_160;
+    const bytesPerRow = alignedReadbackBytesPerRow(width);
+    const mapped = new Uint8Array(bytesPerRow * height);
+    mapped.set([17, 34, 51, 255], 0);
+    mapped.set([68, 85, 102, 255], mapped.byteLength - 4);
+
+    const packed = new Uint8Array(compactReadbackRows(mapped, width, height, bytesPerRow));
+
+    expect(bytesPerRow).toBe(width * 4);
+    expect(packed.byteLength).toBe(width * height * 4);
+    expect([...packed.subarray(0, 4)]).toEqual([17, 34, 51, 255]);
+    expect([...packed.subarray(-4)]).toEqual([68, 85, 102, 255]);
+  });
+
   it("maps only packed 8-bit canvas formats", () => {
     expect(rawPixelFormat("bgra8unorm")).toBe("bgra");
     expect(rawPixelFormat("rgba8unorm-srgb")).toBe("rgba");
