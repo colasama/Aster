@@ -23,7 +23,8 @@
 .viewport-toolbar button,
 .viewport-toolbar select,
 .viewport-status button {
-  height: 21px;
+  min-width: 24px;
+  height: 24px;
   display: flex;
   align-items: center;
   gap: 4px;
@@ -31,6 +32,9 @@
   border-radius: 3px;
   color: #858a96;
   font-size: 9px;
+  transition:
+    color var(--motion-fast) ease-out,
+    background-color var(--motion-fast) ease-out;
 }
 .viewport-toolbar select {
   border: 0;

@@ -4,6 +4,7 @@ import type { DiagnosticAction, EditorDiagnostic, ErrorDetails } from "../errors
 import { severityRank } from "../errors/diagnostic";
 import { type DiagnosticStore, diagnosticStore } from "../errors/diagnostic-store";
 import { useI18n } from "../i18n/react";
+import { useDialogFocus } from "./use-dialog-focus";
 
 export function DiagnosticBanner({ store = diagnosticStore }: { store?: DiagnosticStore }) {
   const { t } = useI18n();
@@ -148,21 +149,21 @@ function DiagnosticDetails({
   onClose: () => void;
 }) {
   const { t } = useI18n();
-  useEffect(() => {
-    const close = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", close);
-    return () => window.removeEventListener("keydown", close);
-  }, [onClose]);
+  const dialogRef = useDialogFocus<HTMLElement>({ onClose });
   return (
-    <div className="modal-backdrop diagnostic-details-backdrop" onPointerDown={onClose}>
+    <div
+      className="modal-backdrop diagnostic-details-backdrop"
+      onPointerDown={onClose}
+      role="presentation"
+    >
       <section
         aria-label={t("diagnostic.details")}
         aria-modal="true"
         className="diagnostic-details"
         onPointerDown={(event) => event.stopPropagation()}
+        ref={dialogRef}
         role="dialog"
+        tabIndex={-1}
       >
         <header>
           <strong>{diagnostic.title}</strong>

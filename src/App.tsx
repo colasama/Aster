@@ -19,6 +19,7 @@ import { projectPluginReferences } from "./core/project-plugin-references";
 import { reportUiError } from "./errors/report-ui-error";
 import { I18nProvider, useI18n } from "./i18n/react";
 import { EditorProvider, useEditor } from "./state/editor-store";
+import { isComposingKeyboardEvent, isEditableShortcutTarget } from "./ui/keyboard-shortcuts";
 import "./styles/index.css";
 
 const RenderQueuePanel = lazy(() =>
@@ -93,8 +94,7 @@ function Studio() {
   }, [referencedPluginKey, state.project.id, t]);
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      const target = event.target as HTMLElement | null;
-      if (target?.matches("input, textarea, [contenteditable=true]")) return;
+      if (isComposingKeyboardEvent(event) || isEditableShortcutTarget(event.target)) return;
       if (event.code === "Space") {
         event.preventDefault();
         dispatch({ type: "setPlaying", playing: !state.playing });

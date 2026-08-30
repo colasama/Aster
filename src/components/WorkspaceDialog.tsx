@@ -16,6 +16,7 @@ import { useI18n } from "../i18n/react";
 import { useEditor } from "../state/editor-store";
 import { applyBrowserUiScale } from "../ui/browser-ui-scale";
 import { parseUiScale, type UiScale } from "../ui/ui-scale";
+import { useDialogFocus } from "./use-dialog-focus";
 
 const PluginManager = lazy(() =>
   import("./PluginManager").then((module) => ({ default: module.PluginManager })),
@@ -77,6 +78,7 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
   const [preferredLocale, setPreferredLocale] = useState<Locale>(locale);
   const [expressionPath, setExpressionPath] = useState<PropertyPath>("opacity");
   const [expression, setExpression] = useState(selectedLayer?.expressions?.opacity ?? "value");
+  const dialogRef = useDialogFocus<HTMLElement>({ onClose });
   const expressionResult = selectedLayer
     ? previewExpression(
         expression,
@@ -174,7 +176,14 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
 
   return (
     <div className="modal-backdrop" role="presentation">
-      <section aria-label={title} aria-modal="true" className="workspace-dialog" role="dialog">
+      <section
+        aria-label={title}
+        aria-modal="true"
+        className="workspace-dialog"
+        ref={dialogRef}
+        role="dialog"
+        tabIndex={-1}
+      >
         <header>
           <strong>{title}</strong>
           <button

@@ -21,6 +21,9 @@
   --red: #f55c6d;
   --green: #54d6a0;
   --row-height: 29px;
+  --motion-fast: 80ms;
+  --motion-surface: 140ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 * {
@@ -36,6 +39,7 @@ body,
 }
 button,
 input,
+select,
 textarea {
   color: inherit;
   font: inherit;
@@ -47,9 +51,10 @@ button {
 }
 button:focus-visible,
 input:focus-visible,
+select:focus-visible,
 textarea:focus-visible {
-  outline: 1px solid var(--blue);
-  outline-offset: -1px;
+  outline: 2px solid var(--blue-bright);
+  outline-offset: -2px;
 }
 button:disabled {
   opacity: 0.35;

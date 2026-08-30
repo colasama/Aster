@@ -61,6 +61,7 @@ import type { PlainMessageKey, Translate } from "../i18n/core";
 import { useI18n } from "../i18n/react";
 import { mediaImportRuntime } from "../importers/media-import-runtime";
 import { useEditor } from "../state/editor-store";
+import { isComposingKeyboardEvent, isEditableShortcutTarget } from "../ui/keyboard-shortcuts";
 import { findMenuEntry, type MenuId, type MenuItemId, menuDefinitions } from "./topbar-menu";
 import {
   renderTopBarToast,
@@ -69,6 +70,7 @@ import {
   toastMessage,
   useTopBarToast,
 } from "./topbar-toast";
+import { useDialogFocus } from "./use-dialog-focus";
 import { WindowControls } from "./WindowControls";
 import type { WorkspaceDialogKind } from "./WorkspaceDialog";
 import { WorkspaceWindowMenu } from "./workspace/WorkspaceWindowMenu";
@@ -113,8 +115,24 @@ export function TopBar() {
     [toast.beginRequest, toast.show],
   );
   const paletteInputRef = useRef<HTMLInputElement>(null);
+  const renderFormatRef = useRef<HTMLSelectElement>(null);
   const meshInputRef = useRef<HTMLInputElement>(null);
   const cancelRenderRef = useRef(false);
+  const closePalette = useCallback(() => setPaletteOpen(false), []);
+  const closeRender = useCallback(() => {
+    if (rendering) cancelRenderRef.current = true;
+    else setRenderOpen(false);
+  }, [rendering]);
+  const paletteDialogRef = useDialogFocus<HTMLDivElement>({
+    initialFocusRef: paletteInputRef,
+    onClose: closePalette,
+    open: paletteOpen,
+  });
+  const renderDialogRef = useDialogFocus<HTMLDivElement>({
+    initialFocusRef: renderFormatRef,
+    onClose: closeRender,
+    open: renderOpen,
+  });
   const lifecycle = useDocumentLifecycle(state, dispatch);
   const saveWithToast = useCallback(
     async (chooseDirectory = false, requestToken = toastActions.beginRequest()) => {
@@ -164,9 +182,8 @@ export function TopBar() {
   );
   useEffect(() => {
     const shortcut = (event: KeyboardEvent) => {
-      const target = event.target as HTMLElement | null;
-      const isEditing =
-        target?.matches("input, textarea, select, [contenteditable='true']") ?? false;
+      if (isComposingKeyboardEvent(event)) return;
+      const isEditing = isEditableShortcutTarget(event.target);
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
         setPaletteOpen(true);
@@ -174,9 +191,8 @@ export function TopBar() {
         event.preventDefault();
         void saveWithToast();
       } else if (event.key === "Escape") {
-        setPaletteOpen(false);
-        if (rendering) cancelRenderRef.current = true;
-        else setRenderOpen(false);
+        closePalette();
+        closeRender();
         setWorkspaceDialog(undefined);
         setActiveMenu(undefined);
       } else if (!isEditing) {
@@ -193,10 +209,7 @@ export function TopBar() {
     };
     window.addEventListener("keydown", shortcut);
     return () => window.removeEventListener("keydown", shortcut);
-  }, [dispatch, rendering, saveWithToast]);
-  useEffect(() => {
-    if (paletteOpen) paletteInputRef.current?.focus();
-  }, [paletteOpen]);
+  }, [closePalette, closeRender, dispatch, saveWithToast]);
   const handleMenuItem = (item: MenuItemId) => {
     setActiveMenu(undefined);
     const composition = activeComposition(state.project);
@@ -555,6 +568,7 @@ export function TopBar() {
         <div className="tool-group">
           {tools.map(({ id, icon: Icon, labelKey }) => (
             <button
+              aria-pressed={state.activeTool === id}
               className={state.activeTool === id ? "active" : ""}
               key={id}
               onClick={() =>
@@ -610,12 +624,19 @@ export function TopBar() {
         </div>
       </div>
       {paletteOpen && (
-        <div className="modal-backdrop">
-          <div className="command-palette">
+        <div className="modal-backdrop" role="presentation">
+          <div
+            aria-label={t("topbar.command.placeholder")}
+            aria-modal="true"
+            className="command-palette"
+            ref={paletteDialogRef}
+            role="dialog"
+            tabIndex={-1}
+          >
             <button
               aria-label={t("topbar.command.close")}
               className="palette-close"
-              onClick={() => setPaletteOpen(false)}
+              onClick={closePalette}
               type="button"
             >
               <X size={13} />
@@ -635,7 +656,7 @@ export function TopBar() {
                 key={command.label}
                 onClick={() => {
                   command.action();
-                  setPaletteOpen(false);
+                  closePalette();
                 }}
                 type="button"
               >
@@ -648,10 +669,22 @@ export function TopBar() {
       )}
       {renderOpen && (
         <div className="modal-backdrop" role="presentation">
-          <div className="render-dialog">
+          <div
+            aria-label={t("topbar.render.title")}
+            aria-modal="true"
+            className="render-dialog"
+            ref={renderDialogRef}
+            role="dialog"
+            tabIndex={-1}
+          >
             <header>
               <strong>{t("topbar.render.title")}</strong>
-              <button disabled={rendering} onClick={() => setRenderOpen(false)} type="button">
+              <button
+                aria-label={t("topbar.command.close")}
+                disabled={rendering}
+                onClick={closeRender}
+                type="button"
+              >
                 <X size={14} />
               </button>
             </header>
@@ -676,6 +709,7 @@ export function TopBar() {
               {t("topbar.render.outputFormat")}
               <select
                 onChange={(event) => setRenderFormat(event.target.value as RenderFormat)}
+                ref={renderFormatRef}
                 value={renderFormat}
               >
                 <option disabled={!nativeMp4ExportAvailable()} value="mp4">
@@ -700,13 +734,7 @@ export function TopBar() {
               </div>
             )}
             <footer>
-              <button
-                onClick={() => {
-                  if (rendering) cancelRenderRef.current = true;
-                  else setRenderOpen(false);
-                }}
-                type="button"
-              >
+              <button onClick={closeRender} type="button">
                 {rendering ? t("topbar.render.stopAfterFrame") : t("common.cancel")}
               </button>
               <button

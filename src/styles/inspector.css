@@ -4,6 +4,7 @@
 .inspector-scroll {
   height: 100%;
   overflow: auto;
+  overscroll-behavior: contain;
 }
 .selected-layer-card {
   height: 53px;

@@ -37,6 +37,9 @@
   place-items: center;
   border-radius: 3px;
   color: #838895;
+  transition:
+    color var(--motion-fast) ease-out,
+    background-color var(--motion-fast) ease-out;
 }
 .transport-controls button:hover {
   color: white;
@@ -62,8 +65,8 @@
   margin-right: 8px;
 }
 .timeline-options button {
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   display: grid;
   place-items: center;
   color: #707582;
@@ -88,6 +91,7 @@
 .timeline-scroll {
   min-width: 0;
   overflow: auto;
+  overscroll-behavior: contain;
   background: #111216;
 }
 .timeline-scroll:focus-visible {

@@ -1,0 +1,26 @@
+/* Repeated root selectors give the final accessibility override enough specificity
+   without making the cascade irreversible with !important. */
+.reduced-motion.reduced-motion *,
+.reduced-motion.reduced-motion *::before,
+.reduced-motion.reduced-motion *::after {
+  scroll-behavior: auto;
+  transition-duration: 0.001ms;
+  animation-duration: 0.001ms;
+  animation-iteration-count: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root:root *,
+  :root:root *::before,
+  :root:root *::after {
+    scroll-behavior: auto;
+    transition-duration: 0.001ms;
+    animation-duration: 0.001ms;
+    animation-iteration-count: 1;
+  }
+}
+
+:root:root select:focus-visible {
+  outline: 2px solid var(--blue-bright);
+  outline-offset: -2px;
+}

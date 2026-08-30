@@ -1,6 +1,7 @@
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useI18n } from "../../i18n/react";
+import { useDialogFocus } from "../use-dialog-focus";
 
 export type WorkspaceActionDialogMode = "saveAs" | "rename" | "delete";
 
@@ -21,15 +22,13 @@ export function WorkspaceActionDialog({
   const [name, setName] = useState(mode === "delete" ? (deleteOptions[0]?.id ?? "") : currentName);
   const inputRef = useRef<HTMLInputElement>(null);
   const selectRef = useRef<HTMLSelectElement>(null);
+  const dialogRef = useDialogFocus<HTMLFormElement>({
+    initialFocusRef: mode === "delete" ? selectRef : inputRef,
+    onClose,
+  });
   useEffect(() => {
-    inputRef.current?.select();
-    selectRef.current?.focus();
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onClose]);
+    if (mode !== "delete") inputRef.current?.select();
+  }, [mode]);
   const submit = (event: FormEvent) => {
     event.preventDefault();
     if (!name.trim()) return;
@@ -44,7 +43,9 @@ export function WorkspaceActionDialog({
         aria-modal="true"
         className="workspace-action-dialog"
         onSubmit={submit}
+        ref={dialogRef}
         role="dialog"
+        tabIndex={-1}
       >
         <header>{title}</header>
         {mode === "delete" ? (
