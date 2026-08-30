@@ -1,6 +1,7 @@
 use super::*;
 use base64::Engine;
 use serde_json::json;
+use sha2::{Digest, Sha256};
 use uuid::Uuid;
 
 fn editor_project() -> Value {
@@ -46,6 +47,70 @@ fn external_svg(bytes: &[u8], path: &Path) -> Value {
         "byteIdentity": fnv64_bytes_identity(bytes),
     });
     project
+}
+
+fn inline_footage(bytes: &[u8], kind: &str, extension: &str) -> Value {
+    let identity = fnv64_bytes_identity(bytes);
+    let content_identity = format!("sha256:{:x}", Sha256::digest(bytes));
+    let mut project = editor_project();
+    project["mediaImports"] = json!({
+        "version": 1,
+        "entries": [{
+            "sourceId": "footage-source",
+            "kind": kind,
+            "contentIdentity": content_identity,
+            "payloadId": "footage:payload",
+        }],
+        "payloads": [{
+            "id": "footage:payload",
+            "kind": kind,
+            "contentIdentity": content_identity,
+            "mimeType": if kind == "audio" { "audio/wav" } else { "video/mp4" },
+            "extension": extension,
+            "storage": {
+                "kind": "inline",
+                "byteIdentity": identity,
+                "data": base64::engine::general_purpose::STANDARD.encode(bytes),
+            }
+        }]
+    });
+    project
+}
+
+#[test]
+fn materializes_and_resolves_content_addressed_video_footage() {
+    let root = std::env::temp_dir().join(format!("aster-project-footage-{}", Uuid::new_v4()));
+    let bundle = root.join("bundle");
+    let bytes = b"bounded video fixture";
+    let mut project = inline_footage(bytes, "video", ".mp4");
+
+    materialize_project_media(&bundle, &mut project).unwrap();
+    let storage = &project["mediaImports"]["payloads"][0]["storage"];
+    assert_eq!(storage["kind"], "relative");
+    assert!(storage["data"].is_null());
+    let relative = storage["relativePath"].as_str().unwrap();
+    assert!(relative.starts_with("assets/imports/"));
+    assert!(relative.ends_with(".mp4"));
+    assert_eq!(fs::read(bundle.join(relative)).unwrap(), bytes);
+
+    let canonical = bundle.canonicalize().unwrap();
+    let resolved = resolve_project_media_paths(&canonical, &mut project).unwrap();
+    assert_eq!(resolved.len(), 1);
+    assert_eq!(fs::read(&resolved[0]).unwrap(), bytes);
+
+    let external = root.join("changed.mp4");
+    fs::write(&external, b"changed after import").unwrap();
+    let mut changed = inline_footage(bytes, "video", ".mp4");
+    changed["mediaImports"]["payloads"][0]["storage"] = json!({
+        "kind": "external",
+        "externalPath": external,
+    });
+    assert!(
+        materialize_project_media(&root.join("changed-bundle"), &mut changed)
+            .unwrap_err()
+            .contains("identity mismatch")
+    );
+    let _ = fs::remove_dir_all(root);
 }
 
 #[test]

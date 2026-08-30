@@ -541,7 +541,15 @@ export async function projectDocumentWithMediaImports(
     mediaImports?: PersistedMediaImports;
   };
   const mediaImports = await createPersistedMediaImports(project, mode);
-  if (mediaImports) document.mediaImports = mediaImports;
+  if (mediaImports) {
+    const represented = new Set(mediaImports.entries.map((entry) => entry.sourceId));
+    for (const source of document.sources)
+      if (represented.has(source.id)) {
+        delete source.dataUrl;
+        delete source.runtimeUrl;
+      }
+    document.mediaImports = mediaImports;
+  }
   return document;
 }
 

@@ -45,6 +45,11 @@ export async function hydratePersistedMediaImports(
   const sources = new Map(project.sources.map((source) => [source.id, source]));
   const payloads = new Map(persisted.payloads.map((payload) => [payload.id, payload]));
   const registrations: RuntimeMediaRegistration[] = [];
+  const sourceUpdates: Array<{
+    source: Project["sources"][number];
+    runtimeUrl: string;
+    relativePath?: string;
+  }> = [];
   const disposers: Array<() => void> = [];
   try {
     const psdDocuments = new Map<string, Awaited<ReturnType<typeof parsePsd>>>();
@@ -59,6 +64,34 @@ export async function hydratePersistedMediaImports(
       const payload = payloads.get(entry.payloadId);
       if (!payload || payload.kind !== entry.kind)
         throw new Error(`${path} references a missing or mismatched payload`);
+      if (
+        (entry.kind === "still" || entry.kind === "video" || entry.kind === "audio") &&
+        source.kind === entry.kind &&
+        payload.kind === entry.kind
+      ) {
+        assertIdentity(source.contentIdentity, payload.contentIdentity, `${path}.contentIdentity`);
+        if (source.mimeType !== payload.mimeType)
+          throw new Error(`${path} MIME type does not match source ${source.name}`);
+        const resolved = await runtimeUrlForStorage(payload.storage, options, `${path}.payload`);
+        const resolvedPath = resolvedStoragePath(payload.storage, options);
+        if (resolved.dispose) disposers.push(resolved.dispose);
+        sourceUpdates.push({
+          source,
+          runtimeUrl: resolved.url,
+          ...(payload.storage.kind === "relative"
+            ? { relativePath: payload.storage.relativePath }
+            : {}),
+        });
+        registrations.push({
+          sourceId: source.id,
+          value: {
+            kind: source.kind,
+            ...(resolvedPath ? { originalPath: resolvedPath } : {}),
+          },
+          ...(resolved.dispose ? { dispose: resolved.dispose } : {}),
+        });
+        continue;
+      }
       if (entry.kind === "svg" && source.kind === "svg" && payload.kind === "svg") {
         const bytes = await loadStorage(
           payload.storage,
@@ -216,6 +249,12 @@ export async function hydratePersistedMediaImports(
           source.id,
           `Saved project is missing the ${source.kind} payload for ${source.name}`,
         );
+    for (const update of sourceUpdates) {
+      delete update.source.dataUrl;
+      update.source.runtimeUrl = update.runtimeUrl;
+      if (update.relativePath) update.source.relativePath = update.relativePath;
+      else delete update.source.relativePath;
+    }
     mediaImportRuntime.replace(registrations, errors);
     disposers.length = 0;
   } catch (error) {

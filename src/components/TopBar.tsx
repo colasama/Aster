@@ -59,6 +59,7 @@ import { createEffect } from "../effects/registry";
 import { reportUiError } from "../errors/report-ui-error";
 import type { PlainMessageKey, Translate } from "../i18n/core";
 import { useI18n } from "../i18n/react";
+import { mediaImportRuntime } from "../importers/media-import-runtime";
 import { useEditor } from "../state/editor-store";
 import { findMenuEntry, type MenuId, type MenuItemId, menuDefinitions } from "./topbar-menu";
 import {
@@ -308,6 +309,7 @@ export function TopBar() {
             (source) => source.contentIdentity === imported.source.contentIdentity,
           );
           const source = existing ?? imported.source;
+          if (existing) mediaImportRuntime.move(imported.source.id, existing.id);
           const layer = { ...imported.layer, sourceId: source.id };
           dispatch({
             type: "operation",

@@ -106,3 +106,23 @@ pub(super) fn image_extension(name: &str) -> Result<String, String> {
     }
     Ok(format!(".{extension}"))
 }
+
+pub(super) fn media_extension(value: &str, kind: &str) -> Result<String, String> {
+    let extension = value
+        .strip_prefix('.')
+        .unwrap_or_default()
+        .to_ascii_lowercase();
+    let allowed = match kind {
+        "still" => [
+            "avif", "bmp", "gif", "jpeg", "jpg", "png", "tif", "tiff", "webp",
+        ]
+        .contains(&extension.as_str()),
+        "audio" => ["aac", "flac", "m4a", "mp3", "ogg", "wav"].contains(&extension.as_str()),
+        "video" => ["avi", "m4v", "mkv", "mov", "mp4", "ogv", "webm"].contains(&extension.as_str()),
+        _ => false,
+    };
+    if !allowed {
+        return Err(format!("{kind} media has an unsupported extension {value}"));
+    }
+    Ok(format!(".{extension}"))
+}

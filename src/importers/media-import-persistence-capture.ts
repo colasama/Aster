@@ -1,8 +1,10 @@
 import type { FootageSource, Project } from "../core/types";
-import { mediaBytesIdentity } from "./media-import-identity";
+import { mediaBytesIdentity, mediaTextIdentity } from "./media-import-identity";
 import {
   isAdvancedSource,
+  isPersistedMediaSource,
   MAX_MEDIA_IMPORT_ENTRIES,
+  MAX_NATIVE_FOOTAGE_BYTES,
   MAX_PERSISTED_SEQUENCE_FRAMES,
   MAX_PORTABLE_MEDIA_BYTES,
   MEDIA_IMPORT_SIDECAR_VERSION,
@@ -16,6 +18,7 @@ import {
 import {
   assertIdentity,
   chargePortableBudget,
+  exactArrayBuffer,
   fetchRuntimeBytes,
   inlineStorage,
 } from "./media-import-persistence-storage";
@@ -29,15 +32,46 @@ export async function createPersistedMediaImports(
   project: Project,
   mode: MediaImportPersistenceMode,
 ): Promise<PersistedMediaImports | undefined> {
-  const advanced = project.sources.filter(isAdvancedSource);
-  if (advanced.length === 0) return undefined;
-  if (advanced.length > MAX_MEDIA_IMPORT_ENTRIES)
-    throw new Error("Project contains too many advanced media imports");
+  const persistedSources = project.sources.filter((source) => {
+    if (!isPersistedMediaSource(source)) return false;
+    if (isAdvancedSource(source)) return true;
+    const runtime = mediaImportRuntime.get(source.id);
+    return Boolean(source.dataUrl || (runtime && runtime.kind === source.kind));
+  });
+  if (persistedSources.length === 0) return undefined;
+  if (persistedSources.length > MAX_MEDIA_IMPORT_ENTRIES)
+    throw new Error("Project contains too many persisted media imports");
   const entries: PersistedMediaEntry[] = [];
   const payloads = new Map<string, PersistedMediaPayload>();
   const budget = { bytes: 0 };
-  for (const source of advanced) {
+  for (const source of persistedSources) {
     const runtime = mediaImportRuntime.get(source.id);
+    if (source.kind === "still" || source.kind === "video" || source.kind === "audio") {
+      if (runtime && runtime.kind !== source.kind)
+        throw new Error(`${source.name} has mismatched runtime footage state`);
+      const extension = mediaExtension(source.name, source.mimeType);
+      const payloadId = `footage:${source.kind}:${source.contentIdentity}:${mediaTextIdentity(
+        `${source.mimeType}:${extension}`,
+      )}`;
+      if (!payloads.has(payloadId)) {
+        const storage = await footageStorage(source, runtime, mode, budget);
+        payloads.set(payloadId, {
+          id: payloadId,
+          kind: source.kind,
+          contentIdentity: source.contentIdentity,
+          mimeType: source.mimeType,
+          extension,
+          storage,
+        });
+      }
+      entries.push({
+        sourceId: source.id,
+        kind: source.kind,
+        contentIdentity: source.contentIdentity,
+        payloadId,
+      });
+      continue;
+    }
     if (!runtime || runtime.kind !== source.kind)
       throw new Error(`${source.name} has no recoverable ${source.kind} import payload`);
     if (source.kind === "svg" && runtime.kind === "svg") {
@@ -100,6 +134,50 @@ export async function createPersistedMediaImports(
     }
   }
   return { version: MEDIA_IMPORT_SIDECAR_VERSION, entries, payloads: [...payloads.values()] };
+}
+
+async function footageStorage(
+  source: Extract<FootageSource, { kind: "still" | "video" | "audio" }>,
+  runtime: ReturnType<typeof mediaImportRuntime.get>,
+  mode: MediaImportPersistenceMode,
+  budget: { bytes: number },
+): Promise<PersistedMediaStorage> {
+  const originalPath =
+    runtime && (runtime.kind === "still" || runtime.kind === "video" || runtime.kind === "audio")
+      ? runtime.originalPath
+      : undefined;
+  if (mode === "native" && originalPath) return { kind: "external", externalPath: originalPath };
+  const locator = source.dataUrl ?? source.runtimeUrl;
+  if (!locator) throw new Error(`${source.name} has no recoverable footage payload`);
+  const bytes = await fetchRuntimeBytes(
+    locator,
+    `${source.name} footage`,
+    MAX_NATIVE_FOOTAGE_BYTES,
+  );
+  await assertFootageIdentity(source.contentIdentity, bytes, source.name);
+  chargePortableBudget(budget, bytes.byteLength);
+  return inlineStorage(bytes);
+}
+
+async function assertFootageIdentity(
+  expected: string,
+  bytes: Uint8Array,
+  name: string,
+): Promise<void> {
+  if (!expected.startsWith("sha256:")) return;
+  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", exactArrayBuffer(bytes)));
+  const actual = `sha256:${Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join(
+    "",
+  )}`;
+  if (actual !== expected) throw new Error(`${name} footage identity mismatch`);
+}
+
+function mediaExtension(name: string, mimeType: string): string {
+  const named = /\.([a-z0-9]{1,16})$/i.exec(name)?.[1]?.toLowerCase();
+  if (named) return `.${named}`;
+  const subtype = /^[^/]+\/([a-z0-9.+-]+)$/i.exec(mimeType)?.[1]?.split(/[.+-]/)[0];
+  if (subtype && /^[a-z0-9]{1,16}$/i.test(subtype)) return `.${subtype.toLowerCase()}`;
+  throw new Error(`${name} has no safe media file extension`);
 }
 
 async function psdStorage(

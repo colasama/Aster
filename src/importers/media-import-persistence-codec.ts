@@ -7,6 +7,7 @@ export const MEDIA_IMPORT_SIDECAR_VERSION = 1 as const;
 export const MAX_PORTABLE_MEDIA_BYTES = 128 * 1024 * 1024;
 export const MAX_PERSISTED_SEQUENCE_FRAMES = 4_096;
 export const MAX_NATIVE_PSD_BYTES = 512 * 1024 * 1024;
+export const MAX_NATIVE_FOOTAGE_BYTES = 96 * 1024 * 1024;
 export const MAX_MEDIA_IMPORT_ENTRIES = 50_000;
 const MAX_ID_LENGTH = 512;
 const MAX_PATH_LENGTH = 4_096;
@@ -44,6 +45,14 @@ export interface PersistedSequenceFrame {
 export type PersistedMediaPayload =
   | {
       id: string;
+      kind: "still" | "video" | "audio";
+      contentIdentity: string;
+      mimeType: string;
+      extension: string;
+      storage: PersistedMediaStorage;
+    }
+  | {
+      id: string;
       kind: "svg";
       contentIdentity: string;
       width: number;
@@ -74,6 +83,12 @@ export type PersistedMediaPayload =
     };
 
 export type PersistedMediaEntry =
+  | {
+      sourceId: string;
+      kind: "still" | "video" | "audio";
+      contentIdentity: string;
+      payloadId: string;
+    }
   | {
       sourceId: string;
       kind: "svg";
@@ -169,6 +184,15 @@ function decodePayload(value: unknown, index: number): PersistedMediaPayload {
   const payload = requireRecord(value, path);
   const id = requireId(payload.id, `${path}.id`);
   const kind = requireKind(payload.kind, `${path}.kind`);
+  if (isFootageKind(kind))
+    return {
+      id,
+      kind,
+      contentIdentity: requireIdentity(payload.contentIdentity, `${path}.contentIdentity`),
+      mimeType: requireBoundedString(payload.mimeType, `${path}.mimeType`, 256),
+      extension: requireMediaExtension(payload.extension, kind, `${path}.extension`),
+      storage: decodeStorage(payload.storage, `${path}.storage`),
+    };
   if (kind === "svg")
     return {
       id,
@@ -317,6 +341,10 @@ export function isAdvancedSource(
   return source.kind === "svg" || source.kind === "psd" || source.kind === "imageSequence";
 }
 
+export function isPersistedMediaSource(source: FootageSource): boolean {
+  return isAdvancedSource(source) || isFootageKind(source.kind);
+}
+
 function requireRecord(value: unknown, path: string): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value))
     throw new Error(`${path} must be an object`);
@@ -371,9 +399,35 @@ function requireBoundedInteger(
 }
 
 function requireKind(value: unknown, path: string): PersistedMediaEntry["kind"] {
-  if (value !== "svg" && value !== "psd" && value !== "imageSequence")
+  if (
+    value !== "still" &&
+    value !== "video" &&
+    value !== "audio" &&
+    value !== "svg" &&
+    value !== "psd" &&
+    value !== "imageSequence"
+  )
     throw new Error(`${path} is unsupported`);
   return value;
+}
+
+function isFootageKind(value: unknown): value is "still" | "video" | "audio" {
+  return value === "still" || value === "video" || value === "audio";
+}
+
+function requireMediaExtension(
+  value: unknown,
+  kind: "still" | "video" | "audio",
+  path: string,
+): string {
+  const extension = requireBoundedString(value, path, 17).toLowerCase();
+  const allowed = {
+    still: [".avif", ".bmp", ".gif", ".jpeg", ".jpg", ".png", ".tif", ".tiff", ".webp"],
+    video: [".avi", ".m4v", ".mkv", ".mov", ".mp4", ".ogv", ".webm"],
+    audio: [".aac", ".flac", ".m4a", ".mp3", ".ogg", ".wav"],
+  }[kind];
+  if (!allowed.includes(extension)) throw new Error(`${path} is unsupported for ${kind} media`);
+  return extension;
 }
 
 function isPsdImportMode(value: unknown): value is PsdImportMode {

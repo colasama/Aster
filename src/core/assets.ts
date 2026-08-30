@@ -1,3 +1,5 @@
+import { convertFileSrc, isDesktopRuntime, open } from "../desktop/api";
+import { mediaImportRuntime } from "../importers/media-import-runtime";
 import { DEFAULT_SOURCE_INTERPRETATION } from "./footage-source";
 import { ImporterRegistry, type SourceImporter } from "./importer-registry";
 import { createLayerForComposition } from "./layer-factory";
@@ -16,6 +18,11 @@ export interface ImportedMediaLayer {
   layer: Layer;
 }
 
+export interface MediaImportFileOptions {
+  runtimeUrl?: string;
+  sourcePath?: string;
+}
+
 export const mediaImporterRegistry = new ImporterRegistry();
 mediaImporterRegistry.register(createStillImporter());
 mediaImporterRegistry.register(createVideoImporter());
@@ -26,15 +33,17 @@ export async function importMediaLayer(
   composition: Composition,
   currentTime: number,
 ): Promise<ImportedMediaLayer | undefined> {
-  const file = await pickFile(
-    kind === "image"
-      ? "image/*"
-      : kind === "video"
-        ? "video/*"
-        : "audio/wav,audio/mpeg,audio/aac,audio/mp4,audio/ogg,audio/flac,.wav,.mp3,.aac,.m4a,.ogg,.flac",
-  );
-  if (!file) return undefined;
-  return createMediaLayerFromFile(kind, file, composition, currentTime);
+  const picked = isDesktopRuntime()
+    ? await pickDesktopFile(kind)
+    : await pickBrowserFile(
+        kind === "image"
+          ? "image/*"
+          : kind === "video"
+            ? "video/*"
+            : "audio/wav,audio/mpeg,audio/aac,audio/mp4,audio/ogg,audio/flac,.wav,.mp3,.aac,.m4a,.ogg,.flac",
+      );
+  if (!picked) return undefined;
+  return createMediaLayerFromFile(kind, picked.file, composition, currentTime, picked.options);
 }
 
 export async function createMediaLayerFromFile(
@@ -42,12 +51,21 @@ export async function createMediaLayerFromFile(
   file: File,
   composition: Composition,
   currentTime: number,
+  options: MediaImportFileOptions = {},
 ): Promise<ImportedMediaLayer> {
   const source = await mediaImporterRegistry.import(
     file,
-    { composition, currentTime },
+    { composition, currentTime, mediaOptions: options },
     kind === "image" ? "aster.still" : kind === "video" ? "aster.video" : "aster.audio",
   );
+  if (
+    (options.runtimeUrl || options.sourcePath) &&
+    (source.kind === "still" || source.kind === "video" || source.kind === "audio")
+  )
+    mediaImportRuntime.register(source.id, {
+      kind: source.kind,
+      ...(options.sourcePath ? { originalPath: options.sourcePath } : {}),
+    });
   const layer = createMediaLayerForSource(source, composition, currentTime);
   layer.name = file.name.replace(/\.[^.]+$/, "") || layer.name;
   return { source, layer };
@@ -75,9 +93,10 @@ function createStillImporter(): SourceImporter {
     id: "aster.still",
     probe: (file) => (file.type.startsWith("image/") && file.type !== "image/svg+xml" ? 1 : 0),
     validate: (file) => validateFile(file, "image", MAX_IMAGE_BYTES),
-    import: async (file) => {
-      const [dataUrl, bytes, metadata] = await Promise.all([
-        fileToDataUrl(file),
+    import: async (file, context) => {
+      const options = mediaOptions(context);
+      const [locator, bytes, metadata] = await Promise.all([
+        options.runtimeUrl ? Promise.resolve(options.runtimeUrl) : fileToDataUrl(file),
         file.arrayBuffer(),
         readImageMetadata(file),
       ]);
@@ -87,7 +106,7 @@ function createStillImporter(): SourceImporter {
         name: file.name,
         mimeType: file.type,
         contentIdentity: await sha256Identity(bytes),
-        dataUrl,
+        ...(options.runtimeUrl ? { runtimeUrl: locator } : { dataUrl: locator }),
         ...metadata,
         interpretation: { ...DEFAULT_SOURCE_INTERPRETATION },
       };
@@ -100,9 +119,13 @@ function createVideoImporter(): SourceImporter {
     id: "aster.video",
     probe: (file) => (file.type.startsWith("video/") ? 1 : 0),
     validate: (file) => validateFile(file, "video", MAX_VIDEO_BYTES),
-    import: async (file) => {
-      const [dataUrl, bytes] = await Promise.all([fileToDataUrl(file), file.arrayBuffer()]);
-      const metadata = await readVideoMetadata(dataUrl);
+    import: async (file, context) => {
+      const options = mediaOptions(context);
+      const [locator, bytes] = await Promise.all([
+        options.runtimeUrl ? Promise.resolve(options.runtimeUrl) : fileToDataUrl(file),
+        file.arrayBuffer(),
+      ]);
+      const metadata = await readVideoMetadata(locator);
       const contentIdentity = await sha256Identity(bytes);
       const audio = await tryDecodeAudioMetadata(bytes);
       return {
@@ -111,7 +134,7 @@ function createVideoImporter(): SourceImporter {
         name: file.name,
         mimeType: file.type,
         contentIdentity,
-        dataUrl,
+        ...(options.runtimeUrl ? { runtimeUrl: locator } : { dataUrl: locator }),
         ...metadata,
         ...(audio ? { audio: { ...audio, streamIndex: 0 } } : {}),
         interpretation: { ...DEFAULT_SOURCE_INTERPRETATION },
@@ -132,8 +155,12 @@ function createAudioImporter(): SourceImporter {
       if (file.type && !file.type.startsWith("audio/") && file.type !== "video/mp4")
         throw new Error("Selected file is not a valid audio file");
     },
-    import: async (file) => {
-      const [dataUrl, bytes] = await Promise.all([fileToDataUrl(file), file.arrayBuffer()]);
+    import: async (file, context) => {
+      const options = mediaOptions(context);
+      const [locator, bytes] = await Promise.all([
+        options.runtimeUrl ? Promise.resolve(options.runtimeUrl) : fileToDataUrl(file),
+        file.arrayBuffer(),
+      ]);
       const contentIdentity = await sha256Identity(bytes);
       const metadata = await decodeAudioMetadata(bytes, file.name);
       return {
@@ -142,7 +169,7 @@ function createAudioImporter(): SourceImporter {
         name: file.name,
         mimeType: file.type || audioMimeType(file.name),
         contentIdentity,
-        dataUrl,
+        ...(options.runtimeUrl ? { runtimeUrl: locator } : { dataUrl: locator }),
         ...metadata,
         streamIndex: 0,
         interpretation: { ...DEFAULT_SOURCE_INTERPRETATION },
@@ -228,14 +255,80 @@ async function sha256Identity(bytes: ArrayBuffer): Promise<string> {
   ).join("")}`;
 }
 
-function pickFile(accept: string): Promise<File | undefined> {
+function pickBrowserFile(
+  accept: string,
+): Promise<{ file: File; options: MediaImportFileOptions } | undefined> {
   const picker = document.createElement("input");
   picker.type = "file";
   picker.accept = accept;
   return new Promise((resolve) => {
-    picker.addEventListener("change", () => resolve(picker.files?.[0]), { once: true });
+    picker.addEventListener(
+      "change",
+      () => {
+        const file = picker.files?.[0];
+        resolve(file ? { file, options: {} } : undefined);
+      },
+      { once: true },
+    );
     picker.click();
   });
+}
+
+async function pickDesktopFile(
+  kind: ImportMediaKind,
+): Promise<{ file: File; options: MediaImportFileOptions } | undefined> {
+  const selected = await open({
+    title:
+      kind === "image"
+        ? "Choose image asset"
+        : kind === "video"
+          ? "Choose video asset"
+          : "Choose audio asset",
+    filters: [
+      {
+        name: kind === "image" ? "Images" : kind === "video" ? "Videos" : "Audio",
+        extensions:
+          kind === "image"
+            ? ["png", "jpg", "jpeg", "webp", "avif", "gif", "bmp", "tif", "tiff"]
+            : kind === "video"
+              ? ["mp4", "webm", "mov", "m4v", "ogv", "mkv", "avi"]
+              : ["wav", "mp3", "aac", "m4a", "ogg", "flac"],
+      },
+    ],
+  });
+  if (typeof selected !== "string") return undefined;
+  const runtimeUrl = convertFileSrc(selected);
+  const response = await fetch(runtimeUrl);
+  if (!response.ok) throw new Error(`Media request failed with HTTP ${response.status}`);
+  const blob = await response.blob();
+  const name = selected.split(/[\\/]/).pop() || "Imported media";
+  const file = new File([blob], name, { type: blob.type || mediaMimeType(name, kind) });
+  return { file, options: { runtimeUrl, sourcePath: selected } };
+}
+
+function mediaOptions(context: { mediaOptions?: MediaImportFileOptions }): MediaImportFileOptions {
+  const options = context.mediaOptions;
+  return options ?? {};
+}
+
+function mediaMimeType(name: string, kind: ImportMediaKind): string {
+  const extension = name.split(".").pop()?.toLowerCase() ?? "";
+  if (kind === "audio") return audioMimeType(name);
+  if (kind === "image")
+    return extension === "jpg" || extension === "jpeg"
+      ? "image/jpeg"
+      : extension === "svg"
+        ? "image/svg+xml"
+        : `image/${extension || "png"}`;
+  return (
+    {
+      mp4: "video/mp4",
+      m4v: "video/mp4",
+      mov: "video/quicktime",
+      webm: "video/webm",
+      ogv: "video/ogg",
+    }[extension] ?? "video/mp4"
+  );
 }
 
 function fileToDataUrl(file: File): Promise<string> {

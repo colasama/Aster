@@ -9,8 +9,8 @@ mod validation;
 
 use storage::{MediaBudget, materialize_storage, resolve_storage};
 use validation::{
-    bounded_array_mut, image_extension, object_mut, required_mut, required_string, required_u64,
-    sidecar_mut,
+    bounded_array_mut, image_extension, media_extension, object_mut, required_mut, required_string,
+    required_u64, sidecar_mut,
 };
 
 const SIDECAR_VERSION: u64 = 1;
@@ -18,6 +18,7 @@ const MAX_PAYLOADS: usize = 50_000;
 const MAX_MEDIA_FILES: usize = 4_096;
 const MAX_PORTABLE_BYTES: u64 = 128 * 1024 * 1024;
 const MAX_PSD_BYTES: u64 = 512 * 1024 * 1024;
+const MAX_FOOTAGE_BYTES: u64 = 96 * 1024 * 1024;
 const MAX_BUNDLE_MEDIA_BYTES: u64 = 2 * 1024 * 1024 * 1024;
 
 pub fn materialize_project_media(bundle: &Path, project: &mut Value) -> Result<(), String> {
@@ -32,6 +33,34 @@ pub fn materialize_project_media(bundle: &Path, project: &mut Value) -> Result<(
         let path = format!("mediaImports.payloads[{payload_index}]");
         let payload = object_mut(payload, &path)?;
         match required_string(payload, "kind", &format!("{path}.kind"))? {
+            kind @ ("still" | "video" | "audio") => {
+                let content_identity = required_string(
+                    payload,
+                    "contentIdentity",
+                    &format!("{path}.contentIdentity"),
+                )?
+                .to_owned();
+                let expected_sha256 = content_identity
+                    .starts_with("sha256:")
+                    .then_some(content_identity.as_str());
+                let extension = media_extension(
+                    required_string(payload, "extension", &format!("{path}.extension"))?,
+                    kind,
+                )?;
+                let storage = required_mut(payload, "storage", &format!("{path}.storage"))?;
+                materialize_storage(
+                    &bundle,
+                    storage,
+                    &extension,
+                    None,
+                    expected_sha256,
+                    None,
+                    None,
+                    MAX_FOOTAGE_BYTES,
+                    &path,
+                    &mut budget,
+                )?;
+            }
             "svg" => {
                 let identity = required_string(
                     payload,
@@ -45,6 +74,7 @@ pub fn materialize_project_media(bundle: &Path, project: &mut Value) -> Result<(
                     storage,
                     ".svg",
                     Some(&identity),
+                    None,
                     None,
                     None,
                     MAX_PORTABLE_BYTES,
@@ -65,6 +95,7 @@ pub fn materialize_project_media(bundle: &Path, project: &mut Value) -> Result<(
                     storage,
                     ".psd",
                     Some(&identity),
+                    None,
                     None,
                     None,
                     MAX_PSD_BYTES,
@@ -92,6 +123,7 @@ pub fn materialize_project_media(bundle: &Path, project: &mut Value) -> Result<(
                         &bundle,
                         storage,
                         &extension,
+                        None,
                         None,
                         Some(expected_size),
                         Some(expected_last_modified),
@@ -121,6 +153,28 @@ pub fn resolve_project_media_paths(
         let path = format!("mediaImports.payloads[{payload_index}]");
         let payload = object_mut(payload, &path)?;
         match required_string(payload, "kind", &format!("{path}.kind"))? {
+            "still" | "video" | "audio" => {
+                let content_identity = required_string(
+                    payload,
+                    "contentIdentity",
+                    &format!("{path}.contentIdentity"),
+                )?
+                .to_owned();
+                let expected_sha256 = content_identity
+                    .starts_with("sha256:")
+                    .then_some(content_identity.as_str());
+                let storage = required_mut(payload, "storage", &format!("{path}.storage"))?;
+                resolved.push(resolve_storage(
+                    bundle,
+                    storage,
+                    None,
+                    expected_sha256,
+                    None,
+                    MAX_FOOTAGE_BYTES,
+                    &path,
+                    &mut budget,
+                )?);
+            }
             "svg" => {
                 let identity = required_string(
                     payload,
@@ -133,6 +187,7 @@ pub fn resolve_project_media_paths(
                     bundle,
                     storage,
                     Some(&identity),
+                    None,
                     None,
                     MAX_PORTABLE_BYTES,
                     &path,
@@ -151,6 +206,7 @@ pub fn resolve_project_media_paths(
                     bundle,
                     storage,
                     Some(&identity),
+                    None,
                     None,
                     MAX_PSD_BYTES,
                     &path,
@@ -172,6 +228,7 @@ pub fn resolve_project_media_paths(
                     resolved.push(resolve_storage(
                         bundle,
                         storage,
+                        None,
                         None,
                         Some(expected_size),
                         MAX_BUNDLE_MEDIA_BYTES,

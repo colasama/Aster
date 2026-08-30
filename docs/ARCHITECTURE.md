@@ -66,8 +66,10 @@ frame data are excluded, and successful hot-path operations are intentionally si
 1. UI gestures produce serializable operations; they do not mutate render state directly.
 2. The operation reducer creates a new project snapshot and updates bounded undo history.
    Project-level footage sources are immutable shared records: operation snapshots copy only source
-   arrays and affected records, retaining large embedded strings by reference. Layers carry stable
-   `sourceId` references, so layer duplication and ordinary edits never clone footage bytes.
+   arrays and affected records. Desktop footage stores a small runtime locator while its bytes move
+   through the content-addressed project-media sidecar; legacy embedded locators remain shared during
+   migration. Layers carry stable `sourceId` references, so duplication and ordinary edits never clone
+   footage bytes.
 3. Properties and safe expressions are evaluated at the requested rational time; recursive
    precompositions are flattened with cycle detection and composed transforms. Effect parameters
    use the same time-addressable keyframe interpolation before uniform and opcode compilation.

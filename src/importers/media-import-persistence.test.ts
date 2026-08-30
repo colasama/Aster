@@ -9,6 +9,7 @@ import {
   storeRecoverySnapshot,
 } from "../core/project-file";
 import type { FootageSource, Project } from "../core/types";
+import type { AsterDesktopApi } from "../desktop/api";
 import { createImageSequenceImport, createPsdImport, createSvgImport } from "./advanced-import";
 import { detectImageSequence } from "./image-sequence";
 import { mediaBytesIdentity } from "./media-import-identity";
@@ -21,9 +22,165 @@ import {
 import { mediaImportRuntime, type RuntimeSequenceFile } from "./media-import-runtime";
 import { parsePsd } from "./psd";
 
-afterEach(() => mediaImportRuntime.clear());
+afterEach(() => {
+  mediaImportRuntime.clear();
+  window.asterDesktop = undefined;
+});
 
 describe("advanced media project persistence", () => {
+  it("migrates legacy embedded video into a recoverable media payload", async () => {
+    const project = createBlankProject();
+    const bytes = new Uint8Array([0, 0, 0, 8, 102, 116, 121, 112]);
+    const source: FootageSource = {
+      id: "legacy-video",
+      kind: "video",
+      name: "legacy.mp4",
+      mimeType: "video/mp4",
+      contentIdentity: await sha256Identity(bytes),
+      dataUrl: `data:video/mp4;base64,${btoa(String.fromCharCode(...bytes))}`,
+      interpretation: { alpha: "straight", colorSpace: "srgb" },
+      width: 16,
+      height: 9,
+      duration: 1,
+    };
+    project.sources.push(source);
+
+    const document = await projectDocumentWithMediaImports(project, "native");
+    expect(document.sources[0]?.dataUrl).toBeUndefined();
+    expect(JSON.stringify(document)).not.toContain("data:video/mp4");
+    expect(document.mediaImports?.entries[0]).toMatchObject({
+      sourceId: source.id,
+      kind: "video",
+    });
+    expect(document.mediaImports?.payloads[0]).toMatchObject({
+      kind: "video",
+      mimeType: "video/mp4",
+      extension: ".mp4",
+      storage: { kind: "inline" },
+    });
+
+    const reopened = await openPersistedProjectDocument(structuredClone(document));
+    expect(reopened.sources[0]).toMatchObject({
+      id: source.id,
+      kind: "video",
+      runtimeUrl: expect.stringMatching(/^blob:/),
+    });
+    expect(mediaImportRuntime.get(source.id)).toMatchObject({ kind: "video" });
+  });
+
+  it("captures picker-authorized native footage without embedding its bytes", async () => {
+    const project = createBlankProject();
+    const source: FootageSource = {
+      id: "native-audio",
+      kind: "audio",
+      name: "dialogue.wav",
+      mimeType: "audio/wav",
+      contentIdentity: `sha256:${"0".repeat(64)}`,
+      runtimeUrl: "aster-asset://local/dialogue.wav",
+      interpretation: { alpha: "ignore", colorSpace: "srgb" },
+      duration: 2,
+      channels: 2,
+      sampleRate: 48_000,
+      streamIndex: 0,
+    };
+    project.sources.push(source);
+    mediaImportRuntime.register(source.id, {
+      kind: "audio",
+      originalPath: "C:\\Media\\dialogue.wav",
+    });
+
+    const document = await projectDocumentWithMediaImports(project, "native");
+    expect(document.sources[0]).not.toHaveProperty("runtimeUrl");
+    expect(document.sources[0]).not.toHaveProperty("dataUrl");
+    expect(document.mediaImports?.payloads[0]).toMatchObject({
+      kind: "audio",
+      extension: ".wav",
+      storage: { kind: "external", externalPath: "C:\\Media\\dialogue.wav" },
+    });
+    expect(JSON.stringify(document)).not.toContain("base64");
+  });
+
+  it("hydrates a materialized audio payload as a bundle-relative runtime locator", async () => {
+    const project = createBlankProject();
+    const source: FootageSource = {
+      id: "materialized-audio",
+      kind: "audio",
+      name: "dialogue.wav",
+      mimeType: "audio/wav",
+      contentIdentity: `sha256:${"1".repeat(64)}`,
+      interpretation: { alpha: "ignore", colorSpace: "srgb" },
+      duration: 2,
+      channels: 2,
+      sampleRate: 48_000,
+      streamIndex: 0,
+    };
+    project.sources.push(source);
+    const relativePath = "assets/imports/content.wav";
+    const resolvedPath = "C:\\Project\\assets\\imports\\content.wav";
+    window.asterDesktop = {
+      convertFileSrc: (path: string) => `aster-asset://local/${encodeURIComponent(path)}`,
+    } as unknown as AsterDesktopApi;
+
+    await hydratePersistedMediaImports(
+      project,
+      {
+        version: 1,
+        entries: [
+          {
+            sourceId: source.id,
+            kind: "audio",
+            contentIdentity: source.contentIdentity,
+            payloadId: "footage:audio",
+          },
+        ],
+        payloads: [
+          {
+            id: "footage:audio",
+            kind: "audio",
+            contentIdentity: source.contentIdentity,
+            mimeType: source.mimeType,
+            extension: ".wav",
+            storage: {
+              kind: "relative",
+              relativePath,
+              byteIdentity: "fnv64:0000000000000000:3",
+              resolvedPath,
+            },
+          },
+        ],
+      },
+      { allowResolvedPaths: true },
+    );
+
+    expect(source).toMatchObject({
+      relativePath,
+      runtimeUrl: `aster-asset://local/${encodeURIComponent(resolvedPath)}`,
+    });
+    expect(mediaImportRuntime.get(source.id)).toEqual({
+      kind: "audio",
+      originalPath: resolvedPath,
+    });
+  });
+
+  it("continues to open legacy embedded footage without a sidecar", async () => {
+    const project = createBlankProject();
+    project.sources.push({
+      id: "legacy-audio",
+      kind: "audio",
+      name: "legacy.wav",
+      mimeType: "audio/wav",
+      contentIdentity: "legacy:audio",
+      dataUrl: "data:audio/wav;base64,AA==",
+      interpretation: { alpha: "ignore", colorSpace: "srgb" },
+      duration: 1,
+      channels: 1,
+      sampleRate: 8_000,
+      streamIndex: 0,
+    });
+    const reopened = await openPersistedProjectDocument(structuredClone(project));
+    expect(reopened.sources[0]?.dataUrl).toBe("data:audio/wav;base64,AA==");
+  });
+
   it("roundtrips a rerasterizable SVG without persisting a runtime URL", async () => {
     const project = createBlankProject();
     const imported = createSvgImport(
@@ -286,6 +443,12 @@ function minimalPsd(): ArrayBuffer {
   writer.patchU32(layerMaskLength, writer.length - layerMaskStart);
   writer.u16(0).bytes([255, 0]).bytes([0, 255]).bytes([0, 0]);
   return writer.buffer();
+}
+
+async function sha256Identity(bytes: Uint8Array): Promise<string> {
+  const exact = new Uint8Array(bytes).buffer;
+  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", exact));
+  return `sha256:${Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("")}`;
 }
 
 class BinaryWriter {

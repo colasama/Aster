@@ -36,6 +36,7 @@ import {
   createMediaLayerForSource,
   createMediaLayerFromFile,
   type ImportMediaKind,
+  importMediaLayer,
 } from "../core/assets";
 import { createParticleLayerForComposition } from "../core/bundled-particle";
 import {
@@ -164,8 +165,6 @@ export function ProjectPanel() {
     mediaImportRuntime.revision,
   );
   const imagePickerRef = useRef<HTMLInputElement>(null);
-  const videoPickerRef = useRef<HTMLInputElement>(null);
-  const audioPickerRef = useRef<HTMLInputElement>(null);
   const svgPickerRef = useRef<HTMLInputElement>(null);
   const psdPickerRef = useRef<HTMLInputElement>(null);
   const sequencePickerRef = useRef<HTMLInputElement>(null);
@@ -378,41 +377,54 @@ export function ProjectPanel() {
     try {
       setAssetError(undefined);
       const imported = await createMediaLayerFromFile(kind, file, composition, state.currentTime);
-      const existing = state.project.sources.find(
-        (source) => source.contentIdentity === imported.source.contentIdentity,
-      );
-      const source = existing ?? imported.source;
-      const layer = { ...imported.layer, sourceId: source.id };
-      dispatch({
-        type: "operation",
-        operations: [
-          ...(!existing ? ([{ type: "addSource", source }] as const) : []),
-          { type: "addLayer", layer },
-          ...(folderId
-            ? ([{ type: "moveProjectItem", itemId: source.id, folderId }] as const)
-            : []),
-        ],
-        select: [layer.id],
-      });
-      setExpandedFolders((current) => new Set(current).add(folderId ?? ROOT_ASSETS_ID));
-      setAddTarget(undefined);
+      commitMediaImport(imported, folderId);
     } catch (error) {
-      const code =
-        kind === "image"
-          ? "assetImageImport"
-          : kind === "video"
-            ? "assetVideoImport"
-            : "mediaImport";
-      setAssetError(code);
-      reportUiError(t, code, error, {
-        scope: {
-          area: "asset",
-          projectId: state.project.id,
-          compositionId: composition.id,
-          assetName: file.name,
-        },
-      });
+      reportMediaImportError(kind, error, file.name);
     }
+  };
+  const chooseMedia = async (kind: ImportMediaKind, folderId = addTarget?.folderId) => {
+    try {
+      setAssetError(undefined);
+      const imported = await importMediaLayer(kind, composition, state.currentTime);
+      if (imported) commitMediaImport(imported, folderId);
+    } catch (error) {
+      reportMediaImportError(kind, error);
+    }
+  };
+  const commitMediaImport = (
+    imported: Awaited<ReturnType<typeof createMediaLayerFromFile>>,
+    folderId?: Id,
+  ) => {
+    const existing = state.project.sources.find(
+      (source) => source.contentIdentity === imported.source.contentIdentity,
+    );
+    const source = existing ?? imported.source;
+    if (existing) mediaImportRuntime.move(imported.source.id, existing.id);
+    const layer = { ...imported.layer, sourceId: source.id };
+    dispatch({
+      type: "operation",
+      operations: [
+        ...(!existing ? ([{ type: "addSource", source }] as const) : []),
+        { type: "addLayer", layer },
+        ...(folderId ? ([{ type: "moveProjectItem", itemId: source.id, folderId }] as const) : []),
+      ],
+      select: [layer.id],
+    });
+    setExpandedFolders((current) => new Set(current).add(folderId ?? ROOT_ASSETS_ID));
+    setAddTarget(undefined);
+  };
+  const reportMediaImportError = (kind: ImportMediaKind, error: unknown, assetName?: string) => {
+    const code =
+      kind === "image" ? "assetImageImport" : kind === "video" ? "assetVideoImport" : "mediaImport";
+    setAssetError(code);
+    reportUiError(t, code, error, {
+      scope: {
+        area: "asset",
+        projectId: state.project.id,
+        compositionId: composition.id,
+        ...(assetName ? { assetName } : {}),
+      },
+    });
   };
   const commitAdvancedImport = (result: AdvancedImportResult, folderId?: Id) => {
     const operations: Operation[] = [
@@ -659,8 +671,8 @@ export function ProjectPanel() {
       projectContextTarget?.kind === "folder" ? projectContextTarget.name : t("project.assets");
     setAddTarget({ folderId, label });
     if (kind === "image") imagePickerRef.current?.click();
-    else if (kind === "video") videoPickerRef.current?.click();
-    else if (kind === "audio") audioPickerRef.current?.click();
+    else if (kind === "video") void chooseMedia("video", folderId);
+    else if (kind === "audio") void chooseMedia("audio", folderId);
     else if (kind === "svg") void chooseSvg(folderId);
     else if (kind === "psd") void choosePsd(folderId);
     else void chooseSequence(folderId);
@@ -1004,30 +1016,6 @@ export function ProjectPanel() {
           event.target.value = "";
         }}
         ref={imagePickerRef}
-        type="file"
-      />
-      <input
-        accept="video/*"
-        aria-label={t("project.asset.chooseVideo")}
-        hidden
-        onChange={(event) => {
-          const file = event.target.files?.[0];
-          if (file) void importMedia("video", file, addTarget?.folderId);
-          event.target.value = "";
-        }}
-        ref={videoPickerRef}
-        type="file"
-      />
-      <input
-        accept="audio/wav,audio/mpeg,audio/aac,audio/mp4,audio/ogg,audio/flac,.wav,.mp3,.aac,.m4a,.ogg,.flac"
-        aria-label={t("project.asset.chooseAudio")}
-        hidden
-        onChange={(event) => {
-          const file = event.target.files?.[0];
-          if (file) void importMedia("audio", file, addTarget?.folderId);
-          event.target.value = "";
-        }}
-        ref={audioPickerRef}
         type="file"
       />
       <input
@@ -1415,10 +1403,10 @@ export function ProjectPanel() {
               <button onClick={() => void chooseSequence()} type="button">
                 <Files size={15} /> {t("project.add.imageSequence")}
               </button>
-              <button onClick={() => videoPickerRef.current?.click()} type="button">
+              <button onClick={() => void chooseMedia("video")} type="button">
                 <Film size={15} /> {t("project.add.video")}
               </button>
-              <button onClick={() => audioPickerRef.current?.click()} type="button">
+              <button onClick={() => void chooseMedia("audio")} type="button">
                 <Music2 size={15} /> {t("project.add.audio")}
               </button>
             </div>

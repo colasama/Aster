@@ -1,7 +1,9 @@
 // @vitest-environment happy-dom
 
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createMediaLayerForSource, createMediaLayerFromFile } from "./assets";
+import type { AsterDesktopApi } from "../desktop/api";
+import { mediaImportRuntime } from "../importers/media-import-runtime";
+import { createMediaLayerForSource, createMediaLayerFromFile, importMediaLayer } from "./assets";
 import { createBlankProject } from "./project";
 
 class FakeAudioContext {
@@ -21,6 +23,8 @@ class FakeAudioContext {
 
 afterEach(() => {
   FakeAudioContext.failure = undefined;
+  mediaImportRuntime.clear();
+  window.asterDesktop = undefined;
   vi.unstubAllGlobals();
 });
 
@@ -65,6 +69,59 @@ describe("audio footage importer", () => {
       sourceId: imported.source.id,
       inPoint: 1,
       outPoint: 3,
+    });
+  });
+
+  it("retains a picker-authorized native path instead of creating an embedded data URL", async () => {
+    vi.stubGlobal("AudioContext", FakeAudioContext);
+    const composition = createBlankProject().compositions[0];
+    const imported = await createMediaLayerFromFile(
+      "audio",
+      new File([new Uint8Array([1, 2, 3])], "dialogue.wav", { type: "audio/wav" }),
+      composition,
+      0,
+      {
+        runtimeUrl: "aster-asset://local/dialogue.wav",
+        sourcePath: "C:\\Media\\dialogue.wav",
+      },
+    );
+    expect(imported.source).toMatchObject({
+      kind: "audio",
+      runtimeUrl: "aster-asset://local/dialogue.wav",
+    });
+    expect(imported.source.dataUrl).toBeUndefined();
+    expect(mediaImportRuntime.get(imported.source.id)).toEqual({
+      kind: "audio",
+      originalPath: "C:\\Media\\dialogue.wav",
+    });
+  });
+
+  it("uses the authorized desktop picker path for audio imports", async () => {
+    vi.stubGlobal("AudioContext", FakeAudioContext);
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValue(
+          new Response(new Uint8Array([1, 2, 3]), { headers: { "content-type": "audio/wav" } }),
+        ),
+    );
+    const open = vi.fn().mockResolvedValue("C:\\Media\\tone.wav");
+    window.asterDesktop = {
+      open,
+      convertFileSrc: (path: string) => `aster-asset://local/${encodeURIComponent(path)}`,
+    } as unknown as AsterDesktopApi;
+
+    const imported = await importMediaLayer("audio", createBlankProject().compositions[0], 0);
+    expect(open).toHaveBeenCalledWith(expect.objectContaining({ title: "Choose audio asset" }));
+    expect(imported?.source).toMatchObject({
+      kind: "audio",
+      runtimeUrl: expect.stringMatching(/^aster-asset:/),
+    });
+    expect(imported?.source.dataUrl).toBeUndefined();
+    expect(imported && mediaImportRuntime.get(imported.source.id)).toEqual({
+      kind: "audio",
+      originalPath: "C:\\Media\\tone.wav",
     });
   });
 

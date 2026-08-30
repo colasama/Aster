@@ -40,7 +40,17 @@ export interface RuntimeImageSequence {
   loop: boolean;
 }
 
-export type RuntimeMediaImport = RuntimePsdLayer | RuntimeSvgSource | RuntimeImageSequence;
+export interface RuntimeFootageSource {
+  kind: "still" | "video" | "audio";
+  /** Picker-authorized native path retained only until the project bundle owns a copy. */
+  originalPath?: string;
+}
+
+export type RuntimeMediaImport =
+  | RuntimePsdLayer
+  | RuntimeSvgSource
+  | RuntimeImageSequence
+  | RuntimeFootageSource;
 
 type RuntimeEntry = {
   value: RuntimeMediaImport;

@@ -62,14 +62,16 @@ FLAC inputs only after the browser decoder proves support; the native link bound
 selected stream index, channel count, and sample rate from FFprobe. Importers implement the fixed
 `probe`, `validate`, and `import` contract and must validate before admitting a source.
 
-## Recoverable advanced media
+## Recoverable project media
 
-SVG, PSD, and image-sequence decoder state is runtime-owned, but version 8 project documents may
-carry a bounded `mediaImports` sidecar that can recreate it. Entries map stable source IDs to a
-deduplicated payload table. SVG payloads retain sanitized vector markup for resolution-independent
-rerasterization. Every PSD layer stores only its import mode and stable layer key; all layers from the
-same document reference one compressed original document payload. Sequence payloads retain immutable
-pattern, rational frame-rate, missing-frame policy, and per-frame identity metadata.
+SVG, PSD, image-sequence, still, video, and audio import state is runtime-owned, but version 9 project
+documents may carry a bounded `mediaImports` sidecar that can recreate it. Entries map stable source
+IDs to a deduplicated payload table. SVG payloads retain sanitized vector markup for
+resolution-independent rerasterization. Every PSD layer stores only its import mode and stable layer
+key; all layers from the same document reference one compressed original document payload. Sequence
+payloads retain immutable pattern, rational frame-rate, missing-frame policy, and per-frame identity
+metadata. Picker-imported still, video, and audio payloads retain their MIME type and safe extension;
+their source metadata stays small and no encoded file body is stored in the source object.
 
 Browser JSON downloads and browser recovery snapshots embed at most 128 MiB of validated payload
 bytes. Native saves and autosaves accept only picker-authorized external inputs, verify byte identity
@@ -80,6 +82,11 @@ load canonicalizes every path, rejects traversal, symbolic links, junction/repar
 files, mutations, kind mismatches, and bound mismatches before atomically replacing the runtime
 registry. Packed `.aster` archives therefore remain usable after the originally imported files move
 or are deleted.
+
+Legacy sources with bounded `dataUrl` locators remain readable. Their next native save migrates the
+decoded bytes through the same identity-checked sidecar and writes only the resulting relative bundle
+asset to disk. New desktop imports retain the picker-authorized source path until that first save, so
+large audio and video files never require a base64 copy in the project document or undo history.
 
 Managed import files are content-addressed and shared by primary saves and recovery autosaves. Save
 does not delete unreferenced files because an older recovery snapshot may still reference them; pack

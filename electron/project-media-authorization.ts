@@ -25,7 +25,13 @@ export function authorizeProjectMediaExternalPaths(
   for (const [payloadIndex, value] of payloads.entries()) {
     const path = `mediaImports.payloads[${payloadIndex}]`;
     const payload = requireRecord(value, path);
-    if (payload.kind === "svg" || payload.kind === "psd") {
+    if (
+      payload.kind === "still" ||
+      payload.kind === "video" ||
+      payload.kind === "audio" ||
+      payload.kind === "svg" ||
+      payload.kind === "psd"
+    ) {
       authorizeStorage(payload.storage, `${path}.storage`, options);
       continue;
     }

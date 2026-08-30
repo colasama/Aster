@@ -4,10 +4,12 @@ import { authorizeProjectMediaExternalPaths } from "./project-media-authorizatio
 import { renderPathKey } from "./render-queue-paths";
 
 describe("project media local authorization", () => {
-  it("allows only picker-authorized PSD and sequence paths", () => {
+  it("allows only picker-authorized footage, PSD, and sequence paths", () => {
+    const video = resolve("fixtures/clip.mp4");
     const psd = resolve("fixtures/document.psd");
     const frame = resolve("fixtures/frame-0001.png");
     const project = document([
+      { kind: "video", storage: { kind: "external", externalPath: video } },
       { kind: "psd", storage: { kind: "external", externalPath: psd } },
       {
         kind: "imageSequence",
@@ -17,6 +19,7 @@ describe("project media local authorization", () => {
     expect(() =>
       authorizeProjectMediaExternalPaths(project, {
         allowedAssets: new Map([
+          [renderPathKey(video), video],
           [renderPathKey(psd), psd],
           [renderPathKey(frame), frame],
         ]),

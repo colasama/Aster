@@ -43,6 +43,7 @@ pub(super) fn materialize_storage(
     storage: &mut Value,
     extension: &str,
     expected_identity: Option<&str>,
+    expected_sha256: Option<&str>,
     expected_size: Option<u64>,
     expected_last_modified: Option<u64>,
     maximum_size: u64,
@@ -71,16 +72,19 @@ pub(super) fn materialize_storage(
         let metadata = fs::metadata(&source).map_err(|error| error.to_string())?;
         validate_maximum_size(metadata.len(), maximum_size, path)?;
         validate_expected_size(expected_size, metadata.len(), path)?;
-        let actual = fnv64_file_identity(&source)?;
+        let (actual, sha256) = file_identities(&source)?;
         validate_identity(&identity, &actual, path)?;
         if let Some(expected) = expected_identity {
             validate_identity(expected, &actual, path)?;
+        }
+        if let Some(expected) = expected_sha256 {
+            validate_identity(expected, &sha256, path)?;
         }
         budget.charge(&actual, metadata.len())?;
         return Ok(());
     }
 
-    let (source, owned_bytes, declared_identity) = if kind == "inline" {
+    let (source, owned_bytes, declared_identity, sha256_identity) = if kind == "inline" {
         let identity = required_string(
             object,
             "byteIdentity",
@@ -100,7 +104,8 @@ pub(super) fn materialize_storage(
         }
         let actual = fnv64_bytes_identity(&bytes);
         validate_identity(&identity, &actual, path)?;
-        (None, Some(bytes), actual)
+        let sha256 = sha256_bytes_identity(&bytes);
+        (None, Some(bytes), actual, sha256)
     } else if kind == "external" {
         let external = PathBuf::from(required_string(
             object,
@@ -117,17 +122,20 @@ pub(super) fn materialize_storage(
         if object.get("byteIdentity").is_none() {
             validate_expected_last_modified(expected_last_modified, &metadata, path)?;
         }
-        let actual = fnv64_file_identity(&external)?;
+        let (actual, sha256) = file_identities(&external)?;
         if let Some(identity) = object.get("byteIdentity").and_then(Value::as_str) {
             validate_identity(identity, &actual, path)?;
         }
-        (Some(external), None, actual)
+        (Some(external), None, actual, sha256)
     } else {
         return Err(format!("{path}.storage.kind is unsupported"));
     };
 
     if let Some(expected) = expected_identity {
         validate_identity(expected, &declared_identity, path)?;
+    }
+    if let Some(expected) = expected_sha256 {
+        validate_identity(expected, &sha256_identity, path)?;
     }
     let byte_length = owned_bytes
         .as_ref()
@@ -144,7 +152,7 @@ pub(super) fn materialize_storage(
     let relative = import_relative_path(&declared_identity, extension);
     let destination = secure_managed_destination(bundle, &relative, path)?;
     if destination.exists() {
-        let existing = fnv64_file_identity(&destination)?;
+        let (existing, _) = file_identities(&destination)?;
         validate_identity(&declared_identity, &existing, path)?;
     } else if let Some(bytes) = owned_bytes {
         write_atomic(&destination, |file| file.write_all(&bytes))?;
@@ -161,10 +169,12 @@ pub(super) fn materialize_storage(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(super) fn resolve_storage(
     bundle: &Path,
     storage: &mut Value,
     expected_identity: Option<&str>,
+    expected_sha256: Option<&str>,
     expected_size: Option<u64>,
     maximum_size: u64,
     path: &str,
@@ -192,10 +202,13 @@ pub(super) fn resolve_storage(
     let metadata = fs::metadata(&resolved).map_err(|error| error.to_string())?;
     validate_maximum_size(metadata.len(), maximum_size, path)?;
     validate_expected_size(expected_size, metadata.len(), path)?;
-    let actual = fnv64_file_identity(&resolved)?;
+    let (actual, sha256) = file_identities(&resolved)?;
     validate_identity(&identity, &actual, path)?;
     if let Some(expected) = expected_identity {
         validate_identity(expected, &actual, path)?;
+    }
+    if let Some(expected) = expected_sha256 {
+        validate_identity(expected, &sha256, path)?;
     }
     budget.charge(&identity, metadata.len())?;
     object.insert(
@@ -409,9 +422,10 @@ fn identity_byte_length(identity: &str) -> Result<u64, String> {
     Ok(bytes)
 }
 
-fn fnv64_file_identity(path: &Path) -> Result<String, String> {
+fn file_identities(path: &Path) -> Result<(String, String), String> {
     let mut reader = BufReader::new(File::open(path).map_err(|error| error.to_string())?);
     let mut state = Fnv64State::default();
+    let mut sha256 = Sha256::new();
     let mut buffer = [0_u8; 64 * 1024];
     loop {
         let count = reader
@@ -421,8 +435,13 @@ fn fnv64_file_identity(path: &Path) -> Result<String, String> {
             break;
         }
         state.update(&buffer[..count]);
+        sha256.update(&buffer[..count]);
     }
-    Ok(state.identity())
+    Ok((state.identity(), format!("sha256:{:x}", sha256.finalize())))
+}
+
+fn sha256_bytes_identity(bytes: &[u8]) -> String {
+    format!("sha256:{:x}", Sha256::digest(bytes))
 }
 
 pub(super) fn fnv64_bytes_identity(bytes: &[u8]) -> String {

@@ -3,6 +3,7 @@ import type { Composition, FootageSource } from "./types";
 export interface ImportContext {
   composition: Pick<Composition, "width" | "height" | "duration">;
   currentTime: number;
+  mediaOptions?: { runtimeUrl?: string; sourcePath?: string };
 }
 
 export interface SourceImporter {
