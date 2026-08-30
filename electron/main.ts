@@ -47,6 +47,10 @@ import { Mp4ExportManager } from "./mp4-export.js";
 import { developmentProfileDirectory } from "./profile-paths.js";
 import { authorizeProjectMediaExternalPaths } from "./project-media-authorization.js";
 import { RenderMediaSnapshotStore } from "./render-media-snapshot-store.js";
+import {
+  captureAuthorizedRenderQueueInput,
+  identifyRenderQueueInput,
+} from "./render-queue-enqueue.js";
 import { ElectronRenderHostController } from "./render-queue-host.js";
 import { RenderQueueManager } from "./render-queue-manager.js";
 import {
@@ -440,23 +444,6 @@ function assertRenderOutputPathsAuthorized(value: unknown): void {
   }
 }
 
-async function prepareAuthorizedRenderQueueInput(
-  value: unknown,
-  mediaSnapshots: RenderMediaSnapshotStore,
-): Promise<{ jobId: string; input: Record<string, unknown> }> {
-  if (!isRecord(value)) throw new Error("Render queue manifest is invalid");
-  if (typeof value.id !== "string" || value.id.length < 1 || value.id.length > 256)
-    throw new Error("Render queue job id is invalid");
-  const renderMediaSnapshot = await mediaSnapshots.capture(
-    value.id,
-    typeof value.renderMediaSnapshot === "string"
-      ? value.renderMediaSnapshot
-      : '{"version":1,"entries":[],"payloads":[]}',
-    { allowedAssets },
-  );
-  return { jobId: value.id, input: { ...value, renderMediaSnapshot } };
-}
-
 function isAuthorizedRenderDestination(destination: string): boolean {
   return isRenderDestinationAuthorized(destination, grantedPaths);
 }
@@ -594,13 +581,14 @@ function registerIpc(
   ipcMain.handle("aster:render-queue-get", () => renderQueueView(renderQueue.snapshot()));
   ipcMain.handle("aster:render-queue-enqueue", async (_event, value: unknown) => {
     assertRenderOutputPathsAuthorized(value);
-    if (
-      isRecord(value) &&
-      typeof value.id === "string" &&
-      renderQueue.snapshot().items.some((item) => item.manifest.id === value.id)
-    )
-      throw new Error(`Render job ${value.id} already exists`);
-    const prepared = await prepareAuthorizedRenderQueueInput(value, mediaSnapshots);
+    const identified = identifyRenderQueueInput(value);
+    if (renderQueue.snapshot().items.some((item) => item.manifest.id === identified.jobId))
+      throw new Error(`Render job ${identified.jobId} already exists`);
+    const prepared = await captureAuthorizedRenderQueueInput(
+      identified,
+      mediaSnapshots,
+      allowedAssets,
+    );
     try {
       const state = await renderQueue.enqueue(prepared.input);
       mediaSnapshots.commit(prepared.jobId);
