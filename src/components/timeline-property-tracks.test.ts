@@ -94,6 +94,16 @@ describe("expanded timeline property tracks", () => {
       min: 0.001,
       max: 10_000,
     });
+    expect(group?.tracks.find((track) => track.id === "camera.orthographicSize")).toMatchObject({
+      min: 1,
+      max: 10_000_000,
+      unit: "px",
+    });
+    expect(group?.tracks.find((track) => track.id === "camera.irisAspectRatio")).toMatchObject({
+      min: 1,
+      max: 100,
+      unit: "",
+    });
     expect(group?.tracks.find((track) => track.id === "camera.highlightThreshold")).toMatchObject({
       min: 0,
       max: 1,

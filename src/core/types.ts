@@ -456,6 +456,7 @@ export interface GpuDiagnostics {
   adjustmentLayerError?: string;
   precompositionSurfaceError?: string;
   sceneGeneratorError?: string;
+  depthOfFieldTier?: -1 | 0 | 1 | 2;
   depthOfFieldDegradedReason?: string;
 }
 

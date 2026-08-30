@@ -36,8 +36,11 @@ Opaque surfaces always sample the canonical lit/effected HDR beauty, while trans
 separated before their own CoC. The allocator selects K2, K1, or K0 before creating textures. K1
 keeps an exact front surface plus aggregate deeper depth, and K0 keeps canonical beauty plus primary
 depth. Both reduced tiers are exposed through GPU diagnostics. Non-DOF MRT visualization allocates
-none of these layered targets. Production readback requires K2 and reports an actionable allocation
-failure rather than exporting reduced-tier transparency. Diffraction Fringe conserves sampled energy and moves it radially
+none of these layered targets. The Composition viewer status identifies the active K tier; K1/K0
+warnings report the rejected tier's required MiB, available auxiliary budget after reservations,
+quality consequence, and the memory-budget/preview-resolution recovery path. Production readback
+requires K2 and reports an actionable allocation failure rather than exporting reduced-tier
+transparency. Diffraction Fringe conserves sampled energy and moves it radially
 toward the iris boundary; it is not chromatic aberration.
 
 The camera rig uses AE composition coordinates (right, down, forward). Its default two-node camera is

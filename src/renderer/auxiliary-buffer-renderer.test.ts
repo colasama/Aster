@@ -67,14 +67,21 @@ describe("auxiliary MRT identities", () => {
     expect(planAuxiliarySurfaceAllocation(1920, 1080, 192 * 1024 * 1024, true)).toMatchObject({
       depthOfFieldTier: 2,
     });
-    expect(planAuxiliarySurfaceAllocation(1920, 1080, 110 * 1024 * 1024, true)).toMatchObject({
+    const k1 = planAuxiliarySurfaceAllocation(1920, 1080, 110 * 1024 * 1024, true);
+    expect(k1).toMatchObject({
       depthOfFieldTier: 1,
       diagnostic: expect.stringContaining("K1 DOF"),
     });
-    expect(planAuxiliarySurfaceAllocation(1920, 1080, 64 * 1024 * 1024, true)).toMatchObject({
+    expect(k1?.diagnostic).toContain("K2 needs");
+    expect(k1?.diagnostic).toContain("110.0 MiB is available");
+    expect(k1?.diagnostic).toContain("restore K2");
+    const k0 = planAuxiliarySurfaceAllocation(1920, 1080, 64 * 1024 * 1024, true);
+    expect(k0).toMatchObject({
       depthOfFieldTier: 0,
       diagnostic: expect.stringContaining("K0 DOF"),
     });
+    expect(k0?.diagnostic).toContain("K1 needs");
+    expect(k0?.diagnostic).toContain("restore K1/K2");
     expect(planAuxiliarySurfaceAllocation(3840, 2160, 256 * 1024 * 1024, false)).toMatchObject({
       depthOfFieldTier: -1,
     });
@@ -167,6 +174,11 @@ describe("auxiliary MRT identities", () => {
       expect(renderer.enable(3840, 2160, 256 * 1024 * 1024, true)).toBe(true);
       expect(renderer.depthOfFieldTier).toBe(0);
       expect(renderer.depthOfFieldDiagnostic).toContain("K0 DOF");
+      expect(renderer.depthOfFieldDiagnostic).toContain("256.0 MiB auxiliary budget");
+      const residentTextureCount = textures.length;
+      expect(renderer.enable(3840, 2160, 300 * 1024 * 1024, true)).toBe(true);
+      expect(renderer.depthOfFieldDiagnostic).toContain("300.0 MiB auxiliary budget");
+      expect(textures).toHaveLength(residentTextureCount);
       expect(
         productionDepthOfFieldAllocationError(
           true,

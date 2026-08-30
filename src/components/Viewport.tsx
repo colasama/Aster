@@ -40,6 +40,7 @@ import { evaluateSceneCamera } from "../renderer/scene-camera";
 import { createDefaultBezierPath } from "../renderer/vector-path";
 import { WebGpuRenderer } from "../renderer/webgpu-renderer";
 import { useEditor } from "../state/editor-store";
+import { viewportRendererStatus } from "../ui/viewport-renderer-status";
 import {
   DEFAULT_VIEWPORT_ZOOM,
   MAX_VIEWPORT_ZOOM,
@@ -88,6 +89,12 @@ export function Viewport() {
   const lastMetricUpdate = useRef(0);
   const hasGpuPassMetrics = useRef(false);
   const [diagnostics, setDiagnostics] = useState<GpuDiagnostics>();
+  const publishDiagnostics = useCallback((next: GpuDiagnostics) => {
+    setDiagnostics((current) =>
+      current && shallowDiagnosticsEqual(current, next) ? current : { ...next },
+    );
+  }, []);
+  const rendererStatus = viewportRendererStatus(diagnostics, t);
   const [rendererReady, setRendererReady] = useState(false);
   const [rendererRevision, setRendererRevision] = useState(0);
   const [view, setView] = useState<"active" | "custom">("active");
@@ -215,7 +222,7 @@ export function Viewport() {
         beautyPipelineRef.current = new ProductionBeautyFramePipeline(
           createViewportBeautyFrameBackend(renderer, canvas),
         );
-        setDiagnostics(renderer.diagnostics);
+        publishDiagnostics(renderer.diagnostics);
         resize();
         renderer.resize(canvas.width, canvas.height);
         setRendererReady(true);
@@ -228,7 +235,7 @@ export function Viewport() {
       beautyPipelineRef.current = undefined;
       disposeRenderer(renderer);
     };
-  }, [resize]);
+  }, [publishDiagnostics, resize]);
 
   useEffect(() => {
     if (!rendererReady) return;
@@ -265,6 +272,7 @@ export function Viewport() {
             state.project,
             state.selection[0],
           );
+    publishDiagnostics(renderer.diagnostics);
     syncMirrorCanvas(canvasRef.current, mirrorCanvasRef.current);
     const now = performance.now();
     const firstPassBreakdown = Boolean(metrics.passTimings) && !hasGpuPassMetrics.current;
@@ -284,6 +292,7 @@ export function Viewport() {
     viewCount,
     state.project,
     bufferView,
+    publishDiagnostics,
   ]);
 
   useEffect(() => {
@@ -963,39 +972,20 @@ export function Viewport() {
           {composition.width} × {composition.height} ·{" "}
           {composition.frameRate.numerator / composition.frameRate.denominator} fps
         </span>
-        <span
-          className={`renderer-status ${
-            diagnostics?.materialResourceError
-              ? "resource-error"
-              : diagnostics?.available
-                ? "gpu"
-                : "fallback"
-          }`}
-          title={
-            diagnostics?.materialResourceError
-              ? t("viewport.gpuResourceError")
-              : diagnostics?.available
-                ? t("viewport.gpuDetails", {
-                    adapter: diagnostics.adapter,
-                    count: diagnostics.prewarmedPipelines ?? 0,
-                    ms: (diagnostics.pipelineCompileMs ?? 0).toFixed(1),
-                  })
-                : diagnostics
-                  ? t("viewport.compatibility")
-                  : t("viewport.initializing")
-          }
-        >
-          <Sparkles size={11} />{" "}
-          {diagnostics?.materialResourceError
-            ? t("viewport.gpuResourceError")
-            : diagnostics?.available
-              ? t("viewport.webgpu", { adapter: diagnostics.adapter })
-              : diagnostics
-                ? t("viewport.compatibility")
-                : t("viewport.initializing")}
+        <span className={`renderer-status ${rendererStatus.tone}`} title={rendererStatus.title}>
+          <Sparkles size={11} /> {rendererStatus.label}
         </span>
       </div>
     </Panel>
+  );
+}
+
+function shallowDiagnosticsEqual(left: GpuDiagnostics, right: GpuDiagnostics): boolean {
+  const leftKeys = Object.keys(left) as (keyof GpuDiagnostics)[];
+  const rightKeys = Object.keys(right) as (keyof GpuDiagnostics)[];
+  return (
+    leftKeys.length === rightKeys.length &&
+    leftKeys.every((key) => Object.is(left[key], right[key]))
   );
 }
 

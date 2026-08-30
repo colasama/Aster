@@ -46,6 +46,34 @@ afterEach(() => {
 });
 
 describe("AE camera options controls", () => {
+  it("uses the canonical orthographic size bounds", () => {
+    const container = document.createElement("div");
+    document.body.append(container);
+    const project = createBlankProject();
+    const composition = project.compositions[0];
+    const camera = createLayerForComposition("camera", composition);
+    if (!camera.camera) throw new Error("Expected camera settings");
+    camera.camera.projection = "orthographic";
+    composition.layers = [camera];
+    root = createRoot(container);
+    act(() =>
+      root?.render(
+        <I18nProvider>
+          <EditorProvider>
+            <LoadProject project={project} />
+            <SelectedCameraControls />
+          </EditorProvider>
+        </I18nProvider>,
+      ),
+    );
+
+    const size = input(container, "Orthographic size");
+    expect(size.max).toBe("10000000");
+    change(size, "10000000");
+    const edited = activeComposition(latestEditor?.state.project ?? project).layers[0].camera;
+    expect(edited?.orthographicSize).toEqual({ mode: "static", value: 10_000_000 });
+  });
+
   it("edits vector and optical animation at current time without collapsing tracks", () => {
     const container = document.createElement("div");
     document.body.append(container);

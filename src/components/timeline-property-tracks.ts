@@ -218,7 +218,7 @@ const CAMERA_TRACKS: ReadonlyArray<{
     path: "camera.irisAspectRatio",
     labelKey: "timeline.property.irisAspectRatio",
     step: 1,
-    unit: "%",
+    unit: "",
   },
   {
     path: "camera.irisDiffractionFringe",

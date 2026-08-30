@@ -309,7 +309,7 @@ export function Scene3dControls({ layer }: { layer: Layer }) {
         ) : (
           <NumericControl
             label={t("scene3d.camera.orthographicSize")}
-            max={100_000}
+            max={10_000_000}
             min={1}
             onChange={(value) => updateCameraTrack("orthographicSize", value)}
             step={10}

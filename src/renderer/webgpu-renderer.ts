@@ -1121,6 +1121,7 @@ export class WebGpuRenderer {
       this.#beautyDepthOfFieldActive || this.#beautyMotionBlurActive,
       this.#beautyDepthOfFieldActive,
     );
+    this.diagnostics.depthOfFieldTier = this.#auxiliaryBuffers.depthOfFieldTier;
     this.diagnostics.depthOfFieldDegradedReason = this.#auxiliaryBuffers.depthOfFieldDiagnostic;
     this.#motionBlur.setSources(
       this.#width,

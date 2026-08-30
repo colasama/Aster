@@ -392,6 +392,9 @@
 .renderer-status.resource-error {
   color: #ff8c72;
 }
+.renderer-status.performance-warning {
+  color: #e8b15b;
+}
 
 .profiler-overlay {
   position: absolute;

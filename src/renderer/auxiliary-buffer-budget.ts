@@ -31,13 +31,28 @@ export function planAuxiliarySurfaceAllocation(
     return {
       bytes: k1Bytes,
       depthOfFieldTier: 1,
-      diagnostic: "K1 DOF: front color/depth is exact; deeper transparency uses aggregate depth",
+      diagnostic: `${allocationReason("K1", "K2", k2Bytes, available, byteBudget, reservedBytes)} Front color/depth remains exact; deeper transparency uses aggregate depth. Increase the GPU memory budget or lower preview resolution to restore K2.`,
     };
   return {
     bytes: baseBytes,
     depthOfFieldTier: 0,
-    diagnostic: "K0 DOF: canonical beauty uses primary depth without transparent layer separation",
+    diagnostic: `${allocationReason("K0", "K1", k1Bytes, available, byteBudget, reservedBytes)} Canonical beauty uses primary depth without transparent-layer separation. Increase the GPU memory budget or lower preview resolution to restore K1/K2.`,
   };
+}
+
+function allocationReason(
+  selectedTier: "K0" | "K1",
+  rejectedTier: "K1" | "K2",
+  requiredBytes: number,
+  availableBytes: number,
+  byteBudget: number,
+  reservedBytes: number,
+): string {
+  return `${selectedTier} DOF selected because ${rejectedTier} needs ${mebibytes(requiredBytes)} MiB but only ${mebibytes(availableBytes)} MiB is available from the ${mebibytes(byteBudget)} MiB auxiliary budget after ${mebibytes(reservedBytes)} MiB reserved.`;
+}
+
+function mebibytes(bytes: number): string {
+  return (Math.max(0, bytes) / (1024 * 1024)).toFixed(1);
 }
 
 export function auxiliaryDepthOfFieldSurfaceBytes(width: number, height: number): number {

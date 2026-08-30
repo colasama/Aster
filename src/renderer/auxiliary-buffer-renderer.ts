@@ -180,7 +180,10 @@ export class AuxiliaryBufferRenderer {
       plan.height === this.#height &&
       allocation.depthOfFieldTier === this.#depthOfFieldTier
     ) {
-      if (this.estimatedBytes <= this.#byteBudget) return true;
+      if (this.estimatedBytes <= this.#byteBudget) {
+        this.#depthOfFieldDiagnostic = allocation.diagnostic;
+        return true;
+      }
       this.#destroyTargets();
       return false;
     }
