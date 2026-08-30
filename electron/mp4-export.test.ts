@@ -1,10 +1,15 @@
 // @vitest-environment node
 
-import { mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { buildExportArguments, selectEncoder, validateMp4ExportRequest } from "./mp4-export";
+import {
+  buildExportArguments,
+  removeStaleMp4ExportFiles,
+  selectEncoder,
+  validateMp4ExportRequest,
+} from "./mp4-export";
 
 const temporaryRoots: string[] = [];
 
@@ -110,5 +115,20 @@ describe("MP4 export validation", () => {
       expect(args[args.indexOf("-b:v") + 1]).toBe("20000000");
       expect(args).not.toContain("-crf");
     }
+  });
+
+  it("removes only recognizable export temporaries from terminated processes", async () => {
+    const root = mkdtempSync(join(tmpdir(), "aster-mp4-orphans-"));
+    temporaryRoots.push(root);
+    const stale = join(root, ".aster-export-111-123e4567-e89b-12d3-a456-426614174000.mp4");
+    const active = join(root, ".aster-export-222-123e4567-e89b-12d3-a456-426614174001.mp4");
+    const unrelated = join(root, ".aster-export-not-owned.mp4");
+    for (const path of [stale, active, unrelated]) writeFileSync(path, "fixture");
+
+    await removeStaleMp4ExportFiles(root, 222);
+
+    expect(existsSync(stale)).toBe(false);
+    expect(existsSync(active)).toBe(true);
+    expect(existsSync(unrelated)).toBe(true);
   });
 });

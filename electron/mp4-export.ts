@@ -1,6 +1,6 @@
 import { type ChildProcessWithoutNullStreams, spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { lstat, rename, rm, stat } from "node:fs/promises";
+import { lstat, opendir, rename, rm, stat } from "node:fs/promises";
 import { dirname, extname, join } from "node:path";
 import { performance } from "node:perf_hooks";
 import type { Writable } from "node:stream";
@@ -16,6 +16,9 @@ const CANCEL_TIMEOUT_MS = 5_000;
 const MIN_VIDEO_BITRATE_BPS = 64_000;
 const MAX_VIDEO_BITRATE_BPS = 1_000_000_000;
 const PROBE_VIDEO_BITRATE_BPS = 2_000_000;
+const MAX_STALE_EXPORT_SCAN_ENTRIES = 4_096;
+const STALE_EXPORT_NAME =
+  /^\.aster-export-(\d+)-[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.mp4$/i;
 
 export type Mp4PixelFormat = "bgra" | "rgba";
 export type Mp4Encoder = "h264_nvenc" | "libx264";
@@ -70,6 +73,7 @@ export class Mp4ExportManager {
   async start(value: unknown, ownerId: number): Promise<Mp4ExportStarted> {
     if (this.#active) throw new Error("Another MP4 export is already active");
     const request = await validateMp4ExportRequest(value);
+    await removeStaleMp4ExportFiles(dirname(request.outputPath));
     if (!this.#encoderProbe) this.#encoderProbe = selectEncoder(this.#ffmpegExecutable);
     let encoder: Mp4Encoder;
     try {
@@ -133,6 +137,24 @@ export class Mp4ExportManager {
     if (this.#active.ownerId !== ownerId)
       throw new Error("MP4 export job belongs to another renderer");
     return this.#active;
+  }
+}
+
+/** Removes bounded, recognizable encoder temporaries left by a terminated Aster process. */
+export async function removeStaleMp4ExportFiles(
+  directory: string,
+  activeProcessId = process.pid,
+): Promise<void> {
+  const entries = await opendir(directory).catch(() => undefined);
+  if (!entries) return;
+  let scanned = 0;
+  for await (const entry of entries) {
+    scanned += 1;
+    if (scanned > MAX_STALE_EXPORT_SCAN_ENTRIES) break;
+    if (!entry.isFile()) continue;
+    const match = STALE_EXPORT_NAME.exec(entry.name);
+    if (!match || Number(match[1]) === activeProcessId) continue;
+    await rm(join(directory, entry.name), { force: true }).catch(() => undefined);
   }
 }
 

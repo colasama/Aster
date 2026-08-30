@@ -77,6 +77,9 @@ writes run concurrently with awaited IPC backpressure. Pause holds both streams 
 boundaries without closing FFmpeg; cancel, renderer crash, decode failure, or encoder failure disposes
 both pipes and removes staged output. If the snapshot has no audible audio/video source, an
 audio-enabled module intentionally produces a video-only MP4 rather than manufacturing a silent track.
+Before a new encoder starts, its output directory is scanned through a bounded exact-name filter for
+`.aster-export` temporaries owned by terminated process IDs. Current-process and unrelated files are
+preserved, while an unclean process exit cannot accumulate abandoned frame streams indefinitely.
 
 The RenderHost reports Pause only after the current beauty-frame writes reach their boundary. PCM
 observes the same control generation between bounded chunks. Cancel and failure paths first stop and
