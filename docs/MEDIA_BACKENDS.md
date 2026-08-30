@@ -11,7 +11,7 @@ typed FFmpeg H.264/H.265 export backend.
 The Electron MVP exposes SDR H.264/AAC MP4 export. It keeps at most three WebGPU readbacks in
 flight, sends packed BGRA/RGBA frames over a dedicated binary IPC method, probes a real NVENC frame,
 falls back to `libx264`, mixes bounded Float32 stereo chunks through a separate FFmpeg pipe, and
-atomically publishes the completed MP4. The PCM sample count derives from the same rational frame
+applies the requested bitrate as bounded VBR before atomically publishing the completed MP4. The PCM sample count derives from the same rational frame
 range as video; shared source decodes are cached instead of repeated per layer instance. It deliberately does not claim
 zero-copy: the display-referred frame travels from GPU memory to CPU memory and is uploaded again for
 hardware encoding. HDR/10-bit delivery, alpha video, packaged FFmpeg artifacts,

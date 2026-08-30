@@ -332,6 +332,7 @@ describe("RenderHost frame session", () => {
     expect(result).toBe("completed");
     expect(decode).toHaveBeenCalledTimes(1);
     const start = outputs.find((output) => output.type === "startMp4");
+    expect(start?.videoBitrateBps).toBe(16_000_000);
     expect(start?.audio).toEqual({ sampleRate: 48_000, channels: 2, frameCount: 4_004 });
     const audio = outputs.find((output) => output.type === "writeMp4Audio");
     expect(audio?.samples.byteLength).toBe(4_004 * 2 * Float32Array.BYTES_PER_ELEMENT);

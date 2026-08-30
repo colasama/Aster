@@ -57,6 +57,7 @@ export interface Mp4ExportStartOptions {
   frameRateDenominator: number;
   frameCount: number;
   pixelFormat: Mp4PixelFormat;
+  videoBitrateBps: number;
   audio?: Mp4ExportAudioOptions;
 }
 
@@ -148,6 +149,7 @@ export type DesktopRenderHostOutputRequest =
       leaseId: string;
       outputId: string;
       pixelFormat: Mp4PixelFormat;
+      videoBitrateBps: number;
       audio?: Mp4ExportAudioOptions;
     }
   | {

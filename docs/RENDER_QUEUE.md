@@ -65,7 +65,10 @@ disposes paused and running hosts, marks their leases failed, removes temporary 
 queue before exit.
 
 PNG stills and PNG sequences are encoded from the canonical raw beauty buffer. H.264 output receives
-that same raw RGBA/BGRA buffer and uses the manifest's rational rate. When an H.264 output enables
+that same raw RGBA/BGRA buffer and uses the manifest's rational rate and video bitrate. The strict
+RenderHost protocol carries the bitrate in integer bits per second and Electron verifies it against
+the immutable output module before applying bounded VBR `b:v`, `maxrate`, and `bufsize` controls to
+both NVENC and libx264. When an H.264 output enables
 audio, the RenderHost decodes each audible source once from the same immutable project snapshot and
 mixes stereo Float32 PCM in bounded 48,000-frame chunks. The PCM range begins at the exact rational
 manifest start time, while its total sample count is rounded once from the output video-frame count;

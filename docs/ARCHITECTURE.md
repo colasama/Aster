@@ -123,7 +123,8 @@ bounded one-second Float32 stereo chunks, hard-limited at the output boundary, a
 separate FFmpeg pipe for AAC muxing. The PCM frame count derives from the exact rational video frame
 count so fractional rates do not accumulate A/V drift. Frames are submitted to the encoder in timeline order even
 when GPU mappings finish out of order. A real one-frame probe selects NVENC when it works and otherwise
-falls back to `libx264`; MP4 publication replaces the selected output only after FFmpeg writes the
+falls back to `libx264`; both encoders receive the requested bounded bitrate through the same typed
+export request. MP4 publication replaces the selected output only after FFmpeg writes the
 trailer successfully. Compositions containing video layers, including nested compositions, use one
 in-flight frame and wait for the browser decoder's `seeked` state before capture; graphics-only jobs
 use all three readback slots. Cancellation stops at a bounded in-flight frame and removes temporary

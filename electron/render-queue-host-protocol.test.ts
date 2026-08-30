@@ -28,9 +28,13 @@ describe("RenderHost IPC protocol", () => {
         leaseId: "lease",
         outputId: "video",
         pixelFormat: "rgba",
+        videoBitrateBps: 20_000_000,
         audio: { sampleRate: 48_000, channels: 2, frameCount: 4_004 },
       }),
-    ).toMatchObject({ audio: { sampleRate: 48_000, channels: 2, frameCount: 4_004 } });
+    ).toMatchObject({
+      videoBitrateBps: 20_000_000,
+      audio: { sampleRate: 48_000, channels: 2, frameCount: 4_004 },
+    });
     const samples = new ArrayBuffer(48_000 * 2 * Float32Array.BYTES_PER_ELEMENT);
     expect(
       parseRenderHostOutputRequest({
@@ -79,9 +83,20 @@ describe("RenderHost IPC protocol", () => {
         leaseId: "lease",
         outputId: "video",
         pixelFormat: "rgba",
+        videoBitrateBps: 20_000_000,
         audio: { sampleRate: 48_000, channels: 1, frameCount: 4_004 },
       }),
     ).toThrow("bounds");
+    expect(() =>
+      parseRenderHostOutputRequest({
+        type: "startMp4",
+        jobId: "job",
+        leaseId: "lease",
+        outputId: "video",
+        pixelFormat: "rgba",
+        videoBitrateBps: 0,
+      }),
+    ).toThrow("bitrate");
     expect(() =>
       parseRenderHostOutputRequest({
         type: "writeMp4Audio",

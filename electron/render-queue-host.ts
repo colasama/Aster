@@ -246,6 +246,9 @@ class ElectronRenderHostWorker implements RenderQueueHostHandle {
       const output = this.#output(request.outputId, "mp4");
       if (request.audio && !output.includeAudio)
         throw new Error("RenderHost MP4 audio was not enabled by the immutable manifest");
+      const expectedBitrateBps = Math.round(output.bitrateMbps * 1_000_000);
+      if (request.videoBitrateBps !== expectedBitrateBps)
+        throw new Error("RenderHost MP4 bitrate does not match the immutable manifest");
       const manager = new Mp4ExportManager(this.#ffmpegExecutable);
       const started = await manager.start(
         {
@@ -256,6 +259,7 @@ class ElectronRenderHostWorker implements RenderQueueHostHandle {
           frameRateDenominator: this.#item.manifest.frameRate.denominator,
           frameCount: this.#item.manifest.endFrameExclusive - this.#item.manifest.startFrame,
           pixelFormat: request.pixelFormat,
+          videoBitrateBps: request.videoBitrateBps,
           audio: request.audio,
         },
         this.#window.webContents.id,

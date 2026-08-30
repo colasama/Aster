@@ -254,6 +254,7 @@ export async function renderMp4(
       frameRateDenominator: composition.frameRate.denominator,
       frameCount,
       pixelFormat: session.rawPixelFormat,
+      videoBitrateBps: 20_000_000,
       audio:
         audioFrameCount > 0
           ? {

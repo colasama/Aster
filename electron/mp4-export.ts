@@ -13,6 +13,9 @@ const MAX_STDERR_BYTES = 1024 * 1024;
 const MAX_DURATION_SECONDS = 24 * 60 * 60;
 const ENCODER_PROBE_TIMEOUT_MS = 10_000;
 const CANCEL_TIMEOUT_MS = 5_000;
+const MIN_VIDEO_BITRATE_BPS = 64_000;
+const MAX_VIDEO_BITRATE_BPS = 1_000_000_000;
+const PROBE_VIDEO_BITRATE_BPS = 2_000_000;
 
 export type Mp4PixelFormat = "bgra" | "rgba";
 export type Mp4Encoder = "h264_nvenc" | "libx264";
@@ -25,6 +28,7 @@ export interface Mp4ExportStartRequest {
   frameRateDenominator: number;
   frameCount: number;
   pixelFormat: Mp4PixelFormat;
+  videoBitrateBps: number;
   audio?: {
     sampleRate: number;
     channels: 2;
@@ -323,6 +327,12 @@ export async function validateMp4ExportRequest(value: unknown): Promise<Validate
     throw new Error("MP4 duration exceeds 24 hours");
   if (candidate.pixelFormat !== "bgra" && candidate.pixelFormat !== "rgba")
     throw new Error("MP4 input pixel format must be BGRA or RGBA");
+  const videoBitrateBps = boundedInteger(
+    candidate.videoBitrateBps,
+    "video bitrate",
+    MIN_VIDEO_BITRATE_BPS,
+    MAX_VIDEO_BITRATE_BPS,
+  );
   const frameBytes = width * height * 4;
   if (!Number.isSafeInteger(frameBytes) || frameBytes > MAX_FRAME_BYTES)
     throw new Error("MP4 frame size exceeds the configured bound");
@@ -367,6 +377,7 @@ export async function validateMp4ExportRequest(value: unknown): Promise<Validate
     frameRateDenominator,
     frameCount,
     pixelFormat: candidate.pixelFormat,
+    videoBitrateBps,
     frameBytes,
     audio,
   };
@@ -457,7 +468,7 @@ async function probeEncoder(executable: string, encoder: Mp4Encoder): Promise<bo
       "-an",
       "-c:v",
       encoder,
-      ...encoderOptions(encoder),
+      ...encoderOptions(encoder, PROBE_VIDEO_BITRATE_BPS),
       "-pix_fmt",
       "yuv420p",
       "-f",
@@ -523,7 +534,7 @@ export function buildExportArguments(
     "-dn",
     "-c:v",
     encoder,
-    ...encoderOptions(encoder),
+    ...encoderOptions(encoder, request.videoBitrateBps),
     "-pix_fmt",
     "yuv420p",
     "-color_range",
@@ -547,10 +558,20 @@ export function buildExportArguments(
   ];
 }
 
-function encoderOptions(encoder: Mp4Encoder): string[] {
+function encoderOptions(encoder: Mp4Encoder, videoBitrateBps: number): string[] {
+  const maximumBitrateBps = videoBitrateBps;
+  const bufferSizeBps = Math.min(MAX_VIDEO_BITRATE_BPS * 2, videoBitrateBps * 2);
+  const rateControl = [
+    "-b:v",
+    videoBitrateBps.toString(),
+    "-maxrate",
+    maximumBitrateBps.toString(),
+    "-bufsize",
+    bufferSizeBps.toString(),
+  ];
   return encoder === "h264_nvenc"
-    ? ["-preset", "p4", "-tune", "hq", "-rc", "vbr", "-cq", "19", "-b:v", "0"]
-    : ["-preset", "veryfast", "-crf", "18"];
+    ? ["-preset", "p4", "-tune", "hq", "-rc", "vbr", ...rateControl]
+    : ["-preset", "veryfast", ...rateControl];
 }
 
 function writeChunk(input: Writable, chunk: Buffer): Promise<void> {

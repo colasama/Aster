@@ -70,6 +70,7 @@ export async function runRenderHostFrameLoop(
       ...shared,
       outputId: output.id,
       pixelFormat: options.pixelFormat,
+      videoBitrateBps: Math.round(output.bitrateMbps * 1_000_000),
       ...(output.includeAudio && audio
         ? {
             audio: {

@@ -5,6 +5,7 @@ export type RenderHostOutputRequest =
       leaseId: string;
       outputId: string;
       pixelFormat: "bgra" | "rgba";
+      videoBitrateBps: number;
       audio?: { sampleRate: number; channels: 2; frameCount: number };
     }
   | {
@@ -51,14 +52,22 @@ export function parseRenderHostOutputRequest(value: unknown): RenderHostOutputRe
       "leaseId",
       "outputId",
       "pixelFormat",
+      "videoBitrateBps",
       ...(value.audio === undefined ? [] : ["audio"]),
     ]);
     if (value.pixelFormat !== "bgra" && value.pixelFormat !== "rgba")
       throw new Error("RenderHost MP4 pixel format is invalid");
+    if (
+      !Number.isSafeInteger(value.videoBitrateBps) ||
+      Number(value.videoBitrateBps) < 64_000 ||
+      Number(value.videoBitrateBps) > 1_000_000_000
+    )
+      throw new Error("RenderHost MP4 video bitrate is outside supported bounds");
     return {
       type: "startMp4",
       ...shared,
       pixelFormat: value.pixelFormat,
+      videoBitrateBps: Number(value.videoBitrateBps),
       ...(value.audio === undefined ? {} : { audio: audioOptions(value.audio) }),
     };
   }
