@@ -178,14 +178,64 @@ export async function rasterizeSvgToImageBitmap(
 ): Promise<ImageBitmap> {
   if (typeof createImageBitmap !== "function")
     throw new Error("SVG vector rasterization is unavailable in this renderer");
+  const targetWidth = boundedInteger(width, 1, 32_768, 1);
+  const targetHeight = boundedInteger(height, 1, 32_768, 1);
   const blob = new Blob([markup], { type: "image/svg+xml" });
-  return createImageBitmap(blob, {
-    resizeWidth: boundedInteger(width, 1, 32_768, 1),
-    resizeHeight: boundedInteger(height, 1, 32_768, 1),
-    resizeQuality: "high",
-    premultiplyAlpha: "premultiply",
-    colorSpaceConversion: "none",
-  });
+  try {
+    return await createImageBitmap(blob, {
+      resizeWidth: targetWidth,
+      resizeHeight: targetHeight,
+      resizeQuality: "high",
+      premultiplyAlpha: "premultiply",
+      colorSpaceConversion: "none",
+    });
+  } catch (bitmapError) {
+    try {
+      return await rasterizeSvgThroughImageElement(blob, targetWidth, targetHeight);
+    } catch (imageError) {
+      throw new Error(
+        `SVG rasterization failed at ${targetWidth}x${targetHeight}: ${errorMessage(bitmapError)}; fallback: ${errorMessage(imageError)}`,
+      );
+    }
+  }
+}
+
+async function rasterizeSvgThroughImageElement(
+  blob: Blob,
+  width: number,
+  height: number,
+): Promise<ImageBitmap> {
+  if (
+    typeof Image !== "function" ||
+    typeof document === "undefined" ||
+    typeof URL?.createObjectURL !== "function"
+  )
+    throw new Error("DOM SVG rasterization is unavailable in this renderer");
+  const source = URL.createObjectURL(blob);
+  try {
+    const image = new Image();
+    image.decoding = "sync";
+    image.src = source;
+    await image.decode();
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext("2d", { alpha: true });
+    if (!context) throw new Error("SVG fallback canvas context is unavailable");
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = "high";
+    context.drawImage(image, 0, 0, width, height);
+    return await createImageBitmap(canvas, {
+      premultiplyAlpha: "premultiply",
+      colorSpaceConversion: "none",
+    });
+  } finally {
+    URL.revokeObjectURL(source);
+  }
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }
 
 function finite(value: number | undefined): number {

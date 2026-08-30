@@ -2,7 +2,12 @@
 
 import { describe, expect, it, vi } from "vitest";
 import { parseSvgSource } from "./svg";
-import { computeSvgRasterTarget, SvgRasterCache, svgMarkupAtRasterSize } from "./svg-raster-cache";
+import {
+  computeSvgRasterTarget,
+  rasterizeSvgToImageBitmap,
+  SvgRasterCache,
+  svgMarkupAtRasterSize,
+} from "./svg-raster-cache";
 
 const source = () =>
   parseSvgSource(
@@ -116,5 +121,46 @@ describe("SVG vector raster cache", () => {
     await expect(pending).resolves.toBe("stale");
     expect(cache.size).toBe(0);
     expect(cache.bytes).toBe(0);
+  });
+
+  it("falls back to DOM rasterization when hidden-renderer bitmap decode rejects SVG", async () => {
+    const expected = { width: 320, height: 180, close: vi.fn() } as unknown as ImageBitmap;
+    const createBitmap = vi
+      .fn()
+      .mockRejectedValueOnce(
+        new DOMException("The source image could not be decoded", "InvalidStateError"),
+      )
+      .mockResolvedValueOnce(expected);
+    vi.stubGlobal("createImageBitmap", createBitmap);
+    const decode = vi.fn(async () => undefined);
+    vi.stubGlobal(
+      "Image",
+      class {
+        decoding = "auto";
+        src = "";
+        decode = decode;
+      },
+    );
+    const drawImage = vi.fn();
+    const canvas = {
+      width: 0,
+      height: 0,
+      getContext: vi.fn(() => ({
+        imageSmoothingEnabled: false,
+        imageSmoothingQuality: "low",
+        drawImage,
+      })),
+    } as unknown as HTMLCanvasElement;
+    const createElement = vi.spyOn(document, "createElement").mockReturnValue(canvas);
+    const createObjectUrl = vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:svg");
+    const revokeObjectUrl = vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => undefined);
+
+    await expect(rasterizeSvgToImageBitmap(source().sanitized, 320, 180)).resolves.toBe(expected);
+    expect(decode).toHaveBeenCalledOnce();
+    expect(drawImage).toHaveBeenCalledWith(expect.anything(), 0, 0, 320, 180);
+    expect(createBitmap).toHaveBeenCalledTimes(2);
+    expect(createObjectUrl).toHaveBeenCalledOnce();
+    expect(revokeObjectUrl).toHaveBeenCalledWith("blob:svg");
+    createElement.mockRestore();
   });
 });
