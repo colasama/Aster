@@ -139,6 +139,12 @@ finishing text editing records one transaction from the gesture's original proje
 undo deterministic without accumulating per-move history entries. Canvas resizes invalidate the
 preview, and renderer initialization always draws the current evaluated frame.
 
+Three-dimensional selection reuses the renderer's evaluated camera projection without a GPU
+readback. Screen-space bounds are projected from bounded render quads or mesh boxes; the selected
+layer's Local axes rotate with its evaluated transform while World axes remain composition-aligned.
+Axis and view-plane drags write the animated Position property at the current time. Locked layers
+remain selectable for inspection, but the overlay exposes no draggable surface or axis handles.
+
 Layer effects reuse one pair of full-resolution HDR transient textures across the frame. Per-layer
 uniform and operation buffers remain distinct so queue uploads cannot race command-buffer execution;
 the large textures do not scale with the number of effected layers.

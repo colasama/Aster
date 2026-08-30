@@ -174,6 +174,7 @@ export const panelsEn = {
   "viewport.camera.ortho": "ORTHO",
   "viewport.transformLayer": "Transform {name} in viewport",
   "viewport.transformSelection": "Transform {count} selected layers",
+  "viewport.move3dAxis": "Move selection on {axis} axis ({space})",
   "viewport.rotateSelection": "Rotate selection",
   "viewport.resizeSelection": "Resize selection from {handle}",
   "viewport.moveAnchor": "Move anchor point",

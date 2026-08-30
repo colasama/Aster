@@ -176,6 +176,7 @@ export const panelsZh = {
   "viewport.camera.ortho": "正交",
   "viewport.transformLayer": "在视口中变换 {name}",
   "viewport.transformSelection": "变换选中的 {count} 个图层",
+  "viewport.move3dAxis": "沿 {axis} 轴移动选区（{space}）",
   "viewport.rotateSelection": "旋转选区",
   "viewport.resizeSelection": "从{handle}调整选区大小",
   "viewport.moveAnchor": "移动锚点",

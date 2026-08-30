@@ -156,6 +156,43 @@
   stroke: #ec8d98;
   stroke-dasharray: 4 3;
 }
+.viewport-selection-outline-3d {
+  stroke-dasharray: 2 2;
+}
+.viewport-gizmo-axis-line {
+  pointer-events: none;
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+.viewport-gizmo-axis-handle {
+  pointer-events: all;
+  stroke: #10141d;
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+.viewport-gizmo-axis-handle:focus-visible {
+  outline: none;
+  stroke: #fff;
+  stroke-width: 2;
+}
+.viewport-gizmo-axis-x .viewport-gizmo-axis-line {
+  stroke: #ef5969;
+}
+.viewport-gizmo-axis-x .viewport-gizmo-axis-handle {
+  fill: #ef5969;
+}
+.viewport-gizmo-axis-y .viewport-gizmo-axis-line {
+  stroke: #58c879;
+}
+.viewport-gizmo-axis-y .viewport-gizmo-axis-handle {
+  fill: #58c879;
+}
+.viewport-gizmo-axis-z .viewport-gizmo-axis-line {
+  stroke: #5290f5;
+}
+.viewport-gizmo-axis-z .viewport-gizmo-axis-handle {
+  fill: #5290f5;
+}
 .viewport-selection-group-outline {
   stroke-dasharray: 3 2;
 }

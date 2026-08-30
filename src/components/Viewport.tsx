@@ -10,6 +10,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createDefaultEvaluatedCamera } from "../core/camera-settings";
 import { planCompositionCrop } from "../core/composition-crop";
 import { createLayerForComposition } from "../core/layer-factory";
 import { logger } from "../core/logger";
@@ -20,7 +21,7 @@ import {
   ExclusiveRenderSessionGuard,
   type RenderSessionLease,
 } from "../core/render-session-guard";
-import { evaluateWorldTransform, flattenSceneLayers } from "../core/scene-evaluation";
+import { evaluateWorldTransform } from "../core/scene-evaluation";
 import type { Composition, GpuDiagnostics, Project } from "../core/types";
 import { isDesktopRuntime, onDisplayMetricsChanged } from "../desktop/api";
 import type { PlainMessageKey, Translate } from "../i18n/core";
@@ -35,6 +36,7 @@ import { type GpuBenchmarkRequest, runGpuBenchmark } from "../renderer/gpu-bench
 import { calculatePreviewSize } from "../renderer/preview-size";
 import { encodeRawFramePng } from "../renderer/raw-frame-png";
 import { BUFFER_VISUALIZATIONS, type BufferVisualization } from "../renderer/render-buffers";
+import { evaluateSceneCamera } from "../renderer/scene-camera";
 import { createDefaultBezierPath } from "../renderer/vector-path";
 import { WebGpuRenderer } from "../renderer/webgpu-renderer";
 import { useEditor } from "../state/editor-store";
@@ -44,11 +46,12 @@ import {
   MIN_VIEWPORT_ZOOM,
   viewportZoomPercent,
 } from "../ui/viewport-zoom";
-import { hitTestViewportTransform } from "../viewport/transform-interaction";
+import { hitTestSceneLayerAtPoint } from "../viewport/transform-3d-interaction";
 import { resolveWorkspaceViewerComposition } from "../workspace/viewer-context";
 import { CameraGizmo } from "./CameraGizmo";
 import { useContextMenuTrigger } from "./context-menu/use-context-menu-trigger";
 import { Panel } from "./Panel";
+import { Viewport3dTransformControls } from "./Viewport3dTransformControls";
 import { ViewportContextMenu } from "./ViewportContextMenu";
 import { ViewportTransformControls } from "./ViewportTransformControls";
 import { useWorkspaceApi } from "./workspace/DockWorkspace";
@@ -733,17 +736,28 @@ export function Viewport() {
               </div>
             )}
             {state.showLayerControls && !viewerReadOnly ? (
-              <ViewportTransformControls
-                activeTool={state.activeTool}
-                composition={composition}
-                dispatch={dispatch}
-                onEditText={beginTextEditing}
-                project={state.project}
-                selection={state.selection}
-                showGuides={state.showGuides}
-                time={state.currentTime}
-                zoom={displayZoom}
-              />
+              <>
+                <ViewportTransformControls
+                  activeTool={state.activeTool}
+                  composition={composition}
+                  dispatch={dispatch}
+                  onEditText={beginTextEditing}
+                  project={state.project}
+                  selection={state.selection}
+                  showGuides={state.showGuides}
+                  time={state.currentTime}
+                  zoom={displayZoom}
+                />
+                <Viewport3dTransformControls
+                  composition={composition}
+                  dispatch={dispatch}
+                  project={state.project}
+                  selection={state.selection}
+                  space={space}
+                  time={state.currentTime}
+                  zoom={displayZoom}
+                />
+              </>
             ) : null}
             {!viewerReadOnly && editingTextLayer && selectedTransform && (
               <textarea
@@ -1019,37 +1033,17 @@ function toggleFullscreen(element: Element | null): void {
   else if (element instanceof HTMLElement) void element.requestFullscreen();
 }
 
-function hitTestLayer(
+export function hitTestLayer(
   composition: ReturnType<typeof activeComposition>,
   project: Project,
   time: number,
   x: number,
   y: number,
 ) {
-  const hit = flattenSceneLayers(composition, project, time).find((scene) => {
-    const { layer, transform } = scene;
-    if (
-      layer.locked ||
-      layer.threeDimensional ||
-      layer.kind === "audio" ||
-      layer.kind === "camera" ||
-      layer.kind === "light" ||
-      layer.kind === "adjustment"
-    )
-      return false;
-    return hitTestViewportTransform(
-      [x, y],
-      {
-        position: [transform.position[0], transform.position[1]],
-        scale: [transform.scale[0], transform.scale[1]],
-        rotation: transform.rotation[2],
-        anchor: [transform.anchor[0], transform.anchor[1]],
-        size: layer.size,
-      },
-      2,
-    );
-  });
-  return hit ? composition.layers.find((layer) => layer.id === hit.selectionId) : undefined;
+  const camera =
+    evaluateSceneCamera(composition, time) ??
+    createDefaultEvaluatedCamera(composition.width, composition.height);
+  return hitTestSceneLayerAtPoint(composition, project, time, [x, y], camera);
 }
 
 export function rotateViewportPoint(x: number, y: number, degrees: number): [number, number] {
