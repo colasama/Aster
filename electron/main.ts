@@ -453,7 +453,7 @@ function registerAssetProtocol(): void {
     ASSET_SCHEME,
     createAssetProtocolHandler({
       allowedAssets,
-      fetchFile: (url) => net.fetch(url),
+      fetchFile: (url, init) => net.fetch(url, init),
     }),
   );
 }

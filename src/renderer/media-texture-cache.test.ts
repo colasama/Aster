@@ -90,7 +90,7 @@ describe("exact-frame media resource barrier", () => {
     await expect(aborted).rejects.toMatchObject({ name: "AbortError", message: "cancel export" });
   });
 
-  it("marks a video generation pending until an exact decoded frame is uploaded", () => {
+  it("marks a video generation pending until an exact decoded frame is uploaded", async () => {
     const video = new MockVideo();
     vi.stubGlobal("HTMLMediaElement", { HAVE_CURRENT_DATA: 2 });
     vi.stubGlobal("document", {
@@ -101,11 +101,116 @@ describe("exact-frame media resource barrier", () => {
     const layer = createLayerForComposition("video", createBlankComposition());
     cache.prepareMedia(layer, videoSource(), 0, false, "video-instance");
     expect(cache.hasPendingFrameResources).toBe(true);
+    expect(video.crossOrigin).toBe("anonymous");
 
     video.readyState = 2;
     video.dispatchEvent(new Event("loadeddata"));
 
-    expect(cache.hasPendingFrameResources).toBe(false);
+    expect(cache.hasPendingFrameResources).toBe(true);
+    await vi.waitFor(() => expect(cache.hasPendingFrameResources).toBe(false));
+  });
+
+  it("creates external-image destinations with copy and render-attachment usage", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({ ok: true, blob: async () => new Blob() })),
+    );
+    vi.stubGlobal(
+      "createImageBitmap",
+      vi.fn(async () => bitmap()),
+    );
+    const descriptors: GPUTextureDescriptor[] = [];
+    const device = {
+      limits: { maxTextureDimension2D: 8_192 },
+      queue: { copyExternalImageToTexture: vi.fn(), writeTexture: vi.fn() },
+      createTexture: vi.fn((descriptor: GPUTextureDescriptor) => {
+        descriptors.push(descriptor);
+        return { createView: vi.fn(() => ({})), destroy: vi.fn() };
+      }),
+      createBuffer: vi.fn(() => ({ destroy: vi.fn() })),
+      createBindGroup: vi.fn(() => ({})),
+    } as unknown as GPUDevice;
+    const cache = new MediaTextureCache(
+      device,
+      {} as GPUBindGroupLayout,
+      {} as GPUSampler,
+      vi.fn(),
+    );
+    const layer = createLayerForComposition("image", createBlankComposition());
+
+    cache.prepareMedia(layer, still("external.png"), 0, false, "external-image");
+    await cache.waitForFrameResources();
+
+    expect(descriptors).toHaveLength(1);
+    const usage = descriptors[0]?.usage ?? 0;
+    expect(usage & GPUTextureUsage.COPY_DST).toBe(GPUTextureUsage.COPY_DST);
+    expect(usage & GPUTextureUsage.RENDER_ATTACHMENT).toBe(GPUTextureUsage.RENDER_ATTACHMENT);
+  });
+
+  it("does not stage a full video frame while the bounded GPU probe is pending", () => {
+    vi.stubGlobal("GPUBufferUsage", { COPY_DST: 1, MAP_READ: 2 });
+    vi.stubGlobal("GPUMapMode", { READ: 1 });
+    vi.stubGlobal("HTMLMediaElement", { HAVE_CURRENT_DATA: 2 });
+    const video = new MockVideo();
+    const getImageData = vi.fn(function (this: { canvas: { width: number; height: number } }) {
+      return { data: new Uint8ClampedArray(this.canvas.width * this.canvas.height * 4) };
+    });
+    vi.stubGlobal("document", {
+      body: { append: vi.fn() },
+      createElement: (name: string) => {
+        if (name === "video") return video;
+        const canvas = {
+          height: 1,
+          width: 1,
+          getContext: vi.fn(() => ({
+            canvas,
+            drawImage: vi.fn(),
+            getImageData,
+          })),
+          remove: vi.fn(),
+          setAttribute: vi.fn(),
+        };
+        return canvas;
+      },
+    });
+    const neverMaps = new Promise<void>(() => undefined);
+    const device = {
+      limits: { maxTextureDimension2D: 8_192 },
+      queue: {
+        copyExternalImageToTexture: vi.fn(),
+        submit: vi.fn(),
+        writeTexture: vi.fn(),
+      },
+      createBindGroup: vi.fn(() => ({})),
+      createBuffer: vi.fn(() => ({
+        destroy: vi.fn(),
+        getMappedRange: vi.fn(() => new ArrayBuffer(1_536)),
+        mapAsync: vi.fn(() => neverMaps),
+      })),
+      createCommandEncoder: vi.fn(() => ({
+        copyTextureToBuffer: vi.fn(),
+        finish: vi.fn(() => ({})),
+      })),
+      createTexture: vi.fn(() => ({ createView: vi.fn(() => ({})), destroy: vi.fn() })),
+      popErrorScope: vi.fn(async () => null),
+      pushErrorScope: vi.fn(),
+    } as unknown as GPUDevice;
+    const cache = new MediaTextureCache(
+      device,
+      {} as GPUBindGroupLayout,
+      {} as GPUSampler,
+      vi.fn(),
+    );
+    const layer = createLayerForComposition("video", createBlankComposition());
+
+    cache.prepareMedia(layer, videoSource(), 0, false, "video-probe");
+    video.readyState = 2;
+    video.dispatchEvent(new Event("loadeddata"));
+
+    // One 2×6-pixel reference read validates the adapter; no full-frame fallback read occurs.
+    expect(getImageData).toHaveBeenCalledOnce();
+    expect(device.queue.copyExternalImageToTexture).toHaveBeenCalledTimes(3);
+    cache.destroy();
   });
 
   it("closes a late still decode after destroy without touching GPU state or reporting errors", async () => {
@@ -363,6 +468,7 @@ function deferred<Value>() {
 }
 
 class MockVideo extends EventTarget {
+  crossOrigin: string | null = null;
   currentTime = 0;
   readonly dataset: DOMStringMap = {};
   duration = 4;

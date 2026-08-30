@@ -34,10 +34,92 @@ describe("packaged asset protocol", () => {
       url: `aster-asset://local/${encodeURIComponent(path)}`,
     });
 
-    expect(result).toBe(response);
+    expect(result).not.toBe(response);
     expect(result.ok).toBe(true);
     expect(result.headers.get("content-type")).toBe("image/svg+xml");
-    expect(fetchFile).toHaveBeenCalledWith(pathToFileURL(path).toString());
+    expect(result.headers.get("access-control-allow-origin")).toBe("*");
+    await expect(result.text()).resolves.toContain("<svg");
+    expect(fetchFile).toHaveBeenCalledWith(pathToFileURL(path).toString(), { method: "GET" });
+  });
+
+  it("keeps media range responses streaming and origin-clean without forwarding credentials", async () => {
+    const path = resolve("fixtures/video.mp4");
+    const fetchFile = vi.fn(
+      async () =>
+        new Response(Uint8Array.of(1, 2, 3), {
+          status: 206,
+          headers: {
+            "accept-ranges": "bytes",
+            "content-range": "bytes 10-12/100",
+            "content-type": "video/mp4",
+          },
+        }),
+    );
+    const handler = createAssetProtocolHandler({
+      allowedAssets: new Map([[renderPathKey(path), path]]),
+      fetchFile,
+    });
+
+    const result = await handler({
+      method: "GET",
+      url: `aster-asset://local/${encodeURIComponent(path)}`,
+      headers: new Headers({
+        authorization: "must-not-leave-the-renderer",
+        origin: "file://",
+        range: "bytes=10-12",
+      }),
+    });
+
+    expect(result.status).toBe(206);
+    expect(result.headers.get("content-range")).toBe("bytes 10-12/100");
+    expect(result.headers.get("access-control-allow-origin")).toBe("*");
+    await expect(result.arrayBuffer()).resolves.toEqual(Uint8Array.of(1, 2, 3).buffer);
+    const init = fetchFile.mock.calls[0]?.[1];
+    expect(init?.method).toBe("GET");
+    expect(new Headers(init?.headers).get("range")).toBe("bytes=10-12");
+    expect(new Headers(init?.headers).has("authorization")).toBe(false);
+    expect(new Headers(init?.headers).has("origin")).toBe(false);
+  });
+
+  it("returns an empty CORS-enabled HEAD response", async () => {
+    const path = resolve("fixtures/video.mp4");
+    const fetchFile = vi.fn(
+      async () => new Response(null, { headers: { "content-length": "100" } }),
+    );
+    const handler = createAssetProtocolHandler({
+      allowedAssets: new Map([[renderPathKey(path), path]]),
+      fetchFile,
+    });
+
+    const result = await handler({
+      method: "HEAD",
+      url: `aster-asset://local/${encodeURIComponent(path)}`,
+    });
+
+    expect(result.body).toBeNull();
+    expect(result.headers.get("content-length")).toBe("100");
+    expect(result.headers.get("access-control-allow-origin")).toBe("*");
+    expect(fetchFile).toHaveBeenCalledWith(pathToFileURL(path).toString(), { method: "HEAD" });
+  });
+
+  it("answers authorized media preflights without opening the file", async () => {
+    const path = resolve("fixtures/video.mp4");
+    const fetchFile = vi.fn(async () => new Response());
+    const handler = createAssetProtocolHandler({
+      allowedAssets: new Map([[renderPathKey(path), path]]),
+      fetchFile,
+    });
+
+    const result = await handler({
+      method: "OPTIONS",
+      url: `aster-asset://local/${encodeURIComponent(path)}`,
+    });
+
+    expect(result.status).toBe(204);
+    expect(result.headers.get("access-control-allow-origin")).toBe("*");
+    expect(result.headers.get("access-control-allow-methods")).toContain("OPTIONS");
+    expect(result.headers.get("access-control-allow-headers")).toBe("Range, If-Range");
+    expect(fetchFile).not.toHaveBeenCalled();
   });
 
   it("does not expose unapproved paths, foreign hosts, malformed URLs, or write methods", async () => {

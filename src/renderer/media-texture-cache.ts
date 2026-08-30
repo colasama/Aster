@@ -604,7 +604,13 @@ export class MediaTextureCache {
       label: `Imported image · ${footage.name}`,
       size: [bitmap.width, bitmap.height],
       format: "rgba8unorm-srgb",
-      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+      // WebGPU external-image copies require both COPY_DST and RENDER_ATTACHMENT. Keeping the
+      // decoded bitmap on this path avoids an otherwise unnecessary Canvas2D readback/staging
+      // upload for stills and image-sequence frames.
+      usage:
+        GPUTextureUsage.TEXTURE_BINDING |
+        GPUTextureUsage.COPY_DST |
+        GPUTextureUsage.RENDER_ATTACHMENT,
     });
     this.#device.queue.copyExternalImageToTexture({ source: bitmap }, { texture }, [
       bitmap.width,
@@ -643,6 +649,10 @@ export class MediaTextureCache {
     const video = document.createElement("video");
     video.preload = "auto";
     video.playsInline = true;
+    // The asset scheme is a separate origin from the packaged file document. CORS mode must be
+    // selected before assigning src so its decoded frames remain origin-clean for the bounded
+    // validation probe and the emergency Canvas2D fallback.
+    video.crossOrigin = "anonymous";
     configurePreviewVideoAudio(video, layer);
     video.dataset.asterLayerId = instanceId;
     video.dataset.decoderState = "loading";
@@ -699,6 +709,7 @@ export class MediaTextureCache {
             if (this.#resources.get(instanceId) !== resource) return;
             this.#reportVideoUploadStatus(resource, status);
             if (status.mode === "direct") this.#releaseVideoFallbackSurface(resource);
+            if (status.mode !== "validating") this.#copyVideoFrame(resource);
             this.#invalidate();
           },
         },
@@ -864,12 +875,21 @@ export class MediaTextureCache {
       return;
     const mediaTime = video.currentTime;
     try {
-      if (resource.videoExternalUpload?.copyFrame()) {
+      const externalUpload = resource.videoExternalUpload;
+      if (externalUpload?.copyFrame()) {
         resource.lastUploadedTime = mediaTime;
         resource.uploadErrorReported = false;
         video.dataset.gpuFrame = "direct-external-copy";
         video.dataset.gpuUploadPath = "direct-external-copy";
         delete video.dataset.gpuError;
+        return;
+      }
+      // Do not read back a full frame while the bounded compatibility probe is still running.
+      // Its status callback schedules the exact frame through either the direct GPU copy or the
+      // conservative staging fallback once the adapter result is known.
+      if (externalUpload?.status.mode === "validating") {
+        video.dataset.gpuFrame = "external-copy-validation";
+        video.dataset.gpuUploadPath = "external-copy-validation";
         return;
       }
       const context = this.#ensureVideoFallbackSurface(resource);
