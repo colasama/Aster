@@ -78,6 +78,33 @@ describe("WorkspaceDialog diagnostics", () => {
 });
 
 describe("WorkspaceDialog scaled layout", () => {
+  it.each([0.75, 1, 1.25, 1.5, 1.75, 2])(
+    "restores the %s scale choice with reachable footer actions",
+    (scale) => {
+      window.localStorage.setItem("aster.uiScale", String(scale));
+      const container = document.createElement("div");
+      document.body.append(container);
+      root = createRoot(container);
+      act(() =>
+        root?.render(
+          <I18nProvider>
+            <EditorProvider>
+              <WorkspaceDialog kind="preferences" onClose={() => undefined} />
+            </EditorProvider>
+          </I18nProvider>,
+        ),
+      );
+      const scaleOption = container.querySelector<HTMLOptionElement>(`option[value="${scale}"]`);
+      const scaleSelect = scaleOption?.closest("select");
+      const dialog = container.querySelector<HTMLElement>(".workspace-dialog");
+      const body = dialog?.querySelector<HTMLElement>(":scope > .preferences-form");
+      const footer = dialog?.querySelector<HTMLElement>(":scope > footer");
+      expect(scaleSelect?.value).toBe(String(scale));
+      expect(body?.nextElementSibling).toBe(footer);
+      expect(footer?.querySelector('button[type="button"].primary')).not.toBeNull();
+    },
+  );
+
   it("bounds the dialog and scrolls its body without moving header or footer actions", () => {
     const container = document.createElement("div");
     document.body.append(container);
@@ -107,6 +134,16 @@ describe("WorkspaceDialog scaled layout", () => {
     expect(shellStyles).toMatch(
       /\.workspace-dialog > :not\(header\):not\(footer\)\s*\{[^}]*min-height:\s*0;[^}]*overflow-y:\s*auto;/s,
     );
+    expect(shellStyles).toMatch(
+      /\.modal-backdrop\s*\{[^}]*overflow:\s*auto;[^}]*padding:\s*14vh 16px;/s,
+    );
+    expect(shellStyles).toMatch(
+      /\.app-menu-popover\s*\{[^}]*max-height:\s*calc\(100vh - 37px\);[^}]*overflow-y:\s*auto;/s,
+    );
+    expect(shellStyles).toMatch(
+      /\.window-controls\s*\{[^}]*flex:\s*0 0 auto;[^}]*-webkit-app-region:\s*no-drag;/s,
+    );
+    expect(shellStyles).toMatch(/\.window-control\s*\{[^}]*width:\s*46px;[^}]*height:\s*100%;/s);
     expect([...dialog.children]).toEqual([header, body, footer]);
     expect(footer.querySelector('button[type="button"].primary')?.textContent).toContain(
       "Save preferences",

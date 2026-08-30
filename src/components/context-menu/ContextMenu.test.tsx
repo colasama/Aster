@@ -3,6 +3,7 @@
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { DesktopDisplayMetrics } from "../../desktop/api";
 import { ContextMenu } from "./ContextMenu";
 import type { ContextMenuItem } from "./context-menu-model";
 
@@ -19,6 +20,7 @@ beforeEach(() => {
 afterEach(() => {
   act(() => root.unmount());
   document.body.replaceChildren();
+  Object.defineProperty(window, "asterDesktop", { configurable: true, value: undefined });
 });
 
 function key(target: Element, value: string) {
@@ -116,8 +118,44 @@ describe("ContextMenu", () => {
     expect(document.activeElement).toBe(nested);
     const submenu = nested?.closest('[role="menu"]');
     if (!submenu) throw new Error("Expected submenu");
+    expect(submenu.parentElement).toBe(document.body);
     act(() => key(submenu, "ArrowLeft"));
     expect(document.body.querySelector('[role="menuitemcheckbox"]')).toBeNull();
     expect(document.activeElement?.textContent).toContain("More");
+  });
+
+  it("closes on native display metrics so inline bounds cannot go stale after scaling", () => {
+    let displayListener: ((metrics: DesktopDisplayMetrics) => void) | undefined;
+    Object.defineProperty(window, "asterDesktop", {
+      configurable: true,
+      value: {
+        onDisplayMetricsChanged(listener: (metrics: DesktopDisplayMetrics) => void) {
+          displayListener = listener;
+          return () => (displayListener = undefined);
+        },
+      },
+    });
+    const close = vi.fn();
+    act(() =>
+      root.render(
+        <ContextMenu
+          ariaLabel="Test"
+          items={[{ id: "run", kind: "command", label: "Run", onSelect: vi.fn() }]}
+          onClose={close}
+          open
+          x={700}
+          y={500}
+        />,
+      ),
+    );
+    act(() =>
+      displayListener?.({
+        currentDisplayId: "display-2",
+        deviceScaleFactor: 1.5,
+        effectiveScaleFactor: 3,
+        uiScale: 2,
+      }),
+    );
+    expect(close).toHaveBeenCalledOnce();
   });
 });

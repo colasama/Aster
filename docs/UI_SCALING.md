@@ -10,6 +10,17 @@ reports a display scale change. The viewport recomputes its backing texture from
 device pixel ratio, preview quality, and the GPU dimension limit. This notification is necessary
 because a device-pixel-ratio change does not always produce a `ResizeObserver` entry.
 
+Docked layout ratios remain scale-independent. Floating workspace bounds use fixed viewport CSS
+coordinates and are reconciled against the dock host's measured left/top/right/bottom edges. A
+display notification triggers an immediate safety clamp and a post-layout animation-frame
+remeasurement; a `ResizeObserver` covers subsequent Chromium reflow. Only the post-clamp bounds are
+persisted, so restored panels remain reachable after scale or monitor changes.
+
+Transient context menus close when display metrics change, preventing stale inline coordinates.
+Context menus and application-menu popovers are viewport-bounded and scroll internally when the
+scaled viewport is shorter than their command list. Modal backdrops scroll while preferences keep
+their header and footer fixed around a scrolling body.
+
 The browser-only development surface uses CSS `zoom` as a fallback and reads the same bounded value
 from local storage. It never applies this fallback in Electron, avoiding a double scale.
 
@@ -19,6 +30,7 @@ from local storage. It never applies this fallback in Electron, avoiding a doubl
 - Preview device scale remains capped by `calculatePreviewSize` to prevent unbounded GPU allocations.
 - A viewport resize is skipped when the calculated backing dimensions have not changed.
 - Display listeners are removed with their owning window and renderer component.
+- Overlay command surfaces preserve a six-pixel viewport margin in CSS coordinates at every scale.
 
 ## Adobe behavior reference
 

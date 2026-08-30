@@ -4,6 +4,7 @@ export interface WorkspaceFloatingHost {
   readonly width: number;
   readonly height: number;
   readonly displayId?: string;
+  readonly leftInset?: number;
   readonly topInset?: number;
 }
 
@@ -19,10 +20,11 @@ export function remapFloatingWorkspacesToHost(
   if (!Number.isFinite(host.width) || !Number.isFinite(host.height)) return layout;
   const width = Math.max(160, host.width);
   const height = Math.max(120, host.height);
+  const leftInset = Math.max(0, Math.min(width - 160, host.leftInset ?? 0));
   const topInset = Math.max(0, Math.min(height - 120, host.topInset ?? 0));
   let result = layout;
   for (const floating of layout.floating) {
-    const bounds = fitBounds(floating.bounds, width, height, topInset);
+    const bounds = fitBounds(floating.bounds, width, height, leftInset, topInset);
     result = setFloatingBounds(result, floating.id, bounds, host.displayId ?? floating.displayId);
   }
   return result;
@@ -32,12 +34,13 @@ function fitBounds(
   bounds: WorkspaceBounds,
   hostWidth: number,
   hostHeight: number,
+  leftInset: number,
   topInset: number,
 ): WorkspaceBounds {
-  const width = Math.min(bounds.width, hostWidth);
+  const width = Math.min(bounds.width, hostWidth - leftInset);
   const height = Math.min(bounds.height, hostHeight - topInset);
   return {
-    x: Math.max(0, Math.min(hostWidth - width, bounds.x)),
+    x: Math.max(leftInset, Math.min(hostWidth - width, bounds.x)),
     y: Math.max(topInset, Math.min(hostHeight - height, bounds.y)),
     width,
     height,

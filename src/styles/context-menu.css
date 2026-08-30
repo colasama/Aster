@@ -7,8 +7,13 @@
 
 .context-menu-surface {
   position: fixed;
+  z-index: 501;
   min-width: 196px;
   max-width: min(320px, calc(100vw - 12px));
+  max-height: calc(100vh - 12px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
   padding: 4px;
   border: 1px solid #454955;
   border-radius: 5px;

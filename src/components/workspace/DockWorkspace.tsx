@@ -10,7 +10,10 @@ import {
 } from "react";
 import { isDesktopRuntime, onDisplayMetricsChanged } from "../../desktop/api";
 import { DEFAULT_WORKSPACE_LAYOUT } from "../../workspace/default-layout";
-import { remapFloatingWorkspacesToHost } from "../../workspace/floating-host";
+import {
+  remapFloatingWorkspacesToHost,
+  type WorkspaceFloatingHost,
+} from "../../workspace/floating-host";
 import { applyWorkspaceDrop, type WorkspaceDrag } from "../../workspace/interaction";
 import {
   activatePanel,
@@ -127,26 +130,41 @@ export function DockWorkspace({
     const root = rootRef.current;
     if (!root) return;
     setLayout((current) => {
-      const next = remapFloatingWorkspacesToHost(current, {
-        width: root.clientWidth || window.innerWidth,
-        height: root.clientHeight || window.innerHeight,
-        displayId: hostDisplayId.current,
-      });
+      const next = remapFloatingWorkspacesToHost(
+        current,
+        workspaceFloatingHost(root, hostDisplayId.current),
+      );
       if (next !== current) saveWorkspaceLayout(next);
       return next;
     });
   }, []);
   useEffect(() => {
     reconcileFloatingHost();
-    window.addEventListener("resize", reconcileFloatingHost);
+    let pendingFrame: number | undefined;
+    const reconcileAfterLayout = () => {
+      reconcileFloatingHost();
+      if (pendingFrame !== undefined) window.cancelAnimationFrame(pendingFrame);
+      pendingFrame = window.requestAnimationFrame(() => {
+        pendingFrame = undefined;
+        reconcileFloatingHost();
+      });
+    };
+    const resizeObserver =
+      typeof ResizeObserver === "undefined"
+        ? undefined
+        : new ResizeObserver(() => reconcileFloatingHost());
+    if (rootRef.current) resizeObserver?.observe(rootRef.current);
+    window.addEventListener("resize", reconcileAfterLayout);
     const unsubscribe = isDesktopRuntime()
       ? onDisplayMetricsChanged((metrics) => {
           hostDisplayId.current = metrics.currentDisplayId;
-          reconcileFloatingHost();
+          reconcileAfterLayout();
         })
       : undefined;
     return () => {
-      window.removeEventListener("resize", reconcileFloatingHost);
+      if (pendingFrame !== undefined) window.cancelAnimationFrame(pendingFrame);
+      resizeObserver?.disconnect();
+      window.removeEventListener("resize", reconcileAfterLayout);
       unsubscribe?.();
     };
   }, [reconcileFloatingHost]);
@@ -443,7 +461,16 @@ export function DockWorkspace({
                 key={entry.id}
                 onFocus={() => setActiveFloatingId(entry.id)}
                 onMove={(floatingId, bounds) =>
-                  commit((current) => setFloatingBounds(current, floatingId, bounds))
+                  commit((current) => {
+                    const moved = setFloatingBounds(current, floatingId, bounds);
+                    const root = rootRef.current;
+                    return root
+                      ? remapFloatingWorkspacesToHost(
+                          moved,
+                          workspaceFloatingHost(root, hostDisplayId.current),
+                        )
+                      : moved;
+                  })
                 }
               />
             ))
@@ -451,6 +478,22 @@ export function DockWorkspace({
       </div>
     </WorkspaceApiContext.Provider>
   );
+}
+
+function workspaceFloatingHost(
+  root: HTMLElement,
+  displayId: string | undefined,
+): WorkspaceFloatingHost {
+  const bounds = root.getBoundingClientRect();
+  const width = bounds.width > 0 ? bounds.right : root.clientWidth || window.innerWidth;
+  const height = bounds.height > 0 ? bounds.bottom : root.clientHeight || window.innerHeight;
+  return {
+    width,
+    height,
+    displayId,
+    ...(bounds.width > 0 ? { leftInset: bounds.left } : {}),
+    ...(bounds.height > 0 ? { topInset: bounds.top } : {}),
+  };
 }
 
 function workspacePanelDefinitions(

@@ -8,6 +8,7 @@ import {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
+import { isDesktopRuntime, onDisplayMetricsChanged } from "../../desktop/api";
 import type { ContextMenuItem } from "./context-menu-model";
 import { positionContextMenu } from "./positioning";
 
@@ -53,11 +54,15 @@ export function ContextMenu({ ariaLabel, items, onClose, open, x, y }: ContextMe
     window.addEventListener("blur", closeOnWindowChange);
     window.addEventListener("resize", closeOnWindowChange);
     window.addEventListener("scroll", closeOnWindowChange, true);
+    const unsubscribeDisplayMetrics = isDesktopRuntime()
+      ? onDisplayMetricsChanged(closeOnWindowChange)
+      : undefined;
     return () => {
       document.removeEventListener("pointerdown", closeOnPointer, true);
       window.removeEventListener("blur", closeOnWindowChange);
       window.removeEventListener("resize", closeOnWindowChange);
       window.removeEventListener("scroll", closeOnWindowChange, true);
+      unsubscribeDisplayMetrics?.();
     };
   }, [onClose, open]);
   if (!open || items.length === 0) return null;
@@ -293,7 +298,7 @@ function Submenu({
 }) {
   if (!anchor) return null;
   const bounds = anchor.getBoundingClientRect();
-  return (
+  return createPortal(
     <MenuSurface
       anchorWidth={bounds.width}
       ariaLabel={ariaLabel}
@@ -304,7 +309,8 @@ function Submenu({
       placement="submenu"
       x={bounds.left}
       y={bounds.top}
-    />
+    />,
+    document.body,
   );
 }
 

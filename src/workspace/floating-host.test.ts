@@ -58,4 +58,44 @@ describe("floating workspace host remapping", () => {
       }),
     ).toBe(source);
   });
+
+  it("uses the dock host's viewport insets for fixed-position frames", () => {
+    const source: WorkspaceLayout = {
+      ...layout(),
+      floating: [
+        {
+          ...layout().floating[0],
+          bounds: { x: -20, y: 10, width: 700, height: 700 },
+        },
+      ],
+    };
+    expect(
+      remapFloatingWorkspacesToHost(source, {
+        width: 1_220,
+        height: 880,
+        leftInset: 20,
+        topInset: 70,
+      }).floating[0]?.bounds,
+    ).toEqual({ x: 20, y: 70, width: 700, height: 700 });
+  });
+
+  it.each([0.75, 1, 1.25, 1.5, 1.75, 2])(
+    "keeps floating geometry reachable at %s UI scale",
+    (scale) => {
+      const width = 1_440 / scale;
+      const height = 900 / scale;
+      const topInset = 70;
+      const result = remapFloatingWorkspacesToHost(layout(), {
+        width,
+        height,
+        topInset,
+      });
+      const bounds = result.floating[0]?.bounds;
+      if (!bounds) throw new Error("Expected floating workspace");
+      expect(bounds.x).toBeGreaterThanOrEqual(0);
+      expect(bounds.y).toBeGreaterThanOrEqual(topInset);
+      expect(bounds.x + bounds.width).toBeLessThanOrEqual(width);
+      expect(bounds.y + bounds.height).toBeLessThanOrEqual(height);
+    },
+  );
 });
