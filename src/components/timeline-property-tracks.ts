@@ -5,6 +5,7 @@ import type { Animatable, Effect, Keyframe, Layer } from "../core/types";
 import { EFFECT_BY_TYPE } from "../effects/registry";
 import type { EffectParameterDefinition } from "../effects/types";
 import type { PlainMessageKey } from "../i18n/core";
+import { collectTextAnimatorTimelineGroups } from "./text-animator-property-tracks";
 
 export type KeyframeTimePreview = Readonly<Record<string, number>>;
 
@@ -13,11 +14,15 @@ export interface TransformTimelinePropertyTrack {
   id: PropertyPath;
   path: PropertyPath;
   labelKey: PlainMessageKey;
+  labelPrefix?: string;
+  labelSuffix?: string;
   property: Animatable;
   step: number;
   unit: string;
   min?: number;
   max?: number;
+  spatialGroup?: string;
+  spatialSpeedLabelKey?: PlainMessageKey;
 }
 
 export interface EffectTimelinePropertyTrack {
@@ -287,6 +292,8 @@ export function collectTimelinePropertyGroups(layer: Layer): TimelinePropertyGro
     });
   }
 
+  groups.push(...collectTextAnimatorTimelineGroups(layer));
+
   for (const effect of layer.effects) {
     const tracks = collectEffectTimelineTracks(effect);
     if (!tracks.length) continue;
@@ -298,6 +305,15 @@ export function collectTimelinePropertyGroups(layer: Layer): TimelinePropertyGro
     });
   }
   return groups;
+}
+
+export function timelinePropertyTrackLabel(
+  track: TimelinePropertyTrack,
+  translate: (key: PlainMessageKey) => string,
+): string {
+  if (track.source === "effect") return track.definition.label;
+  const label = translate(track.labelKey);
+  return track.labelSuffix ? `${label} ${track.labelSuffix}` : label;
 }
 
 export function timelineTrackKeyframes(track: TimelinePropertyTrack): Keyframe[] {

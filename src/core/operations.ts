@@ -25,6 +25,13 @@ import type { ShapeGraph } from "./shape-graph";
 import { validateShapeGraph } from "./shape-graph";
 import { applySolidSettings } from "./solid-layer";
 import { normalizeTextAnimatorSettings } from "./text-animator";
+import {
+  collectTextAnimatorTrackEntries,
+  getTextAnimatorProperty,
+  isTextAnimatorPropertyPath,
+  setTextAnimatorProperty,
+  type TextAnimatorPropertyPath,
+} from "./text-animator-property-paths";
 import { insertKeyframe } from "./timeline";
 import { normalizeWorkArea } from "./timeline-editing";
 import type {
@@ -90,7 +97,8 @@ export type PropertyPath =
   | "camera.highlightGain"
   | "camera.highlightThreshold"
   | "camera.highlightSaturation"
-  | "opacity";
+  | "opacity"
+  | TextAnimatorPropertyPath;
 
 export type Operation =
   | { type: "setActiveComposition"; compositionId: Id }
@@ -802,6 +810,7 @@ export function applyOperation(project: Project, operation: Operation): void {
       if (!keyframe) throw new Error("Keyframe does not exist");
       keyframe.time = Math.max(0, operation.time);
       property.keyframes.sort((left, right) => left.time - right.time);
+      setProperty(layer, operation.path, property);
       break;
     }
     case "updateKeyframe": {
@@ -828,11 +837,7 @@ export function applyOperation(project: Project, operation: Operation): void {
             : entry,
         )
         .sort((left, right) => left.time - right.time);
-      const cameraPath = operation.path.startsWith("camera.")
-        ? operation.path.slice("camera.".length)
-        : "";
-      if (isCameraAnimatableField(cameraPath))
-        setProperty(layer, operation.path, normalizeCameraAnimatable(property, cameraPath));
+      setProperty(layer, operation.path, property);
       break;
     }
     case "removeKeyframe": {
@@ -842,6 +847,7 @@ export function applyOperation(project: Project, operation: Operation): void {
       property.keyframes = property.keyframes.filter((entry) => entry.id !== operation.keyframeId);
       if (property.keyframes.length === 0)
         setProperty(layer, operation.path, { mode: "static", value: removed?.value ?? 0 });
+      else setProperty(layer, operation.path, property);
       break;
     }
     case "easeLayer":
@@ -1221,6 +1227,7 @@ function easeTransform(layer: Layer): void {
 }
 
 export function getProperty(layer: Layer, path: PropertyPath): Animatable {
+  if (isTextAnimatorPropertyPath(path)) return getTextAnimatorProperty(layer, path);
   if (path === "opacity") return layer.transform.opacity;
   if (path.startsWith("camera.")) {
     if (!layer.camera) throw new Error("Camera property requires a camera layer");
@@ -1241,6 +1248,11 @@ export function getProperty(layer: Layer, path: PropertyPath): Animatable {
 }
 
 function setProperty(layer: Layer, path: PropertyPath, value: Animatable): void {
+  if (isTextAnimatorPropertyPath(path)) {
+    setTextAnimatorProperty(layer, path, value);
+    if (layer.textAnimator) layer.textAnimator = normalizeTextAnimatorSettings(layer.textAnimator);
+    return;
+  }
   if (path === "opacity") {
     layer.transform.opacity = value;
     return;
@@ -1267,4 +1279,37 @@ function setProperty(layer: Layer, path: PropertyPath, value: Animatable): void 
     "0" | "1" | "2",
   ];
   layer.transform[group][Number(component)] = value;
+}
+
+/** Enumerates every operation-addressable numeric layer property in stable UI order. */
+export function collectLayerPropertyPaths(layer: Layer): PropertyPath[] {
+  const paths: PropertyPath[] = [
+    "position.0",
+    "position.1",
+    "position.2",
+    "rotation.0",
+    "rotation.1",
+    "rotation.2",
+    "scale.0",
+    "scale.1",
+    "scale.2",
+    ...(Array.isArray(layer.transform.anchor)
+      ? (["anchor.0", "anchor.1", "anchor.2"] as const)
+      : []),
+    "opacity",
+  ];
+  if (layer.camera)
+    paths.push(
+      "camera.pointOfInterest.0",
+      "camera.pointOfInterest.1",
+      "camera.pointOfInterest.2",
+      "camera.orientation.0",
+      "camera.orientation.1",
+      "camera.orientation.2",
+      ...CAMERA_ANIMATABLE_FIELDS.map(
+        (field) => `camera.${field}` as Extract<PropertyPath, `camera.${string}`>,
+      ),
+    );
+  paths.push(...collectTextAnimatorTrackEntries(layer).map((entry) => entry.path));
+  return paths;
 }

@@ -34,6 +34,8 @@ export interface TransformGraphTrack extends GraphTrackBase {
   source: "transform";
   path: PropertyPath;
   labelKey: PlainMessageKey;
+  labelPrefix?: string;
+  labelSuffix?: string;
 }
 
 export interface EffectGraphTrack extends GraphTrackBase {
@@ -136,14 +138,20 @@ export function collectAnimatedGraphTracks(layer: Layer | undefined): GraphTrack
         continue;
       }
       const spatial = SPATIAL_GROUPS.find((candidate) => candidate.paths.includes(track.path));
-      const spatialTracks = spatial
-        ? spatial.paths.flatMap((path) => {
-            const candidate = allTracks.find(
-              (entry) => entry.source === "transform" && entry.path === path,
-            );
-            return candidate?.source === "transform" ? [candidate] : [];
-          })
-        : [];
+      const spatialTracks = track.spatialGroup
+        ? allTracks.flatMap((candidate) =>
+            candidate.source === "transform" && candidate.spatialGroup === track.spatialGroup
+              ? [candidate]
+              : [],
+          )
+        : spatial
+          ? spatial.paths.flatMap((path) => {
+              const candidate = allTracks.find(
+                (entry) => entry.source === "transform" && entry.path === path,
+              );
+              return candidate?.source === "transform" ? [candidate] : [];
+            })
+          : [];
       const primaryPath = spatialTracks.find(
         (candidate) => timelineTrackKeyframes(candidate).length > 0,
       )?.path;
@@ -152,14 +160,16 @@ export function collectAnimatedGraphTracks(layer: Layer | undefined): GraphTrack
         source: "transform",
         path: track.path,
         labelKey: track.labelKey,
+        labelPrefix: track.labelPrefix,
+        labelSuffix: track.labelSuffix,
         minimum: track.min,
         maximum: track.max,
-        ...(spatial
+        ...(spatial || track.spatialGroup
           ? {
               spatialPaths: spatialTracks.map((candidate) => candidate.path),
               spatialProperties: spatialTracks.map((candidate) => candidate.property),
               spatialPrimary: track.path === primaryPath,
-              speedLabelKey: spatial.speedLabelKey,
+              speedLabelKey: track.spatialSpeedLabelKey ?? spatial?.speedLabelKey,
             }
           : {}),
       });

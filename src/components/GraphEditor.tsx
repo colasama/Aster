@@ -668,11 +668,21 @@ export function GraphEditor() {
   const trackLabel = (track: GraphTrack) => {
     const owned = tracks.find((candidate) => candidate.id === track.id);
     const labelKey = graphTrackLabelKey(track, graphType);
-    const property = labelKey
-      ? t(labelKey)
+    const baseProperty = labelKey
+      ? `${t(labelKey)}${
+          track.source === "transform" &&
+          track.labelSuffix &&
+          resolveGraphType(graphType, track) === "value"
+            ? ` ${track.labelSuffix}`
+            : ""
+        }`
       : track.source === "effect"
         ? track.label
         : (owned?.sourceTrackId ?? track.id);
+    const property =
+      track.source === "transform" && track.labelPrefix
+        ? `${track.labelPrefix} · ${baseProperty}`
+        : baseProperty;
     return selectedLayers.length > 1 && owned ? `${owned.ownerLayerName} · ${property}` : property;
   };
   const selectedKeyframeIdSet = useMemo(

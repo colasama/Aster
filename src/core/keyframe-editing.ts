@@ -1,4 +1,9 @@
-import type { Operation, PropertyPath } from "./operations";
+import {
+  collectLayerPropertyPaths,
+  getProperty,
+  type Operation,
+  type PropertyPath,
+} from "./operations";
 import type { Composition, Id, Keyframe } from "./types";
 
 export type EditableKeyframe =
@@ -26,23 +31,10 @@ type MoveKeyframeOperation = Extract<
   { type: "moveKeyframe" | "moveEffectParameterKeyframe" }
 >;
 
-const TRANSFORM_TRACKS = [
-  "position.0",
-  "position.1",
-  "position.2",
-  "rotation.0",
-  "rotation.1",
-  "rotation.2",
-  "scale.0",
-  "scale.1",
-  "scale.2",
-  "opacity",
-] as const satisfies readonly PropertyPath[];
-
 export function collectEditableKeyframes(composition: Composition): EditableKeyframe[] {
   return composition.layers.flatMap((layer) => {
-    const transform = TRANSFORM_TRACKS.flatMap((path) => {
-      const property = transformProperty(layer, path);
+    const properties = collectLayerPropertyPaths(layer).flatMap((path) => {
+      const property = getProperty(layer, path);
       return property.mode === "animated"
         ? property.keyframes.map((keyframe) => ({
             source: "transform" as const,
@@ -63,7 +55,7 @@ export function collectEditableKeyframes(composition: Composition): EditableKeyf
         })),
       ),
     );
-    return [...transform, ...effects];
+    return [...properties, ...effects];
   });
 }
 
@@ -185,13 +177,4 @@ function moveOperation(entry: EditableKeyframe, time: number): MoveKeyframeOpera
 function snapToFrame(time: number, frameDuration: number): number {
   if (!Number.isFinite(frameDuration) || frameDuration <= 0) return Math.max(0, time);
   return Math.max(0, Math.round(time / frameDuration) * frameDuration);
-}
-
-function transformProperty(layer: Composition["layers"][number], path: PropertyPath) {
-  if (path === "opacity") return layer.transform.opacity;
-  const [group, component] = path.split(".") as [
-    "position" | "rotation" | "scale",
-    "0" | "1" | "2",
-  ];
-  return layer.transform[group][Number(component)];
 }

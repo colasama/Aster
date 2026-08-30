@@ -1,6 +1,6 @@
 import { ChevronDown, ChevronRight, Move3d, Sparkles, Timer } from "lucide-react";
 import { useState } from "react";
-import { getProperty } from "../core/operations";
+import { propertyValueOperationAtTime } from "../core/property-edit-operation";
 import { createId, type Keyframe, type Layer } from "../core/types";
 import { useI18n } from "../i18n/react";
 import { useEditor } from "../state/editor-store";
@@ -11,6 +11,7 @@ import {
   evaluateTimelinePropertyTrack,
   type KeyframeTimePreview,
   type TimelinePropertyTrack,
+  timelinePropertyTrackLabel,
   timelineTrackKeyframes,
 } from "./timeline-property-tracks";
 import type { StartWindowPointerDrag } from "./use-window-pointer-drag";
@@ -59,24 +60,11 @@ export function TimelinePropertyRows({
       });
       return;
     }
-    const property = getProperty(layer, track.path);
-    if (property.mode === "static") {
-      dispatch({
-        type: "operation",
-        operations: [{ type: "setProperty", layerId: layer.id, path: track.path, value }],
-      });
-      return;
-    }
     const current = keyframeAtTime(track, state.currentTime);
     dispatch({
       type: "operation",
       operations: [
-        {
-          type: "addKeyframe",
-          layerId: layer.id,
-          path: track.path,
-          keyframe: createTimelineKeyframe(state.currentTime, value, current?.id),
-        },
+        propertyValueOperationAtTime(layer, track.path, value, state.currentTime, current?.id),
       ],
     });
   };
@@ -132,7 +120,7 @@ export function TimelinePropertyRows({
     <div className="expanded-properties">
       {groups.map((group) => {
         const groupKeyframes = group.tracks.flatMap((track) => {
-          const label = track.source === "transform" ? t(track.labelKey) : track.definition.label;
+          const label = timelinePropertyTrackLabel(track, t);
           return timelineTrackKeyframes(track).map((keyframe) => ({
             entry: keyframeEntry(layer.id, track, keyframe, label),
             trackId: track.id,
@@ -191,8 +179,7 @@ export function TimelinePropertyRows({
               group.tracks.map((track) => {
                 const keyframes = timelineTrackKeyframes(track);
                 const current = keyframeAtTime(track, state.currentTime);
-                const label =
-                  track.source === "transform" ? t(track.labelKey) : track.definition.label;
+                const label = timelinePropertyTrackLabel(track, t);
                 const value = evaluateTimelinePropertyTrack(
                   track,
                   state.currentTime,
@@ -312,8 +299,8 @@ function TimelinePropertyValue({
       />
     );
   }
-  const minimum = track.source === "effect" ? track.definition.min : undefined;
-  const maximum = track.source === "effect" ? track.definition.max : undefined;
+  const minimum = track.source === "effect" ? track.definition.min : track.min;
+  const maximum = track.source === "effect" ? track.definition.max : track.max;
   const step = track.source === "effect" ? track.definition.step : track.step;
   const unit = track.source === "effect" ? track.definition.unit : track.unit;
   return (

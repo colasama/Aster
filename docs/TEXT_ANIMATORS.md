@@ -18,6 +18,15 @@ property are regular Aster animation tracks. Inspector edits at an animated prop
 replace a keyframe at the addressed layer time. Removing the final selector deliberately restores
 After Effects' all-characters behavior.
 
+The Timeline and Graph Editor discover those tracks from the same ordered animator stack. Animator
+and selector IDs are encoded into stable property paths, so renaming or reordering either object does
+not detach its keyframes. The Timeline exposes the current-time stopwatch/value workflow for all
+numeric Animator properties and Range, Wiggly, and Expression Amount controls. The Graph Editor uses
+value graphs for scalar and color channels, and folds each Animator Position or Anchor Point vector
+into one non-negative spatial speed graph while retaining separate component curves in Value mode.
+All Graph edits route through the normal operation transaction, preserving keyframe IDs and one-step
+undo/redo.
+
 Animator groups and selectors carry bounded, user-editable names. The Inspector can add, duplicate,
 remove, rename, and reorder both groups and selector stacks. Duplication inserts after the source and
 creates independent nested tracks with fresh persistent and keyframe IDs.
