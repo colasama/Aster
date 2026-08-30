@@ -20,6 +20,7 @@ import {
   mediaImportRuntime,
   type RuntimeMediaRegistration,
   type RuntimeSequenceFile,
+  runtimeSourceLocator,
 } from "./media-import-runtime";
 import { parsePsd } from "./psd";
 import { planPsdImport } from "./psd-composition";
@@ -109,6 +110,7 @@ export async function hydratePersistedMediaImports(
         )
           throw new Error(`${path} SVG dimensions do not match the footage source`);
         registrations.push({ sourceId: source.id, value: { kind: "svg", parsed } });
+        sourceUpdates.push({ source, runtimeUrl: runtimeSourceLocator(source.id) });
         continue;
       }
       if (entry.kind === "psd" && source.kind === "psd" && payload.kind === "psd") {
@@ -173,6 +175,7 @@ export async function hydratePersistedMediaImports(
             pixels: planned.pixels,
           },
         });
+        sourceUpdates.push({ source, runtimeUrl: runtimeSourceLocator(source.id) });
         continue;
       }
       if (
@@ -239,6 +242,7 @@ export async function hydratePersistedMediaImports(
               }
             : {}),
         });
+        sourceUpdates.push({ source, runtimeUrl: runtimeSourceLocator(source.id) });
       }
     }
     const represented = new Set(registrations.map((registration) => registration.sourceId));

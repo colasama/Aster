@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { createBlankProject } from "../core/project";
 import {
   openPersistedProjectDocument,
@@ -25,6 +25,7 @@ import { parsePsd } from "./psd";
 afterEach(() => {
   mediaImportRuntime.clear();
   window.asterDesktop = undefined;
+  vi.unstubAllGlobals();
 });
 
 describe("advanced media project persistence", () => {
@@ -329,6 +330,97 @@ describe("advanced media project persistence", () => {
     await expect(hydratePersistedMediaImports(project, missing)).rejects.toThrow(
       "mediaImports.entries[0].frames[0] image sequence frame is missing",
     );
+  });
+
+  it("rebinds bundle-relative SVG, PSD, and image sequence sources after reopen", async () => {
+    const project = createBlankProject();
+    const svg = createSvgImport(
+      {
+        width: 8,
+        height: 8,
+        viewBox: [0, 0, 8, 8],
+        sanitized: '<svg viewBox="0 0 8 8"><path d="M0 0h8v8z"/></svg>',
+        nodeCount: 2,
+      },
+      "fixture.svg",
+      project.compositions[0],
+      0,
+    );
+    const psdBytes = new Uint8Array(minimalPsd());
+    const psd = createPsdImport(
+      await parsePsd(psdBytes.buffer.slice(0)),
+      "merged",
+      "fixture.psd",
+      mediaBytesIdentity(psdBytes),
+      project.compositions[0],
+      0,
+      psdBytes,
+    );
+    const sequence = createImageSequenceImport(
+      {
+        selection: detectImageSequence(
+          [sequenceFile("plate.0001.png", [1, 2, 3]), sequenceFile("plate.0002.png", [4, 5, 6])],
+          "plate.0001.png",
+        ),
+      },
+      [8, 8],
+      {
+        frameRate: { numerator: 24, denominator: 1 },
+        missingFramePolicy: "holdPrevious",
+      },
+      project.compositions[0],
+      0,
+    );
+    attach(project, svg.sources, svg.layers);
+    attach(project, psd.sources, psd.layers);
+    attach(project, sequence.sources, sequence.layers);
+
+    const saved = await projectDocumentWithMediaImports(project, "portable");
+    const resolvedBytes = new Map<string, Uint8Array>();
+    let storageIndex = 0;
+    for (const payload of saved.mediaImports?.payloads ?? []) {
+      const storages =
+        payload.kind === "imageSequence"
+          ? payload.frames.map((frame) => frame.storage)
+          : [payload.storage];
+      for (const storage of storages) {
+        if (storage.kind !== "inline") throw new Error("Portable fixture storage is not inline");
+        const relativePath = `assets/imports/${storageIndex++}.bin`;
+        const resolvedPath = `C:\\Project\\${relativePath.replace(/\//g, "\\")}`;
+        const bytes = Uint8Array.from(atob(storage.data), (character) => character.charCodeAt(0));
+        resolvedBytes.set(resolvedPath, bytes);
+        Object.assign(storage, {
+          kind: "relative",
+          relativePath,
+          resolvedPath,
+        });
+        delete (storage as { data?: string }).data;
+      }
+    }
+    window.asterDesktop = {
+      convertFileSrc: (path: string) => `aster-asset://local/${encodeURIComponent(path)}`,
+    } as unknown as AsterDesktopApi;
+    vi.stubGlobal("fetch", async (url: string | URL | Request) => {
+      const value = String(url);
+      const prefix = "aster-asset://local/";
+      const path = value.startsWith(prefix)
+        ? decodeURIComponent(value.slice(prefix.length))
+        : value;
+      const bytes = resolvedBytes.get(path);
+      return bytes
+        ? new Response(bytes.slice().buffer, { status: 200 })
+        : new Response(null, { status: 404 });
+    });
+    mediaImportRuntime.clear();
+
+    const reopened = await openPersistedProjectDocument(structuredClone(saved), true);
+
+    expect(reopened.sources).toHaveLength(3);
+    for (const source of reopened.sources) {
+      expect(source.runtimeUrl).toBe(`aster-runtime://media/${encodeURIComponent(source.id)}`);
+      expect(mediaImportRuntime.get(source.id)?.kind).toBe(source.kind);
+    }
+    expect(reopened.sources.map((source) => source.kind)).toEqual(["svg", "psd", "imageSequence"]);
   });
 
   it("rejects identity mismatch, runtime locators, and oversize payloads atomically", async () => {
