@@ -21,6 +21,7 @@ import { type KeyboardEvent, type MouseEvent, useRef, useState } from "react";
 import { evaluateLayerSourceTime } from "../core/layer-time";
 import { getProperty, type PropertyPath } from "../core/operations";
 import { activeComposition } from "../core/project";
+import { propertyValueOperationAtTime } from "../core/property-edit-operation";
 import { evaluateAnimatable, evaluateEffectParameter } from "../core/timeline";
 import { type BlendMode, createId, type Effect } from "../core/types";
 import { parseCubeLutFile } from "../effects/cube-lut";
@@ -83,7 +84,7 @@ export function Inspector() {
     if (!layer || layer.locked || isAdjustment || !Number.isFinite(value)) return;
     dispatch({
       type: "operation",
-      operations: [{ type: "setProperty", layerId: layer.id, path, value }],
+      operations: [propertyValueOperationAtTime(layer, path, value, state.currentTime)],
     });
   };
   const addKeyframe = (path: PropertyPath) => {
@@ -123,12 +124,9 @@ export function Inspector() {
     ];
     dispatch({
       type: "operation",
-      operations: defaults.map(([path, value]) => ({
-        type: "setProperty" as const,
-        layerId: layer.id,
-        path,
-        value,
-      })),
+      operations: defaults.map(([path, value]) =>
+        propertyValueOperationAtTime(layer, path, value, state.currentTime),
+      ),
     });
   };
   const propertyDefault = (path: PropertyPath): number => {

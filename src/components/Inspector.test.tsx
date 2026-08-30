@@ -4,7 +4,8 @@ import { act, useEffect } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createLayerForComposition } from "../core/layer-factory";
-import { activeComposition, createDemoProject } from "../core/project";
+import { activeComposition, createBlankProject, createDemoProject } from "../core/project";
+import { evaluateAnimatable } from "../core/timeline";
 import type { Project } from "../core/types";
 import { createEffect } from "../effects/registry";
 import { diagnosticStore } from "../errors/diagnostic-store";
@@ -13,10 +14,16 @@ import { EditorProvider, useEditor } from "../state/editor-store";
 import { Inspector } from "./Inspector";
 
 let root: Root | undefined;
+let latestEditor: ReturnType<typeof useEditor> | undefined;
 
-function LoadProject({ project }: { project: Project }) {
-  const { dispatch } = useEditor();
-  useEffect(() => dispatch({ type: "loadProject", project }), [dispatch, project]);
+function LoadProject({ project, time }: { project: Project; time?: number }) {
+  const editor = useEditor();
+  const { dispatch } = editor;
+  latestEditor = editor;
+  useEffect(() => {
+    dispatch({ type: "loadProject", project });
+    if (time !== undefined) dispatch({ type: "setTime", time });
+  }, [dispatch, project, time]);
   return null;
 }
 
@@ -41,10 +48,103 @@ beforeEach(() => {
 afterEach(() => {
   act(() => root?.unmount());
   root = undefined;
+  latestEditor = undefined;
   document.body.replaceChildren();
   window.localStorage.clear();
   clearDiagnostics();
   vi.restoreAllMocks();
+});
+
+describe("time-addressed inspector property edits", () => {
+  it("inserts an animated transform keyframe at current time and supports undo and redo", () => {
+    const container = document.createElement("div");
+    document.body.append(container);
+    const project = createBlankProject();
+    const composition = activeComposition(project);
+    const layer = createLayerForComposition("solid", composition);
+    layer.transform.position[0] = {
+      mode: "animated",
+      keyframes: [
+        { id: "start", time: 0, value: 100, interpolation: "linear" },
+        {
+          id: "end",
+          time: 2,
+          value: 300,
+          interpolation: "bezier",
+          easing: [0.2, 0.1, 0.8, 0.9],
+          spatialIn: -20,
+        },
+      ],
+    };
+    const originalAtOne = evaluateAnimatable(layer.transform.position[0], 1);
+    composition.layers = [layer];
+    root = createRoot(container);
+    act(() =>
+      root?.render(
+        <I18nProvider>
+          <EditorProvider>
+            <LoadProject project={project} time={1} />
+            <Inspector />
+          </EditorProvider>
+        </I18nProvider>,
+      ),
+    );
+
+    const positionX = container.querySelector<HTMLInputElement>('input[aria-label="Position X"]');
+    if (!positionX) throw new Error("Expected Position X control");
+    change(positionX, "240");
+
+    let edited = activeComposition(latestEditor?.state.project ?? project).layers[0].transform
+      .position[0];
+    expect(edited.mode).toBe("animated");
+    if (edited.mode !== "animated") throw new Error("Expected animated Position X");
+    expect(edited.keyframes).toHaveLength(3);
+    expect(evaluateAnimatable(edited, 1)).toBe(240);
+    expect(edited.keyframes.map(({ id, time, value }) => ({ id, time, value }))).toEqual([
+      { id: "start", time: 0, value: 100 },
+      expect.objectContaining({ time: 1, value: 240 }),
+      { id: "end", time: 2, value: 300 },
+    ]);
+
+    act(() => latestEditor?.dispatch({ type: "undo" }));
+    const undone = activeComposition(latestEditor?.state.project ?? project).layers[0].transform
+      .position[0];
+    expect(undone.mode === "animated" ? undone.keyframes : []).toHaveLength(2);
+    expect(evaluateAnimatable(undone, 1)).toBe(originalAtOne);
+
+    act(() => latestEditor?.dispatch({ type: "redo" }));
+    edited = activeComposition(latestEditor?.state.project ?? project).layers[0].transform
+      .position[0];
+    expect(edited.mode === "animated" ? edited.keyframes : []).toHaveLength(3);
+    expect(evaluateAnimatable(edited, 1)).toBe(240);
+  });
+
+  it("keeps a static transform property static", () => {
+    const container = document.createElement("div");
+    document.body.append(container);
+    const project = createBlankProject();
+    const composition = activeComposition(project);
+    const layer = createLayerForComposition("solid", composition);
+    composition.layers = [layer];
+    root = createRoot(container);
+    act(() =>
+      root?.render(
+        <I18nProvider>
+          <EditorProvider>
+            <LoadProject project={project} time={1.25} />
+            <Inspector />
+          </EditorProvider>
+        </I18nProvider>,
+      ),
+    );
+
+    const positionX = container.querySelector<HTMLInputElement>('input[aria-label="Position X"]');
+    if (!positionX) throw new Error("Expected Position X control");
+    change(positionX, "420");
+    expect(
+      activeComposition(latestEditor?.state.project ?? project).layers[0].transform.position[0],
+    ).toEqual({ mode: "static", value: 420 });
+  });
 });
 
 describe("adjustment layer inspector", () => {
@@ -133,3 +233,11 @@ describe("adjustment layer inspector", () => {
     });
   });
 });
+
+function change(target: HTMLInputElement, value: string): void {
+  act(() => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set?.call(target, value);
+    target.dispatchEvent(new Event("input", { bubbles: true }));
+    target.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+}

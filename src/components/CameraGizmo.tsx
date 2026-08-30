@@ -1,7 +1,8 @@
 import type { Dispatch } from "react";
 import { lensFromZoom } from "../core/camera-optics";
 import { evaluateCameraProperty } from "../core/camera-properties";
-import type { EvaluatedTransform, Layer, Project } from "../core/types";
+import { propertyValueOperationAtTime } from "../core/property-edit-operation";
+import { createId, type EvaluatedTransform, type Layer, type Project } from "../core/types";
 import { useI18n } from "../i18n/react";
 import type { EditorAction } from "../state/editor-store";
 
@@ -35,13 +36,18 @@ export function CameraGizmo({
     composition?.width ?? 1920,
   ).angleOfViewDegrees;
   const geometry = cameraGizmoGeometry(layer.camera.projection, angleOfView);
-  const moveBy = (x: number, y: number, historyBase?: Project) =>
+  const moveBy = (
+    x: number,
+    y: number,
+    historyBase?: Project,
+    insertedKeyframeIds?: { positionX: string; positionY: string },
+  ) =>
     dispatch({
       type: "operation",
       historyBase,
       operations: [
-        { type: "setProperty", layerId: layer.id, path: "position.0", value: x },
-        { type: "setProperty", layerId: layer.id, path: "position.1", value: y },
+        propertyValueOperationAtTime(layer, "position.0", x, time, insertedKeyframeIds?.positionX),
+        propertyValueOperationAtTime(layer, "position.1", y, time, insertedKeyframeIds?.positionY),
       ],
     });
 
@@ -78,6 +84,11 @@ export function CameraGizmo({
         let nextX = initialX;
         let nextY = initialY;
         let nextRotation = initialRotation;
+        const insertedKeyframeIds = {
+          positionX: createId(),
+          positionY: createId(),
+          rotationZ: createId(),
+        };
         const move = (moveEvent: PointerEvent) => {
           if (moveEvent.pointerId !== pointerId) return;
           if (activeTool === "rotate") {
@@ -86,12 +97,13 @@ export function CameraGizmo({
             dispatch({
               type: "previewOperation",
               operations: [
-                {
-                  type: "setProperty",
-                  layerId: layer.id,
-                  path: "rotation.2",
-                  value: nextRotation,
-                },
+                propertyValueOperationAtTime(
+                  layer,
+                  "rotation.2",
+                  nextRotation,
+                  time,
+                  insertedKeyframeIds.rotationZ,
+                ),
               ],
             });
           } else {
@@ -100,8 +112,20 @@ export function CameraGizmo({
             dispatch({
               type: "previewOperation",
               operations: [
-                { type: "setProperty", layerId: layer.id, path: "position.0", value: nextX },
-                { type: "setProperty", layerId: layer.id, path: "position.1", value: nextY },
+                propertyValueOperationAtTime(
+                  layer,
+                  "position.0",
+                  nextX,
+                  time,
+                  insertedKeyframeIds.positionX,
+                ),
+                propertyValueOperationAtTime(
+                  layer,
+                  "position.1",
+                  nextY,
+                  time,
+                  insertedKeyframeIds.positionY,
+                ),
               ],
             });
           }
@@ -117,16 +141,17 @@ export function CameraGizmo({
               type: "operation",
               historyBase: project,
               operations: [
-                {
-                  type: "setProperty",
-                  layerId: layer.id,
-                  path: "rotation.2",
-                  value: nextRotation,
-                },
+                propertyValueOperationAtTime(
+                  layer,
+                  "rotation.2",
+                  nextRotation,
+                  time,
+                  insertedKeyframeIds.rotationZ,
+                ),
               ],
             });
           } else if (Math.hypot(nextX - initialX, nextY - initialY) >= 0.01)
-            moveBy(nextX, nextY, project);
+            moveBy(nextX, nextY, project, insertedKeyframeIds);
         };
         window.addEventListener("pointermove", move);
         window.addEventListener("pointerup", up);

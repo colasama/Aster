@@ -13,6 +13,7 @@ import {
 import type { PropertyPath } from "../core/operations";
 import { createDefaultParticleSettings, type ParticleSettings } from "../core/particle-settings";
 import type { PluginParameter } from "../core/plugins";
+import { propertyValueOperationAtTime } from "../core/property-edit-operation";
 import {
   findSceneGeneratorDefinition,
   getSceneGeneratorDefinitions,
@@ -136,7 +137,7 @@ export function Scene3dControls({ layer }: { layer: Layer }) {
   const updateCameraProperty = (path: PropertyPath, value: number) => {
     dispatch({
       type: "operation",
-      operations: [{ type: "setProperty", layerId: layer.id, path, value }],
+      operations: [propertyValueOperationAtTime(layer, path, value, state.currentTime)],
     });
   };
 
