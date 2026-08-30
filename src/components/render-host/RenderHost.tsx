@@ -32,12 +32,19 @@ export function RenderHost() {
     const host = desktopRenderHost();
     let stopped = false;
     let requestedControl: "pause" | "cancel" | undefined;
+    let controlSignal = createSignal();
     let correlation: { jobId: string; leaseId: string } | undefined;
     let audioAbort: AbortController | undefined;
     const unsubscribe = host.onControl((control) => {
       if (!correlation) return;
-      requestedControl = mergeRenderHostControl(requestedControl, control, correlation);
-      if (requestedControl) audioAbort?.abort(new DOMException(requestedControl, "AbortError"));
+      const nextControl = mergeRenderHostControl(requestedControl, control, correlation);
+      if (nextControl === requestedControl) return;
+      requestedControl = nextControl;
+      const changed = controlSignal;
+      controlSignal = createSignal();
+      changed.resolve();
+      if (requestedControl === "cancel")
+        audioAbort?.abort(new DOMException(requestedControl, "AbortError"));
     });
 
     void (async () => {
@@ -89,6 +96,7 @@ export function RenderHost() {
               }
             : {}),
           requestedControl: () => requestedControl,
+          waitForControlChange: () => controlSignal.promise,
           renderFrame: (_frame, time) =>
             pipeline.readback(
               createBeautyFrameRequest({
@@ -137,6 +145,14 @@ export function RenderHost() {
   }, []);
 
   return <canvas ref={canvasRef} />;
+}
+
+function createSignal(): { promise: Promise<void>; resolve(): void } {
+  let resolve!: () => void;
+  const promise = new Promise<void>((promiseResolve) => {
+    resolve = promiseResolve;
+  });
+  return { promise, resolve };
 }
 
 async function decodeSourcePcm(

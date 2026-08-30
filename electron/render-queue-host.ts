@@ -294,7 +294,7 @@ class ElectronRenderHostWorker implements RenderQueueHostHandle {
       try {
         if (this.#mp4.size > 0) throw new Error("RenderHost completed with unfinished MP4 output");
         await this.#publisher.publish(
-          () => this.#control !== undefined || this.#terminal || this.#disposed,
+          () => this.#control === "cancel" || this.#terminal || this.#disposed,
         );
         this.#terminal = true;
         await this.#report({ type: "completed", jobId: this.jobId, leaseId: this.leaseId });
@@ -303,9 +303,9 @@ class ElectronRenderHostWorker implements RenderQueueHostHandle {
         this.#terminal = true;
         await this.#cleanup();
         if (externallyTerminated) return;
-        if (this.#control)
+        if (this.#control === "cancel")
           await this.#report({
-            type: this.#control === "pause" ? "paused" : "cancelled",
+            type: "cancelled",
             jobId: this.jobId,
             leaseId: this.leaseId,
           });
@@ -324,7 +324,11 @@ class ElectronRenderHostWorker implements RenderQueueHostHandle {
       }
       return;
     }
-    if (report.type === "paused" || report.type === "cancelled" || report.type === "failed") {
+    if (report.type === "paused") {
+      await this.#report(report);
+      return;
+    }
+    if (report.type === "cancelled" || report.type === "failed") {
       this.#terminal = true;
       await this.#cleanup();
       await this.#report(report);
@@ -333,14 +337,18 @@ class ElectronRenderHostWorker implements RenderQueueHostHandle {
     throw new Error("RenderHost report type is invalid");
   }
 
-  control(command: "pause" | "cancel"): void {
+  control(command: "pause" | "resume" | "cancel"): void {
     if (this.#terminal || this.#disposed) return;
-    this.#control = command === "cancel" ? "cancel" : (this.#control ?? "pause");
+    if (command === "cancel") this.#control = "cancel";
+    else if (command === "resume") {
+      if (this.#control !== "pause") return;
+      this.#control = undefined;
+    } else this.#control ??= "pause";
     if (!this.#window.webContents.isDestroyed())
       this.#window.webContents.send("aster:render-host-control", {
         jobId: this.jobId,
         leaseId: this.leaseId,
-        command: this.#control,
+        command,
       });
   }
 

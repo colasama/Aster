@@ -33,6 +33,13 @@ copies linked still, video, and audio bytes into a SHA-256-verified job snapshot
 RenderHost never reads the mutable original path. Snapshot roots are correlated with the job and
 retained across retry/restart until the queue item is removed.
 
+Background Pause/Continue retains the isolated renderer, encoder processes, media lease, and atomic
+output staging under one worker lease. The frame loop gates only between completed frame and PCM chunk
+writes; Continue therefore resumes at the next address without rebuilding or duplicating prior output.
+Paused time is removed from progress timing, while the retained worker continues to count against the
+configured concurrency bound. Cancel, failure, application shutdown, or process restart still cleans
+or invalidates the lease; restart does not claim to restore an in-memory encoder checkpoint.
+
 Advanced foreground media is captured before the first asynchronous yield and hydrated under
 export-only source IDs. The lease owns immutable SVG markup and PSD document/pixel generations
 without replacing the editor registry. Blob/data-URL sequence frames are pinned inline before the

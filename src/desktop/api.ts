@@ -123,7 +123,7 @@ export interface DesktopRenderHostAssignment {
 export interface DesktopRenderHostControl {
   jobId: string;
   leaseId: string;
-  command: "pause" | "cancel";
+  command: "pause" | "resume" | "cancel";
 }
 
 export type DesktopRenderHostReport =

@@ -16,7 +16,12 @@ import { getRenderQueueUiStore, type RenderQueueUiStore } from "../render-queue/
 import { useEditor } from "../state/editor-store";
 import { Panel } from "./Panel";
 
-const ACTIVE_STATUSES = new Set<RenderJobStatus>(["preparing", "rendering", "pauseRequested"]);
+const ACTIVE_STATUSES = new Set<RenderJobStatus>([
+  "preparing",
+  "rendering",
+  "pauseRequested",
+  "paused",
+]);
 
 export function RenderQueuePanel({
   queueStore = getRenderQueueUiStore(),
@@ -286,7 +291,7 @@ function RenderQueueRow({
         </div>
       ) : null}
       <div className="render-queue-actions">
-        {item.status === "rendering" || item.status === "queued" ? (
+        {item.status === "rendering" ? (
           <ActionButton
             disabled={pending}
             icon={<Pause size={11} />}

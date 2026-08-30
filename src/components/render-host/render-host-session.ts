@@ -35,10 +35,12 @@ interface RenderHostFrameLoopOptions {
   output(request: DesktopRenderHostOutputRequest): Promise<unknown>;
   report(report: DesktopRenderHostReport): Promise<void>;
   requestedControl(): "pause" | "cancel" | undefined;
+  /** Captures the current control signal before re-reading requestedControl to avoid lost wakeups. */
+  waitForControlChange?(): Promise<void>;
   now?(): number;
 }
 
-export type RenderHostFrameLoopResult = "completed" | "paused" | "cancelled";
+export type RenderHostFrameLoopResult = "completed" | "cancelled";
 
 /** Evaluates beauty frames sequentially while bounded audio writes run with independent backpressure. */
 export async function runRenderHostFrameLoop(
@@ -48,7 +50,7 @@ export async function runRenderHostFrameLoop(
   const { assignment, manifest } = validated;
   const shared = { jobId: assignment.jobId, leaseId: assignment.leaseId };
   const initialControl = options.requestedControl();
-  if (initialControl) return await reportControlBoundary(options.report, shared, initialControl);
+  if (initialControl === "cancel") return await reportCancelled(options.report, shared);
   const mp4Outputs = manifest.outputs.filter((output) => output.kind === "mp4");
   const audioOutputs = mp4Outputs.filter((output) => output.includeAudio);
   const pngOutputs = manifest.outputs.filter(
@@ -73,6 +75,9 @@ export async function runRenderHostFrameLoop(
     });
 
   await options.report({ type: "prepared", ...shared });
+  const now = options.now ?? (() => performance.now());
+  const startedAt = now();
+  let pausedDurationMs = 0;
   let audioAborted = false;
   let audioFailure: { reason: unknown } | undefined;
   const audioPipeline = audio
@@ -82,6 +87,11 @@ export async function runRenderHostFrameLoop(
         audio.decoded,
         audio.frameCount,
         async (samples) => {
+          const control = await waitForPauseRelease(options);
+          if (control === "cancel") {
+            audioAborted = true;
+            return;
+          }
           await Promise.all(
             audioOutputs.map((output) =>
               options.output({
@@ -93,7 +103,7 @@ export async function runRenderHostFrameLoop(
             ),
           );
         },
-        () => audioAborted || options.requestedControl() !== undefined,
+        () => audioAborted || options.requestedControl() === "cancel",
         EXPORT_AUDIO_SAMPLE_RATE,
         frameTimeAtIndex(manifest.startFrame, manifest.frameRate),
       ).catch((error: unknown) => {
@@ -102,23 +112,25 @@ export async function runRenderHostFrameLoop(
         return -1;
       })
     : Promise.resolve(0);
-  const now = options.now ?? (() => performance.now());
-  const startedAt = now();
   const totalFrames = manifest.endFrameExclusive - manifest.startFrame;
+  const waitAtControlBoundary = async (): Promise<"continue" | "cancel"> => {
+    const control = options.requestedControl();
+    if (control === "cancel") return "cancel";
+    if (control !== "pause") return "continue";
+    const pausedAt = now();
+    await options.report({ type: "paused", ...shared });
+    const released = await waitForPauseRelease(options);
+    pausedDurationMs += Math.max(0, now() - pausedAt);
+    return released;
+  };
   try {
     for (let frame = manifest.startFrame; frame < manifest.endFrameExclusive; frame += 1) {
       throwAudioFailure(audioFailure);
-      const beforeFrame = options.requestedControl();
-      if (beforeFrame)
-        return await stopAtControlBoundary(
-          options.report,
-          shared,
-          beforeFrame,
-          () => {
-            audioAborted = true;
-          },
-          audioPipeline,
-        );
+      if ((await waitAtControlBoundary()) === "cancel") {
+        audioAborted = true;
+        await audioPipeline;
+        return await reportCancelled(options.report, shared);
+      }
       const raw = await options.renderFrame(frame, frameTimeAtIndex(frame, manifest.frameRate));
       validateRawFrame(raw, manifest, options.pixelFormat);
 
@@ -147,7 +159,7 @@ export async function runRenderHostFrameLoop(
         });
 
       const completedFrames = frame - manifest.startFrame + 1;
-      const elapsedMs = Math.max(0, now() - startedAt);
+      const elapsedMs = Math.max(0, now() - startedAt - pausedDurationMs);
       await options.report({
         type: "progress",
         ...shared,
@@ -163,47 +175,29 @@ export async function runRenderHostFrameLoop(
       });
     }
 
-    const afterLastFrame = options.requestedControl();
-    if (afterLastFrame)
-      return await stopAtControlBoundary(
-        options.report,
-        shared,
-        afterLastFrame,
-        () => {
-          audioAborted = true;
-        },
-        audioPipeline,
-      );
-    const completedAudioFrames = await audioPipeline;
+    if ((await waitAtControlBoundary()) === "cancel") {
+      audioAborted = true;
+      await audioPipeline;
+      return await reportCancelled(options.report, shared);
+    }
+    const completedAudioFrames = await waitForAudioWithControls(
+      options,
+      audioPipeline,
+      waitAtControlBoundary,
+      () => {
+        audioAborted = true;
+      },
+    );
+    if (completedAudioFrames === undefined) return await reportCancelled(options.report, shared);
     throwAudioFailure(audioFailure);
-    const afterAudio = options.requestedControl();
-    if (afterAudio)
-      return await stopAtControlBoundary(
-        options.report,
-        shared,
-        afterAudio,
-        () => {
-          audioAborted = true;
-        },
-        audioPipeline,
-      );
     if (audio && completedAudioFrames !== audio.frameCount)
       throw new Error(
         "RenderHost audio pipeline stopped before the rational frame range completed",
       );
     for (const output of mp4Outputs)
       await options.output({ type: "finishMp4", ...shared, outputId: output.id });
-    const afterEncoders = options.requestedControl();
-    if (afterEncoders)
-      return await stopAtControlBoundary(
-        options.report,
-        shared,
-        afterEncoders,
-        () => {
-          audioAborted = true;
-        },
-        audioPipeline,
-      );
+    if ((await waitAtControlBoundary()) === "cancel")
+      return await reportCancelled(options.report, shared);
     await options.report({ type: "completed", ...shared });
     return "completed";
   } catch (error) {
@@ -244,7 +238,10 @@ export function mergeRenderHostControl(
 ): "pause" | "cancel" | undefined {
   if (incoming.jobId !== assignment.jobId || incoming.leaseId !== assignment.leaseId)
     return current;
-  return incoming.command === "cancel" ? "cancel" : (current ?? "pause");
+  if (incoming.command === "cancel") return "cancel";
+  if (current === "cancel") return current;
+  if (incoming.command === "resume") return undefined;
+  return current ?? "pause";
 }
 
 function assertManifestComposition(manifest: RenderJobManifest, composition: Composition): void {
@@ -295,14 +292,12 @@ function validateRawFrame(
     throw new Error("RenderHost beauty frame has an invalid byte length");
 }
 
-async function reportControlBoundary(
+async function reportCancelled(
   report: RenderHostFrameLoopOptions["report"],
   shared: { jobId: string; leaseId: string },
-  control: "pause" | "cancel",
-): Promise<"paused" | "cancelled"> {
-  const result = control === "pause" ? "paused" : "cancelled";
-  await report({ type: result, ...shared });
-  return result;
+): Promise<"cancelled"> {
+  await report({ type: "cancelled", ...shared });
+  return "cancelled";
 }
 
 async function prepareAudioPipeline(
@@ -345,17 +340,42 @@ function throwAudioFailure(failure: { reason: unknown } | undefined): void {
   if (failure) throw failure.reason;
 }
 
-async function stopAtControlBoundary(
-  report: RenderHostFrameLoopOptions["report"],
-  shared: { jobId: string; leaseId: string },
-  control: "pause" | "cancel",
-  abortAudio: () => void,
+async function waitForPauseRelease(
+  options: RenderHostFrameLoopOptions,
+): Promise<"continue" | "cancel"> {
+  while (true) {
+    // Capture the signal first. A control delivered between this capture and the state read resolves
+    // this exact promise; a control delivered earlier is visible in requestedControl immediately.
+    const changed = options.waitForControlChange?.();
+    const control = options.requestedControl();
+    if (control === "cancel") return "cancel";
+    if (control !== "pause") return "continue";
+    if (!changed) throw new Error("RenderHost pause requires a resumable control signal");
+    await changed;
+  }
+}
+
+async function waitForAudioWithControls(
+  options: RenderHostFrameLoopOptions,
   audioPipeline: Promise<number>,
-): Promise<"paused" | "cancelled"> {
-  abortAudio();
-  // A terminal report lets Electron dispose the encoder and staged outputs immediately. Drain any
-  // PCM write already accepted by IPC before publishing that boundary so it cannot write into a
-  // disposed worker after pause/cancel acknowledgement.
-  await audioPipeline;
-  return await reportControlBoundary(report, shared, control);
+  waitAtControlBoundary: () => Promise<"continue" | "cancel">,
+  abortAudio: () => void,
+): Promise<number | undefined> {
+  const completed = audioPipeline.then((value) => ({ type: "completed" as const, value }));
+  while (true) {
+    if ((await waitAtControlBoundary()) === "cancel") {
+      abortAudio();
+      // Drain an accepted PCM write before Electron is allowed to dispose its encoder.
+      await audioPipeline;
+      return undefined;
+    }
+    const changed = options.waitForControlChange?.();
+    if (!changed) return await audioPipeline;
+    if (options.requestedControl() !== undefined) continue;
+    const result = await Promise.race([
+      completed,
+      changed.then(() => ({ type: "control" as const })),
+    ]);
+    if (result.type === "completed") return result.value;
+  }
 }

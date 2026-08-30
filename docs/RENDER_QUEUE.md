@@ -54,10 +54,15 @@ production beauty backend and reports `render_host_webgpu_unavailable` when it c
 this prevents an incomplete compatibility frame from being atomically published as a successful job.
 
 Pause and cancel controls are correlated by both job and lease and are observed only after all output
-writes for the current frame finish. A paused retry or failed task restarts from frame zero under a new
-lease. A renderer crash, unexpected close, load failure, or stale report cannot complete the item.
-Application shutdown disposes active encoders and hidden hosts, marks their leases failed, removes
-temporary data, and flushes the queue before exit.
+writes for the current frame finish. Pause publishes a durable `paused` state but retains the same
+hidden host, GPU renderer, encoders, media authorization, and staged outputs. Continue releases the
+frame/audio-chunk gate under that lease, so completed still, sequence, video, and PCM writes are not
+repeated. Pause duration is excluded from elapsed time and ETA. A paused worker still consumes one
+configured concurrency slot; this bounded resource tradeoff is what makes same-process Continue exact.
+Cancel from paused state drains accepted IPC writes and disposes those resources. A renderer crash,
+unexpected close, load failure, or stale report cannot complete the item. Application shutdown
+disposes paused and running hosts, marks their leases failed, removes temporary data, and flushes the
+queue before exit.
 
 PNG stills and PNG sequences are encoded from the canonical raw beauty buffer. H.264 output receives
 that same raw RGBA/BGRA buffer and uses the manifest's rational rate. When an H.264 output enables
@@ -65,14 +70,15 @@ audio, the RenderHost decodes each audible source once from the same immutable p
 mixes stereo Float32 PCM in bounded 48,000-frame chunks. The PCM range begins at the exact rational
 manifest start time, while its total sample count is rounded once from the output video-frame count;
 FFmpeg therefore receives aligned A/V streams without accumulated frame-time drift. Audio and video
-writes run concurrently with awaited IPC backpressure, and a pause, cancel, renderer crash, decode
-failure, or encoder failure disposes both FFmpeg pipes and removes staged output. If the snapshot has
-no audible audio/video source, an audio-enabled module intentionally produces a video-only MP4 rather
-than manufacturing a silent track.
+writes run concurrently with awaited IPC backpressure. Pause holds both streams at bounded output
+boundaries without closing FFmpeg; cancel, renderer crash, decode failure, or encoder failure disposes
+both pipes and removes staged output. If the snapshot has no audible audio/video source, an
+audio-enabled module intentionally produces a video-only MP4 rather than manufacturing a silent track.
 
-Pause, cancel, and failure paths first stop and drain any PCM write already accepted by IPC. Only then
-does the RenderHost publish a terminal report that authorizes Electron to dispose the encoder and
-staged publisher, preventing late audio writes from racing a closed worker.
+The RenderHost reports Pause only after the current beauty-frame writes reach their boundary. PCM
+observes the same control generation between bounded chunks. Cancel and failure paths first stop and
+drain any PCM write already accepted by IPC; only then may Electron dispose the encoder and staged
+publisher, preventing late audio writes from racing a closed worker.
 
 Every output is staged beside its destination; existing destinations are backed up and all modules
 are renamed into place only after every frame, audio chunk, and encoder completes. Publish failure
@@ -82,9 +88,11 @@ module intentionally rejects H.265 and EXR stills rather than producing a mislea
 `RenderQueueStore` owns the process-wide queue document in the Electron user-data directory. Writes
 are serialized, flushed through a temporary file, and atomically renamed while retaining the previous
 successful revision as a recovery point. Corrupt primary documents recover from that backup. A queue
-created by a newer Aster build is left byte-for-byte untouched. On startup, stale worker leases become
-failed jobs with their last progress retained; retry creates a fresh lease and restarts from frame zero,
-so a partial temporary output can never be mistaken for a published render.
+created by a newer Aster build is left byte-for-byte untouched. On startup, stale running or paused
+worker leases become failed jobs with their last progress retained; retry creates a fresh lease and
+restarts from frame zero, so a partial temporary output can never be mistaken for a published render.
+Cross-process encoder checkpoint recovery is deliberately outside this same-process Pause/Continue
+contract.
 
 The dockable Render Queue panel restores this process-owned document when it mounts and receives
 subsequent revisions through a renderer subscription. High-frequency progress revisions are reduced

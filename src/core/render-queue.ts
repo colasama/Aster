@@ -204,6 +204,8 @@ export function updateRenderProgress(
     const normalized = normalizeProgress(progress, item.progress.totalFrames);
     if (normalized.completedFrames < item.progress.completedFrames)
       throw new Error("Render progress cannot move backwards");
+    if (normalized.elapsedMs < item.progress.elapsedMs)
+      throw new Error("Render elapsed time cannot move backwards");
     if (
       normalized.completedFrames === item.progress.completedFrames &&
       normalized.elapsedMs === item.progress.elapsedMs &&
@@ -229,14 +231,16 @@ export function acknowledgeRenderPaused(
 ): RenderQueueState {
   return leasedUpdate(state, jobId, workerLeaseId, (item) => {
     if (item.status !== "pauseRequested") throw invalidTransition(item, "paused");
-    return { ...item, status: "paused", workerLeaseId: undefined };
+    return { ...item, status: "paused" };
   });
 }
 
 export function resumeRenderJob(state: RenderQueueState, jobId: Id): RenderQueueState {
   return updateItem(state, jobId, (item) => {
-    if (item.status !== "paused") throw invalidTransition(item, "queued");
-    return { ...item, status: "queued", workerLeaseId: undefined };
+    if (item.status !== "paused") throw invalidTransition(item, "rendering");
+    // Queue v1 allowed a queued item to be paused without a worker. Keep that persisted state
+    // recoverable, while live pauses continue under their existing renderer/encoder lease.
+    return item.workerLeaseId ? { ...item, status: "rendering" } : { ...item, status: "queued" };
   });
 }
 
@@ -247,7 +251,10 @@ export function completeRenderJob(
   now = new Date(),
 ): RenderQueueState {
   return leasedUpdate(state, jobId, workerLeaseId, (item) => {
-    if (item.status !== "rendering") throw invalidTransition(item, "completed");
+    // A pause request can race the final atomic publish. Once every encoder is finalized, completion
+    // wins rather than rolling back a finished output merely to expose an unresumable pause point.
+    if (item.status !== "rendering" && item.status !== "pauseRequested")
+      throw invalidTransition(item, "completed");
     return {
       ...item,
       status: "completed",
@@ -270,7 +277,7 @@ export function failRenderJob(
   now = new Date(),
 ): RenderQueueState {
   return leasedUpdate(state, jobId, workerLeaseId, (item) => {
-    if (!RUNNING_STATUSES.has(item.status)) throw invalidTransition(item, "failed");
+    if (!LEASED_STATUSES.has(item.status)) throw invalidTransition(item, "failed");
     return {
       ...item,
       status: "failed",
@@ -346,7 +353,9 @@ export function nextRunnableRenderJobs(
   state: RenderQueueState,
   maximum: number,
 ): readonly RenderQueueItem[] {
-  const active = state.items.filter((item) => RUNNING_STATUSES.has(item.status)).length;
+  // A same-process paused worker retains its lease, GPU renderer, encoder, and staging output and
+  // therefore continues to consume a bounded scheduler slot until it continues or is cancelled.
+  const active = state.items.filter((item) => item.workerLeaseId !== undefined).length;
   const available = Math.max(0, boundedInteger(maximum, 1, 8, "render concurrency") - active);
   return state.items
     .filter((item) => item.status === "queued")
@@ -371,7 +380,7 @@ export function recoverInterruptedRenderJobs(
   let changed = false;
   const finishedAt = now.toISOString();
   const items = state.items.map((item) => {
-    if (!RUNNING_STATUSES.has(item.status)) return item;
+    if (!item.workerLeaseId) return item;
     changed = true;
     return {
       ...item,
@@ -430,7 +439,7 @@ function normalizeItem(value: unknown, path: string): RenderQueueItem {
   const workerLeaseId = optionalId(value.workerLeaseId, `${path}.workerLeaseId`);
   if (RUNNING_STATUSES.has(status) && !workerLeaseId)
     throw new Error(`${path} requires a worker lease while active`);
-  if (!RUNNING_STATUSES.has(status) && workerLeaseId)
+  if (!LEASED_STATUSES.has(status) && workerLeaseId)
     throw new Error(`${path} cannot retain an inactive worker lease`);
   return {
     manifest,
@@ -699,6 +708,7 @@ function defaultId(): Id {
 }
 
 const RUNNING_STATUSES = new Set<RenderJobStatus>(["preparing", "rendering", "pauseRequested"]);
+const LEASED_STATUSES = new Set<RenderJobStatus>([...RUNNING_STATUSES, "paused"]);
 const TERMINAL_STATUSES = new Set<RenderJobStatus>(["completed", "failed", "cancelled"]);
 const ALL_STATUSES = new Set<RenderJobStatus>([
   "queued",

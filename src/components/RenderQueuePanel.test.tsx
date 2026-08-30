@@ -4,6 +4,7 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  acknowledgeRenderPaused,
   cancelRenderJob,
   claimRenderJob,
   completeRenderJob,
@@ -12,6 +13,7 @@ import {
   failRenderJob,
   markRenderJobRunning,
   type RenderQueueState,
+  requestRenderPause,
 } from "../core/render-queue";
 import { I18nProvider } from "../i18n/react";
 import { type RenderQueueClient, RenderQueueUiStore } from "../render-queue/render-queue-store";
@@ -140,6 +142,35 @@ describe("RenderQueuePanel", () => {
       await Promise.resolve();
     });
     expect(context.client.command).toHaveBeenCalledWith({ type: "pause", jobId: "active" });
+  });
+
+  it("continues an active paused lease while keeping remove disabled", async () => {
+    let state = enqueueRenderJob(createRenderQueue(), input("paused"));
+    state = claimRenderJob(state, "paused", "paused-lease");
+    state = markRenderJobRunning(state, "paused", "paused-lease");
+    state = requestRenderPause(state, "paused");
+    state = acknowledgeRenderPaused(state, "paused", "paused-lease");
+    const context = harness(state);
+    act(() => {
+      root.render(
+        <I18nProvider>
+          <RenderQueuePanel queueStore={context.queueStore} />
+        </I18nProvider>,
+      );
+    });
+    await act(async () => {
+      await Promise.resolve();
+      context.flush();
+    });
+
+    expect(
+      container.querySelector<HTMLButtonElement>('button[aria-label="Remove"]')?.disabled,
+    ).toBe(true);
+    await act(async () => {
+      container.querySelector<HTMLButtonElement>('button[aria-label="Resume"]')?.click();
+      await Promise.resolve();
+    });
+    expect(context.client.command).toHaveBeenCalledWith({ type: "resume", jobId: "paused" });
   });
 
   it("routes retry and remove immediately from a cancelled row", async () => {

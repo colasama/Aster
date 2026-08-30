@@ -96,6 +96,13 @@ describe("render queue", () => {
         elapsedMs: 130,
       }),
     ).toThrow("move backwards");
+    expect(() =>
+      updateRenderProgress(state, "job", "lease-1", {
+        completedFrames: 4,
+        totalFrames: 10,
+        elapsedMs: 99,
+      }),
+    ).toThrow("elapsed time");
     state = completeRenderJob(state, "job", "lease-1", new Date("2026-08-30T00:00:02Z"));
     expect(state.items[0]).toMatchObject({
       status: "completed",
@@ -107,21 +114,34 @@ describe("render queue", () => {
     let state = enqueueRenderJob(createRenderQueue(), input("job"));
     state = claimRenderJob(state, "job", "lease-1");
     state = markRenderJobRunning(state, "job", "lease-1");
+    state = updateRenderProgress(state, "job", "lease-1", {
+      completedFrames: 4,
+      totalFrames: 10,
+      elapsedMs: 120,
+      estimatedRemainingMs: 180,
+    });
     state = requestRenderPause(state, "job");
     expect(state.items[0]?.status).toBe("pauseRequested");
     state = acknowledgeRenderPaused(state, "job", "lease-1");
-    expect(state.items[0]).toMatchObject({ status: "paused", workerLeaseId: undefined });
+    expect(state.items[0]).toMatchObject({
+      status: "paused",
+      workerLeaseId: "lease-1",
+      progress: { completedFrames: 4, elapsedMs: 120, estimatedRemainingMs: 180 },
+    });
     state = resumeRenderJob(state, "job");
-    state = claimRenderJob(state, "job", "lease-2");
-    state = markRenderJobRunning(state, "job", "lease-2");
+    expect(state.items[0]).toMatchObject({
+      status: "rendering",
+      workerLeaseId: "lease-1",
+      progress: { completedFrames: 4, elapsedMs: 120, estimatedRemainingMs: 180 },
+    });
     state = failRenderJob(
       state,
       "job",
-      "lease-2",
+      "lease-1",
       { code: "encoder", message: "Encoder exited", correlationId: "correlation" },
       new Date("2026-08-30T00:00:03Z"),
     );
-    expect(state.items[0]).toMatchObject({ status: "failed", attempts: 2 });
+    expect(state.items[0]).toMatchObject({ status: "failed", attempts: 1 });
     state = retryRenderJob(state, "job");
     expect(state.items[0]).toMatchObject({
       status: "queued",
@@ -170,6 +190,8 @@ describe("render queue", () => {
       totalFrames: 10,
       elapsedMs: 700,
     });
+    state = requestRenderPause(state, "job");
+    state = acknowledgeRenderPaused(state, "job", "dead-worker");
     const recovered = recoverInterruptedRenderJobs(state, new Date("2026-08-30T00:01:00Z"));
     expect(recovered.items[0]).toMatchObject({
       status: "failed",

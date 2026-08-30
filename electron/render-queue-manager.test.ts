@@ -27,7 +27,7 @@ async function manager() {
 }
 
 interface FakeWorker extends RenderQueueHostHandle {
-  controls: Array<"pause" | "cancel">;
+  controls: Array<"pause" | "resume" | "cancel">;
   disposed: boolean;
   item: RenderQueueItem;
   report: (event: RenderHostReport) => Promise<void>;
@@ -429,36 +429,85 @@ describe("RenderQueueManager", () => {
     });
   });
 
-  it("keeps a paused lease counted until asynchronous resource disposal finishes", async () => {
+  it("continues a paused worker under the same lease without releasing its slot", async () => {
     const context = await manager();
-    const hosts = new GatedDisposeFactory();
+    const hosts = new FakeHostFactory();
     await context.manager.enqueue({ ...job, id: "pause-dispose-resume" });
+    await context.manager.enqueue({ ...job, id: "queued-behind-pause" });
     await context.manager.startScheduler(hosts, 2);
     const paused = hosts.workers[0];
     await paused.report({ type: "prepared", jobId: paused.jobId, leaseId: paused.leaseId });
     await context.manager.command({ type: "pause", jobId: paused.jobId });
-
-    const acknowledgement = paused.report({
+    await paused.report({
       type: "paused",
       jobId: paused.jobId,
       leaseId: paused.leaseId,
     });
-    await hosts.disposalStarted.promise;
-    expect(context.manager.snapshot().items[0]?.status).toBe("paused");
-    expect(context.manager.activeHostCount).toBe(1);
+    expect(
+      context.manager.snapshot().items.find((item) => item.manifest.id === paused.jobId),
+    ).toMatchObject({
+      status: "paused",
+      attempts: 1,
+      workerLeaseId: paused.leaseId,
+    });
+    expect(paused.disposed).toBe(false);
+    expect(context.manager.activeHostCount).toBe(2);
+    expect(hosts.workers).toHaveLength(2);
 
     await context.manager.command({ type: "resume", jobId: paused.jobId });
-    expect(hosts.workers).toHaveLength(1);
-    expect(context.manager.activeHostCount).toBe(1);
+    expect(hosts.workers).toHaveLength(2);
+    expect(
+      context.manager.snapshot().items.find((item) => item.manifest.id === paused.jobId),
+    ).toMatchObject({
+      status: "rendering",
+      attempts: 1,
+      workerLeaseId: paused.leaseId,
+    });
+    expect(paused.controls).toEqual(["pause", "resume"]);
+    expect(paused.disposed).toBe(false);
+  });
 
-    hosts.releaseDisposal.resolve(undefined);
-    await acknowledgement;
+  it("cancels and disposes a paused lease before reusing its scheduler slot", async () => {
+    const context = await manager();
+    const hosts = new FakeHostFactory();
+    await context.manager.enqueue({ ...job, id: "paused-cancel" });
+    await context.manager.enqueue({ ...job, id: "after-paused-cancel" });
+    await context.manager.startScheduler(hosts, 1);
+    const paused = hosts.workers[0];
+    await paused.report({ type: "prepared", jobId: paused.jobId, leaseId: paused.leaseId });
+    await context.manager.command({ type: "pause", jobId: paused.jobId });
+    await paused.report({ type: "paused", jobId: paused.jobId, leaseId: paused.leaseId });
+
+    await expect(context.manager.command({ type: "remove", jobId: paused.jobId })).rejects.toThrow(
+      "cannot transition",
+    );
+    await context.manager.command({ type: "cancel", jobId: paused.jobId });
+    expect(paused.controls).toEqual(["pause", "cancel"]);
+    expect(hosts.workers).toHaveLength(1);
+    await paused.report({ type: "cancelled", jobId: paused.jobId, leaseId: paused.leaseId });
+
     expect(paused.disposed).toBe(true);
     expect(hosts.workers).toHaveLength(2);
+    expect(hosts.workers[1]?.jobId).not.toBe(paused.jobId);
+  });
+
+  it("fails and disposes a paused lease during application shutdown", async () => {
+    const context = await manager();
+    const hosts = new FakeHostFactory();
+    await context.manager.enqueue({ ...job, id: "paused-shutdown" });
+    await context.manager.startScheduler(hosts);
+    const paused = hosts.workers[0];
+    await paused.report({ type: "prepared", jobId: paused.jobId, leaseId: paused.leaseId });
+    await context.manager.command({ type: "pause", jobId: paused.jobId });
+    await paused.report({ type: "paused", jobId: paused.jobId, leaseId: paused.leaseId });
+
+    await context.manager.shutdown();
+
+    expect(paused.controls).toEqual(["pause", "cancel"]);
+    expect(paused.disposed).toBe(true);
     expect(context.manager.snapshot().items[0]).toMatchObject({
-      status: "preparing",
-      attempts: 2,
-      workerLeaseId: hosts.workers[1]?.leaseId,
+      status: "failed",
+      error: { code: "render_host_shutdown" },
     });
   });
 

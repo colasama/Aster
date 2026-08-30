@@ -45,7 +45,7 @@ export type RenderHostReport =
 export interface RenderQueueHostHandle {
   readonly jobId: string;
   readonly leaseId: string;
-  control(command: "pause" | "cancel"): void | Promise<void>;
+  control(command: "pause" | "resume" | "cancel"): void | Promise<void>;
   dispose(): void | Promise<void>;
 }
 
@@ -155,9 +155,9 @@ export class RenderQueueManager {
       }
     });
     const active = this.#active.get(command.jobId);
-    if (active && command.type === "pause") {
+    if (active && (command.type === "pause" || command.type === "resume")) {
       try {
-        await active.handle.control("pause");
+        await active.handle.control(command.type);
       } catch (error) {
         await this.report({
           type: "failed",
@@ -205,7 +205,6 @@ export class RenderQueueManager {
         break;
       case "paused":
         await this.#update((state) => acknowledgeRenderPaused(state, event.jobId, event.leaseId));
-        await this.#finishHost(event.jobId, active);
         break;
       case "completed":
         await this.#update((state) => completeRenderJob(state, event.jobId, event.leaseId));

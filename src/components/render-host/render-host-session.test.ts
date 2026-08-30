@@ -193,6 +193,13 @@ describe("RenderHost frame session", () => {
         work,
       ),
     ).toBe("cancel");
+    expect(
+      mergeRenderHostControl(
+        "pause",
+        { jobId: work.jobId, leaseId: work.leaseId, command: "resume" },
+        work,
+      ),
+    ).toBeUndefined();
     expect(() =>
       validateRenderHostAssignment({
         ...work,
@@ -205,28 +212,93 @@ describe("RenderHost frame session", () => {
     const work = assignment();
     work.manifest.endFrameExclusive = 1;
     work.manifest.outputs = [work.manifest.outputs[0]];
-    let control: "pause" | undefined;
+    const controls = controlHarness();
     const reports: DesktopRenderHostReport[] = [];
 
     const result = await runRenderHostFrameLoop({
       assignment: validateRenderHostAssignment(work),
       pixelFormat: "rgba",
-      requestedControl: () => control,
+      requestedControl: controls.requested,
+      waitForControlChange: controls.waitForChange,
       renderFrame: async () => ({
         pixels: new ArrayBuffer(work.manifest.width * work.manifest.height * 4),
         pixelFormat: "rgba",
       }),
       encodePng: async () => new ArrayBuffer(8),
       output: async (request) => {
-        if (request.type === "finishMp4") control = "pause";
+        if (request.type === "finishMp4") controls.set("pause");
       },
       report: async (report) => {
         reports.push(report);
+        if (report.type === "paused") controls.set(undefined);
       },
     });
 
-    expect(result).toBe("paused");
-    expect(reports.map((report) => report.type)).toEqual(["prepared", "progress", "paused"]);
+    expect(result).toBe("completed");
+    expect(reports.map((report) => report.type)).toEqual([
+      "prepared",
+      "progress",
+      "paused",
+      "completed",
+    ]);
+  });
+
+  it("continues still, sequence, and MP4 outputs without duplicating frames or pause time", async () => {
+    const work = assignment();
+    const controls = controlHarness();
+    const outputs: DesktopRenderHostOutputRequest[] = [];
+    const reports: DesktopRenderHostReport[] = [];
+    const rendered: number[] = [];
+    let clock = 0;
+
+    const result = await runRenderHostFrameLoop({
+      assignment: validateRenderHostAssignment(work),
+      pixelFormat: "rgba",
+      requestedControl: controls.requested,
+      waitForControlChange: controls.waitForChange,
+      now: () => clock,
+      renderFrame: async (frame) => {
+        rendered.push(frame);
+        clock += 100;
+        return {
+          pixels: new Uint8Array(work.manifest.width * work.manifest.height * 4).fill(frame + 1)
+            .buffer,
+          pixelFormat: "rgba",
+        };
+      },
+      encodePng: async (frame) => frame.pixels.slice(0, 8),
+      output: async (request) => {
+        outputs.push(request);
+      },
+      report: async (report) => {
+        reports.push(report);
+        if (report.type === "progress" && report.progress.completedFrames === 1)
+          controls.set("pause");
+        if (report.type === "paused") {
+          clock += 1_000;
+          controls.set(undefined);
+        }
+      },
+    });
+
+    expect(result).toBe("completed");
+    expect(rendered).toEqual([0, 1]);
+    expect(outputs.filter((output) => output.type === "startMp4")).toHaveLength(1);
+    expect(outputs.filter((output) => output.type === "writeMp4Frame")).toHaveLength(2);
+    expect(outputs.filter((output) => output.type === "writePng")).toHaveLength(3);
+    expect(outputs.filter((output) => output.type === "finishMp4")).toHaveLength(1);
+    expect(
+      reports
+        .filter((report) => report.type === "progress")
+        .map((report) => report.progress.elapsedMs),
+    ).toEqual([100, 200]);
+    expect(reports.map((report) => report.type)).toEqual([
+      "prepared",
+      "progress",
+      "paused",
+      "progress",
+      "completed",
+    ]);
   });
 
   it("streams a bounded rationally aligned PCM range beside canonical beauty frames", async () => {
@@ -262,6 +334,72 @@ describe("RenderHost frame session", () => {
     );
     expect(outputs.filter((output) => output.type === "writeMp4Frame")).toHaveLength(2);
     expect(outputs[outputs.length - 1]?.type).toBe("finishMp4");
+  });
+
+  it("holds PCM at a pause boundary and continues the same encoder without duplicate samples", async () => {
+    const fixture = assignmentWithAudio({ start: 0, end: 48 });
+    const composition = fixture.project.compositions[0];
+    composition.duration = 3;
+    composition.workArea = { start: 0, end: 3 };
+    composition.layers[0].outPoint = 3;
+    const source = fixture.project.sources[0];
+    if (!source || (source.kind !== "audio" && source.kind !== "video"))
+      throw new Error("fixture mismatch");
+    source.duration = 3;
+    fixture.assignment.manifest.projectSnapshot = JSON.stringify(fixture.project);
+    const controls = controlHarness();
+    const paused = deferred<void>();
+    const outputs: DesktopRenderHostOutputRequest[] = [];
+    const reports: DesktopRenderHostReport[] = [];
+    let audioWrites = 0;
+
+    const result = await runRenderHostFrameLoop({
+      assignment: validateRenderHostAssignment(fixture.assignment),
+      pixelFormat: "rgba",
+      audioDecoder: async () => ({
+        sampleRate: 48_000,
+        channels: [new Float32Array(144_000)],
+      }),
+      requestedControl: controls.requested,
+      waitForControlChange: controls.waitForChange,
+      renderFrame: async () => ({
+        pixels: new ArrayBuffer(
+          fixture.assignment.manifest.width * fixture.assignment.manifest.height * 4,
+        ),
+        pixelFormat: "rgba",
+      }),
+      encodePng: async () => new ArrayBuffer(8),
+      output: async (request) => {
+        outputs.push(request);
+        if (request.type !== "writeMp4Audio") return;
+        audioWrites += 1;
+        if (audioWrites === 1) {
+          controls.set("pause");
+          await paused.promise;
+        }
+      },
+      report: async (report) => {
+        reports.push(report);
+        if (report.type === "paused") {
+          controls.set(undefined);
+          paused.resolve(undefined);
+        }
+      },
+    });
+
+    expect(result).toBe("completed");
+    const start = outputs.find((output) => output.type === "startMp4");
+    const writtenAudioFrames = outputs
+      .filter((output) => output.type === "writeMp4Audio")
+      .reduce(
+        (sum, output) => sum + output.samples.byteLength / (2 * Float32Array.BYTES_PER_ELEMENT),
+        0,
+      );
+    expect(writtenAudioFrames).toBe(start?.audio?.frameCount);
+    expect(outputs.filter((output) => output.type === "startMp4")).toHaveLength(1);
+    expect(outputs.filter((output) => output.type === "finishMp4")).toHaveLength(1);
+    expect(reports.filter((report) => report.type === "paused")).toHaveLength(1);
+    expect(reports[reports.length - 1]?.type).toBe("completed");
   });
 
   it("omits a requested audio track when the immutable snapshot has no audible source", async () => {
@@ -451,4 +589,20 @@ function deferred<T>() {
     reject = promiseReject;
   });
   return { promise, resolve, reject };
+}
+
+function controlHarness(initial?: "pause" | "cancel") {
+  let control = initial;
+  let changed = deferred<void>();
+  return {
+    requested: () => control,
+    waitForChange: () => changed.promise,
+    set(next: "pause" | "cancel" | undefined) {
+      if (next === control) return;
+      control = next;
+      const previous = changed;
+      changed = deferred<void>();
+      previous.resolve(undefined);
+    },
+  };
 }
