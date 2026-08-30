@@ -102,7 +102,7 @@ export function timelineContextMenuItems(
       {
         destructive: true,
         disabled: !actions.canDeleteLayers,
-        disabledReason: t("timeline.menu.minimumLayer"),
+        disabledReason: actions.locked ? locked : t("timeline.menu.minimumLayer"),
         id: "delete-layers",
         kind: "command",
         label: t("timeline.menu.delete"),
@@ -119,7 +119,7 @@ export function timelineContextMenuItems(
       },
       {
         disabled: !actions.canSplitLayers,
-        disabledReason: t("timeline.menu.splitUnavailable"),
+        disabledReason: actions.locked ? locked : t("timeline.menu.splitUnavailable"),
         id: "split",
         kind: "command",
         label: t("timeline.menu.split"),

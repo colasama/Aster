@@ -93,12 +93,12 @@ describe("timelineContextMenuItems", () => {
     expect(toggleMotionBlur).toHaveBeenCalledOnce();
   });
 
-  it("blocks rename and precompose when any target layer is locked", () => {
+  it("blocks destructive and edit actions with the locked-layer reason", () => {
     const items = timelineContextMenuItems(
       { ...actions(), locked: true, selectedLayerCount: 2 },
       createTranslator("en-US"),
     );
-    for (const id of ["rename", "precompose"]) {
+    for (const id of ["delete-layers", "rename", "split", "precompose"]) {
       expect(items.find((item) => item.id === id)).toMatchObject({
         disabled: true,
         disabledReason: "The selected layer is locked",
@@ -111,5 +111,41 @@ describe("timelineContextMenuItems", () => {
     const items = timelineContextMenuItems(empty, createTranslator("en-US"));
     const menu = items.find((item) => item.id === "new-layer");
     expect(menu?.kind === "submenu" && menu.items).toHaveLength(10);
+  });
+
+  it("routes keyframe interpolation, clipboard and delete callbacks", () => {
+    const copyKeyframes = vi.fn();
+    const deleteKeyframes = vi.fn();
+    const pasteKeyframes = vi.fn();
+    const setInterpolation = vi.fn();
+    const items = timelineContextMenuItems(
+      {
+        ...actions(),
+        canEditKeyframes: true,
+        canInterpolate: true,
+        canPasteKeyframes: true,
+        copyKeyframes,
+        deleteKeyframes,
+        hasKeyframeClipboard: true,
+        hasKeyframeSelection: true,
+        pasteKeyframes,
+        setInterpolation,
+      },
+      createTranslator("en-US"),
+    );
+    const interpolation = items.find((item) => item.id === "keyframe-interpolation");
+    const bezier =
+      interpolation?.kind === "submenu"
+        ? interpolation.items.find((item) => item.id === "key-bezier")
+        : undefined;
+    if (bezier?.kind === "command") bezier.onSelect();
+    for (const id of ["copy-keyframes", "paste-keyframes", "delete-keyframes"]) {
+      const item = items.find((candidate) => candidate.id === id);
+      if (item?.kind === "command") item.onSelect();
+    }
+    expect(setInterpolation).toHaveBeenCalledWith("bezier");
+    expect(copyKeyframes).toHaveBeenCalledOnce();
+    expect(pasteKeyframes).toHaveBeenCalledOnce();
+    expect(deleteKeyframes).toHaveBeenCalledOnce();
   });
 });

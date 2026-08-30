@@ -63,6 +63,10 @@ import {
   timelineContentPoint,
   timelineMarqueeRect,
 } from "./timeline-interactions";
+import {
+  canInterpolateTimelineKeyframes,
+  timelineKeyframeInterpolationOperations,
+} from "./timeline-keyframe-actions";
 import { duplicateTimelineLayers, splitTimelineLayers } from "./timeline-layer-clipboard";
 import type { KeyframeTimePreview } from "./timeline-property-tracks";
 import { useWindowPointerDrag } from "./use-window-pointer-drag";
@@ -175,7 +179,7 @@ export function Timeline() {
       (entry) => !composition.layers.find((layer) => layer.id === entry.layerId)?.locked,
     );
   const canInterpolateSelectedKeyframes =
-    canEditSelectedKeyframes && selectedEntries.every((entry) => entry.source === "transform");
+    canEditSelectedKeyframes && canInterpolateTimelineKeyframes(composition, selectedEntries);
   const canPasteKeyframeClipboard =
     Boolean(keyframeClipboard) &&
     Boolean(
@@ -369,23 +373,10 @@ export function Timeline() {
     if (!canInterpolateSelectedKeyframes) return;
     dispatch({
       type: "operation",
-      operations: selectedEntries.flatMap((entry) =>
-        entry.source === "transform"
-          ? [
-              {
-                type: "updateKeyframe" as const,
-                layerId: entry.layerId,
-                path: entry.path,
-                keyframeId: entry.keyframe.id,
-                time: entry.keyframe.time,
-                value: entry.keyframe.value,
-                interpolation,
-                easing: interpolation === "bezier" ? entry.keyframe.easing : undefined,
-                spatialIn: entry.keyframe.spatialIn,
-                spatialOut: entry.keyframe.spatialOut,
-              },
-            ]
-          : [],
+      operations: timelineKeyframeInterpolationOperations(
+        composition,
+        selectedEntries,
+        interpolation,
       ),
     });
   };

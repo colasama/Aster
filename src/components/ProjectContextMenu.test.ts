@@ -46,6 +46,24 @@ describe("projectContextMenuItems", () => {
     ]);
   });
 
+  it("routes empty-space creation and every importer", () => {
+    const value = actions({ kind: "empty" });
+    const items = projectContextMenuItems(value, createTranslator("en-US"));
+    for (const id of ["new-composition", "new-folder"]) {
+      const item = items.find((candidate) => candidate.id === id);
+      if (item?.kind === "command") item.onSelect();
+    }
+    const importMenu = items.find((item) => item.id === "import");
+    if (importMenu?.kind !== "submenu") throw new Error("Expected import submenu");
+    for (const item of importMenu.items) if (item.kind === "command") item.onSelect();
+    expect(value.createComposition).toHaveBeenCalledOnce();
+    expect(value.createFolder).toHaveBeenCalledOnce();
+    expect(value.importAsset).toHaveBeenCalledTimes(6);
+    expect(value.importAsset).toHaveBeenNthCalledWith(1, "image");
+    expect(value.importAsset).toHaveBeenNthCalledWith(4, "imageSequence");
+    expect(value.importAsset).toHaveBeenNthCalledWith(6, "audio");
+  });
+
   it("routes composition actions and preserves destination identity", () => {
     const value = actions({ id: "comp-1", kind: "composition", name: "Comp" });
     const items = projectContextMenuItems(value, createTranslator("en-US"));
@@ -80,6 +98,26 @@ describe("projectContextMenuItems", () => {
       disabled: true,
       disabledReason: "Required item",
     });
+  });
+
+  it("routes source lifecycle actions without duplicating project operations", () => {
+    const value = actions({ id: "source-1", kind: "source", name: "Image" });
+    const items = projectContextMenuItems(value, createTranslator("en-US"));
+    for (const id of [
+      "add-to-composition",
+      "reveal-in-composition",
+      "relink",
+      "rename",
+      "delete",
+    ]) {
+      const item = items.find((candidate) => candidate.id === id);
+      if (item?.kind === "command") item.onSelect();
+    }
+    expect(value.addSourceToComposition).toHaveBeenCalledOnce();
+    expect(value.revealInComposition).toHaveBeenCalledOnce();
+    expect(value.relinkSource).toHaveBeenCalledOnce();
+    expect(value.renameTarget).toHaveBeenCalledOnce();
+    expect(value.deleteTarget).toHaveBeenCalledOnce();
   });
 
   it("combines folder creation and edit actions without empty submenus", () => {

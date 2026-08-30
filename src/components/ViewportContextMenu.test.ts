@@ -101,6 +101,53 @@ describe("viewportContextMenuItems", () => {
     expect(selectChildren).toHaveBeenCalledOnce();
   });
 
+  it("routes preview, buffer, view, capture, and overlay actions", () => {
+    const value = {
+      ...actions(),
+      canCopyFrame: true,
+      copyFrame: vi.fn(),
+      exportFrame: vi.fn(),
+      setBufferView: vi.fn(),
+      setPreviewQuality: vi.fn(),
+      setViewCount: vi.fn(),
+      setZoom: vi.fn(),
+      toggleGrid: vi.fn(),
+      toggleGuides: vi.fn(),
+      toggleLayerControls: vi.fn(),
+      toggleOrigin: vi.fn(),
+    };
+    const items = viewportContextMenuItems(value, createTranslator("en-US"));
+    const selectNested = (menuId: string, itemId: string) => {
+      const menu = items.find((item) => item.id === menuId);
+      const item =
+        menu?.kind === "submenu"
+          ? menu.items.find((candidate) => candidate.id === itemId)
+          : undefined;
+      if (item && item.kind !== "separator" && item.kind !== "submenu") item.onSelect();
+    };
+    selectNested("zoom", "zoom-8");
+    selectNested("resolution", "resolution-0.25");
+    selectNested("buffer", "buffer-depthOfField");
+    selectNested("view-count", "view-count-1");
+    for (const id of ["copy-frame", "export-frame", "guides", "grid", "origin", "layer-controls"]) {
+      const item = items.find((candidate) => candidate.id === id);
+      if (item && item.kind !== "separator" && item.kind !== "submenu") item.onSelect();
+    }
+    expect(value.setZoom).toHaveBeenCalledWith(8);
+    expect(value.setPreviewQuality).toHaveBeenCalledWith(0.25);
+    expect(value.setBufferView).toHaveBeenCalledWith("depthOfField");
+    expect(value.setViewCount).toHaveBeenCalledWith(1);
+    for (const callback of [
+      value.copyFrame,
+      value.exportFrame,
+      value.toggleGuides,
+      value.toggleGrid,
+      value.toggleOrigin,
+      value.toggleLayerControls,
+    ])
+      expect(callback).toHaveBeenCalledOnce();
+  });
+
   it("omits composition editing for a locked non-active viewer", () => {
     const items = viewportContextMenuItems(
       { ...actions(), canEditComposition: false },

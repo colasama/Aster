@@ -2,7 +2,6 @@ import type { PointerEvent as ReactPointerEvent } from "react";
 import {
   type EditableKeyframe,
   selectedKeyframes as findSelectedKeyframes,
-  removeKeyframes,
   retimeKeyframes,
 } from "../core/keyframe-editing";
 import { activeComposition } from "../core/project";
@@ -49,15 +48,25 @@ export function TimelineKeyframe({
       })}
       className={`keyframe ${variant === "property" ? "property-keyframe" : ""} ${entry.source === "effect" ? "effect-key" : ""} ${state.selectedKeyframes.includes(entry.keyframe.id) ? "selected" : ""}`}
       disabled={disabled}
-      onContextMenu={(event) => {
-        event.preventDefault();
+      onContextMenu={() => {
         if (disabled) return;
-        const ids = state.selectedKeyframes.includes(entry.keyframe.id)
-          ? state.selectedKeyframes
-          : [entry.keyframe.id];
-        const entries = findSelectedKeyframes(activeComposition(state.project), ids);
-        dispatch({ type: "operation", operations: removeKeyframes(entries) });
-        dispatch({ type: "selectKeyframes", ids: [] });
+        if (!state.selectedKeyframes.includes(entry.keyframe.id))
+          dispatch({ type: "selectKeyframes", ids: [entry.keyframe.id] });
+      }}
+      onKeyDown={(event) => {
+        if (event.key !== "ContextMenu" && !(event.shiftKey && event.key === "F10")) return;
+        event.preventDefault();
+        if (!state.selectedKeyframes.includes(entry.keyframe.id))
+          dispatch({ type: "selectKeyframes", ids: [entry.keyframe.id] });
+        const bounds = event.currentTarget.getBoundingClientRect();
+        event.currentTarget.dispatchEvent(
+          new MouseEvent("contextmenu", {
+            bubbles: true,
+            cancelable: true,
+            clientX: bounds.left + Math.min(12, bounds.width),
+            clientY: bounds.bottom,
+          }),
+        );
       }}
       onPointerDown={(event) =>
         startKeyframeDrag(event, {
