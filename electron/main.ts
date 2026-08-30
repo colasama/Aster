@@ -33,6 +33,11 @@ import { type UiScale, uiScaleFactor } from "../src/ui/ui-scale.js";
 import { FullAccessGrantManager } from "./agent-grants.js";
 import { PiAgentHost } from "./agent-host.js";
 import { AppPreferencesStore } from "./app-preferences.js";
+import {
+  ASSET_SCHEME,
+  ASSET_SCHEME_REGISTRATION,
+  createAssetProtocolHandler,
+} from "./asset-protocol.js";
 import { createDiagnosticBundle, writeDiagnosticBundle } from "./diagnostics.js";
 import { fullAccessDesktopBridgeRequest } from "./full-access-aster-tools.js";
 import { describeFullAccessTarget, FullAccessToolService } from "./full-access-tools.js";
@@ -51,7 +56,6 @@ import {
 } from "./render-queue-paths.js";
 import { RenderQueueStore } from "./render-queue-store.js";
 
-const ASSET_SCHEME = "aster-asset";
 const DEVELOPMENT_URL = "http://127.0.0.1:1420";
 const BRIDGE_COMMANDS = new Set([
   "clear_autosave",
@@ -87,17 +91,7 @@ const COMMAND_PATH_ARGUMENTS: Readonly<Record<string, readonly string[]>> = {
   unpack_project: ["archive", "parent"],
 };
 
-protocol.registerSchemesAsPrivileged([
-  {
-    scheme: ASSET_SCHEME,
-    privileges: {
-      standard: true,
-      secure: true,
-      supportFetchAPI: true,
-      stream: true,
-    },
-  },
-]);
+protocol.registerSchemesAsPrivileged([ASSET_SCHEME_REGISTRATION]);
 
 interface BridgeResponse {
   id: number;
@@ -468,19 +462,13 @@ function isAuthorizedRenderDestination(destination: string): boolean {
 }
 
 function registerAssetProtocol(): void {
-  protocol.handle(ASSET_SCHEME, async (request) => {
-    try {
-      const url = new URL(request.url);
-      if (url.hostname !== "local") return new Response("Not found", { status: 404 });
-      const encodedPath = url.pathname.startsWith("/") ? url.pathname.slice(1) : url.pathname;
-      const requestedPath = decodeURIComponent(encodedPath);
-      const allowedPath = allowedAssets.get(normalizeAssetPath(requestedPath));
-      if (!allowedPath) return new Response("Not found", { status: 404 });
-      return net.fetch(pathToFileURL(allowedPath).toString());
-    } catch {
-      return new Response("Not found", { status: 404 });
-    }
-  });
+  protocol.handle(
+    ASSET_SCHEME,
+    createAssetProtocolHandler({
+      allowedAssets,
+      fetchFile: (url) => net.fetch(url),
+    }),
+  );
 }
 
 function filters(value: unknown): FileFilter[] | undefined {
