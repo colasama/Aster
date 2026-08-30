@@ -355,7 +355,7 @@ export function Inspector() {
             </div>
           )}
           <MotionBlurControls composition={composition} layer={layer} />
-          <div className="inspector-section effects-section">
+          <fieldset className="inspector-section effects-section" disabled={layer.locked}>
             <div className="section-title static">
               <ChevronDown size={13} /> {t("inspector.effects.title")} <span />
               <button onClick={() => addDefaultEffect(layer.id, dispatch)} type="button">
@@ -372,7 +372,7 @@ export function Inspector() {
             {layer.effects.map((effect) => (
               <EffectEditor effect={effect} key={effect.id} layerId={layer.id} />
             ))}
-          </div>
+          </fieldset>
           {isAdjustment ? (
             <div className="inspector-section blend-section">
               <div className="section-title">
@@ -386,7 +386,7 @@ export function Inspector() {
                 </button>
               </div>
               {compositingOpen && (
-                <div className="compositing-grid">
+                <fieldset className="compositing-grid" disabled={layer.locked}>
                   <label>
                     {t("inspector.compositing.inPoint")}
                     <input
@@ -421,7 +421,7 @@ export function Inspector() {
                       value={layer.outPoint}
                     />
                   </label>
-                </div>
+                </fieldset>
               )}
             </div>
           ) : (
@@ -437,7 +437,7 @@ export function Inspector() {
                 </button>
               </div>
               {compositingOpen && (
-                <div className="compositing-grid">
+                <fieldset className="compositing-grid" disabled={layer.locked}>
                   <label>
                     {t("inspector.compositing.blendMode")}
                     <select
@@ -635,7 +635,7 @@ export function Inspector() {
                   <ClonerControls layer={layer} />
                   <TextControls layer={layer} />
                   <AudioControls layer={layer} />
-                </div>
+                </fieldset>
               )}
             </div>
           )}

@@ -207,6 +207,14 @@
 .effects-section {
   padding-bottom: 4px;
 }
+fieldset.effects-section {
+  min-width: 0;
+  margin: 0;
+  padding: 0 0 4px;
+  border-top: 0;
+  border-right: 0;
+  border-left: 0;
+}
 .empty-effects {
   height: 72px;
   display: flex;
@@ -866,7 +874,10 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 9px;
+  min-width: 0;
+  margin: 0;
   padding: 3px 11px 12px;
+  border: 0;
 }
 .compositing-grid label {
   display: grid;

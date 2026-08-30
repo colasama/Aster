@@ -26,6 +26,7 @@ import {
   useState,
 } from "react";
 import { layerSupportsMotionBlur } from "../core/motion-blur";
+import { canToggleLayer, type LayerToggleField } from "../core/operations";
 import type { activeComposition } from "../core/project";
 import type { Keyframe, Layer } from "../core/types";
 import { useI18n } from "../i18n/react";
@@ -111,7 +112,7 @@ export function TimelineLayerRow({
       {/* biome-ignore lint/a11y/useSemanticElements: This control contains independent layer-switch buttons. */}
       <div
         className="layer-label"
-        draggable
+        draggable={!layer.locked}
         onClick={(event) => {
           const ids = event.shiftKey
             ? state.selection.includes(layer.id)
@@ -195,13 +196,13 @@ export function TimelineLayerRow({
 function LayerSwitches({ layer }: { layer: Layer }) {
   const { dispatch } = useEditor();
   const { t } = useI18n();
-  const toggle = (
-    field: "visible" | "solo" | "audioEnabled" | "locked" | "threeDimensional" | "motionBlur",
-  ) =>
+  const toggle = (field: LayerToggleField) => {
+    if (!canToggleLayer(layer, field)) return;
     dispatch({
       type: "operation",
       operations: [{ type: "toggleLayer", layerId: layer.id, field }],
     });
+  };
   return (
     <div className="layer-switches">
       <button
@@ -240,7 +241,7 @@ function LayerSwitches({ layer }: { layer: Layer }) {
             ? t("timeline.layer.toggleAudio", { name: layer.name })
             : t("timeline.layer.noAudio", { name: layer.name })
         }
-        disabled={layer.kind !== "video" && layer.kind !== "audio"}
+        disabled={layer.locked || (layer.kind !== "video" && layer.kind !== "audio")}
         onClick={(event) => {
           event.stopPropagation();
           toggle("audioEnabled");
@@ -277,7 +278,7 @@ function LayerSwitches({ layer }: { layer: Layer }) {
               : t("timeline.layer.enable3d", { name: layer.name })
         }
         className={layer.threeDimensional ? "enabled" : ""}
-        disabled={layer.kind === "adjustment" || layer.kind === "audio"}
+        disabled={layer.locked || layer.kind === "adjustment" || layer.kind === "audio"}
         onClick={(event) => {
           event.stopPropagation();
           toggle("threeDimensional");
@@ -293,7 +294,7 @@ function LayerSwitches({ layer }: { layer: Layer }) {
             : t("timeline.layer.enableMotionBlur", { name: layer.name })
         }
         className={layer.motionBlur ? "enabled" : ""}
-        disabled={!layerSupportsMotionBlur(layer)}
+        disabled={layer.locked || !layerSupportsMotionBlur(layer)}
         onClick={(event) => {
           event.stopPropagation();
           toggle("motionBlur");

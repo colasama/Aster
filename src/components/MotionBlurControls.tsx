@@ -1,5 +1,6 @@
 import { Wind } from "lucide-react";
 import { compositionMotionBlurSettings, layerSupportsMotionBlur } from "../core/motion-blur";
+import { canToggleLayer } from "../core/operations";
 import type { Composition, Layer, MotionBlurSettings } from "../core/types";
 import { useI18n } from "../i18n/react";
 import { useEditor } from "../state/editor-store";
@@ -45,12 +46,13 @@ export function MotionBlurControls({
           <input
             checked={layer.motionBlur === true}
             disabled={!supportsLayer || layer.locked}
-            onChange={() =>
+            onChange={() => {
+              if (!canToggleLayer(layer, "motionBlur")) return;
               dispatch({
                 type: "operation",
                 operations: [{ type: "toggleLayer", layerId: layer.id, field: "motionBlur" }],
-              })
-            }
+              });
+            }}
             title={!supportsLayer ? t("inspector.motionBlur.unsupported") : undefined}
             type="checkbox"
           />

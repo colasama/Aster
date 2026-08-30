@@ -227,6 +227,13 @@ export type Operation =
     }
   | { type: "setEffectParameter"; layerId: Id; effectId: Id; parameter: string; value: number };
 
+export type LayerToggleField = Extract<Operation, { type: "toggleLayer" }>["field"];
+
+/** Visibility and solo are monitoring switches; every other locked-layer write requires unlock. */
+export function canToggleLayer(layer: Pick<Layer, "locked">, field: LayerToggleField): boolean {
+  return !layer.locked || field === "locked" || field === "visible" || field === "solo";
+}
+
 export const OPERATION_TYPES = [
   "setActiveComposition",
   "addComposition",
@@ -597,6 +604,7 @@ export function applyOperation(project: Project, operation: Operation): void {
   const index = composition.layers.findIndex((layer) => layer.id === operation.layerId);
   if (index < 0) throw new Error("Layer does not exist");
   const layer = composition.layers[index];
+  assertLayerOperationUnlocked(layer, operation);
   assertAdjustmentOperationSupported(layer, operation);
   switch (operation.type) {
     case "removeLayer":
@@ -963,6 +971,12 @@ export function applyOperation(project: Project, operation: Operation): void {
       break;
     }
   }
+}
+
+function assertLayerOperationUnlocked(layer: Layer, operation: Operation): void {
+  if (!layer.locked) return;
+  if (operation.type === "toggleLayer" && canToggleLayer(layer, operation.field)) return;
+  throw new Error("Layer is locked");
 }
 
 function assertAdjustmentOperationSupported(layer: Layer, operation: Operation): void {

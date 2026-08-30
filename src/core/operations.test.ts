@@ -6,7 +6,7 @@ import {
   particleSettingsFromGenerator,
 } from "./bundled-particle";
 import { createLayerForComposition } from "./layer-factory";
-import { applyOperations } from "./operations";
+import { applyOperations, type Operation } from "./operations";
 import { createDefaultParticleSettings } from "./particle-settings";
 import { planPrecomposition } from "./precomposition";
 import {
@@ -18,6 +18,58 @@ import {
 import type { Lut3dResource } from "./types";
 
 describe("structured project operations", () => {
+  it("rejects locked-layer writes while preserving monitor switches and unlock", () => {
+    const project = createDemoProject();
+    const composition = activeComposition(project);
+    const audio = createLayerForComposition("audio", composition);
+    const camera = createLayerForComposition("camera", composition);
+    const solid = createLayerForComposition("solid", composition);
+    const text = createLayerForComposition("text", composition);
+    for (const layer of [audio, camera, solid, text]) layer.locked = true;
+    composition.layers = [audio, camera, solid, text];
+    if (!audio.audio || !camera.camera || !solid.solid || !text.textStyle)
+      throw new Error("Expected specialized layer settings");
+
+    const writes: Operation[] = [
+      {
+        type: "setLayerAudioSettings",
+        layerId: audio.id,
+        audio: { ...audio.audio, muted: true },
+      },
+      {
+        type: "setCameraSettings",
+        layerId: camera.id,
+        camera: { ...camera.camera, zoom: { mode: "static", value: 4200 } },
+      },
+      {
+        type: "setSolidSettings",
+        layerId: solid.id,
+        solid: { ...solid.solid, width: 640 },
+      },
+      { type: "setTextContent", layerId: text.id, text: "LOCK BYPASS" },
+      { type: "toggleLayer", layerId: text.id, field: "motionBlur" },
+    ];
+    for (const operation of writes)
+      expect(() => applyOperations(project, [operation])).toThrow("Layer is locked");
+
+    const monitored = applyOperations(project, [
+      { type: "toggleLayer", layerId: text.id, field: "visible" },
+      { type: "toggleLayer", layerId: text.id, field: "solo" },
+    ]);
+    const monitoredText = activeComposition(monitored).layers.find((layer) => layer.id === text.id);
+    expect(monitoredText).toMatchObject({ locked: true, visible: false, solo: true });
+
+    const unlocked = applyOperations(project, [
+      { type: "toggleLayer", layerId: text.id, field: "locked" },
+      { type: "setTextContent", layerId: text.id, text: "EDITABLE" },
+    ]);
+    expect(activeComposition(unlocked).layers.find((layer) => layer.id === text.id)).toMatchObject({
+      locked: false,
+      text: "EDITABLE",
+    });
+    expect(text).toMatchObject({ locked: true, text: "NEW TEXT" });
+  });
+
   it("manages shared footage sources without cloning embedded bytes on unrelated edits", () => {
     const project = createBlankProject();
     const composition = activeComposition(project);
