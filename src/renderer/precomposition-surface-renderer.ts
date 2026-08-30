@@ -474,15 +474,17 @@ export class PrecompositionSurfaceRenderer {
     height: number,
     hasEffects: boolean,
   ): SurfaceEntry | undefined {
-    const reusable = [...this.#entries.values()]
-      .filter(
-        (entry) =>
-          entry.lastUsedFrame !== this.#frame &&
-          entry.width === width &&
-          entry.height === height &&
-          Boolean(entry.effects) === hasEffects,
+    let reusable: SurfaceEntry | undefined;
+    for (const entry of this.#entries.values()) {
+      if (
+        entry.lastUsedFrame === this.#frame ||
+        entry.width !== width ||
+        entry.height !== height ||
+        Boolean(entry.effects) !== hasEffects
       )
-      .sort((left, right) => left.lastUsedFrame - right.lastUsedFrame)[0];
+        continue;
+      if (!reusable || entry.lastUsedFrame < reusable.lastUsedFrame) reusable = entry;
+    }
     if (!reusable) return undefined;
     this.#entries.delete(reusable.key);
     reusable.key = key;
@@ -653,20 +655,24 @@ export class PrecompositionSurfaceRenderer {
   }
 
   #evictOldest(): void {
-    const oldest = [...this.#entries.values()].sort(
-      (left, right) => left.lastUsedFrame - right.lastUsedFrame,
-    )[0];
+    let oldest: SurfaceEntry | undefined;
+    for (const entry of this.#entries.values())
+      if (!oldest || entry.lastUsedFrame < oldest.lastUsedFrame) oldest = entry;
     if (!oldest) return;
     destroyEntry(oldest);
     this.#entries.delete(oldest.key);
   }
 
   #residentBytes(): number {
-    return [...this.#entries.values()].reduce((total, entry) => total + entry.estimatedBytes, 0);
+    let total = 0;
+    for (const entry of this.#entries.values()) total += entry.estimatedBytes;
+    return total;
   }
 
   #residentTextureCount(): number {
-    return [...this.#entries.values()].reduce((total, entry) => total + entry.textureCount, 0);
+    let total = 0;
+    for (const entry of this.#entries.values()) total += entry.textureCount;
+    return total;
   }
 }
 

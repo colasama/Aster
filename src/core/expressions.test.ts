@@ -19,4 +19,16 @@ describe("safe expressions", () => {
   it("rejects access outside the expression language", () => {
     expect(() => evaluateExpression("globalThis.alert(1)", { time: 0, value: 0 })).toThrow();
   });
+
+  it("bounds expression work before evaluation", () => {
+    expect(() => evaluateExpression(`${"1+".repeat(300)}1`, { time: 0, value: 0 })).toThrow(
+      /tokens/,
+    );
+    expect(() =>
+      evaluateExpression(`${"(".repeat(33)}1${")".repeat(33)}`, { time: 0, value: 0 }),
+    ).toThrow(/levels/);
+    expect(() => evaluateExpression("1".repeat(2_049), { time: 0, value: 0 })).toThrow(
+      /characters/,
+    );
+  });
 });

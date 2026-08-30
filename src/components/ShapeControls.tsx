@@ -2,6 +2,7 @@ import type { Layer, ShapeSettings } from "../core/types";
 import { useI18n } from "../i18n/react";
 import { createDefaultBezierPath } from "../renderer/vector-path";
 import { useEditor } from "../state/editor-store";
+import { colorInputValue, parseColorInput } from "../ui/color-input";
 
 export function ShapeControls({ layer }: { layer: Layer }) {
   const { dispatch } = useEditor();
@@ -39,7 +40,7 @@ export function ShapeControls({ layer }: { layer: Layer }) {
         {
           type: "setLayerColor",
           layerId: layer.id,
-          color: [...parseColor(value), layer.color[3]],
+          color: [...parseColorInput(value), layer.color[3]],
         },
       ],
     });
@@ -88,7 +89,7 @@ export function ShapeControls({ layer }: { layer: Layer }) {
           aria-label={t("shape.fillColor")}
           onChange={(event) => setFill(event.target.value)}
           type="color"
-          value={colorInput(layer.color)}
+          value={colorInputValue(layer.color)}
         />
       </label>
       <label>
@@ -111,12 +112,12 @@ export function ShapeControls({ layer }: { layer: Layer }) {
               aria-label={t("shape.gradientColor")}
               onChange={(event) =>
                 update("gradientColor", [
-                  ...parseColor(event.target.value),
+                  ...parseColorInput(event.target.value),
                   settings.gradientColor[3],
                 ])
               }
               type="color"
-              value={colorInput(settings.gradientColor)}
+              value={colorInputValue(settings.gradientColor)}
             />
           </label>
           {settings.fillMode === "linear" && (
@@ -162,10 +163,10 @@ export function ShapeControls({ layer }: { layer: Layer }) {
         <input
           aria-label={t("shape.strokeColor")}
           onChange={(event) =>
-            update("strokeColor", [...parseColor(event.target.value), settings.strokeColor[3]])
+            update("strokeColor", [...parseColorInput(event.target.value), settings.strokeColor[3]])
           }
           type="color"
-          value={colorInput(settings.strokeColor)}
+          value={colorInputValue(settings.strokeColor)}
         />
       </label>
       {(settings.kind === "line" || settings.kind === "bezier") && (
@@ -291,20 +292,4 @@ export function ShapeControls({ layer }: { layer: Layer }) {
       )}
     </>
   );
-}
-
-function parseColor(value: string): [number, number, number] {
-  const color = Number.parseInt(value.slice(1), 16);
-  return [((color >> 16) & 0xff) / 255, ((color >> 8) & 0xff) / 255, (color & 0xff) / 255];
-}
-
-function colorInput(color: readonly [number, number, number, number]): string {
-  return `#${color
-    .slice(0, 3)
-    .map((channel) =>
-      Math.round(Math.max(0, Math.min(1, channel)) * 255)
-        .toString(16)
-        .padStart(2, "0"),
-    )
-    .join("")}`;
 }

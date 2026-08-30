@@ -1,13 +1,10 @@
 import { CpuTaskError, type RadianceHdrCpuResult } from "./cpu-task-protocol";
+import { float32ToFloat16 } from "./half-float";
 
 export const MAX_HDR_SOURCE_BYTES = 48 * 1024 * 1024;
 export const MAX_HDR_WIDTH = 8_192;
 export const MAX_HDR_HEIGHT = 4_096;
 export const MAX_HDR_PIXELS = 16_777_216;
-
-const FLOAT_BITS_BUFFER = new ArrayBuffer(4);
-const FLOAT32_VIEW = new Float32Array(FLOAT_BITS_BUFFER);
-const UINT32_VIEW = new Uint32Array(FLOAT_BITS_BUFFER);
 
 /**
  * Worker-side Radiance RGBE decoding. The optional payload is allocated directly in its final
@@ -136,29 +133,7 @@ function readAsciiLine(source: Uint8Array, cursor: { offset: number }): string {
 }
 
 function boundedHalf(value: number): number {
-  return float32ToFloat16(Math.min(65_504, value));
-}
-
-function float32ToFloat16(value: number): number {
-  if (!Number.isFinite(value)) return value > 0 ? 0x7bff : value < 0 ? 0xfbff : 0x7e00;
-  FLOAT32_VIEW[0] = value;
-  const bits = UINT32_VIEW[0];
-  const sign = (bits >>> 16) & 0x8000;
-  let exponent = ((bits >>> 23) & 0xff) - 127 + 15;
-  let mantissa = bits & 0x7fffff;
-  if (exponent <= 0) {
-    if (exponent < -10) return sign;
-    mantissa = (mantissa | 0x800000) >>> (1 - exponent);
-    return sign | ((mantissa + 0x1000) >>> 13);
-  }
-  if (exponent >= 31) return sign | 0x7bff;
-  mantissa += 0x1000;
-  if ((mantissa & 0x800000) !== 0) {
-    mantissa = 0;
-    exponent += 1;
-    if (exponent >= 31) return sign | 0x7bff;
-  }
-  return sign | (exponent << 10) | (mantissa >>> 13);
+  return float32ToFloat16(value);
 }
 
 function fail(code: string, message: string): never {

@@ -21,7 +21,6 @@ interface ScheduledNode {
 interface ReversedEntry {
   buffer: AudioBuffer;
   bytes: number;
-  age: number;
 }
 
 export interface AudioPlaybackSnapshot {
@@ -44,7 +43,6 @@ export class CompositionAudioPlaybackEngine {
   #playing = false;
   #generation = 0;
   #reversedBytes = 0;
-  #clock = 0;
 
   constructor(
     cache: AudioDecodeCache = sharedAudioDecodeCache,
@@ -255,16 +253,15 @@ export class CompositionAudioPlaybackEngine {
   ): AudioBuffer {
     const cached = this.#reversed.get(footage.contentIdentity);
     if (cached) {
-      cached.age = ++this.#clock;
+      this.#reversed.delete(footage.contentIdentity);
+      this.#reversed.set(footage.contentIdentity, cached);
       return cached.buffer;
     }
     const bytes = decoded.length * decoded.numberOfChannels * Float32Array.BYTES_PER_ELEMENT;
     if (bytes > MAX_REVERSED_CACHE_BYTES)
       throw new Error(`Reversed audio for ${footage.name} exceeds the playback cache budget`);
     while (this.#reversedBytes + bytes > MAX_REVERSED_CACHE_BYTES) {
-      const oldest = [...this.#reversed.entries()].sort(
-        (left, right) => left[1].age - right[1].age,
-      )[0];
+      const oldest = this.#reversed.entries().next().value;
       if (!oldest) break;
       this.#reversed.delete(oldest[0]);
       this.#reversedBytes -= oldest[1].bytes;
@@ -280,7 +277,7 @@ export class CompositionAudioPlaybackEngine {
       for (let index = 0; index < input.length; index += 1)
         output[index] = input[input.length - 1 - index];
     }
-    this.#reversed.set(footage.contentIdentity, { buffer: reversed, bytes, age: ++this.#clock });
+    this.#reversed.set(footage.contentIdentity, { buffer: reversed, bytes });
     this.#reversedBytes += bytes;
     return reversed;
   }

@@ -3,6 +3,7 @@ import { createDefaultTextAnimator } from "../core/text-animator";
 import type { Layer, TextStyle } from "../core/types";
 import { useI18n } from "../i18n/react";
 import { useEditor } from "../state/editor-store";
+import { colorInputValue, parseColorInput } from "../ui/color-input";
 import { TextAnimatorControls } from "./TextAnimatorControls";
 
 const DEFAULT_STYLE: TextStyle = {
@@ -41,7 +42,7 @@ export function TextControls({ layer }: { layer: Layer }) {
         {
           type: "setLayerColor",
           layerId: layer.id,
-          color: [...parseColor(value), layer.color[3]],
+          color: [...parseColorInput(value), layer.color[3]],
         },
       ],
     });
@@ -136,7 +137,7 @@ export function TextControls({ layer }: { layer: Layer }) {
           aria-label={t("text.fillColorA11y")}
           onChange={(event) => updateColor(event.target.value)}
           type="color"
-          value={colorInput(layer.color)}
+          value={colorInputValue(layer.color)}
         />
       </label>
       <TextNumber
@@ -150,10 +151,10 @@ export function TextControls({ layer }: { layer: Layer }) {
         <input
           aria-label={t("text.strokeColorA11y")}
           onChange={(event) =>
-            update("strokeColor", [...parseColor(event.target.value), style.strokeColor[3]])
+            update("strokeColor", [...parseColorInput(event.target.value), style.strokeColor[3]])
           }
           type="color"
-          value={colorInput(style.strokeColor)}
+          value={colorInputValue(style.strokeColor)}
         />
       </label>
       <TextAnimatorControls
@@ -194,20 +195,4 @@ function TextNumber({
       />
     </label>
   );
-}
-
-function parseColor(value: string): [number, number, number] {
-  const color = Number.parseInt(value.slice(1), 16);
-  return [((color >> 16) & 0xff) / 255, ((color >> 8) & 0xff) / 255, (color & 0xff) / 255];
-}
-
-function colorInput(color: readonly [number, number, number, number]): string {
-  return `#${color
-    .slice(0, 3)
-    .map((channel) =>
-      Math.round(Math.max(0, Math.min(1, channel)) * 255)
-        .toString(16)
-        .padStart(2, "0"),
-    )
-    .join("")}`;
 }

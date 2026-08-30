@@ -358,10 +358,11 @@ export class AuxiliaryBufferRenderer {
     this.#uploadBatchIds(request.batches);
     const idBuffer = this.#idBuffer;
     if (!idBuffer) return false;
-    const vectors = request.motionVectors ?? new Float32Array(request.vertexCount * 2);
-    if (vectors.length !== request.vertexCount * 2)
+    if (request.motionVectors && request.motionVectors.length !== request.vertexCount * 2)
       throw new Error("Auxiliary motion vectors must match the current geometry vertex count");
-    const motionBuffer = this.#motionVectors.upload(vectors);
+    const motionBuffer = request.motionVectors
+      ? this.#motionVectors.upload(request.motionVectors)
+      : this.#motionVectors.clear(request.vertexCount, request.encoder);
     this.#motionShutterScale = request.motionVectors ? 1 : 0;
     const pass = beginAuxiliaryMrtPass(
       request.encoder,

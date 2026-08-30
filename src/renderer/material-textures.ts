@@ -144,10 +144,8 @@ export class MaterialTextureRenderer {
   }
 
   get estimatedBytes(): number {
-    const normalBytes = [...this.#normals.values()].reduce(
-      (sum, resource) => sum + resource.bytes,
-      0,
-    );
+    let normalBytes = 0;
+    for (const resource of this.#normals.values()) normalBytes += resource.bytes;
     return normalBytes + (this.#environment?.bytes ?? 0) + this.#uniforms.size * 16;
   }
 

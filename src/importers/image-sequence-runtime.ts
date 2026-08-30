@@ -25,7 +25,6 @@ export interface SequenceFrameCacheOptions<FileType extends SequenceFileLike, De
 interface ReadyEntry<DecodedType> {
   value: DecodedType;
   bytes: number;
-  stamp: number;
 }
 
 const DEFAULT_MAX_ENTRIES = 32;
@@ -70,7 +69,6 @@ export class ImageSequenceFrameCache<FileType extends SequenceFileLike, DecodedT
   readonly #pending = new Map<string, Promise<DecodedType>>();
   readonly #epochs = new Map<string, number>();
   #bytes = 0;
-  #stamp = 0;
   #generation = 0;
 
   constructor(options: SequenceFrameCacheOptions<FileType, DecodedType>) {
@@ -93,7 +91,8 @@ export class ImageSequenceFrameCache<FileType extends SequenceFileLike, DecodedT
     const key = frameCacheKey(frame);
     const ready = this.#ready.get(key);
     if (ready) {
-      ready.stamp = ++this.#stamp;
+      this.#ready.delete(key);
+      this.#ready.set(key, ready);
       return ready.value;
     }
     const pending = this.#pending.get(key);
@@ -108,7 +107,7 @@ export class ImageSequenceFrameCache<FileType extends SequenceFileLike, DecodedT
         const estimate = this.#estimateBytes(value);
         const bytes = Number.isFinite(estimate) && estimate >= 0 ? Math.floor(estimate) : 0;
         if (bytes > this.#maxBytes) return value;
-        this.#ready.set(key, { value, bytes, stamp: ++this.#stamp });
+        this.#ready.set(key, { value, bytes });
         this.#bytes += bytes;
         this.#evict();
         return value;
@@ -159,19 +158,13 @@ export class ImageSequenceFrameCache<FileType extends SequenceFileLike, DecodedT
   clear(): void {
     this.#generation += 1;
     this.#pending.clear();
-    for (const key of [...this.#ready.keys()]) this.#remove(key);
+    for (const key of this.#ready.keys()) this.#remove(key);
   }
 
   #evict(): void {
     while (this.#ready.size > this.#maxEntries || this.#bytes > this.#maxBytes) {
-      let oldestKey: string | undefined;
-      let oldestStamp = Number.POSITIVE_INFINITY;
-      for (const [key, entry] of this.#ready)
-        if (entry.stamp < oldestStamp) {
-          oldestKey = key;
-          oldestStamp = entry.stamp;
-        }
-      if (!oldestKey) break;
+      const oldestKey = this.#ready.keys().next().value;
+      if (oldestKey === undefined) break;
       this.#remove(oldestKey);
     }
   }

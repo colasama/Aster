@@ -75,7 +75,19 @@ export class GpuTimeAddressedMotionVectors {
   upload(vectors: Float32Array): GPUBuffer {
     if (vectors.length % MOTION_VECTOR_FLOATS !== 0)
       throw new Error("Motion vectors must contain one XY pair per vertex");
-    const required = motionVectorBufferBytes(vectors.length / MOTION_VECTOR_FLOATS);
+    const buffer = this.#ensureBuffer(vectors.length / MOTION_VECTOR_FLOATS);
+    if (vectors.byteLength > 0) this.#device.queue.writeBuffer(buffer, 0, vectors);
+    return buffer;
+  }
+
+  clear(vertexCount: number, encoder: GPUCommandEncoder): GPUBuffer {
+    const buffer = this.#ensureBuffer(vertexCount);
+    encoder.clearBuffer(buffer);
+    return buffer;
+  }
+
+  #ensureBuffer(vertexCount: number): GPUBuffer {
+    const required = motionVectorBufferBytes(vertexCount);
     if (!this.#buffer || required > this.#capacityBytes) {
       this.#buffer?.destroy();
       this.#capacityBytes = required;
@@ -85,7 +97,6 @@ export class GpuTimeAddressedMotionVectors {
         usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
       });
     }
-    if (vectors.byteLength > 0) this.#device.queue.writeBuffer(this.#buffer, 0, vectors);
     return this.#buffer;
   }
 

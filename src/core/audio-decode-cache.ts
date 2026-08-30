@@ -11,13 +11,11 @@ const MAX_PEAK_ENTRIES = 64;
 interface DecodedEntry {
   buffer: AudioBuffer;
   bytes: number;
-  age: number;
 }
 
 interface PeakEntry {
   peaks: Float32Array;
   bytes: number;
-  age: number;
 }
 
 export interface AudioDecodeCacheStatistics {
@@ -36,7 +34,6 @@ export class AudioDecodeCache {
   readonly #peakBudget: number;
   #decodedBytes = 0;
   #peakBytes = 0;
-  #clock = 0;
 
   constructor(decodeBudget = DEFAULT_DECODE_CACHE_BYTES, peakBudget = DEFAULT_PEAK_CACHE_BYTES) {
     if (!Number.isSafeInteger(decodeBudget) || decodeBudget < 1)
@@ -56,7 +53,8 @@ export class AudioDecodeCache {
       throw new Error(`${source.kind} footage does not contain playable audio`);
     const cached = this.#decoded.get(source.contentIdentity);
     if (cached) {
-      cached.age = ++this.#clock;
+      this.#decoded.delete(source.contentIdentity);
+      this.#decoded.set(source.contentIdentity, cached);
       return cached.buffer;
     }
     const pending = this.#pending.get(source.contentIdentity);
@@ -69,7 +67,7 @@ export class AudioDecodeCache {
       if (bytes > this.#decodeBudget)
         throw new Error("Decoded audio exceeds the configured cache budget");
       this.#evictDecoded(bytes);
-      this.#decoded.set(source.contentIdentity, { buffer, bytes, age: ++this.#clock });
+      this.#decoded.set(source.contentIdentity, { buffer, bytes });
       this.#decodedBytes += bytes;
       return buffer;
     } finally {
@@ -88,7 +86,8 @@ export class AudioDecodeCache {
     const key = `${source.contentIdentity}:${binCount}`;
     const cached = this.#peaks.get(key);
     if (cached) {
-      cached.age = ++this.#clock;
+      this.#peaks.delete(key);
+      this.#peaks.set(key, cached);
       return cached.peaks;
     }
     const buffer = await this.decode(context, source, signal);
@@ -105,7 +104,7 @@ export class AudioDecodeCache {
     const bytes = peaks.byteLength;
     if (bytes <= this.#peakBudget) {
       this.#evictPeaks(bytes);
-      this.#peaks.set(key, { peaks, bytes, age: ++this.#clock });
+      this.#peaks.set(key, { peaks, bytes });
       this.#peakBytes += bytes;
     }
     return peaks;
@@ -170,9 +169,7 @@ export class AudioDecodeCache {
       this.#decoded.size >= MAX_DECODE_ENTRIES ||
       this.#decodedBytes + incoming > this.#decodeBudget
     ) {
-      const oldest = [...this.#decoded.entries()].sort(
-        (left, right) => left[1].age - right[1].age,
-      )[0];
+      const oldest = this.#decoded.entries().next().value;
       if (!oldest) break;
       this.#decoded.delete(oldest[0]);
       this.#decodedBytes -= oldest[1].bytes;
@@ -181,9 +178,7 @@ export class AudioDecodeCache {
 
   #evictPeaks(incoming: number): void {
     while (this.#peaks.size >= MAX_PEAK_ENTRIES || this.#peakBytes + incoming > this.#peakBudget) {
-      const oldest = [...this.#peaks.entries()].sort(
-        (left, right) => left[1].age - right[1].age,
-      )[0];
+      const oldest = this.#peaks.entries().next().value;
       if (!oldest) break;
       this.#peaks.delete(oldest[0]);
       this.#peakBytes -= oldest[1].bytes;

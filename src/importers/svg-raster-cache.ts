@@ -27,7 +27,6 @@ export interface SvgRasterCacheOptions<RasterType> {
 interface RasterEntry<RasterType> {
   raster: RasterType;
   bytes: number;
-  stamp: number;
 }
 
 const DEFAULT_MAX_TEXTURE_DIMENSION = 8192;
@@ -87,7 +86,6 @@ export class SvgRasterCache<RasterType> {
   readonly #maxBytes: number;
   readonly #ready = new Map<string, RasterEntry<RasterType>>();
   readonly #pending = new Map<string, Promise<RasterType>>();
-  #stamp = 0;
   #bytes = 0;
   #generation = 0;
 
@@ -114,7 +112,8 @@ export class SvgRasterCache<RasterType> {
     const key = `${sourceIdentity}|${target.width}x${target.height}`;
     const ready = this.#ready.get(key);
     if (ready) {
-      ready.stamp = ++this.#stamp;
+      this.#ready.delete(key);
+      this.#ready.set(key, ready);
       return ready.raster;
     }
     const pending = this.#pending.get(key);
@@ -128,7 +127,7 @@ export class SvgRasterCache<RasterType> {
         if (generation !== this.#generation) return raster;
         const bytes = target.width * target.height * 4;
         if (bytes > this.#maxBytes) return raster;
-        this.#ready.set(key, { raster, bytes, stamp: ++this.#stamp });
+        this.#ready.set(key, { raster, bytes });
         this.#bytes += bytes;
         this.#evict();
         return raster;
@@ -145,19 +144,13 @@ export class SvgRasterCache<RasterType> {
   clear(): void {
     this.#generation += 1;
     this.#pending.clear();
-    for (const key of [...this.#ready.keys()]) this.#remove(key);
+    for (const key of this.#ready.keys()) this.#remove(key);
   }
 
   #evict(): void {
     while (this.#ready.size > this.#maxEntries || this.#bytes > this.#maxBytes) {
-      let oldestKey: string | undefined;
-      let oldestStamp = Number.POSITIVE_INFINITY;
-      for (const [key, entry] of this.#ready)
-        if (entry.stamp < oldestStamp) {
-          oldestKey = key;
-          oldestStamp = entry.stamp;
-        }
-      if (!oldestKey) break;
+      const oldestKey = this.#ready.keys().next().value;
+      if (oldestKey === undefined) break;
       this.#remove(oldestKey);
     }
   }

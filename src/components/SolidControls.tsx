@@ -2,6 +2,7 @@ import { MAX_SOLID_DIMENSION } from "../core/solid-layer";
 import type { Layer, SolidSettings } from "../core/types";
 import { useI18n } from "../i18n/react";
 import { useEditor } from "../state/editor-store";
+import { colorInputValue, parseColorInput } from "../ui/color-input";
 
 export function SolidControls({ layer }: { layer: Layer }) {
   const { dispatch } = useEditor();
@@ -37,10 +38,10 @@ export function SolidControls({ layer }: { layer: Layer }) {
         <input
           aria-label={t("solid.color")}
           onChange={(event) =>
-            update("color", [...parseColor(event.target.value), settings.color[3]])
+            update("color", [...parseColorInput(event.target.value), settings.color[3]])
           }
           type="color"
-          value={colorInput(settings.color)}
+          value={colorInputValue(settings.color)}
         />
       </label>
       <label>
@@ -64,23 +65,4 @@ export function SolidControls({ layer }: { layer: Layer }) {
       </label>
     </>
   );
-}
-
-function colorInput(color: readonly number[]): string {
-  return `#${color
-    .slice(0, 3)
-    .map((channel) =>
-      Math.round(Math.min(1, Math.max(0, channel)) * 255)
-        .toString(16)
-        .padStart(2, "0"),
-    )
-    .join("")}`;
-}
-
-function parseColor(value: string): [number, number, number] {
-  return [1, 3, 5].map((index) => Number.parseInt(value.slice(index, index + 2), 16) / 255) as [
-    number,
-    number,
-    number,
-  ];
 }

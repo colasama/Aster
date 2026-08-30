@@ -1,4 +1,7 @@
+import { float32ToFloat16 } from "../core/half-float";
 import type { Lut3dResource } from "../core/types";
+
+export { float32ToFloat16 };
 
 const IDENTITY_DATA = [0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1];
 
@@ -38,19 +41,4 @@ export function packLutTextureData(rgb: number[]): Uint16Array {
     rgba[destination + 3] = 0x3c00;
   }
   return rgba;
-}
-
-export function float32ToFloat16(value: number): number {
-  const bounded = Math.max(-65504, Math.min(65504, value));
-  const source = new Float32Array([bounded]);
-  const bits = new Uint32Array(source.buffer)[0];
-  const sign = (bits >>> 16) & 0x8000;
-  const exponent = ((bits >>> 23) & 0xff) - 127 + 15;
-  const mantissa = bits & 0x7fffff;
-  if (exponent <= 0) {
-    if (exponent < -10) return sign;
-    return sign | ((mantissa | 0x800000) >>> (14 - exponent));
-  }
-  if (exponent >= 31) return sign | 0x7bff;
-  return sign | (exponent << 10) | (mantissa >>> 13);
 }

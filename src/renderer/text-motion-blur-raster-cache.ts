@@ -48,7 +48,6 @@ interface TextMotionBlurEntry extends PreparedTextMotionBlurRaster {
   weights?: GPUBuffer;
   encoded: boolean;
   frame: number;
-  lastUsed: number;
 }
 
 interface TextMotionBlurRasterCacheOptions {
@@ -76,7 +75,6 @@ export class TextMotionBlurRasterCache {
   readonly #maxResidentBytes: number;
   readonly #maxTransientBytes: number;
   readonly #rasterize: typeof rasterizeTextLayer;
-  #clock = 0;
   #frame = 0;
   #residentBytes = 0;
   #transientBytes = 0;
@@ -193,7 +191,6 @@ export class TextMotionBlurRasterCache {
     resolutionScale: number,
   ): PreparedTextMotionBlurRaster {
     if (this.#destroyed) throw new Error("Text motion-blur raster cache is destroyed");
-    this.#clock += 1;
     const requestedScale = textRasterResolutionScale(resolutionScale);
     const maximumDimension = Math.min(8_192, this.#device.limits.maxTextureDimension2D);
     const existing = this.#entries.get(instanceId);
@@ -227,7 +224,8 @@ export class TextMotionBlurRasterCache {
     const source = textMotionBlurRasterSource(layer, plan, samples, rasterScale);
     if (existing?.source === source) {
       existing.frame = this.#frame;
-      existing.lastUsed = this.#clock;
+      this.#entries.delete(instanceId);
+      this.#entries.set(instanceId, existing);
       return existing;
     }
     const reuseOutput = existing?.width === width && existing.height === height;
@@ -355,8 +353,8 @@ export class TextMotionBlurRasterCache {
       resolutionScale: rasterScale,
       encoded: false,
       frame: this.#frame,
-      lastUsed: this.#clock,
     };
+    this.#entries.delete(instanceId);
     this.#entries.set(instanceId, entry);
     if (!reuseOutput) this.#residentBytes += pixelBytes;
     this.#transientBytes += transientBytes;
@@ -461,9 +459,12 @@ export class TextMotionBlurRasterCache {
       this.#entries.size >= this.#maxEntries ||
       this.#residentBytes + requiredBytes > this.#maxResidentBytes
     ) {
-      const oldest = [...this.#entries.entries()]
-        .filter(([, entry]) => entry.frame < this.#frame)
-        .sort((left, right) => left[1].lastUsed - right[1].lastUsed)[0];
+      let oldest: [string, TextMotionBlurEntry] | undefined;
+      for (const candidate of this.#entries) {
+        if (candidate[1].frame >= this.#frame) continue;
+        oldest = candidate;
+        break;
+      }
       if (!oldest) return false;
       this.#delete(oldest[0], oldest[1]);
     }

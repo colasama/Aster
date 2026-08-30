@@ -1,5 +1,5 @@
-import { mkdir, open, readFile, rename, rm } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import {
   type AppPreferences,
   applyUserPreferencePatch,
@@ -10,6 +10,7 @@ import {
   rememberRecentProject,
   type UserPreferencePatch,
 } from "../src/desktop/preferences.js";
+import { replaceFileWithBackup } from "./atomic-file.js";
 
 export class AppPreferencesStore {
   readonly #path: string;
@@ -125,27 +126,11 @@ export class AppPreferencesStore {
   }
 
   async #persist(document: AppPreferences = this.#document): Promise<void> {
-    await mkdir(dirname(this.#path), { recursive: true });
-    const file = await open(this.#temporaryPath, "w");
-    try {
-      await file.writeFile(`${JSON.stringify(document, null, 2)}\n`, "utf8");
-      await file.sync();
-    } finally {
-      await file.close();
-    }
-    await rm(this.#backupPath, { force: true });
-    const hadPrimary = await rename(this.#path, this.#backupPath).then(
-      () => true,
-      (error: NodeJS.ErrnoException) => {
-        if (error.code === "ENOENT") return false;
-        throw error;
-      },
+    await replaceFileWithBackup(
+      this.#path,
+      this.#temporaryPath,
+      this.#backupPath,
+      `${JSON.stringify(document, null, 2)}\n`,
     );
-    try {
-      await rename(this.#temporaryPath, this.#path);
-    } catch (error) {
-      if (hadPrimary) await rename(this.#backupPath, this.#path).catch(() => undefined);
-      throw error;
-    }
   }
 }

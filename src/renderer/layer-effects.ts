@@ -272,10 +272,9 @@ export class LayerEffectRenderer {
   }
 
   estimatedTextureBytes(): number {
-    return (
-      this.#width * this.#height * (8 * 2 + 4) +
-      [...this.#resources.values()].reduce((total, resource) => total + resource.lutBytes, 0)
-    );
+    let bytes = this.#width * this.#height * (8 * 2 + 4);
+    for (const resource of this.#resources.values()) bytes += resource.lutBytes;
+    return bytes;
   }
 
   destroy(): void {

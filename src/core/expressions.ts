@@ -12,8 +12,24 @@ interface Token {
   value?: number;
 }
 
+const MAX_EXPRESSION_LENGTH = 2_048;
+const MAX_EXPRESSION_TOKENS = 512;
+const MAX_EXPRESSION_DEPTH = 32;
+const MAX_CACHED_EXPRESSIONS = 128;
+const tokenCache = new Map<string, readonly Token[]>();
+const UNARY_FUNCTIONS: Readonly<Record<string, (value: number) => number>> = {
+  abs: Math.abs,
+  ceil: Math.ceil,
+  cos: Math.cos,
+  floor: Math.floor,
+  round: Math.round,
+  sin: Math.sin,
+  sqrt: Math.sqrt,
+  tan: Math.tan,
+};
+
 export function evaluateExpression(expression: string, context: ExpressionContext): number {
-  const parser = new Parser(tokenize(expression), context);
+  const parser = new Parser(tokensFor(expression), context);
   const value = parser.parse();
   if (!Number.isFinite(value)) throw new Error("Expression produced a non-finite value");
   return value;
@@ -45,8 +61,31 @@ export function evaluateLayerTransform(layer: Layer, time: number): EvaluatedTra
   };
 }
 
+function tokensFor(source: string): readonly Token[] {
+  const cached = tokenCache.get(source);
+  if (cached) {
+    tokenCache.delete(source);
+    tokenCache.set(source, cached);
+    return cached;
+  }
+  const tokens = tokenize(source);
+  tokenCache.set(source, tokens);
+  if (tokenCache.size > MAX_CACHED_EXPRESSIONS) {
+    const oldest = tokenCache.keys().next().value;
+    if (oldest !== undefined) tokenCache.delete(oldest);
+  }
+  return tokens;
+}
+
 function tokenize(source: string): Token[] {
+  if (source.length > MAX_EXPRESSION_LENGTH)
+    throw new Error(`Expression exceeds ${MAX_EXPRESSION_LENGTH} characters`);
   const tokens: Token[] = [];
+  const push = (token: Token) => {
+    if (tokens.length >= MAX_EXPRESSION_TOKENS)
+      throw new Error(`Expression exceeds ${MAX_EXPRESSION_TOKENS} tokens`);
+    tokens.push(token);
+  };
   let index = 0;
   while (index < source.length) {
     const character = source[index];
@@ -66,14 +105,14 @@ function tokenize(source: string): Token[] {
       const text = source.slice(start, index);
       const value = Number(text);
       if (!Number.isFinite(value)) throw new Error(`Invalid number: ${text}`);
-      tokens.push({ kind: "number", text, value });
+      push({ kind: "number", text, value });
       continue;
     }
     if (isIdentifierStart(character)) {
       const start = index;
       index += 1;
       while (isIdentifierPart(source[index])) index += 1;
-      tokens.push({ kind: "identifier", text: source.slice(start, index) });
+      push({ kind: "identifier", text: source.slice(start, index) });
       continue;
     }
     const kind =
@@ -87,18 +126,19 @@ function tokenize(source: string): Token[] {
               ? "operator"
               : undefined;
     if (!kind) throw new Error(`Unexpected token: ${character}`);
-    tokens.push({ kind, text: character });
+    push({ kind, text: character });
     index += 1;
   }
-  tokens.push({ kind: "end", text: "" });
+  push({ kind: "end", text: "" });
   return tokens;
 }
 
 class Parser {
   #index = 0;
+  #depth = 0;
 
   constructor(
-    private readonly tokens: Token[],
+    private readonly tokens: readonly Token[],
     private readonly context: ExpressionContext,
   ) {}
 
@@ -109,6 +149,9 @@ class Parser {
   }
 
   private parseExpression(minimumBindingPower: number): number {
+    this.#depth += 1;
+    if (this.#depth > MAX_EXPRESSION_DEPTH)
+      throw new Error(`Expression exceeds ${MAX_EXPRESSION_DEPTH} levels`);
     let left = this.parsePrefix();
     while (this.current.kind === "operator") {
       const operator = this.current.text;
@@ -118,6 +161,7 @@ class Parser {
       const right = this.parseExpression(rightPower);
       left = applyOperator(operator, left, right);
     }
+    this.#depth -= 1;
     return left;
   }
 
@@ -193,17 +237,8 @@ function applyOperator(operator: string, left: number, right: number): number {
 }
 
 function callFunction(name: string, values: number[]): number {
-  const unary: Record<string, (value: number) => number> = {
-    abs: Math.abs,
-    ceil: Math.ceil,
-    cos: Math.cos,
-    floor: Math.floor,
-    round: Math.round,
-    sin: Math.sin,
-    sqrt: Math.sqrt,
-    tan: Math.tan,
-  };
-  if (unary[name] && values.length === 1) return unary[name](values[0]);
+  const unary = UNARY_FUNCTIONS[name];
+  if (unary && values.length === 1) return unary(values[0]);
   if (name === "min" && values.length >= 1) return Math.min(...values);
   if (name === "max" && values.length >= 1) return Math.max(...values);
   if (name === "pow" && values.length === 2) return values[0] ** values[1];

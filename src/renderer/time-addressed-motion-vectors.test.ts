@@ -1,8 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { GeometryResult } from "./geometry";
 import { FLOATS_PER_VERTEX } from "./geometry";
 import {
   buildTimeAddressedMotionVectors,
+  GpuTimeAddressedMotionVectors,
   motionVectorBufferBytes,
 } from "./time-addressed-motion-vectors";
 
@@ -32,6 +33,32 @@ describe("time-addressed motion vectors", () => {
     expect(motionVectorBufferBytes(0)).toBe(8);
     expect(motionVectorBufferBytes(3)).toBe(32);
     expect(() => motionVectorBufferBytes(-1)).toThrow("non-negative");
+  });
+
+  it("clears a reused GPU buffer without allocating CPU zero vectors", () => {
+    const previousUsage = (globalThis as { GPUBufferUsage?: unknown }).GPUBufferUsage;
+    (globalThis as { GPUBufferUsage?: unknown }).GPUBufferUsage = { VERTEX: 1, COPY_DST: 2 };
+    const buffer = { destroy: vi.fn() } as unknown as GPUBuffer;
+    const device = {
+      createBuffer: vi.fn(() => buffer),
+      queue: { writeBuffer: vi.fn() },
+    } as unknown as GPUDevice;
+    const encoder = { clearBuffer: vi.fn() } as unknown as GPUCommandEncoder;
+    try {
+      const vectors = new GpuTimeAddressedMotionVectors(device);
+      expect(vectors.clear(3, encoder)).toBe(buffer);
+      expect(vectors.clear(1, encoder)).toBe(buffer);
+      expect(device.createBuffer).toHaveBeenCalledOnce();
+      expect(device.createBuffer).toHaveBeenCalledWith(
+        expect.objectContaining({ size: 32, usage: 3 }),
+      );
+      expect(encoder.clearBuffer).toHaveBeenCalledTimes(2);
+      expect(device.queue.writeBuffer).not.toHaveBeenCalled();
+      vectors.destroy();
+      expect(buffer.destroy).toHaveBeenCalledOnce();
+    } finally {
+      (globalThis as { GPUBufferUsage?: unknown }).GPUBufferUsage = previousUsage;
+    }
   });
 });
 
