@@ -41,6 +41,7 @@ export class RenderQueueUiStore {
   #frame?: number;
   #unsubscribe?: () => void;
   #started = false;
+  readonly #pendingCommands = new Map<string, number>();
 
   constructor(client?: RenderQueueClient, scheduler: FrameScheduler = browserFrameScheduler()) {
     this.#client = client;
@@ -102,9 +103,8 @@ export class RenderQueueUiStore {
     jobId: string | undefined,
     request: () => Promise<RenderQueueViewState> | undefined,
   ): Promise<void> {
-    const pendingJobIds = new Set(this.#snapshot.pendingJobIds);
-    if (jobId) pendingJobIds.add(jobId);
-    this.#replace({ ...this.#snapshot, pendingJobIds, error: undefined });
+    if (jobId) this.#beginPending(jobId);
+    else this.#replace({ ...this.#snapshot, error: undefined });
     try {
       const queue = await request();
       if (queue) this.#accept(queue);
@@ -112,12 +112,28 @@ export class RenderQueueUiStore {
       this.#fail(error);
       throw error;
     } finally {
-      if (jobId) {
-        const nextPending = new Set(this.#snapshot.pendingJobIds);
-        nextPending.delete(jobId);
-        this.#replace({ ...this.#snapshot, pendingJobIds: nextPending });
-      }
+      if (jobId) this.#endPending(jobId);
     }
+  }
+
+  #beginPending(jobId: string): void {
+    this.#pendingCommands.set(jobId, (this.#pendingCommands.get(jobId) ?? 0) + 1);
+    this.#replace({
+      ...this.#snapshot,
+      pendingJobIds: new Set(this.#pendingCommands.keys()),
+      error: undefined,
+    });
+  }
+
+  #endPending(jobId: string): void {
+    const count = this.#pendingCommands.get(jobId) ?? 0;
+    if (count <= 1) this.#pendingCommands.delete(jobId);
+    else this.#pendingCommands.set(jobId, count - 1);
+    this.#replace({
+      ...this.#snapshot,
+      pendingJobIds:
+        this.#pendingCommands.size === 0 ? EMPTY_PENDING : new Set(this.#pendingCommands.keys()),
+    });
   }
 
   #schedule(queue: RenderQueueViewState): void {

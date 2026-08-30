@@ -99,6 +99,33 @@ describe("RenderQueueUiStore", () => {
     expect(context.store.getSnapshot().error).toBe("lease rejected");
   });
 
+  it("keeps a job pending until every overlapping command settles", async () => {
+    const initial = enqueueRenderJob(createRenderQueue(), input);
+    const context = harness(initial);
+    context.store.start();
+    await Promise.resolve();
+    context.flush();
+    const resolvers: Array<(state: RenderQueueState) => void> = [];
+    vi.mocked(context.client.command).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolvers.push(resolve);
+        }),
+    );
+
+    const first = context.store.command({ type: "cancel", jobId: "job" });
+    const second = context.store.command({ type: "retry", jobId: "job" });
+    expect(context.store.getSnapshot().pendingJobIds).toEqual(new Set(["job"]));
+
+    resolvers[0]?.({ ...initial, revision: 2 });
+    await first;
+    expect(context.store.getSnapshot().pendingJobIds).toEqual(new Set(["job"]));
+
+    resolvers[1]?.({ ...initial, revision: 3 });
+    await second;
+    expect(context.store.getSnapshot().pendingJobIds).toEqual(new Set());
+  });
+
   it("enqueues through the external store without losing the returned revision", async () => {
     const context = harness();
     context.store.start();

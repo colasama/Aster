@@ -87,6 +87,30 @@ class GatedFailureFactory implements RenderQueueHostFactory {
   }
 }
 
+class GatedDisposeFactory extends FakeHostFactory {
+  readonly disposalStarted = deferred<void>();
+  readonly releaseDisposal = deferred<void>();
+
+  override async launch(
+    item: RenderQueueItem,
+    leaseId: string,
+    report: (event: RenderHostReport) => Promise<void>,
+  ): Promise<RenderQueueHostHandle> {
+    const worker = (await super.launch(item, leaseId, report)) as FakeWorker;
+    let disposing = false;
+    worker.dispose = async () => {
+      // Mirrors the production worker: it marks itself disposed before awaiting cleanup, so a
+      // duplicate call is idempotent but does not await the first call's in-flight resources.
+      if (disposing) return;
+      disposing = true;
+      this.disposalStarted.resolve(undefined);
+      await this.releaseDisposal.promise;
+      worker.disposed = true;
+    };
+    return worker;
+  }
+}
+
 const job = {
   id: "queued-job",
   compositionId: "composition",
@@ -365,6 +389,155 @@ describe("RenderQueueManager", () => {
       attempts: 2,
       workerLeaseId: hosts.workers[1]?.leaseId,
     });
+  });
+
+  it("never overwrites a draining lease with an immediate retry at parallel concurrency", async () => {
+    const context = await manager();
+    const hosts = new FakeHostFactory();
+    await context.manager.enqueue({ ...job, id: "parallel-cancel-retry" });
+    await context.manager.startScheduler(hosts, 2);
+    const cancelled = hosts.workers[0];
+    await cancelled.report({
+      type: "prepared",
+      jobId: cancelled.jobId,
+      leaseId: cancelled.leaseId,
+    });
+
+    await context.manager.command({ type: "cancel", jobId: cancelled.jobId });
+    await context.manager.command({ type: "retry", jobId: cancelled.jobId });
+
+    expect(hosts.workers).toHaveLength(1);
+    expect(context.manager.activeHostCount).toBe(1);
+    expect(context.manager.snapshot().items[0]).toMatchObject({
+      status: "queued",
+      attempts: 1,
+    });
+
+    await cancelled.report({
+      type: "cancelled",
+      jobId: cancelled.jobId,
+      leaseId: cancelled.leaseId,
+    });
+
+    expect(cancelled.disposed).toBe(true);
+    expect(hosts.workers).toHaveLength(2);
+    expect(hosts.workers[1]?.leaseId).not.toBe(cancelled.leaseId);
+    expect(context.manager.snapshot().items[0]).toMatchObject({
+      status: "preparing",
+      attempts: 2,
+      workerLeaseId: hosts.workers[1]?.leaseId,
+    });
+  });
+
+  it("keeps a paused lease counted until asynchronous resource disposal finishes", async () => {
+    const context = await manager();
+    const hosts = new GatedDisposeFactory();
+    await context.manager.enqueue({ ...job, id: "pause-dispose-resume" });
+    await context.manager.startScheduler(hosts, 2);
+    const paused = hosts.workers[0];
+    await paused.report({ type: "prepared", jobId: paused.jobId, leaseId: paused.leaseId });
+    await context.manager.command({ type: "pause", jobId: paused.jobId });
+
+    const acknowledgement = paused.report({
+      type: "paused",
+      jobId: paused.jobId,
+      leaseId: paused.leaseId,
+    });
+    await hosts.disposalStarted.promise;
+    expect(context.manager.snapshot().items[0]?.status).toBe("paused");
+    expect(context.manager.activeHostCount).toBe(1);
+
+    await context.manager.command({ type: "resume", jobId: paused.jobId });
+    expect(hosts.workers).toHaveLength(1);
+    expect(context.manager.activeHostCount).toBe(1);
+
+    hosts.releaseDisposal.resolve(undefined);
+    await acknowledgement;
+    expect(paused.disposed).toBe(true);
+    expect(hosts.workers).toHaveLength(2);
+    expect(context.manager.snapshot().items[0]).toMatchObject({
+      status: "preparing",
+      attempts: 2,
+      workerLeaseId: hosts.workers[1]?.leaseId,
+    });
+  });
+
+  it("awaits an in-flight host retirement before shutdown exits", async () => {
+    const context = await manager();
+    const hosts = new GatedDisposeFactory();
+    await context.manager.enqueue({ ...job, id: "shutdown-during-dispose" });
+    await context.manager.startScheduler(hosts);
+    const completed = hosts.workers[0];
+    await completed.report({
+      type: "prepared",
+      jobId: completed.jobId,
+      leaseId: completed.leaseId,
+    });
+
+    const acknowledgement = completed.report({
+      type: "completed",
+      jobId: completed.jobId,
+      leaseId: completed.leaseId,
+    });
+    await hosts.disposalStarted.promise;
+    let shutdownSettled = false;
+    const shutdown = context.manager.shutdown().then(() => {
+      shutdownSettled = true;
+    });
+    await Promise.resolve();
+    expect(shutdownSettled).toBe(false);
+
+    hosts.releaseDisposal.resolve(undefined);
+    await Promise.all([acknowledgement, shutdown]);
+    expect(completed.disposed).toBe(true);
+    expect(shutdownSettled).toBe(true);
+  });
+
+  it("keeps eight-slot cancel, retry, and remove churn bounded by live leases", async () => {
+    const context = await manager();
+    const hosts = new FakeHostFactory();
+    for (let index = 0; index < 16; index += 1)
+      await context.manager.enqueue({ ...job, id: `churn-${index.toString().padStart(2, "0")}` });
+    await context.manager.startScheduler(hosts, 8);
+    expect(hosts.workers).toHaveLength(8);
+
+    const retiring = hosts.workers.slice(0, 4);
+    await Promise.all(
+      hosts.workers.map((worker) =>
+        worker.report({ type: "prepared", jobId: worker.jobId, leaseId: worker.leaseId }),
+      ),
+    );
+    for (const worker of retiring)
+      await context.manager.command({ type: "cancel", jobId: worker.jobId });
+    for (const worker of retiring.slice(0, 2))
+      await context.manager.command({ type: "retry", jobId: worker.jobId });
+    for (const worker of retiring.slice(2))
+      await context.manager.command({ type: "remove", jobId: worker.jobId });
+
+    expect(context.manager.activeHostCount).toBe(8);
+    expect(hosts.workers).toHaveLength(8);
+    await Promise.all(
+      retiring.map((worker) =>
+        worker.report({ type: "cancelled", jobId: worker.jobId, leaseId: worker.leaseId }),
+      ),
+    );
+
+    expect(retiring.every((worker) => worker.disposed)).toBe(true);
+    expect(context.manager.activeHostCount).toBe(8);
+    expect(hosts.workers).toHaveLength(12);
+    expect(context.manager.snapshot().items.map((item) => item.manifest.id)).not.toContain(
+      retiring[2]?.jobId,
+    );
+    expect(context.manager.snapshot().items.map((item) => item.manifest.id)).not.toContain(
+      retiring[3]?.jobId,
+    );
+    for (const worker of retiring.slice(0, 2)) {
+      const replacement = hosts.workers.find(
+        (candidate) => candidate.jobId === worker.jobId && candidate !== worker,
+      );
+      expect(replacement?.leaseId).toBeDefined();
+      expect(replacement?.leaseId).not.toBe(worker.leaseId);
+    }
   });
 
   it("removes immediately while a cancelled lease failure still releases the worker", async () => {

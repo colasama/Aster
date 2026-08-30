@@ -62,6 +62,8 @@ interface ActiveHost {
   leaseId: string;
   /** Durable state may already be retried or removed while this cancelled lease drains. */
   cancellationRequested: boolean;
+  /** Keeps the lease counted until GPU, encoder, staging, and authorization disposal completes. */
+  finishing?: Promise<void>;
 }
 
 export class RenderQueueManager {
@@ -226,6 +228,13 @@ export class RenderQueueManager {
     const activeHosts = [...this.#active.entries()];
     this.#active.clear();
     for (const [jobId, active] of activeHosts) {
+      // A terminal report can already be disposing this generation. ElectronRenderHostWorker marks
+      // dispose idempotent before awaiting its encoder/publisher cleanup, so a second call may return
+      // immediately. Await the original retirement promise to keep shutdown from exiting early.
+      if (active.finishing) {
+        await active.finishing;
+        continue;
+      }
       await Promise.resolve(active.handle.control("cancel")).catch(() => undefined);
       await Promise.resolve(active.handle.dispose()).catch(() => undefined);
       const item = this.snapshot().items.find((candidate) => candidate.manifest.id === jobId);
@@ -271,10 +280,12 @@ export class RenderQueueManager {
     // live host handles as well as domain state so cleanup never creates a transient extra worker.
     const availableHostSlots = Math.max(0, this.#maximumConcurrency - this.#active.size);
     if (availableHostSlots === 0) return;
-    const runnable = nextRunnableRenderJobs(this.snapshot(), this.#maximumConcurrency).slice(
-      0,
-      availableHostSlots,
-    );
+    const runnable = nextRunnableRenderJobs(this.snapshot(), this.#maximumConcurrency)
+      // A cancelled generation can remain alive while a retry makes the durable item queued.
+      // Never overwrite that draining handle in the job-keyed active map; another queued job may
+      // use a free parallel slot, while this job waits for its exact old lease to dispose.
+      .filter((item) => !this.#active.has(item.manifest.id))
+      .slice(0, availableHostSlots);
     for (const item of runnable) {
       const jobId = item.manifest.id;
       const leaseId = this.#createLeaseId();
@@ -314,9 +325,13 @@ export class RenderQueueManager {
 
   async #finishHost(jobId: string, active: ActiveHost): Promise<void> {
     if (this.#active.get(jobId) !== active) return;
-    this.#active.delete(jobId);
-    await Promise.resolve(active.handle.dispose()).catch(() => undefined);
-    await this.#schedule();
+    if (!active.finishing)
+      active.finishing = (async () => {
+        await Promise.resolve(active.handle.dispose()).catch(() => undefined);
+        if (this.#active.get(jobId) === active) this.#active.delete(jobId);
+        await this.#schedule();
+      })();
+    await active.finishing;
   }
 
   async #update(
