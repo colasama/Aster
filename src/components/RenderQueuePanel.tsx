@@ -316,7 +316,7 @@ function RenderQueueRow({
         ) : null}
         {!canRemove ? (
           <ActionButton
-            disabled={pending || item.status === "pauseRequested"}
+            disabled={pending}
             icon={<X size={11} />}
             label={t("renderQueue.cancel")}
             onClick={() => command("cancel")}

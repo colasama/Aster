@@ -173,6 +173,33 @@ describe("RenderQueuePanel", () => {
     expect(context.client.command).toHaveBeenCalledWith({ type: "resume", jobId: "paused" });
   });
 
+  it("keeps cancel available while a pause acknowledgement is pending", async () => {
+    let state = enqueueRenderJob(createRenderQueue(), input("pausing"));
+    state = claimRenderJob(state, "pausing", "pausing-lease");
+    state = markRenderJobRunning(state, "pausing", "pausing-lease");
+    state = requestRenderPause(state, "pausing");
+    const context = harness(state);
+    act(() => {
+      root.render(
+        <I18nProvider>
+          <RenderQueuePanel queueStore={context.queueStore} />
+        </I18nProvider>,
+      );
+    });
+    await act(async () => {
+      await Promise.resolve();
+      context.flush();
+    });
+
+    const cancel = container.querySelector<HTMLButtonElement>('button[aria-label="Cancel"]');
+    expect(cancel?.disabled).toBe(false);
+    await act(async () => {
+      cancel?.click();
+      await Promise.resolve();
+    });
+    expect(context.client.command).toHaveBeenCalledWith({ type: "cancel", jobId: "pausing" });
+  });
+
   it("routes retry and remove immediately from a cancelled row", async () => {
     let state = enqueueRenderJob(createRenderQueue(), input("cancelled"));
     state = cancelRenderJob(state, "cancelled");
