@@ -18,7 +18,9 @@ import {
   type RuntimePsdLayer,
   type RuntimeSvgSource,
 } from "../importers/media-import-runtime";
+import { decodeRasterImage, type RasterImageIdentity } from "../importers/raster-image-decoder";
 import { computeSvgRasterTarget, svgMarkupAtRasterSize } from "../importers/svg-raster-cache";
+import { isTiffSource } from "../importers/tiff-source";
 import { drawTextLayer } from "./text-rasterizer";
 
 interface CanvasMediaResource {
@@ -245,6 +247,7 @@ export class CanvasFallbackRenderer {
           time,
           playing,
           instanceId,
+          { name: frame.file.name, mimeType: frame.file.type },
         );
         mediaImportRuntime.clearError(footage.id);
         return resource;
@@ -259,7 +262,10 @@ export class CanvasFallbackRenderer {
         return undefined;
       }
     }
-    return this.#prepareElement(source, layer, footage, time, playing, instanceId);
+    return this.#prepareElement(source, layer, footage, time, playing, instanceId, {
+      name: footage.name,
+      mimeType: footage.mimeType,
+    });
   }
 
   #prepareElement(
@@ -269,7 +275,14 @@ export class CanvasFallbackRenderer {
     time: number,
     playing: boolean,
     instanceId: string,
+    identity: RasterImageIdentity,
   ): CanvasMediaResource {
+    if (
+      layer.kind !== "video" &&
+      isTiffSource(identity.name, identity.mimeType) &&
+      this.#mediaResources.get(instanceId)?.source !== source
+    )
+      return this.#prepareDecodedImage(source, footage, instanceId, identity);
     let resource = this.#mediaResources.get(instanceId);
     if (!resource || resource.source !== source) {
       disposeCanvasMedia(resource);
@@ -327,6 +340,42 @@ export class CanvasFallbackRenderer {
       if (playing && video.paused) void video.play().catch(() => undefined);
       else if (!playing && !video.paused) video.pause();
     }
+    return resource;
+  }
+
+  #prepareDecodedImage(
+    source: string,
+    footage: FootageSource,
+    instanceId: string,
+    identity: RasterImageIdentity,
+  ): CanvasMediaResource {
+    disposeCanvasMedia(this.#mediaResources.get(instanceId));
+    this.#pendingMediaResources.delete(instanceId);
+    this.#mediaResourceErrors.delete(instanceId);
+    const canvas = document.createElement("canvas");
+    canvas.width = 0;
+    canvas.height = 0;
+    const resource = { source, element: canvas } satisfies CanvasMediaResource;
+    this.#mediaResources.set(instanceId, resource);
+    const work = fetch(source)
+      .then((response) => {
+        if (!response.ok) throw new Error(`Media request failed with HTTP ${response.status}`);
+        return response.blob();
+      })
+      .then((blob) => decodeRasterImage(blob, identity))
+      .then((bitmap) => {
+        try {
+          if (this.#mediaResources.get(instanceId) !== resource) return;
+          canvas.width = bitmap.width;
+          canvas.height = bitmap.height;
+          const context = canvas.getContext("2d");
+          if (!context) throw new Error("Canvas TIFF upload context is unavailable");
+          context.drawImage(bitmap, 0, 0);
+        } finally {
+          bitmap.close();
+        }
+      });
+    this.#trackElementReady(instanceId, source, footage, work);
     return resource;
   }
 

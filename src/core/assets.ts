@@ -1,5 +1,6 @@
 import { convertFileSrc, isDesktopRuntime, open } from "../desktop/api";
 import { mediaImportRuntime } from "../importers/media-import-runtime";
+import { readRasterImageMetadata } from "../importers/raster-image-decoder";
 import { DEFAULT_SOURCE_INTERPRETATION } from "./footage-source";
 import { ImporterRegistry, type SourceImporter } from "./importer-registry";
 import { createLayerForComposition } from "./layer-factory";
@@ -343,10 +344,7 @@ function fileToDataUrl(file: File): Promise<string> {
 }
 
 async function readImageMetadata(file: File): Promise<{ width: number; height: number }> {
-  const bitmap = await createImageBitmap(file);
-  const metadata = { width: bitmap.width, height: bitmap.height };
-  bitmap.close();
-  return metadata;
+  return readRasterImageMetadata(file, { name: file.name, mimeType: file.type });
 }
 
 function readVideoMetadata(

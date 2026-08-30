@@ -17,6 +17,7 @@ import {
   type RuntimeSequenceFile,
   type RuntimeSvgSource,
 } from "../importers/media-import-runtime";
+import { decodeRasterImage } from "../importers/raster-image-decoder";
 import {
   computeSvgRasterTarget,
   rasterizeSvgToImageBitmap,
@@ -67,7 +68,7 @@ export class MediaTextureCache {
   readonly #uploads: TextureUploadBatch;
   #textMotionBlur?: TextMotionBlurRasterCache;
   readonly #sequenceFrames = new ImageSequenceFrameCache<RuntimeSequenceFile, ImageBitmap>({
-    decode: (file) => this.#decodeImage(file.url),
+    decode: (file) => this.#decodeImage(file.url, file.name, file.type),
     estimateBytes: (bitmap) => bitmap.width * bitmap.height * 4,
     dispose: (bitmap) => bitmap.close(),
     maxEntries: 24,
@@ -249,7 +250,11 @@ export class MediaTextureCache {
         if (!response.ok) throw new Error(`Media request failed with HTTP ${response.status}`);
         return response.blob();
       })
-      .then((blob) => this.#decodePool.run(() => createImageBitmap(blob)))
+      .then((blob) =>
+        this.#decodePool.run(() =>
+          decodeRasterImage(blob, { name: footage.name, mimeType: footage.mimeType }),
+        ),
+      )
       .then((bitmap) => {
         if (this.#destroyed) {
           bitmap.close();
@@ -419,10 +424,10 @@ export class MediaTextureCache {
       .catch(() => undefined);
   }
 
-  async #decodeImage(url: string): Promise<ImageBitmap> {
+  async #decodeImage(url: string, name: string, mimeType: string): Promise<ImageBitmap> {
     const response = await fetch(url);
     if (!response.ok) throw new Error(`Media request failed with HTTP ${response.status}`);
-    return createImageBitmap(await response.blob());
+    return decodeRasterImage(await response.blob(), { name, mimeType });
   }
 
   #installCachedBitmapWhenReady(

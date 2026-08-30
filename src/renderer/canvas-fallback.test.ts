@@ -1,3 +1,4 @@
+import UTIF from "utif";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createLayerForComposition } from "../core/layer-factory";
 import { createBlankProject } from "../core/project";
@@ -19,10 +20,13 @@ beforeEach(() => {
   vi.stubGlobal("document", {
     createElement: (name: string) => (name === "video" ? new MockVideo() : new MockCanvas()),
   });
-  vi.stubGlobal("URL", {
+  const NativeUrl = globalThis.URL;
+  class MockUrl extends NativeUrl {}
+  Object.assign(MockUrl, {
     createObjectURL: vi.fn(() => "blob:svg-raster"),
     revokeObjectURL: vi.fn(),
   });
+  vi.stubGlobal("URL", MockUrl);
 });
 
 afterEach(() => {
@@ -71,6 +75,44 @@ describe("Canvas exact-frame resources", () => {
     await renderer.complete();
 
     expect(context.drawImage).toHaveBeenCalledTimes(1);
+  });
+
+  it("decodes TIFF into a canvas when native image elements cannot decode it", async () => {
+    vi.stubGlobal("Worker", undefined);
+    class MockImageData {
+      constructor(
+        readonly data: Uint8ClampedArray,
+        readonly width: number,
+        readonly height: number,
+      ) {}
+    }
+    vi.stubGlobal("ImageData", MockImageData);
+    const encoded = UTIF.encodeImage(Uint8Array.from([20, 40, 80, 255]).buffer, 1, 1);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: true,
+        blob: async () => new Blob([encoded], { type: "image/tiff" }),
+      })),
+    );
+    const bitmap = { width: 1, height: 1, close: vi.fn() } as unknown as ImageBitmap;
+    vi.stubGlobal(
+      "createImageBitmap",
+      vi.fn(async () => bitmap),
+    );
+    const { renderer, context, project, source } = fixture("still");
+    source.name = "plate.tiff";
+    source.mimeType = "image/tiff";
+    const composition = project.compositions[0];
+    if (!composition) throw new Error("Fixture composition is unavailable");
+
+    renderer.render(composition, 0, false, project);
+    expect(context.drawImage).not.toHaveBeenCalled();
+    await renderer.complete();
+
+    expect(context.drawImage).toHaveBeenCalledTimes(1);
+    expect(bitmap.close).toHaveBeenCalledTimes(1);
+    expect(mediaImportRuntime.error(source.id)).toBeUndefined();
   });
 
   it("rejects a missing sequence generation instead of reading stale pixels", async () => {
