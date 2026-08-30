@@ -6,6 +6,8 @@ export const controlsEn = {
   "audio.preview": "Preview audio",
   "audio.gain": "Audio gain",
   "audio.enabled": "Audio",
+  "audio.source": "Source",
+  "audio.noSource": "No source",
   "audio.mute": "Mute",
   "audio.reverse": "Reverse",
   "audio.levelLeft": "Left level",

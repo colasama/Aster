@@ -8,6 +8,8 @@ export const controlsZh = {
   "audio.preview": "预览音频",
   "audio.gain": "音频增益",
   "audio.enabled": "音频",
+  "audio.source": "源",
+  "audio.noSource": "无源",
   "audio.mute": "静音",
   "audio.reverse": "反向",
   "audio.levelLeft": "左声道电平",
