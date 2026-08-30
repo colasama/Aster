@@ -18,6 +18,7 @@ import { WebGpuRenderer } from "../../renderer/webgpu-renderer";
 import { createProductionRenderHostRenderer, renderHostFailure } from "./render-host-renderer";
 import {
   mergeRenderHostControl,
+  renderHostCorrelation,
   runRenderHostFrameLoop,
   validateRenderHostAssignment,
 } from "./render-host-session";
@@ -49,7 +50,9 @@ export function RenderHost() {
 
     void (async () => {
       const assignment = await host.take();
-      correlation = assignment;
+      // The assignment also carries a manifest and resume state. Never spread those fields into a
+      // strict terminal-report payload: doing so makes a render failure impossible to persist.
+      correlation = renderHostCorrelation(assignment);
       requestedControl = assignment.initialControl;
       const validated = validateRenderHostAssignment(assignment);
       const mediaLease = await hydrateRenderMediaSnapshot(
@@ -126,16 +129,21 @@ export function RenderHost() {
       logger.error("render_host", "session_failed", error, correlation);
       if (!correlation) return;
       const failure = renderHostFailure(error);
-      await host
-        .report({
+      try {
+        await host.report({
           type: "failed",
           ...correlation,
           error: {
             ...failure,
             correlationId: crypto.randomUUID(),
           },
-        })
-        .catch(() => undefined);
+        });
+      } catch (reportError) {
+        // Closing the hidden window gives the main process an independent terminal boundary. Its
+        // window-close handler fails and retires the lease even if strict report IPC regresses.
+        logger.error("render_host", "terminal_report_failed", reportError, correlation);
+        window.close();
+      }
     });
 
     return () => {

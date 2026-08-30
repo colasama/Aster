@@ -42,6 +42,13 @@ interface RenderHostFrameLoopOptions {
 
 export type RenderHostFrameLoopResult = "completed" | "cancelled";
 
+/** Narrows an assignment to the only fields accepted by terminal report IPC. */
+export function renderHostCorrelation(
+  assignment: Pick<DesktopRenderHostAssignment, "jobId" | "leaseId">,
+): Pick<DesktopRenderHostAssignment, "jobId" | "leaseId"> {
+  return { jobId: assignment.jobId, leaseId: assignment.leaseId };
+}
+
 /** Evaluates beauty frames sequentially while bounded audio writes run with independent backpressure. */
 export async function runRenderHostFrameLoop(
   options: RenderHostFrameLoopOptions,

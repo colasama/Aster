@@ -10,6 +10,7 @@ import type {
 } from "../../desktop/api";
 import {
   mergeRenderHostControl,
+  renderHostCorrelation,
   runRenderHostFrameLoop,
   validateRenderHostAssignment,
 } from "./render-host-session";
@@ -185,6 +186,11 @@ describe("RenderHost frame session", () => {
 
   it("validates snapshot parity and keeps cancel dominant over pause", () => {
     const work = assignment();
+    const assignmentWithResumeState = { ...work, initialControl: "pause" as const };
+    expect(renderHostCorrelation(assignmentWithResumeState)).toEqual({
+      jobId: work.jobId,
+      leaseId: work.leaseId,
+    });
     expect(validateRenderHostAssignment(work)).toMatchObject({ synchronizeVideo: false });
     expect(
       mergeRenderHostControl(
