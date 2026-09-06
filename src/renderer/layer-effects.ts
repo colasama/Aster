@@ -142,7 +142,12 @@ export class LayerEffectRenderer {
     if (!input || !output || !depth || !compositeBindGroup)
       throw new Error("Layer effect targets unavailable");
 
-    const program = compileEffectProgram(composition, time, [layer]);
+    const program = compileEffectProgram(
+      composition,
+      time,
+      [layer],
+      Math.min(this.#width / composition.width, this.#height / composition.height),
+    );
     const effects = defaultPostProcessParameters();
     const resource = this.#resource(instanceId, layer);
     this.#device.queue.writeBuffer(resource.program, 0, program.data);
@@ -219,7 +224,12 @@ export class LayerEffectRenderer {
     const output = this.#output;
     if (!input || !output) throw new Error("Adjustment effect targets unavailable");
 
-    const program = compileEffectProgram(composition, time, [layer]);
+    const program = compileEffectProgram(
+      composition,
+      time,
+      [layer],
+      Math.min(this.#width / composition.width, this.#height / composition.height),
+    );
     if (program.count === 0) return 0;
     const resource = this.#resource(instanceId, layer);
     this.#device.queue.writeBuffer(resource.program, 0, program.data);

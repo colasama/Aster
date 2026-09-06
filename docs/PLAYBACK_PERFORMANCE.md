@@ -15,3 +15,5 @@ With explicit seek revisions and presentation independent of React commits, the 
 The playback hook regression tests exercise delayed UI acknowledgements, explicit seeks, exact pause time, work-area looping, cancellation, and per-frame presentation with bounded UI updates.
 
 Portable media hydration creates owned Blob URLs. The renderer's `connect-src` policy permits `blob:` so audio decoding and export snapshot capture can read those same bytes; allowing Blob media elements alone is insufficient for `fetch`.
+
+Effect parameters declared in pixels retain composition-space units in the project. Fused layer and adjustment programs scale evaluated pixel parameters and mask feathering by the render-target scale before uploading uniforms. Normalized centers, angles, colors, and percentages remain unchanged. This keeps reduced-resolution previews consistent with full-resolution exports without resizing CPU image buffers or altering keyframes.

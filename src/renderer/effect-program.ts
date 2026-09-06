@@ -39,6 +39,7 @@ export function compileEffectProgram(
   composition: Composition,
   time = 0,
   layers: Layer[] = visibleLayersAtTime(composition, time),
+  pixelScale = 1,
 ): EffectProgram {
   const values = new Float32Array(MAX_EFFECT_OPERATIONS * FLOATS_PER_EFFECT_OPERATION);
   let count = 0;
@@ -58,17 +59,40 @@ export function compileEffectProgram(
           effect.mask.center[1] / 100,
           effect.mask.size[0] / 100,
           effect.mask.size[1] / 100,
-          effect.mask.feather,
+          effect.mask.feather * pixelScale,
           effect.mask.opacity / 100,
           effect.mask.invert ? 1 : 0,
           effect.mask.shape === "rectangle" ? 1 : 0,
         ]);
       }
-      compileEffect(effect, time, emit);
+      compileEffect(scalePixelParameters(effect, time, pixelScale), time, emit);
       if (effect.mask) emit(EffectOpcode.MaskEnd, []);
     }
   }
   return { data: values, count };
+}
+
+const pixelParameters = new Map(
+  [...EFFECT_BY_TYPE].map(([type, definition]) => [
+    type,
+    definition.parameters.filter((parameter) => parameter.unit === "px"),
+  ]),
+);
+
+/** UI pixel values refer to the composition, while shader distances refer to the render target. */
+function scalePixelParameters(effect: Effect, time: number, pixelScale: number): Effect {
+  const definitions = pixelParameters.get(effect.type);
+  if (pixelScale === 1 || !definitions?.length) return effect;
+  const parameters = { ...effect.parameters };
+  const parameterKeyframes = effect.parameterKeyframes
+    ? { ...effect.parameterKeyframes }
+    : undefined;
+  for (const definition of definitions) {
+    parameters[definition.key] =
+      evaluateEffectParameter(effect, definition.key, time, definition.defaultValue) * pixelScale;
+    if (parameterKeyframes) delete parameterKeyframes[definition.key];
+  }
+  return { ...effect, parameters, parameterKeyframes };
 }
 
 function compileEffect(
