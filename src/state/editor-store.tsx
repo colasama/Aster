@@ -33,6 +33,8 @@ export interface EditorState {
   selection: Id[];
   selectedKeyframes: Id[];
   currentTime: number;
+  /** Changes only for explicit seeks, never for playback acknowledgements. */
+  seekRevision?: number;
   playing: boolean;
   timelineZoom: number;
   viewportZoom: number;
@@ -71,6 +73,7 @@ export type EditorAction =
   | { type: "select"; ids: Id[] }
   | { type: "selectKeyframes"; ids: Id[] }
   | { type: "setTime"; time: number }
+  | { type: "setPlaybackTime"; time: number }
   | { type: "setPlaying"; playing: boolean }
   | { type: "setTimelineZoom"; zoom: number }
   | { type: "setViewportZoom"; zoom: number }
@@ -194,6 +197,12 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
     case "selectKeyframes":
       return { ...state, selectedKeyframes: action.ids };
     case "setTime":
+      return {
+        ...state,
+        currentTime: Math.max(0, action.time),
+        seekRevision: (state.seekRevision ?? 0) + 1,
+      };
+    case "setPlaybackTime":
       return { ...state, currentTime: Math.max(0, action.time) };
     case "setPlaying":
       return { ...state, playing: action.playing };

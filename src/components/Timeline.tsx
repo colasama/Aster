@@ -18,7 +18,6 @@ import {
   ZoomOut,
 } from "lucide-react";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { sharedAudioPlaybackEngine } from "../core/audio-playback-engine";
 import { createParticleLayerForComposition } from "../core/bundled-particle";
 import {
   copyKeyframes,
@@ -28,7 +27,6 @@ import {
   removeKeyframes,
 } from "../core/keyframe-editing";
 import { createLayerForComposition } from "../core/layer-factory";
-import { logger } from "../core/logger";
 import {
   compositionMotionBlurSettings,
   layerSupportsMotionBlur,
@@ -69,6 +67,7 @@ import {
 } from "./timeline-keyframe-actions";
 import { duplicateTimelineLayers, splitTimelineLayers } from "./timeline-layer-clipboard";
 import type { KeyframeTimePreview } from "./timeline-property-tracks";
+import { usePlayback } from "./use-timeline-playback";
 import { useWindowPointerDrag } from "./use-window-pointer-drag";
 import { useWorkspaceApi } from "./workspace/DockWorkspace";
 
@@ -957,79 +956,6 @@ export function Timeline() {
       )}
     </Panel>
   );
-}
-
-function usePlayback(
-  composition: ReturnType<typeof activeComposition>,
-  workArea: TimelineWorkAreaValue,
-) {
-  const { state, dispatch } = useEditor();
-  const currentTime = useRef(state.currentTime);
-  currentTime.current = state.currentTime;
-  useEffect(() => {
-    if (!state.playing) return;
-    const initialTime =
-      currentTime.current >= workArea.start && currentTime.current < workArea.end
-        ? currentTime.current
-        : workArea.start;
-    let frame = 0;
-    let disposed = false;
-    let lastDispatched = initialTime;
-    let audioClock = false;
-    let fallbackAnchorTime = initialTime;
-    let fallbackAnchorHost = performance.now();
-    const schedule = () => {
-      frame = requestAnimationFrame(() => void tick());
-    };
-    const restart = async (time: number) => {
-      try {
-        await sharedAudioPlaybackEngine.play(state.project, composition, time, workArea.end);
-        audioClock = true;
-      } catch (error) {
-        audioClock = false;
-        fallbackAnchorTime = time;
-        fallbackAnchorHost = performance.now();
-        logger.warn("audio", "fallback_monotonic_clock", undefined, error);
-      }
-      lastDispatched = time;
-    };
-    const tick = async () => {
-      if (disposed) return;
-      const predicted = audioClock
-        ? sharedAudioPlaybackEngine.compositionTime()
-        : Math.min(
-            workArea.end,
-            fallbackAnchorTime + (performance.now() - fallbackAnchorHost) / 1_000,
-          );
-      const externalSeek =
-        Math.abs(currentTime.current - lastDispatched) > 1 / 120 &&
-        Math.abs(currentTime.current - predicted) > 1 / 120;
-      if (externalSeek) {
-        await restart(
-          Math.max(workArea.start, Math.min(workArea.end - 1 / 240, currentTime.current)),
-        );
-        if (!disposed) schedule();
-        return;
-      }
-      if (predicted >= workArea.end - 1 / 240) {
-        dispatch({ type: "setTime", time: workArea.start });
-        await restart(workArea.start);
-        if (!disposed) schedule();
-        return;
-      }
-      lastDispatched = predicted;
-      dispatch({ type: "setTime", time: predicted });
-      schedule();
-    };
-    void restart(initialTime).then(() => {
-      if (!disposed) schedule();
-    });
-    return () => {
-      disposed = true;
-      cancelAnimationFrame(frame);
-      sharedAudioPlaybackEngine.pause();
-    };
-  }, [composition, dispatch, state.playing, state.project, workArea.end, workArea.start]);
 }
 
 function formatTimecode(
