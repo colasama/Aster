@@ -39,17 +39,38 @@ pub(crate) struct LinkedAudioMetadata {
     pub(crate) sample_rate: u32,
 }
 
-pub(crate) struct ProjectStorage;
+#[derive(Default)]
+pub(crate) struct ProjectStorage {
+    pub(crate) bundle_limits: aster_project::BundleLimits,
+}
 
 impl ProjectStorage {
-    pub(crate) fn save_project(path: String, mut project: serde_json::Value) -> Result<(), String> {
-        let bundle = PathBuf::from(path);
-        aster_project::validate_editor_project(&project).map_err(|error| error.to_string())?;
-        materialize_project_media(&bundle, &mut project)?;
-        aster_project::save_editor_bundle(bundle, &project).map_err(|error| error.to_string())
+    pub(crate) fn bundle(&self, root: impl AsRef<Path>) -> aster_project::ProjectBundle {
+        aster_project::ProjectBundle {
+            root: root.as_ref().to_owned(),
+            limits: self.bundle_limits.clone(),
+        }
     }
 
-    pub(crate) fn unpack_project(archive: String, parent: String) -> Result<String, String> {
+    pub(crate) fn save_project(
+        &self,
+        path: String,
+        mut project: serde_json::Value,
+    ) -> Result<(), String> {
+        let bundle = PathBuf::from(path);
+        aster_project::ProjectBundle::validate_editor(&project, false)
+            .map_err(|error| error.to_string())?;
+        let bundle = self
+            .bundle(&bundle)
+            .prepare_directory()
+            .map_err(|error| error.to_string())?;
+        materialize_project_media(&bundle, &mut project)?;
+        self.bundle(bundle)
+            .save_editor(&project)
+            .map_err(|error| error.to_string())
+    }
+
+    pub(crate) fn unpack_project(&self, archive: String, parent: String) -> Result<String, String> {
         let archive = PathBuf::from(archive)
             .canonicalize()
             .map_err(|error| error.to_string())?;
@@ -89,19 +110,28 @@ impl ProjectStorage {
         if destination.exists() {
             return Err("unable to allocate an unpacked project directory".to_owned());
         }
-        aster_project::unpack_editor_bundle(&archive, &destination)
+        self.bundle(&destination)
+            .unpack(&archive)
             .map_err(|error| error.to_string())?;
         Ok(destination.to_string_lossy().into_owned())
     }
 
     pub(crate) fn save_autosave(
+        &self,
         path: String,
         mut project: serde_json::Value,
     ) -> Result<(), String> {
         let bundle = PathBuf::from(path);
-        aster_project::validate_editor_project(&project).map_err(|error| error.to_string())?;
+        aster_project::ProjectBundle::validate_editor(&project, false)
+            .map_err(|error| error.to_string())?;
+        let bundle = self
+            .bundle(&bundle)
+            .prepare_directory()
+            .map_err(|error| error.to_string())?;
         materialize_project_media(&bundle, &mut project)?;
-        aster_project::save_autosave(bundle, &project).map_err(|error| error.to_string())
+        self.bundle(bundle)
+            .save_autosave(&project)
+            .map_err(|error| error.to_string())
     }
 
     pub(crate) fn write_render_frame(
@@ -122,12 +152,13 @@ impl ProjectStorage {
             .map_err(|error| error.to_string())
     }
 
-    pub(crate) fn load_project(path: String) -> Result<serde_json::Value, String> {
-        let bundle = PathBuf::from(path)
-            .canonicalize()
+    pub(crate) fn load_project(&self, path: String) -> Result<serde_json::Value, String> {
+        let bundle = PathBuf::from(path);
+        let mut project = self
+            .bundle(&bundle)
+            .load_editor()
             .map_err(|error| error.to_string())?;
-        let mut project =
-            aster_project::load_editor_bundle(&bundle).map_err(|error| error.to_string())?;
+        let bundle = bundle.canonicalize().map_err(|error| error.to_string())?;
         Self::resolve_project_asset_paths(&bundle, &mut project)?;
         resolve_project_media_paths(&bundle, &mut project)?;
         Ok(project)
@@ -404,13 +435,17 @@ impl ProjectStorage {
             && bytes[6..12].iter().all(u8::is_ascii_digit)
     }
 
-    pub(crate) fn recovery_candidate(path: String) -> Result<Option<serde_json::Value>, String> {
-        let bundle = PathBuf::from(path)
-            .canonicalize()
+    pub(crate) fn recovery_candidate(
+        &self,
+        path: String,
+    ) -> Result<Option<serde_json::Value>, String> {
+        let bundle = PathBuf::from(path);
+        let mut candidate = self
+            .bundle(&bundle)
+            .recovery_candidate()
             .map_err(|error| error.to_string())?;
-        let mut candidate =
-            aster_project::recovery_candidate(&bundle).map_err(|error| error.to_string())?;
         if let Some(project) = candidate.as_mut() {
+            let bundle = bundle.canonicalize().map_err(|error| error.to_string())?;
             Self::resolve_project_asset_paths(&bundle, project)?;
             resolve_project_media_paths(&bundle, project)?;
         }

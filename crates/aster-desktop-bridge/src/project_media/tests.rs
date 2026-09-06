@@ -133,10 +133,18 @@ fn materializes_resolves_and_packs_one_deduplicated_payload() {
     assert!(!serialized.contains("externalPath"));
     assert!(!serialized.contains("resolvedPath"));
     assert!(!serialized.contains(original.to_string_lossy().as_ref()));
-    aster_project::save_editor_bundle(&bundle, &project).unwrap();
-    aster_project::pack_editor_bundle(&bundle, &archive).unwrap();
-    aster_project::unpack_editor_bundle(&archive, &unpacked).unwrap();
-    let mut reopened = aster_project::load_editor_bundle(&unpacked).unwrap();
+    aster_project::ProjectBundle::at(&bundle)
+        .save_editor(&project)
+        .unwrap();
+    aster_project::ProjectBundle::at(&bundle)
+        .pack(&archive)
+        .unwrap();
+    aster_project::ProjectBundle::at(&unpacked)
+        .unpack(&archive)
+        .unwrap();
+    let mut reopened = aster_project::ProjectBundle::at(&unpacked)
+        .load_editor()
+        .unwrap();
     let paths =
         resolve_project_media_paths(&unpacked.canonicalize().unwrap(), &mut reopened).unwrap();
     assert_eq!(paths.len(), 1);

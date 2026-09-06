@@ -15,6 +15,8 @@ use std::{
 pub struct BridgeOptions {
     #[arg(long)]
     app_data_dir: PathBuf,
+    #[command(flatten)]
+    bundle_limits: aster_project::BundleLimits,
 }
 
 #[derive(Serialize)]
@@ -56,6 +58,7 @@ struct BridgeResponse {
 }
 
 struct BridgeRuntime {
+    storage: ProjectStorage,
     plugins: PluginHost,
 }
 
@@ -130,6 +133,9 @@ impl BridgeOptions {
     pub fn run(self) -> Result<(), String> {
         fs::create_dir_all(&self.app_data_dir).map_err(|error| error.to_string())?;
         let mut runtime = BridgeRuntime {
+            storage: ProjectStorage {
+                bundle_limits: self.bundle_limits,
+            },
             plugins: PluginHost {
                 app_data: self.app_data_dir,
                 runtime: Default::default(),
@@ -235,25 +241,27 @@ impl BridgeRuntime {
             "save_project" => {
                 let args: ProjectArgs = serde_json::from_value(args)
                     .map_err(|error| format!("invalid command arguments: {error}"))?;
-                ProjectStorage::save_project(args.path, args.project)?;
+                self.storage.save_project(args.path, args.project)?;
                 Ok(serde_json::Value::Null)
             }
             "load_project" => {
                 let args: PathArgs = serde_json::from_value(args)
                     .map_err(|error| format!("invalid command arguments: {error}"))?;
-                ProjectStorage::load_project(args.path)
+                self.storage.load_project(args.path)
             }
             "pack_project" => {
                 let args: BundleDestinationArgs = serde_json::from_value(args)
                     .map_err(|error| format!("invalid command arguments: {error}"))?;
-                aster_project::pack_editor_bundle(args.bundle, args.destination)
+                self.storage
+                    .bundle(args.bundle)
+                    .pack(args.destination)
                     .map_err(|error| error.to_string())?;
                 Ok(serde_json::Value::Null)
             }
             "unpack_project" => {
                 let args: ArchiveParentArgs = serde_json::from_value(args)
                     .map_err(|error| format!("invalid command arguments: {error}"))?;
-                let result = ProjectStorage::unpack_project(args.archive, args.parent)?;
+                let result = self.storage.unpack_project(args.archive, args.parent)?;
                 serde_json::to_value(result).map_err(|error| error.to_string())
             }
             "link_project_asset" => {
@@ -265,19 +273,22 @@ impl BridgeRuntime {
             "save_autosave" => {
                 let args: ProjectArgs = serde_json::from_value(args)
                     .map_err(|error| format!("invalid command arguments: {error}"))?;
-                ProjectStorage::save_autosave(args.path, args.project)?;
+                self.storage.save_autosave(args.path, args.project)?;
                 Ok(serde_json::Value::Null)
             }
             "recovery_candidate" => {
                 let args: PathArgs = serde_json::from_value(args)
                     .map_err(|error| format!("invalid command arguments: {error}"))?;
-                let result = ProjectStorage::recovery_candidate(args.path)?;
+                let result = self.storage.recovery_candidate(args.path)?;
                 serde_json::to_value(result).map_err(|error| error.to_string())
             }
             "clear_autosave" => {
                 let args: PathArgs = serde_json::from_value(args)
                     .map_err(|error| format!("invalid command arguments: {error}"))?;
-                aster_project::clear_autosave(args.path).map_err(|error| error.to_string())?;
+                self.storage
+                    .bundle(args.path)
+                    .clear_autosave()
+                    .map_err(|error| error.to_string())?;
                 Ok(serde_json::Value::Null)
             }
             "save_render_frame" => {

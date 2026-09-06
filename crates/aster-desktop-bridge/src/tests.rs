@@ -113,29 +113,28 @@ fn advanced_media_survives_save_recovery_and_pack_without_its_original()
         },
     })?;
 
-    ProjectStorage::save_project(bundle.to_string_lossy().into_owned(), project)?;
+    ProjectStorage::default().save_project(bundle.to_string_lossy().into_owned(), project)?;
     fs::remove_file(&original)?;
     let persisted = fs::read_to_string(bundle.join("project.json"))?;
     assert!(!persisted.contains("externalPath"));
     assert!(!persisted.contains("resolvedPath"));
     assert!(!persisted.contains("\"data\""));
 
-    let loaded = ProjectStorage::load_project(bundle.to_string_lossy().into_owned())?;
+    let loaded = ProjectStorage::default().load_project(bundle.to_string_lossy().into_owned())?;
     assert!(loaded["mediaImports"]["payloads"][0]["storage"]["resolvedPath"].is_string());
-    ProjectStorage::save_autosave(bundle.to_string_lossy().into_owned(), loaded)?;
-    let recovered = ProjectStorage::recovery_candidate(bundle.to_string_lossy().into_owned())?
+    ProjectStorage::default().save_autosave(bundle.to_string_lossy().into_owned(), loaded)?;
+    let recovered = ProjectStorage::default()
+        .recovery_candidate(bundle.to_string_lossy().into_owned())?
         .ok_or("recovery candidate missing")?;
     assert!(recovered["mediaImports"]["payloads"][0]["storage"]["resolvedPath"].is_string());
 
-    aster_project::pack_editor_bundle(
-        bundle.to_string_lossy().into_owned(),
-        archive.to_string_lossy().into_owned(),
-    )?;
-    let unpacked = ProjectStorage::unpack_project(
+    aster_project::ProjectBundle::at(bundle.to_string_lossy().into_owned())
+        .pack(archive.to_string_lossy().into_owned())?;
+    let unpacked = ProjectStorage::default().unpack_project(
         archive.to_string_lossy().into_owned(),
         unpack_parent.to_string_lossy().into_owned(),
     )?;
-    let packed = ProjectStorage::load_project(unpacked)?;
+    let packed = ProjectStorage::default().load_project(unpacked)?;
     assert!(packed["mediaImports"]["payloads"][0]["storage"]["resolvedPath"].is_string());
     fs::remove_dir_all(root)?;
     Ok(())

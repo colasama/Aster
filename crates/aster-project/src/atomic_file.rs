@@ -7,6 +7,7 @@ use std::{
 use uuid::Uuid;
 
 /// Owns an unpublished sibling file until a complete, synced write replaces its destination.
+#[derive(Debug)]
 pub struct AtomicFile {
     pub temporary: PathBuf,
     destination: PathBuf,

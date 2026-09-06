@@ -7,8 +7,6 @@ use std::{
 
 use crate::{AtomicFile, ProjectError};
 
-const CACHE_EXTENSION: &str = "aster-cache";
-
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct DiskCacheStatistics {
     pub hits: u64,
@@ -35,6 +33,7 @@ pub struct DiskCache {
 }
 
 impl DiskCache {
+    const CACHE_EXTENSION: &str = "aster-cache";
     pub fn open(root: impl AsRef<Path>, budget_bytes: u64) -> Result<Self, ProjectError> {
         let root = root.as_ref().to_owned();
         fs::create_dir_all(&root)?;
@@ -117,7 +116,9 @@ impl DiskCache {
             misses: self.misses,
             evictions: self.evictions,
             entries: entries.len(),
-            bytes: entries.iter().map(|entry| entry.bytes).sum(),
+            bytes: entries
+                .iter()
+                .fold(0_u64, |total, entry| total.saturating_add(entry.bytes)),
             budget_bytes: self.budget_bytes,
         })
     }
@@ -155,13 +156,15 @@ impl DiskCache {
         {
             return Err(ProjectError::InvalidCacheKey);
         }
-        Ok(self.root.join(format!("{key}.{CACHE_EXTENSION}")))
+        Ok(self.root.join(format!("{key}.{}", Self::CACHE_EXTENSION)))
     }
 
     fn trim_to_budget(&mut self) -> Result<(), ProjectError> {
         let mut entries = self.entries()?;
         entries.sort_by_key(|entry| entry.modified);
-        let mut bytes: u64 = entries.iter().map(|entry| entry.bytes).sum();
+        let mut bytes: u64 = entries
+            .iter()
+            .fold(0_u64, |total, entry| total.saturating_add(entry.bytes));
         for entry in entries {
             if bytes <= self.budget_bytes {
                 break;
@@ -178,7 +181,7 @@ impl DiskCache {
         for entry in fs::read_dir(&self.root)? {
             let entry = entry?;
             let path = entry.path();
-            if path.extension().and_then(|value| value.to_str()) != Some(CACHE_EXTENSION) {
+            if path.extension().and_then(|value| value.to_str()) != Some(Self::CACHE_EXTENSION) {
                 continue;
             }
             let metadata = entry.metadata()?;
@@ -210,46 +213,50 @@ mod tests {
     }
 
     #[test]
-    fn caches_atomically_and_reports_hits_and_misses() {
+    fn caches_atomically_and_reports_hits_and_misses() -> Result<(), Box<dyn std::error::Error>> {
         let root = cache_root();
-        let mut cache = DiskCache::open(&root, 1024).unwrap();
-        assert!(cache.put("frame_0001", b"frame").unwrap());
-        assert_eq!(cache.get("frame_0001").unwrap(), Some(b"frame".to_vec()));
-        assert_eq!(cache.get("missing").unwrap(), None);
-        let statistics = cache.statistics().unwrap();
+        let mut cache = DiskCache::open(&root, 1024)?;
+        assert!(cache.put("frame_0001", b"frame")?);
+        assert_eq!(cache.get("frame_0001")?, Some(b"frame".to_vec()));
+        assert_eq!(cache.get("missing")?, None);
+        let statistics = cache.statistics()?;
         assert_eq!(
             (statistics.hits, statistics.misses, statistics.entries),
             (1, 1, 1)
         );
-        fs::remove_dir_all(root).unwrap();
+        fs::remove_dir_all(root)?;
+        Ok(())
     }
 
     #[test]
-    fn evicts_least_recently_used_entries_to_budget() {
+    fn evicts_least_recently_used_entries_to_budget() -> Result<(), Box<dyn std::error::Error>> {
         let root = cache_root();
-        let mut cache = DiskCache::open(&root, 8).unwrap();
-        cache.put("old", b"1234").unwrap();
+        let mut cache = DiskCache::open(&root, 8)?;
+        cache.put("old", b"1234")?;
         std::thread::sleep(Duration::from_millis(2));
-        cache.put("new", b"5678").unwrap();
-        cache.get("old").unwrap();
-        cache.set_budget(4).unwrap();
-        assert_eq!(cache.get("old").unwrap(), Some(b"1234".to_vec()));
-        assert_eq!(cache.get("new").unwrap(), None);
-        assert_eq!(cache.statistics().unwrap().evictions, 1);
-        fs::remove_dir_all(root).unwrap();
+        cache.put("new", b"5678")?;
+        cache.get("old")?;
+        cache.set_budget(4)?;
+        assert_eq!(cache.get("old")?, Some(b"1234".to_vec()));
+        assert_eq!(cache.get("new")?, None);
+        assert_eq!(cache.statistics()?.evictions, 1);
+        fs::remove_dir_all(root)?;
+        Ok(())
     }
 
     #[test]
-    fn rejects_traversal_and_returns_a_benchmark_report() {
+    fn rejects_traversal_and_returns_a_benchmark_report() -> Result<(), Box<dyn std::error::Error>>
+    {
         let root = cache_root();
-        let mut cache = DiskCache::open(&root, 1024 * 1024).unwrap();
+        let mut cache = DiskCache::open(&root, 1024 * 1024)?;
         assert!(matches!(
             cache.put("../escape", b"x"),
             Err(ProjectError::InvalidCacheKey)
         ));
-        let report = cache.benchmark(4, 1024).unwrap();
+        let report = cache.benchmark(4, 1024)?;
         assert_eq!((report.writes, report.bytes), (4, 4096));
         assert!(report.elapsed > Duration::ZERO);
-        fs::remove_dir_all(root).unwrap();
+        fs::remove_dir_all(root)?;
+        Ok(())
     }
 }
