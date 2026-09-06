@@ -1,3 +1,4 @@
+import { activateProjectFonts, prepareProjectFonts } from "../core/project-font-runtime";
 import type { Composition, Project, RendererMetrics } from "../core/types";
 import type { CanvasFallbackRenderer } from "./canvas-fallback";
 import type { RawFramePixelFormat, RawVideoFrame } from "./frame-readback";
@@ -119,6 +120,7 @@ export function createViewportBeautyFrameBackend(
       renderer.resize(width, height);
     },
     present: (request, selectedLayerId) => {
+      activateProjectFonts(request.project);
       activateBeauty();
       return renderer.render(
         request.composition,
@@ -129,6 +131,8 @@ export function createViewportBeautyFrameBackend(
       );
     },
     readback: async (request, synchronizeVideo) => {
+      await prepareProjectFonts(request.project);
+      activateProjectFonts(request.project);
       activateBeauty();
       if (renderer instanceof WebGpuRenderer)
         return renderer.renderRawFrame(

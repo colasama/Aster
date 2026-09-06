@@ -41,6 +41,7 @@ import {
 import { startAutomationHost } from "./automation-host.js";
 import { AutomationSettingsController } from "./automation-settings.js";
 import { createDiagnosticBundle, writeDiagnosticBundle } from "./diagnostics.js";
+import { registerFontAccess } from "./font-access.js";
 import { fullAccessDesktopBridgeRequest } from "./full-access-aster-tools.js";
 import { describeFullAccessTarget, FullAccessToolService } from "./full-access-tools.js";
 import { AsterLogger, isRendererLogPayload, type LogLevel, parseLogLevel } from "./logger.js";
@@ -1344,8 +1345,13 @@ if (hasSingleInstanceLock)
       registerAssetProtocol();
       registerIpc(logger, preferences, renderQueueManager, renderMediaSnapshots);
       renderHostController.registerIpc();
-      session.defaultSession.setPermissionRequestHandler((_webContents, _permission, callback) => {
-        callback(false);
+      registerFontAccess(() => primaryWindow);
+      session.defaultSession.setPermissionCheckHandler(
+        (contents, permission) =>
+          String(permission) === "local-fonts" && contents === primaryWindow?.webContents,
+      );
+      session.defaultSession.setPermissionRequestHandler((contents, permission, callback) => {
+        callback(String(permission) === "local-fonts" && contents === primaryWindow?.webContents);
       });
       await renderQueueManager.startScheduler(renderHostController, 1);
       await createWindow(logger, preferences);

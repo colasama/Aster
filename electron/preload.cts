@@ -25,6 +25,9 @@ contextBridge.exposeInMainWorld(
     save: (options: Record<string, unknown>) => ipcRenderer.invoke("aster:save", options),
     convertFileSrc: (path: string) => `aster-asset://local/${encodeURIComponent(path)}`,
     getPreferences: () => ipcRenderer.invoke("aster:preferences-get"),
+    fonts: Object.freeze({
+      list: () => ipcRenderer.invoke("aster:fonts-list"),
+    }),
     updatePreferences: (preferences: Record<string, unknown>) =>
       ipcRenderer.invoke("aster:preferences-update", preferences),
     migrateLegacyPreferences: (preferences: Record<string, unknown>) =>

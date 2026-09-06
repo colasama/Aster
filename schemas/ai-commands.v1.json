@@ -356,6 +356,33 @@
         }
       }
     },
+    "textStylePatch": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "fontFamily": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "fontSize": { "type": "number", "minimum": 1, "maximum": 4096 },
+        "fontWeight": { "type": "number", "minimum": 100, "maximum": 900 },
+        "alignment": { "enum": ["left", "center", "right"] },
+        "tracking": { "type": "number", "minimum": -1000, "maximum": 1000 },
+        "leading": { "type": "number", "minimum": 1, "maximum": 8192 },
+        "strokeWidth": { "type": "number", "minimum": 0, "maximum": 512 },
+        "strokeColor": { "$ref": "#/$defs/color4" }
+      }
+    },
+    "projectFont": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "family", "weight", "dataUrl"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "name": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "family": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "weight": { "type": "integer", "minimum": 100, "maximum": 900 },
+        "dataUrl": { "type": "string", "minLength": 1, "maxLength": 11184876 }
+      }
+    },
     "textStyle": {
       "type": "object",
       "additionalProperties": false,
@@ -1734,10 +1761,48 @@
       }
     },
     {
+      "name": "addProjectFont",
+      "version": 1,
+      "category": "typography",
+      "description": "Embed a project-owned font face. Prefer the import_font tool for local files.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "font"],
+        "properties": {
+          "type": { "const": "addProjectFont" },
+          "font": { "$ref": "#/$defs/projectFont" }
+        }
+      }
+    },
+    {
+      "name": "removeProjectFont",
+      "version": 1,
+      "category": "typography",
+      "description": "Remove a project-owned font face; text retains its requested family and uses fallback.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "fontId"],
+        "properties": {
+          "type": { "const": "removeProjectFont" },
+          "fontId": { "$ref": "#/$defs/id" }
+        }
+      }
+    },
+    {
       "name": "setTextStyle",
       "version": 1,
       "category": "typography",
-      "description": "Replace a text layer's bounded typography and stroke settings.",
+      "description": "Update supplied typography and stroke fields while preserving the rest of the text style.",
       "requiredPermissions": ["project.edit"],
       "risk": "reversible",
       "undoable": true,
@@ -1749,7 +1814,7 @@
         "properties": {
           "type": { "const": "setTextStyle" },
           "layerId": { "$ref": "#/$defs/id" },
-          "textStyle": { "$ref": "#/$defs/textStyle" }
+          "textStyle": { "$ref": "#/$defs/textStylePatch" }
         }
       }
     },

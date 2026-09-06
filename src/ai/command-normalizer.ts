@@ -332,6 +332,8 @@ function changedIds(operations: readonly Operation[]): string[] {
     if ("compositionId" in operation) ids.add(operation.compositionId);
     if (operation.type === "addComposition") ids.add(operation.composition.id);
     if (operation.type === "addProjectFolder") ids.add(operation.folder.id);
+    if (operation.type === "addProjectFont") ids.add(operation.font.id);
+    if (operation.type === "removeProjectFont") ids.add(operation.fontId);
     if ("sourceId" in operation && operation.sourceId) ids.add(operation.sourceId);
     if (operation.type === "addSource") ids.add(operation.source.id);
     if (operation.type === "moveProjectItem") ids.add(operation.itemId);

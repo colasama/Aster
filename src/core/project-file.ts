@@ -39,6 +39,8 @@ import {
   sourceSupportsLayer,
 } from "./footage-source";
 import { logger } from "./logger";
+import { prepareProjectFonts } from "./project-font-runtime";
+import { validateProjectFonts } from "./project-fonts";
 import { assertProjectRenderBoundaries } from "./project-render-boundaries";
 import { cloneCurrentProjectDocument } from "./project-schema";
 import { assertSceneGeneratorInstance } from "./scene-generator";
@@ -74,6 +76,7 @@ export function validateProjectDocument(value: unknown): Project {
   if (project.schemaVersion !== 10) throw new Error("Unsupported Aster project schema");
   requireString(project.id, "project.id");
   requireString(project.name, "project.name");
+  validateProjectFonts(project.fonts);
   const activeCompositionId = requireString(
     project.activeCompositionId,
     "project.activeCompositionId",
@@ -529,6 +532,7 @@ export function projectDocumentForPersistence(project: Project): Project {
     ...project,
     compositions: structuredClone(project.compositions),
     sources: project.sources.map(copySourceWithoutRuntimeUrl),
+    ...(project.fonts ? { fonts: project.fonts.map((font) => ({ ...font })) } : {}),
     folders: project.folders.map((folder) => ({ ...folder })),
     itemFolderIds: { ...project.itemFolderIds },
     commandLog: project.commandLog.map((entry) => ({ ...entry })),
@@ -561,6 +565,7 @@ export async function openPersistedProjectDocument(
 ): Promise<Project> {
   const { document, mediaImports } = splitPersistedMediaImports(value);
   const project = validateProjectDocument(document);
+  await prepareProjectFonts(project);
   await hydratePersistedMediaImports(project, mediaImports, {
     allowResolvedPaths: allowResolvedMediaPaths,
   });

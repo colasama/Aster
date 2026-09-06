@@ -4,6 +4,7 @@ import { isAbsolute, join } from "node:path";
 import { type BrowserWindow, ipcMain } from "electron";
 import type { AutomationRequest } from "../src/ai/automation-protocol.js";
 import { type AutomationCall, startAutomationServer } from "./automation-server.js";
+import { readProjectFont } from "./font-files.js";
 import { mediaMimeType, ReferenceMediaService } from "./reference-media.js";
 
 export async function startAutomationHost(options: {
@@ -80,6 +81,10 @@ export async function startAutomationHost(options: {
 
   async function execute(call: AutomationCall, signal: AbortSignal) {
     const input = call.arguments;
+    if (call.name === "import_font") {
+      const font = await readProjectFont(input.path, input.family, input.weight);
+      return renderer({ ...call, arguments: { ...input, font } }, signal);
+    }
     if (call.name === "probe_reference") return media.probe(input.path, signal);
     if (call.name === "read_reference_frames") return media.frames(input, signal);
     if (call.name === "read_reference_audio") return media.audio(input, signal);

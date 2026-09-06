@@ -1,6 +1,8 @@
 import { getProperty, type PropertyPath } from "./operations";
 import { activeComposition } from "./project";
+import { projectFontMetadata } from "./project-fonts";
 import { flattenSceneLayers } from "./scene-evaluation";
+import { resolveTextStyle } from "./text-style";
 import { evaluateAnimatable, evaluateEffectParameter } from "./timeline";
 import type { Composition, Id, Layer, Project } from "./types";
 
@@ -65,6 +67,7 @@ export interface AiProjectContext {
   timeline: ReturnType<typeof queryTimeline>;
   scene: ReturnType<typeof queryScene>;
   assets: ReturnType<typeof queryAssets>;
+  fonts: ReturnType<typeof projectFontMetadata>[];
 }
 
 export function buildAiContext(
@@ -94,6 +97,7 @@ export function buildAiContext(
     timeline: queryTimeline(composition),
     scene: queryScene(project, composition, currentTime),
     assets: queryAssets(project),
+    fonts: (project.fonts ?? []).map(projectFontMetadata),
   };
   if (new TextEncoder().encode(JSON.stringify(context)).byteLength > MAX_AI_CONTEXT_BYTES)
     throw new Error("Bounded AI project context exceeded its size budget");
@@ -108,6 +112,7 @@ export function queryProperties(composition: Composition, selectedLayerIds: Id[]
       id: layer.id,
       name: boundedText(layer.name),
       kind: layer.kind,
+      ...(layer.kind === "text" ? { textStyle: structuredClone(resolveTextStyle(layer)) } : {}),
       properties: Object.fromEntries(
         [...propertyPaths, ...(layer.camera ? cameraPropertyPaths : [])].map((path) => {
           const property = getProperty(layer, path);
@@ -155,6 +160,7 @@ export function queryTimeline(composition: Composition) {
     id: layer.id,
     name: boundedText(layer.name),
     kind: layer.kind,
+    ...(layer.kind === "text" ? { textStyle: structuredClone(resolveTextStyle(layer)) } : {}),
     inPoint: finite(layer.inPoint),
     outPoint: finite(layer.outPoint),
     sourceOffset: finite(layer.timeOffset ?? 0),

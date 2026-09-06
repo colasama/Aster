@@ -1,3 +1,4 @@
+import { projectFontRevision } from "../core/project-font-runtime";
 import type { Layer } from "../core/types";
 import type { TextMotionBlurPlan, TextMotionBlurSample } from "./text-motion-blur-plan";
 import { rasterizeTextLayer, textRasterResolutionScale, textRasterSize } from "./text-rasterizer";
@@ -585,6 +586,7 @@ export function textMotionBlurRasterSource(
     layer.color,
     layer.size,
     layer.textStyle,
+    projectFontRevision(),
     layer.textAnimator,
     samples.map((sample) => [sample.timeBucket, sample.weight]),
     plan.transparentWeight,

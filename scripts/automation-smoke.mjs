@@ -190,10 +190,94 @@ try {
   live = { projectRevision: imported.projectRevision };
   const fonts = await call("check_fonts", { families: ["Arial", "AsterMissingFont012345"] });
   assert.equal(fonts.fonts[1].available, false);
+  if (process.env.ASTER_SMOKE_FONT) {
+    const inventory = await call("list_fonts", { source: "system", limit: 2 });
+    assert(inventory.total > 0);
+    assert(inventory.fonts.length <= 2);
+    const family = "Aster Smoke Embedded";
+    const importedFont = await call("import_font", {
+      path: resolve(process.env.ASTER_SMOKE_FONT),
+      family,
+      baseRevision: live.projectRevision,
+    });
+    live = { projectRevision: importedFont.projectRevision };
+    const available = await call("check_fonts", { families: [family] });
+    assert.equal(available.fonts[0].method, "project-font");
+    assert.equal(available.fonts[0].available, true);
+    const metadata = await call("list_fonts", { source: "project" });
+    assert.equal(metadata.fonts[0].family, family);
+    assert.equal(metadata.fonts[0].dataUrl, undefined);
+    const fontWork = await call("begin_edit_workspace", { baseRevision: live.projectRevision });
+    const added = await call("execute_commands", {
+      workspaceId: fontWork.workspaceId,
+      workspaceRevision: fontWork.workspaceRevision,
+      commands: [
+        {
+          type: "addComposition",
+          name: "Font smoke",
+          width: 1920,
+          height: 1080,
+          frameRateNumerator: 10,
+          frameRateDenominator: 1,
+          duration: 1,
+          activate: true,
+        },
+        { type: "addLayer", kind: "text", name: "Embedded font", text: "Font" },
+      ],
+    });
+    const layerId = added.changedObjectIds.at(-1);
+    const before = await call("query_project", {
+      workspaceId: fontWork.workspaceId,
+      kind: "layers",
+    });
+    const original = before.items.find((layer) => layer.id === layerId).textStyle;
+    const changed = await call("execute_commands", {
+      workspaceId: fontWork.workspaceId,
+      workspaceRevision: added.workspaceRevision,
+      commands: [
+        { type: "setLayerTiming", layerId, inPoint: 0, outPoint: 1 },
+        {
+          type: "setTextStyle",
+          layerId,
+          textStyle: { fontFamily: JSON.stringify(family), fontSize: 36, fontWeight: 400 },
+        },
+      ],
+    });
+    const after = await call("query_project", {
+      workspaceId: fontWork.workspaceId,
+      kind: "layers",
+    });
+    assert.deepEqual(after.items.find((layer) => layer.id === layerId).textStyle, {
+      ...original,
+      fontFamily: JSON.stringify(family),
+      fontSize: 36,
+      fontWeight: 400,
+    });
+    const finalWork = {
+      workspaceId: fontWork.workspaceId,
+      workspaceRevision: changed.workspaceRevision,
+    };
+    const fontPreview = await call("render_preview", {
+      ...finalWork,
+      times: [0, 0.5],
+      maxDimension: 1024,
+      layerIds: [layerId],
+    });
+    assert(fontPreview.frames.some((frame) => frame.measurements.maximumLuminance > 0.3));
+    await call("submit_workspace", { ...finalWork, summary: "Verify embedded font rendering" });
+    live = await call("commit_workspace", finalWork);
+    const fontAudio = await call("import_asset", {
+      path: reference,
+      baseRevision: live.projectRevision,
+      time: 0,
+    });
+    live = { projectRevision: fontAudio.projectRevision };
+  }
   const projectPath = join(output, "project");
   await call("save_project", { path: projectPath, baseRevision: live.projectRevision });
   const saved = JSON.parse(await readFile(join(projectPath, "project.json"), "utf8"));
   assert(saved.sources.length > 0);
+  if (process.env.ASTER_SMOKE_FONT) assert(saved.fonts[0].dataUrl.startsWith("data:font/"));
   const exportPath = join(output, "recreated.mp4");
   const queued = await call("export_render", {
     path: exportPath,

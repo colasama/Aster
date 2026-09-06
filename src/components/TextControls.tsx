@@ -1,27 +1,18 @@
 import { evaluateLayerSourceTime } from "../core/layer-time";
 import { createDefaultTextAnimator } from "../core/text-animator";
+import { resolveTextStyle } from "../core/text-style";
 import type { Layer, TextStyle } from "../core/types";
 import { useI18n } from "../i18n/react";
 import { useEditor } from "../state/editor-store";
 import { colorInputValue, parseColorInput } from "../ui/color-input";
+import { FontFamilyControl } from "./FontFamilyControl";
 import { TextAnimatorControls } from "./TextAnimatorControls";
-
-const DEFAULT_STYLE: TextStyle = {
-  fontFamily: "Inter, Segoe UI, sans-serif",
-  fontSize: 144,
-  fontWeight: 700,
-  alignment: "center",
-  tracking: 12,
-  leading: 172,
-  strokeWidth: 0,
-  strokeColor: [0, 0, 0, 1],
-};
 
 export function TextControls({ layer }: { layer: Layer }) {
   const { dispatch, state } = useEditor();
   const { t } = useI18n();
   if (layer.kind !== "text") return null;
-  const style = layer.textStyle ?? DEFAULT_STYLE;
+  const style = resolveTextStyle(layer);
   const animator = layer.textAnimator ?? createDefaultTextAnimator();
   const update = <Field extends keyof TextStyle>(field: Field, value: TextStyle[Field]) => {
     dispatch({
@@ -77,16 +68,11 @@ export function TextControls({ layer }: { layer: Layer }) {
           value={layer.text ?? ""}
         />
       </label>
-      <label>
-        {t("text.fontFamily")}
-        <input
-          aria-label={t("text.fontFamily")}
-          maxLength={160}
-          onChange={(event) => update("fontFamily", event.target.value)}
-          type="text"
-          value={style.fontFamily}
-        />
-      </label>
+      <FontFamilyControl
+        layer={layer}
+        style={style}
+        onChange={(family) => update("fontFamily", family)}
+      />
       <TextNumber
         label={t("text.fontSize")}
         min={1}

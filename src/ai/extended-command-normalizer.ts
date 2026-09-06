@@ -3,7 +3,9 @@ import type { ClonerSettings } from "../core/cloner";
 import type { Operation, PropertyPath } from "../core/operations";
 import { planPrecomposition } from "../core/precomposition";
 import { activeComposition, createBlankComposition } from "../core/project";
+import type { ProjectFont } from "../core/project-fonts";
 import type { ShapeGraph } from "../core/shape-graph";
+import { resolveTextStyle } from "../core/text-style";
 import {
   type Animatable,
   type AudioLayerSettings,
@@ -34,6 +36,10 @@ export function normalizeExtendedAiCommand(
     ? composition.layers.find((candidate) => candidate.id === layerId)
     : undefined;
   switch (input.type) {
+    case "addProjectFont":
+      return { type: "addProjectFont", font: structuredClone(input.font as ProjectFont) };
+    case "removeProjectFont":
+      return { type: "removeProjectFont", fontId: requiredId(input.fontId, "fontId") };
     case "addSource":
       return { type: "addSource", source: copyFootageSourceInput(input.source) };
     case "removeSource":
@@ -311,10 +317,15 @@ export function normalizeExtendedAiCommand(
       return { type: "setTextContent", layerId, text: String(input.text) };
     case "setTextStyle":
       requireLayerKind(layer, layerId, "text");
+      if (Object.keys(input.textStyle as object).length === 0)
+        throw new Error("Text style update must contain at least one field");
       return {
         type: "setTextStyle",
         layerId,
-        textStyle: structuredClone(input.textStyle as TextStyle),
+        textStyle: {
+          ...resolveTextStyle(requireLayer(layer, layerId)),
+          ...structuredClone(input.textStyle as Partial<TextStyle>),
+        },
       };
     case "moveKeyframe": {
       const existing = requireLayer(layer, layerId);

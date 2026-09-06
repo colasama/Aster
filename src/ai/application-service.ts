@@ -1,6 +1,7 @@
 import { buildAiContext, MAX_AI_CONTEXT_BYTES, queryEffects } from "../core/ai-context";
 import type { Operation } from "../core/operations";
 import { activeComposition } from "../core/project";
+import { prepareProjectFonts } from "../core/project-font-runtime";
 import { createId, type Project } from "../core/types";
 import type { AgentAccessMode, VisualObservation, VisualVerification } from "./agent-protocol";
 import { MAX_AI_COMMAND_BATCH, normalizeAiCommands } from "./command-normalizer";
@@ -251,7 +252,7 @@ export class AsterAgentApplicationService {
     };
   }
 
-  #executeCommands(input: Record<string, unknown>) {
+  async #executeCommands(input: Record<string, unknown>) {
     const workspace = this.#mutableWorkspace(input);
     if (!Array.isArray(input.commands)) throw new Error("commands must be an array");
     if (input.commands.length === 0 || input.commands.length > MAX_AI_COMMAND_BATCH)
@@ -267,6 +268,11 @@ export class AsterAgentApplicationService {
       revision: workspace.revision + 1,
     };
     this.#assertWorkspaceBudget(candidate);
+    if (batch.operations.some((operation) => operation.type === "addProjectFont")) {
+      await prepareProjectFonts(candidate.project);
+      if (this.#mutableWorkspace(input) !== workspace)
+        throw new Error("Workspace changed while loading fonts");
+    }
     this.#workspaces.set(candidate.id, candidate);
     return {
       workspaceId: candidate.id,
@@ -551,6 +557,8 @@ function queryValues(kind: string, context: ReturnType<typeof buildAiContext>): 
       );
     case "assets":
       return context.assets;
+    case "fonts":
+      return context.fonts;
     case "scene":
       return context.scene;
     default:
@@ -564,6 +572,8 @@ function changedIdsForOperation(operation: Operation): string[] {
   if (operation.type === "addLayer") return [operation.layer.id];
   if (operation.type === "addComposition") return [operation.composition.id];
   if (operation.type === "addProjectFolder") return [operation.folder.id];
+  if (operation.type === "addProjectFont") return [operation.font.id];
+  if (operation.type === "removeProjectFont") return [operation.fontId];
   if (operation.type === "moveProjectItem") return [operation.itemId];
   if (operation.type === "precomposeLayers")
     return [operation.wrapper.id, operation.nestedComposition.id, ...operation.selectedIds];

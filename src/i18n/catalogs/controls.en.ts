@@ -59,6 +59,12 @@ export const controlsEn = {
   "text.content": "Text",
   "text.contentA11y": "Text content",
   "text.fontFamily": "Font family",
+  "text.noFonts": "No matching fonts",
+  "text.importFont": "Import font…",
+  "text.fontImporting": "Importing…",
+  "text.fontListUnavailable":
+    "System font list is unavailable. Enter a family name or import a font.",
+  "text.fontImportStale": "Project changed during font import. Import the font again.",
   "text.fontSize": "Font size",
   "text.fontWeight": "Font weight",
   "text.alignment": "Alignment",

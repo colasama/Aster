@@ -16,6 +16,11 @@ import { createLayerForComposition } from "../core/layer-factory";
 import { logger } from "../core/logger";
 import { onPlaybackFrame } from "../core/playback-frame";
 import { activeComposition } from "../core/project";
+import {
+  activateProjectFonts,
+  prepareProjectFonts,
+  projectFontsReady,
+} from "../core/project-font-runtime";
 import type { FrameRenderSessionOpenRequest } from "../core/render-export";
 import {
   BoundedRenderSessionController,
@@ -268,6 +273,20 @@ export function Viewport() {
     void viewCount;
     if (!rendererReady) return;
     if (renderSessionGuardRef.current.active) return;
+    if (!projectFontsReady(previewProject)) {
+      let cancelled = false;
+      void prepareProjectFonts(previewProject)
+        .then(() => {
+          if (!cancelled) setRendererRevision((revision) => revision + 1);
+        })
+        .catch((error: unknown) => {
+          logger.error("fonts", "project_font_load_failed", error);
+        });
+      return () => {
+        cancelled = true;
+      };
+    }
+    activateProjectFonts(previewProject);
     const renderer = rendererRef.current;
     if (!renderer) return;
     const pipeline = beautyPipelineRef.current;

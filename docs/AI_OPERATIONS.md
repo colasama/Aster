@@ -64,7 +64,9 @@ because they have different authority, cancellation, and audit requirements.
 | `setShapeSettings` | Shapes | Replaces primitive, path, fill, stroke, and trim settings. |
 | `setShapeGraph` | Shapes | Replaces or clears a validated reusable shape graph. |
 | `setTextContent` | Typography | Sets bounded text content. |
-| `setTextStyle` | Typography | Replaces typography and stroke settings. |
+| `setTextStyle` | Typography | Patches supplied typography and stroke fields, preserving the rest. |
+| `addProjectFont` | Typography | Embeds a bounded project font face; decodes it before advancing the workspace. |
+| `removeProjectFont` | Typography | Removes an embedded face while retaining requested text family names. |
 | `setTextAnimator` | Typography | Configures per-character text animation. |
 | `toggleLayer` | Layers | Toggles visibility, solo, lock, audio, 3D, or motion blur state. |
 | `setProperty` | Animation | Sets a finite transform or opacity property. |

@@ -17,6 +17,23 @@ queue, display-clamped window state, unsaved-document close contract, and local 
 Recovery autosaves remain distinct from primary project saves and are serialized with them so a stale
 autosave cannot win a persistence race. See [Desktop application foundations](DESKTOP_FOUNDATIONS.md).
 
+## Project fonts
+
+Font rendering uses Chromium's shaping/rasterization. A dedicated editor-only preload call obtains
+the native Local Font Access inventory; the main process runs a fixed enumeration expression and
+permits `local-fonts` only for the editor window. MCP lists bounded font metadata, reads effective
+text styles, patches selected style fields and imports bounded local font files. Imported bytes are
+project resources, decoded before an undoable commit; no OS font installation occurs.
+Project-owned `FontFace` instances are prepared asynchronously and activated for the project being
+rendered. Preview and background export share this path. Decoded faces are reused across cloned
+snapshots, with a 16 MiB source-byte cache; a font activation revision invalidates ordinary and motion
+blur text textures. Enumeration, decoding and font bytes stay outside the steady-state frame loop.
+The inspector uses a searchable, fixed-row virtual list with three overscan rows per edge.
+Filtering does not mutate the project; selection or an explicit text commit changes the style.
+Family sorting is memoized, and the inspector shares font enumeration for up to one minute.
+The Rust `aster-text` file-discovery helpers remain available to native consumers; desktop rendering
+does not require a second font parser or directory inventory.
+
 ## Pi agent runtime
 
 The desktop host runs Pi in an Electron utility process. Pi receives only Aster-owned meta-tools by

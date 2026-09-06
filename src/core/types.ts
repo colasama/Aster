@@ -1,4 +1,5 @@
 import type { ClonerSettings } from "./cloner";
+import type { ProjectFont } from "./project-fonts";
 import type { ShapeGraph } from "./shape-graph";
 import type { TextAnimatorStackSettings } from "./text-animator-stack";
 
@@ -351,6 +352,7 @@ export interface Project {
   activeCompositionId: Id;
   compositions: Composition[];
   sources: FootageSource[];
+  fonts?: ProjectFont[];
   folders: ProjectFolder[];
   itemFolderIds: Record<Id, Id>;
   commandLog: ProjectCommandEntry[];

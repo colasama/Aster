@@ -86,6 +86,28 @@ export function automationToolDefinitions() {
       },
     ],
     [
+      "list_fonts",
+      "List installed system faces and project font metadata, with filtering and pagination. No font bytes are returned.",
+      {
+        source: Type.Optional(
+          Type.Union([Type.Literal("all"), Type.Literal("system"), Type.Literal("project")]),
+        ),
+        query: Type.Optional(Type.String({ maxLength: 160 })),
+        offset: Type.Optional(Type.Integer({ minimum: 0 })),
+        limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 128 })),
+      },
+    ],
+    [
+      "import_font",
+      "Embed a local TTF, OTF, WOFF or WOFF2 face into the project as one undoable edit. Supply its family alias and weight; project fonts have an 8 MiB total budget. Does not install into the operating system.",
+      {
+        path,
+        baseRevision: revision,
+        family: Type.String({ minLength: 1, maxLength: 160 }),
+        weight: Type.Optional(Type.Integer({ minimum: 100, maximum: 900 })),
+      },
+    ],
+    [
       "commit_workspace",
       "Apply a submitted workspace to the unchanged live project as one undoable transaction.",
       workspace,

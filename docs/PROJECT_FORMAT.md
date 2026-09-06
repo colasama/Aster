@@ -1,5 +1,21 @@
 # Aster project format v10
 
+## Project fonts
+
+The optional root `fonts` array stores project-owned faces as `{id, name, family, weight, dataUrl}`.
+`family` is the CSS family alias, `weight` is an integer from 100 through 900, and `dataUrl` is embedded
+base64 TTF, OTF, WOFF or WOFF2 (`data:font/<format>;base64,...`). IDs and family/weight pairs must be
+unique. There are at most 32 faces and 8 MiB of decoded font bytes in one project. Missing `fonts`
+means no embedded fonts, so existing v10 documents remain compatible without migration.
+Saving, recovery, packing and render snapshots retain these bytes; font paths and runtime `FontFace`
+objects are never persisted. The browser must successfully decode fonts before opening a document,
+importing a face or producing output. Imports never modify the operating system font collection.
+Font collections and variable-axis metadata are not imported; provide an individual supported face.
+
+Text layers persist `textStyle.fontFamily`, `fontSize`, `fontWeight`, alignment, tracking, leading and
+stroke settings. Font removal retains the requested family so Chromium can fall back. Removing an
+embedded face or switching projects invalidates text textures, including temporal text rasters.
+
 The development editor currently exchanges a readable JSON document named `*.aster.json`. The Rust
 bundle layer stores the same versioned domain model inside an atomically replaced project path. Cache,
 proxy, and preview data are deliberately excluded.

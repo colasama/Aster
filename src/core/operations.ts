@@ -14,6 +14,7 @@ import { referencedSourceIds, sourceSupportsLayer } from "./footage-source";
 import { layerSupportsMotionBlur, normalizeMotionBlurSettings } from "./motion-blur";
 import { applyPrecompositionPlan, type PrecompositionPlan } from "./precomposition";
 import { activeComposition } from "./project";
+import { type ProjectFont, validateProjectFonts } from "./project-fonts";
 import {
   assertCanAddLayer,
   assertCanUpdateLayer,
@@ -101,6 +102,8 @@ export type PropertyPath =
   | TextAnimatorPropertyPath;
 
 export type Operation =
+  | { type: "addProjectFont"; font: ProjectFont }
+  | { type: "removeProjectFont"; fontId: string }
   | { type: "setActiveComposition"; compositionId: Id }
   | { type: "addComposition"; composition: Composition; activate: boolean }
   | { type: "addProjectFolder"; folder: ProjectFolder }
@@ -257,6 +260,8 @@ export const OPERATION_TYPES = [
   "setCompositionWorkArea",
   "precomposeLayers",
   "addSource",
+  "addProjectFont",
+  "removeProjectFont",
   "removeSource",
   "cleanupOrphanSources",
   "addLayer",
@@ -319,6 +324,18 @@ export function applyOperations(project: Project, operations: Operation[]): Proj
 }
 
 export function applyOperation(project: Project, operation: Operation): void {
+  if (operation.type === "addProjectFont") {
+    const fonts = [...(project.fonts ?? []), { ...operation.font }];
+    validateProjectFonts(fonts);
+    project.fonts = fonts;
+    return;
+  }
+  if (operation.type === "removeProjectFont") {
+    if (!project.fonts?.some((font) => font.id === operation.fontId))
+      throw new Error("Project font does not exist");
+    project.fonts = project.fonts.filter((font) => font.id !== operation.fontId);
+    return;
+  }
   if (operation.type === "setActiveComposition") {
     if (!project.compositions.some((composition) => composition.id === operation.compositionId))
       throw new Error("Composition does not exist");

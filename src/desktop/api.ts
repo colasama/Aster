@@ -15,6 +15,7 @@ import type {
 } from "../core/render-queue";
 import type { UiScale } from "../ui/ui-scale";
 import type { AutomationSettingsApi } from "./automation-settings";
+import type { DesktopFonts } from "./fonts";
 import type { AppPreferences, UserPreferencePatch } from "./preferences";
 
 export interface DesktopFileFilter {
@@ -218,6 +219,7 @@ export interface AsterDesktopApi {
   emergencyStopAgent(sessionId: string, grantId?: string): Promise<void>;
   open(options: DesktopOpenOptions): Promise<string | string[] | null>;
   discoverImageSequence(path: string): Promise<DesktopImageSequenceFile[]>;
+  fonts?: DesktopFonts;
   save(options: DesktopSaveOptions): Promise<string | null>;
   convertFileSrc(path: string): string;
   getPreferences(): Promise<AppPreferences>;

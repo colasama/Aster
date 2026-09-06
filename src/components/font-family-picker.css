@@ -1,0 +1,85 @@
+.font-family-control {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.font-family-field {
+  display: flex;
+  gap: 3px;
+}
+
+.font-family-field input {
+  min-width: 0;
+  width: 100%;
+  height: 27px;
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--text);
+  background: var(--bg-deep);
+  font-size: 9px;
+}
+
+.font-family-field button {
+  flex: 0 0 26px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--muted);
+}
+
+.font-family-field button:hover:not(:disabled) {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+.font-family-field button:disabled {
+  opacity: 0.5;
+}
+
+.font-family-control [role="alert"] {
+  color: var(--red);
+  font-size: 9px;
+  overflow-wrap: anywhere;
+}
+
+.font-family-list {
+  position: fixed;
+  z-index: 1200;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--bg-raised);
+  box-shadow: 0 6px 20px #0005;
+  font-size: 12px;
+}
+
+.font-family-option {
+  position: absolute;
+  left: 0;
+  right: 0;
+  padding: 5px 8px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  cursor: default;
+  text-align: left;
+}
+
+.font-family-option:hover {
+  background: var(--bg-hover);
+}
+
+.font-family-option[aria-selected="true"] {
+  background: var(--blue);
+  color: #fff;
+}
+
+.font-family-empty {
+  padding: 5px 8px;
+  color: var(--muted);
+}

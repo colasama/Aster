@@ -1,6 +1,8 @@
 import { applyOperations, type Operation } from "../core/operations";
 import { activeComposition } from "../core/project";
 import { saveProjectDocument, validateProjectDocument } from "../core/project-file";
+import { prepareProjectFonts } from "../core/project-font-runtime";
+import { type ProjectFont, projectFontMetadata } from "../core/project-fonts";
 import { desktopRenderQueue } from "../desktop/api";
 import {
   createRenderQueueJobAsync,
@@ -11,7 +13,7 @@ import type { EditorState } from "../state/editor-store";
 import { AsterAgentApplicationService } from "./application-service";
 import { importAutomationAsset } from "./automation-import";
 import type { AutomationRequest } from "./automation-protocol";
-import { checkFontAvailability } from "./font-availability";
+import { checkFonts, listFonts } from "./font-tools";
 import { parsePreviewOptions } from "./preview-options";
 import { compareReferenceFrames, type ReferenceFrame } from "./reference-comparison";
 import { type AgentRenderedPreviewFrame, renderAgentPreview } from "./render-preview";
@@ -165,12 +167,19 @@ export class AutomationApplicationService {
       const queue = await desktopRenderQueue().enqueue(manifest);
       return { jobId: manifest.id, queue };
     }
-    if (name === "check_fonts") {
-      await document.fonts.ready;
+    if (name === "list_fonts") return listFonts(state.project, input);
+    if (name === "check_fonts") return checkFonts(state.project, input.families as string[]);
+    if (name === "import_font") {
+      this.#assertRevision(input.baseRevision, session.projectId, signal);
+      const operations: Operation[] = [{ type: "addProjectFont", font: input.font as ProjectFont }];
+      const project = validateProjectDocument(applyOperations(state.project, operations));
+      await prepareProjectFonts(project);
+      this.#assertRevision(input.baseRevision, session.projectId, signal);
+      this.context.commit(operations, "Import project font", state.projectRevision);
+      this.cancel(clientId);
       return {
-        fonts: (input.families as string[]).map(checkFontAvailability),
-        limitation:
-          "Availability is inferred from browser font fallback metrics, not an inventory of installed font files.",
+        projectRevision: this.context.read().projectRevision,
+        font: projectFontMetadata(input.font as ProjectFont),
       };
     }
     if (name === "compare_reference") {

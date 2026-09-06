@@ -80,7 +80,9 @@ arbitrary shell, network or plugin installation access.
 | `read_reference_audio` | Return a bounded mono 16 kHz PCM WAV excerpt as native MCP audio content. |
 | `compare_reference` | Return reference/render pairs, 50% overlays, absolute difference images and normalized RGB error. |
 | `import_asset` | Import image, video, audio, SVG, PSD composition or embedded glTF/GLB into the live active composition as one undoable edit. |
-| `check_fonts` | Infer availability of named families from browser fallback metrics; this is not an installed font-file inventory. |
+| `list_fonts` | List system faces and embedded project fonts, filtered by `source` (`all`, `system`, `project`) and `query`, with `offset`/`limit` pagination (maximum 128). Returns metadata, never font bytes. |
+| `check_fonts` | Check 1–64 exact family names against project fonts and Chromium's system inventory. If inventory access fails, explicitly report heuristic `fallback-metrics` results. No glyph-coverage or resolved-fallback guarantee. |
+| `import_font` | Embed a local TTF/OTF/WOFF/WOFF2 font face with an explicit `family` alias and optional `weight` (default 400), at `baseRevision`. Decode before committing one undoable edit. Project-only; no OS installation. |
 | `save_project` | Save an exact project revision and collect media into an absolute bundle directory. Replacing an existing `project.json` requires `overwrite: true`. |
 | `export_render`, `get_render_queue`, `cancel_render` | Queue an immutable MP4, PNG sequence or still snapshot, inspect progress/errors and cancel a job. |
 
@@ -100,6 +102,18 @@ both adapters.
 6. Save the project, enqueue export, and inspect the queue until completion or failure.
 
 Use `baseRevision` for live imports, saving and export, and `workspaceRevision` for staged operations.
+Font imports also reset the client's editing session. `query_project` with `kind: "layers"` or
+`"properties"` includes the effective `textStyle` for text layers (`properties` follows the editor
+selection); `kind: "fonts"` reads embedded font metadata from either live or staged project snapshots.
+`setTextStyle` accepts a nonempty partial style and preserves unspecified fields. For example,
+`{ "type": "setTextStyle", "layerId": "title", "textStyle": { "fontFamily": "Georgia" } }`
+changes only the family; execute, submit, and commit the workspace as usual. Complete style inputs
+remain compatible. Use a CSS-quoted name when a family contains punctuation.
+`addProjectFont` and `removeProjectFont` are staged commands; prefer `import_font` for files, since
+tool request bodies remain capped at 1 MiB. A removed font leaves the requested text family unchanged
+and rendering falls back. Embedded fonts are limited to 32 faces and 8 MiB of decoded bytes per project.
+Font imports supply a family alias and weight rather than extracting naming or variable-axis tables.
+System font lists include family, full name, PostScript name and style; they do not expose file paths.
 Concurrent user edits must not be overwritten. After a conflict, call `reset_session` and re-plan
 from the new context. Save captures one revision; edits made during persistence remain dirty.
 Export captures one immutable project/media snapshot. Export destinations must not exist already.
@@ -145,6 +159,11 @@ For the packaged Windows application:
 pnpm artifact:build --dir --win --x64 --publish never
 node scripts/automation-smoke.mjs
 ```
+
+To include system-font enumeration, embedded font import, partial style updates and font export in
+the packaged smoke workflow, set `ASTER_SMOKE_FONT` to an absolute TTF/OTF/WOFF/WOFF2 file path before
+running the script. The test imports it under a unique project alias and verifies the saved bytes;
+it never installs the font into the OS.
 
 The smoke test starts a separate profile, connects through MCP, creates animation, renders full and
 cropped frames, compares a generated audiovisual reference, imports it, saves a project, and exports

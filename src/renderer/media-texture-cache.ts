@@ -3,6 +3,7 @@ import { configurePreviewVideoAudio } from "../core/audio-preview";
 import { evaluateLayerTransform } from "../core/expressions";
 import { sourceLocator } from "../core/footage-source";
 import { evaluateLayerSourceTime } from "../core/layer-time";
+import { projectFontRevision } from "../core/project-font-runtime";
 import { clampTextAnimationTime, countAnimatedTextCharacters } from "../core/text-animator";
 import type { FootageSource, Layer } from "../core/types";
 import {
@@ -533,6 +534,7 @@ export class MediaTextureCache {
       layer.color,
       layer.size,
       layer.textStyle,
+      projectFontRevision(),
       layer.textAnimator,
       sampledAnimationTime,
       rasterScale,
