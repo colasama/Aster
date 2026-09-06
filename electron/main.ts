@@ -10,7 +10,6 @@ import {
   type FileFilter,
   ipcMain,
   Menu,
-  net,
   type OpenDialogOptions,
   protocol,
   type SaveDialogOptions,
@@ -44,6 +43,7 @@ import { createDiagnosticBundle, writeDiagnosticBundle } from "./diagnostics.js"
 import { registerFontAccess } from "./font-access.js";
 import { fullAccessDesktopBridgeRequest } from "./full-access-aster-tools.js";
 import { describeFullAccessTarget, FullAccessToolService } from "./full-access-tools.js";
+import { fetchLocalAsset } from "./local-file-response.js";
 import { AsterLogger, isRendererLogPayload, type LogLevel, parseLogLevel } from "./logger.js";
 import { discoverDesktopImageSequence } from "./media-import.js";
 import { Mp4ExportManager } from "./mp4-export.js";
@@ -457,7 +457,7 @@ function registerAssetProtocol(): void {
     ASSET_SCHEME,
     createAssetProtocolHandler({
       allowedAssets,
-      fetchFile: (url, init) => net.fetch(url, init),
+      fetchFile: fetchLocalAsset,
     }),
   );
 }
