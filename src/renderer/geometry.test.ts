@@ -9,6 +9,23 @@ import { evaluateSceneCamera } from "./scene-camera";
 import { createDefaultBezierPath } from "./vector-path";
 
 describe("GPU scene geometry", () => {
+  it("keeps transparent fill, stroke alpha, and animated layer opacity independent", () => {
+    const project = createBlankProject();
+    const composition = project.compositions[0];
+    const ring = createLayerForComposition("shape", composition);
+    ring.color = [0, 0, 0, 0];
+    if (!ring.shape) throw new Error("Expected shape settings");
+    ring.shape.kind = "ellipse";
+    ring.shape.strokeWidth = 4;
+    ring.shape.strokeColor = [1, 0, 0, 0.8];
+    ring.transform.opacity = staticValue(35);
+    composition.layers = [ring];
+    const geometry = buildSceneGeometry(composition, flattenSceneLayers(composition, project, 0));
+    expect(geometry.data[VERTEX_FLOAT_OFFSETS.color + 3]).toBe(0);
+    expect(geometry.data[VERTEX_FLOAT_OFFSETS.shapeStyleColor + 3]).toBeCloseTo(0.8);
+    expect(geometry.data[VERTEX_FLOAT_OFFSETS.material + 3]).toBeCloseTo(0.35);
+  });
+
   it("emits an untextured solid quad and never emits null pixels or effect geometry", () => {
     const project = createBlankProject();
     const composition = project.compositions[0];

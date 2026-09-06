@@ -238,15 +238,19 @@ fn fragment_main(input: VertexOutput) -> @location(0) vec4f {
     let antialias = 0.006;
     let coverage = (1.0 - smoothstep(0.0, antialias, shape_distance)) * dash_coverage;
     let stroke_width = input.shape_style_parameters.x;
-    var stroke = select(
+    var stroke_coverage = select(
       0.0,
       1.0 - smoothstep(stroke_width, stroke_width + antialias, abs(shape_distance)),
       stroke_width > 0.0,
-    ) * input.shape_style_color.a;
-    if input.shape_style_parameters.z > 2.5 { stroke = 1.0; }
-    let shape_color = mix(fill_color, input.shape_style_color.rgb, stroke);
-    alpha *= coverage;
-    return vec4f(shape_color * alpha, alpha);
+    );
+    if input.shape_style_parameters.z > 2.5 { stroke_coverage = 1.0; }
+    let stroke_weight = stroke_coverage * input.shape_style_color.a;
+    let fill_alpha = alpha * coverage * (1.0 - stroke_weight);
+    let stroke_alpha = stroke_weight * input.material.w * coverage;
+    return vec4f(
+      fill_color * fill_alpha + input.shape_style_color.rgb * stroke_alpha,
+      fill_alpha + stroke_alpha,
+    );
   }
   let edge = min(min(input.uv.x, 1.0 - input.uv.x), min(input.uv.y, 1.0 - input.uv.y));
   alpha *= smoothstep(0.0, 0.025, edge);

@@ -116,7 +116,10 @@ export function buildSceneGeometry(
       layerMaterial?.metallic ?? 0.12,
       layerMaterial?.roughness ?? 0.48,
       layerMaterial?.emissive ?? 0,
-      Number(layer.threeDimensional || layer.kind === "mesh"),
+      // Analytic shapes use this unlit branch slot for whole-layer paint opacity.
+      layer.kind === "shape"
+        ? transform.opacity
+        : Number(layer.threeDimensional || layer.kind === "mesh"),
     ] as const;
     const sourceSize = scene.precompositionSurface
       ? [
