@@ -12,21 +12,29 @@ use thiserror::Error;
 
 use crate::PluginMetadata;
 
-pub const GRAPH_API_VERSION: u32 = 1;
-
 /// A portable safety envelope based on WebGPU's guaranteed minimum limits.
-#[derive(Clone, Copy, Debug, Deserialize, JsonSchema, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, JsonSchema, PartialEq, Serialize, clap::Args)]
 #[serde(deny_unknown_fields)]
 pub struct GraphResourceQuota {
+    #[arg(long = "graph-max-passes", default_value_t = Self::default().max_passes)]
     pub max_passes: u32,
+    #[arg(long = "graph-max-temporary-textures", default_value_t = Self::default().max_temporary_textures)]
     pub max_temporary_textures: u32,
+    #[arg(long = "graph-max-dependency-edges", default_value_t = Self::default().max_dependency_edges)]
     pub max_dependency_edges: u32,
+    #[arg(long = "graph-max-texture-dimension", default_value_t = Self::default().max_texture_dimension)]
     pub max_texture_dimension: u32,
+    #[arg(long = "graph-max-transient-bytes", default_value_t = Self::default().max_transient_bytes)]
     pub max_transient_bytes: u64,
+    #[arg(long = "graph-max-sampled-textures-per-pass", default_value_t = Self::default().max_sampled_textures_per_pass)]
     pub max_sampled_textures_per_pass: u32,
+    #[arg(long = "graph-max-storage-textures-per-pass", default_value_t = Self::default().max_storage_textures_per_pass)]
     pub max_storage_textures_per_pass: u32,
+    #[arg(long = "graph-max-color-attachments-per-pass", default_value_t = Self::default().max_color_attachments_per_pass)]
     pub max_color_attachments_per_pass: u32,
+    #[arg(long = "graph-max-workgroups-per-pass", default_value_t = Self::default().max_workgroups_per_pass)]
     pub max_workgroups_per_pass: u64,
+    #[arg(long = "graph-max-total-workgroups", default_value_t = Self::default().max_total_workgroups)]
     pub max_total_workgroups: u64,
 }
 
@@ -77,11 +85,12 @@ pub struct RenderGraph {
 }
 
 impl RenderGraph {
+    pub const API_VERSION: u32 = 1;
     pub fn validate(
         &self,
         context: GraphValidationContext,
     ) -> Result<ValidatedGraph, GraphValidationError> {
-        GraphValidator::new(self, context).validate()
+        GraphValidator::new(self.clone(), context).validate()
     }
 }
 
@@ -282,8 +291,8 @@ pub enum GraphValidationError {
     InvalidDispatchSize { pass: String },
 }
 
-struct GraphValidator<'a> {
-    graph: &'a RenderGraph,
+struct GraphValidator {
+    graph: RenderGraph,
     context: GraphValidationContext,
     texture_sizes: BTreeMap<String, [u32; 2]>,
     texture_usage: BTreeMap<String, BTreeSet<TextureUsage>>,
@@ -292,8 +301,8 @@ struct GraphValidator<'a> {
 
 type DependencyPlan = (Vec<usize>, u32, BTreeMap<TextureRef, usize>);
 
-impl<'a> GraphValidator<'a> {
-    fn new(graph: &'a RenderGraph, context: GraphValidationContext) -> Self {
+impl GraphValidator {
+    fn new(graph: RenderGraph, context: GraphValidationContext) -> Self {
         Self {
             graph,
             context,
@@ -304,18 +313,23 @@ impl<'a> GraphValidator<'a> {
     }
 
     fn validate(mut self) -> Result<ValidatedGraph, GraphValidationError> {
-        if self.graph.api_version != GRAPH_API_VERSION {
+        if self.graph.api_version != RenderGraph::API_VERSION {
             return Err(GraphValidationError::UnsupportedApi(self.graph.api_version));
         }
         if self.context.output_width == 0 || self.context.output_height == 0 {
             return Err(GraphValidationError::EmptyOutput);
         }
-        check_quota(
+        Self::check_quota(
+            "output texture dimension",
+            u64::from(self.context.output_width.max(self.context.output_height)),
+            u64::from(self.context.quota.max_texture_dimension),
+        )?;
+        Self::check_quota(
             "passes",
             self.graph.passes.len() as u64,
             self.context.quota.max_passes as u64,
         )?;
-        check_quota(
+        Self::check_quota(
             "temporary textures",
             self.graph.temporary_textures.len() as u64,
             self.context.quota.max_temporary_textures as u64,
@@ -338,7 +352,7 @@ impl<'a> GraphValidator<'a> {
     fn validate_textures(&mut self) -> Result<u64, GraphValidationError> {
         let mut transient_bytes = 0_u64;
         for texture in &self.graph.temporary_textures {
-            validate_identifier(&texture.id)?;
+            Self::validate_identifier(&texture.id)?;
             if self.texture_sizes.contains_key(&texture.id) {
                 return Err(GraphValidationError::DuplicateIdentifier(
                     texture.id.clone(),
@@ -373,7 +387,7 @@ impl<'a> GraphValidator<'a> {
             self.texture_usage
                 .insert(texture.id.clone(), texture.usage.clone());
         }
-        check_quota(
+        Self::check_quota(
             "transient bytes",
             transient_bytes,
             self.context.quota.max_transient_bytes,
@@ -383,7 +397,7 @@ impl<'a> GraphValidator<'a> {
 
     fn validate_pass_declarations(&mut self) -> Result<(), GraphValidationError> {
         for (index, pass) in self.graph.passes.iter().enumerate() {
-            validate_identifier(pass.id())?;
+            Self::validate_identifier(pass.id())?;
             if self.pass_ids.insert(pass.id().into(), index).is_some() {
                 return Err(GraphValidationError::DuplicateIdentifier(pass.id().into()));
             }
@@ -400,12 +414,12 @@ impl<'a> GraphValidator<'a> {
                     ..
                 } => &[vertex_entry, fragment_entry],
             };
-            if let Some(entry) = entries.iter().find(|entry| !valid_identifier(entry)) {
+            if let Some(entry) = entries.iter().find(|entry| !Self::valid_identifier(entry)) {
                 return Err(GraphValidationError::InvalidEntryPoint(
                     (*entry).to_string(),
                 ));
             }
-            check_quota(
+            Self::check_quota(
                 "sampled textures per pass",
                 pass.sampled_inputs().len() as u64,
                 self.context.quota.max_sampled_textures_per_pass as u64,
@@ -414,7 +428,7 @@ impl<'a> GraphValidator<'a> {
                 GraphPass::Compute { .. } => self.context.quota.max_storage_textures_per_pass,
                 GraphPass::Render { .. } => self.context.quota.max_color_attachments_per_pass,
             };
-            check_quota(
+            Self::check_quota(
                 "outputs per pass",
                 pass.outputs().len() as u64,
                 output_limit as u64,
@@ -508,19 +522,17 @@ impl<'a> GraphValidator<'a> {
                 outgoing[dependency_index].insert(index);
             }
             for input in pass.sampled_inputs() {
-                if let TextureRef::Temporary(_) = input {
-                    let producer = writers.get(input).copied().ok_or_else(|| match input {
-                        TextureRef::Temporary(id) => {
-                            GraphValidationError::UnwrittenTemporary(id.clone())
-                        }
-                        _ => unreachable!(),
-                    })?;
+                if let TextureRef::Temporary(id) = input {
+                    let producer = writers
+                        .get(input)
+                        .copied()
+                        .ok_or_else(|| GraphValidationError::UnwrittenTemporary(id.clone()))?;
                     outgoing[producer].insert(index);
                 }
             }
         }
         let edge_count = outgoing.iter().map(BTreeSet::len).sum::<usize>();
-        check_quota(
+        Self::check_quota(
             "dependency edges",
             edge_count as u64,
             self.context.quota.max_dependency_edges as u64,
@@ -580,7 +592,7 @@ impl<'a> GraphValidator<'a> {
                     texture,
                     workgroup_size,
                 } => {
-                    if !valid_workgroup_size(*workgroup_size) {
+                    if !Self::valid_workgroup_size(*workgroup_size) {
                         return Err(GraphValidationError::InvalidWorkgroupSize {
                             pass: id.clone(),
                         });
@@ -598,7 +610,7 @@ impl<'a> GraphValidator<'a> {
                 return Err(GraphValidationError::InvalidDispatchSize { pass: id.clone() });
             }
             let count = workgroups.into_iter().map(u64::from).product::<u64>();
-            check_quota(
+            Self::check_quota(
                 "workgroups per pass",
                 count,
                 self.context.quota.max_workgroups_per_pass,
@@ -612,7 +624,7 @@ impl<'a> GraphValidator<'a> {
                 })?;
             dispatches.insert(id.clone(), workgroups);
         }
-        check_quota(
+        Self::check_quota(
             "total workgroups",
             total,
             self.context.quota.max_total_workgroups,
@@ -650,11 +662,13 @@ impl TextureExtent {
                 if numerator == 0 || denominator == 0 {
                     return Err(GraphValidationError::InvalidTextureExtent(id.into()));
                 }
+                let width = u64::from(output_width) * u64::from(numerator);
+                let height = u64::from(output_height) * u64::from(numerator);
                 [
-                    output_width.saturating_mul(numerator).div_ceil(denominator),
-                    output_height
-                        .saturating_mul(numerator)
-                        .div_ceil(denominator),
+                    u32::try_from(width.div_ceil(u64::from(denominator)))
+                        .map_err(|_| GraphValidationError::InvalidTextureExtent(id.into()))?,
+                    u32::try_from(height.div_ceil(u64::from(denominator)))
+                        .map_err(|_| GraphValidationError::InvalidTextureExtent(id.into()))?,
                 ]
             }
             Self::Fixed { width, height } => [width, height],
@@ -666,49 +680,51 @@ impl TextureExtent {
     }
 }
 
-fn validate_identifier(id: &str) -> Result<(), GraphValidationError> {
-    if valid_identifier(id) {
-        Ok(())
-    } else {
-        Err(GraphValidationError::InvalidIdentifier(id.into()))
+/// Reference graphs that exercise the public graph API without granting native capabilities.
+mod examples;
+
+impl GraphValidator {
+    fn validate_identifier(id: &str) -> Result<(), GraphValidationError> {
+        if Self::valid_identifier(id) {
+            Ok(())
+        } else {
+            Err(GraphValidationError::InvalidIdentifier(id.into()))
+        }
+    }
+
+    fn valid_identifier(id: &str) -> bool {
+        let mut characters = id.chars();
+        characters
+            .next()
+            .is_some_and(|character| character.is_ascii_alphabetic() || character == '_')
+            && id.len() <= 64
+            && characters.all(|character| character.is_ascii_alphanumeric() || character == '_')
+    }
+
+    fn valid_workgroup_size(size: [u32; 3]) -> bool {
+        !size.contains(&0)
+            && size[0] <= 256
+            && size[1] <= 256
+            && size[2] <= 64
+            && size.into_iter().product::<u32>() <= 256
+    }
+
+    fn check_quota(
+        resource: &'static str,
+        actual: u64,
+        limit: u64,
+    ) -> Result<(), GraphValidationError> {
+        if actual > limit {
+            Err(GraphValidationError::QuotaExceeded {
+                resource,
+                actual,
+                limit,
+            })
+        } else {
+            Ok(())
+        }
     }
 }
-
-fn valid_identifier(id: &str) -> bool {
-    let mut characters = id.chars();
-    characters
-        .next()
-        .is_some_and(|character| character.is_ascii_alphabetic() || character == '_')
-        && id.len() <= 64
-        && characters.all(|character| character.is_ascii_alphanumeric() || character == '_')
-}
-
-fn valid_workgroup_size(size: [u32; 3]) -> bool {
-    !size.contains(&0)
-        && size[0] <= 256
-        && size[1] <= 256
-        && size[2] <= 64
-        && size.into_iter().product::<u32>() <= 256
-}
-
-fn check_quota(
-    resource: &'static str,
-    actual: u64,
-    limit: u64,
-) -> Result<(), GraphValidationError> {
-    if actual > limit {
-        Err(GraphValidationError::QuotaExceeded {
-            resource,
-            actual,
-            limit,
-        })
-    } else {
-        Ok(())
-    }
-}
-
-/// Reference graphs that exercise the complete MVP API without granting native capabilities.
-pub mod examples;
 
 #[cfg(test)]
 mod tests;

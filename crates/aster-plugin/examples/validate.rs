@@ -1,11 +1,19 @@
-use std::{env, path::PathBuf, process::ExitCode};
+use clap::Parser;
+use std::{path::PathBuf, process::ExitCode};
+
+#[derive(Parser)]
+struct ValidationOptions {
+    directory: PathBuf,
+    #[command(flatten)]
+    limits: aster_plugin::PluginLimits,
+}
 
 fn main() -> ExitCode {
-    let Some(directory) = env::args_os().nth(1).map(PathBuf::from) else {
-        eprintln!("usage: cargo run -p aster-plugin --example validate -- <plugin-directory>");
-        return ExitCode::FAILURE;
-    };
-    match aster_plugin::PluginLimits::default().load(directory.join("plugin.toml"), true) {
+    let options = ValidationOptions::parse();
+    match options
+        .limits
+        .load(options.directory.join("plugin.toml"), true)
+    {
         Ok(package) => {
             let manifest = package.manifest;
             println!(

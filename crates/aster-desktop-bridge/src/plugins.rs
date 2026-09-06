@@ -39,13 +39,22 @@ pub(crate) struct PluginStatus {
 
 pub(crate) struct PluginHost {
     pub(crate) app_data: PathBuf,
+    pub(crate) limits: aster_plugin::PluginLimits,
     pub(crate) runtime: aster_plugin::hot_reload::HotReloadController,
 }
 impl PluginHost {
+    fn repository(&self) -> aster_plugin::PluginRepository {
+        aster_plugin::PluginRepository {
+            root: self.app_data.join("plugins"),
+            limits: self.limits.clone(),
+        }
+    }
+
     pub(crate) fn status(&mut self, force_reload: bool) -> Result<PluginStatus, String> {
         let root = self.app_data.join("plugins");
         fs::create_dir_all(&root).map_err(|error| error.to_string())?;
         let preferences = PluginPreferences::read(&self.app_data)?;
+        let repository = self.repository();
         let runtime = &mut self.runtime;
         let (mut report, hot_reload) = if preferences.hot_reload_enabled && !preferences.safe_mode {
             let view = if force_reload {
@@ -56,7 +65,7 @@ impl PluginHost {
             .map_err(|error| error.to_string())?;
             (view.report, view.status)
         } else {
-            let report = aster_plugin::PluginRepository::at(&root)
+            let report = repository
                 .discover(|_| false)
                 .map_err(|error| error.to_string())?;
             let status = runtime
@@ -78,7 +87,7 @@ impl PluginHost {
         &mut self,
         plugin_ids: BTreeSet<String>,
     ) -> Result<PluginStatus, String> {
-        if plugin_ids.len() > 256 {
+        if plugin_ids.len() > self.runtime.limits.max_candidates {
             return Err("too many plugin runtimes requested".to_owned());
         }
         let root = self.app_data.join("plugins");
@@ -92,12 +101,13 @@ impl PluginHost {
                 .filter(|plugin_id| !preferences.disabled.contains(plugin_id))
                 .collect()
         };
+        let repository = self.repository();
         let runtime = &mut self.runtime;
         let (mut report, hot_reload) = if preferences.hot_reload_enabled && !preferences.safe_mode {
             let view = runtime.poll(&root).map_err(|error| error.to_string())?;
             (view.report, view.status)
         } else {
-            let report = aster_plugin::PluginRepository::at(&root)
+            let report = repository
                 .discover(|id| requested.contains(id))
                 .map_err(|error| error.to_string())?;
             let status = runtime
@@ -118,8 +128,7 @@ impl PluginHost {
     }
 
     pub(crate) fn install_plugin(&mut self, source: String) -> Result<PluginStatus, String> {
-        let root = self.app_data.join("plugins");
-        aster_plugin::PluginRepository::at(root)
+        self.repository()
             .install(source)
             .map_err(|error| error.to_string())?;
         self.status(true)
@@ -130,8 +139,8 @@ impl PluginHost {
         plugin_id: String,
         enabled: bool,
     ) -> Result<PluginStatus, String> {
-        let root = self.app_data.join("plugins");
-        let report = aster_plugin::PluginRepository::at(&root)
+        let report = self
+            .repository()
             .discover(|_| false)
             .map_err(|error| error.to_string())?;
         if !report

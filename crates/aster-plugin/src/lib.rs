@@ -7,10 +7,11 @@ mod generator_shader;
 pub mod graph;
 pub mod hot_reload;
 pub mod registry;
+mod shader_types;
 
-pub use abi::{EFFECT_ENTRY_POINT, EFFECT_PARAMETER_VECTORS, EFFECT_UNIFORM_SIZE};
+pub use abi::EffectAbi;
 pub use error::PluginError;
-pub use generator_shader::validate_scene_generator_sources;
+pub use generator_shader::SceneGeneratorValidator;
 mod package;
 mod repository;
 pub use package::{PluginLimits, PluginPackage};
@@ -38,7 +39,7 @@ pub struct PluginManifest {
 
 impl PluginManifest {
     pub const HOST_API_VERSION: u32 = 1;
-    pub fn validate(&self) -> Result<(), PluginError> {
+    pub fn validate(&self, limits: &PluginLimits) -> Result<(), PluginError> {
         if !PluginMetadata::valid_plugin_id(&self.plugin.id) {
             return Err(PluginError::InvalidId(self.plugin.id.clone()));
         }
@@ -55,8 +56,8 @@ impl PluginManifest {
             return Err(PluginError::InvalidShaderPath(self.plugin.shader.clone()));
         }
         let parameter_limit = match self.plugin.kind {
-            PluginKind::Effect => EFFECT_PARAMETER_VECTORS as usize,
-            PluginKind::SceneGenerator => generator::MAX_GENERATOR_PARAMETERS,
+            PluginKind::Effect => EffectAbi::PARAMETER_VECTORS as usize,
+            PluginKind::SceneGenerator => generator::SceneGeneratorGraph::PARAMETER_VECTORS,
         };
         if self.parameters.len() > parameter_limit {
             return Err(PluginError::TooManyParameters {
@@ -90,7 +91,7 @@ impl PluginManifest {
                 {
                     return Err(PluginError::UnsupportedParameterForKind("texture"));
                 }
-                graph.validate()?;
+                graph.validate(&limits.generator)?;
                 if !self.capabilities.contains(&Capability::GpuCompute)
                     || !self.capabilities.contains(&Capability::GpuRender)
                 {

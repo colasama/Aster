@@ -8,6 +8,8 @@ use std::{
 
 #[derive(Clone, Debug, clap::Args)]
 pub struct PluginLimits {
+    #[command(flatten)]
+    pub generator: crate::generator::GeneratorLimits,
     #[arg(long, default_value_t = Self::default().max_shader_bytes)]
     pub max_shader_bytes: u64,
     #[arg(long, default_value_t = Self::default().max_plugin_shader_bytes)]
@@ -18,6 +20,7 @@ pub struct PluginLimits {
 impl Default for PluginLimits {
     fn default() -> Self {
         Self {
+            generator: crate::generator::GeneratorLimits::default(),
             max_shader_bytes: 4 * 1024 * 1024,
             max_plugin_shader_bytes: 16 * 1024 * 1024,
             max_manifest_bytes: 1024 * 1024,
@@ -38,7 +41,7 @@ impl PluginLimits {
             return Err(PluginError::ManifestTooLarge(source.len() as u64));
         }
         let manifest: PluginManifest = toml::from_str(source)?;
-        manifest.validate()?;
+        manifest.validate(self)?;
         Ok(manifest)
     }
 
@@ -104,24 +107,14 @@ impl PluginPackage {
                 let source = sources.get(&self.manifest.plugin.shader).ok_or_else(|| {
                     PluginError::MissingShader(PathBuf::from(&self.manifest.plugin.shader))
                 })?;
-                Self::validate_effect_shader(source)?;
+                crate::EffectAbi::validate_source(source)?;
             }
-            PluginKind::SceneGenerator => {
-                crate::validate_scene_generator_sources(&self.manifest, &sources)?
+            PluginKind::SceneGenerator => crate::SceneGeneratorValidator {
+                limits: limits.clone(),
             }
+            .validate(&self.manifest, &sources)?,
         }
         self.shader_sources = sources;
         Ok(())
-    }
-    pub(crate) fn validate_effect_shader(source: &str) -> Result<(), PluginError> {
-        let module = naga::front::wgsl::parse_str(source)
-            .map_err(|error| PluginError::ShaderParse(error.emit_to_string(source)))?;
-        naga::valid::Validator::new(
-            naga::valid::ValidationFlags::all(),
-            naga::valid::Capabilities::all(),
-        )
-        .validate(&module)
-        .map_err(|error| PluginError::ShaderValidation(error.to_string()))?;
-        crate::abi::validate_effect_abi(&module).map_err(PluginError::ShaderAbi)
     }
 }

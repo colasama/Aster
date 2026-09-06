@@ -19,6 +19,10 @@ pub struct BridgeOptions {
     bundle_limits: aster_project::BundleLimits,
     #[command(flatten)]
     media_limits: crate::project_media::MediaLimits,
+    #[command(flatten)]
+    plugin_limits: aster_plugin::PluginLimits,
+    #[command(flatten)]
+    hot_reload_limits: aster_plugin::hot_reload::HotReloadLimits,
 }
 
 #[derive(Serialize)]
@@ -143,7 +147,11 @@ impl BridgeOptions {
             },
             plugins: PluginHost {
                 app_data: self.app_data_dir,
-                runtime: Default::default(),
+                runtime: aster_plugin::hot_reload::HotReloadController::new(
+                    self.hot_reload_limits,
+                    self.plugin_limits.clone(),
+                ),
+                limits: self.plugin_limits,
             },
         };
         tracing::info!(

@@ -293,7 +293,7 @@ fn installs_only_declared_plugin_files_and_replaces_versions()
 #[test]
 fn rejects_valid_wgsl_with_an_incompatible_effect_interface()
 -> Result<(), Box<dyn std::error::Error>> {
-    let error = PluginPackage::validate_effect_shader(
+    let error = EffectAbi::validate_source(
         "@fragment fn main() -> @location(0) vec4f { return vec4f(1.0); }",
     )
     .err()
@@ -352,7 +352,7 @@ fn scene_generator_rejects_binary_incompatible_standard_buffers()
         *source = source.replacen("resolution: vec2f", "resolution: vec4f", 1);
     }
     assert!(matches!(
-        validate_scene_generator_sources(&manifest, &bad_context),
+        SceneGeneratorValidator::default().validate(&manifest, &bad_context),
         Err(PluginError::GeneratorShaderAbi(message)) if message.contains("AsterGeneratorContext")
     ));
 
@@ -361,7 +361,7 @@ fn scene_generator_rejects_binary_incompatible_standard_buffers()
         *source = source.replace("array<vec4f, 128>", "array<vec4f, 64>");
     }
     assert!(matches!(
-        validate_scene_generator_sources(&manifest, &bad_parameters),
+        SceneGeneratorValidator::default().validate(&manifest, &bad_parameters),
         Err(PluginError::GeneratorShaderAbi(message)) if message.contains("AsterGeneratorParameters")
     ));
 
@@ -373,7 +373,7 @@ fn scene_generator_rejects_binary_incompatible_standard_buffers()
         .replace("instance_count: atomic<u32>", "emitted_count: atomic<u32>")
         .replace("aster_draw.instance_count", "aster_draw.emitted_count");
     assert!(matches!(
-        validate_scene_generator_sources(&manifest, &bad_draw),
+        SceneGeneratorValidator::default().validate(&manifest, &bad_draw),
         Err(PluginError::GeneratorShaderAbi(message)) if message.contains("AsterDrawIndirect")
     ));
 
@@ -384,7 +384,7 @@ fn scene_generator_rejects_binary_incompatible_standard_buffers()
         .ok_or("fixture field missing")?
         .instance_stride = 32;
     assert!(matches!(
-        validate_scene_generator_sources(&bad_stride, &sources),
+        SceneGeneratorValidator::default().validate(&bad_stride, &sources),
         Err(PluginError::GeneratorShaderAbi(message)) if message.contains("stride 16")
     ));
 
@@ -397,7 +397,7 @@ fn scene_generator_rejects_binary_incompatible_standard_buffers()
         "@location(7) vertex: u32",
     );
     assert!(matches!(
-        validate_scene_generator_sources(&manifest, &bad_vertex_input),
+        SceneGeneratorValidator::default().validate(&manifest, &bad_vertex_input),
         Err(PluginError::GeneratorShaderAbi(message)) if message.contains("vertex entries")
     ));
 
@@ -415,7 +415,7 @@ fn scene_generator_rejects_binary_incompatible_standard_buffers()
             "return 1u;",
         );
     assert!(matches!(
-        validate_scene_generator_sources(&manifest, &bad_beauty_output),
+        SceneGeneratorValidator::default().validate(&manifest, &bad_beauty_output),
         Err(PluginError::GeneratorShaderAbi(message)) if message.contains("fragment entry")
     ));
     Ok(())
