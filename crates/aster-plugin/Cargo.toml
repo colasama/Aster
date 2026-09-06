@@ -6,6 +6,8 @@ license.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+aster-storage.workspace = true
+clap.workspace = true
 naga.workspace = true
 schemars.workspace = true
 serde.workspace = true

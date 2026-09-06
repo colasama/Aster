@@ -132,6 +132,8 @@ dependencies = [
 name = "aster-plugin"
 version = "0.2.1"
 dependencies = [
+ "aster-storage",
+ "clap",
  "naga",
  "schemars",
  "serde",
@@ -156,6 +158,7 @@ name = "aster-project"
 version = "0.2.1"
 dependencies = [
  "aster-core",
+ "aster-storage",
  "aster-timeline",
  "clap",
  "serde",
@@ -187,6 +190,13 @@ dependencies = [
  "indexmap",
  "serde",
  "thiserror",
+ "uuid",
+]
+
+[[package]]
+name = "aster-storage"
+version = "0.2.1"
+dependencies = [
  "uuid",
 ]
 

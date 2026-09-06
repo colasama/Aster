@@ -6,7 +6,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use crate::valid_shader_path;
+use crate::PluginMetadata;
 
 pub const SCENE_GENERATOR_API_VERSION: u32 = 1;
 pub const MAX_GENERATOR_PARAMETERS: usize = 128;
@@ -303,7 +303,7 @@ pub enum GeneratorCullMode {
 }
 
 fn validate_shader_and_entry(shader: &str, entry: &str) -> Result<(), SceneGeneratorError> {
-    if !valid_shader_path(shader) {
+    if !PluginMetadata::valid_shader_path(shader) {
         return Err(SceneGeneratorError::InvalidShaderPath(shader.into()));
     }
     if !valid_identifier(entry) {

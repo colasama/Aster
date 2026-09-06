@@ -5,7 +5,7 @@ use std::{collections::BTreeSet, net::IpAddr};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use crate::{Capability, valid_plugin_id};
+use crate::{Capability, PluginMetadata};
 
 pub const REGISTRY_SCHEMA_VERSION: u32 = 1;
 pub const MAX_REGISTRY_BYTES: usize = 1024 * 1024;
@@ -109,7 +109,7 @@ impl RegistryIndex {
 
 impl RegistryPackage {
     fn validate(&self) -> Result<(), RegistryError> {
-        if !valid_plugin_id(&self.id) {
+        if !PluginMetadata::valid_plugin_id(&self.id) {
             return Err(RegistryError::InvalidPackageId(self.id.clone()));
         }
         for (field, value) in [

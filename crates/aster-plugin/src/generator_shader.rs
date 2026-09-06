@@ -2,9 +2,7 @@
 
 use std::{collections::BTreeMap, path::PathBuf};
 
-use crate::{
-    MAX_PLUGIN_SHADER_BYTES, MAX_SHADER_BYTES, PluginError, PluginKind, PluginManifest, generator,
-};
+use crate::{PluginError, PluginKind, PluginManifest, generator};
 
 /// Validates an in-memory scene-generator package using the same manifest, quota, Naga, entry-point,
 /// and binding checks as an installed plugin. Bundled generators use this in conformance tests so
@@ -27,11 +25,11 @@ pub fn validate_scene_generator_sources(
         let source = sources
             .get(*path)
             .ok_or_else(|| PluginError::MissingShader(PathBuf::from(path)))?;
-        if source.len() as u64 > MAX_SHADER_BYTES {
+        if source.len() as u64 > crate::PluginLimits::default().max_shader_bytes {
             return Err(PluginError::ShaderTooLarge(source.len() as u64));
         }
         total_bytes = total_bytes.saturating_add(source.len() as u64);
-        if total_bytes > MAX_PLUGIN_SHADER_BYTES {
+        if total_bytes > crate::PluginLimits::default().max_plugin_shader_bytes {
             return Err(PluginError::ShaderPackageTooLarge(total_bytes));
         }
     }

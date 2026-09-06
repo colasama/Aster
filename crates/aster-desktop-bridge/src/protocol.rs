@@ -304,7 +304,7 @@ impl BridgeRuntime {
             }
             "plugin_registry_catalog" => serde_json::to_value(PluginRegistryCatalog::from_bytes(
                 PluginRegistryCatalog::DEVELOPMENT_INDEX,
-                aster_plugin::HOST_PLUGIN_API_VERSION,
+                aster_plugin::PluginManifest::HOST_API_VERSION,
             )?)
             .map_err(|error| error.to_string()),
             "plugin_status" => {

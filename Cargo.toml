@@ -11,6 +11,7 @@ repository = "https://github.com/aster-mograph/aster"
 rust-version = "1.97"
 
 [workspace.dependencies]
+aster-storage = { path = "crates/aster-storage", version = "0.2.1" }
 aster-core = { path = "crates/aster-core", version = "0.2.1" }
 aster-plugin = { path = "crates/aster-plugin", version = "0.2.1" }
 aster-profiler = { path = "crates/aster-profiler", version = "0.2.1" }

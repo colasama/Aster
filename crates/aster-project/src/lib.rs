@@ -1,12 +1,10 @@
 //! Git-friendly project bundle persistence.
 
-mod atomic_file;
-mod bundle_access;
-use bundle_access::BundleAccess;
+use aster_storage::DirectoryPublication as BundleAccess;
 mod disk_cache;
 mod proxy;
 
-pub use atomic_file::AtomicFile;
+pub use aster_storage::AtomicFile;
 pub use disk_cache::{DiskCache, DiskCacheBenchmark, DiskCacheStatistics};
 pub use proxy::{
     CancellationToken, ProxyCache, ProxyError, ProxyGenerationPlan, ProxyLimits, ProxyMetadata,

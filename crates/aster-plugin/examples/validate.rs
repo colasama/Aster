@@ -5,8 +5,9 @@ fn main() -> ExitCode {
         eprintln!("usage: cargo run -p aster-plugin --example validate -- <plugin-directory>");
         return ExitCode::FAILURE;
     };
-    match aster_plugin::PluginManifest::load(directory.join("plugin.toml")) {
-        Ok(manifest) => {
+    match aster_plugin::PluginLimits::default().load(directory.join("plugin.toml"), true) {
+        Ok(package) => {
+            let manifest = package.manifest;
             println!(
                 "validated {} v{} against Aster plugin API v{}",
                 manifest.plugin.id, manifest.plugin.version, manifest.plugin.api_version

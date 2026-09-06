@@ -4,15 +4,15 @@ use std::{
     path::{Path, PathBuf},
 };
 
-/// Serializes bundle publication and recovers an interrupted directory replacement.
-pub(crate) struct BundleAccess {
+/// Serializes directory publication and recovers an interrupted directory replacement.
+pub struct DirectoryPublication {
     _lock: File,
     destination: PathBuf,
     backup: PathBuf,
 }
 
-impl BundleAccess {
-    pub(crate) fn acquire(destination: &Path) -> io::Result<Self> {
+impl DirectoryPublication {
+    pub fn acquire(destination: &Path) -> io::Result<Self> {
         let parent = destination
             .parent()
             .filter(|p| !p.as_os_str().is_empty())
@@ -20,7 +20,7 @@ impl BundleAccess {
         fs::create_dir_all(parent)?;
         let name = destination
             .file_name()
-            .ok_or_else(|| io::Error::other("project bundle requires a directory name"))?;
+            .ok_or_else(|| io::Error::other("publication requires a directory name"))?;
         let mut lock_name = name.to_os_string();
         lock_name.push(".aster-lock");
         let lock = File::options()
@@ -47,7 +47,7 @@ impl BundleAccess {
         })
     }
 
-    pub(crate) fn replace(&self, staging: &Path) -> io::Result<()> {
+    pub fn replace(&self, staging: &Path) -> io::Result<()> {
         let replacing = self.destination.exists();
         if replacing {
             fs::rename(&self.destination, &self.backup)?;

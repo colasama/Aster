@@ -56,8 +56,9 @@ impl PluginHost {
             .map_err(|error| error.to_string())?;
             (view.report, view.status)
         } else {
-            let report =
-                aster_plugin::discover_metadata(&root).map_err(|error| error.to_string())?;
+            let report = aster_plugin::PluginRepository::at(&root)
+                .discover(|_| false)
+                .map_err(|error| error.to_string())?;
             let status = runtime
                 .inactive_view(preferences.hot_reload_enabled, preferences.safe_mode)
                 .status;
@@ -96,7 +97,8 @@ impl PluginHost {
             let view = runtime.poll(&root).map_err(|error| error.to_string())?;
             (view.report, view.status)
         } else {
-            let report = aster_plugin::discover_selected(&root, &requested)
+            let report = aster_plugin::PluginRepository::at(&root)
+                .discover(|id| requested.contains(id))
                 .map_err(|error| error.to_string())?;
             let status = runtime
                 .inactive_view(preferences.hot_reload_enabled, preferences.safe_mode)
@@ -117,7 +119,9 @@ impl PluginHost {
 
     pub(crate) fn install_plugin(&mut self, source: String) -> Result<PluginStatus, String> {
         let root = self.app_data.join("plugins");
-        aster_plugin::install(source, root).map_err(|error| error.to_string())?;
+        aster_plugin::PluginRepository::at(root)
+            .install(source)
+            .map_err(|error| error.to_string())?;
         self.status(true)
     }
 
@@ -127,7 +131,9 @@ impl PluginHost {
         enabled: bool,
     ) -> Result<PluginStatus, String> {
         let root = self.app_data.join("plugins");
-        let report = aster_plugin::discover_metadata(&root).map_err(|error| error.to_string())?;
+        let report = aster_plugin::PluginRepository::at(&root)
+            .discover(|_| false)
+            .map_err(|error| error.to_string())?;
         if !report
             .plugins
             .iter()

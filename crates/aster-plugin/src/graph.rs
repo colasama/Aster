@@ -10,7 +10,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use crate::valid_shader_path;
+use crate::PluginMetadata;
 
 pub const GRAPH_API_VERSION: u32 = 1;
 
@@ -387,7 +387,7 @@ impl<'a> GraphValidator<'a> {
             if self.pass_ids.insert(pass.id().into(), index).is_some() {
                 return Err(GraphValidationError::DuplicateIdentifier(pass.id().into()));
             }
-            if !valid_shader_path(pass.shader()) {
+            if !PluginMetadata::valid_shader_path(pass.shader()) {
                 return Err(GraphValidationError::InvalidShaderPath(
                     pass.shader().into(),
                 ));
