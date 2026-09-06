@@ -1,12 +1,11 @@
 # Pi agent integration design
 
 Status: the initial Pi desktop integration is implemented. The version-1 command registry covers all
-49 variants in the live TypeScript editor `Operation` union. The isolated Pi utility process, bounded
+62 variants in the live TypeScript editor `Operation` union. The isolated Pi utility process, bounded
 Aster meta-tools, staged workspaces, Review/Agent grants, guarded Full Access, cancellation, real
 bounded preview readback, native image routing, deterministic metrics fallback, plugin management,
-project pack/unpack, and saved-project asset linking described below are live and tested. Native-core
 project pack/unpack, and saved-project asset linking described below are live and tested. A broader
-deterministic analyzer catalog, first-class agent render-export services, structured CLI/MCP adapters,
+deterministic analyzer catalog, built-in Pi render-export services, a general CLI adapter,
 and bundled domain skills remain explicitly later rollout work rather than requirements of this
 initial desktop integration.
 
@@ -55,7 +54,7 @@ The desktop AI panel now hosts a persistent Pi session through an isolated Elect
 1. The renderer creates a revision-addressed `AsterAgentApplicationService` over a cloned project.
 2. Electron starts or resumes a Pi session with only Aster's twelve meta-tools; default coding,
    filesystem, and shell tools are absent.
-3. Tool requests cross a bounded IPC broker back to the renderer application service. All 49 live
+3. Tool requests cross a bounded IPC broker back to the renderer application service. All 62 live
    editor operations are discovered on demand from `schemas/ai-commands.v1.json`, structurally and
    semantically validated, and executed atomically in an isolated workspace.
 4. Pi may query, edit, evaluate at explicit times, inspect diagnostics, and render bounded staged
@@ -449,7 +448,7 @@ abort latency should be instrumented separately.
 ### Phase 6: complete capability parity
 
 1. Register the rest of the live TypeScript operations in coherent domain groups. (Implemented for
-   all 49 current variants.)
+   all 62 current variants.)
 2. Keep the TypeScript command executor authoritative and add generated adapters only when needed.
 3. Add assets, plugins, renders, exports, and project settings.
 4. Add structured CLI and, if required, MCP adapters over the same application services.
@@ -472,3 +471,12 @@ The integration is not complete until automated tests prove:
 - provider secrets and sensitive response data are absent from project logs;
 - project save, recovery, and undo remain valid after agent changes; and
 - relevant Biome, TypeScript, Vitest, Rust format, Clippy, and Rust test gates pass.
+
+## 0.2.1 external adapter
+
+The external MCP adapter now reuses the shared meta-tool schemas and application service. It adds
+reference video/audio reads, matched-time comparisons, live imports, persistence, and render-queue
+services for explicitly enabled local automation sessions. The built-in Pi service grants remain
+unchanged. Preview resolution/crop/isolation options are shared. The previous future-MCP discussion
+above describes the initial integration; current setup and limitations are in
+[External Automation](AUTOMATION.md).

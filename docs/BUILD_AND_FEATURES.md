@@ -78,3 +78,11 @@ Experiments that do not change dependencies or security boundaries should use ty
 settings with a safe default. Incomplete functionality stays off the main branch instead of being
 hidden behind long-lived boolean environment variables. This keeps production behavior observable,
 testable, and easy to remove after the MVP stabilizes.
+
+## 0.2.1 automation artifacts
+
+Artifact preparation now validates and stages both FFmpeg and FFprobe. `ASTER_FFPROBE_PATH` overrides
+the probe executable; otherwise preparation searches beside FFmpeg and then PATH. Their provenance
+is recorded in `build/ffmpeg/ffmpeg-source.json`. Packaged reference tools use `resources/bin`.
+The MCP stdio adapter is compiled into `dist-electron/electron/automation-mcp.js`; see
+[External Automation](AUTOMATION.md) for source and installed-client launch configuration.

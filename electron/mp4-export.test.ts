@@ -1,11 +1,13 @@
 // @vitest-environment node
 
+import { spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   buildExportArguments,
+  Mp4ExportManager,
   removeStaleMp4ExportFiles,
   selectEncoder,
   validateMp4ExportRequest,
@@ -24,6 +26,51 @@ function outputPath(): string {
 }
 
 describe("MP4 export validation", () => {
+  const ffmpeg = process.env.ASTER_FFMPEG_PATH || "ffmpeg";
+  it.skipIf(spawnSync(ffmpeg, ["-version"], { windowsHide: true }).status !== 0)(
+    "finishes a short real audiovisual export without waiting for more audio probe data",
+    async () => {
+      const manager = new Mp4ExportManager(ffmpeg);
+      const path = outputPath();
+      const job = await manager.start(
+        {
+          outputPath: path,
+          width: 320,
+          height: 180,
+          frameRateNumerator: 10,
+          frameRateDenominator: 1,
+          frameCount: 10,
+          pixelFormat: "rgba",
+          videoBitrateBps: 1_000_000,
+          audio: { sampleRate: 48_000, channels: 2, frameCount: 48_000 },
+        },
+        1,
+      );
+      const timeout = setTimeout(() => {
+        void manager.dispose();
+      }, 10_000);
+      try {
+        await Promise.all([
+          (async () => {
+            for (let frame = 0; frame < 10; frame++)
+              await manager.write(job.jobId, new ArrayBuffer(320 * 180 * 4), 1);
+          })(),
+          (async () => {
+            for (let chunk = 0; chunk < 10; chunk++)
+              await manager.writeAudio(job.jobId, new ArrayBuffer(4800 * 8), 1);
+          })(),
+        ]);
+        const result = await manager.finish(job.jobId, 1);
+        expect(result.frameCount).toBe(10);
+        expect(result.audioFrameCount).toBe(48_000);
+        expect(existsSync(path)).toBe(true);
+      } finally {
+        clearTimeout(timeout);
+        await manager.dispose();
+      }
+    },
+    20_000,
+  );
   it("reports actionable setup guidance when FFmpeg is unavailable", async () => {
     await expect(selectEncoder(join(tmpdir(), "aster-missing-ffmpeg"))).rejects.toThrow(
       /Install FFmpeg, set ASTER_FFMPEG_PATH, or rebuild the application/,

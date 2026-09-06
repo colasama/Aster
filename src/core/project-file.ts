@@ -186,6 +186,7 @@ export async function downloadProject(project: Project): Promise<void> {
 export async function saveProjectDocument(
   project: Project,
   chooseDirectory = false,
+  destinationPath?: string,
 ): Promise<string | undefined> {
   const startedAt = performance.now();
   if (!isDesktopRuntime()) {
@@ -198,7 +199,8 @@ export async function saveProjectDocument(
     return `${safeFileName(project.name)}.aster.json`;
   }
   const previousPath = nativeProjectPath;
-  if (chooseDirectory || !nativeProjectPath) {
+  if (destinationPath) nativeProjectPath = destinationPath;
+  else if (chooseDirectory || !nativeProjectPath) {
     const selected = await open({
       directory: true,
       multiple: false,

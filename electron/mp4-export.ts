@@ -216,6 +216,7 @@ class Mp4ExportSession {
     await writeChunk(this.#child.stdin, Buffer.from(pixels));
     this.#assertRunning();
     this.#receivedFrames += 1;
+    if (this.#receivedFrames === this.#request.frameCount) this.#child.stdin.end();
   }
 
   async writeAudio(samples: ArrayBuffer): Promise<void> {
@@ -236,6 +237,9 @@ class Mp4ExportSession {
     await writeChunk(input, Buffer.from(samples));
     this.#assertRunning();
     this.#receivedAudioFrames += frames;
+    // FFmpeg may probe this input before draining video. Signal EOF as soon as the declared
+    // samples arrive, rather than waiting for finish() and deadlocking short audiovisual exports.
+    if (this.#receivedAudioFrames === audio.frameCount) input.end();
   }
 
   async finish(): Promise<Mp4ExportReport> {
@@ -606,6 +610,7 @@ function writeChunk(input: Writable, chunk: Buffer): Promise<void> {
 }
 
 function closeInput(input: Writable): Promise<void> {
+  if (input.writableEnded) return Promise.resolve();
   return new Promise((resolveClose, rejectClose) => {
     const onError = (error: Error) => rejectClose(error);
     input.once("error", onError);

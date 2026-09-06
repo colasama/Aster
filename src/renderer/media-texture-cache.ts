@@ -64,6 +64,7 @@ export class MediaTextureCache {
   readonly #pendingFrameResources = new Map<string, PendingFrameResource>();
   readonly #frameResourceErrors = new Map<string, { source: string; error: Error }>();
   readonly #videoFrameTargets = new Map<string, VideoFrameTarget>();
+  readonly #videoUploadListeners = new Set<(resource: MediaResource) => void>();
   readonly #decodePool = new AsyncWorkPool(4);
   readonly #uploads: TextureUploadBatch;
   #textMotionBlur?: TextMotionBlurRasterCache;
@@ -715,6 +716,7 @@ export class MediaTextureCache {
             this.#reportVideoUploadStatus(resource, status);
             if (status.mode === "direct") this.#releaseVideoFallbackSurface(resource);
             if (status.mode !== "validating") this.#copyVideoFrame(resource);
+            for (const notify of this.#videoUploadListeners) notify(resource);
             this.#invalidate();
           },
         },
@@ -767,6 +769,7 @@ export class MediaTextureCache {
         video.removeEventListener("seeked", check);
         video.removeEventListener("canplay", check);
         video.removeEventListener("error", check);
+        this.#videoUploadListeners.delete(uploadChanged);
       };
       const finish = (error?: Error) => {
         if (settled) return;
@@ -790,6 +793,10 @@ export class MediaTextureCache {
         () => finish(new Error("Timed out waiting for an exact video frame during export")),
         timeoutMs,
       );
+      const uploadChanged = (changed: MediaResource) => {
+        if (changed === resource) check();
+      };
+      this.#videoUploadListeners.add(uploadChanged);
       video.addEventListener("loadeddata", check);
       video.addEventListener("seeked", check);
       video.addEventListener("canplay", check);

@@ -338,7 +338,7 @@ fn write_f32(
 
 fn layer_attributes() -> LayerAttributes {
     let mut attributes = LayerAttributes::named("rgba");
-    attributes.software_name = Some(Text::from("Aster 0.2.0"));
+    attributes.software_name = Some(Text::from(concat!("Aster ", env!("CARGO_PKG_VERSION"))));
     attributes.other.insert(
         Text::from("asterAlphaMode"),
         AttributeValue::Text(Text::from("premultiplied_associated")),

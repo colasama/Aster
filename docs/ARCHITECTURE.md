@@ -179,3 +179,23 @@ replace it with platform-specific low-copy interop without changing layer or tim
 Use GPU-resident intermediates, premultiplied alpha, HDR linear color, transient resource aliasing,
 batched uploads, instancing, compute simulation, bounded history, and explicit instrumentation.
 Optimize measured frame time; never hide semantic mutations inside render code.
+
+## External automation (0.2.1)
+
+The external MCP stdio adapter forwards authenticated loopback requests to the running Electron
+application. Its shared tool definitions and renderer connection reuse `AsterAgentApplicationService`
+for staged edits; explicit commits pass through the editor's undo transaction path. Reference
+FFmpeg/FFprobe decoding runs outside the renderer, while bounded high-resolution previews and
+comparison readbacks reuse the active render session. Import, save and export reuse their existing
+application services. See [External Automation](AUTOMATION.md) for setup, budgets and authority.
+
+Exact-frame export barriers observe asynchronous GPU video-upload validation as well as media
+element events, so hidden render hosts do not depend on another preview tick. MP4 inputs signal EOF
+as soon as their declared video/audio frame counts are written, allowing FFmpeg to finish probing
+short clips without waiting on the other input. Frame failures propagate immediately to host cleanup,
+which closes encoder pipes and releases any blocked audio write.
+
+The Preferences MCP section manages the listener through primary-window-only IPC. The main process
+owns encrypted profile configuration, credential rotation, clipboard export and listener lifecycle.
+Changes apply immediately; a failed reconfiguration restores the previous listener. Environment-based
+launch configuration remains an explicit read-only override. Renderer status contains no token.

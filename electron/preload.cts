@@ -29,6 +29,27 @@ contextBridge.exposeInMainWorld(
       ipcRenderer.invoke("aster:preferences-update", preferences),
     migrateLegacyPreferences: (preferences: Record<string, unknown>) =>
       ipcRenderer.invoke("aster:preferences-migrate-legacy", preferences),
+    automationSettings: Object.freeze({
+      get: () => ipcRenderer.invoke("aster:automation-settings-get"),
+      update: (patch: Record<string, unknown>) =>
+        ipcRenderer.invoke("aster:automation-settings-update", patch),
+      copy: (kind: "token" | "configuration") =>
+        ipcRenderer.invoke("aster:automation-settings-copy", kind),
+    }),
+    automation: Object.freeze({
+      onRequest: (listener: (request: unknown) => void) => {
+        const handle = (_event: IpcRendererEvent, request: unknown) => listener(request);
+        ipcRenderer.on("aster:automation-request", handle);
+        return () => ipcRenderer.removeListener("aster:automation-request", handle);
+      },
+      onCancel: (listener: (clientId: string) => void) => {
+        const handle = (_event: IpcRendererEvent, clientId: string) => listener(clientId);
+        ipcRenderer.on("aster:automation-cancel", handle);
+        return () => ipcRenderer.removeListener("aster:automation-cancel", handle);
+      },
+      respond: (response: Record<string, unknown>) =>
+        ipcRenderer.invoke("aster:automation-response", response),
+    }),
     renderQueue: Object.freeze({
       snapshot: () => ipcRenderer.invoke("aster:render-queue-get"),
       enqueue: (manifest: Record<string, unknown>) =>

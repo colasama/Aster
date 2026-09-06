@@ -24,14 +24,17 @@ export function resolveFfmpegSource({
   pathDelimiter = delimiter,
   stat = statSync,
   realpath = realpathSync,
+  binary = "ffmpeg",
 } = {}) {
-  const configured = environment.ASTER_FFMPEG_PATH?.trim();
+  const variable = binary === "ffprobe" ? "ASTER_FFPROBE_PATH" : "ASTER_FFMPEG_PATH";
+  const binaryName = platform === "win32" ? `${binary}.exe` : binary;
+  const configured = environment[variable]?.trim();
   const candidates = configured
     ? [resolve(configured)]
     : (environment.PATH ?? "")
         .split(pathDelimiter)
         .filter(Boolean)
-        .map((entry) => join(entry.replace(/^"|"$/g, ""), ffmpegBinaryName(platform)));
+        .map((entry) => join(entry.replace(/^"|"$/g, ""), binaryName));
   for (const candidate of candidates) {
     try {
       if (stat(candidate).isFile()) return realpath(candidate);
@@ -39,9 +42,9 @@ export function resolveFfmpegSource({
       // Keep searching PATH entries. The final error names the supported configuration override.
     }
   }
-  const requested = configured ? `ASTER_FFMPEG_PATH (${configured})` : "PATH";
+  const requested = configured ? `${variable} (${configured})` : "PATH";
   throw new Error(
-    `FFmpeg was not found via ${requested}. Install FFmpeg or set ASTER_FFMPEG_PATH to its executable before building an artifact.`,
+    `${binary} was not found via ${requested}. Install FFmpeg or set ${variable} to its executable before building an artifact.`,
   );
 }
 
@@ -52,6 +55,22 @@ export function prepareFfmpegBundle({
   probe = spawnSync,
 } = {}) {
   const source = resolveFfmpegSource({ environment, platform });
+  const probeName = platform === "win32" ? "ffprobe.exe" : "ffprobe";
+  const probeSource = resolveFfmpegSource({
+    environment: {
+      ...environment,
+      PATH: `${dirname(source)}${delimiter}${environment.PATH ?? ""}`,
+    },
+    platform,
+    binary: "ffprobe",
+  });
+  const probeResult = probe(probeSource, ["-hide_banner", "-version"], {
+    encoding: "utf8",
+    timeout: 15_000,
+    windowsHide: true,
+  });
+  if (probeResult.error || probeResult.status !== 0)
+    throw new Error(`FFprobe at ${probeSource} could not be executed`);
   const result = probe(source, ["-hide_banner", "-version"], {
     encoding: "utf8",
     timeout: 15_000,
@@ -67,6 +86,9 @@ export function prepareFfmpegBundle({
   rmSync(destinationDirectory, { force: true, recursive: true });
   mkdirSync(destinationDirectory, { recursive: true });
   copyFileSync(source, destination);
+  const probeDestination = join(destinationDirectory, probeName);
+  copyFileSync(probeSource, probeDestination);
+  if (platform !== "win32") chmodSync(probeDestination, statSync(probeDestination).mode | 0o111);
   if (platform !== "win32") chmodSync(destination, statSync(destination).mode | 0o111);
   writeFileSync(
     join(destinationDirectory, "ffmpeg-source.json"),
@@ -74,6 +96,10 @@ export function prepareFfmpegBundle({
       {
         source,
         version: result.stdout?.split(/\r?\n/, 1)[0]?.trim() || "unknown",
+        ffprobe: {
+          source: probeSource,
+          version: probeResult.stdout?.split(/\r?\n/, 1)[0]?.trim() || "unknown",
+        },
       },
       null,
       2,

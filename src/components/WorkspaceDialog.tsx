@@ -16,6 +16,7 @@ import { useI18n } from "../i18n/react";
 import { useEditor } from "../state/editor-store";
 import { applyBrowserUiScale } from "../ui/browser-ui-scale";
 import { parseUiScale, type UiScale } from "../ui/ui-scale";
+import { AutomationSettingsPanel } from "./AutomationSettingsPanel";
 import { useDialogFocus } from "./use-dialog-focus";
 
 const PluginManager = lazy(() =>
@@ -442,6 +443,9 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
             <div className="dialog-note wide">
               <Settings2 size={15} /> {t("workspace.preferences.webgpuNote")}
             </div>
+            {window.asterDesktop?.automationSettings && (
+              <AutomationSettingsPanel api={window.asterDesktop.automationSettings} />
+            )}
           </div>
         )}
         {kind === "expression" && (
@@ -513,7 +517,7 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
           <div className="about-dialog">
             <div className="about-mark">A</div>
             <div>
-              <h2>Aster 0.2.0</h2>
+              <h2>Aster 0.2.1</h2>
               <p>{t("workspace.about.summary")}</p>
               <span className="about-meta">
                 React 19 · TypeScript 7 · Electron 43 · Rust 2024 · WebGPU/WGSL · MPL-2.0

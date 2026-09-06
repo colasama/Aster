@@ -210,10 +210,8 @@ export async function runRenderHostFrameLoop(
     return "completed";
   } catch (error) {
     audioAborted = true;
-    // Do not let an in-flight PCM IPC write race the worker's failure cleanup. The audio promise
-    // owns its own rejection capture above, so draining it here is bounded by output backpressure
-    // and preserves the original frame/output failure as the session error.
-    await audioPipeline;
+    // Propagate failure so the host can close the encoder and release blocked PCM writes.
+    // The audio pipeline captures its own rejection, including errors from that cleanup.
     throw error;
   }
 }

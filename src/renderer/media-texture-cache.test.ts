@@ -103,11 +103,14 @@ describe("exact-frame media resource barrier", () => {
     expect(cache.hasPendingFrameResources).toBe(true);
     expect(video.crossOrigin).toBe("anonymous");
 
+    const waiting = cache.waitForFrameResources(1_000);
     video.readyState = 2;
     video.dispatchEvent(new Event("loadeddata"));
 
     expect(cache.hasPendingFrameResources).toBe(true);
     await vi.waitFor(() => expect(cache.hasPendingFrameResources).toBe(false));
+    // Upload validation completes asynchronously, without another media element event.
+    await waiting;
   });
 
   it("creates external-image destinations with copy and render-attachment usage", async () => {

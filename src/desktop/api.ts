@@ -6,6 +6,7 @@ import type {
   FullAccessActivationRequest,
   FullAccessGrant,
 } from "../ai/agent-protocol";
+import type { AutomationDesktopApi } from "../ai/automation-protocol";
 import type {
   EnqueueRenderJobInput,
   RenderJobManifest,
@@ -13,6 +14,7 @@ import type {
   RenderQueueViewState,
 } from "../core/render-queue";
 import type { UiScale } from "../ui/ui-scale";
+import type { AutomationSettingsApi } from "./automation-settings";
 import type { AppPreferences, UserPreferencePatch } from "./preferences";
 
 export interface DesktopFileFilter {
@@ -204,6 +206,8 @@ export interface DesktopDocumentLifecycle {
 }
 
 export interface AsterDesktopApi {
+  automation?: AutomationDesktopApi;
+  automationSettings?: AutomationSettingsApi;
   invoke<T>(command: string, args?: Record<string, unknown>): Promise<T>;
   runAgent(request: AgentRunRequest): Promise<AgentRunResult>;
   respondAgentTool(response: AgentToolResponse): Promise<void>;

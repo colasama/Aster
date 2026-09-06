@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useRef } from "react";
+import { AutomationConnection } from "./ai/AutomationConnection";
 import { DiagnosticBanner } from "./components/DiagnosticBanner";
 import {
   ApplicationDiagnosticBoundary,
@@ -146,6 +147,7 @@ export default function App() {
   return (
     <I18nProvider>
       <EditorProvider>
+        <AutomationConnection />
         <DiagnosticRuntimeMonitor />
         <ApplicationDiagnosticBoundary>
           <Studio />

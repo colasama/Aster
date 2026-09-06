@@ -1,6 +1,7 @@
-import { openFrameRenderSession } from "../core/render-export";
+import { type FrameRenderSessionOptions, openFrameRenderSession } from "../core/render-export";
 import type { Project } from "../core/types";
 import type { RawFramePixelFormat } from "../renderer/frame-readback";
+import { type PreviewOptions, parsePreviewOptions, previewCropPixels } from "./preview-options";
 
 const AGENT_PREVIEW_MAX_DIMENSION = 384;
 const AGENT_PREVIEW_MAX_ENCODED_BYTES = 8 * 1024 * 1024;
@@ -28,11 +29,26 @@ export async function renderAgentPreview(
   project: Project,
   times: readonly number[],
   signal: AbortSignal,
+  input: PreviewOptions = {},
 ): Promise<AgentRenderedPreviewFrame[]> {
-  const session = await openFrameRenderSession({
-    project,
-    maxDimension: AGENT_PREVIEW_MAX_DIMENSION,
-  });
+  const options = parsePreviewOptions(input);
+  if (options.layerIds) {
+    project = structuredClone(project);
+    const composition = project.compositions.find(
+      (item) => item.id === project.activeCompositionId,
+    );
+    if (
+      !composition ||
+      options.layerIds.some((id) => !composition.layers.some((layer) => layer.id === id))
+    )
+      throw new Error("Preview isolation references an unknown layer");
+    for (const layer of composition.layers) layer.solo = options.layerIds.includes(layer.id);
+  }
+  const session = await openPreviewSession(
+    { project, maxDimension: options.maxDimension ?? AGENT_PREVIEW_MAX_DIMENSION },
+    signal,
+  );
+  const crop = previewCropPixels(session.width, session.height, options.crop);
   const frames: AgentRenderedPreviewFrame[] = [];
   let previousPixels: Uint8ClampedArray | undefined;
   let encodedBytes = 0;
@@ -41,9 +57,10 @@ export async function renderAgentPreview(
       if (signal.aborted) throw new Error("Agent preview render was cancelled");
       const raw = await session.renderRawFrame(time);
       if (signal.aborted) throw new Error("Agent preview render was cancelled");
-      const pixels = normalizeRgbaPixels(raw.pixels, raw.pixelFormat);
+      const fullPixels = normalizeRgbaPixels(raw.pixels, raw.pixelFormat);
+      const pixels = options.crop ? cropPixels(fullPixels, session.width, crop) : fullPixels;
       const measurements = measurePreviewPixels(pixels, previousPixels);
-      const blob = await encodePng(session.width, session.height, pixels);
+      const blob = await encodePng(crop.width, crop.height, pixels);
       encodedBytes += blob.size;
       if (encodedBytes > AGENT_PREVIEW_MAX_ENCODED_BYTES)
         throw new Error("Agent preview images exceeded the 8 MiB session budget");
@@ -52,8 +69,8 @@ export async function renderAgentPreview(
         renderId: `${crypto.randomUUID()}:${time.toFixed(6)}`,
         mimeType: "image/png",
         data: await blobBase64(blob),
-        width: session.width,
-        height: session.height,
+        width: crop.width,
+        height: crop.height,
         measurements,
       });
       previousPixels = pixels;
@@ -62,6 +79,38 @@ export async function renderAgentPreview(
   } finally {
     session.close();
   }
+}
+
+async function openPreviewSession(options: FrameRenderSessionOptions, signal: AbortSignal) {
+  const deadline = performance.now() + 10_000;
+  while (true) {
+    signal.throwIfAborted();
+    try {
+      return await openFrameRenderSession(options);
+    } catch (error) {
+      if (
+        performance.now() >= deadline ||
+        !(error instanceof Error) ||
+        !/^Renderer did not (open|handle)/.test(error.message)
+      )
+        throw error;
+      // The editor mounts before asynchronous GPU initialization completes.
+      await new Promise<void>((resolve) => setTimeout(resolve, 100));
+    }
+  }
+}
+
+function cropPixels(
+  pixels: Uint8ClampedArray,
+  stride: number,
+  crop: { x: number; y: number; width: number; height: number },
+) {
+  const result = new Uint8ClampedArray(crop.width * crop.height * 4);
+  for (let y = 0; y < crop.height; y++) {
+    const start = ((y + crop.y) * stride + crop.x) * 4;
+    result.set(pixels.subarray(start, start + crop.width * 4), y * crop.width * 4);
+  }
+  return result;
 }
 
 export function measurePreviewPixels(

@@ -549,7 +549,7 @@ describe("RenderHost frame session", () => {
     expect(reports[reports.length - 1]?.type).toBe("cancelled");
   });
 
-  it("drains accepted audio output before propagating a beauty-frame failure", async () => {
+  it("propagates a beauty-frame failure while PCM output is blocked", async () => {
     const fixture = assignmentWithAudio({ start: 0, end: 48 });
     const validated = validateRenderHostAssignment(fixture.assignment);
     const pcmGate = deferred<void>();
@@ -580,11 +580,9 @@ describe("RenderHost frame session", () => {
     });
 
     await pcmStarted.promise;
-    await Promise.resolve();
-    expect(rejected).toBe(false);
-    pcmGate.resolve(undefined);
     await expect(session).rejects.toThrow("beauty readback failed");
     expect(rejected).toBe(true);
+    pcmGate.reject(new Error("Encoder closed during failure cleanup"));
   });
 });
 

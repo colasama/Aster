@@ -149,6 +149,12 @@ See [Architecture](docs/ARCHITECTURE.md), [Project Format](docs/PROJECT_FORMAT.m
 [Plugin Model](docs/PLUGINS.md), [AI Operations](docs/AI_OPERATIONS.md), and the
 [Pi Agent Integration](docs/PI_AGENT_INTEGRATION.md).
 
+## External automation
+
+Aster 0.2.1 supports an opt-in MCP connection for reference-video analysis, staged editing,
+bounded high-resolution previews, frame comparison, asset import, saving, and render export.
+See [External Automation](docs/AUTOMATION.md) for connection setup and the reconstruction workflow.
+
 ## Build from source
 
 Prerequisites: Node.js 22+, pnpm 10.15, and Rust 1.97. Linux packaging additionally requires the

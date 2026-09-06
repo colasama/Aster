@@ -49,7 +49,7 @@ dependencies = [
 
 [[package]]
 name = "aster-core"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "aster-timeline",
  "indexmap",
@@ -61,7 +61,7 @@ dependencies = [
 
 [[package]]
 name = "aster-desktop-bridge"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "aster-core",
  "aster-plugin",
@@ -80,7 +80,7 @@ dependencies = [
 
 [[package]]
 name = "aster-plugin"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "naga",
  "schemars",
@@ -92,7 +92,7 @@ dependencies = [
 
 [[package]]
 name = "aster-profiler"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "aster-core",
  "parking_lot",
@@ -102,7 +102,7 @@ dependencies = [
 
 [[package]]
 name = "aster-project"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "aster-core",
  "aster-timeline",
@@ -116,7 +116,7 @@ dependencies = [
 
 [[package]]
 name = "aster-render"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "indexmap",
  "pollster",
@@ -128,7 +128,7 @@ dependencies = [
 
 [[package]]
 name = "aster-scene"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "glam",
  "indexmap",
@@ -139,7 +139,7 @@ dependencies = [
 
 [[package]]
 name = "aster-text"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "sha2",
  "thiserror",
@@ -147,7 +147,7 @@ dependencies = [
 
 [[package]]
 name = "aster-timeline"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "schemars",
  "serde",
@@ -156,7 +156,7 @@ dependencies = [
 
 [[package]]
 name = "aster-video"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "exr",
  "serde",

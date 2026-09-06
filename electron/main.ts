@@ -38,6 +38,8 @@ import {
   ASSET_SCHEME_REGISTRATION,
   createAssetProtocolHandler,
 } from "./asset-protocol.js";
+import { startAutomationHost } from "./automation-host.js";
+import { AutomationSettingsController } from "./automation-settings.js";
 import { createDiagnosticBundle, writeDiagnosticBundle } from "./diagnostics.js";
 import { fullAccessDesktopBridgeRequest } from "./full-access-aster-tools.js";
 import { describeFullAccessTarget, FullAccessToolService } from "./full-access-tools.js";
@@ -243,6 +245,7 @@ let applicationLogger: AsterLogger | undefined;
 let appPreferences: AppPreferencesStore | undefined;
 let renderQueueManager: RenderQueueManager | undefined;
 let renderHostController: ElectronRenderHostController | undefined;
+let automationSettings: AutomationSettingsController | undefined;
 let primaryWindow: BrowserWindow | undefined;
 let activeProjectPath: string | undefined;
 let rendererRecoveryDialogOpen = false;
@@ -1346,6 +1349,30 @@ if (hasSingleInstanceLock)
       });
       await renderQueueManager.startScheduler(renderHostController, 1);
       await createWindow(logger, preferences);
+      automationSettings = new AutomationSettingsController({
+        userData: app.getPath("userData"),
+        command: process.execPath,
+        adapterPath: join(app.getAppPath(), "dist-electron", "electron", "automation-mcp.js"),
+        start: (config) =>
+          startAutomationHost({
+            ...config,
+            window: () => primaryWindow,
+            ffmpeg: ffmpegExecutable(),
+            ffprobe: app.isPackaged
+              ? join(
+                  process.resourcesPath,
+                  "bin",
+                  process.platform === "win32" ? "ffprobe.exe" : "ffprobe",
+                )
+              : process.env.ASTER_FFPROBE_PATH || "ffprobe",
+            authorize: (path, media) => {
+              grantPath(path);
+              if (media) allowedAssets.set(normalizeAssetPath(path), resolve(path));
+            },
+          }),
+      });
+      automationSettings.registerIpc(() => primaryWindow);
+      await automationSettings.initialize();
       app.on("activate", () => {
         if (!primaryWindow) void createWindow(logger, preferences);
       });
@@ -1371,6 +1398,7 @@ app.on("will-quit", (event) => {
   desktopBridge?.dispose();
   piAgentHost?.dispose();
   void (async () => {
+    await automationSettings?.close();
     await renderQueueManager?.shutdown();
     await renderHostController?.dispose();
     await Promise.all([

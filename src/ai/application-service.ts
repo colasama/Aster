@@ -10,6 +10,7 @@ import {
   getCommandDescriptors,
   searchCommandDescriptors,
 } from "./command-registry";
+import { type PreviewOptions, parsePreviewOptions } from "./preview-options";
 import type { AgentRenderedPreviewFrame } from "./render-preview";
 
 const MAX_QUERY_ITEMS = 128;
@@ -54,6 +55,7 @@ export interface AgentApplicationContext {
     project: Project,
     times: readonly number[],
     signal: AbortSignal,
+    options?: PreviewOptions,
   ) => Promise<AgentRenderedPreviewFrame[]>;
 }
 
@@ -297,6 +299,7 @@ export class AsterAgentApplicationService {
         structuredClone(workspace.project),
         times,
         this.#abortController.signal,
+        parsePreviewOptions(input),
       );
       assertRenderedFrames(frames, times);
       workspace.previewFrames = structuredClone(frames);
@@ -587,8 +590,8 @@ function assertRenderedFrames(
       !Number.isSafeInteger(frame.height) ||
       frame.width < 1 ||
       frame.height < 1 ||
-      frame.width > 384 ||
-      frame.height > 384
+      frame.width > 2048 ||
+      frame.height > 2048
     )
       throw new Error("Agent preview dimensions are outside their bounds");
     if (!/^[A-Za-z0-9+/]*={0,2}$/u.test(frame.data))

@@ -3,7 +3,7 @@
   "description": "GPU-first motion graphics and compositing editor",
   "private": true,
   "repository": "github:aster-mograph/aster",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "author": "Aster Contributors",
   "type": "module",
   "main": "dist-electron/electron/main.js",
@@ -11,6 +11,7 @@
   "scripts": {
     "dev": "pnpm electron:bridge:dev && pnpm electron:compile && concurrently -k -s first \"vite --host 127.0.0.1\" \"wait-on tcp:1420 && electron .\"",
     "dev:web": "vite",
+    "mcp": "node dist-electron/electron/automation-mcp.js",
     "artifact:build": "pnpm artifact:prepare-ffmpeg && pnpm build && electron-builder",
     "artifact:prepare-ffmpeg": "node scripts/prepare-ffmpeg.mjs",
     "build": "pnpm typecheck && vite build && pnpm electron:compile && pnpm electron:bridge:build",
@@ -33,6 +34,7 @@
   "dependencies": {
     "@earendil-works/pi-agent-core": "0.84.2",
     "@earendil-works/pi-ai": "0.84.2",
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "lucide-react": "^1.33.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
@@ -91,7 +93,9 @@
         "to": "bin",
         "filter": [
           "ffmpeg",
-          "ffmpeg.exe"
+          "ffmpeg.exe",
+          "ffprobe",
+          "ffprobe.exe"
         ]
       }
     ],

@@ -48,6 +48,8 @@ test("copies the validated executable and records provenance in the controlled b
   const source = join(root, `source-${ffmpegBinaryName()}`);
   const projectRoot = join(root, "project");
   writeFileSync(source, "ffmpeg-binary");
+  const probeSource = join(root, process.platform === "win32" ? "ffprobe.exe" : "ffprobe");
+  writeFileSync(probeSource, "ffprobe-binary");
   const prepared = prepareFfmpegBundle({
     environment: { ASTER_FFMPEG_PATH: source, PATH: "" },
     projectRoot,
@@ -56,7 +58,11 @@ test("copies the validated executable and records provenance in the controlled b
   assert.equal(readFileSync(prepared.destination, "utf8"), "ffmpeg-binary");
   assert.deepEqual(
     JSON.parse(readFileSync(join(projectRoot, "build", "ffmpeg", "ffmpeg-source.json"), "utf8")),
-    { source, version: "ffmpeg version test" },
+    {
+      source,
+      version: "ffmpeg version test",
+      ffprobe: { source: probeSource, version: "ffmpeg version test" },
+    },
   );
 });
 
@@ -80,7 +86,7 @@ test("desktop launch and artifact scripts compile and stage their runtime depend
     {
       from: "build/ffmpeg",
       to: "bin",
-      filter: ["ffmpeg", "ffmpeg.exe"],
+      filter: ["ffmpeg", "ffmpeg.exe", "ffprobe", "ffprobe.exe"],
     },
   );
 });

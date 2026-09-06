@@ -95,3 +95,11 @@ planner or provider endpoint.
 Provider keys are accepted in memory or through `ASTER_AI_API_KEY`. They cross directly to the
 isolated utility process and are excluded from project logs and tool audit payloads. HTTPS is required
 except for localhost development. Errors redact credentials and response bodies are size/time bounded.
+
+## External clients
+
+Aster 0.2.1 provides an MCP stdio adapter over the same twelve meta-tool definitions. External clients
+also receive reference-media, comparison, live import, save and render-queue tools. Submitted
+workspaces require explicit `commit_workspace`, which checks the current live revision and records
+one undoable transaction. `render_preview` supports bounded resolution, normalized crop and layer
+isolation for both Pi and external clients. See [External Automation](AUTOMATION.md).
