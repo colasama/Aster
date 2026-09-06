@@ -39,6 +39,7 @@ import {
   sourceSupportsLayer,
 } from "./footage-source";
 import { logger } from "./logger";
+import { assertMatchingPathTopology } from "./path-morph";
 import { prepareProjectFonts } from "./project-font-runtime";
 import { validateProjectFonts } from "./project-fonts";
 import { assertProjectRenderBoundaries } from "./project-render-boundaries";
@@ -933,6 +934,16 @@ function validateLayer(
     if ((shape.gradientColor as number[]).length !== 4)
       throw new Error(`${path}.shape.gradientColor must contain four channels`);
     if (shape.kind === "bezier") validateBezierPath(shape.path, `${path}.shape.path`);
+    if (shape.morph !== undefined) {
+      if (shape.kind !== "bezier") throw new Error(`${path}.shape.morph requires a Bezier shape`);
+      const morph = requireObject(shape.morph, `${path}.shape.morph`);
+      validateBezierPath(morph.target, `${path}.shape.morph.target`);
+      validateAnimatable(morph.progress, `${path}.shape.morph.progress`);
+      assertMatchingPathTopology(
+        shape.path as import("./types").BezierPath,
+        morph.target as import("./types").BezierPath,
+      );
+    }
   }
   if (layer.shapeGraph !== undefined) validateShapeGraph(layer.shapeGraph, `${path}.shapeGraph`);
   if (layer.textStyle !== undefined) {

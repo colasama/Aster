@@ -1,5 +1,6 @@
 import { projectCameraPoint } from "../core/camera-rig";
 import { createDefaultEvaluatedCamera, type EvaluatedCamera } from "../core/camera-settings";
+import { evaluateShapePath } from "../core/path-morph";
 import type { FlattenedSceneLayer } from "../core/scene-evaluation";
 import { solidRenderColor, solidRenderSize } from "../core/solid-layer";
 import type { CameraSettings, Composition, EvaluatedTransform, Layer } from "../core/types";
@@ -244,6 +245,7 @@ export function buildSceneGeometry(
         gradientStyleParameters,
         composition,
         camera,
+        scene.localTime,
       );
     } else {
       const normal = rotatePoint(0, 0, 1, transform.rotation);
@@ -302,11 +304,14 @@ function appendBezierPath(
   gradientStyleColor: readonly [number, number, number, number],
   gradientStyleParameters: readonly [number, number, number, number],
   composition: Composition,
-  camera?: SceneCamera,
+  camera: SceneCamera | undefined,
+  time: number,
 ): number {
   const shape = layer.shape;
   if (!shape?.path) return 0;
-  const normalized = flattenBezierPath(shape.path);
+  const path = evaluateShapePath(shape, time, layer.expressions?.["shape.morphProgress"]);
+  if (!path) return 0;
+  const normalized = flattenBezierPath(path);
   const normal = rotatePoint(0, 0, 1, transform.rotation);
   const tangent = rotatePoint(1, 0, 0, transform.rotation);
   const noStyle: readonly [number, number, number, number] = [1, 1, 1, 1];
@@ -345,7 +350,7 @@ function appendBezierPath(
     );
     vertexCount += 1;
   };
-  if (shape.path.closed) {
+  if (path.closed) {
     for (const point of triangulatePolygon(normalized))
       append(point, fillColor, gradientStyleColor, gradientStyleParameters);
   }
@@ -356,7 +361,7 @@ function appendBezierPath(
     const trim = shape.trim ?? { start: 0, end: 100, offset: 0 };
     const segments = trimPolyline(
       scaled,
-      shape.path.closed,
+      path.closed,
       trim.start / 100,
       trim.end / 100,
       trim.offset / 100,

@@ -12,6 +12,7 @@ import { normalizeCameraSettings } from "./camera-settings";
 import { type ClonerSettings, normalizeClonerSettings } from "./cloner";
 import { referencedSourceIds, sourceSupportsLayer } from "./footage-source";
 import { layerSupportsMotionBlur, normalizeMotionBlurSettings } from "./motion-blur";
+import { assertMatchingPathTopology } from "./path-morph";
 import { applyPrecompositionPlan, type PrecompositionPlan } from "./precomposition";
 import { activeComposition } from "./project";
 import { type ProjectFont, validateProjectFonts } from "./project-fonts";
@@ -98,6 +99,7 @@ export type PropertyPath =
   | "camera.highlightGain"
   | "camera.highlightThreshold"
   | "camera.highlightSaturation"
+  | "shape.morphProgress"
   | "opacity"
   | TextAnimatorPropertyPath;
 
@@ -755,6 +757,8 @@ export function applyOperation(project: Project, operation: Operation): void {
       }
       break;
     case "setShapeSettings":
+      if (operation.shape.morph)
+        assertMatchingPathTopology(operation.shape.path, operation.shape.morph.target);
       layer.shape = {
         kind: operation.shape.kind,
         roundness: clamp(operation.shape.roundness, 0, 100_000),
@@ -772,6 +776,7 @@ export function applyOperation(project: Project, operation: Operation): void {
         lineCap: operation.shape.lineCap,
         lineJoin: operation.shape.lineJoin ?? "round",
         path: operation.shape.path ? structuredClone(operation.shape.path) : undefined,
+        morph: operation.shape.morph ? structuredClone(operation.shape.morph) : undefined,
         trim: operation.shape.trim ? structuredClone(operation.shape.trim) : undefined,
       };
       break;
@@ -1245,6 +1250,10 @@ function easeTransform(layer: Layer): void {
 
 export function getProperty(layer: Layer, path: PropertyPath): Animatable {
   if (isTextAnimatorPropertyPath(path)) return getTextAnimatorProperty(layer, path);
+  if (path === "shape.morphProgress") {
+    if (!layer.shape?.morph) throw new Error("Path morph requires a configured target path");
+    return layer.shape.morph.progress;
+  }
   if (path === "opacity") return layer.transform.opacity;
   if (path.startsWith("camera.")) {
     if (!layer.camera) throw new Error("Camera property requires a camera layer");
@@ -1268,6 +1277,11 @@ function setProperty(layer: Layer, path: PropertyPath, value: Animatable): void 
   if (isTextAnimatorPropertyPath(path)) {
     setTextAnimatorProperty(layer, path, value);
     if (layer.textAnimator) layer.textAnimator = normalizeTextAnimatorSettings(layer.textAnimator);
+    return;
+  }
+  if (path === "shape.morphProgress") {
+    if (!layer.shape?.morph) throw new Error("Path morph requires a configured target path");
+    layer.shape.morph.progress = value;
     return;
   }
   if (path === "opacity") {
@@ -1327,6 +1341,7 @@ export function collectLayerPropertyPaths(layer: Layer): PropertyPath[] {
         (field) => `camera.${field}` as Extract<PropertyPath, `camera.${string}`>,
       ),
     );
+  if (layer.shape?.morph) paths.push("shape.morphProgress");
   paths.push(...collectTextAnimatorTrackEntries(layer).map((entry) => entry.path));
   return paths;
 }

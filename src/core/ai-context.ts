@@ -114,7 +114,11 @@ export function queryProperties(composition: Composition, selectedLayerIds: Id[]
       kind: layer.kind,
       ...(layer.kind === "text" ? { textStyle: structuredClone(resolveTextStyle(layer)) } : {}),
       properties: Object.fromEntries(
-        [...propertyPaths, ...(layer.camera ? cameraPropertyPaths : [])].map((path) => {
+        [
+          ...propertyPaths,
+          ...(layer.camera ? cameraPropertyPaths : []),
+          ...(layer.shape?.morph ? ["shape.morphProgress" as const] : []),
+        ].map((path) => {
           const property = getProperty(layer, path);
           return [
             path,

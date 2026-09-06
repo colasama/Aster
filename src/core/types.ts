@@ -270,6 +270,8 @@ export interface ShapeSettings {
   lineCap: "butt" | "round";
   lineJoin?: "miter" | "bevel" | "round";
   path?: BezierPath;
+  /** Matching control-point topology, interpolated without rasterizing the path. */
+  morph?: { target: BezierPath; progress: Animatable };
   /** Percentage-based arc-length trim for Bezier strokes. */
   trim?: ShapeTrimSettings;
 }

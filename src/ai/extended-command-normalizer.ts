@@ -1,6 +1,6 @@
 import { normalizeCameraSettings } from "../core/camera-settings";
 import type { ClonerSettings } from "../core/cloner";
-import type { Operation, PropertyPath } from "../core/operations";
+import { getProperty, type Operation, type PropertyPath } from "../core/operations";
 import { planPrecomposition } from "../core/precomposition";
 import { activeComposition, createBlankComposition } from "../core/project";
 import type { ProjectFont } from "../core/project-fonts";
@@ -554,9 +554,7 @@ function requirePropertyKeyframe(layer: Layer, path: PropertyPath, keyframeId: s
 }
 
 function propertyValue(layer: Layer, path: PropertyPath): Animatable {
-  if (path === "opacity") return layer.transform.opacity;
-  const [group, axis] = path.split(".") as ["position" | "rotation" | "scale", string];
-  return layer.transform[group][Number(axis)];
+  return getProperty(layer, path);
 }
 
 function requiredId(value: unknown, name: string): string {

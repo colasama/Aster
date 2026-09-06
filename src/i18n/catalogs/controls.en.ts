@@ -197,4 +197,7 @@ export const controlsEn = {
   "shape.trimOffsetA11y": "Trim offset",
   "shape.dashLength": "Dash length",
   "shape.dashGap": "Dash gap",
+  "shape.morph": "Path morph",
+  "shape.morphKeyframe": "Toggle path morph keyframe",
+  "shape.morphProgress": "Morph progress",
 } as const;

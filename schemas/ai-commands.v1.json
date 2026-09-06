@@ -94,6 +94,7 @@
     },
     "propertyPath": {
       "enum": [
+        "shape.morphProgress",
         "position.0",
         "position.1",
         "position.2",
@@ -344,6 +345,15 @@
         "lineCap": { "enum": ["butt", "round"] },
         "lineJoin": { "enum": ["miter", "bevel", "round"] },
         "path": { "$ref": "#/$defs/bezierPath" },
+        "morph": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["target", "progress"],
+          "properties": {
+            "target": { "$ref": "#/$defs/bezierPath" },
+            "progress": { "$ref": "#/$defs/animatable" }
+          }
+        },
         "trim": {
           "type": "object",
           "additionalProperties": false,
@@ -788,26 +798,7 @@
         "properties": {
           "type": { "const": "setProperty" },
           "layerId": { "type": "string", "minLength": 1, "maxLength": 128 },
-          "path": {
-            "enum": [
-              "position.0",
-              "position.1",
-              "position.2",
-              "rotation.0",
-              "rotation.1",
-              "rotation.2",
-              "scale.0",
-              "scale.1",
-              "scale.2",
-              "camera.pointOfInterest.0",
-              "camera.pointOfInterest.1",
-              "camera.pointOfInterest.2",
-              "camera.orientation.0",
-              "camera.orientation.1",
-              "camera.orientation.2",
-              "opacity"
-            ]
-          },
+          "path": { "$ref": "#/$defs/propertyPath" },
           "value": { "type": "number" }
         }
       }
@@ -828,26 +819,7 @@
         "properties": {
           "type": { "const": "addKeyframe" },
           "layerId": { "type": "string", "minLength": 1, "maxLength": 128 },
-          "path": {
-            "enum": [
-              "position.0",
-              "position.1",
-              "position.2",
-              "rotation.0",
-              "rotation.1",
-              "rotation.2",
-              "scale.0",
-              "scale.1",
-              "scale.2",
-              "camera.pointOfInterest.0",
-              "camera.pointOfInterest.1",
-              "camera.pointOfInterest.2",
-              "camera.orientation.0",
-              "camera.orientation.1",
-              "camera.orientation.2",
-              "opacity"
-            ]
-          },
+          "path": { "$ref": "#/$defs/propertyPath" },
           "time": { "type": "number", "minimum": 0, "maximum": 86400 },
           "value": { "type": "number" },
           "interpolation": { "enum": ["linear", "step", "bezier"] },

@@ -198,4 +198,7 @@ export const controlsZh = {
   "shape.trimOffsetA11y": "修剪偏移",
   "shape.dashLength": "虚线长度",
   "shape.dashGap": "虚线间距",
+  "shape.morph": "路径变形",
+  "shape.morphKeyframe": "切换路径变形关键帧",
+  "shape.morphProgress": "变形进度",
 } as const satisfies Record<keyof typeof controlsEn, string>;

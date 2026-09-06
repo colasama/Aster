@@ -219,3 +219,4 @@ The Preferences MCP section manages the listener through primary-window-only IPC
 owns encrypted profile configuration, credential rotation, clipboard export and listener lifecycle.
 Changes apply immediately; a failed reconfiguration restores the previous listener. Environment-based
 launch configuration remains an explicit read-only override. Renderer status contains no token.
+`shape.morph` uses the shared time-addressable path evaluator before adaptive vector tessellation; playback presentation uses the window clock channel independently of sampled React UI updates. See [Path morph](PATH_MORPH.md) and [Playback performance](PLAYBACK_PERFORMANCE.md).

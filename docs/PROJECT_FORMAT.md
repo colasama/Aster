@@ -228,3 +228,4 @@ validated recovery snapshot in local storage, which is also the fallback when a 
 fails. Recovery autosaves run after the configured idle interval, at least once per minute during
 continuous editing, and when the editor moves into the background while autosave is enabled. They
 never advance the primary saved revision.
+Bezier `shape` settings may contain an optional `morph` object with a topology-compatible `target` path and an `Animatable` percent `progress`. This additive field uses the existing project version; see [Path morph](PATH_MORPH.md).

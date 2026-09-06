@@ -268,6 +268,27 @@ export function collectTimelinePropertyGroups(layer: Layer): TimelinePropertyGro
     });
   }
 
+  if (layer.shape?.morph)
+    groups.push({
+      id: "path-morph",
+      label: "Path morph",
+      labelKey: "shape.morph",
+      source: "transform",
+      tracks: [
+        {
+          source: "transform",
+          id: "shape.morphProgress",
+          path: "shape.morphProgress",
+          labelKey: "shape.morphProgress",
+          property: layer.shape.morph.progress,
+          step: 0.1,
+          unit: "%",
+          min: 0,
+          max: 100,
+        },
+      ],
+    });
+
   if (layer.camera) {
     groups.push({
       id: "camera",

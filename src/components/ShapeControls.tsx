@@ -3,9 +3,10 @@ import { useI18n } from "../i18n/react";
 import { createDefaultBezierPath } from "../renderer/vector-path";
 import { useEditor } from "../state/editor-store";
 import { colorInputValue, parseColorInput } from "../ui/color-input";
+import { TextAnimatableControl } from "./TextAnimatableControl";
 
 export function ShapeControls({ layer }: { layer: Layer }) {
-  const { dispatch } = useEditor();
+  const { state, dispatch } = useEditor();
   const { t } = useI18n();
   if (layer.kind !== "shape") return null;
   const settings = layer.shape ?? {
@@ -46,7 +47,23 @@ export function ShapeControls({ layer }: { layer: Layer }) {
     });
   };
   const setPathClosed = (closed: boolean) => {
-    if (settings.path) update("path", { ...settings.path, closed });
+    if (!settings.path) return;
+    dispatch({
+      type: "operation",
+      operations: [
+        {
+          type: "setShapeSettings",
+          layerId: layer.id,
+          shape: {
+            ...settings,
+            path: { ...settings.path, closed },
+            ...(settings.morph
+              ? { morph: { ...settings.morph, target: { ...settings.morph.target, closed } } }
+              : {}),
+          },
+        },
+      ],
+    });
   };
 
   return (
@@ -66,6 +83,7 @@ export function ShapeControls({ layer }: { layer: Layer }) {
                   shape: {
                     ...settings,
                     kind,
+                    morph: kind === "bezier" ? settings.morph : undefined,
                     path:
                       kind === "bezier"
                         ? (settings.path ?? createDefaultBezierPath())
@@ -83,6 +101,20 @@ export function ShapeControls({ layer }: { layer: Layer }) {
           <option value="bezier">{t("shape.bezier")}</option>
         </select>
       </label>
+      {settings.morph && (
+        <TextAnimatableControl
+          label={t("shape.morphProgress")}
+          keyframeLabel={t("shape.morphKeyframe")}
+          min={0}
+          max={100}
+          step={0.1}
+          property={settings.morph.progress}
+          time={state.currentTime}
+          onChange={(progress) => {
+            if (settings.morph) update("morph", { ...settings.morph, progress });
+          }}
+        />
+      )}
       <label>
         {t("shape.fillColor")}
         <input

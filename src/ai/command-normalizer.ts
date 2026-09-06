@@ -14,6 +14,7 @@ import { normalizeExtendedAiCommand } from "./extended-command-normalizer";
 export const MAX_AI_COMMAND_BATCH = 12;
 
 const PROPERTY_PATHS = new Set<PropertyPath>([
+  "shape.morphProgress",
   "position.0",
   "position.1",
   "position.2",
