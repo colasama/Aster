@@ -223,6 +223,8 @@ dependencies = [
 name = "aster-video"
 version = "0.2.1"
 dependencies = [
+ "aster-storage",
+ "clap",
  "exr",
  "serde",
  "serde_json",

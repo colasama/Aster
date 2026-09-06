@@ -1,4 +1,4 @@
-//! Sandboxed process integration for FFprobe inspection and FFmpeg decoding.
+//! Process integration for FFprobe inspection and FFmpeg decoding.
 //!
 //! Commands are assembled as argument vectors and never passed through a shell.
 //! Output is drained concurrently, retained within explicit bounds, and the child
@@ -21,9 +21,6 @@ use crate::{
     GpuPixelFormat, MatrixCoefficients, StreamKind, StreamMetadata, Timebase, TransferFunction,
     VideoError,
 };
-
-const CONTAINER_TIMEBASE_DENOMINATOR: u32 = 1_000_000_000;
-const MAX_PATH_UNITS: usize = 32_767;
 
 #[derive(Debug, Error, PartialEq, Eq)]
 pub enum FfprobeError {
@@ -48,17 +45,27 @@ pub enum FfprobeError {
 /// Shared process error for FFmpeg and FFprobe operations.
 pub type FfmpegError = FfprobeError;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, clap::Args)]
 pub struct ProbeLimits {
+    #[command(flatten)]
+    pub metadata: crate::MetadataLimits,
+    #[arg(long = "probe-max-path-units", default_value_t = Self::default().max_path_units)]
+    pub max_path_units: usize,
+    #[arg(long = "probe-timeout-seconds", default_value = "15", value_parser = |value: &str| value.parse::<u64>().map(Duration::from_secs))]
     pub timeout: Duration,
+    #[arg(long = "probe-max-stdout-bytes", default_value_t = Self::default().max_stdout_bytes)]
     pub max_stdout_bytes: usize,
+    #[arg(long = "probe-max-stderr-bytes", default_value_t = Self::default().max_stderr_bytes)]
     pub max_stderr_bytes: usize,
+    #[arg(long = "probe-max-media-bytes", default_value_t = Self::default().max_media_bytes)]
     pub max_media_bytes: u64,
 }
 
 impl Default for ProbeLimits {
     fn default() -> Self {
         Self {
+            metadata: crate::MetadataLimits::default(),
+            max_path_units: 32_767,
             timeout: Duration::from_secs(15),
             max_stdout_bytes: 1024 * 1024,
             max_stderr_bytes: 256 * 1024,
@@ -67,18 +74,32 @@ impl Default for ProbeLimits {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, clap::Args)]
 pub struct DecodeLimits {
+    #[command(flatten)]
+    pub audio: crate::audio::AudioLimits,
+    #[command(flatten)]
+    pub metadata: crate::MetadataLimits,
+    #[arg(long = "decode-max-path-units", default_value_t = Self::default().max_path_units)]
+    pub max_path_units: usize,
+    #[arg(long = "decode-timeout-seconds", default_value = "30", value_parser = |value: &str| value.parse::<u64>().map(Duration::from_secs))]
     pub timeout: Duration,
+    #[arg(long = "decode-max-frame-bytes", default_value_t = Self::default().max_frame_bytes)]
     pub max_frame_bytes: usize,
+    #[arg(long = "decode-max-audio-bytes", default_value_t = Self::default().max_audio_bytes)]
     pub max_audio_bytes: usize,
+    #[arg(long = "decode-max-stderr-bytes", default_value_t = Self::default().max_stderr_bytes)]
     pub max_stderr_bytes: usize,
+    #[arg(long = "decode-max-media-bytes", default_value_t = Self::default().max_media_bytes)]
     pub max_media_bytes: u64,
 }
 
 impl Default for DecodeLimits {
     fn default() -> Self {
         Self {
+            audio: crate::audio::AudioLimits::default(),
+            metadata: crate::MetadataLimits::default(),
+            max_path_units: 32_767,
             timeout: Duration::from_secs(30),
             max_frame_bytes: 512 * 1024 * 1024,
             max_audio_bytes: 256 * 1024 * 1024,
@@ -102,31 +123,7 @@ impl CancellationToken {
     }
 }
 
-/// Inspectable FFprobe invocation. Arguments remain distinct OS strings.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct FfprobeCommand {
-    executable: PathBuf,
-    arguments: Vec<OsString>,
-}
-
-impl FfprobeCommand {
-    pub fn executable(&self) -> &Path {
-        &self.executable
-    }
-
-    pub fn arguments(&self) -> &[OsString] {
-        &self.arguments
-    }
-
-    fn spawn(&self) -> io::Result<std::process::Child> {
-        Command::new(&self.executable)
-            .args(&self.arguments)
-            .stdin(Stdio::null())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()
-    }
-}
+pub type FfprobeCommand = FfmpegCommand;
 
 #[derive(Debug, Clone)]
 pub struct FfprobeBackend {
@@ -156,7 +153,11 @@ impl FfprobeBackend {
     }
 
     pub fn build_command(&self, media_path: &Path) -> Result<FfprobeCommand, FfprobeError> {
-        validate_media_path(media_path, self.limits.max_media_bytes)?;
+        FfmpegCommand::validate_media_path(
+            media_path,
+            self.limits.max_media_bytes,
+            self.limits.max_path_units,
+        )?;
         Ok(FfprobeCommand {
             executable: self.executable.clone(),
             arguments: vec![
@@ -188,7 +189,7 @@ impl FfprobeBackend {
                 stderr: String::from_utf8_lossy(&output.stderr).trim().to_owned(),
             });
         }
-        parse_ffprobe_json(&output.stdout)
+        self.limits.parse_ffprobe_json(&output.stdout)
     }
 }
 
@@ -285,7 +286,11 @@ impl FfmpegBackend {
         stream_index: u32,
         time_seconds: f64,
     ) -> Result<FfmpegCommand, FfmpegError> {
-        validate_media_path(media_path, self.limits.max_media_bytes)?;
+        FfmpegCommand::validate_media_path(
+            media_path,
+            self.limits.max_media_bytes,
+            self.limits.max_path_units,
+        )?;
         if !time_seconds.is_finite() || time_seconds < 0.0 {
             return Err(FfmpegError::InvalidMetadata(
                 "decode time must be finite and non-negative".into(),
@@ -328,15 +333,25 @@ impl FfmpegBackend {
         if cancellation.is_cancelled() {
             return Err(FfmpegError::Cancelled);
         }
-        let packed_size =
-            usize::try_from(u64::from(stream.width) * u64::from(stream.height) * 4)
-                .map_err(|_| FfmpegError::InvalidMetadata("decoded frame size overflow".into()))?;
-        if packed_size == 0 || packed_size > self.limits.max_frame_bytes {
+        let descriptor = GpuFrameDescriptor::aligned(
+            stream.width,
+            stream.height,
+            GpuPixelFormat::Rgba8,
+            stream.color,
+            &self.limits.metadata,
+        )
+        .map_err(FfprobeError::from)?;
+        let allocation_size = usize::try_from(descriptor.allocation_size)
+            .map_err(|_| FfmpegError::InvalidMetadata("frame allocation overflow".into()))?;
+        if allocation_size > self.limits.max_frame_bytes {
             return Err(FfmpegError::OutputTooLarge {
                 stream: "stdout",
                 limit: self.limits.max_frame_bytes,
             });
         }
+        let packed_size =
+            usize::try_from(u64::from(stream.width) * u64::from(stream.height) * 4)
+                .map_err(|_| FfmpegError::InvalidMetadata("decoded frame size overflow".into()))?;
         let command = self.build_decode_command(media_path, stream.index, time_seconds)?;
         let child = command
             .spawn()
@@ -344,7 +359,7 @@ impl FfmpegBackend {
         let output = run_child(
             child,
             self.limits.timeout,
-            self.limits.max_frame_bytes,
+            packed_size,
             self.limits.max_stderr_bytes,
             cancellation,
         )?;
@@ -361,15 +376,6 @@ impl FfmpegBackend {
             )));
         }
 
-        let descriptor = GpuFrameDescriptor::aligned(
-            stream.width,
-            stream.height,
-            GpuPixelFormat::Rgba8,
-            stream.color,
-        )
-        .map_err(map_video_error)?;
-        let allocation_size = usize::try_from(descriptor.allocation_size)
-            .map_err(|_| FfmpegError::InvalidMetadata("frame allocation overflow".into()))?;
         let packed_stride = usize::try_from(stream.width)
             .ok()
             .and_then(|width| width.checked_mul(4))
@@ -392,27 +398,6 @@ impl FfmpegBackend {
             bytes: Arc::from(aligned),
         })
     }
-}
-
-pub(crate) fn validate_media_path(path: &Path, max_media_bytes: u64) -> Result<(), FfprobeError> {
-    if path.as_os_str().is_empty() {
-        return Err(FfprobeError::InvalidMediaPath("path is empty"));
-    }
-    if path.as_os_str().to_string_lossy().encode_utf16().count() > MAX_PATH_UNITS {
-        return Err(FfprobeError::InvalidMediaPath("path is too long"));
-    }
-    let metadata = path
-        .metadata()
-        .map_err(|_| FfprobeError::InvalidMediaPath("file does not exist"))?;
-    if !metadata.is_file() {
-        return Err(FfprobeError::InvalidMediaPath("path is not a regular file"));
-    }
-    if metadata.len() > max_media_bytes {
-        return Err(FfprobeError::MediaTooLarge {
-            limit: max_media_bytes,
-        });
-    }
-    Ok(())
 }
 
 pub(crate) struct ProcessOutput {
@@ -546,333 +531,39 @@ fn join_readers(
     Ok((stdout, stderr))
 }
 
-#[derive(Debug, Deserialize)]
-struct RawProbe {
-    #[serde(default)]
-    streams: Vec<RawStream>,
-    format: RawFormat,
-}
-
-#[derive(Debug, Deserialize)]
-struct RawFormat {
-    format_name: String,
-    #[serde(default)]
-    duration: Option<String>,
-}
-
-#[derive(Debug, Deserialize)]
-struct RawStream {
-    index: u32,
-    codec_type: String,
-    #[serde(default)]
-    codec_name: Option<String>,
-    #[serde(default)]
-    time_base: Option<String>,
-    #[serde(default)]
-    width: u32,
-    #[serde(default)]
-    height: u32,
-    #[serde(default)]
-    avg_frame_rate: Option<String>,
-    #[serde(default)]
-    sample_rate: Option<String>,
-    #[serde(default)]
-    channels: u8,
-    #[serde(default)]
-    color_primaries: Option<String>,
-    #[serde(default)]
-    color_transfer: Option<String>,
-    #[serde(default)]
-    color_space: Option<String>,
-    #[serde(default)]
-    color_range: Option<String>,
-    #[serde(default)]
-    disposition: RawDisposition,
-}
-
-#[derive(Debug, Default, Deserialize)]
-struct RawDisposition {
-    #[serde(default)]
-    default: u8,
-}
-
-/// Convert bounded FFprobe JSON into Aster's decoder-independent metadata model.
-pub fn parse_ffprobe_json(bytes: &[u8]) -> Result<ContainerMetadata, FfprobeError> {
-    if bytes.len() > 1024 * 1024 {
-        return Err(FfprobeError::OutputTooLarge {
-            stream: "stdout",
-            limit: 1024 * 1024,
-        });
-    }
-    let raw: RawProbe = serde_json::from_slice(bytes)
-        .map_err(|error| FfprobeError::InvalidMetadata(error.to_string()))?;
-    if raw.streams.len() > 128 {
-        return Err(FfprobeError::InvalidMetadata("too many streams".into()));
-    }
-    let duration_ticks = parse_duration_ticks(raw.format.duration.as_deref())?;
-    let streams = raw
-        .streams
-        .into_iter()
-        .map(convert_stream)
-        .collect::<Result<Vec<_>, _>>()?;
-    let metadata = ContainerMetadata {
-        format: normalize_format(&raw.format.format_name)?,
-        duration_ticks,
-        timebase: Timebase::new(1, CONTAINER_TIMEBASE_DENOMINATOR).map_err(map_video_error)?,
-        streams,
-    };
-    // Reuse the public validator without maintaining a second set of invariants.
-    let encoded = serde_json::to_vec(&metadata)
-        .map_err(|error| FfprobeError::InvalidMetadata(error.to_string()))?;
-    crate::probe_metadata(&encoded).map_err(map_video_error)
-}
-
-fn convert_stream(raw: RawStream) -> Result<StreamMetadata, FfprobeError> {
-    let timebase = match raw.time_base.as_deref() {
-        Some(value) if value != "N/A" => parse_rational(value, false)?,
-        _ => Timebase::new(1, CONTAINER_TIMEBASE_DENOMINATOR).map_err(map_video_error)?,
-    };
-    let frame_rate = match raw.avg_frame_rate.as_deref() {
-        None | Some("0/0") | Some("N/A") => None,
-        Some(value) => Some(parse_rational(value, true)?),
-    };
-    Ok(StreamMetadata {
-        index: raw.index,
-        kind: match raw.codec_type.as_str() {
-            "video" => StreamKind::Video,
-            "audio" => StreamKind::Audio,
-            "subtitle" => StreamKind::Subtitle,
-            _ => StreamKind::Data,
-        },
-        codec: normalize_token(raw.codec_name.as_deref().unwrap_or("unknown"), "codec")?,
-        timebase,
-        default: raw.disposition.default != 0,
-        width: raw.width,
-        height: raw.height,
-        frame_rate,
-        sample_rate: match raw.sample_rate.as_deref() {
-            None | Some("N/A") => 0,
-            Some(value) => value
-                .parse::<u32>()
-                .map_err(|_| FfprobeError::InvalidMetadata("invalid audio sample rate".into()))?,
-        },
-        channels: raw.channels,
-        color: ColorMetadata {
-            primaries: match raw.color_primaries.as_deref() {
-                Some("bt709") => ColorPrimaries::Bt709,
-                Some("bt2020") => ColorPrimaries::Bt2020,
-                Some("smpte432") => ColorPrimaries::DisplayP3,
-                _ => ColorPrimaries::Unspecified,
-            },
-            transfer: match raw.color_transfer.as_deref() {
-                Some("iec61966-2-1") => TransferFunction::Srgb,
-                Some("bt709" | "bt601" | "smpte170m") => TransferFunction::Bt709,
-                Some("smpte2084") => TransferFunction::Pq,
-                Some("arib-std-b67") => TransferFunction::Hlg,
-                Some("linear") => TransferFunction::Linear,
-                _ => TransferFunction::Unspecified,
-            },
-            matrix: match raw.color_space.as_deref() {
-                Some("gbr" | "rgb") => MatrixCoefficients::Identity,
-                Some("bt709") => MatrixCoefficients::Bt709,
-                Some("bt2020nc") => MatrixCoefficients::Bt2020NonConstant,
-                _ => MatrixCoefficients::Unspecified,
-            },
-            full_range: matches!(raw.color_range.as_deref(), Some("pc" | "jpeg")),
-        },
-    })
-}
-
-fn parse_duration_ticks(duration: Option<&str>) -> Result<i64, FfprobeError> {
-    let Some(duration) = duration.filter(|value| *value != "N/A") else {
-        return Ok(0);
-    };
-    let seconds = duration
-        .parse::<f64>()
-        .map_err(|_| FfprobeError::InvalidMetadata("invalid duration".into()))?;
-    if !seconds.is_finite() || seconds < 0.0 {
-        return Err(FfprobeError::InvalidMetadata("invalid duration".into()));
-    }
-    let ticks = seconds * f64::from(CONTAINER_TIMEBASE_DENOMINATOR);
-    if ticks > i64::MAX as f64 {
-        return Err(FfprobeError::InvalidMetadata("duration overflow".into()));
-    }
-    Ok(ticks.round() as i64)
-}
-
-fn parse_rational(value: &str, reciprocal: bool) -> Result<Timebase, FfprobeError> {
-    let (left, right) = value
-        .split_once('/')
-        .ok_or_else(|| FfprobeError::InvalidMetadata("invalid rational".into()))?;
-    let numerator = left
-        .parse::<u32>()
-        .map_err(|_| FfprobeError::InvalidMetadata("invalid rational".into()))?;
-    let denominator = right
-        .parse::<u32>()
-        .map_err(|_| FfprobeError::InvalidMetadata("invalid rational".into()))?;
-    let (numerator, denominator) = if reciprocal {
-        (denominator, numerator)
-    } else {
-        (numerator, denominator)
-    };
-    Timebase::new(numerator, denominator).map_err(map_video_error)
-}
-
-fn normalize_format(value: &str) -> Result<String, FfprobeError> {
-    normalize_token(value.split(',').next().unwrap_or_default(), "format")
-}
-
-fn normalize_token(value: &str, field: &'static str) -> Result<String, FfprobeError> {
-    if value.is_empty()
-        || value.len() > 64
-        || !value
-            .bytes()
-            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'-' | b'.'))
-    {
-        return Err(FfprobeError::InvalidMetadata(format!(
-            "invalid {field} name"
-        )));
-    }
-    Ok(value.to_owned())
-}
-
-fn map_video_error(error: VideoError) -> FfprobeError {
-    FfprobeError::InvalidMetadata(error.to_string())
-}
-
+mod probe;
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use std::fs::File;
+mod tests;
 
-    const SAMPLE: &[u8] = br#"{
-      "streams": [
-        {
-          "index": 0, "codec_name": "hevc", "codec_type": "video",
-          "width": 3840, "height": 2160, "time_base": "1/90000",
-          "avg_frame_rate": "30000/1001", "color_range": "pc",
-          "color_space": "bt2020nc", "color_transfer": "smpte2084",
-          "color_primaries": "bt2020", "disposition": {"default": 1}
-        },
-        {
-          "index": 1, "codec_name": "aac", "codec_type": "audio",
-          "time_base": "1/48000", "sample_rate": "48000", "channels": 2
+impl FfmpegCommand {
+    pub(crate) fn validate_media_path(
+        path: &Path,
+        max_media_bytes: u64,
+        max_path_units: usize,
+    ) -> Result<(), FfprobeError> {
+        if path.as_os_str().is_empty() {
+            return Err(FfprobeError::InvalidMediaPath("path is empty"));
         }
-      ],
-      "format": {"format_name": "mov,mp4,m4a,3gp,3g2,mj2", "duration": "12.345000"}
-    }"#;
-
-    #[test]
-    fn parses_ffprobe_streams_color_and_timebases() {
-        let metadata = parse_ffprobe_json(SAMPLE).expect("valid fixture");
-        assert_eq!(metadata.format, "mov");
-        assert_eq!(metadata.duration_ticks, 12_345_000_000);
-        assert_eq!(metadata.streams.len(), 2);
-        let video = &metadata.streams[0];
-        assert_eq!(video.timebase, Timebase::new(1, 90_000).unwrap());
-        assert_eq!(video.frame_rate, Some(Timebase::new(1001, 30_000).unwrap()));
-        assert_eq!(video.color.primaries, ColorPrimaries::Bt2020);
-        assert_eq!(video.color.transfer, TransferFunction::Pq);
-        assert_eq!(video.color.matrix, MatrixCoefficients::Bt2020NonConstant);
-        assert!(video.color.full_range);
-        assert!(video.default);
-        let audio = &metadata.streams[1];
-        assert_eq!(audio.sample_rate, 48_000);
-        assert_eq!(audio.channels, 2);
+        if path.as_os_str().to_string_lossy().encode_utf16().count() > max_path_units {
+            return Err(FfprobeError::InvalidMediaPath("path is too long"));
+        }
+        let metadata = path
+            .metadata()
+            .map_err(|_| FfprobeError::InvalidMediaPath("file does not exist"))?;
+        if !metadata.is_file() {
+            return Err(FfprobeError::InvalidMediaPath("path is not a regular file"));
+        }
+        if metadata.len() > max_media_bytes {
+            return Err(FfprobeError::MediaTooLarge {
+                limit: max_media_bytes,
+            });
+        }
+        Ok(())
     }
+}
 
-    #[test]
-    fn rejects_malformed_and_unbounded_probe_data() {
-        assert!(matches!(
-            parse_ffprobe_json(br#"{"format":{"format_name":"mp4","duration":"NaN"}}"#),
-            Err(FfprobeError::InvalidMetadata(_))
-        ));
-        assert!(matches!(
-            parse_ffprobe_json(&vec![b' '; 1024 * 1024 + 1]),
-            Err(FfprobeError::OutputTooLarge { .. })
-        ));
-    }
-
-    #[test]
-    fn bounded_reader_drains_but_does_not_retain_excess_output() {
-        let result = read_bounded(&b"0123456789"[..], 4).unwrap();
-        assert_eq!(result.bytes, b"0123");
-        assert!(result.overflowed);
-    }
-
-    #[test]
-    fn builds_argument_vector_without_shell_interpretation() {
-        let root = std::env::temp_dir().join(format!("aster-ffprobe-{}", std::process::id()));
-        std::fs::create_dir_all(&root).unwrap();
-        let media = root.join("clip;$(touch injected).mp4");
-        File::create(&media).unwrap();
-        let command = FfprobeBackend::default().build_command(&media).unwrap();
-        assert_eq!(command.executable(), Path::new("ffprobe"));
-        assert_eq!(command.arguments().last(), Some(&media.into_os_string()));
-        let decode = FfmpegBackend::default()
-            .build_decode_command(&root.join("clip;$(touch injected).mp4"), 7, 1.25)
-            .unwrap();
-        assert_eq!(decode.executable(), Path::new("ffmpeg"));
-        assert!(decode.arguments().contains(&"0:7".into()));
-        assert!(decode.arguments().contains(&"1.250000000".into()));
-        let _ = std::fs::remove_dir_all(root);
-    }
-
-    #[test]
-    fn honours_pre_cancelled_requests_without_launching() {
-        let root = std::env::temp_dir().join(format!("aster-cancel-{}", std::process::id()));
-        std::fs::create_dir_all(&root).unwrap();
-        let media = root.join("clip.mp4");
-        File::create(&media).unwrap();
-        let cancellation = CancellationToken::default();
-        cancellation.cancel();
-        assert_eq!(
-            FfprobeBackend::new("definitely-not-an-executable").probe(&media, &cancellation),
-            Err(FfprobeError::Cancelled)
-        );
-        let _ = std::fs::remove_dir_all(root);
-    }
-
-    #[test]
-    #[ignore = "requires ffmpeg and ffprobe on PATH"]
-    fn probes_a_real_generated_container() {
-        let root = std::env::temp_dir().join(format!("aster-real-probe-{}", std::process::id()));
-        std::fs::create_dir_all(&root).unwrap();
-        let media = root.join("fixture.mkv");
-        let status = Command::new("ffmpeg")
-            .args([
-                "-v",
-                "error",
-                "-f",
-                "lavfi",
-                "-i",
-                "color=c=red:s=16x16:d=0.04",
-                "-frames:v",
-                "1",
-                "-c:v",
-                "ffv1",
-                "-y",
-            ])
-            .arg(&media)
-            .stdin(Stdio::null())
-            .stdout(Stdio::null())
-            .stderr(Stdio::inherit())
-            .status()
-            .expect("ffmpeg must be available for this ignored test");
-        assert!(status.success());
-
-        let metadata = FfprobeBackend::default()
-            .probe(&media, &CancellationToken::default())
-            .expect("generated container must probe");
-        let video = crate::select_video_stream(&metadata).expect("video stream");
-        assert_eq!((video.width, video.height), (16, 16));
-        let frame = FfmpegBackend::default()
-            .decode_rgba_frame(&media, video, 0.0, &CancellationToken::default())
-            .expect("generated frame must decode");
-        assert_eq!(frame.descriptor.format, GpuPixelFormat::Rgba8);
-        assert_eq!(frame.bytes.len() as u64, frame.descriptor.allocation_size);
-        assert_eq!(frame.descriptor.planes[0].bytes_per_row % 256, 0);
-        assert!(frame.bytes.iter().any(|byte| *byte != 0));
-        let _ = std::fs::remove_dir_all(root);
+impl From<VideoError> for FfprobeError {
+    fn from(error: VideoError) -> Self {
+        Self::InvalidMetadata(error.to_string())
     }
 }

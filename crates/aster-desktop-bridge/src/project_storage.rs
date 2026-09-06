@@ -310,11 +310,15 @@ impl ProjectStorage {
         let metadata = aster_video::FfprobeBackend::default()
             .probe(path, &aster_video::CancellationToken::default())
             .map_err(|error| format!("unable to inspect linked {kind} metadata: {error}"))?;
-        let duration = metadata.timebase.seconds(metadata.duration_ticks);
+        let duration = metadata
+            .timebase
+            .seconds(metadata.duration_ticks)
+            .map_err(|error| error.to_string())?;
         if !duration.is_finite() || duration <= 0.0 || duration > 86_400.0 {
             return Err("linked media duration exceeds the supported range".to_owned());
         }
-        let audio = aster_video::select_audio_stream(&metadata)
+        let audio = metadata
+            .select_audio_stream()
             .ok()
             .map(|stream| LinkedAudioMetadata {
                 stream_index: stream.index,
@@ -325,7 +329,11 @@ impl ProjectStorage {
             return Err("linked audio file has no usable audio stream".to_owned());
         }
         let video = if kind == "video" {
-            Some(aster_video::select_video_stream(&metadata).map_err(|error| error.to_string())?)
+            Some(
+                metadata
+                    .select_video_stream()
+                    .map_err(|error| error.to_string())?,
+            )
         } else {
             None
         };

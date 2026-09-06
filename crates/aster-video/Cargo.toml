@@ -7,6 +7,8 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+clap.workspace = true
+aster-storage.workspace = true
 exr.workspace = true
 serde.workspace = true
 serde_json.workspace = true
