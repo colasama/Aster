@@ -9,6 +9,8 @@ on demand, executes them in an isolated workspace, and submits a cumulative type
 
 ## Lifecycle
 
+Asset queries include each footage source's stable `id` and `kind`, alongside bounded media metadata. Use that ID with `setLayerSource` to reuse imported footage; names may collide. Embedded bytes and local paths remain excluded from the query response.
+
 1. Read a compact editor context at an exact live revision.
 2. Discover capabilities and load only the schemas needed for the request.
 3. Begin a bounded workspace from that revision.

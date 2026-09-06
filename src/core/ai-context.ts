@@ -206,6 +206,8 @@ export function queryScene(project: Project, composition: Composition, time: num
 
 export function queryAssets(project: Project) {
   return project.sources.slice(0, MAX_CONTEXT_LAYERS).map((source) => ({
+    id: source.id,
+    kind: source.kind,
     name: boundedText(source.name),
     mimeType: boundedText(source.mimeType),
     width: "width" in source ? source.width : undefined,

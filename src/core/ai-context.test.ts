@@ -8,6 +8,7 @@ import {
   queryTimeline,
 } from "./ai-context";
 import { createLayerForComposition } from "./layer-factory";
+import { applyOperation } from "./operations";
 import { createDemoProject } from "./project";
 
 describe("bounded AI project queries", () => {
@@ -42,6 +43,12 @@ describe("bounded AI project queries", () => {
     image.sourceId = source.id;
     project.sources.push(source);
     composition.layers.push(image);
+    const metadata = queryAssets(project).find((asset) => asset.id === source.id);
+    expect(metadata).toMatchObject({ id: source.id, kind: "still" });
+    const copy = createLayerForComposition("image", composition);
+    composition.layers.push(copy);
+    applyOperation(project, { type: "setLayerSource", layerId: copy.id, sourceId: metadata?.id });
+    expect(copy.sourceId).toBe(source.id);
     const serialized = JSON.stringify(queryAssets(project));
     expect(serialized).toContain("plate.png");
     expect(serialized).not.toContain("PRIVATE_BYTES");
