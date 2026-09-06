@@ -53,9 +53,12 @@ async function freePort() {
   return address.port;
 }
 async function authenticate(port: number, token: string) {
-  return (
-    await fetch(`http://127.0.0.1:${port}/tools`, { headers: { authorization: `Bearer ${token}` } })
-  ).status;
+  // Each probe targets a possibly restarted server, not an old pooled socket.
+  const response = await fetch(`http://127.0.0.1:${port}/tools`, {
+    headers: { authorization: `Bearer ${token}`, connection: "close" },
+  });
+  await response.arrayBuffer();
+  return response.status;
 }
 
 describe("MCP desktop settings", () => {
