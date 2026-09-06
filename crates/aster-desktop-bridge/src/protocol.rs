@@ -22,7 +22,11 @@ pub struct BridgeOptions {
     #[command(flatten)]
     plugin_limits: aster_plugin::PluginLimits,
     #[command(flatten)]
+    preference_limits: crate::plugins::PluginPreferenceLimits,
+    #[command(flatten)]
     hot_reload_limits: aster_plugin::hot_reload::HotReloadLimits,
+    #[command(flatten)]
+    registry_limits: aster_plugin::registry::RegistryLimits,
 }
 
 #[derive(Serialize)]
@@ -64,6 +68,7 @@ struct BridgeResponse {
 }
 
 struct BridgeRuntime {
+    registry_limits: aster_plugin::registry::RegistryLimits,
     storage: ProjectStorage,
     plugins: PluginHost,
 }
@@ -139,6 +144,7 @@ impl BridgeOptions {
     pub fn run(self) -> Result<(), String> {
         fs::create_dir_all(&self.app_data_dir).map_err(|error| error.to_string())?;
         let mut runtime = BridgeRuntime {
+            registry_limits: self.registry_limits,
             storage: ProjectStorage {
                 media: crate::project_media::ProjectMedia {
                     limits: self.media_limits,
@@ -146,6 +152,7 @@ impl BridgeOptions {
                 bundle_limits: self.bundle_limits,
             },
             plugins: PluginHost {
+                preference_limits: self.preference_limits,
                 app_data: self.app_data_dir,
                 runtime: aster_plugin::hot_reload::HotReloadController::new(
                     self.hot_reload_limits,
@@ -313,6 +320,7 @@ impl BridgeRuntime {
             "plugin_registry_catalog" => serde_json::to_value(PluginRegistryCatalog::from_bytes(
                 PluginRegistryCatalog::DEVELOPMENT_INDEX,
                 aster_plugin::PluginManifest::HOST_API_VERSION,
+                &self.registry_limits,
             )?)
             .map_err(|error| error.to_string()),
             "plugin_status" => {

@@ -7,11 +7,27 @@ use thiserror::Error;
 
 use crate::{Capability, PluginMetadata};
 
-pub const REGISTRY_SCHEMA_VERSION: u32 = 1;
-pub const MAX_REGISTRY_BYTES: usize = 1024 * 1024;
-pub const MAX_REGISTRY_PACKAGES: usize = 1024;
-pub const MAX_RELEASES_PER_PACKAGE: usize = 64;
-pub const MAX_PLUGIN_ARCHIVE_BYTES: u64 = 64 * 1024 * 1024;
+#[derive(Clone, Debug, clap::Args)]
+pub struct RegistryLimits {
+    #[arg(long, default_value_t = Self::default().max_registry_bytes)]
+    pub max_registry_bytes: usize,
+    #[arg(long, default_value_t = Self::default().max_registry_packages)]
+    pub max_registry_packages: usize,
+    #[arg(long, default_value_t = Self::default().max_releases_per_package)]
+    pub max_releases_per_package: usize,
+    #[arg(long, default_value_t = Self::default().max_plugin_archive_bytes)]
+    pub max_plugin_archive_bytes: u64,
+}
+impl Default for RegistryLimits {
+    fn default() -> Self {
+        Self {
+            max_registry_bytes: 1024 * 1024,
+            max_registry_packages: 1024,
+            max_releases_per_package: 64,
+            max_plugin_archive_bytes: 64 * 1024 * 1024,
+        }
+    }
+}
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -51,26 +67,29 @@ pub struct RegistryDownloadPlan {
     pub max_archive_bytes: u64,
 }
 
-impl RegistryIndex {
-    pub fn parse(bytes: &[u8]) -> Result<Self, RegistryError> {
-        if bytes.len() > MAX_REGISTRY_BYTES {
+impl RegistryLimits {
+    pub fn parse(&self, bytes: &[u8]) -> Result<RegistryIndex, RegistryError> {
+        if bytes.len() > self.max_registry_bytes {
             return Err(RegistryError::IndexTooLarge(bytes.len()));
         }
-        let index: Self = serde_json::from_slice(bytes)?;
-        index.validate()?;
+        let index: RegistryIndex = serde_json::from_slice(bytes)?;
+        index.validate(self)?;
         Ok(index)
     }
+}
 
-    pub fn validate(&self) -> Result<(), RegistryError> {
-        if self.schema_version != REGISTRY_SCHEMA_VERSION {
+impl RegistryIndex {
+    pub const SCHEMA_VERSION: u32 = 1;
+    pub fn validate(&self, limits: &RegistryLimits) -> Result<(), RegistryError> {
+        if self.schema_version != Self::SCHEMA_VERSION {
             return Err(RegistryError::UnsupportedSchema(self.schema_version));
         }
-        if self.packages.len() > MAX_REGISTRY_PACKAGES {
+        if self.packages.len() > limits.max_registry_packages {
             return Err(RegistryError::TooManyPackages(self.packages.len()));
         }
         let mut package_ids = BTreeSet::new();
         for package in &self.packages {
-            package.validate()?;
+            package.validate(limits)?;
             if !package_ids.insert(package.id.as_str()) {
                 return Err(RegistryError::DuplicatePackage(package.id.clone()));
             }
@@ -82,7 +101,9 @@ impl RegistryIndex {
         &self,
         plugin_id: &str,
         api_version: u32,
+        limits: &RegistryLimits,
     ) -> Result<RegistryDownloadPlan, RegistryError> {
+        self.validate(limits)?;
         let package = self
             .packages
             .iter()
@@ -92,7 +113,9 @@ impl RegistryIndex {
             .releases
             .iter()
             .filter(|release| release.api_version == api_version)
-            .max_by_key(|release| parse_version(&release.version).unwrap_or_default())
+            .filter_map(|release| release.numeric_version().map(|version| (version, release)))
+            .max_by_key(|(version, _)| *version)
+            .map(|(_, release)| release)
             .ok_or_else(|| RegistryError::NoCompatibleRelease {
                 plugin: plugin_id.to_owned(),
                 api_version,
@@ -108,7 +131,7 @@ impl RegistryIndex {
 }
 
 impl RegistryPackage {
-    fn validate(&self) -> Result<(), RegistryError> {
+    fn validate(&self, limits: &RegistryLimits) -> Result<(), RegistryError> {
         if !PluginMetadata::valid_plugin_id(&self.id) {
             return Err(RegistryError::InvalidPackageId(self.id.clone()));
         }
@@ -121,7 +144,7 @@ impl RegistryPackage {
                 return Err(RegistryError::InvalidText(field));
             }
         }
-        if self.releases.is_empty() || self.releases.len() > MAX_RELEASES_PER_PACKAGE {
+        if self.releases.is_empty() || self.releases.len() > limits.max_releases_per_package {
             return Err(RegistryError::InvalidReleaseCount {
                 plugin: self.id.clone(),
                 count: self.releases.len(),
@@ -129,7 +152,7 @@ impl RegistryPackage {
         }
         let mut versions = BTreeSet::new();
         for release in &self.releases {
-            release.validate()?;
+            release.validate(limits)?;
             if !versions.insert(release.version.as_str()) {
                 return Err(RegistryError::DuplicateRelease {
                     plugin: self.id.clone(),
@@ -142,14 +165,14 @@ impl RegistryPackage {
 }
 
 impl RegistryRelease {
-    fn validate(&self) -> Result<(), RegistryError> {
-        if parse_version(&self.version).is_none() {
+    fn validate(&self, limits: &RegistryLimits) -> Result<(), RegistryError> {
+        if self.numeric_version().is_none() {
             return Err(RegistryError::InvalidVersion(self.version.clone()));
         }
         if self.api_version == 0 {
             return Err(RegistryError::InvalidApiVersion);
         }
-        if !valid_https_url(&self.download_url) {
+        if !Self::valid_https_url(&self.download_url) {
             return Err(RegistryError::UnsafeDownloadUrl(self.download_url.clone()));
         }
         if self.sha256.len() != 64
@@ -160,103 +183,127 @@ impl RegistryRelease {
         {
             return Err(RegistryError::InvalidSha256);
         }
-        if self.archive_bytes == 0 || self.archive_bytes > MAX_PLUGIN_ARCHIVE_BYTES {
+        if self.archive_bytes == 0 || self.archive_bytes > limits.max_plugin_archive_bytes {
             return Err(RegistryError::InvalidArchiveSize(self.archive_bytes));
         }
         Ok(())
     }
 }
 
-fn parse_version(version: &str) -> Option<(u64, u64, u64)> {
-    let mut parts = version.split('.');
-    let parsed = (
-        parts.next()?.parse().ok()?,
-        parts.next()?.parse().ok()?,
-        parts.next()?.parse().ok()?,
-    );
-    parts.next().is_none().then_some(parsed)
-}
-
-fn valid_https_url(value: &str) -> bool {
-    if value.len() > 2048 || value.contains('\\') || value.chars().any(char::is_whitespace) {
-        return false;
-    }
-    let Some(remainder) = value.strip_prefix("https://") else {
-        return false;
-    };
-    let authority = remainder.split(['/', '?', '#']).next().unwrap_or_default();
-    if authority.is_empty() || authority.contains('@') {
-        return false;
-    }
-    let Some(host) = authority_host(authority) else {
-        return false;
-    };
-    if let Ok(address) = host.parse::<IpAddr>() {
-        return public_ip_literal(address);
-    }
-    let host = host.to_ascii_lowercase();
-    host != "localhost"
-        && !host.ends_with(".localhost")
-        && !host.ends_with(".local")
-        && host.len() <= 253
-        && host.split('.').count() >= 2
-        && host.split('.').all(|label| {
-            !label.is_empty()
-                && label.len() <= 63
-                && label
-                    .as_bytes()
-                    .first()
-                    .is_some_and(u8::is_ascii_alphanumeric)
-                && label
-                    .as_bytes()
-                    .last()
-                    .is_some_and(u8::is_ascii_alphanumeric)
-                && label
-                    .bytes()
-                    .all(|byte| byte.is_ascii_alphanumeric() || byte == b'-')
-        })
-}
-
-fn authority_host(authority: &str) -> Option<&str> {
-    if let Some(bracketed) = authority.strip_prefix('[') {
-        let closing = bracketed.find(']')?;
-        let host = &bracketed[..closing];
-        let suffix = &bracketed[closing + 1..];
-        return valid_port_suffix(suffix).then_some(host);
-    }
-    match authority.rsplit_once(':') {
-        Some((host, port)) if !host.contains(':') && valid_port(port) => Some(host),
-        Some(_) => None,
-        None => Some(authority),
-    }
-}
-
-fn valid_port_suffix(suffix: &str) -> bool {
-    suffix.is_empty() || suffix.strip_prefix(':').is_some_and(valid_port)
-}
-
-fn valid_port(port: &str) -> bool {
-    port.parse::<u16>().is_ok_and(|value| value != 0)
-}
-
-fn public_ip_literal(address: IpAddr) -> bool {
-    match address {
-        IpAddr::V4(address) => {
-            !(address.is_private()
-                || address.is_loopback()
-                || address.is_link_local()
-                || address.is_broadcast()
-                || address.is_documentation()
-                || address.is_unspecified()
-                || address.is_multicast())
+impl RegistryRelease {
+    pub fn numeric_version(&self) -> Option<(u64, u64, u64)> {
+        let mut parts = self.version.split('.');
+        if !self
+            .version
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || byte == b'.')
+        {
+            return None;
         }
-        IpAddr::V6(address) => {
-            let first = address.segments()[0];
-            !(address.is_loopback()
-                || address.is_unspecified()
-                || address.is_multicast()
-                || first & 0xfe00 == 0xfc00
-                || first & 0xffc0 == 0xfe80)
+        let parsed = (
+            parts.next()?.parse().ok()?,
+            parts.next()?.parse().ok()?,
+            parts.next()?.parse().ok()?,
+        );
+        parts.next().is_none().then_some(parsed)
+    }
+
+    fn valid_https_url(value: &str) -> bool {
+        if value.len() > 2048
+            || value.contains('\\')
+            || value
+                .chars()
+                .any(|character| character.is_whitespace() || character.is_control())
+        {
+            return false;
+        }
+        let Some(remainder) = value.strip_prefix("https://") else {
+            return false;
+        };
+        let authority = remainder.split(['/', '?', '#']).next().unwrap_or_default();
+        if authority.is_empty() || authority.contains('@') {
+            return false;
+        }
+        let Some(host) = Self::authority_host(authority) else {
+            return false;
+        };
+        if let Ok(address) = host.parse::<IpAddr>() {
+            return Self::public_ip_literal(address);
+        }
+        let host = host.to_ascii_lowercase();
+        // Numeric final labels are interpreted as IPv4 by browser URL parsers.
+        let last = host.rsplit('.').next().unwrap_or_default();
+        let numeric = last.bytes().all(|byte| byte.is_ascii_digit())
+            || last.strip_prefix("0x").is_some_and(|digits| {
+                !digits.is_empty() && digits.bytes().all(|byte| byte.is_ascii_hexdigit())
+            });
+        !numeric
+            && host != "localhost"
+            && !host.ends_with(".localhost")
+            && !host.ends_with(".local")
+            && host.len() <= 253
+            && host.split('.').count() >= 2
+            && host.split('.').all(|label| {
+                !label.is_empty()
+                    && label.len() <= 63
+                    && label
+                        .as_bytes()
+                        .first()
+                        .is_some_and(u8::is_ascii_alphanumeric)
+                    && label
+                        .as_bytes()
+                        .last()
+                        .is_some_and(u8::is_ascii_alphanumeric)
+                    && label
+                        .bytes()
+                        .all(|byte| byte.is_ascii_alphanumeric() || byte == b'-')
+            })
+    }
+
+    fn authority_host(authority: &str) -> Option<&str> {
+        if let Some(bracketed) = authority.strip_prefix('[') {
+            let closing = bracketed.find(']')?;
+            let host = &bracketed[..closing];
+            let suffix = &bracketed[closing + 1..];
+            let valid_port = suffix.is_empty()
+                || suffix
+                    .strip_prefix(':')
+                    .is_some_and(|port| port.parse::<u16>().is_ok_and(|value| value != 0));
+            return (host.parse::<std::net::Ipv6Addr>().is_ok() && valid_port).then_some(host);
+        }
+        match authority.rsplit_once(':') {
+            Some((host, port))
+                if !host.contains(':') && port.parse::<u16>().is_ok_and(|value| value != 0) =>
+            {
+                Some(host)
+            }
+            Some(_) => None,
+            None => Some(authority),
+        }
+    }
+
+    fn public_ip_literal(address: IpAddr) -> bool {
+        match address {
+            IpAddr::V4(address) => {
+                !(address.is_private()
+                    || address.is_loopback()
+                    || address.is_link_local()
+                    || address.is_broadcast()
+                    || address.is_documentation()
+                    || address.is_unspecified()
+                    || address.is_multicast())
+            }
+            IpAddr::V6(address) => {
+                if let Some(mapped) = address.to_ipv4_mapped() {
+                    return Self::public_ip_literal(IpAddr::V4(mapped));
+                }
+                let first = address.segments()[0];
+                !(address.is_loopback()
+                    || address.is_unspecified()
+                    || address.is_multicast()
+                    || first & 0xfe00 == 0xfc00
+                    || first & 0xffc0 == 0xfe80)
+            }
         }
     }
 }
@@ -265,11 +312,11 @@ fn public_ip_literal(address: IpAddr) -> bool {
 pub enum RegistryError {
     #[error("plugin registry index is invalid JSON: {0}")]
     Json(#[from] serde_json::Error),
-    #[error("plugin registry index is {0} bytes; the limit is 1 MiB")]
+    #[error("plugin registry index is {0} bytes; it exceeds the configured limit")]
     IndexTooLarge(usize),
     #[error("plugin registry schema {0} is unsupported")]
     UnsupportedSchema(u32),
-    #[error("plugin registry contains {0} packages; the limit is 1024")]
+    #[error("plugin registry contains {0} packages; it exceeds the configured limit")]
     TooManyPackages(usize),
     #[error("plugin registry repeats package `{0}`")]
     DuplicatePackage(String),
@@ -277,7 +324,9 @@ pub enum RegistryError {
     InvalidPackageId(String),
     #[error("plugin registry {0} is empty, oversized, or contains control characters")]
     InvalidText(&'static str),
-    #[error("plugin `{plugin}` contains {count} releases; expected 1 through 64")]
+    #[error(
+        "plugin `{plugin}` contains {count} releases; expected a nonempty list within the configured limit"
+    )]
     InvalidReleaseCount { plugin: String, count: usize },
     #[error("plugin `{plugin}` repeats release `{version}`")]
     DuplicateRelease { plugin: String, version: String },
@@ -289,7 +338,9 @@ pub enum RegistryError {
     UnsafeDownloadUrl(String),
     #[error("plugin registry release SHA-256 is invalid")]
     InvalidSha256,
-    #[error("plugin archive declares {0} bytes; expected 1 through 64 MiB")]
+    #[error(
+        "plugin archive declares {0} bytes; expected a nonzero size within the configured limit"
+    )]
     InvalidArchiveSize(u64),
     #[error("plugin registry has no package `{0}`")]
     MissingPackage(String),
@@ -298,104 +349,4 @@ pub enum RegistryError {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    const DIGEST: &str = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
-
-    fn index_json(releases: &str) -> Vec<u8> {
-        format!(
-            r#"{{"schema_version":1,"packages":[{{"id":"org.aster.tint","name":"Tint","summary":"GPU tint","author":"Aster","releases":[{releases}]}}]}}"#
-        )
-        .into_bytes()
-    }
-
-    fn release(version: &str, api: u32, url: &str) -> String {
-        format!(
-            r#"{{"version":"{version}","api_version":{api},"download_url":"{url}","sha256":"{DIGEST}","archive_bytes":4096,"capabilities":["gpu_render"]}}"#
-        )
-    }
-
-    #[test]
-    fn chooses_the_latest_exact_api_release_deterministically() {
-        let bytes = index_json(&format!(
-            "{},{},{}",
-            release("1.2.0", 1, "https://plugins.aster.example/tint-1.2.0.zip"),
-            release("1.10.0", 1, "https://plugins.aster.example/tint-1.10.0.zip"),
-            release("2.0.0", 2, "https://plugins.aster.example/tint-2.0.0.zip"),
-        ));
-        let index = RegistryIndex::parse(&bytes).unwrap();
-        let plan = index.compatible_download("org.aster.tint", 1).unwrap();
-        assert_eq!(plan.version, "1.10.0");
-        assert_eq!(plan.max_archive_bytes, 4096);
-        assert_eq!(plan.expected_sha256, DIGEST);
-    }
-
-    #[test]
-    fn rejects_insecure_urls_bad_digests_and_duplicate_releases() {
-        let insecure = index_json(&release("1.0.0", 1, "http://plugins.example/tint.zip"));
-        assert!(matches!(
-            RegistryIndex::parse(&insecure),
-            Err(RegistryError::UnsafeDownloadUrl(_))
-        ));
-        let bad_digest = index_json(
-            &release("1.0.0", 1, "https://plugins.example/tint.zip").replace(DIGEST, "abcd"),
-        );
-        assert!(matches!(
-            RegistryIndex::parse(&bad_digest),
-            Err(RegistryError::InvalidSha256)
-        ));
-        let candidate = release("1.0.0", 1, "https://plugins.example/tint.zip");
-        let duplicate = index_json(&format!("{candidate},{candidate}"));
-        assert!(matches!(
-            RegistryIndex::parse(&duplicate),
-            Err(RegistryError::DuplicateRelease { .. })
-        ));
-        for url in [
-            "https://",
-            "https://localhost/tint.zip",
-            "https://127.0.0.1/tint.zip",
-            "https://10.0.0.1/tint.zip",
-            "https://[::1]/tint.zip",
-            "https://user@plugins.example/tint.zip",
-        ] {
-            assert!(matches!(
-                RegistryIndex::parse(&index_json(&release("1.0.0", 1, url))),
-                Err(RegistryError::UnsafeDownloadUrl(_))
-            ));
-        }
-    }
-
-    #[test]
-    fn refuses_oversized_indexes_before_parsing() {
-        let bytes = vec![b' '; MAX_REGISTRY_BYTES + 1];
-        assert!(matches!(
-            RegistryIndex::parse(&bytes),
-            Err(RegistryError::IndexTooLarge(_))
-        ));
-    }
-
-    #[test]
-    fn rejects_empty_or_path_like_reverse_domain_labels() {
-        for id in [
-            ".",
-            "..",
-            "org..tint",
-            "org.-tint",
-            "org.tint-",
-            "org.tint_name",
-        ] {
-            let invalid = String::from_utf8(index_json(&release(
-                "1.0.0",
-                1,
-                "https://plugins.example/tint.zip",
-            )))
-            .unwrap()
-            .replace("org.aster.tint", id);
-            assert!(matches!(
-                RegistryIndex::parse(invalid.as_bytes()),
-                Err(RegistryError::InvalidPackageId(_))
-            ));
-        }
-    }
-}
+mod tests;

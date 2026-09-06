@@ -8,6 +8,10 @@ use std::{
 
 #[derive(Clone, Debug, clap::Args)]
 pub struct PluginLimits {
+    #[arg(long, default_value_t = Self::default().max_candidates)]
+    pub max_candidates: usize,
+    #[arg(long, default_value_t = Self::default().max_scan_entries)]
+    pub max_scan_entries: usize,
     #[command(flatten)]
     pub generator: crate::generator::GeneratorLimits,
     #[arg(long, default_value_t = Self::default().max_shader_bytes)]
@@ -21,6 +25,8 @@ impl Default for PluginLimits {
     fn default() -> Self {
         Self {
             generator: crate::generator::GeneratorLimits::default(),
+            max_candidates: 256,
+            max_scan_entries: 512,
             max_shader_bytes: 4 * 1024 * 1024,
             max_plugin_shader_bytes: 16 * 1024 * 1024,
             max_manifest_bytes: 1024 * 1024,

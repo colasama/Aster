@@ -17,10 +17,6 @@ use crate::{DiscoveryReport, PluginError, PluginLoadFailure, PluginManifest};
 pub struct HotReloadLimits {
     #[arg(long, default_value_t = Self::default().reload_debounce_ms)]
     pub reload_debounce_ms: u64,
-    #[arg(long, default_value_t = Self::default().max_candidates)]
-    pub max_candidates: usize,
-    #[arg(long, default_value_t = Self::default().max_scan_entries)]
-    pub max_scan_entries: usize,
     #[arg(long, default_value_t = Self::default().max_scan_depth)]
     pub max_scan_depth: usize,
     #[arg(long, default_value_t = Self::default().max_hashed_bytes)]
@@ -32,8 +28,6 @@ impl Default for HotReloadLimits {
     fn default() -> Self {
         Self {
             reload_debounce_ms: 350,
-            max_candidates: 256,
-            max_scan_entries: 512,
             max_scan_depth: 4,
             max_hashed_bytes: 64 * 1024 * 1024,
             max_diagnostics: 64,
@@ -259,7 +253,7 @@ impl HotReloadController {
         let mut scanned = 0_usize;
         for entry in fs::read_dir(root)? {
             scanned = scanned.saturating_add(1);
-            if scanned > self.limits.max_scan_entries {
+            if scanned > self.plugin_limits.max_scan_entries {
                 return Err(PluginError::Io(std::io::Error::other(
                     "plugin candidate scan exceeds its entry limit",
                 )));
@@ -269,7 +263,7 @@ impl HotReloadController {
                 continue;
             }
             let file_type = entry.file_type()?;
-            if file_type.is_symlink() {
+            if crate::PluginRepository::is_link(&entry.path())? {
                 continue;
             }
             let path = entry.path();
@@ -283,7 +277,7 @@ impl HotReloadController {
                 result.push((key, candidate));
             }
         }
-        if result.len() > self.limits.max_candidates {
+        if result.len() > self.plugin_limits.max_candidates {
             return Err(PluginError::Io(std::io::Error::other(
                 "plugin hot reload exceeds its candidate limit",
             )));
@@ -304,14 +298,14 @@ impl HotReloadController {
         while let Some((directory, depth)) = queue.pop_front() {
             for entry in fs::read_dir(directory)? {
                 entries += 1;
-                if entries > self.limits.max_scan_entries {
+                if entries > self.plugin_limits.max_scan_entries {
                     return Err(PluginError::Io(std::io::Error::other(
                         "plugin hot reload scan exceeds its entry limit",
                     )));
                 }
                 let entry = entry?;
                 let file_type = entry.file_type()?;
-                if file_type.is_symlink() {
+                if crate::PluginRepository::is_link(&entry.path())? {
                     continue;
                 }
                 let path = entry.path();

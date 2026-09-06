@@ -2,7 +2,7 @@
 
 use aster_plugin::{
     Capability,
-    registry::{RegistryIndex, RegistryPackage},
+    registry::{RegistryIndex, RegistryLimits, RegistryPackage},
 };
 use serde::Serialize;
 
@@ -36,12 +36,15 @@ impl PluginRegistryCatalog {
     pub(crate) fn from_bytes(
         bytes: &[u8],
         host_api_version: u32,
+        limits: &RegistryLimits,
     ) -> Result<PluginRegistryCatalog, String> {
-        let index = RegistryIndex::parse(bytes).map_err(|error| error.to_string())?;
+        let index = limits.parse(bytes).map_err(|error| error.to_string())?;
         let packages = index
             .packages
             .iter()
-            .map(|package| PluginRegistryEntry::from_package(&index, package, host_api_version))
+            .map(|package| {
+                PluginRegistryEntry::from_package(&index, package, host_api_version, limits)
+            })
             .collect::<Result<Vec<_>, String>>()?;
         Ok(PluginRegistryCatalog {
             source: "Built-in development fixture",
@@ -57,14 +60,15 @@ impl PluginRegistryEntry {
         index: &RegistryIndex,
         package: &RegistryPackage,
         host_api_version: u32,
+        limits: &RegistryLimits,
     ) -> Result<PluginRegistryEntry, String> {
         let latest = package
             .releases
             .iter()
-            .max_by_key(|release| Self::numeric_version(&release.version))
+            .max_by_key(|release| release.numeric_version())
             .ok_or_else(|| format!("registry package {} has no releases", package.id))?;
         let compatible = index
-            .compatible_download(&package.id, host_api_version)
+            .compatible_download(&package.id, host_api_version, limits)
             .ok()
             .and_then(|plan| {
                 package
@@ -85,15 +89,6 @@ impl PluginRegistryEntry {
             capabilities: displayed.capabilities.iter().copied().collect(),
         })
     }
-
-    fn numeric_version(version: &str) -> (u64, u64, u64) {
-        let mut parts = version.split('.');
-        (
-            parts.next().and_then(|part| part.parse().ok()).unwrap_or(0),
-            parts.next().and_then(|part| part.parse().ok()).unwrap_or(0),
-            parts.next().and_then(|part| part.parse().ok()).unwrap_or(0),
-        )
-    }
 }
 
 #[cfg(test)]
@@ -103,8 +98,11 @@ mod tests {
     #[test]
     fn fixture_is_bounded_and_selects_exact_host_api_versions()
     -> Result<(), Box<dyn std::error::Error>> {
-        let catalog =
-            PluginRegistryCatalog::from_bytes(PluginRegistryCatalog::DEVELOPMENT_INDEX, 1)?;
+        let catalog = PluginRegistryCatalog::from_bytes(
+            PluginRegistryCatalog::DEVELOPMENT_INDEX,
+            1,
+            &RegistryLimits::default(),
+        )?;
         assert!(catalog.development_fixture);
         assert_eq!(catalog.host_api_version, 1);
         assert_eq!(catalog.packages.len(), 3);
@@ -122,7 +120,7 @@ mod tests {
     #[test]
     fn fixture_artifacts_use_only_the_reserved_non_routable_domain()
     -> Result<(), Box<dyn std::error::Error>> {
-        let index = RegistryIndex::parse(PluginRegistryCatalog::DEVELOPMENT_INDEX)?;
+        let index = RegistryLimits::default().parse(PluginRegistryCatalog::DEVELOPMENT_INDEX)?;
         for release in index.packages.iter().flat_map(|package| &package.releases) {
             assert!(
                 release
@@ -137,8 +135,11 @@ mod tests {
     #[test]
     fn catalog_projection_never_exposes_artifact_locations_or_digests()
     -> Result<(), Box<dyn std::error::Error>> {
-        let catalog =
-            PluginRegistryCatalog::from_bytes(PluginRegistryCatalog::DEVELOPMENT_INDEX, 1)?;
+        let catalog = PluginRegistryCatalog::from_bytes(
+            PluginRegistryCatalog::DEVELOPMENT_INDEX,
+            1,
+            &RegistryLimits::default(),
+        )?;
         let json = serde_json::to_string(&catalog)?;
         assert!(!json.contains("registry.invalid"));
         assert!(!json.contains("download"));
@@ -149,16 +150,24 @@ mod tests {
 
     #[test]
     fn malformed_or_oversized_indexes_are_rejected_before_projection() {
-        assert!(PluginRegistryCatalog::from_bytes(b"{not-json}", 1).is_err());
-        let oversized = vec![b' '; aster_plugin::registry::MAX_REGISTRY_BYTES + 1];
-        assert!(PluginRegistryCatalog::from_bytes(&oversized, 1).is_err());
+        assert!(
+            PluginRegistryCatalog::from_bytes(b"{not-json}", 1, &RegistryLimits::default())
+                .is_err()
+        );
+        let oversized = vec![b' '; RegistryLimits::default().max_registry_bytes + 1];
+        assert!(
+            PluginRegistryCatalog::from_bytes(&oversized, 1, &RegistryLimits::default()).is_err()
+        );
     }
 
     #[test]
     fn future_host_selects_future_release_without_network_access()
     -> Result<(), Box<dyn std::error::Error>> {
-        let catalog =
-            PluginRegistryCatalog::from_bytes(PluginRegistryCatalog::DEVELOPMENT_INDEX, 2)?;
+        let catalog = PluginRegistryCatalog::from_bytes(
+            PluginRegistryCatalog::DEVELOPMENT_INDEX,
+            2,
+            &RegistryLimits::default(),
+        )?;
         assert_eq!(
             catalog.packages[0].compatible_version.as_deref(),
             Some("2.0.0")

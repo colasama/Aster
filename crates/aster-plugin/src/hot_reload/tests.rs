@@ -111,7 +111,7 @@ fn failed_scan_preserves_the_active_snapshot_and_can_be_retried()
     PluginFixture::write_plugin(&root, "1.0.0", PluginFixture::EFFECT)?;
     let mut controller = HotReloadController::default();
     let previous = controller.force_reload(&root)?;
-    controller.limits.max_candidates = 0;
+    controller.plugin_limits.max_candidates = 0;
     assert!(controller.force_reload(&root).is_err());
     let retained = controller.view(true, false);
     assert_eq!(retained.report.plugins[0].plugin.version, "1.0.0");
@@ -120,7 +120,7 @@ fn failed_scan_preserves_the_active_snapshot_and_can_be_retried()
         previous.report.shader_sources
     );
     assert_eq!(retained.status.revision, previous.status.revision);
-    controller.limits.max_candidates = 256;
+    controller.plugin_limits.max_candidates = 256;
     PluginFixture::write_plugin(&root, "2.0.0", PluginFixture::EFFECT)?;
     assert_eq!(
         controller.force_reload(&root)?.report.plugins[0]

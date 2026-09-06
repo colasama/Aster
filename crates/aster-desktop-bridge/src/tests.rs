@@ -174,7 +174,10 @@ fn legacy_plugin_preferences_are_migrated_to_the_versioned_document()
         r#"{"safeMode":true,"disabled":["example.effect"]}"#,
     )?;
 
-    let preferences = PluginPreferences::read(&directory)?;
+    let preferences = PluginPreferences::read(
+        &directory,
+        &crate::plugins::PluginPreferenceLimits::default(),
+    )?;
     assert_eq!(preferences.schema_version, 1);
     assert!(preferences.safe_mode);
     let persisted: serde_json::Value =
@@ -232,4 +235,34 @@ struct LifecycleStorage {
     kind: &'static str,
     external_path: std::path::PathBuf,
     byte_identity: String,
+}
+
+#[test]
+fn oversized_plugin_preferences_never_replace_the_readable_snapshot()
+-> Result<(), Box<dyn std::error::Error>> {
+    let directory =
+        std::env::temp_dir().join(format!("aster-preferences-{}", uuid::Uuid::new_v4()));
+    let limits = crate::plugins::PluginPreferenceLimits::default();
+    let mut preferences = PluginPreferences::default();
+    preferences.write(&directory, &limits)?;
+    let original = std::fs::read(directory.join("plugin-preferences.json"))?;
+    preferences
+        .disabled
+        .insert("x".repeat(limits.max_plugin_preferences_bytes as usize));
+    assert!(preferences.write(&directory, &limits).is_err());
+    assert_eq!(
+        std::fs::read(directory.join("plugin-preferences.json"))?,
+        original
+    );
+    assert!(
+        PluginPreferences::read(
+            &directory,
+            &crate::plugins::PluginPreferenceLimits {
+                max_plugin_preferences_bytes: 1
+            }
+        )
+        .is_err()
+    );
+    std::fs::remove_dir_all(directory)?;
+    Ok(())
 }

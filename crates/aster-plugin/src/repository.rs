@@ -25,7 +25,12 @@ impl PluginRepository {
     pub(crate) fn access(&self) -> Result<DirectoryPublication, PluginError> {
         let access = DirectoryPublication::acquire(&self.root)?;
         if self.root.exists() {
-            for entry in fs::read_dir(&self.root)? {
+            for (index, entry) in fs::read_dir(&self.root)?.enumerate() {
+                if index >= self.limits.max_scan_entries {
+                    return Err(PluginError::Io(std::io::Error::other(
+                        "plugin scan exceeds its entry limit",
+                    )));
+                }
                 let entry = entry?;
                 let name = entry.file_name();
                 let Some(id) = name
@@ -51,18 +56,31 @@ impl PluginRepository {
             return Ok(DiscoveryReport::default());
         }
         let mut manifests = Vec::new();
-        for entry in fs::read_dir(&self.root)? {
+        for (index, entry) in fs::read_dir(&self.root)?.enumerate() {
+            if index >= self.limits.max_scan_entries {
+                return Err(PluginError::Io(std::io::Error::other(
+                    "plugin scan exceeds its entry limit",
+                )));
+            }
             let entry = entry?;
             if entry.file_name().to_string_lossy().starts_with('.') {
                 continue;
             }
             let path = entry.path();
+            if Self::is_link(&path)? {
+                continue;
+            }
             let candidate = if path.is_dir() {
                 path.join("plugin.toml")
             } else {
                 path
             };
             if candidate.file_name().and_then(|name| name.to_str()) == Some("plugin.toml") {
+                if manifests.len() >= self.limits.max_candidates {
+                    return Err(PluginError::Io(std::io::Error::other(
+                        "plugin scan exceeds its candidate limit",
+                    )));
+                }
                 manifests.push(candidate);
             }
         }
@@ -99,6 +117,19 @@ impl PluginRepository {
             }
         }
         Ok(report)
+    }
+
+    pub(crate) fn is_link(path: &Path) -> std::io::Result<bool> {
+        let metadata = fs::symlink_metadata(path)?;
+        #[cfg(windows)]
+        {
+            use std::os::windows::fs::MetadataExt;
+            Ok(metadata.file_attributes() & 0x400 != 0)
+        }
+        #[cfg(not(windows))]
+        {
+            Ok(metadata.file_type().is_symlink())
+        }
     }
 
     /// Publishes the exact validated manifest and shader snapshot.
