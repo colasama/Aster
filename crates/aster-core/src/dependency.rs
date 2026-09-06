@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 use indexmap::IndexSet;
 use serde::{Deserialize, Serialize};
@@ -10,9 +10,9 @@ pub type NodeId = Uuid;
 /// Tracks downstream invalidation without recomputing unaffected nodes.
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct DependencyGraph {
-    dependencies: HashMap<NodeId, IndexSet<NodeId>>,
-    dependents: HashMap<NodeId, IndexSet<NodeId>>,
-    dirty: HashSet<NodeId>,
+    dependencies: BTreeMap<NodeId, IndexSet<NodeId>>,
+    dependents: BTreeMap<NodeId, IndexSet<NodeId>>,
+    dirty: BTreeSet<NodeId>,
     #[serde(skip)]
     topological_cache: Vec<NodeId>,
 }
@@ -51,7 +51,7 @@ impl DependencyGraph {
 
     pub fn mark_dirty(&mut self, root: NodeId) -> EvaluationStats {
         let mut queue = VecDeque::from([root]);
-        let mut visited = HashSet::new();
+        let mut visited = BTreeSet::new();
         while let Some(node) = queue.pop_front() {
             if !visited.insert(node) {
                 continue;
@@ -85,7 +85,7 @@ impl DependencyGraph {
     }
 
     pub fn topological_order(&self) -> Result<Vec<NodeId>, DependencyError> {
-        let mut pending: HashMap<_, _> = self
+        let mut pending: BTreeMap<_, _> = self
             .dependencies
             .iter()
             .map(|(node, dependencies)| (*node, dependencies.len()))
@@ -99,8 +99,8 @@ impl DependencyGraph {
             order.push(node);
             if let Some(dependents) = self.dependents.get(&node) {
                 for dependent in dependents {
-                    let count = pending.get_mut(dependent).expect("registered node");
-                    *count -= 1;
+                    let count = pending.get_mut(dependent).ok_or(DependencyError::Cycle)?;
+                    *count = count.checked_sub(1).ok_or(DependencyError::Cycle)?;
                     if *count == 0 {
                         queue.push_back(*dependent);
                     }
@@ -115,7 +115,7 @@ impl DependencyGraph {
 
     fn reaches(&self, start: NodeId, target: NodeId) -> bool {
         let mut queue = VecDeque::from([start]);
-        let mut visited = HashSet::new();
+        let mut visited = BTreeSet::new();
         while let Some(node) = queue.pop_front() {
             if node == target {
                 return true;
@@ -147,43 +147,46 @@ mod tests {
     use super::*;
 
     #[test]
-    fn propagates_only_to_downstream_nodes() {
+    fn propagates_only_to_downstream_nodes() -> Result<(), Box<dyn std::error::Error>> {
         let source = Uuid::new_v4();
         let effect = Uuid::new_v4();
         let composite = Uuid::new_v4();
         let unrelated = Uuid::new_v4();
         let mut graph = DependencyGraph::default();
         graph.add_node(unrelated);
-        graph.add_dependency(effect, source).unwrap();
-        graph.add_dependency(composite, effect).unwrap();
+        graph.add_dependency(effect, source)?;
+        graph.add_dependency(composite, effect)?;
         let stats = graph.mark_dirty(effect);
-        let order = graph.take_evaluation_order().unwrap();
+        let order = graph.take_evaluation_order()?;
         assert_eq!(stats.dirty_nodes, 2);
         assert_eq!(order, vec![effect, composite]);
         assert!(!order.contains(&unrelated));
+        Ok(())
     }
 
     #[test]
-    fn rejects_cycles() {
+    fn rejects_cycles() -> Result<(), Box<dyn std::error::Error>> {
         let a = Uuid::new_v4();
         let b = Uuid::new_v4();
         let mut graph = DependencyGraph::default();
-        graph.add_dependency(b, a).unwrap();
+        graph.add_dependency(b, a)?;
         assert_eq!(graph.add_dependency(a, b), Err(DependencyError::Cycle));
+        Ok(())
     }
 
     #[test]
-    fn invalidates_cached_topology_after_graph_changes() {
+    fn invalidates_cached_topology_after_graph_changes() -> Result<(), Box<dyn std::error::Error>> {
         let a = Uuid::new_v4();
         let b = Uuid::new_v4();
         let c = Uuid::new_v4();
         let mut graph = DependencyGraph::default();
-        graph.add_dependency(b, a).unwrap();
+        graph.add_dependency(b, a)?;
         graph.mark_dirty(a);
-        assert_eq!(graph.take_evaluation_order().unwrap(), vec![a, b]);
+        assert_eq!(graph.take_evaluation_order()?, vec![a, b]);
 
-        graph.add_dependency(c, b).unwrap();
+        graph.add_dependency(c, b)?;
         graph.mark_dirty(a);
-        assert_eq!(graph.take_evaluation_order().unwrap(), vec![a, b, c]);
+        assert_eq!(graph.take_evaluation_order()?, vec![a, b, c]);
+        Ok(())
     }
 }

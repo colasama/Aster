@@ -29,7 +29,6 @@ struct RendererCapabilities {
 }
 
 fn renderer_capabilities() -> RendererCapabilities {
-    let _ = aster_render::preferred_backends();
     RendererCapabilities {
         architecture: "GPU-first render graph",
         backends: ["Vulkan", "Metal", "DirectX 12"],

@@ -86,7 +86,7 @@ impl Quaternion {
     pub fn slerp(self, destination: Self, progress: f64) -> Self {
         let start = self.normalized();
         let mut end = destination.normalized();
-        let mut dot = start.dot(end);
+        let mut dot = start.x * end.x + start.y * end.y + start.z * end.z + start.w * end.w;
         if dot < 0.0 {
             end = end.scaled(-1.0);
             dot = -dot;
@@ -104,10 +104,6 @@ impl Quaternion {
             .scaled(((1.0 - amount) * angle).sin() / denominator)
             .added(end.scaled((amount * angle).sin() / denominator))
             .normalized()
-    }
-
-    fn dot(self, other: Self) -> f64 {
-        self.x * other.x + self.y * other.y + self.z * other.z + self.w * other.w
     }
 
     fn scaled(self, scale: f64) -> Self {
@@ -156,11 +152,9 @@ impl QuaternionAnimatable {
 
     #[must_use]
     pub fn evaluate(&self, time: Time) -> Quaternion {
-        let Self::Animated { keyframes } = self else {
-            let Self::Static { value } = self else {
-                unreachable!();
-            };
-            return value.normalized();
+        let keyframes = match self {
+            Self::Static { value } => return value.normalized(),
+            Self::Animated { keyframes } => keyframes,
         };
         let next = keyframes.partition_point(|keyframe| keyframe.time <= time);
         if next == 0 {
@@ -191,7 +185,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn string_animation_uses_discrete_values() {
+    fn string_animation_uses_discrete_values() -> Result<(), crate::TimeError> {
         let animation = StringAnimatable::Animated {
             keyframes: vec![
                 StringKeyframe {
@@ -199,17 +193,18 @@ mod tests {
                     value: "first".into(),
                 },
                 StringKeyframe {
-                    time: Time::new(1, 1).unwrap(),
+                    time: Time::new(1, 1)?,
                     value: "second".into(),
                 },
             ],
         };
-        assert_eq!(animation.evaluate(Time::new(3, 4).unwrap()), "first");
-        assert_eq!(animation.evaluate(Time::new(1, 1).unwrap()), "second");
+        assert_eq!(animation.evaluate(Time::new(3, 4)?), "first");
+        assert_eq!(animation.evaluate(Time::new(1, 1)?), "second");
+        Ok(())
     }
 
     #[test]
-    fn quaternion_animation_slerps_on_the_shortest_path() {
+    fn quaternion_animation_slerps_on_the_shortest_path() -> Result<(), crate::TimeError> {
         let animation = QuaternionAnimatable::Animated {
             keyframes: vec![
                 QuaternionKeyframe {
@@ -218,7 +213,7 @@ mod tests {
                     interpolation: Interpolation::Linear,
                 },
                 QuaternionKeyframe {
-                    time: Time::new(1, 1).unwrap(),
+                    time: Time::new(1, 1)?,
                     value: Quaternion {
                         x: 0.0,
                         y: 0.0,
@@ -229,9 +224,10 @@ mod tests {
                 },
             ],
         };
-        let value = animation.evaluate(Time::new(1, 2).unwrap());
+        let value = animation.evaluate(Time::new(1, 2)?);
         assert!((value.z - FRAC_1_SQRT_2).abs() < 1e-10);
         assert!((value.w - FRAC_1_SQRT_2).abs() < 1e-10);
+        Ok(())
     }
 
     #[test]

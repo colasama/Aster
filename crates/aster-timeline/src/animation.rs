@@ -48,14 +48,25 @@ impl CubicBezier {
         let target = progress.clamp(0.0, 1.0);
         let mut parameter = target;
         for _ in 0..6 {
-            let error = cubic(parameter, self.x1, self.x2) - target;
-            let slope = cubic_derivative(parameter, self.x1, self.x2);
+            let error = Self::cubic(parameter, self.x1, self.x2) - target;
+            let slope = Self::derivative(parameter, self.x1, self.x2);
             if slope.abs() < 1e-7 {
                 break;
             }
             parameter = (parameter - error / slope).clamp(0.0, 1.0);
         }
-        cubic(parameter, self.y1, self.y2)
+        Self::cubic(parameter, self.y1, self.y2)
+    }
+
+    fn cubic(t: f64, control1: f64, control2: f64) -> f64 {
+        let inverse = 1.0 - t;
+        3.0 * inverse * inverse * t * control1 + 3.0 * inverse * t * t * control2 + t * t * t
+    }
+
+    fn derivative(t: f64, control1: f64, control2: f64) -> f64 {
+        3.0 * (1.0 - t).powi(2) * control1
+            + 6.0 * (1.0 - t) * t * (control2 - control1)
+            + 3.0 * t.powi(2) * (1.0 - control2)
     }
 }
 
@@ -79,11 +90,9 @@ impl Animatable {
     }
 
     pub fn evaluate(&self, time: Time) -> f64 {
-        let Self::Animated { keyframes } = self else {
-            let Self::Static { value } = self else {
-                unreachable!();
-            };
-            return *value;
+        let keyframes = match self {
+            Self::Static { value } => return *value,
+            Self::Animated { keyframes } => keyframes,
         };
         if keyframes.is_empty() {
             return 0.0;
@@ -127,23 +136,12 @@ impl Default for Animatable {
     }
 }
 
-fn cubic(t: f64, control1: f64, control2: f64) -> f64 {
-    let inverse = 1.0 - t;
-    3.0 * inverse * inverse * t * control1 + 3.0 * inverse * t * t * control2 + t * t * t
-}
-
-fn cubic_derivative(t: f64, control1: f64, control2: f64) -> f64 {
-    3.0 * (1.0 - t).powi(2) * control1
-        + 6.0 * (1.0 - t) * t * (control2 - control1)
-        + 3.0 * t.powi(2) * (1.0 - control2)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn evaluates_linear_keyframes_at_arbitrary_time() {
+    fn evaluates_linear_keyframes_at_arbitrary_time() -> Result<(), crate::TimeError> {
         let animation = Animatable::Animated {
             keyframes: vec![
                 Keyframe {
@@ -152,17 +150,18 @@ mod tests {
                     interpolation: Interpolation::Linear,
                 },
                 Keyframe {
-                    time: Time::new(1, 1).unwrap(),
+                    time: Time::new(1, 1)?,
                     value: 30.0,
                     interpolation: Interpolation::Linear,
                 },
             ],
         };
-        assert_eq!(animation.evaluate(Time::new(1, 2).unwrap()), 20.0);
+        assert_eq!(animation.evaluate(Time::new(1, 2)?), 20.0);
+        Ok(())
     }
 
     #[test]
-    fn step_holds_previous_value() {
+    fn step_holds_previous_value() -> Result<(), crate::TimeError> {
         let animation = Animatable::Animated {
             keyframes: vec![
                 Keyframe {
@@ -171,12 +170,13 @@ mod tests {
                     interpolation: Interpolation::Step,
                 },
                 Keyframe {
-                    time: Time::new(1, 1).unwrap(),
+                    time: Time::new(1, 1)?,
                     value: 4.0,
                     interpolation: Interpolation::Linear,
                 },
             ],
         };
-        assert_eq!(animation.evaluate(Time::new(3, 4).unwrap()), 2.0);
+        assert_eq!(animation.evaluate(Time::new(3, 4)?), 2.0);
+        Ok(())
     }
 }

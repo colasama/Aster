@@ -1,6 +1,6 @@
 //! Unified 2D and 3D scene representation.
 
-use std::collections::HashSet;
+use std::collections::BTreeSet;
 
 use glam::{EulerRot, Mat4, Quat, Vec3};
 use indexmap::IndexMap;
@@ -36,8 +36,9 @@ impl Scene {
                 return Err(SceneError::MissingEntity(parent_id));
             }
             let mut cursor = Some(parent_id);
+            let mut visited = BTreeSet::new();
             while let Some(id) = cursor {
-                if id == entity {
+                if id == entity || !visited.insert(id) {
                     return Err(SceneError::ParentCycle);
                 }
                 cursor = self.entities.get(&id).and_then(|item| item.parent);
@@ -45,14 +46,14 @@ impl Scene {
         }
         self.entities
             .get_mut(&entity)
-            .expect("validated entity")
+            .ok_or(SceneError::MissingEntity(entity))?
             .parent = parent;
         Ok(())
     }
 
     pub fn world_matrices(&self) -> Result<IndexMap<Uuid, Mat4>, SceneError> {
         let mut matrices = IndexMap::with_capacity(self.entities.len());
-        let mut visiting = HashSet::new();
+        let mut visiting = BTreeSet::new();
         for id in self.entities.keys().copied() {
             self.evaluate_world(id, &mut matrices, &mut visiting)?;
         }
@@ -63,7 +64,7 @@ impl Scene {
         &self,
         id: Uuid,
         cache: &mut IndexMap<Uuid, Mat4>,
-        visiting: &mut HashSet<Uuid>,
+        visiting: &mut BTreeSet<Uuid>,
     ) -> Result<Mat4, SceneError> {
         if let Some(matrix) = cache.get(&id) {
             return Ok(*matrix);
@@ -204,40 +205,43 @@ pub enum SceneError {
 mod tests {
     use super::*;
 
-    fn entity(id: Uuid, parent: Option<Uuid>, x: f32) -> Entity {
-        Entity {
-            id,
-            name: "entity".into(),
-            parent,
-            transform: Transform3d {
-                position: [x, 0.0, 0.0],
-                ..Transform3d::default()
-            },
-            renderable: Renderable::None,
+    impl Entity {
+        fn fixture(id: Uuid, parent: Option<Uuid>, x: f32) -> Entity {
+            Entity {
+                id,
+                name: "entity".into(),
+                parent,
+                transform: Transform3d {
+                    position: [x, 0.0, 0.0],
+                    ..Transform3d::default()
+                },
+                renderable: Renderable::None,
+            }
         }
     }
-
     #[test]
-    fn evaluates_parented_world_transform() {
+    fn evaluates_parented_world_transform() -> Result<(), Box<dyn std::error::Error>> {
         let parent = Uuid::new_v4();
         let child = Uuid::new_v4();
         let mut scene = Scene::default();
-        scene.insert(entity(parent, None, 4.0)).unwrap();
-        scene.insert(entity(child, Some(parent), 2.0)).unwrap();
-        let matrices = scene.world_matrices().unwrap();
+        scene.insert(Entity::fixture(parent, None, 4.0))?;
+        scene.insert(Entity::fixture(child, Some(parent), 2.0))?;
+        let matrices = scene.world_matrices()?;
         assert_eq!(matrices[&child].transform_point3(Vec3::ZERO).x, 6.0);
+        Ok(())
     }
 
     #[test]
-    fn rejects_parent_cycles() {
+    fn rejects_parent_cycles() -> Result<(), Box<dyn std::error::Error>> {
         let parent = Uuid::new_v4();
         let child = Uuid::new_v4();
         let mut scene = Scene::default();
-        scene.insert(entity(parent, None, 0.0)).unwrap();
-        scene.insert(entity(child, Some(parent), 0.0)).unwrap();
+        scene.insert(Entity::fixture(parent, None, 0.0))?;
+        scene.insert(Entity::fixture(child, Some(parent), 0.0))?;
         assert_eq!(
             scene.set_parent(parent, Some(child)),
             Err(SceneError::ParentCycle)
         );
+        Ok(())
     }
 }

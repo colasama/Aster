@@ -7,10 +7,7 @@ mod graph;
 mod resource_wrappers;
 mod resources;
 
-pub use gpu::{
-    AdapterDiagnostics, BackendSmokeError, BackendSmokeReport, NativeBackend, preferred_backends,
-    smoke_test_backend,
-};
+pub use gpu::{AdapterDiagnostics, BackendSmokeError, BackendSmokeReport, NativeBackend};
 pub use graph::{
     CompiledGraph, Pass, PassId, PassKind, RenderGraph, RenderGraphError, ResourceDescriptor,
     ResourceHandle, TextureFormat, TransientAllocation,

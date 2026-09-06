@@ -1,16 +1,15 @@
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
-use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct ResourceHandle(pub u32);
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct PassId(pub u32);
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct ResourceDescriptor {
     pub width: u32,
     pub height: u32,
@@ -22,13 +21,13 @@ pub struct ResourceDescriptor {
 impl ResourceDescriptor {
     pub fn estimated_bytes(self) -> u64 {
         u64::from(self.width)
-            * u64::from(self.height)
-            * self.format.bytes_per_pixel()
-            * u64::from(self.samples.max(1))
+            .saturating_mul(u64::from(self.height))
+            .saturating_mul(self.format.bytes_per_pixel())
+            .saturating_mul(u64::from(self.samples.max(1)))
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum TextureFormat {
     Rgba8Unorm,
@@ -71,8 +70,8 @@ pub struct Pass {
 
 #[derive(Clone, Debug, Default)]
 pub struct RenderGraph {
-    resources: IndexMap<ResourceHandle, ResourceDescriptor>,
-    passes: IndexMap<PassId, Pass>,
+    resources: BTreeMap<ResourceHandle, ResourceDescriptor>,
+    passes: BTreeMap<PassId, Pass>,
     next_resource: u32,
     next_pass: u32,
 }
@@ -112,13 +111,15 @@ impl RenderGraph {
     pub fn compile(&self) -> Result<CompiledGraph, RenderGraphError> {
         self.validate_handles()?;
         let dependencies = self.derive_dependencies();
-        let order = topological_order(self.passes.keys().copied(), &dependencies)?;
+        let order = Self::topological_order(self.passes.keys().copied(), &dependencies)?;
         let allocations = self.allocate_transients(&order);
+        let mut allocated_slots = BTreeSet::new();
         let estimated_vram_bytes = allocations
             .iter()
+            .filter(|allocation| allocated_slots.insert(allocation.slot))
             .filter_map(|allocation| self.resources.get(&allocation.resource))
             .map(|descriptor| descriptor.estimated_bytes())
-            .sum();
+            .fold(0_u64, u64::saturating_add);
         Ok(CompiledGraph {
             passes: order
                 .into_iter()
@@ -163,14 +164,14 @@ impl RenderGraph {
         Ok(())
     }
 
-    fn derive_dependencies(&self) -> HashMap<PassId, HashSet<PassId>> {
-        let mut result: HashMap<_, HashSet<_>> = self
+    fn derive_dependencies(&self) -> BTreeMap<PassId, BTreeSet<PassId>> {
+        let mut result: BTreeMap<_, BTreeSet<_>> = self
             .passes
             .values()
             .map(|pass| (pass.id, pass.dependencies.iter().copied().collect()))
             .collect();
-        let mut last_writer: HashMap<ResourceHandle, PassId> = HashMap::new();
-        let mut readers: HashMap<ResourceHandle, HashSet<PassId>> = HashMap::new();
+        let mut last_writer: BTreeMap<ResourceHandle, PassId> = BTreeMap::new();
+        let mut readers: BTreeMap<ResourceHandle, BTreeSet<PassId>> = BTreeMap::new();
         for pass in self.passes.values() {
             for resource in &pass.reads {
                 if let Some(writer) = last_writer.get(resource) {
@@ -192,18 +193,21 @@ impl RenderGraph {
     }
 
     fn allocate_transients(&self, order: &[PassId]) -> Vec<TransientAllocation> {
-        let pass_index: HashMap<_, _> = order
+        let pass_index: BTreeMap<_, _> = order
             .iter()
             .enumerate()
             .map(|(index, id)| (*id, index))
             .collect();
-        let mut lifetimes: HashMap<ResourceHandle, (usize, usize)> = HashMap::new();
+        let mut lifetimes: BTreeMap<ResourceHandle, (usize, usize)> = BTreeMap::new();
         for pass in self.passes.values() {
             let index = pass_index[&pass.id];
             for resource in pass.reads.iter().chain(&pass.writes) {
                 lifetimes
                     .entry(*resource)
-                    .and_modify(|range| range.1 = range.1.max(index))
+                    .and_modify(|range| {
+                        range.0 = range.0.min(index);
+                        range.1 = range.1.max(index);
+                    })
                     .or_insert((index, index));
             }
         }
@@ -217,7 +221,8 @@ impl RenderGraph {
                 slots
                     .iter_mut()
                     .find(|(existing, available_after, _)| {
-                        existing.width == descriptor.width
+                        existing.transient
+                            && existing.width == descriptor.width
                             && existing.height == descriptor.height
                             && existing.format == descriptor.format
                             && existing.samples == descriptor.samples
@@ -267,38 +272,42 @@ pub struct TransientAllocation {
     pub last_use: usize,
 }
 
-fn topological_order(
-    nodes: impl Iterator<Item = PassId>,
-    dependencies: &HashMap<PassId, HashSet<PassId>>,
-) -> Result<Vec<PassId>, RenderGraphError> {
-    let mut pending: HashMap<_, _> = nodes
-        .map(|node| (node, dependencies.get(&node).map_or(0, HashSet::len)))
-        .collect();
-    let mut dependents: HashMap<PassId, Vec<PassId>> = HashMap::new();
-    for (node, inputs) in dependencies {
-        for input in inputs {
-            dependents.entry(*input).or_default().push(*node);
-        }
-    }
-    let mut queue: VecDeque<_> = pending
-        .iter()
-        .filter_map(|(id, count)| (*count == 0).then_some(*id))
-        .collect();
-    let mut result = Vec::with_capacity(pending.len());
-    while let Some(node) = queue.pop_front() {
-        result.push(node);
-        for dependent in dependents.get(&node).into_iter().flatten() {
-            let count = pending.get_mut(dependent).expect("known dependency");
-            *count -= 1;
-            if *count == 0 {
-                queue.push_back(*dependent);
+impl RenderGraph {
+    fn topological_order(
+        nodes: impl Iterator<Item = PassId>,
+        dependencies: &BTreeMap<PassId, BTreeSet<PassId>>,
+    ) -> Result<Vec<PassId>, RenderGraphError> {
+        let mut pending: BTreeMap<_, _> = nodes
+            .map(|node| (node, dependencies.get(&node).map_or(0, BTreeSet::len)))
+            .collect();
+        let mut dependents: BTreeMap<PassId, Vec<PassId>> = BTreeMap::new();
+        for (node, inputs) in dependencies {
+            for input in inputs {
+                dependents.entry(*input).or_default().push(*node);
             }
         }
+        let mut queue: VecDeque<_> = pending
+            .iter()
+            .filter_map(|(id, count)| (*count == 0).then_some(*id))
+            .collect();
+        let mut result = Vec::with_capacity(pending.len());
+        while let Some(node) = queue.pop_front() {
+            result.push(node);
+            for dependent in dependents.get(&node).into_iter().flatten() {
+                let count = pending
+                    .get_mut(dependent)
+                    .ok_or(RenderGraphError::MissingPass(*dependent))?;
+                *count = count.checked_sub(1).ok_or(RenderGraphError::Cycle)?;
+                if *count == 0 {
+                    queue.push_back(*dependent);
+                }
+            }
+        }
+        if result.len() != pending.len() {
+            return Err(RenderGraphError::Cycle);
+        }
+        Ok(result)
     }
-    if result.len() != pending.len() {
-        return Err(RenderGraphError::Cycle);
-    }
-    Ok(result)
 }
 
 #[derive(Clone, Copy, Debug, Error, PartialEq)]
@@ -315,22 +324,23 @@ pub enum RenderGraphError {
 mod tests {
     use super::*;
 
-    fn texture() -> ResourceDescriptor {
-        ResourceDescriptor {
-            width: 3840,
-            height: 2160,
-            format: TextureFormat::Rgba16Float,
-            samples: 1,
-            transient: true,
+    impl ResourceDescriptor {
+        fn fixture() -> ResourceDescriptor {
+            ResourceDescriptor {
+                width: 3840,
+                height: 2160,
+                format: TextureFormat::Rgba16Float,
+                samples: 1,
+                transient: true,
+            }
         }
     }
-
     #[test]
-    fn schedules_data_dependencies() {
+    fn schedules_data_dependencies() -> Result<(), Box<dyn std::error::Error>> {
         let mut graph = RenderGraph::default();
-        let source = graph.create_resource(texture());
-        let blurred = graph.create_resource(texture());
-        let output = graph.create_resource(texture());
+        let source = graph.create_resource(ResourceDescriptor::fixture());
+        let blurred = graph.create_resource(ResourceDescriptor::fixture());
+        let output = graph.create_resource(ResourceDescriptor::fixture());
         let upload = graph.add_pass("upload", PassKind::Copy, vec![], vec![source], vec![]);
         let blur = graph.add_pass(
             "blur",
@@ -346,20 +356,78 @@ mod tests {
             vec![output],
             vec![],
         );
-        let compiled = graph.compile().unwrap();
+        let compiled = graph.compile()?;
         let ids: Vec<_> = compiled.passes.iter().map(|pass| pass.id).collect();
         assert_eq!(ids, vec![upload, blur, composite]);
+        Ok(())
     }
 
     #[test]
-    fn reuses_non_overlapping_transient_textures() {
+    fn reuses_non_overlapping_transient_textures() -> Result<(), Box<dyn std::error::Error>> {
         let mut graph = RenderGraph::default();
-        let a = graph.create_resource(texture());
-        let b = graph.create_resource(texture());
+        let a = graph.create_resource(ResourceDescriptor::fixture());
+        let b = graph.create_resource(ResourceDescriptor::fixture());
         let pass_a = graph.add_pass("a", PassKind::Compute, vec![], vec![a], vec![]);
         graph.add_pass("consume a", PassKind::Compute, vec![a], vec![], vec![]);
         graph.add_pass("b", PassKind::Compute, vec![], vec![b], vec![pass_a]);
-        let compiled = graph.compile().unwrap();
+        let compiled = graph.compile()?;
         assert!(compiled.allocations.len() >= 2);
+        Ok(())
+    }
+
+    #[test]
+    fn transient_aliasing_preserves_persistent_resources_and_counts_physical_slots()
+    -> Result<(), RenderGraphError> {
+        let mut graph = RenderGraph::default();
+        let descriptor = ResourceDescriptor::fixture();
+        let persistent = graph.create_resource(ResourceDescriptor {
+            transient: false,
+            ..descriptor
+        });
+        let a = graph.create_resource(descriptor);
+        let b = graph.create_resource(descriptor);
+        let first = graph.add_pass(
+            "persistent",
+            PassKind::Copy,
+            vec![],
+            vec![persistent],
+            vec![],
+        );
+        let second = graph.add_pass("a", PassKind::Compute, vec![], vec![a], vec![first]);
+        graph.add_pass("b", PassKind::Compute, vec![], vec![b], vec![second]);
+        let compiled = graph.compile()?;
+        assert_ne!(compiled.allocations[0].slot, compiled.allocations[1].slot);
+        assert_eq!(compiled.allocations[1].slot, compiled.allocations[2].slot);
+        assert_eq!(
+            compiled.estimated_vram_bytes,
+            descriptor.estimated_bytes() * 2
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn lifetimes_follow_execution_order_instead_of_pass_insertion_order()
+    -> Result<(), RenderGraphError> {
+        let mut graph = RenderGraph::default();
+        let resource = graph.create_resource(ResourceDescriptor::fixture());
+        graph.add_pass(
+            "late reader",
+            PassKind::Render,
+            vec![resource],
+            vec![],
+            vec![PassId(1)],
+        );
+        graph.add_pass(
+            "early reader",
+            PassKind::Render,
+            vec![resource],
+            vec![],
+            vec![],
+        );
+        let compiled = graph.compile()?;
+        assert_eq!(compiled.passes[0].name, "early reader");
+        assert_eq!(compiled.allocations[0].first_use, 0);
+        assert_eq!(compiled.allocations[0].last_use, 1);
+        Ok(())
     }
 }

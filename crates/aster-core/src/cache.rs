@@ -1,11 +1,11 @@
-use std::collections::{HashMap, VecDeque};
+use std::collections::{BTreeMap, VecDeque};
 
 use aster_timeline::Time;
 use uuid::Uuid;
 
 use crate::NodeId;
 
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct EvaluationResolution {
     pub width: u32,
     pub height: u32,
@@ -17,20 +17,20 @@ impl EvaluationResolution {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 enum TimeCacheKey {
     Invariant,
     At { value: i64, scale: u32 },
 }
 
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 enum ResolutionCacheKey {
     Invariant,
     At(EvaluationResolution),
 }
 
 /// Identifies a deterministic node result across source revision, time, and resolution.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct EvaluationCacheKey {
     node: NodeId,
     revision: u64,
@@ -115,7 +115,7 @@ impl CacheStatistics {
 #[derive(Clone, Debug)]
 pub struct EvaluationCache<T> {
     capacity: usize,
-    entries: HashMap<EvaluationCacheKey, T>,
+    entries: BTreeMap<EvaluationCacheKey, T>,
     recency: VecDeque<EvaluationCacheKey>,
     statistics: CacheStatistics,
 }
@@ -125,7 +125,7 @@ impl<T> EvaluationCache<T> {
         let capacity = capacity.max(1);
         Self {
             capacity,
-            entries: HashMap::with_capacity(capacity),
+            entries: BTreeMap::new(),
             recency: VecDeque::with_capacity(capacity),
             statistics: CacheStatistics {
                 capacity,
@@ -140,14 +140,16 @@ impl<T> EvaluationCache<T> {
             return None;
         }
         self.statistics.hits += 1;
-        self.touch(key);
+        self.recency.retain(|candidate| *candidate != key);
+        self.recency.push_back(key);
         self.entries.get(&key)
     }
 
     pub fn insert(&mut self, key: EvaluationCacheKey, value: T) -> Option<T> {
         self.statistics.insertions += 1;
         if self.entries.contains_key(&key) {
-            self.touch(key);
+            self.recency.retain(|candidate| *candidate != key);
+            self.recency.push_back(key);
             return self.entries.insert(key, value);
         }
         if self.entries.len() == self.capacity
@@ -170,7 +172,7 @@ impl<T> EvaluationCache<T> {
     }
 
     pub fn invalidate_nodes(&mut self, nodes: impl IntoIterator<Item = NodeId>) -> usize {
-        let nodes: std::collections::HashSet<Uuid> = nodes.into_iter().collect();
+        let nodes: std::collections::BTreeSet<Uuid> = nodes.into_iter().collect();
         if nodes.is_empty() {
             return 0;
         }
@@ -195,39 +197,47 @@ impl<T> EvaluationCache<T> {
             ..self.statistics
         }
     }
-
-    fn touch(&mut self, key: EvaluationCacheKey) {
-        self.recency.retain(|candidate| *candidate != key);
-        self.recency.push_back(key);
-    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    fn timed(node: NodeId, frame: i64, width: u32) -> EvaluationCacheKey {
-        EvaluationCacheKey::time_dependent(
-            node,
-            1,
-            Time::new(frame, 60).unwrap(),
-            EvaluationResolution::new(width, 1080),
-        )
+    impl EvaluationCacheKey {
+        fn timed(
+            node: NodeId,
+            frame: i64,
+            width: u32,
+        ) -> Result<EvaluationCacheKey, aster_timeline::TimeError> {
+            Ok(EvaluationCacheKey::time_dependent(
+                node,
+                1,
+                Time::new(frame, 60)?,
+                EvaluationResolution::new(width, 1080),
+            ))
+        }
     }
 
     #[test]
-    fn time_and_resolution_are_part_of_the_cache_key() {
+    fn time_and_resolution_are_part_of_the_cache_key() -> Result<(), Box<dyn std::error::Error>> {
         let node = Uuid::new_v4();
-        assert_ne!(timed(node, 1, 1920), timed(node, 2, 1920));
-        assert_ne!(timed(node, 1, 1920), timed(node, 1, 1280));
+        assert_ne!(
+            EvaluationCacheKey::timed(node, 1, 1920)?,
+            EvaluationCacheKey::timed(node, 2, 1920)?
+        );
+        assert_ne!(
+            EvaluationCacheKey::timed(node, 1, 1920)?,
+            EvaluationCacheKey::timed(node, 1, 1280)?
+        );
+        Ok(())
     }
 
     #[test]
-    fn evicts_the_least_recently_used_entry() {
+    fn evicts_the_least_recently_used_entry() -> Result<(), Box<dyn std::error::Error>> {
         let node = Uuid::new_v4();
-        let a = timed(node, 1, 1920);
-        let b = timed(node, 2, 1920);
-        let c = timed(node, 3, 1920);
+        let a = EvaluationCacheKey::timed(node, 1, 1920)?;
+        let b = EvaluationCacheKey::timed(node, 2, 1920)?;
+        let c = EvaluationCacheKey::timed(node, 3, 1920)?;
         let mut cache = EvaluationCache::new(2);
         cache.insert(a, "a");
         cache.insert(b, "b");
@@ -236,19 +246,21 @@ mod tests {
         assert_eq!(cache.get(b), None);
         assert_eq!(cache.get(a), Some(&"a"));
         assert_eq!(cache.statistics().evictions, 1);
+        Ok(())
     }
 
     #[test]
-    fn invalidates_every_variant_of_a_dirty_node() {
+    fn invalidates_every_variant_of_a_dirty_node() -> Result<(), Box<dyn std::error::Error>> {
         let dirty = Uuid::new_v4();
         let clean = Uuid::new_v4();
         let mut cache = EvaluationCache::new(8);
-        cache.insert(timed(dirty, 1, 1920), 1);
-        cache.insert(timed(dirty, 2, 1920), 2);
-        let clean_key = timed(clean, 1, 1920);
+        cache.insert(EvaluationCacheKey::timed(dirty, 1, 1920)?, 1);
+        cache.insert(EvaluationCacheKey::timed(dirty, 2, 1920)?, 2);
+        let clean_key = EvaluationCacheKey::timed(clean, 1, 1920)?;
         cache.insert(clean_key, 3);
         assert_eq!(cache.invalidate_node(dirty), 2);
         assert_eq!(cache.get(clean_key), Some(&3));
         assert_eq!(cache.statistics().invalidations, 2);
+        Ok(())
     }
 }

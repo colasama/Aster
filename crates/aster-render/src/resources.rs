@@ -1,10 +1,10 @@
-use std::{collections::HashMap, hash::Hash};
+use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
 use crate::ResourceDescriptor;
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct PooledResourceId(u64);
 
 #[derive(Clone, Copy, Debug, Default, Deserialize, Serialize)]
@@ -40,8 +40,8 @@ pub struct ResourcePool<T> {
     hits: u64,
     misses: u64,
     evictions: u64,
-    entries: HashMap<PooledResourceId, PoolEntry<T>>,
-    available: HashMap<ResourceDescriptor, Vec<PooledResourceId>>,
+    entries: BTreeMap<PooledResourceId, PoolEntry<T>>,
+    available: BTreeMap<ResourceDescriptor, Vec<PooledResourceId>>,
 }
 
 impl<T> ResourcePool<T> {
@@ -53,8 +53,8 @@ impl<T> ResourcePool<T> {
             hits: 0,
             misses: 0,
             evictions: 0,
-            entries: HashMap::new(),
-            available: HashMap::new(),
+            entries: BTreeMap::new(),
+            available: BTreeMap::new(),
         }
     }
 
@@ -188,10 +188,10 @@ pub struct GpuObjectCache<K, V> {
     hits: u64,
     misses: u64,
     evictions: u64,
-    entries: HashMap<K, (V, u64)>,
+    entries: BTreeMap<K, (V, u64)>,
 }
 
-impl<K: Clone + Eq + Hash, V> GpuObjectCache<K, V> {
+impl<K: Clone + Ord, V> GpuObjectCache<K, V> {
     pub fn new(capacity: usize) -> Self {
         Self {
             capacity: capacity.max(1),
@@ -199,7 +199,7 @@ impl<K: Clone + Eq + Hash, V> GpuObjectCache<K, V> {
             hits: 0,
             misses: 0,
             evictions: 0,
-            entries: HashMap::new(),
+            entries: BTreeMap::new(),
         }
     }
 
@@ -207,26 +207,25 @@ impl<K: Clone + Eq + Hash, V> GpuObjectCache<K, V> {
         self.tick += 1;
         if self.entries.contains_key(&key) {
             self.hits += 1;
-            let entry = self.entries.get_mut(&key).expect("cache hit exists");
-            entry.1 = self.tick;
-            return &entry.0;
+        } else {
+            self.misses += 1;
+            if self.entries.len() == self.capacity
+                && let Some(oldest) = self
+                    .entries
+                    .iter()
+                    .min_by_key(|(_, (_, tick))| tick)
+                    .map(|(key, _)| key.clone())
+            {
+                self.entries.remove(&oldest);
+                self.evictions += 1;
+            }
         }
-        self.misses += 1;
-        if self.entries.len() == self.capacity
-            && let Some(oldest) = self
-                .entries
-                .iter()
-                .min_by_key(|(_, (_, tick))| tick)
-                .map(|(key, _)| key.clone())
-        {
-            self.entries.remove(&oldest);
-            self.evictions += 1;
-        }
-        &self
+        let entry = self
             .entries
             .entry(key)
-            .or_insert_with(|| (create(), self.tick))
-            .0
+            .or_insert_with(|| (create(), self.tick));
+        entry.1 = self.tick;
+        &entry.0
     }
 
     pub fn invalidate(&mut self, key: &K) -> bool {
@@ -253,22 +252,25 @@ mod tests {
     use super::*;
     use crate::TextureFormat;
 
-    fn texture(width: u32) -> ResourceDescriptor {
-        ResourceDescriptor {
-            width,
-            height: 1,
-            format: TextureFormat::Rgba8Unorm,
-            samples: 1,
-            transient: true,
+    impl ResourceDescriptor {
+        fn pool_fixture(width: u32) -> ResourceDescriptor {
+            ResourceDescriptor {
+                width,
+                height: 1,
+                format: TextureFormat::Rgba8Unorm,
+                samples: 1,
+                transient: true,
+            }
         }
     }
-
     #[test]
     fn reuses_matching_released_resources() {
         let mut pool = ResourcePool::new(1024);
-        let first = pool.acquire_with(texture(16), |_| "first".to_owned());
+        let first = pool.acquire_with(ResourceDescriptor::pool_fixture(16), |_| "first".to_owned());
         assert!(pool.release(first));
-        let second = pool.acquire_with(texture(16), |_| "second".to_owned());
+        let second = pool.acquire_with(ResourceDescriptor::pool_fixture(16), |_| {
+            "second".to_owned()
+        });
         assert_eq!(first, second);
         assert_eq!(pool.get(second).map(String::as_str), Some("first"));
         assert_eq!(pool.statistics().hits, 1);
@@ -277,8 +279,8 @@ mod tests {
     #[test]
     fn evicts_oldest_available_resources_to_budget() {
         let mut pool = ResourcePool::new(64);
-        let first = pool.acquire_with(texture(16), |_| 1);
-        let second = pool.acquire_with(texture(16), |_| 2);
+        let first = pool.acquire_with(ResourceDescriptor::pool_fixture(16), |_| 1);
+        let second = pool.acquire_with(ResourceDescriptor::pool_fixture(16), |_| 2);
         assert!(pool.release(first));
         assert!(pool.release(second));
         pool.set_budget(64);
