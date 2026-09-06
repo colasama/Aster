@@ -29,6 +29,30 @@ afterEach(() => {
 });
 
 describe("audio footage importer", () => {
+  it("centers fitted visual footage in its source space", () => {
+    const composition = createBlankProject().compositions[0];
+    const source = {
+      id: crypto.randomUUID(),
+      kind: "still" as const,
+      name: "plate.png",
+      mimeType: "image/png",
+      contentIdentity: "test:plate",
+      dataUrl: "data:image/png;base64,AA==",
+      width: 3840,
+      height: 2160,
+      interpretation: { alpha: "straight" as const, colorSpace: "srgb" as const },
+    };
+
+    const layer = createMediaLayerForSource(source, composition, 0);
+
+    expect(layer.size).toEqual([1920, 1080]);
+    expect(layer.transform.anchor).toMatchObject([
+      { mode: "static", value: 960 },
+      { mode: "static", value: 540 },
+      { mode: "static", value: 0 },
+    ]);
+  });
+
   it("creates another independent audio layer from an existing source", () => {
     const composition = createBlankProject().compositions[0];
     const source = {

@@ -564,7 +564,7 @@ mod tests {
         fs::write(&original, bytes).expect("write original media");
         let identity = test_fnv64_identity(bytes);
         let project = json!({
-            "schemaVersion": 9,
+            "schemaVersion": 10,
             "activeCompositionId": "main",
             "compositions": [{ "id": "main", "layers": [] }],
             "mediaImports": {

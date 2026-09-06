@@ -1,6 +1,6 @@
 import { createLayerForComposition } from "../core/layer-factory";
 import type { Composition, FootageSource, Layer } from "../core/types";
-import { createId, staticValue } from "../core/types";
+import { createId, setLayerSizeAndCenterAnchor, staticValue } from "../core/types";
 import { detectImageSequence, type ImageSequenceSelection } from "./image-sequence";
 import type { MissingSequenceFramePolicy } from "./image-sequence-runtime";
 import { mediaBytesIdentity, mediaTextIdentity } from "./media-import-identity";
@@ -302,7 +302,7 @@ function imageLayer(
   const layer = createLayerForComposition("image", composition, currentTime);
   layer.name = source.name;
   layer.sourceId = source.id;
-  layer.size = [width, height];
+  setLayerSizeAndCenterAnchor(layer, [width, height]);
   return layer;
 }
 

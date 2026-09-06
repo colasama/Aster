@@ -6,7 +6,7 @@ use uuid::Uuid;
 
 fn editor_project() -> Value {
     json!({
-        "schemaVersion": 9,
+        "schemaVersion": 10,
         "activeCompositionId": "main",
         "compositions": [{ "id": "main", "layers": [] }],
     })

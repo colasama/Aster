@@ -10,6 +10,7 @@ import {
 } from "react";
 import { getProperty, type Operation, type PropertyPath } from "../core/operations";
 import { evaluateWorldTransform, visibleLayersAtTime } from "../core/scene-evaluation";
+import { solidRenderSize } from "../core/solid-layer";
 import { evaluateAnimatable } from "../core/timeline";
 import {
   type Composition,
@@ -482,6 +483,7 @@ function buildControlMembers(
     .sort((left, right) => (selectionOrder.get(left.id) ?? 0) - (selectionOrder.get(right.id) ?? 0))
     .map((layer) => {
       const world = evaluateWorldTransform(layer, composition, time);
+      const size = solidRenderSize(layer);
       return {
         id: layer.id,
         layer,
@@ -491,7 +493,7 @@ function buildControlMembers(
           scale: [world.scale[0], world.scale[1]],
           rotation: world.rotation[2],
           anchor: [world.anchor[0], world.anchor[1]],
-          size: layer.size,
+          size,
         },
       };
     });
@@ -532,6 +534,7 @@ function buildSnapTargets(
     )
     .map((layer) => {
       const world = evaluateWorldTransform(layer, composition, time);
+      const size = solidRenderSize(layer);
       return {
         id: layer.id,
         ...viewportTransformBounds({
@@ -539,7 +542,7 @@ function buildSnapTargets(
           scale: [world.scale[0], world.scale[1]],
           rotation: world.rotation[2],
           anchor: [world.anchor[0], world.anchor[1]],
-          size: layer.size,
+          size,
         }),
       };
     });

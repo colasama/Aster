@@ -12,6 +12,7 @@ export const inspectorZh = {
   "inspector.lock.unlock": "解锁图层",
   "inspector.transform.title": "变换",
   "inspector.transform.reset": "重置变换",
+  "inspector.transform.anchorPoint": "锚点",
   "inspector.transform.position": "位置",
   "inspector.transform.rotation": "旋转",
   "inspector.transform.scale": "缩放",

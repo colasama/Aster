@@ -28,7 +28,7 @@ describe("render job builder", () => {
       frameRate: { numerator: 30_000, denominator: 1_001 },
       outputs: [{ kind: "pngSequence", fileNamePattern: "frame_[######].png" }],
     });
-    expect(JSON.parse(job.projectSnapshot)).toMatchObject({ id: project.id, schemaVersion: 9 });
+    expect(JSON.parse(job.projectSnapshot)).toMatchObject({ id: project.id, schemaVersion: 10 });
   });
 
   it("bounds a still to the current frame and rejects invalid H.264 dimensions", () => {
@@ -78,6 +78,6 @@ describe("render job builder", () => {
       currentTime: 0,
     });
     expect(job.projectSnapshot.endsWith("\n")).toBe(true);
-    expect(JSON.parse(job.projectSnapshot)).toMatchObject({ id: project.id, schemaVersion: 9 });
+    expect(JSON.parse(job.projectSnapshot)).toMatchObject({ id: project.id, schemaVersion: 10 });
   });
 });

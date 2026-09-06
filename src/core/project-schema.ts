@@ -7,7 +7,7 @@ import { sourceContentIdentity } from "./footage-source";
 import { assertParticleSettings } from "./particle-settings";
 import { migrateLegacyTextAnimator } from "./text-animator-migration";
 
-export const CURRENT_PROJECT_SCHEMA_VERSION = 9 as const;
+export const CURRENT_PROJECT_SCHEMA_VERSION = 10 as const;
 
 type ProjectDocument = Record<string, unknown>;
 type ProjectMigration = (document: ProjectDocument) => ProjectDocument;
@@ -313,6 +313,36 @@ const PROJECT_MIGRATIONS = new Map<number, ProjectMigration>([
         }
       }
       document.schemaVersion = 9;
+      return document;
+    },
+  ],
+  [
+    9,
+    (document) => {
+      const compositions = Array.isArray(document.compositions) ? document.compositions : [];
+      for (const compositionValue of compositions) {
+        if (!compositionValue || typeof compositionValue !== "object") continue;
+        const composition = compositionValue as Record<string, unknown>;
+        const layers = Array.isArray(composition.layers) ? composition.layers : [];
+        for (const layerValue of layers) {
+          if (!layerValue || typeof layerValue !== "object") continue;
+          const layer = layerValue as Record<string, unknown>;
+          if (!Array.isArray(layer.size) || layer.size.length !== 2) continue;
+          const transform =
+            layer.transform && typeof layer.transform === "object"
+              ? (layer.transform as Record<string, unknown>)
+              : undefined;
+          if (!transform) continue;
+          // Anchors existed in v9 UI math but the renderers still drew every source around
+          // position. Centering the newly authoritative anchor preserves those exact pixels.
+          transform.anchor = [
+            staticProperty(Math.max(0, finiteNumber(layer.size[0], 0)) * 0.5),
+            staticProperty(Math.max(0, finiteNumber(layer.size[1], 0)) * 0.5),
+            staticProperty(0),
+          ];
+        }
+      }
+      document.schemaVersion = 10;
       return document;
     },
   ],

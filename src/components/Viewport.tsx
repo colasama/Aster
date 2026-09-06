@@ -22,7 +22,12 @@ import {
   type RenderSessionLease,
 } from "../core/render-session-guard";
 import { evaluateWorldTransform } from "../core/scene-evaluation";
-import type { Composition, GpuDiagnostics, Project } from "../core/types";
+import {
+  type Composition,
+  type GpuDiagnostics,
+  type Project,
+  setLayerSizeAndCenterAnchor,
+} from "../core/types";
 import { isDesktopRuntime, onDisplayMetricsChanged } from "../desktop/api";
 import type { PlainMessageKey, Translate } from "../i18n/core";
 import { useI18n } from "../i18n/react";
@@ -686,13 +691,13 @@ export function Viewport() {
               value,
             })) as typeof layer.transform.position;
             if (state.activeTool === "ellipse") {
-              layer.size = [480, 480];
+              setLayerSizeAndCenterAnchor(layer, [480, 480]);
               if (layer.shape) layer.shape.kind = "ellipse";
             }
-            if (state.activeTool === "shape") layer.size = [720, 480];
+            if (state.activeTool === "shape") setLayerSizeAndCenterAnchor(layer, [720, 480]);
             if (state.activeTool === "pen") {
               layer.name = t("viewport.penPath");
-              layer.size = [760, 480];
+              setLayerSizeAndCenterAnchor(layer, [760, 480]);
               if (layer.shape) {
                 layer.shape.kind = "bezier";
                 layer.shape.strokeWidth = 12;

@@ -23,7 +23,7 @@ use zip::{CompressionMethod, ZipArchive, ZipWriter, write::SimpleFileOptions};
 
 pub const PROJECT_FILE: &str = "project.json";
 pub const AUTOSAVE_FILE: &str = "project.autosave.json";
-pub const EDITOR_SCHEMA_VERSION: u64 = 9;
+pub const EDITOR_SCHEMA_VERSION: u64 = 10;
 const MIN_EDITOR_SCHEMA_VERSION: u64 = 1;
 const MAX_PACKED_ENTRIES: usize = 4_096;
 const MAX_PACKED_BYTES: u64 = 2 * 1024 * 1024 * 1024;
@@ -457,7 +457,7 @@ mod tests {
 
     fn editor_project() -> Value {
         serde_json::json!({
-            "schemaVersion": 9,
+            "schemaVersion": 10,
             "id": Uuid::new_v4().to_string(),
             "name": "Editor roundtrip",
             "activeCompositionId": "main",
@@ -494,7 +494,7 @@ mod tests {
             save_editor_bundle(&directory, &legacy),
             Err(ProjectError::UnsupportedSchema {
                 found: 1,
-                supported: 9
+                supported: 10
             })
         ));
         let mut previous = editor_project();
@@ -509,7 +509,7 @@ mod tests {
             save_editor_bundle(&directory, &previous),
             Err(ProjectError::UnsupportedSchema {
                 found: 2,
-                supported: 9
+                supported: 10
             })
         ));
         let mut previous = editor_project();
@@ -524,7 +524,7 @@ mod tests {
             save_editor_bundle(&directory, &previous),
             Err(ProjectError::UnsupportedSchema {
                 found: 3,
-                supported: 9
+                supported: 10
             })
         ));
         let mut previous = editor_project();
@@ -539,10 +539,10 @@ mod tests {
             save_editor_bundle(&directory, &previous),
             Err(ProjectError::UnsupportedSchema {
                 found: 4,
-                supported: 9
+                supported: 10
             })
         ));
-        for version in [5, 6, 7] {
+        for version in [5, 6, 7, 8, 9] {
             let mut previous = editor_project();
             previous["schemaVersion"] = Value::from(version);
             fs::write(
@@ -555,7 +555,7 @@ mod tests {
                 save_editor_bundle(&directory, &previous),
                 Err(ProjectError::UnsupportedSchema {
                     found,
-                    supported: 9
+                    supported: 10
                 }) if found == version
             ));
         }

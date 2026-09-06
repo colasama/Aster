@@ -6,6 +6,7 @@ import {
   createTransform,
   type Layer,
   type Project,
+  setLayerSizeAndCenterAnchor,
   staticValue,
 } from "./types";
 
@@ -15,7 +16,7 @@ const DEMO_NORMAL_MAP =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAbSURBVBhXY2ho+P//UsOd/ww2DXf+N+y78x8AZ/0L3Ki6BEgAAAAASUVORK5CYII=";
 
 function layer(base: Pick<Layer, "name" | "kind" | "color" | "size"> & Partial<Layer>): Layer {
-  return {
+  const created: Layer = {
     id: createId(),
     parentId: undefined,
     visible: true,
@@ -30,6 +31,8 @@ function layer(base: Pick<Layer, "name" | "kind" | "color" | "size"> & Partial<L
     effects: [],
     ...base,
   };
+  setLayerSizeAndCenterAnchor(created, created.size);
+  return created;
 }
 
 export function createDemoProject(): Project {
@@ -269,7 +272,7 @@ export function createDemoProject(): Project {
     layers: [title, subtitle, ribbon, orb, materialStudy, particles, background, camera],
   };
   return {
-    schemaVersion: 9,
+    schemaVersion: 10,
     id: createId(),
     name: "Aster Launch",
     activeCompositionId: compositionId,
@@ -328,7 +331,7 @@ export function createBlankComposition(name = "Composition 1"): Composition {
 export function createBlankProject(): Project {
   const composition = createBlankComposition();
   return {
-    schemaVersion: 9,
+    schemaVersion: 10,
     id: createId(),
     name: "Untitled Project",
     activeCompositionId: composition.id,

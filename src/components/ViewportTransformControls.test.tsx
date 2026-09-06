@@ -3,7 +3,8 @@
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { activeComposition, createDemoProject } from "../core/project";
+import { createLayerForComposition } from "../core/layer-factory";
+import { activeComposition, createBlankProject, createDemoProject } from "../core/project";
 import { I18nProvider } from "../i18n/react";
 import type { EditorAction } from "../state/editor-store";
 import { ViewportTransformControls } from "./ViewportTransformControls";
@@ -54,6 +55,37 @@ afterEach(() => {
 });
 
 describe("ViewportTransformControls", () => {
+  it.each([
+    ["text", "360,410 1560,410 1560,670 360,670"],
+    ["shape", "600,180 1320,180 1320,900 600,900"],
+  ] as const)("aligns a newly created %s outline with its centered render quad", (kind, points) => {
+    const project = createBlankProject();
+    const composition = activeComposition(project);
+    const layer = createLayerForComposition(kind, composition);
+    composition.layers = [layer];
+    act(() =>
+      root.render(
+        <I18nProvider>
+          <ViewportTransformControls
+            activeTool="select"
+            composition={composition}
+            dispatch={vi.fn()}
+            onEditText={vi.fn()}
+            project={project}
+            selection={[layer.id]}
+            showGuides={false}
+            time={0}
+            zoom={1}
+          />
+        </I18nProvider>,
+      ),
+    );
+
+    expect(container.querySelector(".viewport-selection-outline")?.getAttribute("points")).toBe(
+      points,
+    );
+  });
+
   it("renders exact eight-handle controls and dispatches one keyboard transaction", () => {
     const project = createDemoProject();
     const composition = activeComposition(project);
@@ -92,6 +124,74 @@ describe("ViewportTransformControls", () => {
       type: "operation",
       operations: [{ type: "setProperty", layerId: layer.id, path: "position.0" }],
     });
+  });
+
+  it("commits anchor and compensating position properties from the viewport handle", () => {
+    const project = createDemoProject();
+    const composition = activeComposition(project);
+    const layer = composition.layers.find(
+      (candidate) => candidate.kind === "shape" && !candidate.threeDimensional,
+    );
+    expect(layer).toBeDefined();
+    if (!layer) return;
+    const dispatch = vi.fn<(action: EditorAction) => void>();
+    act(() =>
+      root.render(
+        <I18nProvider>
+          <ViewportTransformControls
+            activeTool="select"
+            composition={composition}
+            dispatch={dispatch}
+            onEditText={vi.fn()}
+            project={project}
+            selection={[layer.id]}
+            showGuides={false}
+            time={0}
+            zoom={1}
+          />
+        </I18nProvider>,
+      ),
+    );
+    const handle = container.querySelector<SVGElement>(".viewport-anchor-handle");
+    expect(handle).not.toBeNull();
+    if (!handle) return;
+
+    act(() => {
+      handle.dispatchEvent(
+        new PointerEvent("pointerdown", {
+          bubbles: true,
+          button: 0,
+          clientX: 2740,
+          clientY: 950,
+          pointerId: 11,
+        }),
+      );
+      handle.dispatchEvent(
+        new PointerEvent("pointermove", {
+          bubbles: true,
+          clientX: 2800,
+          clientY: 990,
+          pointerId: 11,
+        }),
+      );
+      handle.dispatchEvent(
+        new PointerEvent("pointerup", {
+          bubbles: true,
+          clientX: 2800,
+          clientY: 990,
+          pointerId: 11,
+        }),
+      );
+    });
+
+    const committed = dispatch.mock.calls
+      .map(([action]) => action)
+      .find((action) => action.type === "operation");
+    expect(committed).toBeDefined();
+    if (committed?.type !== "operation") return;
+    expect(
+      committed.operations.flatMap((operation) => ("path" in operation ? [operation.path] : [])),
+    ).toEqual(expect.arrayContaining(["anchor.0", "anchor.1", "position.0", "position.1"]));
   });
 
   it("protects locked and invisible layers from direct manipulation", () => {

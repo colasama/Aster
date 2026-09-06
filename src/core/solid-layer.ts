@@ -1,4 +1,4 @@
-import type { Layer, SolidSettings } from "./types";
+import { type Layer, type SolidSettings, setLayerSizeAndCenterAnchor } from "./types";
 
 export const MAX_SOLID_DIMENSION = 30_000;
 
@@ -13,8 +13,13 @@ export function normalizeSolidSettings(settings: SolidSettings): SolidSettings {
 export function applySolidSettings(layer: Layer, settings: SolidSettings): void {
   if (layer.kind !== "solid") throw new Error("Solid settings require a solid layer");
   const normalized = normalizeSolidSettings(settings);
+  const center = [layer.size[0] * 0.5, layer.size[1] * 0.5, 0];
+  const wasCentered = layer.transform.anchor.every(
+    (axis, index) => axis.mode === "static" && axis.value === center[index],
+  );
   layer.solid = normalized;
-  layer.size = [normalized.width, normalized.height];
+  if (wasCentered) setLayerSizeAndCenterAnchor(layer, [normalized.width, normalized.height]);
+  else layer.size = [normalized.width, normalized.height];
   layer.color = [...normalized.color];
 }
 

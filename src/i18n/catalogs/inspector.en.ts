@@ -10,6 +10,7 @@ export const inspectorEn = {
   "inspector.lock.unlock": "Unlock layer",
   "inspector.transform.title": "Transform",
   "inspector.transform.reset": "Reset transform",
+  "inspector.transform.anchorPoint": "Anchor Point",
   "inspector.transform.position": "Position",
   "inspector.transform.rotation": "Rotation",
   "inspector.transform.scale": "Scale",

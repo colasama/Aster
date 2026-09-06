@@ -60,7 +60,7 @@ describe("project document boundary", () => {
     composition.layers = [nullLayer, solid];
 
     const roundtrip = validateProjectDocument(JSON.parse(serializeProject(project)));
-    expect(roundtrip.schemaVersion).toBe(9);
+    expect(roundtrip.schemaVersion).toBe(10);
     expect(roundtrip.compositions[0].layers).toEqual([nullLayer, solid]);
   });
 

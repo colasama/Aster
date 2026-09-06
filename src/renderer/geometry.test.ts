@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { createLayerForComposition } from "../core/layer-factory";
 import { createBlankProject } from "../core/project";
 import { flattenSceneLayers } from "../core/scene-evaluation";
+import { setLayerSizeAndCenterAnchor, staticValue } from "../core/types";
+import { localToComposition } from "../viewport/transform-interaction";
 import { buildSceneGeometry, FLOATS_PER_VERTEX, VERTEX_FLOAT_OFFSETS } from "./geometry";
 import { evaluateSceneCamera } from "./scene-camera";
 import { createDefaultBezierPath } from "./vector-path";
@@ -15,6 +17,7 @@ describe("GPU scene geometry", () => {
     if (!solid.solid) throw new Error("Expected solid settings");
     solid.solid = { width: 640, height: 320, color: [0.2, 0.4, 0.6, 0.8] };
     solid.size = [1, 1];
+    solid.transform.anchor = [staticValue(320), staticValue(160), staticValue(0)];
     solid.color = [1, 0, 0, 1];
     nullLayer.effects.push({
       id: "null-glow",
@@ -40,6 +43,36 @@ describe("GPU scene geometry", () => {
     const geometry3d = buildSceneGeometry(composition, flattenSceneLayers(composition, project, 0));
     expect(geometry3d.data[VERTEX_FLOAT_OFFSETS.material + 3]).toBe(1);
   });
+
+  it.each(["shape", "text"] as const)(
+    "keeps %s GPU corners aligned with the anchor-aware viewport box",
+    (kind) => {
+      const project = createBlankProject();
+      const composition = project.compositions[0];
+      const layer = createLayerForComposition(kind, composition);
+      setLayerSizeAndCenterAnchor(layer, [200, 100]);
+      layer.transform.position = [staticValue(400), staticValue(300), staticValue(0)];
+      layer.transform.scale = [staticValue(150), staticValue(50), staticValue(100)];
+      layer.transform.anchor = [staticValue(50), staticValue(25), staticValue(0)];
+      composition.layers = [layer];
+
+      const scene = flattenSceneLayers(composition, project, 0)[0];
+      const geometry = buildSceneGeometry(composition, [scene]);
+      const corner = localToComposition([0, 0], {
+        position: [scene.transform.position[0], scene.transform.position[1]],
+        scale: [scene.transform.scale[0], scene.transform.scale[1]],
+        rotation: scene.transform.rotation[2],
+        anchor: [scene.transform.anchor[0], scene.transform.anchor[1]],
+        size: layer.size,
+      });
+      expect(geometry.data[VERTEX_FLOAT_OFFSETS.position]).toBeCloseTo(
+        (corner[0] / composition.width) * 2 - 1,
+      );
+      expect(geometry.data[VERTEX_FLOAT_OFFSETS.position + 1]).toBeCloseTo(
+        1 - (corner[1] / composition.height) * 2,
+      );
+    },
+  );
 
   it("projects 3D rotation and depth into screen-space vertices", () => {
     const project = createBlankProject();
@@ -187,6 +220,7 @@ describe("GPU scene geometry", () => {
     const wrapper = createLayerForComposition("precomposition", root);
     wrapper.sourceCompositionId = nested.id;
     wrapper.threeDimensional = true;
+    wrapper.transform.anchor = [staticValue(160), staticValue(80), staticValue(0)];
     expect(wrapper.size).toEqual([720, 720]);
     root.layers = [wrapper];
     project.compositions.push(nested);

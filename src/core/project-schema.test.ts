@@ -30,7 +30,7 @@ describe("project schema migration gate", () => {
       schemaVersion: number;
       compositions: Array<{ layers: Array<Record<string, unknown>> }>;
     };
-    expect(migrated.schemaVersion).toBe(9);
+    expect(migrated.schemaVersion).toBe(10);
     expect(migrated.compositions[0].layers[0]).toMatchObject({
       kind: "generator",
       generator: { pluginId: "org.aster.builtin.particles", nodeType: "particle_system" },
@@ -50,14 +50,14 @@ describe("project schema migration gate", () => {
     );
   });
 
-  it("migrates v2 documents through v9 without rewriting source-free layers", () => {
+  it("migrates v2 documents through v10 without rewriting source-free layers", () => {
     const previous = createBlankProject() as unknown as Record<string, unknown>;
     previous.schemaVersion = 2;
     const migrated = cloneCurrentProjectDocument(previous) as {
       schemaVersion: number;
       compositions: Array<Record<string, unknown>>;
     };
-    expect(migrated.schemaVersion).toBe(9);
+    expect(migrated.schemaVersion).toBe(10);
     expect(migrated.compositions[0]).toMatchObject({
       motionBlur: {
         enabled: false,
@@ -96,7 +96,7 @@ describe("project schema migration gate", () => {
       sources: Array<Record<string, unknown>>;
       compositions: Array<{ layers: Array<Record<string, unknown>> }>;
     };
-    expect(migrated.schemaVersion).toBe(9);
+    expect(migrated.schemaVersion).toBe(10);
     expect(migrated.sources).toHaveLength(1);
     expect(migrated.compositions[0].layers.slice(-2).map((layer) => layer.sourceId)).toEqual([
       migrated.sources[0].id,
@@ -117,7 +117,7 @@ describe("project schema migration gate", () => {
       schemaVersion: number;
       compositions: Array<{ layers: Array<Record<string, unknown>> }>;
     };
-    expect(migrated.schemaVersion).toBe(9);
+    expect(migrated.schemaVersion).toBe(10);
     const audio = migrated.compositions[0].layers[0].audio as {
       levelsDb: [number, number];
       pan: number;
@@ -162,7 +162,7 @@ describe("project schema migration gate", () => {
       }
     ).position;
 
-    expect(migrated.schemaVersion).toBe(9);
+    expect(migrated.schemaVersion).toBe(10);
     expect(migratedCamera).toMatchObject({
       mode: "oneNode",
       zoom: { mode: "static", value: zoom },
@@ -189,7 +189,7 @@ describe("project schema migration gate", () => {
         layers: Array<Record<string, unknown>>;
       }>;
     };
-    expect(migrated.schemaVersion).toBe(9);
+    expect(migrated.schemaVersion).toBe(10);
     expect(migrated.compositions[0].motionBlur).toEqual({
       enabled: false,
       shutterAngle: 180,
@@ -226,7 +226,7 @@ describe("project schema migration gate", () => {
       schemaVersion: number;
       compositions: Array<{ layers: Array<Record<string, unknown>> }>;
     };
-    expect(migrated.schemaVersion).toBe(9);
+    expect(migrated.schemaVersion).toBe(10);
     const layers = migrated.compositions[0].layers;
     expect(layers[layers.length - 1]?.textAnimator).toMatchObject({
       enabled: true,
@@ -296,7 +296,7 @@ describe("project schema migration gate", () => {
       string,
       unknown
     >;
-    expect(migrated.schemaVersion).toBe(9);
+    expect(migrated.schemaVersion).toBe(10);
     expect(migratedCamera).toMatchObject({
       zoom: { mode: "static", value: 2400 },
       filmSize: { mode: "static", value: 48 },
@@ -311,7 +311,34 @@ describe("project schema migration gate", () => {
     expect(migratedCamera.fStop).toBeUndefined();
   });
 
-  it.each([10, undefined, 1.5])("rejects unsupported schema %s", (schemaVersion) => {
+  it("centers v9 anchors so enabling anchor-aware rendering preserves existing pixels", () => {
+    const previous = createBlankProject() as unknown as Record<string, unknown>;
+    previous.schemaVersion = 9;
+    const layer = (previous.compositions as Array<{ layers: Array<Record<string, unknown>> }>)[0]
+      .layers[0];
+    layer.size = [640, 360];
+    const transform = layer.transform as Record<string, unknown>;
+    transform.anchor = [
+      { mode: "static", value: 0 },
+      { mode: "static", value: 0 },
+      { mode: "static", value: 0 },
+    ];
+
+    const migrated = cloneCurrentProjectDocument(previous) as {
+      schemaVersion: number;
+      compositions: Array<{
+        layers: Array<{ transform: { anchor: Array<{ value: number }> } }>;
+      }>;
+    };
+    expect(migrated.schemaVersion).toBe(10);
+    expect(migrated.compositions[0].layers[0].transform.anchor).toEqual([
+      { mode: "static", value: 320 },
+      { mode: "static", value: 180 },
+      { mode: "static", value: 0 },
+    ]);
+  });
+
+  it.each([11, undefined, 1.5])("rejects unsupported schema %s", (schemaVersion) => {
     expect(() => cloneCurrentProjectDocument({ schemaVersion })).toThrow("Aster project schema");
   });
 });

@@ -57,7 +57,7 @@ export function hitTestSceneLayerAtPoint(
         scale: [transform.scale[0], transform.scale[1]],
         rotation: transform.rotation[2],
         anchor: [transform.anchor[0], transform.anchor[1]],
-        size: layer.size,
+        size: solidRenderSize(layer),
       },
       2,
     );
@@ -86,7 +86,12 @@ export function projectLayerBounds3d(
   const width = Math.abs((sourceWidth * transform.scale[0]) / 100);
   const height = Math.abs((sourceHeight * transform.scale[1]) / 100);
   const depth = layer.kind === "mesh" ? Math.min(width, height) * 0.68 : 0;
-  const localCorners: Vector3[] =
+  const anchorOffset: Vector3 = [
+    ((sourceWidth * 0.5 - transform.anchor[0]) * transform.scale[0]) / 100,
+    ((sourceHeight * 0.5 - transform.anchor[1]) * transform.scale[1]) / 100,
+    (-transform.anchor[2] * transform.scale[2]) / 100,
+  ];
+  const centeredCorners: Vector3[] =
     depth > 0
       ? [
           [-width / 2, -height / 2, -depth / 2],
@@ -104,7 +109,8 @@ export function projectLayerBounds3d(
           [-width / 2, height / 2, 0],
           [width / 2, height / 2, 0],
         ];
-  const projected = localCorners
+  const projected = centeredCorners
+    .map((point) => add3(point, anchorOffset))
     .map((point) => add3(transform.position, rotateVector3d(point, transform.rotation)))
     .map((point) =>
       projectCameraPoint(point, camera.pose, camera.projection, [

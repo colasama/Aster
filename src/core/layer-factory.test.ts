@@ -39,6 +39,13 @@ describe("scene-generator layer construction", () => {
 });
 
 describe("null and solid layer construction", () => {
+  it.each(["shape", "text"] as const)("centers a new %s layer anchor in source space", (kind) => {
+    const layer = createLayerForComposition(kind, createBlankComposition());
+    expect(
+      layer.transform.anchor.map((axis) => (axis.mode === "static" ? axis.value : NaN)),
+    ).toEqual([layer.size[0] * 0.5, layer.size[1] * 0.5, 0]);
+  });
+
   it("creates a selectable transform-only null without a render source", () => {
     const composition = createBlankComposition();
     const layer = createLayerForComposition("null", composition, 1.5);

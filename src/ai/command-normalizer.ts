@@ -6,7 +6,7 @@ import { validateProjectDocument } from "../core/project-file";
 import { applySolidSettings } from "../core/solid-layer";
 import { createDefaultTextAnimator, normalizeTextAnimatorSettings } from "../core/text-animator";
 import { migrateLegacyTextAnimator } from "../core/text-animator-migration";
-import { createId, type LayerKind, type Project } from "../core/types";
+import { createId, type LayerKind, type Project, setLayerSizeAndCenterAnchor } from "../core/types";
 import { createEffect, EFFECT_BY_TYPE } from "../effects/registry";
 import { getCommandDescriptors, type JsonSchema } from "./command-registry";
 import { normalizeExtendedAiCommand } from "./extended-command-normalizer";
@@ -115,7 +115,7 @@ function normalizeCommand(
         if (!source) throw new Error("Precomposition layers require another source composition");
         created.sourceCompositionId = source.id;
         created.name = typeof input.name === "string" ? created.name : source.name;
-        created.size = [source.width, source.height];
+        setLayerSizeAndCenterAnchor(created, [source.width, source.height]);
       }
       return { type: "addLayer", layer: created };
     }

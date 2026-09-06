@@ -1,5 +1,6 @@
 import type { Operation, PropertyPath } from "./operations";
 import { evaluateWorldTransform } from "./scene-evaluation";
+import { solidRenderSize } from "./solid-layer";
 import type { Animatable, Composition, Id, Layer } from "./types";
 
 export interface CompositionCropPlan {
@@ -67,14 +68,15 @@ function isCropBoundsLayer(layer: Layer): boolean {
 
 function layerBounds(layer: Layer, composition: Composition, time: number) {
   const transform = evaluateWorldTransform(layer, composition, time);
+  const size = solidRenderSize(layer);
   const radians = (transform.rotation[2] * Math.PI) / 180;
   const cosine = Math.cos(radians);
   const sine = Math.sin(radians);
   const corners = [
     [0, 0],
-    [layer.size[0], 0],
-    [layer.size[0], layer.size[1]],
-    [0, layer.size[1]],
+    [size[0], 0],
+    [size[0], size[1]],
+    [0, size[1]],
   ].map(([x = 0, y = 0]) => {
     const scaledX = (x - transform.anchor[0]) * (transform.scale[0] / 100);
     const scaledY = (y - transform.anchor[1]) * (transform.scale[1] / 100);

@@ -1,4 +1,4 @@
-# Aster project format v9
+# Aster project format v10
 
 The development editor currently exchanges a readable JSON document named `*.aster.json`. The Rust
 bundle layer stores the same versioned domain model inside an atomically replaced project path. Cache,
@@ -8,7 +8,7 @@ proxy, and preview data are deliberately excluded.
 
 ```json
 {
-  "schemaVersion": 9,
+  "schemaVersion": 10,
   "id": "stable-uuid",
   "name": "Project name",
   "activeCompositionId": "stable-uuid",
@@ -64,7 +64,7 @@ selected stream index, channel count, and sample rate from FFprobe. Importers im
 
 ## Recoverable project media
 
-SVG, PSD, image-sequence, still, video, and audio import state is runtime-owned, but version 9 project
+SVG, PSD, image-sequence, still, video, and audio import state is runtime-owned, but version 10 project
 documents may carry a bounded `mediaImports` sidecar that can recreate it. Entries map stable source
 IDs to a deduplicated payload table. SVG payloads retain sanitized vector markup for
 resolution-independent rerasterization. Every PSD layer stores only its import mode and stable layer
@@ -185,10 +185,13 @@ and [Advanced 3D depth-of-field controls](https://helpx.adobe.com/after-effects/
   Zoom, film size, and AE Aperture pixels are authoritative; focal length and f-stop are derived at
   the requested evaluation time. Aperture conversion uses Adobe's 72-dpi convention
   (`focalLengthMm / fStop × 72 / 25.4`), locking the 50 mm f/5.6 baseline to 25.31 px.
+  The v9 → v10 migration centers every layer anchor before the GPU and Canvas renderers begin
+  applying anchor offsets. This preserves legacy pixels while making preview outlines, hit testing,
+  inline text editing, direct manipulation, and rendered geometry share one local transform.
   Older, future, missing, or fractional versions fail
   before partially applying the document.
-- The native bundle boundary accepts v1 through v9 on read so the renderer can run migrations, but
-  new primary saves and autosaves must already be validated v9 documents.
+- The native bundle boundary accepts v1 through v10 on read so the renderer can run migrations, but
+  new primary saves and autosaves must already be validated v10 documents.
 - Every future historical transform must preserve the source document, set exactly the next integer
   version, and gain a compatibility fixture before the current schema version increases.
 - Unknown effect types and parameters must be preserved and disabled when execution is unavailable.

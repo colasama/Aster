@@ -22,6 +22,7 @@ import { evaluateLayerSourceTime } from "../core/layer-time";
 import { getProperty, type PropertyPath } from "../core/operations";
 import { activeComposition } from "../core/project";
 import { propertyValueOperationAtTime } from "../core/property-edit-operation";
+import { solidRenderSize } from "../core/solid-layer";
 import { evaluateAnimatable, evaluateEffectParameter } from "../core/timeline";
 import { type BlendMode, createId, type Effect } from "../core/types";
 import { parseCubeLutFile } from "../effects/cube-lut";
@@ -47,6 +48,11 @@ import { SolidControls } from "./SolidControls";
 import { TextControls } from "./TextControls";
 
 const fields: { labelKey: PlainMessageKey; paths: PropertyPath[]; suffix: string }[] = [
+  {
+    labelKey: "inspector.transform.anchorPoint",
+    paths: ["anchor.0", "anchor.1", "anchor.2"],
+    suffix: "px",
+  },
   {
     labelKey: "inspector.transform.position",
     paths: ["position.0", "position.1", "position.2"],
@@ -110,7 +116,11 @@ export function Inspector() {
   };
   const resetTransform = () => {
     if (!layer || layer.locked || isAdjustment) return;
+    const [sourceWidth, sourceHeight] = solidRenderSize(layer);
     const defaults: [PropertyPath, number][] = [
+      ["anchor.0", sourceWidth * 0.5],
+      ["anchor.1", sourceHeight * 0.5],
+      ["anchor.2", 0],
       ["position.0", composition.width / 2],
       ["position.1", composition.height / 2],
       ["position.2", 0],
@@ -130,6 +140,8 @@ export function Inspector() {
     });
   };
   const propertyDefault = (path: PropertyPath): number => {
+    if (path === "anchor.0") return layer ? solidRenderSize(layer)[0] * 0.5 : 0;
+    if (path === "anchor.1") return layer ? solidRenderSize(layer)[1] * 0.5 : 0;
     if (path === "position.0") return composition.width / 2;
     if (path === "position.1") return composition.height / 2;
     if (path.startsWith("scale.") || path === "opacity") return 100;

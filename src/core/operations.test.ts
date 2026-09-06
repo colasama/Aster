@@ -176,6 +176,11 @@ describe("structured project operations", () => {
     const project = createBlankProject();
     const composition = activeComposition(project);
     const solid = createLayerForComposition("solid", composition);
+    solid.transform.anchor[0] = {
+      mode: "animated",
+      keyframes: [{ id: "custom-anchor", time: 0, value: 123, interpolation: "linear" }],
+    };
+    const customAnchor = structuredClone(solid.transform.anchor);
     composition.layers = [solid];
     const updated = applyOperations(project, [
       {
@@ -189,10 +194,12 @@ describe("structured project operations", () => {
       size: [30_000, 1],
       color: [0, 0.25, 1, 0.5],
     });
+    expect(activeComposition(updated).layers[0].transform.anchor).toEqual(customAnchor);
     const recolored = applyOperations(updated, [
       { type: "setLayerColor", layerId: solid.id, color: [0.1, 0.2, 0.3, 0.4] },
     ]);
     expect(activeComposition(recolored).layers[0].solid?.color).toEqual([0.1, 0.2, 0.3, 0.4]);
+    expect(activeComposition(recolored).layers[0].transform.anchor).toEqual(customAnchor);
   });
 
   it("adds strict adjustment layers and rejects source-layer mutations", () => {

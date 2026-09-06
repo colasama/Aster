@@ -137,8 +137,10 @@ export class CanvasFallbackRenderer {
         .join(" ")})`;
       const width = (resolvedSize[0] * transform.scale[0] * scale) / 100;
       const height = (resolvedSize[1] * transform.scale[1] * scale) / 100;
+      const anchorX = (transform.anchor[0] * transform.scale[0] * scale) / 100;
+      const anchorY = (transform.anchor[1] * transform.scale[1] * scale) / 100;
       if (layer.kind === "text") {
-        context.translate(-width / 2, -height / 2);
+        context.translate(-anchorX, -anchorY);
         drawTextLayer(
           context,
           layer,
@@ -147,8 +149,8 @@ export class CanvasFallbackRenderer {
           evaluateLayerSourceTime(layer, scene.localTime),
         );
       } else if (isDrawableMedia(media?.element))
-        context.drawImage(media.element, -width / 2, -height / 2, width, height);
-      else context.fillRect(-width / 2, -height / 2, width, height);
+        context.drawImage(media.element, -anchorX, -anchorY, width, height);
+      else context.fillRect(-anchorX, -anchorY, width, height);
       context.restore();
     }
     this.#sweepMedia(activeMedia);

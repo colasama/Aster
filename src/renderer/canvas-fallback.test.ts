@@ -2,7 +2,7 @@ import UTIF from "utif";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createLayerForComposition } from "../core/layer-factory";
 import { createBlankProject } from "../core/project";
-import type { FootageSource } from "../core/types";
+import { type FootageSource, setLayerSizeAndCenterAnchor, staticValue } from "../core/types";
 import { mediaImportRuntime } from "../importers/media-import-runtime";
 import { CanvasFallbackRenderer } from "./canvas-fallback";
 
@@ -35,6 +35,29 @@ afterEach(() => {
 });
 
 describe("Canvas exact-frame resources", () => {
+  it("draws the source from the same evaluated anchor used by viewport controls", () => {
+    const project = createBlankProject();
+    const composition = project.compositions[0];
+    const layer = createLayerForComposition("shape", composition);
+    setLayerSizeAndCenterAnchor(layer, [200, 100]);
+    layer.transform.scale = [staticValue(150), staticValue(50), staticValue(100)];
+    layer.transform.anchor = [staticValue(50), staticValue(25), staticValue(0)];
+    composition.layers = [layer];
+    const canvas = new MockCanvas();
+    const renderer = new CanvasFallbackRenderer(canvas as unknown as HTMLCanvasElement);
+    renderer.resize(320, 180);
+
+    renderer.render(composition, 0, false, project);
+
+    const previewScale = 320 / composition.width;
+    expect(canvas.context.fillRect).toHaveBeenLastCalledWith(
+      -50 * 1.5 * previewScale,
+      -25 * 0.5 * previewScale,
+      200 * 1.5 * previewScale,
+      100 * 0.5 * previewScale,
+    );
+  });
+
   it.each(["still", "svg", "imageSequence"] as const)(
     "redraws the first %s frame after current-generation decoding",
     async (kind) => {
@@ -332,6 +355,9 @@ function canvasContext() {
     fillStyle: "",
     globalAlpha: 1,
     globalCompositeOperation: "source-over",
-  } as unknown as CanvasRenderingContext2D & { drawImage: ReturnType<typeof vi.fn> };
+  } as unknown as CanvasRenderingContext2D & {
+    drawImage: ReturnType<typeof vi.fn>;
+    fillRect: ReturnType<typeof vi.fn>;
+  };
 }
 // @vitest-environment happy-dom

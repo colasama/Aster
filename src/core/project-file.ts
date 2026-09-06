@@ -71,7 +71,7 @@ interface RecoveryStorage {
 export function validateProjectDocument(value: unknown): Project {
   const current = cloneCurrentProjectDocument(value);
   const project = requireObject(current, "project");
-  if (project.schemaVersion !== 9) throw new Error("Unsupported Aster project schema");
+  if (project.schemaVersion !== 10) throw new Error("Unsupported Aster project schema");
   requireString(project.id, "project.id");
   requireString(project.name, "project.name");
   const activeCompositionId = requireString(

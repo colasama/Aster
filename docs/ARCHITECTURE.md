@@ -139,6 +139,9 @@ progress, so position, scale, rotation, and text changes render immediately. Rel
 finishing text editing records one transaction from the gesture's original project snapshot, keeping
 undo deterministic without accumulating per-move history entries. Canvas resizes invalidate the
 preview, and renderer initialization always draws the current evaluated frame.
+Layer-local geometry uses a top-left source space with an explicit anchor. GPU vertices, Canvas 2D,
+selection outlines, picking, composition cropping, and inline text overlays all subtract the same
+evaluated anchor before scale and rotation; newly created and migrated layers start centered.
 
 Three-dimensional selection reuses the renderer's evaluated camera projection without a GPU
 readback. Screen-space bounds are projected from bounded render quads or mesh boxes; the selected

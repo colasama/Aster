@@ -4,8 +4,13 @@ import { readRasterImageMetadata } from "../importers/raster-image-decoder";
 import { DEFAULT_SOURCE_INTERPRETATION } from "./footage-source";
 import { ImporterRegistry, type SourceImporter } from "./importer-registry";
 import { createLayerForComposition } from "./layer-factory";
-import type { Composition, FootageSource, Layer } from "./types";
-import { createId } from "./types";
+import {
+  type Composition,
+  createId,
+  type FootageSource,
+  type Layer,
+  setLayerSizeAndCenterAnchor,
+} from "./types";
 
 const MAX_IMAGE_BYTES = 32 * 1024 * 1024;
 const MAX_VIDEO_BYTES = 96 * 1024 * 1024;
@@ -82,7 +87,10 @@ export function createMediaLayerForSource(
   layer.name = source.name.replace(/\.[^.]+$/, "") || layer.name;
   layer.sourceId = source.id;
   if ("width" in source && "height" in source)
-    layer.size = fitInside(source.width, source.height, composition.width, composition.height);
+    setLayerSizeAndCenterAnchor(
+      layer,
+      fitInside(source.width, source.height, composition.width, composition.height),
+    );
   if (source.kind === "video" || source.kind === "audio")
     layer.outPoint = Math.min(composition.duration, currentTime + source.duration);
   layer.color = [1, 1, 1, 1];

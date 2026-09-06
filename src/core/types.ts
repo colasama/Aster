@@ -345,7 +345,7 @@ export interface ProjectFolder {
 }
 
 export interface Project {
-  schemaVersion: 9;
+  schemaVersion: 10;
   id: Id;
   name: string;
   activeCompositionId: Id;
@@ -464,10 +464,19 @@ export const createId = (): Id => crypto.randomUUID();
 
 export const staticValue = (value: number): Animatable => ({ mode: "static", value });
 
-export const createTransform = (position: [number, number, number]): Transform => ({
+export const createTransform = (
+  position: [number, number, number],
+  anchor: [number, number, number] = [0, 0, 0],
+): Transform => ({
   position: position.map(staticValue) as Transform["position"],
   rotation: [staticValue(0), staticValue(0), staticValue(0)],
   scale: [staticValue(100), staticValue(100), staticValue(100)],
-  anchor: [staticValue(0), staticValue(0), staticValue(0)],
+  anchor: anchor.map(staticValue) as Transform["anchor"],
   opacity: staticValue(100),
 });
+
+/** Sets a layer's source size and places its transform anchor at the source center. */
+export function setLayerSizeAndCenterAnchor(layer: Layer, size: [number, number]): void {
+  layer.size = [...size];
+  layer.transform.anchor = [staticValue(size[0] * 0.5), staticValue(size[1] * 0.5), staticValue(0)];
+}

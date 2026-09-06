@@ -55,7 +55,7 @@ describe("AI command normalization", () => {
         {
           type: "addLayer",
           kind: "solid",
-          solid: { width: 1920, height: 1080, color: [0.1, 0.2, 0.3, 1] },
+          solid: { width: 1280, height: 720, color: [0.1, 0.2, 0.3, 1] },
         },
         { type: "addLayer", kind: "null" },
       ],
@@ -64,7 +64,7 @@ describe("AI command normalization", () => {
     );
     const solid = added.project.compositions[0].layers.find((layer) => layer.kind === "solid");
     const nullLayer = added.project.compositions[0].layers.find((layer) => layer.kind === "null");
-    expect(solid?.solid).toEqual({ width: 1920, height: 1080, color: [0.1, 0.2, 0.3, 1] });
+    expect(solid?.solid).toEqual({ width: 1280, height: 720, color: [0.1, 0.2, 0.3, 1] });
     expect(nullLayer?.solid).toBeUndefined();
     if (!solid) throw new Error("Expected solid layer");
     const updated = normalizeAiCommands(
@@ -83,6 +83,13 @@ describe("AI command normalization", () => {
     ).toMatchObject({
       solid: { width: 800, height: 600, color: [0.8, 0.7, 0.6, 0.5] },
       size: [800, 600],
+      transform: {
+        anchor: [
+          { mode: "static", value: 400 },
+          { mode: "static", value: 300 },
+          { mode: "static", value: 0 },
+        ],
+      },
     });
   });
 

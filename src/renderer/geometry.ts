@@ -125,6 +125,11 @@ export function buildSceneGeometry(
       : solidRenderSize(layer);
     const width = (sourceSize[0] * transform.scale[0]) / 100;
     const height = (sourceSize[1] * transform.scale[1]) / 100;
+    const anchorOffset: readonly [number, number, number] = [
+      ((sourceSize[0] * 0.5 - transform.anchor[0]) * transform.scale[0]) / 100,
+      ((sourceSize[1] * 0.5 - transform.anchor[1]) * transform.scale[1]) / 100,
+      (-transform.anchor[2] * transform.scale[2]) / 100,
+    ];
     const mediaType = layer.kind === "video" ? 2 : 0;
     const inferredShapeKind =
       layer.shape?.kind ??
@@ -176,6 +181,7 @@ export function buildSceneGeometry(
           transform,
           width,
           height,
+          anchorOffset,
           color,
           material,
           shapeStyleColor,
@@ -193,9 +199,9 @@ export function buildSceneGeometry(
           const tangent = rotatePoint(1, 0, 0, transform.rotation);
           for (const [cornerX, cornerY, cornerZ, u, v] of cubeFace.corners) {
             const projected = projectVertex(
-              cornerX * width,
-              cornerY * height,
-              cornerZ * depth,
+              cornerX * width + anchorOffset[0],
+              cornerY * height + anchorOffset[1],
+              cornerZ * depth + anchorOffset[2],
               true,
               transform.position,
               transform.rotation,
@@ -228,6 +234,7 @@ export function buildSceneGeometry(
         transform,
         width,
         height,
+        anchorOffset,
         color,
         material,
         shapeStyleParameters,
@@ -241,9 +248,9 @@ export function buildSceneGeometry(
       const tangent = rotatePoint(1, 0, 0, transform.rotation);
       for (const [cornerX, cornerY, u, v] of QUAD_CORNERS) {
         const projected = projectVertex(
-          cornerX * width,
-          cornerY * height,
-          0,
+          cornerX * width + anchorOffset[0],
+          cornerY * height + anchorOffset[1],
+          anchorOffset[2],
           layer.threeDimensional,
           transform.position,
           transform.rotation,
@@ -286,6 +293,7 @@ function appendBezierPath(
   transform: EvaluatedTransform,
   width: number,
   height: number,
+  anchorOffset: readonly [number, number, number],
   fillColor: readonly [number, number, number, number],
   material: readonly [number, number, number, number],
   shapeStyleParameters: readonly [number, number, number, number],
@@ -308,9 +316,9 @@ function appendBezierPath(
     gradientParameters: readonly [number, number, number, number],
   ) => {
     const projected = projectVertex(
-      point[0] * width,
-      point[1] * height,
-      0,
+      point[0] * width + anchorOffset[0],
+      point[1] * height + anchorOffset[1],
+      anchorOffset[2],
       layer.threeDimensional,
       transform.position,
       transform.rotation,
@@ -384,6 +392,7 @@ function appendImportedMesh(
   transform: EvaluatedTransform,
   width: number,
   height: number,
+  anchorOffset: readonly [number, number, number],
   color: readonly [number, number, number, number],
   material: readonly [number, number, number, number],
   shapeStyleColor: readonly [number, number, number, number],
@@ -430,9 +439,9 @@ function appendImportedMesh(
       transform.rotation,
     );
     const projected = projectVertex(
-      localX,
-      localY,
-      localZ,
+      localX + anchorOffset[0],
+      localY + anchorOffset[1],
+      localZ + anchorOffset[2],
       true,
       transform.position,
       transform.rotation,

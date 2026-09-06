@@ -53,6 +53,18 @@ function createLayer(kind: LayerKind, composition: Composition, currentTime: num
           color: [0.3, 0.55, 1, 1] as const,
         }
       : undefined;
+  const size: [number, number] =
+    kind === "audio" || isCamera
+      ? [0, 0]
+      : solid
+        ? [solid.width, solid.height]
+        : isAdjustment
+          ? [composition.width, composition.height]
+          : isText
+            ? [1200, 260]
+            : kind === "null"
+              ? [100, 100]
+              : [720, 720];
   return {
     id: createId(),
     name: names[kind],
@@ -77,25 +89,15 @@ function createLayer(kind: LayerKind, composition: Composition, currentTime: num
           : kind === "null"
             ? [0, 0, 0, 0]
             : [0.3, 0.55, 1, 1],
-    size:
-      kind === "audio"
-        ? [0, 0]
-        : isCamera
-          ? [0, 0]
-          : solid
-            ? [solid.width, solid.height]
-            : isAdjustment
-              ? [composition.width, composition.height]
-              : isText
-                ? [1200, 260]
-                : kind === "null"
-                  ? [100, 100]
-                  : [720, 720],
+    size,
     transform: isAdjustment
       ? createCanonicalAdjustmentTransform(composition)
       : isCamera
         ? createDefaultCameraTransform(composition.width, composition.height)
-        : createTransform([composition.width / 2, composition.height / 2, 0]),
+        : createTransform(
+            [composition.width / 2, composition.height / 2, 0],
+            [size[0] * 0.5, size[1] * 0.5, 0],
+          ),
     effects: [],
     solid: solid ? { ...solid, color: [...solid.color] } : undefined,
     material:

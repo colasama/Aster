@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { planCompositionCrop } from "./composition-crop";
 import { applyOperations } from "./operations";
 import { createBlankProject } from "./project";
+import { setLayerSizeAndCenterAnchor } from "./types";
 
 describe("composition crop", () => {
   it("crops to rendered bounds and offsets full root-layer animation", () => {
@@ -9,7 +10,7 @@ describe("composition crop", () => {
     const composition = project.compositions[0];
     const layer = composition?.layers[0];
     if (!composition || !layer) throw new Error("Blank project must contain a layer");
-    layer.size = [100, 80];
+    setLayerSizeAndCenterAnchor(layer, [100, 80]);
     layer.transform.position[0] = {
       mode: "animated",
       keyframes: [
@@ -20,7 +21,7 @@ describe("composition crop", () => {
     layer.transform.position[1] = { mode: "static", value: 150 };
 
     const plan = planCompositionCrop(composition, [layer.id], 0);
-    expect(plan?.bounds).toEqual({ left: 200, top: 150, right: 300, bottom: 230 });
+    expect(plan?.bounds).toEqual({ left: 150, top: 110, right: 250, bottom: 190 });
     const cropped = applyOperations(project, [...(plan?.operations ?? [])]);
     const croppedComposition = cropped.compositions[0];
     const croppedLayer = croppedComposition?.layers[0];
@@ -28,11 +29,11 @@ describe("composition crop", () => {
     expect(croppedLayer?.transform.position[0]).toMatchObject({
       mode: "animated",
       keyframes: [
-        { id: "x-0", value: 0 },
-        { id: "x-1", value: 100 },
+        { id: "x-0", value: 50 },
+        { id: "x-1", value: 150 },
       ],
     });
-    expect(croppedLayer?.transform.position[1]).toEqual({ mode: "static", value: 0 });
+    expect(croppedLayer?.transform.position[1]).toEqual({ mode: "static", value: 40 });
   });
 
   it("rejects selections without a two-dimensional visual bound", () => {

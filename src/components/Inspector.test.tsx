@@ -56,6 +56,91 @@ afterEach(() => {
 });
 
 describe("time-addressed inspector property edits", () => {
+  it("edits Anchor Point as an animated Transform property with undo and redo", () => {
+    const container = document.createElement("div");
+    document.body.append(container);
+    const project = createBlankProject();
+    const composition = activeComposition(project);
+    const layer = createLayerForComposition("text", composition);
+    layer.transform.anchor[0] = {
+      mode: "animated",
+      keyframes: [
+        { id: "anchor-start", time: 0, value: 400, interpolation: "linear" },
+        { id: "anchor-end", time: 2, value: 800, interpolation: "linear" },
+      ],
+    };
+    composition.layers = [layer];
+    root = createRoot(container);
+    act(() =>
+      root?.render(
+        <I18nProvider>
+          <EditorProvider>
+            <LoadProject project={project} time={1} />
+            <Inspector />
+          </EditorProvider>
+        </I18nProvider>,
+      ),
+    );
+
+    const anchorX = container.querySelector<HTMLInputElement>('input[aria-label="Anchor Point X"]');
+    if (!anchorX) throw new Error("Expected Anchor Point X control");
+    change(anchorX, "650");
+
+    let edited = activeComposition(latestEditor?.state.project ?? project).layers[0].transform
+      .anchor[0];
+    expect(edited.mode).toBe("animated");
+    if (edited.mode !== "animated") throw new Error("Expected animated Anchor Point X");
+    expect(edited.keyframes).toHaveLength(3);
+    expect(evaluateAnimatable(edited, 1)).toBe(650);
+
+    act(() => latestEditor?.dispatch({ type: "undo" }));
+    edited = activeComposition(latestEditor?.state.project ?? project).layers[0].transform
+      .anchor[0];
+    expect(edited.mode === "animated" ? edited.keyframes : []).toHaveLength(2);
+    expect(evaluateAnimatable(edited, 1)).toBe(600);
+
+    act(() => latestEditor?.dispatch({ type: "redo" }));
+    edited = activeComposition(latestEditor?.state.project ?? project).layers[0].transform
+      .anchor[0];
+    expect(edited.mode === "animated" ? edited.keyframes : []).toHaveLength(3);
+    expect(evaluateAnimatable(edited, 1)).toBe(650);
+  });
+
+  it("resets Anchor Point to the rendered source center", () => {
+    const container = document.createElement("div");
+    document.body.append(container);
+    const project = createBlankProject();
+    const composition = activeComposition(project);
+    const layer = createLayerForComposition("shape", composition);
+    layer.size = [640, 360];
+    layer.transform.anchor = [
+      { mode: "static", value: 10 },
+      { mode: "static", value: 20 },
+      { mode: "static", value: 30 },
+    ];
+    composition.layers = [layer];
+    root = createRoot(container);
+    act(() =>
+      root?.render(
+        <I18nProvider>
+          <EditorProvider>
+            <LoadProject project={project} />
+            <Inspector />
+          </EditorProvider>
+        </I18nProvider>,
+      ),
+    );
+
+    act(() =>
+      container.querySelector<HTMLButtonElement>('button[aria-label="Reset transform"]')?.click(),
+    );
+
+    const resetLayer = activeComposition(latestEditor?.state.project ?? project).layers[0];
+    expect(resetLayer.transform.anchor.map((property) => evaluateAnimatable(property, 0))).toEqual([
+      320, 180, 0,
+    ]);
+  });
+
   it("inserts an animated transform keyframe at current time and supports undo and redo", () => {
     const container = document.createElement("div");
     document.body.append(container);

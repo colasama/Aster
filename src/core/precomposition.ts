@@ -5,7 +5,14 @@ import {
   assertProjectRenderBoundaries,
   NESTED_ADJUSTMENT_ERROR,
 } from "./project-render-boundaries";
-import type { Animatable, Composition, Id, Layer, Project } from "./types";
+import {
+  type Animatable,
+  type Composition,
+  type Id,
+  type Layer,
+  type Project,
+  setLayerSizeAndCenterAnchor,
+} from "./types";
 
 export interface PrecompositionPlan {
   selectedIds: Id[];
@@ -70,7 +77,7 @@ export function planPrecomposition(
   wrapper.threeDimensional = selected.some(
     (layer) => layer.kind === "adjustment" || layer.kind === "generator",
   );
-  wrapper.size = [source.width, source.height];
+  setLayerSizeAndCenterAnchor(wrapper, [source.width, source.height]);
   wrapper.inPoint = start;
   wrapper.outPoint = end;
   // The wrapper modulates the sampled surface, so generated precompositions
