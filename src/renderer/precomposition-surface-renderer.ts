@@ -519,7 +519,13 @@ export class PrecompositionSurfaceRenderer {
     const stack = planSceneRenderStack(sceneLayers, geometry.batches);
     let pass: GPURenderPassEncoder | undefined = this.#beginPass(encoder, entry, composition);
     const activeEffects = new Set<string>();
+    let clearDepth = false;
     for (const item of stack) {
+      if (item.clearDepth) {
+        pass?.end();
+        pass = undefined;
+        clearDepth = true;
+      }
       if (item.kind === "generator") {
         const generator = generatorByInstance.get(item.scene.instanceId);
         if (!generator) continue;
@@ -538,7 +544,8 @@ export class PrecompositionSurfaceRenderer {
           );
           continue;
         }
-        pass ??= this.#resumePass(encoder, entry);
+        pass ??= this.#resumePass(encoder, entry, clearDepth);
+        clearDepth = false;
         this.#sceneGenerators?.draw(pass, generator);
         continue;
       }
@@ -573,7 +580,8 @@ export class PrecompositionSurfaceRenderer {
         );
         continue;
       }
-      pass ??= this.#resumePass(encoder, entry);
+      pass ??= this.#resumePass(encoder, entry, clearDepth);
+      clearDepth = false;
       this.#drawBatch(pass, entry, batch);
     }
     pass?.end();
@@ -609,13 +617,18 @@ export class PrecompositionSurfaceRenderer {
     });
   }
 
-  #resumePass(encoder: GPUCommandEncoder, entry: SurfaceEntry): GPURenderPassEncoder {
+  #resumePass(
+    encoder: GPUCommandEncoder,
+    entry: SurfaceEntry,
+    clearDepth: boolean,
+  ): GPURenderPassEncoder {
     return encoder.beginRenderPass({
       label: "Resume isolated precomposition stack",
       colorAttachments: [{ view: entry.color.createView(), loadOp: "load", storeOp: "store" }],
       depthStencilAttachment: {
         view: entry.depth.createView(),
-        depthLoadOp: "load",
+        depthClearValue: 1,
+        depthLoadOp: clearDepth ? "clear" : "load",
         depthStoreOp: "store",
       },
     });

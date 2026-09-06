@@ -21,6 +21,43 @@ import type { SceneGeneratorHost } from "./scene-generator-host";
 describe("GPU precomposition surfaces", () => {
   afterEach(() => vi.unstubAllGlobals());
 
+  it("loads color and clears depth when a 2D overlay follows nested 3D geometry", () => {
+    installGpuConstants();
+    const device = mockDevice([], vi.fn());
+    const layout = device.createBindGroupLayout({ entries: [] });
+    const sampler = device.createSampler();
+    const renderer = new PrecompositionSurfaceRenderer(device, {
+      mediaTextures: new MediaTextureCache(device, layout, sampler, vi.fn()),
+      mediaLayout: layout,
+      mediaSampler: sampler,
+      lightingLayout: layout,
+      shapePipelines: blendPipelines(),
+      imagePipelines: blendPipelines(),
+    });
+    const project = createBlankProject();
+    const root = project.compositions[0];
+    const nested = structuredClone(root);
+    nested.id = crypto.randomUUID();
+    const geometry = createLayerForComposition("shape", nested);
+    geometry.threeDimensional = true;
+    nested.layers = [createLayerForComposition("solid", nested), geometry];
+    const wrapper = createLayerForComposition("precomposition", root);
+    wrapper.sourceCompositionId = nested.id;
+    wrapper.threeDimensional = true;
+    root.layers = [wrapper];
+    project.compositions.push(nested);
+    renderer.prepare(project, flattenSceneLayers(root, project, 0), false);
+    const encoder = mockEncoder([]);
+    const begin = vi.spyOn(encoder, "beginRenderPass");
+    renderer.encode(encoder);
+    const resumed = begin.mock.calls.find(
+      ([descriptor]) => descriptor.label === "Resume isolated precomposition stack",
+    )?.[0];
+    expect(resumed?.depthStencilAttachment).toMatchObject({ depthLoadOp: "clear" });
+    expect(Array.from(resumed?.colorAttachments ?? [])[0]).toMatchObject({ loadOp: "load" });
+    renderer.destroy();
+  });
+
   it("encodes child geometry and an isolated nested adjustment without CPU readback", () => {
     installGpuConstants();
     const events: string[] = [];

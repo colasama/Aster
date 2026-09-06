@@ -798,8 +798,14 @@ export class WebGpuRenderer {
     let fusionBarrierCount = 0;
     const drawnGenerators = new Set<string>();
     const activeEffectInstances = new Set<string>();
+    let clearSceneDepth = false;
     this.diagnostics.adjustmentLayerError = undefined;
     for (const item of renderStack) {
+      if (item.clearDepth) {
+        scenePass?.end();
+        scenePass = undefined;
+        clearSceneDepth = true;
+      }
       if (item.kind === "adjustment") {
         const { layer } = item.scene;
         if (!layer.effects.some((effect) => effect.enabled)) continue;
@@ -868,11 +874,13 @@ export class WebGpuRenderer {
             colorAttachments: [{ view: sceneView, loadOp: "load", storeOp: "store" }],
             depthStencilAttachment: {
               view: depthView,
-              depthLoadOp: "load",
+              depthClearValue: 1,
+              depthLoadOp: clearSceneDepth ? "clear" : "load",
               depthStoreOp: "store",
             },
           });
           scenePassCount += 1;
+          clearSceneDepth = false;
         }
         this.#sceneGenerators.draw(scenePass, generator);
         drawnGenerators.add(generator.instanceId);
@@ -905,11 +913,13 @@ export class WebGpuRenderer {
             colorAttachments: [{ view: sceneView, loadOp: "load", storeOp: "store" }],
             depthStencilAttachment: {
               view: depthView,
-              depthLoadOp: "load",
+              depthClearValue: 1,
+              depthLoadOp: clearSceneDepth ? "clear" : "load",
               depthStoreOp: "store",
             },
           });
           scenePassCount += 1;
+          clearSceneDepth = false;
         }
         this.#drawBatch(scenePass, batch, batch.layer.blendMode, composition.environment);
       }

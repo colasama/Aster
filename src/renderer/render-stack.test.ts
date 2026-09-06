@@ -7,6 +7,29 @@ import { buildSceneGeometry } from "./geometry";
 import { planSceneRenderStack } from "./render-stack";
 
 describe("scene render-stack planning", () => {
+  it("keeps adjacent 3D layers depth-tested and resets depth at a 2D overlay", () => {
+    const project = createBlankProject();
+    const composition = project.compositions[0];
+    const back = createLayerForComposition("shape", composition);
+    const front = createLayerForComposition("shape", composition);
+    back.threeDimensional = front.threeDimensional = true;
+    const overlay = createLayerForComposition("solid", composition);
+    const next3D = createLayerForComposition("shape", composition);
+    next3D.threeDimensional = true;
+    const title = createLayerForComposition("text", composition);
+    composition.layers = [title, next3D, overlay, front, back];
+    const scene = flattenSceneLayers(composition, project, 0);
+    const geometry = buildSceneGeometry(composition, scene);
+    const stack = planSceneRenderStack(scene, geometry.batches);
+    expect(stack.map((item) => item.clearDepth ?? false)).toEqual([
+      false,
+      false,
+      true,
+      false,
+      true,
+    ]);
+  });
+
   it("omits null layers and their effects from the GPU stack", () => {
     const project = createBlankProject();
     const composition = project.compositions[0];

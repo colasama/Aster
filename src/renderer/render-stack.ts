@@ -1,10 +1,11 @@
 import type { FlattenedSceneLayer } from "../core/scene-evaluation";
 import type { GeometryBatch } from "./geometry";
 
-export type SceneRenderItem =
+export type SceneRenderItem = (
   | { kind: "geometry"; batch: GeometryBatch }
   | { kind: "adjustment"; scene: FlattenedSceneLayer }
-  | { kind: "generator"; scene: FlattenedSceneLayer };
+  | { kind: "generator"; scene: FlattenedSceneLayer }
+) & { clearDepth?: true };
 
 /**
  * Routes the editor's top-first layer model into a bottom-first GPU render stack.
@@ -31,6 +32,14 @@ export function planSceneRenderStack(
     }
     const batch = geometryByInstance.get(scene.instanceId);
     if (batch) stack.push({ kind: "geometry", batch });
+  }
+  let previousWas3D = false;
+  for (const item of stack) {
+    const layer = item.kind === "geometry" ? item.batch.layer : item.scene.layer;
+    const is3D = layer.threeDimensional || layer.kind === "mesh";
+    // A 2D layer separates depth-sharing 3D groups and composites in stack order.
+    if (previousWas3D && !is3D) item.clearDepth = true;
+    previousWas3D = is3D;
   }
   return stack;
 }
