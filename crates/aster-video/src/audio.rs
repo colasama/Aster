@@ -55,6 +55,15 @@ impl AudioDecodeRequest {
     }
 
     fn output_byte_limit(self, limits: &crate::DecodeLimits) -> Result<usize, FfmpegError> {
+        if !limits.audio.max_audio_duration_seconds.is_finite()
+            || limits.audio.max_audio_duration_seconds <= 0.0
+            || !limits.audio.max_audio_end_seconds.is_finite()
+            || limits.audio.max_audio_end_seconds <= 0.0
+        {
+            return Err(FfmpegError::InvalidMetadata(
+                "audio time limits must be finite and positive".into(),
+            ));
+        }
         if !self.start_seconds.is_finite() || self.start_seconds < 0.0 {
             return Err(FfmpegError::InvalidMetadata(
                 "audio start time must be finite and non-negative".into(),

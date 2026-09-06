@@ -32,14 +32,16 @@ impl AtomicFile {
             .filter(|path| !path.as_os_str().is_empty())
             .unwrap_or_else(|| Path::new("."));
         fs::create_dir_all(parent)?;
-        let pending = Self {
-            temporary: parent.join(format!(".aster-{}.tmp", Uuid::new_v4())),
-            destination: destination.to_owned(),
-        };
+        let temporary = parent.join(format!(".aster-{}.tmp", Uuid::new_v4()));
         let file = File::options()
             .write(true)
             .create_new(true)
-            .open(&pending.temporary)?;
+            .open(&temporary)?;
+        // Ownership starts only after create_new succeeds; a collision belongs to another writer.
+        let pending = Self {
+            temporary,
+            destination: destination.to_owned(),
+        };
         Ok((pending, file))
     }
 

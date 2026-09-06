@@ -364,7 +364,7 @@ impl ExportLimits {
         &self,
         capacity: usize,
     ) -> Result<(ExportFrameSender, ExportFrameReceiver), ExportError> {
-        if capacity == 0 || capacity > self.max_frame_queue_capacity {
+        if capacity == 0 || capacity > self.max_frame_queue_capacity || self.frame_poll_ms == 0 {
             return Err(ExportError::InvalidRequest(
                 "frame queue capacity must be within the configured bounds".into(),
             ));
