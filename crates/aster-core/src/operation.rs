@@ -9,6 +9,17 @@ use crate::{Composition, Layer, Project, PropertyKey};
 #[derive(Clone, Debug, Deserialize, JsonSchema, PartialEq, Serialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum Operation {
+    RestoreComposition {
+        composition: Box<Composition>,
+        index: usize,
+        active_composition: Uuid,
+    },
+    RestoreLayer {
+        composition_id: Uuid,
+        layer: Box<Layer>,
+        index: usize,
+        children: Vec<Uuid>,
+    },
     AddComposition {
         composition: Box<Composition>,
     },
@@ -51,6 +62,61 @@ pub enum Operation {
 impl Operation {
     pub fn apply(&self, project: &mut Project) -> Result<Self, OperationError> {
         match self {
+            Self::RestoreComposition {
+                composition,
+                index,
+                active_composition,
+            } => {
+                if project.composition(composition.id).is_some() {
+                    return Err(OperationError::DuplicateId(composition.id));
+                }
+                if *index > project.compositions.len() {
+                    return Err(OperationError::InvalidInsertionIndex(*index));
+                }
+                if *active_composition != composition.id
+                    && project.composition(*active_composition).is_none()
+                {
+                    return Err(OperationError::CompositionNotFound(*active_composition));
+                }
+                project
+                    .compositions
+                    .insert(*index, composition.as_ref().clone());
+                project.active_composition = *active_composition;
+                Ok(Self::RemoveComposition {
+                    composition_id: composition.id,
+                })
+            }
+            Self::RestoreLayer {
+                composition_id,
+                layer,
+                index,
+                children,
+            } => {
+                let composition = project
+                    .composition_mut(*composition_id)
+                    .ok_or(OperationError::CompositionNotFound(*composition_id))?;
+                if composition.layer(layer.id).is_some() {
+                    return Err(OperationError::DuplicateId(layer.id));
+                }
+                if *index > composition.layers.len() {
+                    return Err(OperationError::InvalidInsertionIndex(*index));
+                }
+                for child in children {
+                    if composition.layer(*child).is_none() {
+                        return Err(OperationError::LayerNotFound(*child));
+                    }
+                }
+                for child in &mut composition.layers {
+                    if children.contains(&child.id) {
+                        child.parent = Some(layer.id);
+                    }
+                }
+                composition.layers.insert(*index, layer.as_ref().clone());
+                Ok(Self::RemoveLayer {
+                    composition_id: *composition_id,
+                    layer_id: layer.id,
+                })
+            }
             Self::AddComposition { composition } => {
                 if project.composition(composition.id).is_some() {
                     return Err(OperationError::DuplicateId(composition.id));
@@ -69,12 +135,15 @@ impl Operation {
                 if project.compositions.len() == 1 {
                     return Err(OperationError::CannotRemoveLastComposition);
                 }
+                let active_composition = project.active_composition;
                 let composition = project.compositions.remove(index);
                 if project.active_composition == *composition_id {
                     project.active_composition = project.compositions[0].id;
                 }
-                Ok(Self::AddComposition {
+                Ok(Self::RestoreComposition {
                     composition: Box::new(composition),
+                    index,
+                    active_composition,
                 })
             }
             Self::AddLayer {
@@ -106,14 +175,18 @@ impl Operation {
                     .position(|layer| layer.id == *layer_id)
                     .ok_or(OperationError::LayerNotFound(*layer_id))?;
                 let layer = composition.layers.remove(index);
+                let mut children = Vec::new();
                 for child in &mut composition.layers {
                     if child.parent == Some(*layer_id) {
+                        children.push(child.id);
                         child.parent = None;
                     }
                 }
-                Ok(Self::AddLayer {
+                Ok(Self::RestoreLayer {
                     composition_id: *composition_id,
                     layer: Box::new(layer),
+                    index,
+                    children,
                 })
             }
             Self::RenameLayer {
@@ -274,6 +347,8 @@ impl Operation {
 
 #[derive(Clone, Debug, Error, PartialEq)]
 pub enum OperationError {
+    #[error("restoration insertion index {0} is out of bounds")]
+    InvalidInsertionIndex(usize),
     #[error("composition {0} does not exist")]
     CompositionNotFound(Uuid),
     #[error("layer {0} does not exist")]
@@ -410,6 +485,44 @@ mod tests {
         project.compositions[0].layers = saved_layers;
         assert!(history.redo(&mut project)?);
         assert_eq!(project.compositions[0].layers[0].name, "Updated");
+        Ok(())
+    }
+    #[test]
+    fn undo_removal_restores_order_active_composition_and_parent_links()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let mut project = OperationFixture::project()?;
+        let composition_id = project.active_composition;
+        let parent = OperationFixture::layer()?;
+        let mut child = OperationFixture::layer()?;
+        child.parent = Some(parent.id);
+        project.compositions[0].layers = vec![parent.clone(), child];
+        let mut second = project.compositions[0].clone();
+        second.id = Uuid::new_v4();
+        project.compositions.push(second);
+        let before = project.clone();
+        let mut history = OperationHistory::default();
+        history.execute(
+            &mut project,
+            vec![Operation::RemoveLayer {
+                composition_id,
+                layer_id: parent.id,
+            }],
+        )?;
+        assert!(history.undo(&mut project)?);
+        assert_eq!(project, before);
+        assert!(history.redo(&mut project)?);
+        assert!(history.undo(&mut project)?);
+        assert_eq!(project, before);
+        history.execute(
+            &mut project,
+            vec![Operation::RemoveComposition { composition_id }],
+        )?;
+        assert_ne!(project.active_composition, composition_id);
+        assert!(history.undo(&mut project)?);
+        assert_eq!(project, before);
+        assert!(history.redo(&mut project)?);
+        assert!(history.undo(&mut project)?);
+        assert_eq!(project, before);
         Ok(())
     }
 }
