@@ -17,7 +17,7 @@ use std::{
     path::{Component, Path, PathBuf},
 };
 
-use aster_core::Project;
+use aster_types::Project;
 use serde_json::Value;
 use thiserror::Error;
 use uuid::Uuid;

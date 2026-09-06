@@ -1,5 +1,5 @@
-use aster_core::Composition;
 use aster_timeline::{FrameRate, Time};
+use aster_types::Composition;
 
 use super::*;
 

@@ -1,7 +1,7 @@
 use crate::{
     plugin_registry::PluginRegistryCatalog, plugins::PluginHost, project_storage::ProjectStorage,
 };
-use aster_core::Project;
+use aster_types::Project;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::BTreeSet,

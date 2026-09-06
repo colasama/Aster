@@ -1,3 +1,5 @@
+//! Shared project data and time-addressable property types.
+
 use std::collections::BTreeMap;
 
 use aster_timeline::{Animatable, FrameRate, Time};
@@ -206,4 +208,42 @@ pub struct Effect {
     pub name: String,
     pub enabled: bool,
     pub parameters: BTreeMap<String, f64>,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, JsonSchema, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PropertyKey {
+    PositionX,
+    PositionY,
+    PositionZ,
+    RotationX,
+    RotationY,
+    RotationZ,
+    ScaleX,
+    ScaleY,
+    ScaleZ,
+    AnchorX,
+    AnchorY,
+    AnchorZ,
+    Opacity,
+}
+
+impl Transform {
+    pub fn property_mut(&mut self, property: PropertyKey) -> &mut Animatable {
+        match property {
+            PropertyKey::PositionX => &mut self.position_x,
+            PropertyKey::PositionY => &mut self.position_y,
+            PropertyKey::PositionZ => &mut self.position_z,
+            PropertyKey::RotationX => &mut self.rotation_x,
+            PropertyKey::RotationY => &mut self.rotation_y,
+            PropertyKey::RotationZ => &mut self.rotation_z,
+            PropertyKey::ScaleX => &mut self.scale_x,
+            PropertyKey::ScaleY => &mut self.scale_y,
+            PropertyKey::ScaleZ => &mut self.scale_z,
+            PropertyKey::AnchorX => &mut self.anchor_x,
+            PropertyKey::AnchorY => &mut self.anchor_y,
+            PropertyKey::AnchorZ => &mut self.anchor_z,
+            PropertyKey::Opacity => &mut self.opacity,
+        }
+    }
 }

@@ -4,25 +4,7 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use uuid::Uuid;
 
-use crate::{Composition, Layer, Project, Transform};
-
-#[derive(Clone, Copy, Debug, Deserialize, JsonSchema, PartialEq, Serialize)]
-#[serde(rename_all = "snake_case")]
-pub enum PropertyKey {
-    PositionX,
-    PositionY,
-    PositionZ,
-    RotationX,
-    RotationY,
-    RotationZ,
-    ScaleX,
-    ScaleY,
-    ScaleZ,
-    AnchorX,
-    AnchorY,
-    AnchorZ,
-    Opacity,
-}
+use crate::{Composition, Layer, Project, PropertyKey};
 
 #[derive(Clone, Debug, Deserialize, JsonSchema, PartialEq, Serialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
@@ -139,7 +121,7 @@ impl Operation {
                 layer_id,
                 name,
             } => {
-                let layer = project.operation_layer_mut(*composition_id, *layer_id)?;
+                let layer = Self::operation_layer_mut(project, *composition_id, *layer_id)?;
                 let previous = std::mem::replace(&mut layer.name, name.clone());
                 Ok(Self::RenameLayer {
                     composition_id: *composition_id,
@@ -153,7 +135,7 @@ impl Operation {
                 property,
                 value,
             } => {
-                let layer = project.operation_layer_mut(*composition_id, *layer_id)?;
+                let layer = Self::operation_layer_mut(project, *composition_id, *layer_id)?;
                 let slot = layer.transform.property_mut(*property);
                 let previous = slot.clone();
                 *slot = Animatable::constant(*value);
@@ -170,7 +152,7 @@ impl Operation {
                 property,
                 keyframe,
             } => {
-                let layer = project.operation_layer_mut(*composition_id, *layer_id)?;
+                let layer = Self::operation_layer_mut(project, *composition_id, *layer_id)?;
                 let slot = layer.transform.property_mut(*property);
                 let previous = slot.clone();
                 slot.insert(keyframe.clone());
@@ -187,7 +169,7 @@ impl Operation {
                 property,
                 value,
             } => {
-                let layer = project.operation_layer_mut(*composition_id, *layer_id)?;
+                let layer = Self::operation_layer_mut(project, *composition_id, *layer_id)?;
                 let slot = layer.transform.property_mut(*property);
                 let previous = std::mem::replace(slot, value.clone());
                 Ok(Self::RestoreProperty {
@@ -276,36 +258,17 @@ impl Operation {
     }
 }
 
-impl Project {
+impl Operation {
     fn operation_layer_mut(
-        &mut self,
+        project: &mut Project,
         composition_id: Uuid,
         layer_id: Uuid,
     ) -> Result<&mut Layer, OperationError> {
-        self.composition_mut(composition_id)
+        project
+            .composition_mut(composition_id)
             .ok_or(OperationError::CompositionNotFound(composition_id))?
             .layer_mut(layer_id)
             .ok_or(OperationError::LayerNotFound(layer_id))
-    }
-}
-
-impl Transform {
-    fn property_mut(&mut self, property: PropertyKey) -> &mut Animatable {
-        match property {
-            PropertyKey::PositionX => &mut self.position_x,
-            PropertyKey::PositionY => &mut self.position_y,
-            PropertyKey::PositionZ => &mut self.position_z,
-            PropertyKey::RotationX => &mut self.rotation_x,
-            PropertyKey::RotationY => &mut self.rotation_y,
-            PropertyKey::RotationZ => &mut self.rotation_z,
-            PropertyKey::ScaleX => &mut self.scale_x,
-            PropertyKey::ScaleY => &mut self.scale_y,
-            PropertyKey::ScaleZ => &mut self.scale_z,
-            PropertyKey::AnchorX => &mut self.anchor_x,
-            PropertyKey::AnchorY => &mut self.anchor_y,
-            PropertyKey::AnchorZ => &mut self.anchor_z,
-            PropertyKey::Opacity => &mut self.opacity,
-        }
     }
 }
 
@@ -326,10 +289,11 @@ mod tests {
     use aster_timeline::{FrameRate, Time};
 
     use super::*;
-    use crate::{BlendMode, LayerKind};
+    use crate::{BlendMode, LayerKind, Transform};
 
-    impl Project {
-        fn fixture() -> Result<Project, aster_timeline::TimeError> {
+    struct OperationFixture;
+    impl OperationFixture {
+        fn project() -> Result<Project, aster_timeline::TimeError> {
             let composition_id = Uuid::new_v4();
             Ok(Project {
                 schema_version: Project::SCHEMA_VERSION,
@@ -350,8 +314,8 @@ mod tests {
         }
     }
 
-    impl Layer {
-        fn fixture() -> Result<Layer, aster_timeline::TimeError> {
+    impl OperationFixture {
+        fn layer() -> Result<Layer, aster_timeline::TimeError> {
             Ok(Layer {
                 id: Uuid::new_v4(),
                 name: "Title".into(),
@@ -373,9 +337,9 @@ mod tests {
 
     #[test]
     fn transaction_undo_and_redo_are_deterministic() -> Result<(), Box<dyn std::error::Error>> {
-        let mut project = Project::fixture()?;
+        let mut project = OperationFixture::project()?;
         let composition_id = project.active_composition;
-        let layer = Layer::fixture()?;
+        let layer = OperationFixture::layer()?;
         let mut history = OperationHistory::default();
         history.execute(
             &mut project,
@@ -395,10 +359,10 @@ mod tests {
     #[test]
     fn failed_batch_preserves_layer_order_parents_and_existing_history()
     -> Result<(), Box<dyn std::error::Error>> {
-        let mut project = Project::fixture()?;
+        let mut project = OperationFixture::project()?;
         let composition_id = project.active_composition;
-        let parent = Layer::fixture()?;
-        let mut child = Layer::fixture()?;
+        let parent = OperationFixture::layer()?;
+        let mut child = OperationFixture::layer()?;
         child.parent = Some(parent.id);
         project.compositions[0].layers = vec![parent.clone(), child];
         let before = project.clone();
