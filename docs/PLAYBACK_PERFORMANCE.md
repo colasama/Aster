@@ -13,3 +13,5 @@ An initial Chromium CPU profile on the 73-layer Chinese reconstruction (1280 x 7
 With explicit seek revisions and presentation independent of React commits, the same six-second run advanced about 5.9 seconds (the UI read preceded the final pause commit) and the final preview metric was about 55 FPS. React work is bounded and the profile contains substantially more idle time. These are workload-specific observations, not a guaranteed frame-rate floor; cold text/asset rasterization and individual expensive effects still require separate profiling.
 
 The playback hook regression tests exercise delayed UI acknowledgements, explicit seeks, exact pause time, work-area looping, cancellation, and per-frame presentation with bounded UI updates.
+
+Portable media hydration creates owned Blob URLs. The renderer's `connect-src` policy permits `blob:` so audio decoding and export snapshot capture can read those same bytes; allowing Blob media elements alone is insufficient for `fetch`.

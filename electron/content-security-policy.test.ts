@@ -12,7 +12,7 @@ function directiveSources(policy: string, name: string): string[] {
 }
 
 describe("renderer content security policy", () => {
-  it("allows authorized local assets and embedded material data to be fetched", async () => {
+  it("allows local assets, hydrated Blob footage, and embedded material data to be fetched", async () => {
     const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
     const html = await readFile(resolve(root, "index.html"), "utf8");
     const policy = html.match(/content="([^"]*connect-src[^"]*)"/)?.[1];
@@ -21,6 +21,7 @@ describe("renderer content security policy", () => {
     expect(directiveSources(policy ?? "", "connect-src")).toEqual([
       "'self'",
       "aster-asset:",
+      "blob:",
       "data:",
       "http://127.0.0.1:1420",
       "ws://127.0.0.1:1420",
