@@ -2,6 +2,7 @@
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { onPlaybackFrame } from "../core/playback-frame";
 import { createBlankProject } from "../core/project";
 import { usePlayback } from "./use-timeline-playback";
 
@@ -97,4 +98,19 @@ it("restarts at the work-area boundary once and cancels presentation on unmount"
   );
   await act(async () => root.unmount());
   expect(callbacks.size).toBe(0);
+});
+
+it("presents every frame while bounding expensive React updates", async () => {
+  const presented = vi.fn();
+  const unsubscribe = onPlaybackFrame(presented);
+  vi.spyOn(performance, "now").mockImplementation(() => mock.time * 1000);
+  try {
+    await render();
+    for (let i = 1; i <= 60; i++) await frame(i / 60);
+    expect(presented).toHaveBeenCalledTimes(60);
+    expect(mock.dispatch.mock.calls.length).toBeLessThanOrEqual(11);
+    expect(presented).toHaveBeenLastCalledWith({ compositionId: composition.id, time: 1 });
+  } finally {
+    unsubscribe();
+  }
 });

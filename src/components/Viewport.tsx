@@ -14,6 +14,7 @@ import { createDefaultEvaluatedCamera } from "../core/camera-settings";
 import { planCompositionCrop } from "../core/composition-crop";
 import { createLayerForComposition } from "../core/layer-factory";
 import { logger } from "../core/logger";
+import { onPlaybackFrame } from "../core/playback-frame";
 import { activeComposition } from "../core/project";
 import type { FrameRenderSessionOpenRequest } from "../core/render-export";
 import {
@@ -270,34 +271,41 @@ export function Viewport() {
     const renderer = rendererRef.current;
     if (!renderer) return;
     const pipeline = beautyPipelineRef.current;
-    const metrics =
-      bufferView === "beauty" && pipeline
-        ? pipeline.present(
-            createBeautyFrameRequest({
-              composition: previewComposition,
-              project: previewProject,
-              time: state.currentTime,
-              width: canvasRef.current?.width ?? 1,
-              height: canvasRef.current?.height ?? 1,
-            }),
-            state.selection[0],
-          )
-        : renderer.render(
-            previewComposition,
-            state.currentTime,
-            state.playing,
-            previewProject,
-            state.selection[0],
-          );
-    publishDiagnostics(renderer.diagnostics);
-    syncMirrorCanvas(canvasRef.current, mirrorCanvasRef.current);
-    const now = performance.now();
-    const firstPassBreakdown = Boolean(metrics.passTimings) && !hasGpuPassMetrics.current;
-    if (firstPassBreakdown) hasGpuPassMetrics.current = true;
-    if (now - lastMetricUpdate.current > 200 || firstPassBreakdown) {
-      lastMetricUpdate.current = now;
-      dispatch({ type: "setMetrics", metrics });
-    }
+    const renderAtTime = (time: number) => {
+      const metrics =
+        bufferView === "beauty" && pipeline
+          ? pipeline.present(
+              createBeautyFrameRequest({
+                composition: previewComposition,
+                project: previewProject,
+                time: time,
+                width: canvasRef.current?.width ?? 1,
+                height: canvasRef.current?.height ?? 1,
+              }),
+              state.selection[0],
+            )
+          : renderer.render(
+              previewComposition,
+              time,
+              state.playing,
+              previewProject,
+              state.selection[0],
+            );
+      publishDiagnostics(renderer.diagnostics);
+      syncMirrorCanvas(canvasRef.current, mirrorCanvasRef.current);
+      const now = performance.now();
+      const firstPassBreakdown = Boolean(metrics.passTimings) && !hasGpuPassMetrics.current;
+      if (firstPassBreakdown) hasGpuPassMetrics.current = true;
+      if (now - lastMetricUpdate.current > 200 || firstPassBreakdown) {
+        lastMetricUpdate.current = now;
+        dispatch({ type: "setMetrics", metrics });
+      }
+    };
+    if (!state.playing) renderAtTime(state.currentTime);
+    return onPlaybackFrame((frame) => {
+      if (frame.compositionId === previewComposition.id && !renderSessionGuardRef.current.active)
+        renderAtTime(frame.time);
+    });
   }, [
     previewComposition,
     previewProject,
@@ -787,7 +795,7 @@ export function Viewport() {
                 <span />
               </div>
             )}
-            {state.showLayerControls && !viewerReadOnly ? (
+            {state.showLayerControls && !state.playing && !viewerReadOnly ? (
               <>
                 <ViewportTransformControls
                   activeTool={state.activeTool}
@@ -825,6 +833,7 @@ export function Viewport() {
               />
             )}
             {state.showLayerControls &&
+              !state.playing &&
               !viewerReadOnly &&
               selectedLayer?.kind === "camera" &&
               selectedTransform && (

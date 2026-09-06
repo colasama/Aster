@@ -32,6 +32,7 @@ import {
   layerSupportsMotionBlur,
   motionBlurInterval,
 } from "../core/motion-blur";
+import { onPlaybackFrame } from "../core/playback-frame";
 import { planPrecomposition } from "../core/precomposition";
 import { activeComposition } from "../core/project";
 import { frameAt } from "../core/timeline";
@@ -221,6 +222,15 @@ export function Timeline() {
     workArea,
   };
   usePlayback(composition, workArea);
+  useEffect(
+    () =>
+      onPlaybackFrame((frame) => {
+        if (frame.compositionId !== composition.id) return;
+        const playhead = canvasRef.current?.querySelector<HTMLElement>(".playhead");
+        if (playhead) playhead.style.left = `${LABEL_WIDTH + frame.time * pixelsPerSecond}px`;
+      }),
+    [composition.id, pixelsPerSecond],
+  );
   const ticks = useMemo(
     () => Array.from({ length: Math.floor(composition.duration * 2) + 1 }, (_, index) => index / 2),
     [composition.duration],

@@ -1,11 +1,12 @@
 import { useEffect, useRef } from "react";
 import { sharedAudioPlaybackEngine } from "../core/audio-playback-engine";
 import { logger } from "../core/logger";
+import { publishPlaybackFrame } from "../core/playback-frame";
 import type { Composition } from "../core/types";
 import { useEditor } from "../state/editor-store";
 import type { TimelineWorkArea } from "./timeline-interactions";
 
-/** Explicit seek revisions keep delayed UI commits from restarting the audio clock. */
+/** UI values are sampled at 10 Hz; presentation and audio retain their own clocks. */
 export function usePlayback(composition: Composition, workArea: TimelineWorkArea) {
   const { state, dispatch } = useEditor();
   const latest = useRef(state);
@@ -20,6 +21,7 @@ export function usePlayback(composition: Composition, workArea: TimelineWorkArea
     let disposed = false;
     let seekRevision = latest.current.seekRevision;
     let presentedTime = initialTime;
+    let lastUiUpdate = -Infinity;
     let audioClock = false;
     let fallbackAnchorTime = initialTime;
     let fallbackAnchorHost = performance.now();
@@ -56,7 +58,12 @@ export function usePlayback(composition: Composition, workArea: TimelineWorkArea
             fallbackAnchorTime + (performance.now() - fallbackAnchorHost) / 1000,
           );
       presentedTime = predicted >= workArea.end - 1 / 240 ? workArea.start : predicted;
-      dispatch({ type: "setPlaybackTime", time: presentedTime });
+      publishPlaybackFrame({ compositionId: composition.id, time: presentedTime });
+      const now = performance.now();
+      if (now - lastUiUpdate >= 100 || presentedTime === workArea.start) {
+        lastUiUpdate = now;
+        dispatch({ type: "setPlaybackTime", time: presentedTime });
+      }
       if (presentedTime === workArea.start && predicted >= workArea.end - 1 / 240)
         await restart(workArea.start);
       if (!disposed) schedule();
