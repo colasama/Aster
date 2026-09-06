@@ -3,16 +3,15 @@ export interface PlaybackFrame {
   time: number;
 }
 
-const listeners = new Set<(frame: PlaybackFrame) => void>();
+const PLAYBACK_FRAME_EVENT = "aster:playback-frame";
 
-/** Presentation clock: GPU frames and playheads do not wait for a React commit. */
+/** Window delivery survives split bundles and hot replacements of the clock module. */
 export function publishPlaybackFrame(frame: PlaybackFrame): void {
-  for (const listener of listeners) listener(frame);
+  window.dispatchEvent(new CustomEvent<PlaybackFrame>(PLAYBACK_FRAME_EVENT, { detail: frame }));
 }
 
 export function onPlaybackFrame(listener: (frame: PlaybackFrame) => void): () => void {
-  listeners.add(listener);
-  return () => {
-    listeners.delete(listener);
-  };
+  const receive = (event: Event) => listener((event as CustomEvent<PlaybackFrame>).detail);
+  window.addEventListener(PLAYBACK_FRAME_EVENT, receive);
+  return () => window.removeEventListener(PLAYBACK_FRAME_EVENT, receive);
 }
