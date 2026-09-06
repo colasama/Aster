@@ -696,6 +696,12 @@
           },
           "name": { "type": "string", "minLength": 1, "maxLength": 256 },
           "text": { "type": "string", "maxLength": 20000 },
+          "size": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": { "type": "integer", "minimum": 1, "maximum": 16384 }
+          },
           "sourceCompositionId": { "$ref": "#/$defs/id" },
           "solid": { "$ref": "#/$defs/solidSettings" }
         }

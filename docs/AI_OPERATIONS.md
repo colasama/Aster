@@ -105,3 +105,4 @@ also receive reference-media, comparison, live import, save and render-queue too
 workspaces require explicit `commit_workspace`, which checks the current live revision and records
 one undoable transaction. `render_preview` supports bounded resolution, normalized crop and layer
 isolation for both Pi and external clients. See [External Automation](AUTOMATION.md).
+MCP `addLayer` accepts optional `[width, height]` integer `size` for text and shape layers (1–16384 px). Creation centers the anchor to match the requested bounds. Media, solid, camera, and adjustment dimensions retain their existing canonical rules.

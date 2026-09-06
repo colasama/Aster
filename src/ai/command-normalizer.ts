@@ -101,6 +101,11 @@ function normalizeCommand(
         kind === "generator"
           ? createParticleLayerForComposition(composition, finiteTime(currentTime))
           : createLayerForComposition(kind, composition, finiteTime(currentTime));
+      if (input.size !== undefined) {
+        if (created.kind !== "text" && created.kind !== "shape")
+          throw new Error("Explicit layer size is supported for text and shape layers only");
+        setLayerSizeAndCenterAnchor(created, input.size as [number, number]);
+      }
       if (typeof input.name === "string") created.name = input.name.trim().slice(0, 256);
       if (typeof input.text === "string" && created.kind === "text") created.text = input.text;
       if (created.kind === "solid" && input.solid)

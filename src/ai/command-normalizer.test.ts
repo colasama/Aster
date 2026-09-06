@@ -399,3 +399,27 @@ describe("AI command normalization", () => {
     ).toThrow("Effect keyframe does not exist");
   });
 });
+
+it("creates tightly sized text and shape layers with matching centered anchors", () => {
+  const project = createBlankProject();
+  const result = normalizeAiCommands(
+    [
+      { type: "addLayer", kind: "text", name: "Compact", text: "序章", size: [360, 220] },
+      { type: "addLayer", kind: "shape", name: "Ribbon", size: [1280, 720] },
+    ],
+    project,
+    0,
+  );
+  const text = result.project.compositions[0].layers.find((layer) => layer.name === "Compact");
+  expect(text?.size).toEqual([360, 220]);
+  expect(text?.transform.anchor.slice(0, 2)).toEqual([
+    { mode: "static", value: 180 },
+    { mode: "static", value: 110 },
+  ]);
+  expect(() =>
+    normalizeAiCommands([{ type: "addLayer", kind: "adjustment", size: [100, 100] }], project, 0),
+  ).toThrow("text and shape");
+  expect(() =>
+    normalizeAiCommands([{ type: "addLayer", kind: "text", size: [0, 100] }], project, 0),
+  ).toThrow();
+});
