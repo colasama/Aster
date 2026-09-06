@@ -17,6 +17,8 @@ pub struct BridgeOptions {
     app_data_dir: PathBuf,
     #[command(flatten)]
     bundle_limits: aster_project::BundleLimits,
+    #[command(flatten)]
+    media_limits: crate::project_media::MediaLimits,
 }
 
 #[derive(Serialize)]
@@ -134,6 +136,9 @@ impl BridgeOptions {
         fs::create_dir_all(&self.app_data_dir).map_err(|error| error.to_string())?;
         let mut runtime = BridgeRuntime {
             storage: ProjectStorage {
+                media: crate::project_media::ProjectMedia {
+                    limits: self.media_limits,
+                },
                 bundle_limits: self.bundle_limits,
             },
             plugins: PluginHost {

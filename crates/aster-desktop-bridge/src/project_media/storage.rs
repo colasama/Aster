@@ -1,3 +1,11 @@
+use super::{
+    media_file::{Fnv64State, MediaFiles},
+    validation::{
+        identity_byte_length, object_mut, required_string, safe_relative_path,
+        validate_expected_last_modified, validate_expected_size, validate_identity,
+        validate_maximum_size,
+    },
+};
 use base64::Engine;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -6,22 +14,20 @@ use std::{
     collections::BTreeMap,
     fs::{self, File},
     io::{BufReader, Read, Write},
-    path::{Component, Path, PathBuf},
+    path::{Path, PathBuf},
 };
-
-use super::validation::{object_mut, required_string, safe_relative_path};
-use super::{MAX_BUNDLE_MEDIA_BYTES, MAX_MEDIA_FILES, MAX_PORTABLE_BYTES};
 
 #[derive(Default)]
 pub(super) struct MediaBudget {
-    files: usize,
-    unique: BTreeMap<String, u64>,
+    pub(super) limits: super::MediaLimits,
+    pub(super) files: usize,
+    pub(super) unique: BTreeMap<String, u64>,
 }
 
 impl MediaBudget {
     fn charge(&mut self, identity: &str, bytes: u64) -> Result<(), String> {
         self.files = self.files.saturating_add(1);
-        if self.files > MAX_MEDIA_FILES {
+        if self.files > self.limits.max_media_files {
             return Err("project media import exceeds the file entry limit".to_owned());
         }
         self.unique.entry(identity.to_owned()).or_insert(bytes);
@@ -30,454 +36,186 @@ impl MediaBudget {
             .values()
             .try_fold(0_u64, |total, bytes| total.checked_add(*bytes))
             .ok_or_else(|| "project media import size overflowed".to_owned())?;
-        if total > MAX_BUNDLE_MEDIA_BYTES {
-            return Err("project media imports exceed 2 GiB".to_owned());
+        if total > self.limits.max_bundle_media_bytes {
+            return Err("project media imports exceed the configured byte limit".to_owned());
         }
         Ok(())
     }
 }
 
-#[allow(clippy::too_many_arguments)]
-pub(super) fn materialize_storage(
-    bundle: &Path,
-    storage: &mut Value,
-    extension: &str,
-    expected_identity: Option<&str>,
-    expected_sha256: Option<&str>,
-    expected_size: Option<u64>,
-    expected_last_modified: Option<u64>,
-    maximum_size: u64,
-    path: &str,
-    budget: &mut MediaBudget,
-) -> Result<(), String> {
-    let object = object_mut(storage, &format!("{path}.storage"))?;
-    if object.contains_key("runtimeUrl") {
-        return Err(format!("{path}.storage.runtimeUrl must not be persisted"));
-    }
-    object.remove("resolvedPath");
-    let kind = required_string(object, "kind", &format!("{path}.storage.kind"))?;
-    if kind == "relative" {
-        let relative = safe_relative_path(required_string(
-            object,
-            "relativePath",
-            &format!("{path}.storage.relativePath"),
-        )?)?;
-        let identity = required_string(
-            object,
-            "byteIdentity",
-            &format!("{path}.storage.byteIdentity"),
-        )?
-        .to_owned();
-        let source = secure_existing_bundle_file(bundle, &relative, path)?;
-        let metadata = fs::metadata(&source).map_err(|error| error.to_string())?;
-        validate_maximum_size(metadata.len(), maximum_size, path)?;
-        validate_expected_size(expected_size, metadata.len(), path)?;
-        let (actual, sha256) = file_identities(&source)?;
-        validate_identity(&identity, &actual, path)?;
+#[derive(Default)]
+pub(super) struct MediaPayload {
+    pub extension: String,
+    pub expected_identity: Option<String>,
+    pub expected_sha256: Option<String>,
+    pub expected_size: Option<u64>,
+    pub expected_last_modified: Option<u64>,
+    pub maximum_size: u64,
+    pub path: String,
+}
+
+impl MediaPayload {
+    pub(super) fn materialize(
+        &self,
+        bundle: &Path,
+        storage: &mut Value,
+        budget: &mut MediaBudget,
+    ) -> Result<(), String> {
+        let path = self.path.as_str();
+        let expected_identity = self.expected_identity.as_deref();
+        let expected_sha256 = self.expected_sha256.as_deref();
+        let expected_size = self.expected_size;
+        let maximum_size = self.maximum_size;
+        let files = MediaFiles {
+            root: bundle.to_owned(),
+        };
+        let extension = &self.extension;
+        let expected_last_modified = self.expected_last_modified;
+
+        let object = object_mut(storage, format!("{path}.storage"))?;
+        if object.contains_key("runtimeUrl") {
+            return Err(format!("{path}.storage.runtimeUrl must not be persisted"));
+        }
+        object.remove("resolvedPath");
+        let kind = required_string(object, "kind", format!("{path}.storage.kind"))?;
+        if kind == "relative" {
+            self.relative_file(&files, object, budget)?;
+            return Ok(());
+        }
+
+        let (source, owned_bytes, declared_identity, sha256_identity) = if kind == "inline" {
+            let identity = required_string(
+                object,
+                "byteIdentity",
+                format!("{path}.storage.byteIdentity"),
+            )?
+            .to_owned();
+            let declared_bytes = identity_byte_length(&identity)?;
+            validate_maximum_size(
+                declared_bytes,
+                maximum_size.min(budget.limits.max_portable_bytes),
+                path,
+            )?;
+            let encoded = object
+                .get("data")
+                .and_then(Value::as_str)
+                .ok_or_else(|| format!("{path}.storage.data must be a string"))?;
+            // Check encoded size before allocating the decoded payload. Metadata string limits do not apply to media.
+            let encoded_length = declared_bytes
+                .div_ceil(3)
+                .checked_mul(4)
+                .ok_or_else(|| format!("{path} encoded size overflowed"))?;
+            if encoded.len() as u64 != encoded_length {
+                return Err(format!(
+                    "{path}.storage.data length does not match its identity"
+                ));
+            }
+            let bytes = base64::engine::general_purpose::STANDARD
+                .decode(encoded)
+                .map_err(|_| format!("{path}.storage.data is invalid base64"))?;
+            if bytes.len() as u64 != declared_bytes {
+                return Err(format!(
+                    "{path} inline byte length does not match its identity"
+                ));
+            }
+            let actual = Fnv64State::bytes_identity(&bytes);
+            validate_identity(&identity, &actual, path)?;
+            let sha256 = format!("sha256:{:x}", Sha256::digest(&bytes));
+            (None, Some(bytes), actual, sha256)
+        } else if kind == "external" {
+            let external = PathBuf::from(required_string(
+                object,
+                "externalPath",
+                format!("{path}.storage.externalPath"),
+            )?)
+            .canonicalize()
+            .map_err(|_| format!("{path} external media file is missing"))?;
+            if !external.is_file() {
+                return Err(format!("{path} external media payload is not a file"));
+            }
+            let metadata = fs::metadata(&external).map_err(|error| error.to_string())?;
+            validate_maximum_size(metadata.len(), maximum_size, path)?;
+            if object.get("byteIdentity").is_none() {
+                validate_expected_last_modified(expected_last_modified, &metadata, path)?;
+            }
+            let (actual, sha256) = Fnv64State::file_identities(&external, maximum_size)?;
+            if let Some(identity) = object.get("byteIdentity").and_then(Value::as_str) {
+                validate_identity(identity, &actual, path)?;
+            }
+            (Some(external), None, actual, sha256)
+        } else {
+            return Err(format!("{path}.storage.kind is unsupported"));
+        };
+
         if let Some(expected) = expected_identity {
-            validate_identity(expected, &actual, path)?;
+            validate_identity(expected, &declared_identity, path)?;
         }
         if let Some(expected) = expected_sha256 {
-            validate_identity(expected, &sha256, path)?;
+            validate_identity(expected, &sha256_identity, path)?;
         }
-        budget.charge(&actual, metadata.len())?;
-        return Ok(());
-    }
+        let byte_length = identity_byte_length(&declared_identity)?;
+        validate_expected_size(expected_size, byte_length, path)?;
+        budget.charge(&declared_identity, byte_length)?;
 
-    let (source, owned_bytes, declared_identity, sha256_identity) = if kind == "inline" {
-        let identity = required_string(
-            object,
-            "byteIdentity",
-            &format!("{path}.storage.byteIdentity"),
-        )?
-        .to_owned();
-        let declared_bytes = identity_byte_length(&identity)?;
-        validate_maximum_size(declared_bytes, maximum_size.min(MAX_PORTABLE_BYTES), path)?;
-        let encoded = object
-            .get("data")
-            .and_then(Value::as_str)
-            .ok_or_else(|| format!("{path}.storage.data must be a string"))?;
-        // Check encoded size before allocating the decoded payload. Metadata string limits do not apply to media.
-        let encoded_length = declared_bytes.div_ceil(3) * 4;
-        if encoded.len() as u64 != encoded_length {
-            return Err(format!(
-                "{path}.storage.data length does not match its identity"
-            ));
+        let relative = MediaFiles::import_relative_path(&declared_identity, extension);
+        let destination = files.destination(&relative, path)?;
+        if destination.exists() {
+            let (existing, sha256) = Fnv64State::file_identities(&destination, maximum_size)?;
+            validate_identity(&declared_identity, &existing, path)?;
+            validate_identity(&sha256_identity, &sha256, path)?;
+        } else if let Some(bytes) = owned_bytes {
+            let (pending, mut file) = aster_project::AtomicFile::stage(&destination)
+                .map_err(|error| error.to_string())?;
+            file.write_all(&bytes).map_err(|error| error.to_string())?;
+            drop(file);
+            pending.publish(false).map_err(|error| error.to_string())?;
+        } else if let Some(source) = source {
+            let (pending, mut file) = aster_project::AtomicFile::stage(&destination)
+                .map_err(|error| error.to_string())?;
+            let mut reader = BufReader::new(File::open(source).map_err(|error| error.to_string())?)
+                .take(maximum_size.saturating_add(1));
+            let copied =
+                std::io::copy(&mut reader, &mut file).map_err(|error| error.to_string())?;
+            drop(file);
+            validate_maximum_size(copied, maximum_size, path)?;
+            let (actual, sha256) = Fnv64State::file_identities(&pending.temporary, maximum_size)?;
+            validate_identity(&declared_identity, &actual, path)?;
+            validate_identity(&sha256_identity, &sha256, path)?;
+            pending.publish(false).map_err(|error| error.to_string())?;
         }
-        let bytes = base64::engine::general_purpose::STANDARD
-            .decode(encoded)
-            .map_err(|_| format!("{path}.storage.data is invalid base64"))?;
-        if bytes.len() as u64 != declared_bytes {
-            return Err(format!(
-                "{path} inline byte length does not match its identity"
-            ));
-        }
-        let actual = fnv64_bytes_identity(&bytes);
-        validate_identity(&identity, &actual, path)?;
-        let sha256 = sha256_bytes_identity(&bytes);
-        (None, Some(bytes), actual, sha256)
-    } else if kind == "external" {
-        let external = PathBuf::from(required_string(
-            object,
-            "externalPath",
-            &format!("{path}.storage.externalPath"),
-        )?)
-        .canonicalize()
-        .map_err(|_| format!("{path} external media file is missing"))?;
-        if !external.is_file() {
-            return Err(format!("{path} external media payload is not a file"));
-        }
-        let metadata = fs::metadata(&external).map_err(|error| error.to_string())?;
-        validate_maximum_size(metadata.len(), maximum_size, path)?;
-        if object.get("byteIdentity").is_none() {
-            validate_expected_last_modified(expected_last_modified, &metadata, path)?;
-        }
-        let (actual, sha256) = file_identities(&external)?;
-        if let Some(identity) = object.get("byteIdentity").and_then(Value::as_str) {
-            validate_identity(identity, &actual, path)?;
-        }
-        (Some(external), None, actual, sha256)
-    } else {
-        return Err(format!("{path}.storage.kind is unsupported"));
-    };
-
-    if let Some(expected) = expected_identity {
-        validate_identity(expected, &declared_identity, path)?;
-    }
-    if let Some(expected) = expected_sha256 {
-        validate_identity(expected, &sha256_identity, path)?;
-    }
-    let byte_length = owned_bytes
-        .as_ref()
-        .map(|bytes| bytes.len() as u64)
-        .or_else(|| {
-            source
-                .as_ref()
-                .and_then(|path| fs::metadata(path).ok().map(|value| value.len()))
+        *storage = serde_json::to_value(RelativeStorage {
+            kind: RelativeStorageKind::Relative,
+            relative_path: MediaFiles::slash_path(&relative),
+            byte_identity: declared_identity,
         })
-        .ok_or_else(|| format!("{path} media payload size is unavailable"))?;
-    validate_expected_size(expected_size, byte_length, path)?;
-    budget.charge(&declared_identity, byte_length)?;
-
-    let relative = import_relative_path(&declared_identity, extension);
-    let destination = secure_managed_destination(bundle, &relative, path)?;
-    if destination.exists() {
-        let (existing, _) = file_identities(&destination)?;
-        validate_identity(&declared_identity, &existing, path)?;
-    } else if let Some(bytes) = owned_bytes {
-        aster_project::AtomicFile::write(&destination, |file| file.write_all(&bytes))
-            .map_err(|error| error.to_string())?;
-    } else if let Some(source) = source {
-        let (pending, mut file) =
-            aster_project::AtomicFile::stage(&destination).map_err(|error| error.to_string())?;
-        let mut reader = BufReader::new(File::open(source).map_err(|error| error.to_string())?)
-            .take(maximum_size.saturating_add(1));
-        let copied = std::io::copy(&mut reader, &mut file).map_err(|error| error.to_string())?;
-        drop(file);
-        validate_maximum_size(copied, maximum_size, path)?;
-        let (actual, sha256) = file_identities(&pending.temporary)?;
-        validate_identity(&declared_identity, &actual, path)?;
-        validate_identity(&sha256_identity, &sha256, path)?;
-        pending.publish(false).map_err(|error| error.to_string())?;
+        .map_err(|error| error.to_string())?;
+        Ok(())
     }
-    *storage = serde_json::to_value(RelativeStorage {
-        kind: RelativeStorageKind::Relative,
-        relative_path: slash_path(&relative),
-        byte_identity: declared_identity,
-    })
-    .map_err(|error| error.to_string())?;
-    Ok(())
-}
-
-#[allow(clippy::too_many_arguments)]
-pub(super) fn resolve_storage(
-    bundle: &Path,
-    storage: &mut Value,
-    expected_identity: Option<&str>,
-    expected_sha256: Option<&str>,
-    expected_size: Option<u64>,
-    maximum_size: u64,
-    path: &str,
-    budget: &mut MediaBudget,
-) -> Result<PathBuf, String> {
-    let object = object_mut(storage, &format!("{path}.storage"))?;
-    if required_string(object, "kind", &format!("{path}.storage.kind"))? != "relative" {
-        return Err(format!(
-            "{path} project media was not materialized into the bundle"
-        ));
-    }
-    let relative = safe_relative_path(required_string(
-        object,
-        "relativePath",
-        &format!("{path}.storage.relativePath"),
-    )?)?;
-    let identity = required_string(
-        object,
-        "byteIdentity",
-        &format!("{path}.storage.byteIdentity"),
-    )?
-    .to_owned();
-    let bundle = bundle.canonicalize().map_err(|error| error.to_string())?;
-    let resolved = secure_existing_bundle_file(&bundle, &relative, path)?;
-    let metadata = fs::metadata(&resolved).map_err(|error| error.to_string())?;
-    validate_maximum_size(metadata.len(), maximum_size, path)?;
-    validate_expected_size(expected_size, metadata.len(), path)?;
-    let (actual, sha256) = file_identities(&resolved)?;
-    validate_identity(&identity, &actual, path)?;
-    if let Some(expected) = expected_identity {
-        validate_identity(expected, &actual, path)?;
-    }
-    if let Some(expected) = expected_sha256 {
-        validate_identity(expected, &sha256, path)?;
-    }
-    budget.charge(&identity, metadata.len())?;
-    object.insert(
-        "resolvedPath".to_owned(),
-        Value::String(resolved.to_string_lossy().into_owned()),
-    );
-    Ok(resolved)
-}
-
-fn secure_existing_bundle_file(
-    bundle: &Path,
-    relative: &Path,
-    path: &str,
-) -> Result<PathBuf, String> {
-    let mut candidate = bundle.to_owned();
-    for component in relative.components() {
-        let Component::Normal(component) = component else {
-            return Err("project media relativePath must stay inside the bundle".to_owned());
+    pub(super) fn resolve(
+        &self,
+        bundle: &Path,
+        storage: &mut Value,
+        budget: &mut MediaBudget,
+    ) -> Result<PathBuf, String> {
+        let path = self.path.as_str();
+        let files = MediaFiles {
+            root: bundle.to_owned(),
         };
-        candidate.push(component);
-        let metadata = fs::symlink_metadata(&candidate)
-            .map_err(|_| format!("{path} media file is missing from the project bundle"))?;
-        if is_link_like(&metadata) {
+
+        let object = object_mut(storage, format!("{path}.storage"))?;
+        if required_string(object, "kind", format!("{path}.storage.kind"))? != "relative" {
             return Err(format!(
-                "{path} media path must not contain a link or reparse point"
+                "{path} project media was not materialized into the bundle"
             ));
         }
-    }
-    let resolved = candidate
-        .canonicalize()
-        .map_err(|_| format!("{path} media file is missing from the project bundle"))?;
-    if !resolved.starts_with(bundle) {
-        return Err(format!(
-            "{path} media path resolves outside the project bundle"
-        ));
-    }
-    if !fs::metadata(&resolved)
-        .map_err(|error| error.to_string())?
-        .is_file()
-    {
-        return Err(format!("{path} media payload is not a file"));
-    }
-    Ok(resolved)
-}
-
-fn secure_managed_destination(
-    bundle: &Path,
-    relative: &Path,
-    path: &str,
-) -> Result<PathBuf, String> {
-    let parent = relative
-        .parent()
-        .ok_or_else(|| format!("{path} media destination has no parent"))?;
-    let mut current = bundle.to_owned();
-    for component in parent.components() {
-        let Component::Normal(component) = component else {
-            return Err("project media relativePath must stay inside the bundle".to_owned());
-        };
-        current.push(component);
-        match fs::symlink_metadata(&current) {
-            Ok(metadata) => {
-                if is_link_like(&metadata) {
-                    return Err(format!(
-                        "{path} media destination must not contain a link or reparse point"
-                    ));
-                }
-                if !metadata.is_dir() {
-                    return Err(format!(
-                        "{path} media destination parent is not a directory"
-                    ));
-                }
-            }
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
-                fs::create_dir(&current).map_err(|error| error.to_string())?;
-            }
-            Err(error) => return Err(error.to_string()),
-        }
-        let resolved = current.canonicalize().map_err(|error| error.to_string())?;
-        if !resolved.starts_with(bundle) {
-            return Err(format!(
-                "{path} media destination resolves outside the project bundle"
-            ));
-        }
-    }
-    let destination = bundle.join(relative);
-    if let Ok(metadata) = fs::symlink_metadata(&destination) {
-        if is_link_like(&metadata) {
-            return Err(format!(
-                "{path} media destination must not be a link or reparse point"
-            ));
-        }
-        let resolved = destination
-            .canonicalize()
-            .map_err(|error| error.to_string())?;
-        if !resolved.starts_with(bundle) {
-            return Err(format!(
-                "{path} media destination resolves outside the project bundle"
-            ));
-        }
-    }
-    Ok(destination)
-}
-
-#[cfg(windows)]
-fn is_link_like(metadata: &fs::Metadata) -> bool {
-    use std::os::windows::fs::MetadataExt;
-
-    const FILE_ATTRIBUTE_REPARSE_POINT: u32 = 0x400;
-    metadata.file_type().is_symlink()
-        || metadata.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT != 0
-}
-
-#[cfg(not(windows))]
-fn is_link_like(metadata: &fs::Metadata) -> bool {
-    metadata.file_type().is_symlink()
-}
-
-pub(super) fn import_relative_path(identity: &str, extension: &str) -> PathBuf {
-    let digest = Sha256::digest(identity.as_bytes());
-    PathBuf::from("assets")
-        .join("imports")
-        .join(format!("{:x}{extension}", digest))
-}
-
-pub(super) fn slash_path(path: &Path) -> String {
-    path.components()
-        .map(|component| component.as_os_str().to_string_lossy())
-        .collect::<Vec<_>>()
-        .join("/")
-}
-
-fn validate_expected_size(expected: Option<u64>, actual: u64, path: &str) -> Result<(), String> {
-    if expected.is_some_and(|expected| expected != actual) {
-        return Err(format!("{path} byte size changed before save"));
-    }
-    Ok(())
-}
-
-fn validate_maximum_size(actual: u64, maximum: u64, path: &str) -> Result<(), String> {
-    if actual > maximum {
-        return Err(format!("{path} media payload exceeds its size limit"));
-    }
-    Ok(())
-}
-
-fn validate_expected_last_modified(
-    expected: Option<u64>,
-    metadata: &fs::Metadata,
-    path: &str,
-) -> Result<(), String> {
-    let Some(expected) = expected else {
-        return Ok(());
-    };
-    let actual = metadata
-        .modified()
-        .map_err(|error| error.to_string())?
-        .duration_since(std::time::UNIX_EPOCH)
-        .map_err(|error| error.to_string())?
-        .as_millis();
-    if actual != u128::from(expected) {
-        return Err(format!("{path} modification time changed before save"));
-    }
-    Ok(())
-}
-
-fn validate_identity(expected: &str, actual: &str, path: &str) -> Result<(), String> {
-    if expected != actual {
-        return Err(format!("{path} identity mismatch"));
-    }
-    Ok(())
-}
-
-fn identity_byte_length(identity: &str) -> Result<u64, String> {
-    let mut parts = identity.split(':');
-    if parts.next() != Some("fnv64")
-        || parts.next().is_none_or(|hash| {
-            hash.len() != 16 || !hash.bytes().all(|byte| byte.is_ascii_hexdigit())
-        })
-    {
-        return Err("project media byte identity is unsupported".to_owned());
-    }
-    let bytes = parts
-        .next()
-        .and_then(|value| value.parse::<u64>().ok())
-        .ok_or_else(|| "project media byte identity length is invalid".to_owned())?;
-    if parts.next().is_some() {
-        return Err("project media byte identity is unsupported".to_owned());
-    }
-    Ok(bytes)
-}
-
-fn file_identities(path: &Path) -> Result<(String, String), String> {
-    let mut reader = BufReader::new(File::open(path).map_err(|error| error.to_string())?);
-    let mut state = Fnv64State::default();
-    let mut sha256 = Sha256::new();
-    let mut buffer = [0_u8; 64 * 1024];
-    loop {
-        let count = reader
-            .read(&mut buffer)
-            .map_err(|error| error.to_string())?;
-        if count == 0 {
-            break;
-        }
-        state.update(&buffer[..count]);
-        sha256.update(&buffer[..count]);
-    }
-    Ok((state.identity(), format!("sha256:{:x}", sha256.finalize())))
-}
-
-fn sha256_bytes_identity(bytes: &[u8]) -> String {
-    format!("sha256:{:x}", Sha256::digest(bytes))
-}
-
-pub(crate) fn fnv64_bytes_identity(bytes: &[u8]) -> String {
-    let mut state = Fnv64State::default();
-    state.update(bytes);
-    state.identity()
-}
-
-struct Fnv64State {
-    left: u32,
-    right: u32,
-    bytes: u64,
-}
-
-impl Default for Fnv64State {
-    fn default() -> Self {
-        Self {
-            left: 0x811c9dc5,
-            right: 0x9e3779b9,
-            bytes: 0,
-        }
+        let resolved = self.relative_file(&files, object, budget)?;
+        object.insert(
+            "resolvedPath".to_owned(),
+            Value::String(resolved.to_string_lossy().into_owned()),
+        );
+        Ok(resolved)
     }
 }
-
-impl Fnv64State {
-    fn update(&mut self, bytes: &[u8]) {
-        for byte in bytes {
-            self.left = (self.left ^ u32::from(*byte)).wrapping_mul(0x01000193);
-            self.right = (self.right ^ u32::from(*byte)).wrapping_mul(0x85ebca6b);
-        }
-        self.bytes = self.bytes.saturating_add(bytes.len() as u64);
-    }
-
-    fn identity(&self) -> String {
-        format!("fnv64:{:08x}{:08x}:{}", self.left, self.right, self.bytes)
-    }
-}
-
 #[derive(Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct RelativeStorage {
@@ -490,4 +228,46 @@ struct RelativeStorage {
 #[serde(rename_all = "lowercase")]
 enum RelativeStorageKind {
     Relative,
+}
+
+impl MediaPayload {
+    fn relative_file(
+        &self,
+        files: &MediaFiles,
+        object: &serde_json::Map<String, Value>,
+        budget: &mut MediaBudget,
+    ) -> Result<PathBuf, String> {
+        let path = self.path.as_str();
+        let expected_identity = self.expected_identity.as_deref();
+        let expected_sha256 = self.expected_sha256.as_deref();
+        let expected_size = self.expected_size;
+        let maximum_size = self.maximum_size;
+        let relative = safe_relative_path(required_string(
+            object,
+            "relativePath",
+            format!("{path}.storage.relativePath"),
+        )?)?;
+        let identity = required_string(
+            object,
+            "byteIdentity",
+            format!("{path}.storage.byteIdentity"),
+        )?
+        .to_owned();
+        let resolved = files.existing(&relative, path)?;
+        let metadata = fs::metadata(&resolved).map_err(|error| error.to_string())?;
+        validate_maximum_size(metadata.len(), maximum_size, path)?;
+
+        let (actual, sha256) = Fnv64State::file_identities(&resolved, maximum_size)?;
+        validate_identity(&identity, &actual, path)?;
+        if let Some(expected) = expected_identity {
+            validate_identity(expected, &actual, path)?;
+        }
+        if let Some(expected) = expected_sha256 {
+            validate_identity(expected, &sha256, path)?;
+        }
+        let size = identity_byte_length(&actual)?;
+        validate_expected_size(expected_size, size, path)?;
+        budget.charge(&identity, size)?;
+        Ok(resolved)
+    }
 }

@@ -1,4 +1,4 @@
-use crate::project_media::{materialize_project_media, resolve_project_media_paths};
+use crate::project_media::{MediaOperation, ProjectMedia};
 use base64::Engine;
 use serde::Serialize;
 use sha2::{Digest, Sha256};
@@ -41,6 +41,7 @@ pub(crate) struct LinkedAudioMetadata {
 
 #[derive(Default)]
 pub(crate) struct ProjectStorage {
+    pub(crate) media: ProjectMedia,
     pub(crate) bundle_limits: aster_project::BundleLimits,
 }
 
@@ -64,7 +65,8 @@ impl ProjectStorage {
             .bundle(&bundle)
             .prepare_directory()
             .map_err(|error| error.to_string())?;
-        materialize_project_media(&bundle, &mut project)?;
+        self.media
+            .process(&bundle, &mut project, MediaOperation::Materialize)?;
         self.bundle(bundle)
             .save_editor(&project)
             .map_err(|error| error.to_string())
@@ -128,7 +130,8 @@ impl ProjectStorage {
             .bundle(&bundle)
             .prepare_directory()
             .map_err(|error| error.to_string())?;
-        materialize_project_media(&bundle, &mut project)?;
+        self.media
+            .process(&bundle, &mut project, MediaOperation::Materialize)?;
         self.bundle(bundle)
             .save_autosave(&project)
             .map_err(|error| error.to_string())
@@ -160,7 +163,8 @@ impl ProjectStorage {
             .map_err(|error| error.to_string())?;
         let bundle = bundle.canonicalize().map_err(|error| error.to_string())?;
         Self::resolve_project_asset_paths(&bundle, &mut project)?;
-        resolve_project_media_paths(&bundle, &mut project)?;
+        self.media
+            .process(&bundle, &mut project, MediaOperation::Resolve)?;
         Ok(project)
     }
 
@@ -178,27 +182,9 @@ impl ProjectStorage {
             let Some(source) = source.as_object_mut() else {
                 continue;
             };
-            let Some(relative) = source
-                .get("relativePath")
-                .and_then(serde_json::Value::as_str)
-            else {
-                continue;
-            };
-            let candidate = bundle.join(Self::safe_relative_path(relative)?);
-            if !candidate.is_file() {
-                continue;
+            if let Some(resolved) = Self::resolve_asset(bundle, source)? {
+                assets.push(resolved);
             }
-            let resolved = candidate
-                .canonicalize()
-                .map_err(|error| error.to_string())?;
-            if !resolved.starts_with(bundle) {
-                return Err("relative asset resolves outside the project bundle".to_owned());
-            }
-            source.insert(
-                "resolvedPath".to_owned(),
-                serde_json::Value::String(resolved.to_string_lossy().into_owned()),
-            );
-            assets.push(resolved);
         }
         for composition in project
             .get_mut("compositions")
@@ -218,30 +204,39 @@ impl ProjectStorage {
                 else {
                     continue;
                 };
-                let Some(relative) = asset
-                    .get("relativePath")
-                    .and_then(serde_json::Value::as_str)
-                else {
-                    continue;
-                };
-                let candidate = bundle.join(Self::safe_relative_path(relative)?);
-                if !candidate.is_file() {
-                    continue;
+                if let Some(resolved) = Self::resolve_asset(bundle, asset)? {
+                    assets.push(resolved);
                 }
-                let resolved = candidate
-                    .canonicalize()
-                    .map_err(|error| error.to_string())?;
-                if !resolved.starts_with(bundle) {
-                    return Err("relative asset resolves outside the project bundle".to_owned());
-                }
-                asset.insert(
-                    "resolvedPath".to_owned(),
-                    serde_json::Value::String(resolved.to_string_lossy().into_owned()),
-                );
-                assets.push(resolved);
             }
         }
         Ok(assets)
+    }
+
+    fn resolve_asset(
+        bundle: &Path,
+        asset: &mut serde_json::Map<String, serde_json::Value>,
+    ) -> Result<Option<PathBuf>, String> {
+        let Some(relative) = asset
+            .get("relativePath")
+            .and_then(serde_json::Value::as_str)
+        else {
+            return Ok(None);
+        };
+        let candidate = bundle.join(Self::safe_relative_path(relative)?);
+        if !candidate.is_file() {
+            return Ok(None);
+        }
+        let resolved = candidate
+            .canonicalize()
+            .map_err(|error| error.to_string())?;
+        if !resolved.starts_with(bundle) {
+            return Err("relative asset resolves outside the project bundle".to_owned());
+        }
+        asset.insert(
+            "resolvedPath".to_owned(),
+            serde_json::Value::String(resolved.to_string_lossy().into_owned()),
+        );
+        Ok(Some(resolved))
     }
 
     pub(crate) fn link_asset(
@@ -447,7 +442,8 @@ impl ProjectStorage {
         if let Some(project) = candidate.as_mut() {
             let bundle = bundle.canonicalize().map_err(|error| error.to_string())?;
             Self::resolve_project_asset_paths(&bundle, project)?;
-            resolve_project_media_paths(&bundle, project)?;
+            self.media
+                .process(&bundle, project, MediaOperation::Resolve)?;
         }
         Ok(candidate)
     }

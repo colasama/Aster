@@ -9,6 +9,7 @@ use std::{
 #[derive(Deserialize, Serialize)]
 #[serde(default, deny_unknown_fields, rename_all = "camelCase")]
 pub(crate) struct PluginPreferences {
+    #[serde(default)]
     pub(crate) schema_version: u32,
     pub(crate) safe_mode: bool,
     pub(crate) hot_reload_enabled: bool,
@@ -182,32 +183,16 @@ impl PluginPreferences {
             return Ok(PluginPreferences::default());
         }
         let source = fs::read_to_string(&path).map_err(|error| error.to_string())?;
-        let mut document: serde_json::Value =
+        let mut preferences: Self =
             serde_json::from_str(&source).map_err(|error| error.to_string())?;
-        let version = document
-            .get("schemaVersion")
-            .and_then(serde_json::Value::as_u64)
-            .unwrap_or(0);
-        if version > u64::from(Self::SCHEMA_VERSION) {
+        if preferences.schema_version > Self::SCHEMA_VERSION {
             return Err(format!(
-                "plugin preferences v{version} are newer than this build"
+                "plugin preferences v{} are newer than this build",
+                preferences.schema_version
             ));
         }
-        let migrated = version == 0;
-        if migrated {
-            let object = document
-                .as_object_mut()
-                .ok_or_else(|| "plugin preferences must be an object".to_owned())?;
-            object.insert(
-                "schemaVersion".to_owned(),
-                serde_json::Value::from(Self::SCHEMA_VERSION),
-            );
-        }
-        let preferences: PluginPreferences =
-            serde_json::from_value(document).map_err(|error| error.to_string())?;
-        if preferences.schema_version != Self::SCHEMA_VERSION {
-            return Err("plugin preferences schema version is invalid".to_owned());
-        }
+        let migrated = preferences.schema_version == 0;
+        preferences.schema_version = Self::SCHEMA_VERSION;
         if migrated {
             preferences.write(app_data)?;
         }

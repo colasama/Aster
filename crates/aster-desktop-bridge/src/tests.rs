@@ -82,7 +82,7 @@ fn advanced_media_survives_save_recovery_and_pack_without_its_original()
     fs::create_dir_all(&unpack_parent)?;
     let bytes = b"<svg viewBox=\"0 0 10 10\"/>";
     fs::write(&original, bytes)?;
-    let identity = crate::project_media::fnv64_bytes_identity(bytes);
+    let identity = crate::project_media::media_file::Fnv64State::bytes_identity(bytes);
     let project = serde_json::to_value(LifecycleProject {
         schema_version: 10,
         active_composition_id: "main",
