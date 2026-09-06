@@ -10,7 +10,17 @@ Use the same project, viewport size, preview quality, app build, and GPU for bot
 
 An initial Chromium CPU profile on the 73-layer Chinese reconstruction (1280 x 720 composition, development build, RTX 5060 Laptop GPU) reproduced about 16–20 FPS. Renderer CPU time was about 0.6 ms and GPU time about 0.07 ms; React creation, property diffing, and repeated UI work dominated the profile. The six-second run advanced the composition only about 2.6 seconds because stale time was also mistaken for repeated seeks.
 
-With explicit seek revisions and presentation independent of React commits, the same six-second run advanced about 5.9 seconds (the UI read preceded the final pause commit) and the final preview metric was about 55 FPS. React work is bounded and the profile contains substantially more idle time. These are workload-specific observations, not a guaranteed frame-rate floor; cold text/asset rasterization and individual expensive effects still require separate profiling.
+An initial post-fix run advanced about 5.9 seconds in six wall-clock seconds. Its final UI metric was about 55 FPS; that single sample is not a sustained display-frame measurement.
+
+A later production-renderer measurement used the completed 314-layer reconstruction, a 1280 x 720 GPU target, warm imported assets, and the same RTX 5060 Laptop GPU. The harness counted `GPUQueue.submit` calls and `aster:playback-frame` events over three six-second intervals, then paused and allowed the UI to acknowledge the final frame. Renderer-backgrounding and occlusion throttling were disabled in this measurement harness. Those flags are not application defaults.
+
+| Composition start | GPU submission rate | 95th-percentile submission interval | Last frame / paused time |
+| --- | --- | --- | --- |
+| 1 s | 94.8 Hz | 35.3 ms | 6.932 / 6.932 s |
+| 7 s | 55.2 Hz | 39.6 ms | 12.980 / 12.980 s |
+| 13 s | 75.7 Hz | 38.1 ms | 18.999 / 18.999 s |
+
+Submission counts include two static updates per interval and do not prove scanout or unique displayed frames. The useful findings are that composition time now follows elapsed playback time, pausing retains the last presented time, and presentation continues independently of React acknowledgements. These workload-specific observations are not a guaranteed frame-rate floor; cold text/asset rasterization and expensive effects still require separate profiling.
 
 The playback hook regression tests exercise delayed UI acknowledgements, explicit seeks, exact pause time, work-area looping, cancellation, and per-frame presentation with bounded UI updates.
 
