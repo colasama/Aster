@@ -22,8 +22,10 @@ export function recordOperations(
     at: new Date().toISOString(),
     source: metadata.source ?? "user",
     summary: metadata.summary?.trim() || summarizeOperations(operationTypes),
-    operationTypes,
-    ...(serialized.length <= MAX_SERIALIZED_COMMAND_SIZE
+    // Large transactions retain a type summary without a partial replay payload.
+    operationTypes:
+      operationTypes.length > 100 ? [...new Set(operationTypes)].slice(0, 100) : operationTypes,
+    ...(operationTypes.length <= 100 && serialized.length <= MAX_SERIALIZED_COMMAND_SIZE
       ? { serializedOperations: serialized }
       : {}),
   };

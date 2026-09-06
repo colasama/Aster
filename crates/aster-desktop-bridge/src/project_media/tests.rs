@@ -357,3 +357,23 @@ fn modified_millis(path: &Path) -> u64 {
         .try_into()
         .unwrap()
 }
+
+#[test]
+fn inline_media_uses_payload_limits_instead_of_metadata_string_limits() {
+    let root = std::env::temp_dir().join(format!("aster-large-inline-{}", Uuid::new_v4()));
+    let bytes = format!("<svg><!--{}--></svg>", "x".repeat(48 * 1024)).into_bytes();
+    let mut project = inline_svg(&bytes);
+    materialize_project_media(&root, &mut project).unwrap();
+    let relative = project["mediaImports"]["payloads"][0]["storage"]["relativePath"]
+        .as_str()
+        .unwrap();
+    assert_eq!(fs::read(root.join(relative)).unwrap(), bytes);
+    let mut oversized = inline_svg(b"small");
+    oversized["mediaImports"]["payloads"][0]["storage"]["data"] = json!("A".repeat(80_000));
+    assert!(
+        materialize_project_media(&root, &mut oversized)
+            .unwrap_err()
+            .contains("length does not match")
+    );
+    fs::remove_dir_all(root).unwrap();
+}

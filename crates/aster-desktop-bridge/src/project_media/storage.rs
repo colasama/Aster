@@ -93,7 +93,17 @@ pub(super) fn materialize_storage(
         .to_owned();
         let declared_bytes = identity_byte_length(&identity)?;
         validate_maximum_size(declared_bytes, maximum_size.min(MAX_PORTABLE_BYTES), path)?;
-        let encoded = required_string(object, "data", &format!("{path}.storage.data"))?;
+        let encoded = object
+            .get("data")
+            .and_then(Value::as_str)
+            .ok_or_else(|| format!("{path}.storage.data must be a string"))?;
+        // Check encoded size before allocating the decoded payload. Metadata string limits do not apply to media.
+        let encoded_length = declared_bytes.div_ceil(3) * 4;
+        if encoded.len() as u64 != encoded_length {
+            return Err(format!(
+                "{path}.storage.data length does not match its identity"
+            ));
+        }
         let bytes = base64::engine::general_purpose::STANDARD
             .decode(encoded)
             .map_err(|_| format!("{path}.storage.data is invalid base64"))?;

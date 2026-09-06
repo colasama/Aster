@@ -156,8 +156,15 @@ function normalizeCommand(
           id: createId(),
           time: Number(input.time),
           value: Number(input.value),
-          interpolation: "bezier",
-          easing: [0.16, 1, 0.3, 1],
+          interpolation:
+            (input.interpolation as "linear" | "step" | "bezier" | undefined) ?? "bezier",
+          ...((input.interpolation ?? "bezier") === "bezier"
+            ? {
+                easing: (input.easing as [number, number, number, number] | undefined) ?? [
+                  0.16, 1, 0.3, 1,
+                ],
+              }
+            : {}),
         },
       };
     case "addEffect": {

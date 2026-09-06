@@ -36,6 +36,22 @@ describe("serialized command log", () => {
     expect(project.commandLog[project.commandLog.length - 1]?.summary).toBe("Rename layer");
   });
 
+  it("keeps large atomic edits valid without exposing a partial replay", () => {
+    const project = createBlankProject();
+    const layerId = project.compositions[0].layers[0].id;
+    const operations = Array.from({ length: 128 }, (_, index) => ({
+      type: "renameLayer" as const,
+      layerId,
+      name: `Layer ${index}`,
+    }));
+    const edited = applyOperations(project, operations);
+    const entry = recordOperations(edited, operations, { source: "ai" });
+    expect(validateProjectDocument(edited).compositions[0].layers[0].name).toBe("Layer 127");
+    expect(entry.operationTypes).toEqual(["renameLayer"]);
+    expect(entry.summary).toBe("Rename layer and 127 more");
+    expect(deserializeOperations(entry)).toBeUndefined();
+  });
+
   it("rejects legacy documents and a mismatched operation manifest", () => {
     const legacy = createBlankProject() as unknown as Record<string, unknown>;
     legacy.schemaVersion = 0;

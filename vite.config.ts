@@ -79,7 +79,12 @@ export default defineConfig(({ command, mode }) => {
     // Keep Electron's development URL stable so navigation policy and HMR remain deterministic.
     clearScreen: false,
     test: {
-      exclude: [...configDefaults.exclude, "scripts/**/*.test.mjs"],
+      exclude: [
+        ...configDefaults.exclude,
+        "scripts/**/*.test.mjs",
+        "artifacts/**",
+        "artifacts-final/**",
+      ],
     },
     server: {
       port: 1420,

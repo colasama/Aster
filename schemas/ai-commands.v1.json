@@ -789,7 +789,7 @@
       "name": "addKeyframe",
       "version": 1,
       "category": "animation",
-      "description": "Add a bezier keyframe to a supported property.",
+      "description": "Add a linear, step, or bezier keyframe; omitted interpolation retains the default ease-out.",
       "requiredPermissions": ["project.edit"],
       "risk": "reversible",
       "undoable": true,
@@ -822,7 +822,14 @@
             ]
           },
           "time": { "type": "number", "minimum": 0, "maximum": 86400 },
-          "value": { "type": "number" }
+          "value": { "type": "number" },
+          "interpolation": { "enum": ["linear", "step", "bezier"] },
+          "easing": {
+            "type": "array",
+            "minItems": 4,
+            "maxItems": 4,
+            "items": { "type": "number", "minimum": 0, "maximum": 1 }
+          }
         }
       }
     },

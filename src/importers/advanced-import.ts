@@ -301,6 +301,7 @@ function imageLayer(
 ): Layer {
   const layer = createLayerForComposition("image", composition, currentTime);
   layer.name = source.name;
+  layer.color = [1, 1, 1, 1];
   layer.sourceId = source.id;
   setLayerSizeAndCenterAnchor(layer, [width, height]);
   return layer;

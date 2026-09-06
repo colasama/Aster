@@ -1,4 +1,4 @@
-import { buildAiContext, MAX_AI_CONTEXT_BYTES } from "../core/ai-context";
+import { buildAiContext, MAX_AI_CONTEXT_BYTES, queryEffects } from "../core/ai-context";
 import type { Operation } from "../core/operations";
 import { activeComposition } from "../core/project";
 import { createId, type Project } from "../core/types";
@@ -203,11 +203,13 @@ export class AsterAgentApplicationService {
       ? this.#workspace(workspace).revision
       : this.#assertLiveRevision(input.projectRevision);
     const time = finiteNumber(input.time, "time", this.#context.currentTime);
-    const context = buildAiContext(project, this.#context.selection, time);
     const kind = optionalString(input.kind, "kind") ?? "layers";
     const offset = boundedInteger(input.offset, "offset", 0, Number.MAX_SAFE_INTEGER, 0);
     const limit = boundedInteger(input.limit, "limit", 1, MAX_QUERY_ITEMS, 64);
-    const values = queryValues(kind, context);
+    const values =
+      kind === "effects"
+        ? queryEffects(activeComposition(project), time)
+        : queryValues(kind, buildAiContext(project, this.#context.selection, time));
     return boundedResult({
       projectRevision: revision,
       kind,

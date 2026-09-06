@@ -142,15 +142,17 @@ export function buildSceneGeometry(
     const shapeStyleParameters = [
       layer.kind === "shape" ? ((layer.shape?.strokeWidth ?? 0) / minimumDimension) * 2 : 0,
       layer.kind === "shape" ? Math.min(0.49, (layer.shape?.roundness ?? 0) / minimumDimension) : 0,
-      layer.kind === "shape"
-        ? inferredShapeKind === "ellipse"
-          ? 2
-          : inferredShapeKind === "line"
-            ? 3
-            : inferredShapeKind === "bezier"
-              ? 4
-              : 1
-        : 0,
+      layer.kind === "solid" && !layer.threeDimensional
+        ? 1
+        : layer.kind === "shape"
+          ? inferredShapeKind === "ellipse"
+            ? 2
+            : inferredShapeKind === "line"
+              ? 3
+              : inferredShapeKind === "bezier"
+                ? 4
+                : 1
+          : 0,
       layer.shape?.lineCap === "round" ? 1 : 0,
     ] as const;
     const gradientStyleColor = layer.shape?.gradientColor ?? ([0, 0, 0, 1] as const);

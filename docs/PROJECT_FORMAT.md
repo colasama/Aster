@@ -136,9 +136,10 @@ documents, reject missing parents and folder cycles, and preserve the organizati
 autosaves, and undoable project operations.
 
 Version 1 added a bounded serialized command log. Each entry records its stable ID, timestamp, source,
-summary, and operation type manifest. Transactions of at most 32 KiB also retain replayable operation
-JSON. The writer keeps at most 100 entries and 256 KiB total, so large imported layers are never
-duplicated into project history.
+summary, and operation type manifest. Transactions of at most 100 operations and 32 KiB also retain
+replayable operation JSON. Larger transactions retain a bounded list of distinct operation types
+without a partial replay payload; their editor undo remains atomic. The writer keeps at most 100
+entries and 256 KiB total, so large imported layers are never duplicated into project history.
 
 A 3D LUT effect may embed one bounded `lut3d` resource containing its display name, 2–64 cube size,
 RGB voxel data, input domain, and checksum. Readers validate the exact `size³ × 3` channel count and

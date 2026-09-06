@@ -33,6 +33,7 @@ describe("GPU scene geometry", () => {
     expect(geometry.batches).toHaveLength(1);
     expect(geometry.batches[0]).toMatchObject({ layer: solid, vertexCount: 6 });
     expect(geometry.data[VERTEX_FLOAT_OFFSETS.mediaType]).toBe(0);
+    expect(geometry.data[VERTEX_FLOAT_OFFSETS.shapeStyleParameters + 2]).toBe(1);
     expect(geometry.data[VERTEX_FLOAT_OFFSETS.color]).toBeCloseTo(0.2);
     expect(geometry.data[VERTEX_FLOAT_OFFSETS.color + 3]).toBeCloseTo(0.8);
     expect(geometry.data[VERTEX_FLOAT_OFFSETS.position]).toBeCloseTo(-640 / composition.width);
@@ -42,6 +43,7 @@ describe("GPU scene geometry", () => {
     solid.threeDimensional = true;
     const geometry3d = buildSceneGeometry(composition, flattenSceneLayers(composition, project, 0));
     expect(geometry3d.data[VERTEX_FLOAT_OFFSETS.material + 3]).toBe(1);
+    expect(geometry3d.data[VERTEX_FLOAT_OFFSETS.shapeStyleParameters + 2]).toBe(0);
   });
 
   it.each(["shape", "text"] as const)(

@@ -124,22 +124,30 @@ export function queryProperties(composition: Composition, selectedLayerIds: Id[]
           ];
         }),
       ),
-      effects: layer.effects.slice(0, MAX_EFFECTS_PER_LAYER).map((effect) => ({
-        id: effect.id,
-        type: effect.type,
-        enabled: effect.enabled,
-        parameters: Object.fromEntries(
-          Object.keys(effect.parameters)
-            .slice(0, MAX_PARAMETERS_PER_EFFECT)
-            .map((parameter) => [
-              parameter,
-              finite(
-                evaluateEffectParameter(effect, parameter, time, effect.parameters[parameter]),
-              ),
-            ]),
-        ),
-      })),
+      effects: queryLayerEffects(layer, time),
     }));
+}
+
+function queryLayerEffects(layer: Layer, time: number) {
+  return layer.effects.slice(0, MAX_EFFECTS_PER_LAYER).map((effect) => ({
+    id: effect.id,
+    type: effect.type,
+    enabled: effect.enabled,
+    parameters: Object.fromEntries(
+      Object.keys(effect.parameters)
+        .slice(0, MAX_PARAMETERS_PER_EFFECT)
+        .map((parameter) => [
+          parameter,
+          finite(evaluateEffectParameter(effect, parameter, time, effect.parameters[parameter])),
+        ]),
+    ),
+  }));
+}
+
+export function queryEffects(composition: Composition, time: number) {
+  return composition.layers.flatMap((layer) =>
+    queryLayerEffects(layer, time).map((effect) => ({ layerId: layer.id, ...effect })),
+  );
 }
 
 export function queryTimeline(composition: Composition) {

@@ -28,7 +28,12 @@ describe("advanced media import wiring", () => {
     const source = imported.sources[0];
     expect(source).toMatchObject({ kind: "svg", width: 640, height: 360 });
     expect(source?.dataUrl).toBeUndefined();
-    expect(imported.layers[0]).toMatchObject({ kind: "image", size: [640, 360], inPoint: 1 });
+    expect(imported.layers[0]).toMatchObject({
+      kind: "image",
+      size: [640, 360],
+      inPoint: 1,
+      color: [1, 1, 1, 1],
+    });
     expect(source && mediaImportRuntime.get(source.id)).toMatchObject({
       kind: "svg",
       parsed: { nodeCount: 2 },
