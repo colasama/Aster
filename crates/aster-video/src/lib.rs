@@ -8,6 +8,7 @@ mod audio;
 mod export;
 mod exr;
 mod ffmpeg;
+mod process;
 
 pub use audio::{AudioDecodeRequest, AudioLimits, DecodedAudio};
 
@@ -20,7 +21,6 @@ pub use export::{
     AudioEncoder, AudioMuxSpec, EncoderAvailability, ExportContainer, ExportError, ExportFrame,
     ExportFrameReceiver, ExportFrameSendError, ExportFrameSender, ExportLimits, ExportReport,
     FfmpegExportBackend, PixelFormat, VideoCodec, VideoEncoder, VideoExportRequest,
-    bounded_frame_channel,
 };
 
 pub use ffmpeg::{

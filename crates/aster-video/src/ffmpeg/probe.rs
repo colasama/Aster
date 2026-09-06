@@ -1,6 +1,7 @@
 use super::*;
 
 #[derive(Debug, Deserialize)]
+#[cfg_attr(test, derive(serde::Serialize))]
 struct RawProbe {
     #[serde(default)]
     streams: Vec<RawStream>,
@@ -8,6 +9,7 @@ struct RawProbe {
 }
 
 #[derive(Debug, Deserialize)]
+#[cfg_attr(test, derive(serde::Serialize))]
 struct RawFormat {
     format_name: String,
     #[serde(default)]
@@ -15,6 +17,8 @@ struct RawFormat {
 }
 
 #[derive(Debug, Deserialize)]
+#[cfg_attr(test, derive(serde::Serialize))]
+#[cfg_attr(test, derive(Default))]
 struct RawStream {
     index: u32,
     codec_type: String,
@@ -45,6 +49,7 @@ struct RawStream {
 }
 
 #[derive(Debug, Default, Deserialize)]
+#[cfg_attr(test, derive(serde::Serialize))]
 struct RawDisposition {
     #[serde(default)]
     default: u8,
@@ -204,4 +209,42 @@ impl RawFormat {
 
 impl RawFormat {
     const TIMEBASE_DENOMINATOR: u32 = 1_000_000_000;
+}
+
+#[cfg(test)]
+impl ProbeLimits {
+    pub(super) fn fixture_bytes(duration: &str) -> Result<Vec<u8>, serde_json::Error> {
+        serde_json::to_vec(&RawProbe {
+            format: RawFormat {
+                format_name: "mov,mp4,m4a,3gp,3g2,mj2".into(),
+                duration: Some(duration.into()),
+            },
+            streams: vec![
+                RawStream {
+                    index: 0,
+                    codec_name: Some("hevc".into()),
+                    codec_type: "video".into(),
+                    width: 3840,
+                    height: 2160,
+                    time_base: Some("1/90000".into()),
+                    avg_frame_rate: Some("30000/1001".into()),
+                    color_range: Some("pc".into()),
+                    color_space: Some("bt2020nc".into()),
+                    color_transfer: Some("smpte2084".into()),
+                    color_primaries: Some("bt2020".into()),
+                    disposition: RawDisposition { default: 1 },
+                    ..RawStream::default()
+                },
+                RawStream {
+                    index: 1,
+                    codec_name: Some("aac".into()),
+                    codec_type: "audio".into(),
+                    time_base: Some("1/48000".into()),
+                    sample_rate: Some("48000".into()),
+                    channels: 2,
+                    ..RawStream::default()
+                },
+            ],
+        })
+    }
 }

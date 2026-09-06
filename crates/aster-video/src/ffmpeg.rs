@@ -5,13 +5,12 @@
 //! is terminated when a timeout or cancellation request is observed.
 
 use std::ffi::OsString;
-use std::io::{self, Read};
+use std::io;
 use std::path::{Path, PathBuf};
-use std::process::{Command, ExitStatus, Stdio};
+use std::process::{Command, Stdio};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::thread;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use serde::Deserialize;
 use thiserror::Error;
@@ -182,7 +181,15 @@ impl FfprobeBackend {
             return Err(FfprobeError::Cancelled);
         }
         let command = self.build_command(media_path)?;
-        let output = run_bounded(&command, &self.limits, cancellation)?;
+        let output = command
+            .spawn(Stdio::null(), Stdio::piped())
+            .map_err(|error| FfprobeError::ProcessIo(error.to_string()))?
+            .capture(
+                self.limits.timeout,
+                self.limits.max_stdout_bytes,
+                self.limits.max_stderr_bytes,
+                cancellation,
+            )?;
         if !output.status.success() {
             return Err(FfprobeError::ProcessFailed {
                 code: output.status.code(),
@@ -209,13 +216,14 @@ impl FfmpegCommand {
         &self.arguments
     }
 
-    fn spawn(&self) -> io::Result<std::process::Child> {
+    pub(crate) fn spawn(&self, stdin: Stdio, stdout: Stdio) -> io::Result<MediaProcess> {
         Command::new(&self.executable)
             .args(&self.arguments)
-            .stdin(Stdio::null())
-            .stdout(Stdio::piped())
+            .stdin(stdin)
+            .stdout(stdout)
             .stderr(Stdio::piped())
             .spawn()
+            .map(|child| MediaProcess { child })
     }
 
     pub(crate) fn new(executable: PathBuf, arguments: Vec<OsString>) -> Self {
@@ -269,10 +277,9 @@ impl FfmpegBackend {
         cancellation: &CancellationToken,
     ) -> Result<ProcessOutput, FfmpegError> {
         let child = command
-            .spawn()
+            .spawn(Stdio::null(), Stdio::piped())
             .map_err(|error| FfmpegError::ProcessIo(error.to_string()))?;
-        run_child(
-            child,
+        child.capture(
             self.limits.timeout,
             max_stdout_bytes,
             self.limits.max_stderr_bytes,
@@ -354,10 +361,9 @@ impl FfmpegBackend {
                 .map_err(|_| FfmpegError::InvalidMetadata("decoded frame size overflow".into()))?;
         let command = self.build_decode_command(media_path, stream.index, time_seconds)?;
         let child = command
-            .spawn()
+            .spawn(Stdio::null(), Stdio::piped())
             .map_err(|error| FfmpegError::ProcessIo(error.to_string()))?;
-        let output = run_child(
-            child,
+        let output = child.capture(
             self.limits.timeout,
             packed_size,
             self.limits.max_stderr_bytes,
@@ -400,137 +406,7 @@ impl FfmpegBackend {
     }
 }
 
-pub(crate) struct ProcessOutput {
-    pub(crate) status: ExitStatus,
-    pub(crate) stdout: Vec<u8>,
-    pub(crate) stderr: Vec<u8>,
-}
-
-pub(crate) struct BoundedRead {
-    pub(crate) bytes: Vec<u8>,
-    pub(crate) overflowed: bool,
-}
-
-pub(crate) fn read_bounded(mut reader: impl Read, limit: usize) -> io::Result<BoundedRead> {
-    let mut bytes = Vec::with_capacity(limit.min(64 * 1024));
-    let mut overflowed = false;
-    let mut chunk = [0_u8; 16 * 1024];
-    loop {
-        let count = reader.read(&mut chunk)?;
-        if count == 0 {
-            break;
-        }
-        let remaining = limit.saturating_sub(bytes.len());
-        bytes.extend_from_slice(&chunk[..count.min(remaining)]);
-        overflowed |= count > remaining;
-    }
-    Ok(BoundedRead { bytes, overflowed })
-}
-
-fn run_bounded(
-    command: &FfprobeCommand,
-    limits: &ProbeLimits,
-    cancellation: &CancellationToken,
-) -> Result<ProcessOutput, FfprobeError> {
-    let child = command
-        .spawn()
-        .map_err(|error| FfprobeError::ProcessIo(error.to_string()))?;
-    run_child(
-        child,
-        limits.timeout,
-        limits.max_stdout_bytes,
-        limits.max_stderr_bytes,
-        cancellation,
-    )
-}
-
-fn run_child(
-    mut child: std::process::Child,
-    timeout: Duration,
-    max_stdout_bytes: usize,
-    max_stderr_bytes: usize,
-    cancellation: &CancellationToken,
-) -> Result<ProcessOutput, FfprobeError> {
-    let stdout = child
-        .stdout
-        .take()
-        .ok_or_else(|| FfprobeError::ProcessIo("stdout pipe was unavailable".into()))?;
-    let stderr = child
-        .stderr
-        .take()
-        .ok_or_else(|| FfprobeError::ProcessIo("stderr pipe was unavailable".into()))?;
-    let stdout_limit = max_stdout_bytes;
-    let stderr_limit = max_stderr_bytes;
-    let stdout_reader = thread::spawn(move || read_bounded(stdout, stdout_limit));
-    let stderr_reader = thread::spawn(move || read_bounded(stderr, stderr_limit));
-    let started = Instant::now();
-
-    let status = loop {
-        if cancellation.is_cancelled() {
-            terminate(&mut child);
-            join_readers(stdout_reader, stderr_reader)?;
-            return Err(FfprobeError::Cancelled);
-        }
-        if started.elapsed() >= timeout {
-            terminate(&mut child);
-            join_readers(stdout_reader, stderr_reader)?;
-            return Err(FfprobeError::TimedOut {
-                timeout_ms: u64::try_from(timeout.as_millis()).unwrap_or(u64::MAX),
-            });
-        }
-        match child.try_wait() {
-            Ok(Some(status)) => break status,
-            Ok(None) => thread::sleep(Duration::from_millis(2)),
-            Err(error) => {
-                terminate(&mut child);
-                join_readers(stdout_reader, stderr_reader)?;
-                return Err(FfprobeError::ProcessIo(error.to_string()));
-            }
-        }
-    };
-
-    let (stdout, stderr) = join_readers(stdout_reader, stderr_reader)?;
-    if stdout.overflowed {
-        return Err(FfprobeError::OutputTooLarge {
-            stream: "stdout",
-            limit: max_stdout_bytes,
-        });
-    }
-    if stderr.overflowed {
-        return Err(FfprobeError::OutputTooLarge {
-            stream: "stderr",
-            limit: max_stderr_bytes,
-        });
-    }
-    Ok(ProcessOutput {
-        status,
-        stdout: stdout.bytes,
-        stderr: stderr.bytes,
-    })
-}
-
-pub(crate) fn terminate(child: &mut std::process::Child) {
-    let _ = child.kill();
-    let _ = child.wait();
-}
-
-type Reader = thread::JoinHandle<io::Result<BoundedRead>>;
-
-fn join_readers(
-    stdout: Reader,
-    stderr: Reader,
-) -> Result<(BoundedRead, BoundedRead), FfprobeError> {
-    let stdout = stdout
-        .join()
-        .map_err(|_| FfprobeError::ProcessIo("stdout reader panicked".into()))?
-        .map_err(|error| FfprobeError::ProcessIo(error.to_string()))?;
-    let stderr = stderr
-        .join()
-        .map_err(|_| FfprobeError::ProcessIo("stderr reader panicked".into()))?
-        .map_err(|error| FfprobeError::ProcessIo(error.to_string()))?;
-    Ok((stdout, stderr))
-}
-
+use crate::process::{MediaProcess, ProcessOutput};
 mod probe;
 #[cfg(test)]
 mod tests;

@@ -1,75 +1,73 @@
-use std::fs;
+use std::fs::{self, OpenOptions};
 use std::path::{Path, PathBuf};
 
 use exr::prelude::{AttributeValue, MetaData, SampleType, Text, read_first_rgba_layer_from_file};
 
 use super::*;
 
-fn unique_root(name: &str) -> PathBuf {
-    let sequence = EXR_TEMP_SEQUENCE.fetch_add(1, Ordering::Relaxed);
-    std::env::temp_dir().join(format!(
-        "aster-exr-test-{name}-{}-{sequence}",
-        std::process::id()
-    ))
-}
-
-fn sample_pixels() -> Vec<[f32; 4]> {
-    vec![
-        [-0.25, 0.5, 0.75, 0.75],
-        [1.0, 0.0, 0.125, 1.0],
-        [8.0, -1.0, 0.0, 1.0],
-        [0.125, 0.25, 0.375, 0.5],
-    ]
-}
-
-fn request<'pixels>(
-    root: &Path,
-    pixels: &'pixels [[f32; 4]],
-    precision: ExrPrecision,
-) -> ExrWriteRequest<'pixels> {
-    ExrWriteRequest {
-        output_path: root.join("frame.exr"),
-        precision,
-        frame: ExrFrame {
-            width: 2,
-            height: 2,
-            pixels,
-        },
+impl ExrWriteRequest {
+    fn test_root(name: &str) -> PathBuf {
+        let sequence = uuid::Uuid::new_v4();
+        std::env::temp_dir().join(format!(
+            "aster-exr-test-{name}-{}-{sequence}",
+            std::process::id()
+        ))
     }
 }
 
-fn read_pixels(path: &Path) -> Vec<Vec<[f32; 4]>> {
-    read_first_rgba_layer_from_file(
-        path,
-        |resolution, _| vec![vec![[0.0; 4]; resolution.width()]; resolution.height()],
-        |pixels, position, rgba: (f32, f32, f32, f32)| {
-            pixels[position.y()][position.x()] = [rgba.0, rgba.1, rgba.2, rgba.3];
-        },
-    )
-    .unwrap()
-    .layer_data
-    .channel_data
-    .pixels
+impl ExrFrame {
+    fn sample_pixels() -> Vec<[f32; 4]> {
+        vec![
+            [-0.25, 0.5, 0.75, 0.75],
+            [1.0, 0.0, 0.125, 1.0],
+            [8.0, -1.0, 0.0, 1.0],
+            [0.125, 0.25, 0.375, 0.5],
+        ]
+    }
 }
 
-fn assert_approx(left: f32, right: f32, tolerance: f32) {
-    assert!((left - right).abs() <= tolerance, "{left} != {right}");
+impl ExrWriteRequest {
+    fn fixture(root: &Path, pixels: &[[f32; 4]], precision: ExrPrecision) -> ExrWriteRequest {
+        ExrWriteRequest {
+            output_path: root.join("frame.exr"),
+            precision,
+            frame: ExrFrame {
+                width: 2,
+                height: 2,
+                pixels: Arc::from(pixels),
+            },
+        }
+    }
+}
+
+impl ExrFrame {
+    fn read_pixels(path: &Path) -> Result<Vec<Vec<[f32; 4]>>, exr::error::Error> {
+        Ok(read_first_rgba_layer_from_file(
+            path,
+            |resolution, _| vec![vec![[0.0; 4]; resolution.width()]; resolution.height()],
+            |pixels, position, rgba: (f32, f32, f32, f32)| {
+                pixels[position.y()][position.x()] = [rgba.0, rgba.1, rgba.2, rgba.3];
+            },
+        )?
+        .layer_data
+        .channel_data
+        .pixels)
+    }
 }
 
 #[test]
-fn writes_f16_linear_rgba_and_reads_metadata_and_values_back() {
-    let root = unique_root("f16-roundtrip");
-    fs::create_dir_all(&root).unwrap();
-    let pixels = sample_pixels();
-    let request = request(&root, &pixels, ExrPrecision::F16);
-    let report = ExrBackend::default()
-        .write_frame(&request, &CancellationToken::default())
-        .unwrap();
+fn writes_f16_linear_rgba_and_reads_metadata_and_values_back()
+-> Result<(), Box<dyn std::error::Error>> {
+    let root = ExrWriteRequest::test_root("f16-roundtrip");
+    fs::create_dir_all(&root)?;
+    let pixels = ExrFrame::sample_pixels();
+    let request = ExrWriteRequest::fixture(&root, &pixels, ExrPrecision::F16);
+    let report = ExrBackend::default().write_frame(&request, &CancellationToken::default())?;
     assert_eq!((report.width, report.height), (2, 2));
     assert_eq!(report.precision, ExrPrecision::F16);
     assert!(report.bytes_written > 0);
 
-    let metadata = MetaData::read_from_file(&request.output_path, true).unwrap();
+    let metadata = MetaData::read_from_file(&request.output_path, true)?;
     assert_eq!(metadata.headers.len(), 1);
     let header = &metadata.headers[0];
     assert_eq!(header.layer_size, Vec2(2, 2));
@@ -95,7 +93,7 @@ fn writes_f16_linear_rgba_and_reads_metadata_and_values_back() {
         .list
         .iter()
         .find(|channel| channel.name == *"A")
-        .unwrap();
+        .ok_or("alpha channel missing")?;
     assert!(alpha.quantize_linearly);
     assert!(header.shared_attributes.chromaticities.is_some());
     assert!(matches!(
@@ -113,25 +111,24 @@ fn writes_f16_linear_rgba_and_reads_metadata_and_values_back() {
         Some(AttributeValue::Text(value)) if value == "linear_bt709_d65"
     ));
 
-    let decoded = read_pixels(&request.output_path);
+    let decoded = ExrFrame::read_pixels(&request.output_path)?;
     for (actual, expected) in decoded.iter().flatten().zip(&pixels) {
         for (actual, expected) in actual.iter().zip(expected) {
-            assert_approx(*actual, *expected, 0.002);
+            assert!((actual - expected).abs() <= 0.002, "{actual} != {expected}");
         }
     }
-    fs::remove_dir_all(root).unwrap();
+    fs::remove_dir_all(root)?;
+    Ok(())
 }
 
 #[test]
-fn writes_f32_without_quantizing_hdr_values() {
-    let root = unique_root("f32-roundtrip");
-    fs::create_dir_all(&root).unwrap();
-    let pixels = sample_pixels();
-    let request = request(&root, &pixels, ExrPrecision::F32);
-    ExrBackend::default()
-        .write_frame(&request, &CancellationToken::default())
-        .unwrap();
-    let metadata = MetaData::read_from_file(&request.output_path, true).unwrap();
+fn writes_f32_without_quantizing_hdr_values() -> Result<(), Box<dyn std::error::Error>> {
+    let root = ExrWriteRequest::test_root("f32-roundtrip");
+    fs::create_dir_all(&root)?;
+    let pixels = ExrFrame::sample_pixels();
+    let request = ExrWriteRequest::fixture(&root, &pixels, ExrPrecision::F32);
+    ExrBackend::default().write_frame(&request, &CancellationToken::default())?;
+    let metadata = MetaData::read_from_file(&request.output_path, true)?;
     assert!(
         metadata.headers[0]
             .channels
@@ -139,43 +136,47 @@ fn writes_f32_without_quantizing_hdr_values() {
             .iter()
             .all(|channel| channel.sample_type == SampleType::F32)
     );
-    assert_eq!(read_pixels(&request.output_path)[0][0], pixels[0]);
-    fs::remove_dir_all(root).unwrap();
+    assert_eq!(
+        ExrFrame::read_pixels(&request.output_path)?[0][0],
+        pixels[0]
+    );
+    fs::remove_dir_all(root)?;
+    Ok(())
 }
 
 #[test]
-fn writes_a_safely_named_sequence_frame() {
-    let root = unique_root("sequence");
-    fs::create_dir_all(&root).unwrap();
-    let pixels = sample_pixels();
-    let report = ExrBackend::default()
-        .write_sequence_frame(
-            &ExrSequenceRequest {
-                directory: root.clone(),
-                file_stem: "beauty-main".into(),
-                frame_index: 42,
-                zero_padding: 6,
-                precision: ExrPrecision::F16,
-            },
-            ExrFrame {
-                width: 2,
-                height: 2,
-                pixels: &pixels,
-            },
-            &CancellationToken::default(),
-        )
-        .unwrap();
+fn writes_a_safely_named_sequence_frame() -> Result<(), Box<dyn std::error::Error>> {
+    let root = ExrWriteRequest::test_root("sequence");
+    fs::create_dir_all(&root)?;
+    let pixels = ExrFrame::sample_pixels();
+    let report = ExrBackend::default().write_sequence_frame(
+        &ExrSequenceRequest {
+            directory: root.clone(),
+            file_stem: "beauty-main".into(),
+            frame_index: 42,
+            zero_padding: 6,
+            precision: ExrPrecision::F16,
+        },
+        ExrFrame {
+            width: 2,
+            height: 2,
+            pixels: Arc::from(pixels.clone()),
+        },
+        &CancellationToken::default(),
+    )?;
     assert_eq!(report.output_path, root.join("beauty-main.000042.exr"));
-    assert_eq!(read_pixels(&report.output_path).len(), 2);
-    fs::remove_dir_all(root).unwrap();
+    assert_eq!(ExrFrame::read_pixels(&report.output_path)?.len(), 2);
+    fs::remove_dir_all(root)?;
+    Ok(())
 }
 
 #[test]
-fn rejects_dimensions_length_memory_paths_and_sequence_traversal() {
-    let root = unique_root("bounds");
-    fs::create_dir_all(&root).unwrap();
-    let pixels = sample_pixels();
-    let mut value = request(&root, &pixels, ExrPrecision::F16);
+fn rejects_dimensions_length_memory_paths_and_sequence_traversal()
+-> Result<(), Box<dyn std::error::Error>> {
+    let root = ExrWriteRequest::test_root("bounds");
+    fs::create_dir_all(&root)?;
+    let pixels = ExrFrame::sample_pixels();
+    let mut value = ExrWriteRequest::fixture(&root, &pixels, ExrPrecision::F16);
     value.frame.width = ExrLimits::default().max_width + 1;
     assert!(matches!(
         ExrBackend::default().write_frame(&value, &CancellationToken::default()),
@@ -210,47 +211,50 @@ fn rejects_dimensions_length_memory_paths_and_sequence_traversal() {
         Err(ExrError::InvalidRequest(_))
     ));
     assert!(
-        sequence_output_path(&ExrSequenceRequest {
+        ExrSequenceRequest {
             directory: root.clone(),
             file_stem: "../escape".into(),
             frame_index: 1,
             zero_padding: 4,
             precision: ExrPrecision::F16,
-        })
+        }
+        .output_path(&ExrLimits::default())
         .is_err()
     );
-    fs::remove_dir_all(root).unwrap();
+    fs::remove_dir_all(root)?;
+    Ok(())
 }
 
 #[test]
-fn rejects_non_finite_half_overflow_and_invalid_alpha() {
-    let root = unique_root("pixels");
-    fs::create_dir_all(&root).unwrap();
+fn rejects_non_finite_half_overflow_and_invalid_alpha() -> Result<(), Box<dyn std::error::Error>> {
+    let root = ExrWriteRequest::test_root("pixels");
+    fs::create_dir_all(&root)?;
     for (value, precision, channel) in [
         ([f32::NAN, 0.0, 0.0, 1.0], ExrPrecision::F32, "R"),
         ([70_000.0, 0.0, 0.0, 1.0], ExrPrecision::F16, "R"),
         ([0.0, 0.0, 0.0, 1.1], ExrPrecision::F32, "A"),
     ] {
-        let mut pixels = sample_pixels();
+        let mut pixels = ExrFrame::sample_pixels();
         pixels[0] = value;
         assert!(matches!(
             ExrBackend::default().write_frame(
-                &request(&root, &pixels, precision),
+                &ExrWriteRequest::fixture(&root, &pixels, precision),
                 &CancellationToken::default()
             ),
             Err(ExrError::InvalidPixel { channel: actual, .. }) if actual == channel
         ));
     }
-    assert!(fs::read_dir(&root).unwrap().next().is_none());
-    fs::remove_dir_all(root).unwrap();
+    assert!(fs::read_dir(&root)?.next().is_none());
+    fs::remove_dir_all(root)?;
+    Ok(())
 }
 
 #[test]
-fn cancellation_and_output_limit_leave_no_partial_file() {
-    let root = unique_root("cancel-limit");
-    fs::create_dir_all(&root).unwrap();
-    let pixels = sample_pixels();
-    let value = request(&root, &pixels, ExrPrecision::F16);
+fn cancellation_and_output_limit_leave_no_partial_file() -> Result<(), Box<dyn std::error::Error>> {
+    let root = ExrWriteRequest::test_root("cancel-limit");
+    fs::create_dir_all(&root)?;
+    let pixels = ExrFrame::sample_pixels();
+    let value = ExrWriteRequest::fixture(&root, &pixels, ExrPrecision::F16);
     let cancellation = CancellationToken::default();
     cancellation.cancel();
     assert_eq!(
@@ -259,12 +263,7 @@ fn cancellation_and_output_limit_leave_no_partial_file() {
     );
     assert!(!value.output_path.exists());
 
-    let temporary = TemporaryExr::create(&value.output_path).unwrap();
-    let file = OpenOptions::new()
-        .write(true)
-        .create_new(true)
-        .open(temporary.path())
-        .unwrap();
+    let (temporary, file) = AtomicFile::stage(&value.output_path)?;
     let overflowed = Arc::new(AtomicBool::new(false));
     let mut writer = BoundedCancellableFile {
         file,
@@ -275,7 +274,11 @@ fn cancellation_and_output_limit_leave_no_partial_file() {
         overflowed,
     };
     assert_eq!(
-        writer.write_all(b"cancelled").unwrap_err().kind(),
+        writer
+            .write_all(b"cancelled")
+            .err()
+            .ok_or("expected I/O failure")?
+            .kind(),
         io::ErrorKind::Other
     );
     drop(writer);
@@ -290,20 +293,21 @@ fn cancellation_and_output_limit_leave_no_partial_file() {
         Err(ExrError::OutputTooLarge { limit: 8 })
     );
     assert!(!value.output_path.exists());
-    assert!(fs::read_dir(&root).unwrap().next().is_none());
-    fs::remove_dir_all(root).unwrap();
+    assert!(fs::read_dir(&root)?.next().is_none());
+    fs::remove_dir_all(root)?;
+    Ok(())
 }
 
 #[test]
-fn bounded_writer_allows_offset_backpatch_without_double_counting() {
-    let root = unique_root("backpatch");
-    fs::create_dir_all(&root).unwrap();
+fn bounded_writer_allows_offset_backpatch_without_double_counting()
+-> Result<(), Box<dyn std::error::Error>> {
+    let root = ExrWriteRequest::test_root("backpatch");
+    fs::create_dir_all(&root)?;
     let output = root.join("writer.bin");
     let file = OpenOptions::new()
         .write(true)
         .create_new(true)
-        .open(&output)
-        .unwrap();
+        .open(&output)?;
     let overflowed = Arc::new(AtomicBool::new(false));
     let mut writer = BoundedCancellableFile {
         file,
@@ -313,27 +317,28 @@ fn bounded_writer_allows_offset_backpatch_without_double_counting() {
         max_extent: 0,
         overflowed: overflowed.clone(),
     };
-    writer.write_all(b"12345678").unwrap();
-    assert_eq!(writer.seek(SeekFrom::End(-4)).unwrap(), 4);
-    writer.write_all(b"ABCD").unwrap();
-    assert_eq!(writer.seek(SeekFrom::Current(-8)).unwrap(), 0);
+    writer.write_all(b"12345678")?;
+    assert_eq!(writer.seek(SeekFrom::End(-4))?, 4);
+    writer.write_all(b"ABCD")?;
+    assert_eq!(writer.seek(SeekFrom::Current(-8))?, 0);
     assert_eq!(writer.max_extent, 8);
     assert!(!overflowed.load(Ordering::Acquire));
     drop(writer);
-    assert_eq!(fs::read(&output).unwrap(), b"1234ABCD");
-    fs::remove_dir_all(root).unwrap();
+    assert_eq!(fs::read(&output)?, b"1234ABCD");
+    fs::remove_dir_all(root)?;
+    Ok(())
 }
 
 #[test]
-fn bounded_writer_rejects_forward_seek_and_write_past_limit() {
-    let root = unique_root("seek-limit");
-    fs::create_dir_all(&root).unwrap();
+fn bounded_writer_rejects_forward_seek_and_write_past_limit()
+-> Result<(), Box<dyn std::error::Error>> {
+    let root = ExrWriteRequest::test_root("seek-limit");
+    fs::create_dir_all(&root)?;
     let output = root.join("writer.bin");
     let file = OpenOptions::new()
         .write(true)
         .create_new(true)
-        .open(&output)
-        .unwrap();
+        .open(&output)?;
     let overflowed = Arc::new(AtomicBool::new(false));
     let mut writer = BoundedCancellableFile {
         file,
@@ -344,36 +349,46 @@ fn bounded_writer_rejects_forward_seek_and_write_past_limit() {
         overflowed: overflowed.clone(),
     };
     assert_eq!(
-        writer.seek(SeekFrom::Start(9)).unwrap_err().kind(),
+        writer
+            .seek(SeekFrom::Start(9))
+            .err()
+            .ok_or("expected I/O failure")?
+            .kind(),
         io::ErrorKind::Other
     );
     assert_eq!(writer.position, 0);
-    assert_eq!(writer.seek(SeekFrom::Start(7)).unwrap(), 7);
+    assert_eq!(writer.seek(SeekFrom::Start(7))?, 7);
     assert_eq!(
-        writer.write_all(b"XX").unwrap_err().kind(),
+        writer
+            .write_all(b"XX")
+            .err()
+            .ok_or("expected I/O failure")?
+            .kind(),
         io::ErrorKind::Other
     );
     assert_eq!(writer.position, 7);
     assert!(overflowed.load(Ordering::Acquire));
     drop(writer);
-    assert_eq!(fs::metadata(&output).unwrap().len(), 0);
-    fs::remove_dir_all(root).unwrap();
+    assert_eq!(fs::metadata(&output)?.len(), 0);
+    fs::remove_dir_all(root)?;
+    Ok(())
 }
 
 #[test]
-fn atomic_publish_does_not_clobber_a_racing_output() {
-    let root = unique_root("race");
-    fs::create_dir_all(&root).unwrap();
+fn atomic_publish_does_not_clobber_a_racing_output() -> Result<(), Box<dyn std::error::Error>> {
+    let root = ExrWriteRequest::test_root("race");
+    fs::create_dir_all(&root)?;
     let output = root.join("frame.exr");
-    let temporary = TemporaryExr::create(&output).unwrap();
-    let directory = temporary.directory.clone();
-    fs::write(temporary.path(), b"encoded").unwrap();
-    fs::write(&output, b"race winner").unwrap();
-    assert_eq!(
-        temporary.publish(&output),
-        Err(ExrError::OutputExists(output.clone()))
+    let (temporary, file) = AtomicFile::stage(&output)?;
+    drop(file);
+    let directory = temporary.temporary.clone();
+    fs::write(&temporary.temporary, b"encoded")?;
+    fs::write(&output, b"race winner")?;
+    assert!(
+        matches!(temporary.publish(false), Err(error) if error.kind() == io::ErrorKind::AlreadyExists)
     );
-    assert_eq!(fs::read(&output).unwrap(), b"race winner");
+    assert_eq!(fs::read(&output)?, b"race winner");
     assert!(!directory.exists());
-    fs::remove_dir_all(root).unwrap();
+    fs::remove_dir_all(root)?;
+    Ok(())
 }

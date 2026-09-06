@@ -1,26 +1,10 @@
 use super::*;
 use std::fs::File;
 
-const SAMPLE: &[u8] = br#"{
-  "streams": [
-    {
-      "index": 0, "codec_name": "hevc", "codec_type": "video",
-      "width": 3840, "height": 2160, "time_base": "1/90000",
-      "avg_frame_rate": "30000/1001", "color_range": "pc",
-      "color_space": "bt2020nc", "color_transfer": "smpte2084",
-      "color_primaries": "bt2020", "disposition": {"default": 1}
-    },
-    {
-      "index": 1, "codec_name": "aac", "codec_type": "audio",
-      "time_base": "1/48000", "sample_rate": "48000", "channels": 2
-    }
-  ],
-  "format": {"format_name": "mov,mp4,m4a,3gp,3g2,mj2", "duration": "12.345000"}
-}"#;
-
 #[test]
 fn parses_ffprobe_streams_color_and_timebases() -> Result<(), Box<dyn std::error::Error>> {
-    let metadata = ProbeLimits::default().parse_ffprobe_json(SAMPLE)?;
+    let metadata =
+        ProbeLimits::default().parse_ffprobe_json(&ProbeLimits::fixture_bytes("12.345000")?)?;
     assert_eq!(metadata.format, "mov");
     assert_eq!(metadata.duration_ticks, 12_345_000_000);
     assert_eq!(metadata.streams.len(), 2);
@@ -41,8 +25,7 @@ fn parses_ffprobe_streams_color_and_timebases() -> Result<(), Box<dyn std::error
 #[test]
 fn rejects_malformed_and_unbounded_probe_data() -> Result<(), Box<dyn std::error::Error>> {
     assert!(matches!(
-        ProbeLimits::default()
-            .parse_ffprobe_json(br#"{"format":{"format_name":"mp4","duration":"NaN"}}"#),
+        ProbeLimits::default().parse_ffprobe_json(&ProbeLimits::fixture_bytes("NaN")?),
         Err(FfprobeError::InvalidMetadata(_))
     ));
     assert!(matches!(
@@ -55,7 +38,7 @@ fn rejects_malformed_and_unbounded_probe_data() -> Result<(), Box<dyn std::error
 #[test]
 fn bounded_reader_drains_but_does_not_retain_excess_output()
 -> Result<(), Box<dyn std::error::Error>> {
-    let result = read_bounded(&b"0123456789"[..], 4)?;
+    let result = crate::process::BoundedRead::drain(&b"0123456789"[..], 4)?;
     assert_eq!(result.bytes, b"0123");
     assert!(result.overflowed);
     Ok(())

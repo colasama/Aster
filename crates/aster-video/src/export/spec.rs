@@ -170,8 +170,6 @@ pub struct VideoExportRequest {
 /// One packed raw frame, or a bounded producer error.
 pub type ExportFrame = Result<Vec<u8>, String>;
 
-const MAX_FRAME_QUEUE_CAPACITY: usize = 64;
-
 #[derive(Debug)]
 pub(super) enum FrameMessage {
     Frame(ExportFrame),
@@ -204,6 +202,8 @@ impl ExportFrameSender {
 #[derive(Debug)]
 pub struct ExportFrameReceiver {
     pub(super) receiver: Receiver<FrameMessage>,
+    pub(super) poll_interval: Duration,
+    pub(super) max_error_bytes: usize,
 }
 
 #[derive(Debug, Error, PartialEq, Eq)]
@@ -212,39 +212,51 @@ pub enum ExportFrameSendError {
     ReceiverClosed,
 }
 
-/// Create a bounded single-producer frame channel.
-pub fn bounded_frame_channel(
-    capacity: usize,
-) -> Result<(ExportFrameSender, ExportFrameReceiver), ExportError> {
-    if capacity == 0 || capacity > MAX_FRAME_QUEUE_CAPACITY {
-        return Err(ExportError::InvalidRequest(format!(
-            "frame queue capacity must be between 1 and {MAX_FRAME_QUEUE_CAPACITY}"
-        )));
-    }
-    let (sender, receiver) = mpsc::sync_channel(capacity);
-    Ok((
-        ExportFrameSender { sender },
-        ExportFrameReceiver { receiver },
-    ))
-}
-
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, clap::Args)]
 pub struct ExportLimits {
+    #[arg(long = "export-max-path-units", default_value_t = Self::default().max_path_units)]
+    pub max_path_units: usize,
+    #[arg(long = "export-max-audio-source-bytes", default_value_t = Self::default().max_audio_source_bytes)]
+    pub max_audio_source_bytes: u64,
+    #[arg(long = "export-encoder-probe-stdout-bytes", default_value_t = Self::default().encoder_probe_stdout_bytes)]
+    pub encoder_probe_stdout_bytes: usize,
+    #[arg(long = "export-max-frame-queue-capacity", default_value_t = Self::default().max_frame_queue_capacity)]
+    pub max_frame_queue_capacity: usize,
+    #[arg(long = "export-frame-poll-ms", default_value_t = Self::default().frame_poll_ms)]
+    pub frame_poll_ms: u64,
+    #[arg(long = "export-max-frame-error-bytes", default_value_t = Self::default().max_frame_error_bytes)]
+    pub max_frame_error_bytes: usize,
+    #[arg(long = "export-timeout-seconds", default_value = "14400", value_parser = |value: &str| value.parse::<u64>().map(Duration::from_secs))]
     pub timeout: Duration,
+    #[arg(long = "export-encoder-probe-timeout-seconds", default_value = "15", value_parser = |value: &str| value.parse::<u64>().map(Duration::from_secs))]
     pub encoder_probe_timeout: Duration,
+    #[arg(long = "export-max-stderr-bytes", default_value_t = Self::default().max_stderr_bytes)]
     pub max_stderr_bytes: usize,
+    #[arg(long = "export-max-width", default_value_t = Self::default().max_width)]
     pub max_width: u32,
+    #[arg(long = "export-max-height", default_value_t = Self::default().max_height)]
     pub max_height: u32,
+    #[arg(long = "export-max-frame-bytes", default_value_t = Self::default().max_frame_bytes)]
     pub max_frame_bytes: u64,
+    #[arg(long = "export-max-frame-count", default_value_t = Self::default().max_frame_count)]
     pub max_frame_count: u64,
+    #[arg(long = "export-max-duration-seconds", default_value = "86400", value_parser = |value: &str| value.parse::<u64>().map(Duration::from_secs))]
     pub max_duration: Duration,
+    #[arg(long = "export-max-video-bitrate-bps", default_value_t = Self::default().max_video_bitrate_bps)]
     pub max_video_bitrate_bps: u64,
+    #[arg(long = "export-max-audio-bitrate-bps", default_value_t = Self::default().max_audio_bitrate_bps)]
     pub max_audio_bitrate_bps: u32,
 }
 
 impl Default for ExportLimits {
     fn default() -> Self {
         Self {
+            max_path_units: 32_767,
+            max_audio_source_bytes: 1024 * 1024 * 1024 * 1024,
+            encoder_probe_stdout_bytes: 2 * 1024 * 1024,
+            max_frame_queue_capacity: 64,
+            frame_poll_ms: 5,
+            max_frame_error_bytes: 1024,
             timeout: Duration::from_secs(4 * 60 * 60),
             encoder_probe_timeout: Duration::from_secs(15),
             max_stderr_bytes: 1024 * 1024,
@@ -344,4 +356,27 @@ pub enum ExportError {
     ProcessFailed { code: Option<i32>, stderr: String },
     #[error("failed to publish encoded output: {0}")]
     Publish(String),
+}
+
+impl ExportLimits {
+    /// Create a bounded single-producer frame channel.
+    pub fn frame_channel(
+        &self,
+        capacity: usize,
+    ) -> Result<(ExportFrameSender, ExportFrameReceiver), ExportError> {
+        if capacity == 0 || capacity > self.max_frame_queue_capacity {
+            return Err(ExportError::InvalidRequest(
+                "frame queue capacity must be within the configured bounds".into(),
+            ));
+        }
+        let (sender, receiver) = mpsc::sync_channel(capacity);
+        Ok((
+            ExportFrameSender { sender },
+            ExportFrameReceiver {
+                receiver,
+                poll_interval: Duration::from_millis(self.frame_poll_ms),
+                max_error_bytes: self.max_frame_error_bytes,
+            },
+        ))
+    }
 }
