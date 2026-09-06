@@ -93,27 +93,37 @@ impl FrameHistory {
         if self.frames.is_empty() {
             return FrameMetrics::default();
         }
-        let mut result = FrameMetrics::default();
+        let count = self.frames.len() as u128;
+        let mut integer_totals = [0_u128; 4];
+        let mut float_totals = [0_f64; 4];
         for frame in &self.frames {
-            result.cpu_ms += frame.cpu_ms;
-            result.gpu_ms += frame.gpu_ms;
-            result.frame_ms += frame.frame_ms;
-            result.vram_bytes += frame.vram_bytes;
-            result.draw_calls += frame.draw_calls;
-            result.dispatches += frame.dispatches;
-            result.dirty_nodes += frame.dirty_nodes;
-            result.cache_hit_rate += frame.cache_hit_rate;
+            for (total, value) in integer_totals.iter_mut().zip([
+                u128::from(frame.vram_bytes),
+                u128::from(frame.draw_calls),
+                u128::from(frame.dispatches),
+                u128::from(frame.dirty_nodes),
+            ]) {
+                *total += value;
+            }
+            for (total, value) in float_totals.iter_mut().zip([
+                frame.cpu_ms,
+                frame.gpu_ms,
+                frame.frame_ms,
+                frame.cache_hit_rate,
+            ]) {
+                *total += f64::from(value);
+            }
         }
-        let count = self.frames.len() as f32;
-        result.cpu_ms /= count;
-        result.gpu_ms /= count;
-        result.frame_ms /= count;
-        result.vram_bytes /= self.frames.len() as u64;
-        result.draw_calls /= self.frames.len() as u32;
-        result.dispatches /= self.frames.len() as u32;
-        result.dirty_nodes /= self.frames.len() as u32;
-        result.cache_hit_rate /= count;
-        result
+        FrameMetrics {
+            cpu_ms: (float_totals[0] / count as f64) as f32,
+            gpu_ms: (float_totals[1] / count as f64) as f32,
+            frame_ms: (float_totals[2] / count as f64) as f32,
+            cache_hit_rate: (float_totals[3] / count as f64) as f32,
+            vram_bytes: (integer_totals[0] / count) as u64,
+            draw_calls: (integer_totals[1] / count) as u32,
+            dispatches: (integer_totals[2] / count) as u32,
+            dirty_nodes: (integer_totals[3] / count) as u32,
+        }
     }
 }
 
@@ -137,5 +147,21 @@ mod tests {
             ..FrameMetrics::default()
         });
         assert_eq!(history.average().frame_ms, 15.0);
+    }
+    #[test]
+    fn averaging_large_samples_does_not_overflow() {
+        let mut history = FrameHistory::new(2);
+        let metrics = FrameMetrics {
+            frame_ms: f32::MAX,
+            vram_bytes: u64::MAX,
+            draw_calls: u32::MAX,
+            ..FrameMetrics::default()
+        };
+        history.push(metrics);
+        history.push(metrics);
+        let average = history.average();
+        assert_eq!(average.vram_bytes, u64::MAX);
+        assert_eq!(average.draw_calls, u32::MAX);
+        assert_eq!(average.frame_ms, f32::MAX);
     }
 }
