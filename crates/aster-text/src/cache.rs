@@ -1,11 +1,11 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::BTreeMap, sync::Arc};
 
 use thiserror::Error;
 
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct FontId(pub u64);
 
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct GlyphKey {
     pub font: FontId,
     pub glyph_id: u32,
@@ -38,22 +38,28 @@ impl GlyphBitmap {
         metrics: GlyphMetrics,
         coverage: Vec<u8>,
     ) -> Result<Self, CacheError> {
-        if width == 0 || height == 0 {
-            return Err(CacheError::EmptyGlyph);
-        }
-        let expected = u64::from(width) * u64::from(height);
-        if expected != coverage.len() as u64 {
-            return Err(CacheError::InvalidBitmapLength {
-                expected,
-                actual: coverage.len() as u64,
-            });
-        }
-        Ok(Self {
+        let bitmap = Self {
             width,
             height,
             metrics,
             coverage,
-        })
+        };
+        bitmap.validate()?;
+        Ok(bitmap)
+    }
+
+    pub fn validate(&self) -> Result<(), CacheError> {
+        if self.width == 0 || self.height == 0 {
+            return Err(CacheError::EmptyGlyph);
+        }
+        let expected = u64::from(self.width) * u64::from(self.height);
+        if expected != self.coverage.len() as u64 {
+            return Err(CacheError::InvalidBitmapLength {
+                expected,
+                actual: self.coverage.len() as u64,
+            });
+        }
+        Ok(())
     }
 
     #[must_use]
@@ -95,7 +101,7 @@ struct Entry<T> {
 }
 
 struct BoundedCache<K, V> {
-    entries: HashMap<K, Entry<V>>,
+    entries: BTreeMap<K, Entry<V>>,
     byte_budget: u64,
     bytes: u64,
     clock: u64,
@@ -104,10 +110,10 @@ struct BoundedCache<K, V> {
     evictions: u64,
 }
 
-impl<K: Copy + Eq + std::hash::Hash, V> BoundedCache<K, V> {
+impl<K: Copy + Ord, V> BoundedCache<K, V> {
     fn new(byte_budget: u64) -> Self {
         Self {
-            entries: HashMap::new(),
+            entries: BTreeMap::new(),
             byte_budget,
             bytes: 0,
             clock: 0,
@@ -117,19 +123,15 @@ impl<K: Copy + Eq + std::hash::Hash, V> BoundedCache<K, V> {
         }
     }
 
-    fn next_tick(&mut self) -> u64 {
-        self.clock = self.clock.wrapping_add(1);
-        self.clock
-    }
-
     fn get(&mut self, key: K) -> Option<&V> {
-        let tick = self.next_tick();
+        self.clock = self.clock.saturating_add(1);
+        let tick = self.clock;
         if let Some(entry) = self.entries.get_mut(&key) {
-            self.hits += 1;
+            self.hits = self.hits.saturating_add(1);
             entry.last_used = tick;
             Some(&entry.value)
         } else {
-            self.misses += 1;
+            self.misses = self.misses.saturating_add(1);
             None
         }
     }
@@ -144,10 +146,11 @@ impl<K: Copy + Eq + std::hash::Hash, V> BoundedCache<K, V> {
         if let Some(previous) = self.entries.remove(&key) {
             self.bytes -= previous.bytes;
         }
-        while self.bytes.saturating_add(bytes) > self.byte_budget {
+        while self.bytes > self.byte_budget - bytes {
             self.evict_lru();
         }
-        let last_used = self.next_tick();
+        self.clock = self.clock.saturating_add(1);
+        let last_used = self.clock;
         self.entries.insert(
             key,
             Entry {
@@ -171,7 +174,7 @@ impl<K: Copy + Eq + std::hash::Hash, V> BoundedCache<K, V> {
         };
         if let Some(entry) = self.entries.remove(&key) {
             self.bytes -= entry.bytes;
-            self.evictions += 1;
+            self.evictions = self.evictions.saturating_add(1);
         }
     }
 
@@ -230,6 +233,7 @@ impl GlyphCache {
     }
 
     pub fn insert(&mut self, key: GlyphKey, glyph: GlyphBitmap) -> Result<(), CacheError> {
+        glyph.validate()?;
         let bytes = glyph.byte_len();
         self.cache.insert(key, Arc::new(glyph), bytes)
     }
@@ -248,37 +252,45 @@ impl GlyphCache {
 mod tests {
     use super::*;
 
-    fn key(id: u32) -> GlyphKey {
-        GlyphKey {
-            font: FontId(1),
-            glyph_id: id,
-            size_q64: 16 * 64,
-            subpixel_x_q64: 0,
+    #[test]
+    fn cache_budget_arithmetic_does_not_overflow() -> Result<(), CacheError> {
+        let mut cache = BoundedCache::new(u64::MAX);
+        cache.insert(1, (), u64::MAX - 1)?;
+        cache.insert(2, (), 2)?;
+        assert!(cache.get(1).is_none());
+        assert!(cache.get(2).is_some());
+        assert_eq!(cache.statistics().bytes, 2);
+        Ok(())
+    }
+
+    impl GlyphKey {
+        pub(crate) fn fixture(id: u32) -> GlyphKey {
+            GlyphKey {
+                font: FontId(1),
+                glyph_id: id,
+                size_q64: 16 * 64,
+                subpixel_x_q64: 0,
+            }
         }
     }
 
     #[test]
-    fn font_cache_evicts_the_least_recently_used_blob() {
+    fn font_cache_evicts_the_least_recently_used_blob() -> Result<(), CacheError> {
         let mut cache = FontCache::new(6);
-        cache
-            .insert(FontId(1), Arc::<[u8]>::from([1, 2, 3]))
-            .unwrap();
-        cache
-            .insert(FontId(2), Arc::<[u8]>::from([4, 5, 6]))
-            .unwrap();
+        cache.insert(FontId(1), Arc::<[u8]>::from([1, 2, 3]))?;
+        cache.insert(FontId(2), Arc::<[u8]>::from([4, 5, 6]))?;
         assert!(cache.get(FontId(1)).is_some());
-        cache
-            .insert(FontId(3), Arc::<[u8]>::from([7, 8, 9]))
-            .unwrap();
+        cache.insert(FontId(3), Arc::<[u8]>::from([7, 8, 9]))?;
 
         assert!(cache.get(FontId(1)).is_some());
         assert!(cache.get(FontId(2)).is_none());
         assert!(cache.get(FontId(3)).is_some());
         assert_eq!(cache.statistics().evictions, 1);
+        Ok(())
     }
 
     #[test]
-    fn glyph_cache_validates_and_bounds_coverage_memory() {
+    fn glyph_cache_validates_and_bounds_coverage_memory() -> Result<(), CacheError> {
         let mut fonts = FontCache::new(4);
         assert_eq!(
             fonts.insert(FontId(1), Arc::<[u8]>::from([])),
@@ -296,20 +308,17 @@ mod tests {
             })
         );
         let mut cache = GlyphCache::new(4);
-        cache
-            .insert(
-                key(1),
-                GlyphBitmap::new(2, 2, GlyphMetrics::default(), vec![255; 4]).unwrap(),
-            )
-            .unwrap();
-        cache
-            .insert(
-                key(2),
-                GlyphBitmap::new(2, 2, GlyphMetrics::default(), vec![128; 4]).unwrap(),
-            )
-            .unwrap();
-        assert!(cache.get(key(1)).is_none());
-        assert!(cache.get(key(2)).is_some());
+        cache.insert(
+            GlyphKey::fixture(1),
+            GlyphBitmap::new(2, 2, GlyphMetrics::default(), vec![255; 4])?,
+        )?;
+        cache.insert(
+            GlyphKey::fixture(2),
+            GlyphBitmap::new(2, 2, GlyphMetrics::default(), vec![128; 4])?,
+        )?;
+        assert!(cache.get(GlyphKey::fixture(1)).is_none());
+        assert!(cache.get(GlyphKey::fixture(2)).is_some());
         assert_eq!(cache.statistics().bytes, 4);
+        Ok(())
     }
 }

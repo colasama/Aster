@@ -1,10 +1,25 @@
-use std::{collections::HashMap, ops::Range};
+use std::{collections::BTreeMap, ops::Range};
 
 use crate::{CacheError, GlyphBitmap, GlyphKey, GlyphMetrics};
 
-const MAX_ATLAS_DIMENSION: u32 = 8_192;
-const MAX_ATLAS_LAYERS: u32 = 256;
-const MAX_ATLAS_GLYPHS: usize = 1_048_576;
+#[derive(Clone, Copy, Debug, Eq, PartialEq, clap::Args)]
+pub struct AtlasLimits {
+    #[arg(long, default_value_t = Self::default().max_atlas_dimension)]
+    pub max_atlas_dimension: u32,
+    #[arg(long, default_value_t = Self::default().max_atlas_layers)]
+    pub max_atlas_layers: u32,
+    #[arg(long, default_value_t = Self::default().max_atlas_glyphs)]
+    pub max_atlas_glyphs: usize,
+}
+impl Default for AtlasLimits {
+    fn default() -> Self {
+        Self {
+            max_atlas_dimension: 8_192,
+            max_atlas_layers: 256,
+            max_atlas_glyphs: 1_048_576,
+        }
+    }
+}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum AtlasFormat {
@@ -19,19 +34,28 @@ impl AtlasFormat {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, clap::Args)]
 pub struct AtlasConfig {
+    #[command(flatten)]
+    pub limits: AtlasLimits,
+    #[arg(long = "atlas-width", default_value_t = Self::default().width)]
     pub width: u32,
+    #[arg(long = "atlas-height", default_value_t = Self::default().height)]
     pub height: u32,
+    #[arg(long = "atlas-layers", default_value_t = Self::default().layers)]
     pub layers: u32,
+    #[arg(long = "atlas-padding", default_value_t = Self::default().padding)]
     pub padding: u32,
+    #[arg(long = "atlas-row-alignment", default_value_t = Self::default().row_alignment)]
     pub row_alignment: u32,
+    #[arg(long = "atlas-max-glyphs", default_value_t = Self::default().max_glyphs)]
     pub max_glyphs: usize,
 }
 
 impl Default for AtlasConfig {
     fn default() -> Self {
         Self {
+            limits: AtlasLimits::default(),
             width: 2048,
             height: 2048,
             layers: 2,
@@ -103,7 +127,7 @@ pub struct GlyphAtlas {
     config: AtlasConfig,
     descriptor: GlyphAtlasDescriptor,
     shelves: Vec<Vec<Shelf>>,
-    entries: HashMap<GlyphKey, Entry>,
+    entries: BTreeMap<GlyphKey, Entry>,
     clock: u64,
     evictions: u64,
 }
@@ -115,15 +139,15 @@ impl GlyphAtlas {
                 "width, height, and layers must be non-zero",
             ));
         }
-        if config.width > MAX_ATLAS_DIMENSION
-            || config.height > MAX_ATLAS_DIMENSION
-            || config.layers > MAX_ATLAS_LAYERS
+        if config.width > config.limits.max_atlas_dimension
+            || config.height > config.limits.max_atlas_dimension
+            || config.layers > config.limits.max_atlas_layers
         {
             return Err(CacheError::InvalidAtlasConfig(
                 "atlas dimensions or layer count exceed safety limits",
             ));
         }
-        if config.max_glyphs == 0 || config.max_glyphs > MAX_ATLAS_GLYPHS {
+        if config.max_glyphs == 0 || config.max_glyphs > config.limits.max_atlas_glyphs {
             return Err(CacheError::InvalidAtlasConfig(
                 "max_glyphs is outside safety limits",
             ));
@@ -143,7 +167,7 @@ impl GlyphAtlas {
             .width
             .checked_mul(format.bytes_per_pixel())
             .ok_or(CacheError::InvalidAtlasConfig("row pitch overflow"))?;
-        let aligned_bytes_per_row = align_up(tight_pitch, config.row_alignment)
+        let aligned_bytes_per_row = AtlasConfig::align_up(tight_pitch, config.row_alignment)
             .ok_or(CacheError::InvalidAtlasConfig("aligned row pitch overflow"))?;
         let layers = usize::try_from(config.layers)
             .map_err(|_| CacheError::InvalidAtlasConfig("layer count exceeds address space"))?;
@@ -157,7 +181,7 @@ impl GlyphAtlas {
                 aligned_bytes_per_row,
             },
             shelves: (0..layers).map(|_| Vec::new()).collect(),
-            entries: HashMap::new(),
+            entries: BTreeMap::new(),
             clock: 0,
             evictions: 0,
         })
@@ -184,7 +208,7 @@ impl GlyphAtlas {
     }
 
     pub fn get(&mut self, key: GlyphKey) -> Option<GlyphAtlasEntry> {
-        self.clock = self.clock.wrapping_add(1);
+        self.clock = self.clock.saturating_add(1);
         self.entries.get_mut(&key).map(|entry| {
             entry.last_used = self.clock;
             entry.atlas
@@ -196,9 +220,7 @@ impl GlyphAtlas {
         key: GlyphKey,
         glyph: &GlyphBitmap,
     ) -> Result<(GlyphAtlasEntry, GlyphUpload), CacheError> {
-        if glyph.width == 0 || glyph.height == 0 {
-            return Err(CacheError::EmptyGlyph);
-        }
+        glyph.validate()?;
         let double_padding =
             self.config
                 .padding
@@ -230,6 +252,7 @@ impl GlyphAtlas {
             });
         }
 
+        let mut upload = GlyphUpload::from_bitmap(glyph, self.config)?;
         if let Some(previous) = self.entries.remove(&key) {
             self.free(previous.allocation);
         }
@@ -248,7 +271,7 @@ impl GlyphAtlas {
             }
             self.evict_lru();
         };
-        self.clock = self.clock.wrapping_add(1);
+        self.clock = self.clock.saturating_add(1);
         let shelf = &self.shelves[allocation.layer as usize][allocation.shelf];
         let atlas = GlyphAtlasEntry {
             layer: allocation.layer,
@@ -268,43 +291,9 @@ impl GlyphAtlas {
                 last_used: self.clock,
             },
         );
-        let upload = self.make_upload(atlas, glyph)?;
+        upload.layer = atlas.layer;
+        upload.origin = [allocation.outer_x, shelf.y, atlas.layer];
         Ok((atlas, upload))
-    }
-
-    fn make_upload(
-        &self,
-        atlas: GlyphAtlasEntry,
-        glyph: &GlyphBitmap,
-    ) -> Result<GlyphUpload, CacheError> {
-        let bytes_per_row =
-            align_up(glyph.width, self.config.row_alignment).ok_or(CacheError::GlyphTooLarge {
-                width: glyph.width,
-                height: glyph.height,
-            })?;
-        let data_len = u64::from(bytes_per_row) * u64::from(glyph.height);
-        let mut data = vec![
-            0;
-            usize::try_from(data_len).map_err(|_| CacheError::GlyphTooLarge {
-                width: glyph.width,
-                height: glyph.height,
-            })?
-        ];
-        let source_pitch = glyph.width as usize;
-        let destination_pitch = bytes_per_row as usize;
-        for row in 0..glyph.height as usize {
-            let source = &glyph.coverage[row * source_pitch..(row + 1) * source_pitch];
-            let destination =
-                &mut data[row * destination_pitch..row * destination_pitch + source_pitch];
-            destination.copy_from_slice(source);
-        }
-        Ok(GlyphUpload {
-            layer: atlas.layer,
-            origin: [atlas.rect.x, atlas.rect.y, atlas.layer],
-            extent: [atlas.rect.width, atlas.rect.height, 1],
-            bytes_per_row,
-            data,
-        })
     }
 
     fn allocate(&mut self, width: u32, height: u32) -> Option<Allocation> {
@@ -313,7 +302,7 @@ impl GlyphAtlas {
                 if shelf.height < height {
                     continue;
                 }
-                if let Some(x) = take_free_range(&mut shelf.free, width) {
+                if let Some(x) = shelf.take_free_range(width) {
                     return Some(Allocation {
                         layer: layer_index as u32,
                         shelf: shelf_index,
@@ -329,7 +318,7 @@ impl GlyphAtlas {
                     height,
                     free: std::iter::once(0..self.config.width).collect(),
                 };
-                let x = take_free_range(&mut shelf.free, width)?;
+                let x = shelf.take_free_range(width)?;
                 shelves.push(shelf);
                 return Some(Allocation {
                     layer: layer_index as u32,
@@ -353,7 +342,7 @@ impl GlyphAtlas {
         };
         if let Some(entry) = self.entries.remove(&key) {
             self.free(entry.allocation);
-            self.evictions += 1;
+            self.evictions = self.evictions.saturating_add(1);
         }
     }
 
@@ -374,65 +363,142 @@ impl GlyphAtlas {
             merged.push(range);
         }
         shelf.free = merged;
+        if !self
+            .entries
+            .values()
+            .any(|entry| entry.allocation.layer == allocation.layer)
+        {
+            self.shelves[allocation.layer as usize].clear();
+        }
     }
 }
 
-fn take_free_range(free: &mut Vec<Range<u32>>, width: u32) -> Option<u32> {
-    let index = free
-        .iter()
-        .position(|range| range.end.saturating_sub(range.start) >= width)?;
-    let x = free[index].start;
-    free[index].start += width;
-    if free[index].is_empty() {
-        free.remove(index);
+impl Shelf {
+    fn take_free_range(&mut self, width: u32) -> Option<u32> {
+        let index = self
+            .free
+            .iter()
+            .position(|range| range.end.saturating_sub(range.start) >= width)?;
+        let x = self.free[index].start;
+        self.free[index].start += width;
+        if self.free[index].is_empty() {
+            self.free.remove(index);
+        }
+        Some(x)
     }
-    Some(x)
 }
 
-fn align_up(value: u32, alignment: u32) -> Option<u32> {
-    value
-        .checked_add(alignment - 1)
-        .map(|rounded| rounded & !(alignment - 1))
+impl AtlasConfig {
+    fn align_up(value: u32, alignment: u32) -> Option<u32> {
+        value
+            .checked_add(alignment.checked_sub(1)?)
+            .map(|rounded| rounded & !(alignment - 1))
+    }
+}
+
+impl GlyphUpload {
+    fn from_bitmap(glyph: &GlyphBitmap, config: AtlasConfig) -> Result<Self, CacheError> {
+        let width = glyph.width + config.padding * 2;
+        let height = glyph.height + config.padding * 2;
+        let bytes_per_row = AtlasConfig::align_up(width, config.row_alignment)
+            .ok_or(CacheError::GlyphTooLarge { width, height })?;
+        let length = usize::try_from(u64::from(bytes_per_row) * u64::from(height))
+            .map_err(|_| CacheError::GlyphTooLarge { width, height })?;
+        let mut data = Vec::new();
+        data.try_reserve_exact(length)
+            .map_err(|_| CacheError::GlyphTooLarge { width, height })?;
+        data.resize(length, 0);
+        for row in 0..glyph.height as usize {
+            let source = row * glyph.width as usize;
+            let destination =
+                (row + config.padding as usize) * bytes_per_row as usize + config.padding as usize;
+            data[destination..destination + glyph.width as usize]
+                .copy_from_slice(&glyph.coverage[source..source + glyph.width as usize]);
+        }
+        Ok(Self {
+            layer: 0,
+            origin: [0; 3],
+            extent: [width, height, 1],
+            bytes_per_row,
+            data,
+        })
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{FontId, GlyphMetrics};
+    use crate::GlyphMetrics;
 
-    fn key(id: u32) -> GlyphKey {
-        GlyphKey {
-            font: FontId(7),
-            glyph_id: id,
-            size_q64: 12 * 64,
-            subpixel_x_q64: 0,
+    #[test]
+    fn invalid_bitmap_preserves_entries_and_empty_layers_accept_taller_glyphs()
+    -> Result<(), CacheError> {
+        let mut atlas = GlyphAtlas::new(AtlasConfig {
+            width: 4,
+            height: 4,
+            layers: 1,
+            padding: 0,
+            row_alignment: 4,
+            max_glyphs: 2,
+            limits: AtlasLimits::default(),
+        })?;
+        let (first, _) = atlas.insert(GlyphKey::fixture(1), &GlyphBitmap::fixture(4, 2, 1)?)?;
+        atlas.insert(GlyphKey::fixture(2), &GlyphBitmap::fixture(4, 2, 2)?)?;
+        let invalid = GlyphBitmap {
+            width: 4,
+            height: 4,
+            coverage: vec![0; 3],
+            metrics: GlyphMetrics::default(),
+        };
+        assert!(matches!(
+            atlas.insert(GlyphKey::fixture(1), &invalid),
+            Err(CacheError::InvalidBitmapLength { .. })
+        ));
+        assert_eq!(atlas.get(GlyphKey::fixture(1)), Some(first));
+        assert_eq!(atlas.len(), 2);
+        assert_eq!(atlas.evictions(), 0);
+        let (tall, upload) = atlas.insert(GlyphKey::fixture(3), &GlyphBitmap::fixture(4, 4, 3)?)?;
+        assert_eq!(
+            tall.rect,
+            AtlasRect {
+                x: 0,
+                y: 0,
+                width: 4,
+                height: 4
+            }
+        );
+        assert_eq!(upload.data, vec![3; 16]);
+        assert_eq!(atlas.len(), 1);
+        assert_eq!(atlas.evictions(), 2);
+        Ok(())
+    }
+
+    impl GlyphBitmap {
+        fn fixture(width: u32, height: u32, value: u8) -> Result<GlyphBitmap, CacheError> {
+            GlyphBitmap::new(
+                width,
+                height,
+                GlyphMetrics::default(),
+                vec![value; (width * height) as usize],
+            )
         }
     }
 
-    fn bitmap(width: u32, height: u32, value: u8) -> GlyphBitmap {
-        GlyphBitmap::new(
-            width,
-            height,
-            GlyphMetrics::default(),
-            vec![value; (width * height) as usize],
-        )
-        .unwrap()
-    }
-
     #[test]
-    fn descriptor_and_upload_are_gpu_row_aligned() {
+    fn descriptor_and_upload_are_gpu_row_aligned() -> Result<(), CacheError> {
         let mut atlas = GlyphAtlas::new(AtlasConfig {
+            limits: AtlasLimits::default(),
             width: 65,
             height: 32,
             layers: 1,
             padding: 1,
             row_alignment: 256,
             max_glyphs: 8,
-        })
-        .unwrap();
+        })?;
         assert_eq!(atlas.descriptor().aligned_bytes_per_row, 256);
 
-        let (entry, upload) = atlas.insert(key(1), &bitmap(3, 2, 0x7f)).unwrap();
+        let (entry, upload) =
+            atlas.insert(GlyphKey::fixture(1), &GlyphBitmap::fixture(3, 2, 0x7f)?)?;
         assert_eq!(
             entry.rect,
             AtlasRect {
@@ -443,57 +509,67 @@ mod tests {
             }
         );
         assert_eq!(upload.bytes_per_row, 256);
-        assert_eq!(upload.data.len(), 512);
-        assert_eq!(&upload.data[..3], &[0x7f; 3]);
-        assert!(upload.data[3..256].iter().all(|byte| *byte == 0));
-        assert_eq!(&upload.data[256..259], &[0x7f; 3]);
+        assert_eq!(upload.data.len(), 1024);
+        assert_eq!(upload.origin, [0, 0, 0]);
+        assert_eq!(upload.extent, [5, 4, 1]);
+        assert!(upload.data[..256].iter().all(|byte| *byte == 0));
+        assert_eq!(upload.data[256], 0);
+        assert!(upload.data[260..512].iter().all(|byte| *byte == 0));
+        assert_eq!(&upload.data[257..260], &[0x7f; 3]);
+        assert_eq!(&upload.data[513..516], &[0x7f; 3]);
+        assert!(upload.data[516..].iter().all(|byte| *byte == 0));
+        Ok(())
     }
 
     #[test]
-    fn lru_eviction_reuses_freed_shelf_space() {
+    fn lru_eviction_reuses_freed_shelf_space() -> Result<(), CacheError> {
         let mut atlas = GlyphAtlas::new(AtlasConfig {
+            limits: AtlasLimits::default(),
             width: 8,
             height: 4,
             layers: 1,
             padding: 0,
             row_alignment: 4,
             max_glyphs: 2,
-        })
-        .unwrap();
-        let (first, _) = atlas.insert(key(1), &bitmap(4, 4, 1)).unwrap();
-        let (second, _) = atlas.insert(key(2), &bitmap(4, 4, 2)).unwrap();
-        assert_eq!(atlas.get(key(1)), Some(first));
+        })?;
+        let (first, _) = atlas.insert(GlyphKey::fixture(1), &GlyphBitmap::fixture(4, 4, 1)?)?;
+        let (second, _) = atlas.insert(GlyphKey::fixture(2), &GlyphBitmap::fixture(4, 4, 2)?)?;
+        assert_eq!(atlas.get(GlyphKey::fixture(1)), Some(first));
 
-        let (third, _) = atlas.insert(key(3), &bitmap(4, 4, 3)).unwrap();
+        let (third, _) = atlas.insert(GlyphKey::fixture(3), &GlyphBitmap::fixture(4, 4, 3)?)?;
         assert_eq!(third.rect, second.rect);
-        assert!(atlas.get(key(2)).is_none());
-        assert!(atlas.get(key(1)).is_some());
+        assert!(atlas.get(GlyphKey::fixture(2)).is_none());
+        assert!(atlas.get(GlyphKey::fixture(1)).is_some());
         assert_eq!(atlas.evictions(), 1);
+        Ok(())
     }
 
     #[test]
-    fn atlas_spills_into_layers_before_evicting() {
+    fn atlas_spills_into_layers_before_evicting() -> Result<(), CacheError> {
         let mut atlas = GlyphAtlas::new(AtlasConfig {
+            limits: AtlasLimits::default(),
             width: 4,
             height: 4,
             layers: 2,
             padding: 0,
             row_alignment: 4,
             max_glyphs: 4,
-        })
-        .unwrap();
-        let (_, first_upload) = atlas.insert(key(1), &bitmap(4, 4, 1)).unwrap();
-        let (_, second_upload) = atlas.insert(key(2), &bitmap(4, 4, 2)).unwrap();
+        })?;
+        let (_, first_upload) =
+            atlas.insert(GlyphKey::fixture(1), &GlyphBitmap::fixture(4, 4, 1)?)?;
+        let (_, second_upload) =
+            atlas.insert(GlyphKey::fixture(2), &GlyphBitmap::fixture(4, 4, 2)?)?;
         assert_eq!(first_upload.layer, 0);
         assert_eq!(second_upload.layer, 1);
         assert_eq!(atlas.evictions(), 0);
+        Ok(())
     }
 
     #[test]
-    fn rejects_invalid_config_and_oversized_glyphs() {
+    fn rejects_invalid_config_and_oversized_glyphs() -> Result<(), CacheError> {
         assert!(matches!(
             GlyphAtlas::new(AtlasConfig {
-                layers: MAX_ATLAS_LAYERS + 1,
+                layers: AtlasLimits::default().max_atlas_layers + 1,
                 ..AtlasConfig::default()
             }),
             Err(CacheError::InvalidAtlasConfig(_))
@@ -506,20 +582,21 @@ mod tests {
             Err(CacheError::InvalidAtlasConfig(_))
         ));
         let mut atlas = GlyphAtlas::new(AtlasConfig {
+            limits: AtlasLimits::default(),
             width: 4,
             height: 4,
             layers: 1,
             padding: 1,
             row_alignment: 4,
             max_glyphs: 1,
-        })
-        .unwrap();
+        })?;
         assert_eq!(
-            atlas.insert(key(1), &bitmap(4, 4, 1)),
+            atlas.insert(GlyphKey::fixture(1), &GlyphBitmap::fixture(4, 4, 1)?),
             Err(CacheError::GlyphTooLarge {
                 width: 4,
                 height: 4
             })
         );
+        Ok(())
     }
 }
