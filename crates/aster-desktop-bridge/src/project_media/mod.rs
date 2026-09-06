@@ -244,6 +244,8 @@ pub fn resolve_project_media_paths(
 }
 
 #[cfg(test)]
-use storage::{fnv64_bytes_identity, import_relative_path, slash_path};
+pub(crate) use storage::fnv64_bytes_identity;
+#[cfg(test)]
+use storage::{import_relative_path, slash_path};
 #[cfg(test)]
 mod tests;

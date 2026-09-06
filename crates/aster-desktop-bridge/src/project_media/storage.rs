@@ -1,5 +1,6 @@
 use base64::Engine;
-use serde_json::{Value, json};
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use sha2::{Digest, Sha256};
 use std::{
     collections::BTreeMap,
@@ -7,7 +8,6 @@ use std::{
     io::{BufReader, Read, Write},
     path::{Component, Path, PathBuf},
 };
-use uuid::Uuid;
 
 use super::validation::{object_mut, required_string, safe_relative_path};
 use super::{MAX_BUNDLE_MEDIA_BYTES, MAX_MEDIA_FILES, MAX_PORTABLE_BYTES};
@@ -165,17 +165,27 @@ pub(super) fn materialize_storage(
         let (existing, _) = file_identities(&destination)?;
         validate_identity(&declared_identity, &existing, path)?;
     } else if let Some(bytes) = owned_bytes {
-        write_atomic(&destination, |file| file.write_all(&bytes))?;
+        aster_project::AtomicFile::write(&destination, |file| file.write_all(&bytes))
+            .map_err(|error| error.to_string())?;
     } else if let Some(source) = source {
-        write_atomic(&destination, |file| {
-            std::io::copy(&mut BufReader::new(File::open(source)?), file).map(|_| ())
-        })?;
+        let (pending, mut file) =
+            aster_project::AtomicFile::stage(&destination).map_err(|error| error.to_string())?;
+        let mut reader = BufReader::new(File::open(source).map_err(|error| error.to_string())?)
+            .take(maximum_size.saturating_add(1));
+        let copied = std::io::copy(&mut reader, &mut file).map_err(|error| error.to_string())?;
+        drop(file);
+        validate_maximum_size(copied, maximum_size, path)?;
+        let (actual, sha256) = file_identities(&pending.temporary)?;
+        validate_identity(&declared_identity, &actual, path)?;
+        validate_identity(&sha256_identity, &sha256, path)?;
+        pending.publish(false).map_err(|error| error.to_string())?;
     }
-    *storage = json!({
-        "kind": "relative",
-        "relativePath": slash_path(&relative),
-        "byteIdentity": declared_identity,
-    });
+    *storage = serde_json::to_value(RelativeStorage {
+        kind: RelativeStorageKind::Relative,
+        relative_path: slash_path(&relative),
+        byte_identity: declared_identity,
+    })
+    .map_err(|error| error.to_string())?;
     Ok(())
 }
 
@@ -350,28 +360,6 @@ pub(super) fn slash_path(path: &Path) -> String {
         .join("/")
 }
 
-fn write_atomic<F>(destination: &Path, write: F) -> Result<(), String>
-where
-    F: FnOnce(&mut File) -> std::io::Result<()>,
-{
-    let file_name = destination
-        .file_name()
-        .and_then(|name| name.to_str())
-        .unwrap_or("media");
-    let temporary = destination.with_file_name(format!(".{file_name}.{}.tmp", Uuid::new_v4()));
-    let result = (|| {
-        let mut file = File::create(&temporary)?;
-        write(&mut file)?;
-        file.flush()?;
-        file.sync_all()?;
-        fs::rename(&temporary, destination)
-    })();
-    if result.is_err() {
-        let _ = fs::remove_file(&temporary);
-    }
-    result.map_err(|error| error.to_string())
-}
-
 fn validate_expected_size(expected: Option<u64>, actual: u64, path: &str) -> Result<(), String> {
     if expected.is_some_and(|expected| expected != actual) {
         return Err(format!("{path} byte size changed before save"));
@@ -454,7 +442,7 @@ fn sha256_bytes_identity(bytes: &[u8]) -> String {
     format!("sha256:{:x}", Sha256::digest(bytes))
 }
 
-pub(super) fn fnv64_bytes_identity(bytes: &[u8]) -> String {
+pub(crate) fn fnv64_bytes_identity(bytes: &[u8]) -> String {
     let mut state = Fnv64State::default();
     state.update(bytes);
     state.identity()
@@ -488,4 +476,18 @@ impl Fnv64State {
     fn identity(&self) -> String {
         format!("fnv64:{:08x}{:08x}:{}", self.left, self.right, self.bytes)
     }
+}
+
+#[derive(Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct RelativeStorage {
+    kind: RelativeStorageKind,
+    relative_path: String,
+    byte_identity: String,
+}
+
+#[derive(Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+enum RelativeStorageKind {
+    Relative,
 }

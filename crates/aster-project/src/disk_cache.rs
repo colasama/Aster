@@ -5,9 +5,7 @@ use std::{
     time::{Duration, Instant, SystemTime},
 };
 
-use uuid::Uuid;
-
-use crate::{ProjectError, replace_file};
+use crate::{AtomicFile, ProjectError};
 
 const CACHE_EXTENSION: &str = "aster-cache";
 
@@ -73,7 +71,13 @@ impl DiskCache {
             return Ok(None);
         };
         let mut bytes = Vec::with_capacity(capacity);
-        BufReader::new(file).read_to_end(&mut bytes)?;
+        BufReader::new(file)
+            .take(size.saturating_add(1))
+            .read_to_end(&mut bytes)?;
+        if bytes.len() as u64 != size {
+            self.misses = self.misses.saturating_add(1);
+            return Ok(None);
+        }
         File::options()
             .write(true)
             .open(path)?
@@ -87,21 +91,9 @@ impl DiskCache {
         if bytes.len() as u64 > self.budget_bytes {
             return Ok(false);
         }
-        let temporary = self
-            .root
-            .join(format!(".{}.tmp", Uuid::new_v4().as_simple()));
-        let result = (|| {
-            let mut file = File::create(&temporary)?;
-            file.write_all(bytes)?;
-            file.sync_all()?;
-            replace_file(&temporary, &destination)?;
-            self.trim_to_budget()?;
-            Ok(true)
-        })();
-        if result.is_err() && temporary.exists() {
-            let _ = fs::remove_file(temporary);
-        }
-        result
+        AtomicFile::write(&destination, |file| file.write_all(bytes))?;
+        self.trim_to_budget()?;
+        Ok(true)
     }
 
     pub fn remove(&mut self, key: &str) -> Result<bool, ProjectError> {
@@ -211,6 +203,7 @@ struct CacheEntry {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use uuid::Uuid;
 
     fn cache_root() -> PathBuf {
         std::env::temp_dir().join(format!("aster-disk-cache-{}", Uuid::new_v4()))

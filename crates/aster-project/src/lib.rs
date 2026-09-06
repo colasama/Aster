@@ -1,8 +1,10 @@
 //! Git-friendly project bundle persistence.
 
+mod atomic_file;
 mod disk_cache;
 mod proxy;
 
+pub use atomic_file::AtomicFile;
 pub use disk_cache::{DiskCache, DiskCacheBenchmark, DiskCacheStatistics};
 pub use proxy::{
     CancellationToken, ProxyError, ProxyGenerationPlan, ProxyMetadata, ProxyProfile, ProxyValidity,
@@ -29,20 +31,8 @@ const MAX_PACKED_ENTRIES: usize = 4_096;
 const MAX_PACKED_BYTES: u64 = 2 * 1024 * 1024 * 1024;
 
 pub fn save_bundle(bundle: impl AsRef<Path>, project: &Project) -> Result<(), ProjectError> {
-    let bundle = bundle.as_ref();
-    fs::create_dir_all(bundle)?;
-    let destination = bundle.join(PROJECT_FILE);
-    let temporary = bundle.join(format!(".{PROJECT_FILE}.{}.tmp", Uuid::new_v4()));
-    {
-        let file = File::create(&temporary)?;
-        let mut writer = BufWriter::new(file);
-        serde_json::to_writer_pretty(&mut writer, project)?;
-        writer.write_all(b"\n")?;
-        writer.flush()?;
-        writer.get_ref().sync_all()?;
-    }
-    replace_file(&temporary, &destination)?;
-    Ok(())
+    validate(project)?;
+    write_json_atomic(bundle.as_ref(), PROJECT_FILE, project)
 }
 
 pub fn load_bundle(bundle: impl AsRef<Path>) -> Result<Project, ProjectError> {
@@ -115,7 +105,7 @@ pub fn pack_editor_bundle(
             .into_inner()
             .map_err(std::io::IntoInnerError::into_error)?
             .sync_all()?;
-        replace_file(&temporary, destination)?;
+        fs::rename(&temporary, destination)?;
         Ok(())
     })();
     if result.is_err() && temporary.exists() {
@@ -290,24 +280,6 @@ pub fn validate(project: &Project) -> Result<(), ProjectError> {
     Ok(())
 }
 
-fn replace_file(temporary: &Path, destination: &Path) -> Result<(), std::io::Error> {
-    if !destination.exists() {
-        return fs::rename(temporary, destination);
-    }
-    let backup = backup_path(destination);
-    fs::rename(destination, &backup)?;
-    match fs::rename(temporary, destination) {
-        Ok(()) => {
-            fs::remove_file(backup)?;
-            Ok(())
-        }
-        Err(error) => {
-            let _ = fs::rename(backup, destination);
-            Err(error)
-        }
-    }
-}
-
 fn replace_directory(temporary: &Path, destination: &Path) -> Result<(), std::io::Error> {
     if !destination.exists() {
         return fs::rename(temporary, destination);
@@ -365,30 +337,13 @@ fn write_json_atomic(
     file_name: &str,
     value: &impl serde::Serialize,
 ) -> Result<(), ProjectError> {
-    fs::create_dir_all(bundle)?;
-    let destination = bundle.join(file_name);
-    let temporary = bundle.join(format!(".{file_name}.{}.tmp", Uuid::new_v4()));
-    {
-        let file = File::create(&temporary)?;
+    AtomicFile::write(&bundle.join(file_name), |file| {
         let mut writer = BufWriter::new(file);
         serde_json::to_writer_pretty(&mut writer, value)?;
         writer.write_all(b"\n")?;
         writer.flush()?;
-        writer.get_ref().sync_all()?;
-    }
-    replace_file(&temporary, &destination)?;
-    Ok(())
-}
-
-fn backup_path(destination: &Path) -> PathBuf {
-    let extension = destination
-        .extension()
-        .and_then(|extension| extension.to_str())
-        .map_or_else(
-            || "backup".to_owned(),
-            |extension| format!("{extension}.backup"),
-        );
-    destination.with_extension(extension)
+        Ok(())
+    })
 }
 
 #[derive(Debug, Error)]

@@ -233,7 +233,11 @@ pub fn finalize_proxy_generation(
     if metadata.len() == 0 || metadata.len() > MAX_PROXY_BYTES {
         return Err(ProxyError::InvalidOutputSize(metadata.len()));
     }
-    super::replace_file(&plan.temporary_output, &plan.output)?;
+    File::options()
+        .write(true)
+        .open(&plan.temporary_output)?
+        .sync_all()?;
+    fs::rename(&plan.temporary_output, &plan.output)?;
     write_proxy_metadata(&plan.metadata_path, &plan.metadata)
 }
 
@@ -245,21 +249,13 @@ pub fn write_proxy_metadata(
     let path = path.as_ref();
     let parent = path.parent().ok_or(ProxyError::MissingParent)?;
     fs::create_dir_all(parent)?;
-    let temporary = parent.join(format!(".proxy.{}.tmp", Uuid::new_v4()));
-    let result = (|| {
-        let file = File::create(&temporary)?;
+    crate::AtomicFile::write(path, |file| {
         let mut writer = BufWriter::new(file);
         serde_json::to_writer_pretty(&mut writer, metadata)?;
         writer.write_all(b"\n")?;
         writer.flush()?;
-        writer.get_ref().sync_all()?;
-        super::replace_file(&temporary, path)?;
         Ok(())
-    })();
-    if result.is_err() {
-        let _ = fs::remove_file(temporary);
-    }
-    result
+    })
 }
 
 pub fn inspect_proxy(
