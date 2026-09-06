@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { activeComposition, createDemoProject } from "../core/project";
 import type { RendererMetrics } from "../core/types";
 import {
@@ -106,6 +106,40 @@ describe("production beauty frame pipeline", () => {
         settings: { ...PRODUCTION_BEAUTY_SETTINGS },
       } as BeautyFrameRequest),
     ).toThrow("cannot be overridden");
+  });
+
+  it("passes playback to video decoders without changing deterministic readback", async () => {
+    const project = createDemoProject();
+    const composition = activeComposition(project);
+    const pixels = new Uint8ClampedArray(4);
+    const canvas = {
+      width: 1,
+      height: 1,
+      getContext: () => ({ getImageData: () => ({ data: pixels }) }),
+    } as unknown as HTMLCanvasElement;
+    const render = vi.fn(() => fakeMetrics());
+    const renderer = {
+      outputWidth: 1,
+      outputHeight: 1,
+      render,
+      complete: async () => undefined,
+    } as unknown as CanvasFallbackRenderer;
+    const pipeline = new ProductionBeautyFramePipeline(
+      createViewportBeautyFrameBackend(renderer, canvas),
+    );
+    const request = createBeautyFrameRequest({
+      composition,
+      project,
+      time: 4,
+      width: 1,
+      height: 1,
+    });
+    pipeline.present(request, undefined, true);
+    expect(render).toHaveBeenLastCalledWith(composition, 4, true, project, undefined);
+    pipeline.present(request);
+    expect(render).toHaveBeenLastCalledWith(composition, 4, false, project, undefined);
+    await pipeline.readback(request);
+    expect(render).toHaveBeenLastCalledWith(composition, 4, false, project);
   });
 
   it("configures the renderer when a hidden render canvas was pre-sized to 4K", () => {

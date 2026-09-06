@@ -302,6 +302,7 @@ export function Viewport() {
                 height: canvasRef.current?.height ?? 1,
               }),
               state.selection[0],
+              state.playing,
             )
           : renderer.render(
               previewComposition,

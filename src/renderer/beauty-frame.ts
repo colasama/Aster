@@ -33,7 +33,11 @@ export interface BeautyFrameBackend {
   readonly pixelFormat: RawFramePixelFormat;
   currentTarget(): BeautyFrameTarget;
   resize(width: number, height: number): void;
-  present(request: BeautyFrameRequest, selectedLayerId?: string): RendererMetrics;
+  present(
+    request: BeautyFrameRequest,
+    selectedLayerId?: string,
+    playing?: boolean,
+  ): RendererMetrics;
   readback(request: BeautyFrameRequest, synchronizeVideo: boolean): Promise<RawVideoFrame>;
 }
 
@@ -78,10 +82,14 @@ export class ProductionBeautyFramePipeline {
     this.#backend.resize(target.width, target.height);
   }
 
-  present(request: BeautyFrameRequest, selectedLayerId?: string): RendererMetrics {
+  present(
+    request: BeautyFrameRequest,
+    selectedLayerId?: string,
+    playing?: boolean,
+  ): RendererMetrics {
     validateBeautyFrameRequest(request);
     this.resize(request.target.width, request.target.height);
-    return this.#backend.present(request, selectedLayerId);
+    return this.#backend.present(request, selectedLayerId, playing);
   }
 
   async readback(request: BeautyFrameRequest, synchronizeVideo = false): Promise<RawVideoFrame> {
@@ -119,13 +127,13 @@ export function createViewportBeautyFrameBackend(
       canvas.height = height;
       renderer.resize(width, height);
     },
-    present: (request, selectedLayerId) => {
+    present: (request, selectedLayerId, playing = false) => {
       activateProjectFonts(request.project);
       activateBeauty();
       return renderer.render(
         request.composition,
         request.time,
-        false,
+        playing,
         request.project,
         selectedLayerId,
       );
