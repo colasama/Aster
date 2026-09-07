@@ -83,6 +83,9 @@ wrapper or parent output. Keyframes before the selected span remain intact, pres
 and easing at the cut. Transform, camera, path morph, shape graph, effect, time-remap and text animator
 tracks, expressions and procedural clocks therefore retain their original frame addresses without
 rewriting. Existing precompositions keep their persisted time mapping; this requires no migration.
+Opening a composition, including the active composition of a loaded project, positions the editor
+at its work-area start with playback stopped. Its original frame numbering remains visible without
+requiring the user to seek through the leading interval.
 
 Sources are discriminated as `still`, `video`, `audio`, `imageSequence`, `svg`, or `psd`. Every source
 has a stable ID, MIME type, bounded content identity, optional embedded/relative/runtime locator, and

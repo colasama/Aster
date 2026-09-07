@@ -12,7 +12,7 @@ import {
 } from "react";
 import { recordCommandMarker, recordOperations } from "../core/command-log";
 import { applyOperations, cloneProjectSnapshot, type Operation } from "../core/operations";
-import { createDemoProject } from "../core/project";
+import { activeComposition, createDemoProject } from "../core/project";
 import { storeRecoverySnapshot } from "../core/project-file";
 import type { Id, Project, RendererMetrics } from "../core/types";
 import { isDesktopRuntime, migrateLegacyPreferences } from "../desktop/api";
@@ -144,6 +144,9 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         projectRevision: state.projectRevision + 1,
         autosave: { status: "idle" },
         selection: action.select ?? state.selection,
+        ...(project.activeCompositionId !== state.project.activeCompositionId
+          ? compositionEntryState(project, state.seekRevision)
+          : {}),
         history: {
           past: [...state.history.past.slice(-99), action.historyBase ?? state.project],
           future: [],
@@ -171,6 +174,9 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         projectRevision: state.projectRevision + 1,
         autosave: { status: "idle" },
         selection: validSelection(restored, state.selection, true),
+        ...(restored.activeCompositionId !== state.project.activeCompositionId
+          ? compositionEntryState(restored, state.seekRevision)
+          : {}),
         history: {
           past: state.history.past.slice(0, -1),
           future: [state.project, ...state.history.future],
@@ -189,6 +195,9 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         projectRevision: state.projectRevision + 1,
         autosave: { status: "idle" },
         selection: validSelection(restored, state.selection, true),
+        ...(restored.activeCompositionId !== state.project.activeCompositionId
+          ? compositionEntryState(restored, state.seekRevision)
+          : {}),
         history: { past: [...state.history.past, state.project], future },
       };
     }
@@ -249,10 +258,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         project,
         projectRevision: state.projectRevision + 1,
         autosave: { status: "idle" },
-        selection: composition.layers[0] ? [composition.layers[0].id] : [],
-        selectedKeyframes: [],
-        currentTime: 0,
-        playing: false,
+        ...compositionEntryState(project, state.seekRevision),
         history: { past: [...state.history.past.slice(-99), state.project], future: [] },
       };
     }
@@ -265,8 +271,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         savedProjectRevision: action.markSaved === true ? 0 : null,
         autosave: { status: "idle" },
         auditLog: action.project.commandLog.filter((entry) => entry.source === "ai").slice(-100),
-        selection: validSelection(action.project, [], true),
-        currentTime: 0,
+        ...compositionEntryState(action.project, state.seekRevision),
       };
     }
     case "markSaved":
@@ -305,6 +310,24 @@ function readGpuMemoryBudget(): EditorState["gpuMemoryBudgetMb"] {
   return [32, 64, 128, 256, 512].includes(megabytes)
     ? (megabytes as Exclude<EditorState["gpuMemoryBudgetMb"], "auto">)
     : "auto";
+}
+
+function compositionEntryState(
+  project: Project,
+  seekRevision = 0,
+): Pick<
+  EditorState,
+  "selection" | "selectedKeyframes" | "currentTime" | "playing" | "seekRevision"
+> {
+  const composition = activeComposition(project);
+  const start = composition.workArea?.start ?? 0;
+  return {
+    selection: validSelection(project, [], true),
+    selectedKeyframes: [],
+    currentTime: Number.isFinite(start) && start >= 0 && start < composition.duration ? start : 0,
+    playing: false,
+    seekRevision: seekRevision + 1,
+  };
 }
 
 function validSelection(project: Project, selection: Id[], fallback: boolean): Id[] {
