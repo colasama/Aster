@@ -75,6 +75,15 @@ externalize large media into an asset directory without changing layer reference
 footage once in the project-level `sources` registry. Image and video layer instances reference it by
 stable `sourceId`, so duplication, parenting, effects, and timeline edits never copy encoded bytes.
 
+New precompositions preserve the source composition's time coordinates. Their wrapper retains the
+selected `[inPoint, outPoint)` span and stores `timeOffset = inPoint`, so parent time `t` samples
+nested time `t`. The nested duration reaches the selection's end; its work area begins at the
+selection's start. The leading timeline interval is outside that work area and does not extend the
+wrapper or parent output. Keyframes before the selected span remain intact, preserving interpolation
+and easing at the cut. Transform, camera, path morph, shape graph, effect, time-remap and text animator
+tracks, expressions and procedural clocks therefore retain their original frame addresses without
+rewriting. Existing precompositions keep their persisted time mapping; this requires no migration.
+
 Sources are discriminated as `still`, `video`, `audio`, `imageSequence`, `svg`, or `psd`. Every source
 has a stable ID, MIME type, bounded content identity, optional embedded/relative/runtime locator, and
 explicit alpha/color-space/frame-rate interpretation. Kind-specific dimensions, durations, channel

@@ -6,7 +6,6 @@ import {
   NESTED_ADJUSTMENT_ERROR,
 } from "./project-render-boundaries";
 import {
-  type Animatable,
   type Composition,
   type Id,
   type Layer,
@@ -63,10 +62,12 @@ export function planPrecomposition(
   nested.width = source.width;
   nested.height = source.height;
   nested.frameRate = structuredClone(source.frameRate);
-  nested.duration = Math.max(frameDuration, end - start);
-  nested.workArea = { start: 0, end: nested.duration };
+  // Preserve the source clock for every evaluator, including implicit procedural
+  // time. The work area isolates the shot without rewriting or clipping tracks.
+  nested.duration = Math.max(frameDuration, end);
+  nested.workArea = { start, end: nested.duration };
   nested.background = [0, 0, 0, 0];
-  nested.layers = selected.map((layer) => rebaseLayer(layer, start, selectedSet));
+  nested.layers = selected.map((layer) => copyLayerIntoComposition(layer, selectedSet));
 
   const insertionIndex = Math.min(
     ...selected.map((layer) => source.layers.findIndex((candidate) => candidate.id === layer.id)),
@@ -80,6 +81,7 @@ export function planPrecomposition(
   setLayerSizeAndCenterAnchor(wrapper, [source.width, source.height]);
   wrapper.inPoint = start;
   wrapper.outPoint = end;
+  wrapper.timeOffset = start;
   // The wrapper modulates the sampled surface, so generated precompositions
   // must start as a visually neutral pass-through.
   wrapper.color = [1, 1, 1, 1];
@@ -141,23 +143,8 @@ export function applyPrecompositionPlan(project: Project, plan: PrecompositionPl
   project.compositions.push(structuredClone(plan.nestedComposition));
 }
 
-function rebaseLayer(layer: Layer, offset: number, selectedIds: Set<Id>): Layer {
-  const rebased = structuredClone(layer);
-  rebased.inPoint = Math.max(0, rebased.inPoint - offset);
-  rebased.outPoint = Math.max(rebased.inPoint, rebased.outPoint - offset);
-  if (rebased.parentId && !selectedIds.has(rebased.parentId)) rebased.parentId = undefined;
-  for (const property of [
-    ...rebased.transform.position,
-    ...rebased.transform.rotation,
-    ...rebased.transform.scale,
-    ...rebased.transform.anchor,
-    rebased.transform.opacity,
-  ])
-    rebaseAnimatable(property, offset);
-  return rebased;
-}
-
-function rebaseAnimatable(property: Animatable, offset: number): void {
-  if (property.mode !== "animated") return;
-  for (const keyframe of property.keyframes) keyframe.time = Math.max(0, keyframe.time - offset);
+function copyLayerIntoComposition(layer: Layer, selectedIds: Set<Id>): Layer {
+  const copied = structuredClone(layer);
+  if (copied.parentId && !selectedIds.has(copied.parentId)) copied.parentId = undefined;
+  return copied;
 }
