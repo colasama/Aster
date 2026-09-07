@@ -362,15 +362,22 @@ export const aePixelShaderCases = /* wgsl */ `
       case 82u: {
         let center = vec2f(effect.header.w, effect.p0.x) * resolution;
         let delta = input.position.xy - center;
+        let extent = max(abs(center), abs(resolution - center));
         var distance = length(delta);
+        var reach = length(extent);
         if effect.header.z > 0.5 && effect.header.z < 1.5 {
           distance = max(abs(delta.x), abs(delta.y));
+          reach = max(extent.x, extent.y);
         } else if effect.header.z > 1.5 {
           distance = abs(delta.x) + abs(delta.y);
+          reach = extent.x + extent.y;
         }
-        let maximum = length(resolution) * 0.55;
+        // Keep the established centered-circle radius while covering every shape's corners.
+        let maximum = max(length(resolution) * 0.55, reach + effect.p0.y);
         let boundary = (1.0 - effect.header.y) * maximum;
         var keep = 1.0 - smoothstep(boundary - effect.p0.y, boundary + effect.p0.y + 0.0001, distance);
+        keep = select(keep, 1.0, effect.header.y <= 0.0);
+        keep = select(keep, 0.0, effect.header.y >= 1.0);
         keep = select(keep, 1.0 - keep, effect.p0.z > 0.5);
         alpha *= keep;
       }

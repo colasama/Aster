@@ -22,6 +22,13 @@ therefore evaluate the same composition and final post-processing route. Fake-re
 assert byte equality for this case. Resolution-scaled requests share the exact settings object and
 differ only in their target dimensions.
 
+Iris Wipe evaluates its full-open extent using the selected shape's distance metric and center,
+including feathering. Completion 0 preserves every pixel and completion 100 removes every pixel;
+Invert reverses those endpoints. This prevents diamond corners and off-center irises from remaining
+clipped after a transition completes. The calculation stays inside the fused GPU pass. Endpoint
+validation executes the actual WGSL case against three shapes, three centers, landscape/portrait
+targets, both inversion modes and nine sample locations (648 exact coverage checks).
+
 Foreground PNG-sequence and MP4 jobs capture one runtime structured clone before opening a frame
 session. Unlike the persistence sanitizer, this clone retains ephemeral linked-media URLs required by
 picture and audio decode. The requested composition is resolved from that clone and made active, so
