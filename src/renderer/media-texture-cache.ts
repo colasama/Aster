@@ -23,6 +23,7 @@ import {
   computeSvgRasterTarget,
   rasterizeSvgToImageBitmap,
   SvgRasterCache,
+  svgTransformedRasterSize,
 } from "../importers/svg-raster-cache";
 import {
   destroyMediaResource,
@@ -355,9 +356,10 @@ export class MediaTextureCache {
     resolutionScale: number,
   ): void {
     const transform = evaluateLayerTransform(layer, time);
+    const rasterSize = svgTransformedRasterSize(layer.size, transform.scale);
     const target = svgPreviewRasterTarget(
-      Math.abs((layer.size[0] * transform.scale[0]) / 100),
-      Math.abs((layer.size[1] * transform.scale[1]) / 100),
+      rasterSize.displayWidth,
+      rasterSize.displayHeight,
       resolutionScale,
       Math.min(MAX_MEDIA_TEXTURE_DIMENSION, this.#device.limits.maxTextureDimension2D),
     );

@@ -23,6 +23,15 @@ export function textRasterResolutionScale(value: number): number {
   return Math.min(8, 1.25 ** Math.ceil(Math.log(bounded) / Math.log(1.25)));
 }
 
+/** Include evaluated parent transforms before selecting the bounded raster-density bucket. */
+export function transformedTextRasterScale(
+  resolutionScale: number,
+  scale: readonly number[],
+): number {
+  const magnification = Math.max(Math.abs(scale[0]), Math.abs(scale[1])) / 100;
+  return textRasterResolutionScale(resolutionScale * magnification);
+}
+
 export function rasterizeTextLayer(
   layer: Layer,
   maximumDimension: number,

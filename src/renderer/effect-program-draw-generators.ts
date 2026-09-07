@@ -1,4 +1,4 @@
-import { evaluateEffectParameter } from "../core/timeline";
+import { evaluateAnimatable, evaluateEffectParameter } from "../core/timeline";
 import type { Effect } from "../core/types";
 import { EffectOpcode } from "./effect-opcodes";
 
@@ -14,6 +14,33 @@ export function compileDrawGeneratorEffect(
   const opacity = () => value("opacity", 100) / 100;
   const blend = () => value("blend", 100) / 100;
   switch (effect.type) {
+    case "multi-stop-gradient": {
+      // Packed 24-bit colors are exact in f32; five stops fit one existing operation.
+      const stops = [
+        [0, gradientColor(effect, "color1", time, 0x38cddd)],
+        [point("position2", 25), gradientColor(effect, "color2", time, 0xd9f3f2)],
+        [point("position3", 50), gradientColor(effect, "color3", time, 0xe757a4)],
+        [point("position4", 80), gradientColor(effect, "color4", time, 0x0784d5)],
+        [1, gradientColor(effect, "color5", time, 0x021a2b)],
+      ]
+        .map(([position, packed]) => [
+          Math.min(1, Math.max(0, position)),
+          Math.min(0xffffff, Math.max(0, Math.round(packed))),
+        ])
+        .sort((a, b) => a[0] - b[0]);
+      emit(EffectOpcode.MultiStopGradient, [
+        point("startX", 0),
+        point("startY"),
+        point("endX", 100),
+        point("endY"),
+        ...stops.map((stop) => stop[1]),
+        ...stops.slice(1, 4).map((stop) => stop[0]),
+        value("interpolation"),
+        blend(),
+        value("mapping"),
+      ]);
+      return true;
+    }
     case "ellipse":
       emit(EffectOpcode.Ellipse, [
         point("centerX"),
@@ -114,4 +141,23 @@ export function compileDrawGeneratorEffect(
 function colorChannels(value: number): [number, number, number] {
   const color = Math.max(0, Math.min(0xffffff, Math.round(value)));
   return [((color >> 16) & 255) / 255, ((color >> 8) & 255) / 255, (color & 255) / 255];
+}
+
+function gradientColor(effect: Effect, key: string, time: number, fallback: number): number {
+  const keyframes = effect.parameterKeyframes?.[key];
+  if (!keyframes?.length) return effect.parameters[key] ?? fallback;
+  // Interpolate channels, not packed integers, to avoid green flashes during color animation.
+  return [16, 8, 0].reduce((packed, shift) => {
+    const channel = evaluateAnimatable(
+      {
+        mode: "animated",
+        keyframes: keyframes.map((frame) => ({
+          ...frame,
+          value: (Math.max(0, Math.min(0xffffff, Math.round(frame.value))) >> shift) & 255,
+        })),
+      },
+      time,
+    );
+    return packed + (Math.max(0, Math.min(255, Math.round(channel))) << shift);
+  }, 0);
 }

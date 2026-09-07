@@ -1,4 +1,32 @@
 export const aeDrawGeneratorPixelShaderCases = /* wgsl */ `
+      case 267u: {
+        let start = effect.header.yz;
+        let aspect = vec2f(resolution.x / resolution.y, 1.0);
+        let direction = (vec2f(effect.header.w, effect.p0.x) - start) * aspect;
+        let delta = (uv - start) * aspect;
+        var coordinate = clamp(dot(delta, direction) / max(dot(direction, direction), 0.000001), 0.0, 1.0);
+        if effect.p2.w > 1.5 {
+          coordinate = fract((atan2(delta.y, delta.x) - atan2(direction.y, direction.x)) / 6.28318530718 + 1.0);
+        } else if effect.p2.w > 0.5 {
+          coordinate = clamp(length(delta) / max(length(direction), 0.000001), 0.0, 1.0);
+        }
+        let stops = array<f32, 5>(0.0, effect.p1.z, effect.p1.w, effect.p2.x, 1.0);
+        let colors = array<f32, 5>(effect.p0.y, effect.p0.z, effect.p0.w, effect.p1.x, effect.p1.y);
+        var gradient = vec3f(0.0);
+        for (var index = 0u; index < 4u; index += 1u) {
+          if coordinate >= stops[index] {
+            let a = u32(colors[index]);
+            let b = u32(colors[index + 1u]);
+            let rgb_a = vec3f(f32((a >> 16u) & 255u), f32((a >> 8u) & 255u), f32(a & 255u)) / 255.0;
+            let rgb_b = vec3f(f32((b >> 16u) & 255u), f32((b >> 8u) & 255u), f32(b & 255u)) / 255.0;
+            let width = stops[index + 1u] - stops[index];
+            let t = select(clamp((coordinate - stops[index]) / max(width, 0.000001), 0.0, 1.0), 1.0, width <= 0.0);
+            gradient = mix(rgb_a, rgb_b, select(t, t * t * (3.0 - 2.0 * t), effect.p2.y > 0.5));
+          }
+        }
+        let linear_gradient = select(gradient / 12.92, pow((gradient + vec3f(0.055)) / 1.055, vec3f(2.4)), gradient > vec3f(0.04045));
+        color = mix(color, linear_gradient, effect.p2.z);
+      }
       case 212u: {
         let ellipse_center = effect.header.yz * resolution;
         let ellipse_half_size = max(vec2f(effect.header.w, effect.p0.x) * 0.5, vec2f(0.5));

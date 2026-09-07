@@ -265,4 +265,5 @@ export enum EffectOpcode {
   Letterbox = 264,
   EdgeFeather = 265,
   Overscan = 266,
+  MultiStopGradient = 267,
 }

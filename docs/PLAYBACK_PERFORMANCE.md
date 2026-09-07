@@ -17,6 +17,21 @@ a real playback stall with 16.67 ms would incorrectly report approximately 60 FP
 
 ## Measurement
 
+Multi-stop gradients compile into one existing 16-float fused-pixel operation. Five RGB colors
+remain exact as packed 24-bit integers in f32 uniforms; the shader performs four bounded segment
+checks with no additional texture sampling. Animated stops update uniforms at the requested time
+and retain the input alpha. Static card instances can continue sharing a single rasterized vector
+source, while flowing masked ribbons use the gradient without rerasterizing their color field.
+
+SVG raster viewports retain the untransformed layer aspect ratio. Raster density uses the larger
+absolute transform scale, leaving nonuniform stretch and reflection to geometry. Resizing the SVG
+viewport independently on each axis would let `preserveAspectRatio` cancel the intended stretch.
+The GPU path keeps its existing bounded scale buckets; changing only the smaller transform axis
+reuses the same raster and upload. Canvas fallback uses the same viewport calculation.
+Text raster density includes evaluated parent scale in both the main renderer and isolated
+precompositions. Existing 1.25x density buckets and the 8x/texture-dimension caps limit generation
+churn and memory while keeping enlarged letterforms sharp; temporal text uses the same density.
+
 Use the same project, viewport size, preview quality, app build, and GPU for both runs. Warm imported assets first. Measure at least six seconds of actual playback, recording renderer CPU/GPU time, presentation intervals, wall-clock time, and composition time advancement. A renderer-only benchmark cannot expose React scheduling costs. Do not equate display refresh callbacks or export throughput with actual preview FPS.
 
 Also count distinct source-frame addresses reached by playback events over the measured source

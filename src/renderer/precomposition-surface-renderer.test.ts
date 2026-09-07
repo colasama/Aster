@@ -17,6 +17,7 @@ import {
   precompositionSurfaceShader,
 } from "./precomposition-surface-renderer";
 import type { SceneGeneratorHost } from "./scene-generator-host";
+import { textRasterResolutionScale } from "./text-rasterizer";
 
 describe("GPU precomposition surfaces", () => {
   afterEach(() => vi.unstubAllGlobals());
@@ -227,7 +228,10 @@ describe("GPU precomposition surfaces", () => {
         { id: "text-close", time: 2, value: 240, interpolation: "linear" },
       ],
     };
-    nested.layers = [text];
+    const parent = createLayerForComposition("null", nested);
+    parent.transform.scale[0] = { mode: "static", value: 1200 };
+    text.parentId = parent.id;
+    nested.layers = [text, parent];
     const wrapper = createLayerForComposition("precomposition", root);
     wrapper.sourceCompositionId = nested.id;
     wrapper.threeDimensional = true;
@@ -251,7 +255,9 @@ describe("GPU precomposition surfaces", () => {
     const call = prepareText.mock.calls[0];
     expect(call[1]).toContain(`surface:root/${wrapper.id}/root/${text.id}`);
     expect(call[4]).toBeCloseTo(
-      Math.max(surfacePlan.width / nested.width, surfacePlan.height / nested.height),
+      textRasterResolutionScale(
+        12 * Math.max(surfacePlan.width / nested.width, surfacePlan.height / nested.height),
+      ),
     );
     expect(call[5]).toMatchObject({ sampleCount: expect.any(Number) });
     expect(call[5].samples.length).toBeGreaterThan(1);

@@ -69,7 +69,18 @@ Layers use stable UUIDs, time bounds, kind, blend mode, transform properties, an
 effects. An animatable property is either a static value or an ordered keyframe array. Effects are
 identified by a stable type string and numeric parameter map so missing plugins can remain round-trip
 safe. An effect may carry per-parameter ordered keyframe tracks without changing its static fallback
-map. Precomposition layers reference another composition by stable ID. Development image/video
+map. The `multi-stop-gradient` effect uses five packed RGB colors (`color1` through `color5`),
+three interior stop percentages (`position2` through `position4`), normalized target-space endpoint
+percentages (`startX`, `startY`, `endX`, `endY`), `interpolation` (0 linear, 1 smooth), and `blend`.
+`mapping` selects linear (0, default), radial (1), or clockwise angular (2) projection. In radial
+mode the first point is the center and the second defines the radius; angular mode uses that vector
+as the zero-angle ray. Older projects without `mapping` retain the linear ramp.
+Endpoints can extend outside the target. Interior stops are stably sorted with their colors at each
+evaluation; coincident stops form a hard transition. Color keyframes interpolate RGB channels
+independently using their stored easing. Stops interpolate in sRGB, then convert to the linear render
+target; endpoint projection accounts for the target aspect ratio. The effect preserves source alpha
+and needs no new media.
+Precomposition layers reference another composition by stable ID. Development image/video
 imports may use bounded `data:` URLs for portable single-file projects; the native bundle layer will
 externalize large media into an asset directory without changing layer references. Version 4 stores
 footage once in the project-level `sources` registry. Image and video layer instances reference it by

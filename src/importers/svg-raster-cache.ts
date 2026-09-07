@@ -34,6 +34,15 @@ const DEFAULT_MAX_PIXELS = 64 * 1024 * 1024;
 const DEFAULT_MAX_ENTRIES = 8;
 const DEFAULT_MAX_BYTES = 256 * 1024 * 1024;
 
+/** Rasterize the untransformed viewport; geometry applies stretch and reflection afterwards. */
+export function svgTransformedRasterSize(size: readonly number[], scale: readonly number[]) {
+  const magnification = Math.max(Math.abs(finite(scale[0])), Math.abs(finite(scale[1]))) / 100;
+  return {
+    displayWidth: Math.abs(finite(size[0])) * magnification,
+    displayHeight: Math.abs(finite(size[1])) * magnification,
+  };
+}
+
 /** Computes a vector raster target in physical preview/export pixels while preserving aspect. */
 export function computeSvgRasterTarget(input: SvgRasterTargetInput): SvgRasterTarget {
   const physicalScale = positive(input.resolutionScale, 1) * positive(input.devicePixelRatio, 1);

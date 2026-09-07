@@ -3,6 +3,30 @@ import type { EffectDefinition } from "./types";
 
 export const AE_GENERATOR_EFFECTS: EffectDefinition[] = [
   {
+    type: "multi-stop-gradient",
+    name: "Multi-Stop Gradient",
+    category: "Generate",
+    description: "Five animated color stops between two points, preserving source alpha.",
+    execution: "fused-pixel",
+    parameters: [
+      number("startX", "Starting Point X", 0, -200, 300, 0.1, "%"),
+      number("startY", "Starting Point Y", 50, -200, 300, 0.1, "%"),
+      number("endX", "Ending Point X", 100, -200, 300, 0.1, "%"),
+      number("endY", "Ending Point Y", 50, -200, 300, 0.1, "%"),
+      color("color1", "Start Color", 0x38cddd),
+      color("color2", "Color 2", 0xd9f3f2),
+      percent("position2", "Position 2", 25),
+      color("color3", "Color 3", 0xe757a4),
+      percent("position3", "Position 3", 50),
+      color("color4", "Color 4", 0x0784d5),
+      percent("position4", "Position 4", 80),
+      color("color5", "End Color", 0x021a2b),
+      choice("mapping", "Mapping", ["Linear", "Radial", "Angular"], 0),
+      choice("interpolation", "Interpolation", ["Linear", "Smooth"], 0),
+      percent("blend", "Blend With Original", 100),
+    ],
+  },
+  {
     type: "ball-action",
     name: "CC Ball Action",
     category: "Simulation",

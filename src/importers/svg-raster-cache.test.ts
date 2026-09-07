@@ -7,6 +7,7 @@ import {
   rasterizeSvgToImageBitmap,
   SvgRasterCache,
   svgMarkupAtRasterSize,
+  svgTransformedRasterSize,
 } from "./svg-raster-cache";
 
 const source = () =>
@@ -15,6 +16,19 @@ const source = () =>
   );
 
 describe("SVG vector raster cache", () => {
+  it("keeps the SVG viewport aspect during nonuniform animation and mirror transforms", () => {
+    const stretched = svgTransformedRasterSize([400, 200], [100, 300]);
+    expect(stretched).toEqual({ displayWidth: 1200, displayHeight: 600 });
+    // Changing the non-dominant axis reuses the raster; only GPU geometry must change.
+    expect(svgTransformedRasterSize([400, 200], [-220, 300])).toEqual(stretched);
+    const raster = computeSvgRasterTarget({ ...stretched, resolutionScale: 1 });
+    const root = new DOMParser().parseFromString(
+      svgMarkupAtRasterSize(source().sanitized, raster.width, raster.height),
+      "image/svg+xml",
+    ).documentElement;
+    expect(Number(root.getAttribute("width")) / Number(root.getAttribute("height"))).toBe(2);
+    expect(root.getAttribute("viewBox")).toBe("0 0 100 50");
+  });
   it("targets physical pixels and downscales uniformly to GPU limits", () => {
     expect(
       computeSvgRasterTarget({

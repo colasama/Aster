@@ -19,6 +19,7 @@ import type { PreparedSceneGenerator, SceneGeneratorHost } from "./scene-generat
 import { buildSceneLighting, SCENE_LIGHTING_BYTES } from "./scene-lighting";
 import { IMAGE_VERTEX_BUFFERS } from "./scene-pipelines";
 import { planTextMotionBlurFrame, type TextMotionBlurPlan } from "./text-motion-blur-plan";
+import { transformedTextRasterScale } from "./text-rasterizer";
 
 const SURFACE_FORMAT: GPUTextureFormat = "rgba16float";
 const INITIAL_VERTEX_BYTES = 6 * FLOATS_PER_VERTEX * Float32Array.BYTES_PER_ELEMENT;
@@ -375,7 +376,7 @@ export class PrecompositionSurfaceRenderer {
         scene.resourceInstanceId,
         evaluateLayerSourceTime(scene.layer, scene.localTime),
         scene.sourceComposition.frameRate.numerator / scene.sourceComposition.frameRate.denominator,
-        resolutionScale,
+        transformedTextRasterScale(resolutionScale, scene.transform.scale),
         textMotionBlur,
       );
       this.#mediaInstanceIds.add(scene.resourceInstanceId);

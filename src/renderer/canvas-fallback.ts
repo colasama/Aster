@@ -19,7 +19,11 @@ import {
   type RuntimeSvgSource,
 } from "../importers/media-import-runtime";
 import { decodeRasterImage, type RasterImageIdentity } from "../importers/raster-image-decoder";
-import { computeSvgRasterTarget, svgMarkupAtRasterSize } from "../importers/svg-raster-cache";
+import {
+  computeSvgRasterTarget,
+  svgMarkupAtRasterSize,
+  svgTransformedRasterSize,
+} from "../importers/svg-raster-cache";
 import { isTiffSource } from "../importers/tiff-source";
 import { drawTextLayer } from "./text-rasterizer";
 
@@ -450,8 +454,7 @@ export class CanvasFallbackRenderer {
   ): CanvasMediaResource {
     const transform = evaluateLayerTransform(layer, time);
     const target = computeSvgRasterTarget({
-      displayWidth: Math.abs((layer.size[0] * transform.scale[0]) / 100),
-      displayHeight: Math.abs((layer.size[1] * transform.scale[1]) / 100),
+      ...svgTransformedRasterSize(layer.size, transform.scale),
       resolutionScale: 1,
       maxTextureDimension: 8_192,
       maxPixels: 64 * 1024 * 1024,

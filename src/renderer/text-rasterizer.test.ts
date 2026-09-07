@@ -7,6 +7,7 @@ import {
   drawTextLayer,
   textRasterResolutionScale,
   textRasterSize,
+  transformedTextRasterScale,
 } from "./text-rasterizer";
 
 const monospace = (text: string) => Array.from(text).length * 10;
@@ -14,6 +15,14 @@ const graphemeMeasure = (text: string) =>
   Array.from(new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(text)).length * 10;
 
 describe("Unicode text line breaking", () => {
+  it("uses bounded density buckets for parented text enlargement and reflection", () => {
+    const density = transformedTextRasterScale(1, [150, -360, 100]);
+    expect(density).toBeGreaterThanOrEqual(3.6);
+    expect(transformedTextRasterScale(1, [150, -361, 100])).toBe(density);
+    expect(transformedTextRasterScale(0.5, [150, -360, 100])).toBeGreaterThanOrEqual(1.8);
+    expect(transformedTextRasterScale(1, [10000, 10000, 100])).toBe(8);
+    expect(transformedTextRasterScale(1, [0, 0, 100])).toBe(1);
+  });
   it("renders clean glyphs without injecting a size-dependent blue shadow", () => {
     const layer = createLayerForComposition("text", createBlankComposition());
     layer.text = "無題";

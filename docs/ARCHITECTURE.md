@@ -116,6 +116,13 @@ frame data are excluded, and successful hot-path operations are intentionally si
    only their nodes and preserve project data. Each effected layer uses a fused
    offscreen chain before its blend-mode composite; unaffected adjacent layers stay batched directly
    into the `rgba16float` scene target.
+   Multi-stop gradients share that chain: five packed RGB stops, endpoints, interpolation and blend
+   fit one existing uniform operation. Time-addressable CPU evaluation sorts stops and interpolates
+   color keyframes per channel; the GPU evaluates the ramp without sampling another texture or
+   changing alpha. No project format version or plugin ABI layout change is required.
+   SVG raster viewports keep their original layer aspect so geometry can apply nonuniform scaling;
+   density follows the larger axis and reuses the existing bounded buckets. Text density includes
+   evaluated parent scale in main and isolated surfaces, with the existing 8x raster cap.
 
 The generic layer factory requires an explicit plugin instance and the generic runtime receives
 bundled definitions through constructor injection. Only application composition roots and the

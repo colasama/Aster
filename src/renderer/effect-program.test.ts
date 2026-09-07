@@ -13,7 +13,10 @@ describe("GPU effect program compiler", () => {
     const opcodes = Object.values(EffectOpcode)
       .filter((value): value is number => typeof value === "number")
       .sort((left, right) => left - right);
-    const expected = Array.from({ length: EffectOpcode.Overscan }, (_, index) => index + 1);
+    const expected = Array.from(
+      { length: EffectOpcode.MultiStopGradient },
+      (_, index) => index + 1,
+    );
     expect(opcodes).toEqual(expected);
   });
 
@@ -167,6 +170,7 @@ describe("GPU effect program compiler", () => {
     ["motion-tile", EffectOpcode.MotionTile],
     ["venetian-blinds", EffectOpcode.VenetianBlinds],
     ["gradient-ramp", EffectOpcode.GradientRamp],
+    ["multi-stop-gradient", EffectOpcode.MultiStopGradient],
     ["drop-shadow", EffectOpcode.DropShadow],
     ["tritone", EffectOpcode.Tritone],
     ["lens-distortion", EffectOpcode.LensDistortion],

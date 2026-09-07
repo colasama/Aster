@@ -63,6 +63,7 @@ import {
 import { validateShaderSources } from "./shader-validation";
 import { SurfacePostEffectsRenderer, selectedRenderId } from "./surface-post-effects";
 import { planTextMotionBlurFrame } from "./text-motion-blur-plan";
+import { transformedTextRasterScale } from "./text-rasterizer";
 import { buildTimeAddressedMotionVectors } from "./time-addressed-motion-vectors";
 
 const MAX_SHAPE_VERTICES = 6 * 128;
@@ -688,7 +689,7 @@ export class WebGpuRenderer {
           scene.resourceInstanceId,
           evaluateLayerSourceTime(scene.layer, scene.localTime),
           composition.frameRate.numerator / composition.frameRate.denominator,
-          previewResolutionScale,
+          transformedTextRasterScale(previewResolutionScale, scene.transform.scale),
           textMotionBlur.plans.get(scene.resourceInstanceId),
         );
       } else if (
