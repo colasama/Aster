@@ -1236,7 +1236,7 @@
           "layerIds": {
             "type": "array",
             "minItems": 1,
-            "maxItems": 64,
+            "maxItems": 2048,
             "items": { "$ref": "#/$defs/id" }
           },
           "name": { "$ref": "#/$defs/name" }

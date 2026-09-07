@@ -218,6 +218,64 @@ describe("AI command normalization", () => {
     });
   });
 
+  it.each([65, 107, 2048])(
+    "precomposes %i layers while preserving their parent hierarchy",
+    (count) => {
+      const project = createBlankProject();
+      const composition = project.compositions[0];
+      const parent = createLayerForComposition("null", composition, 3);
+      const children = Array.from({ length: count - 1 }, () => ({
+        ...createLayerForComposition("shape", composition, 3),
+        parentId: parent.id,
+      }));
+      const untouched = createLayerForComposition("solid", composition);
+      const selected = [parent, ...children];
+      composition.layers = [...selected, untouched];
+      const result = normalizeAiCommands(
+        [
+          {
+            type: "precomposeLayers",
+            layerIds: selected.map((layer) => layer.id),
+            name: "Whole shot",
+          },
+        ],
+        project,
+        3,
+      );
+      const root = result.project.compositions[0];
+      const wrapper = root.layers[0];
+      const nested = result.project.compositions.find((c) => c.id === wrapper.sourceCompositionId);
+      expect(root.layers).toHaveLength(2);
+      expect(root.layers[1]).toEqual(untouched);
+      expect(wrapper).toMatchObject({
+        kind: "precomposition",
+        name: "Whole shot",
+        inPoint: 3,
+        timeOffset: 3,
+      });
+      expect(nested?.layers).toEqual(selected);
+      expect(composition.layers).toEqual([...selected, untouched]);
+    },
+  );
+
+  it("rejects precomposition selections above 2048 IDs before mutation", () => {
+    const project = createBlankProject();
+    const before = structuredClone(project);
+    expect(() =>
+      normalizeAiCommands(
+        [
+          {
+            type: "precomposeLayers",
+            layerIds: Array.from({ length: 2049 }, (_, i) => `layer-${i}`),
+          },
+        ],
+        project,
+        0,
+      ),
+    ).toThrow("$command.layerIds has too many items");
+    expect(project).toEqual(before);
+  });
+
   it("creates adjustment and referenced precomposition layers through the same typed command", () => {
     const project = createBlankProject();
     const source = createBlankComposition("Source");

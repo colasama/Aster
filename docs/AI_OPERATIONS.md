@@ -37,7 +37,7 @@ because they have different authority, cancellation, and audit requirements.
 | `setCompositionMotionBlur` | Compositions | Sets the bounded shutter and adaptive sample policy. |
 | `setCompositionEnvironment` | Compositions | Updates or clears an imported HDR environment. |
 | `setCompositionWorkArea` | Compositions | Sets the frame-aligned work area. |
-| `precomposeLayers` | Compositions | Creates a nested composition and wrapper layer. |
+| `precomposeLayers` | Compositions | Creates a nested composition and wrapper from 1–2048 selected layer IDs. |
 | `addLayer` | Layers | Creates any supported layer kind at the current time. |
 | `removeLayer` | Layers | Removes an existing layer. |
 | `renameLayer` | Layers | Renames an existing layer. |
