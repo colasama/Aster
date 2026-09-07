@@ -22,6 +22,10 @@ therefore evaluate the same composition and final post-processing route. Fake-re
 assert byte equality for this case. Resolution-scaled requests share the exact settings object and
 differ only in their target dimensions.
 
+The shared text rasterizer produces neutral glyph coverage with the requested fill and stroke.
+It does not add a decorative shadow: shadows and glow belong to explicit layer effects. Resetting
+Canvas shadow state also prevents a previous draw from contaminating newly rasterized glyphs.
+
 Iris Wipe evaluates its full-open extent using the selected shape's distance metric and center,
 including feathering. Completion 0 preserves every pixel and completion 100 removes every pixel;
 Invert reverses those endpoints. This prevents diamond corners and off-center irises from remaining

@@ -14,6 +14,27 @@ const graphemeMeasure = (text: string) =>
   Array.from(new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(text)).length * 10;
 
 describe("Unicode text line breaking", () => {
+  it("renders clean glyphs without injecting a size-dependent blue shadow", () => {
+    const layer = createLayerForComposition("text", createBlankComposition());
+    layer.text = "無題";
+    if (layer.textAnimator) layer.textAnimator.enabled = false;
+    for (const fontSize of [40, 400, 900]) {
+      if (layer.textStyle) layer.textStyle.fontSize = fontSize;
+      const { context, operations } = recordingContext();
+      context.shadowColor = "blue";
+      context.shadowBlur = 30;
+      context.shadowOffsetX = 12;
+      context.shadowOffsetY = 12;
+      drawTextLayer(context, layer, 1920, 1080);
+      expect(operations.fillText).toHaveBeenCalled();
+      expect([
+        context.shadowColor,
+        context.shadowBlur,
+        context.shadowOffsetX,
+        context.shadowOffsetY,
+      ]).toEqual(["transparent", 0, 0, 0]);
+    }
+  });
   it("supersamples text for high-magnification previews within the GPU limit", () => {
     expect(textRasterSize({ size: [400, 100] }, 4_096, 8)).toEqual({
       width: 3_200,

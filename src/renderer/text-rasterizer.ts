@@ -75,9 +75,10 @@ export function drawTextLayer(
   context.textBaseline = "middle";
   context.lineJoin = "round";
   context.miterLimit = 2;
-  context.shadowColor = "rgba(40, 72, 180, 0.28)";
-  context.shadowBlur = fontSize * 0.045;
-  context.shadowOffsetY = fontSize * 0.012;
+  context.shadowColor = "transparent";
+  context.shadowBlur = 0;
+  context.shadowOffsetX = 0;
+  context.shadowOffsetY = 0;
   context.fillStyle = cssColor(layer.color);
   context.strokeStyle = cssColor(style.strokeColor);
   context.lineWidth = strokeWidth * 2;
