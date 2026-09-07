@@ -5,7 +5,7 @@ import { createId, type Keyframe, type Layer } from "../core/types";
 import { useI18n } from "../i18n/react";
 import { useEditor } from "../state/editor-store";
 import { TimelineKeyframe, type TimelineKeyframeEntry } from "./TimelineKeyframe";
-import type { buildTimelineSnapTargets } from "./timeline-interactions";
+import type { TimelineSnapTargets } from "./timeline-interactions";
 import {
   collectTimelinePropertyGroups,
   evaluateTimelinePropertyTrack,
@@ -35,7 +35,7 @@ export function TimelinePropertyRows({
   onKeyframeTimePreview: (preview?: KeyframeTimePreview) => void;
   pixelsPerSecond: number;
   startPointerDrag: StartWindowPointerDrag;
-  timelineTargets: ReturnType<typeof buildTimelineSnapTargets>;
+  timelineTargets: TimelineSnapTargets;
 }) {
   const { state, dispatch } = useEditor();
   const { t } = useI18n();

@@ -10,6 +10,9 @@ import type { Composition, Id, Layer } from "../core/types";
 
 export type TimelineWorkArea = Composition["workArea"];
 
+/** Resolve the moving playhead once at pointer-down, not on every marker render. */
+export type TimelineSnapTargets = TimelineSnapTarget[] | (() => TimelineSnapTarget[]);
+
 export interface TimelineContentPoint {
   x: number;
   y: number;

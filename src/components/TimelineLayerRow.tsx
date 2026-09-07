@@ -30,15 +30,15 @@ import { canToggleLayer, type LayerToggleField } from "../core/operations";
 import type { activeComposition } from "../core/project";
 import type { Keyframe, Layer } from "../core/types";
 import { useI18n } from "../i18n/react";
-import { useEditor } from "../state/editor-store";
+import { useEditorDocument } from "../state/editor-store";
 import { AudioWaveform } from "./AudioWaveform";
 import { LayerTimingBar } from "./LayerTimingBar";
 import { TimelineKeyframe, type TimelineKeyframeEntry } from "./TimelineKeyframe";
 import { TimelinePropertyRows } from "./TimelinePropertyRows";
 import {
-  type buildTimelineSnapTargets,
   compositionFrameDuration,
   type LayerTimingDrag,
+  type TimelineSnapTargets,
 } from "./timeline-interactions";
 import {
   collectTimelinePropertyGroups,
@@ -84,10 +84,10 @@ export function TimelineLayerRow({
   pixelsPerSecond: number;
   selected: boolean;
   startPointerDrag: StartWindowPointerDrag;
-  timelineTargets: ReturnType<typeof buildTimelineSnapTargets>;
+  timelineTargets: TimelineSnapTargets;
   timing?: { inPoint: number; outPoint: number };
 }) {
-  const { state, dispatch } = useEditor();
+  const { state, dispatch } = useEditorDocument();
   const { t } = useI18n();
   const [expanded, setExpanded] = useState(selected && layer.name === "ASTER");
   const frameDuration = compositionFrameDuration(composition);
@@ -194,7 +194,7 @@ export function TimelineLayerRow({
 }
 
 function LayerSwitches({ layer }: { layer: Layer }) {
-  const { dispatch } = useEditor();
+  const { dispatch } = useEditorDocument();
   const { t } = useI18n();
   const toggle = (field: LayerToggleField) => {
     if (!canToggleLayer(layer, field)) return;

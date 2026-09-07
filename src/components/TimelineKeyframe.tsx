@@ -7,8 +7,8 @@ import {
 import { activeComposition } from "../core/project";
 import { snapTimelineTime } from "../core/timeline-editing";
 import { useI18n } from "../i18n/react";
-import { useEditor } from "../state/editor-store";
-import { type buildTimelineSnapTargets, excludeTimelineSnapTargets } from "./timeline-interactions";
+import { useEditorDocument } from "../state/editor-store";
+import { excludeTimelineSnapTargets, type TimelineSnapTargets } from "./timeline-interactions";
 import type { KeyframeTimePreview } from "./timeline-property-tracks";
 import type { StartWindowPointerDrag } from "./use-window-pointer-drag";
 
@@ -34,10 +34,10 @@ export function TimelineKeyframe({
   pixelsPerSecond: number;
   preview?: KeyframeTimePreview;
   startPointerDrag: StartWindowPointerDrag;
-  timelineTargets: ReturnType<typeof buildTimelineSnapTargets>;
+  timelineTargets: TimelineSnapTargets;
   variant?: "overview" | "property";
 }) {
-  const { state, dispatch } = useEditor();
+  const { state, dispatch } = useEditorDocument();
   const { t } = useI18n();
   const displayTime = preview?.[entry.keyframe.id] ?? entry.keyframe.time;
   return (
@@ -101,15 +101,15 @@ function startKeyframeDrag(
   context: {
     compositionDuration: number;
     disabled: boolean;
-    dispatch: ReturnType<typeof useEditor>["dispatch"];
+    dispatch: ReturnType<typeof useEditorDocument>["dispatch"];
     entry: TimelineKeyframeEntry;
     frameDuration: number;
     onPreview: (preview?: KeyframeTimePreview) => void;
     pixelsPerSecond: number;
     selectedKeyframeIds: string[];
     startPointerDrag: StartWindowPointerDrag;
-    stateProject: ReturnType<typeof useEditor>["state"]["project"];
-    timelineTargets: ReturnType<typeof buildTimelineSnapTargets>;
+    stateProject: ReturnType<typeof useEditorDocument>["state"]["project"];
+    timelineTargets: TimelineSnapTargets;
   },
 ) {
   if (event.button !== 0 || context.disabled) return;
@@ -128,7 +128,12 @@ function startKeyframeDrag(
     activeComposition(context.stateProject),
     selectedIds,
   );
-  const dragTargets = excludeTimelineSnapTargets(context.timelineTargets, selectedIds);
+  const dragTargets = excludeTimelineSnapTargets(
+    typeof context.timelineTargets === "function"
+      ? context.timelineTargets()
+      : context.timelineTargets,
+    selectedIds,
+  );
   const startX = event.clientX;
   const initialTime = context.entry.keyframe.time;
   let nextTime = initialTime;

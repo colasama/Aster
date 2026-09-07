@@ -345,6 +345,14 @@ const EditorContext = createContext<
   { state: EditorState; dispatch: Dispatch<EditorAction> } | undefined
 >(undefined);
 
+type EditorDocumentState = Pick<
+  EditorState,
+  "project" | "selection" | "selectedKeyframes" | "showLayerControls"
+>;
+const EditorDocumentContext = createContext<
+  { state: EditorDocumentState; dispatch: Dispatch<EditorAction> } | undefined
+>(undefined);
+
 export function EditorProvider({ children }: PropsWithChildren) {
   const [state, dispatch] = useReducer(editorReducer, undefined, createInitialState);
   const [autosaveSeconds, setAutosaveSeconds] = useState(readAutosaveSeconds);
@@ -446,7 +454,26 @@ export function EditorProvider({ children }: PropsWithChildren) {
     };
   }, [autosaveSeconds, persistRecovery]);
   const value = useMemo(() => ({ state, dispatch }), [state]);
-  return <EditorContext.Provider value={value}>{children}</EditorContext.Provider>;
+  // Timeline rows do not depend on the playback clock or profiler samples.
+  const documentValue = useMemo(
+    () => ({
+      state: {
+        project: state.project,
+        selection: state.selection,
+        selectedKeyframes: state.selectedKeyframes,
+        showLayerControls: state.showLayerControls,
+      },
+      dispatch,
+    }),
+    [state.project, state.selection, state.selectedKeyframes, state.showLayerControls],
+  );
+  return (
+    <EditorContext.Provider value={value}>
+      <EditorDocumentContext.Provider value={documentValue}>
+        {children}
+      </EditorDocumentContext.Provider>
+    </EditorContext.Provider>
+  );
 }
 
 function readAutosaveSeconds(): number {
@@ -493,5 +520,11 @@ function readLegacyRendererPreferences(): UserPreferencePatch {
 export function useEditor() {
   const context = useContext(EditorContext);
   if (!context) throw new Error("useEditor must be used inside EditorProvider");
+  return context;
+}
+
+export function useEditorDocument() {
+  const context = useContext(EditorDocumentContext);
+  if (!context) throw new Error("useEditorDocument must be used inside EditorProvider");
   return context;
 }

@@ -47,7 +47,8 @@ import { useEditor } from "../state/editor-store";
 import { useContextMenuTrigger } from "./context-menu/use-context-menu-trigger";
 import { Panel, PanelTabs } from "./Panel";
 import { TimelineContextMenu, type TimelineCreateKind } from "./TimelineContextMenu";
-import { collectTimelineLayerKeyframes, TimelineLayerRow } from "./TimelineLayerRow";
+import { collectTimelineLayerKeyframes } from "./TimelineLayerRow";
+import { type TimelineLayerActions, TimelineLayers } from "./TimelineLayers";
 import { TimelineWorkArea } from "./TimelineWorkArea";
 import {
   buildTimelineSnapTargets,
@@ -106,7 +107,6 @@ export function Timeline() {
     state.timelineZoom >= 1.25;
   const scrollRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
-  const dragLayer = useRef<string | undefined>(undefined);
   const [keyframeClipboard, setKeyframeClipboard] = useState<KeyframeClipboard>();
   const [layerClipboard, setLayerClipboard] = useState<Layer[]>();
   const [menuLayerId, setMenuLayerId] = useState<string>();
@@ -603,6 +603,26 @@ export function Timeline() {
       onCancel: () => setMarquee(undefined),
     });
   };
+  const rowActions: TimelineLayerActions = {
+    marquee: startMarquee,
+    timing: startLayerTimingDrag,
+    menu: (event, layer) => {
+      if (!state.selection.includes(layer.id)) dispatch({ type: "select", ids: [layer.id] });
+      setMenuLayerId(layer.id);
+      contextMenu.openFromPointer(event);
+    },
+    menuKey: (event, layer) => {
+      if (event.key !== "ContextMenu" && !(event.shiftKey && event.key === "F10")) return;
+      if (!state.selection.includes(layer.id)) dispatch({ type: "select", ids: [layer.id] });
+      setMenuLayerId(layer.id);
+      contextMenu.openFromKeyboard(event);
+    },
+  };
+  const rowActionsRef = useRef(rowActions);
+  rowActionsRef.current = rowActions;
+  const rowTargetsRef = useRef(timelineTargets);
+  rowTargetsRef.current = timelineTargets;
+
   return (
     <Panel
       className="timeline-panel"
@@ -845,53 +865,16 @@ export function Timeline() {
                 value={workArea}
               />
             </div>
-            <div className="layer-rows">
-              {composition.layers.map((layer, index) => (
-                <TimelineLayerRow
-                  composition={composition}
-                  index={index}
-                  keyframeTimePreview={keyframeTimePreview}
-                  key={layer.id}
-                  layer={layer}
-                  onDragStart={() => {
-                    dragLayer.current = layer.id;
-                  }}
-                  onDragEnd={() => {
-                    dragLayer.current = undefined;
-                  }}
-                  onDrop={() => {
-                    if (dragLayer.current && dragLayer.current !== layer.id)
-                      dispatch({
-                        type: "operation",
-                        operations: [{ type: "reorderLayer", layerId: dragLayer.current, index }],
-                      });
-                    dragLayer.current = undefined;
-                  }}
-                  onKeyframeTimePreview={setKeyframeTimePreview}
-                  onContextMenu={(event) => {
-                    if (!state.selection.includes(layer.id))
-                      dispatch({ type: "select", ids: [layer.id] });
-                    setMenuLayerId(layer.id);
-                    contextMenu.openFromPointer(event);
-                  }}
-                  onContextMenuKeyDown={(event) => {
-                    if (event.key !== "ContextMenu" && !(event.shiftKey && event.key === "F10"))
-                      return;
-                    if (!state.selection.includes(layer.id))
-                      dispatch({ type: "select", ids: [layer.id] });
-                    setMenuLayerId(layer.id);
-                    contextMenu.openFromKeyboard(event);
-                  }}
-                  onMarqueeStart={(event) => startMarquee(event, index)}
-                  onTimingDragStart={(event, mode) => startLayerTimingDrag(event, layer, mode)}
-                  pixelsPerSecond={pixelsPerSecond}
-                  selected={state.selection.includes(layer.id)}
-                  startPointerDrag={startPointerDrag}
-                  timing={timingPreview?.[layer.id]}
-                  timelineTargets={timelineTargets}
-                />
-              ))}
-            </div>
+            <TimelineLayers
+              composition={composition}
+              pixelsPerSecond={pixelsPerSecond}
+              keyframeTimePreview={keyframeTimePreview}
+              timingPreview={timingPreview}
+              onKeyframeTimePreview={setKeyframeTimePreview}
+              startPointerDrag={startPointerDrag}
+              actions={rowActionsRef}
+              targets={rowTargetsRef}
+            />
             {marquee && <div className="timeline-marquee" style={marquee} />}
             <div
               className="playhead"

@@ -4,9 +4,27 @@ Playback uses the audio clock (or a monotonic fallback) to evaluate each frame a
 
 GPU presentation and the timeline playhead subscribe directly to playback frames. Inspector values and other React consumers receive time at 10 Hz; pausing publishes the exact last presented time immediately. Static previews still render on project, selection, viewport, or time changes. Export sessions retain exclusive ownership of the render target, and imported fonts must be ready before subscribing to presentation.
 
+Stationary timeline rows consume a memoized document/selection context rather than the clock and
+profiler context. A memoized row list also isolates them from parent transport renders. Expanded
+property values still consume sampled time. Pointer handlers read the latest action references and
+resolve the current snap targets once at pointer-down, so avoiding marker renders does not leave a
+stale playhead in a subsequent drag. Project edits, selection, zoom and gesture previews still
+invalidate the row list normally.
+
+Frame-rate smoothing includes intervals longer than 100 ms during continuous playback. Only idle
+gaps (including entering playback after an idle preview) use the nominal initial interval; replacing
+a real playback stall with 16.67 ms would incorrectly report approximately 60 FPS.
+
 ## Measurement
 
 Use the same project, viewport size, preview quality, app build, and GPU for both runs. Warm imported assets first. Measure at least six seconds of actual playback, recording renderer CPU/GPU time, presentation intervals, wall-clock time, and composition time advancement. A renderer-only benchmark cannot expose React scheduling costs. Do not equate display refresh callbacks or export throughput with actual preview FPS.
+
+Also count distinct source-frame addresses reached by playback events over the measured source
+span. Bursts of fast submissions separated by long React commits can have a high mean submission
+rate while skipping many 30 FPS source frames. Record coverage and tail intervals alongside the
+mean; this still measures submitted work, not physical display scanout. Capture development and
+production builds separately because React development diagnostics can amplify repeated prop
+diffing, especially large keyframe snap-target arrays.
 
 An initial Chromium CPU profile on the 73-layer Chinese reconstruction (1280 x 720 composition, development build, RTX 5060 Laptop GPU) reproduced about 16–20 FPS. Renderer CPU time was about 0.6 ms and GPU time about 0.07 ms; React creation, property diffing, and repeated UI work dominated the profile. The six-second run advanced the composition only about 2.6 seconds because stale time was also mistaken for repeated seeks.
 
@@ -23,6 +41,24 @@ A later production-renderer measurement used the completed 314-layer reconstruct
 Submission counts include two static updates per interval and do not prove scanout or unique displayed frames. The useful findings are that composition time now follows elapsed playback time, pausing retains the last presented time, and presentation continues independently of React acknowledgements. These workload-specific observations are not a guaranteed frame-rate floor; cold text/asset rasterization and expensive effects still require separate profiling.
 
 The playback hook regression tests exercise delayed UI acknowledgements, explicit seeks, exact pause time, work-area looping, cancellation, and per-frame presentation with bounded UI updates.
+
+A timeline-isolation regression measurement used the 456-layer Chinese project in a production
+renderer, a 1920 x 1080 GPU target at full preview quality, warmed assets, and a visible, focused
+window. No background-throttling overrides were used. Each sample played for six seconds.
+
+| Composition start | Source-frame coverage before / after | P95 submission interval before / after |
+| --- | --- | --- |
+| 0 s | 76.7% / 100% | 53.1 / 12.5 ms |
+| 24 s | 76.8% / 100% | 53.6 / 11.9 ms |
+| 48 s | 74.6% / 100% | 52.3 / 17.7 ms |
+| 67.2 s | 78.3% / 100% | 53.7 / 17.8 ms |
+
+Coverage counts distinct `floor(playbackTime * 30)` addresses over the sampled source span.
+The organized original-language project also reached 100% coverage at the same four start points
+after this change. Every pause retained the last playback-event time. These samples verify source
+frame scheduling rather than physical scanout, and do not establish a sustained display FPS.
+The timeline regression test separately verifies skipped row renders during clock/profiler updates,
+fresh playhead snapping, selection feedback, and document edits.
 
 Portable media hydration creates owned Blob URLs. The renderer's `connect-src` policy permits `blob:` so audio decoding and export snapshot capture can read those same bytes; allowing Blob media elements alone is insufficient for `fetch`.
 

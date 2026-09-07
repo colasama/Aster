@@ -24,6 +24,7 @@ import { DepthEffectsRenderer, depthEffectSettingsFromCameraOptics } from "./dep
 import { analyzeEffectFusion } from "./effect-fusion";
 import { FLOATS_PER_EFFECT_OPERATION, MAX_EFFECT_OPERATIONS } from "./effect-program";
 import { captureAfterExactFrameResources } from "./exact-frame-resource-barrier";
+import { frameCadenceSample } from "./frame-cadence";
 import {
   type FrameReadbackTicket,
   GpuFrameReadbackPool,
@@ -140,6 +141,7 @@ export class WebGpuRenderer {
   readonly #reportedAdjustmentErrors = new Set<string>();
   #smoothedFrameMs = 16.67;
   #lastFrameStarted?: number;
+  #lastFramePlaying = false;
   #shapeBufferBytes = MAX_SHAPE_VERTICES * FLOATS_PER_VERTEX * Float32Array.BYTES_PER_ELEMENT;
   readonly #invalidate: () => void;
   readonly #mediaTextures: MediaTextureCache;
@@ -490,6 +492,8 @@ export class WebGpuRenderer {
     this.#assertActive();
     const started = performance.now();
     const frameInterval = this.#lastFrameStarted ? started - this.#lastFrameStarted : 16.67;
+    const continuousPlayback = playing && this.#lastFramePlaying;
+    this.#lastFramePlaying = playing;
     this.#lastFrameStarted = started;
     const evaluation = this.#evaluationCache.evaluate(
       composition,
@@ -1034,7 +1038,7 @@ export class WebGpuRenderer {
     const textMotionBlurStats = this.#mediaTextures.textMotionBlurFrameStats;
     if (collectTimestamps) this.#gpuProfiler.readback();
     const cpuMs = performance.now() - started;
-    const sample = frameInterval > 100 ? 16.67 : Math.max(frameInterval, 0.1);
+    const sample = frameCadenceSample(frameInterval, continuousPlayback);
     this.#smoothedFrameMs = this.#smoothedFrameMs * 0.9 + sample * 0.1;
     const shadowDrawCalls = shadowsEnabled
       ? geometry.batches.filter((batch) => batch.layer.threeDimensional).length

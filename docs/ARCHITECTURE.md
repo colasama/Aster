@@ -128,7 +128,10 @@ render-stack planning, precompilation, and GPU resource ownership contain no par
    consumes that scene and the world-position attachment. One composition-level ACES display pass
    presents the result. Beauty mode releases all motion/depth transient attachments when both effects
    are disabled, so the steady unblurred path pays no extra full-resolution VRAM.
-7. Metrics are sampled outside React's frame-critical path.
+7. Metrics are sampled outside React's frame-critical path. Static timeline rows use a separate
+   memoized document/selection context and row list, so clock and profiler updates do not reconcile
+   every layer and marker. Expanded property values retain the sampled clock; gestures resolve
+   current handlers and snap targets when they start.
 
 Frame and sequence export open one full-resolution render session, resize the GPU surface once, and
 evaluate each frame directly from its rational timeline time. Native PNG sequences are written one
