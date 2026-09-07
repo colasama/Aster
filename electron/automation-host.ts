@@ -82,7 +82,7 @@ export async function startAutomationHost(options: {
   async function execute(call: AutomationCall, signal: AbortSignal) {
     const input = call.arguments;
     if (call.name === "import_font") {
-      const font = await readProjectFont(input.path, input.family, input.weight);
+      const font = await readProjectFont(input.path, input.family, input.weight, input.weightRange);
       return renderer({ ...call, arguments: { ...input, font } }, signal);
     }
     if (call.name === "probe_reference") return media.probe(input.path, signal);

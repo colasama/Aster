@@ -99,12 +99,18 @@ export function automationToolDefinitions() {
     ],
     [
       "import_font",
-      "Embed a local TTF, OTF, WOFF or WOFF2 face into the project as one undoable edit. Supply its family alias and weight; project fonts have an 8 MiB total budget. Does not install into the operating system.",
+      "Embed a local TTF, OTF, WOFF or WOFF2 face into the project as one undoable edit. Supply its family alias and default weight, plus weightRange [minimum, maximum] for variable fonts. Project fonts have an 8 MiB total budget. Does not install into the operating system.",
       {
         path,
         baseRevision: revision,
         family: Type.String({ minLength: 1, maxLength: 160 }),
         weight: Type.Optional(Type.Integer({ minimum: 100, maximum: 900 })),
+        weightRange: Type.Optional(
+          Type.Tuple([
+            Type.Integer({ minimum: 100, maximum: 900 }),
+            Type.Integer({ minimum: 100, maximum: 900 }),
+          ]),
+        ),
       },
     ],
     [

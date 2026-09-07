@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { open } from "node:fs/promises";
 import { basename, extname, isAbsolute } from "node:path";
+import { fontWeightRange } from "../src/core/font-weight-range.js";
 import {
   MAX_PROJECT_FONT_BYTES,
   type ProjectFont,
@@ -11,6 +12,7 @@ export async function readProjectFont(
   path: unknown,
   family: unknown,
   weight: unknown = 400,
+  weightRange?: unknown,
 ): Promise<ProjectFont> {
   if (typeof path !== "string" || !isAbsolute(path))
     throw new Error("Use an absolute font file path");
@@ -44,6 +46,7 @@ export async function readProjectFont(
       name: basename(path).slice(0, 160),
       family,
       weight,
+      weightRange: weightRange ?? fontWeightRange(data.subarray(0, length)),
       dataUrl: `data:font/${format};base64,${data.subarray(0, length).toString("base64")}`,
     };
     validateProjectFonts([font]);

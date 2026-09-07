@@ -49,3 +49,30 @@ it("shares decoded faces across snapshots and invalidates text when activation c
   expect(fontSet).toEqual(new Set([applicationFont]));
   expect(projectFontRevision()).toBe(revision + 1);
 });
+
+it("registers the variable axis and reloads cached faces when the range changes", async () => {
+  Object.defineProperty(document, "fonts", { configurable: true, value: new Set() });
+  const descriptors: FontFaceDescriptors[] = [];
+  vi.stubGlobal(
+    "FontFace",
+    class {
+      constructor(_family: string, _bytes: Uint8Array, descriptor: FontFaceDescriptors) {
+        descriptors.push(descriptor);
+      }
+      async load() {
+        return this;
+      }
+    },
+  );
+  const { prepareProjectFonts } = await import("../core/project-font-runtime");
+  const font = {
+    id: crypto.randomUUID(),
+    name: "Variable.woff2",
+    family: "Variable",
+    weight: 400,
+    dataUrl: "data:font/woff2;base64,AAEAAA==",
+  };
+  await prepareProjectFonts({ fonts: [font] });
+  await prepareProjectFonts({ fonts: [{ ...font, weightRange: [100, 900] }] });
+  expect(descriptors.map((value) => value.weight)).toEqual(["400", "100 900"]);
+});

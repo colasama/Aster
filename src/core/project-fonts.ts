@@ -4,6 +4,8 @@ export interface ProjectFont {
   name: string;
   family: string;
   weight: number;
+  /** Inclusive CSS weight axis range for a variable face. */
+  weightRange?: [number, number];
   dataUrl: string;
 }
 
@@ -17,6 +19,7 @@ export function validateProjectFonts(value: unknown): asserts value is ProjectFo
     throw new Error("Project fonts must be an array of at most 32 faces");
   const ids = new Set<string>();
   const faces = new Set<string>();
+  const ranges = new Map<string, [number, number][]>();
   let bytes = 0;
   for (const font of value) {
     if (!font || typeof font !== "object") throw new Error("Invalid project font");
@@ -25,6 +28,19 @@ export function validateProjectFonts(value: unknown): asserts value is ProjectFo
         throw new Error(`Invalid project font ${key}`);
     if (!Number.isInteger(font.weight) || font.weight < 100 || font.weight > 900)
       throw new Error("Project font weight must be an integer from 100 to 900");
+    if (font.weightRange !== undefined) {
+      const range = font.weightRange;
+      if (
+        !Array.isArray(range) ||
+        range.length !== 2 ||
+        range.some((weight) => !Number.isInteger(weight) || weight < 100 || weight > 900) ||
+        range[0] > font.weight ||
+        range[1] < font.weight
+      )
+        throw new Error(
+          "Project font weight range must contain its default weight within 100 to 900",
+        );
+    }
     if (typeof font.dataUrl !== "string" || font.dataUrl.length > MAX_FONT_DATA_URL)
       throw new Error("Project font data exceeds its budget");
     const match = /^data:font\/(ttf|otf|woff|woff2);base64,([A-Za-z0-9+/]+={0,2})$/.exec(
@@ -36,6 +52,13 @@ export function validateProjectFonts(value: unknown): asserts value is ProjectFo
     const face = `${font.family.toLowerCase()}\0${font.weight}`;
     if (ids.has(font.id) || faces.has(face))
       throw new Error("Duplicate project font id or family/weight");
+    const family = font.family.toLowerCase();
+    const range = font.weightRange ?? [font.weight, font.weight];
+    const siblings = ranges.get(family) ?? [];
+    if (siblings.some(([min, max]) => range[0] <= max && range[1] >= min))
+      throw new Error("Overlapping project font weight ranges");
+    siblings.push([range[0], range[1]]);
+    ranges.set(family, siblings);
     ids.add(font.id);
     faces.add(face);
   }
@@ -43,5 +66,11 @@ export function validateProjectFonts(value: unknown): asserts value is ProjectFo
 }
 
 export function projectFontMetadata(font: ProjectFont) {
-  return { id: font.id, name: font.name, family: font.family, weight: font.weight };
+  return {
+    id: font.id,
+    name: font.name,
+    family: font.family,
+    weight: font.weight,
+    ...(font.weightRange ? { weightRange: font.weightRange } : {}),
+  };
 }

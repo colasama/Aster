@@ -33,7 +33,8 @@ function loadFace(font: ProjectFont): Promise<FontFace> {
     existing &&
     existing.font.dataUrl === font.dataUrl &&
     existing.font.family === font.family &&
-    existing.font.weight === font.weight
+    existing.font.weight === font.weight &&
+    String(existing.font.weightRange) === String(font.weightRange)
   ) {
     faces.delete(font.id);
     faces.set(font.id, existing);
@@ -47,7 +48,9 @@ function loadFace(font: ProjectFont): Promise<FontFace> {
     try {
       const encoded = font.dataUrl.slice(font.dataUrl.indexOf(",") + 1);
       const bytes = Uint8Array.from(atob(encoded), (character) => character.charCodeAt(0));
-      return await new FontFace(font.family, bytes, { weight: String(font.weight) }).load();
+      return await new FontFace(font.family, bytes, {
+        weight: font.weightRange?.join(" ") ?? String(font.weight),
+      }).load();
     } catch {
       if (faces.get(font.id)?.face === face) {
         faces.delete(font.id);

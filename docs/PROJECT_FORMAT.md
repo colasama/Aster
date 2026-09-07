@@ -3,6 +3,12 @@
 ## Project fonts
 
 The optional root `fonts` array stores project-owned faces as `{id, name, family, weight, dataUrl}`.
+Variable faces may additionally store `weightRange: [minimum, maximum]` (inclusive integer CSS
+weights from 100 to 900, containing `weight`). Same-family ranges must not overlap. The runtime
+registers that range with FontFace so selection uses the real weight axis rather than synthetic
+bold. TTF/OTF imports detect the SFNT `fvar` weight axis without decoding glyphs; compressed
+WOFF/WOFF2 imports can supply the range explicitly through MCP `import_font`. Existing fixed
+faces retain their original behavior. Range changes invalidate the bounded decoded-face cache.
 `family` is the CSS family alias, `weight` is an integer from 100 through 900, and `dataUrl` is embedded
 base64 TTF, OTF, WOFF or WOFF2 (`data:font/<format>;base64,...`). IDs and family/weight pairs must be
 unique. There are at most 32 faces and 8 MiB of decoded font bytes in one project. Missing `fonts`

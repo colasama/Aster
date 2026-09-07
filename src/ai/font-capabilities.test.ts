@@ -123,6 +123,14 @@ describe("font capabilities", () => {
       validateProjectFonts([{ ...first, dataUrl: "https://example.com/font.ttf" }]),
     ).toThrow();
     expect(() => validateProjectFonts([{ ...first, weight: 0 }])).toThrow();
+    expect(() => validateProjectFonts([{ ...first, weightRange: [100, 900] }])).not.toThrow();
+    expect(() => validateProjectFonts([{ ...first, weightRange: [500, 900] }])).toThrow("range");
+    expect(() =>
+      validateProjectFonts([
+        { ...first, weightRange: [100, 900] },
+        { ...first, id: "bold", weight: 700 },
+      ]),
+    ).toThrow("Overlapping");
     expect(() =>
       validateProjectFonts([
         { ...first, dataUrl: `data:font/ttf;base64,${"AAAA".repeat(3 * 1024 * 1024)}` },

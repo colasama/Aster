@@ -1,3 +1,4 @@
+import { fontWeightRange } from "./font-weight-range";
 import { MAX_PROJECT_FONT_BYTES, type ProjectFont, validateProjectFonts } from "./project-fonts";
 
 export async function createProjectFont(
@@ -16,7 +17,15 @@ export async function createProjectFont(
     reader.onerror = () => reject(new Error("Cannot read font file"));
     reader.readAsDataURL(new Blob([file], { type: `font/${format}` }));
   });
-  const font = { id: crypto.randomUUID(), name: file.name.slice(0, 160), family, weight, dataUrl };
+  const weightRange = fontWeightRange(new Uint8Array(await file.arrayBuffer()));
+  const font = {
+    id: crypto.randomUUID(),
+    name: file.name.slice(0, 160),
+    family,
+    weight,
+    dataUrl,
+    ...(weightRange ? { weightRange } : {}),
+  };
   validateProjectFonts([font]);
   return font;
 }
