@@ -1,51 +1,43 @@
 import {
-  ArrowDown,
-  ArrowUp,
   Box,
   ChevronDown,
   ChevronRight,
   CircleDot,
   Eye,
   EyeOff,
-  FileUp,
   LockKeyhole,
   LockOpen,
   Plus,
   RotateCw,
-  Scan,
   Sparkles,
   Timer,
-  Trash2,
 } from "lucide-react";
-import { type KeyboardEvent, type MouseEvent, useRef, useState } from "react";
+import { type KeyboardEvent, type MouseEvent, useState } from "react";
 import { evaluateLayerSourceTime } from "../core/layer-time";
 import { getProperty, type PropertyPath } from "../core/operations";
 import { activeComposition } from "../core/project";
 import { propertyValueOperationAtTime } from "../core/property-edit-operation";
 import { solidRenderSize } from "../core/solid-layer";
-import { evaluateAnimatable, evaluateEffectParameter } from "../core/timeline";
-import { type BlendMode, createId, type Effect } from "../core/types";
-import { parseCubeLutFile } from "../effects/cube-lut";
-import { createEffect, EFFECT_BY_TYPE } from "../effects/registry";
-import type { EffectParameterDefinition } from "../effects/types";
-import { reportUiError } from "../errors/report-ui-error";
+import { evaluateAnimatable } from "../core/timeline";
+import { type BlendMode, createId } from "../core/types";
+import { createEffect } from "../effects/registry";
 import type { PlainMessageKey } from "../i18n/core";
-import { type UiErrorCode, uiErrorMessage } from "../i18n/errors";
 import { useI18n } from "../i18n/react";
 import { useEditor } from "../state/editor-store";
 import { AiPanel } from "./AiPanel";
 import { AudioControls } from "./AudioControls";
 import { ClonerControls } from "./ClonerControls";
 import { useContextMenuTrigger } from "./context-menu/use-context-menu-trigger";
-import { EffectMaskEditor } from "./EffectMaskEditor";
-import { EffectParameter } from "./EffectParameter";
+import { EffectEditor } from "./EffectEditor";
 import { InspectorPropertyContextMenu } from "./InspectorPropertyContextMenu";
 import { MotionBlurControls } from "./MotionBlurControls";
+import { type NumericEditPhase, NumericInput } from "./NumericInput";
 import { Panel, PanelTabs } from "./Panel";
 import { Scene3dControls } from "./Scene3dControls";
 import { ShapeControls } from "./ShapeControls";
 import { SolidControls } from "./SolidControls";
 import { TextControls } from "./TextControls";
+import { useInspectorPropertyEdit } from "./use-inspector-property-edit";
 
 const fields: { labelKey: PlainMessageKey; paths: PropertyPath[]; suffix: string }[] = [
   {
@@ -86,12 +78,14 @@ export function Inspector() {
     value: number;
   }>();
   const contextMenu = useContextMenuTrigger();
-  const updateProperty = (path: PropertyPath, value: number) => {
+  const editProperty = useInspectorPropertyEdit();
+  const updateProperty = (
+    path: PropertyPath,
+    value: number,
+    phase: NumericEditPhase = "commit",
+  ) => {
     if (!layer || layer.locked || isAdjustment || !Number.isFinite(value)) return;
-    dispatch({
-      type: "operation",
-      operations: [propertyValueOperationAtTime(layer, path, value, state.currentTime)],
-    });
+    editProperty(propertyValueOperationAtTime(layer, path, value, state.currentTime), phase);
   };
   const addKeyframe = (path: PropertyPath) => {
     if (!layer || layer.locked || isAdjustment) return;
@@ -200,7 +194,7 @@ export function Inspector() {
       {state.rightTab === "ai" ? (
         <AiPanel />
       ) : layer ? (
-        <div className="inspector-scroll">
+        <div className="inspector-scroll" key={layer.id}>
           <div className="selected-layer-card">
             <span className={`layer-kind-icon ${layer.kind}`}>
               <Box size={16} />
@@ -259,6 +253,7 @@ export function Inspector() {
               <div className="section-title">
                 <button
                   className="section-toggle"
+                  aria-expanded={transformOpen}
                   onClick={() => setTransformOpen(!transformOpen)}
                   type="button"
                 >
@@ -268,6 +263,7 @@ export function Inspector() {
                 <span />
                 <button
                   aria-label={t("inspector.transform.reset")}
+                  disabled={layer.locked}
                   onClick={resetTransform}
                   type="button"
                 >
@@ -280,57 +276,75 @@ export function Inspector() {
                     <div className="vector-property" key={field.labelKey}>
                       <div className="property-label">{t(field.labelKey)}</div>
                       <div className="vector-inputs">
-                        {field.paths.map((path, index) => (
-                          <div className="number-field" key={path}>
-                            <span className={`axis-label axis-${index}`}>
-                              {["X", "Y", "Z"][index]}
-                            </span>
-                            <input
-                              aria-label={`${t(field.labelKey)} ${["X", "Y", "Z"][index]}`}
-                              onContextMenu={(event) =>
-                                openPropertyPointer(
-                                  event,
-                                  path,
-                                  `${t(field.labelKey)} ${["X", "Y", "Z"][index]}`,
-                                )
-                              }
-                              onKeyDown={(event) =>
-                                openPropertyKeyboard(
-                                  event,
-                                  path,
-                                  `${t(field.labelKey)} ${["X", "Y", "Z"][index]}`,
-                                )
-                              }
-                              onChange={(event) => updateProperty(path, Number(event.target.value))}
-                              type="number"
-                              value={
-                                Math.round(
-                                  evaluateAnimatable(getProperty(layer, path), state.currentTime) *
-                                    100,
-                                ) / 100
-                              }
-                            />
-                            <small>{field.suffix}</small>
-                            <button
-                              onClick={() => addKeyframe(path)}
-                              title={t("inspector.transform.addKeyframe")}
-                              type="button"
-                            >
-                              <Timer size={10} />
-                            </button>
-                          </div>
-                        ))}
+                        {field.paths
+                          .filter(
+                            (path) =>
+                              layer.threeDimensional ||
+                              (path.startsWith("rotation.")
+                                ? path.endsWith(".2")
+                                : !path.endsWith(".2")),
+                          )
+                          .map((path) => {
+                            const index = Number(path.slice(-1));
+                            return (
+                              <div className="number-field" key={path}>
+                                <span className={`axis-label axis-${index}`}>
+                                  {["X", "Y", "Z"][index]}
+                                </span>
+                                <NumericInput
+                                  editTime={state.currentTime}
+                                  aria-label={`${t(field.labelKey)} ${["X", "Y", "Z"][index]}`}
+                                  onContextMenu={(event) =>
+                                    openPropertyPointer(
+                                      event,
+                                      path,
+                                      `${t(field.labelKey)} ${["X", "Y", "Z"][index]}`,
+                                    )
+                                  }
+                                  onKeyDown={(event) =>
+                                    openPropertyKeyboard(
+                                      event,
+                                      path,
+                                      `${t(field.labelKey)} ${["X", "Y", "Z"][index]}`,
+                                    )
+                                  }
+                                  onValueChange={(value, phase) =>
+                                    updateProperty(path, value, phase)
+                                  }
+                                  disabled={layer.locked}
+                                  type="number"
+                                  value={evaluateAnimatable(
+                                    getProperty(layer, path),
+                                    state.currentTime,
+                                  )}
+                                />
+                                <small>{field.suffix}</small>
+                                <button
+                                  disabled={layer.locked}
+                                  className={`effect-keyframe ${getProperty(layer, path).mode === "animated" ? "animated" : ""} ${hasPropertyKeyframe(path) ? "active" : ""}`}
+                                  aria-label={`${t("inspector.transform.addKeyframe")} ${t(field.labelKey)} ${["X", "Y", "Z"][index]}`}
+                                  onClick={() => addKeyframe(path)}
+                                  title={t("inspector.transform.addKeyframe")}
+                                  type="button"
+                                >
+                                  <Timer size={10} />
+                                </button>
+                              </div>
+                            );
+                          })}
                       </div>
                     </div>
                   ))}
                   <div className="vector-property">
                     <div className="property-label">{t("inspector.transform.opacity")}</div>
                     <div className="slider-property">
-                      <input
+                      <NumericInput
+                        editTime={state.currentTime}
                         aria-label={t("inspector.transform.opacity")}
-                        max="100"
-                        min="0"
-                        onChange={(event) => updateProperty("opacity", Number(event.target.value))}
+                        max={100}
+                        min={0}
+                        onValueChange={(value, phase) => updateProperty("opacity", value, phase)}
+                        disabled={layer.locked}
                         onContextMenu={(event) =>
                           openPropertyPointer(event, "opacity", t("inspector.transform.opacity"))
                         }
@@ -340,7 +354,8 @@ export function Inspector() {
                         type="range"
                         value={evaluateAnimatable(layer.transform.opacity, state.currentTime)}
                       />
-                      <input
+                      <NumericInput
+                        editTime={state.currentTime}
                         aria-label={t("inspector.transform.opacity")}
                         onContextMenu={(event) =>
                           openPropertyPointer(event, "opacity", t("inspector.transform.opacity"))
@@ -348,14 +363,21 @@ export function Inspector() {
                         onKeyDown={(event) =>
                           openPropertyKeyboard(event, "opacity", t("inspector.transform.opacity"))
                         }
-                        onChange={(event) => updateProperty("opacity", Number(event.target.value))}
+                        onValueChange={(value, phase) => updateProperty("opacity", value, phase)}
+                        disabled={layer.locked}
                         type="number"
-                        value={Math.round(
-                          evaluateAnimatable(layer.transform.opacity, state.currentTime),
-                        )}
+                        min={0}
+                        max={100}
+                        value={evaluateAnimatable(layer.transform.opacity, state.currentTime)}
                       />
                       <span>%</span>
-                      <button onClick={() => addKeyframe("opacity")} type="button">
+                      <button
+                        disabled={layer.locked}
+                        aria-label={`${t("inspector.transform.addKeyframe")} ${t("inspector.transform.opacity")}`}
+                        className={`effect-keyframe ${hasPropertyKeyframe("opacity") ? "active" : ""}`}
+                        onClick={() => addKeyframe("opacity")}
+                        type="button"
+                      >
                         <Timer size={11} />
                       </button>
                     </div>
@@ -699,270 +721,6 @@ export function Inspector() {
       )}
     </Panel>
   );
-}
-
-function EffectEditor({ effect, layerId }: { effect: Effect; layerId: string }) {
-  const { state, dispatch } = useEditor();
-  const { t } = useI18n();
-  const [resourceError, setResourceError] = useState<UiErrorCode>();
-  const lutPickerRef = useRef<HTMLInputElement>(null);
-  const definition = EFFECT_BY_TYPE.get(effect.type);
-  const parameters = definition?.parameters ?? fallbackParameters(effect);
-  const layerEffects = activeComposition(state.project).layers.find(
-    (layer) => layer.id === layerId,
-  )?.effects;
-  const effectIndex = layerEffects?.findIndex((entry) => entry.id === effect.id) ?? -1;
-  const setParameter = (parameter: string, value: number) => {
-    if (!Number.isFinite(value)) return;
-    dispatch({
-      type: "operation",
-      operations: [
-        {
-          type: "setEffectParameterAtTime",
-          layerId,
-          effectId: effect.id,
-          parameter,
-          time: state.currentTime,
-          value,
-          keyframeId: createId(),
-        },
-      ],
-    });
-  };
-  const toggleParameterKeyframe = (parameter: string, value: number) => {
-    const current = effect.parameterKeyframes?.[parameter]?.find(
-      (keyframe) => Math.abs(keyframe.time - state.currentTime) <= 0.000_001,
-    );
-    dispatch({
-      type: "operation",
-      operations: current
-        ? [
-            {
-              type: "removeEffectParameterKeyframe",
-              layerId,
-              effectId: effect.id,
-              parameter,
-              keyframeId: current.id,
-            },
-          ]
-        : [
-            {
-              type: "addEffectParameterKeyframe",
-              layerId,
-              effectId: effect.id,
-              parameter,
-              keyframe: {
-                id: createId(),
-                time: state.currentTime,
-                value,
-                interpolation: "bezier",
-                easing: [0.42, 0, 0.58, 1],
-              },
-            },
-          ],
-    });
-  };
-  const setMask = (mask: Effect["mask"]) =>
-    dispatch({
-      type: "operation",
-      operations: [{ type: "setEffectMask", layerId, effectId: effect.id, mask }],
-    });
-  return (
-    <div className={`effect-editor ${effect.enabled ? "" : "disabled"}`}>
-      <div className="effect-title">
-        <button
-          aria-label={effect.enabled ? t("inspector.effect.disable") : t("inspector.effect.enable")}
-          className="effect-power"
-          onClick={() =>
-            dispatch({
-              type: "operation",
-              operations: [{ type: "toggleEffect", layerId, effectId: effect.id }],
-            })
-          }
-          type="button"
-        >
-          <Sparkles size={13} />
-        </button>
-        <strong>{effect.name}</strong>
-        <span
-          className={`gpu-pill ${definition ? "" : "missing"}`}
-          title={
-            definition ? undefined : t("inspector.effect.providerMissing", { type: effect.type })
-          }
-        >
-          {definition?.execution.replace("-", " ") ?? t("inspector.effect.missingPlugin")}
-        </span>
-        <button
-          aria-label={
-            effect.mask
-              ? t("inspector.effect.removeMask", { name: effect.name })
-              : t("inspector.effect.addMask", { name: effect.name })
-          }
-          className={effect.mask ? "effect-mask-toggle active" : "effect-mask-toggle"}
-          onClick={() =>
-            setMask(
-              effect.mask
-                ? undefined
-                : {
-                    shape: "ellipse",
-                    center: [50, 50],
-                    size: [55, 55],
-                    feather: 24,
-                    opacity: 100,
-                    invert: false,
-                  },
-            )
-          }
-          title={
-            effect.mask ? t("inspector.effect.removeLocalMask") : t("inspector.effect.addLocalMask")
-          }
-          type="button"
-        >
-          <Scan size={11} />
-        </button>
-        <button
-          aria-label={t("inspector.effect.moveUp", { name: effect.name })}
-          disabled={effectIndex <= 0}
-          onClick={() =>
-            dispatch({
-              type: "operation",
-              operations: [
-                { type: "moveEffect", layerId, effectId: effect.id, toIndex: effectIndex - 1 },
-              ],
-            })
-          }
-          type="button"
-        >
-          <ArrowUp size={11} />
-        </button>
-        <button
-          aria-label={t("inspector.effect.moveDown", { name: effect.name })}
-          disabled={!layerEffects || effectIndex < 0 || effectIndex >= layerEffects.length - 1}
-          onClick={() =>
-            dispatch({
-              type: "operation",
-              operations: [
-                { type: "moveEffect", layerId, effectId: effect.id, toIndex: effectIndex + 1 },
-              ],
-            })
-          }
-          type="button"
-        >
-          <ArrowDown size={11} />
-        </button>
-        <button
-          aria-label={t("inspector.effect.remove", { name: effect.name })}
-          onClick={() =>
-            dispatch({
-              type: "operation",
-              operations: [{ type: "removeEffect", layerId, effectId: effect.id }],
-            })
-          }
-          type="button"
-        >
-          <Trash2 size={12} />
-        </button>
-      </div>
-      {effect.mask && <EffectMaskEditor mask={effect.mask} onChange={setMask} />}
-      {parameters.map((parameter) => (
-        <EffectParameter
-          animated={(effect.parameterKeyframes?.[parameter.key]?.length ?? 0) > 0}
-          definition={parameter}
-          keyframed={
-            effect.parameterKeyframes?.[parameter.key]?.some(
-              (keyframe) => Math.abs(keyframe.time - state.currentTime) <= 0.000_001,
-            ) ?? false
-          }
-          key={parameter.key}
-          onChange={(value) => setParameter(parameter.key, value)}
-          onToggleKeyframe={(value) => toggleParameterKeyframe(parameter.key, value)}
-          value={evaluateEffectParameter(
-            effect,
-            parameter.key,
-            state.currentTime,
-            parameter.defaultValue,
-          )}
-        />
-      ))}
-      {effect.type === "lut" && (
-        <div className="lut-resource-editor">
-          <input
-            accept=".cube,text/plain"
-            aria-label={t("inspector.lut.choose")}
-            hidden
-            onChange={(event) => {
-              const file = event.target.files?.[0];
-              if (file)
-                void parseCubeLutFile(file)
-                  .then((resource) => {
-                    dispatch({
-                      type: "operation",
-                      operations: [
-                        { type: "setEffectLut", layerId, effectId: effect.id, resource },
-                      ],
-                    });
-                    setResourceError(undefined);
-                  })
-                  .catch((error: unknown) => {
-                    setResourceError("lutImport");
-                    reportUiError(t, "lutImport", error, {
-                      scope: {
-                        area: "property",
-                        layerId,
-                        propertyPath: `effects.${effect.id}.lut`,
-                      },
-                    });
-                  });
-              event.target.value = "";
-            }}
-            ref={lutPickerRef}
-            type="file"
-          />
-          <button onClick={() => lutPickerRef.current?.click()} type="button">
-            <FileUp size={12} />{" "}
-            {effect.resource ? t("inspector.lut.replace") : t("inspector.lut.load")}
-          </button>
-          {effect.resource && (
-            <div className="lut-resource-summary">
-              <span title={effect.resource.name}>
-                {effect.resource.title || effect.resource.name}
-              </span>
-              <small>
-                {effect.resource.size}³ · {effect.resource.checksum}
-              </small>
-              <button
-                aria-label={t("inspector.lut.remove")}
-                onClick={() =>
-                  dispatch({
-                    type: "operation",
-                    operations: [
-                      { type: "setEffectLut", layerId, effectId: effect.id, resource: undefined },
-                    ],
-                  })
-                }
-                type="button"
-              >
-                <Trash2 size={11} />
-              </button>
-            </div>
-          )}
-          {resourceError && (
-            <small className="lut-resource-error">{uiErrorMessage(t, resourceError)}</small>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function fallbackParameters(effect: Effect): EffectParameterDefinition[] {
-  return Object.keys(effect.parameters).map((key) => ({
-    key,
-    label: key.replace(/([A-Z])/g, " $1").replace(/^./, (character) => character.toUpperCase()),
-    kind: "number",
-    defaultValue: effect.parameters[key],
-    step: 0.1,
-  }));
 }
 
 function addDefaultEffect(layerId: string, dispatch: ReturnType<typeof useEditor>["dispatch"]) {

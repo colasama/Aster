@@ -17,6 +17,19 @@ queue, display-clamped window state, unsaved-document close contract, and local 
 Recovery autosaves remain distinct from primary project saves and are serialized with them so a stale
 autosave cannot win a persistence race. See [Desktop application foundations](DESKTOP_FOUNDATIONS.md).
 
+## Inspector property editing
+
+Transform and numeric effect controls share `NumericInput`: horizontal scrubbing uses the property
+step, Shift multiplies it by ten, and Alt divides it by ten. Clicking opens an exact-value draft;
+Enter or blur commits valid input, while Escape discards it. Bounds apply to both pasted values and
+dragging. Two-dimensional layers show X/Y vectors and Z rotation; 3D layers expose all axes.
+
+Pointer previews are coalesced to one operation per animation frame. `useInspectorPropertyEdit`
+uses the existing `previewOperation` and `historyBase` protocol to commit one undo transaction per
+gesture. Keyframe IDs remain stable throughout the drag. Escape, pointer cancellation, window blur,
+time changes, and control unmount cancel pending previews and restore the original property track.
+Static properties stay static; animated properties are edited at the gesture's starting time.
+
 ## Project fonts
 
 Font rendering uses Chromium's shaping/rasterization. A dedicated editor-only preload call obtains

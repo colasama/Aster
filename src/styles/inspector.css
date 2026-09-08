@@ -109,18 +109,19 @@
 .vector-property > .property-label {
   display: block;
   margin: 0 0 4px 1px;
-  color: #747986;
-  font-size: 8px;
+  color: #9ca2af;
+  font-size: 9px;
   font-weight: 600;
 }
 .vector-inputs {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
   gap: 4px;
 }
 .number-field {
   position: relative;
-  height: 26px;
+  min-width: 0;
+  height: 28px;
   display: flex;
   align-items: center;
   border: 1px solid #2b2e37;
@@ -132,6 +133,7 @@
 }
 .number-field .axis-label {
   width: 15px;
+  flex-shrink: 0;
   text-align: center;
   font-size: 8px;
   font-weight: 700;
@@ -148,6 +150,7 @@
 .number-field input {
   min-width: 0;
   width: 100%;
+  height: 100%;
   padding: 0;
   border: 0;
   outline: 0;
@@ -386,27 +389,41 @@ fieldset.effects-section {
   padding-right: 1px;
 }
 .effect-parameter.effect-numeric {
-  height: 35px;
+  min-height: 36px;
+  height: auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 76px 24px;
+  row-gap: 0;
+  padding-block: 5px;
 }
 .effect-numeric > span:first-child {
-  flex: 0 0 72px;
+  grid-column: 1;
+  grid-row: 1;
+  color: #a0a6b3;
+  overflow-wrap: anywhere;
 }
 .effect-parameter .effect-range {
   min-width: 28px;
-  width: auto;
-  flex: 1;
-  height: 3px;
+  grid-column: 1 / -1;
+  grid-row: 2;
+  width: 100%;
+  height: 16px;
   padding: 0;
   border: 0;
   accent-color: var(--blue);
 }
 .effect-parameter .effect-value {
+  grid-column: 2;
+  grid-row: 1;
   flex: 0 0 68px;
   display: flex;
   align-items: center;
 }
 .effect-parameter .effect-value input {
-  width: 48px;
+  min-width: 0;
+  width: 56px;
+  height: 26px;
+  font-size: 10px;
 }
 .effect-value small {
   margin-left: 3px;
@@ -435,6 +452,12 @@ fieldset.effects-section {
   border: 1px solid transparent;
   border-radius: 3px;
   color: #4f5563;
+}
+.effect-numeric > .effect-keyframe {
+  grid-column: 3;
+  grid-row: 1;
+  width: 24px;
+  height: 24px;
 }
 .effect-keyframe.animated {
   color: #8298d6;
@@ -1147,7 +1170,7 @@ fieldset.effects-section {
 }
 .cloner-vector {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
   gap: 5px;
   padding: 0;
   border: 0;
@@ -1184,7 +1207,7 @@ fieldset.effects-section {
 .particle-vector {
   display: grid;
   grid-column: 1 / -1;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
   gap: 5px;
   min-width: 0;
   padding: 0;
@@ -1195,4 +1218,45 @@ fieldset.effects-section {
 }
 .particle-vector label {
   min-width: 0;
+}
+
+/* Numeric controls share the same scrubbing and keyboard affordances. */
+.inspector-panel .numeric-input[type="number"] {
+  cursor: ew-resize;
+  touch-action: none;
+  font-variant-numeric: tabular-nums;
+  appearance: textfield;
+}
+.inspector-panel .numeric-input::-webkit-inner-spin-button,
+.inspector-panel .numeric-input::-webkit-outer-spin-button {
+  appearance: none;
+  margin: 0;
+}
+.inspector-panel .numeric-input[data-editing] {
+  cursor: text;
+  color: #e1e8fa;
+}
+.inspector-panel .numeric-input:focus-visible {
+  outline: 1px solid #7399ed;
+  outline-offset: 1px;
+}
+.number-field:hover:not(:has(:disabled)),
+.number-field:has(.scrubbing) {
+  border-color: #556887;
+  background: #171e2b;
+}
+.inspector-panel .numeric-input.scrubbing {
+  color: #9dbbff;
+  user-select: none;
+}
+.number-field .effect-keyframe,
+.slider-property .effect-keyframe {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+}
+.inspector-panel .numeric-input:disabled,
+.inspector-panel :disabled .numeric-input {
+  cursor: default;
+  opacity: 0.45;
 }

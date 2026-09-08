@@ -1,9 +1,11 @@
 import { Timer } from "lucide-react";
 import type { EffectParameterDefinition } from "../effects/types";
 import { useI18n } from "../i18n/react";
+import { type NumericEditPhase, NumericInput } from "./NumericInput";
 
 export function EffectParameter({
   definition,
+  editTime,
   value,
   onChange,
   onToggleKeyframe,
@@ -11,8 +13,9 @@ export function EffectParameter({
   keyframed,
 }: {
   definition: EffectParameterDefinition;
+  editTime?: number;
   value: number;
-  onChange: (value: number) => void;
+  onChange: (value: number, phase?: NumericEditPhase) => void;
   onToggleKeyframe: (value: number) => void;
   animated: boolean;
   keyframed: boolean;
@@ -85,24 +88,29 @@ export function EffectParameter({
     );
   }
   return (
-    <label className="effect-parameter effect-numeric">
-      <span>{definition.label}</span>
-      <input
-        className="effect-range"
-        max={definition.max}
-        min={definition.min}
-        onChange={(event) => onChange(Number(event.target.value))}
-        step={definition.step}
-        type="range"
-        value={value}
-      />
-      <span className="effect-value">
-        <input
+    <div className="effect-parameter effect-numeric">
+      <span title={definition.label}>{definition.label}</span>
+      {definition.min !== undefined && definition.max !== undefined && (
+        <NumericInput
+          editTime={editTime}
+          aria-label={definition.label}
+          className="effect-range"
           max={definition.max}
           min={definition.min}
-          onChange={(event) => onChange(Number(event.target.value))}
+          onValueChange={onChange}
           step={definition.step}
-          type="number"
+          type="range"
+          value={value}
+        />
+      )}
+      <span className="effect-value">
+        <NumericInput
+          editTime={editTime}
+          aria-label={definition.label}
+          max={definition.max}
+          min={definition.min}
+          onValueChange={onChange}
+          step={definition.step}
           value={value}
         />
         <small>{definition.unit}</small>
@@ -113,7 +121,7 @@ export function EffectParameter({
         label={definition.label}
         onClick={() => onToggleKeyframe(value)}
       />
-    </label>
+    </div>
   );
 }
 

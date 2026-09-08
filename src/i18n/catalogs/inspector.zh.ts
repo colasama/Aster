@@ -1,6 +1,7 @@
 import type { inspectorEn } from "./inspector.en";
 
 export const inspectorZh = {
+  "inspector.numeric.hint": "左右拖动调值 · Shift 加速 · Alt 微调 · 单击输入 · Esc 取消",
   "inspector.tab.properties": "属性",
   "inspector.tab.ai": "AI 助手",
   "inspector.layerSummary": "{kind} 图层 · {dimension}",

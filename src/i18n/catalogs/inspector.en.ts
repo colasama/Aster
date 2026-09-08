@@ -1,4 +1,6 @@
 export const inspectorEn = {
+  "inspector.numeric.hint":
+    "Drag to adjust | Shift: faster | Alt: finer | Click to type | Esc: cancel",
   "inspector.tab.properties": "Properties",
   "inspector.tab.ai": "AI Assistant",
   "inspector.layerSummary": "{kind} layer · {dimension}",

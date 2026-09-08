@@ -325,4 +325,7 @@ function change(target: HTMLInputElement, value: string): void {
     target.dispatchEvent(new Event("input", { bubbles: true }));
     target.dispatchEvent(new Event("change", { bubbles: true }));
   });
+  act(() => {
+    target.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+  });
 }
