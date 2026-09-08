@@ -42,6 +42,11 @@ export function automationToolDefinitions() {
       { path, baseRevision: revision, time: Type.Optional(time) },
     ],
     [
+      "open_project",
+      "Open a native project bundle directory at the current live revision, including its media and fonts. Save unsaved edits first. Invalidates all staged workspaces; no file dialog is shown.",
+      { path, baseRevision: revision },
+    ],
+    [
       "save_project",
       "Save the current project and collect its media into the exact local directory. Refuses to overwrite another existing project unless overwrite is true.",
       { path, baseRevision: revision, overwrite: Type.Optional(Type.Boolean()) },

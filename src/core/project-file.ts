@@ -289,14 +289,21 @@ export async function pickProjectFile(
 
 export async function loadProjectFromPath(
   path: string,
+  commit?: { assertCurrent: () => void; loaded: (project: Project) => void },
 ): Promise<{ project: Project; name: string }> {
   if (!isDesktopRuntime())
     throw new Error("System project opening requires the desktop application");
   const project = await openPersistedProjectDocument(
     hydrateRuntimeAssetUrls(await invoke("load_project", { path })),
     true,
+    {
+      beforeCommit: commit?.assertCurrent,
+      loaded: (project) => {
+        nativeProjectPath = path;
+        commit?.loaded(project);
+      },
+    },
   );
-  nativeProjectPath = path;
   logger.info("project", "loaded", { compositionCount: project.compositions.length });
   return { project, name: path.split(/[\\/]/).pop() || path };
 }
@@ -563,12 +570,15 @@ export async function projectDocumentWithMediaImports(
 export async function openPersistedProjectDocument(
   value: unknown,
   allowResolvedMediaPaths = false,
+  commit?: { beforeCommit?: () => void; loaded: (project: Project) => void },
 ): Promise<Project> {
   const { document, mediaImports } = splitPersistedMediaImports(value);
   const project = validateProjectDocument(document);
   await prepareProjectFonts(project);
   await hydratePersistedMediaImports(project, mediaImports, {
     allowResolvedPaths: allowResolvedMediaPaths,
+    beforeCommit: commit?.beforeCommit,
+    afterCommit: () => commit?.loaded(project),
   });
   return project;
 }

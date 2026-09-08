@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import * as projectFiles from "../core/project-file";
 import * as desktop from "../desktop/api";
 import * as renderJobs from "../render-queue/render-job-builder";
 import { createInitialState, editorReducer } from "../state/editor-store";
@@ -21,6 +22,9 @@ function fixture() {
     markSaved: (projectId, revision) => {
       state = editorReducer(state, { type: "markSaved", projectId, revision });
     },
+    loadProject: (project) => {
+      state = editorReducer(state, { type: "loadProject", project, markSaved: true });
+    },
   });
   const call = (name: string, args: Record<string, unknown> = {}) =>
     service.execute({ name, arguments: args, clientId: "test", requestId: "test" });
@@ -40,6 +44,45 @@ function fixture() {
 }
 
 describe("external editor transactions", () => {
+  it("opens a saved document, invalidates workspaces and preserves edits during loading", async () => {
+    const f = fixture();
+    const next = createInitialState().project;
+    const work = await f.call("begin_edit_workspace", { baseRevision: 0 });
+    const load = vi
+      .spyOn(projectFiles, "loadProjectFromPath")
+      .mockImplementation(async (_path, commit) => {
+        commit?.assertCurrent();
+        commit?.loaded(next);
+        return { project: next, name: "next" };
+      });
+    try {
+      await expect(
+        f.call("open_project", { path: "/next", baseRevision: 0 }),
+      ).resolves.toMatchObject({ projectId: next.id });
+      expect(f.state().savedProjectRevision).toBe(0);
+      expect(f.state().history.past).toHaveLength(0);
+      await expect(f.call("commit_workspace", work as Record<string, unknown>)).rejects.toThrow(
+        "Submit",
+      );
+      load.mockImplementationOnce(async (_path, commit) => {
+        f.changeLive();
+        commit?.assertCurrent();
+        commit?.loaded(createInitialState().project);
+        return { project: next, name: "next" };
+      });
+      await expect(f.call("open_project", { path: "/next", baseRevision: 0 })).rejects.toThrow(
+        "Stale",
+      );
+      expect(f.state().project.compositions[0].layers[0].name).toBe("User edit");
+      load.mockClear();
+      await expect(f.call("open_project", { path: "/next", baseRevision: 1 })).rejects.toThrow(
+        "Save unsaved",
+      );
+      expect(load).not.toHaveBeenCalled();
+    } finally {
+      load.mockRestore();
+    }
+  });
   it("returns the exact durable render job ID when the builder leaves it unspecified", async () => {
     const f = fixture();
     const input = renderJobs.createRenderQueueJob({

@@ -21,6 +21,8 @@ export function AutomationConnection() {
       },
       markSaved: (projectId, revision) =>
         flushSync(() => dispatch({ type: "markSaved", projectId, revision })),
+      loadProject: (project) =>
+        flushSync(() => dispatch({ type: "loadProject", project, markSaved: true })),
     });
     const unsubscribe = api.onRequest((request) => {
       void service

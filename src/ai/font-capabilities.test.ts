@@ -168,6 +168,7 @@ describe("font capabilities", () => {
     const service = new AutomationApplicationService({
       read: () => state,
       markSaved: () => {},
+      loadProject: () => {},
       commit: (operations) => {
         state = editorReducer(state, { type: "operation", operations });
       },

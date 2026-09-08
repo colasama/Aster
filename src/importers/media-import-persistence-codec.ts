@@ -118,6 +118,9 @@ export interface PersistedMediaImports {
 }
 
 export interface HydrateMediaImportOptions {
+  /** Run synchronously around installation so document loads can reject stale state. */
+  beforeCommit?: () => void;
+  afterCommit?: () => void;
   /** Only documents returned by the native bridge may contain resolved local paths. */
   allowResolvedPaths?: boolean;
 }

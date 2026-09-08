@@ -1,15 +1,20 @@
 import { applyOperations, type Operation } from "../core/operations";
 import { activeComposition } from "../core/project";
-import { saveProjectDocument, validateProjectDocument } from "../core/project-file";
+import {
+  loadProjectFromPath,
+  saveProjectDocument,
+  validateProjectDocument,
+} from "../core/project-file";
 import { prepareProjectFonts } from "../core/project-font-runtime";
 import { type ProjectFont, projectFontMetadata } from "../core/project-fonts";
+import type { Project } from "../core/types";
 import { desktopRenderQueue } from "../desktop/api";
 import {
   createRenderQueueJobAsync,
   type RenderQueueOutputKind,
   type RenderQueueRange,
 } from "../render-queue/render-job-builder";
-import type { EditorState } from "../state/editor-store";
+import { type EditorState, isProjectDirty } from "../state/editor-store";
 import { AsterAgentApplicationService } from "./application-service";
 import { importAutomationAsset } from "./automation-import";
 import type { AutomationRequest } from "./automation-protocol";
@@ -28,6 +33,7 @@ export class AutomationApplicationService {
       read: () => EditorState;
       commit: (operations: Operation[], summary: string, expectedRevision: number) => void;
       markSaved: (projectId: string, revision: number) => void;
+      loadProject: (project: Project) => void;
     },
   ) {}
 
@@ -128,6 +134,29 @@ export class AutomationApplicationService {
         projectRevision: this.context.read().projectRevision,
         layerIds: imported.layerIds,
         warnings: imported.warnings,
+      };
+    }
+    if (name === "open_project") {
+      const assertCurrent = () => {
+        this.#assertRevision(input.baseRevision, session.projectId, signal);
+        if (isProjectDirty(this.context.read()))
+          throw new Error("Save unsaved project edits before opening another project");
+        if (this.context.read().project !== state.project)
+          throw new Error("The live document changed while opening the project");
+      };
+      assertCurrent();
+      const { project } = await loadProjectFromPath(input.path as string, {
+        assertCurrent,
+        loaded: (project) => {
+          this.context.loadProject(project);
+          this.close();
+        },
+      });
+      return {
+        projectId: project.id,
+        projectName: project.name,
+        projectRevision: 0,
+        path: input.path,
       };
     }
     if (name === "save_project") {

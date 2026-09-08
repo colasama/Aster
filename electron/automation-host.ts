@@ -99,9 +99,16 @@ export async function startAutomationHost(options: {
         signal,
       );
     }
-    if (["import_asset", "save_project", "export_render"].includes(call.name)) {
+    if (["import_asset", "open_project", "save_project", "export_render"].includes(call.name)) {
       if (typeof input.path !== "string" || !isAbsolute(input.path))
         throw new Error("Use an absolute local path");
+      if (call.name === "open_project") {
+        const path = await realpath(input.path);
+        if (!(await stat(path)).isDirectory() || !(await stat(join(path, "project.json"))).isFile())
+          throw new Error("Open requires a native project directory containing project.json");
+        options.authorize(path, false);
+        return renderer({ ...call, arguments: { ...input, path } }, signal);
+      }
       if (call.name === "import_asset") {
         const path = await realpath(input.path);
         const info = await stat(path);

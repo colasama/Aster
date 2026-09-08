@@ -39,7 +39,9 @@ export async function hydratePersistedMediaImports(
         `Saved project does not contain the ${source.kind} payload for ${source.name}`,
       ]),
     );
+    options.beforeCommit?.();
     mediaImportRuntime.replace([], errors);
+    options.afterCommit?.();
     return;
   }
   const persisted = validatePersistedMediaImports(input);
@@ -253,6 +255,7 @@ export async function hydratePersistedMediaImports(
           source.id,
           `Saved project is missing the ${source.kind} payload for ${source.name}`,
         );
+    options.beforeCommit?.();
     for (const update of sourceUpdates) {
       delete update.source.dataUrl;
       update.source.runtimeUrl = update.runtimeUrl;
@@ -261,6 +264,7 @@ export async function hydratePersistedMediaImports(
     }
     mediaImportRuntime.replace(registrations, errors);
     disposers.length = 0;
+    options.afterCommit?.();
   } catch (error) {
     for (const dispose of disposers) dispose();
     throw error;

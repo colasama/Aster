@@ -84,6 +84,7 @@ arbitrary shell, network or plugin installation access.
 | `check_fonts` | Check 1–64 exact family names against project fonts and Chromium's system inventory. If inventory access fails, explicitly report heuristic `fallback-metrics` results. No glyph-coverage or resolved-fallback guarantee. |
 | `import_font` | Embed a local TTF/OTF/WOFF/WOFF2 font face with an explicit `family` alias and optional `weight` (default 400), at `baseRevision`. Decode before committing one undoable edit. Project-only; no OS installation. |
 | `save_project` | Save an exact project revision and collect media into an absolute bundle directory. Replacing an existing `project.json` requires `overwrite: true`. |
+| `open_project` | Open an absolute native bundle directory at `baseRevision` without a file dialog. Loads fonts and media, resets the editor history and invalidates all automation workspaces. Save unsaved edits first. Packed `.aster` files must be unpacked first. |
 | `export_render`, `get_render_queue`, `cancel_render` | Queue an immutable MP4, PNG sequence or still snapshot, inspect progress/errors and cancel a job. |
 
 Images and audio are returned as native MCP content blocks. Text metadata identifies content indices
@@ -116,6 +117,9 @@ Font imports supply a family alias and weight rather than extracting naming or v
 System font lists include family, full name, PostScript name and style; they do not expose file paths.
 Concurrent user edits must not be overwritten. After a conflict, call `reset_session` and re-plan
 from the new context. Save captures one revision; edits made during persistence remain dirty.
+Opening checks the live document again immediately before installing media, the native save path
+and editor state in the same synchronous commit. A stale, cancelled or failed load retains the
+current document and its media. The returned project revision is zero; read the new context before editing.
 Export captures one immutable project/media snapshot. Export destinations must not exist already.
 `includeAudio: true` enables audio for MP4; it is false by default.
 
