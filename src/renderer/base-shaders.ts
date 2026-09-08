@@ -1,3 +1,5 @@
+import { MAX_SCENE_LIGHTS } from "./scene-lighting";
+
 export const shapeShader = createShapeShader(false);
 export const materialShapeShader = createShapeShader(true);
 
@@ -115,6 +117,13 @@ struct VertexOutput {
   @location(10) tangent: vec4f,
 }
 
+struct AdditionalLight {
+  direction_intensity: vec4f,
+  color_padding: vec4f,
+  position_kind: vec4f,
+  range_cone: vec4f,
+}
+
 struct SceneLighting {
   direction_intensity: vec4f,
   color_ambient: vec4f,
@@ -125,6 +134,7 @@ struct SceneLighting {
   shadow_z_scale: vec4f,
   shadow_center_bias: vec4f,
   camera_position: vec4f,
+  additional: array<AdditionalLight, ${MAX_SCENE_LIGHTS - 1}>,
 }
 
 @group(0) @binding(0) var<uniform> lighting: SceneLighting;
@@ -305,6 +315,35 @@ fn fragment_main(input: VertexOutput) -> @location(0) vec4f {
     }
     let diffuse = color * (1.0 - metallic) * diffuse_weight * radiance * visibility;
     color = color * lighting.color_ambient.w + diffuse + specular * radiance * visibility;
+    // Extra lights share this material pass; only the primary light samples a shadow map.
+    for (var index = 0u; index < min(u32(lighting.camera_position.w), ${MAX_SCENE_LIGHTS - 1}u); index++) {
+      let extra = lighting.additional[index];
+      let extra_to_light = extra.position_kind.xyz - input.world_position;
+      let extra_distance = max(length(extra_to_light), 0.001);
+      let extra_directional = extra.position_kind.w < 0.5;
+      let extra_direction = select(
+        safe_normalize3(extra_to_light, vec3f(0.0, 0.0, 1.0)),
+        extra.direction_intensity.xyz,
+        extra_directional,
+      );
+      let extra_normalized_distance = extra_distance / max(extra.range_cone.x, 1.0);
+      var extra_attenuation = select(
+        1.0 / (1.0 + extra_normalized_distance * extra_normalized_distance * 4.0),
+        1.0, extra_directional,
+      );
+      if extra.position_kind.w > 1.5 {
+        let extra_from_light = safe_normalize3(-extra_to_light, vec3f(0.0, 0.0, -1.0));
+        extra_attenuation *= smoothstep(
+          extra.range_cone.y, min(1.0, extra.range_cone.y + 0.08),
+          dot(extra_from_light, extra.direction_intensity.xyz),
+        );
+      }
+      let extra_radiance = extra.color_padding.rgb * extra.direction_intensity.w * extra_attenuation;
+      let extra_half = safe_normalize3(extra_direction + view_direction, extra_direction);
+      let extra_specular = fresnel * pow(max(dot(normal, extra_half), 0.0), specular_power);
+      color += (input.color.rgb * (1.0 - metallic) * max(dot(normal, extra_direction), 0.0)
+        + extra_specular) * extra_radiance;
+    }
     ${environmentLighting}
     color += input.color.rgb * max(input.material.z, 0.0);
     let alpha_mode = input.gradient_style_parameters.x;

@@ -1,7 +1,9 @@
 import type { FlattenedSceneLayer } from "../core/scene-evaluation";
 import type { Composition } from "../core/types";
 
-export const SCENE_LIGHTING_BYTES = 36 * Float32Array.BYTES_PER_ELEMENT;
+export const MAX_SCENE_LIGHTS = 8;
+export const SCENE_LIGHTING_BYTES =
+  (36 + (MAX_SCENE_LIGHTS - 1) * 16) * Float32Array.BYTES_PER_ELEMENT;
 
 export function shadowMapSize(quality: "off" | "low" | "medium" | "high"): number {
   if (quality === "off") return 1;
@@ -20,7 +22,12 @@ export function buildSceneLighting(
     0,
   ],
 ): Float32Array {
-  const light = sceneLayers.find((scene) => scene.layer.kind === "light");
+  const lights: FlattenedSceneLayer[] = [];
+  for (const scene of sceneLayers) {
+    if (scene.layer.kind === "light") lights.push(scene);
+    if (lights.length === MAX_SCENE_LIGHTS) break;
+  }
+  const light = lights[0];
   const direction = light
     ? rotateDirection([0, 0, 1], light.transform.rotation)
     : ([0.35, -0.45, 0.82] as [number, number, number]);
@@ -28,7 +35,8 @@ export function buildSceneLighting(
   const normalized = direction.map((component) => component / length) as [number, number, number];
   const kind = light?.layer.light?.kind ?? "directional";
   const shadow = buildShadowProjection(normalized, composition);
-  return new Float32Array([
+  const uniforms = new Float32Array(SCENE_LIGHTING_BYTES / Float32Array.BYTES_PER_ELEMENT);
+  uniforms.set([
     ...normalized,
     light?.layer.light?.intensity ?? 1.25,
     ...(light?.layer.color.slice(0, 3) ?? [1, 0.96, 0.9]),
@@ -41,8 +49,28 @@ export function buildSceneLighting(
     0,
     ...shadow,
     ...cameraPosition,
-    0,
+    Math.max(0, lights.length - 1),
   ]);
+  for (let index = 1; index < lights.length; index++) {
+    const additional = lights[index];
+    const settings = additional.layer.light;
+    uniforms.set(
+      [
+        ...normalize(rotateDirection([0, 0, 1], additional.transform.rotation)),
+        settings?.intensity ?? 1.25,
+        ...additional.layer.color.slice(0, 3),
+        0,
+        ...additional.transform.position,
+        settings?.kind === "point" ? 1 : settings?.kind === "spot" ? 2 : 0,
+        settings?.range ?? 10_000,
+        Math.cos(((settings?.coneAngle ?? 45) * Math.PI) / 360),
+        0,
+        0,
+      ],
+      36 + (index - 1) * 16,
+    );
+  }
+  return uniforms;
 }
 
 function buildShadowProjection(

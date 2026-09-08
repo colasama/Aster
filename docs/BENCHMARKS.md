@@ -69,6 +69,13 @@ they are reference observations, not a manifest-qualified baseline or portable p
 
 ## In-editor WebGPU benchmark
 
+The multiple-light material path uses one fixed 592-byte uniform per scene, up from 144 bytes.
+Its additional-light loop is bounded at seven iterations and does no texture sampling or new
+render passes. Compare identical one-, two- and eight-light scenes at the same resolution and
+shadow settings when assessing cost. This allocation/work bound is not a measured frame-time
+guarantee. `scripts/gpu-scene-lighting-check.mjs` validates actual GPU color contributions and
+attenuation independently of timing; run its `run()` export in a WebGPU browser on Vite.
+
 The realtime Profiler provides **QUICK** (60 measured frames per scenario) and **FULL** (600 measured
 frames per scenario) controls. Each run uses 10 warm-up frames, waits for submitted GPU work after
 every measured frame, and tests the current composition at 1080p and 4K, a generated 20-layer 1080p

@@ -48,6 +48,16 @@ gesture. Keyframe IDs remain stable throughout the drag. Escape, pointer cancell
 time changes, and control unmount cancel pending previews and restore the original property track.
 Static properties stay static; animated properties are edited at the gesture's starting time.
 
+## Scene lighting
+
+The shared mesh material shader evaluates up to eight visible lights in flattened scene order.
+Directional, point and spot lights retain their time-evaluated transforms, color, intensity, range
+and cone. The first light retains the existing shadow map; the remaining lights add unshadowed
+diffuse and specular illumination in the same GPU pass. A fixed 592-byte uniform replaces the former
+144-byte single-light block. No extra render targets or CPU pixel transfers are required. Main
+compositions, precompositions and scene generators share this material path. With zero additional
+lights the shader skips the additional-light loop. Lights beyond the first eight do not contribute.
+
 ## Project fonts
 
 Font rendering uses Chromium's shaping/rasterization. A dedicated editor-only preload call obtains

@@ -1,5 +1,12 @@
 # Aster project format v10
 
+## Light layers
+
+Existing `light` layer records require no migration for multiple-light rendering. Up to eight
+visible, time-active lights contribute in flattened scene order. The first light controls the
+shadow map; additional directional, point and spot lights contribute unshadowed illumination.
+Their existing color, transform, intensity, range and cone settings remain editable and undoable.
+
 ## Project fonts
 
 The optional root `fonts` array stores project-owned faces as `{id, name, family, weight, dataUrl}`.
