@@ -108,3 +108,7 @@ workspaces require explicit `commit_workspace`, which checks the current live re
 one undoable transaction. `render_preview` supports bounded resolution, normalized crop and layer
 isolation for both Pi and external clients. See [External Automation](AUTOMATION.md).
 MCP `addLayer` accepts optional `[width, height]` integer `size` for text and shape layers (1–16384 px). Creation centers the anchor to match the requested bounds. Media, solid, camera, and adjustment dimensions retain their existing canonical rules.
+
+Transform commands expose the existing `anchor.0`, `anchor.1`, and `anchor.2` tracks.
+Agents can place mesh pivots at articulated joints and animate them through the same
+property, keyframe, and expression operations as the Inspector. See `KEYFRAME_AUTOMATION.md`.

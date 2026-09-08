@@ -1,5 +1,14 @@
 # Automation keyframe interpolation
 
+MCP and built-in agent transform commands also accept `anchor.0`, `anchor.1`, and
+`anchor.2`. This exposes the existing editable pivot tracks for mesh joints and
+off-center rotation. Values use layer-local pixels and do not compensate position;
+set the position separately when moving a pivot while keeping geometry in place.
+Static values, keyframes and expressions use the ordinary timeline, Inspector,
+undo and render paths. No project-format or plugin-ABI change, GPU pass or readback
+is added. `anchor-animation.test.ts` checks independent axes, non-monotonic seeks,
+source isolation and invalid-axis rejection.
+
 The `addKeyframe` AI command accepts optional `interpolation` (`linear`, `step`, or
 `bezier`) and `easing` (four numbers in the interval 0–1). This applies to the
 built-in agent and external MCP clients through the shared command registry.
