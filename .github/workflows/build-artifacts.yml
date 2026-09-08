@@ -105,6 +105,10 @@ jobs:
             target/aarch64-apple-darwin/release/aster-desktop-bridge \
             target/x86_64-apple-darwin/release/aster-desktop-bridge \
             -output target/release/aster-desktop-bridge
+          lipo -create \
+            target/aarch64-apple-darwin/release/aster-mcp \
+            target/x86_64-apple-darwin/release/aster-mcp \
+            -output target/release/aster-mcp
           pnpm exec electron-builder --mac --universal
       - name: Upload desktop bundles
         uses: actions/upload-artifact@v4

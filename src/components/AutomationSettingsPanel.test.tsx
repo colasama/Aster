@@ -23,14 +23,13 @@ async function mount(overrides: Partial<AutomationSettings> = {}) {
     running: false,
     clients: 0,
     busy: false,
-    hasToken: false,
     environmentManaged: false,
     ...overrides,
   };
   const api: AutomationSettingsApi = {
     get: vi.fn(async () => state),
     update: vi.fn(async (patch) => {
-      state = { ...state, ...patch, hasToken: true, running: patch.enabled ?? state.enabled };
+      state = { ...state, ...patch, running: patch.enabled ?? state.enabled };
       return state;
     }),
     copy: vi.fn(async () => undefined),
@@ -53,9 +52,9 @@ function button(text: string) {
   return result;
 }
 
-it("enables immediately and copies a client configuration without exposing the secret in the DOM", async () => {
+it("enables immediately and copies a client configuration without credentials", async () => {
   const { api, container } = await mount();
-  expect(button("Copy client configuration").disabled).toBe(true);
+  expect(button("Copy client configuration").disabled).toBe(false);
   await act(async () =>
     container.querySelector<HTMLInputElement>('input[type="checkbox"]')?.click(),
   );
@@ -64,19 +63,16 @@ it("enables immediately and copies a client configuration without exposing the s
   await act(async () => button("Copy client configuration").click());
   expect(api.copy).toHaveBeenCalledWith("configuration");
   expect(button("Copied")).toBeTruthy();
-  await act(async () => button("Regenerate").click());
-  expect(api.update).toHaveBeenLastCalledWith({ rotateToken: true });
+  expect(container.textContent).not.toContain("Token");
 });
 
 it("keeps environment-managed settings read-only while allowing configuration copy", async () => {
   const { container } = await mount({
     enabled: true,
     running: true,
-    hasToken: true,
     environmentManaged: true,
   });
   expect([...container.querySelectorAll("input")].every((input) => input.disabled)).toBe(true);
-  expect(button("Regenerate").disabled).toBe(true);
   expect(button("Copy client configuration").disabled).toBe(false);
   expect(container.textContent).toContain("Controlled by environment variables");
 });

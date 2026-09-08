@@ -85,7 +85,9 @@
         "to": "bin",
         "filter": [
           "aster-desktop-bridge",
-          "aster-desktop-bridge.exe"
+          "aster-desktop-bridge.exe",
+          "aster-mcp",
+          "aster-mcp.exe"
         ]
       },
       {

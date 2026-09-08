@@ -8,7 +8,7 @@ export function AutomationSettingsPanel({ api }: { api: AutomationSettingsApi })
   const [port, setPort] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
-  const [copied, setCopied] = useState<"token" | "configuration">();
+  const [copied, setCopied] = useState<"configuration">();
   const busy = useRef(false);
   const version = useRef(0);
   const mounted = useRef(true);
@@ -68,7 +68,7 @@ export function AutomationSettingsPanel({ api }: { api: AutomationSettingsApi })
       if (mounted.current) setPending(false);
     }
   };
-  const copy = async (kind: "token" | "configuration") => {
+  const copy = async (kind: "configuration") => {
     try {
       await api.copy(kind);
       if (!mounted.current) return;
@@ -138,36 +138,9 @@ export function AutomationSettingsPanel({ api }: { api: AutomationSettingsApi })
           {t("workspace.mcp.applyPort")}
         </button>
       </div>
-      <div className="automation-settings-row">
-        <span className="automation-token">
-          {t("workspace.mcp.token")}{" "}
-          <span
-            role="img"
-            aria-label={t(
-              settings?.hasToken ? "workspace.mcp.tokenSet" : "workspace.mcp.tokenEmpty",
-            )}
-          >
-            {settings?.hasToken ? "••••••••••••" : "—"}
-          </span>
-        </span>
-        <button
-          type="button"
-          disabled={disabled}
-          onClick={() => void update({ rotateToken: true })}
-        >
-          {t(settings?.hasToken ? "workspace.mcp.regenerate" : "workspace.mcp.generate")}
-        </button>
-        <button
-          type="button"
-          disabled={!settings?.hasToken || pending}
-          onClick={() => void copy("token")}
-        >
-          {t(copied === "token" ? "workspace.mcp.copied" : "workspace.mcp.copyToken")}
-        </button>
-      </div>
       <button
         type="button"
-        disabled={!settings?.hasToken || pending}
+        disabled={!settings || pending}
         onClick={() => void copy("configuration")}
       >
         {t(copied === "configuration" ? "workspace.mcp.copied" : "workspace.mcp.copyConfig")}

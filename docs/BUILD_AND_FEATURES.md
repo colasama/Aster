@@ -86,3 +86,11 @@ the probe executable; otherwise preparation searches beside FFmpeg and then PATH
 is recorded in `build/ffmpeg/ffmpeg-source.json`. Packaged reference tools use `resources/bin`.
 The MCP stdio adapter is compiled into `dist-electron/electron/automation-mcp.js`; see
 [External Automation](AUTOMATION.md) for source and installed-client launch configuration.
+
+The desktop bridge crate also builds `aster-mcp` (`aster-mcp.exe` on Windows), packaged in
+`resources/bin`. This small native launcher runs the bundled Electron executable in Node mode
+with the adapter script, preserving stdio on Windows without launching a console window from
+the MCP client. `--background` starts a hidden editor with a temporary profile and dynamic port.
+The adapter and editor use a dedicated parent IPC channel for readiness and shutdown; neither
+mode requires a token. `pnpm mcp --background` uses the installed development Electron runtime
+and previously built production assets.

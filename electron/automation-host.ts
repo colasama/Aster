@@ -8,14 +8,12 @@ import { readProjectFont } from "./font-files.js";
 import { mediaMimeType, ReferenceMediaService } from "./reference-media.js";
 
 export async function startAutomationHost(options: {
-  token: string;
   port: number;
   window: () => BrowserWindow | undefined;
   ffmpeg: string;
   ffprobe: string;
   authorize: (path: string, media: boolean) => void;
 }) {
-  const token = options.token;
   const media = new ReferenceMediaService(options.ffmpeg, options.ffprobe);
   const pending = new Map<
     string,
@@ -143,7 +141,6 @@ export async function startAutomationHost(options: {
 
   try {
     const server = await startAutomationServer({
-      token,
       port: options.port,
       execute,
       cancel,

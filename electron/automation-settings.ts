@@ -1,14 +1,12 @@
-import { randomBytes } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { type BrowserWindow, clipboard, ipcMain, safeStorage } from "electron";
+import { type BrowserWindow, clipboard, ipcMain } from "electron";
 import type { AutomationSettings } from "../src/desktop/automation-settings.js";
 import { replaceFileWithBackup } from "./atomic-file.js";
 
 interface Configuration {
   enabled: boolean;
   port: number;
-  token: string;
 }
 interface Host {
   port: number;
@@ -16,9 +14,9 @@ interface Host {
   close(): Promise<void>;
 }
 
-/** Owns the local listener and encrypted preferences; secrets never enter renderer state. */
+/** Owns the opt-in loopback listener and its persisted startup preference. */
 export class AutomationSettingsController {
-  #config: Configuration = { enabled: false, port: 48765, token: "" };
+  #config: Configuration = { enabled: false, port: 48765 };
   #host?: Host;
   #error?: string;
   #environmentManaged = false;
@@ -30,7 +28,8 @@ export class AutomationSettingsController {
     readonly options: {
       userData: string;
       command: string;
-      adapterPath: string;
+      launchArgs: string[];
+      nodeMode?: boolean;
       start(config: Configuration): Promise<Host>;
     },
   ) {
@@ -39,12 +38,11 @@ export class AutomationSettingsController {
 
   async initialize(environment: NodeJS.ProcessEnv = process.env) {
     try {
-      if (environment.ASTER_AUTOMATION_TOKEN) {
+      if (environment.ASTER_AUTOMATION_ENABLED !== undefined) {
         this.#environmentManaged = true;
         this.#config = {
-          enabled: true,
+          enabled: environment.ASTER_AUTOMATION_ENABLED === "1",
           port: Number(environment.ASTER_AUTOMATION_PORT ?? 48765),
-          token: environment.ASTER_AUTOMATION_TOKEN,
         };
       } else {
         let raw: string | undefined;
@@ -55,20 +53,15 @@ export class AutomationSettingsController {
         }
         if (raw) {
           const value = JSON.parse(raw);
-          if (
-            value.version !== 1 ||
-            typeof value.enabled !== "boolean" ||
-            typeof value.token !== "string"
-          )
+          if (![1, 2].includes(value.version) || typeof value.enabled !== "boolean")
             throw new Error("Invalid saved MCP settings");
           this.#config = {
             enabled: value.enabled,
             port: value.port,
-            token: safeStorage.decryptString(Buffer.from(value.token, "base64")),
           };
         }
       }
-      validate(this.#config);
+      validate(this.#config, this.#environmentManaged);
       if (this.#config.enabled) this.#host = await this.options.start(this.#config);
     } catch (error) {
       this.#error = message(error);
@@ -83,7 +76,6 @@ export class AutomationSettingsController {
       running: !!this.#host,
       clients: this.#host?.status().clients ?? 0,
       busy: !!this.#pending || (this.#host?.status().busy ?? false),
-      hasToken: !!this.#config.token,
       environmentManaged: this.#environmentManaged,
       ...(this.#error ? { error: this.#error } : {}),
     };
@@ -97,32 +89,19 @@ export class AutomationSettingsController {
       throw new Error("Invalid MCP settings");
     const patch = input as Record<string, unknown>;
     for (const key of Object.keys(patch))
-      if (!["enabled", "port", "rotateToken"].includes(key)) throw new Error("Unknown MCP setting");
-    if (
-      (patch.enabled !== undefined && typeof patch.enabled !== "boolean") ||
-      (patch.rotateToken !== undefined && typeof patch.rotateToken !== "boolean")
-    )
+      if (!["enabled", "port"].includes(key)) throw new Error("Unknown MCP setting");
+    if (patch.enabled !== undefined && typeof patch.enabled !== "boolean")
       throw new Error("Invalid MCP setting value");
     const next: Configuration = {
       enabled: patch.enabled === undefined ? this.#config.enabled : (patch.enabled as boolean),
       port: patch.port === undefined ? this.#config.port : (patch.port as number),
-      token:
-        patch.rotateToken || !this.#config.token
-          ? randomBytes(32).toString("hex")
-          : this.#config.token,
     };
     validate(next);
-    if (
-      !safeStorage.isEncryptionAvailable() ||
-      (process.platform === "linux" && safeStorage.getSelectedStorageBackend() === "basic_text")
-    )
-      throw new Error("Secure system storage is unavailable for the MCP token");
     const document = JSON.stringify(
       {
-        version: 1,
+        version: 2,
         enabled: next.enabled,
         port: next.port,
-        token: safeStorage.encryptString(next.token).toString("base64"),
       },
       null,
       2,
@@ -167,29 +146,25 @@ export class AutomationSettingsController {
   }
 
   copy(kind: unknown) {
-    if (kind !== "token" && kind !== "configuration") throw new Error("Unknown MCP copy target");
-    if (!this.#config.token) throw new Error("Generate an MCP token first");
+    if (kind !== "configuration") throw new Error("Unknown MCP copy target");
     if (this.#pending) throw new Error("MCP settings are busy");
     clipboard.writeText(
-      kind === "token"
-        ? this.#config.token
-        : JSON.stringify(
-            {
-              mcpServers: {
-                aster: {
-                  command: this.options.command,
-                  args: [this.options.adapterPath],
-                  env: {
-                    ELECTRON_RUN_AS_NODE: "1",
-                    ASTER_AUTOMATION_PORT: String(this.#host?.port ?? this.#config.port),
-                    ASTER_AUTOMATION_TOKEN: this.#config.token,
-                  },
-                },
+      JSON.stringify(
+        {
+          mcpServers: {
+            aster: {
+              command: this.options.command,
+              args: this.options.launchArgs,
+              env: {
+                ...(this.options.nodeMode ? { ELECTRON_RUN_AS_NODE: "1" } : {}),
+                ASTER_AUTOMATION_PORT: String(this.#host?.port ?? this.#config.port),
               },
             },
-            null,
-            2,
-          ),
+          },
+        },
+        null,
+        2,
+      ),
     );
   }
 
@@ -221,11 +196,13 @@ export class AutomationSettingsController {
   }
 }
 
-function validate(config: Configuration) {
-  if (!Number.isSafeInteger(config.port) || config.port < 1 || config.port > 65535)
+function validate(config: Configuration, allowDynamicPort = false) {
+  if (
+    !Number.isSafeInteger(config.port) ||
+    config.port < (allowDynamicPort ? 0 : 1) ||
+    config.port > 65535
+  )
     throw new Error("MCP port must be an integer from 1 to 65535");
-  if ((config.enabled || config.token) && (config.token.length < 32 || config.token.length > 4096))
-    throw new Error("MCP token must contain 32 to 4096 characters");
 }
 function message(error: unknown) {
   return error instanceof Error ? error.message : String(error);

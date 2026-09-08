@@ -9,12 +9,6 @@ export const workspaceEn = {
   "workspace.mcp.environment": "Controlled by environment variables",
   "workspace.mcp.port": "Port",
   "workspace.mcp.applyPort": "Apply port",
-  "workspace.mcp.token": "Token",
-  "workspace.mcp.tokenSet": "Token configured",
-  "workspace.mcp.tokenEmpty": "No token",
-  "workspace.mcp.regenerate": "Regenerate",
-  "workspace.mcp.generate": "Generate",
-  "workspace.mcp.copyToken": "Copy token",
   "workspace.mcp.copyConfig": "Copy client configuration",
   "workspace.mcp.copied": "Copied",
 

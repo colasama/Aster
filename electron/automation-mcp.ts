@@ -1,5 +1,7 @@
 import { randomUUID } from "node:crypto";
-import { pathToFileURL } from "node:url";
+import { createRequire } from "node:module";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import {
@@ -8,6 +10,7 @@ import {
   ListToolsRequestSchema,
   type Tool,
 } from "@modelcontextprotocol/sdk/types.js";
+import { startBackgroundEditor } from "./automation-background.js";
 
 export function mediaToolResult(value: unknown): CallToolResult {
   const content: CallToolResult["content"] = [];
@@ -32,16 +35,24 @@ export function mediaToolResult(value: unknown): CallToolResult {
   return { content: [{ type: "text", text: metadata ?? "null" }, ...content] };
 }
 
-export async function startAsterMcp(environment = process.env) {
-  const token = environment.ASTER_AUTOMATION_TOKEN;
-  if (!token || token.length < 32)
-    throw new Error("Set ASTER_AUTOMATION_TOKEN to the same secret used when launching Aster");
-  const port = Number(environment.ASTER_AUTOMATION_PORT ?? 48765);
+export async function startAsterMcp(
+  environment = process.env,
+  options: {
+    background?: boolean;
+    executable?: string;
+    launchArgs?: string[];
+    onClose?: () => void;
+  } = {},
+) {
+  const background = options.background
+    ? await startBackgroundEditor(options.executable ?? process.execPath, options.launchArgs ?? [])
+    : undefined;
+  const port = background?.port ?? Number(environment.ASTER_AUTOMATION_PORT ?? 48765);
   if (!Number.isSafeInteger(port) || port < 1 || port > 65535)
     throw new Error("Invalid ASTER_AUTOMATION_PORT");
   const base = `http://127.0.0.1:${port}`;
   const clientId = randomUUID();
-  const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
+  const headers = { "Content-Type": "application/json" };
   const server = new Server(
     { name: "aster", version: "0.2.1" },
     {
@@ -89,20 +100,51 @@ export async function startAsterMcp(environment = process.env) {
       extra.signal.removeEventListener("abort", cancel);
     }
   });
+  const shutdown = () => {
+    void server.close();
+  };
+  process.stdin.once("end", shutdown);
+  process.once("SIGTERM", shutdown);
+  process.once("SIGINT", shutdown);
   server.onclose = () => {
+    process.stdin.off("end", shutdown);
+    process.off("SIGTERM", shutdown);
+    process.off("SIGINT", shutdown);
     void fetch(`${base}/disconnect`, {
       method: "POST",
       headers,
       body: JSON.stringify({ clientId }),
       signal: AbortSignal.timeout(3000),
-    }).catch(() => undefined);
+    })
+      .catch(() => undefined)
+      .finally(async () => {
+        await background?.close();
+        options.onClose?.();
+      })
+      .catch((error: unknown) => {
+        process.stderr.write(`MCP shutdown failed: ${String(error)}\n`);
+        process.exitCode = 1;
+      });
   };
-  await server.connect(new StdioServerTransport());
+  try {
+    await server.connect(new StdioServerTransport());
+  } catch (error) {
+    await background?.close();
+    throw error;
+  }
   return server;
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href)
-  void startAsterMcp().catch((error: unknown) => {
+  void startAsterMcp(process.env, {
+    background: process.argv.includes("--background"),
+    executable: process.versions.electron
+      ? process.execPath
+      : createRequire(import.meta.url)("electron"),
+    launchArgs: process.versions.electron
+      ? []
+      : [resolve(dirname(fileURLToPath(import.meta.url)), "../..")],
+  }).catch((error: unknown) => {
     process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
     process.exitCode = 1;
   });

@@ -1,8 +1,8 @@
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { clipboard, safeStorage } from "electron";
+import { clipboard } from "electron";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { startAutomationServer } from "./automation-server";
 import { AutomationSettingsController } from "./automation-settings";
@@ -10,19 +10,12 @@ import { AutomationSettingsController } from "./automation-settings";
 vi.mock("electron", () => ({
   clipboard: { writeText: vi.fn() },
   ipcMain: { handle: vi.fn() },
-  safeStorage: {
-    isEncryptionAvailable: vi.fn(() => true),
-    getSelectedStorageBackend: () => "gnome_libsecret",
-    encryptString: vi.fn((text: string) => Buffer.from(text.split("").reverse().join(""))),
-    decryptString: vi.fn((bytes: Buffer) => bytes.toString().split("").reverse().join("")),
-  },
 }));
 
 const cleanup: Array<() => Promise<unknown>> = [];
 afterEach(async () => {
   for (const close of cleanup.splice(0).reverse()) await close();
   vi.clearAllMocks();
-  vi.mocked(safeStorage.isEncryptionAvailable).mockReturnValue(true);
 });
 
 async function fixture() {
@@ -32,8 +25,8 @@ async function fixture() {
   const options = {
     userData: root,
     command: "C:/Aster/Aster.exe",
-    adapterPath: "C:/Aster/resources/app.asar/dist-electron/electron/automation-mcp.js",
-    start: (config: { token: string; port: number }) =>
+    launchArgs: [],
+    start: (config: { port: number }) =>
       startAutomationServer({ ...config, execute: async () => ({ ok: true }), cancel }),
   };
   const controller = new AutomationSettingsController(options);
@@ -52,69 +45,54 @@ async function freePort() {
   await new Promise<void>((resolve) => server.close(() => resolve()));
   return address.port;
 }
-async function authenticate(port: number, token: string) {
+async function connect(port: number) {
   // Each probe targets a possibly restarted server, not an old pooled socket.
   const response = await fetch(`http://127.0.0.1:${port}/tools`, {
-    headers: { authorization: `Bearer ${token}`, connection: "close" },
+    headers: { connection: "close" },
   });
   await response.arrayBuffer();
   return response.status;
 }
 
 describe("MCP desktop settings", () => {
-  it("enables immediately, persists encrypted credentials, rotates authorization and restores after restart", async () => {
+  it("enables, persists and restores a local listener without credentials", async () => {
     const { root, options, controller } = await fixture();
-    expect(controller.snapshot()).toMatchObject({
-      enabled: false,
-      running: false,
-      hasToken: false,
-    });
-    const port = await freePort();
-    expect(await controller.update({ enabled: true, port })).toMatchObject({
-      running: true,
-      hasToken: true,
-    });
-    controller.copy("token");
-    const original = copied();
-    expect(await authenticate(port, original)).toBe(200);
-    const saved = await readFile(join(root, "automation.json"), "utf8");
-    expect(saved).not.toContain(original);
-    expect(safeStorage.encryptString).toHaveBeenCalledWith(original);
-    expect(JSON.stringify(controller.snapshot())).not.toContain(original);
-    await controller.update({ rotateToken: true });
+    expect(controller.snapshot()).toMatchObject({ enabled: false, running: false });
     controller.copy("configuration");
     const config = JSON.parse(copied()).mcpServers.aster;
     expect(config.command).toBe(options.command);
-    expect(config.args).toEqual([options.adapterPath]);
-    expect(config.env.ELECTRON_RUN_AS_NODE).toBe("1");
-    expect(await authenticate(port, original)).toBe(403);
-    expect(await authenticate(port, config.env.ASTER_AUTOMATION_TOKEN)).toBe(200);
+    expect(config.args).toEqual([]);
+    expect(config.env).toEqual({ ASTER_AUTOMATION_PORT: "48765" });
+    const port = await freePort();
+    expect(await controller.update({ enabled: true, port })).toMatchObject({ running: true });
+    expect(await connect(port)).toBe(200);
+    expect(JSON.parse(await readFile(join(root, "automation.json"), "utf8"))).toEqual({
+      version: 2,
+      enabled: true,
+      port,
+    });
     await controller.close();
     const restored = new AutomationSettingsController(options);
     cleanup.push(() => restored.close());
     expect(await restored.initialize({})).toMatchObject({ running: true, port });
-    expect(await authenticate(port, config.env.ASTER_AUTOMATION_TOKEN)).toBe(200);
+    expect(await connect(port)).toBe(200);
     await restored.update({ enabled: false });
-    await expect(authenticate(port, config.env.ASTER_AUTOMATION_TOKEN)).rejects.toThrow();
-    expect(JSON.parse(await readFile(join(root, "automation.json"), "utf8")).enabled).toBe(false);
+    await expect(connect(port)).rejects.toThrow();
   });
 
   it("restores the old listener after a port conflict and rejects invalid changes without disturbing it", async () => {
     const { controller } = await fixture();
     const port = await freePort();
     await controller.update({ enabled: true, port });
-    controller.copy("token");
-    const token = copied();
     const blocker = await startAutomationServer({
       port: 0,
-      token,
       execute: async () => ({}),
       cancel: vi.fn(),
     });
     cleanup.push(() => blocker.close());
     await expect(controller.update({ port: blocker.port })).rejects.toThrow();
     expect(controller.snapshot()).toMatchObject({ port, running: true });
-    expect(await authenticate(port, token)).toBe(200);
+    expect(await connect(port)).toBe(200);
     for (const patch of [
       { port: 0 },
       { port: 1.5 },
@@ -123,24 +101,39 @@ describe("MCP desktop settings", () => {
       { token: "injected" },
     ])
       await expect(controller.update(patch)).rejects.toThrow();
-    expect(await authenticate(port, token)).toBe(200);
+    expect(await connect(port)).toBe(200);
   });
 
-  it("honors environment overrides without persisting secrets and refuses plaintext storage", async () => {
-    const { root, options, controller } = await fixture();
-    vi.mocked(safeStorage.isEncryptionAvailable).mockReturnValue(false);
-    await expect(controller.update({ enabled: true })).rejects.toThrow("Secure system storage");
-    expect(controller.snapshot().running).toBe(false);
+  it("honors environment overrides and uses an ephemeral port for background sessions", async () => {
+    const { root, options } = await fixture();
     const environment = new AutomationSettingsController(options);
     cleanup.push(() => environment.close());
-    const port = await freePort();
     expect(
       await environment.initialize({
-        ASTER_AUTOMATION_TOKEN: "x".repeat(64),
-        ASTER_AUTOMATION_PORT: String(port),
+        ASTER_AUTOMATION_ENABLED: "1",
+        ASTER_AUTOMATION_PORT: "0",
       }),
     ).toMatchObject({ running: true, environmentManaged: true });
+    expect(await connect(environment.snapshot().port)).toBe(200);
     await expect(environment.update({ enabled: false })).rejects.toThrow("environment variables");
     await expect(readFile(join(root, "automation.json"))).rejects.toMatchObject({ code: "ENOENT" });
+  });
+
+  it("reads old settings without requiring their encrypted token", async () => {
+    const { root, options } = await fixture();
+    await writeFile(
+      join(root, "automation.json"),
+      JSON.stringify({
+        version: 1,
+        enabled: false,
+        port: 48765,
+        token: "old-encrypted-token",
+      }),
+    );
+    const restored = new AutomationSettingsController(options);
+    cleanup.push(() => restored.close());
+    expect(await restored.initialize({})).toMatchObject({ enabled: false, port: 48765 });
+    await restored.update({ port: 48766 });
+    expect(await readFile(join(root, "automation.json"), "utf8")).not.toContain("token");
   });
 });

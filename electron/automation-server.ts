@@ -1,4 +1,3 @@
-import { timingSafeEqual } from "node:crypto";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { Check } from "typebox/value";
 import { automationToolDefinitions } from "../src/ai/automation-protocol.js";
@@ -10,13 +9,10 @@ export interface AutomationCall {
 }
 
 export async function startAutomationServer(options: {
-  token: string;
   port: number;
   execute: (call: AutomationCall, signal: AbortSignal) => Promise<unknown>;
   cancel: (clientId: string) => void;
 }) {
-  if (options.token.length < 32)
-    throw new Error("ASTER_AUTOMATION_TOKEN must contain at least 32 characters");
   if (!Number.isSafeInteger(options.port) || options.port < 0 || options.port > 65535)
     throw new Error("Invalid Aster automation port");
   const definitions = automationToolDefinitions();
@@ -33,15 +29,13 @@ export async function startAutomationServer(options: {
   server.maxConnections = 16;
 
   async function handle(request: IncomingMessage, response: ServerResponse) {
-    const expected = Buffer.from(`Bearer ${options.token}`);
-    const supplied = Buffer.from(request.headers.authorization ?? "");
     if (
       request.headers.origin ||
       request.headers.host !== `127.0.0.1:${port}` ||
-      supplied.length !== expected.length ||
-      !timingSafeEqual(supplied, expected)
+      request.headers["sec-fetch-site"] ||
+      (request.method === "POST" && request.headers["content-type"] !== "application/json")
     ) {
-      send(response, 403, { error: "Aster automation authentication failed" });
+      send(response, 403, { error: "Aster automation requires a local non-browser client" });
       request.resume();
       return;
     }

@@ -256,7 +256,7 @@ Optimize measured frame time; never hide semantic mutations inside render code.
 
 ## External automation (0.2.1)
 
-The external MCP stdio adapter forwards authenticated loopback requests to the running Electron
+The external MCP stdio adapter forwards token-free loopback requests to the running Electron
 application. Its shared tool definitions and renderer connection reuse `AsterAgentApplicationService`
 for staged edits; explicit commits pass through the editor's undo transaction path. Reference
 FFmpeg/FFprobe decoding runs outside the renderer, while bounded high-resolution previews and
@@ -270,7 +270,10 @@ short clips without waiting on the other input. Frame failures propagate immedia
 which closes encoder pipes and releases any blocked audio write.
 
 The Preferences MCP section manages the listener through primary-window-only IPC. The main process
-owns encrypted profile configuration, credential rotation, clipboard export and listener lifecycle.
+owns the enabled/port preferences, clipboard configuration export and listener lifecycle.
 Changes apply immediately; a failed reconfiguration restores the previous listener. Environment-based
-launch configuration remains an explicit read-only override. Renderer status contains no token.
+launch configuration remains an explicit read-only override. The listener trusts local processes
+and rejects browser requests. `aster-mcp --background` owns an isolated hidden editor,
+ephemeral port and temporary profile; closing stdio shuts down that editor and removes the profile.
+Interactive connections use `aster-mcp` and leave the user-owned editor running.
 `shape.morph` uses the shared time-addressable path evaluator before adaptive vector tessellation; playback presentation uses the window clock channel independently of sampled React UI updates. See [Path morph](PATH_MORPH.md) and [Playback performance](PLAYBACK_PERFORMANCE.md).

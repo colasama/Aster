@@ -64,6 +64,7 @@ import {
 import { RenderQueueStore } from "./render-queue-store.js";
 
 const DEVELOPMENT_URL = "http://127.0.0.1:1420";
+const backgroundAutomation = process.argv.includes("--automation-background");
 const BRIDGE_COMMANDS = new Set([
   "clear_autosave",
   "install_plugin",
@@ -1019,6 +1020,7 @@ async function createWindow(
   const primaryWorkArea = screen.getPrimaryDisplay().workArea;
   const window = new BrowserWindow({
     title: "Aster — Untitled Project",
+    show: !backgroundAutomation,
     frame: false,
     autoHideMenuBar: true,
     width: restored?.width ?? 1440,
@@ -1034,6 +1036,7 @@ async function createWindow(
       sandbox: true,
       webSecurity: true,
       spellcheck: false,
+      backgroundThrottling: !backgroundAutomation,
     },
   });
   const uiScale = preferences.snapshot().uiScale;
@@ -1083,6 +1086,7 @@ async function createWindow(
   window.on("move", () => sendDisplayMetrics(window, preferences.snapshot().uiScale));
   window.on("resize", scheduleWindowState);
   window.on("close", (event) => {
+    if (backgroundAutomation) return;
     persistWindowState();
     if (closeAllowed.delete(window.id)) return;
     const state = documentStates.get(window.webContents.id);
@@ -1137,9 +1141,10 @@ async function createWindow(
   });
   window.webContents.on("will-navigate", (event, url) => {
     const productionEntry = pathToFileURL(join(app.getAppPath(), "dist", "index.html")).toString();
-    const allowed = app.isPackaged
-      ? url === productionEntry || url.startsWith(`${productionEntry}#`)
-      : new URL(url).origin === new URL(DEVELOPMENT_URL).origin;
+    const allowed =
+      app.isPackaged || backgroundAutomation
+        ? url === productionEntry || url.startsWith(`${productionEntry}#`)
+        : new URL(url).origin === new URL(DEVELOPMENT_URL).origin;
     if (!allowed) event.preventDefault();
   });
   window.webContents.on("render-process-gone", (_event, details) => {
@@ -1153,6 +1158,10 @@ async function createWindow(
     fullAccessGrants.revokeOwner(window.webContents.id);
     fullAccessTools.abortOwner(window.webContents.id);
     documentStates.delete(window.webContents.id);
+    if (backgroundAutomation) {
+      app.quit();
+      return;
+    }
     if (rendererRecoveryDialogOpen || window.isDestroyed()) return;
     rendererRecoveryDialogOpen = true;
     void dialog
@@ -1186,7 +1195,8 @@ async function createWindow(
       });
   });
   if (restored?.maximized) window.maximize();
-  if (app.isPackaged) await window.loadFile(join(app.getAppPath(), "dist", "index.html"));
+  if (app.isPackaged || backgroundAutomation)
+    await window.loadFile(join(app.getAppPath(), "dist", "index.html"));
   else await window.loadURL(DEVELOPMENT_URL);
   logger.debug("window", "created", { rendererId: window.webContents.id });
   return window;
@@ -1293,10 +1303,11 @@ if (hasSingleInstanceLock)
         logger.error("application", "bridge_missing", new Error("Desktop bridge was not found"), {
           executable,
         });
-        dialog.showErrorBox(
-          "Aster could not start",
-          `Desktop bridge was not found at ${executable}`,
-        );
+        if (!backgroundAutomation)
+          dialog.showErrorBox(
+            "Aster could not start",
+            `Desktop bridge was not found at ${executable}`,
+          );
         app.quit();
         return;
       }
@@ -1357,8 +1368,17 @@ if (hasSingleInstanceLock)
       await createWindow(logger, preferences);
       automationSettings = new AutomationSettingsController({
         userData: app.getPath("userData"),
-        command: process.execPath,
-        adapterPath: join(app.getAppPath(), "dist-electron", "electron", "automation-mcp.js"),
+        command: app.isPackaged
+          ? join(
+              process.resourcesPath,
+              "bin",
+              process.platform === "win32" ? "aster-mcp.exe" : "aster-mcp",
+            )
+          : process.execPath,
+        launchArgs: app.isPackaged
+          ? []
+          : [join(app.getAppPath(), "dist-electron", "electron", "automation-mcp.js")],
+        nodeMode: !app.isPackaged,
         start: (config) =>
           startAutomationHost({
             ...config,
@@ -1378,17 +1398,26 @@ if (hasSingleInstanceLock)
           }),
       });
       automationSettings.registerIpc(() => primaryWindow);
-      await automationSettings.initialize();
+      const automationState = await automationSettings.initialize();
+      if (backgroundAutomation) {
+        if (!automationState.running)
+          throw new Error(automationState.error ?? "Background MCP failed to start");
+        process.on("disconnect", () => app.quit());
+        if (!process.send) throw new Error("Background Aster requires a parent IPC channel");
+        process.send({ port: automationState.port });
+      }
       app.on("activate", () => {
         if (!primaryWindow) void createWindow(logger, preferences);
       });
     })
     .catch((error: unknown) => {
       applicationLogger?.error("application", "startup_failed", error);
-      dialog.showErrorBox(
-        "Aster could not start",
-        error instanceof Error ? error.message : "Unexpected startup failure",
-      );
+      if (backgroundAutomation) process.stderr.write(`${String(error)}\n`);
+      else
+        dialog.showErrorBox(
+          "Aster could not start",
+          error instanceof Error ? error.message : "Unexpected startup failure",
+        );
       app.quit();
     });
 

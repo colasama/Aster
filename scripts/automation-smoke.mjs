@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
-import { randomBytes } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { createServer } from "node:net";
 import { dirname, join, resolve } from "node:path";
@@ -11,49 +10,45 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 // Run against the packaged application: pnpm artifact:build --dir, then node scripts/automation-smoke.mjs.
 const root = resolve(import.meta.dirname, "..");
 const binary = process.argv[2] ?? join(root, "release", "win-unpacked", "Aster.exe");
+const background = process.argv.includes("--background");
 const output = join(root, "artifacts", `automation-smoke-${Date.now()}`);
 await mkdir(output, { recursive: true });
 const port = await freePort();
-const token = randomBytes(32).toString("hex");
 const environment = {
   ...process.env,
   ASTER_AUTOMATION_PORT: String(port),
-  ASTER_AUTOMATION_TOKEN: token,
+  ASTER_AUTOMATION_ENABLED: "1",
 };
 delete environment.ELECTRON_RUN_AS_NODE;
-const app = spawn(binary, [`--user-data-dir=${join(output, "profile")}`], {
-  env: environment,
-  windowsHide: true,
-  stdio: ["ignore", "pipe", "pipe"],
-});
+const app = background
+  ? undefined
+  : spawn(binary, [`--user-data-dir=${join(output, "profile")}`], {
+      env: environment,
+      windowsHide: true,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
 let appLog = "";
-app.stdout.on("data", (data) => {
+app?.stdout.on("data", (data) => {
   appLog = (appLog + data).slice(-512 * 1024);
 });
-app.stderr.on("data", (data) => {
+app?.stderr.on("data", (data) => {
   appLog = (appLog + data).slice(-512 * 1024);
 });
 let launchError;
-app.on("error", (error) => {
+app?.on("error", (error) => {
   launchError = error;
 });
 const transport = new StdioClientTransport({
-  command: binary,
-  args: [
-    join(
-      dirname(binary),
-      "resources",
-      "app.asar",
-      "dist-electron",
-      "electron",
-      "automation-mcp.js",
-    ),
-  ],
-  env: { ...environment, ELECTRON_RUN_AS_NODE: "1" },
+  command: join(dirname(binary), "resources", "bin", "aster-mcp.exe"),
+  args: background ? ["--background"] : [],
+  env: environment,
   stderr: "pipe",
 });
 const client = new Client({ name: "aster-packaged-smoke", version: "0.2.1" });
-const report = { output, steps: [] };
+const report = { output, background, steps: [] };
+transport.stderr?.on("data", (data) => {
+  appLog = (appLog + data).slice(-512 * 1024);
+});
 
 async function call(name, args = {}) {
   const result = await client.callTool({ name, arguments: args }, undefined, { timeout: 125_000 });
@@ -76,16 +71,18 @@ async function call(name, args = {}) {
 }
 
 try {
-  await until(async () => {
-    if (launchError) throw launchError;
-    if (app.exitCode !== null) throw new Error(`Aster exited with ${app.exitCode}: ${appLog}`);
-    return fetch(`http://127.0.0.1:${port}/tools`, {
-      headers: { authorization: `Bearer ${token}` },
-    })
-      .then((response) => response.ok)
-      .catch(() => false);
-  }, 60_000);
-  await client.connect(transport);
+  if (app)
+    await until(async () => {
+      if (launchError) throw launchError;
+      if (app.exitCode !== null) throw new Error(`Aster exited with ${app.exitCode}: ${appLog}`);
+      return fetch(`http://127.0.0.1:${port}/tools`, {
+        headers: {},
+      })
+        .then((response) => response.ok)
+        .catch(() => false);
+    }, 60_000);
+  await client.connect(transport, { timeout: 90_000 });
+  report.adapterPid = transport.pid;
   const tools = await client.listTools();
   assert(tools.tools.some((tool) => tool.name === "compare_reference"));
   const context = await call("get_editor_context");
@@ -134,7 +131,7 @@ try {
     layerIds: [layerId],
   });
   assert.equal(cropped.frames[0].width, 160);
-  const ffmpeg = join(root, "release", "win-unpacked", "resources", "bin", "ffmpeg.exe");
+  const ffmpeg = join(dirname(binary), "resources", "bin", "ffmpeg.exe");
   const reference = join(output, "reference.mp4");
   const generated = spawnSync(
     ffmpeg,
@@ -303,7 +300,7 @@ try {
   process.exitCode = 1;
 } finally {
   await client.close().catch(() => undefined);
-  if (app.pid && app.exitCode === null) {
+  if (app?.pid && app.exitCode === null) {
     if (process.platform === "win32")
       spawnSync("taskkill", ["/PID", String(app.pid), "/T", "/F"], {
         windowsHide: true,

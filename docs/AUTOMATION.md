@@ -7,64 +7,75 @@ services. No model credentials are needed to operate these tools.
 
 ## Start a local connection
 
-Open **Preferences → MCP** in the desktop application and enable MCP. The switch applies immediately
-and its state persists across restarts. The section also provides a port field with an **Apply port**
-action, token generation/rotation, token copy, and **Copy client configuration**. Copying configuration
-includes the correct executable and adapter paths for the current installation. The editor must remain
-running. Rotating the token disconnects existing clients; copy the new configuration into the client.
-Closing Preferences does not undo MCP changes; these controls apply independently of other preferences.
+Aster provides two local modes. Neither requires a token or model credentials.
 
-The status shows whether the listener is running, the number of retained client sessions, and whether
-a tool call is active. A port conflict leaves the previous working listener in place. Startup errors
-are shown here without preventing the editor from opening.
+### Connect to the interactive editor
 
-Settings are stored in `automation.json` in the application profile. Tokens use Electron `safeStorage`
-encryption backed by the operating system and are never sent to renderer state or included in diagnostic
-preferences. Secure credential storage must be available; there is no plaintext storage fallback.
-The initial state is disabled, and enabling MCP generates a token automatically.
+Open **Preferences → MCP**, enable MCP, and choose **Copy client configuration**.
+The switch applies immediately and persists across restarts. The port defaults to `48765`;
+**Apply port** changes it. A failed change restores the previous working listener.
+Keep the editor running while using its connection.
 
-For environment-managed sessions, set `ASTER_AUTOMATION_TOKEN` before starting Aster.
-Environment settings take precedence and the UI controls become read-only;
-configuration and token copy remain available. Set a random
-secret of at least 32 characters and optionally `ASTER_AUTOMATION_PORT` (default `48765`). Start Aster
-with those environment variables. Close an existing instance first, or use a separate
-`--user-data-dir` for an isolated project session.
-
-For a source checkout, build once with `pnpm build`, start the desktop application with `pnpm dev`,
-and configure the MCP client to launch:
+For an installed package, the client launches:
 
 ```json
 {
   "mcpServers": {
     "aster": {
-      "command": "node",
-      "args": ["E:/code/Aster/dist-electron/electron/automation-mcp.js"],
-      "env": {
-        "ASTER_AUTOMATION_TOKEN": "<same secret used to start Aster>",
-        "ASTER_AUTOMATION_PORT": "48765"
-      }
+      "command": "C:/path/to/Aster/resources/bin/aster-mcp.exe",
+      "args": []
     }
   }
 }
 ```
 
-Adjust paths for your checkout. `pnpm mcp` runs the same adapter. The desktop application must be
-running; starting the adapter alone does not start the editor.
+If the port differs, set `ASTER_AUTOMATION_PORT` in this server's environment.
+For a source checkout, run `pnpm build`, use `pnpm mcp` to connect through the Node stdio adapter; `pnpm mcp --background`
+starts an isolated editor from the production assets.
+The interactive development editor starts with `pnpm dev`.
 
-For an installed Windows package, a separate Node installation is unnecessary. Use the installed
-`Aster.exe` as the MCP command, pass
-`<installation>/resources/app.asar/dist-electron/electron/automation-mcp.js` as its only argument,
-and add `ELECTRON_RUN_AS_NODE=1` to **the adapter's environment only**. Do not set that variable for
-the interactive Aster application. FFmpeg and FFprobe are bundled in `resources/bin`.
+### Start an independent background editor
 
-The adapter uses the official MCP SDK and its
-[stdio transport](https://modelcontextprotocol.io/specification/2025-11-25/basic/transports#stdio).
-Only protocol messages are written to adapter stdout; errors go to stderr. The adapter communicates
-with a private authenticated HTTP bridge bound exclusively to `127.0.0.1`. This bridge is not an
-MCP HTTP endpoint. It rejects browser Origin headers and unexpected Host headers. Never place the
-token in project files, source control, logs or a public endpoint. Enabling this local session grants
-holders of the token access to the listed editing and local media/file tools; it does not grant
-arbitrary shell, network or plugin installation access.
+Add `--background` to the launcher arguments. The client launches a hidden, GPU-capable editor on demand,
+using a temporary profile and an automatically assigned loopback port. No editor window needs
+to be open and no MCP preference needs to be enabled first. The same query, staged editing,
+preview, media, saving and export tools are available. Use `open_project` to load a native
+project directory, and explicitly save changes and wait for exports before disconnecting.
+This session never takes over an existing interactive document. Closing the MCP connection
+stops its owned background editor and removes the temporary profile.
+
+```json
+{
+  "mcpServers": {
+    "aster-background": {
+      "command": "C:/path/to/Aster/resources/bin/aster-mcp.exe",
+      "args": ["--background"]
+    }
+  }
+}
+```
+
+Background startup can take up to 60 seconds; use a client startup timeout of 90 seconds
+and a tool timeout of 130 seconds. GPU work reuses the Electron/WebGPU renderer in a hidden
+window, rather than a separate CPU renderer. On Linux a working graphical/GPU environment is
+still required. Sessions start from the default document and do not automatically save on exit.
+
+### Local transport and preferences
+
+The public MCP transport is stdio. Its internal HTTP bridge binds exclusively to `127.0.0.1`;
+it is not an MCP HTTP endpoint. Requests with browser Origin/Fetch Metadata headers, unexpected
+Host headers, or non-JSON POST content types are rejected. The opt-in listener trusts local
+non-browser processes; there is no token authentication. It retains bounded requests, schema
+validation, revision checks, explicit commits, cancellation and destination overwrite checks.
+
+Settings live in `automation.json` in the application profile. Version 2 stores only enabled
+state and port. Version 1 preferences remain readable without decrypting their obsolete token;
+the next settings save writes version 2. For managed interactive sessions, set
+`ASTER_AUTOMATION_ENABLED=1` (or `0` to disable) and optionally `ASTER_AUTOMATION_PORT` before
+starting Aster. Environment-managed settings are read-only in Preferences.
+The former `ASTER_AUTOMATION_TOKEN` is no longer used. `ELECTRON_RUN_AS_NODE` is unnecessary
+in client configuration: the native launcher runs the bundled adapter under Electron's Node mode.
+The direct adapter script can also run under Node.
 
 ## Tools
 
@@ -154,7 +165,7 @@ Export captures one immutable project/media snapshot. Export destinations must n
 ## Validation
 
 Run repository checks through lefthook. `electron/reference-media.test.ts` exercises real reference
-decoding when FFmpeg/FFprobe are installed; transport tests check authentication, schemas and
+decoding when FFmpeg/FFprobe are installed; transport tests check the local request boundary, schemas and
 cancellation, and application tests check atomic commits and stale revision protection.
 
 For the packaged Windows application:
@@ -162,6 +173,7 @@ For the packaged Windows application:
 ```powershell
 pnpm artifact:build --dir --win --x64 --publish never
 node scripts/automation-smoke.mjs
+node scripts/automation-smoke.mjs release/win-unpacked/Aster.exe --background
 ```
 
 To include system-font enumeration, embedded font import, partial style updates and font export in
@@ -174,13 +186,3 @@ cropped frames, compares a generated audiovisual reference, imports it, saves a 
 an MP4 with audio. Reports and sampled PNGs remain under `artifacts/automation-smoke-<timestamp>`.
 The test terminates only the application process tree it launched.
 
-The initial 0.2.1 Windows x64 artifact passed this packaged MCP workflow on 2026-09-07, including a
-320 × 180, ten-frame H.264 export with a one-second AAC track. The exported frame was also inspected
-visually. Repository validation passed Biome, TypeScript, 1,305 frontend tests (one skipped), five
-packaging checks, Rust formatting, Clippy with warnings denied, and workspace Rust tests. This is a
-functional smoke check, not a throughput benchmark or a guarantee of visual reconstruction quality.
-
-The settings update passed 1,311 frontend tests (one skipped) and all five packaging checks. Packaged
-Windows UI validation covered enabling MCP, applying a port, copying client configuration, encrypted
-persistence, restoring the listener after a normal application restart, and disabling it. The updated
-artifact also passed the complete audiovisual MCP smoke workflow again.
