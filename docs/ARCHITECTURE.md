@@ -207,7 +207,10 @@ layer's Local axes rotate with its evaluated transform while World axes remain c
 Axis and view-plane drags write the animated Position property at the current time. Locked layers
 remain selectable for inspection, but the overlay exposes no draggable surface or axis handles.
 
-Layer effects reuse one pair of full-resolution HDR transient textures across the frame. Per-layer
+Layer effects and backdrop-dependent blend modes reuse one pair of full-resolution HDR transient
+textures across the frame. After effects, the input surface becomes a backdrop snapshot for
+alpha-correct blending; no third color surface or CPU readback is required. See
+[layer effects and blending options](LAYER_STYLES.md) for kernel bounds and mode semantics. Per-layer
 uniform and operation buffers remain distinct so queue uploads cannot race command-buffer execution;
 the large textures do not scale with the number of effected layers.
 

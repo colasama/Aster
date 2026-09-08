@@ -1262,7 +1262,23 @@
         "properties": {
           "type": { "const": "setBlendMode" },
           "layerId": { "$ref": "#/$defs/id" },
-          "blendMode": { "enum": ["normal", "add", "multiply", "screen", "overlay"] }
+          "blendMode": {
+            "enum": [
+              "normal",
+              "add",
+              "multiply",
+              "screen",
+              "overlay",
+              "darken",
+              "lighten",
+              "color-burn",
+              "color-dodge",
+              "soft-light",
+              "hard-light",
+              "difference",
+              "exclusion"
+            ]
+          }
         }
       }
     },

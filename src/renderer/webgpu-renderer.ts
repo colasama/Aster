@@ -34,6 +34,7 @@ import {
 import { buildSceneGeometry, FLOATS_PER_VERTEX, type GeometryBatch } from "./geometry";
 import { planGpuMemory } from "./gpu-memory-budget";
 import { GpuTimestampProfiler } from "./gpu-timestamp-profiler";
+import { needsLayerIsolation } from "./layer-composite";
 import { LayerEffectRenderer } from "./layer-effects";
 import { createLutSampler, createLutTexture } from "./lut-texture";
 import { MaterialTextureRenderer } from "./material-textures";
@@ -851,7 +852,7 @@ export class WebGpuRenderer {
       if (item.kind === "generator") {
         const generator = generatorByInstance.get(item.scene.instanceId);
         if (!generator || drawnGenerators.has(generator.instanceId)) continue;
-        const hasEffects = item.scene.layer.effects.some((effect) => effect.enabled);
+        const hasEffects = needsLayerIsolation(item.scene.layer);
         if (hasEffects) {
           const fusion = analyzeEffectFusion(item.scene.layer.effects);
           scenePass?.end();
@@ -860,12 +861,12 @@ export class WebGpuRenderer {
           effectLayerCount += 1;
           effectOperationCount += this.#layerEffects.encode(
             encoder,
-            sceneView,
+            sceneTexture,
             composition,
             item.scene.layer,
             item.scene.instanceId,
             time,
-            (layerPass) => this.#sceneGenerators.draw(layerPass, generator),
+            (layerPass) => this.#sceneGenerators.draw(layerPass, generator, "normal"),
           );
           fusedEffectCount += fusion.fusedEffectCount;
           fusionGroupCount += fusion.fusedGroupCount;
@@ -892,7 +893,7 @@ export class WebGpuRenderer {
         continue;
       }
       const { batch } = item;
-      const hasEffects = batch.layer.effects.some((effect) => effect.enabled);
+      const hasEffects = needsLayerIsolation(batch.layer);
       if (hasEffects) {
         const fusion = analyzeEffectFusion(batch.layer.effects);
         fusedEffectCount += fusion.fusedEffectCount;
@@ -904,7 +905,7 @@ export class WebGpuRenderer {
         effectLayerCount += 1;
         effectOperationCount += this.#layerEffects.encode(
           encoder,
-          sceneView,
+          sceneTexture,
           composition,
           batch.layer,
           batch.instanceId,

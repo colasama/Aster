@@ -8,7 +8,7 @@ import {
   type SceneGeneratorDefinition,
 } from "../core/scene-generator-registry";
 import type { BlendMode, Composition, SceneGeneratorInstance } from "../core/types";
-import { gpuBlendState } from "./blend-state";
+import { FIXED_BLEND_MODES, gpuBlendState } from "./blend-state";
 import type { SceneCamera } from "./geometry";
 import {
   AUXILIARY_BUFFER_DESCRIPTORS,
@@ -257,9 +257,13 @@ export class SceneGeneratorHost {
     }
   }
 
-  draw(pass: GPURenderPassEncoder, generator: PreparedSceneGenerator): void {
+  draw(
+    pass: GPURenderPassEncoder,
+    generator: PreparedSceneGenerator,
+    blendMode = generator.blendMode,
+  ): void {
     const pipeline =
-      generator.variant.pipelines.get(generator.blendMode) ??
+      generator.variant.pipelines.get(blendMode) ??
       generator.variant.pipelines.values().next().value;
     if (!pipeline) return;
     pass.setPipeline(pipeline);
@@ -355,9 +359,7 @@ export class SceneGeneratorHost {
     );
     const variants = definition.graph.render_variants.map((variant) => {
       const blendModes: readonly BlendMode[] =
-        variant.blend === "layer"
-          ? ["normal", "add", "multiply", "screen", "overlay"]
-          : [variant.blend];
+        variant.blend === "layer" ? FIXED_BLEND_MODES : [variant.blend];
       const pipelines = new Map<BlendMode, GPURenderPipeline>();
       for (const blendMode of blendModes) {
         pipelines.set(

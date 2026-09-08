@@ -7,7 +7,6 @@ import {
   EyeOff,
   LockKeyhole,
   LockOpen,
-  Plus,
   RotateCw,
   Sparkles,
   Timer,
@@ -19,8 +18,7 @@ import { activeComposition } from "../core/project";
 import { propertyValueOperationAtTime } from "../core/property-edit-operation";
 import { solidRenderSize } from "../core/solid-layer";
 import { evaluateAnimatable } from "../core/timeline";
-import { type BlendMode, createId } from "../core/types";
-import { createEffect } from "../effects/registry";
+import { createId } from "../core/types";
 import type { PlainMessageKey } from "../i18n/core";
 import { useI18n } from "../i18n/react";
 import { useEditor } from "../state/editor-store";
@@ -30,6 +28,7 @@ import { ClonerControls } from "./ClonerControls";
 import { useContextMenuTrigger } from "./context-menu/use-context-menu-trigger";
 import { EffectEditor } from "./EffectEditor";
 import { InspectorPropertyContextMenu } from "./InspectorPropertyContextMenu";
+import { LayerBlendOptions } from "./LayerBlendOptions";
 import { MotionBlurControls } from "./MotionBlurControls";
 import { type NumericEditPhase, NumericInput } from "./NumericInput";
 import { Panel, PanelTabs } from "./Panel";
@@ -386,19 +385,16 @@ export function Inspector() {
               )}
             </div>
           )}
+          {!isAdjustment && <LayerBlendOptions layer={layer} />}
           <MotionBlurControls composition={composition} layer={layer} />
           <fieldset className="inspector-section effects-section" disabled={layer.locked}>
             <div className="section-title static">
               <ChevronDown size={13} /> {t("inspector.effects.title")} <span />
-              <button onClick={() => addDefaultEffect(layer.id, dispatch)} type="button">
-                <Plus size={13} />
-              </button>
             </div>
             {layer.effects.length === 0 && (
               <div className="empty-effects">
                 <Sparkles size={18} />
                 <span>{t("inspector.effects.empty")}</span>
-                <small>{t("inspector.effects.emptyHint")}</small>
               </div>
             )}
             {layer.effects.map((effect) => (
@@ -470,30 +466,6 @@ export function Inspector() {
               </div>
               {compositingOpen && (
                 <fieldset className="compositing-grid" disabled={layer.locked}>
-                  <label>
-                    {t("inspector.compositing.blendMode")}
-                    <select
-                      onChange={(event) =>
-                        dispatch({
-                          type: "operation",
-                          operations: [
-                            {
-                              type: "setBlendMode",
-                              layerId: layer.id,
-                              blendMode: event.target.value as BlendMode,
-                            },
-                          ],
-                        })
-                      }
-                      value={layer.blendMode}
-                    >
-                      <option value="normal">{t("inspector.blend.normal")}</option>
-                      <option value="add">{t("inspector.blend.add")}</option>
-                      <option value="multiply">{t("inspector.blend.multiply")}</option>
-                      <option value="screen">{t("inspector.blend.screen")}</option>
-                      <option value="overlay">{t("inspector.blend.overlay")}</option>
-                    </select>
-                  </label>
                   <label>
                     {t("inspector.compositing.parent")}
                     <select
@@ -721,19 +693,6 @@ export function Inspector() {
       )}
     </Panel>
   );
-}
-
-function addDefaultEffect(layerId: string, dispatch: ReturnType<typeof useEditor>["dispatch"]) {
-  dispatch({
-    type: "operation",
-    operations: [
-      {
-        type: "addEffect",
-        layerId,
-        effect: createEffect("glow"),
-      },
-    ],
-  });
 }
 
 function setLayerTiming(

@@ -632,6 +632,14 @@ function blendPipelines() {
     multiply: pipeline,
     screen: pipeline,
     overlay: pipeline,
+    darken: pipeline,
+    lighten: pipeline,
+    "color-burn": pipeline,
+    "color-dodge": pipeline,
+    "soft-light": pipeline,
+    "hard-light": pipeline,
+    difference: pipeline,
+    exclusion: pipeline,
   };
 }
 

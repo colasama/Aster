@@ -42,6 +42,7 @@ import {
   snapTimelineTime,
 } from "../core/timeline-editing";
 import type { Layer } from "../core/types";
+import { addLayerStyleOperations, canAddLayerStyle } from "../effects/layer-style-actions";
 import { useI18n } from "../i18n/react";
 import { useEditor } from "../state/editor-store";
 import { isEditableShortcutTarget, isEditorShortcutBlocked } from "../ui/keyboard-shortcuts";
@@ -902,6 +903,11 @@ export function Timeline({ mode }: { mode?: "timeline" | "graph" } = {}) {
       )}
       {contextMenu.point && (
         <TimelineContextMenu
+          canAddLayerStyle={canAddLayerStyle(contextLayers)}
+          addLayerStyle={(type) => {
+            const operations = addLayerStyleOperations(contextLayers, type);
+            if (operations.length) dispatch({ type: "operation", operations });
+          }}
           canDeleteLayers={canDeleteContextLayers}
           canEditKeyframes={canEditSelectedKeyframes}
           canInterpolate={canInterpolateSelectedKeyframes}

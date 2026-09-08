@@ -4,6 +4,7 @@ import {
   particleGeneratorRenderShader,
 } from "./bundled-particle-generator";
 import { depthEffectsShader } from "./depth-effects";
+import { layerCompositeShader } from "./layer-composite";
 import { motionBlurShader } from "./motion-blur-renderer";
 import {
   imageShader,
@@ -24,6 +25,7 @@ export async function validateShaderSources(device: GPUDevice): Promise<void> {
     ["scene generator ABI particle render", particleGeneratorRenderShader],
     ["shadow", shadowShader],
     ["post process", postProcessShader],
+    ["layer blend options", layerCompositeShader],
     ["auxiliary surface MRT", auxiliarySurfaceShader],
     ["depth effects", depthEffectsShader],
     ["time-addressed vector motion blur", motionBlurShader],

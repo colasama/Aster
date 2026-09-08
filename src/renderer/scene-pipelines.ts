@@ -1,9 +1,8 @@
 import type { BlendMode } from "../core/types";
-import { gpuBlendState } from "./blend-state";
+import { BLEND_MODES } from "../core/types";
+import { FIXED_BLEND_MODES, gpuBlendState } from "./blend-state";
 import { FLOATS_PER_VERTEX } from "./geometry";
 import { imageShader, materialShapeShader, shadowShader, shapeShader } from "./shaders";
-
-const BLEND_MODES: BlendMode[] = ["normal", "add", "multiply", "screen", "overlay"];
 
 export const SHAPE_VERTEX_BUFFERS: GPUVertexBufferLayout[] = [
   {
@@ -172,10 +171,13 @@ function createBlendPipelines(
   label: string,
   descriptor: (blendMode: BlendMode) => GPURenderPipelineDescriptor,
 ): Record<BlendMode, GPURenderPipeline> {
-  return Object.fromEntries(
-    BLEND_MODES.map((blendMode) => [
+  const pipelines = Object.fromEntries(
+    FIXED_BLEND_MODES.map((blendMode) => [
       blendMode,
       device.createRenderPipeline({ ...descriptor(blendMode), label: `${label} · ${blendMode}` }),
     ]),
+  );
+  return Object.fromEntries(
+    BLEND_MODES.map((mode) => [mode, pipelines[mode] ?? pipelines.normal]),
   ) as Record<BlendMode, GPURenderPipeline>;
 }

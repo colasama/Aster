@@ -29,7 +29,12 @@ substituting an easier workload or using unmatched timing sources in one perform
 ## Suites
 
 - 1080p and 4K 20-layer 2D composite.
-- Large-radius blur, glow, and mixed effect chains.
+- Large-radius blur, glow, and mixed effect chains. For alpha-based layer styles,
+  compare thin text at 1080p and 4K across radius 4/24/128, record median/p95 GPU
+  time and texture allocation, and check transparent margins and glyph coverage.
+  Benchmark normal, multiply and overlay separately: backdrop-dependent modes add
+  a GPU copy/composite while reusing the effect textures. Correctness checks and
+  bounded-kernel limitations are documented in [LAYER_STYLES.md](LAYER_STYLES.md).
 - 100,000, 500,000, and 1,000,000 instances through the bundled particle Scene Generator plugin.
 - 3D scene with PBR lights and auxiliary buffers.
 - Hardware decode, seek, frame upload, full-resolution export, and sustained PNG sequence export.

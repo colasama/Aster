@@ -2,8 +2,10 @@ import { sourceForLayer, sourceLocator } from "../core/footage-source";
 import { evaluateLayerSourceTime } from "../core/layer-time";
 import { type FlattenedSceneLayer, flattenSceneLayers } from "../core/scene-evaluation";
 import type { BlendMode, Composition, Project } from "../core/types";
-import { gpuBlendState } from "./blend-state";
+import { BLEND_MODES } from "../core/types";
+import { FIXED_BLEND_MODES, gpuBlendState } from "./blend-state";
 import { buildSceneGeometry, FLOATS_PER_VERTEX, type GeometryBatch } from "./geometry";
+import { needsLayerIsolation } from "./layer-composite";
 import { LayerEffectRenderer } from "./layer-effects";
 import type { MediaTextureCache } from "./media-texture-cache";
 import {
@@ -229,8 +231,7 @@ export class PrecompositionSurfaceRenderer {
       return;
     }
     const hasEffects = childLayers.some(
-      (child) =>
-        child.layer.kind === "adjustment" || child.layer.effects.some((effect) => effect.enabled),
+      (child) => child.layer.kind === "adjustment" || needsLayerIsolation(child.layer),
     );
     const plan = planPrecompositionSurface(
       {
@@ -530,18 +531,18 @@ export class PrecompositionSurfaceRenderer {
       if (item.kind === "generator") {
         const generator = generatorByInstance.get(item.scene.instanceId);
         if (!generator) continue;
-        if (item.scene.layer.effects.some((effect) => effect.enabled)) {
+        if (needsLayerIsolation(item.scene.layer)) {
           pass?.end();
           pass = undefined;
           activeEffects.add(item.scene.instanceId);
           entry.effects?.encode(
             encoder,
-            entry.color.createView(),
+            entry.color,
             composition,
             item.scene.layer,
             item.scene.instanceId,
             time,
-            (layerPass) => this.#sceneGenerators?.draw(layerPass, generator),
+            (layerPass) => this.#sceneGenerators?.draw(layerPass, generator, "normal"),
           );
           continue;
         }
@@ -551,7 +552,7 @@ export class PrecompositionSurfaceRenderer {
         continue;
       }
       if (item.kind === "adjustment") {
-        if (!item.scene.layer.effects.some((effect) => effect.enabled)) continue;
+        if (!needsLayerIsolation(item.scene.layer)) continue;
         pass?.end();
         pass = undefined;
         const count = entry.effects?.encodeAdjustment(
@@ -566,18 +567,18 @@ export class PrecompositionSurfaceRenderer {
         continue;
       }
       const { batch } = item;
-      if (batch.layer.effects.some((effect) => effect.enabled)) {
+      if (needsLayerIsolation(batch.layer)) {
         pass?.end();
         pass = undefined;
         activeEffects.add(batch.instanceId);
         entry.effects?.encode(
           encoder,
-          entry.color.createView(),
+          entry.color,
           composition,
           batch.layer,
           batch.instanceId,
           time,
-          (layerPass) => this.#drawBatch(layerPass, entry, batch),
+          (layerPass) => this.#drawBatch(layerPass, entry, batch, "normal"),
         );
         continue;
       }
@@ -635,12 +636,17 @@ export class PrecompositionSurfaceRenderer {
     });
   }
 
-  #drawBatch(pass: GPURenderPassEncoder, entry: SurfaceEntry, batch: GeometryBatch): void {
+  #drawBatch(
+    pass: GPURenderPassEncoder,
+    entry: SurfaceEntry,
+    batch: GeometryBatch,
+    blendMode = batch.layer.blendMode,
+  ): void {
     pass.setVertexBuffer(0, entry.vertexBuffer);
     const surface =
       batch.layer.kind === "precomposition" ? this.#bindings.get(batch.instanceId) : undefined;
     if (surface) {
-      pass.setPipeline(this.#surfacePipelines[batch.layer.blendMode]);
+      pass.setPipeline(this.#surfacePipelines[blendMode]);
       pass.setBindGroup(0, surface);
     } else {
       const media =
@@ -649,10 +655,10 @@ export class PrecompositionSurfaceRenderer {
           : undefined;
       if (batch.layer.kind === "precomposition" && !media) return;
       if (media) {
-        pass.setPipeline(this.#imagePipelines[batch.layer.blendMode]);
+        pass.setPipeline(this.#imagePipelines[blendMode]);
         pass.setBindGroup(0, media);
       } else {
-        pass.setPipeline(this.#shapePipelines[batch.layer.blendMode]);
+        pass.setPipeline(this.#shapePipelines[blendMode]);
         pass.setBindGroup(0, entry.lightingBindGroup);
       }
     }
@@ -699,8 +705,8 @@ function createSurfacePipelines(
     code: precompositionSurfaceShader,
   });
   const layout = device.createPipelineLayout({ bindGroupLayouts: [mediaLayout] });
-  return Object.fromEntries(
-    (["normal", "add", "multiply", "screen", "overlay"] as const).map((blendMode) => [
+  const pipelines = Object.fromEntries(
+    FIXED_BLEND_MODES.map((blendMode) => [
       blendMode,
       device.createRenderPipeline({
         label: `Precomposition 3D surface · ${blendMode}`,
@@ -719,6 +725,9 @@ function createSurfacePipelines(
         },
       }),
     ]),
+  );
+  return Object.fromEntries(
+    BLEND_MODES.map((mode) => [mode, pipelines[mode] ?? pipelines.normal]),
   ) as Record<BlendMode, GPURenderPipeline>;
 }
 

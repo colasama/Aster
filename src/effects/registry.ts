@@ -706,6 +706,7 @@ export const EFFECT_REGISTRY: EffectDefinition[] = [
       angle("direction", "Direction", 135),
       number("distance", "Distance", 24, 0, 2000, 1, "px"),
       number("softness", "Softness", 18, 0, 500, 0.5, "px"),
+      percent("spread", "Spread", 0),
     ],
   },
   {

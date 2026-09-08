@@ -1260,3 +1260,8 @@ fieldset.effects-section {
   cursor: default;
   opacity: 0.45;
 }
+
+.layer-blend-options .compositing-grid {
+  grid-template-columns: minmax(0, 1fr) 78px 24px;
+  align-items: end;
+}

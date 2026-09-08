@@ -32,6 +32,7 @@ import {
   aeAdvancedTransitionPixelShaderCases,
   aeAdvancedTransitionWarpShaderCases,
 } from "./ae-transition-shader-cases";
+import { layerStyleShaderFunctions } from "./layer-style-shader";
 
 export {
   imageShader,
@@ -187,6 +188,8 @@ fn effect_mask_value(effect: EffectOp, uv: vec2f, resolution: vec2f) -> f32 {
   mask = select(mask, 1.0 - mask, effect.p0.w > 0.5);
   return mask * effect.p0.z;
 }
+
+${layerStyleShaderFunctions}
 
 fn hue_color(angle: f32) -> vec3f {
   return 0.5 + 0.5 * cos(angle + vec3f(0.0, 4.188790, 2.094395));
@@ -665,17 +668,12 @@ ${aeFramingWarpShaderCases}
         color = mix(color, gradient, effect.p1.x);
       }
       case 45u: {
-        let direction = vec2f(cos(effect.p0.y), sin(effect.p0.y));
-        let shadow_uv = uv - direction * effect.p0.z / resolution;
-        let soft = vec2f(max(effect.p0.w, 0.5)) / resolution;
-        var shadow_alpha = textureSample(hdr_scene, linear_sampler, shadow_uv).a * 0.4;
-        shadow_alpha += textureSample(hdr_scene, linear_sampler, shadow_uv + vec2f(soft.x, 0.0)).a * 0.15;
-        shadow_alpha += textureSample(hdr_scene, linear_sampler, shadow_uv - vec2f(soft.x, 0.0)).a * 0.15;
-        shadow_alpha += textureSample(hdr_scene, linear_sampler, shadow_uv + vec2f(0.0, soft.y)).a * 0.15;
-        shadow_alpha += textureSample(hdr_scene, linear_sampler, shadow_uv - vec2f(0.0, soft.y)).a * 0.15;
-        shadow_alpha *= effect.p0.x;
-        color += effect.header.yzw * shadow_alpha * (1.0 - alpha);
-        alpha = max(alpha, shadow_alpha);
+        let direction = vec2f(cos(effect.p0.y),sin(effect.p0.y));
+        let shadow_uv = uv-direction*effect.p0.z/resolution;
+        let field = style_alpha_field(shadow_uv,effect.p0.w,effect.p1.x,resolution);
+        let result = style_under(color,alpha,effect.header.yzw,field*effect.p0.x);
+        color = result.rgb;
+        alpha = result.a;
       }
       case 46u: {
         let level = clamp(luminance(color), 0.0, 1.0);

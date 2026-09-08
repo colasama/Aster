@@ -1,3 +1,4 @@
+import { LAYER_STYLE_TYPES, type LayerStyleType } from "../effects/layer-style-actions";
 import type { Translate } from "../i18n/core";
 import { useI18n } from "../i18n/react";
 import { ContextMenu } from "./context-menu/ContextMenu";
@@ -16,6 +17,8 @@ export type TimelineCreateKind =
   | "generator";
 
 export interface TimelineContextMenuActions {
+  canAddLayerStyle: boolean;
+  addLayerStyle(type: LayerStyleType): void;
   canDeleteLayers: boolean;
   canEditKeyframes: boolean;
   canInterpolate: boolean;
@@ -152,6 +155,19 @@ export function timelineContextMenuItems(
         onSelect: actions.selectChildren,
       },
       { id: "switches-separator", kind: "separator" },
+      {
+        id: "layer-styles",
+        kind: "submenu",
+        label: t("inspector.effects.title"),
+        disabled: !actions.canAddLayerStyle || actions.locked,
+        disabledReason: actions.locked ? locked : t("timeline.menu.layerStyleUnavailable"),
+        items: LAYER_STYLE_TYPES.map((type) => ({
+          id: `add-${type}`,
+          kind: "command",
+          label: t(`inspector.style.${type}`),
+          onSelect: () => actions.addLayerStyle(type),
+        })),
+      },
       {
         checked: actions.is3d,
         disabled: actions.isAdjustment || actions.locked,

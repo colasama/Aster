@@ -63,7 +63,22 @@ export const LAYER_KINDS = [
 export function isLayerKind(value: unknown): value is LayerKind {
   return typeof value === "string" && (LAYER_KINDS as readonly string[]).includes(value);
 }
-export type BlendMode = "normal" | "add" | "multiply" | "screen" | "overlay";
+export const BLEND_MODES = [
+  "normal",
+  "add",
+  "multiply",
+  "screen",
+  "overlay",
+  "darken",
+  "lighten",
+  "color-burn",
+  "color-dodge",
+  "soft-light",
+  "hard-light",
+  "difference",
+  "exclusion",
+] as const;
+export type BlendMode = (typeof BLEND_MODES)[number];
 
 export interface Lut3dResource {
   kind: "lut3d";

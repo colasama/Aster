@@ -6,6 +6,7 @@ import {
   FLOATS_PER_EFFECT_OPERATION,
   MAX_EFFECT_OPERATIONS,
 } from "./effect-program";
+import { LayerCompositor, needsBackdropBlend } from "./layer-composite";
 import { createLutSampler, createLutTexture } from "./lut-texture";
 import { buildPostProcessUniforms } from "./post-process";
 import { postProcessShader, textureCompositeShader } from "./shaders";
@@ -28,7 +29,10 @@ export class LayerEffectRenderer {
   readonly #postLayout: GPUBindGroupLayout;
   readonly #compositeLayout: GPUBindGroupLayout;
   readonly #effectPipeline: GPURenderPipeline;
-  readonly #compositePipelines: Record<BlendMode, GPURenderPipeline>;
+  readonly #compositePipelines: Partial<Record<BlendMode, GPURenderPipeline>> & {
+    normal: GPURenderPipeline;
+  };
+  readonly #compositor: LayerCompositor;
   readonly #resources = new Map<string, LayerEffectBuffers>();
   #input?: GPUTexture;
   #output?: GPUTexture;
@@ -40,6 +44,7 @@ export class LayerEffectRenderer {
   constructor(device: GPUDevice, format: GPUTextureFormat) {
     this.#device = device;
     this.#format = format;
+    this.#compositor = new LayerCompositor(device, format);
     this.#sampler = device.createSampler({
       label: "Layer effect linear sampler",
       magFilter: "linear",
@@ -101,6 +106,7 @@ export class LayerEffectRenderer {
     this.#depth?.destroy();
     this.#input = this.#createTexture("Per-layer effect input");
     this.#output = this.#createTexture("Per-layer effect output");
+    this.#compositor.resize(this.#output, this.#input);
     this.#depth = this.#device.createTexture({
       label: "Per-layer effect depth",
       size: [this.#width, this.#height],
@@ -125,7 +131,7 @@ export class LayerEffectRenderer {
 
   encode(
     encoder: GPUCommandEncoder,
-    target: GPUTextureView,
+    target: GPUTexture,
     composition: Composition,
     layer: Layer,
     instanceId: string,
@@ -193,11 +199,22 @@ export class LayerEffectRenderer {
     effectPass.draw(3);
     effectPass.end();
 
+    if (needsBackdropBlend(layer.blendMode)) {
+      // Source effects are finished; recycle their input as the backdrop snapshot.
+      encoder.copyTextureToTexture({ texture: target }, { texture: input }, [
+        this.#width,
+        this.#height,
+      ]);
+      this.#compositor.encode(encoder, target, layer.blendMode);
+      return program.count;
+    }
     const compositePass = encoder.beginRenderPass({
       label: `Layer composite · ${layer.name}`,
-      colorAttachments: [{ view: target, loadOp: "load", storeOp: "store" }],
+      colorAttachments: [{ view: target.createView(), loadOp: "load", storeOp: "store" }],
     });
-    compositePass.setPipeline(this.#compositePipelines[layer.blendMode]);
+    compositePass.setPipeline(
+      this.#compositePipelines[layer.blendMode] ?? this.#compositePipelines.normal,
+    );
     compositePass.setBindGroup(0, compositeBindGroup);
     compositePass.draw(3);
     compositePass.end();

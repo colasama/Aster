@@ -464,6 +464,7 @@ function compileEffect(
         degrees(value("direction", 135)),
         value("distance", 24),
         value("softness", 18),
+        value("spread", 0) / 100,
       ]);
       break;
     case "tritone":

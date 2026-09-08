@@ -1,5 +1,9 @@
 import type { BlendMode } from "../core/types";
 
+// Advanced modes use the backdrop compositor; their source raster needs only
+// the normal pipeline. Keep generator ABI pipeline variants bounded.
+export const FIXED_BLEND_MODES = ["normal", "add", "multiply", "screen", "overlay"] as const;
+
 const SOURCE_OVER_ALPHA: GPUBlendComponent = {
   srcFactor: "one",
   dstFactor: "one-minus-src-alpha",

@@ -1,4 +1,5 @@
 export const timelineEn = {
+  "timeline.menu.layerStyleUnavailable": "Select unlocked visual layers",
   "timeline.tab.timeline": "Timeline",
   "timeline.tab.graph": "Graph Editor",
   "timeline.toggleLayerSwitches": "Toggle layer switches",

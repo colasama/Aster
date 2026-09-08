@@ -4,6 +4,8 @@ import { type TimelineContextMenuActions, timelineContextMenuItems } from "./Tim
 
 function actions(): TimelineContextMenuActions {
   return {
+    canAddLayerStyle: true,
+    addLayerStyle: vi.fn(),
     canDeleteLayers: false,
     canEditKeyframes: false,
     canInterpolate: false,
@@ -48,6 +50,39 @@ function actions(): TimelineContextMenuActions {
 }
 
 describe("timelineContextMenuItems", () => {
+  it("adds layer styles through the layer submenu and excludes empty-space menus", () => {
+    const current = actions();
+    const items = timelineContextMenuItems(current, createTranslator("zh-CN"));
+    const styles = items.find((item) => item.id === "layer-styles");
+    if (styles?.kind !== "submenu") throw new Error("Missing layer styles menu");
+    expect(styles.label).toBe("图层特效");
+    expect(styles.items.map((item) => item.kind === "command" && item.label)).toEqual([
+      "外发光",
+      "阴影",
+      "颜色填充",
+    ]);
+    for (const item of styles.items) if (item.kind === "command") item.onSelect();
+    expect(current.addLayerStyle).toHaveBeenNthCalledWith(1, "outer-glow");
+    expect(current.addLayerStyle).toHaveBeenNthCalledWith(2, "drop-shadow");
+    expect(current.addLayerStyle).toHaveBeenNthCalledWith(3, "color-overlay");
+    expect(
+      timelineContextMenuItems({ ...current, locked: true }, createTranslator("en-US")).find(
+        (item) => item.id === "layer-styles",
+      ),
+    ).toMatchObject({ disabled: true });
+    expect(
+      timelineContextMenuItems(
+        { ...current, canAddLayerStyle: false },
+        createTranslator("en-US"),
+      ).find((item) => item.id === "layer-styles"),
+    ).toMatchObject({ disabled: true });
+    expect(
+      timelineContextMenuItems(
+        { ...current, isLayerTarget: false },
+        createTranslator("en-US"),
+      ).some((item) => item.id === "layer-styles"),
+    ).toBe(false);
+  });
   it("exposes layer operations and marks unavailable model actions with reasons", () => {
     const items = timelineContextMenuItems(actions(), createTranslator("en-US"));
     expect(items.find((item) => item.id === "split")).toMatchObject({

@@ -1,6 +1,6 @@
 import type { SceneGeneratorDefinition } from "../core/scene-generator-registry";
 import type { BlendMode } from "../core/types";
-import { gpuBlendState } from "./blend-state";
+import { FIXED_BLEND_MODES, gpuBlendState } from "./blend-state";
 import { depthEffectsShader } from "./depth-effects";
 import {
   IMAGE_VERTEX_BUFFERS,
@@ -123,7 +123,7 @@ export async function precompileGpuPipelines(
 }
 
 function generatorBlendModes(blend: BlendMode | "layer"): readonly BlendMode[] {
-  return blend === "layer" ? ["normal", "add", "multiply", "screen", "overlay"] : [blend];
+  return blend === "layer" ? FIXED_BLEND_MODES : [blend];
 }
 
 function generatorDepthState(depth: "none" | "read" | "read_write"): GPUDepthStencilState {

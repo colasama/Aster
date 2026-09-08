@@ -1,6 +1,7 @@
 import type { timelineEn } from "./timeline.en";
 
 export const timelineZh = {
+  "timeline.menu.layerStyleUnavailable": "请选择未锁定的可见内容图层",
   "timeline.tab.timeline": "时间轴",
   "timeline.tab.graph": "图表编辑器",
   "timeline.toggleLayerSwitches": "切换图层开关",

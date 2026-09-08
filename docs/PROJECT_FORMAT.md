@@ -65,6 +65,11 @@ host; arbitrary JavaScript is never stored as executable renderer code. Line Anc
 0–100% tracking alignment, and Character Offset/Value require an explicit Preserve Case & Digits or
 Full Unicode Character Range.
 
+Layer blend modes include normal, add, multiply, screen, overlay, darken, lighten,
+color-burn, color-dodge, soft-light, hard-light, difference and exclusion. Layer styles
+reuse effect records; `drop-shadow.spread` is optional and defaults to zero. See
+[layer effects and blending options](LAYER_STYLES.md) for compatibility and automation.
+
 Layers use stable UUIDs, time bounds, kind, blend mode, transform properties, and
 effects. An animatable property is either a static value or an ordered keyframe array. Effects are
 identified by a stable type string and numeric parameter map so missing plugins can remain round-trip

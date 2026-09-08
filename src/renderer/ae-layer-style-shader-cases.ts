@@ -1,21 +1,10 @@
 export const aeLayerStylePixelShaderCases = /* wgsl */ `
       case 132u: {
-        let radius = effect.p0.y;
-        let offset = vec2f(radius) / resolution;
-        var neighbor_alpha = 0.0;
-        neighbor_alpha = max(neighbor_alpha, textureSample(hdr_scene, linear_sampler, uv + vec2f(offset.x, 0.0)).a);
-        neighbor_alpha = max(neighbor_alpha, textureSample(hdr_scene, linear_sampler, uv - vec2f(offset.x, 0.0)).a);
-        neighbor_alpha = max(neighbor_alpha, textureSample(hdr_scene, linear_sampler, uv + vec2f(0.0, offset.y)).a);
-        neighbor_alpha = max(neighbor_alpha, textureSample(hdr_scene, linear_sampler, uv - vec2f(0.0, offset.y)).a);
-        neighbor_alpha = max(neighbor_alpha, textureSample(hdr_scene, linear_sampler, uv + offset * 0.7071068).a);
-        neighbor_alpha = max(neighbor_alpha, textureSample(hdr_scene, linear_sampler, uv - offset * 0.7071068).a);
-        let glow_field = pow(
-          clamp(neighbor_alpha - alpha + effect.p0.z, 0.0, 1.0),
-          max(effect.p0.w, 0.05),
-        );
-        let glow_alpha = glow_field * effect.p0.x;
-        color += effect.header.yzw * glow_alpha * (1.0 - alpha);
-        alpha = max(alpha, glow_alpha);
+        let field = style_alpha_field(uv,effect.p0.y,effect.p0.z,resolution);
+        let glow_alpha = pow(clamp(field,0.0,1.0),max(effect.p0.w,0.05))*effect.p0.x;
+        let result = style_under(color,alpha,effect.header.yzw,glow_alpha);
+        color = result.rgb;
+        alpha = result.a;
       }
       case 133u: {
         let offset = vec2f(effect.p0.y) / resolution;
