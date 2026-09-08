@@ -18,7 +18,8 @@ fn style_alpha_field(uv: vec2f, radius: f32, spread: f32, resolution: vec2f) -> 
       let a = style_alpha_at(uv+p*radius/resolution);
       total += a*weight;
       weight_sum += weight;
-      maximum = max(maximum,a);
+      // Fade expanded coverage at the kernel boundary instead of stamping a box.
+      maximum = max(maximum,a*weight);
     }
   }
   return mix(total/weight_sum, maximum, clamp(spread,0.0,1.0));

@@ -152,6 +152,7 @@ export async function run() {
   const { result, pitch } = await read(styled, 64, 64),
     pixel = (x, y) => [...result.slice(y * pitch + x * 4, y * pitch + x * 4 + 4)];
   if (pixel(0, 0)[3] !== 0) throw Error("Glow contaminates empty background");
+  if (pixel(20, 32)[3] > 24) throw Error("Glow spread leaves a hard kernel boundary");
   if (
     pixel(25, 32)[3] === 0 ||
     pixel(25, 32)

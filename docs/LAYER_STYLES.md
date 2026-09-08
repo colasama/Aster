@@ -18,7 +18,7 @@ Color Fill before glow/shadow to retain their independently selected colors.
 ## Rendering
 
 Outer glow and shadow sample source alpha through a bounded 9-by-9 Gaussian kernel.
-Spread interpolates between the softened field and its neighborhood maximum, so
+Spread interpolates between the softened field and its Gaussian-weighted neighborhood maximum, so
 fully transparent areas remain transparent. Samples outside the composition are
 zero. Shadow direction, offset, softness, spread, color and opacity are adjustable;
 glow adds a falloff range. Style RGB is composited behind the current source using
