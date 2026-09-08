@@ -1,0 +1,67 @@
+import { describe, expect, it } from "vitest";
+import { createLayerForComposition } from "../layers/layer-factory";
+import { createDemoProject } from "../project/project";
+import {
+  buildAiContext,
+  MAX_AI_CONTEXT_BYTES,
+  queryAssets,
+  queryProperties,
+  queryScene,
+  queryTimeline,
+} from "./ai-context";
+import { applyOperation } from "./operations";
+
+describe("bounded AI project queries", () => {
+  it("exposes selection properties, timeline, and evaluated scene state", () => {
+    const project = createDemoProject();
+    const composition = project.compositions[0];
+    const selected = composition.layers[0];
+    const properties = queryProperties(composition, [selected.id], 0.72);
+    expect(properties[0]).toMatchObject({ id: selected.id, kind: selected.kind });
+    expect(properties[0].properties["position.1"].keyframeTimes.length).toBeGreaterThan(0);
+    expect(
+      queryTimeline(composition).find((layer) => layer.id === selected.id)?.keyframeCount,
+    ).toBe(8);
+    expect(queryScene(project, composition, 0.72)[0]).toHaveProperty("instanceId");
+  });
+
+  it("reports asset metadata without exposing embedded bytes or paths", () => {
+    const project = createDemoProject();
+    const composition = project.compositions[0];
+    const image = createLayerForComposition("image", composition);
+    const source = {
+      id: crypto.randomUUID(),
+      kind: "still" as const,
+      name: "plate.png",
+      mimeType: "image/png",
+      contentIdentity: "test:private",
+      dataUrl: "data:image/png;base64,PRIVATE_BYTES",
+      width: 1920,
+      height: 1080,
+      interpretation: { alpha: "straight" as const, colorSpace: "srgb" as const },
+    };
+    image.sourceId = source.id;
+    project.sources.push(source);
+    composition.layers.push(image);
+    const metadata = queryAssets(project).find((asset) => asset.id === source.id);
+    expect(metadata).toMatchObject({ id: source.id, kind: "still" });
+    const copy = createLayerForComposition("image", composition);
+    composition.layers.push(copy);
+    applyOperation(project, { type: "setLayerSource", layerId: copy.id, sourceId: metadata?.id });
+    expect(copy.sourceId).toBe(source.id);
+    const serialized = JSON.stringify(queryAssets(project));
+    expect(serialized).toContain("plate.png");
+    expect(serialized).not.toContain("PRIVATE_BYTES");
+    expect(serialized).not.toContain("dataUrl");
+  });
+
+  it("builds a provider context under the fixed transfer budget", () => {
+    const project = createDemoProject();
+    const selected = project.compositions[0].layers[0].id;
+    const context = buildAiContext(project, [selected], 0.72);
+    expect(context.schemaVersion).toBe(1);
+    expect(new TextEncoder().encode(JSON.stringify(context)).byteLength).toBeLessThan(
+      MAX_AI_CONTEXT_BYTES,
+    );
+  });
+});

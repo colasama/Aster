@@ -5,7 +5,7 @@ import type {
   RenderJobManifest,
   RenderOutputModule,
   RenderQueueItem,
-} from "../src/core/render-queue.js";
+} from "../src/core/rendering/render-queue.js";
 import type { AsterLogger } from "./logger.js";
 import { Mp4ExportManager } from "./mp4-export.js";
 import { prepareAuthorizedRenderHost } from "./render-host-launch-barrier.js";

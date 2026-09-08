@@ -1,12 +1,12 @@
 import { randomUUID } from "node:crypto";
 import { open } from "node:fs/promises";
 import { basename, extname, isAbsolute } from "node:path";
-import { fontWeightRange } from "../src/core/font-weight-range.js";
+import { fontWeightRange } from "../src/core/media/font-weight-range.js";
 import {
   MAX_PROJECT_FONT_BYTES,
   type ProjectFont,
   validateProjectFonts,
-} from "../src/core/project-fonts.js";
+} from "../src/core/project/project-fonts.js";
 
 export async function readProjectFont(
   path: unknown,

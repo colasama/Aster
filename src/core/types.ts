@@ -1,7 +1,7 @@
-import type { ClonerSettings } from "./cloner";
-import type { ProjectFont } from "./project-fonts";
-import type { ShapeGraph } from "./shape-graph";
-import type { TextAnimatorStackSettings } from "./text-animator-stack";
+import type { TextAnimatorStackSettings } from "./animation/text-animator-stack";
+import type { ShapeGraph } from "./layers/shape-graph";
+import type { ProjectFont } from "./project/project-fonts";
+import type { ClonerSettings } from "./scene/cloner";
 
 export type Id = string;
 

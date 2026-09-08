@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createBlankProject } from "../core/project";
+import { createBlankProject } from "../core/project/project";
 import { AsterAgentApplicationService } from "./application-service";
 import type { AgentRenderedPreviewFrame } from "./render-preview";
 

@@ -3,7 +3,7 @@ pre-commit:
   commands:
     frontend:
       glob: "*.{ts,tsx,js,jsx,json,css,html,md,yml,yaml}"
-      run: pnpm exec biome check --no-errors-on-unmatched {staged_files}
+      run: pnpm exec biome check --no-errors-on-unmatched --vcs-enabled=true --vcs-client-kind=git --staged
     rustfmt:
       glob: "*.rs"
       run: cargo fmt --all --check

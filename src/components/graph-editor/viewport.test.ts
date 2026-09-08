@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { createLayerForComposition } from "../../core/layer-factory";
-import { activeComposition, createDemoProject } from "../../core/project";
+import { createLayerForComposition } from "../../core/layers/layer-factory";
+import { activeComposition, createDemoProject } from "../../core/project/project";
 import type { Animatable } from "../../core/types";
 import { collectAnimatedGraphTracks } from "./model";
 import {

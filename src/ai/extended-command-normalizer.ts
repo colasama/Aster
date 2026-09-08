@@ -1,11 +1,11 @@
-import { normalizeCameraSettings } from "../core/camera-settings";
-import type { ClonerSettings } from "../core/cloner";
-import { getProperty, type Operation, type PropertyPath } from "../core/operations";
-import { planPrecomposition } from "../core/precomposition";
-import { activeComposition, createBlankComposition } from "../core/project";
-import type { ProjectFont } from "../core/project-fonts";
-import type { ShapeGraph } from "../core/shape-graph";
-import { resolveTextStyle } from "../core/text-style";
+import { getProperty, type Operation, type PropertyPath } from "../core/editing/operations";
+import type { ShapeGraph } from "../core/layers/shape-graph";
+import { resolveTextStyle } from "../core/layers/text-style";
+import { planPrecomposition } from "../core/project/precomposition";
+import { activeComposition, createBlankComposition } from "../core/project/project";
+import type { ProjectFont } from "../core/project/project-fonts";
+import { normalizeCameraSettings } from "../core/scene/camera-settings";
+import type { ClonerSettings } from "../core/scene/cloner";
 import {
   type Animatable,
   type AudioLayerSettings,

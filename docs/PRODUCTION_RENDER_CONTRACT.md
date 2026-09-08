@@ -120,10 +120,10 @@ view.
 
 Contract coverage lives in:
 
-- `src/renderer/beauty-frame.test.ts`
-- `src/renderer/raw-frame-png.test.ts`
-- `src/core/render-session-guard.test.ts`
-- `src/core/render-export.test.ts`
+- `src/renderer/compositing/beauty-frame.test.ts`
+- `src/renderer/gpu/raw-frame-png.test.ts`
+- `src/core/rendering/render-session-guard.test.ts`
+- `src/core/rendering/render-export.test.ts`
 - `src/render-queue/render-job-parity.test.ts`
 - `src/render-queue/render-media-manifest.test.ts`
 - `electron/render-media-authorization.test.ts`

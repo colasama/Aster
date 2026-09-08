@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
-import { createLayerForComposition } from "../../core/layer-factory";
-import { createBlankProject } from "../../core/project";
-import type { RenderJobManifest } from "../../core/render-queue";
+import { createLayerForComposition } from "../../core/layers/layer-factory";
+import { createBlankProject } from "../../core/project/project";
+import type { RenderJobManifest } from "../../core/rendering/render-queue";
 import type { Project } from "../../core/types";
 import type {
   DesktopRenderHostAssignment,

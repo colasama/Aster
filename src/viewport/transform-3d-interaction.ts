@@ -1,12 +1,12 @@
+import { solidRenderSize } from "../core/layers/solid-layer";
 import {
   projectCameraPoint,
   unprojectCameraPoint,
   type Vector2,
   type Vector3,
-} from "../core/camera-rig";
-import type { EvaluatedCamera } from "../core/camera-settings";
-import { evaluateWorldTransform, flattenSceneLayers } from "../core/scene-evaluation";
-import { solidRenderSize } from "../core/solid-layer";
+} from "../core/scene/camera-rig";
+import type { EvaluatedCamera } from "../core/scene/camera-settings";
+import { evaluateWorldTransform, flattenSceneLayers } from "../core/scene/scene-evaluation";
 import type { Composition, EvaluatedTransform, Layer, Project } from "../core/types";
 import { hitTestViewportTransform } from "./transform-interaction";
 

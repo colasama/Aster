@@ -2,7 +2,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { RenderQueueItem } from "../src/core/render-queue";
+import type { RenderQueueItem } from "../src/core/rendering/render-queue";
 import {
   type RenderHostReport,
   type RenderQueueHostFactory,

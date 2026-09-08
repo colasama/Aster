@@ -4,10 +4,10 @@ import {
   decodeAudibleSources,
   EXPORT_AUDIO_SAMPLE_RATE,
   streamCompositionAudio,
-} from "../../core/audio-export";
-import { validateProjectDocument } from "../../core/project-file";
-import { frameTimeAtIndex } from "../../core/render-export";
-import type { RenderJobManifest } from "../../core/render-queue";
+} from "../../core/audio/audio-export";
+import { validateProjectDocument } from "../../core/project/project-file";
+import { frameTimeAtIndex } from "../../core/rendering/render-export";
+import type { RenderJobManifest } from "../../core/rendering/render-queue";
 import type { Composition, Project } from "../../core/types";
 import type {
   DesktopRenderHostAssignment,
@@ -16,7 +16,7 @@ import type {
   DesktopRenderHostReport,
   Mp4PixelFormat,
 } from "../../desktop/api";
-import type { RawVideoFrame } from "../../renderer/frame-readback";
+import type { RawVideoFrame } from "../../renderer/gpu/frame-readback";
 
 export interface ValidatedRenderHostAssignment {
   assignment: DesktopRenderHostAssignment;

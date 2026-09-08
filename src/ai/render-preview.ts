@@ -1,6 +1,9 @@
-import { type FrameRenderSessionOptions, openFrameRenderSession } from "../core/render-export";
+import {
+  type FrameRenderSessionOptions,
+  openFrameRenderSession,
+} from "../core/rendering/render-export";
 import type { Project } from "../core/types";
-import type { RawFramePixelFormat } from "../renderer/frame-readback";
+import type { RawFramePixelFormat } from "../renderer/gpu/frame-readback";
 import { type PreviewOptions, parsePreviewOptions, previewCropPixels } from "./preview-options";
 
 const AGENT_PREVIEW_MAX_DIMENSION = 384;

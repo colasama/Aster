@@ -8,7 +8,7 @@ import {
   markRenderJobRunning,
   type RenderQueueState,
   updateRenderProgress,
-} from "../src/core/render-queue";
+} from "../src/core/rendering/render-queue";
 import { RenderQueueStore } from "./render-queue-store";
 
 const roots: string[] = [];

@@ -1,0 +1,122 @@
+import { angle, choice, color, number, percent, toggle } from "../../parameter-builders";
+import type { EffectDefinition } from "../../types";
+
+const BLEND_OPTIONS = ["Normal", "Multiply", "Screen", "Overlay"];
+
+export const LAYER_STYLE_EFFECTS: EffectDefinition[] = [
+  {
+    type: "outer-glow",
+    name: "Outer Glow",
+    category: "Layer Styles",
+    description: "Generate a colored glow from the exterior edge of layer alpha.",
+    execution: "multi-pass",
+    parameters: [
+      color("color", "Glow Color", 0x58b9ff),
+      percent("opacity", "Opacity", 75),
+      number("size", "Size", 24, 0.5, 500, 0.5, "px"),
+      percent("spread", "Spread", 12),
+      number("range", "Range", 0.5, 0.05, 2, 0.01),
+    ],
+  },
+  {
+    type: "inner-glow",
+    name: "Inner Glow",
+    category: "Layer Styles",
+    description: "Illuminate the inner alpha boundary with a soft colored falloff.",
+    execution: "multi-pass",
+    parameters: [
+      color("color", "Glow Color", 0xffffff),
+      percent("opacity", "Opacity", 65),
+      number("size", "Size", 18, 0.5, 500, 0.5, "px"),
+      percent("choke", "Choke", 8),
+      toggle("center", "Source: Center", 0),
+    ],
+  },
+  {
+    type: "alpha-stroke",
+    name: "Stroke",
+    category: "Layer Styles",
+    description: "Draw an inside, outside, or centered GPU stroke around source alpha.",
+    execution: "multi-pass",
+    parameters: [
+      color("color", "Stroke Color", 0x6da6ff),
+      percent("opacity", "Opacity", 100),
+      number("size", "Size", 6, 0.5, 256, 0.5, "px"),
+      choice("position", "Position", ["Outside", "Inside", "Center"]),
+    ],
+  },
+  {
+    type: "inner-shadow",
+    name: "Inner Shadow",
+    category: "Layer Styles",
+    description: "Cast a soft directional shadow inside the layer alpha boundary.",
+    execution: "multi-pass",
+    parameters: [
+      color("color", "Shadow Color", 0x08101f),
+      percent("opacity", "Opacity", 65),
+      angle("angle", "Angle", 135),
+      number("distance", "Distance", 12, 0, 500, 0.5, "px"),
+      number("size", "Size", 12, 0.5, 500, 0.5, "px"),
+      percent("choke", "Choke", 0),
+    ],
+  },
+  {
+    type: "bevel-emboss-style",
+    name: "Bevel & Emboss",
+    category: "Layer Styles",
+    description: "Shade the alpha surface with configurable bevel depth and directional lighting.",
+    execution: "multi-pass",
+    parameters: [
+      choice("style", "Style", ["Inner Bevel", "Outer Bevel", "Emboss", "Pillow Emboss"]),
+      percent("depth", "Depth", 100),
+      number("size", "Size", 8, 0.5, 256, 0.5, "px"),
+      angle("angle", "Light Angle", 135),
+      color("highlightColor", "Highlight Color", 0xffffff),
+      percent("highlightOpacity", "Highlight Opacity", 75),
+      color("shadowColor", "Shadow Color", 0x10172b),
+      percent("shadowOpacity", "Shadow Opacity", 65),
+    ],
+  },
+  {
+    type: "satin",
+    name: "Satin",
+    category: "Layer Styles",
+    description: "Add a contour-sensitive satin interference pattern inside alpha.",
+    execution: "fused-pixel",
+    parameters: [
+      color("color", "Satin Color", 0x31568f),
+      percent("opacity", "Opacity", 45),
+      angle("angle", "Angle", 19),
+      number("distance", "Distance", 14, 0, 500, 0.5, "px"),
+      number("size", "Size", 18, 1, 500, 0.5, "px"),
+      toggle("invert", "Invert", 0),
+    ],
+  },
+  {
+    type: "color-overlay",
+    name: "Color Overlay",
+    category: "Layer Styles",
+    description: "Blend a solid color across the layer while preserving source alpha.",
+    execution: "fused-pixel",
+    parameters: [
+      color("color", "Overlay Color", 0x6d72ff),
+      percent("opacity", "Opacity", 65),
+      choice("blendMode", "Blend Mode", BLEND_OPTIONS),
+    ],
+  },
+  {
+    type: "gradient-overlay",
+    name: "Gradient Overlay",
+    category: "Layer Styles",
+    description: "Blend a two-color directional gradient across the layer surface.",
+    execution: "fused-pixel",
+    parameters: [
+      color("startColor", "Start Color", 0x283d8f),
+      color("endColor", "End Color", 0xff78c8),
+      angle("angle", "Angle", 90),
+      percent("scale", "Scale", 100),
+      percent("opacity", "Opacity", 75),
+      choice("blendMode", "Blend Mode", BLEND_OPTIONS),
+    ],
+  },
+];

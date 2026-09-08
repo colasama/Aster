@@ -7,7 +7,7 @@ import { I18nProvider } from "../../i18n/react";
 import { EditorProvider } from "../../state/editor-store";
 import { WorkspaceTimelineSurface } from "./WorkspacePanelSurfaces";
 
-vi.mock("../Timeline", () => ({
+vi.mock("../timeline/Timeline", () => ({
   Timeline: ({ mode }: { mode?: string }) => <div data-mode={mode} />,
 }));
 

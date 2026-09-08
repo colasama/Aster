@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import type { PluginManifest, PluginStatus } from "../core/plugins";
+import type { PluginManifest, PluginStatus } from "../core/plugins/plugins";
 import {
   getPluginEffectDefinitions,
   pluginManifestToEffectDefinition,

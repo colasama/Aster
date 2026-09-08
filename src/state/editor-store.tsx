@@ -10,10 +10,10 @@ import {
   useRef,
   useState,
 } from "react";
-import { recordCommandMarker, recordOperations } from "../core/command-log";
-import { applyOperations, cloneProjectSnapshot, type Operation } from "../core/operations";
-import { activeComposition, createDemoProject } from "../core/project";
-import { storeRecoverySnapshot } from "../core/project-file";
+import { recordCommandMarker, recordOperations } from "../core/editing/command-log";
+import { applyOperations, cloneProjectSnapshot, type Operation } from "../core/editing/operations";
+import { activeComposition, createDemoProject } from "../core/project/project";
+import { storeRecoverySnapshot } from "../core/project/project-file";
 import type { Id, Project, RendererMetrics } from "../core/types";
 import { isDesktopRuntime, migrateLegacyPreferences } from "../desktop/api";
 import { APP_PREFERENCES_CHANGED_EVENT, type UserPreferencePatch } from "../desktop/preferences";

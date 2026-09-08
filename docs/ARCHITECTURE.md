@@ -17,6 +17,37 @@ queue, display-clamped window state, unsaved-document close contract, and local 
 Recovery autosaves remain distinct from primary project saves and are serialized with them so a stale
 autosave cannot win a persistence race. See [Desktop application foundations](DESKTOP_FOUNDATIONS.md).
 
+## Frontend source organization
+
+Source folders follow ownership rather than a flat inventory of features. Tests stay beside the
+code they exercise; consumers import the owning module directly instead of directory-wide barrels.
+
+| Directory | Responsibility |
+| --- | --- |
+| `src/core/project/` | Project documents, compatibility, persistence, and bounded validation |
+| `src/core/editing/` | Operation contracts, application, source guards, and layer property access |
+| `src/core/animation/`, `audio/`, `media/`, `scene/`, `layers/` | Time evaluation and domain-specific models |
+| `src/core/plugins/`, `scheduling/`, `rendering/` | Plugin contracts, CPU workers, and export/queue models |
+| `src/effects/definitions/` | Color, spatial, compositing, generation, and stylization catalogs |
+| `src/effects/presets/`, `browser/`, `resources/` | Presets, browser preferences, and LUT parsing |
+| `src/renderer/effects/programs/`, `shaders/` | Effect compilation and GPU shader cases |
+| `src/renderer/gpu/`, `scene/`, `compositing/`, `media/`, `text/`, `diagnostics/` | GPU services and rendering subsystems |
+| `src/components/` | Feature folders for project, timeline, graph editor, inspector, viewport, settings, and shell |
+| `src/workspace/` | Layout contracts, tree edits, normalization, and workspace persistence |
+
+`project-file.ts` owns persistence orchestration. Its `validation/` modules validate document
+structure, layers, text, sources, effects, and numeric/keyframe values without invoking desktop I/O.
+`operations.ts` applies transactions; operation types, property access, and mutation guards live in
+separate modules. Existing document fields, effect identifiers, and operation names remain stable.
+
+`WebGpuRenderer` coordinates frame evaluation, passes, and lifecycle. `RendererResources` owns
+allocation, resizing helpers, and disposal of its GPU resources and media/surface caches; scene batch
+submission has its own module. Frame buffers remain GPU-resident until an explicit readback.
+`ProjectPanel` owns project organization; `useProjectImports` owns import state and transactions, and
+`EffectBrowser` owns presets and effect preferences. Its state survives tab changes while inactive
+catalog rows remain unmounted. Viewport geometry and benchmark coordination are separate from the
+viewer component. Styles are split by responsibility with their original rule order preserved.
+
 ## Editor interaction boundaries
 
 Application, timeline, and workspace shortcuts share `isEditorShortcutBlocked`: consumed events,

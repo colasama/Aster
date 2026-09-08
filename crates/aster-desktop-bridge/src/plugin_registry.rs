@@ -31,7 +31,7 @@ struct PluginRegistryEntry {
 
 impl PluginRegistryCatalog {
     pub(crate) const DEVELOPMENT_INDEX: &[u8] =
-        include_bytes!("../../../src/core/plugin-registry.development.json");
+        include_bytes!("../../../src/core/plugins/plugin-registry.development.json");
 
     pub(crate) fn from_bytes(
         bytes: &[u8],

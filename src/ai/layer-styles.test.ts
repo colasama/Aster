@@ -1,10 +1,10 @@
 import { expect, it } from "vitest";
-import { createLayerForComposition } from "../core/layer-factory";
-import { createBlankProject } from "../core/project";
-import { serializeProject, validateProjectDocument } from "../core/project-file";
+import { createLayerForComposition } from "../core/layers/layer-factory";
+import { createBlankProject } from "../core/project/project";
+import { serializeProject, validateProjectDocument } from "../core/project/project-file";
 import { BLEND_MODES } from "../core/types";
-import { compileEffectProgram } from "../renderer/effect-program";
-import { needsLayerIsolation } from "../renderer/layer-composite";
+import { needsLayerIsolation } from "../renderer/compositing/layer-composite";
+import { compileEffectProgram } from "../renderer/effects/effect-program";
 import { normalizeAiCommands } from "./command-normalizer";
 
 it("roundtrips all blend modes through the shared UI/MCP command path", () => {

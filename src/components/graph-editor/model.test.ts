@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { CAMERA_ANIMATABLE_FIELDS } from "../../core/camera-properties";
-import { createLayerForComposition } from "../../core/layer-factory";
-import { activeComposition, createDemoProject } from "../../core/project";
+import { createLayerForComposition } from "../../core/layers/layer-factory";
+import { activeComposition, createDemoProject } from "../../core/project/project";
+import { CAMERA_ANIMATABLE_FIELDS } from "../../core/scene/camera-properties";
 import type { Animatable } from "../../core/types";
 import { createEffect } from "../../effects/registry";
 import {

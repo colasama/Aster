@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
-import { createRenderQueue, enqueueRenderJob, type RenderQueueState } from "../core/render-queue";
+import {
+  createRenderQueue,
+  enqueueRenderJob,
+  type RenderQueueState,
+} from "../core/rendering/render-queue";
 import { type RenderQueueClient, RenderQueueUiStore } from "./render-queue-store";
 
 const input = {

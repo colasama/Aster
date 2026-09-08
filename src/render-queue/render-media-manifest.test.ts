@@ -1,9 +1,9 @@
 // @vitest-environment happy-dom
 
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createLayerForComposition } from "../core/layer-factory";
-import { createBlankProject } from "../core/project";
-import { projectDocumentForPersistence } from "../core/project-file";
+import { createLayerForComposition } from "../core/layers/layer-factory";
+import { createBlankProject } from "../core/project/project";
+import { projectDocumentForPersistence } from "../core/project/project-file";
 import type { FootageSource, Layer, Project } from "../core/types";
 import { mediaImportRuntime } from "../importers/media-import-runtime";
 import { parseSvgSource } from "../importers/svg";

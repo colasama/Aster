@@ -1,9 +1,9 @@
-import { configurePreviewVideoAudio } from "../core/audio-preview";
-import { evaluateLayerTransform } from "../core/expressions";
-import { sourceForLayer, sourceLocator } from "../core/footage-source";
-import { evaluateLayerSourceTime } from "../core/layer-time";
-import { flattenSceneLayers } from "../core/scene-evaluation";
-import { solidRenderColor, solidRenderSize } from "../core/solid-layer";
+import { evaluateLayerTransform } from "../core/animation/expressions";
+import { evaluateLayerSourceTime } from "../core/animation/layer-time";
+import { configurePreviewVideoAudio } from "../core/audio/audio-preview";
+import { solidRenderColor, solidRenderSize } from "../core/layers/solid-layer";
+import { sourceForLayer, sourceLocator } from "../core/media/footage-source";
+import { flattenSceneLayers } from "../core/scene/scene-evaluation";
 import type {
   Composition,
   FootageSource,
@@ -25,7 +25,7 @@ import {
   svgTransformedRasterSize,
 } from "../importers/svg-raster-cache";
 import { isTiffSource } from "../importers/tiff-source";
-import { drawTextLayer } from "./text-rasterizer";
+import { drawTextLayer } from "./text/text-rasterizer";
 
 interface CanvasMediaResource {
   source: string;

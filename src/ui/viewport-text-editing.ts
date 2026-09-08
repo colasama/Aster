@@ -1,5 +1,5 @@
-import type { Operation } from "../core/operations";
-import { visibleLayersAtTime } from "../core/scene-evaluation";
+import type { Operation } from "../core/editing/operations";
+import { visibleLayersAtTime } from "../core/scene/scene-evaluation";
 import type { Composition, Id, Project } from "../core/types";
 
 export interface ViewportTextEditSession {

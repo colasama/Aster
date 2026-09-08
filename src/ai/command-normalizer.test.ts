@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
+import { createLayerForComposition } from "../core/layers/layer-factory";
+import { createBlankComposition, createBlankProject } from "../core/project/project";
 import {
   createParticleLayerForComposition,
   createParticleSceneGenerator,
   particleSettingsFromGenerator,
-} from "../core/bundled-particle";
-import { createLayerForComposition } from "../core/layer-factory";
-import { createDefaultParticleSettings } from "../core/particle-settings";
-import { createBlankComposition, createBlankProject } from "../core/project";
+} from "../core/scene/bundled-particle";
+import { createDefaultParticleSettings } from "../core/scene/particle-settings";
 import { normalizeAiCommands } from "./command-normalizer";
 
 describe("AI command normalization", () => {

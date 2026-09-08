@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 
 import { afterEach, describe, expect, it } from "vitest";
-import { createBlankProject } from "../core/project";
+import { createBlankProject } from "../core/project/project";
 import { viewportTransformBounds } from "../viewport/transform-interaction";
 import { createImageSequenceImport, createPsdImport, createSvgImport } from "./advanced-import";
 import { detectImageSequence } from "./image-sequence";

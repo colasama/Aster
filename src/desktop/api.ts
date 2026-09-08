@@ -12,7 +12,7 @@ import type {
   RenderJobManifest,
   RenderJobProgress,
   RenderQueueViewState,
-} from "../core/render-queue";
+} from "../core/rendering/render-queue";
 import type { UiScale } from "../ui/ui-scale";
 import type { AutomationSettingsApi } from "./automation-settings";
 import type { DesktopFonts } from "./fonts";

@@ -1,0 +1,67 @@
+import { logger } from "../../core/logger";
+import type { VideoExternalUpload } from "./video-external-upload";
+
+export interface MediaResource {
+  source: string;
+  kind: "image" | "video" | "text";
+  texture?: GPUTexture;
+  textureBytes?: number;
+  textureWidth?: number;
+  textureHeight?: number;
+  bindGroup?: GPUBindGroup;
+  video?: HTMLVideoElement;
+  videoCanvas?: HTMLCanvasElement;
+  videoContext?: CanvasRenderingContext2D;
+  videoExternalUpload?: VideoExternalUpload;
+  lastUploadedTime?: number;
+  uploadErrorReported?: boolean;
+}
+
+export function reportVideoUploadError(resource: MediaResource, error: unknown): void {
+  if (resource.uploadErrorReported) return;
+  resource.uploadErrorReported = true;
+  if (resource.video)
+    resource.video.dataset.gpuError = error instanceof Error ? error.message : String(error);
+  logger.warn("webgpu", "video_frame_upload_waiting", undefined, error);
+}
+
+export function destroyMediaResource(resource?: MediaResource): void {
+  if (!resource) return;
+  resource.videoExternalUpload?.destroy();
+  resource.video?.pause();
+  if (resource.videoCanvas) {
+    resource.videoCanvas.width = 1;
+    resource.videoCanvas.height = 1;
+  }
+  resource.videoCanvas?.remove();
+  if (resource.video) {
+    resource.video.removeAttribute("src");
+    resource.video.load();
+    resource.video.remove();
+  }
+  resource.texture?.destroy();
+}
+
+export function sweepMediaResources(
+  resources: Map<string, MediaResource>,
+  activeLayerIds: ReadonlySet<string>,
+): void {
+  for (const [layerId, resource] of resources) {
+    if (activeLayerIds.has(layerId)) continue;
+    destroyMediaResource(resource);
+    resources.delete(layerId);
+  }
+}
+
+export function mediaTextureBytes(resources: ReadonlyMap<string, MediaResource>): number {
+  let bytes = 0;
+  for (const resource of resources.values()) bytes += resource.textureBytes ?? 0;
+  return bytes;
+}
+
+export function mediaTextureExtent(resource: MediaResource): [number, number] | undefined {
+  const width = resource.textureWidth;
+  const height = resource.textureHeight;
+  if (!width || !height) return undefined;
+  return [width, height];
+}

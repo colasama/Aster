@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { createDefaultEvaluatedCamera } from "../core/camera-settings";
-import { createLayerForComposition } from "../core/layer-factory";
-import { createBlankProject } from "../core/project";
-import { evaluateWorldTransform } from "../core/scene-evaluation";
+import { createLayerForComposition } from "../core/layers/layer-factory";
+import { createBlankProject } from "../core/project/project";
+import { createDefaultEvaluatedCamera } from "../core/scene/camera-settings";
+import { evaluateWorldTransform } from "../core/scene/scene-evaluation";
 import {
   axisConstrainedWorldDelta,
   hitTestProjectedLayer3d,

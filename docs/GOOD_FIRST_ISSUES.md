@@ -12,10 +12,10 @@ opening one, confirm the checkbox is still unclaimed in the linked issue tracker
 
 ## Add a project-boundary rejection fixture
 
-- Scope: `src/core/project-file.test.ts` only.
+- Scope: `src/core/project/project-file.test.ts` only.
 - Acceptance: one malformed current-schema document is rejected with a stable, useful error and the
   input object remains unchanged.
-- Validation: `pnpm exec vitest run src/core/project-file.test.ts`.
+- Validation: `pnpm exec vitest run src/core/project/project-file.test.ts`.
 - Avoid: inventing a legacy migration without a published source fixture and compatibility policy.
 
 ## Add one WGSL effect example

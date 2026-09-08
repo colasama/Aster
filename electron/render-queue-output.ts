@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { lstat, mkdir, rename, rm, stat, writeFile } from "node:fs/promises";
 import { basename, dirname, extname, isAbsolute, join, parse, resolve } from "node:path";
-import type { RenderJobManifest, RenderOutputModule } from "../src/core/render-queue.js";
+import type { RenderJobManifest, RenderOutputModule } from "../src/core/rendering/render-queue.js";
 
 const MAX_PNG_BYTES = 512 * 1024 * 1024;
 const PNG_SIGNATURE = Uint8Array.from([137, 80, 78, 71, 13, 10, 26, 10]);

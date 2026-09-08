@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
-import { createLayerForComposition } from "../core/layer-factory";
-import { createBlankProject } from "../core/project";
-import { evaluateAnimatable } from "../core/timeline";
+import { evaluateAnimatable } from "../core/animation/timeline";
+import { createLayerForComposition } from "../core/layers/layer-factory";
+import { createBlankProject } from "../core/project/project";
 import { normalizeAiCommands } from "./command-normalizer";
 
 it("authors seekable linear, held, and custom eased motion while preserving legacy defaults", () => {

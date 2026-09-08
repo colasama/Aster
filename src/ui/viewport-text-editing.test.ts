@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { createLayerForComposition } from "../core/layer-factory";
-import { activeComposition, createBlankComposition, createBlankProject } from "../core/project";
+import { createLayerForComposition } from "../core/layers/layer-factory";
+import {
+  activeComposition,
+  createBlankComposition,
+  createBlankProject,
+} from "../core/project/project";
 import { createInitialState, editorReducer } from "../state/editor-store";
 import {
   beginViewportTextEdit,

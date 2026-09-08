@@ -1,10 +1,10 @@
 // Import run() from a WebGPU browser served by Vite.
-import { createLayerForComposition } from "/src/core/layer-factory.ts";
-import { createBlankProject } from "/src/core/project.ts";
-import { flattenSceneLayers } from "/src/core/scene-evaluation.ts";
-import { materialShapeShader, shapeShader } from "/src/renderer/base-shaders.ts";
-import { buildSceneLighting, SCENE_LIGHTING_BYTES } from "/src/renderer/scene-lighting.ts";
-import { SHAPE_VERTEX_BUFFERS } from "/src/renderer/scene-pipelines.ts";
+import { createLayerForComposition } from "/src/core/layers/layer-factory.ts";
+import { createBlankProject } from "/src/core/project/project.ts";
+import { flattenSceneLayers } from "/src/core/scene/scene-evaluation.ts";
+import { materialShapeShader, shapeShader } from "/src/renderer/gpu/base-shaders.ts";
+import { buildSceneLighting, SCENE_LIGHTING_BYTES } from "/src/renderer/scene/scene-lighting.ts";
+import { SHAPE_VERTEX_BUFFERS } from "/src/renderer/scene/scene-pipelines.ts";
 
 export async function run() {
   const adapter = await navigator.gpu.requestAdapter();

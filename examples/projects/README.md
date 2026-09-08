@@ -11,7 +11,7 @@ project against the current MVP schema and verifies its SHA-256 before any rende
 Run the fixture gate with:
 
 ```shell
-pnpm vitest run src/core/golden-project-fixture.test.ts
+pnpm vitest run src/core/project/golden-project-fixture.test.ts
 ```
 
 To create backend-specific golden images, load the project without editing it, render the five frame

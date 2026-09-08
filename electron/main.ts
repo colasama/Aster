@@ -22,7 +22,7 @@ import type {
   AgentToolResponse,
   FullAccessActivationRequest,
 } from "../src/ai/agent-protocol.js";
-import { renderQueueView } from "../src/core/render-queue.js";
+import { renderQueueView } from "../src/core/rendering/render-queue.js";
 import type {
   AppPreferences,
   PersistedWindowState,

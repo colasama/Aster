@@ -1,13 +1,13 @@
 // @vitest-environment happy-dom
 
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createBlankProject } from "../core/project";
+import { createBlankProject } from "../core/project/project";
 import {
   openPersistedProjectDocument,
   projectDocumentWithMediaImports,
   readRecoverySnapshot,
   storeRecoverySnapshot,
-} from "../core/project-file";
+} from "../core/project/project-file";
 import type { FootageSource, Project } from "../core/types";
 import type { AsterDesktopApi } from "../desktop/api";
 import { createImageSequenceImport, createPsdImport, createSvgImport } from "./advanced-import";

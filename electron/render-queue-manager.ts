@@ -18,7 +18,7 @@ import {
   resumeRenderJob,
   retryRenderJob,
   updateRenderProgress,
-} from "../src/core/render-queue.js";
+} from "../src/core/rendering/render-queue.js";
 import type { RenderQueueStore } from "./render-queue-store.js";
 
 export type RenderQueueCommand =

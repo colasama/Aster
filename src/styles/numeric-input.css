@@ -1,0 +1,45 @@
+/* Numeric controls share the same scrubbing and keyboard affordances. */
+.inspector-panel .numeric-input[type="number"] {
+  cursor: ew-resize;
+  touch-action: none;
+  font-variant-numeric: tabular-nums;
+  appearance: textfield;
+}
+.inspector-panel .numeric-input::-webkit-inner-spin-button,
+.inspector-panel .numeric-input::-webkit-outer-spin-button {
+  appearance: none;
+  margin: 0;
+}
+.inspector-panel .numeric-input[data-editing] {
+  cursor: text;
+  color: #e1e8fa;
+}
+.inspector-panel .numeric-input:focus-visible {
+  outline: 1px solid #7399ed;
+  outline-offset: 1px;
+}
+.number-field:hover:not(:has(:disabled)),
+.number-field:has(.scrubbing) {
+  border-color: #556887;
+  background: #171e2b;
+}
+.inspector-panel .numeric-input.scrubbing {
+  color: #9dbbff;
+  user-select: none;
+}
+.number-field .effect-keyframe,
+.slider-property .effect-keyframe {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+}
+.inspector-panel .numeric-input:disabled,
+.inspector-panel :disabled .numeric-input {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.layer-blend-options .compositing-grid {
+  grid-template-columns: minmax(0, 1fr) 78px 24px;
+  align-items: end;
+}

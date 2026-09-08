@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
-import { createLayerForComposition } from "../core/layer-factory";
-import { createBlankProject } from "../core/project";
+import { createLayerForComposition } from "../core/layers/layer-factory";
+import { createBlankProject } from "../core/project/project";
 import { AsterAgentApplicationService } from "./application-service";
 
 it("queries effects on unselected layers with stable pagination and no LUT payload", async () => {

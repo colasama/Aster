@@ -1,7 +1,7 @@
 import { useI18n } from "../../i18n/react";
+import { Profiler } from "../diagnostics/Profiler";
 import { Panel } from "../Panel";
-import { Profiler } from "../Profiler";
-import { Timeline } from "../Timeline";
+import { Timeline } from "../timeline/Timeline";
 
 export function WorkspaceTimelineSurface({ mode }: { readonly mode: "timeline" | "graph" }) {
   return <Timeline mode={mode} />;

@@ -6,7 +6,7 @@ import {
   type RenderQueueState,
   recoverInterruptedRenderJobs,
   serializeRenderQueue,
-} from "../src/core/render-queue.js";
+} from "../src/core/rendering/render-queue.js";
 import { replaceFileWithBackup } from "./atomic-file.js";
 
 export interface RenderQueueLoadReport {

@@ -1,14 +1,14 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createLayerForComposition } from "../core/layer-factory";
-import { applyOperations } from "../core/operations";
-import { createBlankProject } from "../core/project";
+import { applyOperations } from "../core/editing/operations";
+import { createLayerForComposition } from "../core/layers/layer-factory";
+import { createBlankProject } from "../core/project/project";
 import {
   openPersistedProjectDocument,
   serializeProject,
   validateProjectDocument,
-} from "../core/project-file";
-import { type ProjectFont, validateProjectFonts } from "../core/project-fonts";
+} from "../core/project/project-file";
+import { type ProjectFont, validateProjectFonts } from "../core/project/project-fonts";
 import * as system from "../desktop/fonts";
 import { createInitialState, editorReducer } from "../state/editor-store";
 import { AsterAgentApplicationService } from "./application-service";

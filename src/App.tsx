@@ -1,23 +1,23 @@
 import { lazy, Suspense, useEffect, useMemo, useRef } from "react";
 import { AutomationConnection } from "./ai/AutomationConnection";
-import { DiagnosticBanner } from "./components/DiagnosticBanner";
+import { DiagnosticBanner } from "./components/diagnostics/DiagnosticBanner";
 import {
   ApplicationDiagnosticBoundary,
   DiagnosticRuntimeMonitor,
-} from "./components/DiagnosticBoundary";
-import { Inspector } from "./components/Inspector";
-import { ProjectPanel } from "./components/ProjectPanel";
-import { TopBar } from "./components/TopBar";
-import { usePlayback } from "./components/use-timeline-playback";
-import { Viewport } from "./components/Viewport";
+} from "./components/diagnostics/DiagnosticBoundary";
+import { Inspector } from "./components/inspector/Inspector";
+import { ProjectPanel } from "./components/project/ProjectPanel";
+import { TopBar } from "./components/shell/TopBar";
+import { usePlayback } from "./components/timeline/use-timeline-playback";
+import { Viewport } from "./components/viewport/Viewport";
 import { DockWorkspace } from "./components/workspace/DockWorkspace";
 import {
   WorkspaceProfilerSurface,
   WorkspaceTimelineSurface,
 } from "./components/workspace/WorkspacePanelSurfaces";
 import type { WorkspacePanelDefinition } from "./components/workspace/workspace-types";
-import { activeComposition } from "./core/project";
-import { projectPluginReferences } from "./core/project-plugin-references";
+import { activeComposition } from "./core/project/project";
+import { projectPluginReferences } from "./core/project/project-plugin-references";
 import { reportUiError } from "./errors/report-ui-error";
 import { I18nProvider, useI18n } from "./i18n/react";
 import { EditorProvider, useEditor } from "./state/editor-store";
@@ -25,7 +25,7 @@ import { isEditableShortcutTarget, isEditorShortcutBlocked } from "./ui/keyboard
 import "./styles/index.css";
 
 const RenderQueuePanel = lazy(() =>
-  import("./components/RenderQueuePanel").then((module) => ({
+  import("./components/render-queue/RenderQueuePanel").then((module) => ({
     default: module.RenderQueuePanel,
   })),
 );
@@ -83,7 +83,7 @@ function Studio() {
     const pluginIds = referencedPluginKey ? referencedPluginKey.split("\u0000") : [];
     projectPluginRuntimeWasRequested.current = pluginIds.length > 0;
     let active = true;
-    void import("./core/plugin-runtime")
+    void import("./core/plugins/plugin-runtime")
       .then(({ setProjectPluginRuntimes }) =>
         active ? setProjectPluginRuntimes(pluginIds) : undefined,
       )

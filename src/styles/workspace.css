@@ -1,0 +1,504 @@
+/* Versioned dock workspace. Split previews move independently from panel geometry so GPU
+   surfaces are resized once, when the pointer transaction commits. */
+.editor-grid.workspace-root {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  overflow: hidden;
+  background: #101116;
+}
+.workspace-split {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+.workspace-split.vertical {
+  flex-direction: column;
+}
+.workspace-split-pane {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  overflow: hidden;
+}
+.workspace-split-pane.first {
+  flex-grow: 0;
+  flex-shrink: 0;
+}
+.workspace-split-pane.second {
+  flex: 1;
+}
+.workspace-splitter {
+  z-index: 4;
+  flex: 0 0 4px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: #2a2c34;
+}
+.workspace-split.horizontal > .workspace-splitter {
+  cursor: col-resize;
+}
+.workspace-split.vertical > .workspace-splitter {
+  cursor: row-resize;
+}
+.workspace-splitter:hover,
+.workspace-splitter:focus-visible {
+  outline: none;
+  background: #5986df;
+}
+.workspace-split-preview {
+  position: absolute;
+  z-index: 30;
+  display: none;
+  pointer-events: none;
+  background: #78a4ff;
+  box-shadow: 0 0 8px #3c6cd8;
+}
+.workspace-split-preview.active {
+  display: block;
+}
+.workspace-split-preview.horizontal {
+  top: 0;
+  bottom: 0;
+  left: calc(var(--workspace-preview-ratio, 0.5) * 100%);
+  width: 2px;
+}
+.workspace-split-preview.vertical {
+  right: 0;
+  bottom: auto;
+  left: 0;
+  top: calc(var(--workspace-preview-ratio, 0.5) * 100%);
+  height: 2px;
+}
+.workspace-group {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg-panel);
+}
+.workspace-group-header {
+  flex: 0 0 28px;
+  min-width: 0;
+  display: flex;
+  align-items: stretch;
+  border-bottom: 1px solid var(--border);
+  background: #191b21;
+}
+.workspace-group-grip,
+.workspace-group-actions button,
+.workspace-floating-move {
+  width: 24px;
+  flex: 0 0 24px;
+  display: grid;
+  place-items: center;
+  color: #747a88;
+  transition:
+    color var(--motion-fast) ease-out,
+    background-color var(--motion-fast) ease-out;
+}
+.workspace-group-grip {
+  cursor: grab;
+}
+.workspace-group-grip:active {
+  cursor: grabbing;
+}
+.workspace-group-grip:hover,
+.workspace-group-actions button:hover,
+.workspace-floating-move:hover {
+  color: white;
+  background: #2b2e37;
+}
+.workspace-tabs {
+  min-width: 42px;
+  max-width: 50%;
+  display: flex;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+.workspace-tabs::-webkit-scrollbar {
+  display: none;
+}
+.workspace-tabs > button {
+  position: relative;
+  height: 27px;
+  flex: 0 0 auto;
+  padding: 0 10px;
+  overflow: hidden;
+  color: #858a96;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition:
+    color var(--motion-fast) ease-out,
+    background-color var(--motion-fast) ease-out;
+}
+.workspace-tabs > button:hover {
+  color: #c5c8d0;
+}
+.workspace-tabs > button.active {
+  color: #e0e3ea;
+  background: #1c1e25;
+}
+.workspace-tabs > button.active::after {
+  content: "";
+  position: absolute;
+  right: 7px;
+  bottom: 0;
+  left: 7px;
+  height: 2px;
+  background: var(--blue);
+}
+.workspace-tabs > button.drop-before::before,
+.workspace-tabs > button.drop-after::before {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  top: 3px;
+  bottom: 3px;
+  width: 2px;
+  background: #8cb1ff;
+  box-shadow: 0 0 5px #477edb;
+}
+.workspace-tabs > button.drop-before::before {
+  left: 0;
+}
+.workspace-tabs > button.drop-after::before {
+  right: 0;
+}
+.workspace-panel-header-host {
+  min-width: 0;
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+.workspace-panel-header-host > .panel-tabs {
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.workspace-panel-header-host > .panel-actions {
+  flex: 0 0 auto;
+}
+.workspace-group-actions {
+  display: flex;
+  flex: 0 0 auto;
+}
+.workspace-group-content {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+.workspace-panel-surface {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex: 1;
+}
+.workspace-panel-surface[hidden] {
+  display: none;
+}
+.workspace-stack-group-title {
+  min-width: 0;
+  display: flex;
+  flex: 1;
+  align-items: center;
+  padding: 0 8px;
+  overflow: hidden;
+  color: #c5c8d0;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.workspace-stack {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  overflow: auto;
+  overscroll-behavior: contain;
+  background: #15171c;
+}
+.workspace-stack-panel {
+  min-width: 0;
+  min-height: 27px;
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  border-bottom: 1px solid var(--border);
+}
+.workspace-stack-panel[data-expanded="true"] {
+  min-height: 120px;
+  flex: 1 1 240px;
+}
+.workspace-stack-header {
+  min-width: 0;
+  min-height: 27px;
+  display: flex;
+  align-items: stretch;
+  background: #1b1d23;
+}
+.workspace-stack-panel.active > .workspace-stack-header {
+  background: #20232b;
+}
+.workspace-stack-toggle {
+  min-width: 72px;
+  display: flex;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: 3px;
+  padding: 0 7px;
+  overflow: hidden;
+  color: #aeb2bd;
+  font-size: 10px;
+  cursor: pointer;
+}
+.workspace-stack-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.workspace-stack-close {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  display: grid;
+  place-items: center;
+  color: #747a88;
+}
+.workspace-stack-close:hover {
+  color: white;
+  background: #2b2e37;
+}
+.workspace-stack-content {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+.workspace-drop-zones {
+  position: absolute;
+  z-index: 20;
+  inset: 28px 0 0;
+  pointer-events: none;
+  background: rgb(8 12 20 / 20%);
+}
+.workspace-drop-zone {
+  position: absolute;
+  pointer-events: auto;
+  border: 1px solid rgb(111 156 242 / 35%);
+  border-radius: 3px;
+  background: rgb(55 97 175 / 18%);
+}
+.workspace-drop-zone:hover {
+  border-color: #8cb1ff;
+  background: rgb(73 126 224 / 48%);
+}
+.workspace-drop-zone.left {
+  inset: 18% 75% 18% 2%;
+}
+.workspace-drop-zone.right {
+  inset: 18% 2% 18% 75%;
+}
+.workspace-drop-zone.top {
+  inset: 2% 26% 75%;
+}
+.workspace-drop-zone.bottom {
+  inset: 75% 26% 2%;
+}
+.workspace-drop-zone.center {
+  inset: 27%;
+}
+.workspace-floating {
+  position: fixed;
+  z-index: 90;
+  min-width: 300px;
+  min-height: 180px;
+  display: flex;
+  overflow: hidden;
+  border: 1px solid #4a5875;
+  border-radius: 4px;
+  background: var(--bg-panel);
+  box-shadow: 0 18px 55px #000b;
+}
+.workspace-floating.active {
+  z-index: 91;
+  border-color: #7396db;
+}
+.workspace-floating-move {
+  position: absolute;
+  z-index: 10;
+  top: 2px;
+  right: 74px;
+  height: 23px;
+  cursor: move;
+}
+.workspace-floating-resize {
+  position: absolute;
+  z-index: 12;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.workspace-floating-resize.top,
+.workspace-floating-resize.bottom {
+  right: 8px;
+  left: 8px;
+  height: 6px;
+  cursor: ns-resize;
+}
+.workspace-floating-resize.top {
+  top: 0;
+}
+.workspace-floating-resize.bottom {
+  bottom: 0;
+}
+.workspace-floating-resize.left,
+.workspace-floating-resize.right {
+  top: 8px;
+  bottom: 8px;
+  width: 6px;
+  cursor: ew-resize;
+}
+.workspace-floating-resize.left {
+  left: 0;
+}
+.workspace-floating-resize.right {
+  right: 0;
+}
+.workspace-floating-resize.top-left,
+.workspace-floating-resize.top-right,
+.workspace-floating-resize.bottom-right,
+.workspace-floating-resize.bottom-left {
+  width: 10px;
+  height: 10px;
+}
+.workspace-floating-resize.top-left {
+  top: 0;
+  left: 0;
+  cursor: nwse-resize;
+}
+.workspace-floating-resize.top-right {
+  top: 0;
+  right: 0;
+  cursor: nesw-resize;
+}
+.workspace-floating-resize.bottom-right {
+  right: 0;
+  bottom: 0;
+  cursor: nwse-resize;
+}
+.workspace-floating-resize.bottom-left {
+  bottom: 0;
+  left: 0;
+  cursor: nesw-resize;
+}
+.workspace-floating-resize-preview {
+  position: fixed;
+  z-index: 100;
+  display: none;
+  pointer-events: none;
+  border: 1px solid #8cb1ff;
+  background: rgb(62 103 184 / 10%);
+  box-shadow: 0 0 8px #3c6cd8;
+}
+.workspace-floating-resize-preview.active {
+  display: block;
+}
+.workspace-empty {
+  flex: 1;
+  background: #111217;
+}
+.workspace-window-menu {
+  display: contents;
+}
+.app-menu-popover .workspace-menu-check {
+  width: 14px;
+  flex: 0 0 14px;
+  color: #8eb2ff;
+}
+.app-menu-popover button.destructive {
+  color: #db929c;
+}
+.app-menu-popover button.destructive:hover {
+  color: white;
+  background: #8d3441;
+}
+.workspace-action-dialog {
+  width: min(360px, calc(100vw - 32px));
+  overflow: hidden;
+  border: 1px solid #404550;
+  border-radius: 5px;
+  background: #1b1d24;
+  box-shadow: 0 20px 60px #000b;
+  transform-origin: top center;
+  animation: dialog-in var(--motion-surface) var(--ease-out);
+}
+.workspace-action-dialog > header {
+  padding: 11px 13px;
+  border-bottom: 1px solid #30333d;
+  color: #d7dae1;
+  font-size: 11px;
+  font-weight: 600;
+}
+.workspace-action-dialog > input,
+.workspace-action-dialog > select,
+.workspace-action-dialog > p {
+  width: calc(100% - 26px);
+  margin: 13px;
+}
+.workspace-action-dialog > input,
+.workspace-action-dialog > select {
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid #3a4050;
+  border-radius: 3px;
+  outline: none;
+  background: #111217;
+  color: #e1e4eb;
+}
+.workspace-action-dialog > input:focus,
+.workspace-action-dialog > select:focus {
+  border-color: #5d82ce;
+}
+.workspace-action-dialog > p {
+  color: #c6c9d1;
+  font-size: 10px;
+}
+.workspace-action-dialog > footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  padding: 9px 12px;
+  border-top: 1px solid #30333d;
+}
+.workspace-action-dialog > footer button {
+  height: 28px;
+  padding: 0 11px;
+  border: 1px solid #3a3e49;
+  border-radius: 3px;
+  color: #aeb2bd;
+}
+.workspace-action-dialog > footer button.primary {
+  border-color: #4d73c4;
+  color: white;
+  background: #3c68c7;
+}
+.workspace-action-dialog > footer button.destructive {
+  border-color: #9b4350;
+  color: white;
+  background: #82323e;
+}

@@ -1,13 +1,13 @@
-import { type GraphSampleBuffer, sampleGraph } from "../../core/graph-sampling";
-import type { PropertyPath } from "../../core/operations";
-import { evaluateAnimatable, evaluateAnimatableSpeed } from "../../core/timeline";
+import { type GraphSampleBuffer, sampleGraph } from "../../core/animation/graph-sampling";
+import { evaluateAnimatable, evaluateAnimatableSpeed } from "../../core/animation/timeline";
+import type { PropertyPath } from "../../core/editing/operations";
 import type { Animatable, Keyframe, Layer } from "../../core/types";
 import type { PlainMessageKey } from "../../i18n/core";
 import {
   collectTimelinePropertyGroups,
   type TimelinePropertyTrack,
   timelineTrackKeyframes,
-} from "../timeline-property-tracks";
+} from "../timeline/timeline-property-tracks";
 
 export type GraphType = "auto" | "value" | "speed";
 export type ResolvedGraphType = Exclude<GraphType, "auto">;

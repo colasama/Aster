@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createBlankProject } from "../core/project";
+import { createBlankProject } from "../core/project/project";
 import {
   appendRenderSequenceName,
   createRenderQueueJob,

@@ -1,140 +1,62 @@
-import { evaluateCameraBasis } from "../core/camera-rig";
-import { sourceForLayer, sourceLocator } from "../core/footage-source";
-import { evaluateLayerSourceTime } from "../core/layer-time";
-import { logger } from "../core/logger";
+import { evaluateLayerSourceTime } from "../core/animation/layer-time";
 import {
   compositionMotionBlurSettings,
   layerMotionBlurEnabled,
   layerSupportsMotionBlur,
   motionBlurInterval,
-} from "../core/motion-blur";
-import type {
-  BlendMode,
-  Composition,
-  EnvironmentLighting,
-  GpuDiagnostics,
-  Project,
-  RendererMetrics,
-} from "../core/types";
-import { productionDepthOfFieldAllocationError } from "./auxiliary-buffer-budget";
-import { AuxiliaryBufferRenderer } from "./auxiliary-buffer-renderer";
-import { SceneBufferVisualizer } from "./buffer-visualizer";
-import { bundledParticleDefinition } from "./bundled-particle-generator";
-import { DepthEffectsRenderer, depthEffectSettingsFromCameraOptics } from "./depth-effects";
-import { analyzeEffectFusion } from "./effect-fusion";
-import { FLOATS_PER_EFFECT_OPERATION, MAX_EFFECT_OPERATIONS } from "./effect-program";
-import { captureAfterExactFrameResources } from "./exact-frame-resource-barrier";
-import { frameCadenceSample } from "./frame-cadence";
+} from "../core/animation/motion-blur";
+import { logger } from "../core/logger";
+import { sourceForLayer, sourceLocator } from "../core/media/footage-source";
+import { evaluateCameraBasis } from "../core/scene/camera-rig";
+import type { Composition, GpuDiagnostics, Project, RendererMetrics } from "../core/types";
+import { needsLayerIsolation } from "./compositing/layer-composite";
+import { planSceneRenderStack } from "./compositing/render-stack";
+import { depthEffectSettingsFromCameraOptics } from "./effects/depth-effects";
+import { analyzeEffectFusion } from "./effects/effect-fusion";
+import { buildPostProcessUniforms } from "./effects/post-process";
+import { selectedRenderId } from "./effects/surface-post-effects";
+import { buildSceneGeometry, FLOATS_PER_VERTEX } from "./geometry/geometry";
+import { productionDepthOfFieldAllocationError } from "./gpu/auxiliary-buffer-budget";
 import {
-  type FrameReadbackTicket,
-  GpuFrameReadbackPool,
-  type RawFramePixelFormat,
-  type RawVideoFrame,
-} from "./frame-readback";
-import { buildSceneGeometry, FLOATS_PER_VERTEX, type GeometryBatch } from "./geometry";
-import { planGpuMemory } from "./gpu-memory-budget";
-import { GpuTimestampProfiler } from "./gpu-timestamp-profiler";
-import { needsLayerIsolation } from "./layer-composite";
-import { LayerEffectRenderer } from "./layer-effects";
-import { createLutSampler, createLutTexture } from "./lut-texture";
-import { MaterialTextureRenderer } from "./material-textures";
-import { MediaTextureCache } from "./media-texture-cache";
-import { MotionBlurRenderer } from "./motion-blur-renderer";
-import { precompileGpuPipelines } from "./pipeline-precompile";
-import { buildPostProcessUniforms } from "./post-process";
-import { PrecompositionSurfaceRenderer } from "./precomposition-surface-renderer";
+  releaseFailedWebGpuInitialization,
+  shouldReportGpuDeviceLoss,
+} from "./gpu/device-lifecycle";
+import { captureAfterExactFrameResources } from "./gpu/exact-frame-resource-barrier";
+import { frameCadenceSample } from "./gpu/frame-cadence";
+import type { FrameReadbackTicket, RawFramePixelFormat, RawVideoFrame } from "./gpu/frame-readback";
+import { planGpuMemory } from "./gpu/gpu-memory-budget";
+import { precompileGpuPipelines } from "./gpu/pipeline-precompile";
 import {
   type BufferVisualization,
   isDepthEffectVisualization,
   isSurfaceEffectVisualization,
   postRenderRoute,
   usesAuxiliarySurfaceData,
-} from "./render-buffers";
-import { planSceneRenderStack } from "./render-stack";
-import { createPostPipeline } from "./runtime-pipelines";
-import { evaluateSceneCamera } from "./scene-camera";
-import { SceneEvaluationCache } from "./scene-evaluation-cache";
-import { type PreparedSceneGenerator, SceneGeneratorHost } from "./scene-generator-host";
-import { buildSceneLighting, SCENE_LIGHTING_BYTES, shadowMapSize } from "./scene-lighting";
-import {
-  createImagePipelines,
-  createShadowPipeline,
-  createShapePipelines,
-} from "./scene-pipelines";
-import { validateShaderSources } from "./shader-validation";
-import { SurfacePostEffectsRenderer, selectedRenderId } from "./surface-post-effects";
-import { planTextMotionBlurFrame } from "./text-motion-blur-plan";
-import { transformedTextRasterScale } from "./text-rasterizer";
-import { buildTimeAddressedMotionVectors } from "./time-addressed-motion-vectors";
+} from "./gpu/render-buffers";
+import { validateShaderSources } from "./gpu/shader-validation";
+import { MaterialTextureRenderer } from "./media/material-textures";
+import { RendererResources } from "./renderer-resources";
+import { bundledParticleDefinition } from "./scene/bundled-particle-generator";
+import { drawSceneBatch } from "./scene/draw-scene-batch";
+import { evaluateSceneCamera } from "./scene/scene-camera";
+import { SceneEvaluationCache } from "./scene/scene-evaluation-cache";
+import type { PreparedSceneGenerator } from "./scene/scene-generator-host";
+import { buildSceneLighting, shadowMapSize } from "./scene/scene-lighting";
+import { buildTimeAddressedMotionVectors } from "./scene/time-addressed-motion-vectors";
+import { planTextMotionBlurFrame } from "./text/text-motion-blur-plan";
+import { transformedTextRasterScale } from "./text/text-rasterizer";
 
-const MAX_SHAPE_VERTICES = 6 * 128;
 const SCENE_FORMAT: GPUTextureFormat = "rgba16float";
-const DEFAULT_SHADOW_MAP_SIZE = 1024;
-
-export function shouldReportGpuDeviceLoss(
-  rendererDisposed: boolean,
-  initializationAborted = false,
-): boolean {
-  return !rendererDisposed && !initializationAborted;
-}
-
-export function releaseFailedWebGpuInitialization(
-  renderer: { dispose(): void } | undefined,
-  device: Pick<GPUDevice, "destroy">,
-): void {
-  if (!renderer) {
-    device.destroy();
-    return;
-  }
-  try {
-    renderer.dispose();
-  } catch (error) {
-    device.destroy();
-    throw error;
-  }
-}
 
 export class WebGpuRenderer {
+  readonly #resources: RendererResources;
   readonly diagnostics: GpuDiagnostics;
   readonly #device: GPUDevice;
   readonly #context: GPUCanvasContext;
   readonly #format: GPUTextureFormat;
-  readonly #lightingBindGroupLayout: GPUBindGroupLayout;
-  readonly #lightingBuffer: GPUBuffer;
-  #lightingBindGroup: GPUBindGroup;
-  readonly #shadowBindGroup: GPUBindGroup;
-  #shadowTexture: GPUTexture;
-  readonly #shadowSampler: GPUSampler;
-  readonly #shadowPipeline: GPURenderPipeline;
-  readonly #shapePipelines: Record<BlendMode, GPURenderPipeline>;
-  readonly #imageBindGroupLayout: GPUBindGroupLayout;
-  readonly #imagePipelines: Record<BlendMode, GPURenderPipeline>;
-  readonly #sceneGenerators: SceneGeneratorHost;
-  readonly #postPipeline: GPURenderPipeline;
-  readonly #bufferVisualizer: SceneBufferVisualizer;
-  readonly #depthEffects: DepthEffectsRenderer;
-  readonly #motionBlur: MotionBlurRenderer;
-  readonly #surfacePostEffects: SurfacePostEffectsRenderer;
-  readonly #auxiliaryBuffers: AuxiliaryBufferRenderer;
-  readonly #layerEffects: LayerEffectRenderer;
-  #materialTextures?: MaterialTextureRenderer;
-  #shapeBuffer: GPUBuffer;
-  readonly #postSampler: GPUSampler;
-  readonly #lutSampler: GPUSampler;
-  readonly #identityLut: GPUTexture;
-  readonly #imageSampler: GPUSampler;
-  readonly #postUniformBuffer: GPUBuffer;
-  readonly #effectProgramBuffer: GPUBuffer;
-  readonly #gpuProfiler: GpuTimestampProfiler;
-  readonly #frameReadback: GpuFrameReadbackPool;
   #pendingFrameReadback?: FrameReadbackTicket;
-  #postBindGroup?: GPUBindGroup;
-  #motionBlurPostBindGroup?: GPUBindGroup;
-  #sceneTexture?: GPUTexture;
-  #depthTexture?: GPUTexture;
   #width = 1;
   #height = 1;
-  #shadowMapSize = DEFAULT_SHADOW_MAP_SIZE;
   #memoryBudgetMb?: number;
   #bufferVisualization: BufferVisualization = "beauty";
   #beautyDepthOfFieldActive = false;
@@ -144,13 +66,9 @@ export class WebGpuRenderer {
   #smoothedFrameMs = 16.67;
   #lastFrameStarted?: number;
   #lastFramePlaying = false;
-  #shapeBufferBytes = MAX_SHAPE_VERTICES * FLOATS_PER_VERTEX * Float32Array.BYTES_PER_ELEMENT;
   readonly #invalidate: () => void;
-  readonly #mediaTextures: MediaTextureCache;
-  readonly #precompositionSurfaces: PrecompositionSurfaceRenderer;
   readonly #evaluationCache = new SceneEvaluationCache();
   #disposed = false;
-
   private constructor(
     device: GPUDevice,
     context: GPUCanvasContext,
@@ -163,144 +81,7 @@ export class WebGpuRenderer {
     this.#format = format;
     this.diagnostics = diagnostics;
     this.#invalidate = invalidate;
-    this.#gpuProfiler = new GpuTimestampProfiler(device, diagnostics.timestampQueries, invalidate);
-    this.#frameReadback = new GpuFrameReadbackPool(device, format);
-    this.#lightingBindGroupLayout = device.createBindGroupLayout({
-      label: "Scene lighting layout",
-      entries: [
-        {
-          binding: 0,
-          visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-          buffer: { type: "uniform" },
-        },
-        {
-          binding: 1,
-          visibility: GPUShaderStage.FRAGMENT,
-          texture: { sampleType: "depth", viewDimension: "2d" },
-        },
-        {
-          binding: 2,
-          visibility: GPUShaderStage.FRAGMENT,
-          sampler: { type: "comparison" },
-        },
-      ],
-    });
-    this.#lightingBuffer = device.createBuffer({
-      label: "Scene lighting uniforms",
-      size: SCENE_LIGHTING_BYTES,
-      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-    });
-    const shadowBindGroupLayout = device.createBindGroupLayout({
-      label: "Shadow depth uniform layout",
-      entries: [
-        {
-          binding: 0,
-          visibility: GPUShaderStage.VERTEX,
-          buffer: { type: "uniform" },
-        },
-      ],
-    });
-    this.#shadowBindGroup = device.createBindGroup({
-      label: "Shadow depth uniforms",
-      layout: shadowBindGroupLayout,
-      entries: [{ binding: 0, resource: { buffer: this.#lightingBuffer } }],
-    });
-    this.#shadowTexture = device.createTexture({
-      label: "Scene shadow map · 1024²",
-      size: [DEFAULT_SHADOW_MAP_SIZE, DEFAULT_SHADOW_MAP_SIZE],
-      format: "depth24plus",
-      usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
-    });
-    this.#shadowSampler = device.createSampler({
-      label: "Scene shadow comparison sampler",
-      compare: "less-equal",
-      minFilter: "linear",
-      magFilter: "linear",
-    });
-    this.#lightingBindGroup = device.createBindGroup({
-      label: "Scene lighting resources",
-      layout: this.#lightingBindGroupLayout,
-      entries: [
-        { binding: 0, resource: { buffer: this.#lightingBuffer } },
-        { binding: 1, resource: this.#shadowTexture.createView() },
-        { binding: 2, resource: this.#shadowSampler },
-      ],
-    });
-    this.#shapePipelines = createShapePipelines(
-      device,
-      SCENE_FORMAT,
-      this.#lightingBindGroupLayout,
-    );
-    this.#shadowPipeline = createShadowPipeline(device, shadowBindGroupLayout);
-    this.#imageBindGroupLayout = device.createBindGroupLayout({
-      label: "Imported media texture layout",
-      entries: [
-        {
-          binding: 0,
-          visibility: GPUShaderStage.FRAGMENT,
-          texture: { sampleType: "float" },
-        },
-        {
-          binding: 1,
-          visibility: GPUShaderStage.FRAGMENT,
-          sampler: { type: "filtering" },
-        },
-      ],
-    });
-    this.#imagePipelines = createImagePipelines(device, SCENE_FORMAT, this.#imageBindGroupLayout);
-    this.#shapeBuffer = device.createBuffer({
-      label: "Dynamic layer geometry",
-      size: this.#shapeBufferBytes,
-      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE,
-    });
-    this.#sceneGenerators = new SceneGeneratorHost(device, SCENE_FORMAT, [
-      bundledParticleDefinition,
-    ]);
-    this.#auxiliaryBuffers = new AuxiliaryBufferRenderer(device, this.#imageBindGroupLayout);
-    this.#postSampler = device.createSampler({
-      label: "HDR linear sampler",
-      magFilter: "linear",
-      minFilter: "linear",
-    });
-    this.#lutSampler = createLutSampler(device);
-    this.#identityLut = createLutTexture(device);
-    this.#imageSampler = device.createSampler({
-      label: "Imported image sampler",
-      magFilter: "linear",
-      minFilter: "linear",
-      mipmapFilter: "linear",
-    });
-    this.#mediaTextures = new MediaTextureCache(
-      device,
-      this.#imageBindGroupLayout,
-      this.#imageSampler,
-      invalidate,
-    );
-    this.#precompositionSurfaces = new PrecompositionSurfaceRenderer(device, {
-      mediaTextures: this.#mediaTextures,
-      mediaLayout: this.#imageBindGroupLayout,
-      mediaSampler: this.#imageSampler,
-      lightingLayout: this.#lightingBindGroupLayout,
-      shapePipelines: this.#shapePipelines,
-      imagePipelines: this.#imagePipelines,
-      sceneGenerators: this.#sceneGenerators,
-    });
-    this.#postUniformBuffer = device.createBuffer({
-      label: "Fused post-process uniforms",
-      size: 96,
-      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-    });
-    this.#effectProgramBuffer = device.createBuffer({
-      label: "Compiled GPU effect program",
-      size: MAX_EFFECT_OPERATIONS * FLOATS_PER_EFFECT_OPERATION * Float32Array.BYTES_PER_ELEMENT,
-      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-    });
-    this.#postPipeline = createPostPipeline(device, format);
-    this.#bufferVisualizer = new SceneBufferVisualizer(device, format);
-    this.#depthEffects = new DepthEffectsRenderer(device, format);
-    this.#motionBlur = new MotionBlurRenderer(device, SCENE_FORMAT);
-    this.#surfacePostEffects = new SurfacePostEffectsRenderer(device, format);
-    this.#layerEffects = new LayerEffectRenderer(device, SCENE_FORMAT);
+    this.#resources = new RendererResources(device, format, diagnostics, invalidate);
   }
   static async create(
     canvas: HTMLCanvasElement,
@@ -375,7 +156,7 @@ export class WebGpuRenderer {
   }
   resize(width: number, height: number): void {
     this.#assertActive();
-    this.#frameReadback.reset();
+    this.#resources.frameReadback.reset();
     this.#width = Math.max(1, Math.floor(width));
     this.#height = Math.max(1, Math.floor(height));
     this.#context.configure({
@@ -384,9 +165,9 @@ export class WebGpuRenderer {
       alphaMode: "opaque",
       usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
     });
-    this.#sceneTexture?.destroy();
-    this.#depthTexture?.destroy();
-    this.#sceneTexture = this.#device.createTexture({
+    this.#resources.sceneTexture?.destroy();
+    this.#resources.depthTexture?.destroy();
+    this.#resources.sceneTexture = this.#device.createTexture({
       label: "HDR scene target",
       size: [this.#width, this.#height],
       format: SCENE_FORMAT,
@@ -396,17 +177,20 @@ export class WebGpuRenderer {
         GPUTextureUsage.COPY_SRC |
         GPUTextureUsage.COPY_DST,
     });
-    this.#depthTexture = this.#device.createTexture({
+    this.#resources.depthTexture = this.#device.createTexture({
       label: "Composition depth target",
       size: [this.#width, this.#height],
       format: "depth24plus",
       usage: GPUTextureUsage.RENDER_ATTACHMENT,
     });
-    this.#postBindGroup = this.#createPostBindGroup(this.#sceneTexture, "scene");
-    this.#motionBlurPostBindGroup = undefined;
-    this.#bufferVisualizer.setSource(this.#sceneTexture);
+    this.#resources.postBindGroup = this.#resources.createPostBindGroup(
+      this.#resources.sceneTexture,
+      "scene",
+    );
+    this.#resources.motionBlurPostBindGroup = undefined;
+    this.#resources.bufferVisualizer.setSource(this.#resources.sceneTexture);
     this.#configureAuxiliaryBuffers();
-    this.#layerEffects.resize(this.#width, this.#height);
+    this.#resources.layerEffects.resize(this.#width, this.#height);
   }
   get bufferVisualization(): BufferVisualization {
     return this.#bufferVisualization;
@@ -417,7 +201,7 @@ export class WebGpuRenderer {
     return this.#bufferVisualization;
   }
   get exportPixelFormat(): RawFramePixelFormat {
-    return this.#frameReadback.pixelFormat;
+    return this.#resources.frameReadback.pixelFormat;
   }
   get outputWidth(): number {
     return this.#width;
@@ -428,8 +212,8 @@ export class WebGpuRenderer {
   get productionRenderError(): string | undefined {
     return productionDepthOfFieldAllocationError(
       this.#beautyDepthOfFieldActive,
-      this.#auxiliaryBuffers.depthOfFieldTier,
-      this.#auxiliaryBuffers.depthOfFieldDiagnostic,
+      this.#resources.auxiliaryBuffers.depthOfFieldTier,
+      this.#resources.auxiliaryBuffers.depthOfFieldDiagnostic,
     );
   }
   async renderRawFrame(
@@ -441,12 +225,12 @@ export class WebGpuRenderer {
     this.#assertActive();
     if (synchronizeVideo) {
       this.render(composition, time, false, project);
-      await this.#mediaTextures.waitForFrameResources();
+      await this.#resources.mediaTextures.waitForFrameResources();
       return this.#captureRawFrame(composition, time, project);
     }
     return captureAfterExactFrameResources(
       () => this.#captureRawFrame(composition, time, project),
-      this.#mediaTextures,
+      this.#resources.mediaTextures,
     );
   }
   #captureRawFrame(
@@ -456,7 +240,7 @@ export class WebGpuRenderer {
   ): Promise<RawVideoFrame> {
     if (this.#pendingFrameReadback)
       return Promise.reject(new Error("A GPU frame readback is already being encoded"));
-    const ticket = this.#frameReadback.reserve(this.#width, this.#height);
+    const ticket = this.#resources.frameReadback.reserve(this.#width, this.#height);
     this.#pendingFrameReadback = ticket;
     try {
       this.render(composition, time, false, project);
@@ -480,7 +264,7 @@ export class WebGpuRenderer {
     try {
       return this.#renderFrame(composition, time, playing, project, selectedLayerId);
     } catch (error) {
-      this.#mediaTextures.abortFrame();
+      this.#resources.mediaTextures.abortFrame();
       throw error;
     }
   }
@@ -491,6 +275,7 @@ export class WebGpuRenderer {
     project?: Project,
     selectedLayerId?: string,
   ): RendererMetrics {
+    const resources = this.#resources;
     this.#assertActive();
     const started = performance.now();
     const frameInterval = this.#lastFrameStarted ? started - this.#lastFrameStarted : 16.67;
@@ -504,7 +289,7 @@ export class WebGpuRenderer {
       this.#width,
       this.#height,
     );
-    this.#mediaTextures.beginFrame();
+    resources.mediaTextures.beginFrame();
     const motionBlurSettings = compositionMotionBlurSettings(composition);
     const previewResolutionScale = Math.max(
       this.#width / Math.max(1, composition.width),
@@ -557,8 +342,8 @@ export class WebGpuRenderer {
       (beautyMotionBlur ||
         this.#bufferVisualization === "motionVector" ||
         this.#bufferVisualization === "vectorMotionBlur");
-    this.#sceneGenerators.beginFrame();
-    const surfaceFrame = this.#precompositionSurfaces.prepare(
+    resources.sceneGenerators.beginFrame();
+    const surfaceFrame = resources.precompositionSurfaces.prepare(
       project,
       sceneLayers,
       playing,
@@ -610,18 +395,18 @@ export class WebGpuRenderer {
     }
     if (camera) {
       const basis = evaluateCameraBasis(camera.pose);
-      this.#depthEffects.setSettings({
+      resources.depthEffects.setSettings({
         cameraPosition: camera.pose.position,
         cameraForward: basis.forward,
         ...depthEffectSettingsFromCameraOptics(camera.optics, composition.width, this.#width),
-        transparencyTier: this.#auxiliaryBuffers.depthOfFieldTier,
+        transparencyTier: resources.auxiliaryBuffers.depthOfFieldTier,
       });
     }
     const shadowQuality = primaryLight?.shadowQuality ?? "medium";
     const sceneGenerators = sceneLayers
-      .filter((scene) => this.#sceneGenerators.supports(scene))
+      .filter((scene) => resources.sceneGenerators.supports(scene))
       .map((scene) =>
-        this.#sceneGenerators.prepare(
+        resources.sceneGenerators.prepare(
           scene,
           composition,
           this.#width,
@@ -632,60 +417,60 @@ export class WebGpuRenderer {
       )
       .filter((generator): generator is PreparedSceneGenerator => generator !== undefined);
     this.diagnostics.sceneGeneratorError =
-      this.#sceneGenerators.diagnostics.length > 0
-        ? this.#sceneGenerators.diagnostics.join("; ")
+      resources.sceneGenerators.diagnostics.length > 0
+        ? resources.sceneGenerators.diagnostics.join("; ")
         : undefined;
     const generatorByInstance = new Map(
       sceneGenerators.map((generator) => [generator.instanceId, generator]),
     );
-    this.#sceneGenerators.sweep();
+    resources.sceneGenerators.sweep();
     const memory = planGpuMemory({
       width: this.#width,
       height: this.#height,
-      effectTextureBytes: this.#layerEffects.estimatedTextureBytes(),
+      effectTextureBytes: resources.layerEffects.estimatedTextureBytes(),
       persistentBufferBytes:
-        this.#sceneGenerators.estimatedBytes +
-        this.#shapeBufferBytes +
-        this.#auxiliaryBuffers.estimatedBytes +
-        this.#motionBlur.estimatedBytes +
-        this.#mediaTextures.estimatedBytes +
+        resources.sceneGenerators.estimatedBytes +
+        resources.shapeBufferBytes +
+        resources.auxiliaryBuffers.estimatedBytes +
+        resources.motionBlur.estimatedBytes +
+        resources.mediaTextures.estimatedBytes +
         surfaceFrame.residentBytes +
-        this.#surfacePostEffects.estimatedBytes +
-        (this.#materialTextures?.estimatedBytes ?? 0),
+        resources.surfacePostEffects.estimatedBytes +
+        (resources.materialTextures?.estimatedBytes ?? 0),
       requestedShadowMapSize: shadowMapSize(shadowQuality),
       budgetMb: this.#memoryBudgetMb,
     });
     const shadowsEnabled =
       shadowQuality !== "off" && primaryLight?.kind !== "point" && memory.shadowMapSize > 1;
-    this.#configureShadowMap(memory.shadowMapSize);
+    resources.configureShadowMap(memory.shadowMapSize);
     this.#device.queue.writeBuffer(
-      this.#lightingBuffer,
+      resources.lightingBuffer,
       0,
       buildSceneLighting(sceneLayers, composition, shadowsEnabled, cameraPosition),
     );
     if (geometry.data.length > 0) {
-      this.#ensureShapeBuffer(geometry.data.byteLength);
-      this.#device.queue.writeBuffer(this.#shapeBuffer, 0, geometry.data);
+      resources.ensureShapeBuffer(geometry.data.byteLength);
+      this.#device.queue.writeBuffer(resources.shapeBuffer, 0, geometry.data);
     }
     if (
-      !this.#materialTextures &&
+      !resources.materialTextures &&
       ((composition.environment?.enabled &&
         geometry.batches.some((batch) => batch.layer.kind === "mesh")) ||
         geometry.batches.some((batch) => batch.layer.mesh?.materialTextures?.normal))
     )
-      this.#materialTextures = new MaterialTextureRenderer(
+      resources.materialTextures = new MaterialTextureRenderer(
         this.#device,
         SCENE_FORMAT,
-        this.#lightingBindGroupLayout,
+        resources.lightingBindGroupLayout,
         this.#invalidate,
         (message) => {
           this.diagnostics.materialResourceError = message;
         },
       );
-    this.#materialTextures?.prepare(composition, geometry.batches);
+    resources.materialTextures?.prepare(composition, geometry.batches);
     for (const scene of sceneLayers) {
       if (scene.layer.kind === "text") {
-        this.#mediaTextures.prepareText(
+        resources.mediaTextures.prepareText(
           scene.layer,
           scene.resourceInstanceId,
           evaluateLayerSourceTime(scene.layer, scene.localTime),
@@ -699,7 +484,7 @@ export class WebGpuRenderer {
       ) {
         const footage = sourceForLayer(project, scene.layer);
         if (!footage) continue;
-        this.#mediaTextures.prepareMedia(
+        resources.mediaTextures.prepareMedia(
           scene.layer,
           footage,
           scene.localTime,
@@ -709,7 +494,7 @@ export class WebGpuRenderer {
         );
       }
     }
-    this.#mediaTextures.sweep(
+    resources.mediaTextures.sweep(
       new Set([
         ...sceneLayers
           .filter(
@@ -723,38 +508,38 @@ export class WebGpuRenderer {
       ]),
     );
     this.#device.queue.writeBuffer(
-      this.#postUniformBuffer,
+      resources.postUniformBuffer,
       0,
       buildPostProcessUniforms(this.#width, this.#height, time),
     );
-    if (!this.#sceneTexture || !this.#postBindGroup) this.resize(this.#width, this.#height);
+    if (!resources.sceneTexture || !resources.postBindGroup) this.resize(this.#width, this.#height);
     const encoder = this.#device.createCommandEncoder({ label: "Aster frame render graph" });
-    this.#mediaTextures.flush(encoder);
-    this.#precompositionSurfaces.encode(encoder);
+    resources.mediaTextures.flush(encoder);
+    resources.precompositionSurfaces.encode(encoder);
     const compute = encoder.beginComputePass({
       label: sceneGenerators.some((generator) => generator.lodApplied)
         ? "Scene generators · bounded LOD"
         : "Scene generators",
-      timestampWrites: this.#gpuProfiler.writes(0, 1),
+      timestampWrites: resources.gpuProfiler.writes(0, 1),
     });
     for (const generator of sceneGenerators)
-      this.#sceneGenerators.encodeCompute(compute, generator);
+      resources.sceneGenerators.encodeCompute(compute, generator);
     compute.end();
     if (shadowsEnabled) {
       const shadowPass = encoder.beginRenderPass({
-        label: `Scene shadow-map depth · ${this.#shadowMapSize}²`,
-        timestampWrites: this.#gpuProfiler.writes(2, 3),
+        label: `Scene shadow-map depth · ${resources.shadowMapSize}²`,
+        timestampWrites: resources.gpuProfiler.writes(2, 3),
         colorAttachments: [],
         depthStencilAttachment: {
-          view: this.#shadowTexture.createView(),
+          view: resources.shadowTexture.createView(),
           depthClearValue: 1,
           depthLoadOp: "clear",
           depthStoreOp: "store",
         },
       });
-      shadowPass.setPipeline(this.#shadowPipeline);
-      shadowPass.setBindGroup(0, this.#shadowBindGroup);
-      shadowPass.setVertexBuffer(0, this.#shapeBuffer);
+      shadowPass.setPipeline(resources.shadowPipeline);
+      shadowPass.setBindGroup(0, resources.shadowBindGroup);
+      shadowPass.setVertexBuffer(0, resources.shapeBuffer);
       for (const batch of geometry.batches) {
         if (!batch.layer.threeDimensional) continue;
         shadowPass.draw(batch.vertexCount, 1, batch.firstVertex);
@@ -763,18 +548,18 @@ export class WebGpuRenderer {
     } else {
       const shadowMarker = encoder.beginComputePass({
         label: "Shadow raster disabled",
-        timestampWrites: this.#gpuProfiler.writes(2, 3),
+        timestampWrites: resources.gpuProfiler.writes(2, 3),
       });
       shadowMarker.end();
     }
-    const sceneTexture = this.#sceneTexture;
+    const sceneTexture = resources.sceneTexture;
     const sceneView = sceneTexture?.createView();
-    const depthView = this.#depthTexture?.createView();
-    if (!sceneTexture || !sceneView || !depthView || !this.#postBindGroup)
+    const depthView = resources.depthTexture?.createView();
+    if (!sceneTexture || !sceneView || !depthView || !resources.postBindGroup)
       throw new Error("HDR scene target is unavailable");
     let scenePass: GPURenderPassEncoder | undefined = encoder.beginRenderPass({
       label: "Linear HDR composition",
-      timestampWrites: this.#gpuProfiler.writes(4),
+      timestampWrites: resources.gpuProfiler.writes(4),
       colorAttachments: [
         {
           view: sceneView,
@@ -819,7 +604,7 @@ export class WebGpuRenderer {
         scenePass?.end();
         scenePass = undefined;
         try {
-          const operationCount = this.#layerEffects.encodeAdjustment(
+          const operationCount = resources.layerEffects.encodeAdjustment(
             encoder,
             sceneTexture,
             composition,
@@ -859,14 +644,14 @@ export class WebGpuRenderer {
           scenePass = undefined;
           activeEffectInstances.add(item.scene.instanceId);
           effectLayerCount += 1;
-          effectOperationCount += this.#layerEffects.encode(
+          effectOperationCount += resources.layerEffects.encode(
             encoder,
             sceneTexture,
             composition,
             item.scene.layer,
             item.scene.instanceId,
             time,
-            (layerPass) => this.#sceneGenerators.draw(layerPass, generator, "normal"),
+            (layerPass) => resources.sceneGenerators.draw(layerPass, generator, "normal"),
           );
           fusedEffectCount += fusion.fusedEffectCount;
           fusionGroupCount += fusion.fusedGroupCount;
@@ -888,7 +673,7 @@ export class WebGpuRenderer {
           scenePassCount += 1;
           clearSceneDepth = false;
         }
-        this.#sceneGenerators.draw(scenePass, generator);
+        resources.sceneGenerators.draw(scenePass, generator);
         drawnGenerators.add(generator.instanceId);
         continue;
       }
@@ -903,14 +688,15 @@ export class WebGpuRenderer {
         scenePass = undefined;
         activeEffectInstances.add(batch.instanceId);
         effectLayerCount += 1;
-        effectOperationCount += this.#layerEffects.encode(
+        effectOperationCount += resources.layerEffects.encode(
           encoder,
           sceneTexture,
           composition,
           batch.layer,
           batch.instanceId,
           time,
-          (layerPass) => this.#drawBatch(layerPass, batch, "normal", composition.environment),
+          (layerPass) =>
+            drawSceneBatch(resources, layerPass, batch, "normal", composition.environment),
         );
       } else {
         if (!scenePass) {
@@ -927,7 +713,7 @@ export class WebGpuRenderer {
           scenePassCount += 1;
           clearSceneDepth = false;
         }
-        this.#drawBatch(scenePass, batch, batch.layer.blendMode, composition.environment);
+        drawSceneBatch(resources, scenePass, batch, batch.layer.blendMode, composition.environment);
       }
     }
     const generatorDrawCount = drawnGenerators.size;
@@ -938,19 +724,19 @@ export class WebGpuRenderer {
       motionBlurRequested;
     let auxiliaryFrameValid = !needsAuxiliarySurfaceData;
     if (!auxiliaryFrameValid) {
-      auxiliaryFrameValid = this.#auxiliaryBuffers.encode({
+      auxiliaryFrameValid = resources.auxiliaryBuffers.encode({
         encoder,
-        vertexBuffer: this.#shapeBuffer,
+        vertexBuffer: resources.shapeBuffer,
         vertexCount: geometry.data.length / FLOATS_PER_VERTEX,
         batches: geometry.batches,
         motionVectors,
         mediaBindGroup: (batch) =>
-          this.#precompositionSurfaces.bindingFor(batch.instanceId) ??
-          this.#mediaTextures.bindGroup(batch.resourceInstanceId),
+          resources.precompositionSurfaces.bindingFor(batch.instanceId) ??
+          resources.mediaTextures.bindGroup(batch.resourceInstanceId),
         generators: beautyMotionBlur
           ? []
           : sceneGenerators
-              .map((generator) => this.#sceneGenerators.auxiliaryDraw(generator))
+              .map((generator) => resources.sceneGenerators.auxiliaryDraw(generator))
               .filter((draw) => draw !== undefined),
       });
     }
@@ -962,7 +748,7 @@ export class WebGpuRenderer {
       beautyMotionBlur &&
       auxiliaryFrameValid &&
       motionVectors !== undefined &&
-      this.#motionBlur.encode(encoder, {
+      resources.motionBlur.encode(encoder, {
         ...motionBlurSettings,
         framePosition,
         maximumRadius: Math.max(
@@ -972,29 +758,31 @@ export class WebGpuRenderer {
       });
     if (beautyDepthOfField && beautyMotionBlurValid !== this.#depthEffectsUseMotionBlur) {
       this.#depthEffectsUseMotionBlur = beautyMotionBlurValid;
-      this.#depthEffects.setSources(
+      resources.depthEffects.setSources(
         this.#width,
         this.#height,
-        beautyMotionBlurValid ? this.#motionBlur.outputTexture : this.#sceneTexture,
-        this.#auxiliaryBuffers.textures.get("worldPosition"),
-        this.#auxiliaryBuffers.transparentWorldPosition,
-        this.#auxiliaryBuffers.peeledWorldPosition,
-        this.#auxiliaryBuffers.frontLayerColor,
-        this.#auxiliaryBuffers.peeledLayerColor,
+        beautyMotionBlurValid ? resources.motionBlur.outputTexture : resources.sceneTexture,
+        resources.auxiliaryBuffers.textures.get("worldPosition"),
+        resources.auxiliaryBuffers.transparentWorldPosition,
+        resources.auxiliaryBuffers.peeledWorldPosition,
+        resources.auxiliaryBuffers.frontLayerColor,
+        resources.auxiliaryBuffers.peeledLayerColor,
       );
     }
-    this.#surfacePostEffects.setSelection(
+    resources.surfacePostEffects.setSelection(
       selectedRenderId(
         geometry.batches,
         selectedLayerId,
         sceneGenerators.map((generator) => generator.selectionId),
       ),
     );
-    this.#surfacePostEffects.setMotionShutterScale(this.#auxiliaryBuffers.motionShutterScale);
-    this.#layerEffects.sweep(activeEffectInstances);
+    resources.surfacePostEffects.setMotionShutterScale(
+      resources.auxiliaryBuffers.motionShutterScale,
+    );
+    resources.layerEffects.sweep(activeEffectInstances);
     const sceneTimingEnd = encoder.beginRenderPass({
       label: "Composition timing marker",
-      timestampWrites: this.#gpuProfiler.writes(undefined, 5),
+      timestampWrites: resources.gpuProfiler.writes(undefined, 5),
       colorAttachments: [{ view: sceneView, loadOp: "load", storeOp: "store" }],
     });
     sceneTimingEnd.end();
@@ -1002,7 +790,7 @@ export class WebGpuRenderer {
     const output = outputTexture.createView();
     const postPass = encoder.beginRenderPass({
       label: "Fused effects + ACES display transform",
-      timestampWrites: this.#gpuProfiler.writes(6, 7),
+      timestampWrites: resources.gpuProfiler.writes(6, 7),
       colorAttachments: [
         {
           view: output,
@@ -1014,31 +802,31 @@ export class WebGpuRenderer {
     });
     const postRoute = postRenderRoute(this.#bufferVisualization, auxiliaryFrameValid);
     const beautyPostBindGroup =
-      beautyMotionBlurValid && this.#motionBlurPostBindGroup
-        ? this.#motionBlurPostBindGroup
-        : this.#postBindGroup;
+      beautyMotionBlurValid && resources.motionBlurPostBindGroup
+        ? resources.motionBlurPostBindGroup
+        : resources.postBindGroup;
     if (beautyDepthOfField && auxiliaryFrameValid) {
-      this.#depthEffects.encode(postPass, "depthOfField");
+      resources.depthEffects.encode(postPass, "depthOfField");
     } else if (postRoute === "beauty") {
-      postPass.setPipeline(this.#postPipeline);
+      postPass.setPipeline(resources.postPipeline);
       postPass.setBindGroup(0, beautyPostBindGroup);
       postPass.draw(3);
     } else if (isDepthEffectVisualization(this.#bufferVisualization)) {
-      this.#depthEffects.encode(postPass, this.#bufferVisualization);
+      resources.depthEffects.encode(postPass, this.#bufferVisualization);
     } else if (isSurfaceEffectVisualization(this.#bufferVisualization)) {
-      this.#surfacePostEffects.encode(postPass, this.#bufferVisualization);
+      resources.surfacePostEffects.encode(postPass, this.#bufferVisualization);
     } else if (this.#bufferVisualization === "beauty") {
-      postPass.setPipeline(this.#postPipeline);
+      postPass.setPipeline(resources.postPipeline);
       postPass.setBindGroup(0, beautyPostBindGroup);
       postPass.draw(3);
-    } else this.#bufferVisualizer.encode(postPass, this.#bufferVisualization);
+    } else resources.bufferVisualizer.encode(postPass, this.#bufferVisualization);
     postPass.end();
     this.#pendingFrameReadback?.encode(encoder, outputTexture);
-    const collectTimestamps = this.#gpuProfiler.encodeReadback(encoder);
+    const collectTimestamps = resources.gpuProfiler.encodeReadback(encoder);
     this.#device.queue.submit([encoder.finish()]);
-    this.#mediaTextures.submitted();
-    const textMotionBlurStats = this.#mediaTextures.textMotionBlurFrameStats;
-    if (collectTimestamps) this.#gpuProfiler.readback();
+    resources.mediaTextures.submitted();
+    const textMotionBlurStats = resources.mediaTextures.textMotionBlurFrameStats;
+    if (collectTimestamps) resources.gpuProfiler.readback();
     const cpuMs = performance.now() - started;
     const sample = frameCadenceSample(frameInterval, continuousPlayback);
     this.#smoothedFrameMs = this.#smoothedFrameMs * 0.9 + sample * 0.1;
@@ -1049,7 +837,7 @@ export class WebGpuRenderer {
       fps: Math.min(240, 1000 / this.#smoothedFrameMs),
       frameMs: this.#smoothedFrameMs,
       cpuMs,
-      gpuMs: this.#gpuProfiler.totalMs(),
+      gpuMs: resources.gpuProfiler.totalMs(),
       drawCalls:
         1 +
         (beautyMotionBlurValid ? 3 : 0) +
@@ -1084,7 +872,7 @@ export class WebGpuRenderer {
       fusionGroupCount,
       fusionBarrierCount,
       temporalCacheMb: this.#evaluationCache.memoryBytes() / 1024 / 1024,
-      passTimings: this.#gpuProfiler.passTimings(),
+      passTimings: resources.gpuProfiler.passTimings(),
     };
   }
   async complete(): Promise<void> {
@@ -1101,32 +889,8 @@ export class WebGpuRenderer {
     this.#disposed = true;
     this.#pendingFrameReadback?.abort();
     this.#pendingFrameReadback = undefined;
-    this.#frameReadback.destroy();
-    this.#mediaTextures.destroy();
-    this.#materialTextures?.destroy();
-    this.#materialTextures = undefined;
-    this.#precompositionSurfaces.destroy();
-    this.#sceneGenerators.destroy();
-    this.#bufferVisualizer.destroy();
-    this.#depthEffects.destroy();
-    this.#motionBlur.destroy();
-    this.#surfacePostEffects.destroy();
-    this.#auxiliaryBuffers.destroy();
-    this.#layerEffects.destroy();
-    this.#gpuProfiler.destroy();
+    this.#resources.destroy();
     this.#evaluationCache.clear();
-    this.#sceneTexture?.destroy();
-    this.#sceneTexture = undefined;
-    this.#depthTexture?.destroy();
-    this.#depthTexture = undefined;
-    this.#shadowTexture.destroy();
-    this.#shapeBuffer.destroy();
-    this.#lightingBuffer.destroy();
-    this.#postUniformBuffer.destroy();
-    this.#effectProgramBuffer.destroy();
-    this.#identityLut.destroy();
-    this.#postBindGroup = undefined;
-    this.#motionBlurPostBindGroup = undefined;
     this.#context.unconfigure();
     this.#device.destroy();
   }
@@ -1134,8 +898,8 @@ export class WebGpuRenderer {
     if (this.#disposed) throw new Error("WebGPU renderer is disposed");
   }
   #configureAuxiliaryBuffers(): void {
-    this.#bufferVisualization = this.#auxiliaryBuffers.configureVisualization(
-      this.#bufferVisualizer,
+    this.#bufferVisualization = this.#resources.auxiliaryBuffers.configureVisualization(
+      this.#resources.bufferVisualizer,
       this.#bufferVisualization,
       this.#width,
       this.#height,
@@ -1143,123 +907,48 @@ export class WebGpuRenderer {
       this.#beautyDepthOfFieldActive || this.#beautyMotionBlurActive,
       this.#beautyDepthOfFieldActive,
     );
-    this.diagnostics.depthOfFieldTier = this.#auxiliaryBuffers.depthOfFieldTier;
-    this.diagnostics.depthOfFieldDegradedReason = this.#auxiliaryBuffers.depthOfFieldDiagnostic;
-    this.#motionBlur.setSources(
+    this.diagnostics.depthOfFieldTier = this.#resources.auxiliaryBuffers.depthOfFieldTier;
+    this.diagnostics.depthOfFieldDegradedReason =
+      this.#resources.auxiliaryBuffers.depthOfFieldDiagnostic;
+    this.#resources.motionBlur.setSources(
       this.#width,
       this.#height,
-      this.#beautyMotionBlurActive ? this.#sceneTexture : undefined,
+      this.#beautyMotionBlurActive ? this.#resources.sceneTexture : undefined,
       this.#beautyMotionBlurActive
-        ? this.#auxiliaryBuffers.textures.get("motionVector")
+        ? this.#resources.auxiliaryBuffers.textures.get("motionVector")
         : undefined,
-      this.#beautyMotionBlurActive ? this.#auxiliaryBuffers.textures.get("objectId") : undefined,
+      this.#beautyMotionBlurActive
+        ? this.#resources.auxiliaryBuffers.textures.get("objectId")
+        : undefined,
       (this.#memoryBudgetMb ?? 512) * 1024 * 1024 * 0.25,
     );
-    this.#motionBlurPostBindGroup = this.#motionBlur.outputTexture
-      ? this.#createPostBindGroup(this.#motionBlur.outputTexture, "motion-blurred scene")
+    this.#resources.motionBlurPostBindGroup = this.#resources.motionBlur.outputTexture
+      ? this.#resources.createPostBindGroup(
+          this.#resources.motionBlur.outputTexture,
+          "motion-blurred scene",
+        )
       : undefined;
     this.#depthEffectsUseMotionBlur = false;
-    this.#depthEffects.setSources(
+    this.#resources.depthEffects.setSources(
       this.#width,
       this.#height,
-      this.#sceneTexture,
-      this.#auxiliaryBuffers.textures.get("worldPosition"),
-      this.#auxiliaryBuffers.transparentWorldPosition,
-      this.#auxiliaryBuffers.peeledWorldPosition,
-      this.#auxiliaryBuffers.frontLayerColor,
-      this.#auxiliaryBuffers.peeledLayerColor,
+      this.#resources.sceneTexture,
+      this.#resources.auxiliaryBuffers.textures.get("worldPosition"),
+      this.#resources.auxiliaryBuffers.transparentWorldPosition,
+      this.#resources.auxiliaryBuffers.peeledWorldPosition,
+      this.#resources.auxiliaryBuffers.frontLayerColor,
+      this.#resources.auxiliaryBuffers.peeledLayerColor,
     );
-    this.#surfacePostEffects.setSources(
+    this.#resources.surfacePostEffects.setSources(
       this.#width,
       this.#height,
-      this.#sceneTexture,
-      this.#auxiliaryBuffers.textures.get("objectId"),
-      this.#auxiliaryBuffers.textures.get("motionVector"),
+      this.#resources.sceneTexture,
+      this.#resources.auxiliaryBuffers.textures.get("objectId"),
+      this.#resources.auxiliaryBuffers.textures.get("motionVector"),
     );
-  }
-  #createPostBindGroup(source: GPUTexture, label: string): GPUBindGroup {
-    return this.#device.createBindGroup({
-      label: `HDR fused post-process resources · ${label}`,
-      layout: this.#postPipeline.getBindGroupLayout(0),
-      entries: [
-        { binding: 0, resource: source.createView() },
-        { binding: 1, resource: this.#postSampler },
-        { binding: 2, resource: { buffer: this.#postUniformBuffer } },
-        { binding: 3, resource: { buffer: this.#effectProgramBuffer } },
-        { binding: 4, resource: this.#identityLut.createView({ dimension: "3d" }) },
-        { binding: 5, resource: this.#lutSampler },
-      ],
-    });
-  }
-  #configureShadowMap(size: number): void {
-    if (size === this.#shadowMapSize) return;
-    this.#shadowTexture.destroy();
-    this.#shadowMapSize = size;
-    this.#shadowTexture = this.#device.createTexture({
-      label: `Scene shadow map · ${size}²`,
-      size: [size, size],
-      format: "depth24plus",
-      usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
-    });
-    this.#lightingBindGroup = this.#device.createBindGroup({
-      label: "Scene lighting resources",
-      layout: this.#lightingBindGroupLayout,
-      entries: [
-        { binding: 0, resource: { buffer: this.#lightingBuffer } },
-        { binding: 1, resource: this.#shadowTexture.createView() },
-        { binding: 2, resource: this.#shadowSampler },
-      ],
-    });
-  }
-  #drawBatch(
-    pass: GPURenderPassEncoder,
-    batch: GeometryBatch,
-    blendMode: BlendMode = batch.layer.blendMode,
-    environment?: EnvironmentLighting,
-  ): void {
-    const surface =
-      batch.layer.kind === "precomposition"
-        ? this.#precompositionSurfaces.bindingFor(batch.instanceId)
-        : undefined;
-    const media =
-      batch.layer.kind === "image" || batch.layer.kind === "video" || batch.layer.kind === "text"
-        ? this.#mediaTextures.bindGroup(batch.resourceInstanceId)
-        : undefined;
-    pass.setVertexBuffer(0, this.#shapeBuffer);
-    if (surface) {
-      pass.setPipeline(this.#precompositionSurfaces.pipelineFor(blendMode));
-      pass.setBindGroup(0, surface);
-      pass.draw(batch.vertexCount, 1, batch.firstVertex);
-      return;
-    }
-    if (batch.layer.kind === "precomposition") return;
-    const material = this.#materialTextures?.bindingFor(
-      batch.layer,
-      batch.resourceInstanceId,
-      blendMode,
-      environment,
-    );
-    if (material) {
-      pass.setPipeline(material.pipeline);
-      pass.setBindGroup(0, this.#lightingBindGroup);
-      pass.setBindGroup(1, material.bindGroup);
-    } else if (media) {
-      pass.setPipeline(this.#imagePipelines[blendMode]);
-      pass.setBindGroup(0, media);
-    } else {
-      pass.setPipeline(this.#shapePipelines[blendMode]);
-      pass.setBindGroup(0, this.#lightingBindGroup);
-    }
-    pass.draw(batch.vertexCount, 1, batch.firstVertex);
-  }
-  #ensureShapeBuffer(requiredBytes: number): void {
-    if (requiredBytes <= this.#shapeBufferBytes) return;
-    this.#shapeBufferBytes = 2 ** Math.ceil(Math.log2(requiredBytes));
-    this.#shapeBuffer.destroy();
-    this.#shapeBuffer = this.#device.createBuffer({
-      label: "Dynamic layer geometry · grown",
-      size: this.#shapeBufferBytes,
-      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE,
-    });
   }
 }
+export {
+  releaseFailedWebGpuInitialization,
+  shouldReportGpuDeviceLoss,
+} from "./gpu/device-lifecycle";

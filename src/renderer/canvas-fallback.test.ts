@@ -1,7 +1,7 @@
 import UTIF from "utif";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createLayerForComposition } from "../core/layer-factory";
-import { createBlankProject } from "../core/project";
+import { createLayerForComposition } from "../core/layers/layer-factory";
+import { createBlankProject } from "../core/project/project";
 import { type FootageSource, setLayerSizeAndCenterAnchor, staticValue } from "../core/types";
 import { mediaImportRuntime } from "../importers/media-import-runtime";
 import { CanvasFallbackRenderer } from "./canvas-fallback";

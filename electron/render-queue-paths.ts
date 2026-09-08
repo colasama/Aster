@@ -1,6 +1,6 @@
 import { statSync } from "node:fs";
 import { dirname, resolve } from "node:path";
-import type { RenderQueueState } from "../src/core/render-queue.js";
+import type { RenderQueueState } from "../src/core/rendering/render-queue.js";
 
 export function renderPathKey(path: string): string {
   const normalized = resolve(path);

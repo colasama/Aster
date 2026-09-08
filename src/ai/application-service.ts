@@ -1,7 +1,7 @@
-import { buildAiContext, MAX_AI_CONTEXT_BYTES, queryEffects } from "../core/ai-context";
-import type { Operation } from "../core/operations";
-import { activeComposition } from "../core/project";
-import { prepareProjectFonts } from "../core/project-font-runtime";
+import { buildAiContext, MAX_AI_CONTEXT_BYTES, queryEffects } from "../core/editing/ai-context";
+import type { Operation } from "../core/editing/operations";
+import { prepareProjectFonts } from "../core/media/project-font-runtime";
+import { activeComposition } from "../core/project/project";
 import { createId, type Project } from "../core/types";
 import type { AgentAccessMode, VisualObservation, VisualVerification } from "./agent-protocol";
 import { MAX_AI_COMMAND_BATCH, normalizeAiCommands } from "./command-normalizer";

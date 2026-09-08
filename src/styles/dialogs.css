@@ -1,0 +1,248 @@
+.command-palette,
+.render-dialog,
+.workspace-dialog {
+  overflow: hidden;
+  border: 1px solid #49516a;
+  border-radius: 7px;
+  background: #1a1c23;
+  box-shadow: 0 24px 70px #000c;
+  transform-origin: top center;
+  animation: dialog-in var(--motion-surface) var(--ease-out);
+}
+.command-palette {
+  position: relative;
+  width: min(560px, 80vw);
+  padding: 7px;
+}
+.palette-close {
+  position: absolute;
+  z-index: 2;
+  top: 13px;
+  right: 13px;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 3px;
+  color: #656b78;
+}
+.palette-close:hover {
+  color: white;
+  background: #292d38;
+}
+.palette-search input {
+  padding-right: 25px;
+}
+.palette-search {
+  height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  border: 1px solid #3c4356;
+  border-radius: 5px;
+  color: #8bacf2;
+  background: #111319;
+}
+.palette-search input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font-size: 12px;
+}
+.palette-results {
+  max-height: min(360px, 55vh);
+  overflow-y: auto;
+  margin-top: 7px;
+}
+.palette-search:focus-within {
+  border-color: var(--blue);
+}
+.palette-empty {
+  padding: 20px 10px;
+  color: #9ba4b5;
+  font-size: 11px;
+}
+.palette-results > button {
+  width: 100%;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 9px;
+  border-radius: 4px;
+  color: #aeb3c0;
+  font-size: 10px;
+}
+.palette-results > button:hover,
+.palette-results > button.active {
+  color: white;
+  background: #2b3d62;
+}
+.render-dialog {
+  width: 410px;
+}
+.workspace-dialog {
+  display: flex;
+  width: min(520px, calc(100vw - 32px));
+  max-height: 72vh;
+  flex-direction: column;
+}
+.workspace-dialog > header,
+.workspace-dialog > footer {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  padding: 10px 13px;
+}
+.workspace-dialog > :not(header):not(footer) {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+.workspace-dialog > header {
+  border-bottom: 1px solid #30333d;
+}
+.workspace-dialog > header strong {
+  flex: 1;
+  font-size: 11px;
+}
+.workspace-dialog > header button {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  color: #747a88;
+}
+.workspace-dialog > footer {
+  justify-content: flex-end;
+  gap: 6px;
+  border-top: 1px solid #2b2e36;
+  background: #17191f;
+}
+.workspace-dialog > footer button {
+  height: 28px;
+  padding: 0 11px;
+  border: 1px solid #343842;
+  border-radius: 3px;
+  color: #999eaa;
+  font-size: 9px;
+}
+.workspace-dialog > footer button.primary {
+  border-color: #4d73c4;
+  color: white;
+  background: #3c68c7;
+}
+.dialog-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 11px;
+  padding: 14px;
+}
+.dialog-form .wide {
+  grid-column: 1 / -1;
+}
+.dialog-form label {
+  display: grid;
+  gap: 5px;
+  color: #858c9c;
+  font-size: 9px;
+}
+.dialog-form input,
+.dialog-form select {
+  height: 29px;
+  padding: 0 8px;
+  border: 1px solid #373c48;
+  border-radius: 3px;
+  outline: 0;
+  color: #cbd0dc;
+  background: #111318;
+  font-size: 10px;
+}
+.dialog-form input:focus,
+.dialog-form select:focus {
+  border-color: #5880da;
+}
+.dialog-form .dialog-check {
+  display: flex;
+  grid-template-columns: none;
+  align-items: center;
+  gap: 8px;
+}
+.dialog-form .dialog-check input {
+  width: 14px;
+  height: 14px;
+}
+.dialog-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid #343b50;
+  border-radius: 4px;
+  color: #8491aa;
+  background: #171c29;
+  font-size: 9px;
+  line-height: 1.55;
+}
+.dialog-note svg {
+  flex: 0 0 auto;
+  color: #7fa5f5;
+}
+.shortcut-list {
+  display: grid;
+  padding: 8px 14px 14px;
+}
+.shortcut-list > div {
+  display: grid;
+  grid-template-columns: 135px 1fr;
+  align-items: center;
+  min-height: 34px;
+  border-bottom: 1px solid #282b33;
+  color: #9ca3b2;
+  font-size: 9px;
+}
+.shortcut-list kbd {
+  width: max-content;
+  padding: 4px 6px;
+  border: 1px solid #414756;
+  border-radius: 3px;
+  color: #c8d5ef;
+  background: #111318;
+}
+.about-dialog {
+  display: grid;
+  grid-template-columns: 58px 1fr;
+  gap: 14px;
+  padding: 18px;
+}
+.about-mark {
+  width: 58px;
+  height: 58px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  color: white;
+  background: linear-gradient(145deg, #718fff, #754bd2);
+  box-shadow: 0 9px 28px #536bd955;
+  font-size: 27px;
+  font-weight: 700;
+}
+.about-dialog h2 {
+  margin: 5px 0 3px;
+  color: #e1e6f1;
+  font-size: 14px;
+}
+.about-dialog p,
+.about-dialog .about-meta {
+  margin: 0;
+  color: #8f97a8;
+  font-size: 9px;
+  line-height: 1.6;
+}
+.about-dialog .dialog-note {
+  grid-column: 1 / -1;
+}

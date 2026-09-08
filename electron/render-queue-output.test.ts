@@ -4,7 +4,7 @@ import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import type { RenderJobManifest } from "../src/core/render-queue";
+import type { RenderJobManifest } from "../src/core/rendering/render-queue";
 import { AtomicRenderOutputPublisher } from "./render-queue-output";
 
 const roots: string[] = [];

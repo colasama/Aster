@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { serializeProject, validateProjectDocument } from "../core/project-file";
+import { serializeProject, validateProjectDocument } from "../core/project/project-file";
 import { createInitialState, editorReducer, isProjectDirty } from "./editor-store";
 
 describe("agent editor transactions", () => {

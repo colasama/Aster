@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { AsterAgentApplicationService } from "../src/ai/application-service";
-import { createBlankProject } from "../src/core/project";
+import { createBlankProject } from "../src/core/project/project";
 import { PiAgentRuntime } from "./agent-runtime";
 
 const live = process.env.ASTER_AI_LIVE_TEST === "1";

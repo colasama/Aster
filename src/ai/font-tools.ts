@@ -1,5 +1,5 @@
-import { activateProjectFonts, prepareProjectFonts } from "../core/project-font-runtime";
-import { projectFontMetadata } from "../core/project-fonts";
+import { activateProjectFonts, prepareProjectFonts } from "../core/media/project-font-runtime";
+import { projectFontMetadata } from "../core/project/project-fonts";
 import type { Project } from "../core/types";
 import { listSystemFonts } from "../desktop/fonts";
 import { checkFontAvailability } from "./font-availability";

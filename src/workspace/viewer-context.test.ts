@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createDemoProject } from "../core/project";
+import { createDemoProject } from "../core/project/project";
 import { resolveWorkspaceViewerComposition } from "./viewer-context";
 
 describe("workspace viewer composition context", () => {

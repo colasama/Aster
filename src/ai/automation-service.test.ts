@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import * as projectFiles from "../core/project-file";
+import * as projectFiles from "../core/project/project-file";
 import * as desktop from "../desktop/api";
 import * as renderJobs from "../render-queue/render-job-builder";
 import { createInitialState, editorReducer } from "../state/editor-store";

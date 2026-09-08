@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
-import { AudioDecodeCache } from "../../core/audio-decode-cache";
-import type { DecodedPcm } from "../../core/audio-mixer";
+import { AudioDecodeCache } from "../../core/audio/audio-decode-cache";
+import type { DecodedPcm } from "../../core/audio/audio-mixer";
 import { logger } from "../../core/logger";
 import type { FootageSource } from "../../core/types";
 import { desktopRenderHost } from "../../desktop/api";
@@ -12,8 +12,8 @@ import {
   createBeautyFrameRequest,
   createViewportBeautyFrameBackend,
   ProductionBeautyFramePipeline,
-} from "../../renderer/beauty-frame";
-import { encodeRawFramePng } from "../../renderer/raw-frame-png";
+} from "../../renderer/compositing/beauty-frame";
+import { encodeRawFramePng } from "../../renderer/gpu/raw-frame-png";
 import { WebGpuRenderer } from "../../renderer/webgpu-renderer";
 import { createProductionRenderHostRenderer, renderHostFailure } from "./render-host-renderer";
 import {

@@ -1,11 +1,14 @@
-import { createParticleLayerForComposition } from "../core/bundled-particle";
-import { createLayerForComposition } from "../core/layer-factory";
-import { applyOperations, type Operation, type PropertyPath } from "../core/operations";
-import { activeComposition } from "../core/project";
-import { validateProjectDocument } from "../core/project-file";
-import { applySolidSettings } from "../core/solid-layer";
-import { createDefaultTextAnimator, normalizeTextAnimatorSettings } from "../core/text-animator";
-import { migrateLegacyTextAnimator } from "../core/text-animator-migration";
+import {
+  createDefaultTextAnimator,
+  normalizeTextAnimatorSettings,
+} from "../core/animation/text-animator";
+import { migrateLegacyTextAnimator } from "../core/animation/text-animator-migration";
+import { applyOperations, type Operation, type PropertyPath } from "../core/editing/operations";
+import { createLayerForComposition } from "../core/layers/layer-factory";
+import { applySolidSettings } from "../core/layers/solid-layer";
+import { activeComposition } from "../core/project/project";
+import { validateProjectDocument } from "../core/project/project-file";
+import { createParticleLayerForComposition } from "../core/scene/bundled-particle";
 import { createId, type LayerKind, type Project, setLayerSizeAndCenterAnchor } from "../core/types";
 import { createEffect, EFFECT_BY_TYPE } from "../effects/registry";
 import { getCommandDescriptors, type JsonSchema } from "./command-registry";

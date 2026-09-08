@@ -17,7 +17,7 @@
     "*.ts",
     "*.cts",
     "../src/ai/agent-protocol.ts",
-    "../src/core/render-queue.ts",
+    "../src/core/rendering/render-queue.ts",
     "../src/desktop/preferences.ts"
   ],
   "exclude": ["*.test.ts"]

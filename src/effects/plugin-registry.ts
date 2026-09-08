@@ -3,7 +3,7 @@ import {
   type PluginManifest,
   type PluginParameter,
   type PluginStatus,
-} from "../core/plugins";
+} from "../core/plugins/plugins";
 import { replacePluginEffectDefinitions } from "./registry";
 import type { EffectDefinition, EffectParameterDefinition } from "./types";
 

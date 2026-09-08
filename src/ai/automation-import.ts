@@ -1,7 +1,7 @@
-import { createMediaLayerFromFile } from "../core/assets";
-import { createGltfLayerFromFile } from "../core/gltf";
-import type { Operation } from "../core/operations";
-import { activeComposition } from "../core/project";
+import type { Operation } from "../core/editing/operations";
+import { createMediaLayerFromFile } from "../core/media/assets";
+import { createGltfLayerFromFile } from "../core/media/gltf";
+import { activeComposition } from "../core/project/project";
 import type { Project } from "../core/types";
 import { convertFileSrc } from "../desktop/api";
 import {

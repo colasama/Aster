@@ -9,7 +9,7 @@ import {
   readRecoverySnapshot,
   readRecoverySnapshotForCurrentProject,
   saveProjectDocument,
-} from "../core/project-file";
+} from "../core/project/project-file";
 import { reportUiError } from "../errors/report-ui-error";
 import { useI18n } from "../i18n/react";
 import type { EditorAction, EditorState } from "../state/editor-store";

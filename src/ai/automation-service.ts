@@ -1,12 +1,12 @@
-import { applyOperations, type Operation } from "../core/operations";
-import { activeComposition } from "../core/project";
+import { applyOperations, type Operation } from "../core/editing/operations";
+import { prepareProjectFonts } from "../core/media/project-font-runtime";
+import { activeComposition } from "../core/project/project";
 import {
   loadProjectFromPath,
   saveProjectDocument,
   validateProjectDocument,
-} from "../core/project-file";
-import { prepareProjectFonts } from "../core/project-font-runtime";
-import { type ProjectFont, projectFontMetadata } from "../core/project-fonts";
+} from "../core/project/project-file";
+import { type ProjectFont, projectFontMetadata } from "../core/project/project-fonts";
 import type { Project } from "../core/types";
 import { desktopRenderQueue } from "../desktop/api";
 import {

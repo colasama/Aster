@@ -1,5 +1,5 @@
-import type { EditableKeyframe } from "../../core/keyframe-editing";
-import type { Operation } from "../../core/operations";
+import type { EditableKeyframe } from "../../core/animation/keyframe-editing";
+import type { Operation } from "../../core/editing/operations";
 import type { Id, Keyframe } from "../../core/types";
 import {
   constrainGraphTrackValue,

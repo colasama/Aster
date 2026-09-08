@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { copyKeyframes, pasteKeyframes, removeKeyframes } from "../../core/keyframe-editing";
-import { applyOperations } from "../../core/operations";
-import { activeComposition } from "../../core/project";
+import {
+  copyKeyframes,
+  pasteKeyframes,
+  removeKeyframes,
+} from "../../core/animation/keyframe-editing";
+import { applyOperations } from "../../core/editing/operations";
+import { activeComposition } from "../../core/project/project";
 import { createEffect } from "../../effects/registry";
 import { createInitialState, editorReducer } from "../../state/editor-store";
 import {

@@ -1,6 +1,6 @@
-import { createLayerForComposition } from "../core/layer-factory";
-import type { Operation, PropertyPath } from "../core/operations";
-import { evaluateAnimatable } from "../core/timeline";
+import { evaluateAnimatable } from "../core/animation/timeline";
+import type { Operation, PropertyPath } from "../core/editing/operations";
+import { createLayerForComposition } from "../core/layers/layer-factory";
 import type { Composition, Id, Layer } from "../core/types";
 import { createId } from "../core/types";
 import { createEffect } from "../effects/registry";

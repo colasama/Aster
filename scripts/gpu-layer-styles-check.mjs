@@ -1,11 +1,11 @@
 // Run run() from a WebGPU browser on the unbundled Vite server; see docs/LAYER_STYLES.md.
 
-import { createLayerForComposition } from "/src/core/layer-factory.ts";
-import { createBlankProject } from "/src/core/project.ts";
+import { createLayerForComposition } from "/src/core/layers/layer-factory.ts";
+import { createBlankProject } from "/src/core/project/project.ts";
 import { BLEND_MODES } from "/src/core/types.ts";
 import { createEffect } from "/src/effects/registry.ts";
-import { LayerCompositor, needsBackdropBlend } from "/src/renderer/layer-composite.ts";
-import { LayerEffectRenderer } from "/src/renderer/layer-effects.ts";
+import { LayerCompositor, needsBackdropBlend } from "/src/renderer/compositing/layer-composite.ts";
+import { LayerEffectRenderer } from "/src/renderer/effects/layer-effects.ts";
 
 export async function run() {
   const adapter = await navigator.gpu.requestAdapter(),

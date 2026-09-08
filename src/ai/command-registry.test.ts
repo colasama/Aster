@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { OPERATION_TYPES } from "../core/operations";
+import { OPERATION_TYPES } from "../core/editing/operations";
 import {
   AI_COMMAND_DESCRIPTORS,
   AI_COMMAND_SCHEMA_VERSION,

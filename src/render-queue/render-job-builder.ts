@@ -1,10 +1,10 @@
-import { runCpuTask } from "../core/cpu-scheduler";
-import { projectDocumentForPersistence, serializeProject } from "../core/project-file";
+import { projectDocumentForPersistence, serializeProject } from "../core/project/project-file";
 import {
   type EnqueueRenderJobInput,
   MAX_RENDER_SNAPSHOT_BYTES,
   type RenderOutputModule,
-} from "../core/render-queue";
+} from "../core/rendering/render-queue";
+import { runCpuTask } from "../core/scheduling/cpu-scheduler";
 import { type Composition, createId, type Project } from "../core/types";
 import {
   captureRenderMediaManifest,

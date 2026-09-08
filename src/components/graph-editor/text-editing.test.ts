@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { createLayerForComposition } from "../../core/layer-factory";
-import { getProperty } from "../../core/operations";
-import { activeComposition, createDemoProject } from "../../core/project";
+import { getProperty } from "../../core/editing/operations";
+import { createLayerForComposition } from "../../core/layers/layer-factory";
+import { activeComposition, createDemoProject } from "../../core/project/project";
 import { createInitialState, editorReducer } from "../../state/editor-store";
 import {
   expandSpatialGraphEntries,

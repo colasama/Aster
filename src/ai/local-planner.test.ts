@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { applyOperations } from "../core/operations";
-import { createDemoProject } from "../core/project";
-import { validateProjectDocument } from "../core/project-file";
-import { evaluateAnimatable } from "../core/timeline";
+import { evaluateAnimatable } from "../core/animation/timeline";
+import { applyOperations } from "../core/editing/operations";
+import { createDemoProject } from "../core/project/project";
+import { validateProjectDocument } from "../core/project/project-file";
 import { planLocalAiOperations } from "./local-planner";
 
 describe("local AI operation planner", () => {

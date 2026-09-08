@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
-import { evaluateLayerTransform } from "../core/expressions";
-import { createLayerForComposition } from "../core/layer-factory";
-import { createBlankProject } from "../core/project";
+import { evaluateLayerTransform } from "../core/animation/expressions";
+import { createLayerForComposition } from "../core/layers/layer-factory";
+import { createBlankProject } from "../core/project/project";
 import { normalizeAiCommands } from "./command-normalizer";
 
 it("authors independent mesh pivot axes through the shared command path and seeks deterministically", () => {

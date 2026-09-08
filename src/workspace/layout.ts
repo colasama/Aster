@@ -1,156 +1,41 @@
-export type WorkspaceAxis = "horizontal" | "vertical";
-export type WorkspaceDockPosition = "center" | "left" | "right" | "top" | "bottom";
-export type WorkspaceGroupPresentation = "tabs" | "stacked";
+import {
+  clampSplitRatio,
+  compareIds,
+  normalizeBounds,
+  normalizedExpandedPanels,
+  normalizeOptionalId,
+  sameBounds,
+  sameViewer,
+  validId,
+} from "./layout-normalization";
 
-export interface WorkspaceViewerInstance {
-  /** Stable identity for one viewer panel, also used as its layout panel id. */
-  readonly id: string;
-  /** Panel definition that supplies the viewer surface without copying project state. */
-  readonly sourcePanelId: string;
-  readonly viewerType: string;
-  readonly locked: boolean;
-  /** Project-local context. Locked contexts are intentionally not persisted. */
-  readonly contextId?: string;
-}
-
-export interface WorkspaceTabGroup {
-  readonly kind: "tabGroup";
-  readonly id: string;
-  readonly panels: readonly string[];
-  readonly activePanelId: string;
-  readonly presentation?: WorkspaceGroupPresentation;
-  readonly stackSolo?: boolean;
-  readonly expandedPanelIds?: readonly string[];
-}
-
-export interface WorkspaceSplit {
-  readonly kind: "split";
-  readonly id: string;
-  readonly axis: WorkspaceAxis;
-  readonly ratio: number;
-  readonly first: WorkspaceNode;
-  readonly second: WorkspaceNode;
-}
-
-export type WorkspaceNode = WorkspaceTabGroup | WorkspaceSplit;
-
-export interface WorkspaceBounds {
-  readonly x: number;
-  readonly y: number;
-  readonly width: number;
-  readonly height: number;
-}
-
-export interface FloatingWorkspace {
-  readonly id: string;
-  readonly node: WorkspaceNode;
-  readonly bounds: WorkspaceBounds;
-  readonly displayId?: string;
-}
-
-export interface WorkspaceLayout {
-  readonly root: WorkspaceNode | null;
-  readonly floating: readonly FloatingWorkspace[];
-  readonly closedPanels: readonly string[];
-  readonly maximizedGroupId?: string;
-  readonly viewers?: readonly WorkspaceViewerInstance[];
-}
-
-export interface WorkspaceGroupLocation {
-  readonly group: WorkspaceTabGroup;
-  readonly floatingId?: string;
-}
-
-export const MIN_SPLIT_RATIO = 0.1;
-export const MAX_SPLIT_RATIO = 0.9;
-export const MAX_VIEWER_INSTANCES_PER_SOURCE = 4;
-
-const MIN_FLOATING_WIDTH = 160;
-const MIN_FLOATING_HEIGHT = 120;
-const MAX_FLOATING_DIMENSION = 100_000;
-const MAX_FLOATING_COORDINATE = 1_000_000;
-
-interface NormalizeContext {
-  readonly panelIds: Set<string>;
-}
-
-interface NodeResult {
-  readonly node: WorkspaceNode | null;
-  readonly removed: boolean;
-}
-
-interface ReplaceResult {
-  readonly node: WorkspaceNode;
-  readonly found: boolean;
-}
-
-/**
- * Restores the layout invariants without rebuilding branches that are already canonical.
- * Visible panels win over later duplicates, followed by closed panels in lexical order.
- */
-export function normalizeWorkspaceLayout(layout: WorkspaceLayout): WorkspaceLayout {
-  const context: NormalizeContext = { panelIds: new Set() };
-  const root = layout.root ? normalizeNode(layout.root, context) : null;
-  let floatingChanged = false;
-  const floatingIds = new Set<string>();
-  const floating: FloatingWorkspace[] = [];
-  for (const entry of layout.floating) {
-    if (!validId(entry.id) || floatingIds.has(entry.id)) {
-      floatingChanged = true;
-      continue;
-    }
-    floatingIds.add(entry.id);
-    const node = normalizeNode(entry.node, context);
-    if (!node) {
-      floatingChanged = true;
-      continue;
-    }
-    const bounds = normalizeBounds(entry.bounds);
-    const displayId = normalizeOptionalId(entry.displayId);
-    const unchanged =
-      node === entry.node && sameBounds(bounds, entry.bounds) && displayId === entry.displayId;
-    floating.push(
-      unchanged
-        ? entry
-        : {
-            id: entry.id,
-            node,
-            bounds,
-            ...(displayId ? { displayId } : {}),
-          },
-    );
-    if (!unchanged) floatingChanged = true;
-  }
-  if (floating.length !== layout.floating.length) floatingChanged = true;
-
-  const closedPanels = [...new Set(layout.closedPanels.filter(validId))]
-    .filter((panelId) => !context.panelIds.has(panelId))
-    .sort(compareIds);
-  const closedChanged = !sameStringArray(closedPanels, layout.closedPanels);
-  const maximizedGroupId =
-    layout.maximizedGroupId &&
-    findNodeInRoots(root, floating, layout.maximizedGroupId)?.kind === "tabGroup"
-      ? layout.maximizedGroupId
-      : undefined;
-  const viewers = normalizeViewers(layout.viewers ?? [], context.panelIds, closedPanels);
-  const viewersChanged = !sameViewers(viewers, layout.viewers ?? []);
-  const rootChanged = root !== layout.root;
-  if (
-    !rootChanged &&
-    !floatingChanged &&
-    !closedChanged &&
-    maximizedGroupId === layout.maximizedGroupId &&
-    !viewersChanged
-  )
-    return layout;
-  return {
-    root,
-    floating: floatingChanged ? floating : layout.floating,
-    closedPanels: closedChanged ? closedPanels : layout.closedPanels,
-    ...(maximizedGroupId ? { maximizedGroupId } : {}),
-    ...(viewers.length > 0 ? { viewers: viewersChanged ? viewers : layout.viewers } : {}),
-  };
-}
+import {
+  detachVisiblePanel,
+  detachWorkspaceNode,
+  findWorkspaceNode,
+  firstTabGroupId,
+  nextLayoutId,
+  nextViewerId,
+  nodeHasPanel,
+  nodePanelIds,
+  removeClosedPanel,
+  replaceNodeInLayout,
+  viewerInstanceCount,
+  withoutMaximizedGroup,
+  workspacePanelIds,
+  workspaceTabGroups,
+} from "./layout-tree";
+import {
+  type FloatingWorkspace,
+  MAX_VIEWER_INSTANCES_PER_SOURCE,
+  type WorkspaceAxis,
+  type WorkspaceBounds,
+  type WorkspaceDockPosition,
+  type WorkspaceGroupPresentation,
+  type WorkspaceLayout,
+  type WorkspaceTabGroup,
+  type WorkspaceViewerInstance,
+} from "./layout-types";
 
 export function setGroupPresentation(
   layout: WorkspaceLayout,
@@ -653,408 +538,19 @@ export function resizeSplit(
   );
 }
 
-export function findWorkspaceNode(
-  layout: WorkspaceLayout,
-  nodeId: string,
-): WorkspaceNode | undefined {
-  const root = layout.root ? findNode(layout.root, nodeId) : undefined;
-  if (root) return root;
-  for (const entry of layout.floating) {
-    const node = findNode(entry.node, nodeId);
-    if (node) return node;
-  }
-  return undefined;
-}
-
-export function workspacePanelIds(layout: WorkspaceLayout): readonly string[] {
-  return [
-    ...(layout.root ? nodePanelIds(layout.root) : []),
-    ...layout.floating.flatMap((entry) => nodePanelIds(entry.node)),
-  ];
-}
-
-export function workspaceTabGroups(layout: WorkspaceLayout): readonly WorkspaceGroupLocation[] {
-  const groups: WorkspaceGroupLocation[] = [];
-  if (layout.root) collectTabGroups(layout.root, groups);
-  for (const entry of layout.floating) collectTabGroups(entry.node, groups, entry.id);
-  return groups;
-}
-
-function normalizeNode(node: WorkspaceNode, context: NormalizeContext): WorkspaceNode | null {
-  if (node.kind === "tabGroup") {
-    const panels: string[] = [];
-    for (const panelId of node.panels) {
-      if (!validId(panelId) || context.panelIds.has(panelId)) continue;
-      context.panelIds.add(panelId);
-      panels.push(panelId);
-    }
-    if (panels.length === 0) return null;
-    const activePanelId = panels.includes(node.activePanelId) ? node.activePanelId : panels[0];
-    const presentation: WorkspaceGroupPresentation =
-      node.presentation === "stacked" ? "stacked" : "tabs";
-    if (presentation === "tabs") {
-      const hasStackMetadata =
-        node.presentation !== undefined ||
-        node.stackSolo !== undefined ||
-        node.expandedPanelIds !== undefined;
-      return sameStringArray(panels, node.panels) &&
-        activePanelId === node.activePanelId &&
-        !hasStackMetadata
-        ? node
-        : { kind: "tabGroup", id: node.id, panels, activePanelId };
-    }
-    const stackSolo = node.stackSolo ?? true;
-    const candidate: WorkspaceTabGroup = { ...node, panels, activePanelId };
-    const expanded = normalizedExpandedPanels(candidate, node.expandedPanelIds);
-    const expandedPanelIds = stackSolo && expanded.length > 1 ? [activePanelId] : expanded;
-    return sameStringArray(panels, node.panels) &&
-      activePanelId === node.activePanelId &&
-      node.presentation === presentation &&
-      node.stackSolo === stackSolo &&
-      sameStringArray(expandedPanelIds, node.expandedPanelIds ?? [])
-      ? node
-      : { ...node, panels, activePanelId, presentation, stackSolo, expandedPanelIds };
-  }
-  const first = normalizeNode(node.first, context);
-  const second = normalizeNode(node.second, context);
-  if (!first) return second;
-  if (!second) return first;
-  const ratio = clampSplitRatio(node.ratio);
-  return first === node.first && second === node.second && ratio === node.ratio
-    ? node
-    : { ...node, first, second, ratio };
-}
-
-function detachVisiblePanel(
-  layout: WorkspaceLayout,
-  panelId: string,
-): { readonly layout: WorkspaceLayout; readonly removed: boolean } {
-  if (layout.root) {
-    const result = removePanelFromNode(layout.root, panelId);
-    if (result.removed) return { layout: { ...layout, root: result.node }, removed: true };
-  }
-  for (let index = 0; index < layout.floating.length; index += 1) {
-    const entry = layout.floating[index];
-    const result = removePanelFromNode(entry.node, panelId);
-    if (!result.removed) continue;
-    const floating = [...layout.floating];
-    if (result.node) floating[index] = { ...entry, node: result.node };
-    else floating.splice(index, 1);
-    return { layout: { ...layout, floating }, removed: true };
-  }
-  return { layout, removed: false };
-}
-
-function detachWorkspaceNode(
-  layout: WorkspaceLayout,
-  nodeId: string,
-): { readonly layout: WorkspaceLayout; readonly node: WorkspaceNode | null } {
-  if (layout.root) {
-    const result = removeNodeById(layout.root, nodeId);
-    if (result.removed) return { layout: { ...layout, root: result.node }, node: result.detached };
-  }
-  for (let index = 0; index < layout.floating.length; index += 1) {
-    const entry = layout.floating[index];
-    const result = removeNodeById(entry.node, nodeId);
-    if (!result.removed) continue;
-    const floating = [...layout.floating];
-    if (result.node) floating[index] = { ...entry, node: result.node };
-    else floating.splice(index, 1);
-    return { layout: { ...layout, floating }, node: result.detached };
-  }
-  return { layout, node: null };
-}
-
-function removeNodeById(
-  node: WorkspaceNode,
-  nodeId: string,
-): NodeResult & { readonly detached: WorkspaceNode | null } {
-  if (node.id === nodeId) return { node: null, removed: true, detached: node };
-  if (node.kind === "tabGroup") return { node, removed: false, detached: null };
-  const first = removeNodeById(node.first, nodeId);
-  if (first.removed) {
-    if (!first.node) return { node: node.second, removed: true, detached: first.detached };
-    return { node: { ...node, first: first.node }, removed: true, detached: first.detached };
-  }
-  const second = removeNodeById(node.second, nodeId);
-  if (!second.removed) return { node, removed: false, detached: null };
-  if (!second.node) return { node: node.first, removed: true, detached: second.detached };
-  return { node: { ...node, second: second.node }, removed: true, detached: second.detached };
-}
-
-function removePanelFromNode(node: WorkspaceNode, panelId: string): NodeResult {
-  if (node.kind === "tabGroup") {
-    const index = node.panels.indexOf(panelId);
-    if (index < 0) return { node, removed: false };
-    const panels = node.panels.filter((candidate) => candidate !== panelId);
-    if (panels.length === 0) return { node: null, removed: true };
-    const activePanelId =
-      node.activePanelId === panelId
-        ? panels[Math.min(index, panels.length - 1)]
-        : node.activePanelId;
-    return { node: { ...node, panels, activePanelId }, removed: true };
-  }
-  const first = removePanelFromNode(node.first, panelId);
-  if (first.removed) {
-    if (!first.node) return { node: node.second, removed: true };
-    return { node: { ...node, first: first.node }, removed: true };
-  }
-  const second = removePanelFromNode(node.second, panelId);
-  if (!second.removed) return { node, removed: false };
-  if (!second.node) return { node: node.first, removed: true };
-  return { node: { ...node, second: second.node }, removed: true };
-}
-
-function replaceNodeInLayout(
-  layout: WorkspaceLayout,
-  nodeId: string,
-  replace: (node: WorkspaceNode) => WorkspaceNode,
-): WorkspaceLayout | undefined {
-  if (layout.root) {
-    const result = replaceNode(layout.root, nodeId, replace);
-    if (result.found)
-      return result.node === layout.root ? layout : { ...layout, root: result.node };
-  }
-  for (let index = 0; index < layout.floating.length; index += 1) {
-    const entry = layout.floating[index];
-    const result = replaceNode(entry.node, nodeId, replace);
-    if (!result.found) continue;
-    if (result.node === entry.node) return layout;
-    const floating = [...layout.floating];
-    floating[index] = { ...entry, node: result.node };
-    return { ...layout, floating };
-  }
-  return undefined;
-}
-
-function replaceNode(
-  node: WorkspaceNode,
-  nodeId: string,
-  replace: (node: WorkspaceNode) => WorkspaceNode,
-): ReplaceResult {
-  if (node.id === nodeId) return { node: replace(node), found: true };
-  if (node.kind === "tabGroup") return { node, found: false };
-  const first = replaceNode(node.first, nodeId, replace);
-  if (first.found)
-    return {
-      node: first.node === node.first ? node : { ...node, first: first.node },
-      found: true,
-    };
-  const second = replaceNode(node.second, nodeId, replace);
-  return second.found
-    ? {
-        node: second.node === node.second ? node : { ...node, second: second.node },
-        found: true,
-      }
-    : { node, found: false };
-}
-
-function removeClosedPanel(layout: WorkspaceLayout, panelId: string): WorkspaceLayout {
-  if (!layout.closedPanels.includes(panelId)) return layout;
-  return {
-    ...layout,
-    closedPanels: layout.closedPanels.filter((candidate) => candidate !== panelId),
-  };
-}
-
-function findNode(node: WorkspaceNode, nodeId: string): WorkspaceNode | undefined {
-  if (node.id === nodeId) return node;
-  if (node.kind === "tabGroup") return undefined;
-  return findNode(node.first, nodeId) ?? findNode(node.second, nodeId);
-}
-
-function firstTabGroupId(node: WorkspaceNode): string {
-  return node.kind === "tabGroup" ? node.id : firstTabGroupId(node.first);
-}
-
-function nodePanelIds(node: WorkspaceNode): string[] {
-  return node.kind === "tabGroup"
-    ? [...node.panels]
-    : [...nodePanelIds(node.first), ...nodePanelIds(node.second)];
-}
-
-function nodeHasPanel(node: WorkspaceNode, panelId: string): boolean {
-  return node.kind === "tabGroup"
-    ? node.panels.includes(panelId)
-    : nodeHasPanel(node.first, panelId) || nodeHasPanel(node.second, panelId);
-}
-
-function nextLayoutId(layout: WorkspaceLayout, prefix: string): string {
-  const ids = new Set<string>();
-  if (layout.root) collectNodeIds(layout.root, ids);
-  for (const entry of layout.floating) {
-    ids.add(entry.id);
-    collectNodeIds(entry.node, ids);
-  }
-  let index = 1;
-  while (ids.has(`${prefix}-${index}`)) index += 1;
-  return `${prefix}-${index}`;
-}
-
-function collectNodeIds(node: WorkspaceNode, ids: Set<string>): void {
-  ids.add(node.id);
-  if (node.kind === "split") {
-    collectNodeIds(node.first, ids);
-    collectNodeIds(node.second, ids);
-  }
-}
-
-function collectTabGroups(
-  node: WorkspaceNode,
-  groups: WorkspaceGroupLocation[],
-  floatingId?: string,
-): void {
-  if (node.kind === "tabGroup") {
-    groups.push({ group: node, ...(floatingId ? { floatingId } : {}) });
-    return;
-  }
-  collectTabGroups(node.first, groups, floatingId);
-  collectTabGroups(node.second, groups, floatingId);
-}
-
-function normalizeBounds(bounds: WorkspaceBounds): WorkspaceBounds {
-  return {
-    x: clampFinite(bounds.x, -MAX_FLOATING_COORDINATE, MAX_FLOATING_COORDINATE, 0),
-    y: clampFinite(bounds.y, -MAX_FLOATING_COORDINATE, MAX_FLOATING_COORDINATE, 0),
-    width: clampFinite(bounds.width, MIN_FLOATING_WIDTH, MAX_FLOATING_DIMENSION, 640),
-    height: clampFinite(bounds.height, MIN_FLOATING_HEIGHT, MAX_FLOATING_DIMENSION, 480),
-  };
-}
-
-function clampSplitRatio(ratio: number): number {
-  return clampFinite(ratio, MIN_SPLIT_RATIO, MAX_SPLIT_RATIO, 0.5);
-}
-
-function clampFinite(value: number, minimum: number, maximum: number, fallback: number): number {
-  return Math.max(minimum, Math.min(maximum, Number.isFinite(value) ? value : fallback));
-}
-
-function normalizeOptionalId(value: string | undefined): string | undefined {
-  if (value === undefined) return undefined;
-  const normalized = value.trim();
-  return normalized || undefined;
-}
-
-function validId(value: string): boolean {
-  return typeof value === "string" && value.trim().length > 0;
-}
-
-function compareIds(left: string, right: string): number {
-  return left < right ? -1 : left > right ? 1 : 0;
-}
-
-function sameStringArray(left: readonly string[], right: readonly string[]): boolean {
-  return left.length === right.length && left.every((value, index) => value === right[index]);
-}
-
-function sameBounds(left: WorkspaceBounds, right: WorkspaceBounds): boolean {
-  return (
-    left.x === right.x &&
-    left.y === right.y &&
-    left.width === right.width &&
-    left.height === right.height
-  );
-}
-
-function normalizedExpandedPanels(
-  group: WorkspaceTabGroup,
-  values: readonly string[] | undefined,
-): readonly string[] {
-  const expanded = new Set(values?.filter((panelId) => group.panels.includes(panelId)) ?? []);
-  return group.panels.filter((panelId) => expanded.has(panelId));
-}
-
-function withoutMaximizedGroup(layout: WorkspaceLayout): WorkspaceLayout {
-  const { maximizedGroupId: _maximized, ...rest } = layout;
-  return rest;
-}
-
-function findNodeInRoots(
-  root: WorkspaceNode | null,
-  floating: readonly FloatingWorkspace[],
-  nodeId: string,
-): WorkspaceNode | undefined {
-  const docked = root ? findNode(root, nodeId) : undefined;
-  if (docked) return docked;
-  for (const entry of floating) {
-    const candidate = findNode(entry.node, nodeId);
-    if (candidate) return candidate;
-  }
-  return undefined;
-}
-
-function normalizeViewers(
-  viewers: readonly WorkspaceViewerInstance[],
-  visiblePanelIds: ReadonlySet<string>,
-  closedPanelIds: readonly string[],
-): readonly WorkspaceViewerInstance[] {
-  const retainedPanelIds = new Set([...visiblePanelIds, ...closedPanelIds]);
-  const ids = new Set<string>();
-  const normalized: WorkspaceViewerInstance[] = [];
-  for (const viewer of viewers) {
-    if (
-      !validId(viewer.id) ||
-      !validId(viewer.sourcePanelId) ||
-      !validId(viewer.viewerType) ||
-      ids.has(viewer.id) ||
-      !retainedPanelIds.has(viewer.id)
-    )
-      continue;
-    ids.add(viewer.id);
-    normalized.push({
-      id: viewer.id.trim(),
-      sourcePanelId: viewer.sourcePanelId.trim(),
-      viewerType: viewer.viewerType.trim(),
-      locked: viewer.locked === true,
-      ...(viewer.locked === true && validId(viewer.contextId ?? "")
-        ? { contextId: viewer.contextId?.trim() }
-        : {}),
-    });
-  }
-  return normalized;
-}
-
-function sameViewers(
-  left: readonly WorkspaceViewerInstance[],
-  right: readonly WorkspaceViewerInstance[],
-): boolean {
-  return (
-    left.length === right.length && left.every((viewer, index) => sameViewer(viewer, right[index]))
-  );
-}
-
-function sameViewer(
-  left: WorkspaceViewerInstance,
-  right: WorkspaceViewerInstance | undefined,
-): boolean {
-  return Boolean(
-    right &&
-      left.id === right.id &&
-      left.sourcePanelId === right.sourcePanelId &&
-      left.viewerType === right.viewerType &&
-      left.locked === right.locked &&
-      left.contextId === right.contextId,
-  );
-}
-
-function nextViewerId(layout: WorkspaceLayout, sourcePanelId: string): string {
-  const panelIds = new Set([
-    ...workspacePanelIds(layout),
-    ...layout.closedPanels,
-    ...(layout.viewers ?? []).map((viewer) => viewer.id),
-  ]);
-  let index = 2;
-  while (panelIds.has(`${sourcePanelId}::viewer-${index}`)) index += 1;
-  return `${sourcePanelId}::viewer-${index}`;
-}
-
-function viewerInstanceCount(layout: WorkspaceLayout, sourcePanelId: string): number {
-  const retainedPanelIds = new Set([...workspacePanelIds(layout), ...layout.closedPanels]);
-  const viewerSources = new Map(
-    (layout.viewers ?? []).map((viewer) => [viewer.id, viewer.sourcePanelId]),
-  );
-  let count = 0;
-  for (const panelId of retainedPanelIds)
-    if ((viewerSources.get(panelId) ?? panelId) === sourcePanelId) count += 1;
-  return count;
-}
+export { normalizeWorkspaceLayout } from "./layout-normalization";
+export { findWorkspaceNode, workspacePanelIds, workspaceTabGroups } from "./layout-tree";
+export type {
+  FloatingWorkspace,
+  WorkspaceAxis,
+  WorkspaceBounds,
+  WorkspaceDockPosition,
+  WorkspaceGroupLocation,
+  WorkspaceGroupPresentation,
+  WorkspaceLayout,
+  WorkspaceNode,
+  WorkspaceSplit,
+  WorkspaceTabGroup,
+  WorkspaceViewerInstance,
+} from "./layout-types";
+export { MAX_SPLIT_RATIO, MAX_VIEWER_INSTANCES_PER_SOURCE, MIN_SPLIT_RATIO } from "./layout-types";

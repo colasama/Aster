@@ -1,0 +1,125 @@
+import { choice, color, number, percent, toggle } from "../../parameter-builders";
+import type { EffectDefinition } from "../../types";
+
+const CHANNEL_OPTIONS = ["Red", "Green", "Blue", "Alpha", "Luminance", "Full On", "Full Off"];
+
+export const CHANNEL_KEYING_EFFECTS: EffectDefinition[] = [
+  {
+    type: "set-channels",
+    name: "Set Channels",
+    category: "Channel",
+    description: "Route RGB, alpha, luminance, or constants into each output channel.",
+    execution: "fused-pixel",
+    parameters: [
+      choice("red", "Set Red To", CHANNEL_OPTIONS),
+      choice("green", "Set Green To", CHANNEL_OPTIONS, 1),
+      choice("blue", "Set Blue To", CHANNEL_OPTIONS, 2),
+      choice("alpha", "Set Alpha To", CHANNEL_OPTIONS, 3),
+    ],
+  },
+  {
+    type: "arithmetic",
+    name: "Arithmetic",
+    category: "Channel",
+    description: "Apply an arithmetic operator to every color channel in linear light.",
+    execution: "fused-pixel",
+    parameters: [
+      choice("operator", "Operator", [
+        "Add",
+        "Subtract",
+        "Multiply",
+        "Divide",
+        "Screen",
+        "Difference",
+      ]),
+      number("value", "Value", 0.1, -8, 8, 0.01),
+      toggle("clamp", "Clip Result Values", 1),
+      percent("blend", "Blend With Original", 100),
+    ],
+  },
+  {
+    type: "alpha-levels",
+    name: "Alpha Levels",
+    category: "Channel",
+    description: "Remap the alpha channel with independent input, gamma, and output levels.",
+    execution: "fused-pixel",
+    parameters: [
+      number("inputBlack", "Input Black", 0, 0, 1, 0.001),
+      number("inputWhite", "Input White", 1, 0, 1, 0.001),
+      number("gamma", "Gamma", 1, 0.05, 10, 0.01),
+      number("outputBlack", "Output Black", 0, 0, 1, 0.001),
+      number("outputWhite", "Output White", 1, 0, 1, 0.001),
+      toggle("invert", "Invert Alpha", 0),
+    ],
+  },
+  {
+    type: "remove-color-matting",
+    name: "Remove Color Matting",
+    category: "Channel",
+    description: "Remove a premultiplied background fringe from translucent edge pixels.",
+    execution: "fused-pixel",
+    parameters: [
+      color("backgroundColor", "Background Color", 0x000000),
+      percent("amount", "Removal Amount", 100),
+      toggle("preserveLuminance", "Preserve Luminance", 1),
+    ],
+  },
+  {
+    type: "linear-color-key",
+    name: "Linear Color Key",
+    category: "Keying",
+    description: "Key a color using linear-RGB distance with controllable edge softness.",
+    execution: "fused-pixel",
+    parameters: [
+      color("keyColor", "Key Color", 0x00ff66),
+      number("tolerance", "Matching Tolerance", 0.18, 0, 1.732, 0.005),
+      number("softness", "Matching Softness", 0.08, 0, 1, 0.005),
+      toggle("invert", "Invert Matte", 0),
+    ],
+  },
+  {
+    type: "color-range",
+    name: "Color Range",
+    category: "Keying",
+    description: "Build an alpha matte from a color range constrained by luminance.",
+    execution: "fused-pixel",
+    parameters: [
+      color("targetColor", "Target Color", 0x3d65ff),
+      number("fuzziness", "Fuzziness", 0.22, 0, 1.732, 0.005),
+      number("minimumLuminance", "Minimum Luminance", 0, 0, 1, 0.005),
+      number("maximumLuminance", "Maximum Luminance", 1, 0, 1, 0.005),
+      number("softness", "Range Softness", 0.08, 0, 1, 0.005),
+      toggle("invert", "Invert Matte", 0),
+    ],
+  },
+  {
+    type: "matte-choker",
+    name: "Matte Choker",
+    category: "Matte",
+    description: "Contract or expand alpha with round or square neighborhood sampling.",
+    execution: "multi-pass",
+    parameters: [
+      number("choke", "Geometric Softness", 4, -256, 256, 0.25, "px"),
+      number("softness", "Gray Level Softness", 2, 0, 64, 0.25, "px"),
+      choice("geometry", "Geometry", ["Round", "Square"]),
+      number("iterations", "Iterations", 1, 1, 4, 1),
+    ],
+  },
+  {
+    type: "keylight",
+    name: "Keylight",
+    category: "Keying",
+    description: "Professional chroma key with screen gain, matte clipping, softness, and despill.",
+    execution: "fused-pixel",
+    parameters: [
+      color("screenColor", "Screen Colour", 0x00b96b),
+      number("screenGain", "Screen Gain", 1, 0.1, 8, 0.01),
+      number("screenBalance", "Screen Balance", 0.5, 0, 1, 0.01),
+      number("clipBlack", "Clip Black", 0.04, 0, 1, 0.005),
+      number("clipWhite", "Clip White", 0.92, 0, 1, 0.005),
+      number("screenSoftness", "Screen Softness", 0.08, 0, 1, 0.005),
+      number("despill", "Despill Bias", 0.75, 0, 2, 0.01),
+      percent("blend", "Blend With Original", 100),
+    ],
+  },
+];

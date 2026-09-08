@@ -1,4 +1,4 @@
-import type { EnqueueRenderJobInput, RenderQueueViewState } from "../core/render-queue";
+import type { EnqueueRenderJobInput, RenderQueueViewState } from "../core/rendering/render-queue";
 import { desktopRenderQueue, isDesktopRuntime } from "../desktop/api";
 
 export type RenderQueueUiCommand =

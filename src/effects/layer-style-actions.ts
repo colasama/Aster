@@ -1,4 +1,4 @@
-import type { Operation } from "../core/operations";
+import type { Operation } from "../core/editing/operations";
 import type { Layer } from "../core/types";
 import { createEffect } from "./registry";
 

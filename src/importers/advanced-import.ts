@@ -1,4 +1,4 @@
-import { createLayerForComposition } from "../core/layer-factory";
+import { createLayerForComposition } from "../core/layers/layer-factory";
 import type { Composition, FootageSource, Layer } from "../core/types";
 import { createId, setLayerSizeAndCenterAnchor, staticValue } from "../core/types";
 import { detectImageSequence, type ImageSequenceSelection } from "./image-sequence";

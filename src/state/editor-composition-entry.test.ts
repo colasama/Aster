@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { createLayerForComposition } from "../core/layer-factory";
-import { precomposeLayers } from "../core/precomposition";
-import { activeComposition, createBlankProject } from "../core/project";
-import { visibleLayersAtTime } from "../core/scene-evaluation";
+import { createLayerForComposition } from "../core/layers/layer-factory";
+import { precomposeLayers } from "../core/project/precomposition";
+import { activeComposition, createBlankProject } from "../core/project/project";
+import { visibleLayersAtTime } from "../core/scene/scene-evaluation";
 import { createInitialState, editorReducer } from "./editor-store";
 
 function lateShot() {

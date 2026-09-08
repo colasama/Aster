@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
-import { createLayerForComposition } from "../core/layer-factory";
-import { applyOperations } from "../core/operations";
-import { createBlankProject } from "../core/project";
+import { applyOperations } from "../core/editing/operations";
+import { createLayerForComposition } from "../core/layers/layer-factory";
+import { createBlankProject } from "../core/project/project";
 import { addLayerStyleOperations, canAddLayerStyle } from "./layer-style-actions";
 
 it("creates independent styles for every selected visual layer in one operation group", () => {
