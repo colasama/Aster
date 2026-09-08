@@ -9,6 +9,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { useI18n } from "../i18n/react";
+import { nextTabIndex } from "../workspace/interaction";
 import { useWorkspacePanelHost } from "./workspace/WorkspacePanelHost";
 
 let topPanelZIndex = 20;
@@ -62,14 +63,8 @@ export function Panel({ title, className = "", tabs, actions, children }: PanelP
   const floatingStyle: CSSProperties | undefined = floating ? { ...rect, zIndex } : undefined;
   const embedded = workspaceHost !== null;
   const embeddedHeader =
-    embedded && workspaceHost.headerHost && (tabs || actions)
-      ? createPortal(
-          <>
-            {tabs}
-            {actions ? <div className="panel-actions">{actions}</div> : null}
-          </>,
-          workspaceHost.headerHost,
-        )
+    embedded && workspaceHost.headerHost && actions
+      ? createPortal(<div className="panel-actions">{actions}</div>, workspaceHost.headerHost)
       : null;
   return (
     <>
@@ -148,6 +143,7 @@ export function Panel({ title, className = "", tabs, actions, children }: PanelP
             </div>
           </header>
         )}
+        {embedded && tabs && <div className="panel-subheader">{tabs}</div>}
         <div className="panel-content">{children}</div>
       </section>
     </>
@@ -165,12 +161,30 @@ export function PanelTabs({
 }) {
   return (
     <div className="panel-tabs" role="tablist">
-      {tabs.map((tab) => (
+      {tabs.map((tab, index) => (
         <button
           className={tab.id === active ? "active" : ""}
           key={tab.id}
           onClick={() => onChange(tab.id)}
           aria-selected={tab.id === active}
+          tabIndex={tab.id === active ? 0 : -1}
+          onKeyDown={(event) => {
+            if (
+              event.nativeEvent.isComposing ||
+              !["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)
+            )
+              return;
+            event.preventDefault();
+            const next = nextTabIndex(
+              index,
+              tabs.length,
+              event.key as "ArrowLeft" | "ArrowRight" | "Home" | "End",
+            );
+            onChange(tabs[next].id);
+            event.currentTarget.parentElement
+              ?.querySelectorAll<HTMLButtonElement>('[role="tab"]')
+              [next]?.focus();
+          }}
           role="tab"
           type="button"
         >

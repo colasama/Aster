@@ -16,8 +16,8 @@ interface ActivePointerDrag {
 }
 
 interface PointerDragEventTarget {
-  addEventListener(type: string, listener: EventListener): void;
-  removeEventListener(type: string, listener: EventListener): void;
+  addEventListener(type: string, listener: EventListener, capture?: boolean): void;
+  removeEventListener(type: string, listener: EventListener, capture?: boolean): void;
 }
 
 export function bindWindowPointerDrag(
@@ -31,6 +31,7 @@ export function bindWindowPointerDrag(
     target.removeEventListener("pointerup", commit as EventListener);
     target.removeEventListener("pointercancel", cancelEvent as EventListener);
     target.removeEventListener("blur", cancelBlur);
+    target.removeEventListener("keydown", cancelKey as EventListener, true);
   };
   const cancel = (notify = true) => {
     if (!running) return;
@@ -51,10 +52,17 @@ export function bindWindowPointerDrag(
     if (event.pointerId === pointerId) cancel();
   };
   const cancelBlur = () => cancel();
+  const cancelKey = (event: KeyboardEvent) => {
+    if (event.key !== "Escape" || event.isComposing) return;
+    event.preventDefault();
+    event.stopPropagation();
+    cancel();
+  };
   target.addEventListener("pointermove", move as EventListener);
   target.addEventListener("pointerup", commit as EventListener);
   target.addEventListener("pointercancel", cancelEvent as EventListener);
   target.addEventListener("blur", cancelBlur);
+  target.addEventListener("keydown", cancelKey as EventListener, true);
   return cancel;
 }
 

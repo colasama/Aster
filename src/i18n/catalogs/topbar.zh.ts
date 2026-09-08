@@ -1,6 +1,7 @@
 import type { topBarEn } from "./topbar.en";
 
 export const topBarZh = {
+  "topbar.command.empty": "没有匹配的命令",
   "topbar.menu.file": "文件",
   "topbar.menu.edit": "编辑",
   "topbar.menu.composition": "合成",

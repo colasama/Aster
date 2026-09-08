@@ -415,14 +415,20 @@
   background: transparent;
   font-size: 12px;
 }
-.command-palette > small {
-  display: block;
-  margin: 9px 7px 5px;
-  color: #636979;
-  font-size: 8px;
-  letter-spacing: 0.08em;
+.palette-results {
+  max-height: min(360px, 55vh);
+  overflow-y: auto;
+  margin-top: 7px;
 }
-.command-palette > button {
+.palette-search:focus-within {
+  border-color: var(--blue);
+}
+.palette-empty {
+  padding: 20px 10px;
+  color: #9ba4b5;
+  font-size: 11px;
+}
+.palette-results > button {
   width: 100%;
   height: 32px;
   display: flex;
@@ -433,7 +439,8 @@
   color: #aeb3c0;
   font-size: 10px;
 }
-.command-palette > button:hover {
+.palette-results > button:hover,
+.palette-results > button.active {
   color: white;
   background: #2b3d62;
 }

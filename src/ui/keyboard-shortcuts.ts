@@ -15,3 +15,11 @@ export function isEditableShortcutTarget(target: EventTarget | null): boolean {
     ) !== null
   );
 }
+
+/** Modal surfaces own their keys, even when a button rather than an input has focus. */
+export function isEditorShortcutBlocked(event: KeyboardEvent): boolean {
+  if (event.defaultPrevented || isComposingKeyboardEvent(event)) return true;
+  const target = event.target as HTMLElement | null;
+  const owner = target?.ownerDocument ?? (typeof document !== "undefined" ? document : undefined);
+  return Boolean(owner?.querySelector('[role="dialog"][aria-modal="true"], [role="menu"]'));
+}

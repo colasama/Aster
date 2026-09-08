@@ -30,6 +30,20 @@ describe("window pointer drag lifecycle", () => {
     expect(onMove).not.toHaveBeenCalled();
     expect(onCommit).not.toHaveBeenCalled();
   });
+  it("cancels once with Escape before releasing the pointer", () => {
+    const target = new EventTarget();
+    const onCommit = vi.fn();
+    const onCancel = vi.fn();
+    const onMove = vi.fn();
+    bindWindowPointerDrag(target, 7, { onCommit, onCancel, onMove });
+    const cancelKey = new Event("keydown", { cancelable: true });
+    Object.defineProperty(cancelKey, "key", { value: "Escape" });
+    target.dispatchEvent(cancelKey);
+    target.dispatchEvent(pointerEvent("pointerup", 7));
+    expect(cancelKey.defaultPrevented).toBe(true);
+    expect(onCancel).toHaveBeenCalledOnce();
+    expect(onCommit).not.toHaveBeenCalled();
+  });
 });
 
 function pointerEvent(type: string, pointerId: number): Event {

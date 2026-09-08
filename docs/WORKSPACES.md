@@ -66,6 +66,10 @@ callers keep their content and tool buttons while the workspace owns layout tabs
 maximize controls. Project, Composition, Inspector, Timeline, Graph Editor, and Profiler are stable
 panel registry entries rather than fixed CSS grid cells.
 
+Embedded panel subtabs use a separate row with roving keyboard focus; timeline and graph surfaces
+use their workspace tabs directly. Each surface owns its display mode, so both can remain visible
+without competing over a shared mode switch. Revealing an existing panel activates its dock tab.
+
 Panel and group drags expose four edge zones for splitting and one center zone for grouping. A drop
 maps to exactly one model operation and one persistence write. Closing records the panel ID and the
 workspace API can reopen it into a chosen or most recently hovered group. Double-clicking a group

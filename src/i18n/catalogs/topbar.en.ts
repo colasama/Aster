@@ -1,4 +1,5 @@
 export const topBarEn = {
+  "topbar.command.empty": "No matching commands",
   "topbar.menu.file": "File",
   "topbar.menu.edit": "Edit",
   "topbar.menu.composition": "Composition",

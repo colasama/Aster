@@ -17,6 +17,24 @@ queue, display-clamped window state, unsaved-document close contract, and local 
 Recovery autosaves remain distinct from primary project saves and are serialized with them so a stale
 autosave cannot win a persistence race. See [Desktop application foundations](DESKTOP_FOUNDATIONS.md).
 
+## Editor interaction boundaries
+
+Application, timeline, and workspace shortcuts share `isEditorShortcutBlocked`: consumed events,
+IME composition, open modal dialogs, and open menus never fall through to background editing.
+Keyframe keyboard operations use the same lock guards as their toolbar controls. Layer deletion
+does not run while keyframes are selected, and layout undo remains distinct from project undo.
+
+`AppMenuBar` owns menu dismissal, arrow navigation, and focus return. `CommandPalette` keeps input
+focus while its combobox selects results with arrow keys; Enter executes one result and Escape
+returns focus to the trigger. Dialog focus trapping excludes hidden, inert, disabled, and negative
+tab-index controls.
+
+Dock headers contain workspace tabs and actions. Embedded panel subtabs occupy their own scrollable
+row; docked timeline surfaces do not duplicate the workspace's timeline/graph tabs. Each timeline
+surface receives its own display mode. The application owns one playback hook regardless of how
+many timeline panels are visible, so docking and closing panels do not own the audio clock.
+Shared window pointer gestures cancel on Escape before background shortcuts process the key.
+
 ## Inspector property editing
 
 Transform and numeric effect controls share `NumericInput`: horizontal scrubbing uses the property

@@ -44,6 +44,7 @@ import {
 import type { Layer } from "../core/types";
 import { useI18n } from "../i18n/react";
 import { useEditor } from "../state/editor-store";
+import { isEditableShortcutTarget, isEditorShortcutBlocked } from "../ui/keyboard-shortcuts";
 import { useContextMenuTrigger } from "./context-menu/use-context-menu-trigger";
 import { Panel, PanelTabs } from "./Panel";
 import { TimelineContextMenu, type TimelineCreateKind } from "./TimelineContextMenu";
@@ -69,9 +70,9 @@ import {
 } from "./timeline-keyframe-actions";
 import { duplicateTimelineLayers, splitTimelineLayers } from "./timeline-layer-clipboard";
 import type { KeyframeTimePreview } from "./timeline-property-tracks";
-import { usePlayback } from "./use-timeline-playback";
 import { useWindowPointerDrag } from "./use-window-pointer-drag";
 import { useWorkspaceApi } from "./workspace/DockWorkspace";
+import { useWorkspacePanelHost } from "./workspace/WorkspacePanelHost";
 
 const GraphEditor = lazy(() =>
   import("./GraphEditor").then((module) => ({ default: module.GraphEditor })),
@@ -89,9 +90,11 @@ interface TimelineMarquee {
 
 type TimingPreview = Record<string, { inPoint: number; outPoint: number }>;
 
-export function Timeline() {
+export function Timeline({ mode }: { mode?: "timeline" | "graph" } = {}) {
   const { state, dispatch } = useEditor();
+  const bottomMode = mode ?? state.bottomMode;
   const workspace = useWorkspaceApi();
+  const workspaceHost = useWorkspacePanelHost();
   const { t } = useI18n();
   const composition = activeComposition(state.project);
   const pixelsPerSecond = BASE_PIXELS_PER_SECOND * state.timelineZoom;
@@ -195,14 +198,16 @@ export function Timeline() {
     }
   }, [composition.id, pointerDrag]);
   useEffect(() => {
-    if (state.bottomMode !== "timeline") {
+    if (bottomMode !== "timeline") {
       pointerDrag.cancel();
       setKeyframeTimePreview(undefined);
     }
     return pointerDrag.cancel;
-  }, [pointerDrag, state.bottomMode]);
+  }, [pointerDrag, bottomMode]);
   const keyboardContext = useRef({
-    bottomMode: state.bottomMode,
+    bottomMode: bottomMode,
+    canEditSelectedKeyframes,
+    canPasteKeyframeClipboard,
     composition,
     currentTime: state.currentTime,
     keyframeClipboard,
@@ -212,7 +217,9 @@ export function Timeline() {
     workArea,
   });
   keyboardContext.current = {
-    bottomMode: state.bottomMode,
+    bottomMode: bottomMode,
+    canEditSelectedKeyframes,
+    canPasteKeyframeClipboard,
     composition,
     currentTime: state.currentTime,
     keyframeClipboard,
@@ -221,7 +228,6 @@ export function Timeline() {
     timelineTargets,
     workArea,
   };
-  usePlayback(composition, workArea);
   useEffect(
     () =>
       onPlaybackFrame((frame) => {
@@ -392,14 +398,19 @@ export function Timeline() {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       const context = keyboardContext.current;
-      if (context.bottomMode !== "timeline" || isEditableTarget(event.target)) return;
+      if (
+        context.bottomMode !== "timeline" ||
+        isEditorShortcutBlocked(event) ||
+        isEditableShortcutTarget(event.target)
+      )
+        return;
       const command = event.ctrlKey || event.metaKey;
       if (command && event.key.toLowerCase() === "c") {
         event.preventDefault();
         setKeyframeClipboard(copyKeyframes(context.selectedEntries));
       } else if (command && event.key.toLowerCase() === "v") {
         event.preventDefault();
-        if (!context.keyframeClipboard) return;
+        if (!context.keyframeClipboard || !context.canPasteKeyframeClipboard) return;
         const pasted = pasteKeyframes(
           context.keyframeClipboard,
           context.currentTime,
@@ -408,8 +419,9 @@ export function Timeline() {
         dispatch({ type: "operation", operations: pasted.operations });
         dispatch({ type: "selectKeyframes", ids: pasted.selectedIds });
       } else if (event.key === "Delete" || event.key === "Backspace") {
-        event.preventDefault();
         if (!context.selectedEntries.length) return;
+        event.preventDefault();
+        if (!context.canEditSelectedKeyframes) return;
         dispatch({ type: "operation", operations: removeKeyframes(context.selectedEntries) });
         dispatch({ type: "selectKeyframes", ids: [] });
       } else if (event.key === "Escape") {
@@ -627,16 +639,18 @@ export function Timeline() {
     <Panel
       className="timeline-panel"
       tabs={
-        <PanelTabs
-          active={state.bottomMode}
-          onChange={(mode) =>
-            dispatch({ type: "setBottomMode", mode: mode as "timeline" | "graph" })
-          }
-          tabs={[
-            { id: "timeline", label: t("timeline.tab.timeline") },
-            { id: "graph", label: t("timeline.tab.graph") },
-          ]}
-        />
+        !workspaceHost && (
+          <PanelTabs
+            active={bottomMode}
+            onChange={(mode) =>
+              dispatch({ type: "setBottomMode", mode: mode as "timeline" | "graph" })
+            }
+            tabs={[
+              { id: "timeline", label: t("timeline.tab.timeline") },
+              { id: "graph", label: t("timeline.tab.graph") },
+            ]}
+          />
+        )
       }
       actions={
         <>
@@ -784,7 +798,7 @@ export function Timeline() {
           </button>
         </div>
       </div>
-      {state.bottomMode === "graph" ? (
+      {bottomMode === "graph" ? (
         <Suspense fallback={null}>
           <GraphEditor />
         </Suspense>
@@ -978,15 +992,6 @@ function toggleTimelineFullscreen(): void {
     const panel = document.querySelector<HTMLElement>(".timeline-panel");
     if (panel) void panel.requestFullscreen();
   }
-}
-
-function isEditableTarget(target: EventTarget | null): boolean {
-  return (
-    target instanceof HTMLInputElement ||
-    target instanceof HTMLTextAreaElement ||
-    target instanceof HTMLSelectElement ||
-    (target instanceof HTMLElement && target.isContentEditable)
-  );
 }
 
 function rowAtClientY(canvas: HTMLElement, clientY: number, fallback: number): number {

@@ -88,9 +88,22 @@
   padding: 0 10px;
   color: #858a96;
   font-size: 10px;
+  flex-shrink: 0;
+  white-space: nowrap;
   transition:
     color var(--motion-fast) ease-out,
     background-color var(--motion-fast) ease-out;
+}
+.panel-subheader {
+  flex: 0 0 auto;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  border-bottom: 1px solid var(--border-soft);
+}
+.panel-tabs button:focus-visible {
+  outline: 1px solid var(--blue);
+  outline-offset: -3px;
 }
 .panel-tabs button:hover {
   color: #c5c8d0;
@@ -107,6 +120,9 @@
   left: 7px;
   height: 2px;
   background: var(--blue);
+}
+.panel-subheader .panel-tabs button.active::after {
+  bottom: 0;
 }
 .panel-search {
   height: 31px;

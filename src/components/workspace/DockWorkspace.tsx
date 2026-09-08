@@ -9,6 +9,7 @@ import {
   useState,
 } from "react";
 import { isDesktopRuntime, onDisplayMetricsChanged } from "../../desktop/api";
+import { isEditableShortcutTarget, isEditorShortcutBlocked } from "../../ui/keyboard-shortcuts";
 import { DEFAULT_WORKSPACE_LAYOUT } from "../../workspace/default-layout";
 import {
   remapFloatingWorkspacesToHost,
@@ -181,9 +182,7 @@ export function DockWorkspace({
   );
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      const target = event.target as HTMLElement | null;
-      if (target instanceof Element && target.matches("input, textarea, [contenteditable=true]"))
-        return;
+      if (isEditorShortcutBlocked(event) || isEditableShortcutTarget(event.target)) return;
       if ((event.ctrlKey || event.metaKey) && event.altKey && event.key.toLowerCase() === "z") {
         event.preventDefault();
         undoLayoutChange();
@@ -340,9 +339,14 @@ export function DockWorkspace({
       saveAs: saveAsNamedWorkspace,
       select: selectNamedWorkspace,
       setPanelVisible: (panelId, visible) =>
-        commit((current) =>
-          visible ? reopenPanel(current, panelId) : closePanel(current, panelId),
-        ),
+        commit((current) => {
+          if (!visible) return closePanel(current, panelId);
+          const revealed = reopenPanel(current, panelId);
+          const location = workspaceTabGroups(revealed).find(({ group }) =>
+            group.panels.includes(panelId),
+          );
+          return location ? activatePanel(revealed, location.group.id, panelId) : revealed;
+        }),
       undoLayoutChange,
     }),
     [

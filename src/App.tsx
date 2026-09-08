@@ -8,6 +8,7 @@ import {
 import { Inspector } from "./components/Inspector";
 import { ProjectPanel } from "./components/ProjectPanel";
 import { TopBar } from "./components/TopBar";
+import { usePlayback } from "./components/use-timeline-playback";
 import { Viewport } from "./components/Viewport";
 import { DockWorkspace } from "./components/workspace/DockWorkspace";
 import {
@@ -20,7 +21,7 @@ import { projectPluginReferences } from "./core/project-plugin-references";
 import { reportUiError } from "./errors/report-ui-error";
 import { I18nProvider, useI18n } from "./i18n/react";
 import { EditorProvider, useEditor } from "./state/editor-store";
-import { isComposingKeyboardEvent, isEditableShortcutTarget } from "./ui/keyboard-shortcuts";
+import { isEditableShortcutTarget, isEditorShortcutBlocked } from "./ui/keyboard-shortcuts";
 import "./styles/index.css";
 
 const RenderQueuePanel = lazy(() =>
@@ -32,6 +33,8 @@ const RenderQueuePanel = lazy(() =>
 function Studio() {
   const { state, dispatch } = useEditor();
   const { t } = useI18n();
+  const composition = activeComposition(state.project);
+  usePlayback(composition, composition.workArea);
   const referencedPluginIds = useMemo(
     () => projectPluginReferences(state.project),
     [state.project],
@@ -95,19 +98,42 @@ function Studio() {
   }, [referencedPluginKey, state.project.id, t]);
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (isComposingKeyboardEvent(event) || isEditableShortcutTarget(event.target)) return;
-      if (event.code === "Space") {
+      if (isEditorShortcutBlocked(event) || isEditableShortcutTarget(event.target)) return;
+      if (
+        event.code === "Space" &&
+        !(event.target as HTMLElement)?.closest?.("button, [role=tab]") &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.altKey
+      ) {
         event.preventDefault();
         dispatch({ type: "setPlaying", playing: !state.playing });
-      } else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") {
+      } else if (
+        (event.ctrlKey || event.metaKey) &&
+        !event.altKey &&
+        event.key.toLowerCase() === "z"
+      ) {
         event.preventDefault();
         dispatch({ type: event.shiftKey ? "redo" : "undo" });
-      } else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "y") {
+      } else if (
+        (event.ctrlKey || event.metaKey) &&
+        !event.altKey &&
+        event.key.toLowerCase() === "y"
+      ) {
         event.preventDefault();
         dispatch({ type: "redo" });
-      } else if (event.key === "Delete" && state.selection.length > 0) {
+      } else if (
+        event.key === "Delete" &&
+        state.selection.length > 0 &&
+        state.selectedKeyframes.length === 0
+      ) {
         const composition = activeComposition(state.project);
-        if (composition.layers.length > state.selection.length) {
+        if (
+          composition.layers.length > state.selection.length &&
+          state.selection.every((id) =>
+            composition.layers.some((layer) => layer.id === id && !layer.locked),
+          )
+        ) {
           dispatch({
             type: "operation",
             operations: state.selection.map((layerId) => ({ type: "removeLayer", layerId })),
@@ -118,7 +144,7 @@ function Studio() {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [dispatch, state.playing, state.project, state.selection]);
+  }, [dispatch, state.playing, state.project, state.selection, state.selectedKeyframes.length]);
   return (
     <main className="aster-studio">
       <TopBar />

@@ -133,15 +133,8 @@ export function NumericInput({
           next = updated;
           coalescer.schedule(updated);
         };
-        const cancelOnEscape = (key: KeyboardEvent) => {
-          if (key.key !== "Escape") return;
-          key.preventDefault();
-          key.stopPropagation();
-          active.current?.cancel();
-        };
         const finish = (cancelled: boolean) => {
           coalescer.cancel();
-          owner.removeEventListener("keydown", cancelOnEscape, true);
           active.current = undefined;
           setDragging(false);
           if (cancelled || next === value) {
@@ -175,7 +168,6 @@ export function NumericInput({
           onCancel: () => finish(true),
         });
         active.current = { move, cancel };
-        owner.addEventListener("keydown", cancelOnEscape, true);
       }}
     />
   );

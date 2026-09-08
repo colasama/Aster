@@ -79,6 +79,9 @@ export function useDialogFocus<T extends HTMLElement>({
 function focusableElements(container: HTMLElement): HTMLElement[] {
   return [...container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)].filter(
     (element) =>
+      element.tabIndex >= 0 &&
+      !element.matches(":disabled") &&
+      !element.closest("[hidden], [inert], [aria-hidden='true']") &&
       !element.hidden &&
       element.getAttribute("aria-hidden") !== "true" &&
       element.getAttribute("aria-disabled") !== "true",

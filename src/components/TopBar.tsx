@@ -10,7 +10,6 @@ import {
   Play,
   Redo2,
   RotateCcw,
-  Search,
   Sparkles,
   Square,
   Type,
@@ -61,8 +60,11 @@ import type { PlainMessageKey, Translate } from "../i18n/core";
 import { useI18n } from "../i18n/react";
 import { mediaImportRuntime } from "../importers/media-import-runtime";
 import { useEditor } from "../state/editor-store";
-import { isComposingKeyboardEvent, isEditableShortcutTarget } from "../ui/keyboard-shortcuts";
-import { findMenuEntry, type MenuId, type MenuItemId, menuDefinitions } from "./topbar-menu";
+import { isEditableShortcutTarget, isEditorShortcutBlocked } from "../ui/keyboard-shortcuts";
+import { useWorkspaceController } from "../workspace/workspace-controller";
+import { AppMenuBar } from "./AppMenuBar";
+import { CommandPalette } from "./CommandPalette";
+import { findMenuEntry, type MenuItemId } from "./topbar-menu";
 import {
   renderTopBarToast,
   type TopBarToastActions,
@@ -73,7 +75,6 @@ import {
 import { useDialogFocus } from "./use-dialog-focus";
 import { WindowControls } from "./WindowControls";
 import type { WorkspaceDialogKind } from "./WorkspaceDialog";
-import { WorkspaceWindowMenu } from "./workspace/WorkspaceWindowMenu";
 
 const WorkspaceDialog = lazy(() =>
   import("./WorkspaceDialog").then((module) => ({ default: module.WorkspaceDialog })),
@@ -101,9 +102,15 @@ const tools: ToolDefinition[] = [
 export function TopBar() {
   const { state, dispatch } = useEditor();
   const { t } = useI18n();
-  const [activeMenu, setActiveMenu] = useState<MenuId>();
+  const workspaceController = useWorkspaceController();
+  const showTimelineMode = useCallback(
+    (mode: "timeline" | "graph") => {
+      dispatch({ type: "setBottomMode", mode });
+      workspaceController?.setPanelVisible(mode, true);
+    },
+    [dispatch, workspaceController],
+  );
   const [paletteOpen, setPaletteOpen] = useState(false);
-  const [paletteQuery, setPaletteQuery] = useState("");
   const [renderOpen, setRenderOpen] = useState(false);
   const [rendering, setRendering] = useState(false);
   const [renderFormat, setRenderFormat] = useState<RenderFormat>("png");
@@ -114,7 +121,6 @@ export function TopBar() {
     () => ({ beginRequest: toast.beginRequest, show: toast.show }),
     [toast.beginRequest, toast.show],
   );
-  const paletteInputRef = useRef<HTMLInputElement>(null);
   const renderFormatRef = useRef<HTMLSelectElement>(null);
   const meshInputRef = useRef<HTMLInputElement>(null);
   const cancelRenderRef = useRef(false);
@@ -123,11 +129,6 @@ export function TopBar() {
     if (rendering) cancelRenderRef.current = true;
     else setRenderOpen(false);
   }, [rendering]);
-  const paletteDialogRef = useDialogFocus<HTMLDivElement>({
-    initialFocusRef: paletteInputRef,
-    onClose: closePalette,
-    open: paletteOpen,
-  });
   const renderDialogRef = useDialogFocus<HTMLDivElement>({
     initialFocusRef: renderFormatRef,
     onClose: closeRender,
@@ -162,7 +163,7 @@ export function TopBar() {
       },
       {
         label: t("topbar.command.graph"),
-        action: () => dispatch({ type: "setBottomMode", mode: "graph" }),
+        action: () => showTimelineMode("graph"),
       },
       { label: t("topbar.command.ai"), action: () => dispatch({ type: "setRightTab", tab: "ai" }) },
       {
@@ -175,14 +176,11 @@ export function TopBar() {
       },
       { label: t("topbar.command.render"), action: () => setRenderOpen(true) },
     ],
-    [dispatch, saveWithToast, state.playing, t],
-  );
-  const filteredCommands = commands.filter((command) =>
-    command.label.toLowerCase().includes(paletteQuery.toLowerCase()),
+    [dispatch, saveWithToast, showTimelineMode, state.playing, t],
   );
   useEffect(() => {
     const shortcut = (event: KeyboardEvent) => {
-      if (isComposingKeyboardEvent(event)) return;
+      if (isEditorShortcutBlocked(event)) return;
       const isEditing = isEditableShortcutTarget(event.target);
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
@@ -194,8 +192,7 @@ export function TopBar() {
         closePalette();
         closeRender();
         setWorkspaceDialog(undefined);
-        setActiveMenu(undefined);
-      } else if (!isEditing) {
+      } else if (!isEditing && !event.ctrlKey && !event.metaKey && !event.altKey) {
         const tool = {
           v: "select",
           h: "hand",
@@ -211,7 +208,6 @@ export function TopBar() {
     return () => window.removeEventListener("keydown", shortcut);
   }, [closePalette, closeRender, dispatch, saveWithToast]);
   const handleMenuItem = (item: MenuItemId) => {
-    setActiveMenu(undefined);
     const composition = activeComposition(state.project);
     const selectedLayer = composition.layers.find((layer) => layer.id === state.selection[0]);
     const layerTypes: Partial<Record<MenuItemId, LayerKind>> = {
@@ -385,7 +381,7 @@ export function TopBar() {
           },
         ],
       });
-    } else if (item === "graphEditor") dispatch({ type: "setBottomMode", mode: "graph" });
+    } else if (item === "graphEditor") showTimelineMode("graph");
     else if (item === "easyEase" && selectedLayer) {
       dispatch({
         type: "operation",
@@ -410,7 +406,7 @@ export function TopBar() {
     else if (item === "toggleGuides") dispatch({ type: "toggleView", view: "guides" });
     else if (item === "project") dispatch({ type: "setLeftTab", tab: "project" });
     else if (item === "properties") dispatch({ type: "setRightTab", tab: "properties" });
-    else if (item === "timeline") dispatch({ type: "setBottomMode", mode: "timeline" });
+    else if (item === "timeline") showTimelineMode("timeline");
     else if (item === "gpuDiagnostics") {
       toastActions.show(
         toastMessage("topbar.toast.gpuMetrics", {
@@ -480,75 +476,15 @@ export function TopBar() {
       />
       <div className="title-bar">
         <div className="brand-mark">A</div>
-        <div className="menu-strip">
-          {menuDefinitions.map((menu) => (
-            <div className="menu-root" key={menu.id}>
-              <button
-                aria-controls={`app-menu-${menu.id}`}
-                aria-expanded={activeMenu === menu.id}
-                aria-haspopup="menu"
-                className={activeMenu === menu.id ? "active" : ""}
-                onClick={() => setActiveMenu(activeMenu === menu.id ? undefined : menu.id)}
-                onKeyDown={(event) => {
-                  if (event.key !== "ArrowDown") return;
-                  event.preventDefault();
-                  setActiveMenu(menu.id);
-                  queueMicrotask(() =>
-                    document
-                      .querySelector<HTMLButtonElement>(`#app-menu-${menu.id} [role^=menuitem]`)
-                      ?.focus(),
-                  );
-                }}
-                type="button"
-              >
-                {t(menu.labelKey)}
-              </button>
-              {activeMenu === menu.id && (
-                <div
-                  className="app-menu-popover"
-                  id={`app-menu-${menu.id}`}
-                  role={menu.id === "window" ? undefined : "menu"}
-                >
-                  {menu.id === "window" ? (
-                    <WorkspaceWindowMenu onClose={() => setActiveMenu(undefined)} />
-                  ) : (
-                    menu.items.map((item) => (
-                      <button
-                        key={item.id}
-                        onClick={() => handleMenuItem(item.id)}
-                        role="menuitem"
-                        type="button"
-                      >
-                        <span>{t(item.labelKey)}</span>
-                        {"shortcut" in item && <kbd>{item.shortcut}</kbd>}
-                      </button>
-                    ))
-                  )}
-                  {menu.id === "file" && lifecycle.recentProjects.length > 0 && (
-                    <>
-                      <div className="app-menu-heading">{t("topbar.recentProjects")}</div>
-                      {lifecycle.recentProjects.map((path) => (
-                        <button
-                          key={path}
-                          onClick={() => {
-                            setActiveMenu(undefined);
-                            void lifecycle.openRecent(path).then((opened) => {
-                              if (!opened) toastActions.show(toastError("projectOpen"));
-                            });
-                          }}
-                          title={path}
-                          type="button"
-                        >
-                          <span>{path.split(/[\\/]/).pop() || path}</span>
-                        </button>
-                      ))}
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
+        <AppMenuBar
+          onAction={handleMenuItem}
+          recentProjects={lifecycle.recentProjects}
+          onOpenRecent={(path) => {
+            void lifecycle.openRecent(path).then((opened) => {
+              if (!opened) toastActions.show(toastError("projectOpen"));
+            });
+          }}
+        />
         <div className="document-title">
           {lifecycle.dirty && <span className="unsaved-dot" />} {state.project.name} — Aster
           {state.autosave.status !== "idle" && (
@@ -558,7 +494,12 @@ export function TopBar() {
           )}
         </div>
         <div className="title-actions">
-          <button className="command-hint" onClick={() => setPaletteOpen(true)} type="button">
+          <button
+            aria-label={t("topbar.command.placeholder")}
+            className="command-hint"
+            onClick={() => setPaletteOpen(true)}
+            type="button"
+          >
             <Command size={13} /> K
           </button>
         </div>
@@ -623,50 +564,7 @@ export function TopBar() {
           </button>
         </div>
       </div>
-      {paletteOpen && (
-        <div className="modal-backdrop" role="presentation">
-          <div
-            aria-label={t("topbar.command.placeholder")}
-            aria-modal="true"
-            className="command-palette"
-            ref={paletteDialogRef}
-            role="dialog"
-            tabIndex={-1}
-          >
-            <button
-              aria-label={t("topbar.command.close")}
-              className="palette-close"
-              onClick={closePalette}
-              type="button"
-            >
-              <X size={13} />
-            </button>
-            <div className="palette-search">
-              <Search size={15} />
-              <input
-                onChange={(event) => setPaletteQuery(event.target.value)}
-                placeholder={t("topbar.command.placeholder")}
-                ref={paletteInputRef}
-                value={paletteQuery}
-              />
-            </div>
-            <small>{t("topbar.command.quick")}</small>
-            {filteredCommands.map((command) => (
-              <button
-                key={command.label}
-                onClick={() => {
-                  command.action();
-                  closePalette();
-                }}
-                type="button"
-              >
-                <Command size={12} />
-                <span>{command.label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+      {paletteOpen && <CommandPalette commands={commands} onClose={closePalette} />}
       {renderOpen && (
         <div className="modal-backdrop" role="presentation">
           <div
