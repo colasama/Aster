@@ -22,7 +22,7 @@ aster-scene = { path = "crates/aster-scene", version = "0.2.1" }
 aster-timeline = { path = "crates/aster-timeline", version = "0.2.1" }
 aster-text = { path = "crates/aster-text", version = "0.2.1" }
 aster-video = { path = "crates/aster-video", version = "0.2.1" }
-base64 = "0.22.1"
+base64 = "0.23.1"
 clap = { version = "4", features = ["derive"] }
 exr = { version = "1.74.2", default-features = false }
 glam = { version = "0.33.5", features = ["serde"] }
