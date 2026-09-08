@@ -121,7 +121,7 @@ export interface Layer {
   visible: boolean;
   solo: boolean;
   locked: boolean;
-  /** AE-style per-layer switch; the composition switch must also be enabled. */
+  /** Per-layer switch; the composition switch must also be enabled. */
   motionBlur: boolean;
   audioEnabled?: boolean;
   audio?: AudioLayerSettings;
@@ -187,7 +187,7 @@ export interface LightSettings {
 export interface CameraSettings {
   mode: "oneNode" | "twoNode";
   projection: "perspective" | "orthographic";
-  /** AE Zoom in composition pixels. */
+  /** Zoom in composition pixels. */
   zoom: Animatable;
   /** Horizontal film-back width in millimetres. */
   filmSize: Animatable;
@@ -197,7 +197,7 @@ export interface CameraSettings {
   depthOfField: boolean;
   focusDistance: Animatable;
   lockFocusToZoom: boolean;
-  /** Authoritative AE Aperture property in virtual-camera pixels. */
+  /** Authoritative Aperture property in virtual-camera pixels. */
   aperture: Animatable;
   blurLevel: Animatable;
   focusAreaWidth: Animatable;

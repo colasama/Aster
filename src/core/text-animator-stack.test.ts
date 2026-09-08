@@ -66,7 +66,7 @@ describe("text animator stacks", () => {
     expect(units[8]).toMatchObject({ wordIndex: 2, lineIndex: 1 });
   });
 
-  it("stacks selected animator transforms in order with AE neutral values", () => {
+  it("stacks selected animator transforms in order with neutral values", () => {
     const unit = segmentTextLayoutUnits("A")[0];
     if (!unit) throw new Error("Expected one layout unit");
     const animators: TextAnimatorGroup[] = [

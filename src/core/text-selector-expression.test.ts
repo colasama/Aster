@@ -8,7 +8,7 @@ import {
 const context = { textIndex: 2, textTotal: 4, selectorValue: 80, time: 1.5 };
 
 describe("text selector expression host", () => {
-  it("evaluates AE selector variables and bounded numeric helpers", () => {
+  it("evaluates selector variables and bounded numeric helpers", () => {
     expect(evaluateTextSelectorExpression("selectorValue * textIndex / textTotal", context)).toBe(
       40,
     );

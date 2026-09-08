@@ -1,0 +1,127 @@
+import { angle, choice, color, number, percent, toggle } from "./parameter-builders";
+import type { EffectDefinition } from "./types";
+
+export const STYLIZE_TRANSITION_EFFECTS: EffectDefinition[] = [
+  {
+    type: "block-dissolve",
+    name: "Block Dissolve",
+    category: "Transition",
+    description:
+      "Dissolve the source through deterministic rectangular cells with soft thresholds.",
+    execution: "fused-pixel",
+    parameters: [
+      percent("completion", "Transition Completion", 50),
+      number("blockWidth", "Block Width", 64, 2, 1000, 1, "px"),
+      number("blockHeight", "Block Height", 36, 2, 1000, 1, "px"),
+      percent("softness", "Softness", 4),
+      number("seed", "Random Seed", 1, 0, 10000, 1),
+    ],
+  },
+  {
+    type: "iris-wipe",
+    name: "Iris Wipe",
+    category: "Transition",
+    description: "Close or open a feathered circular, square, or diamond-shaped iris.",
+    execution: "fused-pixel",
+    parameters: [
+      percent("completion", "Transition Completion", 50),
+      choice("shape", "Iris Shape", ["Circle", "Square", "Diamond"]),
+      percent("centerX", "Center X", 50),
+      percent("centerY", "Center Y", 50),
+      number("feather", "Feather", 12, 0, 1000, 0.5, "px"),
+      toggle("invert", "Invert", 0),
+    ],
+  },
+  {
+    type: "barn-doors",
+    name: "Barn Doors",
+    category: "Transition",
+    description: "Reveal or close the source using centered horizontal or vertical doors.",
+    execution: "fused-pixel",
+    parameters: [
+      percent("completion", "Transition Completion", 50),
+      choice("direction", "Direction", ["Horizontal", "Vertical"]),
+      percent("center", "Center", 50),
+      number("feather", "Feather", 8, 0, 1000, 0.5, "px"),
+      toggle("invert", "Invert", 0),
+    ],
+  },
+  {
+    type: "gradient-wipe",
+    name: "Gradient Wipe",
+    category: "Transition",
+    description: "Use animated fractal luminance as a procedural transition gradient.",
+    execution: "fused-pixel",
+    parameters: [
+      percent("completion", "Transition Completion", 50),
+      percent("softness", "Transition Softness", 12),
+      number("scale", "Gradient Scale", 180, 2, 4000, 1, "px"),
+      number("complexity", "Complexity", 4, 1, 5, 1),
+      number("evolution", "Evolution", 0, -1000, 1000, 0.1),
+      toggle("invert", "Invert Gradient", 0),
+    ],
+  },
+  {
+    type: "burn-film",
+    name: "CC Burn Film",
+    category: "Stylize",
+    description: "Animate a turbulent film-burn aperture with a hot HDR edge and colored halo.",
+    execution: "fused-pixel",
+    parameters: [
+      percent("burn", "Burn", 38),
+      percent("centerX", "Center X", 50),
+      percent("centerY", "Center Y", 50),
+      number("turbulence", "Turbulence", 90, 1, 2000, 1, "px"),
+      number("edgeWidth", "Edge Width", 26, 0, 500, 0.5, "px"),
+      number("intensity", "Edge Intensity", 2.4, 0, 32, 0.05),
+      number("evolution", "Evolution", 0, -1000, 1000, 0.1),
+      color("color", "Burn Color", 0xff6b18),
+    ],
+  },
+  {
+    type: "strobe-light",
+    name: "Strobe Light",
+    category: "Stylize",
+    description:
+      "Apply a time-addressable color strobe using replace, add, or multiply compositing.",
+    execution: "fused-pixel",
+    parameters: [
+      number("frequency", "Strobe Period", 8, 0.1, 120, 0.1, "Hz"),
+      percent("dutyCycle", "Strobe Duration", 35),
+      number("phase", "Phase", 0, -1000, 1000, 0.01),
+      choice("operator", "Strobe Operator", ["Replace", "Add", "Multiply"]),
+      color("color", "Strobe Color", 0xffffff),
+      percent("opacity", "Opacity", 100),
+    ],
+  },
+  {
+    type: "scatter",
+    name: "Scatter",
+    category: "Distort",
+    description: "Randomly scatter source samples in X/Y with deterministic animated noise.",
+    execution: "fused-pixel",
+    parameters: [
+      number("horizontal", "Horizontal Scatter", 18, 0, 1000, 0.5, "px"),
+      number("vertical", "Vertical Scatter", 18, 0, 1000, 0.5, "px"),
+      number("grain", "Scatter Grain", 6, 1, 256, 1, "px"),
+      number("seed", "Random Seed", 1, 0, 10000, 1),
+      number("evolution", "Evolution", 0, -1000, 1000, 0.1),
+    ],
+  },
+  {
+    type: "brush-strokes",
+    name: "Brush Strokes",
+    category: "Stylize",
+    description:
+      "Smear source color along a noisy directional brush field with tonal posterization.",
+    execution: "fused-pixel",
+    parameters: [
+      angle("direction", "Stroke Direction", 25),
+      number("length", "Stroke Length", 26, 0, 500, 0.5, "px"),
+      number("roughness", "Brush Roughness", 0.4, 0, 2, 0.01),
+      number("grain", "Brush Grain", 48, 2, 1000, 1, "px"),
+      number("levels", "Paint Levels", 12, 2, 64, 1),
+      percent("blend", "Blend With Original", 100),
+    ],
+  },
+];

@@ -17,7 +17,7 @@ const vectorLayer = {
 };
 
 describe("motion blur", () => {
-  it("centers the AE default 180-degree shutter around the frame time", () => {
+  it("centers the default 180-degree shutter around the frame time", () => {
     const settings = { ...DEFAULT_MOTION_BLUR_SETTINGS, enabled: true };
     const interval = motionBlurInterval(1, 24, settings);
     expect(interval.openTime).toBeCloseTo(1 - 0.25 / 24);

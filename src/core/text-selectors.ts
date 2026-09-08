@@ -75,7 +75,7 @@ export interface TextSelectorEvaluationOptions {
   time: number;
   animatorSeed?: number;
   evaluateExpression?: TextExpressionSelectorEvaluator;
-  /** Value produced by selectors above this one, in AE's -100 through 100 scale. */
+  /** Value produced by selectors above this one, in the -100 through 100 scale. */
   selectorValue?: number;
 }
 

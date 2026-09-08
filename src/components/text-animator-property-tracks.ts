@@ -22,7 +22,7 @@ interface NumericTrackPresentation {
   unit: string;
 }
 
-/** Builds stable-ID text tracks matching Adobe's Animator > Selector hierarchy. */
+/** Builds stable-ID text tracks matching the Animator > Selector hierarchy. */
 export function collectTextAnimatorTimelineGroups(layer: Layer): TimelinePropertyGroup[] {
   if (!layer.textAnimator) return [];
   const entries = collectTextAnimatorTrackEntries(layer);

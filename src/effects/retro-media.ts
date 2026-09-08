@@ -1,0 +1,123 @@
+import { angle, number, percent, toggle } from "./parameter-builders";
+import type { EffectDefinition } from "./types";
+
+export const RETRO_MEDIA_EFFECTS: EffectDefinition[] = [
+  {
+    type: "scanlines",
+    name: "Scanlines",
+    category: "Stylize",
+    description: "Overlay animated, antialiased raster scanlines without changing frame topology.",
+    execution: "fused-pixel",
+    parameters: [
+      number("spacing", "Line Spacing", 4, 1, 128, 1, "px"),
+      number("width", "Line Width", 1, 0.1, 64, 0.1, "px"),
+      percent("intensity", "Intensity", 38),
+      number("phase", "Phase", 0, -1000, 1000, 0.1),
+      number("speed", "Speed", 0, -120, 120, 0.5, "px/s"),
+      percent("blend", "Blend", 100),
+    ],
+  },
+  {
+    type: "tape-dropout",
+    name: "Tape Dropout",
+    category: "Noise & Grain",
+    description:
+      "Generate deterministic horizontal tape loss streaks with timeline-addressable motion.",
+    execution: "fused-pixel",
+    parameters: [
+      percent("density", "Dropout Density", 18),
+      number("length", "Streak Length", 420, 4, 8000, 1, "px"),
+      number("height", "Streak Height", 3, 1, 128, 1, "px"),
+      number("speed", "Speed", 14, -120, 120, 0.5),
+      number("seed", "Random Seed", 1, 0, 10000, 1),
+      percent("blend", "Blend", 100),
+    ],
+  },
+  {
+    type: "head-switching",
+    name: "Head Switching",
+    category: "Distort",
+    description: "Recreate the rolling lower-frame horizontal displacement of analog tape heads.",
+    execution: "fused-pixel",
+    parameters: [
+      percent("height", "Affected Height", 12),
+      number("amount", "Horizontal Offset", 72, -2000, 2000, 1, "px"),
+      number("speed", "Roll Speed", 0.45, -10, 10, 0.05),
+      percent("softness", "Boundary Softness", 24),
+      percent("blend", "Blend", 100),
+    ],
+  },
+  {
+    type: "compression-blocks",
+    name: "Compression Blocks",
+    category: "Stylize",
+    description: "Simulate block quantization, chroma loss, and low-quality codec ringing.",
+    execution: "fused-pixel",
+    parameters: [
+      number("blockSize", "Block Size", 16, 2, 256, 1, "px"),
+      percent("quality", "Quality", 42),
+      percent("chromaLoss", "Chroma Loss", 55),
+      percent("ringing", "Ringing", 18),
+      percent("blend", "Blend", 100),
+    ],
+  },
+  {
+    type: "film-damage",
+    name: "Film Damage",
+    category: "Noise & Grain",
+    description: "Layer deterministic scratches, dust, exposure flicker, and dirt marks.",
+    execution: "fused-pixel",
+    parameters: [
+      percent("scratches", "Scratches", 24),
+      percent("dust", "Dust", 18),
+      percent("flicker", "Exposure Flicker", 12),
+      number("speed", "Speed", 12, 0, 120, 0.5),
+      number("seed", "Random Seed", 1, 0, 10000, 1),
+      percent("blend", "Blend", 100),
+    ],
+  },
+  {
+    type: "gate-weave",
+    name: "Gate Weave",
+    category: "Distort",
+    description: "Apply smooth deterministic film-gate translation and rotational drift.",
+    execution: "fused-pixel",
+    parameters: [
+      number("horizontal", "Horizontal Weave", 4, 0, 128, 0.25, "px"),
+      number("vertical", "Vertical Weave", 3, 0, 128, 0.25, "px"),
+      angle("rotation", "Rotation Weave", 0.08),
+      number("speed", "Speed", 2, 0, 60, 0.1),
+      number("seed", "Random Seed", 1, 0, 10000, 1),
+      percent("blend", "Blend", 100),
+    ],
+  },
+  {
+    type: "rgb-phosphor",
+    name: "RGB Phosphor",
+    category: "Stylize",
+    description: "Resolve the image through an RGB triad mask with scanline and bleed controls.",
+    execution: "fused-pixel",
+    parameters: [
+      number("pitch", "Phosphor Pitch", 3, 1, 64, 1, "px"),
+      percent("maskStrength", "Mask Strength", 65),
+      percent("scanline", "Scanline Strength", 20),
+      number("colorBleed", "Color Bleed", 1.5, 0, 32, 0.25, "px"),
+      percent("blend", "Blend", 100),
+    ],
+  },
+  {
+    type: "pixel-sort",
+    name: "Pixel Sort",
+    category: "Stylize",
+    description:
+      "Sort a fixed five-sample directional neighborhood by luminance inside qualified regions.",
+    execution: "fused-pixel",
+    parameters: [
+      number("threshold", "Luminance Threshold", 0.42, 0, 8, 0.005),
+      number("length", "Sort Length", 72, 1, 1000, 1, "px"),
+      angle("direction", "Direction", 0),
+      toggle("reverse", "Reverse Sort", 0),
+      percent("blend", "Blend", 100),
+    ],
+  },
+];

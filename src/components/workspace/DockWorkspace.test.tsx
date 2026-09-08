@@ -133,7 +133,7 @@ describe("DockWorkspace", () => {
     expect(document.activeElement).toBe(firstTab);
   });
 
-  it("closes the focused panel or panel group with AE keyboard commands", () => {
+  it("closes the focused panel or panel group with keyboard commands", () => {
     const firstTab = container.querySelector<HTMLButtonElement>('[role="tab"]');
     firstTab?.focus();
     act(() =>
@@ -171,7 +171,7 @@ describe("DockWorkspace", () => {
     expect(container.querySelectorAll('[role="tab"]')).toHaveLength(2);
   });
 
-  it("switches to a persisted stacked group and applies AE solo and simultaneous expansion", () => {
+  it("switches to a persisted stacked group and applies solo and simultaneous expansion", () => {
     const tab = [...container.querySelectorAll<HTMLButtonElement>('[role="tab"]')].find(
       (candidate) => candidate.textContent === "A",
     );
@@ -202,7 +202,7 @@ describe("DockWorkspace", () => {
     expect(container.querySelectorAll('[aria-expanded="true"]')).toHaveLength(0);
   });
 
-  it("locks the current viewer and creates an unlocked split identity with the AE shortcut", () => {
+  it("locks the current viewer and creates an unlocked split identity with the shortcut", () => {
     const activeTab = container.querySelector<HTMLButtonElement>(
       '[role="tab"][aria-selected="true"]',
     );
@@ -230,7 +230,7 @@ describe("DockWorkspace", () => {
     ).toEqual(["a:true:composition-1", "a::viewer-2:false:composition-1"]);
   });
 
-  it("maximizes and restores the hovered group with the AE-style header gesture", () => {
+  it("maximizes and restores the hovered group with the header gesture", () => {
     const header = container.querySelector(".workspace-group-header");
     act(() => header?.dispatchEvent(new MouseEvent("dblclick", { bubbles: true })));
     expect(container.querySelector(".workspace-root")?.getAttribute("data-maximized")).toBe("true");

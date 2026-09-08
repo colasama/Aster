@@ -53,7 +53,7 @@ const range = (overrides: Partial<TextRangeSelector> = {}): TextRangeSelector =>
 });
 
 describe("text selectors", () => {
-  it("evaluates percentage/index ranges and AE range shapes", () => {
+  it("evaluates percentage/index ranges and range shapes", () => {
     expect(evaluateTextSelector(range(), unit(0), { time: 0 })).toBe(1);
     expect(evaluateTextSelector(range(), unit(7), { time: 0 })).toBe(0);
     expect(

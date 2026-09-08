@@ -1,6 +1,6 @@
 # Motion blur
 
-Aster follows After Effects' two-switch model: the composition Motion Blur switch and the layer's
+Motion blur uses two independent switches: the composition Motion Blur switch and the layer's
 Motion Blur switch must both be enabled. Shutter Angle sets exposure duration in frame units, and
 Shutter Phase offsets the opening relative to the current frame. The default 180-degree angle and
 -90-degree phase produce an exposure centered on the frame time.
@@ -49,4 +49,4 @@ At expanded timeline zoom, the ruler shows the exact shutter-open to shutter-clo
 
 Adobe behavior reference:
 
-- [Adobe After Effects: Apply motion blur to a layer](https://helpx.adobe.com/after-effects/desktop/animate-in-after-effects/assorted-animation-tools/assorted-animation-tools.html)
+- [Adobe: Apply motion blur to a layer](https://helpx.adobe.com/after-effects/desktop/animate-in-after-effects/assorted-animation-tools/assorted-animation-tools.html)

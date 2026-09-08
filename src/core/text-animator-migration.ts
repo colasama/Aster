@@ -16,7 +16,7 @@ interface LegacyTextAnimatorSettings {
   opacity?: unknown;
 }
 
-/** Deterministically upgrades Aster's legacy staggered reveal into an equivalent AE-style group. */
+/** Deterministically upgrades Aster's legacy staggered reveal into an equivalent group. */
 export function migrateLegacyTextAnimator(
   value: LegacyTextAnimatorSettings,
   idPrefix: string,

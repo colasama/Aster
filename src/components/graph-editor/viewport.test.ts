@@ -73,7 +73,7 @@ describe("graph editor viewport math", () => {
     expect(snapGraphTime(3.96, frame, 4, 100, true)).toBe(3.96);
   });
 
-  it("prefers the nearest AE graph landmark inside the pixel threshold", () => {
+  it("prefers the nearest graph landmark inside the pixel threshold", () => {
     const frame = 1 / 30;
     const targets = [1.1, 2.25, 3.75];
     expect(snapGraphTime(2.22, frame, 8, 100, false, targets)).toBe(2.25);

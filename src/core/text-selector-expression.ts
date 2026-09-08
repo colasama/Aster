@@ -47,7 +47,7 @@ const FUNCTIONS: Readonly<Record<string, (...values: number[]) => number>> = {
   tan: (value) => Math.tan(value ?? 0),
 };
 
-/** Evaluates a bounded numeric subset of AE expressions without executing JavaScript. */
+/** Evaluates a bounded numeric subset of expressions without executing JavaScript. */
 export function evaluateTextSelectorExpression(
   source: string,
   context: TextExpressionSelectorContext,

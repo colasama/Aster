@@ -127,7 +127,7 @@ describe("text animator inspector", () => {
     expect(button(container, "Duplicate Range Selector 1").disabled).toBe(true);
   });
 
-  it("adds the AE character range control with a preservation default", () => {
+  it("adds the character range control with a preservation default", () => {
     const container = renderControls();
     const propertyKind = container.querySelector<HTMLSelectElement>(
       'select[aria-label="Add property"]',

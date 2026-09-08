@@ -1,38 +1,32 @@
-import { aeAdvancedDistortWarpShaderCases } from "./ae-advanced-distort-shader-cases";
-import { aeChannelUtilityPixelShaderCases } from "./ae-channel-utility-shader-cases";
-import { aeColorPipelinePixelShaderCases } from "./ae-color-pipeline-shader-cases";
-import { aeDetailProcessingPixelShaderCases } from "./ae-detail-processing-shader-cases";
-import { aeDrawGeneratorPixelShaderCases } from "./ae-draw-generator-shader-cases";
-import { aePixelShaderCases, aeWarpShaderCases } from "./ae-effect-shader-cases";
-import { aeFramingPixelShaderCases, aeFramingWarpShaderCases } from "./ae-framing-shader-cases";
+import { advancedDistortWarpShaderCases } from "./advanced-distort-shader-cases";
+import { channelUtilityPixelShaderCases } from "./channel-utility-shader-cases";
+import { colorPipelinePixelShaderCases } from "./color-pipeline-shader-cases";
+import { detailProcessingPixelShaderCases } from "./detail-processing-shader-cases";
+import { drawGeneratorPixelShaderCases } from "./draw-generator-shader-cases";
+import { pixelShaderCases, warpShaderCases } from "./effect-shader-cases";
+import { framingPixelShaderCases, framingWarpShaderCases } from "./framing-shader-cases";
 import {
-  aeImmersiveVideoPixelShaderCases,
-  aeImmersiveVideoWarpShaderCases,
-} from "./ae-immersive-video-shader-cases";
-import { aeKeyingCleanupPixelShaderCases } from "./ae-keying-cleanup-shader-cases";
-import { aeLayerStylePixelShaderCases } from "./ae-layer-style-shader-cases";
-import { aeLightingPixelShaderCases } from "./ae-lighting-shader-cases";
-import { aeMatteRefinePixelShaderCases } from "./ae-matte-shader-cases";
-import { aeNoiseGrainPixelShaderCases } from "./ae-noise-grain-shader-cases";
-import { aeProfessionalColorPixelShaderCases } from "./ae-professional-color-shader-cases";
-import { aeQcOverlayPixelShaderCases } from "./ae-qc-overlay-shader-cases";
-import {
-  aeRetroMediaPixelShaderCases,
-  aeRetroMediaWarpShaderCases,
-} from "./ae-retro-media-shader-cases";
-import {
-  aeSimulationPixelShaderCases,
-  aeSimulationWarpShaderCases,
-} from "./ae-simulation-shader-cases";
-import {
-  aeAdvancedStylizePixelShaderCases,
-  aeAdvancedStylizeWarpShaderCases,
-} from "./ae-stylize-shader-cases";
-import {
-  aeAdvancedTransitionPixelShaderCases,
-  aeAdvancedTransitionWarpShaderCases,
-} from "./ae-transition-shader-cases";
+  immersiveVideoPixelShaderCases,
+  immersiveVideoWarpShaderCases,
+} from "./immersive-video-shader-cases";
+import { keyingCleanupPixelShaderCases } from "./keying-cleanup-shader-cases";
 import { layerStyleShaderFunctions } from "./layer-style-shader";
+import { layerStylePixelShaderCases } from "./layer-style-shader-cases";
+import { lightingPixelShaderCases } from "./lighting-shader-cases";
+import { matteRefinePixelShaderCases } from "./matte-shader-cases";
+import { noiseGrainPixelShaderCases } from "./noise-grain-shader-cases";
+import { professionalColorPixelShaderCases } from "./professional-color-shader-cases";
+import { qcOverlayPixelShaderCases } from "./qc-overlay-shader-cases";
+import { retroMediaPixelShaderCases, retroMediaWarpShaderCases } from "./retro-media-shader-cases";
+import { simulationPixelShaderCases, simulationWarpShaderCases } from "./simulation-shader-cases";
+import {
+  advancedStylizePixelShaderCases,
+  advancedStylizeWarpShaderCases,
+} from "./stylize-shader-cases";
+import {
+  advancedTransitionPixelShaderCases,
+  advancedTransitionWarpShaderCases,
+} from "./transition-shader-cases";
 
 export {
   imageShader,
@@ -330,14 +324,14 @@ fn fragment_main(input: VertexOutput) -> @location(0) vec4f {
         let folded_angle = triangle * sector * 0.5 + rotation;
         uv = center + vec2f(cos(folded_angle), sin(folded_angle)) * radius / aspect;
       }
-${aeWarpShaderCases}
-${aeAdvancedTransitionWarpShaderCases}
-${aeSimulationWarpShaderCases}
-${aeAdvancedStylizeWarpShaderCases}
-${aeAdvancedDistortWarpShaderCases}
-${aeImmersiveVideoWarpShaderCases}
-${aeRetroMediaWarpShaderCases}
-${aeFramingWarpShaderCases}
+${warpShaderCases}
+${advancedTransitionWarpShaderCases}
+${simulationWarpShaderCases}
+${advancedStylizeWarpShaderCases}
+${advancedDistortWarpShaderCases}
+${immersiveVideoWarpShaderCases}
+${retroMediaWarpShaderCases}
+${framingWarpShaderCases}
       case 106u: {
         active_warp_mask = effect_mask_value(effect, input.uv, resolution);
       }
@@ -849,24 +843,24 @@ ${aeFramingWarpShaderCases}
         color += shadow_color * shadow_alpha * (1.0 - alpha);
         alpha = max(alpha, shadow_alpha);
       }
-${aePixelShaderCases}
-${aeLayerStylePixelShaderCases}
-${aeKeyingCleanupPixelShaderCases}
-${aeImmersiveVideoPixelShaderCases}
-${aeLightingPixelShaderCases}
-${aeMatteRefinePixelShaderCases}
-${aeNoiseGrainPixelShaderCases}
-${aeProfessionalColorPixelShaderCases}
-${aeQcOverlayPixelShaderCases}
-${aeRetroMediaPixelShaderCases}
-${aeChannelUtilityPixelShaderCases}
-${aeColorPipelinePixelShaderCases}
-${aeDrawGeneratorPixelShaderCases}
-${aeFramingPixelShaderCases}
-${aeDetailProcessingPixelShaderCases}
-${aeAdvancedTransitionPixelShaderCases}
-${aeSimulationPixelShaderCases}
-${aeAdvancedStylizePixelShaderCases}
+${pixelShaderCases}
+${layerStylePixelShaderCases}
+${keyingCleanupPixelShaderCases}
+${immersiveVideoPixelShaderCases}
+${lightingPixelShaderCases}
+${matteRefinePixelShaderCases}
+${noiseGrainPixelShaderCases}
+${professionalColorPixelShaderCases}
+${qcOverlayPixelShaderCases}
+${retroMediaPixelShaderCases}
+${channelUtilityPixelShaderCases}
+${colorPipelinePixelShaderCases}
+${drawGeneratorPixelShaderCases}
+${framingPixelShaderCases}
+${detailProcessingPixelShaderCases}
+${advancedTransitionPixelShaderCases}
+${simulationPixelShaderCases}
+${advancedStylizePixelShaderCases}
       case 106u: {
         active_pixel_mask = effect_mask_value(effect, input.uv, resolution);
       }

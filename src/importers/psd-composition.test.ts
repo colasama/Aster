@@ -39,7 +39,7 @@ function fixture(): ParsedPsdDocument {
 }
 
 describe("PSD composition import plans", () => {
-  it("matches AE Composition semantics without allocating document-sized copies", () => {
+  it("matches Composition semantics without allocating document-sized copies", () => {
     const document = fixture();
     const plan = planPsdImport(document, "composition", "Cards");
     expect(plan).toMatchObject({ mode: "composition", name: "Cards", width: 1920, height: 1080 });
@@ -66,7 +66,7 @@ describe("PSD composition import plans", () => {
     expect(plan.warnings[0]).toMatchObject({ code: "unsupportedBlendMode", layerName: "Outside" });
   });
 
-  it("matches AE Retain Layer Sizes anchor and position semantics", () => {
+  it("matches Retain Layer Sizes anchor and position semantics", () => {
     const document = fixture();
     const plan = planPsdImport(document, "compositionRetainLayerSizes");
     expect(plan.layers[0]).toMatchObject({

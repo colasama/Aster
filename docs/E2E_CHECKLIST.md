@@ -58,7 +58,7 @@ The unsigned status is recorded as release metadata, not a runtime failure. Prod
 - [x] `[Automated]` Tab reordering, all four split edges, drag overlays, floating bounds, resize handles, panel close/reopen, workspace save/reset/undo, viewport locking/splitting, and migration are covered by the workspace suites.
 - [ ] `[Desktop]` Manually drag one tab to each of the four split-edge targets and exercise Workspace Save As/rename/delete/reset.
 
-Reference: [AE workspace and context-menu audit](AE_WORKSPACE_CONTEXT_AUDIT.md).
+Reference: [workspace and context-menu audit](WORKSPACE_CONTEXT_AUDIT.md).
 
 ## Menus, context actions, scaling, and diagnostics
 
@@ -70,7 +70,7 @@ Reference: [AE workspace and context-menu audit](AE_WORKSPACE_CONTEXT_AUDIT.md).
 - [x] `[Automated]` Structured error scope, cause chains, diagnostic codes, correlation IDs, detail copy, deduplication, dismissal, logging, import validation, and render-host terminal reporting are covered by the diagnostics suites.
 - [ ] `[Desktop]` Import a deliberately corrupt image and exercise plugin and AI-provider failures in configured third-party environments.
 
-References: [UI scaling](UI_SCALING.md), [AE workspace and context-menu audit](AE_WORKSPACE_CONTEXT_AUDIT.md).
+References: [UI scaling](UI_SCALING.md), [workspace and context-menu audit](WORKSPACE_CONTEXT_AUDIT.md).
 
 ## Layers, timeline, and graph editor
 
@@ -91,7 +91,7 @@ References: [Graph editor](GRAPH_EDITOR.md), [Audio layers](AUDIO_LAYERS.md), [P
 - [x] `[Desktop]` Enabled depth of field, scrubbed evaluated camera values, and graphed animated aperture.
 - [x] `[Desktop]` Used the 3D viewport World X manipulator and verified undo/redo.
 - [x] `[Automated]` One-node/two-node behavior, parenting, active-camera stacking, perspective/orthographic projection, framing, film-back math, legacy field-of-view migration, focus lock, near/far signed circle of confusion, occlusion, transparent edges, quality scaling, and deterministic time evaluation are covered.
-- [x] `[Docs]` Camera and DOF units, 72-dpi AE aperture conversion, focus-plane semantics, bokeh defaults, and preview/export ordering match the Adobe reference baseline.
+- [x] `[Docs]` Camera and DOF units, 72-dpi aperture conversion, focus-plane semantics, bokeh defaults, and preview/export ordering match the Adobe reference baseline.
 - [ ] `[Desktop]` Capture a manual visual matrix for every bokeh shape/roundness/aspect/highlight-gain combination.
 
 Reference: [Camera and depth of field](CAMERA_AND_DEPTH_OF_FIELD.md).

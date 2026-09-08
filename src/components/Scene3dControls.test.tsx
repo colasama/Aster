@@ -45,7 +45,7 @@ afterEach(() => {
   window.localStorage.clear();
 });
 
-describe("AE camera options controls", () => {
+describe("camera options controls", () => {
   it("uses the canonical orthographic size bounds", () => {
     const container = document.createElement("div");
     document.body.append(container);

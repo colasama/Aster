@@ -119,7 +119,7 @@ export interface TextLayoutUnit extends TextUnitContext {
   codePoint: number;
 }
 
-/** Evaluates ordered AE-style animator groups without relying on previous-frame state. */
+/** Evaluates ordered animator groups without relying on previous-frame state. */
 export function evaluateTextAnimatorStack(
   animators: readonly TextAnimatorGroup[],
   unit: TextUnitContext,

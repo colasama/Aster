@@ -38,7 +38,7 @@ export interface PsdCompositionImportPlan {
 }
 
 /**
- * Plans Adobe's merged/composition/retain-layer-sizes PSD import modes without padding or copying
+ * Plans merged/composition/retain-layer-sizes PSD import modes without padding or copying
  * decoded pixel planes. The renderer can place each cropped upload at pixelOrigin on its logical
  * source surface.
  */

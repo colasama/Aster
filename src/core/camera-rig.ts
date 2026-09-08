@@ -37,7 +37,7 @@ export interface CameraRay {
 
 const EPSILON = 1e-6;
 
-/** Creates AE's default camera: the composition plane is exactly one Zoom away. */
+/** Creates the default camera: the composition plane is exactly one Zoom away. */
 export function createDefaultCameraPose(
   compositionWidth: number,
   compositionHeight: number,
@@ -94,7 +94,7 @@ export function cameraToWorld(point: Vector3, pose: CameraPose): Vector3 {
   );
 }
 
-/** Projects with AE Zoom in composition pixels; a plane at depth Zoom retains its dimensions. */
+/** Projects with Zoom in composition pixels; a plane at depth Zoom retains its dimensions. */
 export function projectCameraPoint(
   point: Vector3,
   pose: CameraPose,

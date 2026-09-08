@@ -133,7 +133,7 @@ describe("GPU depth effects", () => {
     expect(layered.residual).toEqual([0, 0, 0, 0]);
   });
 
-  it("packs the same time-evaluated AE pixel optics consumed by the CPU CoC", () => {
+  it("packs the same time-evaluated pixel optics consumed by the CPU CoC", () => {
     const optics = normalizeCameraOptics(
       {
         ...DEFAULT_CAMERA_OPTICS,

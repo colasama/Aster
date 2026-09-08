@@ -1,8 +1,8 @@
 import type { CameraSettings } from "./types";
 
 export const CAMERA_FOCAL_LENGTH_PRESETS_MM = [15, 20, 24, 28, 35, 50, 80, 135, 200] as const;
-export const MILLIMETERS_TO_AE_PIXELS = 72 / 25.4;
-export const DEFAULT_CAMERA_APERTURE_PIXELS = (50 / 5.6) * MILLIMETERS_TO_AE_PIXELS;
+export const MILLIMETERS_TO_CAMERA_PIXELS = 72 / 25.4;
+export const DEFAULT_CAMERA_APERTURE_PIXELS = (50 / 5.6) * MILLIMETERS_TO_CAMERA_PIXELS;
 
 export interface CameraOptics {
   projection: "perspective" | "orthographic";
@@ -74,7 +74,7 @@ export const DEFAULT_CAMERA_OPTICS: CameraOptics = Object.freeze({
 
 const MIN_POSITIVE = 1e-4;
 
-/** AE-compatible horizontal film-back projection. */
+/** Horizontal film-back projection. */
 export function lensFromFocalLength(
   focalLength: number,
   filmSize: number,
@@ -106,12 +106,12 @@ export function lensFromZoom(
   );
 }
 
-/** AE reports Aperture in 72-dpi pixels while focal length remains millimetres. */
+/** Aperture is expressed in 72-dpi pixels while focal length remains millimetres. */
 export function apertureFromFStop(focalLength: number, fStop: number): number {
   return bounded(
     (bounded(focalLength, 0.1, 10_000, DEFAULT_CAMERA_OPTICS.focalLength) /
       bounded(fStop, 0.1, 1_000, DEFAULT_CAMERA_OPTICS.fStop)) *
-      MILLIMETERS_TO_AE_PIXELS,
+      MILLIMETERS_TO_CAMERA_PIXELS,
     0.001,
     10_000,
     DEFAULT_CAMERA_OPTICS.aperture,
@@ -121,7 +121,8 @@ export function apertureFromFStop(focalLength: number, fStop: number): number {
 export function fStopFromAperture(focalLength: number, aperture: number): number {
   return bounded(
     bounded(focalLength, 0.1, 10_000, DEFAULT_CAMERA_OPTICS.focalLength) /
-      (bounded(aperture, 0.001, 10_000, DEFAULT_CAMERA_OPTICS.aperture) / MILLIMETERS_TO_AE_PIXELS),
+      (bounded(aperture, 0.001, 10_000, DEFAULT_CAMERA_OPTICS.aperture) /
+        MILLIMETERS_TO_CAMERA_PIXELS),
     0.1,
     1_000,
     DEFAULT_CAMERA_OPTICS.fStop,
@@ -227,7 +228,7 @@ export function normalizeCameraOptics(
   };
 }
 
-/** Signed AE 72-dpi pixel-domain circle of confusion; negative is the near field. */
+/** Signed 72-dpi pixel-domain circle of confusion; negative is the near field. */
 export function circleOfConfusionRadius(
   optics: CameraOptics,
   cameraDepth: number,

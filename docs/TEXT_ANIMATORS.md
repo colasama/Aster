@@ -16,7 +16,7 @@ executing arbitrary JavaScript in the renderer.
 Start, End, Offset, Amount, range shaping controls, Wiggly controls, and every numeric animator
 property are regular Aster animation tracks. Inspector edits at an animated property create or
 replace a keyframe at the addressed layer time. Removing the final selector deliberately restores
-After Effects' all-characters behavior.
+animation across all characters.
 
 The Timeline and Graph Editor discover those tracks from the same ordered animator stack. Animator
 and selector IDs are encoded into stable property paths, so renaming or reordering either object does
@@ -42,7 +42,7 @@ property tracks are evaluated once per selector/property object and time sample,
 grapheme. Segmentation uses a bounded 64-entry/32768-unit LRU.
 
 Animator groups are evaluated in stack order. Position, anchor point, 3D rotation, skew, tracking,
-line layout, character offset, and blur are additive; scale and opacity preserve their AE neutral
+line layout, character offset, and blur are additive; scale and opacity preserve their neutral
 values of 100%; fill and stroke colors blend in group order. Grapheme segmentation produces all
 Characters, Characters Excluding Spaces, Words, and Lines indices once per text layout, so selector
 work remains linear and can be cached by text content.

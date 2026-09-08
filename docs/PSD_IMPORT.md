@@ -6,7 +6,7 @@ blend keys, alpha, and folder section markers are preserved. ZIP inflation strea
 declared plane allocation and cancels on overflow. Input and decoded-memory budgets are both bounded
 at 512 MiB.
 
-Import modes follow After Effects:
+Supported import modes:
 
 - **Merged** uses the embedded composite as one footage source.
 - **Composition** keeps layers separate on document-sized logical surfaces.

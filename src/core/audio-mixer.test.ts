@@ -22,7 +22,7 @@ describe("composition audio mixing", () => {
     expect(evaluateLayerAudioSourceTime(layer, 6, 10)).toBeUndefined();
   });
 
-  it("keeps audio and video solo groups independent like AE layer types", () => {
+  it("keeps audio and video solo groups independent", () => {
     const composition = activeComposition(createDemoProject());
     const audio = createLayerForComposition("audio", composition);
     const otherAudio = createLayerForComposition("audio", composition);

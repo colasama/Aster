@@ -1,22 +1,21 @@
 # Camera and depth of field
 
-Aster models an After Effects camera as a horizontal film-back projection. Film size and Zoom are
+Aster models its camera as a horizontal film-back projection. Film size and Zoom are
 authoritative time-addressable tracks; focal length and angle of view are derived at evaluation time.
 Editing focal length performs the exact inverse conversion into Zoom. The 50 mm
 default on a 36 mm film back has a 39.598-degree horizontal view and a 2666.667-pixel Zoom in a
 1920-pixel-wide composition. A layer at the Zoom distance therefore appears at full scale.
 
 Depth of field is a production render option on perspective cameras. Focus Distance defines the
-perfectly sharp plane, Lock to Zoom follows evaluated lens changes, and AE Aperture is an
+perfectly sharp plane, Lock to Zoom follows evaluated lens changes, and Aperture is an
 authoritative 72-dpi pixel track. F-Stop is the reciprocal settings view
 `FocalLengthMm / (AperturePx × 25.4 / 72)` and edits that view back-propagate to the current Aperture
 value. The 50 mm default at f/5.6 therefore evaluates to 25.31 px. Focus Area Width creates a fully sharp
 interval around the focus plane. Near and Far Blur
 Level scale the two sides independently, while Blur Level scales the physically derived result as a
-whole. Aperture does not change exposure, matching After Effects rather than a photographic exposure
-simulation.
+whole. Aperture controls depth of field without changing exposure.
 
-The signed circle of confusion is evaluated entirely in AE virtual-camera pixel units: Aperture,
+The signed circle of confusion is evaluated entirely in virtual-camera pixel units: Aperture,
 Zoom, Focus Distance, and surface distance never mix with millimetre focal length. Its magnitude
 scales only with output resolution: a half-resolution production preview
 uses exactly half the radius in pixels and therefore retains the same composition-space appearance.
@@ -24,7 +23,7 @@ Orthographic cameras do not apply lens depth of field. Render Quality maps to a 
 budget and never changes lens geometry. Iris shape, rotation, roundness, aspect ratio, diffraction
 fringe, and highlight gain/threshold/saturation are bounded camera tracks consumed directly by the
 GPU bokeh sampler.
-The AE-compatible default bokeh preset is Fast Rectangle, 0° rotation, 0% roundness, 1.0 aspect
+The default bokeh preset is Fast Rectangle, 0° rotation, 0% roundness, 1.0 aspect
 ratio, and zero diffraction or highlight gain.
 Highlight Threshold is normalized to the 32-bpc `0..1` range because Aster's canonical render path
 is floating-point HDR and does not expose an 8/16-bpc project mode.
@@ -43,7 +42,7 @@ requires K2 and reports an actionable allocation failure rather than exporting r
 transparency. Diffraction Fringe conserves sampled energy and moves it radially
 toward the iris boundary; it is not chromatic aberration.
 
-The camera rig uses AE composition coordinates (right, down, forward). Its default two-node camera is
+The camera rig uses composition coordinates (right, down, forward). Its default two-node camera is
 centered at `[width / 2, height / 2, -Zoom]` and points at the composition center, so the `z = 0`
 plane maps one-to-one to composition pixels. One-node cameras use Orientation plus XYZ Rotation;
 two-node cameras first construct a stable Point of Interest frame and then apply those rotations.

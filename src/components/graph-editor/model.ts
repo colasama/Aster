@@ -23,7 +23,7 @@ interface GraphTrackBase {
   discrete?: boolean;
   quantizeValue?: boolean;
   property: AnimatedProperty;
-  /** Unseparated spatial components used to produce one AE-style speed magnitude. */
+  /** Unseparated spatial components used to produce one speed magnitude. */
   spatialProperties?: readonly Animatable[];
   spatialPaths?: readonly PropertyPath[];
   spatialPrimary?: boolean;
@@ -355,7 +355,7 @@ export function graphTrackInterpolation(
 }
 
 /**
- * Converts the temporal cubic stored on a segment into AE-style absolute speed and influence.
+ * Converts the temporal cubic stored on a segment into absolute speed and influence.
  * Influence is expressed as a normalized portion of the segment duration.
  */
 export function graphSpeedSegment(
@@ -468,7 +468,7 @@ export function graphKeyframeTarget(track: GraphTrack, keyframe: Keyframe): Grap
       };
 }
 
-/** Builds the segment-owned temporal handles affected by AE Easy Ease In, Out, or Both. */
+/** Builds the segment-owned temporal handles affected by Easy Ease In, Out, or Both. */
 export function easeGraphTrack(
   track: Pick<GraphTrack, "property">,
   selectedIds: ReadonlySet<string>,

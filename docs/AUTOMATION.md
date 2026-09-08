@@ -185,4 +185,3 @@ The smoke test starts a separate profile, connects through MCP, creates animatio
 cropped frames, compares a generated audiovisual reference, imports it, saves a project, and exports
 an MP4 with audio. Reports and sampled PNGs remain under `artifacts/automation-smoke-<timestamp>`.
 The test terminates only the application process tree it launched.
-

@@ -11,7 +11,7 @@
 
 ## 1. 项目愿景
 
-Aster 的目标不是复刻 After Effects 的既有实现，而是以现代实时图形引擎的思路重新定义 Motion Graphics 与 Compositing 工作流。
+Aster aims to redefine motion graphics and compositing workflows through a modern real-time graphics engine.
 
 Aster 将 GPU 作为主要渲染与计算设备，把 **2D、3D、视频、文字、矢量、粒子和可编程特效** 统一到同一套 Timeline、Scene Graph、Dependency Graph 与 Render Graph 中，并将 AI 设计为原生工程操作层，而不是额外附加的“AI 生成视频”按钮。
 
@@ -27,7 +27,6 @@ Aster 最重要的产品目标是：
 - **2D + 3D** — 统一时间轴、统一 Scene、统一 Render Graph。
 - **Open Source** — 开放核心、开放项目格式、开放插件生态。
 - **Programmable** — WGSL Shader、Render Graph 与 Native Plugin。
-- 第一版的界面完全参考 After Effects 进行实现
 - 使用最新版 Electron 和 Vite + React 完成本项目的编写。
 - 尽可能让性能做的更好。
 - 初版先支持 4K 分辨率。
@@ -45,7 +44,7 @@ Aster 最重要的产品目标是：
 
 核心差异化可以概括为：
 
-> **AE 的 Timeline 与动画工作流 + 游戏引擎式实时 GPU Renderer + 统一 2D/3D 合成 + 开放可编程插件 + AI 原生工程操作。**
+> **Timeline animation workflows + real-time GPU rendering + unified 2D/3D compositing + programmable plugins + native AI project operations.**
 
 ---
 
@@ -293,8 +292,8 @@ Aster 是 Motion Graphics / Compositing 软件，不做完整 DCC。
 - 多机位剪辑；
 - 专业 DAW 级音频混音；
 - 完整 Nuke 级 VFX 节点系统；
-- 首版 AE Project Compatibility；
-- 首版 AE Plugin Compatibility；
+- Initial-release compatibility with third-party project formats;
+- Initial-release compatibility with third-party plugin APIs;
 - 数百个内置 Effects；
 - 首版 Ray Tracing / Path Tracing；
 - 自研完整 3D Asset DCC Pipeline。
@@ -1875,7 +1874,7 @@ Demo 发布准备：
 
 # 20. Definition of Success
 
-Aster 的第一阶段成功标准不是“拥有多少 AE 功能”，而是证明以下假设：
+The first phase succeeds by validating the following hypotheses:
 
 - [x] 复杂 2D Motion 可以通过统一 GPU pipeline 实时预览；
 - [x] Timeline 可以任意 seek，而不会被游戏式帧状态模型绑死；
@@ -1892,11 +1891,7 @@ Aster 的第一阶段成功标准不是“拥有多少 AE 功能”，而是证�
 
 # 21. 项目原则总结
 
-Aster 不应成为：
-
-> **“一个免费的 After Effects 克隆。”**
-
-更理想的方向是：
+Product direction:
 
 > **一个以实时 GPU 图形引擎为基础、原生理解 2D/3D、可被程序与 AI 操作、并拥有开放插件生态的下一代 Motion Graphics & Compositing 平台。**
 

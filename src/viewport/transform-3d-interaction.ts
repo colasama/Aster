@@ -182,8 +182,8 @@ export function projectedGizmoAxes3d(
       endpoint[1] - origin.screen[1],
     ];
     const projectedLength = Math.hypot(...projectedDirection);
-    // An axis aimed directly into the camera projects to a point. AE exposes it as a
-    // draggable depth handle; use a stable diagonal fallback while retaining its 3D basis.
+    // An axis aimed directly into the camera projects to a point. Use a stable
+    // diagonal fallback for its draggable depth handle while retaining its 3D basis.
     const screenDirection: Vector2 =
       projectedLength >= 6 / safeZoom
         ? [projectedDirection[0] / projectedLength, projectedDirection[1] / projectedLength]

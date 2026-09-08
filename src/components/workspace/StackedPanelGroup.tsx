@@ -79,7 +79,7 @@ function StackedPanel({
       className={`workspace-stack-panel ${selected ? "active" : ""}`}
       data-expanded={expanded ? "true" : undefined}
     >
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: AE exposes the panel menu across the complete stacked header. */}
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: The panel menu is available across the complete stacked header. */}
       <header className="workspace-stack-header" onContextMenu={onContextMenu}>
         <button
           aria-controls={contentId}

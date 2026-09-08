@@ -14,7 +14,7 @@ import { createBlankProject } from "./project";
 import { evaluateTransform } from "./timeline";
 import { staticValue } from "./types";
 
-describe("AE-compatible camera settings", () => {
+describe("camera settings", () => {
   it("places the composition plane exactly one Zoom from the default 50 mm camera", () => {
     const settings = createDefaultCameraSettings(1920, 1080);
     const transform = evaluateTransform(createDefaultCameraTransform(1920, 1080), 0);

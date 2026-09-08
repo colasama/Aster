@@ -1,31 +1,31 @@
 import { createId, type Effect } from "../core/types";
-import { ADDITIONAL_AE_EFFECTS } from "./ae-additional";
-import { AE_BLUR_SHARPEN_EFFECTS } from "./ae-blur-sharpen";
-import { AE_CHANNEL_KEYING_EFFECTS } from "./ae-channel-keying";
-import { AE_CHANNEL_UTILITY_EFFECTS } from "./ae-channel-utility";
-import { AE_COLOR_EFFECTS } from "./ae-color";
-import { AE_COLOR_PIPELINE_EFFECTS } from "./ae-color-pipeline";
-import { AE_PROFESSIONAL_COLOR_EFFECTS } from "./ae-color-professional";
-import { AE_DETAIL_PROCESSING_EFFECTS } from "./ae-detail-processing";
-import { AE_ADVANCED_DISTORT_EFFECTS } from "./ae-distort-advanced";
-import { AE_DRAW_GENERATOR_EFFECTS } from "./ae-draw-generators";
-import { AE_ENVIRONMENT_EFFECTS } from "./ae-environment";
-import { AE_FRAMING_EFFECTS } from "./ae-framing";
-import { AE_GENERATOR_EFFECTS } from "./ae-generators";
-import { AE_IMMERSIVE_VIDEO_EFFECTS } from "./ae-immersive-video";
-import { AE_KEYING_CLEANUP_EFFECTS } from "./ae-keying-cleanup";
-import { AE_LAYER_STYLE_EFFECTS } from "./ae-layer-styles";
-import { AE_LIGHTING_EFFECTS } from "./ae-lighting";
-import { AE_MATTE_REFINE_EFFECTS } from "./ae-matte-refine";
-import { AE_NOISE_GRAIN_EFFECTS } from "./ae-noise-grain";
-import { AE_PERSPECTIVE_EFFECTS } from "./ae-perspective";
-import { AE_QC_OVERLAY_EFFECTS } from "./ae-qc-overlays";
-import { AE_RETRO_MEDIA_EFFECTS } from "./ae-retro-media";
-import { AE_SIMULATION_EFFECTS } from "./ae-simulation";
-import { AE_ADVANCED_STYLIZE_EFFECTS } from "./ae-stylize-advanced";
-import { AE_STYLIZE_TRANSITION_EFFECTS } from "./ae-stylize-transitions";
-import { AE_ADVANCED_TRANSITIONS } from "./ae-transitions-advanced";
+import { ADDITIONAL_EFFECTS } from "./additional";
+import { BLUR_SHARPEN_EFFECTS } from "./blur-sharpen";
+import { CHANNEL_KEYING_EFFECTS } from "./channel-keying";
+import { CHANNEL_UTILITY_EFFECTS } from "./channel-utility";
+import { COLOR_EFFECTS } from "./color";
+import { COLOR_PIPELINE_EFFECTS } from "./color-pipeline";
+import { PROFESSIONAL_COLOR_EFFECTS } from "./color-professional";
+import { DETAIL_PROCESSING_EFFECTS } from "./detail-processing";
+import { ADVANCED_DISTORT_EFFECTS } from "./distort-advanced";
+import { DRAW_GENERATOR_EFFECTS } from "./draw-generators";
+import { ENVIRONMENT_EFFECTS } from "./environment";
+import { FRAMING_EFFECTS } from "./framing";
+import { GENERATOR_EFFECTS } from "./generators";
+import { IMMERSIVE_VIDEO_EFFECTS } from "./immersive-video";
+import { KEYING_CLEANUP_EFFECTS } from "./keying-cleanup";
+import { LAYER_STYLE_EFFECTS } from "./layer-styles";
+import { LIGHTING_EFFECTS } from "./lighting";
+import { MATTE_REFINE_EFFECTS } from "./matte-refine";
+import { NOISE_GRAIN_EFFECTS } from "./noise-grain";
 import { angle, choice, color, number, percent, toggle } from "./parameter-builders";
+import { PERSPECTIVE_EFFECTS } from "./perspective";
+import { QC_OVERLAY_EFFECTS } from "./qc-overlays";
+import { RETRO_MEDIA_EFFECTS } from "./retro-media";
+import { SIMULATION_EFFECTS } from "./simulation";
+import { ADVANCED_STYLIZE_EFFECTS } from "./stylize-advanced";
+import { STYLIZE_TRANSITION_EFFECTS } from "./stylize-transitions";
+import { ADVANCED_TRANSITIONS } from "./transitions-advanced";
 import type { EffectDefinition } from "./types";
 
 export const EFFECT_REGISTRY: EffectDefinition[] = [
@@ -856,32 +856,32 @@ export const EFFECT_REGISTRY: EffectDefinition[] = [
       number("softness", "Softness", 1, 0, 64, 0.25, "px"),
     ],
   },
-  ...ADDITIONAL_AE_EFFECTS,
-  ...AE_GENERATOR_EFFECTS,
-  ...AE_IMMERSIVE_VIDEO_EFFECTS,
-  ...AE_ENVIRONMENT_EFFECTS,
-  ...AE_FRAMING_EFFECTS,
-  ...AE_STYLIZE_TRANSITION_EFFECTS,
-  ...AE_COLOR_EFFECTS,
-  ...AE_COLOR_PIPELINE_EFFECTS,
-  ...AE_CHANNEL_KEYING_EFFECTS,
-  ...AE_KEYING_CLEANUP_EFFECTS,
-  ...AE_CHANNEL_UTILITY_EFFECTS,
-  ...AE_BLUR_SHARPEN_EFFECTS,
-  ...AE_PERSPECTIVE_EFFECTS,
-  ...AE_LAYER_STYLE_EFFECTS,
-  ...AE_NOISE_GRAIN_EFFECTS,
-  ...AE_ADVANCED_TRANSITIONS,
-  ...AE_SIMULATION_EFFECTS,
-  ...AE_ADVANCED_STYLIZE_EFFECTS,
-  ...AE_MATTE_REFINE_EFFECTS,
-  ...AE_LIGHTING_EFFECTS,
-  ...AE_PROFESSIONAL_COLOR_EFFECTS,
-  ...AE_QC_OVERLAY_EFFECTS,
-  ...AE_RETRO_MEDIA_EFFECTS,
-  ...AE_ADVANCED_DISTORT_EFFECTS,
-  ...AE_DRAW_GENERATOR_EFFECTS,
-  ...AE_DETAIL_PROCESSING_EFFECTS,
+  ...ADDITIONAL_EFFECTS,
+  ...GENERATOR_EFFECTS,
+  ...IMMERSIVE_VIDEO_EFFECTS,
+  ...ENVIRONMENT_EFFECTS,
+  ...FRAMING_EFFECTS,
+  ...STYLIZE_TRANSITION_EFFECTS,
+  ...COLOR_EFFECTS,
+  ...COLOR_PIPELINE_EFFECTS,
+  ...CHANNEL_KEYING_EFFECTS,
+  ...KEYING_CLEANUP_EFFECTS,
+  ...CHANNEL_UTILITY_EFFECTS,
+  ...BLUR_SHARPEN_EFFECTS,
+  ...PERSPECTIVE_EFFECTS,
+  ...LAYER_STYLE_EFFECTS,
+  ...NOISE_GRAIN_EFFECTS,
+  ...ADVANCED_TRANSITIONS,
+  ...SIMULATION_EFFECTS,
+  ...ADVANCED_STYLIZE_EFFECTS,
+  ...MATTE_REFINE_EFFECTS,
+  ...LIGHTING_EFFECTS,
+  ...PROFESSIONAL_COLOR_EFFECTS,
+  ...QC_OVERLAY_EFFECTS,
+  ...RETRO_MEDIA_EFFECTS,
+  ...ADVANCED_DISTORT_EFFECTS,
+  ...DRAW_GENERATOR_EFFECTS,
+  ...DETAIL_PROCESSING_EFFECTS,
 ];
 
 export const EFFECT_BY_TYPE = new Map(EFFECT_REGISTRY.map((effect) => [effect.type, effect]));

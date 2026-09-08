@@ -209,7 +209,7 @@ export function createDefaultEvaluatedCamera(
   );
 }
 
-/** AE chooses the highest timeline camera whose span contains the current time. */
+/** The active camera is the highest timeline camera whose span contains the current time. */
 export function activeCameraLayerAtTime(composition: Composition, time: number): Layer | undefined {
   return composition.layers.find(
     (layer) => layer.kind === "camera" && isLayerActiveAtTime(layer, time),

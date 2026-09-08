@@ -56,7 +56,7 @@ linear intensity, equirectangular rotation, and an embedded Radiance RGBE source
 `image/vnd.radiance` or `image/x-hdr`, cap the encoded source at 64 MiB, and the renderer further caps
 decoded maps at 8192 × 4096 and 16 million pixels.
 
-Version 7 persists AE-style motion blur as two independent switches. A composition has required
+Version 7 persists motion blur as two independent switches. A composition has required
 `motionBlur` settings containing `enabled`, a 0–720 degree `shutterAngle`, a -720–720 degree
 `shutterPhase`, 2–64 base samples, and a 2–128 adaptive sample limit that may not be below the base.
 Every layer has its own required `motionBlur` boolean. Both switches must be true before the renderer
@@ -184,7 +184,7 @@ project reader validates only the bounded, portable parameter envelope; the matc
 owns parameter names, types, ranges, defaults, and execution-time clamping. This keeps project I/O
 independent of installed plugins and preserves data during plugin recovery or downgrade.
 
-The project panel stores AE-style organizational bins in `folders`. A folder has a stable ID, a
+The project panel stores organizational bins in `folders`. A folder has a stable ID, a
 bounded display name, and an optional `parentId` for nesting. `itemFolderIds` maps composition IDs or
 footage source IDs to their containing folder. These fields affect project-panel organization
 only: rendering data remains on compositions and layers, so moving an item between folders never
@@ -210,7 +210,7 @@ before the material enters the GPU path. HDR imports are fully decoded and valid
 worker before their source is admitted to the project document.
 
 Camera layers store one-node/two-node mode, animated point of interest and orientation vectors,
-horizontal film size, AE-compatible Zoom in composition pixels, orthographic size, and bounded
+horizontal film size, Zoom in composition pixels, orthographic size, and bounded
 depth-of-field optics. Derived focal length and f-stop are never persisted, preventing animation
 and UI edits from creating inconsistent lens state. The default 50 mm camera is centered one Zoom
 behind the composition plane. At a given time, the first camera in timeline order whose in/out span
@@ -240,7 +240,7 @@ and [Advanced 3D depth-of-field controls](https://helpx.adobe.com/after-effects/
   IDs, and the cubic reveal remains pixel-equivalent at arbitrary seek times.
   The v8 → v9 migration turns every static camera optical scalar into a static `Animatable`, removes
   redundant focal-length and f-stop storage, and adds deterministic iris and highlight defaults.
-  Zoom, film size, and AE Aperture pixels are authoritative; focal length and f-stop are derived at
+  Zoom, film size, and Aperture pixels are authoritative; focal length and f-stop are derived at
   the requested evaluation time. Aperture conversion uses Adobe's 72-dpi convention
   (`focalLengthMm / fStop × 72 / 25.4`), locking the 50 mm f/5.6 baseline to 25.31 px.
   The v9 → v10 migration centers every layer anchor before the GPU and Canvas renderers begin

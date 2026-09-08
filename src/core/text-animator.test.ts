@@ -12,7 +12,7 @@ import {
 } from "./text-animator";
 import { createDefaultExpressionSelector } from "./text-animator-groups";
 
-describe("AE-style text animator settings", () => {
+describe("text animator settings", () => {
   it("creates and normalizes bounded ordered groups", () => {
     const animator = createDefaultTextAnimator(true);
     expect(animator).toMatchObject({

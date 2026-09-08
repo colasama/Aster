@@ -60,7 +60,7 @@ describe("ViewportTextEditor", () => {
     expect(editor.style.height).toBe("800px");
   });
 
-  it("streams input and maps AE commit plus Escape rollback gestures", () => {
+  it("streams input and maps commit plus Escape rollback gestures", () => {
     const layer = createLayerForComposition("text", createBlankComposition());
     const onCancel = vi.fn();
     const onChange = vi.fn();

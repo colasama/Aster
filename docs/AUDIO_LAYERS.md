@@ -5,7 +5,7 @@ An audio-only source creates a first-class `audio` layer with no visual surface.
 expose an embedded audio stream through the same controls. Both store stereo level in decibels, pan,
 mute, reverse, the layer audio switch, solo, in/out points, source offset, and time stretch.
 
-This follows the relevant After Effects behavior: the layer Audio switch controls sound output,
+The layer Audio switch controls sound output,
 audio and video layer solo groups remain independent, Audio Levels default to 0 dB, and positive or
 negative decibel values raise or lower amplitude. Time Stretch redistributes source audio across the
 new duration, while reverse is evaluated from source time rather than playback history. Preview audio

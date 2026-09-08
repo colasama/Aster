@@ -8,7 +8,7 @@ import {
 } from "./timeline-property-tracks";
 
 describe("text animator timeline tracks", () => {
-  it("exposes animator and Range Selector properties with AE units and bounds", () => {
+  it("exposes animator and Range Selector properties with units and bounds", () => {
     const project = createBlankProject();
     const layer = createLayerForComposition("text", project.compositions[0]);
     const animator = layer.textAnimator?.groups[0];

@@ -36,7 +36,7 @@ export interface TimelineSelectionPoint {
   row: number;
 }
 
-/** AE-style magnetic snap: frame quantization is the baseline, nearby edit points win in pixels. */
+/** Magnetic snap: frame quantization is the baseline, nearby edit points win in pixels. */
 export function snapTimelineTime(
   requestedTime: number,
   frameDuration: number,
@@ -64,7 +64,7 @@ export function snapTimelineTime(
   return winner;
 }
 
-/** Moves a selected layer group as one AE transaction while preserving offsets and duration. */
+/** Moves a selected layer group as one editing transaction while preserving offsets and duration. */
 export function moveLayerTimingGroup(
   layers: readonly LayerTiming[],
   activeLayerId: Id,

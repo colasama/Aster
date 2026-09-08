@@ -218,7 +218,7 @@ Axis and view-plane drags write the animated Position property at the current ti
 remain selectable for inspection, but the overlay exposes no draggable surface or axis handles.
 
 Layer effects and backdrop-dependent blend modes reuse one pair of full-resolution HDR transient
-textures across the frame. After effects, the input surface becomes a backdrop snapshot for
+textures across the frame. After effect processing, the input surface becomes a backdrop snapshot for
 alpha-correct blending; no third color surface or CPU readback is required. See
 [layer effects and blending options](LAYER_STYLES.md) for kernel bounds and mode semantics. Per-layer
 uniform and operation buffers remain distinct so queue uploads cannot race command-buffer execution;

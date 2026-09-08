@@ -1149,7 +1149,7 @@
       "name": "setCompositionMotionBlur",
       "version": 1,
       "category": "compositions",
-      "description": "Set the composition motion-blur switch and bounded AE-style shutter sampling.",
+      "description": "Set the composition motion-blur switch and bounded shutter sampling.",
       "requiredPermissions": ["project.edit"],
       "risk": "reversible",
       "undoable": true,

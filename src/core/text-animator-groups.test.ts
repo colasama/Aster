@@ -12,7 +12,7 @@ import type { TextAnimatorGroup } from "./text-animator-stack";
 import { MAX_TEXT_ANIMATOR_GROUPS } from "./text-animator-stack";
 
 describe("text animator group defaults and normalization", () => {
-  it("creates AE-compatible selector defaults", () => {
+  it("creates selector defaults", () => {
     const group = createDefaultTextAnimatorGroup(2);
     expect(group.name).toBe("Animator 3");
     expect(group.properties.position).toEqual([

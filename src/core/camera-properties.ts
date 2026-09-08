@@ -84,7 +84,7 @@ export function evaluateCameraProperty(
   return clamp(evaluateAnimatable(camera[field], time), CAMERA_PROPERTY_LIMITS[field]);
 }
 
-/** Preserve animation while editing an AE Camera Options value at the current timeline time. */
+/** Preserve animation while editing a Camera Options value at the current timeline time. */
 export function setCameraPropertyAtTime(
   camera: CameraSettings,
   field: CameraAnimatableField,

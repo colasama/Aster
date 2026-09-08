@@ -207,7 +207,7 @@ struct AsterDrawIndirect {
 ```
 
 `camera_projection` packs orthographic flag, horizontal angle of view in radians, orthographic
-height, and AE Zoom in composition pixels. The three appended unit basis vectors are authoritative
+height, and Zoom in composition pixels. The three appended unit basis vectors are authoritative
 for one-node and point-of-interest cameras; `camera_rotation` remains available to older module
 logic and diagnostics. Appending the basis preserves every existing field offset while extending
 the standard context buffer from 160 to 208 bytes.

@@ -20,7 +20,7 @@ const perspective: CameraProjection = {
   far: 100_000,
 };
 
-describe("AE camera rig", () => {
+describe("camera rig", () => {
   it("keeps the composition plane pixel-identical at the Zoom distance", () => {
     const pose = createDefaultCameraPose(1920, 1080, perspective.zoom);
     expect(projectCameraPoint([0, 0, 0], pose, perspective, [1920, 1080]).screen).toEqual([0, 0]);

@@ -206,7 +206,7 @@ export function DockGroup({
       onFocusCapture={() => onHover(group.id)}
       onPointerEnter={() => onHover(group.id)}
     >
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: The header supports AE-style double-click group maximize. */}
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: The header supports double-click group maximize. */}
       <header
         className="workspace-group-header"
         onDoubleClick={(event) => {

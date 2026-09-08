@@ -236,7 +236,7 @@ describe("graph editor track model", () => {
     expect(graphDraggedKeyframeValue("value", 25, Number.NaN)).toBe(25);
   });
 
-  it("round-trips AE speed and influence handles through temporal cubic easing", () => {
+  it("round-trips speed and influence handles through temporal cubic easing", () => {
     const start = {
       id: "start",
       time: 2,

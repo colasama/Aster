@@ -59,7 +59,7 @@ export default defineConfig(({ command, mode }) => {
                     },
                     {
                       name: "effect-catalog",
-                      test: /src[\\/](?:effects|renderer[\\/]ae-effect-shader-cases)\b/,
+                      test: /src[\\/](?:effects|renderer[\\/]effect-shader-cases)\b/,
                       priority: 10,
                       includeDependenciesRecursively: false,
                     },

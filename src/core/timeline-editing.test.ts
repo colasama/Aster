@@ -10,7 +10,7 @@ import {
 
 const frame = 1 / 30;
 
-describe("After Effects-style timeline editing primitives", () => {
+describe("Timeline editing primitives", () => {
   it("prefers nearby magnetic edit points and supports Control bypass", () => {
     expect(snapTimelineTime(1.08, frame, 100, [{ time: 1.1, kind: "playhead" }])).toEqual({
       time: 1.1,

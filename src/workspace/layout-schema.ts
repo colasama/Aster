@@ -53,7 +53,7 @@ export function serializeWorkspaceLayout(layout: WorkspaceLayout): WorkspaceLayo
       id: viewer.id,
       sourcePanelId: viewer.sourcePanelId,
       viewerType: viewer.viewerType,
-      // Adobe does not persist project-bound locked viewers in workspace preferences.
+      // Workspace preferences must not retain project-bound viewer locks.
       locked: false,
     })),
   };

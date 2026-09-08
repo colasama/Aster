@@ -14,7 +14,7 @@ import {
 const frame = 1 / 30;
 
 describe("timeline UI interaction model", () => {
-  it("maps AE keyboard commands without hijacking command-modified keys", () => {
+  it("maps keyboard commands without hijacking command-modified keys", () => {
     const input = {
       altKey: false,
       code: "BracketLeft",

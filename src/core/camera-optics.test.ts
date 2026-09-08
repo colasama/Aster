@@ -11,7 +11,7 @@ import {
 } from "./camera-optics";
 
 describe("camera optics", () => {
-  it("roundtrips AE film size, focal length, zoom, and angle of view", () => {
+  it("roundtrips film size, focal length, zoom, and angle of view", () => {
     const lens = lensFromFocalLength(50, 36, 1920);
     expect(lens.zoom).toBeCloseTo(2666.666_667);
     expect(lens.angleOfViewDegrees).toBeCloseTo(39.597_753);
@@ -71,7 +71,7 @@ describe("camera optics", () => {
     expect(depthOfFieldSampleCount(Infinity)).toBe(depthOfFieldSampleCount(50));
   });
 
-  it("keeps the locked default lens non-degenerate in AE virtual-camera pixel units", () => {
+  it("keeps the locked default lens non-degenerate in virtual-camera pixel units", () => {
     const optics = normalizeCameraOptics(
       { ...DEFAULT_CAMERA_OPTICS, depthOfField: true, lockFocusToZoom: true },
       1920,

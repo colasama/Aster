@@ -18,7 +18,7 @@ _Live WebGPU preview: Beauty → depth fog → depth of field → normals → mo
 
 ## Current capabilities
 
-- AE-style desktop editor with dockable, movable, resizable panels and free viewport zoom/pan.
+- desktop editor with dockable, movable, resizable panels and free viewport zoom/pan.
 - Rational time, keyframes, cubic easing, graph view, layer ordering, undo/redo, and arbitrary-time
   evaluation.
 - Timeline keyframes support additive multi-selection, frame-snapped group retiming, Alt-drag time

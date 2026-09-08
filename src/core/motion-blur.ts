@@ -75,7 +75,7 @@ export function normalizeMotionBlurSettings(
   };
 }
 
-/** AE shutter timing: phase locates opening and angle defines exposure length in frame units. */
+/** Shutter timing: phase locates opening and angle defines exposure length in frame units. */
 export function motionBlurInterval(
   frameTime: number,
   frameRate: number,
