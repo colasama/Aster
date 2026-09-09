@@ -19,8 +19,3 @@
     animation-iteration-count: 1;
   }
 }
-
-:root:root select:focus-visible {
-  outline: 2px solid var(--blue-bright);
-  outline-offset: -2px;
-}

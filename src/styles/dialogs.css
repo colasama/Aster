@@ -126,16 +126,9 @@
 .workspace-dialog > footer button {
   height: 28px;
   padding: 0 11px;
-  border: 1px solid #343842;
-  border-radius: 3px;
-  color: #999eaa;
   font-size: 9px;
 }
-.workspace-dialog > footer button.primary {
-  border-color: #4d73c4;
-  color: white;
-  background: #3c68c7;
-}
+
 .dialog-form {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -151,30 +144,21 @@
   color: #858c9c;
   font-size: 9px;
 }
-.dialog-form input,
+.dialog-form input:not([type="checkbox"]),
 .dialog-form select {
   height: 29px;
   padding: 0 8px;
-  border: 1px solid #373c48;
-  border-radius: 3px;
-  outline: 0;
-  color: #cbd0dc;
-  background: #111318;
   font-size: 10px;
 }
 .dialog-form input:focus,
 .dialog-form select:focus {
-  border-color: #5880da;
+  border-color: var(--blue-bright);
 }
 .dialog-form .dialog-check {
   display: flex;
   grid-template-columns: none;
   align-items: center;
   gap: 8px;
-}
-.dialog-form .dialog-check input {
-  width: 14px;
-  height: 14px;
 }
 .dialog-note {
   display: flex;

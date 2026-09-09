@@ -26,10 +26,6 @@
 .automation-settings button {
   min-height: 28px;
   padding: 4px 9px;
-  border: 1px solid #373c48;
-  border-radius: 3px;
-  color: #cbd0dc;
-  background: #22252e;
   font-size: 10px;
 }
 .automation-settings button:hover:not(:disabled) {

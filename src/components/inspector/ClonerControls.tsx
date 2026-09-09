@@ -94,6 +94,7 @@ export function ClonerControls({ layer }: { layer: Layer }) {
           <div className="cloner-effector-actions">
             {(["position", "scale", "rotation", "random", "audio"] as const).map((kind) => (
               <button
+                className="control-button"
                 disabled={settings.effectors.length >= 32}
                 key={kind}
                 onClick={() =>
@@ -235,6 +236,7 @@ function EffectorEditor({
         <strong>{t("cloner.effectorTitle", { kind: kindLabel })}</strong>
         <button
           aria-label={t("cloner.effectorRemove", { kind: kindLabel })}
+          className="control-button"
           onClick={onRemove}
           type="button"
         >

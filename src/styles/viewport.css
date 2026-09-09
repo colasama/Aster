@@ -37,9 +37,8 @@
     background-color var(--motion-fast) ease-out;
 }
 .viewport-toolbar select {
-  border: 0;
-  background: #1b1d23;
-  outline: 1px solid #2c2f38;
+  border: 1px solid var(--control-border);
+  background-color: var(--control-bg);
 }
 .viewport-toolbar button:hover,
 .viewport-toolbar button.active {

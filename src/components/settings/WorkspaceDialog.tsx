@@ -342,7 +342,11 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
               <div className="dialog-note wide">
                 <Sparkles size={15} /> {environment.source.name} ·{" "}
                 {t("workspace.composition.environmentSummary")}
-                <button onClick={() => setEnvironment(undefined)} type="button">
+                <button
+                  className="control-button"
+                  onClick={() => setEnvironment(undefined)}
+                  type="button"
+                >
                   {t("common.remove")}
                 </button>
               </div>

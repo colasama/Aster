@@ -1,0 +1,253 @@
+/* Native elements keep their keyboard, form and assistive-technology behavior.
+   Surface styles own layout and density; these defaults also cover new controls. */
+input:where(
+  :not(
+    [type="checkbox"],
+    [type="radio"],
+    [type="range"],
+    [type="color"],
+    [type="file"],
+    [type="hidden"]
+  )
+),
+select,
+textarea {
+  min-width: 0;
+  padding: 0 7px;
+  border: 1px solid var(--control-border);
+  border-radius: var(--control-radius);
+  background-color: var(--control-bg);
+  color: var(--control-text);
+  font-size: 10px;
+}
+
+input:where(
+  :not(
+    [type="checkbox"],
+    [type="radio"],
+    [type="range"],
+    [type="color"],
+    [type="file"],
+    [type="hidden"]
+  )
+),
+select {
+  height: var(--control-height);
+}
+
+textarea {
+  padding: 7px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+:where(.panel-search, .palette-search, .plugin-search) input {
+  height: 100%;
+  padding-block: 0;
+}
+
+input[type="number"] {
+  appearance: textfield;
+  font-variant-numeric: tabular-nums;
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
+:where(input, select, textarea)::placeholder {
+  color: var(--muted);
+  opacity: 1;
+}
+
+select:not([multiple]) {
+  appearance: none;
+  padding-inline-end: 24px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='m3 4.5 3 3 3-3' fill='none' stroke='%23898d9b' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 6px center;
+  text-overflow: ellipsis;
+}
+
+select option,
+select optgroup {
+  background: var(--bg-raised);
+  color: var(--control-text);
+}
+
+input[type="checkbox"] {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+  display: inline-grid;
+  place-content: center;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--control-border);
+  border-radius: var(--control-radius);
+  background: var(--control-bg);
+  color: white;
+  vertical-align: middle;
+}
+
+input[type="checkbox"]::before {
+  content: "";
+  width: 9px;
+  height: 9px;
+  background: currentColor;
+  clip-path: polygon(10% 44%, 36% 70%, 89% 17%, 100% 29%, 36% 93%, 0 57%);
+  visibility: hidden;
+}
+
+input[type="checkbox"]:is(:checked, :indeterminate) {
+  border-color: var(--blue);
+  background: var(--blue);
+}
+
+input[type="checkbox"]:is(:checked, :indeterminate)::before {
+  visibility: visible;
+}
+
+input[type="checkbox"]:indeterminate::before {
+  clip-path: inset(40% 0);
+}
+
+input:where([type="color"]) {
+  min-width: 0;
+  height: var(--control-height);
+  padding: 3px;
+  border: 1px solid var(--control-border);
+  border-radius: var(--control-radius);
+  background: var(--control-bg);
+}
+
+input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+input[type="color"]::-webkit-color-swatch {
+  border: 0;
+  border-radius: 1px;
+}
+
+input[type="color"]::-moz-color-swatch {
+  border: 0;
+  border-radius: 1px;
+}
+
+input[type="range"],
+input[type="radio"] {
+  accent-color: var(--blue);
+}
+
+:is(input, select, textarea):enabled:hover:where(:not([aria-invalid="true"])) {
+  border-color: var(--control-border-hover);
+}
+
+.control-button,
+:where(
+    .workspace-dialog > footer,
+    .workspace-action-dialog > footer,
+    .render-dialog > footer,
+    .plugin-toolbar,
+    .automation-settings,
+    .render-queue-actions,
+    .render-queue-add-actions,
+    .text-animator-toolbar,
+    .text-stack-add-row,
+    .text-animator-group > header,
+    .text-selector-control > header,
+    .text-animator-property > header,
+    .text-animatable-control
+  )
+  button {
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 0 8px;
+  border: 1px solid var(--control-border);
+  border-radius: var(--control-radius);
+  background: var(--control-button-bg);
+  color: var(--control-text);
+  font-size: 9px;
+}
+
+.control-button:hover:not(:disabled),
+:where(
+    .workspace-dialog > footer,
+    .workspace-action-dialog > footer,
+    .render-dialog > footer,
+    .plugin-toolbar,
+    .automation-settings,
+    .render-queue-actions,
+    .render-queue-add-actions,
+    .text-animator-toolbar,
+    .text-stack-add-row,
+    .text-animator-group > header,
+    .text-selector-control > header,
+    .text-animator-property > header,
+    .text-animatable-control
+  )
+  button:hover:not(:disabled) {
+  border-color: var(--control-border-hover);
+  background: var(--control-button-hover);
+  color: var(--text);
+}
+
+:where(.workspace-dialog, .workspace-action-dialog, .render-dialog, .render-queue-add-actions)
+  button.primary,
+.plugin-toolbar .plugin-install-button {
+  border-color: var(--blue);
+  background: var(--control-primary-bg);
+  color: white;
+}
+
+:where(.workspace-dialog, .workspace-action-dialog, .render-dialog, .render-queue-add-actions)
+  button.primary:hover:not(:disabled),
+.plugin-toolbar .plugin-install-button:hover:not(:disabled) {
+  border-color: var(--blue-bright);
+  background: var(--control-primary-hover);
+  color: white;
+}
+
+.workspace-action-dialog > footer button.destructive:hover:not(:disabled) {
+  border-color: var(--red);
+  background: #983e4b;
+  color: white;
+}
+
+/* Keep focus and disabled states visible through legacy surface selectors. */
+:root:root :is(button, input, select, textarea):focus-visible {
+  outline: 2px solid var(--blue-bright);
+  outline-offset: -2px;
+}
+
+:root:root input[type="checkbox"]:focus-visible {
+  outline-offset: 2px;
+}
+
+:root:root :is(button, input, select, textarea):disabled {
+  cursor: default;
+  opacity: var(--control-disabled-opacity);
+}
+
+:is(.panel-search, .palette-search, .plugin-search, .number-field):focus-within {
+  border-color: var(--blue-bright);
+}
+
+@media (forced-colors: active) {
+  input[type="checkbox"],
+  select:not([multiple]) {
+    appearance: auto;
+    background-image: none;
+  }
+
+  input[type="checkbox"]::before {
+    display: none;
+  }
+}

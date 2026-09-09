@@ -110,10 +110,6 @@ fieldset.effects-section {
 .effect-mask-heading select {
   width: 72px;
   height: 20px;
-  border: 1px solid #30333d;
-  border-radius: 2px;
-  background: #111217;
-  color: #aeb3be;
   font-size: 8px;
 }
 .effect-mask-heading label,
@@ -134,10 +130,6 @@ fieldset.effects-section {
   width: 48px;
   height: 20px;
   padding: 0 4px;
-  border: 1px solid #30333d;
-  border-radius: 2px;
-  background: #111217;
-  color: #b8bdc8;
   font-size: 8px;
 }
 .effect-mask-pair small,
@@ -168,15 +160,10 @@ fieldset.effects-section {
   width: 62px;
   height: 21px;
   padding: 0 5px;
-  border: 1px solid #292c35;
-  border-radius: 2px;
-  outline: 0;
-  background: #101116;
-  color: #b9bdc7;
   font-size: 8px;
 }
 .effect-parameter select {
-  padding-right: 1px;
+  width: 96px;
 }
 .effect-parameter.effect-numeric {
   min-height: 36px;
@@ -220,18 +207,10 @@ fieldset.effects-section {
   color: #555a67;
   font-size: 7px;
 }
-.effect-toggle input {
-  width: 13px;
-  height: 13px;
-  accent-color: var(--blue);
-}
 .effect-color input {
   width: 42px;
   height: 20px;
   padding: 1px;
-  border: 1px solid #333741;
-  border-radius: 3px;
-  background: #101116;
 }
 .effect-keyframe {
   width: 19px;

@@ -29,10 +29,6 @@
   justify-content: center;
   gap: 3px;
   padding: 0 5px;
-  border: 1px solid #343945;
-  border-radius: 3px;
-  color: #9299a8;
-  background: #17191f;
   font-size: 8px;
 }
 .text-animator-toolbar button:disabled,
@@ -64,7 +60,7 @@
   font-size: 9px;
 }
 .text-stack-toggle > input[type="text"]:focus {
-  border-color: #5377c7;
+  border-color: var(--blue-bright);
   outline: 0;
   background: #111319;
 }
@@ -163,11 +159,6 @@
   height: 22px;
   min-width: 0;
   padding: 0 4px;
-  border: 1px solid #303540;
-  border-radius: 2px;
-  outline: 0;
-  color: #b8becb;
-  background: #101217;
   font-size: 8px;
 }
 .text-animatable-control > button.active {
@@ -186,11 +177,6 @@
   min-height: 52px;
   padding: 5px;
   resize: vertical;
-  border: 1px solid #303540;
-  border-radius: 2px;
-  outline: 0;
-  color: #bcc3d0;
-  background: #0e1015;
   font:
     8px / 1.45 "Cascadia Mono",
     monospace;

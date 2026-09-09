@@ -129,7 +129,7 @@
   background: #111217;
 }
 .number-field:focus-within {
-  border-color: #4566a6;
+  border-color: var(--blue-bright);
 }
 .number-field .axis-label {
   width: 15px;
@@ -195,10 +195,6 @@
   width: 42px;
   height: 25px;
   padding: 0 4px;
-  border: 1px solid #2b2e37;
-  border-radius: 3px;
-  outline: 0;
-  background: #111217;
   font-size: 9px;
 }
 .slider-property span {

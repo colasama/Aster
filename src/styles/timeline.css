@@ -492,31 +492,22 @@
   width: 100%;
   height: 18px;
   padding: 0 4px;
-  border: 1px solid #30343e;
-  border-radius: 2px;
-  outline: none;
-  color: #aeb8cb;
-  background: #20232a;
   font-family: "Cascadia Mono", Consolas, monospace;
   font-size: 8px;
 }
 .timeline-property-label input[type="number"]:focus,
 .timeline-property-label select:focus {
-  border-color: #557fd9;
+  border-color: var(--blue-bright);
   box-shadow: 0 0 0 1px rgba(85, 127, 217, 0.24);
-}
-.timeline-property-label input[type="checkbox"] {
-  justify-self: end;
-  accent-color: var(--blue);
 }
 .timeline-property-label input[type="color"] {
   justify-self: end;
   width: 30px;
   height: 18px;
   padding: 1px;
-  border: 1px solid #30343e;
-  border-radius: 2px;
-  background: #20232a;
+}
+.timeline-property-label input[type="checkbox"] {
+  justify-self: end;
 }
 .timeline-property-label input:disabled,
 .timeline-property-label select:disabled,

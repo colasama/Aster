@@ -32,16 +32,9 @@
   gap: 5px;
   height: 27px;
   padding: 0 8px;
-  border: 1px solid #353a46;
-  border-radius: 3px;
-  color: #a8afbd;
   font-size: 8px;
 }
-.plugin-install-button {
-  border-color: #4d73c4;
-  color: white;
-  background: #3c68c7;
-}
+
 .plugin-view-tabs {
   display: flex;
   gap: 3px;
@@ -307,11 +300,6 @@
 }
 .expression-target select,
 .expression-form textarea {
-  border: 1px solid #373c48;
-  border-radius: 3px;
-  outline: 0;
-  color: #cbd0dc;
-  background: #111318;
   font:
     10px / 1.55 "Cascadia Code",
     Consolas,
@@ -328,7 +316,7 @@
 }
 .expression-target select:focus,
 .expression-form textarea:focus {
-  border-color: #5880da;
+  border-color: var(--blue-bright);
 }
 .expression-status {
   color: #7ec9a3;
@@ -422,10 +410,6 @@
   flex: 1;
   height: 28px;
   padding: 0 7px;
-  border: 1px solid #343842;
-  border-radius: 3px;
-  color: #c0c4ce;
-  background: #111318;
   font-size: 9px;
 }
 .render-progress {
@@ -465,16 +449,9 @@
   align-items: center;
   gap: 4px;
   padding: 0 11px;
-  border: 1px solid #343842;
-  border-radius: 3px;
-  color: #999eaa;
   font-size: 9px;
 }
-.render-dialog > footer button.primary {
-  border-color: #4d73c4;
-  color: white;
-  background: #3c68c7;
-}
+
 .app-toast {
   position: fixed;
   z-index: 300;

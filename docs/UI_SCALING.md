@@ -24,6 +24,18 @@ their header and footer fixed around a scrolling body.
 The browser-only development surface uses CSS `zoom` as a fallback and reads the same bounded value
 from local storage. It never applies this fallback in Electron, avoiding a double scale.
 
+## Control styling
+
+`src/styles/controls.css` provides the shared appearance for native inputs, selects, textareas,
+checkboxes, color swatches and form action buttons. Colors, borders, radius and default height live
+in the `--control-*` tokens in `src/styles/tokens.css`. Surface styles retain layout and compact
+heights for the timeline and inspector; avoid duplicating control colors and borders there.
+
+Use native form elements to preserve labels, keyboard interaction and disabled semantics. Use
+`control-button` for standalone form actions outside the existing dialog and panel action groups.
+Toolbar tools, tabs and keyframe buttons keep their specialized states. Focus and disabled styling
+is shared across controls; forced-colors mode restores native checkbox and select rendering.
+
 ## Performance constraints
 
 - UI scale changes do not modify composition pixels or export dimensions.

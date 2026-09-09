@@ -464,15 +464,10 @@
 .workspace-action-dialog > select {
   height: 30px;
   padding: 0 8px;
-  border: 1px solid #3a4050;
-  border-radius: 3px;
-  outline: none;
-  background: #111217;
-  color: #e1e4eb;
 }
 .workspace-action-dialog > input:focus,
 .workspace-action-dialog > select:focus {
-  border-color: #5d82ce;
+  border-color: var(--blue-bright);
 }
 .workspace-action-dialog > p {
   color: #c6c9d1;
@@ -488,15 +483,8 @@
 .workspace-action-dialog > footer button {
   height: 28px;
   padding: 0 11px;
-  border: 1px solid #3a3e49;
-  border-radius: 3px;
-  color: #aeb2bd;
 }
-.workspace-action-dialog > footer button.primary {
-  border-color: #4d73c4;
-  color: white;
-  background: #3c68c7;
-}
+
 .workspace-action-dialog > footer button.destructive {
   border-color: #9b4350;
   color: white;
