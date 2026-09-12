@@ -59,6 +59,59 @@ afterEach(() => {
 });
 
 describe("ViewportTransformControls", () => {
+  it("snaps a moving layer to a custom ruler guide", () => {
+    const project = createBlankProject();
+    const composition = activeComposition(project);
+    const layer = createLayerForComposition("shape", composition);
+    composition.layers = [layer];
+    const dispatch = vi.fn<(action: EditorAction) => void>();
+    act(() =>
+      root.render(
+        <I18nProvider>
+          <ViewportTransformControls
+            activeTool="select"
+            composition={composition}
+            dispatch={dispatch}
+            onEditText={vi.fn()}
+            project={project}
+            selection={[layer.id]}
+            showGuides={false}
+            referenceGuides={[{ id: "guide", axis: "x", position: 1000 }]}
+            time={0}
+            zoom={1}
+          />
+        </I18nProvider>,
+      ),
+    );
+    const target = container.querySelector<SVGElement>(".viewport-selection-hit");
+    if (!target) throw new Error("Missing layer move surface");
+    act(() => {
+      target.dispatchEvent(
+        new PointerEvent("pointerdown", {
+          bubbles: true,
+          button: 0,
+          clientX: 100,
+          clientY: 100,
+          pointerId: 12,
+        }),
+      );
+      target.dispatchEvent(
+        new PointerEvent("pointermove", {
+          bubbles: true,
+          clientX: 138,
+          clientY: 100,
+          pointerId: 12,
+        }),
+      );
+    });
+    expect(container.querySelector('.viewport-snap-line[x1="1000"]')).not.toBeNull();
+    act(() =>
+      target.dispatchEvent(
+        new PointerEvent("pointerup", { bubbles: true, clientX: 138, clientY: 100, pointerId: 12 }),
+      ),
+    );
+    expect(dispatch.mock.calls.filter(([action]) => action.type === "operation")).toHaveLength(1);
+  });
   it.each([
     ["text", "360,410 1560,410 1560,670 360,670"],
     ["shape", "600,180 1320,180 1320,900 600,900"],

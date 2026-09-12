@@ -27,6 +27,7 @@ function actions(): ViewportContextMenuActions {
     setPreviewQuality: vi.fn(),
     setViewCount: vi.fn(),
     setZoom: vi.fn(),
+    fitView: vi.fn(),
     showGrid: true,
     showGuides: false,
     showLayerControls: true,
@@ -46,7 +47,7 @@ describe("viewportContextMenuItems", () => {
   it("exposes nested preview choices, overlays, and capture availability", () => {
     const items = viewportContextMenuItems(actions(), createTranslator("en-US"));
     const zoom = items.find((item) => item.kind === "submenu" && item.id === "zoom");
-    expect(zoom?.kind === "submenu" && zoom.items).toHaveLength(6);
+    expect(zoom?.kind === "submenu" && zoom.items).toHaveLength(8);
     expect(
       zoom?.kind === "submenu" && zoom.items.find((item) => item.id === "zoom-8"),
     ).toMatchObject({ label: "800%" });
@@ -129,11 +130,20 @@ describe("viewportContextMenuItems", () => {
     selectNested("resolution", "resolution-0.25");
     selectNested("buffer", "buffer-depthOfField");
     selectNested("view-count", "view-count-1");
-    for (const id of ["copy-frame", "export-frame", "guides", "grid", "origin", "layer-controls"]) {
+    for (const id of [
+      "fit",
+      "copy-frame",
+      "export-frame",
+      "guides",
+      "grid",
+      "origin",
+      "layer-controls",
+    ]) {
       const item = items.find((candidate) => candidate.id === id);
       if (item && item.kind !== "separator" && item.kind !== "submenu") item.onSelect();
     }
     expect(value.setZoom).toHaveBeenCalledWith(8);
+    expect(value.fitView).toHaveBeenCalledOnce();
     expect(value.setPreviewQuality).toHaveBeenCalledWith(0.25);
     expect(value.setBufferView).toHaveBeenCalledWith("depthOfField");
     expect(value.setViewCount).toHaveBeenCalledWith(1);

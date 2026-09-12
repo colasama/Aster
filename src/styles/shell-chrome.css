@@ -314,17 +314,6 @@
   margin: 0 5px;
   background: var(--bg-raised);
 }
-.toolbar-center {
-  position: absolute;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  right: 100px;
-}
-.preview-quality {
-  min-width: 56px;
-  font-size: 12px;
-}
 .toolbar-right {
   display: flex;
   gap: 5px;

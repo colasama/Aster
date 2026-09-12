@@ -1,6 +1,5 @@
 import {
   Box,
-  ChevronDown,
   Circle,
   Hand,
   LoaderCircle,
@@ -68,6 +67,7 @@ import { isEditableShortcutTarget, isEditorShortcutBlocked } from "../../ui/keyb
 import { useWorkspaceController } from "../../workspace/workspace-controller";
 import type { WorkspaceDialogKind } from "../settings/WorkspaceDialog";
 import { useDialogFocus } from "../use-dialog-focus";
+import { VIEWPORT_ZOOM_COMMAND } from "../viewport/use-viewport-navigation";
 import { AppMenuBar } from "./AppMenuBar";
 import { CommandPalette } from "./CommandPalette";
 import { findMenuEntry, type MenuItemId } from "./topbar-menu";
@@ -172,7 +172,7 @@ export function TopBar() {
       { label: t("topbar.command.ai"), action: () => dispatch({ type: "setRightTab", tab: "ai" }) },
       {
         label: t("topbar.command.fit"),
-        action: () => dispatch({ type: "setViewportZoom", zoom: 0.22 }),
+        action: () => dispatch({ type: "fitViewport" }),
       },
       {
         label: state.playing ? t("topbar.command.pause") : t("topbar.command.play"),
@@ -399,12 +399,13 @@ export function TopBar() {
     else if (item === "about") setWorkspaceDialog("about");
     else if (item === "plugins") setWorkspaceDialog("plugins");
     else if (item === "aiOperator") dispatch({ type: "setRightTab", tab: "ai" });
-    else if (item === "fitComposition" || item === "viewport")
-      dispatch({ type: "setViewportZoom", zoom: 0.22 });
+    else if (item === "fitComposition" || item === "viewport") dispatch({ type: "fitViewport" });
     else if (item === "zoomIn")
-      dispatch({ type: "setViewportZoom", zoom: state.viewportZoom * 1.15 });
+      window.dispatchEvent(new CustomEvent(VIEWPORT_ZOOM_COMMAND, { detail: 1, cancelable: true }));
     else if (item === "zoomOut")
-      dispatch({ type: "setViewportZoom", zoom: state.viewportZoom / 1.15 });
+      window.dispatchEvent(
+        new CustomEvent(VIEWPORT_ZOOM_COMMAND, { detail: -1, cancelable: true }),
+      );
     else if (item === "renderQueue" || item === "exportFrame") setRenderOpen(true);
     else if (item === "commandPalette") setPaletteOpen(true);
     else if (item === "toggleGuides") dispatch({ type: "toggleView", view: "guides" });
@@ -544,25 +545,6 @@ export function TopBar() {
         >
           <Redo2 size={16} />
         </button>
-        <div className="toolbar-center">
-          <button
-            className="preview-quality"
-            onClick={() => {
-              const quality =
-                state.previewQuality === 1 ? 0.5 : state.previewQuality === 0.5 ? 0.25 : 1;
-              dispatch({ type: "setPreviewQuality", quality });
-            }}
-            title={t("topbar.toolbar.previewResolution")}
-            type="button"
-          >
-            {state.previewQuality === 1
-              ? t("common.full")
-              : state.previewQuality === 0.5
-                ? t("common.half")
-                : t("common.quarter")}{" "}
-            <ChevronDown size={12} />
-          </button>
-        </div>
         <div className="toolbar-right">
           <button className="render-button" onClick={() => setRenderOpen(true)} type="button">
             <Play fill="currentColor" size={13} /> {t("topbar.toolbar.render")}

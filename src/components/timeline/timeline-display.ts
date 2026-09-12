@@ -1,20 +1,4 @@
-import { frameAt } from "../../core/animation/timeline";
-
-export function formatTimecode(
-  time: number,
-  frameRate: { numerator: number; denominator: number },
-): string {
-  const totalFrames = frameAt(time, frameRate);
-  const fps = Math.round(frameRate.numerator / frameRate.denominator);
-  const frames = totalFrames % fps;
-  const totalSeconds = Math.floor(totalFrames / fps);
-  const seconds = totalSeconds % 60;
-  const minutes = Math.floor(totalSeconds / 60) % 60;
-  const hours = Math.floor(totalSeconds / 3600);
-  return [hours, minutes, seconds, frames]
-    .map((value) => value.toString().padStart(2, "0"))
-    .join(":");
-}
+export { formatTimecode } from "../../ui/preview-timecode";
 
 export const formatSeconds = (time: number) =>
   `${Math.floor(time / 60)}:${Math.floor(time % 60)

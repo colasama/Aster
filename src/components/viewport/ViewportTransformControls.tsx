@@ -21,6 +21,7 @@ import {
 } from "../../core/types";
 import { useI18n } from "../../i18n/react";
 import type { EditorAction, EditorState } from "../../state/editor-store";
+import type { ViewerGuide } from "../../ui/viewer-guides";
 import {
   compositionToLocal,
   localToComposition,
@@ -47,6 +48,7 @@ interface ViewportTransformControlsProps {
   readonly project: Project;
   readonly selection: readonly string[];
   readonly showGuides: boolean;
+  readonly referenceGuides?: readonly ViewerGuide[];
   readonly time: number;
   readonly zoom: number;
 }
@@ -95,6 +97,7 @@ export function ViewportTransformControls({
   project,
   selection,
   showGuides,
+  referenceGuides,
   time,
   zoom,
 }: ViewportTransformControlsProps) {
@@ -110,8 +113,18 @@ export function ViewportTransformControls({
   const editable = useMemo(() => topLevelEditableMembers(members), [members]);
   const bounds = viewportSelectionBounds(editable);
   const snapTargets = useMemo(
-    () => buildSnapTargets(composition, selection, time, showGuides),
-    [composition, selection, showGuides, time],
+    () => [
+      ...buildSnapTargets(composition, selection, time, showGuides),
+      ...(referenceGuides ?? []).map(
+        (guide): ViewportSnapTarget => ({
+          axis: guide.axis,
+          value: guide.position,
+          kind: "guide",
+          id: guide.id,
+        }),
+      ),
+    ],
+    [composition, selection, showGuides, time, referenceGuides],
   );
 
   const cancelActiveGesture = useCallback(

@@ -2,7 +2,7 @@ import type { Translate } from "../../i18n/core";
 import { useI18n } from "../../i18n/react";
 import type { BufferVisualization } from "../../renderer/gpu/render-buffers";
 import { BUFFER_VISUALIZATIONS } from "../../renderer/gpu/render-buffers";
-import { DEFAULT_VIEWPORT_ZOOM, VIEWPORT_ZOOM_PRESETS } from "../../ui/viewport-zoom";
+import { VIEWPORT_ZOOM_PRESETS } from "../../ui/viewport-zoom";
 import { ContextMenu } from "../context-menu/ContextMenu";
 import type { ContextMenuItem } from "../context-menu/context-menu-model";
 
@@ -29,6 +29,7 @@ export interface ViewportContextMenuActions {
   setPreviewQuality(value: 1 | 0.5 | 0.25): void;
   setViewCount(value: number): void;
   setZoom(value: number): void;
+  fitView(): void;
   toggleGrid(): void;
   toggleGuides(): void;
   toggleLayerControls(): void;
@@ -97,7 +98,7 @@ export function viewportContextMenuItems(
       kind: "command",
       label: t("viewport.menu.fit"),
       shortcut: "Shift+/",
-      onSelect: () => actions.setZoom(DEFAULT_VIEWPORT_ZOOM),
+      onSelect: actions.fitView,
     },
     {
       id: "zoom",
@@ -108,7 +109,7 @@ export function viewportContextMenuItems(
         group: "viewport-zoom",
         id: `zoom-${zoom}`,
         kind: "radio" as const,
-        label: `${Math.round(zoom * 100)}%`,
+        label: `${zoom * 100}%`,
         onSelect: () => actions.setZoom(zoom),
       })),
     },

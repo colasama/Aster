@@ -24,6 +24,11 @@ their header and footer fixed around a scrolling body.
 The browser-only development surface uses CSS `zoom` as a fallback and reads the same bounded value
 from local storage. It never applies this fallback in Electron, avoiding a double scale.
 
+The composition viewer defaults to live Fit using its own scroll host's CSS dimensions. Fit up to
+100% caps enlargement; manual zoom supports 1–800%. Preview resolution remains independent. Viewer
+controls wrap in groups when the dock becomes narrow. See [AE workflow audit](AE_WORKFLOW_AUDIT.md)
+for snapshot, ruler, guide, and time-entry behavior and their persistence boundaries.
+
 ## Control styling
 
 `src/styles/controls.css` provides the shared appearance for native inputs, selects, textareas,

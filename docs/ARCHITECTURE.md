@@ -238,6 +238,12 @@ progress, so position, scale, rotation, and text changes render immediately. Rel
 finishing text editing records one transaction from the gesture's original project snapshot, keeping
 undo deterministic without accumulating per-move history entries. Canvas resizes invalidate the
 preview, and renderer initialization always draws the current evaluated frame.
+
+Viewer navigation and chrome are separate from production frame evaluation. Live Fit measures each
+viewer's CSS scroll host; snapshots use one bounded on-demand canvas copy, and ruler guides are
+locally persisted viewing aids that feed the existing transform snap targets. Neither snapshots nor
+guides modify project/export pixels. See [AE workflow audit](AE_WORKFLOW_AUDIT.md) for exact controls,
+storage boundaries, and remaining feature gaps.
 Layer-local geometry uses a top-left source space with an explicit anchor. GPU vertices, Canvas 2D,
 selection outlines, picking, composition cropping, and inline text overlays all subtract the same
 evaluated anchor before scale and rotation; newly created and migrated layers start centered.

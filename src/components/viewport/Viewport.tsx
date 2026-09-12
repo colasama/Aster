@@ -1,14 +1,4 @@
-import {
-  ChevronDown,
-  Crosshair,
-  Grid3X3,
-  Maximize2,
-  Minus,
-  Move3D,
-  Plus,
-  Scan,
-  Sparkles,
-} from "lucide-react";
+import { Maximize2 } from "lucide-react";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { onPlaybackFrame } from "../../core/animation/playback-frame";
 import { createLayerForComposition } from "../../core/layers/layer-factory";
@@ -39,9 +29,10 @@ import {
 import { createDefaultBezierPath } from "../../renderer/geometry/vector-path";
 import { calculatePreviewSize } from "../../renderer/gpu/preview-size";
 import { encodeRawFramePng } from "../../renderer/gpu/raw-frame-png";
-import { BUFFER_VISUALIZATIONS, type BufferVisualization } from "../../renderer/gpu/render-buffers";
+import type { BufferVisualization } from "../../renderer/gpu/render-buffers";
 import { WebGpuRenderer } from "../../renderer/webgpu-renderer";
 import { useEditor } from "../../state/editor-store";
+import { isEditableShortcutTarget, isEditorShortcutBlocked } from "../../ui/keyboard-shortcuts";
 import { viewportRendererStatus } from "../../ui/viewport-renderer-status";
 import {
   beginViewportTextEdit,
@@ -51,26 +42,24 @@ import {
   updateViewportTextEdit,
   type ViewportTextEditSession,
 } from "../../ui/viewport-text-editing";
-import {
-  DEFAULT_VIEWPORT_ZOOM,
-  MAX_VIEWPORT_ZOOM,
-  MIN_VIEWPORT_ZOOM,
-  viewportZoomPercent,
-} from "../../ui/viewport-zoom";
 import { resolveWorkspaceViewerComposition } from "../../workspace/viewer-context";
 import { useContextMenuTrigger } from "../context-menu/use-context-menu-trigger";
 import { Panel } from "../Panel";
 import { useWorkspaceApi } from "../workspace/DockWorkspace";
 import { useWorkspaceViewerIdentity } from "../workspace/WorkspaceViewerIdentity";
 import { CameraGizmo } from "./CameraGizmo";
+import { useViewerGuides } from "./use-viewer-guides";
 import { useViewportBenchmark } from "./use-viewport-benchmark";
+import { useViewportNavigation } from "./use-viewport-navigation";
+import { useViewportSnapshot } from "./use-viewport-snapshot";
 import { Viewport3dTransformControls } from "./Viewport3dTransformControls";
+import { ViewportFooter, ViewportHeader } from "./ViewportChrome";
 import { ViewportContextMenu } from "./ViewportContextMenu";
+import { ViewportRulers } from "./ViewportRulers";
 import { ViewportTextEditor } from "./ViewportTextEditor";
 import { ViewportTransformControls } from "./ViewportTransformControls";
 import { hitTestLayer, viewportCssMatrix } from "./viewport-geometry";
 import {
-  bufferViewLabel,
   compositionContainsVideo,
   disposeRenderer,
   type Renderer,
@@ -100,6 +89,7 @@ export function Viewport() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const mirrorCanvasRef = useRef<HTMLCanvasElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
+  const spaceRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<Renderer | undefined>(undefined);
   const beautyPipelineRef = useRef<ProductionBeautyFramePipeline | undefined>(undefined);
   const renderSessionGuardRef = useRef(new ExclusiveRenderSessionGuard());
@@ -147,7 +137,29 @@ export function Viewport() {
     selectedLayerId: state.selection[0],
     time: state.currentTime,
   };
-  const displayZoom = state.viewportZoom * (viewCount === 2 ? 0.5 : 1);
+  const displayZoom = useViewportNavigation(spaceRef, composition, viewCount, state, dispatch);
+  const viewerContextKey = `${state.project.id}.${composition.id}`;
+  const snapshot = useViewportSnapshot(
+    canvasRef,
+    `${viewerContextKey}.${composition.width}x${composition.height}`,
+  );
+  const referenceGuides = useViewerGuides(viewerContextKey);
+  const [rulers, setRulers] = useState(false);
+  const [guidesLocked, setGuidesLocked] = useState(false);
+  const setZoom = (zoom: number) => dispatch({ type: "setViewportZoom", zoom });
+  const fitView = (mode: "fit" | "fit100" = "fit") => dispatch({ type: "fitViewport", mode });
+  const captureSnapshot = () => {
+    if (!rendererReady || renderSessionGuardRef.current.active) return;
+    const preview = previewRestoreRef.current;
+    rendererRef.current?.render(
+      preview.composition,
+      preview.time,
+      false,
+      preview.project,
+      preview.selectedLayerId,
+    );
+    snapshot.capture();
+  };
   const pan = useRef({ active: false, x: 0, y: 0, left: 0, top: 0 });
   const selectedLayer = composition.layers.find((layer) => layer.id === state.selection[0]);
   const selectedLayerIds = new Set(state.selection);
@@ -553,93 +565,62 @@ export function Viewport() {
         view: t("viewport.activeCamera"),
       })}
       actions={
-        <>
-          <button
-            className={state.showGrid ? "active" : ""}
-            onClick={() => dispatch({ type: "toggleView", view: "grid" })}
-            title={t("viewport.toggleGrid")}
-            type="button"
-          >
-            <Grid3X3 size={13} />
-          </button>
-          <button
-            onClick={() => toggleFullscreen(document.querySelector(".viewport-panel"))}
-            title={t("viewport.toggleFullscreen")}
-            type="button"
-          >
-            <Maximize2 size={13} />
-          </button>
-        </>
+        <button
+          onClick={() => toggleFullscreen(spaceRef.current?.closest(".viewport-panel") ?? null)}
+          title={t("viewport.toggleFullscreen")}
+          type="button"
+        >
+          <Maximize2 size={13} />
+        </button>
       }
     >
-      <div className="viewport-toolbar">
-        <select
-          aria-label={t("viewport.buffer.label")}
-          onChange={(event) => setBufferView(event.target.value as BufferVisualization)}
-          title={t("viewport.buffer.hint")}
-          value={bufferView}
-        >
-          {BUFFER_VISUALIZATIONS.map((mode) => (
-            <option key={mode} value={mode}>
-              {bufferViewLabel(mode, t)}
-            </option>
-          ))}
-        </select>
-        <button
-          onClick={() => setView(view === "active" ? "custom" : "active")}
-          title={t("viewport.switchCamera")}
-          type="button"
-        >
-          {viewCount === 2
-            ? t("viewport.activeAndCustom")
-            : view === "active"
-              ? t("viewport.activeCamera")
-              : t("viewport.customView")}{" "}
-          <ChevronDown size={11} />
-        </button>
-        <button
-          onClick={() => setViewCount(viewCount === 1 ? 2 : 1)}
-          title={t("viewport.cycleLayout")}
-          type="button"
-        >
-          {viewCount === 1
-            ? t("viewport.viewCount", { count: viewCount })
-            : t("viewport.viewsCount", { count: viewCount })}{" "}
-          <ChevronDown size={11} />
-        </button>
-        <span className="toolbar-gap" />
-        <button
-          className="active"
-          onClick={() => setSpace(space === "local" ? "world" : "local")}
-          title={t("viewport.toggleSpace")}
-          type="button"
-        >
-          <Move3D size={13} />
-          {space === "local" ? t("viewport.space.local") : t("viewport.space.world")}
-        </button>
-        <button
-          className={state.showOrigin ? "active" : ""}
-          onClick={() => dispatch({ type: "toggleView", view: "origin" })}
-          title={t("viewport.toggleOrigin")}
-          type="button"
-        >
-          <Crosshair size={13} />
-        </button>
-        <button
-          className={state.showGuides ? "active" : ""}
-          onClick={() => dispatch({ type: "toggleView", view: "guides" })}
-          title={t("viewport.toggleGuides")}
-          type="button"
-        >
-          <Scan size={13} />
-        </button>
-      </div>
+      <ViewportHeader
+        composition={composition}
+        view={view}
+        setView={setView}
+        viewCount={viewCount}
+        setViewCount={setViewCount}
+        space={space}
+        setSpace={setSpace}
+      />
       <div
         aria-label={t("viewport.menu.label")}
         className="viewport-space"
+        ref={spaceRef}
         onContextMenu={contextMenu.openFromPointer}
-        onKeyDown={contextMenu.openFromKeyboard}
+        onKeyDown={(event) => {
+          if (
+            contextMenu.openFromKeyboard(event) ||
+            isEditorShortcutBlocked(event.nativeEvent) ||
+            isEditableShortcutTarget(event.target)
+          )
+            return;
+          if (event.key === "F5") {
+            event.preventDefault();
+            event.stopPropagation();
+            if (event.shiftKey && !event.repeat) captureSnapshot();
+            else if (!event.shiftKey) snapshot.show();
+          } else if (event.key === "?" || (event.code === "Slash" && event.shiftKey)) {
+            event.preventDefault();
+            fitView();
+          } else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "r") {
+            event.preventDefault();
+            setRulers((value) => !value);
+          }
+        }}
+        onKeyUp={(event) => {
+          if (event.key === "F5") {
+            event.preventDefault();
+            snapshot.hide();
+          }
+        }}
+        onBlur={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget)) snapshot.hide();
+        }}
         onPointerDown={(event) => {
+          if (isEditableShortcutTarget(event.target)) return;
+          event.currentTarget.focus({ preventScroll: true });
+          if (snapshot.showing) return;
           if (viewerReadOnly && event.button === 0 && state.activeTool !== "hand") return;
           if (
             event.button === 0 &&
@@ -727,14 +708,15 @@ export function Viewport() {
         onPointerUp={(event) => {
           pan.current.active = false;
           event.currentTarget.classList.remove("panning");
-          event.currentTarget.releasePointerCapture(event.pointerId);
+          if (event.currentTarget.hasPointerCapture(event.pointerId))
+            event.currentTarget.releasePointerCapture(event.pointerId);
         }}
         onWheel={(event) => {
           if (!event.ctrlKey && !event.metaKey) return;
           event.preventDefault();
           dispatch({
             type: "setViewportZoom",
-            zoom: state.viewportZoom * (event.deltaY < 0 ? 1.12 : 1 / 1.12),
+            zoom: displayZoom * (event.deltaY < 0 ? 1.12 : 1 / 1.12),
           });
         }}
         role="application"
@@ -750,14 +732,33 @@ export function Viewport() {
               width: composition.width * displayZoom,
             }}
           >
-            <canvas ref={canvasRef} />
-            {state.showGrid && <div className="composition-grid" />}
-            {state.showGuides && (
-              <div className="safe-guides">
-                <span />
-              </div>
+            <div className="composition-image">
+              <canvas ref={canvasRef} />
+              <canvas
+                ref={snapshot.canvasRef}
+                className="viewport-snapshot"
+                hidden={!snapshot.showing}
+              />
+              {state.showGrid && <div className="composition-grid" />}
+              {state.showGuides && (
+                <div className="safe-guides">
+                  <span />
+                </div>
+              )}
+            </div>
+            {rulers && view === "active" && !snapshot.showing && (
+              <ViewportRulers
+                key={viewerContextKey}
+                stageRef={stageRef}
+                width={composition.width}
+                height={composition.height}
+                zoom={displayZoom}
+                guides={referenceGuides.guides}
+                onChange={referenceGuides.update}
+                locked={guidesLocked}
+              />
             )}
-            {state.showLayerControls && !state.playing && !viewerReadOnly ? (
+            {state.showLayerControls && !state.playing && !viewerReadOnly && !snapshot.showing ? (
               <>
                 <ViewportTransformControls
                   activeTool={state.activeTool}
@@ -767,6 +768,7 @@ export function Viewport() {
                   project={state.project}
                   selection={state.selection}
                   showGuides={state.showGuides}
+                  referenceGuides={rulers && view === "active" ? referenceGuides.guides : undefined}
                   time={state.currentTime}
                   zoom={displayZoom}
                 />
@@ -781,7 +783,7 @@ export function Viewport() {
                 />
               </>
             ) : null}
-            {!viewerReadOnly && editingTextLayer && selectedTransform && (
+            {!snapshot.showing && !viewerReadOnly && editingTextLayer && selectedTransform && (
               <ViewportTextEditor
                 label={t("viewport.editText", { name: editingTextLayer.name })}
                 layer={editingTextLayer}
@@ -794,7 +796,8 @@ export function Viewport() {
                 zoom={displayZoom}
               />
             )}
-            {state.showLayerControls &&
+            {!snapshot.showing &&
+              state.showLayerControls &&
               !state.playing &&
               !viewerReadOnly &&
               selectedLayer?.kind === "camera" &&
@@ -809,7 +812,7 @@ export function Viewport() {
                   zoom={displayZoom}
                 />
               )}
-            {state.showOrigin && (
+            {state.showOrigin && !snapshot.showing && (
               <div className="viewport-origin">
                 <span className="axis x" />
                 <span className="axis y" />
@@ -883,7 +886,8 @@ export function Viewport() {
           setBufferView={setBufferView}
           setPreviewQuality={(quality) => dispatch({ type: "setPreviewQuality", quality })}
           setViewCount={setViewCount}
-          setZoom={(zoom) => dispatch({ type: "setViewportZoom", zoom })}
+          setZoom={setZoom}
+          fitView={() => fitView()}
           showGrid={state.showGrid}
           showGuides={state.showGuides}
           showLayerControls={state.showLayerControls}
@@ -895,7 +899,7 @@ export function Viewport() {
           viewCount={viewCount}
           x={contextMenu.point.x}
           y={contextMenu.point.y}
-          zoom={state.viewportZoom}
+          zoom={displayZoom}
         />
       )}
       {compositionSettingsOpen && (
@@ -903,57 +907,25 @@ export function Viewport() {
           <WorkspaceDialog kind="composition" onClose={() => setCompositionSettingsOpen(false)} />
         </Suspense>
       )}
-      <div className="viewport-status">
-        <button
-          aria-label={t("viewport.zoomOut")}
-          onClick={() => dispatch({ type: "setViewportZoom", zoom: state.viewportZoom / 1.15 })}
-          type="button"
-        >
-          <Minus size={11} />
-        </button>
-        <input
-          aria-label={t("viewport.zoom")}
-          max={MAX_VIEWPORT_ZOOM}
-          min={MIN_VIEWPORT_ZOOM}
-          onChange={(event) =>
-            dispatch({ type: "setViewportZoom", zoom: Number(event.target.value) })
-          }
-          step="0.01"
-          type="range"
-          value={state.viewportZoom}
-        />
-        <input
-          aria-label={t("viewport.zoom")}
-          className="zoom-value"
-          max={MAX_VIEWPORT_ZOOM * 100}
-          min={MIN_VIEWPORT_ZOOM * 100}
-          onChange={(event) =>
-            dispatch({ type: "setViewportZoom", zoom: event.currentTarget.valueAsNumber / 100 })
-          }
-          onDoubleClick={() => dispatch({ type: "setViewportZoom", zoom: DEFAULT_VIEWPORT_ZOOM })}
-          step="1"
-          title={t("viewport.resetZoom")}
-          type="number"
-          value={viewportZoomPercent(state.viewportZoom)}
-        />
-        <span aria-hidden="true" className="zoom-value-unit">
-          %
-        </span>
-        <button
-          aria-label={t("viewport.zoomIn")}
-          onClick={() => dispatch({ type: "setViewportZoom", zoom: state.viewportZoom * 1.15 })}
-          type="button"
-        >
-          <Plus size={11} />
-        </button>
-        <span>
-          {composition.width} × {composition.height} ·{" "}
-          {composition.frameRate.numerator / composition.frameRate.denominator} fps
-        </span>
-        <span className={`renderer-status ${rendererStatus.tone}`} title={rendererStatus.title}>
-          <Sparkles size={11} /> {rendererStatus.label}
-        </span>
-      </div>
+      <ViewportFooter
+        composition={composition}
+        zoom={displayZoom}
+        zoomMode={state.viewportZoomMode}
+        setZoom={setZoom}
+        fitView={fitView}
+        bufferView={bufferView}
+        setBufferView={setBufferView}
+        gpuAvailable={Boolean(diagnostics?.available)}
+        rendererStatus={rendererStatus}
+        readOnly={viewerReadOnly}
+        snapshot={{ ...snapshot, ready: rendererReady, capture: captureSnapshot }}
+        rulers={rulers}
+        toggleRulers={() => setRulers((value) => !value)}
+        guidesLocked={guidesLocked}
+        toggleGuidesLocked={() => setGuidesLocked((value) => !value)}
+        hasGuides={referenceGuides.guides.length > 0}
+        clearGuides={() => referenceGuides.update([])}
+      />
     </Panel>
   );
 }

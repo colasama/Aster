@@ -17,7 +17,11 @@ import { storeRecoverySnapshot } from "../core/project/project-file";
 import type { Id, Project, RendererMetrics } from "../core/types";
 import { isDesktopRuntime, migrateLegacyPreferences } from "../desktop/api";
 import { APP_PREFERENCES_CHANGED_EVENT, type UserPreferencePatch } from "../desktop/preferences";
-import { DEFAULT_VIEWPORT_ZOOM, normalizeViewportZoom } from "../ui/viewport-zoom";
+import {
+  DEFAULT_VIEWPORT_ZOOM,
+  normalizeViewportZoom,
+  type ViewportZoomMode,
+} from "../ui/viewport-zoom";
 
 export interface EditorState {
   project: Project;
@@ -38,6 +42,8 @@ export interface EditorState {
   playing: boolean;
   timelineZoom: number;
   viewportZoom: number;
+  viewportZoomMode: ViewportZoomMode;
+  viewportFitRevision: number;
   previewQuality: 1 | 0.5 | 0.25;
   gpuMemoryBudgetMb: "auto" | 32 | 64 | 128 | 256 | 512;
   leftTab: "project" | "effects";
@@ -77,6 +83,7 @@ export type EditorAction =
   | { type: "setPlaying"; playing: boolean }
   | { type: "setTimelineZoom"; zoom: number }
   | { type: "setViewportZoom"; zoom: number }
+  | { type: "fitViewport"; mode?: "fit" | "fit100" }
   | { type: "setPreviewQuality"; quality: EditorState["previewQuality"] }
   | { type: "setGpuMemoryBudget"; budget: EditorState["gpuMemoryBudgetMb"] }
   | { type: "setLeftTab"; tab: EditorState["leftTab"] }
@@ -117,6 +124,8 @@ export function createInitialState(): EditorState {
     playing: false,
     timelineZoom: 1,
     viewportZoom: DEFAULT_VIEWPORT_ZOOM,
+    viewportZoomMode: "fit",
+    viewportFitRevision: 0,
     previewQuality: 1,
     gpuMemoryBudgetMb: readGpuMemoryBudget(),
     leftTab: "project",
@@ -218,7 +227,17 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
     case "setTimelineZoom":
       return { ...state, timelineZoom: Math.max(0.5, Math.min(8, action.zoom)) };
     case "setViewportZoom":
-      return { ...state, viewportZoom: normalizeViewportZoom(action.zoom) };
+      return {
+        ...state,
+        viewportZoom: normalizeViewportZoom(action.zoom),
+        viewportZoomMode: "manual",
+      };
+    case "fitViewport":
+      return {
+        ...state,
+        viewportZoomMode: action.mode ?? "fit",
+        viewportFitRevision: state.viewportFitRevision + 1,
+      };
     case "setPreviewQuality":
       return { ...state, previewQuality: action.quality };
     case "setGpuMemoryBudget":

@@ -4,7 +4,7 @@
 }
 .viewport-panel .panel-content {
   display: grid;
-  grid-template-rows: 32px minmax(0, 1fr) 28px;
+  grid-template-rows: 30px minmax(0, 1fr) auto;
   background: var(--bg-deep);
 }
 .viewport-toolbar,
@@ -40,6 +40,200 @@
   border: 1px solid var(--control-border);
   background-color: var(--control-bg);
 }
+.viewport-composition-name {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 24px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--text);
+}
+.viewport-toolbar select {
+  max-width: 150px;
+  flex-shrink: 0;
+  padding-right: 22px;
+}
+.composition-image {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+.viewport-snapshot {
+  z-index: 2;
+  pointer-events: none;
+}
+.viewport-status {
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 4px 0;
+  padding: 4px 6px;
+  border-top: 1px solid var(--border);
+}
+.viewport-control-group {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0 6px;
+  border-right: 1px solid var(--border-soft);
+}
+.viewport-status select {
+  width: auto;
+  max-width: 110px;
+  height: 24px;
+  padding: 0 22px 0 5px;
+  font-size: 11px;
+}
+.viewport-status .preview-timecode {
+  width: 94px;
+  height: 24px;
+  padding: 0 4px;
+  color: var(--blue-bright);
+  font:
+    11px "Cascadia Mono",
+    Consolas,
+    monospace;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+.preview-zoom-control {
+  display: flex;
+  width: 118px;
+  border: 1px solid var(--control-border);
+  border-radius: var(--control-radius);
+  background: var(--control-bg);
+}
+.preview-zoom-control:focus-within {
+  border-color: var(--blue-bright);
+}
+.preview-zoom-control input {
+  min-width: 0;
+  flex: 1;
+  width: 100%;
+  height: 22px;
+  border: 0;
+  padding: 0 5px;
+  background: transparent;
+  font-size: 11px;
+}
+.preview-zoom-control select {
+  flex: 0 0 20px;
+  width: 20px;
+  height: 22px;
+  border: 0;
+  padding: 0;
+  color: transparent;
+  background-color: transparent;
+  background-position: right 4px center;
+}
+.preview-zoom-control option {
+  color: var(--text);
+  background: var(--bg-panel);
+}
+.preview-timecode[aria-invalid="true"] {
+  border-color: var(--red);
+}
+.viewport-status button {
+  justify-content: center;
+  color: var(--text-secondary);
+}
+.viewport-status button:hover,
+.viewport-status button[aria-pressed="true"] {
+  color: var(--blue-bright);
+  background: var(--selection-bg);
+}
+.renderer-status.compact {
+  margin-left: auto;
+  padding: 0 4px;
+}
+.viewport-ruler {
+  position: absolute;
+  z-index: 5;
+  padding: 0;
+  background: #292929;
+  color: #b3b3b3;
+  border: 1px solid #414141;
+  overflow: hidden;
+}
+.viewport-ruler.ruler-y {
+  top: -20px;
+  left: 0;
+  width: 100%;
+  height: 20px;
+  cursor: row-resize;
+}
+.viewport-ruler.ruler-x {
+  top: 0;
+  left: -20px;
+  width: 20px;
+  height: 100%;
+  cursor: col-resize;
+}
+.viewport-ruler span {
+  position: absolute;
+  pointer-events: none;
+  font:
+    9px "Cascadia Mono",
+    Consolas,
+    monospace;
+}
+.ruler-y span {
+  top: 0;
+  padding-left: 3px;
+  border-left: 1px solid #777;
+  height: 100%;
+}
+.ruler-x span {
+  left: 0;
+  padding-top: 3px;
+  border-top: 1px solid #777;
+  width: 100%;
+  writing-mode: vertical-rl;
+}
+.viewport-guide {
+  position: absolute;
+  z-index: 6;
+  padding: 0;
+  background: transparent;
+  touch-action: none;
+}
+.viewport-guide::after {
+  content: "";
+  position: absolute;
+  background: #46d5df;
+  pointer-events: none;
+}
+.viewport-guide.guide-x {
+  top: 0;
+  bottom: 0;
+  width: 9px;
+  margin-left: -4px;
+  cursor: col-resize;
+}
+.viewport-guide.guide-y {
+  left: 0;
+  right: 0;
+  height: 9px;
+  margin-top: -4px;
+  cursor: row-resize;
+}
+.guide-x::after {
+  top: 0;
+  bottom: 0;
+  left: 4px;
+  width: 1px;
+}
+.guide-y::after {
+  left: 0;
+  right: 0;
+  top: 4px;
+  height: 1px;
+}
+.viewport-guide:disabled {
+  pointer-events: none;
+}
 .viewport-toolbar button:hover,
 .viewport-toolbar button.active {
   background: var(--bg-raised);
@@ -52,8 +246,7 @@
   min-height: 0;
   overflow: auto;
   background-color: var(--bg-deep);
-  background-image: radial-gradient(#24262b 0.65px, transparent 0.65px);
-  background-size: 12px 12px;
+  overscroll-behavior: contain;
   cursor: grab;
   touch-action: none;
 }
@@ -69,22 +262,20 @@
   min-height: 100%;
   display: grid;
   place-items: center;
-  padding: 22px 30px;
+  padding: 32px;
 }
 .stage-centering.multiview {
   display: flex;
-  gap: 18px;
+  gap: 32px;
   align-items: center;
   justify-content: center;
 }
 .composition-stage {
   position: relative;
   flex: none;
-  overflow: hidden;
-  background: #050711;
-  box-shadow:
-    0 0 0 1px #383b44,
-    0 16px 50px #000b;
+  overflow: visible;
+  background: #000;
+  box-shadow: 0 0 0 1px #414141;
 }
 .composition-stage canvas {
   position: absolute;
@@ -96,7 +287,7 @@
   pointer-events: none;
   position: absolute;
   inset: 5%;
-  border: 1px solid #8da1c222;
+  border: 1px solid #ffffff80;
 }
 .composition-grid {
   pointer-events: none;
@@ -110,8 +301,8 @@
 }
 .safe-guides span {
   position: absolute;
-  inset: 5%;
-  border: 1px dashed #8da1c21b;
+  inset: 5.5556%;
+  border: 1px dashed #ffffff80;
 }
 .composition-stage.custom-stage canvas {
   transform: perspective(900px) rotateX(7deg) rotateY(-9deg) scale(0.92);
@@ -347,41 +538,6 @@
   width: 1px;
   height: 18px;
   background: #57d49b;
-}
-.viewport-status {
-  gap: 12px;
-  border-top: 1px solid var(--border);
-}
-.viewport-status input[type="range"] {
-  width: 62px;
-  height: 3px;
-  accent-color: var(--blue);
-}
-.viewport-status .zoom-value {
-  width: 38px;
-  height: 18px;
-  padding: 0 3px;
-  border: 1px solid transparent;
-  border-radius: 3px;
-  background: transparent;
-  color: inherit;
-  font-family: "Cascadia Mono", Consolas, monospace;
-  font-size: 11px;
-  text-align: right;
-}
-.viewport-status .zoom-value:hover,
-.viewport-status .zoom-value:focus-visible {
-  border-color: var(--border);
-  outline: none;
-}
-.viewport-status .zoom-value-unit {
-  margin-left: -12px;
-  pointer-events: none;
-}
-.viewport-status span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 .renderer-status {
   display: inline-flex;
