@@ -15,14 +15,14 @@
 }
 .plugin-toolbar-title,
 .plugin-name {
-  color: #dce2ed;
-  font-size: 10px;
+  color: var(--text);
+  font-size: 12px;
 }
 .plugin-directory {
   overflow: hidden;
   max-width: 250px;
-  color: #6f7787;
-  font-size: 8px;
+  color: var(--muted);
+  font-size: 11px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -32,26 +32,26 @@
   gap: 5px;
   height: 27px;
   padding: 0 8px;
-  font-size: 8px;
+  font-size: 11px;
 }
 
 .plugin-view-tabs {
   display: flex;
   gap: 3px;
   padding: 3px;
-  border: 1px solid #303540;
+  border: 1px solid var(--border);
   border-radius: 4px;
-  background: #101218;
+  background: var(--bg-panel);
 }
 .plugin-view-tabs button {
   flex: 1;
   height: 25px;
   border-radius: 3px;
-  color: #737c8d;
-  font-size: 8px;
+  color: var(--muted);
+  font-size: 11px;
 }
 .plugin-view-tabs button.active {
-  color: #dce5f7;
+  color: var(--text);
   background: #293650;
   box-shadow: inset 0 0 0 1px #3f5680;
 }
@@ -60,20 +60,20 @@
   align-items: center;
   gap: 8px;
   padding: 9px;
-  border: 1px solid #343947;
+  border: 1px solid var(--border);
   border-radius: 4px;
   color: #91aef0;
-  background: #151923;
+  background: var(--bg-raised);
 }
 .plugin-hot-reload {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 9px;
-  border: 1px solid #343947;
+  border: 1px solid var(--border);
   border-radius: 4px;
   color: #83c5a0;
-  background: #121b18;
+  background: var(--bg-panel);
 }
 .plugin-safe-copy,
 .plugin-info {
@@ -82,8 +82,8 @@
   gap: 2px;
 }
 .plugin-safe-title {
-  color: #c9d2e5;
-  font-size: 9px;
+  color: var(--text);
+  font-size: 11px;
 }
 .plugin-search {
   display: flex;
@@ -91,37 +91,37 @@
   gap: 7px;
   height: 30px;
   padding: 0 8px;
-  border: 1px solid #303540;
+  border: 1px solid var(--border);
   border-radius: 4px;
-  color: #687386;
-  background: #101218;
+  color: var(--muted);
+  background: var(--bg-panel);
 }
 .plugin-search input {
   flex: 1;
   min-width: 0;
   border: 0;
-  color: #c6cedd;
+  color: var(--text);
   background: transparent;
   outline: 0;
-  font-size: 9px;
+  font-size: 11px;
 }
 .plugin-search small {
-  color: #697385;
-  font-size: 8px;
+  color: var(--muted);
+  font-size: 11px;
   white-space: nowrap;
 }
 .plugin-metadata,
 .plugin-empty-copy {
-  color: #737b8c;
-  font-size: 8px;
+  color: var(--muted);
+  font-size: 11px;
 }
 .plugin-list {
   display: grid;
   overflow: auto;
   max-height: 235px;
-  border: 1px solid #2f333d;
+  border: 1px solid var(--border);
   border-radius: 4px;
-  background: #111319;
+  background: var(--bg-panel);
 }
 .plugin-list article {
   display: flex;
@@ -129,22 +129,22 @@
   gap: 9px;
   min-height: 56px;
   padding: 7px 9px;
-  border-bottom: 1px solid #292d36;
+  border-bottom: 1px solid var(--border);
   color: #7fa5f5;
 }
 .plugin-list article.disabled {
   opacity: 0.55;
 }
 .plugin-identity {
-  color: #8b93a2;
-  font-size: 8px;
+  color: var(--text-secondary);
+  font-size: 11px;
 }
 .plugin-list article > label {
   display: flex;
   align-items: center;
   gap: 5px;
-  color: #969dab;
-  font-size: 8px;
+  color: var(--text-secondary);
+  font-size: 11px;
 }
 .plugin-load-button {
   height: 24px;
@@ -153,12 +153,12 @@
   border-radius: 3px;
   color: #b7c9ee;
   background: #223250;
-  font-size: 8px;
+  font-size: 11px;
 }
 .plugin-load-button:disabled {
-  border-color: #333842;
-  color: #697282;
-  background: #1a1d24;
+  border-color: var(--border);
+  color: var(--muted);
+  background: var(--bg-raised);
 }
 .plugin-registry-notice {
   display: flex;
@@ -168,7 +168,7 @@
   border: 1px solid #5a5133;
   border-radius: 4px;
   color: #d6bd73;
-  background: #211e14;
+  background: var(--bg-raised);
 }
 .plugin-registry-notice-copy {
   display: grid;
@@ -176,14 +176,14 @@
 }
 .plugin-registry-notice-title {
   color: #e2cf96;
-  font-size: 9px;
+  font-size: 11px;
 }
 .plugin-registry-notice small,
 .plugin-registry-summary,
 .plugin-registry-source,
 .plugin-registry-loading {
-  color: #838b9a;
-  font-size: 8px;
+  color: var(--muted);
+  font-size: 11px;
   line-height: 1.45;
 }
 .plugin-registry-list {
@@ -200,7 +200,7 @@
 .plugin-registry-badge {
   padding: 2px 5px;
   border-radius: 8px;
-  font-size: 7px;
+  font-size: 9px;
 }
 .plugin-registry-heading .compatible {
   color: #8bc7a4;
@@ -211,19 +211,19 @@
   background: #36251f;
 }
 .plugin-registry-summary {
-  color: #a2a9b6;
+  color: var(--text-secondary);
 }
 .plugin-manual-install {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  color: #7c8493;
-  font-size: 7px;
+  color: var(--muted);
+  font-size: 9px;
   white-space: nowrap;
 }
 .plugin-registry-source {
   padding: 0 2px;
-  color: #656e7e;
+  color: var(--muted);
 }
 .plugin-registry-loading {
   display: grid;
@@ -245,34 +245,34 @@
   align-items: center;
   gap: 6px;
   color: #ecad70;
-  font-size: 8px;
+  font-size: 11px;
 }
 .plugin-error {
   padding: 7px 8px;
   border: 1px solid #6e4934;
   border-radius: 3px;
-  background: #2a1d19;
+  background: var(--bg-raised);
 }
 .plugin-failures {
   padding: 7px;
-  border: 1px solid #533c35;
+  border: 1px solid var(--border);
   border-radius: 3px;
-  background: #211918;
+  background: var(--bg-raised);
 }
 .plugin-failures > div {
   display: grid;
   gap: 3px;
   padding: 7px 2px 2px 19px;
   color: #a67a6c;
-  font-size: 8px;
+  font-size: 11px;
 }
 .plugin-diagnostics {
   padding: 7px;
-  border: 1px solid #30483d;
+  border: 1px solid var(--border);
   border-radius: 3px;
   color: #83b99d;
-  background: #131c18;
-  font-size: 8px;
+  background: var(--bg-panel);
+  font-size: 11px;
 }
 .plugin-diagnostics > div {
   display: grid;
@@ -295,8 +295,8 @@
 }
 .expression-target .expression-layer-name {
   flex: 1;
-  color: #c5cbd8;
-  font-size: 10px;
+  color: var(--text);
+  font-size: 12px;
 }
 .expression-target select,
 .expression-form textarea {
@@ -330,8 +330,8 @@
 }
 .expression-form p {
   margin: 0;
-  color: #777f90;
-  font-size: 9px;
+  color: var(--muted);
+  font-size: 11px;
   line-height: 1.6;
 }
 .expression-form code {
@@ -361,18 +361,18 @@
   display: flex;
   align-items: center;
   padding: 0 11px;
-  border-bottom: 1px solid #30333d;
+  border-bottom: 1px solid var(--border);
 }
 .render-dialog > header strong {
   flex: 1;
-  font-size: 11px;
+  font-size: 12px;
 }
 .render-dialog > header button {
   width: 24px;
   height: 24px;
   display: grid;
   place-items: center;
-  color: #747a88;
+  color: var(--muted);
 }
 .render-summary {
   display: flex;
@@ -380,37 +380,37 @@
   gap: 10px;
   margin: 13px;
   padding: 11px;
-  border: 1px solid #343b50;
+  border: 1px solid var(--border);
   border-radius: 4px;
   color: #84aaff;
-  background: #171c29;
+  background: var(--bg-raised);
 }
 .render-dialog .render-summary strong,
 .render-dialog .render-summary span {
   display: block;
 }
 .render-dialog .render-summary strong {
-  color: #c9d1e2;
-  font-size: 10px;
+  color: var(--text);
+  font-size: 12px;
 }
 .render-dialog .render-summary span {
   margin-top: 3px;
   color: #69748b;
-  font-size: 8px;
+  font-size: 11px;
 }
 .render-dialog > label {
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 0 13px 13px;
-  color: #828895;
-  font-size: 9px;
+  color: var(--muted);
+  font-size: 11px;
 }
 .render-dialog select {
   flex: 1;
   height: 28px;
   padding: 0 7px;
-  font-size: 9px;
+  font-size: 11px;
 }
 .render-progress {
   display: grid;
@@ -418,8 +418,8 @@
   align-items: center;
   gap: 9px;
   padding: 0 12px 12px;
-  color: #8993a7;
-  font-size: 8px;
+  color: var(--text-secondary);
+  font-size: 11px;
 }
 .render-progress progress {
   width: 100%;
@@ -427,10 +427,10 @@
   overflow: hidden;
   border: 0;
   border-radius: 8px;
-  background: #252a35;
+  background: var(--bg-raised);
 }
 .render-progress progress::-webkit-progress-bar {
-  background: #252a35;
+  background: var(--bg-raised);
 }
 .render-progress progress::-webkit-progress-value {
   background: linear-gradient(90deg, #416dc8, #7f8df4);
@@ -440,8 +440,8 @@
   justify-content: flex-end;
   gap: 6px;
   padding: 9px 12px;
-  border-top: 1px solid #2b2e36;
-  background: #17191f;
+  border-top: 1px solid var(--border);
+  background: var(--bg-panel);
 }
 .render-dialog > footer button {
   height: 28px;
@@ -449,7 +449,7 @@
   align-items: center;
   gap: 4px;
   padding: 0 11px;
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .app-toast {
@@ -463,7 +463,7 @@
   color: #c8d5ef;
   background: #1d2639ee;
   box-shadow: 0 8px 25px #0008;
-  font-size: 9px;
+  font-size: 11px;
 }
 
 @media (max-width: 1200px) {

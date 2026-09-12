@@ -60,12 +60,7 @@ describe("locked layer inspector", () => {
       ),
     );
 
-    const compositingToggle = [...container.querySelectorAll<HTMLButtonElement>("button")].find(
-      (button) => button.textContent?.includes("Compositing"),
-    );
-    if (!compositingToggle) throw new Error("Expected compositing controls");
-    act(() => compositingToggle.click());
-
+    expect(container.querySelector<HTMLDetailsElement>(".layer-content-section")?.open).toBe(true);
     const mutationBoundary = container.querySelector<HTMLFieldSetElement>(
       "fieldset.compositing-grid",
     );

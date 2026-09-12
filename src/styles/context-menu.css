@@ -15,7 +15,7 @@
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
   padding: 4px;
-  border: 1px solid #454955;
+  border: 1px solid var(--border);
   border-radius: 5px;
   background: #1b1d24f7;
   box-shadow: 0 12px 32px #000a;
@@ -37,8 +37,8 @@
   gap: 5px;
   padding: 3px 6px;
   border-radius: 3px;
-  color: #c6c9d2;
-  font-size: 10px;
+  color: var(--text);
+  font-size: 12px;
   text-align: left;
 }
 
@@ -50,7 +50,7 @@
 }
 
 .context-menu-entry > button:disabled {
-  color: #626671;
+  color: var(--faint);
 }
 
 .context-menu-entry > button.destructive:not(:disabled) {
@@ -81,7 +81,7 @@
 }
 
 .context-menu-entry kbd {
-  color: #7c818e;
+  color: var(--muted);
   font:
     8px "Cascadia Mono",
     monospace;
@@ -89,7 +89,7 @@
 
 .context-menu-arrow {
   justify-self: end;
-  color: #8d929e;
+  color: var(--text-secondary);
   font-size: 14px;
 }
 
@@ -97,5 +97,5 @@
   height: 1px;
   margin: 4px 5px;
   border: 0;
-  background: #343740;
+  background: var(--bg-raised);
 }

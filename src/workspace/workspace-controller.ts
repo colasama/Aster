@@ -5,6 +5,7 @@ export interface WorkspacePanelSummary {
   readonly id: string;
   readonly label: string;
   readonly visible: boolean;
+  readonly active?: boolean;
 }
 
 export interface WorkspaceController {

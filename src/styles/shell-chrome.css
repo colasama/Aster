@@ -2,9 +2,10 @@
   width: 100%;
   height: 100%;
   display: grid;
-  grid-template-rows: 31px 39px minmax(0, 1fr) 23px;
+  grid-template-rows: 38px 42px minmax(0, 1fr) 24px;
   background: var(--bg-app);
   user-select: none;
+  grid-template-columns: 46px minmax(0, 1fr);
 }
 
 .title-bar,
@@ -12,23 +13,25 @@
 .status-bar {
   display: flex;
   align-items: center;
+  grid-column: 1 / -1;
 }
 .title-bar {
   position: relative;
-  border-bottom: 1px solid #252730;
-  background: #121319;
-  font-size: 11px;
+  container-type: inline-size;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-panel);
+  font-size: 12px;
   -webkit-app-region: drag;
 }
 .brand-mark {
-  width: 31px;
-  height: 31px;
+  width: 46px;
+  height: 38px;
   display: grid;
   place-items: center;
-  color: #dce8ff;
+  color: var(--blue-bright);
   font-size: 17px;
   font-weight: 800;
-  background: linear-gradient(145deg, #345fd1, #733ce1);
+  background: var(--bg-app);
 }
 .menu-strip {
   display: flex;
@@ -43,8 +46,8 @@
 .menu-root > button {
   height: 100%;
   padding: 0 7px;
-  font-size: 11px;
-  color: #bec1ca;
+  font-size: 12px;
+  color: var(--text);
   transition:
     color var(--motion-fast) ease-out,
     background-color var(--motion-fast) ease-out;
@@ -52,7 +55,7 @@
 .menu-root > button:hover,
 .menu-root > button.active {
   color: white;
-  background: #282b34;
+  background: var(--bg-raised);
 }
 .app-menu-popover {
   position: absolute;
@@ -65,7 +68,7 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 5px;
-  border: 1px solid #40434e;
+  border: 1px solid var(--border);
   border-radius: 4px;
   background: #1b1d24f5;
   box-shadow: 0 12px 28px #0009;
@@ -84,8 +87,8 @@
   align-items: center;
   padding: 0 8px;
   border-radius: 3px;
-  color: #bec1ca;
-  font-size: 10px;
+  color: var(--text);
+  font-size: 12px;
   text-align: left;
 }
 .app-menu-popover button:hover {
@@ -96,7 +99,7 @@
   flex: 1;
 }
 .app-menu-popover kbd {
-  color: #6e7480;
+  color: var(--muted);
   font:
     8px "Cascadia Mono",
     monospace;
@@ -105,22 +108,67 @@
 .app-menu-heading {
   margin: 4px 6px 2px;
   padding-top: 5px;
-  border-top: 1px solid #30333d;
-  color: #6e7480;
-  font-size: 8px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 11px;
   letter-spacing: 0.08em;
 }
 .document-title {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
-  color: #9296a3;
+  color: var(--text-secondary);
+  width: clamp(180px, 26vw, 380px);
+  height: 28px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 9px;
+  border: 1px solid var(--border);
+  border-radius: var(--control-radius);
+  background: var(--bg-raised);
+  font-size: 12px;
+  -webkit-app-region: no-drag;
 }
 
 .autosave-state {
   margin-left: 8px;
-  color: #6e7480;
-  font-size: 9px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.document-title:hover {
+  border-color: var(--control-border-hover);
+}
+.document-name {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.document-title kbd {
+  flex-shrink: 0;
+  color: var(--faint);
+  font: inherit;
+  font-size: 10px;
+}
+.toolbar-right .render-button:hover {
+  background: var(--control-primary-hover);
+}
+@container (max-width: 1400px) {
+  .document-title {
+    position: static;
+    width: auto;
+    min-width: 80px;
+    flex: 1;
+    margin: 0 10px;
+    transform: none;
+  }
+  .document-title kbd,
+  .document-title .autosave-state {
+    display: none;
+  }
 }
 
 .autosave-state.error {
@@ -142,25 +190,6 @@
   padding-right: 4px;
   -webkit-app-region: no-drag;
 }
-.title-actions button {
-  height: 24px;
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  padding: 0 7px;
-  color: #9da1ad;
-  border-radius: 3px;
-  transition:
-    color var(--motion-fast) ease-out,
-    background-color var(--motion-fast) ease-out;
-}
-.title-actions button:hover {
-  background: #262932;
-  color: white;
-}
-.title-actions .command-hint {
-  border: 1px solid #30333d;
-}
 .window-controls {
   height: 100%;
   display: flex;
@@ -175,11 +204,11 @@
   place-items: center;
   padding: 0;
   border-radius: 0;
-  color: #aeb2bd;
+  color: var(--text-secondary);
 }
 .window-control:hover {
-  color: #f5f6f8;
-  background: #292c35;
+  color: var(--text);
+  background: var(--bg-raised);
 }
 .window-control-close:hover {
   color: white;
@@ -221,10 +250,10 @@
 .window-glyph-restore::after {
   bottom: 0;
   left: 0;
-  background: #121319;
+  background: var(--bg-panel);
 }
 .window-control:hover .window-glyph-restore::after {
-  background: #292c35;
+  background: var(--bg-raised);
 }
 .window-glyph-close::before,
 .window-glyph-close::after {
@@ -245,9 +274,9 @@
 
 .tool-bar {
   position: relative;
-  border-bottom: 1px solid #2b2d36;
-  background: #191b21;
-  padding: 0 8px;
+  border-bottom: 0;
+  background: var(--bg-app);
+  padding: 0 8px 0 46px;
   gap: 2px;
 }
 .tool-bar button {
@@ -258,7 +287,7 @@
   justify-content: center;
   gap: 4px;
   padding: 0 7px;
-  color: #a7abb5;
+  color: var(--text-secondary);
   border-radius: 3px;
   transition:
     color var(--motion-fast) ease-out,
@@ -267,13 +296,13 @@
 }
 .tool-bar button:hover,
 .tool-bar button.active {
-  background: #2b2e38;
-  color: #f1f3f7;
+  background: var(--bg-raised);
+  color: var(--text);
 }
 .tool-bar button.active {
-  box-shadow: inset 0 0 0 1px #3c6ac4;
-  background: #25314a;
-  color: #86acff;
+  box-shadow: inset 0 0 0 1px var(--blue);
+  background: var(--selection-bg);
+  color: var(--blue-bright);
 }
 .tool-group {
   display: flex;
@@ -283,19 +312,18 @@
   width: 1px;
   height: 22px;
   margin: 0 5px;
-  background: #30333d;
+  background: var(--bg-raised);
 }
 .toolbar-center {
   position: absolute;
-  left: 50%;
   display: flex;
   align-items: center;
   gap: 8px;
-  transform: translateX(-50%);
+  right: 100px;
 }
 .preview-quality {
   min-width: 56px;
-  font-size: 10px;
+  font-size: 12px;
 }
 .toolbar-right {
   display: flex;
@@ -304,7 +332,7 @@
 }
 .toolbar-right .render-button {
   min-width: 68px;
-  background: linear-gradient(#436fdd, #315bc2);
+  background: var(--control-primary-bg);
   color: white;
   font-weight: 600;
 }
@@ -315,7 +343,7 @@
   grid-template-columns: 265px minmax(420px, 1fr) 305px;
   grid-template-rows: minmax(300px, 1fr) 284px;
   gap: 1px;
-  background: #2a2c34;
+  background: var(--bg-raised);
 }
 .viewport-cell {
   position: relative;
@@ -328,10 +356,10 @@
 .status-bar {
   gap: 17px;
   padding: 0 8px;
-  border-top: 1px solid #2b2d36;
-  background: #15171c;
-  color: #737784;
-  font-size: 9px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-panel);
+  color: var(--muted);
+  font-size: 11px;
 }
 .aster-studio .status-bar span {
   display: inline-flex;
@@ -343,7 +371,6 @@
   height: 5px;
   border-radius: 50%;
   background: var(--green);
-  box-shadow: 0 0 6px #42b985;
 }
 .status-spacer {
   flex: 1;

@@ -1,4 +1,5 @@
 export const panelsEn = {
+  "app.navigation": "Workspace navigation",
   "panel.float": "Float panel",
   "panel.dock": "Dock panel",
   "panel.floatHint": "Float panel (double-click header)",

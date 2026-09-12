@@ -320,6 +320,19 @@ export function DockWorkspace({
     if (workspace) commit(() => workspace.layout);
   }, [catalog, commit]);
   const visiblePanelIds = useMemo(() => new Set(workspacePanelIds(layout)), [layout]);
+  const activePanelIds = useMemo(
+    () =>
+      new Set(
+        workspaceTabGroups(layout)
+          .filter(({ group }) => !layout.maximizedGroupId || layout.maximizedGroupId === group.id)
+          .flatMap(({ group }) =>
+            group.presentation === "stacked"
+              ? (group.expandedPanelIds ?? [group.activePanelId])
+              : [group.activePanelId],
+          ),
+      ),
+    [layout],
+  );
   const currentWorkspace =
     workspaceById(catalog, catalog.currentWorkspaceId) ?? catalog.workspaces[0];
   if (!currentWorkspace) throw new Error("Workspace catalog must contain a built-in workspace");
@@ -332,6 +345,7 @@ export function DockWorkspace({
         id: panel.id,
         label: panel.label,
         visible: visiblePanelIds.has(panel.id),
+        active: activePanelIds.has(panel.id),
       })),
       deleteWorkspace: deleteNamedWorkspace,
       renameCurrentWorkspace,
@@ -345,12 +359,17 @@ export function DockWorkspace({
           const location = workspaceTabGroups(revealed).find(({ group }) =>
             group.panels.includes(panelId),
           );
-          return location ? activatePanel(revealed, location.group.id, panelId) : revealed;
+          if (!location) return revealed;
+          const activated = activatePanel(revealed, location.group.id, panelId);
+          return activated.maximizedGroupId && activated.maximizedGroupId !== location.group.id
+            ? { ...activated, maximizedGroupId: undefined }
+            : activated;
         }),
       undoLayoutChange,
     }),
     [
       catalog,
+      activePanelIds,
       commit,
       currentWorkspace,
       deleteNamedWorkspace,

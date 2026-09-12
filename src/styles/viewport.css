@@ -4,21 +4,21 @@
 }
 .viewport-panel .panel-content {
   display: grid;
-  grid-template-rows: 28px minmax(0, 1fr) 24px;
-  background: #090a0d;
+  grid-template-rows: 32px minmax(0, 1fr) 28px;
+  background: var(--bg-deep);
 }
 .viewport-toolbar,
 .viewport-status {
   display: flex;
   align-items: center;
   padding: 0 7px;
-  background: #15171c;
-  color: #727784;
-  font-size: 9px;
+  background: var(--bg-panel);
+  color: var(--muted);
+  font-size: 11px;
 }
 .viewport-toolbar {
   gap: 2px;
-  border-bottom: 1px solid #24262e;
+  border-bottom: 1px solid var(--border);
 }
 .viewport-toolbar button,
 .viewport-toolbar select,
@@ -30,8 +30,8 @@
   gap: 4px;
   padding: 0 6px;
   border-radius: 3px;
-  color: #858a96;
-  font-size: 9px;
+  color: var(--muted);
+  font-size: 11px;
   transition:
     color var(--motion-fast) ease-out,
     background-color var(--motion-fast) ease-out;
@@ -42,8 +42,8 @@
 }
 .viewport-toolbar button:hover,
 .viewport-toolbar button.active {
-  background: #272a32;
-  color: #c8cbd3;
+  background: var(--bg-raised);
+  color: var(--text);
 }
 .toolbar-gap {
   flex: 1;
@@ -51,7 +51,7 @@
 .viewport-space {
   min-height: 0;
   overflow: auto;
-  background-color: #0a0b0e;
+  background-color: var(--bg-deep);
   background-image: radial-gradient(#24262b 0.65px, transparent 0.65px);
   background-size: 12px 12px;
   cursor: grab;
@@ -132,10 +132,10 @@
   border: 1px solid #ffffff1a;
   border-radius: 4px;
   background: #090b14c9;
-  color: #bfc6dd;
-  font-size: 9px;
+  color: var(--text);
+  font-size: 11px;
   letter-spacing: 0.07em;
-  text-transform: uppercase;
+  text-transform: none;
 }
 .viewport-transform-controls {
   position: absolute;
@@ -350,7 +350,7 @@
 }
 .viewport-status {
   gap: 12px;
-  border-top: 1px solid #24262e;
+  border-top: 1px solid var(--border);
 }
 .viewport-status input[type="range"] {
   width: 62px;
@@ -366,12 +366,12 @@
   background: transparent;
   color: inherit;
   font-family: "Cascadia Mono", Consolas, monospace;
-  font-size: 9px;
+  font-size: 11px;
   text-align: right;
 }
 .viewport-status .zoom-value:hover,
 .viewport-status .zoom-value:focus-visible {
-  border-color: #353944;
+  border-color: var(--border);
   outline: none;
 }
 .viewport-status .zoom-value-unit {
@@ -415,7 +415,7 @@
   box-shadow: 0 8px 20px #0005;
   backdrop-filter: blur(10px);
   font-family: "Cascadia Mono", Consolas, monospace;
-  font-size: 8px;
+  font-size: 11px;
 }
 .profiler-overlay.benchmark-expanded {
   width: 230px;
@@ -426,7 +426,7 @@
   gap: 5px;
   margin-bottom: 5px;
   color: #86a8ed;
-  font-size: 8px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.08em;
 }
@@ -443,7 +443,7 @@
   border: 1px solid #31466d;
   border-radius: 2px;
   color: #7898d8;
-  font-size: 6px;
+  font-size: 9px;
 }
 .profiler-title button + button {
   margin-left: 1px;
@@ -460,13 +460,13 @@
   display: flex;
   align-items: center;
   gap: 5px;
-  color: #707a8d;
+  color: var(--muted);
 }
 .metric-row span {
   flex: 1;
 }
 .metric-row strong {
-  color: #c4cee1;
+  color: var(--text);
   font-weight: 500;
 }
 .metric-row strong.accent {
@@ -508,8 +508,8 @@
   inset: 0;
   display: grid;
   place-items: center;
-  color: #d9e1f2;
-  font-size: 7px;
+  color: var(--text);
+  font-size: 9px;
 }
 .benchmark-progress {
   margin-top: 5px;
@@ -536,7 +536,7 @@
 .benchmark-report-title {
   margin-bottom: 3px;
   color: #8ba7da;
-  text-transform: uppercase;
+  text-transform: none;
 }
 .benchmark-report-title span {
   flex: 1;
@@ -560,17 +560,17 @@
   white-space: nowrap;
 }
 .benchmark-scenario strong {
-  color: #c4cee1;
+  color: var(--text);
   font-weight: 500;
 }
 .benchmark-scenario small {
   min-width: 45px;
   color: #65738b;
-  font-size: 6px;
+  font-size: 9px;
 }
 .benchmark-scenario em {
   min-width: 39px;
-  font-size: 7px;
+  font-size: 9px;
   font-style: normal;
   text-align: right;
 }

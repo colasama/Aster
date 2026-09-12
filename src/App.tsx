@@ -7,6 +7,7 @@ import {
 } from "./components/diagnostics/DiagnosticBoundary";
 import { Inspector } from "./components/inspector/Inspector";
 import { ProjectPanel } from "./components/project/ProjectPanel";
+import { ActivityBar } from "./components/shell/ActivityBar";
 import { TopBar } from "./components/shell/TopBar";
 import { usePlayback } from "./components/timeline/use-timeline-playback";
 import { Viewport } from "./components/viewport/Viewport";
@@ -148,6 +149,7 @@ function Studio() {
   return (
     <main className="aster-studio">
       <TopBar />
+      <ActivityBar />
       <DockWorkspace panels={workspacePanels} viewerContextId={state.project.activeCompositionId} />
       <footer className="status-bar">
         <span>

@@ -2,7 +2,6 @@ import {
   Box,
   ChevronDown,
   Circle,
-  Command,
   Hand,
   LoaderCircle,
   MousePointer2,
@@ -10,6 +9,7 @@ import {
   Play,
   Redo2,
   RotateCcw,
+  Search,
   Sparkles,
   Square,
   Type,
@@ -489,24 +489,25 @@ export function TopBar() {
             });
           }}
         />
-        <div className="document-title">
-          {lifecycle.dirty && <span className="unsaved-dot" />} {state.project.name} — Aster
+        <button
+          className="document-title command-hint"
+          aria-label={t("topbar.command.placeholder")}
+          title={t("topbar.command.placeholder")}
+          onClick={() => setPaletteOpen(true)}
+          type="button"
+        >
+          <Search size={14} />
+          <span className="document-name">
+            {lifecycle.dirty && <span className="unsaved-dot" />} {state.project.name}
+          </span>
           {state.autosave.status !== "idle" && (
             <small className={`autosave-state ${state.autosave.status}`}>
               {t(`topbar.autosave.${state.autosave.status}`)}
             </small>
           )}
-        </div>
-        <div className="title-actions">
-          <button
-            aria-label={t("topbar.command.placeholder")}
-            className="command-hint"
-            onClick={() => setPaletteOpen(true)}
-            type="button"
-          >
-            <Command size={13} /> K
-          </button>
-        </div>
+          <kbd>Ctrl / ⌘ K</kbd>
+        </button>
+        <div className="title-actions" />
         <WindowControls />
       </div>
       <div className="tool-bar">

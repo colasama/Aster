@@ -1,6 +1,7 @@
 import type { panelsEn } from "./panels.en";
 
 export const panelsZh = {
+  "app.navigation": "工作区导航",
   "panel.float": "浮动面板",
   "panel.dock": "停靠面板",
   "panel.floatHint": "浮动面板（双击标题栏）",

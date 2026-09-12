@@ -18,7 +18,7 @@ textarea {
   border-radius: var(--control-radius);
   background-color: var(--control-bg);
   color: var(--control-text);
-  font-size: 10px;
+  font-size: 12px;
 }
 
 input:where(
@@ -174,7 +174,7 @@ input[type="radio"] {
   border-radius: var(--control-radius);
   background: var(--control-button-bg);
   color: var(--control-text);
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .control-button:hover:not(:disabled),

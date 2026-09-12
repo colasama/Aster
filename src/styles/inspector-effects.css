@@ -16,20 +16,20 @@ fieldset.effects-section {
   align-items: center;
   justify-content: center;
   gap: 3px;
-  color: #555a67;
+  color: var(--faint);
 }
 .empty-effects span {
-  color: #7b808c;
-  font-size: 9px;
+  color: var(--muted);
+  font-size: 11px;
 }
 .empty-effects small {
-  font-size: 8px;
+  font-size: 11px;
 }
 .effect-editor {
   margin: 5px 6px;
-  border: 1px solid #2c3039;
+  border: 1px solid var(--border);
   border-radius: 3px;
-  background: #15171c;
+  background: var(--bg-panel);
 }
 .effect-editor.disabled {
   opacity: 0.48;
@@ -40,15 +40,15 @@ fieldset.effects-section {
   align-items: center;
   gap: 6px;
   padding: 0 7px;
-  border-bottom: 1px solid #292c34;
+  border-bottom: 1px solid var(--border);
   color: #aaa0e6;
 }
 .effect-title strong {
   min-width: 0;
   flex: 1;
   overflow: hidden;
-  color: #bfc3cc;
-  font-size: 9px;
+  color: var(--text);
+  font-size: 11px;
   font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -58,16 +58,16 @@ fieldset.effects-section {
   border-radius: 6px;
   color: #73d1b0;
   background: #17342e;
-  font-size: 6px;
+  font-size: 9px;
   font-weight: 700;
-  text-transform: uppercase;
+  text-transform: none;
 }
 .gpu-pill.missing {
   color: #e5ad7d;
   background: #41291f;
 }
 .effect-title button {
-  color: #666b77;
+  color: var(--muted);
 }
 .effect-title .effect-power {
   color: #8e83d2;
@@ -79,7 +79,7 @@ fieldset.effects-section {
   color: #e1717d;
 }
 .effect-title button:disabled {
-  color: #3c414b;
+  color: var(--faint);
   cursor: default;
 }
 .effect-title button[aria-label^="Move"]:not(:disabled):hover {
@@ -87,10 +87,10 @@ fieldset.effects-section {
 }
 .effect-mask-editor {
   padding: 5px 7px 7px;
-  border-bottom: 1px solid #292c34;
+  border-bottom: 1px solid var(--border);
   background: rgb(27 29 37 / 75%);
-  color: #737885;
-  font-size: 8px;
+  color: var(--muted);
+  font-size: 11px;
 }
 .effect-mask-heading,
 .effect-mask-pair,
@@ -104,13 +104,13 @@ fieldset.effects-section {
 .effect-mask-pair > span,
 .effect-mask-scalar > span {
   width: 48px;
-  color: #9ca2ae;
-  font-size: 8px;
+  color: var(--text-secondary);
+  font-size: 11px;
 }
 .effect-mask-heading select {
   width: 72px;
   height: 20px;
-  font-size: 8px;
+  font-size: 11px;
 }
 .effect-mask-heading label,
 .effect-mask-pair label {
@@ -130,12 +130,12 @@ fieldset.effects-section {
   width: 48px;
   height: 20px;
   padding: 0 4px;
-  font-size: 8px;
+  font-size: 11px;
 }
 .effect-mask-pair small,
 .effect-mask-scalar small {
-  color: #525865;
-  font-size: 7px;
+  color: var(--faint);
+  font-size: 9px;
 }
 .effect-mask-scalar input[type="range"] {
   min-width: 30px;
@@ -149,8 +149,8 @@ fieldset.effects-section {
   align-items: center;
   gap: 6px;
   padding: 0 7px;
-  color: #737885;
-  font-size: 8px;
+  color: var(--muted);
+  font-size: 11px;
 }
 .effect-parameter span {
   flex: 1;
@@ -160,7 +160,7 @@ fieldset.effects-section {
   width: 62px;
   height: 21px;
   padding: 0 5px;
-  font-size: 8px;
+  font-size: 11px;
 }
 .effect-parameter select {
   width: 96px;
@@ -176,7 +176,7 @@ fieldset.effects-section {
 .effect-numeric > span:first-child {
   grid-column: 1;
   grid-row: 1;
-  color: #a0a6b3;
+  color: var(--text-secondary);
   overflow-wrap: anywhere;
 }
 .effect-parameter .effect-range {
@@ -200,12 +200,12 @@ fieldset.effects-section {
   min-width: 0;
   width: 56px;
   height: 26px;
-  font-size: 10px;
+  font-size: 12px;
 }
 .effect-value small {
   margin-left: 3px;
-  color: #555a67;
-  font-size: 7px;
+  color: var(--faint);
+  font-size: 9px;
 }
 .effect-color input {
   width: 42px;
@@ -220,7 +220,7 @@ fieldset.effects-section {
   place-items: center;
   border: 1px solid transparent;
   border-radius: 3px;
-  color: #4f5563;
+  color: var(--faint);
 }
 .effect-numeric > .effect-keyframe {
   grid-column: 3;
@@ -241,7 +241,7 @@ fieldset.effects-section {
   display: grid;
   gap: 5px;
   padding: 7px;
-  border-top: 1px solid #292c35;
+  border-top: 1px solid var(--border);
 }
 .lut-resource-editor > button {
   height: 25px;
@@ -251,9 +251,9 @@ fieldset.effects-section {
   gap: 5px;
   border: 1px solid #3c4160;
   border-radius: 3px;
-  color: #c7c9dd;
+  color: var(--text);
   background: #232638;
-  font-size: 8px;
+  font-size: 11px;
 }
 .lut-resource-summary {
   min-width: 0;
@@ -264,31 +264,31 @@ fieldset.effects-section {
 }
 .lut-resource-summary span {
   overflow: hidden;
-  color: #c8cad3;
-  font-size: 8px;
+  color: var(--text);
+  font-size: 11px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .lut-resource-summary small {
-  color: #707688;
-  font-size: 7px;
+  color: var(--muted);
+  font-size: 9px;
 }
 .lut-resource-summary button {
   grid-column: 2;
   grid-row: 1 / span 2;
-  color: #777d8b;
+  color: var(--muted);
 }
 .lut-resource-error {
   color: #e67682;
-  font-size: 8px;
+  font-size: 11px;
   line-height: 1.35;
 }
 .empty-inspector {
   display: grid;
   height: 100%;
   place-items: center;
-  color: #666b77;
-  font-size: 10px;
+  color: var(--muted);
+  font-size: 12px;
 }
 
 .ai-panel {
@@ -319,13 +319,13 @@ fieldset.effects-section {
   display: block;
 }
 .ai-intro strong {
-  color: #d4d0e9;
-  font-size: 11px;
+  color: var(--text);
+  font-size: 12px;
 }
 .ai-intro small {
   margin-top: 3px;
-  color: #6f6a83;
-  font-size: 7px;
+  color: var(--muted);
+  font-size: 9px;
 }
 .ai-context {
   margin: 0 8px 9px;
@@ -333,11 +333,11 @@ fieldset.effects-section {
   align-items: center;
   gap: 5px;
   padding: 6px 7px;
-  border: 1px solid #343047;
+  border: 1px solid var(--border);
   border-radius: 3px;
   color: #8c83af;
-  background: #1a1822;
-  font-size: 8px;
+  background: var(--bg-raised);
+  font-size: 11px;
 }
 .ai-context button {
   width: 18px;
@@ -346,5 +346,5 @@ fieldset.effects-section {
   place-items: center;
   margin-left: auto;
   padding: 0;
-  color: #77708d;
+  color: var(--muted);
 }

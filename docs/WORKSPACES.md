@@ -70,6 +70,11 @@ Embedded panel subtabs use a separate row with roving keyboard focus; timeline a
 use their workspace tabs directly. Each surface owns its display mode, so both can remain visible
 without competing over a shared mode switch. Revealing an existing panel activates its dock tab.
 
+The shell activity bar reveals Project, Effects & Presets, Properties, AI Assistant, and Render
+Queue through the workspace controller. It reopens closed panels and restores the full layout when
+another group is maximized. Active indicators follow the visible dock tab (or expanded stacked
+panel) and the editor subtab. Preferences remains available at the bottom of the rail.
+
 Panel and group drags expose four edge zones for splitting and one center zone for grouping. A drop
 maps to exactly one model operation and one persistence write. Closing records the panel ID and the
 workspace API can reopen it into a chosen or most recently hovered group. Double-clicking a group

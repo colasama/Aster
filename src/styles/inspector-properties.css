@@ -7,22 +7,26 @@
   overscroll-behavior: contain;
 }
 .selected-layer-card {
-  height: 53px;
+  height: 46px;
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 8px;
   padding: 0 9px;
   border-bottom: 1px solid var(--border-soft);
-  background: #181a20;
+  background: var(--bg-panel);
+  position: sticky;
+  top: 0;
+  z-index: 3;
 }
 .layer-kind-icon {
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   display: grid;
   place-items: center;
   border-radius: 4px;
-  color: #9c8bf2;
-  background: #292442;
+  color: var(--text-secondary);
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
 }
 .selected-layer-card > div {
   min-width: 0;
@@ -36,43 +40,61 @@
   white-space: nowrap;
 }
 .selected-layer-card strong {
-  color: #d3d6de;
-  font-size: 11px;
+  color: var(--text);
+  font-size: 13px;
   font-weight: 600;
 }
 .selected-layer-card small {
   margin-top: 3px;
-  color: #696e7a;
-  font-size: 8px;
+  color: var(--muted);
+  font-size: 11px;
   text-transform: capitalize;
+  display: none;
 }
 .selected-layer-card > button {
   width: 25px;
   height: 25px;
   display: grid;
   place-items: center;
-  color: #686d79;
+  color: var(--muted);
 }
 .inspector-section {
   border-bottom: 1px solid var(--border-soft);
 }
+.inspector-section > summary {
+  list-style: none;
+}
+.inspector-section > summary::-webkit-details-marker {
+  display: none;
+}
+.inspector-section[open] > summary > svg {
+  transform: rotate(90deg);
+}
+.inspector-section > summary:focus-visible {
+  outline: 2px solid var(--blue-bright);
+  outline-offset: -2px;
+}
+.cloner-section .cloner-controls {
+  padding-top: 0;
+  border-top: 0;
+}
 .section-title {
   width: 100%;
-  height: 29px;
+  height: 32px;
   display: flex;
   align-items: center;
   gap: 5px;
-  padding: 0 7px;
-  color: #b8bbc4;
-  background: #1b1d23;
-  font-size: 9px;
-  font-weight: 700;
+  padding: 0 9px;
+  color: var(--text-secondary);
+  background: var(--bg-panel);
+  font-size: 12px;
+  font-weight: 600;
   text-align: left;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  text-transform: none;
+  letter-spacing: normal;
 }
 .section-title:hover {
-  background: #20232a;
+  background: var(--bg-raised);
 }
 .section-title > span {
   flex: 1;
@@ -83,11 +105,11 @@
   display: grid;
   place-items: center;
   padding: 0;
-  color: #737885;
+  color: var(--muted);
 }
 .section-title > .section-toggle {
-  width: auto;
-  flex: 0 1 auto;
+  width: 100%;
+  flex: 1;
   display: flex;
   align-items: center;
   gap: 5px;
@@ -96,12 +118,13 @@
   font-weight: inherit;
   text-transform: inherit;
   letter-spacing: inherit;
+  height: 100%;
 }
 .section-title.static {
   cursor: default;
 }
 .property-grid {
-  padding: 7px 8px 9px;
+  padding: 8px 10px 12px;
 }
 .vector-property {
   margin-bottom: 8px;
@@ -109,8 +132,8 @@
 .vector-property > .property-label {
   display: block;
   margin: 0 0 4px 1px;
-  color: #9ca2af;
-  font-size: 9px;
+  color: var(--text-secondary);
+  font-size: 11px;
   font-weight: 600;
 }
 .vector-inputs {
@@ -124,18 +147,18 @@
   height: 28px;
   display: flex;
   align-items: center;
-  border: 1px solid #2b2e37;
-  border-radius: 3px;
-  background: #111217;
+  border: 1px solid var(--control-border);
+  border-radius: var(--control-radius);
+  background: var(--control-bg);
 }
 .number-field:focus-within {
   border-color: var(--blue-bright);
 }
 .number-field .axis-label {
-  width: 15px;
+  width: 20px;
   flex-shrink: 0;
   text-align: center;
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 700;
 }
 .axis-0 {
@@ -155,8 +178,8 @@
   border: 0;
   outline: 0;
   background: transparent;
-  color: #c0c4ce;
-  font-size: 9px;
+  color: var(--text);
+  font-size: 11px;
   -moz-appearance: textfield;
 }
 .number-field input::-webkit-inner-spin-button {
@@ -168,14 +191,14 @@
   outline-offset: 1px;
 }
 .number-field small {
-  margin-right: 2px;
-  color: #515662;
-  font-size: 7px;
+  margin-right: 4px;
+  color: var(--faint);
+  font-size: 9px;
 }
 .number-field button {
   width: 18px;
   padding: 0;
-  color: #4d525f;
+  color: var(--faint);
 }
 .number-field button:hover {
   color: #7ba2ef;
@@ -192,15 +215,15 @@
   accent-color: var(--blue);
 }
 .slider-property input[type="number"] {
-  width: 42px;
-  height: 25px;
+  width: 56px;
+  height: 28px;
   padding: 0 4px;
-  font-size: 9px;
+  font-size: 11px;
 }
 .slider-property span {
-  color: #5d626f;
-  font-size: 8px;
+  color: var(--faint);
+  font-size: 11px;
 }
 .slider-property button {
-  color: #515662;
+  color: var(--faint);
 }

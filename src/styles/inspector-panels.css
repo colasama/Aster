@@ -1,24 +1,24 @@
 .provider-settings {
   margin: -3px 8px 9px;
   padding: 7px;
-  border: 1px solid #373247;
+  border: 1px solid var(--border);
   border-radius: 4px;
-  background: #14131a;
+  background: var(--bg-panel);
 }
 .provider-settings label {
   display: block;
   margin-bottom: 6px;
-  color: #6f6a80;
-  font-size: 7px;
+  color: var(--muted);
+  font-size: 9px;
   font-weight: 600;
-  text-transform: uppercase;
+  text-transform: none;
 }
 .provider-settings label:last-child {
   margin-bottom: 0;
 }
 .provider-settings label small {
-  color: #4d4a5a;
-  font-size: 6px;
+  color: var(--faint);
+  font-size: 9px;
   font-weight: 400;
   text-transform: none;
 }
@@ -35,7 +35,7 @@
   height: 24px;
   margin-top: 3px;
   padding: 0 6px;
-  font-size: 8px;
+  font-size: 11px;
 }
 .provider-settings input:focus,
 .provider-settings select:focus {
@@ -45,11 +45,11 @@
 .ai-agent-status {
   margin: 0 8px 8px;
   padding: 6px 7px;
-  border: 1px solid #343044;
+  border: 1px solid var(--border);
   border-radius: 4px;
-  color: #8f88a3;
-  background: #15141b;
-  font-size: 8px;
+  color: var(--text-secondary);
+  background: var(--bg-panel);
+  font-size: 11px;
 }
 
 .ai-agent-status p {
@@ -61,13 +61,13 @@
   padding: 6px;
   border: 1px solid #7b4937;
   border-radius: 3px;
-  background: #281b17;
+  background: var(--bg-raised);
 }
 
 .full-access-activation small {
   display: block;
   color: #d3a28f;
-  font-size: 7px;
+  font-size: 9px;
   line-height: 1.4;
 }
 
@@ -78,7 +78,7 @@
   border-radius: 3px;
   color: #f2c0ad;
   background: #5c2c20;
-  font-size: 7px;
+  font-size: 9px;
 }
 
 .full-access-activation button:disabled {
@@ -95,7 +95,7 @@
   border-radius: 4px;
   color: #ffbea7;
   background: #391c16;
-  font-size: 8px;
+  font-size: 11px;
   font-weight: 700;
 }
 
@@ -108,8 +108,8 @@
   border: 1px solid #633b49;
   border-radius: 3px;
   color: #d99aa6;
-  background: #2b171e;
-  font-size: 7px;
+  background: var(--bg-raised);
+  font-size: 9px;
   line-height: 1.4;
 }
 .spin {
@@ -126,8 +126,8 @@
 .ai-suggestions > small {
   display: block;
   margin: 0 0 5px 2px;
-  color: #55526a;
-  font-size: 7px;
+  color: var(--faint);
+  font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.08em;
 }
@@ -139,16 +139,16 @@
   gap: 6px;
   margin-bottom: 4px;
   padding: 0 8px;
-  border: 1px solid #2d2b39;
+  border: 1px solid var(--border);
   border-radius: 4px;
-  color: #9691a8;
-  background: #18171e;
-  font-size: 8px;
+  color: var(--text-secondary);
+  background: var(--bg-panel);
+  font-size: 11px;
   text-align: left;
 }
 .ai-suggestions button:hover {
   border-color: #514477;
-  background: #211d2c;
+  background: var(--bg-raised);
   color: #c8c0df;
 }
 .ai-suggestions button span {
@@ -159,8 +159,8 @@
   align-items: center;
   gap: 8px;
   margin: 14px 13px;
-  color: #57546a;
-  font-size: 8px;
+  color: var(--faint);
+  font-size: 11px;
   line-height: 1.5;
 }
 .ai-audit-log {
@@ -170,21 +170,21 @@
 }
 .ai-audit-log strong {
   color: #a99bd8;
-  font-size: 8px;
+  font-size: 11px;
 }
 .ai-audit-log span {
   overflow: hidden;
-  color: #777286;
-  font-size: 7px;
+  color: var(--muted);
+  font-size: 9px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .ai-composer {
   margin: auto 8px 8px;
   overflow: hidden;
-  border: 1px solid #3a344e;
+  border: 1px solid var(--border);
   border-radius: 5px;
-  background: #111117;
+  background: var(--bg-deep);
 }
 .ai-composer:focus-within {
   border-color: #66559a;
@@ -197,8 +197,8 @@
   border: 0;
   outline: 0;
   background: transparent;
-  color: #c3bfce;
-  font-size: 9px;
+  color: var(--text);
+  font-size: 11px;
   line-height: 1.45;
 }
 .ai-composer > div {
@@ -208,8 +208,8 @@
 }
 .ai-composer > div span {
   flex: 1;
-  color: #4f4b5e;
-  font-size: 6px;
+  color: var(--faint);
+  font-size: 9px;
 }
 .ai-composer button {
   width: 25px;
@@ -225,35 +225,35 @@
   padding: 8px;
   border: 1px solid #48405f;
   border-radius: 5px;
-  background: #1a1822;
+  background: var(--bg-raised);
 }
 .preview-heading {
   display: flex;
   align-items: center;
   gap: 5px;
   color: #ae9ee8;
-  font-size: 9px;
+  font-size: 11px;
 }
 .operation-preview p {
   margin: 7px 0;
-  color: #aaa5b8;
-  font-size: 9px;
+  color: var(--text-secondary);
+  font-size: 11px;
 }
 .operation-list > div {
   min-height: 34px;
   display: flex;
   align-items: center;
   gap: 6px;
-  border-top: 1px solid #292533;
+  border-top: 1px solid var(--border);
   color: #62c89f;
-  font-size: 8px;
+  font-size: 11px;
 }
 .operation-list > div.excluded {
   opacity: 0.48;
 }
 .operation-list > div > span {
   width: 15px;
-  color: #5f596e;
+  color: var(--faint);
 }
 .operation-diff {
   flex: 1;
@@ -266,8 +266,8 @@
 }
 .operation-diff small {
   overflow: hidden;
-  color: #777184;
-  font-size: 7px;
+  color: var(--muted);
+  font-size: 9px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -283,10 +283,10 @@
   align-items: center;
   gap: 4px;
   padding: 0 7px;
-  border: 1px solid #383343;
+  border: 1px solid var(--border);
   border-radius: 3px;
-  color: #8c859d;
-  font-size: 8px;
+  color: var(--muted);
+  font-size: 11px;
 }
 .preview-actions button.accept {
   border-color: #5e4b98;
@@ -299,18 +299,19 @@
 }
 .compositing-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 9px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
   min-width: 0;
   margin: 0;
-  padding: 3px 11px 12px;
+  padding: 6px 10px 12px;
   border: 0;
 }
 .compositing-grid label {
   display: grid;
   gap: 4px;
-  color: #777f90;
-  font-size: 8px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  min-width: 0;
 }
 .compositing-grid select,
 .compositing-grid input[type="number"] {
@@ -318,7 +319,7 @@
   height: 27px;
   min-width: 0;
   padding: 0 6px;
-  font-size: 9px;
+  font-size: 11px;
 }
 .compositing-grid select:focus,
 .compositing-grid input[type="number"]:focus {
@@ -357,7 +358,7 @@
   justify-content: space-between;
   gap: 6px;
   color: var(--control-text);
-  font-size: 9px;
+  font-size: 11px;
 }
 
 :where(.compositing-grid) :is(input[type="text"], input[type="color"], textarea) {
@@ -389,5 +390,5 @@
 .scene-generator-vector legend {
   padding: 0 0 4px;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 11px;
 }

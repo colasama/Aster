@@ -27,15 +27,11 @@ import { useContextMenuTrigger } from "../context-menu/use-context-menu-trigger"
 import { type NumericEditPhase, NumericInput } from "../NumericInput";
 import { Panel, PanelTabs } from "../Panel";
 import { LayerBlendOptions } from "../timeline/LayerBlendOptions";
-import { AudioControls } from "./AudioControls";
 import { ClonerControls } from "./ClonerControls";
 import { EffectEditor } from "./EffectEditor";
 import { InspectorPropertyContextMenu } from "./InspectorPropertyContextMenu";
+import { LayerContentControls } from "./LayerContentControls";
 import { MotionBlurControls } from "./MotionBlurControls";
-import { Scene3dControls } from "./Scene3dControls";
-import { ShapeControls } from "./ShapeControls";
-import { SolidControls } from "./SolidControls";
-import { TextControls } from "./TextControls";
 import { useInspectorPropertyEdit } from "./use-inspector-property-edit";
 
 const fields: { labelKey: PlainMessageKey; paths: PropertyPath[]; suffix: string }[] = [
@@ -184,8 +180,8 @@ export function Inspector() {
           active={state.rightTab}
           onChange={(tab) => dispatch({ type: "setRightTab", tab: tab as "properties" | "ai" })}
           tabs={[
-            { id: "ai", label: t("inspector.tab.ai") },
             { id: "properties", label: t("inspector.tab.properties") },
+            { id: "ai", label: t("inspector.tab.ai") },
           ]}
         />
       }
@@ -386,6 +382,7 @@ export function Inspector() {
             </div>
           )}
           {!isAdjustment && <LayerBlendOptions layer={layer} />}
+          <LayerContentControls layer={layer} />
           <MotionBlurControls composition={composition} layer={layer} />
           <fieldset className="inspector-section effects-section" disabled={layer.locked}>
             <div className="section-title static">
@@ -633,15 +630,20 @@ export function Inspector() {
                     />
                     {t("inspector.compositing.enable3d")}
                   </label>
-                  <Scene3dControls layer={layer} />
-                  <ShapeControls layer={layer} />
-                  <SolidControls layer={layer} />
-                  <ClonerControls layer={layer} />
-                  <TextControls layer={layer} />
-                  <AudioControls layer={layer} />
                 </fieldset>
               )}
             </div>
+          )}
+          {!isAdjustment && layer.kind !== "camera" && layer.kind !== "light" && (
+            <details className="inspector-section cloner-section" open={Boolean(layer.cloner)}>
+              <summary className="section-title">
+                <ChevronRight size={14} />
+                {t("inspector.content.cloner")}
+              </summary>
+              <fieldset className="compositing-grid" disabled={layer.locked}>
+                <ClonerControls layer={layer} />
+              </fieldset>
+            </details>
           )}
         </div>
       ) : (

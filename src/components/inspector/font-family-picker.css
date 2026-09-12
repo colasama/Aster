@@ -19,7 +19,7 @@
   border-radius: 3px;
   color: var(--text);
   background: var(--bg-deep);
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .font-family-field button {
@@ -42,7 +42,7 @@
 
 .font-family-control [role="alert"] {
   color: var(--red);
-  font-size: 9px;
+  font-size: 11px;
   overflow-wrap: anywhere;
 }
 

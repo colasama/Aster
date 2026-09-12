@@ -1,38 +1,42 @@
 :root {
   color-scheme: dark;
-  font-family: Inter, "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
-  color: #d7d9e0;
-  background: #0f1014;
+  font-family: "Segoe UI Variable", "Segoe UI", Inter, system-ui, sans-serif;
+  color: var(--text);
+  background: var(--bg-app);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
-  --bg-deep: #0b0c10;
-  --bg-app: #101116;
-  --bg-panel: #16181e;
-  --bg-raised: #1c1e25;
-  --bg-hover: #242731;
-  --border: #2a2d36;
-  --border-soft: #22242c;
-  --text: #d7d9e0;
-  --muted: #898d9b;
-  --faint: #5f6370;
-  --blue: #5689f5;
-  --blue-bright: #73a2ff;
+  --bg-deep: #181818;
+  --bg-app: #181818;
+  --bg-panel: #1f1f1f;
+  --bg-raised: #252526;
+  --bg-hover: #2d2e30;
+  --border: #343434;
+  --border-soft: #2b2b2b;
+  --text: #e1e1e1;
+  --muted: #969696;
+  --faint: #777777;
+  --blue: #0078d4;
+  --blue-bright: #4daafc;
   --violet: #805ff5;
   --red: #f55c6d;
   --green: #54d6a0;
+  --text-secondary: #b3b3b3;
+  --selection-bg: #203b50;
+  --panel-radius: 7px;
+  --workspace-gap: 6px;
   --row-height: 29px;
-  --control-bg: #111318;
-  --control-border: #343945;
-  --control-border-hover: #52617a;
-  --control-text: #c4cad6;
-  --control-radius: 3px;
+  --control-bg: #181818;
+  --control-border: #3c3c3c;
+  --control-border-hover: #5a5a5a;
+  --control-text: #cccccc;
+  --control-radius: 4px;
   --control-height: 28px;
   --control-disabled-opacity: 0.45;
-  --control-button-bg: #20232b;
-  --control-button-hover: #293344;
-  --control-primary-bg: #3c68c7;
-  --control-primary-hover: #4878db;
+  --control-button-bg: #2d2d2d;
+  --control-button-hover: #383838;
+  --control-primary-bg: #0078d4;
+  --control-primary-hover: #1688e0;
   --motion-fast: 80ms;
   --motion-surface: 140ms;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
@@ -66,13 +70,13 @@ button {
   height: 10px;
 }
 ::-webkit-scrollbar-track {
-  background: #101116;
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  border: 2px solid #101116;
+  border: 2px solid var(--bg-panel);
   border-radius: 8px;
-  background: #393c46;
+  background: #424242;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #4a4e59;
+  background: #565656;
 }

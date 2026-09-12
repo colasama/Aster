@@ -4,7 +4,7 @@
   overflow: hidden;
   border: 1px solid #49516a;
   border-radius: 7px;
-  background: #1a1c23;
+  background: var(--bg-raised);
   box-shadow: 0 24px 70px #000c;
   transform-origin: top center;
   animation: dialog-in var(--motion-surface) var(--ease-out);
@@ -24,11 +24,11 @@
   display: grid;
   place-items: center;
   border-radius: 3px;
-  color: #656b78;
+  color: var(--muted);
 }
 .palette-close:hover {
   color: white;
-  background: #292d38;
+  background: var(--bg-raised);
 }
 .palette-search input {
   padding-right: 25px;
@@ -39,10 +39,10 @@
   align-items: center;
   gap: 8px;
   padding: 0 10px;
-  border: 1px solid #3c4356;
+  border: 1px solid var(--border);
   border-radius: 5px;
   color: #8bacf2;
-  background: #111319;
+  background: var(--bg-panel);
 }
 .palette-search input {
   min-width: 0;
@@ -62,8 +62,8 @@
 }
 .palette-empty {
   padding: 20px 10px;
-  color: #9ba4b5;
-  font-size: 11px;
+  color: var(--text-secondary);
+  font-size: 12px;
 }
 .palette-results > button {
   width: 100%;
@@ -73,8 +73,8 @@
   gap: 8px;
   padding: 0 9px;
   border-radius: 4px;
-  color: #aeb3c0;
-  font-size: 10px;
+  color: var(--text-secondary);
+  font-size: 12px;
 }
 .palette-results > button:hover,
 .palette-results > button.active {
@@ -104,29 +104,29 @@
   scrollbar-gutter: stable;
 }
 .workspace-dialog > header {
-  border-bottom: 1px solid #30333d;
+  border-bottom: 1px solid var(--border);
 }
 .workspace-dialog > header strong {
   flex: 1;
-  font-size: 11px;
+  font-size: 12px;
 }
 .workspace-dialog > header button {
   width: 24px;
   height: 24px;
   display: grid;
   place-items: center;
-  color: #747a88;
+  color: var(--muted);
 }
 .workspace-dialog > footer {
   justify-content: flex-end;
   gap: 6px;
-  border-top: 1px solid #2b2e36;
-  background: #17191f;
+  border-top: 1px solid var(--border);
+  background: var(--bg-panel);
 }
 .workspace-dialog > footer button {
   height: 28px;
   padding: 0 11px;
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .dialog-form {
@@ -141,14 +141,14 @@
 .dialog-form label {
   display: grid;
   gap: 5px;
-  color: #858c9c;
-  font-size: 9px;
+  color: var(--muted);
+  font-size: 11px;
 }
 .dialog-form input:not([type="checkbox"]),
 .dialog-form select {
   height: 29px;
   padding: 0 8px;
-  font-size: 10px;
+  font-size: 12px;
 }
 .dialog-form input:focus,
 .dialog-form select:focus {
@@ -165,11 +165,11 @@
   align-items: flex-start;
   gap: 8px;
   padding: 10px;
-  border: 1px solid #343b50;
+  border: 1px solid var(--border);
   border-radius: 4px;
   color: #8491aa;
-  background: #171c29;
-  font-size: 9px;
+  background: var(--bg-raised);
+  font-size: 11px;
   line-height: 1.55;
 }
 .dialog-note svg {
@@ -185,17 +185,17 @@
   grid-template-columns: 135px 1fr;
   align-items: center;
   min-height: 34px;
-  border-bottom: 1px solid #282b33;
-  color: #9ca3b2;
-  font-size: 9px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 11px;
 }
 .shortcut-list kbd {
   width: max-content;
   padding: 4px 6px;
-  border: 1px solid #414756;
+  border: 1px solid var(--border);
   border-radius: 3px;
   color: #c8d5ef;
-  background: #111318;
+  background: var(--bg-panel);
 }
 .about-dialog {
   display: grid;
@@ -217,14 +217,14 @@
 }
 .about-dialog h2 {
   margin: 5px 0 3px;
-  color: #e1e6f1;
+  color: var(--text);
   font-size: 14px;
 }
 .about-dialog p,
 .about-dialog .about-meta {
   margin: 0;
-  color: #8f97a8;
-  font-size: 9px;
+  color: var(--text-secondary);
+  font-size: 11px;
   line-height: 1.6;
 }
 .about-dialog .dialog-note {

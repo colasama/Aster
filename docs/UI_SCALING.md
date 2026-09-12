@@ -36,6 +36,17 @@ Use native form elements to preserve labels, keyboard interaction and disabled s
 Toolbar tools, tabs and keyframe buttons keep their specialized states. Focus and disabled styling
 is shared across controls; forced-colors mode restores native checkbox and select rendering.
 
+The shell uses neutral dark surfaces, blue selection accents, a 46-pixel activity rail, and dock
+groups with seven-pixel corner radii separated by six-pixel splitters. Shared surface and control
+tokens keep menus, dialogs, sidebars, and editing panels consistent. Primary labels use 12-pixel
+type; compact numeric and metadata fields keep their dedicated density. The centered project title
+opens the command palette and yields space to menus in narrower windows.
+
+The inspector keeps selected-layer identity pinned while scrolling. Layer-specific content (text,
+shape, solid, audio, or scene controls) appears in an initially expanded section; compositing and
+cloning have separate sections. Native details and disabled fieldsets preserve keyboard and lock
+behavior without another UI dependency.
+
 ## Performance constraints
 
 - UI scale changes do not modify composition pixels or export dimensions.

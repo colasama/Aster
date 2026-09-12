@@ -21,7 +21,7 @@
   display: flex;
   align-items: center;
   border-bottom: 1px solid var(--border);
-  background: #191b21;
+  background: var(--bg-raised);
 }
 .panel.floating .panel-header {
   cursor: move;
@@ -29,8 +29,8 @@
 }
 .panel-title {
   padding: 0 10px;
-  color: #c3c6cf;
-  font-size: 10px;
+  color: var(--text);
+  font-size: 12px;
   font-weight: 600;
 }
 .panel-actions {
@@ -46,13 +46,13 @@
   display: grid;
   place-items: center;
   border-radius: 3px;
-  color: #858a97;
+  color: var(--muted);
   transition:
     color var(--motion-fast) ease-out,
     background-color var(--motion-fast) ease-out;
 }
 .panel-actions button:hover {
-  background: #2b2e37;
+  background: var(--bg-raised);
   color: white;
 }
 .panel-content {
@@ -84,10 +84,10 @@
 }
 .panel-tabs button {
   position: relative;
-  height: 27px;
+  height: 32px;
   padding: 0 10px;
-  color: #858a96;
-  font-size: 10px;
+  color: var(--muted);
+  font-size: 12px;
   flex-shrink: 0;
   white-space: nowrap;
   transition:
@@ -106,11 +106,11 @@
   outline-offset: -3px;
 }
 .panel-tabs button:hover {
-  color: #c5c8d0;
+  color: var(--text);
 }
 .panel-tabs button.active {
-  color: #e0e3ea;
-  background: #1c1e25;
+  color: var(--text);
+  background: var(--bg-raised);
 }
 .panel-tabs button.active::after {
   content: "";
@@ -125,16 +125,17 @@
   bottom: 0;
 }
 .panel-search {
-  height: 31px;
+  height: 30px;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   gap: 6px;
-  margin: 7px;
+  margin: 10px 10px 8px;
   padding: 0 7px;
-  border: 1px solid #2d3039;
-  border-radius: 3px;
-  background: #111217;
-  color: #636875;
+  border: 1px solid var(--control-border);
+  border-radius: var(--control-radius);
+  background: var(--bg-deep);
+  color: var(--muted);
 }
 .panel-search:focus-within {
   border-color: var(--blue-bright);
@@ -146,7 +147,7 @@
   border: 0;
   outline: 0;
   background: transparent;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .project-panel .panel-content {
@@ -157,31 +158,33 @@
   flex: 1;
   overflow: auto;
   overscroll-behavior: contain;
+  padding: 0 5px 8px;
 }
 .tree-row {
   width: 100%;
-  height: 25px;
+  height: 28px;
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 0 8px;
-  color: #aeb2bd;
-  font-size: 10px;
+  padding: 0 6px;
+  color: var(--text-secondary);
+  font-size: 12px;
   white-space: nowrap;
+  border-radius: 4px;
 }
 button.tree-row {
   text-align: left;
 }
 .tree-row:hover {
-  background: #20232b;
+  background: var(--bg-raised);
 }
 .tree-row.selected {
-  background: #293855;
-  color: #e8edf8;
+  background: var(--selection-bg);
+  color: var(--text);
 }
 .tree-row.folder {
   font-weight: 600;
-  color: #c6c9d1;
+  color: var(--text);
 }
 .tree-row.folder svg {
   color: #7187b8;
@@ -195,7 +198,7 @@ button.tree-row {
 }
 .tree-row.asset-folder {
   margin-top: 3px;
-  color: #8d93a1;
+  color: var(--text-secondary);
   font-weight: 600;
 }
 .tree-row.asset-folder.root-assets {
@@ -227,7 +230,7 @@ button.tree-row {
 }
 .folder-toggle {
   min-width: 0;
-  height: 25px;
+  height: 28px;
   display: flex;
   flex: 1;
   align-items: center;
@@ -254,17 +257,16 @@ button.tree-row {
 }
 .folder-add:hover {
   background: #33445f;
-  color: #e3edff;
+  color: var(--text);
 }
 .tree-row.asset > span:nth-last-of-type(1) {
-  max-width: 92px;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .tree-row small {
   margin-left: auto;
-  color: #565b68;
-  font-size: 8px;
+  color: var(--muted);
+  font-size: 10px;
 }
 .tree-spacer {
   width: 29px;
@@ -278,9 +280,9 @@ button.tree-row {
   max-height: calc(100% - 8px);
   padding: 11px;
   overflow: auto;
-  border: 1px solid #3a4151;
+  border: 1px solid var(--border);
   border-radius: 5px;
-  background: #181a21;
+  background: var(--bg-raised);
   box-shadow: 0 12px 32px rgb(0 0 0 / 58%);
   animation: asset-menu-in 100ms ease-out;
 }
@@ -296,13 +298,13 @@ button.tree-row {
   display: block;
 }
 .asset-add-heading strong {
-  color: #d4d7df;
-  font-size: 11px;
+  color: var(--text);
+  font-size: 12px;
 }
 .asset-add-heading small {
   margin-top: 4px;
-  color: #6f7685;
-  font-size: 8px;
+  color: var(--muted);
+  font-size: 11px;
 }
 .asset-add-heading button {
   width: 24px;
@@ -310,22 +312,22 @@ button.tree-row {
   display: grid;
   place-items: center;
   border-radius: 3px;
-  color: #7e8490;
+  color: var(--muted);
   font-size: 17px;
 }
 .asset-add-heading button:hover {
   color: white;
-  background: #2b2e37;
+  background: var(--bg-raised);
 }
 .asset-add-group {
   margin-top: 12px;
 }
 .asset-add-menu .asset-add-group > span {
-  color: #6e7481;
-  font-size: 8px;
+  color: var(--muted);
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.06em;
-  text-transform: uppercase;
+  text-transform: none;
 }
 .asset-add-grid {
   display: grid;
@@ -341,17 +343,17 @@ button.tree-row {
   align-items: center;
   gap: 7px;
   padding: 0 8px;
-  border: 1px solid #303440;
+  border: 1px solid var(--border);
   border-radius: 4px;
-  color: #aeb3bf;
-  background: #20232b;
-  font-size: 9px;
+  color: var(--text-secondary);
+  background: var(--bg-raised);
+  font-size: 11px;
   text-align: left;
 }
 .asset-add-grid button:hover,
 .asset-relink:hover {
   border-color: #4f70ac;
-  color: #e1e9f8;
+  color: var(--text);
   background: #253047;
 }
 .asset-add-menu .asset-add-grid button svg,
@@ -371,15 +373,15 @@ button.tree-row {
   grid-template-columns: minmax(0, 1fr) minmax(92px, 1.25fr);
   align-items: center;
   gap: 8px;
-  color: #777e8d;
-  font-size: 8px;
+  color: var(--muted);
+  font-size: 11px;
 }
 .advanced-import-settings select,
 .advanced-import-settings input {
   min-width: 0;
   height: 24px;
   padding: 0 5px;
-  font-size: 8px;
+  font-size: 11px;
 }
 .sequence-rate-input {
   display: grid;
@@ -407,7 +409,7 @@ button.tree-row {
   gap: 3px;
   padding: 6px;
   border-top: 1px solid var(--border-soft);
-  background: #17191f;
+  background: var(--bg-panel);
 }
 .project-error {
   margin: 6px 8px;
@@ -415,8 +417,8 @@ button.tree-row {
   border: 1px solid #713a44;
   border-radius: 3px;
   color: #dc8c98;
-  background: #28161a;
-  font-size: 8px;
+  background: var(--bg-raised);
+  font-size: 11px;
   line-height: 1.4;
 }
 .project-error-detail {
@@ -433,7 +435,7 @@ button.tree-row {
   border-radius: 3px;
   color: #d2b873;
   background: #292314;
-  font-size: 8px;
+  font-size: 11px;
 }
 .project-footer button {
   flex: 1;
@@ -442,10 +444,10 @@ button.tree-row {
   align-items: center;
   justify-content: center;
   gap: 4px;
-  border: 1px solid #2d3039;
+  border: 1px solid var(--border);
   border-radius: 3px;
-  color: #8d929e;
-  font-size: 9px;
+  color: var(--text-secondary);
+  font-size: 11px;
 }
 .project-footer button:hover {
   border-color: #4767a5;
@@ -468,7 +470,7 @@ button.tree-row {
   height: 27px;
   flex: 1;
   padding: 0 7px;
-  font-size: 9px;
+  font-size: 11px;
 }
 .user-preset-save input:focus {
   border-color: var(--blue-bright);
@@ -484,7 +486,7 @@ button.tree-row {
 }
 .user-preset-save button:hover:not(:disabled) {
   border-color: #6584c1;
-  color: #e1eafa;
+  color: var(--text);
 }
 .user-preset-save button:disabled {
   cursor: not-allowed;
@@ -496,8 +498,8 @@ button.tree-row {
   border: 1px solid #713a44;
   border-radius: 3px;
   color: #dc8c98;
-  background: #28161a;
-  font-size: 8px;
+  background: var(--bg-raised);
+  font-size: 11px;
   line-height: 1.4;
 }
 .effect-category {
@@ -505,16 +507,16 @@ button.tree-row {
   display: flex;
   align-items: center;
   gap: 4px;
-  color: #777c88;
-  font-size: 9px;
+  color: var(--muted);
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.05em;
-  text-transform: uppercase;
+  text-transform: none;
 }
 .effect-category small {
   margin-left: auto;
-  color: #4f5562;
-  font-size: 8px;
+  color: var(--faint);
+  font-size: 11px;
 }
 .effect-group > button {
   width: 100%;
@@ -527,7 +529,7 @@ button.tree-row {
   text-align: left;
 }
 .effect-group > button:hover {
-  background: #22252e;
+  background: var(--bg-raised);
 }
 .effect-group > button:disabled {
   cursor: not-allowed;
@@ -540,7 +542,7 @@ button.tree-row {
   border-radius: 3px;
 }
 .effect-entry:hover {
-  background: #22252e;
+  background: var(--bg-raised);
 }
 .effect-apply {
   min-width: 0;
@@ -552,7 +554,8 @@ button.tree-row {
   padding: 0 31px 0 7px;
   text-align: left;
 }
-.effect-apply > span:last-child {
+.effect-apply > span:last-child,
+.effect-group > button > span:last-child {
   min-width: 0;
 }
 .effect-apply:disabled {
@@ -567,7 +570,7 @@ button.tree-row {
   display: grid;
   place-items: center;
   border-radius: 3px;
-  color: #4f5562;
+  color: var(--faint);
   opacity: 0;
 }
 .effect-entry:hover .effect-favorite,
@@ -583,9 +586,9 @@ button.tree-row {
 .shortcut-group {
   margin: 4px 0;
   padding: 0 4px 3px;
-  border: 1px solid #2e3442;
+  border: 1px solid var(--border);
   border-radius: 5px;
-  background: rgb(30 34 45 / 55%);
+  background: var(--bg-panel);
 }
 .shortcut-group .effect-category {
   color: #9aa7c5;
@@ -593,6 +596,7 @@ button.tree-row {
 .effect-icon {
   width: 26px;
   height: 26px;
+  flex-shrink: 0;
   display: grid;
   place-items: center;
   border-radius: 5px;
@@ -614,16 +618,16 @@ button.tree-row {
 .preset-group {
   margin: 4px 0 6px;
   padding: 0 4px 4px;
-  border: 1px solid #36304e;
+  border: 1px solid var(--border);
   border-radius: 5px;
-  background: linear-gradient(150deg, rgb(49 39 76 / 45%), rgb(18 19 27 / 20%));
+  background: var(--bg-panel);
 }
 .user-preset-group {
   margin: 4px 0 6px;
   padding: 0 4px 4px;
-  border: 1px solid #30435f;
+  border: 1px solid var(--border);
   border-radius: 5px;
-  background: linear-gradient(150deg, rgb(32 52 76 / 52%), rgb(18 19 27 / 20%));
+  background: var(--bg-panel);
 }
 .effect-icon.user-preset {
   color: #9fc6ff;
@@ -642,22 +646,24 @@ button.tree-row {
     var(--preset-b) 34% 67%,
     var(--preset-c) 67% 100%
   );
-  box-shadow: 0 0 14px color-mix(in srgb, var(--preset-b) 28%, transparent);
   text-shadow: 0 1px 3px rgb(0 0 0 / 80%);
 }
 .effect-list strong,
 .effect-list small {
   display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .effect-list strong {
-  color: #bec2cc;
-  font-size: 10px;
+  color: var(--text);
+  font-size: 12px;
   font-weight: 500;
 }
 .effect-list small {
   margin-top: 2px;
-  color: #606572;
-  font-size: 8px;
+  color: var(--faint);
+  font-size: 11px;
 }
 .tree-row.asset.missing,
 .tree-row.asset.missing svg,

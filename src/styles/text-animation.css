@@ -29,7 +29,7 @@
   justify-content: center;
   gap: 3px;
   padding: 0 5px;
-  font-size: 8px;
+  font-size: 11px;
 }
 .text-animator-toolbar button:disabled,
 .text-stack-add-row button:disabled,
@@ -55,26 +55,26 @@
   height: 22px;
   padding: 0 5px;
   border: 1px solid transparent;
-  color: #bdc3cf;
+  color: var(--text);
   background: transparent;
-  font-size: 9px;
+  font-size: 11px;
 }
 .text-stack-toggle > input[type="text"]:focus {
   border-color: var(--blue-bright);
   outline: 0;
-  background: #111319;
+  background: var(--bg-panel);
 }
 .text-animator-group {
   overflow: hidden;
-  border: 1px solid #30343e;
+  border: 1px solid var(--border);
   border-radius: 4px;
-  background: #16181e;
+  background: var(--bg-panel);
 }
 .text-animator-group > header {
   min-height: 28px;
   padding: 3px 5px;
-  border-bottom: 1px solid #292d36;
-  background: #1d2027;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-raised);
 }
 .text-animator-seed {
   display: grid;
@@ -84,13 +84,13 @@
 }
 .text-animator-subheading {
   padding: 5px 7px;
-  border-top: 1px solid #292d36;
-  border-bottom: 1px solid #292d36;
-  color: #888f9d;
-  background: #191b21;
-  font-size: 8px;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  color: var(--text-secondary);
+  background: var(--bg-raised);
+  font-size: 11px;
   font-weight: 700;
-  text-transform: uppercase;
+  text-transform: none;
 }
 .text-stack-add-row {
   padding: 5px 6px;
@@ -101,8 +101,8 @@
   align-items: center;
   gap: 6px;
   margin: 0 5px 5px;
-  color: #777f90;
-  font-size: 7px;
+  color: var(--muted);
+  font-size: 9px;
 }
 .text-stack-add-row select {
   min-width: 0;
@@ -111,20 +111,20 @@
 .text-animator-property,
 .text-selector-control {
   margin: 0 5px 5px;
-  border: 1px solid #2d313a;
+  border: 1px solid var(--border);
   border-radius: 3px;
-  background: #13151a;
+  background: var(--bg-panel);
 }
 .text-animator-property > header,
 .text-selector-control > header {
   min-height: 25px;
   padding: 2px 4px 2px 6px;
-  border-bottom: 1px solid #292d35;
+  border-bottom: 1px solid var(--border);
 }
 .text-animator-property > header strong {
   flex: 1;
-  color: #a3a9b5;
-  font-size: 8px;
+  color: var(--text-secondary);
+  font-size: 11px;
 }
 .text-selector-grid {
   display: grid;
@@ -137,8 +137,8 @@
 .text-animatable-control {
   display: grid;
   gap: 3px;
-  color: #777f90;
-  font-size: 7px;
+  color: var(--muted);
+  font-size: 9px;
 }
 .text-animatable-control {
   grid-template-columns: minmax(0, 1fr) 62px 22px;
@@ -159,7 +159,7 @@
   height: 22px;
   min-width: 0;
   padding: 0 4px;
-  font-size: 8px;
+  font-size: 11px;
 }
 .text-animatable-control > button.active {
   border-color: #5f82d0;
@@ -203,7 +203,7 @@
 .cloner-vector legend {
   grid-column: 1 / -1;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
 }
 .cloner-vector label {
   min-width: 0;
@@ -227,7 +227,7 @@
 .particle-section > legend,
 .particle-vector > legend {
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
 }
 .particle-vector {
   display: grid;

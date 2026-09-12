@@ -1,6 +1,8 @@
 import type { inspectorEn } from "./inspector.en";
 
 export const inspectorZh = {
+  "inspector.content.scene": "3D 场景",
+  "inspector.content.cloner": "克隆器",
   "inspector.numeric.hint": "左右拖动调值 · Shift 加速 · Alt 微调 · 单击输入 · Esc 取消",
   "inspector.tab.properties": "属性",
   "inspector.tab.ai": "AI 助手",

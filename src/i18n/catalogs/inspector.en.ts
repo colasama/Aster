@@ -1,4 +1,6 @@
 export const inspectorEn = {
+  "inspector.content.scene": "3D scene",
+  "inspector.content.cloner": "Cloner",
   "inspector.numeric.hint":
     "Drag to adjust | Shift: faster | Alt: finer | Click to type | Esc: cancel",
   "inspector.tab.properties": "Properties",
