@@ -35,3 +35,15 @@ export function normalizeViewportZoom(value: number, fallback = DEFAULT_VIEWPORT
 export function viewportZoomPercent(value: number): number {
   return Math.round(normalizeViewportZoom(value) * 100);
 }
+
+export function viewportWheelZoom(
+  zoom: number,
+  event: Pick<WheelEvent, "deltaY" | "deltaMode" | "ctrlKey" | "metaKey" | "shiftKey">,
+  pageHeight: number,
+): number {
+  if (!Number.isFinite(event.deltaY) || event.deltaY === 0) return zoom;
+  const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? pageHeight : 1;
+  const pixels = Math.max(-1000, Math.min(1000, event.deltaY * unit));
+  const speed = (event.shiftKey ? 4 : 1) * (event.ctrlKey || event.metaKey ? 0.25 : 1);
+  return normalizeViewportZoom(zoom * Math.exp((-pixels * Math.log(1.12) * speed) / 100));
+}

@@ -175,9 +175,11 @@ it("recomputes Fit on resize and zooms from the displayed scale when leaving Fit
   vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockReturnValue(600);
   function Harness() {
     const spaceRef = useRef<HTMLDivElement>(null);
+    const stageRef = useRef<HTMLDivElement>(null);
     const [state, setState] = useState(createInitialState);
-    const zoom = useViewportNavigation(
+    const { zoom } = useViewportNavigation(
       spaceRef,
+      stageRef,
       { width: 3840, height: 2160 },
       1,
       state,

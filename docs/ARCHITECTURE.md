@@ -247,7 +247,8 @@ Viewer navigation and chrome are separate from production frame evaluation. Prev
 composition pixel dimensions multiplied by full, half, or quarter preview quality, bounded by the
 GPU texture limit. Zoom, panel size, and display DPI change CSS presentation without clearing the
 canvas or reallocating render targets. Live Fit measures each
-viewer's CSS scroll host; snapshots use one bounded on-demand canvas copy, and ruler guides are
+viewer's CSS container; free panning translates the centered stage, and wheel zoom preserves its
+pointer or viewer-center anchor before paint. Snapshots use one bounded on-demand canvas copy, and ruler guides are
 locally persisted viewing aids that feed the existing transform snap targets. Neither snapshots nor
 guides modify project/export pixels. See [AE workflow audit](AE_WORKFLOW_AUDIT.md) for exact controls,
 storage boundaries, and remaining feature gaps.

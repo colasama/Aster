@@ -143,7 +143,15 @@ export function Viewport() {
     selectedLayerId: state.selection[0],
     time: state.currentTime,
   };
-  const displayZoom = useViewportNavigation(spaceRef, composition, viewCount, state, dispatch);
+  const navigation = useViewportNavigation(
+    spaceRef,
+    stageRef,
+    composition,
+    viewCount,
+    state,
+    dispatch,
+  );
+  const displayZoom = navigation.zoom;
   const viewerContextKey = `${state.project.id}.${composition.id}`;
   const snapshot = useViewportSnapshot(
     canvasRef,
@@ -166,7 +174,6 @@ export function Viewport() {
     );
     snapshot.capture();
   };
-  const pan = useRef({ active: false, x: 0, y: 0, left: 0, top: 0 });
   const selectedLayer = composition.layers.find((layer) => layer.id === state.selection[0]);
   const selectedLayerIds = new Set(state.selection);
   const childLayerIds = composition.layers
@@ -605,8 +612,9 @@ export function Viewport() {
       />
       <div
         aria-label={t("viewport.menu.label")}
-        className="viewport-space"
+        className={`viewport-space${navigation.panning ? " panning" : ""}`}
         ref={spaceRef}
+        {...navigation.handlers}
         onContextMenu={contextMenu.openFromPointer}
         onKeyDown={(event) => {
           if (
@@ -708,42 +716,17 @@ export function Viewport() {
             dispatch({ type: "select", ids });
             return;
           }
-          if (event.button !== 1 && !(event.button === 0 && state.activeTool === "hand")) return;
-          const target = event.currentTarget;
-          pan.current = {
-            active: true,
-            x: event.clientX,
-            y: event.clientY,
-            left: target.scrollLeft,
-            top: target.scrollTop,
-          };
-          target.setPointerCapture(event.pointerId);
-          target.classList.add("panning");
-        }}
-        onPointerMove={(event) => {
-          if (!pan.current.active) return;
-          event.currentTarget.scrollLeft = pan.current.left - (event.clientX - pan.current.x);
-          event.currentTarget.scrollTop = pan.current.top - (event.clientY - pan.current.y);
-        }}
-        onPointerUp={(event) => {
-          pan.current.active = false;
-          event.currentTarget.classList.remove("panning");
-          if (event.currentTarget.hasPointerCapture(event.pointerId))
-            event.currentTarget.releasePointerCapture(event.pointerId);
-        }}
-        onWheel={(event) => {
-          if (!event.ctrlKey && !event.metaKey) return;
-          event.preventDefault();
-          dispatch({
-            type: "setViewportZoom",
-            zoom: displayZoom * (event.deltaY < 0 ? 1.12 : 1 / 1.12),
-          });
         }}
         role="application"
         /* biome-ignore lint/a11y/noNoninteractiveTabindex: The composition canvas is an application-style keyboard interaction surface. */
         tabIndex={0}
       >
-        <div className={`stage-centering ${viewCount === 2 ? "multiview" : ""}`}>
+        <div
+          className={`stage-centering ${viewCount === 2 ? "multiview" : ""}`}
+          style={{
+            transform: `translate(calc(-50% + ${navigation.offset.x}px), calc(-50% + ${navigation.offset.y}px))`,
+          }}
+        >
           <div
             className={`composition-stage ${view === "custom" && viewCount === 1 ? "custom-stage" : ""}`}
             ref={stageRef}

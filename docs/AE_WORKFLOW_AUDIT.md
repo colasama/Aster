@@ -12,13 +12,24 @@ viewing and alignment. It does not claim complete After Effects feature parity.
 | Keep preview controls together | Controls were spread across the app toolbar, panel header and footer | Composition/view controls above the image; magnification, time, snapshots, resolution and display options below |
 | Work-area looping, precomposition, time remapping, graph editing | Implemented in the existing timeline/model | Existing behavior retained |
 | Multiple viewers and scene-buffer inspection | Existing dock viewers and GPU buffer choices | Retained; fitting considers the space available to each displayed view |
+| Navigate with the mouse wheel and Hand tool | Ctrl-only zoom and scrollbar-limited dragging | AE 25.3+ Smooth Zoom mapping, pointer/center anchoring, and free viewer panning |
 
 ## Viewer behavior and boundaries
 
-- Fit measures the scroll host in CSS pixels, independently of OS/UI scale, composition pixels and
+- Fit measures the viewer container in CSS pixels, independently of OS/UI scale, composition pixels and
   preview render resolution. Manual zoom spans 1–800%; fitting observes the same limits. Repeating
-  Fit recenters the view. A split resize still commits geometry through the existing workspace
-  transaction before GPU textures resize.
+  Fit recenters the view. Panel resizing and navigation retain the render target at composition
+  dimensions multiplied by preview quality.
+- Navigation follows the AE 25.3+ Smooth Zoom defaults: wheel zoom anchors the composition point
+  under the pointer; Alt/Option switches the anchor to the viewer center. Shift accelerates zoom
+  and Ctrl/Command slows it down. Aster uses four-times and quarter-speed multipliers respectively;
+  combining them returns to normal speed. Pixel, line, and page wheel deltas are normalized.
+  The native non-passive wheel listener suppresses browser scrolling/zooming only on the viewer,
+  leaving editable text controls alone. Menu zoom commands also preserve the viewer-center point.
+- Middle-button dragging or dragging with the Hand tool (H) pans freely even when the composition
+  is smaller than the viewer. Shift triples drag speed, with no jump when the modifier changes.
+  Pointer cancellation, capture loss, and window blur end the gesture. Navigation only changes
+  CSS presentation, not project transforms, undo history, or preview render resolution.
 - Snapshots copy the displayed canvas only on demand. One canvas per viewer is capped at 2048 pixels
   on its longest edge (at most 16 MiB at RGBA8). It is released on viewer disposal or context change.
   Holding the comparison button, Space/Enter on that button, or F5 over the canvas shows it;
@@ -49,3 +60,4 @@ would not correctly reveal composited alpha. These features are not represented 
 - [Adobe: modifying and using views](https://helpx.adobe.com/after-effects/desktop/view-and-preview/preview-video-and-audio/modifying-using-views.html)
 - [Adobe: previewing and snapshots](https://helpx.adobe.com/after-effects/desktop/view-and-preview/preview-video-and-audio/previewing.html)
 - [Adobe: keyboard shortcuts](https://helpx.adobe.com/after-effects/desktop/get-started/keyboard-shortcuts/keyboard-shortcuts-reference.html)
+- [Adobe: feature history (Smooth Zoom introduced in 25.3, June 12, 2025)](https://github.com/AdobeDocs/after-effects-feature-history)

@@ -243,8 +243,9 @@
   flex: 1;
 }
 .viewport-space {
+  position: relative;
   min-height: 0;
-  overflow: auto;
+  overflow: hidden;
   background-color: var(--bg-deep);
   overscroll-behavior: contain;
   cursor: grab;
@@ -258,8 +259,11 @@
   outline-offset: -1px;
 }
 .stage-centering {
-  min-width: 100%;
-  min-height: 100%;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: max-content;
+  height: max-content;
   display: grid;
   place-items: center;
   padding: 32px;
