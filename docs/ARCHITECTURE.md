@@ -291,6 +291,13 @@ Use GPU-resident intermediates, premultiplied alpha, HDR linear color, transient
 batched uploads, instancing, compute simulation, bounded history, and explicit instrumentation.
 Optimize measured frame time; never hide semantic mutations inside render code.
 
+The native `aster-render` graph assigns transient slots in first-use order. Descriptor-keyed
+min-heaps select the earliest available compatible slot, with strict separation between lifetimes;
+persistent resources never enter the alias pool. Allocation output remains ordered by resource
+handle, while slot identifiers are derived compiler output. The native resource pool maintains
+exact byte and lease totals on mutation so statistics and budget checks do not scan all entries.
+These native utilities are separate from the current browser WebGPU preview implementation.
+
 ## External automation (0.2.1)
 
 The external MCP stdio adapter forwards token-free loopback requests to the running Electron

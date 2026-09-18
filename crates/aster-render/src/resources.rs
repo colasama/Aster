@@ -35,6 +35,9 @@ struct PoolEntry<T> {
 
 pub struct ResourcePool<T> {
     budget_bytes: u64,
+    // Keep the sum exact even when multiple descriptors saturate at u64::MAX.
+    estimated_bytes: u128,
+    leased_resources: usize,
     tick: u64,
     next_id: u64,
     hits: u64,
@@ -48,6 +51,8 @@ impl<T> ResourcePool<T> {
     pub fn new(budget_bytes: u64) -> Self {
         Self {
             budget_bytes,
+            estimated_bytes: 0,
+            leased_resources: 0,
             tick: 0,
             next_id: 0,
             hits: 0,
@@ -70,6 +75,7 @@ impl<T> ResourcePool<T> {
             entry.leased = true;
             entry.last_used_tick = self.tick;
             self.hits += 1;
+            self.leased_resources += 1;
             return id;
         }
         let id = PooledResourceId(self.next_id);
@@ -84,6 +90,8 @@ impl<T> ResourcePool<T> {
             },
         );
         self.misses += 1;
+        self.estimated_bytes += u128::from(descriptor.estimated_bytes());
+        self.leased_resources += 1;
         id
     }
 
@@ -104,6 +112,7 @@ impl<T> ResourcePool<T> {
         }
         self.tick += 1;
         entry.leased = false;
+        self.leased_resources -= 1;
         entry.last_used_tick = self.tick;
         self.available.entry(entry.descriptor).or_default().push(id);
         self.trim_to_budget();
@@ -116,21 +125,19 @@ impl<T> ResourcePool<T> {
     }
 
     pub fn statistics(&self) -> ResourcePoolStatistics {
-        let leased_resources = self.entries.values().filter(|entry| entry.leased).count();
         ResourcePoolStatistics {
             hits: self.hits,
             misses: self.misses,
             evictions: self.evictions,
-            leased_resources,
-            cached_resources: self.entries.len() - leased_resources,
-            estimated_bytes: self.estimated_bytes(),
+            leased_resources: self.leased_resources,
+            cached_resources: self.entries.len() - self.leased_resources,
+            estimated_bytes: self.estimated_bytes.min(u128::from(u64::MAX)) as u64,
             budget_bytes: self.budget_bytes,
         }
     }
 
     pub fn snapshots(&self) -> Vec<ResourceSnapshot> {
-        let mut snapshots: Vec<_> = self
-            .entries
+        self.entries
             .iter()
             .map(|(id, entry)| ResourceSnapshot {
                 id: *id,
@@ -138,13 +145,11 @@ impl<T> ResourcePool<T> {
                 leased: entry.leased,
                 last_used_tick: entry.last_used_tick,
             })
-            .collect();
-        snapshots.sort_by_key(|snapshot| snapshot.id.0);
-        snapshots
+            .collect()
     }
 
     fn trim_to_budget(&mut self) {
-        while self.estimated_bytes() > self.budget_bytes {
+        while self.estimated_bytes > u128::from(self.budget_bytes) {
             let oldest = self
                 .entries
                 .iter()
@@ -155,6 +160,7 @@ impl<T> ResourcePool<T> {
                 break;
             };
             self.entries.remove(&id);
+            self.estimated_bytes -= u128::from(descriptor.estimated_bytes());
             if let Some(ids) = self.available.get_mut(&descriptor) {
                 ids.retain(|candidate| *candidate != id);
                 if ids.is_empty() {
@@ -163,13 +169,6 @@ impl<T> ResourcePool<T> {
             }
             self.evictions += 1;
         }
-    }
-
-    fn estimated_bytes(&self) -> u64 {
-        self.entries
-            .values()
-            .map(|entry| entry.descriptor.estimated_bytes())
-            .sum()
     }
 }
 
@@ -287,6 +286,57 @@ mod tests {
         let statistics = pool.statistics();
         assert_eq!(statistics.cached_resources, 1);
         assert_eq!(statistics.evictions, 1);
+    }
+
+    #[test]
+    fn accounting_tracks_reuse_eviction_and_failed_releases() {
+        let mut pool = ResourcePool::new(256);
+        let descriptor = ResourceDescriptor::pool_fixture(16);
+        let a = pool.acquire_with(descriptor, |_| 1);
+        let b = pool.acquire_with(descriptor, |_| 2);
+        let c = pool.acquire_with(descriptor, |_| 3);
+        assert_eq!(pool.statistics().estimated_bytes, 192);
+        assert_eq!(pool.statistics().leased_resources, 3);
+        assert!(pool.release(a));
+        assert!(pool.release(b));
+        assert!(!pool.release(b));
+        assert!(!pool.release(PooledResourceId(99)));
+        assert_eq!(pool.acquire_with(descriptor, |_| 4), b);
+        assert_eq!(pool.statistics().leased_resources, 2);
+        assert_eq!(pool.statistics().cached_resources, 1);
+        pool.set_budget(0);
+        assert!(pool.get(a).is_none());
+        assert_eq!(pool.get(b), Some(&2));
+        assert_eq!(pool.get(c), Some(&3));
+        assert_eq!(pool.statistics().estimated_bytes, 128);
+        assert!(pool.release(b));
+        assert!(pool.release(c));
+        assert_eq!(pool.statistics().estimated_bytes, 0);
+        assert_eq!(pool.statistics().leased_resources, 0);
+        assert_eq!(pool.statistics().cached_resources, 0);
+        assert_eq!(pool.statistics().evictions, 3);
+        let fresh = pool.acquire_with(descriptor, |_| 5);
+        assert_eq!(pool.get(fresh), Some(&5));
+    }
+
+    #[test]
+    fn accounting_recovers_after_totals_exceed_u64() {
+        let descriptor = ResourceDescriptor {
+            width: u32::MAX,
+            height: u32::MAX,
+            ..ResourceDescriptor::pool_fixture(1)
+        };
+        let mut pool = ResourcePool::new(u64::MAX);
+        let a = pool.acquire_with(descriptor, |_| ());
+        let b = pool.acquire_with(descriptor, |_| ());
+        assert_eq!(pool.statistics().estimated_bytes, u64::MAX);
+        assert!(pool.release(a));
+        assert!(pool.get(a).is_none());
+        assert!(pool.get(b).is_some());
+        assert_eq!(pool.statistics().estimated_bytes, u64::MAX);
+        pool.set_budget(0);
+        assert!(pool.release(b));
+        assert_eq!(pool.statistics().estimated_bytes, 0);
     }
 
     #[test]

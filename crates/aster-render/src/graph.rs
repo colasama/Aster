@@ -1,4 +1,7 @@
-use std::collections::{BTreeMap, BTreeSet, VecDeque};
+use std::{
+    cmp::Reverse,
+    collections::{BTreeMap, BTreeSet, BinaryHeap, VecDeque},
+};
 
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -193,60 +196,55 @@ impl RenderGraph {
     }
 
     fn allocate_transients(&self, order: &[PassId]) -> Vec<TransientAllocation> {
-        let pass_index: BTreeMap<_, _> = order
-            .iter()
-            .enumerate()
-            .map(|(index, id)| (*id, index))
-            .collect();
         let mut lifetimes: BTreeMap<ResourceHandle, (usize, usize)> = BTreeMap::new();
-        for pass in self.passes.values() {
-            let index = pass_index[&pass.id];
+        for (index, id) in order.iter().enumerate() {
+            let pass = &self.passes[id];
             for resource in pass.reads.iter().chain(&pass.writes) {
                 lifetimes
                     .entry(*resource)
                     .and_modify(|range| {
-                        range.0 = range.0.min(index);
-                        range.1 = range.1.max(index);
+                        range.1 = index;
                     })
                     .or_insert((index, index));
             }
         }
-        let mut allocations = Vec::new();
-        let mut slots: Vec<(ResourceDescriptor, usize, u32)> = Vec::new();
-        for (resource, descriptor) in &self.resources {
-            let Some((first_use, last_use)) = lifetimes.get(resource).copied() else {
-                continue;
-            };
-            let slot = if descriptor.transient {
-                slots
-                    .iter_mut()
-                    .find(|(existing, available_after, _)| {
-                        existing.transient
-                            && existing.width == descriptor.width
-                            && existing.height == descriptor.height
-                            && existing.format == descriptor.format
-                            && existing.samples == descriptor.samples
-                            && *available_after < first_use
-                    })
-                    .map(|(_, available_after, slot)| {
-                        *available_after = last_use;
-                        *slot
-                    })
-            } else {
-                None
+        // Process intervals in execution order so resource creation order cannot prevent reuse.
+        let mut lifetimes: Vec<_> = lifetimes.into_iter().collect();
+        lifetimes.sort_unstable_by_key(|(resource, (first, _))| (*first, *resource));
+        let mut allocations = Vec::with_capacity(lifetimes.len());
+        let mut slots: BTreeMap<ResourceDescriptor, BinaryHeap<Reverse<(usize, u32)>>> =
+            BTreeMap::new();
+        let mut next_slot = 0;
+        for (resource, (first_use, last_use)) in lifetimes {
+            let descriptor = self.resources[&resource];
+            let mut slot = None;
+            if descriptor.transient {
+                let compatible = slots.entry(descriptor).or_default();
+                if let Some(&Reverse((available_after, _))) = compatible.peek()
+                    && available_after < first_use
+                {
+                    slot = compatible.pop().map(|Reverse((_, slot))| slot);
+                }
             }
-            .unwrap_or_else(|| {
-                let slot = slots.len() as u32;
-                slots.push((*descriptor, last_use, slot));
+            let slot = slot.unwrap_or_else(|| {
+                let slot = next_slot;
+                next_slot += 1;
                 slot
             });
+            if descriptor.transient {
+                slots
+                    .entry(descriptor)
+                    .or_default()
+                    .push(Reverse((last_use, slot)));
+            }
             allocations.push(TransientAllocation {
-                resource: *resource,
+                resource,
                 slot,
                 first_use,
                 last_use,
             });
         }
+        allocations.sort_unstable_by_key(|allocation| allocation.resource);
         allocations
     }
 }
@@ -401,6 +399,83 @@ mod tests {
         assert_eq!(
             compiled.estimated_vram_bytes,
             descriptor.estimated_bytes() * 2
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn aliases_transients_created_in_reverse_execution_order() -> Result<(), RenderGraphError> {
+        let mut graph = RenderGraph::default();
+        let descriptor = ResourceDescriptor::fixture();
+        let resources: Vec<_> = (0..32).map(|_| graph.create_resource(descriptor)).collect();
+        let mut dependencies = Vec::new();
+        for resource in resources.iter().rev() {
+            let pass = graph.add_pass(
+                "write",
+                PassKind::Compute,
+                vec![],
+                vec![*resource],
+                dependencies,
+            );
+            dependencies = vec![pass];
+        }
+        let compiled = graph.compile()?;
+        assert_eq!(compiled.estimated_vram_bytes, descriptor.estimated_bytes());
+        for (index, allocation) in compiled.allocations.iter().enumerate() {
+            assert_eq!(allocation.resource, resources[index]);
+            assert_eq!(allocation.slot, 0);
+            assert_eq!(allocation.first_use, resources.len() - index - 1);
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn aliasing_requires_disjoint_lifetimes_and_matching_descriptors()
+    -> Result<(), RenderGraphError> {
+        let mut graph = RenderGraph::default();
+        let descriptor = ResourceDescriptor::fixture();
+        let a = graph.create_resource(descriptor);
+        let b = graph.create_resource(descriptor);
+        let c = graph.create_resource(ResourceDescriptor {
+            samples: 2,
+            ..descriptor
+        });
+        let d = graph.create_resource(ResourceDescriptor {
+            width: 1,
+            ..descriptor
+        });
+        let e = graph.create_resource(ResourceDescriptor {
+            format: TextureFormat::Rgba8Unorm,
+            ..descriptor
+        });
+        let unused = graph.create_resource(descriptor);
+        let first = graph.add_pass("a", PassKind::Compute, vec![], vec![a], vec![]);
+        let second = graph.add_pass(
+            "touching intervals",
+            PassKind::Compute,
+            vec![a],
+            vec![b],
+            vec![first],
+        );
+        graph.add_pass(
+            "different descriptors",
+            PassKind::Compute,
+            vec![],
+            vec![c, d, e],
+            vec![second],
+        );
+        let compiled = graph.compile()?;
+        let slots: BTreeSet<_> = compiled
+            .allocations
+            .iter()
+            .map(|allocation| allocation.slot)
+            .collect();
+        assert_eq!(slots.len(), 5);
+        assert!(
+            !compiled
+                .allocations
+                .iter()
+                .any(|allocation| allocation.resource == unused)
         );
         Ok(())
     }

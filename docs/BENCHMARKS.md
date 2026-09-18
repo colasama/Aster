@@ -67,6 +67,22 @@ invalidation measured 1.008 ms median / 1.234 ms p95; a leaf-only invalidation m
 median / 0.071 ms p95, with 99.99% of nodes retained. These numbers predate the fixed-manifest policy:
 they are reference observations, not a manifest-qualified baseline or portable pass/fail limits.
 
+## Native resource management microbenchmark
+
+Run `cargo run --release -p aster-render --example resource_performance` to measure graph compilation
+with 2,048 simultaneously live transient resources and warmed pool acquire/release/statistics.
+The example discards 20 warm-up samples and records 600 samples, including raw nanosecond timings,
+median and nearest-rank p95. Pool samples average 100 operations to reduce timer quantization.
+Use `--resources`, `--warmup`, `--samples`, and `--pool-operations` to vary the workload. Graph and
+pool setup and graph destruction are outside the timed regions. Payloads are `()`: no GPU textures
+are allocated, and the memory figures are descriptor estimates rather than measured VRAM.
+
+Build both revisions with the identical example and release profile, then alternate the standalone
+executables for at least three runs per revision without concurrent builds. Record revision,
+toolchain, CPU, OS and options beside the raw JSON. These CPU diagnostics do not measure GPU frame
+time or editor FPS and are not manifest-qualified release baselines. See the
+[2026-09-12 backend report](BACKEND_PERFORMANCE_REPORT_2026-09-12.md) for one local comparison.
+
 ## In-editor WebGPU benchmark
 
 The multiple-light material path uses one fixed 592-byte uniform per scene, up from 144 bytes.
