@@ -17,12 +17,14 @@ describe("render job builder", () => {
       composition,
       project,
       projectRevision: 9,
+      antiAliasing: "fxaa",
       outputKind: "pngSequence",
       destination: "C:\\renders\\Main-frames",
       range: "workArea",
       currentTime: 0,
     });
     expect(job).toMatchObject({
+      antiAliasing: "fxaa",
       startFrame: 30,
       endFrameExclusive: 120,
       frameRate: { numerator: 30_000, denominator: 1_001 },

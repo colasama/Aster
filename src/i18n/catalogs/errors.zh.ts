@@ -1,6 +1,7 @@
 import type { errorsEn } from "./errors.en";
 
 export const errorsZh = {
+  "ui.error.previewRender": "预览渲染失败。请检查抗锯齿、分辨率和 GPU 内存设置。",
   "ui.error.assetImageImport": "无法导入图像。请检查文件后重试。",
   "ui.error.assetVideoImport": "无法导入视频。请检查文件后重试。",
   "ui.error.backgroundRender": "无法完成后台渲染请求。",

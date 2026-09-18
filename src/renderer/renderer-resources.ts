@@ -284,6 +284,42 @@ export class RendererResources {
     });
   }
 
+  resizeSceneTargets(
+    width: number,
+    height: number,
+    context: GPUCanvasContext,
+    format: GPUTextureFormat,
+  ): void {
+    context.configure({
+      device: this.device,
+      format,
+      alphaMode: "opaque",
+      usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
+    });
+    this.sceneTexture?.destroy();
+    this.depthTexture?.destroy();
+    this.sceneTexture = this.device.createTexture({
+      label: "HDR scene target",
+      size: [width, height],
+      format: SCENE_FORMAT,
+      usage:
+        GPUTextureUsage.RENDER_ATTACHMENT |
+        GPUTextureUsage.TEXTURE_BINDING |
+        GPUTextureUsage.COPY_SRC |
+        GPUTextureUsage.COPY_DST,
+    });
+    this.depthTexture = this.device.createTexture({
+      label: "Composition depth target",
+      size: [width, height],
+      format: "depth24plus",
+      usage: GPUTextureUsage.RENDER_ATTACHMENT,
+    });
+    this.postBindGroup = this.createPostBindGroup(this.sceneTexture, "scene");
+    this.motionBlurPostBindGroup = undefined;
+    this.bufferVisualizer.setSource(this.sceneTexture);
+    this.layerEffects.resize(width, height);
+  }
+
   configureShadowMap(size: number): void {
     if (size === this.shadowMapSize) return;
     this.shadowTexture.destroy();

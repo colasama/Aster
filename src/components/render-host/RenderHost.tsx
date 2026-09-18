@@ -104,6 +104,7 @@ export function RenderHost() {
             pipeline.readback(
               createBeautyFrameRequest({
                 composition: validated.composition,
+                antiAliasing: validated.manifest.antiAliasing,
                 project: validated.project,
                 time,
                 width: validated.manifest.width,

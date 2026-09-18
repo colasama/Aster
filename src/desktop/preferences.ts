@@ -1,6 +1,11 @@
+import {
+  type AntiAliasingMode,
+  DEFAULT_ANTI_ALIASING,
+  normalizeAntiAliasing,
+} from "../core/rendering/anti-aliasing.js";
 import { isUiScale, type UiScale } from "../ui/ui-scale.js";
 
-export const CURRENT_APP_PREFERENCES_VERSION = 2 as const;
+export const CURRENT_APP_PREFERENCES_VERSION = 3 as const;
 export const APP_PREFERENCES_CHANGED_EVENT = "aster:preferences-changed";
 
 export type AppLocale = "en-US" | "zh-CN";
@@ -21,6 +26,7 @@ export interface AppPreferences {
   autosaveSeconds: AutosaveSeconds;
   reducedMotion: boolean;
   gpuMemoryBudgetMb: GpuMemoryBudgetMb;
+  antiAliasing: AntiAliasingMode;
   uiScale: UiScale;
   recentProjects: string[];
   lastProjectPath?: string;
@@ -30,7 +36,12 @@ export interface AppPreferences {
 export type UserPreferencePatch = Partial<
   Pick<
     AppPreferences,
-    "locale" | "autosaveSeconds" | "reducedMotion" | "gpuMemoryBudgetMb" | "uiScale"
+    | "locale"
+    | "autosaveSeconds"
+    | "reducedMotion"
+    | "gpuMemoryBudgetMb"
+    | "uiScale"
+    | "antiAliasing"
   >
 >;
 
@@ -39,6 +50,7 @@ const DEFAULT_PREFERENCES: AppPreferences = {
   autosaveSeconds: 30,
   reducedMotion: false,
   gpuMemoryBudgetMb: "auto",
+  antiAliasing: DEFAULT_ANTI_ALIASING,
   uiScale: "auto",
   recentProjects: [],
 };
@@ -80,6 +92,7 @@ export function applyUserPreferencePatch(current: AppPreferences, value: unknown
     "autosaveSeconds",
     "reducedMotion",
     "gpuMemoryBudgetMb",
+    "antiAliasing",
     "uiScale",
   ]);
   for (const key of Object.keys(value))
@@ -119,6 +132,14 @@ const APP_PREFERENCE_MIGRATIONS = new Map<
   number,
   (document: Record<string, unknown>) => Record<string, unknown>
 >([
+  [
+    2,
+    (document) => ({
+      ...document,
+      schemaVersion: 3,
+      antiAliasing: document.antiAliasing ?? DEFAULT_ANTI_ALIASING,
+    }),
+  ],
   [
     0,
     (document) => ({
@@ -166,6 +187,7 @@ function normalizeCurrentPreferences(value: Record<string, unknown>): AppPrefere
     autosaveSeconds,
     reducedMotion: value.reducedMotion === true,
     gpuMemoryBudgetMb,
+    antiAliasing: normalizeAntiAliasing(value.antiAliasing ?? DEFAULT_ANTI_ALIASING),
     uiScale: isUiScale(value.uiScale) ? value.uiScale : "auto",
     recentProjects,
     ...(lastProjectPath ? { lastProjectPath } : {}),

@@ -22,6 +22,7 @@ export interface PrecompositionSurfaceRequest {
   deviceMaxTextureDimension: number;
   memoryBudgetMb?: number;
   hasEffects: boolean;
+  renderScale?: number;
 }
 
 export interface PrecompositionSurfacePlan {
@@ -77,8 +78,9 @@ export function planPrecompositionSurface(
     1,
     Math.min(request.deviceMaxTextureDimension, MAX_PRECOMPOSITION_SURFACE_DIMENSION),
   );
-  const sourceWidth = surface.composition.width;
-  const sourceHeight = surface.composition.height;
+  const renderScale = request.renderScale ?? 1;
+  const sourceWidth = surface.composition.width * renderScale;
+  const sourceHeight = surface.composition.height * renderScale;
   const dimensionScale = Math.min(1, dimensionLimit / sourceWidth, dimensionLimit / sourceHeight);
   const pixelScale = Math.min(1, Math.sqrt(remainingPixels / (sourceWidth * sourceHeight)));
   const scale = Math.min(dimensionScale, pixelScale);

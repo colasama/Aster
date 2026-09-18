@@ -142,6 +142,7 @@ function AddRenderJob({
           composition,
           project: state.project,
           projectRevision: state.projectRevision,
+          antiAliasing: state.antiAliasing,
           outputKind,
           destination,
           range: outputKind === "still" ? "currentFrame" : range,

@@ -9,6 +9,7 @@ import {
 } from "./core";
 
 export type UiErrorCode =
+  | "previewRender"
   | "aiRequest"
   | "assetImageImport"
   | "assetRelink"
@@ -32,6 +33,7 @@ export type UiErrorCode =
   | "projectSave";
 
 const errorKeys: Record<UiErrorCode, PlainMessageKey> = {
+  previewRender: "ui.error.previewRender",
   aiRequest: "ui.error.aiRequest",
   assetImageImport: "ui.error.assetImageImport",
   assetRelink: "ui.error.assetRelink",

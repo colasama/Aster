@@ -1,4 +1,6 @@
 export const errorsEn = {
+  "ui.error.previewRender":
+    "Could not render the preview. Check anti-aliasing, resolution and GPU memory settings.",
   "ui.error.assetImageImport": "Could not import the image. Check the file and try again.",
   "ui.error.assetVideoImport": "Could not import the video. Check the file and try again.",
   "ui.error.backgroundRender": "The background render request could not be completed.",

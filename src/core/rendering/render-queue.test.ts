@@ -49,6 +49,20 @@ function input(id: string, priority = 0) {
 }
 
 describe("render queue", () => {
+  it("retains captured AA through persistence and defaults legacy jobs to off", () => {
+    const legacy = enqueueRenderJob(createRenderQueue(), input("legacy"));
+    expect(legacy.items[0].manifest.antiAliasing).toBe("off");
+    const state = enqueueRenderJob(createRenderQueue(), { ...input("aa"), antiAliasing: "ssaa2x" });
+    expect(
+      migrateRenderQueue(JSON.parse(serializeRenderQueue(state))).items[0].manifest.antiAliasing,
+    ).toBe("ssaa2x");
+    expect(() =>
+      enqueueRenderJob(createRenderQueue(), {
+        ...input("bad-aa"),
+        antiAliasing: "unknown" as "fxaa",
+      }),
+    ).toThrow("antiAliasing");
+  });
   it("captures immutable manifests and rejects invalid snapshot/output bounds", () => {
     const state = enqueueRenderJob(createRenderQueue(), input("job-1"));
     expect(state).toMatchObject({

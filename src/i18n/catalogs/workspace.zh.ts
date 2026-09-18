@@ -100,6 +100,9 @@ export const workspaceZh = {
   "workspace.preferences.uiScaleAuto": "自动（跟随系统）",
   "workspace.preferences.afterEditing": "编辑后 {seconds} 秒",
   "workspace.preferences.gpuBudget": "GPU 内存预算",
+  "workspace.preferences.antiAliasing": "抗锯齿",
+  "workspace.preferences.ssaa2x": "SSAA 2×（4 个采样）",
+  "workspace.preferences.ssaa4x": "SSAA 4×（16 个采样）",
   "workspace.preferences.autoBudget": "自动（512 MB）",
   "workspace.preferences.reducedMotion": "减少非必要的界面动态效果",
   "workspace.preferences.webgpuNote":

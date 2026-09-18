@@ -8,6 +8,20 @@ import {
 } from "./preferences";
 
 describe("application preferences", () => {
+  it("defaults new and legacy profiles to FXAA while preserving explicit AA choices", () => {
+    expect(defaultAppPreferences().antiAliasing).toBe("fxaa");
+    expect(migrateAppPreferences({ schemaVersion: 2 }).antiAliasing).toBe("fxaa");
+    expect(migrateAppPreferences({ schemaVersion: 3 }).antiAliasing).toBe("fxaa");
+    for (const antiAliasing of ["off", "fxaa", "ssaa2x", "ssaa4x"] as const) {
+      const updated = applyUserPreferencePatch(defaultAppPreferences(), { antiAliasing });
+      expect(migrateAppPreferences(JSON.parse(JSON.stringify(updated))).antiAliasing).toBe(
+        antiAliasing,
+      );
+    }
+    expect(
+      applyUserPreferencePatch(defaultAppPreferences(), { antiAliasing: "invalid" }).antiAliasing,
+    ).toBe("off");
+  });
   it("migrates the legacy unversioned document and sanitizes invalid fields", () => {
     expect(
       migrateAppPreferences({
@@ -17,7 +31,7 @@ describe("application preferences", () => {
         recentProjects: ["C:\\projects\\one", "C:\\projects\\ONE", 7],
       }),
     ).toMatchObject({
-      schemaVersion: 2,
+      schemaVersion: 3,
       autosaveSeconds: 15,
       reducedMotion: true,
       gpuMemoryBudgetMb: 128,
@@ -42,7 +56,7 @@ describe("application preferences", () => {
 
   it("migrates v1 preferences to a system-following UI scale", () => {
     expect(migrateAppPreferences({ schemaVersion: 1, autosaveSeconds: 30 })).toMatchObject({
-      schemaVersion: 2,
+      schemaVersion: 3,
       uiScale: "auto",
     });
   });

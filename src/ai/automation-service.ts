@@ -180,6 +180,7 @@ export class AutomationApplicationService {
         : activeComposition(state.project);
       if (!composition) throw new Error("Unknown export composition");
       const manifest = await createRenderQueueJobAsync({
+        antiAliasing: state.antiAliasing,
         project: state.project,
         projectRevision: state.projectRevision,
         composition,

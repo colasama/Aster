@@ -99,6 +99,9 @@ export const workspaceEn = {
   "workspace.preferences.uiScaleAuto": "Auto (system)",
   "workspace.preferences.afterEditing": "{seconds} seconds after editing",
   "workspace.preferences.gpuBudget": "GPU memory budget",
+  "workspace.preferences.antiAliasing": "Anti-aliasing",
+  "workspace.preferences.ssaa2x": "SSAA 2× (4 samples)",
+  "workspace.preferences.ssaa4x": "SSAA 4× (16 samples)",
   "workspace.preferences.autoBudget": "Auto (512 MB)",
   "workspace.preferences.reducedMotion": "Reduce non-essential interface motion",
   "workspace.preferences.webgpuNote":

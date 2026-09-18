@@ -19,6 +19,7 @@ import {
 import { evaluateWorldTransform } from "../../core/scene/scene-evaluation";
 import { type GpuDiagnostics, setLayerSizeAndCenterAnchor } from "../../core/types";
 import { isDesktopRuntime, onDisplayMetricsChanged } from "../../desktop/api";
+import { reportUiError } from "../../errors/report-ui-error";
 import { useI18n } from "../../i18n/react";
 import { CanvasFallbackRenderer } from "../../renderer/canvas-fallback";
 import {
@@ -124,6 +125,7 @@ export function Viewport() {
       : (previewProject.compositions.find((candidate) => candidate.id === composition.id) ??
         composition);
   const previewRestoreRef = useRef({
+    antiAliasing: state.antiAliasing,
     bufferView,
     composition: previewComposition,
     project: previewProject,
@@ -131,6 +133,7 @@ export function Viewport() {
     time: state.currentTime,
   });
   previewRestoreRef.current = {
+    antiAliasing: state.antiAliasing,
     bufferView,
     composition: previewComposition,
     project: previewProject,
@@ -199,15 +202,19 @@ export function Viewport() {
       maxDimension: rendererRef.current?.diagnostics.maxTextureSize || undefined,
     });
     if (canvas.width === preview.width && canvas.height === preview.height) return;
-    const pipeline = beautyPipelineRef.current;
-    if (pipeline) pipeline.resize(preview.width, preview.height);
-    else {
-      canvas.width = preview.width;
-      canvas.height = preview.height;
-      rendererRef.current?.resize(preview.width, preview.height);
+    try {
+      const pipeline = beautyPipelineRef.current;
+      if (pipeline) pipeline.resize(preview.width, preview.height);
+      else {
+        canvas.width = preview.width;
+        canvas.height = preview.height;
+        rendererRef.current?.resize(preview.width, preview.height);
+      }
+      setRendererRevision((revision) => revision + 1);
+    } catch (error) {
+      reportUiError(t, "previewRender", error, { scope: { area: "render" } });
     }
-    setRendererRevision((revision) => revision + 1);
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     previewQualityRef.current = state.previewQuality;
@@ -223,10 +230,15 @@ export function Viewport() {
     if (renderSessionGuardRef.current.active) return;
     const renderer = rendererRef.current;
     if (!(renderer instanceof WebGpuRenderer)) return;
-    const actual = renderer.setBufferVisualization(bufferView);
-    if (actual !== bufferView) setBufferView(actual);
-    setRendererRevision((revision) => revision + 1);
-  }, [bufferView]);
+    try {
+      const actual = renderer.setBufferVisualization(bufferView);
+      if (actual !== bufferView) setBufferView(actual);
+      setRendererRevision((revision) => revision + 1);
+    } catch (error) {
+      setBufferView(renderer.bufferVisualization);
+      reportUiError(t, "previewRender", error, { scope: { area: "render" } });
+    }
+  }, [bufferView, t]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -300,35 +312,45 @@ export function Viewport() {
     const renderer = rendererRef.current;
     if (!renderer) return;
     const pipeline = beautyPipelineRef.current;
+    let renderFailed = false;
     const renderAtTime = (time: number) => {
-      const metrics =
-        bufferView === "beauty" && pipeline
-          ? pipeline.present(
-              createBeautyFrameRequest({
-                composition: previewComposition,
-                project: previewProject,
-                time: time,
-                width: canvasRef.current?.width ?? 1,
-                height: canvasRef.current?.height ?? 1,
-              }),
-              state.selection[0],
-              state.playing,
-            )
-          : renderer.render(
-              previewComposition,
-              time,
-              state.playing,
-              previewProject,
-              state.selection[0],
-            );
-      publishDiagnostics(renderer.diagnostics);
-      syncMirrorCanvas(canvasRef.current, mirrorCanvasRef.current);
-      const now = performance.now();
-      const firstPassBreakdown = Boolean(metrics.passTimings) && !hasGpuPassMetrics.current;
-      if (firstPassBreakdown) hasGpuPassMetrics.current = true;
-      if (now - lastMetricUpdate.current > 200 || firstPassBreakdown) {
-        lastMetricUpdate.current = now;
-        dispatch({ type: "setMetrics", metrics });
+      if (renderFailed) return;
+      try {
+        const metrics =
+          bufferView === "beauty" && pipeline
+            ? pipeline.present(
+                createBeautyFrameRequest({
+                  composition: previewComposition,
+                  antiAliasing: state.antiAliasing,
+                  project: previewProject,
+                  time: time,
+                  width: canvasRef.current?.width ?? 1,
+                  height: canvasRef.current?.height ?? 1,
+                }),
+                state.selection[0],
+                state.playing,
+              )
+            : renderer.render(
+                previewComposition,
+                time,
+                state.playing,
+                previewProject,
+                state.selection[0],
+              );
+        publishDiagnostics(renderer.diagnostics);
+        syncMirrorCanvas(canvasRef.current, mirrorCanvasRef.current);
+        const now = performance.now();
+        const firstPassBreakdown = Boolean(metrics.passTimings) && !hasGpuPassMetrics.current;
+        if (firstPassBreakdown) hasGpuPassMetrics.current = true;
+        if (now - lastMetricUpdate.current > 200 || firstPassBreakdown) {
+          lastMetricUpdate.current = now;
+          dispatch({ type: "setMetrics", metrics });
+        }
+      } catch (error) {
+        renderFailed = true;
+        reportUiError(t, "previewRender", error, {
+          scope: { area: "render", compositionId: previewComposition.id },
+        });
       }
     };
     if (!state.playing) renderAtTime(state.currentTime);
@@ -345,9 +367,11 @@ export function Viewport() {
     state.currentTime,
     state.playing,
     state.selection,
+    state.antiAliasing,
     viewCount,
     bufferView,
     publishDiagnostics,
+    t,
   ]);
 
   useEffect(() => {
@@ -383,10 +407,10 @@ export function Viewport() {
         lease = renderSessionGuardRef.current.acquire(() => {
           try {
             const preview = previewRestoreRef.current;
-            pipeline.resize(previewWidth, previewHeight);
             if (preview.bufferView !== "beauty") {
               if (renderer instanceof WebGpuRenderer)
                 renderer.setBufferVisualization(preview.bufferView);
+              pipeline.resize(previewWidth, previewHeight);
               renderer.render(
                 preview.composition,
                 preview.time,
@@ -398,6 +422,7 @@ export function Viewport() {
               pipeline.present(
                 createBeautyFrameRequest({
                   composition: preview.composition,
+                  antiAliasing: preview.antiAliasing,
                   project: preview.project,
                   time: preview.time,
                   width: previewWidth,
@@ -429,6 +454,7 @@ export function Viewport() {
       const renderRequestAt = (time: number) =>
         createBeautyFrameRequest({
           composition: renderComposition,
+          antiAliasing: state.antiAliasing,
           project: renderProject,
           time,
           width: renderWidth,
@@ -452,7 +478,7 @@ export function Viewport() {
     };
     window.addEventListener("aster:open-render-session", openRenderSession);
     return () => window.removeEventListener("aster:open-render-session", openRenderSession);
-  }, [resize, state.project]);
+  }, [resize, state.project, state.antiAliasing]);
 
   useViewportBenchmark(canvasRef, rendererRef, renderSessionGuardRef, resize);
 

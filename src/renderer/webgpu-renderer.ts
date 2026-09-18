@@ -7,10 +7,12 @@ import {
 } from "../core/animation/motion-blur";
 import { logger } from "../core/logger";
 import { sourceForLayer, sourceLocator } from "../core/media/footage-source";
+import { type AntiAliasingMode, antiAliasingScale } from "../core/rendering/anti-aliasing";
 import { evaluateCameraBasis } from "../core/scene/camera-rig";
 import type { Composition, GpuDiagnostics, Project, RendererMetrics } from "../core/types";
 import { needsLayerIsolation } from "./compositing/layer-composite";
 import { planSceneRenderStack } from "./compositing/render-stack";
+import { AntiAliasingRenderer, planAntiAliasing } from "./effects/anti-aliasing";
 import { depthEffectSettingsFromCameraOptics } from "./effects/depth-effects";
 import { analyzeEffectFusion } from "./effects/effect-fusion";
 import { buildPostProcessUniforms } from "./effects/post-process";
@@ -57,6 +59,10 @@ export class WebGpuRenderer {
   #pendingFrameReadback?: FrameReadbackTicket;
   #width = 1;
   #height = 1;
+  #outputWidth = 1;
+  #outputHeight = 1;
+  #antiAliasingMode: AntiAliasingMode = "off";
+  readonly #antiAliasing: AntiAliasingRenderer;
   #memoryBudgetMb?: number;
   #bufferVisualization: BufferVisualization = "beauty";
   #beautyDepthOfFieldActive = false;
@@ -82,6 +88,7 @@ export class WebGpuRenderer {
     this.diagnostics = diagnostics;
     this.#invalidate = invalidate;
     this.#resources = new RendererResources(device, format, diagnostics, invalidate);
+    this.#antiAliasing = new AntiAliasingRenderer(device, format);
   }
   static async create(
     canvas: HTMLCanvasElement,
@@ -156,47 +163,44 @@ export class WebGpuRenderer {
   }
   resize(width: number, height: number): void {
     this.#assertActive();
-    this.#resources.frameReadback.reset();
-    this.#width = Math.max(1, Math.floor(width));
-    this.#height = Math.max(1, Math.floor(height));
-    this.#context.configure({
-      device: this.#device,
-      format: this.#format,
-      alphaMode: "opaque",
-      usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
-    });
-    this.#resources.sceneTexture?.destroy();
-    this.#resources.depthTexture?.destroy();
-    this.#resources.sceneTexture = this.#device.createTexture({
-      label: "HDR scene target",
-      size: [this.#width, this.#height],
-      format: SCENE_FORMAT,
-      usage:
-        GPUTextureUsage.RENDER_ATTACHMENT |
-        GPUTextureUsage.TEXTURE_BINDING |
-        GPUTextureUsage.COPY_SRC |
-        GPUTextureUsage.COPY_DST,
-    });
-    this.#resources.depthTexture = this.#device.createTexture({
-      label: "Composition depth target",
-      size: [this.#width, this.#height],
-      format: "depth24plus",
-      usage: GPUTextureUsage.RENDER_ATTACHMENT,
-    });
-    this.#resources.postBindGroup = this.#resources.createPostBindGroup(
-      this.#resources.sceneTexture,
-      "scene",
+    const outputWidth = Math.max(1, Math.floor(width));
+    const outputHeight = Math.max(1, Math.floor(height));
+    const plan = planAntiAliasing(
+      this.#activeAntiAliasing,
+      outputWidth,
+      outputHeight,
+      this.#device.limits.maxTextureDimension2D,
+      this.#memoryBudgetMb,
     );
-    this.#resources.motionBlurPostBindGroup = undefined;
-    this.#resources.bufferVisualizer.setSource(this.#resources.sceneTexture);
+    if (!this.#resources.frameReadback.reset())
+      throw new Error("Cannot change render targets while frame readbacks are in flight");
+    this.#outputWidth = outputWidth;
+    this.#outputHeight = outputHeight;
+    this.#width = plan.renderWidth;
+    this.#height = plan.renderHeight;
+    this.#antiAliasing.resize(this.#activeAntiAliasing, this.#width, this.#height);
+    this.#resources.resizeSceneTargets(this.#width, this.#height, this.#context, this.#format);
     this.#configureAuxiliaryBuffers();
-    this.#resources.layerEffects.resize(this.#width, this.#height);
   }
   get bufferVisualization(): BufferVisualization {
     return this.#bufferVisualization;
   }
   setBufferVisualization(mode: BufferVisualization): BufferVisualization {
+    const previous = this.#bufferVisualization;
+    if ((previous === "beauty") !== (mode === "beauty")) {
+      planAntiAliasing(
+        mode === "beauty" ? this.#antiAliasingMode : "off",
+        this.#outputWidth,
+        this.#outputHeight,
+        this.#device.limits.maxTextureDimension2D,
+        this.#memoryBudgetMb,
+      );
+      if (!this.#resources.frameReadback.reset())
+        throw new Error("Cannot change render targets while frame readbacks are in flight");
+    }
     this.#bufferVisualization = mode;
+    if ((previous === "beauty") !== (mode === "beauty"))
+      this.resize(this.#outputWidth, this.#outputHeight);
     this.#configureAuxiliaryBuffers();
     return this.#bufferVisualization;
   }
@@ -204,10 +208,36 @@ export class WebGpuRenderer {
     return this.#resources.frameReadback.pixelFormat;
   }
   get outputWidth(): number {
-    return this.#width;
+    return this.#outputWidth;
   }
   get outputHeight(): number {
-    return this.#height;
+    return this.#outputHeight;
+  }
+  get #activeAntiAliasing(): AntiAliasingMode {
+    return this.#bufferVisualization === "beauty" ? this.#antiAliasingMode : "off";
+  }
+  configureBeautyTarget(width: number, height: number, mode: AntiAliasingMode): void {
+    if (
+      mode === this.#antiAliasingMode &&
+      this.#bufferVisualization === "beauty" &&
+      width === this.#outputWidth &&
+      height === this.#outputHeight &&
+      this.#resources.sceneTexture
+    )
+      return;
+    // Validate before changing persistent renderer state, so a rejected setting can be corrected.
+    planAntiAliasing(
+      mode,
+      width,
+      height,
+      this.#device.limits.maxTextureDimension2D,
+      this.#memoryBudgetMb,
+    );
+    if (!this.#resources.frameReadback.reset())
+      throw new Error("Cannot change anti-aliasing while frame readbacks are in flight");
+    this.#antiAliasingMode = mode;
+    this.#bufferVisualization = "beauty";
+    this.resize(width, height);
   }
   get productionRenderError(): string | undefined {
     return productionDepthOfFieldAllocationError(
@@ -240,7 +270,7 @@ export class WebGpuRenderer {
   ): Promise<RawVideoFrame> {
     if (this.#pendingFrameReadback)
       return Promise.reject(new Error("A GPU frame readback is already being encoded"));
-    const ticket = this.#resources.frameReadback.reserve(this.#width, this.#height);
+    const ticket = this.#resources.frameReadback.reserve(this.#outputWidth, this.#outputHeight);
     this.#pendingFrameReadback = ticket;
     try {
       this.render(composition, time, false, project);
@@ -349,6 +379,7 @@ export class WebGpuRenderer {
       playing,
       this.#memoryBudgetMb,
       this.#bufferVisualization === "beauty",
+      antiAliasingScale(this.#activeAntiAliasing),
     );
     this.diagnostics.precompositionSurfaceError =
       surfaceFrame.diagnostics.length > 0 ? surfaceFrame.diagnostics.join("; ") : undefined;
@@ -429,6 +460,7 @@ export class WebGpuRenderer {
       height: this.#height,
       effectTextureBytes: resources.layerEffects.estimatedTextureBytes(),
       persistentBufferBytes:
+        this.#antiAliasing.estimatedBytes +
         resources.sceneGenerators.estimatedBytes +
         resources.shapeBufferBytes +
         resources.auxiliaryBuffers.estimatedBytes +
@@ -440,6 +472,10 @@ export class WebGpuRenderer {
       requestedShadowMapSize: shadowMapSize(shadowQuality),
       budgetMb: this.#memoryBudgetMb,
     });
+    if (this.#activeAntiAliasing !== "off" && memory.pressure === "critical")
+      throw new Error(
+        `Anti-aliasing ${this.#activeAntiAliasing} exceeds the ${memory.budgetMb} MB GPU budget. Choose a lower AA mode or resolution.`,
+      );
     const shadowsEnabled =
       shadowQuality !== "off" && primaryLight?.kind !== "point" && memory.shadowMapSize > 1;
     resources.configureShadowMap(memory.shadowMapSize);
@@ -512,7 +548,8 @@ export class WebGpuRenderer {
       0,
       buildPostProcessUniforms(this.#width, this.#height, time),
     );
-    if (!resources.sceneTexture || !resources.postBindGroup) this.resize(this.#width, this.#height);
+    if (!resources.sceneTexture || !resources.postBindGroup)
+      this.resize(this.#outputWidth, this.#outputHeight);
     const encoder = this.#device.createCommandEncoder({ label: "Aster frame render graph" });
     resources.mediaTextures.flush(encoder);
     resources.precompositionSurfaces.encode(encoder);
@@ -790,10 +827,13 @@ export class WebGpuRenderer {
     const output = outputTexture.createView();
     const postPass = encoder.beginRenderPass({
       label: "Fused effects + ACES display transform",
-      timestampWrites: resources.gpuProfiler.writes(6, 7),
+      timestampWrites: resources.gpuProfiler.writes(
+        6,
+        this.#activeAntiAliasing === "off" ? 7 : undefined,
+      ),
       colorAttachments: [
         {
-          view: output,
+          view: this.#antiAliasing.view ?? output,
           clearValue: { r: 0, g: 0, b: 0, a: 1 },
           loadOp: "clear",
           storeOp: "store",
@@ -821,6 +861,7 @@ export class WebGpuRenderer {
       postPass.draw(3);
     } else resources.bufferVisualizer.encode(postPass, this.#bufferVisualization);
     postPass.end();
+    this.#antiAliasing.encode(encoder, output, resources.gpuProfiler.writes(undefined, 7));
     this.#pendingFrameReadback?.encode(encoder, outputTexture);
     const collectTimestamps = resources.gpuProfiler.encodeReadback(encoder);
     this.#device.queue.submit([encoder.finish()]);
@@ -840,6 +881,7 @@ export class WebGpuRenderer {
       gpuMs: resources.gpuProfiler.totalMs(),
       drawCalls:
         1 +
+        Number(this.#activeAntiAliasing !== "off") +
         (beautyMotionBlurValid ? 3 : 0) +
         geometry.batches.length +
         surfaceFrame.surfaceCount +
@@ -850,6 +892,7 @@ export class WebGpuRenderer {
         textMotionBlurStats.drawCount,
       passCount:
         3 +
+        Number(this.#activeAntiAliasing !== "off") +
         (beautyMotionBlurValid ? 3 : 0) +
         Number(shadowsEnabled) +
         scenePassCount +
@@ -862,6 +905,7 @@ export class WebGpuRenderer {
       estimatedVramMb: memory.estimatedBytes / 1024 / 1024,
       transientTextureCount:
         6 +
+        Number(this.#activeAntiAliasing !== "off") +
         (beautyMotionBlurValid ? 3 : 0) +
         surfaceFrame.residentTextureCount +
         textMotionBlurStats.transientTextureCount,
@@ -890,6 +934,7 @@ export class WebGpuRenderer {
     this.#pendingFrameReadback?.abort();
     this.#pendingFrameReadback = undefined;
     this.#resources.destroy();
+    this.#antiAliasing.destroy();
     this.#evaluationCache.clear();
     this.#context.unconfigure();
     this.#device.destroy();

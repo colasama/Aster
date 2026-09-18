@@ -5,6 +5,7 @@ import { evaluateAnimatable } from "../../core/animation/timeline";
 import { getProperty, type PropertyPath } from "../../core/editing/operations";
 import { logger } from "../../core/logger";
 import { activeComposition } from "../../core/project/project";
+import { type AntiAliasingMode, normalizeAntiAliasing } from "../../core/rendering/anti-aliasing";
 import { runCpuTask } from "../../core/scheduling/cpu-scheduler";
 import type { EnvironmentLighting } from "../../core/types";
 import { getPreferences, isDesktopRuntime, updatePreferences } from "../../desktop/api";
@@ -69,6 +70,7 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
     Number(readPreference("aster.autosaveSeconds") ?? 30),
   );
   const [previewQuality, setPreviewQuality] = useState(state.previewQuality);
+  const [antiAliasing, setAntiAliasing] = useState<AntiAliasingMode>(state.antiAliasing);
   const [gpuMemoryBudgetMb, setGpuMemoryBudgetMb] = useState(state.gpuMemoryBudgetMb);
   const [reducedMotion, setReducedMotion] = useState(
     () => readPreference("aster.reducedMotion") === "true",
@@ -97,6 +99,7 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
         setAutosaveSeconds(preferences.autosaveSeconds);
         setReducedMotion(preferences.reducedMotion);
         setGpuMemoryBudgetMb(preferences.gpuMemoryBudgetMb);
+        setAntiAliasing(normalizeAntiAliasing(preferences.antiAliasing));
         setUiScale(preferences.uiScale);
         if (preferences.locale) setPreferredLocale(preferences.locale);
       })
@@ -131,11 +134,13 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
       ["aster.autosaveSeconds", String(autosaveSeconds)],
       ["aster.reducedMotion", String(reducedMotion)],
       ["aster.gpuMemoryBudgetMb", String(gpuMemoryBudgetMb)],
+      ["aster.antiAliasing", antiAliasing],
       ["aster.uiScale", String(uiScale)],
     ]);
     window.dispatchEvent(new Event(APP_PREFERENCES_CHANGED_EVENT));
     dispatch({ type: "setPreviewQuality", quality: previewQuality });
     dispatch({ type: "setGpuMemoryBudget", budget: gpuMemoryBudgetMb });
+    dispatch({ type: "setAntiAliasing", mode: antiAliasing });
     setLocale(preferredLocale);
     if (isDesktopRuntime())
       void updatePreferences({
@@ -144,6 +149,7 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
           : 30,
         reducedMotion,
         gpuMemoryBudgetMb,
+        antiAliasing,
         uiScale,
         locale: preferredLocale,
       }).catch((error: unknown) => logger.warn("preferences", "write_failed", undefined, error));
@@ -434,6 +440,18 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
                 <option value="128">128 MB</option>
                 <option value="256">256 MB</option>
                 <option value="512">512 MB</option>
+              </select>
+            </label>
+            <label className="wide">
+              {t("workspace.preferences.antiAliasing")}
+              <select
+                value={antiAliasing}
+                onChange={(event) => setAntiAliasing(normalizeAntiAliasing(event.target.value))}
+              >
+                <option value="off">{t("common.disabled")}</option>
+                <option value="fxaa">FXAA</option>
+                <option value="ssaa2x">{t("workspace.preferences.ssaa2x")}</option>
+                <option value="ssaa4x">{t("workspace.preferences.ssaa4x")}</option>
               </select>
             </label>
             <label className="dialog-check wide">

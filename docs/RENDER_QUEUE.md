@@ -1,5 +1,9 @@
 # Background render queue
 
+Each job captures the application anti-aliasing preference at enqueue. `antiAliasing` accepts `off`,
+`fxaa`, `ssaa2x`, or `ssaa4x`; missing legacy values mean `off`. The isolated RenderHost applies this
+captured value to every Beauty request. Changing preferences affects subsequent jobs only.
+
 Aster's render queue is a persistent control plane for work that must not depend on the interactive
 viewport. Enqueuing captures an immutable serialized project document, a composition and frame range,
 and one or more output modules. Later editor changes therefore cannot alter an in-flight result.

@@ -127,6 +127,7 @@ export class PrecompositionSurfaceRenderer {
     playing: boolean,
     memoryBudgetMb?: number,
     enableTextMotionBlur = true,
+    renderScale = 1,
   ): PrecompositionSurfaceFrame {
     this.#frame += 1;
     if (this.#project !== project) {
@@ -155,6 +156,7 @@ export class PrecompositionSurfaceRenderer {
           preparedSources,
           diagnostics,
           enableTextMotionBlur,
+          renderScale,
         );
       }
     }
@@ -209,6 +211,7 @@ export class PrecompositionSurfaceRenderer {
     preparedSources: Map<string, SurfaceEntry>,
     diagnostics: string[],
     enableTextMotionBlur: boolean,
+    renderScale: number,
   ): void {
     const surface = scene.precompositionSurface;
     if (!surface) return;
@@ -239,10 +242,15 @@ export class PrecompositionSurfaceRenderer {
         deviceMaxTextureDimension: this.#device.limits.maxTextureDimension2D,
         memoryBudgetMb,
         hasEffects,
+        renderScale,
       },
       budget,
     );
     if (plan.diagnostic) diagnostics.push(plan.diagnostic);
+    if (renderScale > 1 && (plan.status === "skipped" || plan.downgraded))
+      throw new Error(
+        `SSAA precomposition target unavailable: ${plan.diagnostic}. Choose a lower AA mode or resolution.`,
+      );
     if (plan.status === "skipped") return;
     const key = precompositionSurfaceCacheKey(scene, this.#revision, plan.width, plan.height);
     const existing = this.#entries.get(key);
@@ -304,6 +312,7 @@ export class PrecompositionSurfaceRenderer {
           preparedSources,
           diagnostics,
           enableTextMotionBlur,
+          renderScale,
         );
     }
     const camera = evaluateSceneCamera(surface.composition, surface.time);

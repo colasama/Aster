@@ -1,5 +1,9 @@
 # Architecture
 
+Production output supports shared, time-independent [anti-aliasing modes](ANTI_ALIASING.md): FXAA at
+native resolution and SSAA with larger internal targets. The final GPU pass precedes canonical frame
+readback; preferences and queued job snapshots carry the selected mode.
+
 Aster separates its portable model from platform/UI code. The Rust crates own deterministic domain
 logic and native boundaries; the React/Electron application owns interactive editing and the current
 WebGPU preview implementation. Electron's sandboxed renderer reaches native capabilities only

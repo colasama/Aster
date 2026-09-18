@@ -16,6 +16,7 @@ export type RenderQueueOutputKind = "mp4" | "pngSequence" | "still";
 export type RenderQueueRange = "workArea" | "composition" | "currentFrame";
 
 export interface RenderQueueJobOptions {
+  readonly antiAliasing?: import("../core/rendering/anti-aliasing").AntiAliasingMode;
   readonly composition: Composition;
   readonly project: Project;
   readonly projectRevision: number;
@@ -80,6 +81,7 @@ function createJobWithSnapshot(
   return {
     compositionId: composition.id,
     compositionName: composition.name,
+    antiAliasing: options.antiAliasing ?? "off",
     projectRevision: options.projectRevision,
     projectSnapshot,
     renderMediaSnapshot,

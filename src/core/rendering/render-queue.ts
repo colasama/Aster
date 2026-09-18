@@ -1,3 +1,5 @@
+import { type AntiAliasingMode, isAntiAliasingMode } from "./anti-aliasing.js";
+
 type Id = string;
 
 export const CURRENT_RENDER_QUEUE_VERSION = 1 as const;
@@ -48,6 +50,8 @@ export interface RenderJobManifest {
   projectSnapshot: string;
   /** Versioned runtime media registry/locator capture hydrated by an isolated RenderHost. */
   renderMediaSnapshot?: string;
+  /** Captured at enqueue; missing on legacy jobs means disabled. */
+  antiAliasing?: AntiAliasingMode;
   width: number;
   height: number;
   frameRate: { numerator: number; denominator: number };
@@ -459,6 +463,8 @@ function normalizeItem(value: unknown, path: string): RenderQueueItem {
 
 function normalizeManifest(value: unknown, path: string): RenderJobManifest {
   if (!isRecord(value)) throw new Error(`${path} must be an object`);
+  if (value.antiAliasing !== undefined && !isAntiAliasingMode(value.antiAliasing))
+    throw new Error(`${path}.antiAliasing is invalid`);
   const id = boundedId(value.id, `${path}.id`);
   const compositionId = boundedId(value.compositionId, `${path}.compositionId`);
   const compositionName = boundedString(value.compositionName, 512, `${path}.compositionName`);
@@ -534,6 +540,7 @@ function normalizeManifest(value: unknown, path: string): RenderJobManifest {
     projectSnapshot,
     renderMediaSnapshot,
     width,
+    antiAliasing: value.antiAliasing ?? "off",
     height,
     frameRate,
     startFrame,

@@ -1,5 +1,6 @@
 import { layerCompositeShader } from "../compositing/layer-composite";
 import { motionBlurShader } from "../compositing/motion-blur-renderer";
+import { antiAliasingShader } from "../effects/anti-aliasing";
 import { depthEffectsShader } from "../effects/depth-effects";
 import { surfacePostEffectsShader } from "../effects/surface-post-effects";
 import {
@@ -18,6 +19,7 @@ import {
 
 export async function validateShaderSources(device: GPUDevice): Promise<void> {
   const sources = [
+    ["output anti-aliasing", antiAliasingShader],
     ["shape", shapeShader],
     ["normal-mapped HDR environment", materialShapeShader],
     ["image", imageShader],

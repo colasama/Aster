@@ -14,6 +14,11 @@ import { recordCommandMarker, recordOperations } from "../core/editing/command-l
 import { applyOperations, cloneProjectSnapshot, type Operation } from "../core/editing/operations";
 import { activeComposition, createDemoProject } from "../core/project/project";
 import { storeRecoverySnapshot } from "../core/project/project-file";
+import {
+  type AntiAliasingMode,
+  DEFAULT_ANTI_ALIASING,
+  normalizeAntiAliasing,
+} from "../core/rendering/anti-aliasing";
 import type { Id, Project, RendererMetrics } from "../core/types";
 import { isDesktopRuntime, migrateLegacyPreferences } from "../desktop/api";
 import { APP_PREFERENCES_CHANGED_EVENT, type UserPreferencePatch } from "../desktop/preferences";
@@ -45,6 +50,7 @@ export interface EditorState {
   viewportZoomMode: ViewportZoomMode;
   viewportFitRevision: number;
   previewQuality: 1 | 0.5 | 0.25;
+  antiAliasing: AntiAliasingMode;
   gpuMemoryBudgetMb: "auto" | 32 | 64 | 128 | 256 | 512;
   leftTab: "project" | "effects";
   rightTab: "properties" | "ai";
@@ -86,6 +92,7 @@ export type EditorAction =
   | { type: "fitViewport"; mode?: "fit" | "fit100" }
   | { type: "setPreviewQuality"; quality: EditorState["previewQuality"] }
   | { type: "setGpuMemoryBudget"; budget: EditorState["gpuMemoryBudgetMb"] }
+  | { type: "setAntiAliasing"; mode: AntiAliasingMode }
   | { type: "setLeftTab"; tab: EditorState["leftTab"] }
   | { type: "setRightTab"; tab: EditorState["rightTab"] }
   | { type: "setBottomMode"; mode: EditorState["bottomMode"] }
@@ -127,6 +134,7 @@ export function createInitialState(): EditorState {
     viewportZoomMode: "fit",
     viewportFitRevision: 0,
     previewQuality: 1,
+    antiAliasing: readAntiAliasing(),
     gpuMemoryBudgetMb: readGpuMemoryBudget(),
     leftTab: "project",
     rightTab: "properties",
@@ -242,6 +250,8 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       return { ...state, previewQuality: action.quality };
     case "setGpuMemoryBudget":
       return { ...state, gpuMemoryBudgetMb: action.budget };
+    case "setAntiAliasing":
+      return { ...state, antiAliasing: normalizeAntiAliasing(action.mode) };
     case "setLeftTab":
       return { ...state, leftTab: action.tab };
     case "setRightTab":
@@ -319,6 +329,16 @@ export function isProjectDirty(
   state: Pick<EditorState, "projectRevision" | "savedProjectRevision">,
 ) {
   return state.savedProjectRevision !== state.projectRevision;
+}
+
+function readAntiAliasing(): AntiAliasingMode {
+  try {
+    return normalizeAntiAliasing(
+      window.localStorage.getItem("aster.antiAliasing") ?? DEFAULT_ANTI_ALIASING,
+    );
+  } catch {
+    return DEFAULT_ANTI_ALIASING;
+  }
 }
 
 function readGpuMemoryBudget(): EditorState["gpuMemoryBudgetMb"] {
@@ -412,7 +432,9 @@ export function EditorProvider({ children }: PropsWithChildren) {
     if (!isDesktopRuntime()) return;
     void migrateLegacyPreferences(readLegacyRendererPreferences())
       .then((preferences) => {
+        dispatch({ type: "setAntiAliasing", mode: preferences.antiAliasing });
         try {
+          localStorage.setItem("aster.antiAliasing", preferences.antiAliasing);
           localStorage.setItem("aster.autosaveSeconds", String(preferences.autosaveSeconds));
           localStorage.setItem("aster.reducedMotion", String(preferences.reducedMotion));
           localStorage.setItem("aster.gpuMemoryBudgetMb", String(preferences.gpuMemoryBudgetMb));
@@ -511,6 +533,9 @@ function readLegacyRendererPreferences(): UserPreferencePatch {
     const gpuBudget = localStorage.getItem("aster.gpuMemoryBudgetMb");
     const locale = localStorage.getItem("aster.locale");
     const patch: UserPreferencePatch = {
+      ...(localStorage.getItem("aster.antiAliasing") !== null
+        ? { antiAliasing: readAntiAliasing() }
+        : {}),
       ...(autosaveValue !== null &&
       (autosave === 0 || autosave === 15 || autosave === 30 || autosave === 60)
         ? { autosaveSeconds: autosave }

@@ -25,6 +25,15 @@ function surfaceScene(width = 1_920, height = 1_080) {
 }
 
 describe("precomposition surface planning", () => {
+  it("includes supersampling in surface sizes and cache identity", () => {
+    const scene = surfaceScene(320, 180);
+    const plan = planPrecompositionSurface(
+      { scene, deviceMaxTextureDimension: 8192, hasEffects: false, renderScale: 4 },
+      createPrecompositionSurfaceBudget(),
+    );
+    expect(plan).toMatchObject({ width: 1280, height: 720, downgraded: false });
+    expect(precompositionSurfaceCacheKey(scene, 1, plan.width, plan.height)).toContain("1280x720");
+  });
   it("allocates bounded full-resolution surfaces and stable time-addressed keys", () => {
     const scene = surfaceScene();
     const budget = createPrecompositionSurfaceBudget();

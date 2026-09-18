@@ -3,6 +3,7 @@ import { activeComposition, createDemoProject } from "../../core/project/project
 import type { RendererMetrics } from "../../core/types";
 import type { CanvasFallbackRenderer } from "../canvas-fallback";
 import type { RawVideoFrame } from "../gpu/frame-readback";
+import { WebGpuRenderer } from "../webgpu-renderer";
 import {
   type BeautyFrameBackend,
   type BeautyFrameRequest,
@@ -40,6 +41,71 @@ class FakeBeautyBackend implements BeautyFrameBackend {
 }
 
 describe("production beauty frame pipeline", () => {
+  it("settles preview submission once before concurrent export readbacks", async () => {
+    let finish!: () => void;
+    const completion = new Promise<void>((resolve) => {
+      finish = resolve;
+    });
+    const renderer = Object.assign(Object.create(WebGpuRenderer.prototype), {
+      configureBeautyTarget: vi.fn(),
+      render: () => fakeMetrics(),
+      complete: vi.fn(() => completion),
+      renderRawFrame: vi.fn(async () => ({
+        pixels: new ArrayBuffer(16),
+        pixelFormat: "rgba" as const,
+      })),
+    }) as WebGpuRenderer;
+    Object.defineProperties(renderer, {
+      exportPixelFormat: { value: "rgba" },
+      outputWidth: { value: 2 },
+      outputHeight: { value: 2 },
+      bufferVisualization: { value: "beauty" },
+    });
+    const pipeline = new ProductionBeautyFramePipeline(
+      createViewportBeautyFrameBackend(renderer, { width: 2, height: 2 } as HTMLCanvasElement),
+    );
+    const project = createDemoProject();
+    const request = createBeautyFrameRequest({
+      project,
+      composition: activeComposition(project),
+      time: 0,
+      width: 2,
+      height: 2,
+      antiAliasing: "fxaa",
+    });
+    pipeline.present(request);
+    const first = pipeline.readback(request);
+    const second = pipeline.readback(request);
+    expect(renderer.complete).toHaveBeenCalledOnce();
+    expect(renderer.renderRawFrame).not.toHaveBeenCalled();
+    finish();
+    await Promise.all([first, second]);
+    await pipeline.readback(request);
+    expect(renderer.complete).toHaveBeenCalledOnce();
+    expect(renderer.renderRawFrame).toHaveBeenCalledTimes(3);
+  });
+  it("configures the same AA target before presentation and export", async () => {
+    const project = createDemoProject();
+    const backend = new FakeBeautyBackend();
+    const prepareTarget = vi.fn((target: { width: number; height: number }) =>
+      backend.resize(target.width, target.height),
+    );
+    const pipeline = new ProductionBeautyFramePipeline(Object.assign(backend, { prepareTarget }));
+    for (const antiAliasing of ["off", "fxaa", "ssaa2x", "ssaa4x"] as const) {
+      const request = createBeautyFrameRequest({
+        project,
+        composition: activeComposition(project),
+        time: 0,
+        width: 7,
+        height: 5,
+        antiAliasing,
+      });
+      pipeline.present(request);
+      expect(prepareTarget).toHaveBeenLastCalledWith({ width: 7, height: 5 }, antiAliasing);
+      expect((await pipeline.readback(request)).pixels.byteLength).toBe(7 * 5 * 4);
+      expect(prepareTarget).toHaveBeenLastCalledWith({ width: 7, height: 5 }, antiAliasing);
+    }
+  });
   it("presents and exports byte-identical pixels for the same time and resolution", async () => {
     const project = createDemoProject();
     const composition = activeComposition(project);

@@ -80,6 +80,43 @@ describe("WorkspaceDialog diagnostics", () => {
 });
 
 describe("WorkspaceDialog scaled layout", () => {
+  it.each([undefined, "off", "ssaa2x"])(
+    "restores AA preference %s with FXAA as the default and saves the selection",
+    (savedMode) => {
+      if (savedMode) window.localStorage.setItem("aster.antiAliasing", savedMode);
+      const container = document.createElement("div");
+      document.body.append(container);
+      root = createRoot(container);
+      const close = vi.fn();
+      act(() =>
+        root?.render(
+          <I18nProvider>
+            <EditorProvider>
+              <WorkspaceDialog kind="preferences" onClose={close} />
+            </EditorProvider>
+          </I18nProvider>,
+        ),
+      );
+      const select = container
+        .querySelector<HTMLOptionElement>('option[value="fxaa"]')
+        ?.closest("select");
+      if (!select) throw new Error("AA select missing");
+      expect(select.value).toBe(savedMode ?? "fxaa");
+      expect([...select.options].map((option) => option.value)).toEqual([
+        "off",
+        "fxaa",
+        "ssaa2x",
+        "ssaa4x",
+      ]);
+      act(() => {
+        select.value = "fxaa";
+        select.dispatchEvent(new Event("change", { bubbles: true }));
+      });
+      act(() => container.querySelector<HTMLButtonElement>("footer button.primary")?.click());
+      expect(window.localStorage.getItem("aster.antiAliasing")).toBe("fxaa");
+      expect(close).toHaveBeenCalledOnce();
+    },
+  );
   it.each([0.75, 1, 1.25, 1.5, 1.75, 2])(
     "restores the %s scale choice with reachable footer actions",
     (scale) => {

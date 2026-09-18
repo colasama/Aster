@@ -1,4 +1,5 @@
 import { activateProjectFonts, prepareProjectFonts } from "../../core/media/project-font-runtime";
+import { type AntiAliasingMode, normalizeAntiAliasing } from "../../core/rendering/anti-aliasing";
 import type { Composition, Project, RendererMetrics } from "../../core/types";
 import type { CanvasFallbackRenderer } from "../canvas-fallback";
 import type { RawFramePixelFormat, RawVideoFrame } from "../gpu/frame-readback";
@@ -26,6 +27,7 @@ export interface BeautyFrameRequest {
   time: number;
   target: BeautyFrameTarget;
   settings: typeof PRODUCTION_BEAUTY_SETTINGS;
+  antiAliasing: AntiAliasingMode;
 }
 
 export interface BeautyFrameBackend {
@@ -33,6 +35,7 @@ export interface BeautyFrameBackend {
   readonly pixelFormat: RawFramePixelFormat;
   currentTarget(): BeautyFrameTarget;
   resize(width: number, height: number): void;
+  prepareTarget?(target: BeautyFrameTarget, mode: AntiAliasingMode): void;
   present(
     request: BeautyFrameRequest,
     selectedLayerId?: string,
@@ -42,6 +45,7 @@ export interface BeautyFrameBackend {
 }
 
 export function createBeautyFrameRequest(options: {
+  antiAliasing?: AntiAliasingMode;
   composition: Composition;
   project: Project;
   time: number;
@@ -56,6 +60,7 @@ export function createBeautyFrameRequest(options: {
     time: options.time,
     target,
     settings: PRODUCTION_BEAUTY_SETTINGS,
+    antiAliasing: normalizeAntiAliasing(options.antiAliasing),
   };
 }
 
@@ -88,13 +93,13 @@ export class ProductionBeautyFramePipeline {
     playing?: boolean,
   ): RendererMetrics {
     validateBeautyFrameRequest(request);
-    this.resize(request.target.width, request.target.height);
+    this.#prepare(request);
     return this.#backend.present(request, selectedLayerId, playing);
   }
 
   async readback(request: BeautyFrameRequest, synchronizeVideo = false): Promise<RawVideoFrame> {
     validateBeautyFrameRequest(request);
-    this.resize(request.target.width, request.target.height);
+    this.#prepare(request);
     const frame = await this.#backend.readback(request, synchronizeVideo);
     if (frame.pixelFormat !== this.pixelFormat)
       throw new Error("Beauty frame backend changed pixel format during a render session");
@@ -106,17 +111,35 @@ export class ProductionBeautyFramePipeline {
       );
     return frame;
   }
+  #prepare(request: BeautyFrameRequest): void {
+    if (this.#backend.prepareTarget)
+      this.#backend.prepareTarget(request.target, request.antiAliasing);
+    else this.resize(request.target.width, request.target.height);
+  }
 }
 
 export function createViewportBeautyFrameBackend(
   renderer: WebGpuRenderer | CanvasFallbackRenderer,
   canvas: HTMLCanvasElement,
 ): BeautyFrameBackend {
+  let presentationPending = false;
+  let presentationCompletion: Promise<void> | undefined;
   const activateBeauty = () => {
     if (renderer instanceof WebGpuRenderer && renderer.bufferVisualization !== "beauty")
       renderer.setBufferVisualization("beauty");
   };
   return {
+    prepareTarget: (target, mode) => {
+      if (canvas.width !== target.width) canvas.width = target.width;
+      if (canvas.height !== target.height) canvas.height = target.height;
+      if (renderer instanceof WebGpuRenderer)
+        renderer.configureBeautyTarget(target.width, target.height, mode);
+      else {
+        if (mode !== "off") throw new Error("Output anti-aliasing requires WebGPU");
+        if (renderer.outputWidth !== target.width || renderer.outputHeight !== target.height)
+          renderer.resize(target.width, target.height);
+      }
+    },
     pixelFormat: renderer instanceof WebGpuRenderer ? renderer.exportPixelFormat : "rgba",
     maxConcurrentReadbacks: renderer instanceof WebGpuRenderer ? 3 : 1,
     // Canvas dimensions are presentation state, not proof that the renderer has allocated a
@@ -130,6 +153,7 @@ export function createViewportBeautyFrameBackend(
     present: (request, selectedLayerId, playing = false) => {
       activateProjectFonts(request.project);
       activateBeauty();
+      presentationPending = true;
       return renderer.render(
         request.composition,
         request.time,
@@ -139,6 +163,15 @@ export function createViewportBeautyFrameBackend(
       );
     },
     readback: async (request, synchronizeVideo) => {
+      // A preview may still be using the canvas presentation texture. Settle that transition once;
+      // subsequent export frames retain the bounded concurrent readback path.
+      if (presentationPending && renderer instanceof WebGpuRenderer) {
+        presentationPending = false;
+        presentationCompletion = renderer.complete();
+      }
+      const completion = presentationCompletion;
+      await completion;
+      if (presentationCompletion === completion) presentationCompletion = undefined;
       await prepareProjectFonts(request.project);
       activateProjectFonts(request.project);
       activateBeauty();

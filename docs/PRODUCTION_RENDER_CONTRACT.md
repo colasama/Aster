@@ -1,5 +1,9 @@
 # Production Render Contract
 
+Output anti-aliasing is captured alongside each Beauty request and render job. Equal project, time,
+resolution and AA mode share the same production output path; see [Output Anti-Aliasing](ANTI_ALIASING.md).
+Preview resolution changes do not override that captured mode. Legacy requests and jobs use Off.
+
 Aster's production preview and export use one time-addressed beauty-frame request. The request fixes
 the beauty buffer, the linear-HDR-to-ACES display transform, composition effects, and composition
 sampling. Preview quality may change only the integer target width and height. It does not disable
