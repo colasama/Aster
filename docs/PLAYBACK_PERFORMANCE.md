@@ -5,7 +5,7 @@ Playback uses the audio clock (or a monotonic fallback) to evaluate each frame a
 The application owns the playback hook. Timeline and graph panels subscribe to presentation without
 creating additional playback loops; closing or rearranging panels does not stop the audio clock.
 
-GPU presentation and the timeline playhead subscribe directly to playback frames. Inspector values and other React consumers receive time at 10 Hz; pausing publishes the exact last presented time immediately. Static previews still render on project, selection, viewport, or time changes. Export sessions retain exclusive ownership of the render target, and imported fonts must be ready before subscribing to presentation.
+GPU presentation and the timeline playhead subscribe directly to playback frames. Inspector values and other React consumers receive time at 10 Hz; pausing publishes the exact last presented time immediately. Static previews still render on project, selection, preview quality, or time changes. Viewer zoom and layout changes retain the existing composition-sized preview target. Export sessions retain exclusive ownership of the render target, and imported fonts must be ready before subscribing to presentation.
 
 Stationary timeline rows consume a memoized document/selection context rather than the clock and
 profiler context. A memoized row list also isolates them from parent transport renders. Expanded

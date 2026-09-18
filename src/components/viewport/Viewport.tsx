@@ -18,7 +18,6 @@ import {
 } from "../../core/rendering/render-session-guard";
 import { evaluateWorldTransform } from "../../core/scene/scene-evaluation";
 import { type GpuDiagnostics, setLayerSizeAndCenterAnchor } from "../../core/types";
-import { isDesktopRuntime, onDisplayMetricsChanged } from "../../desktop/api";
 import { reportUiError } from "../../errors/report-ui-error";
 import { useI18n } from "../../i18n/react";
 import { CanvasFallbackRenderer } from "../../renderer/canvas-fallback";
@@ -94,7 +93,11 @@ export function Viewport() {
   const rendererRef = useRef<Renderer | undefined>(undefined);
   const beautyPipelineRef = useRef<ProductionBeautyFramePipeline | undefined>(undefined);
   const renderSessionGuardRef = useRef(new ExclusiveRenderSessionGuard());
-  const previewQualityRef = useRef(state.previewQuality);
+  const previewSizeRef = useRef({
+    compositionWidth: composition.width,
+    compositionHeight: composition.height,
+    quality: state.previewQuality,
+  });
   const lastMetricUpdate = useRef(0);
   const hasGpuPassMetrics = useRef(false);
   const [diagnostics, setDiagnostics] = useState<GpuDiagnostics>();
@@ -191,14 +194,9 @@ export function Viewport() {
   const resize = useCallback(() => {
     if (renderSessionGuardRef.current.active) return;
     const canvas = canvasRef.current;
-    const stage = stageRef.current;
-    if (!canvas || !stage) return;
-    const bounds = stage.getBoundingClientRect();
+    if (!canvas) return;
     const preview = calculatePreviewSize({
-      cssWidth: bounds.width,
-      cssHeight: bounds.height,
-      devicePixelRatio,
-      quality: previewQualityRef.current,
+      ...previewSizeRef.current,
       maxDimension: rendererRef.current?.diagnostics.maxTextureSize || undefined,
     });
     if (canvas.width === preview.width && canvas.height === preview.height) return;
@@ -217,14 +215,14 @@ export function Viewport() {
   }, [t]);
 
   useEffect(() => {
-    previewQualityRef.current = state.previewQuality;
+    // Magnification and display DPI affect CSS presentation only, never the render target.
+    previewSizeRef.current = {
+      compositionWidth: composition.width,
+      compositionHeight: composition.height,
+      quality: state.previewQuality,
+    };
     resize();
-  }, [resize, state.previewQuality]);
-
-  useEffect(() => {
-    if (!isDesktopRuntime()) return;
-    return onDisplayMetricsChanged(() => resize());
-  }, [resize]);
+  }, [resize, composition.width, composition.height, state.previewQuality]);
 
   useEffect(() => {
     if (renderSessionGuardRef.current.active) return;
@@ -242,11 +240,8 @@ export function Viewport() {
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    const stage = stageRef.current;
-    if (!canvas || !stage) return;
+    if (!canvas) return;
     let cancelled = false;
-    const observer = new ResizeObserver(resize);
-    observer.observe(stage);
     WebGpuRenderer.create(canvas, () => {
       if (!cancelled) setRendererRevision((revision) => revision + 1);
     })
@@ -274,7 +269,6 @@ export function Viewport() {
       });
     return () => {
       cancelled = true;
-      observer.disconnect();
       const renderer = rendererRef.current;
       rendererRef.current = undefined;
       beautyPipelineRef.current = undefined;

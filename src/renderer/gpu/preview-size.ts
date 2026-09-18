@@ -1,7 +1,6 @@
 export interface PreviewSizeOptions {
-  cssWidth: number;
-  cssHeight: number;
-  devicePixelRatio: number;
+  compositionWidth: number;
+  compositionHeight: number;
   quality: number;
   maxDimension?: number;
 }
@@ -15,9 +14,8 @@ export interface PreviewSize {
 const DEFAULT_MAX_DIMENSION = 8_192;
 
 export function calculatePreviewSize(options: PreviewSizeOptions): PreviewSize {
-  const cssWidth = finitePositive(options.cssWidth, 1);
-  const cssHeight = finitePositive(options.cssHeight, 1);
-  const deviceScale = Math.min(finitePositive(options.devicePixelRatio, 1), 2);
+  const compositionWidth = finitePositive(options.compositionWidth, 1);
+  const compositionHeight = finitePositive(options.compositionHeight, 1);
   const quality = Math.min(finitePositive(options.quality, 1), 1);
   const maxDimension = Math.max(
     1,
@@ -25,16 +23,15 @@ export function calculatePreviewSize(options: PreviewSizeOptions): PreviewSize {
       finitePositive(options.maxDimension ?? DEFAULT_MAX_DIMENSION, DEFAULT_MAX_DIMENSION),
     ),
   );
-  const requestedScale = deviceScale * quality;
-  const requestedWidth = Math.max(1, Math.floor(cssWidth * requestedScale));
-  const requestedHeight = Math.max(1, Math.floor(cssHeight * requestedScale));
+  const requestedWidth = Math.max(1, Math.floor(compositionWidth * quality));
+  const requestedHeight = Math.max(1, Math.floor(compositionHeight * quality));
   const largestDimension = Math.max(requestedWidth, requestedHeight);
   const limitScale = largestDimension > maxDimension ? maxDimension / largestDimension : 1;
 
   return {
     width: Math.max(1, Math.floor(requestedWidth * limitScale)),
     height: Math.max(1, Math.floor(requestedHeight * limitScale)),
-    pixelScale: requestedScale * limitScale,
+    pixelScale: quality * limitScale,
   };
 }
 

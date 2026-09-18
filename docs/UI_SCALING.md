@@ -6,9 +6,10 @@ Electron zoom factor at 1 so Chromium follows the operating system's per-display
 values apply through `webContents.setZoomFactor` before the project renderer loads.
 
 The main process publishes the active display scale when a window moves between displays or Electron
-reports a display scale change. The viewport recomputes its backing texture from current CSS bounds,
-device pixel ratio, preview quality, and the GPU dimension limit. This notification is necessary
-because a device-pixel-ratio change does not always produce a `ResizeObserver` entry.
+reports a display scale change. Preview backing dimensions come from the composition's pixel
+dimensions multiplied by preview quality (full, half, or quarter), rounded down to at least one
+pixel and bounded proportionally by the GPU dimension limit. Viewer magnification, panel resizing,
+UI scale, and device pixel ratio only affect presentation; they do not resize render targets.
 
 Docked layout ratios remain scale-independent. Floating workspace bounds use fixed viewport CSS
 coordinates and are reconciled against the dock host's measured left/top/right/bottom edges. A
@@ -55,7 +56,7 @@ behavior without another UI dependency.
 ## Performance constraints
 
 - UI scale changes do not modify composition pixels or export dimensions.
-- Preview device scale remains capped by `calculatePreviewSize` to prevent unbounded GPU allocations.
+- Preview dimensions remain capped by `calculatePreviewSize` at the GPU texture dimension limit.
 - A viewport resize is skipped when the calculated backing dimensions have not changed.
 - Display listeners are removed with their owning window and renderer component.
 - Overlay command surfaces preserve a six-pixel viewport margin in CSS coordinates at every scale.
