@@ -24,7 +24,9 @@ import { isDesktopRuntime, migrateLegacyPreferences } from "../desktop/api";
 import { APP_PREFERENCES_CHANGED_EVENT, type UserPreferencePatch } from "../desktop/preferences";
 import {
   DEFAULT_VIEWPORT_ZOOM,
+  normalizeViewportNavigationMode,
   normalizeViewportZoom,
+  type ViewportNavigationMode,
   type ViewportZoomMode,
 } from "../ui/viewport-zoom";
 
@@ -48,6 +50,7 @@ export interface EditorState {
   timelineZoom: number;
   viewportZoom: number;
   viewportZoomMode: ViewportZoomMode;
+  viewportNavigationMode: ViewportNavigationMode;
   viewportFitRevision: number;
   previewQuality: 1 | 0.5 | 0.25;
   antiAliasing: AntiAliasingMode;
@@ -93,6 +96,7 @@ export type EditorAction =
   | { type: "setPreviewQuality"; quality: EditorState["previewQuality"] }
   | { type: "setGpuMemoryBudget"; budget: EditorState["gpuMemoryBudgetMb"] }
   | { type: "setAntiAliasing"; mode: AntiAliasingMode }
+  | { type: "setViewportNavigationMode"; mode: ViewportNavigationMode }
   | { type: "setLeftTab"; tab: EditorState["leftTab"] }
   | { type: "setRightTab"; tab: EditorState["rightTab"] }
   | { type: "setBottomMode"; mode: EditorState["bottomMode"] }
@@ -135,6 +139,7 @@ export function createInitialState(): EditorState {
     viewportFitRevision: 0,
     previewQuality: 1,
     antiAliasing: readAntiAliasing(),
+    viewportNavigationMode: readViewportNavigationMode(),
     gpuMemoryBudgetMb: readGpuMemoryBudget(),
     leftTab: "project",
     rightTab: "properties",
@@ -252,6 +257,8 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       return { ...state, gpuMemoryBudgetMb: action.budget };
     case "setAntiAliasing":
       return { ...state, antiAliasing: normalizeAntiAliasing(action.mode) };
+    case "setViewportNavigationMode":
+      return { ...state, viewportNavigationMode: normalizeViewportNavigationMode(action.mode) };
     case "setLeftTab":
       return { ...state, leftTab: action.tab };
     case "setRightTab":
@@ -329,6 +336,16 @@ export function isProjectDirty(
   state: Pick<EditorState, "projectRevision" | "savedProjectRevision">,
 ) {
   return state.savedProjectRevision !== state.projectRevision;
+}
+
+function readViewportNavigationMode(): ViewportNavigationMode {
+  try {
+    return normalizeViewportNavigationMode(
+      window.localStorage.getItem("aster.viewportNavigationMode"),
+    );
+  } catch {
+    return "smooth";
+  }
 }
 
 function readAntiAliasing(): AntiAliasingMode {
@@ -433,8 +450,10 @@ export function EditorProvider({ children }: PropsWithChildren) {
     void migrateLegacyPreferences(readLegacyRendererPreferences())
       .then((preferences) => {
         dispatch({ type: "setAntiAliasing", mode: preferences.antiAliasing });
+        dispatch({ type: "setViewportNavigationMode", mode: preferences.viewportNavigationMode });
         try {
           localStorage.setItem("aster.antiAliasing", preferences.antiAliasing);
+          localStorage.setItem("aster.viewportNavigationMode", preferences.viewportNavigationMode);
           localStorage.setItem("aster.autosaveSeconds", String(preferences.autosaveSeconds));
           localStorage.setItem("aster.reducedMotion", String(preferences.reducedMotion));
           localStorage.setItem("aster.gpuMemoryBudgetMb", String(preferences.gpuMemoryBudgetMb));
@@ -533,6 +552,9 @@ function readLegacyRendererPreferences(): UserPreferencePatch {
     const gpuBudget = localStorage.getItem("aster.gpuMemoryBudgetMb");
     const locale = localStorage.getItem("aster.locale");
     const patch: UserPreferencePatch = {
+      ...(localStorage.getItem("aster.viewportNavigationMode") !== null
+        ? { viewportNavigationMode: readViewportNavigationMode() }
+        : {}),
       ...(localStorage.getItem("aster.antiAliasing") !== null
         ? { antiAliasing: readAntiAliasing() }
         : {}),

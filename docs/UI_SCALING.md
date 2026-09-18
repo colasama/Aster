@@ -30,11 +30,14 @@ The composition viewer defaults to live Fit using its own container's CSS dimens
 controls wrap in groups when the dock becomes narrow. See [AE workflow audit](AE_WORKFLOW_AUDIT.md)
 for snapshot, ruler, guide, and time-entry behavior and their persistence boundaries.
 
-Wheel navigation uses the AE 25.3+ Smooth Zoom modifier mapping: pointer-centered by default,
+Wheel navigation defaults to the AE 25.3+ Smooth Zoom modifier mapping: pointer-centered by default,
 Alt/Option for the viewer center, Shift for faster zoom, and Ctrl/Command for precision. Middle-button
 or Hand-tool dragging pans the centered stage through a CSS translation; Shift speeds it up.
 Pointer coordinates are converted back to CSS pixels so UI scaling does not change anchor placement
 or drag distance. Fit resets the local pan offset. No navigation gesture resizes the backing texture.
+Preferences also offer Legacy navigation with fixed zoom steps, center anchoring by default,
+Alt/Option pointer anchoring, Ctrl/Command vertical panning, and Shift horizontal panning.
+The saved mode applies immediately without changing the current magnification or position.
 
 ## Control styling
 

@@ -91,6 +91,9 @@ export const workspaceEn = {
   "workspace.composition.gpuLimit":
     "The renderer supports compositions up to the GPU adapter's texture limit. Oversized outputs can be tiled by the native render queue.",
   "workspace.preferences.previewQuality": "Preview quality",
+  "workspace.preferences.viewportNavigation": "Preview navigation",
+  "workspace.preferences.navigationSmooth": "Smooth",
+  "workspace.preferences.navigationLegacy": "Legacy",
   "workspace.preferences.fullResolution": "Full resolution",
   "workspace.preferences.halfResolution": "Half resolution",
   "workspace.preferences.quarterResolution": "Quarter resolution",
@@ -127,7 +130,7 @@ export const workspaceEn = {
   "workspace.shortcut.undo": "Undo the last operation",
   "workspace.shortcut.redo": "Redo the last operation",
   "workspace.shortcut.playback": "Play or pause the timeline",
-  "workspace.shortcut.zoom": "Zoom the composition freely",
+  "workspace.shortcut.zoom": "Zoom the composition",
   "workspace.shortcut.pan": "Pan the composition canvas",
   "workspace.about.summary": "GPU-first motion graphics and compositing studio.",
   "workspace.about.detail":

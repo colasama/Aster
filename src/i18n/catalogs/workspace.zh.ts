@@ -92,6 +92,9 @@ export const workspaceZh = {
   "workspace.composition.gpuLimit":
     "渲染器支持的合成尺寸上限由 GPU 适配器纹理限制决定。超大输出可由原生渲染队列分块处理。",
   "workspace.preferences.previewQuality": "预览质量",
+  "workspace.preferences.viewportNavigation": "预览导航",
+  "workspace.preferences.navigationSmooth": "Smooth（平滑）",
+  "workspace.preferences.navigationLegacy": "Legacy（经典）",
   "workspace.preferences.fullResolution": "完整分辨率",
   "workspace.preferences.halfResolution": "一半分辨率",
   "workspace.preferences.quarterResolution": "四分之一分辨率",
@@ -128,7 +131,7 @@ export const workspaceZh = {
   "workspace.shortcut.undo": "撤销上一步操作",
   "workspace.shortcut.redo": "重做上一步操作",
   "workspace.shortcut.playback": "播放或暂停时间线",
-  "workspace.shortcut.zoom": "自由缩放合成",
+  "workspace.shortcut.zoom": "缩放合成",
   "workspace.shortcut.pan": "平移合成画布",
   "workspace.about.summary": "GPU 优先的动态图形与合成工作室。",
   "workspace.about.detail":

@@ -4,6 +4,21 @@ export const DEFAULT_VIEWPORT_ZOOM = 0.25;
 export const VIEWPORT_ZOOM_PRESETS = [0.0625, 0.125, 0.25, 0.5, 1, 2, 4, 8] as const;
 
 export type ViewportZoomMode = "fit" | "fit100" | "manual";
+export type ViewportNavigationMode = "smooth" | "legacy";
+
+export function normalizeViewportNavigationMode(value: unknown): ViewportNavigationMode {
+  return value === "legacy" ? "legacy" : "smooth";
+}
+
+const LEGACY_ZOOM_STEPS = [0.01, 0.015625, 0.03125, 0.0625, 0.125, 0.25, 1 / 3, 0.5, 1, 2, 4, 8];
+
+export function legacyViewportZoom(zoom: number, direction: number): number {
+  const current = normalizeViewportZoom(zoom);
+  if (!Number.isFinite(direction) || direction === 0) return current;
+  return direction > 0
+    ? (LEGACY_ZOOM_STEPS.find((step) => step > current + 1e-8) ?? MAX_VIEWPORT_ZOOM)
+    : ([...LEGACY_ZOOM_STEPS].reverse().find((step) => step < current - 1e-8) ?? MIN_VIEWPORT_ZOOM);
+}
 
 export function fitViewportZoom(
   width: number,
@@ -38,7 +53,13 @@ export function viewportZoomPercent(value: number): number {
 
 export function viewportWheelZoom(
   zoom: number,
-  event: Pick<WheelEvent, "deltaY" | "deltaMode" | "ctrlKey" | "metaKey" | "shiftKey">,
+  event: {
+    deltaY: number;
+    deltaMode: number;
+    ctrlKey: boolean;
+    metaKey: boolean;
+    shiftKey: boolean;
+  },
   pageHeight: number,
 ): number {
   if (!Number.isFinite(event.deltaY) || event.deltaY === 0) return zoom;

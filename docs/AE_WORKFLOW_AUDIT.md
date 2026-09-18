@@ -12,7 +12,7 @@ viewing and alignment. It does not claim complete After Effects feature parity.
 | Keep preview controls together | Controls were spread across the app toolbar, panel header and footer | Composition/view controls above the image; magnification, time, snapshots, resolution and display options below |
 | Work-area looping, precomposition, time remapping, graph editing | Implemented in the existing timeline/model | Existing behavior retained |
 | Multiple viewers and scene-buffer inspection | Existing dock viewers and GPU buffer choices | Retained; fitting considers the space available to each displayed view |
-| Navigate with the mouse wheel and Hand tool | Ctrl-only zoom and scrollbar-limited dragging | AE 25.3+ Smooth Zoom mapping, pointer/center anchoring, and free viewer panning |
+| Navigate with the mouse wheel and Hand tool | Ctrl-only zoom and scrollbar-limited dragging | Switchable Smooth/Legacy navigation, pointer/center anchoring, and free viewer panning |
 
 ## Viewer behavior and boundaries
 
@@ -26,6 +26,12 @@ viewing and alignment. It does not claim complete After Effects feature parity.
   combining them returns to normal speed. Pixel, line, and page wheel deltas are normalized.
   The native non-passive wheel listener suppresses browser scrolling/zooming only on the viewer,
   leaving editable text controls alone. Menu zoom commands also preserve the viewer-center point.
+- Preferences can switch navigation to Legacy. The wheel advances through fixed magnification
+  levels (including 25%, 33.33%, 50%, 100%, and 200%) around the viewer center; Alt/Option anchors
+  the pointer instead. Ctrl/Command + wheel pans vertically and Shift + wheel pans horizontally.
+  Alt takes priority over panning; Shift selects the horizontal axis when both pan modifiers are held.
+  Menu zoom commands use the same fixed levels. Switching modes preserves zoom and pan; the setting
+  is saved in application preferences, independently of project content and preview resolution.
 - Middle-button dragging or dragging with the Hand tool (H) pans freely even when the composition
   is smaller than the viewer. Shift triples drag speed, with no jump when the modifier changes.
   Pointer cancellation, capture loss, and window blur end the gesture. Navigation only changes

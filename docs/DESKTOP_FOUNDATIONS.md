@@ -54,10 +54,15 @@ Version 1 contains:
 - up to ten normalized recent project paths; and
 - bounded window position, size, and maximized state.
 
+Versions 2 and 3 add UI scale and anti-aliasing respectively. Version 4 adds `viewportNavigationMode`
+(`smooth` or `legacy`), defaulting existing profiles to `smooth`. This application preference is
+restored by the editor, takes effect when preferences are saved, and is not part of project files.
+
 The preferences migration boundary upgrades the previous unversioned shape as version zero. A new
 desktop profile also imports the renderer's legacy locale, autosave, reduced-motion, and GPU-budget
-keys exactly once before Electron becomes authoritative. Future changes must add one deterministic
-`vN -> vN+1` transform and tests before increasing the current version. API keys, access tokens,
+keys, anti-aliasing, and preview navigation exactly once before Electron becomes authoritative.
+Future changes must add one deterministic `vN -> vN+1` transform and tests before increasing the
+current version. API keys, access tokens,
 prompts, project contents, and other secrets do not belong in this document.
 
 ## Window and file lifecycle

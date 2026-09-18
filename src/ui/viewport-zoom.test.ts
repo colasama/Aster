@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   DEFAULT_VIEWPORT_ZOOM,
   fitViewportZoom,
+  legacyViewportZoom,
   MAX_VIEWPORT_ZOOM,
   MIN_VIEWPORT_ZOOM,
   normalizeViewportZoom,
@@ -11,6 +12,18 @@ import {
 } from "./viewport-zoom";
 
 describe("viewport zoom", () => {
+  it("steps Legacy zoom through fixed magnifications from arbitrary starting values", () => {
+    expect(legacyViewportZoom(0.25, 1)).toBe(1 / 3);
+    expect(legacyViewportZoom(1 / 3, 1)).toBe(0.5);
+    expect(legacyViewportZoom(0.5, -1)).toBe(1 / 3);
+    expect(legacyViewportZoom(1 / 3, -1)).toBe(0.25);
+    expect(legacyViewportZoom(0.4, 1)).toBe(0.5);
+    expect(legacyViewportZoom(0.4, -1)).toBe(1 / 3);
+    expect(legacyViewportZoom(8, 1)).toBe(8);
+    expect(legacyViewportZoom(0.01, -1)).toBe(0.01);
+    for (const direction of [0, Number.NaN, Infinity])
+      expect(legacyViewportZoom(0.4, direction)).toBe(0.4);
+  });
   it("supports standard magnifications through 800 percent", () => {
     expect(VIEWPORT_ZOOM_PRESETS).toEqual([0.0625, 0.125, 0.25, 0.5, 1, 2, 4, 8]);
     expect(MIN_VIEWPORT_ZOOM).toBe(0.01);

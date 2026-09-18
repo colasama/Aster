@@ -9,7 +9,12 @@ import {
 } from "react";
 import type { EditorAction, EditorState } from "../../state/editor-store";
 import { isEditableShortcutTarget } from "../../ui/keyboard-shortcuts";
-import { fitViewportZoom, normalizeViewportZoom, viewportWheelZoom } from "../../ui/viewport-zoom";
+import {
+  fitViewportZoom,
+  legacyViewportZoom,
+  normalizeViewportZoom,
+  viewportWheelZoom,
+} from "../../ui/viewport-zoom";
 import { useViewportPan } from "./use-viewport-pan";
 
 export const VIEWPORT_ZOOM_COMMAND = "aster:viewport-zoom";
@@ -21,7 +26,11 @@ export function useViewportNavigation(
   viewCount: number,
   state: Pick<
     EditorState,
-    "viewportZoom" | "viewportZoomMode" | "viewportFitRevision" | "activeTool"
+    | "viewportZoom"
+    | "viewportZoomMode"
+    | "viewportFitRevision"
+    | "viewportNavigationMode"
+    | "activeTool"
   >,
   dispatch: Dispatch<EditorAction>,
 ) {
@@ -104,8 +113,34 @@ export function useViewportNavigation(
     const space = spaceRef.current;
     if (!space) return;
     const wheel = (event: WheelEvent) => {
-      if (isEditableShortcutTarget(event.target) || event.defaultPrevented || !event.deltaY) return;
+      const delta =
+        event.deltaY ||
+        (state.viewportNavigationMode === "legacy" && event.shiftKey ? event.deltaX : 0);
+      if (
+        isEditableShortcutTarget(event.target) ||
+        event.defaultPrevented ||
+        !Number.isFinite(delta) ||
+        !delta
+      )
+        return;
       event.preventDefault();
+      if (state.viewportNavigationMode === "legacy") {
+        if (!event.altKey && (event.ctrlKey || event.metaKey || event.shiftKey)) {
+          const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? space.clientHeight : 1;
+          const scale = space.getBoundingClientRect().width / space.clientWidth || 1;
+          const distance = (delta * unit) / scale;
+          setOffset((current) => ({
+            x: current.x - (event.shiftKey ? distance : 0),
+            y: current.y - (event.shiftKey ? 0 : distance),
+          }));
+        } else {
+          zoomAt(
+            legacyViewportZoom(requestedZoom.current, -delta),
+            event.altKey ? event : undefined,
+          );
+        }
+        return;
+      }
       zoomAt(
         viewportWheelZoom(requestedZoom.current, event, space.clientHeight),
         event.altKey ? undefined : event,
@@ -114,7 +149,7 @@ export function useViewportNavigation(
     // React's delegated wheel listener is passive, so it cannot suppress Chromium page zoom.
     space.addEventListener("wheel", wheel, { passive: false });
     return () => space.removeEventListener("wheel", wheel);
-  }, [spaceRef, zoomAt]);
+  }, [spaceRef, zoomAt, setOffset, state.viewportNavigationMode]);
   useEffect(() => {
     const onZoom = (event: Event) => {
       if (event.defaultPrevented) return;
@@ -122,10 +157,15 @@ export function useViewportNavigation(
       const focused = document.activeElement?.closest(".viewport-panel");
       if (!panel || panel.closest("[hidden]") || (focused && focused !== panel)) return;
       event.preventDefault();
-      zoomAt(requestedZoom.current * ((event as CustomEvent<number>).detail > 0 ? 1.15 : 1 / 1.15));
+      const direction = (event as CustomEvent<number>).detail;
+      zoomAt(
+        state.viewportNavigationMode === "legacy"
+          ? legacyViewportZoom(requestedZoom.current, direction)
+          : requestedZoom.current * (direction > 0 ? 1.15 : 1 / 1.15),
+      );
     };
     window.addEventListener(VIEWPORT_ZOOM_COMMAND, onZoom);
     return () => window.removeEventListener(VIEWPORT_ZOOM_COMMAND, onZoom);
-  }, [spaceRef, zoomAt]);
+  }, [spaceRef, zoomAt, state.viewportNavigationMode]);
   return { ...pan, zoom };
 }

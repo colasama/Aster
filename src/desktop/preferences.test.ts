@@ -8,6 +8,21 @@ import {
 } from "./preferences";
 
 describe("application preferences", () => {
+  it("migrates preview navigation to Smooth and round-trips both navigation modes", () => {
+    expect(defaultAppPreferences().viewportNavigationMode).toBe("smooth");
+    for (const schemaVersion of [0, 1, 2, 3, 4])
+      expect(migrateAppPreferences({ schemaVersion }).viewportNavigationMode).toBe("smooth");
+    for (const viewportNavigationMode of ["smooth", "legacy"] as const) {
+      const updated = applyUserPreferencePatch(defaultAppPreferences(), { viewportNavigationMode });
+      expect(
+        migrateAppPreferences(JSON.parse(JSON.stringify(updated))).viewportNavigationMode,
+      ).toBe(viewportNavigationMode);
+    }
+    expect(
+      applyUserPreferencePatch(defaultAppPreferences(), { viewportNavigationMode: "invalid" })
+        .viewportNavigationMode,
+    ).toBe("smooth");
+  });
   it("defaults new and legacy profiles to FXAA while preserving explicit AA choices", () => {
     expect(defaultAppPreferences().antiAliasing).toBe("fxaa");
     expect(migrateAppPreferences({ schemaVersion: 2 }).antiAliasing).toBe("fxaa");
@@ -31,7 +46,7 @@ describe("application preferences", () => {
         recentProjects: ["C:\\projects\\one", "C:\\projects\\ONE", 7],
       }),
     ).toMatchObject({
-      schemaVersion: 3,
+      schemaVersion: 4,
       autosaveSeconds: 15,
       reducedMotion: true,
       gpuMemoryBudgetMb: 128,
@@ -56,7 +71,7 @@ describe("application preferences", () => {
 
   it("migrates v1 preferences to a system-following UI scale", () => {
     expect(migrateAppPreferences({ schemaVersion: 1, autosaveSeconds: 30 })).toMatchObject({
-      schemaVersion: 3,
+      schemaVersion: 4,
       uiScale: "auto",
     });
   });

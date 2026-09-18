@@ -4,7 +4,8 @@ import { act, useRef, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { createInitialState, type EditorState, editorReducer } from "../../state/editor-store";
-import { useViewportNavigation } from "./use-viewport-navigation";
+import type { ViewportNavigationMode } from "../../ui/viewport-zoom";
+import { useViewportNavigation, VIEWPORT_ZOOM_COMMAND } from "./use-viewport-navigation";
 
 let root: Root;
 let container: HTMLDivElement;
@@ -50,12 +51,21 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-function Harness({ views = 1, hand = false }: { views?: number; hand?: boolean }) {
+function Harness({
+  views = 1,
+  hand = false,
+  mode = "smooth",
+}: {
+  views?: number;
+  hand?: boolean;
+  mode?: ViewportNavigationMode;
+}) {
   const spaceRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const [state, setState] = useState<EditorState>(() => ({
     ...createInitialState(),
     viewportZoomMode: "manual" as const,
+    viewportNavigationMode: mode,
   }));
   const navigation = useViewportNavigation(
     spaceRef,
@@ -67,7 +77,13 @@ function Harness({ views = 1, hand = false }: { views?: number; hand?: boolean }
   );
   return (
     <>
-      <div ref={spaceRef} {...navigation.handlers} data-space tabIndex={-1}>
+      <div
+        ref={spaceRef}
+        {...navigation.handlers}
+        className="viewport-panel"
+        data-space
+        tabIndex={-1}
+      >
         <div
           ref={stageRef}
           data-stage
@@ -75,8 +91,9 @@ function Harness({ views = 1, hand = false }: { views?: number; hand?: boolean }
           style={{
             width: 1920 * navigation.zoom,
             height: 1080 * navigation.zoom,
-            left: navigation.offset.x,
-            top: navigation.offset.y,
+            // happy-dom rejects scientific notation for near-zero CSS lengths.
+            left: `${navigation.offset.x.toFixed(8)}px`,
+            top: `${navigation.offset.y.toFixed(8)}px`,
           }}
         />
         <textarea aria-label="Edit text" />
@@ -93,6 +110,20 @@ function Harness({ views = 1, hand = false }: { views?: number; hand?: boolean }
         onClick={() => setState((current) => editorReducer(current, { type: "fitViewport" }))}
       >
         Fit
+      </button>
+      <button
+        type="button"
+        data-toggle-mode
+        onClick={() =>
+          setState((current) =>
+            editorReducer(current, {
+              type: "setViewportNavigationMode",
+              mode: current.viewportNavigationMode === "smooth" ? "legacy" : "smooth",
+            }),
+          )
+        }
+      >
+        Toggle navigation
       </button>
     </>
   );
@@ -152,6 +183,87 @@ it("uses Alt to anchor the view center and leaves text editing wheel events alon
   expect(wheel(input).defaultPrevented).toBe(false);
   expect(wheel(space, { deltaY: 0 }).defaultPrevented).toBe(false);
   expect(readView().zoom).toBe(zoom);
+});
+
+it.each([1, 2])(
+  "uses fixed Legacy zoom steps with center/Alt pointer anchors in %s views",
+  (views) => {
+    uiScale = 1.5;
+    act(() => root.render(<Harness mode="legacy" views={views} />));
+    const stage = container.querySelector("[data-stage]");
+    if (!stage) throw new Error("Missing stage");
+    const before = stage.getBoundingClientRect();
+    const x = (610 - before.left) / before.width;
+    const y = (470 - before.top) / before.height;
+    expect(wheel(stage).defaultPrevented).toBe(true);
+    expect(readView().zoom).toBe(1 / 3);
+    const centered = stage.getBoundingClientRect();
+    expect(centered.left + x * centered.width).toBeCloseTo(610);
+    expect(centered.top + y * centered.height).toBeCloseTo(470);
+    const px = (170 - centered.left) / centered.width;
+    const py = (230 - centered.top) / centered.height;
+    wheel(stage, { altKey: true, ctrlKey: true, shiftKey: true });
+    expect(readView().zoom).toBe(0.5);
+    const pointed = stage.getBoundingClientRect();
+    expect(pointed.left + px * pointed.width).toBeCloseTo(170);
+    expect(pointed.top + py * pointed.height).toBeCloseTo(230);
+    wheel(stage, { deltaY: 100, altKey: true });
+    expect(readView().zoom).toBe(1 / 3);
+    expect(stage.getBoundingClientRect().left).toBeCloseTo(centered.left);
+  },
+);
+
+it("pans Legacy vertically with Ctrl/Cmd and horizontally with Shift, respecting wheel units and UI scale", () => {
+  uiScale = 2;
+  act(() => root.render(<Harness mode="legacy" />));
+  const space = container.querySelector("[data-space]");
+  if (!space) throw new Error("Missing viewer");
+  wheel(space, { ctrlKey: true });
+  expect(readView()).toMatchObject({ zoom: 0.25, x: 0, y: 50 });
+  wheel(space, { metaKey: true, deltaY: 2, deltaMode: 1 });
+  expect(readView()).toMatchObject({ zoom: 0.25, x: 0, y: 34 });
+  wheel(space, { shiftKey: true, ctrlKey: true, deltaY: 1, deltaMode: 2 });
+  expect(readView()).toMatchObject({ zoom: 0.25, x: -300, y: 34 });
+  wheel(space, { shiftKey: true, deltaY: 0, deltaX: -100 });
+  expect(readView()).toMatchObject({ zoom: 0.25, x: -250, y: 34 });
+  const input = container.querySelector("textarea");
+  if (!input) throw new Error("Missing input");
+  expect(wheel(input, { ctrlKey: true }).defaultPrevented).toBe(false);
+  expect(wheel(space, { deltaY: Number.NaN }).defaultPrevented).toBe(false);
+  expect(readView()).toMatchObject({ zoom: 0.25, x: -250, y: 34 });
+});
+
+it("uses fixed Legacy magnification for viewer menu commands", () => {
+  act(() => root.render(<Harness mode="legacy" />));
+  for (const [direction, zoom] of [
+    [1, 1 / 3],
+    [1, 0.5],
+    [-1, 1 / 3],
+  ]) {
+    const event = new CustomEvent(VIEWPORT_ZOOM_COMMAND, { detail: direction, cancelable: true });
+    act(() => {
+      window.dispatchEvent(event);
+    });
+    expect(event.defaultPrevented).toBe(true);
+    expect(readView()).toMatchObject({ zoom, x: 0, y: 0 });
+  }
+});
+
+it("switches navigation immediately without resetting magnification or position", () => {
+  act(() => root.render(<Harness />));
+  const space = container.querySelector("[data-space]");
+  if (!space) throw new Error("Missing viewer");
+  wheel(space);
+  const before = readView();
+  act(() => container.querySelector<HTMLButtonElement>("[data-toggle-mode]")?.click());
+  expect(readView()).toEqual(before);
+  wheel(space, { ctrlKey: true });
+  expect(readView()).toMatchObject({ zoom: before.zoom, x: before.x, y: before.y + 100 });
+  wheel(space);
+  expect(readView().zoom).toBe(1 / 3);
+  act(() => container.querySelector<HTMLButtonElement>("[data-toggle-mode]")?.click());
+  wheel(space, { ctrlKey: true });
+  expect(readView().zoom).toBeCloseTo((1 / 3) * 1.12 ** 0.25);
 });
 
 it.each([false, true])(

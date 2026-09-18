@@ -5,9 +5,11 @@ import { resolve } from "node:path";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import * as desktopApi from "../../desktop/api";
+import { defaultAppPreferences } from "../../desktop/preferences";
 import { diagnosticStore } from "../../errors/diagnostic-store";
 import { I18nProvider } from "../../i18n/react";
-import { EditorProvider } from "../../state/editor-store";
+import { createInitialState, EditorProvider, useEditor } from "../../state/editor-store";
 import { WorkspaceDialog } from "./WorkspaceDialog";
 
 let root: Root | undefined;
@@ -80,6 +82,92 @@ describe("WorkspaceDialog diagnostics", () => {
 });
 
 describe("WorkspaceDialog scaled layout", () => {
+  it("restores authoritative desktop navigation and persists changes through IPC", async () => {
+    window.localStorage.setItem("aster.viewportNavigationMode", "smooth");
+    const preferences = { ...defaultAppPreferences(), viewportNavigationMode: "legacy" as const };
+    vi.spyOn(desktopApi, "isDesktopRuntime").mockReturnValue(true);
+    const migrate = vi.spyOn(desktopApi, "migrateLegacyPreferences").mockResolvedValue(preferences);
+    vi.spyOn(desktopApi, "getPreferences").mockResolvedValue(preferences);
+    const update = vi.spyOn(desktopApi, "updatePreferences").mockResolvedValue(preferences);
+    function NavigationState() {
+      return <output>{useEditor().state.viewportNavigationMode}</output>;
+    }
+    const container = document.createElement("div");
+    document.body.append(container);
+    root = createRoot(container);
+    await act(async () =>
+      root?.render(
+        <I18nProvider>
+          <EditorProvider>
+            <WorkspaceDialog kind="preferences" onClose={() => undefined} />
+            <NavigationState />
+          </EditorProvider>
+        </I18nProvider>,
+      ),
+    );
+    expect(migrate).toHaveBeenCalledWith(
+      expect.objectContaining({ viewportNavigationMode: "smooth" }),
+    );
+    expect(container.querySelector("output")?.textContent).toBe("legacy");
+    expect(window.localStorage.getItem("aster.viewportNavigationMode")).toBe("legacy");
+    const select = container
+      .querySelector<HTMLOptionElement>('option[value="legacy"]')
+      ?.closest("select");
+    if (!select) throw new Error("Navigation select missing");
+    expect(select.value).toBe("legacy");
+    act(() => {
+      select.value = "smooth";
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    await act(async () =>
+      container.querySelector<HTMLButtonElement>("footer button.primary")?.click(),
+    );
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({ viewportNavigationMode: "smooth" }),
+    );
+    expect(container.querySelector("output")?.textContent).toBe("smooth");
+  });
+  it.each([undefined, "smooth", "legacy", "invalid"])(
+    "restores navigation preference %s and applies it only when saved",
+    (savedMode) => {
+      if (savedMode) window.localStorage.setItem("aster.viewportNavigationMode", savedMode);
+      const initialMode = savedMode === "legacy" ? "legacy" : "smooth";
+      const nextMode = initialMode === "legacy" ? "smooth" : "legacy";
+      function NavigationState() {
+        return <output>{useEditor().state.viewportNavigationMode}</output>;
+      }
+      const container = document.createElement("div");
+      document.body.append(container);
+      root = createRoot(container);
+      const close = vi.fn();
+      act(() =>
+        root?.render(
+          <I18nProvider>
+            <EditorProvider>
+              <WorkspaceDialog kind="preferences" onClose={close} />
+              <NavigationState />
+            </EditorProvider>
+          </I18nProvider>,
+        ),
+      );
+      const select = container
+        .querySelector<HTMLOptionElement>('option[value="legacy"]')
+        ?.closest("select");
+      if (!select) throw new Error("Navigation select missing");
+      expect(select.value).toBe(initialMode);
+      act(() => {
+        select.value = nextMode;
+        select.dispatchEvent(new Event("change", { bubbles: true }));
+      });
+      expect(container.querySelector("output")?.textContent).toBe(initialMode);
+      expect(window.localStorage.getItem("aster.viewportNavigationMode")).toBe(savedMode ?? null);
+      act(() => container.querySelector<HTMLButtonElement>("footer button.primary")?.click());
+      expect(container.querySelector("output")?.textContent).toBe(nextMode);
+      expect(window.localStorage.getItem("aster.viewportNavigationMode")).toBe(nextMode);
+      expect(createInitialState().viewportNavigationMode).toBe(nextMode);
+      expect(close).toHaveBeenCalledOnce();
+    },
+  );
   it.each([undefined, "off", "ssaa2x"])(
     "restores AA preference %s with FXAA as the default and saves the selection",
     (savedMode) => {

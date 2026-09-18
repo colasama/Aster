@@ -17,6 +17,7 @@ import { useI18n } from "../../i18n/react";
 import { useEditor } from "../../state/editor-store";
 import { applyBrowserUiScale } from "../../ui/browser-ui-scale";
 import { parseUiScale, type UiScale } from "../../ui/ui-scale";
+import { normalizeViewportNavigationMode } from "../../ui/viewport-zoom";
 import { useDialogFocus } from "../use-dialog-focus";
 import { AutomationSettingsPanel } from "./AutomationSettingsPanel";
 
@@ -44,7 +45,7 @@ const shortcuts = [
   ["Ctrl / Cmd + Z", "workspace.shortcut.undo"],
   ["Ctrl / Cmd + Y", "workspace.shortcut.redo"],
   ["Space", "workspace.shortcut.playback"],
-  ["Ctrl / Cmd + wheel", "workspace.shortcut.zoom"],
+  ["Wheel / Alt + wheel", "workspace.shortcut.zoom"],
   ["Middle drag", "workspace.shortcut.pan"],
 ] as const satisfies readonly (readonly [string, PlainMessageKey])[];
 
@@ -70,6 +71,9 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
     Number(readPreference("aster.autosaveSeconds") ?? 30),
   );
   const [previewQuality, setPreviewQuality] = useState(state.previewQuality);
+  const [viewportNavigationMode, setViewportNavigationMode] = useState(
+    state.viewportNavigationMode,
+  );
   const [antiAliasing, setAntiAliasing] = useState<AntiAliasingMode>(state.antiAliasing);
   const [gpuMemoryBudgetMb, setGpuMemoryBudgetMb] = useState(state.gpuMemoryBudgetMb);
   const [reducedMotion, setReducedMotion] = useState(
@@ -100,6 +104,9 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
         setReducedMotion(preferences.reducedMotion);
         setGpuMemoryBudgetMb(preferences.gpuMemoryBudgetMb);
         setAntiAliasing(normalizeAntiAliasing(preferences.antiAliasing));
+        setViewportNavigationMode(
+          normalizeViewportNavigationMode(preferences.viewportNavigationMode),
+        );
         setUiScale(preferences.uiScale);
         if (preferences.locale) setPreferredLocale(preferences.locale);
       })
@@ -135,12 +142,14 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
       ["aster.reducedMotion", String(reducedMotion)],
       ["aster.gpuMemoryBudgetMb", String(gpuMemoryBudgetMb)],
       ["aster.antiAliasing", antiAliasing],
+      ["aster.viewportNavigationMode", viewportNavigationMode],
       ["aster.uiScale", String(uiScale)],
     ]);
     window.dispatchEvent(new Event(APP_PREFERENCES_CHANGED_EVENT));
     dispatch({ type: "setPreviewQuality", quality: previewQuality });
     dispatch({ type: "setGpuMemoryBudget", budget: gpuMemoryBudgetMb });
     dispatch({ type: "setAntiAliasing", mode: antiAliasing });
+    dispatch({ type: "setViewportNavigationMode", mode: viewportNavigationMode });
     setLocale(preferredLocale);
     if (isDesktopRuntime())
       void updatePreferences({
@@ -150,6 +159,7 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
         reducedMotion,
         gpuMemoryBudgetMb,
         antiAliasing,
+        viewportNavigationMode,
         uiScale,
         locale: preferredLocale,
       }).catch((error: unknown) => logger.warn("preferences", "write_failed", undefined, error));
@@ -378,6 +388,18 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
                 <option value="1">{t("workspace.preferences.fullResolution")}</option>
                 <option value="0.5">{t("workspace.preferences.halfResolution")}</option>
                 <option value="0.25">{t("workspace.preferences.quarterResolution")}</option>
+              </select>
+            </label>
+            <label className="wide">
+              {t("workspace.preferences.viewportNavigation")}
+              <select
+                onChange={(event) =>
+                  setViewportNavigationMode(normalizeViewportNavigationMode(event.target.value))
+                }
+                value={viewportNavigationMode}
+              >
+                <option value="smooth">{t("workspace.preferences.navigationSmooth")}</option>
+                <option value="legacy">{t("workspace.preferences.navigationLegacy")}</option>
               </select>
             </label>
             <label className="wide">

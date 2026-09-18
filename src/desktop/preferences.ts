@@ -4,8 +4,12 @@ import {
   normalizeAntiAliasing,
 } from "../core/rendering/anti-aliasing.js";
 import { isUiScale, type UiScale } from "../ui/ui-scale.js";
+import {
+  normalizeViewportNavigationMode,
+  type ViewportNavigationMode,
+} from "../ui/viewport-zoom.js";
 
-export const CURRENT_APP_PREFERENCES_VERSION = 3 as const;
+export const CURRENT_APP_PREFERENCES_VERSION = 4 as const;
 export const APP_PREFERENCES_CHANGED_EVENT = "aster:preferences-changed";
 
 export type AppLocale = "en-US" | "zh-CN";
@@ -27,6 +31,7 @@ export interface AppPreferences {
   reducedMotion: boolean;
   gpuMemoryBudgetMb: GpuMemoryBudgetMb;
   antiAliasing: AntiAliasingMode;
+  viewportNavigationMode: ViewportNavigationMode;
   uiScale: UiScale;
   recentProjects: string[];
   lastProjectPath?: string;
@@ -42,6 +47,7 @@ export type UserPreferencePatch = Partial<
     | "gpuMemoryBudgetMb"
     | "uiScale"
     | "antiAliasing"
+    | "viewportNavigationMode"
   >
 >;
 
@@ -51,6 +57,7 @@ const DEFAULT_PREFERENCES: AppPreferences = {
   reducedMotion: false,
   gpuMemoryBudgetMb: "auto",
   antiAliasing: DEFAULT_ANTI_ALIASING,
+  viewportNavigationMode: "smooth",
   uiScale: "auto",
   recentProjects: [],
 };
@@ -93,6 +100,7 @@ export function applyUserPreferencePatch(current: AppPreferences, value: unknown
     "reducedMotion",
     "gpuMemoryBudgetMb",
     "antiAliasing",
+    "viewportNavigationMode",
     "uiScale",
   ]);
   for (const key of Object.keys(value))
@@ -132,6 +140,14 @@ const APP_PREFERENCE_MIGRATIONS = new Map<
   number,
   (document: Record<string, unknown>) => Record<string, unknown>
 >([
+  [
+    3,
+    (document) => ({
+      ...document,
+      schemaVersion: 4,
+      viewportNavigationMode: document.viewportNavigationMode ?? "smooth",
+    }),
+  ],
   [
     2,
     (document) => ({
@@ -188,6 +204,7 @@ function normalizeCurrentPreferences(value: Record<string, unknown>): AppPrefere
     reducedMotion: value.reducedMotion === true,
     gpuMemoryBudgetMb,
     antiAliasing: normalizeAntiAliasing(value.antiAliasing ?? DEFAULT_ANTI_ALIASING),
+    viewportNavigationMode: normalizeViewportNavigationMode(value.viewportNavigationMode),
     uiScale: isUiScale(value.uiScale) ? value.uiScale : "auto",
     recentProjects,
     ...(lastProjectPath ? { lastProjectPath } : {}),

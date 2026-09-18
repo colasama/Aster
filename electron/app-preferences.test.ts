@@ -16,7 +16,11 @@ describe("AppPreferencesStore", () => {
     roots.push(root);
     const store = new AppPreferencesStore(root);
     await store.initialize();
-    await store.updateUserPreferences({ autosaveSeconds: 15, locale: "zh-CN" });
+    await store.updateUserPreferences({
+      autosaveSeconds: 15,
+      locale: "zh-CN",
+      viewportNavigationMode: "legacy",
+    });
     await store.saveWindowState({
       x: 120,
       y: 80,
@@ -30,10 +34,11 @@ describe("AppPreferencesStore", () => {
     expect(restored.snapshot()).toMatchObject({
       autosaveSeconds: 15,
       locale: "zh-CN",
+      viewportNavigationMode: "legacy",
       windowState: { x: 120, y: 80, width: 1440, height: 900, maximized: true },
     });
     expect(JSON.parse(await readFile(join(root, "preferences.json"), "utf8"))).toMatchObject({
-      schemaVersion: 3,
+      schemaVersion: 4,
       uiScale: "auto",
     });
   });
