@@ -63,7 +63,7 @@ describe("time-addressed inspector property edits", () => {
   it("edits Anchor Point as an animated Transform property with undo and redo", () => {
     const container = document.createElement("div");
     document.body.append(container);
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = activeComposition(project);
     const layer = createLayerForComposition("text", composition);
     layer.transform.anchor[0] = {
@@ -113,7 +113,7 @@ describe("time-addressed inspector property edits", () => {
   it("resets Anchor Point to the rendered source center", () => {
     const container = document.createElement("div");
     document.body.append(container);
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = activeComposition(project);
     const layer = createLayerForComposition("shape", composition);
     layer.size = [640, 360];
@@ -148,7 +148,7 @@ describe("time-addressed inspector property edits", () => {
   it("inserts an animated transform keyframe at current time and supports undo and redo", () => {
     const container = document.createElement("div");
     document.body.append(container);
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = activeComposition(project);
     const layer = createLayerForComposition("solid", composition);
     layer.transform.position[0] = {
@@ -211,7 +211,7 @@ describe("time-addressed inspector property edits", () => {
   it("keeps a static transform property static", () => {
     const container = document.createElement("div");
     document.body.append(container);
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = activeComposition(project);
     const layer = createLayerForComposition("solid", composition);
     composition.layers = [layer];

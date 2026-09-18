@@ -151,7 +151,14 @@ export type Operation =
   | {
       type: "toggleLayer";
       layerId: Id;
-      field: "visible" | "solo" | "locked" | "audioEnabled" | "threeDimensional" | "motionBlur";
+      field:
+        | "visible"
+        | "solo"
+        | "locked"
+        | "audioEnabled"
+        | "collapseTransformations"
+        | "threeDimensional"
+        | "motionBlur";
     }
   | { type: "setProperty"; layerId: Id; path: PropertyPath; value: number }
   | { type: "addKeyframe"; layerId: Id; path: PropertyPath; keyframe: Keyframe }

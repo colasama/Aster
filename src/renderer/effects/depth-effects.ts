@@ -160,7 +160,7 @@ export class DepthEffectsRenderer {
   #height = 1;
   #settings: DepthEffectSettings = DEFAULT_DEPTH_EFFECT_SETTINGS;
 
-  constructor(device: GPUDevice, outputFormat: GPUTextureFormat) {
+  constructor(device: GPUDevice, outputFormat: GPUTextureFormat, sceneLinear = false) {
     this.#device = device;
     const module = device.createShaderModule({
       label: "Depth fog and depth-of-field shader",
@@ -170,7 +170,12 @@ export class DepthEffectsRenderer {
       label: "Depth-aware fog and depth-of-field pipeline",
       layout: "auto",
       vertex: { module, entryPoint: "vertex_main" },
-      fragment: { module, entryPoint: "fragment_main", targets: [{ format: outputFormat }] },
+      fragment: {
+        module,
+        entryPoint: "fragment_main",
+        constants: { scene_linear: Number(sceneLinear) },
+        targets: [{ format: outputFormat }],
+      },
       primitive: { topology: "triangle-list" },
     });
     this.#sampler = device.createSampler({
@@ -260,6 +265,7 @@ function bounded(value: number, minimum: number, maximum: number): number {
 }
 
 export const depthEffectsShader = /* wgsl */ `
+override scene_linear: u32 = 0u;
 struct Settings {
   viewport: vec4f,
   fog: vec4f,
@@ -294,7 +300,7 @@ struct VertexOutput {
 fn aces_tonemap(value: vec3f) -> vec3f {
   let numerator = value * (2.51 * value + vec3f(0.03));
   let denominator = value * (2.43 * value + vec3f(0.59)) + vec3f(0.14);
-  return pow(clamp(numerator / denominator, vec3f(0.0), vec3f(1.0)), vec3f(1.0 / 2.2));
+  return clamp(numerator / denominator, vec3f(0.0), vec3f(1.0));
 }
 
 fn surface_at(uv: vec2f) -> vec4f {
@@ -413,6 +419,7 @@ fn straight_rgb(premultiplied: vec4f) -> vec3f {
 }
 
 fn display_premultiplied(premultiplied: vec4f) -> vec4f {
+  if (scene_linear == 1u) { return premultiplied; }
   return vec4f(aces_tonemap(max(straight_rgb(premultiplied), vec3f(0.0))) * premultiplied.a, premultiplied.a);
 }
 

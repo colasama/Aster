@@ -275,7 +275,7 @@ export function createDemoProject(): Project {
     layers: [title, subtitle, ribbon, orb, materialStudy, particles, background, camera],
   };
   return {
-    schemaVersion: 10,
+    schemaVersion: 11,
     id: createId(),
     name: "Aster Launch",
     activeCompositionId: compositionId,
@@ -288,7 +288,10 @@ export function createDemoProject(): Project {
   };
 }
 
-export function createBlankComposition(name = "Composition 1"): Composition {
+export function createBlankComposition(
+  name = "Composition 1",
+  withBackground = false,
+): Composition {
   const compositionId = createId();
   const background = layer({
     name: "Background",
@@ -327,14 +330,14 @@ export function createBlankComposition(name = "Composition 1"): Composition {
       samplesPerFrame: 8,
       adaptiveSampleLimit: 32,
     },
-    layers: [background],
+    layers: withBackground ? [background] : [],
   };
 }
 
-export function createBlankProject(): Project {
-  const composition = createBlankComposition();
+export function createBlankProject(withBackground = false): Project {
+  const composition = createBlankComposition("Composition 1", withBackground);
   return {
-    schemaVersion: 10,
+    schemaVersion: 11,
     id: createId(),
     name: "Untitled Project",
     activeCompositionId: composition.id,

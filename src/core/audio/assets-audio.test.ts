@@ -34,7 +34,7 @@ afterEach(() => {
 
 describe("audio footage importer", () => {
   it("centers fitted visual footage in its source space", () => {
-    const composition = createBlankProject().compositions[0];
+    const composition = createBlankProject(true).compositions[0];
     const source = {
       id: crypto.randomUUID(),
       kind: "still" as const,
@@ -58,7 +58,7 @@ describe("audio footage importer", () => {
   });
 
   it("creates another independent audio layer from an existing source", () => {
-    const composition = createBlankProject().compositions[0];
+    const composition = createBlankProject(true).compositions[0];
     const source = {
       id: crypto.randomUUID(),
       kind: "audio" as const,
@@ -79,7 +79,7 @@ describe("audio footage importer", () => {
 
   it("creates a source-backed non-visual audio layer and accepts M4A video/mp4 MIME", async () => {
     vi.stubGlobal("AudioContext", FakeAudioContext);
-    const composition = createBlankProject().compositions[0];
+    const composition = createBlankProject(true).compositions[0];
     const file = new File([new Uint8Array([1, 2, 3])], "music.m4a", { type: "video/mp4" });
     const imported = await createMediaLayerFromFile("audio", file, composition, 1);
     expect(imported.source).toMatchObject({
@@ -102,7 +102,7 @@ describe("audio footage importer", () => {
 
   it("retains a picker-authorized native path instead of creating an embedded data URL", async () => {
     vi.stubGlobal("AudioContext", FakeAudioContext);
-    const composition = createBlankProject().compositions[0];
+    const composition = createBlankProject(true).compositions[0];
     const imported = await createMediaLayerFromFile(
       "audio",
       new File([new Uint8Array([1, 2, 3])], "dialogue.wav", { type: "audio/wav" }),
@@ -140,7 +140,7 @@ describe("audio footage importer", () => {
       convertFileSrc: (path: string) => `aster-asset://local/${encodeURIComponent(path)}`,
     } as unknown as AsterDesktopApi;
 
-    const imported = await importMediaLayer("audio", createBlankProject().compositions[0], 0);
+    const imported = await importMediaLayer("audio", createBlankProject(true).compositions[0], 0);
     expect(open).toHaveBeenCalledWith(expect.objectContaining({ title: "Choose audio asset" }));
     expect(imported?.source).toMatchObject({
       kind: "audio",
@@ -156,7 +156,7 @@ describe("audio footage importer", () => {
   it("reports decoder capability failures and rejects unsupported extensions", async () => {
     vi.stubGlobal("AudioContext", FakeAudioContext);
     FakeAudioContext.failure = new Error("codec unavailable");
-    const composition = createBlankProject().compositions[0];
+    const composition = createBlankProject(true).compositions[0];
     await expect(
       createMediaLayerFromFile(
         "audio",

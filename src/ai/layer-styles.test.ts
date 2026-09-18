@@ -8,7 +8,7 @@ import { compileEffectProgram } from "../renderer/effects/effect-program";
 import { normalizeAiCommands } from "./command-normalizer";
 
 it("roundtrips all blend modes through the shared UI/MCP command path", () => {
-  const source = createBlankProject();
+  const source = createBlankProject(true);
   const layer = createLayerForComposition("text", source.compositions[0]);
   source.compositions[0].layers.push(layer);
   for (const blendMode of BLEND_MODES) {
@@ -34,7 +34,7 @@ it("roundtrips all blend modes through the shared UI/MCP command path", () => {
 });
 
 it("preserves black style colors and scales soft edges without scaling spread or opacity", () => {
-  const source = createBlankProject();
+  const source = createBlankProject(true);
   const layer = createLayerForComposition("text", source.compositions[0]);
   source.compositions[0].layers.push(layer);
   const { project } = normalizeAiCommands(

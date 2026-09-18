@@ -11,7 +11,7 @@ import { applyOperations } from "./operations";
 
 describe("project operations", () => {
   it("manages shared footage sources without cloning embedded bytes on unrelated edits", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = activeComposition(project);
     const bytes = `data:image/png;base64,${"A".repeat(1024)}`;
     const source = {
@@ -57,7 +57,7 @@ describe("project operations", () => {
   });
 
   it("relinks, reloads, and interprets one stable footage source", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const source = {
       id: crypto.randomUUID(),
       kind: "video" as const,
@@ -158,7 +158,7 @@ describe("project operations", () => {
   });
 
   it("creates project folders and moves compositions and media between them", () => {
-    const source = createBlankProject();
+    const source = createBlankProject(true);
     const folder = { id: crypto.randomUUID(), name: "Footage" };
     const nestedFolder = { id: crypto.randomUUID(), name: "Selects", parentId: folder.id };
     const image = createLayerForComposition("image", activeComposition(source));

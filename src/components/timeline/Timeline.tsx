@@ -17,7 +17,6 @@ import {
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
-
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   copyKeyframes,
@@ -39,13 +38,16 @@ import {
   snapTimelineTime,
 } from "../../core/animation/timeline-editing";
 import { createLayerForComposition } from "../../core/layers/layer-factory";
+import {
+  COMPOSITION_DRAG_TYPE,
+  createCompositionReference,
+} from "../../core/project/composition-source";
 import { planPrecomposition } from "../../core/project/precomposition";
 import { activeComposition } from "../../core/project/project";
 import { createParticleLayerForComposition } from "../../core/scene/bundled-particle";
-
 import type { Layer } from "../../core/types";
-
 import { addLayerStyleOperations, canAddLayerStyle } from "../../effects/layer-style-actions";
+import { reportUiError } from "../../errors/report-ui-error";
 
 import { useI18n } from "../../i18n/react";
 
@@ -822,6 +824,36 @@ export function Timeline({ mode }: { mode?: "timeline" | "graph" } = {}) {
         <div
           aria-label={t("timeline.menu.emptyLabel")}
           className="timeline-scroll"
+          onDragOver={(event) => {
+            if (!event.dataTransfer.types.includes(COMPOSITION_DRAG_TYPE)) return;
+            event.preventDefault();
+            event.dataTransfer.dropEffect = "copy";
+          }}
+          onDrop={(event) => {
+            const sourceId = event.dataTransfer.getData(COMPOSITION_DRAG_TYPE);
+            if (!sourceId) return;
+            event.preventDefault();
+            try {
+              const layer = createCompositionReference(
+                state.project,
+                composition,
+                sourceId,
+                clientXToTime(event.clientX),
+              );
+              const row = (event.target as Element).closest<HTMLElement>("[data-timeline-row]");
+              const index = row ? Number(row.dataset.timelineRow) : composition.layers.length;
+              dispatch({
+                type: "operation",
+                operations: [
+                  { type: "addLayer", layer },
+                  { type: "reorderLayer", layerId: layer.id, index: Math.max(0, index) },
+                ],
+              });
+              dispatch({ type: "select", ids: [layer.id] });
+            } catch (error) {
+              reportUiError(t, "compositionReference", error);
+            }
+          }}
           onContextMenu={(event) => {
             if ((event.target as Element).closest("[data-timeline-row]")) return;
             setMenuLayerId(undefined);

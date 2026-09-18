@@ -35,7 +35,7 @@ const track = (start: number, end: number): Animatable => ({
 });
 
 function animatedProject() {
-  const project = createBlankProject();
+  const project = createBlankProject(true);
   const composition = project.compositions[0];
   const parent = createLayerForComposition("null", composition, 3);
   parent.transform.position[0] = track(200, 650);
@@ -179,7 +179,21 @@ describe("precomposition time preservation", () => {
             position: sample.transform.position.map((value) => expect.closeTo(value, 9)),
           },
         }));
-      const after = flattenSceneLayers(reopened.compositions[0], reopened, time).map(appearance);
+      const leaves = (scenes: FlattenedSceneLayer[]): FlattenedSceneLayer[] =>
+        scenes.flatMap((scene) =>
+          scene.precompositionSurface
+            ? leaves(
+                flattenSceneLayers(
+                  scene.precompositionSurface.composition,
+                  reopened,
+                  scene.precompositionSurface.time,
+                ),
+              )
+            : [scene],
+        );
+      const after = leaves(flattenSceneLayers(reopened.compositions[0], reopened, time)).map(
+        appearance,
+      );
       expect(after, `frame ${frame}`).toEqual(before);
     }
   });
@@ -187,7 +201,7 @@ describe("precomposition time preservation", () => {
   it.each(["adjustment", "generator"] as const)(
     "preserves the source clock of isolated %s surfaces",
     (kind) => {
-      const project = createBlankProject();
+      const project = createBlankProject(true);
       const source = project.compositions[0];
       const layer =
         kind === "generator"

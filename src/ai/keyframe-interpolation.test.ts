@@ -5,7 +5,7 @@ import { createBlankProject } from "../core/project/project";
 import { normalizeAiCommands } from "./command-normalizer";
 
 it("authors seekable linear, held, and custom eased motion while preserving legacy defaults", () => {
-  const project = createBlankProject();
+  const project = createBlankProject(true);
   const layer = createLayerForComposition("shape", project.compositions[0]);
   project.compositions[0].layers.push(layer);
   const motion = (options: Record<string, unknown>) => {

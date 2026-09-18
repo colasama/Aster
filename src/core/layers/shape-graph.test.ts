@@ -56,7 +56,7 @@ function graph(): ShapeGraph {
 
 describe("shape graph", () => {
   it("reuses one path resource across grouped instances and effect masks", () => {
-    const composition = createBlankProject().compositions[0];
+    const composition = createBlankProject(true).compositions[0];
     const layer = createLayerForComposition("shape", composition);
     layer.shapeGraph = graph();
     layer.effects.push({
@@ -90,7 +90,7 @@ describe("shape graph", () => {
   });
 
   it("evicts least-recent graph evaluations and enforces vertex limits", () => {
-    const composition = createBlankProject().compositions[0];
+    const composition = createBlankProject(true).compositions[0];
     const layer = createLayerForComposition("shape", composition);
     layer.shapeGraph = graph();
     const cache = new ShapeEvaluationCache({ capacity: 1 });

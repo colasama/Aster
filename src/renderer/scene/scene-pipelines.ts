@@ -1,6 +1,7 @@
 import type { BlendMode } from "../../core/types";
 import { BLEND_MODES } from "../../core/types";
 import { FIXED_BLEND_MODES, gpuBlendState } from "../compositing/blend-state";
+import { createCapturablePipeline } from "../compositing/transparency-pipeline";
 import { FLOATS_PER_VERTEX } from "../geometry/geometry";
 import { imageShader, materialShapeShader, shadowShader, shapeShader } from "../gpu/shaders";
 
@@ -9,6 +10,7 @@ export const SHAPE_VERTEX_BUFFERS: GPUVertexBufferLayout[] = [
     arrayStride: FLOATS_PER_VERTEX * 4,
     attributes: [
       { shaderLocation: 0, offset: 0, format: "float32x3" },
+      { shaderLocation: 15, offset: 160, format: "float32" },
       { shaderLocation: 1, offset: 12, format: "float32x2" },
       { shaderLocation: 2, offset: 20, format: "float32x4" },
       { shaderLocation: 3, offset: 36, format: "float32" },
@@ -29,6 +31,7 @@ export const IMAGE_VERTEX_BUFFERS: GPUVertexBufferLayout[] = [
     arrayStride: FLOATS_PER_VERTEX * 4,
     attributes: [
       { shaderLocation: 0, offset: 0, format: "float32x3" },
+      { shaderLocation: 15, offset: 160, format: "float32" },
       { shaderLocation: 1, offset: 12, format: "float32x2" },
       { shaderLocation: 2, offset: 20, format: "float32x4" },
       { shaderLocation: 3, offset: 36, format: "float32" },
@@ -53,26 +56,32 @@ export function createShapePipelines(
     label: "GPU-lit shape pipeline layout",
     bindGroupLayouts: [bindGroupLayout],
   });
-  return createBlendPipelines(device, "GPU-resident layer composite", (blendMode) => ({
-    label: `GPU-resident ${blendMode} layer composite`,
-    layout,
-    vertex: {
-      module,
-      entryPoint: "vertex_main",
-      buffers: SHAPE_VERTEX_BUFFERS,
-    },
-    fragment: {
-      module,
-      entryPoint: "fragment_main",
-      targets: [{ format, blend: gpuBlendState(blendMode) }],
-    },
-    primitive: { topology: "triangle-list", cullMode: "none" },
-    depthStencil: {
-      format: "depth24plus",
-      depthWriteEnabled: true,
-      depthCompare: "less-equal",
-    },
-  }));
+  return createBlendPipelines(
+    device,
+    "GPU-resident layer composite",
+    (blendMode) => ({
+      label: `GPU-resident ${blendMode} layer composite`,
+      layout,
+      vertex: {
+        module,
+        entryPoint: "vertex_main",
+        buffers: SHAPE_VERTEX_BUFFERS,
+      },
+      fragment: {
+        module,
+        entryPoint: "fragment_main",
+        targets: [{ format, blend: gpuBlendState(blendMode) }],
+      },
+      primitive: { topology: "triangle-list", cullMode: "none" },
+      depthStencil: {
+        format: "depth24plus",
+        depthWriteEnabled: true,
+        depthCompare: "less-equal",
+      },
+    }),
+    shapeShader,
+    1,
+  );
 }
 
 export function createMaterialShapePipelines(
@@ -89,22 +98,28 @@ export function createMaterialShapePipelines(
     label: "Normal-mapped HDR environment pipeline layout",
     bindGroupLayouts: [lightingBindGroupLayout, materialBindGroupLayout],
   });
-  return createBlendPipelines(device, "GPU material environment composite", (blendMode) => ({
-    label: `GPU material environment composite · ${blendMode}`,
-    layout,
-    vertex: { module, entryPoint: "vertex_main", buffers: SHAPE_VERTEX_BUFFERS },
-    fragment: {
-      module,
-      entryPoint: "fragment_main",
-      targets: [{ format, blend: gpuBlendState(blendMode) }],
-    },
-    primitive: { topology: "triangle-list", cullMode: "none" },
-    depthStencil: {
-      format: "depth24plus",
-      depthWriteEnabled: true,
-      depthCompare: "less-equal",
-    },
-  }));
+  return createBlendPipelines(
+    device,
+    "GPU material environment composite",
+    (blendMode) => ({
+      label: `GPU material environment composite · ${blendMode}`,
+      layout,
+      vertex: { module, entryPoint: "vertex_main", buffers: SHAPE_VERTEX_BUFFERS },
+      fragment: {
+        module,
+        entryPoint: "fragment_main",
+        targets: [{ format, blend: gpuBlendState(blendMode) }],
+      },
+      primitive: { topology: "triangle-list", cullMode: "none" },
+      depthStencil: {
+        format: "depth24plus",
+        depthWriteEnabled: true,
+        depthCompare: "less-equal",
+      },
+    }),
+    materialShapeShader,
+    2,
+  );
 }
 
 export function createImagePipelines(
@@ -117,26 +132,32 @@ export function createImagePipelines(
     label: "Imported media pipeline layout",
     bindGroupLayouts: [bindGroupLayout],
   });
-  return createBlendPipelines(device, "GPU-resident media layer", (blendMode) => ({
-    label: `GPU-resident ${blendMode} sRGB media layer`,
-    layout,
-    vertex: {
-      module,
-      entryPoint: "vertex_main",
-      buffers: IMAGE_VERTEX_BUFFERS,
-    },
-    fragment: {
-      module,
-      entryPoint: "fragment_main",
-      targets: [{ format, blend: gpuBlendState(blendMode) }],
-    },
-    primitive: { topology: "triangle-list", cullMode: "none" },
-    depthStencil: {
-      format: "depth24plus",
-      depthWriteEnabled: true,
-      depthCompare: "less-equal",
-    },
-  }));
+  return createBlendPipelines(
+    device,
+    "GPU-resident media layer",
+    (blendMode) => ({
+      label: `GPU-resident ${blendMode} sRGB media layer`,
+      layout,
+      vertex: {
+        module,
+        entryPoint: "vertex_main",
+        buffers: IMAGE_VERTEX_BUFFERS,
+      },
+      fragment: {
+        module,
+        entryPoint: "fragment_main",
+        targets: [{ format, blend: gpuBlendState(blendMode) }],
+      },
+      primitive: { topology: "triangle-list", cullMode: "none" },
+      depthStencil: {
+        format: "depth24plus",
+        depthWriteEnabled: true,
+        depthCompare: "less-equal",
+      },
+    }),
+    imageShader,
+    1,
+  );
 }
 
 export function createShadowPipeline(
@@ -170,11 +191,18 @@ function createBlendPipelines(
   device: GPUDevice,
   label: string,
   descriptor: (blendMode: BlendMode) => GPURenderPipelineDescriptor,
+  code: string,
+  groups: number,
 ): Record<BlendMode, GPURenderPipeline> {
   const pipelines = Object.fromEntries(
     FIXED_BLEND_MODES.map((blendMode) => [
       blendMode,
-      device.createRenderPipeline({ ...descriptor(blendMode), label: `${label} · ${blendMode}` }),
+      createCapturablePipeline(
+        device,
+        { ...descriptor(blendMode), label: `${label} · ${blendMode}` },
+        code,
+        groups,
+      ),
     ]),
   );
   return Object.fromEntries(

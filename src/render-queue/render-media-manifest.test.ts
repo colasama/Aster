@@ -221,7 +221,7 @@ describe("RenderMediaManifest", () => {
 });
 
 function mediaProject(sources: FootageSource[]): Project {
-  const project = createBlankProject();
+  const project = createBlankProject(true);
   const composition = project.compositions[0];
   if (!composition) throw new Error("Blank composition is unavailable");
   composition.layers = sources.map((candidate) => layerForSource(candidate, composition));

@@ -60,7 +60,7 @@ afterEach(() => {
 
 describe("ViewportTransformControls", () => {
   it("snaps a moving layer to a custom ruler guide", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = activeComposition(project);
     const layer = createLayerForComposition("shape", composition);
     composition.layers = [layer];
@@ -116,7 +116,7 @@ describe("ViewportTransformControls", () => {
     ["text", "360,410 1560,410 1560,670 360,670"],
     ["shape", "600,180 1320,180 1320,900 600,900"],
   ] as const)("aligns a newly created %s outline with its centered render quad", (kind, points) => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = activeComposition(project);
     const layer = createLayerForComposition(kind, composition);
     composition.layers = [layer];

@@ -84,7 +84,7 @@ fn advanced_media_survives_save_recovery_and_pack_without_its_original()
     fs::write(&original, bytes)?;
     let identity = crate::project_media::media_file::Fnv64State::bytes_identity(bytes);
     let project = serde_json::to_value(LifecycleProject {
-        schema_version: 10,
+        schema_version: 11,
         active_composition_id: "main",
         compositions: [LifecycleComposition {
             id: "main",

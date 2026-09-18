@@ -16,7 +16,7 @@ import {
 
 describe("scene generator ABI packing", () => {
   it("packs time, transform, camera, count, seed, and render IDs into the stable context", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const layer = createParticleLayerForComposition(composition);
     layer.timeOffset = 2;
@@ -58,7 +58,7 @@ describe("scene generator ABI packing", () => {
 
   it("packs manifest parameters by declaration order", () => {
     const instance = createParticleLayerForComposition(
-      createBlankProject().compositions[0],
+      createBlankProject(true).compositions[0],
     ).generator;
     if (!instance) throw new Error("Expected generator fixture");
     const packed = buildSceneGeneratorParameters(bundledParticleDefinition, instance);
@@ -69,7 +69,7 @@ describe("scene generator ABI packing", () => {
 
   it("clamps values to manifest bounds and substitutes typed defaults", () => {
     const instance = createParticleLayerForComposition(
-      createBlankProject().compositions[0],
+      createBlankProject(true).compositions[0],
     ).generator;
     if (!instance) throw new Error("Expected generator fixture");
     instance.parameters.count = 4_000_000;

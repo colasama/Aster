@@ -10,7 +10,6 @@ import { activeComposition, createBlankComposition } from "./project";
 import {
   assertCompositionRenderBoundaries,
   assertProjectRenderBoundaries,
-  NESTED_ADJUSTMENT_ERROR,
 } from "./project-render-boundaries";
 
 export interface PrecompositionPlan {
@@ -67,6 +66,8 @@ export function planPrecomposition(
   nested.duration = Math.max(frameDuration, end);
   nested.workArea = { start, end: nested.duration };
   nested.background = [0, 0, 0, 0];
+  nested.environment = structuredClone(source.environment);
+  nested.motionBlur = structuredClone(source.motionBlur);
   nested.layers = selected.map((layer) => copyLayerIntoComposition(layer, selectedSet));
 
   const insertionIndex = Math.min(
@@ -75,9 +76,7 @@ export function planPrecomposition(
   const wrapper = createLayerForComposition("precomposition", source, start);
   wrapper.name = nested.name;
   wrapper.sourceCompositionId = nested.id;
-  wrapper.threeDimensional = selected.some(
-    (layer) => layer.kind === "adjustment" || layer.kind === "generator",
-  );
+  wrapper.collapseTransformations = false;
   setLayerSizeAndCenterAnchor(wrapper, [source.width, source.height]);
   wrapper.inPoint = start;
   wrapper.outPoint = end;
@@ -97,11 +96,6 @@ export function applyPrecompositionPlan(project: Project, plan: PrecompositionPl
   if (project.compositions.some((composition) => composition.id === plan.nestedComposition.id))
     throw new Error("Precomposition already exists");
   assertCompositionRenderBoundaries(plan.nestedComposition, "nestedComposition");
-  if (
-    plan.nestedComposition.layers.some((layer) => layer.kind === "adjustment") &&
-    !plan.wrapper.threeDimensional
-  )
-    throw new Error(NESTED_ADJUSTMENT_ERROR);
   const source = activeComposition(project);
   const selected = new Set(plan.selectedIds);
   if (
@@ -109,19 +103,6 @@ export function applyPrecompositionPlan(project: Project, plan: PrecompositionPl
     ![...selected].every((id) => source.layers.some((layer) => layer.id === id))
   )
     throw new Error("Precomposition source layer does not exist");
-  if (plan.wrapper.sourceCompositionId) {
-    const target =
-      plan.wrapper.sourceCompositionId === plan.nestedComposition.id
-        ? plan.nestedComposition
-        : project.compositions.find(
-            (composition) => composition.id === plan.wrapper.sourceCompositionId,
-          );
-    if (
-      target?.layers.some((layer) => layer.kind === "adjustment") &&
-      !plan.wrapper.threeDimensional
-    )
-      throw new Error(NESTED_ADJUSTMENT_ERROR);
-  }
   if (source.layers.some((layer) => layer.id === plan.wrapper.id))
     throw new Error("Precomposition wrapper already exists");
   const nextSourceLayers = source.layers.filter((layer) => !selected.has(layer.id));

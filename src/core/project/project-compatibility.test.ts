@@ -12,7 +12,7 @@ import {
 
 describe("project compatibility fallbacks", () => {
   it("preserves a missing plugin effect while rendering it as a no-op", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     project.compositions[0].layers[0].effects.push({
       id: "missing-effect",
       type: "org.example.missing-effect",
@@ -31,7 +31,7 @@ describe("project compatibility fallbacks", () => {
   });
 
   it("keeps missing media as a relinkable placeholder", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const image = createLayerForComposition("image", composition);
     const source = {
@@ -54,7 +54,7 @@ describe("project compatibility fallbacks", () => {
   });
 
   it("persists relative asset paths without ephemeral protocol URLs", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const image = createLayerForComposition("image", project.compositions[0]);
     const source = {
       id: crypto.randomUUID(),
@@ -81,7 +81,7 @@ describe("project compatibility fallbacks", () => {
   });
 
   it("rejects relative asset traversal before native resolution", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const image = createLayerForComposition("image", project.compositions[0]);
     const source = {
       id: crypto.randomUUID(),
@@ -107,7 +107,7 @@ describe("project compatibility fallbacks", () => {
       setItem: (key: string, value: string) => entries.set(key, value),
       removeItem: (key: string) => entries.delete(key),
     };
-    await storeRecoverySnapshot(createBlankProject(), storage);
+    await storeRecoverySnapshot(createBlankProject(true), storage);
     const recoveryKey = [...entries.keys()][0];
     entries.set(recoveryKey, "{ truncated project");
 

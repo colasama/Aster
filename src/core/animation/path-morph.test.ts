@@ -11,7 +11,7 @@ import { staticValue } from "../types";
 import { evaluateShapePath } from "./path-morph";
 
 function fixture() {
-  const project = createBlankProject();
+  const project = createBlankProject(true);
   const composition = project.compositions[0];
   const layer = composition.layers[0];
   if (!layer.shape) throw new Error("Missing shape");

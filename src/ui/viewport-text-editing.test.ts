@@ -16,7 +16,7 @@ import {
 
 describe("viewport text edit transaction", () => {
   it("renders an immutable live draft and commits the whole edit as one undo step", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = activeComposition(project);
     const layer = createLayerForComposition("text", composition);
     layer.text = "Original";
@@ -66,7 +66,7 @@ describe("viewport text edit transaction", () => {
   });
 
   it("rolls back by dropping the draft and rejects locked, hidden, and inactive layers", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = activeComposition(project);
     const layer = createLayerForComposition("text", composition);
     layer.text = "Original";

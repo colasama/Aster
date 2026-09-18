@@ -160,7 +160,9 @@ frame data are excluded, and successful hot-path operations are intentionally si
    migration. Layers carry stable `sourceId` references, so duplication and ordinary edits never clone
    footage bytes.
 3. Properties and safe expressions are evaluated at the requested rational time; recursive
-   precompositions are flattened with cycle detection and composed transforms. Effect parameters
+   precompositions evaluate as isolated transparent GPU surfaces by default. Collapsed references
+   compose full affine matrices into the parent scene, with explicit effect/adjustment boundaries.
+   Cycle validation precedes rendering. See [nested compositions](NESTED_COMPOSITIONS.md). Effect parameters
    use the same time-addressable keyframe interpolation before uniform and opcode compilation.
 4. Visible 2D/3D geometry, media textures, and effect uniforms are uploaded in batches. Imported mesh
    vertices retain normal, UV, and tangent handedness for tangent-space normal mapping. Solid layers

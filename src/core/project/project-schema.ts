@@ -7,7 +7,7 @@ import {
 } from "../scene/bundled-particle";
 import { assertParticleSettings } from "../scene/particle-settings";
 
-export const CURRENT_PROJECT_SCHEMA_VERSION = 10 as const;
+export const CURRENT_PROJECT_SCHEMA_VERSION = 11 as const;
 
 type ProjectDocument = Record<string, unknown>;
 type ProjectMigration = (document: ProjectDocument) => ProjectDocument;
@@ -343,6 +343,23 @@ const PROJECT_MIGRATIONS = new Map<number, ProjectMigration>([
         }
       }
       document.schemaVersion = 10;
+      return document;
+    },
+  ],
+  [
+    10,
+    (document) => {
+      for (const composition of (document.compositions ?? []) as Array<{
+        layers?: Array<Record<string, unknown>>;
+      }>) {
+        for (const layer of composition.layers ?? []) {
+          if (layer.kind !== "precomposition") continue;
+          layer.collapseTransformations = false;
+          layer.color = [1, 1, 1, 1];
+          layer.audioEnabled ??= true;
+        }
+      }
+      document.schemaVersion = 11;
       return document;
     },
   ],

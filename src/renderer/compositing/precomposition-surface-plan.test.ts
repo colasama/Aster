@@ -10,7 +10,7 @@ import {
 } from "./precomposition-surface-plan";
 
 function surfaceScene(width = 1_920, height = 1_080) {
-  const project = createBlankProject();
+  const project = createBlankProject(true);
   const root = project.compositions[0];
   const nested = structuredClone(root);
   nested.id = crypto.randomUUID();
@@ -39,7 +39,7 @@ describe("precomposition surface planning", () => {
     );
   });
 
-  it("downscales proportionally under an explicit VRAM budget", () => {
+  it("reports insufficient VRAM without silently reducing resolution", () => {
     const scene = surfaceScene(4_096, 2_048);
     const plan = planPrecompositionSurface(
       {
@@ -50,10 +50,9 @@ describe("precomposition surface planning", () => {
       },
       createPrecompositionSurfaceBudget(),
     );
-    expect(plan.status).toBe("ready");
-    expect(plan.downgraded).toBe(true);
-    expect(plan.width / plan.height).toBeCloseTo(2, 1);
-    expect(plan.estimatedBytes).toBeLessThanOrEqual(16 * 0.35 * 1024 * 1024);
+    expect(plan.status).toBe("skipped");
+    expect(plan.downgraded).toBe(false);
+    expect(plan.diagnostic).toContain("VRAM budget");
   });
 
   it("rejects cycles, depth overflow, and excess surface count", () => {

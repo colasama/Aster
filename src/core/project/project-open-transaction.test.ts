@@ -17,7 +17,7 @@ afterEach(() => {
 });
 
 it("keeps installed media and the save path when a prepared native load becomes stale", async () => {
-  const project = createBlankProject();
+  const project = createBlankProject(true);
   const invoke = vi.fn(async (command: string) =>
     command === "load_project" ? structuredClone(project) : undefined,
   );

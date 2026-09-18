@@ -44,7 +44,7 @@ afterEach(() => {
   frame = undefined;
 });
 function mount({ animated = false, locked = false } = {}) {
-  const project = createBlankProject();
+  const project = createBlankProject(true);
   const composition = activeComposition(project);
   const layer = createLayerForComposition("solid", composition);
   layer.locked = locked;

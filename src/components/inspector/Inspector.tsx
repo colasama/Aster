@@ -615,6 +615,27 @@ export function Inspector() {
                       />
                     </label>
                   )}
+                  {layer.kind === "precomposition" && (
+                    <label className="compositing-check">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(layer.collapseTransformations)}
+                        onChange={() =>
+                          dispatch({
+                            type: "operation",
+                            operations: [
+                              {
+                                type: "toggleLayer",
+                                layerId: layer.id,
+                                field: "collapseTransformations",
+                              },
+                            ],
+                          })
+                        }
+                      />
+                      {t("inspector.compositing.collapseTransformations")}
+                    </label>
+                  )}
                   <label className="compositing-check">
                     <input
                       checked={layer.threeDimensional}

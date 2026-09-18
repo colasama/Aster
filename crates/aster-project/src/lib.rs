@@ -48,7 +48,7 @@ pub struct ProjectBundle {
 impl ProjectBundle {
     pub const PROJECT_FILE: &str = "project.json";
     pub const AUTOSAVE_FILE: &str = "project.autosave.json";
-    pub const EDITOR_SCHEMA_VERSION: u64 = 10;
+    pub const EDITOR_SCHEMA_VERSION: u64 = 11;
 
     pub fn at(root: impl AsRef<Path>) -> Self {
         Self {

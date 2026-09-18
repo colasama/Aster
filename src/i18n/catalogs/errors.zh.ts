@@ -11,6 +11,7 @@ export const errorsZh = {
   "ui.error.aiRequest": "无法完成 AI 操作。请检查提供程序设置后重试。",
   "ui.error.lutImport": "无法导入此 LUT。请选择有效的 .cube 文件。",
   "ui.error.hdrImport": "无法读取此 HDR 环境。请选择有效的 Radiance .hdr 文件。",
+  "ui.error.compositionReference": "无法添加此合成。",
   "ui.error.projectOpen": "无法打开此项目。",
   "ui.error.projectPackedOpen": "无法打开此打包项目。",
   "ui.error.projectPack": "无法打包此项目。",

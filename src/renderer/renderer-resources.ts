@@ -1,4 +1,5 @@
 import type { BlendMode, GpuDiagnostics } from "../core/types";
+import { ExactTransparencyRenderer } from "./compositing/exact-transparency";
 import { MotionBlurRenderer } from "./compositing/motion-blur-renderer";
 import { PrecompositionSurfaceRenderer } from "./compositing/precomposition-surface-renderer";
 import { SceneBufferVisualizer } from "./diagnostics/buffer-visualizer";
@@ -99,6 +100,7 @@ export class RendererResources {
   readonly mediaTextures: MediaTextureCache;
 
   readonly precompositionSurfaces: PrecompositionSurfaceRenderer;
+  readonly transparency: ExactTransparencyRenderer;
 
   constructor(
     readonly device: GPUDevice,
@@ -215,6 +217,7 @@ export class RendererResources {
       this.imageSampler,
       invalidate,
     );
+    this.transparency = new ExactTransparencyRenderer(device);
     this.precompositionSurfaces = new PrecompositionSurfaceRenderer(device, {
       mediaTextures: this.mediaTextures,
       mediaLayout: this.imageBindGroupLayout,
@@ -223,6 +226,8 @@ export class RendererResources {
       shapePipelines: this.shapePipelines,
       imagePipelines: this.imagePipelines,
       sceneGenerators: this.sceneGenerators,
+      transparency: this.transparency,
+      invalidate,
     });
     this.postUniformBuffer = device.createBuffer({
       label: "Fused post-process uniforms",
@@ -247,6 +252,7 @@ export class RendererResources {
     this.materialTextures?.destroy();
     this.materialTextures = undefined;
     this.precompositionSurfaces.destroy();
+    this.transparency.destroy();
     this.sceneGenerators.destroy();
     this.bufferVisualizer.destroy();
     this.depthEffects.destroy();

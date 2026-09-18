@@ -1,4 +1,4 @@
-# Aster project format v10
+# Aster project format v11
 
 ## Light layers
 
@@ -37,7 +37,7 @@ proxy, and preview data are deliberately excluded.
 
 ```json
 {
-  "schemaVersion": 10,
+  "schemaVersion": 11,
   "id": "stable-uuid",
   "name": "Project name",
   "activeCompositionId": "stable-uuid",
@@ -92,7 +92,16 @@ evaluation; coincident stops form a hard transition. Color keyframes interpolate
 independently using their stored easing. Stops interpolate in sRGB, then convert to the linear render
 target; endpoint projection accounts for the target aspect ratio. The effect preserves source alpha
 and needs no new media.
-Precomposition layers reference another composition by stable ID. Development image/video
+Precomposition layers reference another composition by stable ID. Version 11 adds optional
+`collapseTransformations` (default false). Normal references are isolated transparent sources in
+both 2D and 3D; collapsed references share the parent camera/depth context subject to effect and
+adjustment boundaries. The v10 → v11 migration sets existing references to normal isolation and a
+neutral white modulation color, retaining explicit background layers and persisted time mappings.
+Composition `background` is viewer-only; it is not included in source or exported alpha.
+Precomposition layers also support `audioEnabled` and the existing audio settings. See
+[nested compositions](NESTED_COMPOSITIONS.md) for the render contract and current limits.
+
+ Development image/video
 imports may use bounded `data:` URLs for portable single-file projects; the native bundle layer will
 externalize large media into an asset directory without changing layer references. Version 4 stores
 footage once in the project-level `sources` registry. Image and video layer instances reference it by
@@ -248,16 +257,15 @@ and [Advanced 3D depth-of-field controls](https://helpx.adobe.com/after-effects/
   inline text editing, direct manipulation, and rendered geometry share one local transform.
   Older, future, missing, or fractional versions fail
   before partially applying the document.
-- The native bundle boundary accepts v1 through v10 on read so the renderer can run migrations, but
-  new primary saves and autosaves must already be validated v10 documents.
+- The native bundle boundary accepts v1 through v11 on read so the renderer can run migrations, but
+  new primary saves and autosaves must already be validated v11 documents.
 - Every future historical transform must preserve the source document, set exactly the next integer
   version, and gain a compatibility fixture before the current schema version increases.
 - Unknown effect types and parameters must be preserved and disabled when execution is unavailable.
 - IDs are stable across saves; duplicate/copy operations issue new IDs.
 - Relative asset paths resolve against the project directory and may not escape it after
   canonicalization.
-- Parent and precomposition references must resolve, and precomposition cycles are rejected during
-  evaluation.
+- Parent and precomposition references must resolve, and precomposition cycles are rejected at the editing and project-validation boundaries.
 
 ## Atomic save
 

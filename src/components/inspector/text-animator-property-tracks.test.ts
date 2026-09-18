@@ -9,7 +9,7 @@ import {
 
 describe("text animator timeline tracks", () => {
   it("exposes animator and Range Selector properties with units and bounds", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const layer = createLayerForComposition("text", project.compositions[0]);
     const animator = layer.textAnimator?.groups[0];
     const selector = animator?.selectors[0];

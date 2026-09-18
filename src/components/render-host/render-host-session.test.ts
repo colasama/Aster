@@ -16,7 +16,7 @@ import {
 } from "./render-host-session";
 
 function assignment(): DesktopRenderHostAssignment {
-  const project = createBlankProject();
+  const project = createBlankProject(true);
   const composition = project.compositions[0];
   composition.width = 64;
   composition.height = 64;

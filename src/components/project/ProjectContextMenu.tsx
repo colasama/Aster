@@ -37,6 +37,7 @@ export interface ProjectContextMenuActions {
   moveTarget(folderId?: string): void;
   onClose(): void;
   openComposition(): void;
+  addComposition?(): void;
   relinkSource(): void;
   renameTarget(): void;
   revealInComposition(): void;
@@ -134,6 +135,13 @@ export function projectContextMenuItems(
         kind: "command",
         label: t("project.menu.openComposition"),
         onSelect: actions.openComposition,
+      },
+      {
+        id: "add-composition",
+        kind: "command",
+        label: t("project.menu.addToComposition"),
+        disabled: !actions.addComposition,
+        onSelect: () => actions.addComposition?.(),
       },
       { id: "composition-edit-separator", kind: "separator" },
       ...editItems,

@@ -35,6 +35,10 @@ import {
   type StandardLayerKind,
 } from "../../core/layers/layer-factory";
 import { createMediaLayerForSource } from "../../core/media/assets";
+import {
+  COMPOSITION_DRAG_TYPE,
+  createCompositionReference,
+} from "../../core/project/composition-source";
 import { activeComposition, createBlankComposition } from "../../core/project/project";
 import { createParticleLayerForComposition } from "../../core/scene/bundled-particle";
 import {
@@ -50,6 +54,7 @@ import {
   type Layer,
   type ProjectFolder,
 } from "../../core/types";
+import { reportUiError } from "../../errors/report-ui-error";
 import { uiErrorMessage } from "../../i18n/errors";
 import { useI18n } from "../../i18n/react";
 import { createBrowserSequenceInput } from "../../importers/advanced-import";
@@ -370,7 +375,11 @@ export function ProjectPanel() {
             })
           }
           onDragEnd={() => setDraggedItemId(undefined)}
-          onDragStart={(event) => startItemDrag(event, candidate.id)}
+          onDragStart={(event) => {
+            startItemDrag(event, candidate.id);
+            event.dataTransfer.effectAllowed = "copyMove";
+            event.dataTransfer.setData(COMPOSITION_DRAG_TYPE, candidate.id);
+          }}
           onKeyDown={(event) =>
             openProjectContextFromKeyboard(event, {
               id: candidate.id,
@@ -801,6 +810,24 @@ export function ProjectPanel() {
           moveDestinations={moveDestinations}
           moveTarget={moveContextTarget}
           onClose={projectContextMenu.close}
+          addComposition={
+            contextComposition && contextComposition.id !== composition.id
+              ? () => {
+                  try {
+                    const layer = createCompositionReference(
+                      state.project,
+                      composition,
+                      contextComposition.id,
+                      state.currentTime,
+                    );
+                    dispatch({ type: "operation", operations: [{ type: "addLayer", layer }] });
+                    dispatch({ type: "select", ids: [layer.id] });
+                  } catch (error) {
+                    reportUiError(t, "compositionReference", error);
+                  }
+                }
+              : undefined
+          }
           openComposition={() => {
             if (contextComposition)
               dispatch({ type: "setActiveComposition", compositionId: contextComposition.id });

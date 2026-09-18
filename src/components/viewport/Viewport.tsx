@@ -732,7 +732,12 @@ export function Viewport() {
               width: composition.width * displayZoom,
             }}
           >
-            <div className="composition-image">
+            <div
+              className="composition-image"
+              style={{
+                backgroundColor: `color(srgb-linear ${composition.background.slice(0, 3).join(" ")} / ${composition.background[3]})`,
+              }}
+            >
               <canvas ref={canvasRef} />
               <canvas
                 ref={snapshot.canvasRef}

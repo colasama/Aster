@@ -36,7 +36,7 @@ afterEach(() => {
 
 describe("Canvas exact-frame resources", () => {
   it("draws the source from the same evaluated anchor used by viewport controls", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const layer = createLayerForComposition("shape", composition);
     setLayerSizeAndCenterAnchor(layer, [200, 100]);
@@ -209,7 +209,7 @@ describe("Canvas exact-frame resources", () => {
 });
 
 function fixture(kind: "still" | "svg" | "imageSequence" | "video") {
-  const project = createBlankProject();
+  const project = createBlankProject(true);
   const composition = project.compositions[0];
   if (!composition) throw new Error("Blank project composition is unavailable");
   composition.layers = [];

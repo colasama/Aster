@@ -162,6 +162,7 @@ fn shadow_position(world_position: vec3f) -> vec3f {
 @vertex
 fn vertex_main(
   @location(0) position: vec3f,
+  @location(15) clip_w: f32,
   @location(1) uv: vec2f,
   @location(2) color: vec4f,
   @location(3) shape: f32,
@@ -175,7 +176,7 @@ fn vertex_main(
   @location(11) tangent: vec4f,
 ) -> VertexOutput {
   var output: VertexOutput;
-  output.position = vec4f(position, 1.0);
+  output.position = vec4f(position * clip_w, clip_w);
   output.uv = uv;
   output.color = color;
   output.shape = shape;
@@ -399,12 +400,13 @@ struct VertexOutput {
 @vertex
 fn vertex_main(
   @location(0) position: vec3f,
+  @location(15) clip_w: f32,
   @location(1) uv: vec2f,
   @location(2) color: vec4f,
   @location(3) shape: f32,
 ) -> VertexOutput {
   var output: VertexOutput;
-  output.position = vec4f(position, 1.0);
+  output.position = vec4f(position * clip_w, clip_w);
   output.uv = uv;
   output.color = color;
   output.media_type = shape;
@@ -416,6 +418,7 @@ fn fragment_main(input: VertexOutput) -> @location(0) vec4f {
   let sampled = textureSample(image_texture, image_sampler, input.uv);
   let source_alpha = select(sampled.a, 1.0, input.media_type > 1.5);
   let alpha = source_alpha * input.color.a;
+  if (alpha <= 0.00001) { discard; }
   return vec4f(sampled.rgb * input.color.rgb * alpha, alpha);
 }
 `;

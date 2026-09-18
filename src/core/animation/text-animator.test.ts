@@ -55,7 +55,7 @@ describe("text animator settings", () => {
   });
 
   it("creates enabled animator data for new text and normalizes editor operations", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const text = createLayerForComposition("text", composition);
     composition.layers.push(text);
@@ -72,7 +72,7 @@ describe("text animator settings", () => {
   });
 
   it("validates animated selector and property bounds at the project boundary", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const text = createLayerForComposition("text", composition);
     composition.layers.push(text);

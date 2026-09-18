@@ -25,6 +25,7 @@ struct SurfaceVertex {
 
 @vertex fn surface_vertex(
   @location(0) position: vec3f,
+  @location(15) clip_w: f32,
   @location(1) uv: vec2f,
   @location(2) color: vec4f,
   @location(4) normal: vec3f,
@@ -35,7 +36,7 @@ struct SurfaceVertex {
   @location(14) motion_vector: vec2f,
 ) -> SurfaceVertex {
   var output: SurfaceVertex;
-  output.position = vec4f(position, 1.0);
+  output.position = vec4f(position * clip_w, clip_w);
   output.uv = uv;
   output.color = color;
   output.normal = normal;

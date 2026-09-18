@@ -250,7 +250,7 @@ describe("text animator motion-blur planning", () => {
 });
 
 function fixture() {
-  const project = createBlankProject();
+  const project = createBlankProject(true);
   const composition = project.compositions[0];
   composition.layers = [];
   composition.motionBlur = {

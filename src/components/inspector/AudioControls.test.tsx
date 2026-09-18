@@ -38,7 +38,7 @@ afterEach(() => {
 
 describe("audio layer source controls", () => {
   it("binds compatible footage to an independent audio layer with natural timing", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = activeComposition(project);
     const layer = createLayerForComposition("audio", composition, 1);
     const source = {

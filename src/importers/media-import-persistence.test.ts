@@ -30,7 +30,7 @@ afterEach(() => {
 
 describe("advanced media project persistence", () => {
   it("migrates legacy embedded video into a recoverable media payload", async () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const bytes = new Uint8Array([0, 0, 0, 8, 102, 116, 121, 112]);
     const source: FootageSource = {
       id: "legacy-video",
@@ -70,7 +70,7 @@ describe("advanced media project persistence", () => {
   });
 
   it("captures picker-authorized native footage without embedding its bytes", async () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const source: FootageSource = {
       id: "native-audio",
       kind: "audio",
@@ -102,7 +102,7 @@ describe("advanced media project persistence", () => {
   });
 
   it("hydrates a materialized audio payload as a bundle-relative runtime locator", async () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const source: FootageSource = {
       id: "materialized-audio",
       kind: "audio",
@@ -164,7 +164,7 @@ describe("advanced media project persistence", () => {
   });
 
   it("continues to open legacy embedded footage without a sidecar", async () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     project.sources.push({
       id: "legacy-audio",
       kind: "audio",
@@ -183,7 +183,7 @@ describe("advanced media project persistence", () => {
   });
 
   it("roundtrips a rerasterizable SVG without persisting a runtime URL", async () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const imported = createSvgImport(
       {
         width: 64,
@@ -233,7 +233,7 @@ describe("advanced media project persistence", () => {
   });
 
   it("stores one compressed PSD document for every recovered layer", async () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const bytes = new Uint8Array(minimalPsd());
     const document = await parsePsd(bytes.buffer.slice(0));
     const imported = createPsdImport(
@@ -276,7 +276,7 @@ describe("advanced media project persistence", () => {
   });
 
   it("roundtrips a bounded image sequence and reports a missing bundle frame precisely", async () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const files = [
       sequenceFile("plate.0001.png", [1, 2, 3]),
       sequenceFile("plate.0003.png", [4, 5]),
@@ -333,7 +333,7 @@ describe("advanced media project persistence", () => {
   });
 
   it("rebinds bundle-relative SVG, PSD, and image sequence sources after reopen", async () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const svg = createSvgImport(
       {
         width: 8,
@@ -463,7 +463,7 @@ describe("advanced media project persistence", () => {
 });
 
 function svgProject(): Project {
-  const project = createBlankProject();
+  const project = createBlankProject(true);
   const imported = createSvgImport(
     {
       width: 8,

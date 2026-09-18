@@ -1,11 +1,11 @@
 import type { FlattenedSceneLayer } from "../../core/scene/scene-evaluation";
 
-export const MAX_PRECOMPOSITION_SURFACE_DEPTH = 4;
-export const MAX_PRECOMPOSITION_SURFACES = 4;
-export const MAX_PRECOMPOSITION_SURFACE_TEXTURES = 20;
-export const MAX_PRECOMPOSITION_SURFACE_PIXELS = 8_388_608;
-export const MAX_PRECOMPOSITION_SURFACE_BYTES = 256 * 1024 * 1024;
-export const MAX_PRECOMPOSITION_SURFACE_DIMENSION = 4_096;
+export const MAX_PRECOMPOSITION_SURFACE_DEPTH = 64;
+export const MAX_PRECOMPOSITION_SURFACES = 1024;
+export const MAX_PRECOMPOSITION_SURFACE_TEXTURES = 5120;
+export const MAX_PRECOMPOSITION_SURFACE_PIXELS = 67_108_864;
+export const MAX_PRECOMPOSITION_SURFACE_BYTES = 512 * 1024 * 1024;
+export const MAX_PRECOMPOSITION_SURFACE_DIMENSION = 16_384;
 
 const BASE_BYTES_PER_PIXEL = 12; // rgba16float plus depth24plus.
 const EFFECT_BYTES_PER_PIXEL = 20; // LayerEffectRenderer ping-pong and depth.
@@ -59,7 +59,7 @@ export function planPrecompositionSurface(
   const byteLimit = Math.min(
     MAX_PRECOMPOSITION_SURFACE_BYTES,
     request.memoryBudgetMb === undefined
-      ? 128 * 1024 * 1024
+      ? 256 * 1024 * 1024
       : Math.max(1, request.memoryBudgetMb * 0.35) * 1024 * 1024,
   );
   const remainingPixels = Math.max(
@@ -77,11 +77,12 @@ export function planPrecompositionSurface(
     1,
     Math.min(request.deviceMaxTextureDimension, MAX_PRECOMPOSITION_SURFACE_DIMENSION),
   );
-  const sourceWidth = surface.composition.width;
-  const sourceHeight = surface.composition.height;
+  const sourceWidth = (surface.renderComposition ?? surface.composition).width;
+  const sourceHeight = (surface.renderComposition ?? surface.composition).height;
   const dimensionScale = Math.min(1, dimensionLimit / sourceWidth, dimensionLimit / sourceHeight);
   const pixelScale = Math.min(1, Math.sqrt(remainingPixels / (sourceWidth * sourceHeight)));
   const scale = Math.min(dimensionScale, pixelScale);
+  if (scale < 1) return skipped("precomposition exceeds the requested resolution or VRAM budget");
   const width = Math.max(1, Math.floor(sourceWidth * scale));
   const height = Math.max(1, Math.floor(sourceHeight * scale));
   const pixels = width * height;

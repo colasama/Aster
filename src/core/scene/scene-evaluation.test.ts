@@ -9,7 +9,7 @@ import {
 
 describe("editor scene evaluation", () => {
   it("combines parent transforms at arbitrary time", () => {
-    const composition = createBlankProject().compositions[0];
+    const composition = createBlankProject(true).compositions[0];
     const parent = composition.layers[0];
     const child = structuredClone(parent);
     child.id = crypto.randomUUID();
@@ -26,7 +26,7 @@ describe("editor scene evaluation", () => {
   });
 
   it("honors solo and layer timing", () => {
-    const composition = createBlankProject().compositions[0];
+    const composition = createBlankProject(true).compositions[0];
     const second = structuredClone(composition.layers[0]);
     second.id = crypto.randomUUID();
     second.solo = true;
@@ -37,7 +37,7 @@ describe("editor scene evaluation", () => {
   });
 
   it("uses half-open spans at adjacent cuts while preserving the last rendered frame", () => {
-    const composition = createBlankProject().compositions[0];
+    const composition = createBlankProject(true).compositions[0];
     const first = composition.layers[0];
     const second = structuredClone(first);
     second.id = crypto.randomUUID();
@@ -53,7 +53,7 @@ describe("editor scene evaluation", () => {
   });
 
   it("expands nested compositions with wrapper transforms", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const root = project.compositions[0];
     const nested = structuredClone(root);
     nested.id = crypto.randomUUID();
@@ -64,6 +64,7 @@ describe("editor scene evaluation", () => {
     child.transform.position[1] = { mode: "static", value: nested.height / 2 };
     const wrapper = createLayerForComposition("precomposition", root);
     wrapper.sourceCompositionId = nested.id;
+    wrapper.collapseTransformations = true;
     wrapper.size = [nested.width, nested.height];
     wrapper.transform.scale[0] = { mode: "static", value: 200 };
     root.layers = [wrapper];
@@ -77,14 +78,16 @@ describe("editor scene evaluation", () => {
   });
 
   it("rejects recursive precomposition cycles", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const root = project.compositions[0];
     const nested = structuredClone(root);
     nested.id = crypto.randomUUID();
     const rootWrapper = createLayerForComposition("precomposition", root);
     rootWrapper.sourceCompositionId = nested.id;
+    rootWrapper.collapseTransformations = true;
     const nestedWrapper = createLayerForComposition("precomposition", nested);
     nestedWrapper.sourceCompositionId = root.id;
+    nestedWrapper.collapseTransformations = true;
     root.layers = [rootWrapper];
     nested.layers = [nestedWrapper];
     project.compositions.push(nested);
@@ -92,13 +95,14 @@ describe("editor scene evaluation", () => {
   });
 
   it("evaluates nested compositions through the wrapper time mapping", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const root = project.compositions[0];
     const nested = structuredClone(root);
     nested.id = crypto.randomUUID();
     nested.layers[0].id = crypto.randomUUID();
     const wrapper = createLayerForComposition("precomposition", root);
     wrapper.sourceCompositionId = nested.id;
+    wrapper.collapseTransformations = true;
     wrapper.timeOffset = 1;
     wrapper.timeStretch = 2;
     root.layers = [wrapper];
@@ -108,13 +112,15 @@ describe("editor scene evaluation", () => {
   });
 
   it("keeps 3D wrapper transforms while evaluating its surface at mapped local time", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const root = project.compositions[0];
     const nested = structuredClone(root);
     nested.id = crypto.randomUUID();
     const wrapper = createLayerForComposition("precomposition", root);
     wrapper.sourceCompositionId = nested.id;
+    wrapper.collapseTransformations = true;
     wrapper.threeDimensional = true;
+    wrapper.collapseTransformations = false;
     wrapper.timeOffset = 1;
     wrapper.timeStretch = 2;
     wrapper.transform.position[0] = { mode: "static", value: 321 };
@@ -130,7 +136,7 @@ describe("editor scene evaluation", () => {
   });
 
   it("expands cloners into stable scene instances for the current render path", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const source = composition.layers[0];
     source.transform.position[0] = { mode: "static", value: 100 };
@@ -167,9 +173,9 @@ describe("editor scene evaluation", () => {
   });
 
   it("bounds recursively multiplied precomposition clones", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const root = project.compositions[0];
-    const nested = createBlankProject().compositions[0];
+    const nested = createBlankProject(true).compositions[0];
     nested.id = crypto.randomUUID();
     nested.layers[0].cloner = {
       distribution: { kind: "grid", count: [512, 128, 1], spacing: [1, 1, 0] },
@@ -177,6 +183,7 @@ describe("editor scene evaluation", () => {
     };
     const wrapper = createLayerForComposition("precomposition", root);
     wrapper.sourceCompositionId = nested.id;
+    wrapper.collapseTransformations = true;
     wrapper.cloner = {
       distribution: { kind: "grid", count: [2, 1, 1], spacing: [1, 0, 0] },
       effectors: [],
@@ -188,7 +195,7 @@ describe("editor scene evaluation", () => {
   });
 
   it("keeps adjustment evaluation local and routes 3D precompositions as surfaces", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const root = project.compositions[0];
     const adjustment = createLayerForComposition("adjustment", root);
     adjustment.cloner = {
@@ -198,12 +205,14 @@ describe("editor scene evaluation", () => {
     root.layers = [adjustment];
     expect(flattenSceneLayers(root, project, 0)).toHaveLength(1);
 
-    const nested = createBlankProject().compositions[0];
+    const nested = createBlankProject(true).compositions[0];
     nested.id = crypto.randomUUID();
     nested.layers = [createLayerForComposition("adjustment", nested), nested.layers[0]];
     const wrapper = createLayerForComposition("precomposition", root);
     wrapper.sourceCompositionId = nested.id;
+    wrapper.collapseTransformations = true;
     wrapper.threeDimensional = true;
+    wrapper.collapseTransformations = false;
     root.layers = [wrapper];
     project.compositions.push(nested);
 

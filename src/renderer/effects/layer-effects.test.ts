@@ -14,7 +14,7 @@ describe("GPU adjustment-layer effects", () => {
     const device = mockDevice(textures);
     const renderer = new LayerEffectRenderer(device, "rgba16float");
     renderer.resize(320, 180);
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const adjustment = createLayerForComposition("adjustment", composition);
     adjustment.effects = [createEffect("exposure"), createEffect("posterize")];
@@ -55,7 +55,7 @@ describe("GPU adjustment-layer effects", () => {
   it("records no GPU work when every adjustment effect is disabled", () => {
     installGpuConstants();
     const renderer = new LayerEffectRenderer(mockDevice([]), "rgba16float");
-    const composition = createBlankProject().compositions[0];
+    const composition = createBlankProject(true).compositions[0];
     const adjustment = createLayerForComposition("adjustment", composition);
     const effect = createEffect("exposure");
     effect.enabled = false;
@@ -84,7 +84,7 @@ describe("GPU adjustment-layer effects", () => {
     const events: string[] = [];
     const renderer = new LayerEffectRenderer(mockDevice([]), "rgba16float");
     renderer.resize(64, 64);
-    const composition = createBlankProject().compositions[0];
+    const composition = createBlankProject(true).compositions[0];
     const first = createLayerForComposition("adjustment", composition);
     first.name = "First";
     first.effects = [createEffect("exposure")];

@@ -6,7 +6,7 @@ import { propertyValueOperationAtTime } from "./property-edit-operation";
 
 describe("time-addressed property value operations", () => {
   it("preserves existing keyframe identity and interpolation metadata", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const layer = createLayerForComposition("solid", composition);
     layer.transform.rotation[2] = {
@@ -45,7 +45,7 @@ describe("time-addressed property value operations", () => {
   });
 
   it("keeps static values static and inserts new animation keys at a bounded edit time", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const layer = createLayerForComposition("camera", composition);
     if (!layer.camera) throw new Error("Expected camera settings");

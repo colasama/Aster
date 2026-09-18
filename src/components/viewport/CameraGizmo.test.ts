@@ -38,7 +38,7 @@ describe("camera gizmo geometry", () => {
     const container = document.createElement("div");
     document.body.append(container);
     root = createRoot(container);
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const camera = createLayerForComposition("camera", composition);
     camera.transform.position[0] = {

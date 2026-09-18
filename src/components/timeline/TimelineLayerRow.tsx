@@ -128,6 +128,10 @@ export function TimelineLayerRow({
             dispatch({ type: "select", ids: [layer.id] });
           }
         }}
+        onDoubleClick={() => {
+          if (layer.sourceCompositionId)
+            dispatch({ type: "setActiveComposition", compositionId: layer.sourceCompositionId });
+        }}
         onDragStart={onDragStart}
         role="button"
         tabIndex={0}

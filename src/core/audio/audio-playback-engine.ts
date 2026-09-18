@@ -3,6 +3,7 @@ import { logger } from "../logger";
 import { sourceForLayer } from "../media/footage-source";
 import type { Composition, FootageSource, Layer, Project } from "../types";
 import { type AudioDecodeCache, sharedAudioDecodeCache } from "./audio-decode-cache";
+import { decodeAudibleSources, mixAudioExportChunk } from "./audio-export";
 import { decibelsToLinear } from "./audio-layer";
 import { audibleCompositionLayers, type DecodedPcm } from "./audio-mixer";
 
@@ -43,6 +44,7 @@ export class CompositionAudioPlaybackEngine {
   #playing = false;
   #generation = 0;
   #reversedBytes = 0;
+  #mixTimer?: ReturnType<typeof setTimeout>;
 
   constructor(
     cache: AudioDecodeCache = sharedAudioDecodeCache,
@@ -59,6 +61,7 @@ export class CompositionAudioPlaybackEngine {
     rangeEnd: number,
   ): Promise<AudioPlaybackSnapshot> {
     validateRange(composition, startTime, rangeEnd);
+    clearTimeout(this.#mixTimer);
     const generation = ++this.#generation;
     const context = this.#context ?? this.#createContext();
     if (context.state === "suspended") await context.resume();
@@ -67,6 +70,69 @@ export class CompositionAudioPlaybackEngine {
     this.#rangeEnd = rangeEnd;
     this.#playing = false;
 
+    if (composition.layers.some((layer) => layer.kind === "precomposition" || layer.timeRemap)) {
+      const decoded = await decodeAudibleSources(project, composition, async (source) => {
+        const buffer = await this.#cache.decode(context, source);
+        return {
+          sampleRate: buffer.sampleRate,
+          channels: Array.from({ length: buffer.numberOfChannels }, (_, i) =>
+            buffer.getChannelData(i),
+          ),
+        };
+      });
+      if (generation !== this.#generation) return this.snapshot();
+      const master = this.#master;
+      if (!master) throw new Error("Audio output graph is unavailable");
+      const sampleRate = context.sampleRate;
+      const chunkFrames = Math.round(sampleRate * 0.25);
+      let nextFrame = 0;
+      const when = context.currentTime + START_LEAD_SECONDS;
+      master.gain.setValueAtTime(1, when);
+      this.#anchorContextTime = when;
+      this.#playing = true;
+      const schedule = () => {
+        if (generation !== this.#generation) return;
+        while (
+          when + nextFrame / sampleRate < context.currentTime + 0.5 &&
+          startTime + nextFrame / sampleRate < rangeEnd
+        ) {
+          const count = Math.min(
+            chunkFrames,
+            Math.ceil((rangeEnd - startTime) * sampleRate) - nextFrame,
+          );
+          const samples = mixAudioExportChunk(
+            project,
+            composition,
+            decoded,
+            nextFrame,
+            count,
+            sampleRate,
+            startTime,
+          );
+          const buffer = context.createBuffer(2, count, sampleRate);
+          for (let channel = 0; channel < 2; channel++) {
+            const data = buffer.getChannelData(channel);
+            for (let i = 0; i < count; i++) data[i] = samples[i * 2 + channel];
+          }
+          const source = context.createBufferSource();
+          source.buffer = buffer;
+          source.connect(master);
+          const scheduled = { source, nodes: [] };
+          this.#nodes.push(scheduled);
+          source.onended = () => {
+            source.disconnect();
+            const index = this.#nodes.indexOf(scheduled);
+            if (index >= 0) this.#nodes.splice(index, 1);
+          };
+          source.start(when + nextFrame / sampleRate);
+          nextFrame += count;
+        }
+        if (startTime + nextFrame / sampleRate < rangeEnd)
+          this.#mixTimer = setTimeout(schedule, 50);
+      };
+      schedule();
+      return this.snapshot();
+    }
     const layers = audibleCompositionLayers(composition).slice(0, MAX_ACTIVE_AUDIO_LAYERS);
     const prepared = await Promise.all(
       layers.map(async (layer) => {
@@ -144,6 +210,7 @@ export class CompositionAudioPlaybackEngine {
   }
 
   pause(): AudioPlaybackSnapshot {
+    clearTimeout(this.#mixTimer);
     this.#generation += 1;
     this.#playing = false;
     if (this.#context) this.#releaseNodes(this.#context.currentTime);

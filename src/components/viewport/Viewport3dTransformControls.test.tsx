@@ -58,7 +58,7 @@ afterEach(() => {
 
 describe("Viewport3dTransformControls", () => {
   it("projects Local and World axis spaces differently at the evaluated rotation", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const layer = createLayerForComposition("solid", composition);
     layer.threeDimensional = true;
@@ -90,7 +90,7 @@ describe("Viewport3dTransformControls", () => {
   });
 
   it("writes an animated position keyframe at current time as one undoable gesture", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const layer = createLayerForComposition("shape", composition);
     layer.threeDimensional = true;
@@ -182,7 +182,7 @@ describe("Viewport3dTransformControls", () => {
   });
 
   it("shows locked 3D selection without exposing draggable surfaces or axes", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const layer = createLayerForComposition("solid", composition);
     layer.threeDimensional = true;

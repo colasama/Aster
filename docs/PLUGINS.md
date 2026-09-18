@@ -315,3 +315,9 @@ Raw device access, arbitrary host memory, debugger attachment, and unsandboxed c
 never grantable. Signed publisher identity does not imply capabilities. Native loading remains off
 until the process sandbox, handle broker, watchdog, crash-loop suppression, and conformance suite are
 implemented on every supported desktop platform.
+
+## Composition boundaries
+
+Nested composition references do not change the scene-generator ABI. Generator entries remain
+compositing boundaries relative to the geometry transparency groups; plugins retain ownership
+of their indirect draw and internal transparency policy. See [nested compositions](NESTED_COMPOSITIONS.md).

@@ -79,7 +79,7 @@ afterEach(() => {
 
 describe("project Assets panel", () => {
   it("keeps the effect preset draft when switching tabs without mounting hidden catalog rows", () => {
-    const container = renderPanel(createBlankProject());
+    const container = renderPanel(createBlankProject(true));
     const tabs = container.querySelectorAll<HTMLButtonElement>('[role="tab"]');
     expect(container.querySelector(".effect-list")).toBeNull();
     act(() => tabs[1].click());
@@ -101,7 +101,7 @@ describe("project Assets panel", () => {
   });
 
   it("opens the add dropdown and folds the Assets root", () => {
-    const container = renderPanel(createBlankProject());
+    const container = renderPanel(createBlankProject(true));
     const addButton = container.querySelector<HTMLButtonElement>('button[aria-label="Add item"]');
     act(() => addButton?.click());
     expect(container.textContent).toContain("Add to project");
@@ -122,7 +122,7 @@ describe("project Assets panel", () => {
   });
 
   it("creates folders and compositions from the add dropdown", () => {
-    const container = renderPanel(createBlankProject());
+    const container = renderPanel(createBlankProject(true));
     const addButton = container.querySelector<HTMLButtonElement>('button[aria-label="Add item"]');
     act(() => addButton?.click());
     const folderButton = [...container.querySelectorAll<HTMLButtonElement>("button")].find(
@@ -142,7 +142,7 @@ describe("project Assets panel", () => {
   });
 
   it("moves project items into a folder and opens that folder's targeted add dropdown", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const folder = { id: crypto.randomUUID(), name: "Shots" };
     project.folders.push(folder);
     const container = renderPanel(project);
@@ -171,7 +171,7 @@ describe("project Assets panel", () => {
   });
 
   it("opens composition actions by pointer and keyboard without duplicating command logic", () => {
-    const container = renderPanel(createBlankProject());
+    const container = renderPanel(createBlankProject(true));
     const compositionRow = container.querySelector<HTMLButtonElement>(".tree-row.composition");
     expect(compositionRow).not.toBeNull();
 

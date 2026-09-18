@@ -18,6 +18,7 @@ import {
   PrecompositionSurfaceRenderer,
   precompositionSurfaceShader,
 } from "./precomposition-surface-renderer";
+import { SurfacePostProcessing } from "./surface-post-processing";
 
 describe("GPU precomposition surfaces", () => {
   afterEach(() => vi.unstubAllGlobals());
@@ -35,7 +36,7 @@ describe("GPU precomposition surfaces", () => {
       shapePipelines: blendPipelines(),
       imagePipelines: blendPipelines(),
     });
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const root = project.compositions[0];
     const nested = structuredClone(root);
     nested.id = crypto.randomUUID();
@@ -78,7 +79,7 @@ describe("GPU precomposition surfaces", () => {
       imagePipelines: pipelines,
     });
 
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const root = project.compositions[0];
     const nested = structuredClone(root);
     nested.id = crypto.randomUUID();
@@ -154,7 +155,7 @@ describe("GPU precomposition surfaces", () => {
       imagePipelines: pipelines,
       sceneGenerators,
     });
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const root = project.compositions[0];
     const nested = structuredClone(root);
     nested.id = crypto.randomUUID();
@@ -211,7 +212,7 @@ describe("GPU precomposition surfaces", () => {
       shapePipelines: pipelines,
       imagePipelines: pipelines,
     });
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const root = project.compositions[0];
     const nested = structuredClone(root);
     nested.id = crypto.randomUUID();
@@ -242,14 +243,17 @@ describe("GPU precomposition surfaces", () => {
       {
         scene: sceneLayers[0],
         deviceMaxTextureDimension: device.limits.maxTextureDimension2D,
-        memoryBudgetMb: 1,
+        memoryBudgetMb: 256,
         hasEffects: false,
       },
       createPrecompositionSurfaceBudget(),
     );
     if (surfacePlan.status !== "ready") throw new Error("Expected a precomposition surface");
 
-    renderer.prepare(project, sceneLayers, false, 1, true);
+    // This fixture isolates text raster planning; real camera/vector passes are GPU-tested.
+    const postProcessing = vi.spyOn(SurfacePostProcessing, "needed").mockReturnValueOnce(false);
+    renderer.prepare(project, sceneLayers, false, 256, true);
+    postProcessing.mockRestore();
 
     expect(prepareText).toHaveBeenCalledTimes(1);
     const call = prepareText.mock.calls[0];
@@ -279,7 +283,7 @@ describe("GPU precomposition surfaces", () => {
       shapePipelines: pipelines,
       imagePipelines: pipelines,
     });
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const root = project.compositions[0];
     const nested = structuredClone(root);
     nested.id = crypto.randomUUID();
@@ -316,7 +320,7 @@ describe("GPU precomposition surfaces", () => {
       shapePipelines: pipelines,
       imagePipelines: pipelines,
     });
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const root = project.compositions[0];
     const nested = structuredClone(root);
     nested.id = crypto.randomUUID();
@@ -353,7 +357,7 @@ describe("GPU precomposition surfaces", () => {
       shapePipelines: pipelines,
       imagePipelines: pipelines,
     });
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const root = project.compositions[0];
     const sourceA = structuredClone(root);
     sourceA.id = crypto.randomUUID();
@@ -452,7 +456,7 @@ describe("GPU precomposition surfaces", () => {
       shapePipelines: pipelines,
       imagePipelines: pipelines,
     });
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const root = project.compositions[0];
     const source = structuredClone(root);
     source.id = crypto.randomUUID();
@@ -511,7 +515,7 @@ describe("GPU precomposition surfaces", () => {
       shapePipelines: pipelines,
       imagePipelines: pipelines,
     });
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const root = project.compositions[0];
     const source = structuredClone(root);
     source.id = crypto.randomUUID();
@@ -552,9 +556,10 @@ describe("GPU precomposition surfaces", () => {
     );
   });
 
-  it("reports the material fidelity boundary instead of silently dropping it", () => {
+  it("prepares child HDR lighting, normal maps and shadow targets", () => {
     installGpuConstants();
-    const device = mockDevice([], vi.fn());
+    const textures: GPUTextureDescriptor[] = [];
+    const device = mockDevice(textures, vi.fn());
     const layout = device.createBindGroupLayout({ entries: [] });
     const sampler = device.createSampler();
     const pipelines = blendPipelines();
@@ -566,7 +571,7 @@ describe("GPU precomposition surfaces", () => {
       shapePipelines: pipelines,
       imagePipelines: pipelines,
     });
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const root = project.compositions[0];
     const nested = structuredClone(root);
     nested.id = crypto.randomUUID();
@@ -603,13 +608,17 @@ describe("GPU precomposition surfaces", () => {
     root.layers = [wrapper];
     project.compositions.push(nested);
 
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => new Promise(() => {})),
+    );
     const frame = renderer.prepare(project, flattenSceneLayers(root, project, 0), false);
-    expect(frame.diagnostics).toEqual([
-      expect.stringContaining("HDR environment lighting is not sampled"),
-      expect.stringContaining("mesh normal maps are not sampled"),
-      expect.stringContaining("child shadow maps are not encoded"),
-    ]);
+    expect(frame.diagnostics).toEqual([]);
+    expect(textures.some((texture) => texture.label === "Nested composition shadow map")).toBe(
+      true,
+    );
     expect(precompositionSurfaceShader).toMatch(/if \(alpha <= 0\.00001\) \{ discard; \}/);
+    renderer.destroy();
   });
 });
 

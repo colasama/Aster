@@ -1,5 +1,6 @@
 import type { Composition, FootageSource, Id, Project } from "../types";
-import { audibleCompositionLayers, type DecodedPcm, mixCompositionAudio } from "./audio-mixer";
+import { type DecodedPcm, mixCompositionAudio } from "./audio-mixer";
+import { collectAudioInstances } from "./nested-audio";
 
 export const EXPORT_AUDIO_SAMPLE_RATE = 48_000;
 export const EXPORT_AUDIO_CHUNK_FRAMES = 48_000;
@@ -41,8 +42,8 @@ export async function decodeAudibleSources(
 ): Promise<Map<Id, DecodedPcm>> {
   const sourceById = new Map(project.sources.map((source) => [source.id, source]));
   const sourceIds = new Set(
-    audibleCompositionLayers(composition)
-      .map((layer) => layer.sourceId)
+    collectAudioInstances(project, composition)
+      .map(({ layer }) => layer.sourceId)
       .filter((sourceId): sourceId is Id => sourceId !== undefined),
   );
   const decoded = new Map<Id, DecodedPcm>();

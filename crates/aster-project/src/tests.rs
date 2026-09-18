@@ -63,7 +63,7 @@ struct EditorPresentation {
 impl EditorFixture {
     fn document() -> Result<Value, serde_json::Error> {
         serde_json::to_value(Self {
-            schema_version: 10,
+            schema_version: 11,
             id: Uuid::new_v4(),
             name: "Editor roundtrip".into(),
             active_composition_id: "main".into(),
@@ -96,7 +96,7 @@ fn editor_bundle_reads_legacy_versions_but_writes_only_current()
     let directory = std::env::temp_dir().join(format!("aster-editor-legacy-{}", Uuid::new_v4()));
     fs::create_dir_all(&directory)?;
     let bundle = ProjectBundle::at(&directory);
-    for version in 1..10_u32 {
+    for version in 1..11_u32 {
         let mut previous = EditorFixture::document()?;
         previous["schemaVersion"] = Value::from(version);
         fs::write(
@@ -105,7 +105,7 @@ fn editor_bundle_reads_legacy_versions_but_writes_only_current()
         )?;
         assert_eq!(bundle.load_editor()?, previous);
         assert!(matches!(bundle.save_editor(&previous),
-            Err(ProjectError::UnsupportedSchema { found, supported: 10 }) if found == version));
+            Err(ProjectError::UnsupportedSchema { found, supported: 11 }) if found == version));
     }
     fs::remove_dir_all(directory)?;
     Ok(())

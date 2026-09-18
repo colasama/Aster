@@ -104,7 +104,7 @@ impl MediaFixture {
         entries: Vec<EntryFixture>,
     ) -> Result<Value, serde_json::Error> {
         serde_json::to_value(Self {
-            schema_version: 10,
+            schema_version: 11,
             active_composition_id: "main".into(),
             compositions: vec![CompositionFixture {
                 id: "main".into(),

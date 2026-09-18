@@ -126,6 +126,8 @@ export interface Layer {
   audioEnabled?: boolean;
   audio?: AudioLayerSettings;
   threeDimensional: boolean;
+  /** Exposes nested content to the containing scene independently of the 3D switch. */
+  collapseTransformations?: boolean;
   inPoint: number;
   outPoint: number;
   timeOffset?: number;
@@ -363,7 +365,7 @@ export interface ProjectFolder {
 }
 
 export interface Project {
-  schemaVersion: 10;
+  schemaVersion: 11;
   id: Id;
   name: string;
   activeCompositionId: Id;

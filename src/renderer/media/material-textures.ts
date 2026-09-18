@@ -14,6 +14,7 @@ interface NormalResource {
   state: "loading" | "ready" | "failed";
   abort: AbortController;
   diagnosticReported?: boolean;
+  ready?: Promise<void>;
 }
 
 interface EnvironmentResource {
@@ -24,6 +25,7 @@ interface EnvironmentResource {
   state: "loading" | "ready" | "failed";
   abort: AbortController;
   diagnosticReported?: boolean;
+  ready?: Promise<void>;
 }
 
 export interface MaterialTextureBinding {
@@ -122,6 +124,22 @@ export class MaterialTextureRenderer {
       ...HDR_ENVIRONMENT_SAMPLER_DESCRIPTOR,
       label: "Equirectangular HDR environment sampler",
     });
+  }
+
+  get hasPendingResources(): boolean {
+    return (
+      this.#environment?.state === "loading" ||
+      [...this.#normals.values()].some((resource) => resource.state === "loading")
+    );
+  }
+
+  async waitForResources(): Promise<void> {
+    await Promise.all(
+      [...this.#normals.values(), ...(this.#environment ? [this.#environment] : [])].map(
+        (resource) => resource.ready,
+      ),
+    );
+    if (this.#failures.size) throw new Error([...this.#failures.values()].join("; "));
   }
 
   destroy(): void {
@@ -278,7 +296,7 @@ export class MaterialTextureRenderer {
     this.#normals.set(instanceId, resource);
     this.#clearFailure(`normal:${instanceId}`);
     this.#bindGroups.delete(instanceId);
-    void fetch(source, { signal: abort.signal })
+    resource.ready = fetch(source, { signal: abort.signal })
       .then((response) => {
         if (!response.ok) throw new Error(`Normal map request failed with HTTP ${response.status}`);
         return response.blob();
@@ -383,7 +401,7 @@ export class MaterialTextureRenderer {
       );
       return;
     }
-    void fetch(source, { signal: abort.signal })
+    resource.ready = fetch(source, { signal: abort.signal })
       .then((response) => {
         if (!response.ok)
           throw new Error(`HDR environment request failed with HTTP ${response.status}`);

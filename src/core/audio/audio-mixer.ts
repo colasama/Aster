@@ -1,6 +1,7 @@
-import { evaluateLayerSourceTime } from "../animation/layer-time";
+import { evaluateUnclampedSourceTime } from "../animation/layer-time";
 import type { Composition, Id, Layer, Project } from "../types";
 import { decibelsToLinear, layerHasAudio } from "./audio-layer";
+import { audioInstanceTime, collectAudioInstances } from "./nested-audio";
 
 export const DEFAULT_MIX_SAMPLE_RATE = 48_000;
 export const MAX_MIX_SAMPLE_RATE = 192_000;
@@ -41,20 +42,12 @@ export function evaluateLayerAudioSourceTime(
     sourceDuration <= 0
   )
     return undefined;
-  const forward = evaluateLayerSourceTime(layer, compositionTime, sourceDuration);
-  return layer.audio?.reversed ? Math.max(0, sourceDuration - forward) : forward;
+  const forward = evaluateUnclampedSourceTime(layer, compositionTime);
+  const time = layer.audio?.reversed ? sourceDuration - forward : forward;
+  return time >= 0 && time < sourceDuration ? time : undefined;
 }
 
-export function audibleCompositionLayers(composition: Composition): Layer[] {
-  const audioSolo = composition.layers.some((layer) => layer.kind === "audio" && layer.solo);
-  const videoSolo = composition.layers.some((layer) => layer.kind === "video" && layer.solo);
-  return composition.layers.filter((layer) => {
-    if (!layerHasAudio(layer) || layer.audioEnabled === false || layer.audio?.muted) return false;
-    if (layer.kind === "audio" && audioSolo && !layer.solo) return false;
-    if (layer.kind === "video" && videoSolo && !layer.solo) return false;
-    return true;
-  });
-}
+export { audibleLayers as audibleCompositionLayers } from "./nested-audio";
 
 export function mixCompositionAudio(
   project: Project,
@@ -82,7 +75,8 @@ export function mixCompositionAudio(
   const samples = new Float32Array(frameCount * 2);
   const sourceById = new Map(project.sources.map((source) => [source.id, source]));
 
-  for (const layer of audibleCompositionLayers(composition)) {
+  for (const instance of collectAudioInstances(project, composition)) {
+    const { layer, leftGain, rightGain } = instance;
     if (!layer.sourceId) continue;
     const source = sourceById.get(layer.sourceId);
     const decoded = decodedBySourceId.get(layer.sourceId);
@@ -94,15 +88,13 @@ export function mixCompositionAudio(
     )
       continue;
     validateDecodedPcm(decoded);
-    const audio = layer.audio ?? { levelsDb: [0, 0], pan: 0, muted: false, reversed: false };
-    const leftGain = decibelsToLinear(audio.levelsDb[0]) * Math.sqrt(1 - Math.max(0, audio.pan));
-    const rightGain = decibelsToLinear(audio.levelsDb[1]) * Math.sqrt(1 + Math.min(0, audio.pan));
     const sourceDuration = Math.min(
       source.duration,
       decoded.channels[0].length / decoded.sampleRate,
     );
     for (let frame = 0; frame < frameCount; frame += 1) {
-      const compositionTime = request.startTime + frame / sampleRate;
+      const compositionTime = audioInstanceTime(instance, request.startTime + frame / sampleRate);
+      if (compositionTime === undefined) continue;
       const sourceTime = evaluateLayerAudioSourceTime(layer, compositionTime, sourceDuration);
       if (sourceTime === undefined) continue;
       const sourceFrame = Math.min(

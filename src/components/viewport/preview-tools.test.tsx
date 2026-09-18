@@ -31,7 +31,7 @@ afterEach(() => {
 });
 
 it("commits timecode once, rejects invalid input, cancels edits and clamps to the last frame", () => {
-  const composition = activeComposition(createBlankProject());
+  const composition = activeComposition(createBlankProject(true));
   composition.duration = 5;
   composition.frameRate = { numerator: 24, denominator: 1 };
   const seek = vi.fn();

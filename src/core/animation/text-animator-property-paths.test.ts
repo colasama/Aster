@@ -85,7 +85,7 @@ describe("text animator property paths", () => {
 });
 
 function textLayer() {
-  const project = createBlankProject();
+  const project = createBlankProject(true);
   return createLayerForComposition("text", project.compositions[0]);
 }
 

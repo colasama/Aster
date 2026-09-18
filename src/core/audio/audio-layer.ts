@@ -6,7 +6,7 @@ export const MIN_AUDIO_PAN = -1;
 export const MAX_AUDIO_PAN = 1;
 
 export function layerHasAudio(layer: Layer): boolean {
-  return layer.kind === "audio" || layer.kind === "video";
+  return layer.kind === "audio" || layer.kind === "video" || layer.kind === "precomposition";
 }
 
 export function normalizeAudioLayerSettings(settings: AudioLayerSettings): AudioLayerSettings {

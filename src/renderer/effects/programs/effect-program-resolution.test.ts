@@ -5,7 +5,7 @@ import { createEffect } from "../../../effects/registry";
 import { compileEffectProgram, EffectOpcode } from "../effect-program";
 
 it("preserves composition-space radii, feathering, and angles across preview resolutions", () => {
-  const composition = createBlankProject().compositions[0];
+  const composition = createBlankProject(true).compositions[0];
   const layer = createLayerForComposition("image", composition);
   const sphere = createEffect("sphere");
   sphere.parameterKeyframes = {

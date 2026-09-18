@@ -49,7 +49,7 @@ describe("camera options controls", () => {
   it("uses the canonical orthographic size bounds", () => {
     const container = document.createElement("div");
     document.body.append(container);
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const camera = createLayerForComposition("camera", composition);
     if (!camera.camera) throw new Error("Expected camera settings");
@@ -77,7 +77,7 @@ describe("camera options controls", () => {
   it("edits vector and optical animation at current time without collapsing tracks", () => {
     const container = document.createElement("div");
     document.body.append(container);
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const camera = createLayerForComposition("camera", composition);
     if (!camera.camera) throw new Error("Expected camera settings");
@@ -130,7 +130,7 @@ describe("camera options controls", () => {
   it("exposes bounded iris, diffraction, and highlight controls", () => {
     const container = document.createElement("div");
     document.body.append(container);
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const camera = createLayerForComposition("camera", composition);
     if (!camera.camera) throw new Error("Expected camera settings");

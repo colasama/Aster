@@ -50,8 +50,13 @@ export function validateLayer(
     throw new Error(`${path}.motionBlur must be a boolean`);
   if (layer.audioEnabled !== undefined && typeof layer.audioEnabled !== "boolean")
     throw new Error(`${path}.audioEnabled must be a boolean`);
+  if (
+    layer.collapseTransformations !== undefined &&
+    (layer.kind !== "precomposition" || typeof layer.collapseTransformations !== "boolean")
+  )
+    throw new Error(`${path}.collapseTransformations requires a precomposition boolean`);
   if (layer.audio !== undefined) {
-    if (layer.kind !== "audio" && layer.kind !== "video")
+    if (layer.kind !== "audio" && layer.kind !== "video" && layer.kind !== "precomposition")
       throw new Error(`${path}.audio requires an audio-capable layer`);
     const audio = requireObject(layer.audio, `${path}.audio`);
     const levelsDb = requireNumberArray(audio.levelsDb, `${path}.audio.levelsDb`, 2);

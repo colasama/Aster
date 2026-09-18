@@ -26,7 +26,7 @@ vi.mock("../../core/audio/audio-playback-engine", () => ({
 let root: Root;
 let callbacks: Map<number, FrameRequestCallback>;
 let nextId: number;
-const project = createBlankProject();
+const project = createBlankProject(true);
 const composition = project.compositions[0];
 function Harness() {
   usePlayback(composition, composition.workArea);

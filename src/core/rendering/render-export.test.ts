@@ -11,7 +11,7 @@ import {
 
 describe("MP4 frame pipeline", () => {
   it("captures one immutable project/composition document for picture and audio", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const captured = captureRenderProjectSnapshot(project, composition);
     composition.width = 123;
@@ -25,7 +25,7 @@ describe("MP4 frame pipeline", () => {
   });
 
   it("preserves ephemeral runtime locators required by foreground picture and audio", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     project.sources.push({
       id: "linked-video",
       kind: "video",
@@ -48,7 +48,7 @@ describe("MP4 frame pipeline", () => {
   });
 
   it("leases an immutable advanced-media generation under export-only source ids", async () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const source = {
       id: "psd-source",
@@ -98,7 +98,7 @@ describe("MP4 frame pipeline", () => {
   });
 
   it("rejects a composition outside the captured project", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     expect(() =>
       captureRenderProjectSnapshot(project, { ...project.compositions[0], id: "missing" }),
     ).toThrow("not present");

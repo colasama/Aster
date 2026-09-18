@@ -131,7 +131,7 @@ describe("third-party scene generator host integration", () => {
   it("runs discovery, typed packing, isolated resources, ordered compute, indirect draw, and MRT", () => {
     expect(synchronizeSceneGeneratorDefinitions(status([manifest]))).toEqual([]);
     const definition = getSceneGeneratorDefinitions()[0];
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const instance = createSceneGeneratorInstance(definition);
     instance.parameters.count = 1_500;
@@ -214,7 +214,7 @@ describe("third-party scene generator host integration", () => {
   it("isolates missing plugins and destroys resources that leave the evaluated scene", () => {
     synchronizeSceneGeneratorDefinitions(status([manifest]));
     const definition = getSceneGeneratorDefinitions()[0];
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const layer = createGeneratorLayerForComposition(
       composition,
@@ -254,7 +254,7 @@ describe("third-party scene generator host integration", () => {
 
   it("retains unaffected resources and replaces only executable definitions that change", () => {
     synchronizeSceneGeneratorDefinitions(status([manifest]));
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const layer = createGeneratorLayerForComposition(
       composition,
@@ -297,7 +297,7 @@ describe("third-party scene generator host integration", () => {
 
   it("keeps beauty rendering available when the adapter cannot expose the auxiliary MRT", () => {
     synchronizeSceneGeneratorDefinitions(status([manifest]));
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const layer = createGeneratorLayerForComposition(
       composition,

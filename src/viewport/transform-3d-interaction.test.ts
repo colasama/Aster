@@ -14,7 +14,7 @@ import {
 
 describe("3D viewport interaction math", () => {
   it("projects a 3D layer at the evaluated camera depth for bounded picking", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const layer = createLayerForComposition("shape", composition);
     layer.threeDimensional = true;
@@ -35,7 +35,7 @@ describe("3D viewport interaction math", () => {
   });
 
   it("rotates Local axes at the current transform while World axes remain fixed", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const layer = createLayerForComposition("solid", composition);
     layer.threeDimensional = true;
@@ -63,7 +63,7 @@ describe("3D viewport interaction math", () => {
   });
 
   it("inverts parent position at the requested time without flattening animation", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const parent = createLayerForComposition("null", composition);
     const child = createLayerForComposition("shape", composition);
@@ -87,7 +87,7 @@ describe("3D viewport interaction math", () => {
   });
 
   it("selects a locked top layer instead of clicking through and includes 3D layers", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const bottom = createLayerForComposition("solid", composition);
     const locked = createLayerForComposition("shape", composition);

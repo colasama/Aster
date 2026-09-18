@@ -10,7 +10,7 @@ import { createDefaultBezierPath } from "./vector-path";
 
 describe("GPU scene geometry", () => {
   it("keeps transparent fill, stroke alpha, and animated layer opacity independent", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const ring = createLayerForComposition("shape", composition);
     ring.color = [0, 0, 0, 0];
@@ -27,7 +27,7 @@ describe("GPU scene geometry", () => {
   });
 
   it("emits an untextured solid quad and never emits null pixels or effect geometry", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const solid = createLayerForComposition("solid", composition);
     const nullLayer = createLayerForComposition("null", composition);
@@ -66,7 +66,7 @@ describe("GPU scene geometry", () => {
   it.each(["shape", "text"] as const)(
     "keeps %s GPU corners aligned with the anchor-aware viewport box",
     (kind) => {
-      const project = createBlankProject();
+      const project = createBlankProject(true);
       const composition = project.compositions[0];
       const layer = createLayerForComposition(kind, composition);
       setLayerSizeAndCenterAnchor(layer, [200, 100]);
@@ -94,7 +94,7 @@ describe("GPU scene geometry", () => {
   );
 
   it("projects 3D rotation and depth into screen-space vertices", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const mesh = createLayerForComposition("mesh", composition);
     if (!mesh.material) throw new Error("Expected mesh material");
@@ -125,7 +125,7 @@ describe("GPU scene geometry", () => {
   });
 
   it("projects 3D geometry relative to the active camera transform", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const mesh = createLayerForComposition("mesh", composition);
     const camera = createLayerForComposition("camera", composition);
@@ -144,7 +144,7 @@ describe("GPU scene geometry", () => {
   });
 
   it("supports orthographic camera projection without perspective depth scaling", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const mesh = createLayerForComposition("mesh", composition);
     const camera = createLayerForComposition("camera", composition);
@@ -166,7 +166,7 @@ describe("GPU scene geometry", () => {
   });
 
   it("packs explicit vector kind, roundness, and stroke style attributes", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const ellipse = createLayerForComposition("shape", composition);
     ellipse.size = [480, 480];
@@ -195,7 +195,7 @@ describe("GPU scene geometry", () => {
   });
 
   it("tessellates Bezier paths into the shared GPU vertex stream", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const path = createLayerForComposition("shape", composition);
     if (!path.shape) throw new Error("Expected shape settings");
@@ -219,7 +219,7 @@ describe("GPU scene geometry", () => {
   });
 
   it("includes text quads so cached glyph textures share the layer effect graph", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const text = createLayerForComposition("text", composition);
     composition.layers = [text];
@@ -230,7 +230,7 @@ describe("GPU scene geometry", () => {
   });
 
   it("sizes a 3D precomposition quad from its source composition", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const root = project.compositions[0];
     const nested = structuredClone(root);
     nested.id = crypto.randomUUID();
@@ -250,7 +250,7 @@ describe("GPU scene geometry", () => {
   });
 
   it("keeps clone effect instances distinct while sharing their media resource", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const image = createLayerForComposition("image", composition);
     image.cloner = {
@@ -270,7 +270,7 @@ describe("GPU scene geometry", () => {
   });
 
   it("expands imported indexed meshes into the shared GPU vertex stream", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const mesh = createLayerForComposition("mesh", composition);
     mesh.mesh = {

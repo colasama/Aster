@@ -1,4 +1,5 @@
 import type { FlattenedSceneLayer } from "../../core/scene/scene-evaluation";
+import { transformPoint } from "../../core/scene/transform-matrix";
 import type { Composition } from "../../core/types";
 
 export const MAX_SCENE_LIGHTS = 8;
@@ -29,7 +30,9 @@ export function buildSceneLighting(
   }
   const light = lights[0];
   const direction = light
-    ? rotateDirection([0, 0, 1], light.transform.rotation)
+    ? light.worldMatrix
+      ? transformPoint(light.worldMatrix, [0, 0, 1], 0)
+      : rotateDirection([0, 0, 1], light.transform.rotation)
     : ([0.35, -0.45, 0.82] as [number, number, number]);
   const length = Math.hypot(...direction) || 1;
   const normalized = direction.map((component) => component / length) as [number, number, number];
@@ -41,7 +44,9 @@ export function buildSceneLighting(
     light?.layer.light?.intensity ?? 1.25,
     ...(light?.layer.color.slice(0, 3) ?? [1, 0.96, 0.9]),
     light ? 0.12 : 0.16,
-    ...(light?.transform.position ?? [0, 0, 0]),
+    ...(light?.worldMatrix
+      ? transformPoint(light.worldMatrix, light.transform.anchor)
+      : (light?.transform.position ?? [0, 0, 0])),
     kind === "directional" ? 0 : kind === "point" ? 1 : 2,
     light?.layer.light?.range ?? 10_000,
     Math.cos(((light?.layer.light?.coneAngle ?? 45) * Math.PI) / 360),
@@ -56,11 +61,17 @@ export function buildSceneLighting(
     const settings = additional.layer.light;
     uniforms.set(
       [
-        ...normalize(rotateDirection([0, 0, 1], additional.transform.rotation)),
+        ...normalize(
+          additional.worldMatrix
+            ? transformPoint(additional.worldMatrix, [0, 0, 1], 0)
+            : rotateDirection([0, 0, 1], additional.transform.rotation),
+        ),
         settings?.intensity ?? 1.25,
         ...additional.layer.color.slice(0, 3),
         0,
-        ...additional.transform.position,
+        ...(additional.worldMatrix
+          ? transformPoint(additional.worldMatrix, additional.transform.anchor)
+          : additional.transform.position),
         settings?.kind === "point" ? 1 : settings?.kind === "spot" ? 2 : 0,
         settings?.range ?? 10_000,
         Math.cos(((settings?.coneAngle ?? 45) * Math.PI) / 360),

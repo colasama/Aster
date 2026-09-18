@@ -551,6 +551,10 @@ export function applyOperation(project: Project, operation: Operation): void {
         if (!layerSupportsMotionBlur(layer))
           throw new Error(`${layer.kind} layers do not support motion blur`);
         layer.motionBlur = !layer.motionBlur;
+      } else if (operation.field === "collapseTransformations") {
+        if (layer.kind !== "precomposition")
+          throw new Error("Only precompositions can collapse transformations");
+        layer.collapseTransformations = !layer.collapseTransformations;
       } else if (operation.field === "threeDimensional") {
         const nextLayer = { ...layer, threeDimensional: !layer.threeDimensional };
         assertCanUpdateLayer(project, composition, nextLayer);

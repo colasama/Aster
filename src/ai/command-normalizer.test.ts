@@ -11,7 +11,7 @@ import { normalizeAiCommands } from "./command-normalizer";
 
 describe("AI command normalization", () => {
   it("adds, assigns, and interprets a versioned footage source", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const image = createLayerForComposition("image", composition);
     composition.layers.push(image);
@@ -49,7 +49,7 @@ describe("AI command normalization", () => {
   });
 
   it("creates and updates bounded solid sources while keeping nulls source-free", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const added = normalizeAiCommands(
       [
         {
@@ -94,7 +94,7 @@ describe("AI command normalization", () => {
   });
 
   it("normalizes first-class audio controls and rejects visual layers", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const audio = createLayerForComposition("audio", composition);
     composition.layers.unshift(audio);
@@ -131,7 +131,7 @@ describe("AI command normalization", () => {
   });
 
   it("validates and atomically applies a typed command batch", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const layer = project.compositions[0].layers[0];
     const result = normalizeAiCommands(
       [
@@ -147,7 +147,7 @@ describe("AI command normalization", () => {
   });
 
   it("rejects unknown, non-finite, and semantically invalid commands", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const layer = project.compositions[0].layers[0];
     expect(() => normalizeAiCommands([{ type: "runShell" }], project, 0)).toThrow(
       "Unknown Aster command",
@@ -165,7 +165,7 @@ describe("AI command normalization", () => {
   });
 
   it("rejects an entire batch before returning a partially changed project", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const originalName = project.compositions[0].layers[0].name;
     expect(() =>
       normalizeAiCommands(
@@ -185,7 +185,7 @@ describe("AI command normalization", () => {
   });
 
   it("normalizes project, composition, and precomposition commands", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const added = normalizeAiCommands(
       [
         {
@@ -221,7 +221,7 @@ describe("AI command normalization", () => {
   it.each([65, 107, 2048])(
     "precomposes %i layers while preserving their parent hierarchy",
     (count) => {
-      const project = createBlankProject();
+      const project = createBlankProject(true);
       const composition = project.compositions[0];
       const parent = createLayerForComposition("null", composition, 3);
       const children = Array.from({ length: count - 1 }, () => ({
@@ -259,7 +259,7 @@ describe("AI command normalization", () => {
   );
 
   it("rejects precomposition selections above 2048 IDs before mutation", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const before = structuredClone(project);
     expect(() =>
       normalizeAiCommands(
@@ -277,7 +277,7 @@ describe("AI command normalization", () => {
   });
 
   it("creates adjustment and referenced precomposition layers through the same typed command", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const source = createBlankComposition("Source");
     project.compositions.push(source);
     const result = normalizeAiCommands(
@@ -300,7 +300,7 @@ describe("AI command normalization", () => {
   });
 
   it("normalizes specialized layer domains through full project validation", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const text = createLayerForComposition("text", composition);
     const particle = createParticleLayerForComposition(composition);
@@ -360,7 +360,7 @@ describe("AI command normalization", () => {
   });
 
   it("toggles an existing text animator without replacing its ordered stack", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const text = createLayerForComposition("text", composition);
     const group = text.textAnimator?.groups[0];
@@ -380,7 +380,7 @@ describe("AI command normalization", () => {
   });
 
   it("validates ownership for transform and effect keyframe commands", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const layerId = project.compositions[0].layers[0].id;
     const withTracks = normalizeAiCommands(
       [
@@ -459,7 +459,7 @@ describe("AI command normalization", () => {
 });
 
 it("creates tightly sized text and shape layers with matching centered anchors", () => {
-  const project = createBlankProject();
+  const project = createBlankProject(true);
   const result = normalizeAiCommands(
     [
       { type: "addLayer", kind: "text", name: "Compact", text: "序章", size: [360, 220] },

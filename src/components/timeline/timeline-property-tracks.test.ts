@@ -60,7 +60,7 @@ describe("expanded timeline property tracks", () => {
   });
 
   it("exposes point-of-interest and orientation channels for camera graph editing", () => {
-    const composition = createBlankProject().compositions[0];
+    const composition = createBlankProject(true).compositions[0];
     const camera = createLayerForComposition("camera", composition);
     const group = collectTimelinePropertyGroups(camera).find(
       (candidate) => candidate.id === "camera",

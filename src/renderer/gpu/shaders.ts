@@ -377,7 +377,7 @@ ${framingWarpShaderCases}
     textureSample(hdr_scene, linear_sampler, uv - chromatic_offset).b,
   );
   let linear_output = settings.program.y > 0.5;
-  if linear_output && alpha > 0.00001 {
+  if alpha > 0.00001 {
     color /= alpha;
   }
   let blurred = sample_blur(uv, blur_radius);

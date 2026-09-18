@@ -6,7 +6,7 @@ import { visibleLayersAtTime } from "../core/scene/scene-evaluation";
 import { createInitialState, editorReducer } from "./editor-store";
 
 function lateShot() {
-  const project = createBlankProject();
+  const project = createBlankProject(true);
   const root = project.compositions[0];
   root.duration = 60;
   root.workArea = { start: 0, end: 60 };

@@ -77,9 +77,10 @@ function createLayer(kind: LayerKind, composition: Composition, currentTime: num
     solo: false,
     locked: false,
     motionBlur: false,
-    audioEnabled: hasAudio ? true : undefined,
+    audioEnabled: hasAudio || kind === "precomposition" ? true : undefined,
     audio: hasAudio ? { levelsDb: [0, 0], pan: 0, muted: false, reversed: false } : undefined,
     threeDimensional: kind === "mesh" || kind === "camera" || kind === "light",
+    collapseTransformations: kind === "precomposition" ? false : undefined,
     inPoint: currentTime,
     outPoint: composition.duration,
     blendMode: "normal",
@@ -91,7 +92,9 @@ function createLayer(kind: LayerKind, composition: Composition, currentTime: num
           ? [0.95, 0.97, 1, 1]
           : kind === "null"
             ? [0, 0, 0, 0]
-            : [0.3, 0.55, 1, 1],
+            : kind === "precomposition"
+              ? [1, 1, 1, 1]
+              : [0.3, 0.55, 1, 1],
     size,
     transform: isAdjustment
       ? createCanonicalAdjustmentTransform(composition)

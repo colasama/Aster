@@ -8,7 +8,7 @@ import {
 } from "./render-job-builder";
 
 function options(): RenderQueueJobOptions {
-  const project = createBlankProject();
+  const project = createBlankProject(true);
   const composition = project.compositions[0];
   composition.width = 640;
   composition.height = 360;

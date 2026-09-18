@@ -67,11 +67,11 @@ describe("scene operations", () => {
       applyOperations(project, [
         { type: "addLayer", layer: createLayerForComposition("adjustment", nested) },
       ]),
-    ).toThrow("Adjustment layers in precomposition sources require a 3D texture surface wrapper");
+    ).not.toThrow();
   });
 
-  it("keeps adjustment precompositions on the isolated 3D surface route", () => {
-    const project = createBlankProject();
+  it("allows adjustment precompositions on both 2D and 3D surface routes", () => {
+    const project = createBlankProject(true);
     const root = project.compositions[0];
     const nested = createBlankComposition("Adjusted source");
     nested.layers.unshift(createLayerForComposition("adjustment", nested));
@@ -85,7 +85,7 @@ describe("scene operations", () => {
       applyOperations(project, [
         { type: "toggleLayer", layerId: wrapper.id, field: "threeDimensional" },
       ]),
-    ).toThrow("Adjustment layers in precomposition sources require a 3D texture surface wrapper");
+    ).not.toThrow();
 
     nested.layers = nested.layers.filter((layer) => layer.kind !== "adjustment");
     const flattened = applyOperations(project, [
@@ -95,7 +95,7 @@ describe("scene operations", () => {
   });
 
   it("allows GPU scene generators in nested and cloned precompositions", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const root = project.compositions[0];
     const nested = createBlankComposition("Particle source");
     nested.layers = [createParticleLayerForComposition(nested)];
@@ -118,7 +118,7 @@ describe("scene operations", () => {
       withReferenced.compositions.some((composition) => composition.id === referenced.id),
     ).toBe(true);
 
-    const referencedRoot = createBlankProject();
+    const referencedRoot = createBlankProject(true);
     const referencedComposition = createBlankComposition("Referenced");
     referencedRoot.compositions.push(referencedComposition);
     const validWrapper = createLayerForComposition(

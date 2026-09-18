@@ -9,7 +9,7 @@ describe.runIf(live)("Pi agent live provider", () => {
   it("completes a real multi-tool staged edit without mutating the live project", async () => {
     const apiKey = process.env.ASTER_AI_API_KEY;
     if (!apiKey) throw new Error("ASTER_AI_API_KEY is required for the live test");
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const selectedLayerId = project.compositions[0].layers[0].id;
     const originalName = project.compositions[0].layers[0].name;
     const service = new AsterAgentApplicationService({

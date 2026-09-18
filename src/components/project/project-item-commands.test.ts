@@ -13,7 +13,7 @@ import {
 
 describe("project item commands", () => {
   it("duplicates compositions with independent layer, parent, effect, and keyframe identities", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = activeComposition(project);
     const parent = createLayerForComposition("shape", composition);
     const child = createLayerForComposition("text", composition);
@@ -41,7 +41,7 @@ describe("project item commands", () => {
   });
 
   it("explains unsafe deletions for referenced and required items", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = activeComposition(project);
     expect(
       projectItemDeleteBlock(project, {
@@ -65,7 +65,7 @@ describe("project item commands", () => {
   });
 
   it("excludes the current folder and descendants from move destinations", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const parent = { id: crypto.randomUUID(), name: "Parent" };
     const child = { id: crypto.randomUUID(), name: "Child", parentId: parent.id };
     const sibling = { id: crypto.randomUUID(), name: "Sibling" };

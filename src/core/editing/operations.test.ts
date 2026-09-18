@@ -58,7 +58,7 @@ describe("operations", () => {
   });
 
   it("updates dedicated solid settings atomically and preserves them through copy-safe snapshots", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = activeComposition(project);
     const solid = createLayerForComposition("solid", composition);
     solid.transform.anchor[0] = {

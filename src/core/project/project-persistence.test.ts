@@ -31,7 +31,7 @@ describe("native project persistence", () => {
       }),
     } as unknown as AsterDesktopApi;
 
-    const savedProject = createBlankProject();
+    const savedProject = createBlankProject(true);
     const saveRequest = saveProjectDocument(savedProject);
     await vi.waitFor(() => expect(commands).toEqual(["save_project"]));
 

@@ -20,7 +20,7 @@ const animated = (id: string, start: number, end: number): Animatable => ({
 
 describe("text animator graph tracks", () => {
   it("folds per-character Position into speed while preserving selector value tracks", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const layer = createLayerForComposition("text", project.compositions[0]);
     const animator = layer.textAnimator?.groups[0];
     const selector = animator?.selectors[0];

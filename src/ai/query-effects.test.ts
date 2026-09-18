@@ -4,7 +4,7 @@ import { createBlankProject } from "../core/project/project";
 import { AsterAgentApplicationService } from "./application-service";
 
 it("queries effects on unselected layers with stable pagination and no LUT payload", async () => {
-  const project = createBlankProject();
+  const project = createBlankProject(true);
   const comp = project.compositions[0];
   const layer = createLayerForComposition("adjustment", comp);
   layer.effects = [

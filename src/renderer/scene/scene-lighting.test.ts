@@ -18,7 +18,7 @@ describe("scene lighting uniforms", () => {
   });
 
   it("uses animated light orientation, HDR color, and intensity", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const light = createLayerForComposition("light", composition);
     light.color = [0.5, 0.75, 1.5, 1];
@@ -38,7 +38,7 @@ describe("scene lighting uniforms", () => {
   });
 
   it("packs point and spot attenuation parameters in world space", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const light = createLayerForComposition("light", composition);
     if (!light.light) throw new Error("Expected light settings");
@@ -66,7 +66,7 @@ describe("scene lighting uniforms", () => {
   });
 
   it("disables shadow sampling when the memory budget rejects a shadow map", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const light = createLayerForComposition("light", composition);
     composition.layers.push(light);
@@ -79,7 +79,7 @@ describe("scene lighting uniforms", () => {
   });
 
   it("packs the active camera position for view-dependent reflections", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const uniforms = buildSceneLighting(
       flattenSceneLayers(composition, project, 0),
@@ -91,7 +91,7 @@ describe("scene lighting uniforms", () => {
   });
 
   it("evaluates additional directional, point and spot lights at the requested time", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     composition.layers = ["directional", "directional", "point", "spot"].map((kind, index) => {
       const layer = createLayerForComposition("light", composition);
@@ -124,7 +124,7 @@ describe("scene lighting uniforms", () => {
   });
 
   it("bounds GPU work and drops inactive lights before packing", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     composition.layers = Array.from({ length: MAX_SCENE_LIGHTS + 3 }, (_, index) => {
       const layer = createLayerForComposition("light", composition);

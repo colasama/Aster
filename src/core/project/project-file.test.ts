@@ -14,7 +14,7 @@ import { serializeProject, storeRecoverySnapshot, validateProjectDocument } from
 
 describe("project document boundary", () => {
   it("roundtrips shared sources once and rejects invalid references or metadata", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const source = {
       id: crypto.randomUUID(),
@@ -51,7 +51,7 @@ describe("project document boundary", () => {
   });
 
   it("roundtrips canonical solid sources and transform-only null layers", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const solid = createLayerForComposition("solid", composition);
     const nullLayer = createLayerForComposition("null", composition);
@@ -60,12 +60,12 @@ describe("project document boundary", () => {
     composition.layers = [nullLayer, solid];
 
     const roundtrip = validateProjectDocument(JSON.parse(serializeProject(project)));
-    expect(roundtrip.schemaVersion).toBe(10);
+    expect(roundtrip.schemaVersion).toBe(11);
     expect(roundtrip.compositions[0].layers).toEqual([nullLayer, solid]);
   });
 
   it("roundtrips bounded composition and per-layer motion blur settings", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     composition.motionBlur = {
       enabled: true,
@@ -89,7 +89,7 @@ describe("project document boundary", () => {
   });
 
   it("rejects missing, oversized, and internally inconsistent solid sources", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const solid = createLayerForComposition("solid", project.compositions[0]);
     project.compositions[0].layers = [solid];
     solid.solid = undefined;
@@ -116,13 +116,13 @@ describe("project document boundary", () => {
         throw new Error("quota exceeded");
       },
     };
-    await expect(storeRecoverySnapshot(createBlankProject(), storage)).rejects.toThrow(
+    await expect(storeRecoverySnapshot(createBlankProject(true), storage)).rejects.toThrow(
       "quota exceeded",
     );
   });
 
-  it("rejects render states the bounded flat renderer cannot represent", () => {
-    const project = createBlankProject();
+  it("validates isolated compositions and bounded effect resources", () => {
+    const project = createBlankProject(true);
     const root = project.compositions[0];
     const nested = structuredClone(root);
     nested.id = crypto.randomUUID();
@@ -133,9 +133,7 @@ describe("project document boundary", () => {
     project.compositions.push(nested);
 
     nested.layers.unshift(createLayerForComposition("adjustment", nested));
-    expect(() => validateProjectDocument(project)).toThrow(
-      "Adjustment layers in precomposition sources require a 3D texture surface wrapper",
-    );
+    expect(() => validateProjectDocument(project)).not.toThrow();
     wrapper.threeDimensional = true;
     expect(validateProjectDocument(project).compositions[1].layers[0].kind).toBe("adjustment");
     wrapper.threeDimensional = false;
@@ -192,7 +190,7 @@ describe("project document boundary", () => {
   });
 
   it("roundtrips strict adjustment layers and rejects unknown or source-backed kinds", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const adjustment = createLayerForComposition("adjustment", composition);
     composition.layers.unshift(adjustment);
@@ -224,12 +222,12 @@ describe("project document boundary", () => {
   });
 
   it("roundtrips a valid editor project", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     expect(validateProjectDocument(JSON.parse(serializeProject(project)))).toEqual(project);
   });
 
   it("roundtrips project folders and rejects cyclic folder trees", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const parent: ProjectFolder = { id: crypto.randomUUID(), name: "Footage" };
     const child = { id: crypto.randomUUID(), name: "Selects", parentId: parent.id };
     project.folders = [parent, child];
@@ -246,7 +244,7 @@ describe("project document boundary", () => {
   });
 
   it("hydrates project organization for v1 documents created before folders", () => {
-    const legacy = structuredClone(createBlankProject()) as Partial<
+    const legacy = structuredClone(createBlankProject(true)) as Partial<
       ReturnType<typeof createBlankProject>
     >;
     delete legacy.folders;
@@ -255,7 +253,7 @@ describe("project document boundary", () => {
   });
 
   it("requires a strict frame-aligned composition work area", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     project.compositions[0].workArea = { start: 1, end: 3 };
     expect(
       validateProjectDocument(JSON.parse(serializeProject(project))).compositions[0].workArea,
@@ -271,19 +269,19 @@ describe("project document boundary", () => {
   });
 
   it("rejects a missing active composition", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     project.activeCompositionId = crypto.randomUUID();
     expect(() => validateProjectDocument(project)).toThrow("Active composition does not exist");
   });
 
   it("rejects duplicate layer identifiers", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     project.compositions[0].layers.push(structuredClone(project.compositions[0].layers[0]));
     expect(() => validateProjectDocument(project)).toThrow("duplicate layer id");
   });
 
   it("roundtrips bounded LUT resources and rejects malformed voxel counts", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const lut = createEffect("lut");
     lut.resource = parseCubeLut(
       "LUT_3D_SIZE 2\n0 0 0\n1 0 0\n0 1 0\n1 1 0\n0 0 1\n1 0 1\n0 1 1\n1 1 1",
@@ -302,7 +300,7 @@ describe("project document boundary", () => {
   });
 
   it("roundtrips bounded effect-local masks", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const effect = createEffect("exposure");
     effect.mask = {
       shape: "rectangle",
@@ -321,7 +319,7 @@ describe("project document boundary", () => {
   });
 
   it("validates source-time mapping and animated time remapping", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const layer = project.compositions[0].layers[0];
     layer.timeOffset = 2;
     layer.timeStretch = 0.5;
@@ -340,7 +338,7 @@ describe("project document boundary", () => {
   });
 
   it("roundtrips bounded preview audio state", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const layer = createLayerForComposition("audio", project.compositions[0]);
     const source = {
       id: crypto.randomUUID(),
@@ -373,7 +371,7 @@ describe("project document boundary", () => {
   });
 
   it("roundtrips GPU material and physical light settings", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const mesh = createLayerForComposition("mesh", composition);
     const light = createLayerForComposition("light", composition);
@@ -404,7 +402,7 @@ describe("project document boundary", () => {
   });
 
   it("roundtrips perspective and orthographic camera settings", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const camera = createLayerForComposition("camera", composition);
     if (!camera.camera) throw new Error("Expected camera settings");
@@ -427,7 +425,7 @@ describe("project document boundary", () => {
   });
 
   it("rejects redundant derived camera optics in current-schema documents", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const camera = createLayerForComposition("camera", composition);
     if (!camera.camera) throw new Error("Expected camera settings");
@@ -439,7 +437,7 @@ describe("project document boundary", () => {
   });
 
   it("roundtrips bounded imported mesh buffers", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const mesh = createLayerForComposition("mesh", composition);
     mesh.mesh = {
@@ -458,7 +456,7 @@ describe("project document boundary", () => {
   });
 
   it("roundtrips bounded normal maps and Radiance HDR environment lighting", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const mesh = createLayerForComposition("mesh", composition);
     mesh.mesh = {
@@ -501,7 +499,7 @@ describe("project document boundary", () => {
   });
 
   it("rejects unsafe mesh tangent frames", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const mesh = createLayerForComposition("mesh", composition);
     mesh.mesh = {
@@ -526,7 +524,7 @@ describe("project document boundary", () => {
   });
 
   it("roundtrips plugin-owned particle settings through the generic envelope", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const particles = createParticleLayerForComposition(composition);
     particles.generator = createParticleSceneGenerator({
@@ -574,7 +572,7 @@ describe("project document boundary", () => {
   });
 
   it("roundtrips explicit vector shape styling", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const shape = project.compositions[0].layers[0];
     shape.shape = {
       kind: "ellipse",
@@ -597,7 +595,7 @@ describe("project document boundary", () => {
   });
 
   it("roundtrips bounded cubic Bezier anchors and handles", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const shape = project.compositions[0].layers[0];
     if (!shape.shape) throw new Error("Expected shape settings");
     shape.shape.kind = "bezier";
@@ -618,7 +616,7 @@ describe("project document boundary", () => {
   });
 
   it("roundtrips finite spatial keyframe handles", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const opacity = {
       mode: "animated" as const,
       keyframes: [
@@ -647,7 +645,7 @@ describe("project document boundary", () => {
   });
 
   it("roundtrips multiline text typography", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const text = createLayerForComposition("text", composition);
     text.text = "GPU\nMOTION";
@@ -671,7 +669,7 @@ describe("project document boundary", () => {
   });
 
   it("roundtrips text line anchoring and explicit character ranges", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const text = createLayerForComposition("text", composition);
     const group = text.textAnimator?.groups[0];
@@ -693,7 +691,7 @@ describe("project document boundary", () => {
   });
 
   it("roundtrips bounded cloners and rejects oversized grids", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const layer = project.compositions[0].layers[0];
     layer.cloner = {
       distribution: {

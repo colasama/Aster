@@ -5,7 +5,7 @@ import { createBlankProject } from "../core/project/project";
 import { addLayerStyleOperations, canAddLayerStyle } from "./layer-style-actions";
 
 it("creates independent styles for every selected visual layer in one operation group", () => {
-  const project = createBlankProject();
+  const project = createBlankProject(true);
   const composition = project.compositions[0];
   const layers = [
     createLayerForComposition("text", composition),

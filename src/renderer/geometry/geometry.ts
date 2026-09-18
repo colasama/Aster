@@ -6,6 +6,12 @@ import {
   type EvaluatedCamera,
 } from "../../core/scene/camera-settings";
 import type { FlattenedSceneLayer } from "../../core/scene/scene-evaluation";
+import {
+  invertAffine,
+  multiplyMatrices,
+  transformMatrix,
+  transformPoint,
+} from "../../core/scene/transform-matrix";
 import type { CameraSettings, Composition, EvaluatedTransform, Layer } from "../../core/types";
 import {
   flattenBezierPath,
@@ -14,7 +20,7 @@ import {
   trimPolyline,
 } from "./vector-path";
 
-export const FLOATS_PER_VERTEX = 40;
+export const FLOATS_PER_VERTEX = 44;
 export const VERTEX_FLOAT_OFFSETS = {
   position: 0,
   uv: 3,
@@ -28,6 +34,7 @@ export const VERTEX_FLOAT_OFFSETS = {
   gradientStyleColor: 28,
   gradientStyleParameters: 32,
   tangent: 36,
+  clipW: 40,
 } as const;
 
 export interface GeometryBatch {
@@ -35,6 +42,8 @@ export interface GeometryBatch {
   instanceId: string;
   resourceInstanceId: string;
   selectionId: string;
+  localTime?: number;
+  opacity?: number;
   firstVertex: number;
   vertexCount: number;
 }
@@ -124,11 +133,9 @@ export function buildSceneGeometry(
         ? transform.opacity
         : Number(layer.threeDimensional || layer.kind === "mesh"),
     ] as const;
-    const sourceSize = scene.precompositionSurface
-      ? [
-          scene.precompositionSurface.composition.width,
-          scene.precompositionSurface.composition.height,
-        ]
+    const surfaceCanvas = scene.precompositionSurface?.renderComposition;
+    const sourceSize = surfaceCanvas
+      ? [surfaceCanvas.width, surfaceCanvas.height]
       : solidRenderSize(layer);
     const width = (sourceSize[0] * transform.scale[0]) / 100;
     const height = (sourceSize[1] * transform.scale[1]) / 100;
@@ -285,8 +292,63 @@ export function buildSceneGeometry(
         );
       }
     }
+    const inverse = scene.worldMatrix ? invertAffine(transformMatrix(transform)) : undefined;
+    const correction =
+      scene.worldMatrix && inverse ? multiplyMatrices(scene.worldMatrix, inverse) : undefined;
+    const inverseCorrection = correction ? invertAffine(correction) : undefined;
+    const evaluatedCamera =
+      camera ?? createDefaultEvaluatedCamera(composition.width, composition.height);
+    for (let vertex = firstVertex; vertex < firstVertex + vertexCount; vertex++) {
+      const offset = vertex * FLOATS_PER_VERTEX;
+      let world: [number, number, number] = [
+        output[offset + 17],
+        output[offset + 18],
+        output[offset + 19],
+      ];
+      if (correction) {
+        world = transformPoint(correction, world);
+        for (let axis = 0; axis < 3; axis++) output[offset + 17 + axis] = world[axis];
+        if (inverseCorrection) {
+          const normal = [output[offset + 10], output[offset + 11], output[offset + 12]];
+          const mapped = [0, 1, 2].map(
+            (axis) =>
+              inverseCorrection[axis * 4] * normal[0] +
+              inverseCorrection[axis * 4 + 1] * normal[1] +
+              inverseCorrection[axis * 4 + 2] * normal[2],
+          );
+          const length = Math.hypot(...mapped) || 1;
+          for (let axis = 0; axis < 3; axis++) output[offset + 10 + axis] = mapped[axis] / length;
+          const tangent = transformPoint(
+            correction,
+            [output[offset + 36], output[offset + 37], output[offset + 38]],
+            0,
+          );
+          const tangentLength = Math.hypot(...tangent) || 1;
+          for (let axis = 0; axis < 3; axis++)
+            output[offset + 36 + axis] = tangent[axis] / tangentLength;
+        }
+      }
+      if (layer.threeDimensional || layer.kind === "mesh") {
+        const point = projectCameraPoint(world, evaluatedCamera.pose, evaluatedCamera.projection, [
+          composition.width,
+          composition.height,
+        ]);
+        output[offset] = (point.screen[0] / composition.width) * 2 - 1;
+        output[offset + 1] = 1 - (point.screen[1] / composition.height) * 2;
+        output[offset + 2] = point.normalizedDepth;
+        output[offset + 40] =
+          evaluatedCamera.projection.kind === "perspective"
+            ? Math.max(0.000001, point.cameraDepth)
+            : 1;
+      } else if (correction) {
+        output[offset] = (world[0] / composition.width) * 2 - 1;
+        output[offset + 1] = 1 - (world[1] / composition.height) * 2;
+      }
+    }
     batches.push({
-      layer,
+      layer: scene.precompositionSurface ? { ...layer, effects: [] } : layer,
+      localTime: scene.localTime,
+      opacity: transform.opacity,
       instanceId: scene.instanceId,
       resourceInstanceId: scene.resourceInstanceId,
       selectionId: scene.selectionId,
@@ -560,6 +622,10 @@ function pushVertex(
     ...gradientStyleColor,
     ...gradientStyleParameters,
     ...tangent,
+    1,
+    0,
+    0,
+    0,
   );
 }
 

@@ -6,8 +6,8 @@ import { precomposeLayers } from "./precomposition";
 import { createBlankProject, createDemoProject } from "./project";
 
 describe("precomposition creation", () => {
-  it("routes precomposed adjustment layers through an isolated 3D texture surface", () => {
-    const project = createBlankProject();
+  it("routes precomposed adjustment layers through an isolated texture surface", () => {
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const adjustment = createLayerForComposition("adjustment", composition);
     composition.layers.unshift(adjustment);
@@ -19,13 +19,13 @@ describe("precomposition creation", () => {
     );
     expect(wrapper).toMatchObject({
       kind: "precomposition",
-      threeDimensional: true,
+      threeDimensional: false,
       color: [1, 1, 1, 1],
     });
   });
 
   it("moves GPU scene generators into nested precompositions", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const particle = createParticleLayerForComposition(composition);
     composition.layers.unshift(particle);
@@ -35,7 +35,7 @@ describe("precomposition creation", () => {
       (composition) => composition.id === result.nestedCompositionId,
     );
     expect(nested?.layers[0].kind).toBe("generator");
-    expect(result?.project.compositions[0].layers[0].threeDimensional).toBe(true);
+    expect(result?.project.compositions[0].layers[0].threeDimensional).toBe(false);
   });
 
   it("preserves evaluated appearance and stacking at the same project time", () => {
@@ -52,7 +52,11 @@ describe("precomposition creation", () => {
     expect(result).toBeDefined();
     if (!result) return;
     const root = result.project.compositions[0];
-    const after = flattenSceneLayers(root, result.project, time).find(
+    const surface = flattenSceneLayers(root, result.project, time).find(
+      (scene) => scene.layer.id === result.wrapperId,
+    )?.precompositionSurface;
+    if (!surface) throw new Error("Missing isolated surface");
+    const after = flattenSceneLayers(surface.composition, result.project, surface.time).find(
       (scene) => scene.layer.id === layer.id,
     );
     expect(root.layers.findIndex((candidate) => candidate.id === result.wrapperId)).toBe(

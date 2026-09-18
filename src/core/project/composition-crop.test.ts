@@ -6,7 +6,7 @@ import { createBlankProject } from "./project";
 
 describe("composition crop", () => {
   it("crops to rendered bounds and offsets full root-layer animation", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const layer = composition?.layers[0];
     if (!composition || !layer) throw new Error("Blank project must contain a layer");
@@ -37,7 +37,7 @@ describe("composition crop", () => {
   });
 
   it("rejects selections without a two-dimensional visual bound", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const layer = composition?.layers[0];
     if (!composition || !layer) throw new Error("Blank project must contain a layer");

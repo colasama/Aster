@@ -33,7 +33,7 @@ describe("camera settings", () => {
   });
 
   it("selects the highest camera whose timeline span contains the evaluated time", () => {
-    const composition = createBlankProject().compositions[0];
+    const composition = createBlankProject(true).compositions[0];
     const first = createLayerForComposition("camera", composition);
     const second = createLayerForComposition("camera", composition);
     first.inPoint = 1;
@@ -46,7 +46,7 @@ describe("camera settings", () => {
   });
 
   it("selects only the incoming camera at a shared half-open cut", () => {
-    const composition = createBlankProject().compositions[0];
+    const composition = createBlankProject(true).compositions[0];
     const incoming = createLayerForComposition("camera", composition);
     const outgoing = createLayerForComposition("camera", composition);
     outgoing.inPoint = 0;
@@ -109,7 +109,7 @@ describe("camera settings", () => {
   });
 
   it("requires the camera Video switch without changing precedence for solo", () => {
-    const composition = createBlankProject().compositions[0];
+    const composition = createBlankProject(true).compositions[0];
     const top = createLayerForComposition("camera", composition);
     const lower = createLayerForComposition("camera", composition);
     top.visible = false;

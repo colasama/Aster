@@ -1,27 +1,31 @@
+import { createSurfacePipelines } from "./precomposition-surface-pipeline";
+import { SurfacePostProcessing } from "./surface-post-processing";
+
+export { precompositionSurfaceShader } from "./precomposition-surface-pipeline";
+
 import { evaluateLayerSourceTime } from "../../core/animation/layer-time";
 import { sourceForLayer, sourceLocator } from "../../core/media/footage-source";
 import { type FlattenedSceneLayer, flattenSceneLayers } from "../../core/scene/scene-evaluation";
-import type { BlendMode, Composition, Project } from "../../core/types";
-import { BLEND_MODES } from "../../core/types";
+import type { BlendMode, Composition, Layer, Project } from "../../core/types";
 import { LayerEffectRenderer } from "../effects/layer-effects";
 import { buildSceneGeometry, FLOATS_PER_VERTEX, type GeometryBatch } from "../geometry/geometry";
 import type { MediaTextureCache } from "../media/media-texture-cache";
 import { evaluateSceneCamera } from "../scene/scene-camera";
 import type { PreparedSceneGenerator, SceneGeneratorHost } from "../scene/scene-generator-host";
 import { buildSceneLighting, SCENE_LIGHTING_BYTES } from "../scene/scene-lighting";
-import { IMAGE_VERTEX_BUFFERS } from "../scene/scene-pipelines";
 import { planTextMotionBlurFrame, type TextMotionBlurPlan } from "../text/text-motion-blur-plan";
 import { transformedTextRasterScale } from "../text/text-rasterizer";
-import { FIXED_BLEND_MODES, gpuBlendState } from "./blend-state";
+import type { ExactTransparencyRenderer } from "./exact-transparency";
 import { needsLayerIsolation } from "./layer-composite";
 import {
   createPrecompositionSurfaceBudget,
   MAX_PRECOMPOSITION_SURFACE_BYTES,
-  MAX_PRECOMPOSITION_SURFACES,
   planPrecompositionSurface,
   precompositionSurfaceCacheKey,
 } from "./precomposition-surface-plan";
 import { planSceneRenderStack } from "./render-stack";
+import { SurfaceLighting } from "./surface-lighting";
+import { transparencyGroups } from "./transparency-groups";
 
 const SURFACE_FORMAT: GPUTextureFormat = "rgba16float";
 const INITIAL_VERTEX_BYTES = 6 * FLOATS_PER_VERTEX * Float32Array.BYTES_PER_ELEMENT;
@@ -39,6 +43,8 @@ interface SurfaceEntry {
   lightingBuffer: GPUBuffer;
   lightingBindGroup: GPUBindGroup;
   effects?: LayerEffectRenderer;
+  lighting?: SurfaceLighting;
+  post?: SurfacePostProcessing;
   estimatedBytes: number;
   textureCount: number;
   lastUsedFrame: number;
@@ -48,6 +54,8 @@ interface SurfaceJob {
   entry: SurfaceEntry;
   composition: Composition;
   time: number;
+  wrapper: Layer;
+  wrapperTime: number;
   sceneLayers: FlattenedSceneLayer[];
   geometry: ReturnType<typeof buildSceneGeometry>;
   generators: PreparedSceneGenerator[];
@@ -71,6 +79,8 @@ interface SurfaceRendererOptions {
   shapePipelines: Record<BlendMode, GPURenderPipeline>;
   imagePipelines: Record<BlendMode, GPURenderPipeline>;
   sceneGenerators?: SceneGeneratorHost;
+  transparency?: ExactTransparencyRenderer;
+  invalidate?: () => void;
 }
 
 /**
@@ -87,6 +97,8 @@ export class PrecompositionSurfaceRenderer {
   readonly #shapePipelines: Record<BlendMode, GPURenderPipeline>;
   readonly #imagePipelines: Record<BlendMode, GPURenderPipeline>;
   readonly #sceneGenerators?: SceneGeneratorHost;
+  readonly #transparency?: ExactTransparencyRenderer;
+  readonly #invalidate: () => void;
   readonly #surfacePipelines: Record<BlendMode, GPURenderPipeline>;
   readonly #shadowTexture: GPUTexture;
   readonly #shadowSampler: GPUSampler;
@@ -108,6 +120,8 @@ export class PrecompositionSurfaceRenderer {
     this.#shapePipelines = options.shapePipelines;
     this.#imagePipelines = options.imagePipelines;
     this.#sceneGenerators = options.sceneGenerators;
+    this.#transparency = options.transparency;
+    this.#invalidate = options.invalidate ?? (() => {});
     this.#surfacePipelines = createSurfacePipelines(device, options.mediaLayout);
     this.#shadowTexture = device.createTexture({
       label: "Precomposition surface unshadowed depth",
@@ -159,6 +173,16 @@ export class PrecompositionSurfaceRenderer {
       }
     }
     this.#sweep(preparedKeys);
+    const residentLimit = Math.min(
+      MAX_PRECOMPOSITION_SURFACE_BYTES,
+      (memoryBudgetMb === undefined ? 256 : Math.max(1, memoryBudgetMb * 0.35)) * 1024 * 1024,
+    );
+    while (this.#residentBytes() > residentLimit) {
+      if (!this.#evictOldest())
+        throw new Error(
+          "Nested composition materials and camera buffers exceed the surface VRAM budget",
+        );
+    }
     this.#frameStats = {
       diagnostics,
       estimatedBytes: budget.bytes,
@@ -169,6 +193,14 @@ export class PrecompositionSurfaceRenderer {
       mediaInstanceIds: new Set(this.#mediaInstanceIds),
     };
     return this.#frameStats;
+  }
+
+  get hasPendingResources(): boolean {
+    return this.#jobs.some((job) => job.entry.lighting?.material.hasPendingResources);
+  }
+
+  async waitForResources(): Promise<void> {
+    await Promise.all(this.#jobs.map((job) => job.entry.lighting?.material.waitForResources()));
   }
 
   encode(encoder: GPUCommandEncoder): void {
@@ -212,7 +244,12 @@ export class PrecompositionSurfaceRenderer {
   ): void {
     const surface = scene.precompositionSurface;
     if (!surface) return;
-    const logicalKey = `${this.#revision}:${surface.composition.id}:${surface.time.toFixed(9)}`;
+    const renderComposition = surface.renderComposition ?? surface.composition;
+    const effectKey =
+      surface.sceneLayers || scene.layer.effects.some((effect) => effect.enabled)
+        ? `:${scene.instanceId}:${scene.localTime}`
+        : "";
+    const logicalKey = `${this.#revision}:${surface.composition.id}:${surface.time.toFixed(9)}${effectKey}`;
     const shared = preparedSources.get(logicalKey);
     if (shared) {
       shared.lastUsedFrame = this.#frame;
@@ -222,17 +259,18 @@ export class PrecompositionSurfaceRenderer {
     let childLayers: FlattenedSceneLayer[];
     try {
       childLayers = namespaceSurfaceLayers(
-        flattenSceneLayers(surface.composition, project, surface.time),
+        surface.sceneLayers ?? flattenSceneLayers(surface.composition, project, surface.time),
         scene.resourceInstanceId,
         surface.compositionPath,
       );
     } catch (error) {
-      diagnostics.push(error instanceof Error ? error.message : String(error));
-      return;
+      throw new Error(`Could not evaluate ${surface.composition.name}: ${String(error)}`);
     }
-    const hasEffects = childLayers.some(
-      (child) => child.layer.kind === "adjustment" || needsLayerIsolation(child.layer),
-    );
+    const hasEffects =
+      scene.layer.effects.some((effect) => effect.enabled) ||
+      childLayers.some(
+        (child) => child.layer.kind === "adjustment" || needsLayerIsolation(child.layer),
+      );
     const plan = planPrecompositionSurface(
       {
         scene,
@@ -243,8 +281,10 @@ export class PrecompositionSurfaceRenderer {
       budget,
     );
     if (plan.diagnostic) diagnostics.push(plan.diagnostic);
-    if (plan.status === "skipped") return;
-    const key = precompositionSurfaceCacheKey(scene, this.#revision, plan.width, plan.height);
+    if (plan.status === "skipped")
+      throw new Error(`${surface.composition.name}: ${plan.diagnostic}`);
+    const key =
+      precompositionSurfaceCacheKey(scene, this.#revision, plan.width, plan.height) + effectKey;
     const existing = this.#entries.get(key);
     const entry =
       existing ??
@@ -306,45 +346,67 @@ export class PrecompositionSurfaceRenderer {
           enableTextMotionBlur,
         );
     }
-    const camera = evaluateSceneCamera(surface.composition, surface.time);
-    const geometry = buildSceneGeometry(surface.composition, childLayers, camera);
-    if (
-      surface.composition.environment?.enabled &&
-      geometry.batches.some((batch) => batch.layer.kind === "mesh")
-    )
-      diagnostics.push(
-        `${surface.composition.name}: HDR environment lighting is not sampled inside precomposition surfaces`,
-      );
-    if (
-      geometry.batches.some(
-        (batch) => batch.layer.kind === "mesh" && batch.layer.mesh?.materialTextures?.normal,
-      )
-    )
-      diagnostics.push(
-        `${surface.composition.name}: mesh normal maps are not sampled inside precomposition surfaces`,
-      );
-    if (
-      childLayers.some(
-        (child) => child.layer.kind === "light" && child.layer.light?.shadowQuality !== "off",
-      ) &&
-      geometry.batches.some((batch) => batch.layer.threeDimensional)
-    )
-      diagnostics.push(
-        `${surface.composition.name}: child shadow maps are not encoded inside precomposition surfaces`,
-      );
+    const camera = evaluateSceneCamera(renderComposition, surface.cameraTime ?? surface.time);
+    const geometry = buildSceneGeometry(renderComposition, childLayers, camera);
     this.#ensureVertexBuffer(entry, geometry.data.byteLength);
     if (geometry.data.byteLength > 0)
       this.#device.queue.writeBuffer(entry.vertexBuffer, 0, geometry.data);
     const cameraPosition = camera?.pose.position;
-    this.#device.queue.writeBuffer(
-      entry.lightingBuffer,
-      0,
-      buildSceneLighting(childLayers, surface.composition, false, cameraPosition),
-    );
+    const advanced =
+      renderComposition.environment?.enabled ||
+      geometry.batches.some((batch) => batch.layer.mesh?.materialTextures?.normal) ||
+      childLayers.some((child) => child.layer.kind === "light");
+    if (advanced && !entry.lighting)
+      entry.lighting = new SurfaceLighting(
+        this.#device,
+        this.#lightingLayout,
+        entry.lightingBuffer,
+        this.#invalidate,
+        (message) => {
+          if (message) diagnostics.push(message);
+        },
+      );
+    if (entry.lighting) {
+      entry.lighting.prepare(renderComposition, childLayers, geometry.batches, cameraPosition);
+      if (entry.lighting.binding) entry.lightingBindGroup = entry.lighting.binding;
+    } else
+      this.#device.queue.writeBuffer(
+        entry.lightingBuffer,
+        0,
+        buildSceneLighting(childLayers, renderComposition, false, cameraPosition),
+      );
+    if (!surface.sceneLayers && SurfacePostProcessing.needed(renderComposition, camera, geometry)) {
+      entry.post ??= new SurfacePostProcessing(this.#device, this.#mediaLayout);
+      entry.post.prepare(
+        renderComposition,
+        surface.time,
+        camera,
+        geometry,
+        (sampleTime) =>
+          buildSceneGeometry(
+            renderComposition,
+            namespaceSurfaceLayers(
+              flattenSceneLayers(surface.composition, project, sampleTime),
+              scene.resourceInstanceId,
+              surface.compositionPath,
+            ),
+            evaluateSceneCamera(renderComposition, sampleTime),
+          ),
+        entry.color,
+        entry.width,
+        entry.height,
+        memoryBudgetMb,
+      );
+    } else if (entry.post) {
+      entry.post.destroy();
+      entry.post = undefined;
+    }
     this.#jobs.push({
       entry,
-      composition: surface.composition,
-      time: surface.time,
+      composition: renderComposition,
+      time: surface.cameraTime ?? surface.time,
+      wrapper: scene.layer,
+      wrapperTime: scene.localTime,
       sceneLayers: childLayers,
       geometry,
       generators: this.#sceneGenerators
@@ -407,11 +469,9 @@ export class PrecompositionSurfaceRenderer {
     estimatedBytes: number,
     textureCount: number,
   ): SurfaceEntry {
-    while (
-      this.#entries.size >= MAX_PRECOMPOSITION_SURFACES ||
-      this.#residentBytes() + estimatedBytes > MAX_PRECOMPOSITION_SURFACE_BYTES
-    )
-      this.#evictOldest();
+    while (this.#residentBytes() + estimatedBytes > MAX_PRECOMPOSITION_SURFACE_BYTES) {
+      if (!this.#evictOldest()) throw new Error("Precomposition resident VRAM budget exhausted");
+    }
     const color = this.#device.createTexture({
       label: `Precomposition HDR surface · ${key}`,
       size: [width, height],
@@ -508,6 +568,7 @@ export class PrecompositionSurfaceRenderer {
 
   #encodeJob(encoder: GPUCommandEncoder, job: SurfaceJob): void {
     const { entry, composition, geometry, sceneLayers, time, generators } = job;
+    entry.lighting?.encode(encoder, entry.vertexBuffer, geometry.batches);
     if (generators.length > 0) {
       const compute = encoder.beginComputePass({
         label: `Precomposition scene generators · ${composition.name}`,
@@ -522,7 +583,12 @@ export class PrecompositionSurfaceRenderer {
     let pass: GPURenderPassEncoder | undefined = this.#beginPass(encoder, entry, composition);
     const activeEffects = new Set<string>();
     let clearDepth = false;
+    const transparentGroups = this.#transparency
+      ? transparencyGroups(stack)
+      : new Map<string, GeometryBatch[]>();
+    const captured = new Set<string>();
     for (const item of stack) {
+      if (item.kind === "geometry" && captured.has(item.batch.instanceId)) continue;
       if (item.clearDepth) {
         pass?.end();
         pass = undefined;
@@ -541,7 +607,7 @@ export class PrecompositionSurfaceRenderer {
             composition,
             item.scene.layer,
             item.scene.instanceId,
-            time,
+            item.scene.localTime,
             (layerPass) => this.#sceneGenerators?.draw(layerPass, generator, "normal"),
           );
           continue;
@@ -561,12 +627,32 @@ export class PrecompositionSurfaceRenderer {
           composition,
           item.scene.layer,
           item.scene.instanceId,
-          time,
+          item.scene.localTime,
         );
         if (count) activeEffects.add(item.scene.instanceId);
         continue;
       }
       const { batch } = item;
+      const transparentGroup = transparentGroups.get(batch.instanceId);
+      if (transparentGroup && this.#transparency) {
+        pass?.end();
+        pass = undefined;
+        this.#transparency.encode(
+          encoder,
+          entry.color,
+          entry.depth.createView(),
+          entry.width,
+          entry.height,
+          transparentGroup.map((batch) => ({
+            blendMode: batch.layer.blendMode,
+            triangleCount: batch.vertexCount / 3,
+            draw: (pass) => this.#drawBatch(pass, entry, batch, "normal"),
+          })),
+        );
+        for (const batch of transparentGroup) captured.add(batch.instanceId);
+        clearDepth = true;
+        continue;
+      }
       if (needsLayerIsolation(batch.layer)) {
         pass?.end();
         pass = undefined;
@@ -577,7 +663,7 @@ export class PrecompositionSurfaceRenderer {
           composition,
           batch.layer,
           batch.instanceId,
-          time,
+          batch.localTime ?? time,
           (layerPass) => this.#drawBatch(layerPass, entry, batch, "normal"),
         );
         continue;
@@ -587,6 +673,29 @@ export class PrecompositionSurfaceRenderer {
       this.#drawBatch(pass, entry, batch);
     }
     pass?.end();
+    entry.post?.encode(
+      encoder,
+      entry.vertexBuffer,
+      geometry,
+      (batch) =>
+        this.#bindings.get(batch.instanceId) ??
+        this.#mediaTextures.bindGroup(batch.resourceInstanceId),
+      generators
+        .map((generator) => this.#sceneGenerators?.auxiliaryDraw(generator))
+        .filter((draw) => draw !== undefined),
+    );
+    if (job.wrapper.effects.some((effect) => effect.enabled)) {
+      const instanceId = `wrapper:${job.wrapper.id}`;
+      entry.effects?.encodeAdjustment(
+        encoder,
+        entry.color,
+        composition,
+        job.wrapper,
+        instanceId,
+        job.wrapperTime,
+      );
+      activeEffects.add(instanceId);
+    }
     entry.effects?.sweep(activeEffects);
   }
 
@@ -600,12 +709,7 @@ export class PrecompositionSurfaceRenderer {
       colorAttachments: [
         {
           view: entry.color.createView(),
-          clearValue: {
-            r: composition.background[0],
-            g: composition.background[1],
-            b: composition.background[2],
-            a: composition.background[3],
-          },
+          clearValue: { r: 0, g: 0, b: 0, a: 0 },
           loadOp: "clear",
           storeOp: "store",
         },
@@ -654,7 +758,17 @@ export class PrecompositionSurfaceRenderer {
           ? this.#mediaTextures.bindGroup(batch.resourceInstanceId)
           : undefined;
       if (batch.layer.kind === "precomposition" && !media) return;
-      if (media) {
+      const material = entry.lighting?.material.bindingFor(
+        batch.layer,
+        batch.resourceInstanceId,
+        blendMode,
+        entry.lighting.environment,
+      );
+      if (material) {
+        pass.setPipeline(material.pipeline);
+        pass.setBindGroup(0, entry.lightingBindGroup);
+        pass.setBindGroup(1, material.bindGroup);
+      } else if (media) {
         pass.setPipeline(this.#imagePipelines[blendMode]);
         pass.setBindGroup(0, media);
       } else {
@@ -674,18 +788,27 @@ export class PrecompositionSurfaceRenderer {
     }
   }
 
-  #evictOldest(): void {
+  #evictOldest(): boolean {
     let oldest: SurfaceEntry | undefined;
     for (const entry of this.#entries.values())
-      if (!oldest || entry.lastUsedFrame < oldest.lastUsedFrame) oldest = entry;
-    if (!oldest) return;
+      if (
+        entry.lastUsedFrame !== this.#frame &&
+        (!oldest || entry.lastUsedFrame < oldest.lastUsedFrame)
+      )
+        oldest = entry;
+    if (!oldest) return false;
     destroyEntry(oldest);
     this.#entries.delete(oldest.key);
+    return true;
   }
 
   #residentBytes(): number {
     let total = 0;
-    for (const entry of this.#entries.values()) total += entry.estimatedBytes;
+    for (const entry of this.#entries.values())
+      total +=
+        entry.estimatedBytes +
+        (entry.lighting?.estimatedBytes ?? 0) +
+        (entry.post?.estimatedBytes ?? 0);
     return total;
   }
 
@@ -696,43 +819,10 @@ export class PrecompositionSurfaceRenderer {
   }
 }
 
-function createSurfacePipelines(
-  device: GPUDevice,
-  mediaLayout: GPUBindGroupLayout,
-): Record<BlendMode, GPURenderPipeline> {
-  const module = device.createShaderModule({
-    label: "Premultiplied precomposition surface shader",
-    code: precompositionSurfaceShader,
-  });
-  const layout = device.createPipelineLayout({ bindGroupLayouts: [mediaLayout] });
-  const pipelines = Object.fromEntries(
-    FIXED_BLEND_MODES.map((blendMode) => [
-      blendMode,
-      device.createRenderPipeline({
-        label: `Precomposition 3D surface · ${blendMode}`,
-        layout,
-        vertex: { module, entryPoint: "vertex_main", buffers: IMAGE_VERTEX_BUFFERS },
-        fragment: {
-          module,
-          entryPoint: "fragment_main",
-          targets: [{ format: SURFACE_FORMAT, blend: gpuBlendState(blendMode) }],
-        },
-        primitive: { topology: "triangle-list", cullMode: "none" },
-        depthStencil: {
-          format: "depth24plus",
-          depthWriteEnabled: true,
-          depthCompare: "less-equal",
-        },
-      }),
-    ]),
-  );
-  return Object.fromEntries(
-    BLEND_MODES.map((mode) => [mode, pipelines[mode] ?? pipelines.normal]),
-  ) as Record<BlendMode, GPURenderPipeline>;
-}
-
 function destroyEntry(entry: SurfaceEntry): void {
   entry.effects?.destroy();
+  entry.lighting?.destroy();
+  entry.post?.destroy();
   entry.color.destroy();
   entry.depth.destroy();
   entry.vertexBuffer.destroy();
@@ -775,35 +865,3 @@ function emptyFrame(): PrecompositionSurfaceFrame {
     mediaInstanceIds: new Set(),
   };
 }
-
-export const precompositionSurfaceShader = /* wgsl */ `
-struct VertexOutput {
-  @builtin(position) position: vec4f,
-  @location(0) uv: vec2f,
-  @location(1) color: vec4f,
-}
-@group(0) @binding(0) var surface_texture: texture_2d<f32>;
-@group(0) @binding(1) var surface_sampler: sampler;
-
-@vertex fn vertex_main(
-  @location(0) position: vec3f,
-  @location(1) uv: vec2f,
-  @location(2) color: vec4f,
-) -> VertexOutput {
-  var output: VertexOutput;
-  output.position = vec4f(position, 1.0);
-  output.uv = uv;
-  output.color = color;
-  return output;
-}
-
-@fragment fn fragment_main(input: VertexOutput) -> @location(0) vec4f {
-  let sampled = textureSample(surface_texture, surface_sampler, input.uv);
-  let alpha = sampled.a * input.color.a;
-  if (alpha <= 0.00001) { discard; }
-  return vec4f(
-    sampled.rgb * input.color.rgb * input.color.a,
-    alpha,
-  );
-}
-`;

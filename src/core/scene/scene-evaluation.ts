@@ -1,19 +1,26 @@
 import { evaluateLayerTransform } from "../animation/expressions";
-import { evaluateLayerSourceTime } from "../animation/layer-time";
-import { NESTED_ADJUSTMENT_ERROR } from "../project/project-render-boundaries";
+import { evaluateUnclampedSourceTime } from "../animation/layer-time";
 import type { Composition, EvaluatedTransform, Id, Layer, Project } from "../types";
 import { composeClonerTransform, evaluateCloner, MAX_CLONER_INSTANCES } from "./cloner";
+import { precompositionNeedsSurface } from "./precomposition-mode";
+import {
+  IDENTITY_MATRIX,
+  type Matrix4,
+  multiplyMatrices,
+  transformMatrix,
+} from "./transform-matrix";
 
 export interface FlattenedSceneLayer {
   layer: Layer;
   sourceComposition: Composition;
   transform: EvaluatedTransform;
+  worldMatrix?: Matrix4;
   localTime: number;
   instanceId: string;
   resourceInstanceId: string;
   selectionId: Id;
   /**
-   * A 3D precomposition stays isolated instead of being flattened into its
+   * A normal precomposition stays isolated instead of being flattened into its
    * parent. The renderer evaluates this source at `time` into a GPU texture and
    * maps that texture onto the wrapper quad.
    */
@@ -21,6 +28,9 @@ export interface FlattenedSceneLayer {
     composition: Composition;
     time: number;
     compositionPath: Id[];
+    renderComposition?: Composition;
+    sceneLayers?: FlattenedSceneLayer[];
+    cameraTime?: number;
   };
 }
 
@@ -68,13 +78,16 @@ function flattenComposition(
   resourcePrefix: string,
   selectionId: Id | undefined,
   compositionStack: Set<Id>,
+  parentMatrix: Matrix4 = IDENTITY_MATRIX,
+  renderComposition: Composition = composition,
+  renderTime: number = time,
+  parentThreeDimensional = false,
 ): FlattenedSceneLayer[] {
   if (compositionStack.has(composition.id)) return [];
   const nextStack = new Set(compositionStack).add(composition.id);
   const output: FlattenedSceneLayer[] = [];
   for (const layer of visibleLayersAtTime(composition, time)) {
-    if (layer.kind === "adjustment" && compositionStack.size > 0)
-      throw new Error(NESTED_ADJUSTMENT_ERROR);
+    if (compositionStack.size > 0 && layer.kind === "camera") continue;
     const localTransform = evaluateWorldTransform(layer, composition, time);
     const rootSelectionId = selectionId ?? layer.id;
     const nested =
@@ -92,6 +105,10 @@ function flattenComposition(
       const clonedTransform = clone
         ? composeClonerTransform(localTransform, clone)
         : localTransform;
+      const worldMatrix = multiplyMatrices(
+        parentMatrix,
+        evaluateWorldMatrix(layer, composition, time, clone ? clonedTransform : undefined),
+      );
       const transform = parentTransform
         ? mapNestedTransform(clonedTransform, parentTransform, composition)
         : clonedTransform;
@@ -99,12 +116,61 @@ function flattenComposition(
       const resourceInstanceId = `${resourcePrefix}/${layer.id}`;
       const instanceId = clone ? `${baseInstanceId}:clone-${clone.index}` : baseInstanceId;
       if (nested) {
-        const nestedTime = evaluateLayerSourceTime(layer, time, nested.duration);
-        if (layer.threeDimensional) {
+        const nestedTime = evaluateUnclampedSourceTime(layer, time);
+        if (nestedTime < 0 || nestedTime >= nested.duration || transform.opacity <= 0) continue;
+        if (precompositionNeedsSurface(layer, nested, nestedTime)) {
+          const collapsed = layer.collapseTransformations === true;
+          const content = collapsed
+            ? flattenComposition(
+                nested,
+                project,
+                nestedTime,
+                { ...applyWrapperSize(transform, layer, nested), opacity: 1 },
+                instanceId,
+                resourceInstanceId,
+                rootSelectionId,
+                nextStack,
+                multiplyMatrices(worldMatrix, [
+                  layer.size[0] / nested.width,
+                  0,
+                  0,
+                  0,
+                  0,
+                  layer.size[1] / nested.height,
+                  0,
+                  0,
+                  0,
+                  0,
+                  1,
+                  0,
+                  0,
+                  0,
+                  0,
+                  1,
+                ]),
+                renderComposition,
+                renderTime,
+                parentThreeDimensional || Boolean(layer.threeDimensional),
+              )
+            : undefined;
           output.push({
-            layer,
+            layer: collapsed
+              ? { ...layer, threeDimensional: false }
+              : parentThreeDimensional
+                ? { ...layer, threeDimensional: true }
+                : layer,
             sourceComposition: composition,
-            transform,
+            transform: collapsed
+              ? {
+                  position: [renderComposition.width / 2, renderComposition.height / 2, 0],
+                  anchor: [renderComposition.width / 2, renderComposition.height / 2, 0],
+                  scale: [100, 100, 100],
+                  rotation: [0, 0, 0],
+                  opacity: transform.opacity,
+                }
+              : transform,
+            worldMatrix:
+              collapsed || (!layer.parentId && !parentTransform) ? undefined : worldMatrix,
             localTime: time,
             instanceId,
             resourceInstanceId,
@@ -113,6 +179,9 @@ function flattenComposition(
               composition: nested,
               time: nestedTime,
               compositionPath: [...nextStack],
+              renderComposition: collapsed ? renderComposition : undefined,
+              sceneLayers: content,
+              cameraTime: collapsed ? renderTime : undefined,
             },
           });
           continue;
@@ -127,6 +196,27 @@ function flattenComposition(
           resourceInstanceId,
           rootSelectionId,
           nextStack,
+          multiplyMatrices(worldMatrix, [
+            layer.size[0] / nested.width,
+            0,
+            0,
+            0,
+            0,
+            layer.size[1] / nested.height,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            1,
+          ]),
+          renderComposition,
+          renderTime,
+          parentThreeDimensional || Boolean(layer.threeDimensional),
         );
         for (const nestedLayer of nestedLayers) {
           if (output.length >= MAX_CLONER_INSTANCES) break;
@@ -135,9 +225,10 @@ function flattenComposition(
         continue;
       }
       output.push({
-        layer,
+        layer: parentThreeDimensional ? { ...layer, threeDimensional: true } : layer,
         sourceComposition: composition,
         transform,
+        worldMatrix: layer.parentId || parentTransform ? worldMatrix : undefined,
         localTime: time,
         instanceId,
         resourceInstanceId,
@@ -230,4 +321,22 @@ function evaluateRecursive(
     anchor: local.anchor,
     opacity: local.opacity * world.opacity,
   };
+}
+
+export function evaluateWorldMatrix(
+  layer: Layer,
+  composition: Composition,
+  time: number,
+  override?: EvaluatedTransform,
+  visited = new Set<Id>(),
+): Matrix4 {
+  const local = transformMatrix(override ?? evaluateLayerTransform(layer, time));
+  if (override || !layer.parentId || visited.has(layer.id)) return local;
+  const parent = composition.layers.find((candidate) => candidate.id === layer.parentId);
+  if (!parent) return local;
+  visited.add(layer.id);
+  return multiplyMatrices(
+    evaluateWorldMatrix(parent, composition, time, undefined, visited),
+    local,
+  );
 }

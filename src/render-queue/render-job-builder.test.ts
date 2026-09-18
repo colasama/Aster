@@ -8,7 +8,7 @@ import {
 
 describe("render job builder", () => {
   it("captures an immutable rational-frame work area", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     composition.frameRate = { numerator: 30_000, denominator: 1_001 };
     composition.duration = 10;
@@ -28,11 +28,11 @@ describe("render job builder", () => {
       frameRate: { numerator: 30_000, denominator: 1_001 },
       outputs: [{ kind: "pngSequence", fileNamePattern: "frame_[######].png" }],
     });
-    expect(JSON.parse(job.projectSnapshot)).toMatchObject({ id: project.id, schemaVersion: 10 });
+    expect(JSON.parse(job.projectSnapshot)).toMatchObject({ id: project.id, schemaVersion: 11 });
   });
 
   it("bounds a still to the current frame and rejects invalid H.264 dimensions", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const still = createRenderQueueJob({
       composition,
@@ -67,7 +67,7 @@ describe("render job builder", () => {
   });
 
   it("serializes large queue snapshots through the shared CPU scheduler", async () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const job = await createRenderQueueJobAsync({
       composition: project.compositions[0],
       project,
@@ -78,6 +78,6 @@ describe("render job builder", () => {
       currentTime: 0,
     });
     expect(job.projectSnapshot.endsWith("\n")).toBe(true);
-    expect(JSON.parse(job.projectSnapshot)).toMatchObject({ id: project.id, schemaVersion: 10 });
+    expect(JSON.parse(job.projectSnapshot)).toMatchObject({ id: project.id, schemaVersion: 11 });
   });
 });

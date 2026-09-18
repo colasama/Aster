@@ -10,6 +10,7 @@ export const errorsEn = {
     "The AI operation could not be completed. Review the provider settings and try again.",
   "ui.error.lutImport": "Could not import this LUT. Choose a valid .cube file.",
   "ui.error.hdrImport": "Could not read this HDR environment. Choose a valid Radiance .hdr file.",
+  "ui.error.compositionReference": "Could not add this composition.",
   "ui.error.projectOpen": "Could not open this project.",
   "ui.error.projectPackedOpen": "Could not open this packed project.",
   "ui.error.projectPack": "Could not pack this project.",

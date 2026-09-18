@@ -11,6 +11,7 @@ import { evaluateCameraBasis } from "../core/scene/camera-rig";
 import type { Composition, GpuDiagnostics, Project, RendererMetrics } from "../core/types";
 import { needsLayerIsolation } from "./compositing/layer-composite";
 import { planSceneRenderStack } from "./compositing/render-stack";
+import { transparencyGroups } from "./compositing/transparency-groups";
 import { depthEffectSettingsFromCameraOptics } from "./effects/depth-effects";
 import { analyzeEffectFusion } from "./effects/effect-fusion";
 import { buildPostProcessUniforms } from "./effects/post-process";
@@ -58,6 +59,7 @@ export class WebGpuRenderer {
   #width = 1;
   #height = 1;
   #memoryBudgetMb?: number;
+  #exportTexture?: GPUTexture;
   #bufferVisualization: BufferVisualization = "beauty";
   #beautyDepthOfFieldActive = false;
   #beautyMotionBlurActive = false;
@@ -157,12 +159,14 @@ export class WebGpuRenderer {
   resize(width: number, height: number): void {
     this.#assertActive();
     this.#resources.frameReadback.reset();
+    this.#exportTexture?.destroy();
+    this.#exportTexture = undefined;
     this.#width = Math.max(1, Math.floor(width));
     this.#height = Math.max(1, Math.floor(height));
     this.#context.configure({
       device: this.#device,
       format: this.#format,
-      alphaMode: "opaque",
+      alphaMode: "premultiplied",
       usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
     });
     this.#resources.sceneTexture?.destroy();
@@ -225,12 +229,32 @@ export class WebGpuRenderer {
     this.#assertActive();
     if (synchronizeVideo) {
       this.render(composition, time, false, project);
-      await this.#resources.mediaTextures.waitForFrameResources();
+      await Promise.all([
+        this.#resources.mediaTextures.waitForFrameResources(),
+        this.#resources.precompositionSurfaces.waitForResources(),
+        this.#resources.materialTextures?.waitForResources(),
+      ]);
       return this.#captureRawFrame(composition, time, project);
     }
+    const resources = this.#resources;
     return captureAfterExactFrameResources(
       () => this.#captureRawFrame(composition, time, project),
-      this.#resources.mediaTextures,
+      {
+        get hasPendingFrameResources() {
+          return (
+            resources.mediaTextures.hasPendingFrameResources ||
+            resources.precompositionSurfaces.hasPendingResources ||
+            Boolean(resources.materialTextures?.hasPendingResources)
+          );
+        },
+        async waitForFrameResources() {
+          await Promise.all([
+            resources.mediaTextures.waitForFrameResources(),
+            resources.precompositionSurfaces.waitForResources(),
+            resources.materialTextures?.waitForResources(),
+          ]);
+        },
+      },
     );
   }
   #captureRawFrame(
@@ -252,7 +276,9 @@ export class WebGpuRenderer {
     } finally {
       this.#pendingFrameReadback = undefined;
     }
-    return ticket.read();
+    return Promise.all([ticket.read(), this.#resources.transparency.complete()]).then(
+      ([frame]) => frame,
+    );
   }
   render(
     composition: Composition,
@@ -429,6 +455,7 @@ export class WebGpuRenderer {
       height: this.#height,
       effectTextureBytes: resources.layerEffects.estimatedTextureBytes(),
       persistentBufferBytes:
+        resources.transparency.estimatedBytes +
         resources.sceneGenerators.estimatedBytes +
         resources.shapeBufferBytes +
         resources.auxiliaryBuffers.estimatedBytes +
@@ -514,6 +541,7 @@ export class WebGpuRenderer {
     );
     if (!resources.sceneTexture || !resources.postBindGroup) this.resize(this.#width, this.#height);
     const encoder = this.#device.createCommandEncoder({ label: "Aster frame render graph" });
+    resources.transparency.beginFrame(encoder);
     resources.mediaTextures.flush(encoder);
     resources.precompositionSurfaces.encode(encoder);
     const compute = encoder.beginComputePass({
@@ -564,10 +592,10 @@ export class WebGpuRenderer {
         {
           view: sceneView,
           clearValue: {
-            r: composition.background[0],
-            g: composition.background[1],
-            b: composition.background[2],
-            a: composition.background[3],
+            r: 0,
+            g: 0,
+            b: 0,
+            a: 0,
           },
           loadOp: "clear",
           storeOp: "store",
@@ -591,7 +619,10 @@ export class WebGpuRenderer {
     const activeEffectInstances = new Set<string>();
     let clearSceneDepth = false;
     this.diagnostics.adjustmentLayerError = undefined;
+    const transparentGroups = transparencyGroups(renderStack);
+    const captured = new Set<string>();
     for (const item of renderStack) {
+      if (item.kind === "geometry" && captured.has(item.batch.instanceId)) continue;
       if (item.clearDepth) {
         scenePass?.end();
         scenePass = undefined;
@@ -610,7 +641,7 @@ export class WebGpuRenderer {
             composition,
             layer,
             item.scene.instanceId,
-            time,
+            item.scene.localTime,
           );
           if (operationCount > 0) {
             activeEffectInstances.add(item.scene.instanceId);
@@ -650,7 +681,7 @@ export class WebGpuRenderer {
             composition,
             item.scene.layer,
             item.scene.instanceId,
-            time,
+            item.scene.localTime,
             (layerPass) => resources.sceneGenerators.draw(layerPass, generator, "normal"),
           );
           fusedEffectCount += fusion.fusedEffectCount;
@@ -678,6 +709,27 @@ export class WebGpuRenderer {
         continue;
       }
       const { batch } = item;
+      const transparentGroup = transparentGroups.get(batch.instanceId);
+      if (transparentGroup) {
+        scenePass?.end();
+        scenePass = undefined;
+        resources.transparency.encode(
+          encoder,
+          sceneTexture,
+          depthView,
+          this.#width,
+          this.#height,
+          transparentGroup.map((batch) => ({
+            blendMode: batch.layer.blendMode,
+            triangleCount: batch.vertexCount / 3,
+            draw: (pass) =>
+              drawSceneBatch(resources, pass, batch, "normal", composition.environment),
+          })),
+        );
+        for (const batch of transparentGroup) captured.add(batch.instanceId);
+        clearSceneDepth = true;
+        continue;
+      }
       const hasEffects = needsLayerIsolation(batch.layer);
       if (hasEffects) {
         const fusion = analyzeEffectFusion(batch.layer.effects);
@@ -694,7 +746,7 @@ export class WebGpuRenderer {
           composition,
           batch.layer,
           batch.instanceId,
-          time,
+          batch.localTime ?? time,
           (layerPass) =>
             drawSceneBatch(resources, layerPass, batch, "normal", composition.environment),
         );
@@ -786,7 +838,18 @@ export class WebGpuRenderer {
       colorAttachments: [{ view: sceneView, loadOp: "load", storeOp: "store" }],
     });
     sceneTimingEnd.end();
-    const outputTexture = this.#context.getCurrentTexture();
+    if (this.#pendingFrameReadback && !this.#exportTexture) {
+      this.#exportTexture = this.#device.createTexture({
+        label: "Owned production output",
+        size: [this.#width, this.#height],
+        format: this.#format,
+        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
+      });
+    }
+    const outputTexture =
+      this.#pendingFrameReadback && this.#exportTexture
+        ? this.#exportTexture
+        : this.#context.getCurrentTexture();
     const output = outputTexture.createView();
     const postPass = encoder.beginRenderPass({
       label: "Fused effects + ACES display transform",
@@ -823,7 +886,9 @@ export class WebGpuRenderer {
     postPass.end();
     this.#pendingFrameReadback?.encode(encoder, outputTexture);
     const collectTimestamps = resources.gpuProfiler.encodeReadback(encoder);
+    const verifyTransparency = resources.transparency.finishFrame(encoder);
     this.#device.queue.submit([encoder.finish()]);
+    verifyTransparency();
     resources.mediaTextures.submitted();
     const textMotionBlurStats = resources.mediaTextures.textMotionBlurFrameStats;
     if (collectTimestamps) resources.gpuProfiler.readback();
@@ -847,7 +912,9 @@ export class WebGpuRenderer {
         effectLayerCount * 2 +
         adjustmentEffectLayerCount +
         generatorDrawCount +
-        textMotionBlurStats.drawCount,
+        textMotionBlurStats.drawCount +
+        resources.transparency.drawCount -
+        captured.size,
       passCount:
         3 +
         (beautyMotionBlurValid ? 3 : 0) +
@@ -856,7 +923,8 @@ export class WebGpuRenderer {
         effectLayerCount * 3 +
         adjustmentEffectLayerCount +
         surfaceFrame.surfaceCount +
-        textMotionBlurStats.passCount,
+        textMotionBlurStats.passCount +
+        resources.transparency.passCount,
       dirtyNodes: (evaluation.cacheHit ? 0 : sceneLayers.length) + effectOperationCount,
       cacheHitRate: this.#evaluationCache.hitRate(),
       estimatedVramMb: memory.estimatedBytes / 1024 / 1024,
@@ -878,6 +946,7 @@ export class WebGpuRenderer {
   async complete(): Promise<void> {
     this.#assertActive();
     await this.#device.queue.onSubmittedWorkDone();
+    await this.#resources.transparency.complete();
   }
   setMemoryBudget(megabytes?: number): void {
     this.#assertActive();
@@ -887,6 +956,7 @@ export class WebGpuRenderer {
   dispose(): void {
     if (this.#disposed) return;
     this.#disposed = true;
+    this.#exportTexture?.destroy();
     this.#pendingFrameReadback?.abort();
     this.#pendingFrameReadback = undefined;
     this.#resources.destroy();

@@ -246,7 +246,10 @@ export class MotionBlurRenderer {
       label: "Motion-blurred linear HDR scene",
       size: [this.#plan.width, this.#plan.height],
       format: "rgba16float",
-      usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
+      usage:
+        GPUTextureUsage.RENDER_ATTACHMENT |
+        GPUTextureUsage.TEXTURE_BINDING |
+        GPUTextureUsage.COPY_SRC,
     });
     this.#tileMax = this.#device.createTexture({
       label: `Motion blur tile max · ${TILE_SIZE}×${TILE_SIZE}`,

@@ -15,7 +15,7 @@ import { textAnimatorPropertyPath, textSelectorPropertyPath } from "./text-anima
 
 describe("text animator property operations", () => {
   it("edits animator and selector tracks at current time with stable keyframe identity", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const layer = createLayerForComposition("text", composition);
     composition.layers.push(layer);
@@ -94,7 +94,7 @@ describe("text animator property operations", () => {
   });
 
   it("copies, pastes and removes text keys through one undoable operation transaction", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const layer = createLayerForComposition("text", composition);
     composition.layers.push(layer);

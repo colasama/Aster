@@ -11,7 +11,7 @@ describe("safe expressions", () => {
   });
 
   it("applies expressions during arbitrary-time transform evaluation", () => {
-    const layer = createBlankProject().compositions[0].layers[0];
+    const layer = createBlankProject(true).compositions[0].layers[0];
     layer.expressions = { "position.0": "value + time * 100" };
     expect(evaluateLayerTransform(layer, 2).position[0]).toBe(1160);
   });

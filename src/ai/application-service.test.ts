@@ -4,7 +4,7 @@ import { AsterAgentApplicationService } from "./application-service";
 import type { AgentRenderedPreviewFrame } from "./render-preview";
 
 function createService(projectRevision = 7) {
-  const project = createBlankProject();
+  const project = createBlankProject(true);
   return {
     project,
     service: new AsterAgentApplicationService({
@@ -143,7 +143,7 @@ describe("Aster agent application service", () => {
 
   it("routes bounded staged previews to native vision only for image-capable models", async () => {
     for (const supportsImages of [true, false]) {
-      const project = createBlankProject();
+      const project = createBlankProject(true);
       const rendered: AgentRenderedPreviewFrame = {
         time: 0,
         renderId: "render-1",

@@ -8,7 +8,7 @@ import { planSceneRenderStack } from "./render-stack";
 
 describe("scene render-stack planning", () => {
   it("keeps adjacent 3D layers depth-tested and resets depth at a 2D overlay", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const back = createLayerForComposition("shape", composition);
     const front = createLayerForComposition("shape", composition);
@@ -31,7 +31,7 @@ describe("scene render-stack planning", () => {
   });
 
   it("omits null layers and their effects from the GPU stack", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const nullLayer = createLayerForComposition("null", composition);
     nullLayer.effects = [
@@ -45,7 +45,7 @@ describe("scene render-stack planning", () => {
   });
 
   it("routes lower geometry, adjustment, then upper geometry", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const lower = composition.layers[0];
     lower.name = "Lower";
@@ -68,7 +68,7 @@ describe("scene render-stack planning", () => {
   });
 
   it("keeps scene generators at their stack position without fake geometry", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const composition = project.compositions[0];
     const generator = createParticleLayerForComposition(composition);
     const adjustment = createLayerForComposition("adjustment", composition);

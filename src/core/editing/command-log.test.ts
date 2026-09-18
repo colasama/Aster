@@ -6,7 +6,7 @@ import { applyOperations } from "./operations";
 
 describe("serialized command log", () => {
   it("persists and replays a bounded operation transaction", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const layerId = project.compositions[0].layers[0].id;
     const operations = [{ type: "renameLayer" as const, layerId, name: "Logged edit" }];
     const entry = recordOperations(project, operations, {
@@ -25,7 +25,7 @@ describe("serialized command log", () => {
   });
 
   it("keeps large payloads out of the project and trims old entries", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const layerId = project.compositions[0].layers[0].id;
     recordOperations(project, [{ type: "setTextContent", layerId, text: "x".repeat(40_000) }]);
     expect(project.commandLog[0].serializedOperations).toBeUndefined();
@@ -37,7 +37,7 @@ describe("serialized command log", () => {
   });
 
   it("keeps large atomic edits valid without exposing a partial replay", () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const layerId = project.compositions[0].layers[0].id;
     const operations = Array.from({ length: 128 }, (_, index) => ({
       type: "renameLayer" as const,
@@ -53,12 +53,12 @@ describe("serialized command log", () => {
   });
 
   it("rejects legacy documents and a mismatched operation manifest", () => {
-    const legacy = createBlankProject() as unknown as Record<string, unknown>;
+    const legacy = createBlankProject(true) as unknown as Record<string, unknown>;
     legacy.schemaVersion = 0;
     delete legacy.commandLog;
     expect(() => validateProjectDocument(legacy)).toThrow("migration is registered from v0 to v1");
 
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     recordOperations(project, [
       {
         type: "renameLayer",

@@ -5,7 +5,7 @@ import { createBlankProject } from "../core/project/project";
 import { normalizeAiCommands } from "./command-normalizer";
 
 it("authors independent mesh pivot axes through the shared command path and seeks deterministically", () => {
-  const project = createBlankProject();
+  const project = createBlankProject(true);
   const layer = createLayerForComposition("mesh", project.compositions[0]);
   project.compositions[0].layers.push(layer);
   const before = structuredClone(layer.transform);

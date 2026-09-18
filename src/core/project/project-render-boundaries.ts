@@ -1,8 +1,6 @@
 import { assertAdjustmentLayerInvariants } from "../layers/adjustment-layer";
 import type { Composition, Layer, Project } from "../types";
 
-export const NESTED_ADJUSTMENT_ERROR =
-  "Adjustment layers in precomposition sources require a 3D texture surface wrapper";
 export const ENABLED_LUT_LIMIT_ERROR = "A layer can contain at most one enabled 3D LUT effect";
 
 export function assertLayerEffectLimits(layer: Pick<Layer, "effects">, path = "layer"): void {
@@ -27,37 +25,27 @@ export function assertProjectRenderBoundaries(
   path = "project",
 ): void {
   const compositions = new Map(
-    project.compositions.map((composition) => [composition.id, composition] as const),
+    project.compositions.map((composition) => [composition.id, composition]),
   );
+  const visited = new Set<string>();
+  const visiting = new Set<string>();
+  const visit = (composition: Composition): void => {
+    if (visiting.has(composition.id)) throw new Error("Recursive precomposition reference");
+    if (visited.has(composition.id)) return;
+    visiting.add(composition.id);
+    for (const layer of composition.layers) {
+      if (layer.kind !== "precomposition") continue;
+      const source = compositions.get(layer.sourceCompositionId ?? "");
+      if (!source) throw new Error("Precomposition source does not exist");
+      visit(source);
+    }
+    visiting.delete(composition.id);
+    visited.add(composition.id);
+  };
   for (const [index, composition] of project.compositions.entries()) {
     assertCompositionRenderBoundaries(composition, `${path}.compositions[${index}]`);
-    for (const layer of composition.layers) {
-      if (layer.kind !== "precomposition" || !layer.sourceCompositionId) continue;
-      const source = compositions.get(layer.sourceCompositionId);
-      if (
-        source &&
-        !layer.threeDimensional &&
-        flatRenderTreeContainsAdjustment(source, compositions, new Set())
-      )
-        throw new Error(NESTED_ADJUSTMENT_ERROR);
-    }
+    visit(composition);
   }
-}
-
-function flatRenderTreeContainsAdjustment(
-  composition: Composition,
-  compositions: ReadonlyMap<string, Composition>,
-  visiting: Set<string>,
-): boolean {
-  if (composition.layers.some((layer) => layer.kind === "adjustment")) return true;
-  if (visiting.has(composition.id)) return false;
-  const nextVisiting = new Set(visiting).add(composition.id);
-  return composition.layers.some((layer) => {
-    if (layer.kind !== "precomposition" || layer.threeDimensional || !layer.sourceCompositionId)
-      return false;
-    const source = compositions.get(layer.sourceCompositionId);
-    return source ? flatRenderTreeContainsAdjustment(source, compositions, nextVisiting) : false;
-  });
 }
 
 export function assertCanAddLayer(

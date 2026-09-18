@@ -30,7 +30,7 @@ beforeEach(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
   window.localStorage.clear();
   window.localStorage.setItem("aster.locale", "en-US");
-  const project = createBlankProject();
+  const project = createBlankProject(true);
   const composition = activeComposition(project);
   const layer = createLayerForComposition("solid", composition);
   layer.locked = true;

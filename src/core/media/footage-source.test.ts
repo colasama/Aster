@@ -15,7 +15,7 @@ const base = {
 
 describe("footage source compatibility", () => {
   it("only binds video footage to audio layers when an audio stream exists", () => {
-    const composition = activeComposition(createBlankProject());
+    const composition = activeComposition(createBlankProject(true));
     const layer = createLayerForComposition("audio", composition);
     const silentVideo: FootageSource = {
       ...base,

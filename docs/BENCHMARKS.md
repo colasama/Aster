@@ -103,3 +103,9 @@ An initial 60-frame run on the development WebGPU adapter measured 1.11 ms media
 1080p, 4.59 / 4.92 ms at 4K, 3.47 / 3.80 ms for 20 layers, and 0.72 / 0.79 ms for the five-effect
 Blur/Glow chain. This run predates the fixed-manifest policy and remains an observational smoke result
 rather than a manifest-qualified baseline or cross-machine limit.
+
+## Nested composition regression benchmark
+
+`pnpm exec electron scripts/gpu-nested-compositions-run.cjs` runs real WebGPU pixel assertions
+and a 1080p transparent-intersection microbenchmark. It includes GPU completion in each timed
+frame and excludes pixel readback. See [methodology and scope](NESTED_COMPOSITIONS.md#verification).

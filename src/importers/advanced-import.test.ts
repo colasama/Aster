@@ -12,7 +12,7 @@ afterEach(() => mediaImportRuntime.clear());
 
 describe("advanced media import wiring", () => {
   it("keeps sanitized SVG vector markup outside the project snapshot", () => {
-    const composition = createBlankProject().compositions[0];
+    const composition = createBlankProject(true).compositions[0];
     const imported = createSvgImport(
       {
         width: 640,
@@ -41,7 +41,7 @@ describe("advanced media import wiring", () => {
   });
 
   it("creates distinct PSD composition and retain-layer-size source semantics", () => {
-    const composition = createBlankProject().compositions[0];
+    const composition = createBlankProject(true).compositions[0];
     const document = psdDocument();
     const full = createPsdImport(document, "composition", "design.psd", "psd:test", composition, 0);
     const retained = createPsdImport(
@@ -86,7 +86,7 @@ describe("advanced media import wiring", () => {
   });
 
   it("adds merged PSD footage to the active composition", () => {
-    const composition = createBlankProject().compositions[0];
+    const composition = createBlankProject(true).compositions[0];
     const imported = createPsdImport(
       psdDocument(),
       "merged",
@@ -101,7 +101,7 @@ describe("advanced media import wiring", () => {
   });
 
   it("preserves exact sequence rate and missing-frame policy for time-addressed decode", () => {
-    const composition = createBlankProject().compositions[0];
+    const composition = createBlankProject(true).compositions[0];
     const frames = [sequenceFile("shot.0001.png"), sequenceFile("shot.0003.png")];
     const input = { selection: detectImageSequence(frames, "shot.0001.png") };
     const imported = createImageSequenceImport(

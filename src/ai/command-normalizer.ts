@@ -150,6 +150,7 @@ function normalizeCommand(
           | "solo"
           | "locked"
           | "audioEnabled"
+          | "collapseTransformations"
           | "threeDimensional"
           | "motionBlur",
       };

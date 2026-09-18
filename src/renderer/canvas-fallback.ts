@@ -102,11 +102,11 @@ export class CanvasFallbackRenderer {
     const started = performance.now();
     const context = this.#context;
     context.clearRect(0, 0, this.#width, this.#height);
-    context.fillStyle = "#060814";
-    context.fillRect(0, 0, this.#width, this.#height);
     const scale = this.#width / composition.width;
     const activeMedia = new Set<string>();
     const sceneLayers = flattenSceneLayers(composition, project, time);
+    if (sceneLayers.some((scene) => scene.precompositionSurface || scene.layer.threeDimensional))
+      throw new Error("Nested composition and 3D rendering require WebGPU");
     let drawCalls = 0;
     for (const scene of sceneLayers.reverse()) {
       const { layer, transform } = scene;

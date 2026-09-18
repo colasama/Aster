@@ -1,4 +1,5 @@
 export const inspectorEn = {
+  "inspector.compositing.collapseTransformations": "Collapse transformations",
   "inspector.content.scene": "3D scene",
   "inspector.content.cloner": "Cloner",
   "inspector.numeric.hint":

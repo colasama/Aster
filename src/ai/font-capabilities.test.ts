@@ -48,7 +48,7 @@ afterEach(() => {
 
 describe("font capabilities", () => {
   it("reads complete text styles and patches only supplied fields", async () => {
-    const project = createBlankProject();
+    const project = createBlankProject(true);
     const text = createLayerForComposition("text", project.compositions[0]);
     project.compositions[0].layers.push(text);
     const service = new AsterAgentApplicationService({
@@ -88,7 +88,7 @@ describe("font capabilities", () => {
 
   it("persists embedded fonts, loads them on reopen, and exposes metadata without bytes", async () => {
     const { loaded } = mockFonts();
-    const project = applyOperations(createBlankProject(), [
+    const project = applyOperations(createBlankProject(true), [
       { type: "addProjectFont", font: font() },
     ]);
     const reopened = await openPersistedProjectDocument(JSON.parse(serializeProject(project)));
@@ -108,7 +108,7 @@ describe("font capabilities", () => {
     });
     expect(JSON.stringify(result)).toContain("Title Font");
     expect(JSON.stringify(result)).not.toContain("dataUrl");
-    expect(validateProjectDocument(createBlankProject()).fonts).toBeUndefined();
+    expect(validateProjectDocument(createBlankProject(true)).fonts).toBeUndefined();
     expect(
       applyOperations(project, [{ type: "removeProjectFont", fontId: project.fonts?.[0].id ?? "" }])
         .fonts,
@@ -144,7 +144,7 @@ describe("font capabilities", () => {
       { family: "Arial", fullName: "Arial", postscriptName: "ArialMT", style: "Regular" },
       { family: "Arial", fullName: "Arial Bold", postscriptName: "Arial-BoldMT", style: "Bold" },
     ]);
-    const project = { ...createBlankProject(), fonts: [font()] };
+    const project = { ...createBlankProject(true), fonts: [font()] };
     const first = await listFonts(project, { query: "Arial", limit: 1 });
     expect(first).toMatchObject({ total: 2, nextOffset: 1 });
     expect(
