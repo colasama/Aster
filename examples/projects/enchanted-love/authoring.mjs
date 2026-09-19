@@ -183,10 +183,15 @@ export function effect(type, parameters, name = type, mask) {
   return { id: id("effect"), type, name, enabled: true, parameters, ...(mask ? { mask } : {}) };
 }
 export function overlay(fill, mask) {
-  const color = rgba(fill)
-    .slice(0, 3)
-    .reduce((packed, c) => packed * 256 + Math.round(c * 255), 0);
-  return effect("color-overlay", { color, opacity: 100, blendMode: 0 }, "Silhouette", mask);
+  const channels = rgba(fill).slice(0, 3);
+  const intensity = Math.max(1, ...channels);
+  const color = channels.reduce((packed, c) => packed * 256 + Math.round((c / intensity) * 255), 0);
+  return effect(
+    "color-overlay",
+    { color, intensity, opacity: 100, blendMode: 0 },
+    "Silhouette",
+    mask,
+  );
 }
 export function text(
   name,

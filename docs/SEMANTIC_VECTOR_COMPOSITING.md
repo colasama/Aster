@@ -133,6 +133,13 @@ GPU review captures. Per-frame RGB differences and changes between adjacent fram
 cuts, flashes, and short passages; scene averages set refinement priorities. These diagnostics are
 not perceptual similarity percentages and do not become authored geometry or visual media layers.
 
+Color Overlay exposes a keyframable scene-linear `intensity` multiplier (0–16, default 1). The
+ordinary colour picker supplies chromaticity; intensity allows a bright silhouette to retain HDR
+values until display tone mapping. Missing values preserve legacy projects. Compilation multiplies
+the existing RGB uniforms, so the operation, GPU ABI, surface count, alpha, and effect mask remain
+unchanged. The native parameter inspector supplies scrubbing, bounds, animation, and undo. This
+supports reusable bright character passes without copying or flattening their geometry.
+
 The curved-wipe GPU regression can be run from a WebGPU browser served by an unbundled Vite server:
 set `ASTER_BUNDLED_DEV=0`, start Vite, then run
 `await (await import("/scripts/gpu-wipe-check.mjs")).run()` in that page. It checks retained gradient

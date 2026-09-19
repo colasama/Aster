@@ -57,6 +57,35 @@ describe("GPU effect program compiler", () => {
     expect(compileEffectProgram(composition).count).toBe(MAX_EFFECT_OPERATIONS);
   });
 
+  it("preserves legacy overlays and evaluates bounded scene-linear intensity at arbitrary time", () => {
+    const composition = activeComposition(createDemoProject());
+    const layer = composition.layers[0];
+    const overlay = createEffect("color-overlay");
+    overlay.parameters = { color: 0x804020, opacity: 75, blendMode: 0 };
+    layer.effects = [overlay];
+    const legacy = compileEffectProgram(composition, 0, [layer]);
+    expect(legacy.count).toBe(1);
+    expect(legacy.data[1]).toBeCloseTo(128 / 255);
+    expect(legacy.data[4]).toBe(0.75);
+    overlay.parameterKeyframes = {
+      intensity: [
+        { id: "dim", time: 0, value: 0, interpolation: "linear" },
+        { id: "bright", time: 2, value: 4, interpolation: "linear" },
+      ],
+    };
+    for (const time of [2, 0, 1, 2]) {
+      const program = compileEffectProgram(composition, time, [layer]);
+      expect(program.count).toBe(1);
+      expect(program.data[1]).toBeCloseTo((128 / 255) * time * 2);
+      expect(program.data[2]).toBeCloseTo((64 / 255) * time * 2);
+      expect(program.data[3]).toBeCloseTo((32 / 255) * time * 2);
+      expect(program.data[4]).toBe(0.75);
+    }
+    delete overlay.parameterKeyframes;
+    overlay.parameters.intensity = 100;
+    expect(compileEffectProgram(composition, 0, [layer]).data[1]).toBeCloseTo((128 / 255) * 16);
+  });
+
   it("packs imported LUT domains into the GPU program", () => {
     const composition = activeComposition(createDemoProject());
     composition.layers.forEach((layer) => {

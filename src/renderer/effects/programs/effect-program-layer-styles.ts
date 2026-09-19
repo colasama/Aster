@@ -71,7 +71,9 @@ export function compileLayerStyleEffect(
       return true;
     case "color-overlay":
       emit(EffectOpcode.ColorOverlay, [
-        ...color("color", 0x6d72ff),
+        ...color("color", 0x6d72ff).map(
+          (channel) => channel * Math.max(0, Math.min(16, value("intensity", 1))),
+        ),
         value("opacity", 65) / 100,
         value("blendMode"),
       ]);

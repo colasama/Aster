@@ -100,6 +100,7 @@ export const LAYER_STYLE_EFFECTS: EffectDefinition[] = [
     execution: "fused-pixel",
     parameters: [
       color("color", "Overlay Color", 0x6d72ff),
+      number("intensity", "Intensity", 1, 0, 16, 0.05),
       percent("opacity", "Opacity", 65),
       choice("blendMode", "Blend Mode", BLEND_OPTIONS),
     ],
