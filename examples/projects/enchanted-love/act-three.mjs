@@ -1,4 +1,3 @@
-import { reunionScene } from "./reunion.mjs";
 import {
   animate,
   during,
@@ -14,6 +13,7 @@ import {
   track,
   vector,
 } from "./scenes.mjs";
+import { shaftReunion } from "./shaft-reunion.mjs";
 
 export function actThree(b) {
   const { scene, add, circle, group, tint, shadow, doorway, props: p, characters: a } = b;
@@ -133,31 +133,7 @@ export function actThree(b) {
         ),
       );
   }
-  {
-    const c = scene("40 · Crown rising in a narrow shaft", 90.9, 93.8, "#125165");
-    const light = beam(c, { top: 216, bottom: 480, border: true });
-    animate(light, "scale.0", [
-      [0, 22],
-      [0.1, 30],
-      [1.1, 100],
-      [2.1, 137],
-      [2.9, 150],
-    ]);
-    particles(c, 643, 3, 35);
-    const crown = add(c, p.crown, 655, 473, 115);
-    crown.expressions = {
-      "rotation.2": "20+time*118",
-      "position.1": "475+170*sin(time)",
-      "position.0": "640+130*sin(time*1.45)",
-    };
-    const side = tint(add(c, a.girls.float, -200, 560, 90, 4), P.teal);
-    animate(side, "position.0", [
-      [0, -200],
-      [1.6, -200],
-      [2.9, 0],
-    ]);
-  }
-  reunionScene(b);
+  shaftReunion(b);
   {
     const c = scene("42 · Drifting pool objects", 95.6, 99.5, P.green);
     for (const [source, x, y, scale, dx, dy] of [

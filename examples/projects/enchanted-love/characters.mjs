@@ -43,7 +43,7 @@ export function createCharacters(props) {
     c.layers.push(root, neck);
     const body = parent(place(instance(dress), 0, pose.bodyY ?? -75), root);
     body.transform.scale[1] = constant(pose.bodyScaleY ?? 100);
-    if (sideView) body.transform.scale[0] = constant(pose.bodyScaleX ?? 65);
+    if (sideView || pose.bodyScaleX) body.transform.scale[0] = constant(pose.bodyScaleX ?? 65);
     const face = parent(
       place(
         instance(
@@ -107,6 +107,25 @@ export function createCharacters(props) {
       c.layers.push(upperJoint, lowerJoint, first, second);
       bones[`${kind}${side}`] = upperJoint;
       bones[`${kind}${side}Lower`] = lowerJoint;
+      if (poseName === "riding" && kind === "leg")
+        c.layers.push(
+          parent(
+            place(
+              vector(
+                `${side} pointed foot`,
+                [
+                  [-12, -13],
+                  [14, 0],
+                  [1, 32],
+                ],
+                skin,
+              ),
+              0,
+              lower,
+            ),
+            lowerJoint,
+          ),
+        );
       if (cycle && kind === "leg") {
         const toe = poseName === "run" ? 30 : 48;
         const foot = parent(
@@ -201,7 +220,17 @@ export function createCharacters(props) {
     }
     const upperLeg = pose.upperLeg ?? (cycle ? 140 : 165);
     const lowerLeg = pose.lowerLeg ?? (cycle ? 145 : 168);
-    limb("L", "leg", -(pose.hipSpacing ?? 25), 0, upperLeg, lowerLeg, 31, pose.hipL, pose.kneeL);
+    limb(
+      "L",
+      "leg",
+      -(pose.hipSpacing ?? 25),
+      0,
+      upperLeg,
+      lowerLeg,
+      pose.legWidth ?? 31,
+      pose.hipL,
+      pose.kneeL,
+    );
     limb(
       "R",
       "leg",
@@ -209,7 +238,7 @@ export function createCharacters(props) {
       0,
       pose.rightUpperLeg ?? upperLeg,
       pose.rightLowerLeg ?? lowerLeg,
-      31,
+      pose.legWidth ?? 31,
       pose.hipR,
       pose.kneeR,
     );
@@ -436,6 +465,7 @@ export function createCharacters(props) {
     music: girl("seated with closed eyes", "sit", { closedEyes: true }),
     greeting: girl("reaching for the crown", "greeting"),
     float: girl("floating", "float"),
+    floatingTuck: girl("floating with tucked legs", "floatingTuck"),
     spread: girl("balance", "spread"),
     umbrella: girl("umbrella", "umbrella"),
     umbrellaLift: girl("lifted by an umbrella", "umbrellaLift"),
@@ -446,6 +476,7 @@ export function createCharacters(props) {
     dive: girl("diving", "dive"),
     lap: girl("seated with the frog", "lap"),
     reunion: girl("reunited on the turtle", "reunion"),
+    riding: girl("riding across the light", "riding"),
     carry: girl("standing with the frog", "carry"),
     walk: girl("walk cycle", "stand", { cycle: true }),
     run: girl("running cycle", "run", { cycle: true }),

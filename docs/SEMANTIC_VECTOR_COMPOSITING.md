@@ -71,6 +71,13 @@ The authoring morph helper converts target tangents and positions to the base pa
 assigning the target. This prevents large paths with different normalization scales from shrinking
 unexpectedly during a morph; it does not change the runtime path format or renderer.
 
+The radial passage instantiates a single six-colour cycle at shifted source times. A common
+radial clock and camera scale replace independent per-frame ring animation. Its circle radii
+share a power curve, and the crown follows a separate fitted spiral. The light-shaft sequence
+combines a four-anchor widening frustum, reusable side/front riding poses, two near-plane wipe
+boundaries, and a damped rise. All use existing native transforms, source-time mapping, and GPU
+compositing. Their source-time offsets preserve the intended clock when instances begin later.
+
 ## Curved wipe boundaries
 
 Linear Wipe optionally bends its alpha boundary with a sine curve. `bend` and `bendWidth` are

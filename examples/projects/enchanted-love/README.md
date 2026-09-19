@@ -20,7 +20,7 @@ node examples/projects/enchanted-love/build.mjs artifacts/enchanted-love path/to
 ```
 
 Open the generated bundle directory in Aster. `project.json` is the native project; `shots.json`
-lists the 49 scene boundaries. The master composition includes the complete 130.1-second edit and
+lists the 47 scene boundaries. The master composition includes the complete 130.1-second edit and
 uses the original frame rate and dimensions. Aster's Save Project operation can collect the embedded
 audio into the bundle's media directory.
 
@@ -41,13 +41,15 @@ audio into the bundle's media directory.
 | `playground.mjs` | Seesaw fulcrum, camera turn, foreground bank, rolling props, and recovery pose |
 | `dive.mjs` | Recovery, running gait, retracting ledge, dive trajectory, waterline, and depth transition |
 | `crown-staircase.mjs` | Modular treads, rolling crown, and one accelerating window camera |
-| `reunion.mjs` | Turtle riders, staggered floor columns, crown light, and concentric iris |
+| `shaft-reunion.mjs` | Widening spotlight, shared crossing camera, near-plane lighting, and crown travel |
+| `reunion.mjs` | Rising turtle riders and floor columns, crown light, and concentric iris |
+| `circular-passage.mjs` | Receding irises, a reused six-colour cycle, radial clock, zoom, and spiral crown |
 | `act-one.mjs` | Opening through the first title card |
 | `act-two.mjs` | Music, pool, umbrella, balance, and dive sequences |
 | `act-three.mjs` | Light shafts, reunion, return walk, kiss, and credits |
 | `build.mjs` | Native project assembly, asset folders, audio embedding, and shot list |
 
-The generated project has 133 compositions and 1,324 authored layers. The 49 scene compositions
+The generated project has 139 compositions and 1,402 authored layers. The 47 scene compositions
 instantiate the shared props and character poses. Thirteen native grid cloners replace hundreds of
 repeated stripe and chevron layers. The longest authored path has 10 anchors; the crown has seven,
 and each ring sector has four. There are no frame contour tracks, image sequences, or embedded
@@ -99,6 +101,18 @@ The same diver rig supplies the submerged blue silhouette; a crop follows the pr
 Two broad water surfaces, a six-anchor splash, and a rounded column form the depth transition.
 These are procedural poses and sparse camera landmarks, with no sampled frame geometry.
 
+
+The circular passage repeats one six-circle composition with source-time offsets. One remapped
+radial clock advances all cycles, while one scale track controls their spacing. Radius evaluation
+uses a common power curve, and a fitted spiral moves the crown. Tucked floating and seated riding
+poses reuse the same skeleton. No individual ring carries a frame-by-frame radius track.
+
+The late spotlight is a four-anchor frustum with two width controls and a perspective border.
+Crossing riders share one camera and one source surface between their blue and lit passes. Two
+angled half-plane wipes intersect the near light field. A damped rise brings the frontal tableau
+and pool floor into view before the crown medallion expands. The outer cream disc stays fixed
+while the green iris accelerates over it; this avoids an unintended expanding cream flash.
+
 The reference palette is measured from decoded frames. Shape paints invert Aster's ACES display
 mapping to reproduce those display colors. Text also accounts for its sRGB texture encoding.
 
@@ -107,8 +121,10 @@ mapping to reproduce those display colors. Text also accounts for its sRGB textu
 This is a full-length semantic reconstruction with remaining fidelity gaps. An every-frame audit
 exposed short passages that sparse still comparisons missed. The striped reversal and umbrella-girl
 interlude now have continuous semantic assemblies, but their detailed curves and poses remain
-approximate. The light-shaft reunion still enters late, and several circular, water, and palette
-transitions need reconstruction or retiming. Hand-drawn
+approximate. The shaft crossing and frontal reunion now share continuous camera and lighting assemblies.
+The circular passage uses shrinking discs followed by a repeated six-colour depth cycle; the
+fastest final rings still have phase differences. Several water and palette transitions need
+reconstruction or retiming. Hand-drawn
 anatomy, gestures, lettering, spherical ball rotation, and particles remain approximate. The editable
 rigs and scene-level paths are the intended places to refine those differences.
 

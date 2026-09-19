@@ -218,3 +218,21 @@ export function text(
   };
   return item;
 }
+
+// Continuous tangents at a handful of layout landmarks avoid a stop at every key.
+export function continuous(points) {
+  const slopes = points.slice(1).map(([t, v], i) => (v - points[i][1]) / (t - points[i][0]));
+  const tangent = (i) =>
+    i === 0 ? slopes[0] : i === points.length - 1 ? slopes.at(-1) : (slopes[i - 1] + slopes[i]) / 2;
+  return points.map(([t, v], i) => {
+    const slope = slopes[i];
+    const clamp = (x) => Math.max(0, Math.min(1, x));
+    return [
+      t,
+      v,
+      slope
+        ? [1 / 3, clamp(tangent(i) / slope / 3), 2 / 3, 1 - clamp(tangent(i + 1) / slope / 3)]
+        : undefined,
+    ];
+  });
+}

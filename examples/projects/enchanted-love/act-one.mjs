@@ -1,3 +1,4 @@
+import { circularPassage } from "./circular-passage.mjs";
 import { crownStaircase } from "./crown-staircase.mjs";
 import { createDoorwayExit } from "./doorway.mjs";
 import {
@@ -367,107 +368,7 @@ export function actOne(book) {
       [2.87, 380],
     ]);
   }
-  {
-    const c = scene("10 · Floating and falling", 33.1, 35.6, P.teal);
-    const field = circle(c, 740, 398, 405, P.turquoise);
-    keyPose(field, {
-      "position.0": [
-        [0, 740],
-        [1.1, 640],
-      ],
-      "scale.0": [
-        [0, 100],
-        [1.2, 170],
-        [1.9, 350],
-      ],
-      "scale.1": [
-        [0, 100],
-        [1.2, 170],
-        [1.9, 350],
-      ],
-    });
-    const girl = add(c, a.girls.float, 328, 563, 54, 30);
-    keyPose(girl, {
-      "position.0": [
-        [0, 328],
-        [0.9, 608],
-        [1.8, 900],
-        [2.5, 1460],
-      ],
-      "position.1": [
-        [0, 563],
-        [0.9, 435],
-        [1.8, 700],
-      ],
-      "rotation.2": [
-        [0, 30],
-        [1, -18],
-        [1.8, -50],
-      ],
-      "scale.0": [
-        [0, 54],
-        [0.9, 33],
-        [1.8, 18],
-      ],
-      "scale.1": [
-        [0, 54],
-        [0.9, 33],
-        [1.8, 18],
-      ],
-    });
-    const ball = orbit(add(c, p.ball, 900, 650, 90), 335, 3.8, -3.075);
-    const blue = circle(c, 640, 424, 1280, P.blue, "Blue iris expansion");
-    during(blue, 1.3, 2.5);
-    keyPose(blue, {
-      "scale.0": [
-        [1.3, 0],
-        [1.9, 100],
-      ],
-      "scale.1": [
-        [1.3, 0],
-        [1.9, 100],
-      ],
-    });
-    c.layers.push(c.layers.splice(c.layers.indexOf(ball), 1)[0]);
-    animate(ball, "scale.0", [
-      [0, 90],
-      [1.6, 100],
-    ]);
-    animate(ball, "scale.1", [
-      [0, 90],
-      [1.6, 100],
-    ]);
-  }
-  {
-    const c = scene("11 · Crown and concentric circles", 35.6, 39.633333333, P.green);
-    for (let i = 0; i < 9; i++) {
-      const d = 760 - i * 84;
-      const disk = circle(c, 640, 424, d, [P.blue, P.turquoise, P.teal, P.green][i % 4]);
-      during(disk, i === 0 ? 0 : 1.9 + (i - 1) * 0.14, 4.033333333);
-      keyPose(disk, {
-        "scale.0": [
-          [0, 100],
-          [2.5, 100],
-          [4.033333333, 190],
-        ],
-        "scale.1": [
-          [0, 100],
-          [2.5, 100],
-          [4.033333333, 190],
-        ],
-      });
-    }
-    during(circle(c, 640, 424, 760, P.turquoise), 0, 1.03);
-    const crown = orbit(add(c, p.crown, 990, 205, 130), 375, 2.1, -0.83);
-    animate(crown, "scale.0", [
-      [0, 130],
-      [3.4, 100],
-    ]);
-    animate(crown, "scale.1", [
-      [0, 130],
-      [3.4, 100],
-    ]);
-  }
+  circularPassage(book);
   {
     const c = scene("12 · Enchanted Love title card", 39.633333333, 40.3, P.cream);
     c.layers.push(rect("Picture frame", 640, 424, 660, 668, P.turquoise));
