@@ -37,6 +37,7 @@ audio into the bundle's media directory.
 | `doorway.mjs` | Continuous frog exit, beam mask, and camera shared across two shots |
 | `parade.mjs` | Shared parade camera, retimed canopy pitch, striped paper, and horizon transition |
 | `playground.mjs` | Seesaw fulcrum, camera turn, foreground bank, rolling props, and recovery pose |
+| `dive.mjs` | Recovery, running gait, retracting ledge, dive trajectory, waterline, and depth transition |
 | `crown-staircase.mjs` | Modular treads, rolling crown, and one accelerating window camera |
 | `reunion.mjs` | Turtle riders, staggered floor columns, crown light, and concentric iris |
 | `act-one.mjs` | Opening through the first title card |
@@ -44,7 +45,7 @@ audio into the bundle's media directory.
 | `act-three.mjs` | Light shafts, reunion, return walk, kiss, and credits |
 | `build.mjs` | Native project assembly, asset folders, audio embedding, and shot list |
 
-The generated project has 119 compositions and 1,176 authored layers. The 48 scene compositions
+The generated project has 124 compositions and 1,262 authored layers. The 48 scene compositions
 instantiate the shared props and character poses. Eleven native grid cloners replace hundreds of
 repeated stripe and chevron layers. The longest authored path has 10 anchors; the crown has seven,
 and each ring sector has four. There are no frame contour tracks, image sequences, or embedded
@@ -86,6 +87,15 @@ while the raft drifts and turns; the held frog remains attached to the torso ben
 The reunion seats both riders on a reusable turtle assembled from a six-anchor shell, oval flippers,
 and simple head and eye shapes. Staggered cloner columns form the pool floor. Separate radius curves
 expand the surrounding iris and preserve its central crown medallion.
+
+The ledge sequence shares a settling camera between the recovering character, foreground bank,
+and rolling props. A two-step running cycle combines opposed hip swing with delayed knee flex;
+the feet counter-rotate and the hip height follows leg reach. A foot-height anchor separates the
+runner's perspective scale from the ground path. The destination circle, four-anchor retracting
+ledge, crown, and dive share one world camera. Two accelerating descent curves meet at water entry.
+The same diver rig supplies the submerged blue silhouette; a crop follows the projected waterline.
+Two broad water surfaces, a six-anchor splash, and a rounded column form the depth transition.
+These are procedural poses and sparse camera landmarks, with no sampled frame geometry.
 
 The reference palette is measured from decoded frames. Shape paints invert Aster's ACES display
 mapping to reproduce those display colors. Text also accounts for its sRGB texture encoding.

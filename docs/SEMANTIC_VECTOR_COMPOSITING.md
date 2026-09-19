@@ -63,6 +63,14 @@ a short shell path and analytic ellipses; staggered cloner columns form the floo
 radius curves separate the outer wipe from the central crown medallion. These additions use the
 existing project format and renderer, with no bitmap frame sequences or new runtime allocation path.
 
+The dive sequence uses a periodic running rig, a foot-height anchor, a four-anchor retracting ledge,
+and a shared destination camera. Position curves separate the airborne descent from water entry;
+one reused rig surface supplies the submerged colour pass. Crop coordinates are relative to the
+destination composition after placement, so the waterline crop follows its projected screen height.
+The authoring morph helper converts target tangents and positions to the base path's units before
+assigning the target. This prevents large paths with different normalization scales from shrinking
+unexpectedly during a morph; it does not change the runtime path format or renderer.
+
 ## Verification
 
 Regression tests cover switching group effects on/off, animated off-center pivots, mapped source time,

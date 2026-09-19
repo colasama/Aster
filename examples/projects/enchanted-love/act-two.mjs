@@ -1,4 +1,5 @@
 import { comp } from "./authoring.mjs";
+import { divingScene, ledgeScene } from "./dive.mjs";
 import { umbrellaParade } from "./parade.mjs";
 import { seesawScene, slideScene } from "./playground.mjs";
 import {
@@ -17,7 +18,7 @@ import {
 } from "./scenes.mjs";
 
 export function actTwo(b) {
-  const { scene, add, circle, stripes, tint, slope, props: p, characters: a } = b;
+  const { scene, add, stripes, tint, slope, props: p, characters: a } = b;
   {
     const c = scene("13 · Crown, heart, and girl", 40.3, 42.633333333);
     const crown = add(c, p.crown, 760, 485, 200);
@@ -535,119 +536,6 @@ export function actTwo(b) {
   }
   seesawScene(b);
   slideScene(b);
-  {
-    const c = scene("35 · Standing on the ledge", 79.6, 81.733333333);
-    slope(c, P.teal, [0, 740, 1280, 580]);
-    const girl = add(c, a.girls.stand, 677, 444, 75, -12);
-    keyPose(girl, {
-      "rotation.2": [
-        [0, -12],
-        [0.6, -9],
-        [1.3, -2],
-      ],
-      "position.1": [
-        [0, 444],
-        [0.65, 435],
-      ],
-    });
-    const crown = add(c, p.crown, 267, 662, 104, -8);
-    animate(crown, "position.0", [
-      [0, 267],
-      [2.133, -290],
-    ]);
-    const ball = add(c, p.ball, 30, 709, 90);
-    animate(ball, "position.0", [
-      [0, 30],
-      [1, -250],
-    ]);
-  }
-  {
-    const c = scene("36 · The dive", 81.733333333, 86.2);
-    const light = circle(c, -320, 424, 1040, P.green, "Destination pool");
-    animate(light, "position.0", [
-      [0, -500],
-      [2.7, 600],
-    ]);
-    const cliff = vector(
-      "Cliff edge",
-      [
-        [0, 0],
-        [1200, 0],
-        [1200, 155],
-      ],
-      P.teal,
-    );
-    c.layers.push(place(cliff, 310, 610));
-    keyPose(cliff, {
-      "position.0": [
-        [0, -40],
-        [1.8, 300],
-        [2.6, 480],
-        [3.5, 885],
-        [4.467, 1320],
-      ],
-      "position.1": [
-        [0, 610],
-        [2.6, 470],
-      ],
-      "scale.0": [
-        [0, 200],
-        [2.6, 100],
-      ],
-      "scale.1": [
-        [0, 200],
-        [2.6, 100],
-      ],
-    });
-    const crouch = add(c, a.girls.crouch, 900, 509, 71);
-    during(crouch, 0, 2.3);
-    keyPose(crouch, {
-      "position.0": [
-        [0, 900],
-        [1.2, 710],
-        [2.3, 980],
-      ],
-      "position.1": [
-        [0, 509],
-        [1.2, 476],
-        [2.3, 436],
-      ],
-      "scale.0": [
-        [0, 71],
-        [2.3, 24],
-      ],
-      "scale.1": [
-        [0, 71],
-        [2.3, 24],
-      ],
-    });
-    const dive = add(c, a.girls.dive, 980, 436, 24, 0);
-    during(dive, 2.3, c.duration);
-    keyPose(dive, {
-      "position.0": [
-        [2.3, 980],
-        [3.266666667, 580],
-        [4.467, 610],
-      ],
-      "position.1": [
-        [2.3, 436],
-        [2.9, 370],
-        [3.266666667, 480],
-        [3.6, 620],
-        [4.467, 930],
-      ],
-      "rotation.2": [
-        [2.3, 0],
-        [2.7, -60],
-        [3.266666667, -137],
-        [4.2, -180],
-      ],
-    });
-    const crown = add(c, p.crown, 469, 485, 28);
-    during(crown, 2.3, c.duration);
-    animate(crown, "position.0", [
-      [2.3, 469],
-      [4.46, 1250],
-    ]);
-  }
+  ledgeScene(b);
+  divingScene(b);
 }

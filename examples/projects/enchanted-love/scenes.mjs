@@ -113,8 +113,13 @@ export function sceneBook(props, characters) {
   };
   const morph = (c, name, from, to, start, end, fill, options = {}) => {
     const item = vector(name, from, fill, options);
+    const target = vector(name, to, fill, options);
+    const ratio = target.size[0] / item.size[0];
+    for (const vertex of target.shape.path.vertices)
+      for (const key of ["position", "inTangent", "outTangent"])
+        vertex[key] = vertex[key].map((value) => value * ratio);
     item.shape.morph = {
-      target: vector(name, to, fill, options).shape.path,
+      target: target.shape.path,
       progress: track([
         [start, 0],
         [end, 100],

@@ -167,6 +167,19 @@ export function createGirlArtwork(assets) {
     ),
   ];
   assets.push(profile);
+  const runnerHead = structuredClone(profile);
+  runnerHead.id = id("comp");
+  runnerHead.name = "Girl · running profile";
+  for (const part of runnerHead.layers) {
+    part.id = id("layer");
+    if (part.name === "Hair silhouette") part.visible = false;
+    if (part.name === "Hair tuft") {
+      part.color = profile.layers[2].color;
+      part.transform.position[0] = constant(100);
+      part.transform.position[1] = constant(43);
+    }
+  }
+  assets.push(runnerHead);
   const dress = comp("Girl · tunic", 140, 190);
   dress.layers = [
     place(
@@ -191,5 +204,5 @@ export function createGirlArtwork(assets) {
   ];
   assets.push(dress);
 
-  return { head, closedHead, swimmingHead, profile, dress };
+  return { head, closedHead, swimmingHead, profile, runnerHead, dress };
 }
