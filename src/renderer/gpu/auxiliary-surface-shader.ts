@@ -21,6 +21,7 @@ struct SurfaceVertex {
   @location(5) @interpolate(flat) object_id: u32,
   @location(6) @interpolate(flat) material_id: u32,
   @location(7) motion_vector: vec2f,
+  @location(8) shape_aspect: vec2f,
 }
 
 @vertex fn surface_vertex(
@@ -30,6 +31,7 @@ struct SurfaceVertex {
   @location(4) normal: vec3f,
   @location(6) world_position: vec3f,
   @location(8) shape_parameters: vec4f,
+  @location(10) gradient_parameters: vec4f,
   @location(12) object_id: u32,
   @location(13) material_id: u32,
   @location(14) motion_vector: vec2f,
@@ -44,6 +46,7 @@ struct SurfaceVertex {
   output.object_id = object_id;
   output.material_id = material_id;
   output.motion_vector = motion_vector;
+  output.shape_aspect = max(gradient_parameters.zw, vec2f(1.0));
   return output;
 }
 
@@ -66,7 +69,8 @@ fn shape_coverage(input: SurfaceVertex) -> f32 {
   }
   if (kind > 0.5 && kind < 1.5) {
     let radius = input.shape_parameters.y;
-    let rounded = abs(centered) - vec2f(0.5 - radius);
+    let rounded = abs(centered) * input.shape_aspect
+      - (0.5 * input.shape_aspect - vec2f(radius));
     let distance = length(max(rounded, vec2f(0.0))) + min(max(rounded.x, rounded.y), 0.0) - radius;
     return select(0.0, 1.0, distance <= 0.0);
   }

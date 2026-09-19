@@ -329,3 +329,8 @@ and rejects browser requests. `aster-mcp --background` owns an isolated hidden e
 ephemeral port and temporary profile; closing stdio shuts down that editor and removes the profile.
 Interactive connections use `aster-mcp` and leave the user-owned editor running.
 `shape.morph` uses the shared time-addressable path evaluator before adaptive vector tessellation; playback presentation uses the window clock channel independently of sampled React UI updates. See [Path morph](PATH_MORPH.md) and [Playback performance](PLAYBACK_PERFORMANCE.md).
+
+2D precompositions with enabled wrapper effects reuse the bounded GPU surface path, allowing group
+alpha masks and silhouettes without CPU rasterization. Render-stack entries retain local evaluation
+time for effects across nested and retimed compositions. See [Semantic vector compositing](SEMANTIC_VECTOR_COMPOSITING.md)
+for the isolation rules, reflection corrections, and validation method.

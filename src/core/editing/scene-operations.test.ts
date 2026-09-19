@@ -7,6 +7,7 @@ import {
   createBlankProject,
   createDemoProject,
 } from "../project/project";
+import { NESTED_ADJUSTMENT_ERROR } from "../project/project-render-boundaries";
 import {
   createParticleLayerForComposition,
   createParticleSceneGenerator,
@@ -67,7 +68,7 @@ describe("scene operations", () => {
       applyOperations(project, [
         { type: "addLayer", layer: createLayerForComposition("adjustment", nested) },
       ]),
-    ).toThrow("Adjustment layers in precomposition sources require a 3D texture surface wrapper");
+    ).toThrow(NESTED_ADJUSTMENT_ERROR);
   });
 
   it("keeps adjustment precompositions on the isolated 3D surface route", () => {
@@ -85,7 +86,20 @@ describe("scene operations", () => {
       applyOperations(project, [
         { type: "toggleLayer", layerId: wrapper.id, field: "threeDimensional" },
       ]),
-    ).toThrow("Adjustment layers in precomposition sources require a 3D texture surface wrapper");
+    ).toThrow(NESTED_ADJUSTMENT_ERROR);
+
+    wrapper.effects.push(createEffect("color-overlay"));
+    const isolated2D = applyOperations(project, [
+      { type: "toggleLayer", layerId: wrapper.id, field: "threeDimensional" },
+    ]);
+    expect(isolated2D.compositions[0].layers[0].threeDimensional).toBe(false);
+    for (const type of ["toggleEffect", "removeEffect"] as const)
+      expect(() =>
+        applyOperations(isolated2D, [
+          { type, layerId: wrapper.id, effectId: wrapper.effects[0].id },
+        ]),
+      ).toThrow(NESTED_ADJUSTMENT_ERROR);
+    wrapper.effects = [];
 
     nested.layers = nested.layers.filter((layer) => layer.kind !== "adjustment");
     const flattened = applyOperations(project, [

@@ -2,7 +2,7 @@ import type { FlattenedSceneLayer } from "../../core/scene/scene-evaluation";
 import type { GeometryBatch } from "../geometry/geometry";
 
 export type SceneRenderItem = (
-  | { kind: "geometry"; batch: GeometryBatch }
+  | { kind: "geometry"; batch: GeometryBatch; scene: FlattenedSceneLayer }
   | { kind: "adjustment"; scene: FlattenedSceneLayer }
   | { kind: "generator"; scene: FlattenedSceneLayer }
 ) & { clearDepth?: true };
@@ -31,7 +31,7 @@ export function planSceneRenderStack(
       continue;
     }
     const batch = geometryByInstance.get(scene.instanceId);
-    if (batch) stack.push({ kind: "geometry", batch });
+    if (batch) stack.push({ kind: "geometry", batch, scene });
   }
   let previousWas3D = false;
   for (const item of stack) {

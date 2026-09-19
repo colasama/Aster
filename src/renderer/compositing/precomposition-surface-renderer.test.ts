@@ -6,6 +6,7 @@ import {
 import { createBlankProject } from "../../core/project/project";
 import { flattenSceneLayers } from "../../core/scene/scene-evaluation";
 import { createEffect } from "../../effects/registry";
+import { LayerEffectRenderer } from "../effects/layer-effects";
 import { MediaTextureCache } from "../media/media-texture-cache";
 import type { SceneGeneratorHost } from "../scene/scene-generator-host";
 import { textRasterResolutionScale } from "../text/text-rasterizer";
@@ -21,6 +22,47 @@ import {
 
 describe("GPU precomposition surfaces", () => {
   afterEach(() => vi.unstubAllGlobals());
+
+  it("evaluates flattened child effects at their mapped composition time", () => {
+    installGpuConstants();
+    const device = mockDevice([], vi.fn());
+    const layout = device.createBindGroupLayout({ entries: [] });
+    const sampler = device.createSampler();
+    const renderer = new PrecompositionSurfaceRenderer(device, {
+      mediaTextures: new MediaTextureCache(device, layout, sampler, vi.fn()),
+      mediaLayout: layout,
+      mediaSampler: sampler,
+      lightingLayout: layout,
+      shapePipelines: blendPipelines(),
+      imagePipelines: blendPipelines(),
+    });
+    const project = createBlankProject();
+    const root = project.compositions[0];
+    const group = { ...structuredClone(root), id: "group" };
+    const child = { ...structuredClone(root), id: "child" };
+    const shape = createLayerForComposition("shape", child);
+    shape.effects = [createEffect("crop")];
+    child.layers = [shape];
+    const childWrapper = createLayerForComposition("precomposition", group);
+    childWrapper.sourceCompositionId = child.id;
+    childWrapper.timeRemap = { mode: "static", value: 2.5 };
+    group.layers = [childWrapper];
+    const wrapper = createLayerForComposition("precomposition", root);
+    wrapper.sourceCompositionId = group.id;
+    wrapper.effects = [createEffect("color-overlay")];
+    wrapper.timeRemap = { mode: "static", value: 4 };
+    root.layers = [wrapper];
+    project.compositions.push(group, child);
+    const encode = vi.spyOn(LayerEffectRenderer.prototype, "encode");
+    try {
+      renderer.prepare(project, flattenSceneLayers(root, project, 1), false);
+      renderer.encode(mockEncoder([]));
+      expect(encode.mock.calls.map((args) => [args[3].id, args[5]])).toEqual([[shape.id, 2.5]]);
+    } finally {
+      encode.mockRestore();
+      renderer.destroy();
+    }
+  });
 
   it("loads color and clears depth when a 2D overlay follows nested 3D geometry", () => {
     installGpuConstants();

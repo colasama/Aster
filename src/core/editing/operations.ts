@@ -628,9 +628,13 @@ export function applyOperation(project: Project, operation: Operation): void {
       assertLayerEffectLimits({ effects: [...layer.effects, operation.effect] });
       layer.effects.push(structuredClone(operation.effect));
       break;
-    case "removeEffect":
-      layer.effects = layer.effects.filter((effect) => effect.id !== operation.effectId);
+    case "removeEffect": {
+      const effects = layer.effects.filter((effect) => effect.id !== operation.effectId);
+      if (layer.kind === "precomposition")
+        assertCanUpdateLayer(project, composition, { ...layer, effects });
+      layer.effects = effects;
       break;
+    }
     case "moveEffect": {
       const fromIndex = layer.effects.findIndex((effect) => effect.id === operation.effectId);
       if (fromIndex < 0) throw new Error("Effect does not exist");
@@ -649,11 +653,12 @@ export function applyOperation(project: Project, operation: Operation): void {
     case "toggleEffect": {
       const effect = layer.effects.find((entry) => entry.id === operation.effectId);
       if (!effect) throw new Error("Effect does not exist");
-      assertLayerEffectLimits({
-        effects: layer.effects.map((entry) =>
-          entry.id === operation.effectId ? { ...entry, enabled: !entry.enabled } : entry,
-        ),
-      });
+      const effects = layer.effects.map((entry) =>
+        entry.id === operation.effectId ? { ...entry, enabled: !entry.enabled } : entry,
+      );
+      assertLayerEffectLimits({ effects });
+      if (layer.kind === "precomposition")
+        assertCanUpdateLayer(project, composition, { ...layer, effects });
       effect.enabled = !effect.enabled;
       break;
     }

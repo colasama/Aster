@@ -124,12 +124,13 @@ export function buildSceneGeometry(
         ? transform.opacity
         : Number(layer.threeDimensional || layer.kind === "mesh"),
     ] as const;
-    const sourceSize = scene.precompositionSurface
-      ? [
-          scene.precompositionSurface.composition.width,
-          scene.precompositionSurface.composition.height,
-        ]
-      : solidRenderSize(layer);
+    const sourceSize =
+      scene.precompositionSurface && layer.threeDimensional
+        ? [
+            scene.precompositionSurface.composition.width,
+            scene.precompositionSurface.composition.height,
+          ]
+        : solidRenderSize(layer);
     const width = (sourceSize[0] * transform.scale[0]) / 100;
     const height = (sourceSize[1] * transform.scale[1]) / 100;
     const anchorOffset: readonly [number, number, number] = [
@@ -178,8 +179,13 @@ export function buildSceneGeometry(
       layer.kind === "mesh"
         ? (layerMaterial?.alphaCutoff ?? 0.5)
         : toRadians(layer.shape?.gradientAngle ?? 0),
-      (layer.shape?.dashLength ?? 0) / Math.max(Math.abs(width), 1),
-      (layer.shape?.dashGap ?? 0) / Math.max(Math.abs(width), 1),
+      // Rectangles use the otherwise unused dash slots for their metric aspect.
+      inferredShapeKind === "rectangle"
+        ? Math.max(Math.abs(width), 1) / minimumDimension
+        : (layer.shape?.dashLength ?? 0) / Math.max(Math.abs(width), 1),
+      inferredShapeKind === "rectangle"
+        ? Math.max(Math.abs(height), 1) / minimumDimension
+        : (layer.shape?.dashGap ?? 0) / Math.max(Math.abs(width), 1),
     ] as const;
     let vertexCount = QUAD_CORNERS.length;
     if (layer.kind === "mesh") {
@@ -389,7 +395,7 @@ function appendBezierPath(
       );
       for (const point of stroke)
         append(
-          [point[0] / Math.max(Math.abs(width), 1), point[1] / Math.max(Math.abs(height), 1)],
+          [point[0] / (width || 1), point[1] / (height || 1)],
           strokeColor,
           noStyle,
           solidParameters,

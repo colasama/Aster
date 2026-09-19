@@ -9,6 +9,93 @@ import { buildSceneGeometry, FLOATS_PER_VERTEX, VERTEX_FLOAT_OFFSETS } from "./g
 import { createDefaultBezierPath } from "./vector-path";
 
 describe("GPU scene geometry", () => {
+  it.each([0, 1] as const)("reflects stroke and fill together along axis %s", (axis) => {
+    const project = createBlankProject();
+    const composition = project.compositions[0];
+    const shape = createLayerForComposition("shape", composition);
+    if (!shape.shape) throw new Error("Expected shape settings");
+    setLayerSizeAndCenterAnchor(shape, [100, 100]);
+    shape.transform.position = [staticValue(200), staticValue(200), staticValue(0)];
+    shape.shape.kind = "bezier";
+    shape.shape.path = {
+      closed: true,
+      vertices: [
+        [0.1, 0.1],
+        [0.4, 0.1],
+        [0.4, 0.4],
+        [0.1, 0.4],
+      ].map(([x, y]) => ({
+        position: [x, y],
+        inTangent: [0, 0],
+        outTangent: [0, 0],
+      })),
+    };
+    shape.shape.strokeWidth = 4;
+    composition.layers = [shape];
+    const bounds = () => {
+      const { data } = buildSceneGeometry(composition, flattenSceneLayers(composition, project, 0));
+      const values = Array.from(
+        { length: data.length / FLOATS_PER_VERTEX },
+        (_, index) => data[index * FLOATS_PER_VERTEX + VERTEX_FLOAT_OFFSETS.worldPosition + axis],
+      );
+      return [Math.min(...values), Math.max(...values)];
+    };
+    const original = bounds();
+    shape.transform.scale[axis] = staticValue(-100);
+    const reflected = bounds();
+    expect(reflected[0]).toBeCloseTo(400 - original[1]);
+    expect(reflected[1]).toBeCloseTo(400 - original[0]);
+  });
+
+  it("keeps the edited dimensions of a 2D group when effects isolate its source", () => {
+    const project = createBlankProject();
+    const composition = project.compositions[0];
+    const nested = structuredClone(composition);
+    nested.id = "effect-source";
+    const wrapper = createLayerForComposition("precomposition", composition);
+    wrapper.sourceCompositionId = nested.id;
+    setLayerSizeAndCenterAnchor(wrapper, [400, 200]);
+    wrapper.effects.push({
+      id: "tint",
+      type: "color-overlay",
+      name: "Tint",
+      enabled: true,
+      parameters: {},
+    });
+    composition.layers = [wrapper];
+    project.compositions.push(nested);
+    const { data } = buildSceneGeometry(composition, flattenSceneLayers(composition, project, 0));
+    expect(data[0]).toBeCloseTo(-400 / composition.width);
+    expect(data[1]).toBeCloseTo(200 / composition.height);
+  });
+
+  it("preserves circular corner radii on tall, wide, and mirrored rectangles", () => {
+    const project = createBlankProject();
+    const composition = project.compositions[0];
+    const rectangle = createLayerForComposition("shape", composition);
+    if (!rectangle.shape) throw new Error("Expected shape settings");
+    rectangle.shape.kind = "rectangle";
+    rectangle.shape.roundness = 10;
+    composition.layers = [rectangle];
+    for (const [width, height, expected] of [
+      [40, 200, [1, 5]],
+      [200, 40, [5, 1]],
+    ] as const) {
+      rectangle.size = [width, height];
+      rectangle.transform.scale[0] = staticValue(-100);
+      const { data } = buildSceneGeometry(composition, flattenSceneLayers(composition, project, 0));
+      expect(
+        Array.from(
+          data.slice(
+            VERTEX_FLOAT_OFFSETS.gradientStyleParameters + 2,
+            VERTEX_FLOAT_OFFSETS.gradientStyleParameters + 4,
+          ),
+        ),
+      ).toEqual(expected);
+      expect(data[VERTEX_FLOAT_OFFSETS.shapeStyleParameters + 1]).toBeCloseTo(0.25);
+    }
+  });
+
   it("keeps transparent fill, stroke alpha, and animated layer opacity independent", () => {
     const project = createBlankProject();
     const composition = project.compositions[0];

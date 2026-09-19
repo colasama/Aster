@@ -647,7 +647,7 @@ export class WebGpuRenderer {
             composition,
             layer,
             item.scene.instanceId,
-            time,
+            item.scene.localTime,
           );
           if (operationCount > 0) {
             activeEffectInstances.add(item.scene.instanceId);
@@ -687,7 +687,7 @@ export class WebGpuRenderer {
             composition,
             item.scene.layer,
             item.scene.instanceId,
-            time,
+            item.scene.localTime,
             (layerPass) => resources.sceneGenerators.draw(layerPass, generator, "normal"),
           );
           fusedEffectCount += fusion.fusedEffectCount;
@@ -731,7 +731,7 @@ export class WebGpuRenderer {
           composition,
           batch.layer,
           batch.instanceId,
-          time,
+          item.scene.localTime,
           (layerPass) =>
             drawSceneBatch(resources, layerPass, batch, "normal", composition.environment),
         );

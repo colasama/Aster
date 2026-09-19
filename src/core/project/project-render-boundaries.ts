@@ -2,8 +2,13 @@ import { assertAdjustmentLayerInvariants } from "../layers/adjustment-layer";
 import type { Composition, Layer, Project } from "../types";
 
 export const NESTED_ADJUSTMENT_ERROR =
-  "Adjustment layers in precomposition sources require a 3D texture surface wrapper";
+  "Adjustment layers in precomposition sources require a texture surface wrapper (3D or with enabled effects)";
 export const ENABLED_LUT_LIMIT_ERROR = "A layer can contain at most one enabled 3D LUT effect";
+
+/** Keep ordinary 2D groups flattened; effects need the group's combined alpha. */
+export function needsPrecompositionSurface(layer: Layer): boolean {
+  return layer.threeDimensional || layer.effects.some((effect) => effect.enabled);
+}
 
 export function assertLayerEffectLimits(layer: Pick<Layer, "effects">, path = "layer"): void {
   const enabledLutCount = layer.effects.filter(
@@ -36,7 +41,7 @@ export function assertProjectRenderBoundaries(
       const source = compositions.get(layer.sourceCompositionId);
       if (
         source &&
-        !layer.threeDimensional &&
+        !needsPrecompositionSurface(layer) &&
         flatRenderTreeContainsAdjustment(source, compositions, new Set())
       )
         throw new Error(NESTED_ADJUSTMENT_ERROR);
@@ -53,7 +58,11 @@ function flatRenderTreeContainsAdjustment(
   if (visiting.has(composition.id)) return false;
   const nextVisiting = new Set(visiting).add(composition.id);
   return composition.layers.some((layer) => {
-    if (layer.kind !== "precomposition" || layer.threeDimensional || !layer.sourceCompositionId)
+    if (
+      layer.kind !== "precomposition" ||
+      needsPrecompositionSurface(layer) ||
+      !layer.sourceCompositionId
+    )
       return false;
     const source = compositions.get(layer.sourceCompositionId);
     return source ? flatRenderTreeContainsAdjustment(source, compositions, nextVisiting) : false;

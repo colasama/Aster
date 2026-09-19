@@ -218,7 +218,8 @@ fn fragment_main(input: VertexOutput) -> @location(0) vec4f {
     }
     let ellipse_distance = (length(centered * 2.0) - 1.0) * 0.5;
     let radius = input.shape_style_parameters.y;
-    let rounded = abs(centered) - vec2f(0.5 - radius);
+    let aspect = max(input.gradient_style_parameters.zw, vec2f(1.0));
+    let rounded = abs(centered) * aspect - (0.5 * aspect - vec2f(radius));
     let rectangle_distance = length(max(rounded, vec2f(0.0)))
       + min(max(rounded.x, rounded.y), 0.0) - radius;
     var shape_distance = select(

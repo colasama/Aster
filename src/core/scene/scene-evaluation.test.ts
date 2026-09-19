@@ -8,6 +8,61 @@ import {
 } from "./scene-evaluation";
 
 describe("editor scene evaluation", () => {
+  it("reflects joint rotations when a parent or a 2D composition is mirrored", () => {
+    const project = createBlankProject();
+    const root = project.compositions[0];
+    const parent = createLayerForComposition("null", root);
+    parent.transform.scale[0] = { mode: "static", value: -100 };
+    const joint = createLayerForComposition("null", root);
+    joint.parentId = parent.id;
+    joint.transform.rotation[2] = { mode: "static", value: 30 };
+    const tip = createLayerForComposition("shape", root);
+    tip.parentId = joint.id;
+    tip.transform.position[0] = { mode: "static", value: 0 };
+    tip.transform.position[1] = { mode: "static", value: 100 };
+    joint.transform.position[0] = { mode: "static", value: 0 };
+    joint.transform.position[1] = { mode: "static", value: 0 };
+    root.layers = [tip, joint, parent];
+    const reflected = evaluateWorldTransform(tip, root, 0);
+    expect(reflected.rotation[2]).toBe(-30);
+    expect(reflected.position[0]).toBeCloseTo(root.width / 2 + 50);
+
+    parent.transform.scale[0] = { mode: "static", value: 100 };
+    const wrapper = createLayerForComposition("precomposition", root);
+    wrapper.sourceCompositionId = root.id;
+    wrapper.size = [root.width, root.height];
+    wrapper.transform.scale[0] = { mode: "static", value: -100 };
+    const outer = { ...root, id: "mirror-wrapper", layers: [wrapper] };
+    project.compositions.push(outer);
+    const result = flattenSceneLayers(outer, project, 0).find((entry) => entry.layer.id === tip.id);
+    expect(result?.transform.rotation[2]).toBe(-30);
+    expect(result?.transform.position[0]).toBeCloseTo(reflected.position[0]);
+  });
+
+  it("isolates a 2D group's effects and returns to flattening when they are disabled", () => {
+    const project = createBlankProject();
+    const root = project.compositions[0];
+    const nested = structuredClone(root);
+    nested.id = "nested-effects";
+    const wrapper = createLayerForComposition("precomposition", root);
+    wrapper.sourceCompositionId = nested.id;
+    wrapper.effects = [
+      { id: "tint", type: "color-overlay", name: "Tint", enabled: true, parameters: {} },
+    ];
+    wrapper.timeOffset = 0.5;
+    root.layers = [wrapper];
+    project.compositions.push(nested);
+
+    const [surface] = flattenSceneLayers(root, project, 2);
+    expect(surface.layer).toBe(wrapper);
+    expect(surface.layer.threeDimensional).toBe(false);
+    expect(surface.precompositionSurface).toMatchObject({ composition: nested, time: 2.5 });
+    wrapper.effects[0].enabled = false;
+    const [flat] = flattenSceneLayers(root, project, 2);
+    expect(flat.layer).toBe(nested.layers[0]);
+    expect(flat.precompositionSurface).toBeUndefined();
+  });
+
   it("combines parent transforms at arbitrary time", () => {
     const composition = createBlankProject().compositions[0];
     const parent = composition.layers[0];

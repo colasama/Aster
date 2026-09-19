@@ -7,6 +7,24 @@ import { buildSceneGeometry } from "../geometry/geometry";
 import { planSceneRenderStack } from "./render-stack";
 
 describe("scene render-stack planning", () => {
+  it("retains mapped local time for flattened geometry effects", () => {
+    const project = createBlankProject();
+    const composition = project.compositions[0];
+    const source = { ...structuredClone(composition), id: "source" };
+    source.layers = [createLayerForComposition("shape", source)];
+    const wrapper = createLayerForComposition("precomposition", composition);
+    wrapper.sourceCompositionId = source.id;
+    wrapper.inPoint = 2;
+    wrapper.timeStretch = 2;
+    composition.layers = [wrapper];
+    project.compositions.push(source);
+    const scene = flattenSceneLayers(composition, project, 5);
+    const geometry = buildSceneGeometry(composition, scene);
+    const stack = planSceneRenderStack(scene, geometry.batches);
+    expect(stack[0].scene.localTime).toBe(1.5);
+    expect(stack[0].scene.sourceComposition).toBe(source);
+  });
+
   it("keeps adjacent 3D layers depth-tested and resets depth at a 2D overlay", () => {
     const project = createBlankProject();
     const composition = project.compositions[0];

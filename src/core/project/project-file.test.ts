@@ -11,6 +11,7 @@ import { createDefaultParticleSettings } from "../scene/particle-settings";
 import { type Layer, type ProjectFolder, staticValue } from "../types";
 import { createBlankProject } from "./project";
 import { serializeProject, storeRecoverySnapshot, validateProjectDocument } from "./project-file";
+import { NESTED_ADJUSTMENT_ERROR } from "./project-render-boundaries";
 
 describe("project document boundary", () => {
   it("roundtrips shared sources once and rejects invalid references or metadata", () => {
@@ -133,9 +134,7 @@ describe("project document boundary", () => {
     project.compositions.push(nested);
 
     nested.layers.unshift(createLayerForComposition("adjustment", nested));
-    expect(() => validateProjectDocument(project)).toThrow(
-      "Adjustment layers in precomposition sources require a 3D texture surface wrapper",
-    );
+    expect(() => validateProjectDocument(project)).toThrow(NESTED_ADJUSTMENT_ERROR);
     wrapper.threeDimensional = true;
     expect(validateProjectDocument(project).compositions[1].layers[0].kind).toBe("adjustment");
     wrapper.threeDimensional = false;

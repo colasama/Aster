@@ -1,6 +1,9 @@
 import { evaluateLayerTransform } from "../animation/expressions";
 import { evaluateLayerSourceTime } from "../animation/layer-time";
-import { NESTED_ADJUSTMENT_ERROR } from "../project/project-render-boundaries";
+import {
+  NESTED_ADJUSTMENT_ERROR,
+  needsPrecompositionSurface,
+} from "../project/project-render-boundaries";
 import type { Composition, EvaluatedTransform, Id, Layer, Project } from "../types";
 import { composeClonerTransform, evaluateCloner, MAX_CLONER_INSTANCES } from "./cloner";
 
@@ -13,7 +16,7 @@ export interface FlattenedSceneLayer {
   resourceInstanceId: string;
   selectionId: Id;
   /**
-   * A 3D precomposition stays isolated instead of being flattened into its
+   * A 3D precomposition or a 2D group with effects stays isolated instead of being flattened into its
    * parent. The renderer evaluates this source at `time` into a GPU texture and
    * maps that texture onto the wrapper quad.
    */
@@ -100,7 +103,7 @@ function flattenComposition(
       const instanceId = clone ? `${baseInstanceId}:clone-${clone.index}` : baseInstanceId;
       if (nested) {
         const nestedTime = evaluateLayerSourceTime(layer, time, nested.duration);
-        if (layer.threeDimensional) {
+        if (needsPrecompositionSurface(layer)) {
           output.push({
             layer,
             sourceComposition: composition,
@@ -179,11 +182,10 @@ function mapNestedTransform(
       parent.position[1] + offsetX * Math.sin(radians) + offsetY * Math.cos(radians),
       parent.position[2] + child.position[2] * (parent.scale[2] / 100),
     ],
-    rotation: child.rotation.map((value, index) => value + parent.rotation[index]) as [
-      number,
-      number,
-      number,
-    ],
+    rotation: child.rotation.map(
+      (value, index) =>
+        value * (index === 2 && scaleX * scaleY < 0 ? -1 : 1) + parent.rotation[index],
+    ) as [number, number, number],
     scale: child.scale.map((value, index) => (value * parent.scale[index]) / 100) as [
       number,
       number,
@@ -217,11 +219,10 @@ function evaluateRecursive(
       world.position[1] + localX * Math.sin(radians) + localY * Math.cos(radians),
       world.position[2] + local.position[2] * (world.scale[2] / 100),
     ],
-    rotation: local.rotation.map((value, index) => value + world.rotation[index]) as [
-      number,
-      number,
-      number,
-    ],
+    rotation: local.rotation.map(
+      (value, index) =>
+        value * (index === 2 && scaleX * scaleY < 0 ? -1 : 1) + world.rotation[index],
+    ) as [number, number, number],
     scale: local.scale.map((value, index) => (value * world.scale[index]) / 100) as [
       number,
       number,

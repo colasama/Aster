@@ -516,7 +516,7 @@ export class PrecompositionSurfaceRenderer {
   }
 
   #encodeJob(encoder: GPUCommandEncoder, job: SurfaceJob): void {
-    const { entry, composition, geometry, sceneLayers, time, generators } = job;
+    const { entry, composition, geometry, sceneLayers, generators } = job;
     if (generators.length > 0) {
       const compute = encoder.beginComputePass({
         label: `Precomposition scene generators · ${composition.name}`,
@@ -550,7 +550,7 @@ export class PrecompositionSurfaceRenderer {
             composition,
             item.scene.layer,
             item.scene.instanceId,
-            time,
+            item.scene.localTime,
             (layerPass) => this.#sceneGenerators?.draw(layerPass, generator, "normal"),
           );
           continue;
@@ -570,7 +570,7 @@ export class PrecompositionSurfaceRenderer {
           composition,
           item.scene.layer,
           item.scene.instanceId,
-          time,
+          item.scene.localTime,
         );
         if (count) activeEffects.add(item.scene.instanceId);
         continue;
@@ -586,7 +586,7 @@ export class PrecompositionSurfaceRenderer {
           composition,
           batch.layer,
           batch.instanceId,
-          time,
+          item.scene.localTime,
           (layerPass) => this.#drawBatch(layerPass, entry, batch, "normal"),
         );
         continue;

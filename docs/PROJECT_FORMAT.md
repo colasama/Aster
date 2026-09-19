@@ -110,6 +110,13 @@ Opening a composition, including the active composition of a loaded project, pos
 at its work-area start with playback stopped. Its original frame numbering remains visible without
 requiring the user to seek through the leading interval.
 
+A 2D precomposition with an enabled wrapper effect is rendered to the existing bounded GPU surface
+before applying that effect to the combined image and alpha. Ordinary 2D groups remain flattened;
+disabling all wrapper effects restores that path. This uses existing layer/effect fields and does not
+change schema version 10. Adjustment layers inside such an isolated source remain local to it, as
+they do for 3D surface wrappers. Surface limits and diagnostics are unchanged. Mirroring a 2D parent
+or wrapper reverses descendant Z rotations as well as positions, keeping articulated joints attached.
+
 Sources are discriminated as `still`, `video`, `audio`, `imageSequence`, `svg`, or `psd`. Every source
 has a stable ID, MIME type, bounded content identity, optional embedded/relative/runtime locator, and
 explicit alpha/color-space/frame-rate interpretation. Kind-specific dimensions, durations, channel
