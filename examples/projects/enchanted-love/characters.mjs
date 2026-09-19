@@ -285,14 +285,35 @@ export function createCharacters(props) {
       pose.elbowR,
     );
     c.layers.push(face);
+    if (poseName === "spotlight") {
+      animate(bones.armL, "rotation.2", [
+        [0, 35],
+        [3 / 30, 8],
+      ]);
+      for (const side of ["L", "R"]) {
+        animate(bones[`leg${side}`], "rotation.2", [
+          [0, 0],
+          [1 / 30, -20],
+          [4 / 30, -20],
+          [6 / 30, 0],
+        ]);
+        animate(bones[`leg${side}Lower`], "rotation.2", [
+          [0, 0],
+          [1 / 30, 40],
+          [4 / 30, 40],
+          [6 / 30, 0],
+        ]);
+      }
+    }
     if (poseName === "cuddle") {
       // Settle the head and lower the free arm as the raft turns toward the viewer.
       for (const [node, property, start, end] of [
-        [face, "scale.0", 110, 98],
-        [face, "scale.1", 94, 85],
+        [face, "scale.0", 100, 98],
+        [face, "scale.1", 88, 85],
         [neck, "position.0", 0, 10],
-        [neck, "position.1", -196, -182],
-        [bones.armL, "rotation.2", 65, 50],
+        [neck, "position.1", -196, -202],
+        [bones.armL, "rotation.2", 40, 45],
+        [root, "rotation.2", 8, 0],
       ])
         animate(node, property, [
           [0, start],
@@ -472,6 +493,7 @@ export function createCharacters(props) {
   }
   const girls = {
     stand: girl("standing", "stand"),
+    spotlight: girl("inside the circular spotlight", "spotlight", { closedEyes: true }),
     recover: girl("recovering on the ledge", "recover"),
     sit: girl("seated", "sit"),
     seesaw: girl("seated on a plank", "seesaw"),
@@ -628,7 +650,7 @@ export function createCharacters(props) {
   cuddle.layers.splice(
     cuddle.layers.findIndex((part) => part.name === "R arm · upper limb"),
     0,
-    parent(place(instance(frog, "Frog held under the forearm"), 50, -64, 64, 8), cuddleTorso),
+    parent(place(instance(frog, "Frog held under the forearm"), 60, -78, 56, 8), cuddleTorso),
   );
   for (const pose of [girls.walk, girls.carry]) {
     const torso = pose.layers.find((l) => l.name === "Torso");

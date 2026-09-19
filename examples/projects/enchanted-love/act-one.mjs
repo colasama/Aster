@@ -1,34 +1,22 @@
 import { circularPassage } from "./circular-passage.mjs";
 import { crownStaircase } from "./crown-staircase.mjs";
 import { createDoorwayExit } from "./doorway.mjs";
+import { earlyMotifs } from "./early-motifs.mjs";
 import {
   animate,
   during,
-  ellipse,
   keyPose,
   line,
   linear,
   P,
   place,
-  prop,
   rect,
   title,
   vector,
 } from "./scenes.mjs";
 
 export function actOne(book) {
-  const {
-    scene,
-    add,
-    circle,
-    stripes,
-    orbit,
-    tint,
-    morph,
-    spotlight,
-    props: p,
-    characters: a,
-  } = book;
+  const { scene, add, circle, orbit, tint, morph, props: p, characters: a } = book;
   const doorwayExit = createDoorwayExit(book);
   {
     const c = scene("01 · A line becomes a crown", 0, 9.433333333, P.black);
@@ -246,96 +234,7 @@ export function actOne(book) {
     );
     c.layers.push(during(sine, 1.55, 2.5));
   }
-  {
-    const c = scene("06 · Circles and symbols", 22.7, 25.6, P.green);
-    const beforeStripes = c.layers.length;
-    stripes(c, { spacing: 85, width: 23, fill: P.turquoise });
-    for (const stripe of c.layers.slice(beforeStripes)) during(stripe, 1.3, c.duration);
-    c.layers.push(
-      rect(
-        "Moving colour split",
-        [
-          [0, 1340],
-          [1.3, 1408],
-          [2.9, 2100],
-        ],
-        424,
-        1280,
-        1100,
-        P.turquoise,
-      ),
-    );
-    const sizes = [160, 300, 80, 470, 240, 65, 510, 135, 300, 75, 470];
-    let x = -470;
-    for (let i = 0; i < sizes.length; i++) {
-      const d = sizes[i];
-      x += d / 2;
-      const disk = circle(c, x, 424, d, i % 2 ? P.teal : P.blue, `Circle ${i + 1}`);
-      disk.expressions = { "position.0": `${x} - 360*time` };
-      if (i === 6 || i === 10) {
-        const symbol = tint(add(c, i === 6 ? p.heart : p.crown, x, 424, 165), P.green);
-        symbol.expressions = disk.expressions;
-        animate(symbol, "opacity", [
-          [0, 0],
-          [1.9, 0],
-          [2.25, 100],
-        ]);
-      }
-      x += d / 2;
-    }
-  }
-  {
-    const c = scene("07 · Girl and frog in the spotlight", 25.6, 27.733333333, P.teal);
-    const girl = prop(a.girls.stand, 587, 497, 102);
-    const frog = prop(a.frog, 700, 326, 84);
-    keyPose(frog, {
-      "position.0": [
-        [0, 700],
-        [0.8, 704],
-        [1.5, 775],
-        [2.13, 815],
-      ],
-      "position.1": [
-        [0, 326],
-        [0.8, 326],
-        [1.5, 656],
-        [2.13, 762],
-      ],
-      "rotation.2": [
-        [0, -8],
-        [0.8, 0],
-        [1.8, 50],
-      ],
-    });
-    spotlight(c, [girl, frog]);
-  }
-  {
-    const c = scene("08 · Dots, brackets, dots", 27.733333333, 30.233333333, P.green);
-    stripes(c, { angle: 68, spacing: 118, width: 39, fill: P.turquoise });
-    for (const y of [268, 580]) {
-      const dot = circle(c, 640, y, 153, P.teal);
-      during(dot, 0, 0.6);
-    }
-    for (const sign of [-1, 1]) {
-      const bracket = place(
-        line(
-          "Parenthesis",
-          [
-            [sign * 12, -144, [0, 0], [-sign * 82, 115]],
-            [sign * 12, 144, [-sign * 82, -115]],
-          ],
-          P.teal,
-          47,
-        ),
-        640 + sign * 204,
-        424,
-      );
-      c.layers.push(during(bracket, 0.6, 1.7));
-    }
-    c.layers.push(during(rect("Teal cut", 640, 424, 1280, 848, P.teal), 1.7, 2.5));
-    for (const y of [268, 580])
-      c.layers.push(during(ellipse("Green dot", 640, y, 148, 148, P.green), 1.7, 2.5));
-  }
+  earlyMotifs(book);
   {
     const c = scene("09 · Pool orbit", 30.233333333, 33.1, P.green);
     const disk = circle(c, 640, 424, 530, P.turquoise, "Orbit field");

@@ -13,6 +13,7 @@ const rest = {
 };
 export const poses = {
   stand: rest,
+  spotlight: rest,
   recover: {
     ...rest,
     upperLeg: 140,

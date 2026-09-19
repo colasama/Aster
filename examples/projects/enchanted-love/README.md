@@ -35,6 +35,7 @@ audio into the bundle's media directory.
 | `character-poses.mjs` | Joint angles and proportions for standing, sitting, carrying, sliding, and other poses |
 | `scenes.mjs` | Repeated patterns, spotlights, shadows, reusable group and scene helpers |
 | `doorway.mjs` | Continuous frog exit, beam mask, and camera shared across two shots |
+| `early-motifs.mjs` | Tangent circle chain, independently sized spotlight, and a shared rotating stripe/parenthesis rig |
 | `striped-passage.mjs` | Coarse/fine cloner patterns, curved reveal boundaries, reversing pan, and pool lead-in |
 | `water-passage.mjs` | Closing fan, wave cloner, persistent lily pads, circular currents, and swimming tadpole |
 | `pool-flash.mjs` | Shared raft and shadow, closing bowed card, and a crown toss with fitted launch/fall curves |
@@ -52,8 +53,8 @@ audio into the bundle's media directory.
 | `act-three.mjs` | Light shafts, reunion, return walk, kiss, and credits |
 | `build.mjs` | Native project assembly, asset folders, audio embedding, and shot list |
 
-The generated project has 143 compositions and 1,443 authored layers. The 47 scene compositions
-instantiate the shared props and character poses. Thirteen native grid cloners replace hundreds of
+The generated project has 151 compositions and 1,494 authored layers. The 47 scene compositions
+instantiate the shared props and character poses. Fifteen native grid cloners replace hundreds of
 repeated stripe and chevron layers. The longest authored path has 10 anchors; the crown has seven,
 and each ring sector has four. There are no frame contour tracks, image sequences, or embedded
 reference-video layers. The only external media dependency is the optional soundtrack.
@@ -127,8 +128,16 @@ with fitted Bezier handles. Balance uses the existing skeleton, followed by a fo
 and two cubic parentheses. The ground and bracket pair have independent rotation curves. The
 seesaw enters through one silhouette beat and retains a shared fulcrum through its final rebound.
 
+The early circle chain derives each center from adjacent radii at shared beat landmarks, keeping
+neighbors tangent between keys. Stripe angle, spacing, and duty cycle animate one native cloner.
+Counter-scaling the actors separates spotlight diameter from character size. The next motif pair
+shares one orbit; counter-rotating joints keep its symbols upright. Two two-anchor curves close
+into outlined dots while preserving stroke width. Background swim rings have their own drift and
+sector rotation, while the raft's head, torso, and held frog settle through shared joint poses.
+
 The reference palette is measured from decoded frames. Shape paints invert Aster's ACES display
-mapping to reproduce those display colors. Text also accounts for its sRGB texture encoding.
+mapping to reproduce those display colors. Color Overlay uses normalized RGB and HDR intensity
+for the same result; its opacity controls the flash. Text accounts for its sRGB texture encoding.
 
 ## Fidelity and validation
 
@@ -138,8 +147,8 @@ interlude now have continuous semantic assemblies, but their detailed curves and
 approximate. The shaft crossing and frontal reunion now share continuous camera and lighting assemblies.
 The circular passage uses shrinking discs followed by a repeated six-colour depth cycle; the
 fastest final rings still have phase differences. The water, flash, balance, and swimming passages
-now follow the observed structures and cuts. Earlier circle/stripe passages and the pool pose
-still need refinement. Hand-drawn
+now follow the observed structures and cuts. The early motifs share tangent, orbit, and stripe
+parameters; curved stripe perspective and the pool pose remain approximate. Hand-drawn
 anatomy, gestures, lettering, spherical ball rotation, and particles remain approximate. The editable
 rigs and scene-level paths are the intended places to refine those differences.
 
@@ -158,4 +167,6 @@ These diagnostics do not provide a perceptual similarity score or source frame a
 The engine changes needed by this study are documented in
 [Semantic vector compositing](../../../docs/SEMANTIC_VECTOR_COMPOSITING.md). They cover bounded 2D
 group surfaces, mapped effect time, reflected joints and strokes, metric rounded corners, curved
-wipe boundaries, precise nested cut visibility, exterior stroke joins, and lower-allocation vertex packing.
+wipe boundaries, precise nested cut visibility, exterior stroke joins, HDR color overlays, and
+lower-allocation vertex packing. Render queue progress uses bounded deferred persistence; see
+[Render queue](../../../docs/RENDER_QUEUE.md).

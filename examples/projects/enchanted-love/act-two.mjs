@@ -4,19 +4,7 @@ import { divingScene, ledgeScene } from "./dive.mjs";
 import { umbrellaParade } from "./parade.mjs";
 import { seesawScene, slideScene } from "./playground.mjs";
 import { poolFlash } from "./pool-flash.mjs";
-import {
-  animate,
-  during,
-  effect,
-  keyPose,
-  line,
-  overlay,
-  P,
-  place,
-  rect,
-  rgba,
-  track,
-} from "./scenes.mjs";
+import { animate, during, keyPose, line, overlay, P, place, rect, track } from "./scenes.mjs";
 import { poolArrival, stripedPassage } from "./striped-passage.mjs";
 import { umbrellaAccents } from "./umbrella-accents.mjs";
 import { waterPassage } from "./water-passage.mjs";
@@ -163,12 +151,6 @@ export function actTwo(b) {
     const girl = add(c, a.girls.music, 363, 601, 92, -5);
     const flash = overlay(P.cream);
     flash.name = "Landing flash";
-    const hdr = rgba(P.cream).slice(0, 3);
-    const gain = Math.max(...hdr);
-    flash.parameters.color = hdr.reduce(
-      (packed, channel) => packed * 256 + Math.round((channel / gain) * 255),
-      0,
-    );
     flash.parameterKeyframes = {
       opacity: track([
         [0, 0],
@@ -178,20 +160,6 @@ export function actTwo(b) {
       ]).keyframes,
     };
     girl.effects.push(flash);
-    const flashExposure = effect(
-      "exposure",
-      { exposure: 0, offset: 0, gamma: 1 },
-      "Flash brightness",
-    );
-    flashExposure.parameterKeyframes = {
-      exposure: track([
-        [0, 0],
-        [0.03, Math.log2(gain)],
-        [0.333333333, Math.log2(gain)],
-        [0.4, 0],
-      ]).keyframes,
-    };
-    girl.effects.push(flashExposure);
     keyPose(girl, {
       "position.1": [
         [0, 700],
@@ -236,23 +204,23 @@ export function actTwo(b) {
     const c = scene("22 · Together in the swim ring", 55.6, 59.833333333, P.green);
     // Pool props move on three shared drifts; no sampled geometry is involved.
     for (const [x, y, scale, angle] of [
-      ["431+325*(1-pow(e,-2.8*time))+205*time", "-61.5+196*time+25*sin(time*2)", 172, -1],
+      ["431+465*(1-pow(e,-1.6*time))+175*time", "-60+210*time+15*sin(time*2)", 175, "8-18*time"],
       [
         "-475+250*time-25*pow(max(0,time-2.1),2)",
         "800-310*time+60*pow(max(0,time-2.1),2)",
         180,
-        18,
+        "7-12*time",
       ],
-      ["400+180*time", "1020+16*sin(time*1.5)+80*pow(max(0,time-2.1),2)", 175, 8],
+      ["400+180*time", "1020+16*sin(time*1.5)+80*pow(max(0,time-2.1),2)", 175, "-10*time"],
     ]) {
       for (const [node, dx, dy] of [
-        [b.shadow(c, p.ring, 0, 0, scale, angle), 28, 46],
-        [add(c, p.ring, 0, 0, scale, angle), 0, 0],
+        [b.shadow(c, p.ring, 0, 0, scale), 28, 46],
+        [add(c, p.ring, 0, 0, scale), 0, 0],
       ])
         node.expressions = {
           "position.0": `${x}+${dx}`,
           "position.1": `${y}+${dy}`,
-          "rotation.2": "value+time*6",
+          "rotation.2": angle,
         };
     }
     for (const [node, dx, dy] of [
@@ -281,14 +249,14 @@ export function actTwo(b) {
           [2.4, 356 + dy],
           [3, 378 + dy],
           [3.9, 430 + dy],
-          [4.2, 423 + dy],
+          [4.2, 403 + dy],
         ],
         "rotation.2": [
-          [0, -6],
-          [0.4, -8],
-          [1.6, -3],
-          [2.6, 14],
-          [4.2, 22],
+          [0, -14],
+          [0.4, -12],
+          [1.6, -1],
+          [2.6, 8],
+          [4.2, 16],
         ],
       });
     }
