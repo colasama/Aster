@@ -69,14 +69,14 @@ export function actThree(b) {
     particles(c);
     const crown = add(c, p.crown, 625, 590, 97, 35);
     crown.expressions = {
-      "position.0": "640+130*sin(time*4.1)",
-      "position.1": "430+240*cos(time*3.3)",
-      "rotation.2": "30+time*180",
+      "position.0": "640+130*cos(time*0.8)",
+      "position.1": "430-240*cos(time*3.3)",
+      "rotation.2": "35-time*70",
     };
     const heart = tint(add(c, p.heart, 500, 208, 104, -32), P.blue);
     heart.expressions = {
-      "position.0": "480+210*sin(time*2.8)",
-      "position.1": "100+time*270",
+      "position.0": "500+50*sin(time*2.8)",
+      "position.1": "-15+time*270",
       "rotation.2": "-32+time*150",
     };
   }
@@ -182,8 +182,8 @@ export function actThree(b) {
     c.layers.push(weave);
     const seat = place(ellipse("Floating seat", 625, 615, 295, 175, P.blue), 625, 615, 100, -25);
     c.layers.push(seat);
-    add(c, a.girls.sit, 640, 540, 68, -8);
-    add(c, a.frog, 779, 654, 52, 24);
+    add(c, a.girls.lap, 640, 540, 68, -8);
+    add(c, a.frog, 584, 520, 52, -10);
     const iris = circle(c, 640, 578, 440, P.cream, "Ivory iris");
     during(iris, 0.8, c.duration);
     keyPose(iris, {
@@ -343,11 +343,47 @@ export function actThree(b) {
       3,
     );
     stair.expressions = {
-      "position.0": "720-90*(time-floor(time/0.64)*0.64)/0.64",
-      "position.1": "641-46*(time-floor(time/0.64)*0.64)/0.64",
+      "position.0": "value-90*(time-floor(time/0.64)*0.64)/0.64",
+      "position.1": "value-46*(time-floor(time/0.64)*0.64)/0.64",
     };
+    keyPose(stair, {
+      "position.0": [
+        [0, 900],
+        [1.7, 833],
+        [4.7, 720],
+        [7, 755],
+        [9.7, 794],
+        [12.2, 760],
+      ],
+      "position.1": [
+        [0, 595],
+        [1.7, 589],
+        [4.7, 641],
+        [7, 657],
+        [9.7, 681],
+        [12.2, 680],
+      ],
+    });
     const girl = prop(a.girls.walk, 706, 462, 74, -1);
     girl.transform.scale[0] = track(-74);
+    keyPose(girl, {
+      "position.0": [
+        [0, 900],
+        [1.7, 810],
+        [4.7, 706],
+        [7, 750],
+        [9.7, 800],
+        [12.2, 760],
+      ],
+      "position.1": [
+        [0, 430],
+        [1.7, 377],
+        [4.7, 462],
+        [7, 478],
+        [9.7, 492],
+        [12.2, 492],
+      ],
+    });
     group(c, "Walking scene in shadow", structuredClone([stair, girl]), P.blue);
     const litGirl = group(c, "Walking scene in window light", [stair, girl]);
     const crop = effect(
@@ -358,33 +394,53 @@ export function actThree(b) {
     litGirl.effects.push(crop);
     const leftKeys = [],
       rightKeys = [];
-    for (let i = 0; i < 5; i++) {
-      const t = i * 2.65 + 0.6;
-      const win = add(c, p.window, 1600, 156, 105, -1.4);
-      during(win, Math.max(0, t), Math.min(c.duration, t + 3.3));
-      keyPose(win, {
-        "position.0": [
-          [t, 1590],
-          [t + 3.3, -200],
-        ],
-        "position.1": [
-          [Math.max(0, t), 141],
-          [t + 3.3, 196],
-        ],
-      });
+    // Three windows follow the camera's rightward parallax and downward drift.
+    const windowPaths = [
+      [
+        [0, 958, -150],
+        [0.7, 1095, -10],
+        [1.7, 1297, 184],
+        [2.2, 1400, 275],
+      ],
+      [
+        [2.2, 315, -100],
+        [4.7, 805, 161],
+        [6.6, 1225, 359],
+      ],
+      [
+        [6.6, 145, -40],
+        [9.7, 965, 237],
+        [12.2, 1615, 376],
+      ],
+    ];
+    for (const points of windowPaths) {
+      const win = add(c, p.window, points[0][1], points[0][2], 105, -1.4);
+      during(win, points[0][0], points.at(-1)[0]);
+      animate(win, "scale.1", 96);
       animate(
         win,
         "position.0",
-        [
-          [t, 1590],
-          [t + 3.3, -200],
-        ],
+        points.map(([t, x]) => [t, x]),
+        linear,
+      );
+      animate(
+        win,
+        "position.1",
+        points.map(([t, , y]) => [t, y]),
         linear,
       );
       c.layers.pop();
       c.layers.splice(1, 0, win);
-      leftKeys.push([t, 100], [t + 0.281, 100], [t + 2.64, 0]);
-      rightKeys.push([t, 0], [t + 0.862, 0], [t + 2.64, 75.4]);
+      for (const [index, [t, x]] of points.entries()) {
+        const boundary = index === points.length - 1 ? "hold" : linear;
+        const keyTime = boundary === "hold" ? t - 1 / 30 : t;
+        leftKeys.push([keyTime, Math.max(0, Math.min(100, ((x - 157) / 1280) * 100)), boundary]);
+        rightKeys.push([
+          keyTime,
+          Math.max(0, Math.min(100, ((1280 - x - 157) / 1280) * 100)),
+          boundary,
+        ]);
+      }
     }
     crop.parameterKeyframes = {
       left: track(leftKeys, linear).keyframes,
@@ -408,6 +464,10 @@ export function actThree(b) {
       ),
     );
     const girl = add(c, a.girls.walk, 1030, 454, 65);
+    during(girl, 0, 1.4);
+    const standing = add(c, a.girls.carry, 728, 454, 65);
+    standing.transform.scale[0] = track(-65);
+    during(standing, 1.4, c.duration);
     animate(girl, "position.0", [
       [0, 1040],
       [1.4, 728],

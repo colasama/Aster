@@ -30,6 +30,8 @@ export const poses = {
   stand: rest,
   sit: {
     ...rest,
+    upperLeg: 110,
+    lowerLeg: 185,
     hipL: -42,
     kneeL: 39,
     hipR: -49,
@@ -69,14 +71,14 @@ export const poses = {
   },
   umbrella: {
     ...rest,
-    hipL: 21,
-    kneeL: -18,
-    hipR: -45,
-    kneeR: 83,
+    hipL: -45,
+    kneeL: 62,
+    hipR: 4,
+    kneeR: 16,
     shoulderL: 4,
     elbowL: 3,
-    shoulderR: 18,
-    elbowR: -130,
+    shoulderR: 4,
+    elbowR: -138,
     body: 4,
     head: -12,
   },
@@ -95,6 +97,8 @@ export const poses = {
   },
   kiss: {
     ...rest,
+    upperLeg: 145,
+    lowerLeg: 185,
     hipL: -14,
     kneeL: 8,
     hipR: -24,
@@ -108,16 +112,50 @@ export const poses = {
   },
   cuddle: {
     ...rest,
-    hipL: -22,
-    kneeL: 38,
-    hipR: 8,
-    kneeR: -20,
-    shoulderL: -40,
-    elbowL: -80,
-    shoulderR: 34,
-    elbowR: 85,
-    body: 12,
-    head: -12,
+    upperLeg: 120,
+    lowerLeg: 140,
+    rightUpperLeg: 110,
+    rightLowerLeg: 95,
+    armUpper: 75,
+    armLower: 85,
+    shoulderY: -145,
+    neckY: -190,
+    headScale: 105,
+    hipL: -8,
+    kneeL: 28,
+    hipR: -9,
+    kneeR: -22,
+    shoulderL: 70,
+    elbowL: 4,
+    shoulderR: -65,
+    elbowR: 92,
+    body: 0,
+    head: 0,
+  },
+  dive: {
+    ...rest,
+    shoulderL: 172,
+    elbowL: 4,
+    shoulderR: -172,
+    elbowR: -4,
+    hipL: 2,
+    hipR: -2,
+  },
+  carry: { ...rest, upperLeg: 145, lowerLeg: 185 },
+  lap: {
+    ...rest,
+    upperLeg: 110,
+    lowerLeg: 145,
+    hipL: -15,
+    kneeL: 43,
+    hipR: -40,
+    kneeR: 42,
+    shoulderL: 5,
+    elbowL: -55,
+    shoulderR: -8,
+    elbowR: 64,
+    body: 0,
+    head: -8,
   },
   greeting: { ...rest, shoulderL: 165, elbowL: -25, shoulderR: -24, elbowR: 0, body: 12, head: -8 },
 };
@@ -308,22 +346,28 @@ export function createCharacters(props) {
 
   function girl(name, poseName, { cycle = false, shadow = false, closedEyes = false } = {}) {
     const pose = poses[poseName] ?? rest;
-    const sideView = cycle || poseName === "umbrella" || poseName === "kiss";
+    const sideView =
+      cycle || poseName === "carry" || poseName === "umbrella" || poseName === "kiss";
     const c = comp(`Girl · ${name}`, 400, 760);
     const root = joint("Torso", 200, 324, pose.body);
-    const neck = joint("Head pivot", 0, -180, pose.head, root);
+    const neck = joint("Head pivot", 0, pose.neckY ?? -180, pose.head, root);
     c.layers.push(root, neck);
     const body = parent(place(instance(dress), 0, -75), root);
     if (sideView) body.transform.scale[0] = constant(65);
     const face = parent(
-      place(instance(sideView ? profile : closedEyes ? closedHead : head), 0, -33, 87),
+      place(
+        instance(sideView ? profile : closedEyes ? closedHead : head),
+        0,
+        -33,
+        pose.headScale ?? 87,
+      ),
       neck,
     );
     if (sideView) face.transform.scale[0] = constant(100);
     const skin = shadow ? P.blue : P.cream;
     const bones = {};
     function limb(side, kind, baseX, baseY, upper, lower, width, upperAngle, lowerAngle) {
-      const limbColor = sideView && side === "L" && !cycle ? P.green : skin;
+      const limbColor = sideView && side === "L" && !cycle && poseName !== "carry" ? P.green : skin;
       const upperJoint = joint(
         `${side} ${kind} · upper`,
         sideView ? baseX * 0.25 : baseX,
@@ -338,7 +382,7 @@ export function createCharacters(props) {
           0,
           upper / 2,
           width,
-          upper + width * 0.4,
+          upper + width,
           limbColor,
           width / 2,
         ),
@@ -350,7 +394,7 @@ export function createCharacters(props) {
           0,
           lower / 2,
           kind === "leg" ? width : width * 0.92,
-          lower + width * 0.4,
+          lower + width,
           limbColor,
           width / 2,
         ),
@@ -359,6 +403,31 @@ export function createCharacters(props) {
       c.layers.push(upperJoint, lowerJoint, first, second);
       bones[`${kind}${side}`] = upperJoint;
       bones[`${kind}${side}Lower`] = lowerJoint;
+      if (cycle && kind === "leg") {
+        const foot = parent(
+          place(
+            vector(
+              `${side} foot`,
+              [
+                [-15, -10],
+                [15, -10],
+                [18, 8],
+                [48, 14, [0, 0], [8, 4]],
+                [48, 24, [8, 0]],
+                [-14, 24, [0, 0], [-4, -4]],
+              ],
+              skin,
+            ),
+            0,
+            lower,
+          ),
+          lowerJoint,
+        );
+        foot.expressions = {
+          "rotation.2": `-22 ${side === "L" ? "+" : "-"} 7*cos((time-1.7)*5.890486)`,
+        };
+        c.layers.push(foot);
+      }
       if (kind === "arm")
         c.layers.push(
           parent(
@@ -385,24 +454,57 @@ export function createCharacters(props) {
           ),
         );
     }
-    const upperLeg = cycle ? 140 : poseName === "kiss" ? 145 : poseName === "sit" ? 110 : 165;
-    const lowerLeg = cycle ? 145 : poseName === "kiss" || poseName === "sit" ? 185 : 168;
+    const upperLeg = cycle ? 140 : (pose.upperLeg ?? 165);
+    const lowerLeg = cycle ? 145 : (pose.lowerLeg ?? 168);
     limb("L", "leg", -25, 0, upperLeg, lowerLeg, 31, pose.hipL, pose.kneeL);
-    limb("R", "leg", 27, 0, upperLeg, lowerLeg, 31, pose.hipR, pose.kneeR);
+    limb(
+      "R",
+      "leg",
+      27,
+      0,
+      pose.rightUpperLeg ?? upperLeg,
+      pose.rightLowerLeg ?? lowerLeg,
+      31,
+      pose.hipR,
+      pose.kneeR,
+    );
     const neckPaint = parent(rect("Neck", 0, -165, 31, 35, skin, 6), root);
     if (!sideView) c.layers.push(neckPaint, body);
-    limb("L", "arm", -47, -163, 95, 95, 14, pose.shoulderL, pose.elbowL);
+    const armUpper = pose.armUpper ?? 95;
+    const armLower = pose.armLower ?? 95;
+    const shoulderY = pose.shoulderY ?? -163;
+    limb(
+      "L",
+      "arm",
+      -47,
+      shoulderY,
+      armUpper,
+      armLower,
+      cycle ? 20 : 14,
+      pose.shoulderL,
+      pose.elbowL,
+    );
     if (sideView) c.layers.push(neckPaint, body);
-    limb("R", "arm", 47, -163, 95, 95, 14, pose.shoulderR, pose.elbowR);
+    limb(
+      "R",
+      "arm",
+      47,
+      shoulderY,
+      armUpper,
+      armLower,
+      cycle ? 20 : 14,
+      pose.shoulderR,
+      pose.elbowR,
+    );
     c.layers.push(face);
     if (cycle) {
-      bones.legL.expressions = { "rotation.2": "-2 + 26*cos(time*9.817477)" };
-      bones.legR.expressions = { "rotation.2": "-2 - 26*cos(time*9.817477)" };
-      bones.legLLower.expressions = { "rotation.2": "25 - 29*cos(time*9.817477)" };
-      bones.legRLower.expressions = { "rotation.2": "25 + 29*cos(time*9.817477)" };
-      bones.armL.expressions = { "rotation.2": "-2 - 5*cos(time*9.817477)" };
-      bones.armR.expressions = { "rotation.2": "-2 + 5*cos(time*9.817477)" };
-      root.expressions = { "position.1": "value - 4 * cos(time * 19.634954)" };
+      bones.legL.expressions = { "rotation.2": "-20 + 35*cos((time-1.7)*5.890486)" };
+      bones.legR.expressions = { "rotation.2": "-20 - 35*cos((time-1.7)*5.890486)" };
+      bones.legLLower.expressions = { "rotation.2": "42 - 42*cos((time-1.7)*5.890486)" };
+      bones.legRLower.expressions = { "rotation.2": "42 + 42*cos((time-1.7)*5.890486)" };
+      bones.armL.expressions = { "rotation.2": "-2 - 5*cos((time-1.7)*5.890486)" };
+      bones.armR.expressions = { "rotation.2": "-2 + 5*cos((time-1.7)*5.890486)" };
+      root.expressions = { "position.1": "value - 4*cos((time-1.7)*11.780972)" };
     }
     if (poseName === "float") {
       bones.legL.expressions = { "rotation.2": "value + 9*sin(time*3.14159265)" };
@@ -410,7 +512,7 @@ export function createCharacters(props) {
     }
     if (!cycle) neck.expressions = { "rotation.2": "value + 3*sin(time*2.4)" };
     if (poseName === "umbrella")
-      c.layers.push(parent(place(instance(props.umbrella), 45, -282, 86, -31), root));
+      c.layers.push(parent(place(instance(props.umbrella), -40, -247, 104, -39), root));
     assets.push(c);
     return c;
   }
@@ -424,7 +526,10 @@ export function createCharacters(props) {
     umbrella: girl("umbrella", "umbrella"),
     crouch: girl("crouching", "crouch"),
     kiss: girl("kiss", "kiss"),
-    cuddle: girl("holding the frog", "cuddle"),
+    cuddle: girl("holding the frog", "cuddle", { closedEyes: true }),
+    dive: girl("diving", "dive"),
+    lap: girl("seated with the frog", "lap"),
+    carry: girl("standing with the frog", "carry"),
     walk: girl("walk cycle", "stand", { cycle: true }),
   };
 
@@ -498,9 +603,9 @@ export function createCharacters(props) {
       part.color = rgba(P.green);
   }
   assets.push(litFrog);
-  const walkRoot = girls.walk.layers.find((l) => l.name === "Torso");
-  girls.walk.layers.push(
-    parent(place(instance(litFrog, "Carried frog"), -25, 60, 44, 20), walkRoot),
-  );
+  for (const pose of [girls.walk, girls.carry]) {
+    const torso = pose.layers.find((l) => l.name === "Torso");
+    pose.layers.push(parent(place(instance(litFrog, "Carried frog"), -25, 60, 44, 20), torso));
+  }
   return { assets, girls, frog, litFrog };
 }

@@ -37,7 +37,7 @@ audio into the bundle's media directory.
 | `act-three.mjs` | Light shafts, reunion, return walk, kiss, and credits |
 | `build.mjs` | Native project assembly, asset folders, audio embedding, and shot list |
 
-The generated project has 93 compositions and 873 authored layers. The 48 scene compositions
+The generated project has 96 compositions and 944 authored layers. The 48 scene compositions
 instantiate the shared props and character poses. Five native grid cloners replace hundreds of
 repeated stripe and chevron layers. The longest authored path has 10 anchors; the crown has seven,
 and each ring sector has four. There are no frame contour tracks, image sequences, or embedded
@@ -48,6 +48,11 @@ with Bezier timing; orbit, breathing, and walk cycles use periodic expressions. 
 master time into local time. Window lighting uses two reusable group passes and a moving crop;
 circular lighting uses a group alpha mask. Native GPU effects and shared source surfaces keep the
 compositing path on the GPU. Foreground limbs remain separately editable above the tunic.
+
+The same rig supplies closed-eye cuddling, seated reunion, overhead diving, and standing with the
+frog. Pose data stores joint angles and limb lengths. The stair walk alternates a planted leg with
+a bent swing leg over a 1.067-second cycle; ankle rotation keeps the feet aligned. Three paired
+windows follow sparse rightward/downward camera paths, with the light crop following each window.
 
 The reference palette is measured from decoded frames. Shape paints invert Aster's ACES display
 mapping to reproduce those display colors. Text also accounts for its sRGB texture encoding.

@@ -25,17 +25,17 @@ export function actTwo(b) {
       [1, 200],
       [1.25, 20],
     ]);
-    const heart = add(c, p.heart, 530, 454, 160);
+    const heart = add(c, p.heart, 525, 439, 150);
     during(heart, 1.25, c.duration);
     animate(heart, "position.0", [
       [1.25, 760],
-      [1.6, 530],
+      [1.6, 525],
     ]);
-    const girl = add(c, a.girls.stand, 833, 442, 79);
+    const girl = add(c, a.girls.stand, 820, 469, 95);
     during(girl, 1.25, c.duration);
     animate(girl, "scale.0", [
       [1.25, 0],
-      [1.55, 79],
+      [1.55, 95],
     ]);
   }
   {
@@ -186,9 +186,9 @@ export function actTwo(b) {
     girl.effects.push(flashExposure);
     keyPose(girl, {
       "position.1": [
-        [0, 760],
-        [0.266666667, 740],
-        [0.433333333, 620],
+        [0, 700],
+        [0.266666667, 660],
+        [0.433333333, 610],
         [0.6, 601],
       ],
       "rotation.2": [
@@ -280,9 +280,9 @@ export function actTwo(b) {
   {
     const c = scene("22 · Together in the swim ring", 55.6, 59.833333333, P.green);
     for (const [x, y, s, speed] of [
-      [780, -70, 170, -80],
+      [780, 24, 170, -80],
       [-250, 690, 100, 170],
-      [400, 1190, 150, -35],
+      [400, 1000, 175, -35],
       [1480, 590, 100, -80],
     ]) {
       const ring = add(c, p.ring, x, y, s, 5);
@@ -294,18 +294,18 @@ export function actTwo(b) {
     }
     const ball = add(c, p.ball, 1310, 760, 129);
     ball.expressions = {
-      "position.0": "1310 - 290*time",
+      "position.0": "1530 - 460*time",
       "position.1": "760-60*sin(time*1.2)",
       "rotation.2": "time*38",
     };
-    const ring = add(c, p.ring, 445, 420, 177, -8);
-    ring.expressions = { "position.0": "85+205*time", "rotation.2": "-8+4*sin(time*1.2)" };
-    const girl = add(c, a.girls.cuddle, 455, 486, 95, 9);
-    girl.expressions = { "position.0": "95+205*time", "rotation.2": "9+4*sin(time*1.2)" };
-    const frog = add(c, a.frog, 525, 428, 73, 9);
-    frog.expressions = { "position.0": "165+205*time", "rotation.2": "9+4*sin(time*1.2)" };
+    const ring = add(c, p.ring, 445, 370, 210, -8);
+    ring.expressions = { "position.0": "110+167*time", "rotation.2": "-8+4*sin(time*1.2)" };
+    const girl = add(c, a.girls.cuddle, 455, 500, 120, -10);
+    girl.expressions = { "position.0": "132+167*time", "rotation.2": "-10+4*sin(time*1.2)" };
+    const frog = add(c, a.frog, 525, 330, 66, -7);
+    frog.expressions = { "position.0": "183+167*time", "rotation.2": "-7+4*sin(time*1.2)" };
     const crown = add(c, p.crown, 1330, 86, 100);
-    crown.expressions = { "position.0": "1330-time*280", "rotation.2": "time*160" };
+    crown.expressions = { "position.0": "1920-time*320", "rotation.2": "-6+8*sin(time*2)" };
   }
   {
     const c = scene("23 · Crown accent", 59.833333333, 60.566666667, P.blue);
@@ -354,8 +354,8 @@ export function actTwo(b) {
   }
   {
     const c = scene("26 · Frog, umbrella, and falling crown", 63.633333333, 65.433333333);
-    const umbrella = add(c, p.umbrella, 530, 500, 100, 163);
-    const frog = add(c, a.frog, 570, 408, 66, 25);
+    const umbrella = add(c, p.umbrella, 497, 610, 100, -118);
+    const frog = add(c, a.frog, 536, 480, 90, 18);
     for (const item of [umbrella, frog]) {
       animate(item, "position.1", [
         [0, item.transform.position[1].value],
@@ -391,8 +391,8 @@ export function actTwo(b) {
   }
   {
     const c = scene("27 · Walking with the umbrella", 65.433333333, 66.8);
-    const girl = add(c, a.girls.umbrella, 583, 465, 96);
-    girl.expressions = { "position.1": "465+10*sin(time*9.817477)" };
+    const girl = add(c, a.girls.umbrella, 571, 498, 96);
+    girl.expressions = { "position.1": "498+10*sin(time*9.817477)" };
     for (const [x, y, w] of [
       [636, 796, 564],
       [900, 822, 178],
@@ -710,24 +710,26 @@ export function actTwo(b) {
         [2.3, 24],
       ],
     });
-    const dive = add(c, a.girls.spread, 980, 436, 24, 0);
+    const dive = add(c, a.girls.dive, 980, 436, 24, 0);
     during(dive, 2.3, c.duration);
     keyPose(dive, {
       "position.0": [
         [2.3, 980],
-        [3.2, 785],
+        [3.266666667, 580],
         [4.467, 610],
       ],
       "position.1": [
         [2.3, 436],
         [2.9, 370],
-        [3.6, 555],
+        [3.266666667, 480],
+        [3.6, 620],
         [4.467, 930],
       ],
       "rotation.2": [
         [2.3, 0],
-        [3.15, 80],
-        [4.2, 180],
+        [2.7, -60],
+        [3.266666667, -137],
+        [4.2, -180],
       ],
     });
     const crown = add(c, p.crown, 469, 485, 28);

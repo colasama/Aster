@@ -61,7 +61,7 @@ Submission counts include two static updates per interval and do not prove scano
 ## Enchanted Love semantic composition workload
 
 The 2026-09-19 production preview run uses the 130.1-second native reconstruction from
-`examples/projects/enchanted-love`: 93 compositions, 873 authored layers, 48 scene cuts, reusable
+`examples/projects/enchanted-love`: 96 compositions, 944 authored layers, 48 scene cuts, reusable
 joint rigs and props, and five grid cloners. Its only imported media is the stereo soundtrack.
 The visible Electron window renders at 1280 × 848, quality 1, with FXAA. No export runs concurrently.
 The machine uses a Ryzen 9 8945HX and GeForce RTX 5060 Laptop GPU (driver 32.0.15.9621);
@@ -74,16 +74,17 @@ submission in this run. Each complete ten-second interval contains all 300 expec
 
 | Measurement | Result |
 | --- | ---: |
-| Renderer CPU P95 | 2.5 ms |
-| GPU P95 | 0.459 ms |
-| Submission interval P95 | 6.8 ms |
-| Longest submission interval | 36.6 ms |
+| Renderer CPU P95 | 2.8 ms |
+| GPU P95 | 0.393 ms |
+| Submission interval P95 | 6.9 ms |
+| Longest submission interval | 31.6 ms |
 | Estimated VRAM peak | 78.1 MB |
 | Source addresses with a GPU submission | 3,903 / 3,903 |
 
-The isolated 36.6 ms interval exceeds a 30 fps frame period; this run does not establish a hard
-real-time deadline guarantee. It does show continuous source-time advancement and complete source
-frame coverage, including all scene transitions. Group effects reuse GPU surfaces with existing
+The longest submission interval stays below the 33.3 ms source-frame period in this run. This
+single-machine measurement is not a hard real-time deadline guarantee; it shows continuous
+source-time advancement and complete source-frame coverage, including all scene transitions.
+Group effects reuse GPU surfaces with existing
 depth/count/memory budgets. Primitive repetition uses native cloners, and mirrored rigs require no
 per-frame path rebuilding. Machine-readable measurements are stored with the local delivery.
 
