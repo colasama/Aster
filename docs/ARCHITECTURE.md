@@ -337,3 +337,8 @@ for the isolation rules, anchor and reflection corrections, and validation metho
 wrappers apply animated anchor offsets before source-size mapping, preserving their GPU corners
 when effects are toggled. Analytic shape edges use screen-space distance derivatives so a large
 iris retains a pixel-sized antialiasing footprint without another render pass.
+
+The built-in linear wipe can curve its alpha boundary without warping the source texture. Its
+optional amplitude, wavelength, phase, and phase speed occupy unused slots in the existing GPU
+operation; enabled bends add one sine in the pixel pass and require no additional surface or pass.
+See [Semantic vector compositing](SEMANTIC_VECTOR_COMPOSITING.md) for parameter and validation details.

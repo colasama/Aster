@@ -249,6 +249,10 @@ function compileEffect(
         value("completion", 50) / 100,
         degrees(value("angle")),
         value("feather"),
+        value("bend"),
+        value("bendWidth", 1600),
+        degrees(value("bendPhase")),
+        degrees(value("bendSpeed")),
       ]);
       break;
     case "radial-wipe":

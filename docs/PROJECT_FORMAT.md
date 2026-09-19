@@ -284,3 +284,11 @@ fails. Recovery autosaves run after the configured idle interval, at least once 
 continuous editing, and when the editor moves into the background while autosave is enabled. They
 never advance the primary saved revision.
 Bezier `shape` settings may contain an optional `morph` object with a topology-compatible `target` path and an `Animatable` percent `progress`. This additive field uses the existing project version; see [Path morph](PATH_MORPH.md).
+
+### Optional curved wipe parameters
+
+The built-in `linear-wipe` effect accepts `bend` (pixels, default 0), `bendWidth` (pixels, default
+1600), `bendPhase` (degrees, default 0), and `bendSpeed` (degrees per second, default 0) in its existing
+`parameters` map. The ordinary `parameterKeyframes` map animates them. Missing values preserve the
+straight wipe, so the schema version and migration rules are unchanged. These are host effect
+parameters; plugin ABI layouts and manifests do not change.

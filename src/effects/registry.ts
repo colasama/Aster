@@ -514,12 +514,16 @@ export const EFFECT_REGISTRY: EffectDefinition[] = [
     type: "linear-wipe",
     name: "Linear Wipe",
     category: "Transition",
-    description: "Angle-addressable feathered wipe.",
+    description: "Angle-addressable feathered wipe with an optional moving curved edge.",
     execution: "fused-pixel",
     parameters: [
       percent("completion", "Transition Completion", 50),
       angle("angle", "Wipe Angle", 0),
       number("feather", "Feather", 0, 0, 2000, 1, "px"),
+      number("bend", "Edge Bend", 0, -4000, 4000, 1, "px"),
+      number("bendWidth", "Bend Wavelength", 1600, 1, 30000, 1, "px"),
+      angle("bendPhase", "Bend Phase", 0),
+      number("bendSpeed", "Bend Speed", 0, -720, 720, 1, "°/s"),
     ],
   },
   {

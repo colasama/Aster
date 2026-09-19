@@ -99,6 +99,35 @@ describe("GPU effect program compiler", () => {
     expect(compileEffectProgram(composition, 1).data[1]).toBe(6);
   });
 
+  it("keeps old wipes straight and scales animated edge bends with preview resolution", () => {
+    const composition = activeComposition(createDemoProject());
+    const layer = composition.layers[0];
+    const wipe = createEffect("linear-wipe");
+    wipe.parameters = { completion: 50, angle: 180, feather: 8 };
+    layer.effects = [wipe];
+    const old = compileEffectProgram(composition, 0, [layer]);
+    expect(old.count).toBe(1);
+    expect(old.data[4]).toBe(0);
+    wipe.parameters = {
+      ...wipe.parameters,
+      bend: 120,
+      bendWidth: 800,
+      bendPhase: 90,
+      bendSpeed: -180,
+    };
+    wipe.parameterKeyframes = {
+      bend: [
+        { id: "low", time: 0, value: 120, interpolation: "linear" },
+        { id: "high", time: 2, value: 200, interpolation: "linear" },
+      ],
+    };
+    const half = compileEffectProgram(composition, 1, [layer], 0.5);
+    expect(half.count).toBe(1);
+    expect([...half.data.slice(3, 6)]).toEqual([4, 80, 400]);
+    expect(half.data[6]).toBeCloseTo(Math.PI / 2);
+    expect(half.data[7]).toBeCloseTo(-Math.PI);
+  });
+
   it("keeps former aggregate effects in explicit layer order", () => {
     const composition = activeComposition(createDemoProject());
     composition.layers.forEach((layer) => {

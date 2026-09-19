@@ -439,7 +439,15 @@ ${framingWarpShaderCases}
       case 10u: {
         let direction = vec2f(cos(effect.header.z), sin(effect.header.z));
         let coordinate = dot(uv - vec2f(0.5), direction);
-        let edge = effect.header.y - 0.5;
+        var edge = effect.header.y - 0.5;
+        if abs(effect.p0.x) > 0.00001 {
+          let tangent = vec2f(-direction.y, direction.x);
+          let phase = dot(uv * resolution, tangent) / max(effect.p0.y, 1.0) * 6.283185
+            + effect.p0.z + effect_time * effect.p0.w;
+          let amplitude = effect.p0.x / max(length(resolution * direction), 1.0);
+          let available = max(0.0, min(effect.header.y, 1.0 - effect.header.y));
+          edge += clamp(amplitude, -available, available) * sin(phase);
+        }
         let feather = effect.header.w / max(resolution.x, resolution.y);
         alpha *= 1.0 - smoothstep(edge - feather, edge + feather + 0.00001, coordinate);
       }
