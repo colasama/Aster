@@ -54,6 +54,47 @@ describe("Bezier path tessellation", () => {
     },
   );
 
+  it.each(["miter", "bevel", "round"] as const)(
+    "fills the exterior gap for both %s turn directions",
+    (join) => {
+      for (const direction of [-1, 1]) {
+        const triangles = tessellateStroke(
+          [
+            [0, 0],
+            [100, 0],
+            [100, direction * 100],
+          ],
+          20,
+          false,
+          join,
+          "butt",
+        );
+        // This point is in the outer wedge, beyond both segment rectangles.
+        expect(covers(triangles, [103, -direction * 3])).toBe(true);
+        expect(covers(triangles, [113, -direction * 13])).toBe(false);
+      }
+    },
+  );
+
+  it("covers the outer edge of a broad curved stroke without radial cracks", () => {
+    const arc: BezierPath = {
+      closed: false,
+      vertices: [
+        { position: [0, -2.2], inTangent: [0, 0], outTangent: [-0.8, 1.45] },
+        { position: [0, 2.2], inTangent: [-0.8, -1.45], outTangent: [0, 0] },
+      ],
+    };
+    const points = flattenBezierPath(arc).map(([x, y]) => [x * 100, y * 100] as [number, number]);
+    const triangles = tessellateStroke(points, 106, false, "round", "round");
+    for (let i = 1; i < points.length - 1; i += 1) {
+      const [x, y] = points[i];
+      const dx = points[i + 1][0] - points[i - 1][0];
+      const dy = points[i + 1][1] - points[i - 1][1];
+      const length = Math.hypot(dx, dy);
+      expect(covers(triangles, [x - (dy / length) * 52.5, y + (dx / length) * 52.5])).toBe(true);
+    }
+  });
+
   it("trims open paths by exact arc length", () => {
     expect(
       trimPolyline(
@@ -103,3 +144,17 @@ describe("Bezier path tessellation", () => {
     expect(trimPolyline(trimmed[0].points, false, 0, 0)).toEqual([]);
   });
 });
+
+function covers(triangles: readonly [number, number][], point: [number, number]): boolean {
+  const side = (a: [number, number], b: [number, number]) =>
+    (b[0] - a[0]) * (point[1] - a[1]) - (b[1] - a[1]) * (point[0] - a[0]);
+  for (let i = 0; i < triangles.length; i += 3) {
+    const signs = [
+      side(triangles[i], triangles[i + 1]),
+      side(triangles[i + 1], triangles[i + 2]),
+      side(triangles[i + 2], triangles[i]),
+    ];
+    if (signs.every((v) => v >= -1e-7) || signs.every((v) => v <= 1e-7)) return true;
+  }
+  return false;
+}

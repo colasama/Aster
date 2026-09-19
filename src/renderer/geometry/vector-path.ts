@@ -206,7 +206,8 @@ function appendJoin(
 ): void {
   const turn = previousDirection[0] * nextDirection[1] - previousDirection[1] * nextDirection[0];
   if (Math.abs(turn) <= EPSILON) return;
-  const side = turn > 0 ? 1 : -1;
+  // Segment quads already overlap on the inside; only the outside needs a join.
+  const side = turn > 0 ? -1 : 1;
   const previousOuter = add(center, scale(previousNormal, side));
   const nextOuter = add(center, scale(nextNormal, side));
   if (join === "bevel") {
@@ -221,7 +222,7 @@ function appendJoin(
     const nextUnit = scale(nextNormal, side / half);
     const denominator = Math.max(0.25, miter[0] * nextUnit[0] + miter[1] * nextUnit[1]);
     const miterPoint = add(center, scale(miter, Math.min(half * 4, half / denominator)));
-    output.push(previousOuter, miterPoint, nextOuter);
+    output.push(center, previousOuter, nextOuter, previousOuter, miterPoint, nextOuter);
     return;
   }
   const startAngle = Math.atan2(previousOuter[1] - center[1], previousOuter[0] - center[0]);

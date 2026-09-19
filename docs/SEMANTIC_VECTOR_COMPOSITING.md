@@ -43,6 +43,13 @@ arbitrary 3D parent matrices remain outside this change.
 Bezier stroke tessellation also preserves the sign when converting back from scaled coordinates;
 mirroring a path no longer reflects its fill and stroke in different directions.
 
+Stroke joins fill the exterior of each turn. The segment quads already overlap on
+the interior, so joining that side leaves radial cracks on wide curves. Miter,
+bevel, and round joins share the corrected turn sign; tests cover both turn
+directions and points along the outside of a broad cubic arc. Round and bevel
+triangle counts are unchanged. A miter adds the missing inner triangle between
+the segment corners; no extra render pass or intermediate surface is required.
+
 ## Reusable motion assemblies
 
 The example keeps pose parameters separate from character construction. A seated seesaw pose,
