@@ -1,4 +1,5 @@
 import {
+  animate,
   comp,
   constant,
   ellipse,
@@ -14,152 +15,7 @@ import {
   vector,
 } from "./authoring.mjs";
 
-const rest = {
-  hipL: 0,
-  kneeL: 0,
-  hipR: 0,
-  kneeR: 0,
-  shoulderL: 8,
-  elbowL: -3,
-  shoulderR: -8,
-  elbowR: 3,
-  body: 0,
-  head: 0,
-};
-export const poses = {
-  stand: rest,
-  sit: {
-    ...rest,
-    upperLeg: 110,
-    lowerLeg: 185,
-    hipL: -42,
-    kneeL: 39,
-    hipR: -49,
-    kneeR: 46,
-    shoulderL: -3,
-    elbowL: -45,
-    shoulderR: -14,
-    elbowR: 27,
-    body: 14,
-    head: 12,
-  },
-  float: {
-    ...rest,
-    hipL: 24,
-    kneeL: -35,
-    hipR: -42,
-    kneeR: 76,
-    shoulderL: 45,
-    elbowL: -72,
-    shoulderR: -62,
-    elbowR: 15,
-    body: -12,
-    head: 8,
-  },
-  spread: {
-    ...rest,
-    hipL: 28,
-    kneeL: -38,
-    hipR: -50,
-    kneeR: 22,
-    shoulderL: 75,
-    elbowL: -4,
-    shoulderR: -104,
-    elbowR: 8,
-    body: -28,
-    head: 20,
-  },
-  umbrella: {
-    ...rest,
-    hipL: -45,
-    kneeL: 62,
-    hipR: 4,
-    kneeR: 16,
-    shoulderL: 4,
-    elbowL: 3,
-    shoulderR: 4,
-    elbowR: -138,
-    body: 4,
-    head: -12,
-  },
-  crouch: {
-    ...rest,
-    hipL: -65,
-    kneeL: 125,
-    hipR: -53,
-    kneeR: 119,
-    shoulderL: 22,
-    elbowL: -100,
-    shoulderR: -18,
-    elbowR: -120,
-    body: 22,
-    head: -20,
-  },
-  kiss: {
-    ...rest,
-    upperLeg: 145,
-    lowerLeg: 185,
-    hipL: -14,
-    kneeL: 8,
-    hipR: -24,
-    kneeR: 12,
-    shoulderL: -15,
-    elbowL: -60,
-    shoulderR: -20,
-    elbowR: -75,
-    body: 14,
-    head: 8,
-  },
-  cuddle: {
-    ...rest,
-    upperLeg: 120,
-    lowerLeg: 124,
-    rightUpperLeg: 110,
-    rightLowerLeg: 95,
-    armUpper: 75,
-    armLower: 85,
-    shoulderY: -145,
-    neckX: 14,
-    neckY: -188,
-    headScale: 90,
-    hipL: -8,
-    kneeL: 28,
-    hipR: -9,
-    kneeR: -22,
-    shoulderL: 45,
-    elbowL: -5,
-    shoulderR: -65,
-    elbowR: 92,
-    body: 0,
-    head: 5,
-  },
-  dive: {
-    ...rest,
-    shoulderL: 172,
-    elbowL: 4,
-    shoulderR: -172,
-    elbowR: -4,
-    hipL: 2,
-    hipR: -2,
-  },
-  carry: { ...rest, upperLeg: 145, lowerLeg: 185 },
-  lap: {
-    ...rest,
-    upperLeg: 110,
-    lowerLeg: 145,
-    hipL: -15,
-    kneeL: 43,
-    hipR: -40,
-    kneeR: 42,
-    shoulderL: 5,
-    elbowL: -55,
-    shoulderR: -8,
-    elbowR: 64,
-    body: 0,
-    head: -8,
-  },
-  greeting: { ...rest, shoulderL: 165, elbowL: -25, shoulderR: -24, elbowR: 0, body: 12, head: -8 },
-};
+import { poses } from "./character-poses.mjs";
 
 export function createCharacters(props) {
   const assets = [];
@@ -346,14 +202,15 @@ export function createCharacters(props) {
   assets.push(dress);
 
   function girl(name, poseName, { cycle = false, shadow = false, closedEyes = false } = {}) {
-    const pose = poses[poseName] ?? rest;
+    const pose = poses[poseName] ?? poses.stand;
     const sideView =
       cycle || poseName === "carry" || poseName === "umbrella" || poseName === "kiss";
     const c = comp(`Girl · ${name}`, 400, 760);
     const root = joint("Torso", 200, 324, pose.body);
     const neck = joint("Head pivot", pose.neckX ?? 0, pose.neckY ?? -180, pose.head, root);
     c.layers.push(root, neck);
-    const body = parent(place(instance(dress), 0, -75), root);
+    const body = parent(place(instance(dress), 0, pose.bodyY ?? -75), root);
+    body.transform.scale[1] = constant(pose.bodyScaleY ?? 100);
     if (sideView) body.transform.scale[0] = constant(65);
     const face = parent(
       place(
@@ -429,7 +286,29 @@ export function createCharacters(props) {
         };
         c.layers.push(foot);
       }
-      if (kind === "arm" && poseName === "cuddle")
+      if (kind === "arm" && poseName === "seesaw")
+        c.layers.push(
+          parent(
+            place(
+              vector(
+                `${side} palm resting on the plank`,
+                [
+                  [-7, -7],
+                  [7, -7],
+                  [side === "L" ? 10 : 30, 5, [0, -3], [-12, 2]],
+                  [side === "L" ? -30 : -10, 5, [12, 2], [0, -3]],
+                ],
+                limbColor,
+              ),
+              0,
+              lower,
+              100,
+              -upperAngle - lowerAngle,
+            ),
+            lowerJoint,
+          ),
+        );
+      else if (kind === "arm" && poseName === "cuddle")
         c.layers.push(parent(ellipse(`${side} hand`, 0, lower + 8, 19, 33, limbColor), lowerJoint));
       else if (kind === "arm")
         c.layers.push(
@@ -471,8 +350,11 @@ export function createCharacters(props) {
       pose.hipR,
       pose.kneeR,
     );
-    const neckPaint = parent(rect("Neck", 0, -165, 31, 35, skin, 6), root);
+    const neckPaint = parent(rect("Neck", 0, (pose.shoulderY ?? -163) - 2, 31, 35, skin, 6), root);
     if (!sideView) c.layers.push(neckPaint, body);
+    if (poseName === "seesaw")
+      for (const x of [-25, 27])
+        c.layers.push(parent(ellipse("Seated knee", x, -5, 42, 34, skin), root));
     const armUpper = pose.armUpper ?? 95;
     const armLower = pose.armLower ?? 95;
     const shoulderY = pose.shoulderY ?? -163;
@@ -493,8 +375,8 @@ export function createCharacters(props) {
       "arm",
       47,
       shoulderY,
-      armUpper,
-      armLower,
+      pose.rightUpperArm ?? armUpper,
+      pose.rightLowerArm ?? armLower,
       cycle ? 20 : 14,
       pose.shoulderR,
       pose.elbowR,
@@ -513,7 +395,99 @@ export function createCharacters(props) {
       bones.legL.expressions = { "rotation.2": "value + 9*sin(time*3.14159265)" };
       bones.legRLower.expressions = { "rotation.2": "value + 12*sin(time*3.14159265+1)" };
     }
-    if (!cycle && poseName !== "cuddle")
+    if (poseName === "slide") {
+      // Reach from behind the bank, protect the head, then unfold the legs to stand.
+      for (const [bone, values] of [
+        [
+          bones.armL,
+          [
+            [0, 12],
+            [1.5, 12],
+            [2, 158],
+            [2.4, 30],
+            [3.2, 12],
+          ],
+        ],
+        [
+          bones.armLLower,
+          [
+            [0, -65],
+            [1.5, -65],
+            [2, -150],
+            [2.4, -35],
+            [3.2, -125],
+          ],
+        ],
+        [
+          bones.armR,
+          [
+            [0, -35],
+            [1.5, -35],
+            [2, -18],
+            [2.4, -35],
+            [3.2, -12],
+          ],
+        ],
+        [
+          bones.armRLower,
+          [
+            [0, 80],
+            [1.5, 80],
+            [2, 12],
+            [2.4, 55],
+            [3.2, 125],
+          ],
+        ],
+        [
+          bones.legL,
+          [
+            [0, 68],
+            [2, 68],
+            [2.5, 30],
+            [3.25, 0],
+          ],
+        ],
+        [
+          bones.legLLower,
+          [
+            [0, -39],
+            [2, -39],
+            [2.5, -15],
+            [3.25, 0],
+          ],
+        ],
+        [
+          bones.legR,
+          [
+            [0, -60],
+            [2, -60],
+            [2.5, -25],
+            [3.25, -18],
+          ],
+        ],
+        [
+          bones.legRLower,
+          [
+            [0, 105],
+            [2, 105],
+            [2.5, 55],
+            [3.25, 35],
+          ],
+        ],
+        [
+          root,
+          [
+            [0, 0],
+            [1.5, 0],
+            [2, 20],
+            [2.4, 40],
+            [3.2, 0],
+          ],
+        ],
+      ])
+        animate(bone, "rotation.2", values);
+    }
+    if (!cycle && !["cuddle", "seesaw", "slide"].includes(poseName))
       neck.expressions = { "rotation.2": "value + 3*sin(time*2.4)" };
     if (poseName === "umbrella")
       c.layers.push(parent(place(instance(props.umbrella), -40, -247, 104, -39), root));
@@ -523,11 +497,14 @@ export function createCharacters(props) {
   const girls = {
     stand: girl("standing", "stand"),
     sit: girl("seated", "sit"),
+    seesaw: girl("seated on a plank", "seesaw"),
+    slide: girl("sliding on the bank", "slide"),
     music: girl("seated with closed eyes", "sit", { closedEyes: true }),
     greeting: girl("reaching for the crown", "greeting"),
     float: girl("floating", "float"),
     spread: girl("balance", "spread"),
     umbrella: girl("umbrella", "umbrella"),
+    parade: girl("holding an umbrella from the front", "parade"),
     crouch: girl("crouching", "crouch"),
     kiss: girl("kiss", "kiss"),
     cuddle: girl("holding the frog", "cuddle", { closedEyes: true }),
@@ -645,6 +622,16 @@ export function createCharacters(props) {
     if (part.name.endsWith("thigh")) part.transform.position[1] = constant(263);
   }
   assets.push(fallingFrog);
+  const seesawFrog = structuredClone(seatedFrog);
+  seesawFrog.id = id("comp");
+  seesawFrog.name = "Frog · seated on a plank";
+  seesawFrog.layers = seesawFrog.layers.filter((part) => part.name !== "Folded foot");
+  const green = rgba(P.green);
+  for (const part of seesawFrog.layers) {
+    part.id = id("layer");
+    if (part.color.every((channel, index) => channel === green[index])) part.color = rgba(P.teal);
+  }
+  assets.push(seesawFrog);
   const cuddle = girls.cuddle;
   const cuddleTorso = cuddle.layers.find((part) => part.name === "Torso");
   cuddle.layers.splice(
@@ -656,5 +643,5 @@ export function createCharacters(props) {
     const torso = pose.layers.find((l) => l.name === "Torso");
     pose.layers.push(parent(place(instance(litFrog, "Carried frog"), -25, 60, 44, 20), torso));
   }
-  return { assets, girls, frog, litFrog, seatedFrog, fallingFrog };
+  return { assets, girls, frog, litFrog, seatedFrog, fallingFrog, seesawFrog };
 }

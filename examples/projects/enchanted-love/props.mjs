@@ -3,10 +3,13 @@ import {
   constant,
   ellipse,
   instance,
+  joint,
   line,
   palette as P,
+  parent,
   place,
   rect,
+  track,
   vector,
 } from "./authoring.mjs";
 
@@ -53,6 +56,40 @@ export function createProps() {
       ),
       70,
       45,
+    ),
+  ]);
+  const snail = add("Snail · body and spiral shell", 180, 140, [
+    place(
+      vector(
+        "Soft body",
+        [
+          [0, -40, [0, 0], [0, -12]],
+          [40, -42, [-10, -12], [0, 38]],
+          [94, 31, [-38, -7], [24, 0]],
+          [127, 44, [0, -12], [0, 9]],
+          [28, 50, [36, 0], [-25, 0]],
+          [0, -40, [5, 39]],
+        ],
+        P.cream,
+      ),
+      21,
+      77,
+    ),
+    ellipse("Left eye", 20, 35, 35, 35, P.cream),
+    ellipse("Right eye", 69, 34, 35, 35, P.cream),
+    rect("Left pupil", 20, 36, 19, 6, P.teal, 3),
+    rect("Right pupil", 69, 35, 19, 6, P.teal, 3),
+    line(
+      "Shell spiral",
+      [
+        [85, 59, [0, 0], [3, -44]],
+        [145, 31, [-34, -12], [34, 14]],
+        [152, 92, [32, -17], [-23, 15]],
+        [105, 72, [-10, 22], [4, -18]],
+        [125, 63, [-14, -10]],
+      ],
+      P.cream,
+      9,
     ),
   ]);
   const stair = add("Stairs · three-step module", 330, 180, [
@@ -188,6 +225,9 @@ export function createProps() {
       10,
     ),
   ]);
+  const paradeUmbrella = tiltedUmbrella(P.teal);
+  const heldUmbrella = tiltedUmbrella(P.turquoise);
+  assets.push(paradeUmbrella, heldUmbrella);
   const fish = add("Fish · ribbon silhouette", 380, 100, [
     place(
       vector(
@@ -336,18 +376,114 @@ export function createProps() {
     assets,
     crown,
     heart,
+    snail,
     stair,
     window,
     ring,
     ball,
     stripedBall,
     umbrella,
+    paradeUmbrella,
+    heldUmbrella,
     fish,
     sparkle,
     note,
     lily,
     crab,
   };
+}
+
+// One six-anchor canopy moves from a top view, through profile, to its underside.
+// Instances freeze this two-second pose strip with time remapping.
+function tiltedUmbrella(fill) {
+  const c = comp(`Umbrella · pitch poses · ${fill}`, 320, 340, 2.033333333);
+  const handle = joint("Foreshortened handle", 160, 170);
+  handle.expressions = { "scale.1": "100*sin(time*pi/2)" };
+  c.layers.push(
+    handle,
+    parent(
+      line(
+        "Shaft",
+        [
+          [0, 0],
+          [0, 123],
+        ],
+        P.blue,
+        5,
+      ),
+      handle,
+    ),
+    parent(
+      line(
+        "Crook",
+        [
+          [0, 119, [0, 0], [0, 28]],
+          [17, 141, [-16, 0], [17, 0]],
+          [32, 120, [0, 16]],
+        ],
+        P.blue,
+        9,
+      ),
+      handle,
+    ),
+    rect("Finial", 160, 38, 5, 12, fill, 2),
+  );
+  const top = [
+    [-150, 0],
+    [-88, -120],
+    [88, -120],
+    [150, 0],
+    [88, 120],
+    [-88, 120],
+  ];
+  const side = [
+    [-150, 0, [0, 0], [15, -65]],
+    [-62, -111, [-51, 13], [39, -12]],
+    [62, -111, [-39, -12], [51, 13]],
+    [150, 0, [-15, -65]],
+    [88, 6],
+    [-88, 6],
+  ];
+  for (const [start, end, from, to] of [
+    [0, 1, top, side],
+    [1, c.duration, side, top],
+  ]) {
+    const canopy = place(vector("Canopy pitch", from, fill), 160, 170);
+    canopy.inPoint = start;
+    canopy.outPoint = end;
+    canopy.shape.morph = {
+      target: vector("Canopy target", to, fill).shape.path,
+      progress: track([
+        [start, 0],
+        [end, 100],
+      ]),
+    };
+    c.layers.push(canopy);
+  }
+  const underside = place(
+    vector(
+      "Shaded underside",
+      [
+        [-150, 0],
+        [-88, -24],
+        [88, -24],
+        [150, 0],
+        [88, 96],
+        [-88, 96],
+      ],
+      P.blue,
+    ),
+    160,
+    170,
+  );
+  underside.inPoint = 1;
+  underside.outPoint = c.duration;
+  underside.transform.scale[1] = track([
+    [1, 0],
+    [2, 100],
+  ]);
+  c.layers.push(underside);
+  return c;
 }
 
 export function prop(source, x, y, scale = 100, angle = 0, name) {

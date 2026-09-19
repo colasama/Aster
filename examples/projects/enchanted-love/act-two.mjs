@@ -1,4 +1,6 @@
 import { comp } from "./authoring.mjs";
+import { umbrellaParade } from "./parade.mjs";
+import { seesawScene, slideScene } from "./playground.mjs";
 import {
   animate,
   during,
@@ -473,25 +475,7 @@ export function actTwo(b) {
       ],
     });
   }
-  {
-    const c = scene("29 · Umbrella parade", 68.7, 70.633333333, P.green);
-    stripes(c, { angle: 24, spacing: 28, width: 10, fill: P.turquoise });
-    for (let i = 0; i < 5; i++) {
-      const u = tint(add(c, p.umbrella, -200 + i * 310, 420, 76, 80 - i * 27), P.teal);
-      u.expressions = {
-        "position.0": `${-200 + i * 310} - 320*time`,
-        "rotation.2": `${80 - i * 27} - time*40`,
-      };
-    }
-    add(c, a.girls.stand, 1110, 498, 75);
-    const cover = rect("Passing blue card", 1610, 110, 1600, 900, P.blue);
-    c.layers.push(cover);
-    animate(cover, "position.0", [
-      [0, 2210],
-      [0.9, 2210],
-      [1.933, 880],
-    ]);
-  }
+  umbrellaParade(b);
   {
     const c = scene("30 · Shifting horizons", 70.633333333, 72.6, P.blue);
     const horizon = slope(c, P.turquoise, [-300, 415, 1600, 560]);
@@ -549,121 +533,8 @@ export function actTwo(b) {
       );
     }
   }
-  {
-    const c = scene("33 · Seesaw", 74.8, 76);
-    slope(c, P.green, [0, 220, 1280, 480]);
-    c.layers.push(
-      vector(
-        "Seesaw support",
-        [
-          [500, 750],
-          [760, 750],
-          [630, 514],
-        ],
-        P.teal,
-      ),
-    );
-    const board = rect("Seesaw plank", 633, 525, 1110, 55, P.teal);
-    c.layers.push(board);
-    add(c, a.girls.sit, 1060, 482, 70, -12);
-    add(c, a.frog, 154, 431, 64);
-    add(c, p.crab, 455, 480, 65);
-    add(c, p.crab, 322, 480, 69);
-  }
-  {
-    const c = scene("34 · Sliding down the slope", 76, 79.6);
-    const bank = slope(c, P.teal, [0, 1250, 1280, 370]);
-    animate(bank, "rotation.2", [
-      [0, -45],
-      [0.65, -8],
-      [3.6, 18],
-    ]);
-    const ring = add(c, p.ring, 980, 135, 122);
-    keyPose(ring, {
-      "position.0": [
-        [0, 1270],
-        [0.8, 980],
-        [1.6, 350],
-        [3.6, 270],
-      ],
-      "position.1": [
-        [0, -180],
-        [0.8, 140],
-        [1.6, 457],
-        [3.6, 540],
-      ],
-      "rotation.2": [
-        [0, 0],
-        [3.6, -240],
-      ],
-    });
-    const girl = add(c, a.girls.sit, 730, 493, 72, 5);
-    keyPose(girl, {
-      "position.0": [
-        [0, 450],
-        [1, 440],
-        [2.3, 660],
-        [3.6, 755],
-      ],
-      "position.1": [
-        [0, 940],
-        [1, 710],
-        [2.3, 520],
-        [3.6, 476],
-      ],
-      "rotation.2": [
-        [0, -20],
-        [2, 8],
-      ],
-    });
-    const frog = add(c, a.frog, 700, 437, 90, 94);
-    keyPose(frog, {
-      "position.0": [
-        [0, 1500],
-        [1.1, 1300],
-        [2.1, 740],
-        [3.6, 155],
-      ],
-      "position.1": [
-        [0, 0],
-        [1.1, 230],
-        [2.1, 443],
-        [3.6, 664],
-      ],
-    });
-    const ball = add(c, p.ball, 1110, 395, 112);
-    keyPose(ball, {
-      "position.0": [
-        [0, 1650],
-        [1.5, 1110],
-        [3.6, 470],
-      ],
-      "position.1": [
-        [0, 200],
-        [1.5, 395],
-        [3.6, 580],
-      ],
-      "rotation.2": [
-        [0, 0],
-        [3.6, -440],
-      ],
-    });
-    const crown = add(c, p.crown, 990, 485, 115, 88);
-    keyPose(crown, {
-      "position.0": [
-        [0, 430],
-        [1.4, 430],
-        [2.8, 1080],
-        [3.6, 920],
-      ],
-      "position.1": [
-        [0, 640],
-        [1.4, 640],
-        [2.8, 458],
-        [3.6, 500],
-      ],
-    });
-  }
+  seesawScene(b);
+  slideScene(b);
   {
     const c = scene("35 · Standing on the ledge", 79.6, 81.733333333);
     slope(c, P.teal, [0, 740, 1280, 580]);

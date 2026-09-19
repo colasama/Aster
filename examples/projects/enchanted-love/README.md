@@ -29,16 +29,19 @@ audio into the bundle's media directory.
 | Source | Responsibility |
 | --- | --- |
 | `authoring.mjs` | Native layer, keyframe, transform, paint, and effect helpers |
-| `props.mjs` | Crown, heart, stairs, window, swim ring, ball, umbrella, fish, crab, lily pad |
+| `props.mjs` | Crown, heart, stairs, window, swim ring, ball, pitched umbrellas, fish, snail, crab, lily pad |
 | `characters.mjs` | Shared heads and tunic; torso, head, arm and leg pivots; semantic poses and walk cycle |
+| `character-poses.mjs` | Joint angles and proportions for standing, sitting, carrying, sliding, and other poses |
 | `scenes.mjs` | Repeated patterns, spotlights, shadows, reusable group and scene helpers |
 | `doorway.mjs` | Continuous frog exit, beam mask, and camera shared across two shots |
+| `parade.mjs` | Shared parade camera, retimed canopy pitch, striped paper, and horizon transition |
+| `playground.mjs` | Seesaw fulcrum, camera turn, foreground bank, rolling props, and recovery pose |
 | `act-one.mjs` | Opening through the first title card |
 | `act-two.mjs` | Music, pool, umbrella, balance, and dive sequences |
 | `act-three.mjs` | Light shafts, reunion, return walk, kiss, and credits |
 | `build.mjs` | Native project assembly, asset folders, audio embedding, and shot list |
 
-The generated project has 103 compositions and 986 authored layers. The 48 scene compositions
+The generated project has 111 compositions and 1,104 authored layers. The 48 scene compositions
 instantiate the shared props and character poses. Five native grid cloners replace hundreds of
 repeated stripe and chevron layers. The longest authored path has 10 anchors; the crown has seven,
 and each ring sector has four. There are no frame contour tracks, image sequences, or embedded
@@ -61,6 +64,18 @@ forearm and places the complete rig in a ring. One decelerating drift moves and 
 and its cast shadow. The late iris uses two expanding circles with fitted center/edge/radius curves.
 The staircase enters from above after that transition. These are object and camera parameters,
 not per-frame contour data.
+
+The seesaw places the plank and all riders under one fulcrum; a separate triangular support stays
+fixed. Its seated pose has dangling legs and palms on the plank. The snail uses a short body path,
+simple eyes, and a five-anchor spiral. The slope sequence has one rotating ground frame; the same
+foreground plane hides the lower limbs and constrains the ring, frog, ball, and crown. Ring rotation
+follows travel divided by radius. The girl reaches out, protects her head, and unfolds her legs
+through a few joint poses. The camera angle follows a fitted rational curve rather than frame keys.
+
+The parade reuses a six-anchor canopy whose pitch passes through top, side, and underside views.
+Time remapping offsets each instance along that pose strip, while its handle foreshortens with pitch.
+A front-facing held-umbrella pose, five native cloners across the project, and a shared pan keep the
+scene editable without duplicating hundreds of stripes or separately keying every prop's camera move.
 
 The reference palette is measured from decoded frames. Shape paints invert Aster's ACES display
 mapping to reproduce those display colors. Text also accounts for its sRGB texture encoding.

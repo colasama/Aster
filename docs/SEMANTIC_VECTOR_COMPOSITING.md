@@ -43,6 +43,19 @@ arbitrary 3D parent matrices remain outside this change.
 Bezier stroke tessellation also preserves the sign when converting back from scaled coordinates;
 mirroring a path no longer reflects its fill and stroke in different directions.
 
+## Reusable motion assemblies
+
+The example keeps pose parameters separate from character construction. A seated seesaw pose,
+front-facing umbrella grip, and a sliding/recovery sequence use the same torso, head, tunic, and
+joint hierarchy. The seesaw's riders share a rotating fulcrum. The sliding sequence evaluates one
+camera angle and a ground distance; its foreground plane provides occlusion, while ring rotation
+comes from travel divided by radius. These ordinary 2D hierarchies need no intermediate surface.
+
+An umbrella pose strip morphs six canopy anchors between top, profile, and underside views and
+foreshortens the handle. Instance time remapping chooses and advances each pitch. A single camera
+pan moves the parade and its cloner-generated striped paper. The construction is independent of
+frame sampling and adds no project schema or plugin ABI fields.
+
 ## Verification
 
 Regression tests cover switching group effects on/off, animated off-center pivots, mapped source time,

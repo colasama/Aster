@@ -61,7 +61,7 @@ Submission counts include two static updates per interval and do not prove scano
 ## Enchanted Love semantic composition workload
 
 The 2026-09-19 production preview run uses the 130.1-second native reconstruction from
-`examples/projects/enchanted-love`: 103 compositions, 986 authored layers, 48 scene cuts, reusable
+`examples/projects/enchanted-love`: 111 compositions, 1,104 authored layers, 48 scene cuts, reusable
 joint rigs and props, and five grid cloners. Its only imported media is the stereo soundtrack.
 The visible Electron window renders at 1280 × 848, quality 1, with FXAA. No export runs concurrently.
 The machine uses a Ryzen 9 8945HX and GeForce RTX 5060 Laptop GPU (driver 32.0.15.9621);
@@ -76,11 +76,11 @@ has arrived. A separate run whose window became hidden is excluded from this for
 
 | Measurement | Result |
 | --- | ---: |
-| Renderer CPU P95 | 2.9 ms |
+| Renderer CPU P95 | 3.7 ms |
 | GPU P95 | 0.393 ms |
-| Submission interval P95 | 6.8 ms |
-| Longest submission interval | 32.6 ms |
-| Estimated VRAM peak | 98.8 MB |
+| Submission interval P95 | 6.9 ms |
+| Longest submission interval | 31.5 ms |
+| Estimated VRAM peak | 94.9 MB |
 | Source addresses with a GPU submission | 3,903 / 3,903 |
 
 The longest submission interval stays below the 33.3 ms source-frame period in this run. This
@@ -89,6 +89,10 @@ source-time advancement and complete source-frame coverage, including all scene 
 Group effects reuse GPU surfaces with existing
 depth/count/memory budgets. Primitive repetition uses native cloners, and mirrored rigs require no
 per-frame path rebuilding. Machine-readable measurements are stored with the local delivery.
+The later parade and playground refinement adds native pose and prop compositions, while ordinary
+2D camera/fulcrum hierarchies remain flattened. It adds no intermediate effect surface or CPU frame
+readback. The earlier 103-composition run recorded CPU P95 2.9 ms and complete frame coverage too;
+the larger authoring library still fits comfortably inside the 33.3 ms source-frame period.
 
 The playback hook regression tests exercise delayed UI acknowledgements, explicit seeks, exact pause time, work-area looping, cancellation, and per-frame presentation with bounded UI updates.
 
