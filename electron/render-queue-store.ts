@@ -3,9 +3,10 @@ import { join } from "node:path";
 import {
   createRenderQueue,
   migrateRenderQueue,
+  type RenderJobProgress,
   type RenderQueueState,
   recoverInterruptedRenderJobs,
-  serializeRenderQueue,
+  updateRenderProgress,
 } from "../src/core/rendering/render-queue.js";
 import { replaceFileWithBackup } from "./atomic-file.js";
 
@@ -33,6 +34,7 @@ export class RenderQueueStore {
   #writeProtected = false;
   #deferredDocument?: RenderQueueState;
   #deferredTimer?: ReturnType<typeof setTimeout>;
+  #checkpointPending = false;
   #persistenceError?: unknown;
 
   constructor(userDataDirectory: string) {
@@ -75,29 +77,61 @@ export class RenderQueueStore {
   }
 
   snapshot(): RenderQueueState {
-    return structuredClone(this.#document);
+    // Copy mutable metadata, sharing only immutable strings. structuredClone also copies the
+    // multi-megabyte project/media captures, making per-frame progress scale with render history.
+    return {
+      ...this.#document,
+      items: this.#document.items.map((item) => ({
+        ...item,
+        manifest: {
+          ...item.manifest,
+          frameRate: { ...item.manifest.frameRate },
+          outputs: item.manifest.outputs.map((output) => ({ ...output })),
+        },
+        progress: { ...item.progress },
+        ...(item.error ? { error: { ...item.error } } : {}),
+      })),
+    };
   }
 
-  update(
+  async update(
     update: (state: RenderQueueState) => RenderQueueState,
     options: RenderQueueUpdateOptions = {},
   ): Promise<RenderQueueState> {
-    if (this.#writeProtected)
-      return Promise.reject(new Error("Render queue is from a newer build"));
-    if (this.#persistenceError) return Promise.reject(this.#persistenceError);
+    this.#assertWritable();
     const next = migrateRenderQueue(update(this.snapshot()));
-    if (next.revision < this.#document.revision)
+    return this.#commit(next, options);
+  }
+
+  /** Validate a worker's progress without parsing unchanged historical project captures. */
+  async updateProgress(
+    jobId: string,
+    leaseId: string,
+    progress: RenderJobProgress,
+  ): Promise<RenderQueueState> {
+    this.#assertWritable();
+    const next = updateRenderProgress(this.#document, jobId, leaseId, progress);
+    return this.#commit(next, { durability: "deferred" });
+  }
+
+  #assertWritable(): void {
+    if (this.#writeProtected) throw new Error("Render queue is from a newer build");
+    if (this.#persistenceError) throw this.#persistenceError;
+  }
+
+  #commit(next: RenderQueueState, options: RenderQueueUpdateOptions): Promise<RenderQueueState> {
+    if (!Number.isSafeInteger(next.revision) || next.revision < this.#document.revision)
       return Promise.reject(new Error("Render queue revision cannot move backwards"));
     this.#document = next;
     const snapshot = this.snapshot();
     if (options.durability === "deferred") {
-      this.#deferredDocument = snapshot;
+      this.#deferredDocument = next;
       this.#scheduleDeferredPersist();
       return Promise.resolve(snapshot);
     }
     this.#cancelDeferredPersist();
     this.#deferredDocument = undefined;
-    return this.#enqueuePersist(snapshot).then(() => snapshot);
+    return this.#enqueuePersist(next).then(() => snapshot);
   }
 
   async flush(): Promise<void> {
@@ -110,12 +144,20 @@ export class RenderQueueStore {
   }
 
   #scheduleDeferredPersist(): void {
-    if (this.#deferredTimer) return;
+    if (this.#deferredTimer || this.#checkpointPending) return;
     this.#deferredTimer = setTimeout(() => {
       this.#deferredTimer = undefined;
       const pending = this.#deferredDocument;
       this.#deferredDocument = undefined;
-      if (pending) void this.#enqueuePersist(pending).catch(() => undefined);
+      if (!pending) return;
+      // A slow disk must retain only the latest waiting checkpoint, not one full queue per timer.
+      this.#checkpointPending = true;
+      void this.#enqueuePersist(pending)
+        .catch(() => undefined)
+        .finally(() => {
+          this.#checkpointPending = false;
+          if (this.#deferredDocument && !this.#persistenceError) this.#scheduleDeferredPersist();
+        });
     }, PROGRESS_CHECKPOINT_INTERVAL_MS);
   }
 
@@ -163,7 +205,8 @@ export class RenderQueueStore {
       this.#path,
       this.#temporaryPath,
       this.#backupPath,
-      serializeRenderQueue(document),
+      // All ingress is normalized by initialize/update; updateProgress validates its only change.
+      `${JSON.stringify(document, null, 2)}\n`,
     );
   }
 }

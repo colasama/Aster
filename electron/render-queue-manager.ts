@@ -17,7 +17,6 @@ import {
   requestRenderPause,
   resumeRenderJob,
   retryRenderJob,
-  updateRenderProgress,
 } from "../src/core/rendering/render-queue.js";
 import type { RenderQueueStore } from "./render-queue-store.js";
 
@@ -190,18 +189,12 @@ export class RenderQueueManager {
     }
     if (event.type === "cancelled")
       throw new Error(`Render host cancelled ${event.jobId} without a cancel request`);
-    const item = this.snapshot().items.find((candidate) => candidate.manifest.id === event.jobId);
-    if (!item) throw new Error(`Unknown render job ${event.jobId}`);
-
     switch (event.type) {
       case "prepared":
         await this.#update((state) => markRenderJobRunning(state, event.jobId, event.leaseId));
         break;
       case "progress":
-        await this.#update(
-          (state) => updateRenderProgress(state, event.jobId, event.leaseId, event.progress),
-          "deferred",
-        );
+        this.#publish(await this.#store.updateProgress(event.jobId, event.leaseId, event.progress));
         break;
       case "paused":
         await this.#update((state) => acknowledgeRenderPaused(state, event.jobId, event.leaseId));
@@ -333,11 +326,8 @@ export class RenderQueueManager {
     await active.finishing;
   }
 
-  async #update(
-    update: (state: RenderQueueState) => RenderQueueState,
-    durability: "deferred" | "immediate" = "immediate",
-  ): Promise<RenderQueueState> {
-    const state = await this.#store.update(update, { durability });
+  async #update(update: (state: RenderQueueState) => RenderQueueState): Promise<RenderQueueState> {
+    const state = await this.#store.update(update);
     this.#publish(state);
     return state;
   }

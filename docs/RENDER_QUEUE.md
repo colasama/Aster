@@ -22,6 +22,24 @@ leases from a bounded concurrency limit. Queue snapshots have strict item, outpu
 render-media, frame-count, dimension, string, and numeric limits before persistence or worker launch.
 Large immutable snapshots are omitted from every editor-facing progress projection.
 
+Within the main process, snapshots copy mutable metadata while sharing immutable capture strings.
+Per-frame progress uses the domain's lease, range, and monotonicity validation without reparsing
+unchanged project/media JSON. Generic commands and restored documents still receive full validation.
+The private persistence path writes this validated state directly. Progress checkpoints run at most
+once per 500 ms after the preceding checkpoint finishes: one checkpoint can be in flight and only
+the latest waiting revision is retained. Commands, terminal transitions, and shutdown flushes remain
+ordered and immediately durable. Slow storage therefore cannot accumulate a full queue per frame or
+timer interval, and external snapshot mutation cannot alter pending writes.
+
+The 2026-09-19 reconstruction exposed this cost with nine historical jobs in a 55,878,716-byte queue.
+The previous main process exited with a V8 heap exhaustion after reaching about 3.14 GB. An isolated
+180-report benchmark of the same queue (no GPU rendering) measured median/P95 progress handling of
+157.07/207.76 ms and a 3,318.85 MiB heap peak; draining queued writes took another 21,395 ms. After
+the metadata-only progress path and bounded checkpoints, the same burst measured 0.0077/0.0227 ms,
+280.45 MiB peak, and a 381 ms final flush. These are queue-control measurements, not video encoding
+throughput or foreground preview FPS. A gated slow-storage regression also verifies that several
+checkpoint intervals retain only one in-flight write and the newest waiting revision.
+
 Each job pairs the persistence-safe project document with a versioned `RenderMediaManifest` keyed by
 source ID and content identity. Embedded still/video/audio data remains in the document. At enqueue,
 every linked local source is copied and SHA-256 verified into a content-addressed, job-owned snapshot

@@ -9,6 +9,7 @@ import {
   type RenderQueueState,
   updateRenderProgress,
 } from "../src/core/rendering/render-queue";
+import * as atomicFile from "./atomic-file";
 import { RenderQueueStore } from "./render-queue-store";
 
 const roots: string[] = [];
@@ -127,6 +128,85 @@ describe("RenderQueueStore", () => {
       await store.flush();
       expect(JSON.parse(await readFile(path, "utf8")).items[0].progress.completedFrames).toBe(5);
     } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("validates progress without reparsing captures and isolates returned mutable metadata", async () => {
+    const { store } = await temporaryStore();
+    await store.initialize();
+    await store.update((state) =>
+      markRenderJobRunning(
+        claimRenderJob(enqueue(state, "fast"), "fast", "worker"),
+        "fast",
+        "worker",
+      ),
+    );
+    const parse = vi.spyOn(JSON, "parse");
+    try {
+      const progress = { completedFrames: 5, totalFrames: 24, elapsedMs: 200 };
+      const result = await store.updateProgress("fast", "worker", progress);
+      progress.completedFrames = 23;
+      result.items[0].progress.completedFrames = 24;
+      result.items[0].manifest.projectSnapshot = "invalid";
+      result.items[0].manifest.frameRate.numerator = 60;
+      result.items[0].manifest.outputs[0].destination = "changed";
+      result.items.length = 0;
+      await expect(store.updateProgress("fast", "stale", progress)).rejects.toThrow("lease");
+      await expect(
+        store.updateProgress("fast", "worker", { ...progress, completedFrames: 4 }),
+      ).rejects.toThrow("backwards");
+      expect(store.snapshot().items[0]).toMatchObject({
+        progress: { completedFrames: 5 },
+        manifest: { projectSnapshot: '{"schemaVersion":4}', frameRate: { numerator: 24 } },
+      });
+      expect(store.snapshot().items[0].manifest.outputs[0].destination).toBe(
+        join("renders", "fast"),
+      );
+      expect(parse).not.toHaveBeenCalled();
+    } finally {
+      parse.mockRestore();
+      await store.flush();
+    }
+  });
+
+  it("keeps only the latest waiting checkpoint when disk writes span several intervals", async () => {
+    vi.useFakeTimers();
+    const { root, store } = await temporaryStore();
+    await store.initialize();
+    await store.update((state) =>
+      markRenderJobRunning(
+        claimRenderJob(enqueue(state, "slow"), "slow", "worker"),
+        "slow",
+        "worker",
+      ),
+    );
+    let release = () => {};
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const persist = vi
+      .spyOn(atomicFile, "replaceFileWithBackup")
+      .mockImplementationOnce(() => gate);
+    try {
+      for (let frame = 1; frame <= 4; frame += 1) {
+        await store.updateProgress("slow", "worker", {
+          completedFrames: frame,
+          totalFrames: 24,
+          elapsedMs: frame * 500,
+        });
+        await vi.advanceTimersByTimeAsync(500);
+      }
+      expect(persist).toHaveBeenCalledTimes(1);
+      release();
+      await store.flush();
+      expect(persist).toHaveBeenCalledTimes(2);
+      const saved = JSON.parse(await readFile(join(root, "render-queue.json"), "utf8"));
+      expect(saved.items[0].progress.completedFrames).toBe(4);
+    } finally {
+      release();
+      await store.flush();
+      persist.mockRestore();
       vi.useRealTimers();
     }
   });
