@@ -37,6 +37,8 @@ audio into the bundle's media directory.
 | `doorway.mjs` | Continuous frog exit, beam mask, and camera shared across two shots |
 | `early-motifs.mjs` | Tangent circle chain, independently sized spotlight, and a shared rotating stripe/parenthesis rig |
 | `striped-passage.mjs` | Coarse/fine cloner patterns, curved reveal boundaries, reversing pan, and pool lead-in |
+| `pool-orbit.mjs` | Two receding irises, spiral travel, ring wake, and the vertical-bar/ball accent |
+| `drifting-pool.mjs` | One continuous current, shared prop/actor shadows, and trajectories across adjacent shots |
 | `water-passage.mjs` | Closing fan, wave cloner, persistent lily pads, circular currents, and swimming tadpole |
 | `pool-flash.mjs` | Shared raft and shadow, closing bowed card, and a crown toss with fitted launch/fall curves |
 | `balance-passage.mjs` | Balancing joints, arm accent, folded swimming profile, and rotating ground/parentheses |
@@ -53,7 +55,7 @@ audio into the bundle's media directory.
 | `act-three.mjs` | Light shafts, reunion, return walk, kiss, and credits |
 | `build.mjs` | Native project assembly, asset folders, audio embedding, and shot list |
 
-The generated project has 151 compositions and 1,494 authored layers. The 47 scene compositions
+The generated project has 154 compositions and 1,504 authored layers. The 47 scene compositions
 instantiate the shared props and character poses. Fifteen native grid cloners replace hundreds of
 repeated stripe and chevron layers. The longest authored path has 10 anchors; the crown has seven,
 and each ring sector has four. There are no frame contour tracks, image sequences, or embedded
@@ -132,8 +134,14 @@ The early circle chain derives each center from adjacent radii at shared beat la
 neighbors tangent between keys. Stripe angle, spacing, and duty cycle animate one native cloner.
 Counter-scaling the actors separates spotlight diameter from character size. The next motif pair
 shares one orbit; counter-rotating joints keep its symbols upright. Two two-anchor curves close
-into outlined dots while preserving stroke width. Background swim rings have their own drift and
+into outlined dots while preserving stroke width. The first pool uses two radial clocks and a shrinking orbit. A
+vertical bar stretches into a ball accent. The music landing combines one falling square, a
+colour strobe, and a shared fan that continues into the water shot. Background swim rings have their own drift and
 sector rotation, while the raft's head, torso, and held frog settle through shared joint poses.
+
+The later pool shares one 9.7-second source across both scene wrappers. A single ball turns as
+its path bends, followed by a ring and the returning characters. Sparse curves and analytic
+trajectories drive both visible objects and their cast shadows at the same source time.
 
 The reference palette is measured from decoded frames. Shape paints invert Aster's ACES display
 mapping to reproduce those display colors. Color Overlay uses normalized RGB and HDR intensity

@@ -1,3 +1,4 @@
+import { createDriftingPool } from "./drifting-pool.mjs";
 import {
   animate,
   during,
@@ -16,7 +17,7 @@ import {
 import { shaftReunion } from "./shaft-reunion.mjs";
 
 export function actThree(b) {
-  const { scene, add, circle, group, tint, shadow, doorway, props: p, characters: a } = b;
+  const { scene, add, circle, group, tint, doorway, props: p, characters: a } = b;
   const beam = (
     c,
     { center = 640, top = 85, bottom = 465, color = P.green, border = false } = {},
@@ -134,87 +135,14 @@ export function actThree(b) {
       );
   }
   shaftReunion(b);
+  const current = createDriftingPool(b);
   {
     const c = scene("42 · Drifting pool objects", 95.6, 99.5, P.green);
-    for (const [source, x, y, scale, dx, dy] of [
-      [p.ball, 230, 50, 156, -300, 175],
-      [p.ring, 350, -420, 188, 44, 276],
-      [p.stripedBall, 1100, 302, 164, -110, 152],
-      [p.ring, -900, -700, 165, 160, 100],
-    ]) {
-      const shade = shadow(c, source, x, y, scale);
-      const item = add(c, source, x, y, scale);
-      for (const [node, offset] of [
-        [shade, 55],
-        [item, 0],
-      ])
-        node.expressions = {
-          "position.0": `${x + offset}+${dx}*time`,
-          "position.1": `${y + offset * 1.5}+${dy}*time`,
-          "rotation.2": source === p.ring ? "time*28+45" : "time*28-67.2",
-        };
-      if (source === p.stripedBall) {
-        for (const [node, offset] of [
-          [shade, 55],
-          [item, 0],
-        ]) {
-          delete node.expressions["position.0"];
-          animate(
-            node,
-            "position.0",
-            [
-              [0, 1800 + offset],
-              [0.8, 1400 + offset],
-              [2.4, 836 + offset],
-              [3.9, 450 + offset],
-            ],
-            linear,
-          );
-        }
-      }
-    }
-    const frog = add(c, a.frog, 452, -80, 61, -6);
-    during(frog, 2.7, c.duration);
-    animate(frog, "position.1", [
-      [2.7, -150],
-      [3.9, 135],
-    ]);
+    add(c, current);
   }
   {
     const c = scene("43 · Floating back together", 99.5, 105.3, P.green);
-    const girl = add(c, a.girls.stand, 170, 450, 80, -22);
-    const frog = add(c, a.frog, 728, 534, 61, 9);
-    const crown = add(c, p.crown, 517, 168, 61, 0);
-    const actors = [girl, frog, crown];
-    for (const [i, node] of actors.entries()) {
-      node.expressions = {
-        "position.0": ["35+145*time", "530+180*time", "-395+170*time"][i],
-        "position.1": ["127+120*time", "188+190*time", "165+50*time"][i],
-        "rotation.2": `value+4*sin(time*1.5+${i})`,
-      };
-    }
-    const advance = "max(0,time-3.5)";
-    const perspective = `0.8/(1-0.32*${advance})`;
-    girl.expressions["position.0"] += `+22*pow(${advance},2)+100*(${perspective}-0.8)`;
-    girl.expressions["position.1"] += `+60*pow(${advance},2)+249*(${perspective}-0.8)`;
-    girl.expressions["scale.0"] = `${perspective}*100`;
-    girl.expressions["scale.1"] = `${perspective}*100`;
-    crown.expressions["rotation.2"] = "30+48*(time-3.5)";
-    const actorShadow = actors.map((node) => {
-      const copy = structuredClone(node);
-      copy.id += "-shadow";
-      copy.expressions["position.0"] += "+65";
-      copy.expressions["position.1"] += "+100";
-      return copy;
-    });
-    c.layers.splice(1, 3);
-    group(c, "Pool shadows", actorShadow, P.shadow);
-    c.layers.push(...actors);
-    const ring = add(c, p.ring, 790, 1250, 188);
-    animate(ring, "position.1", [
-      [0, 870],
-      [1.3, 1250],
-    ]);
+    add(c, current).timeOffset = 3.9;
     // Two expanding circles share the camera advance. Fit the center, edge and
     // inverse radius, rather than drawing a succession of curved wipe contours.
     const u = "(time-3.5)";

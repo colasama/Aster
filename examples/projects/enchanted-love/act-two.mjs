@@ -4,10 +4,11 @@ import { divingScene, ledgeScene } from "./dive.mjs";
 import { umbrellaParade } from "./parade.mjs";
 import { seesawScene, slideScene } from "./playground.mjs";
 import { poolFlash } from "./pool-flash.mjs";
+import { ballAccent } from "./pool-orbit.mjs";
 import { animate, during, keyPose, line, overlay, P, place, rect, track } from "./scenes.mjs";
 import { poolArrival, stripedPassage } from "./striped-passage.mjs";
 import { umbrellaAccents } from "./umbrella-accents.mjs";
-import { waterPassage } from "./water-passage.mjs";
+import { waterFan, waterPassage } from "./water-passage.mjs";
 
 export function actTwo(b) {
   const { scene, add, tint, slope, props: p, characters: a } = b;
@@ -139,30 +140,76 @@ export function actTwo(b) {
   }
   {
     const c = scene("18 · Sitting to the music", 47.733333333, 50.6);
+    const block = during(rect("Falling square", 500, 40, 170, 170, P.cream), 0, 5 / 30);
+    block.expressions = {
+      "position.0": "500-500*time",
+      "position.1": "40+1900*time+4300*time*time",
+      "rotation.2": "35-720*time",
+    };
+    c.layers.push(block);
     const seat = rect("Seat", 375, 699, 250, 248, P.teal);
-    c.layers.push(during(seat, 0.4, c.duration));
-    c.layers.push(during(rect("Seat landing flash", 375, 770, 260, 114, P.green), 0, 0.4));
+    c.layers.push(during(seat, 5 / 30, c.duration));
+    animate(seat, "position.1", [
+      [5 / 30, 650],
+      [6 / 30, 755],
+      [7 / 30, 765],
+      [9 / 30, 690],
+    ]);
+    animate(seat, "scale.1", [
+      [5 / 30, 130],
+      [6 / 30, 50],
+      [7 / 30, 30],
+      [9 / 30, 100],
+    ]);
     animate(seat, "rotation.2", [
       [0, 0],
       [0.4, 0],
       [1.1, 7],
       [2.867, 11],
     ]);
-    const girl = add(c, a.girls.music, 363, 601, 92, -5);
-    const flash = overlay(P.cream);
-    flash.name = "Landing flash";
-    flash.parameterKeyframes = {
-      opacity: track([
-        [0, 0],
-        [0.03, 100],
-        [0.333333333, 100],
-        [0.4, 0],
-      ]).keyframes,
-    };
-    girl.effects.push(flash);
+    const girl = during(add(c, a.girls.music, 363, 601, 92, -5), 5 / 30, c.duration);
+    // A brief colour strobe accompanies one squash-and-rebound landing.
+    for (const [color, beats] of [
+      [
+        P.cream,
+        [
+          [0, 0],
+          [5 / 30, 100],
+          [6 / 30, 0],
+          [8 / 30, 100],
+          [9 / 30, 0],
+        ],
+      ],
+      [
+        P.blue,
+        [
+          [0, 0],
+          [6 / 30, 100],
+          [7 / 30, 0],
+          [9 / 30, 100],
+          [10 / 30, 0],
+        ],
+      ],
+      [
+        P.green,
+        [
+          [0, 0],
+          [7 / 30, 100],
+          [8 / 30, 0],
+        ],
+      ],
+    ]) {
+      const flash = overlay(color);
+      flash.name = "Landing strobe";
+      flash.parameterKeyframes = {
+        opacity: track(beats.map(([t, v]) => [t, v, "hold"])).keyframes,
+      };
+      girl.effects.push(flash);
+    }
     keyPose(girl, {
       "position.1": [
-        [0, 700],
+        [5 / 30, 280],
+        [6 / 30, 650],
         [0.266666667, 660],
         [0.433333333, 610],
         [0.6, 601],
@@ -174,8 +221,16 @@ export function actTwo(b) {
         [2.867, 9],
       ],
     });
-    const note = add(c, p.note, 740, 360, 62);
+    const note = during(add(c, p.note, 740, 360, 62), 6 / 30, c.duration);
     note.expressions = { "position.1": "360 + 14*sin(time*2)", "rotation.2": "3*sin(time*2)" };
+    note.outPoint = 2.8;
+    girl.outPoint = seat.outPoint = 2.7;
+    const fan = during(waterFan(P.cream), 2.7, c.duration);
+    fan.shape.morph.progress = track([
+      [2.7, 100],
+      [82 / 30, 0],
+    ]);
+    c.layers.push(fan);
     for (const sign of [-1, 1])
       c.layers.push(
         during(
@@ -192,7 +247,7 @@ export function actTwo(b) {
             368 + sign * 155,
             806,
           ),
-          0.07,
+          0.2,
           0.33,
         ),
       );
@@ -272,30 +327,7 @@ export function actTwo(b) {
     poolArrival(b, passage, c);
   }
   poolFlash(b, poolRaft);
-  {
-    const c = scene("24 · Ball accent", 60.566666667, 61.2);
-    const ball = add(c, p.ball, 640, 550, 115);
-    ball.expressions = { "rotation.2": "time*200-60" };
-    keyPose(ball, {
-      "position.1": [
-        [0, 550],
-        [0.23, 570],
-        [0.3, 70],
-        [0.433333333, 160],
-        [0.633333333, 330],
-      ],
-      "scale.0": [
-        [0, 80],
-        [0.23, 80],
-        [0.3, 115],
-      ],
-      "scale.1": [
-        [0, 287],
-        [0.23, 310],
-        [0.3, 115],
-      ],
-    });
-  }
+  ballAccent(b);
   umbrellaAccents(b);
   {
     const c = scene("27 · Walking with the umbrella", 65.633333333, 66.8);

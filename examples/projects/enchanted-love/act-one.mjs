@@ -2,6 +2,7 @@ import { circularPassage } from "./circular-passage.mjs";
 import { crownStaircase } from "./crown-staircase.mjs";
 import { createDoorwayExit } from "./doorway.mjs";
 import { earlyMotifs } from "./early-motifs.mjs";
+import { poolOrbit } from "./pool-orbit.mjs";
 import {
   animate,
   during,
@@ -16,7 +17,7 @@ import {
 } from "./scenes.mjs";
 
 export function actOne(book) {
-  const { scene, add, circle, orbit, tint, morph, props: p, characters: a } = book;
+  const { scene, add, tint, morph, props: p } = book;
   const doorwayExit = createDoorwayExit(book);
   {
     const c = scene("01 · A line becomes a crown", 0, 9.433333333, P.black);
@@ -155,7 +156,7 @@ export function actOne(book) {
   }
   crownStaircase(book, doorwayExit);
   {
-    const c = scene("04 · Beyond the last step", 19.3, 20.2, P.black);
+    const c = scene("04 · Beyond the last step", 19.3, 605 / 30, P.black);
     const cliff = line(
       "Last step and drop",
       [
@@ -188,7 +189,7 @@ export function actOne(book) {
     });
   }
   {
-    const c = scene("05 · A ribbon crosses the water", 20.2, 22.7);
+    const c = scene("05 · A ribbon crosses the water", 605 / 30, 22.7);
     const ribbon = vector(
       "Ribbon · six curve anchors",
       [
@@ -235,38 +236,7 @@ export function actOne(book) {
     c.layers.push(during(sine, 1.55, 2.5));
   }
   earlyMotifs(book);
-  {
-    const c = scene("09 · Pool orbit", 30.233333333, 33.1, P.green);
-    const disk = circle(c, 640, 424, 530, P.turquoise, "Orbit field");
-    animate(disk, "scale.0", [
-      [0, 65],
-      [1, 100],
-      [2.4, 220],
-    ]);
-    animate(disk, "scale.1", [
-      [0, 65],
-      [1, 100],
-      [2.4, 220],
-    ]);
-    const ring = add(c, p.ring, 620, 435, 95);
-    animate(
-      ring,
-      "rotation.2",
-      [
-        [0, -15],
-        [2.86, 70],
-      ],
-      linear,
-    );
-    orbit(add(c, p.ball, 1100, 424, 100), 535, 6, -0.803);
-    during(orbit(add(c, a.frog, 640, 0, 70, 90), 410, 6, -Math.PI / 2), 1.4, c.duration);
-    const girl = add(c, a.girls.float, 80, 790, 65, 26);
-    during(girl, 1.65, 2.866666667);
-    animate(girl, "position.0", [
-      [1.65, -180],
-      [2.87, 380],
-    ]);
-  }
+  poolOrbit(book);
   circularPassage(book);
   {
     const c = scene("12 · Enchanted Love title card", 39.633333333, 40.3, P.cream);

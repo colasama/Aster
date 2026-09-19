@@ -37,6 +37,37 @@ function cameraCurve(node, property, points) {
   animate(node, property, continuous(points));
 }
 
+export function waterFan(color) {
+  const fan = place(
+    vector(
+      "Water fan · one quarter-circle",
+      [
+        [0, 0],
+        [0, -455, [0, 0], [251, 0]],
+        [455, 0, [0, -251]],
+      ],
+      color,
+    ),
+    365,
+    741,
+    100,
+    8.5,
+  );
+  fan.shape.morph = {
+    target: vector(
+      "Closed fan",
+      [
+        [0, 0],
+        [0, -455, [0, 0], [48, 0]],
+        [141, -433, [-46, -14]],
+      ],
+      color,
+    ).shape.path,
+    progress: constant(0),
+  };
+  return fan;
+}
+
 export function waterPassage(b) {
   const c = b.scene("19 · Water fan, flowing stream, and circular ripples", 50.6, 53, P.blue);
   const lily = lilyPad();
@@ -348,36 +379,11 @@ export function waterPassage(b) {
     [2 / 30, 3 / 30, P.green],
     [3 / 30, 9 / 30, P.cream],
   ]) {
-    const fan = place(
-      vector(
-        "Closing fan · one quarter-circle",
-        [
-          [0, 0],
-          [0, -455, [0, 0], [251, 0]],
-          [455, 0, [0, -251]],
-        ],
-        color,
-      ),
-      365,
-      741,
-      100,
-      8.5,
-    );
-    fan.shape.morph = {
-      target: vector(
-        "Closed fan",
-        [
-          [0, 0],
-          [0, -455, [0, 0], [48, 0]],
-          [141, -433, [-46, -14]],
-        ],
-        color,
-      ).shape.path,
-      progress: track([
-        [0.1, 0, [0.2, 0.8, 0.3, 1]],
-        [5 / 30, 100],
-      ]),
-    };
+    const fan = waterFan(color);
+    fan.shape.morph.progress = track([
+      [0.1, 0, [0.2, 0.8, 0.3, 1]],
+      [5 / 30, 100],
+    ]);
     c.layers.push(during(fan, start, end));
   }
   const baton = during(rect("Rotating cream baton", 580, 438, 245, 84, P.cream), 9 / 30, 11 / 30);
