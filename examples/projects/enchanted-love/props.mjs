@@ -221,42 +221,10 @@ export function createProps() {
     ellipse("Pupil", 317, 42, 4, 5, P.blue),
   ]);
   const sparkle = add("Sparkle · four rays", 60, 60, [
-    line(
-      "Vertical",
-      [
-        [30, 2],
-        [30, 21],
-      ],
-      P.cream,
-      3,
-    ),
-    line(
-      "Vertical",
-      [
-        [30, 39],
-        [30, 58],
-      ],
-      P.cream,
-      3,
-    ),
-    line(
-      "Horizontal",
-      [
-        [2, 30],
-        [21, 30],
-      ],
-      P.cream,
-      3,
-    ),
-    line(
-      "Horizontal",
-      [
-        [39, 30],
-        [58, 30],
-      ],
-      P.cream,
-      3,
-    ),
+    rect("Upper ray", 30, 11.5, 5, 22, P.cream, 2.5),
+    rect("Lower ray", 30, 48.5, 5, 22, P.cream, 2.5),
+    rect("Left ray", 11.5, 30, 22, 5, P.cream, 2.5),
+    rect("Right ray", 48.5, 30, 22, 5, P.cream, 2.5),
   ]);
   const note = add("Music note", 70, 140, [
     ellipse("Note head", 27, 115, 40, 27, P.blue),

@@ -1,3 +1,4 @@
+import { comp } from "./authoring.mjs";
 import {
   animate,
   during,
@@ -279,33 +280,72 @@ export function actTwo(b) {
   }
   {
     const c = scene("22 · Together in the swim ring", 55.6, 59.833333333, P.green);
-    for (const [x, y, s, speed] of [
-      [780, 24, 170, -80],
-      [-250, 690, 100, 170],
-      [400, 1000, 175, -35],
-      [1480, 590, 100, -80],
+    // Pool props move on three shared drifts; no sampled geometry is involved.
+    for (const [x, y, scale, angle] of [
+      ["450+325*(1-pow(e,-2.8*time))+220*time", "-48+205*time+25*sin(time*2)", 183, 26],
+      [
+        "-475+250*time-25*pow(max(0,time-2.1),2)",
+        "800-310*time+60*pow(max(0,time-2.1),2)",
+        180,
+        18,
+      ],
+      ["400+180*time", "1020+16*sin(time*1.5)+80*pow(max(0,time-2.1),2)", 175, 8],
     ]) {
-      const ring = add(c, p.ring, x, y, s, 5);
-      ring.expressions = {
-        "position.0": `${x}+${speed}*time`,
-        "position.1": `${y}+30*sin(time*1.5)`,
-        "rotation.2": "value+time*16",
-      };
+      for (const [node, dx, dy] of [
+        [b.shadow(c, p.ring, 0, 0, scale, angle), 28, 46],
+        [add(c, p.ring, 0, 0, scale, angle), 0, 0],
+      ])
+        node.expressions = {
+          "position.0": `${x}+${dx}`,
+          "position.1": `${y}+${dy}`,
+          "rotation.2": "value+time*6",
+        };
     }
-    const ball = add(c, p.ball, 1310, 760, 129);
-    ball.expressions = {
-      "position.0": "1530 - 460*time",
-      "position.1": "760-60*sin(time*1.2)",
-      "rotation.2": "time*38",
-    };
-    const ring = add(c, p.ring, 445, 370, 210, -8);
-    ring.expressions = { "position.0": "110+167*time", "rotation.2": "-8+4*sin(time*1.2)" };
-    const girl = add(c, a.girls.cuddle, 455, 500, 120, -10);
-    girl.expressions = { "position.0": "132+167*time", "rotation.2": "-10+4*sin(time*1.2)" };
-    const frog = add(c, a.frog, 525, 330, 66, -7);
-    frog.expressions = { "position.0": "183+167*time", "rotation.2": "-7+4*sin(time*1.2)" };
-    const crown = add(c, p.crown, 1330, 86, 100);
-    crown.expressions = { "position.0": "1920-time*320", "rotation.2": "-6+8*sin(time*2)" };
+    for (const [node, dx, dy] of [
+      [b.shadow(c, p.stripedBall, 0, 0, 129), 28, 46],
+      [add(c, p.stripedBall, 0, 0, 129), 0, 0],
+    ])
+      node.expressions = {
+        "position.0": `610-173*time-140*pow(max(0,time-2.7),2)+${dx}`,
+        "position.1": `1280-260*time+110*pow(max(0,time-2.7),2)+${dy}`,
+        "rotation.2": "-16-5*time",
+      };
+    const raft = comp("Pool · girl holding the frog in a swim ring", 1280, 848, c.duration);
+    add(raft, p.ring, 640, 424, 175, 45);
+    add(raft, a.girls.cuddle, 630, 555, 118);
+    b.supporting.push(raft);
+    for (const [node, dx, dy] of [
+      [b.shadow(c, raft, 640, 424), 25, 45],
+      [add(c, raft), 0, 0],
+    ]) {
+      node.expressions = { "position.0": `649.734-625.607*pow(e,-0.818682*time)+${dx}` };
+      keyPose(node, {
+        "position.1": [
+          [0, 370 + dy],
+          [1.5, 370 + dy],
+          [2.4, 356 + dy],
+          [3, 378 + dy],
+          [3.9, 430 + dy],
+          [4.2, 423 + dy],
+        ],
+        "rotation.2": [
+          [0, -6],
+          [0.4, -8],
+          [1.6, -3],
+          [2.6, 14],
+          [4.2, 22],
+        ],
+      });
+    }
+    for (const [node, dx, dy] of [
+      [b.shadow(c, p.crown, 0, 0, 100), 28, 46],
+      [add(c, p.crown, 0, 0, 100), 0, 0],
+    ])
+      node.expressions = {
+        "position.0": `1770-265*time+${dx}`,
+        "position.1": `105-200*pow(time-2.85,2)+${dy}`,
+        "rotation.2": "-100+23*time",
+      };
   }
   {
     const c = scene("23 · Crown accent", 59.833333333, 60.566666667, P.blue);

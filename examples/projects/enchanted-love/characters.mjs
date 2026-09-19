@@ -113,24 +113,25 @@ export const poses = {
   cuddle: {
     ...rest,
     upperLeg: 120,
-    lowerLeg: 140,
+    lowerLeg: 124,
     rightUpperLeg: 110,
     rightLowerLeg: 95,
     armUpper: 75,
     armLower: 85,
     shoulderY: -145,
-    neckY: -190,
-    headScale: 105,
+    neckX: 14,
+    neckY: -188,
+    headScale: 90,
     hipL: -8,
     kneeL: 28,
     hipR: -9,
     kneeR: -22,
-    shoulderL: 70,
-    elbowL: 4,
+    shoulderL: 45,
+    elbowL: -5,
     shoulderR: -65,
     elbowR: 92,
     body: 0,
-    head: 0,
+    head: 5,
   },
   dive: {
     ...rest,
@@ -350,7 +351,7 @@ export function createCharacters(props) {
       cycle || poseName === "carry" || poseName === "umbrella" || poseName === "kiss";
     const c = comp(`Girl · ${name}`, 400, 760);
     const root = joint("Torso", 200, 324, pose.body);
-    const neck = joint("Head pivot", 0, pose.neckY ?? -180, pose.head, root);
+    const neck = joint("Head pivot", pose.neckX ?? 0, pose.neckY ?? -180, pose.head, root);
     c.layers.push(root, neck);
     const body = parent(place(instance(dress), 0, -75), root);
     if (sideView) body.transform.scale[0] = constant(65);
@@ -428,7 +429,9 @@ export function createCharacters(props) {
         };
         c.layers.push(foot);
       }
-      if (kind === "arm")
+      if (kind === "arm" && poseName === "cuddle")
+        c.layers.push(parent(ellipse(`${side} hand`, 0, lower + 8, 19, 33, limbColor), lowerJoint));
+      else if (kind === "arm")
         c.layers.push(
           parent(
             place(
@@ -510,7 +513,8 @@ export function createCharacters(props) {
       bones.legL.expressions = { "rotation.2": "value + 9*sin(time*3.14159265)" };
       bones.legRLower.expressions = { "rotation.2": "value + 12*sin(time*3.14159265+1)" };
     }
-    if (!cycle) neck.expressions = { "rotation.2": "value + 3*sin(time*2.4)" };
+    if (!cycle && poseName !== "cuddle")
+      neck.expressions = { "rotation.2": "value + 3*sin(time*2.4)" };
     if (poseName === "umbrella")
       c.layers.push(parent(place(instance(props.umbrella), -40, -247, 104, -39), root));
     assets.push(c);
@@ -535,8 +539,8 @@ export function createCharacters(props) {
 
   const frog = comp("Frog · puppet", 240, 280);
   frog.layers = [
-    place(rect("Left thigh", 64, 209, 38, 70, P.turquoise, 19), 64, 209, 100, 28),
-    place(rect("Right thigh", 179, 208, 36, 72, P.turquoise, 18), 179, 208, 100, -28),
+    place(rect("Left thigh", 94, 232, 29, 78, P.turquoise, 14), 94, 232, 100, 6),
+    place(rect("Right thigh", 152, 232, 29, 78, P.turquoise, 14), 152, 232, 100, -6),
     ellipse("Torso", 120, 161, 94, 126, P.turquoise),
     ellipse("Belly", 120, 164, 65, 114, P.cream),
     place(rect("Left arm", 56, 160, 28, 66, P.turquoise, 14), 56, 160, 100, 32),
@@ -545,19 +549,19 @@ export function createCharacters(props) {
       vector(
         "Head",
         [
-          [-77, -8, [-1, 14], [0, -29]],
-          [-46, -41, [-25, -6], [26, -5]],
-          [48, -39, [-30, -7], [31, -4]],
-          [77, -8, [4, -20], [0, 28]],
-          [0, 46, [55, 0], [-54, 0]],
+          [-69, -8, [-1, 14], [0, -29]],
+          [-42, -41, [-23, -6], [24, -5]],
+          [43, -39, [-27, -7], [28, -4]],
+          [69, -8, [4, -20], [0, 28]],
+          [0, 46, [50, 0], [-49, 0]],
         ],
         P.turquoise,
       ),
       120,
       76,
     ),
-    ellipse("Left eye", 81, 62, 31, 30, P.cream),
-    ellipse("Right eye", 161, 59, 32, 31, P.cream),
+    ellipse("Left eye", 81, 62, 38, 38, P.cream),
+    ellipse("Right eye", 161, 59, 38, 38, P.cream),
     line(
       "Left pupil",
       [
@@ -603,9 +607,54 @@ export function createCharacters(props) {
       part.color = rgba(P.green);
   }
   assets.push(litFrog);
+  const seatedFrog = structuredClone(litFrog);
+  seatedFrog.id = id("comp");
+  seatedFrog.name = "Frog · seated in the doorway";
+  const folded = [
+    place(rect("Left thigh", 48, 223, 42, 64, P.green, 21), 48, 223, 100, -12),
+    place(rect("Right thigh", 192, 223, 42, 64, P.green, 21), 192, 223, 100, 12),
+    ellipse("Torso", 120, 173, 108, 154, P.green),
+    ellipse("Belly", 120, 185, 66, 114, P.cream),
+    place(rect("Left arm", 76, 179, 24, 114, P.green, 12), 76, 179, 100, 23),
+    place(rect("Right arm", 166, 179, 24, 114, P.green, 12), 166, 179, 100, -23),
+  ];
+  seatedFrog.layers = seatedFrog.layers.map((part) => {
+    part.id = id("layer");
+    return folded.find((replacement) => replacement.name === part.name) ?? part;
+  });
+  for (const side of [-1, 1])
+    seatedFrog.layers.push(
+      line(
+        "Folded foot",
+        [
+          [120 + side * 36, 240, [0, 0], [side * 30, 7]],
+          [120 + side * 88, 247, [-side * 18, 8], [side * 12, -2]],
+          [120 + side * 98, 222, [0, 12]],
+        ],
+        P.cream,
+        4,
+      ),
+    );
+  assets.push(seatedFrog);
+  const fallingFrog = structuredClone(seatedFrog);
+  fallingFrog.id = id("comp");
+  fallingFrog.name = "Frog · falling with extended feet";
+  fallingFrog.layers = fallingFrog.layers.filter((part) => part.name !== "Folded foot");
+  for (const part of fallingFrog.layers) {
+    part.id = id("layer");
+    if (part.name.endsWith("thigh")) part.transform.position[1] = constant(263);
+  }
+  assets.push(fallingFrog);
+  const cuddle = girls.cuddle;
+  const cuddleTorso = cuddle.layers.find((part) => part.name === "Torso");
+  cuddle.layers.splice(
+    cuddle.layers.findIndex((part) => part.name === "R arm · upper limb"),
+    0,
+    parent(place(instance(frog, "Frog held under the forearm"), 50, -64, 64, 8), cuddleTorso),
+  );
   for (const pose of [girls.walk, girls.carry]) {
     const torso = pose.layers.find((l) => l.name === "Torso");
     pose.layers.push(parent(place(instance(litFrog, "Carried frog"), -25, 60, 44, 20), torso));
   }
-  return { assets, girls, frog, litFrog };
+  return { assets, girls, frog, litFrog, seatedFrog, fallingFrog };
 }

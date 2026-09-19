@@ -32,12 +32,13 @@ audio into the bundle's media directory.
 | `props.mjs` | Crown, heart, stairs, window, swim ring, ball, umbrella, fish, crab, lily pad |
 | `characters.mjs` | Shared heads and tunic; torso, head, arm and leg pivots; semantic poses and walk cycle |
 | `scenes.mjs` | Repeated patterns, spotlights, shadows, reusable group and scene helpers |
+| `doorway.mjs` | Continuous frog exit, beam mask, and camera shared across two shots |
 | `act-one.mjs` | Opening through the first title card |
 | `act-two.mjs` | Music, pool, umbrella, balance, and dive sequences |
 | `act-three.mjs` | Light shafts, reunion, return walk, kiss, and credits |
 | `build.mjs` | Native project assembly, asset folders, audio embedding, and shot list |
 
-The generated project has 96 compositions and 944 authored layers. The 48 scene compositions
+The generated project has 103 compositions and 986 authored layers. The 48 scene compositions
 instantiate the shared props and character poses. Five native grid cloners replace hundreds of
 repeated stripe and chevron layers. The longest authored path has 10 anchors; the crown has seven,
 and each ring sector has four. There are no frame contour tracks, image sequences, or embedded
@@ -53,6 +54,13 @@ The same rig supplies closed-eye cuddling, seated reunion, overhead diving, and 
 frog. Pose data stores joint angles and limb lengths. The stair walk alternates a planted leg with
 a bent swing leg over a 1.067-second cycle; ankle rotation keeps the feet aligned. Three paired
 windows follow sparse rightward/downward camera paths, with the light crop following each window.
+
+The doorway uses seated and falling frog poses inside one lit tableau, followed by a camera pan;
+the next shot continues sampling that same source. The pool shot nests the frog below the girl's
+forearm and places the complete rig in a ring. One decelerating drift moves and turns this group
+and its cast shadow. The late iris uses two expanding circles with fitted center/edge/radius curves.
+The staircase enters from above after that transition. These are object and camera parameters,
+not per-frame contour data.
 
 The reference palette is measured from decoded frames. Shape paints invert Aster's ACES display
 mapping to reproduce those display colors. Text also accounts for its sRGB texture encoding.

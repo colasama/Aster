@@ -1,3 +1,4 @@
+import { createDoorwayExit } from "./doorway.mjs";
 import {
   animate,
   during,
@@ -23,12 +24,12 @@ export function actOne(book) {
     tint,
     morph,
     spotlight,
-    doorway,
     props: p,
     characters: a,
   } = book;
+  const doorwayExit = createDoorwayExit(book);
   {
-    const c = scene("01 · A line becomes a crown", 0, 9.3, P.black);
+    const c = scene("01 · A line becomes a crown", 0, 9.433333333, P.black);
     const straight = [
       [-45, 0],
       [-23, 0],
@@ -101,73 +102,70 @@ export function actOne(book) {
     );
     c.layers.push(during(outline, 7.8, 8.6));
     const crown = tint(add(c, p.crown, 640, 420, 72), P.green);
-    during(crown, 8.6, 9.3);
+    during(crown, 8.6, c.duration);
     animate(crown, "position.1", [
       [8.6, 420],
-      [9.3, 256],
+      [9.3, 384],
     ]);
   }
   {
-    const c = scene("02 · The frog's doorway", 9.3, 13.3, P.black);
-    doorway(c, 630, 365, 246, 730);
-    const frog = add(c, a.frog, 630, 617, 118);
-    keyPose(frog, {
-      "position.0": [
-        [0, 630],
-        [0.95, 630],
-        [1.5, 845],
-        [4, 900],
-      ],
-      "position.1": [
-        [0, 617],
-        [0.95, 617],
-        [1.5, 654],
-        [4, 605],
-      ],
-      "rotation.2": [
-        [0, 0],
-        [0.95, 0],
-        [1.45, -90],
-        [4, -90],
-      ],
-    });
-    const crown = add(c, p.crown, 630, 462, 76);
+    const c = scene("02 · The frog's doorway", 9.433333333, 13.3, P.black);
+    doorwayExit(c);
+    const crown = add(c, p.crown, 630, 435, 76);
+    for (const axis of ["scale.0", "scale.1"])
+      animate(crown, axis, [
+        [0, 72],
+        [0.8, 72],
+        [1.1, 84],
+      ]);
     keyPose(crown, {
       "position.0": [
         [0, 630],
-        [0.95, 630],
-        [1.65, 1085],
-        [4, 1660],
+        [0.8, 630, [0.2, 0, 0.3, 1]],
+        [1.1, 935],
+        [1.5, 1070],
+        [3.866666667, 1055],
       ],
       "position.1": [
-        [0, 462],
-        [0.95, 462],
-        [1.4, 520],
-        [1.9, 712],
-        [2.5, 638],
-        [3.1, 730],
-        [4, 630],
+        [0, 420],
+        [0.8, 435],
+        [1.1, 552],
+        [1.266666667, 663],
+        [1.866666667, 611],
+        [2.216666667, 589],
+        [2.466666667, 610],
+        [2.866666667, 611],
+        [3.066666667, 627],
+        [3.566666667, 593],
+        [3.866666667, 596],
       ],
       "rotation.2": [
-        [0, 0],
-        [0.95, 0],
-        [1.9, 95],
-        [3, 210],
-        [4, 320],
+        [0, -2],
+        [0.8, -2, linear],
+        [1.1, 70, linear],
+        [1.266666667, 179, [0.33, 0.7, 0.67, 0.85]],
+        [1.766666667, 270, [0.33, 0.18, 0.67, 0.45]],
+        [2.366666667, 358, [0.33, 0.29, 0.67, 0.625]],
+        [3.866666667, 808],
       ],
     });
-    c.layers.push(during(prop(p.stair, 1080, 805, 88), 1.2, 4));
-    const camera = c.layers;
-    for (const l of camera)
-      if (l.name.startsWith("Doorway") || l.name === "Threshold")
-        animate(l, "position.1", [
-          [0, l.transform.position[1].value],
-          [1.4, l.transform.position[1].value],
-          [4, l.transform.position[1].value - 240],
-        ]);
+    const steps = during(add(c, p.stair, 1115, 770, 100), 1.266666667, c.duration);
+    keyPose(steps, {
+      "position.0": [
+        [1.266666667, 1140],
+        [2.566666667, 1110],
+        [c.duration, 1025],
+      ],
+      "position.1": [
+        [1.266666667, 763],
+        [2.566666667, 710],
+        [c.duration, 714],
+      ],
+    });
   }
   {
     const c = scene("03 · Crown descending the staircase", 13.3, 19.3, P.black);
+    doorwayExit(c, 3.866666667);
     // The camera follows the crown, leaving only a short moving stair segment in view.
     const step = add(c, p.stair, 755, 640, 100);
     step.expressions = {
@@ -184,7 +182,7 @@ export function actOne(book) {
     const crown = add(c, p.crown, 1055, 622, 80);
     // Sparse landmark fit: accelerating roll, followed by the camera's return pan.
     const xPath = [
-      [0, 1055, [0.33, 0.24, 0.67, 0.59]],
+      [0, 1045, [0.33, 0.24, 0.67, 0.59]],
       [1.7, 793, linear],
       [3.2, 512, linear],
       [4.95, 196],
@@ -192,7 +190,8 @@ export function actOne(book) {
       [6, 660],
     ];
     const yPath = [
-      [0, 622],
+      [0, 596],
+      [0.2, 602],
       [0.95, 556],
       [1.7, 546],
       [2.95, 480],
@@ -204,7 +203,7 @@ export function actOne(book) {
       "position.0": xPath,
       "position.1": yPath,
       "rotation.2": [
-        [0, 100, [0.333, 0.221, 0.666, 0.56]],
+        [0, 88, [0.333, 0.221, 0.666, 0.56]],
         [3.7, 1731, linear],
         [4.2, 2076, linear],
         [4.7, 2487, linear],

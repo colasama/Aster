@@ -61,7 +61,7 @@ Submission counts include two static updates per interval and do not prove scano
 ## Enchanted Love semantic composition workload
 
 The 2026-09-19 production preview run uses the 130.1-second native reconstruction from
-`examples/projects/enchanted-love`: 96 compositions, 944 authored layers, 48 scene cuts, reusable
+`examples/projects/enchanted-love`: 103 compositions, 986 authored layers, 48 scene cuts, reusable
 joint rigs and props, and five grid cloners. Its only imported media is the stereo soundtrack.
 The visible Electron window renders at 1280 × 848, quality 1, with FXAA. No export runs concurrently.
 The machine uses a Ryzen 9 8945HX and GeForce RTX 5060 Laptop GPU (driver 32.0.15.9621);
@@ -70,15 +70,17 @@ WebGPU reports the high-performance Blackwell adapter with timestamp queries ena
 The harness observes playback-frame events and GPU queue submissions throughout the composition.
 Each submission is associated with the most recent playback-frame address. This measures renderer
 delivery to the GPU, not physical display scanout. Every one of the 3,903 source addresses has a
-submission in this run. Each complete ten-second interval contains all 300 expected addresses.
+submission in this run. Each complete ten-second interval contains all 300 expected addresses,
+and the final 0.1-second interval contains all three. The harness stops only after address 3,902
+has arrived. A separate run whose window became hidden is excluded from this foreground result.
 
 | Measurement | Result |
 | --- | ---: |
-| Renderer CPU P95 | 2.8 ms |
+| Renderer CPU P95 | 2.9 ms |
 | GPU P95 | 0.393 ms |
-| Submission interval P95 | 6.9 ms |
-| Longest submission interval | 31.6 ms |
-| Estimated VRAM peak | 78.1 MB |
+| Submission interval P95 | 6.8 ms |
+| Longest submission interval | 32.6 ms |
+| Estimated VRAM peak | 98.8 MB |
 | Source addresses with a GPU submission | 3,903 / 3,903 |
 
 The longest submission interval stays below the 33.3 ms source-frame period in this run. This

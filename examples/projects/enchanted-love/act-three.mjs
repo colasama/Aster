@@ -270,23 +270,30 @@ export function actThree(b) {
     ]);
   }
   {
-    const c = scene("43 · Floating back together", 99.5, 104.8, P.green);
-    const girl = add(c, a.girls.stand, 170, 450, 73, -22);
+    const c = scene("43 · Floating back together", 99.5, 105.3, P.green);
+    const girl = add(c, a.girls.stand, 170, 450, 80, -22);
     const frog = add(c, a.frog, 728, 534, 61, 9);
     const crown = add(c, p.crown, 517, 168, 61, 0);
     const actors = [girl, frog, crown];
     for (const [i, node] of actors.entries()) {
       node.expressions = {
-        "position.0": ["-50+145*time", "530+180*time", "-350+170*time"][i],
-        "position.1": ["50+120*time", "120+190*time", "165+50*time"][i],
+        "position.0": ["35+145*time", "530+180*time", "-395+170*time"][i],
+        "position.1": ["127+120*time", "188+190*time", "165+50*time"][i],
         "rotation.2": `value+4*sin(time*1.5+${i})`,
       };
     }
+    const advance = "max(0,time-3.5)";
+    const perspective = `0.8/(1-0.32*${advance})`;
+    girl.expressions["position.0"] += `+22*pow(${advance},2)+100*(${perspective}-0.8)`;
+    girl.expressions["position.1"] += `+60*pow(${advance},2)+249*(${perspective}-0.8)`;
+    girl.expressions["scale.0"] = `${perspective}*100`;
+    girl.expressions["scale.1"] = `${perspective}*100`;
+    crown.expressions["rotation.2"] = "30+48*(time-3.5)";
     const actorShadow = actors.map((node) => {
       const copy = structuredClone(node);
       copy.id += "-shadow";
-      copy.expressions["position.0"] += "+35";
-      copy.expressions["position.1"] += "+65";
+      copy.expressions["position.0"] += "+65";
+      copy.expressions["position.1"] += "+100";
       return copy;
     });
     c.layers.splice(1, 3);
@@ -297,30 +304,48 @@ export function actThree(b) {
       [0, 870],
       [1.3, 1250],
     ]);
-    const blue = circle(c, 400, -2870, 5900, P.teal, "Blue transition lip");
-    const black = circle(c, 400, -2960, 5900, P.black, "Black transition iris");
-    for (const [node, offset] of [
-      [blue, 90],
-      [black, 0],
+    // Two expanding circles share the camera advance. Fit the center, edge and
+    // inverse radius, rather than drawing a succession of curved wipe contours.
+    const u = "(time-3.5)";
+    for (const [name, color, x, radius, edge] of [
+      [
+        "Teal transition lip",
+        P.teal,
+        `407.13+66.78*${u}`,
+        `1/(0.000529027-0.000193669*${u}-0.00000308754*pow(${u},2))`,
+        `85.39+383.585*${u}-18.316*pow(${u},2)+22.120*pow(${u},3)`,
+      ],
+      [
+        "Black transition iris",
+        P.black,
+        `417.76+77.125*${u}`,
+        `1/(0.000599682-0.000205034*${u}+0.00000142974*pow(${u},2))`,
+        `-44.88+413.322*${u}-34.602*pow(${u},2)+23.106*pow(${u},3)`,
+      ],
     ]) {
-      animate(node, "position.1", [
-        [0, -3900 + offset],
-        [2.6, -2950 + offset],
-        [5.3, -2500 + offset],
-      ]);
+      const node = circle(c, 400, -2000, 4000, color, name);
+      during(node, 3.1, c.duration);
+      node.expressions = {
+        "position.0": x,
+        "position.1": `${edge}-(${radius})`,
+        "scale.0": `(${radius})/20`,
+        "scale.1": `(${radius})/20`,
+      };
     }
   }
   {
-    const c = scene("44 · The staircase returns", 104.8, 106.3, P.black);
-    const girl = add(c, a.girls.walk, 744, 1100, 75);
+    const c = scene("44 · The staircase returns", 105.3, 106.3, P.black);
+    const girl = add(c, a.girls.walk, 860, -450, 74, -1);
+    girl.transform.scale[0] = track(-74);
+    girl.timeOffset = 0.066666667;
     animate(girl, "position.1", [
-      [0, 1100],
-      [1.5, 470],
+      [0, -450, [0.33, 0.45, 0.67, 0.8]],
+      [1, 100],
     ]);
-    const stair = add(c, p.stair, 710, 190, 108);
+    const stair = add(c, p.stair, 792, -250, 120);
     animate(stair, "position.1", [
-      [0, 1200],
-      [1.5, 654],
+      [0, -250, [0.33, 0.45, 0.67, 0.8]],
+      [1, 290],
     ]);
   }
   {
@@ -348,7 +373,7 @@ export function actThree(b) {
     };
     keyPose(stair, {
       "position.0": [
-        [0, 900],
+        [0, 819],
         [1.7, 833],
         [4.7, 720],
         [7, 755],
@@ -356,7 +381,7 @@ export function actThree(b) {
         [12.2, 760],
       ],
       "position.1": [
-        [0, 595],
+        [0, 283, [0.33, 0.5, 0.67, 0.84]],
         [1.7, 589],
         [4.7, 641],
         [7, 657],
@@ -368,7 +393,7 @@ export function actThree(b) {
     girl.transform.scale[0] = track(-74);
     keyPose(girl, {
       "position.0": [
-        [0, 900],
+        [0, 860],
         [1.7, 810],
         [4.7, 706],
         [7, 750],
@@ -376,7 +401,7 @@ export function actThree(b) {
         [12.2, 760],
       ],
       "position.1": [
-        [0, 430],
+        [0, 100, [0.33, 0.5, 0.67, 0.84]],
         [1.7, 377],
         [4.7, 462],
         [7, 478],
