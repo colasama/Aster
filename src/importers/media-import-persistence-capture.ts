@@ -175,7 +175,10 @@ async function assertFootageIdentity(
 function mediaExtension(name: string, mimeType: string): string {
   const named = /\.([a-z0-9]{1,16})$/i.exec(name)?.[1]?.toLowerCase();
   if (named) return `.${named}`;
-  const subtype = /^[^/]+\/([a-z0-9.+-]+)$/i.exec(mimeType)?.[1]?.split(/[.+-]/)[0];
+  const mime = mimeType.split(";", 1)[0].trim().toLowerCase();
+  if (mime === "audio/mp4") return ".m4a";
+  if (mime === "audio/mpeg") return ".mp3";
+  const subtype = /^[^/]+\/([a-z0-9.+-]+)$/i.exec(mime)?.[1]?.split(/[.+-]/)[0];
   if (subtype && /^[a-z0-9]{1,16}$/i.test(subtype)) return `.${subtype.toLowerCase()}`;
   throw new Error(`${name} has no safe media file extension`);
 }

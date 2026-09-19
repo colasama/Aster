@@ -117,6 +117,10 @@ change schema version 10. Adjustment layers inside such an isolated source remai
 they do for 3D surface wrappers. Surface limits and diagnostics are unchanged. Mirroring a 2D parent
 or wrapper reverses descendant Z rotations as well as positions, keeping articulated joints attached.
 
+Audio sources without a filename extension use `.m4a` for `audio/mp4` and `.mp3` for `audio/mpeg`
+when their embedded bytes are collected into the project bundle. Explicit filename extensions are
+preserved; MIME parameters do not become part of the generated file extension.
+
 Sources are discriminated as `still`, `video`, `audio`, `imageSequence`, `svg`, or `psd`. Every source
 has a stable ID, MIME type, bounded content identity, optional embedded/relative/runtime locator, and
 explicit alpha/color-space/frame-rate interpretation. Kind-specific dimensions, durations, channel

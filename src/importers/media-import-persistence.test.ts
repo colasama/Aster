@@ -29,6 +29,29 @@ afterEach(() => {
 });
 
 describe("advanced media project persistence", () => {
+  it.each([
+    ["audio/mp4", ".m4a"],
+    ["audio/mpeg", ".mp3"],
+    ['Audio/MP4; codecs="mp4a.40.2"', ".m4a"],
+  ])("materializes unnamed %s audio with a supported %s extension", async (mimeType, extension) => {
+    const project = createBlankProject();
+    project.sources.push({
+      id: "soundtrack",
+      kind: "audio",
+      name: "Original soundtrack",
+      mimeType,
+      contentIdentity: "legacy:audio",
+      dataUrl: "data:audio/mp4;base64,AA==",
+      interpretation: { alpha: "ignore", colorSpace: "srgb" },
+      duration: 1,
+      channels: 2,
+      sampleRate: 48_000,
+      streamIndex: 0,
+    });
+    const document = await projectDocumentWithMediaImports(project, "native");
+    expect(document.mediaImports?.payloads[0]).toMatchObject({ kind: "audio", extension });
+  });
+
   it("migrates legacy embedded video into a recoverable media payload", async () => {
     const project = createBlankProject();
     const bytes = new Uint8Array([0, 0, 0, 8, 102, 116, 121, 112]);
