@@ -34,7 +34,10 @@ export function visibleLayersAtTime(composition: Composition, time: number): Lay
 
 /** Layer spans are half-open, so adjacent edits cannot render twice at their shared cut. */
 export function isLayerActiveAtTime(layer: Layer, time: number): boolean {
-  return layer.visible && time >= layer.inPoint && time < layer.outPoint;
+  // Subtracting a shot's start can place an exact frame a few ULPs before its cut.
+  // Keep adjacent spans half-open under the same nanosecond tolerance.
+  const tolerance = 1e-9;
+  return layer.visible && time >= layer.inPoint - tolerance && time < layer.outPoint - tolerance;
 }
 
 export function evaluateWorldTransform(

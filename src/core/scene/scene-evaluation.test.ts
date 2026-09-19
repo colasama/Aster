@@ -9,6 +9,27 @@ import {
 } from "./scene-evaluation";
 
 describe("editor scene evaluation", () => {
+  it("selects exactly one side of a fractional-frame cut inside an offset shot", () => {
+    const project = createBlankProject();
+    const root = project.compositions[0];
+    const shot = { ...structuredClone(root), id: "offset-shot" };
+    const before = createLayerForComposition("shape", shot);
+    const after = createLayerForComposition("shape", shot);
+    before.outPoint = after.inPoint = 1 / 30;
+    shot.layers = [before, after];
+    const wrapper = createLayerForComposition("precomposition", root);
+    wrapper.sourceCompositionId = shot.id;
+    wrapper.inPoint = 53;
+    wrapper.outPoint = 55;
+    root.layers = [wrapper];
+    project.compositions.push(shot);
+    const ids = (time: number) =>
+      flattenSceneLayers(root, project, time).map((entry) => entry.layer.id);
+    expect(ids(1591 / 30)).toEqual([after.id]);
+    expect(ids(1591 / 30 - 1e-7)).toEqual([before.id]);
+    expect(ids(1591 / 30 + 1e-7)).toEqual([after.id]);
+  });
+
   it("reflects joint rotations when a parent or a 2D composition is mirrored", () => {
     const project = createBlankProject();
     const root = project.compositions[0];
