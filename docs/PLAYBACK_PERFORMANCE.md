@@ -58,6 +58,35 @@ A later production-renderer measurement used the completed 314-layer reconstruct
 
 Submission counts include two static updates per interval and do not prove scanout or unique displayed frames. The useful findings are that composition time now follows elapsed playback time, pausing retains the last presented time, and presentation continues independently of React acknowledgements. These workload-specific observations are not a guaranteed frame-rate floor; cold text/asset rasterization and expensive effects still require separate profiling.
 
+## Enchanted Love semantic composition workload
+
+The 2026-09-19 production preview run uses the 130.1-second native reconstruction from
+`examples/projects/enchanted-love`: 93 compositions, 873 authored layers, 48 scene cuts, reusable
+joint rigs and props, and five grid cloners. Its only imported media is the stereo soundtrack.
+The visible Electron window renders at 1280 × 848, quality 1, with FXAA. No export runs concurrently.
+The machine uses a Ryzen 9 8945HX and GeForce RTX 5060 Laptop GPU (driver 32.0.15.9621);
+WebGPU reports the high-performance Blackwell adapter with timestamp queries enabled.
+
+The harness observes playback-frame events and GPU queue submissions throughout the composition.
+Each submission is associated with the most recent playback-frame address. This measures renderer
+delivery to the GPU, not physical display scanout. Every one of the 3,903 source addresses has a
+submission in this run. Each complete ten-second interval contains all 300 expected addresses.
+
+| Measurement | Result |
+| --- | ---: |
+| Renderer CPU P95 | 2.5 ms |
+| GPU P95 | 0.459 ms |
+| Submission interval P95 | 6.8 ms |
+| Longest submission interval | 36.6 ms |
+| Estimated VRAM peak | 78.1 MB |
+| Source addresses with a GPU submission | 3,903 / 3,903 |
+
+The isolated 36.6 ms interval exceeds a 30 fps frame period; this run does not establish a hard
+real-time deadline guarantee. It does show continuous source-time advancement and complete source
+frame coverage, including all scene transitions. Group effects reuse GPU surfaces with existing
+depth/count/memory budgets. Primitive repetition uses native cloners, and mirrored rigs require no
+per-frame path rebuilding. Machine-readable measurements are stored with the local delivery.
+
 The playback hook regression tests exercise delayed UI acknowledgements, explicit seeks, exact pause time, work-area looping, cancellation, and per-frame presentation with bounded UI updates.
 
 A timeline-isolation regression measurement used the 456-layer Chinese project in a production
