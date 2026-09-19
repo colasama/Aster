@@ -102,16 +102,24 @@ mapping to reproduce those display colors. Text also accounts for its sRGB textu
 
 ## Fidelity and validation
 
-This is a semantic reconstruction, not a pixel-identical restoration. The full scene sequence and
-main visual motifs are present. Hand-drawn anatomy, some gestures and transition timing, the exact
-lettering, the spherical ball rotation, and individual particles still differ from the reference.
-The editable rigs and scene-level paths are the intended places to refine those differences.
+This is a full-length semantic reconstruction with remaining fidelity gaps. An every-frame audit
+exposed short passages that sparse still comparisons missed: the ring flash is held too long,
+the umbrella-girl passage after the black echoes is missing, and the light-shaft reunion enters
+late. Several circular and palette transitions also need reconstruction or retiming. Hand-drawn
+anatomy, gestures, lettering, spherical ball rotation, and particles remain approximate. The editable
+rigs and scene-level paths are the intended places to refine those differences.
 
 Native GPU captures are compared against decoded reference frames at matching 30 fps addresses.
 Preview measurements count both playback-frame addresses and GPU submissions at full 1280 × 848
 resolution with FXAA. A high refresh callback count alone is not considered proof of 30 fps.
 The generated project, native MP4 export, comparison sheets and machine-readable performance data
 are local artifacts, not committed binaries.
+
+Temporal screening pairs all 3,903 exported frames with the reference at matching 30 fps addresses.
+Metadata-aware FFmpeg RGB decoding followed by area downsampling to 320 × 212 exposes broad layout,
+palette, and cut-timing errors between the full-resolution review samples. Per-frame measurements,
+per-scene summaries, and representative transition pairs are retained with each audited delivery.
+These diagnostics do not provide a perceptual similarity score or source frame assets for authoring.
 
 The engine changes needed by this study are documented in
 [Semantic vector compositing](../../../docs/SEMANTIC_VECTOR_COMPOSITING.md). They cover bounded 2D

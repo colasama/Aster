@@ -80,3 +80,9 @@ the same features together in the spotlight, pool shadows, staircase lighting, a
 shots. Preview measurement uses visible Electron playback at 1280 × 848, full quality and FXAA; it
 records distinct 30 fps source frames in addition to GPU submissions. Submission rate alone is not a
 playback-frame-rate result. Per-run data and the exported project are written under `artifacts`.
+
+Fidelity checks also pair every exported frame with the reference using metadata-aware RGB decoding.
+A 320 × 212 area downsample is used for broad temporal screening, alongside full-resolution native
+GPU review captures. Per-frame RGB differences and changes between adjacent frames locate missed
+cuts, flashes, and short passages; scene averages set refinement priorities. These diagnostics are
+not perceptual similarity percentages and do not become authored geometry or visual media layers.
