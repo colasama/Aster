@@ -29,20 +29,23 @@ audio into the bundle's media directory.
 | Source | Responsibility |
 | --- | --- |
 | `authoring.mjs` | Native layer, keyframe, transform, paint, and effect helpers |
-| `props.mjs` | Crown, heart, stairs, window, swim ring, ball, pitched umbrellas, fish, snail, crab, lily pad |
+| `props.mjs` | Crown, heart, stairs, window, swim ring, ball, pitched umbrellas, fish, snail, turtle, crab, lily pad |
+| `character-artwork.mjs` | Shared heads, expressions, hair, and tunic |
 | `characters.mjs` | Shared heads and tunic; torso, head, arm and leg pivots; semantic poses and walk cycle |
 | `character-poses.mjs` | Joint angles and proportions for standing, sitting, carrying, sliding, and other poses |
 | `scenes.mjs` | Repeated patterns, spotlights, shadows, reusable group and scene helpers |
 | `doorway.mjs` | Continuous frog exit, beam mask, and camera shared across two shots |
 | `parade.mjs` | Shared parade camera, retimed canopy pitch, striped paper, and horizon transition |
 | `playground.mjs` | Seesaw fulcrum, camera turn, foreground bank, rolling props, and recovery pose |
+| `crown-staircase.mjs` | Modular treads, rolling crown, and one accelerating window camera |
+| `reunion.mjs` | Turtle riders, staggered floor columns, crown light, and concentric iris |
 | `act-one.mjs` | Opening through the first title card |
 | `act-two.mjs` | Music, pool, umbrella, balance, and dive sequences |
 | `act-three.mjs` | Light shafts, reunion, return walk, kiss, and credits |
 | `build.mjs` | Native project assembly, asset folders, audio embedding, and shot list |
 
-The generated project has 111 compositions and 1,104 authored layers. The 48 scene compositions
-instantiate the shared props and character poses. Five native grid cloners replace hundreds of
+The generated project has 119 compositions and 1,176 authored layers. The 48 scene compositions
+instantiate the shared props and character poses. Eleven native grid cloners replace hundreds of
 repeated stripe and chevron layers. The longest authored path has 10 anchors; the crown has seven,
 and each ring sector has four. There are no frame contour tracks, image sequences, or embedded
 reference-video layers. The only external media dependency is the optional soundtrack.
@@ -74,8 +77,15 @@ through a few joint poses. The camera angle follows a fitted rational curve rath
 
 The parade reuses a six-anchor canopy whose pitch passes through top, side, and underside views.
 Time remapping offsets each instance along that pose strip, while its handle foreshortens with pitch.
-A front-facing held-umbrella pose, five native cloners across the project, and a shared pan keep the
+A front-facing held-umbrella pose, native cloners, and a shared pan keep the
 scene editable without duplicating hundreds of stripes or separately keying every prop's camera move.
+
+The crown staircase repeats a three-anchor tread/riser module. Its windows share an accelerating
+camera translation with regular world spacing. The swim-ring pose settles its head and free arm
+while the raft drifts and turns; the held frog remains attached to the torso beneath the forearm.
+The reunion seats both riders on a reusable turtle assembled from a six-anchor shell, oval flippers,
+and simple head and eye shapes. Staggered cloner columns form the pool floor. Separate radius curves
+expand the surrounding iris and preserve its central crown medallion.
 
 The reference palette is measured from decoded frames. Shape paints invert Aster's ACES display
 mapping to reproduce those display colors. Text also accounts for its sRGB texture encoding.

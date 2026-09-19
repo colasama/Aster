@@ -1,3 +1,4 @@
+import { crownStaircase } from "./crown-staircase.mjs";
 import { createDoorwayExit } from "./doorway.mjs";
 import {
   animate,
@@ -163,81 +164,7 @@ export function actOne(book) {
       ],
     });
   }
-  {
-    const c = scene("03 · Crown descending the staircase", 13.3, 19.3, P.black);
-    doorwayExit(c, 3.866666667);
-    // The camera follows the crown, leaving only a short moving stair segment in view.
-    const step = add(c, p.stair, 755, 640, 100);
-    step.expressions = {
-      "position.0": "755 - 100*(time-floor(time/0.65)*0.65)/0.65",
-      "position.1": "640 - 44*(time-floor(time/0.65)*0.65)/0.65",
-    };
-    for (let i = 0; i < 4; i++) {
-      const win = add(c, p.window, 1820 + i * 890, 130 + i * 70, 104);
-      win.expressions = {
-        "position.0": `${1820 + i * 890} - 580*time`,
-        "rotation.2": "1.3*sin(time*2)",
-      };
-    }
-    const crown = add(c, p.crown, 1055, 622, 80);
-    // Sparse landmark fit: accelerating roll, followed by the camera's return pan.
-    const xPath = [
-      [0, 1045, [0.33, 0.24, 0.67, 0.59]],
-      [1.7, 793, linear],
-      [3.2, 512, linear],
-      [4.95, 196],
-      [5.7, 448, linear],
-      [6, 660],
-    ];
-    const yPath = [
-      [0, 596],
-      [0.2, 602],
-      [0.95, 556],
-      [1.7, 546],
-      [2.95, 480],
-      [4.95, 534],
-      [5.7, 406],
-      [6, 349],
-    ];
-    keyPose(crown, {
-      "position.0": xPath,
-      "position.1": yPath,
-      "rotation.2": [
-        [0, 88, [0.333, 0.221, 0.666, 0.56]],
-        [3.7, 1731, linear],
-        [4.2, 2076, linear],
-        [4.7, 2487, linear],
-        [4.95, 2746, linear],
-        [5.2, 3026, linear],
-        [5.45, 3372, linear],
-        [5.7, 3476, linear],
-        [6, 3540],
-      ],
-      "scale.0": [
-        [0, 83],
-        [2.7, 77],
-        [4.95, 83],
-        [6, 77],
-      ],
-      "scale.1": [
-        [0, 83],
-        [2.7, 77],
-        [4.95, 83],
-        [6, 77],
-      ],
-    });
-    step.expressions = {};
-    animate(
-      step,
-      "position.0",
-      xPath.map(([t, x, curve]) => [t, x - 38, curve]),
-    );
-    animate(
-      step,
-      "position.1",
-      yPath.map(([t, y]) => [t, y + 90]),
-    );
-  }
+  crownStaircase(book, doorwayExit);
   {
     const c = scene("04 · Beyond the last step", 19.3, 20.2, P.black);
     const cliff = line(

@@ -14,192 +14,13 @@ import {
   rgba,
   vector,
 } from "./authoring.mjs";
+import { createGirlArtwork } from "./character-artwork.mjs";
 
 import { poses } from "./character-poses.mjs";
 
 export function createCharacters(props) {
   const assets = [];
-  const head = comp("Girl · head", 160, 180);
-  head.layers = [
-    place(
-      vector(
-        "Hair silhouette",
-        [
-          [-59, 30, [0, 0], [-1, -46]],
-          [-43, -62, [-18, 26], [25, -28]],
-          [41, -65, [-24, -25], [24, 10]],
-          [62, 20, [0, -26], [-1, 27]],
-          [50, 58, [10, -3], [-2, -9]],
-          [41, 53, [2, 4], [-14, 15]],
-          [-43, 53, [12, 16], [-1, 8]],
-          [-61, 61, [4, -1], [7, -24]],
-        ],
-        P.turquoise,
-      ),
-      80,
-      92,
-    ),
-    place(
-      vector(
-        "Face",
-        [
-          [-48, -15, [0, 0], [0, -9]],
-          [-36, -41, [0, 0], [0, 0]],
-          [-11, -10, [0, 0], [0, 0]],
-          [6, -17, [0, 0], [0, 0]],
-          [48, -9, [0, 0], [-3, 44]],
-          [0, 49, [29, 0], [-30, 0]],
-          [-48, -15, [-3, 38]],
-        ],
-        P.cream,
-      ),
-      80,
-      83,
-    ),
-    place(
-      vector(
-        "Forelock",
-        [
-          [0, -15],
-          [10, -29],
-          [18, -26],
-          [10, -10],
-        ],
-        P.blue,
-      ),
-      80,
-      83,
-    ),
-    place(
-      vector(
-        "Hair tuft",
-        [
-          [0, 0],
-          [-2, -18],
-          [13, -31],
-          [13, -12],
-        ],
-        P.turquoise,
-      ),
-      88,
-      10,
-    ),
-    ellipse("Left iris", 52, 88, 13, 29, P.blue),
-    ellipse("Right iris", 110, 88, 13, 29, P.blue),
-    line(
-      "Left eyelid",
-      [
-        [33, 74],
-        [71, 78],
-      ],
-      P.blue,
-      5,
-    ),
-    line(
-      "Right eyelid",
-      [
-        [91, 77],
-        [129, 73],
-      ],
-      P.blue,
-      5,
-    ),
-    line(
-      "Left eyebrow",
-      [
-        [45, 60],
-        [60, 60],
-      ],
-      P.turquoise,
-      2,
-    ),
-  ];
-  assets.push(head);
-  const closedHead = structuredClone(head);
-  closedHead.id = id("comp");
-  closedHead.name = "Girl · closed eyes";
-  closedHead.layers = closedHead.layers.filter((part) => !part.name.endsWith("iris"));
-  for (const part of closedHead.layers) {
-    part.id = id("layer");
-  }
-  assets.push(closedHead);
-  const profile = comp("Girl · profile head", 140, 180);
-  profile.layers = [
-    place(
-      vector(
-        "Hair silhouette",
-        [
-          [-40, 36, [-4, 5], [-16, -54]],
-          [-36, -50, [-14, 19], [34, -42]],
-          [47, -34, [-11, -25], [12, 16]],
-          [43, 21, [14, -35]],
-          [16, 44, [14, -2]],
-          [-13, 45, [12, 2]],
-          [-27, 35],
-          [-43, 54],
-        ],
-        P.green,
-      ),
-      70,
-      90,
-    ),
-    place(
-      vector(
-        "Profile face",
-        [
-          [18, -9],
-          [41, -16],
-          [46, 11],
-          [58, 24],
-          [46, 28],
-          [42, 53],
-          [13, 49],
-        ],
-        P.cream,
-      ),
-      65,
-      71,
-    ),
-    ellipse("Profile eye", 103, 77, 7, 23, P.blue),
-    place(
-      vector(
-        "Hair tuft",
-        [
-          [0, 0],
-          [-5, -14],
-          [10, -26],
-          [8, -8],
-        ],
-        P.green,
-      ),
-      60,
-      19,
-    ),
-  ];
-  assets.push(profile);
-  const dress = comp("Girl · tunic", 140, 190);
-  dress.layers = [
-    place(
-      vector(
-        "Sleeveless tunic",
-        [
-          [-38, -85, [0, 0], [-5, 34]],
-          [-49, 63, [8, -34], [-4, 10]],
-          [0, 82, [-35, -3], [32, -2]],
-          [50, 65, [0, 14], [-9, -40]],
-          [38, -85, [5, 34], [0, 0]],
-          [22, -84],
-          [17, -72, [0, 0], [-4, 5]],
-          [-17, -72, [4, 4], [-4, -3]],
-          [-22, -85],
-        ],
-        P.blue,
-      ),
-      70,
-      95,
-    ),
-  ];
-  assets.push(dress);
+  const { head, closedHead, swimmingHead, profile, dress } = createGirlArtwork(assets);
 
   function girl(name, poseName, { cycle = false, shadow = false, closedEyes = false } = {}) {
     const pose = poses[poseName] ?? poses.stand;
@@ -214,7 +35,15 @@ export function createCharacters(props) {
     if (sideView) body.transform.scale[0] = constant(65);
     const face = parent(
       place(
-        instance(sideView ? profile : closedEyes ? closedHead : head),
+        instance(
+          sideView
+            ? profile
+            : poseName === "cuddle"
+              ? swimmingHead
+              : closedEyes
+                ? closedHead
+                : head,
+        ),
         0,
         -33,
         pose.headScale ?? 87,
@@ -222,6 +51,7 @@ export function createCharacters(props) {
       neck,
     );
     if (sideView) face.transform.scale[0] = constant(100);
+    if (pose.headScaleY) face.transform.scale[1] = constant(pose.headScaleY);
     const skin = shadow ? P.blue : P.cream;
     const bones = {};
     function limb(side, kind, baseX, baseY, upper, lower, width, upperAngle, lowerAngle) {
@@ -308,9 +138,22 @@ export function createCharacters(props) {
             lowerJoint,
           ),
         );
-      else if (kind === "arm" && poseName === "cuddle")
-        c.layers.push(parent(ellipse(`${side} hand`, 0, lower + 8, 19, 33, limbColor), lowerJoint));
-      else if (kind === "arm")
+      else if (kind === "arm" && ["cuddle", "reunion"].includes(poseName)) {
+        const reunion = poseName === "reunion";
+        c.layers.push(
+          parent(
+            ellipse(
+              `${side} hand`,
+              0,
+              lower + (reunion ? 2 : 8),
+              reunion ? 12 : 19,
+              reunion ? 22 : 33,
+              limbColor,
+            ),
+            lowerJoint,
+          ),
+        );
+      } else if (kind === "arm")
         c.layers.push(
           parent(
             place(
@@ -338,11 +181,11 @@ export function createCharacters(props) {
     }
     const upperLeg = cycle ? 140 : (pose.upperLeg ?? 165);
     const lowerLeg = cycle ? 145 : (pose.lowerLeg ?? 168);
-    limb("L", "leg", -25, 0, upperLeg, lowerLeg, 31, pose.hipL, pose.kneeL);
+    limb("L", "leg", -(pose.hipSpacing ?? 25), 0, upperLeg, lowerLeg, 31, pose.hipL, pose.kneeL);
     limb(
       "R",
       "leg",
-      27,
+      pose.hipSpacing ?? 27,
       0,
       pose.rightUpperLeg ?? upperLeg,
       pose.rightLowerLeg ?? lowerLeg,
@@ -352,8 +195,8 @@ export function createCharacters(props) {
     );
     const neckPaint = parent(rect("Neck", 0, (pose.shoulderY ?? -163) - 2, 31, 35, skin, 6), root);
     if (!sideView) c.layers.push(neckPaint, body);
-    if (poseName === "seesaw")
-      for (const x of [-25, 27])
+    if (["seesaw", "cuddle", "reunion"].includes(poseName))
+      for (const x of [-(pose.hipSpacing ?? 25), pose.hipSpacing ?? 27])
         c.layers.push(parent(ellipse("Seated knee", x, -5, 42, 34, skin), root));
     const armUpper = pose.armUpper ?? 95;
     const armLower = pose.armLower ?? 95;
@@ -361,11 +204,11 @@ export function createCharacters(props) {
     limb(
       "L",
       "arm",
-      -47,
+      -(pose.shoulderSpacing ?? 47),
       shoulderY,
       armUpper,
       armLower,
-      cycle ? 20 : 14,
+      cycle ? 20 : (pose.armWidth ?? 14),
       pose.shoulderL,
       pose.elbowL,
     );
@@ -373,15 +216,30 @@ export function createCharacters(props) {
     limb(
       "R",
       "arm",
-      47,
+      pose.shoulderSpacing ?? 47,
       shoulderY,
       pose.rightUpperArm ?? armUpper,
       pose.rightLowerArm ?? armLower,
-      cycle ? 20 : 14,
+      cycle ? 20 : (pose.armWidth ?? 14),
       pose.shoulderR,
       pose.elbowR,
     );
     c.layers.push(face);
+    if (poseName === "cuddle") {
+      // Settle the head and lower the free arm as the raft turns toward the viewer.
+      for (const [node, property, start, end] of [
+        [face, "scale.0", 110, 98],
+        [face, "scale.1", 94, 85],
+        [neck, "position.0", 0, 10],
+        [neck, "position.1", -196, -182],
+        [bones.armL, "rotation.2", 65, 50],
+      ])
+        animate(node, property, [
+          [0, start],
+          [1.3, start],
+          [3.8, end],
+        ]);
+    }
     if (cycle) {
       bones.legL.expressions = { "rotation.2": "-20 + 35*cos((time-1.7)*5.890486)" };
       bones.legR.expressions = { "rotation.2": "-20 - 35*cos((time-1.7)*5.890486)" };
@@ -510,6 +368,7 @@ export function createCharacters(props) {
     cuddle: girl("holding the frog", "cuddle", { closedEyes: true }),
     dive: girl("diving", "dive"),
     lap: girl("seated with the frog", "lap"),
+    reunion: girl("reunited on the turtle", "reunion"),
     carry: girl("standing with the frog", "carry"),
     walk: girl("walk cycle", "stand", { cycle: true }),
   };
@@ -574,6 +433,14 @@ export function createCharacters(props) {
     ellipse("Nostril R", 127, 80, 3, 3, P.blue),
   ];
   assets.push(frog);
+  const profileFrog = structuredClone(frog);
+  profileFrog.id = id("comp");
+  profileFrog.name = "Frog · turned toward the girl";
+  profileFrog.layers = profileFrog.layers.filter(
+    (part) => !["Right eye", "Right pupil", "Nostril R"].includes(part.name),
+  );
+  for (const part of profileFrog.layers) part.id = id("layer");
+  assets.push(profileFrog);
   const litFrog = structuredClone(frog);
   litFrog.id = id("comp");
   litFrog.name = "Frog · green light";
@@ -643,5 +510,5 @@ export function createCharacters(props) {
     const torso = pose.layers.find((l) => l.name === "Torso");
     pose.layers.push(parent(place(instance(litFrog, "Carried frog"), -25, 60, 44, 20), torso));
   }
-  return { assets, girls, frog, litFrog, seatedFrog, fallingFrog, seesawFrog };
+  return { assets, girls, frog, profileFrog, litFrog, seatedFrog, fallingFrog, seesawFrog };
 }

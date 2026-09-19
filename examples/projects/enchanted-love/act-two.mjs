@@ -284,7 +284,7 @@ export function actTwo(b) {
     const c = scene("22 · Together in the swim ring", 55.6, 59.833333333, P.green);
     // Pool props move on three shared drifts; no sampled geometry is involved.
     for (const [x, y, scale, angle] of [
-      ["450+325*(1-pow(e,-2.8*time))+220*time", "-48+205*time+25*sin(time*2)", 183, 26],
+      ["431+325*(1-pow(e,-2.8*time))+205*time", "-61.5+196*time+25*sin(time*2)", 172, -1],
       [
         "-475+250*time-25*pow(max(0,time-2.1),2)",
         "800-310*time+60*pow(max(0,time-2.1),2)",
@@ -340,13 +340,13 @@ export function actTwo(b) {
       });
     }
     for (const [node, dx, dy] of [
-      [b.shadow(c, p.crown, 0, 0, 100), 28, 46],
-      [add(c, p.crown, 0, 0, 100), 0, 0],
+      [b.shadow(c, p.crown, 0, 0, 113), 28, 46],
+      [add(c, p.crown, 0, 0, 113), 0, 0],
     ])
       node.expressions = {
-        "position.0": `1770-265*time+${dx}`,
+        "position.0": `1735-265*time+${dx}`,
         "position.1": `105-200*pow(time-2.85,2)+${dy}`,
-        "rotation.2": "-100+23*time",
+        "rotation.2": "-130+38*time",
       };
   }
   {

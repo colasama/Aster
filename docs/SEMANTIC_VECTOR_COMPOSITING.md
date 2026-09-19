@@ -56,6 +56,13 @@ foreshortens the handle. Instance time remapping chooses and advances each pitch
 pan moves the parade and its cloner-generated striped paper. The construction is independent of
 frame sampling and adds no project schema or plugin ABI fields.
 
+The crown staircase repeats a three-anchor tread/riser module beneath a sparse rolling path. A
+single accelerating camera moves regularly spaced windows. The pool pose animates the head and
+free arm within the existing joint hierarchy. Reunion riders share a turtle composition made from
+a short shell path and analytic ellipses; staggered cloner columns form the floor. Independent iris
+radius curves separate the outer wipe from the central crown medallion. These additions use the
+existing project format and renderer, with no bitmap frame sequences or new runtime allocation path.
+
 ## Verification
 
 Regression tests cover switching group effects on/off, animated off-center pivots, mapped source time,

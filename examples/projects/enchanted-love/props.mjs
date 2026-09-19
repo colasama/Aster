@@ -92,6 +92,30 @@ export function createProps() {
       9,
     ),
   ]);
+  const turtle = add("Turtle · shell, flippers, and head", 450, 320, [
+    place(ellipse("Rear flipper", 84, 223, 112, 55, P.turquoise), 84, 223, 100, -18),
+    place(ellipse("Front flipper", 315, 249, 60, 140, P.turquoise), 315, 249, 100, 24),
+    ellipse("Head", 385, 139, 116, 94, P.turquoise),
+    place(
+      vector(
+        "Pear-shaped shell",
+        [
+          [-160, 8, [0, 0], [25, -42]],
+          [-45, -90, [-54, 20], [55, -20]],
+          [109, -59, [-30, -39], [23, 43]],
+          [108, 62, [27, -39], [-25, 41]],
+          [-32, 88, [59, 24], [-66, -14]],
+          [-160, 8, [29, 32]],
+        ],
+        P.blue,
+      ),
+      212,
+      184,
+    ),
+    ellipse("Eye", 414, 128, 41, 36, P.cream),
+    rect("Eye stem", 407, 149, 12, 20, P.cream, 6),
+    rect("Sleepy pupil", 415, 124, 30, 7, P.turquoise, 3),
+  ]);
   const stair = add("Stairs · three-step module", 330, 180, [
     line(
       "Three risers",
@@ -377,6 +401,7 @@ export function createProps() {
     crown,
     heart,
     snail,
+    turtle,
     stair,
     window,
     ring,

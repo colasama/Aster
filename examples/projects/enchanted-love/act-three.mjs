@@ -1,8 +1,8 @@
+import { reunionScene } from "./reunion.mjs";
 import {
   animate,
   during,
   effect,
-  ellipse,
   keyPose,
   line,
   linear,
@@ -157,72 +157,7 @@ export function actThree(b) {
       [2.9, 0],
     ]);
   }
-  {
-    const c = scene("41 · Reunion in the spotlight", 93.8, 95.6, P.black);
-    beam(c, { center: 635, top: 335, bottom: 669, border: true });
-    // Repeated small chevrons are the woven pool-floor pattern.
-    const weave = place(
-      line(
-        "Repeated woven chevron",
-        [
-          [-10, -6],
-          [0, 5],
-          [10, -6],
-        ],
-        P.turquoise,
-        7,
-      ),
-      623,
-      738,
-    );
-    weave.cloner = {
-      distribution: { kind: "grid", count: [9, 9, 1], spacing: [52, 36, 0] },
-      effectors: [],
-    };
-    c.layers.push(weave);
-    const seat = place(ellipse("Floating seat", 625, 615, 295, 175, P.blue), 625, 615, 100, -25);
-    c.layers.push(seat);
-    add(c, a.girls.lap, 640, 540, 68, -8);
-    add(c, a.frog, 584, 520, 52, -10);
-    const iris = circle(c, 640, 578, 440, P.cream, "Ivory iris");
-    during(iris, 0.8, c.duration);
-    keyPose(iris, {
-      "scale.0": [
-        [0.8, 0],
-        [1.25, 100],
-        [1.8, 700],
-      ],
-      "scale.1": [
-        [0.8, 0],
-        [1.25, 100],
-        [1.8, 700],
-      ],
-    });
-    for (const [diameter, color, delay] of [
-      [240, P.turquoise, 0.1],
-      [186, P.cream, 0.15],
-      [70, P.green, 0.2],
-    ]) {
-      const disk = circle(c, 640, 578, diameter, color, "Nested iris");
-      during(disk, 0.9 + delay, c.duration);
-      keyPose(disk, {
-        "scale.0": [
-          [0.9 + delay, 0],
-          [1.3, 100],
-          [1.8, 700],
-        ],
-        "scale.1": [
-          [0.9 + delay, 0],
-          [1.3, 100],
-          [1.8, 700],
-        ],
-      });
-    }
-    animate(seat, "scale.0", [
-      [0, 100],
-      [0.8, 100],
-    ]);
-  }
+  reunionScene(b);
   {
     const c = scene("42 · Drifting pool objects", 95.6, 99.5, P.green);
     for (const [source, x, y, scale, dx, dy] of [
