@@ -11,6 +11,9 @@ A 2D wrapper with enabled effects takes the existing precomposition surface path
 evaluated at mapped local time and composited before its effect chain runs. Masks, crop, and colour
 overlay therefore operate on the combined group alpha. Switching the effect off returns the group
 to ordinary flattening. Wrapper size and anchor remain editable without changing source dimensions.
+Flattening applies the wrapper's evaluated anchor offset before the source-to-wrapper size ratio,
+including rotation and reflection. Animated off-center pivots therefore keep the same GPU corners
+when an effect is enabled or disabled; ordinary groups still allocate no intermediate surface.
 Flattened geometry and generators retain their evaluated local time in the render stack. Effect
 parameters use that time in both the main renderer and isolated surface renderer, so a moved or
 retimed shot does not sample its masks at the master timeline's time.
@@ -28,6 +31,12 @@ otherwise unused rectangle dash slots carry the metric aspect in the existing ve
 and auxiliary surface passes use the same metric. Ellipse, line dash, and mesh attributes keep their
 existing interpretation; there is no plugin or project ABI change.
 
+Analytic shape antialiasing uses the screen-space derivative of its signed distance instead of a
+fixed UV width. Ellipses and rounded rectangles keep a pixel-sized edge when enlarged for a camera
+move or iris transition. Derivatives execute before divergent fragment branches; this requires no
+extra texture, render pass, or CPU work. In the 104-second native iris capture, three off-axis edge
+samples reduced their intermediate-color span from 19 pixels to 1–2 pixels at 1280 × 848 with FXAA.
+
 Parent and nested 2D transformations reverse child Z rotation under an odd number of XY reflections.
 This keeps a mirrored puppet's upper and lower limbs connected. General nonuniform affine shear and
 arbitrary 3D parent matrices remain outside this change.
@@ -36,8 +45,9 @@ mirroring a path no longer reflects its fill and stroke in different directions.
 
 ## Verification
 
-Regression tests cover switching group effects on/off, mapped source time, retained wrapper size,
-parent and nested reflections, and tall/wide/mirrored rectangle metrics. Native GPU captures exercise
+Regression tests cover switching group effects on/off, animated off-center pivots, mapped source time,
+retained wrapper size, parent and nested reflections, and tall/wide/mirrored rectangle metrics.
+Native GPU captures exercise
 the same features together in the spotlight, pool shadows, staircase lighting, and mirrored profile
 shots. Preview measurement uses visible Electron playback at 1280 × 848, full quality and FXAA; it
 records distinct 30 fps source frames in addition to GPU submissions. Submission rate alone is not a

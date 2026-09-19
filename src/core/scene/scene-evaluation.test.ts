@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createLayerForComposition } from "../layers/layer-factory";
 import { createBlankProject } from "../project/project";
+import { setLayerSizeAndCenterAnchor } from "../types";
 import {
   evaluateWorldTransform,
   flattenSceneLayers,
@@ -30,7 +31,7 @@ describe("editor scene evaluation", () => {
     parent.transform.scale[0] = { mode: "static", value: 100 };
     const wrapper = createLayerForComposition("precomposition", root);
     wrapper.sourceCompositionId = root.id;
-    wrapper.size = [root.width, root.height];
+    setLayerSizeAndCenterAnchor(wrapper, [root.width, root.height]);
     wrapper.transform.scale[0] = { mode: "static", value: -100 };
     const outer = { ...root, id: "mirror-wrapper", layers: [wrapper] };
     project.compositions.push(outer);
@@ -119,7 +120,7 @@ describe("editor scene evaluation", () => {
     child.transform.position[1] = { mode: "static", value: nested.height / 2 };
     const wrapper = createLayerForComposition("precomposition", root);
     wrapper.sourceCompositionId = nested.id;
-    wrapper.size = [nested.width, nested.height];
+    setLayerSizeAndCenterAnchor(wrapper, [nested.width, nested.height]);
     wrapper.transform.scale[0] = { mode: "static", value: 200 };
     root.layers = [wrapper];
     project.compositions.push(nested);

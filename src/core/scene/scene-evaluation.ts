@@ -156,8 +156,18 @@ function applyWrapperSize(
   layer: Layer,
   nested: Composition,
 ): EvaluatedTransform {
+  // Flattened children are centered in source space. Move that center by the
+  // wrapper's anchor offset before applying its source-to-wrapper size ratio.
+  const offsetX = ((layer.size[0] / 2 - transform.anchor[0]) * transform.scale[0]) / 100;
+  const offsetY = ((layer.size[1] / 2 - transform.anchor[1]) * transform.scale[1]) / 100;
+  const radians = (transform.rotation[2] * Math.PI) / 180;
   return {
     ...transform,
+    position: [
+      transform.position[0] + offsetX * Math.cos(radians) - offsetY * Math.sin(radians),
+      transform.position[1] + offsetX * Math.sin(radians) + offsetY * Math.cos(radians),
+      transform.position[2] - (transform.anchor[2] * transform.scale[2]) / 100,
+    ],
     scale: [
       transform.scale[0] * (layer.size[0] / nested.width),
       transform.scale[1] * (layer.size[1] / nested.height),

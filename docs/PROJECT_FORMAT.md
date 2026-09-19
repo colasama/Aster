@@ -116,6 +116,9 @@ disabling all wrapper effects restores that path. This uses existing layer/effec
 change schema version 10. Adjustment layers inside such an isolated source remain local to it, as
 they do for 3D surface wrappers. Surface limits and diagnostics are unchanged. Mirroring a 2D parent
 or wrapper reverses descendant Z rotations as well as positions, keeping articulated joints attached.
+Flattened 2D wrappers also honor their evaluated anchor in wrapper-pixel coordinates before mapping
+source dimensions. Resizing, reflecting, or animating that anchor produces the same placement with
+wrapper effects enabled or disabled; persisted transform fields and schema version remain unchanged.
 
 Audio sources without a filename extension use `.m4a` for `audio/mp4` and `.mp3` for `audio/mpeg`
 when their embedded bytes are collected into the project bundle. Explicit filename extensions are

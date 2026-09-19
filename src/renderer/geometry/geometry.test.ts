@@ -9,6 +9,69 @@ import { buildSceneGeometry, FLOATS_PER_VERTEX, VERTEX_FLOAT_OFFSETS } from "./g
 import { createDefaultBezierPath } from "./vector-path";
 
 describe("GPU scene geometry", () => {
+  it.each([125, -125])(
+    "keeps a resized 2D group's animated anchor when toggling effects at scale %s",
+    (scaleX) => {
+      const project = createBlankProject();
+      const composition = project.compositions[0];
+      const nested = {
+        ...structuredClone(composition),
+        id: "anchored-source",
+        width: 400,
+        height: 200,
+      };
+      const shape = createLayerForComposition("shape", nested);
+      setLayerSizeAndCenterAnchor(shape, [400, 200]);
+      nested.layers = [shape];
+      project.compositions.push(nested);
+      const wrapper = createLayerForComposition("precomposition", composition);
+      wrapper.sourceCompositionId = nested.id;
+      setLayerSizeAndCenterAnchor(wrapper, [640, 320]);
+      wrapper.transform.position = [staticValue(400), staticValue(300), staticValue(0)];
+      wrapper.transform.rotation[2] = staticValue(32);
+      wrapper.transform.scale = [staticValue(scaleX), staticValue(125), staticValue(100)];
+      wrapper.transform.anchor[0] = {
+        mode: "animated",
+        keyframes: [
+          { id: "start", time: 0, value: 320, interpolation: "linear" },
+          { id: "end", time: 2, value: 0, interpolation: "linear" },
+        ],
+      };
+      wrapper.transform.anchor[1] = staticValue(80);
+      composition.layers = [wrapper];
+      const flat = buildSceneGeometry(composition, flattenSceneLayers(composition, project, 1));
+      wrapper.effects = [
+        {
+          id: "identity",
+          type: "color-overlay",
+          name: "Tint",
+          enabled: true,
+          parameters: { opacity: 0 },
+        },
+      ];
+      const isolated = buildSceneGeometry(composition, flattenSceneLayers(composition, project, 1));
+      expect(flat.data.length).toBe(isolated.data.length);
+      for (let vertex = 0; vertex < 6; vertex++)
+        for (let axis = 0; axis < 3; axis++) {
+          const offset = vertex * FLOATS_PER_VERTEX + VERTEX_FLOAT_OFFSETS.position + axis;
+          expect(flat.data[offset]).toBeCloseTo(isolated.data[offset]);
+        }
+      const corner = localToComposition([0, 0], {
+        position: [400, 300],
+        scale: [scaleX, 125],
+        rotation: 32,
+        anchor: [160, 80],
+        size: [640, 320],
+      });
+      expect(flat.data[VERTEX_FLOAT_OFFSETS.position]).toBeCloseTo(
+        (2 * corner[0]) / composition.width - 1,
+      );
+      expect(flat.data[VERTEX_FLOAT_OFFSETS.position + 1]).toBeCloseTo(
+        1 - (2 * corner[1]) / composition.height,
+      );
+    },
+  );
+
   it.each([0, 1] as const)("reflects stroke and fill together along axis %s", (axis) => {
     const project = createBlankProject();
     const composition = project.compositions[0];

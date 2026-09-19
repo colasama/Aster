@@ -333,4 +333,7 @@ Interactive connections use `aster-mcp` and leave the user-owned editor running.
 2D precompositions with enabled wrapper effects reuse the bounded GPU surface path, allowing group
 alpha masks and silhouettes without CPU rasterization. Render-stack entries retain local evaluation
 time for effects across nested and retimed compositions. See [Semantic vector compositing](SEMANTIC_VECTOR_COMPOSITING.md)
-for the isolation rules, reflection corrections, and validation method.
+for the isolation rules, anchor and reflection corrections, and validation method. Flattened 2D
+wrappers apply animated anchor offsets before source-size mapping, preserving their GPU corners
+when effects are toggled. Analytic shape edges use screen-space distance derivatives so a large
+iris retains a pixel-sized antialiasing footprint without another render pass.
