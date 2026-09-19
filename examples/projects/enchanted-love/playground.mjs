@@ -1,5 +1,6 @@
 import {
   animate,
+  background,
   comp,
   constant,
   during,
@@ -24,18 +25,22 @@ function bank(c, angle, distance, color = P.teal) {
 
 export function seesawScene(b) {
   const { scene, add, supporting, characters: a, props: p } = b;
-  const c = scene("33 · Seesaw", 74.8, 76, P.green);
+  const c = comp("Seesaw · rocking stage and exit", 1280, 848, 1.5);
+  background(c, P.green);
   const horizon = bank(c, "value", "0", P.turquoise);
   horizon.transform.position[1] = constant(414);
   animate(horizon, "rotation.2", [
-    [0, 18.4],
-    [0.05, 19, [0.48, 0, 0.64, 1]],
-    [0.5, -22],
-    [0.733333333, -11],
+    [0, 8],
+    [0.3, 18.4],
+    [0.35, 19, [0.48, 0, 0.64, 1]],
+    [0.8, -22],
+    [1.033333333, -11],
   ]);
   const assembly = comp("Seesaw · plank, riders, and one shared fulcrum", 1280, 848, c.duration);
   const plank = joint("Plank fulcrum", 640, 544);
-  plank.expressions = { "rotation.2": "18*cos((time+0.1)*5.235987756)" };
+  plank.expressions = {
+    "rotation.2": "18*cos((time-0.2)*5.235987756)+13*pow(clamp((time-1.033333333)*30,0,1),2)",
+  };
   assembly.layers.push(
     vector(
       "Triangular support",
@@ -58,30 +63,36 @@ export function seesawScene(b) {
     rider(a.girls.seesaw, 1084, 554, 125),
   );
   supporting.push(assembly);
-  during(add(c, assembly), 0, 0.733333333);
+  during(add(c, assembly), 0, 1.1);
 
   // The camera whips past the fulcrum into the next bank; the actors leave together.
   c.layers.push(
-    during(rect("Whip-pan background", 640, 424, 1280, 848, P.turquoise), 0.733333333, c.duration),
+    during(rect("Whip-pan background", 640, 424, 1280, 848, P.turquoise), 1.1, c.duration),
   );
   const transition = bank(c, "value", "value");
   const ground = c.layers.at(-1);
   delete ground.expressions;
-  during(ground, 0.733333333, c.duration);
+  during(ground, 1.1, c.duration);
   animate(transition, "rotation.2", [
-    [0.733333333, -180],
-    [0.8, -152.6],
-    [0.9, -102.2],
-    [1, -86.6],
-    [1.2, -70.1],
+    [1.1, -152.6],
+    [1.2, -102.2],
+    [1.3, -86.6],
+    [1.5, -70.1],
   ]);
   animate(ground, "position.1", [
-    [0.733333333, 1300],
-    [0.8, 1304],
-    [1, 1375],
-    [1.2, 1398.4],
+    [1.033333333, 1300],
+    [1.1, 1304],
+    [1.3, 1375],
+    [1.5, 1398.4],
   ]);
-  return c;
+  supporting.push(c);
+  const shot = scene("33 · Seesaw", 74.466666667, 76, P.green);
+  b.slope(shot, P.turquoise, [0, 406, 1280, 500]);
+  const entrance = b.tint(add(shot, assembly), P.blue);
+  entrance.timeRemap = constant(0.5);
+  during(entrance, 0, 1 / 30);
+  during(add(shot, c), 1 / 30, shot.duration);
+  return shot;
 }
 
 export function slideScene(b) {

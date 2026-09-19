@@ -1,7 +1,9 @@
 import { comp } from "./authoring.mjs";
+import { balancePassage } from "./balance-passage.mjs";
 import { divingScene, ledgeScene } from "./dive.mjs";
 import { umbrellaParade } from "./parade.mjs";
 import { seesawScene, slideScene } from "./playground.mjs";
+import { poolFlash } from "./pool-flash.mjs";
 import {
   animate,
   during,
@@ -17,6 +19,7 @@ import {
 } from "./scenes.mjs";
 import { poolArrival, stripedPassage } from "./striped-passage.mjs";
 import { umbrellaAccents } from "./umbrella-accents.mjs";
+import { waterPassage } from "./water-passage.mjs";
 
 export function actTwo(b) {
   const { scene, add, tint, slope, props: p, characters: a } = b;
@@ -226,46 +229,8 @@ export function actTwo(b) {
         ),
       );
   }
-  {
-    const c = scene("19 · Lily pads and flowing water", 50.6, 53, P.blue);
-    const flow = line(
-      "Repeated water flow",
-      [
-        [-80, -100, [0, 0], [95, 150]],
-        [-45, 320, [-80, -180], [-80, 160]],
-        [-80, 948, [90, -230]],
-      ],
-      P.teal,
-      7,
-    );
-    flow.cloner = {
-      distribution: { kind: "grid", count: [23, 1, 1], spacing: [66, 0, 0] },
-      effectors: [],
-    };
-    flow.expressions = { "position.0": "726+16*sin(time*2.5)" };
-    c.layers.push(flow);
-    for (const [x, y, s, phase] of [
-      [315, 162, 100, 0],
-      [940, 610, 72, 1],
-      [200, 785, 172, 2],
-    ]) {
-      const leaf = add(c, p.lily, x, y, s);
-      leaf.expressions = {
-        "position.0": `${x} + 130*sin(time*0.75+${phase})`,
-        "rotation.2": `time*18+${phase * 70}`,
-      };
-    }
-    const crown = add(c, p.crown, 720, 542, 120, 100);
-    crown.expressions = { "rotation.2": "100 + time*65", "position.0": "720 + 90*sin(time*3)" };
-    const wipe = rect("Teal water wipe", -250, 424, 740, 1400, P.teal);
-    c.layers.push(wipe);
-    animate(wipe, "position.0", [
-      [0, -500],
-      [0.8, -500],
-      [1.3, 520],
-      [2.4, 1650],
-    ]);
-  }
+  waterPassage(b);
+  let poolRaft;
   const passage = stripedPassage(b);
   {
     const c = scene("22 · Together in the swim ring", 55.6, 59.833333333, P.green);
@@ -303,6 +268,7 @@ export function actTwo(b) {
     add(raft, p.ring, 640, 424, 175, 45);
     add(raft, a.girls.cuddle, 630, 555, 118);
     b.supporting.push(raft);
+    poolRaft = raft;
     for (const [node, dx, dy] of [
       [b.shadow(c, raft, 640, 424), 25, 45],
       [add(c, raft), 0, 0],
@@ -337,15 +303,7 @@ export function actTwo(b) {
       };
     poolArrival(b, passage, c);
   }
-  {
-    const c = scene("23 · Crown accent", 59.833333333, 60.566666667, P.blue);
-    const crown = add(c, p.crown, 640, 415, 110, -6);
-    animate(crown, "scale.0", [
-      [0, 70],
-      [0.18, 110],
-      [0.7, 100],
-    ]);
-  }
+  poolFlash(b, poolRaft);
   {
     const c = scene("24 · Ball accent", 60.566666667, 61.2);
     const ball = add(c, p.ball, 640, 550, 115);
@@ -432,47 +390,7 @@ export function actTwo(b) {
         [1.967, -500],
       ]);
   }
-  {
-    const c = scene("31 · Balancing on a diagonal", 72.6, 74, P.green);
-    slope(c, P.teal, [0, 565, 1280, 85]);
-    const girl = add(c, a.girls.spread, 650, 495, 74, -8);
-    animate(girl, "rotation.2", [
-      [0, -8],
-      [0.65, 2],
-      [1.4, -8],
-    ]);
-    tint(add(c, p.heart, 160, 451, 130), P.blue);
-    tint(add(c, p.crown, 1120, 268, 135), P.green);
-  }
-  {
-    const c = scene("32 · Swimming between the brackets", 74, 74.8);
-    slope(c, P.teal, [0, 990, 1280, 240]);
-    const frog = add(c, a.frog, 640, 455, 69, 70);
-    animate(frog, "position.0", [
-      [0, 390],
-      [0.8, 910],
-    ]);
-    for (const [x, y, color] of [
-      [370, 150, P.blue],
-      [1100, 680, P.turquoise],
-    ]) {
-      c.layers.push(
-        place(
-          line(
-            "Floating bracket",
-            [
-              [-90, 50, [0, 0], [20, -70]],
-              [90, -50, [-80, -20]],
-            ],
-            color,
-            106,
-          ),
-          x,
-          y,
-        ),
-      );
-    }
-  }
+  balancePassage(b);
   seesawScene(b);
   slideScene(b);
   ledgeScene(b);

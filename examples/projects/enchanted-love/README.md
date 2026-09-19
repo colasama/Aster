@@ -36,6 +36,9 @@ audio into the bundle's media directory.
 | `scenes.mjs` | Repeated patterns, spotlights, shadows, reusable group and scene helpers |
 | `doorway.mjs` | Continuous frog exit, beam mask, and camera shared across two shots |
 | `striped-passage.mjs` | Coarse/fine cloner patterns, curved reveal boundaries, reversing pan, and pool lead-in |
+| `water-passage.mjs` | Closing fan, wave cloner, persistent lily pads, circular currents, and swimming tadpole |
+| `pool-flash.mjs` | Shared raft and shadow, closing bowed card, and a crown toss with fitted launch/fall curves |
+| `balance-passage.mjs` | Balancing joints, arm accent, folded swimming profile, and rotating ground/parentheses |
 | `umbrella-accents.mjs` | Delayed crown outlines, constrained umbrella grip, curling frog card, and folding hearts |
 | `parade.mjs` | Shared parade camera, retimed canopy pitch, striped paper, and horizon transition |
 | `playground.mjs` | Seesaw fulcrum, camera turn, foreground bank, rolling props, and recovery pose |
@@ -49,7 +52,7 @@ audio into the bundle's media directory.
 | `act-three.mjs` | Light shafts, reunion, return walk, kiss, and credits |
 | `build.mjs` | Native project assembly, asset folders, audio embedding, and shot list |
 
-The generated project has 139 compositions and 1,402 authored layers. The 47 scene compositions
+The generated project has 143 compositions and 1,443 authored layers. The 47 scene compositions
 instantiate the shared props and character poses. Thirteen native grid cloners replace hundreds of
 repeated stripe and chevron layers. The longest authored path has 10 anchors; the crown has seven,
 and each ring sector has four. There are no frame contour tracks, image sequences, or embedded
@@ -113,6 +116,17 @@ angled half-plane wipes intersect the near light field. A damped rise brings the
 and pool floor into view before the crown medallion expands. The outer cream disc stays fixed
 while the green iris accelerates over it; this avoids an unintended expanding cream flash.
 
+The water passage starts with a three-anchor fan and a diagonal reveal. One oscillating cubic
+flow line supplies a 23-instance cloner. The initial lily pads persist into the circular current;
+three more leaves enter with the second water patch. Two analytic circles, one shared current,
+and a four-anchor swimming tail describe the later pool. The boundary reveal has its own timing.
+
+The pool flash reuses the raft and its coloured shadow. A four-anchor bowed card closes before
+the crown is tossed upward. Its launch, suspended apex, fall, and rotation use three landmarks
+with fitted Bezier handles. Balance uses the existing skeleton, followed by a folded profile frog
+and two cubic parentheses. The ground and bracket pair have independent rotation curves. The
+seesaw enters through one silhouette beat and retains a shared fulcrum through its final rebound.
+
 The reference palette is measured from decoded frames. Shape paints invert Aster's ACES display
 mapping to reproduce those display colors. Text also accounts for its sRGB texture encoding.
 
@@ -123,8 +137,9 @@ exposed short passages that sparse still comparisons missed. The striped reversa
 interlude now have continuous semantic assemblies, but their detailed curves and poses remain
 approximate. The shaft crossing and frontal reunion now share continuous camera and lighting assemblies.
 The circular passage uses shrinking discs followed by a repeated six-colour depth cycle; the
-fastest final rings still have phase differences. Several water and palette transitions need
-reconstruction or retiming. Hand-drawn
+fastest final rings still have phase differences. The water, flash, balance, and swimming passages
+now follow the observed structures and cuts. Earlier circle/stripe passages and the pool pose
+still need refinement. Hand-drawn
 anatomy, gestures, lettering, spherical ball rotation, and particles remain approximate. The editable
 rigs and scene-level paths are the intended places to refine those differences.
 
@@ -143,4 +158,4 @@ These diagnostics do not provide a perceptual similarity score or source frame a
 The engine changes needed by this study are documented in
 [Semantic vector compositing](../../../docs/SEMANTIC_VECTOR_COMPOSITING.md). They cover bounded 2D
 group surfaces, mapped effect time, reflected joints and strokes, metric rounded corners, curved
-wipe boundaries, precise nested cut visibility, and lower-allocation vertex packing.
+wipe boundaries, precise nested cut visibility, exterior stroke joins, and lower-allocation vertex packing.

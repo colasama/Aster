@@ -85,6 +85,14 @@ combines a four-anchor widening frustum, reusable side/front riding poses, two n
 boundaries, and a damped rise. All use existing native transforms, source-time mapping, and GPU
 compositing. Their source-time offsets preserve the intended clock when instances begin later.
 
+The water study uses a morphing three-anchor fan, one cloned flow line, persistent lily-pad
+instances, analytic circular currents, and a four-anchor swimming tail. A separate boundary
+curve reveals the second patch while the objects share its current. The pool flash reuses the
+complete raft and its cast shadow; a bowed card gives way to a crown toss with fitted temporal
+Bezier curves. Balance and swimming use a joint pose, a small folded profile, a rotating ground
+plane, and a pair of cubic parentheses. These authoring modules contain no captured contours or
+per-frame drawing layers. Short palette beats and scene cuts remain explicit timeline spans.
+
 ## Curved wipe boundaries
 
 Linear Wipe optionally bends its alpha boundary with a sine curve. `bend` and `bendWidth` are

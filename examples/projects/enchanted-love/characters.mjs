@@ -300,6 +300,20 @@ export function createCharacters(props) {
           [3.8, end],
         ]);
     }
+    if (poseName === "spread") {
+      for (const part of c.layers)
+        if (part.kind === "shape" && /arm|hand/.test(part.name)) part.outPoint = 14 / 30;
+      animate(bones.legR, "rotation.2", [
+        [0, -24],
+        [0.2, -56],
+        [0.5, -40],
+      ]);
+      animate(bones.legRLower, "rotation.2", [
+        [0, 0],
+        [0.2, -6],
+        [0.5, 6],
+      ]);
+    }
     if (poseName === "run") {
       const phase = `sin(${runPhase})`;
       for (const [side, sign] of [
