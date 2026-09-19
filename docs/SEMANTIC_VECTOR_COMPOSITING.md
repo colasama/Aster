@@ -71,6 +71,30 @@ The authoring morph helper converts target tangents and positions to the base pa
 assigning the target. This prevents large paths with different normalization scales from shrinking
 unexpectedly during a morph; it does not change the runtime path format or renderer.
 
+## Curved wipe boundaries
+
+Linear Wipe optionally bends its alpha boundary with a sine curve. `bend` and `bendWidth` are
+composition-pixel amplitude and wavelength; `bendPhase` is degrees and `bendSpeed` is degrees per
+second. The phase uses the owning composition's evaluated time. The retained source is sampled at
+its original UV, so stripe patterns and character rigs remain intact. Amplitude contracts near the
+0% and 100% endpoints to keep the wipe complete there. A zero bend preserves the straight wipe.
+
+The existing opcode carries the four optional values in unused uniform slots. The pixel pass adds
+one sine only when the bend is enabled, with no extra texture, draw pass, readback, or plugin ABI
+change. Preview downsampling scales both pixel parameters. The normal numeric inspector controls
+provide scrubbing, exact entry, bounds, keyframes, and undo for these values.
+
+Scene visibility uses the same one-nanosecond tolerance on both ends of a half-open layer span.
+Subtracting an offset shot's start from a rational frame time can otherwise round just below the
+next layer's in-point. Adjacent layers still choose exactly one side of the cut; arbitrary-time
+samples farther from the cut are unchanged.
+
+The striped passage instantiates two cloner patterns and reverses their curved reveals. It extends
+the existing pool drift into the incoming wipe. The umbrella interlude pins the gripping hand to
+its handle, changes elbow extension and torso compression, and reuses the crown path for delayed
+outline echoes. A four-anchor curling card carries the seated frog before becoming a crown and
+three folding hearts. None of these assemblies uses captured frames as project media.
+
 ## Verification
 
 Regression tests cover switching group effects on/off, animated off-center pivots, mapped source time,
@@ -86,3 +110,24 @@ A 320 × 212 area downsample is used for broad temporal screening, alongside ful
 GPU review captures. Per-frame RGB differences and changes between adjacent frames locate missed
 cuts, flashes, and short passages; scene averages set refinement priorities. These diagnostics are
 not perceptual similarity percentages and do not become authored geometry or visual media layers.
+
+The curved-wipe GPU regression can be run from a WebGPU browser served by an unbundled Vite server:
+set `ASTER_BUNDLED_DEV=0`, start Vite, then run
+`await (await import("/scripts/gpu-wipe-check.mjs")).run()` in that page. It checks retained gradient
+pixels, complementary curved regions, nonsequential time evaluation, and full/half preview sizes
+through the production beauty-frame pipeline. The fractional-frame cut regression exercises a
+53-second wrapper at frame 1,591, including samples immediately before and after the cut.
+
+CPU profiling of the water-line passage identified the geometry writer's repeated array spreading
+and allocation as a hot path. Vertex packing now writes the existing 40 fields explicitly. Buffer
+layout, shader ABI, and vertex values are unchanged; a 12-frame buffer hash comparison verifies
+byte identity. A local 60-sample warmed geometry benchmark reduced median construction time from
+10.42 to 6.67 ms and P95 from 22.00 to 8.87 ms. These CPU measurements are separate from visible
+playback measurements. The water pattern also uses one 23-instance cloner instead of 23 layers;
+that reduces authoring duplication, but the cloner alone did not fix the measured CPU stall.
+
+The final 1280 × 848, FXAA, full-quality visible preview submitted all 3,903 source frames. CPU P95
+was 2.10 ms, GPU P95 0.459 ms, the maximum submission interval 26.8 ms, and peak estimated VRAM
+123.66 MiB. All 10-second bins contained 300 distinct frames. The cloner-only attempt is retained:
+it missed frame 1,537 and had a 40.3 ms gap. This distinction prevents the authoring simplification
+from being misreported as the runtime fix. Submission coverage does not measure physical scanout.

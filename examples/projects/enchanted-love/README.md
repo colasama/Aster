@@ -20,7 +20,7 @@ node examples/projects/enchanted-love/build.mjs artifacts/enchanted-love path/to
 ```
 
 Open the generated bundle directory in Aster. `project.json` is the native project; `shots.json`
-lists the 48 scene boundaries. The master composition includes the complete 130.1-second edit and
+lists the 49 scene boundaries. The master composition includes the complete 130.1-second edit and
 uses the original frame rate and dimensions. Aster's Save Project operation can collect the embedded
 audio into the bundle's media directory.
 
@@ -35,6 +35,8 @@ audio into the bundle's media directory.
 | `character-poses.mjs` | Joint angles and proportions for standing, sitting, carrying, sliding, and other poses |
 | `scenes.mjs` | Repeated patterns, spotlights, shadows, reusable group and scene helpers |
 | `doorway.mjs` | Continuous frog exit, beam mask, and camera shared across two shots |
+| `striped-passage.mjs` | Coarse/fine cloner patterns, curved reveal boundaries, reversing pan, and pool lead-in |
+| `umbrella-accents.mjs` | Delayed crown outlines, constrained umbrella grip, curling frog card, and folding hearts |
 | `parade.mjs` | Shared parade camera, retimed canopy pitch, striped paper, and horizon transition |
 | `playground.mjs` | Seesaw fulcrum, camera turn, foreground bank, rolling props, and recovery pose |
 | `dive.mjs` | Recovery, running gait, retracting ledge, dive trajectory, waterline, and depth transition |
@@ -45,8 +47,8 @@ audio into the bundle's media directory.
 | `act-three.mjs` | Light shafts, reunion, return walk, kiss, and credits |
 | `build.mjs` | Native project assembly, asset folders, audio embedding, and shot list |
 
-The generated project has 124 compositions and 1,262 authored layers. The 48 scene compositions
-instantiate the shared props and character poses. Eleven native grid cloners replace hundreds of
+The generated project has 133 compositions and 1,324 authored layers. The 49 scene compositions
+instantiate the shared props and character poses. Thirteen native grid cloners replace hundreds of
 repeated stripe and chevron layers. The longest authored path has 10 anchors; the crown has seven,
 and each ring sector has four. There are no frame contour tracks, image sequences, or embedded
 reference-video layers. The only external media dependency is the optional soundtrack.
@@ -103,9 +105,10 @@ mapping to reproduce those display colors. Text also accounts for its sRGB textu
 ## Fidelity and validation
 
 This is a full-length semantic reconstruction with remaining fidelity gaps. An every-frame audit
-exposed short passages that sparse still comparisons missed: the ring flash is held too long,
-the umbrella-girl passage after the black echoes is missing, and the light-shaft reunion enters
-late. Several circular and palette transitions also need reconstruction or retiming. Hand-drawn
+exposed short passages that sparse still comparisons missed. The striped reversal and umbrella-girl
+interlude now have continuous semantic assemblies, but their detailed curves and poses remain
+approximate. The light-shaft reunion still enters late, and several circular, water, and palette
+transitions need reconstruction or retiming. Hand-drawn
 anatomy, gestures, lettering, spherical ball rotation, and particles remain approximate. The editable
 rigs and scene-level paths are the intended places to refine those differences.
 
@@ -123,4 +126,5 @@ These diagnostics do not provide a perceptual similarity score or source frame a
 
 The engine changes needed by this study are documented in
 [Semantic vector compositing](../../../docs/SEMANTIC_VECTOR_COMPOSITING.md). They cover bounded 2D
-group surfaces, mapped effect time, reflected joints and strokes, and metric rounded corners.
+group surfaces, mapped effect time, reflected joints and strokes, metric rounded corners, curved
+wipe boundaries, precise nested cut visibility, and lower-allocation vertex packing.

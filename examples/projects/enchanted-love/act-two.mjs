@@ -14,11 +14,12 @@ import {
   rect,
   rgba,
   track,
-  vector,
 } from "./scenes.mjs";
+import { poolArrival, stripedPassage } from "./striped-passage.mjs";
+import { umbrellaAccents } from "./umbrella-accents.mjs";
 
 export function actTwo(b) {
-  const { scene, add, stripes, tint, slope, props: p, characters: a } = b;
+  const { scene, add, tint, slope, props: p, characters: a } = b;
   {
     const c = scene("13 · Crown, heart, and girl", 40.3, 42.633333333);
     const crown = add(c, p.crown, 760, 485, 200);
@@ -227,20 +228,22 @@ export function actTwo(b) {
   }
   {
     const c = scene("19 · Lily pads and flowing water", 50.6, 53, P.blue);
-    for (let i = 0; i < 23; i++) {
-      const flow = line(
-        "Water flow",
-        [
-          [i * 66 - 80, -100, [0, 0], [95, 150]],
-          [i * 66 - 45, 320, [-80, -180], [-80, 160]],
-          [i * 66 - 80, 948, [90, -230]],
-        ],
-        P.teal,
-        7,
-      );
-      c.layers.push(flow);
-      flow.expressions = { "position.0": "16*sin(time*2.5)" };
-    }
+    const flow = line(
+      "Repeated water flow",
+      [
+        [-80, -100, [0, 0], [95, 150]],
+        [-45, 320, [-80, -180], [-80, 160]],
+        [-80, 948, [90, -230]],
+      ],
+      P.teal,
+      7,
+    );
+    flow.cloner = {
+      distribution: { kind: "grid", count: [23, 1, 1], spacing: [66, 0, 0] },
+      effectors: [],
+    };
+    flow.expressions = { "position.0": "726+16*sin(time*2.5)" };
+    c.layers.push(flow);
     for (const [x, y, s, phase] of [
       [315, 162, 100, 0],
       [940, 610, 72, 1],
@@ -263,24 +266,7 @@ export function actTwo(b) {
       [2.4, 1650],
     ]);
   }
-  {
-    const c = scene("20 · Ring reset", 53, 53.633333333, P.green);
-    add(c, p.ring, 555, 362, 100);
-    add(c, p.ball, 1120, 734, 95, 24);
-  }
-  {
-    const c = scene("21 · Diagonal striped passage", 53.633333333, 55.6, P.teal);
-    stripes(c, { angle: -62, spacing: 25, width: 13, fill: P.blue, travel: -105 });
-    c.layers.push(rect("Clear water at right", 1230, 424, 780, 1400, P.teal));
-    const crown = add(c, p.crown, 70, 393, 134, 95);
-    animate(crown, "position.0", [
-      [0, -150],
-      [0.5, 62],
-      [1.967, -130],
-    ]);
-    const heart = tint(add(c, p.heart, 860, 550, 90, 20), P.green);
-    heart.expressions = { "position.0": "860 - 190*time", "rotation.2": "20 + time*18" };
-  }
+  const passage = stripedPassage(b);
   {
     const c = scene("22 · Together in the swim ring", 55.6, 59.833333333, P.green);
     // Pool props move on three shared drifts; no sampled geometry is involved.
@@ -349,6 +335,7 @@ export function actTwo(b) {
         "position.1": `105-200*pow(time-2.85,2)+${dy}`,
         "rotation.2": "-130+38*time",
       };
+    poolArrival(b, passage, c);
   }
   {
     const c = scene("23 · Crown accent", 59.833333333, 60.566666667, P.blue);
@@ -383,57 +370,9 @@ export function actTwo(b) {
       ],
     });
   }
+  umbrellaAccents(b);
   {
-    const c = scene("25 · Echoes in the dark", 61.2, 63.633333333, P.black);
-    for (let i = 7; i >= 0; i--) {
-      const crown = tint(add(c, p.crown, 640, 424, 90 - i * 3, i * -5), i ? P.teal : P.blue);
-      crown.expressions = {
-        "position.0": `640+135*sin((time-${i * 0.055})*3.4)`,
-        "position.1": `424+270*cos((time-${i * 0.055})*2.6)`,
-        "rotation.2": `(time-${i * 0.055})*240`,
-      };
-      if (i) animate(crown, "opacity", 13 + i * 4);
-    }
-  }
-  {
-    const c = scene("26 · Frog, umbrella, and falling crown", 63.633333333, 65.433333333);
-    const umbrella = add(c, p.umbrella, 497, 610, 100, -118);
-    const frog = add(c, a.frog, 536, 480, 90, 18);
-    for (const item of [umbrella, frog]) {
-      animate(item, "position.1", [
-        [0, item.transform.position[1].value],
-        [0.9, item.transform.position[1].value],
-        [1.3, 1100],
-      ]);
-      during(item, 0, 1.3);
-    }
-    const folded = place(
-      vector(
-        "Folded crown",
-        [
-          [-54, -36],
-          [-25, -70],
-          [0, -38],
-          [27, -70],
-          [57, -36],
-          [57, 74],
-          [0, 135],
-          [-54, 74],
-        ],
-        P.cream,
-      ),
-      830,
-      578,
-    );
-    c.layers.push(during(folded, 1.15, 1.8));
-    animate(folded, "position.1", [
-      [1.15, -160],
-      [1.45, 578],
-      [1.8, 700],
-    ]);
-  }
-  {
-    const c = scene("27 · Walking with the umbrella", 65.433333333, 66.8);
+    const c = scene("27 · Walking with the umbrella", 65.633333333, 66.8);
     const girl = add(c, a.girls.umbrella, 571, 498, 96);
     girl.expressions = { "position.1": "498+10*sin(time*9.817477)" };
     for (const [x, y, w] of [

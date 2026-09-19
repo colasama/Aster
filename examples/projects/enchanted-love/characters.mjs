@@ -438,6 +438,7 @@ export function createCharacters(props) {
     float: girl("floating", "float"),
     spread: girl("balance", "spread"),
     umbrella: girl("umbrella", "umbrella"),
+    umbrellaLift: girl("lifted by an umbrella", "umbrellaLift"),
     parade: girl("holding an umbrella from the front", "parade"),
     crouch: girl("crouching", "crouch"),
     kiss: girl("kiss", "kiss"),
