@@ -85,6 +85,11 @@ Before a new encoder starts, its output directory is scanned through a bounded e
 `.aster-export` temporaries owned by terminated process IDs. Current-process and unrelated files are
 preserved, while an unclean process exit cannot accumulate abandoned frame streams indefinitely.
 
+H.264 output is limited-range BT.709 YUV420. Color parity checks decode the file with FFmpeg into
+RGB before comparison with the canonical beauty buffer; readers that ignore the matrix metadata
+can introduce a false saturation difference. The export integration test round-trips saturated
+color patches from both RGBA and BGRA inputs through a real encoder and metadata-aware decoder.
+
 The RenderHost reports Pause only after the current beauty-frame writes reach their boundary. PCM
 observes the same control generation between bounded chunks. Cancel and failure paths first stop and
 drain any PCM write already accepted by IPC; only then may Electron dispose the encoder and staged

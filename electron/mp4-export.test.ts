@@ -27,6 +27,66 @@ function outputPath(): string {
 
 describe("MP4 export validation", () => {
   const ffmpeg = process.env.ASTER_FFMPEG_PATH || "ffmpeg";
+  it
+    .skipIf(spawnSync(ffmpeg, ["-version"], { windowsHide: true }).status !== 0)
+    .each(["rgba", "bgra"] as const)(
+    "preserves saturated preview colors when encoding %s as limited-range BT.709",
+    async (pixelFormat) => {
+      const colors = [
+        [13, 185, 148],
+        [18, 217, 153],
+        [12, 139, 142],
+        [239, 246, 191],
+        [24, 24, 24],
+        [255, 255, 255],
+      ];
+      const width = colors.length * 64;
+      const height = 64;
+      const pixels = Buffer.alloc(width * height * 4);
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const color = colors[Math.floor(x / 64)];
+          const offset = (y * width + x) * 4;
+          pixels[offset] = color[pixelFormat === "rgba" ? 0 : 2];
+          pixels[offset + 1] = color[1];
+          pixels[offset + 2] = color[pixelFormat === "rgba" ? 2 : 0];
+          pixels[offset + 3] = 255;
+        }
+      }
+      const request = await validateMp4ExportRequest({
+        outputPath: outputPath(),
+        width,
+        height,
+        frameRateNumerator: 30,
+        frameRateDenominator: 1,
+        frameCount: 1,
+        pixelFormat,
+        videoBitrateBps: 20_000_000,
+      });
+      const encoded = spawnSync(
+        ffmpeg,
+        buildExportArguments(request, "libx264", request.outputPath),
+        { input: pixels, windowsHide: true, timeout: 10_000 },
+      );
+      expect(encoded.status, encoded.stderr?.toString()).toBe(0);
+      const decoded = spawnSync(
+        ffmpeg,
+        ["-v", "error", "-i", request.outputPath, "-f", "rawvideo", "-pix_fmt", "rgb24", "-"],
+        { windowsHide: true, timeout: 10_000 },
+      );
+      expect(decoded.status, decoded.stderr?.toString()).toBe(0);
+      expect(decoded.stdout.length).toBe(width * height * 3);
+      for (const [patch, color] of colors.entries()) {
+        const offset = (32 * width + patch * 64 + 32) * 3;
+        for (let channel = 0; channel < 3; channel++) {
+          expect(Math.abs(decoded.stdout[offset + channel] - color[channel])).toBeLessThanOrEqual(
+            3,
+          );
+        }
+      }
+    },
+    25_000,
+  );
   it.skipIf(spawnSync(ffmpeg, ["-version"], { windowsHide: true }).status !== 0)(
     "finishes a short real audiovisual export without waiting for more audio probe data",
     async () => {
