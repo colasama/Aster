@@ -155,7 +155,7 @@ byte identity. A local 60-sample warmed geometry benchmark reduced median constr
 playback measurements. The water pattern also uses one 23-instance cloner instead of 23 layers;
 that reduces authoring duplication, but the cloner alone did not fix the measured CPU stall.
 
-The final 1280 × 848, FXAA, full-quality visible preview submitted all 3,903 source frames. CPU P95
+An earlier 1280 × 848, FXAA, full-quality visible preview submitted all 3,903 source frames. CPU P95
 was 2.10 ms, GPU P95 0.459 ms, the maximum submission interval 26.8 ms, and peak estimated VRAM
 123.66 MiB. All 10-second bins contained 300 distinct frames. The cloner-only attempt is retained:
 it missed frame 1,537 and had a 40.3 ms gap. This distinction prevents the authoring simplification
