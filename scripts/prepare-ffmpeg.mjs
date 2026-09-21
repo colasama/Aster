@@ -96,9 +96,11 @@ export function prepareFfmpegBundle({
       {
         source,
         version: result.stdout?.split(/\r?\n/, 1)[0]?.trim() || "unknown",
+        build: result.stdout?.trim() || "unknown",
         ffprobe: {
           source: probeSource,
           version: probeResult.stdout?.split(/\r?\n/, 1)[0]?.trim() || "unknown",
+          build: probeResult.stdout?.trim() || "unknown",
         },
       },
       null,

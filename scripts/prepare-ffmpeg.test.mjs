@@ -61,7 +61,12 @@ test("copies the validated executable and records provenance in the controlled b
     {
       source,
       version: "ffmpeg version test",
-      ffprobe: { source: probeSource, version: "ffmpeg version test" },
+      build: "ffmpeg version test",
+      ffprobe: {
+        source: probeSource,
+        version: "ffmpeg version test",
+        build: "ffmpeg version test",
+      },
     },
   );
 });
@@ -86,7 +91,16 @@ test("desktop launch and artifact scripts compile and stage their runtime depend
     {
       from: "build/ffmpeg",
       to: "bin",
-      filter: ["ffmpeg", "ffmpeg.exe", "ffprobe", "ffprobe.exe"],
+      filter: [
+        "ffmpeg",
+        "ffmpeg.exe",
+        "ffprobe",
+        "ffprobe.exe",
+        "ffmpeg-source.json",
+        "ffmpeg-download.json",
+        "*.LICENSE",
+        "*.README",
+      ],
     },
   );
 });

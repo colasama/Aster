@@ -14,7 +14,8 @@ falls back to `libx264`, mixes bounded Float32 stereo chunks through a separate 
 applies the requested bitrate as bounded VBR before atomically publishing the completed MP4. The PCM sample count derives from the same rational frame
 range as video; shared source decodes are cached instead of repeated per layer instance. It deliberately does not claim
 zero-copy: the display-referred frame travels from GPU memory to CPU memory and is uploaded again for
-hardware encoding. HDR/10-bit delivery, alpha video, packaged FFmpeg artifacts,
+hardware encoding. Preview artifacts bundle checksum-pinned FFmpeg and FFprobe with build provenance
+and upstream notices. HDR/10-bit delivery, alpha video,
 native platform decode/encode surfaces, and zero-copy interop remain future work.
 
 The MVP keeps one project model and one rendering contract. Media backends are replaceable adapters;
@@ -201,6 +202,12 @@ do not match. No platform backend may reach into wgpu internals without a pinned
 layer and device-loss tests.
 
 ## Packaging, patents, and licensing
+
+The desktop artifact workflow produces an explicitly labeled `gpl-preview` media payload because
+the existing software export fallback uses `libx264`. Its pinned downloads, manifests, and upstream
+notices are described in `BUILD_AND_FEATURES.md`. The packaged tools must pass a real H.264/AAC encode
+and FFprobe check; macOS also checks universal slices and system-only dylib dependencies. These
+preview artifacts do not satisfy the stable distribution or legal review gates below.
 
 Aster's distributed FFmpeg configuration must be reproducible and publish its configuration, component
 licenses, and source-offer obligations. The default distributable build stays on the LGPL side: dynamic

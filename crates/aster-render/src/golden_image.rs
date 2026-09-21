@@ -1,8 +1,10 @@
+#[cfg(target_os = "windows")]
 use std::{
     sync::mpsc,
     time::{Duration, Instant},
 };
 
+#[cfg(target_os = "windows")]
 use crate::NativeBackend;
 
 #[derive(clap::Parser)]
@@ -22,6 +24,7 @@ impl Default for GoldenImage {
 }
 
 impl GoldenImage {
+    #[cfg(target_os = "windows")]
     const SHADER: &str = r#"
 @vertex
 fn vs_main(@builtin(vertex_index) vertex_index: u32) -> @builtin(position) vec4<f32> {
@@ -58,6 +61,7 @@ fn fs_main(@builtin(position) position: vec4<f32>) -> @location(0) vec4<f32> {
         pixels
     }
 
+    #[cfg(target_os = "windows")]
     fn render(&self, backend: NativeBackend) -> Result<GoldenFrame, String> {
         let timeout = Duration::from_secs(self.timeout_seconds);
         let flags = backend.backends();
@@ -268,6 +272,7 @@ fn fs_main(@builtin(position) position: vec4<f32>) -> @location(0) vec4<f32> {
         })
     }
 
+    #[cfg(target_os = "windows")]
     fn verify(&self, backend: NativeBackend) -> Result<GoldenFrame, String> {
         let frame = self.render(backend)?;
         assert_eq!(frame.backend, backend.adapter_backend());
@@ -286,6 +291,7 @@ fn fs_main(@builtin(position) position: vec4<f32>) -> @location(0) vec4<f32> {
     }
 }
 
+#[cfg(target_os = "windows")]
 #[derive(Debug)]
 struct GoldenFrame {
     adapter_name: String,

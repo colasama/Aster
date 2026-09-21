@@ -8,6 +8,13 @@ and Linux produces AppImage and Debian packages. Artifact builds are unsigned pr
 release job supplies platform signing identities; unsigned artifacts must never be promoted as a
 stable release.
 
+Preview CI downloads checksum-pinned FFmpeg and FFprobe, explicitly identifies the media payload as
+`gpl-preview`, and includes upstream notices, download digests, and actual build configurations in
+`resources/bin`. macOS merges all four native tools into universal binaries and applies ad-hoc
+signatures. Each platform smoke-tests the packaged tools and H.264/AAC export before uploading only
+installers and SHA-256 checksums. This workflow never publishes a GitHub release; stable signing,
+notarization, source-distribution obligations, and codec review remain release-promotion gates.
+
 Desktop packages include Electron's Chromium runtime, so they do not depend on a system webview.
 The stable application identifier is `io.github.aster-mograph.aster`; it
 must not change after public release because it defines upgrade identity and application data paths.

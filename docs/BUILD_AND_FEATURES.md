@@ -10,17 +10,43 @@ gate, then builds the platform bundles in parallel:
 | --- | --- | --- |
 | Ubuntu 22.04 | Linux x64 | AppImage and Debian package |
 | Windows | Windows x64 | NSIS installer |
-| macOS 14 | Universal Apple binary | DMG and ZIP |
+| macOS 15 | Universal Apple binary | DMG and ZIP |
 
-Node/pnpm downloads use the pnpm store cache. Electron downloads, Rust dependencies, and build
-outputs use separate
-cache per operating system, preventing incompatible native objects from being restored across
-platforms. Uploaded bundles are retained for 14 days and contain the commit SHA in their artifact
-name. Code signing and notarization are intentionally outside this MVP workflow; release promotion
-must add platform secrets and a separate publishing job rather than granting write permissions to
-ordinary artifact builds.
+Node/pnpm downloads use the pnpm store cache. Rust dependencies and build outputs use a cache per
+operating system. FFmpeg downloads use a separate cache keyed by the pinned asset manifest; cached
+bytes are checked against SHA-256 before use. Uploaded installers and `SHA256SUMS.txt` are retained
+for 14 days and contain the commit SHA in their artifact name. Unpacked application directories are
+not uploaded. Developer ID signing and notarization remain outside this preview workflow. macOS
+tools and the final app receive ad-hoc signatures after merging; these do not establish a trusted
+publisher identity. Hardened runtime is disabled for this certificate-free preview build.
+Publishing is explicitly disabled, including on version tags.
 
-Build a production artifact locally with:
+To build from a Windows machine without configuring a macOS cross-toolchain:
+
+1. Commit and push the desired source and workflow to GitHub. The workflow must also exist on the
+   default branch for the manual trigger to appear.
+2. Open **Actions → Build desktop artifacts → Run workflow**, select the branch, and run it.
+3. After the quality gate and platform bundles succeed, download `aster-macos-universal-<sha>` from
+   the run's **Artifacts** section. It contains the DMG, ZIP, and checksums. Both Mac architectures
+   are included; a local Mac, signing certificate, and GitHub release are not required.
+
+The quality job invokes the repository's lefthook checks and `cargo deny check`. Rust CI requires
+no system WebKit/GTK development packages: the desktop shell uses Electron. GPU golden-image helpers
+compile only with their Windows adapter tests; the CPU fixture test runs on every platform.
+
+`deny.toml` temporarily accepts the maintenance-only advisory `RUSTSEC-2024-0436` for the build-time
+`paste` macro dependency (`exr 1.74.2 -> pulp 0.22.3`). These compatible published releases have no
+replacement yet. Remove the exception when EXR adopts a published Pulp version using `pastey`;
+other advisories, yanked versions, licenses, and sources remain checked.
+
+Bundle jobs download their own pinned
+media tools, compile the app, package it, then run the installed sidecars and a real H.264/AAC encode
+and FFprobe check before upload. The macOS job also verifies both architecture slices and rejects
+non-system dylib dependencies in the four bundled tools. The smoke check runs on the host
+architecture; it does not replace GUI/GPU testing on both Intel and Apple Silicon hardware.
+
+Build a local artifact using FFmpeg and FFprobe already available on PATH (or explicit
+`ASTER_FFMPEG_PATH` / `ASTER_FFPROBE_PATH` paths):
 
 ```bash
 pnpm install --frozen-lockfile
@@ -28,16 +54,27 @@ pnpm check
 pnpm artifact:build
 ```
 
-To choose only platform-appropriate bundles, use the same command shape as CI:
+To choose only platform-appropriate bundles:
 
 ```bash
 pnpm artifact:build -- --linux AppImage deb --x64
 ```
 
-Use `--win nsis --x64` on Windows. The universal macOS CI job builds the bridge for both Apple
-architectures, combines it with `lipo`, and then runs
-`electron-builder --config scripts/electron-builder.ts --mac --universal` so the
-sidecar architecture always matches the bundled Electron runtime.
+Use `--win nsis --x64` on Windows, or `--mac dmg zip --arm64` on an Apple Silicon Mac. Local builds
+must use media tools and a Rust host toolchain matching the selected architecture. To use the same
+pinned media tools as CI for a native build, run these commands instead:
+
+```bash
+pnpm install --frozen-lockfile
+pnpm artifact:download-ffmpeg
+pnpm build
+pnpm exec electron-builder --config scripts/electron-builder.ts --publish never
+```
+
+Do not run `artifact:prepare-ffmpeg` or `artifact:build` after downloading the pinned tools: those
+commands intentionally restage the user's PATH/override binaries. The universal macOS CI job uses
+`pnpm artifact:download-ffmpeg --universal`, builds the two Rust executables for both Apple
+architectures, combines each with `lipo`, and packages with `--mac dmg zip --universal`.
 
 The About dialog and packaged application version include the current Git commit's short hash,
 for example `0.2.1+29ead88`. The same version appears in installer filenames, application logs,
@@ -53,6 +90,22 @@ The MP4 path launches an FFmpeg executable from Electron's main process. Develop
 validates that executable, copies it into the ignored `build/ffmpeg` staging directory, records its
 source/version, and packages it as `resources/bin/ffmpeg` (or `ffmpeg.exe`). Packaged applications
 always prefer that controlled copy before applying the development fallback.
+
+CI uses `scripts/ffmpeg-downloads.json` to pin individual compressed binaries, license text, and build
+information. Windows/Linux use the `eugeneware/ffmpeg-static` `b6.1.1` release; macOS uses Martin Riedl's
+dated 9.0.2 builds for Intel and Apple Silicon. Asset hashes are the immutable identity. The downloader
+rejects binaries configured with `--enable-nonfree` before staging either architecture.
+`ffmpeg-source.json` records the actual version and full build configuration reported by both tools.
+`ffmpeg-download.json` records the upstream URL, asset hashes, and explicit `gpl-preview` flavor.
+These manifests and upstream notices are shipped beside the executables. The macOS downloads are
+merged into universal executables, so neither Homebrew libraries nor Rosetta are needed for the
+bundled media tools. No new npm dependency is required.
+
+The preview flavor includes GPL-enabled FFmpeg with `libx264`, which the current software export
+fallback requires. It is separate from the planned LGPL-only stable distribution policy and is not
+approval for a stable release. Release promotion still requires the source/license and codec review
+described in `MEDIA_BACKENDS.md`. Hosted runners validate software export; NVENC remains a runtime
+probe and requires a suitable GPU/driver for hardware validation.
 
 Artifact producers remain responsible for the selected FFmpeg distribution and its licenses. Release
 automation must use a reproducible platform-specific `ASTER_FFMPEG_PATH`, publish its configuration

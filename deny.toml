@@ -1,6 +1,10 @@
 [advisories]
 yanked = "deny"
-ignore = []
+ignore = [
+  # exr 1.74.2 -> pulp 0.22.3 still requires this build-time macro crate.
+  # Remove when exr adopts a published pulp release using pastey.
+  { id = "RUSTSEC-2024-0436", reason = "paste is unmaintained, with no reported vulnerability or patched version; the compatible exr/pulp releases still require it" },
+]
 
 [licenses]
 confidence-threshold = 0.8

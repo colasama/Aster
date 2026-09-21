@@ -39,14 +39,14 @@ jobs:
         with:
           shared-key: desktop-artifacts-quality
       - run: pnpm install --frozen-lockfile
-      - name: Check frontend formatting, types, and tests
-        run: pnpm check:frontend
-      - name: Check Rust formatting
-        run: cargo fmt --all --check
-      - name: Lint all Rust targets and features
-        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
-      - name: Test all Rust features
-        run: cargo test --workspace --all-features
+      - name: Check Rust formatting and lint
+        run: pnpm exec lefthook run pre-commit --force --command rustfmt --command clippy
+      - name: Check frontend and Rust tests
+        run: pnpm exec lefthook run pre-push --force
+      - name: Check dependency policy
+        uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check
 
   bundle:
     name: Bundle ${{ matrix.name }}
@@ -59,14 +59,21 @@ jobs:
             os: ubuntu-22.04
             builder_args: --linux AppImage deb --x64
             artifact: aster-linux-x64
+            binary_dir: release/linux-unpacked/resources/bin
           - name: Windows x64
             os: windows-latest
             builder_args: --win nsis --x64
             artifact: aster-windows-x64
+            binary_dir: release/win-unpacked/resources/bin
           - name: macOS universal
-            os: macos-14
+            os: macos-15
+            builder_args: --mac dmg zip --universal -c.mac.identity=- -c.mac.hardenedRuntime=false
             artifact: aster-macos-universal
+            binary_dir: release/mac-universal/Aster.app/Contents/Resources/bin
+            ffmpeg_args: --universal
     runs-on: ${{ matrix.os }}
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: "false"
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -87,10 +94,24 @@ jobs:
         with:
           shared-key: desktop-artifacts-${{ runner.os }}
       - run: pnpm install --frozen-lockfile
-      - name: Build desktop bundles
+      - name: Install Linux packaging tools
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y libarchive-tools
+      - uses: actions/cache@v4
+        with:
+          path: |
+            .aster-cache/ffmpeg/*.gz
+            .aster-cache/ffmpeg/*.zip
+            .aster-cache/ffmpeg/*.LICENSE
+            .aster-cache/ffmpeg/*.README
+          key: ffmpeg-${{ runner.os }}-${{ hashFiles('scripts/ffmpeg-downloads.json') }}
+      - name: Download and stage pinned FFmpeg and FFprobe
+        run: pnpm artifact:download-ffmpeg ${{ matrix.ffmpeg_args }}
+      - name: Build frontend and native bridge
         if: matrix.name != 'macOS universal'
-        shell: bash
-        run: pnpm artifact:build -- ${{ matrix.builder_args }}
+        run: pnpm build
       - name: Build universal macOS assets and bridge
         if: matrix.name == 'macOS universal'
         shell: bash
@@ -109,12 +130,23 @@ jobs:
             target/aarch64-apple-darwin/release/aster-mcp \
             target/x86_64-apple-darwin/release/aster-mcp \
             -output target/release/aster-mcp
-          pnpm exec electron-builder --config scripts/electron-builder.ts --mac --universal
+          codesign --force --sign - target/release/aster-desktop-bridge
+          codesign --force --sign - target/release/aster-mcp
+      - name: Package desktop bundles
+        run: pnpm exec electron-builder --config scripts/electron-builder.ts --publish never ${{ matrix.builder_args }}
+      - name: Verify packaged tools and generate checksums
+        run: node scripts/verify-desktop-bundle.mjs "${{ matrix.binary_dir }}" ${{ matrix.ffmpeg_args }}
       - name: Upload desktop bundles
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}-${{ github.sha }}
-          path: release/**/*
+          path: |
+            release/*.exe
+            release/*.dmg
+            release/*.zip
+            release/*.AppImage
+            release/*.deb
+            release/SHA256SUMS.txt
           if-no-files-found: error
           retention-days: 14
           compression-level: 0

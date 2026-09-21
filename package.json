@@ -14,6 +14,7 @@
     "mcp": "node dist-electron/electron/automation-mcp.js",
     "artifact:build": "pnpm artifact:prepare-ffmpeg && pnpm build && electron-builder --config scripts/electron-builder.ts",
     "artifact:prepare-ffmpeg": "node scripts/prepare-ffmpeg.mjs",
+    "artifact:download-ffmpeg": "node scripts/download-ffmpeg.mjs",
     "build": "pnpm typecheck && vite build && pnpm electron:compile && pnpm electron:bridge:build",
     "check": "pnpm check:frontend && pnpm check:rust",
     "check:frontend": "biome check . && pnpm typecheck && vitest run && pnpm test:packaging",
@@ -27,7 +28,7 @@
     "electron:bridge:dev": "cargo build -p aster-desktop-bridge",
     "electron:compile": "node -e \"require('node:fs').rmSync('dist-electron',{recursive:true,force:true})\" && tsc -p electron/tsconfig.json",
     "test": "vitest run",
-    "test:packaging": "node --test scripts/prepare-ffmpeg.test.mjs",
+    "test:packaging": "node --test scripts/prepare-ffmpeg.test.mjs scripts/download-ffmpeg.test.mjs",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p electron/tsconfig.json"
   },
@@ -97,7 +98,11 @@
           "ffmpeg",
           "ffmpeg.exe",
           "ffprobe",
-          "ffprobe.exe"
+          "ffprobe.exe",
+          "ffmpeg-source.json",
+          "ffmpeg-download.json",
+          "*.LICENSE",
+          "*.README"
         ]
       }
     ],
