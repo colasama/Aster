@@ -12,6 +12,15 @@ import {
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
+process.on("uncaughtExceptionMonitor", (error) => {
+  if (process.env.GITHUB_ACTIONS !== "true") return;
+  const message = (error.stack ?? String(error))
+    .replaceAll("%", "%25")
+    .replaceAll("\r", "%0D")
+    .replaceAll("\n", "%0A");
+  process.stderr.write(`::error title=Desktop bundle verification failed::${message}\n`);
+});
+
 const bin = resolve(process.argv[2]);
 const universal = process.argv.includes("--universal");
 const run = (file, args) =>
@@ -22,7 +31,7 @@ for (const name of ["aster-desktop-bridge", "aster-mcp", "ffmpeg", "ffprobe"]) {
   const file = executable(name);
   assert.ok(existsSync(file), `Missing packaged binary: ${file}`);
   if (universal) {
-    run("lipo", ["-verify_arch", "arm64", "x86_64", file]);
+    run("lipo", [file, "-verify_arch", "arm64", "x86_64"]);
     const dependencies = run("otool", ["-L", file])
       .split("\n")
       .filter((line) => /^\s/.test(line));
