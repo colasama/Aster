@@ -205,6 +205,7 @@ dependencies = [
 name = "aster-text"
 version = "0.3.0"
 dependencies = [
+ "aster-storage",
  "clap",
  "sha2",
  "thiserror",

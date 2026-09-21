@@ -246,36 +246,19 @@ impl FontContainer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::time::{SystemTime, UNIX_EPOCH};
-
-    struct TestDirectory(PathBuf);
-
-    impl TestDirectory {
-        fn new() -> Result<Self, Box<dyn std::error::Error>> {
-            let nonce = SystemTime::now().duration_since(UNIX_EPOCH)?.as_nanos();
-            let path = std::env::temp_dir().join(format!("aster-font-discovery-{nonce}"));
-            fs::create_dir(&path)?;
-            Ok(Self(path))
-        }
-    }
-
-    impl Drop for TestDirectory {
-        fn drop(&mut self) {
-            let _ = fs::remove_dir_all(&self.0);
-        }
-    }
+    use aster_storage::PendingDirectory;
 
     #[test]
     fn discovers_supported_files_deterministically_and_loads_content_identity()
     -> Result<(), Box<dyn std::error::Error>> {
-        let root = TestDirectory::new()?;
-        fs::create_dir(root.0.join("nested"))?;
-        fs::write(root.0.join("z.ttf"), b"font-z")?;
-        fs::write(root.0.join("nested").join("A.OTF"), b"font-a")?;
-        fs::write(root.0.join("ignored.txt"), b"not a font")?;
-        fs::write(root.0.join("empty.woff2"), b"")?;
+        let root = PendingDirectory::create(&std::env::temp_dir())?;
+        fs::create_dir(root.path.join("nested"))?;
+        fs::write(root.path.join("z.ttf"), b"font-z")?;
+        fs::write(root.path.join("nested").join("A.OTF"), b"font-a")?;
+        fs::write(root.path.join("ignored.txt"), b"not a font")?;
+        fs::write(root.path.join("empty.woff2"), b"")?;
 
-        let files = FontDiscoveryConfig::default().discover([&root.0], 16)?;
+        let files = FontDiscoveryConfig::default().discover([&root.path], 16)?;
         assert_eq!(files.len(), 2);
         assert!(files[0].path.ends_with("A.OTF"));
         assert!(files[1].path.ends_with("z.ttf"));
@@ -292,8 +275,8 @@ mod tests {
             FontDiscoveryConfig::default().discover(std::iter::empty::<&Path>(), 0),
             Err(FontDiscoveryError::InvalidLimit)
         ));
-        let root = TestDirectory::new()?;
-        let path = root.0.join("font.ttf");
+        let root = PendingDirectory::create(&std::env::temp_dir())?;
+        let path = root.path.join("font.ttf");
         fs::write(&path, b"font")?;
         let candidate = FontFile {
             path: path.clone(),
