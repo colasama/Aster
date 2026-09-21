@@ -17,7 +17,10 @@
   <a href="docs/AUTOMATION.md"><img src="https://img.shields.io/badge/MCP-52525b?style=flat-square" alt="MCP"></a>
 </p>
 
-<div style="text-align: center; margin-bottom: 24px">Aster is an AI-native & GPU-first motion graphics and compositing editor.</div>
+
+<p align="center">
+  Aster is an AI-native & GPU-first motion graphics and compositing editor.
+</p>
 
 <p align="center">
   <img src="docs/assets/aster-gpu-demo.gif" alt="Aster editor with real-time GPU previews">
