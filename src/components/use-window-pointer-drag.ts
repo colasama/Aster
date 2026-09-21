@@ -1,4 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
+import {
+  type AnimationFrameHost,
+  browserAnimationFrameHost,
+  RafCoalescer,
+} from "../workspace/raf-coalescer";
 
 export interface WindowPointerDragCallbacks {
   onCancel?: () => void;
@@ -24,9 +29,13 @@ export function bindWindowPointerDrag(
   target: PointerDragEventTarget,
   pointerId: number,
   callbacks: WindowPointerDragCallbacks,
+  frameHost?: AnimationFrameHost,
 ): (notify?: boolean) => void {
   let running = true;
+  let moved = false;
+  const moves = frameHost ? new RafCoalescer(frameHost, callbacks.onMove) : undefined;
   const cleanup = () => {
+    moves?.cancel();
     target.removeEventListener("pointermove", move as EventListener);
     target.removeEventListener("pointerup", commit as EventListener);
     target.removeEventListener("pointercancel", cancelEvent as EventListener);
@@ -40,10 +49,17 @@ export function bindWindowPointerDrag(
     if (notify) callbacks.onCancel?.();
   };
   const move = (event: PointerEvent) => {
-    if (event.pointerId === pointerId) callbacks.onMove(event);
+    if (event.pointerId !== pointerId) return;
+    moved = true;
+    if (moves) moves.schedule(event);
+    else callbacks.onMove(event);
   };
   const commit = (event: PointerEvent) => {
     if (event.pointerId !== pointerId || !running) return;
+    if (moves && moved) {
+      moves.schedule(event);
+      moves.flush();
+    }
     running = false;
     cleanup();
     callbacks.onCommit(event);
@@ -79,17 +95,22 @@ export function useWindowPointerDrag(): {
       if (active.current === controller) active.current = undefined;
     };
     controller = {
-      cancel: bindWindowPointerDrag(window, pointerId, {
-        onMove: callbacks.onMove,
-        onCommit: (event) => {
-          release();
-          callbacks.onCommit(event);
+      cancel: bindWindowPointerDrag(
+        window,
+        pointerId,
+        {
+          onMove: callbacks.onMove,
+          onCommit: (event) => {
+            release();
+            callbacks.onCommit(event);
+          },
+          onCancel: () => {
+            release();
+            callbacks.onCancel?.();
+          },
         },
-        onCancel: () => {
-          release();
-          callbacks.onCancel?.();
-        },
-      }),
+        browserAnimationFrameHost(),
+      ),
     };
     active.current = controller;
   }, []);

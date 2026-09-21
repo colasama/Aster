@@ -103,12 +103,18 @@
 .timeline-canvas {
   position: relative;
   min-height: 100%;
-  padding-top: 26px;
   background-image: linear-gradient(90deg, transparent 285px, #252831 286px, transparent 287px);
 }
+.timeline-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  height: 26px;
+  background: var(--bg-panel);
+}
 .layer-column-header {
-  position: absolute;
-  z-index: 5;
+  position: sticky;
+  z-index: 30;
   top: 0;
   left: 0;
   width: 286px;
@@ -211,7 +217,7 @@
 }
 .timeline-layer {
   position: relative;
-  min-height: var(--row-height);
+  min-height: calc(var(--row-height) + 1px);
   border-bottom: 1px solid var(--border);
   background: linear-gradient(90deg, #17191f 0 286px, transparent 286px);
 }
@@ -230,6 +236,20 @@
   padding: 0 5px 0 2px;
   color: var(--text-secondary);
   font-size: 11px;
+  background: #17191f;
+}
+.timeline-layer:hover .layer-label {
+  background: #1d2027;
+}
+.timeline-layer.selected .layer-label {
+  background: #26344e;
+}
+.layer-label,
+.timeline-property-label,
+.timeline-property-group-label {
+  position: sticky;
+  left: 0;
+  z-index: 15;
 }
 .layer-label .drag-handle {
   color: var(--faint);
@@ -562,11 +582,15 @@
   pointer-events: none;
   position: absolute;
   z-index: 10;
-  top: 0;
+  top: 26px;
+  left: var(--timeline-playhead-left);
   bottom: 0;
   width: 1px;
   background: #fb5367;
   box-shadow: 0 0 4px #d9364c;
+}
+.timeline-header .playhead {
+  top: 0;
 }
 .playhead span {
   position: absolute;

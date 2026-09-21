@@ -34,6 +34,16 @@ export type TimelineShortcut =
   | "next-event"
   | "composition-start"
   | "composition-end"
+  | "work-area-start"
+  | "work-area-end"
+  | "layer-in"
+  | "layer-out"
+  | "zoom-in"
+  | "zoom-out"
+  | "zoom-frames"
+  | "zoom-fit"
+  | "reveal-time"
+  | "reveal-layer"
   | "previous-frame"
   | "next-frame"
   | "align-in"
@@ -47,6 +57,7 @@ export interface ShortcutLike {
   ctrlKey: boolean;
   key: string;
   metaKey: boolean;
+  shiftKey?: boolean;
 }
 
 export function compositionFrameDuration(composition: Composition): number {
@@ -183,11 +194,34 @@ export function moveWorkArea(
 }
 
 export function resolveTimelineShortcut(input: ShortcutLike): TimelineShortcut | undefined {
-  if (input.ctrlKey || input.metaKey) return undefined;
+  if (input.ctrlKey || input.metaKey) {
+    if (input.key === "ArrowLeft")
+      return input.altKey ? (input.shiftKey ? undefined : "composition-start") : "previous-frame";
+    if (input.key === "ArrowRight")
+      return input.altKey ? (input.shiftKey ? undefined : "composition-end") : "next-frame";
+    return undefined;
+  }
+  if (input.code === "Semicolon" || input.key === ";" || input.key === ":") {
+    return input.altKey ? undefined : input.shiftKey ? "zoom-fit" : "zoom-frames";
+  }
+  if (input.shiftKey && !["Home", "End", "PageUp", "PageDown"].includes(input.key))
+    return undefined;
   if (input.code === "BracketLeft") return input.altKey ? "trim-in" : "align-in";
   if (input.code === "BracketRight") return input.altKey ? "trim-out" : "align-out";
   if (input.altKey) return undefined;
   switch (input.key.toLowerCase()) {
+    case "=":
+      return "zoom-in";
+    case "-":
+      return "zoom-out";
+    case "d":
+      return "reveal-time";
+    case "x":
+      return "reveal-layer";
+    case "i":
+      return "layer-in";
+    case "o":
+      return "layer-out";
     case "b":
       return "work-start";
     case "n":
@@ -197,9 +231,9 @@ export function resolveTimelineShortcut(input: ShortcutLike): TimelineShortcut |
     case "k":
       return "next-event";
     case "home":
-      return "composition-start";
+      return input.shiftKey ? "work-area-start" : "composition-start";
     case "end":
-      return "composition-end";
+      return input.shiftKey ? "work-area-end" : "composition-end";
     case "pageup":
       return "previous-frame";
     case "pagedown":

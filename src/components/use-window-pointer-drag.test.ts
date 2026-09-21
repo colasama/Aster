@@ -2,6 +2,37 @@ import { describe, expect, it, vi } from "vitest";
 import { bindWindowPointerDrag } from "./use-window-pointer-drag";
 
 describe("window pointer drag lifecycle", () => {
+  it("coalesces moves per frame, commits the release position, and discards cancelled moves", () => {
+    let pending: FrameRequestCallback | undefined;
+    const host = {
+      request: (callback: FrameRequestCallback) => {
+        pending = callback;
+        return 1;
+      },
+      cancel: () => {
+        pending = undefined;
+      },
+    };
+    const target = new EventTarget();
+    const onMove = vi.fn();
+    const onCommit = vi.fn();
+    bindWindowPointerDrag(target, 7, { onMove, onCommit }, host);
+    for (let i = 0; i < 100; i++) target.dispatchEvent(pointerEvent("pointermove", 7));
+    expect(onMove).not.toHaveBeenCalled();
+    pending?.(0);
+    expect(onMove).toHaveBeenCalledOnce();
+    target.dispatchEvent(pointerEvent("pointermove", 7));
+    const release = pointerEvent("pointerup", 7);
+    target.dispatchEvent(release);
+    expect(onMove).toHaveBeenLastCalledWith(release);
+    expect(onCommit).toHaveBeenCalledOnce();
+    expect(pending).toBeUndefined();
+    const cancel = bindWindowPointerDrag(target, 8, { onMove, onCommit }, host);
+    target.dispatchEvent(pointerEvent("pointermove", 8));
+    cancel();
+    expect(pending).toBeUndefined();
+    expect(onMove).toHaveBeenCalledTimes(2);
+  });
   it("filters pointer identities and commits once", () => {
     const target = new EventTarget();
     const onMove = vi.fn();

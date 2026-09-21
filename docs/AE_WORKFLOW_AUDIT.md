@@ -54,6 +54,45 @@ viewing and alignment. It does not claim complete After Effects feature parity.
   non-drop-frame formatting with the timeline, including rational frame rates. Enter/blur commits;
   Escape discards the draft. Locked viewers of another composition cannot seek the active editor.
 
+## Timeline navigation (2026-09-22)
+
+- The time ruler, work-area handles, and playhead head remain pinned above vertically scrolling
+  layers. Both playhead segments share the playback-frame position without rendering the layer list.
+  Layer names and property labels stay fixed at the left while scrolling horizontally.
+- `=` / `-` and the logarithmic zoom slider preserve the visible playhead position (or the view
+  center when the playhead is offscreen). Alt/Option + wheel preserves the time under the pointer;
+  plain wheel scrolls vertically, Shift + wheel scrolls horizontally, and middle-button dragging pans.
+- `;` switches between frame units and the complete composition. Shift + `;` fits the composition
+  and restores the previous scale and horizontal position on the next press. `D` centers the current
+  time; `X` reveals the first selected layer. Fit uses the panel width instead of a fixed zoom floor.
+- Page Up/Down and Ctrl/Command + Left/Right step one frame; Shift steps ten. Home/End visit the
+  first/last frame; Shift + Home/End visit the work-area bounds. `I` / `O` visit selected layer bounds.
+  Existing `B` / `N`, `J` / `K`, and bracket timing edits remain available. Out-point shortcuts account
+  for the model's exclusive end boundary. Text entry, IME, menus, and modal dialogs keep their keys.
+- Ruler ticks follow zoom and frame rate, and only visible ticks are mounted, including long
+  compositions at frame zoom. This covers timeline navigation, not all AE property/editing shortcuts.
+- Layer rows retain lightweight position shells; an IntersectionObserver shared by the timeline
+  mounts row content within 240 pixels of the viewport. Measured heights and expansion state survive
+  unmounting. Focused inputs and active drag sources stay mounted. This bounds expensive controls and
+  playback subscriptions while retaining native scrolling, layer reveal, and marquee hit testing.
+- Pointer moves share the existing animation-frame coalescer. A frame processes the latest position;
+  pointer release flushes its final coordinates before committing, and cancellation discards pending
+  work. Static snap targets are collected once per composition edit, not on every playhead move.
+
+Production-browser stress check: 500 layers, a one-hour composition, 30 fps, and a 1200 × 500
+timeline-only harness. Five warm updates per measurement; timings include two animation frames
+and exclude composition rendering. These are local measurements, not a universal frame-rate guarantee.
+
+| Scenario | Without row windowing | With row windowing |
+| --- | --- | --- |
+| Collapsed layers: mounted controls / DOM elements | 500 / 23,645 | 22 / 1,657 |
+| Collapsed layers: median zoom update | 154 ms | 21 ms |
+| 100 expanded layers: mounted controls / DOM elements | 500 / 40,545 | 2 / 1,075 |
+| 100 expanded layers: median playback UI update | 324 ms | 14 ms |
+
+The lightweight shells remain O(layer count); expensive row content and time subscriptions follow
+the viewport. A single extremely dense visible keyframe track is a separate scaling limit.
+
 ## Remaining gaps identified
 
 Separate follow-up work is needed for composition/layer marker metadata and editing, region-of-interest
@@ -66,4 +105,5 @@ would not correctly reveal composited alpha. These features are not represented 
 - [Adobe: modifying and using views](https://helpx.adobe.com/after-effects/desktop/view-and-preview/preview-video-and-audio/modifying-using-views.html)
 - [Adobe: previewing and snapshots](https://helpx.adobe.com/after-effects/desktop/view-and-preview/preview-video-and-audio/previewing.html)
 - [Adobe: keyboard shortcuts](https://helpx.adobe.com/after-effects/desktop/get-started/keyboard-shortcuts/keyboard-shortcuts-reference.html)
+- [Adobe: mouse-wheel scrolling and zoom](https://helpx.adobe.com/hu/after-effects/using/general-user-interface-items.html)
 - [Adobe: feature history (Smooth Zoom introduced in 25.3, June 12, 2025)](https://github.com/AdobeDocs/after-effects-feature-history)

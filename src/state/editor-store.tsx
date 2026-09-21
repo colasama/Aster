@@ -22,6 +22,7 @@ import {
 import type { Id, Project, RendererMetrics } from "../core/types";
 import { isDesktopRuntime, migrateLegacyPreferences } from "../desktop/api";
 import { APP_PREFERENCES_CHANGED_EVENT, type UserPreferencePatch } from "../desktop/preferences";
+import { timelineZoomBounds } from "../ui/timeline-zoom";
 import {
   DEFAULT_VIEWPORT_ZOOM,
   normalizeViewportNavigationMode,
@@ -237,8 +238,16 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       return { ...state, currentTime: Math.max(0, action.time) };
     case "setPlaying":
       return { ...state, playing: action.playing };
-    case "setTimelineZoom":
-      return { ...state, timelineZoom: Math.max(0.5, Math.min(8, action.zoom)) };
+    case "setTimelineZoom": {
+      if (!Number.isFinite(action.zoom)) return state;
+      const composition = activeComposition(state.project);
+      const bounds = timelineZoomBounds(
+        composition.duration,
+        composition.frameRate.denominator / composition.frameRate.numerator,
+      );
+      // The panel applies its viewport-dependent fit and single-frame limits.
+      return { ...state, timelineZoom: Math.max(bounds.min, action.zoom) };
+    }
     case "setViewportZoom":
       return {
         ...state,

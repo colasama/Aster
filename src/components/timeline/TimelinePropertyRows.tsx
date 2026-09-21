@@ -27,6 +27,8 @@ export function TimelinePropertyRows({
   pixelsPerSecond,
   startPointerDrag,
   timelineTargets,
+  collapsedGroups: controlledGroups,
+  onToggleGroup,
 }: {
   compositionDuration: number;
   frameDuration: number;
@@ -36,10 +38,13 @@ export function TimelinePropertyRows({
   pixelsPerSecond: number;
   startPointerDrag: StartWindowPointerDrag;
   timelineTargets: TimelineSnapTargets;
+  collapsedGroups?: ReadonlySet<string>;
+  onToggleGroup?: (id: string) => void;
 }) {
   const { state, dispatch } = useEditor();
   const { t } = useI18n();
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(() => new Set());
+  const [localGroups, setCollapsedGroups] = useState<Set<string>>(() => new Set());
+  const collapsedGroups = controlledGroups ?? localGroups;
   const groups = collectTimelinePropertyGroups(layer);
   const updateValue = (track: TimelinePropertyTrack, value: number) => {
     if (layer.locked || !Number.isFinite(value)) return;
@@ -140,12 +145,14 @@ export function TimelinePropertyRows({
               }
               className={`timeline-property-group-label ${group.source}`}
               onClick={() =>
-                setCollapsedGroups((current) => {
-                  const next = new Set(current);
-                  if (next.has(group.id)) next.delete(group.id);
-                  else next.add(group.id);
-                  return next;
-                })
+                onToggleGroup
+                  ? onToggleGroup(group.id)
+                  : setCollapsedGroups((current) => {
+                      const next = new Set(current);
+                      if (next.has(group.id)) next.delete(group.id);
+                      else next.add(group.id);
+                      return next;
+                    })
               }
               type="button"
             >

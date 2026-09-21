@@ -1,10 +1,7 @@
 import {
-  Box,
   ClipboardPaste,
   Copy,
-  Eye,
   Gauge,
-  Lock,
   Maximize2,
   Pause,
   Play,
@@ -12,13 +9,21 @@ import {
   SkipForward,
   SlidersHorizontal,
   Trash2,
-  Volume2,
   Wind,
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
 
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  type CSSProperties,
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   copyKeyframes,
   selectedKeyframes as findSelectedKeyframes,
@@ -29,7 +34,6 @@ import {
 import {
   compositionMotionBlurSettings,
   layerSupportsMotionBlur,
-  motionBlurInterval,
 } from "../../core/animation/motion-blur";
 import { onPlaybackFrame } from "../../core/animation/playback-frame";
 import { frameAt } from "../../core/animation/timeline";
@@ -52,9 +56,11 @@ import { useI18n } from "../../i18n/react";
 import { useEditor } from "../../state/editor-store";
 
 import { isEditableShortcutTarget, isEditorShortcutBlocked } from "../../ui/keyboard-shortcuts";
-
+import {
+  TIMELINE_BASE_SCALE as BASE_PIXELS_PER_SECOND,
+  TIMELINE_LABEL_WIDTH as LABEL_WIDTH,
+} from "../../ui/timeline-zoom";
 import { useContextMenuTrigger } from "../context-menu/use-context-menu-trigger";
-
 import { Panel, PanelTabs } from "../Panel";
 import { useWindowPointerDrag } from "../use-window-pointer-drag";
 import { useWorkspaceApi } from "../workspace/DockWorkspace";
@@ -62,13 +68,8 @@ import { useWorkspacePanelHost } from "../workspace/WorkspacePanelHost";
 import { TimelineContextMenu, type TimelineCreateKind } from "./TimelineContextMenu";
 import { collectTimelineLayerKeyframes } from "./TimelineLayerRow";
 import { type TimelineLayerActions, TimelineLayers } from "./TimelineLayers";
-import { TimelineWorkArea } from "./TimelineWorkArea";
-import {
-  formatSeconds,
-  formatTimecode,
-  rowAtClientY,
-  toggleTimelineFullscreen,
-} from "./timeline-display";
+import { TimelineRuler } from "./TimelineRuler";
+import { formatTimecode, rowAtClientY, toggleTimelineFullscreen } from "./timeline-display";
 import {
   buildTimelineSnapTargets,
   collectTimelineEventTimes,
@@ -88,14 +89,11 @@ import {
 } from "./timeline-keyframe-actions";
 import { duplicateTimelineLayers, splitTimelineLayers } from "./timeline-layer-clipboard";
 import type { KeyframeTimePreview } from "./timeline-property-tracks";
+import { useTimelineNavigation } from "./use-timeline-navigation";
 
 const GraphEditor = lazy(() =>
   import("../graph-editor/GraphEditor").then((module) => ({ default: module.GraphEditor })),
 );
-
-const LABEL_WIDTH = 286;
-
-const BASE_PIXELS_PER_SECOND = 82;
 
 interface TimelineMarquee {
   height: number;
@@ -115,17 +113,9 @@ export function Timeline({ mode }: { mode?: "timeline" | "graph" } = {}) {
   const composition = activeComposition(state.project);
   const pixelsPerSecond = BASE_PIXELS_PER_SECOND * state.timelineZoom;
   const compositionMotionBlur = compositionMotionBlurSettings(composition);
-  const shutterInterval = motionBlurInterval(
-    state.currentTime,
-    composition.frameRate.numerator / composition.frameRate.denominator,
-    compositionMotionBlur,
-  );
-  const showShutterRegion =
-    compositionMotionBlur.enabled &&
-    compositionMotionBlur.shutterAngle > 0 &&
-    state.timelineZoom >= 1.25;
   const scrollRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
+  const navigation = useTimelineNavigation(scrollRef, bottomMode === "timeline");
   const [keyframeClipboard, setKeyframeClipboard] = useState<KeyframeClipboard>();
   const [layerClipboard, setLayerClipboard] = useState<Layer[]>();
   const [menuLayerId, setMenuLayerId] = useState<string>();
@@ -152,9 +142,16 @@ export function Timeline({ mode }: { mode?: "timeline" | "graph" } = {}) {
     [composition.id, dispatch],
   );
   const frameDuration = compositionFrameDuration(composition);
+  const staticTimelineTargets = useMemo(
+    () =>
+      buildTimelineSnapTargets(composition, 0, workArea).filter(
+        (target) => target.kind !== "playhead",
+      ),
+    [composition, workArea],
+  );
   const timelineTargets = useMemo(
-    () => buildTimelineSnapTargets(composition, state.currentTime, workArea),
-    [composition, state.currentTime, workArea],
+    () => [{ time: state.currentTime, kind: "playhead" as const }, ...staticTimelineTargets],
+    [staticTimelineTargets, state.currentTime],
   );
   const selectedEntries = useMemo(
     () => findSelectedKeyframes(composition, state.selectedKeyframes),
@@ -221,6 +218,7 @@ export function Timeline({ mode }: { mode?: "timeline" | "graph" } = {}) {
     return pointerDrag.cancel;
   }, [pointerDrag, bottomMode]);
   const keyboardContext = useRef({
+    navigation,
     bottomMode: bottomMode,
     canEditSelectedKeyframes,
     canPasteKeyframeClipboard,
@@ -233,6 +231,7 @@ export function Timeline({ mode }: { mode?: "timeline" | "graph" } = {}) {
     workArea,
   });
   keyboardContext.current = {
+    navigation,
     bottomMode: bottomMode,
     canEditSelectedKeyframes,
     canPasteKeyframeClipboard,
@@ -248,14 +247,12 @@ export function Timeline({ mode }: { mode?: "timeline" | "graph" } = {}) {
     () =>
       onPlaybackFrame((frame) => {
         if (frame.compositionId !== composition.id) return;
-        const playhead = canvasRef.current?.querySelector<HTMLElement>(".playhead");
-        if (playhead) playhead.style.left = `${LABEL_WIDTH + frame.time * pixelsPerSecond}px`;
+        canvasRef.current?.style.setProperty(
+          "--timeline-playhead-left",
+          `${LABEL_WIDTH + frame.time * pixelsPerSecond}px`,
+        );
       }),
     [composition.id, pixelsPerSecond],
-  );
-  const ticks = useMemo(
-    () => Array.from({ length: Math.floor(composition.duration * 2) + 1 }, (_, index) => index / 2),
-    [composition.duration],
   );
   const clientXToTime = (clientX: number) => {
     const scroll = scrollRef.current;
@@ -278,7 +275,12 @@ export function Timeline({ mode }: { mode?: "timeline" | "graph" } = {}) {
       timelineTargets,
       bypassSnap,
     );
-    dispatch({ type: "setTime", time: snapped.time });
+    canvasRef.current?.style.setProperty(
+      "--timeline-playhead-left",
+      `${LABEL_WIDTH + snapped.time * pixelsPerSecond}px`,
+    );
+    if (snapped.time !== keyboardContext.current.currentTime)
+      dispatch({ type: "setTime", time: snapped.time });
   };
   const copySelection = () => {
     setKeyframeClipboard(copyKeyframes(selectedEntries));
@@ -445,11 +447,22 @@ export function Timeline({ mode }: { mode?: "timeline" | "graph" } = {}) {
       } else {
         const shortcut = resolveTimelineShortcut(event);
         if (!shortcut) return;
+        if (context.navigation.handleShortcut(shortcut)) {
+          event.preventDefault();
+          return;
+        }
         const compositionFrame = compositionFrameDuration(context.composition);
+        const lastFrame = Math.max(
+          0,
+          (Math.ceil(context.composition.duration / compositionFrame) - 1) * compositionFrame,
+        );
         const setTime = (time: number) =>
           dispatch({
             type: "setTime",
-            time: Math.max(0, Math.min(context.composition.duration, time)),
+            time: Math.max(
+              0,
+              Math.min(lastFrame, Math.round(time / compositionFrame) * compositionFrame),
+            ),
           });
         if (shortcut === "work-start" || shortcut === "work-end") {
           event.preventDefault();
@@ -457,7 +470,7 @@ export function Timeline({ mode }: { mode?: "timeline" | "graph" } = {}) {
             setWorkAreaBoundary(
               context.workArea,
               shortcut === "work-start" ? "start" : "end",
-              context.currentTime,
+              context.currentTime + (shortcut === "work-end" ? compositionFrame : 0),
               context.composition.duration,
               compositionFrame,
             ),
@@ -469,11 +482,34 @@ export function Timeline({ mode }: { mode?: "timeline" | "graph" } = {}) {
           setTime(shortcut === "composition-start" ? 0 : context.composition.duration);
           return;
         }
+        if (shortcut === "work-area-start" || shortcut === "work-area-end") {
+          event.preventDefault();
+          setTime(
+            shortcut === "work-area-start"
+              ? context.workArea.start
+              : context.workArea.end - compositionFrame,
+          );
+          return;
+        }
+        if (shortcut === "layer-in" || shortcut === "layer-out") {
+          const layers = context.composition.layers.filter((layer) =>
+            context.selection.includes(layer.id),
+          );
+          if (!layers.length) return;
+          event.preventDefault();
+          setTime(
+            shortcut === "layer-in"
+              ? Math.min(...layers.map((layer) => layer.inPoint))
+              : Math.max(...layers.map((layer) => layer.outPoint)) - compositionFrame,
+          );
+          return;
+        }
         if (shortcut === "previous-frame" || shortcut === "next-frame") {
           event.preventDefault();
           setTime(
             context.currentTime +
-              (shortcut === "previous-frame" ? -compositionFrame : compositionFrame),
+              (shortcut === "previous-frame" ? -compositionFrame : compositionFrame) *
+                (event.shiftKey ? 10 : 1),
           );
           return;
         }
@@ -503,8 +539,8 @@ export function Timeline({ mode }: { mode?: "timeline" | "graph" } = {}) {
           : "move";
         const requestedTime =
           shortcut === "align-out"
-            ? context.currentTime - (active.outPoint - active.inPoint)
-            : context.currentTime;
+            ? context.currentTime + compositionFrame - (active.outPoint - active.inPoint)
+            : context.currentTime + (shortcut === "trim-out" ? compositionFrame : 0);
         const timings = editLayerTimingGroup(
           selectedLayers,
           active.id,
@@ -789,25 +825,27 @@ export function Timeline({ mode }: { mode?: "timeline" | "graph" } = {}) {
           </button>
           <button
             aria-label={t("timeline.zoomOut")}
-            onClick={() => dispatch({ type: "setTimelineZoom", zoom: state.timelineZoom / 1.25 })}
+            onClick={() => navigation.zoomTo(state.timelineZoom / 1.25)}
+            title={`${t("timeline.zoomOut")} (-)`}
             type="button"
           >
             <ZoomOut size={13} />
           </button>
           <input
             aria-label={t("timeline.zoom")}
-            max="8"
-            min="0.5"
-            onChange={(event) =>
-              dispatch({ type: "setTimelineZoom", zoom: Number(event.target.value) })
-            }
-            step="0.1"
+            max={Math.log(navigation.bounds.max)}
+            min={Math.log(navigation.bounds.min)}
+            onChange={(event) => navigation.zoomTo(Math.exp(Number(event.target.value)))}
+            step="any"
             type="range"
-            value={state.timelineZoom}
+            value={Math.log(
+              Math.max(navigation.bounds.min, Math.min(navigation.bounds.max, state.timelineZoom)),
+            )}
           />
           <button
             aria-label={t("timeline.zoomIn")}
-            onClick={() => dispatch({ type: "setTimelineZoom", zoom: state.timelineZoom * 1.25 })}
+            onClick={() => navigation.zoomTo(state.timelineZoom * 1.25)}
+            title={`${t("timeline.zoomIn")} (=)`}
             type="button"
           >
             <ZoomIn size={13} />
@@ -822,6 +860,21 @@ export function Timeline({ mode }: { mode?: "timeline" | "graph" } = {}) {
         <div
           aria-label={t("timeline.menu.emptyLabel")}
           className="timeline-scroll"
+          onPointerDownCapture={(event) => {
+            if (event.button !== 1) return;
+            event.preventDefault();
+            event.stopPropagation();
+            const scroll = event.currentTarget;
+            const { scrollLeft, scrollTop } = scroll;
+            const { clientX, clientY } = event;
+            startPointerDrag(event.pointerId, {
+              onMove: (moveEvent) => {
+                scroll.scrollLeft = scrollLeft + clientX - moveEvent.clientX;
+                scroll.scrollTop = scrollTop + clientY - moveEvent.clientY;
+              },
+              onCommit: () => undefined,
+            });
+          }}
           onContextMenu={(event) => {
             if ((event.target as Element).closest("[data-timeline-row]")) return;
             setMenuLayerId(undefined);
@@ -840,61 +893,20 @@ export function Timeline({ mode }: { mode?: "timeline" | "graph" } = {}) {
           <div
             className="timeline-canvas"
             ref={canvasRef}
-            style={{ width: LABEL_WIDTH + composition.duration * pixelsPerSecond }}
+            style={
+              {
+                width: LABEL_WIDTH + composition.duration * pixelsPerSecond,
+                "--timeline-playhead-left": `${LABEL_WIDTH + state.currentTime * pixelsPerSecond}px`,
+              } as CSSProperties
+            }
           >
-            <div className="layer-column-header">
-              <span>{t("timeline.sourceName")}</span>
-              <div>
-                <Eye size={11} />
-                <Volume2 size={11} />
-                <Lock size={11} />
-                <Box size={11} />
-                <Wind size={11} />
-              </div>
-            </div>
-            <div
-              className="time-ruler"
-              onPointerDown={(event) => {
-                if (event.button !== 0) return;
-                event.preventDefault();
-                scrub(event.clientX, event.ctrlKey || event.metaKey);
-                startPointerDrag(event.pointerId, {
-                  onMove: (moveEvent) =>
-                    scrub(moveEvent.clientX, moveEvent.ctrlKey || moveEvent.metaKey),
-                  onCommit: () => undefined,
-                });
-              }}
-              style={{ left: LABEL_WIDTH, width: composition.duration * pixelsPerSecond }}
-            >
-              {showShutterRegion && (
-                <div
-                  aria-hidden="true"
-                  className="timeline-shutter-region"
-                  style={{
-                    left: shutterInterval.openTime * pixelsPerSecond,
-                    width: Math.max(1, shutterInterval.duration * pixelsPerSecond),
-                  }}
-                  title={t("timeline.motionBlur.shutterRegion")}
-                />
-              )}
-              {ticks.map((time) => (
-                <div
-                  className={Number.isInteger(time) ? "major tick" : "tick"}
-                  key={time}
-                  style={{ left: time * pixelsPerSecond }}
-                >
-                  <span>{Number.isInteger(time) ? formatSeconds(time) : ""}</span>
-                </div>
-              ))}
-              <TimelineWorkArea
-                duration={composition.duration}
-                frameDuration={frameDuration}
-                onChange={setWorkArea}
-                pixelsPerSecond={pixelsPerSecond}
-                startPointerDrag={startPointerDrag}
-                value={workArea}
-              />
-            </div>
+            <TimelineRuler
+              pixelsPerSecond={pixelsPerSecond}
+              viewport={navigation.viewport}
+              scrub={scrub}
+              startPointerDrag={startPointerDrag}
+              setWorkArea={setWorkArea}
+            />
             <TimelineLayers
               composition={composition}
               pixelsPerSecond={pixelsPerSecond}
@@ -906,11 +918,7 @@ export function Timeline({ mode }: { mode?: "timeline" | "graph" } = {}) {
               targets={rowTargetsRef}
             />
             {marquee && <div className="timeline-marquee" style={marquee} />}
-            <div
-              className="playhead"
-              style={{ left: LABEL_WIDTH + state.currentTime * pixelsPerSecond }}
-            >
-              <span />
+            <div className="playhead">
               <i />
             </div>
           </div>

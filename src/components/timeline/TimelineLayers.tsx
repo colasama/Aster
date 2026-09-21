@@ -13,6 +13,7 @@ import type { StartWindowPointerDrag } from "../use-window-pointer-drag";
 import { TimelineLayerRow } from "./TimelineLayerRow";
 import type { buildTimelineSnapTargets, LayerTimingDrag } from "./timeline-interactions";
 import type { KeyframeTimePreview } from "./timeline-property-tracks";
+import { useTimelineRowObserver } from "./use-timeline-row-window";
 
 export interface TimelineLayerActions {
   marquee(event: PointerEvent, row: number): void;
@@ -42,10 +43,12 @@ export const TimelineLayers = memo(function TimelineLayers({
   targets: RefObject<ReturnType<typeof buildTimelineSnapTargets>>;
 }) {
   const { state, dispatch } = useEditorDocument();
+  const rowsRef = useRef<HTMLDivElement>(null);
+  const observeRow = useTimelineRowObserver(rowsRef);
   const dragLayer = useRef<string | undefined>(undefined);
   const getTargets = useCallback(() => targets.current, [targets]);
   return (
-    <div className="layer-rows">
+    <div className="layer-rows" ref={rowsRef}>
       {composition.layers.map((layer, index) => (
         <TimelineLayerRow
           composition={composition}
@@ -53,6 +56,7 @@ export const TimelineLayers = memo(function TimelineLayers({
           keyframeTimePreview={keyframeTimePreview}
           key={layer.id}
           layer={layer}
+          observeRow={observeRow}
           onDragStart={() => {
             dragLayer.current = layer.id;
           }}

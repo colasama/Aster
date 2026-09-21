@@ -47,6 +47,7 @@ import {
   type TimelinePropertyTrack,
   timelineTrackKeyframes,
 } from "./timeline-property-tracks";
+import { type ObserveTimelineRow, useTimelineRowWindow } from "./use-timeline-row-window";
 
 const LABEL_WIDTH = 286;
 
@@ -68,6 +69,7 @@ export function TimelineLayerRow({
   startPointerDrag,
   timelineTargets,
   timing,
+  observeRow,
 }: {
   composition: ReturnType<typeof activeComposition>;
   index: number;
@@ -86,10 +88,23 @@ export function TimelineLayerRow({
   startPointerDrag: StartWindowPointerDrag;
   timelineTargets: TimelineSnapTargets;
   timing?: { inPoint: number; outPoint: number };
+  observeRow?: ObserveTimelineRow;
 }) {
   const { state, dispatch } = useEditorDocument();
   const { t } = useI18n();
   const [expanded, setExpanded] = useState(selected && layer.name === "ASTER");
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(() => new Set());
+  const row = useTimelineRowWindow(index, observeRow);
+  if (!row.visible)
+    return (
+      <div
+        ref={row.ref}
+        className={`timeline-layer ${selected ? "selected" : ""}`}
+        data-timeline-row={index}
+        aria-hidden="true"
+        style={{ height: row.height }}
+      />
+    );
   const frameDuration = compositionFrameDuration(composition);
   const keyframes = collectTimelineLayerKeyframes(layer);
   const Icon = layerIcon(layer);
@@ -97,8 +112,12 @@ export function TimelineLayerRow({
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: Native drag-and-drop requires row-level handlers.
     <div
+      ref={row.ref}
       className={`timeline-layer ${selected ? "selected" : ""}`}
       data-timeline-row={index}
+      onBlurCapture={row.onBlur}
+      onPointerDownCapture={row.pinGesture}
+      onDragStartCapture={row.pinGesture}
       onContextMenu={(event) => {
         event.currentTarget
           .querySelector<HTMLElement>(".layer-label")
@@ -179,6 +198,15 @@ export function TimelineLayerRow({
       </div>
       {expanded && (
         <TimelinePropertyRows
+          collapsedGroups={collapsedGroups}
+          onToggleGroup={(id) =>
+            setCollapsedGroups((current) => {
+              const next = new Set(current);
+              if (next.has(id)) next.delete(id);
+              else next.add(id);
+              return next;
+            })
+          }
           compositionDuration={composition.duration}
           frameDuration={frameDuration}
           keyframeTimePreview={keyframeTimePreview}
