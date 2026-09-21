@@ -109,7 +109,7 @@ jobs:
             target/aarch64-apple-darwin/release/aster-mcp \
             target/x86_64-apple-darwin/release/aster-mcp \
             -output target/release/aster-mcp
-          pnpm exec electron-builder --mac --universal
+          pnpm exec electron-builder --config scripts/electron-builder.ts --mac --universal
       - name: Upload desktop bundles
         uses: actions/upload-artifact@v4
         with:

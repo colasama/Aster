@@ -1,6 +1,7 @@
 import react from "@vitejs/plugin-react";
 import { defineConfig, loadEnv } from "vite";
 import { configDefaults } from "vitest/config";
+import { appVersion } from "./scripts/electron-builder";
 
 const DISABLED_BUNDLED_DEV_VALUES = new Set(["0", "false", "no", "off"]);
 const ENABLED_BUNDLED_DEV_VALUES = new Set(["1", "true", "yes", "on"]);
@@ -31,6 +32,7 @@ export default defineConfig(({ command, mode }) => {
   return {
     base: "./",
     plugins: [react()],
+    define: { __APP_VERSION__: JSON.stringify(appVersion) },
 
     // Aster's editor has a broad, GPU-oriented module graph. Vite's request-by-request transform
     // waterfall made a cold Electron window wait tens of seconds before React could mount, while

@@ -561,7 +561,7 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
           <div className="about-dialog">
             <div className="about-mark">A</div>
             <div>
-              <h2>Aster 0.2.1</h2>
+              <h2>Aster {__APP_VERSION__}</h2>
               <p>{t("workspace.about.summary")}</p>
               <span className="about-meta">
                 React 19 · TypeScript 7 · Electron 43 · Rust 2024 · WebGPU/WGSL · MPL-2.0

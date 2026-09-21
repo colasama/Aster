@@ -79,7 +79,7 @@ test("desktop launch and artifact scripts compile and stage their runtime depend
   assert.equal(manifest.scripts.electron, "pnpm dev");
   assert.match(
     manifest.scripts["artifact:build"],
-    /^pnpm artifact:prepare-ffmpeg && pnpm build && electron-builder$/,
+    /^pnpm artifact:prepare-ffmpeg && pnpm build && electron-builder --config scripts\/electron-builder\.ts$/,
   );
   assert.deepEqual(
     manifest.build.extraResources.find((entry) => entry.from === "build/ffmpeg"),

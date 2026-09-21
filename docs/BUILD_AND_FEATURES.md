@@ -35,8 +35,16 @@ pnpm artifact:build -- --linux AppImage deb --x64
 ```
 
 Use `--win nsis --x64` on Windows. The universal macOS CI job builds the bridge for both Apple
-architectures, combines it with `lipo`, and then runs `electron-builder --mac --universal` so the
+architectures, combines it with `lipo`, and then runs
+`electron-builder --config scripts/electron-builder.ts --mac --universal` so the
 sidecar architecture always matches the bundled Electron runtime.
+
+The About dialog and packaged application version include the current Git commit's short hash,
+for example `0.2.1+29ead88`. The same version appears in installer filenames, application logs,
+and diagnostic exports. `scripts/electron-builder.ts` supplies this version to Vite and the
+packager without modifying the source package version. Native numeric build versions retain the
+public version for platform compatibility. Builds require a Git checkout and read its current HEAD;
+uncommitted changes are included in the build but are not represented by the hash.
 
 ## MP4 encoder dependency
 
