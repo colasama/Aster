@@ -2,9 +2,12 @@
   "name": "aster",
   "description": "GPU-first motion graphics and compositing editor",
   "private": true,
-  "repository": "github:aster-mograph/aster",
+  "repository": "github:colasama/Aster",
   "version": "0.3.0",
-  "author": "Aster Contributors",
+  "author": {
+    "name": "Aster Contributors",
+    "email": "mycolands@gmail.com"
+  },
   "type": "module",
   "main": "dist-electron/electron/main.js",
   "packageManager": "pnpm@10.15.0",
