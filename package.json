@@ -3,7 +3,7 @@
   "description": "GPU-first motion graphics and compositing editor",
   "private": true,
   "repository": "github:aster-mograph/aster",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "author": "Aster Contributors",
   "type": "module",
   "main": "dist-electron/electron/main.js",

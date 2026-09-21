@@ -151,7 +151,7 @@ See [Architecture](docs/ARCHITECTURE.md), [Project Format](docs/PROJECT_FORMAT.m
 
 ## External automation
 
-Aster 0.2.1 supports an opt-in MCP connection for reference-video analysis, staged editing,
+Aster 0.3.0 supports an opt-in MCP connection for reference-video analysis, staged editing,
 bounded high-resolution previews, frame comparison, asset import, saving, and render export.
 See [External Automation](docs/AUTOMATION.md) for connection setup and the reconstruction workflow.
 
