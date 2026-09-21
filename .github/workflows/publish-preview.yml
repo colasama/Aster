@@ -1,0 +1,59 @@
+name: Publish desktop preview
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing version tag to publish
+        required: true
+        type: string
+      run_id:
+        description: Successful Build desktop artifacts run ID for the same commit
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: publish-preview-${{ inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-22.04
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RELEASE_TAG: ${{ inputs.tag }}
+      BUILD_RUN_ID: ${{ inputs.run_id }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify source and download validated artifacts
+        shell: bash
+        run: |
+          [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          [[ "$BUILD_RUN_ID" =~ ^[0-9]+$ ]]
+          gh api "repos/$GH_REPO/actions/runs/$BUILD_RUN_ID" > build-run.json
+          jq -e '.status == "completed" and .conclusion == "success" and .path == ".github/workflows/build-artifacts.yml"' build-run.json
+          source_sha=$(jq -r .head_sha build-run.json)
+          tag_sha=$(gh api "repos/$GH_REPO/commits/$RELEASE_TAG" --jq .sha)
+          test "$source_sha" = "$tag_sha"
+          for platform in linux-x64 macos-universal windows-x64; do
+            gh run download "$BUILD_RUN_ID" --name "aster-$platform-$source_sha" --dir "artifacts/$platform"
+            (cd "artifacts/$platform" && sha256sum --check SHA256SUMS.txt)
+          done
+          mkdir release-assets
+          cp artifacts/*/Aster-* release-assets/
+          cat artifacts/*/SHA256SUMS.txt > release-assets/SHA256SUMS.txt
+          (cd release-assets && sha256sum --check SHA256SUMS.txt)
+          cp "docs/releases/${RELEASE_TAG#v}.md" release-notes.md
+          printf '\nBuilt from `%s`; [validated build](https://github.com/%s/actions/runs/%s).\n' "$source_sha" "$GH_REPO" "$BUILD_RUN_ID" >> release-notes.md
+      - name: Upload assets and publish preview
+        shell: bash
+        run: |
+          gh release create "$RELEASE_TAG" --verify-tag --draft --prerelease \
+            --title "Aster ${RELEASE_TAG#v} (Preview)" --notes-file release-notes.md release-assets/*
+          gh release edit "$RELEASE_TAG" --draft=false --prerelease --latest=false
+          printf 'Published https://github.com/%s/releases/tag/%s\n' "$GH_REPO" "$RELEASE_TAG" >> "$GITHUB_STEP_SUMMARY"

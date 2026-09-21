@@ -19,7 +19,14 @@ for 14 days and contain the commit SHA in their artifact name. Unpacked applicat
 not uploaded. Developer ID signing and notarization remain outside this preview workflow. macOS
 tools and the final app receive ad-hoc signatures after merging; these do not establish a trusted
 publisher identity. Hardened runtime is disabled for this certificate-free preview build.
-Publishing is explicitly disabled, including on version tags.
+Publishing is explicitly disabled in the artifact workflow, including on version tags.
+
+To publish the validated installers, create a version tag at the build's exact commit, add release
+notes at `docs/releases/<version>.md`, and manually run **Publish desktop preview** with that tag
+and the successful artifact run ID. The release workflow requires the tag and build to match,
+checks all downloaded SHA-256 manifests, and uploads the original installers with combined checksums.
+It publishes a GitHub pre-release only after all assets have uploaded to a draft; it never promotes
+unsigned previews to stable releases.
 
 To build from a Windows machine without configuring a macOS cross-toolchain:
 
