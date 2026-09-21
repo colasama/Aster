@@ -43,3 +43,45 @@
   grid-template-columns: minmax(0, 1fr) 78px 24px;
   align-items: end;
 }
+
+.inspector-panel input[data-mixed]::placeholder,
+.inspector-panel textarea[data-mixed]::placeholder {
+  color: var(--text);
+  opacity: 1;
+}
+.inspector-panel input[type="range"][data-mixed]::-webkit-slider-thumb {
+  opacity: 0;
+}
+.mixed-color-input {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 24px;
+  min-width: 32px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+.mixed-color-input input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.mixed-color-input input[data-mixed] {
+  opacity: 0;
+}
+.mixed-color-input:focus-within {
+  outline: 1px solid #7399ed;
+}
+
+.inspector-panel button[aria-pressed="mixed"] {
+  position: relative;
+}
+.inspector-panel button[aria-pressed="mixed"]::after {
+  content: "—";
+  position: absolute;
+  right: 0;
+  bottom: -2px;
+  color: var(--text);
+  font-size: 10px;
+}

@@ -83,6 +83,23 @@ gesture. Keyframe IDs remain stable throughout the drag. Escape, pointer cancell
 time changes, and control unmount cancel pending previews and restore the original property track.
 Static properties stay static; animated properties are edited at the gesture's starting time.
 
+The Inspector reads the whole layer selection. Shared fields display their current evaluated value
+when it agrees across the selection, or an em dash when values differ. Checkboxes use their native
+indeterminate state; selects and color controls expose the same mixed state. Entering a value assigns
+that absolute value to every unlocked selected layer, including when it equals the first layer's
+value. Merely focusing or leaving a mixed input never writes a zero or the placeholder.
+
+`InspectorSelection` scopes the layer set to Inspector controls, so timeline row controls retain
+their individual targets. Transform axes, text and shape settings, audio, blending, timing, motion
+blur, cameras, lights, materials, generators, cloners, and shared effect parameters use field-level
+updates that preserve each layer's other settings and animation tracks. Fields conditional on a
+layer type or feature appear only when applicable to the entire selection. Effects match by type
+and occurrence within that type; nested animator groups, selectors, and cloner effectors match by
+ordinal with compatible kinds. Missing nested properties are omitted rather than created by an edit.
+Text animation values use each layer's own source time. Batch transform and effect scrubs retain
+per-target keyframe IDs and rollback tracks in one undo transaction; changing the selection also
+cancels an in-progress edit.
+
 ## Scene lighting
 
 The shared mesh material shader evaluates up to eight visible lights in flattened scene order.

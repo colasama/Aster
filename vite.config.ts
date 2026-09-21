@@ -83,6 +83,8 @@ export default defineConfig(({ command, mode }) => {
     test: {
       exclude: [
         ...configDefaults.exclude,
+        ".aster-cache/**",
+        ".pnpm-store/**",
         "scripts/**/*.test.mjs",
         "artifacts/**",
         "artifacts-final/**",

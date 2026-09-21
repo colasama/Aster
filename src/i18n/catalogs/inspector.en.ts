@@ -1,4 +1,6 @@
 export const inspectorEn = {
+  "inspector.mixed": "Multiple values",
+  "inspector.selection": "{count} layers selected",
   "inspector.content.scene": "3D scene",
   "inspector.content.cloner": "Cloner",
   "inspector.numeric.hint":

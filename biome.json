@@ -3,6 +3,8 @@
   "files": {
     "includes": [
       "**",
+      "!.aster-cache",
+      "!.pnpm-store",
       "!artifacts",
       "!artifacts-final",
       "!dist",
@@ -20,7 +22,20 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "preset": "recommended"
+      "preset": "recommended",
+      "a11y": {
+        "noLabelWithoutControl": {
+          "level": "error",
+          "options": {
+            "inputComponents": [
+              "MixedValueInput",
+              "MixedValueSelect",
+              "MixedValueTextarea",
+              "NumericInput"
+            ]
+          }
+        }
+      }
     }
   },
   "assist": {

@@ -8,6 +8,9 @@ import type {
 } from "../../core/animation/text-animator-stack";
 import { type Animatable, staticValue } from "../../core/types";
 import { useI18n } from "../../i18n/react";
+import { valuesDiffer } from "./inspector-selection";
+import { MixedValueSelect } from "./MixedValueInput";
+import { type SettingsEdit, settingsEdit } from "./settings-edit";
 import { TextAnimatableControl } from "./TextAnimatableControl";
 
 type TextAnimatorPropertyName = Exclude<keyof TextAnimatorProperties, "characterRange">;
@@ -34,25 +37,32 @@ const PROPERTY_NAMES: readonly TextAnimatorPropertyName[] = [
 export function TextAnimatorPropertyControls({
   onChange,
   properties,
+  selection = [properties],
+  times,
   time,
 }: {
-  onChange: (properties: TextAnimatorProperties) => void;
+  onChange: SettingsEdit<TextAnimatorProperties>;
+  selection?: readonly TextAnimatorProperties[];
+  times?: readonly number[];
   properties: TextAnimatorProperties;
   time: number;
 }) {
   const { t } = useI18n();
+  const edit = settingsEdit(properties, onChange, selection.length);
   const [nextProperty, setNextProperty] = useState<TextAnimatorPropertyName>("position");
-  const available = PROPERTY_NAMES.filter((name) => properties[name] === undefined);
+  const available = PROPERTY_NAMES.filter((name) =>
+    selection.some((entry) => entry[name] === undefined),
+  );
   const selected = available.includes(nextProperty) ? nextProperty : available[0];
   const add = () => {
     if (!selected) return;
-    onChange({
-      ...properties,
-      [selected]: defaultProperty(selected),
+    edit((current) => ({
+      ...current,
+      [selected]: current[selected] ?? defaultProperty(selected),
       ...(selected === "characterOffset" || selected === "characterValue"
-        ? { characterRange: properties.characterRange ?? "preserveCaseAndDigits" }
+        ? { characterRange: current.characterRange ?? "preserveCaseAndDigits" }
         : {}),
-    });
+    }));
   };
   return (
     <div className="text-animator-properties">
@@ -73,18 +83,23 @@ export function TextAnimatorPropertyControls({
           <Plus aria-hidden="true" size={11} /> {t("text.animator.addProperty")}
         </button>
       </div>
-      {properties.characterOffset !== undefined || properties.characterValue !== undefined ? (
+      {selection.every(
+        (entry) => entry.characterOffset !== undefined || entry.characterValue !== undefined,
+      ) ? (
         <label className="text-property-enum">
           <span>{t("text.property.characterRange")}</span>
-          <select
+          <MixedValueSelect
+            mixed={valuesDiffer(
+              selection.map((entry) => entry.characterRange ?? "preserveCaseAndDigits"),
+            )}
             aria-label={t("text.property.characterRange")}
             onChange={(event) =>
-              onChange({
-                ...properties,
+              edit((current) => ({
+                ...current,
                 characterRange: event.target.value as NonNullable<
                   TextAnimatorProperties["characterRange"]
                 >,
-              })
+              }))
             }
             value={properties.characterRange ?? "preserveCaseAndDigits"}
           >
@@ -92,12 +107,13 @@ export function TextAnimatorPropertyControls({
               {t("text.characterRange.preserveCaseAndDigits")}
             </option>
             <option value="fullUnicode">{t("text.characterRange.fullUnicode")}</option>
-          </select>
+          </MixedValueSelect>
         </label>
       ) : null}
       {PROPERTY_NAMES.flatMap((name) => {
         const property = properties[name];
-        if (property === undefined) return [];
+        if (property === undefined || !selection.every((entry) => entry[name] !== undefined))
+          return [];
         const label = t(`text.property.${name}`);
         return [
           <section className="text-animator-property" key={name}>
@@ -105,16 +121,18 @@ export function TextAnimatorPropertyControls({
               <strong>{label}</strong>
               <button
                 aria-label={t("text.animator.removeProperty", { label })}
-                onClick={() => {
-                  const next = { ...properties };
-                  delete next[name];
-                  if (
-                    (name === "characterOffset" && next.characterValue === undefined) ||
-                    (name === "characterValue" && next.characterOffset === undefined)
-                  )
-                    delete next.characterRange;
-                  onChange(next);
-                }}
+                onClick={() =>
+                  edit((current) => {
+                    const next = { ...current };
+                    delete next[name];
+                    if (
+                      (name === "characterOffset" && next.characterValue === undefined) ||
+                      (name === "characterValue" && next.characterOffset === undefined)
+                    )
+                      delete next.characterRange;
+                    return next;
+                  })
+                }
                 type="button"
               >
                 <Trash2 aria-hidden="true" size={10} />
@@ -122,7 +140,17 @@ export function TextAnimatorPropertyControls({
             </header>
             <PropertyFields
               name={name}
-              onChange={(value) => onChange({ ...properties, [name]: value })}
+              onChange={(value, recipe) =>
+                edit((current, index) => ({
+                  ...current,
+                  [name]:
+                    recipe && current[name] !== undefined ? recipe(current[name], index) : value,
+                }))
+              }
+              selection={selection.flatMap((entry) =>
+                entry[name] !== undefined ? [entry[name]] : [],
+              )}
+              times={times}
               property={property}
               time={time}
             />
@@ -137,10 +165,14 @@ function PropertyFields({
   name,
   onChange,
   property,
+  selection = [property],
+  times,
   time,
 }: {
   name: TextAnimatorPropertyName;
-  onChange: (value: TextAnimatorProperties[TextAnimatorPropertyName]) => void;
+  onChange: SettingsEdit<NonNullable<TextAnimatorProperties[TextAnimatorPropertyName]>>;
+  selection?: readonly NonNullable<TextAnimatorProperties[TextAnimatorPropertyName]>[];
+  times?: readonly number[];
   property: NonNullable<TextAnimatorProperties[TextAnimatorPropertyName]>;
   time: number;
 }) {
@@ -153,14 +185,22 @@ function PropertyFields({
       label={index === undefined ? label : `${label} ${axisLabel(name, index)}`}
       min={propertyBounds(name)[0]}
       max={propertyBounds(name)[1]}
-      onChange={(next) => {
-        if (index === undefined) onChange(next);
-        else {
-          const vector = [...(property as Animatable[])] as Animatable[];
-          vector[index] = next;
-          onChange(vector as NonNullable<TextAnimatorProperties[TextAnimatorPropertyName]>);
-        }
+      onChange={(next, recipe) => {
+        const update = (current: typeof property, targetIndex: number): typeof property => {
+          if (index === undefined)
+            return recipe ? recipe(current as Animatable, targetIndex) : next;
+          const vector = [...(current as Animatable[])];
+          vector[index] = recipe ? recipe(vector[index] as Animatable, targetIndex) : next;
+          return vector as typeof property;
+        };
+        onChange(update(property, 0), update);
       }}
+      selection={selection.map((entry) =>
+        index === undefined
+          ? (entry as Animatable)
+          : ((entry as Animatable[])[index] as Animatable),
+      )}
+      times={times}
       property={value}
       step={name.includes("Color") ? 0.01 : 1}
       time={time}

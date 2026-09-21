@@ -2,11 +2,13 @@ import { Timer } from "lucide-react";
 import type { EffectParameterDefinition } from "../../effects/types";
 import { useI18n } from "../../i18n/react";
 import { type NumericEditPhase, NumericInput } from "../NumericInput";
+import { MixedValueInput, MixedValueSelect } from "./MixedValueInput";
 
 export function EffectParameter({
   definition,
   editTime,
   value,
+  mixed = false,
   onChange,
   onToggleKeyframe,
   animated,
@@ -15,6 +17,7 @@ export function EffectParameter({
   definition: EffectParameterDefinition;
   editTime?: number;
   value: number;
+  mixed?: boolean;
   onChange: (value: number, phase?: NumericEditPhase) => void;
   onToggleKeyframe: (value: number) => void;
   animated: boolean;
@@ -33,7 +36,8 @@ export function EffectParameter({
     return (
       <label className="effect-parameter effect-toggle">
         <span>{definition.label}</span>
-        <input
+        <MixedValueInput
+          mixed={mixed}
           checked={value > 0.5}
           onChange={(event) => onChange(event.target.checked ? 1 : 0)}
           type="checkbox"
@@ -51,13 +55,17 @@ export function EffectParameter({
     return (
       <label className="effect-parameter">
         <span>{definition.label}</span>
-        <select onChange={(event) => onChange(Number(event.target.value))} value={value}>
+        <MixedValueSelect
+          mixed={mixed}
+          onChange={(event) => onChange(Number(event.target.value))}
+          value={value}
+        >
           {definition.options?.map((option, index) => (
             <option key={option} value={index}>
               {option}
             </option>
           ))}
-        </select>
+        </MixedValueSelect>
         <EffectKeyframeButton
           animated={animated}
           keyframed={keyframed}
@@ -71,7 +79,8 @@ export function EffectParameter({
     return (
       <label className="effect-parameter effect-color">
         <span>{definition.label}</span>
-        <input
+        <MixedValueInput
+          mixed={mixed}
           onChange={(event) => onChange(Number.parseInt(event.target.value.slice(1), 16))}
           type="color"
           value={`#${Math.max(0, Math.min(0xffffff, Math.round(value)))
@@ -92,6 +101,7 @@ export function EffectParameter({
       <span title={definition.label}>{definition.label}</span>
       {definition.min !== undefined && definition.max !== undefined && (
         <NumericInput
+          mixed={mixed}
           editTime={editTime}
           aria-label={definition.label}
           className="effect-range"
@@ -105,6 +115,7 @@ export function EffectParameter({
       )}
       <span className="effect-value">
         <NumericInput
+          mixed={mixed}
           editTime={editTime}
           aria-label={definition.label}
           max={definition.max}

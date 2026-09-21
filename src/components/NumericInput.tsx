@@ -9,6 +9,7 @@ type NumericInputProps = Omit<
   "value" | "onChange" | "min" | "max" | "step" | "type"
 > & {
   value: number;
+  mixed?: boolean;
   editTime?: number;
   min?: number;
   max?: number;
@@ -19,6 +20,7 @@ type NumericInputProps = Omit<
 
 export function NumericInput({
   value,
+  mixed = false,
   editTime,
   min = -Infinity,
   max = Infinity,
@@ -49,7 +51,11 @@ export function NumericInput({
     if (draft === undefined) return;
     const next = Number(draft);
     setDraft(undefined);
-    if (draft.trim() && Number.isFinite(next) && next !== value && normalize(next) !== value)
+    if (
+      draft.trim() &&
+      Number.isFinite(next) &&
+      (mixed || (next !== value && normalize(next) !== value))
+    )
       onValueChange(normalize(next), "commit");
   };
 
@@ -58,20 +64,26 @@ export function NumericInput({
       {...props}
       className={`numeric-input ${className} ${dragging ? "scrubbing" : ""}`}
       data-editing={draft !== undefined || undefined}
+      data-mixed={mixed || undefined}
+      placeholder={mixed ? "—" : props.placeholder}
+      aria-description={mixed ? t("inspector.mixed") : props["aria-description"]}
       max={Number.isFinite(max) ? max : undefined}
       min={Number.isFinite(min) ? min : undefined}
       step={step}
       title={props.title ?? t("inspector.numeric.hint")}
       type={type}
       value={
-        draft ?? Number(value.toFixed(Math.min(6, Math.max(3, 1 - Math.floor(Math.log10(step))))))
+        draft ??
+        (mixed && type === "number"
+          ? ""
+          : Number(value.toFixed(Math.min(6, Math.max(3, 1 - Math.floor(Math.log10(step)))))))
       }
       onBlur={() => commitDraft()}
       onChange={(event) => {
         if (type === "range") {
           const next = normalize(Number(event.target.value));
           if (active.current) active.current.move(next);
-          else if (next !== value) onValueChange(next, "commit");
+          else if (mixed || next !== value) onValueChange(next, "commit");
         } else setDraft(event.target.value);
       }}
       onKeyDown={(event) => {
@@ -97,7 +109,7 @@ export function NumericInput({
                 (event.altKey ? 0.1 : event.shiftKey ? 10 : 1),
           );
           setDraft(undefined);
-          if (next !== value) onValueChange(next, "commit");
+          if (mixed || next !== value) onValueChange(next, "commit");
         }
       }}
       onPointerDown={(event) => {
@@ -119,6 +131,7 @@ export function NumericInput({
         const startX = event.clientX;
         let moved = false;
         let previewed = false;
+        let changed = false;
         const coalescer = new RafCoalescer<number>(
           {
             request: (callback) => owner.requestAnimationFrame(callback),
@@ -130,6 +143,7 @@ export function NumericInput({
           },
         );
         const move = (updated: number) => {
+          changed = true;
           next = updated;
           coalescer.schedule(updated);
         };
@@ -137,11 +151,11 @@ export function NumericInput({
           coalescer.cancel();
           active.current = undefined;
           setDragging(false);
-          if (cancelled || next === value) {
+          if (cancelled || !changed || (!mixed && next === value)) {
             if (previewed) onValueChange(value, "cancel");
           } else onValueChange(next, "commit");
           if (!cancelled && !moved && type === "number") {
-            setDraft(String(value));
+            setDraft(mixed ? "" : String(value));
             target.select();
           }
         };

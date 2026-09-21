@@ -1,6 +1,7 @@
 import { Upload } from "lucide-react";
 import { useId, useMemo, useRef, useState } from "react";
 import { applyOperations, type Operation } from "../../core/editing/operations";
+import { resolveTextStyle } from "../../core/layers/text-style";
 import { createProjectFont } from "../../core/media/font-import";
 import { prepareProjectFonts } from "../../core/media/project-font-runtime";
 import type { Layer, TextStyle } from "../../core/types";
@@ -8,6 +9,7 @@ import { listSystemFonts } from "../../desktop/fonts";
 import { useI18n } from "../../i18n/react";
 import { useEditor } from "../../state/editor-store";
 import { FontFamilyPicker } from "./FontFamilyPicker";
+import { useInspectorLayers, valuesDiffer } from "./inspector-selection";
 
 let inventory: { expires: number; families: Promise<string[]> } | undefined;
 
@@ -35,6 +37,7 @@ export function FontFamilyControl({
 }) {
   const { state, dispatch } = useEditor();
   const { t } = useI18n();
+  const layers = useInspectorLayers(layer);
   const latest = useRef(state);
   latest.current = state;
   const id = useId();
@@ -69,11 +72,19 @@ export function FontFamilyControl({
       const font = await createProjectFont(file, family);
       const operations: Operation[] = [
         { type: "addProjectFont", font },
-        {
-          type: "setTextStyle",
-          layerId: layer.id,
-          textStyle: { ...style, fontFamily: JSON.stringify(family), fontWeight: font.weight },
-        },
+        ...layers
+          .filter((entry) => !entry.locked)
+          .map(
+            (entry): Operation => ({
+              type: "setTextStyle",
+              layerId: entry.id,
+              textStyle: {
+                ...resolveTextStyle(entry),
+                fontFamily: JSON.stringify(family),
+                fontWeight: font.weight,
+              },
+            }),
+          ),
       ];
       await prepareProjectFonts(applyOperations(captured.project, operations));
       if (
@@ -101,6 +112,7 @@ export function FontFamilyControl({
           families={families}
           onOpen={() => void load()}
           onChange={onChange}
+          mixed={valuesDiffer(layers.map((entry) => resolveTextStyle(entry).fontFamily))}
           value={style.fontFamily}
         />
         <button

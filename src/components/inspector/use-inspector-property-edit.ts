@@ -53,7 +53,7 @@ function restoreProperty(project: Project, operation: PropertyEdit): Operation[]
 export function useInspectorPropertyEdit() {
   const { state, dispatch } = useEditor();
   const transaction = useRef<
-    { base: Project; rollback: Operation[]; operation: PropertyEdit } | undefined
+    { base: Project; rollback: Operation[]; operations: PropertyEdit[] } | undefined
   >(undefined);
   const currentProject = useRef(state.project);
   currentProject.current = state.project;
@@ -72,34 +72,45 @@ export function useInspectorPropertyEdit() {
   cancelRef.current = cancel;
   useEffect(() => () => cancelRef.current(), []);
 
-  return (operation: Operation, phase: NumericEditPhase = "commit") => {
+  return (input: Operation | readonly Operation[], phase: NumericEditPhase = "commit") => {
     if (phase === "cancel") return cancel();
-    if (
-      operation.type !== "setProperty" &&
-      operation.type !== "addKeyframe" &&
-      operation.type !== "setEffectParameterAtTime"
-    )
-      return;
-    const first = transaction.current?.operation;
-    if (first?.type === "addKeyframe" && operation.type === "addKeyframe") {
-      operation = { ...operation, keyframe: { ...operation.keyframe, id: first.keyframe.id } };
-    } else if (
-      first?.type === "setEffectParameterAtTime" &&
-      operation.type === "setEffectParameterAtTime"
-    ) {
-      operation = { ...operation, keyframeId: first.keyframeId };
-    }
+    const operations = (Array.isArray(input) ? input : [input])
+      .filter(
+        (operation): operation is PropertyEdit =>
+          operation.type === "setProperty" ||
+          operation.type === "addKeyframe" ||
+          operation.type === "setEffectParameterAtTime",
+      )
+      .map((operation): PropertyEdit => {
+        const first = transaction.current?.operations.find(
+          (entry) =>
+            entry.layerId === operation.layerId &&
+            (entry.type === "setEffectParameterAtTime" &&
+            operation.type === "setEffectParameterAtTime"
+              ? entry.effectId === operation.effectId && entry.parameter === operation.parameter
+              : "path" in entry && "path" in operation && entry.path === operation.path),
+        );
+        if (first?.type === "addKeyframe" && operation.type === "addKeyframe")
+          return { ...operation, keyframe: { ...operation.keyframe, id: first.keyframe.id } };
+        if (
+          first?.type === "setEffectParameterAtTime" &&
+          operation.type === "setEffectParameterAtTime"
+        )
+          return { ...operation, keyframeId: first.keyframeId };
+        return operation;
+      });
+    if (!operations.length) return;
     if (phase === "preview") {
       transaction.current ??= {
         base: state.project,
-        operation,
-        rollback: restoreProperty(state.project, operation),
+        operations,
+        rollback: operations.flatMap((operation) => restoreProperty(state.project, operation)),
       };
-      dispatch({ type: "previewOperation", operations: [operation] });
+      dispatch({ type: "previewOperation", operations });
     } else {
       const base = transaction.current?.base;
       transaction.current = undefined;
-      dispatch({ type: "operation", operations: [operation], historyBase: base });
+      dispatch({ type: "operation", operations, historyBase: base });
     }
   };
 }

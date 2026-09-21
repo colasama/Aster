@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import type { Layer } from "../../core/types";
 import { useI18n } from "../../i18n/react";
 import { AudioControls } from "./AudioControls";
+import { useInspectorLayers } from "./inspector-selection";
 import { Scene3dControls } from "./Scene3dControls";
 import { ShapeControls } from "./ShapeControls";
 import { SolidControls } from "./SolidControls";
@@ -10,6 +11,15 @@ import { TextControls } from "./TextControls";
 
 export function LayerContentControls({ layer }: { layer: Layer }) {
   const { t } = useI18n();
+  const layers = useInspectorLayers(layer);
+  if (
+    !layers.every(
+      (entry) =>
+        entry.kind === layer.kind ||
+        (["audio", "video"].includes(entry.kind) && ["audio", "video"].includes(layer.kind)),
+    )
+  )
+    return null;
   let content: ReactNode;
   let title: string;
   switch (layer.kind) {
@@ -47,7 +57,7 @@ export function LayerContentControls({ layer }: { layer: Layer }) {
         <ChevronRight size={14} />
         {title}
       </summary>
-      <fieldset className="compositing-grid" disabled={layer.locked}>
+      <fieldset className="compositing-grid" disabled={layers.every((entry) => entry.locked)}>
         {content}
       </fieldset>
     </details>

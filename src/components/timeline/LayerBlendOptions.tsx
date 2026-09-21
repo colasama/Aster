@@ -5,6 +5,8 @@ import { propertyValueOperationAtTime } from "../../core/editing/property-edit-o
 import { BLEND_MODES, type BlendMode, createId, type Layer } from "../../core/types";
 import { useI18n } from "../../i18n/react";
 import { useEditor } from "../../state/editor-store";
+import { useInspectorLayers, valuesDiffer } from "../inspector/inspector-selection";
+import { MixedValueSelect } from "../inspector/MixedValueInput";
 import { useInspectorPropertyEdit } from "../inspector/use-inspector-property-edit";
 import { NumericInput } from "../NumericInput";
 
@@ -13,6 +15,8 @@ export function LayerBlendOptions({ layer }: { layer: Layer }) {
   const { t } = useI18n();
   const [open, setOpen] = useState(true);
   const edit = useInspectorPropertyEdit();
+  const layers = useInspectorLayers(layer);
+  const editable = layers.filter((entry) => !entry.locked);
   const opacity = evaluateAnimatable(layer.transform.opacity, state.currentTime);
   return (
     <div className="inspector-section layer-blend-options">
@@ -28,21 +32,20 @@ export function LayerBlendOptions({ layer }: { layer: Layer }) {
         </button>
       </div>
       {open && (
-        <fieldset className="compositing-grid" disabled={layer.locked}>
+        <fieldset className="compositing-grid" disabled={!editable.length}>
           <label>
             {t("inspector.compositing.blendMode")}
-            <select
+            <MixedValueSelect
+              mixed={valuesDiffer(layers.map((entry) => entry.blendMode))}
               value={layer.blendMode}
               onChange={(event) =>
                 dispatch({
                   type: "operation",
-                  operations: [
-                    {
-                      type: "setBlendMode",
-                      layerId: layer.id,
-                      blendMode: event.target.value as BlendMode,
-                    },
-                  ],
+                  operations: editable.map((entry) => ({
+                    type: "setBlendMode",
+                    layerId: entry.id,
+                    blendMode: event.target.value as BlendMode,
+                  })),
                 })
               }
             >
@@ -51,7 +54,7 @@ export function LayerBlendOptions({ layer }: { layer: Layer }) {
                   {t(`inspector.blend.${mode}`)}
                 </option>
               ))}
-            </select>
+            </MixedValueSelect>
           </label>
           <label htmlFor={`layer-blend-opacity-${layer.id}`}>
             {t("inspector.transform.opacity")}
@@ -60,10 +63,17 @@ export function LayerBlendOptions({ layer }: { layer: Layer }) {
               editTime={state.currentTime}
               min={0}
               max={100}
+              mixed={valuesDiffer(
+                layers.map((entry) =>
+                  evaluateAnimatable(entry.transform.opacity, state.currentTime),
+                ),
+              )}
               value={opacity}
               onValueChange={(value, phase) =>
                 edit(
-                  propertyValueOperationAtTime(layer, "opacity", value, state.currentTime),
+                  editable.map((entry) =>
+                    propertyValueOperationAtTime(entry, "opacity", value, state.currentTime),
+                  ),
                   phase,
                 )
               }
@@ -76,20 +86,18 @@ export function LayerBlendOptions({ layer }: { layer: Layer }) {
             onClick={() =>
               dispatch({
                 type: "operation",
-                operations: [
-                  {
-                    type: "addKeyframe",
-                    layerId: layer.id,
-                    path: "opacity",
-                    keyframe: {
-                      id: createId(),
-                      time: state.currentTime,
-                      value: opacity,
-                      interpolation: "bezier",
-                      easing: [0.42, 0, 0.58, 1],
-                    },
+                operations: editable.map((entry) => ({
+                  type: "addKeyframe",
+                  layerId: entry.id,
+                  path: "opacity",
+                  keyframe: {
+                    id: createId(),
+                    time: state.currentTime,
+                    value: evaluateAnimatable(entry.transform.opacity, state.currentTime),
+                    interpolation: "bezier",
+                    easing: [0.42, 0, 0.58, 1],
                   },
-                ],
+                })),
               })
             }
           >

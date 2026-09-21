@@ -16,6 +16,9 @@ import {
 } from "../../core/animation/text-animator-stack";
 import type { TextSelector } from "../../core/animation/text-selectors";
 import { useI18n } from "../../i18n/react";
+import { valuesDiffer } from "./inspector-selection";
+import { MixedValueInput } from "./MixedValueInput";
+import { type SettingsEdit, type SettingsRecipe, settingsEdit } from "./settings-edit";
 import { TextAnimatorPropertyControls } from "./TextAnimatorPropertyControls";
 import { TextSelectorControls } from "./TextSelectorControls";
 
@@ -24,78 +27,104 @@ type SelectorKind = TextSelector["kind"];
 export function TextAnimatorControls({
   onChange,
   settings,
+  selection = [settings],
+  times,
   time,
 }: {
-  onChange: (settings: TextAnimatorStackSettings) => void;
+  onChange: SettingsEdit<TextAnimatorStackSettings>;
+  selection?: readonly TextAnimatorStackSettings[];
+  times?: readonly number[];
   settings: TextAnimatorStackSettings;
   time: number;
 }) {
   const { t } = useI18n();
-  const updateGroup = (index: number, group: TextAnimatorGroup) => {
-    const groups = [...settings.groups];
-    groups[index] = group;
-    onChange({ ...settings, groups });
-  };
-  const moveGroup = (index: number, direction: -1 | 1) => {
-    const target = index + direction;
-    if (target < 0 || target >= settings.groups.length) return;
-    const groups = [...settings.groups];
-    [groups[index], groups[target]] = [
-      groups[target] as TextAnimatorGroup,
-      groups[index] as TextAnimatorGroup,
-    ];
-    onChange({ ...settings, groups });
-  };
+  const edit = settingsEdit(settings, onChange, selection.length);
+  const updateGroup = (
+    index: number,
+    group: TextAnimatorGroup,
+    recipe?: SettingsRecipe<TextAnimatorGroup>,
+  ) =>
+    edit((current, targetIndex) => ({
+      ...current,
+      groups: current.groups.map((entry, groupIndex) =>
+        groupIndex === index ? (recipe ? recipe(entry, targetIndex) : group) : entry,
+      ),
+    }));
+  const moveGroup = (index: number, direction: -1 | 1) =>
+    edit((current) => {
+      const target = index + direction;
+      if (target < 0 || target >= current.groups.length) return current;
+      const groups = [...current.groups];
+      [groups[index], groups[target]] = [
+        groups[target] as TextAnimatorGroup,
+        groups[index] as TextAnimatorGroup,
+      ];
+      return { ...current, groups };
+    });
   return (
     <div className="text-animator-controls">
       <div className="text-animator-toolbar">
         <label className="text-stack-toggle">
-          <input
+          <MixedValueInput
+            mixed={valuesDiffer(selection.map((entry) => entry.enabled))}
             checked={settings.enabled}
-            onChange={(event) => onChange({ ...settings, enabled: event.target.checked })}
+            onChange={(event) => edit((current) => ({ ...current, enabled: event.target.checked }))}
             type="checkbox"
           />
           <span>{t("text.animator.enabled")}</span>
         </label>
         <button
           aria-label={t("text.animator.add")}
-          disabled={settings.groups.length >= MAX_TEXT_ANIMATOR_GROUPS}
+          disabled={selection.some((entry) => entry.groups.length >= MAX_TEXT_ANIMATOR_GROUPS)}
           onClick={() =>
-            onChange({
-              ...settings,
-              groups: [...settings.groups, createDefaultTextAnimatorGroup(settings.groups.length)],
-            })
+            edit((current) => ({
+              ...current,
+              groups: [...current.groups, createDefaultTextAnimatorGroup(current.groups.length)],
+            }))
           }
           type="button"
         >
           <Plus aria-hidden="true" size={11} /> {t("text.animator.add")}
         </button>
       </div>
-      {settings.enabled
-        ? settings.groups.map((group, index) => (
-            <AnimatorGroupControls
-              canMoveDown={index < settings.groups.length - 1}
-              canMoveUp={index > 0}
-              canDuplicate={settings.groups.length < MAX_TEXT_ANIMATOR_GROUPS}
-              group={group}
-              key={group.id}
-              onChange={(next) => updateGroup(index, next)}
-              onMoveDown={() => moveGroup(index, 1)}
-              onMoveUp={() => moveGroup(index, -1)}
-              onDuplicate={() => {
-                const groups = [...settings.groups];
-                groups.splice(index + 1, 0, duplicateTextAnimatorGroup(group));
-                onChange({ ...settings, groups });
-              }}
-              onRemove={() =>
-                onChange({
-                  ...settings,
-                  groups: settings.groups.filter((_, candidate) => candidate !== index),
-                })
-              }
-              time={time}
-            />
-          ))
+      {selection.every((entry) => entry.enabled)
+        ? settings.groups.map(
+            (group, index) =>
+              selection.every((entry) => entry.groups[index]) && (
+                <AnimatorGroupControls
+                  canMoveDown={selection.every((entry) => index < entry.groups.length - 1)}
+                  canMoveUp={index > 0}
+                  canDuplicate={selection.every(
+                    (entry) => entry.groups.length < MAX_TEXT_ANIMATOR_GROUPS,
+                  )}
+                  group={group}
+                  selection={selection.map((entry) => entry.groups[index] as TextAnimatorGroup)}
+                  times={times}
+                  key={group.id}
+                  onChange={(next, recipe) => updateGroup(index, next, recipe)}
+                  onMoveDown={() => moveGroup(index, 1)}
+                  onMoveUp={() => moveGroup(index, -1)}
+                  onDuplicate={() =>
+                    edit((current) => {
+                      const groups = [...current.groups];
+                      groups.splice(
+                        index + 1,
+                        0,
+                        duplicateTextAnimatorGroup(groups[index] as TextAnimatorGroup),
+                      );
+                      return { ...current, groups };
+                    })
+                  }
+                  onRemove={() =>
+                    edit((current) => ({
+                      ...current,
+                      groups: current.groups.filter((_, candidate) => candidate !== index),
+                    }))
+                  }
+                  time={time}
+                />
+              ),
+          )
         : null}
     </div>
   );
@@ -106,6 +135,8 @@ function AnimatorGroupControls({
   canMoveUp,
   canDuplicate,
   group,
+  selection = [group],
+  times,
   onChange,
   onMoveDown,
   onMoveUp,
@@ -117,7 +148,9 @@ function AnimatorGroupControls({
   canMoveUp: boolean;
   canDuplicate: boolean;
   group: TextAnimatorGroup;
-  onChange: (group: TextAnimatorGroup) => void;
+  selection?: readonly TextAnimatorGroup[];
+  times?: readonly number[];
+  onChange: SettingsEdit<TextAnimatorGroup>;
   onMoveDown: () => void;
   onMoveUp: () => void;
   onDuplicate: () => void;
@@ -127,47 +160,60 @@ function AnimatorGroupControls({
   const { t } = useI18n();
   const [selectorKind, setSelectorKind] = useState<SelectorKind>("range");
   const label = group.name ?? t("text.animator.enabled");
-  const updateSelector = (index: number, selector: TextSelector) => {
-    const selectors = [...group.selectors];
-    selectors[index] = selector;
-    onChange({ ...group, selectors });
-  };
-  const moveSelector = (index: number, direction: -1 | 1) => {
-    const target = index + direction;
-    if (target < 0 || target >= group.selectors.length) return;
-    const selectors = [...group.selectors];
-    [selectors[index], selectors[target]] = [
-      selectors[target] as TextSelector,
-      selectors[index] as TextSelector,
-    ];
-    onChange({ ...group, selectors });
-  };
-  const addSelector = () => {
-    if (group.selectors.length >= MAX_TEXT_SELECTORS_PER_GROUP) return;
-    const kindIndex = group.selectors.filter((selector) => selector.kind === selectorKind).length;
-    const selector =
-      selectorKind === "range"
-        ? createDefaultRangeSelector(kindIndex)
-        : selectorKind === "wiggly"
-          ? createDefaultWigglySelector(kindIndex)
-          : createDefaultExpressionSelector(kindIndex);
-    onChange({ ...group, selectors: [...group.selectors, selector] });
-  };
+  const edit = settingsEdit(group, onChange, selection.length);
+  const updateSelector = (
+    index: number,
+    selector: TextSelector,
+    recipe?: SettingsRecipe<TextSelector>,
+  ) =>
+    edit((current, targetIndex) => ({
+      ...current,
+      selectors: current.selectors.map((entry, selectorIndex) =>
+        selectorIndex === index ? (recipe ? recipe(entry, targetIndex) : selector) : entry,
+      ),
+    }));
+  const moveSelector = (index: number, direction: -1 | 1) =>
+    edit((current) => {
+      const target = index + direction;
+      if (target < 0 || target >= current.selectors.length) return current;
+      const selectors = [...current.selectors];
+      [selectors[index], selectors[target]] = [
+        selectors[target] as TextSelector,
+        selectors[index] as TextSelector,
+      ];
+      return { ...current, selectors };
+    });
+  const addSelector = () =>
+    edit((current) => {
+      if (current.selectors.length >= MAX_TEXT_SELECTORS_PER_GROUP) return current;
+      const kindIndex = current.selectors.filter(
+        (selector) => selector.kind === selectorKind,
+      ).length;
+      const selector =
+        selectorKind === "range"
+          ? createDefaultRangeSelector(kindIndex)
+          : selectorKind === "wiggly"
+            ? createDefaultWigglySelector(kindIndex)
+            : createDefaultExpressionSelector(kindIndex);
+      return { ...current, selectors: [...current.selectors, selector] };
+    });
   return (
     <section className="text-animator-group">
       <header>
         <label className="text-stack-toggle">
-          <input
+          <MixedValueInput
             aria-label={t("text.selector.enabled", { label })}
+            mixed={valuesDiffer(selection.map((entry) => entry.enabled))}
             checked={group.enabled}
-            onChange={(event) => onChange({ ...group, enabled: event.target.checked })}
+            onChange={(event) => edit((current) => ({ ...current, enabled: event.target.checked }))}
             type="checkbox"
           />
-          <input
+          <MixedValueInput
             aria-label={t("text.animator.name")}
             maxLength={128}
-            onChange={(event) => onChange({ ...group, name: event.target.value })}
+            onChange={(event) => edit((current) => ({ ...current, name: event.target.value }))}
             type="text"
+            mixed={valuesDiffer(selection.map((entry) => entry.name ?? ""))}
             value={group.name ?? ""}
           />
         </label>
@@ -201,15 +247,25 @@ function AnimatorGroupControls({
       </header>
       <label className="text-animator-seed">
         {t("text.animator.randomSeed")}
-        <input
-          onChange={(event) => onChange({ ...group, randomSeed: Number(event.target.value) })}
+        <MixedValueInput
+          onChange={(event) =>
+            edit((current) => ({ ...current, randomSeed: Number(event.target.value) }))
+          }
           type="number"
+          mixed={valuesDiffer(selection.map((entry) => entry.randomSeed))}
           value={group.randomSeed}
         />
       </label>
       <div className="text-animator-subheading">{t("text.animator.properties")}</div>
       <TextAnimatorPropertyControls
-        onChange={(properties) => onChange({ ...group, properties })}
+        onChange={(properties, recipe) =>
+          edit((current, index) => ({
+            ...current,
+            properties: recipe ? recipe(current.properties, index) : properties,
+          }))
+        }
+        selection={selection.map((entry) => entry.properties)}
+        times={times}
         properties={group.properties}
         time={time}
       />
@@ -217,7 +273,9 @@ function AnimatorGroupControls({
       <div className="text-stack-add-row">
         <select
           aria-label={t("text.animator.addSelector")}
-          disabled={group.selectors.length >= MAX_TEXT_SELECTORS_PER_GROUP}
+          disabled={selection.some(
+            (entry) => entry.selectors.length >= MAX_TEXT_SELECTORS_PER_GROUP,
+          )}
           onChange={(event) => setSelectorKind(event.target.value as SelectorKind)}
           value={selectorKind}
         >
@@ -226,37 +284,52 @@ function AnimatorGroupControls({
           <option value="expression">{t("text.selector.expression")}</option>
         </select>
         <button
-          disabled={group.selectors.length >= MAX_TEXT_SELECTORS_PER_GROUP}
+          disabled={selection.some(
+            (entry) => entry.selectors.length >= MAX_TEXT_SELECTORS_PER_GROUP,
+          )}
           onClick={addSelector}
           type="button"
         >
           <Plus aria-hidden="true" size={11} /> {t("text.animator.addSelector")}
         </button>
       </div>
-      {group.selectors.map((selector, index) => (
-        <TextSelectorControls
-          canMoveDown={index < group.selectors.length - 1}
-          canMoveUp={index > 0}
-          canDuplicate={group.selectors.length < MAX_TEXT_SELECTORS_PER_GROUP}
-          key={selector.id}
-          onChange={(next) => updateSelector(index, next)}
-          onMoveDown={() => moveSelector(index, 1)}
-          onMoveUp={() => moveSelector(index, -1)}
-          onDuplicate={() => {
-            const selectors = [...group.selectors];
-            selectors.splice(index + 1, 0, duplicateTextSelector(selector));
-            onChange({ ...group, selectors });
-          }}
-          onRemove={() =>
-            onChange({
-              ...group,
-              selectors: group.selectors.filter((_, candidate) => candidate !== index),
-            })
-          }
-          selector={selector}
-          time={time}
-        />
-      ))}
+      {group.selectors.map(
+        (selector, index) =>
+          selection.every((entry) => entry.selectors[index]?.kind === selector.kind) && (
+            <TextSelectorControls
+              canMoveDown={selection.every((entry) => index < entry.selectors.length - 1)}
+              canMoveUp={index > 0}
+              canDuplicate={selection.every(
+                (entry) => entry.selectors.length < MAX_TEXT_SELECTORS_PER_GROUP,
+              )}
+              key={selector.id}
+              onChange={(next, recipe) => updateSelector(index, next, recipe)}
+              selection={selection.map((entry) => entry.selectors[index] as TextSelector)}
+              times={times}
+              onMoveDown={() => moveSelector(index, 1)}
+              onMoveUp={() => moveSelector(index, -1)}
+              onDuplicate={() =>
+                edit((current) => {
+                  const selectors = [...current.selectors];
+                  selectors.splice(
+                    index + 1,
+                    0,
+                    duplicateTextSelector(selectors[index] as TextSelector),
+                  );
+                  return { ...current, selectors };
+                })
+              }
+              onRemove={() =>
+                edit((current) => ({
+                  ...current,
+                  selectors: current.selectors.filter((_, candidate) => candidate !== index),
+                }))
+              }
+              selector={selector}
+              time={time}
+            />
+          ),
+      )}
     </section>
   );
 }

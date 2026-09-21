@@ -9,6 +9,7 @@ const OVERSCAN = 3;
 export function FontFamilyPicker({
   inputId,
   value,
+  mixed = false,
   families,
   label,
   emptyLabel,
@@ -18,6 +19,7 @@ export function FontFamilyPicker({
 }: {
   inputId?: string;
   value: string;
+  mixed?: boolean;
   families: string[];
   label: string;
   emptyLabel: string;
@@ -29,7 +31,7 @@ export function FontFamilyPicker({
   const input = useRef<HTMLInputElement>(null);
   const list = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
-  const [draft, setDraft] = useState(value);
+  const [draft, setDraft] = useState(mixed ? "" : value);
   const [query, setQuery] = useState("");
   const [edited, setEdited] = useState(false);
   const [active, setActive] = useState(-1);
@@ -83,7 +85,7 @@ export function FontFamilyPicker({
 
   const show = () => {
     if (open) return;
-    setDraft(value);
+    setDraft(mixed ? "" : value);
     setQuery("");
     setEdited(false);
     setActive(-1);
@@ -92,7 +94,7 @@ export function FontFamilyPicker({
     onOpen();
   };
   const commit = (family: string) => {
-    if (family.trim() && family !== value) onChange(family);
+    if (family.trim() && (mixed || family !== value)) onChange(family);
     setEdited(false);
     setOpen(false);
   };
@@ -126,7 +128,9 @@ export function FontFamilyPicker({
         aria-busy={loading}
         autoComplete="off"
         maxLength={160}
-        value={open ? draft : value}
+        placeholder={mixed ? "—" : undefined}
+        data-mixed={mixed || undefined}
+        value={open ? draft : mixed ? "" : value}
         onFocus={show}
         onClick={show}
         onBlur={() => {

@@ -6,6 +6,7 @@ import type { ContextMenuItem } from "../context-menu/context-menu-model";
 export interface InspectorPropertyContextMenuActions {
   addKeyframe(): void;
   canEdit: boolean;
+  canCopy?: boolean;
   canPaste: boolean;
   copy(): void;
   disabledReason: string;
@@ -34,7 +35,14 @@ export function inspectorPropertyContextMenuItems(
       onSelect: actions.reset,
     },
     { id: "value-separator", kind: "separator" },
-    { id: "copy", kind: "command", label: t("inspector.menu.copy"), onSelect: actions.copy },
+    {
+      id: "copy",
+      kind: "command",
+      label: t("inspector.menu.copy"),
+      onSelect: actions.copy,
+      disabled: actions.canCopy === false,
+      disabledReason: t("inspector.mixed"),
+    },
     {
       disabled: !actions.canPaste || !actions.canEdit,
       disabledReason: actions.canEdit ? t("inspector.menu.noClipboard") : actions.disabledReason,
