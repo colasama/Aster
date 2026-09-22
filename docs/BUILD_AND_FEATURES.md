@@ -3,7 +3,7 @@
 ## Supported artifact workflow
 
 The `Build desktop artifacts` GitHub Actions workflow runs for version tags (`v*`) and manual
-dispatches. Artifacts are not published automatically. Each run first executes the complete quality
+dispatches. Successful version-tag builds trigger the separate preview publisher. Each run first executes the complete quality
 gate, then builds the platform bundles in parallel:
 
 | Runner | Target | Bundles |
@@ -19,11 +19,13 @@ for 14 days and contain the commit SHA in their artifact name. Unpacked applicat
 not uploaded. Developer ID signing and notarization remain outside this preview workflow. macOS
 tools and the final app receive ad-hoc signatures after merging; these do not establish a trusted
 publisher identity. Hardened runtime is disabled for this certificate-free preview build.
-Publishing is explicitly disabled in the artifact workflow, including on version tags.
+The artifact workflow itself only builds and uploads artifacts; publishing runs separately.
 
-To publish the validated installers, create a version tag at the build's exact commit, add release
-notes at `docs/releases/<version>.md`, and manually run **Publish desktop preview** with that tag
-and the successful artifact run ID. The release workflow requires the tag and build to match,
+To publish the validated installers, include release notes at `docs/releases/<version>.md` in the
+release commit and push its `v<version>` tag. **Publish desktop preview** runs automatically after
+that tag's artifact build succeeds. Manual artifact runs do not publish; the publisher also retains
+its manual trigger accepting an existing tag and successful artifact run ID. Automatic publishing
+accepts only successful push builds from this repository. The release workflow requires the tag and build to match,
 checks all downloaded SHA-256 manifests, and uploads the original installers with combined checksums.
 It publishes a GitHub pre-release only after all assets have uploaded to a draft; it never promotes
 unsigned previews to stable releases.

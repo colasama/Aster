@@ -1,6 +1,9 @@
 name: Publish desktop preview
 
 on:
+  workflow_run:
+    workflows: ["Build desktop artifacts"]
+    types: [completed]
   workflow_dispatch:
     inputs:
       tag:
@@ -17,19 +20,27 @@ permissions:
   contents: write
 
 concurrency:
-  group: publish-preview-${{ inputs.tag }}
+  group: publish-preview-${{ inputs.tag || github.event.workflow_run.head_branch }}
   cancel-in-progress: false
 
 jobs:
   publish:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_repository.full_name == github.repository &&
+       startsWith(github.event.workflow_run.head_branch, 'v'))
     runs-on: ubuntu-22.04
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      RELEASE_TAG: ${{ inputs.tag }}
-      BUILD_RUN_ID: ${{ inputs.run_id }}
+      RELEASE_TAG: ${{ inputs.tag || github.event.workflow_run.head_branch }}
+      BUILD_RUN_ID: ${{ inputs.run_id || github.event.workflow_run.id }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.event.workflow_run.head_sha }}
       - name: Verify source and download validated artifacts
         shell: bash
         run: |
