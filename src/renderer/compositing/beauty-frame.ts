@@ -7,7 +7,7 @@ import { WebGpuRenderer } from "../webgpu-renderer";
 
 export const PRODUCTION_BEAUTY_SETTINGS = Object.freeze({
   buffer: "beauty",
-  colorPipeline: "linear-hdr-to-aces-display",
+  colorPipeline: "linear-hdr-to-srgb-display",
   effects: "composition",
   sampling: "composition",
 } as const);

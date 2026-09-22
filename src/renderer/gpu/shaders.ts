@@ -1,3 +1,4 @@
+import { srgbDisplayShader } from "../color-management";
 import { layerStyleShaderFunctions } from "../effects/layer-style-shader";
 import { advancedDistortWarpShaderCases } from "../effects/shaders/advanced-distort-shader-cases";
 import { channelUtilityPixelShaderCases } from "../effects/shaders/channel-utility-shader-cases";
@@ -46,6 +47,8 @@ export {
 } from "./base-shaders";
 
 export const postProcessShader = /* wgsl */ `
+${srgbDisplayShader}
+
 struct PostProcess {
   resolution_time_exposure: vec4f,
   color: vec4f,
@@ -377,7 +380,7 @@ ${framingWarpShaderCases}
     textureSample(hdr_scene, linear_sampler, uv - chromatic_offset).b,
   );
   let linear_output = settings.program.y > 0.5;
-  if linear_output && alpha > 0.00001 {
+  if alpha > 0.00001 {
     color /= alpha;
   }
   let blurred = sample_blur(uv, blur_radius);
@@ -900,6 +903,6 @@ ${advancedStylizePixelShaderCases}
   if linear_output {
     return vec4f(max(color, vec3f(0.0)) * alpha, alpha);
   }
-  return vec4f(aces_tonemap(color) * alpha, alpha);
+  return vec4f(linear_to_srgb(color) * alpha, alpha);
 }
 `;

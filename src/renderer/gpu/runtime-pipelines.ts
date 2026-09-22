@@ -6,7 +6,7 @@ export function createPostPipeline(device: GPUDevice, format: GPUTextureFormat):
     code: postProcessShader,
   });
   return device.createRenderPipeline({
-    label: "HDR post-process and ACES output",
+    label: "HDR post-process and sRGB output",
     layout: "auto",
     vertex: { module, entryPoint: "vertex_main" },
     fragment: { module, entryPoint: "fragment_main", targets: [{ format }] },

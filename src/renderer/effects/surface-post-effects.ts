@@ -1,3 +1,4 @@
+import { srgbDisplayShader } from "../color-management";
 import type { GeometryBatch } from "../geometry/geometry";
 import { encodeRenderId, type SurfaceEffectVisualization } from "../gpu/render-buffers";
 
@@ -173,11 +174,7 @@ struct VertexOutput {
   return output;
 }
 
-fn aces_tonemap(value: vec3f) -> vec3f {
-  let numerator = value * (2.51 * value + vec3f(0.03));
-  let denominator = value * (2.43 * value + vec3f(0.59)) + vec3f(0.14);
-  return pow(clamp(numerator / denominator, vec3f(0.0), vec3f(1.0)), vec3f(1.0 / 2.2));
-}
+${srgbDisplayShader}
 
 fn pixel_at(uv: vec2f) -> vec2i {
   let size = vec2i(settings.viewport);
@@ -229,7 +226,7 @@ fn straight_rgb(premultiplied: vec4f) -> vec3f {
 
 fn display_premultiplied(premultiplied: vec4f) -> vec4f {
   let straight = straight_rgb(premultiplied);
-  return vec4f(aces_tonemap(max(straight, vec3f(0.0))) * premultiplied.a, premultiplied.a);
+  return vec4f(linear_to_srgb(straight) * premultiplied.a, premultiplied.a);
 }
 
 @fragment fn fragment_main(input: VertexOutput) -> @location(0) vec4f {

@@ -5,7 +5,7 @@ resolution and AA mode share the same production output path; see [Output Anti-A
 Preview resolution changes do not override that captured mode. Legacy requests and jobs use Off.
 
 Aster's production preview and export use one time-addressed beauty-frame request. The request fixes
-the beauty buffer, the linear-HDR-to-ACES display transform, composition effects, and composition
+the beauty buffer, the linear-HDR-to-sRGB display transform, composition effects, and composition
 sampling. Preview quality may change only the integer target width and height. It does not disable
 effects, select a different color route, or substitute a different sampling policy.
 
@@ -17,7 +17,7 @@ effects, select a different color route, or substitute a different sampling poli
    immutable production settings.
 2. Production preview presents that request through the renderer's beauty pass.
 3. PNG and video export submit the same request to the same beauty renderer. WebGPU copies the final
-   post-processed canvas texture into the bounded readback pool after the ACES display pass.
+   post-processed canvas texture into the bounded readback pool after the sRGB display pass.
 4. A raw frame is accepted only when it is one tightly packed four-byte pixel per output pixel and
    its pixel format remains stable for the session.
 
@@ -25,6 +25,16 @@ At the same project revision, timeline time, and target resolution, preview pres
 therefore evaluate the same composition and final post-processing route. Fake-renderer contract tests
 assert byte equality for this case. Resolution-scaled requests share the exact settings object and
 differ only in their target dimensions.
+
+The final SDR pass applies the IEC sRGB transfer once to straight linear RGB and then restores
+premultiplied alpha. Beauty, depth-of-field, and surface diagnostics share that transfer. It preserves
+unedited sRGB stills instead of imposing an ACES look; HDR channels clip at the SDR boundary unless
+the user adds the Filmic Tone Map effect. Intermediate effect and precomposition surfaces stay linear.
+`scripts/gpu-color-check.mjs` imports an RGBA PNG ramp through the real media importer and checks GPU
+readback against its original colors, including partial transparency, a neutral effect, in-focus
+depth of field, and surface diagnostics. It also verifies the opt-in ACES effect against CPU reference
+values. Run `await (await import('/scripts/gpu-color-check.mjs')).run()` in a WebGPU browser
+against Vite with `ASTER_BUNDLED_DEV=0`; the allowed error is two 8-bit code values.
 
 The shared text rasterizer produces neutral glyph coverage with the requested fill and stroke.
 It does not add a decorative shadow: shadows and glow belong to explicit layer effects. Resetting

@@ -3,7 +3,7 @@
   "description": "GPU-first motion graphics and compositing editor",
   "private": true,
   "repository": "github:colasama/Aster",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "author": {
     "name": "colanns",
     "email": "mycolands@gmail.com"

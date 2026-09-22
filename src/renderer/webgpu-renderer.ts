@@ -826,7 +826,7 @@ export class WebGpuRenderer {
     const outputTexture = this.#context.getCurrentTexture();
     const output = outputTexture.createView();
     const postPass = encoder.beginRenderPass({
-      label: "Fused effects + ACES display transform",
+      label: "Fused effects + sRGB display transform",
       timestampWrites: resources.gpuProfiler.writes(
         6,
         this.#activeAntiAliasing === "off" ? 7 : undefined,

@@ -41,7 +41,7 @@ describe("linear working color reference", () => {
     expect(unpremultiply([1, 1, 1, 0])).toEqual([0, 0, 0, 0]);
   });
 
-  it("matches the WGSL ACES display transform and preserves HDR monotonicity", () => {
+  it("matches the opt-in WGSL ACES tone-map effect and preserves HDR monotonicity", () => {
     expect(acesToneMap([0, 1, 16])).toEqual([0, 0.8037974683544302, 1]);
     const ramp = [0, 0.18, 1, 4, 16].map((value) => acesToneMap([value, 0, 0])[0]);
     expect(ramp).toEqual([...ramp].sort((left, right) => left - right));

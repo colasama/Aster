@@ -225,9 +225,12 @@ render-stack planning, precompilation, and GPU resource ownership contain no par
    uploads one endpoint displacement per vertex, and rasterizes motion vectors with object IDs in the
    on-demand auxiliary MRT. A GPU tile-max, neighbor-max, and object-aware adaptive reconstruction
    writes a new premultiplied linear-HDR scene without consulting render history. Depth of field then
-   consumes that scene and the world-position attachment. One composition-level ACES display pass
+   consumes that scene and the world-position attachment. One composition-level sRGB display pass
    presents the result. Beauty mode releases all motion/depth transient attachments when both effects
    are disabled, so the steady unblurred path pays no extra full-resolution VRAM.
+   SDR output uses the IEC sRGB transfer on straight RGB, then restores premultiplied alpha. Imported
+   sRGB images therefore retain their colors through linear compositing. HDR values remain available
+   inside the scene and clip only at SDR output; filmic tone mapping is an explicit layer effect.
 7. Metrics are sampled outside React's frame-critical path. Static timeline rows use a separate
    memoized document/selection context and row list, so clock and profiler updates do not reconcile
    every layer and marker. Expanded property values retain the sampled clock; gestures resolve

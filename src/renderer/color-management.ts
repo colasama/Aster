@@ -19,7 +19,7 @@ export function linearChannelToSrgb(value: number): number {
   return bounded <= 0.0031308 ? bounded * 12.92 : 1.055 * bounded ** (1 / 2.4) - 0.055;
 }
 
-/** Matches the display transform in the WebGPU post-process shader. */
+/** Matches the opt-in Filmic Tone Map effect's ACES curve. */
 export function acesToneMap(color: Rgb): Rgb {
   return color.map((channel) => {
     const value = Math.max(0, channel);
@@ -49,3 +49,15 @@ export function compositePremultiplied(source: Rgba, destination: Rgba): Rgba {
     source[3] + destination[3] * destinationWeight,
   ];
 }
+
+/** Shared SDR output transfer for UNORM canvas targets; intermediate surfaces stay linear. */
+export const srgbDisplayShader = /* wgsl */ `
+fn linear_to_srgb(color: vec3f) -> vec3f {
+  let bounded = clamp(color, vec3f(0.0), vec3f(1.0));
+  return select(
+    bounded * 12.92,
+    1.055 * pow(bounded, vec3f(1.0 / 2.4)) - vec3f(0.055),
+    bounded > vec3f(0.0031308),
+  );
+}
+`;

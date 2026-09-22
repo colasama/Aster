@@ -230,7 +230,7 @@ and UI edits from creating inconsistent lens state. The default 50 mm camera is 
 behind the composition plane. At a given time, the first camera in timeline order whose in/out span
 contains that time is active; its visibility switch does not create a drawable surface. Beauty
 preview and export evaluate the same camera, world-position pass, circle-of-confusion function, and
-ACES display transform. Preview resolution only scales the sampling radius. This follows Adobe's
+sRGB display transform. Preview resolution only scales the sampling radius. This follows Adobe's
 [camera and point-of-interest model](https://helpx.adobe.com/after-effects/using/cameras-lights-points-interest.html)
 and [Advanced 3D depth-of-field controls](https://helpx.adobe.com/after-effects/desktop/work-with-3d-composition/work-with-3d-scene-depth-data/enable-in_engine-depth-of-field-in-advanced-3d.html).
 

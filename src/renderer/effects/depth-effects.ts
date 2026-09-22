@@ -3,6 +3,7 @@ import {
   DEFAULT_CAMERA_APERTURE_PIXELS,
   depthOfFieldSampleCount,
 } from "../../core/scene/camera-optics";
+import { srgbDisplayShader } from "../color-management";
 import type { DepthEffectVisualization } from "../gpu/render-buffers";
 
 export interface DepthEffectSettings {
@@ -291,11 +292,7 @@ struct VertexOutput {
   return output;
 }
 
-fn aces_tonemap(value: vec3f) -> vec3f {
-  let numerator = value * (2.51 * value + vec3f(0.03));
-  let denominator = value * (2.43 * value + vec3f(0.59)) + vec3f(0.14);
-  return pow(clamp(numerator / denominator, vec3f(0.0), vec3f(1.0)), vec3f(1.0 / 2.2));
-}
+${srgbDisplayShader}
 
 fn surface_at(uv: vec2f) -> vec4f {
   let size = vec2i(textureDimensions(world_position));
@@ -413,7 +410,7 @@ fn straight_rgb(premultiplied: vec4f) -> vec3f {
 }
 
 fn display_premultiplied(premultiplied: vec4f) -> vec4f {
-  return vec4f(aces_tonemap(max(straight_rgb(premultiplied), vec3f(0.0))) * premultiplied.a, premultiplied.a);
+  return vec4f(linear_to_srgb(straight_rgb(premultiplied)) * premultiplied.a, premultiplied.a);
 }
 
 fn highlight_sample(premultiplied: vec4f) -> vec4f {
@@ -445,7 +442,7 @@ fn bokeh_sample(uv: vec2f, radius: f32, index: u32, sample_count: f32, layer: u3
     let depth_distance = max(view_depth(surface) - settings.lens.w, 0.0);
     let fog_amount = select(0.0, 1.0 - exp(-depth_distance * settings.fog.w), surface.a > 0.0);
     let straight = mix(straight_rgb(center), settings.fog.rgb, clamp(fog_amount, 0.0, 0.96));
-    return vec4f(aces_tonemap(max(straight, vec3f(0.0))) * center.a, center.a);
+    return vec4f(linear_to_srgb(straight) * center.a, center.a);
   }
   let peeled = peeled_surface_at(input.uv);
   let transparent = transparent_surface_at(input.uv);

@@ -42,7 +42,8 @@ GPU time/VRAM diagnostics across 1K/2K/4K atlas budgets.
 
 Aster keeps one scene-referred linear working space. Embedded image/video ICC data is decoded at the
 asset boundary; display ICC is applied only for preview, and output transforms occur once at export.
-The MVP color pipeline remains its documented linear-sRGB/ACES path. OCIO is a later optional,
+The MVP color pipeline uses linear-sRGB compositing and an sRGB SDR output transfer, with filmic
+tone mapping available as an explicit effect. OCIO is a later optional,
 versioned configuration provider: projects store a configuration content hash, color-space names,
 looks, and display/view names rather than machine paths. Missing configurations open safely with the
 transform disabled and a diagnostic. GPU OCIO shaders are compiled through the normal validated

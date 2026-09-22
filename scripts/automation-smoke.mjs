@@ -44,7 +44,7 @@ const transport = new StdioClientTransport({
   env: environment,
   stderr: "pipe",
 });
-const client = new Client({ name: "aster-packaged-smoke", version: "0.3.0" });
+const client = new Client({ name: "aster-packaged-smoke", version: "0.3.1" });
 const report = { output, background, steps: [] };
 transport.stderr?.on("data", (data) => {
   appLog = (appLog + data).slice(-512 * 1024);

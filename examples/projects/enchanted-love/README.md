@@ -143,9 +143,9 @@ The later pool shares one 9.7-second source across both scene wrappers. A single
 its path bends, followed by a ring and the returning characters. Sparse curves and analytic
 trajectories drive both visible objects and their cast shadows at the same source time.
 
-The reference palette is measured from decoded frames. Shape paints invert Aster's ACES display
-mapping to reproduce those display colors. Color Overlay uses normalized RGB and HDR intensity
-for the same result; its opacity controls the flash. Text accounts for its sRGB texture encoding.
+The reference palette was measured from decoded frames and authored against Aster's former ACES
+display mapping. Shape paints and Color Overlay values compensate for that legacy mapping; they
+need recalibration for the current sRGB output transfer. Text uses sRGB-encoded textures.
 
 ## Fidelity and validation
 

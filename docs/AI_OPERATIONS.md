@@ -102,7 +102,7 @@ except for localhost development. Errors redact credentials and response bodies 
 
 ## External clients
 
-Aster 0.3.0 provides an MCP stdio adapter over the same twelve meta-tool definitions. External clients
+Aster 0.3.1 provides an MCP stdio adapter over the same twelve meta-tool definitions. External clients
 also receive reference-media, comparison, live import, save and render-queue tools. Submitted
 workspaces require explicit `commit_workspace`, which checks the current live revision and records
 one undoable transaction. `render_preview` supports bounded resolution, normalized crop and layer
