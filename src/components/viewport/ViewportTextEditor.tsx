@@ -66,6 +66,7 @@ export function viewportTextEditorStyle(
     fontFamily: style.fontFamily,
     fontSize: `${style.fontSize * zoom}px`,
     fontWeight: style.fontWeight,
+    fontStyle: style.fontStyle ?? "normal",
     height: `${Math.max(layer.size[1], contentHeight) * zoom}px`,
     left: 0,
     letterSpacing: `${style.tracking * zoom}px`,
@@ -109,7 +110,7 @@ function measureVisualLineCount(
     measurementCanvas ??= document.createElement("canvas");
     const context = measurementCanvas.getContext("2d");
     if (context) {
-      context.font = `${style.fontWeight} ${style.fontSize}px ${style.fontFamily}`;
+      context.font = `${style.fontStyle ?? "normal"} ${style.fontWeight} ${style.fontSize}px ${style.fontFamily}`;
       return Math.max(
         1,
         breakTextLines(

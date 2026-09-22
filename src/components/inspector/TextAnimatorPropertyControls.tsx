@@ -14,6 +14,17 @@ import { type SettingsEdit, settingsEdit } from "./settings-edit";
 import { TextAnimatableControl } from "./TextAnimatableControl";
 
 type TextAnimatorPropertyName = Exclude<keyof TextAnimatorProperties, "characterRange">;
+type AddPropertyName = TextAnimatorPropertyName | "allTransforms";
+
+const TRANSFORM_PROPERTIES = [
+  "anchorPoint",
+  "position",
+  "scale",
+  "rotation",
+  "skew",
+  "skewAxis",
+  "opacity",
+] as const;
 
 const PROPERTY_NAMES: readonly TextAnimatorPropertyName[] = [
   "anchorPoint",
@@ -49,16 +60,26 @@ export function TextAnimatorPropertyControls({
 }) {
   const { t } = useI18n();
   const edit = settingsEdit(properties, onChange, selection.length);
-  const [nextProperty, setNextProperty] = useState<TextAnimatorPropertyName>("position");
-  const available = PROPERTY_NAMES.filter((name) =>
+  const [nextProperty, setNextProperty] = useState<AddPropertyName>("position");
+  const available: AddPropertyName[] = PROPERTY_NAMES.filter((name) =>
     selection.some((entry) => entry[name] === undefined),
   );
+  if (TRANSFORM_PROPERTIES.some((name) => available.includes(name)))
+    available.push("allTransforms");
   const selected = available.includes(nextProperty) ? nextProperty : available[0];
   const add = () => {
     if (!selected) return;
+    if (selected === "allTransforms") {
+      edit((current) => ({
+        ...Object.fromEntries(TRANSFORM_PROPERTIES.map((name) => [name, defaultProperty(name)])),
+        ...current,
+      }));
+      return;
+    }
     edit((current) => ({
       ...current,
       [selected]: current[selected] ?? defaultProperty(selected),
+      ...(selected === "skew" ? { skewAxis: current.skewAxis ?? staticValue(0) } : {}),
       ...(selected === "characterOffset" || selected === "characterValue"
         ? { characterRange: current.characterRange ?? "preserveCaseAndDigits" }
         : {}),
@@ -70,7 +91,7 @@ export function TextAnimatorPropertyControls({
         <select
           aria-label={t("text.animator.addProperty")}
           disabled={!selected}
-          onChange={(event) => setNextProperty(event.target.value as TextAnimatorPropertyName)}
+          onChange={(event) => setNextProperty(event.target.value as AddPropertyName)}
           value={selected ?? ""}
         >
           {available.map((name) => (

@@ -15,6 +15,40 @@ const graphemeMeasure = (text: string) =>
   Array.from(new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(text)).length * 10;
 
 describe("Unicode text line breaking", () => {
+  it("uses the italic face for both static and animated text", () => {
+    const layer = createLayerForComposition("text", createBlankComposition());
+    if (!layer.textStyle || !layer.textAnimator) throw new Error("Expected text defaults");
+    const { context } = recordingContext();
+    drawTextLayer(context, layer, ...layer.size);
+    expect(context.font).toMatch(/^normal /u);
+    layer.textStyle.fontStyle = "italic";
+    for (const enabled of [false, true]) {
+      layer.textAnimator.enabled = enabled;
+      drawTextLayer(context, layer, ...layer.size);
+      expect(context.font).toBe(
+        `italic ${layer.textStyle.fontWeight} ${layer.textStyle.fontSize}px ${layer.textStyle.fontFamily}`,
+      );
+    }
+  });
+
+  it("shears glyphs horizontally at axis zero and rotates the shear axis", () => {
+    const layer = createLayerForComposition("text", createBlankComposition());
+    layer.text = "A";
+    const animator = layer.textAnimator;
+    if (!animator) throw new Error("Expected text animator");
+    animator.enabled = true;
+    const group = animator.groups[0];
+    group.selectors = [];
+    for (const axis of [0, 90]) {
+      group.properties = { skew: staticValue(30), skewAxis: staticValue(axis) };
+      const { context, operations } = recordingContext();
+      drawTextLayer(context, layer, ...layer.size);
+      expect(operations.transform).toHaveBeenCalledWith(1, 0, -Math.tan(Math.PI / 6), 1, 0, 0);
+      expect(operations.rotate).toHaveBeenNthCalledWith(2, (-axis * Math.PI) / 180);
+      expect(operations.rotate).toHaveBeenNthCalledWith(3, (axis * Math.PI) / 180);
+    }
+  });
+
   it("uses bounded density buckets for parented text enlargement and reflection", () => {
     const density = transformedTextRasterScale(1, [150, -360, 100]);
     expect(density).toBeGreaterThanOrEqual(3.6);

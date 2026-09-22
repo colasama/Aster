@@ -30,6 +30,44 @@ afterEach(() => {
 });
 
 describe("text animator inspector", () => {
+  it("adds all transforms without replacing existing values or keyframes", () => {
+    const container = renderControls(1.25);
+    click(button(container, "Toggle Position keyframe"));
+    const position = container.querySelector<HTMLInputElement>('input[aria-label="Position X"]');
+    if (!position) throw new Error("Expected position control");
+    change(position, "42");
+    const propertyKind = container.querySelector<HTMLSelectElement>(
+      'select[aria-label="Add property"]',
+    );
+    if (!propertyKind) throw new Error("Expected property control");
+    change(propertyKind, "allTransforms");
+    click(
+      [...container.querySelectorAll("button")].find((entry) =>
+        entry.textContent?.includes("Add property"),
+      ),
+    );
+    expect(position.value).toBe("42");
+    expect(button(container, "Toggle Position keyframe").getAttribute("aria-pressed")).toBe("true");
+    for (const label of ["Anchor point", "Scale", "Rotation", "Skew", "Skew axis", "Opacity"])
+      expect(button(container, `Remove ${label}`)).toBeDefined();
+    expect(propertyKind.querySelector('option[value="allTransforms"]')).toBeNull();
+  });
+
+  it("adds the skew axis alongside skew", () => {
+    const container = renderControls();
+    const propertyKind = container.querySelector<HTMLSelectElement>(
+      'select[aria-label="Add property"]',
+    );
+    if (!propertyKind) throw new Error("Expected property control");
+    change(propertyKind, "skew");
+    click(
+      [...container.querySelectorAll("button")].find((entry) =>
+        entry.textContent?.includes("Add property"),
+      ),
+    );
+    expect(button(container, "Remove Skew axis")).toBeDefined();
+  });
+
   it("adds, renames, reorders, and removes animator groups and selectors", () => {
     const container = renderControls();
     click(button(container, "Add animator"));

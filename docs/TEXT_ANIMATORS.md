@@ -1,5 +1,14 @@
 # Text animators
 
+The inspector's All transform properties action adds anchor point, XYZ position, XYZ scale, XYZ
+rotation, skew, skew axis and opacity together, preserving existing values and keyframes. Adding
+Skew also exposes Skew Axis. At axis zero, positive skew leans glyph tops to the right; changing
+the axis rotates the shear. This corrects the earlier vertical shear at axis zero, so existing
+nonzero skew animations now use the corrected direction in preview and export.
+Font style (Normal/Italic) is independent of animator skew and applies to static and animated text.
+Other AE capabilities, including anchor grouping, text on a mask path and camera-space per-character
+3D meshes, remain outside the current raster text implementation.
+
 Aster evaluates text animation by Unicode grapheme cluster and keeps animator properties separate
 from selectors. An animator may stack Range, Wiggly, and Expression selectors. Selector Mode combines
 each result with those above it using Add, Subtract, Intersect, Min, Max, or Difference, and Amount

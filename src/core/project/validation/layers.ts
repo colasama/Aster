@@ -308,6 +308,12 @@ export function validateLayer(
     const fontWeight = style.fontWeight as number;
     if (fontWeight < 100 || fontWeight > 900)
       throw new Error(`${path}.textStyle.fontWeight must be between 100 and 900`);
+    if (
+      style.fontStyle !== undefined &&
+      style.fontStyle !== "normal" &&
+      style.fontStyle !== "italic"
+    )
+      throw new Error(`${path}.textStyle.fontStyle is invalid`);
     if (!["left", "center", "right"].includes(String(style.alignment)))
       throw new Error(`${path}.textStyle.alignment is invalid`);
     const strokeColor = requireNumberArray(style.strokeColor, `${path}.textStyle.strokeColor`, 4);

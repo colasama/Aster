@@ -46,6 +46,7 @@ describe("ViewportTextEditor", () => {
       fontFamily: "Inter",
       fontSize: 40,
       fontWeight: 700,
+      fontStyle: "italic",
       leading: 50,
       tracking: 4,
     };
@@ -66,6 +67,7 @@ describe("ViewportTextEditor", () => {
     expect(editor.style.fontFamily).toBe("Inter");
     expect(editor.style.fontSize).toBe("160px");
     expect(editor.style.fontWeight).toBe("700");
+    expect(editor.style.fontStyle).toBe("italic");
     expect(editor.style.letterSpacing).toBe("16px");
     expect(editor.style.lineHeight).toBe("200px");
     expect(editor.style.paddingLeft).toBe("48px");

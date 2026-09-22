@@ -118,6 +118,18 @@ export function TextControls({ layer }: { layer: Layer }) {
         </MixedValueSelect>
       </label>
       <label>
+        {t("text.fontStyle")}
+        <MixedValueSelect
+          aria-label={t("text.fontStyle")}
+          onChange={(event) => update("fontStyle", event.target.value as TextStyle["fontStyle"])}
+          mixed={valuesDiffer(styles.map((entry) => entry.fontStyle ?? "normal"))}
+          value={style.fontStyle ?? "normal"}
+        >
+          <option value="normal">{t("text.fontStyle.normal")}</option>
+          <option value="italic">{t("text.fontStyle.italic")}</option>
+        </MixedValueSelect>
+      </label>
+      <label>
         {t("text.alignment")}
         <MixedValueSelect
           aria-label={t("text.alignmentA11y")}

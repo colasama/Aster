@@ -302,6 +302,7 @@ export interface TextStyle {
   fontFamily: string;
   fontSize: number;
   fontWeight: number;
+  fontStyle?: "normal" | "italic";
   alignment: "left" | "center" | "right";
   tracking: number;
   leading: number;

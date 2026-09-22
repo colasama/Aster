@@ -28,6 +28,10 @@ Font collections and variable-axis metadata are not imported; provide an individ
 Text layers persist `textStyle.fontFamily`, `fontSize`, `fontWeight`, alignment, tracking, leading and
 stroke settings. Font removal retains the requested family so Chromium can fall back. Removing an
 embedded face or switching projects invalidates text textures, including temporal text rasters.
+The optional `textStyle.fontStyle` is `normal` or `italic`; omission means `normal` in existing v10
+documents. Canvas rendering, text measurement and the viewport caret use the same style. Chromium
+selects an italic face when available and synthesizes a slant otherwise. AI style patches accept
+the same field; style changes participate in undo, project persistence and raster cache keys.
 
 The development editor currently exchanges a readable JSON document named `*.aster.json`. The Rust
 bundle layer stores the same versioned domain model inside an atomically replaced project path. Cache,

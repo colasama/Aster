@@ -66,13 +66,19 @@ describe("font capabilities", () => {
       expect(result.items.find((item) => item.id === text.id)?.textStyle).toEqual(text.textStyle);
     }
     const changed = normalizeAiCommands(
-      [{ type: "setTextStyle", layerId: text.id, textStyle: { fontFamily: "Georgia" } }],
+      [
+        {
+          type: "setTextStyle",
+          layerId: text.id,
+          textStyle: { fontFamily: "Georgia", fontStyle: "italic" },
+        },
+      ],
       project,
       0,
     );
     expect(
       changed.project.compositions[0].layers.find((layer) => layer.id === text.id)?.textStyle,
-    ).toEqual({ ...text.textStyle, fontFamily: "Georgia" });
+    ).toEqual({ ...text.textStyle, fontFamily: "Georgia", fontStyle: "italic" });
     expect(() =>
       normalizeAiCommands([{ type: "setTextStyle", layerId: text.id, textStyle: {} }], project, 0),
     ).toThrow("at least one");

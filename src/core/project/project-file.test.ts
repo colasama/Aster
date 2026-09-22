@@ -654,6 +654,7 @@ describe("project document boundary", () => {
       fontFamily: "Inter, sans-serif",
       fontSize: 190,
       fontWeight: 800,
+      fontStyle: "italic",
       alignment: "right",
       tracking: 24,
       leading: 220,
@@ -667,6 +668,9 @@ describe("project document boundary", () => {
       text: text.text,
       textStyle: text.textStyle,
     });
+    const invalid = JSON.parse(serializeProject(project));
+    invalid.compositions[0].layers[1].textStyle.fontStyle = "sideways";
+    expect(() => validateProjectDocument(invalid)).toThrow("fontStyle is invalid");
   });
 
   it("roundtrips text line anchoring and explicit character ranges", () => {

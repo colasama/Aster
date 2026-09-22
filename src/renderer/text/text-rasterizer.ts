@@ -105,7 +105,7 @@ export function drawTextLayer(
   const tracking = style.tracking * sourceScale;
   const leading = style.leading * sourceScale;
   const strokeWidth = style.strokeWidth * sourceScale;
-  context.font = `${style.fontWeight} ${fontSize}px ${style.fontFamily}`;
+  context.font = `${style.fontStyle ?? "normal"} ${style.fontWeight} ${fontSize}px ${style.fontFamily}`;
   context.textAlign = "left";
   context.textBaseline = "middle";
   context.lineJoin = "round";
@@ -335,7 +335,8 @@ function drawAnimatedGlyph(
   context.rotate(state.rotation[2] * radians);
   if (Math.abs(state.skew) > 0.000_01) {
     context.rotate(-state.skewAxis * radians);
-    context.transform(1, Math.tan(state.skew * radians), 0, 1, 0, 0);
+    // At axis zero, positive skew leans the top of the glyph to the right.
+    context.transform(1, 0, -Math.tan(state.skew * radians), 1, 0, 0);
     context.rotate(state.skewAxis * radians);
   }
   context.scale(scaleX, scaleY);

@@ -534,6 +534,9 @@ export function applyOperation(project: Project, operation: Operation): void {
         fontFamily: operation.textStyle.fontFamily.trim().slice(0, 160) || "sans-serif",
         fontSize: clamp(operation.textStyle.fontSize, 1, 4096),
         fontWeight: Math.round(clamp(operation.textStyle.fontWeight, 100, 900) / 100) * 100,
+        ...(operation.textStyle.fontStyle === undefined
+          ? {}
+          : { fontStyle: operation.textStyle.fontStyle === "italic" ? "italic" : "normal" }),
         alignment: operation.textStyle.alignment,
         tracking: clamp(operation.textStyle.tracking, -1000, 1000),
         leading: clamp(operation.textStyle.leading, 1, 8192),

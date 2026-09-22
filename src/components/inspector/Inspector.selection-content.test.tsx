@@ -28,6 +28,25 @@ import {
 
 setupInspectorTests();
 
+it("edits mixed font styles and undoes the batch without copying other typography", () => {
+  const project = layerProject("text");
+  activeComposition(project).layers.forEach((layer, index) => {
+    layer.textStyle = {
+      ...resolveTextStyle(layer),
+      fontWeight: index ? 400 : 700,
+      ...(index ? { fontStyle: "italic" as const } : {}),
+    };
+  });
+  mount(project);
+  const style = document.querySelector<HTMLSelectElement>('select[aria-label="Font style"]');
+  if (!style) throw new Error("Missing font style control");
+  select(style, "italic");
+  expect(layers().map((layer) => layer.textStyle?.fontStyle)).toEqual(["italic", "italic"]);
+  expect(layers().map((layer) => layer.textStyle?.fontWeight)).toEqual([700, 400]);
+  act(() => editor.dispatch({ type: "undo" }));
+  expect(layers().map((layer) => layer.textStyle?.fontStyle)).toEqual([undefined, "italic"]);
+});
+
 it("edits text, font and style fields without copying unrelated styles", () => {
   const project = layerProject("text");
   const selected = activeComposition(project).layers;

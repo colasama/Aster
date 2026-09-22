@@ -236,6 +236,7 @@ describe("operations", () => {
         textStyle: {
           ...text.textStyle,
           fontWeight: 950,
+          fontStyle: "italic",
           alignment: "right",
           tracking: 24,
           strokeWidth: 7,
@@ -246,6 +247,7 @@ describe("operations", () => {
     expect(updated?.text).toBe("GPU\nMOTION");
     expect(updated?.textStyle).toMatchObject({
       fontWeight: 900,
+      fontStyle: "italic",
       alignment: "right",
       tracking: 24,
       strokeWidth: 7,
