@@ -1,4 +1,5 @@
-import { type TSchema, Type } from "typebox";
+import { type TObject, type TSchema, Type } from "typebox";
+import { EDIT_LIMITS } from "./edit-limits.js";
 import { previewFields } from "./preview-options.js";
 
 export function asterToolDefinitions() {
@@ -78,18 +79,62 @@ export function asterToolDefinitions() {
       name: "execute_commands",
       label: "Execute commands",
       description:
-        "Atomically validate and execute 1 through 12 typed commands in a staged workspace.",
+        "Atomically validate and execute 1 through 256 typed commands in a staged workspace.",
       parameters: Type.Object(
         {
           ...workspaceFields,
           commands: Type.Array(Type.Record(Type.String(), Type.Unknown()), {
             minItems: 1,
-            maxItems: 12,
+            maxItems: EDIT_LIMITS.commandsPerBatch,
           }),
         },
         { additionalProperties: false },
       ),
     },
+    {
+      name: "get_workspace_status",
+      label: "Workspace status",
+      description:
+        "Read the workspace revision, state, operation/byte budgets and idle expiry without extending its lifetime.",
+      parameters: Type.Object(
+        { workspaceId: Type.String({ minLength: 1 }) },
+        { additionalProperties: false },
+      ),
+    },
+    {
+      name: "get_script_api",
+      label: "Script API",
+      description:
+        "Read the isolated JavaScript aster API, examples and execution limits before writing a script.",
+      parameters: Type.Object({}, { additionalProperties: false }),
+    },
+    {
+      name: "execute_aster_code",
+      label: "Execute Aster code",
+      description:
+        "Start an isolated synchronous JavaScript function body against a staged workspace. Provide workspaceId and workspaceRevision, or baseRevision to create one. Returns an executionId; poll get_execution, then render, submit and commit explicitly. Failure rolls back this execution only.",
+      parameters: Type.Object(
+        {
+          workspaceId: Type.Optional(workspaceFields.workspaceId),
+          workspaceRevision: Type.Optional(revision),
+          baseRevision: Type.Optional(revision),
+          code: Type.String({ minLength: 1, maxLength: EDIT_LIMITS.scriptBytes }),
+        },
+        { additionalProperties: false },
+      ),
+    },
+    ...["get_execution", "cancel_execution"].map((name) => ({
+      name,
+      label: name,
+      description:
+        name === "get_execution"
+          ? "Read running/succeeded/failed/cancelled execution status and progress. Use the successful workspaceRevision for subsequent edits."
+          : "Terminate a script and discard its uncommitted execution; preserve previous workspace edits.",
+      parameters: Type.Object(
+        { executionId: Type.String({ minLength: 1 }) },
+        { additionalProperties: false },
+      ),
+    })),
     {
       name: "evaluate_at_time",
       label: "Evaluate at time",
@@ -162,5 +207,28 @@ export function asterToolDefinitions() {
       ),
     },
   ];
-  return definitions;
+  return definitions.map((definition) => {
+    if (
+      ![
+        "begin_edit_workspace",
+        "execute_commands",
+        "execute_aster_code",
+        "submit_workspace",
+        "discard_workspace",
+      ].includes(definition.name)
+    )
+      return definition;
+    return {
+      ...definition,
+      parameters: Type.Object(
+        {
+          ...(definition.parameters as TObject).properties,
+          requestId: Type.Optional(
+            Type.String({ minLength: 1, maxLength: 128, pattern: "^[A-Za-z0-9_.-]+$" }),
+          ),
+        },
+        { additionalProperties: false },
+      ),
+    };
+  });
 }

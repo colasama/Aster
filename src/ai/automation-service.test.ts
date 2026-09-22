@@ -134,6 +134,75 @@ describe("external editor transactions", () => {
     await expect(f.call("commit_workspace", input)).rejects.toThrow("Submit");
   });
 
+  it("deduplicates commit retries and undoes a large workspace in one step", async () => {
+    const f = fixture();
+    const before = structuredClone(f.state().project);
+    const work = (await f.call("begin_edit_workspace", { baseRevision: 0 })) as {
+      workspaceId: string;
+      workspaceRevision: number;
+    };
+    const edited = (await f.call("execute_commands", {
+      ...work,
+      commands: Array.from({ length: 160 }, (_, i) => ({
+        type: "addLayer",
+        kind: "text",
+        text: `Unit ${i}`,
+      })),
+    })) as { workspaceId: string; workspaceRevision: number };
+    await f.call("submit_workspace", { ...edited, summary: "160 units" });
+    const commit = { ...edited, requestId: "commit-once" };
+    const result = await f.call("commit_workspace", commit);
+    expect(await f.call("commit_workspace", commit)).toEqual(result);
+    expect(f.state().history.past).toHaveLength(1);
+    const undone = editorReducer(f.state(), { type: "undo" }).project;
+    expect({ ...undone, commandLog: before.commandLog, updatedAt: before.updatedAt }).toEqual(
+      before,
+    );
+    expect(await f.call("begin_edit_workspace", { baseRevision: 1 })).toMatchObject({
+      baseRevision: 1,
+      workspaceRevision: 0,
+    });
+  });
+
+  it("preserves staged work after transport cancellation and reports commit conflicts", async () => {
+    const f = fixture();
+    const work = (await f.call("begin_edit_workspace", { baseRevision: 0 })) as {
+      workspaceId: string;
+      workspaceRevision: number;
+    };
+    const edited = (await f.call("execute_commands", {
+      ...work,
+      commands: [{ type: "addLayer", kind: "text", text: "preserved" }],
+    })) as { workspaceId: string; workspaceRevision: number };
+    f.service.interrupt("test");
+    expect(await f.call("get_workspace_status", edited)).toMatchObject({
+      workspaceRevision: 1,
+      state: "editable",
+    });
+    await f.call("submit_workspace", { ...edited, summary: "pending" });
+    f.changeLive();
+    await expect(f.call("commit_workspace", edited)).rejects.toMatchObject({
+      code: "revision_conflict",
+    });
+    expect(await f.call("get_workspace_status", edited)).toMatchObject({
+      workspaceRevision: 1,
+      state: "submitted",
+    });
+  });
+
+  it("does not execute a queued idempotent call after cancellation", async () => {
+    const f = fixture();
+    const pending = f.call("begin_edit_workspace", {
+      baseRevision: 0,
+      requestId: "cancel-before-start",
+    });
+    f.service.interrupt("test");
+    await expect(pending).rejects.toMatchObject({ code: "cancelled" });
+    expect(
+      await f.call("begin_edit_workspace", { baseRevision: 0, requestId: "fresh-start" }),
+    ).toMatchObject({ workspaceRevision: 0 });
+  });
+
   it("preserves concurrent user edits and drops cancelled workspaces", async () => {
     const f = fixture();
     const work = (await f.call("begin_edit_workspace", { baseRevision: 0 })) as {

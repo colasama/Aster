@@ -3,6 +3,7 @@ import { access, realpath, stat } from "node:fs/promises";
 import { isAbsolute, join } from "node:path";
 import { type BrowserWindow, ipcMain } from "electron";
 import type { AutomationRequest } from "../src/ai/automation-protocol.js";
+import { EditError } from "../src/ai/edit-limits.js";
 import { type AutomationCall, startAutomationServer } from "./automation-server.js";
 import { readProjectFont } from "./font-files.js";
 import { mediaMimeType, ReferenceMediaService } from "./reference-media.js";
@@ -19,8 +20,8 @@ export async function startAutomationHost(options: {
     string,
     { rendererId: number; resolve: (value: unknown) => void; reject: (error: Error) => void }
   >();
-  const cancel = (clientId: string) =>
-    options.window()?.webContents.send("aster:automation-cancel", clientId);
+  const cancel = (clientId: string, discard = false) =>
+    options.window()?.webContents.send("aster:automation-cancel", clientId, discard);
   ipcMain.handle("aster:automation-response", (event, value: unknown) => {
     if (
       !value ||
@@ -34,8 +35,15 @@ export async function startAutomationHost(options: {
       throw new Error("Unknown automation response owner");
     if (JSON.stringify(value).length > 48 * 1024 * 1024)
       throw new Error("Automation response exceeds its budget");
-    if ("error" in value && typeof value.error === "string") request.reject(new Error(value.error));
-    else request.resolve("result" in value ? value.result : undefined);
+    if ("error" in value && typeof value.error === "string") {
+      const details =
+        "errorDetails" in value
+          ? (value.errorDetails as { code: string; details: Record<string, unknown> })
+          : undefined;
+      request.reject(
+        new EditError(details?.code ?? "execution_failed", value.error, details?.details),
+      );
+    } else request.resolve("result" in value ? value.result : undefined);
     pending.delete(value.requestId);
   });
 

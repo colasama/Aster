@@ -3,7 +3,8 @@ import {
   normalizeTextAnimatorSettings,
 } from "../core/animation/text-animator";
 import { migrateLegacyTextAnimator } from "../core/animation/text-animator-migration";
-import { applyOperations, type Operation, type PropertyPath } from "../core/editing/operations";
+import { cloneTimelineLayers } from "../core/editing/clone-layers";
+import { applyOperation, type Operation, type PropertyPath } from "../core/editing/operations";
 import { createLayerForComposition } from "../core/layers/layer-factory";
 import { applySolidSettings } from "../core/layers/solid-layer";
 import { activeComposition } from "../core/project/project";
@@ -12,9 +13,10 @@ import { createParticleLayerForComposition } from "../core/scene/bundled-particl
 import { createId, type LayerKind, type Project, setLayerSizeAndCenterAnchor } from "../core/types";
 import { createEffect, EFFECT_BY_TYPE } from "../effects/registry";
 import { getCommandDescriptors, type JsonSchema } from "./command-registry";
+import { EDIT_LIMITS, encodedBytes, limitExceeded } from "./edit-limits";
 import { normalizeExtendedAiCommand } from "./extended-command-normalizer";
 
-export const MAX_AI_COMMAND_BATCH = 12;
+export const MAX_AI_COMMAND_BATCH = EDIT_LIMITS.commandsPerBatch;
 
 const PROPERTY_PATHS = new Set<PropertyPath>([
   "shape.morphProgress",
@@ -68,18 +70,46 @@ export function normalizeAiCommands(
 ): NormalizedCommandBatch {
   if (values.length === 0 || values.length > MAX_AI_COMMAND_BATCH)
     throw new Error(`Command batch must contain 1 through ${MAX_AI_COMMAND_BATCH} commands`);
-  const operations: Operation[] = [];
-  let next = structuredClone(project);
-  for (const [index, value] of values.entries()) {
-    const operation = normalizeCommand(value, next, currentTime, index);
-    next = validateProjectDocument(applyOperations(next, [operation]));
-    operations.push(operation);
+  const batch = new AiCommandBatch(project, currentTime);
+  for (const value of values) batch.append(value);
+  return batch.finish();
+}
+
+/** Own one candidate copy; never mutate the source project or replay payloads. */
+export class AiCommandBatch {
+  readonly project: Project;
+  readonly operations: Operation[] = [];
+  #bytes = 0;
+  constructor(
+    project: Project,
+    readonly currentTime: number,
+    readonly maxOperations: number = EDIT_LIMITS.operationsPerWorkspace,
+  ) {
+    this.project = structuredClone(project);
   }
-  return {
-    operations,
-    project: next,
-    changedObjectIds: changedIds(operations),
-  };
+  append(value: unknown): Operation {
+    if (this.operations.length >= this.maxOperations)
+      limitExceeded("operations", this.operations.length + 1, this.maxOperations);
+    const operation = normalizeCommand(
+      value,
+      this.project,
+      this.currentTime,
+      this.operations.length,
+    );
+    this.#bytes += encodedBytes(operation);
+    if (this.#bytes > EDIT_LIMITS.workspaceBytes)
+      limitExceeded("operationBytes", this.#bytes, EDIT_LIMITS.workspaceBytes);
+    applyOperation(this.project, structuredClone(operation));
+    this.operations.push(operation);
+    return operation;
+  }
+  finish(): NormalizedCommandBatch {
+    return {
+      project: validateProjectDocument(this.project),
+      operations: this.operations,
+      changedObjectIds: changedIds(this.operations),
+    };
+  }
 }
 
 function normalizeCommand(
@@ -130,6 +160,12 @@ function normalizeCommand(
         setLayerSizeAndCenterAnchor(created, [source.width, source.height]);
       }
       return { type: "addLayer", layer: created };
+    }
+    case "duplicateLayer": {
+      const original = requireLayer(layer, layerId);
+      const duplicate = cloneTimelineLayers([original], false)[0];
+      duplicate.name = typeof input.name === "string" ? input.name.trim() : `${original.name} Copy`;
+      return { type: "addLayer", layer: duplicate };
     }
     case "removeLayer":
       requireLayer(layer, layerId);

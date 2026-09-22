@@ -711,6 +711,26 @@
       }
     },
     {
+      "name": "duplicateLayer",
+      "version": 1,
+      "category": "layers",
+      "description": "Duplicate a layer, preserving its parent and assigning fresh object IDs.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "layerId"],
+        "properties": {
+          "type": { "const": "duplicateLayer" },
+          "layerId": { "$ref": "#/$defs/id" },
+          "name": { "$ref": "#/$defs/name" }
+        }
+      }
+    },
+    {
       "name": "removeLayer",
       "version": 1,
       "category": "layers",

@@ -96,7 +96,7 @@ describe("external automation boundary", () => {
       ).status,
     ).toBe(200);
     expect((await pending).status).toBe(400);
-    expect(cancel).toHaveBeenCalledWith("test");
+    expect(cancel).toHaveBeenCalledWith("test", false);
   });
 
   it("routes media as native MCP content rather than duplicating base64 in text", () => {

@@ -121,7 +121,12 @@ export function automationToolDefinitions() {
     [
       "commit_workspace",
       "Apply a submitted workspace to the unchanged live project as one undoable transaction.",
-      workspace,
+      {
+        ...workspace,
+        requestId: Type.Optional(
+          Type.String({ minLength: 1, maxLength: 128, pattern: "^[A-Za-z0-9_.-]+$" }),
+        ),
+      },
     ],
     [
       "reset_session",
@@ -149,6 +154,11 @@ export interface AutomationRequest {
 
 export interface AutomationDesktopApi {
   onRequest(listener: (request: AutomationRequest) => void): () => void;
-  onCancel(listener: (clientId: string) => void): () => void;
-  respond(response: { requestId: string; result?: unknown; error?: string }): Promise<void>;
+  onCancel(listener: (clientId: string, discard?: boolean) => void): () => void;
+  respond(response: {
+    requestId: string;
+    result?: unknown;
+    error?: string;
+    errorDetails?: { code: string; message: string; details: Record<string, unknown> };
+  }): Promise<void>;
 }

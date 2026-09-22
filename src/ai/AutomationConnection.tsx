@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { flushSync } from "react-dom";
 import { useEditor } from "../state/editor-store";
 import { AutomationApplicationService } from "./automation-service";
+import { editErrorData } from "./edit-limits";
 
 export function AutomationConnection() {
   const { state, dispatch } = useEditor();
@@ -32,12 +33,15 @@ export function AutomationConnection() {
           (error: unknown) =>
             api.respond({
               requestId: request.requestId,
+              errorDetails: editErrorData(error),
               error: error instanceof Error ? error.message : String(error),
             }),
         )
         .catch(() => undefined);
     });
-    const cancel = api.onCancel((clientId) => service.cancel(clientId));
+    const cancel = api.onCancel((clientId, discard) =>
+      discard ? service.cancel(clientId) : service.interrupt(clientId),
+    );
     return () => {
       unsubscribe();
       cancel();

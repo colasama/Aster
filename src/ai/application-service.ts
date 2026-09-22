@@ -1,25 +1,44 @@
-import { buildAiContext, MAX_AI_CONTEXT_BYTES, queryEffects } from "../core/editing/ai-context";
+import { buildAiContext, queryEffects } from "../core/editing/ai-context";
 import type { Operation } from "../core/editing/operations";
 import { prepareProjectFonts } from "../core/media/project-font-runtime";
 import { activeComposition } from "../core/project/project";
 import { createId, type Project } from "../core/types";
 import type { AgentAccessMode, VisualObservation, VisualVerification } from "./agent-protocol";
-import { MAX_AI_COMMAND_BATCH, normalizeAiCommands } from "./command-normalizer";
+import {
+  assertRenderedFrames,
+  boundedInteger,
+  boundedResult,
+  boundedTimes,
+  changedIdsForOperation,
+  finiteNumber,
+  frameMeasurement,
+  optionalString,
+  queryValues,
+  stringValue,
+} from "./application-tool-values";
+import {
+  MAX_AI_COMMAND_BATCH,
+  type NormalizedCommandBatch,
+  normalizeAiCommands,
+} from "./command-normalizer";
 import {
   AI_COMMAND_DESCRIPTORS,
   AI_COMMAND_SCHEMA_VERSION,
   getCommandDescriptors,
   searchCommandDescriptors,
 } from "./command-registry";
+import { EditExecutions } from "./edit-executions";
+import { EDIT_LIMITS, EditError, encodedBytes, limitExceeded } from "./edit-limits";
+import { type EditTaskRunner, runEditTask } from "./edit-task";
 import { type PreviewOptions, parsePreviewOptions } from "./preview-options";
 import type { AgentRenderedPreviewFrame } from "./render-preview";
+import { RequestReceipts } from "./request-receipts";
+import { SCRIPT_API_DOCS } from "./script-api";
 
 const MAX_QUERY_ITEMS = 128;
-const MAX_QUERY_BYTES = 64 * 1024;
-const MAX_WORKSPACE_BYTES = 16 * 1024 * 1024;
-const MAX_WORKSPACE_COMMANDS = 128;
-const MAX_WORKSPACE_AGE_MS = 10 * 60 * 1000;
-const MAX_RENDER_SAMPLES = 12;
+const MAX_WORKSPACE_BYTES = EDIT_LIMITS.workspaceBytes;
+const MAX_WORKSPACE_COMMANDS = EDIT_LIMITS.operationsPerWorkspace;
+const MAX_WORKSPACE_AGE_MS = EDIT_LIMITS.idleMs;
 
 interface EditWorkspace {
   id: string;
@@ -28,7 +47,8 @@ interface EditWorkspace {
   project: Project;
   operations: Operation[];
   changedObjectIds: Set<string>;
-  createdAt: number;
+  lastActivityAt: number;
+  busy?: boolean;
   frozen: boolean;
   previewFrames?: AgentRenderedPreviewFrame[];
   visualObservation?: VisualObservation;
@@ -52,6 +72,7 @@ export interface AgentApplicationContext {
   currentTime: number;
   accessMode: AgentAccessMode;
   primaryModelSupportsImages: boolean;
+  runEditTask?: EditTaskRunner;
   renderPreview?: (
     project: Project,
     times: readonly number[],
@@ -73,11 +94,16 @@ export class AsterAgentApplicationService {
   readonly #context: AgentApplicationContext;
   readonly #workspaces = new Map<string, EditWorkspace>();
   readonly #audit: AgentToolAuditEvent[] = [];
-  readonly #abortController = new AbortController();
+  readonly #activeControllers = new Map<AbortController, string>();
+  readonly #executions = new EditExecutions();
+  readonly #receipts = new RequestReceipts();
+  readonly #baseBytes: number;
   #submitted?: SubmittedAgentWorkspace;
   #aborted = false;
+  #executionGeneration = 0;
 
   constructor(context: AgentApplicationContext) {
+    this.#baseBytes = encodedBytes(context.project);
     this.#context = {
       ...context,
       project: structuredClone(context.project),
@@ -87,10 +113,15 @@ export class AsterAgentApplicationService {
 
   async executeTool(toolName: string, argumentsValue: Record<string, unknown>): Promise<unknown> {
     if (this.#aborted) throw new Error("Agent session was aborted");
+    const generation = this.#executionGeneration;
     const started = new Date();
     const argumentBytes = encodedBytes(argumentsValue);
     try {
-      const result = await this.#dispatch(toolName, argumentsValue);
+      const result = await this.#receipts.run(toolName, argumentsValue, () => {
+        if (this.#aborted || generation !== this.#executionGeneration)
+          throw new EditError("cancelled", "Request cancelled before execution");
+        return this.#dispatch(toolName, argumentsValue);
+      });
       this.#recordAudit(toolName, started, "ok", argumentBytes);
       return result;
     } catch (error) {
@@ -106,6 +137,7 @@ export class AsterAgentApplicationService {
   }
 
   submittedWorkspace(): SubmittedAgentWorkspace | undefined {
+    if (this.#submitted) this.#workspace(this.#submitted.workspaceId, false);
     return this.#submitted ? structuredClone(this.#submitted) : undefined;
   }
 
@@ -113,9 +145,15 @@ export class AsterAgentApplicationService {
     return structuredClone(this.#audit);
   }
 
+  interrupt(): void {
+    this.#executionGeneration++;
+    this.#executions.interrupt();
+    for (const controller of this.#activeControllers.keys()) controller.abort();
+  }
+
   abort(): void {
+    this.interrupt();
     this.#aborted = true;
-    this.#abortController.abort();
     this.#workspaces.clear();
     this.#submitted = undefined;
   }
@@ -132,6 +170,18 @@ export class AsterAgentApplicationService {
         return this.#queryProject(input);
       case "begin_edit_workspace":
         return this.#beginWorkspace(input);
+      case "get_workspace_status":
+        return this.#workspaceStatus(
+          this.#workspace(stringValue(input.workspaceId, "workspaceId"), false),
+        );
+      case "get_script_api":
+        return { ...SCRIPT_API_DOCS, limits: EDIT_LIMITS };
+      case "execute_aster_code":
+        return this.#executeCode(input);
+      case "get_execution":
+        return this.#executions.status(stringValue(input.executionId, "executionId"));
+      case "cancel_execution":
+        return this.#executions.cancel(stringValue(input.executionId, "executionId"));
       case "execute_commands":
         return this.#executeCommands(input);
       case "evaluate_at_time":
@@ -228,14 +278,19 @@ export class AsterAgentApplicationService {
       Number.MAX_SAFE_INTEGER,
     );
     this.#assertLiveRevision(baseRevision);
+    for (const [id, workspace] of this.#workspaces)
+      if (!workspace.busy && Date.now() - workspace.lastActivityAt > MAX_WORKSPACE_AGE_MS)
+        this.#workspaces.delete(id);
+    if (this.#workspaces.size >= EDIT_LIMITS.maxWorkspaces)
+      limitExceeded("workspaces", this.#workspaces.size + 1, EDIT_LIMITS.maxWorkspaces);
     const workspace: EditWorkspace = {
       id: createId(),
       baseRevision,
       revision: 0,
-      project: structuredClone(this.#context.project),
+      project: this.#context.project,
       operations: [],
       changedObjectIds: new Set(),
-      createdAt: Date.now(),
+      lastActivityAt: Date.now(),
       frozen: false,
     };
     this.#assertWorkspaceBudget(workspace);
@@ -247,7 +302,8 @@ export class AsterAgentApplicationService {
       budgets: {
         maxBytes: MAX_WORKSPACE_BYTES,
         maxCommands: MAX_WORKSPACE_COMMANDS,
-        maxAgeMs: MAX_WORKSPACE_AGE_MS,
+        idleMs: MAX_WORKSPACE_AGE_MS,
+        maxCommandsPerBatch: MAX_AI_COMMAND_BATCH,
       },
     };
   }
@@ -258,21 +314,102 @@ export class AsterAgentApplicationService {
     if (input.commands.length === 0 || input.commands.length > MAX_AI_COMMAND_BATCH)
       throw new Error(`Each batch must contain 1 through ${MAX_AI_COMMAND_BATCH} commands`);
     if (workspace.operations.length + input.commands.length > MAX_WORKSPACE_COMMANDS)
-      throw new Error("Workspace command-count budget exceeded");
-    const batch = normalizeAiCommands(input.commands, workspace.project, this.#context.currentTime);
+      limitExceeded(
+        "operations",
+        workspace.operations.length + input.commands.length,
+        MAX_WORKSPACE_COMMANDS,
+      );
+    workspace.busy = true;
+    const controller = new AbortController();
+    this.#activeControllers.set(controller, workspace.id);
+    try {
+      const runner =
+        this.#context.runEditTask ?? (typeof Worker !== "undefined" ? runEditTask : undefined);
+      const batch = runner
+        ? await runner(
+            {
+              project: workspace.project,
+              currentTime: this.#context.currentTime,
+              maxOperations: MAX_WORKSPACE_COMMANDS - workspace.operations.length,
+              commands: input.commands,
+            },
+            controller.signal,
+            () => {},
+          )
+        : normalizeAiCommands(input.commands, workspace.project, this.#context.currentTime);
+      return await this.#acceptBatch(workspace, batch, controller.signal);
+    } finally {
+      this.#activeControllers.delete(controller);
+      workspace.busy = false;
+      workspace.lastActivityAt = Date.now();
+    }
+  }
+
+  #executeCode(input: Record<string, unknown>) {
+    if (typeof input.code !== "string" || !input.code.trim())
+      throw new Error("code must be a non-empty string");
+    if (encodedBytes(input.code) > EDIT_LIMITS.scriptBytes)
+      limitExceeded("scriptBytes", encodedBytes(input.code), EDIT_LIMITS.scriptBytes);
+    this.#executions.assertIdle();
+    if (input.workspaceId === undefined && input.workspaceRevision !== undefined)
+      throw new Error("workspaceRevision requires workspaceId");
+    const address = input.workspaceId === undefined ? this.#beginWorkspace(input) : input;
+    const workspace = this.#mutableWorkspace(address);
+    const runner = this.#context.runEditTask ?? runEditTask;
+    const code = input.code;
+    const started = this.#executions.start(
+      workspace.id,
+      workspace.revision,
+      async (signal, progress) => {
+        try {
+          signal.throwIfAborted();
+          const batch = await runner(
+            {
+              project: workspace.project,
+              currentTime: this.#context.currentTime,
+              maxOperations: MAX_WORKSPACE_COMMANDS - workspace.operations.length,
+              code,
+            },
+            signal,
+            progress,
+          );
+          signal.throwIfAborted();
+          const accepted = await this.#acceptBatch(workspace, batch, signal);
+          return { workspaceRevision: accepted.workspaceRevision, result: batch.result };
+        } finally {
+          workspace.busy = false;
+          workspace.lastActivityAt = Date.now();
+        }
+      },
+    );
+    workspace.busy = true;
+    return started;
+  }
+
+  async #acceptBatch(
+    workspace: EditWorkspace,
+    batch: NormalizedCommandBatch,
+    signal?: AbortSignal,
+  ) {
     const candidate: EditWorkspace = {
       ...workspace,
       project: batch.project,
       operations: [...workspace.operations, ...batch.operations],
       changedObjectIds: new Set([...workspace.changedObjectIds, ...batch.changedObjectIds]),
-      revision: workspace.revision + 1,
+      revision: workspace.revision + (batch.operations.length > 0 ? 1 : 0),
+      lastActivityAt: Date.now(),
+      busy: false,
+      ...(batch.operations.length > 0
+        ? { previewFrames: undefined, visualObservation: undefined }
+        : {}),
     };
     this.#assertWorkspaceBudget(candidate);
-    if (batch.operations.some((operation) => operation.type === "addProjectFont")) {
+    if (batch.operations.some((operation) => operation.type === "addProjectFont"))
       await prepareProjectFonts(candidate.project);
-      if (this.#mutableWorkspace(input) !== workspace)
-        throw new Error("Workspace changed while loading fonts");
-    }
+    signal?.throwIfAborted();
+    if (this.#aborted || this.#workspaces.get(workspace.id) !== workspace)
+      throw new EditError("workspace_changed", "Workspace changed during execution");
+    candidate.lastActivityAt = Date.now();
     this.#workspaces.set(candidate.id, candidate);
     return {
       workspaceId: candidate.id,
@@ -283,6 +420,27 @@ export class AsterAgentApplicationService {
       })),
       changedObjectIds: batch.changedObjectIds,
       diagnostics: [],
+      budgets: this.#workspaceStatus(candidate).budgets,
+    };
+  }
+
+  #workspaceStatus(workspace: EditWorkspace) {
+    return {
+      workspaceId: workspace.id,
+      baseRevision: workspace.baseRevision,
+      workspaceRevision: workspace.revision,
+      state: workspace.busy ? "running" : workspace.frozen ? "submitted" : "editable",
+      budgets: {
+        operations: { used: workspace.operations.length, limit: MAX_WORKSPACE_COMMANDS },
+        bytes: {
+          used: this.#workspaceBytes(workspace),
+          limit: MAX_WORKSPACE_BYTES,
+          baseProjectBytes: this.#baseBytes,
+        },
+        idleMs: MAX_WORKSPACE_AGE_MS,
+        expiresAt: workspace.busy ? null : workspace.lastActivityAt + MAX_WORKSPACE_AGE_MS,
+        commandsPerBatch: MAX_AI_COMMAND_BATCH,
+      },
     };
   }
 
@@ -302,27 +460,40 @@ export class AsterAgentApplicationService {
   async #renderPreview(input: Record<string, unknown>) {
     const workspace = this.#workspaceInput(input);
     const times = boundedTimes(input.times);
+    if (workspace.busy) throw new EditError("workspace_busy", "Workspace has a running execution");
     if (this.#context.renderPreview) {
-      const frames = await this.#context.renderPreview(
-        structuredClone(workspace.project),
-        times,
-        this.#abortController.signal,
-        parsePreviewOptions(input),
-      );
-      assertRenderedFrames(frames, times);
-      workspace.previewFrames = structuredClone(frames);
-      return {
-        workspaceId: workspace.id,
-        workspaceRevision: workspace.revision,
-        status: "rendered",
-        frames,
-        verification: this.#context.primaryModelSupportsImages
-          ? "verified_by_primary_model"
-          : "metrics_only",
-        limitation: this.#context.primaryModelSupportsImages
-          ? "Bounded preview images are attached to this tool result for the primary model."
-          : "The primary model is text-only; only deterministic pixel metrics are exposed.",
-      };
+      const controller = new AbortController();
+      this.#activeControllers.set(controller, workspace.id);
+      workspace.busy = true;
+      try {
+        const frames = await this.#context.renderPreview(
+          structuredClone(workspace.project),
+          times,
+          controller.signal,
+          parsePreviewOptions(input),
+        );
+        controller.signal.throwIfAborted();
+        if (this.#workspaces.get(workspace.id) !== workspace)
+          throw new EditError("workspace_changed", "Workspace changed during preview");
+        assertRenderedFrames(frames, times);
+        workspace.previewFrames = structuredClone(frames);
+        return {
+          workspaceId: workspace.id,
+          workspaceRevision: workspace.revision,
+          status: "rendered",
+          frames,
+          verification: this.#context.primaryModelSupportsImages
+            ? "verified_by_primary_model"
+            : "metrics_only",
+          limitation: this.#context.primaryModelSupportsImages
+            ? "Bounded preview images are attached to this tool result for the primary model."
+            : "The primary model is text-only; only deterministic pixel metrics are exposed.",
+        };
+      } finally {
+        this.#activeControllers.delete(controller);
+        workspace.busy = false;
+        workspace.lastActivityAt = Date.now();
+      }
     }
     return {
       workspaceId: workspace.id,
@@ -469,6 +640,9 @@ export class AsterAgentApplicationService {
 
   #discardWorkspace(input: Record<string, unknown>) {
     const workspaceId = stringValue(input.workspaceId, "workspaceId");
+    this.#executions.interrupt(workspaceId);
+    for (const [controller, id] of this.#activeControllers)
+      if (id === workspaceId) controller.abort();
     const discarded = this.#workspaces.delete(workspaceId);
     if (this.#submitted?.workspaceId === workspaceId) this.#submitted = undefined;
     return { workspaceId, discarded };
@@ -495,31 +669,47 @@ export class AsterAgentApplicationService {
       Number.MAX_SAFE_INTEGER,
     );
     if (revision !== workspace.revision)
-      throw new Error(
+      throw new EditError(
+        "revision_conflict",
         `Stale workspace revision: expected ${workspace.revision}, received ${revision}`,
+        { currentRevision: workspace.revision, expectedRevision: revision },
       );
     return workspace;
   }
 
   #mutableWorkspace(input: Record<string, unknown>): EditWorkspace {
     const workspace = this.#workspaceInput(input);
+    if (workspace.busy) throw new EditError("workspace_busy", "Workspace has a running execution");
     if (workspace.frozen) throw new Error("Workspace is frozen");
     return workspace;
   }
 
-  #workspace(id: string): EditWorkspace {
+  #workspace(id: string, touch = true): EditWorkspace {
     const workspace = this.#workspaces.get(id);
-    if (!workspace) throw new Error("Edit workspace does not exist");
-    if (Date.now() - workspace.createdAt > MAX_WORKSPACE_AGE_MS) {
+    if (!workspace) throw new EditError("workspace_not_found", "Edit workspace does not exist");
+    if (!workspace.busy && Date.now() - workspace.lastActivityAt > MAX_WORKSPACE_AGE_MS) {
       this.#workspaces.delete(id);
-      throw new Error("Edit workspace expired");
+      throw new EditError(
+        "workspace_expired",
+        "Edit workspace expired after 30 minutes of inactivity",
+      );
     }
+    if (touch) workspace.lastActivityAt = Date.now();
     return workspace;
   }
 
+  #workspaceBytes(workspace: EditWorkspace) {
+    return (
+      encodedBytes(workspace.operations) +
+      Math.max(0, encodedBytes(workspace.project) - this.#baseBytes)
+    );
+  }
+
   #assertWorkspaceBudget(workspace: EditWorkspace): void {
-    if (encodedBytes(workspace.project) + encodedBytes(workspace.operations) > MAX_WORKSPACE_BYTES)
-      throw new Error("Workspace byte budget exceeded");
+    const bytes = this.#workspaceBytes(workspace);
+    if (bytes > MAX_WORKSPACE_BYTES) limitExceeded("workspaceBytes", bytes, MAX_WORKSPACE_BYTES);
+    if (workspace.operations.length > MAX_WORKSPACE_COMMANDS)
+      limitExceeded("operations", workspace.operations.length, MAX_WORKSPACE_COMMANDS);
   }
 
   #recordAudit(
@@ -539,134 +729,4 @@ export class AsterAgentApplicationService {
     });
     if (this.#audit.length > 512) this.#audit.splice(0, this.#audit.length - 512);
   }
-}
-
-function queryValues(kind: string, context: ReturnType<typeof buildAiContext>): unknown[] {
-  switch (kind) {
-    case "project":
-      return [context.project];
-    case "compositions":
-      return [context.composition];
-    case "layers":
-      return context.timeline;
-    case "properties":
-      return context.properties;
-    case "effects":
-      return context.properties.flatMap((layer) =>
-        layer.effects.map((effect) => ({ layerId: layer.id, ...effect })),
-      );
-    case "assets":
-      return context.assets;
-    case "fonts":
-      return context.fonts;
-    case "scene":
-      return context.scene;
-    default:
-      throw new Error(`Unsupported project query kind: ${kind}`);
-  }
-}
-
-function changedIdsForOperation(operation: Operation): string[] {
-  if ("layerId" in operation) return [operation.layerId];
-  if ("compositionId" in operation) return [operation.compositionId];
-  if (operation.type === "addLayer") return [operation.layer.id];
-  if (operation.type === "addComposition") return [operation.composition.id];
-  if (operation.type === "addProjectFolder") return [operation.folder.id];
-  if (operation.type === "addProjectFont") return [operation.font.id];
-  if (operation.type === "removeProjectFont") return [operation.fontId];
-  if (operation.type === "moveProjectItem") return [operation.itemId];
-  if (operation.type === "precomposeLayers")
-    return [operation.wrapper.id, operation.nestedComposition.id, ...operation.selectedIds];
-  return [];
-}
-
-function boundedResult<T>(value: T): T {
-  if (encodedBytes(value) > Math.min(MAX_QUERY_BYTES, MAX_AI_CONTEXT_BYTES))
-    throw new Error("Agent query result exceeded its byte budget");
-  return value;
-}
-
-function assertRenderedFrames(
-  frames: readonly AgentRenderedPreviewFrame[],
-  times: readonly number[],
-): void {
-  if (frames.length !== times.length) throw new Error("Agent preview renderer omitted frames");
-  let encodedCharacters = 0;
-  for (const [index, frame] of frames.entries()) {
-    if (frame.time !== times[index]) throw new Error("Agent preview renderer changed sample times");
-    if (!frame.renderId || frame.renderId.length > 256)
-      throw new Error("Agent preview render ID is invalid");
-    if (frame.mimeType !== "image/png") throw new Error("Agent preview format is unsupported");
-    if (
-      !Number.isSafeInteger(frame.width) ||
-      !Number.isSafeInteger(frame.height) ||
-      frame.width < 1 ||
-      frame.height < 1 ||
-      frame.width > 2048 ||
-      frame.height > 2048
-    )
-      throw new Error("Agent preview dimensions are outside their bounds");
-    if (!/^[A-Za-z0-9+/]*={0,2}$/u.test(frame.data))
-      throw new Error("Agent preview image is not base64 encoded");
-    encodedCharacters += frame.data.length;
-    for (const value of Object.values(frame.measurements))
-      if (typeof value === "number" && !Number.isFinite(value))
-        throw new Error("Agent preview measurement is not finite");
-  }
-  if (encodedCharacters > 12 * 1024 * 1024)
-    throw new Error("Agent preview transport exceeded its byte budget");
-}
-
-function frameMeasurement(frame: AgentRenderedPreviewFrame) {
-  return {
-    time: frame.time,
-    renderId: frame.renderId,
-    width: frame.width,
-    height: frame.height,
-    ...frame.measurements,
-  };
-}
-
-function boundedTimes(value: unknown): number[] {
-  if (!Array.isArray(value) || value.length === 0 || value.length > MAX_RENDER_SAMPLES)
-    throw new Error(`times must contain 1 through ${MAX_RENDER_SAMPLES} entries`);
-  return [...new Set(value.map((entry) => finiteNumber(entry, "time")))].sort(
-    (left, right) => left - right,
-  );
-}
-
-function encodedBytes(value: unknown): number {
-  return new TextEncoder().encode(JSON.stringify(value)).byteLength;
-}
-
-function stringValue(value: unknown, name: string, allowEmpty = false): string {
-  if (typeof value !== "string" || (!allowEmpty && !value.trim()))
-    throw new Error(`${name} must be a non-empty string`);
-  if (value.length > 500) throw new Error(`${name} is too long`);
-  return value;
-}
-
-function optionalString(value: unknown, name: string): string | undefined {
-  return value === undefined ? undefined : stringValue(value, name);
-}
-
-function finiteNumber(value: unknown, name: string, fallback?: number): number {
-  if (value === undefined && fallback !== undefined) return fallback;
-  if (typeof value !== "number" || !Number.isFinite(value))
-    throw new Error(`${name} must be finite`);
-  return value;
-}
-
-function boundedInteger(
-  value: unknown,
-  name: string,
-  minimum: number,
-  maximum: number,
-  fallback?: number,
-): number {
-  if (value === undefined && fallback !== undefined) return fallback;
-  if (typeof value !== "number" || !Number.isSafeInteger(value))
-    throw new Error(`${name} must be an integer`);
-  if (value < minimum || value > maximum) throw new Error(`${name} is outside its bounds`);
-  return value;
 }

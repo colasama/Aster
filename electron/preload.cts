@@ -46,8 +46,9 @@ contextBridge.exposeInMainWorld(
         ipcRenderer.on("aster:automation-request", handle);
         return () => ipcRenderer.removeListener("aster:automation-request", handle);
       },
-      onCancel: (listener: (clientId: string) => void) => {
-        const handle = (_event: IpcRendererEvent, clientId: string) => listener(clientId);
+      onCancel: (listener: (clientId: string, discard?: boolean) => void) => {
+        const handle = (_event: IpcRendererEvent, clientId: string, discard?: boolean) =>
+          listener(clientId, discard);
         ipcRenderer.on("aster:automation-cancel", handle);
         return () => ipcRenderer.removeListener("aster:automation-cancel", handle);
       },

@@ -349,6 +349,17 @@ FFmpeg/FFprobe decoding runs outside the renderer, while bounded high-resolution
 comparison readbacks reuse the active render session. Import, save and export reuse their existing
 application services. See [External Automation](AUTOMATION.md) for setup, budgets and authority.
 
+Typed editing batches use a disposable Worker and a single candidate project copy with final
+whole-document validation. The same worker hosts the scoped `aster` scripting API in QuickJS WASM;
+only bounded JSON queries and normalized operations cross the VM boundary. Script execution returns
+a job ID, supports progress and hard cancellation, and publishes its candidate only after successful
+validation. Workspace byte budgets charge operation payloads and positive document growth separately
+from the shared base snapshot. Idle expiry pauses during editing and previews. Request receipts
+survive commits in the MCP client session, preventing duplicate mutations after a retried response.
+The editor commits the resulting operation list as one history transaction. See the bulk-editing
+section of [External Automation](AUTOMATION.md#bulk-editing-and-isolated-scripts) for limits and
+receipt lifetimes. No project format or native plugin ABI changes are introduced.
+
 Exact-frame export barriers observe asynchronous GPU video-upload validation as well as media
 element events, so hidden render hosts do not depend on another preview tick. MP4 inputs signal EOF
 as soon as their declared video/audio frame counts are written, allowing FFmpeg to finish probing

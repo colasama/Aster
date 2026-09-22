@@ -58,7 +58,7 @@ export async function startAsterMcp(
     {
       capabilities: { tools: {} },
       instructions:
-        "Operate the running Aster editor. Read context, begin a workspace, discover command schemas, edit, render, submit and commit. Use reset_session after external user edits. Each committed batch is undoable. Reference samples return actual timestamps; use those times for motion comparisons.",
+        "Operate the running Aster editor. Read context, begin a workspace, discover command schemas, edit, render, submit and commit. Use reset_session after external user edits. Each committed workspace is one undo step. For bulk editing, read get_script_api and use execute_aster_code, then poll get_execution. Use get_workspace_status for budgets; operations are counted per workspace, not per MCP process. Use a stable requestId on editing calls and commit for retry deduplication (last 64 requests per client, cleared on reset/disconnect). Cancelling an execution preserves prior staged edits. After commit, continue in this same connection with a fresh workspace. Reference samples return actual timestamps; use those times for motion comparisons.",
     },
   );
   server.setRequestHandler(ListToolsRequestSchema, async () => {
@@ -88,8 +88,26 @@ export async function startAsterMcp(
         }),
         signal: AbortSignal.any([extra.signal, AbortSignal.timeout(125_000)]),
       });
-      const body = (await response.json()) as { result?: unknown; error?: string };
-      if (!response.ok) throw new Error(body.error ?? `Aster request failed (${response.status})`);
+      const body = (await response.json()) as {
+        result?: unknown;
+        error?: string;
+        errorDetails?: unknown;
+      };
+      if (!response.ok)
+        return {
+          isError: true,
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                body.errorDetails ?? {
+                  code: "transport_error",
+                  message: body.error ?? `Aster request failed (${response.status})`,
+                },
+              ),
+            },
+          ],
+        };
       return mediaToolResult(body.result);
     } catch (error) {
       return {

@@ -153,14 +153,84 @@ Export captures one immutable project/media snapshot. Export destinations must n
 - Preview PNGs share an 8 MiB encoding budget; reference PNGs share 12 MiB. Comparison images share
   a 24 MiB base64 budget. Request fewer frames or a smaller size when a budget is exceeded.
 - Decoder subprocesses have a 60-second timeout and bounded output. Calls have a 120-second overall
-  timeout. Cancellation terminates reference subprocesses and discards the client's staged work.
+  timeout. Cancellation terminates reference subprocesses and active editing executions, preserving
+  earlier staged edits. Disconnect and `reset_session` explicitly discard the client's workspaces.
   An already-started atomic save or durable render enqueue may finish; inspect the saved revision
   or render queue after an interrupted response. Cancelling an export requires `cancel_render`.
 - At most eight connected clients and one active tool call are allowed. Concurrent calls receive a
-  busy response. Each workspace retains the existing 128-command, 16 MiB and ten-minute limits.
+  busy response. Scripts return an execution ID immediately, allowing subsequent status and cancellation
+  calls. Each client may retain four workspaces and run one script at a time.
 - The editor may initialize its GPU asynchronously. Agent previews wait up to ten seconds for a
   render session, then report an actionable failure. GPU residency is retained between normal
   editor frames; only requested samples cross to CPU memory.
+
+## Bulk editing and isolated scripts
+
+Both typed commands and scripts use the same staged transaction and explicit submit/commit flow.
+A successful commit is one undo step, regardless of operation count. Continue through the same MCP
+connection using the returned live revision; restarting the adapter is unnecessary. A revision
+conflict preserves the pending workspace for inspection. Resetting explicitly discards it.
+
+| Resource | Limit and accounting |
+| --- | --- |
+| Typed batch | 256 commands; one candidate copy and one final full-document validation |
+| Workspace | 4096 normalized operations across successful executions; a safety fuse, not a session quota |
+| Workspace bytes | 32 MiB of serialized operation payloads plus positive document growth relative to the base snapshot; base bytes reported separately |
+| Idle lifetime | 30 minutes since workspace activity; running edits/previews are pinned; status/job polling does not renew idle time |
+| Script | 256 KiB of JSON-encoded source; 30-second Worker deadline including startup and validation |
+| Guest memory | 32 MiB QuickJS allocator and 64 MiB WebAssembly linear-memory maximum; host project copies are accounted separately |
+| Script results and queries | 64 KiB per JSON response; large reads should use `query_project` pagination |
+| Receipts | Last 64 request IDs per client, in memory; last 32 script statuses per editing session |
+
+`get_workspace_status` reports revision, state, operation/byte usage, limits and expiry.
+Errors include `code`, `message` and `details`; budget errors identify the resource, used amount,
+limit and recovery suggestion. Counts measure normalized operations, so setting a 3D position costs
+three operations; switching a bound composition can add one operation.
+
+Supply a unique `requestId` on `begin_edit_workspace`, `execute_commands`, `execute_aster_code`,
+`submit_workspace`, `discard_workspace` and `commit_workspace` to make retries safe. Retry with the
+same ID and identical arguments to receive the original result, including after commit. A reused ID
+with different arguments fails. Receipts survive commits but expire on eviction, reset, disconnect,
+project replacement or application restart. They are not durable exactly-once guarantees.
+
+Read `get_script_api` for the current API and example. `execute_aster_code` accepts a synchronous
+JavaScript function body with either `workspaceId` + `workspaceRevision`, or `baseRevision` to create
+a workspace. It returns `executionId` immediately. Poll `get_execution`; only `succeeded` advances
+the workspace revision. `cancel_execution` terminates the disposable Worker. Script errors, invalid
+commands (even when caught by guest code), cancellation, timeout and resource exhaustion discard
+only the current candidate. Previously completed edits remain available.
+
+```javascript
+const c = aster.compositions.active();
+const ids = [];
+for (let i = 0; i < 16; i++) {
+  const layer = c.layers.addText({
+    name: `Unit ${i}`, text: String(i), position: [100 + i * 80, 300, 0],
+  });
+  layer.opacity.setKeyframes([{ time: 0, value: 0 }, { time: 1, value: 100 }]);
+  ids.push(layer.id);
+  aster.progress((i + 1) / 16, "Creating units");
+}
+return { ids };
+```
+
+Handles provide composition/layer queries, typed creation, bulk property updates, replacement
+keyframe arrays, effects, duplication and removal. `aster.command()` / `aster.commands()` expose the
+existing versioned command catalog for operations not covered by convenience methods. All writes
+pass through command normalization; direct object mutation only changes returned JSON copies.
+After success, use its `workspaceRevision` to preview, submit, then commit explicitly.
+
+Guest JavaScript runs inside QuickJS WASM in a dedicated module Worker. It has no DOM, Electron,
+filesystem or network objects, no host module loader and no async job pumping. Returned Promises
+are rejected. The document CSP permits WebAssembly compilation (`wasm-unsafe-eval`) but does not
+permit renderer JavaScript `eval`. Worker termination is the outer cancellation/time limit even if
+the guest stops cooperating. Ordinary typed batches also run in Workers in the editor. Project
+snapshot transfer and the final live commit still have CPU cost; the VM memory cap does not bound
+all application memory. Preview and export retain the existing GPU renderer and explicit tools.
+
+The existing bounded project command log may retain only a summary for large transactions; undo
+uses editor history, not that log. Script text is not stored in project documents. No project format
+or native plugin ABI changes are required.
 
 ## Validation
 
@@ -185,3 +255,14 @@ The smoke test starts a separate profile, connects through MCP, creates animatio
 cropped frames, compares a generated audiovisual reference, imports it, saves a project, and exports
 an MP4 with audio. Reports and sampled PNGs remain under `artifacts/automation-smoke-<timestamp>`.
 The test terminates only the application process tree it launched.
+
+Run the two-phase editing integration test against a fresh build:
+
+```powershell
+pnpm build
+node scripts/automation-edit-smoke.mjs
+```
+
+It launches a private hidden Electron editor through MCP and verifies Worker/WASM startup under
+the production CSP, bulk scripting, rollback, responsiveness during an infinite loop, cancellation,
+the hard deadline, GPU preview and retry-safe commit. Reports are saved under `artifacts/automation-edit-*`.

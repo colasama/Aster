@@ -18,15 +18,21 @@ import { type EditorState, isProjectDirty } from "../state/editor-store";
 import { AsterAgentApplicationService } from "./application-service";
 import { importAutomationAsset } from "./automation-import";
 import type { AutomationRequest } from "./automation-protocol";
+import { EditError } from "./edit-limits";
 import { checkFonts, listFonts } from "./font-tools";
 import { parsePreviewOptions } from "./preview-options";
 import { compareReferenceFrames, type ReferenceFrame } from "./reference-comparison";
 import { type AgentRenderedPreviewFrame, renderAgentPreview } from "./render-preview";
+import { RequestReceipts } from "./request-receipts";
 
 export class AutomationApplicationService {
   readonly #sessions = new Map<
     string,
     { projectId: string; service: AsterAgentApplicationService; controller: AbortController }
+  >();
+  readonly #receipts = new Map<
+    string,
+    { projectId: string; receipts: RequestReceipts; generation: number }
   >();
   constructor(
     readonly context: {
@@ -37,7 +43,18 @@ export class AutomationApplicationService {
     },
   ) {}
 
-  cancel(clientId: string) {
+  interrupt(clientId: string) {
+    const receipts = this.#receipts.get(clientId);
+    if (receipts) receipts.generation++;
+    const session = this.#sessions.get(clientId);
+    if (!session) return;
+    session.controller.abort();
+    session.controller = new AbortController();
+    session.service.interrupt();
+  }
+
+  cancel(clientId: string, preserveReceipts = false) {
+    if (!preserveReceipts) this.#receipts.delete(clientId);
     const session = this.#sessions.get(clientId);
     session?.controller.abort();
     session?.service.abort();
@@ -46,6 +63,7 @@ export class AutomationApplicationService {
 
   close() {
     for (const id of this.#sessions.keys()) this.cancel(id);
+    this.#receipts.clear();
   }
 
   #createSession(clientId: string) {
@@ -69,6 +87,41 @@ export class AutomationApplicationService {
   }
 
   async execute(request: AutomationRequest): Promise<unknown> {
+    const existing = this.#sessions.get(request.clientId);
+    const projectId = this.context.read().project.id;
+    if (
+      (existing && existing.projectId !== projectId) ||
+      (this.#receipts.has(request.clientId) &&
+        this.#receipts.get(request.clientId)?.projectId !== projectId)
+    )
+      this.cancel(request.clientId);
+    if (request.name === "reset_session") this.cancel(request.clientId);
+    if (
+      ![
+        "begin_edit_workspace",
+        "execute_commands",
+        "execute_aster_code",
+        "submit_workspace",
+        "discard_workspace",
+        "commit_workspace",
+      ].includes(request.name)
+    )
+      return this.#execute(request);
+    let receipts = this.#receipts.get(request.clientId);
+    if (!receipts) {
+      if (this.#receipts.size >= 8) throw new EditError("busy", "Too many editing clients");
+      receipts = { projectId, receipts: new RequestReceipts(), generation: 0 };
+      this.#receipts.set(request.clientId, receipts);
+    }
+    const generation = receipts.generation;
+    return receipts.receipts.run(request.name, request.arguments, () => {
+      if (this.#receipts.get(request.clientId) !== receipts || receipts.generation !== generation)
+        throw new EditError("cancelled", "Request cancelled before execution");
+      return this.#execute(request);
+    });
+  }
+
+  async #execute(request: AutomationRequest): Promise<unknown> {
     const { name, arguments: input, clientId } = request;
     const state = this.context.read();
     if (name === "reset_session") this.cancel(clientId);
@@ -107,7 +160,7 @@ export class AutomationApplicationService {
         throw new Error("Submit this workspace and use its exact revision before committing");
       this.#assertRevision(submitted.baseRevision, session.projectId, signal);
       this.context.commit(submitted.operations, submitted.summary, submitted.baseRevision);
-      this.cancel(clientId);
+      this.cancel(clientId, true);
       return {
         committed: true,
         projectRevision: this.context.read().projectRevision,
@@ -236,8 +289,14 @@ export class AutomationApplicationService {
     signal.throwIfAborted();
     const live = this.context.read();
     if (live.project.id !== projectId || live.projectRevision !== expected)
-      throw new Error(
-        `Stale project revision: current revision is ${live.projectRevision}; reset the session before editing`,
+      throw new EditError(
+        "revision_conflict",
+        `Stale project revision: current revision is ${live.projectRevision}; staged work is preserved`,
+        {
+          expectedRevision: expected,
+          currentRevision: live.projectRevision,
+          recovery: "Inspect or export the staged edits before explicitly resetting this session.",
+        },
       );
   }
 }

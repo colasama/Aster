@@ -11,8 +11,8 @@ import {
 describe("AI command registry", () => {
   it("provides the versioned catalog for every live editor operation", () => {
     expect(AI_COMMAND_SCHEMA_VERSION).toBe(1);
-    expect(new Set(AI_COMMAND_TYPES)).toEqual(new Set(OPERATION_TYPES));
-    expect(AI_COMMAND_TYPES).toHaveLength(OPERATION_TYPES.length);
+    expect(new Set(AI_COMMAND_TYPES)).toEqual(new Set([...OPERATION_TYPES, "duplicateLayer"]));
+    expect(AI_COMMAND_TYPES).toHaveLength(OPERATION_TYPES.length + 1);
     expect(AI_COMMAND_DESCRIPTORS.every((descriptor) => descriptor.undoable)).toBe(true);
   });
 

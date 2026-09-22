@@ -1,6 +1,7 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { Check } from "typebox/value";
 import { automationToolDefinitions } from "../src/ai/automation-protocol.js";
+import { editErrorData } from "../src/ai/edit-limits.js";
 
 export interface AutomationCall {
   clientId: string;
@@ -11,7 +12,7 @@ export interface AutomationCall {
 export async function startAutomationServer(options: {
   port: number;
   execute: (call: AutomationCall, signal: AbortSignal) => Promise<unknown>;
-  cancel: (clientId: string) => void;
+  cancel: (clientId: string, discard?: boolean) => void;
 }) {
   if (!Number.isSafeInteger(options.port) || options.port < 0 || options.port > 65535)
     throw new Error("Invalid Aster automation port");
@@ -21,7 +22,10 @@ export async function startAutomationServer(options: {
   const server = createServer((request, response) => {
     void handle(request, response).catch((error: unknown) => {
       if (!response.destroyed)
-        send(response, 400, { error: error instanceof Error ? error.message : String(error) });
+        send(response, 400, {
+          error: error instanceof Error ? error.message : String(error),
+          errorDetails: editErrorData(error),
+        });
     });
   });
   server.requestTimeout = 15_000;
@@ -69,7 +73,7 @@ export async function startAutomationServer(options: {
       throw new Error("Invalid automation client ID");
     if (request.url !== "/call") {
       active.get(value.clientId)?.abort();
-      options.cancel(value.clientId);
+      options.cancel(value.clientId, request.url === "/disconnect");
       if (request.url === "/disconnect") sessions.delete(value.clientId);
       send(response, 200, { cancelled: true });
       return;
@@ -130,7 +134,7 @@ export async function startAutomationServer(options: {
         controller.abort();
         options.cancel(id);
       }
-      for (const id of sessions) options.cancel(id);
+      for (const id of sessions) options.cancel(id, true);
       server.closeAllConnections();
       await new Promise<void>((resolve, reject) =>
         server.close((error) => (error ? reject(error) : resolve())),

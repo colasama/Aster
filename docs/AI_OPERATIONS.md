@@ -39,6 +39,7 @@ because they have different authority, cancellation, and audit requirements.
 | `setCompositionWorkArea` | Compositions | Sets the frame-aligned work area. |
 | `precomposeLayers` | Compositions | Creates a nested composition and wrapper from 1–2048 selected layer IDs. |
 | `addLayer` | Layers | Creates any supported layer kind at the current time. |
+| `duplicateLayer` | Layers | Clones a layer into an `addLayer` operation with fresh IDs. |
 | `removeLayer` | Layers | Removes an existing layer. |
 | `renameLayer` | Layers | Renames an existing layer. |
 | `reorderLayer` | Layers | Moves a layer to a bounded stack index. |
@@ -102,7 +103,7 @@ except for localhost development. Errors redact credentials and response bodies 
 
 ## External clients
 
-Aster 0.3.1 provides an MCP stdio adapter over the same twelve meta-tool definitions. External clients
+Aster provides an MCP stdio adapter over the shared application tool definitions. External clients
 also receive reference-media, comparison, live import, save and render-queue tools. Submitted
 workspaces require explicit `commit_workspace`, which checks the current live revision and records
 one undoable transaction. `render_preview` supports bounded resolution, normalized crop and layer
@@ -112,3 +113,23 @@ MCP `addLayer` accepts optional `[width, height]` integer `size` for text and sh
 Transform commands expose the existing `anchor.0`, `anchor.1`, and `anchor.2` tracks.
 Agents can place mesh pivots at articulated joints and animate them through the same
 property, keyframe, and expression operations as the Inspector. See `KEYFRAME_AUTOMATION.md`.
+
+## Bulk transaction execution
+
+Typed batches accept up to 256 commands. Normalization owns one candidate snapshot, checks each
+command against its schema and referenced objects, applies it in order, then validates the complete
+document once. Workspaces allow 4096 cumulative normalized operations and 32 MiB of operation
+payloads plus positive document growth; the base project is excluded from that incremental budget.
+The 30-minute idle clock is suspended while an edit or preview runs.
+
+`execute_aster_code` adds a scoped synchronous `aster` JavaScript API in QuickJS WASM inside a
+disposable Worker. The API reuses the same normalizer and produces the same operation diff as
+typed commands. It supports lookup, creation, duplication, bulk properties and keyframe arrays.
+`duplicateLayer` is a convenience command normalized to `addLayer`, with fresh layer, effect and
+animation keyframe IDs. `get_script_api`, `get_execution`, `cancel_execution` and
+`get_workspace_status` expose API discovery, progress, cancellation and resource usage.
+Execution failure never publishes its candidate. Submitting and committing remain explicit for
+external clients; the built-in agent retains its configured approval policy.
+
+See [External Automation](AUTOMATION.md#bulk-editing-and-isolated-scripts) for exact resource limits,
+retry receipt lifetime and script examples. Project serialization and native plugin ABI are unchanged.
