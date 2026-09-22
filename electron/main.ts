@@ -43,6 +43,7 @@ import { createDiagnosticBundle, writeDiagnosticBundle } from "./diagnostics.js"
 import { registerFontAccess } from "./font-access.js";
 import { fullAccessDesktopBridgeRequest } from "./full-access-aster-tools.js";
 import { describeFullAccessTarget, FullAccessToolService } from "./full-access-tools.js";
+import { detectGpuMemoryDevices } from "./gpu-memory.js";
 import { fetchLocalAsset } from "./local-file-response.js";
 import { AsterLogger, isRendererLogPayload, type LogLevel, parseLogLevel } from "./logger.js";
 import { discoverDesktopImageSequence } from "./media-import.js";
@@ -582,6 +583,7 @@ function registerIpc(
   });
 
   ipcMain.handle("aster:preferences-get", () => preferences.snapshot());
+  ipcMain.handle("aster:gpu-memory-devices", () => detectGpuMemoryDevices());
 
   ipcMain.handle("aster:render-queue-get", () => renderQueueView(renderQueue.snapshot()));
   ipcMain.handle("aster:render-queue-enqueue", async (_event, value: unknown) => {

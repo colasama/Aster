@@ -3,6 +3,8 @@ import { contextBridge, type IpcRendererEvent, ipcRenderer } from "electron";
 contextBridge.exposeInMainWorld(
   "asterDesktop",
   Object.freeze({
+    getPreferences: () => ipcRenderer.invoke("aster:preferences-get"),
+    getGpuMemoryDevices: () => ipcRenderer.invoke("aster:gpu-memory-devices"),
     renderHost: Object.freeze({
       take: () => ipcRenderer.invoke("aster:render-host-take"),
       output: (request: Record<string, unknown>) =>

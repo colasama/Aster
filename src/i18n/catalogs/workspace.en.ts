@@ -105,7 +105,18 @@ export const workspaceEn = {
   "workspace.preferences.antiAliasing": "Anti-aliasing",
   "workspace.preferences.ssaa2x": "SSAA 2× (4 samples)",
   "workspace.preferences.ssaa4x": "SSAA 4× (16 samples)",
-  "workspace.preferences.autoBudget": "Auto (512 MB)",
+  "workspace.preferences.autoBudget": "Auto",
+  "workspace.preferences.manualBudget": "Manual budget",
+  "workspace.preferences.gpuUnknown": "GPU unavailable",
+  "workspace.preferences.gpuTotal": "Total",
+  "workspace.preferences.gpuUnifiedTotal": "Shared system memory",
+  "workspace.preferences.gpuFree": "Free",
+  "workspace.preferences.refreshGpuMemory": "Refresh available GPU memory",
+  "workspace.preferences.gpuMemoryUnavailable":
+    "Free memory unavailable; Auto uses a conservative fallback.",
+  "workspace.preferences.gpuBudgetInvalid": "Enter a whole number from 32 to {max} MiB.",
+  "workspace.preferences.gpuBudgetExceedsFree":
+    "Exceeds currently free memory; the manual budget includes no reserve.",
   "workspace.preferences.reducedMotion": "Reduce non-essential interface motion",
   "workspace.preferences.webgpuNote":
     "Aster renders through WebGPU whenever the adapter supports it; the 2D fallback remains available for recovery and diagnostics.",

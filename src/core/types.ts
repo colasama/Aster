@@ -1,6 +1,7 @@
 import type { TextAnimatorStackSettings } from "./animation/text-animator-stack";
 import type { ShapeGraph } from "./layers/shape-graph";
 import type { ProjectFont } from "./project/project-fonts";
+import type { GpuMemorySnapshot } from "./rendering/gpu-memory-policy";
 import type { ClonerSettings } from "./scene/cloner";
 
 export type Id = string;
@@ -463,6 +464,7 @@ export interface GpuPassTimings {
 }
 
 export interface GpuDiagnostics {
+  gpuMemory?: GpuMemorySnapshot;
   available: boolean;
   adapter: string;
   architecture: string;

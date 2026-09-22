@@ -18,6 +18,7 @@ import {
 } from "../../core/rendering/render-session-guard";
 import { evaluateWorldTransform } from "../../core/scene/scene-evaluation";
 import { type GpuDiagnostics, setLayerSizeAndCenterAnchor } from "../../core/types";
+import { currentGpuMemory, GPU_MEMORY_CHANGED_EVENT } from "../../desktop/gpu-memory";
 import { reportUiError } from "../../errors/report-ui-error";
 import { useI18n } from "../../i18n/react";
 import { CanvasFallbackRenderer } from "../../renderer/canvas-fallback";
@@ -285,11 +286,23 @@ export function Viewport() {
 
   useEffect(() => {
     if (!rendererReady) return;
-    rendererRef.current?.setMemoryBudget(
-      state.gpuMemoryBudgetMb === "auto" ? undefined : state.gpuMemoryBudgetMb,
-    );
-    setRendererRevision((revision) => revision + 1);
-  }, [rendererReady, state.gpuMemoryBudgetMb]);
+    const applyBudget = () => {
+      if (renderSessionGuardRef.current.active) return;
+      try {
+        const renderer = rendererRef.current;
+        const budget = state.gpuMemoryBudgetMb === "auto" ? undefined : state.gpuMemoryBudgetMb;
+        if (renderer instanceof WebGpuRenderer)
+          renderer.setMemoryBudget(budget, currentGpuMemory());
+        else renderer?.setMemoryBudget(budget);
+        setRendererRevision((revision) => revision + 1);
+      } catch (error) {
+        reportUiError(t, "previewRender", error, { scope: { area: "render" } });
+      }
+    };
+    applyBudget();
+    window.addEventListener(GPU_MEMORY_CHANGED_EVENT, applyBudget);
+    return () => window.removeEventListener(GPU_MEMORY_CHANGED_EVENT, applyBudget);
+  }, [rendererReady, state.gpuMemoryBudgetMb, t]);
 
   useEffect(() => {
     void rendererRevision;

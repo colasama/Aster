@@ -19,6 +19,7 @@ import {
   DEFAULT_ANTI_ALIASING,
   normalizeAntiAliasing,
 } from "../core/rendering/anti-aliasing";
+import { type GpuMemoryBudgetMb, isGpuMemoryBudget } from "../core/rendering/gpu-memory-policy";
 import type { Id, Project, RendererMetrics } from "../core/types";
 import { isDesktopRuntime, migrateLegacyPreferences } from "../desktop/api";
 import { APP_PREFERENCES_CHANGED_EVENT, type UserPreferencePatch } from "../desktop/preferences";
@@ -55,7 +56,7 @@ export interface EditorState {
   viewportFitRevision: number;
   previewQuality: 1 | 0.5 | 0.25;
   antiAliasing: AntiAliasingMode;
-  gpuMemoryBudgetMb: "auto" | 32 | 64 | 128 | 256 | 512;
+  gpuMemoryBudgetMb: GpuMemoryBudgetMb;
   leftTab: "project" | "effects";
   rightTab: "properties" | "ai";
   bottomMode: "timeline" | "graph";
@@ -372,9 +373,7 @@ function readGpuMemoryBudget(): EditorState["gpuMemoryBudgetMb"] {
   const value = window.localStorage.getItem("aster.gpuMemoryBudgetMb") ?? "auto";
   if (value === "auto") return value;
   const megabytes = Number(value);
-  return [32, 64, 128, 256, 512].includes(megabytes)
-    ? (megabytes as Exclude<EditorState["gpuMemoryBudgetMb"], "auto">)
-    : "auto";
+  return isGpuMemoryBudget(megabytes) ? megabytes : "auto";
 }
 
 function compositionEntryState(
@@ -458,6 +457,7 @@ export function EditorProvider({ children }: PropsWithChildren) {
     if (!isDesktopRuntime()) return;
     void migrateLegacyPreferences(readLegacyRendererPreferences())
       .then((preferences) => {
+        dispatch({ type: "setGpuMemoryBudget", budget: preferences.gpuMemoryBudgetMb });
         dispatch({ type: "setAntiAliasing", mode: preferences.antiAliasing });
         dispatch({ type: "setViewportNavigationMode", mode: preferences.viewportNavigationMode });
         try {
@@ -577,14 +577,7 @@ function readLegacyRendererPreferences(): UserPreferencePatch {
     if (gpuBudget === "auto") patch.gpuMemoryBudgetMb = "auto";
     else {
       const megabytes = Number(gpuBudget);
-      if (
-        megabytes === 32 ||
-        megabytes === 64 ||
-        megabytes === 128 ||
-        megabytes === 256 ||
-        megabytes === 512
-      )
-        patch.gpuMemoryBudgetMb = megabytes;
+      if (isGpuMemoryBudget(megabytes)) patch.gpuMemoryBudgetMb = megabytes;
     }
     return patch;
   } catch {

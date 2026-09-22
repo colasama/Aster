@@ -25,6 +25,7 @@ contextBridge.exposeInMainWorld(
     save: (options: Record<string, unknown>) => ipcRenderer.invoke("aster:save", options),
     convertFileSrc: (path: string) => `aster-asset://local/${encodeURIComponent(path)}`,
     getPreferences: () => ipcRenderer.invoke("aster:preferences-get"),
+    getGpuMemoryDevices: () => ipcRenderer.invoke("aster:gpu-memory-devices"),
     fonts: Object.freeze({
       list: () => ipcRenderer.invoke("aster:fonts-list"),
     }),

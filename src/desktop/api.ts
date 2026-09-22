@@ -7,6 +7,7 @@ import type {
   FullAccessGrant,
 } from "../ai/agent-protocol";
 import type { AutomationDesktopApi } from "../ai/automation-protocol";
+import type { GpuMemoryDevice } from "../core/rendering/gpu-memory-policy";
 import type {
   EnqueueRenderJobInput,
   RenderJobManifest,
@@ -207,6 +208,7 @@ export interface DesktopDocumentLifecycle {
 }
 
 export interface AsterDesktopApi {
+  getGpuMemoryDevices?(): Promise<GpuMemoryDevice[]>;
   automation?: AutomationDesktopApi;
   automationSettings?: AutomationSettingsApi;
   invoke<T>(command: string, args?: Record<string, unknown>): Promise<T>;

@@ -324,6 +324,15 @@ Use GPU-resident intermediates, premultiplied alpha, HDR linear color, transient
 batched uploads, instancing, compute simulation, bounded history, and explicit instrumentation.
 Optimize measured frame time; never hide semantic mutations inside render code.
 
+The Electron shell supplies native GPU capacity and free-memory snapshots, matched to the WebGPU
+rendering adapter. Preview and isolated export share the automatic/manual policy in
+`core/rendering/gpu-memory-policy.ts`, resolved before initial target allocation. Automatic mode
+reserves 1 GiB from measured free memory and rounds down to whole GiB, with a small-memory fallback;
+manual budgets are capped by detected capacity. Settings can refresh the snapshot explicitly.
+Existing per-resource safety limits remain independent; this preference is an allocation-planning
+budget rather than a process-wide physical-memory reservation. Platform limitations and fallback
+behavior are documented in [Desktop foundations](DESKTOP_FOUNDATIONS.md).
+
 The native `aster-render` graph assigns transient slots in first-use order. Descriptor-keyed
 min-heaps select the earliest available compatible slot, with strict separation between lifetimes;
 persistent resources never enter the alias pool. Allocation output remains ordered by resource

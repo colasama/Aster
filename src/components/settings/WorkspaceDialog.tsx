@@ -20,6 +20,7 @@ import { parseUiScale, type UiScale } from "../../ui/ui-scale";
 import { normalizeViewportNavigationMode } from "../../ui/viewport-zoom";
 import { useDialogFocus } from "../use-dialog-focus";
 import { AutomationSettingsPanel } from "./AutomationSettingsPanel";
+import { GpuMemoryControls } from "./GpuMemoryControls";
 
 const PluginManager = lazy(() =>
   import("./PluginManager").then((module) => ({ default: module.PluginManager })),
@@ -76,6 +77,7 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
   );
   const [antiAliasing, setAntiAliasing] = useState<AntiAliasingMode>(state.antiAliasing);
   const [gpuMemoryBudgetMb, setGpuMemoryBudgetMb] = useState(state.gpuMemoryBudgetMb);
+  const [gpuMemoryValid, setGpuMemoryValid] = useState(true);
   const [reducedMotion, setReducedMotion] = useState(
     () => readPreference("aster.reducedMotion") === "true",
   );
@@ -137,6 +139,7 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
   };
 
   const savePreferences = () => {
+    if (!gpuMemoryValid) return;
     writePreferences([
       ["aster.autosaveSeconds", String(autosaveSeconds)],
       ["aster.reducedMotion", String(reducedMotion)],
@@ -444,26 +447,11 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
                 <option value="2">200%</option>
               </select>
             </label>
-            <label className="wide">
-              {t("workspace.preferences.gpuBudget")}
-              <select
-                onChange={(event) =>
-                  setGpuMemoryBudgetMb(
-                    event.target.value === "auto"
-                      ? "auto"
-                      : (Number(event.target.value) as 32 | 64 | 128 | 256 | 512),
-                  )
-                }
-                value={gpuMemoryBudgetMb}
-              >
-                <option value="auto">{t("workspace.preferences.autoBudget")}</option>
-                <option value="32">32 MB</option>
-                <option value="64">64 MB</option>
-                <option value="128">128 MB</option>
-                <option value="256">256 MB</option>
-                <option value="512">512 MB</option>
-              </select>
-            </label>
+            <GpuMemoryControls
+              value={gpuMemoryBudgetMb}
+              onChange={setGpuMemoryBudgetMb}
+              onValidityChange={setGpuMemoryValid}
+            />
             <label className="wide">
               {t("workspace.preferences.antiAliasing")}
               <select
@@ -589,7 +577,12 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
             </button>
           )}
           {kind === "preferences" && (
-            <button className="primary" onClick={savePreferences} type="button">
+            <button
+              className="primary"
+              disabled={!gpuMemoryValid}
+              onClick={savePreferences}
+              type="button"
+            >
               {t("workspace.action.savePreferences")}
             </button>
           )}

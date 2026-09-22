@@ -58,6 +58,30 @@ Versions 2 and 3 add UI scale and anti-aliasing respectively. Version 4 adds `vi
 (`smooth` or `legacy`), defaulting existing profiles to `smooth`. This application preference is
 restored by the editor, takes effect when preferences are saved, and is not part of project files.
 
+`gpuMemoryBudgetMb` accepts `auto` or any integer of at least 32 MiB. Settings constrain manual
+values to the detected capacity of the active rendering adapter; runtime resolution also caps
+saved values when moving to a smaller GPU. Manual values are the actual budget, without an
+additional reserve deduction. Values above currently free memory remain selectable with a warning.
+
+Automatic mode samples free dedicated memory at renderer initialization or an explicit settings
+refresh. Its budget is `floor((freeMiB - 1024) / 1024) * 1024` MiB. Below 2 GiB free, it uses half
+the free memory, rounded down to MiB and capped at 512 MiB. Missing free-memory information uses
+512 MiB, capped by any known physical capacity, and is identified in settings. Sampling is outside
+the frame loop: repeatedly subtracting Aster's own allocations from a free-memory snapshot would
+shrink its target as it fills its caches.
+
+Windows detection matches DXGI adapter identities to WDDM adapter-memory counters by LUID and
+estimates free dedicated memory from capacity minus resident usage. Linux uses NVIDIA's driver
+utility or DRM VRAM counters when available. macOS exposes detected capacity; Apple silicon is
+explicitly labeled shared system memory. These macOS probes do not provide a reliable free-memory
+measurement, so automatic mode uses the fallback there. WebGPU adapter identity selects the device;
+multiple adapters are never added together. Undetectable capacity disables manual editing.
+
+The isolated export renderer has read-only access to the same preferences and detection IPC.
+Both preview and export resolve their budget before allocating composition targets. These budgets
+guide Aster's existing allocation planners and caches; they do not reserve physical VRAM or cap
+Chromium's entire GPU process. Other applications can change memory availability after sampling.
+
 The preferences migration boundary upgrades the previous unversioned shape as version zero. A new
 desktop profile also imports the renderer's legacy locale, autosave, reduced-motion, and GPU-budget
 keys, anti-aliasing, and preview navigation exactly once before Electron becomes authoritative.

@@ -7,6 +7,10 @@ import {
 import { logger } from "../core/logger";
 import { sourceForLayer, sourceLocator } from "../core/media/footage-source";
 import { type AntiAliasingMode, antiAliasingScale } from "../core/rendering/anti-aliasing";
+import {
+  type GpuMemorySnapshot,
+  resolveGpuMemoryBudget,
+} from "../core/rendering/gpu-memory-policy";
 import { evaluateCameraBasis } from "../core/scene/camera-rig";
 import type { Composition, GpuDiagnostics, Project, RendererMetrics } from "../core/types";
 import { needsLayerIsolation } from "./compositing/layer-composite";
@@ -26,7 +30,7 @@ import { captureAfterExactFrameResources } from "./gpu/exact-frame-resource-barr
 import { frameCadenceSample } from "./gpu/frame-cadence";
 import type { FrameReadbackTicket, RawFramePixelFormat, RawVideoFrame } from "./gpu/frame-readback";
 import { planGpuMemory } from "./gpu/gpu-memory-budget";
-import { precompileGpuPipelines } from "./gpu/pipeline-precompile";
+import { initializeGpuResources } from "./gpu/initialize-gpu-resources";
 import {
   type BufferVisualization,
   isDepthEffectVisualization,
@@ -34,10 +38,8 @@ import {
   postRenderRoute,
   usesAuxiliarySurfaceData,
 } from "./gpu/render-buffers";
-import { validateShaderSources } from "./gpu/shader-validation";
 import { MaterialTextureRenderer } from "./media/material-textures";
 import { RendererResources } from "./renderer-resources";
-import { bundledParticleDefinition } from "./scene/bundled-particle-generator";
 import { drawSceneBatch } from "./scene/draw-scene-batch";
 import { evaluateSceneCamera } from "./scene/scene-camera";
 import { SceneEvaluationCache } from "./scene/scene-evaluation-cache";
@@ -117,25 +119,12 @@ export class WebGpuRenderer {
     });
     try {
       const format = navigator.gpu.getPreferredCanvasFormat();
-      const [, precompile] = await Promise.all([
-        validateShaderSources(device),
-        precompileGpuPipelines(device, format, [bundledParticleDefinition]),
-      ]);
+      const { diagnostics, memoryBudgetMb } = await initializeGpuResources(adapter, device, format);
       const context = canvas.getContext("webgpu");
       if (!context) throw new Error("Unable to create a WebGPU canvas context");
-      const info = adapter.info;
-      const diagnostics: GpuDiagnostics = {
-        available: true,
-        adapter: info.device || info.description || "High-performance adapter",
-        architecture: info.architecture || "native",
-        description: `${info.vendor || "GPU"} · ${info.description || info.device || "WebGPU"}`,
-        maxTextureSize: device.limits.maxTextureDimension2D,
-        timestampQueries,
-        pipelineCompileMs: precompile.durationMs,
-        prewarmedPipelines: precompile.count,
-      };
       device.pushErrorScope("validation");
       renderer = new WebGpuRenderer(device, context, format, diagnostics, invalidate);
+      renderer.#memoryBudgetMb = memoryBudgetMb;
       const validationError = await device.popErrorScope();
       if (validationError)
         throw new Error(`WebGPU renderer validation failed: ${validationError.message}`);
@@ -922,9 +911,14 @@ export class WebGpuRenderer {
     this.#assertActive();
     await this.#device.queue.onSubmittedWorkDone();
   }
-  setMemoryBudget(megabytes?: number): void {
+  setMemoryBudget(megabytes?: number, memory?: GpuMemorySnapshot): void {
     this.#assertActive();
-    this.#memoryBudgetMb = megabytes;
+    if (memory?.adapterKey === this.diagnostics.gpuMemory?.adapterKey)
+      this.diagnostics.gpuMemory = memory;
+    this.#memoryBudgetMb = resolveGpuMemoryBudget(
+      megabytes ?? "auto",
+      this.diagnostics.gpuMemory?.device,
+    );
     this.#configureAuxiliaryBuffers();
   }
   dispose(): void {

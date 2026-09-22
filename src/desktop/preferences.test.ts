@@ -8,6 +8,19 @@ import {
 } from "./preferences";
 
 describe("application preferences", () => {
+  it("round-trips arbitrary whole-MiB GPU budgets while rejecting invalid inputs", () => {
+    for (const gpuMemoryBudgetMb of [32, 512, 6144, 24576, "auto"] as const) {
+      const updated = applyUserPreferencePatch(defaultAppPreferences(), { gpuMemoryBudgetMb });
+      expect(migrateAppPreferences(JSON.parse(JSON.stringify(updated))).gpuMemoryBudgetMb).toBe(
+        gpuMemoryBudgetMb,
+      );
+    }
+    for (const gpuMemoryBudgetMb of [-1, 0, 31, 32.5, Infinity, NaN]) {
+      expect(
+        applyUserPreferencePatch(defaultAppPreferences(), { gpuMemoryBudgetMb }).gpuMemoryBudgetMb,
+      ).toBe("auto");
+    }
+  });
   it("migrates preview navigation to Smooth and round-trips both navigation modes", () => {
     expect(defaultAppPreferences().viewportNavigationMode).toBe("smooth");
     for (const schemaVersion of [0, 1, 2, 3, 4])

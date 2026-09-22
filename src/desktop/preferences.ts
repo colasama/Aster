@@ -3,6 +3,7 @@ import {
   DEFAULT_ANTI_ALIASING,
   normalizeAntiAliasing,
 } from "../core/rendering/anti-aliasing.js";
+import { type GpuMemoryBudgetMb, isGpuMemoryBudget } from "../core/rendering/gpu-memory-policy.js";
 import { isUiScale, type UiScale } from "../ui/ui-scale.js";
 import {
   normalizeViewportNavigationMode,
@@ -14,7 +15,7 @@ export const APP_PREFERENCES_CHANGED_EVENT = "aster:preferences-changed";
 
 export type AppLocale = "en-US" | "zh-CN";
 export type AutosaveSeconds = 0 | 15 | 30 | 60;
-export type GpuMemoryBudgetMb = "auto" | 32 | 64 | 128 | 256 | 512;
+export type { GpuMemoryBudgetMb } from "../core/rendering/gpu-memory-policy.js";
 
 export interface PersistedWindowState {
   x: number;
@@ -63,7 +64,6 @@ const DEFAULT_PREFERENCES: AppPreferences = {
 };
 
 const AUTOSAVE_INTERVALS = new Set<AutosaveSeconds>([0, 15, 30, 60]);
-const GPU_MEMORY_BUDGETS = new Set<GpuMemoryBudgetMb>(["auto", 32, 64, 128, 256, 512]);
 
 export function defaultAppPreferences(): AppPreferences {
   return structuredClone(DEFAULT_PREFERENCES);
@@ -181,8 +181,8 @@ function normalizeCurrentPreferences(value: Record<string, unknown>): AppPrefere
   const autosaveSeconds = AUTOSAVE_INTERVALS.has(value.autosaveSeconds as AutosaveSeconds)
     ? (value.autosaveSeconds as AutosaveSeconds)
     : 30;
-  const gpuMemoryBudgetMb = GPU_MEMORY_BUDGETS.has(value.gpuMemoryBudgetMb as GpuMemoryBudgetMb)
-    ? (value.gpuMemoryBudgetMb as GpuMemoryBudgetMb)
+  const gpuMemoryBudgetMb = isGpuMemoryBudget(value.gpuMemoryBudgetMb)
+    ? value.gpuMemoryBudgetMb
     : "auto";
   const locale = value.locale === "en-US" || value.locale === "zh-CN" ? value.locale : undefined;
   const recentProjects = Array.isArray(value.recentProjects)

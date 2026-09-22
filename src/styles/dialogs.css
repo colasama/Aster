@@ -230,3 +230,11 @@
 .about-dialog .dialog-note {
   grid-column: 1 / -1;
 }
+
+.gpu-memory-status {
+  justify-content: space-between;
+}
+
+.gpu-memory-status span {
+  overflow-wrap: anywhere;
+}
