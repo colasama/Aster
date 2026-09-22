@@ -524,6 +524,7 @@ class MockTextCanvas {
     return {
       fillText: vi.fn(),
       filter: "none",
+      getTransform: () => ({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 }),
       getImageData: vi.fn(() => ({ data: new Uint8ClampedArray(this.width * this.height * 4) })),
       globalAlpha: 1,
       measureText: vi.fn((text: string) => ({ width: text.length })),

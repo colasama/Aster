@@ -243,7 +243,11 @@ describe("GPU precomposition surfaces", () => {
     const layout = device.createBindGroupLayout({ entries: [] });
     const sampler = device.createSampler();
     const prepareText = vi.fn();
-    const media = { prepareText, prepareMedia: vi.fn() } as unknown as MediaTextureCache;
+    const media = {
+      prepareText,
+      prepareMedia: vi.fn(),
+      textBounds: vi.fn(),
+    } as unknown as MediaTextureCache;
     const pipelines = blendPipelines();
     const renderer = new PrecompositionSurfaceRenderer(device, {
       mediaTextures: media,

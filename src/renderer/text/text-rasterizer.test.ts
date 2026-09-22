@@ -143,7 +143,7 @@ describe("Unicode text line breaking", () => {
     expect(operations.strokeText).toHaveBeenCalledTimes(2);
     expect(operations.rotate).toHaveBeenCalled();
     expect(operations.transform).toHaveBeenCalled();
-    expect(operations.scale.mock.calls.length).toBeGreaterThan(2);
+    expect(operations.scale.mock.calls.length).toBe(2);
     expect(
       operations.scale.mock.calls.some((call) => Number(call[0]) > 0.3 && Number(call[0]) < 0.35),
     ).toBe(true);

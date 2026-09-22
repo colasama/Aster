@@ -20,6 +20,22 @@ afterEach(() => {
 });
 
 describe("ViewportTextEditor", () => {
+  it("keeps overflowing lines editable around the original centered baseline", () => {
+    const layer = createLayerForComposition("text", createBlankComposition());
+    layer.size = [400, 50];
+    if (!layer.textStyle) throw new Error("Expected text style");
+    layer.textStyle = { ...layer.textStyle, fontSize: 40, leading: 50 };
+    const style = viewportTextEditorStyle(
+      layer,
+      "One\nTwo\nThree",
+      2,
+      "matrix(0, 1, -1, 0, 960, 540)",
+    );
+    expect(style.height).toBe("300px");
+    expect(style.paddingTop).toBe("0px");
+    expect(style.transform).toBe("matrix(0, 1, -1, 0, 960, 540) translateY(-100px)");
+    expect(layer.size).toEqual([400, 50]);
+  });
   it("keeps the glyph overlay transparent while matching typography and transformed zoom", () => {
     const layer = createLayerForComposition("text", createBlankComposition());
     layer.size = [400, 200];

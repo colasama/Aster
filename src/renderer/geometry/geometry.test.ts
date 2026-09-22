@@ -5,10 +5,50 @@ import { flattenSceneLayers } from "../../core/scene/scene-evaluation";
 import { setLayerSizeAndCenterAnchor, staticValue } from "../../core/types";
 import { localToComposition } from "../../viewport/transform-interaction";
 import { evaluateSceneCamera } from "../scene/scene-camera";
+import { expandTextSceneGeometry } from "../text/text-scene-geometry";
 import { buildSceneGeometry, FLOATS_PER_VERTEX, VERTEX_FLOAT_OFFSETS } from "./geometry";
 import { createDefaultBezierPath } from "./vector-path";
 
 describe("GPU scene geometry", () => {
+  it("expands text geometry around its original anchor and preserves texture UVs", () => {
+    const project = createBlankProject();
+    const composition = project.compositions[0];
+    const layer = createLayerForComposition("text", composition);
+    layer.size = [100, 50];
+    layer.transform.anchor = [staticValue(30), staticValue(20), staticValue(0)];
+    layer.transform.scale = [staticValue(-150), staticValue(200), staticValue(100)];
+    layer.transform.rotation[2] = staticValue(30);
+    composition.layers = [layer];
+    const scene = flattenSceneLayers(composition, project, 0);
+    const bounds = { x: -40, y: -30, width: 250, height: 140 };
+    const cached = buildSceneGeometry(composition, scene);
+    const cachedData = cached.data.slice();
+    const geometry = expandTextSceneGeometry(composition, scene, cached, undefined, () => bounds);
+    expect(cached.data).toEqual(cachedData);
+    const corners = [
+      [-40, -30],
+      [210, -30],
+      [-40, 110],
+    ] as const;
+    for (let index = 0; index < corners.length; index += 1) {
+      const transform = scene[0].transform;
+      const point = localToComposition(corners[index], {
+        position: [transform.position[0], transform.position[1]],
+        scale: [transform.scale[0], transform.scale[1]],
+        rotation: transform.rotation[2],
+        anchor: [transform.anchor[0], transform.anchor[1]],
+        size: layer.size,
+      });
+      const offset = index * FLOATS_PER_VERTEX;
+      expect(geometry.data[offset]).toBeCloseTo((point[0] / composition.width) * 2 - 1);
+      expect(geometry.data[offset + 1]).toBeCloseTo(1 - (point[1] / composition.height) * 2);
+    }
+    expect(Array.from(geometry.data.slice(3, 5))).toEqual([0, 0]);
+    expect(Array.from(geometry.data.slice(FLOATS_PER_VERTEX + 3, FLOATS_PER_VERTEX + 5))).toEqual([
+      1, 0,
+    ]);
+    expect(layer.size).toEqual([100, 50]);
+  });
   it.each([125, -125])(
     "keeps a resized 2D group's animated anchor when toggling effects at scale %s",
     (scaleX) => {

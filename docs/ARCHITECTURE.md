@@ -292,7 +292,12 @@ the large textures do not scale with the number of effected layers.
 Text uses a retained raster cache: glyphs are shaped by the platform canvas only when text, color, or
 source dimensions change, uploaded as an sRGB texture, and thereafter transformed, effected, blended,
 precomposed, and exported by the same GPU path as image layers. Canvas 2D draws the same text model in
-compatibility mode. A future native shaper/atlas can replace raster-cache creation without changing
+compatibility mode. The paragraph box controls wrapping and alignment, while measured glyph ink
+(including animator transforms, stroke, and blur) expands the raster and GPU quad without moving the
+layer anchor. Text is neither clipped to the box nor horizontally squeezed to fit it. Temporal text
+samples share the union of their local ink bounds, with texture density still capped by GPU limits
+and the existing temporal memory budgets. Inline editing grows vertically around the same baseline.
+A future native shaper/atlas can replace raster-cache creation without changing
 the render graph.
 
 Imported `.cube` resources are parsed through a bounded project boundary, stored in red-fastest

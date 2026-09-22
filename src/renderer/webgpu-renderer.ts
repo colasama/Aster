@@ -1,4 +1,3 @@
-import { evaluateLayerSourceTime } from "../core/animation/layer-time";
 import {
   compositionMotionBlurSettings,
   layerMotionBlurEnabled,
@@ -46,7 +45,7 @@ import type { PreparedSceneGenerator } from "./scene/scene-generator-host";
 import { buildSceneLighting, shadowMapSize } from "./scene/scene-lighting";
 import { buildTimeAddressedMotionVectors } from "./scene/time-addressed-motion-vectors";
 import { planTextMotionBlurFrame } from "./text/text-motion-blur-plan";
-import { transformedTextRasterScale } from "./text/text-rasterizer";
+import { expandTextSceneGeometry, prepareTextSceneGeometry } from "./text/text-scene-geometry";
 
 const SCENE_FORMAT: GPUTextureFormat = "rgba16float";
 
@@ -348,10 +347,17 @@ export class WebGpuRenderer {
       textMotionBlur.exposureSceneLayers.length > 0
         ? [...textMotionBlur.renderSceneLayers]
         : evaluation.sceneLayers;
-    const geometry =
+    const geometry = prepareTextSceneGeometry(
+      composition,
+      sceneLayers,
       textMotionBlur.exposureSceneLayers.length > 0
         ? buildSceneGeometry(composition, [...sceneLayers], camera)
-        : evaluation.geometry;
+        : evaluation.geometry,
+      camera,
+      resources.mediaTextures,
+      previewResolutionScale,
+      textMotionBlur.plans,
+    );
     const renderStack = planSceneRenderStack(sceneLayers, geometry.batches);
     const motionBlurSelectionIds = new Set(
       geometry.batches
@@ -403,24 +409,26 @@ export class WebGpuRenderer {
     const shutterInterval = motionBlurInterval(time, frameRate, motionBlurSettings);
     let motionVectors: Float32Array | undefined;
     if (motionBlurRequested) {
-      const shutterOpen = this.#evaluationCache.evaluate(
-        composition,
-        project,
-        shutterInterval.openTime,
-        this.#width,
-        this.#height,
-      );
-      const shutterClose = this.#evaluationCache.evaluate(
-        composition,
-        project,
-        shutterInterval.closeTime,
-        this.#width,
-        this.#height,
-      );
+      const geometryAt = (sampleTime: number) => {
+        const sample = this.#evaluationCache.evaluate(
+          composition,
+          project,
+          sampleTime,
+          this.#width,
+          this.#height,
+        );
+        return expandTextSceneGeometry(
+          composition,
+          sample.sceneLayers,
+          sample.geometry,
+          evaluateSceneCamera(composition, sampleTime),
+          (id) => resources.mediaTextures.textBounds(id),
+        );
+      };
       motionVectors = buildTimeAddressedMotionVectors(
         geometry,
-        shutterOpen.geometry,
-        shutterClose.geometry,
+        geometryAt(shutterInterval.openTime),
+        geometryAt(shutterInterval.closeTime),
         motionBlurSelectionIds,
       );
     }
@@ -505,16 +513,7 @@ export class WebGpuRenderer {
       );
     resources.materialTextures?.prepare(composition, geometry.batches);
     for (const scene of sceneLayers) {
-      if (scene.layer.kind === "text") {
-        resources.mediaTextures.prepareText(
-          scene.layer,
-          scene.resourceInstanceId,
-          evaluateLayerSourceTime(scene.layer, scene.localTime),
-          composition.frameRate.numerator / composition.frameRate.denominator,
-          transformedTextRasterScale(previewResolutionScale, scene.transform.scale),
-          textMotionBlur.plans.get(scene.resourceInstanceId),
-        );
-      } else if (
+      if (
         (scene.layer.kind === "image" || scene.layer.kind === "video") &&
         sourceLocator(sourceForLayer(project, scene.layer))
       ) {

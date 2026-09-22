@@ -7,6 +7,7 @@ import {
 } from "../../core/scene/camera-settings";
 import type { FlattenedSceneLayer } from "../../core/scene/scene-evaluation";
 import type { CameraSettings, Composition, EvaluatedTransform, Layer } from "../../core/types";
+import type { TextRasterBounds } from "../text/text-raster-bounds";
 import {
   flattenBezierPath,
   tessellateStroke,
@@ -92,6 +93,7 @@ export function buildSceneGeometry(
   composition: Composition,
   sceneLayers: FlattenedSceneLayer[],
   camera?: SceneCamera,
+  textBounds?: (instanceId: string) => TextRasterBounds | undefined,
 ): GeometryResult {
   const output: number[] = [];
   const batches: GeometryBatch[] = [];
@@ -124,8 +126,10 @@ export function buildSceneGeometry(
         ? transform.opacity
         : Number(layer.threeDimensional || layer.kind === "mesh"),
     ] as const;
-    const sourceSize =
-      scene.precompositionSurface && layer.threeDimensional
+    const bounds = layer.kind === "text" ? textBounds?.(scene.resourceInstanceId) : undefined;
+    const sourceSize = bounds
+      ? [bounds.width, bounds.height]
+      : scene.precompositionSurface && layer.threeDimensional
         ? [
             scene.precompositionSurface.composition.width,
             scene.precompositionSurface.composition.height,
@@ -134,8 +138,8 @@ export function buildSceneGeometry(
     const width = (sourceSize[0] * transform.scale[0]) / 100;
     const height = (sourceSize[1] * transform.scale[1]) / 100;
     const anchorOffset: readonly [number, number, number] = [
-      ((sourceSize[0] * 0.5 - transform.anchor[0]) * transform.scale[0]) / 100,
-      ((sourceSize[1] * 0.5 - transform.anchor[1]) * transform.scale[1]) / 100,
+      (((bounds?.x ?? 0) + sourceSize[0] * 0.5 - transform.anchor[0]) * transform.scale[0]) / 100,
+      (((bounds?.y ?? 0) + sourceSize[1] * 0.5 - transform.anchor[1]) * transform.scale[1]) / 100,
       (-transform.anchor[2] * transform.scale[2]) / 100,
     ];
     const mediaType = layer.kind === "video" ? 2 : 0;

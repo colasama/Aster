@@ -316,7 +316,9 @@ export class PrecompositionSurfaceRenderer {
         );
     }
     const camera = evaluateSceneCamera(surface.composition, surface.time);
-    const geometry = buildSceneGeometry(surface.composition, childLayers, camera);
+    const geometry = buildSceneGeometry(surface.composition, childLayers, camera, (instanceId) =>
+      this.#mediaTextures.textBounds(instanceId),
+    );
     if (
       surface.composition.environment?.enabled &&
       geometry.batches.some((batch) => batch.layer.kind === "mesh")

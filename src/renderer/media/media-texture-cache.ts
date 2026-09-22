@@ -505,6 +505,10 @@ export class MediaTextureCache {
     void pending.promise.catch(() => undefined);
   }
 
+  textBounds(instanceId: string) {
+    return this.#resources.get(instanceId)?.textBounds;
+  }
+
   prepareText(
     layer: Layer,
     instanceId: string,
@@ -537,6 +541,7 @@ export class MediaTextureCache {
           kind: "text",
           bindGroup: temporal.bindGroup,
           textureBytes: temporal.textureBytes,
+          textBounds: temporal.bounds,
         });
         return;
       }
@@ -577,6 +582,7 @@ export class MediaTextureCache {
       existing.textureHeight === raster.height
     ) {
       existing.source = source;
+      existing.textBounds = raster.bounds;
       this.#uploads.enqueue(existing.texture, raster.pixels, raster.width, raster.height);
       return;
     }
@@ -586,6 +592,7 @@ export class MediaTextureCache {
       kind: "text",
       textureWidth: raster.width,
       textureHeight: raster.height,
+      textBounds: raster.bounds,
     };
     this.#resources.set(instanceId, resource);
     const texture = this.#device.createTexture({

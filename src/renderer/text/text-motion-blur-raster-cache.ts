@@ -2,7 +2,13 @@ import { projectFontRevision } from "../../core/media/project-font-runtime";
 import type { Layer } from "../../core/types";
 import { TextureUploadBatch } from "../media/texture-upload-batch";
 import type { TextMotionBlurPlan, TextMotionBlurSample } from "./text-motion-blur-plan";
-import { rasterizeTextLayer, textRasterResolutionScale, textRasterSize } from "./text-rasterizer";
+import { includeTextBounds, type TextRasterBounds } from "./text-raster-bounds";
+import {
+  measureTextLayerBounds,
+  rasterizeTextLayer,
+  textRasterResolutionScale,
+  textRasterSize,
+} from "./text-rasterizer";
 
 export const MAX_TEXT_MOTION_BLUR_TRANSIENT_BYTES = 384 * 1024 * 1024;
 export const MAX_TEXT_MOTION_BLUR_RESIDENT_BYTES = 384 * 1024 * 1024;
@@ -10,6 +16,7 @@ export const MAX_TEXT_MOTION_BLUR_CACHE_ENTRIES = 64;
 const WEIGHT_UNIFORM_STRIDE = 256;
 
 export interface PreparedTextMotionBlurRaster {
+  bounds: TextRasterBounds;
   bindGroup: GPUBindGroup;
   source: string;
   textureBytes: number;
@@ -38,6 +45,7 @@ export interface TextMotionBlurRasterScalePlan {
 }
 
 interface TextMotionBlurEntry extends PreparedTextMotionBlurRaster {
+  boundsSource: string;
   instanceId: string;
   width: number;
   height: number;
@@ -195,12 +203,25 @@ export class TextMotionBlurRasterCache {
     const requestedScale = textRasterResolutionScale(resolutionScale);
     const maximumDimension = Math.min(8_192, this.#device.limits.maxTextureDimension2D);
     const existing = this.#entries.get(instanceId);
+    const boundsSource = textMotionBlurRasterSource(layer, plan, plan.samples, requestedScale);
+    const bounds =
+      existing?.boundsSource === boundsSource
+        ? existing.bounds
+        : {
+            x: 0,
+            y: 0,
+            width: Math.max(1, layer.size[0]),
+            height: Math.max(1, layer.size[1]),
+          };
+    if (existing?.boundsSource !== boundsSource)
+      for (const sample of plan.samples)
+        includeTextBounds(bounds, measureTextLayerBounds(layer, sample.localTime));
     const availableBytes = Math.max(
       0,
       this.#maxTransientBytes - this.#transientBytes + (existing?.transientBytes ?? 0),
     );
     const scalePlan = planTextMotionBlurRasterScale(
-      layer,
+      { size: [bounds.width, bounds.height] },
       maximumDimension,
       requestedScale,
       plan.samples.length,
@@ -222,7 +243,10 @@ export class TextMotionBlurRasterCache {
       throw new Error("Temporal text samples exceed the bounded GPU transient budget");
     if (pixelBytes * 2 > availableBytes)
       throw new Error("Temporal text accumulation exceeds the bounded GPU transient budget");
-    const source = textMotionBlurRasterSource(layer, plan, samples, rasterScale);
+    const source = JSON.stringify([
+      textMotionBlurRasterSource(layer, plan, samples, rasterScale),
+      bounds,
+    ]);
     if (existing?.source === source) {
       existing.frame = this.#frame;
       this.#entries.delete(instanceId);
@@ -235,7 +259,13 @@ export class TextMotionBlurRasterCache {
     // Rasterize and validate the complete generation before mutating cache ownership or enqueuing
     // any upload. A later sample failure therefore cannot leave a destroyed texture in #uploads.
     const rasters = samples.map((sample) => {
-      const raster = this.#rasterize(layer, maximumDimension, sample.localTime, rasterScale);
+      const raster = this.#rasterize(
+        layer,
+        maximumDimension,
+        sample.localTime,
+        rasterScale,
+        bounds,
+      );
       if (raster.width !== width || raster.height !== height)
         throw new Error("Temporal text raster dimensions changed inside one shutter interval");
       if (raster.pixels.byteLength < pixelBytes)
@@ -337,6 +367,8 @@ export class TextMotionBlurRasterCache {
       throw new Error("Temporal text generation did not initialize its GPU resources");
     const transientBytes = pixelBytes * samples.length + pixelBytes * 2 + (weights?.size ?? 0);
     const entry: TextMotionBlurEntry = {
+      bounds,
+      boundsSource,
       instanceId,
       width,
       height,

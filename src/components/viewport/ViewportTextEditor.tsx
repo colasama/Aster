@@ -55,6 +55,8 @@ export function viewportTextEditorStyle(
 ): CSSProperties {
   const style = resolveTextStyle(layer);
   const lineCount = measureVisualLineCount(layer, value, style);
+  const contentHeight = lineCount * style.leading;
+  const overflowOffset = Math.min(0, (layer.size[1] - contentHeight) / 2) * zoom;
   const verticalInset = Math.max(0, (layer.size[1] - lineCount * style.leading) / 2) * zoom;
   const horizontalInset = layer.size[0] * 0.03 * zoom;
   return {
@@ -64,7 +66,7 @@ export function viewportTextEditorStyle(
     fontFamily: style.fontFamily,
     fontSize: `${style.fontSize * zoom}px`,
     fontWeight: style.fontWeight,
-    height: `${layer.size[1] * zoom}px`,
+    height: `${Math.max(layer.size[1], contentHeight) * zoom}px`,
     left: 0,
     letterSpacing: `${style.tracking * zoom}px`,
     lineHeight: `${style.leading * zoom}px`,
@@ -74,7 +76,8 @@ export function viewportTextEditorStyle(
     paddingTop: `${verticalInset}px`,
     textAlign: style.alignment,
     top: 0,
-    transform: transformMatrix,
+    transform:
+      overflowOffset === 0 ? transformMatrix : `${transformMatrix} translateY(${overflowOffset}px)`,
     transformOrigin: "0 0",
     width: `${layer.size[0] * zoom}px`,
   };
@@ -114,7 +117,7 @@ function measureVisualLineCount(
           layer.size[0] * 0.94,
           (text) => context.measureText(text).width,
           style.tracking,
-        ).slice(0, 256).length,
+        ).length,
       );
     }
   } catch {

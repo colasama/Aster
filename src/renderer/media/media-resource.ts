@@ -1,4 +1,5 @@
 import { logger } from "../../core/logger";
+import type { TextRasterBounds } from "../text/text-raster-bounds";
 import type { VideoExternalUpload } from "./video-external-upload";
 
 export interface MediaResource {
@@ -9,6 +10,7 @@ export interface MediaResource {
   textureWidth?: number;
   textureHeight?: number;
   bindGroup?: GPUBindGroup;
+  textBounds?: TextRasterBounds;
   video?: HTMLVideoElement;
   videoCanvas?: HTMLCanvasElement;
   videoContext?: CanvasRenderingContext2D;

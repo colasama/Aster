@@ -9,7 +9,17 @@ import {
   textMotionBlurRasterShader,
   textMotionBlurRasterSource,
 } from "./text-motion-blur-raster-cache";
-import { textRasterSize } from "./text-rasterizer";
+import { measureTextLayerBounds, textRasterSize } from "./text-rasterizer";
+
+vi.mock("./text-rasterizer", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("./text-rasterizer")>()),
+  measureTextLayerBounds: vi.fn((layer) => ({
+    x: 0,
+    y: 0,
+    width: layer.size[0],
+    height: layer.size[1],
+  })),
+}));
 
 beforeEach(() => {
   vi.stubGlobal("GPUShaderStage", { FRAGMENT: 1 });
@@ -20,6 +30,44 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("GPU temporal text raster accumulation", () => {
+  it("uses one expanded local-space extent for every shutter sample", () => {
+    vi.mocked(measureTextLayerBounds)
+      .mockReturnValueOnce({ x: -30, y: -20, width: 130, height: 70 })
+      .mockReturnValueOnce({ x: 0, y: 0, width: 200, height: 80 });
+    const rasterize = vi.fn((_layer, maximum: number, _time = 0, scale = 1, bounds) => {
+      const { width, height } = textRasterSize(
+        { size: [bounds.width, bounds.height] },
+        maximum,
+        scale,
+      );
+      return { width, height, bounds, pixels: new Uint8ClampedArray(width * height * 4) };
+    });
+    const cache = new TextMotionBlurRasterCache(
+      mockDevice([]),
+      {} as GPUBindGroupLayout,
+      {} as GPUSampler,
+      { rasterize },
+    );
+    const layer = createLayerForComposition("text", createBlankComposition());
+    layer.size = [100, 50];
+    const plan = {
+      frameTime: 1,
+      sampleCount: 2,
+      transparentWeight: 0,
+      samples: [
+        { localTime: 0.9, timeBucket: 900_000, weight: 0.5 },
+        { localTime: 1.1, timeBucket: 1_100_000, weight: 0.5 },
+      ],
+    };
+    const prepared = cache.prepare(layer, "overflow", plan, 1);
+    const bounds = { x: -30, y: -20, width: 230, height: 100 };
+    expect(prepared.bounds).toEqual(bounds);
+    expect(prepared.textureBytes).toBe(230 * 100 * 4);
+    expect(rasterize.mock.calls.map((call) => call[4])).toEqual([bounds, bounds]);
+    expect(cache.prepare(layer, "overflow", plan, 1)).toBe(prepared);
+    expect(rasterize).toHaveBeenCalledTimes(2);
+    cache.destroy();
+  });
   it("accumulates straight sRGB samples as premultiplied linear color and resolves once", () => {
     expect(textMotionBlurRasterShader).toContain("straight.rgb * alpha");
     expect(textMotionBlurRasterShader).toContain("premultiplied.rgb / max(premultiplied.a");

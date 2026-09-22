@@ -10,11 +10,13 @@ import { resolveTextStyle } from "../../core/layers/text-style";
 export { resolveTextStyle } from "../../core/layers/text-style";
 
 import type { Layer, TextStyle } from "../../core/types";
+import { paintText, type TextRasterBounds } from "./text-raster-bounds";
 
 export interface RasterizedText {
   width: number;
   height: number;
   pixels: Uint8ClampedArray;
+  bounds?: TextRasterBounds;
 }
 
 /** Shared preview/export bucket used by ordinary and temporal text raster generations. */
@@ -37,15 +39,38 @@ export function rasterizeTextLayer(
   maximumDimension: number,
   localTime = 0,
   resolutionScale = 1,
+  bounds = measureTextLayerBounds(layer, localTime),
 ): RasterizedText {
-  const { width, height } = textRasterSize(layer, maximumDimension, resolutionScale);
+  const { width, height } = textRasterSize(
+    { size: [bounds.width, bounds.height] },
+    maximumDimension,
+    resolutionScale,
+  );
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
   const context = canvas.getContext("2d", { willReadFrequently: true });
   if (!context) throw new Error("Text rasterization canvas is unavailable");
-  drawTextLayer(context, layer, width, height, localTime);
-  return { width, height, pixels: context.getImageData(0, 0, width, height).data };
+  const scale = width / bounds.width;
+  context.scale(1, height / bounds.height / scale);
+  context.translate(-bounds.x * scale, -bounds.y * scale);
+  drawTextLayer(context, layer, layer.size[0] * scale, layer.size[1] * scale, localTime);
+  return { width, height, bounds, pixels: context.getImageData(0, 0, width, height).data };
+}
+
+export function measureTextLayerBounds(layer: Layer, localTime = 0): TextRasterBounds {
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = 1;
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("Text measurement canvas is unavailable");
+  const bounds = {
+    x: 0,
+    y: 0,
+    width: Math.max(1, layer.size[0]),
+    height: Math.max(1, layer.size[1]),
+  };
+  drawTextLayer(context, layer, layer.size[0], layer.size[1], localTime, bounds);
+  return bounds;
 }
 
 export function textRasterSize(
@@ -72,6 +97,7 @@ export function drawTextLayer(
   width: number,
   height: number,
   localTime = 0,
+  bounds?: TextRasterBounds,
 ): void {
   const sourceScale = width / Math.max(1, layer.size[0]);
   const style = resolveTextStyle(layer);
@@ -98,7 +124,7 @@ export function drawTextLayer(
     maximumWidth,
     (text) => context.measureText(text).width,
     tracking,
-  ).slice(0, 256);
+  );
   const blockHeight = fontSize + Math.max(0, lines.length - 1) * leading;
   const firstBaseline = (height - blockHeight) / 2 + fontSize / 2;
   const animation = layer.textAnimator?.enabled
@@ -125,6 +151,7 @@ export function drawTextLayer(
       strokeWidth > 0,
       animation,
       index,
+      bounds,
     );
   }
 }
@@ -151,12 +178,12 @@ function drawTrackedLine(
   stroke: boolean,
   animation: TextAnimationCursor | undefined,
   visualLineIndex: number,
+  bounds?: TextRasterBounds,
 ): void {
   const glyphs = graphemes(text);
   const widths = glyphs.map((glyph) => context.measureText(glyph).width);
   const naturalWidth = trackedWidth(text, (value) => context.measureText(value).width, tracking);
-  const horizontalScale = Math.min(1, maximumWidth / Math.max(naturalWidth, 1));
-  const renderedWidth = naturalWidth * horizontalScale;
+  const renderedWidth = naturalWidth;
   const alignedLeft =
     alignment === "left"
       ? left
@@ -165,10 +192,8 @@ function drawTrackedLine(
         : left + (maximumWidth - renderedWidth) / 2;
   context.save();
   context.translate(alignedLeft, baseline);
-  context.scale(horizontalScale, 1);
   if (!animation && Math.abs(tracking) < 0.000_01) {
-    if (stroke) context.strokeText(text, 0, 0);
-    context.fillText(text, 0, 0);
+    paintText(context, text, 0, 0, stroke, bounds);
     context.restore();
     return;
   }
@@ -196,7 +221,6 @@ function drawTrackedLine(
         0,
       )
     : naturalWidth;
-  const animatedScale = Math.min(horizontalScale, maximumWidth / Math.max(animatedWidth, 1));
   if (states) {
     context.restore();
     context.save();
@@ -205,11 +229,10 @@ function drawTrackedLine(
       alignment === "left"
         ? left
         : alignment === "right"
-          ? left + maximumWidth - widthBeforeAnimatorTracking * animatedScale
-          : left + (maximumWidth - widthBeforeAnimatorTracking * animatedScale) / 2;
-    const animatedLeft = baseAlignedLeft - lineAnchorCompensation * animatedScale;
+          ? left + maximumWidth - widthBeforeAnimatorTracking
+          : left + (maximumWidth - widthBeforeAnimatorTracking) / 2;
+    const animatedLeft = baseAlignedLeft - lineAnchorCompensation;
     context.translate(animatedLeft, baseline);
-    context.scale(animatedScale, 1);
   }
   let cursor = 0;
   for (let index = 0; index < glyphs.length; index += 1) {
@@ -226,10 +249,10 @@ function drawTrackedLine(
         animation.sourceScale,
         stroke,
         visualLineIndex,
+        bounds,
       );
     } else {
-      if (stroke) context.strokeText(glyph, cursor, 0);
-      context.fillText(glyph, cursor, 0);
+      paintText(context, glyph, cursor, 0, stroke, bounds);
     }
     cursor += glyphWidth + tracking + (state?.tracking ?? 0) * (animation?.sourceScale ?? 1);
   }
@@ -288,6 +311,7 @@ function drawAnimatedGlyph(
   sourceScale: number,
   stroke: boolean,
   visualLineIndex: number,
+  bounds?: TextRasterBounds,
 ): void {
   const radians = Math.PI / 180;
   const projectedZ = state.position[2] + state.anchorPoint[2] * (1 - state.scale[2]);
@@ -316,9 +340,14 @@ function drawAnimatedGlyph(
   }
   context.scale(scaleX, scaleY);
   context.translate(-anchorX, -anchorY);
-  if ((stroke || state.strokeWidth > 0) && state.strokeWidth > 0)
-    context.strokeText(glyph, -glyphWidth / 2, 0);
-  context.fillText(glyph, -glyphWidth / 2, 0);
+  paintText(
+    context,
+    glyph,
+    -glyphWidth / 2,
+    0,
+    (stroke || state.strokeWidth > 0) && state.strokeWidth > 0,
+    bounds,
+  );
   context.restore();
 }
 
