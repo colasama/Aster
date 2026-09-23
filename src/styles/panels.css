@@ -12,7 +12,7 @@
   min-height: 180px;
   resize: both;
   overflow: hidden;
-  border: 1px solid #46506a;
+  border: 1px solid var(--overlay-border);
   border-radius: 4px;
   box-shadow: 0 18px 55px #000b;
 }
@@ -120,6 +120,7 @@
   left: 7px;
   height: 2px;
   background: var(--blue);
+  animation: tab-line-in var(--motion-surface) var(--ease-out);
 }
 .panel-subheader .panel-tabs button.active::after {
   bottom: 0;
@@ -171,6 +172,9 @@
   font-size: 12px;
   white-space: nowrap;
   border-radius: 4px;
+  transition:
+    color var(--motion-fast) ease-out,
+    background-color var(--motion-fast) ease-out;
 }
 button.tree-row {
   text-align: left;
@@ -250,6 +254,10 @@ button.tree-row {
   border-radius: 3px;
   color: #9bb9ef;
   opacity: 0;
+  transition:
+    opacity var(--motion-hover) var(--ease-out),
+    color var(--motion-fast) ease-out,
+    background-color var(--motion-fast) ease-out;
 }
 .tree-row.asset-folder:hover .folder-add,
 .tree-row.asset-folder:focus-within .folder-add {
@@ -349,6 +357,10 @@ button.tree-row {
   background: var(--bg-raised);
   font-size: 11px;
   text-align: left;
+  transition:
+    border-color var(--motion-hover) var(--ease-out),
+    color var(--motion-hover) var(--ease-out),
+    background-color var(--motion-hover) var(--ease-out);
 }
 .asset-add-grid button:hover,
 .asset-relink:hover {
@@ -423,8 +435,6 @@ button.tree-row {
 }
 .project-error-detail {
   display: block;
-}
-.project-error-detail {
   margin-top: 3px;
   color: #b86f7a;
 }
@@ -448,6 +458,10 @@ button.tree-row {
   border-radius: 3px;
   color: var(--text-secondary);
   font-size: 11px;
+  transition:
+    border-color var(--motion-hover) var(--ease-out),
+    color var(--motion-hover) var(--ease-out),
+    background-color var(--motion-hover) var(--ease-out);
 }
 .project-footer button:hover {
   border-color: #4767a5;
@@ -483,6 +497,9 @@ button.tree-row {
   border-radius: 3px;
   color: #9bb9ef;
   background: #20283a;
+  transition:
+    border-color var(--motion-hover) var(--ease-out),
+    color var(--motion-hover) var(--ease-out);
 }
 .user-preset-save button:hover:not(:disabled) {
   border-color: #6584c1;
@@ -527,6 +544,7 @@ button.tree-row {
   padding: 0 7px;
   border-radius: 3px;
   text-align: left;
+  transition: background-color var(--motion-fast) ease-out;
 }
 .effect-group > button:hover {
   background: var(--bg-raised);
@@ -540,6 +558,7 @@ button.tree-row {
   display: flex;
   align-items: center;
   border-radius: 3px;
+  transition: background-color var(--motion-fast) ease-out;
 }
 .effect-entry:hover {
   background: var(--bg-raised);
@@ -572,6 +591,10 @@ button.tree-row {
   border-radius: 3px;
   color: var(--faint);
   opacity: 0;
+  transition:
+    opacity var(--motion-hover) var(--ease-out),
+    color var(--motion-fast) ease-out,
+    background-color var(--motion-fast) ease-out;
 }
 .effect-entry:hover .effect-favorite,
 .effect-favorite.active,
@@ -615,13 +638,7 @@ button.tree-row {
   color: #ffb770;
   background: #493018;
 }
-.preset-group {
-  margin: 4px 0 6px;
-  padding: 0 4px 4px;
-  border: 1px solid var(--border);
-  border-radius: 5px;
-  background: var(--bg-panel);
-}
+.preset-group,
 .user-preset-group {
   margin: 4px 0 6px;
   padding: 0 4px 4px;

@@ -2,7 +2,7 @@
 .render-dialog,
 .workspace-dialog {
   overflow: hidden;
-  border: 1px solid #49516a;
+  border: 1px solid var(--overlay-border);
   border-radius: 7px;
   background: var(--bg-raised);
   box-shadow: 0 24px 70px #000c;
@@ -75,11 +75,14 @@
   border-radius: 4px;
   color: var(--text-secondary);
   font-size: 12px;
+  transition:
+    color var(--motion-fast) ease-out,
+    background-color var(--motion-fast) ease-out;
 }
 .palette-results > button:hover,
 .palette-results > button.active {
   color: white;
-  background: #2b3d62;
+  background: var(--menu-highlight);
 }
 .render-dialog {
   width: 410px;
@@ -191,7 +194,7 @@
 }
 .shortcut-list kbd {
   width: max-content;
-  padding: 4px 6px;
+  padding: 3px 6px;
   border: 1px solid var(--border);
   border-radius: 3px;
   color: #c8d5ef;

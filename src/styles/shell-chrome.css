@@ -68,9 +68,9 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 5px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: #1b1d24f5;
+  border: 1px solid var(--overlay-border);
+  border-radius: 6px;
+  background: var(--popover-bg);
   box-shadow: 0 12px 28px #0009;
   backdrop-filter: blur(12px);
   transform-origin: top left;
@@ -86,14 +86,17 @@
   display: flex;
   align-items: center;
   padding: 0 8px;
-  border-radius: 3px;
+  border-radius: 4px;
   color: var(--text);
   font-size: 12px;
   text-align: left;
+  transition:
+    color var(--motion-fast) ease-out,
+    background-color var(--motion-fast) ease-out;
 }
 .app-menu-popover button:hover {
   color: white;
-  background: #31579f;
+  background: var(--menu-highlight);
 }
 .app-menu-popover button span {
   flex: 1;
@@ -101,7 +104,7 @@
 .app-menu-popover kbd {
   color: var(--muted);
   font:
-    8px "Cascadia Mono",
+    9px "Cascadia Mono",
     monospace;
 }
 
@@ -129,6 +132,7 @@
   background: var(--bg-raised);
   font-size: 12px;
   -webkit-app-region: no-drag;
+  transition: border-color var(--motion-hover) var(--ease-out);
 }
 
 .autosave-state {
@@ -205,6 +209,9 @@
   padding: 0;
   border-radius: 0;
   color: var(--text-secondary);
+  transition:
+    color var(--motion-fast) ease-out,
+    background-color var(--motion-fast) ease-out;
 }
 .window-control:hover {
   color: var(--text);

@@ -67,6 +67,9 @@
 .inspector-section > summary::-webkit-details-marker {
   display: none;
 }
+.inspector-section > summary > svg {
+  transition: transform var(--motion-hover) var(--ease-out);
+}
 .inspector-section[open] > summary > svg {
   transform: rotate(90deg);
 }
@@ -92,6 +95,8 @@
   text-align: left;
   text-transform: none;
   letter-spacing: normal;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) ease-out;
 }
 .section-title:hover {
   background: var(--bg-raised);
@@ -150,6 +155,9 @@
   border: 1px solid var(--control-border);
   border-radius: var(--control-radius);
   background: var(--control-bg);
+  transition:
+    border-color var(--motion-hover) var(--ease-out),
+    background-color var(--motion-hover) var(--ease-out);
 }
 .number-field:focus-within {
   border-color: var(--blue-bright);
@@ -211,7 +219,7 @@
 .slider-property input[type="range"] {
   min-width: 0;
   flex: 1;
-  height: 3px;
+  height: 14px;
   accent-color: var(--blue);
 }
 .slider-property input[type="number"] {

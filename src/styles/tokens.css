@@ -37,7 +37,11 @@
   --control-button-hover: #383838;
   --control-primary-bg: #0078d4;
   --control-primary-hover: #1688e0;
+  --popover-bg: rgb(27 29 37 / 96%);
+  --overlay-border: #4a5470;
+  --menu-highlight: #32589f;
   --motion-fast: 80ms;
+  --motion-hover: 110ms;
   --motion-surface: 140ms;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 }

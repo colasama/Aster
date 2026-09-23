@@ -19,6 +19,14 @@
   border-radius: 4px;
   outline: none;
   background: var(--bg-raised);
+  transition:
+    border-color var(--motion-hover) var(--ease-out),
+    background-color var(--motion-hover) var(--ease-out),
+    box-shadow var(--motion-hover) var(--ease-out);
+}
+
+.render-queue-item:hover {
+  border-color: var(--control-border-hover);
 }
 
 .render-queue-item:focus-visible {
@@ -101,6 +109,7 @@
 
 .render-queue-item progress::-webkit-progress-value {
   background: #598ee2;
+  transition: width 0.2s linear;
 }
 
 .status-completed progress::-webkit-progress-value {

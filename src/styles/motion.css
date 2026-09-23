@@ -1,3 +1,24 @@
+@keyframes toast-in {
+  from {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+}
+
+@keyframes banner-in {
+  from {
+    transform: translateY(12px);
+    opacity: 0;
+  }
+}
+
+@keyframes tab-line-in {
+  from {
+    transform: scaleX(0.3);
+    opacity: 0;
+  }
+}
+
 /* Repeated root selectors give the final accessibility override enough specificity
    without making the cascade irreversible with !important. */
 .reduced-motion.reduced-motion *,

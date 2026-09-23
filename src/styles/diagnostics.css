@@ -8,6 +8,7 @@
   display: flex;
   align-items: center;
   gap: 9px;
+  animation: banner-in var(--motion-surface) var(--ease-out);
   padding: 7px 8px;
   border: 1px solid #475166;
   border-radius: 5px;

@@ -457,6 +457,7 @@
   z-index: 300;
   right: 16px;
   bottom: 34px;
+  animation: toast-in var(--motion-surface) var(--ease-out);
   padding: 9px 13px;
   border: 1px solid #46567a;
   border-radius: 4px;

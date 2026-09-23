@@ -145,6 +145,10 @@
   background: var(--bg-panel);
   font-size: 11px;
   text-align: left;
+  transition:
+    border-color var(--motion-hover) var(--ease-out),
+    color var(--motion-hover) var(--ease-out),
+    background-color var(--motion-hover) var(--ease-out);
 }
 .ai-suggestions button:hover {
   border-color: #514477;
@@ -185,6 +189,9 @@
   border: 1px solid var(--border);
   border-radius: 5px;
   background: var(--bg-deep);
+  transition:
+    border-color var(--motion-hover) var(--ease-out),
+    box-shadow var(--motion-hover) var(--ease-out);
 }
 .ai-composer:focus-within {
   border-color: #66559a;
@@ -219,6 +226,12 @@
   border-radius: 3px;
   color: white;
   background: #6548bd;
+  transition:
+    background-color var(--motion-fast) ease-out,
+    transform var(--motion-fast) ease-out;
+}
+.ai-composer button:hover:not(:disabled) {
+  background: #7557d4;
 }
 .operation-preview {
   margin: 0 8px 10px;
@@ -287,6 +300,10 @@
   border-radius: 3px;
   color: var(--muted);
   font-size: 11px;
+  transition:
+    border-color var(--motion-hover) var(--ease-out),
+    color var(--motion-hover) var(--ease-out),
+    background-color var(--motion-hover) var(--ease-out);
 }
 .preview-actions button.accept {
   border-color: #5e4b98;

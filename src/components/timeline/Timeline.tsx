@@ -791,6 +791,7 @@ export function Timeline({ mode }: { mode?: "timeline" | "graph" } = {}) {
           >
             <Wind size={12} />
           </button>
+          <i className="timeline-options-separator" />
           <span className="keyframe-selection-count">
             {t(
               state.selectedKeyframes.length === 1
@@ -823,6 +824,7 @@ export function Timeline({ mode }: { mode?: "timeline" | "graph" } = {}) {
           >
             <Trash2 size={12} />
           </button>
+          <i className="timeline-options-separator" />
           <button
             aria-label={t("timeline.zoomOut")}
             onClick={() => navigation.zoomTo(state.timelineZoom / 1.25)}
