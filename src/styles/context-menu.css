@@ -47,6 +47,7 @@
     background-color var(--motion-fast) ease-out;
 }
 
+.context-menu-entry > button:hover:not(:disabled),
 .context-menu-entry > button:focus-visible,
 .context-menu-entry > button.submenu-open {
   color: white;
@@ -62,6 +63,7 @@
   color: #f29a9a;
 }
 
+.context-menu-entry > button.destructive:hover:not(:disabled),
 .context-menu-entry > button.destructive:focus-visible {
   color: white;
   background: #9d3636;
