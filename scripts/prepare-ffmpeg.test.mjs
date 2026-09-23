@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { delimiter, dirname, join, resolve } from "node:path";
 import { afterEach, test } from "node:test";
@@ -14,7 +14,9 @@ afterEach(() => {
 });
 
 function temporaryRoot() {
-  const root = mkdtempSync(join(tmpdir(), "aster-ffmpeg-bundle-"));
+  // Canonicalize so derived paths match realpathSync results on platforms whose
+  // tmpdir is symlinked (e.g. macOS /var -> /private/var).
+  const root = realpathSync(mkdtempSync(join(tmpdir(), "aster-ffmpeg-bundle-")));
   temporaryRoots.push(root);
   return root;
 }
