@@ -71,7 +71,11 @@
   height: 24px;
   display: grid;
   place-items: center;
+  border-radius: 3px;
   color: var(--muted);
+  transition:
+    color var(--motion-fast) ease-out,
+    background-color var(--motion-fast) ease-out;
 }
 .timeline-options button:disabled {
   cursor: default;
@@ -80,6 +84,12 @@
 .timeline-options button.enabled {
   color: #dce8ff;
   background: #3159ad;
+}
+.timeline-options-separator {
+  width: 1px;
+  height: 14px;
+  margin: 0 6px;
+  background: var(--border);
 }
 .timeline-options .keyframe-selection-count {
   min-width: 34px;
@@ -308,6 +318,7 @@
   place-items: center;
   padding: 0;
   color: var(--faint);
+  transition: color var(--motion-fast) ease-out;
 }
 .layer-switches button:hover {
   color: var(--text);
@@ -336,6 +347,10 @@
   font-size: 9px;
   cursor: grab;
   user-select: none;
+  transition: filter var(--motion-hover) var(--ease-out);
+}
+.layer-bar:hover {
+  filter: brightness(1.18);
 }
 .layer-bar:active {
   cursor: grabbing;
@@ -367,6 +382,7 @@
   cursor: ew-resize;
   background: rgba(190, 213, 255, 0.18);
   opacity: 0;
+  transition: opacity var(--motion-hover) var(--ease-out);
 }
 .layer-bar:hover .timing-handle,
 .timing-handle:focus-visible {
@@ -397,6 +413,10 @@
   border: 1px solid #b7ceff;
   background: #5684e5;
   box-shadow: 0 0 3px #3d69cb;
+  transition:
+    border-color var(--motion-fast) ease-out,
+    background-color var(--motion-fast) ease-out,
+    box-shadow var(--motion-fast) ease-out;
 }
 .keyframe:hover span {
   background: #e8f0ff;
@@ -453,9 +473,10 @@
   background: var(--bg-panel);
   font-size: 11px;
   text-align: left;
-}
-.timeline-property-group-label {
   cursor: pointer;
+  transition:
+    color var(--motion-fast) ease-out,
+    background-color var(--motion-fast) ease-out;
 }
 .timeline-property-group-label.effect {
   color: #b99a70;
@@ -557,6 +578,9 @@
   place-items: center;
   padding: 0;
   color: var(--faint);
+  transition:
+    color var(--motion-fast) ease-out,
+    background-color var(--motion-fast) ease-out;
 }
 .timeline-property-key.animated {
   color: #7da2f3;
@@ -642,6 +666,9 @@
   background: var(--bg-raised);
   font-size: 11px;
   text-align: left;
+  transition:
+    color var(--motion-fast) ease-out,
+    background-color var(--motion-fast) ease-out;
 }
 .graph-track-list button.active {
   color: var(--text-secondary);
@@ -709,6 +736,10 @@
   color: var(--text-secondary);
   background: var(--bg-raised);
   font-size: 9px;
+  transition:
+    border-color var(--motion-hover) var(--ease-out),
+    color var(--motion-hover) var(--ease-out),
+    background-color var(--motion-hover) var(--ease-out);
 }
 .graph-toolbar button.active {
   border-color: #466cae;

@@ -44,6 +44,7 @@
   border: 0;
   border-radius: 0;
   background: var(--bg-app);
+  transition: background-color var(--motion-hover) var(--ease-out);
 }
 .workspace-split.horizontal > .workspace-splitter {
   cursor: col-resize;
@@ -167,6 +168,7 @@
   left: 7px;
   height: 2px;
   background: var(--blue);
+  animation: tab-line-in var(--motion-surface) var(--ease-out);
 }
 .workspace-tabs > button.drop-before::before,
 .workspace-tabs > button.drop-after::before {
@@ -316,6 +318,9 @@
   border: 1px solid rgb(111 156 242 / 35%);
   border-radius: 3px;
   background: rgb(55 97 175 / 18%);
+  transition:
+    border-color var(--motion-hover) var(--ease-out),
+    background-color var(--motion-hover) var(--ease-out);
 }
 .workspace-drop-zone:hover {
   border-color: #8cb1ff;
@@ -343,7 +348,7 @@
   min-height: 180px;
   display: flex;
   overflow: hidden;
-  border: 1px solid #4a5875;
+  border: 1px solid var(--overlay-border);
   border-radius: 4px;
   background: var(--bg-panel);
   box-shadow: 0 18px 55px #000b;

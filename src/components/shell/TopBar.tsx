@@ -529,22 +529,24 @@ export function TopBar() {
           ))}
         </div>
         <div className="tool-divider" />
-        <button
-          disabled={!state.history.past.length}
-          onClick={() => dispatch({ type: "undo" })}
-          title={t("topbar.item.undo")}
-          type="button"
-        >
-          <Undo2 size={16} />
-        </button>
-        <button
-          disabled={!state.history.future.length}
-          onClick={() => dispatch({ type: "redo" })}
-          title={t("topbar.item.redo")}
-          type="button"
-        >
-          <Redo2 size={16} />
-        </button>
+        <div className="tool-group">
+          <button
+            disabled={!state.history.past.length}
+            onClick={() => dispatch({ type: "undo" })}
+            title={t("topbar.item.undo")}
+            type="button"
+          >
+            <Undo2 size={16} />
+          </button>
+          <button
+            disabled={!state.history.future.length}
+            onClick={() => dispatch({ type: "redo" })}
+            title={t("topbar.item.redo")}
+            type="button"
+          >
+            <Redo2 size={16} />
+          </button>
+        </div>
         <div className="toolbar-right">
           <button className="render-button" onClick={() => setRenderOpen(true)} type="button">
             <Play fill="currentColor" size={13} /> {t("topbar.toolbar.render")}

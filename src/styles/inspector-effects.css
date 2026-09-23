@@ -30,6 +30,10 @@ fieldset.effects-section {
   border: 1px solid var(--border);
   border-radius: 3px;
   background: var(--bg-panel);
+  transition: border-color var(--motion-hover) var(--ease-out);
+}
+.effect-editor:hover {
+  border-color: var(--control-border-hover);
 }
 .effect-editor.disabled {
   opacity: 0.48;
@@ -68,6 +72,7 @@ fieldset.effects-section {
 }
 .effect-title button {
   color: var(--muted);
+  transition: color var(--motion-fast) ease-out;
 }
 .effect-title .effect-power {
   color: #8e83d2;
@@ -221,6 +226,11 @@ fieldset.effects-section {
   border: 1px solid transparent;
   border-radius: 3px;
   color: var(--faint);
+  transition:
+    border-color var(--motion-fast) ease-out,
+    color var(--motion-fast) ease-out,
+    background-color var(--motion-fast) ease-out,
+    box-shadow var(--motion-fast) ease-out;
 }
 .effect-numeric > .effect-keyframe {
   grid-column: 3;
@@ -254,6 +264,9 @@ fieldset.effects-section {
   color: var(--text);
   background: #232638;
   font-size: 11px;
+  transition:
+    border-color var(--motion-hover) var(--ease-out),
+    background-color var(--motion-hover) var(--ease-out);
 }
 .lut-resource-summary {
   min-width: 0;

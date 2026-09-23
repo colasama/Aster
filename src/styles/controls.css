@@ -19,6 +19,10 @@ textarea {
   background-color: var(--control-bg);
   color: var(--control-text);
   font-size: 12px;
+  transition:
+    border-color var(--motion-hover) var(--ease-out),
+    background-color var(--motion-hover) var(--ease-out),
+    box-shadow var(--motion-hover) var(--ease-out);
 }
 
 input:where(
@@ -91,6 +95,9 @@ input[type="checkbox"] {
   background: var(--control-bg);
   color: white;
   vertical-align: middle;
+  transition:
+    border-color var(--motion-hover) var(--ease-out),
+    background-color var(--motion-hover) var(--ease-out);
 }
 
 input[type="checkbox"]::before {
@@ -99,7 +106,11 @@ input[type="checkbox"]::before {
   height: 9px;
   background: currentColor;
   clip-path: polygon(10% 44%, 36% 70%, 89% 17%, 100% 29%, 36% 93%, 0 57%);
-  visibility: hidden;
+  transform: scale(0.4);
+  opacity: 0;
+  transition:
+    transform var(--motion-surface) var(--ease-out),
+    opacity var(--motion-hover) var(--ease-out);
 }
 
 input[type="checkbox"]:is(:checked, :indeterminate) {
@@ -108,7 +119,8 @@ input[type="checkbox"]:is(:checked, :indeterminate) {
 }
 
 input[type="checkbox"]:is(:checked, :indeterminate)::before {
-  visibility: visible;
+  transform: scale(1);
+  opacity: 1;
 }
 
 input[type="checkbox"]:indeterminate::before {
@@ -175,6 +187,10 @@ input[type="radio"] {
   background: var(--control-button-bg);
   color: var(--control-text);
   font-size: 11px;
+  transition:
+    border-color var(--motion-hover) var(--ease-out),
+    background-color var(--motion-hover) var(--ease-out),
+    color var(--motion-hover) var(--ease-out);
 }
 
 .control-button:hover:not(:disabled),
