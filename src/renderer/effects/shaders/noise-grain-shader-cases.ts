@@ -2,13 +2,24 @@ export const noiseGrainPixelShaderCases = /* wgsl */ `
       case 140u: {
         let grain_position = input.position.xy / max(effect.header.z, 0.25);
         let temporal_seed = floor(effect_time * effect.p1.x * 24.0);
-        let hard_grain = hash(floor(grain_position) + vec2f(temporal_seed));
-        let soft_grain = value_noise(grain_position + vec2f(temporal_seed));
-        let mono_grain = mix(hard_grain, soft_grain, effect.header.w) - 0.5;
+        let noise_position = grain_position + vec2f(temporal_seed);
+        let mono_grain = mix(
+          hash(floor(noise_position)),
+          value_noise(noise_position),
+          effect.header.w,
+        ) - 0.5;
         let color_grain = vec3f(
           mono_grain,
-          hash(floor(grain_position) + vec2f(temporal_seed + 31.7)) - 0.5,
-          hash(floor(grain_position) + vec2f(temporal_seed + 83.1)) - 0.5,
+          mix(
+            hash(floor(noise_position) + vec2f(31.7)),
+            value_noise(noise_position + vec2f(31.7)),
+            effect.header.w,
+          ) - 0.5,
+          mix(
+            hash(floor(noise_position) + vec2f(83.1)),
+            value_noise(noise_position + vec2f(83.1)),
+            effect.header.w,
+          ) - 0.5,
         );
         let level = clamp(luminance(color), 0.0, 1.0);
         let shadow_weight = 1.0 - smoothstep(0.0, 0.5, level);

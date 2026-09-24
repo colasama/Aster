@@ -116,7 +116,14 @@ fn aces_tonemap(color: vec3f) -> vec3f {
 }
 
 fn hash(position: vec2f) -> f32 {
-  return fract(sin(dot(position, vec2f(12.9898, 78.233))) * 43758.5453);
+  var state = bitcast<vec2u>(position) * 1664525u + 1013904223u;
+  state.x += state.y * 1664525u;
+  state.y += state.x * 1664525u;
+  state = state ^ (state >> vec2u(16u));
+  state.x += state.y * 1664525u;
+  state.y += state.x * 1664525u;
+  state = state ^ (state >> vec2u(16u));
+  return f32(state.x >> 8u) * (1.0 / 16777216.0);
 }
 
 fn value_noise(position: vec2f) -> f32 {
