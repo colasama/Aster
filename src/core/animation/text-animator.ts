@@ -33,7 +33,6 @@ export function countAnimatedTextCharacters(text: string): number {
 export function clampTextAnimationTime(
   settings: TextAnimatorSettings | undefined,
   localTime: number,
-  _characterCount?: number,
 ): number | undefined {
   if (!settings?.enabled) return undefined;
   const tracks: Animatable[] = [];

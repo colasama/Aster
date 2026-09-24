@@ -1,6 +1,6 @@
 import { evaluateShapePath } from "../../core/animation/path-morph";
 import { solidRenderColor, solidRenderSize } from "../../core/layers/solid-layer";
-import { projectCameraPoint } from "../../core/scene/camera-rig";
+import { type CameraProjector, createCameraProjector } from "../../core/scene/camera-rig";
 import {
   createDefaultEvaluatedCamera,
   type EvaluatedCamera,
@@ -8,12 +8,7 @@ import {
 import type { FlattenedSceneLayer } from "../../core/scene/scene-evaluation";
 import type { CameraSettings, Composition, EvaluatedTransform, Layer } from "../../core/types";
 import type { TextRasterBounds } from "../text/text-raster-bounds";
-import {
-  flattenBezierPath,
-  tessellateStroke,
-  triangulatePolygon,
-  trimPolyline,
-} from "./vector-path";
+import { cachedBezierGeometry } from "./bezier-geometry-cache";
 
 export const FLOATS_PER_VERTEX = 40;
 export const VERTEX_FLOAT_OFFSETS = {
@@ -43,6 +38,11 @@ export interface GeometryBatch {
 export interface GeometryResult {
   data: Float32Array;
   batches: GeometryBatch[];
+}
+
+interface VertexWriter {
+  data: Float32Array;
+  length: number;
 }
 
 export interface SceneCamera extends EvaluatedCamera {
@@ -95,7 +95,18 @@ export function buildSceneGeometry(
   camera?: SceneCamera,
   textBounds?: (instanceId: string) => TextRasterBounds | undefined,
 ): GeometryResult {
-  const output: number[] = [];
+  let cameraProjector: CameraProjector | undefined;
+  const projectCamera: CameraProjector = (point) => {
+    if (!cameraProjector) {
+      const evaluated =
+        camera ?? createDefaultEvaluatedCamera(composition.width, composition.height);
+      cameraProjector = createCameraProjector(evaluated.pose, evaluated.projection, [
+        composition.width,
+        composition.height,
+      ]);
+    }
+    return cameraProjector(point);
+  };
   const batches: GeometryBatch[] = [];
   const visible = sceneLayers.filter(
     (scene) =>
@@ -106,6 +117,10 @@ export function buildSceneGeometry(
       scene.layer.kind !== "camera" &&
       scene.layer.kind !== "light",
   );
+  const output: VertexWriter = {
+    data: new Float32Array(visible.length * QUAD_CORNERS.length * FLOATS_PER_VERTEX),
+    length: 0,
+  };
   for (const scene of visible.reverse()) {
     const { layer, transform } = scene;
     const firstVertex = output.length / FLOATS_PER_VERTEX;
@@ -208,11 +223,12 @@ export function buildSceneGeometry(
           gradientStyleColor,
           gradientStyleParameters,
           composition,
-          camera,
+          projectCamera,
         );
       } else {
         const depth = Math.min(width, height) * 0.68;
         vertexCount = CUBE_FACES.length * 6;
+        reserveVertices(output, vertexCount);
         for (const cubeFace of CUBE_FACES) {
           const normal = rotatePoint(...cubeFace.normal, transform.rotation);
           const tangent = rotatePoint(1, 0, 0, transform.rotation);
@@ -224,8 +240,7 @@ export function buildSceneGeometry(
               true,
               transform.position,
               transform.rotation,
-              composition,
-              camera,
+              projectCamera,
             );
             pushVertex(
               output,
@@ -260,10 +275,11 @@ export function buildSceneGeometry(
         gradientStyleColor,
         gradientStyleParameters,
         composition,
-        camera,
+        projectCamera,
         scene.localTime,
       );
     } else {
+      reserveVertices(output, QUAD_CORNERS.length);
       const normal = rotatePoint(0, 0, 1, transform.rotation);
       const tangent = rotatePoint(1, 0, 0, transform.rotation);
       for (const [cornerX, cornerY, u, v] of QUAD_CORNERS) {
@@ -274,8 +290,7 @@ export function buildSceneGeometry(
           layer.threeDimensional,
           transform.position,
           transform.rotation,
-          composition,
-          camera,
+          projectCamera,
         );
         pushVertex(
           output,
@@ -304,11 +319,14 @@ export function buildSceneGeometry(
       vertexCount,
     });
   }
-  return { data: new Float32Array(output), batches };
+  return {
+    data: output.length === output.data.length ? output.data : output.data.slice(0, output.length),
+    batches,
+  };
 }
 
 function appendBezierPath(
-  output: number[],
+  output: VertexWriter,
   layer: Layer,
   transform: EvaluatedTransform,
   width: number,
@@ -320,14 +338,15 @@ function appendBezierPath(
   gradientStyleColor: readonly [number, number, number, number],
   gradientStyleParameters: readonly [number, number, number, number],
   composition: Composition,
-  camera: SceneCamera | undefined,
+  projectCamera: CameraProjector,
   time: number,
 ): number {
   const shape = layer.shape;
   if (!shape?.path) return 0;
   const path = evaluateShapePath(shape, time, layer.expressions?.["shape.morphProgress"]);
   if (!path) return 0;
-  const normalized = flattenBezierPath(path);
+  const geometry = cachedBezierGeometry(path, shape, width, height);
+  reserveVertices(output, geometry.fill.length + geometry.stroke.length);
   const normal = rotatePoint(0, 0, 1, transform.rotation);
   const tangent = rotatePoint(1, 0, 0, transform.rotation);
   const noStyle: readonly [number, number, number, number] = [1, 1, 1, 1];
@@ -345,8 +364,7 @@ function appendBezierPath(
       layer.threeDimensional,
       transform.position,
       transform.rotation,
-      composition,
-      camera,
+      projectCamera,
     );
     pushVertex(
       output,
@@ -366,22 +384,9 @@ function appendBezierPath(
     );
     vertexCount += 1;
   };
-  if (path.closed) {
-    for (const point of triangulatePolygon(normalized))
-      append(point, fillColor, gradientStyleColor, gradientStyleParameters);
-  }
-  if (shape.strokeWidth > 0) {
-    const scaled = normalized.map(
-      (point) => [point[0] * width, point[1] * height] as [number, number],
-    );
-    const trim = shape.trim ?? { start: 0, end: 100, offset: 0 };
-    const segments = trimPolyline(
-      scaled,
-      path.closed,
-      trim.start / 100,
-      trim.end / 100,
-      trim.offset / 100,
-    );
+  for (const point of geometry.fill)
+    append(point, fillColor, gradientStyleColor, gradientStyleParameters);
+  if (geometry.stroke.length > 0) {
     const strokeColor: readonly [number, number, number, number] = [
       shape.strokeColor[0],
       shape.strokeColor[1],
@@ -389,28 +394,13 @@ function appendBezierPath(
       shape.strokeColor[3] * transform.opacity,
     ];
     const solidParameters: readonly [number, number, number, number] = [0, 0, 0, 0];
-    for (const segment of segments) {
-      const stroke = tessellateStroke(
-        segment.points,
-        shape.strokeWidth,
-        segment.closed,
-        shape.lineJoin ?? "round",
-        shape.lineCap,
-      );
-      for (const point of stroke)
-        append(
-          [point[0] / (width || 1), point[1] / (height || 1)],
-          strokeColor,
-          noStyle,
-          solidParameters,
-        );
-    }
+    for (const point of geometry.stroke) append(point, strokeColor, noStyle, solidParameters);
   }
   return vertexCount;
 }
 
 function appendImportedMesh(
-  output: number[],
+  output: VertexWriter,
   layer: Layer,
   transform: EvaluatedTransform,
   width: number,
@@ -423,10 +413,11 @@ function appendImportedMesh(
   gradientStyleColor: readonly [number, number, number, number],
   gradientStyleParameters: readonly [number, number, number, number],
   composition: Composition,
-  camera?: SceneCamera,
+  projectCamera: CameraProjector,
 ): number {
   const mesh = layer.mesh;
   if (!mesh) return 0;
+  reserveVertices(output, mesh.indices.length);
   const bounds = meshBounds(mesh.positions);
   const extents = bounds.maximum.map((value, axis) => value - bounds.minimum[axis]);
   const targetDepth = Math.min(width, height) * 0.68;
@@ -468,8 +459,7 @@ function appendImportedMesh(
       true,
       transform.position,
       transform.rotation,
-      composition,
-      camera,
+      projectCamera,
     );
     pushVertex(
       output,
@@ -513,8 +503,7 @@ function projectVertex(
   threeDimensional: boolean,
   position: [number, number, number],
   rotation: [number, number, number],
-  composition: Composition,
-  camera?: SceneCamera,
+  projectCamera: CameraProjector,
 ): { clip: [number, number, number]; world: [number, number, number] } {
   if (!threeDimensional) {
     const angle = toRadians(rotation[2]);
@@ -527,11 +516,7 @@ function projectVertex(
   }
   const [x, y, z] = rotatePoint(localX, localY, localZ, rotation);
   const world: [number, number, number] = [position[0] + x, position[1] + y, position[2] + z];
-  const evaluated = camera ?? createDefaultEvaluatedCamera(composition.width, composition.height);
-  const projected = projectCameraPoint(world, evaluated.pose, evaluated.projection, [
-    composition.width,
-    composition.height,
-  ]);
+  const projected = projectCamera(world);
   return {
     clip: [projected.screen[0], projected.screen[1], projected.normalizedDepth],
     world,
@@ -539,7 +524,7 @@ function projectVertex(
 }
 
 function pushVertex(
-  output: number[],
+  output: VertexWriter,
   projected: { clip: [number, number, number]; world: [number, number, number] },
   u: number,
   v: number,
@@ -554,49 +539,58 @@ function pushVertex(
   tangent: readonly [number, number, number, number],
   composition: Composition,
 ): void {
-  // Fixed fields avoid iterator expansion and its temporary allocations in this hot path.
-  output.push(
-    (projected.clip[0] / composition.width) * 2 - 1,
-    1 - (projected.clip[1] / composition.height) * 2,
-    projected.clip[2],
-    u,
-    v,
-    color[0],
-    color[1],
-    color[2],
-    color[3],
-    mediaType,
-    normal[0],
-    normal[1],
-    normal[2],
-    material[0],
-    material[1],
-    material[2],
-    material[3],
-    projected.world[0],
-    projected.world[1],
-    projected.world[2],
-    shapeStyleColor[0],
-    shapeStyleColor[1],
-    shapeStyleColor[2],
-    shapeStyleColor[3],
-    shapeStyleParameters[0],
-    shapeStyleParameters[1],
-    shapeStyleParameters[2],
-    shapeStyleParameters[3],
-    gradientStyleColor[0],
-    gradientStyleColor[1],
-    gradientStyleColor[2],
-    gradientStyleColor[3],
-    gradientStyleParameters[0],
-    gradientStyleParameters[1],
-    gradientStyleParameters[2],
-    gradientStyleParameters[3],
-    tangent[0],
-    tangent[1],
-    tangent[2],
-    tangent[3],
-  );
+  // Write directly into GPU-ready storage without a growing JS number array per frame.
+  const data = output.data;
+  const offset = output.length;
+  data[offset] = (projected.clip[0] / composition.width) * 2 - 1;
+  data[offset + 1] = 1 - (projected.clip[1] / composition.height) * 2;
+  data[offset + 2] = projected.clip[2];
+  data[offset + 3] = u;
+  data[offset + 4] = v;
+  data[offset + 5] = color[0];
+  data[offset + 6] = color[1];
+  data[offset + 7] = color[2];
+  data[offset + 8] = color[3];
+  data[offset + 9] = mediaType;
+  data[offset + 10] = normal[0];
+  data[offset + 11] = normal[1];
+  data[offset + 12] = normal[2];
+  data[offset + 13] = material[0];
+  data[offset + 14] = material[1];
+  data[offset + 15] = material[2];
+  data[offset + 16] = material[3];
+  data[offset + 17] = projected.world[0];
+  data[offset + 18] = projected.world[1];
+  data[offset + 19] = projected.world[2];
+  data[offset + 20] = shapeStyleColor[0];
+  data[offset + 21] = shapeStyleColor[1];
+  data[offset + 22] = shapeStyleColor[2];
+  data[offset + 23] = shapeStyleColor[3];
+  data[offset + 24] = shapeStyleParameters[0];
+  data[offset + 25] = shapeStyleParameters[1];
+  data[offset + 26] = shapeStyleParameters[2];
+  data[offset + 27] = shapeStyleParameters[3];
+  data[offset + 28] = gradientStyleColor[0];
+  data[offset + 29] = gradientStyleColor[1];
+  data[offset + 30] = gradientStyleColor[2];
+  data[offset + 31] = gradientStyleColor[3];
+  data[offset + 32] = gradientStyleParameters[0];
+  data[offset + 33] = gradientStyleParameters[1];
+  data[offset + 34] = gradientStyleParameters[2];
+  data[offset + 35] = gradientStyleParameters[3];
+  data[offset + 36] = tangent[0];
+  data[offset + 37] = tangent[1];
+  data[offset + 38] = tangent[2];
+  data[offset + 39] = tangent[3];
+  output.length += FLOATS_PER_VERTEX;
+}
+
+function reserveVertices(output: VertexWriter, count: number): void {
+  const required = output.length + count * FLOATS_PER_VERTEX;
+  if (required <= output.data.length) return;
+  const expanded = new Float32Array(Math.max(required, output.data.length * 2));
+  expanded.set(output.data.subarray(0, output.length));
+  output.data = expanded;
 }
 
 function face(

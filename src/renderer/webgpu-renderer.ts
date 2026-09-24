@@ -26,7 +26,7 @@ import {
   releaseFailedWebGpuInitialization,
   shouldReportGpuDeviceLoss,
 } from "./gpu/device-lifecycle";
-import { captureAfterExactFrameResources } from "./gpu/exact-frame-resource-barrier";
+import { ExactFrameCaptureQueue } from "./gpu/exact-frame-resource-barrier";
 import { frameCadenceSample } from "./gpu/frame-cadence";
 import type { FrameReadbackTicket, RawFramePixelFormat, RawVideoFrame } from "./gpu/frame-readback";
 import { planGpuMemory } from "./gpu/gpu-memory-budget";
@@ -58,6 +58,7 @@ export class WebGpuRenderer {
   readonly #context: GPUCanvasContext;
   readonly #format: GPUTextureFormat;
   #pendingFrameReadback?: FrameReadbackTicket;
+  readonly #frameCaptures = new ExactFrameCaptureQueue<RawVideoFrame>();
   #width = 1;
   #height = 1;
   #outputWidth = 1;
@@ -241,14 +242,10 @@ export class WebGpuRenderer {
     synchronizeVideo = false,
   ): Promise<RawVideoFrame> {
     this.#assertActive();
-    if (synchronizeVideo) {
-      this.render(composition, time, false, project);
-      await this.#resources.mediaTextures.waitForFrameResources();
-      return this.#captureRawFrame(composition, time, project);
-    }
-    return captureAfterExactFrameResources(
+    return this.#frameCaptures.capture(
       () => this.#captureRawFrame(composition, time, project),
       this.#resources.mediaTextures,
+      synchronizeVideo ? () => this.render(composition, time, false, project) : undefined,
     );
   }
   #captureRawFrame(

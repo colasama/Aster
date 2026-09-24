@@ -4,10 +4,7 @@ import {
   compositionMotionBlurSettings,
   motionBlurInterval,
 } from "../../core/animation/motion-blur";
-import {
-  clampTextAnimationTime,
-  countAnimatedTextCharacters,
-} from "../../core/animation/text-animator";
+import { clampTextAnimationTime } from "../../core/animation/text-animator";
 import {
   type EvaluatedTextAnimatorCharacter,
   evaluateTextAnimatorStack,
@@ -243,7 +240,6 @@ function animatedTextSceneUnion(
         clampTextAnimationTime(
           scene.layer.textAnimator,
           evaluateLayerSourceTime(scene.layer, scene.localTime),
-          countAnimatedTextCharacters(scene.layer.text ?? scene.layer.name),
         ) === undefined
       )
         continue;
@@ -301,11 +297,7 @@ function compareSceneOrder(
 function textAnimationTime(scene: FlattenedSceneLayer | undefined): number | undefined {
   if (scene?.layer.kind !== "text") return undefined;
   const localTime = evaluateLayerSourceTime(scene.layer, scene.localTime);
-  return clampTextAnimationTime(
-    scene.layer.textAnimator,
-    localTime,
-    countAnimatedTextCharacters(scene.layer.text ?? scene.layer.name),
-  );
+  return clampTextAnimationTime(scene.layer.textAnimator, localTime);
 }
 
 function characterTravel(

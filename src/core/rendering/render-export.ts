@@ -422,13 +422,16 @@ interface FramePipelineOptions<Frame> {
   cancelled: () => boolean;
   render: (frame: number) => Promise<Frame>;
   write: (frame: Frame, index: number) => Promise<void>;
-  onProgress: (progress: RenderSequenceProgress) => void;
+  beforeFrame?: () => Promise<void>;
+  onProgress: (progress: RenderSequenceProgress) => void | Promise<void>;
 }
 
 export async function streamFramePipeline<Frame>(
   options: FramePipelineOptions<Frame>,
 ): Promise<number> {
-  const depth = Math.max(1, Math.min(3, Math.floor(options.maxInFlight)));
+  const depth = Number.isFinite(options.maxInFlight)
+    ? Math.max(1, Math.min(3, Math.floor(options.maxInFlight)))
+    : 1;
   const pending = new Map<number, Promise<Frame>>();
   let nextRender = 0;
   let nextWrite = 0;
@@ -442,18 +445,23 @@ export async function streamFramePipeline<Frame>(
       nextRender += 1;
     }
   };
-  options.onProgress({ current: 0, total: options.frameCount });
+  await options.onProgress({ current: 0, total: options.frameCount });
   try {
-    fill();
     while (nextWrite < options.frameCount && !options.cancelled()) {
+      await options.beforeFrame?.();
+      if (options.cancelled()) break;
+      fill();
       const frame = await pending.get(nextWrite);
       pending.delete(nextWrite);
       if (frame === undefined || options.cancelled()) break;
+      // Controls may arrive during GPU mapping. Hold completed frames without submitting more.
+      await options.beforeFrame?.();
+      if (options.cancelled()) break;
       fill();
       await options.write(frame, nextWrite);
       completed += 1;
       nextWrite += 1;
-      options.onProgress({ current: completed, total: options.frameCount });
+      await options.onProgress({ current: completed, total: options.frameCount });
     }
     return completed;
   } finally {

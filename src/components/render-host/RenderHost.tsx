@@ -87,6 +87,7 @@ export function RenderHost() {
         await runRenderHostFrameLoop({
           assignment: validated,
           pixelFormat: pipeline.pixelFormat,
+          maxInFlightFrames: pipeline.maxConcurrentReadbacks,
           ...(activeAudioRuntime
             ? {
                 audioDecoder: (source: Extract<FootageSource, { kind: "audio" | "video" }>) =>

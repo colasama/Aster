@@ -15,11 +15,11 @@ import {
   validateRenderHostAssignment,
 } from "./render-host-session";
 
-function assignment(): DesktopRenderHostAssignment {
+function assignment(width = 64, height = 64): DesktopRenderHostAssignment {
   const project = createBlankProject();
   const composition = project.compositions[0];
-  composition.width = 64;
-  composition.height = 64;
+  composition.width = width;
+  composition.height = height;
   composition.duration = 2;
   composition.workArea = { start: 0, end: 2 };
   for (const layer of composition.layers) layer.outPoint = 2;
@@ -115,6 +115,7 @@ describe("RenderHost frame session", () => {
     const result = await runRenderHostFrameLoop({
       assignment: validateRenderHostAssignment(work),
       pixelFormat: "bgra",
+      maxInFlightFrames: 3,
       requestedControl: () => undefined,
       now: () => clock++,
       renderFrame: async (frame, time) => {
@@ -180,7 +181,8 @@ describe("RenderHost frame session", () => {
     });
 
     expect(result).toBe("cancelled");
-    expect(rendered).toBe(1);
+    // One readback can overlap the frame being written; cancellation discards that lookahead.
+    expect(rendered).toBe(2);
     expect(reports.map((report) => report.type)).toEqual(["prepared", "progress", "cancelled"]);
   });
 
@@ -265,7 +267,6 @@ describe("RenderHost frame session", () => {
       now: () => clock,
       renderFrame: async (frame) => {
         rendered.push(frame);
-        clock += 100;
         return {
           pixels: new Uint8Array(work.manifest.width * work.manifest.height * 4).fill(frame + 1)
             .buffer,
@@ -275,6 +276,7 @@ describe("RenderHost frame session", () => {
       encodePng: async (frame) => frame.pixels.slice(0, 8),
       output: async (request) => {
         outputs.push(request);
+        if (request.type === "writeMp4Frame") clock += 100;
       },
       report: async (report) => {
         reports.push(report);
@@ -305,6 +307,138 @@ describe("RenderHost frame session", () => {
       "progress",
       "completed",
     ]);
+  });
+
+  it("fills three readbacks, orders out-of-order completions, and bounds a slow encoder", async () => {
+    const work = assignment();
+    work.manifest.startFrame = 3;
+    work.manifest.endFrameExclusive = 11;
+    work.manifest.outputs = [work.manifest.outputs[0]];
+    const gates = Array.from({ length: 3 }, () => deferred<void>());
+    const writing = deferred<void>();
+    const encoder = deferred<void>();
+    const rendered: number[] = [];
+    const written: number[] = [];
+    let maximumWindow = 0;
+    const session = runRenderHostFrameLoop({
+      assignment: validateRenderHostAssignment(work),
+      pixelFormat: "rgba",
+      maxInFlightFrames: 3,
+      requestedControl: () => undefined,
+      renderFrame: async (frame, time) => {
+        rendered.push(frame);
+        maximumWindow = Math.max(maximumWindow, rendered.length - written.length);
+        expect(time).toBe((frame * 1_001) / 24_000);
+        await gates[frame - 3]?.promise;
+        return { pixels: new Uint8Array(64 * 64 * 4).fill(frame).buffer, pixelFormat: "rgba" };
+      },
+      encodePng: async () => new ArrayBuffer(8),
+      output: async (request) => {
+        if (request.type !== "writeMp4Frame") return;
+        if (written.length === 0) {
+          writing.resolve(undefined);
+          await encoder.promise;
+        }
+        written.push(new Uint8Array(request.pixels)[0]);
+      },
+      report: async () => undefined,
+    });
+
+    await vi.waitFor(() => expect(rendered).toEqual([3, 4, 5]));
+    gates[2].resolve(undefined);
+    gates[1].resolve(undefined);
+    await Promise.resolve();
+    expect(written).toEqual([]);
+    gates[0].resolve(undefined);
+    await writing.promise;
+    expect(rendered).toEqual([3, 4, 5, 6]);
+    encoder.resolve(undefined);
+    await expect(session).resolves.toBe("completed");
+    expect(written).toEqual([3, 4, 5, 6, 7, 8, 9, 10]);
+    expect(maximumWindow).toBe(4);
+  });
+
+  it.each(["resume", "cancel"] as const)(
+    "holds prefetched frames during pause and drains them on %s",
+    async (action) => {
+      const work = assignment();
+      work.manifest.endFrameExclusive = 8;
+      work.manifest.outputs = [work.manifest.outputs[0]];
+      const controls = controlHarness();
+      const paused = deferred<void>();
+      const mapping = deferred<void>();
+      const rendered: number[] = [];
+      const written: number[] = [];
+      const reports: DesktopRenderHostReport[] = [];
+      const session = runRenderHostFrameLoop({
+        assignment: validateRenderHostAssignment(work),
+        pixelFormat: "rgba",
+        maxInFlightFrames: 3,
+        requestedControl: controls.requested,
+        waitForControlChange: controls.waitForChange,
+        renderFrame: async (frame) => {
+          rendered.push(frame);
+          if (frame > 0) await mapping.promise;
+          return { pixels: new Uint8Array(64 * 64 * 4).fill(frame).buffer, pixelFormat: "rgba" };
+        },
+        encodePng: async () => new ArrayBuffer(8),
+        output: async (request) => {
+          if (request.type === "writeMp4Frame") written.push(new Uint8Array(request.pixels)[0]);
+        },
+        report: async (report) => {
+          reports.push(report);
+          if (report.type === "progress" && report.progress.completedFrames === 1)
+            controls.set("pause");
+          if (report.type === "paused") paused.resolve(undefined);
+        },
+      });
+
+      await paused.promise;
+      expect(rendered).toEqual([0, 1, 2, 3]);
+      expect(written).toEqual([0]);
+      controls.set(action === "cancel" ? "cancel" : undefined);
+      await Promise.resolve();
+      expect(reports.some((report) => report.type === "cancelled")).toBe(false);
+      mapping.resolve(undefined);
+      await expect(session).resolves.toBe(action === "cancel" ? "cancelled" : "completed");
+      expect(written).toEqual(action === "cancel" ? [0] : [0, 1, 2, 3, 4, 5, 6, 7]);
+      expect(new Set(rendered).size).toBe(rendered.length);
+      expect(reports.filter((report) => report.type === "paused")).toHaveLength(1);
+    },
+  );
+
+  it.each([
+    { width: 64, height: 64, synchronizeVideo: true, expected: 1 },
+    { width: 3840, height: 2160, synchronizeVideo: false, expected: 2 },
+  ])("bounds pending $width × $height captures to $expected", async (scenario) => {
+    const work = assignment(scenario.width, scenario.height);
+    work.manifest.endFrameExclusive = 8;
+    work.manifest.outputs = [work.manifest.outputs[0]];
+    let active = 0;
+    let maximumActive = 0;
+    await runRenderHostFrameLoop({
+      assignment: {
+        ...validateRenderHostAssignment(work),
+        synchronizeVideo: scenario.synchronizeVideo,
+      },
+      pixelFormat: "rgba",
+      maxInFlightFrames: 3,
+      requestedControl: () => undefined,
+      renderFrame: async () => {
+        active += 1;
+        maximumActive = Math.max(maximumActive, active);
+        await Promise.resolve();
+        active -= 1;
+        return {
+          pixels: new ArrayBuffer(scenario.width * scenario.height * 4),
+          pixelFormat: "rgba",
+        };
+      },
+      encodePng: async () => new ArrayBuffer(8),
+      output: async () => undefined,
+      report: async () => undefined,
+    });
+    expect(maximumActive).toBe(scenario.expected);
   });
 
   it("streams a bounded rationally aligned PCM range beside canonical beauty frames", async () => {

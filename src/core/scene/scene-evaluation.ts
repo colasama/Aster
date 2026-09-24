@@ -7,6 +7,9 @@ import {
 import type { Composition, EvaluatedTransform, Id, Layer, Project } from "../types";
 import { composeClonerTransform, evaluateCloner, MAX_CLONER_INSTANCES } from "./cloner";
 
+type TransformEvaluator = (layer: Layer) => EvaluatedTransform;
+type CompositionEvaluations = Map<Composition, Map<number, TransformEvaluator>>;
+
 export interface FlattenedSceneLayer {
   layer: Layer;
   sourceComposition: Composition;
@@ -62,6 +65,7 @@ export function flattenSceneLayers(
     "root",
     undefined,
     new Set(),
+    new Map(),
   );
 }
 
@@ -74,14 +78,25 @@ function flattenComposition(
   resourcePrefix: string,
   selectionId: Id | undefined,
   compositionStack: Set<Id>,
+  evaluations: CompositionEvaluations,
 ): FlattenedSceneLayer[] {
   if (compositionStack.has(composition.id)) return [];
   const nextStack = new Set(compositionStack).add(composition.id);
   const output: FlattenedSceneLayer[] = [];
+  let times = evaluations.get(composition);
+  if (!times) {
+    times = new Map();
+    evaluations.set(composition, times);
+  }
+  let evaluate = times.get(time);
+  if (!evaluate) {
+    evaluate = createTransformEvaluator(composition, time);
+    times.set(time, evaluate);
+  }
   for (const layer of visibleLayersAtTime(composition, time)) {
     if (layer.kind === "adjustment" && compositionStack.size > 0)
       throw new Error(NESTED_ADJUSTMENT_ERROR);
-    const localTransform = evaluateWorldTransform(layer, composition, time);
+    const localTransform = evaluate(layer);
     const rootSelectionId = selectionId ?? layer.id;
     const nested =
       layer.kind === "precomposition" && layer.sourceCompositionId
@@ -133,6 +148,7 @@ function flattenComposition(
           resourceInstanceId,
           rootSelectionId,
           nextStack,
+          evaluations,
         );
         for (const nestedLayer of nestedLayers) {
           if (output.length >= MAX_CLONER_INSTANCES) break;
@@ -221,6 +237,46 @@ function evaluateRecursive(
   if (!parent) return local;
   visited.add(layer.id);
   const world = evaluateRecursive(parent, composition, time, visited);
+  return composeParentTransform(local, world);
+}
+
+/** Shared parents and repeated precompositions are evaluated once per exact source time. */
+function createTransformEvaluator(composition: Composition, time: number): TransformEvaluator {
+  const layers = new Map<Id, Layer>();
+  for (const layer of composition.layers) if (!layers.has(layer.id)) layers.set(layer.id, layer);
+  const resolved = new Map<Layer, EvaluatedTransform>();
+  const visiting = new Set<Id>();
+  const cycle = Symbol("parent cycle");
+  const evaluate: TransformEvaluator = (layer) => {
+    const cached = resolved.get(layer);
+    if (cached) return cached;
+    if (visiting.has(layer.id)) throw cycle;
+    visiting.add(layer.id);
+    try {
+      const local = evaluateLayerTransform(layer, time);
+      const parent = layer.parentId ? layers.get(layer.parentId) : undefined;
+      const world = parent ? composeParentTransform(local, evaluate(parent)) : local;
+      resolved.set(layer, world);
+      return world;
+    } finally {
+      visiting.delete(layer.id);
+    }
+  };
+  return (layer) => {
+    try {
+      return evaluate(layer);
+    } catch (error) {
+      if (error !== cycle) throw error;
+      // Preserve the existing finite, root-relative behavior for malformed parent cycles.
+      return evaluateWorldTransform(layer, composition, time);
+    }
+  };
+}
+
+function composeParentTransform(
+  local: EvaluatedTransform,
+  world: EvaluatedTransform,
+): EvaluatedTransform {
   const scaleX = world.scale[0] / 100;
   const scaleY = world.scale[1] / 100;
   const radians = (world.rotation[2] * Math.PI) / 180;

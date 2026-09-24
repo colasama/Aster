@@ -326,6 +326,17 @@ describe("exact-frame media resource barrier", () => {
     cache.flush(encoder);
     cache.submitted();
 
+    const segment = vi.spyOn(Intl.Segmenter.prototype, "segment");
+    try {
+      for (const time of [1 / 24, 0.5, 1]) cache.prepareText(layer, "inline-text", time, 24);
+      cache.flush(encoder);
+      expect(segment).not.toHaveBeenCalled();
+      expect(copyBufferToTexture).toHaveBeenCalledTimes(1);
+      expect(cache.bindGroup("inline-text")).toBe(beforeBindGroup);
+    } finally {
+      segment.mockRestore();
+    }
+
     layer.text = "After";
     cache.prepareText(layer, "inline-text", 0, 24);
 

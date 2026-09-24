@@ -71,12 +71,32 @@ reads the same post-processed GPU result. Debug buffer visualization is not a pr
 background render mode. Video sources use deterministic seek-and-await synchronization; Canvas and
 WebGPU both wait for current-generation media before accepting readback pixels.
 
+Graphics exports keep up to three beauty readbacks in flight while the preceding frame is encoded
+and written. The shared foreground/background frame pipeline accepts out-of-order readback completion
+but writes every output in manifest order. Backpressure bounds residency to three pending frames and
+the writer's current raw frame, independently of job length. Raw lookahead also has a 64 MiB budget
+(at least one frame): 1080p uses three slots, 4K uses two. Video compositions retain one pending
+seek-and-await capture while overlapping that capture with the preceding frame's encoder write.
+The renderer serializes asynchronous media preparation until the exact frame has been submitted,
+then releases the next capture without waiting for GPU mapping. This prevents an image sequence or
+resized SVG from replacing another in-flight frame's media generation.
+
+Frame preparation also reuses Bezier topology across frames (128 entries / 8 MiB estimated CPU
+cache) and evaluates shared parent chains once per composition/source time within a flattening call.
+Geometry is packed directly into Float32 storage before GPU upload. These optimizations are shared
+with the viewport and do not change frame scheduling, image quality, output formats or job manifests.
+See [the persistent-data diagnostics](BENCHMARKS.md#persistent-scene-preparation) for methodology,
+research sources and measured export results.
+
 Hidden workers never downgrade a queued job to Canvas 2D. Background output requires the WebGPU
 production beauty backend and reports `render_host_webgpu_unavailable` when it cannot initialize;
 this prevents an incomplete compatibility frame from being atomically published as a successful job.
 
-Pause and cancel controls are correlated by both job and lease and are observed only after all output
-writes for the current frame finish. Pause publishes a durable `paused` state but retains the same
+Pause and cancel controls are correlated by both job and lease and are observed before submission,
+after readback, and after all output writes for the current frame finish. Pause stops submissions
+and retains the bounded lookahead without writing it; resume consumes those same frames exactly
+once. Cancel drains accepted captures and discards unwritten lookahead before acknowledging its
+terminal boundary. Pause publishes a durable `paused` state but retains the same
 hidden host, GPU renderer, encoders, media authorization, and staged outputs. Continue releases the
 frame/audio-chunk gate under that lease, so completed still, sequence, video, and PCM writes are not
 repeated. Pause duration is excluded from elapsed time and ETA. A paused worker still consumes one

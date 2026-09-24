@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   type CameraProjection,
   cameraRayFromScreen,
+  createCameraProjector,
   createDefaultCameraPose,
   dollyCamera,
   evaluateCameraBasis,
@@ -59,6 +60,88 @@ describe("camera rig", () => {
       expect(restored[2]).toBeCloseTo(source[2], 8);
     }
   });
+
+  it.each([
+    [
+      "oneNode",
+      "perspective",
+      [2585.032672100804, 1532.0082069483083],
+      2154.2520292396616,
+      0.9999545801306029,
+      false,
+    ],
+    [
+      "oneNode",
+      "orthographic",
+      [2929.160586442823, 1742.082577222945],
+      2154.2520292396616,
+      0.021541541833938454,
+      false,
+    ],
+    [
+      "twoNode",
+      "perspective",
+      [1583.264175570906, 935.1603847791416],
+      2551.074520525908,
+      0.9999618007932953,
+      true,
+    ],
+    [
+      "twoNode",
+      "orthographic",
+      [1854.3712637937326, 1107.0470188863462],
+      2551.074520525908,
+      0.0255097707150298,
+      false,
+    ],
+  ] as const)(
+    "preserves %s %s projection when preparing a camera",
+    (mode, kind, screen, cameraDepth, normalizedDepth, visible) => {
+      const pose = {
+        ...createDefaultCameraPose(1920, 1080, perspective.zoom),
+        mode,
+        position: [120, -40, -2400] as [number, number, number],
+        pointOfInterest: [900, 500, 200] as [number, number, number],
+        orientation: [7, -6, 2] as [number, number, number],
+        rotation: [4, -8, 3] as [number, number, number],
+      };
+      const projection = { ...perspective, kind, orthographicSize: 720 };
+      const project = createCameraProjector(pose, projection, [1920, 1080]);
+      expect(project([800, 400, 120])).toEqual({ screen, cameraDepth, normalizedDepth, visible });
+      for (const point of [
+        [0, 0, 0],
+        [960, 540, 300],
+        [120, -40, -2400],
+      ] as [number, number, number][]) {
+        expect(project(point)).toEqual(projectCameraPoint(point, pose, projection, [1920, 1080]));
+      }
+    },
+  );
+
+  it.each(["perspective", "orthographic"] as const)(
+    "retains finite fallbacks and clipping for prepared %s cameras",
+    (kind) => {
+      const pose = createDefaultCameraPose(1, 1, 1);
+      pose.position = [NaN, -Infinity, Infinity];
+      pose.pointOfInterest = [NaN, Infinity, NaN];
+      pose.orientation = [NaN, Infinity, NaN];
+      const projection = { kind, zoom: NaN, orthographicSize: -1, near: NaN, far: Infinity };
+      const project = createCameraProjector(pose, projection, [NaN, -1]);
+      for (const depth of [-1, 0, 0.009, 0.01, 1_000_000, 1_000_001]) {
+        const projected = project([NaN, Infinity, depth]);
+        expect(projected.screen).toEqual([0.5, 0.5]);
+        expect(projected.cameraDepth).toBe(depth);
+        expect(Number.isFinite(projected.normalizedDepth)).toBe(true);
+        expect(projected.visible).toBe(depth >= 0.01 && depth <= 1_000_000);
+        if (depth === 0.01) expect(projected.normalizedDepth).toBeCloseTo(0, 12);
+        if (depth === 1_000_000) expect(projected.normalizedDepth).toBeCloseTo(1, 12);
+      }
+      const tight = createCameraProjector(pose, { ...projection, near: 3, far: 1 }, [1, 1]);
+      expect(tight([0, 0, 3]).normalizedDepth).toBe(0);
+      expect(tight([0, 0, 3]).visible).toBe(true);
+      expect(tight([0, 0, 3.01]).visible).toBe(false);
+    },
+  );
 
   it("keeps two-node cameras pointed at the POI and survives coincident and vertical poses", () => {
     const pose = createDefaultCameraPose(1920, 1080, perspective.zoom);

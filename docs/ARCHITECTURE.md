@@ -183,6 +183,17 @@ frame data are excluded, and successful hot-path operations are intentionally si
 3. Properties and safe expressions are evaluated at the requested rational time; recursive
    precompositions are flattened with cycle detection and composed transforms. Effect parameters
    use the same time-addressable keyframe interpolation before uniform and opcode compilation.
+   Each flattening call indexes parent layers and memoizes world transforms per composition and exact
+   source time, including repeated precomposition instances. The memo is discarded after that call,
+   so arbitrary-time evaluation and in-place edits cannot inherit another frame's transforms.
+   Bezier subdivision, fill triangulation and stroke tessellation use a shared content-keyed LRU
+   (128 entries, 8 MiB estimated CPU memory). Keys include evaluated control points, closed topology,
+   exact signed stroke dimensions, width, trim, joins and caps; paint and camera/world transforms
+   remain evaluated per frame. Vertex attributes are written directly into Float32 storage, grown
+   per geometry batch and trimmed before retention/upload, avoiding large intermediate JS arrays.
+   Camera basis and projection constants are prepared lazily at the first 3D vertex and reused for
+   the rest of that geometry build. Each build owns its projector, so camera edits and arbitrary-time
+   evaluation cannot reuse stale camera data; pure 2D geometry never prepares a camera.
 4. Visible 2D/3D geometry, media textures, and effect uniforms are uploaded in batches. Imported mesh
    vertices retain normal, UV, and tangent handedness for tangent-space normal mapping. Solid layers
    emit the ordinary six-vertex, untextured GPU quad using their dedicated bounded source settings,
@@ -253,6 +264,13 @@ in-flight frame and wait for the browser decoder's `seeked` state before capture
 use all three readback slots. Cancellation stops at a bounded in-flight frame and removes temporary
 output.
 
+Background RenderHosts use the same bounded frame pipeline: up to three readbacks overlap ordered
+PNG/MP4 writes within a 64 MiB raw lookahead budget, with at most one additional raw frame owned by
+the writer. Media preparation is serialized only through exact-frame submission, so asynchronous
+image-sequence/SVG generations cannot overtake each other while GPU mapping and encoding proceed
+concurrently. Pause retains the
+bounded lookahead; cancel and failure drain accepted captures before disposing the renderer.
+
 The preview has a Canvas 2D compatibility renderer. It is a functional fallback, not a performance
 target. Native wgpu and browser WebGPU share formats and graph concepts, but do not yet share shader
 compilation artifacts.
@@ -299,11 +317,16 @@ samples share the union of their local ink bounds, with texture density still ca
 and the existing temporal memory budgets. Inline editing grows vertically around the same baseline.
 A future native shaper/atlas can replace raster-cache creation without changing
 the render graph.
+Text animation time clamping depends only on animation tracks and source time; cache lookup and
+motion-blur planning do not segment the text just to compute an unused character count.
 
 Imported `.cube` resources are parsed through a bounded project boundary, stored in red-fastest
 voxel order, packed to `rgba16float`, and cached per effected layer. The fused shader supports both
 hardware trilinear sampling and explicit tetrahedral interpolation; layers without a LUT bind a tiny
 identity texture so the pipeline layout stays stable.
+The shared post-process shader uses one source sample when blur, glow and chromatic aberration are
+all zero, skipping the chromatic offset samples and nine-tap blur. A single uniform branch preserves
+the original active effect path and keeps the source texture on the GPU.
 
 Browser video uses hardware media decode and a persistent staging canvas before `queue.writeTexture`.
 This deterministic compatibility path exists because Chromium implementations can silently

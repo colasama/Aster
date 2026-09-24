@@ -355,6 +355,46 @@ describe("GPU scene geometry", () => {
     expect(Math.abs(depthMoved[2] - centered[2])).toBeGreaterThan(1e-6);
   });
 
+  it("refreshes prepared cameras for mutable edits and random-time scene evaluation", () => {
+    const project = createBlankProject();
+    const composition = project.compositions[0];
+    const mesh = createLayerForComposition("mesh", composition);
+    const camera = createLayerForComposition("camera", composition);
+    if (!camera.camera) throw new Error("Expected camera settings");
+    camera.camera.zoom = {
+      mode: "animated",
+      keyframes: [
+        { id: "start", time: 0, value: 2000, interpolation: "linear" },
+        { id: "end", time: 2, value: 4000, interpolation: "linear" },
+      ],
+    };
+    composition.layers = [mesh, camera];
+    const geometry = (time: number) =>
+      buildSceneGeometry(
+        composition,
+        flattenSceneLayers(composition, project, time),
+        evaluateSceneCamera(composition, time),
+      ).data;
+    const first = geometry(0);
+    const middle = geometry(1);
+    expect(middle).not.toEqual(first);
+    expect(geometry(2)).not.toEqual(middle);
+    expect(geometry(0)).toEqual(first);
+    expect(geometry(1)).toEqual(middle);
+
+    const scene = flattenSceneLayers(composition, project, 0);
+    const evaluated = evaluateSceneCamera(composition, 0);
+    if (!evaluated) throw new Error("Expected evaluated camera");
+    const originalPosition = evaluated.pose.position[0];
+    expect(buildSceneGeometry(composition, scene, evaluated).data).toEqual(first);
+    evaluated.pose.position[0] += 300;
+    evaluated.projection.zoom *= 1.5;
+    expect(buildSceneGeometry(composition, scene, evaluated).data).not.toEqual(first);
+    evaluated.pose.position[0] = originalPosition;
+    evaluated.projection.zoom /= 1.5;
+    expect(buildSceneGeometry(composition, scene, evaluated).data).toEqual(first);
+  });
+
   it("packs explicit vector kind, roundness, and stroke style attributes", () => {
     const project = createBlankProject();
     const composition = project.compositions[0];

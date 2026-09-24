@@ -381,21 +381,28 @@ ${framingWarpShaderCases}
 
   let base = textureSample(hdr_scene, linear_sampler, uv);
   var alpha = base.a;
-  var color = vec3f(
-    textureSample(hdr_scene, linear_sampler, uv + chromatic_offset).r,
-    base.g,
-    textureSample(hdr_scene, linear_sampler, uv - chromatic_offset).b,
-  );
   let linear_output = settings.program.y > 0.5;
-  if alpha > 0.00001 {
-    color /= alpha;
+  var color = base.rgb;
+  if chromatic == 0.0 && blur_radius == 0.0 && glow == 0.0 {
+    if alpha > 0.00001 {
+      color /= alpha;
+    }
+  } else {
+    color = vec3f(
+      textureSample(hdr_scene, linear_sampler, uv + chromatic_offset).r,
+      base.g,
+      textureSample(hdr_scene, linear_sampler, uv - chromatic_offset).b,
+    );
+    if alpha > 0.00001 {
+      color /= alpha;
+    }
+    let blurred = sample_blur(uv, blur_radius);
+    let blur_mix = smoothstep(0.0, 1.0, blur_radius / 8.0);
+    color = mix(color, blurred, blur_mix);
+    let blurred_luminance = luminance(blurred);
+    let highlight = max(blurred_luminance - threshold, 0.0) / max(blurred_luminance, 0.0001);
+    color += blurred * highlight * glow;
   }
-  let blurred = sample_blur(uv, blur_radius);
-  let blur_mix = smoothstep(0.0, 1.0, blur_radius / 8.0);
-  color = mix(color, blurred, blur_mix);
-  let blurred_luminance = luminance(blurred);
-  let highlight = max(blurred_luminance - threshold, 0.0) / max(blurred_luminance, 0.0001);
-  color += blurred * highlight * glow;
 
   color *= exp2(exposure);
   color *= vec3f(1.0 + temperature * 0.16, 1.0 + tint * 0.08, 1.0 - temperature * 0.16);

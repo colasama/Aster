@@ -6,7 +6,7 @@ import {
   streamCompositionAudio,
 } from "../../core/audio/audio-export";
 import { validateProjectDocument } from "../../core/project/project-file";
-import { frameTimeAtIndex } from "../../core/rendering/render-export";
+import { frameTimeAtIndex, streamFramePipeline } from "../../core/rendering/render-export";
 import type { RenderJobManifest } from "../../core/rendering/render-queue";
 import type { Composition, Project } from "../../core/types";
 import type {
@@ -17,6 +17,8 @@ import type {
   Mp4PixelFormat,
 } from "../../desktop/api";
 import type { RawVideoFrame } from "../../renderer/gpu/frame-readback";
+
+const MAX_PREFETCH_BYTES = 64 * 1024 * 1024;
 
 export interface ValidatedRenderHostAssignment {
   assignment: DesktopRenderHostAssignment;
@@ -29,6 +31,7 @@ export interface ValidatedRenderHostAssignment {
 interface RenderHostFrameLoopOptions {
   assignment: ValidatedRenderHostAssignment;
   pixelFormat: Mp4PixelFormat;
+  maxInFlightFrames?: number;
   audioDecoder?: AudioSourceDecoder;
   renderFrame(frame: number, time: number): Promise<RawVideoFrame>;
   encodePng(frame: RawVideoFrame): Promise<ArrayBuffer>;
@@ -49,7 +52,7 @@ export function renderHostCorrelation(
   return { jobId: assignment.jobId, leaseId: assignment.leaseId };
 }
 
-/** Evaluates beauty frames sequentially while bounded audio writes run with independent backpressure. */
+/** Overlaps bounded beauty readbacks with ordered output and independently backpressured audio. */
 export async function runRenderHostFrameLoop(
   options: RenderHostFrameLoopOptions,
 ): Promise<RenderHostFrameLoopResult> {
@@ -121,6 +124,12 @@ export async function runRenderHostFrameLoop(
       })
     : Promise.resolve(0);
   const totalFrames = manifest.endFrameExclusive - manifest.startFrame;
+  const maxInFlight = validated.synchronizeVideo
+    ? 1
+    : Math.min(
+        options.maxInFlightFrames ?? 1,
+        Math.max(1, Math.floor(MAX_PREFETCH_BYTES / (manifest.width * manifest.height * 4))),
+      );
   const waitAtControlBoundary = async (): Promise<"continue" | "cancel"> => {
     const control = options.requestedControl();
     if (control === "cancel") return "cancel";
@@ -132,58 +141,67 @@ export async function runRenderHostFrameLoop(
     return released;
   };
   try {
-    for (let frame = manifest.startFrame; frame < manifest.endFrameExclusive; frame += 1) {
-      throwAudioFailure(audioFailure);
-      if ((await waitAtControlBoundary()) === "cancel") {
-        audioAborted = true;
-        await audioPipeline;
-        return await reportCancelled(options.report, shared);
-      }
-      const raw = await options.renderFrame(frame, frameTimeAtIndex(frame, manifest.frameRate));
-      validateRawFrame(raw, manifest, options.pixelFormat);
+    const completed = await streamFramePipeline({
+      frameCount: totalFrames,
+      maxInFlight,
+      cancelled: () => options.requestedControl() === "cancel",
+      beforeFrame: async () => {
+        throwAudioFailure(audioFailure);
+        await waitAtControlBoundary();
+        throwAudioFailure(audioFailure);
+      },
+      render: (index) => {
+        const frame = manifest.startFrame + index;
+        return options.renderFrame(frame, frameTimeAtIndex(frame, manifest.frameRate));
+      },
+      write: async (raw, index) => {
+        const frame = manifest.startFrame + index;
+        validateRawFrame(raw, manifest, options.pixelFormat);
 
-      const needsPng = pngOutputs.some(
-        (output) => output.kind === "pngSequence" || output.frame === frame,
-      );
-      if (needsPng) {
-        const pixels = await options.encodePng(raw);
-        for (const output of pngOutputs) {
-          if (output.kind === "still" && output.frame !== frame) continue;
+        const needsPng = pngOutputs.some(
+          (output) => output.kind === "pngSequence" || output.frame === frame,
+        );
+        if (needsPng) {
+          const pixels = await options.encodePng(raw);
+          for (const output of pngOutputs) {
+            if (output.kind === "still" && output.frame !== frame) continue;
+            await options.output({
+              type: "writePng",
+              ...shared,
+              outputId: output.id,
+              frame,
+              pixels,
+            });
+          }
+        }
+        for (const output of mp4Outputs)
           await options.output({
-            type: "writePng",
+            type: "writeMp4Frame",
             ...shared,
             outputId: output.id,
-            frame,
-            pixels,
+            pixels: raw.pixels,
           });
-        }
-      }
-      for (const output of mp4Outputs)
-        await options.output({
-          type: "writeMp4Frame",
+      },
+      onProgress: async ({ current: completedFrames }) => {
+        if (completedFrames === 0) return;
+        const elapsedMs = Math.max(0, now() - startedAt - pausedDurationMs);
+        await options.report({
+          type: "progress",
           ...shared,
-          outputId: output.id,
-          pixels: raw.pixels,
+          progress: {
+            completedFrames,
+            totalFrames,
+            elapsedMs,
+            estimatedRemainingMs:
+              completedFrames < totalFrames
+                ? (elapsedMs / completedFrames) * (totalFrames - completedFrames)
+                : 0,
+          },
         });
+      },
+    });
 
-      const completedFrames = frame - manifest.startFrame + 1;
-      const elapsedMs = Math.max(0, now() - startedAt - pausedDurationMs);
-      await options.report({
-        type: "progress",
-        ...shared,
-        progress: {
-          completedFrames,
-          totalFrames,
-          elapsedMs,
-          estimatedRemainingMs:
-            completedFrames < totalFrames
-              ? (elapsedMs / completedFrames) * (totalFrames - completedFrames)
-              : 0,
-        },
-      });
-    }
-
-    if ((await waitAtControlBoundary()) === "cancel") {
+    if (completed < totalFrames || (await waitAtControlBoundary()) === "cancel") {
       audioAborted = true;
       await audioPipeline;
       return await reportCancelled(options.report, shared);

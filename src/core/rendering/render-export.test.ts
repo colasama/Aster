@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { mediaImportRuntime } from "../../importers/media-import-runtime";
 import { createLayerForComposition } from "../layers/layer-factory";
 import { createBlankProject } from "../project/project";
@@ -152,4 +152,38 @@ describe("MP4 frame pipeline", () => {
     expect(completed).toBe(2);
     expect(written).toEqual([0, 1]);
   });
+
+  it.each(["render", "write"] as const)(
+    "drains accepted GPU work before propagating a %s failure",
+    async (stage) => {
+      let release!: (value: number) => void;
+      const pending = new Promise<number>((resolve) => {
+        release = resolve;
+      });
+      let settled = false;
+      const render = vi.fn(async (frame: number) => {
+        if (frame > 0) return pending;
+        if (stage === "render") throw new Error("render failed");
+        return frame;
+      });
+      const result = streamFramePipeline({
+        frameCount: 10,
+        maxInFlight: 3,
+        cancelled: () => false,
+        render,
+        write: async () => {
+          throw new Error("write failed");
+        },
+        onProgress: () => undefined,
+      }).catch((error: unknown) => {
+        settled = true;
+        return error;
+      });
+      await vi.waitFor(() => expect(render).toHaveBeenCalled());
+      expect(settled).toBe(false);
+      expect(render.mock.calls.length).toBeLessThanOrEqual(4);
+      release(1);
+      await expect(result).resolves.toMatchObject({ message: `${stage} failed` });
+    },
+  );
 });

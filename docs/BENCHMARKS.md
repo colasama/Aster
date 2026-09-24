@@ -48,6 +48,169 @@ For sequence export, also report frames per second, median GPU render time, medi
 time, peak resident memory, and cancellation latency. Use at least 300 frames and a pre-selected local
 SSD output directory so the directory picker is outside the measured interval.
 
+## Background export pipeline
+
+Start unbundled Vite (`ASTER_BUNDLED_DEV=0`), import
+`/scripts/gpu-export-pipeline-check.mjs` in an isolated WebGPU browser, and call `run()`.
+The default fixture contains 20 animated shapes at 1080p, checks byte-identical serial/concurrent
+captures at three frame addresses, warms ten frames, then measures 300 frames through the actual
+RenderHost loop. Use `width`, `height`, and `frameCount` to select the workload. Results include
+adapter diagnostics, total throughput, raw completion intervals, and their distributions. Use
+`checkImageSequence()` from the same module to compare three cold-decoded image-sequence frames
+under sequential and concurrent capture, including a known-color check for each source generation.
+The default output callback discards pixels: label those measurements **readback-only**, not MP4
+export speed.
+
+For end-to-end MP4 measurements, supply an `output(request)` callback through an isolated Electron
+preload/IPC bridge into `Mp4ExportManager` and set `outputKind: "ffmpeg-ipc"`. Use the manifest's
+dimensions, rational frame rate, frame count, pixel format and 20 Mbps bitrate for encoder start;
+await every write and finish. Time from `prepared` through `completed`, including encoder flush but
+excluding adapter/shader initialization, parity checks, warm-up and encoder probing. The optional
+`frameLoop` argument allows the unchanged prior RenderHost loop to run against the identical fixture,
+renderer and encoder. Alternate old/new order for three runs at each resolution without concurrent
+builds. Retain the JSON reports and verify encoded frame counts with FFprobe. These development
+diagnostics are separate from manifest-qualified release baselines.
+
+The [2026-09-22 diagnostics](../benchmarks/results/export-pipeline-2026-09-22/end-to-end.json)
+used an RTX 5060 Laptop GPU (driver 32.0.15.9621), Ryzen 9 8945HX, Electron 43.4.1 and NVENC.
+Median FPS across three 300-frame runs changed from 29.32 to 49.51 at 1080p and 8.93 to 9.27 at 4K.
+Per-run throughput varied substantially: power and thermal state were not controlled, and these
+observations do not establish a portable speedup. The initial
+[three-slot run](../benchmarks/results/export-pipeline-2026-09-22/initial-three-slots.json)
+and [depth sweep](../benchmarks/results/export-pipeline-2026-09-22/depth-sweep.json) are retained too.
+The sweep found similar 4K throughput for two and three pending frames, supporting a 64 MiB raw
+lookahead budget (three slots at 1080p, two at 4K) plus the writer's current frame. FFprobe found
+300 H.264 frames at the expected resolution/rate in every final output; all six MP4 files at each
+resolution have identical SHA-256 hashes across old/new loops and all runs. The
+[verification record](../benchmarks/results/export-pipeline-2026-09-22/verification.json)
+also records byte-identical cold image-sequence captures. Queue persistence and atomic publication
+are outside this isolated encoder harness.
+
+## Persistent scene preparation
+
+The 2026-09-22 follow-up applies two documented rendering principles: Blender's
+[Persistent Data](https://developer.blender.org/docs/release_notes/2.93/cycles/) retains expensive
+render preparation between animation frames, and the After Effects SDK's
+[Compute Cache](https://ae-plugins.docsforadobe.dev/effect-details/compute-cache-api/) keys reusable
+calculations by all inputs that affect their result and accounts for retained memory. Aster uses
+these principles for bounded local Bezier topology and per-call parent-transform reuse; it does not
+use either application's code or SDK. Direct Float32 vertex packing additionally removes an
+allocation/copy hotspot identified by Chromium's CPU profiler.
+
+[AE Multi-Frame Rendering](https://helpx.adobe.com/after-effects/desktop/render-and-export/multi-frame-rendering/multi-frame-rendering.html)
+depends on CPU, RAM and GPU resources. The vendor's
+[BG Renderer MAX documentation](https://bgrenderer.com/docs/multiprocessing) describes multiple
+`aerender` processes producing an image sequence before final video assembly. Aster already overlaps
+bounded readbacks with ordered encoder writes. The follow-up retains that pipeline in **both** arms
+of the comparison; it does not add duplicate renderer processes or claim AE-style parallel CPU
+frame evaluation. More workers would not remove the measured per-frame preparation overhead.
+
+`/scripts/render-persistent-data-check.mjs` exports two deterministic fixtures: `prepareVectors`
+creates 20 curved paths with 160 control points each, and `prepareHierarchy` creates 240 rectangles
+under three eight-joint parent chains. `profilePreparation()` measures flattening and geometry
+separately over 120 frames after ten warm-ups. Supply `flatten` and `geometry` from the baseline
+modules for the comparison. `checkGeometryParity({ baselineFlatten, baselineGeometry })` compares
+every vertex byte and draw batch across 2D/3D, mirrored fractional scale, trim, control-point edits,
+stroke style changes, path morphs, and non-monotonic times.
+
+For end-to-end measurements, pass either fixture as `prepareComposition` to the existing export
+harness, with the same IPC/NVENC callback described above. The optional `Renderer` and `createBackend`
+parameters accept matched baseline renderer/backend modules (both must come from the same module
+graph because backend selection checks renderer identity). Use 1080p, 300 frames, 30 fps and 20 Mbps,
+alternate old/new order for three runs, and compare final MP4 hashes and FFprobe frame counts.
+Restart the isolated Vite server after source edits and verify the served modules before timing;
+never run checks/builds alongside the timed workload.
+
+These are local, unbundled Electron diagnostics, not a comparison against Blender/AE or a
+manifest-qualified release baseline. CPU preparation timings do not predict throughput for scenes
+dominated by GPU effects, video decode or raw-frame transfer. The cache retains at most 128 entries
+and 8 MiB of estimated CPU data; exact source-time transform memos last only one flattening call.
+
+The [CPU preparation record](../benchmarks/results/persistent-preparation-2026-09-22/cpu-preparation.json)
+reports a median-of-run-medians change from 30.0 to 12.8 ms for vector geometry and from 3.0 to
+0.2 ms for hierarchy evaluation. On the same Ryzen 9 8945HX / RTX 5060 Laptop / Electron 43.4.1
+machine, the [MP4 record](../benchmarks/results/persistent-preparation-2026-09-22/end-to-end.json)
+contains these three-run median throughputs:
+
+| 1080p fixture, 300 frames per run | Existing pipeline | Persistent preparation | Change |
+| --- | ---: | ---: | ---: |
+| 20 animated curved paths | 15.72 FPS | 22.68 FPS | +44.3% |
+| 240 shapes under 24 parent joints | 39.16 FPS | 38.60 FPS | -1.4% |
+
+The hierarchy result is effectively unchanged despite much lower evaluation time; remaining
+render/readback/IPC/encoding work dominates that fixture. Vector export benefits from reducing
+substantial geometry work. Neither result establishes a universal speedup, and this follow-up does
+not establish a new 4K throughput figure. All twelve MP4 files contain 300 decoded H.264 frames;
+the six files within each fixture have identical SHA-256 hashes. The
+[verification record](../benchmarks/results/persistent-preparation-2026-09-22/verification.json)
+also records byte equality for 6,720,000 vertex attributes over 16 mixed geometry cases. Source
+hashes, raw timings and environment details are retained with the reports.
+
+## Rendering hot paths
+
+The [2026-09-22 camera preparation diagnostics](../benchmarks/results/render-hotpaths-2026-09-22/camera-projection.json)
+compare the working tree after persistent preparation against a camera projector prepared once per
+geometry build. Import `/scripts/render-projection-check.mjs` in an unbundled Vite browser.
+`measure({ scene, geometry, frames: 600 })` accepts `vectors2d`, `vectors3d`, or `mesh3d` and a baseline
+`buildSceneGeometry` function. Preserve the previous geometry and camera-rig modules together;
+rewrite their imports so baseline geometry uses the baseline camera implementation. Both arms reuse
+the same current Bezier cache and scene evaluation. Run three alternating-order comparisons after
+20 warm-up frames, without concurrent tests or builds. Flattening is outside the timed interval.
+
+The fixture contains eight animated curved shapes (8,682 vertices) or one rotating imported grid
+mesh (9,600 vertices), at 1080p with the default camera. Median-of-run-medians CPU geometry times:
+
+| Fixture | Before | After | Change |
+| --- | ---: | ---: | ---: |
+| 2D curves | 1.60 ms | 1.60 ms | 0.0% |
+| 3D curves | 10.40 ms | 2.10 ms | -79.8% |
+| Imported mesh | 12.30 ms | 3.00 ms | -75.6% |
+
+`checkParity(baselineGeometry)` checks all packed vertex bytes and draw batches in 72 cases across
+default, one-node and two-node cameras, perspective and orthographic projection, and non-monotonic
+times. Another 16 cases reuse `render-persistent-data-check.mjs` for path edits, mirrors, trim,
+stroke styles and morphs. All 130,421,760 compared vertex bytes were identical.
+
+The [text preparation diagnostic](../benchmarks/results/render-hotpaths-2026-09-22/text-preparation.json)
+measures the real warmed `MediaTextureCache.prepareText` method with mocked Canvas/GPU APIs. One
+3,780-grapheme text resource receives 100 cache-hit calls per iteration; five iterations warm the
+cache and 50 are measured. The CPU median changed from 126.13 to 1.25 ms per 100 calls after removing
+an unused grapheme count. Both arms retain one texture, one initial upload and the same binding;
+the optimized arm makes zero segmentation calls during cache hits. This single-run microbenchmark
+includes a segmentation spy and is not a GPU timing, rendering FPS, or release baseline.
+
+The [post-process GPU diagnostic](../benchmarks/results/render-hotpaths-2026-09-22/post-sampling.json)
+uses `/scripts/gpu-post-sampling-check.mjs`. Pass the prior `postProcessShader` string to
+`run({ baselineShader })`; preserve its imports when loading a baseline shader module. It checks
+48 byte-identical HDR output cases spanning transparent/tiny-alpha pixels, linear/display output,
+exposure/UV effects, and positive/negative legacy blur, glow and chromatic parameters. It then runs
+three alternating comparisons with 120 warm-up passes and 600 samples per arm. Each sample measures
+eight consecutive passes with GPU timestamps and divides by eight, reducing the observed 65.536 µs
+timestamp quantization. Repeat at 1080p and 4K. These are batched full-screen pass timings with an
+`rgba16float` target, not full-frame latency or export throughput.
+
+| Legacy optical uniforms / resolution | Before median | After median | Change |
+| --- | ---: | ---: | ---: |
+| All zero / 1080p | 0.180 ms | 0.106 ms | -40.9% |
+| All zero / 4K | 0.786 ms | 0.508 ms | -35.4% |
+| All active / 1080p | 0.180 ms | 0.188 ms | +4.5% |
+| All active / 4K | 0.795 ms | 0.836 ms | +5.2% |
+
+The current renderer, layer effects and adjustment effects all supply zero legacy optical uniforms;
+enabled layer effects run through compiled effect operations. The optimized path removes redundant
+base sampling without disabling these operations. The synthetic all-active legacy path still has a
+5.2% median regression at 4K, just above the policy threshold; it is recorded rather than treated as
+a quality tradeoff or a universal speedup. Its p95 changed from 0.918 to 0.958 ms. At 1080p the
+all-active p95 changed from 0.221 to 0.238 ms. The
+[initial single-pass samples](../benchmarks/results/render-hotpaths-2026-09-22/post-sampling-initial.json)
+and [two-guard experiment](../benchmarks/results/render-hotpaths-2026-09-22/post-sampling-two-guards.json)
+are retained; the final single fast-path branch reduced the earlier active-path overhead.
+
+These local measurements use Ryzen 9 8945HX / RTX 5060 Laptop hardware with Electron 43.4.1 and
+driver 32.0.15.9621. The OS differs from the hardware manifest, and power/thermal state was not
+controlled. Retained reports include raw samples and source hashes. CPU preparation gains do not
+predict throughput when GPU effects, decoding, readback or encoding dominate.
+
 ## Incremental evaluation benchmark
 
 Run the release-mode 10,000-node dependency benchmark with:

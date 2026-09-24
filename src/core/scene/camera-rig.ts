@@ -30,6 +30,8 @@ export interface ProjectedCameraPoint {
   visible: boolean;
 }
 
+export type CameraProjector = (point: Vector3) => ProjectedCameraPoint;
+
 export interface CameraRay {
   origin: Vector3;
   direction: Vector3;
@@ -101,34 +103,50 @@ export function projectCameraPoint(
   projection: CameraProjection,
   compositionSize: Vector2,
 ): ProjectedCameraPoint {
+  return createCameraProjector(pose, projection, compositionSize)(point);
+}
+
+/** Snapshots the camera invariants for projecting multiple points in one evaluation. */
+export function createCameraProjector(
+  pose: CameraPose,
+  projection: CameraProjection,
+  compositionSize: Vector2,
+): CameraProjector {
   const width = positive(compositionSize[0], 1);
   const height = positive(compositionSize[1], 1);
-  const camera = worldToCamera(point, pose);
-  const depth = camera[2];
+  const basis = evaluateCameraBasis(pose);
+  const position = normalizeVector(pose.position);
   const near = positive(projection.near, 0.01);
   const far = Math.max(near + EPSILON, positive(projection.far, 1_000_000));
   const perspective = projection.kind === "perspective";
-  const scaleFactor = perspective
-    ? positive(projection.zoom, 1) / Math.max(depth, EPSILON)
-    : height / positive(projection.orthographicSize, height);
-  const screen: Vector2 = [
-    width * 0.5 + camera[0] * scaleFactor,
-    height * 0.5 + camera[1] * scaleFactor,
-  ];
-  const normalizedDepth = perspective
-    ? far / (far - near) - (far * near) / ((far - near) * Math.max(depth, EPSILON))
-    : (depth - near) / (far - near);
-  return {
-    screen,
-    cameraDepth: depth,
-    normalizedDepth,
-    visible:
-      depth >= near &&
-      depth <= far &&
-      screen[0] >= 0 &&
-      screen[0] <= width &&
-      screen[1] >= 0 &&
-      screen[1] <= height,
+  const zoom = positive(projection.zoom, 1);
+  const orthographicScale = height / positive(projection.orthographicSize, height);
+  const depthRange = far - near;
+  const perspectiveDepthOffset = far / depthRange;
+  const perspectiveDepthProduct = far * near;
+  return (point) => {
+    const relative = subtract(normalizeVector(point), position);
+    const depth = dot(relative, basis.forward);
+    const scaleFactor = perspective ? zoom / Math.max(depth, EPSILON) : orthographicScale;
+    const screen: Vector2 = [
+      width * 0.5 + dot(relative, basis.right) * scaleFactor,
+      height * 0.5 + dot(relative, basis.down) * scaleFactor,
+    ];
+    const normalizedDepth = perspective
+      ? perspectiveDepthOffset - perspectiveDepthProduct / (depthRange * Math.max(depth, EPSILON))
+      : (depth - near) / depthRange;
+    return {
+      screen,
+      cameraDepth: depth,
+      normalizedDepth,
+      visible:
+        depth >= near &&
+        depth <= far &&
+        screen[0] >= 0 &&
+        screen[0] <= width &&
+        screen[1] >= 0 &&
+        screen[1] <= height,
+    };
   };
 }
 

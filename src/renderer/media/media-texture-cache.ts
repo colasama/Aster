@@ -1,9 +1,6 @@
 import { evaluateLayerTransform } from "../../core/animation/expressions";
 import { evaluateLayerSourceTime } from "../../core/animation/layer-time";
-import {
-  clampTextAnimationTime,
-  countAnimatedTextCharacters,
-} from "../../core/animation/text-animator";
+import { clampTextAnimationTime } from "../../core/animation/text-animator";
 import { configurePreviewVideoAudio } from "../../core/audio/audio-preview";
 import { sourceLocator } from "../../core/media/footage-source";
 
@@ -233,7 +230,7 @@ export class MediaTextureCache {
 
   prepareMedia(
     layer: Layer,
-    footage: FootageSource,
+    footage: FootageSource | undefined,
     time: number,
     playing: boolean,
     instanceId: string,
@@ -589,8 +586,7 @@ export class MediaTextureCache {
       }
     }
     this.#textMotionBlur?.delete(instanceId);
-    const characterCount = countAnimatedTextCharacters(layer.text ?? layer.name);
-    const animationTime = clampTextAnimationTime(layer.textAnimator, localTime, characterCount);
+    const animationTime = clampTextAnimationTime(layer.textAnimator, localTime);
     const sampleRate = Number.isFinite(frameRate) ? Math.max(1, Math.min(240, frameRate)) : 60;
     const sampledAnimationTime =
       animationTime === undefined ? undefined : Math.round(animationTime * sampleRate) / sampleRate;

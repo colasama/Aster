@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { releaseFailedWebGpuInitialization, shouldReportGpuDeviceLoss } from "../webgpu-renderer";
-import { captureAfterExactFrameResources } from "./exact-frame-resource-barrier";
+import { ExactFrameCaptureQueue } from "./exact-frame-resource-barrier";
 
 describe("exact-frame resource capture", () => {
   it("suppresses intentional device loss after renderer disposal only", () => {
@@ -37,7 +37,7 @@ describe("exact-frame resource capture", () => {
       events.push("capture");
       return "cached";
     });
-    const result = await captureAfterExactFrameResources(capture, {
+    const result = await new ExactFrameCaptureQueue<string>().capture(capture, {
       hasPendingFrameResources: false,
       waitForFrameResources: async () => {
         events.push("barrier");
@@ -57,7 +57,7 @@ describe("exact-frame resource capture", () => {
       frames.push(frame);
       return frame;
     });
-    const result = captureAfterExactFrameResources(capture, {
+    const result = new ExactFrameCaptureQueue<string>().capture(capture, {
       hasPendingFrameResources: true,
       waitForFrameResources: () => gate.promise,
     });
@@ -71,7 +71,7 @@ describe("exact-frame resource capture", () => {
 
   it("drains an accepted capture before propagating a media barrier failure", async () => {
     const captureGate = deferred<string>();
-    const rejected = captureAfterExactFrameResources(() => captureGate.promise, {
+    const rejected = new ExactFrameCaptureQueue<string>().capture(() => captureGate.promise, {
       hasPendingFrameResources: true,
       waitForFrameResources: async () => {
         throw new Error("image decode failed");
@@ -91,6 +91,60 @@ describe("exact-frame resource capture", () => {
     expect(settled).toBe(false);
     captureGate.resolve("placeholder");
     await expect(rejected).rejects.toThrow("image decode failed");
+  });
+
+  it("holds the exact media generation until submission, then overlaps GPU mapping", async () => {
+    const queue = new ExactFrameCaptureQueue<string>();
+    const media = deferred<void>();
+    const mapping = deferred<string>();
+    const captures: string[] = [];
+    let loaded = false;
+    const first = queue.capture(
+      () => {
+        captures.push(loaded ? "first-exact" : "first-placeholder");
+        return loaded ? mapping.promise : Promise.resolve("placeholder");
+      },
+      {
+        hasPendingFrameResources: true,
+        waitForFrameResources: () => media.promise,
+      },
+    );
+    const nextCaptured = deferred<void>();
+    const second = queue.capture(
+      async () => {
+        captures.push("second-exact");
+        nextCaptured.resolve(undefined);
+        return "second";
+      },
+      { hasPendingFrameResources: false, waitForFrameResources: async () => undefined },
+    );
+
+    await Promise.resolve();
+    expect(captures).toEqual(["first-placeholder"]);
+    loaded = true;
+    media.resolve(undefined);
+    await nextCaptured.promise;
+    expect(captures).toEqual(["first-placeholder", "first-exact", "second-exact"]);
+    await expect(second).resolves.toBe("second");
+    mapping.resolve("first");
+    await expect(first).resolves.toBe("first");
+  });
+
+  it("waits for video preparation before capture without reading a placeholder", async () => {
+    const media = deferred<void>();
+    const prepare = vi.fn();
+    const capture = vi.fn(async () => "exact-video");
+    const frame = new ExactFrameCaptureQueue<string>().capture(
+      capture,
+      { hasPendingFrameResources: true, waitForFrameResources: () => media.promise },
+      prepare,
+    );
+    await Promise.resolve();
+    expect(prepare).toHaveBeenCalledOnce();
+    expect(capture).not.toHaveBeenCalled();
+    media.resolve(undefined);
+    await expect(frame).resolves.toBe("exact-video");
+    expect(capture).toHaveBeenCalledOnce();
   });
 });
 
