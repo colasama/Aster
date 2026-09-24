@@ -116,7 +116,9 @@ fn aces_tonemap(color: vec3f) -> vec3f {
 }
 
 fn hash(position: vec2f) -> f32 {
-  var state = bitcast<vec2u>(position) * 1664525u + 1013904223u;
+  var state = bitcast<vec2u>(position);
+  state = state ^ (state >> vec2u(15u));
+  state = state * 1664525u + 1013904223u;
   state.x += state.y * 1664525u;
   state.y += state.x * 1664525u;
   state = state ^ (state >> vec2u(16u));

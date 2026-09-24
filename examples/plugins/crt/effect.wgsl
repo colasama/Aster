@@ -10,7 +10,9 @@ struct AsterEffectUniforms {
 @group(0) @binding(2) var<uniform> aster: AsterEffectUniforms;
 
 fn hash(point: vec2f) -> f32 {
-    var state = bitcast<vec2u>(point) * 1664525u + 1013904223u;
+    var state = bitcast<vec2u>(point);
+    state = state ^ (state >> vec2u(15u));
+    state = state * 1664525u + 1013904223u;
     state.x += state.y * 1664525u;
     state.y += state.x * 1664525u;
     state = state ^ (state >> vec2u(16u));
