@@ -25,6 +25,7 @@ import {
   svgTransformedRasterSize,
 } from "../importers/svg-raster-cache";
 import { isTiffSource } from "../importers/tiff-source";
+import { MISSING_MEDIA_CSS } from "./media/missing-media";
 import { drawTextLayer } from "./text/text-rasterizer";
 
 interface CanvasMediaResource {
@@ -122,23 +123,24 @@ export class CanvasFallbackRenderer {
       drawCalls += 1;
       const resolvedColor = solidRenderColor(layer);
       const resolvedSize = solidRenderSize(layer);
-      const media = this.#prepareMedia(
-        layer,
-        sourceForLayer(project, layer),
-        scene.localTime,
-        playing,
-        scene.instanceId,
-      );
+      const footage = sourceForLayer(project, layer);
+      const media = this.#prepareMedia(layer, footage, scene.localTime, playing, scene.instanceId);
       if (media) activeMedia.add(scene.instanceId);
+      const mediaMissing =
+        (layer.kind === "image" || layer.kind === "video") &&
+        !isDrawableMedia(media?.element) &&
+        (!(footage && sourceLocator(footage)) || this.#mediaResourceErrors.has(scene.instanceId));
       context.save();
       context.globalCompositeOperation = canvasBlendMode(layer.blendMode);
       context.translate(transform.position[0] * scale, transform.position[1] * scale);
       context.rotate((transform.rotation[2] * Math.PI) / 180);
       context.globalAlpha = transform.opacity * resolvedColor[3];
-      context.fillStyle = `rgb(${resolvedColor
-        .slice(0, 3)
-        .map((channel) => Math.round(channel * 255))
-        .join(" ")})`;
+      context.fillStyle = mediaMissing
+        ? MISSING_MEDIA_CSS
+        : `rgb(${resolvedColor
+            .slice(0, 3)
+            .map((channel) => Math.round(channel * 255))
+            .join(" ")})`;
       const width = (resolvedSize[0] * transform.scale[0] * scale) / 100;
       const height = (resolvedSize[1] * transform.scale[1] * scale) / 100;
       const anchorX = (transform.anchor[0] * transform.scale[0] * scale) / 100;

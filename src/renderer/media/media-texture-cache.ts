@@ -55,6 +55,7 @@ import {
   reportVideoUploadError,
   sweepMediaResources,
 } from "./media-resource";
+import { MISSING_MEDIA_RGBA, MISSING_MEDIA_SOURCE } from "./missing-media";
 import { TextureUploadBatch } from "./texture-upload-batch";
 import { VideoExternalUpload, type VideoExternalUploadStatus } from "./video-external-upload";
 
@@ -86,6 +87,8 @@ export class MediaTextureCache {
   readonly #videoUploadListeners = new Set<(resource: MediaResource) => void>();
   readonly #decodePool = new AsyncWorkPool(4);
   readonly #uploads: TextureUploadBatch;
+  #missingMediaTexture?: GPUTexture;
+  #missingMediaBindGroup?: GPUBindGroup;
   #textMotionBlur?: TextMotionBlurRasterCache;
   readonly #sequenceFrames = new ImageSequenceFrameCache<RuntimeSequenceFile, ImageBitmap>({
     decode: (file) => this.#decodeImage(file.url, file.name, file.type),
@@ -151,13 +154,18 @@ export class MediaTextureCache {
     this.#videoFrameTargets.clear();
     this.#sequenceFrames.clear();
     this.#svgRasters.clear();
+    this.#missingMediaTexture?.destroy();
+    this.#missingMediaTexture = undefined;
+    this.#missingMediaBindGroup = undefined;
     this.#uploads.destroy();
     this.#textMotionBlur?.destroy();
     this.#textMotionBlur = undefined;
   }
 
   bindGroup(instanceId: string): GPUBindGroup | undefined {
-    return this.#resources.get(instanceId)?.bindGroup;
+    const bound = this.#resources.get(instanceId)?.bindGroup;
+    if (bound) return bound;
+    return this.#frameResourceErrors.has(instanceId) ? this.#missingMediaBinding() : undefined;
   }
 
   beginFrame(): void {
@@ -233,7 +241,10 @@ export class MediaTextureCache {
   ): void {
     if (this.#destroyed) throw new Error("Media texture cache is destroyed");
     const source = sourceLocator(footage);
-    if (!source) return;
+    if (!footage || !source) {
+      this.#installMissingMedia(instanceId);
+      return;
+    }
     if (layer.kind !== "video") this.#videoFrameTargets.delete(instanceId);
     const runtime = mediaImportRuntime.get(footage.id);
     if (runtime?.kind === "psd") {
@@ -503,6 +514,37 @@ export class MediaTextureCache {
       });
     this.#pendingFrameResources.set(instanceId, pending);
     void pending.promise.catch(() => undefined);
+  }
+
+  #installMissingMedia(instanceId: string): void {
+    this.#pendingFrameResources.delete(instanceId);
+    this.#frameResourceErrors.delete(instanceId);
+    this.#videoFrameTargets.delete(instanceId);
+    if (this.#resources.get(instanceId)?.source === MISSING_MEDIA_SOURCE) return;
+    destroyMediaResource(this.#resources.get(instanceId));
+    this.#resources.set(instanceId, {
+      source: MISSING_MEDIA_SOURCE,
+      kind: "image",
+      bindGroup: this.#missingMediaBinding(),
+    });
+    this.#invalidate();
+  }
+
+  #missingMediaBinding(): GPUBindGroup {
+    if (this.#missingMediaBindGroup) return this.#missingMediaBindGroup;
+    const texture = this.#device.createTexture({
+      label: "Missing media placeholder",
+      size: [1, 1],
+      format: "rgba8unorm-srgb",
+      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+    });
+    this.#device.queue.writeTexture({ texture }, MISSING_MEDIA_RGBA, {}, [1, 1]);
+    this.#missingMediaTexture = texture;
+    this.#missingMediaBindGroup = this.#createBindGroup(
+      texture,
+      "Missing media placeholder resources",
+    );
+    return this.#missingMediaBindGroup;
   }
 
   textBounds(instanceId: string) {

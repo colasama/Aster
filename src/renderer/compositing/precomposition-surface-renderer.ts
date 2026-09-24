@@ -1,5 +1,5 @@
 import { evaluateLayerSourceTime } from "../../core/animation/layer-time";
-import { sourceForLayer, sourceLocator } from "../../core/media/footage-source";
+import { sourceForLayer } from "../../core/media/footage-source";
 import { type FlattenedSceneLayer, flattenSceneLayers } from "../../core/scene/scene-evaluation";
 import type { BlendMode, Composition, Project } from "../../core/types";
 import { BLEND_MODES } from "../../core/types";
@@ -394,15 +394,10 @@ export class PrecompositionSurfaceRenderer {
       this.#mediaInstanceIds.add(scene.resourceInstanceId);
       return;
     }
-    if (
-      (scene.layer.kind === "image" || scene.layer.kind === "video") &&
-      sourceLocator(sourceForLayer(this.#project, scene.layer))
-    ) {
-      const footage = sourceForLayer(this.#project, scene.layer);
-      if (!footage) return;
+    if (scene.layer.kind === "image" || scene.layer.kind === "video") {
       this.#mediaTextures.prepareMedia(
         scene.layer,
-        footage,
+        sourceForLayer(this.#project, scene.layer),
         scene.localTime,
         playing,
         scene.resourceInstanceId,

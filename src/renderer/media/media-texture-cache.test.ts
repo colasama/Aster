@@ -61,6 +61,36 @@ describe("exact-frame media resource barrier", () => {
     expect(cache.bindGroup("image-instance")).toBeDefined();
   });
 
+  it("binds the magenta placeholder while footage is unresolved", () => {
+    const cache = createCache();
+    const layer = createLayerForComposition("image", createBlankComposition());
+    const missing = still("missing.png");
+    delete missing.runtimeUrl;
+    cache.prepareMedia(layer, missing, 0, false, "missing-instance");
+    cache.prepareMedia(layer, undefined, 0, false, "unresolved-instance");
+    expect(cache.bindGroup("missing-instance")).toBeDefined();
+    expect(cache.bindGroup("unresolved-instance")).toBeDefined();
+    expect(cache.bindGroup("missing-instance")).toBe(cache.bindGroup("unresolved-instance"));
+  });
+
+  it("binds the magenta placeholder after a decode failure until the next generation", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({ ok: true, blob: async () => ({}) })),
+    );
+    const decode = deferred<ImageBitmap>();
+    vi.stubGlobal(
+      "createImageBitmap",
+      vi.fn(() => decode.promise),
+    );
+    const cache = createCache();
+    const layer = createLayerForComposition("image", createBlankComposition());
+    cache.prepareMedia(layer, still("broken.png"), 0, false, "broken");
+    decode.reject(new Error("decode exploded"));
+    await expect(cache.waitForFrameResources()).rejects.toThrow("decode exploded");
+    expect(cache.bindGroup("broken")).toBeDefined();
+  });
+
   it("rejects decode errors, timeouts, and aborts instead of reading placeholders", async () => {
     const decode = deferred<ImageBitmap>();
     vi.stubGlobal(

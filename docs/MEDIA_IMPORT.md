@@ -46,4 +46,6 @@ paths and decoded payloads are never encoded into data URLs.
 
 Importer failures include the parser or validation diagnostic in the Project panel. Runtime decode
 errors are tracked per source and shown on its project row. Import warnings are surfaced as a count
-without blocking successfully decoded layers.
+without blocking successfully decoded layers. Layers whose footage cannot be resolved — no data or
+runtime locator, or a failed decode — draw a solid magenta placeholder in the layer bounds instead
+of silently compositing a blank quad.

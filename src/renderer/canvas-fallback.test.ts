@@ -138,6 +138,19 @@ describe("Canvas exact-frame resources", () => {
     expect(mediaImportRuntime.error(source.id)).toBeUndefined();
   });
 
+  it("fills unresolved footage with the magenta placeholder", () => {
+    const { renderer, context, project, source } = fixture("still");
+    delete source.runtimeUrl;
+    const composition = project.compositions[0];
+    if (!composition) throw new Error("Fixture composition is unavailable");
+
+    renderer.render(composition, 0, false, project);
+
+    expect(context.fillStyle).toBe("#ff00ff");
+    expect(context.fillRect).toHaveBeenCalled();
+    expect(context.drawImage).not.toHaveBeenCalled();
+  });
+
   it("rejects a missing sequence generation instead of reading stale pixels", async () => {
     const { renderer, project, source } = fixture("imageSequence");
     mediaImportRuntime.register(source.id, {

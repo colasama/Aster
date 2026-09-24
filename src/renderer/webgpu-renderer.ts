@@ -5,7 +5,7 @@ import {
   motionBlurInterval,
 } from "../core/animation/motion-blur";
 import { logger } from "../core/logger";
-import { sourceForLayer, sourceLocator } from "../core/media/footage-source";
+import { sourceForLayer } from "../core/media/footage-source";
 import { type AntiAliasingMode, antiAliasingScale } from "../core/rendering/anti-aliasing";
 import {
   type GpuMemorySnapshot,
@@ -502,21 +502,15 @@ export class WebGpuRenderer {
       );
     resources.materialTextures?.prepare(composition, geometry.batches);
     for (const scene of sceneLayers) {
-      if (
-        (scene.layer.kind === "image" || scene.layer.kind === "video") &&
-        sourceLocator(sourceForLayer(project, scene.layer))
-      ) {
-        const footage = sourceForLayer(project, scene.layer);
-        if (!footage) continue;
+      if (scene.layer.kind === "image" || scene.layer.kind === "video")
         resources.mediaTextures.prepareMedia(
           scene.layer,
-          footage,
+          sourceForLayer(project, scene.layer),
           scene.localTime,
           playing,
           scene.resourceInstanceId,
           previewResolutionScale,
         );
-      }
     }
     resources.mediaTextures.sweep(
       new Set([
@@ -524,8 +518,8 @@ export class WebGpuRenderer {
           .filter(
             (scene) =>
               scene.layer.kind === "text" ||
-              ((scene.layer.kind === "image" || scene.layer.kind === "video") &&
-                Boolean(sourceLocator(sourceForLayer(project, scene.layer)))),
+              scene.layer.kind === "image" ||
+              scene.layer.kind === "video",
           )
           .map((scene) => scene.resourceInstanceId),
         ...surfaceFrame.mediaInstanceIds,
