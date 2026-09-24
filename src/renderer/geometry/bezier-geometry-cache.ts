@@ -15,11 +15,20 @@ interface BezierGeometry {
 }
 
 // Local-space topology survives frame changes; paint and world/camera transforms do not.
-const cache = new EvaluationCache<BezierGeometry>({
-  capacity: 128,
-  maxBytes: 8 * 1024 * 1024,
-  sizeOf: (value) => value.estimatedBytes,
-});
+// Lazily constructed: module-level instantiation breaks when the bundler orders this
+// chunk ahead of the chunk defining EvaluationCache.
+let cache: EvaluationCache<BezierGeometry> | undefined;
+
+function bezierCache(): EvaluationCache<BezierGeometry> {
+  if (!cache) {
+    cache = new EvaluationCache<BezierGeometry>({
+      capacity: 128,
+      maxBytes: 8 * 1024 * 1024,
+      sizeOf: (value) => value.estimatedBytes,
+    });
+  }
+  return cache;
+}
 
 export function cachedBezierGeometry(
   path: BezierPath,
@@ -38,7 +47,7 @@ export function cachedBezierGeometry(
       : null,
   ]);
   const key = { nodeId: signature, revision: 0 };
-  const hit = cache.get(key);
+  const hit = bezierCache().get(key);
   if (hit) return hit;
 
   const normalized = flattenBezierPath(path);
@@ -71,6 +80,6 @@ export function cachedBezierGeometry(
     // Conservatively account for JS point arrays, references, and both stored key strings.
     estimatedBytes: (fill.length + stroke.length) * 80 + signature.length * 4,
   };
-  cache.set(key, value);
+  bezierCache().set(key, value);
   return value;
 }
