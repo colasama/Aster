@@ -33,7 +33,7 @@
     "test": "vitest run",
     "test:packaging": "node --test scripts/prepare-ffmpeg.test.mjs scripts/download-ffmpeg.test.mjs",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p electron/tsconfig.json"
+    "typecheck": "concurrently --kill-others-on-fail \"tsc --noEmit -p tsconfig.json\" \"tsc --noEmit -p tsconfig.node.json\" \"tsc --noEmit -p electron/tsconfig.json\""
   },
   "dependencies": {
     "@earendil-works/pi-agent-core": "0.84.2",
