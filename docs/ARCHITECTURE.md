@@ -202,6 +202,14 @@ frame data are excluded, and successful hot-path operations are intentionally si
    keep transform/parent/selection behavior but cannot allocate an effect surface or emit pixels.
    Media caches resolve layer instances through the project source registry; relink, reload, and
    interpretation replace one source record and invalidate consumers by stable identity.
+   Preview presentation never draws a pending media generation: `MediaTextureCache.mediaReady`
+   reports unresolved fetches, decodes, and first video uploads per instance, and both renderers
+   hold the previously submitted frame until every visible instance is ready, so loading media
+   cannot flash a layer-color quad or a transparent rect. Imports and project activation warm a
+   bounded still-image decode pool (`raster-image-prefetch.ts`, 2 workers, 24 entries), and during
+   playback the renderer flattens the scene one lookahead window ahead to prepare arriving media.
+   Export capture still submits its incomplete discovery frame offscreen, then waits and
+   recaptures through the exact-frame barrier.
    Radiance RGBE environments transfer to the bounded CPU worker pool, which validates every
    scanline and writes
    directly into the final row-aligned binary16 upload payload. The current environment-lighting

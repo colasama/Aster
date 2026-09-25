@@ -21,6 +21,7 @@ import { type GpuDiagnostics, setLayerSizeAndCenterAnchor } from "../../core/typ
 import { currentGpuMemory, GPU_MEMORY_CHANGED_EVENT } from "../../desktop/gpu-memory";
 import { reportUiError } from "../../errors/report-ui-error";
 import { useI18n } from "../../i18n/react";
+import { warmProjectRasterSources } from "../../importers/raster-image-prefetch";
 import { CanvasFallbackRenderer } from "../../renderer/canvas-fallback";
 import {
   createBeautyFrameRequest,
@@ -172,6 +173,7 @@ export function Viewport() {
       false,
       preview.project,
       preview.selectedLayerId,
+      true,
     );
     snapshot.capture();
   };
@@ -250,12 +252,13 @@ export function Viewport() {
     const canvas = canvasRef.current;
     if (!canvas) return;
     let cancelled = false;
-    WebGpuRenderer.create(canvas, () => {
+    const invalidate = () => {
       if (!cancelled) setRendererRevision((revision) => revision + 1);
-    })
+    };
+    WebGpuRenderer.create(canvas, invalidate)
       .catch((error: unknown) => {
         logger.error("viewport", "webgpu_fallback_activated", error);
-        return new CanvasFallbackRenderer(canvas);
+        return new CanvasFallbackRenderer(canvas, invalidate);
       })
       .then((renderer) => {
         if (cancelled) {
@@ -323,6 +326,7 @@ export function Viewport() {
       };
     }
     activateProjectFonts(previewProject);
+    warmProjectRasterSources(previewProject);
     const renderer = rendererRef.current;
     if (!renderer) return;
     const pipeline = beautyPipelineRef.current;
@@ -350,6 +354,7 @@ export function Viewport() {
                 state.playing,
                 previewProject,
                 state.selection[0],
+                true,
               );
         publishDiagnostics(renderer.diagnostics);
         syncMirrorCanvas(canvasRef.current, mirrorCanvasRef.current);
@@ -431,6 +436,7 @@ export function Viewport() {
                 false,
                 preview.project,
                 preview.selectedLayerId,
+                true,
               );
             } else
               pipeline.present(

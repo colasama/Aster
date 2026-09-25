@@ -1,6 +1,7 @@
 import { convertFileSrc, isDesktopRuntime, open } from "../../desktop/api";
 import { mediaImportRuntime } from "../../importers/media-import-runtime";
 import { readRasterImageMetadata } from "../../importers/raster-image-decoder";
+import { warmRasterImage } from "../../importers/raster-image-prefetch";
 import { createLayerForComposition } from "../layers/layer-factory";
 import {
   type Composition,
@@ -9,7 +10,7 @@ import {
   type Layer,
   setLayerSizeAndCenterAnchor,
 } from "../types";
-import { DEFAULT_SOURCE_INTERPRETATION } from "./footage-source";
+import { DEFAULT_SOURCE_INTERPRETATION, sourceLocator } from "./footage-source";
 import { ImporterRegistry, type SourceImporter } from "./importer-registry";
 
 const MAX_IMAGE_BYTES = 32 * 1024 * 1024;
@@ -72,6 +73,9 @@ export async function createMediaLayerFromFile(
       kind: source.kind,
       ...(options.sourcePath ? { originalPath: options.sourcePath } : {}),
     });
+  // Overlap the decode with import bookkeeping so the first present can land on a warm bitmap.
+  if (source.kind === "still")
+    warmRasterImage(sourceLocator(source), { name: source.name, mimeType: source.mimeType });
   const layer = createMediaLayerForSource(source, composition, currentTime);
   layer.name = file.name.replace(/\.[^.]+$/, "") || layer.name;
   return { source, layer };

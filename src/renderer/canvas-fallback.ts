@@ -57,6 +57,7 @@ export class CanvasFallbackRenderer {
     timestampQueries: false,
   };
   readonly #context: CanvasRenderingContext2D;
+  readonly #invalidate: () => void;
   readonly #mediaResources = new Map<string, CanvasMediaResource>();
   readonly #pendingMediaResources = new Map<string, PendingCanvasResource>();
   readonly #mediaResourceErrors = new Map<string, { source: string; error: Error }>();
@@ -65,10 +66,11 @@ export class CanvasFallbackRenderer {
   #height = 1;
   #disposed = false;
 
-  constructor(canvas: HTMLCanvasElement) {
+  constructor(canvas: HTMLCanvasElement, invalidate: () => void = () => undefined) {
     const context = canvas.getContext("2d");
     if (!context) throw new Error("Canvas rendering is unavailable");
     this.#context = context;
+    this.#invalidate = invalidate;
   }
 
   resize(width: number, height: number): void {
@@ -91,6 +93,7 @@ export class CanvasFallbackRenderer {
     playing = false,
     project?: Project,
     _selectedLayerId?: string,
+    holdPendingMedia = false,
   ): RendererMetrics {
     this.#assertActive();
     this.#lastRender = {
@@ -101,13 +104,75 @@ export class CanvasFallbackRenderer {
       selectedLayerId: _selectedLayerId,
     };
     const started = performance.now();
+    const sceneLayers = flattenSceneLayers(composition, project, time);
+    if (holdPendingMedia) {
+      // Start every media generation this frame needs, then keep the previously presented
+      // frame until all of them can draw real pixels instead of placeholder color. Missing
+      // and failed footage already has its intended magenta output and never blocks.
+      const unresolved = sceneLayers.some((scene) => {
+        if (scene.layer.kind !== "image" && scene.layer.kind !== "video") return false;
+        const footage = sourceForLayer(project, scene.layer);
+        if (!(footage && sourceLocator(footage))) return false;
+        const media = this.#prepareMedia(
+          scene.layer,
+          footage,
+          scene.localTime,
+          playing,
+          scene.instanceId,
+        );
+        if (this.#mediaResourceErrors.has(scene.instanceId)) return false;
+        return !isDrawableMedia(media?.element);
+      });
+      if (unresolved)
+        return {
+          fps: 60,
+          frameMs: 16.67,
+          cpuMs: performance.now() - started,
+          drawCalls: 0,
+          passCount: 0,
+          dirtyNodes: sceneLayers.length,
+          cacheHitRate: 0,
+          estimatedVramMb: 0,
+          transientTextureCount: 0,
+          mediaPending: true,
+        };
+    }
     const context = this.#context;
     context.clearRect(0, 0, this.#width, this.#height);
     context.fillStyle = "#060814";
     context.fillRect(0, 0, this.#width, this.#height);
     const scale = this.#width / composition.width;
     const activeMedia = new Set<string>();
-    const sceneLayers = flattenSceneLayers(composition, project, time);
+    if (holdPendingMedia && playing) {
+      // Same lookahead as the WebGPU path: decode arriving media before the playhead so a
+      // layer enters with real pixels instead of a placeholder rect. Instances already in
+      // the current frame are skipped so playback state is not rewound.
+      const aheadTimes = [time + 0.5];
+      if (composition.duration > 0 && aheadTimes[0] >= composition.duration)
+        aheadTimes.push(aheadTimes[0] - composition.duration);
+      const currentInstanceIds = new Set(
+        sceneLayers
+          .filter((scene) => scene.layer.kind === "image" || scene.layer.kind === "video")
+          .map((scene) => scene.instanceId),
+      );
+      for (const aheadTime of aheadTimes)
+        for (const ahead of flattenSceneLayers(composition, project, aheadTime)) {
+          if (
+            (ahead.layer.kind !== "image" && ahead.layer.kind !== "video") ||
+            currentInstanceIds.has(ahead.instanceId) ||
+            activeMedia.has(ahead.instanceId)
+          )
+            continue;
+          this.#prepareMedia(
+            ahead.layer,
+            sourceForLayer(project, ahead.layer),
+            ahead.localTime,
+            false,
+            ahead.instanceId,
+          );
+          activeMedia.add(ahead.instanceId);
+        }
+    }
     let drawCalls = 0;
     for (const scene of sceneLayers.reverse()) {
       const { layer, transform } = scene;
@@ -500,6 +565,7 @@ export class CanvasFallbackRenderer {
           this.#pendingMediaResources.delete(instanceId);
           this.#mediaResourceErrors.delete(instanceId);
           mediaImportRuntime.clearError(footage.id);
+          this.#invalidate();
         })
         .catch((error: unknown) => {
           if (this.#pendingMediaResources.get(instanceId) !== pending) return;
@@ -507,6 +573,7 @@ export class CanvasFallbackRenderer {
           const resolved = canvasResourceError(error);
           this.#mediaResourceErrors.set(instanceId, { source, error: resolved });
           mediaImportRuntime.reportError(footage.id, resolved);
+          this.#invalidate();
           throw resolved;
         }),
     };

@@ -1,8 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createLayerForComposition } from "../../core/layers/layer-factory";
-import { createBlankComposition } from "../../core/project/project";
+import { createBlankComposition, createBlankProject } from "../../core/project/project";
 import { type FootageSource, staticValue } from "../../core/types";
 import { mediaImportRuntime } from "../../importers/media-import-runtime";
+import { warmProjectRasterSources } from "../../importers/raster-image-prefetch";
 import { MediaTextureCache, svgPreviewRasterTarget } from "./media-texture-cache";
 
 beforeEach(() => {
@@ -528,6 +529,83 @@ describe("exact-frame media resource barrier", () => {
     expect(output?.destroy).not.toHaveBeenCalled();
     cache.destroy();
     expect(output?.destroy).toHaveBeenCalledTimes(1);
+  });
+
+  it("reports media readiness so held previews never present a loading placeholder", async () => {
+    const decode = deferred<ImageBitmap>();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({ ok: true, blob: async () => ({}) })),
+    );
+    vi.stubGlobal(
+      "createImageBitmap",
+      vi.fn(() => decode.promise),
+    );
+    const cache = createCache();
+    const layer = createLayerForComposition("image", createBlankComposition());
+
+    cache.prepareMedia(layer, still("pending.png"), 0, false, "pending-instance");
+    expect(cache.mediaReady("pending-instance")).toBe(false);
+
+    decode.resolve(bitmap());
+    await cache.waitForFrameResources();
+    expect(cache.mediaReady("pending-instance")).toBe(true);
+
+    const missing = still("missing.png");
+    delete missing.runtimeUrl;
+    cache.prepareMedia(layer, missing, 0, false, "missing-instance");
+    expect(cache.mediaReady("missing-instance")).toBe(true);
+
+    const broken = deferred<ImageBitmap>();
+    vi.stubGlobal(
+      "createImageBitmap",
+      vi.fn(() => broken.promise),
+    );
+    cache.prepareMedia(layer, still("broken.png"), 0, false, "broken-instance");
+    expect(cache.mediaReady("broken-instance")).toBe(false);
+    broken.reject(new Error("decode exploded"));
+    await expect(cache.waitForFrameResources()).rejects.toThrow("decode exploded");
+    expect(cache.mediaReady("broken-instance")).toBe(true);
+  });
+
+  it("keeps a video instance pending until the first decoded frame reaches the texture", async () => {
+    const video = new MockVideo();
+    vi.stubGlobal("HTMLMediaElement", { HAVE_CURRENT_DATA: 2 });
+    vi.stubGlobal("document", {
+      body: { append: vi.fn() },
+      createElement: (name: string) => (name === "video" ? video : new MockCanvas()),
+    });
+    const cache = createCache();
+    const layer = createLayerForComposition("video", createBlankComposition());
+
+    cache.prepareMedia(layer, videoSource(), 0, false, "video-hold");
+    expect(cache.mediaReady("video-hold")).toBe(false);
+
+    video.readyState = 2;
+    video.dispatchEvent(new Event("loadeddata"));
+    await vi.waitFor(() => expect(cache.mediaReady("video-hold")).toBe(true));
+  });
+
+  it("consumes a warmed raster prefetch instead of issuing a second decode", async () => {
+    const fetchSource = vi.fn(async () => ({ ok: true, blob: async () => new Blob() }));
+    const decodeBitmap = vi.fn(async () => bitmap());
+    vi.stubGlobal("fetch", fetchSource);
+    vi.stubGlobal("createImageBitmap", decodeBitmap);
+
+    const source = still("warmed.png");
+    const project = createBlankProject();
+    project.sources.push(source);
+    warmProjectRasterSources(project);
+    await vi.waitFor(() => expect(decodeBitmap).toHaveBeenCalledTimes(1));
+
+    const cache = createCache();
+    const layer = createLayerForComposition("image", createBlankComposition());
+    cache.prepareMedia(layer, source, 0, false, "warmed-instance");
+    expect(cache.mediaReady("warmed-instance")).toBe(false);
+    await cache.waitForFrameResources();
+    expect(cache.mediaReady("warmed-instance")).toBe(true);
+    expect(fetchSource).toHaveBeenCalledTimes(1);
+    expect(decodeBitmap).toHaveBeenCalledTimes(1);
   });
 });
 

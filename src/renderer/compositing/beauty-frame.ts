@@ -160,6 +160,7 @@ export function createViewportBeautyFrameBackend(
         playing,
         request.project,
         selectedLayerId,
+        true,
       );
     },
     readback: async (request, synchronizeVideo) => {

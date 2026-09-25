@@ -455,6 +455,7 @@ export interface RendererMetrics {
   fusionBarrierCount?: number;
   temporalCacheMb?: number;
   passTimings?: GpuPassTimings;
+  mediaPending?: boolean;
 }
 
 export interface GpuPassTimings {

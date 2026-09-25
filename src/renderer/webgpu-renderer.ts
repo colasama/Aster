@@ -12,6 +12,7 @@ import {
   resolveGpuMemoryBudget,
 } from "../core/rendering/gpu-memory-policy";
 import { evaluateCameraBasis } from "../core/scene/camera-rig";
+import { flattenSceneLayers } from "../core/scene/scene-evaluation";
 import type { Composition, GpuDiagnostics, Project, RendererMetrics } from "../core/types";
 import { needsLayerIsolation } from "./compositing/layer-composite";
 import { planSceneRenderStack } from "./compositing/render-stack";
@@ -50,6 +51,9 @@ import { planTextMotionBlurFrame } from "./text/text-motion-blur-plan";
 import { expandTextSceneGeometry, prepareTextSceneGeometry } from "./text/text-scene-geometry";
 
 const SCENE_FORMAT: GPUTextureFormat = "rgba16float";
+
+/** How far ahead of the playhead preview prepares media so arrival frames are already decoded. */
+const MEDIA_PREFETCH_LOOKAHEAD_SECONDS = 0.5;
 
 export class WebGpuRenderer {
   readonly #resources: RendererResources;
@@ -245,7 +249,9 @@ export class WebGpuRenderer {
     return this.#frameCaptures.capture(
       () => this.#captureRawFrame(composition, time, project),
       this.#resources.mediaTextures,
-      synchronizeVideo ? () => this.render(composition, time, false, project) : undefined,
+      synchronizeVideo
+        ? () => this.render(composition, time, false, project, undefined, true)
+        : undefined,
     );
   }
   #captureRawFrame(
@@ -258,7 +264,9 @@ export class WebGpuRenderer {
     const ticket = this.#resources.frameReadback.reserve(this.#outputWidth, this.#outputHeight);
     this.#pendingFrameReadback = ticket;
     try {
-      this.render(composition, time, false, project);
+      // The first capture exists to register pending media; holding keeps its incomplete
+      // frame off the preview canvas. The barrier waits and recaptures the ready frame.
+      this.render(composition, time, false, project, undefined, true);
       const productionError = this.productionRenderError;
       if (productionError) throw new Error(productionError);
     } catch (error) {
@@ -275,9 +283,17 @@ export class WebGpuRenderer {
     playing = false,
     project?: Project,
     selectedLayerId?: string,
+    holdPendingMedia = false,
   ): RendererMetrics {
     try {
-      return this.#renderFrame(composition, time, playing, project, selectedLayerId);
+      return this.#renderFrame(
+        composition,
+        time,
+        playing,
+        project,
+        selectedLayerId,
+        holdPendingMedia,
+      );
     } catch (error) {
       this.#resources.mediaTextures.abortFrame();
       throw error;
@@ -289,6 +305,7 @@ export class WebGpuRenderer {
     playing = false,
     project?: Project,
     selectedLayerId?: string,
+    holdPendingMedia = false,
   ): RendererMetrics {
     const resources = this.#resources;
     this.#assertActive();
@@ -509,19 +526,76 @@ export class WebGpuRenderer {
           previewResolutionScale,
         );
     }
-    resources.mediaTextures.sweep(
-      new Set([
-        ...sceneLayers
-          .filter(
-            (scene) =>
-              scene.layer.kind === "text" ||
-              scene.layer.kind === "image" ||
-              scene.layer.kind === "video",
+    const activeMediaInstanceIds = new Set([
+      ...sceneLayers
+        .filter(
+          (scene) =>
+            scene.layer.kind === "text" ||
+            scene.layer.kind === "image" ||
+            scene.layer.kind === "video",
+        )
+        .map((scene) => scene.resourceInstanceId),
+      ...surfaceFrame.mediaInstanceIds,
+    ]);
+    const prefetchedInstanceIds = new Set<string>();
+    if (holdPendingMedia && playing) {
+      // Prepare media one lookahead window ahead so layers becoming visible already hold a
+      // decoded texture or an exact video frame instead of arriving as placeholder color.
+      // Instances active in the current frame are skipped: re-preparing them with
+      // playing = false would pause or re-seek media the current frame just started.
+      const aheadTimes = [time + MEDIA_PREFETCH_LOOKAHEAD_SECONDS];
+      if (composition.duration > 0 && aheadTimes[0] >= composition.duration)
+        aheadTimes.push(aheadTimes[0] - composition.duration);
+      for (const aheadTime of aheadTimes)
+        for (const scene of flattenSceneLayers(composition, project, aheadTime)) {
+          if (
+            (scene.layer.kind !== "image" && scene.layer.kind !== "video") ||
+            activeMediaInstanceIds.has(scene.resourceInstanceId) ||
+            prefetchedInstanceIds.has(scene.resourceInstanceId)
           )
-          .map((scene) => scene.resourceInstanceId),
-        ...surfaceFrame.mediaInstanceIds,
-      ]),
-    );
+            continue;
+          resources.mediaTextures.prepareMedia(
+            scene.layer,
+            sourceForLayer(project, scene.layer),
+            scene.localTime,
+            false,
+            scene.resourceInstanceId,
+            previewResolutionScale,
+          );
+          prefetchedInstanceIds.add(scene.resourceInstanceId);
+        }
+    }
+    resources.mediaTextures.sweep(new Set([...activeMediaInstanceIds, ...prefetchedInstanceIds]));
+    if (
+      holdPendingMedia &&
+      (geometry.batches.some(
+        (batch) =>
+          (batch.layer.kind === "image" || batch.layer.kind === "video") &&
+          !resources.mediaTextures.mediaReady(batch.resourceInstanceId),
+      ) ||
+        [...surfaceFrame.mediaInstanceIds].some(
+          (instanceId) => !resources.mediaTextures.mediaReady(instanceId),
+        ))
+    ) {
+      // Keep the previously presented frame until every visible layer can draw real media;
+      // a finished install or a failure both invalidate and release the hold.
+      resources.mediaTextures.abortFrame();
+      return {
+        fps: Math.min(240, 1000 / this.#smoothedFrameMs),
+        frameMs: this.#smoothedFrameMs,
+        cpuMs: performance.now() - started,
+        gpuMs: 0,
+        drawCalls: 0,
+        passCount: 0,
+        dirtyNodes: 0,
+        cacheHitRate: this.#evaluationCache.hitRate(),
+        estimatedVramMb: memory.estimatedBytes / 1024 / 1024,
+        transientTextureCount: 0,
+        memoryBudgetMb: memory.budgetMb,
+        memoryPressure: memory.pressure,
+        mediaPending: true,
+      };
+    }
     this.#device.queue.writeBuffer(
       resources.postUniformBuffer,
       0,

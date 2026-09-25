@@ -201,9 +201,9 @@ describe("production beauty frame pipeline", () => {
       height: 1,
     });
     pipeline.present(request, undefined, true);
-    expect(render).toHaveBeenLastCalledWith(composition, 4, true, project, undefined);
+    expect(render).toHaveBeenLastCalledWith(composition, 4, true, project, undefined, true);
     pipeline.present(request);
-    expect(render).toHaveBeenLastCalledWith(composition, 4, false, project, undefined);
+    expect(render).toHaveBeenLastCalledWith(composition, 4, false, project, undefined, true);
     await pipeline.readback(request);
     expect(render).toHaveBeenLastCalledWith(composition, 4, false, project);
   });

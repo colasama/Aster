@@ -24,6 +24,7 @@ import {
 } from "../../importers/media-import-runtime";
 
 import { decodeRasterImage } from "../../importers/raster-image-decoder";
+import { takePrefetchedRasterImage } from "../../importers/raster-image-prefetch";
 
 import {
   rasterizeSvgToImageBitmap,
@@ -169,6 +170,25 @@ export class MediaTextureCache {
     return this.#frameResourceErrors.has(instanceId) ? this.#missingMediaBinding() : undefined;
   }
 
+  /**
+   * Whether the layer's media can produce real pixels in the next presented frame. Pending
+   * generations, uninstalled textures, and a video that has not uploaded its first frame all
+   * report not-ready so preview can hold the previous frame instead of showing placeholder
+   * color. Errors report ready because their magenta or stale-texture binding is itself the
+   * intended output.
+   */
+  mediaReady(instanceId: string): boolean {
+    if (this.#pendingFrameResources.has(instanceId)) return false;
+    const resource = this.#resources.get(instanceId);
+    if (!resource?.bindGroup) return resource === undefined;
+    if (resource.kind !== "video") return true;
+    return (
+      resource.lastUploadedTime !== undefined ||
+      Boolean(resource.video?.error) ||
+      resource.uploadErrorReported === true
+    );
+  }
+
   beginFrame(): void {
     this.#textMotionBlur?.beginFrame();
   }
@@ -277,16 +297,19 @@ export class MediaTextureCache {
       this.#prepareVideo(resource, layer, footage, time, playing, instanceId);
       return;
     }
-    const pending = fetch(source)
-      .then((response) => {
-        if (!response.ok) throw new Error(`Media request failed with HTTP ${response.status}`);
-        return response.blob();
-      })
-      .then((blob) =>
-        this.#decodePool.run(() =>
-          decodeRasterImage(blob, { name: footage.name, mimeType: footage.mimeType }),
-        ),
-      )
+    const decoded =
+      takePrefetchedRasterImage(source) ??
+      fetch(source)
+        .then((response) => {
+          if (!response.ok) throw new Error(`Media request failed with HTTP ${response.status}`);
+          return response.blob();
+        })
+        .then((blob) =>
+          this.#decodePool.run(() =>
+            decodeRasterImage(blob, { name: footage.name, mimeType: footage.mimeType }),
+          ),
+        );
+    const pending = decoded
       .then((bitmap) => {
         if (this.#destroyed) {
           bitmap.close();
@@ -458,6 +481,8 @@ export class MediaTextureCache {
   }
 
   async #decodeImage(url: string, name: string, mimeType: string): Promise<ImageBitmap> {
+    const warmed = takePrefetchedRasterImage(url);
+    if (warmed) return warmed;
     const response = await fetch(url);
     if (!response.ok) throw new Error(`Media request failed with HTTP ${response.status}`);
     return decodeRasterImage(await response.blob(), { name, mimeType });
@@ -505,8 +530,11 @@ export class MediaTextureCache {
     pending.promise = task
       .catch((error: unknown) => {
         if (this.#destroyed) return;
-        if (this.#pendingFrameResources.get(instanceId) === pending)
+        if (this.#pendingFrameResources.get(instanceId) === pending) {
           this.#frameResourceErrors.set(instanceId, { source, error: asError(error) });
+          // A held preview frame must repaint into the magenta failure binding.
+          this.#invalidate();
+        }
         throw error;
       })
       .finally(() => {
@@ -840,6 +868,7 @@ export class MediaTextureCache {
         });
         destroyMediaResource(resource);
         this.#resources.delete(instanceId);
+        this.#invalidate();
       }
     });
     video.load();
