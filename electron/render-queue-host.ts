@@ -344,8 +344,14 @@ class ElectronRenderHostWorker implements RenderQueueHostHandle {
 
   control(command: "pause" | "resume" | "cancel"): void {
     if (this.#terminal || this.#disposed) return;
-    if (command === "cancel") this.#control = "cancel";
-    else if (command === "resume") {
+    if (command === "cancel") {
+      this.#control = "cancel";
+      // FFmpeg drains the auxiliary PCM input at mux pace, so a backpressured write can
+      // outlive the cancel signal. Release it so the hidden host's audio pipeline settles
+      // instead of deadlocking the lease teardown.
+      for (const active of this.#mp4.values())
+        active.manager.releaseAudio(active.exportJobId, this.#window.webContents.id);
+    } else if (command === "resume") {
       if (this.#control !== "pause") return;
       this.#control = undefined;
     } else this.#control ??= "pause";

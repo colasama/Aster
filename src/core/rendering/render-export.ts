@@ -297,13 +297,26 @@ export async function renderMp4(
             throw error;
           })
         : Promise.resolve(0);
-    const [videoResult, audioResult] = await Promise.allSettled([videoPipeline, audioPipeline]);
-    if (videoResult.status === "rejected") throw videoResult.reason;
-    if (audioResult.status === "rejected") throw audioResult.reason;
-    completed = videoResult.value;
-    if (completed < frameCount || (audioFrameCount > 0 && audioResult.value < audioFrameCount)) {
-      await cancelMp4Export(started.jobId);
+    const videoResult = await settleExportStage(videoPipeline);
+    // FFmpeg drains the auxiliary audio input at mux pace, so a PCM write can stay blocked
+    // after cancellation. Tear the session down before draining the audio pipeline so its
+    // pending write rejects instead of deadlocking the export.
+    if ((videoResult.status === "rejected" || videoResult.value < frameCount) && jobId) {
+      await cancelMp4Export(jobId).catch(() => undefined);
       jobId = undefined;
+    }
+    const audioResult = await settleExportStage(audioPipeline);
+    if (videoResult.status === "rejected") throw videoResult.reason;
+    // A rejection after the session was cancelled is the released backpressure write above.
+    if (audioResult.status === "rejected" && (jobId !== undefined || !cancelled()))
+      throw audioResult.reason;
+    completed = videoResult.value;
+    const completedAudio = audioResult.status === "fulfilled" ? audioResult.value : 0;
+    if (completed < frameCount || (audioFrameCount > 0 && completedAudio < audioFrameCount)) {
+      if (jobId) {
+        await cancelMp4Export(jobId);
+        jobId = undefined;
+      }
       logger.info("export", "mp4_pipeline_cancelled", {
         completed,
         frameCount,
@@ -467,6 +480,13 @@ export async function streamFramePipeline<Frame>(
   } finally {
     await Promise.allSettled(pending.values());
   }
+}
+
+function settleExportStage(promise: Promise<number>): Promise<PromiseSettledResult<number>> {
+  return promise.then(
+    (value): PromiseSettledResult<number> => ({ status: "fulfilled", value }),
+    (reason): PromiseSettledResult<number> => ({ status: "rejected", reason }),
+  );
 }
 
 async function blobToBase64(blob: Blob): Promise<string> {

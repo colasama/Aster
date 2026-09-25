@@ -1,11 +1,17 @@
+// @vitest-environment happy-dom
 import { describe, expect, it, vi } from "vitest";
+import type { AsterDesktopApi } from "../../desktop/api";
 import { mediaImportRuntime } from "../../importers/media-import-runtime";
+import { sharedAudioPlaybackEngine } from "../audio/audio-playback-engine";
 import { createLayerForComposition } from "../layers/layer-factory";
 import { createBlankProject } from "../project/project";
 import {
   captureForegroundRenderProjectSnapshot,
   captureRenderProjectSnapshot,
+  type FrameRenderSession,
+  type FrameRenderSessionOpenRequest,
   frameTimeAtIndex,
+  renderMp4,
   streamFramePipeline,
 } from "./render-export";
 
@@ -151,6 +157,95 @@ describe("MP4 frame pipeline", () => {
     });
     expect(completed).toBe(2);
     expect(written).toEqual([0, 1]);
+  });
+
+  it("releases a blocked encoder audio write when the export is cancelled", async () => {
+    const project = createBlankProject();
+    const composition = project.compositions[0];
+    composition.width = 64;
+    composition.height = 64;
+    composition.duration = 60;
+    composition.frameRate = { numerator: 30, denominator: 1 };
+    const source = {
+      id: "audio-source",
+      kind: "audio" as const,
+      name: "tone.wav",
+      mimeType: "audio/wav",
+      contentIdentity: "sha256:tone",
+      dataUrl: "data:audio/wav;base64,AAAA",
+      duration: 60,
+      channels: 1,
+      sampleRate: 48_000,
+      streamIndex: 0,
+      interpretation: { alpha: "ignore" as const, colorSpace: "srgb" as const },
+    };
+    project.sources.push(source);
+    const layer = createLayerForComposition("audio", composition);
+    layer.sourceId = source.id;
+    composition.layers.push(layer);
+
+    const decode = vi
+      .spyOn(sharedAudioPlaybackEngine, "decodedPcm")
+      .mockResolvedValue({ sampleRate: 48_000, channels: [new Float32Array(2_880_000)] });
+
+    let cancelled = false;
+    const audioWriteRejects: Array<(error: Error) => void> = [];
+    const api = {
+      save: vi.fn(async () => "C:/exports/out.mp4"),
+      startMp4Export: vi.fn(async () => ({ jobId: "job-1", encoder: "libx264" as const })),
+      writeMp4Frame: vi.fn(async () => undefined),
+      // FFmpeg drains the auxiliary audio input at mux pace; model the backpressured write
+      // that only releases once the native session destroys its input streams.
+      writeMp4Audio: vi.fn(
+        () =>
+          new Promise<void>((_resolve, reject) => {
+            cancelled = true;
+            audioWriteRejects.push(reject);
+          }),
+      ),
+      finishMp4Export: vi.fn(),
+      log: vi.fn(),
+      cancelMp4Export: vi.fn(async () => {
+        for (const reject of audioWriteRejects.splice(0))
+          reject(new Error("MP4 export input is already closed"));
+      }),
+    };
+    window.asterDesktop = api as unknown as AsterDesktopApi;
+
+    const session: FrameRenderSession = {
+      renderFrame: async () => new Blob(),
+      renderRawFrame: async () => ({
+        pixels: new ArrayBuffer(64 * 64 * 4),
+        pixelFormat: "rgba",
+      }),
+      rawPixelFormat: "rgba",
+      width: 64,
+      height: 64,
+      maxInFlightFrames: 2,
+      videoSynchronization: "none",
+      close: () => undefined,
+    };
+    const openSession = (event: Event) => {
+      const request = event as CustomEvent<FrameRenderSessionOpenRequest>;
+      request.detail.resolve(session);
+    };
+    window.addEventListener("aster:open-render-session", openSession);
+
+    try {
+      const result = await renderMp4(
+        project,
+        composition,
+        () => undefined,
+        () => cancelled,
+      );
+      expect(result).toMatchObject({ cancelled: true });
+      expect(api.cancelMp4Export).toHaveBeenCalledTimes(1);
+      expect(api.finishMp4Export).not.toHaveBeenCalled();
+    } finally {
+      window.removeEventListener("aster:open-render-session", openSession);
+      delete window.asterDesktop;
+      decode.mockRestore();
+    }
   });
 
   it.each(["render", "write"] as const)(

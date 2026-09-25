@@ -118,6 +118,18 @@ export class Mp4ExportManager {
     }
   }
 
+  /** Best-effort release of a blocked auxiliary PCM write during cancellation. */
+  releaseAudio(jobId: unknown, ownerId: number): void {
+    if (
+      typeof jobId !== "string" ||
+      !this.#active ||
+      this.#active.jobId !== jobId ||
+      this.#active.ownerId !== ownerId
+    )
+      return;
+    this.#active.releaseAudioInput();
+  }
+
   async cancelOwner(ownerId: number): Promise<void> {
     if (!this.#active || this.#active.ownerId !== ownerId) return;
     const session = this.#active;
@@ -276,6 +288,11 @@ class Mp4ExportSession {
       await this.#removeTemporary();
       throw error;
     }
+  }
+
+  /** Destroys the auxiliary PCM input so a backpressured audio write rejects promptly. */
+  releaseAudioInput(): void {
+    this.#audioInput?.destroy();
   }
 
   async cancel(): Promise<void> {

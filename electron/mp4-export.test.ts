@@ -131,6 +131,39 @@ describe("MP4 export validation", () => {
     },
     20_000,
   );
+  it.skipIf(spawnSync(ffmpeg, ["-version"], { windowsHide: true }).status !== 0)(
+    "rejects a backpressured audio write when the input is released",
+    async () => {
+      const manager = new Mp4ExportManager(ffmpeg);
+      const job = await manager.start(
+        {
+          outputPath: outputPath(),
+          width: 320,
+          height: 180,
+          frameRateNumerator: 10,
+          frameRateDenominator: 1,
+          frameCount: 100,
+          pixelFormat: "rgba",
+          videoBitrateBps: 1_000_000,
+          audio: { sampleRate: 48_000, channels: 2, frameCount: 480_000 },
+        },
+        1,
+      );
+      try {
+        // The stalled video input keeps FFmpeg from draining the PCM pipe, so these writes
+        // pile up against its buffer the way a cancelled export leaves them.
+        const writes = Array.from({ length: 80 }, () =>
+          manager.writeAudio(job.jobId, new ArrayBuffer(4800 * 8), 1),
+        );
+        manager.releaseAudio(job.jobId, 1);
+        const results = await Promise.allSettled(writes);
+        expect(results.some((result) => result.status === "rejected")).toBe(true);
+      } finally {
+        await manager.dispose();
+      }
+    },
+    20_000,
+  );
   it("reports actionable setup guidance when FFmpeg is unavailable", async () => {
     await expect(selectEncoder(join(tmpdir(), "aster-missing-ffmpeg"))).rejects.toThrow(
       /Install FFmpeg, set ASTER_FFMPEG_PATH, or rebuild the application/,
