@@ -3,7 +3,7 @@ resolver = "3"
 members = ["crates/*"]
 
 [workspace.package]
-version = "0.3.1"
+version = "0.3.2"
 edition = "2024"
 description = "GPU-first motion graphics and compositing editor"
 license = "MPL-2.0"
@@ -11,17 +11,17 @@ repository = "https://github.com/aster-mograph/aster"
 rust-version = "1.97"
 
 [workspace.dependencies]
-aster-types = { path = "crates/aster-types", version = "0.3.1" }
-aster-storage = { path = "crates/aster-storage", version = "0.3.1" }
-aster-core = { path = "crates/aster-core", version = "0.3.1" }
-aster-plugin = { path = "crates/aster-plugin", version = "0.3.1" }
-aster-profiler = { path = "crates/aster-profiler", version = "0.3.1" }
-aster-project = { path = "crates/aster-project", version = "0.3.1" }
-aster-render = { path = "crates/aster-render", version = "0.3.1" }
-aster-scene = { path = "crates/aster-scene", version = "0.3.1" }
-aster-timeline = { path = "crates/aster-timeline", version = "0.3.1" }
-aster-text = { path = "crates/aster-text", version = "0.3.1" }
-aster-video = { path = "crates/aster-video", version = "0.3.1" }
+aster-types = { path = "crates/aster-types", version = "0.3.2" }
+aster-storage = { path = "crates/aster-storage", version = "0.3.2" }
+aster-core = { path = "crates/aster-core", version = "0.3.2" }
+aster-plugin = { path = "crates/aster-plugin", version = "0.3.2" }
+aster-profiler = { path = "crates/aster-profiler", version = "0.3.2" }
+aster-project = { path = "crates/aster-project", version = "0.3.2" }
+aster-render = { path = "crates/aster-render", version = "0.3.2" }
+aster-scene = { path = "crates/aster-scene", version = "0.3.2" }
+aster-timeline = { path = "crates/aster-timeline", version = "0.3.2" }
+aster-text = { path = "crates/aster-text", version = "0.3.2" }
+aster-video = { path = "crates/aster-video", version = "0.3.2" }
 base64 = "0.22.1"
 clap = { version = "4", features = ["derive"] }
 exr = { version = "1.74.2", default-features = false }
