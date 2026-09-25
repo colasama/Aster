@@ -16,7 +16,7 @@
 ## Packages
 
 - Windows: MSI / NSIS
-- macOS: universal DMG
+- macOS: arm64 DMG / x64 DMG
 - Linux: AppImage / deb
 
 Attach SHA-256 checksums and signing/notarization status for every promoted package.

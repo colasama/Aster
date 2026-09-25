@@ -206,7 +206,8 @@ layer and device-loss tests.
 The desktop artifact workflow produces an explicitly labeled `gpl-preview` media payload because
 the existing software export fallback uses `libx264`. Its pinned downloads, manifests, and upstream
 notices are described in `BUILD_AND_FEATURES.md`. The packaged tools must pass a real H.264/AAC encode
-and FFprobe check; macOS also checks universal slices and system-only dylib dependencies. These
+and FFprobe check; macOS arm64 also checks the app signature and system-only dylib dependencies, while
+macOS x64 ships checksums without runtime verification. These
 preview artifacts do not satisfy the stable distribution or legal review gates below.
 
 Aster's distributed FFmpeg configuration must be reproducible and publish its configuration, component

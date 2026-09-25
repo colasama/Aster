@@ -53,6 +53,7 @@ export function prepareFfmpegBundle({
   platform = process.platform,
   projectRoot = PROJECT_ROOT,
   probe = spawnSync,
+  runProbes = true,
 } = {}) {
   const source = resolveFfmpegSource({ environment, platform });
   const probeName = platform === "win32" ? "ffprobe.exe" : "ffprobe";
@@ -64,22 +65,38 @@ export function prepareFfmpegBundle({
     platform,
     binary: "ffprobe",
   });
-  const probeResult = probe(probeSource, ["-hide_banner", "-version"], {
-    encoding: "utf8",
-    timeout: 15_000,
-    windowsHide: true,
-  });
-  if (probeResult.error || probeResult.status !== 0)
-    throw new Error(`FFprobe at ${probeSource} could not be executed`);
-  const result = probe(source, ["-hide_banner", "-version"], {
-    encoding: "utf8",
-    timeout: 15_000,
-    windowsHide: true,
-  });
-  if (result.error || result.status !== 0) {
-    const detail =
-      result.error?.message ?? result.stderr?.trim() ?? `exit ${String(result.status)}`;
-    throw new Error(`FFmpeg at ${source} could not be executed: ${detail}`);
+  const provenance = {
+    source,
+    version: "not executed (cross-architecture staging)",
+    build: "not executed (cross-architecture staging)",
+    ffprobe: {
+      source: probeSource,
+      version: "not executed (cross-architecture staging)",
+      build: "not executed (cross-architecture staging)",
+    },
+  };
+  if (runProbes) {
+    const probeResult = probe(probeSource, ["-hide_banner", "-version"], {
+      encoding: "utf8",
+      timeout: 15_000,
+      windowsHide: true,
+    });
+    if (probeResult.error || probeResult.status !== 0)
+      throw new Error(`FFprobe at ${probeSource} could not be executed`);
+    const result = probe(source, ["-hide_banner", "-version"], {
+      encoding: "utf8",
+      timeout: 15_000,
+      windowsHide: true,
+    });
+    if (result.error || result.status !== 0) {
+      const detail =
+        result.error?.message ?? result.stderr?.trim() ?? `exit ${String(result.status)}`;
+      throw new Error(`FFmpeg at ${source} could not be executed: ${detail}`);
+    }
+    provenance.version = result.stdout?.split(/\r?\n/, 1)[0]?.trim() || "unknown";
+    provenance.build = result.stdout?.trim() || "unknown";
+    provenance.ffprobe.version = probeResult.stdout?.split(/\r?\n/, 1)[0]?.trim() || "unknown";
+    provenance.ffprobe.build = probeResult.stdout?.trim() || "unknown";
   }
   const destinationDirectory = join(projectRoot, "build", "ffmpeg");
   const destination = join(destinationDirectory, ffmpegBinaryName(platform));
@@ -92,20 +109,7 @@ export function prepareFfmpegBundle({
   if (platform !== "win32") chmodSync(destination, statSync(destination).mode | 0o111);
   writeFileSync(
     join(destinationDirectory, "ffmpeg-source.json"),
-    `${JSON.stringify(
-      {
-        source,
-        version: result.stdout?.split(/\r?\n/, 1)[0]?.trim() || "unknown",
-        build: result.stdout?.trim() || "unknown",
-        ffprobe: {
-          source: probeSource,
-          version: probeResult.stdout?.split(/\r?\n/, 1)[0]?.trim() || "unknown",
-          build: probeResult.stdout?.trim() || "unknown",
-        },
-      },
-      null,
-      2,
-    )}\n`,
+    `${JSON.stringify(provenance, null, 2)}\n`,
   );
   return { destination, source };
 }

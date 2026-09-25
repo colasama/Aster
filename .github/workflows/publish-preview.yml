@@ -51,7 +51,7 @@ jobs:
           source_sha=$(jq -r .head_sha build-run.json)
           tag_sha=$(gh api "repos/$GH_REPO/commits/$RELEASE_TAG" --jq .sha)
           test "$source_sha" = "$tag_sha"
-          for platform in linux-x64 macos-universal windows-x64; do
+          for platform in linux-x64 macos-arm64 macos-x64 windows-x64; do
             gh run download "$BUILD_RUN_ID" --name "aster-$platform-$source_sha" --dir "artifacts/$platform"
             (cd "artifacts/$platform" && sha256sum --check SHA256SUMS.txt)
           done

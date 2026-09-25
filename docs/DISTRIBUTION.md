@@ -3,16 +3,17 @@
 ## Desktop packages
 
 The artifact workflow builds Aster from the same quality-gated commit on every supported desktop
-runner. Windows produces an NSIS installer, macOS produces universal DMG and ZIP artifacts,
-and Linux produces AppImage and Debian packages. Artifact builds are unsigned previews until a
+runner. Windows produces an NSIS installer, macOS produces per-architecture (arm64 and x64) DMG
+and ZIP artifacts, and Linux produces AppImage and Debian packages. Artifact builds are unsigned previews until a
 release job supplies platform signing identities; unsigned artifacts must never be promoted as a
 stable release.
 
 Preview CI downloads checksum-pinned FFmpeg and FFprobe, explicitly identifies the media payload as
 `gpl-preview`, and includes upstream notices, download digests, and actual build configurations in
-`resources/bin`. macOS merges all four native tools into universal binaries and applies ad-hoc
-signatures. Each platform smoke-tests the packaged tools and H.264/AAC export before uploading only
-installers and SHA-256 checksums. This workflow never publishes a GitHub release; stable signing,
+`resources/bin`. macOS compiles the four native tools per architecture and applies ad-hoc
+signatures. Each platform smoke-tests the packaged tools and H.264/AAC export before upload; the
+macOS x64 build is the exception — it ships checksums without executing its binaries. Only
+installers and SHA-256 checksums are uploaded. This workflow never publishes a GitHub release; stable signing,
 notarization, source-distribution obligations, and codec review remain release-promotion gates.
 
 Desktop packages include Electron's Chromium runtime, so they do not depend on a system webview.

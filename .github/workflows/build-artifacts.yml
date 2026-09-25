@@ -65,12 +65,21 @@ jobs:
             builder_args: --win nsis --x64
             artifact: aster-windows-x64
             binary_dir: release/win-unpacked/resources/bin
-          - name: macOS universal
+          - name: macOS arm64
             os: macos-15
-            builder_args: --mac dmg zip --universal -c.mac.identity=- -c.mac.hardenedRuntime=false
-            artifact: aster-macos-universal
-            binary_dir: release/mac-universal/Aster.app/Contents/Resources/bin
-            ffmpeg_args: --universal
+            builder_args: --mac dmg zip --arm64 -c.mac.identity=- -c.mac.hardenedRuntime=false
+            artifact: aster-macos-arm64
+            binary_dir: release/mac-arm64/Aster.app/Contents/Resources/bin
+            rust_target: aarch64-apple-darwin
+            ffmpeg_args: --target darwin-arm64
+          - name: macOS x64
+            os: macos-15
+            builder_args: --mac dmg zip --x64 -c.mac.identity=- -c.mac.hardenedRuntime=false
+            artifact: aster-macos-x64
+            binary_dir: release/mac/Aster.app/Contents/Resources/bin
+            rust_target: x86_64-apple-darwin
+            ffmpeg_args: --target darwin-x64
+            verify_args: --checksums-only
     runs-on: ${{ matrix.os }}
     env:
       CSC_IDENTITY_AUTO_DISCOVERY: "false"
@@ -87,9 +96,9 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: 1.97.1
-      - name: Install universal Apple Rust targets
-        if: matrix.name == 'macOS universal'
-        run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
+      - name: Install Apple Rust target
+        if: runner.os == 'macOS'
+        run: rustup target add ${{ matrix.rust_target }}
       - uses: Swatinem/rust-cache@v2
         with:
           shared-key: desktop-artifacts-${{ runner.os }}
@@ -110,32 +119,25 @@ jobs:
       - name: Download and stage pinned FFmpeg and FFprobe
         run: pnpm artifact:download-ffmpeg ${{ matrix.ffmpeg_args }}
       - name: Build frontend and native bridge
-        if: matrix.name != 'macOS universal'
+        if: runner.os != 'macOS'
         run: pnpm build
-      - name: Build universal macOS assets and bridge
-        if: matrix.name == 'macOS universal'
+      - name: Build macOS assets and bridge for ${{ matrix.rust_target }}
+        if: runner.os == 'macOS'
         shell: bash
         run: |
           pnpm typecheck
           pnpm exec vite build
           pnpm electron:compile
-          cargo build --release -p aster-desktop-bridge --target aarch64-apple-darwin
-          cargo build --release -p aster-desktop-bridge --target x86_64-apple-darwin
+          cargo build --release -p aster-desktop-bridge --target ${{ matrix.rust_target }}
           mkdir -p target/release
-          lipo -create \
-            target/aarch64-apple-darwin/release/aster-desktop-bridge \
-            target/x86_64-apple-darwin/release/aster-desktop-bridge \
-            -output target/release/aster-desktop-bridge
-          lipo -create \
-            target/aarch64-apple-darwin/release/aster-mcp \
-            target/x86_64-apple-darwin/release/aster-mcp \
-            -output target/release/aster-mcp
+          cp target/${{ matrix.rust_target }}/release/aster-desktop-bridge target/release/
+          cp target/${{ matrix.rust_target }}/release/aster-mcp target/release/
           codesign --force --sign - target/release/aster-desktop-bridge
           codesign --force --sign - target/release/aster-mcp
       - name: Package desktop bundles
         run: pnpm exec electron-builder --config scripts/electron-builder.ts --publish never ${{ matrix.builder_args }}
       - name: Verify packaged tools and generate checksums
-        run: node scripts/verify-desktop-bundle.mjs "${{ matrix.binary_dir }}" ${{ matrix.ffmpeg_args }}
+        run: node scripts/verify-desktop-bundle.mjs "${{ matrix.binary_dir }}" ${{ matrix.verify_args }}
       - name: Upload desktop bundles
         uses: actions/upload-artifact@v4
         with:

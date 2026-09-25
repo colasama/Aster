@@ -57,14 +57,23 @@ export function validateMediaBinary(bytes) {
   }
 }
 
+const archiveTypeFor = (target) => (target.startsWith("darwin-") ? "zip" : "gz");
+
 async function main() {
   const universal = process.argv.includes("--universal");
   const platform = process.platform;
+  const hostTarget = `${platform}-${process.arch}`;
+  const targetIndex = process.argv.indexOf("--target");
+  const requestedTarget = targetIndex === -1 ? undefined : process.argv[targetIndex + 1];
+  if (targetIndex !== -1 && (!requestedTarget || requestedTarget.startsWith("-")))
+    throw new Error("--target requires a <platform>-<arch> value");
+  if (universal && requestedTarget) throw new Error("--universal and --target cannot be combined");
+  if (requestedTarget && !requestedTarget.startsWith(`${platform}-`))
+    throw new Error("--target must match the host platform");
   if (universal && platform !== "darwin") throw new Error("Universal builds require macOS");
-  const targets = universal ? ["darwin-x64", "darwin-arm64"] : [`${platform}-${process.arch}`];
-  const archiveType = platform === "darwin" ? "zip" : "gz";
+  const targets = universal ? ["darwin-x64", "darwin-arm64"] : [requestedTarget ?? hostTarget];
   for (const target of targets) {
-    if (!manifest.assets[`ffmpeg-${target}.${archiveType}`])
+    if (!manifest.assets[`ffmpeg-${target}.${archiveTypeFor(target)}`])
       throw new Error(`Unsupported target: ${target}`);
   }
   const cache = join(projectRoot, ".aster-cache", "ffmpeg");
@@ -72,6 +81,7 @@ async function main() {
   mkdirSync(sourceDirectory, { recursive: true });
   const assets = {};
   for (const target of targets) {
+    const archiveType = archiveTypeFor(target);
     for (const name of [
       `ffmpeg-${target}.${archiveType}`,
       `ffprobe-${target}.${archiveType}`,
@@ -112,12 +122,14 @@ async function main() {
     if (platform !== "win32") chmodSync(destination, 0o755);
   }
   const binaryName = (name) => join(sourceDirectory, platform === "win32" ? `${name}.exe` : name);
+  const runnable = universal || targets[0] === hostTarget;
   const prepared = prepareFfmpegBundle({
     environment: {
       ...process.env,
       ASTER_FFMPEG_PATH: binaryName("ffmpeg"),
       ASTER_FFPROBE_PATH: binaryName("ffprobe"),
     },
+    runProbes: runnable,
   });
   const staging = dirname(prepared.destination);
   for (const target of targets) {
