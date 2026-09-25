@@ -1,4 +1,4 @@
-name: Publish desktop preview
+name: Publish desktop release
 
 on:
   workflow_run:
@@ -20,7 +20,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: publish-preview-${{ inputs.tag || github.event.workflow_run.head_branch }}
+  group: publish-release-${{ inputs.tag || github.event.workflow_run.head_branch }}
   cancel-in-progress: false
 
 jobs:
@@ -61,10 +61,10 @@ jobs:
           (cd release-assets && sha256sum --check SHA256SUMS.txt)
           cp "docs/releases/${RELEASE_TAG#v}.md" release-notes.md
           printf '\nBuilt from `%s`; [validated build](https://github.com/%s/actions/runs/%s).\n' "$source_sha" "$GH_REPO" "$BUILD_RUN_ID" >> release-notes.md
-      - name: Upload assets and publish preview
+      - name: Upload assets and publish release
         shell: bash
         run: |
-          gh release create "$RELEASE_TAG" --verify-tag --draft --prerelease \
-            --title "Aster ${RELEASE_TAG#v} (Preview)" --notes-file release-notes.md release-assets/*
-          gh release edit "$RELEASE_TAG" --draft=false --prerelease --latest=false
+          gh release create "$RELEASE_TAG" --verify-tag --draft \
+            --title "Aster ${RELEASE_TAG#v}" --notes-file release-notes.md release-assets/*
+          gh release edit "$RELEASE_TAG" --draft=false --latest
           printf 'Published https://github.com/%s/releases/tag/%s\n' "$GH_REPO" "$RELEASE_TAG" >> "$GITHUB_STEP_SUMMARY"

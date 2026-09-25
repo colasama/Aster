@@ -22,13 +22,12 @@ publisher identity. Hardened runtime is disabled for this certificate-free previ
 The artifact workflow itself only builds and uploads artifacts; publishing runs separately.
 
 To publish the validated installers, include release notes at `docs/releases/<version>.md` in the
-release commit and push its `v<version>` tag. **Publish desktop preview** runs automatically after
+release commit and push its `v<version>` tag. **Publish desktop release** runs automatically after
 that tag's artifact build succeeds. Manual artifact runs do not publish; the publisher also retains
 its manual trigger accepting an existing tag and successful artifact run ID. Automatic publishing
 accepts only successful push builds from this repository. The release workflow requires the tag and build to match,
 checks all downloaded SHA-256 manifests, and uploads the original installers with combined checksums.
-It publishes a GitHub pre-release only after all assets have uploaded to a draft; it never promotes
-unsigned previews to stable releases.
+It publishes the GitHub release only after all assets have uploaded to a draft.
 
 To build from a Windows machine without configuring a macOS cross-toolchain:
 
