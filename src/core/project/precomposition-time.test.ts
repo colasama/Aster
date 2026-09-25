@@ -13,7 +13,7 @@ import { flattenShapeGraph } from "../layers/shape-graph";
 import { createParticleLayerForComposition } from "../scene/bundled-particle";
 import { evaluateCameraSettings } from "../scene/camera-settings";
 import { type FlattenedSceneLayer, flattenSceneLayers } from "../scene/scene-evaluation";
-import { type Animatable, type BezierPath, staticValue } from "../types";
+import { type Animatable, type BezierPath, type Project, staticValue } from "../types";
 import { precomposeLayers } from "./precomposition";
 import { createBlankProject } from "./project";
 import { serializeProject, validateProjectDocument } from "./project-file";
@@ -146,6 +146,15 @@ function appearance(scene: FlattenedSceneLayer) {
   };
 }
 
+function expandSurfaces(project: Project, scenes: FlattenedSceneLayer[]): FlattenedSceneLayer[] {
+  return scenes.flatMap((scene) => {
+    const surface = scene.precompositionSurface;
+    return surface
+      ? expandSurfaces(project, flattenSceneLayers(surface.composition, project, surface.time))
+      : [scene];
+  });
+}
+
 describe("precomposition time preservation", () => {
   it("keeps every frame and pre-roll key intact through nesting and persistence", () => {
     const original = animatedProject();
@@ -179,7 +188,10 @@ describe("precomposition time preservation", () => {
             position: sample.transform.position.map((value) => expect.closeTo(value, 9)),
           },
         }));
-      const after = flattenSceneLayers(reopened.compositions[0], reopened, time).map(appearance);
+      const after = expandSurfaces(
+        reopened,
+        flattenSceneLayers(reopened.compositions[0], reopened, time),
+      ).map(appearance);
       expect(after, `frame ${frame}`).toEqual(before);
     }
   });
