@@ -33,7 +33,38 @@ export const FLOATS_PER_EFFECT_OPERATION = 16;
 export interface EffectProgram {
   data: Float32Array;
   count: number;
+  usesBlur: boolean;
+  usesGlow: boolean;
+  glowThreshold: number;
 }
+
+/**
+ * Opcodes whose shader case calls `sample_blur`. Programs containing any of
+ * these get a blur pyramid built for their source before the fused pass runs.
+ */
+const BLUR_DEPENDENT_OPCODES = new Set<number>([
+  EffectOpcode.Sharpen,
+  EffectOpcode.Blur,
+  EffectOpcode.LooksColorLab,
+  EffectOpcode.FilmEmulation,
+  EffectOpcode.ChannelBlur,
+  EffectOpcode.SmartBlur,
+  EffectOpcode.HighPass,
+  EffectOpcode.CompoundBlur,
+  EffectOpcode.DustScratches,
+  EffectOpcode.RemoveGrain,
+  EffectOpcode.CcBlobbylize,
+  EffectOpcode.DetailPreservingUpscale,
+  EffectOpcode.Deband,
+  EffectOpcode.Denoise,
+  EffectOpcode.Clarity,
+  EffectOpcode.LocalContrast,
+  EffectOpcode.SmartSharpen,
+  EffectOpcode.FrequencySeparation,
+  EffectOpcode.EdgeColorBlend,
+  EffectOpcode.VrGlow,
+  EffectOpcode.FastBokeh,
+]);
 
 export function compileEffectProgram(
   composition: Composition,
@@ -69,7 +100,18 @@ export function compileEffectProgram(
       if (effect.mask) emit(EffectOpcode.MaskEnd, []);
     }
   }
-  return { data: values, count };
+  let usesBlur = false;
+  let usesGlow = false;
+  let glowThreshold = 0;
+  for (let index = 0; index < count; index += 1) {
+    const opcode = values[index * FLOATS_PER_EFFECT_OPERATION];
+    if (BLUR_DEPENDENT_OPCODES.has(opcode)) usesBlur = true;
+    if (opcode === EffectOpcode.Glow) {
+      usesGlow = true;
+      glowThreshold = Math.max(glowThreshold, values[index * FLOATS_PER_EFFECT_OPERATION + 1]);
+    }
+  }
+  return { data: values, count, usesBlur, usesGlow, glowThreshold };
 }
 
 const pixelParameters = new Map(

@@ -266,4 +266,5 @@ export enum EffectOpcode {
   EdgeFeather = 265,
   Overscan = 266,
   MultiStopGradient = 267,
+  FastBokeh = 268,
 }

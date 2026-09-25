@@ -1,6 +1,7 @@
 import { layerCompositeShader } from "../compositing/layer-composite";
 import { motionBlurShader } from "../compositing/motion-blur-renderer";
 import { antiAliasingShader } from "../effects/anti-aliasing";
+import { blurDownsampleShader, brightpassDownsampleShader } from "../effects/blur-pyramid";
 import { depthEffectsShader } from "../effects/depth-effects";
 import { surfacePostEffectsShader } from "../effects/surface-post-effects";
 import {
@@ -27,6 +28,8 @@ export async function validateShaderSources(device: GPUDevice): Promise<void> {
     ["scene generator ABI particle render", particleGeneratorRenderShader],
     ["shadow", shadowShader],
     ["post process", postProcessShader],
+    ["blur pyramid downsample", blurDownsampleShader],
+    ["brightpass downsample", brightpassDownsampleShader],
     ["layer blend options", layerCompositeShader],
     ["auxiliary surface MRT", auxiliarySurfaceShader],
     ["depth effects", depthEffectsShader],

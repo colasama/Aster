@@ -705,7 +705,7 @@ function mockDevice(
     createBindGroupLayout: vi.fn(() => ({})),
     createShaderModule: vi.fn(() => ({})),
     createPipelineLayout: vi.fn(() => ({})),
-    createRenderPipeline: vi.fn(() => ({})),
+    createRenderPipeline: vi.fn(() => ({ getBindGroupLayout: vi.fn(() => ({})) })),
     createBindGroup: vi.fn(() => ({})),
   } as unknown as GPUDevice;
 }

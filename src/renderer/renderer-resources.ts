@@ -280,6 +280,8 @@ export class RendererResources {
         { binding: 3, resource: { buffer: this.effectProgramBuffer } },
         { binding: 4, resource: this.identityLut.createView({ dimension: "3d" }) },
         { binding: 5, resource: this.lutSampler },
+        { binding: 6, resource: source.createView() },
+        { binding: 7, resource: source.createView() },
       ],
     });
   }

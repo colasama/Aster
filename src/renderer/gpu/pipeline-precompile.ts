@@ -1,6 +1,7 @@
 import type { SceneGeneratorDefinition } from "../../core/scene/scene-generator-registry";
 import type { BlendMode } from "../../core/types";
 import { FIXED_BLEND_MODES, gpuBlendState } from "../compositing/blend-state";
+import { blurDownsampleShader, brightpassDownsampleShader } from "../effects/blur-pyramid";
 import { depthEffectsShader } from "../effects/depth-effects";
 import {
   IMAGE_VERTEX_BUFFERS,
@@ -33,6 +34,8 @@ export async function precompileGpuPipelines(
   const image = module("Async precompile · image", imageShader);
   const shadow = module("Async precompile · shadow", shadowShader);
   const post = module("Async precompile · post process", postProcessShader);
+  const blurPyramid = module("Async precompile · blur pyramid", blurDownsampleShader);
+  const brightpass = module("Async precompile · brightpass pyramid", brightpassDownsampleShader);
   const depthEffects = module("Async precompile · depth effects", depthEffectsShader);
   const composite = module("Async precompile · texture composite", textureCompositeShader);
   const generatorModules = new Map<string, GPUShaderModule>();
@@ -112,6 +115,12 @@ export async function precompileGpuPipelines(
     ...generatorTasks,
     device.createRenderPipelineAsync(fullscreenDescriptor("post process", post, canvasFormat)),
     device.createRenderPipelineAsync(
+      fullscreenDescriptor("blur pyramid", blurPyramid, SCENE_FORMAT),
+    ),
+    device.createRenderPipelineAsync(
+      fullscreenDescriptor("brightpass pyramid", brightpass, SCENE_FORMAT),
+    ),
+    device.createRenderPipelineAsync(
       fullscreenDescriptor("depth effects", depthEffects, canvasFormat),
     ),
     device.createRenderPipelineAsync(
@@ -138,12 +147,13 @@ function fullscreenDescriptor(
   label: string,
   module: GPUShaderModule,
   format: GPUTextureFormat,
+  fragmentEntry = "fragment_main",
 ): GPURenderPipelineDescriptor {
   return {
     label: `Async precompile · ${label} pipeline`,
     layout: "auto",
     vertex: { module, entryPoint: "vertex_main" },
-    fragment: { module, entryPoint: "fragment_main", targets: [{ format }] },
+    fragment: { module, entryPoint: fragmentEntry, targets: [{ format }] },
     primitive: { topology: "triangle-list" },
   };
 }

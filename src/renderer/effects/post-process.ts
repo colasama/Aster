@@ -7,6 +7,8 @@ export function buildPostProcessUniforms(
   effects: PostProcessParameters = defaultPostProcessParameters(),
   operationCount = 0,
   linearOutput = false,
+  blurMaxLod = 0,
+  maskedGlow = false,
 ): Float32Array {
   return new Float32Array([
     width,
@@ -27,8 +29,8 @@ export function buildPostProcessUniforms(
     effects.fade,
     operationCount,
     Number(linearOutput),
-    0,
-    0,
+    blurMaxLod,
+    Number(maskedGlow),
     effects.pivot,
     effects.lift,
     effects.gain,

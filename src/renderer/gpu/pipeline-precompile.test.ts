@@ -13,9 +13,9 @@ describe("asynchronous GPU pipeline precompilation", () => {
     } as unknown as GPUDevice;
 
     const report = await precompileGpuPipelines(device, "bgra8unorm", [bundledParticleDefinition]);
-    expect(report.count).toBe(22);
+    expect(report.count).toBe(24);
     expect(report.durationMs).toBeGreaterThanOrEqual(0);
-    expect(createRenderPipelineAsync).toHaveBeenCalledTimes(21);
+    expect(createRenderPipelineAsync).toHaveBeenCalledTimes(23);
     expect(createComputePipelineAsync).toHaveBeenCalledTimes(1);
   });
 });

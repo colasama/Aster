@@ -220,6 +220,20 @@ frame data are excluded, and successful hot-path operations are intentionally si
    only their nodes and preserve project data. Each effected layer uses a fused
    offscreen chain before its blend-mode composite; unaffected adjacent layers stay batched directly
    into the `rgba16float` scene target.
+   Blur-dependent operations gather from a Kawase-filtered downsample pyramid built once per effect
+   layer: the shader maps blur radius onto mip LOD and takes a bounded ring of taps, so arbitrary
+   radii stay constant-cost while small radii keep a direct nine-tap kernel on the source.
+   Fast Bokeh reuses that pyramid for depth-driven defocus: a signed circle-of-confusion per pixel
+   scales an iris-shaped golden-angle gather, per-tap LOD footprints keep large radii smooth, and a
+   scatter-as-gather acceptance weight plus a separate near-field accumulator keep sharp subjects
+   from bleeding into blurred backgrounds.
+   Glow-family operations gather from a second chain that stores `blur(bright-pass)` directly: its
+   seed pass masks the source by luminance threshold through a per-program uniform and higher mips
+   reuse the plain downsample filter, so the fused pass samples the masked pyramid at the same
+   radius-to-LOD mapping instead of thresholding an already-diluted blur.
+   The `effect-shot-manifest` harness also exports the pyramid and bright-pass downsample WGSL, and
+   the `effect_shots` example mirrors this path so offline per-effect PNG renders exercise the
+   same LOD gather the compositor uses.
    Multi-stop gradients share that chain: five packed RGB stops, endpoints, interpolation and blend
    fit one existing uniform operation. Time-addressable CPU evaluation sorts stops and interpolates
    color keyframes per channel; the GPU evaluates the ramp without sampling another texture or

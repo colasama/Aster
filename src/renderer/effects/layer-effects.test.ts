@@ -49,7 +49,7 @@ describe("GPU adjustment-layer effects", () => {
       expect.objectContaining({ copySource: true, copyDestination: true }),
       expect.objectContaining({ copySource: true, copyDestination: true }),
     ]);
-    expect(renderer.estimatedTextureBytes()).toBe(320 * 180 * 20);
+    expect(renderer.estimatedTextureBytes()).toBe(320 * 180 * 20 + 306_608);
   });
 
   it("records no GPU work when every adjustment effect is disabled", () => {
@@ -125,8 +125,39 @@ describe("GPU adjustment-layer effects", () => {
     renderer.resize(64, 32);
     renderer.resize(128, 64);
 
-    expect(destroy).toHaveBeenCalledTimes(3);
-    expect(renderer.estimatedTextureBytes()).toBe(128 * 64 * 20);
+    expect(destroy).toHaveBeenCalledTimes(5);
+    expect(renderer.estimatedTextureBytes()).toBe(128 * 64 * 20 + 43_696);
+  });
+
+  it("builds the blur pyramid between the source copy and the fused pass", () => {
+    installGpuConstants();
+    const events: string[] = [];
+    const renderer = new LayerEffectRenderer(mockDevice([]), "rgba16float");
+    renderer.resize(64, 64);
+    const composition = createBlankProject().compositions[0];
+    const adjustment = createLayerForComposition("adjustment", composition);
+    adjustment.effects = [createEffect("gaussian-blur")];
+    const pass = {
+      setPipeline: vi.fn(() => events.push("pipeline")),
+      setBindGroup: vi.fn(),
+      draw: vi.fn(() => events.push("draw")),
+      end: vi.fn(() => events.push("pass-end")),
+    };
+    const encoder = {
+      copyTextureToTexture: vi.fn(() => events.push("copy")),
+      beginRenderPass: vi.fn(() => {
+        events.push("pass-begin");
+        return pass;
+      }),
+    } as unknown as GPUCommandEncoder;
+
+    renderer.encodeAdjustment(encoder, {} as GPUTexture, composition, adjustment, "root", 0);
+
+    expect(events[0]).toBe("copy");
+    expect(events[events.length - 1]).toBe("copy");
+    // Six pyramid levels at 64x64 plus the fused effect pass.
+    expect(events.filter((event) => event === "pass-begin")).toHaveLength(7);
+    expect(events.filter((event) => event === "draw")).toHaveLength(7);
   });
 });
 
@@ -156,7 +187,7 @@ function mockDevice(
     createBindGroupLayout: vi.fn(() => ({})),
     createShaderModule: vi.fn(() => ({})),
     createPipelineLayout: vi.fn(() => ({})),
-    createRenderPipeline: vi.fn(() => ({})),
+    createRenderPipeline: vi.fn(() => ({ getBindGroupLayout: vi.fn(() => ({})) })),
     createBindGroup: vi.fn(() => ({})),
     createBuffer: vi.fn(() => ({ destroy: vi.fn() })),
   } as unknown as GPUDevice;

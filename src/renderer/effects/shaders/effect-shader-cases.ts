@@ -565,10 +565,17 @@ export const pixelShaderCases = /* wgsl */ `
         color = sample_blur(uv, blur_radius);
       }
       case 102u: {
-        let blurred_glow = sample_blur(uv, effect.header.z);
-        let glow_level = luminance(blurred_glow);
-        let highlight = max(glow_level - effect.header.y, 0.0) / max(glow_level, 0.0001);
-        let generated = blurred_glow * highlight * effect.header.w;
+        var generated: vec3f;
+        if settings.program.w > 0.5 {
+          // The masked chain already holds blur(bright-pass), so the halo
+          // placement and falloff are exact rather than reconstructed.
+          generated = sample_masked_blur(uv, effect.header.z) * effect.header.w;
+        } else {
+          let blurred_glow = sample_blur(uv, effect.header.z);
+          let glow_level = luminance(blurred_glow);
+          let highlight = max(glow_level - effect.header.y, 0.0) / max(glow_level, 0.0001);
+          generated = blurred_glow * highlight * effect.header.w;
+        }
         if effect.p0.x < 0.5 {
           color += generated;
         } else if effect.p0.x < 1.5 {

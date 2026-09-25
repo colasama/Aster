@@ -2,6 +2,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { describe, it } from "vitest";
 import type { Composition, Layer } from "../../core/types";
 import { createEffect, EFFECT_REGISTRY } from "../../effects/registry";
+import { blurDownsampleShader, brightpassDownsampleShader } from "../effects/blur-pyramid";
 import { compileEffectProgram, FLOATS_PER_EFFECT_OPERATION } from "../effects/effect-program";
 import { postProcessShader } from "./shaders";
 
@@ -10,6 +11,8 @@ describe("effect harness dump", () => {
     const out = "artifacts/effect-screenshots/harness";
     mkdirSync(out, { recursive: true });
     writeFileSync(`${out}/post-process.wgsl`, postProcessShader);
+    writeFileSync(`${out}/blur-downsample.wgsl`, blurDownsampleShader);
+    writeFileSync(`${out}/brightpass-downsample.wgsl`, brightpassDownsampleShader);
     const composition = { width: 640, height: 360 } as Composition;
     const effects = EFFECT_REGISTRY.map((definition) => {
       const effect = createEffect(definition.type);

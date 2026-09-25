@@ -8,7 +8,7 @@ export const MAX_PRECOMPOSITION_SURFACE_BYTES = 256 * 1024 * 1024;
 export const MAX_PRECOMPOSITION_SURFACE_DIMENSION = 4_096;
 
 const BASE_BYTES_PER_PIXEL = 12; // rgba16float plus depth24plus.
-const EFFECT_BYTES_PER_PIXEL = 20; // LayerEffectRenderer ping-pong and depth.
+const EFFECT_BYTES_PER_PIXEL = 26; // LayerEffectRenderer ping-pong, depth, blur and masked pyramids.
 
 export interface PrecompositionSurfaceBudget {
   surfaces: number;

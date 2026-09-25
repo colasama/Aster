@@ -74,6 +74,28 @@ export function compileBlurSharpenEffect(
         value("blend", 100) / 100,
       ]);
       return true;
+    case "fast-bokeh": {
+      const blades = [3, 4, 5, 6, 7, 8, 64][Math.round(value("irisShape", 5))] ?? 6;
+      const samples = [16, 24, 32][Math.round(value("quality", 1))] ?? 24;
+      emit(EffectOpcode.FastBokeh, [
+        value("radius", 40),
+        value("depthSource"),
+        value("invertDepth") > 0.5 ? -1 : 1,
+        value("focus", 0.5),
+        Math.max(value("focusRange", 0.12), 0.001),
+        value("focusCenterX", 50) / 100,
+        value("focusCenterY", 50) / 100,
+        blades,
+        (value("irisRotation") * Math.PI) / 180,
+        value("irisRoundness") / 100,
+        value("irisAspect", 1),
+        (value("highlightGain") / 100) * 8,
+        value("highlightThreshold", 0.85),
+        value("highlightSaturation", 100) / 100,
+        samples,
+      ]);
+      return true;
+    }
     default:
       return false;
   }

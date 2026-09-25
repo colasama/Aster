@@ -3,6 +3,7 @@ import { gpuBlendState } from "../compositing/blend-state";
 import { LayerCompositor, needsBackdropBlend } from "../compositing/layer-composite";
 import { postProcessShader, textureCompositeShader } from "../gpu/shaders";
 import { createLutSampler, createLutTexture } from "../media/lut-texture";
+import { BlurPyramid, BrightpassPyramid } from "./blur-pyramid";
 import { defaultPostProcessParameters } from "./effect-parameters";
 import {
   compileEffectProgram,
@@ -33,6 +34,8 @@ export class LayerEffectRenderer {
     normal: GPURenderPipeline;
   };
   readonly #compositor: LayerCompositor;
+  readonly #pyramid: BlurPyramid;
+  readonly #glowPyramid: BrightpassPyramid;
   readonly #resources = new Map<string, LayerEffectBuffers>();
   #input?: GPUTexture;
   #output?: GPUTexture;
@@ -49,9 +52,12 @@ export class LayerEffectRenderer {
       label: "Layer effect linear sampler",
       magFilter: "linear",
       minFilter: "linear",
+      mipmapFilter: "linear",
     });
     this.#lutSampler = createLutSampler(device);
     this.#identityLut = createLutTexture(device);
+    this.#pyramid = new BlurPyramid(device, format, this.#sampler);
+    this.#glowPyramid = new BrightpassPyramid(device, format, this.#sampler);
     this.#postLayout = device.createBindGroupLayout({
       label: "Layer effect post-process layout",
       entries: [
@@ -65,6 +71,8 @@ export class LayerEffectRenderer {
           texture: { sampleType: "float", viewDimension: "3d" },
         },
         { binding: 5, visibility: GPUShaderStage.FRAGMENT, sampler: { type: "filtering" } },
+        { binding: 6, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: "float" } },
+        { binding: 7, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: "float" } },
       ],
     });
     this.#compositeLayout = device.createBindGroupLayout({
@@ -106,6 +114,8 @@ export class LayerEffectRenderer {
     this.#depth?.destroy();
     this.#input = this.#createTexture("Per-layer effect input");
     this.#output = this.#createTexture("Per-layer effect output");
+    this.#pyramid.resize(this.#width, this.#height, this.#input);
+    this.#glowPyramid.resize(this.#width, this.#height, this.#input);
     this.#compositor.resize(this.#output, this.#input);
     this.#depth = this.#device.createTexture({
       label: "Per-layer effect depth",
@@ -160,7 +170,16 @@ export class LayerEffectRenderer {
     this.#device.queue.writeBuffer(
       resource.uniforms,
       0,
-      buildPostProcessUniforms(this.#width, this.#height, time, effects, program.count, true),
+      buildPostProcessUniforms(
+        this.#width,
+        this.#height,
+        time,
+        effects,
+        program.count,
+        true,
+        Math.max(0, this.#pyramid.mipLevelCount - 1),
+        program.usesGlow,
+      ),
     );
 
     const inputPass = encoder.beginRenderPass({
@@ -182,6 +201,9 @@ export class LayerEffectRenderer {
     });
     drawLayer(inputPass);
     inputPass.end();
+
+    if (program.usesBlur) this.#pyramid.encode(encoder);
+    if (program.usesGlow) this.#glowPyramid.encode(encoder, program.glowThreshold);
 
     const effectPass = encoder.beginRenderPass({
       label: `Fused layer effects · ${layer.name}`,
@@ -260,6 +282,8 @@ export class LayerEffectRenderer {
         defaultPostProcessParameters(),
         program.count,
         true,
+        Math.max(0, this.#pyramid.mipLevelCount - 1),
+        program.usesGlow,
       ),
     );
 
@@ -269,6 +293,8 @@ export class LayerEffectRenderer {
       depthOrArrayLayers: 1,
     };
     encoder.copyTextureToTexture({ texture: target }, { texture: input }, extent);
+    if (program.usesBlur) this.#pyramid.encode(encoder);
+    if (program.usesGlow) this.#glowPyramid.encode(encoder, program.glowThreshold);
     const effectPass = encoder.beginRenderPass({
       label: `Adjustment effects · ${layer.name}`,
       colorAttachments: [
@@ -299,7 +325,10 @@ export class LayerEffectRenderer {
   }
 
   estimatedTextureBytes(): number {
-    let bytes = this.#width * this.#height * (8 * 2 + 4);
+    let bytes =
+      this.#width * this.#height * (8 * 2 + 4) +
+      this.#pyramid.estimatedTextureBytes +
+      this.#glowPyramid.estimatedTextureBytes;
     for (const resource of this.#resources.values()) bytes += resource.lutBytes;
     return bytes;
   }
@@ -308,6 +337,8 @@ export class LayerEffectRenderer {
     this.#input?.destroy();
     this.#output?.destroy();
     this.#depth?.destroy();
+    this.#pyramid.destroy();
+    this.#glowPyramid.destroy();
     this.#input = undefined;
     this.#output = undefined;
     this.#depth = undefined;
@@ -386,6 +417,8 @@ export class LayerEffectRenderer {
         { binding: 3, resource: { buffer: program } },
         { binding: 4, resource: lutTexture.createView({ dimension: "3d" }) },
         { binding: 5, resource: this.#lutSampler },
+        { binding: 6, resource: this.#pyramid.view ?? this.#input.createView() },
+        { binding: 7, resource: this.#glowPyramid.view ?? this.#input.createView() },
       ],
     });
   }

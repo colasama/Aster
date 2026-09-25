@@ -1,6 +1,7 @@
 import { srgbDisplayShader } from "../color-management";
 import { layerStyleShaderFunctions } from "../effects/layer-style-shader";
 import { advancedDistortWarpShaderCases } from "../effects/shaders/advanced-distort-shader-cases";
+import { bokehPixelShaderCases, bokehShaderFunctions } from "../effects/shaders/bokeh-shader-cases";
 import { channelUtilityPixelShaderCases } from "../effects/shaders/channel-utility-shader-cases";
 import { colorPipelinePixelShaderCases } from "../effects/shaders/color-pipeline-shader-cases";
 import { detailProcessingPixelShaderCases } from "../effects/shaders/detail-processing-shader-cases";
@@ -76,6 +77,8 @@ struct VertexOutput {
 @group(0) @binding(3) var<storage, read> effect_ops: array<EffectOp>;
 @group(0) @binding(4) var lut_texture: texture_3d<f32>;
 @group(0) @binding(5) var lut_sampler: sampler;
+@group(0) @binding(6) var blur_scene: texture_2d<f32>;
+@group(0) @binding(7) var glow_scene: texture_2d<f32>;
 
 @vertex
 fn vertex_main(@builtin(vertex_index) index: u32) -> VertexOutput {
@@ -93,17 +96,47 @@ fn vertex_main(@builtin(vertex_index) index: u32) -> VertexOutput {
 
 fn sample_blur(uv: vec2f, radius: f32) -> vec3f {
   let pixel = vec2f(1.0) / settings.resolution_time_exposure.xy;
-  let offset = pixel * max(radius, 0.35);
-  var color = textureSample(hdr_scene, linear_sampler, uv).rgb * 0.2;
-  color += textureSample(hdr_scene, linear_sampler, uv + vec2f(offset.x, 0.0)).rgb * 0.12;
-  color += textureSample(hdr_scene, linear_sampler, uv - vec2f(offset.x, 0.0)).rgb * 0.12;
-  color += textureSample(hdr_scene, linear_sampler, uv + vec2f(0.0, offset.y)).rgb * 0.12;
-  color += textureSample(hdr_scene, linear_sampler, uv - vec2f(0.0, offset.y)).rgb * 0.12;
-  color += textureSample(hdr_scene, linear_sampler, uv + offset).rgb * 0.08;
-  color += textureSample(hdr_scene, linear_sampler, uv - offset).rgb * 0.08;
-  color += textureSample(hdr_scene, linear_sampler, uv + vec2f(offset.x, -offset.y)).rgb * 0.08;
-  color += textureSample(hdr_scene, linear_sampler, uv + vec2f(-offset.x, offset.y)).rgb * 0.08;
+  let r = max(radius, 0.35);
+  let max_lod = settings.program.z;
+  if r <= 3.0 || max_lod <= 0.0 {
+    let offset = pixel * r;
+    var color = textureSample(hdr_scene, linear_sampler, uv).rgb * 0.2;
+    color += textureSample(hdr_scene, linear_sampler, uv + vec2f(offset.x, 0.0)).rgb * 0.12;
+    color += textureSample(hdr_scene, linear_sampler, uv - vec2f(offset.x, 0.0)).rgb * 0.12;
+    color += textureSample(hdr_scene, linear_sampler, uv + vec2f(0.0, offset.y)).rgb * 0.12;
+    color += textureSample(hdr_scene, linear_sampler, uv - vec2f(0.0, offset.y)).rgb * 0.12;
+    color += textureSample(hdr_scene, linear_sampler, uv + offset).rgb * 0.08;
+    color += textureSample(hdr_scene, linear_sampler, uv - offset).rgb * 0.08;
+    color += textureSample(hdr_scene, linear_sampler, uv + vec2f(offset.x, -offset.y)).rgb * 0.08;
+    color += textureSample(hdr_scene, linear_sampler, uv + vec2f(-offset.x, offset.y)).rgb * 0.08;
+    return color;
+  }
+  let lod = clamp(log2(r * (1.0 / 3.0)), 0.0, max_lod);
+  let outer = pixel * r;
+  let inner = outer * 0.55;
+  var color = textureSampleLevel(blur_scene, linear_sampler, uv, lod).rgb * 0.22;
+  color += textureSampleLevel(blur_scene, linear_sampler, uv + vec2f(outer.x, 0.0), lod).rgb * 0.1;
+  color += textureSampleLevel(blur_scene, linear_sampler, uv - vec2f(outer.x, 0.0), lod).rgb * 0.1;
+  color += textureSampleLevel(blur_scene, linear_sampler, uv + vec2f(0.0, outer.y), lod).rgb * 0.1;
+  color += textureSampleLevel(blur_scene, linear_sampler, uv - vec2f(0.0, outer.y), lod).rgb * 0.1;
+  color += textureSampleLevel(blur_scene, linear_sampler, uv + inner, lod).rgb * 0.095;
+  color += textureSampleLevel(blur_scene, linear_sampler, uv - inner, lod).rgb * 0.095;
+  color += textureSampleLevel(blur_scene, linear_sampler, uv + vec2f(inner.x, -inner.y), lod).rgb * 0.095;
+  color += textureSampleLevel(blur_scene, linear_sampler, uv + vec2f(-inner.x, inner.y), lod).rgb * 0.095;
   return color;
+}
+
+// Samples the bright-pass pyramid at the same radius-to-LOD mapping as
+// sample_blur. The chain stores blur(masked source), so the result is a
+// physically placed halo with source chroma. The caller gates on
+// settings.program.w, which flags that a masked chain is actually bound.
+fn sample_masked_blur(uv: vec2f, radius: f32) -> vec3f {
+  let lod = clamp(
+    log2(max(radius, 1.0) * (1.0 / 3.0)),
+    0.0,
+    settings.program.z,
+  );
+  return textureSampleLevel(glow_scene, linear_sampler, uv, lod).rgb;
 }
 
 fn aces_tonemap(color: vec3f) -> vec3f {
@@ -262,6 +295,7 @@ fn sample_lut_tetrahedral(coordinate: vec3f) -> vec3f {
   }
   return c000 + fraction.z * (c001 - c000) + fraction.y * (c011 - c001) + fraction.x * (c111 - c011);
 }
+${bokehShaderFunctions}
 
 @fragment
 fn fragment_main(input: VertexOutput) -> @location(0) vec4f {
@@ -897,6 +931,7 @@ ${detailProcessingPixelShaderCases}
 ${advancedTransitionPixelShaderCases}
 ${simulationPixelShaderCases}
 ${advancedStylizePixelShaderCases}
+${bokehPixelShaderCases}
       case 106u: {
         active_pixel_mask = effect_mask_value(effect, input.uv, resolution);
       }

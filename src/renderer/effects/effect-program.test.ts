@@ -13,10 +13,7 @@ describe("GPU effect program compiler", () => {
     const opcodes = Object.values(EffectOpcode)
       .filter((value): value is number => typeof value === "number")
       .sort((left, right) => left - right);
-    const expected = Array.from(
-      { length: EffectOpcode.MultiStopGradient },
-      (_, index) => index + 1,
-    );
+    const expected = Array.from({ length: EffectOpcode.FastBokeh }, (_, index) => index + 1);
     expect(opcodes).toEqual(expected);
   });
 
@@ -55,6 +52,22 @@ describe("GPU effect program compiler", () => {
     layer.effects[0].enabled = false;
 
     expect(compileEffectProgram(composition).count).toBe(MAX_EFFECT_OPERATIONS);
+  });
+
+  it("flags programs that gather from the blur pyramid", () => {
+    const composition = activeComposition(createDemoProject());
+    composition.layers.forEach((layer) => {
+      layer.effects = [];
+    });
+    const layer = composition.layers[0];
+    layer.effects = [createEffect("exposure")];
+    expect(compileEffectProgram(composition).usesBlur).toBe(false);
+    layer.effects = [createEffect("gaussian-blur")];
+    expect(compileEffectProgram(composition).usesBlur).toBe(true);
+    layer.effects = [createEffect("channel-blur")];
+    expect(compileEffectProgram(composition).usesBlur).toBe(true);
+    layer.effects = [createEffect("fast-bokeh")];
+    expect(compileEffectProgram(composition).usesBlur).toBe(true);
   });
 
   it("preserves legacy overlays and evaluates bounded scene-linear intensity at arbitrary time", () => {
@@ -308,6 +321,7 @@ describe("GPU effect program compiler", () => {
     ["high-pass", EffectOpcode.HighPass],
     ["sharpen-edges", EffectOpcode.SharpenEdges],
     ["compound-blur", EffectOpcode.CompoundBlur],
+    ["fast-bokeh", EffectOpcode.FastBokeh],
     ["spherize", EffectOpcode.Spherize],
     ["optics-compensation", EffectOpcode.OpticsCompensation],
     ["bend-it", EffectOpcode.BendIt],
