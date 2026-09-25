@@ -1,6 +1,7 @@
 import { evaluateLayerTransform } from "../animation/expressions";
 import { evaluateLayerSourceTime } from "../animation/layer-time";
 import {
+  containsCameraLayer,
   NESTED_ADJUSTMENT_ERROR,
   needsPrecompositionSurface,
 } from "../project/project-render-boundaries";
@@ -121,7 +122,7 @@ function flattenComposition(
       const instanceId = clone ? `${baseInstanceId}:clone-${clone.index}` : baseInstanceId;
       if (nested) {
         const nestedTime = evaluateLayerSourceTime(layer, time, nested.duration);
-        if (needsPrecompositionSurface(layer)) {
+        if (needsPrecompositionSurface(layer) || containsCameraLayer(nested)) {
           output.push({
             layer,
             sourceComposition: composition,

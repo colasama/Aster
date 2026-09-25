@@ -10,6 +10,15 @@ export function needsPrecompositionSurface(layer: Layer): boolean {
   return layer.threeDimensional || layer.effects.some((effect) => effect.enabled);
 }
 
+/**
+ * Flattening a precomposition drops camera layers, so a source containing one
+ * must rasterize through its own camera on a precomposition surface instead.
+ * Deeper precompositions decide for themselves when their own flatten pass runs.
+ */
+export function containsCameraLayer(composition: Pick<Composition, "layers">): boolean {
+  return composition.layers.some((layer) => layer.kind === "camera");
+}
+
 export function assertLayerEffectLimits(layer: Pick<Layer, "effects">, path = "layer"): void {
   const enabledLutCount = layer.effects.filter(
     (effect) => effect.enabled && effect.type === "lut",
@@ -42,6 +51,7 @@ export function assertProjectRenderBoundaries(
       if (
         source &&
         !needsPrecompositionSurface(layer) &&
+        !containsCameraLayer(source) &&
         flatRenderTreeContainsAdjustment(source, compositions, new Set())
       )
         throw new Error(NESTED_ADJUSTMENT_ERROR);
@@ -58,14 +68,10 @@ function flatRenderTreeContainsAdjustment(
   if (visiting.has(composition.id)) return false;
   const nextVisiting = new Set(visiting).add(composition.id);
   return composition.layers.some((layer) => {
-    if (
-      layer.kind !== "precomposition" ||
-      needsPrecompositionSurface(layer) ||
-      !layer.sourceCompositionId
-    )
-      return false;
+    if (layer.kind !== "precomposition" || !layer.sourceCompositionId) return false;
     const source = compositions.get(layer.sourceCompositionId);
-    return source ? flatRenderTreeContainsAdjustment(source, compositions, nextVisiting) : false;
+    if (!source || needsPrecompositionSurface(layer) || containsCameraLayer(source)) return false;
+    return flatRenderTreeContainsAdjustment(source, compositions, nextVisiting);
   });
 }
 
