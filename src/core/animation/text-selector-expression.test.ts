@@ -36,4 +36,12 @@ describe("text selector expression host", () => {
     expect(textSelectorExpressionError("1 / 0")).toBe("Text selector expression is not finite");
     expect(safeEvaluateTextSelectorExpression("1 / 0", context)).toBe(80);
   });
+
+  it("recovers from runtime failures that only apply to some contexts", () => {
+    const bad = { textIndex: 1, textTotal: 4, selectorValue: 80, time: 1 };
+    const good = { textIndex: 1, textTotal: 4, selectorValue: 80, time: 3 };
+    expect(safeEvaluateTextSelectorExpression("100 / (time - 1)", bad)).toBe(80);
+    expect(safeEvaluateTextSelectorExpression("100 / (time - 1)", good)).toBe(50);
+    expect(safeEvaluateTextSelectorExpression("100 / (time - 1)", bad)).toBe(80);
+  });
 });

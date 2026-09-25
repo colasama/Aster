@@ -1,6 +1,5 @@
 import { projectFontRevision } from "../../core/media/project-font-runtime";
 import type { Layer } from "../../core/types";
-import { TextureUploadBatch } from "../media/texture-upload-batch";
 import type { TextMotionBlurPlan, TextMotionBlurSample } from "./text-motion-blur-plan";
 import { includeTextBounds, type TextRasterBounds } from "./text-raster-bounds";
 import {
@@ -78,7 +77,6 @@ export class TextMotionBlurRasterCache {
   readonly #resolveLayout: GPUBindGroupLayout;
   readonly #accumulatePipeline: GPURenderPipeline;
   readonly #resolvePipeline: GPURenderPipeline;
-  readonly #uploads: TextureUploadBatch;
   readonly #entries = new Map<string, TextMotionBlurEntry>();
   readonly #maxEntries: number;
   readonly #maxResidentBytes: number;
@@ -118,7 +116,6 @@ export class TextMotionBlurRasterCache {
       MAX_TEXT_MOTION_BLUR_TRANSIENT_BYTES,
     );
     this.#rasterize = options.rasterize ?? rasterizeTextLayer;
-    this.#uploads = new TextureUploadBatch(device);
     this.#sampleLayout = device.createBindGroupLayout({
       label: "Temporal text sample layout",
       entries: [
@@ -179,7 +176,7 @@ export class TextMotionBlurRasterCache {
 
   get estimatedBytes(): number {
     // Resolved outputs are already represented by MediaResource.textureBytes.
-    return this.#transientBytes + this.#uploads.capacityBytes;
+    return this.#transientBytes;
   }
 
   get frameStats(): TextMotionBlurRasterFrameStats {
@@ -268,8 +265,6 @@ export class TextMotionBlurRasterCache {
       );
       if (raster.width !== width || raster.height !== height)
         throw new Error("Temporal text raster dimensions changed inside one shutter interval");
-      if (raster.pixels.byteLength < pixelBytes)
-        throw new Error("Temporal text raster pixel buffer is truncated");
       return raster;
     });
     if (existing) {
@@ -314,7 +309,10 @@ export class TextMotionBlurRasterCache {
           label: `Temporal text sample ${index + 1}/${samples.length} · ${layer.name}`,
           size: [width, height],
           format: "rgba8unorm-srgb",
-          usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+          usage:
+            GPUTextureUsage.TEXTURE_BINDING |
+            GPUTextureUsage.COPY_DST |
+            GPUTextureUsage.RENDER_ATTACHMENT,
         });
         sampleTextures.push(texture);
         weightData[(index * WEIGHT_UNIFORM_STRIDE) / 4] = sample.weight;
@@ -355,7 +353,11 @@ export class TextMotionBlurRasterCache {
             });
       if (weights) this.#device.queue.writeBuffer(weights, 0, weightData);
       for (let index = 0; index < sampleTextures.length; index += 1)
-        this.#uploads.enqueue(sampleTextures[index], rasters[index].pixels, width, height);
+        this.#device.queue.copyExternalImageToTexture(
+          { source: rasters[index].canvas },
+          { texture: sampleTextures[index] },
+          [width, height],
+        );
     } catch (error) {
       for (const texture of sampleTextures) texture.destroy();
       accumulation?.destroy();
@@ -401,7 +403,6 @@ export class TextMotionBlurRasterCache {
       resolutionScaleReductionCount: this.#frameStats.resolutionScaleReductionCount,
       lowestResolutionScale: this.#frameStats.lowestResolutionScale,
     };
-    this.#uploads.flush(encoder);
     for (const entry of this.#entries.values()) {
       if (entry.encoded || !entry.accumulation || !entry.resolveBindGroup) continue;
       const accumulation = encoder.beginRenderPass({
@@ -456,7 +457,6 @@ export class TextMotionBlurRasterCache {
   /** Drops generations whose command buffer was encoded but never submitted. */
   abortSubmission(): void {
     if (this.#destroyed) return;
-    this.#uploads.destroy();
     for (const [instanceId, entry] of [...this.#entries]) {
       if (entry.transientBytes === 0) continue;
       this.#delete(instanceId, entry);
@@ -484,7 +484,6 @@ export class TextMotionBlurRasterCache {
     this.#residentBytes = 0;
     this.#transientBytes = 0;
     this.#frameStats = emptyFrameStats();
-    this.#uploads.destroy();
   }
 
   #reserveEntry(requiredBytes: number): boolean {

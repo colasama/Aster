@@ -40,7 +40,7 @@ describe("GPU temporal text raster accumulation", () => {
         maximum,
         scale,
       );
-      return { width, height, bounds, pixels: new Uint8ClampedArray(width * height * 4) };
+      return { width, height, bounds, canvas: {} as HTMLCanvasElement };
     });
     const cache = new TextMotionBlurRasterCache(
       mockDevice([]),
@@ -151,7 +151,7 @@ describe("GPU temporal text raster accumulation", () => {
     const rasterize = vi.fn(
       (layer, maximumDimension: number, _localTime = 0, resolutionScale = 1) => {
         const { width, height } = textRasterSize(layer, maximumDimension, resolutionScale);
-        return { width, height, pixels: new Uint8ClampedArray(width * height * 4) };
+        return { width, height, canvas: {} as HTMLCanvasElement };
       },
     );
     const cache = new TextMotionBlurRasterCache(
@@ -240,7 +240,7 @@ describe("GPU temporal text raster accumulation", () => {
     let failSecond = true;
     const rasterize = vi.fn((_layer, _maximum, localTime = 0) => {
       if (failSecond && localTime > 1) throw new Error("sample decode failed");
-      return { width: 2, height: 1, pixels: new Uint8ClampedArray(8) };
+      return { width: 2, height: 1, canvas: {} as HTMLCanvasElement };
     });
     const cache = new TextMotionBlurRasterCache(
       device,
@@ -263,15 +263,15 @@ describe("GPU temporal text raster accumulation", () => {
     expect(() => cache.prepare(layer, "text-instance", plan, 1)).toThrow("sample decode failed");
     const failedEncoder = mockEncoder(passRecords);
     cache.encode(failedEncoder);
-    expect(failedEncoder.copyBufferToTexture).not.toHaveBeenCalled();
+    expect(device.queue.copyExternalImageToTexture).not.toHaveBeenCalled();
     expect(passRecords).toEqual([]);
     expect(textureRecords).toEqual([]);
 
     failSecond = false;
     cache.prepare(layer, "text-instance", plan, 1);
+    expect(device.queue.copyExternalImageToTexture).toHaveBeenCalledTimes(2);
     const retryEncoder = mockEncoder(passRecords);
     cache.encode(retryEncoder);
-    expect(retryEncoder.copyBufferToTexture).toHaveBeenCalledTimes(2);
     cache.abortSubmission();
     cache.destroy();
   });
@@ -283,7 +283,7 @@ describe("GPU temporal text raster accumulation", () => {
     const rasterize = vi.fn((_layer, _maximum, localTime = 0) => ({
       width: 2,
       height: 1,
-      pixels: new Uint8ClampedArray([localTime > 0 ? 255 : 0, 0, 0, 255, 0, 0, 0, 0]),
+      canvas: { localTime } as unknown as HTMLCanvasElement,
     }));
     const cache = new TextMotionBlurRasterCache(
       device,
@@ -367,7 +367,11 @@ function mockDevice(
 ): GPUDevice {
   return {
     limits: { maxTextureDimension2D: 8_192, maxBufferSize: 1_073_741_824 },
-    queue: { writeBuffer: vi.fn(), writeTexture: vi.fn() },
+    queue: {
+      copyExternalImageToTexture: vi.fn(),
+      writeBuffer: vi.fn(),
+      writeTexture: vi.fn(),
+    },
     createBindGroupLayout: vi.fn(() => ({})),
     createPipelineLayout: vi.fn(() => ({})),
     createShaderModule: vi.fn(() => ({})),

@@ -65,23 +65,24 @@ export function safeEvaluateTextSelectorExpression(
   if (!compiled.evaluate || compiled.error) return context.selectorValue;
   try {
     return compiled.evaluate(context);
-  } catch (error) {
-    compiled.error = error instanceof Error ? error.message : String(error);
+  } catch {
+    // Runtime failures depend on the per-glyph context (NaN, Infinity, out-of-domain
+    // arguments), so fall back for this evaluation without disabling the expression.
     return context.selectorValue;
   }
 }
 
-/** Returns a latched compile error for inspector feedback without executing user JavaScript. */
+/** Returns a compile error or t=0 probe failure for inspector feedback without executing user JavaScript. */
 export function textSelectorExpressionError(source: string): string | undefined {
   const compiled = compiledExpression(source);
-  if (!compiled.error && compiled.evaluate) {
-    try {
-      compiled.evaluate({ textIndex: 1, textTotal: 1, selectorValue: 100, time: 0 });
-    } catch (error) {
-      compiled.error = error instanceof Error ? error.message : String(error);
-    }
+  if (compiled.error || !compiled.evaluate)
+    return compiled.error ?? "Text selector expression is invalid";
+  try {
+    compiled.evaluate({ textIndex: 1, textTotal: 1, selectorValue: 100, time: 0 });
+    return undefined;
+  } catch (error) {
+    return error instanceof Error ? error.message : String(error);
   }
-  return compiled.error;
 }
 
 function compiledExpression(source: string): CompiledExpression {

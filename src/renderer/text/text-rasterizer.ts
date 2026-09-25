@@ -15,7 +15,7 @@ import { paintText, type TextRasterBounds } from "./text-raster-bounds";
 export interface RasterizedText {
   width: number;
   height: number;
-  pixels: Uint8ClampedArray;
+  canvas: HTMLCanvasElement;
   bounds?: TextRasterBounds;
 }
 
@@ -49,20 +49,31 @@ export function rasterizeTextLayer(
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
-  const context = canvas.getContext("2d", { willReadFrequently: true });
+  // The raster uploads through copyExternalImageToTexture, so a GPU-backed canvas keeps the
+  // glyph pixels on the GPU instead of forcing a Canvas2D readback round trip.
+  const context = canvas.getContext("2d");
   if (!context) throw new Error("Text rasterization canvas is unavailable");
   const scale = width / bounds.width;
   context.scale(1, height / bounds.height / scale);
   context.translate(-bounds.x * scale, -bounds.y * scale);
   drawTextLayer(context, layer, layer.size[0] * scale, layer.size[1] * scale, localTime);
-  return { width, height, bounds, pixels: context.getImageData(0, 0, width, height).data };
+  return { width, height, bounds, canvas };
 }
 
-export function measureTextLayerBounds(layer: Layer, localTime = 0): TextRasterBounds {
+let measureContext: CanvasRenderingContext2D | undefined;
+
+function textMeasureContext(): CanvasRenderingContext2D {
+  if (measureContext) return measureContext;
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = 1;
   const context = canvas.getContext("2d");
   if (!context) throw new Error("Text measurement canvas is unavailable");
+  measureContext = context;
+  return context;
+}
+
+export function measureTextLayerBounds(layer: Layer, localTime = 0): TextRasterBounds {
+  const context = textMeasureContext();
   const bounds = {
     x: 0,
     y: 0,
@@ -127,18 +138,7 @@ export function drawTextLayer(
   );
   const blockHeight = fontSize + Math.max(0, lines.length - 1) * leading;
   const firstBaseline = (height - blockHeight) / 2 + fontSize / 2;
-  const animation = layer.textAnimator?.enabled
-    ? {
-        characterIndex: 0,
-        groups: layer.textAnimator.groups,
-        localTime,
-        fillColor: layer.color,
-        sourceScale,
-        strokeColor: style.strokeColor,
-        strokeWidth: style.strokeWidth,
-        units: segmentTextLayoutUnits(lines.join("\n")),
-      }
-    : undefined;
+  const animation = animationCursor(layer, style, lines, localTime, sourceScale);
   for (let index = 0; index < lines.length; index += 1) {
     drawTrackedLine(
       context,
@@ -167,6 +167,26 @@ interface TextAnimationCursor {
   units: readonly TextLayoutUnit[];
 }
 
+function animationCursor(
+  layer: Layer,
+  style: ReturnType<typeof resolveTextStyle>,
+  lines: readonly string[],
+  localTime: number,
+  sourceScale: number,
+): TextAnimationCursor | undefined {
+  if (!layer.textAnimator?.enabled) return undefined;
+  return {
+    characterIndex: 0,
+    groups: layer.textAnimator.groups,
+    localTime,
+    fillColor: layer.color,
+    sourceScale,
+    strokeColor: style.strokeColor,
+    strokeWidth: style.strokeWidth,
+    units: segmentTextLayoutUnits(lines.join("\n")),
+  };
+}
+
 function drawTrackedLine(
   context: CanvasRenderingContext2D,
   text: string,
@@ -182,7 +202,11 @@ function drawTrackedLine(
 ): void {
   const glyphs = graphemes(text);
   const widths = glyphs.map((glyph) => context.measureText(glyph).width);
-  const naturalWidth = trackedWidth(text, (value) => context.measureText(value).width, tracking);
+  const naturalWidth =
+    Math.abs(tracking) < 0.000_01
+      ? context.measureText(text).width
+      : widths.reduce((total, width) => total + width, 0) +
+        Math.max(0, glyphs.length - 1) * tracking;
   const renderedWidth = naturalWidth;
   const alignedLeft =
     alignment === "left"
@@ -200,7 +224,11 @@ function drawTrackedLine(
   const states = animation ? glyphs.map((glyph) => evaluateGlyph(animation, glyph)) : undefined;
   const renderedGlyphs =
     states?.map((state, index) => replacementGlyph(state, glyphs[index])) ?? glyphs;
-  const renderedWidths = renderedGlyphs.map((glyph) => context.measureText(glyph).width);
+  const renderedWidths = renderedGlyphs.map((glyph, index) =>
+    glyph === glyphs[index]
+      ? (widths[index] ?? context.measureText(glyph).width)
+      : context.measureText(glyph).width,
+  );
   let trackingDelta = 0;
   let lineAnchorCompensation = 0;
   if (states)
@@ -292,6 +320,56 @@ function evaluateGlyph(
   );
 }
 
+/**
+ * Stable fingerprint of the glyph states a raster would draw at this time. Textures may be
+ * retained whenever the signature matches, even while the sampled animation time keeps moving.
+ */
+export function textRasterSignature(layer: Layer, localTime: number): number {
+  const style = resolveTextStyle(layer);
+  const context = textMeasureContext();
+  context.font = `${style.fontStyle ?? "normal"} ${style.fontWeight} ${style.fontSize}px ${style.fontFamily}`;
+  const lines = breakTextLines(
+    layer.text ?? layer.name,
+    layer.size[0] * 0.94,
+    (text) => context.measureText(text).width,
+    style.tracking,
+  );
+  const animation = animationCursor(layer, style, lines, localTime, 1);
+  let hash = 0x811c9dc5;
+  const fold = (value: number) => {
+    hash ^= Math.round((Number.isFinite(value) ? value : 0) * 4096);
+    hash = Math.imul(hash, 0x01000193);
+  };
+  const foldVector = (values: readonly number[] | undefined) => {
+    fold(values ? values.length : -1);
+    for (const value of values ?? []) fold(value);
+  };
+  fold(lines.length);
+  fold(animation ? 1 : -1);
+  for (const line of lines)
+    for (const glyph of graphemes(line)) {
+      fold(glyph.codePointAt(0) ?? 0);
+      if (!animation) continue;
+      const state = evaluateGlyph(animation, glyph);
+      foldVector(state.anchorPoint);
+      foldVector(state.position);
+      foldVector(state.scale);
+      foldVector(state.rotation);
+      fold(state.skew);
+      fold(state.skewAxis);
+      fold(state.opacity);
+      foldVector(state.fillColor);
+      foldVector(state.strokeColor);
+      fold(state.strokeWidth);
+      fold(state.tracking);
+      fold(state.lineAnchor);
+      foldVector(state.lineSpacing);
+      fold(state.codePoint);
+      foldVector(state.blur);
+    }
+  return hash >>> 0;
+}
+
 function replacementGlyph(
   state: EvaluatedTextAnimatorCharacter,
   original: string | undefined,
@@ -327,7 +405,8 @@ function drawAnimatedGlyph(
   context.fillStyle = cssColor(state.fillColor ?? [1, 1, 1, 1]);
   context.strokeStyle = cssColor(state.strokeColor ?? [0, 0, 0, 1]);
   context.lineWidth = state.strokeWidth * sourceScale * 2;
-  context.filter = `blur(${Math.max(state.blur[0], state.blur[1]) * sourceScale}px)`;
+  const blur = Math.max(state.blur[0], state.blur[1]) * sourceScale;
+  context.filter = blur > 0.000_01 ? `blur(${blur}px)` : "none";
   context.translate(
     cursor + glyphWidth / 2 + state.position[0] * sourceScale + lineOffsetX,
     state.position[1] * sourceScale + lineOffsetY,

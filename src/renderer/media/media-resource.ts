@@ -11,6 +11,7 @@ export interface MediaResource {
   textureHeight?: number;
   bindGroup?: GPUBindGroup;
   textBounds?: TextRasterBounds;
+  textSignature?: string;
   video?: HTMLVideoElement;
   videoCanvas?: HTMLCanvasElement;
   videoContext?: CanvasRenderingContext2D;

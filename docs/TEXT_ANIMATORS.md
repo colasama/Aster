@@ -45,8 +45,10 @@ time produces the same values during interactive preview, seeking, background re
 Randomized range order never depends on call order or frame history.
 
 Expressions are tokenized and compiled to a bounded numeric AST once per source, with a 128-entry
-LRU. Both compile and non-finite runtime failures are latched: rendering falls back to the upstream
-`selectorValue`, while the Inspector exposes the same error beside the source. Selector tracks and
+LRU. Compile failures are latched and always fall back to the upstream `selectorValue`. Runtime
+failures depend on the per-grapheme context (NaN, Infinity, out-of-domain arguments), so only that
+evaluation falls back to `selectorValue` without disabling the expression; the Inspector reports
+the same failure beside the source. Selector tracks and
 property tracks are evaluated once per selector/property object and time sample, not once per
 grapheme. Segmentation uses a bounded 64-entry/32768-unit LRU.
 

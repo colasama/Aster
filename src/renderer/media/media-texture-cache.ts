@@ -35,7 +35,11 @@ import {
   TextMotionBlurRasterCache,
   type TextMotionBlurRasterFrameStats,
 } from "../text/text-motion-blur-raster-cache";
-import { rasterizeTextLayer, textRasterResolutionScale } from "../text/text-rasterizer";
+import {
+  rasterizeTextLayer,
+  textRasterResolutionScale,
+  textRasterSignature,
+} from "../text/text-rasterizer";
 import {
   abortError,
   asError,
@@ -590,6 +594,16 @@ export class MediaTextureCache {
     const sampleRate = Number.isFinite(frameRate) ? Math.max(1, Math.min(240, frameRate)) : 60;
     const sampledAnimationTime =
       animationTime === undefined ? undefined : Math.round(animationTime * sampleRate) / sampleRate;
+    const staticSource = JSON.stringify([
+      layer.text,
+      layer.name,
+      layer.color,
+      layer.size,
+      layer.textStyle,
+      projectFontRevision(),
+      layer.textAnimator,
+      rasterScale,
+    ]);
     const source = JSON.stringify([
       layer.text,
       layer.name,
@@ -607,6 +621,13 @@ export class MediaTextureCache {
       return;
     }
     this.#frameResourceErrors.delete(instanceId);
+    // Expression and wiggly selectors keep the sampled time moving, so key the raster work on
+    // the evaluated glyph state instead: identical output reuses the existing texture.
+    const textSignature = `${staticSource}|${textRasterSignature(layer, sampledAnimationTime ?? 0).toString(36)}`;
+    if (existing?.kind === "text" && existing.texture && existing.textSignature === textSignature) {
+      existing.source = source;
+      return;
+    }
     const raster = rasterizeTextLayer(
       layer,
       Math.min(MAX_MEDIA_TEXTURE_DIMENSION, this.#device.limits.maxTextureDimension2D),
@@ -621,7 +642,12 @@ export class MediaTextureCache {
     ) {
       existing.source = source;
       existing.textBounds = raster.bounds;
-      this.#uploads.enqueue(existing.texture, raster.pixels, raster.width, raster.height);
+      existing.textSignature = textSignature;
+      this.#device.queue.copyExternalImageToTexture(
+        { source: raster.canvas },
+        { texture: existing.texture },
+        [raster.width, raster.height],
+      );
       return;
     }
     destroyMediaResource(existing);
@@ -631,15 +657,22 @@ export class MediaTextureCache {
       textureWidth: raster.width,
       textureHeight: raster.height,
       textBounds: raster.bounds,
+      textSignature,
     };
     this.#resources.set(instanceId, resource);
     const texture = this.#device.createTexture({
       label: `GPU text cache · ${layer.name}`,
       size: [raster.width, raster.height],
       format: "rgba8unorm-srgb",
-      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+      usage:
+        GPUTextureUsage.TEXTURE_BINDING |
+        GPUTextureUsage.COPY_DST |
+        GPUTextureUsage.RENDER_ATTACHMENT,
     });
-    this.#uploads.enqueue(texture, raster.pixels, raster.width, raster.height);
+    this.#device.queue.copyExternalImageToTexture({ source: raster.canvas }, { texture }, [
+      raster.width,
+      raster.height,
+    ]);
     resource.texture = texture;
     resource.textureBytes = raster.width * raster.height * 4;
     resource.bindGroup = this.#createBindGroup(texture, `GPU text resources · ${layer.id}`);

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createLayerForComposition } from "../../core/layers/layer-factory";
 import { createBlankComposition } from "../../core/project/project";
-import type { FootageSource } from "../../core/types";
+import { type FootageSource, staticValue } from "../../core/types";
 import { mediaImportRuntime } from "../../importers/media-import-runtime";
 import { MediaTextureCache, svgPreviewRasterTarget } from "./media-texture-cache";
 
@@ -301,7 +301,11 @@ describe("exact-frame media resource barrier", () => {
     const textures: Array<{ destroy: ReturnType<typeof vi.fn> }> = [];
     const device = {
       limits: { maxTextureDimension2D: 8_192, maxBufferSize: 1_073_741_824 },
-      queue: { writeBuffer: vi.fn(), writeTexture: vi.fn() },
+      queue: {
+        copyExternalImageToTexture: vi.fn(),
+        writeBuffer: vi.fn(),
+        writeTexture: vi.fn(),
+      },
       createTexture: vi.fn(() => {
         const texture = { createView: vi.fn(() => ({})), destroy: vi.fn() };
         textures.push(texture);
@@ -321,17 +325,15 @@ describe("exact-frame media resource barrier", () => {
     layer.text = "Before";
     cache.prepareText(layer, "inline-text", 0, 24);
     const beforeBindGroup = cache.bindGroup("inline-text");
-    const copyBufferToTexture = vi.fn();
-    const encoder = { copyBufferToTexture } as unknown as GPUCommandEncoder;
-    cache.flush(encoder);
+    expect(device.queue.copyExternalImageToTexture).toHaveBeenCalledTimes(1);
+    cache.flush({ copyBufferToTexture: vi.fn() } as unknown as GPUCommandEncoder);
     cache.submitted();
 
     const segment = vi.spyOn(Intl.Segmenter.prototype, "segment");
     try {
       for (const time of [1 / 24, 0.5, 1]) cache.prepareText(layer, "inline-text", time, 24);
-      cache.flush(encoder);
       expect(segment).not.toHaveBeenCalled();
-      expect(copyBufferToTexture).toHaveBeenCalledTimes(1);
+      expect(device.queue.copyExternalImageToTexture).toHaveBeenCalledTimes(1);
       expect(cache.bindGroup("inline-text")).toBe(beforeBindGroup);
     } finally {
       segment.mockRestore();
@@ -343,13 +345,86 @@ describe("exact-frame media resource barrier", () => {
     expect(textures).toHaveLength(1);
     expect(textures[0].destroy).not.toHaveBeenCalled();
     expect(cache.bindGroup("inline-text")).toBe(beforeBindGroup);
-    cache.flush(encoder);
-    expect(copyBufferToTexture).toHaveBeenCalledTimes(2);
+    expect(device.queue.copyExternalImageToTexture).toHaveBeenCalledTimes(2);
 
     layer.size = [9, 4];
     cache.prepareText(layer, "inline-text", 0, 24);
     expect(textures).toHaveLength(2);
     expect(textures[0].destroy).toHaveBeenCalledTimes(1);
+  });
+
+  it("retains the text texture while a time-varying selector output is unchanged", () => {
+    const fillText = vi.fn();
+    class SignatureCanvas extends MockTextCanvas {
+      getContext(): CanvasRenderingContext2D {
+        const context = super.getContext() as unknown as Record<string, unknown>;
+        context.fillText = fillText;
+        return context as unknown as CanvasRenderingContext2D;
+      }
+    }
+    vi.stubGlobal("document", {
+      createElement: (name: string) => {
+        if (name !== "canvas") throw new Error(`Unexpected element ${name}`);
+        return new SignatureCanvas();
+      },
+    });
+    const device = {
+      limits: { maxTextureDimension2D: 8_192, maxBufferSize: 1_073_741_824 },
+      queue: {
+        copyExternalImageToTexture: vi.fn(),
+        writeBuffer: vi.fn(),
+        writeTexture: vi.fn(),
+      },
+      createTexture: vi.fn(() => ({ createView: vi.fn(() => ({})), destroy: vi.fn() })),
+      createBuffer: vi.fn(() => ({ destroy: vi.fn() })),
+      createBindGroup: vi.fn(() => ({})),
+    } as unknown as GPUDevice;
+    const cache = new MediaTextureCache(
+      device,
+      {} as GPUBindGroupLayout,
+      {} as GPUSampler,
+      vi.fn(),
+    );
+    const layer = createLayerForComposition("text", createBlankComposition());
+    layer.size = [200, 50];
+    layer.text = "AB";
+    layer.textAnimator = {
+      enabled: true,
+      groups: [
+        {
+          id: "expression-group",
+          name: "Expression",
+          enabled: true,
+          randomSeed: 0,
+          selectors: [
+            {
+              id: "expression-selector",
+              name: "Expression Selector 1",
+              kind: "expression",
+              enabled: true,
+              mode: "add",
+              amount: staticValue(100),
+              basedOn: "characters",
+              expression: "min(time, 1)",
+            },
+          ],
+          properties: {
+            position: [staticValue(50), staticValue(0), staticValue(0)],
+          },
+        },
+      ],
+    };
+
+    cache.prepareText(layer, "expression-text", 0, 24);
+    cache.prepareText(layer, "expression-text", 0.5, 24);
+    cache.prepareText(layer, "expression-text", 1, 24);
+    // min(time, 1) settles at t >= 1, so the evaluated glyph states stop changing and the
+    // raster signature short-circuits redraw, upload, and segmentation for later samples.
+    cache.prepareText(layer, "expression-text", 1.5, 24);
+    cache.prepareText(layer, "expression-text", 2, 24);
+
+    expect(fillText).toHaveBeenCalledTimes(6);
+    expect(device.queue.copyExternalImageToTexture).toHaveBeenCalledTimes(3);
   });
 
   it("lazily encodes exact text samples and releases their transient generation after submit", () => {

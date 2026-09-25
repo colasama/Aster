@@ -321,9 +321,11 @@ alpha-correct blending; no third color surface or CPU readback is required. See
 uniform and operation buffers remain distinct so queue uploads cannot race command-buffer execution;
 the large textures do not scale with the number of effected layers.
 
-Text uses a retained raster cache: glyphs are shaped by the platform canvas only when text, color, or
-source dimensions change, uploaded as an sRGB texture, and thereafter transformed, effected, blended,
-precomposed, and exported by the same GPU path as image layers. Canvas 2D draws the same text model in
+Text uses a retained raster cache keyed by evaluated glyph state: the platform canvas reshapes
+glyphs only when the raster signature changes, so expression- and wiggly-driven animation that has
+settled reuses the resident texture instead of rerasterizing per frame. The raster canvas uploads
+through `queue.copyExternalImageToTexture` into an sRGB texture and is thereafter transformed,
+effected, blended, precomposed, and exported by the same GPU path as image layers. Canvas 2D draws the same text model in
 compatibility mode. The paragraph box controls wrapping and alignment, while measured glyph ink
 (including animator transforms, stroke, and blur) expands the raster and GPU quad without moving the
 layer anchor. Text is neither clipped to the box nor horizontally squeezed to fit it. Temporal text
