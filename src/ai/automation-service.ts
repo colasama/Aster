@@ -11,7 +11,9 @@ import type { Project } from "../core/types";
 import { desktopRenderQueue } from "../desktop/api";
 import {
   createRenderQueueJobAsync,
+  defaultRenderOutputOptions,
   type RenderQueueOutputKind,
+  type RenderQueueOutputOptions,
   type RenderQueueRange,
 } from "../render-queue/render-job-builder";
 import { type EditorState, isProjectDirty } from "../state/editor-store";
@@ -232,19 +234,21 @@ export class AutomationApplicationService {
         ? state.project.compositions.find((item) => item.id === input.compositionId)
         : activeComposition(state.project);
       if (!composition) throw new Error("Unknown export composition");
+      const kind = input.outputKind as RenderQueueOutputKind;
+      const output: RenderQueueOutputOptions =
+        kind === "mp4"
+          ? { ...defaultRenderOutputOptions("mp4"), includeAudio: input.includeAudio === true }
+          : defaultRenderOutputOptions(kind);
       const manifest = await createRenderQueueJobAsync({
         antiAliasing: state.antiAliasing,
         project: state.project,
         projectRevision: state.projectRevision,
         composition,
-        outputKind: input.outputKind as RenderQueueOutputKind,
+        output,
         destination: input.path as string,
         range: (input.range as RenderQueueRange | undefined) ?? "composition",
         currentTime: (input.time as number | undefined) ?? state.currentTime,
       });
-      if (input.includeAudio)
-        for (const output of manifest.outputs)
-          if (output.kind === "mp4") output.includeAudio = true;
       manifest.id = crypto.randomUUID();
       this.#assertRevision(input.baseRevision, session.projectId, signal);
       const queue = await desktopRenderQueue().enqueue(manifest);

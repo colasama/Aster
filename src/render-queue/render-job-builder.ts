@@ -13,16 +13,52 @@ import {
 } from "./render-media-manifest";
 
 export type RenderQueueOutputKind = "mp4" | "pngSequence" | "still";
-export type RenderQueueRange = "workArea" | "composition" | "currentFrame";
+export type RenderQueueRange = "workArea" | "composition" | "currentFrame" | "custom";
+
+export const DEFAULT_MP4_BITRATE_MBPS = 20;
+export const DEFAULT_SEQUENCE_PATTERN = "frame_[######].png";
+
+export type RenderQueueOutputOptions =
+  | { readonly kind: "mp4"; readonly bitrateMbps: number; readonly includeAudio: boolean }
+  | { readonly kind: "pngSequence"; readonly fileNamePattern: string }
+  | { readonly kind: "still"; readonly format: "png" };
+
+export interface RenderQueueCustomRange {
+  /** Seconds. */
+  readonly start: number;
+  /** Seconds; exclusive, clamped to the composition duration. */
+  readonly end: number;
+}
+
+export function defaultRenderOutputOptions(
+  kind: "mp4",
+): Extract<RenderQueueOutputOptions, { kind: "mp4" }>;
+export function defaultRenderOutputOptions(kind: RenderQueueOutputKind): RenderQueueOutputOptions;
+export function defaultRenderOutputOptions(kind: RenderQueueOutputKind): RenderQueueOutputOptions {
+  if (kind === "mp4") return { kind, bitrateMbps: DEFAULT_MP4_BITRATE_MBPS, includeAudio: false };
+  if (kind === "pngSequence") return { kind, fileNamePattern: DEFAULT_SEQUENCE_PATTERN };
+  return { kind, format: "png" };
+}
+
+export function isValidSequencePattern(pattern: string): boolean {
+  const lowered = pattern.trim().toLowerCase();
+  return (
+    lowered.length > 4 &&
+    lowered.endsWith(".png") &&
+    !/[\\/]/.test(pattern) &&
+    (pattern.match(/\[(#+)\]/g) ?? []).length <= 1
+  );
+}
 
 export interface RenderQueueJobOptions {
   readonly antiAliasing?: import("../core/rendering/anti-aliasing").AntiAliasingMode;
   readonly composition: Composition;
   readonly project: Project;
   readonly projectRevision: number;
-  readonly outputKind: RenderQueueOutputKind;
+  readonly output: RenderQueueOutputOptions;
   readonly destination: string;
   readonly range: RenderQueueRange;
+  readonly customRange?: RenderQueueCustomRange;
   readonly currentTime: number;
 }
 
@@ -75,9 +111,22 @@ function createJobWithSnapshot(
   if (projectSnapshot.length + renderMediaSnapshot.length > MAX_RENDER_SNAPSHOT_BYTES / 2)
     throw new Error("Render project and media snapshots exceed the supported job limit");
   const composition = compositionFromProject(options.project, options.composition.id);
-  const frameRange = resolveFrameRange(composition, options.range, options.currentTime);
-  if (options.outputKind === "mp4" && (composition.width % 2 !== 0 || composition.height % 2 !== 0))
+  const frameRange = resolveFrameRange(
+    composition,
+    options.range,
+    options.currentTime,
+    options.customRange,
+  );
+  if (
+    options.output.kind === "mp4" &&
+    (composition.width % 2 !== 0 || composition.height % 2 !== 0)
+  )
     throw new Error("H.264 output dimensions must be even");
+  if (
+    options.output.kind === "pngSequence" &&
+    !isValidSequencePattern(options.output.fileNamePattern)
+  )
+    throw new Error("PNG sequence file name must be a plain .png file name");
   return {
     compositionId: composition.id,
     compositionName: composition.name,
@@ -90,7 +139,7 @@ function createJobWithSnapshot(
     frameRate: { ...composition.frameRate },
     startFrame: frameRange.start,
     endFrameExclusive: frameRange.end,
-    outputs: [createOutput(options.outputKind, options.destination, frameRange.start)],
+    outputs: [createOutput(options.output, options.destination, frameRange.start)],
   };
 }
 
@@ -119,9 +168,18 @@ function resolveFrameRange(
   composition: Composition,
   range: RenderQueueRange,
   currentTime: number,
+  customRange?: RenderQueueCustomRange,
 ): { start: number; end: number } {
   const rate = composition.frameRate.numerator / composition.frameRate.denominator;
   const total = Math.max(1, Math.ceil(composition.duration * rate - 1e-9));
+  if (range === "custom") {
+    const start = Math.max(0, Math.min(total - 1, Math.round((customRange?.start ?? 0) * rate)));
+    const end = Math.max(
+      start + 1,
+      Math.min(total, Math.round((customRange?.end ?? composition.duration) * rate)),
+    );
+    return { start, end };
+  }
   if (range === "currentFrame") {
     const frame = Math.max(0, Math.min(total - 1, Math.floor(currentTime * rate + 1e-9)));
     return { start: frame, end: frame + 1 };
@@ -133,21 +191,21 @@ function resolveFrameRange(
 }
 
 function createOutput(
-  kind: RenderQueueOutputKind,
+  output: RenderQueueOutputOptions,
   destination: string,
   startFrame: number,
 ): RenderOutputModule {
   const id = createId();
-  if (kind === "mp4")
+  if (output.kind === "mp4")
     return {
       id,
-      kind,
+      kind: "mp4",
       destination,
       codec: "h264",
-      bitrateMbps: 20,
-      includeAudio: false,
+      bitrateMbps: Math.min(Math.max(output.bitrateMbps, 0.1), 1_000),
+      includeAudio: output.includeAudio,
     };
-  if (kind === "pngSequence")
-    return { id, kind, destination, fileNamePattern: "frame_[######].png" };
-  return { id, kind, destination, format: "png", frame: startFrame };
+  if (output.kind === "pngSequence")
+    return { id, kind: "pngSequence", destination, fileNamePattern: output.fileNamePattern };
+  return { id, kind: "still", destination, format: output.format, frame: startFrame };
 }

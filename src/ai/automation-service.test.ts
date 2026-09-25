@@ -89,7 +89,7 @@ describe("external editor transactions", () => {
       project: f.state().project,
       composition: f.state().project.compositions[0],
       projectRevision: 0,
-      outputKind: "mp4",
+      output: { kind: "mp4", bitrateMbps: 20, includeAudio: false },
       destination: "output.mp4",
       range: "composition",
       currentTime: 0,

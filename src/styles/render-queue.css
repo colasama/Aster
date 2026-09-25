@@ -249,7 +249,8 @@
   margin-bottom: 3px;
 }
 
-.render-queue-add select {
+.render-queue-add select,
+.render-queue-add input:not([type="checkbox"]) {
   width: 100%;
   height: 25px;
   padding: 0 5px;
@@ -258,6 +259,18 @@
 
 .render-queue-add select:focus {
   border-color: var(--blue-bright);
+}
+
+.render-queue-add label.render-queue-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  align-self: end;
+  min-height: 25px;
+}
+
+.render-queue-add label.render-queue-check span {
+  margin-bottom: 0;
 }
 
 .render-queue-add-actions {

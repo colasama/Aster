@@ -19,7 +19,7 @@ function options(): RenderQueueJobOptions {
     project,
     composition,
     projectRevision: 7,
-    outputKind: "mp4",
+    output: { kind: "mp4", bitrateMbps: 20, includeAudio: false },
     destination: "C:\\renders\\parity.mp4",
     range: "composition",
     currentTime: 0,
