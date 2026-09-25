@@ -114,7 +114,9 @@ lights the shader skips the additional-light loop. Lights beyond the first eight
 
 Font rendering uses Chromium's shaping/rasterization. A dedicated editor-only preload call obtains
 the native Local Font Access inventory; the main process runs a fixed enumeration expression and
-permits `local-fonts` only for the editor window. MCP lists bounded font metadata, reads effective
+permits `local-fonts` and `clipboard-sanitized-write` only for the editor window; installing
+permission handlers denies every unlisted renderer permission, so clipboard writes must be
+explicitly allowed. MCP lists bounded font metadata, reads effective
 text styles, patches selected style fields and imports bounded local font files. Imported bytes are
 project resources, decoded before an undoable commit; no OS font installation occurs.
 Project-owned `FontFace` instances are prepared asynchronously and activated for the project being

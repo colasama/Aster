@@ -40,6 +40,7 @@ import {
 import { startAutomationHost } from "./automation-host.js";
 import { AutomationSettingsController } from "./automation-settings.js";
 import { createDiagnosticBundle, writeDiagnosticBundle } from "./diagnostics.js";
+import { registerEditorPermissions } from "./editor-permissions.js";
 import { registerFontAccess } from "./font-access.js";
 import { fullAccessDesktopBridgeRequest } from "./full-access-aster-tools.js";
 import { describeFullAccessTarget, FullAccessToolService } from "./full-access-tools.js";
@@ -1359,13 +1360,7 @@ if (hasSingleInstanceLock)
       registerIpc(logger, preferences, renderQueueManager, renderMediaSnapshots);
       renderHostController.registerIpc();
       registerFontAccess(() => primaryWindow);
-      session.defaultSession.setPermissionCheckHandler(
-        (contents, permission) =>
-          String(permission) === "local-fonts" && contents === primaryWindow?.webContents,
-      );
-      session.defaultSession.setPermissionRequestHandler((contents, permission, callback) => {
-        callback(String(permission) === "local-fonts" && contents === primaryWindow?.webContents);
-      });
+      registerEditorPermissions(session.defaultSession, () => primaryWindow);
       await renderQueueManager.startScheduler(renderHostController, 1);
       await createWindow(logger, preferences);
       automationSettings = new AutomationSettingsController({
