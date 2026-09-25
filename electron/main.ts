@@ -871,6 +871,9 @@ function registerIpc(
       filters: filters(input.filters),
       properties: [input.directory === true ? "openDirectory" : "openFile"],
     };
+    // macOS hides the New Folder button unless canCreateDirectories is set; folder pickers
+    // double as destination pickers (unpack parent, project save folder), so creation is needed.
+    if (input.directory === true) options.properties?.push("createDirectory");
     if (input.multiple === true) options.properties?.push("multiSelections");
     const window = BrowserWindow.getFocusedWindow();
     const result = window
