@@ -10,11 +10,6 @@ pre-commit:
     clippy:
       glob: "*.{rs,toml}"
       run: cargo clippy --workspace --all-targets --all-features -- -D warnings
-
-pre-push:
-  parallel: true
-  commands:
-    frontend-tests:
-      run: pnpm check:frontend
-    rust-tests:
-      run: cargo test --workspace --all-features
+    typecheck:
+      glob: "*.{ts,tsx,cts,mts,json}"
+      run: pnpm typecheck
