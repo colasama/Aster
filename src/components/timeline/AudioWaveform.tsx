@@ -1,19 +1,15 @@
-import { useEffect, useRef } from "react";
+import { type CSSProperties, useEffect, useRef } from "react";
 import { sharedAudioPlaybackEngine } from "../../core/audio/audio-playback-engine";
 import type { FootageSource, Layer } from "../../core/types";
+import { useTimelineSettledPixelsPerSecond } from "./timeline-zoom-store";
 
-export function AudioWaveform({
-  layer,
-  pixelsPerSecond,
-  source,
-}: {
-  layer: Layer;
-  pixelsPerSecond: number;
-  source: FootageSource;
-}) {
+export function AudioWaveform({ layer, source }: { layer: Layer; source: FootageSource }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const duration = Math.max(1 / 240, layer.outPoint - layer.inPoint);
-  const width = Math.max(1, Math.round(duration * pixelsPerSecond));
+  // The element stretches through `--timeline-pps` during a zoom gesture; the
+  // bitmap is only re-rendered once the gesture settles at its final width.
+  const settledScale = useTimelineSettledPixelsPerSecond();
+  const width = Math.max(1, Math.round(duration * settledScale));
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -23,7 +19,7 @@ export function AudioWaveform({
       .waveformPeaks(source, binCount, controller.signal)
       .then((peaks) => {
         if (controller.signal.aborted) return;
-        drawWaveform(canvas, peaks, layer.audio?.reversed === true);
+        drawWaveform(canvas, peaks, layer.audio?.reversed === true, width);
       })
       .catch(() => undefined);
     return () => controller.abort();
@@ -32,7 +28,12 @@ export function AudioWaveform({
     <canvas
       className="timeline-audio-waveform"
       ref={canvasRef}
-      style={{ left: layer.inPoint * pixelsPerSecond, width }}
+      style={
+        {
+          "--timeline-t": layer.inPoint,
+          "--timeline-d": duration,
+        } as CSSProperties
+      }
     />
   );
 }
@@ -42,8 +43,12 @@ function waveformBinCount(width: number): number {
   return 2 ** Math.round(Math.log2(target));
 }
 
-function drawWaveform(canvas: HTMLCanvasElement, peaks: Float32Array, reversed: boolean): void {
-  const logicalWidth = Math.max(1, Math.round(canvas.getBoundingClientRect().width));
+function drawWaveform(
+  canvas: HTMLCanvasElement,
+  peaks: Float32Array,
+  reversed: boolean,
+  logicalWidth: number,
+): void {
   const logicalHeight = 28;
   const scale = Math.max(1, Math.min(2, globalThis.devicePixelRatio || 1));
   canvas.width = Math.round(logicalWidth * scale);

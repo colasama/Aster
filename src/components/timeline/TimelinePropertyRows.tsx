@@ -24,7 +24,6 @@ export function TimelinePropertyRows({
   keyframeTimePreview,
   layer,
   onKeyframeTimePreview,
-  pixelsPerSecond,
   startPointerDrag,
   timelineTargets,
   collapsedGroups: controlledGroups,
@@ -35,7 +34,6 @@ export function TimelinePropertyRows({
   keyframeTimePreview?: KeyframeTimePreview;
   layer: Layer;
   onKeyframeTimePreview: (preview?: KeyframeTimePreview) => void;
-  pixelsPerSecond: number;
   startPointerDrag: StartWindowPointerDrag;
   timelineTargets: TimelineSnapTargets;
   collapsedGroups?: ReadonlySet<string>;
@@ -174,7 +172,6 @@ export function TimelinePropertyRows({
                   frameDuration={frameDuration}
                   key={`${trackId}:${entry.keyframe.id}`}
                   onPreview={onKeyframeTimePreview}
-                  pixelsPerSecond={pixelsPerSecond}
                   preview={keyframeTimePreview}
                   startPointerDrag={startPointerDrag}
                   timelineTargets={timelineTargets}
@@ -233,7 +230,6 @@ export function TimelinePropertyRows({
                           frameDuration={frameDuration}
                           key={keyframe.id}
                           onPreview={onKeyframeTimePreview}
-                          pixelsPerSecond={pixelsPerSecond}
                           preview={keyframeTimePreview}
                           startPointerDrag={startPointerDrag}
                           timelineTargets={timelineTargets}

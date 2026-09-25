@@ -1,4 +1,4 @@
-import type { PointerEvent as ReactPointerEvent } from "react";
+import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import type { Layer } from "../../core/types";
 import { useI18n } from "../../i18n/react";
 import type { LayerTimingDrag } from "./timeline-interactions";
@@ -6,12 +6,10 @@ import type { LayerTimingDrag } from "./timeline-interactions";
 export function LayerTimingBar({
   layer,
   onDragStart,
-  pixelsPerSecond,
   timing,
 }: {
   layer: Layer;
   onDragStart: (event: ReactPointerEvent, mode: LayerTimingDrag) => void;
-  pixelsPerSecond: number;
   timing?: { inPoint: number; outPoint: number };
 }) {
   const { t } = useI18n();
@@ -26,10 +24,12 @@ export function LayerTimingBar({
     <div
       className={`layer-bar kind-${layer.kind}`}
       onPointerDown={(event) => startDrag(event, "move")}
-      style={{
-        left: displayed.inPoint * pixelsPerSecond,
-        width: Math.max(2, (displayed.outPoint - displayed.inPoint) * pixelsPerSecond),
-      }}
+      style={
+        {
+          "--timeline-t": displayed.inPoint,
+          "--timeline-d": displayed.outPoint - displayed.inPoint,
+        } as CSSProperties
+      }
       title={t("layerTiming.moveHint", { name: layer.name })}
     >
       <button

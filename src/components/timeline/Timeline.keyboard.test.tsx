@@ -11,6 +11,7 @@ import { EditorProvider, useEditor } from "../../state/editor-store";
 import { useWorkspaceController } from "../../workspace/workspace-controller";
 import { DockWorkspace } from "../workspace/DockWorkspace";
 import { WorkspaceTimelineSurface } from "../workspace/WorkspacePanelSurfaces";
+import { timelineZoomStore } from "./timeline-zoom-store";
 
 let root: Root;
 let editor: ReturnType<typeof useEditor>;
@@ -30,6 +31,7 @@ beforeEach(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
   window.localStorage.clear();
   window.localStorage.setItem("aster.locale", "en-US");
+  timelineZoomStore.set(1);
   const project = createBlankProject();
   const composition = activeComposition(project);
   const layer = createLayerForComposition("solid", composition);
@@ -161,27 +163,27 @@ it("zooms around the playhead and restores both scale and scroll after fitting",
   scroll.scrollLeft = 120;
   const playheadX = 4 * 82 - scroll.scrollLeft;
   press("=");
-  expect(editor.state.timelineZoom).toBe(1.25);
-  expect(4 * 82 * editor.state.timelineZoom - scroll.scrollLeft).toBeCloseTo(playheadX);
+  expect(timelineZoomStore.get()).toBe(1.25);
+  expect(4 * 82 * timelineZoomStore.get() - scroll.scrollLeft).toBeCloseTo(playheadX);
   const previousScroll = scroll.scrollLeft;
   press(":", { code: "Semicolon", shiftKey: true });
   expect(scroll.scrollLeft).toBe(0);
   expect(
-    editor.state.timelineZoom * 82 * activeComposition(editor.state.project).duration,
+    timelineZoomStore.get() * 82 * activeComposition(editor.state.project).duration,
   ).toBeCloseTo(1000 - 286);
   press(":", { code: "Semicolon", shiftKey: true });
-  expect(editor.state.timelineZoom).toBe(1.25);
+  expect(timelineZoomStore.get()).toBe(1.25);
   expect(scroll.scrollLeft).toBeCloseTo(previousScroll);
   press(";", { code: "Semicolon" });
-  expect(editor.state.timelineZoom).toBeCloseTo((24 * 30) / 82);
+  expect(timelineZoomStore.get()).toBeCloseTo((24 * 30) / 82);
   press("d");
-  expect(4 * 82 * editor.state.timelineZoom - scroll.scrollLeft).toBeCloseTo((1000 - 286) / 2);
+  expect(4 * 82 * timelineZoomStore.get() - scroll.scrollLeft).toBeCloseTo((1000 - 286) / 2);
   press(";", { code: "Semicolon" });
   expect(scroll.scrollLeft).toBe(0);
   expect(editor.state.history.past).toHaveLength(0);
 });
 
-it("anchors Alt-wheel zoom to the pointer, pans with Shift, and leaves normal scrolling native", () => {
+it("anchors Alt-wheel zoom to the pointer, pans with Shift, and leaves normal scrolling native", async () => {
   const scroll = document.querySelector<HTMLDivElement>(".timeline-scroll");
   if (!scroll) throw new Error("Missing timeline");
   scroll.scrollLeft = 100;
@@ -207,15 +209,16 @@ it("anchors Alt-wheel zoom to the pointer, pans with Shift, and leaves normal sc
     return event;
   };
   expect(wheel({ altKey: true }).defaultPrevented).toBe(true);
-  expect((scroll.scrollLeft + 500 - 286) / (82 * editor.state.timelineZoom)).toBeCloseTo(
-    anchorTime,
-  );
+  await act(async () => {
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+  });
+  expect((scroll.scrollLeft + 500 - 286) / (82 * timelineZoomStore.get())).toBeCloseTo(anchorTime);
   const previous = scroll.scrollLeft;
   expect(wheel({ shiftKey: true, deltaY: 3, deltaMode: 1 }).defaultPrevented).toBe(true);
   expect(scroll.scrollLeft).toBe(previous + 48);
-  const zoom = editor.state.timelineZoom;
+  const zoom = timelineZoomStore.get();
   expect(wheel({}).defaultPrevented).toBe(false);
-  expect(editor.state.timelineZoom).toBe(zoom);
+  expect(timelineZoomStore.get()).toBe(zoom);
 });
 
 it("does not steal zoom shortcuts from text entry, modifiers, or modal surfaces", () => {
@@ -235,5 +238,5 @@ it("does not steal zoom shortcuts from text entry, modifiers, or modal surfaces"
   dialog.setAttribute("aria-modal", "true");
   document.body.append(dialog);
   press("=");
-  expect(editor.state.timelineZoom).toBe(1);
+  expect(timelineZoomStore.get()).toBe(1);
 });

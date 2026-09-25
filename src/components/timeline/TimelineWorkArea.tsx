@@ -1,4 +1,10 @@
-import { type PointerEvent as ReactPointerEvent, useEffect, useRef, useState } from "react";
+import {
+  type CSSProperties,
+  type PointerEvent as ReactPointerEvent,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { useI18n } from "../../i18n/react";
 import type { StartWindowPointerDrag } from "../use-window-pointer-drag";
 import {
@@ -6,6 +12,7 @@ import {
   setWorkAreaBoundary,
   type TimelineWorkArea as TimelineWorkAreaValue,
 } from "./timeline-interactions";
+import { timelinePixelsPerSecond } from "./timeline-zoom-store";
 
 type WorkAreaDrag = "start" | "move" | "end";
 
@@ -13,14 +20,12 @@ export function TimelineWorkArea({
   duration,
   frameDuration,
   onChange,
-  pixelsPerSecond,
   startPointerDrag,
   value,
 }: {
   duration: number;
   frameDuration: number;
   onChange: (value: TimelineWorkAreaValue) => void;
-  pixelsPerSecond: number;
   startPointerDrag: StartWindowPointerDrag;
   value: TimelineWorkAreaValue;
 }) {
@@ -39,6 +44,7 @@ export function TimelineWorkArea({
     event.preventDefault();
     event.stopPropagation();
     const startX = event.clientX;
+    const pixelsPerSecond = timelinePixelsPerSecond();
     const initial = displayed;
     let next = initial;
     startPointerDrag(event.pointerId, {
@@ -69,10 +75,12 @@ export function TimelineWorkArea({
   return (
     <div
       className="work-area"
-      style={{
-        left: displayed.start * pixelsPerSecond,
-        width: Math.max(2, (displayed.end - displayed.start) * pixelsPerSecond),
-      }}
+      style={
+        {
+          "--timeline-t": displayed.start,
+          "--timeline-d": displayed.end - displayed.start,
+        } as CSSProperties
+      }
     >
       <button
         aria-label={t("timeline.workArea.start")}

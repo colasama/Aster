@@ -64,7 +64,6 @@ export function TimelineLayerRow({
   onContextMenuKeyDown,
   onMarqueeStart,
   onTimingDragStart,
-  pixelsPerSecond,
   selected,
   startPointerDrag,
   timelineTargets,
@@ -83,7 +82,6 @@ export function TimelineLayerRow({
   onContextMenuKeyDown: (event: ReactKeyboardEvent<HTMLDivElement>) => void;
   onMarqueeStart: (event: ReactPointerEvent) => void;
   onTimingDragStart: (event: ReactPointerEvent, mode: LayerTimingDrag) => void;
-  pixelsPerSecond: number;
   selected: boolean;
   startPointerDrag: StartWindowPointerDrag;
   timelineTargets: TimelineSnapTargets;
@@ -172,14 +170,9 @@ export function TimelineLayerRow({
         {state.showLayerControls && <LayerSwitches layer={layer} />}
       </div>
       <div className="layer-track" onPointerDown={onMarqueeStart} style={{ left: LABEL_WIDTH }}>
-        <LayerTimingBar
-          layer={layer}
-          onDragStart={onTimingDragStart}
-          pixelsPerSecond={pixelsPerSecond}
-          timing={timing}
-        />
+        <LayerTimingBar layer={layer} onDragStart={onTimingDragStart} timing={timing} />
         {audioSource && (layer.kind === "audio" || layer.kind === "video") && (
-          <AudioWaveform layer={layer} pixelsPerSecond={pixelsPerSecond} source={audioSource} />
+          <AudioWaveform layer={layer} source={audioSource} />
         )}
         {keyframes.map((entry) => (
           <TimelineKeyframe
@@ -189,7 +182,6 @@ export function TimelineLayerRow({
             frameDuration={frameDuration}
             key={`${entry.source}:${entry.keyframe.id}`}
             onPreview={onKeyframeTimePreview}
-            pixelsPerSecond={pixelsPerSecond}
             preview={keyframeTimePreview}
             startPointerDrag={startPointerDrag}
             timelineTargets={timelineTargets}
@@ -212,7 +204,6 @@ export function TimelineLayerRow({
           keyframeTimePreview={keyframeTimePreview}
           layer={layer}
           onKeyframeTimePreview={onKeyframeTimePreview}
-          pixelsPerSecond={pixelsPerSecond}
           startPointerDrag={startPointerDrag}
           timelineTargets={timelineTargets}
         />

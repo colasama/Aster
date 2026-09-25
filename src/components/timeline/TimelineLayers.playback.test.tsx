@@ -9,6 +9,7 @@ import { EditorProvider, useEditor } from "../../state/editor-store";
 import type { WindowPointerDragCallbacks } from "../use-window-pointer-drag";
 import { type TimelineLayerActions, TimelineLayers } from "./TimelineLayers";
 import { buildTimelineSnapTargets } from "./timeline-interactions";
+import { timelineZoomStore } from "./timeline-zoom-store";
 
 const renders = vi.hoisted(() => vi.fn());
 vi.mock("./TimelineLayerRow", async (original) => {
@@ -49,7 +50,6 @@ function Harness() {
   return (
     <TimelineLayers
       composition={composition}
-      pixelsPerSecond={100}
       onKeyframeTimePreview={preview}
       startPointerDrag={startDrag}
       actions={actions}
@@ -65,6 +65,7 @@ afterEach(() => {
   preview.mockClear();
   menuTimes.length = 0;
   gesture = undefined;
+  timelineZoomStore.set(1);
 });
 
 describe("stationary timeline during playback", () => {
@@ -98,6 +99,7 @@ describe("stationary timeline during playback", () => {
     expect(menuTimes).toEqual([playhead]);
     const marker = host.querySelector<HTMLButtonElement>(".keyframe");
     if (!marker) throw new Error("Expected a keyframe");
+    act(() => timelineZoomStore.set(100 / 82));
     act(() =>
       marker.dispatchEvent(
         new PointerEvent("pointerdown", { bubbles: true, button: 0, pointerId: 1, clientX: 0 }),

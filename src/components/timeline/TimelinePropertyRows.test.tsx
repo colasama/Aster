@@ -44,7 +44,6 @@ describe("timeline property rows", () => {
               frameDuration={composition.frameRate.denominator / composition.frameRate.numerator}
               layer={layer}
               onKeyframeTimePreview={() => undefined}
-              pixelsPerSecond={82}
               startPointerDrag={() => undefined}
               timelineTargets={[]}
             />
@@ -85,7 +84,9 @@ describe("timeline property rows", () => {
       ?.querySelector(".timeline-property-group-track");
     expect(transformGroupTrack?.querySelectorAll(".keyframe").length).toBe(8);
     expect(exposureGroupTrack?.querySelectorAll(".keyframe").length).toBe(1);
-    expect(exposureGroupTrack?.querySelector(".keyframe")?.getAttribute("style")).toContain("82px");
+    expect(exposureGroupTrack?.querySelector(".keyframe")?.getAttribute("style")).toContain(
+      "--timeline-t: 1",
+    );
 
     act(() => transformToggle?.click());
     expect(transformToggle?.getAttribute("aria-expanded")).toBe("false");

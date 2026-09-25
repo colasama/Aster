@@ -1,4 +1,4 @@
-import type { PointerEvent as ReactPointerEvent } from "react";
+import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import {
   type EditableKeyframe,
   selectedKeyframes as findSelectedKeyframes,
@@ -11,6 +11,7 @@ import { useEditorDocument } from "../../state/editor-store";
 import type { StartWindowPointerDrag } from "../use-window-pointer-drag";
 import { excludeTimelineSnapTargets, type TimelineSnapTargets } from "./timeline-interactions";
 import type { KeyframeTimePreview } from "./timeline-property-tracks";
+import { timelinePixelsPerSecond } from "./timeline-zoom-store";
 
 export type TimelineKeyframeEntry = EditableKeyframe & { label: string };
 
@@ -20,7 +21,6 @@ export function TimelineKeyframe({
   entry,
   frameDuration,
   onPreview,
-  pixelsPerSecond,
   preview,
   startPointerDrag,
   timelineTargets,
@@ -31,7 +31,6 @@ export function TimelineKeyframe({
   entry: TimelineKeyframeEntry;
   frameDuration: number;
   onPreview: (preview?: KeyframeTimePreview) => void;
-  pixelsPerSecond: number;
   preview?: KeyframeTimePreview;
   startPointerDrag: StartWindowPointerDrag;
   timelineTargets: TimelineSnapTargets;
@@ -76,14 +75,13 @@ export function TimelineKeyframe({
           entry,
           frameDuration,
           onPreview,
-          pixelsPerSecond,
           selectedKeyframeIds: state.selectedKeyframes,
           startPointerDrag,
           stateProject: state.project,
           timelineTargets,
         })
       }
-      style={{ left: displayTime * pixelsPerSecond }}
+      style={{ "--timeline-t": displayTime } as CSSProperties}
       title={t("keyframe.dragHint", {
         label: entry.label,
         time: displayTime.toFixed(2),
@@ -105,7 +103,6 @@ function startKeyframeDrag(
     entry: TimelineKeyframeEntry;
     frameDuration: number;
     onPreview: (preview?: KeyframeTimePreview) => void;
-    pixelsPerSecond: number;
     selectedKeyframeIds: string[];
     startPointerDrag: StartWindowPointerDrag;
     stateProject: ReturnType<typeof useEditorDocument>["state"]["project"];
@@ -135,6 +132,7 @@ function startKeyframeDrag(
     selectedIds,
   );
   const startX = event.clientX;
+  const pixelsPerSecond = timelinePixelsPerSecond();
   const initialTime = context.entry.keyframe.time;
   let nextTime = initialTime;
   let dragged = false;
@@ -154,13 +152,13 @@ function startKeyframeDrag(
         0,
         Math.min(
           context.compositionDuration,
-          initialTime + (moveEvent.clientX - startX) / context.pixelsPerSecond,
+          initialTime + (moveEvent.clientX - startX) / pixelsPerSecond,
         ),
       );
       nextTime = snapTimelineTime(
         requestedTime,
         context.frameDuration,
-        context.pixelsPerSecond,
+        pixelsPerSecond,
         dragTargets,
         moveEvent.ctrlKey || moveEvent.metaKey,
       ).time;

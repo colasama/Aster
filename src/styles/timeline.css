@@ -113,6 +113,7 @@
 .timeline-canvas {
   position: relative;
   min-height: 100%;
+  width: calc(286px + var(--timeline-d, 0) * var(--timeline-pps, 82px));
   background-image: linear-gradient(90deg, transparent 285px, #252831 286px, transparent 287px);
 }
 .timeline-header {
@@ -152,6 +153,7 @@
   z-index: 4;
   top: 0;
   height: 26px;
+  width: calc(var(--timeline-d, 0) * var(--timeline-pps, 82px));
   border-bottom: 1px solid var(--border);
   background: var(--bg-panel);
   cursor: ew-resize;
@@ -162,6 +164,8 @@
   z-index: 1;
   top: 8px;
   bottom: 0;
+  left: calc(var(--timeline-t, 0) * var(--timeline-pps, 82px));
+  width: calc(var(--timeline-d, 0) * var(--timeline-pps, 82px));
   min-width: 1px;
   border-inline: 1px solid rgb(109 151 238 / 85%);
   background: rgb(79 122 218 / 24%);
@@ -169,6 +173,7 @@
 .tick {
   position: absolute;
   bottom: 0;
+  left: calc(var(--timeline-t, 0) * var(--timeline-pps, 82px));
   width: 1px;
   height: 5px;
   background: #3b3e47;
@@ -189,6 +194,8 @@
   position: absolute;
   z-index: 2;
   top: 1px;
+  left: calc(var(--timeline-t, 0) * var(--timeline-pps, 82px));
+  width: calc(var(--timeline-d, 0) * var(--timeline-pps, 82px));
   height: 7px;
   min-width: 2px;
   border-top: 3px solid #7e8ecb;
@@ -337,6 +344,8 @@
 .layer-bar {
   position: absolute;
   top: 4px;
+  left: calc(var(--timeline-t, 0) * var(--timeline-pps, 82px));
+  width: calc(var(--timeline-d, 0) * var(--timeline-pps, 82px));
   height: calc(100% - 8px);
   min-width: 2px;
   overflow: hidden;
@@ -400,6 +409,7 @@
   position: absolute;
   z-index: 2;
   top: 9px;
+  left: calc(var(--timeline-t, 0) * var(--timeline-pps, 82px));
   width: 10px;
   height: 10px;
   padding: 0;
@@ -607,7 +617,7 @@
   position: absolute;
   z-index: 10;
   top: 26px;
-  left: var(--timeline-playhead-left);
+  left: calc(286px + var(--timeline-playhead-time, 0) * var(--timeline-pps, 82px));
   bottom: 0;
   width: 1px;
   background: #fb5367;
@@ -815,6 +825,8 @@
 }
 .timeline-audio-waveform {
   height: 28px;
+  left: calc(var(--timeline-t, 0) * var(--timeline-pps, 82px));
+  width: calc(var(--timeline-d, 0) * var(--timeline-pps, 82px));
   opacity: 0.74;
   pointer-events: none;
   position: absolute;

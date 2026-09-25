@@ -10,8 +10,6 @@ import {
   SlidersHorizontal,
   Trash2,
   Wind,
-  ZoomIn,
-  ZoomOut,
 } from "lucide-react";
 
 import {
@@ -20,6 +18,7 @@ import {
   Suspense,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -56,10 +55,7 @@ import { useI18n } from "../../i18n/react";
 import { useEditor } from "../../state/editor-store";
 
 import { isEditableShortcutTarget, isEditorShortcutBlocked } from "../../ui/keyboard-shortcuts";
-import {
-  TIMELINE_BASE_SCALE as BASE_PIXELS_PER_SECOND,
-  TIMELINE_LABEL_WIDTH as LABEL_WIDTH,
-} from "../../ui/timeline-zoom";
+import { TIMELINE_LABEL_WIDTH as LABEL_WIDTH } from "../../ui/timeline-zoom";
 import { useContextMenuTrigger } from "../context-menu/use-context-menu-trigger";
 import { Panel, PanelTabs } from "../Panel";
 import { useWindowPointerDrag } from "../use-window-pointer-drag";
@@ -69,6 +65,7 @@ import { TimelineContextMenu, type TimelineCreateKind } from "./TimelineContextM
 import { collectTimelineLayerKeyframes } from "./TimelineLayerRow";
 import { type TimelineLayerActions, TimelineLayers } from "./TimelineLayers";
 import { TimelineRuler } from "./TimelineRuler";
+import { TimelineZoomControls } from "./TimelineZoomControls";
 import { formatTimecode, rowAtClientY, toggleTimelineFullscreen } from "./timeline-display";
 import {
   buildTimelineSnapTargets,
@@ -89,6 +86,7 @@ import {
 } from "./timeline-keyframe-actions";
 import { duplicateTimelineLayers, splitTimelineLayers } from "./timeline-layer-clipboard";
 import type { KeyframeTimePreview } from "./timeline-property-tracks";
+import { timelinePixelsPerSecond, timelineZoomStore } from "./timeline-zoom-store";
 import { useTimelineNavigation } from "./use-timeline-navigation";
 
 const GraphEditor = lazy(() =>
@@ -111,7 +109,6 @@ export function Timeline({ mode }: { mode?: "timeline" | "graph" } = {}) {
   const workspaceHost = useWorkspacePanelHost();
   const { t } = useI18n();
   const composition = activeComposition(state.project);
-  const pixelsPerSecond = BASE_PIXELS_PER_SECOND * state.timelineZoom;
   const compositionMotionBlur = compositionMotionBlurSettings(composition);
   const scrollRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -243,16 +240,18 @@ export function Timeline({ mode }: { mode?: "timeline" | "graph" } = {}) {
     timelineTargets,
     workArea,
   };
+  // biome-ignore lint/correctness/useExhaustiveDependencies: The canvas surface remounts when the panel mode changes.
+  useLayoutEffect(() => {
+    const canvas = canvasRef.current;
+    return canvas ? timelineZoomStore.attachSurface(canvas) : undefined;
+  }, [bottomMode]);
   useEffect(
     () =>
       onPlaybackFrame((frame) => {
         if (frame.compositionId !== composition.id) return;
-        canvasRef.current?.style.setProperty(
-          "--timeline-playhead-left",
-          `${LABEL_WIDTH + frame.time * pixelsPerSecond}px`,
-        );
+        canvasRef.current?.style.setProperty("--timeline-playhead-time", String(frame.time));
       }),
-    [composition.id, pixelsPerSecond],
+    [composition.id],
   );
   const clientXToTime = (clientX: number) => {
     const scroll = scrollRef.current;
@@ -262,7 +261,7 @@ export function Timeline({ mode }: { mode?: "timeline" | "graph" } = {}) {
       0,
       Math.min(
         composition.duration,
-        (clientX - bounds.left + scroll.scrollLeft - LABEL_WIDTH) / pixelsPerSecond,
+        (clientX - bounds.left + scroll.scrollLeft - LABEL_WIDTH) / timelinePixelsPerSecond(),
       ),
     );
   };
@@ -271,14 +270,11 @@ export function Timeline({ mode }: { mode?: "timeline" | "graph" } = {}) {
     const snapped = snapTimelineTime(
       time,
       frameDuration,
-      pixelsPerSecond,
+      timelinePixelsPerSecond(),
       timelineTargets,
       bypassSnap,
     );
-    canvasRef.current?.style.setProperty(
-      "--timeline-playhead-left",
-      `${LABEL_WIDTH + snapped.time * pixelsPerSecond}px`,
-    );
+    canvasRef.current?.style.setProperty("--timeline-playhead-time", String(snapped.time));
     if (snapped.time !== keyboardContext.current.currentTime)
       dispatch({ type: "setTime", time: snapped.time });
   };
@@ -547,7 +543,7 @@ export function Timeline({ mode }: { mode?: "timeline" | "graph" } = {}) {
           mode,
           requestedTime,
           context.composition,
-          pixelsPerSecond,
+          timelinePixelsPerSecond(),
           context.timelineTargets,
           true,
         );
@@ -558,7 +554,7 @@ export function Timeline({ mode }: { mode?: "timeline" | "graph" } = {}) {
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [dispatch, pixelsPerSecond, setWorkArea]);
+  }, [dispatch, setWorkArea]);
 
   const startLayerTimingDrag = (
     event: React.PointerEvent,
@@ -587,9 +583,9 @@ export function Timeline({ mode }: { mode?: "timeline" | "graph" } = {}) {
           layers,
           activeLayer.id,
           mode,
-          initialTime + (moveEvent.clientX - startX) / pixelsPerSecond,
+          initialTime + (moveEvent.clientX - startX) / timelinePixelsPerSecond(),
           composition,
-          pixelsPerSecond,
+          timelinePixelsPerSecond(),
           targets,
           moveEvent.ctrlKey || moveEvent.metaKey,
         );
@@ -628,7 +624,10 @@ export function Timeline({ mode }: { mode?: "timeline" | "graph" } = {}) {
         scrollTop: scroll.scrollTop,
       });
     const pointTime = (point: { x: number }) =>
-      Math.max(0, Math.min(composition.duration, (point.x - LABEL_WIDTH) / pixelsPerSecond));
+      Math.max(
+        0,
+        Math.min(composition.duration, (point.x - LABEL_WIDTH) / timelinePixelsPerSecond()),
+      );
     const startPoint = contentPoint(event.clientX, event.clientY);
     const startTime = pointTime(startPoint);
     const previousSelection = event.shiftKey ? state.selectedKeyframes : [];
@@ -825,33 +824,7 @@ export function Timeline({ mode }: { mode?: "timeline" | "graph" } = {}) {
             <Trash2 size={12} />
           </button>
           <i className="timeline-options-separator" />
-          <button
-            aria-label={t("timeline.zoomOut")}
-            onClick={() => navigation.zoomTo(state.timelineZoom / 1.25)}
-            title={`${t("timeline.zoomOut")} (-)`}
-            type="button"
-          >
-            <ZoomOut size={13} />
-          </button>
-          <input
-            aria-label={t("timeline.zoom")}
-            max={Math.log(navigation.bounds.max)}
-            min={Math.log(navigation.bounds.min)}
-            onChange={(event) => navigation.zoomTo(Math.exp(Number(event.target.value)))}
-            step="any"
-            type="range"
-            value={Math.log(
-              Math.max(navigation.bounds.min, Math.min(navigation.bounds.max, state.timelineZoom)),
-            )}
-          />
-          <button
-            aria-label={t("timeline.zoomIn")}
-            onClick={() => navigation.zoomTo(state.timelineZoom * 1.25)}
-            title={`${t("timeline.zoomIn")} (=)`}
-            type="button"
-          >
-            <ZoomIn size={13} />
-          </button>
+          <TimelineZoomControls bounds={navigation.bounds} onZoom={navigation.zoomTo} />
         </div>
       </div>
       {bottomMode === "graph" ? (
@@ -897,13 +870,12 @@ export function Timeline({ mode }: { mode?: "timeline" | "graph" } = {}) {
             ref={canvasRef}
             style={
               {
-                width: LABEL_WIDTH + composition.duration * pixelsPerSecond,
-                "--timeline-playhead-left": `${LABEL_WIDTH + state.currentTime * pixelsPerSecond}px`,
+                "--timeline-d": composition.duration,
+                "--timeline-playhead-time": state.currentTime,
               } as CSSProperties
             }
           >
             <TimelineRuler
-              pixelsPerSecond={pixelsPerSecond}
               viewport={navigation.viewport}
               scrub={scrub}
               startPointerDrag={startPointerDrag}
@@ -911,7 +883,6 @@ export function Timeline({ mode }: { mode?: "timeline" | "graph" } = {}) {
             />
             <TimelineLayers
               composition={composition}
-              pixelsPerSecond={pixelsPerSecond}
               keyframeTimePreview={keyframeTimePreview}
               timingPreview={timingPreview}
               onKeyframeTimePreview={setKeyframeTimePreview}

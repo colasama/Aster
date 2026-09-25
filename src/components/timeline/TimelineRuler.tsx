@@ -1,4 +1,5 @@
 import { Box, Eye, Lock, Volume2, Wind } from "lucide-react";
+import type { CSSProperties } from "react";
 import { useMemo } from "react";
 import {
   compositionMotionBlurSettings,
@@ -7,7 +8,7 @@ import {
 import { activeComposition } from "../../core/project/project";
 import { useI18n } from "../../i18n/react";
 import { useEditor } from "../../state/editor-store";
-import { TIMELINE_LABEL_WIDTH, timelineTicks } from "../../ui/timeline-zoom";
+import { TIMELINE_BASE_SCALE, TIMELINE_LABEL_WIDTH, timelineTicks } from "../../ui/timeline-zoom";
 import type { useWindowPointerDrag } from "../use-window-pointer-drag";
 import { TimelineWorkArea } from "./TimelineWorkArea";
 import { formatSeconds, formatTimecode } from "./timeline-display";
@@ -15,15 +16,14 @@ import {
   compositionFrameDuration,
   type TimelineWorkArea as WorkArea,
 } from "./timeline-interactions";
+import { useTimelineZoom } from "./timeline-zoom-store";
 
 export function TimelineRuler({
-  pixelsPerSecond,
   viewport,
   scrub,
   startPointerDrag,
   setWorkArea,
 }: {
-  pixelsPerSecond: number;
   viewport: { width: number; scrollLeft: number };
   scrub: (clientX: number, bypassSnap: boolean) => void;
   startPointerDrag: ReturnType<typeof useWindowPointerDrag>["start"];
@@ -32,6 +32,8 @@ export function TimelineRuler({
   const { state } = useEditor();
   const composition = activeComposition(state.project);
   const { t } = useI18n();
+  const zoom = useTimelineZoom();
+  const pixelsPerSecond = zoom * TIMELINE_BASE_SCALE;
   const frameDuration = compositionFrameDuration(composition);
   const motionBlur = compositionMotionBlurSettings(composition);
   const shutter = motionBlurInterval(state.currentTime, 1 / frameDuration, motionBlur);
@@ -60,7 +62,12 @@ export function TimelineRuler({
       </div>
       <div
         className="time-ruler"
-        style={{ left: TIMELINE_LABEL_WIDTH, width: composition.duration * pixelsPerSecond }}
+        style={
+          {
+            left: TIMELINE_LABEL_WIDTH,
+            "--timeline-d": composition.duration,
+          } as CSSProperties
+        }
         onPointerDown={(event) => {
           if (event.button !== 0) return;
           event.preventDefault();
@@ -71,14 +78,16 @@ export function TimelineRuler({
           });
         }}
       >
-        {motionBlur.enabled && motionBlur.shutterAngle > 0 && state.timelineZoom >= 1.25 && (
+        {motionBlur.enabled && motionBlur.shutterAngle > 0 && zoom >= 1.25 && (
           <div
             aria-hidden="true"
             className="timeline-shutter-region"
-            style={{
-              left: shutter.openTime * pixelsPerSecond,
-              width: Math.max(1, shutter.duration * pixelsPerSecond),
-            }}
+            style={
+              {
+                "--timeline-t": shutter.openTime,
+                "--timeline-d": shutter.duration,
+              } as CSSProperties
+            }
             title={t("timeline.motionBlur.shutterRegion")}
           />
         )}
@@ -86,7 +95,7 @@ export function TimelineRuler({
           <div
             className={major ? "major tick" : "tick"}
             key={time}
-            style={{ left: time * pixelsPerSecond }}
+            style={{ "--timeline-t": time } as CSSProperties}
           >
             <span>
               {major
@@ -101,7 +110,6 @@ export function TimelineRuler({
           duration={composition.duration}
           frameDuration={frameDuration}
           onChange={setWorkArea}
-          pixelsPerSecond={pixelsPerSecond}
           startPointerDrag={startPointerDrag}
           value={composition.workArea}
         />

@@ -23,7 +23,6 @@ import { type GpuMemoryBudgetMb, isGpuMemoryBudget } from "../core/rendering/gpu
 import type { Id, Project, RendererMetrics } from "../core/types";
 import { isDesktopRuntime, migrateLegacyPreferences } from "../desktop/api";
 import { APP_PREFERENCES_CHANGED_EVENT, type UserPreferencePatch } from "../desktop/preferences";
-import { timelineZoomBounds } from "../ui/timeline-zoom";
 import {
   DEFAULT_VIEWPORT_ZOOM,
   normalizeViewportNavigationMode,
@@ -49,7 +48,6 @@ export interface EditorState {
   /** Changes only for explicit seeks, never for playback acknowledgements. */
   seekRevision?: number;
   playing: boolean;
-  timelineZoom: number;
   viewportZoom: number;
   viewportZoomMode: ViewportZoomMode;
   viewportNavigationMode: ViewportNavigationMode;
@@ -92,7 +90,6 @@ export type EditorAction =
   | { type: "setTime"; time: number }
   | { type: "setPlaybackTime"; time: number }
   | { type: "setPlaying"; playing: boolean }
-  | { type: "setTimelineZoom"; zoom: number }
   | { type: "setViewportZoom"; zoom: number }
   | { type: "fitViewport"; mode?: "fit" | "fit100" }
   | { type: "setPreviewQuality"; quality: EditorState["previewQuality"] }
@@ -135,7 +132,6 @@ export function createInitialState(): EditorState {
     autosave: { status: "idle" },
     currentTime: 0.72,
     playing: false,
-    timelineZoom: 1,
     viewportZoom: DEFAULT_VIEWPORT_ZOOM,
     viewportZoomMode: "fit",
     viewportFitRevision: 0,
@@ -239,16 +235,6 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       return { ...state, currentTime: Math.max(0, action.time) };
     case "setPlaying":
       return { ...state, playing: action.playing };
-    case "setTimelineZoom": {
-      if (!Number.isFinite(action.zoom)) return state;
-      const composition = activeComposition(state.project);
-      const bounds = timelineZoomBounds(
-        composition.duration,
-        composition.frameRate.denominator / composition.frameRate.numerator,
-      );
-      // The panel applies its viewport-dependent fit and single-frame limits.
-      return { ...state, timelineZoom: Math.max(bounds.min, action.zoom) };
-    }
     case "setViewportZoom":
       return {
         ...state,

@@ -25,7 +25,6 @@ export interface TimelineLayerActions {
 /** Keep the stationary row tree out of clock/profiler renders; gestures read current inputs. */
 export const TimelineLayers = memo(function TimelineLayers({
   composition,
-  pixelsPerSecond,
   keyframeTimePreview,
   timingPreview,
   onKeyframeTimePreview,
@@ -34,7 +33,6 @@ export const TimelineLayers = memo(function TimelineLayers({
   targets,
 }: {
   composition: Composition;
-  pixelsPerSecond: number;
   keyframeTimePreview?: KeyframeTimePreview;
   timingPreview?: Record<string, { inPoint: number; outPoint: number }>;
   onKeyframeTimePreview(preview?: KeyframeTimePreview): void;
@@ -76,7 +74,6 @@ export const TimelineLayers = memo(function TimelineLayers({
           onContextMenuKeyDown={(event) => actions.current.menuKey(event, layer)}
           onMarqueeStart={(event) => actions.current.marquee(event, index)}
           onTimingDragStart={(event, mode) => actions.current.timing(event, layer, mode)}
-          pixelsPerSecond={pixelsPerSecond}
           selected={state.selection.includes(layer.id)}
           startPointerDrag={startPointerDrag}
           timing={timingPreview?.[layer.id]}

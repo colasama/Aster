@@ -63,7 +63,6 @@ describe("TimelineLayerRow locked switches", () => {
               onKeyframeTimePreview={() => undefined}
               onMarqueeStart={() => undefined}
               onTimingDragStart={() => undefined}
-              pixelsPerSecond={82}
               startPointerDrag={() => undefined}
               timelineTargets={[]}
             />
@@ -128,7 +127,6 @@ describe("TimelineLayerRow locked switches", () => {
               onKeyframeTimePreview={() => undefined}
               onMarqueeStart={() => undefined}
               onTimingDragStart={() => undefined}
-              pixelsPerSecond={82}
               selected
               startPointerDrag={() => undefined}
               timelineTargets={buildTimelineSnapTargets(composition, 0, composition.workArea)}

@@ -46,7 +46,6 @@ function Harness({ capture, open }: { capture: (state: EditorState) => void; ope
         entry={{ ...entry, label: "Opacity" }}
         frameDuration={composition.frameRate.denominator / composition.frameRate.numerator}
         onPreview={() => undefined}
-        pixelsPerSecond={100}
         startPointerDrag={() => undefined}
         timelineTargets={[]}
       />
