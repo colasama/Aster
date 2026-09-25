@@ -139,7 +139,7 @@ jobs:
       - name: Verify packaged tools and generate checksums
         run: node scripts/verify-desktop-bundle.mjs "${{ matrix.binary_dir }}" ${{ matrix.verify_args }}
       - name: Upload desktop bundles
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.artifact }}-${{ github.sha }}
           path: |
