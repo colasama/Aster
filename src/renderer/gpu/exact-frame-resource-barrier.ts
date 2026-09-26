@@ -46,6 +46,8 @@ async function submitAfterExactFrameResources<Frame>(
     throw error;
   }
   if (!needsRecapture) return { frame: candidate };
-  await candidate;
+  // A held discovery capture rejects because its readback was never encoded; its
+  // outcome is disposable either way, so drain it before recapturing the ready frame.
+  await candidate.catch(() => undefined);
   return { frame: capture() };
 }

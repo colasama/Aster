@@ -69,6 +69,27 @@ describe("exact-frame resource capture", () => {
     expect(frames).toEqual(["placeholder", "exact"]);
   });
 
+  it("recaptures when the held discovery capture rejects instead of submitting", async () => {
+    const gate = deferred<void>();
+    const captures: string[] = [];
+    const capture = vi.fn(async () => {
+      const held = captures.length === 0;
+      captures.push(held ? "held" : "exact");
+      if (held) throw new Error("Frame readback was not encoded before mapping");
+      return "exact";
+    });
+    const result = new ExactFrameCaptureQueue<string>().capture(capture, {
+      hasPendingFrameResources: true,
+      waitForFrameResources: () => gate.promise,
+    });
+
+    await Promise.resolve();
+    expect(captures).toEqual(["held"]);
+    gate.resolve(undefined);
+    await expect(result).resolves.toBe("exact");
+    expect(captures).toEqual(["held", "exact"]);
+  });
+
   it("drains an accepted capture before propagating a media barrier failure", async () => {
     const captureGate = deferred<string>();
     const rejected = new ExactFrameCaptureQueue<string>().capture(() => captureGate.promise, {
