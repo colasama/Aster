@@ -99,7 +99,7 @@ dependencies = [
 
 [[package]]
 name = "aster-core"
-version = "0.3.2"
+version = "0.3.3"
 dependencies = [
  "aster-timeline",
  "aster-types",
@@ -112,7 +112,7 @@ dependencies = [
 
 [[package]]
 name = "aster-desktop-bridge"
-version = "0.3.2"
+version = "0.3.3"
 dependencies = [
  "aster-plugin",
  "aster-project",
@@ -131,7 +131,7 @@ dependencies = [
 
 [[package]]
 name = "aster-plugin"
-version = "0.3.2"
+version = "0.3.3"
 dependencies = [
  "aster-storage",
  "clap",
@@ -145,7 +145,7 @@ dependencies = [
 
 [[package]]
 name = "aster-profiler"
-version = "0.3.2"
+version = "0.3.3"
 dependencies = [
  "aster-core",
  "clap",
@@ -156,7 +156,7 @@ dependencies = [
 
 [[package]]
 name = "aster-project"
-version = "0.3.2"
+version = "0.3.3"
 dependencies = [
  "aster-storage",
  "aster-timeline",
@@ -172,7 +172,7 @@ dependencies = [
 
 [[package]]
 name = "aster-render"
-version = "0.3.2"
+version = "0.3.3"
 dependencies = [
  "clap",
  "flate2",
@@ -186,7 +186,7 @@ dependencies = [
 
 [[package]]
 name = "aster-scene"
-version = "0.3.2"
+version = "0.3.3"
 dependencies = [
  "glam",
  "indexmap",
@@ -197,14 +197,14 @@ dependencies = [
 
 [[package]]
 name = "aster-storage"
-version = "0.3.2"
+version = "0.3.3"
 dependencies = [
  "uuid",
 ]
 
 [[package]]
 name = "aster-text"
-version = "0.3.2"
+version = "0.3.3"
 dependencies = [
  "aster-storage",
  "clap",
@@ -214,7 +214,7 @@ dependencies = [
 
 [[package]]
 name = "aster-timeline"
-version = "0.3.2"
+version = "0.3.3"
 dependencies = [
  "schemars",
  "serde",
@@ -224,7 +224,7 @@ dependencies = [
 
 [[package]]
 name = "aster-types"
-version = "0.3.2"
+version = "0.3.3"
 dependencies = [
  "aster-timeline",
  "schemars",
@@ -234,7 +234,7 @@ dependencies = [
 
 [[package]]
 name = "aster-video"
-version = "0.3.2"
+version = "0.3.3"
 dependencies = [
  "aster-storage",
  "clap",

@@ -23,5 +23,5 @@ export const commonZh = {
   "app.status.color": "线性 sRGB · 32 位浮点",
   "app.status.gpuBudget": "GPU 内存预算：{value}",
   "app.status.gpuBudgetAuto": "自动",
-  "app.status.version": "Aster 0.3.2",
+  "app.status.version": "Aster 0.3.3",
 } as const satisfies Record<keyof typeof commonEn, string>;

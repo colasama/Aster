@@ -1,6 +1,6 @@
 # External automation and video reconstruction
 
-Aster 0.3.2 exposes the running desktop editor to external agents through an MCP stdio adapter.
+Aster 0.3.3 exposes the running desktop editor to external agents through an MCP stdio adapter.
 The adapter reuses the same command definitions and staged application service as the built-in Pi
 agent. Reference decoding uses FFmpeg/FFprobe; imports, persistence and rendering use existing Aster
 services. No model credentials are needed to operate these tools.
