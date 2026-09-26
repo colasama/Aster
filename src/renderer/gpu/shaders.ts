@@ -99,16 +99,18 @@ fn sample_blur(uv: vec2f, radius: f32) -> vec3f {
   let r = max(radius, 0.35);
   let max_lod = settings.program.z;
   if r <= 3.0 || max_lod <= 0.0 {
+    // hdr_scene is single-mip; textureSampleLevel keeps this branch legal when callers
+    // pass a per-pixel radius (non-uniform control flow rejects implicit-LOD samples).
     let offset = pixel * r;
-    var color = textureSample(hdr_scene, linear_sampler, uv).rgb * 0.2;
-    color += textureSample(hdr_scene, linear_sampler, uv + vec2f(offset.x, 0.0)).rgb * 0.12;
-    color += textureSample(hdr_scene, linear_sampler, uv - vec2f(offset.x, 0.0)).rgb * 0.12;
-    color += textureSample(hdr_scene, linear_sampler, uv + vec2f(0.0, offset.y)).rgb * 0.12;
-    color += textureSample(hdr_scene, linear_sampler, uv - vec2f(0.0, offset.y)).rgb * 0.12;
-    color += textureSample(hdr_scene, linear_sampler, uv + offset).rgb * 0.08;
-    color += textureSample(hdr_scene, linear_sampler, uv - offset).rgb * 0.08;
-    color += textureSample(hdr_scene, linear_sampler, uv + vec2f(offset.x, -offset.y)).rgb * 0.08;
-    color += textureSample(hdr_scene, linear_sampler, uv + vec2f(-offset.x, offset.y)).rgb * 0.08;
+    var color = textureSampleLevel(hdr_scene, linear_sampler, uv, 0.0).rgb * 0.2;
+    color += textureSampleLevel(hdr_scene, linear_sampler, uv + vec2f(offset.x, 0.0), 0.0).rgb * 0.12;
+    color += textureSampleLevel(hdr_scene, linear_sampler, uv - vec2f(offset.x, 0.0), 0.0).rgb * 0.12;
+    color += textureSampleLevel(hdr_scene, linear_sampler, uv + vec2f(0.0, offset.y), 0.0).rgb * 0.12;
+    color += textureSampleLevel(hdr_scene, linear_sampler, uv - vec2f(0.0, offset.y), 0.0).rgb * 0.12;
+    color += textureSampleLevel(hdr_scene, linear_sampler, uv + offset, 0.0).rgb * 0.08;
+    color += textureSampleLevel(hdr_scene, linear_sampler, uv - offset, 0.0).rgb * 0.08;
+    color += textureSampleLevel(hdr_scene, linear_sampler, uv + vec2f(offset.x, -offset.y), 0.0).rgb * 0.08;
+    color += textureSampleLevel(hdr_scene, linear_sampler, uv + vec2f(-offset.x, offset.y), 0.0).rgb * 0.08;
     return color;
   }
   let lod = clamp(log2(r * (1.0 / 3.0)), 0.0, max_lod);
