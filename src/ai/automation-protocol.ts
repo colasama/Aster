@@ -111,10 +111,10 @@ export function automationToolDefinitions() {
         family: Type.String({ minLength: 1, maxLength: 160 }),
         weight: Type.Optional(Type.Integer({ minimum: 100, maximum: 900 })),
         weightRange: Type.Optional(
-          Type.Tuple([
-            Type.Integer({ minimum: 100, maximum: 900 }),
-            Type.Integer({ minimum: 100, maximum: 900 }),
-          ]),
+          Type.Array(Type.Integer({ minimum: 100, maximum: 900 }), {
+            minItems: 2,
+            maxItems: 2,
+          }),
         ),
       },
     ],

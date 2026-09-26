@@ -50,6 +50,13 @@ describe("external automation boundary", () => {
     expect(result.tools.some((tool: { name: string }) => tool.name === "compare_reference")).toBe(
       true,
     );
+    const hasTupleItems = (node: unknown): boolean =>
+      !!node &&
+      typeof node === "object" &&
+      Object.entries(node).some(
+        ([key, value]) => (key === "items" && Array.isArray(value)) || hasTupleItems(value),
+      );
+    for (const tool of result.tools) expect(hasTupleItems(tool.inputSchema), tool.name).toBe(false);
   });
 
   it("rejects invalid arguments before dispatch and runs bounded valid commands", async () => {
