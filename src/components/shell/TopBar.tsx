@@ -2,18 +2,15 @@ import {
   Box,
   Circle,
   Hand,
-  LoaderCircle,
   MousePointer2,
   PenTool,
   Play,
   Redo2,
   RotateCcw,
   Search,
-  Sparkles,
   Square,
   Type,
   Undo2,
-  X,
 } from "lucide-react";
 import {
   type ComponentType,
@@ -39,20 +36,11 @@ import {
 import {
   clearCurrentProjectPath,
   clearRecoverySnapshot,
-  downloadBlob,
   packCurrentProject,
   pickPackedProject,
   pickProjectFile,
   readRecoverySnapshotForCurrentProject,
 } from "../../core/project/project-file";
-import {
-  nativeMp4ExportAvailable,
-  nativeSequenceExportAvailable,
-  type RenderSequenceProgress,
-  renderMp4,
-  renderPngSequence,
-  renderSingleFrame,
-} from "../../core/rendering/render-export";
 import { createParticleLayerForComposition } from "../../core/scene/bundled-particle";
 import { createId, type LayerKind, type Project } from "../../core/types";
 import { exportDiagnostics } from "../../desktop/api";
@@ -65,8 +53,8 @@ import { mediaImportRuntime } from "../../importers/media-import-runtime";
 import { useEditor } from "../../state/editor-store";
 import { isEditableShortcutTarget, isEditorShortcutBlocked } from "../../ui/keyboard-shortcuts";
 import { useWorkspaceController } from "../../workspace/workspace-controller";
+import { RenderJobDialog } from "../render-queue/RenderJobDialog";
 import type { WorkspaceDialogKind } from "../settings/WorkspaceDialog";
-import { useDialogFocus } from "../use-dialog-focus";
 import { VIEWPORT_ZOOM_COMMAND } from "../viewport/use-viewport-navigation";
 import { AppMenuBar } from "./AppMenuBar";
 import { CommandPalette } from "./CommandPalette";
@@ -89,8 +77,6 @@ interface ToolDefinition {
   icon: ComponentType<{ size?: number }>;
   labelKey: PlainMessageKey;
 }
-
-type RenderFormat = "mp4" | "png" | "project" | "sequence";
 
 const tools: ToolDefinition[] = [
   { id: "select", icon: MousePointer2, labelKey: "topbar.tool.select" },
@@ -116,28 +102,15 @@ export function TopBar() {
   );
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [renderOpen, setRenderOpen] = useState(false);
-  const [rendering, setRendering] = useState(false);
-  const [renderFormat, setRenderFormat] = useState<RenderFormat>("png");
-  const [renderProgress, setRenderProgress] = useState<RenderSequenceProgress>();
   const [workspaceDialog, setWorkspaceDialog] = useState<WorkspaceDialogKind>();
   const toast = useTopBarToast();
   const toastActions = useMemo<TopBarToastActions>(
     () => ({ beginRequest: toast.beginRequest, show: toast.show }),
     [toast.beginRequest, toast.show],
   );
-  const renderFormatRef = useRef<HTMLSelectElement>(null);
   const meshInputRef = useRef<HTMLInputElement>(null);
-  const cancelRenderRef = useRef(false);
   const closePalette = useCallback(() => setPaletteOpen(false), []);
-  const closeRender = useCallback(() => {
-    if (rendering) cancelRenderRef.current = true;
-    else setRenderOpen(false);
-  }, [rendering]);
-  const renderDialogRef = useDialogFocus<HTMLDivElement>({
-    initialFocusRef: renderFormatRef,
-    onClose: closeRender,
-    open: renderOpen,
-  });
+  const closeRender = useCallback(() => setRenderOpen(false), []);
   const lifecycle = useDocumentLifecycle(state, dispatch);
   const saveWithToast = useCallback(
     async (chooseDirectory = false, requestToken = toastActions.beginRequest()) => {
@@ -555,169 +528,10 @@ export function TopBar() {
       </div>
       {paletteOpen && <CommandPalette commands={commands} onClose={closePalette} />}
       {renderOpen && (
-        <div className="modal-backdrop" role="presentation">
-          <div
-            aria-label={t("topbar.render.title")}
-            aria-modal="true"
-            className="render-dialog"
-            ref={renderDialogRef}
-            role="dialog"
-            tabIndex={-1}
-          >
-            <header>
-              <strong>{t("topbar.render.title")}</strong>
-              <button
-                aria-label={t("topbar.command.close")}
-                disabled={rendering}
-                onClick={closeRender}
-                type="button"
-              >
-                <X size={14} />
-              </button>
-            </header>
-            <div className="render-summary">
-              <Sparkles size={20} />
-              <div>
-                <strong>{t("topbar.render.pipeline")}</strong>
-                <span>
-                  {renderFormat === "mp4"
-                    ? t("topbar.render.videoSummary", {
-                        duration: activeComposition(state.project).duration,
-                      })
-                    : renderFormat === "sequence"
-                      ? t("topbar.render.sequenceSummary", {
-                          duration: activeComposition(state.project).duration,
-                        })
-                      : t("topbar.render.frameSummary")}
-                </span>
-              </div>
-            </div>
-            <label>
-              {t("topbar.render.outputFormat")}
-              <select
-                onChange={(event) => setRenderFormat(event.target.value as RenderFormat)}
-                ref={renderFormatRef}
-                value={renderFormat}
-              >
-                <option disabled={!nativeMp4ExportAvailable()} value="mp4">
-                  {t("topbar.render.mp4")}
-                </option>
-                <option value="png">{t("topbar.render.png")}</option>
-                <option disabled={!nativeSequenceExportAvailable()} value="sequence">
-                  {t("topbar.render.sequence")}
-                </option>
-                <option value="project">{t("topbar.render.project")}</option>
-              </select>
-            </label>
-            {renderProgress && (
-              <div className="render-progress">
-                <progress max={renderProgress.total} value={renderProgress.current} />
-                <span>
-                  {t("topbar.render.progress", {
-                    current: renderProgress.current,
-                    total: renderProgress.total,
-                  })}
-                </span>
-              </div>
-            )}
-            <footer>
-              <button onClick={closeRender} type="button">
-                {rendering ? t("topbar.render.stopAfterFrame") : t("common.cancel")}
-              </button>
-              <button
-                className="primary"
-                disabled={rendering}
-                onClick={async () => {
-                  const requestToken = toastActions.beginRequest();
-                  cancelRenderRef.current = false;
-                  setRenderProgress(undefined);
-                  setRendering(true);
-                  try {
-                    if (renderFormat === "project") await saveWithToast(false, requestToken);
-                    else if (renderFormat === "png") {
-                      const blob = await renderSingleFrame(state.currentTime);
-                      downloadBlob(blob, "aster-frame-4k.png");
-                      toastActions.show(
-                        toastMessage("topbar.toast.exportedPng", {
-                          width: activeComposition(state.project).width,
-                          height: activeComposition(state.project).height,
-                        }),
-                        requestToken,
-                      );
-                    } else if (renderFormat === "mp4") {
-                      const result = await renderMp4(
-                        state.project,
-                        activeComposition(state.project),
-                        setRenderProgress,
-                        () => cancelRenderRef.current,
-                      );
-                      if (!result) return;
-                      toastActions.show(
-                        result.cancelled
-                          ? toastMessage("topbar.toast.stoppedMp4", { frames: result.frames })
-                          : toastMessage("topbar.toast.exportedMp4", {
-                              frames: result.frames,
-                              encoder: result.encoder ?? "H.264",
-                            }),
-                        requestToken,
-                      );
-                    } else {
-                      const result = await renderPngSequence(
-                        state.project,
-                        activeComposition(state.project),
-                        setRenderProgress,
-                        () => cancelRenderRef.current,
-                      );
-                      if (!result) return;
-                      toastActions.show(
-                        result.cancelled
-                          ? toastMessage("topbar.toast.stoppedFrames", { frames: result.frames })
-                          : toastMessage("topbar.toast.exportedFrames", {
-                              frames: result.frames,
-                            }),
-                        requestToken,
-                      );
-                    }
-                    setRenderOpen(false);
-                  } catch (error) {
-                    reportUiError(t, "frameExport", error, {
-                      scope: {
-                        area: "render",
-                        projectId: state.project.id,
-                        compositionId: activeComposition(state.project).id,
-                      },
-                    });
-                    toastActions.show(toastError("frameExport"), requestToken);
-                  } finally {
-                    setRendering(false);
-                    setRenderProgress(undefined);
-                  }
-                }}
-                type="button"
-              >
-                {rendering ? (
-                  <>
-                    <LoaderCircle className="spin" size={12} />
-                    {renderFormat === "mp4"
-                      ? t("topbar.render.renderingVideo")
-                      : renderFormat === "sequence"
-                        ? t("topbar.render.renderingSequence")
-                        : t("topbar.render.rendering4k")}
-                  </>
-                ) : (
-                  <>
-                    <Play size={12} />
-                    {renderFormat === "mp4"
-                      ? t("topbar.render.renderVideo")
-                      : renderFormat === "sequence"
-                        ? t("topbar.render.renderSequence")
-                        : t("topbar.render.renderFrame")}
-                  </>
-                )}
-              </button>
-            </footer>
-          </div>
-        </div>
+        <RenderJobDialog
+          onClose={closeRender}
+          onQueued={() => toastActions.show(toastMessage("renderQueue.enqueued"))}
+        />
       )}
       {workspaceDialog && (
         <Suspense fallback={null}>

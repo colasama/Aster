@@ -277,3 +277,16 @@
   grid-column: 1 / -1;
   justify-content: flex-end;
 }
+
+.render-dialog .render-dialog-form {
+  padding: 12px;
+  border-bottom: 0;
+  background: transparent;
+}
+
+.render-dialog-unavailable {
+  margin: 0;
+  padding: 14px;
+  color: var(--muted);
+  font-size: 11px;
+}

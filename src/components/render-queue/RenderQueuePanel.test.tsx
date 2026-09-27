@@ -264,7 +264,7 @@ describe("RenderQueuePanel", () => {
     const form = container.querySelector<HTMLFormElement>("form.render-queue-add");
     expect(form).not.toBeNull();
     const audio = form?.querySelector<HTMLInputElement>('input[type="checkbox"]');
-    const bitrate = form?.querySelector<HTMLInputElement>('input[list="render-queue-bitrate"]');
+    const bitrate = form?.querySelector<HTMLInputElement>("input[list]");
     expect(audio).not.toBeNull();
     expect(bitrate?.value).toBe("20");
     const setInput = (input: HTMLInputElement | null | undefined, value: string) => {
@@ -275,7 +275,7 @@ describe("RenderQueuePanel", () => {
     act(() => audio?.click());
     act(() => setInput(bitrate, "48"));
     const selects = [...(form?.querySelectorAll("select") ?? [])];
-    const rangeSelect = selects[1];
+    const rangeSelect = selects[2];
     act(() => {
       rangeSelect.value = "custom";
       rangeSelect.dispatchEvent(new Event("change", { bubbles: true }));
@@ -320,7 +320,7 @@ describe("RenderQueuePanel", () => {
       await Promise.resolve();
     });
     const form = container.querySelector<HTMLFormElement>("form.render-queue-add");
-    const formatSelect = form?.querySelector("select");
+    const formatSelect = form?.querySelectorAll("select")[1];
     if (!formatSelect) throw new Error("Missing format selector");
     act(() => {
       formatSelect.value = "pngSequence";
@@ -338,5 +338,46 @@ describe("RenderQueuePanel", () => {
       pattern?.dispatchEvent(new Event("input", { bubbles: true }));
     });
     expect(submit?.disabled).toBe(true);
+  });
+
+  it("applies quality presets to bitrate and anti-aliasing", async () => {
+    const context = harness();
+    window.asterDesktop = {
+      migrateLegacyPreferences: vi.fn(async () => defaultAppPreferences()),
+    } as unknown as AsterDesktopApi;
+    act(() => {
+      root.render(
+        <I18nProvider>
+          <EditorProvider>
+            <RenderQueuePanel queueStore={context.queueStore} />
+          </EditorProvider>
+        </I18nProvider>,
+      );
+    });
+    await act(async () => {
+      await Promise.resolve();
+      context.flush();
+    });
+    await act(async () => {
+      container.querySelector<HTMLButtonElement>('button[aria-label="Add"]')?.click();
+      await Promise.resolve();
+    });
+    const form = container.querySelector<HTMLFormElement>("form.render-queue-add");
+    const selects = [...(form?.querySelectorAll("select") ?? [])];
+    const [presetSelect, , , antiAliasingSelect] = selects;
+    const bitrate = form?.querySelector<HTMLInputElement>("input[list]");
+    expect(presetSelect?.value).toBe("standard");
+    act(() => {
+      presetSelect.value = "quick";
+      presetSelect.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    expect(bitrate?.value).toBe("5");
+    expect(antiAliasingSelect?.value).toBe("off");
+    expect(presetSelect?.value).toBe("quick");
+    act(() => {
+      antiAliasingSelect.value = "fxaa";
+      antiAliasingSelect.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    expect(presetSelect?.value).toBe("custom");
   });
 });

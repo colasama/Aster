@@ -163,7 +163,6 @@ input[type="radio"] {
 :where(
     .workspace-dialog > footer,
     .workspace-action-dialog > footer,
-    .render-dialog > footer,
     .plugin-toolbar,
     .automation-settings,
     .render-queue-actions,
@@ -197,7 +196,6 @@ input[type="radio"] {
 :where(
     .workspace-dialog > footer,
     .workspace-action-dialog > footer,
-    .render-dialog > footer,
     .plugin-toolbar,
     .automation-settings,
     .render-queue-actions,

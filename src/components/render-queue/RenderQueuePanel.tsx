@@ -1,28 +1,24 @@
 import { FolderOpen, Pause, Play, Plus, RotateCcw, Trash2, X } from "lucide-react";
 import { type ReactNode, useEffect, useState, useSyncExternalStore } from "react";
 import { activeComposition } from "../../core/project/project";
-import { ANTI_ALIASING_MODES, type AntiAliasingMode } from "../../core/rendering/anti-aliasing";
 import type { RenderJobStatus, RenderQueueViewItem } from "../../core/rendering/render-queue";
-import { isDesktopRuntime, open, save } from "../../desktop/api";
+import { isDesktopRuntime } from "../../desktop/api";
 import { revealRenderOutput } from "../../desktop/render-output";
 import { reportUiError } from "../../errors/report-ui-error";
 import { useI18n } from "../../i18n/react";
-import {
-  appendRenderSequenceName,
-  createRenderQueueJobAsync,
-  DEFAULT_MP4_BITRATE_MBPS,
-  DEFAULT_SEQUENCE_PATTERN,
-  isValidSequencePattern,
-  type RenderQueueOutputKind,
-  type RenderQueueOutputOptions,
-  type RenderQueueRange,
-} from "../../render-queue/render-job-builder";
+import { createRenderQueueJobAsync } from "../../render-queue/render-job-builder";
 import {
   getRenderQueueUiStore,
   type RenderQueueUiStore,
 } from "../../render-queue/render-queue-store";
 import { useEditor } from "../../state/editor-store";
 import { Panel } from "../Panel";
+import {
+  chooseRenderDestination,
+  RenderJobFields,
+  renderJobRequest,
+  useRenderJobOptions,
+} from "./render-job-form";
 
 const ACTIVE_STATUSES = new Set<RenderJobStatus>([
   "preparing",
@@ -134,48 +130,23 @@ function AddRenderJob({
   const { state } = useEditor();
   const { t } = useI18n();
   const composition = activeComposition(state.project);
-  const [outputKind, setOutputKind] = useState<RenderQueueOutputKind>("mp4");
-  const [bitrateMbps, setBitrateMbps] = useState(String(DEFAULT_MP4_BITRATE_MBPS));
-  const [includeAudio, setIncludeAudio] = useState(false);
-  const [fileNamePattern, setFileNamePattern] = useState(DEFAULT_SEQUENCE_PATTERN);
-  const [range, setRange] = useState<RenderQueueRange>("workArea");
-  const [customStart, setCustomStart] = useState("0");
-  const [customEnd, setCustomEnd] = useState(String(composition.duration));
-  const [antiAliasing, setAntiAliasing] = useState<AntiAliasingMode | "app">("app");
+  const options = useRenderJobOptions(composition.duration);
   const [adding, setAdding] = useState(false);
-  const bitrate = Number(bitrateMbps);
-  const customStartSeconds = Number(customStart);
-  const customEndSeconds = Number(customEnd);
-  const valid =
-    (outputKind !== "mp4" || (bitrate >= 0.1 && bitrate <= 1_000)) &&
-    (outputKind !== "pngSequence" || isValidSequencePattern(fileNamePattern)) &&
-    (range !== "custom" ||
-      (Number.isFinite(customStartSeconds) &&
-        Number.isFinite(customEndSeconds) &&
-        customStartSeconds >= 0 &&
-        customEndSeconds > customStartSeconds));
   const add = async () => {
     setAdding(true);
     try {
-      const destination = await chooseDestination(outputKind, composition.name, t);
+      const destination = await chooseRenderDestination(options.outputKind, composition.name, t);
       if (!destination) return;
-      const output: RenderQueueOutputOptions =
-        outputKind === "mp4"
-          ? { kind: "mp4", bitrateMbps: bitrate, includeAudio }
-          : outputKind === "pngSequence"
-            ? { kind: "pngSequence", fileNamePattern }
-            : { kind: "still", format: "png" };
       await queueStore.enqueue(
         await createRenderQueueJobAsync({
-          composition,
-          project: state.project,
-          projectRevision: state.projectRevision,
-          antiAliasing: antiAliasing === "app" ? state.antiAliasing : antiAliasing,
-          output,
+          ...renderJobRequest(options, {
+            composition,
+            project: state.project,
+            projectRevision: state.projectRevision,
+            appAntiAliasing: state.antiAliasing,
+            currentTime: state.currentTime,
+          }),
           destination,
-          range: outputKind === "still" ? "currentFrame" : range,
-          customRange: { start: customStartSeconds, end: customEndSeconds },
-          currentTime: state.currentTime,
         }),
       );
       onClose();
@@ -201,118 +172,12 @@ function AddRenderJob({
         void add();
       }}
     >
-      <label>
-        <span>{t("renderQueue.format")}</span>
-        <select
-          disabled={adding}
-          onChange={(event) => setOutputKind(event.target.value as RenderQueueOutputKind)}
-          value={outputKind}
-        >
-          <option value="mp4">{t("renderQueue.format.mp4")}</option>
-          <option value="pngSequence">{t("renderQueue.format.pngSequence")}</option>
-          <option value="still">{t("renderQueue.format.still")}</option>
-        </select>
-      </label>
-      {outputKind === "mp4" ? (
-        <>
-          <label>
-            <span>{t("renderQueue.bitrate")}</span>
-            <input
-              disabled={adding}
-              list="render-queue-bitrate"
-              max={1_000}
-              min={0.1}
-              onChange={(event) => setBitrateMbps(event.target.value)}
-              step={0.1}
-              type="number"
-              value={bitrateMbps}
-            />
-            <datalist id="render-queue-bitrate">
-              <option value="5" />
-              <option value="20" />
-              <option value="50" />
-            </datalist>
-          </label>
-          <label className="render-queue-check">
-            <input
-              checked={includeAudio}
-              disabled={adding}
-              onChange={(event) => setIncludeAudio(event.target.checked)}
-              type="checkbox"
-            />
-            <span>{t("renderQueue.includeAudio")}</span>
-          </label>
-        </>
-      ) : outputKind === "pngSequence" ? (
-        <label>
-          <span>{t("renderQueue.fileName")}</span>
-          <input
-            disabled={adding}
-            onChange={(event) => setFileNamePattern(event.target.value)}
-            type="text"
-            value={fileNamePattern}
-          />
-        </label>
-      ) : null}
-      <label>
-        <span>{t("renderQueue.range")}</span>
-        <select
-          disabled={adding || outputKind === "still"}
-          onChange={(event) => setRange(event.target.value as RenderQueueRange)}
-          value={outputKind === "still" ? "currentFrame" : range}
-        >
-          <option value="workArea">{t("renderQueue.range.workArea")}</option>
-          <option value="composition">{t("renderQueue.range.composition")}</option>
-          <option value="currentFrame">{t("renderQueue.range.currentFrame")}</option>
-          <option value="custom">{t("renderQueue.range.custom")}</option>
-        </select>
-      </label>
-      {range === "custom" && outputKind !== "still" ? (
-        <>
-          <label>
-            <span>{t("renderQueue.rangeStart")}</span>
-            <input
-              disabled={adding}
-              min={0}
-              onChange={(event) => setCustomStart(event.target.value)}
-              step={0.001}
-              type="number"
-              value={customStart}
-            />
-          </label>
-          <label>
-            <span>{t("renderQueue.rangeEnd")}</span>
-            <input
-              disabled={adding}
-              min={0}
-              onChange={(event) => setCustomEnd(event.target.value)}
-              step={0.001}
-              type="number"
-              value={customEnd}
-            />
-          </label>
-        </>
-      ) : null}
-      <label>
-        <span>{t("renderQueue.antiAliasing")}</span>
-        <select
-          disabled={adding}
-          onChange={(event) => setAntiAliasing(event.target.value as AntiAliasingMode | "app")}
-          value={antiAliasing}
-        >
-          <option value="app">{t("renderQueue.antiAliasing.app")}</option>
-          {ANTI_ALIASING_MODES.map((mode) => (
-            <option key={mode} value={mode}>
-              {t(`renderQueue.antiAliasing.${mode}`)}
-            </option>
-          ))}
-        </select>
-      </label>
+      <RenderJobFields disabled={adding} options={options} />
       <div className="render-queue-add-actions">
         <button disabled={adding} onClick={onClose} type="button">
           {t("common.cancel")}
         </button>
-        <button className="primary" disabled={adding || !valid} type="submit">
+        <button className="primary" disabled={adding || !options.valid} type="submit">
           {t("renderQueue.add")}
         </button>
       </div>
@@ -472,28 +337,6 @@ function ActionButton({
       {icon}
       <span>{label}</span>
     </button>
-  );
-}
-
-async function chooseDestination(
-  kind: RenderQueueOutputKind,
-  compositionName: string,
-  t: ReturnType<typeof useI18n>["t"],
-): Promise<string | undefined> {
-  const safeName = compositionName.replace(/[<>:"/\\|?*]/g, "-") || "render";
-  if (kind === "pngSequence") {
-    const parent = await open({ directory: true, title: t("renderQueue.chooseSequenceParent") });
-    return typeof parent === "string"
-      ? appendRenderSequenceName(parent, compositionName)
-      : undefined;
-  }
-  const extension = kind === "mp4" ? "mp4" : "png";
-  return (
-    (await save({
-      title: t("renderQueue.chooseOutput"),
-      defaultPath: `${safeName}.${extension}`,
-      filters: [{ name: extension.toUpperCase(), extensions: [extension] }],
-    })) ?? undefined
   );
 }
 
