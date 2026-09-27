@@ -20,6 +20,7 @@ import { defaultAppPreferences } from "../../desktop/preferences";
 import { I18nProvider } from "../../i18n/react";
 import { type RenderQueueClient, RenderQueueUiStore } from "../../render-queue/render-queue-store";
 import { EditorProvider } from "../../state/editor-store";
+import { RenderJobDialog } from "./RenderJobDialog";
 import { RenderQueuePanel } from "./RenderQueuePanel";
 
 let container: HTMLDivElement;
@@ -100,6 +101,45 @@ afterEach(() => {
 });
 
 describe("RenderQueuePanel", () => {
+  it("shows pending enqueue in the render dialog and closes only after acknowledgement", async () => {
+    const context = harness();
+    let finish!: (value: RenderQueueState) => void;
+    vi.mocked(context.client.enqueue).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+    const close = vi.fn();
+    const queued = vi.fn();
+    window.asterDesktop = {
+      save: vi.fn(async () => "C:\\renders\\out.mp4"),
+      migrateLegacyPreferences: vi.fn(async () => defaultAppPreferences()),
+    } as unknown as AsterDesktopApi;
+    await act(async () => {
+      root.render(
+        <I18nProvider>
+          <EditorProvider>
+            <RenderJobDialog queueStore={context.queueStore} onClose={close} onQueued={queued} />
+          </EditorProvider>
+        </I18nProvider>,
+      );
+    });
+    const form = container.querySelector<HTMLFormElement>("form");
+    await act(async () => {
+      form?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    });
+    expect(context.client.enqueue).toHaveBeenCalledOnce();
+    expect(form?.getAttribute("aria-busy")).toBe("true");
+    const submit = form?.querySelector<HTMLButtonElement>('button[type="submit"]');
+    expect(submit?.textContent).toBe("Adding…");
+    expect(submit?.disabled).toBe(true);
+    act(() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" })));
+    expect(close).not.toHaveBeenCalled();
+    await act(async () => finish(queue()));
+    expect(queued).toHaveBeenCalledOnce();
+    expect(close).toHaveBeenCalledOnce();
+  });
   it("restores persisted jobs and exposes status-safe actions", async () => {
     const context = harness();
     act(() => {

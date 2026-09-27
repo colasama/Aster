@@ -1293,19 +1293,24 @@ if (hasSingleInstanceLock)
         logger.warn("render_queue", "interrupted_jobs_recovered", {
           count: renderQueueStatus.interruptedJobs,
         });
-      renderQueueManager = new RenderQueueManager(renderQueueStore, (state) => {
-        void renderMediaSnapshots
-          .prune(new Set(state.items.map((item) => item.manifest.id)))
-          .catch((error: unknown) =>
-            logger.warn("render_queue", "media_snapshot_prune_failed", {
-              error: error instanceof Error ? error.message : String(error),
-            }),
-          );
-        const view = renderQueueView(state);
-        for (const window of BrowserWindow.getAllWindows())
-          if (!renderHostController?.isRenderHost(window.webContents.id))
-            window.webContents.send("aster:render-queue-changed", view);
-      });
+      renderQueueManager = new RenderQueueManager(
+        renderQueueStore,
+        (state) => {
+          void renderMediaSnapshots
+            .prune(new Set(state.items.map((item) => item.manifest.id)))
+            .catch((error: unknown) =>
+              logger.warn("render_queue", "media_snapshot_prune_failed", {
+                error: error instanceof Error ? error.message : String(error),
+              }),
+            );
+          const view = renderQueueView(state);
+          for (const window of BrowserWindow.getAllWindows())
+            if (!renderHostController?.isRenderHost(window.webContents.id))
+              window.webContents.send("aster:render-queue-changed", view);
+        },
+        undefined,
+        (error) => logger.error("render_queue", "scheduling_failed", error),
+      );
       const executable = bridgeExecutable();
       if (!existsSync(executable)) {
         logger.error("application", "bridge_missing", new Error("Desktop bridge was not found"), {

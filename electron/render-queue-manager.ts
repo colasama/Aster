@@ -69,6 +69,7 @@ export class RenderQueueManager {
   readonly #store: RenderQueueStore;
   readonly #publish: (state: RenderQueueState) => void;
   readonly #createLeaseId: () => string;
+  readonly #onSchedulingError: (error: unknown) => void;
   readonly #active = new Map<string, ActiveHost>();
   #hostFactory?: RenderQueueHostFactory;
   #maximumConcurrency = 1;
@@ -80,10 +81,12 @@ export class RenderQueueManager {
     store: RenderQueueStore,
     publish: (state: RenderQueueState) => void,
     createLeaseId: () => string = randomUUID,
+    onSchedulingError: (error: unknown) => void = console.error,
   ) {
     this.#store = store;
     this.#publish = publish;
     this.#createLeaseId = createLeaseId;
+    this.#onSchedulingError = onSchedulingError;
   }
 
   snapshot(): RenderQueueState {
@@ -109,11 +112,13 @@ export class RenderQueueManager {
 
   async enqueue(value: unknown): Promise<RenderQueueState> {
     if (!isRecord(value)) throw new Error("Render job must be an object");
-    await this.#update((state) =>
+    const queued = await this.#update((state) =>
       enqueueRenderJob(state, value as unknown as EnqueueRenderJobInput),
     );
-    await this.#schedule();
-    return this.snapshot();
+    // Enqueue acknowledges durable storage, not media authorization or hidden-window startup.
+    // Launch failures still become failed queue items; persistence failures go to diagnostics.
+    void this.#schedule().catch(this.#onSchedulingError);
+    return queued;
   }
 
   async command(value: unknown): Promise<RenderQueueState> {

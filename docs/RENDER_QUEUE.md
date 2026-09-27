@@ -158,6 +158,9 @@ machine: active leases cannot be removed, pause-requested work cannot receive du
 and completed work can reveal its queue-owned destination in the operating-system file browser.
 
 Adding an item captures the current project revision and composition into an immutable snapshot.
+The add action acknowledges durable enqueue without waiting for background host preparation.
+Media authorization and hidden-window startup continue under the queue scheduler; launch failures
+appear on the queued item. Both add forms show a busy state until capture and persistence finish.
 Work-area, full-composition, and current-frame ranges are converted with the composition's rational
 frame rate. H.264, PNG sequence, and PNG still modules use paths explicitly selected through the
 desktop picker. Sequence output is limited to one filesystem-safe child of the selected parent

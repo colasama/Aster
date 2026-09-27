@@ -165,6 +165,7 @@ function AddRenderJob({
   };
   return (
     <form
+      aria-busy={adding}
       aria-label={t("renderQueue.addJob")}
       className="render-queue-add"
       onSubmit={(event) => {
@@ -178,7 +179,7 @@ function AddRenderJob({
           {t("common.cancel")}
         </button>
         <button className="primary" disabled={adding || !options.valid} type="submit">
-          {t("renderQueue.add")}
+          {t(adding ? "renderQueue.adding" : "renderQueue.add")}
         </button>
       </div>
     </form>

@@ -2,6 +2,7 @@ export const renderQueueEn = {
   "renderQueue.panelTitle": "Render Queue",
   "renderQueue.jobs": "Render jobs",
   "renderQueue.add": "Add",
+  "renderQueue.adding": "Adding…",
   "renderQueue.addJob": "Add render job",
   "renderQueue.start": "Start Queue",
   "renderQueue.pause": "Pause",

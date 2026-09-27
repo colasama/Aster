@@ -4,6 +4,7 @@ export const renderQueueZh = {
   "renderQueue.panelTitle": "渲染队列",
   "renderQueue.jobs": "渲染任务",
   "renderQueue.add": "添加",
+  "renderQueue.adding": "添加中…",
   "renderQueue.addJob": "添加渲染任务",
   "renderQueue.start": "启动队列",
   "renderQueue.pause": "暂停",

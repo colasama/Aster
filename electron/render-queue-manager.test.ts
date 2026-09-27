@@ -135,6 +135,39 @@ const job = {
 };
 
 describe("RenderQueueManager", () => {
+  it("reports a background launch failure on an already acknowledged job", async () => {
+    const context = await manager();
+    const hosts = new GatedFailureFactory();
+    await context.manager.startScheduler(hosts);
+    await context.manager.enqueue(job);
+    await hosts.started.promise;
+    hosts.release.resolve(undefined);
+    await vi.waitFor(() => {
+      expect(context.manager.snapshot().items[0]).toMatchObject({
+        status: "failed",
+        error: { code: "render_host_launch_failed" },
+      });
+    });
+    await context.manager.shutdown();
+  });
+  it("acknowledges durable enqueue without waiting for render host preparation", async () => {
+    const context = await manager();
+    const hosts = new GatedHostFactory();
+    await context.manager.startScheduler(hosts);
+    let acknowledged = false;
+    const enqueue = context.manager.enqueue(job).then(() => {
+      acknowledged = true;
+    });
+    try {
+      await hosts.started.promise;
+      expect(context.publish).toHaveBeenCalled();
+      expect(acknowledged).toBe(true);
+    } finally {
+      hosts.release.resolve(undefined);
+      await enqueue;
+      await context.manager.shutdown();
+    }
+  });
   it("validates, persists, and publishes renderer commands", async () => {
     const context = await manager();
     const queued = await context.manager.enqueue(job);

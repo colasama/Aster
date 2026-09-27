@@ -276,6 +276,7 @@
 .render-queue-add-actions {
   grid-column: 1 / -1;
   justify-content: flex-end;
+  gap: 8px;
 }
 
 .render-dialog .render-dialog-form {

@@ -32,7 +32,11 @@ export function RenderJobDialog({
   const composition = activeComposition(state.project);
   const options = useRenderJobOptions(composition.duration);
   const [submitting, setSubmitting] = useState(false);
-  const dialogRef = useDialogFocus<HTMLDivElement>({ onClose });
+  const dialogRef = useDialogFocus<HTMLDivElement>({
+    onClose: () => {
+      if (!submitting) onClose();
+    },
+  });
   const submit = async () => {
     setSubmitting(true);
     try {
@@ -88,6 +92,7 @@ export function RenderJobDialog({
         </header>
         {isDesktopRuntime() ? (
           <form
+            aria-busy={submitting}
             className="render-queue-add render-dialog-form"
             onSubmit={(event) => {
               event.preventDefault();
@@ -100,7 +105,7 @@ export function RenderJobDialog({
                 {t("common.cancel")}
               </button>
               <button className="primary" disabled={submitting || !options.valid} type="submit">
-                {t("renderQueue.add")}
+                {t(submitting ? "renderQueue.adding" : "renderQueue.add")}
               </button>
             </div>
           </form>
