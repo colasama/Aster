@@ -97,6 +97,19 @@ entry, while Escape discards the draft without touching project revision, autosa
 Same-size drafts upload into the resident text texture and retain its bind group instead of allocating
 a new GPU texture for every keystroke.
 
+Text animation presets bundle a layer's animator stack for reuse. The inspector's Animation
+presets section applies a preset at the current layer time, saves the selected text layer's whole
+stack as a user preset, and renames, deletes, exports or imports presets as JSON. Built-in presets
+cover staggered entrances (fade, rise, scale, stretch, rotate, flip, blur, typewriter, tracking,
+random order, center-out, edges-in, scatter fly-in, word and line domains, flicker, character
+scramble), continuous motion (shake, wave, swing, pulse, color flicker), and a circular layout.
+Preset keyframes are stored relative to the earliest keyframe and re-anchored to the playhead on
+apply; every persistent and keyframe ID is regenerated so repeated applications stay independent.
+User presets persist in application storage (`aster.textAnimatorPresets.v1`) rather than the
+project file, so they are available across projects. Expression-selector presets bake their timing
+constants into the bounded expression source, keeping evaluation deterministic for preview, seek,
+background render, and export.
+
 Adobe behavior reference:
 
 - <https://helpx.adobe.com/after-effects/desktop/animating-text/text-animation/animating-text.html>

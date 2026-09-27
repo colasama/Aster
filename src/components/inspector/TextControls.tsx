@@ -10,6 +10,7 @@ import { useInspectorLayers, valuesDiffer } from "./inspector-selection";
 import { MixedValueInput, MixedValueSelect, MixedValueTextarea } from "./MixedValueInput";
 import type { SettingsRecipe } from "./settings-edit";
 import { TextAnimatorControls } from "./TextAnimatorControls";
+import { TextAnimatorPresets } from "./TextAnimatorPresets";
 
 export function TextControls({ layer }: { layer: Layer }) {
   const { dispatch, state } = useEditor();
@@ -188,6 +189,12 @@ export function TextControls({ layer }: { layer: Layer }) {
           value={colorInputValue(style.strokeColor)}
         />
       </label>
+      <TextAnimatorPresets
+        onChange={updateAnimator}
+        settings={animator}
+        times={layers.map((entry) => evaluateLayerSourceTime(entry, state.currentTime))}
+        time={evaluateLayerSourceTime(layer, state.currentTime)}
+      />
       <TextAnimatorControls
         onChange={updateAnimator}
         settings={animator}
