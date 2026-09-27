@@ -57,6 +57,21 @@ function input(value: string) {
 }
 
 describe("GPU budget settings", () => {
+  it("allows UMA budgets above the firmware reservation and labels shared capacity", () => {
+    vi.mocked(memoryApi.currentGpuMemory).mockReturnValue({
+      ...detected,
+      device: { name: "AMD Radeon 780M", totalMb: 16896, freeMb: 6528, kind: "unified" },
+    });
+    render(8192);
+    expect(container.textContent).toContain("Auto · 5120 MiB");
+    expect(container.textContent).toContain("16896 MiB");
+    expect(container.querySelector("input")?.max).toBe("16896");
+    expect(container.querySelector<HTMLButtonElement>("[data-save]")?.disabled).toBe(false);
+    input("16896");
+    expect(container.querySelector("output")?.textContent).toBe("16896");
+    input("16897");
+    expect(container.querySelector<HTMLButtonElement>("[data-save]")?.disabled).toBe(true);
+  });
   it("shows the automatic budget and accepts manual physical capacity without deducting reserves", () => {
     render();
     expect(container.textContent).toContain("Auto · 4096 MiB");

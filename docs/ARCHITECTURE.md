@@ -378,6 +378,8 @@ rendering adapter. Preview and isolated export share the automatic/manual policy
 `core/rendering/gpu-memory-policy.ts`, resolved before initial target allocation. Automatic mode
 reserves 1 GiB from measured free memory and rounds down to whole GiB, with a small-memory fallback;
 manual budgets are capped by detected capacity. Settings can refresh the snapshot explicitly.
+On Windows, confirmed UMA adapters include shared system memory in capacity; their free-memory
+estimate bounds the shared portion by available system RAM. Discrete GPUs retain dedicated budgets.
 Existing per-resource safety limits remain independent; this preference is an allocation-planning
 budget rather than a process-wide physical-memory reservation. Platform limitations and fallback
 behavior are documented in [Desktop foundations](DESKTOP_FOUNDATIONS.md).

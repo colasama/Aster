@@ -63,16 +63,25 @@ values to the detected capacity of the active rendering adapter; runtime resolut
 saved values when moving to a smaller GPU. Manual values are the actual budget, without an
 additional reserve deduction. Values above currently free memory remain selectable with a warning.
 
-Automatic mode samples free dedicated memory at renderer initialization or an explicit settings
+Automatic mode samples estimated free GPU memory at renderer initialization or an explicit settings
 refresh. Its budget is `floor((freeMiB - 1024) / 1024) * 1024` MiB. Below 2 GiB free, it uses half
 the free memory, rounded down to MiB and capped at 512 MiB. Missing free-memory information uses
 512 MiB, capped by any known physical capacity, and is identified in settings. Sampling is outside
 the frame loop: repeatedly subtracting Aster's own allocations from a free-memory snapshot would
 shrink its target as it fills its caches.
 
-Windows detection matches DXGI adapter identities to WDDM adapter-memory counters by LUID and
-estimates free dedicated memory from capacity minus resident usage. Linux uses NVIDIA's driver
-utility or DRM VRAM counters when available. macOS exposes detected capacity; Apple silicon is
+Windows detection matches DXGI adapter identities to WDDM adapter-memory counters by LUID.
+Direct3D 12's `D3D12_FEATURE_ARCHITECTURE.UMA` identifies unified-memory adapters, including AMD
+780M-class integrated GPUs; neither vendor names nor small VRAM capacities identify UMA reliably.
+For confirmed UMA adapters, capacity includes DXGI dedicated video/system memory plus shared
+system memory. Free memory is the unused dedicated portion plus the smaller of unused shared
+capacity and currently available physical system RAM. Shared capacity is not a free-memory
+measurement. Missing usage counters retain the conservative automatic fallback while preserving
+the detected capacity for manual configuration. If the architecture query fails, detection retains
+dedicated capacity only. Discrete GPUs continue to use dedicated capacity minus dedicated usage.
+Probes create a short-lived D3D12 device outside the frame loop and release it immediately.
+Linux uses NVIDIA's driver utility or DRM VRAM counters when available; shared-memory detection
+for Linux integrated GPUs is not yet supported. macOS exposes detected capacity; Apple silicon is
 explicitly labeled shared system memory. These macOS probes do not provide a reliable free-memory
 measurement, so automatic mode uses the fallback there. WebGPU adapter identity selects the device;
 multiple adapters are never added together. Undetectable capacity disables manual editing.

@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 import { readdir, readFile } from "node:fs/promises";
-import { totalmem } from "node:os";
+import { freemem, totalmem } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import type { GpuMemoryDevice } from "../src/core/rendering/gpu-memory-policy.js";
@@ -38,7 +38,7 @@ async function readDevices(): Promise<GpuMemoryDevice[]> {
       "v1.0",
       "powershell.exe",
     );
-    return parseGpuMemoryDevices(
+    return parseWindowsGpuMemory(
       JSON.parse(
         await command(shell, [
           "-NoProfile",
@@ -47,6 +47,7 @@ async function readDevices(): Promise<GpuMemoryDevice[]> {
           WINDOWS_GPU_MEMORY_QUERY,
         ]),
       ),
+      freemem(),
     );
   }
   if (process.platform === "darwin") {
@@ -113,6 +114,40 @@ async function readDevices(): Promise<GpuMemoryDevice[]> {
     /* Sandboxed or headless Linux may not expose DRM devices. */
   }
   return devices;
+}
+
+/** Shared capacity is a limit, not free RAM; only confirmed UMA adapters may use it. */
+export function parseWindowsGpuMemory(
+  value: unknown,
+  availableSystemBytes: number,
+): GpuMemoryDevice[] {
+  if (!Array.isArray(value)) return [];
+  const bytes = (value: unknown): value is number =>
+    typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
+  return parseGpuMemoryDevices(
+    value.slice(0, 32).flatMap((entry) => {
+      if (!entry || typeof entry !== "object" || !bytes(entry.dedicatedBytes)) return [];
+      const unified = entry.unified === true;
+      if (unified && !bytes(entry.sharedBytes)) return [];
+      let freeBytes: number | undefined;
+      if (bytes(entry.dedicatedUsedBytes)) {
+        const dedicatedFree = Math.max(0, entry.dedicatedBytes - entry.dedicatedUsedBytes);
+        if (!unified) freeBytes = dedicatedFree;
+        else if (bytes(entry.sharedUsedBytes) && bytes(availableSystemBytes))
+          freeBytes =
+            dedicatedFree +
+            Math.min(Math.max(0, entry.sharedBytes - entry.sharedUsedBytes), availableSystemBytes);
+      }
+      return [
+        {
+          ...entry,
+          totalBytes: entry.dedicatedBytes + (unified ? entry.sharedBytes : 0),
+          freeBytes,
+          kind: unified ? "unified" : "dedicated",
+        },
+      ];
+    }),
+  );
 }
 
 export function parseGpuMemoryDevices(value: unknown): GpuMemoryDevice[] {
