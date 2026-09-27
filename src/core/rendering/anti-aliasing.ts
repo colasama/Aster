@@ -1,6 +1,6 @@
 export const ANTI_ALIASING_MODES = ["off", "fxaa", "ssaa2x", "ssaa4x"] as const;
 export type AntiAliasingMode = (typeof ANTI_ALIASING_MODES)[number];
-export const DEFAULT_ANTI_ALIASING: AntiAliasingMode = "fxaa";
+export const DEFAULT_ANTI_ALIASING: AntiAliasingMode = "off";
 
 export function isAntiAliasingMode(value: unknown): value is AntiAliasingMode {
   return ANTI_ALIASING_MODES.includes(value as AntiAliasingMode);

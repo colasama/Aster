@@ -82,6 +82,37 @@ describe("WorkspaceDialog diagnostics", () => {
 });
 
 describe("WorkspaceDialog scaled layout", () => {
+  it.each([undefined, "low-power"])(
+    "restores GPU preference %s and saves a new choice",
+    (saved) => {
+      if (saved) window.localStorage.setItem("aster.gpuPreference", saved);
+      const container = document.createElement("div");
+      document.body.append(container);
+      root = createRoot(container);
+      act(() =>
+        root?.render(
+          <I18nProvider>
+            <EditorProvider>
+              <WorkspaceDialog kind="preferences" onClose={() => undefined} />
+            </EditorProvider>
+          </I18nProvider>,
+        ),
+      );
+      const select = container
+        .querySelector<HTMLOptionElement>('option[value="low-power"]')
+        ?.closest("select");
+      if (!select) throw new Error("GPU select missing");
+      expect(select.value).toBe(saved ?? "high-performance");
+      expect(select.closest("label")?.textContent).toContain("restart required");
+      const next = saved === "low-power" ? "high-performance" : "low-power";
+      act(() => {
+        select.value = next;
+        select.dispatchEvent(new Event("change", { bubbles: true }));
+      });
+      act(() => container.querySelector<HTMLButtonElement>("footer button.primary")?.click());
+      expect(window.localStorage.getItem("aster.gpuPreference")).toBe(next);
+    },
+  );
   it("restores authoritative desktop navigation and persists changes through IPC", async () => {
     window.localStorage.setItem("aster.viewportNavigationMode", "smooth");
     const preferences = { ...defaultAppPreferences(), viewportNavigationMode: "legacy" as const };
@@ -169,7 +200,7 @@ describe("WorkspaceDialog scaled layout", () => {
     },
   );
   it.each([undefined, "off", "ssaa2x"])(
-    "restores AA preference %s with FXAA as the default and saves the selection",
+    "restores AA preference %s with Off as the default and saves the selection",
     (savedMode) => {
       if (savedMode) window.localStorage.setItem("aster.antiAliasing", savedMode);
       const container = document.createElement("div");
@@ -189,7 +220,7 @@ describe("WorkspaceDialog scaled layout", () => {
         .querySelector<HTMLOptionElement>('option[value="fxaa"]')
         ?.closest("select");
       if (!select) throw new Error("AA select missing");
-      expect(select.value).toBe(savedMode ?? "fxaa");
+      expect(select.value).toBe(savedMode ?? "off");
       expect([...select.options].map((option) => option.value)).toEqual([
         "off",
         "fxaa",

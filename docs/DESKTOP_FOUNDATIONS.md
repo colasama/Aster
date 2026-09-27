@@ -58,6 +58,14 @@ Versions 2 and 3 add UI scale and anti-aliasing respectively. Version 4 adds `vi
 (`smooth` or `legacy`), defaulting existing profiles to `smooth`. This application preference is
 restored by the editor, takes effect when preferences are saved, and is not part of project files.
 
+Version 5 adds `gpuPreference`: `high-performance` (the default) or `low-power`. The GPU selector
+in Preferences saves the choice for the next application start (page reload in web development).
+Before Electron's ready event, Aster reads the profile, including backup recovery, and applies
+`force_high_performance_gpu` or `force_low_power_gpu`. Preview, export hosts, and memory detection
+also pass the saved preference to WebGPU adapter requests. Existing GPU resources remain on their
+current device until restart. GPU selection is a platform-dependent preference, not an adapter-ID
+selector; systems with one compatible GPU may use the same device for both choices.
+
 `gpuMemoryBudgetMb` accepts `auto` or any integer of at least 32 MiB. Settings constrain manual
 values to the detected capacity of the active rendering adapter; runtime resolution also caps
 saved values when moving to a smaller GPU. Manual values are the actual budget, without an

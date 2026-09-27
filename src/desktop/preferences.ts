@@ -4,13 +4,14 @@ import {
   normalizeAntiAliasing,
 } from "../core/rendering/anti-aliasing.js";
 import { type GpuMemoryBudgetMb, isGpuMemoryBudget } from "../core/rendering/gpu-memory-policy.js";
+import { type GpuPreference, normalizeGpuPreference } from "../core/rendering/gpu-preference.js";
 import { isUiScale, type UiScale } from "../ui/ui-scale.js";
 import {
   normalizeViewportNavigationMode,
   type ViewportNavigationMode,
 } from "../ui/viewport-zoom.js";
 
-export const CURRENT_APP_PREFERENCES_VERSION = 4 as const;
+export const CURRENT_APP_PREFERENCES_VERSION = 5 as const;
 export const APP_PREFERENCES_CHANGED_EVENT = "aster:preferences-changed";
 
 export type AppLocale = "en-US" | "zh-CN";
@@ -31,6 +32,7 @@ export interface AppPreferences {
   autosaveSeconds: AutosaveSeconds;
   reducedMotion: boolean;
   gpuMemoryBudgetMb: GpuMemoryBudgetMb;
+  gpuPreference: GpuPreference;
   antiAliasing: AntiAliasingMode;
   viewportNavigationMode: ViewportNavigationMode;
   uiScale: UiScale;
@@ -46,6 +48,7 @@ export type UserPreferencePatch = Partial<
     | "autosaveSeconds"
     | "reducedMotion"
     | "gpuMemoryBudgetMb"
+    | "gpuPreference"
     | "uiScale"
     | "antiAliasing"
     | "viewportNavigationMode"
@@ -57,6 +60,7 @@ const DEFAULT_PREFERENCES: AppPreferences = {
   autosaveSeconds: 30,
   reducedMotion: false,
   gpuMemoryBudgetMb: "auto",
+  gpuPreference: "high-performance",
   antiAliasing: DEFAULT_ANTI_ALIASING,
   viewportNavigationMode: "smooth",
   uiScale: "auto",
@@ -99,6 +103,7 @@ export function applyUserPreferencePatch(current: AppPreferences, value: unknown
     "autosaveSeconds",
     "reducedMotion",
     "gpuMemoryBudgetMb",
+    "gpuPreference",
     "antiAliasing",
     "viewportNavigationMode",
     "uiScale",
@@ -140,6 +145,14 @@ const APP_PREFERENCE_MIGRATIONS = new Map<
   number,
   (document: Record<string, unknown>) => Record<string, unknown>
 >([
+  [
+    4,
+    (document) => ({
+      ...document,
+      schemaVersion: 5,
+      gpuPreference: normalizeGpuPreference(document.gpuPreference),
+    }),
+  ],
   [
     3,
     (document) => ({
@@ -203,6 +216,7 @@ function normalizeCurrentPreferences(value: Record<string, unknown>): AppPrefere
     autosaveSeconds,
     reducedMotion: value.reducedMotion === true,
     gpuMemoryBudgetMb,
+    gpuPreference: normalizeGpuPreference(value.gpuPreference),
     antiAliasing: normalizeAntiAliasing(value.antiAliasing ?? DEFAULT_ANTI_ALIASING),
     viewportNavigationMode: normalizeViewportNavigationMode(value.viewportNavigationMode),
     uiScale: isUiScale(value.uiScale) ? value.uiScale : "auto",

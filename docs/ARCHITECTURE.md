@@ -4,6 +4,11 @@ Production output supports shared, time-independent [anti-aliasing modes](ANTI_A
 native resolution and SSAA with larger internal targets. The final GPU pass precedes canonical frame
 readback; preferences and queued job snapshots carry the selected mode.
 
+GPU selection defaults to high performance. The persisted high-performance/low-power preference
+configures Electron before GPU process startup and WebGPU adapter requests for preview, export,
+and memory detection. Changes apply after application restart; platform GPU selection remains
+authoritative. See [desktop preferences](DESKTOP_FOUNDATIONS.md).
+
 Aster separates its portable model from platform/UI code. The Rust crates own deterministic domain
 logic and native boundaries; the React/Electron application owns interactive editing and the current
 WebGPU preview implementation. Electron's sandboxed renderer reaches native capabilities only

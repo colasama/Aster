@@ -45,6 +45,7 @@ import { registerFontAccess } from "./font-access.js";
 import { fullAccessDesktopBridgeRequest } from "./full-access-aster-tools.js";
 import { describeFullAccessTarget, FullAccessToolService } from "./full-access-tools.js";
 import { detectGpuMemoryDevices } from "./gpu-memory.js";
+import { startupGpuSwitch } from "./gpu-preference.js";
 import { fetchLocalAsset } from "./local-file-response.js";
 import { AsterLogger, isRendererLogPayload, type LogLevel, parseLogLevel } from "./logger.js";
 import { discoverDesktopImageSequence } from "./media-import.js";
@@ -1220,6 +1221,7 @@ if (developmentProfile) {
   app.setPath("sessionData", developmentProfile);
 }
 app.setAppUserModelId("io.github.aster-mograph.aster");
+app.commandLine.appendSwitch(startupGpuSwitch(app.getPath("userData")));
 
 const hasSingleInstanceLock = app.requestSingleInstanceLock();
 if (hasSingleInstanceLock) {

@@ -6,9 +6,11 @@ import { getProperty, type PropertyPath } from "../../core/editing/operations";
 import { logger } from "../../core/logger";
 import { activeComposition } from "../../core/project/project";
 import { type AntiAliasingMode, normalizeAntiAliasing } from "../../core/rendering/anti-aliasing";
+import { normalizeGpuPreference } from "../../core/rendering/gpu-preference";
 import { runCpuTask } from "../../core/scheduling/cpu-scheduler";
 import type { EnvironmentLighting } from "../../core/types";
 import { getPreferences, isDesktopRuntime, updatePreferences } from "../../desktop/api";
+import { readBrowserGpuPreference } from "../../desktop/gpu-preference";
 import { APP_PREFERENCES_CHANGED_EVENT } from "../../desktop/preferences";
 import { reportUiError } from "../../errors/report-ui-error";
 import type { Locale, PlainMessageKey, Translate } from "../../i18n/core";
@@ -77,6 +79,7 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
   );
   const [antiAliasing, setAntiAliasing] = useState<AntiAliasingMode>(state.antiAliasing);
   const [gpuMemoryBudgetMb, setGpuMemoryBudgetMb] = useState(state.gpuMemoryBudgetMb);
+  const [gpuPreference, setGpuPreference] = useState(readBrowserGpuPreference);
   const [gpuMemoryValid, setGpuMemoryValid] = useState(true);
   const [reducedMotion, setReducedMotion] = useState(
     () => readPreference("aster.reducedMotion") === "true",
@@ -105,6 +108,7 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
         setAutosaveSeconds(preferences.autosaveSeconds);
         setReducedMotion(preferences.reducedMotion);
         setGpuMemoryBudgetMb(preferences.gpuMemoryBudgetMb);
+        setGpuPreference(normalizeGpuPreference(preferences.gpuPreference));
         setAntiAliasing(normalizeAntiAliasing(preferences.antiAliasing));
         setViewportNavigationMode(
           normalizeViewportNavigationMode(preferences.viewportNavigationMode),
@@ -144,6 +148,7 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
       ["aster.autosaveSeconds", String(autosaveSeconds)],
       ["aster.reducedMotion", String(reducedMotion)],
       ["aster.gpuMemoryBudgetMb", String(gpuMemoryBudgetMb)],
+      ["aster.gpuPreference", gpuPreference],
       ["aster.antiAliasing", antiAliasing],
       ["aster.viewportNavigationMode", viewportNavigationMode],
       ["aster.uiScale", String(uiScale)],
@@ -161,6 +166,7 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
           : 30,
         reducedMotion,
         gpuMemoryBudgetMb,
+        gpuPreference,
         antiAliasing,
         viewportNavigationMode,
         uiScale,
@@ -445,6 +451,18 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
                 <option value="1.5">150%</option>
                 <option value="1.75">175%</option>
                 <option value="2">200%</option>
+              </select>
+            </label>
+            <label className="wide">
+              {t("workspace.preferences.gpuPreference")}
+              <select
+                value={gpuPreference}
+                onChange={(event) => setGpuPreference(normalizeGpuPreference(event.target.value))}
+              >
+                <option value="high-performance">
+                  {t("workspace.preferences.gpuHighPerformance")}
+                </option>
+                <option value="low-power">{t("workspace.preferences.gpuLowPower")}</option>
               </select>
             </label>
             <GpuMemoryControls

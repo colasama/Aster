@@ -5,6 +5,7 @@ import {
   isGpuMemoryBudget,
   matchGpuMemoryDevice,
 } from "../core/rendering/gpu-memory-policy";
+import { requestPreferredGpuAdapter } from "./gpu-preference";
 
 export const GPU_MEMORY_CHANGED_EVENT = "aster:gpu-memory-changed";
 let identity: GpuAdapterIdentity | undefined;
@@ -40,7 +41,7 @@ function adapterKey(adapter?: GpuAdapterIdentity): string {
 async function readMemory(): Promise<GpuMemorySnapshot> {
   try {
     if (!identity && typeof navigator !== "undefined" && navigator.gpu) {
-      const adapter = await navigator.gpu.requestAdapter({ powerPreference: "high-performance" });
+      const adapter = await requestPreferredGpuAdapter();
       if (adapter)
         identity = {
           vendor: adapter.info.vendor,

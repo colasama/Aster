@@ -2,7 +2,7 @@
 
 Preferences exposes Off, FXAA, SSAA 2× (4 samples), and SSAA 4× (16 samples). The setting is
 application-wide, persisted in preferences schema v3, and applied to both production Beauty preview
-and output. New profiles and profiles without an AA preference default to FXAA; explicitly saved
+and output. New profiles and profiles without an AA preference default to Off; explicitly saved
 choices are preserved. Legacy queued jobs still default to Off. Debug buffers retain their native
 single-sample values. Canvas 2D rejects enabled production AA modes.
 

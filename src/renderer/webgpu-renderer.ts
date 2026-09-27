@@ -14,6 +14,7 @@ import {
 import { evaluateCameraBasis } from "../core/scene/camera-rig";
 import { flattenSceneLayers } from "../core/scene/scene-evaluation";
 import type { Composition, GpuDiagnostics, Project, RendererMetrics } from "../core/types";
+import { requestPreferredGpuAdapter } from "../desktop/gpu-preference";
 import { needsLayerIsolation } from "./compositing/layer-composite";
 import { planSceneRenderStack } from "./compositing/render-stack";
 import { AntiAliasingRenderer, planAntiAliasing } from "./effects/anti-aliasing";
@@ -102,8 +103,8 @@ export class WebGpuRenderer {
   ): Promise<WebGpuRenderer> {
     logger.debug("webgpu", "initialization_started");
     if (!navigator.gpu) throw new Error("WebGPU is unavailable");
-    const adapter = await navigator.gpu.requestAdapter({ powerPreference: "high-performance" });
-    if (!adapter) throw new Error("No high-performance GPU adapter was found");
+    const adapter = await requestPreferredGpuAdapter();
+    if (!adapter) throw new Error("No compatible GPU adapter was found");
     const timestampQueries = adapter.features.has("timestamp-query");
     const requiredFeatures: GPUFeatureName[] = timestampQueries ? ["timestamp-query"] : [];
     const device = await adapter.requestDevice({ requiredFeatures });

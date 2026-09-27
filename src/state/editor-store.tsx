@@ -448,6 +448,7 @@ export function EditorProvider({ children }: PropsWithChildren) {
         dispatch({ type: "setViewportNavigationMode", mode: preferences.viewportNavigationMode });
         try {
           localStorage.setItem("aster.antiAliasing", preferences.antiAliasing);
+          localStorage.setItem("aster.gpuPreference", preferences.gpuPreference);
           localStorage.setItem("aster.viewportNavigationMode", preferences.viewportNavigationMode);
           localStorage.setItem("aster.autosaveSeconds", String(preferences.autosaveSeconds));
           localStorage.setItem("aster.reducedMotion", String(preferences.reducedMotion));

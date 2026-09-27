@@ -8,6 +8,20 @@ import {
 } from "./preferences";
 
 describe("application preferences", () => {
+  it("defaults GPU selection to high performance and preserves saved choices", () => {
+    expect(defaultAppPreferences().gpuPreference).toBe("high-performance");
+    for (const schemaVersion of [0, 1, 2, 3, 4, 5])
+      expect(migrateAppPreferences({ schemaVersion }).gpuPreference).toBe("high-performance");
+    for (const gpuPreference of ["high-performance", "low-power"] as const) {
+      const updated = applyUserPreferencePatch(defaultAppPreferences(), { gpuPreference });
+      expect(migrateAppPreferences(JSON.parse(JSON.stringify(updated))).gpuPreference).toBe(
+        gpuPreference,
+      );
+    }
+    expect(
+      applyUserPreferencePatch(defaultAppPreferences(), { gpuPreference: "invalid" }).gpuPreference,
+    ).toBe("high-performance");
+  });
   it("round-trips arbitrary whole-MiB GPU budgets while rejecting invalid inputs", () => {
     for (const gpuMemoryBudgetMb of [32, 512, 6144, 24576, "auto"] as const) {
       const updated = applyUserPreferencePatch(defaultAppPreferences(), { gpuMemoryBudgetMb });
@@ -36,10 +50,10 @@ describe("application preferences", () => {
         .viewportNavigationMode,
     ).toBe("smooth");
   });
-  it("defaults new and legacy profiles to FXAA while preserving explicit AA choices", () => {
-    expect(defaultAppPreferences().antiAliasing).toBe("fxaa");
-    expect(migrateAppPreferences({ schemaVersion: 2 }).antiAliasing).toBe("fxaa");
-    expect(migrateAppPreferences({ schemaVersion: 3 }).antiAliasing).toBe("fxaa");
+  it("defaults new and legacy profiles to Off while preserving explicit AA choices", () => {
+    expect(defaultAppPreferences().antiAliasing).toBe("off");
+    for (const schemaVersion of [0, 1, 2, 3, 4])
+      expect(migrateAppPreferences({ schemaVersion }).antiAliasing).toBe("off");
     for (const antiAliasing of ["off", "fxaa", "ssaa2x", "ssaa4x"] as const) {
       const updated = applyUserPreferencePatch(defaultAppPreferences(), { antiAliasing });
       expect(migrateAppPreferences(JSON.parse(JSON.stringify(updated))).antiAliasing).toBe(
@@ -59,7 +73,7 @@ describe("application preferences", () => {
         recentProjects: ["C:\\projects\\one", "C:\\projects\\ONE", 7],
       }),
     ).toMatchObject({
-      schemaVersion: 4,
+      schemaVersion: 5,
       autosaveSeconds: 15,
       reducedMotion: true,
       gpuMemoryBudgetMb: 128,
@@ -84,7 +98,7 @@ describe("application preferences", () => {
 
   it("migrates v1 preferences to a system-following UI scale", () => {
     expect(migrateAppPreferences({ schemaVersion: 1, autosaveSeconds: 30 })).toMatchObject({
-      schemaVersion: 4,
+      schemaVersion: 5,
       uiScale: "auto",
     });
   });
