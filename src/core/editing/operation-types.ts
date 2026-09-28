@@ -99,6 +99,11 @@ export type Operation =
       environment?: EnvironmentLighting;
     }
   | {
+      type: "setCompositionBackground";
+      compositionId: Id;
+      background: Composition["background"];
+    }
+  | {
       type: "setCompositionMotionBlur";
       compositionId: Id;
       motionBlur: MotionBlurSettings;
@@ -223,6 +228,7 @@ export const OPERATION_TYPES = [
   "removeComposition",
   "setCompositionSettings",
   "setCompositionEnvironment",
+  "setCompositionBackground",
   "setCompositionMotionBlur",
   "setCompositionWorkArea",
   "precomposeLayers",

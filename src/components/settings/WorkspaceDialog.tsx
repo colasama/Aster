@@ -18,6 +18,9 @@ import { type UiErrorCode, uiErrorMessage } from "../../i18n/errors";
 import { useI18n } from "../../i18n/react";
 import { useEditor } from "../../state/editor-store";
 import { applyBrowserUiScale } from "../../ui/browser-ui-scale";
+import { colorInputValue, parseColorInput } from "../../ui/color-input";
+import { DEFAULT_THEME_COLORS, type ThemeColors } from "../../ui/theme";
+import { applyThemeColors, persistThemeColors, readThemeColors } from "../../ui/theme-dom";
 import { parseUiScale, type UiScale } from "../../ui/ui-scale";
 import { normalizeViewportNavigationMode } from "../../ui/viewport-zoom";
 import { useDialogFocus } from "../use-dialog-focus";
@@ -76,6 +79,12 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
   const [environment, setEnvironment] = useState<EnvironmentLighting | undefined>(
     composition.environment,
   );
+  const [backgroundColor, setBackgroundColor] = useState(() =>
+    colorInputValue(composition.background),
+  );
+  const [backgroundTransparent, setBackgroundTransparent] = useState(
+    composition.background[3] === 0,
+  );
   const [environmentError, setEnvironmentError] = useState<UiErrorCode>();
   const [environmentValidating, setEnvironmentValidating] = useState(false);
   const hdrValidationAbort = useRef<AbortController | undefined>(undefined);
@@ -97,6 +106,7 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
     parseUiScale(readPreference("aster.uiScale")),
   );
   const [preferredLocale, setPreferredLocale] = useState<Locale>(locale);
+  const [theme, setTheme] = useState<ThemeColors>(readThemeColors);
   const [expressionPath, setExpressionPath] = useState<PropertyPath>("opacity");
   const [expression, setExpression] = useState(selectedLayer?.expressions?.opacity ?? "value");
   const dialogRef = useDialogFocus<HTMLElement>({ onClose });
@@ -123,6 +133,7 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
           normalizeViewportNavigationMode(preferences.viewportNavigationMode),
         );
         setUiScale(preferences.uiScale);
+        if (preferences.theme) setTheme(preferences.theme);
         if (preferences.locale) setPreferredLocale(preferences.locale);
       })
       .catch((error: unknown) => logger.warn("preferences", "read_failed", undefined, error));
@@ -146,6 +157,14 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
           compositionId: composition.id,
           environment,
         },
+        {
+          type: "setCompositionBackground",
+          compositionId: composition.id,
+          background: [
+            ...parseColorInput(backgroundColor),
+            backgroundTransparent ? 0 : Math.max(0.01, composition.background[3]),
+          ],
+        },
       ],
     });
     onClose();
@@ -162,6 +181,8 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
       ["aster.viewportNavigationMode", viewportNavigationMode],
       ["aster.uiScale", String(uiScale)],
     ]);
+    persistThemeColors(theme);
+    applyThemeColors(theme);
     window.dispatchEvent(new Event(APP_PREFERENCES_CHANGED_EVENT));
     dispatch({ type: "setPreviewQuality", quality: previewQuality });
     dispatch({ type: "setGpuMemoryBudget", budget: gpuMemoryBudgetMb });
@@ -180,6 +201,7 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
         viewportNavigationMode,
         uiScale,
         locale: preferredLocale,
+        theme,
       }).catch((error: unknown) => logger.warn("preferences", "write_failed", undefined, error));
     if (typeof document !== "undefined") {
       document.documentElement.classList.toggle("reduced-motion", reducedMotion);
@@ -276,6 +298,22 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
                 type="number"
                 value={duration}
               />
+            </label>
+            <label>
+              {t("workspace.composition.background")}
+              <input
+                onChange={(event) => setBackgroundColor(event.target.value)}
+                type="color"
+                value={backgroundColor}
+              />
+            </label>
+            <label className="dialog-check">
+              <input
+                checked={backgroundTransparent}
+                onChange={(event) => setBackgroundTransparent(event.target.checked)}
+                type="checkbox"
+              />
+              {t("workspace.composition.backgroundTransparent")}
             </label>
             <label className="dialog-check wide">
               <input
@@ -462,6 +500,33 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
                 <option value="2">200%</option>
               </select>
             </label>
+            <fieldset className="theme-colors wide">
+              <legend>{t("workspace.preferences.theme")}</legend>
+              {(
+                [
+                  ["accent", "workspace.preferences.themeAccent"],
+                  ["app", "workspace.preferences.themeApp"],
+                  ["panel", "workspace.preferences.themePanel"],
+                  ["text", "workspace.preferences.themeText"],
+                ] as const
+              ).map(([field, labelKey]) => (
+                <label key={field}>
+                  <input
+                    onChange={(event) => setTheme({ ...theme, [field]: event.target.value })}
+                    type="color"
+                    value={theme[field]}
+                  />
+                  {t(labelKey)}
+                </label>
+              ))}
+              <button
+                className="control-button"
+                onClick={() => setTheme(DEFAULT_THEME_COLORS)}
+                type="button"
+              >
+                {t("workspace.preferences.themeReset")}
+              </button>
+            </fieldset>
             <label className="wide">
               {t("workspace.preferences.gpuPreference")}
               <select

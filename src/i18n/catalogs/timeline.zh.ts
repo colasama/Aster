@@ -67,7 +67,6 @@ export const timelineZh = {
   "timeline.menu.noKeyframeClipboard": "关键帧剪贴板为空",
   "timeline.menu.keyframeTargetUnavailable": "关键帧目标不存在或已锁定",
   "timeline.menu.interpolationUnsupported": "无法在此处编辑效果关键帧插值",
-  "timeline.menu.minimumLayer": "合成必须保留至少一个图层",
   "timeline.menu.locked": "所选图层已锁定",
   "timeline.menu.noSource": "此图层没有项目源",
   "timeline.zoomOut": "缩小时间轴",

@@ -59,13 +59,14 @@ import { currentWorkspaceController } from "../../workspace/workspace-controller
 import { useContextMenuTrigger } from "../context-menu/use-context-menu-trigger";
 import { Panel, PanelTabs } from "../Panel";
 import { useWindowPointerDrag } from "../use-window-pointer-drag";
+import { PreviewTimecode } from "../viewport/PreviewTimecode";
 import { useWorkspacePanelHost } from "../workspace/WorkspacePanelHost";
 import { TimelineContextMenu, type TimelineCreateKind } from "./TimelineContextMenu";
 import { collectTimelineLayerKeyframes } from "./TimelineLayerRow";
 import { type TimelineLayerActions, TimelineLayers } from "./TimelineLayers";
 import { TimelineRuler } from "./TimelineRuler";
 import { TimelineZoomControls } from "./TimelineZoomControls";
-import { formatTimecode, rowAtClientY, toggleTimelineFullscreen } from "./timeline-display";
+import { rowAtClientY, toggleTimelineFullscreen } from "./timeline-display";
 import {
   buildTimelineSnapTargets,
   collectTimelineEventTimes,
@@ -83,7 +84,11 @@ import {
   canInterpolateTimelineKeyframes,
   timelineKeyframeInterpolationOperations,
 } from "./timeline-keyframe-actions";
-import { duplicateTimelineLayers, splitTimelineLayers } from "./timeline-layer-clipboard";
+import {
+  duplicateTimelineLayers,
+  pasteTimelineLayers,
+  splitTimelineLayers,
+} from "./timeline-layer-clipboard";
 import type { KeyframeTimePreview } from "./timeline-property-tracks";
 import { timelinePixelsPerSecond, timelineZoomStore } from "./timeline-zoom-store";
 import { useTimelineNavigation } from "./use-timeline-navigation";
@@ -218,6 +223,7 @@ export function Timeline({ mode }: { mode?: "timeline" | "graph" } = {}) {
     composition,
     currentTime: state.currentTime,
     keyframeClipboard,
+    layerClipboard,
     selection: state.selection,
     selectedEntries,
     timelineTargets,
@@ -231,6 +237,7 @@ export function Timeline({ mode }: { mode?: "timeline" | "graph" } = {}) {
     composition,
     currentTime: state.currentTime,
     keyframeClipboard,
+    layerClipboard,
     selection: state.selection,
     selectedEntries,
     timelineTargets,
@@ -275,6 +282,8 @@ export function Timeline({ mode }: { mode?: "timeline" | "graph" } = {}) {
       dispatch({ type: "setTime", time: snapped.time });
   };
   const copySelection = () => {
+    // One shared clipboard: copying keyframes replaces any copied layers.
+    setLayerClipboard(undefined);
     setKeyframeClipboard(copyKeyframes(selectedEntries));
   };
   const pasteSelection = () => {
@@ -289,11 +298,14 @@ export function Timeline({ mode }: { mode?: "timeline" | "graph" } = {}) {
     dispatch({ type: "selectKeyframes", ids: [] });
   };
   const copyContextLayers = () => {
-    if (contextLayers.length) setLayerClipboard(structuredClone(contextLayers));
+    if (!contextLayers.length) return;
+    setKeyframeClipboard(undefined);
+    setLayerClipboard(structuredClone(contextLayers));
   };
   const pasteContextLayers = () => {
     if (!layerClipboard?.length) return;
-    const layers = duplicateTimelineLayers(layerClipboard);
+    const layers = pasteTimelineLayers(layerClipboard, state.currentTime, composition.duration);
+    if (!layers.length) return;
     dispatch({
       type: "operation",
       operations: layers.map((layer) => ({ type: "addLayer" as const, layer })),
@@ -415,27 +427,128 @@ export function Timeline({ mode }: { mode?: "timeline" | "graph" } = {}) {
       )
         return;
       const command = event.ctrlKey || event.metaKey;
-      if (command && event.key.toLowerCase() === "c") {
+      const key = event.key.toLowerCase();
+      const selectedLayers = context.composition.layers.filter((layer) =>
+        context.selection.includes(layer.id),
+      );
+      const editableLayers = selectedLayers.filter((layer) => !layer.locked);
+      const removeEditableLayers = () => {
+        if (!editableLayers.length) return;
+        dispatch({
+          type: "operation",
+          operations: editableLayers.map((layer) => ({
+            type: "removeLayer" as const,
+            layerId: layer.id,
+          })),
+          select: [],
+        });
+      };
+      if (command && !event.altKey && key === "a") {
+        // AE: Ctrl/Cmd+A selects every layer; Shift+A inverts to a deselect-all.
         event.preventDefault();
-        setKeyframeClipboard(copyKeyframes(context.selectedEntries));
-      } else if (command && event.key.toLowerCase() === "v") {
+        if (event.shiftKey) dispatch({ type: "select", ids: [] });
+        else
+          dispatch({
+            type: "select",
+            ids: context.composition.layers.map((layer) => layer.id),
+          });
+      } else if (command && !event.altKey && key === "c") {
+        // Keyframes win when both are selected, matching After Effects clipboard focus.
         event.preventDefault();
-        if (!context.keyframeClipboard || !context.canPasteKeyframeClipboard) return;
-        const pasted = pasteKeyframes(
-          context.keyframeClipboard,
-          context.currentTime,
-          context.composition.duration,
-        );
-        dispatch({ type: "operation", operations: pasted.operations });
-        dispatch({ type: "selectKeyframes", ids: pasted.selectedIds });
+        if (context.selectedEntries.length) {
+          setLayerClipboard(undefined);
+          setKeyframeClipboard(copyKeyframes(context.selectedEntries));
+        } else if (selectedLayers.length) {
+          setKeyframeClipboard(undefined);
+          setLayerClipboard(structuredClone(selectedLayers));
+        }
+      } else if (command && !event.altKey && key === "x") {
+        event.preventDefault();
+        if (context.selectedEntries.length) {
+          if (!context.canEditSelectedKeyframes) return;
+          setLayerClipboard(undefined);
+          setKeyframeClipboard(copyKeyframes(context.selectedEntries));
+          dispatch({ type: "operation", operations: removeKeyframes(context.selectedEntries) });
+          dispatch({ type: "selectKeyframes", ids: [] });
+        } else if (selectedLayers.length) {
+          // Locked layers stay on the clipboard but are not removed, matching AE's lock semantics.
+          setKeyframeClipboard(undefined);
+          setLayerClipboard(structuredClone(selectedLayers));
+          removeEditableLayers();
+        }
+      } else if (command && !event.altKey && key === "v") {
+        event.preventDefault();
+        if (context.keyframeClipboard && context.canPasteKeyframeClipboard) {
+          const pasted = pasteKeyframes(
+            context.keyframeClipboard,
+            context.currentTime,
+            context.composition.duration,
+          );
+          dispatch({ type: "operation", operations: pasted.operations });
+          dispatch({ type: "selectKeyframes", ids: pasted.selectedIds });
+        } else if (context.layerClipboard?.length) {
+          const layers = pasteTimelineLayers(
+            context.layerClipboard,
+            context.currentTime,
+            context.composition.duration,
+          );
+          if (!layers.length) return;
+          dispatch({
+            type: "operation",
+            operations: layers.map((layer) => ({ type: "addLayer" as const, layer })),
+            select: layers.map((layer) => layer.id),
+          });
+        }
+      } else if (command && !event.altKey && key === "d") {
+        event.preventDefault();
+        if (event.shiftKey) {
+          const frame = compositionFrameDuration(context.composition);
+          const splittable =
+            editableLayers.length > 0 &&
+            editableLayers.every(
+              (layer) =>
+                context.currentTime > layer.inPoint + frame * 0.5 &&
+                context.currentTime < layer.outPoint - frame * 0.5,
+            );
+          if (!splittable) return;
+          const rightLayers = splitTimelineLayers(editableLayers, context.currentTime);
+          dispatch({
+            type: "operation",
+            operations: [
+              ...editableLayers.map((layer) => ({
+                type: "setLayerTiming" as const,
+                layerId: layer.id,
+                inPoint: layer.inPoint,
+                outPoint: context.currentTime,
+              })),
+              ...rightLayers.map((layer) => ({ type: "addLayer" as const, layer })),
+            ],
+            select: [
+              ...editableLayers.map((layer) => layer.id),
+              ...rightLayers.map(({ id }) => id),
+            ],
+          });
+        } else if (selectedLayers.length) {
+          const layers = duplicateTimelineLayers(selectedLayers);
+          dispatch({
+            type: "operation",
+            operations: layers.map((layer) => ({ type: "addLayer" as const, layer })),
+            select: layers.map((layer) => layer.id),
+          });
+        }
       } else if (event.key === "Delete" || event.key === "Backspace") {
-        if (!context.selectedEntries.length) return;
-        event.preventDefault();
-        if (!context.canEditSelectedKeyframes) return;
-        dispatch({ type: "operation", operations: removeKeyframes(context.selectedEntries) });
-        dispatch({ type: "selectKeyframes", ids: [] });
+        if (context.selectedEntries.length) {
+          event.preventDefault();
+          if (!context.canEditSelectedKeyframes) return;
+          dispatch({ type: "operation", operations: removeKeyframes(context.selectedEntries) });
+          dispatch({ type: "selectKeyframes", ids: [] });
+        } else if (selectedLayers.length) {
+          event.preventDefault();
+          removeEditableLayers();
+        }
       } else if (event.key === "Escape") {
-        dispatch({ type: "selectKeyframes", ids: [] });
+        if (context.selectedEntries.length) dispatch({ type: "selectKeyframes", ids: [] });
+        else if (context.selection.length) dispatch({ type: "select", ids: [] });
       } else {
         const shortcut = resolveTimelineShortcut(event);
         if (!shortcut) return;
@@ -738,7 +851,15 @@ export function Timeline({ mode }: { mode?: "timeline" | "graph" } = {}) {
           </select>
         )}
         <div className="timecode">
-          <strong>{formatTimecode(state.currentTime, composition.frameRate)}</strong>
+          <PreviewTimecode
+            key={composition.id}
+            composition={composition}
+            time={state.currentTime}
+            onSeek={(time) => {
+              dispatch({ type: "setPlaying", playing: false });
+              dispatch({ type: "setTime", time });
+            }}
+          />
           <small>{frameAt(state.currentTime, composition.frameRate)}f</small>
         </div>
         <div className="transport-controls">

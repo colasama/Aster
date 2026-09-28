@@ -4,11 +4,13 @@ import { RenderHost } from "./components/render-host/RenderHost";
 import { installGlobalErrorLogging, logger } from "./core/logger";
 import { applyBrowserUiScale } from "./ui/browser-ui-scale";
 import { applyReducedMotionPreference } from "./ui/reduced-motion";
+import { applyThemeColors, readThemeColors } from "./ui/theme-dom";
 import { parseUiScale } from "./ui/ui-scale";
 
 installGlobalErrorLogging();
 logger.info("application", "renderer_started", { mode: import.meta.env.MODE });
 applyReducedMotionPreference();
+applyThemeColors(readThemeColors());
 if (!window.asterDesktop)
   applyBrowserUiScale(parseUiScale(window.localStorage.getItem("aster.uiScale")));
 

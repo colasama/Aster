@@ -605,6 +605,22 @@ export function Viewport() {
       })
       .catch((error: unknown) => logger.error("viewport", "export_frame_failed", error));
   };
+  const saveSnapshot = () => {
+    const canvas = snapshot.canvasRef.current;
+    if (!canvas || !snapshot.available) return;
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        logger.error("viewport", "save_snapshot_failed", new Error("Snapshot encode failed"));
+        return;
+      }
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.download = `${composition.name}-snapshot.png`;
+      anchor.href = url;
+      anchor.click();
+      URL.revokeObjectURL(url);
+    }, "image/png");
+  };
 
   return (
     <Panel
@@ -960,7 +976,12 @@ export function Viewport() {
         gpuAvailable={Boolean(diagnostics?.available)}
         rendererStatus={rendererStatus}
         readOnly={viewerReadOnly}
-        snapshot={{ ...snapshot, ready: rendererReady, capture: captureSnapshot }}
+        snapshot={{
+          ...snapshot,
+          ready: rendererReady,
+          capture: captureSnapshot,
+          save: saveSnapshot,
+        }}
         rulers={rulers}
         toggleRulers={() => setRulers((value) => !value)}
         guidesLocked={guidesLocked}

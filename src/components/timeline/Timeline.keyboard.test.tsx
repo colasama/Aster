@@ -106,6 +106,93 @@ it("protects locked keyframes from keyboard delete and paste while allowing copy
   expect(editor.state.selectedKeyframes).toHaveLength(0);
   expect(editor.state.history.past).toHaveLength(2);
 });
+it("copies, pastes, duplicates and deletes layers with Ctrl+C/V/D/Delete", () => {
+  const layerId = activeComposition(editor.state.project).layers[0].id;
+  act(() => {
+    // The fixture layer starts locked; unlock it so clipboard edits apply.
+    editor.dispatch({
+      type: "operation",
+      operations: [{ type: "toggleLayer", layerId, field: "locked" }],
+    });
+    editor.dispatch({ type: "selectKeyframes", ids: [] });
+    editor.dispatch({ type: "select", ids: [layerId] });
+    editor.dispatch({ type: "setTime", time: 3 });
+  });
+  press("c", { ctrlKey: true });
+  press("v", { ctrlKey: true });
+  let layers = activeComposition(editor.state.project).layers;
+  expect(layers).toHaveLength(2);
+  const pasted = layers.find((layer) => layer.id !== layerId);
+  expect(pasted?.inPoint).toBeCloseTo(3);
+  expect(editor.state.selection).toEqual([pasted?.id]);
+  press("d", { ctrlKey: true });
+  layers = activeComposition(editor.state.project).layers;
+  expect(layers).toHaveLength(3);
+  expect(new Set(layers.map((layer) => layer.id)).size).toBe(3);
+  press("Delete");
+  layers = activeComposition(editor.state.project).layers;
+  expect(layers).toHaveLength(2);
+  // Locked layers are skipped instead of blocking the whole delete.
+  act(() => {
+    editor.dispatch({
+      type: "operation",
+      operations: [{ type: "toggleLayer", layerId, field: "locked" }],
+    });
+    editor.dispatch({ type: "select", ids: [layerId] });
+  });
+  press("Delete");
+  expect(activeComposition(editor.state.project).layers).toHaveLength(2);
+});
+
+it("splits layers at the playhead with Ctrl+Shift+D and clears selection with Escape", () => {
+  const layerId = activeComposition(editor.state.project).layers[0].id;
+  act(() => {
+    editor.dispatch({
+      type: "operation",
+      operations: [{ type: "toggleLayer", layerId, field: "locked" }],
+    });
+    editor.dispatch({ type: "selectKeyframes", ids: [] });
+    editor.dispatch({ type: "select", ids: [layerId] });
+    editor.dispatch({ type: "setTime", time: 2 });
+  });
+  press("d", { ctrlKey: true, shiftKey: true });
+  const layers = activeComposition(editor.state.project).layers;
+  expect(layers).toHaveLength(2);
+  const left = layers.find((layer) => layer.id === layerId);
+  const right = layers.find((layer) => layer.id !== layerId);
+  expect(left?.outPoint).toBeCloseTo(2);
+  expect(right?.inPoint).toBeCloseTo(2);
+  press("Escape");
+  expect(editor.state.selection).toEqual([]);
+});
+
+it("seeks from the editable timeline timecode after validating on Enter", () => {
+  const input = document.querySelector<HTMLInputElement>(".timecode .preview-timecode");
+  if (!input) throw new Error("Missing timeline timecode");
+  const setValue = (value: string) => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set?.call(input, value);
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  };
+  act(() => {
+    input.dispatchEvent(new FocusEvent("focus", { bubbles: true }));
+    setValue("bogus");
+  });
+  act(() =>
+    input.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }),
+    ),
+  );
+  expect(input.getAttribute("aria-invalid")).toBe("true");
+  expect(editor.state.currentTime).toBe(0);
+  act(() => setValue("00:00:02:00"));
+  act(() =>
+    input.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }),
+    ),
+  );
+  expect(editor.state.currentTime).toBeCloseTo(2);
+});
+
 it("does not seek or delete behind a modal or during IME composition", () => {
   const originalTime = editor.state.currentTime;
   press("PageDown", { isComposing: true });

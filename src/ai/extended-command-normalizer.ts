@@ -170,6 +170,23 @@ export function normalizeExtendedAiCommand(
         },
       };
     }
+    case "setCompositionBackground": {
+      const compositionId = requiredId(input.compositionId, "compositionId");
+      requireComposition(project, compositionId);
+      const background = input.background;
+      if (!Array.isArray(background) || background.length !== 4)
+        throw new Error("background must be an RGBA tuple");
+      return {
+        type: "setCompositionBackground",
+        compositionId,
+        background: background.map((channel) => Number(channel)) as [
+          number,
+          number,
+          number,
+          number,
+        ],
+      };
+    }
     case "setCompositionWorkArea": {
       const compositionId = requiredId(input.compositionId, "compositionId");
       requireComposition(project, compositionId);

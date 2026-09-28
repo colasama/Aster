@@ -1223,6 +1223,31 @@
       }
     },
     {
+      "name": "setCompositionBackground",
+      "version": 1,
+      "category": "compositions",
+      "description": "Set the composition background color; alpha 0 makes the composition transparent.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "compositionId", "background"],
+        "properties": {
+          "type": { "const": "setCompositionBackground" },
+          "compositionId": { "$ref": "#/$defs/id" },
+          "background": {
+            "type": "array",
+            "minItems": 4,
+            "maxItems": 4,
+            "items": { "type": "number", "minimum": 0, "maximum": 16 }
+          }
+        }
+      }
+    },
+    {
       "name": "setCompositionWorkArea",
       "version": 1,
       "category": "compositions",

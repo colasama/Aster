@@ -163,6 +163,33 @@
   align-items: center;
   gap: 8px;
 }
+.dialog-form input[type="color"] {
+  width: 46px;
+  padding: 2px;
+}
+.theme-colors {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+.theme-colors legend {
+  padding: 0 4px;
+  color: var(--muted);
+  font-size: 10px;
+}
+.theme-colors label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+}
+.theme-colors button {
+  margin-left: auto;
+}
 .dialog-note {
   display: flex;
   align-items: flex-start;

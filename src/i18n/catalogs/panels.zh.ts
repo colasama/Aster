@@ -147,6 +147,7 @@ export const panelsZh = {
   "viewport.timecode.invalid": "请输入有效的时间码、秒数或帧数",
   "viewport.snapshot.take": "拍摄快照（Shift+F5）",
   "viewport.snapshot.show": "按住显示快照（F5）",
+  "viewport.snapshot.save": "保存快照",
   "viewport.displayOptions": "网格与参考线选项",
   "viewport.rulers": "显示标尺与参考线（Ctrl/Cmd+R）",
   "viewport.ruler.horizontal": "水平标尺 — 添加水平参考线",

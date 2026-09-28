@@ -72,7 +72,7 @@ export function timelineContextMenuItems(
     items.push(
       {
         disabled: actions.locked || !actions.canDeleteLayers,
-        disabledReason: actions.locked ? locked : t("timeline.menu.minimumLayer"),
+        disabledReason: locked,
         id: "cut-layers",
         kind: "command",
         label: t("timeline.menu.cut"),
@@ -105,7 +105,7 @@ export function timelineContextMenuItems(
       {
         destructive: true,
         disabled: !actions.canDeleteLayers,
-        disabledReason: actions.locked ? locked : t("timeline.menu.minimumLayer"),
+        disabledReason: locked,
         id: "delete-layers",
         kind: "command",
         label: t("timeline.menu.delete"),

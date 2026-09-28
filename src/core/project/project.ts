@@ -289,12 +289,34 @@ export function createDemoProject(): Project {
 }
 
 export function createBlankComposition(name = "Composition 1"): Composition {
-  const compositionId = createId();
-  const background = layer({
+  return {
+    id: createId(),
+    name,
+    width: 1920,
+    height: 1080,
+    frameRate: { numerator: 30, denominator: 1 },
+    duration: 10,
+    workArea: { start: 0, end: 10 },
+    // An empty composition is legal; the opaque canvas composites transparency over black.
+    background: [0, 0, 0, 1],
+    motionBlur: {
+      enabled: false,
+      shutterAngle: 180,
+      shutterPhase: -90,
+      samplesPerFrame: 8,
+      adaptiveSampleLimit: 32,
+    },
+    layers: [],
+  };
+}
+
+/** Starter backdrop for a brand-new project; additional compositions stay empty. */
+function createBackdropLayer(composition: Composition): Layer {
+  return layer({
     name: "Background",
     kind: "shape",
     color: [0.015, 0.018, 0.028, 1],
-    size: [1920, 1080],
+    size: [composition.width, composition.height],
     shape: {
       kind: "rectangle",
       roundness: 0,
@@ -308,31 +330,14 @@ export function createBlankComposition(name = "Composition 1"): Composition {
       lineCap: "round",
       lineJoin: "round",
     },
-    outPoint: 10,
-    transform: createTransform([960, 540, 0]),
+    outPoint: composition.duration,
+    transform: createTransform([composition.width / 2, composition.height / 2, 0]),
   });
-  return {
-    id: compositionId,
-    name,
-    width: 1920,
-    height: 1080,
-    frameRate: { numerator: 30, denominator: 1 },
-    duration: 10,
-    workArea: { start: 0, end: 10 },
-    background: [0.008, 0.01, 0.018, 1],
-    motionBlur: {
-      enabled: false,
-      shutterAngle: 180,
-      shutterPhase: -90,
-      samplesPerFrame: 8,
-      adaptiveSampleLimit: 32,
-    },
-    layers: [background],
-  };
 }
 
 export function createBlankProject(): Project {
   const composition = createBlankComposition();
+  composition.layers = [createBackdropLayer(composition)];
   return {
     schemaVersion: 10,
     id: createId(),

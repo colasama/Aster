@@ -23,6 +23,7 @@ import { type GpuMemoryBudgetMb, isGpuMemoryBudget } from "../core/rendering/gpu
 import type { Id, Project, RendererMetrics } from "../core/types";
 import { isDesktopRuntime, migrateLegacyPreferences } from "../desktop/api";
 import { APP_PREFERENCES_CHANGED_EVENT, type UserPreferencePatch } from "../desktop/preferences";
+import { applyThemeColors, persistThemeColors, readThemeColors } from "../ui/theme-dom";
 import {
   DEFAULT_VIEWPORT_ZOOM,
   normalizeViewportNavigationMode,
@@ -494,6 +495,10 @@ export function EditorProvider({ children }: PropsWithChildren) {
           localStorage.setItem("aster.reducedMotion", String(preferences.reducedMotion));
           localStorage.setItem("aster.gpuMemoryBudgetMb", String(preferences.gpuMemoryBudgetMb));
           if (preferences.locale) localStorage.setItem("aster.locale", preferences.locale);
+          if (preferences.theme) {
+            persistThemeColors(preferences.theme);
+            applyThemeColors(preferences.theme);
+          }
           setAutosaveSeconds(preferences.autosaveSeconds);
         } catch {
           // Electron preferences remain authoritative when renderer storage is unavailable.
@@ -503,7 +508,10 @@ export function EditorProvider({ children }: PropsWithChildren) {
   }, []);
 
   useEffect(() => {
-    const handlePreferencesChanged = () => setAutosaveSeconds(readAutosaveSeconds());
+    const handlePreferencesChanged = () => {
+      setAutosaveSeconds(readAutosaveSeconds());
+      applyThemeColors(readThemeColors());
+    };
     window.addEventListener(APP_PREFERENCES_CHANGED_EVENT, handlePreferencesChanged);
     return () =>
       window.removeEventListener(APP_PREFERENCES_CHANGED_EVENT, handlePreferencesChanged);

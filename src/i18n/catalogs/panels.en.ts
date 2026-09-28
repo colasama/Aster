@@ -145,6 +145,7 @@ export const panelsEn = {
   "viewport.timecode.invalid": "Enter a valid timecode, seconds, or frame count",
   "viewport.snapshot.take": "Take Snapshot (Shift+F5)",
   "viewport.snapshot.show": "Hold to Show Snapshot (F5)",
+  "viewport.snapshot.save": "Save Snapshot",
   "viewport.displayOptions": "Grid and guide options",
   "viewport.rulers": "Show Rulers and Guides (Ctrl/Cmd+R)",
   "viewport.ruler.horizontal": "Horizontal ruler — add horizontal guide",

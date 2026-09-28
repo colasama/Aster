@@ -2,11 +2,11 @@ import {
   Check,
   ChevronRight,
   History,
-  Loader2,
   Send,
   Settings2,
   ShieldAlert,
   Sparkles,
+  Square,
   WandSparkles,
   X,
 } from "lucide-react";
@@ -14,6 +14,11 @@ import { useEffect, useRef, useState } from "react";
 import type { AgentAccessMode, AgentHostEvent, FullAccessGrant } from "../../ai/agent-protocol";
 import { AsterAgentApplicationService } from "../../ai/application-service";
 import { planLocalAiOperations } from "../../ai/local-planner";
+import {
+  type AgentProviderSettings,
+  loadAgentProviderSettings,
+  saveAgentProviderSettings,
+} from "../../ai/provider-settings";
 import { renderAgentPreview } from "../../ai/render-preview";
 import type { Operation } from "../../core/editing/operations";
 import { activeComposition } from "../../core/project/project";
@@ -57,22 +62,41 @@ export function AiPanel() {
     verification: "verified_by_primary_model" | "metrics_only" | "not_verified";
   }>();
   const [providerOpen, setProviderOpen] = useState(false);
-  const [provider, setProvider] = useState({
-    baseUrl: "https://88996api.cloud/v1",
-    apiKey: "",
-    model: "deepseek-v4-flash-0731",
-    supportsImages: false,
-  });
+  const [provider, setProvider] = useState<AgentProviderSettings>(loadAgentProviderSettings);
   const [loading, setLoading] = useState(false);
   const [accessMode, setAccessMode] = useState<AgentAccessMode>("agent");
   const [agentOutput, setAgentOutput] = useState("");
   const [activeTool, setActiveTool] = useState<string>();
+  const [messages, setMessages] = useState<
+    { id: string; role: "user" | "assistant"; text: string }[]
+  >([]);
   const [fullAccessConfirmation, setFullAccessConfirmation] = useState("");
   const [fullAccessGrant, setFullAccessGrant] = useState<FullAccessGrant>();
   const [error, setError] = useState<UiMessageDescriptor>();
   const sessionId = useRef(crypto.randomUUID());
   const agentService = useRef<AsterAgentApplicationService | undefined>(undefined);
   const cancelled = useRef(false);
+  const running = useRef(false);
+  const history = useRef<string[]>([]);
+  const transcriptRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    saveAgentProviderSettings(provider);
+  }, [provider]);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Streamed text, tool state, and preview transitions all schedule a scroll-to-bottom.
+  useEffect(() => {
+    const transcript = transcriptRef.current;
+    if (transcript) transcript.scrollTop = transcript.scrollHeight;
+  }, [messages, agentOutput, activeTool, preview]);
+  useEffect(
+    // Panel tabs are demand-mounted: cancelling here frees the orphaned worker run so a
+    // remounted panel never inherits a stale "already running" state.
+    () => () => {
+      cancelled.current = true;
+      agentService.current?.abort();
+      if (running.current) void cancelAgent(sessionId.current).catch(() => undefined);
+    },
+    [],
+  );
   useEffect(() => {
     if (!isDesktopRuntime()) return;
     return onAgentEvent((event: AgentHostEvent) => {
@@ -126,11 +150,25 @@ export function AiPanel() {
     const expiryTimer = window.setTimeout(revoke, Math.min(expiresIn, 2_147_483_647));
     return () => window.clearTimeout(expiryTimer);
   }, [fullAccessGrant, provider.baseUrl, provider.model, state.project.id]);
+  const cancelRun = () => {
+    cancelled.current = true;
+    agentService.current?.abort();
+    if (running.current && isDesktopRuntime())
+      void cancelAgent(sessionId.current).catch(() => undefined);
+  };
+  const pushMessage = (role: "user" | "assistant", text: string) =>
+    setMessages((current) => [...current, { id: crypto.randomUUID(), role, text }]);
   const createPreview = async (intent: string) => {
+    const request = intent.trim();
+    if (!request) return;
     cancelled.current = false;
     setError(undefined);
     setAgentOutput("");
-    if (isDesktopRuntime() && intent.trim()) {
+    setPrompt("");
+    history.current.push(request);
+    if (history.current.length > 50) history.current.shift();
+    pushMessage("user", request);
+    if (isDesktopRuntime()) {
       if (accessMode === "full_access" && !fullAccessGrant) {
         setError(uiMessage("ai.fullAccessRequired"));
         return;
@@ -146,6 +184,7 @@ export function AiPanel() {
         renderPreview: renderAgentPreview,
       });
       agentService.current = service;
+      running.current = true;
       try {
         const result = await runAgent({
           sessionId: sessionId.current,
@@ -165,7 +204,8 @@ export function AiPanel() {
         const submitted = service.submittedWorkspace();
         if (!submitted || result.submittedWorkspaceId !== submitted.workspaceId)
           throw new Error("The agent did not submit a valid edit workspace");
-        setAgentOutput(result.text);
+        setAgentOutput("");
+        if (result.text) pushMessage("assistant", result.text);
         if (accessMode === "full_access") {
           if (state.projectRevision !== submitted.baseRevision)
             throw new Error("The live project changed while the agent was working");
@@ -175,7 +215,6 @@ export function AiPanel() {
             metadata: { source: "ai", summary: submitted.summary },
           });
           agentService.current = undefined;
-          setPrompt("");
           return;
         }
         setPreview({
@@ -185,7 +224,6 @@ export function AiPanel() {
           baseRevision: submitted.baseRevision,
           verification: submitted.verification,
         });
-        setPrompt("");
         return;
       } catch (error) {
         service.abort();
@@ -199,10 +237,11 @@ export function AiPanel() {
           },
         });
       } finally {
+        running.current = false;
         setLoading(false);
       }
     }
-    const local = planLocalAiOperations(intent, composition, state.selection, state.currentTime);
+    const local = planLocalAiOperations(request, composition, state.selection, state.currentTime);
     if (local.operations.length === 0) {
       setError(uiMessage("ai.localSelectionError"));
       return;
@@ -214,7 +253,6 @@ export function AiPanel() {
       baseRevision: state.projectRevision,
       verification: "not_verified",
     });
-    setPrompt("");
   };
   const commitPreview = (operations: Operation[], summary: string, baseRevision: number) => {
     if (state.projectRevision !== baseRevision) {
@@ -266,7 +304,7 @@ export function AiPanel() {
             />
           </label>
           <label>
-            {t("ai.apiKey")} <small>{t("ai.memoryOnly")}</small>
+            {t("ai.apiKey")} <small>{t("ai.persistedLocally")}</small>
             <input
               autoComplete="off"
               onChange={(event) => setProvider({ ...provider, apiKey: event.target.value })}
@@ -344,6 +382,8 @@ export function AiPanel() {
           <button
             onClick={() => {
               void emergencyStopAgent(sessionId.current, fullAccessGrant.id);
+              cancelled.current = true;
+              running.current = false;
               agentService.current?.abort();
               setFullAccessGrant(undefined);
               setAccessMode("agent");
@@ -360,48 +400,56 @@ export function AiPanel() {
           {translateUiMessage(t, error)} · {t("ai.errorFallback")}
         </div>
       )}
-      {(activeTool || agentOutput) && !preview && (
-        <div className="ai-agent-status">
-          {activeTool && <small>{t("ai.agentRunning", { tool: activeTool })}</small>}
-          {agentOutput && <p>{agentOutput}</p>}
-        </div>
-      )}
-      {!preview ? (
-        <>
-          <div className="ai-suggestions">
-            <small>{t("ai.tryOperation")}</small>
-            {suggestions.map((suggestion) => (
-              <button
-                key={suggestion.intent}
-                onClick={() => void createPreview(suggestion.intent)}
-                type="button"
-              >
-                <span>{t(suggestion.labelKey)}</span>
-                <ChevronRight size={13} />
-              </button>
-            ))}
+      <div className="ai-transcript" ref={transcriptRef}>
+        {messages.map((message) => (
+          <div className={`ai-message ${message.role}`} key={message.id}>
+            <p>{message.text}</p>
           </div>
-          <div className="ai-empty">
-            <History size={20} />
-            {state.auditLog.length > 0 ? (
-              <div className="ai-audit-log">
-                <strong>{t("ai.recentPlans")}</strong>
-                {state.auditLog
-                  .slice(-3)
-                  .reverse()
-                  .map((entry) => (
-                    <span key={entry.id}>
-                      {entry.summary} ·{" "}
-                      {t("ai.operationCount", { count: entry.operationTypes.length })}
-                    </span>
-                  ))}
-              </div>
-            ) : (
-              <span>{t("ai.auditEmpty")}</span>
-            )}
+        ))}
+        {(activeTool || agentOutput) && !preview && (
+          <div className="ai-agent-status">
+            {activeTool && <small>{t("ai.agentRunning", { tool: activeTool })}</small>}
+            {agentOutput && <p>{agentOutput}</p>}
           </div>
-        </>
-      ) : (
+        )}
+        {!messages.length && !agentOutput && !activeTool && !preview && (
+          <>
+            <div className="ai-suggestions">
+              <small>{t("ai.tryOperation")}</small>
+              {suggestions.map((suggestion) => (
+                <button
+                  key={suggestion.intent}
+                  onClick={() => void createPreview(suggestion.intent)}
+                  type="button"
+                >
+                  <span>{t(suggestion.labelKey)}</span>
+                  <ChevronRight size={13} />
+                </button>
+              ))}
+            </div>
+            <div className="ai-empty">
+              <History size={20} />
+              {state.auditLog.length > 0 ? (
+                <div className="ai-audit-log">
+                  <strong>{t("ai.recentPlans")}</strong>
+                  {state.auditLog
+                    .slice(-3)
+                    .reverse()
+                    .map((entry) => (
+                      <span key={entry.id}>
+                        {entry.summary} ·{" "}
+                        {t("ai.operationCount", { count: entry.operationTypes.length })}
+                      </span>
+                    ))}
+                </div>
+              ) : (
+                <span>{t("ai.auditEmpty")}</span>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+      {preview && (
         <div className="operation-preview">
           <div className="preview-heading">
             <Sparkles size={14} />
@@ -480,6 +528,21 @@ export function AiPanel() {
       >
         <textarea
           onChange={(event) => setPrompt(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.nativeEvent.isComposing) return;
+            if (event.key === "Enter" && !event.shiftKey) {
+              event.preventDefault();
+              if (!loading && prompt.trim()) void createPreview(prompt);
+            } else if (event.key === "Escape" && loading) {
+              event.preventDefault();
+              cancelRun();
+            } else if (event.key === "ArrowUp" && !prompt) {
+              const last = history.current[history.current.length - 1];
+              if (!last) return;
+              event.preventDefault();
+              setPrompt(last);
+            }
+          }}
           placeholder={t("ai.prompt")}
           rows={3}
           value={prompt}
@@ -489,17 +552,19 @@ export function AiPanel() {
           {loading ? (
             <button
               aria-label={t("ai.cancel")}
-              onClick={() => {
-                cancelled.current = true;
-                agentService.current?.abort();
-                void cancelAgent(sessionId.current);
-              }}
+              onClick={cancelRun}
+              title={t("ai.cancel")}
               type="button"
             >
-              <Loader2 className="spin" size={14} />
+              <Square size={12} />
             </button>
           ) : (
-            <button disabled={!prompt.trim()} type="submit">
+            <button
+              aria-label={t("ai.send")}
+              disabled={!prompt.trim()}
+              title={t("ai.send")}
+              type="submit"
+            >
               <Send size={14} />
             </button>
           )}

@@ -5,6 +5,7 @@ import {
 } from "../core/rendering/anti-aliasing.js";
 import { type GpuMemoryBudgetMb, isGpuMemoryBudget } from "../core/rendering/gpu-memory-policy.js";
 import { type GpuPreference, normalizeGpuPreference } from "../core/rendering/gpu-preference.js";
+import { normalizeThemeColors, type ThemeColors } from "../ui/theme.js";
 import { isUiScale, type UiScale } from "../ui/ui-scale.js";
 import {
   normalizeViewportNavigationMode,
@@ -36,6 +37,7 @@ export interface AppPreferences {
   antiAliasing: AntiAliasingMode;
   viewportNavigationMode: ViewportNavigationMode;
   uiScale: UiScale;
+  theme?: ThemeColors;
   recentProjects: string[];
   lastProjectPath?: string;
   windowState?: PersistedWindowState;
@@ -52,6 +54,7 @@ export type UserPreferencePatch = Partial<
     | "uiScale"
     | "antiAliasing"
     | "viewportNavigationMode"
+    | "theme"
   >
 >;
 
@@ -107,6 +110,7 @@ export function applyUserPreferencePatch(current: AppPreferences, value: unknown
     "antiAliasing",
     "viewportNavigationMode",
     "uiScale",
+    "theme",
   ]);
   for (const key of Object.keys(value))
     if (!allowed.has(key)) throw new Error(`Application preference ${key} cannot be updated here`);
@@ -210,6 +214,7 @@ function normalizeCurrentPreferences(value: Record<string, unknown>): AppPrefere
     : [];
   const lastProjectPath = boundedPath(value.lastProjectPath);
   const windowState = normalizeWindowState(value.windowState);
+  const theme = isRecord(value.theme) ? normalizeThemeColors(value.theme) : undefined;
   return {
     schemaVersion: CURRENT_APP_PREFERENCES_VERSION,
     ...(locale ? { locale } : {}),
@@ -220,6 +225,7 @@ function normalizeCurrentPreferences(value: Record<string, unknown>): AppPrefere
     antiAliasing: normalizeAntiAliasing(value.antiAliasing ?? DEFAULT_ANTI_ALIASING),
     viewportNavigationMode: normalizeViewportNavigationMode(value.viewportNavigationMode),
     uiScale: isUiScale(value.uiScale) ? value.uiScale : "auto",
+    ...(theme ? { theme } : {}),
     recentProjects,
     ...(lastProjectPath ? { lastProjectPath } : {}),
     ...(windowState ? { windowState } : {}),

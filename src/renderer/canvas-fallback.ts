@@ -139,8 +139,16 @@ export class CanvasFallbackRenderer {
     }
     const context = this.#context;
     context.clearRect(0, 0, this.#width, this.#height);
-    context.fillStyle = "#060814";
-    context.fillRect(0, 0, this.#width, this.#height);
+    // Transparent compositions composite over black, matching the opaque WebGPU canvas.
+    const [r, g, b, a] = composition.background;
+    if (a < 1) {
+      context.fillStyle = "#000";
+      context.fillRect(0, 0, this.#width, this.#height);
+    }
+    if (a > 0) {
+      context.fillStyle = `rgba(${Math.round(Math.min(1, r) * 255)}, ${Math.round(Math.min(1, g) * 255)}, ${Math.round(Math.min(1, b) * 255)}, ${Math.min(1, a)})`;
+      context.fillRect(0, 0, this.#width, this.#height);
+    }
     const scale = this.#width / composition.width;
     const activeMedia = new Set<string>();
     if (holdPendingMedia && playing) {

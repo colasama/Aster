@@ -22,12 +22,15 @@ const parentPort = process.parentPort;
 if (!parentPort) throw new Error("Aster Pi agent must run in an Electron utility process");
 
 const pendingTools = new Map<string, PendingTool>();
-let activeRunId: string | undefined;
+// Runs are keyed by session so a remounted panel (new session id) never sees a stale
+// "already running" state left behind by an orphaned run.
+const activeRuns = new Map<string, string>();
 
 const runtime = new PiAgentRuntime(
   (sessionId, toolName, argumentsValue, signal) =>
     new Promise((resolve, reject) => {
-      if (!activeRunId) {
+      const runId = activeRuns.get(sessionId);
+      if (!runId) {
         reject(new Error("Agent run is unavailable"));
         return;
       }
@@ -50,7 +53,7 @@ const runtime = new PiAgentRuntime(
       );
       post({
         type: "tool_request",
-        runId: activeRunId,
+        runId,
         event: {
           type: "tool_request",
           requestId,
@@ -61,7 +64,8 @@ const runtime = new PiAgentRuntime(
       });
     }),
   (event) => {
-    if (activeRunId) post({ type: "event", runId: activeRunId, event });
+    const runId = activeRuns.get(event.sessionId);
+    if (runId) post({ type: "event", runId, event });
   },
 );
 
@@ -69,11 +73,12 @@ parentPort.on("message", (messageEvent) => {
   const message = messageEvent.data as ParentMessage;
   if (!message || typeof message !== "object" || !("type" in message)) return;
   if (message.type === "run") {
-    if (activeRunId) {
+    const sessionId = message.request.sessionId?.trim();
+    if (sessionId && activeRuns.has(sessionId)) {
       post({ type: "result", runId: message.runId, error: "Aster Pi agent is already running" });
       return;
     }
-    activeRunId = message.runId;
+    if (sessionId) activeRuns.set(sessionId, message.runId);
     void runtime
       .run(message.request)
       .then((result) => post({ type: "result", runId: message.runId, result }))
@@ -85,7 +90,9 @@ parentPort.on("message", (messageEvent) => {
         }),
       )
       .finally(() => {
-        activeRunId = undefined;
+        for (const [key, runId] of activeRuns) {
+          if (runId === message.runId) activeRuns.delete(key);
+        }
       });
   } else if (message.type === "tool_response") {
     settleTool(message.response);

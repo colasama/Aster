@@ -84,6 +84,8 @@ export const workspaceEn = {
   "workspace.composition.height": "Height",
   "workspace.composition.frameRate": "Frame rate",
   "workspace.composition.duration": "Duration (seconds)",
+  "workspace.composition.background": "Background color",
+  "workspace.composition.backgroundTransparent": "Transparent background",
   "workspace.composition.enableEnvironment": "Enable HDR environment lighting",
   "workspace.composition.environmentIntensity": "Environment intensity",
   "workspace.composition.environmentRotation": "Environment rotation",
@@ -123,6 +125,12 @@ export const workspaceEn = {
   "workspace.preferences.gpuBudgetExceedsFree":
     "Exceeds currently free memory; the manual budget includes no reserve.",
   "workspace.preferences.reducedMotion": "Reduce non-essential interface motion",
+  "workspace.preferences.theme": "Theme colors",
+  "workspace.preferences.themeAccent": "Accent",
+  "workspace.preferences.themeApp": "App background",
+  "workspace.preferences.themePanel": "Panel background",
+  "workspace.preferences.themeText": "Text",
+  "workspace.preferences.themeReset": "Reset",
   "workspace.preferences.webgpuNote":
     "Aster renders through WebGPU whenever the adapter supports it; the 2D fallback remains available for recovery and diagnostics.",
   "workspace.expression.positionX": "Position X",

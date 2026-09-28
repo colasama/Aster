@@ -1,4 +1,13 @@
-import { Camera, ChevronRight, Grid3X3, Image, Move3D, Ruler, Sparkles } from "lucide-react";
+import {
+  Camera,
+  ChevronRight,
+  Download,
+  Grid3X3,
+  Image,
+  Move3D,
+  Ruler,
+  Sparkles,
+} from "lucide-react";
 import type { Composition } from "../../core/types";
 import { useI18n } from "../../i18n/react";
 import { BUFFER_VISUALIZATIONS, type BufferVisualization } from "../../renderer/gpu/render-buffers";
@@ -103,6 +112,7 @@ export function ViewportFooter({
     capture(): void;
     show(): void;
     hide(): void;
+    save(): void;
   };
   rulers: boolean;
   toggleRulers(): void;
@@ -185,6 +195,15 @@ export function ViewportFooter({
           }}
         >
           <Image size={15} />
+        </button>
+        <button
+          type="button"
+          aria-label={t("viewport.snapshot.save")}
+          title={t("viewport.snapshot.save")}
+          disabled={!snapshot.available}
+          onClick={snapshot.save}
+        >
+          <Download size={15} />
         </button>
       </div>
       <div className="viewport-control-group">

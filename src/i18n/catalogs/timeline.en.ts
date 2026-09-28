@@ -65,7 +65,6 @@ export const timelineEn = {
   "timeline.menu.noKeyframeClipboard": "The keyframe clipboard is empty",
   "timeline.menu.keyframeTargetUnavailable": "The keyframe target is missing or locked",
   "timeline.menu.interpolationUnsupported": "Effect keyframe interpolation is not editable here",
-  "timeline.menu.minimumLayer": "A composition must retain at least one layer",
   "timeline.menu.locked": "The selected layer is locked",
   "timeline.menu.noSource": "This layer has no project source",
   "timeline.zoomOut": "Zoom timeline out",

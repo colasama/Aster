@@ -238,6 +238,16 @@ export function applyOperation(project: Project, operation: Operation): void {
     );
     return;
   }
+  if (operation.type === "setCompositionBackground") {
+    const composition = project.compositions.find(
+      (candidate) => candidate.id === operation.compositionId,
+    );
+    if (!composition) throw new Error("Composition does not exist");
+    composition.background = operation.background.map((channel, index) =>
+      clamp(channel, 0, index === 3 ? 1 : 16),
+    ) as [number, number, number, number];
+    return;
+  }
   if (operation.type === "setCompositionMotionBlur") {
     const composition = project.compositions.find(
       (candidate) => candidate.id === operation.compositionId,

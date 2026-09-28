@@ -86,6 +86,22 @@ describe("application preferences", () => {
     expect(() => migrateAppPreferences({ schemaVersion: 99 })).toThrow("newer than this build");
   });
 
+  it("normalizes theme colors, falling back to defaults for invalid values", () => {
+    const updated = applyUserPreferencePatch(defaultAppPreferences(), {
+      theme: { accent: "#FF00AA", app: "not-a-color", text: "#eee" },
+    });
+    expect(updated.theme).toEqual({
+      accent: "#ff00aa",
+      app: "#181818",
+      panel: "#1f1f1f",
+      text: "#e1e1e1",
+    });
+    expect(migrateAppPreferences(JSON.parse(JSON.stringify(updated))).theme).toEqual(updated.theme);
+    expect(
+      applyUserPreferencePatch(defaultAppPreferences(), { theme: "purple" }).theme,
+    ).toBeUndefined();
+  });
+
   it("restricts renderer updates to user-facing preferences", () => {
     const current = defaultAppPreferences();
     expect(applyUserPreferencePatch(current, { autosaveSeconds: 60 }).autosaveSeconds).toBe(60);
