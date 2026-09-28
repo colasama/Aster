@@ -39,6 +39,11 @@ export function useWorkspaceController(): WorkspaceController | null {
   return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 }
 
+/** Reads the controller from event handlers without subscribing the caller to layout changes. */
+export function currentWorkspaceController(): WorkspaceController | null {
+  return controller;
+}
+
 function subscribe(listener: () => void): () => void {
   listeners.add(listener);
   return () => listeners.delete(listener);

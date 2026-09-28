@@ -1,11 +1,13 @@
 import { lazy, Suspense, useEffect, useMemo, useRef } from "react";
 import { AutomationConnection } from "./ai/AutomationConnection";
+import { AiAssistantPanel } from "./components/ai/AiAssistantPanel";
 import { DiagnosticBanner } from "./components/diagnostics/DiagnosticBanner";
 import {
   ApplicationDiagnosticBoundary,
   DiagnosticRuntimeMonitor,
 } from "./components/diagnostics/DiagnosticBoundary";
 import { Inspector } from "./components/inspector/Inspector";
+import { EffectsPanel } from "./components/project/EffectsPanel";
 import { ProjectPanel } from "./components/project/ProjectPanel";
 import { ActivityBar } from "./components/shell/ActivityBar";
 import { TopBar } from "./components/shell/TopBar";
@@ -22,6 +24,7 @@ import { projectPluginReferences } from "./core/project/project-plugin-reference
 import { reportUiError } from "./errors/report-ui-error";
 import { I18nProvider, useI18n } from "./i18n/react";
 import { EditorProvider, useEditor } from "./state/editor-store";
+import { removeSelectedLayersOperations } from "./state/layer-commands";
 import { isEditableShortcutTarget, isEditorShortcutBlocked } from "./ui/keyboard-shortcuts";
 import "./styles/index.css";
 
@@ -45,6 +48,7 @@ function Studio() {
   const workspacePanels = useMemo<readonly WorkspacePanelDefinition[]>(
     () => [
       { id: "project", label: t("workspace.panel.project"), element: <ProjectPanel /> },
+      { id: "effects", label: t("workspace.panel.effects"), element: <EffectsPanel /> },
       {
         id: "viewport",
         label: t("workspace.panel.viewport"),
@@ -52,6 +56,7 @@ function Studio() {
         viewerType: "composition",
       },
       { id: "inspector", label: t("workspace.panel.inspector"), element: <Inspector /> },
+      { id: "ai", label: t("workspace.panel.ai"), element: <AiAssistantPanel /> },
       {
         id: "timeline",
         label: t("workspace.panel.timeline"),
@@ -124,23 +129,19 @@ function Studio() {
         event.preventDefault();
         dispatch({ type: "redo" });
       } else if (
-        event.key === "Delete" &&
-        state.selection.length > 0 &&
+        (event.key === "Delete" || event.key === "Backspace") &&
         state.selectedKeyframes.length === 0
       ) {
-        const composition = activeComposition(state.project);
-        if (
-          composition.layers.length > state.selection.length &&
-          state.selection.every((id) =>
-            composition.layers.some((layer) => layer.id === id && !layer.locked),
-          )
-        ) {
-          dispatch({
-            type: "operation",
-            operations: state.selection.map((layerId) => ({ type: "removeLayer", layerId })),
-            select: [],
-          });
-        }
+        const operations = removeSelectedLayersOperations(state.project, state.selection);
+        if (!operations) return;
+        event.preventDefault();
+        dispatch({ type: "operation", operations, select: [] });
+      } else if (
+        event.key === "Escape" &&
+        state.selectedKeyframes.length === 0 &&
+        state.selection.length > 0
+      ) {
+        dispatch({ type: "select", ids: [] });
       }
     };
     window.addEventListener("keydown", onKeyDown);

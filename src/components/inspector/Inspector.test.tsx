@@ -15,6 +15,7 @@ import { createEffect } from "../../effects/registry";
 import { diagnosticStore } from "../../errors/diagnostic-store";
 import { I18nProvider } from "../../i18n/react";
 import { EditorProvider, useEditor } from "../../state/editor-store";
+import { selectFirstLayer } from "../../state/editor-test-utils";
 import { Inspector } from "./Inspector";
 
 let root: Root | undefined;
@@ -26,6 +27,7 @@ function LoadProject({ project, time }: { project: Project; time?: number }) {
   latestEditor = editor;
   useEffect(() => {
     dispatch({ type: "loadProject", project });
+    selectFirstLayer(dispatch, project);
     if (time !== undefined) dispatch({ type: "setTime", time });
   }, [dispatch, project, time]);
   return null;
@@ -253,9 +255,8 @@ describe("adjustment layer inspector", () => {
       ),
     );
 
-    expect(
-      [...container.querySelectorAll(".panel-tabs button")].map((button) => button.textContent),
-    ).toEqual(["Properties", "AI Assistant"]);
+    // The AI assistant is its own workspace panel rather than an Inspector sub-tab.
+    expect(container.querySelector(".panel-tabs")).toBeNull();
     expect(container.textContent).toContain("Effects");
     expect(container.textContent).not.toContain("Transform");
     expect(container.textContent).not.toContain("Opacity");

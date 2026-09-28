@@ -58,8 +58,7 @@ import { mediaImportRuntime } from "../../importers/media-import-runtime";
 import type { PsdImportMode } from "../../importers/psd-composition";
 import { useEditor } from "../../state/editor-store";
 import { useContextMenuTrigger } from "../context-menu/use-context-menu-trigger";
-import { Panel, PanelTabs } from "../Panel";
-import { EffectBrowser } from "./EffectBrowser";
+import { Panel } from "../Panel";
 import {
   ProjectContextMenu,
   type ProjectContextTarget,
@@ -187,7 +186,6 @@ export function ProjectPanel() {
     setAddTarget(undefined);
   };
   const openAddDrawer = (folderId?: Id, label = t("project.assets")) => {
-    if (state.leftTab !== "project") dispatch({ type: "setLeftTab", tab: "project" });
     setAddTarget({ folderId, label });
   };
   const createFolder = (folderId = addTarget?.folderId) => {
@@ -585,16 +583,7 @@ export function ProjectPanel() {
   return (
     <Panel
       className="project-panel"
-      tabs={
-        <PanelTabs
-          active={state.leftTab}
-          onChange={(tab) => dispatch({ type: "setLeftTab", tab: tab as "project" | "effects" })}
-          tabs={[
-            { id: "project", label: t("project.tab.project") },
-            { id: "effects", label: t("project.tab.effects") },
-          ]}
-        />
-      }
+      title={t("workspace.panel.project")}
       actions={
         <button
           aria-expanded={Boolean(addTarget)}
@@ -662,105 +651,97 @@ export function ProjectPanel() {
       <div className="panel-search">
         <Search size={13} />
         <input
+          aria-label={t("project.search")}
           onChange={(event) => setQuery(event.target.value)}
           placeholder={t("project.search")}
           value={query}
         />
       </div>
-      {state.leftTab === "project" && (
+      <div
+        className="project-tree"
+        onContextMenu={(event) => {
+          if (event.target !== event.currentTarget) return;
+          openProjectContextFromPointer(event, { kind: "empty" });
+        }}
+        onKeyDown={(event) => {
+          if (event.target !== event.currentTarget) return;
+          openProjectContextFromKeyboard(event, { kind: "empty" });
+        }}
+        role="tree"
+        tabIndex={0}
+      >
         <div
-          className="project-tree"
-          onContextMenu={(event) => {
-            if (event.target !== event.currentTarget) return;
-            openProjectContextFromPointer(event, { kind: "empty" });
+          aria-expanded={expandedFolders.has(ROOT_ASSETS_ID)}
+          className={`tree-row asset-folder root-assets ${dropTargetId === ROOT_ASSETS_ID ? "drop-target" : ""}`}
+          onContextMenu={(event) => openProjectContextFromPointer(event, { kind: "empty" })}
+          onDragEnter={(event) => {
+            event.preventDefault();
+            setDropTargetId(ROOT_ASSETS_ID);
           }}
-          onKeyDown={(event) => {
-            if (event.target !== event.currentTarget) return;
-            openProjectContextFromKeyboard(event, { kind: "empty" });
+          onDragLeave={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget as Node))
+              setDropTargetId(undefined);
           }}
-          role="tree"
-          tabIndex={0}
+          onDragOver={(event) => {
+            event.preventDefault();
+            event.dataTransfer.dropEffect = "move";
+          }}
+          onDrop={(event) => dropItem(event)}
+          onKeyDown={(event) => openProjectContextFromKeyboard(event, { kind: "empty" })}
+          role="treeitem"
+          style={{ "--tree-depth": 0 } as CSSProperties}
+          tabIndex={-1}
         >
-          <div className="tree-row folder">
-            <Folder fill="currentColor" size={15} />
-            <span>{state.project.name}</span>
-          </div>
-          <div
+          <button
             aria-expanded={expandedFolders.has(ROOT_ASSETS_ID)}
-            className={`tree-row asset-folder root-assets ${dropTargetId === ROOT_ASSETS_ID ? "drop-target" : ""}`}
-            onContextMenu={(event) => openProjectContextFromPointer(event, { kind: "empty" })}
-            onDragEnter={(event) => {
-              event.preventDefault();
-              setDropTargetId(ROOT_ASSETS_ID);
-            }}
-            onDragLeave={(event) => {
-              if (!event.currentTarget.contains(event.relatedTarget as Node))
-                setDropTargetId(undefined);
-            }}
-            onDragOver={(event) => {
-              event.preventDefault();
-              event.dataTransfer.dropEffect = "move";
-            }}
-            onDrop={(event) => dropItem(event)}
-            onKeyDown={(event) => openProjectContextFromKeyboard(event, { kind: "empty" })}
-            role="treeitem"
-            style={{ "--tree-depth": 0 } as CSSProperties}
-            tabIndex={-1}
+            aria-label={
+              expandedFolders.has(ROOT_ASSETS_ID)
+                ? t("project.folder.collapse", { name: t("project.assets") })
+                : t("project.folder.expand", { name: t("project.assets") })
+            }
+            className="folder-toggle"
+            onClick={() => toggleFolder(ROOT_ASSETS_ID)}
+            type="button"
           >
-            <button
-              aria-expanded={expandedFolders.has(ROOT_ASSETS_ID)}
-              aria-label={
-                expandedFolders.has(ROOT_ASSETS_ID)
-                  ? t("project.folder.collapse", { name: t("project.assets") })
-                  : t("project.folder.expand", { name: t("project.assets") })
-              }
-              className="folder-toggle"
-              onClick={() => toggleFolder(ROOT_ASSETS_ID)}
-              type="button"
-            >
-              {expandedFolders.has(ROOT_ASSETS_ID) ? (
-                <ChevronDown size={13} />
-              ) : (
-                <ChevronRight size={13} />
-              )}
-              <Folder fill="currentColor" size={14} />
-              <span>{t("project.assets")}</span>
-            </button>
-            <small>{state.project.compositions.length + mediaItems.length}</small>
-            <button
-              aria-label={t("project.folder.addTo", { name: t("project.assets") })}
-              className="folder-add"
-              onClick={() => openAddDrawer()}
-              title={t("project.folder.addTo", { name: t("project.assets") })}
-              type="button"
-            >
-              <Plus size={12} />
-            </button>
-          </div>
-          {expandedFolders.has(ROOT_ASSETS_ID) && (
-            <>
-              {state.project.folders
-                .filter((folder) => !folder.parentId)
-                .map((folder) => renderFolder(folder, 1))}
-              {renderItemsInFolder(undefined, 1)}
-            </>
-          )}
-          {assetError && (
-            <div className="project-error" role="alert">
-              <span>{uiErrorMessage(t, assetError)}</span>
-              {assetErrorDetail && (
-                <small className="project-error-detail">{assetErrorDetail}</small>
-              )}
-            </div>
-          )}
-          {assetWarningCount > 0 && (
-            <div className="project-warning" role="status">
-              {t("project.asset.importWarnings", { count: assetWarningCount })}
-            </div>
-          )}
+            {expandedFolders.has(ROOT_ASSETS_ID) ? (
+              <ChevronDown size={13} />
+            ) : (
+              <ChevronRight size={13} />
+            )}
+            <Folder fill="currentColor" size={14} />
+            <span>{t("project.assets")}</span>
+          </button>
+          <small>{state.project.compositions.length + mediaItems.length}</small>
+          <button
+            aria-label={t("project.folder.addTo", { name: t("project.assets") })}
+            className="folder-add"
+            onClick={() => openAddDrawer()}
+            title={t("project.folder.addTo", { name: t("project.assets") })}
+            type="button"
+          >
+            <Plus size={12} />
+          </button>
         </div>
-      )}
-      <EffectBrowser query={query} hidden={state.leftTab === "project"} />
+        {expandedFolders.has(ROOT_ASSETS_ID) && (
+          <>
+            {state.project.folders
+              .filter((folder) => !folder.parentId)
+              .map((folder) => renderFolder(folder, 1))}
+            {renderItemsInFolder(undefined, 1)}
+          </>
+        )}
+        {assetError && (
+          <div className="project-error" role="alert">
+            <span>{uiErrorMessage(t, assetError)}</span>
+            {assetErrorDetail && <small className="project-error-detail">{assetErrorDetail}</small>}
+          </div>
+        )}
+        {assetWarningCount > 0 && (
+          <div className="project-warning" role="status">
+            {t("project.asset.importWarnings", { count: assetWarningCount })}
+          </div>
+        )}
+      </div>
       {projectContextMenu.point && projectContextTarget && (
         <ProjectContextMenu
           addSourceToComposition={() => {

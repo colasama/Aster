@@ -63,17 +63,29 @@ behavior.
 `src/components/workspace` renders the immutable tree directly. Groups own an accessible,
 overflowing tab strip and a host for the active panel's existing actions. This lets legacy `Panel`
 callers keep their content and tool buttons while the workspace owns layout tabs, close, float, and
-maximize controls. Project, Composition, Inspector, Timeline, Graph Editor, and Profiler are stable
-panel registry entries rather than fixed CSS grid cells.
+maximize controls. Project, Effects & Presets, Composition, Inspector, AI Assistant, Timeline,
+Graph Editor, Profiler, and Render Queue are stable panel registry entries rather than fixed CSS
+grid cells.
 
-Embedded panel subtabs use a separate row with roving keyboard focus; timeline and graph surfaces
-use their workspace tabs directly. Each surface owns its display mode, so both can remain visible
-without competing over a shared mode switch. Revealing an existing panel activates its dock tab.
+Every tool surface is its own dock panel; panels do not nest editor subtabs. Effects & Presets used
+to be a subtab of Project and the AI Assistant a subtab of Inspector, which made two unrelated
+surfaces compete for one slot and hid a panel's purpose behind its container's name. Timeline and
+graph surfaces likewise use their workspace tabs directly, so both can remain visible without
+competing over a shared mode switch. Revealing an existing panel activates its dock tab.
 
-The shell activity bar reveals Project, Effects & Presets, Properties, AI Assistant, and Render
-Queue through the workspace controller. It reopens closed panels and restores the full layout when
-another group is maximized. Active indicators follow the visible dock tab (or expanded stacked
-panel) and the editor subtab. Preferences remains available at the bottom of the rail.
+The default workspace keeps the composition viewer alone in its group. The Profiler shares the
+bottom group with Timeline and Graph Editor, so the viewer being measured stays visible, and the
+right column holds Inspector, AI Assistant, and Render Queue.
+
+The shell activity bar has one button per dockable tool panel (Project, Effects & Presets,
+Inspector, AI Assistant, Render Queue, Profiler). A button brings its panel to the front wherever it
+is docked, reopens it when closed, and restores the full layout when another group is maximized. Its
+active indicator follows the visible dock tab (or expanded stacked panel). Preferences remains
+available at the bottom of the rail.
+
+Reopening a closed panel without an explicit target places it beside a companion from its default
+group (for example Effects & Presets beside Project), falling back to the hovered or first group, so
+panels return to their usual region instead of the first group in the tree.
 
 Panel and group drags expose four edge zones for splitting and one center zone for grouping. A drop
 maps to exactly one model operation and one persistence write. Closing records the panel ID and the
@@ -93,6 +105,12 @@ The active layout is stored under `aster.workspace.layout.v1`. Reads pass throug
 schema boundary; malformed JSON, rejected storage access, invalid data, and future schema versions
 fall back atomically to the default layout. Layout preferences remain separate from `.aster` project
 documents.
+
+Schema version 3 migrates older layouts, including custom named workspaces, to the separated panels:
+Effects & Presets is inserted as an inactive tab after Project, AI Assistant after Inspector (each is
+recorded as closed when its anchor panel is absent), and a Profiler that shares a group with a
+composition viewer moves to the group containing Timeline without changing either group's active
+tab, except that a Profiler-active viewer group returns to the viewer.
 
 ## Named workspaces
 

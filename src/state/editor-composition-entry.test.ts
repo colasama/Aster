@@ -43,15 +43,18 @@ describe("composition entry time", () => {
       expect(opened.currentTime).toBe(45);
       expect(opened.playing).toBe(false);
       expect(opened.selectedKeyframes).toEqual([]);
-      expect(opened.selection).toEqual([layer.id]);
+      expect(opened.selection).toEqual([]);
       expect(opened.seekRevision).toBe(11);
       expect(visibleLayersAtTime(activeComposition(opened.project), opened.currentTime)).toEqual([
         layer,
       ]);
-      expect(opened.history.past).toHaveLength(1);
+      // Opening a composition from the project or timeline is navigation, not an edit.
+      expect(opened.history.past).toHaveLength(entry === "navigation" ? 0 : 1);
+      if (entry === "navigation") return;
 
       const undone = editorReducer(opened, { type: "undo" });
-      expect(undone.currentTime).toBe(0);
+      // Returning to the parent restores the playhead the user left there.
+      expect(undone.currentTime).toBe(1);
       const redone = editorReducer(undone, { type: "redo" });
       expect(redone.currentTime).toBe(45);
       expect(redone.playing).toBe(false);
@@ -66,7 +69,10 @@ describe("composition entry time", () => {
     expect(loaded.currentTime).toBe(45);
     expect(loaded.playing).toBe(false);
     expect(loaded.selectedKeyframes).toEqual([]);
-    expect(loaded.selection).toEqual([layer.id]);
+    expect(loaded.selection).toEqual([]);
+    expect(visibleLayersAtTime(activeComposition(loaded.project), loaded.currentTime)).toEqual([
+      layer,
+    ]);
     expect(loaded.seekRevision).toBe(11);
     expect(loaded.history.past).toEqual([]);
   });
@@ -83,6 +89,33 @@ describe("composition entry time", () => {
       expect(loaded.currentTime).toBe(0);
     },
   );
+
+  it("keeps a clean document clean and restores each composition's playhead and selection", () => {
+    const { state, compositionId, layer } = lateShot();
+    const rootId = state.project.activeCompositionId;
+    const wrapperId = activeComposition(state.project).layers[0].id;
+    const clean = { ...state, selection: [wrapperId], savedProjectRevision: state.projectRevision };
+    const opened = editorReducer(clean, { type: "setActiveComposition", compositionId });
+    expect(opened.savedProjectRevision).toBe(opened.projectRevision);
+    const edited = editorReducer(editorReducer(opened, { type: "select", ids: [layer.id] }), {
+      type: "setTime",
+      time: 47,
+    });
+    const back = editorReducer(edited, { type: "setActiveComposition", compositionId: rootId });
+    expect(back.currentTime).toBe(1);
+    expect(back.selection).toEqual([wrapperId]);
+    const again = editorReducer(back, { type: "setActiveComposition", compositionId });
+    expect(again.currentTime).toBe(47);
+    expect(again.selection).toEqual([layer.id]);
+    expect(again.history.past).toEqual([]);
+  });
+
+  it("keeps a dirty document dirty while navigating between compositions", () => {
+    const { state, compositionId } = lateShot();
+    const dirty = { ...state, savedProjectRevision: null };
+    const opened = editorReducer(dirty, { type: "setActiveComposition", compositionId });
+    expect(opened.savedProjectRevision).toBeNull();
+  });
 
   it("does not interrupt playback or reset selections for an ordinary document edit", () => {
     const { state } = lateShot();

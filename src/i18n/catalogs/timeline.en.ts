@@ -2,6 +2,7 @@ export const timelineEn = {
   "timeline.menu.layerStyleUnavailable": "Select unlocked visual layers",
   "timeline.tab.timeline": "Timeline",
   "timeline.tab.graph": "Graph Editor",
+  "timeline.composition": "Composition",
   "timeline.toggleLayerSwitches": "Toggle layer switches",
   "timeline.toggleFullscreen": "Toggle fullscreen timeline",
   "timeline.transport.start": "Go to composition start",

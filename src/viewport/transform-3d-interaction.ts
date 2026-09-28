@@ -38,30 +38,37 @@ export function hitTestSceneLayerAtPoint(
   point: Vector2,
   camera: EvaluatedCamera,
 ): Layer | undefined {
-  const hit = flattenSceneLayers(composition, project, time).find(({ layer, transform }) => {
-    if (
-      layer.kind === "audio" ||
-      layer.kind === "camera" ||
-      layer.kind === "light" ||
-      layer.kind === "adjustment"
-    )
-      return false;
-    if (layer.threeDimensional) {
-      const bounds = projectLayerBounds3d(layer, transform, composition, camera);
-      return bounds ? hitTestProjectedLayer3d(point, bounds, 3) : false;
-    }
-    return hitTestViewportTransform(
-      point,
-      {
-        position: [transform.position[0], transform.position[1]],
-        scale: [transform.scale[0], transform.scale[1]],
-        rotation: transform.rotation[2],
-        anchor: [transform.anchor[0], transform.anchor[1]],
-        size: solidRenderSize(layer),
-      },
-      2,
-    );
-  });
+  const locked = new Set(
+    composition.layers.filter((layer) => layer.locked).map((layer) => layer.id),
+  );
+  const hit = flattenSceneLayers(composition, project, time).find(
+    ({ layer, selectionId, transform }) => {
+      // Locked layers are visible but not pickable, so clicks reach the layers beneath them.
+      if (locked.has(selectionId)) return false;
+      if (
+        layer.kind === "audio" ||
+        layer.kind === "camera" ||
+        layer.kind === "light" ||
+        layer.kind === "adjustment"
+      )
+        return false;
+      if (layer.threeDimensional) {
+        const bounds = projectLayerBounds3d(layer, transform, composition, camera);
+        return bounds ? hitTestProjectedLayer3d(point, bounds, 3) : false;
+      }
+      return hitTestViewportTransform(
+        point,
+        {
+          position: [transform.position[0], transform.position[1]],
+          scale: [transform.scale[0], transform.scale[1]],
+          rotation: transform.rotation[2],
+          anchor: [transform.anchor[0], transform.anchor[1]],
+          size: solidRenderSize(layer),
+        },
+        2,
+      );
+    },
+  );
   return hit ? composition.layers.find((layer) => layer.id === hit.selectionId) : undefined;
 }
 

@@ -74,9 +74,19 @@
   right: auto;
   width: auto;
   min-height: 100%;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  align-content: start;
+  column-gap: 20px;
+  padding: 8px 12px 10px;
   border: 0;
   border-radius: 0;
   box-shadow: none;
+}
+.workspace-profiler-panel
+  .profiler-overlay
+  > :is(.profiler-title, .pass-breakdown, .cache-bar, .benchmark-progress, .benchmark-report) {
+  grid-column: 1 / -1;
 }
 .panel-tabs {
   align-self: stretch;

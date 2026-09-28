@@ -721,7 +721,42 @@
   min-width: 0;
   min-height: 0;
   display: grid;
-  grid-template-rows: 31px minmax(0, 1fr);
+  grid-template-rows: 31px 20px minmax(0, 1fr);
+}
+.graph-ruler {
+  position: relative;
+  overflow: hidden;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-raised);
+  cursor: ew-resize;
+  touch-action: none;
+  user-select: none;
+}
+.graph-ruler-tick {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  padding: 3px 0 0 3px;
+  border-left: 1px solid rgb(255 255 255 / 12%);
+  color: var(--faint);
+  font-size: 10px;
+  pointer-events: none;
+}
+.graph-ruler-playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: #ff5b6e;
+  pointer-events: none;
+}
+.graph-marquee {
+  fill: rgb(95 143 242 / 12%);
+  pointer-events: none;
+  stroke: #5f8ff2;
+  stroke-width: 1px;
+  vector-effect: non-scaling-stroke;
 }
 .graph-toolbar {
   display: flex;
@@ -831,4 +866,9 @@
   pointer-events: none;
   position: absolute;
   top: 3px;
+}
+.timeline-composition {
+  max-width: 160px;
+  height: 24px;
+  margin-left: 8px;
 }

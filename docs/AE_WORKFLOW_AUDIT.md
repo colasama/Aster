@@ -54,6 +54,24 @@ viewing and alignment. It does not claim complete After Effects feature parity.
   non-drop-frame formatting with the timeline, including rational frame rates. Enter/blur commits;
   Escape discards the draft. Locked viewers of another composition cannot seek the active editor.
 
+## Selection and composition navigation (2026-09-29)
+
+- Viewer picking follows the comp panel: a press selects the topmost unlocked layer under the pointer
+  and the same press drags it, so an unselected layer no longer needs a second click. Presses inside
+  the current selection frame that land on another layer select that layer instead of moving the
+  frame, which keeps full-frame backgrounds from swallowing clicks. Locked layers stay visible but are
+  not pickable. Shift toggles a layer; pressing empty canvas or the pasteboard clears the selection.
+- Timeline layer rows use Ctrl/Cmd-click to toggle one layer and Shift-click to select a range from
+  the primary selected layer. Double-clicking a precomposition layer opens its source composition;
+  the transport shows a composition switcher once a project has several compositions.
+- Opening a composition is navigation: it records no undo step and keeps a clean document clean.
+  Each composition remembers its playhead and layer selection, so returning to it resumes where the
+  user left it. Loading a project or entering a composition for the first time selects nothing.
+- Delete/Backspace removes the selected keyframes first, otherwise the selected layers (including the
+  last layer of a composition); Escape clears keyframes first, then layers. Ctrl/Cmd+D duplicates and
+  Ctrl/Cmd+A selects every layer. Menu commands that need a layer explain that instead of silently
+  doing nothing.
+
 ## Timeline navigation (2026-09-22)
 
 - The time ruler, work-area handles, and playhead head remain pinned above vertically scrolling

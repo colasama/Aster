@@ -32,7 +32,7 @@ import { type UiErrorCode, uiErrorMessage } from "../../i18n/errors";
 import { useI18n } from "../../i18n/react";
 import { useEditor } from "../../state/editor-store";
 
-export function EffectBrowser({ query, hidden }: { query: string; hidden: boolean }) {
+export function EffectBrowser({ query }: { query: string }) {
   const { state, dispatch } = useEditor();
   const { t } = useI18n();
   const composition = activeComposition(state.project);
@@ -160,7 +160,6 @@ export function EffectBrowser({ query, hidden }: { query: string; hidden: boolea
       });
     }
   };
-  if (hidden) return null;
   return (
     <div className="effect-list">
       <div className="user-preset-save">

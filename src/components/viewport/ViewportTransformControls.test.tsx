@@ -9,9 +9,13 @@ import {
   createBlankProject,
   createDemoProject,
 } from "../../core/project/project";
+import { evaluateWorldTransform } from "../../core/scene/scene-evaluation";
 import { I18nProvider } from "../../i18n/react";
 import type { EditorAction } from "../../state/editor-store";
-import { ViewportTransformControls } from "./ViewportTransformControls";
+import {
+  ViewportTransformControls,
+  type ViewportTransformHandle,
+} from "./ViewportTransformControls";
 
 let container: HTMLDivElement;
 let root: Root;
@@ -281,7 +285,7 @@ describe("ViewportTransformControls", () => {
 
     layer.visible = false;
     act(() => root.render(render()));
-    expect(container.querySelector(".viewport-transform-controls")).toBeNull();
+    expect(container.querySelector(".viewport-transform-controls")?.childElementCount).toBe(0);
   });
 
   it.each<[string, (target: SVGElement, pointerId: number) => void]>([
@@ -308,6 +312,8 @@ describe("ViewportTransformControls", () => {
     );
     expect(layer).toBeDefined();
     if (!layer) return;
+    // Keep the dragged layer topmost so the press is not handed to a layer above it.
+    composition.layers = [layer, ...composition.layers.filter((entry) => entry !== layer)];
     const dispatch = vi.fn<(action: EditorAction) => void>();
     act(() =>
       root.render(
@@ -330,21 +336,22 @@ describe("ViewportTransformControls", () => {
     expect(target).not.toBeNull();
     if (!target) return;
     const pointerId = 7;
+    const [x, y] = evaluateWorldTransform(layer, composition, 0).position;
     act(() => {
       target.dispatchEvent(
         new PointerEvent("pointerdown", {
           bubbles: true,
           button: 0,
-          clientX: 100,
-          clientY: 100,
+          clientX: x,
+          clientY: y,
           pointerId,
         }),
       );
       target.dispatchEvent(
         new PointerEvent("pointermove", {
           bubbles: true,
-          clientX: 140,
-          clientY: 120,
+          clientX: x + 40,
+          clientY: y + 20,
           pointerId,
         }),
       );
@@ -363,5 +370,98 @@ describe("ViewportTransformControls", () => {
       ),
     );
     expect(dispatch.mock.calls.some(([action]) => action.type === "operation")).toBe(false);
+  });
+
+  it("hands a press inside the selection to the viewer when another layer is on top", () => {
+    const project = createBlankProject();
+    const composition = activeComposition(project);
+    const bottom = createLayerForComposition("shape", composition);
+    const top = createLayerForComposition("shape", composition);
+    composition.layers = [top, bottom];
+    const dispatch = vi.fn<(action: EditorAction) => void>();
+    const viewerPress = vi.fn();
+    act(() =>
+      root.render(
+        <I18nProvider>
+          <div onPointerDown={viewerPress}>
+            <ViewportTransformControls
+              activeTool="select"
+              composition={composition}
+              dispatch={dispatch}
+              onEditText={vi.fn()}
+              project={project}
+              selection={[bottom.id]}
+              showGuides={false}
+              time={0}
+              zoom={1}
+            />
+          </div>
+        </I18nProvider>,
+      ),
+    );
+    const target = container.querySelector<SVGElement>(".viewport-selection-hit");
+    const [x, y] = evaluateWorldTransform(top, composition, 0).position;
+    act(() => {
+      target?.dispatchEvent(
+        new PointerEvent("pointerdown", { bubbles: true, button: 0, clientX: x, clientY: y }),
+      );
+      target?.dispatchEvent(
+        new PointerEvent("pointermove", { bubbles: true, clientX: x + 30, clientY: y }),
+      );
+    });
+    expect(viewerPress).toHaveBeenCalledTimes(1);
+    expect(dispatch).not.toHaveBeenCalled();
+  });
+
+  it("drags a layer the viewer has just picked without a second press", () => {
+    const project = createBlankProject();
+    const composition = activeComposition(project);
+    const layer = createLayerForComposition("shape", composition);
+    composition.layers = [layer];
+    const dispatch = vi.fn<(action: EditorAction) => void>();
+    const handle: { current: ViewportTransformHandle | null } = { current: null };
+    act(() =>
+      root.render(
+        <I18nProvider>
+          <ViewportTransformControls
+            activeTool="select"
+            composition={composition}
+            dispatch={dispatch}
+            handleRef={handle}
+            onEditText={vi.fn()}
+            project={project}
+            selection={[]}
+            showGuides={false}
+            time={0}
+            zoom={1}
+          />
+        </I18nProvider>,
+      ),
+    );
+    const [x, y] = evaluateWorldTransform(layer, composition, 0).position;
+    let started = false;
+    act(() => {
+      started =
+        handle.current?.beginGesture(
+          new PointerEvent("pointerdown", { button: 0, clientX: x, clientY: y, pointerId: 3 }),
+          [layer.id],
+          "move",
+        ) ?? false;
+      window.dispatchEvent(
+        new PointerEvent("pointermove", { clientX: x + 50, clientY: y + 10, pointerId: 3 }),
+      );
+      window.dispatchEvent(
+        new PointerEvent("pointerup", { clientX: x + 50, clientY: y + 10, pointerId: 3 }),
+      );
+    });
+    expect(started).toBe(true);
+    const committed = dispatch.mock.calls.find(([action]) => action.type === "operation")?.[0];
+    expect(committed?.type === "operation" && committed.operations.length).toBeGreaterThan(0);
+    act(() =>
+      window.dispatchEvent(
+        new PointerEvent("pointermove", { clientX: 0, clientY: 0, pointerId: 3 }),
+      ),
+    );
+    expect(dispatch.mock.calls.filter(([action]) => action.type === "operation")).toHaveLength(1);
   });
 });

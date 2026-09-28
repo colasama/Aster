@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { MessageKey, PlainMessageKey, Translate, TranslationArguments } from "../../i18n/core";
+import type { MessageKey, Translate, TranslationArguments } from "../../i18n/core";
 import {
   translateUiMessage,
   type UiErrorCode,
@@ -8,9 +8,7 @@ import {
   uiMessage,
 } from "../../i18n/errors";
 
-export type TopBarToastDescriptor =
-  | UiMessageDescriptor
-  | { kind: "nextStep"; itemKey: PlainMessageKey };
+export type TopBarToastDescriptor = UiMessageDescriptor;
 
 export interface TopBarToastState {
   descriptor: TopBarToastDescriptor;
@@ -38,9 +36,7 @@ export function toastError(code: UiErrorCode): TopBarToastDescriptor {
 }
 
 export function renderTopBarToast(t: Translate, descriptor: TopBarToastDescriptor): string {
-  return descriptor.kind === "nextStep"
-    ? t("topbar.toast.nextStep", { item: t(descriptor.itemKey) })
-    : translateUiMessage(t, descriptor);
+  return translateUiMessage(t, descriptor);
 }
 
 export function useTopBarToast(timeoutMs = 2400): TopBarToastController {

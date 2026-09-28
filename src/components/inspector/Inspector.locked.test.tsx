@@ -8,13 +8,17 @@ import { activeComposition, createDemoProject } from "../../core/project/project
 import type { Project } from "../../core/types";
 import { I18nProvider } from "../../i18n/react";
 import { EditorProvider, useEditor } from "../../state/editor-store";
+import { selectFirstLayer } from "../../state/editor-test-utils";
 import { Inspector } from "./Inspector";
 
 let root: Root | undefined;
 
 function LoadProject({ project }: { project: Project }) {
   const { dispatch } = useEditor();
-  useEffect(() => dispatch({ type: "loadProject", project }), [dispatch, project]);
+  useEffect(() => {
+    dispatch({ type: "loadProject", project });
+    selectFirstLayer(dispatch, project);
+  }, [dispatch, project]);
   return null;
 }
 

@@ -76,7 +76,11 @@ describe("GraphEditor", () => {
       root.render(
         <I18nProvider>
           <EditorProvider>
-            <GraphHarness capture={(state) => (latest = state)} project={project} />
+            <GraphHarness
+              capture={(state) => (latest = state)}
+              project={project}
+              selection={[layer.id]}
+            />
           </EditorProvider>
         </I18nProvider>,
       ),
@@ -192,7 +196,11 @@ describe("GraphEditor", () => {
       root.render(
         <I18nProvider>
           <EditorProvider>
-            <GraphHarness capture={(state) => (latest = state)} project={project} />
+            <GraphHarness
+              capture={(state) => (latest = state)}
+              project={project}
+              selection={[layer.id]}
+            />
           </EditorProvider>
         </I18nProvider>,
       ),
@@ -212,6 +220,74 @@ describe("GraphEditor", () => {
         )?.parameterKeyframes?.mode?.[0],
     ).toMatchObject({ id: "mode-start", value: 1, interpolation: "step", easing: undefined });
     expect(latest?.history.past).toHaveLength(1);
+  });
+
+  it("owns Delete while focused and clears the key selection on an empty press", () => {
+    const project = createDemoProject();
+    const layer = activeComposition(project).layers[0];
+    const effect = createEffect("gaussian-blur");
+    effect.parameterKeyframes = {
+      radius: [
+        { id: "radius-start", time: 0, value: 18, interpolation: "linear" },
+        { id: "radius-end", time: 1, value: 42, interpolation: "linear" },
+      ],
+    };
+    layer.effects.push(effect);
+    let latest: EditorState | undefined;
+    act(() =>
+      root.render(
+        <I18nProvider>
+          <EditorProvider>
+            <GraphHarness
+              capture={(state) => (latest = state)}
+              project={project}
+              selection={[layer.id]}
+            />
+          </EditorProvider>
+        </I18nProvider>,
+      ),
+    );
+    const marker = (id: string) =>
+      [...container.querySelectorAll<SVGEllipseElement>(".graph-key")].find((entry) =>
+        entry
+          .getAttribute("aria-label")
+          ?.startsWith(`Gaussian Blur · Blurriness keyframe at ${id === "radius-start" ? 0 : 1}`),
+      );
+    act(() =>
+      marker("radius-start")?.dispatchEvent(
+        new KeyboardEvent("keydown", { bubbles: true, key: "Enter" }),
+      ),
+    );
+    expect(latest?.selectedKeyframes).toEqual(["radius-start"]);
+
+    const deletion = new KeyboardEvent("keydown", {
+      bubbles: true,
+      cancelable: true,
+      key: "Delete",
+    });
+    act(() => container.querySelector(".graph-surface")?.dispatchEvent(deletion));
+    expect(deletion.defaultPrevented).toBe(true);
+    const radius = latest
+      ? activeComposition(latest.project).layers[0].effects.find(
+          (candidate) => candidate.id === effect.id,
+        )?.parameterKeyframes?.radius
+      : undefined;
+    expect(radius?.map((keyframe) => keyframe.id)).toEqual(["radius-end"]);
+    expect(activeComposition(latest?.project ?? project).layers[0].id).toBe(layer.id);
+
+    act(() =>
+      marker("radius-end")?.dispatchEvent(
+        new KeyboardEvent("keydown", { bubbles: true, key: "Enter" }),
+      ),
+    );
+    expect(latest?.selectedKeyframes).toEqual(["radius-end"]);
+    act(() => {
+      container
+        .querySelector(".graph-surface svg")
+        ?.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0 }));
+      window.dispatchEvent(new PointerEvent("pointerup"));
+    });
+    expect(latest?.selectedKeyframes).toEqual([]);
   });
 });
 

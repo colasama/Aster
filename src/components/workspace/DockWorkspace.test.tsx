@@ -162,7 +162,7 @@ describe("DockWorkspace", () => {
     act(() => container.querySelector<HTMLButtonElement>('button[aria-label="Close A"]')?.click());
     expect(container.querySelectorAll('[role="tab"]')).toHaveLength(1);
     const stored = JSON.parse(window.localStorage.getItem(WORKSPACE_LAYOUT_STORAGE_KEY) ?? "null");
-    expect(stored).toMatchObject({ schemaVersion: 2, closedPanels: ["a"] });
+    expect(stored).toMatchObject({ schemaVersion: 3, closedPanels: ["a"] });
     act(() =>
       container
         .querySelector<HTMLButtonElement>(".workspace-group-content button:last-of-type")

@@ -18,11 +18,11 @@ export const menuDefinitions = [
     labelKey: "topbar.menu.file",
     items: [
       { id: "newProject", labelKey: "topbar.item.newProject" },
-      { id: "open", labelKey: "topbar.item.open" },
+      { id: "open", labelKey: "topbar.item.open", shortcut: "Ctrl O" },
       { id: "openPacked", labelKey: "topbar.item.openPacked" },
       { id: "recoverAutosave", labelKey: "topbar.item.recoverAutosave" },
-      { id: "saveProject", labelKey: "topbar.item.saveProject" },
-      { id: "saveAs", labelKey: "topbar.item.saveAs" },
+      { id: "saveProject", labelKey: "topbar.item.saveProject", shortcut: "Ctrl S" },
+      { id: "saveAs", labelKey: "topbar.item.saveAs", shortcut: "Ctrl Shift S" },
       { id: "packProject", labelKey: "topbar.item.packProject" },
       { id: "exportFrame", labelKey: "topbar.item.exportFrame" },
     ],
@@ -33,8 +33,11 @@ export const menuDefinitions = [
     items: [
       { id: "undo", labelKey: "topbar.item.undo", shortcut: "Ctrl Z" },
       { id: "redo", labelKey: "topbar.item.redo", shortcut: "Ctrl Y" },
-      { id: "duplicate", labelKey: "topbar.item.duplicate" },
+      { id: "duplicate", labelKey: "topbar.item.duplicate", shortcut: "Ctrl D" },
+      { id: "delete", labelKey: "topbar.item.delete", shortcut: "Delete" },
+      { id: "selectAll", labelKey: "topbar.item.selectAll", shortcut: "Ctrl A" },
       { id: "preferences", labelKey: "topbar.item.preferences" },
+      { id: "plugins", labelKey: "topbar.item.plugins" },
     ],
   },
   {
@@ -99,14 +102,8 @@ export const menuDefinitions = [
   {
     id: "window",
     labelKey: "topbar.menu.window",
-    items: [
-      { id: "project", labelKey: "topbar.item.project" },
-      { id: "viewport", labelKey: "topbar.item.viewport" },
-      { id: "timeline", labelKey: "topbar.item.timeline" },
-      { id: "properties", labelKey: "topbar.item.properties" },
-      { id: "aiOperator", labelKey: "topbar.item.aiOperator" },
-      { id: "plugins", labelKey: "topbar.item.plugins" },
-    ],
+    // Window entries come from the live workspace panel registry.
+    items: [],
   },
   {
     id: "help",

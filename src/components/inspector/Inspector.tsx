@@ -14,8 +14,7 @@ import { canToggleLayer } from "../../core/editing/operations";
 import { activeComposition } from "../../core/project/project";
 import { useI18n } from "../../i18n/react";
 import { useEditor } from "../../state/editor-store";
-import { AiPanel } from "../ai/AiPanel";
-import { Panel, PanelTabs } from "../Panel";
+import { Panel } from "../Panel";
 import { LayerBlendOptions } from "../timeline/LayerBlendOptions";
 import { ClonerControls } from "./ClonerControls";
 import { EffectEditor } from "./EffectEditor";
@@ -38,22 +37,8 @@ export function Inspector() {
   const effectGroups = commonEffectTargets(layers);
   const allLocked = layers.every((entry) => entry.locked);
   return (
-    <Panel
-      className="inspector-panel"
-      tabs={
-        <PanelTabs
-          active={state.rightTab}
-          onChange={(tab) => dispatch({ type: "setRightTab", tab: tab as "properties" | "ai" })}
-          tabs={[
-            { id: "properties", label: t("inspector.tab.properties") },
-            { id: "ai", label: t("inspector.tab.ai") },
-          ]}
-        />
-      }
-    >
-      {state.rightTab === "ai" ? (
-        <AiPanel />
-      ) : layer ? (
+    <Panel className="inspector-panel" title={t("workspace.panel.inspector")}>
+      {layer ? (
         <InspectorSelection
           layers={layers}
           key={`${state.project.id}:${composition.id}:${state.selection.join(",")}`}

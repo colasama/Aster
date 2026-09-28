@@ -49,8 +49,11 @@ export interface RenderJobFormState {
 }
 
 /** Controlled option state shared by the queue panel form and the top-bar render dialog. */
-export function useRenderJobOptions(compositionDuration: number): RenderJobFormState {
-  const [outputKind, setOutputKind] = useState<RenderQueueOutputKind>("mp4");
+export function useRenderJobOptions(
+  compositionDuration: number,
+  initialOutputKind: RenderQueueOutputKind = "mp4",
+): RenderJobFormState {
+  const [outputKind, setOutputKind] = useState<RenderQueueOutputKind>(initialOutputKind);
   const [bitrateMbps, setBitrateMbps] = useState(String(DEFAULT_MP4_BITRATE_MBPS));
   const [includeAudio, setIncludeAudio] = useState(false);
   const [fileNamePattern, setFileNamePattern] = useState(DEFAULT_SEQUENCE_PATTERN);

@@ -55,8 +55,8 @@ export interface EditorState {
   previewQuality: 1 | 0.5 | 0.25;
   antiAliasing: AntiAliasingMode;
   gpuMemoryBudgetMb: GpuMemoryBudgetMb;
-  leftTab: "project" | "effects";
-  rightTab: "properties" | "ai";
+  /** Per-composition playhead and layer selection, restored when a composition is reopened. */
+  compositionViews: Record<Id, CompositionViewState>;
   bottomMode: "timeline" | "graph";
   activeTool: "select" | "hand" | "rotate" | "shape" | "ellipse" | "pen" | "text" | "3d";
   showGrid: boolean;
@@ -72,6 +72,11 @@ export interface EditorState {
     summary: string;
     operationTypes: string[];
   }>;
+}
+
+export interface CompositionViewState {
+  readonly time: number;
+  readonly selection: readonly Id[];
 }
 
 export type EditorAction =
@@ -96,8 +101,6 @@ export type EditorAction =
   | { type: "setGpuMemoryBudget"; budget: EditorState["gpuMemoryBudgetMb"] }
   | { type: "setAntiAliasing"; mode: AntiAliasingMode }
   | { type: "setViewportNavigationMode"; mode: ViewportNavigationMode }
-  | { type: "setLeftTab"; tab: EditorState["leftTab"] }
-  | { type: "setRightTab"; tab: EditorState["rightTab"] }
   | { type: "setBottomMode"; mode: EditorState["bottomMode"] }
   | { type: "setActiveTool"; tool: EditorState["activeTool"] }
   | { type: "toggleView"; view: "grid" | "guides" | "origin" | "layerControls" }
@@ -124,7 +127,7 @@ const initialMetrics: RendererMetrics = {
 export function createInitialState(): EditorState {
   const project = createDemoProject();
   return {
-    selection: [project.compositions[0].layers[0].id],
+    selection: [],
     selectedKeyframes: [],
     project,
     projectRevision: 0,
@@ -139,8 +142,7 @@ export function createInitialState(): EditorState {
     antiAliasing: readAntiAliasing(),
     viewportNavigationMode: readViewportNavigationMode(),
     gpuMemoryBudgetMb: readGpuMemoryBudget(),
-    leftTab: "project",
-    rightTab: "properties",
+    compositionViews: {},
     bottomMode: "timeline",
     activeTool: "select",
     showGrid: false,
@@ -165,7 +167,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         autosave: { status: "idle" },
         selection: action.select ?? state.selection,
         ...(project.activeCompositionId !== state.project.activeCompositionId
-          ? compositionEntryState(project, state.seekRevision)
+          ? enterComposition(state, project, action.select)
           : {}),
         history: {
           past: [...state.history.past.slice(-99), action.historyBase ?? state.project],
@@ -193,9 +195,9 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         project: restored,
         projectRevision: state.projectRevision + 1,
         autosave: { status: "idle" },
-        selection: validSelection(restored, state.selection, true),
+        selection: validSelection(restored, state.selection),
         ...(restored.activeCompositionId !== state.project.activeCompositionId
-          ? compositionEntryState(restored, state.seekRevision)
+          ? enterComposition(state, restored)
           : {}),
         history: {
           past: state.history.past.slice(0, -1),
@@ -214,9 +216,9 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         project: restored,
         projectRevision: state.projectRevision + 1,
         autosave: { status: "idle" },
-        selection: validSelection(restored, state.selection, true),
+        selection: validSelection(restored, state.selection),
         ...(restored.activeCompositionId !== state.project.activeCompositionId
-          ? compositionEntryState(restored, state.seekRevision)
+          ? enterComposition(state, restored)
           : {}),
         history: { past: [...state.history.past, state.project], future },
       };
@@ -255,10 +257,6 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       return { ...state, antiAliasing: normalizeAntiAliasing(action.mode) };
     case "setViewportNavigationMode":
       return { ...state, viewportNavigationMode: normalizeViewportNavigationMode(action.mode) };
-    case "setLeftTab":
-      return { ...state, leftTab: action.tab };
-    case "setRightTab":
-      return { ...state, rightTab: action.tab };
     case "setBottomMode":
       return { ...state, bottomMode: action.mode };
     case "setActiveTool":
@@ -278,34 +276,39 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       const composition = state.project.compositions.find(
         (candidate) => candidate.id === action.compositionId,
       );
-      if (!composition) return state;
+      if (!composition || composition.id === state.project.activeCompositionId) return state;
       const project = applyOperations(state.project, [
         { type: "setActiveComposition", compositionId: action.compositionId },
       ]);
       recordOperations(project, [
         { type: "setActiveComposition", compositionId: action.compositionId },
       ]);
+      const projectRevision = state.projectRevision + 1;
       return {
         ...state,
         project,
-        projectRevision: state.projectRevision + 1,
-        autosave: { status: "idle" },
-        ...compositionEntryState(project, state.seekRevision),
-        history: { past: [...state.history.past.slice(-99), state.project], future: [] },
+        projectRevision,
+        // Opening a composition is navigation, not an edit: it records no undo step and keeps a
+        // clean document clean. The revision still advances so stale agent workspaces are rejected.
+        savedProjectRevision: isProjectDirty(state) ? state.savedProjectRevision : projectRevision,
+        ...enterComposition(state, project),
       };
     }
-    case "loadProject": {
-      const initial = createInitialState();
+    case "loadProject":
+      // Viewer, tool and renderer preferences belong to the editor session, not the document.
       return {
-        ...initial,
+        ...state,
         project: action.project,
         projectRevision: 0,
         savedProjectRevision: action.markSaved === true ? 0 : null,
         autosave: { status: "idle" },
+        history: { past: [], future: [] },
         auditLog: action.project.commandLog.filter((entry) => entry.source === "ai").slice(-100),
+        compositionViews: {},
+        viewportZoomMode: "fit",
+        viewportFitRevision: state.viewportFitRevision + 1,
         ...compositionEntryState(action.project, state.seekRevision),
       };
-    }
     case "markSaved":
       if (state.project.id !== action.projectId || action.revision > state.projectRevision)
         return state;
@@ -372,7 +375,7 @@ function compositionEntryState(
   const composition = activeComposition(project);
   const start = composition.workArea?.start ?? 0;
   return {
-    selection: validSelection(project, [], true),
+    selection: [],
     selectedKeyframes: [],
     currentTime: Number.isFinite(start) && start >= 0 && start < composition.duration ? start : 0,
     playing: false,
@@ -380,15 +383,52 @@ function compositionEntryState(
   };
 }
 
-function validSelection(project: Project, selection: Id[], fallback: boolean): Id[] {
+/**
+ * Switches the editor to the project's active composition, remembering where the user left the
+ * outgoing composition so returning to it restores its playhead and layer selection.
+ */
+function enterComposition(
+  state: EditorState,
+  project: Project,
+  selection?: readonly Id[],
+): Pick<
+  EditorState,
+  | "compositionViews"
+  | "selection"
+  | "selectedKeyframes"
+  | "currentTime"
+  | "playing"
+  | "seekRevision"
+> {
+  const compositionViews = {
+    ...state.compositionViews,
+    [state.project.activeCompositionId]: {
+      time: state.currentTime,
+      selection: state.selection,
+    },
+  };
+  const entry = compositionEntryState(project, state.seekRevision);
+  const composition = activeComposition(project);
+  const remembered = compositionViews[composition.id];
+  const time =
+    remembered && Number.isFinite(remembered.time)
+      ? Math.max(0, Math.min(composition.duration, remembered.time))
+      : entry.currentTime;
+  return {
+    ...entry,
+    compositionViews,
+    currentTime: time,
+    selection: validSelection(project, [...(selection ?? remembered?.selection ?? [])]),
+  };
+}
+
+function validSelection(project: Project, selection: Id[]): Id[] {
   const composition =
     project.compositions.find((candidate) => candidate.id === project.activeCompositionId) ??
     project.compositions[0];
   if (!composition) return [];
   const ids = new Set(composition.layers.map((layer) => layer.id));
-  const valid = selection.filter((id) => ids.has(id));
-  if (valid.length > 0 || !fallback) return valid;
-  return composition.layers[0] ? [composition.layers[0].id] : [];
+  return selection.filter((id) => ids.has(id));
 }
 
 const EditorContext = createContext<

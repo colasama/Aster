@@ -50,7 +50,12 @@ import { reportUiError } from "../../errors/report-ui-error";
 import type { PlainMessageKey, Translate } from "../../i18n/core";
 import { useI18n } from "../../i18n/react";
 import { mediaImportRuntime } from "../../importers/media-import-runtime";
+import type { RenderQueueOutputKind } from "../../render-queue/render-job-builder";
 import { useEditor } from "../../state/editor-store";
+import {
+  duplicateSelectedLayers,
+  removeSelectedLayersOperations,
+} from "../../state/layer-commands";
 import { isEditableShortcutTarget, isEditorShortcutBlocked } from "../../ui/keyboard-shortcuts";
 import { useWorkspaceController } from "../../workspace/workspace-controller";
 import { RenderJobDialog } from "../render-queue/RenderJobDialog";
@@ -58,7 +63,7 @@ import type { WorkspaceDialogKind } from "../settings/WorkspaceDialog";
 import { VIEWPORT_ZOOM_COMMAND } from "../viewport/use-viewport-navigation";
 import { AppMenuBar } from "./AppMenuBar";
 import { CommandPalette } from "./CommandPalette";
-import { findMenuEntry, type MenuItemId } from "./topbar-menu";
+import type { MenuItemId } from "./topbar-menu";
 import {
   renderTopBarToast,
   type TopBarToastActions,
@@ -77,6 +82,19 @@ interface ToolDefinition {
   icon: ComponentType<{ size?: number }>;
   labelKey: PlainMessageKey;
 }
+
+/** Menu commands that act on the layer selection and explain themselves when it is empty. */
+const LAYER_SELECTION_COMMANDS: readonly MenuItemId[] = [
+  "duplicate",
+  "delete",
+  "precompose",
+  "glow",
+  "blur",
+  "colorMatrix",
+  "looks",
+  "addKeyframe",
+  "easyEase",
+];
 
 const tools: ToolDefinition[] = [
   { id: "select", icon: MousePointer2, labelKey: "topbar.tool.select" },
@@ -101,7 +119,7 @@ export function TopBar() {
     [dispatch, workspaceController],
   );
   const [paletteOpen, setPaletteOpen] = useState(false);
-  const [renderOpen, setRenderOpen] = useState(false);
+  const [renderDialog, setRenderDialog] = useState<{ outputKind?: RenderQueueOutputKind }>();
   const [workspaceDialog, setWorkspaceDialog] = useState<WorkspaceDialogKind>();
   const toast = useTopBarToast();
   const toastActions = useMemo<TopBarToastActions>(
@@ -110,7 +128,7 @@ export function TopBar() {
   );
   const meshInputRef = useRef<HTMLInputElement>(null);
   const closePalette = useCallback(() => setPaletteOpen(false), []);
-  const closeRender = useCallback(() => setRenderOpen(false), []);
+  const closeRender = useCallback(() => setRenderDialog(undefined), []);
   const lifecycle = useDocumentLifecycle(state, dispatch);
   const saveWithToast = useCallback(
     async (chooseDirectory = false, requestToken = toastActions.beginRequest()) => {
@@ -142,7 +160,10 @@ export function TopBar() {
         label: t("topbar.command.graph"),
         action: () => showTimelineMode("graph"),
       },
-      { label: t("topbar.command.ai"), action: () => dispatch({ type: "setRightTab", tab: "ai" }) },
+      {
+        label: t("topbar.command.ai"),
+        action: () => workspaceController?.setPanelVisible("ai", true),
+      },
       {
         label: t("topbar.command.fit"),
         action: () => dispatch({ type: "fitViewport" }),
@@ -151,20 +172,29 @@ export function TopBar() {
         label: state.playing ? t("topbar.command.pause") : t("topbar.command.play"),
         action: () => dispatch({ type: "setPlaying", playing: !state.playing }),
       },
-      { label: t("topbar.command.render"), action: () => setRenderOpen(true) },
+      { label: t("topbar.command.render"), action: () => setRenderDialog({}) },
     ],
-    [dispatch, saveWithToast, showTimelineMode, state.playing, t],
+    [dispatch, saveWithToast, showTimelineMode, state.playing, t, workspaceController],
   );
+  const menuAction = useRef<(item: MenuItemId) => void>(() => undefined);
   useEffect(() => {
     const shortcut = (event: KeyboardEvent) => {
       if (isEditorShortcutBlocked(event)) return;
       const isEditing = isEditableShortcutTarget(event.target);
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
+      const command = (event.ctrlKey || event.metaKey) && !event.altKey;
+      const key = event.key.toLowerCase();
+      if (command && key === "k") {
         event.preventDefault();
         setPaletteOpen(true);
-      } else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
+      } else if (command && key === "s") {
         event.preventDefault();
-        void saveWithToast();
+        void saveWithToast(event.shiftKey);
+      } else if (command && !event.shiftKey && key === "o") {
+        event.preventDefault();
+        menuAction.current("open");
+      } else if (command && !event.shiftKey && !isEditing && (key === "d" || key === "a")) {
+        event.preventDefault();
+        menuAction.current(key === "d" ? "duplicate" : "selectAll");
       } else if (event.key === "Escape") {
         closePalette();
         closeRender();
@@ -187,6 +217,10 @@ export function TopBar() {
   const handleMenuItem = (item: MenuItemId) => {
     const composition = activeComposition(state.project);
     const selectedLayer = composition.layers.find((layer) => layer.id === state.selection[0]);
+    if (!selectedLayer && LAYER_SELECTION_COMMANDS.includes(item)) {
+      toastActions.show(toastMessage("topbar.toast.selectLayerFirst"));
+      return;
+    }
     const layerTypes: Partial<Record<MenuItemId, LayerKind>> = {
       newText: "text",
       newShape: "shape",
@@ -209,7 +243,8 @@ export function TopBar() {
         if (!confirmed) return;
         await clearRecoverySnapshot();
         clearCurrentProjectPath();
-        dispatch({ type: "loadProject", project: createBlankProject(), markSaved: false });
+        // An untouched new project has nothing to lose, so it starts clean.
+        dispatch({ type: "loadProject", project: createBlankProject(), markSaved: true });
       });
     } else if (item === "open")
       void openProjectFile(
@@ -250,18 +285,20 @@ export function TopBar() {
       void packProject(state.project, lifecycle.save, toastActions, t);
     else if (item === "undo") dispatch({ type: "undo" });
     else if (item === "redo") dispatch({ type: "redo" });
-    else if (item === "duplicate" && selectedLayer) {
-      const duplicate = structuredClone(selectedLayer);
-      duplicate.id = createId();
-      duplicate.name = t("topbar.toast.copySuffix", { name: duplicate.name });
-      duplicate.effects.forEach((effect) => {
-        effect.id = createId();
-      });
+    else if (item === "duplicate") {
+      const duplicates = duplicateSelectedLayers(state.project, state.selection, (name) =>
+        t("topbar.toast.copySuffix", { name }),
+      );
       dispatch({
         type: "operation",
-        operations: [{ type: "addLayer", layer: duplicate }],
-        select: [duplicate.id],
+        operations: duplicates.map((layer) => ({ type: "addLayer" as const, layer })),
+        select: duplicates.map((layer) => layer.id),
       });
+    } else if (item === "delete") {
+      const operations = removeSelectedLayersOperations(state.project, state.selection);
+      if (operations) dispatch({ type: "operation", operations, select: [] });
+    } else if (item === "selectAll") {
+      dispatch({ type: "select", ids: composition.layers.map((layer) => layer.id) });
     } else if (item === "newComposition") {
       const next = createBlankComposition(
         t("topbar.toast.compositionName", { number: state.project.compositions.length + 1 }),
@@ -371,29 +408,19 @@ export function TopBar() {
     else if (item === "keyboardShortcuts") setWorkspaceDialog("shortcuts");
     else if (item === "about") setWorkspaceDialog("about");
     else if (item === "plugins") setWorkspaceDialog("plugins");
-    else if (item === "aiOperator") dispatch({ type: "setRightTab", tab: "ai" });
-    else if (item === "fitComposition" || item === "viewport") dispatch({ type: "fitViewport" });
+    else if (item === "fitComposition") dispatch({ type: "fitViewport" });
     else if (item === "zoomIn")
       window.dispatchEvent(new CustomEvent(VIEWPORT_ZOOM_COMMAND, { detail: 1, cancelable: true }));
     else if (item === "zoomOut")
       window.dispatchEvent(
         new CustomEvent(VIEWPORT_ZOOM_COMMAND, { detail: -1, cancelable: true }),
       );
-    else if (item === "renderQueue" || item === "exportFrame") setRenderOpen(true);
+    else if (item === "renderQueue") setRenderDialog({});
+    else if (item === "exportFrame") setRenderDialog({ outputKind: "still" });
     else if (item === "commandPalette") setPaletteOpen(true);
     else if (item === "toggleGuides") dispatch({ type: "toggleView", view: "guides" });
-    else if (item === "project") dispatch({ type: "setLeftTab", tab: "project" });
-    else if (item === "properties") dispatch({ type: "setRightTab", tab: "properties" });
-    else if (item === "timeline") showTimelineMode("timeline");
-    else if (item === "gpuDiagnostics") {
-      toastActions.show(
-        toastMessage("topbar.toast.gpuMetrics", {
-          fps: state.metrics.fps.toFixed(0),
-          frameMs: state.metrics.frameMs.toFixed(2),
-          passes: state.metrics.passCount,
-        }),
-      );
-    } else if (item === "exportDiagnostics") {
+    else if (item === "gpuDiagnostics") workspaceController?.setPanelVisible("profiler", true);
+    else if (item === "exportDiagnostics") {
       const requestToken = toastActions.beginRequest();
       void exportDiagnostics()
         .then((path) => {
@@ -409,11 +436,9 @@ export function TopBar() {
           reportUiError(t, "diagnosticsExport", error, { scope: { area: "application" } });
           toastActions.show(toastError("diagnosticsExport"), requestToken);
         });
-    } else {
-      const definition = findMenuEntry(item);
-      if (definition) toastActions.show({ kind: "nextStep", itemKey: definition.labelKey });
     }
   };
+  menuAction.current = handleMenuItem;
   return (
     <>
       <input
@@ -472,12 +497,23 @@ export function TopBar() {
         >
           <Search size={14} />
           <span className="document-name">
-            {lifecycle.dirty && <span className="unsaved-dot" />} {state.project.name}
+            {lifecycle.dirty && (
+              <span
+                className="unsaved-dot"
+                title={
+                  state.autosave.at
+                    ? t("topbar.autosave.savedAt", {
+                        time: new Date(state.autosave.at).toLocaleTimeString(),
+                      })
+                    : undefined
+                }
+              />
+            )}{" "}
+            {state.project.name}
           </span>
-          {state.autosave.status !== "idle" && (
-            <small className={`autosave-state ${state.autosave.status}`}>
-              {t(`topbar.autosave.${state.autosave.status}`)}
-            </small>
+          {/* Routine recovery snapshots stay silent; only a failure needs attention. */}
+          {state.autosave.status === "error" && (
+            <small className="autosave-state error">{t("topbar.autosave.error")}</small>
           )}
           <kbd>Ctrl / ⌘ K</kbd>
         </button>
@@ -521,14 +557,15 @@ export function TopBar() {
           </button>
         </div>
         <div className="toolbar-right">
-          <button className="render-button" onClick={() => setRenderOpen(true)} type="button">
+          <button className="render-button" onClick={() => setRenderDialog({})} type="button">
             <Play fill="currentColor" size={13} /> {t("topbar.toolbar.render")}
           </button>
         </div>
       </div>
       {paletteOpen && <CommandPalette commands={commands} onClose={closePalette} />}
-      {renderOpen && (
+      {renderDialog && (
         <RenderJobDialog
+          initialOutputKind={renderDialog.outputKind}
           onClose={closeRender}
           onQueued={() => toastActions.show(toastMessage("renderQueue.enqueued"))}
         />
