@@ -1,4 +1,5 @@
-import { Type } from "typebox";
+import { type TObject, Type } from "typebox";
+import { EDIT_LIMITS } from "./edit-limits.js";
 import { previewFields } from "./preview-options.js";
 import { asterToolDefinitions } from "./tool-definitions.js";
 
@@ -7,6 +8,14 @@ const time = Type.Number({ minimum: 0, maximum: 86_400 });
 const revision = Type.Integer({ minimum: 0 });
 const workspace = { workspaceId: Type.String({ minLength: 1 }), workspaceRevision: revision };
 const times = Type.Array(time, { minItems: 1, maxItems: 12 });
+const requestId = Type.Optional(
+  Type.String({ minLength: 1, maxLength: 128, pattern: "^[A-Za-z0-9_.-]+$" }),
+);
+const summary = Type.Optional(Type.String({ minLength: 1, maxLength: 500 }));
+const moduleName = Type.String({ minLength: 1, maxLength: 64, pattern: "^[A-Za-z0-9_.-]+$" });
+const jobId = Type.String({ minLength: 1 });
+export const MAX_IMPORT_BATCH = 32;
+export const MAX_RENDER_WAIT_MS = 100_000;
 
 export function automationToolDefinitions() {
   const extra = [
@@ -38,8 +47,25 @@ export function automationToolDefinitions() {
     ],
     [
       "import_asset",
-      "Import an image, video, audio, SVG, PSD or embedded glTF/GLB into the active composition as one undoable edit.",
-      { path, baseRevision: revision, time: Type.Optional(time) },
+      "Import an image, video, audio, SVG, PSD or embedded glTF/GLB into the active composition as one undoable edit. hidden adds the layers switched off; audioEnabled:false silences imported video layers.",
+      {
+        path,
+        baseRevision: revision,
+        time: Type.Optional(time),
+        hidden: Type.Optional(Type.Boolean()),
+        audioEnabled: Type.Optional(Type.Boolean()),
+      },
+    ],
+    [
+      "import_assets",
+      `Import 1 through ${MAX_IMPORT_BATCH} media files in order (one undo step each) in a single call. Returns per-file layerIds/warnings/errors and the final projectRevision. Options match import_asset.`,
+      {
+        paths: Type.Array(path, { minItems: 1, maxItems: MAX_IMPORT_BATCH }),
+        baseRevision: revision,
+        time: Type.Optional(time),
+        hidden: Type.Optional(Type.Boolean()),
+        audioEnabled: Type.Optional(Type.Boolean()),
+      },
     ],
     [
       "open_project",
@@ -53,7 +79,7 @@ export function automationToolDefinitions() {
     ],
     [
       "export_render",
-      "Capture the current project and enqueue an immutable render job. Destination must not already exist; returns job ID and queue state.",
+      "Capture the current project and enqueue an immutable render job. Destination must not already exist. Returns the new job only; follow with wait_render.",
       {
         path,
         baseRevision: revision,
@@ -74,12 +100,23 @@ export function automationToolDefinitions() {
         includeAudio: Type.Optional(Type.Boolean()),
       },
     ],
-    ["get_render_queue", "Read render progress, completion, output paths and errors.", {}],
     [
-      "cancel_render",
-      "Cancel a queued or running render job.",
-      { jobId: Type.String({ minLength: 1 }) },
+      "get_render_queue",
+      "Read compact render job status (progress, output paths, errors), newest first. jobId returns one job.",
+      {
+        jobId: Type.Optional(jobId),
+        limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 64 })),
+      },
     ],
+    [
+      "wait_render",
+      `Block until a render job completes, fails or is cancelled, or until timeoutMs (default and maximum ${MAX_RENDER_WAIT_MS}). Returns the job with output paths; call again if it is still running.`,
+      {
+        jobId,
+        timeoutMs: Type.Optional(Type.Integer({ minimum: 0, maximum: MAX_RENDER_WAIT_MS })),
+      },
+    ],
+    ["cancel_render", "Cancel a queued or running render job.", { jobId }],
     [
       "check_fonts",
       "Check availability of exact font-family names in the renderer. Does not install fonts.",
@@ -120,14 +157,19 @@ export function automationToolDefinitions() {
     ],
     [
       "commit_workspace",
-      "Apply a submitted workspace to the unchanged live project as one undoable transaction.",
+      "Apply a workspace to the unchanged live project as one undoable transaction. An unsubmitted workspace is submitted first (summary optional).",
+      { ...workspace, summary, requestId },
+    ],
+    [
+      "put_script_module",
+      `Store (or with remove:true delete) a JavaScript module for aster.require(name) in later scripts, so shared helper libraries are sent once. Modules belong to this MCP connection, survive commits and are cleared on reset_session or disconnect (${EDIT_LIMITS.scriptModules} modules, ${EDIT_LIMITS.scriptModuleBytes / 1024} KiB total). The body receives module, exports and aster; assign module.exports or return a value.`,
       {
-        ...workspace,
-        requestId: Type.Optional(
-          Type.String({ minLength: 1, maxLength: 128, pattern: "^[A-Za-z0-9_.-]+$" }),
-        ),
+        name: moduleName,
+        code: Type.Optional(Type.String({ minLength: 1, maxLength: EDIT_LIMITS.scriptBytes })),
+        remove: Type.Optional(Type.Boolean()),
       },
     ],
+    ["list_script_modules", "List stored script module names and sizes.", {}],
     [
       "reset_session",
       "Discard external edit workspaces and capture the current live project for a new editing session.",
@@ -135,7 +177,22 @@ export function automationToolDefinitions() {
     ],
   ] as const;
   return [
-    ...asterToolDefinitions(),
+    ...asterToolDefinitions().map((definition) =>
+      definition.name === "execute_aster_code"
+        ? {
+            ...definition,
+            description: `${definition.description} commit:true then submits and commits on success (one undo step) and returns projectRevision.`,
+            parameters: Type.Object(
+              {
+                ...(definition.parameters as TObject).properties,
+                commit: Type.Optional(Type.Boolean()),
+                summary,
+              },
+              { additionalProperties: false },
+            ),
+          }
+        : definition,
+    ),
     ...extra.map(([name, description, fields]) => ({
       name,
       label: name,

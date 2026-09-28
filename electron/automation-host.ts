@@ -85,8 +85,58 @@ export async function startAutomationHost(options: {
     });
   }
 
+  async function authorizedImport(path: unknown) {
+    if (typeof path !== "string" || !isAbsolute(path))
+      throw new Error("Use an absolute local path");
+    const resolved = await realpath(path);
+    const info = await stat(resolved);
+    const mimeType = mediaMimeType(resolved);
+    if (
+      !info.isFile() ||
+      info.size < 1 ||
+      info.size > 96 * 1024 * 1024 ||
+      mimeType === "application/octet-stream"
+    )
+      throw new Error("Import requires a supported media file of at most 96 MiB");
+    options.authorize(resolved, true);
+    return { path: resolved, mimeType, bytes: info.size };
+  }
+
+  /** Sequential single-file imports keep each file an atomic, individually undoable edit. */
+  async function importAssets(call: AutomationCall, signal: AbortSignal) {
+    const { paths, ...shared } = call.arguments as { paths: string[] } & Record<string, unknown>;
+    let revision = shared.baseRevision as number;
+    const results: Array<Record<string, unknown>> = [];
+    for (const path of paths) {
+      signal.throwIfAborted();
+      try {
+        const file = await authorizedImport(path);
+        const imported = (await renderer(
+          {
+            ...call,
+            name: "import_asset",
+            arguments: { ...shared, ...file, baseRevision: revision },
+          },
+          signal,
+        )) as { projectRevision: number; layerIds: string[]; warnings: unknown[] };
+        revision = imported.projectRevision;
+        results.push({ path, layerIds: imported.layerIds, warnings: imported.warnings });
+      } catch (error) {
+        if (signal.aborted) throw error;
+        results.push({ path, error: error instanceof Error ? error.message : String(error) });
+      }
+    }
+    return {
+      projectRevision: revision,
+      imported: results.filter((result) => !result.error).length,
+      failed: results.filter((result) => result.error).length,
+      results,
+    };
+  }
+
   async function execute(call: AutomationCall, signal: AbortSignal) {
     const input = call.arguments;
+    if (call.name === "import_assets") return importAssets(call, signal);
     if (call.name === "import_font") {
       const font = await readProjectFont(input.path, input.family, input.weight, input.weightRange);
       return renderer({ ...call, arguments: { ...input, font } }, signal);
@@ -115,23 +165,11 @@ export async function startAutomationHost(options: {
         options.authorize(path, false);
         return renderer({ ...call, arguments: { ...input, path } }, signal);
       }
-      if (call.name === "import_asset") {
-        const path = await realpath(input.path);
-        const info = await stat(path);
-        const mimeType = mediaMimeType(path);
-        if (
-          !info.isFile() ||
-          info.size < 1 ||
-          info.size > 96 * 1024 * 1024 ||
-          mimeType === "application/octet-stream"
-        )
-          throw new Error("Import requires a supported media file of at most 96 MiB");
-        options.authorize(path, true);
+      if (call.name === "import_asset")
         return renderer(
-          { ...call, arguments: { ...input, path, mimeType, bytes: info.size } },
+          { ...call, arguments: { ...input, ...(await authorizedImport(input.path)) } },
           signal,
         );
-      }
       if (
         call.name === "save_project" &&
         input.overwrite !== true &&

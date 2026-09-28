@@ -534,7 +534,9 @@ function requireEffect(layer: Layer, effectId: string) {
 function requireEffectParameter(effect: Layer["effects"][number], value: unknown): string {
   const parameter = String(value);
   if (!(parameter in effect.parameters))
-    throw new Error(`Effect parameter does not exist: ${parameter}`);
+    throw new Error(
+      `Effect parameter does not exist on ${effect.type}: ${parameter}. Parameters: ${Object.keys(effect.parameters).join(", ")}`,
+    );
   return parameter;
 }
 

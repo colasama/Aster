@@ -8,6 +8,13 @@ export function asterToolDefinitions() {
     workspaceId: Type.String({ minLength: 1 }),
     workspaceRevision: revision,
   };
+  const wait = Type.Optional(
+    Type.Integer({
+      minimum: 0,
+      maximum: EDIT_LIMITS.maxWaitMs,
+      description: `Milliseconds to block until the execution settles (default ${EDIT_LIMITS.defaultWaitMs}; 0 returns immediately).`,
+    }),
+  );
   const definitions: Array<{
     name: string;
     label: string;
@@ -25,7 +32,7 @@ export function asterToolDefinitions() {
       name: "search_capabilities",
       label: "Search capabilities",
       description:
-        "Find concise Aster command descriptors by intent or category before loading schemas.",
+        "Find Aster commands (and matching effect types) by intent words, e.g. 'delete composition', 'replace video source', 'per character text animation'. Synonyms and partial matches are ranked; an empty query or no match returns the full command index by category.",
       parameters: Type.Object(
         {
           query: Type.String({ maxLength: 500 }),
@@ -47,11 +54,14 @@ export function asterToolDefinitions() {
     {
       name: "query_project",
       label: "Query project",
-      description: "Read a filtered, paginated, byte-bounded project view at a declared revision.",
+      description:
+        "Read a filtered, paginated, byte-bounded project view. kind 'compositions' lists every composition (including nested ones); layers/properties/effects/scene read the active composition or compositionId. query filters by name substring. Omit projectRevision to read the live project.",
       parameters: Type.Object(
         {
           projectRevision: Type.Optional(revision),
           workspaceId: Type.Optional(Type.String({ minLength: 1 })),
+          compositionId: Type.Optional(Type.String({ minLength: 1 })),
+          query: Type.Optional(Type.String({ minLength: 1, maxLength: 200 })),
           kind: Type.Union([
             Type.Literal("project"),
             Type.Literal("compositions"),
@@ -65,6 +75,21 @@ export function asterToolDefinitions() {
           time: Type.Optional(Type.Number({ minimum: 0 })),
           offset: Type.Optional(Type.Integer({ minimum: 0 })),
           limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 128 })),
+        },
+        { additionalProperties: false },
+      ),
+    },
+    {
+      name: "list_effects",
+      label: "List effects",
+      description:
+        "List registered effect types with parameter keys, defaults and ranges. Filter by query words (e.g. 'blur', 'glow') or category.",
+      parameters: Type.Object(
+        {
+          query: Type.Optional(Type.String({ minLength: 1, maxLength: 200 })),
+          category: Type.Optional(Type.String({ minLength: 1, maxLength: 100 })),
+          offset: Type.Optional(Type.Integer({ minimum: 0 })),
+          limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 48 })),
         },
         { additionalProperties: false },
       ),
@@ -105,36 +130,45 @@ export function asterToolDefinitions() {
       name: "get_script_api",
       label: "Script API",
       description:
-        "Read the isolated JavaScript aster API, examples and execution limits before writing a script.",
+        "Read the script API cheat sheet once before scripting: methods, property paths, expression functions, text animators, time-mapping formula, color convention, budgets and common errors.",
       parameters: Type.Object({}, { additionalProperties: false }),
     },
     {
       name: "execute_aster_code",
       label: "Execute Aster code",
       description:
-        "Start an isolated synchronous JavaScript function body against a staged workspace. Provide workspaceId and workspaceRevision, or baseRevision to create one. Returns an executionId; poll get_execution, then render, submit and commit explicitly. Failure rolls back this execution only.",
+        "Run a synchronous JavaScript function body against a staged workspace (bulk edits in one call). Provide workspaceId + workspaceRevision, or baseRevision to create a workspace. Waits for completion by default and returns state, workspaceRevision, result and warnings; only a still-running result needs get_execution. Failure rolls back this execution only.",
       parameters: Type.Object(
         {
           workspaceId: Type.Optional(workspaceFields.workspaceId),
           workspaceRevision: Type.Optional(revision),
           baseRevision: Type.Optional(revision),
           code: Type.String({ minLength: 1, maxLength: EDIT_LIMITS.scriptBytes }),
+          wait,
         },
         { additionalProperties: false },
       ),
     },
-    ...["get_execution", "cancel_execution"].map((name) => ({
-      name,
-      label: name,
+    {
+      name: "get_execution",
+      label: "get_execution",
       description:
-        name === "get_execution"
-          ? "Read running/succeeded/failed/cancelled execution status and progress. Use the successful workspaceRevision for subsequent edits."
-          : "Terminate a script and discard its uncommitted execution; preserve previous workspace edits.",
+        "Wait for (default up to 45 s) and read execution status, result, warnings and progress. Use the successful workspaceRevision for subsequent edits.",
+      parameters: Type.Object(
+        { executionId: Type.String({ minLength: 1 }), wait },
+        { additionalProperties: false },
+      ),
+    },
+    {
+      name: "cancel_execution",
+      label: "cancel_execution",
+      description:
+        "Terminate a script and discard its uncommitted execution; preserve previous workspace edits.",
       parameters: Type.Object(
         { executionId: Type.String({ minLength: 1 }) },
         { additionalProperties: false },
       ),
-    })),
+    },
     {
       name: "evaluate_at_time",
       label: "Evaluate at time",
@@ -191,9 +225,13 @@ export function asterToolDefinitions() {
       name: "submit_workspace",
       label: "Submit workspace",
       description:
-        "Freeze the cumulative staged result and send its semantic diff to Aster for approval or commit.",
+        "Freeze the cumulative staged result for approval or commit. Returns a compact summary (operation counts by type); verbose returns every operation type and changed ID.",
       parameters: Type.Object(
-        { ...workspaceFields, summary: Type.String({ minLength: 1, maxLength: 500 }) },
+        {
+          ...workspaceFields,
+          summary: Type.String({ minLength: 1, maxLength: 500 }),
+          verbose: Type.Optional(Type.Boolean()),
+        },
         { additionalProperties: false },
       ),
     },

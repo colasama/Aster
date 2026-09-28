@@ -2,11 +2,18 @@ export const EDIT_LIMITS = Object.freeze({
   commandsPerBatch: 256,
   operationsPerWorkspace: 4096,
   workspaceBytes: 32 * 1024 * 1024,
-  idleMs: 30 * 60 * 1000,
+  idleMs: 2 * 60 * 60 * 1000,
   executionMs: 30_000,
+  /** Longest blocking wait a single execute/get_execution call may hold the transport. */
+  maxWaitMs: 60_000,
+  defaultWaitMs: 45_000,
   scriptBytes: 256 * 1024,
   resultBytes: 64 * 1024,
+  /** Per bridge query inside a script; the script's own return value stays at resultBytes. */
+  queryBytes: 1024 * 1024,
   maxWorkspaces: 4,
+  scriptModules: 16,
+  scriptModuleBytes: 1024 * 1024,
 });
 
 export function encodedBytes(value: unknown): number {

@@ -1,3 +1,4 @@
+import { normalizeWorkArea } from "../animation/timeline-editing";
 import { createLayerForComposition } from "../layers/layer-factory";
 import {
   type Composition,
@@ -64,8 +65,10 @@ export function planPrecomposition(
   nested.frameRate = structuredClone(source.frameRate);
   // Preserve the source clock for every evaluator, including implicit procedural
   // time. The work area isolates the shot without rewriting or clipping tracks.
-  nested.duration = Math.max(frameDuration, end);
-  nested.workArea = { start, end: nested.duration };
+  // Round the clock up to a whole frame so layer times that fall between frames still
+  // produce the frame-aligned work area that project validation requires.
+  nested.duration = Math.max(frameDuration, Math.ceil(end / frameDuration - 1e-9) * frameDuration);
+  nested.workArea = normalizeWorkArea(start, nested.duration, nested.duration, frameDuration);
   nested.background = [0, 0, 0, 0];
   nested.layers = selected.map((layer) => copyLayerIntoComposition(layer, selectedSet));
 

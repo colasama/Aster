@@ -5,7 +5,7 @@ import {
   type TextLayoutUnit,
 } from "../../core/animation/text-animator-stack";
 import { safeEvaluateTextSelectorExpression } from "../../core/animation/text-selector-expression";
-import { resolveTextStyle } from "../../core/layers/text-style";
+import { cssFontFamily, resolveTextStyle } from "../../core/layers/text-style";
 
 export { resolveTextStyle } from "../../core/layers/text-style";
 
@@ -116,7 +116,7 @@ export function drawTextLayer(
   const tracking = style.tracking * sourceScale;
   const leading = style.leading * sourceScale;
   const strokeWidth = style.strokeWidth * sourceScale;
-  context.font = `${style.fontStyle ?? "normal"} ${style.fontWeight} ${fontSize}px ${style.fontFamily}`;
+  context.font = `${style.fontStyle ?? "normal"} ${style.fontWeight} ${fontSize}px ${cssFontFamily(style.fontFamily)}`;
   context.textAlign = "left";
   context.textBaseline = "middle";
   context.lineJoin = "round";
@@ -327,7 +327,7 @@ function evaluateGlyph(
 export function textRasterSignature(layer: Layer, localTime: number): number {
   const style = resolveTextStyle(layer);
   const context = textMeasureContext();
-  context.font = `${style.fontStyle ?? "normal"} ${style.fontWeight} ${style.fontSize}px ${style.fontFamily}`;
+  context.font = `${style.fontStyle ?? "normal"} ${style.fontWeight} ${style.fontSize}px ${cssFontFamily(style.fontFamily)}`;
   const lines = breakTextLines(
     layer.text ?? layer.name,
     layer.size[0] * 0.94,

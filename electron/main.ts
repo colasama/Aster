@@ -1357,7 +1357,8 @@ if (hasSingleInstanceLock)
         developmentUrl: DEVELOPMENT_URL,
         ffmpegExecutable: ffmpegExecutable(),
         logger,
-        packaged: app.isPackaged,
+        // Background automation editors load bundled assets, so their RenderHosts must too.
+        packaged: app.isPackaged || backgroundAutomation,
         authorizeMedia: (manifest) =>
           renderMediaSnapshots.authorizeLaunch(
             manifest.id,

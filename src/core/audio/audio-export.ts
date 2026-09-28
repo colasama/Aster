@@ -51,7 +51,13 @@ export async function decodeAudibleSources(
       const source = sourceById.get(sourceId);
       if (!source || (source.kind !== "audio" && source.kind !== "video"))
         throw new Error(`Audible layer source ${sourceId} is unavailable`);
-      decoded.set(sourceId, await decode(source));
+      // Video without an audio stream contributes silence instead of failing the export.
+      if (source.kind === "video" && !source.audio) return;
+      try {
+        decoded.set(sourceId, await decode(source));
+      } catch (error) {
+        if (source.kind === "audio") throw error;
+      }
     }),
   );
   return decoded;

@@ -67,6 +67,14 @@ export async function importAutomationAsset(
     });
     imported = { sources: [media.source], layers: [media.layer], warnings: [] };
   }
+  for (const layer of imported.layers) {
+    if (input.hidden === true) layer.visible = false;
+    if (layer.kind !== "video") continue;
+    const source = imported.sources.find((candidate) => candidate.id === layer.sourceId);
+    // Video without a decodable audio stream would otherwise fail audio-enabled exports.
+    if (input.audioEnabled === false || (source?.kind === "video" && !source.audio))
+      layer.audioEnabled = false;
+  }
   const registeredIds = imported.sources.map((source) => source.id);
   const operations: Operation[] = [];
   for (const source of imported.sources) {

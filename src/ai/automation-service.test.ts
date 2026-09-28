@@ -61,9 +61,9 @@ describe("external editor transactions", () => {
       ).resolves.toMatchObject({ projectId: next.id });
       expect(f.state().savedProjectRevision).toBe(0);
       expect(f.state().history.past).toHaveLength(0);
-      await expect(f.call("commit_workspace", work as Record<string, unknown>)).rejects.toThrow(
-        "Submit",
-      );
+      await expect(
+        f.call("commit_workspace", work as Record<string, unknown>),
+      ).rejects.toMatchObject({ code: "workspace_not_found" });
       load.mockImplementationOnce(async (_path, commit) => {
         f.changeLive();
         commit?.assertCurrent();
@@ -126,12 +126,18 @@ describe("external editor transactions", () => {
     });
     expect(f.state().project.compositions[0].layers[0].name).not.toBe("Recreated");
     const input = { ...work, workspaceRevision: 1 };
-    await expect(f.call("commit_workspace", input)).rejects.toThrow("Submit");
-    await f.call("submit_workspace", { ...input, summary: "Recreate title" });
+    await expect(
+      f.call("submit_workspace", { ...input, summary: "Recreate title" }),
+    ).resolves.toMatchObject({
+      operationCount: 1,
+      operationTypes: { renameLayer: 1 },
+    });
     await f.call("commit_workspace", input);
     expect(f.state().project.compositions[0].layers[0].name).toBe("Recreated");
     expect(f.state().history.past).toHaveLength(1);
-    await expect(f.call("commit_workspace", input)).rejects.toThrow("Submit");
+    await expect(f.call("commit_workspace", input)).rejects.toMatchObject({
+      code: "workspace_not_found",
+    });
   });
 
   it("deduplicates commit retries and undoes a large workspace in one step", async () => {
@@ -225,7 +231,9 @@ describe("external editor transactions", () => {
     await expect(f.call("commit_workspace", input)).rejects.toThrow("Stale");
     expect(f.state().project.compositions[0].layers[0].name).toBe("User edit");
     f.service.cancel("test");
-    await expect(f.call("commit_workspace", input)).rejects.toThrow("Submit");
+    await expect(f.call("commit_workspace", input)).rejects.toMatchObject({
+      code: "workspace_not_found",
+    });
     expect(await f.call("get_editor_context")).toMatchObject({ projectRevision: 1 });
   });
 });

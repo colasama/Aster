@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, stat, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
@@ -20,7 +20,7 @@ transport.stderr?.on("data", (data) => {
   log = (log + data).slice(-512 * 1024);
 });
 const client = new Client({ name: "aster-edit-smoke", version: "1.0.0" });
-const report = { steps: [], output };
+const report = { steps: [], output, calls: {} };
 async function call(name, args = {}) {
   const result = await client.callTool({ name, arguments: args }, undefined, { timeout: 125_000 });
   const text = result.content.find((item) => item.type === "text")?.text;
@@ -31,14 +31,14 @@ async function call(name, args = {}) {
   }
   return JSON.parse(text);
 }
+/** execute_aster_code blocks until completion; get_execution is only a fallback. */
 async function complete(job) {
-  const deadline = Date.now() + 40_000;
-  while (Date.now() < deadline) {
-    const status = await call("get_execution", { executionId: job.executionId });
-    if (status.state !== "running") return status;
-    await delay(100);
-  }
-  throw new Error("Script status did not settle");
+  report.calls.execute = (report.calls.execute ?? 0) + 1;
+  if (job.state !== "running") return job;
+  report.calls.getExecution = (report.calls.getExecution ?? 0) + 1;
+  const status = await call("get_execution", { executionId: job.executionId });
+  if (status.state === "running") throw new Error("Script status did not settle");
+  return status;
 }
 function passed(step) {
   report.steps.push(step);
@@ -69,6 +69,7 @@ try {
   const job = await call("execute_aster_code", input);
   assert.equal((await call("execute_aster_code", input)).executionId, job.executionId);
   const done = await complete(job);
+  assert.equal(job.state, "succeeded", "execute_aster_code should return the settled status");
   assert.equal(done.state, "succeeded", JSON.stringify(done));
   assert.equal(done.result.ids.length, 16);
   assert(done.result.isolated);
@@ -88,7 +89,7 @@ try {
     status.budgets.operations.used,
   );
   passed("script failure preserves prior workspace");
-  const looping = await call("execute_aster_code", { ...address, code: "while(true){}" });
+  const looping = await call("execute_aster_code", { ...address, code: "while(true){}", wait: 0 });
   await delay(300);
   const started = Date.now();
   await call("get_editor_context");
@@ -116,7 +117,13 @@ try {
   const finalAddress = { workspaceId: job.workspaceId, workspaceRevision: bulk.workspaceRevision };
   const preview = await call("render_preview", { ...finalAddress, times: [1], maxDimension: 512 });
   assert.equal(preview.status, "rendered");
-  await call("submit_workspace", { ...finalAddress, summary: "Bulk script smoke" });
+  const submitted = await call("submit_workspace", {
+    ...finalAddress,
+    summary: "Bulk script smoke",
+  });
+  assert.equal(submitted.operations, undefined);
+  assert(submitted.operationCount > 256 && submitted.operationTypes.renameLayer === 256);
+  report.submitBytes = JSON.stringify(submitted).length;
   const commitInput = { ...finalAddress, requestId: "commit-once" };
   const committed = await call("commit_workspace", commitInput);
   assert.deepEqual(await call("commit_workspace", commitInput), committed);
@@ -128,6 +135,40 @@ try {
   passed(
     "256-command Worker batch, GPU preview, idempotent commit and same-connection continuation",
   );
+  const search = await call("search_capabilities", { query: "delete composition" });
+  assert.equal(search.commands[0].name, "removeComposition");
+  const effects = await call("list_effects", { query: "blur", limit: 3 });
+  assert(effects.items.some((effect) => effect.type === "gaussian-blur"));
+  await call("put_script_module", {
+    name: "smoke-lib",
+    code: "module.exports = { lyric: (c, text, i) => { const l = c.layers.addText({ name: 'LYRIC_' + i, text }); l.setTextAnimator({ groups: [{ selectors: [{ kind: 'expression', expression: '100 * (1 - clamp((time - (textIndex - 1) * 0.05) / 0.3, 0, 1))' }], properties: { position: [0, 40, 0], opacity: 0 } }] }); return l.id; } };",
+  });
+  const lyrics = await call("execute_aster_code", {
+    baseRevision: committed.projectRevision,
+    code: "const c = aster.compositions.active(); const lib = aster.require('smoke-lib'); const ids = ['夜', 'BASS', '心跳'].map((t, i) => lib.lyric(c, t, i)); const nested = c.precompose(ids, 'SHOT_SMOKE'); return nested.compositionId;",
+    commit: true,
+    summary: "Lyric shot",
+  });
+  assert.equal(lyrics.state, "succeeded", JSON.stringify(lyrics));
+  assert.equal(lyrics.committed, true);
+  const compositions = await call("query_project", { kind: "compositions", query: "SHOT_" });
+  assert.equal(compositions.items[0].id, lyrics.result);
+  const layers = await call("query_project", { kind: "layers", compositionId: lyrics.result });
+  assert.equal(layers.total, 3);
+  passed("discovery, script modules, text animators, precompose IDs and commit:true");
+  const still = join(output, "frame.png");
+  const exported = await call("export_render", {
+    path: still,
+    baseRevision: lyrics.projectRevision,
+    outputKind: "still",
+    range: "currentFrame",
+    time: 1,
+  });
+  assert.equal(exported.queue, undefined);
+  const rendered = await call("wait_render", { jobId: exported.jobId });
+  assert.equal(rendered.status, "completed", JSON.stringify(rendered));
+  assert((await stat(rendered.outputs[0].destination)).size > 0);
+  passed("compact export result and wait_render");
   report.status = "passed";
 } catch (error) {
   report.status = "failed";

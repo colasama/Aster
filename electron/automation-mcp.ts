@@ -57,8 +57,16 @@ export async function startAsterMcp(
     { name: "aster", version: "0.3.4" },
     {
       capabilities: { tools: {} },
-      instructions:
-        "Operate the running Aster editor. Read context, begin a workspace, discover command schemas, edit, render, submit and commit. Use reset_session after external user edits. Each committed workspace is one undo step. For bulk editing, read get_script_api and use execute_aster_code, then poll get_execution. Use get_workspace_status for budgets; operations are counted per workspace, not per MCP process. Use a stable requestId on editing calls and commit for retry deduplication (last 64 requests per client, cleared on reset/disconnect). Cancelling an execution preserves prior staged edits. After commit, continue in this same connection with a fresh workspace. Reference samples return actual timestamps; use those times for motion comparisons.",
+      instructions: [
+        "Operate the running Aster editor. Typical loop: get_editor_context -> get_script_api (once) -> execute_aster_code with baseRevision -> render_preview -> commit_workspace.",
+        "execute_aster_code waits for the script to finish (default 45 s) and returns state, workspaceRevision, result and warnings, so get_execution is only needed when a result still says running. Add commit:true to submit and commit in the same call.",
+        "commit_workspace submits automatically; submit_workspace is only needed to review a compact diff first. Each committed workspace is one undo step; continue in this connection with a fresh workspace (baseRevision = returned projectRevision).",
+        "Store shared script helpers once with put_script_module and load them with aster.require(name). Find commands with search_capabilities (synonyms work; an empty query lists every command) and effect types with list_effects.",
+        "query_project kind:'compositions' lists every composition; use query/compositionId to narrow layers. import_assets imports many files in one call. export_render returns the new job; wait_render blocks until it finishes.",
+        "Read warnings in results: a video layer whose time mapping points outside its source renders black. setLayerTimeMapping offset is the source time shown at inPoint.",
+        "Use reset_session after external user edits. Use a stable requestId on editing calls and commits for retry deduplication (last 64 requests per client). Workspaces expire after 2 hours idle.",
+        "Reference samples return actual timestamps; use those times for motion comparisons.",
+      ].join(" "),
     },
   );
   server.setRequestHandler(ListToolsRequestSchema, async () => {

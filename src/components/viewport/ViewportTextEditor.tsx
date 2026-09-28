@@ -1,4 +1,5 @@
 import { type CSSProperties, type KeyboardEvent, type Ref, useMemo } from "react";
+import { cssFontFamily } from "../../core/layers/text-style";
 import type { Layer } from "../../core/types";
 import { breakTextLines, resolveTextStyle } from "../../renderer/text/text-rasterizer";
 
@@ -63,7 +64,7 @@ export function viewportTextEditorStyle(
     WebkitTextFillColor: "transparent",
     caretColor: "#ffffff",
     color: "transparent",
-    fontFamily: style.fontFamily,
+    fontFamily: cssFontFamily(style.fontFamily),
     fontSize: `${style.fontSize * zoom}px`,
     fontWeight: style.fontWeight,
     fontStyle: style.fontStyle ?? "normal",
@@ -110,7 +111,7 @@ function measureVisualLineCount(
     measurementCanvas ??= document.createElement("canvas");
     const context = measurementCanvas.getContext("2d");
     if (context) {
-      context.font = `${style.fontStyle ?? "normal"} ${style.fontWeight} ${style.fontSize}px ${style.fontFamily}`;
+      context.font = `${style.fontStyle ?? "normal"} ${style.fontWeight} ${style.fontSize}px ${cssFontFamily(style.fontFamily)}`;
       return Math.max(
         1,
         breakTextLines(

@@ -9,6 +9,7 @@ interface Execution {
   state: "running" | "succeeded" | "failed" | "cancelled";
   progress?: EditProgress;
   result?: unknown;
+  warnings?: string[];
   error?: ReturnType<typeof editErrorData>;
 }
 
@@ -29,7 +30,7 @@ export class EditExecutions {
     run: (
       signal: AbortSignal,
       progress: (value: EditProgress) => void,
-    ) => Promise<{ workspaceRevision: number; result: unknown }>,
+    ) => Promise<{ workspaceRevision: number; result: unknown; warnings?: string[] }>,
   ) {
     this.assertIdle();
     if (this.#jobs.size >= 32) this.#jobs.delete(this.#jobs.keys().next().value as string);
@@ -68,6 +69,21 @@ export class EditExecutions {
 
   status(id: string) {
     return structuredClone(this.get(id).status);
+  }
+  /** Resolves when the execution settles or the wait elapses, whichever comes first. */
+  async wait(id: string, waitMs: number) {
+    const job = this.get(id);
+    if (job.status.state === "running" && waitMs > 0) {
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      await Promise.race([
+        job.done,
+        new Promise<void>((resolve) => {
+          timer = setTimeout(resolve, waitMs);
+        }),
+      ]);
+      clearTimeout(timer);
+    }
+    return this.status(id);
   }
   async cancel(id: string) {
     const job = this.get(id);

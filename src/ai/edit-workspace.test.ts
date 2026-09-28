@@ -138,9 +138,11 @@ describe("editing workspace resources and jobs", () => {
       ...address,
       commands: [{ type: "addLayer", kind: "text", text: "preserved" }],
     })) as Address;
-    const job = (await f.call("execute_aster_code", { ...address, code: "while(true){}" })) as {
-      executionId: string;
-    };
+    const job = (await f.call("execute_aster_code", {
+      ...address,
+      code: "while(true){}",
+      wait: 0,
+    })) as { executionId: string };
     await expect(f.call("submit_workspace", { ...address, summary: "busy" })).rejects.toMatchObject(
       { code: "workspace_busy" },
     );
