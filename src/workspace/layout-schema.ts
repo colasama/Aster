@@ -1,13 +1,17 @@
 import {
+  activatePanel,
+  dockPanel,
   type FloatingWorkspace,
   normalizeWorkspaceLayout,
   type WorkspaceBounds,
   type WorkspaceLayout,
   type WorkspaceNode,
   type WorkspaceViewerInstance,
+  workspaceTabGroups,
 } from "./layout";
+import { insertPanelBeside } from "./panel-placement";
 
-export const CURRENT_WORKSPACE_LAYOUT_VERSION = 2 as const;
+export const CURRENT_WORKSPACE_LAYOUT_VERSION = 3 as const;
 
 export interface WorkspaceLayoutDocument {
   readonly schemaVersion: typeof CURRENT_WORKSPACE_LAYOUT_VERSION;
@@ -69,7 +73,7 @@ export function deserializeWorkspaceLayout(
 ): WorkspaceLayout {
   const normalizedFallback = normalizeWorkspaceLayout(fallback);
   try {
-    const document = migrateDocument(value);
+    const { document, version } = migrateDocument(value);
     const state: DecodeState = {
       nodeCount: 0,
       panelCount: 0,
@@ -94,27 +98,67 @@ export function deserializeWorkspaceLayout(
     const viewersValue = requireArray(document.viewers, "viewers");
     if (viewersValue.length > MAX_PANELS) throw new InvalidWorkspaceLayout("Too many viewers");
     const viewers = viewersValue.map((viewer, index) => decodeViewer(viewer, index));
-    return normalizeWorkspaceLayout({
-      root,
-      floating,
-      closedPanels,
-      ...(maximizedGroupId ? { maximizedGroupId } : {}),
-      ...(viewers.length > 0 ? { viewers } : {}),
-    });
+    return normalizeWorkspaceLayout(
+      migratePanels(
+        {
+          root,
+          floating,
+          closedPanels,
+          ...(maximizedGroupId ? { maximizedGroupId } : {}),
+          ...(viewers.length > 0 ? { viewers } : {}),
+        },
+        version,
+      ),
+    );
   } catch {
     return normalizedFallback;
   }
 }
 
-function migrateDocument(value: unknown): Record<string, unknown> {
+function migrateDocument(value: unknown): {
+  readonly document: Record<string, unknown>;
+  readonly version: number;
+} {
   const source = requireRecord(value, "workspace layout");
   const version = source.schemaVersion ?? 0;
   if (!Number.isSafeInteger(version) || Number(version) < 0)
     throw new InvalidWorkspaceLayout("Invalid workspace schema version");
   if (Number(version) > CURRENT_WORKSPACE_LAYOUT_VERSION)
     throw new InvalidWorkspaceLayout("Future workspace schema version");
-  if (Number(version) <= 1) return { ...source, schemaVersion: 2, viewers: source.viewers ?? [] };
-  return source;
+  if (Number(version) <= 1)
+    return { document: { ...source, viewers: source.viewers ?? [] }, version: Number(version) };
+  return { document: source, version: Number(version) };
+}
+
+/**
+ * Version 3 moved Effects & Presets and the AI assistant out of the Project and Inspector panels
+ * into their own panels, and took the Profiler out of the composition viewer's tab group so the
+ * viewer stays visible while it is being measured.
+ */
+function migratePanels(layout: WorkspaceLayout, version: number): WorkspaceLayout {
+  if (version >= 3) return layout;
+  const separated = insertPanelBeside(
+    insertPanelBeside(layout, "effects", "project"),
+    "ai",
+    "inspector",
+  );
+  const groups = workspaceTabGroups(separated);
+  const shared = groups.find(
+    ({ group }) =>
+      group.panels.includes("profiler") &&
+      group.panels.some((panelId) => panelId === "viewport" || panelId.startsWith("viewport::")),
+  )?.group;
+  const destination = groups.find(
+    ({ group }) => group.id !== shared?.id && group.panels.includes("timeline"),
+  )?.group;
+  if (!shared || !destination) return separated;
+  const moved = dockPanel(separated, "profiler", destination.id, "center");
+  const viewerPanel = shared.activePanelId === "profiler" ? "viewport" : shared.activePanelId;
+  return activatePanel(
+    activatePanel(moved, destination.id, destination.activePanelId),
+    shared.id,
+    viewerPanel,
+  );
 }
 
 function decodeNode(value: unknown, state: DecodeState, depth: number): WorkspaceNode {

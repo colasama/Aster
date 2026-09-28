@@ -31,6 +31,14 @@ temporarily with Ctrl/Cmd or persistently with Allow Keyframes Between Frames. S
 reduces selection; dragging a selected group commits one bounded operation while preserving relative
 timing. Horizontal/vertical pan and anchor-centered zoom remain view-only state.
 
+Selection and time are separate gestures, as in the timeline. A press on empty graph space clears the
+keyframe selection and dragging draws a marquee that selects every visible keyframe marker inside it
+(Shift adds to the existing selection). The time ruler above the plot scrubs the playhead with the
+same snapping rules. While the graph has focus it owns its editing keys: Delete/Backspace removes the
+selected keyframes, Ctrl/Cmd+C and Ctrl/Cmd+V copy and paste them, Ctrl/Cmd+A selects every visible
+keyframe, and Escape clears the keyframe selection. These keys never fall through to layer commands,
+so Delete in the graph cannot remove the selected layer.
+
 Curve sampling starts from the visible pixel budget, inserts visible keyframe boundaries exactly,
 and adaptively subdivides segments until their quarter/midpoint deviation is below a bounded
 screen-space error. The hard 16,384-sample ceiling prevents pathological expressions from creating

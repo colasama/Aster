@@ -4,6 +4,7 @@ import { activeComposition } from "../../core/project/project";
 import { isDesktopRuntime } from "../../desktop/api";
 import { reportUiError } from "../../errors/report-ui-error";
 import { useI18n } from "../../i18n/react";
+import type { RenderQueueOutputKind } from "../../render-queue/render-job-builder";
 import { createRenderQueueJobAsync } from "../../render-queue/render-job-builder";
 import {
   getRenderQueueUiStore,
@@ -19,10 +20,12 @@ import {
 } from "./render-job-form";
 
 export function RenderJobDialog({
+  initialOutputKind,
   onClose,
   onQueued,
   queueStore = getRenderQueueUiStore(),
 }: {
+  readonly initialOutputKind?: RenderQueueOutputKind;
   readonly onClose: () => void;
   readonly onQueued?: () => void;
   readonly queueStore?: RenderQueueUiStore;
@@ -30,7 +33,7 @@ export function RenderJobDialog({
   const { state } = useEditor();
   const { t } = useI18n();
   const composition = activeComposition(state.project);
-  const options = useRenderJobOptions(composition.duration);
+  const options = useRenderJobOptions(composition.duration, initialOutputKind);
   const [submitting, setSubmitting] = useState(false);
   const dialogRef = useDialogFocus<HTMLDivElement>({
     onClose: () => {

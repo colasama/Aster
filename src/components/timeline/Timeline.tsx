@@ -53,13 +53,12 @@ import { addLayerStyleOperations, canAddLayerStyle } from "../../effects/layer-s
 import { useI18n } from "../../i18n/react";
 
 import { useEditor } from "../../state/editor-store";
-
 import { isEditableShortcutTarget, isEditorShortcutBlocked } from "../../ui/keyboard-shortcuts";
 import { TIMELINE_LABEL_WIDTH as LABEL_WIDTH } from "../../ui/timeline-zoom";
+import { currentWorkspaceController } from "../../workspace/workspace-controller";
 import { useContextMenuTrigger } from "../context-menu/use-context-menu-trigger";
 import { Panel, PanelTabs } from "../Panel";
 import { useWindowPointerDrag } from "../use-window-pointer-drag";
-import { useWorkspaceApi } from "../workspace/DockWorkspace";
 import { useWorkspacePanelHost } from "../workspace/WorkspacePanelHost";
 import { TimelineContextMenu, type TimelineCreateKind } from "./TimelineContextMenu";
 import { collectTimelineLayerKeyframes } from "./TimelineLayerRow";
@@ -105,7 +104,6 @@ type TimingPreview = Record<string, { inPoint: number; outPoint: number }>;
 export function Timeline({ mode }: { mode?: "timeline" | "graph" } = {}) {
   const { state, dispatch } = useEditor();
   const bottomMode = mode ?? state.bottomMode;
-  const workspace = useWorkspaceApi();
   const workspaceHost = useWorkspacePanelHost();
   const { t } = useI18n();
   const composition = activeComposition(state.project);
@@ -171,9 +169,7 @@ export function Timeline({ mode }: { mode?: "timeline" | "graph" } = {}) {
     [contextLayers],
   );
   const canDeleteContextLayers =
-    editableContextLayers.length === contextLayers.length &&
-    editableContextLayers.length > 0 &&
-    composition.layers.length - editableContextLayers.length >= 1;
+    editableContextLayers.length === contextLayers.length && editableContextLayers.length > 0;
   const canSplitContextLayers =
     editableContextLayers.length === contextLayers.length &&
     editableContextLayers.length > 0 &&
@@ -724,6 +720,23 @@ export function Timeline({ mode }: { mode?: "timeline" | "graph" } = {}) {
       }
     >
       <div className="timeline-transport">
+        {state.project.compositions.length > 1 && (
+          <select
+            aria-label={t("timeline.composition")}
+            className="timeline-composition"
+            onChange={(event) =>
+              dispatch({ type: "setActiveComposition", compositionId: event.target.value })
+            }
+            title={t("timeline.composition")}
+            value={composition.id}
+          >
+            {state.project.compositions.map((candidate) => (
+              <option key={candidate.id} value={candidate.id}>
+                {candidate.name}
+              </option>
+            ))}
+          </select>
+        )}
         <div className="timecode">
           <strong>{formatTimecode(state.currentTime, composition.frameRate)}</strong>
           <small>{frameAt(state.currentTime, composition.frameRate)}f</small>
@@ -823,8 +836,12 @@ export function Timeline({ mode }: { mode?: "timeline" | "graph" } = {}) {
           >
             <Trash2 size={12} />
           </button>
-          <i className="timeline-options-separator" />
-          <TimelineZoomControls bounds={navigation.bounds} onZoom={navigation.zoomTo} />
+          {bottomMode === "timeline" && (
+            <>
+              <i className="timeline-options-separator" />
+              <TimelineZoomControls bounds={navigation.bounds} onZoom={navigation.zoomTo} />
+            </>
+          )}
         </div>
       </div>
       {bottomMode === "graph" ? (
@@ -930,14 +947,16 @@ export function Timeline({ mode }: { mode?: "timeline" | "graph" } = {}) {
           invertSelection={invertLayerSelection}
           locked={contextLayers.some((layer) => layer.locked)}
           onClose={contextMenu.close}
-          openGraph={() => dispatch({ type: "setBottomMode", mode: "graph" })}
+          openGraph={() => {
+            dispatch({ type: "setBottomMode", mode: "graph" });
+            currentWorkspaceController()?.setPanelVisible("graph", true);
+          }}
           pasteKeyframes={pasteSelection}
           pasteLayers={pasteContextLayers}
           precompose={precomposeContextLayers}
           rename={renameContextLayer}
           revealSource={() => {
-            dispatch({ type: "setLeftTab", tab: "project" });
-            workspace.reopen("project");
+            currentWorkspaceController()?.setPanelVisible("project", true);
           }}
           selectChildren={selectChildLayers}
           selectedLayerCount={contextLayers.length}

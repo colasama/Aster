@@ -10,6 +10,7 @@ import {
   readRecoverySnapshotForCurrentProject,
   saveProjectDocument,
 } from "../core/project/project-file";
+import type { Project } from "../core/types";
 import { reportUiError } from "../errors/report-ui-error";
 import { useI18n } from "../i18n/react";
 import type { EditorAction, EditorState } from "../state/editor-store";
@@ -174,40 +175,49 @@ export function useDocumentLifecycle(
           return;
         handlingSystemRequest.current = true;
         let nativeContext = false;
+        const startupStillPristine = () =>
+          !disposed &&
+          latestState.current.project.id === startupProjectId.current &&
+          !isProjectDirty(latestState.current);
         try {
           let recovery = await readRecoverySnapshot();
+          // The desktop app resumes the project that was open when it last quit.
+          let lastProject: Project | undefined;
           if (isDesktopRuntime()) {
             const preferences = await getPreferences();
             const path = preferences.lastProjectPath;
             if (path && (await authorizeRecentProject(path))) {
-              const base = await loadProjectFromPath(path);
+              lastProject = (await loadProjectFromPath(path)).project;
               nativeContext = true;
               const nativeRecovery = await readNativeRecoverySnapshotForCurrentProject();
-              if (nativeRecovery && nativeRecovery.id !== base.project.id)
+              if (nativeRecovery && nativeRecovery.id !== lastProject.id)
                 logger.warn("project", "native_recovery_project_mismatch");
-              if (nativeRecovery?.id === base.project.id) recovery = nativeRecovery;
-              nativeContext = recovery?.id === base.project.id;
-              if (!nativeContext) clearCurrentProjectPath();
+              if (nativeRecovery?.id === lastProject.id) recovery = nativeRecovery;
             }
           }
-          if (!recovery || disposed) return;
+          if (!recovery) {
+            if (lastProject && startupStillPristine())
+              dispatch({ type: "loadProject", project: lastProject, markSaved: true });
+            else if (nativeContext) clearCurrentProjectPath();
+            return;
+          }
+          const recoversLastProject = recovery.id === lastProject?.id;
           const accepted = isDesktopRuntime()
             ? await documentLifecycle().confirmRecovery(recovery.name)
             : window.confirm(`Recover autosaved project “${recovery.name}”?`);
-          if (
-            disposed ||
-            latestState.current.project.id !== startupProjectId.current ||
-            isProjectDirty(latestState.current)
-          ) {
+          if (!startupStillPristine()) {
             if (nativeContext) clearCurrentProjectPath();
             return;
           }
-          if (!accepted) {
-            await clearRecoverySnapshot();
-            if (nativeContext) clearCurrentProjectPath();
+          if (accepted) {
+            // A snapshot of another (untitled) document must not be saved over the last project.
+            if (nativeContext && !recoversLastProject) clearCurrentProjectPath();
+            dispatch({ type: "loadProject", project: recovery, markSaved: false });
             return;
           }
-          dispatch({ type: "loadProject", project: recovery, markSaved: false });
+          await clearRecoverySnapshot();
+          // Discarding the snapshot falls back to the last saved version instead of the demo.
+          if (lastProject) dispatch({ type: "loadProject", project: lastProject, markSaved: true });
         } catch (error) {
           if (nativeContext) clearCurrentProjectPath();
           reportUiError(t, "projectRecovery", error, {

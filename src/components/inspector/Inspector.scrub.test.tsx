@@ -10,6 +10,7 @@ import type { Project } from "../../core/types";
 import { createEffect } from "../../effects/registry";
 import { I18nProvider } from "../../i18n/react";
 import { EditorProvider, useEditor } from "../../state/editor-store";
+import { selectFirstLayer } from "../../state/editor-test-utils";
 import { Inspector } from "./Inspector";
 
 let root: Root;
@@ -21,6 +22,7 @@ function Observe({ project }: { project: Project }) {
   const { dispatch } = currentEditor;
   useEffect(() => {
     dispatch({ type: "loadProject", project });
+    selectFirstLayer(dispatch, project);
     dispatch({ type: "setTime", time: 1 });
   }, [dispatch, project]);
   return null;

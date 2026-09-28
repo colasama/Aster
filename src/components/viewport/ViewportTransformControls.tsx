@@ -2,8 +2,10 @@ import {
   type Dispatch,
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
+  type Ref,
   useCallback,
   useEffect,
+  useImperativeHandle,
   useMemo,
   useRef,
   useState,
@@ -39,11 +41,18 @@ import {
   viewportSnapTargets,
   viewportTransformBounds,
 } from "../../viewport/transform-interaction";
+import { hitTestLayer } from "./viewport-geometry";
+
+/** Lets the viewer start a drag on a layer it has just picked, without a second click. */
+export interface ViewportTransformHandle {
+  beginGesture(event: PointerEvent, layerIds: readonly string[], mode: "move" | "rotate"): boolean;
+}
 
 interface ViewportTransformControlsProps {
   readonly activeTool: EditorState["activeTool"];
   readonly composition: Composition;
   readonly dispatch: Dispatch<EditorAction>;
+  readonly handleRef?: Ref<ViewportTransformHandle>;
   readonly onEditText: (layerId: string) => void;
   readonly project: Project;
   readonly selection: readonly string[];
@@ -60,9 +69,17 @@ interface ControlMember extends ViewportSelectionMember {
 
 type GestureMode = "move" | "resize" | "rotate" | "anchor";
 
+type GesturePointer = Pick<
+  PointerEvent,
+  "pointerId" | "clientX" | "clientY" | "ctrlKey" | "metaKey" | "shiftKey" | "altKey"
+> & { preventDefault(): void };
+
 interface TransformGesture {
   readonly pointerId: number;
-  readonly pointerTarget: SVGElement;
+  /** Element holding pointer capture, or undefined for window-tracked gestures. */
+  readonly pointerTarget?: SVGElement;
+  readonly release?: () => void;
+  readonly snapTargets: readonly ViewportSnapTarget[];
   readonly mode: GestureMode;
   readonly handle?: ViewportResizeHandle;
   readonly start: Point2;
@@ -93,6 +110,7 @@ export function ViewportTransformControls({
   activeTool,
   composition,
   dispatch,
+  handleRef,
   onEditText,
   project,
   selection,
@@ -112,20 +130,17 @@ export function ViewportTransformControls({
   );
   const editable = useMemo(() => topLevelEditableMembers(members), [members]);
   const bounds = viewportSelectionBounds(editable);
-  const snapTargets = useMemo(
-    () => [
-      ...buildSnapTargets(composition, selection, time, showGuides),
-      ...(referenceGuides ?? []).map(
-        (guide): ViewportSnapTarget => ({
-          axis: guide.axis,
-          value: guide.position,
-          kind: "guide",
-          id: guide.id,
-        }),
-      ),
-    ],
-    [composition, selection, showGuides, time, referenceGuides],
-  );
+  const buildGestureSnapTargets = (layerIds: readonly string[]): ViewportSnapTarget[] => [
+    ...buildSnapTargets(composition, layerIds, time, showGuides),
+    ...(referenceGuides ?? []).map(
+      (guide): ViewportSnapTarget => ({
+        axis: guide.axis,
+        value: guide.position,
+        kind: "guide",
+        id: guide.id,
+      }),
+    ),
+  ];
 
   const cancelActiveGesture = useCallback(
     (pointerId?: number) => {
@@ -135,8 +150,9 @@ export function ViewportTransformControls({
       setSnapped([]);
       coalescerRef.current?.cancel();
       coalescerRef.current = undefined;
-      if (gesture.pointerTarget.hasPointerCapture(gesture.pointerId))
+      if (gesture.pointerTarget?.hasPointerCapture(gesture.pointerId))
         gesture.pointerTarget.releasePointerCapture(gesture.pointerId);
+      gesture.release?.();
       if (gesture.operations)
         dispatch({
           type: "previewOperation",
@@ -169,7 +185,26 @@ export function ViewportTransformControls({
 
   useEffect(() => () => void cancelActiveGesture(), [cancelActiveGesture]);
 
-  if (members.length === 0) return null;
+  useImperativeHandle(handleRef, () => ({
+    beginGesture: (event, layerIds, mode) => {
+      const initial = topLevelEditableMembers(buildControlMembers(composition, layerIds, time));
+      if (initial.length === 0 || event.button !== 0) return false;
+      const move = (moveEvent: PointerEvent) => updateGesture(moveEvent);
+      const up = (upEvent: PointerEvent) => finishGesture(upEvent, false);
+      const cancel = (cancelEvent: PointerEvent) => finishGesture(cancelEvent, true);
+      const release = () => {
+        window.removeEventListener("pointermove", move);
+        window.removeEventListener("pointerup", up);
+        window.removeEventListener("pointercancel", cancel);
+      };
+      window.addEventListener("pointermove", move);
+      window.addEventListener("pointerup", up);
+      window.addEventListener("pointercancel", cancel);
+      startGesture(event, mode, initial, buildGestureSnapTargets(layerIds), undefined, release);
+      return true;
+    },
+  }));
+
   const groupLabel =
     members.length === 1
       ? t("viewport.transformLayer", { name: members[0]?.layer.name ?? "" })
@@ -202,22 +237,25 @@ export function ViewportTransformControls({
     });
   };
 
-  const beginGesture = (
-    event: ReactPointerEvent<SVGElement>,
+  const startGesture = (
+    event: GesturePointer,
     mode: GestureMode,
+    initial: readonly ControlMember[],
+    gestureSnapTargets: readonly ViewportSnapTarget[],
+    pointerTarget?: SVGElement,
+    release?: () => void,
     handle?: ViewportResizeHandle,
   ) => {
-    if (editable.length === 0 || event.button !== 0) return;
     event.preventDefault();
-    event.stopPropagation();
-    const start = pointerInComposition(event, svgRef.current, zoom);
     const gesture: TransformGesture = {
       pointerId: event.pointerId,
-      pointerTarget: event.currentTarget,
+      pointerTarget,
+      release,
+      snapTargets: gestureSnapTargets,
       mode,
       handle,
-      start,
-      initial: editable,
+      start: pointerInComposition(event, svgRef.current, zoom),
+      initial,
       historyBase: project,
       keyframeIds: new Map(),
     };
@@ -227,10 +265,37 @@ export function ViewportTransformControls({
       gesture.operations = operations;
       dispatch({ type: "previewOperation", operations });
     });
+  };
+
+  const beginGesture = (
+    event: ReactPointerEvent<SVGElement>,
+    mode: GestureMode,
+    handle?: ViewportResizeHandle,
+  ) => {
+    if (editable.length === 0 || event.button !== 0) return;
+    event.stopPropagation();
+    startGesture(
+      event,
+      mode,
+      editable,
+      buildGestureSnapTargets(selection),
+      event.currentTarget,
+      undefined,
+      handle,
+    );
     event.currentTarget.setPointerCapture(event.pointerId);
   };
 
-  const updateGesture = (event: ReactPointerEvent<SVGElement>) => {
+  /** Clicks inside the selection frame reach the viewer when they target another layer. */
+  const passesThroughSelection = (event: ReactPointerEvent<SVGElement>) => {
+    if (event.button !== 0) return false;
+    if (event.shiftKey) return true;
+    const [x, y] = pointerInComposition(event, svgRef.current, zoom);
+    const hit = hitTestLayer(composition, project, time, x, y);
+    return Boolean(hit && !selection.includes(hit.id));
+  };
+
+  const updateGesture = (event: GesturePointer) => {
     const gesture = gestureRef.current;
     if (!gesture || gesture.pointerId !== event.pointerId) return;
     event.preventDefault();
@@ -240,7 +305,7 @@ export function ViewportTransformControls({
       const result = moveViewportSelection(
         gesture.initial,
         [pointer[0] - gesture.start[0], pointer[1] - gesture.start[1]],
-        event.ctrlKey || event.metaKey ? [] : snapTargets,
+        event.ctrlKey || event.metaKey ? [] : gesture.snapTargets,
         7,
         zoom,
       );
@@ -282,7 +347,7 @@ export function ViewportTransformControls({
     );
   };
 
-  const finishGesture = (event: ReactPointerEvent<SVGElement>, cancelled: boolean) => {
+  const finishGesture = (event: GesturePointer, cancelled: boolean) => {
     const gesture = gestureRef.current;
     if (!gesture || gesture.pointerId !== event.pointerId) return;
     event.preventDefault();
@@ -292,8 +357,9 @@ export function ViewportTransformControls({
     }
     gestureRef.current = undefined;
     setSnapped([]);
-    if (gesture.pointerTarget.hasPointerCapture(gesture.pointerId))
+    if (gesture.pointerTarget?.hasPointerCapture(gesture.pointerId))
       gesture.pointerTarget.releasePointerCapture(gesture.pointerId);
+    gesture.release?.();
     coalescerRef.current?.flush();
     coalescerRef.current = undefined;
     const operations = operationsFor(
@@ -320,6 +386,13 @@ export function ViewportTransformControls({
     });
   };
 
+  const selectionHitProps = (mode: GestureMode) => ({
+    ...interactionProps(mode),
+    onPointerDown: (event: ReactPointerEvent<SVGElement>) => {
+      if (!passesThroughSelection(event)) beginGesture(event, mode);
+    },
+  });
+
   const interactionProps = (mode: GestureMode, handle?: ViewportResizeHandle) => ({
     onLostPointerCapture: (event: ReactPointerEvent<SVGElement>) =>
       cancelActiveGesture(event.pointerId),
@@ -332,6 +405,17 @@ export function ViewportTransformControls({
     onPointerUp: (event: ReactPointerEvent<SVGElement>) => finishGesture(event, false),
   });
 
+  // The empty frame stays mounted so a gesture started by the viewer can measure pointers.
+  if (members.length === 0)
+    return (
+      <svg
+        aria-hidden="true"
+        className="viewport-transform-controls"
+        height={composition.height * zoom}
+        ref={svgRef}
+        width={composition.width * zoom}
+      />
+    );
   return (
     <svg
       aria-label={groupLabel}
@@ -382,7 +466,7 @@ export function ViewportTransformControls({
         editable.length === 1 && editable[0] ? (
           // biome-ignore lint/a11y/useSemanticElements: SVG geometry must match the transformed layer polygon.
           <polygon
-            {...interactionProps(activeTool === "rotate" ? "rotate" : "move")}
+            {...selectionHitProps(activeTool === "rotate" ? "rotate" : "move")}
             aria-label={groupLabel}
             className="viewport-selection-hit"
             onDoubleClick={(event) => {
@@ -398,7 +482,7 @@ export function ViewportTransformControls({
         ) : bounds ? (
           // biome-ignore lint/a11y/useSemanticElements: SVG geometry must match the multi-selection bounds.
           <rect
-            {...interactionProps(activeTool === "rotate" ? "rotate" : "move")}
+            {...selectionHitProps(activeTool === "rotate" ? "rotate" : "move")}
             aria-label={groupLabel}
             className="viewport-selection-hit"
             height={(bounds.bottom - bounds.top) * zoom}
@@ -740,7 +824,7 @@ function transformPathValue(transform: ViewportTransform2d, path: PropertyPath):
 }
 
 function pointerInComposition(
-  event: ReactPointerEvent<SVGElement>,
+  event: Pick<PointerEvent, "clientX" | "clientY">,
   svg: SVGSVGElement | null,
   zoom: number,
 ): Point2 {

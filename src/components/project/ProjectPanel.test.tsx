@@ -78,26 +78,11 @@ afterEach(() => {
 });
 
 describe("project Assets panel", () => {
-  it("keeps the effect preset draft when switching tabs without mounting hidden catalog rows", () => {
+  it("lists only project items and leaves effects to their own panel", () => {
     const container = renderPanel(createBlankProject());
-    const tabs = container.querySelectorAll<HTMLButtonElement>('[role="tab"]');
+    expect(container.querySelectorAll('[role="tab"]')).toHaveLength(0);
     expect(container.querySelector(".effect-list")).toBeNull();
-    act(() => tabs[1].click());
-    const input = container.querySelector<HTMLInputElement>(".user-preset-save input");
-    if (!input) throw new Error("Expected the preset name input");
-    act(() => {
-      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set?.call(
-        input,
-        "My draft look",
-      );
-      input.dispatchEvent(new Event("input", { bubbles: true }));
-    });
-    act(() => tabs[0].click());
-    expect(container.querySelector(".effect-list")).toBeNull();
-    act(() => tabs[1].click());
-    expect(container.querySelector<HTMLInputElement>(".user-preset-save input")?.value).toBe(
-      "My draft look",
-    );
+    expect(container.querySelector(".tree-row.composition")).not.toBeNull();
   });
 
   it("opens the add dropdown and folds the Assets root", () => {

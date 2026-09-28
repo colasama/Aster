@@ -9,6 +9,7 @@ import { activeComposition, createBlankProject } from "../../core/project/projec
 import type { Layer, Project } from "../../core/types";
 import { I18nProvider } from "../../i18n/react";
 import { EditorProvider, useEditor } from "../../state/editor-store";
+import { selectFirstLayer } from "../../state/editor-test-utils";
 import { Scene3dControls } from "./Scene3dControls";
 
 let root: Root | undefined;
@@ -18,6 +19,7 @@ function LoadProject({ project, time }: { project: Project; time?: number }) {
   const { dispatch } = useEditor();
   useEffect(() => {
     dispatch({ type: "loadProject", project });
+    selectFirstLayer(dispatch, project);
     if (time !== undefined) dispatch({ type: "setTime", time });
   }, [dispatch, project, time]);
   return null;

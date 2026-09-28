@@ -47,6 +47,7 @@ import {
   type TimelinePropertyTrack,
   timelineTrackKeyframes,
 } from "./timeline-property-tracks";
+import { timelineClickSelection } from "./timeline-selection";
 import { type ObserveTimelineRow, useTimelineRowWindow } from "./use-timeline-row-window";
 
 const LABEL_WIDTH = 286;
@@ -90,7 +91,7 @@ export function TimelineLayerRow({
 }) {
   const { state, dispatch } = useEditorDocument();
   const { t } = useI18n();
-  const [expanded, setExpanded] = useState(selected && layer.name === "ASTER");
+  const [expanded, setExpanded] = useState(false);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(() => new Set());
   const row = useTimelineRowWindow(index, observeRow);
   if (!row.visible)
@@ -130,13 +131,21 @@ export function TimelineLayerRow({
       <div
         className="layer-label"
         draggable={!layer.locked}
-        onClick={(event) => {
-          const ids = event.shiftKey
-            ? state.selection.includes(layer.id)
-              ? state.selection.filter((id) => id !== layer.id)
-              : [...state.selection, layer.id]
-            : [layer.id];
-          dispatch({ type: "select", ids });
+        onClick={(event) =>
+          dispatch({
+            type: "select",
+            ids: timelineClickSelection(
+              composition.layers,
+              state.selection,
+              layer.id,
+              event.shiftKey,
+              event.ctrlKey || event.metaKey,
+            ),
+          })
+        }
+        onDoubleClick={() => {
+          if (layer.sourceCompositionId)
+            dispatch({ type: "setActiveComposition", compositionId: layer.sourceCompositionId });
         }}
         onKeyDown={(event) => {
           onContextMenuKeyDown(event);

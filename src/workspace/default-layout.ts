@@ -9,7 +9,7 @@ export const DEFAULT_WORKSPACE_LAYOUT: WorkspaceLayout = {
     first: {
       kind: "tabGroup",
       id: "project-group",
-      panels: ["project"],
+      panels: ["project", "effects"],
       activePanelId: "project",
     },
     second: {
@@ -25,20 +25,20 @@ export const DEFAULT_WORKSPACE_LAYOUT: WorkspaceLayout = {
         first: {
           kind: "tabGroup",
           id: "viewer-group",
-          panels: ["viewport", "profiler"],
+          panels: ["viewport"],
           activePanelId: "viewport",
         },
         second: {
           kind: "tabGroup",
           id: "timeline-group",
-          panels: ["timeline", "graph"],
+          panels: ["timeline", "graph", "profiler"],
           activePanelId: "timeline",
         },
       },
       second: {
         kind: "tabGroup",
         id: "inspector-group",
-        panels: ["inspector", "renderQueue"],
+        panels: ["inspector", "ai", "renderQueue"],
         activePanelId: "inspector",
       },
     },

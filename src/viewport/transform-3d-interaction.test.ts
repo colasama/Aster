@@ -86,62 +86,44 @@ describe("3D viewport interaction math", () => {
     ]);
   });
 
-  it("selects a locked top layer instead of clicking through and includes 3D layers", () => {
+  it("clicks through a locked top layer and includes 3D layers", () => {
     const project = createBlankProject();
     const composition = project.compositions[0];
     const bottom = createLayerForComposition("solid", composition);
-    const locked = createLayerForComposition("shape", composition);
-    locked.locked = true;
-    composition.layers = [locked, bottom];
+    const top = createLayerForComposition("shape", composition);
+    composition.layers = [top, bottom];
     const camera = createDefaultEvaluatedCamera(composition.width, composition.height);
+    const center: [number, number] = [composition.width / 2, composition.height / 2];
 
-    expect(
-      hitTestSceneLayerAtPoint(
-        composition,
-        project,
-        0,
-        [composition.width / 2, composition.height / 2],
-        camera,
-      )?.id,
-    ).toBe(locked.id);
+    expect(hitTestSceneLayerAtPoint(composition, project, 0, center, camera)?.id).toBe(top.id);
 
-    locked.threeDimensional = true;
-    expect(
-      hitTestSceneLayerAtPoint(
-        composition,
-        project,
-        0,
-        [composition.width / 2, composition.height / 2],
-        camera,
-      )?.id,
-    ).toBe(locked.id);
+    top.threeDimensional = true;
+    expect(hitTestSceneLayerAtPoint(composition, project, 0, center, camera)?.id).toBe(top.id);
 
-    locked.transform.position[0] = {
+    // Locked layers stay visible but are not pickable, like After Effects' comp panel.
+    top.locked = true;
+    expect(hitTestSceneLayerAtPoint(composition, project, 0, center, camera)?.id).toBe(bottom.id);
+
+    top.locked = false;
+    top.threeDimensional = false;
+    top.transform.position[0] = {
       mode: "animated",
       keyframes: [
         {
-          id: "locked-center",
+          id: "top-center",
           time: 0,
           value: composition.width / 2,
           interpolation: "linear",
         },
         {
-          id: "locked-away",
+          id: "top-away",
           time: 1,
           value: composition.width * 2,
           interpolation: "linear",
         },
       ],
     };
-    composition.layers = [locked];
-    expect(
-      hitTestSceneLayerAtPoint(
-        composition,
-        project,
-        1,
-        [composition.width / 2, composition.height / 2],
-        camera,
-      ),
-    ).toBeUndefined();
+    composition.layers = [top];
+    expect(hitTestSceneLayerAtPoint(composition, project, 1, center, camera)).toBeUndefined();
   });
 });

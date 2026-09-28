@@ -72,6 +72,12 @@ describe("TimelineLayerRow locked switches", () => {
     );
     expect(container.querySelector(".layer-label")).toBeNull();
     act(() => visibility(true));
+    expect(container.querySelector(".expanded-properties")).toBeNull();
+    act(() =>
+      container
+        .querySelector<HTMLButtonElement>('.layer-label button[aria-label^="Expand"]')
+        ?.click(),
+    );
     expect(container.querySelector(".expanded-properties")).not.toBeNull();
     const group = container.querySelector<HTMLButtonElement>(".timeline-property-group-label");
     act(() => group?.click());

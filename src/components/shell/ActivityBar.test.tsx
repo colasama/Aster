@@ -4,7 +4,7 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it } from "vitest";
 import { I18nProvider } from "../../i18n/react";
-import { EditorProvider, useEditor } from "../../state/editor-store";
+import { EditorProvider } from "../../state/editor-store";
 import type { WorkspaceLayout } from "../../workspace/layout";
 import { useWorkspaceController } from "../../workspace/workspace-controller";
 import { DockWorkspace } from "../workspace/DockWorkspace";
@@ -22,25 +22,21 @@ const layout: WorkspaceLayout = {
     second: {
       kind: "tabGroup",
       id: "sidebar",
-      panels: ["inspector", "renderQueue"],
+      panels: ["inspector", "ai", "renderQueue"],
       activePanelId: "inspector",
     },
   },
   floating: [],
-  closedPanels: ["project"],
+  closedPanels: ["project", "effects"],
   maximizedGroupId: "viewer",
 };
 
 function StateProbe() {
-  const { state } = useEditor();
   const workspace = useWorkspaceController();
   return (
-    <>
-      <output>{`${state.leftTab}/${state.rightTab}`}</output>
-      <button type="button" onClick={() => workspace?.setPanelVisible("project", false)}>
-        Close project
-      </button>
-    </>
+    <button type="button" onClick={() => workspace?.setPanelVisible("project", false)}>
+      Close project
+    </button>
   );
 }
 
@@ -59,9 +55,16 @@ beforeEach(() => {
           <StateProbe />
           <DockWorkspace
             initialLayout={layout}
-            panels={["project", "viewport", "inspector", "renderQueue"].map((id) => ({
+            panels={[
+              ["project", "Project"],
+              ["effects", "Effects & Presets"],
+              ["viewport", "Composition"],
+              ["inspector", "Inspector"],
+              ["ai", "AI Assistant"],
+              ["renderQueue", "Render Queue"],
+            ].map(([id, label]) => ({
               id,
-              label: id,
+              label,
               element: <div>{id}</div>,
             }))}
           />
@@ -85,29 +88,34 @@ function nav(label: string) {
   return button;
 }
 
-it("reveals a hidden sidebar, exits another maximized group and switches inspector tabs", () => {
-  expect(nav("Properties").getAttribute("aria-pressed")).toBe("false");
-  act(() => nav("Properties").click());
+it("brings panels to the front and exits another maximized group", () => {
+  expect(nav("Inspector").getAttribute("aria-pressed")).toBe("false");
+  act(() => nav("Inspector").click());
   expect(container.querySelector(".workspace-root")?.hasAttribute("data-maximized")).toBe(false);
-  expect(nav("Properties").getAttribute("aria-pressed")).toBe("true");
-  expect(container.querySelector("output")?.textContent).toContain("/properties");
+  expect(nav("Inspector").getAttribute("aria-pressed")).toBe("true");
   act(() => nav("AI Assistant").click());
-  expect(nav("Properties").getAttribute("aria-pressed")).toBe("false");
+  expect(nav("Inspector").getAttribute("aria-pressed")).toBe("false");
   expect(nav("AI Assistant").getAttribute("aria-pressed")).toBe("true");
-  expect(container.querySelector("output")?.textContent).toContain("/ai");
+  expect(container.querySelector('[data-workspace-panel-surface="ai"]')).not.toBeNull();
   act(() => nav("Render Queue").click());
   expect(nav("AI Assistant").getAttribute("aria-pressed")).toBe("false");
   expect(nav("Render Queue").getAttribute("aria-pressed")).toBe("true");
+  expect(container.querySelector('.activity-bar button[aria-label="profiler"]')).toBeNull();
 });
 
-it("reopens a closed project panel into the requested subtab and tracks closure", () => {
+it("reopens closed panels beside their default companions and tracks closure", () => {
   act(() => nav("Effects & Presets").click());
-  expect(container.querySelector('[data-workspace-panel-surface="project"]')).not.toBeNull();
-  expect(container.querySelector("output")?.textContent).toMatch(/^effects\//);
+  expect(container.querySelector('[data-workspace-panel-surface="effects"]')).not.toBeNull();
   expect(nav("Effects & Presets").getAttribute("aria-pressed")).toBe("true");
   act(() => nav("Project").click());
   expect(nav("Effects & Presets").getAttribute("aria-pressed")).toBe("false");
   expect(nav("Project").getAttribute("aria-pressed")).toBe("true");
+  const projectGroup = [...container.querySelectorAll("[data-workspace-group]")].find((group) =>
+    [...group.querySelectorAll('[role="tab"]')].some((tab) => tab.textContent === "Project"),
+  );
+  expect(
+    [...(projectGroup?.querySelectorAll('[role="tab"]') ?? [])].map((tab) => tab.textContent),
+  ).toContain("Effects & Presets");
   const close = [...container.querySelectorAll("button")].find(
     (button) => button.textContent === "Close project",
   );

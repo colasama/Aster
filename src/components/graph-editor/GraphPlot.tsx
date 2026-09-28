@@ -7,6 +7,7 @@ import type {
 } from "react";
 import type { Keyframe } from "../../core/types";
 import type { Translate } from "../../i18n/core";
+import type { GraphMarquee } from "./marquee";
 import {
   type GraphCurve,
   type GraphEasingPreview,
@@ -32,6 +33,7 @@ interface GraphPlotProps {
   handleRadii: { x: number; y: number };
   keyRadii: { x: number; y: number };
   layerBounds: ReadonlyArray<{ id: string; inPoint: number; outPoint: number }>;
+  marquee?: GraphMarquee;
   onHandlePointerDown: (
     event: ReactPointerEvent<SVGEllipseElement>,
     curve: GraphCurve,
@@ -78,6 +80,7 @@ export function GraphPlot({
   handleRadii,
   keyRadii,
   layerBounds,
+  marquee,
   onHandlePointerDown,
   onKeyframeContextMenu,
   onKeyframeKeyDown,
@@ -301,6 +304,15 @@ export function GraphPlot({
             </g>
           );
         }),
+      )}
+      {marquee && (
+        <rect
+          className="graph-marquee"
+          height={Math.abs(marquee.y1 - marquee.y0)}
+          width={Math.abs(marquee.x1 - marquee.x0)}
+          x={Math.min(marquee.x0, marquee.x1)}
+          y={Math.min(marquee.y0, marquee.y1)}
+        />
       )}
       <line
         className="graph-playhead"

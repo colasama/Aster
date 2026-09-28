@@ -55,6 +55,7 @@ import {
   selectWorkspace,
   workspaceById,
 } from "../../workspace/named-workspaces";
+import { preferredPanelGroupId } from "../../workspace/panel-placement";
 import {
   registerWorkspaceController,
   type WorkspaceController,
@@ -270,7 +271,10 @@ export function DockWorkspace({
         reopenPanel(
           current,
           panelId,
-          targetGroupId ?? hoveredGroupRef.current ?? undefined,
+          targetGroupId ??
+            preferredPanelGroupId(current, panelId) ??
+            hoveredGroupRef.current ??
+            undefined,
           position,
         ),
       ),
@@ -355,7 +359,7 @@ export function DockWorkspace({
       setPanelVisible: (panelId, visible) =>
         commit((current) => {
           if (!visible) return closePanel(current, panelId);
-          const revealed = reopenPanel(current, panelId);
+          const revealed = reopenPanel(current, panelId, preferredPanelGroupId(current, panelId));
           const location = workspaceTabGroups(revealed).find(({ group }) =>
             group.panels.includes(panelId),
           );

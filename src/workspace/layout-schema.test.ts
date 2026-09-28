@@ -43,6 +43,17 @@ function defaultLayout(): WorkspaceLayout {
   };
 }
 
+/** Pre-v3 documents gain the AI assistant beside the Inspector it used to live in. */
+function migratedDefaultLayout(): WorkspaceLayout {
+  const layout = defaultLayout();
+  const [floating] = layout.floating;
+  if (floating?.node.kind !== "tabGroup") throw new Error("Fixture changed");
+  return {
+    ...layout,
+    floating: [{ ...floating, node: { ...floating.node, panels: ["inspector", "ai"] } }],
+  };
+}
+
 describe("workspace layout persistence", () => {
   it("round-trips a detached, versioned document", () => {
     const layout = defaultLayout();
@@ -59,7 +70,7 @@ describe("workspace layout persistence", () => {
     const { schemaVersion: _, ...legacy } = serializeWorkspaceLayout(defaultLayout());
     expect(
       deserializeWorkspaceLayout(legacy, { root: null, floating: [], closedPanels: [] }),
-    ).toEqual(defaultLayout());
+    ).toEqual(migratedDefaultLayout());
   });
 
   it("migrates a valid version-one workspace without presentation or viewers", () => {
@@ -74,7 +85,54 @@ describe("workspace layout persistence", () => {
           closedPanels: [],
         },
       ),
-    ).toEqual(defaultLayout());
+    ).toEqual(migratedDefaultLayout());
+  });
+
+  it("splits Effects and AI into panels and moves the Profiler off the viewer in version two", () => {
+    const versionTwo = {
+      schemaVersion: 2,
+      root: {
+        kind: "split",
+        id: "root",
+        axis: "horizontal",
+        ratio: 0.2,
+        first: { kind: "tabGroup", id: "left", panels: ["project"], activePanelId: "project" },
+        second: {
+          kind: "split",
+          id: "main",
+          axis: "vertical",
+          ratio: 0.7,
+          first: {
+            kind: "tabGroup",
+            id: "viewer",
+            panels: ["viewport", "profiler"],
+            activePanelId: "profiler",
+          },
+          second: {
+            kind: "tabGroup",
+            id: "bottom",
+            panels: ["timeline", "graph"],
+            activePanelId: "graph",
+          },
+        },
+      },
+      floating: [],
+      closedPanels: ["inspector"],
+      viewers: [],
+    };
+    const migrated = deserializeWorkspaceLayout(versionTwo, {
+      root: null,
+      floating: [],
+      closedPanels: [],
+    });
+    expect(migrated.closedPanels).toEqual(["ai", "inspector"]);
+    expect(migrated.root).toMatchObject({
+      first: { panels: ["project", "effects"], activePanelId: "project" },
+      second: {
+        first: { panels: ["viewport"], activePanelId: "viewport" },
+        second: { panels: ["timeline", "graph", "profiler"], activePanelId: "graph" },
+      },
+    });
   });
 
   it("round-trips stack and maximize state while unbinding locked viewer project context", () => {
@@ -108,7 +166,7 @@ describe("workspace layout persistence", () => {
     };
     const document = serializeWorkspaceLayout(layout);
     expect(document).toMatchObject({
-      schemaVersion: 2,
+      schemaVersion: CURRENT_WORKSPACE_LAYOUT_VERSION,
       maximizedGroupId: "viewer-tabs",
       viewers: [
         { id: "viewport", locked: false },

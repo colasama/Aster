@@ -30,7 +30,7 @@ const ANIMATION_WORKSPACE_LAYOUT: WorkspaceLayout = {
     first: {
       kind: "tabGroup",
       id: "animation-project",
-      panels: ["project"],
+      panels: ["project", "effects"],
       activePanelId: "project",
     },
     second: {
@@ -46,20 +46,20 @@ const ANIMATION_WORKSPACE_LAYOUT: WorkspaceLayout = {
         first: {
           kind: "tabGroup",
           id: "animation-viewer",
-          panels: ["viewport", "profiler"],
+          panels: ["viewport"],
           activePanelId: "viewport",
         },
         second: {
           kind: "tabGroup",
           id: "animation-inspector",
-          panels: ["inspector", "renderQueue"],
+          panels: ["inspector", "ai", "renderQueue"],
           activePanelId: "inspector",
         },
       },
       second: {
         kind: "tabGroup",
         id: "animation-graph",
-        panels: ["graph", "timeline"],
+        panels: ["graph", "timeline", "profiler"],
         activePanelId: "graph",
       },
     },
@@ -74,7 +74,16 @@ const MINIMAL_WORKSPACE_LAYOUT: WorkspaceLayout = {
     activePanelId: "viewport",
   },
   floating: [],
-  closedPanels: ["graph", "inspector", "profiler", "project", "renderQueue", "timeline"],
+  closedPanels: [
+    "ai",
+    "effects",
+    "graph",
+    "inspector",
+    "profiler",
+    "project",
+    "renderQueue",
+    "timeline",
+  ],
 };
 
 export const BUILT_IN_WORKSPACES: readonly NamedWorkspace[] = [

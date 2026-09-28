@@ -45,9 +45,9 @@ import {
   type ViewportTextEditSession,
 } from "../../ui/viewport-text-editing";
 import { resolveWorkspaceViewerComposition } from "../../workspace/viewer-context";
+import { currentWorkspaceController } from "../../workspace/workspace-controller";
 import { useContextMenuTrigger } from "../context-menu/use-context-menu-trigger";
 import { Panel } from "../Panel";
-import { useWorkspaceApi } from "../workspace/DockWorkspace";
 import { useWorkspaceViewerIdentity } from "../workspace/WorkspaceViewerIdentity";
 import { CameraGizmo } from "./CameraGizmo";
 import { useViewerGuides } from "./use-viewer-guides";
@@ -59,7 +59,10 @@ import { ViewportFooter, ViewportHeader } from "./ViewportChrome";
 import { ViewportContextMenu } from "./ViewportContextMenu";
 import { ViewportRulers } from "./ViewportRulers";
 import { ViewportTextEditor } from "./ViewportTextEditor";
-import { ViewportTransformControls } from "./ViewportTransformControls";
+import {
+  ViewportTransformControls,
+  type ViewportTransformHandle,
+} from "./ViewportTransformControls";
 import { hitTestLayer, viewportCssMatrix } from "./viewport-geometry";
 import {
   compositionContainsVideo,
@@ -81,7 +84,6 @@ const claimedRenderSessionEvents = new WeakSet<Event>();
 
 export function Viewport() {
   const { state, dispatch } = useEditor();
-  const workspace = useWorkspaceApi();
   const { t } = useI18n();
   const viewerIdentity = useWorkspaceViewerIdentity();
   const { composition, readOnly: viewerReadOnly } = resolveWorkspaceViewerComposition(
@@ -91,6 +93,7 @@ export function Viewport() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const mirrorCanvasRef = useRef<HTMLCanvasElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
+  const transformControlsRef = useRef<ViewportTransformHandle>(null);
   const spaceRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<Renderer | undefined>(undefined);
   const beautyPipelineRef = useRef<ProductionBeautyFramePipeline | undefined>(undefined);
@@ -718,21 +721,38 @@ export function Viewport() {
             (state.activeTool === "select" || state.activeTool === "rotate")
           ) {
             const stage = stageRef.current;
-            if (!stage?.contains(event.target as Node)) return;
+            if (!stage?.contains(event.target as Node)) {
+              // Clicking the pasteboard around the composition clears the selection.
+              if (!event.shiftKey && state.selection.length > 0)
+                dispatch({ type: "select", ids: [] });
+              return;
+            }
             const bounds = stage.getBoundingClientRect();
             const x = ((event.clientX - bounds.left) / bounds.width) * composition.width;
             const y = ((event.clientY - bounds.top) / bounds.height) * composition.height;
             const hit = hitTestLayer(composition, state.project, state.currentTime, x, y);
-            const ids = event.shiftKey
-              ? hit
-                ? state.selection.includes(hit.id)
-                  ? state.selection.filter((id) => id !== hit.id)
-                  : [...state.selection, hit.id]
-                : state.selection
-              : hit
-                ? [hit.id]
-                : [];
-            dispatch({ type: "select", ids });
+            if (event.shiftKey) {
+              if (hit)
+                dispatch({
+                  type: "select",
+                  ids: state.selection.includes(hit.id)
+                    ? state.selection.filter((id) => id !== hit.id)
+                    : [...state.selection, hit.id],
+                });
+              return;
+            }
+            if (!hit) {
+              if (state.selection.length > 0) dispatch({ type: "select", ids: [] });
+              return;
+            }
+            // Press on a layer picks it and the same press drags it, like any design tool.
+            const ids = state.selection.includes(hit.id) ? state.selection : [hit.id];
+            if (ids !== state.selection) dispatch({ type: "select", ids });
+            transformControlsRef.current?.beginGesture(
+              event.nativeEvent,
+              ids,
+              state.activeTool === "rotate" ? "rotate" : "move",
+            );
             return;
           }
         }}
@@ -786,6 +806,7 @@ export function Viewport() {
                   activeTool={state.activeTool}
                   composition={composition}
                   dispatch={dispatch}
+                  handleRef={transformControlsRef}
                   onEditText={beginTextEditing}
                   project={state.project}
                   selection={state.selection}
@@ -895,8 +916,7 @@ export function Viewport() {
           }}
           previewQuality={state.previewQuality}
           revealComposition={() => {
-            dispatch({ type: "setLeftTab", tab: "project" });
-            workspace.reopen("project");
+            currentWorkspaceController()?.setPanelVisible("project", true);
           }}
           selectChildren={() => {
             const ids = new Set([...state.selection, ...childLayerIds]);

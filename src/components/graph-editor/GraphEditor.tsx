@@ -25,6 +25,8 @@ import {
 import { GraphContextMenu } from "./GraphContextMenu";
 import { GraphSidebar, GraphToolbar } from "./GraphControls";
 import { GraphPlot } from "./GraphPlot";
+import { GraphRuler } from "./GraphRuler";
+import { type GraphMarquee, graphKeyframesInMarquee } from "./marquee";
 import {
   collectAnimatedGraphTracks,
   constrainGraphTrackValue,
@@ -70,6 +72,7 @@ import {
 } from "./viewport";
 
 const POINTER_EPSILON = 0.000_001;
+const CLICK_SLOP_PX = 3;
 type OwnedGraphTrack = GraphTrack & {
   ownerLayerId: string;
   ownerLayerName: string;
@@ -82,6 +85,8 @@ export function GraphEditor() {
   const { state, dispatch } = useEditor();
   const { t } = useI18n();
   const svgRef = useRef<SVGSVGElement>(null);
+  const surfaceRef = useRef<HTMLDivElement>(null);
+  const [marquee, setMarquee] = useState<GraphMarquee>();
   const sampleBuffers = useRef(new Map<string, GraphSampleBuffer>());
   const gridId = useId().replace(/:/g, "");
   const composition = activeComposition(state.project);
@@ -378,6 +383,44 @@ export function GraphEditor() {
     }
     if (event.button !== 0) return;
     event.preventDefault();
+    surfaceRef.current?.focus({ preventScroll: true });
+    // Empty-canvas gestures select keyframes; time is scrubbed from the ruler above the plot.
+    const start = clientGraphPoint(svg, event.clientX, event.clientY);
+    const startClient = { x: event.clientX, y: event.clientY };
+    const additive = event.shiftKey;
+    const baseIds = additive ? state.selectedKeyframes : [];
+    const baseOwners = additive ? selectedKeyframeOwners : {};
+    let current: GraphMarquee | undefined;
+    const move = (moveEvent: PointerEvent) => {
+      if (
+        !current &&
+        Math.hypot(moveEvent.clientX - startClient.x, moveEvent.clientY - startClient.y) <
+          CLICK_SLOP_PX
+      )
+        return;
+      const point = clientGraphPoint(svg, moveEvent.clientX, moveEvent.clientY);
+      current = { x0: start.x, y0: start.y, x1: point.x, y1: point.y };
+      setMarquee(current);
+    };
+    const end = () => {
+      removeWindowPointerListeners(move, end);
+      setMarquee(undefined);
+      if (!current && additive) return;
+      const owners = current ? graphKeyframesInMarquee(curves, current, timeRange, valueRange) : {};
+      setSelectedKeyframeOwners({ ...baseOwners, ...owners });
+      dispatch({
+        type: "selectKeyframes",
+        ids: [...new Set([...baseIds, ...Object.keys(owners)])],
+      });
+    };
+    addWindowPointerListeners(move, end);
+  };
+
+  const startRulerScrub = (event: React.PointerEvent<HTMLDivElement>) => {
+    const svg = svgRef.current;
+    if (event.button !== 0 || !svg) return;
+    event.preventDefault();
+    surfaceRef.current?.focus({ preventScroll: true });
     scrub(svg, event.clientX, event.ctrlKey || event.metaKey);
     const move = (moveEvent: PointerEvent) =>
       scrub(svg, moveEvent.clientX, moveEvent.ctrlKey || moveEvent.metaKey);
@@ -393,6 +436,7 @@ export function GraphEditor() {
     if (event.button !== 0) return;
     event.preventDefault();
     event.stopPropagation();
+    surfaceRef.current?.focus({ preventScroll: true });
     const svg = event.currentTarget.ownerSVGElement;
     const sourceTrack = tracks.find((track) => track.id === curve.track.id);
     const owner = sourceTrack
@@ -754,8 +798,36 @@ export function GraphEditor() {
     }
     contextMenu.openFromPointer(event);
   };
+  const selectAllVisibleKeyframes = () => {
+    const owners: Record<string, string> = {};
+    for (const curve of curves)
+      for (const keyframe of curve.track.property.keyframes) owners[keyframe.id] = curve.track.id;
+    setSelectedKeyframeOwners(owners);
+    dispatch({ type: "selectKeyframes", ids: Object.keys(owners) });
+  };
   const surfaceKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
     if (contextMenu.openFromKeyboard(event)) return;
+    // The graph owns editing keys while focused, so they never fall through to layer commands.
+    const command = (event.ctrlKey || event.metaKey) && !event.altKey;
+    const key = event.key.toLowerCase();
+    if (event.key === "Delete" || event.key === "Backspace") {
+      event.preventDefault();
+      deleteSelection();
+      return;
+    }
+    if (command && (key === "c" || key === "v" || key === "a")) {
+      event.preventDefault();
+      if (key === "c") copySelection();
+      else if (key === "v") pasteSelection();
+      else selectAllVisibleKeyframes();
+      return;
+    }
+    if (event.key === "Escape" && state.selectedKeyframes.length > 0) {
+      event.preventDefault();
+      setSelectedKeyframeOwners({});
+      dispatch({ type: "selectKeyframes", ids: [] });
+      return;
+    }
     const frameDirection = event.key === "ArrowLeft" ? -1 : event.key === "ArrowRight" ? 1 : 0;
     if (frameDirection) {
       event.preventDefault();
@@ -831,9 +903,17 @@ export function GraphEditor() {
           showReferenceGraph={showReferenceGraph}
           t={t}
         />
+        <GraphRuler
+          currentTime={state.currentTime}
+          onScrubStart={startRulerScrub}
+          t={t}
+          timeRange={timeRange}
+          widthPx={viewportSize.width}
+        />
         <div
           aria-label={t("graph.a11y")}
           className="graph-surface"
+          ref={surfaceRef}
           onContextMenu={contextMenu.openFromPointer}
           onKeyDown={surfaceKeyDown}
           role="application"
@@ -848,6 +928,7 @@ export function GraphEditor() {
             handleRadii={handleRadii}
             keyRadii={keyRadii}
             layerBounds={selectedLayers}
+            marquee={marquee}
             onHandlePointerDown={startHandleDrag}
             onKeyframeContextMenu={keyframeContextMenu}
             onKeyframeKeyDown={keyframeKeyDown}

@@ -120,7 +120,9 @@ off-screen. Maximized state is stored independently from normal bounds.
 The editor reports the current project name and dirty state to Electron. Closing a dirty document,
 creating another project, opening a project, or accepting an operating-system open request uses the
 same Save / Don't Save / Cancel contract. A primary save records the exact editor revision that was
-written. If editing continues while that save is in flight, the newer revision remains dirty.
+written. If editing continues while that save is in flight, the newer revision remains dirty. A new
+project starts clean, and opening another composition is navigation rather than an edit, so neither
+triggers the unsaved-changes prompt nor an undo step.
 
 ## Recovery autosave
 
@@ -136,11 +138,18 @@ Recovery autosave never marks a document clean and never replaces the primary `p
 - Native primary saves and autosaves share one persistence queue so a late autosave cannot recreate a
   stale recovery file after a successful save.
 
-On startup, Aster checks both the local recovery document and the last native project's newer
-`project.autosave.json`. It verifies the project identity and reopens the matching bundle before
-applying native recovery, which preserves relative asset resolution. If the renderer process exits
-unexpectedly, active export and AI work is cancelled and a native Reload and Recover action restarts
-the renderer.
+Recovery snapshots are silent: the title bar only reports a failed snapshot, and the unsaved-changes
+dot shows the time of the latest snapshot as its tooltip. A snapshot is not a save, so the document
+stays dirty until the user saves it.
+
+On startup, the desktop app resumes the project that was open when it last quit. It checks both the
+local recovery document and that project's newer `project.autosave.json`, verifies the project
+identity, and reopens the matching bundle before applying native recovery, which preserves relative
+asset resolution. Without a snapshot the last project simply reopens clean; declining a snapshot
+discards it and opens the last saved version instead of the startup demo. A recovered snapshot of a
+different, untitled document is detached from the last project's folder so saving it cannot
+overwrite that project. If the renderer process exits unexpectedly, active export and AI work is
+cancelled and a native Reload and Recover action restarts the renderer.
 
 ## Schema migrations
 
