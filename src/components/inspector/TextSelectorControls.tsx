@@ -1,6 +1,7 @@
 import { ChevronDown, ChevronUp, Copy, Trash2 } from "lucide-react";
 import { textSelectorExpressionError } from "../../core/animation/text-selector-expression";
 import type {
+  TextExpressionSelector,
   TextRangeSelector,
   TextSelector,
   TextSelectorBasedOn,
@@ -190,19 +191,53 @@ export function TextSelectorControls({
           selector={selector}
         />
       ) : (
-        <label className="text-expression-field">
-          {t("text.selector.expressionSource")}
-          <MixedValueTextarea
-            aria-invalid={Boolean(expressionError)}
-            maxLength={2_048}
-            onChange={(event) => update({ expression: event.target.value })}
-            rows={3}
-            spellCheck={false}
-            mixed={valuesDiffer(selection.map((entry) => Reflect.get(entry, "expression")))}
-            value={selector.expression}
-          />
-          {expressionError ? <span role="alert">{expressionError}</span> : null}
-        </label>
+        <>
+          <div className="text-selector-grid">
+            <TextAnimatableControl
+              keyframeLabel={t("text.keyframe", { label: t("text.selector.timeOffset") })}
+              label={t("text.selector.timeOffset")}
+              max={1_000_000}
+              min={-1_000_000}
+              onChange={(value, recipe) =>
+                edit(
+                  (current, index) =>
+                    ({
+                      ...current,
+                      timeOffset: recipe
+                        ? recipe(
+                            ((current as TextExpressionSelector).timeOffset ?? {
+                              mode: "static",
+                              value: 0,
+                            }) as Animatable,
+                            index,
+                          )
+                        : value,
+                    }) as TextSelector,
+                )
+              }
+              selection={selection
+                .filter((entry) => entry.kind === "expression")
+                .map((entry) => (entry.timeOffset ?? { mode: "static", value: 0 }) as Animatable)}
+              step={0.01}
+              time={time}
+              times={times}
+              property={selector.timeOffset ?? { mode: "static", value: 0 }}
+            />
+          </div>
+          <label className="text-expression-field">
+            {t("text.selector.expressionSource")}
+            <MixedValueTextarea
+              aria-invalid={Boolean(expressionError)}
+              maxLength={2_048}
+              onChange={(event) => update({ expression: event.target.value })}
+              rows={3}
+              spellCheck={false}
+              mixed={valuesDiffer(selection.map((entry) => Reflect.get(entry, "expression")))}
+              value={selector.expression}
+            />
+            {expressionError ? <span role="alert">{expressionError}</span> : null}
+          </label>
+        </>
       )}
     </section>
   );

@@ -44,7 +44,7 @@ export const TEXT_WIGGLY_SELECTOR_ANIMATABLE_FIELDS = [
   "spatialPhase",
 ] as const;
 
-export const TEXT_EXPRESSION_SELECTOR_ANIMATABLE_FIELDS = ["amount"] as const;
+export const TEXT_EXPRESSION_SELECTOR_ANIMATABLE_FIELDS = ["amount", "timeOffset"] as const;
 
 export type TextAnimatorVectorPropertyField = (typeof TEXT_ANIMATOR_VECTOR_PROPERTY_FIELDS)[number];
 export type TextAnimatorScalarPropertyField = (typeof TEXT_ANIMATOR_SCALAR_PROPERTY_FIELDS)[number];

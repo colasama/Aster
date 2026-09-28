@@ -44,7 +44,7 @@ const range = (overrides: Partial<TextRangeSelector> = {}): TextRangeSelector =>
   end: v(50),
   offset: v(0),
   shape: "square",
-  smoothness: v(100),
+  smoothness: v(0),
   easeHigh: v(0),
   easeLow: v(0),
   randomizeOrder: false,
@@ -69,6 +69,66 @@ describe("text selectors", () => {
     expect(evaluateTextSelector(triangle, unit(4), { time: 0 })).toBeGreaterThan(
       evaluateTextSelector(triangle, unit(0), { time: 0 }),
     );
+  });
+
+  it("widens square edges as Smoothness rises and keeps the selection peak", () => {
+    // unit(9) sits at 95% position, inside a full-width range.
+    const hard = range({ end: v(100), smoothness: v(0) });
+    const soft = range({ end: v(100), smoothness: v(100) });
+    expect(evaluateTextSelector(hard, unit(9), { time: 0 })).toBe(1);
+    const edge = evaluateTextSelector(soft, unit(9), { time: 0 });
+    expect(edge).toBeGreaterThan(0);
+    expect(edge).toBeLessThan(0.5);
+    // The middle of the selection still reaches essentially full weight.
+    expect(evaluateTextSelector(soft, unit(4), { time: 0 })).toBeGreaterThan(0.95);
+    // A square selector at full smoothness approaches the Smooth shape.
+    const bell = range({ shape: "smooth", end: v(100) });
+    expect(evaluateTextSelector(soft, unit(4), { time: 0 })).toBeCloseTo(
+      evaluateTextSelector(bell, unit(4), { time: 0 }),
+      1,
+    );
+  });
+
+  it("eases gently at each end for positive values and snaps for negative", () => {
+    const midUnit = { ...unit(4), characterCount: 10 };
+    const ramp = (overrides: Partial<TextRangeSelector>) =>
+      evaluateTextSelector(range({ shape: "rampUp", end: v(100), ...overrides }), midUnit, {
+        time: 0,
+      });
+    const linear = ramp({});
+    // Positive Ease High lifts values toward full selection (decelerating arrival).
+    expect(ramp({ easeHigh: v(100) })).toBeGreaterThan(linear);
+    // Positive Ease Low lowers values near zero (decelerating departure).
+    expect(ramp({ easeLow: v(100) })).toBeLessThan(linear);
+    // Negative values sharpen the corresponding end.
+    expect(ramp({ easeHigh: v(-100) })).toBeLessThan(linear);
+    expect(ramp({ easeLow: v(-100) })).toBeGreaterThan(linear);
+  });
+
+  it("shifts expression selector time by Time Offset", () => {
+    let seen = Number.NaN;
+    evaluateTextSelector(
+      {
+        id: "offset-expression",
+        name: "Expression Selector 1",
+        kind: "expression",
+        enabled: true,
+        mode: "add",
+        amount: v(100),
+        basedOn: "characters",
+        expression: "time",
+        timeOffset: v(2.5),
+      },
+      unit(0),
+      {
+        time: 5,
+        evaluateExpression: (_source, context) => {
+          seen = context.time;
+          return 0;
+        },
+      },
+    );
+    expect(seen).toBe(2.5);
   });
 
   it("supports characters excluding spaces, words, and lines", () => {

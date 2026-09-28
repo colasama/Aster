@@ -145,6 +145,8 @@ function selectorPresentation(
     return { ...common, step: 1, unit: "%", min: -100, max: 100 };
   if (entry.field === "wigglesPerSecond")
     return { ...common, step: 0.1, unit: "Hz", min: 0, max: 100 };
+  if (entry.field === "timeOffset")
+    return { ...common, step: 0.01, unit: "s", min: -1_000_000, max: 1_000_000 };
   if (entry.field === "correlation") return { ...common, step: 1, unit: "%", min: 0, max: 100 };
   return { ...common, step: 0.1, unit: "°", min: -1_000_000, max: 1_000_000 };
 }

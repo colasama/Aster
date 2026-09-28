@@ -17,10 +17,13 @@ scales the animator property's influence.
 Range selectors support Percentage and Index units; Characters, Characters Excluding Spaces, Words,
 and Lines domains; Start, End, and Offset; Square, Ramp Up, Ramp Down, Triangle, Round, and Smooth
 shapes; Smoothness; Ease High and Ease Low; and deterministic Randomize Order with a stable seed.
+Smoothness widens the Square edge transition so 100% approaches the Smooth shape, and positive Ease
+High/Low values flatten the weight curve at the selected/excluded ends while negative values snap.
 Wiggly selectors use seeded, temporally interpolated noise with minimum/maximum amount, wiggles per
 second, correlation, temporal phase, and spatial phase. Expression selectors receive one-based
 `textIndex`, `textTotal`, `selectorValue`, and time through Aster's bounded expression host rather than
-executing arbitrary JavaScript in the renderer.
+executing arbitrary JavaScript in the renderer; their Time Offset track shifts the time the
+expression sees, which anchors per-unit delayed animations to an application point.
 
 Start, End, Offset, Amount, range shaping controls, Wiggly controls, and every numeric animator
 property are regular Aster animation tracks. Inspector edits at an animated property create or
@@ -103,8 +106,11 @@ stack as a user preset, and renames, deletes, exports or imports presets as JSON
 cover staggered entrances (fade, rise, scale, stretch, rotate, flip, blur, typewriter, tracking,
 random order, center-out, edges-in, scatter fly-in, word and line domains, flicker, character
 scramble), continuous motion (shake, wave, swing, pulse, color flicker), and a circular layout.
-Preset keyframes are stored relative to the earliest keyframe and re-anchored to the playhead on
+Preset keyframes are stored relative to the earliest animation cue and re-anchored to the playhead on
 apply; every persistent and keyframe ID is regenerated so repeated applications stay independent.
+Expression-selector presets instead carry per-unit delay expressions in the bounded host — the same
+stagger model used by AE scripts like TextEvo and GlyphGlide — and anchor through each selector's
+Time Offset track, so evaluation stays deterministic and editable after application.
 User presets persist in application storage (`aster.textAnimatorPresets.v1`) rather than the
 project file, so they are available across projects. Expression-selector presets bake their timing
 constants into the bounded expression source, keeping evaluation deterministic for preview, seek,

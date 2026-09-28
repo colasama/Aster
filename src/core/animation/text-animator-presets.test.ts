@@ -211,6 +211,16 @@ describe("built-in presets", () => {
     }
   });
 
+  it("anchors expression-only presets at the requested time via Time Offset", () => {
+    const fadeIn = BUILT_IN_TEXT_PRESETS.find((entry) => entry.id === "builtin.fade-in");
+    if (!fadeIn) throw new Error("expected Fade In preset");
+    const [group] = instantiateTextAnimatorPreset(fadeIn, 2.5);
+    const selector = group?.selectors[0];
+    if (selector?.kind !== "expression" || selector.timeOffset?.mode !== "static")
+      throw new Error("expected expression selector with static time offset");
+    expect(selector.timeOffset.value).toBe(2.5);
+  });
+
   it("contains no duplicated ids inside a single preset instance", () => {
     for (const preset of BUILT_IN_TEXT_PRESETS) {
       const groups = instantiateTextAnimatorPreset(preset, 0);

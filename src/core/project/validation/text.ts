@@ -90,6 +90,8 @@ function validateTextSelector(value: unknown, path: string, ids: Set<string>): v
   const expression = requireString(selector.expression, `${path}.expression`);
   if (!expression.trim() || expression.length > 2_048)
     throw new Error(`${path}.expression must contain at most 2048 characters`);
+  if (selector.timeOffset !== undefined)
+    validateBoundedAnimatable(selector.timeOffset, `${path}.timeOffset`, [-1_000_000, 1_000_000]);
 }
 
 function validateTextAnimatorProperties(value: unknown, path: string): void {

@@ -28,7 +28,7 @@ export function createDefaultRangeSelector(index = 0): TextRangeSelector {
     end: staticValue(100),
     offset: staticValue(0),
     shape: "square",
-    smoothness: staticValue(100),
+    smoothness: staticValue(0),
     easeHigh: staticValue(0),
     easeLow: staticValue(0),
     randomizeOrder: false,
@@ -65,6 +65,7 @@ export function createDefaultExpressionSelector(index = 0): TextExpressionSelect
     amount: staticValue(100),
     basedOn: "characters",
     expression: "selectorValue * textIndex / textTotal",
+    timeOffset: staticValue(0),
   };
 }
 
@@ -144,7 +145,7 @@ function normalizeSelectors(selectors: readonly TextSelector[]): TextSelector[] 
           ["square", "rampUp", "rampDown", "triangle", "round", "smooth"],
           "square",
         ),
-        smoothness: normalizeTrack(selector.smoothness, 0, 100, 100),
+        smoothness: normalizeTrack(selector.smoothness, 0, 100, 0),
         easeHigh: normalizeTrack(selector.easeHigh, -100, 100, 0),
         easeLow: normalizeTrack(selector.easeLow, -100, 100, 0),
         randomizeOrder: Boolean(selector.randomizeOrder),
@@ -166,6 +167,7 @@ function normalizeSelectors(selectors: readonly TextSelector[]): TextSelector[] 
       ...common,
       kind: "expression",
       expression: String(selector.expression ?? "").slice(0, 2_048),
+      timeOffset: normalizeTrack(selector.timeOffset, -1_000_000, 1_000_000, 0),
     };
   });
 }
@@ -206,7 +208,12 @@ function cloneSelector(selector: TextSelector, rename: boolean): TextSelector {
       spatialPhase: cloneTrack(selector.spatialPhase),
       randomSeed: selector.randomSeed,
     };
-  return { ...common, kind: "expression", expression: selector.expression };
+  return {
+    ...common,
+    kind: "expression",
+    expression: selector.expression,
+    ...(selector.timeOffset ? { timeOffset: cloneTrack(selector.timeOffset) } : {}),
+  };
 }
 
 function cloneProperties(properties: TextAnimatorProperties): TextAnimatorProperties {

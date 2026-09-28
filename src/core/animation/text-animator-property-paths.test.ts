@@ -35,7 +35,7 @@ describe("text animator property paths", () => {
     const propertyEntries = entries.filter((entry) => entry.source === "property");
     const selectorEntries = entries.filter((entry) => entry.source === "selector");
     expect(propertyEntries).toHaveLength(32);
-    expect(selectorEntries).toHaveLength(15);
+    expect(selectorEntries).toHaveLength(16);
     expect(
       propertyEntries.find((entry) => entry.field === "fillColor" && entry.component === 3)?.path,
     ).toContain("animator%2Ewith%3Apunctuation");
@@ -58,7 +58,7 @@ describe("text animator property paths", () => {
       selectorEntries
         .filter((entry) => entry.selectorId === expression.id)
         .map((entry) => entry.field),
-    ).toEqual(["amount"]);
+    ).toEqual(["amount", "timeOffset"]);
   });
 
   it("resolves paths after reorder and replaces owners to invalidate evaluation caches", () => {

@@ -55,6 +55,8 @@ export interface TextWigglySelector extends CommonTextSelector {
 export interface TextExpressionSelector extends CommonTextSelector {
   kind: "expression";
   expression: string;
+  /** Seconds subtracted from the evaluation time before the expression sees it. */
+  timeOffset?: Animatable;
 }
 
 export type TextSelector = TextRangeSelector | TextWigglySelector | TextExpressionSelector;
@@ -94,9 +96,11 @@ interface EvaluatedSelectorTracks {
   correlation?: number;
   temporalPhase?: number;
   spatialPhase?: number;
+  timeOffset?: number;
 }
 
 const evaluatedSelectorCache = new WeakMap<TextSelector, EvaluatedSelectorTracks>();
+const staticZero: Animatable = { mode: "static", value: 0 };
 
 export function evaluateTextSelectors(
   selectors: readonly TextSelector[],
@@ -140,7 +144,7 @@ export function evaluateTextSelector(
     textIndex: domain.index + 1,
     textTotal: domain.count,
     selectorValue,
-    time: options.time,
+    time: options.time - (tracks.timeOffset ?? 0),
   });
   return (bounded(evaluated, -100, 100, selectorValue) / 100) * selectorAmount;
 }
@@ -194,7 +198,7 @@ function evaluateRangeSelector(
   let value: number;
   switch (selector.shape) {
     case "square":
-      value = squareSelection(wrapped, low, high, tracks.smoothness ?? 100, domainSize);
+      value = squareSelection(wrapped, low, high, tracks.smoothness ?? 0, domainSize);
       break;
     case "rampUp":
       value = progress;
@@ -267,7 +271,10 @@ function evaluatedSelectorTracks(selector: TextSelector, rawTime: number): Evalu
             temporalPhase: evaluateAnimatable(selector.temporalPhase, time),
             spatialPhase: evaluateAnimatable(selector.spatialPhase, time),
           }
-        : common;
+        : {
+            ...common,
+            timeOffset: evaluateAnimatable(selector.timeOffset ?? staticZero, time),
+          };
   evaluatedSelectorCache.set(selector, evaluated);
   return evaluated;
 }
@@ -301,15 +308,24 @@ function squareSelection(
   domainSize: number,
 ): number {
   if (position < low || position > high) return 0;
-  const feather = ((100 - bounded(smoothness, 0, 100, 100)) / 100) * domainSize * 0.5;
+  const feather = (bounded(smoothness, 0, 100, 100) / 100) * domainSize * 0.5;
   if (feather <= Number.EPSILON) return 1;
-  return Math.min(smoothStep((position - low) / feather), smoothStep((high - position) / feather));
+  const span = Math.max(high - low, Number.EPSILON);
+  // Normalize by the center sample so full smoothness keeps a weight of 1 at the
+  // middle of the selection instead of attenuating the plateau.
+  const peak = smoothStep(Math.min(1, span / (2 * feather)));
+  return (
+    (smoothStep((position - low) / feather) * smoothStep((high - position) / feather)) /
+    (peak * peak)
+  );
 }
 
 function applySelectorEase(value: number, easeLow: number, easeHigh: number): number {
   if (value <= 0 || value >= 1) return value;
-  const lowPower = 2 ** (-bounded(easeLow, -100, 100, 0) / 100);
-  const highPower = 2 ** (-bounded(easeHigh, -100, 100, 0) / 100);
+  // Positive ease flattens the curve at that end (AE semantics): ease low slows
+  // the departure from 0, ease high slows the arrival at 1. Negative values snap.
+  const lowPower = 2 ** (bounded(easeLow, -100, 100, 0) / 100);
+  const highPower = 2 ** (bounded(easeHigh, -100, 100, 0) / 100);
   const low = value ** lowPower;
   const high = 1 - (1 - value) ** highPower;
   return clamp(low * (1 - value) + high * value, 0, 1);

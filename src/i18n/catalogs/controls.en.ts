@@ -150,6 +150,7 @@ export const controlsEn = {
   "text.selector.temporalPhase": "Temporal phase",
   "text.selector.spatialPhase": "Spatial phase",
   "text.selector.expressionSource": "Expression",
+  "text.selector.timeOffset": "Time offset",
   "text.property.anchorPoint": "Anchor point",
   "text.property.position": "Position",
   "text.property.scale": "Scale",

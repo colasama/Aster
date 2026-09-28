@@ -1,4 +1,4 @@
-import { type Animatable, createId, type Keyframe, staticValue } from "../types";
+import { type Animatable, createId, staticValue } from "../types";
 import { normalizeTextAnimatorGroups } from "./text-animator-groups";
 import {
   MAX_TEXT_ANIMATOR_GROUPS,
@@ -7,7 +7,6 @@ import {
 } from "./text-animator-stack";
 import type {
   TextExpressionSelector,
-  TextRangeSelector,
   TextSelector,
   TextSelectorBasedOn,
   TextSelectorMode,
@@ -56,60 +55,10 @@ const rgba = (
   staticValue(a),
 ];
 
-/** Creates an animated scalar track; easing applies to every outgoing keyframe. */
-function track(
-  keys: readonly (readonly [number, number])[],
-  easing: [number, number, number, number] = [0.33, 1, 0.68, 1],
-): Animatable {
-  const keyframes: Keyframe[] = keys.map(([time, value], index) => ({
-    id: createId(),
-    time,
-    value,
-    interpolation: "bezier",
-    ...(index < keys.length - 1 ? { easing } : {}),
-  }));
-  return { mode: "animated", keyframes };
-}
-
 interface SelectorOptions {
   basedOn?: TextSelectorBasedOn;
   mode?: TextSelectorMode;
   name?: string;
-}
-
-function rangeSelector(
-  start: Animatable,
-  options: SelectorOptions & {
-    end?: Animatable;
-    offset?: Animatable;
-    shape?: TextRangeSelector["shape"];
-    smoothness?: number;
-    easeHigh?: number;
-    easeLow?: number;
-    randomizeOrder?: boolean;
-    randomSeed?: number;
-    units?: TextRangeSelector["units"];
-  } = {},
-): TextRangeSelector {
-  return {
-    id: createId(),
-    name: options.name ?? "Range Selector",
-    kind: "range",
-    enabled: true,
-    mode: options.mode ?? "add",
-    amount: staticValue(100),
-    basedOn: options.basedOn ?? "characters",
-    units: options.units ?? "percentage",
-    start,
-    end: options.end ?? staticValue(100),
-    offset: options.offset ?? staticValue(0),
-    shape: options.shape ?? "square",
-    smoothness: staticValue(options.smoothness ?? 100),
-    easeHigh: staticValue(options.easeHigh ?? 0),
-    easeLow: staticValue(options.easeLow ?? 0),
-    randomizeOrder: options.randomizeOrder ?? false,
-    randomSeed: options.randomSeed ?? 0,
-  };
 }
 
 function wigglySelector(
@@ -153,6 +102,7 @@ function expressionSelector(
     amount: staticValue(100),
     basedOn: options.basedOn ?? "characters",
     expression,
+    timeOffset: staticValue(0),
   };
 }
 
@@ -165,39 +115,6 @@ function group(
 }
 
 /**
- * Forward sweep: the animated Start edge walks the selection window past each
- * unit so displaced units settle one by one in reading order.
- */
-function sweep(duration: number, options: Parameters<typeof rangeSelector>[1] = {}) {
-  return rangeSelector(
-    track([
-      [0, 0],
-      [duration, 100],
-    ]),
-    {
-      smoothness: 80,
-      easeLow: -30,
-      easeHigh: 50,
-      ...options,
-    },
-  );
-}
-
-/** Reverse sweep: the End edge contracts so trailing units settle first. */
-function reverseSweep(duration: number, options: Parameters<typeof rangeSelector>[1] = {}) {
-  return rangeSelector(staticValue(0), {
-    end: track([
-      [0, 100],
-      [duration, 0],
-    ]),
-    smoothness: 80,
-    easeLow: -30,
-    easeHigh: 50,
-    ...options,
-  });
-}
-
-/**
  * Deterministic per-unit hash in [0, 1). The expression host exposes sin,
  * floor and %, so this is the classic sine-hash used by shader code.
  */
@@ -206,12 +123,41 @@ function hash(expressionSeed: number, coefficient: number): string {
 }
 
 /**
- * Per-unit delayed progress in [0, 1]: 0 before the unit's delay elapses, then
- * eases to 1 over `duration` seconds. delayExpression is evaluated in seconds
- * and may use textIndex/textTotal.
+ * Raw per-unit progress in [0, 1]: 0 until the unit's delay elapses, then rises
+ * linearly over `duration` seconds. Delay expressions may use textIndex and
+ * textTotal. This is the TextEvo/GlyphGlide stagger model: every unit runs the
+ * same eased curve offset in time instead of sharing one spatial sweep.
  */
 function progress(delayExpression: string, duration: number): string {
   return `clamp(linear(time, ${delayExpression}, ${delayExpression} + ${duration}, 0, 1), 0, 1)`;
+}
+
+/** Smoothstep easing — symmetric soft start and stop. */
+function smooth(value: string): string {
+  return `((${value}) * (${value}) * (3 - 2 * (${value})))`;
+}
+
+/** Cubic ease-out — fast attack that decelerates into place. */
+function easeOut(value: string): string {
+  return `(1 - pow(1 - (${value}), 3))`;
+}
+
+/**
+ * Selector weight that holds each unit fully displaced until its delay, then
+ * releases it along an eased curve — the per-character settle used by entrances.
+ */
+function settle(
+  delayExpression: string,
+  duration: number,
+  curve: "smooth" | "out" = "out",
+): string {
+  const p = progress(delayExpression, duration);
+  return `(1 - ${curve === "out" ? easeOut(p) : smooth(p)}) * 100`;
+}
+
+/** Selector weight that grows 0→1 per unit — drives exit animations. */
+function emerge(delayExpression: string, duration: number): string {
+  return `${easeOut(progress(delayExpression, duration))} * 100`;
 }
 
 function preset(
@@ -223,82 +169,98 @@ function preset(
   return { id, name, category, builtIn: true, groups };
 }
 
-const STAGGER = "(textIndex - 1) * 0.06";
+const STAGGER = "(textIndex - 1) * 0.05";
 const HALFWAY = "((textTotal + 1) / 2)";
 
 export const BUILT_IN_TEXT_PRESETS: readonly TextAnimatorPreset[] = [
   preset("builtin.fade-in", "Fade In", "entrance", [
-    group("Fade In", [sweep(0.8)], { opacity: staticValue(0) }),
+    group("Fade In", [expressionSelector(settle(STAGGER, 0.55, "smooth"))], {
+      opacity: staticValue(0),
+    }),
   ]),
   preset("builtin.rise-up", "Rise Up", "entrance", [
-    group("Rise Up", [sweep(0.9)], {
+    group("Rise Up", [expressionSelector(settle(STAGGER, 0.5))], {
       position: vec3(0, 60, 0),
       opacity: staticValue(0),
     }),
   ]),
   preset("builtin.drop-in", "Drop In", "entrance", [
-    group("Drop In", [sweep(0.9)], {
+    group("Drop In", [expressionSelector(settle(STAGGER, 0.5))], {
       position: vec3(0, -60, 0),
       opacity: staticValue(0),
     }),
   ]),
   preset("builtin.scale-in", "Scale In", "entrance", [
-    group("Scale In", [sweep(0.7)], { scale: vec3(0, 0, 100), opacity: staticValue(0) }),
+    group("Scale In", [expressionSelector(settle(STAGGER, 0.5))], {
+      scale: vec3(0, 0, 100),
+      opacity: staticValue(0),
+    }),
   ]),
   preset("builtin.pop-in", "Pop In", "entrance", [
     group(
       "Pop In",
       [
         expressionSelector(
-          `clamp(1 - ${progress(STAGGER, 0.45)} - sin(${progress(STAGGER, 0.45)} * pi) * 0.6, -1, 1) * 100`,
+          `clamp(1 - ${smooth(progress(STAGGER, 0.55))} - sin(${smooth(progress(STAGGER, 0.55))} * pi) * 0.55, -1, 1) * 100`,
         ),
       ],
-      { scale: vec3(0, 0, 100) },
+      { scale: vec3(0, 0, 100), opacity: staticValue(0) },
     ),
   ]),
   preset("builtin.stretch-in", "Stretch In", "entrance", [
-    group("Stretch In", [sweep(0.8)], { scale: vec3(35, 220, 100), opacity: staticValue(0) }),
+    group("Stretch In", [expressionSelector(settle(STAGGER, 0.55))], {
+      scale: vec3(35, 220, 100),
+      opacity: staticValue(0),
+    }),
   ]),
   preset("builtin.rotate-in", "Rotate In", "entrance", [
-    group("Rotate In", [sweep(0.9)], {
+    group("Rotate In", [expressionSelector(settle(STAGGER, 0.55))], {
       rotation: vec3(0, 0, -70),
       opacity: staticValue(0),
     }),
   ]),
   preset("builtin.flip-in", "Flip In", "entrance", [
-    group("Flip In", [sweep(0.9)], { rotation: vec3(-90, 0, 0), opacity: staticValue(0) }),
+    group("Flip In", [expressionSelector(settle(STAGGER, 0.55))], {
+      rotation: vec3(-90, 0, 0),
+      opacity: staticValue(0),
+    }),
   ]),
   preset("builtin.blur-in", "Blur In", "entrance", [
-    group("Blur In", [sweep(0.8)], { blur: vec2(16, 16), opacity: staticValue(0) }),
+    group("Blur In", [expressionSelector(settle(STAGGER, 0.6, "smooth"))], {
+      blur: vec2(16, 16),
+      opacity: staticValue(0),
+    }),
   ]),
   preset("builtin.typewriter", "Typewriter", "entrance", [
-    group("Typewriter", [sweep(1.6, { smoothness: 100, easeLow: 0, easeHigh: 0 })], {
-      opacity: staticValue(0),
-    }),
+    group(
+      "Typewriter",
+      [expressionSelector(`(1 - ${progress("(textIndex - 1) * 0.07", 0.03)}) * 100`)],
+      { opacity: staticValue(0) },
+    ),
   ]),
   preset("builtin.tracking-in", "Tracking In", "entrance", [
-    group("Tracking In", [sweep(1)], { tracking: staticValue(60), opacity: staticValue(0) }),
-  ]),
-  preset("builtin.random-fade", "Random Fade", "entrance", [
-    group("Random Fade", [sweep(1.2, { randomizeOrder: true, randomSeed: 7 })], {
+    group("Tracking In", [expressionSelector(settle(STAGGER, 0.7))], {
+      tracking: staticValue(60),
       opacity: staticValue(0),
     }),
   ]),
-  preset("builtin.center-out", "Center Out", "entrance", [
+  preset("builtin.random-fade", "Random Fade", "entrance", [
     group(
-      "Center Out",
-      [expressionSelector(`(1 - ${progress(`abs(textIndex - ${HALFWAY}) * 0.12`, 0.45)}) * 100`)],
-      { opacity: staticValue(0), position: vec3(0, 24, 0) },
+      "Random Fade",
+      [expressionSelector(settle(`${hash(1.3, 78.233)} * 0.9`, 0.45, "smooth"))],
+      { opacity: staticValue(0) },
     ),
+  ]),
+  preset("builtin.center-out", "Center Out", "entrance", [
+    group("Center Out", [expressionSelector(settle(`abs(textIndex - ${HALFWAY}) * 0.1`, 0.5))], {
+      opacity: staticValue(0),
+      position: vec3(0, 24, 0),
+    }),
   ]),
   preset("builtin.edges-in", "Edges In", "entrance", [
     group(
       "Edges In",
-      [
-        expressionSelector(
-          `(1 - ${progress("min(textIndex - 1, textTotal - textIndex) * 0.12", 0.45)}) * 100`,
-        ),
-      ],
+      [expressionSelector(settle("min(textIndex - 1, textTotal - textIndex) * 0.1", 0.5))],
       { opacity: staticValue(0), position: vec3(0, 24, 0) },
     ),
   ]),
@@ -307,7 +269,7 @@ export const BUILT_IN_TEXT_PRESETS: readonly TextAnimatorPreset[] = [
       "Scatter X",
       [
         expressionSelector(
-          `cos(floor(${hash(5, 12.9898)} * 8) * pi / 4) * (1 - ${progress(`${hash(1.3, 78.233)} * 0.4`, 0.5)}) * 100`,
+          `cos(floor(${hash(5, 12.9898)} * 8) * pi / 4) * ${settle(`${hash(1.3, 78.233)} * 0.45`, 0.55)}`,
         ),
       ],
       { position: vec3(160, 0, 0) },
@@ -316,7 +278,7 @@ export const BUILT_IN_TEXT_PRESETS: readonly TextAnimatorPreset[] = [
       "Scatter Y",
       [
         expressionSelector(
-          `sin(floor(${hash(5, 12.9898)} * 8) * pi / 4) * (1 - ${progress(`${hash(1.3, 78.233)} * 0.4`, 0.5)}) * 100`,
+          `sin(floor(${hash(5, 12.9898)} * 8) * pi / 4) * ${settle(`${hash(1.3, 78.233)} * 0.45`, 0.55)}`,
         ),
       ],
       { position: vec3(0, 160, 0) },
@@ -325,68 +287,75 @@ export const BUILT_IN_TEXT_PRESETS: readonly TextAnimatorPreset[] = [
       "Scatter Spin",
       [
         expressionSelector(
-          `(${hash(0.9, 3.7)} * 2 - 1) * (1 - ${progress(`${hash(1.3, 78.233)} * 0.4`, 0.5)}) * 100`,
+          `(${hash(0.9, 3.7)} * 2 - 1) * ${settle(`${hash(1.3, 78.233)} * 0.45`, 0.55)}`,
         ),
       ],
       { rotation: vec3(0, 0, 360) },
     ),
-    group(
-      "Scatter Fade",
-      [expressionSelector(`(1 - ${progress(`${hash(1.3, 78.233)} * 0.4`, 0.5)}) * 100`)],
-      { opacity: staticValue(0) },
-    ),
+    group("Scatter Fade", [expressionSelector(settle(`${hash(1.3, 78.233)} * 0.45`, 0.55))], {
+      opacity: staticValue(0),
+    }),
   ]),
   preset("builtin.word-rise", "Word Rise", "entrance", [
-    group("Word Rise", [sweep(0.8, { basedOn: "words" })], {
-      position: vec3(0, 40, 0),
-      opacity: staticValue(0),
-    }),
+    group(
+      "Word Rise",
+      [expressionSelector(settle("(textIndex - 1) * 0.14", 0.5), { basedOn: "words" })],
+      {
+        position: vec3(0, 40, 0),
+        opacity: staticValue(0),
+      },
+    ),
   ]),
   preset("builtin.line-cascade", "Line Cascade", "entrance", [
-    group("Line Cascade", [sweep(1.1, { basedOn: "lines" })], {
-      position: vec3(-40, 0, 0),
-      opacity: staticValue(0),
-    }),
+    group(
+      "Line Cascade",
+      [expressionSelector(settle("(textIndex - 1) * 0.3", 0.6), { basedOn: "lines" })],
+      {
+        position: vec3(-40, 0, 0),
+        opacity: staticValue(0),
+      },
+    ),
   ]),
   preset("builtin.split-vertical", "Split Vertical", "entrance", [
     group(
       "Split Offset",
       [
         expressionSelector(
-          `(${HALFWAY} - textIndex) / (abs(${HALFWAY} - textIndex) + 0.0001) * (1 - ${progress(`abs(${HALFWAY} - textIndex) * 0.04`, 0.5)}) * 100`,
+          `(${HALFWAY} - textIndex) / (abs(${HALFWAY} - textIndex) + 0.0001) * ${settle(`abs(${HALFWAY} - textIndex) * 0.06`, 0.55)}`,
         ),
       ],
       { position: vec3(0, -40, 0) },
     ),
-    group(
-      "Split Fade",
-      [expressionSelector(`(1 - ${progress(`abs(${HALFWAY} - textIndex) * 0.04`, 0.5)}) * 100`)],
-      { opacity: staticValue(0) },
-    ),
+    group("Split Fade", [expressionSelector(settle(`abs(${HALFWAY} - textIndex) * 0.06`, 0.55))], {
+      opacity: staticValue(0),
+    }),
   ]),
   preset("builtin.shear-in", "Shear In", "entrance", [
-    group("Shear In", [sweep(0.8)], { skew: staticValue(45), opacity: staticValue(0) }),
+    group("Shear In", [expressionSelector(settle(STAGGER, 0.6))], {
+      skew: staticValue(45),
+      opacity: staticValue(0),
+    }),
   ]),
   preset("builtin.glitch-in", "Glitch In", "entrance", [
     group(
       "Glitch Offset",
       [
         expressionSelector(
-          `(${hash(2.7, 31.7)} * 2 - 1) * (1 - ${progress(`${hash(4.1, 12.9898)} * 0.25`, 0.4)}) * 100`,
+          `(${hash(2.7, 31.7)} * 2 - 1) * ${settle(`${hash(4.1, 12.9898)} * 0.25`, 0.4, "smooth")}`,
         ),
       ],
       { position: vec3(36, 0, 0) },
     ),
     group(
       "Glitch Color",
-      [expressionSelector(`(1 - ${progress(`${hash(4.1, 12.9898)} * 0.25`, 0.4)}) * 100`)],
+      [expressionSelector(settle(`${hash(4.1, 12.9898)} * 0.25`, 0.4, "smooth"))],
       { fillColor: rgba(1, 0.15, 0.3, 1) },
     ),
     group(
       "Glitch Flicker",
       [
         expressionSelector(
-          `(1 - ${progress(`${hash(4.1, 12.9898)} * 0.25`, 0.4)}) * ((floor(time * 16 + textIndex * 0.7) % 2)) * 100`,
+          `(1 - ${smooth(progress(`${hash(4.1, 12.9898)} * 0.25`, 0.4))}) * ((floor(time * 16 + textIndex * 0.7) % 2)) * 100`,
         ),
       ],
       { opacity: staticValue(0) },
@@ -397,20 +366,20 @@ export const BUILT_IN_TEXT_PRESETS: readonly TextAnimatorPreset[] = [
       "Flicker In",
       [
         expressionSelector(
-          `(1 - ${progress(STAGGER, 0.4)}) * ((floor(time * 14 + textIndex * 0.618) % 2)) * 100`,
+          `(1 - ${smooth(progress(STAGGER, 0.45))}) * ((floor(time * 14 + textIndex * 0.618) % 2)) * 100`,
         ),
       ],
       { opacity: staticValue(0) },
     ),
   ]),
   preset("builtin.decode", "Decode", "entrance", [
-    group("Decode", [expressionSelector(`(1 - ${progress(STAGGER, 0.5)}) * 100`)], {
+    group("Decode", [expressionSelector(settle(STAGGER, 0.6, "smooth"))], {
       characterOffset: staticValue(25),
       characterRange: "preserveCaseAndDigits",
     }),
   ]),
   preset("builtin.fly-out", "Fly Out", "entrance", [
-    group("Fly Out", [reverseSweep(0.8)], {
+    group("Fly Out", [expressionSelector(emerge(STAGGER, 0.45))], {
       position: vec3(0, -80, 0),
       scale: vec3(60, 60, 100),
       opacity: staticValue(0),
@@ -538,7 +507,29 @@ function cloneSelector(selector: TextSelector, delta: number): TextSelector {
       randomSeed: selector.randomSeed,
     };
   }
-  return { ...common, kind: "expression", expression: selector.expression };
+  return {
+    ...common,
+    kind: "expression",
+    expression: selector.expression,
+    ...(selector.timeOffset ? { timeOffset: shiftTimeOffset(selector.timeOffset, delta) } : {}),
+  };
+}
+
+/**
+ * Time Offset is a duration added to the selector's clock, so its values shift
+ * by `delta`; keyframe times shift like every other track.
+ */
+function shiftTimeOffset(value: Animatable, delta: number): Animatable {
+  if (value.mode === "static") return { mode: "static", value: value.value + delta };
+  return {
+    mode: "animated",
+    keyframes: value.keyframes.map((keyframe) => ({
+      ...keyframe,
+      id: createId(),
+      time: keyframe.time + delta,
+      value: keyframe.value + delta,
+    })),
+  };
 }
 
 function cloneGroup(source: TextAnimatorGroup, delta: number): TextAnimatorGroup {
@@ -550,6 +541,19 @@ function cloneGroup(source: TextAnimatorGroup, delta: number): TextAnimatorGroup
     selectors: source.selectors.map((selector) => cloneSelector(selector, delta)),
     properties: cloneProperties(source.properties, delta),
   };
+}
+
+/**
+ * The preset's base time: earliest keyframe, or the smallest static Time Offset
+ * when an expression-only stack carries its anchor there.
+ */
+function earliestPresetTime(groups: readonly TextAnimatorGroup[]): number {
+  let earliest = earliestKeyframeTime(groups);
+  for (const animator of groups)
+    for (const selector of animator.selectors)
+      if (selector.kind === "expression" && selector.timeOffset?.mode === "static")
+        earliest = Math.min(earliest, selector.timeOffset.value);
+  return earliest;
 }
 
 function earliestKeyframeTime(groups: readonly TextAnimatorGroup[]): number {
@@ -581,7 +585,7 @@ function earliestKeyframeTime(groups: readonly TextAnimatorGroup[]): number {
         visit(selector.correlation);
         visit(selector.temporalPhase);
         visit(selector.spatialPhase);
-      }
+      } else if (selector.timeOffset) visit(selector.timeOffset);
     }
     visitProperties(animator.properties);
   }
@@ -596,22 +600,22 @@ export function instantiateTextAnimatorPreset(
   preset: TextAnimatorPreset,
   time: number,
 ): TextAnimatorGroup[] {
-  const earliest = earliestKeyframeTime(preset.groups);
-  const delta = Number.isFinite(earliest) ? time - earliest : 0;
+  const base = earliestPresetTime(preset.groups);
+  const delta = time - (Number.isFinite(base) ? base : 0);
   return preset.groups.map((animator) => cloneGroup(animator, delta));
 }
 
 /**
- * Builds a user preset from a layer's animator stack. Keyframes are rebased so
- * the earliest keyframe becomes time zero.
+ * Builds a user preset from a layer's animator stack. Keyframes and selector
+ * Time Offsets are rebased so the earliest animation cue becomes time zero.
  */
 export function createTextAnimatorPreset(
   name: string,
   groups: readonly TextAnimatorGroup[],
 ): TextAnimatorPreset {
   const normalized = normalizeTextAnimatorGroups(groups);
-  const earliest = earliestKeyframeTime(normalized);
-  const delta = Number.isFinite(earliest) ? -earliest : 0;
+  const base = earliestPresetTime(normalized);
+  const delta = Number.isFinite(base) ? -base : 0;
   return {
     id: createId(),
     name: name.trim().slice(0, 128) || "Preset",

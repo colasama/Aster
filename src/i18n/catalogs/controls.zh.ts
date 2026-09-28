@@ -151,6 +151,7 @@ export const controlsZh = {
   "text.selector.temporalPhase": "时间相位",
   "text.selector.spatialPhase": "空间相位",
   "text.selector.expressionSource": "表达式",
+  "text.selector.timeOffset": "时间偏移",
   "text.property.anchorPoint": "锚点",
   "text.property.position": "位置",
   "text.property.scale": "缩放",

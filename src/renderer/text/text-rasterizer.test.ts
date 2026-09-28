@@ -241,7 +241,7 @@ describe("Unicode text line breaking", () => {
               end: staticValue(100),
               offset: staticValue(0),
               shape: "square",
-              smoothness: staticValue(100),
+              smoothness: staticValue(0),
               easeHigh: staticValue(0),
               easeLow: staticValue(0),
               randomizeOrder: false,
