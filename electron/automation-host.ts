@@ -142,8 +142,22 @@ export async function startAutomationHost(options: {
   }
 
   async function execute(call: AutomationCall, signal: AbortSignal) {
+    if (call.name === "save_project" && call.arguments.path === undefined) {
+      const current = (await renderer(
+        { ...call, name: "current_project_path", arguments: {} },
+        signal,
+      )) as { path?: string };
+      if (!current.path)
+        throw new Error("This project has no saved location yet; pass an absolute path");
+      // Saving back to the document's own bundle is not an overwrite of another project.
+      call = { ...call, arguments: { ...call.arguments, path: current.path, overwrite: true } };
+    }
     const input = call.arguments;
     if (call.name === "import_assets") return importAssets(call, signal);
+    if (call.name === "wait_render") {
+      const job = (await renderer(call, signal)) as RenderJobView;
+      return input.analyze === false ? job : withOutputAnalysis(job, media, signal);
+    }
     if (call.name === "import_font") {
       const font = await readProjectFont(input.path, input.family, input.weight, input.weightRange);
       return renderer({ ...call, arguments: { ...input, font } }, signal);
@@ -265,4 +279,33 @@ async function exists(path: string) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return false;
     throw error;
   }
+}
+
+interface RenderJobView {
+  status: string;
+  outputs: Array<{ kind: string; destination: string }>;
+  [key: string]: unknown;
+}
+
+/** Adds black-frame statistics for finished outputs, so a silent black shot cannot slip through. */
+async function withOutputAnalysis(
+  job: RenderJobView,
+  media: ReferenceMediaService,
+  signal: AbortSignal,
+) {
+  if (job.status !== "completed") return job;
+  const outputs = await Promise.all(
+    job.outputs.map(async (output) => {
+      try {
+        if (output.kind === "mp4")
+          return { ...output, black: await media.blackFrames(output.destination, signal) };
+        if (output.kind === "still")
+          return { ...output, luminance: await media.stillLuminance(output.destination, signal) };
+      } catch (error) {
+        return { ...output, analysisError: error instanceof Error ? error.message : String(error) };
+      }
+      return output;
+    }),
+  );
+  return { ...job, outputs };
 }

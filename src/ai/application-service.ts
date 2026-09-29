@@ -105,6 +105,7 @@ export interface AgentToolAuditEvent {
 export class AsterAgentApplicationService {
   readonly #context: AgentApplicationContext;
   readonly #workspaces = new Map<string, EditWorkspace>();
+  readonly #evicted = new Set<string>();
   readonly #audit: AgentToolAuditEvent[] = [];
   readonly #activeControllers = new Map<AbortController, string>();
   readonly #executions = new EditExecutions();
@@ -351,9 +352,22 @@ export class AsterAgentApplicationService {
       Number.MAX_SAFE_INTEGER,
     );
     this.#assertLiveRevision(baseRevision);
-    for (const [id, workspace] of this.#workspaces)
-      if (!workspace.busy && Date.now() - workspace.lastActivityAt > MAX_WORKSPACE_AGE_MS)
-        this.#workspaces.delete(id);
+    // Idle workspaces keep their staged edits until a new workspace needs the slot; the least
+    // recently used one past the idle limit is evicted first.
+    if (this.#workspaces.size >= EDIT_LIMITS.maxWorkspaces) {
+      const evictable = [...this.#workspaces.values()]
+        .filter(
+          (candidate) =>
+            !candidate.busy && Date.now() - candidate.lastActivityAt > MAX_WORKSPACE_AGE_MS,
+        )
+        .sort((left, right) => left.lastActivityAt - right.lastActivityAt)[0];
+      if (evictable) {
+        this.#workspaces.delete(evictable.id);
+        this.#evicted.add(evictable.id);
+        if (this.#evicted.size > 64)
+          this.#evicted.delete(this.#evicted.values().next().value as string);
+      }
+    }
     if (this.#workspaces.size >= EDIT_LIMITS.maxWorkspaces)
       limitExceeded("workspaces", this.#workspaces.size + 1, EDIT_LIMITS.maxWorkspaces);
     const workspace: EditWorkspace = {
@@ -535,7 +549,9 @@ export class AsterAgentApplicationService {
           baseProjectBytes: this.#baseBytes,
         },
         idleMs: MAX_WORKSPACE_AGE_MS,
+        /** After this time the workspace may be evicted, but only to make room for a new one. */
         expiresAt: workspace.busy ? null : workspace.lastActivityAt + MAX_WORKSPACE_AGE_MS,
+        eviction: "only when a new workspace needs the slot",
         remainingMs: workspace.busy
           ? null
           : Math.max(0, workspace.lastActivityAt + MAX_WORKSPACE_AGE_MS - Date.now()),
@@ -849,13 +865,13 @@ export class AsterAgentApplicationService {
 
   #workspace(id: string, touch = true): EditWorkspace {
     const workspace = this.#workspaces.get(id);
-    if (!workspace) throw new EditError("workspace_not_found", "Edit workspace does not exist");
-    if (!workspace.busy && Date.now() - workspace.lastActivityAt > MAX_WORKSPACE_AGE_MS) {
-      this.#workspaces.delete(id);
-      throw new EditError(
-        "workspace_expired",
-        `Edit workspace expired after ${Math.round(MAX_WORKSPACE_AGE_MS / 60_000)} minutes of inactivity`,
-      );
+    if (!workspace) {
+      if (this.#evicted.has(id))
+        throw new EditError(
+          "workspace_expired",
+          `Edit workspace was idle for over ${Math.round(MAX_WORKSPACE_AGE_MS / 60_000)} minutes and was evicted to make room for a new workspace`,
+        );
+      throw new EditError("workspace_not_found", "Edit workspace does not exist");
     }
     if (touch) workspace.lastActivityAt = Date.now();
     return workspace;

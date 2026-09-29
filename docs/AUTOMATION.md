@@ -98,9 +98,9 @@ The direct adapter script can also run under Node.
 | `import_font` | Embed a local TTF/OTF/WOFF/WOFF2 font face with an explicit `family` alias and optional `weight` (default 400), at `baseRevision`. Decode before committing one undoable edit. Project-only; no OS installation. |
 | `analyze_beats` | Estimate BPM, a constant-tempo beat grid (offset of beat zero), downbeats and loudness-based sections from project audio (`layerId` maps results onto the composition through the layer's in point and time mapping; `sourceId` reports source time) or a local file (`path`, decoded with FFmpeg). Returns ready-to-paste expressions such as `pow(1 - beatphase(bpm, offset), 3)`. `writeMarkers: true` with `baseRevision` writes beat, downbeat and section markers into the composition as one undoable edit and keeps custom markers. |
 | `relink_source` | Replace a still, video or audio source with another local file of the same kind (for example a higher-resolution render). Every layer using it, in every composition, is retargeted as one undoable edit; the old source is removed unless `removeOld: false`. Returns the new `sourceId`. |
-| `save_project` | Save an exact project revision and collect media into an absolute bundle directory. Replacing an existing `project.json` requires `overwrite: true`. |
+| `save_project` | Save an exact project revision and collect media into an absolute bundle directory. Omit `path` to save back to the document's current bundle. Replacing another existing `project.json` requires `overwrite: true`. |
 | `open_project` | Open an absolute native bundle directory at `baseRevision` without a file dialog. Loads fonts and media, resets the editor history and invalidates all automation workspaces. Save unsaved edits first. Packed `.aster` files must be unpacked first. |
-| `export_render`, `wait_render`, `get_render_queue`, `cancel_render` | Queue an immutable MP4, PNG sequence or still snapshot and return only that job; block until it settles (up to 100 s per call); read compact job status newest first or by `jobId`; cancel a job. |
+| `export_render`, `wait_render`, `get_render_queue`, `cancel_render` | Queue an immutable MP4, PNG sequence or still snapshot and return only that job; block until it settles (up to 100 s per call) and report black segments of MP4 outputs (FFmpeg `blackdetect`, limited-range aware) or the luminance of stills (`analyze: false` skips); read compact job status newest first or by `jobId`; cancel a job. |
 
 Images and audio are returned as native MCP content blocks. Text metadata identifies content indices
 without duplicating base64 data. Reference tools are external automation tools; the built-in Pi
@@ -185,7 +185,7 @@ conflict preserves the pending workspace for inspection. Resetting explicitly di
 | Typed batch | 256 commands; one candidate copy and one final full-document validation |
 | Workspace | 4096 normalized operations across successful executions; a safety fuse, not a session quota |
 | Workspace bytes | 32 MiB of serialized operation payloads plus positive document growth relative to the base snapshot; base bytes reported separately |
-| Idle lifetime | 2 hours since workspace activity; running edits/previews are pinned; status/job polling does not renew idle time; `get_workspace_status` reports `remainingMs` |
+| Idle lifetime | Staged edits are kept while idle. After 2 hours without activity a workspace becomes evictable, and it is evicted (least recently used first) only when a new workspace needs one of the four slots; status polling does not renew activity; `get_workspace_status` reports `expiresAt` and `remainingMs` |
 | Script | 256 KiB of JSON-encoded source; 30-second Worker deadline including startup and validation |
 | Guest memory | 32 MiB QuickJS allocator and 64 MiB WebAssembly linear-memory maximum; host project copies are accounted separately |
 | Script results | 64 KiB returned JSON per execution |

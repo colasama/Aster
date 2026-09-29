@@ -105,8 +105,12 @@ export function automationToolDefinitions() {
     ],
     [
       "save_project",
-      "Save the current project and collect its media into the exact local directory. Refuses to overwrite another existing project unless overwrite is true.",
-      { path, baseRevision: revision, overwrite: Type.Optional(Type.Boolean()) },
+      "Save the current project and collect its media into a local bundle directory. Omit path to save back to the project's current location. Refuses to overwrite another existing project unless overwrite is true.",
+      {
+        path: Type.Optional(path),
+        baseRevision: revision,
+        overwrite: Type.Optional(Type.Boolean()),
+      },
     ],
     [
       "export_render",
@@ -141,10 +145,11 @@ export function automationToolDefinitions() {
     ],
     [
       "wait_render",
-      `Block until a render job completes, fails or is cancelled, or until timeoutMs (default and maximum ${MAX_RENDER_WAIT_MS}). Returns the job with output paths; call again if it is still running.`,
+      `Block until a render job completes, fails or is cancelled, or until timeoutMs (default and maximum ${MAX_RENDER_WAIT_MS}). Returns the job with output paths plus black-frame segments for MP4 (limited-range aware) and luminance for stills (analyze:false skips); call again if it is still running.`,
       {
         jobId,
         timeoutMs: Type.Optional(Type.Integer({ minimum: 0, maximum: MAX_RENDER_WAIT_MS })),
+        analyze: Type.Optional(Type.Boolean()),
       },
     ],
     ["cancel_render", "Cancel a queued or running render job.", { jobId }],

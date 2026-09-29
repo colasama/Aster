@@ -4,6 +4,7 @@ import { applyOperations, type Operation } from "../core/editing/operations";
 import { prepareProjectFonts } from "../core/media/project-font-runtime";
 import { activeComposition } from "../core/project/project";
 import {
+  currentProjectPath,
   loadProjectFromPath,
   saveProjectDocument,
   validateProjectDocument,
@@ -144,6 +145,7 @@ export class AutomationApplicationService {
     if (name === "reset_session") this.cancel(clientId);
     if (name === "put_script_module") return this.#putModule(clientId, input);
     if (name === "compose_contact_sheet") return composeReferenceSheet(input);
+    if (name === "current_project_path") return { path: currentProjectPath() };
     if (name === "list_script_modules") return this.#listModules(clientId);
     let session = this.#sessions.get(clientId);
     if (session && session.projectId !== state.project.id) {

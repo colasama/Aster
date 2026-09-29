@@ -157,6 +157,81 @@ export class ReferenceMediaService {
     };
   }
 
+  /** Finds black segments (at least 0.1 s) with FFmpeg blackdetect, which honours TV range. */
+  async blackFrames(pathValue: unknown, signal: AbortSignal) {
+    const path = await localMediaPath(pathValue);
+    const result = await runMediaProcess(
+      this.ffmpeg,
+      [
+        "-hide_banner",
+        "-nostdin",
+        "-protocol_whitelist",
+        "file,pipe",
+        "-i",
+        path,
+        "-map",
+        "0:v:0",
+        "-vf",
+        "scale=320:-2,blackdetect=d=0.1:pic_th=0.98:pix_th=0.1",
+        "-an",
+        "-f",
+        "null",
+        "-",
+      ],
+      signal,
+      1024,
+    );
+    const segments = [
+      ...result.stderr.matchAll(
+        /black_start:([\d.]+)\s+black_end:([\d.]+)\s+black_duration:([\d.]+)/g,
+      ),
+    ].map((match) => ({
+      start: Number(match[1]),
+      end: Number(match[2]),
+      duration: Number(match[3]),
+    }));
+    const durationMatch = /Duration:\s*(\d+):(\d+):([\d.]+)/.exec(result.stderr);
+    const duration = durationMatch
+      ? Number(durationMatch[1]) * 3600 + Number(durationMatch[2]) * 60 + Number(durationMatch[3])
+      : undefined;
+    const totalSeconds = segments.reduce((total, segment) => total + segment.duration, 0);
+    return {
+      segments: segments.slice(0, 64),
+      totalSeconds: Math.round(totalSeconds * 1000) / 1000,
+      ...(duration ? { fraction: Math.round((totalSeconds / duration) * 1000) / 1000 } : {}),
+    };
+  }
+
+  /** Mean display luminance (0..1) of a still, mapping limited-range video levels correctly. */
+  async stillLuminance(pathValue: unknown, signal: AbortSignal) {
+    const path = await localMediaPath(pathValue);
+    const result = await runMediaProcess(
+      this.ffmpeg,
+      [
+        "-hide_banner",
+        "-nostdin",
+        "-protocol_whitelist",
+        "file,pipe",
+        "-i",
+        path,
+        "-vf",
+        "scale=64:-2:flags=area,format=gray",
+        "-frames:v",
+        "1",
+        "-f",
+        "rawvideo",
+        "pipe:1",
+      ],
+      signal,
+      1024 * 1024,
+    );
+    if (result.stdout.length === 0) throw new Error("Still has no decodable frame");
+    let total = 0;
+    for (const value of result.stdout) total += value;
+    const average = total / result.stdout.length / 255;
+    return { average: Math.round(average * 1000) / 1000, black: average < 0.02 };
+  }
+
   /** Decodes the first audio stream as mono float PCM for offline analysis (up to 15 minutes). */
   async pcm(pathValue: unknown, signal: AbortSignal, sampleRate = 22_050) {
     const path = await localMediaPath(pathValue);

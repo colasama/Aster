@@ -195,6 +195,11 @@ export async function openProjectFromSystemPath(
   return loadProjectFromPath(path);
 }
 
+/** Native bundle directory of the open document, when it was opened or saved natively. */
+export function currentProjectPath(): string | undefined {
+  return nativeProjectPath;
+}
+
 export function clearCurrentProjectPath(): void {
   nativeProjectPath = undefined;
   mediaImportRuntime.clear();

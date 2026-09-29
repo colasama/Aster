@@ -70,7 +70,7 @@ describe("editing workspace resources and jobs", () => {
     ).rejects.toMatchObject({ code: "request_id_conflict" });
   });
 
-  it("uses idle expiry, does not charge base project bytes and does not keep alive through status polling", async () => {
+  it("evicts idle workspaces only for new ones, does not charge base bytes, and ignores status polling", async () => {
     const f = fixture();
     const now = vi.spyOn(Date, "now").mockReturnValue(1000);
     try {
@@ -83,8 +83,15 @@ describe("editing workspace resources and jobs", () => {
       now.mockReturnValue(1000 + 2 * EDIT_LIMITS.idleMs - 2);
       await f.call("get_workspace_status", address);
       now.mockReturnValue(1000 + 2 * EDIT_LIMITS.idleMs);
+      // Idle workspaces keep staged edits until a new workspace needs the slot.
+      expect(await f.call("get_workspace_status", address)).toMatchObject({ state: "editable" });
+      for (let index = 1; index < EDIT_LIMITS.maxWorkspaces; index++)
+        await f.call("begin_edit_workspace", { baseRevision: 0 });
+      now.mockReturnValue(1000 + 4 * EDIT_LIMITS.idleMs);
+      await f.call("begin_edit_workspace", { baseRevision: 0 });
       await expect(f.call("get_workspace_status", address)).rejects.toMatchObject({
         code: "workspace_expired",
+        message: expect.stringContaining("evicted"),
       });
     } finally {
       now.mockRestore();
