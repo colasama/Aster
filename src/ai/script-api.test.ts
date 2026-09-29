@@ -171,6 +171,32 @@ describe("agent script API", () => {
     expect(fixed.warnings).toBeUndefined();
   });
 
+  it("drives effect parameters with expressions and rejects invalid ones", async () => {
+    const result = await executeScript(
+      task(`
+        const l = aster.compositions.active().layers.addText({ text: 'glow' });
+        const blur = l.addEffect('gaussian-blur', { radius: 4 });
+        l.setEffectExpression(blur.id, 'radius', 'value + 6 * abs(sin(time * pi * 2))');
+        const glow = l.addEffect('gaussian-blur');
+        l.property('effects.' + glow.id + '.radius').setExpression('time * 10');
+        l.property('effects.' + glow.id + '.radius').setExpression('');
+        return l.id;
+      `),
+    );
+    const layer = activeComposition(result.project).layers.find((l) => l.id === result.result);
+    expect(layer?.effects[0].parameterExpressions).toEqual({
+      radius: "value + 6 * abs(sin(time * pi * 2))",
+    });
+    expect(layer?.effects[1].parameterExpressions).toBeUndefined();
+    await expect(
+      executeScript(
+        task(
+          "const l = aster.compositions.active().layers.addText({text:'x'}); const e = l.addEffect('gaussian-blur'); l.setEffectExpression(e.id, 'radius', 'wiggle(2)');",
+        ),
+      ),
+    ).rejects.toThrow("Invalid expression for gaussian-blur.radius");
+  });
+
   it("suggests close effect names and lists valid parameters", async () => {
     await expect(
       executeScript(

@@ -296,3 +296,12 @@ The built-in `linear-wipe` effect accepts `bend` (pixels, default 0), `bendWidth
 `parameters` map. The ordinary `parameterKeyframes` map animates them. Missing values preserve the
 straight wipe, so the schema version and migration rules are unchanged. These are host effect
 parameters; plugin ABI layouts and manifests do not change.
+
+### Optional effect parameter expressions
+
+An effect may contain `parameterExpressions`, a map from an existing key of its `parameters` map to
+a bounded expression string (at most 2048 characters). The expression uses the layer-expression
+language: `time` is the clock that also samples `parameterKeyframes`, and `value` is the keyframed or
+static parameter value, so `value * (1 + 0.3 * sin(time * 2 * pi * 2))` pulses around it. Invalid
+or non-finite results fall back to `value`. Validation rejects expressions for unknown parameters.
+The field is additive, so older documents load unchanged and the schema version does not change.

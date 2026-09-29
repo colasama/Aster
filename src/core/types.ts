@@ -99,6 +99,8 @@ export interface Effect {
   enabled: boolean;
   parameters: Record<string, number>;
   parameterKeyframes?: Record<string, Keyframe[]>;
+  /** Bounded expressions over time/value that replace a parameter's keyframed value. */
+  parameterExpressions?: Record<string, string>;
   resource?: Lut3dResource;
   mask?: EffectMask;
 }

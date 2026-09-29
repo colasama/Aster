@@ -178,6 +178,13 @@ export type Operation =
   | { type: "toggleEffect"; layerId: Id; effectId: Id }
   | { type: "setEffectLut"; layerId: Id; effectId: Id; resource?: Lut3dResource }
   | {
+      type: "setEffectParameterExpression";
+      layerId: Id;
+      effectId: Id;
+      parameter: string;
+      expression: string;
+    }
+  | {
       type: "setEffectParameterAtTime";
       layerId: Id;
       effectId: Id;
@@ -273,6 +280,7 @@ export const OPERATION_TYPES = [
   "toggleEffect",
   "setEffectLut",
   "setEffectParameterAtTime",
+  "setEffectParameterExpression",
   "addEffectParameterKeyframe",
   "removeEffectParameterKeyframe",
   "moveEffectParameterKeyframe",

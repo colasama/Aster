@@ -1,3 +1,4 @@
+import { evaluateExpression } from "../core/animation/expressions";
 import { getProperty, type Operation, type PropertyPath } from "../core/editing/operations";
 import type { ShapeGraph } from "../core/layers/shape-graph";
 import { resolveTextStyle } from "../core/layers/text-style";
@@ -410,6 +411,22 @@ export function normalizeExtendedAiCommand(
         ...(input.resource ? { resource: structuredClone(input.resource as Lut3dResource) } : {}),
       };
     }
+    case "setEffectParameterExpression": {
+      const effect = requireEffect(requireLayer(layer, layerId), String(input.effectId));
+      const parameter = requireEffectParameter(effect, input.parameter);
+      const expression = String(input.expression);
+      if (expression.trim()) {
+        const error = expressionError(expression);
+        if (error) throw new Error(`Invalid expression for ${effect.type}.${parameter}: ${error}`);
+      }
+      return {
+        type: "setEffectParameterExpression",
+        layerId,
+        effectId: effect.id,
+        parameter,
+        expression,
+      };
+    }
     case "setEffectParameterAtTime": {
       const effect = requireEffect(requireLayer(layer, layerId), String(input.effectId));
       const parameter = requireEffectParameter(effect, input.parameter);
@@ -572,4 +589,14 @@ function optionalId(value: unknown): string | undefined {
 function easingValue(value: unknown): [number, number, number, number] {
   const easing = value as [number, number, number, number];
   return [easing[0], easing[1], easing[2], easing[3]];
+}
+
+/** Rejects expressions that cannot parse or evaluate, so errors surface at the command. */
+function expressionError(expression: string): string | undefined {
+  try {
+    evaluateExpression(expression, { time: 0, value: 1 });
+    return undefined;
+  } catch (error) {
+    return error instanceof Error ? error.message : String(error);
+  }
 }

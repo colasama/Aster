@@ -86,6 +86,7 @@ because they have different authority, cancellation, and audit requirements.
 | `toggleEffect` | Effects | Toggles an owned effect. |
 | `setEffectLut` | Effects | Replaces or clears a bounded 3D LUT resource. |
 | `setEffectParameterAtTime` | Effects | Sets an effect parameter at an explicit time. |
+| `setEffectParameterExpression` | Effects | Drives an effect parameter with a bounded time/value expression; an empty expression clears it. |
 | `addEffectParameterKeyframe` | Effects | Adds an effect-parameter keyframe. |
 | `removeEffectParameterKeyframe` | Effects | Removes an effect-parameter keyframe. |
 | `moveEffectParameterKeyframe` | Effects | Moves an effect-parameter keyframe. |

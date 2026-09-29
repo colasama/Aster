@@ -27,6 +27,7 @@ describe("AI command registry", () => {
       "toggleEffect",
       "setEffectLut",
       "setEffectParameterAtTime",
+      "setEffectParameterExpression",
       "addEffectParameterKeyframe",
       "removeEffectParameterKeyframe",
       "moveEffectParameterKeyframe",

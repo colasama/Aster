@@ -20,7 +20,12 @@ export const SCRIPT_API = `
       command({ type: 'setProperty', layerId, path, value: frames[0].value }, compositionId);
       for (const frame of frames) command({ ...frame, type: 'addKeyframe', layerId, path }, compositionId);
     },
-    setExpression: expression => command({ type: 'setExpression', layerId, path, expression }, compositionId),
+    setExpression: expression => {
+      const effect = /^effects\\.([^.]+)\\.(.+)$/.exec(path);
+      return effect
+        ? command({ type: 'setEffectParameterExpression', layerId, effectId: effect[1], parameter: effect[2], expression }, compositionId)
+        : command({ type: 'setExpression', layerId, path, expression }, compositionId);
+    },
   });
   const vectorPaths = ['position','scale','rotation','anchor'];
   const layer = (compositionId, id) => Object.freeze({
@@ -53,6 +58,8 @@ export const SCRIPT_API = `
     remove: () => command({ type: 'removeLayer', layerId: id }, compositionId),
     duplicate: name => layer(compositionId, command({ type: 'duplicateLayer', layerId: id, ...(name === undefined ? {} : {name}) }, compositionId).id),
     addEffect: (effectType, parameters = {}) => command({ type: 'addEffect', layerId: id, effectType, parameters }, compositionId),
+    setEffectExpression: (effectId, parameter, expression) =>
+      command({ type: 'setEffectParameterExpression', layerId: id, effectId, parameter, expression }, compositionId),
   });
   const composition = id => {
     const add = options => {
@@ -135,6 +142,7 @@ export const SCRIPT_API_DOCS = {
     "layer.setTiming(inPoint, outPoint); layer.setTimeMapping({sourceStart, stretch?}) sets the source time shown at inPoint",
     "layer.setTextAnimator({enabled?, groups:[...]}) per-character animation (see textAnimators)",
     "layer.duplicate(name?) -> layer handle; layer.remove(); layer.addEffect(effectType, parameters?) -> {id}",
+    "layer.setEffectExpression(effectId, parameter, expr) or layer.property('effects.<effectId>.<parameter>').setExpression(expr) drives an effect parameter ('' clears)",
     "aster.command(typedCommand) / aster.commands(commands) -> {type,id?,...}; addLayer/addEffect/addComposition/addSource/addProjectFolder return id; precomposeLayers returns compositionId and wrapperLayerId",
     "aster.budget() -> {operations:{used,limit,remaining}, queryBytesPerCall, resultBytes, timeRemainingMs}",
     "aster.warnings() -> warnings collected so far in this execution",
@@ -154,7 +162,7 @@ export const SCRIPT_API_DOCS = {
   ],
   expressions: {
     appliesTo:
-      "Layer property paths above (setExpression). Effect parameters use keyframes instead.",
+      "Layer property paths above (setExpression) and effect parameters (setEffectParameterExpression); value is the keyframed or static value, so value * (1 + 0.3 * sin(time * 2 * pi * 2)) pulses around it.",
     variables: ["time (composition seconds)", "value (the property's keyframed value)", "pi", "e"],
     functions: [
       "abs ceil floor round sqrt sin cos tan",

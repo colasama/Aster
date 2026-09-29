@@ -679,6 +679,20 @@ export function applyOperation(project: Project, operation: Operation): void {
       effect.resource = operation.resource;
       break;
     }
+    case "setEffectParameterExpression": {
+      const effect = layer.effects.find((entry) => entry.id === operation.effectId);
+      if (!effect) throw new Error("Effect does not exist");
+      const expression = operation.expression.trim();
+      if (expression) {
+        effect.parameterExpressions ??= {};
+        effect.parameterExpressions[operation.parameter] = expression;
+      } else if (effect.parameterExpressions) {
+        delete effect.parameterExpressions[operation.parameter];
+        if (Object.keys(effect.parameterExpressions).length === 0)
+          delete effect.parameterExpressions;
+      }
+      break;
+    }
     case "setEffectParameterAtTime": {
       const effect = layer.effects.find((entry) => entry.id === operation.effectId);
       if (!effect) throw new Error("Effect does not exist");

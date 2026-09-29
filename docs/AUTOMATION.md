@@ -242,6 +242,11 @@ values divided by 255). `aster.require(name)` evaluates a stored module once per
 module body receives `module`, `exports` and `aster`. All writes pass through command
 normalization; direct object mutation only changes returned JSON copies.
 
+`setEffectParameterExpression` (`layer.setEffectExpression(effectId, parameter, expr)`, or
+`layer.property('effects.<effectId>.<parameter>').setExpression(expr)`) drives an effect parameter
+with the same expression language, where `value` is the keyframed or static value; use it for
+beat-synced glow or time-varying blur without keyframes. Invalid expressions fail the command.
+
 `setTextAnimator` accepts `groups` of selectors (`range`, `expression` with `textIndex`,
 `textTotal`, `selectorValue` and `time`, or `wiggly`) and per-character properties (`position`,
 `scale`, `rotation`, `opacity`, `blur`, `tracking`, `fillColor`, …). Numbers or animated tracks are

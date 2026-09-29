@@ -1,4 +1,5 @@
 import type { Animatable, Effect, EvaluatedTransform, Keyframe, Transform } from "../types";
+import { evaluateExpression } from "./expressions";
 
 export function evaluateAnimatable(property: Animatable, time: number): number {
   if (property.mode === "static") return property.value;
@@ -86,8 +87,16 @@ export function evaluateEffectParameter(
   fallback = 0,
 ): number {
   const keyframes = effect.parameterKeyframes?.[parameter];
-  if (keyframes?.length) return evaluateAnimatable({ mode: "animated", keyframes }, time);
-  return effect.parameters[parameter] ?? fallback;
+  const value = keyframes?.length
+    ? evaluateAnimatable({ mode: "animated", keyframes }, time)
+    : (effect.parameters[parameter] ?? fallback);
+  const expression = effect.parameterExpressions?.[parameter];
+  if (!expression) return value;
+  try {
+    return evaluateExpression(expression, { time, value });
+  } catch {
+    return value;
+  }
 }
 
 export function insertKeyframe(property: Animatable, keyframe: Keyframe): Animatable {
