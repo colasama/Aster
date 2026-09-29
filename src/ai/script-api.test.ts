@@ -100,6 +100,25 @@ describe("agent script API", () => {
     expect(data.color).toEqual([0, 1, 0, 128 / 255]);
   });
 
+  it("converts hex colors to display values for text and linear light for shapes and solids", async () => {
+    const result = await executeScript(
+      task(`
+        const c = aster.compositions.active();
+        const text = c.layers.addText({ text: 'x', color: '#808080' });
+        const solid = c.layers.add({ kind: 'solid', color: '#808080' });
+        return {
+          text: text.inspect(['color']).color,
+          solid: solid.inspect(['color']).color,
+          linear: aster.linearColor('#ffffff', 0.5),
+        };
+      `),
+    );
+    const data = result.result as { text: number[]; solid: number[]; linear: number[] };
+    expect(data.text[0]).toBeCloseTo(128 / 255, 6);
+    expect(data.solid[0]).toBeCloseTo(0.2158605, 6);
+    expect(data.linear).toEqual([1, 1, 1, 0.5]);
+  });
+
   it("loads session modules once per execution and reports missing modules", async () => {
     const modules = {
       lib: "globalThis.loads = (globalThis.loads || 0) + 1;\nmodule.exports = { double: x => x * 2 };",

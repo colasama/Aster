@@ -239,8 +239,9 @@ returns only the named dot paths, and every layer inspection includes `sourceRan
 `composition.precompose(ids, name)` returns `compositionId` and `wrapperLayerId`, and
 `aster.command()` returns IDs for created layers, effects, compositions, sources and folders.
 `aster.budget()` reports remaining operations and time; `aster.warnings()` lists warnings so far;
-`aster.color('#rrggbb')` and `layer.set({ color })` accept hex colors (0–1 channels equal to hex
-values divided by 255). `aster.require(name)` evaluates a stored module once per execution; the
+`layer.set({ color: '#rrggbb' })` converts hex per layer kind: text colors are display sRGB
+(hex/255), while shape, solid and other layer colors are linear light; `aster.color()` and
+`aster.linearColor()` return the two forms explicitly. `aster.require(name)` evaluates a stored module once per execution; the
 module body receives `module`, `exports` and `aster`. All writes pass through command
 normalization; direct object mutation only changes returned JSON copies.
 

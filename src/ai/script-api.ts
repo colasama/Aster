@@ -13,7 +13,13 @@ export const SCRIPT_API = `
     const channel = i => parseInt(digits.slice(i * 2, i * 2 + 2), 16) / 255;
     return [channel(0), channel(1), channel(2), digits.length === 8 ? channel(3) : alpha];
   };
-  const color = value => typeof value === 'string' ? hex(value) : value;
+  const toLinear = c => c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  const linearHex = (value, alpha) => { const [r, g, b, a] = hex(value, alpha); return [toLinear(r), toLinear(g), toLinear(b), a]; };
+  // Text is rasterized with CSS colors (display sRGB); shapes, solids and other layers shade in linear light.
+  const layerColor = (compositionId, layerId, value) => {
+    if (typeof value !== 'string') return value;
+    return query('layer', compositionId, layerId, { fields: ['kind'] }).kind === 'text' ? hex(value) : linearHex(value);
+  };
   const property = (compositionId, layerId, path) => Object.freeze({
     set: value => command({ type: 'setProperty', layerId, path, value }, compositionId),
     setKeyframes: frames => {
@@ -40,7 +46,7 @@ export const SCRIPT_API = `
         if (key === 'name') command({ type: 'renameLayer', layerId: id, name: value }, compositionId);
         else if (key === 'text') command({ type: 'setTextContent', layerId: id, text: value }, compositionId);
         else if (key === 'textStyle') command({ type: 'setTextStyle', layerId: id, textStyle: value }, compositionId);
-        else if (key === 'color') command({ type: 'setLayerColor', layerId: id, color: color(value) }, compositionId);
+        else if (key === 'color') command({ type: 'setLayerColor', layerId: id, color: layerColor(compositionId, id, value) }, compositionId);
         else if (vectorPaths.includes(key)) {
           if (!Array.isArray(value) || value.length !== 3) throw new Error(key + ' requires three numbers');
           value.forEach((v,i) => property(compositionId,id,key+'.'+i).set(v));
@@ -99,6 +105,7 @@ export const SCRIPT_API = `
     budget: () => query('budget'),
     warnings: () => query('warnings'),
     color: hex,
+    linearColor: linearHex,
     require: name => {
       if (Object.prototype.hasOwnProperty.call(modules, name)) return modules[name].exports;
       const factory = globalThis.__asterRequire(String(name));
@@ -157,7 +164,7 @@ export const SCRIPT_API_DOCS = {
     "aster.budget() -> {operations:{used,limit,remaining}, queryBytesPerCall, resultBytes, timeRemainingMs}",
     "aster.warnings() -> warnings collected so far in this execution",
     "aster.require(name) -> exports of a script module stored with put_script_module (evaluated once per execution; module body receives module, exports, aster)",
-    "aster.color('#rrggbb' | '#rrggbbaa', alpha?) -> [r,g,b,a] in 0..1",
+    "aster.color('#rrggbb' | '#rrggbbaa', alpha?) -> display [r,g,b,a] (hex/255; text colors); aster.linearColor(hex, alpha?) -> linear-light [r,g,b,a] (shape/solid colors)",
     "aster.progress(0..1, message?) reports progress without committing",
   ],
   propertyPaths: [
@@ -201,7 +208,7 @@ export const SCRIPT_API_DOCS = {
   timeMapping:
     "setLayerTimeMapping.offset (setTimeMapping sourceStart) is the SOURCE time displayed at the layer inPoint: sourceTime = offset + (compositionTime - inPoint) / stretch. To show seconds S..S+d of a clip on a layer at inPoint T, use offset S (not S - T). Offsets beyond the source duration freeze on the last frame and produce a warning.",
   colors:
-    "Colors are [r,g,b,a] with 0..1 channels equal to CSS/hex values divided by 255 (display-referred). layer.set({color:'#ff3366'}) and aster.color() accept hex strings.",
+    "Text colors (layer color, textStyle.strokeColor, text animator fillColor) are display sRGB: hex/255. Shape, solid and other layer colors are linear light (sRGB-decoded; #808080 is about 0.216, not 0.5). layer.set({color:'#hex'}) converts per layer kind; otherwise use aster.color() for text and aster.linearColor() for shapes and solids.",
   fonts:
     "textStyle.fontFamily takes the family name; names containing spaces or punctuation are quoted automatically. Use list_fonts/check_fonts for exact names.",
   budgets:
