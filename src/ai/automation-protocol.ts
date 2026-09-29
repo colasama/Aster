@@ -1,4 +1,5 @@
 import { type TObject, Type } from "typebox";
+import { contactSheetField } from "./contact-sheet-spec.js";
 import { EDIT_LIMITS } from "./edit-limits.js";
 import { previewFields } from "./preview-options.js";
 import { asterToolDefinitions } from "./tool-definitions.js";
@@ -26,8 +27,13 @@ export function automationToolDefinitions() {
     ],
     [
       "read_reference_frames",
-      "Decode the first video frame at or after each requested time. Returns PNG images and actual timestamps.",
-      { path, times, maxDimension: previewFields.maxDimension },
+      "Decode the first video frame at or after each requested time. Returns PNG images and actual timestamps. contactSheet tiles up to 64 labeled samples (e.g. {interval:5} over the whole file) into one image instead.",
+      {
+        path,
+        times: Type.Optional(times),
+        maxDimension: previewFields.maxDimension,
+        contactSheet: contactSheetField,
+      },
     ],
     [
       "read_reference_audio",

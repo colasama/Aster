@@ -21,11 +21,16 @@ import { type EditorState, isProjectDirty } from "../state/editor-store";
 import { AsterAgentApplicationService } from "./application-service";
 import { importAutomationAsset } from "./automation-import";
 import { type AutomationRequest, MAX_RENDER_WAIT_MS } from "./automation-protocol";
+import { type ContactSheetRequest, composeContactSheet, formatSheetTime } from "./contact-sheet";
 import { EDIT_LIMITS, EditError, encodedBytes, limitExceeded } from "./edit-limits";
 import { checkFonts, listFonts } from "./font-tools";
 import { parsePreviewOptions } from "./preview-options";
 import { compareReferenceFrames, type ReferenceFrame } from "./reference-comparison";
-import { type AgentRenderedPreviewFrame, renderAgentPreview } from "./render-preview";
+import {
+  type AgentRenderedPreviewFrame,
+  renderAgentContactSheet,
+  renderAgentPreview,
+} from "./render-preview";
 import { RequestReceipts } from "./request-receipts";
 
 export class AutomationApplicationService {
@@ -87,6 +92,7 @@ export class AutomationApplicationService {
         accessMode: "agent",
         primaryModelSupportsImages: true,
         renderPreview: renderAgentPreview,
+        renderContactSheet: renderAgentContactSheet,
         scriptModules: () => Object.fromEntries(this.#modules.get(clientId) ?? []),
       }),
     };
@@ -134,6 +140,7 @@ export class AutomationApplicationService {
     const state = this.context.read();
     if (name === "reset_session") this.cancel(clientId);
     if (name === "put_script_module") return this.#putModule(clientId, input);
+    if (name === "compose_contact_sheet") return composeReferenceSheet(input);
     if (name === "list_script_modules") return this.#listModules(clientId);
     let session = this.#sessions.get(clientId);
     if (session && session.projectId !== state.project.id) {
@@ -497,4 +504,24 @@ function renderJobView(item: RenderQueueViewItem) {
 
 function moduleList(modules: ReadonlyMap<string, string>) {
   return [...modules].map(([name, code]) => ({ name, bytes: encodedBytes(code) }));
+}
+
+/** Internal host call: tiles decoded reference PNGs, labeled with their actual timestamps. */
+async function composeReferenceSheet(input: Record<string, unknown>) {
+  const frames = input.frames as Array<{ time: number; actualTime: number; data: string }>;
+  const cells = await Promise.all(
+    frames.map(async (frame) => ({
+      time: frame.actualTime,
+      label: formatSheetTime(frame.actualTime),
+      image: await createImageBitmap(
+        new Blob([Uint8Array.from(atob(frame.data), (character) => character.charCodeAt(0))], {
+          type: "image/png",
+        }),
+      ),
+    })),
+  );
+  return {
+    sheet: await composeContactSheet(cells, input.contactSheet as ContactSheetRequest),
+    samples: frames.map((frame) => ({ requestedTime: frame.time, actualTime: frame.actualTime })),
+  };
 }

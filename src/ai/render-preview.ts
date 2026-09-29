@@ -4,6 +4,14 @@ import {
 } from "../core/rendering/render-export";
 import type { Project } from "../core/types";
 import type { RawFramePixelFormat } from "../renderer/gpu/frame-readback";
+import {
+  blobToBase64,
+  type ContactSheet,
+  type ContactSheetRequest,
+  composeContactSheet,
+  contactSheetTimes,
+  formatSheetTime,
+} from "./contact-sheet";
 import { type PreviewOptions, parsePreviewOptions, previewCropPixels } from "./preview-options";
 
 const AGENT_PREVIEW_MAX_DIMENSION = 384;
@@ -28,6 +36,69 @@ export interface AgentRenderedPreviewFrame {
   measurements: AgentPreviewMeasurements;
 }
 
+export interface AgentContactSheet extends ContactSheet {
+  samples: Array<{ time: number } & AgentPreviewMeasurements>;
+}
+
+/** Renders many small samples of the staged project into one labeled image. */
+export async function renderAgentContactSheet(
+  project: Project,
+  request: ContactSheetRequest,
+  signal: AbortSignal,
+  input: PreviewOptions = {},
+): Promise<AgentContactSheet> {
+  const options = parsePreviewOptions(input);
+  project = isolatePreviewLayers(project, options);
+  const composition = project.compositions.find((item) => item.id === project.activeCompositionId);
+  if (!composition) throw new Error("Preview composition is unavailable");
+  const times = contactSheetTimes(request, [0, composition.duration]);
+  if (times.some((time) => time < 0 || time > composition.duration))
+    throw new Error("Contact sheet times must stay inside the composition");
+  const cellWidth = request.cellWidth ?? 320;
+  const aspect = composition.height / composition.width;
+  const session = await openPreviewSession(
+    { project, maxDimension: Math.max(64, Math.round(cellWidth * Math.max(1, aspect))) },
+    signal,
+  );
+  const crop = previewCropPixels(session.width, session.height, options.crop);
+  const cells = [];
+  const samples: AgentContactSheet["samples"] = [];
+  let previousPixels: Uint8ClampedArray | undefined;
+  try {
+    for (const time of times) {
+      if (signal.aborted) throw new Error("Agent preview render was cancelled");
+      const raw = await session.renderRawFrame(time);
+      const fullPixels = normalizeRgbaPixels(raw.pixels, raw.pixelFormat);
+      const pixels = options.crop ? cropPixels(fullPixels, session.width, crop) : fullPixels;
+      samples.push({ time, ...measurePreviewPixels(pixels, previousPixels) });
+      cells.push({
+        time,
+        label: formatSheetTime(time),
+        image: new ImageData(new Uint8ClampedArray(pixels), crop.width, crop.height),
+      });
+      previousPixels = pixels;
+    }
+  } finally {
+    session.close();
+  }
+  return { ...(await composeContactSheet(cells, request)), samples };
+}
+
+function isolatePreviewLayers(project: Project, options: PreviewOptions): Project {
+  if (!options.layerIds) return project;
+  const isolated = structuredClone(project);
+  const composition = isolated.compositions.find(
+    (item) => item.id === isolated.activeCompositionId,
+  );
+  if (
+    !composition ||
+    options.layerIds.some((id) => !composition.layers.some((layer) => layer.id === id))
+  )
+    throw new Error("Preview isolation references an unknown layer");
+  for (const layer of composition.layers) layer.solo = options.layerIds.includes(layer.id);
+  return isolated;
+}
+
 export async function renderAgentPreview(
   project: Project,
   times: readonly number[],
@@ -35,18 +106,7 @@ export async function renderAgentPreview(
   input: PreviewOptions = {},
 ): Promise<AgentRenderedPreviewFrame[]> {
   const options = parsePreviewOptions(input);
-  if (options.layerIds) {
-    project = structuredClone(project);
-    const composition = project.compositions.find(
-      (item) => item.id === project.activeCompositionId,
-    );
-    if (
-      !composition ||
-      options.layerIds.some((id) => !composition.layers.some((layer) => layer.id === id))
-    )
-      throw new Error("Preview isolation references an unknown layer");
-    for (const layer of composition.layers) layer.solo = options.layerIds.includes(layer.id);
-  }
+  project = isolatePreviewLayers(project, options);
   const session = await openPreviewSession(
     { project, maxDimension: options.maxDimension ?? AGENT_PREVIEW_MAX_DIMENSION },
     signal,
@@ -71,7 +131,7 @@ export async function renderAgentPreview(
         time,
         renderId: `${crypto.randomUUID()}:${time.toFixed(6)}`,
         mimeType: "image/png",
-        data: await blobBase64(blob),
+        data: await blobToBase64(blob),
         width: crop.width,
         height: crop.height,
         measurements,
@@ -183,12 +243,4 @@ async function encodePng(width: number, height: number, pixels: Uint8ClampedArra
   );
   if (!blob) throw new Error("Agent preview PNG encoding failed");
   return blob;
-}
-
-async function blobBase64(blob: Blob): Promise<string> {
-  const bytes = new Uint8Array(await blob.arrayBuffer());
-  let binary = "";
-  for (let offset = 0; offset < bytes.byteLength; offset += 32_768)
-    binary += String.fromCharCode(...bytes.subarray(offset, offset + 32_768));
-  return btoa(binary);
 }

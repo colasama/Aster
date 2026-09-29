@@ -1,4 +1,5 @@
 import { type TObject, type TSchema, Type } from "typebox";
+import { contactSheetField } from "./contact-sheet-spec.js";
 import { EDIT_LIMITS } from "./edit-limits.js";
 import { previewFields } from "./preview-options.js";
 
@@ -183,15 +184,18 @@ export function asterToolDefinitions() {
       name: "render_preview",
       label: "Render preview",
       description:
-        "Request bounded, deterministic preview samples and report an explicit unverified result if pixels are unavailable.",
+        "Render deterministic preview samples of the staged workspace (video decoded to the exact frame) with per-frame metrics. Pass times (1-12 separate images) or contactSheet to tile up to 64 labeled samples into one image, e.g. {start:0,end:60,interval:5}.",
       parameters: Type.Object(
         {
           ...workspaceFields,
           ...previewFields,
-          times: Type.Array(Type.Number({ minimum: 0, maximum: 86_400 }), {
-            minItems: 1,
-            maxItems: 12,
-          }),
+          times: Type.Optional(
+            Type.Array(Type.Number({ minimum: 0, maximum: 86_400 }), {
+              minItems: 1,
+              maxItems: 12,
+            }),
+          ),
+          contactSheet: contactSheetField,
         },
         { additionalProperties: false },
       ),

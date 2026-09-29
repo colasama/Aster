@@ -30,11 +30,12 @@ import {
   getCommandDescriptors,
   searchCommandDescriptors,
 } from "./command-registry";
+import type { ContactSheetRequest } from "./contact-sheet";
 import { EditExecutions } from "./edit-executions";
 import { EDIT_LIMITS, EditError, encodedBytes, limitExceeded } from "./edit-limits";
 import { type EditTaskRunner, runEditTask } from "./edit-task";
 import { type PreviewOptions, parsePreviewOptions } from "./preview-options";
-import type { AgentRenderedPreviewFrame } from "./render-preview";
+import type { AgentContactSheet, AgentRenderedPreviewFrame } from "./render-preview";
 import { RequestReceipts } from "./request-receipts";
 import { SCRIPT_API_DOCS } from "./script-api";
 
@@ -84,6 +85,12 @@ export interface AgentApplicationContext {
     signal: AbortSignal,
     options?: PreviewOptions,
   ) => Promise<AgentRenderedPreviewFrame[]>;
+  renderContactSheet?: (
+    project: Project,
+    request: ContactSheetRequest,
+    signal: AbortSignal,
+    options?: PreviewOptions,
+  ) => Promise<AgentContactSheet>;
 }
 
 export interface AgentToolAuditEvent {
@@ -552,6 +559,7 @@ export class AsterAgentApplicationService {
 
   async #renderPreview(input: Record<string, unknown>) {
     const workspace = this.#workspaceInput(input);
+    if (input.contactSheet !== undefined) return this.#renderContactSheet(workspace, input);
     const times = boundedTimes(input.times);
     if (workspace.busy) throw new EditError("workspace_busy", "Workspace has a running execution");
     if (this.#context.renderPreview) {
@@ -599,6 +607,48 @@ export class AsterAgentApplicationService {
       limitation:
         "No bounded GPU readback was attached to this agent session; use semantic analysis and human review.",
     };
+  }
+
+  async #renderContactSheet(workspace: EditWorkspace, input: Record<string, unknown>) {
+    if (workspace.busy) throw new EditError("workspace_busy", "Workspace has a running execution");
+    if (!this.#context.renderContactSheet)
+      throw new Error("Contact sheets require the GPU preview renderer");
+    const controller = new AbortController();
+    this.#activeControllers.set(controller, workspace.id);
+    workspace.busy = true;
+    try {
+      const sheet = await this.#context.renderContactSheet(
+        structuredClone(workspace.project),
+        input.contactSheet as ContactSheetRequest,
+        controller.signal,
+        parsePreviewOptions(input),
+      );
+      controller.signal.throwIfAborted();
+      const { samples, ...image } = sheet;
+      const warnings = blackFrameWarnings(
+        workspace.project,
+        samples.map(({ time, ...measurements }) => ({ time, measurements })),
+      );
+      return {
+        workspaceId: workspace.id,
+        workspaceRevision: workspace.revision,
+        status: "rendered",
+        sheet: image,
+        samples: samples.map((sample) => ({
+          time: sample.time,
+          averageLuminance: Math.round(sample.averageLuminance * 1000) / 1000,
+          emptyFrame: sample.emptyFrame,
+          ...(sample.differenceFromPrevious === undefined
+            ? {}
+            : { differenceFromPrevious: Math.round(sample.differenceFromPrevious * 1000) / 1000 }),
+        })),
+        ...(warnings.length ? { warnings } : {}),
+      };
+    } finally {
+      this.#activeControllers.delete(controller);
+      workspace.busy = false;
+      workspace.lastActivityAt = Date.now();
+    }
   }
 
   #analyzeRender(input: Record<string, unknown>) {

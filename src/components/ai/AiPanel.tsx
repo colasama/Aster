@@ -14,7 +14,7 @@ import { useEffect, useRef, useState } from "react";
 import type { AgentAccessMode, AgentHostEvent, FullAccessGrant } from "../../ai/agent-protocol";
 import { AsterAgentApplicationService } from "../../ai/application-service";
 import { planLocalAiOperations } from "../../ai/local-planner";
-import { renderAgentPreview } from "../../ai/render-preview";
+import { renderAgentContactSheet, renderAgentPreview } from "../../ai/render-preview";
 import type { Operation } from "../../core/editing/operations";
 import { activeComposition } from "../../core/project/project";
 import type { Composition } from "../../core/types";
@@ -144,6 +144,7 @@ export function AiPanel() {
         accessMode,
         primaryModelSupportsImages: provider.supportsImages,
         renderPreview: renderAgentPreview,
+        renderContactSheet: renderAgentContactSheet,
       });
       agentService.current = service;
       try {

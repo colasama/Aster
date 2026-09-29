@@ -84,22 +84,25 @@ export class ReferenceMediaService {
     return { path, ...JSON.parse(result.stdout.toString("utf8")) };
   }
 
-  async frames(input: Record<string, unknown>, signal: AbortSignal) {
+  async frames(input: Record<string, unknown>, signal: AbortSignal, maxSamples = 12) {
     const path = await localMediaPath(input.path);
     const times = input.times as number[];
     const dimension = (input.maxDimension as number | undefined) ?? 384;
     if (
       !Array.isArray(times) ||
       times.length < 1 ||
-      times.length > 12 ||
+      times.length > maxSamples ||
       times.some((t) => !Number.isFinite(t) || t < 0 || t > 86_400)
     )
-      throw new Error("Reference samples require 1 through 12 bounded times");
+      throw new Error(`Reference samples require 1 through ${maxSamples} bounded times`);
     if (!Number.isSafeInteger(dimension) || dimension < 64 || dimension > 2048)
       throw new Error("Reference dimensions must be between 64 and 2048");
     const frames = [];
     let total = 0;
     for (const time of times) {
+      // Accurate input seek near the sample; output timestamps restart at the seek point, so the
+      // select filter and the reported time are relative to it.
+      const seek = Math.max(0, time - 2);
       const result = await runMediaProcess(
         this.ffmpeg,
         [
@@ -107,12 +110,14 @@ export class ReferenceMediaService {
           "-nostdin",
           "-protocol_whitelist",
           "file,pipe",
+          "-ss",
+          String(seek),
           "-i",
           path,
           "-map",
           "0:v:0",
           "-vf",
-          `select=gte(t\\,${time}),showinfo,scale=${dimension}:${dimension}:force_original_aspect_ratio=decrease`,
+          `select=gte(t\\,${time - seek}),showinfo,scale=${dimension}:${dimension}:force_original_aspect_ratio=decrease`,
           "-frames:v",
           "1",
           "-fps_mode",
@@ -137,7 +142,7 @@ export class ReferenceMediaService {
         throw new Error("Reference samples exceeded 12 MiB; reduce resolution or sample count");
       frames.push({
         time,
-        actualTime: Number(timestamp),
+        actualTime: Math.round((Number(timestamp) + seek) * 1e6) / 1e6,
         mimeType: "image/png" as const,
         width: result.stdout.readUInt32BE(16),
         height: result.stdout.readUInt32BE(20),

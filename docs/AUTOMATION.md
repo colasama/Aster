@@ -85,11 +85,11 @@ The direct adapter script can also run under Node.
 | `search_capabilities`, `get_command_schemas`, `list_effects` | Rank commands by intent words (synonyms such as delete→remove, footage→source, lyric→text animator; an empty query or no match returns the name index by category), include matching effect types, load exact schemas, and list effect parameters with defaults and ranges. |
 | `query_project` | Read bounded, paginated project slices. `compositions` lists every composition (nested ones included) with layer counts and parents; `layers`, `properties`, `effects` and `scene` read the active composition or `compositionId`; `query` filters by name; `nextOffset` marks further pages. `projectRevision` is optional for live reads. |
 | `begin_edit_workspace`, `execute_commands`, `execute_aster_code`, `get_execution`, `evaluate_at_time` | Stage validated commands or scripts and evaluate at explicit times. Scripts wait for completion by default. |
-| `render_preview`, `analyze_render`, `inspect_diagnostics` | Render staged frames (video layers are decoded to the exact frame) and inspect objective diagnostics. Samples that are completely black while layers are active, or over a non-black background, return `warnings`. |
+| `render_preview`, `analyze_render`, `inspect_diagnostics` | Render staged frames (video layers are decoded to the exact frame) and inspect objective diagnostics. `contactSheet: { start, end, count \| interval \| times, columns, cellWidth }` tiles up to 64 labeled samples into one image with per-sample metrics. Samples that are completely black while layers are active, or over a non-black background, return `warnings`. |
 | `submit_workspace`, `commit_workspace`, `discard_workspace` | Review a compact diff (operation counts by type; `verbose: true` lists every operation), merge a workspace as one undoable edit (unsubmitted workspaces are submitted automatically), or discard it. A changed live revision blocks commit. |
 | `put_script_module`, `list_script_modules` | Store helper libraries once per connection for `aster.require(name)`. |
 | `probe_reference` | Return FFprobe stream/format metadata for an absolute local media path. |
-| `read_reference_frames` | Return PNG frames, requested times and actual decoded timestamps. |
+| `read_reference_frames` | Return PNG frames, requested times and actual decoded timestamps, or one labeled `contactSheet` of up to 64 samples (for example `{ "interval": 5 }` across the whole file). Each sample seeks directly instead of decoding from the start. |
 | `read_reference_audio` | Return a bounded mono 16 kHz PCM WAV excerpt as native MCP audio content. |
 | `compare_reference` | Return reference/render pairs, 50% overlays, absolute difference images and normalized RGB error. |
 | `import_asset`, `import_assets` | Import image, video, audio, SVG, PSD composition or embedded glTF/GLB into the live active composition as one undoable edit per file. `import_assets` imports up to 32 files in one call and reports per-file layer IDs or errors. `hidden: true` adds switched-off layers; `audioEnabled: false` silences video layers, and video without a decodable audio stream is silenced automatically. |
@@ -142,6 +142,8 @@ Export captures one immutable project/media snapshot. Export destinations must n
 
 - Preview and reference requests accept 1–12 times, with a default maximum edge of 384 pixels and
   an optional `maxDimension` from 64 to 2048. Preview rendering does not upscale a smaller composition.
+  Contact sheets accept up to 64 cells of 64–640 pixels (default 320), stay within 4096 pixels per
+  edge and 12 MiB of PNG, and label each cell with its (actual, for references) time.
 - `crop` uses normalized `x`, `y`, `width`, `height` inside the complete frame. Cropping happens after
   the bounded render/decode; it does not increase source sampling resolution. `layerIds` isolates
   active-composition layers in the cloned preview, preserving the live project.

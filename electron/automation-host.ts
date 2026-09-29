@@ -3,6 +3,11 @@ import { access, realpath, stat } from "node:fs/promises";
 import { isAbsolute, join } from "node:path";
 import { type BrowserWindow, ipcMain } from "electron";
 import type { AutomationRequest } from "../src/ai/automation-protocol.js";
+import {
+  type ContactSheetRequest,
+  contactSheetTimes,
+  MAX_CONTACT_SHEET_CELLS,
+} from "../src/ai/contact-sheet-spec.js";
 import { EditError } from "../src/ai/edit-limits.js";
 import { type AutomationCall, startAutomationServer } from "./automation-server.js";
 import { readProjectFont } from "./font-files.js";
@@ -142,7 +147,36 @@ export async function startAutomationHost(options: {
       return renderer({ ...call, arguments: { ...input, font } }, signal);
     }
     if (call.name === "probe_reference") return media.probe(input.path, signal);
-    if (call.name === "read_reference_frames") return media.frames(input, signal);
+    if (call.name === "read_reference_frames") {
+      if (!input.contactSheet) {
+        if (!Array.isArray(input.times)) throw new Error("Pass times or contactSheet");
+        return media.frames(input, signal);
+      }
+      const sheet = input.contactSheet as ContactSheetRequest;
+      const duration =
+        sheet.times || (sheet.start !== undefined && sheet.end !== undefined)
+          ? 0
+          : Number((await media.probe(input.path, signal)).format?.duration);
+      const times = contactSheetTimes(sheet, [0, Number.isFinite(duration) ? duration : 0]);
+      const decoded = await media.frames(
+        { path: input.path, times, maxDimension: sheet.cellWidth ?? 320 },
+        signal,
+        MAX_CONTACT_SHEET_CELLS,
+      );
+      const composed = await renderer(
+        {
+          ...call,
+          name: "compose_contact_sheet",
+          arguments: { contactSheet: sheet, frames: decoded.frames },
+        },
+        signal,
+      );
+      return {
+        path: decoded.path,
+        timestampPolicy: decoded.timestampPolicy,
+        ...(composed as Record<string, unknown>),
+      };
+    }
     if (call.name === "read_reference_audio") return media.audio(input, signal);
     if (call.name === "compare_reference") {
       const offset = (input.offset as number | undefined) ?? 0;
