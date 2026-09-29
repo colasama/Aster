@@ -19,7 +19,7 @@ import {
 } from "../render-queue/render-job-builder";
 import { type EditorState, isProjectDirty } from "../state/editor-store";
 import { AsterAgentApplicationService } from "./application-service";
-import { importAutomationAsset } from "./automation-import";
+import { importAutomationAsset, relinkAutomationSource } from "./automation-import";
 import { type AutomationRequest, MAX_RENDER_WAIT_MS } from "./automation-protocol";
 import { type ContactSheetRequest, composeContactSheet, formatSheetTime } from "./contact-sheet";
 import { EDIT_LIMITS, EditError, encodedBytes, limitExceeded } from "./edit-limits";
@@ -231,6 +231,32 @@ export class AutomationApplicationService {
         projectRevision: this.context.read().projectRevision,
         layerIds: imported.layerIds,
         warnings: imported.warnings,
+      };
+    }
+    if (name === "relink_source") {
+      this.#assertRevision(input.baseRevision, session.projectId, signal);
+      const relinked = await relinkAutomationSource(state.project, input, signal);
+      try {
+        this.#assertRevision(input.baseRevision, session.projectId, signal);
+        if (relinked.operations.length > 0) {
+          validateProjectDocument(applyOperations(state.project, relinked.operations));
+          this.context.commit(
+            relinked.operations,
+            "Relink footage through external automation",
+            state.projectRevision,
+          );
+        }
+      } catch (error) {
+        relinked.dispose();
+        throw error;
+      }
+      this.cancel(clientId, false, true);
+      return {
+        projectRevision: this.context.read().projectRevision,
+        previousSourceId: input.sourceId,
+        sourceId: relinked.sourceId,
+        retargetedLayers: relinked.retargetedLayers,
+        removedPrevious: input.removeOld !== false && relinked.operations.length > 0,
       };
     }
     if (name === "open_project") {

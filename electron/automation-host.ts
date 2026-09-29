@@ -189,7 +189,11 @@ export async function startAutomationHost(options: {
         signal,
       );
     }
-    if (["import_asset", "open_project", "save_project", "export_render"].includes(call.name)) {
+    if (
+      ["import_asset", "relink_source", "open_project", "save_project", "export_render"].includes(
+        call.name,
+      )
+    ) {
       if (typeof input.path !== "string" || !isAbsolute(input.path))
         throw new Error("Use an absolute local path");
       if (call.name === "open_project") {
@@ -199,7 +203,7 @@ export async function startAutomationHost(options: {
         options.authorize(path, false);
         return renderer({ ...call, arguments: { ...input, path } }, signal);
       }
-      if (call.name === "import_asset")
+      if (call.name === "import_asset" || call.name === "relink_source")
         return renderer(
           { ...call, arguments: { ...input, ...(await authorizedImport(input.path)) } },
           signal,

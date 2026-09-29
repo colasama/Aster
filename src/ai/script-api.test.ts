@@ -197,6 +197,62 @@ describe("agent script API", () => {
     ).rejects.toThrow("Invalid expression for gaussian-blur.radius");
   });
 
+  it("removes compositions in dependency order and collects unreachable ones", async () => {
+    const result = await executeScript(
+      task(`
+        const main = aster.compositions.active();
+        const shot = (name) => { const l = main.layers.addText({ name, text: name }); return main.precompose([l.id], name); };
+        const kept = shot('SHOT_KEPT');
+        const orphan = shot('SHOT_ORPHAN');
+        const inner = orphan.composition.layers.list()[0];
+        const nested = orphan.composition.precompose([inner.id], 'SHOT_ORPHAN_INNER');
+        orphan.wrapper.remove();
+        const loose = aster.compositions.add({ name: 'LOOSE', width: 64, height: 64, duration: 1 });
+        const preview = aster.compositions.collectUnused({ dryRun: true });
+        const removed = aster.compositions.collectUnused({ keep: ['LOOSE'] });
+        const explicit = aster.compositions.remove([loose.id]);
+        return { preview, removed, explicit, left: aster.compositions.list().map(c => c.name) };
+      `),
+    );
+    const data = result.result as {
+      preview: { unused: { name: string }[] };
+      removed: { removed: { name: string }[] };
+      explicit: { name: string }[];
+      left: string[];
+    };
+    expect(data.preview.unused.map((c) => c.name).sort()).toEqual(
+      ["LOOSE", "SHOT_ORPHAN", "SHOT_ORPHAN_INNER"].sort(),
+    );
+    expect(data.removed.removed.map((c) => c.name).sort()).toEqual(
+      ["SHOT_ORPHAN", "SHOT_ORPHAN_INNER"].sort(),
+    );
+    expect(data.explicit.map((c) => c.name)).toEqual(["LOOSE"]);
+    expect(data.left).toHaveLength(2);
+    expect(data.left).toContain("SHOT_KEPT");
+  });
+
+  it("fits a 3D layer to the camera path and applies the multiplier", async () => {
+    const result = await executeScript(
+      task(`
+        const c = aster.compositions.active();
+        const info = c.inspect();
+        const l = c.layers.add({ kind: 'solid', name: 'BG', solid: { width: info.width, height: info.height, color: [1, 1, 1, 1] } });
+        aster.command({ type: 'toggleLayer', layerId: l.id, field: 'threeDimensional' });
+        l.set({ position: [info.width / 2, info.height / 2, 1500] });
+        const fit = l.fitToCamera({ margin: 20, samples: 4 });
+        return { fit, scale: l.inspect(['transform.scale']) };
+      `),
+    );
+    const data = result.result as {
+      fit: { scaleMultiplier: number; applied: boolean };
+      scale: { "transform.scale": Array<{ value: number }> };
+    };
+    expect(data.fit.applied).toBe(true);
+    expect(data.fit.scaleMultiplier).toBeGreaterThan(1.5);
+    expect(data.scale["transform.scale"][0].value).toBeCloseTo(100 * data.fit.scaleMultiplier, 3);
+    expect(data.scale["transform.scale"][2].value).toBe(100);
+  });
+
   it("suggests close effect names and lists valid parameters", async () => {
     await expect(
       executeScript(

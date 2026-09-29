@@ -10,6 +10,11 @@ import { AiCommandBatch, layerSourceRange } from "./command-normalizer";
 import { EDIT_LIMITS, EditError, encodedBytes, limitExceeded } from "./edit-limits";
 import type { EditProgress, EditTask, EditTaskResult } from "./edit-task";
 import { SCRIPT_API } from "./script-api";
+import {
+  collectUnusedCompositions,
+  fitScriptLayer,
+  removeScriptCompositions,
+} from "./script-host-actions";
 
 const SCRIPT_FILE = "aster-script.js";
 /** User code starts on the second line of the evaluated wrapper. */
@@ -72,6 +77,17 @@ export async function executeScript(
         deadline,
       }),
     );
+    install("__asterAction", ({ action, input }) => {
+      const value = isRecord(input) ? input : {};
+      if (action === "fitToCamera") return fitScriptLayer(batch, value);
+      if (action === "removeCompositions")
+        return removeScriptCompositions(
+          batch,
+          Array.isArray(value.ids) ? value.ids.map(String) : [],
+        );
+      if (action === "collectUnusedCompositions") return collectUnusedCompositions(batch, value);
+      throw new Error(`Unknown script action: ${String(action)}`);
+    });
     install("__asterProgress", ({ fraction, message }) => {
       if (
         typeof fraction !== "number" ||

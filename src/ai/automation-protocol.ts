@@ -74,6 +74,16 @@ export function automationToolDefinitions() {
       },
     ],
     [
+      "relink_source",
+      "Replace a still, video or audio source with another local file of the same kind (for example a higher-resolution render), retargeting every layer in every composition as one undoable edit. The old source is removed unless removeOld is false. Returns the new sourceId.",
+      {
+        sourceId: Type.String({ minLength: 1 }),
+        path,
+        baseRevision: revision,
+        removeOld: Type.Optional(Type.Boolean()),
+      },
+    ],
+    [
       "open_project",
       "Open a native project bundle directory at the current live revision, including its media and fonts. Save unsaved edits first. Invalidates all staged workspaces; no file dialog is shown.",
       { path, baseRevision: revision },

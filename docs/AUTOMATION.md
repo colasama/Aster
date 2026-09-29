@@ -96,6 +96,7 @@ The direct adapter script can also run under Node.
 | `list_fonts` | List system faces and embedded project fonts, filtered by `source` (`all`, `system`, `project`) and `query`, with `offset`/`limit` pagination (maximum 128). Returns metadata, never font bytes. |
 | `check_fonts` | Check 1–64 exact family names against project fonts and Chromium's system inventory. If inventory access fails, explicitly report heuristic `fallback-metrics` results. No glyph-coverage or resolved-fallback guarantee. |
 | `import_font` | Embed a local TTF/OTF/WOFF/WOFF2 font face with an explicit `family` alias and optional `weight` (default 400), at `baseRevision`. Decode before committing one undoable edit. Project-only; no OS installation. |
+| `relink_source` | Replace a still, video or audio source with another local file of the same kind (for example a higher-resolution render). Every layer using it, in every composition, is retargeted as one undoable edit; the old source is removed unless `removeOld: false`. Returns the new `sourceId`. |
 | `save_project` | Save an exact project revision and collect media into an absolute bundle directory. Replacing an existing `project.json` requires `overwrite: true`. |
 | `open_project` | Open an absolute native bundle directory at `baseRevision` without a file dialog. Loads fonts and media, resets the editor history and invalidates all automation workspaces. Save unsaved edits first. Packed `.aster` files must be unpacked first. |
 | `export_render`, `wait_render`, `get_render_queue`, `cancel_render` | Queue an immutable MP4, PNG sequence or still snapshot and return only that job; block until it settles (up to 100 s per call); read compact job status newest first or by `jobId`; cancel a job. |
@@ -241,6 +242,14 @@ returns only the named dot paths, and every layer inspection includes `sourceRan
 values divided by 255). `aster.require(name)` evaluates a stored module once per execution; the
 module body receives `module`, `exports` and `aster`. All writes pass through command
 normalization; direct object mutation only changes returned JSON copies.
+
+`aster.compositions.remove(ids)` removes compositions in dependency order, and
+`aster.compositions.collectUnused({ keep, dryRun, sources })` removes every composition that the
+active composition (plus `keep`, by id or name) cannot reach through precomposition layers;
+`sources: true` also drops unused footage. `layer.fitToCamera({ margin, cameraId, samples, apply })`
+samples the layer's span, projects its rendered quad through the active (or given) camera, and
+returns the smallest uniform XY scale multiplier that keeps the frame covered along the whole
+camera path; by default it multiplies the static or keyframed X/Y scale.
 
 `setEffectParameterExpression` (`layer.setEffectExpression(effectId, parameter, expr)`, or
 `layer.property('effects.<effectId>.<parameter>').setExpression(expr)`) drives an effect parameter

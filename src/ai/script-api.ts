@@ -4,6 +4,7 @@ export const SCRIPT_API = `
   const call = (name, value) => JSON.parse(globalThis[name](JSON.stringify(value)));
   const command = (command, compositionId) => call('__asterCommand', { command, compositionId });
   const query = (kind, compositionId, id, options) => call('__asterQuery', { kind, compositionId, id, options });
+  const action = (action, input) => call('__asterAction', { action, input });
   const hex = (value, alpha = 1) => {
     const match = /^#?([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.exec(String(value));
     if (!match) throw new Error('Color must be #rgb, #rrggbb or #rrggbbaa: ' + value);
@@ -58,6 +59,7 @@ export const SCRIPT_API = `
     remove: () => command({ type: 'removeLayer', layerId: id }, compositionId),
     duplicate: name => layer(compositionId, command({ type: 'duplicateLayer', layerId: id, ...(name === undefined ? {} : {name}) }, compositionId).id),
     addEffect: (effectType, parameters = {}) => command({ type: 'addEffect', layerId: id, effectType, parameters }, compositionId),
+    fitToCamera: (options = {}) => action('fitToCamera', { compositionId, layerId: id, options }),
     setEffectExpression: (effectId, parameter, expression) =>
       command({ type: 'setEffectParameterExpression', layerId: id, effectId, parameter, expression }, compositionId),
   });
@@ -109,6 +111,8 @@ export const SCRIPT_API = `
       active: () => composition(query('active').id),
       get: id => { query('composition', id); return composition(id); },
       find: name => { const found = query('compositions', undefined, undefined, { name, limit: 1 })[0]; return found ? composition(found.id) : undefined; },
+      remove: ids => action('removeCompositions', { ids: Array.isArray(ids) ? ids : [ids] }),
+      collectUnused: (options = {}) => action('collectUnusedCompositions', options),
       add: ({ name, width, height, duration, frameRate = [30, 1], activate = false }) => {
         const rate = Array.isArray(frameRate) ? frameRate : [frameRate, 1];
         return composition(command({ type: 'addComposition', name, width, height, duration, frameRateNumerator: rate[0], frameRateDenominator: rate[1], activate }).id);
@@ -137,6 +141,9 @@ export const SCRIPT_API_DOCS = {
     "composition.layers.add({kind,name,...commandFields,position?,scale?,rotation?,anchor?,opacity?,color?,properties?,expressions?,textStyle?}) -> layer handle",
     "composition.layers.addText({text,...options}) -> layer handle; composition.layers.set(ids, values)",
     "composition.precompose(layerIds, name?) -> {compositionId, wrapperLayerId, composition, wrapper}",
+    "aster.compositions.remove(ids) removes compositions in dependency order (parents before nested children) -> [{id,name}]",
+    "aster.compositions.collectUnused({keep?: [id|name], dryRun?, sources?}) removes compositions unreachable from the active one (and keep) through precomps; sources:true also removes unused footage",
+    "layer.fitToCamera({margin?, cameraId?, start?, end?, samples?, apply?: true}) -> {scaleMultiplier, criticalTime, alreadyCovered}: smallest uniform XY scale so a 3D layer covers the frame along the whole camera path",
     "layer.set({name?,text?,textStyle?,color?,position?,scale?,rotation?,anchor?,opacity?,properties?,expressions?})",
     "layer.property(path).set(number) / setKeyframes([{time,value,interpolation?,easing?}]) (replaces keys) / setExpression(expr) ('' clears)",
     "layer.setTiming(inPoint, outPoint); layer.setTimeMapping({sourceStart, stretch?}) sets the source time shown at inPoint",
