@@ -151,21 +151,35 @@ describe("exact-frame resource capture", () => {
     await expect(first).resolves.toBe("first");
   });
 
-  it("waits for video preparation before capture without reading a placeholder", async () => {
+  it("marks only the first attempt as discovery and recaptures after the media wait", async () => {
     const media = deferred<void>();
-    const prepare = vi.fn();
-    const capture = vi.fn(async () => "exact-video");
-    const frame = new ExactFrameCaptureQueue<string>().capture(
-      capture,
-      { hasPendingFrameResources: true, waitForFrameResources: () => media.promise },
-      prepare,
-    );
+    const attempts: boolean[] = [];
+    const capture = vi.fn(async (discovery: boolean) => {
+      attempts.push(discovery);
+      if (discovery) throw new Error("Frame readback was not encoded before mapping");
+      return "exact-video";
+    });
+    const frame = new ExactFrameCaptureQueue<string>().capture(capture, {
+      hasPendingFrameResources: true,
+      waitForFrameResources: () => media.promise,
+    });
     await Promise.resolve();
-    expect(prepare).toHaveBeenCalledOnce();
-    expect(capture).not.toHaveBeenCalled();
+    expect(attempts).toEqual([true]);
     media.resolve(undefined);
     await expect(frame).resolves.toBe("exact-video");
+    expect(attempts).toEqual([true, false]);
+  });
+
+  it("renders a ready frame exactly once, never twice back to back", async () => {
+    const capture = vi.fn(async () => "ready");
+    await expect(
+      new ExactFrameCaptureQueue<string>().capture(capture, {
+        hasPendingFrameResources: false,
+        waitForFrameResources: async () => undefined,
+      }),
+    ).resolves.toBe("ready");
     expect(capture).toHaveBeenCalledOnce();
+    expect(capture).toHaveBeenCalledWith(true);
   });
 });
 

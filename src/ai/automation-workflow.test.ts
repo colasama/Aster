@@ -268,3 +268,31 @@ describe("low-round-trip external automation", () => {
     }
   });
 });
+
+describe("preview black-frame warnings", () => {
+  it("flags black samples only when content or a non-black background is expected", async () => {
+    const { blackFrameWarnings } = await import("./application-service");
+    const project = createInitialState().project;
+    const composition = project.compositions[0];
+    const measurements = (emptyFrame: boolean) => ({
+      averageLuminance: 0,
+      minimumLuminance: 0,
+      maximumLuminance: emptyFrame ? 0 : 1,
+      visiblePixelRatio: 1,
+      emptyFrame,
+    });
+    const active = composition.layers.find((layer) => layer.inPoint <= 0 && layer.outPoint > 0);
+    expect(active).toBeDefined();
+    expect(blackFrameWarnings(project, [{ time: 0, measurements: measurements(true) }])).toEqual([
+      expect.stringContaining("completely black"),
+    ]);
+    expect(blackFrameWarnings(project, [{ time: 0, measurements: measurements(false) }])).toEqual(
+      [],
+    );
+    composition.layers = [];
+    composition.background = [0, 0, 0, 1];
+    expect(blackFrameWarnings(project, [{ time: 0, measurements: measurements(true) }])).toEqual(
+      [],
+    );
+  });
+});

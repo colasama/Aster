@@ -247,18 +247,19 @@ export class WebGpuRenderer {
     synchronizeVideo = false,
   ): Promise<RawVideoFrame> {
     this.#assertActive();
+    // Video exports hold the discovery capture until every active video shows its exact frame,
+    // so the only readback submitted is the exact one.
     return this.#frameCaptures.capture(
-      () => this.#captureRawFrame(composition, time, project),
+      (discovery) =>
+        this.#captureRawFrame(composition, time, project, synchronizeVideo && discovery),
       this.#resources.mediaTextures,
-      synchronizeVideo
-        ? () => this.render(composition, time, false, project, undefined, true)
-        : undefined,
     );
   }
   #captureRawFrame(
     composition: Composition,
     time: number,
     project?: Project,
+    holdInexactVideo = false,
   ): Promise<RawVideoFrame> {
     if (this.#pendingFrameReadback)
       return Promise.reject(new Error("A GPU frame readback is already being encoded"));
@@ -267,7 +268,7 @@ export class WebGpuRenderer {
     try {
       // The first capture exists to register pending media; holding keeps its incomplete
       // frame off the preview canvas. The barrier waits and recaptures the ready frame.
-      this.render(composition, time, false, project, undefined, true);
+      this.render(composition, time, false, project, undefined, true, holdInexactVideo);
       const productionError = this.productionRenderError;
       if (productionError) throw new Error(productionError);
     } catch (error) {
@@ -285,6 +286,7 @@ export class WebGpuRenderer {
     project?: Project,
     selectedLayerId?: string,
     holdPendingMedia = false,
+    holdInexactVideo = false,
   ): RendererMetrics {
     try {
       return this.#renderFrame(
@@ -294,6 +296,7 @@ export class WebGpuRenderer {
         project,
         selectedLayerId,
         holdPendingMedia,
+        holdInexactVideo,
       );
     } catch (error) {
       this.#resources.mediaTextures.abortFrame();
@@ -307,6 +310,7 @@ export class WebGpuRenderer {
     project?: Project,
     selectedLayerId?: string,
     holdPendingMedia = false,
+    holdInexactVideo = false,
   ): RendererMetrics {
     const resources = this.#resources;
     this.#assertActive();
@@ -576,7 +580,11 @@ export class WebGpuRenderer {
       ) ||
         [...surfaceFrame.mediaInstanceIds].some(
           (instanceId) => !resources.mediaTextures.mediaReady(instanceId),
-        ))
+        ) ||
+        (holdInexactVideo &&
+          [...activeMediaInstanceIds].some(
+            (instanceId) => !resources.mediaTextures.videoFrameExact(instanceId),
+          )))
     ) {
       // Keep the previously presented frame until every visible layer can draw real media;
       // a finished install or a failure both invalidate and release the hold.

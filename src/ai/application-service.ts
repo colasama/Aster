@@ -2,6 +2,7 @@ import { buildAiContext } from "../core/editing/ai-context";
 import type { Operation } from "../core/editing/operations";
 import { prepareProjectFonts } from "../core/media/project-font-runtime";
 import { activeComposition } from "../core/project/project";
+import { visibleLayersAtTime } from "../core/scene/scene-evaluation";
 import { createId, type Project } from "../core/types";
 import { EFFECT_REGISTRY } from "../effects/registry";
 import type { AgentAccessMode, VisualObservation, VisualVerification } from "./agent-protocol";
@@ -569,11 +570,13 @@ export class AsterAgentApplicationService {
           throw new EditError("workspace_changed", "Workspace changed during preview");
         assertRenderedFrames(frames, times);
         workspace.previewFrames = structuredClone(frames);
+        const warnings = blackFrameWarnings(workspace.project, frames);
         return {
           workspaceId: workspace.id,
           workspaceRevision: workspace.revision,
           status: "rendered",
           frames,
+          ...(warnings.length ? { warnings } : {}),
           verification: this.#context.primaryModelSupportsImages
             ? "verified_by_primary_model"
             : "metrics_only",
@@ -864,4 +867,24 @@ function matchingEffects(query: string) {
     .filter((entry) => entry.score > 0)
     .sort((left, right) => right.score - left.score || left.index - right.index)
     .map((entry) => entry.effect);
+}
+
+/** Flags black samples that should show content, instead of letting them pass silently. */
+export function blackFrameWarnings(
+  project: Project,
+  frames: readonly Pick<AgentRenderedPreviewFrame, "time" | "measurements">[],
+): string[] {
+  const composition = activeComposition(project);
+  const background = composition.background;
+  const blackBackground = background[3] < 0.01 || Math.max(...background.slice(0, 3)) < 1 / 255;
+  return frames.flatMap((frame) => {
+    if (!frame.measurements.emptyFrame) return [];
+    const active = visibleLayersAtTime(composition, frame.time).filter(
+      (layer) => layer.kind !== "camera" && layer.kind !== "light" && layer.kind !== "null",
+    );
+    if (active.length === 0 && blackBackground) return [];
+    return [
+      `Frame at ${frame.time}s is completely black although ${active.length} layer(s) are active${blackBackground ? "" : " and the background is not black"}; check layer sourceRange/time mapping, opacity and media.`,
+    ];
+  });
 }

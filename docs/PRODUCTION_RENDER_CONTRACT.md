@@ -81,7 +81,12 @@ browser PNG encoder. Alpha is preserved in both cases.
 Output frames are addressed directly as `frameIndex * denominator / numerator`; no accumulated
 floating-point frame clock is used. Compositions containing video advertise `seek-and-await`, limit
 the session to one in-flight frame, seek media for the requested time, await the decoded frame, and
-then capture the beauty output. Compositions without video can use up to three ordered WebGPU
+then capture the beauty output. Video frames use the same discovery capture as other media: the
+first render holds without encoding while any active video lacks its exact frame, and a redraw
+follows only after the asynchronous seek completes. A frame whose media is already exact is
+rendered once; the renderer never renders the swap-chain texture twice back to back before a
+readback, because that sequence can read back black pixels. Exact seeks are biased forward by
+0.1 ms so frame-boundary times decode the intended frame. Compositions without video can use up to three ordered WebGPU
 readbacks. The Canvas 2D fallback rejects deterministic video export instead of encoding a stale
 decoded frame.
 
