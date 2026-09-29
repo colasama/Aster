@@ -75,6 +75,8 @@ export const SCRIPT_API = `
       id,
       inspect: () => query('composition', id),
       activate: () => command({ type: 'setActiveComposition', compositionId: id }),
+      markers: kind => query('markers', id, undefined, kind === undefined ? {} : { kind }),
+      setMarkers: markers => command({ type: 'setCompositionMarkers', compositionId: id, markers }),
       precompose: (layerIds, name) => {
         const created = command({ type: 'precomposeLayers', layerIds, ...(name === undefined ? {} : {name}) }, id);
         return { compositionId: created.compositionId, wrapperLayerId: created.wrapperLayerId, composition: composition(created.compositionId), wrapper: layer(id, created.wrapperLayerId) };
@@ -141,6 +143,7 @@ export const SCRIPT_API_DOCS = {
     "composition.layers.add({kind,name,...commandFields,position?,scale?,rotation?,anchor?,opacity?,color?,properties?,expressions?,textStyle?}) -> layer handle",
     "composition.layers.addText({text,...options}) -> layer handle; composition.layers.set(ids, values)",
     "composition.precompose(layerIds, name?) -> {compositionId, wrapperLayerId, composition, wrapper}",
+    "composition.markers(kind?) -> [{id,time,kind,label?}] (beat/downbeat/section/marker); composition.setMarkers(list) replaces them",
     "aster.compositions.remove(ids) removes compositions in dependency order (parents before nested children) -> [{id,name}]",
     "aster.compositions.collectUnused({keep?: [id|name], dryRun?, sources?}) removes compositions unreachable from the active one (and keep) through precomps; sources:true also removes unused footage",
     "layer.fitToCamera({margin?, cameraId?, start?, end?, samples?, apply?: true}) -> {scaleMultiplier, criticalTime, alreadyCovered}: smallest uniform XY scale so a 3D layer covers the frame along the whole camera path",
@@ -174,9 +177,11 @@ export const SCRIPT_API_DOCS = {
     functions: [
       "abs ceil floor round sqrt sin cos tan",
       "min(a,...) max(a,...) pow(a,b) clamp(x,lo,hi)",
+      "linear(x,a,b,from,to) (extrapolates) ease(x,a,b,from,to) (smoothstep, clamped)",
+      "beat(bpm, offset, division?) beat index; beatphase(bpm, offset, division?) 0..1 within each beat (bpm/offset from analyze_beats; also in text selectors)",
     ],
     operators: "+ - * / % ^ and parentheses; max 2048 characters",
-    example: "value + 12 * sin(time * 2 * pi * 128 / 60)",
+    example: "value * (1 + 0.15 * pow(1 - beatphase(150, 0.397), 3))",
   },
   textAnimators: {
     summary:

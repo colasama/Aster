@@ -1,4 +1,5 @@
 import type { Animatable, EvaluatedTransform, Layer } from "../types";
+import { beatIndex, beatPhase } from "./beat-functions";
 import { evaluateAnimatable } from "./timeline";
 
 interface ExpressionContext {
@@ -196,7 +197,7 @@ class Parser {
       }
     }
     this.expect("right");
-    return callFunction(name, arguments_);
+    return callFunction(name, arguments_, this.context.time);
   }
 
   private variable(name: string): number {
@@ -236,7 +237,17 @@ function applyOperator(operator: string, left: number, right: number): number {
   return left ** right;
 }
 
-function callFunction(name: string, values: number[]): number {
+function callFunction(name: string, values: number[], time: number): number {
+  if ((name === "beat" || name === "beatphase") && values.length >= 1 && values.length <= 3)
+    return (name === "beat" ? beatIndex : beatPhase)(time, values[0], values[1], values[2]);
+  if ((name === "linear" || name === "ease") && values.length === 5) {
+    const [value, start, end, from, to] = values;
+    // Same semantics as text-selector expressions: linear extrapolates, ease clamps.
+    const raw = (value - start) / (end - start || 1);
+    const clamped = Math.min(1, Math.max(0, raw));
+    const progress = name === "ease" ? clamped * clamped * (3 - 2 * clamped) : raw;
+    return from + (to - from) * progress;
+  }
   const unary = UNARY_FUNCTIONS[name];
   if (unary && values.length === 1) return unary(values[0]);
   if (name === "min" && values.length >= 1) return Math.min(...values);

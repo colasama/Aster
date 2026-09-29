@@ -11,6 +11,7 @@ import {
   type Animatable,
   type AudioLayerSettings,
   type CameraSettings,
+  type CompositionMarker,
   createId,
   type EffectMask,
   type FootageSource,
@@ -169,6 +170,20 @@ export function normalizeExtendedAiCommand(
           rotation:
             typeof input.rotation === "number" ? input.rotation : target.environment.rotation,
         },
+      };
+    }
+    case "setCompositionMarkers": {
+      const compositionId = requiredId(input.compositionId, "compositionId");
+      requireComposition(project, compositionId);
+      return {
+        type: "setCompositionMarkers",
+        compositionId,
+        markers: (input.markers as Array<Partial<CompositionMarker>>).map((marker) => ({
+          id: typeof marker.id === "string" && marker.id ? marker.id : createId(),
+          time: Number(marker.time),
+          kind: marker.kind ?? "marker",
+          ...(typeof marker.label === "string" ? { label: marker.label } : {}),
+        })),
       };
     }
     case "setCompositionWorkArea": {

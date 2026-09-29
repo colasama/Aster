@@ -3,12 +3,14 @@ import { access, realpath, stat } from "node:fs/promises";
 import { isAbsolute, join } from "node:path";
 import { type BrowserWindow, ipcMain } from "electron";
 import type { AutomationRequest } from "../src/ai/automation-protocol.js";
+import { beatSummary } from "../src/ai/beat-summary.js";
 import {
   type ContactSheetRequest,
   contactSheetTimes,
   MAX_CONTACT_SHEET_CELLS,
 } from "../src/ai/contact-sheet-spec.js";
 import { EditError } from "../src/ai/edit-limits.js";
+import { analyzeBeats } from "../src/core/audio/beat-analysis.js";
 import { type AutomationCall, startAutomationServer } from "./automation-server.js";
 import { readProjectFont } from "./font-files.js";
 import { mediaMimeType, ReferenceMediaService } from "./reference-media.js";
@@ -178,6 +180,16 @@ export async function startAutomationHost(options: {
       };
     }
     if (call.name === "read_reference_audio") return media.audio(input, signal);
+    if (call.name === "analyze_beats" && typeof input.path === "string") {
+      const decoded = await media.pcm(input.path, signal);
+      const analysis = analyzeBeats(decoded.samples, decoded.sampleRate, {
+        ...(typeof input.minBpm === "number" ? { minBpm: input.minBpm } : {}),
+        ...(typeof input.maxBpm === "number" ? { maxBpm: input.maxBpm } : {}),
+        ...(typeof input.beatsPerBar === "number" ? { beatsPerBar: input.beatsPerBar } : {}),
+      });
+      if (input.writeMarkers !== true) return { path: decoded.path, ...beatSummary(analysis) };
+      return renderer({ ...call, arguments: { ...input, analysis } }, signal);
+    }
     if (call.name === "compare_reference") {
       const offset = (input.offset as number | undefined) ?? 0;
       const reference = await media.frames(

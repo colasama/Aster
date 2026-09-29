@@ -96,6 +96,7 @@ The direct adapter script can also run under Node.
 | `list_fonts` | List system faces and embedded project fonts, filtered by `source` (`all`, `system`, `project`) and `query`, with `offset`/`limit` pagination (maximum 128). Returns metadata, never font bytes. |
 | `check_fonts` | Check 1–64 exact family names against project fonts and Chromium's system inventory. If inventory access fails, explicitly report heuristic `fallback-metrics` results. No glyph-coverage or resolved-fallback guarantee. |
 | `import_font` | Embed a local TTF/OTF/WOFF/WOFF2 font face with an explicit `family` alias and optional `weight` (default 400), at `baseRevision`. Decode before committing one undoable edit. Project-only; no OS installation. |
+| `analyze_beats` | Estimate BPM, a constant-tempo beat grid (offset of beat zero), downbeats and loudness-based sections from project audio (`layerId` maps results onto the composition through the layer's in point and time mapping; `sourceId` reports source time) or a local file (`path`, decoded with FFmpeg). Returns ready-to-paste expressions such as `pow(1 - beatphase(bpm, offset), 3)`. `writeMarkers: true` with `baseRevision` writes beat, downbeat and section markers into the composition as one undoable edit and keeps custom markers. |
 | `relink_source` | Replace a still, video or audio source with another local file of the same kind (for example a higher-resolution render). Every layer using it, in every composition, is retargeted as one undoable edit; the old source is removed unless `removeOld: false`. Returns the new `sourceId`. |
 | `save_project` | Save an exact project revision and collect media into an absolute bundle directory. Replacing an existing `project.json` requires `overwrite: true`. |
 | `open_project` | Open an absolute native bundle directory at `baseRevision` without a file dialog. Loads fonts and media, resets the editor history and invalidates all automation workspaces. Save unsaved edits first. Packed `.aster` files must be unpacked first. |
@@ -250,6 +251,12 @@ active composition (plus `keep`, by id or name) cannot reach through precomposit
 samples the layer's span, projects its rendered quad through the active (or given) camera, and
 returns the smallest uniform XY scale multiplier that keeps the frame covered along the whole
 camera path; by default it multiplies the static or keyframed X/Y scale.
+
+Expressions (layer properties, effect parameters and text selectors) accept `beat(bpm, offset,
+division?)` and `beatphase(bpm, offset, division?)`, which count beats and rise from 0 to 1 within
+each beat of a constant-tempo grid, plus `linear(x, a, b, from, to)` and `ease(x, a, b, from, to)`.
+Composition markers (`setCompositionMarkers`, `composition.markers()`, `query_project` kind
+`markers`) appear on the timeline ruler.
 
 `setEffectParameterExpression` (`layer.setEffectExpression(effectId, parameter, expr)`, or
 `layer.property('effects.<effectId>.<parameter>').setExpression(expr)`) drives an effect parameter

@@ -190,6 +190,32 @@
   font-size: 9px;
   white-space: nowrap;
 }
+.timeline-marker {
+  position: absolute;
+  z-index: 1;
+  bottom: 0;
+  left: calc(var(--timeline-t, 0) * var(--timeline-pps, 82px));
+  width: 1px;
+  height: 4px;
+  background: rgb(232 181 76 / 45%);
+  pointer-events: none;
+}
+.timeline-marker.downbeat {
+  height: 8px;
+  background: rgb(232 181 76 / 80%);
+}
+.timeline-marker.section {
+  top: 8px;
+  width: 2px;
+  height: auto;
+  background: rgb(92 196 160 / 90%);
+}
+.timeline-marker.marker {
+  top: 8px;
+  width: 2px;
+  height: auto;
+  background: rgb(214 108 214 / 90%);
+}
 .work-area {
   position: absolute;
   z-index: 2;

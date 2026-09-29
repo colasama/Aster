@@ -305,3 +305,11 @@ language: `time` is the clock that also samples `parameterKeyframes`, and `value
 static parameter value, so `value * (1 + 0.3 * sin(time * 2 * pi * 2))` pulses around it. Invalid
 or non-finite results fall back to `value`. Validation rejects expressions for unknown parameters.
 The field is additive, so older documents load unchanged and the schema version does not change.
+
+### Optional composition markers
+
+A composition may contain `markers`, a time-sorted array of at most 4096 entries
+`{ id, time, kind, label? }`. `kind` is `marker` (a custom cue), `beat`, `downbeat` or `section`;
+`time` lies inside the composition duration; `label` has at most 256 characters. Marker ids are
+unique within the composition. Beat analysis replaces `beat`, `downbeat` and `section` markers and
+keeps custom ones. The field is additive and does not change the schema version.

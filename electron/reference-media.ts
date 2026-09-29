@@ -157,6 +157,38 @@ export class ReferenceMediaService {
     };
   }
 
+  /** Decodes the first audio stream as mono float PCM for offline analysis (up to 15 minutes). */
+  async pcm(pathValue: unknown, signal: AbortSignal, sampleRate = 22_050) {
+    const path = await localMediaPath(pathValue);
+    const result = await runMediaProcess(
+      this.ffmpeg,
+      [
+        "-hide_banner",
+        "-nostdin",
+        "-protocol_whitelist",
+        "file,pipe",
+        "-i",
+        path,
+        "-map",
+        "0:a:0",
+        "-ac",
+        "1",
+        "-ar",
+        String(sampleRate),
+        "-f",
+        "f32le",
+        "pipe:1",
+      ],
+      signal,
+      sampleRate * 4 * 15 * 60,
+    );
+    if (result.stdout.length < sampleRate * 4) throw new Error("Reference has no decodable audio");
+    const samples = new Float32Array(result.stdout.length / 4);
+    for (let index = 0; index < samples.length; index++)
+      samples[index] = result.stdout.readFloatLE(index * 4);
+    return { path, samples, sampleRate };
+  }
+
   async audio(input: Record<string, unknown>, signal: AbortSignal) {
     const path = await localMediaPath(input.path);
     const start = input.start as number;

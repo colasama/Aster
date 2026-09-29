@@ -37,6 +37,7 @@ because they have different authority, cancellation, and audit requirements.
 | `setCompositionMotionBlur` | Compositions | Sets the bounded shutter and adaptive sample policy. |
 | `setCompositionEnvironment` | Compositions | Updates or clears an imported HDR environment. |
 | `setCompositionWorkArea` | Compositions | Sets the frame-aligned work area. |
+| `setCompositionMarkers` | Compositions | Replaces the sorted timeline markers (beats, downbeats, sections or custom cues). |
 | `precomposeLayers` | Compositions | Creates a nested composition and wrapper from 1–2048 selected layer IDs. |
 | `addLayer` | Layers | Creates any supported layer kind at the current time. |
 | `duplicateLayer` | Layers | Clones a layer into an `addLayer` operation with fresh IDs. |

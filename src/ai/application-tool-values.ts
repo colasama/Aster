@@ -70,6 +70,7 @@ export function queryValues(
           duration: candidate.duration,
           frameRate: candidate.frameRate.numerator / candidate.frameRate.denominator,
           layerCount: candidate.layers.length,
+          markerCount: candidate.markers?.length ?? 0,
           active: candidate.id === project.activeCompositionId,
           usedBy: project.compositions
             .filter((parent) =>
@@ -123,6 +124,18 @@ export function queryValues(
     }
     case "fonts":
       return page((project.fonts ?? []).map(projectFontMetadata));
+    case "markers":
+      return {
+        compositionId: composition.id,
+        ...page(
+          (composition.markers ?? []).filter(
+            (marker) =>
+              !needle ||
+              marker.kind === needle ||
+              (marker.label ?? "").toLocaleLowerCase().includes(needle),
+          ),
+        ),
+      };
     case "scene":
       return {
         compositionId: composition.id,
@@ -130,7 +143,7 @@ export function queryValues(
       };
     default:
       throw new Error(
-        `Unsupported project query kind: ${request.kind}. Use project, compositions, layers, properties, effects, assets, fonts or scene.`,
+        `Unsupported project query kind: ${request.kind}. Use project, compositions, layers, properties, effects, assets, fonts, markers or scene.`,
       );
   }
 }

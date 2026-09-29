@@ -14,6 +14,7 @@ import type {
   BlendMode,
   CameraSettings,
   Composition,
+  CompositionMarker,
   Effect,
   EffectMask,
   EnvironmentLighting,
@@ -102,6 +103,11 @@ export type Operation =
       type: "setCompositionMotionBlur";
       compositionId: Id;
       motionBlur: MotionBlurSettings;
+    }
+  | {
+      type: "setCompositionMarkers";
+      compositionId: Id;
+      markers: CompositionMarker[];
     }
   | {
       type: "setCompositionWorkArea";
@@ -232,6 +238,7 @@ export const OPERATION_TYPES = [
   "setCompositionEnvironment",
   "setCompositionMotionBlur",
   "setCompositionWorkArea",
+  "setCompositionMarkers",
   "precomposeLayers",
   "addSource",
   "addProjectFont",

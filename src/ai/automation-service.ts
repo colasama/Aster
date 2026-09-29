@@ -1,3 +1,5 @@
+import { sharedAudioDecodeCache } from "../core/audio/audio-decode-cache";
+import { analyzeBeats, type BeatAnalysis } from "../core/audio/beat-analysis";
 import { applyOperations, type Operation } from "../core/editing/operations";
 import { prepareProjectFonts } from "../core/media/project-font-runtime";
 import { activeComposition } from "../core/project/project";
@@ -8,7 +10,7 @@ import {
 } from "../core/project/project-file";
 import { type ProjectFont, projectFontMetadata } from "../core/project/project-fonts";
 import type { RenderQueueViewItem, RenderQueueViewState } from "../core/rendering/render-queue";
-import type { Project } from "../core/types";
+import { createId, type Project } from "../core/types";
 import { desktopRenderQueue } from "../desktop/api";
 import {
   createRenderQueueJobAsync,
@@ -21,6 +23,7 @@ import { type EditorState, isProjectDirty } from "../state/editor-store";
 import { AsterAgentApplicationService } from "./application-service";
 import { importAutomationAsset, relinkAutomationSource } from "./automation-import";
 import { type AutomationRequest, MAX_RENDER_WAIT_MS } from "./automation-protocol";
+import { beatSummary, mapAnalysisToLayer, markersFromAnalysis } from "./beat-markers";
 import { type ContactSheetRequest, composeContactSheet, formatSheetTime } from "./contact-sheet";
 import { EDIT_LIMITS, EditError, encodedBytes, limitExceeded } from "./edit-limits";
 import { checkFonts, listFonts } from "./font-tools";
@@ -233,6 +236,7 @@ export class AutomationApplicationService {
         warnings: imported.warnings,
       };
     }
+    if (name === "analyze_beats") return this.#analyzeBeats(session, clientId, input, signal);
     if (name === "relink_source") {
       this.#assertRevision(input.baseRevision, session.projectId, signal);
       const relinked = await relinkAutomationSource(state.project, input, signal);
@@ -414,6 +418,80 @@ export class AutomationApplicationService {
       projectRevision: this.context.read().projectRevision,
       operationCount: submitted.operations.length,
       verification: submitted.verification,
+    };
+  }
+
+  async #analyzeBeats(
+    session: { projectId: string },
+    clientId: string,
+    input: Record<string, unknown>,
+    signal: AbortSignal,
+  ) {
+    const state = this.context.read();
+    const project = state.project;
+    const composition =
+      typeof input.compositionId === "string"
+        ? project.compositions.find((candidate) => candidate.id === input.compositionId)
+        : activeComposition(project);
+    if (!composition) throw new Error(`Composition does not exist: ${String(input.compositionId)}`);
+    let analysis = input.analysis as BeatAnalysis | undefined;
+    let timeBase = "file";
+    if (!analysis) {
+      const layer =
+        typeof input.layerId === "string"
+          ? composition.layers.find((candidate) => candidate.id === input.layerId)
+          : undefined;
+      if (typeof input.layerId === "string" && !layer)
+        throw new Error(`Layer does not exist in "${composition.name}": ${input.layerId}`);
+      const sourceId = layer?.sourceId ?? input.sourceId;
+      const source = project.sources.find((candidate) => candidate.id === sourceId);
+      if (!source || (source.kind !== "audio" && source.kind !== "video"))
+        throw new Error(
+          "analyze_beats needs layerId or sourceId of audio/video footage, or a path",
+        );
+      if (source.kind === "video" && !source.audio)
+        throw new Error("This video source has no decodable audio stream");
+      const buffer = await sharedAudioDecodeCache.decode(
+        new OfflineAudioContext(1, 1, 44_100),
+        source,
+        signal,
+      );
+      const mono = new Float32Array(buffer.length);
+      for (let channel = 0; channel < buffer.numberOfChannels; channel++) {
+        const data = buffer.getChannelData(channel);
+        for (let index = 0; index < data.length; index++)
+          mono[index] += data[index] / buffer.numberOfChannels;
+      }
+      analysis = analyzeBeats(mono, buffer.sampleRate, {
+        ...(typeof input.minBpm === "number" ? { minBpm: input.minBpm } : {}),
+        ...(typeof input.maxBpm === "number" ? { maxBpm: input.maxBpm } : {}),
+        ...(typeof input.beatsPerBar === "number" ? { beatsPerBar: input.beatsPerBar } : {}),
+      });
+      if (layer) analysis = mapAnalysisToLayer(analysis, layer);
+      timeBase = layer ? "composition" : "source";
+    }
+    const summary = { ...beatSummary(analysis), timeBase };
+    if (input.writeMarkers !== true) return summary;
+    if (typeof input.baseRevision !== "number")
+      throw new Error("writeMarkers requires baseRevision");
+    this.#assertRevision(input.baseRevision, session.projectId, signal);
+    const markers = markersFromAnalysis(
+      analysis,
+      composition.markers,
+      composition.duration,
+      createId,
+    );
+    const operations: Operation[] = [
+      { type: "setCompositionMarkers", compositionId: composition.id, markers },
+    ];
+    validateProjectDocument(applyOperations(project, operations));
+    this.context.commit(operations, "Write beat markers", state.projectRevision);
+    this.cancel(clientId, false, true);
+    return {
+      ...summary,
+      compositionId: composition.id,
+      markersWritten: markers.length,
+      projectRevision: this.context.read().projectRevision,
     };
   }
 

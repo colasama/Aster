@@ -223,6 +223,10 @@ function scriptQuery(
   const composition = project.compositions.find((c) => c.id === input.compositionId);
   if (!composition) throw new Error(`Unknown composition: ${String(input.compositionId)}`);
   if (kind === "composition") return compositionMetadata(project, composition);
+  if (kind === "markers")
+    return (composition.markers ?? []).filter(
+      (marker) => options.kind === undefined || marker.kind === options.kind,
+    );
   if (kind === "layers")
     return filterByName(
       composition.layers.filter(

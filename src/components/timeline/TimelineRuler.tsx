@@ -48,6 +48,21 @@ export function TimelineRuler({
       ),
     [composition.duration, frameDuration, pixelsPerSecond, viewport.scrollLeft, viewport.width],
   );
+  const markers = useMemo(() => {
+    const all = composition.markers ?? [];
+    const first = viewport.scrollLeft / pixelsPerSecond;
+    const last = (viewport.scrollLeft + viewport.width) / pixelsPerSecond;
+    const beats = all.filter((marker) => marker.kind === "beat");
+    const beatSpacing =
+      beats.length > 1 ? (beats[beats.length - 1].time - beats[0].time) / (beats.length - 1) : 1;
+    const showBeats = beatSpacing * pixelsPerSecond >= 6;
+    return all.filter(
+      (marker) =>
+        marker.time >= first - 1 &&
+        marker.time <= last + 1 &&
+        (marker.kind !== "beat" || showBeats),
+    );
+  }, [composition.markers, pixelsPerSecond, viewport.scrollLeft, viewport.width]);
   return (
     <div className="timeline-header">
       <div className="layer-column-header">
@@ -105,6 +120,15 @@ export function TimelineRuler({
                 : ""}
             </span>
           </div>
+        ))}
+        {markers.map((marker) => (
+          <div
+            aria-hidden="true"
+            className={`timeline-marker ${marker.kind}`}
+            key={marker.id}
+            style={{ "--timeline-t": marker.time } as CSSProperties}
+            title={marker.label ?? `${marker.kind} ${formatSeconds(marker.time)}`}
+          />
         ))}
         <TimelineWorkArea
           duration={composition.duration}

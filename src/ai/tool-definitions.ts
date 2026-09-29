@@ -71,6 +71,7 @@ export function asterToolDefinitions() {
             Type.Literal("effects"),
             Type.Literal("assets"),
             Type.Literal("fonts"),
+            Type.Literal("markers"),
             Type.Literal("scene"),
           ]),
           time: Type.Optional(Type.Number({ minimum: 0 })),

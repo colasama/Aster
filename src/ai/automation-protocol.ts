@@ -74,6 +74,21 @@ export function automationToolDefinitions() {
       },
     ],
     [
+      "analyze_beats",
+      "Analyze tempo (BPM), beat grid, downbeats and song sections of project audio (layerId maps times onto the composition; sourceId gives source time) or a local file (path). Returns expression snippets such as pow(1 - beatphase(bpm, offset), 3) for beat-synced motion. writeMarkers:true (with baseRevision) writes beat/downbeat/section markers into the composition, keeping custom markers.",
+      {
+        layerId: Type.Optional(Type.String({ minLength: 1 })),
+        sourceId: Type.Optional(Type.String({ minLength: 1 })),
+        path: Type.Optional(path),
+        compositionId: Type.Optional(Type.String({ minLength: 1 })),
+        writeMarkers: Type.Optional(Type.Boolean()),
+        baseRevision: Type.Optional(revision),
+        beatsPerBar: Type.Optional(Type.Integer({ minimum: 1, maximum: 16 })),
+        minBpm: Type.Optional(Type.Number({ minimum: 20, maximum: 400 })),
+        maxBpm: Type.Optional(Type.Number({ minimum: 20, maximum: 400 })),
+      },
+    ],
+    [
       "relink_source",
       "Replace a still, video or audio source with another local file of the same kind (for example a higher-resolution render), retargeting every layer in every composition as one undoable edit. The old source is removed unless removeOld is false. Returns the new sourceId.",
       {

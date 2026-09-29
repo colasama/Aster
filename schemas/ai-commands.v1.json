@@ -1249,6 +1249,55 @@
       }
     },
     {
+      "name": "setCompositionMarkers",
+      "version": 1,
+      "category": "compositions",
+      "description": "Replace a composition's timeline markers (beats, downbeats, song sections or custom cue points). Pass the complete list; an empty list clears markers. analyze_beats can write these automatically.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "compositionId", "markers"],
+        "properties": {
+          "type": {
+            "const": "setCompositionMarkers"
+          },
+          "compositionId": {
+            "$ref": "#/$defs/id"
+          },
+          "markers": {
+            "type": "array",
+            "maxItems": 4096,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["time"],
+              "properties": {
+                "id": {
+                  "$ref": "#/$defs/id"
+                },
+                "time": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 86400
+                },
+                "kind": {
+                  "enum": ["marker", "beat", "downbeat", "section"]
+                },
+                "label": {
+                  "type": "string",
+                  "maxLength": 256
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
       "name": "precomposeLayers",
       "version": 1,
       "category": "compositions",
