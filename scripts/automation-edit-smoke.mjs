@@ -48,10 +48,11 @@ try {
   await client.connect(transport, { timeout: 90_000 });
   const tools = await client.listTools();
   assert.equal(
-    tools.tools.find((t) => t.name === "execute_commands").inputSchema.properties.commands.maxItems,
+    tools.tools.find((t) => t.name === "execute_aster_code").inputSchema.properties.commands
+      .maxItems,
     256,
   );
-  await call("get_script_api");
+  await call("describe", { topic: "script" });
   const context = await call("get_editor_context");
   const input = {
     baseRevision: context.projectRevision,
@@ -74,7 +75,7 @@ try {
   assert.equal(done.result.ids.length, 16);
   assert(done.result.isolated);
   const address = { workspaceId: job.workspaceId, workspaceRevision: done.workspaceRevision };
-  const status = await call("get_workspace_status", { workspaceId: job.workspaceId });
+  const status = await call("query_project", { kind: "workspace", workspaceId: job.workspaceId });
   assert(status.budgets.operations.used > 128);
   passed("isolated Worker/WASM, bulk scripting and retry deduplication");
   const failed = await complete(
@@ -85,7 +86,8 @@ try {
   );
   assert.equal(failed.state, "failed");
   assert.equal(
-    (await call("get_workspace_status", { workspaceId: job.workspaceId })).budgets.operations.used,
+    (await call("query_project", { kind: "workspace", workspaceId: job.workspaceId })).budgets
+      .operations.used,
     status.budgets.operations.used,
   );
   passed("script failure preserves prior workspace");
@@ -96,7 +98,7 @@ try {
   report.responsivenessMs = Date.now() - started;
   assert(report.responsivenessMs < 2000);
   assert.equal(
-    (await call("cancel_execution", { executionId: looping.executionId })).state,
+    (await call("get_execution", { executionId: looping.executionId, cancel: true })).state,
     "cancelled",
   );
   passed("renderer stays responsive and cancellation terminates Worker");
@@ -106,7 +108,7 @@ try {
   assert.equal(timedOut.state, "failed");
   assert.equal(timedOut.error.code, "execution_timeout");
   passed("hard execution deadline");
-  const bulk = await call("execute_commands", {
+  const bulk = await call("execute_aster_code", {
     ...address,
     commands: Array.from({ length: 256 }, (_, i) => ({
       type: "renameLayer",
@@ -128,18 +130,23 @@ try {
   const committed = await call("commit_workspace", commitInput);
   assert.deepEqual(await call("commit_workspace", commitInput), committed);
   assert.equal(
-    (await call("begin_edit_workspace", { baseRevision: committed.projectRevision }))
-      .workspaceRevision,
+    (
+      await call("execute_aster_code", {
+        baseRevision: committed.projectRevision,
+        code: "return aster.compositions.list().length;",
+      })
+    ).workspaceRevision,
     0,
   );
   passed(
     "256-command Worker batch, GPU preview, idempotent commit and same-connection continuation",
   );
-  const search = await call("search_capabilities", { query: "delete composition" });
+  const search = await call("describe", { topic: "commands", query: "delete composition" });
   assert.equal(search.commands[0].name, "removeComposition");
-  const effects = await call("list_effects", { query: "blur", limit: 3 });
+  const effects = await call("describe", { topic: "effects", query: "blur", limit: 3 });
   assert(effects.items.some((effect) => effect.type === "gaussian-blur"));
-  await call("put_script_module", {
+  await call("script_modules", {
+    action: "put",
     name: "smoke-lib",
     code: "module.exports = { lyric: (c, text, i) => { const l = c.layers.addText({ name: 'LYRIC_' + i, text }); l.setTextAnimator({ groups: [{ selectors: [{ kind: 'expression', expression: '100 * (1 - clamp((time - (textIndex - 1) * 0.05) / 0.3, 0, 1))' }], properties: { position: [0, 40, 0], opacity: 0 } }] }); return l.id; } };",
   });
@@ -157,7 +164,8 @@ try {
   assert.equal(layers.total, 3);
   passed("discovery, script modules, text animators, precompose IDs and commit:true");
   const still = join(output, "frame.png");
-  const exported = await call("export_render", {
+  const exported = await call("render", {
+    action: "export",
     path: still,
     baseRevision: lyrics.projectRevision,
     outputKind: "still",
@@ -165,7 +173,7 @@ try {
     time: 1,
   });
   assert.equal(exported.queue, undefined);
-  const rendered = await call("wait_render", { jobId: exported.jobId });
+  const rendered = await call("render", { action: "wait", jobId: exported.jobId });
   assert.equal(rendered.status, "completed", JSON.stringify(rendered));
   assert((await stat(rendered.outputs[0].destination)).size > 0);
   passed("compact export result and wait_render");

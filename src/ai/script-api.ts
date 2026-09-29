@@ -163,7 +163,7 @@ export const SCRIPT_API_DOCS = {
     "aster.command(typedCommand) / aster.commands(commands) -> {type,id?,...}; addLayer/addEffect/addComposition/addSource/addProjectFolder return id; precomposeLayers returns compositionId and wrapperLayerId",
     "aster.budget() -> {operations:{used,limit,remaining}, queryBytesPerCall, resultBytes, timeRemainingMs}",
     "aster.warnings() -> warnings collected so far in this execution",
-    "aster.require(name) -> exports of a script module stored with put_script_module (evaluated once per execution; module body receives module, exports, aster)",
+    "aster.require(name) -> exports of a script module stored with script_modules {action:'put'} (evaluated once per execution; module body receives module, exports, aster)",
     "aster.color('#rrggbb' | '#rrggbbaa', alpha?) -> display [r,g,b,a] (hex/255; text colors); aster.linearColor(hex, alpha?) -> linear-light [r,g,b,a] (shape/solid colors)",
     "aster.progress(0..1, message?) reports progress without committing",
   ],
@@ -215,7 +215,7 @@ export const SCRIPT_API_DOCS = {
     "Per workspace: 4096 normalized operations (setting a 3D vector costs 3). Per script: 30 s, 256 KiB source, 64 KiB return value, 1 MiB per query. Commit and continue in a new workspace when operations run low; check aster.budget().",
   commonErrors: [
     "'Layer does not exist' — the layer lives in another composition; use the handle from that composition (handles switch the active composition automatically).",
-    "'Effect type does not exist' — use list_effects or search_capabilities; the error lists close matches (e.g. blur -> gaussian-blur).",
+    "'Effect type does not exist' — use describe {topic:'effects'} or {topic:'commands'}; the error lists close matches (e.g. blur -> gaussian-blur).",
     "'revision_conflict' — reuse the workspaceRevision returned by the last successful execution.",
     "'budget_exceeded' — commit this workspace and continue in a new one, or split the script.",
   ],

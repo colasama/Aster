@@ -160,7 +160,7 @@ function installModuleLoader(
     if (source === undefined) {
       const error = new EditError(
         "module_not_found",
-        `Script module does not exist: ${name}. Store it with put_script_module; available: ${Object.keys(modules).join(", ") || "none"}`,
+        `Script module does not exist: ${name}. Store it with script_modules {action:'put'}; available: ${Object.keys(modules).join(", ") || "none"}`,
       );
       fail(error);
       return { error: vm.newError(error.message) };

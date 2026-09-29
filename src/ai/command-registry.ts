@@ -51,7 +51,7 @@ export function getCommandDescriptors(names: readonly string[]): CommandDescript
     const descriptor = descriptorByName.get(name);
     if (!descriptor)
       throw new Error(
-        `Unknown Aster command: ${name}.${didYouMean(name, descriptorByName.keys()) || " Use search_capabilities to find commands."}`,
+        `Unknown Aster command: ${name}.${didYouMean(name, descriptorByName.keys()) || " Use describe {topic:'commands'} to find commands."}`,
       );
     return descriptor;
   });

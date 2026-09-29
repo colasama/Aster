@@ -173,14 +173,20 @@ export class AutomationApplicationService {
       };
     }
     if (name === "commit_workspace") return this.#commit(session, clientId, input, signal);
-    if (name === "execute_aster_code" && input.commit === true) {
+    if ((name === "execute_aster_code" || name === "execute_commands") && input.commit === true) {
       const { commit: _commit, summary, ...execution } = input;
-      const status = (await session.service.executeTool("execute_aster_code", execution)) as {
-        state: string;
+      const raw = (await session.service.executeTool(name, execution)) as {
+        state?: string;
         workspaceId: string;
         workspaceRevision: number;
         operationCount?: number;
+        normalizedCommands?: unknown[];
       };
+      // Typed batches settle synchronously and report their normalized operations.
+      const status =
+        name === "execute_commands"
+          ? { ...raw, state: "succeeded", operationCount: raw.normalizedCommands?.length ?? 0 }
+          : { ...raw, state: raw.state ?? "running" };
       if (status.state === "running")
         return {
           ...status,
@@ -211,7 +217,7 @@ export class AutomationApplicationService {
             workspaceId: status.workspaceId,
             workspaceRevision: status.workspaceRevision,
             recovery:
-              "The staged workspace is preserved; inspect it, then retry commit_workspace or reset_session.",
+              "The staged workspace is preserved; inspect it, then retry commit_workspace or call get_editor_context with reset:true.",
           },
         );
       }
@@ -354,7 +360,7 @@ export class AutomationApplicationService {
         jobId: manifest.id,
         ...(job ? { job: renderJobView(job) } : {}),
         activeJobs: queue.items.filter((item) => !SETTLED_RENDER_STATES.has(item.status)).length,
-        next: "Call wait_render with this jobId to block until the output is written.",
+        next: "Call render {action:'wait', jobId} to block until the output is written.",
       };
     }
     if (name === "list_fonts") return listFonts(state.project, input);
@@ -522,7 +528,7 @@ export class AutomationApplicationService {
     const view = renderJobView(job);
     return SETTLED_RENDER_STATES.has(job.status)
       ? view
-      : { ...view, timedOut: true, hint: "Still rendering; call wait_render again." };
+      : { ...view, timedOut: true, hint: "Still rendering; call render {action:'wait'} again." };
   }
 
   #putModule(clientId: string, input: Record<string, unknown>) {

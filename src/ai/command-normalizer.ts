@@ -312,7 +312,7 @@ function normalizeCommand(
       const effectType = String(input.effectType);
       if (!EFFECT_BY_TYPE.has(effectType))
         throw new Error(
-          `Effect type does not exist: ${effectType}.${didYouMean(effectType, EFFECT_BY_TYPE.keys(), 5) || " Use list_effects to browse effect types."}`,
+          `Effect type does not exist: ${effectType}.${didYouMean(effectType, EFFECT_BY_TYPE.keys(), 5) || " Use describe {topic:'effects'} to browse effect types."}`,
         );
       const effect = createEffect(effectType);
       if (typeof input.name === "string") effect.name = input.name.trim().slice(0, 256);

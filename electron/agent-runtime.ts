@@ -403,7 +403,7 @@ Project: ${request.projectName} (${request.projectId}), live revision ${request.
 Access mode: ${request.accessMode}.
 
 Use only the provided Aster tools. ${authority}
-Start by calling get_editor_context. Discover commands with search_capabilities and load only the exact schemas you need. Query IDs instead of inventing them. Begin one edit workspace at the declared live revision, execute small atomic command batches, evaluate at explicit times, inspect diagnostics, and analyze meaningful bounded samples. Submit exactly one non-empty workspace when the requested edit is ready. If the task cannot be completed safely, discard the workspace and explain why.
+Start by calling get_editor_context. Use describe to discover commands (topic "commands"; pass names for exact schemas), effect types (topic "effects") or the script API (topic "script"). Query IDs with query_project instead of inventing them. Edit with execute_aster_code, passing the declared live revision as baseRevision for the first call and the returned workspaceId and workspaceRevision afterwards; use commands for small typed batches and code for bulk or repetitive edits. Verify with render_preview (a contactSheet reviews a whole span in one image) and diagnostics. Submit exactly one non-empty workspace when the requested edit is ready. If the task cannot be completed safely, discard the workspace and explain why.
 
 Correctness and authorization are enforced by Aster, not by this prompt. Never request or reveal secrets. Prefer Aster commands over external side effects. Deterministic metrics cannot claim subjective visual quality or native vision. Keep the final response concise and state any visual-verification limitation.`;
 }
@@ -447,6 +447,14 @@ function asterToolResultContent(
   value: unknown,
   supportsImages: boolean,
 ): Array<TextContent | ImageContent> {
+  if (toolName === "render_preview" && isRecord(value) && isRecord(value.sheet)) {
+    const { data, ...sheet } = value.sheet;
+    const image =
+      supportsImages && typeof data === "string" && typeof sheet.mimeType === "string"
+        ? [{ type: "image" as const, data, mimeType: sheet.mimeType }]
+        : [];
+    return [{ type: "text", text: boundedJson({ ...value, sheet }) }, ...image];
+  }
   if (toolName !== "render_preview" || !isRecord(value) || !Array.isArray(value.frames))
     return [{ type: "text", text: boundedJson(value) }];
   const images: ImageContent[] = [];

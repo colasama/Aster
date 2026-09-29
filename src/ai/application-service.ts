@@ -38,6 +38,7 @@ import { type PreviewOptions, parsePreviewOptions } from "./preview-options";
 import type { AgentContactSheet, AgentRenderedPreviewFrame } from "./render-preview";
 import { RequestReceipts } from "./request-receipts";
 import { SCRIPT_API_DOCS } from "./script-api";
+import { routeToolCall } from "./tool-routing";
 
 const MAX_QUERY_ITEMS = 128;
 const MAX_WORKSPACE_BYTES = EDIT_LIMITS.workspaceBytes;
@@ -124,8 +125,15 @@ export class AsterAgentApplicationService {
     };
   }
 
-  async executeTool(toolName: string, argumentsValue: Record<string, unknown>): Promise<unknown> {
+  async executeTool(
+    publicName: string,
+    publicArguments: Record<string, unknown>,
+  ): Promise<unknown> {
     if (this.#aborted) throw new Error("Agent session was aborted");
+    const { name: toolName, arguments: argumentsValue } = routeToolCall(
+      publicName,
+      publicArguments,
+    );
     const generation = this.#executionGeneration;
     const started = new Date();
     const argumentBytes = encodedBytes(argumentsValue);
@@ -268,7 +276,7 @@ export class AsterAgentApplicationService {
       ...(commands.length === 0 || !query.trim()
         ? {
             index: commandIndex(category),
-            hint: "Load exact schemas with get_command_schemas; list effect types with list_effects; bulk edits use execute_aster_code (get_script_api).",
+            hint: "Load exact schemas with describe {topic:'commands', names}; list effect types with describe {topic:'effects'}; bulk edits use execute_aster_code (describe {topic:'script'}).",
           }
         : {}),
     };
@@ -396,7 +404,11 @@ export class AsterAgentApplicationService {
   }
 
   async #executeCommands(input: Record<string, unknown>) {
-    const workspace = this.#mutableWorkspace(input);
+    if (input.workspaceId === undefined && input.workspaceRevision !== undefined)
+      throw new Error("workspaceRevision requires workspaceId");
+    const workspace = this.#mutableWorkspace(
+      input.workspaceId === undefined ? this.#beginWorkspace(input) : input,
+    );
     if (!Array.isArray(input.commands)) throw new Error("commands must be an array");
     if (input.commands.length === 0 || input.commands.length > MAX_AI_COMMAND_BATCH)
       throw new Error(`Each batch must contain 1 through ${MAX_AI_COMMAND_BATCH} commands`);
@@ -437,7 +449,7 @@ export class AsterAgentApplicationService {
     return status.state === "running"
       ? {
           ...status,
-          hint: "Still running; call get_execution again (it waits up to 60 s) or cancel_execution.",
+          hint: "Still running; call get_execution again (it waits up to 60 s) or pass cancel:true.",
         }
       : status;
   }

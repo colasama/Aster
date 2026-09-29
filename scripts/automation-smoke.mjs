@@ -84,16 +84,18 @@ try {
   await client.connect(transport, { timeout: 90_000 });
   report.adapterPid = transport.pid;
   const tools = await client.listTools();
-  assert(tools.tools.some((tool) => tool.name === "compare_reference"));
+  assert(tools.tools.some((tool) => tool.name === "reference"));
   const context = await call("get_editor_context");
-  const workspace = await call("begin_edit_workspace", { baseRevision: context.projectRevision });
-  let revision = workspace.workspaceRevision;
+  const workspace = {};
+  let revision;
   const commands = async (values) => {
-    const changed = await call("execute_commands", {
-      workspaceId: workspace.workspaceId,
-      workspaceRevision: revision,
+    const changed = await call("execute_aster_code", {
+      ...(workspace.workspaceId
+        ? { workspaceId: workspace.workspaceId, workspaceRevision: revision }
+        : { baseRevision: context.projectRevision }),
       commands: values,
     });
+    workspace.workspaceId = changed.workspaceId;
     revision = changed.workspaceRevision;
   };
   await commands([
@@ -120,7 +122,7 @@ try {
     { type: "addKeyframe", layerId, path: "position.0", time: 0.9, value: 240 },
   ]);
   const work = { workspaceId: workspace.workspaceId, workspaceRevision: revision };
-  await call("evaluate_at_time", { ...work, time: 0.5 });
+  await call("diagnostics", { action: "evaluate", ...work, time: 0.5 });
   const preview = await call("render_preview", { ...work, times: [0, 0.5], maxDimension: 1024 });
   assert.equal(preview.frames[0].width, 320);
   const cropped = await call("render_preview", {
@@ -159,16 +161,18 @@ try {
     { windowsHide: true, encoding: "utf8" },
   );
   assert.equal(generated.status, 0, generated.stderr);
-  const probed = await call("probe_reference", { path: reference });
+  const probed = await call("reference", { action: "probe", path: reference });
   assert(probed.streams.some((stream) => stream.codec_type === "audio"));
-  const frames = await call("read_reference_frames", {
+  const frames = await call("reference", {
+    action: "frames",
     path: reference,
     times: [0.15, 0.5],
     maxDimension: 1024,
   });
   assert.equal(frames.frames[0].actualTime, 0.2);
-  await call("read_reference_audio", { path: reference, start: 0.1, duration: 0.5 });
-  const comparison = await call("compare_reference", {
+  await call("reference", { action: "audio", path: reference, start: 0.1, duration: 0.5 });
+  const comparison = await call("reference", {
+    action: "compare",
     ...work,
     path: reference,
     times: [0.15],
@@ -179,35 +183,37 @@ try {
   assert(Number.isFinite(comparison.frames[0].meanAbsoluteRgbError));
   await call("submit_workspace", { ...work, summary: "MCP reconstruction smoke test" });
   let live = await call("commit_workspace", work);
-  const imported = await call("import_asset", {
+  const imported = await call("import_assets", {
     path: reference,
     baseRevision: live.projectRevision,
     time: 0,
   });
   live = { projectRevision: imported.projectRevision };
-  const fonts = await call("check_fonts", { families: ["Arial", "AsterMissingFont012345"] });
+  const fonts = await call("fonts", {
+    action: "check",
+    families: ["Arial", "AsterMissingFont012345"],
+  });
   assert.equal(fonts.fonts[1].available, false);
   if (process.env.ASTER_SMOKE_FONT) {
-    const inventory = await call("list_fonts", { source: "system", limit: 2 });
+    const inventory = await call("fonts", { action: "list", source: "system", limit: 2 });
     assert(inventory.total > 0);
     assert(inventory.fonts.length <= 2);
     const family = "Aster Smoke Embedded";
-    const importedFont = await call("import_font", {
+    const importedFont = await call("fonts", {
+      action: "import",
       path: resolve(process.env.ASTER_SMOKE_FONT),
       family,
       baseRevision: live.projectRevision,
     });
     live = { projectRevision: importedFont.projectRevision };
-    const available = await call("check_fonts", { families: [family] });
+    const available = await call("fonts", { action: "check", families: [family] });
     assert.equal(available.fonts[0].method, "project-font");
     assert.equal(available.fonts[0].available, true);
-    const metadata = await call("list_fonts", { source: "project" });
+    const metadata = await call("fonts", { action: "list", source: "project" });
     assert.equal(metadata.fonts[0].family, family);
     assert.equal(metadata.fonts[0].dataUrl, undefined);
-    const fontWork = await call("begin_edit_workspace", { baseRevision: live.projectRevision });
-    const added = await call("execute_commands", {
-      workspaceId: fontWork.workspaceId,
-      workspaceRevision: fontWork.workspaceRevision,
+    const added = await call("execute_aster_code", {
+      baseRevision: live.projectRevision,
       commands: [
         {
           type: "addComposition",
@@ -223,12 +229,13 @@ try {
       ],
     });
     const layerId = added.changedObjectIds.at(-1);
+    const fontWork = { workspaceId: added.workspaceId };
     const before = await call("query_project", {
       workspaceId: fontWork.workspaceId,
       kind: "layers",
     });
     const original = before.items.find((layer) => layer.id === layerId).textStyle;
-    const changed = await call("execute_commands", {
+    const changed = await call("execute_aster_code", {
       workspaceId: fontWork.workspaceId,
       workspaceRevision: added.workspaceRevision,
       commands: [
@@ -263,7 +270,7 @@ try {
     assert(fontPreview.frames.some((frame) => frame.measurements.maximumLuminance > 0.3));
     await call("submit_workspace", { ...finalWork, summary: "Verify embedded font rendering" });
     live = await call("commit_workspace", finalWork);
-    const fontAudio = await call("import_asset", {
+    const fontAudio = await call("import_assets", {
       path: reference,
       baseRevision: live.projectRevision,
       time: 0,
@@ -276,19 +283,16 @@ try {
   assert(saved.sources.length > 0);
   if (process.env.ASTER_SMOKE_FONT) assert(saved.fonts[0].dataUrl.startsWith("data:font/"));
   const exportPath = join(output, "recreated.mp4");
-  const queued = await call("export_render", {
+  const queued = await call("render", {
+    action: "export",
     path: exportPath,
     baseRevision: live.projectRevision,
     outputKind: "mp4",
     includeAudio: true,
   });
-  await until(async () => {
-    const queue = await call("get_render_queue");
-    const job = queue.items.find((item) => item.manifest.id === queued.jobId);
-    if (job.status === "failed") throw new Error(JSON.stringify(job.error));
-    return job.status === "completed";
-  }, 90_000);
-  const exported = await call("probe_reference", { path: exportPath });
+  const rendered = await call("render", { action: "wait", jobId: queued.jobId });
+  if (rendered.status !== "completed") throw new Error(JSON.stringify(rendered));
+  const exported = await call("reference", { action: "probe", path: exportPath });
   assert(exported.streams.some((stream) => stream.codec_type === "video"));
   assert(exported.streams.some((stream) => stream.codec_type === "audio"));
   report.status = "passed";

@@ -10,6 +10,7 @@ import {
   MAX_CONTACT_SHEET_CELLS,
 } from "../src/ai/contact-sheet-spec.js";
 import { EditError } from "../src/ai/edit-limits.js";
+import { routeToolCall } from "../src/ai/tool-routing.js";
 import { analyzeBeats } from "../src/core/audio/beat-analysis.js";
 import { type AutomationCall, startAutomationServer } from "./automation-server.js";
 import { readProjectFont } from "./font-files.js";
@@ -141,7 +142,11 @@ export async function startAutomationHost(options: {
     };
   }
 
-  async function execute(call: AutomationCall, signal: AbortSignal) {
+  async function execute(publicCall: AutomationCall, signal: AbortSignal) {
+    let call: AutomationCall = {
+      ...publicCall,
+      ...routeToolCall(publicCall.name, publicCall.arguments),
+    };
     if (call.name === "save_project" && call.arguments.path === undefined) {
       const current = (await renderer(
         { ...call, name: "current_project_path", arguments: {} },
