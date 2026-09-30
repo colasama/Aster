@@ -277,9 +277,14 @@ export function Timeline({ mode }: { mode?: "timeline" | "graph" } = {}) {
       timelineTargets,
       bypassSnap,
     );
-    canvasRef.current?.style.setProperty("--timeline-playhead-time", String(snapped.time));
-    if (snapped.time !== keyboardContext.current.currentTime)
-      dispatch({ type: "setTime", time: snapped.time });
+    const firstVisibleFrame =
+      Math.ceil((scrollRef.current?.scrollLeft ?? 0) / timelinePixelsPerSecond() / frameDuration) *
+      frameDuration;
+    // Clamp after snapping so hidden keyframes cannot pull the playhead under the property column.
+    const visibleTime = Math.min(composition.duration, Math.max(firstVisibleFrame, snapped.time));
+    canvasRef.current?.style.setProperty("--timeline-playhead-time", String(visibleTime));
+    if (visibleTime !== keyboardContext.current.currentTime)
+      dispatch({ type: "setTime", time: visibleTime });
   };
   const copySelection = () => {
     // One shared clipboard: copying keyframes replaces any copied layers.

@@ -270,6 +270,37 @@ it("zooms around the playhead and restores both scale and scroll after fitting",
   expect(editor.state.history.past).toHaveLength(0);
 });
 
+it.each([
+  { scrollLeft: 83, zoom: 1 },
+  { scrollLeft: 217, zoom: 2 },
+])("keeps ruler drags out of the property column at $zoom zoom", async ({ scrollLeft, zoom }) => {
+  const scroll = document.querySelector<HTMLDivElement>(".timeline-scroll");
+  const ruler = document.querySelector<HTMLDivElement>(".time-ruler");
+  if (!scroll || !ruler) throw new Error("Missing timeline");
+  act(() => timelineZoomStore.set(zoom));
+  scroll.scrollLeft = scrollLeft;
+  const composition = activeComposition(editor.state.project);
+  const frame = composition.frameRate.denominator / composition.frameRate.numerator;
+  const firstVisibleFrame = Math.ceil(scrollLeft / (82 * zoom) / frame) * frame;
+  act(() => editor.dispatch({ type: "setTime", time: firstVisibleFrame - frame }));
+  act(() =>
+    ruler.dispatchEvent(
+      new PointerEvent("pointerdown", { bubbles: true, button: 0, pointerId: 7, clientX: 486 }),
+    ),
+  );
+  expect(editor.state.currentTime).toBeGreaterThan(firstVisibleFrame);
+  for (const clientX of [287, 80]) {
+    await act(async () => {
+      window.dispatchEvent(new PointerEvent("pointermove", { pointerId: 7, clientX }));
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+    });
+    expect(editor.state.currentTime).toBeCloseTo(firstVisibleFrame);
+  }
+  act(() => window.dispatchEvent(new PointerEvent("pointerup", { pointerId: 7, clientX: 0 })));
+  expect(editor.state.currentTime).toBeCloseTo(firstVisibleFrame);
+  expect(editor.state.currentTime * 82 * zoom - scrollLeft).toBeGreaterThanOrEqual(0);
+});
+
 it("anchors Alt-wheel zoom to the pointer, pans with Shift, and leaves normal scrolling native", async () => {
   const scroll = document.querySelector<HTMLDivElement>(".timeline-scroll");
   if (!scroll) throw new Error("Missing timeline");
