@@ -21,5 +21,5 @@ export const commonEn = {
   "app.status.color": "Linear sRGB · 32 bpc float",
   "app.status.gpuBudget": "GPU memory budget: {value}",
   "app.status.gpuBudgetAuto": "Auto",
-  "app.status.version": "Aster 0.3.4",
+  "app.status.version": "Aster 0.3.5",
 } as const;

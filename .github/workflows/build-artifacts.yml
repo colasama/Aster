@@ -42,7 +42,9 @@ jobs:
       - name: Check Rust formatting and lint
         run: pnpm exec lefthook run pre-commit --force --command rustfmt --command clippy
       - name: Check frontend and Rust tests
-        run: pnpm exec lefthook run pre-push --force
+        run: |
+          pnpm check:frontend
+          cargo test --workspace --all-features
       - name: Check dependency policy
         uses: EmbarkStudios/cargo-deny-action@v2
         with:

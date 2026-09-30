@@ -54,7 +54,7 @@ export async function startAsterMcp(
   const clientId = randomUUID();
   const headers = { "Content-Type": "application/json" };
   const server = new Server(
-    { name: "aster", version: "0.3.4" },
+    { name: "aster", version: "0.3.5" },
     {
       capabilities: { tools: {} },
       instructions: [
