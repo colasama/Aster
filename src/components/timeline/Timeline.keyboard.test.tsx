@@ -301,6 +301,46 @@ it.each([
   expect(editor.state.currentTime * 82 * zoom - scrollLeft).toBeGreaterThanOrEqual(0);
 });
 
+it.each([
+  { scrollLeft: 83, zoom: 1, width: 700, ctrlKey: false },
+  { scrollLeft: 217, zoom: 2, width: 500, ctrlKey: true },
+])(
+  "keeps ruler drags inside the right edge at $zoom zoom",
+  async ({ scrollLeft, zoom, width, ctrlKey }) => {
+    const scroll = document.querySelector<HTMLDivElement>(".timeline-scroll");
+    const ruler = document.querySelector<HTMLDivElement>(".time-ruler");
+    if (!scroll || !ruler) throw new Error("Missing timeline");
+    Object.defineProperty(scroll, "clientWidth", { value: width });
+    act(() => timelineZoomStore.set(zoom));
+    scroll.scrollLeft = scrollLeft;
+    const composition = activeComposition(editor.state.project);
+    const frame = composition.frameRate.denominator / composition.frameRate.numerator;
+    const lastVisibleFrame =
+      Math.floor((scrollLeft + width - 286 - 1) / (82 * zoom) / frame) * frame;
+    act(() => editor.dispatch({ type: "setTime", time: lastVisibleFrame + frame }));
+    act(() =>
+      ruler.dispatchEvent(
+        new PointerEvent("pointerdown", { bubbles: true, button: 0, pointerId: 7, clientX: 386 }),
+      ),
+    );
+    expect(editor.state.currentTime).toBeLessThan(lastVisibleFrame);
+    for (const clientX of [width - 1, width + 200]) {
+      await act(async () => {
+        window.dispatchEvent(new PointerEvent("pointermove", { pointerId: 7, clientX, ctrlKey }));
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+      });
+      expect(editor.state.currentTime).toBeCloseTo(lastVisibleFrame);
+    }
+    act(() =>
+      window.dispatchEvent(
+        new PointerEvent("pointerup", { pointerId: 7, clientX: width + 400, ctrlKey }),
+      ),
+    );
+    expect(editor.state.currentTime).toBeCloseTo(lastVisibleFrame);
+    expect(286 + editor.state.currentTime * 82 * zoom - scrollLeft).toBeLessThan(width);
+  },
+);
+
 it("anchors Alt-wheel zoom to the pointer, pans with Shift, and leaves normal scrolling native", async () => {
   const scroll = document.querySelector<HTMLDivElement>(".timeline-scroll");
   if (!scroll) throw new Error("Missing timeline");

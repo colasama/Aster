@@ -269,19 +269,32 @@ export function Timeline({ mode }: { mode?: "timeline" | "graph" } = {}) {
     );
   };
   const scrub = (clientX: number, bypassSnap: boolean) => {
+    const scroll = scrollRef.current;
+    if (!scroll) return;
+    const pixelsPerSecond = timelinePixelsPerSecond();
     const time = clientXToTime(clientX);
     const snapped = snapTimelineTime(
       time,
       frameDuration,
-      timelinePixelsPerSecond(),
+      pixelsPerSecond,
       timelineTargets,
       bypassSnap,
     );
     const firstVisibleFrame =
-      Math.ceil((scrollRef.current?.scrollLeft ?? 0) / timelinePixelsPerSecond() / frameDuration) *
+      Math.ceil(scroll.scrollLeft / pixelsPerSecond / frameDuration) * frameDuration;
+    const trackWidth = Math.max(
+      0,
+      (scroll.clientWidth || navigation.viewport.width) - LABEL_WIDTH - 1,
+    );
+    const lastVisibleFrame =
+      Math.floor((scroll.scrollLeft + trackWidth) / pixelsPerSecond / frameDuration) *
       frameDuration;
-    // Clamp after snapping so hidden keyframes cannot pull the playhead under the property column.
-    const visibleTime = Math.min(composition.duration, Math.max(firstVisibleFrame, snapped.time));
+    // Clamp after snapping so hidden targets cannot pull the playhead outside the visible track.
+    const visibleTime = Math.min(
+      composition.duration,
+      lastVisibleFrame,
+      Math.max(firstVisibleFrame, snapped.time),
+    );
     canvasRef.current?.style.setProperty("--timeline-playhead-time", String(visibleTime));
     if (visibleTime !== keyboardContext.current.currentTime)
       dispatch({ type: "setTime", time: visibleTime });
