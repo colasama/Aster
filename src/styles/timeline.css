@@ -660,6 +660,17 @@
   width: 1px;
   background: #fb5367;
   box-shadow: 0 0 4px #d9364c;
+  clip-path: inset(
+    0 -8px 0
+      max(
+        -8px,
+        calc(
+          var(--timeline-scroll-left, 0px) -
+          var(--timeline-playhead-time, 0) *
+          var(--timeline-pps, 82px)
+        )
+      )
+  );
 }
 .timeline-header .playhead {
   top: 0;

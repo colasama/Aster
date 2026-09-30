@@ -1010,6 +1010,7 @@ export function Timeline({ mode }: { mode?: "timeline" | "graph" } = {}) {
               {
                 "--timeline-d": composition.duration,
                 "--timeline-playhead-time": state.currentTime,
+                "--timeline-scroll-left": `${navigation.viewport.scrollLeft}px`,
               } as CSSProperties
             }
           >
