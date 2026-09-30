@@ -99,6 +99,8 @@ export interface Effect {
   enabled: boolean;
   parameters: Record<string, number>;
   parameterKeyframes?: Record<string, Keyframe[]>;
+  /** Bounded expressions over time/value that replace a parameter's keyframed value. */
+  parameterExpressions?: Record<string, string>;
   resource?: Lut3dResource;
   mask?: EffectMask;
 }
@@ -323,8 +325,21 @@ export interface Composition {
   background: [number, number, number, number];
   motionBlur: MotionBlurSettings;
   environment?: EnvironmentLighting;
+  /** Sorted timeline markers, such as analyzed beats, downbeats and song sections. */
+  markers?: CompositionMarker[];
   layers: Layer[];
 }
+
+export type CompositionMarkerKind = "marker" | "beat" | "downbeat" | "section";
+
+export interface CompositionMarker {
+  id: Id;
+  time: number;
+  kind: CompositionMarkerKind;
+  label?: string;
+}
+
+export const MAX_COMPOSITION_MARKERS = 4096;
 
 export interface MotionBlurSettings {
   enabled: boolean;

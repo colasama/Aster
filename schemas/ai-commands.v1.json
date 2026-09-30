@@ -935,7 +935,7 @@
       "name": "setTextAnimator",
       "version": 1,
       "category": "typography",
-      "description": "Configure bounded per-character text animation on a text layer.",
+      "description": "Configure per-character/word/line text animation on one text layer (lyrics, titles, typewriter reveals). Pass groups: [{selectors:[{kind:'range'|'expression'|'wiggly',...}], properties:{position:[x,y,z],scale:[x,y,z],rotation:[x,y,z],opacity,blur:[x,y],tracking,fillColor}}]; numbers or animated tracks are accepted and expression selectors can use textIndex, textTotal and time. delay/stagger/duration/position/scale/opacity configure the legacy staggered reveal.",
       "requiredPermissions": ["project.edit"],
       "risk": "reversible",
       "undoable": true,
@@ -958,7 +958,12 @@
             "items": { "type": "number" }
           },
           "scale": { "type": "number", "minimum": 0, "maximum": 100 },
-          "opacity": { "type": "number", "minimum": 0, "maximum": 1 }
+          "opacity": { "type": "number", "minimum": 0, "maximum": 1 },
+          "groups": {
+            "type": "array",
+            "maxItems": 32,
+            "items": { "type": "object" }
+          }
         }
       }
     },
@@ -1269,10 +1274,59 @@
       }
     },
     {
+      "name": "setCompositionMarkers",
+      "version": 1,
+      "category": "compositions",
+      "description": "Replace a composition's timeline markers (beats, downbeats, song sections or custom cue points). Pass the complete list; an empty list clears markers. analyze_beats can write these automatically.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "compositionId", "markers"],
+        "properties": {
+          "type": {
+            "const": "setCompositionMarkers"
+          },
+          "compositionId": {
+            "$ref": "#/$defs/id"
+          },
+          "markers": {
+            "type": "array",
+            "maxItems": 4096,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["time"],
+              "properties": {
+                "id": {
+                  "$ref": "#/$defs/id"
+                },
+                "time": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 86400
+                },
+                "kind": {
+                  "enum": ["marker", "beat", "downbeat", "section"]
+                },
+                "label": {
+                  "type": "string",
+                  "maxLength": 256
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
       "name": "precomposeLayers",
       "version": 1,
       "category": "compositions",
-      "description": "Move selected layers into a generated nested composition and insert a wrapper.",
+      "description": "Move selected layers into a generated nested composition and insert a wrapper layer. Scripts receive {compositionId, wrapperLayerId}; changedObjectIds lists both.",
       "requiredPermissions": ["project.edit"],
       "risk": "reversible",
       "undoable": true,
@@ -1374,7 +1428,7 @@
       "name": "setLayerTimeMapping",
       "version": 1,
       "category": "layers",
-      "description": "Set layer source-time offset and stretch.",
+      "description": "Map layer time to source time: offset is the SOURCE time shown at the layer inPoint and sourceTime = offset + (compositionTime - inPoint) / stretch. To show seconds S..S+d of a clip starting at inPoint T, use offset S (not S - T). Mappings outside the source duration return a warning.",
       "requiredPermissions": ["project.edit"],
       "risk": "reversible",
       "undoable": true,
@@ -1604,7 +1658,7 @@
       "name": "setLayerSource",
       "version": 1,
       "category": "assets",
-      "description": "Set or clear a layer footage-source reference.",
+      "description": "Replace (swap) or clear the footage source a layer uses, keeping its transform, timing and effects.",
       "requiredPermissions": ["project.edit"],
       "risk": "reversible",
       "undoable": true,
@@ -1960,7 +2014,7 @@
       "name": "setExpression",
       "version": 1,
       "category": "animation",
-      "description": "Set or clear a bounded expression on a supported property.",
+      "description": "Set or clear (empty string) an expression on a layer property path. Variables: time, value, pi, e; functions: abs ceil floor round sqrt sin cos tan min max pow clamp.",
       "requiredPermissions": ["project.edit"],
       "risk": "reversible",
       "undoable": true,
@@ -2081,6 +2135,41 @@
           "time": { "type": "number", "minimum": 0, "maximum": 86400 },
           "value": { "type": "number" },
           "keyframeId": { "$ref": "#/$defs/id" }
+        }
+      }
+    },
+    {
+      "name": "setEffectParameterExpression",
+      "version": 1,
+      "category": "effects",
+      "description": "Drive an effect parameter with an expression (empty string clears), e.g. beat-synced glow or time-varying blur. Variables: time (same clock as the effect's keyframes), value (keyframed or static value), pi, e; functions: abs ceil floor round sqrt sin cos tan min max pow clamp.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "layerId", "effectId", "parameter", "expression"],
+        "properties": {
+          "type": {
+            "const": "setEffectParameterExpression"
+          },
+          "layerId": {
+            "$ref": "#/$defs/id"
+          },
+          "effectId": {
+            "$ref": "#/$defs/id"
+          },
+          "parameter": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "expression": {
+            "type": "string",
+            "maxLength": 2048
+          }
         }
       }
     },

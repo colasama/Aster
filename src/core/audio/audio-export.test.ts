@@ -51,6 +51,37 @@ describe("audio export", () => {
     expect(result.size).toBe(1);
   });
 
+  it("treats video without a decodable audio stream as silence instead of failing export", async () => {
+    const { project, composition } = audioProject();
+    const video = {
+      id: "silent-video",
+      kind: "video" as const,
+      name: "Silent.mp4",
+      mimeType: "video/mp4",
+      contentIdentity: "sha256:silent",
+      width: 16,
+      height: 16,
+      duration: 0.5,
+      interpretation: { alpha: "ignore" as const, colorSpace: "srgb" as const },
+    };
+    const withAudio = {
+      ...video,
+      id: "broken-video",
+      audio: { streamIndex: 0, channels: 2, sampleRate: 48_000 },
+    };
+    project.sources = [video, withAudio];
+    const first = createLayerForComposition("video", composition);
+    first.sourceId = video.id;
+    const second = { ...createLayerForComposition("video", composition), sourceId: withAudio.id };
+    composition.layers = [first, second];
+    const decode = vi.fn(async () => {
+      throw new Error("Unable to decode audio data");
+    });
+    const result = await decodeAudibleSources(project, composition, decode);
+    expect(decode).toHaveBeenCalledTimes(1);
+    expect(result.size).toBe(0);
+  });
+
   it("streams bounded stereo chunks and pads rational video tail with silence", async () => {
     const { project, composition, source } = audioProject();
     composition.layers = [composition.layers[0]];

@@ -84,22 +84,25 @@ export class ReferenceMediaService {
     return { path, ...JSON.parse(result.stdout.toString("utf8")) };
   }
 
-  async frames(input: Record<string, unknown>, signal: AbortSignal) {
+  async frames(input: Record<string, unknown>, signal: AbortSignal, maxSamples = 12) {
     const path = await localMediaPath(input.path);
     const times = input.times as number[];
     const dimension = (input.maxDimension as number | undefined) ?? 384;
     if (
       !Array.isArray(times) ||
       times.length < 1 ||
-      times.length > 12 ||
+      times.length > maxSamples ||
       times.some((t) => !Number.isFinite(t) || t < 0 || t > 86_400)
     )
-      throw new Error("Reference samples require 1 through 12 bounded times");
+      throw new Error(`Reference samples require 1 through ${maxSamples} bounded times`);
     if (!Number.isSafeInteger(dimension) || dimension < 64 || dimension > 2048)
       throw new Error("Reference dimensions must be between 64 and 2048");
     const frames = [];
     let total = 0;
     for (const time of times) {
+      // Accurate input seek near the sample; output timestamps restart at the seek point, so the
+      // select filter and the reported time are relative to it.
+      const seek = Math.max(0, time - 2);
       const result = await runMediaProcess(
         this.ffmpeg,
         [
@@ -107,12 +110,14 @@ export class ReferenceMediaService {
           "-nostdin",
           "-protocol_whitelist",
           "file,pipe",
+          "-ss",
+          String(seek),
           "-i",
           path,
           "-map",
           "0:v:0",
           "-vf",
-          `select=gte(t\\,${time}),showinfo,scale=${dimension}:${dimension}:force_original_aspect_ratio=decrease`,
+          `select=gte(t\\,${time - seek}),showinfo,scale=${dimension}:${dimension}:force_original_aspect_ratio=decrease`,
           "-frames:v",
           "1",
           "-fps_mode",
@@ -137,7 +142,7 @@ export class ReferenceMediaService {
         throw new Error("Reference samples exceeded 12 MiB; reduce resolution or sample count");
       frames.push({
         time,
-        actualTime: Number(timestamp),
+        actualTime: Math.round((Number(timestamp) + seek) * 1e6) / 1e6,
         mimeType: "image/png" as const,
         width: result.stdout.readUInt32BE(16),
         height: result.stdout.readUInt32BE(20),
@@ -150,6 +155,113 @@ export class ReferenceMediaService {
       colorPolicy: "FFmpeg display RGB conversion; no automatic HDR matching",
       frames,
     };
+  }
+
+  /** Finds black segments (at least 0.1 s) with FFmpeg blackdetect, which honours TV range. */
+  async blackFrames(pathValue: unknown, signal: AbortSignal) {
+    const path = await localMediaPath(pathValue);
+    const result = await runMediaProcess(
+      this.ffmpeg,
+      [
+        "-hide_banner",
+        "-nostdin",
+        "-protocol_whitelist",
+        "file,pipe",
+        "-i",
+        path,
+        "-map",
+        "0:v:0",
+        "-vf",
+        "scale=320:-2,blackdetect=d=0.1:pic_th=0.98:pix_th=0.1",
+        "-an",
+        "-f",
+        "null",
+        "-",
+      ],
+      signal,
+      1024,
+    );
+    const segments = [
+      ...result.stderr.matchAll(
+        /black_start:([\d.]+)\s+black_end:([\d.]+)\s+black_duration:([\d.]+)/g,
+      ),
+    ].map((match) => ({
+      start: Number(match[1]),
+      end: Number(match[2]),
+      duration: Number(match[3]),
+    }));
+    const durationMatch = /Duration:\s*(\d+):(\d+):([\d.]+)/.exec(result.stderr);
+    const duration = durationMatch
+      ? Number(durationMatch[1]) * 3600 + Number(durationMatch[2]) * 60 + Number(durationMatch[3])
+      : undefined;
+    const totalSeconds = segments.reduce((total, segment) => total + segment.duration, 0);
+    return {
+      segments: segments.slice(0, 64),
+      totalSeconds: Math.round(totalSeconds * 1000) / 1000,
+      ...(duration ? { fraction: Math.round((totalSeconds / duration) * 1000) / 1000 } : {}),
+    };
+  }
+
+  /** Mean display luminance (0..1) of a still, mapping limited-range video levels correctly. */
+  async stillLuminance(pathValue: unknown, signal: AbortSignal) {
+    const path = await localMediaPath(pathValue);
+    const result = await runMediaProcess(
+      this.ffmpeg,
+      [
+        "-hide_banner",
+        "-nostdin",
+        "-protocol_whitelist",
+        "file,pipe",
+        "-i",
+        path,
+        "-vf",
+        "scale=64:-2:flags=area,format=gray",
+        "-frames:v",
+        "1",
+        "-f",
+        "rawvideo",
+        "pipe:1",
+      ],
+      signal,
+      1024 * 1024,
+    );
+    if (result.stdout.length === 0) throw new Error("Still has no decodable frame");
+    let total = 0;
+    for (const value of result.stdout) total += value;
+    const average = total / result.stdout.length / 255;
+    return { average: Math.round(average * 1000) / 1000, black: average < 0.02 };
+  }
+
+  /** Decodes the first audio stream as mono float PCM for offline analysis (up to 15 minutes). */
+  async pcm(pathValue: unknown, signal: AbortSignal, sampleRate = 22_050) {
+    const path = await localMediaPath(pathValue);
+    const result = await runMediaProcess(
+      this.ffmpeg,
+      [
+        "-hide_banner",
+        "-nostdin",
+        "-protocol_whitelist",
+        "file,pipe",
+        "-i",
+        path,
+        "-map",
+        "0:a:0",
+        "-ac",
+        "1",
+        "-ar",
+        String(sampleRate),
+        "-f",
+        "f32le",
+        "pipe:1",
+      ],
+      signal,
+      sampleRate * 4 * 15 * 60,
+    );
+    if (result.stdout.length < sampleRate * 4) throw new Error("Reference has no decodable audio");
+    const samples = new Float32Array(result.stdout.length / 4);
+    for (let index = 0; index < samples.length; index++)
+      samples[index] = result.stdout.readFloatLE(index * 4);
+    return { path, samples, sampleRate };
   }
 
   async audio(input: Record<string, unknown>, signal: AbortSignal) {

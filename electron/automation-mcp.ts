@@ -57,8 +57,16 @@ export async function startAsterMcp(
     { name: "aster", version: "0.3.4" },
     {
       capabilities: { tools: {} },
-      instructions:
-        "Operate the running Aster editor. Read context, begin a workspace, discover command schemas, edit, render, submit and commit. Use reset_session after external user edits. Each committed workspace is one undo step. For bulk editing, read get_script_api and use execute_aster_code, then poll get_execution. Use get_workspace_status for budgets; operations are counted per workspace, not per MCP process. Use a stable requestId on editing calls and commit for retry deduplication (last 64 requests per client, cleared on reset/disconnect). Cancelling an execution preserves prior staged edits. After commit, continue in this same connection with a fresh workspace. Reference samples return actual timestamps; use those times for motion comparisons.",
+      instructions: [
+        "Operate the running Aster editor. Typical loop: get_editor_context -> describe {topic:'script'} (once) -> execute_aster_code with baseRevision -> render_preview -> commit_workspace.",
+        "execute_aster_code runs code (JavaScript with the aster API) or commands (typed batches), waits for completion and returns state, workspaceRevision, result and warnings; get_execution is only needed when a result still says running (cancel:true stops it). Add commit:true to submit and commit in the same call.",
+        "commit_workspace submits automatically; submit_workspace only reviews a compact diff. Each commit is one undo step; continue in this connection from the returned projectRevision.",
+        "describe finds commands (synonyms work; no query lists all), exact schemas (names) and effect types. script_modules stores helper libraries once for aster.require(name).",
+        "query_project kind 'compositions' lists every composition, 'markers' reads beat/section markers, 'workspace' reports budgets. import_assets imports many files at once; relink_source swaps footage. render {action:'export'} then {action:'wait'} renders and flags black output. reference studies local media (contactSheet for overviews); analyze_beats gives BPM/beat grid and writes markers; fonts lists, checks and embeds fonts; diagnostics inspects projects and frames.",
+        "render_preview contactSheet reviews a whole span in one image. Read warnings in results: a video layer whose time mapping points outside its source renders black; setLayerTimeMapping offset is the source time shown at inPoint.",
+        "Call get_editor_context {reset:true} after external user edits. Use a stable requestId on editing calls and commits for retry deduplication. Idle workspaces keep staged edits until a new workspace needs the slot.",
+        "Reference samples return actual timestamps; use those times for motion comparisons.",
+      ].join(" "),
     },
   );
   server.setRequestHandler(ListToolsRequestSchema, async () => {

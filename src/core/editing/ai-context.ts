@@ -150,6 +150,7 @@ function queryLayerEffects(layer: Layer, time: number) {
           finite(evaluateEffectParameter(effect, parameter, time, effect.parameters[parameter])),
         ]),
     ),
+    ...(effect.parameterExpressions ? { expressions: { ...effect.parameterExpressions } } : {}),
   }));
 }
 

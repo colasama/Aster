@@ -15,3 +15,30 @@ export function resolveTextStyle(layer: Pick<Layer, "name" | "size" | "textStyle
     }
   );
 }
+
+const GENERIC_FONT_FAMILIES = new Set([
+  "serif",
+  "sans-serif",
+  "monospace",
+  "cursive",
+  "fantasy",
+  "system-ui",
+  "ui-serif",
+  "ui-sans-serif",
+  "ui-monospace",
+  "ui-rounded",
+  "emoji",
+  "math",
+]);
+
+/**
+ * CSS font-family token for canvas font shorthands. A plain family name is always quoted, so
+ * names with digits, spaces or punctuation (for example `Brand 400W`) resolve exactly as
+ * `check_fonts` reports them. Quoted names, family lists and generic families pass through.
+ */
+export function cssFontFamily(family: string): string {
+  const trimmed = family.trim();
+  if (!trimmed || /["',]/u.test(trimmed) || GENERIC_FONT_FAMILIES.has(trimmed.toLowerCase()))
+    return trimmed || "sans-serif";
+  return JSON.stringify(trimmed);
+}

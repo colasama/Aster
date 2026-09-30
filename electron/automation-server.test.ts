@@ -44,12 +44,10 @@ describe("external automation boundary", () => {
       ).status,
     ).toBe(403);
     const result = await (await fetch(`${base}/tools`, { headers })).json();
-    expect(result.tools.some((tool: { name: string }) => tool.name === "execute_commands")).toBe(
-      true,
-    );
-    expect(result.tools.some((tool: { name: string }) => tool.name === "compare_reference")).toBe(
-      true,
-    );
+    const names = result.tools.map((tool: { name: string }) => tool.name);
+    expect(names).toEqual(expect.arrayContaining(["execute_aster_code", "reference", "render"]));
+    expect(names).not.toContain("execute_commands");
+    expect(names.length).toBeLessThanOrEqual(20);
     const hasTupleItems = (node: unknown): boolean =>
       !!node &&
       typeof node === "object" &&
@@ -65,11 +63,18 @@ describe("external automation boundary", () => {
       fetch(`${base}/call`, {
         method: "POST",
         headers,
-        body: JSON.stringify({ clientId: "test", name: "read_reference_frames", arguments: args }),
+        body: JSON.stringify({ clientId: "test", name: "reference", arguments: args }),
       });
-    expect((await call({ path: "test.mp4", times: [0], maxDimension: 99999 })).status).toBe(400);
+    expect(
+      (await call({ action: "frames", path: "test.mp4", times: [0], maxDimension: 99999 })).status,
+    ).toBe(400);
     expect(execute).not.toHaveBeenCalled();
-    const response = await call({ path: "test.mp4", times: [0], maxDimension: 1024 });
+    const response = await call({
+      action: "frames",
+      path: "test.mp4",
+      times: [0],
+      maxDimension: 1024,
+    });
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ result: { ok: true } });
   });

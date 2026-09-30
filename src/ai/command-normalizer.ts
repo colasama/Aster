@@ -3,6 +3,7 @@ import {
   normalizeTextAnimatorSettings,
 } from "../core/animation/text-animator";
 import { migrateLegacyTextAnimator } from "../core/animation/text-animator-migration";
+import type { TextAnimatorGroup } from "../core/animation/text-animator-stack";
 import { cloneTimelineLayers } from "../core/editing/clone-layers";
 import { applyOperation, type Operation, type PropertyPath } from "../core/editing/operations";
 import { createLayerForComposition } from "../core/layers/layer-factory";
@@ -10,11 +11,18 @@ import { applySolidSettings } from "../core/layers/solid-layer";
 import { activeComposition } from "../core/project/project";
 import { validateProjectDocument } from "../core/project/project-file";
 import { createParticleLayerForComposition } from "../core/scene/bundled-particle";
-import { createId, type LayerKind, type Project, setLayerSizeAndCenterAnchor } from "../core/types";
+import {
+  createId,
+  type Layer,
+  type LayerKind,
+  type Project,
+  setLayerSizeAndCenterAnchor,
+} from "../core/types";
 import { createEffect, EFFECT_BY_TYPE } from "../effects/registry";
 import { getCommandDescriptors, type JsonSchema } from "./command-registry";
-import { EDIT_LIMITS, encodedBytes, limitExceeded } from "./edit-limits";
+import { EDIT_LIMITS, EditError, encodedBytes, limitExceeded } from "./edit-limits";
 import { normalizeExtendedAiCommand } from "./extended-command-normalizer";
+import { didYouMean } from "./suggestions";
 
 export const MAX_AI_COMMAND_BATCH = EDIT_LIMITS.commandsPerBatch;
 
@@ -61,7 +69,11 @@ export interface NormalizedCommandBatch {
   operations: Operation[];
   project: Project;
   changedObjectIds: string[];
+  /** Non-fatal findings, such as layers that sample outside their source media. */
+  warnings?: string[];
 }
+
+const MAX_BATCH_WARNINGS = 64;
 
 export function normalizeAiCommands(
   values: readonly unknown[],
@@ -79,6 +91,7 @@ export function normalizeAiCommands(
 export class AiCommandBatch {
   readonly project: Project;
   readonly operations: Operation[] = [];
+  readonly #warnings = new Map<string, string>();
   #bytes = 0;
   constructor(
     project: Project,
@@ -90,26 +103,105 @@ export class AiCommandBatch {
   append(value: unknown): Operation {
     if (this.operations.length >= this.maxOperations)
       limitExceeded("operations", this.operations.length + 1, this.maxOperations);
-    const operation = normalizeCommand(
-      value,
-      this.project,
-      this.currentTime,
-      this.operations.length,
-    );
+    let operation: Operation;
+    try {
+      operation = normalizeCommand(value, this.project, this.currentTime, this.operations.length);
+    } catch (error) {
+      throw commandError(error, value, this.project, this.operations.length);
+    }
     this.#bytes += encodedBytes(operation);
     if (this.#bytes > EDIT_LIMITS.workspaceBytes)
       limitExceeded("operationBytes", this.#bytes, EDIT_LIMITS.workspaceBytes);
     applyOperation(this.project, structuredClone(operation));
     this.operations.push(operation);
+    this.#checkTimeMapping(operation);
     return operation;
   }
+  get warnings(): string[] {
+    return [...this.#warnings.values()];
+  }
+  warningFor(layerId: string): string | undefined {
+    return this.#warnings.get(layerId);
+  }
   finish(): NormalizedCommandBatch {
+    const warnings = this.warnings;
     return {
       project: validateProjectDocument(this.project),
       operations: this.operations,
       changedObjectIds: changedIds(this.operations),
+      ...(warnings.length ? { warnings } : {}),
     };
   }
+  #checkTimeMapping(operation: Operation) {
+    if (
+      operation.type !== "setLayerTimeMapping" &&
+      operation.type !== "setLayerTiming" &&
+      operation.type !== "setLayerSource" &&
+      operation.type !== "setLayerTimeRemap"
+    )
+      return;
+    const composition = activeComposition(this.project);
+    const layer = composition.layers.find((candidate) => candidate.id === operation.layerId);
+    const warning = layer ? timeMappingWarning(this.project, layer) : undefined;
+    if (!warning) this.#warnings.delete(operation.layerId);
+    else if (this.#warnings.has(operation.layerId) || this.#warnings.size < MAX_BATCH_WARNINGS)
+      this.#warnings.set(operation.layerId, warning);
+  }
+}
+
+/** Source-time span sampled by a layer: sourceTime = offset + (t - inPoint) / stretch. */
+export function layerSourceRange(project: Project, layer: Layer) {
+  const duration = layerSourceDuration(project, layer);
+  if (duration === undefined || layer.timeRemap) return null;
+  const stretch = Math.max(0.01, layer.timeStretch ?? 1);
+  const start = layer.timeOffset ?? 0;
+  return {
+    start,
+    end: start + Math.max(0, layer.outPoint - layer.inPoint) / stretch,
+    sourceDuration: duration,
+  };
+}
+
+function layerSourceDuration(project: Project, layer: Layer): number | undefined {
+  if (layer.sourceCompositionId)
+    return project.compositions.find((c) => c.id === layer.sourceCompositionId)?.duration;
+  if (!layer.sourceId) return undefined;
+  const source = project.sources.find((candidate) => candidate.id === layer.sourceId);
+  return source && (source.kind === "video" || source.kind === "audio")
+    ? source.duration
+    : undefined;
+}
+
+export function timeMappingWarning(project: Project, layer: Layer): string | undefined {
+  const range = layerSourceRange(project, layer);
+  if (!range || !(range.sourceDuration > 0)) return undefined;
+  const span = `${seconds(range.start)}-${seconds(range.end)}s`;
+  const source = `source (0-${seconds(range.sourceDuration)}s)`;
+  if (range.start >= range.sourceDuration)
+    return `Layer "${layer.name}" (${layer.id}) maps entirely outside its ${source}: it samples ${span}, so it shows only a held last frame or nothing. offset is the source time shown at inPoint (sourceTime = offset + (t - inPoint) / stretch), not a shift relative to the composition.`;
+  if (range.end > range.sourceDuration + 0.05)
+    return `Layer "${layer.name}" (${layer.id}) runs past the end of its ${source} by ${seconds(range.end - range.sourceDuration)}s; the tail holds the last frame.`;
+  return undefined;
+}
+
+function seconds(value: number): string {
+  return String(Math.round(value * 1000) / 1000);
+}
+
+function commandError(error: unknown, value: unknown, project: Project, index: number): unknown {
+  if (error instanceof EditError || !(error instanceof Error)) return error;
+  const type = isRecord(value) && typeof value.type === "string" ? value.type : "unknown";
+  const composition = activeComposition(project);
+  let message = error.message.startsWith("Command ")
+    ? error.message
+    : `Command ${index + 1} (${type}): ${error.message}`;
+  if (/^Layer does not exist/u.test(error.message))
+    message += ` (not found in the active composition "${composition.name}" ${composition.id}; layer IDs belong to one composition, so switch with setActiveComposition or use that composition's script handle)`;
+  return new EditError("invalid_command", message, {
+    commandIndex: index,
+    commandType: type,
+    activeCompositionId: composition.id,
+  });
 }
 
 function normalizeCommand(
@@ -219,13 +311,17 @@ function normalizeCommand(
       requireLayer(layer, layerId);
       const effectType = String(input.effectType);
       if (!EFFECT_BY_TYPE.has(effectType))
-        throw new Error(`Effect type does not exist: ${effectType}`);
+        throw new Error(
+          `Effect type does not exist: ${effectType}.${didYouMean(effectType, EFFECT_BY_TYPE.keys(), 5) || " Use describe {topic:'effects'} to browse effect types."}`,
+        );
       const effect = createEffect(effectType);
       if (typeof input.name === "string") effect.name = input.name.trim().slice(0, 256);
       if (isRecord(input.parameters)) {
         for (const [parameter, parameterValue] of Object.entries(input.parameters)) {
           if (!(parameter in effect.parameters))
-            throw new Error(`Effect parameter does not exist: ${parameter}`);
+            throw new Error(
+              `Effect parameter does not exist on ${effectType}: ${parameter}. Parameters: ${Object.keys(effect.parameters).join(", ")}`,
+            );
           effect.parameters[parameter] = Number(parameterValue);
         }
       }
@@ -243,7 +339,9 @@ function normalizeCommand(
       const effect = requireEffect(existing.effects, effectId);
       const parameter = String(input.parameter);
       if (!(parameter in effect.parameters))
-        throw new Error(`Effect parameter does not exist: ${parameter}`);
+        throw new Error(
+          `Effect parameter does not exist on ${effect.type}: ${parameter}. Parameters: ${Object.keys(effect.parameters).join(", ")}`,
+        );
       return {
         type: "setEffectParameter",
         layerId,
@@ -255,6 +353,15 @@ function normalizeCommand(
     case "setTextAnimator": {
       const existing = requireLayer(layer, layerId);
       if (existing.kind !== "text") throw new Error("Text animation requires a text layer");
+      if (Array.isArray(input.groups))
+        return {
+          type: "setTextAnimator",
+          layerId,
+          textAnimator: normalizeTextAnimatorSettings({
+            enabled: typeof input.enabled === "boolean" ? input.enabled : true,
+            groups: input.groups.map(textAnimatorGroupInput),
+          }),
+        };
       const hasLegacyReveal = [
         input.delay,
         input.stagger,
@@ -322,7 +429,8 @@ export function validateJsonSchema(
       if (typeof key === "string" && !(key in value)) return `${path}.${key} is required`;
     if (schema.additionalProperties === false)
       for (const key of Object.keys(value))
-        if (!(key in properties)) return `${path}.${key} is not allowed`;
+        if (!(key in properties))
+          return `${path}.${key} is not allowed (allowed: ${Object.keys(properties).join(", ")})`;
     if (
       typeof schema.maxProperties === "number" &&
       Object.keys(value).length > schema.maxProperties
@@ -407,7 +515,32 @@ function requireEffect<T extends { id: string }>(effects: readonly T[], effectId
 
 function requirePropertyPath(value: unknown): asserts value is PropertyPath {
   if (typeof value !== "string" || !PROPERTY_PATHS.has(value as PropertyPath))
-    throw new Error(`Property path is not supported: ${String(value)}`);
+    throw new Error(
+      `Property path is not supported: ${String(value)}. Supported paths: ${[...PROPERTY_PATHS].join(", ")}`,
+    );
+}
+
+/** Fills agent-friendly defaults before the shared stack normalizer bounds every field. */
+function textAnimatorGroupInput(value: unknown, index: number): TextAnimatorGroup {
+  const group = isRecord(value) ? value : {};
+  const selectors = Array.isArray(group.selectors) ? group.selectors : [{}];
+  return {
+    ...group,
+    id: typeof group.id === "string" ? group.id : createId(),
+    name: typeof group.name === "string" ? group.name : `Animator ${index + 1}`,
+    enabled: group.enabled !== false,
+    randomSeed: typeof group.randomSeed === "number" ? group.randomSeed : 0,
+    selectors: selectors.map((selector) => {
+      const input = isRecord(selector) ? selector : {};
+      return {
+        ...input,
+        id: typeof input.id === "string" ? input.id : createId(),
+        kind: input.kind === "expression" || input.kind === "wiggly" ? input.kind : "range",
+        enabled: input.enabled !== false,
+      };
+    }),
+    properties: isRecord(group.properties) ? group.properties : {},
+  } as unknown as TextAnimatorGroup;
 }
 
 function finiteTime(value: number): number {

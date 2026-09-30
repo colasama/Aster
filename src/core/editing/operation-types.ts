@@ -14,6 +14,7 @@ import type {
   BlendMode,
   CameraSettings,
   Composition,
+  CompositionMarker,
   Effect,
   EffectMask,
   EnvironmentLighting,
@@ -109,6 +110,11 @@ export type Operation =
       motionBlur: MotionBlurSettings;
     }
   | {
+      type: "setCompositionMarkers";
+      compositionId: Id;
+      markers: CompositionMarker[];
+    }
+  | {
       type: "setCompositionWorkArea";
       compositionId: Id;
       start: number;
@@ -183,6 +189,13 @@ export type Operation =
   | { type: "toggleEffect"; layerId: Id; effectId: Id }
   | { type: "setEffectLut"; layerId: Id; effectId: Id; resource?: Lut3dResource }
   | {
+      type: "setEffectParameterExpression";
+      layerId: Id;
+      effectId: Id;
+      parameter: string;
+      expression: string;
+    }
+  | {
       type: "setEffectParameterAtTime";
       layerId: Id;
       effectId: Id;
@@ -231,6 +244,7 @@ export const OPERATION_TYPES = [
   "setCompositionBackground",
   "setCompositionMotionBlur",
   "setCompositionWorkArea",
+  "setCompositionMarkers",
   "precomposeLayers",
   "addSource",
   "addProjectFont",
@@ -279,6 +293,7 @@ export const OPERATION_TYPES = [
   "toggleEffect",
   "setEffectLut",
   "setEffectParameterAtTime",
+  "setEffectParameterExpression",
   "addEffectParameterKeyframe",
   "removeEffectParameterKeyframe",
   "moveEffectParameterKeyframe",

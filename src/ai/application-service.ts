@@ -1,8 +1,10 @@
-import { buildAiContext, queryEffects } from "../core/editing/ai-context";
+import { buildAiContext } from "../core/editing/ai-context";
 import type { Operation } from "../core/editing/operations";
 import { prepareProjectFonts } from "../core/media/project-font-runtime";
 import { activeComposition } from "../core/project/project";
+import { visibleLayersAtTime } from "../core/scene/scene-evaluation";
 import { createId, type Project } from "../core/types";
+import { EFFECT_REGISTRY } from "../effects/registry";
 import type { AgentAccessMode, VisualObservation, VisualVerification } from "./agent-protocol";
 import {
   assertRenderedFrames,
@@ -24,16 +26,19 @@ import {
 import {
   AI_COMMAND_DESCRIPTORS,
   AI_COMMAND_SCHEMA_VERSION,
+  commandIndex,
   getCommandDescriptors,
   searchCommandDescriptors,
 } from "./command-registry";
+import type { ContactSheetRequest } from "./contact-sheet";
 import { EditExecutions } from "./edit-executions";
 import { EDIT_LIMITS, EditError, encodedBytes, limitExceeded } from "./edit-limits";
 import { type EditTaskRunner, runEditTask } from "./edit-task";
 import { type PreviewOptions, parsePreviewOptions } from "./preview-options";
-import type { AgentRenderedPreviewFrame } from "./render-preview";
+import type { AgentContactSheet, AgentRenderedPreviewFrame } from "./render-preview";
 import { RequestReceipts } from "./request-receipts";
 import { SCRIPT_API_DOCS } from "./script-api";
+import { routeToolCall } from "./tool-routing";
 
 const MAX_QUERY_ITEMS = 128;
 const MAX_WORKSPACE_BYTES = EDIT_LIMITS.workspaceBytes;
@@ -73,12 +78,20 @@ export interface AgentApplicationContext {
   accessMode: AgentAccessMode;
   primaryModelSupportsImages: boolean;
   runEditTask?: EditTaskRunner;
+  /** Script modules exposed to aster.require(); owned by the embedding adapter. */
+  scriptModules?: () => Record<string, string>;
   renderPreview?: (
     project: Project,
     times: readonly number[],
     signal: AbortSignal,
     options?: PreviewOptions,
   ) => Promise<AgentRenderedPreviewFrame[]>;
+  renderContactSheet?: (
+    project: Project,
+    request: ContactSheetRequest,
+    signal: AbortSignal,
+    options?: PreviewOptions,
+  ) => Promise<AgentContactSheet>;
 }
 
 export interface AgentToolAuditEvent {
@@ -93,6 +106,7 @@ export interface AgentToolAuditEvent {
 export class AsterAgentApplicationService {
   readonly #context: AgentApplicationContext;
   readonly #workspaces = new Map<string, EditWorkspace>();
+  readonly #evicted = new Set<string>();
   readonly #audit: AgentToolAuditEvent[] = [];
   readonly #activeControllers = new Map<AbortController, string>();
   readonly #executions = new EditExecutions();
@@ -111,8 +125,15 @@ export class AsterAgentApplicationService {
     };
   }
 
-  async executeTool(toolName: string, argumentsValue: Record<string, unknown>): Promise<unknown> {
+  async executeTool(
+    publicName: string,
+    publicArguments: Record<string, unknown>,
+  ): Promise<unknown> {
     if (this.#aborted) throw new Error("Agent session was aborted");
+    const { name: toolName, arguments: argumentsValue } = routeToolCall(
+      publicName,
+      publicArguments,
+    );
     const generation = this.#executionGeneration;
     const started = new Date();
     const argumentBytes = encodedBytes(argumentsValue);
@@ -175,11 +196,20 @@ export class AsterAgentApplicationService {
           this.#workspace(stringValue(input.workspaceId, "workspaceId"), false),
         );
       case "get_script_api":
-        return { ...SCRIPT_API_DOCS, limits: EDIT_LIMITS };
+        return {
+          ...SCRIPT_API_DOCS,
+          limits: EDIT_LIMITS,
+          modules: Object.keys(this.#context.scriptModules?.() ?? {}),
+        };
+      case "list_effects":
+        return this.#listEffects(input);
       case "execute_aster_code":
         return this.#executeCode(input);
       case "get_execution":
-        return this.#executions.status(stringValue(input.executionId, "executionId"));
+        return this.#waitForExecution(
+          stringValue(input.executionId, "executionId"),
+          boundedInteger(input.wait, "wait", 0, EDIT_LIMITS.maxWaitMs, EDIT_LIMITS.defaultWaitMs),
+        );
       case "cancel_execution":
         return this.#executions.cancel(stringValue(input.executionId, "executionId"));
       case "execute_commands":
@@ -224,17 +254,60 @@ export class AsterAgentApplicationService {
     const query = stringValue(input.query, "query", true);
     const category = optionalString(input.category, "category");
     const limit = boundedInteger(input.limit, "limit", 1, 24, 12);
+    const commands = searchCommandDescriptors(query, category, limit);
+    const effects = query.trim() ? matchingEffects(query).slice(0, 8) : [];
     return {
       schemaVersion: AI_COMMAND_SCHEMA_VERSION,
-      commands: searchCommandDescriptors(query, category, limit).map((descriptor) => ({
+      commands: commands.map((descriptor) => ({
         name: descriptor.name,
-        version: descriptor.version,
         category: descriptor.category,
         description: descriptor.description,
-        requiredPermissions: descriptor.requiredPermissions,
         risk: descriptor.risk,
       })),
+      ...(effects.length
+        ? {
+            effects: effects.map((effect) => ({
+              type: effect.type,
+              name: effect.name,
+              category: effect.category,
+            })),
+          }
+        : {}),
+      ...(commands.length === 0 || !query.trim()
+        ? {
+            index: commandIndex(category),
+            hint: "Load exact schemas with describe {topic:'commands', names}; list effect types with describe {topic:'effects'}; bulk edits use execute_aster_code (describe {topic:'script'}).",
+          }
+        : {}),
     };
+  }
+
+  #listEffects(input: Record<string, unknown>) {
+    const query = optionalString(input.query, "query");
+    const category = optionalString(input.category, "category");
+    const offset = boundedInteger(input.offset, "offset", 0, Number.MAX_SAFE_INTEGER, 0);
+    const limit = boundedInteger(input.limit, "limit", 1, 48, 24);
+    const matches = (query ? matchingEffects(query) : EFFECT_REGISTRY).filter(
+      (effect) => !category || effect.category.toLocaleLowerCase() === category.toLocaleLowerCase(),
+    );
+    return boundedResult({
+      total: matches.length,
+      categories: [...new Set(EFFECT_REGISTRY.map((effect) => effect.category))],
+      items: matches.slice(offset, offset + limit).map((effect) => ({
+        type: effect.type,
+        name: effect.name,
+        category: effect.category,
+        description: effect.description,
+        parameters: effect.parameters.map((parameter) => ({
+          key: parameter.key,
+          kind: parameter.kind,
+          default: parameter.defaultValue,
+          ...(parameter.min === undefined ? {} : { min: parameter.min }),
+          ...(parameter.max === undefined ? {} : { max: parameter.max }),
+          ...(parameter.options ? { options: parameter.options } : {}),
+        })),
+      })),
+    });
   }
 
   #commandSchemas(input: Record<string, unknown>) {
@@ -252,21 +325,30 @@ export class AsterAgentApplicationService {
     const project = workspace ? this.#workspace(workspace).project : this.#context.project;
     const revision = workspace
       ? this.#workspace(workspace).revision
-      : this.#assertLiveRevision(input.projectRevision);
+      : input.projectRevision === undefined
+        ? this.#context.projectRevision
+        : this.#assertLiveRevision(input.projectRevision);
     const time = finiteNumber(input.time, "time", this.#context.currentTime);
     const kind = optionalString(input.kind, "kind") ?? "layers";
     const offset = boundedInteger(input.offset, "offset", 0, Number.MAX_SAFE_INTEGER, 0);
     const limit = boundedInteger(input.limit, "limit", 1, MAX_QUERY_ITEMS, 64);
-    const values =
-      kind === "effects"
-        ? queryEffects(activeComposition(project), time)
-        : queryValues(kind, buildAiContext(project, this.#context.selection, time));
+    const values = queryValues(project, {
+      kind,
+      selection: this.#context.selection,
+      time,
+      query: optionalString(input.query, "query"),
+      compositionId: optionalString(input.compositionId, "compositionId"),
+      offset,
+      limit,
+    });
     return boundedResult({
       projectRevision: revision,
       kind,
       offset,
-      total: values.length,
-      items: values.slice(offset, offset + limit),
+      ...values,
+      ...(values.total > offset + values.items.length
+        ? { nextOffset: offset + values.items.length }
+        : {}),
     });
   }
 
@@ -278,9 +360,22 @@ export class AsterAgentApplicationService {
       Number.MAX_SAFE_INTEGER,
     );
     this.#assertLiveRevision(baseRevision);
-    for (const [id, workspace] of this.#workspaces)
-      if (!workspace.busy && Date.now() - workspace.lastActivityAt > MAX_WORKSPACE_AGE_MS)
-        this.#workspaces.delete(id);
+    // Idle workspaces keep their staged edits until a new workspace needs the slot; the least
+    // recently used one past the idle limit is evicted first.
+    if (this.#workspaces.size >= EDIT_LIMITS.maxWorkspaces) {
+      const evictable = [...this.#workspaces.values()]
+        .filter(
+          (candidate) =>
+            !candidate.busy && Date.now() - candidate.lastActivityAt > MAX_WORKSPACE_AGE_MS,
+        )
+        .sort((left, right) => left.lastActivityAt - right.lastActivityAt)[0];
+      if (evictable) {
+        this.#workspaces.delete(evictable.id);
+        this.#evicted.add(evictable.id);
+        if (this.#evicted.size > 64)
+          this.#evicted.delete(this.#evicted.values().next().value as string);
+      }
+    }
     if (this.#workspaces.size >= EDIT_LIMITS.maxWorkspaces)
       limitExceeded("workspaces", this.#workspaces.size + 1, EDIT_LIMITS.maxWorkspaces);
     const workspace: EditWorkspace = {
@@ -309,7 +404,11 @@ export class AsterAgentApplicationService {
   }
 
   async #executeCommands(input: Record<string, unknown>) {
-    const workspace = this.#mutableWorkspace(input);
+    if (input.workspaceId === undefined && input.workspaceRevision !== undefined)
+      throw new Error("workspaceRevision requires workspaceId");
+    const workspace = this.#mutableWorkspace(
+      input.workspaceId === undefined ? this.#beginWorkspace(input) : input,
+    );
     if (!Array.isArray(input.commands)) throw new Error("commands must be an array");
     if (input.commands.length === 0 || input.commands.length > MAX_AI_COMMAND_BATCH)
       throw new Error(`Each batch must contain 1 through ${MAX_AI_COMMAND_BATCH} commands`);
@@ -345,9 +444,26 @@ export class AsterAgentApplicationService {
     }
   }
 
-  #executeCode(input: Record<string, unknown>) {
+  async #waitForExecution(executionId: string, waitMs: number) {
+    const status = await this.#executions.wait(executionId, waitMs);
+    return status.state === "running"
+      ? {
+          ...status,
+          hint: "Still running; call get_execution again (it waits up to 60 s) or pass cancel:true.",
+        }
+      : status;
+  }
+
+  async #executeCode(input: Record<string, unknown>) {
     if (typeof input.code !== "string" || !input.code.trim())
       throw new Error("code must be a non-empty string");
+    const waitMs = boundedInteger(
+      input.wait,
+      "wait",
+      0,
+      EDIT_LIMITS.maxWaitMs,
+      EDIT_LIMITS.defaultWaitMs,
+    );
     if (encodedBytes(input.code) > EDIT_LIMITS.scriptBytes)
       limitExceeded("scriptBytes", encodedBytes(input.code), EDIT_LIMITS.scriptBytes);
     this.#executions.assertIdle();
@@ -369,13 +485,19 @@ export class AsterAgentApplicationService {
               currentTime: this.#context.currentTime,
               maxOperations: MAX_WORKSPACE_COMMANDS - workspace.operations.length,
               code,
+              modules: this.#context.scriptModules?.(),
             },
             signal,
             progress,
           );
           signal.throwIfAborted();
           const accepted = await this.#acceptBatch(workspace, batch, signal);
-          return { workspaceRevision: accepted.workspaceRevision, result: batch.result };
+          return {
+            workspaceRevision: accepted.workspaceRevision,
+            result: batch.result,
+            operationCount: batch.operations.length,
+            ...(batch.warnings?.length ? { warnings: batch.warnings } : {}),
+          };
         } finally {
           workspace.busy = false;
           workspace.lastActivityAt = Date.now();
@@ -383,7 +505,7 @@ export class AsterAgentApplicationService {
       },
     );
     workspace.busy = true;
-    return started;
+    return waitMs > 0 ? this.#waitForExecution(started.executionId, waitMs) : started;
   }
 
   async #acceptBatch(
@@ -420,6 +542,7 @@ export class AsterAgentApplicationService {
       })),
       changedObjectIds: batch.changedObjectIds,
       diagnostics: [],
+      ...(batch.warnings?.length ? { warnings: batch.warnings } : {}),
       budgets: this.#workspaceStatus(candidate).budgets,
     };
   }
@@ -438,7 +561,12 @@ export class AsterAgentApplicationService {
           baseProjectBytes: this.#baseBytes,
         },
         idleMs: MAX_WORKSPACE_AGE_MS,
+        /** After this time the workspace may be evicted, but only to make room for a new one. */
         expiresAt: workspace.busy ? null : workspace.lastActivityAt + MAX_WORKSPACE_AGE_MS,
+        eviction: "only when a new workspace needs the slot",
+        remainingMs: workspace.busy
+          ? null
+          : Math.max(0, workspace.lastActivityAt + MAX_WORKSPACE_AGE_MS - Date.now()),
         commandsPerBatch: MAX_AI_COMMAND_BATCH,
       },
     };
@@ -459,6 +587,7 @@ export class AsterAgentApplicationService {
 
   async #renderPreview(input: Record<string, unknown>) {
     const workspace = this.#workspaceInput(input);
+    if (input.contactSheet !== undefined) return this.#renderContactSheet(workspace, input);
     const times = boundedTimes(input.times);
     if (workspace.busy) throw new EditError("workspace_busy", "Workspace has a running execution");
     if (this.#context.renderPreview) {
@@ -477,11 +606,13 @@ export class AsterAgentApplicationService {
           throw new EditError("workspace_changed", "Workspace changed during preview");
         assertRenderedFrames(frames, times);
         workspace.previewFrames = structuredClone(frames);
+        const warnings = blackFrameWarnings(workspace.project, frames);
         return {
           workspaceId: workspace.id,
           workspaceRevision: workspace.revision,
           status: "rendered",
           frames,
+          ...(warnings.length ? { warnings } : {}),
           verification: this.#context.primaryModelSupportsImages
             ? "verified_by_primary_model"
             : "metrics_only",
@@ -504,6 +635,48 @@ export class AsterAgentApplicationService {
       limitation:
         "No bounded GPU readback was attached to this agent session; use semantic analysis and human review.",
     };
+  }
+
+  async #renderContactSheet(workspace: EditWorkspace, input: Record<string, unknown>) {
+    if (workspace.busy) throw new EditError("workspace_busy", "Workspace has a running execution");
+    if (!this.#context.renderContactSheet)
+      throw new Error("Contact sheets require the GPU preview renderer");
+    const controller = new AbortController();
+    this.#activeControllers.set(controller, workspace.id);
+    workspace.busy = true;
+    try {
+      const sheet = await this.#context.renderContactSheet(
+        structuredClone(workspace.project),
+        input.contactSheet as ContactSheetRequest,
+        controller.signal,
+        parsePreviewOptions(input),
+      );
+      controller.signal.throwIfAborted();
+      const { samples, ...image } = sheet;
+      const warnings = blackFrameWarnings(
+        workspace.project,
+        samples.map(({ time, ...measurements }) => ({ time, measurements })),
+      );
+      return {
+        workspaceId: workspace.id,
+        workspaceRevision: workspace.revision,
+        status: "rendered",
+        sheet: image,
+        samples: samples.map((sample) => ({
+          time: sample.time,
+          averageLuminance: Math.round(sample.averageLuminance * 1000) / 1000,
+          emptyFrame: sample.emptyFrame,
+          ...(sample.differenceFromPrevious === undefined
+            ? {}
+            : { differenceFromPrevious: Math.round(sample.differenceFromPrevious * 1000) / 1000 }),
+        })),
+        ...(warnings.length ? { warnings } : {}),
+      };
+    } finally {
+      this.#activeControllers.delete(controller);
+      workspace.busy = false;
+      workspace.lastActivityAt = Date.now();
+    }
   }
 
   #analyzeRender(input: Record<string, unknown>) {
@@ -631,10 +804,28 @@ export class AsterAgentApplicationService {
       visualObservation: workspace.visualObservation,
     };
     this.#submitted = submitted;
+    const operationTypes: Record<string, number> = {};
+    for (const operation of submitted.operations)
+      operationTypes[operation.type] = (operationTypes[operation.type] ?? 0) + 1;
+    const commitPolicy = this.#context.accessMode === "full_access" ? "automatic" : "user_approval";
+    if (input.verbose === true)
+      return {
+        ...submitted,
+        operationCount: submitted.operations.length,
+        operationTypes,
+        operations: submitted.operations.map((operation) => ({ type: operation.type })),
+        commitPolicy,
+      };
     return {
-      ...submitted,
-      operations: submitted.operations.map((operation) => ({ type: operation.type })),
-      commitPolicy: this.#context.accessMode === "full_access" ? "automatic" : "user_approval",
+      workspaceId: submitted.workspaceId,
+      summary: submitted.summary,
+      baseRevision: submitted.baseRevision,
+      workspaceRevision: submitted.workspaceRevision,
+      operationCount: submitted.operations.length,
+      operationTypes,
+      changedObjectCount: submitted.changedObjectIds.length,
+      verification: submitted.verification,
+      commitPolicy,
     };
   }
 
@@ -686,13 +877,13 @@ export class AsterAgentApplicationService {
 
   #workspace(id: string, touch = true): EditWorkspace {
     const workspace = this.#workspaces.get(id);
-    if (!workspace) throw new EditError("workspace_not_found", "Edit workspace does not exist");
-    if (!workspace.busy && Date.now() - workspace.lastActivityAt > MAX_WORKSPACE_AGE_MS) {
-      this.#workspaces.delete(id);
-      throw new EditError(
-        "workspace_expired",
-        "Edit workspace expired after 30 minutes of inactivity",
-      );
+    if (!workspace) {
+      if (this.#evicted.has(id))
+        throw new EditError(
+          "workspace_expired",
+          `Edit workspace was idle for over ${Math.round(MAX_WORKSPACE_AGE_MS / 60_000)} minutes and was evicted to make room for a new workspace`,
+        );
+      throw new EditError("workspace_not_found", "Edit workspace does not exist");
     }
     if (touch) workspace.lastActivityAt = Date.now();
     return workspace;
@@ -729,4 +920,49 @@ export class AsterAgentApplicationService {
     });
     if (this.#audit.length > 512) this.#audit.splice(0, this.#audit.length - 512);
   }
+}
+
+function matchingEffects(query: string) {
+  const terms = query
+    .toLocaleLowerCase()
+    .split(/[^a-z0-9]+/u)
+    .filter((term) => term.length > 1);
+  return EFFECT_REGISTRY.map((effect, index) => {
+    const type = effect.type.toLocaleLowerCase();
+    const title = `${effect.name} ${effect.category}`.toLocaleLowerCase();
+    const description = effect.description.toLocaleLowerCase();
+    let score = 0;
+    for (const term of terms)
+      score += type.includes(term)
+        ? 3
+        : title.includes(term)
+          ? 2
+          : description.includes(term)
+            ? 1
+            : 0;
+    return { effect, score, index };
+  })
+    .filter((entry) => entry.score > 0)
+    .sort((left, right) => right.score - left.score || left.index - right.index)
+    .map((entry) => entry.effect);
+}
+
+/** Flags black samples that should show content, instead of letting them pass silently. */
+export function blackFrameWarnings(
+  project: Project,
+  frames: readonly Pick<AgentRenderedPreviewFrame, "time" | "measurements">[],
+): string[] {
+  const composition = activeComposition(project);
+  const background = composition.background;
+  const blackBackground = background[3] < 0.01 || Math.max(...background.slice(0, 3)) < 1 / 255;
+  return frames.flatMap((frame) => {
+    if (!frame.measurements.emptyFrame) return [];
+    const active = visibleLayersAtTime(composition, frame.time).filter(
+      (layer) => layer.kind !== "camera" && layer.kind !== "light" && layer.kind !== "null",
+    );
+    if (active.length === 0 && blackBackground) return [];
+    return [
+      `Frame at ${frame.time}s is completely black although ${active.length} layer(s) are active${blackBackground ? "" : " and the background is not black"}; check layer sourceRange/time mapping, opacity and media.`,
+    ];
+  });
 }

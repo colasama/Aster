@@ -144,6 +144,7 @@ function validateComposition(value: unknown, path: string): asserts value is Com
     Math.abs(normalizedWorkArea.end - workAreaEnd) > 0.000_000_1
   )
     throw new Error(`${path}.workArea must be a non-empty frame-aligned composition range`);
+  if (composition.markers !== undefined) validateMarkers(composition.markers, duration, path);
   if (!Array.isArray(composition.background) || composition.background.length !== 4)
     throw new Error(`${path}.background must contain four channels`);
   const motionBlur = requireObject(composition.motionBlur, `${path}.motionBlur`);
@@ -238,5 +239,29 @@ function validateCommandLog(value: unknown): void {
       )
     )
       throw new Error(`${path}.serializedOperations does not match its operation manifest`);
+  }
+}
+
+function validateMarkers(value: unknown, duration: number, path: string): void {
+  if (!Array.isArray(value) || value.length > 4096)
+    throw new Error(`${path}.markers must be an array of at most 4096 markers`);
+  let previous = -Infinity;
+  const ids = new Set<string>();
+  for (const [index, entry] of value.entries()) {
+    const marker = requireObject(entry, `${path}.markers[${index}]`);
+    const id = requireString(marker.id, `${path}.markers[${index}].id`);
+    if (ids.has(id)) throw new Error(`${path}.markers contains a duplicate id`);
+    ids.add(id);
+    const time = requireFiniteNumber(marker.time, `${path}.markers[${index}].time`);
+    if (time < 0 || time > duration || time < previous)
+      throw new Error(`${path}.markers must be sorted and inside the composition`);
+    previous = time;
+    if (!["marker", "beat", "downbeat", "section"].includes(String(marker.kind)))
+      throw new Error(`${path}.markers[${index}].kind is unsupported`);
+    if (
+      marker.label !== undefined &&
+      (typeof marker.label !== "string" || marker.label.length > 256)
+    )
+      throw new Error(`${path}.markers[${index}].label must be at most 256 characters`);
   }
 }

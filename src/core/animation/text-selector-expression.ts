@@ -1,3 +1,4 @@
+import { beatIndex, beatPhase } from "./beat-functions";
 import type { TextExpressionSelectorContext } from "./text-selectors";
 
 type Token =
@@ -25,6 +26,9 @@ const MAX_COMPILED_EXPRESSIONS = 128;
 const expressionCache = new Map<string, CompiledExpression>();
 const FUNCTIONS: Readonly<Record<string, (...values: number[]) => number>> = {
   abs: (value) => Math.abs(value ?? 0),
+  // Time-dependent; evaluateNode supplies the selector time.
+  beat: () => 0,
+  beatphase: () => 0,
   ceil: (value) => Math.ceil(value ?? 0),
   clamp: (value, minimum, maximum) => Math.min(maximum ?? 1, Math.max(minimum ?? 0, value ?? 0)),
   cos: (value) => Math.cos(value ?? 0),
@@ -271,7 +275,15 @@ function evaluateNode(node: ExpressionNode, context: TextExpressionSelectorConte
     );
   const implementation = FUNCTIONS[node.name];
   if (!implementation) throw new Error(`Unsupported text selector function ${node.name}`);
-  return implementation(...node.values.map((value) => evaluateNode(value, context)));
+  const values = node.values.map((value) => evaluateNode(value, context));
+  if (node.name === "beat" || node.name === "beatphase")
+    return (node.name === "beat" ? beatIndex : beatPhase)(
+      context.time,
+      values[0] ?? 0,
+      values[1],
+      values[2],
+    );
+  return implementation(...values);
 }
 
 function bindingPower(operator: string): [number, number] {

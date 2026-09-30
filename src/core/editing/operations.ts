@@ -42,7 +42,7 @@ import { assertSceneGeneratorInstance } from "../scene/scene-generator";
 
 import type { Id, Layer, Project, ShapeSettings, TextStyle } from "../types";
 
-import { isLayerKind } from "../types";
+import { isLayerKind, MAX_COMPOSITION_MARKERS } from "../types";
 import { easeTransform, getProperty, setProperty } from "./layer-properties";
 
 import {
@@ -223,6 +223,25 @@ export function applyOperation(project: Project, operation: Operation): void {
       composition.duration,
       composition.frameRate.denominator / composition.frameRate.numerator,
     );
+    return;
+  }
+  if (operation.type === "setCompositionMarkers") {
+    const composition = project.compositions.find(
+      (candidate) => candidate.id === operation.compositionId,
+    );
+    if (!composition) throw new Error("Composition does not exist");
+    const markers = operation.markers
+      .map((marker) => ({
+        id: marker.id,
+        time: Math.min(composition.duration, Math.max(0, marker.time)),
+        kind: marker.kind,
+        ...(marker.label ? { label: marker.label.slice(0, 256) } : {}),
+      }))
+      .sort((left, right) => left.time - right.time);
+    if (markers.length > MAX_COMPOSITION_MARKERS)
+      throw new Error(`A composition holds at most ${MAX_COMPOSITION_MARKERS} markers`);
+    if (markers.length) composition.markers = markers;
+    else delete composition.markers;
     return;
   }
   if (operation.type === "setCompositionWorkArea") {
@@ -687,6 +706,20 @@ export function applyOperation(project: Project, operation: Operation): void {
       if (effect.type !== "lut") throw new Error("LUT resources require a 3D LUT effect");
       assertLayerEffectLimits(layer);
       effect.resource = operation.resource;
+      break;
+    }
+    case "setEffectParameterExpression": {
+      const effect = layer.effects.find((entry) => entry.id === operation.effectId);
+      if (!effect) throw new Error("Effect does not exist");
+      const expression = operation.expression.trim();
+      if (expression) {
+        effect.parameterExpressions ??= {};
+        effect.parameterExpressions[operation.parameter] = expression;
+      } else if (effect.parameterExpressions) {
+        delete effect.parameterExpressions[operation.parameter];
+        if (Object.keys(effect.parameterExpressions).length === 0)
+          delete effect.parameterExpressions;
+      }
       break;
     }
     case "setEffectParameterAtTime": {

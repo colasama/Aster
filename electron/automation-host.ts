@@ -3,7 +3,15 @@ import { access, realpath, stat } from "node:fs/promises";
 import { isAbsolute, join } from "node:path";
 import { type BrowserWindow, ipcMain } from "electron";
 import type { AutomationRequest } from "../src/ai/automation-protocol.js";
+import { beatSummary } from "../src/ai/beat-summary.js";
+import {
+  type ContactSheetRequest,
+  contactSheetTimes,
+  MAX_CONTACT_SHEET_CELLS,
+} from "../src/ai/contact-sheet-spec.js";
 import { EditError } from "../src/ai/edit-limits.js";
+import { routeToolCall } from "../src/ai/tool-routing.js";
+import { analyzeBeats } from "../src/core/audio/beat-analysis.js";
 import { type AutomationCall, startAutomationServer } from "./automation-server.js";
 import { readProjectFont } from "./font-files.js";
 import { mediaMimeType, ReferenceMediaService } from "./reference-media.js";
@@ -85,15 +93,122 @@ export async function startAutomationHost(options: {
     });
   }
 
-  async function execute(call: AutomationCall, signal: AbortSignal) {
+  async function authorizedImport(path: unknown) {
+    if (typeof path !== "string" || !isAbsolute(path))
+      throw new Error("Use an absolute local path");
+    const resolved = await realpath(path);
+    const info = await stat(resolved);
+    const mimeType = mediaMimeType(resolved);
+    if (
+      !info.isFile() ||
+      info.size < 1 ||
+      info.size > 96 * 1024 * 1024 ||
+      mimeType === "application/octet-stream"
+    )
+      throw new Error("Import requires a supported media file of at most 96 MiB");
+    options.authorize(resolved, true);
+    return { path: resolved, mimeType, bytes: info.size };
+  }
+
+  /** Sequential single-file imports keep each file an atomic, individually undoable edit. */
+  async function importAssets(call: AutomationCall, signal: AbortSignal) {
+    const { paths, ...shared } = call.arguments as { paths: string[] } & Record<string, unknown>;
+    let revision = shared.baseRevision as number;
+    const results: Array<Record<string, unknown>> = [];
+    for (const path of paths) {
+      signal.throwIfAborted();
+      try {
+        const file = await authorizedImport(path);
+        const imported = (await renderer(
+          {
+            ...call,
+            name: "import_asset",
+            arguments: { ...shared, ...file, baseRevision: revision },
+          },
+          signal,
+        )) as { projectRevision: number; layerIds: string[]; warnings: unknown[] };
+        revision = imported.projectRevision;
+        results.push({ path, layerIds: imported.layerIds, warnings: imported.warnings });
+      } catch (error) {
+        if (signal.aborted) throw error;
+        results.push({ path, error: error instanceof Error ? error.message : String(error) });
+      }
+    }
+    return {
+      projectRevision: revision,
+      imported: results.filter((result) => !result.error).length,
+      failed: results.filter((result) => result.error).length,
+      results,
+    };
+  }
+
+  async function execute(publicCall: AutomationCall, signal: AbortSignal) {
+    let call: AutomationCall = {
+      ...publicCall,
+      ...routeToolCall(publicCall.name, publicCall.arguments),
+    };
+    if (call.name === "save_project" && call.arguments.path === undefined) {
+      const current = (await renderer(
+        { ...call, name: "current_project_path", arguments: {} },
+        signal,
+      )) as { path?: string };
+      if (!current.path)
+        throw new Error("This project has no saved location yet; pass an absolute path");
+      // Saving back to the document's own bundle is not an overwrite of another project.
+      call = { ...call, arguments: { ...call.arguments, path: current.path, overwrite: true } };
+    }
     const input = call.arguments;
+    if (call.name === "import_assets") return importAssets(call, signal);
+    if (call.name === "wait_render") {
+      const job = (await renderer(call, signal)) as RenderJobView;
+      return input.analyze === false ? job : withOutputAnalysis(job, media, signal);
+    }
     if (call.name === "import_font") {
       const font = await readProjectFont(input.path, input.family, input.weight, input.weightRange);
       return renderer({ ...call, arguments: { ...input, font } }, signal);
     }
     if (call.name === "probe_reference") return media.probe(input.path, signal);
-    if (call.name === "read_reference_frames") return media.frames(input, signal);
+    if (call.name === "read_reference_frames") {
+      if (!input.contactSheet) {
+        if (!Array.isArray(input.times)) throw new Error("Pass times or contactSheet");
+        return media.frames(input, signal);
+      }
+      const sheet = input.contactSheet as ContactSheetRequest;
+      const duration =
+        sheet.times || (sheet.start !== undefined && sheet.end !== undefined)
+          ? 0
+          : Number((await media.probe(input.path, signal)).format?.duration);
+      const times = contactSheetTimes(sheet, [0, Number.isFinite(duration) ? duration : 0]);
+      const decoded = await media.frames(
+        { path: input.path, times, maxDimension: sheet.cellWidth ?? 320 },
+        signal,
+        MAX_CONTACT_SHEET_CELLS,
+      );
+      const composed = await renderer(
+        {
+          ...call,
+          name: "compose_contact_sheet",
+          arguments: { contactSheet: sheet, frames: decoded.frames },
+        },
+        signal,
+      );
+      return {
+        path: decoded.path,
+        timestampPolicy: decoded.timestampPolicy,
+        ...(composed as Record<string, unknown>),
+      };
+    }
     if (call.name === "read_reference_audio") return media.audio(input, signal);
+    if (call.name === "analyze_beats" && typeof input.path === "string") {
+      const decoded = await media.pcm(input.path, signal);
+      const analysis = analyzeBeats(decoded.samples, decoded.sampleRate, {
+        ...(typeof input.minBpm === "number" ? { minBpm: input.minBpm } : {}),
+        ...(typeof input.maxBpm === "number" ? { maxBpm: input.maxBpm } : {}),
+        ...(typeof input.beatsPerBar === "number" ? { beatsPerBar: input.beatsPerBar } : {}),
+      });
+      if (input.writeMarkers !== true) return { path: decoded.path, ...beatSummary(analysis) };
+      return renderer({ ...call, arguments: { ...input, analysis } }, signal);
+    }
     if (call.name === "compare_reference") {
       const offset = (input.offset as number | undefined) ?? 0;
       const reference = await media.frames(
@@ -105,7 +220,11 @@ export async function startAutomationHost(options: {
         signal,
       );
     }
-    if (["import_asset", "open_project", "save_project", "export_render"].includes(call.name)) {
+    if (
+      ["import_asset", "relink_source", "open_project", "save_project", "export_render"].includes(
+        call.name,
+      )
+    ) {
       if (typeof input.path !== "string" || !isAbsolute(input.path))
         throw new Error("Use an absolute local path");
       if (call.name === "open_project") {
@@ -115,23 +234,11 @@ export async function startAutomationHost(options: {
         options.authorize(path, false);
         return renderer({ ...call, arguments: { ...input, path } }, signal);
       }
-      if (call.name === "import_asset") {
-        const path = await realpath(input.path);
-        const info = await stat(path);
-        const mimeType = mediaMimeType(path);
-        if (
-          !info.isFile() ||
-          info.size < 1 ||
-          info.size > 96 * 1024 * 1024 ||
-          mimeType === "application/octet-stream"
-        )
-          throw new Error("Import requires a supported media file of at most 96 MiB");
-        options.authorize(path, true);
+      if (call.name === "import_asset" || call.name === "relink_source")
         return renderer(
-          { ...call, arguments: { ...input, path, mimeType, bytes: info.size } },
+          { ...call, arguments: { ...input, ...(await authorizedImport(input.path)) } },
           signal,
         );
-      }
       if (
         call.name === "save_project" &&
         input.overwrite !== true &&
@@ -177,4 +284,33 @@ async function exists(path: string) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return false;
     throw error;
   }
+}
+
+interface RenderJobView {
+  status: string;
+  outputs: Array<{ kind: string; destination: string }>;
+  [key: string]: unknown;
+}
+
+/** Adds black-frame statistics for finished outputs, so a silent black shot cannot slip through. */
+async function withOutputAnalysis(
+  job: RenderJobView,
+  media: ReferenceMediaService,
+  signal: AbortSignal,
+) {
+  if (job.status !== "completed") return job;
+  const outputs = await Promise.all(
+    job.outputs.map(async (output) => {
+      try {
+        if (output.kind === "mp4")
+          return { ...output, black: await media.blackFrames(output.destination, signal) };
+        if (output.kind === "still")
+          return { ...output, luminance: await media.stillLuminance(output.destination, signal) };
+      } catch (error) {
+        return { ...output, analysisError: error instanceof Error ? error.message : String(error) };
+      }
+      return output;
+    }),
+  );
+  return { ...job, outputs };
 }

@@ -1,34 +1,158 @@
-import { type buildAiContext, MAX_AI_CONTEXT_BYTES } from "../core/editing/ai-context";
+import {
+  MAX_AI_CONTEXT_BYTES,
+  queryAssets,
+  queryEffects,
+  queryProperties,
+  queryScene,
+  queryTimeline,
+} from "../core/editing/ai-context";
 import type { Operation } from "../core/editing/operations";
+import { activeComposition } from "../core/project/project";
+import { projectFontMetadata } from "../core/project/project-fonts";
+import type { Composition, Project } from "../core/types";
 import { encodedBytes } from "./edit-limits";
 import type { AgentRenderedPreviewFrame } from "./render-preview";
 
 const MAX_QUERY_BYTES = 64 * 1024;
 const MAX_RENDER_SAMPLES = 12;
 
-export function queryValues(kind: string, context: ReturnType<typeof buildAiContext>): unknown[] {
-  switch (kind) {
+export interface ProjectQuery {
+  kind: string;
+  selection: string[];
+  time: number;
+  /** Case-insensitive name substring filter. */
+  query?: string;
+  compositionId?: string;
+  offset: number;
+  limit: number;
+}
+
+/** Filters and paginates before shaping, so large projects never build a whole-project context. */
+export function queryValues(
+  project: Project,
+  request: ProjectQuery,
+): { total: number; items: unknown[]; compositionId?: string } {
+  const composition = queryComposition(project, request.compositionId);
+  const needle = request.query?.toLocaleLowerCase();
+  const named = <T extends { name: string }>(values: readonly T[]) =>
+    needle ? values.filter((value) => value.name.toLocaleLowerCase().includes(needle)) : values;
+  const page = <T>(values: readonly T[]) => ({
+    total: values.length,
+    items: values.slice(request.offset, request.offset + request.limit),
+  });
+  const layers = () => named(composition.layers);
+  const sliced = (values: readonly Composition["layers"][number][]) => ({
+    ...composition,
+    layers: values.slice(request.offset, request.offset + request.limit),
+  });
+  switch (request.kind) {
     case "project":
-      return [context.project];
+      return {
+        total: 1,
+        items: [
+          {
+            id: project.id,
+            name: project.name,
+            activeCompositionId: project.activeCompositionId,
+            compositionCount: project.compositions.length,
+            sourceCount: project.sources.length,
+            fontCount: project.fonts?.length ?? 0,
+          },
+        ],
+      };
     case "compositions":
-      return [context.composition];
-    case "layers":
-      return context.timeline;
-    case "properties":
-      return context.properties;
-    case "effects":
-      return context.properties.flatMap((layer) =>
-        layer.effects.map((effect) => ({ layerId: layer.id, ...effect })),
+      return page(
+        named(project.compositions).map((candidate) => ({
+          id: candidate.id,
+          name: candidate.name,
+          width: candidate.width,
+          height: candidate.height,
+          duration: candidate.duration,
+          frameRate: candidate.frameRate.numerator / candidate.frameRate.denominator,
+          layerCount: candidate.layers.length,
+          markerCount: candidate.markers?.length ?? 0,
+          active: candidate.id === project.activeCompositionId,
+          usedBy: project.compositions
+            .filter((parent) =>
+              parent.layers.some((layer) => layer.sourceCompositionId === candidate.id),
+            )
+            .map((parent) => parent.id)
+            .slice(0, 8),
+        })),
       );
-    case "assets":
-      return context.assets;
+    case "layers": {
+      const matching = layers();
+      const byId = new Map(matching.map((layer) => [layer.id, layer]));
+      return {
+        compositionId: composition.id,
+        total: matching.length,
+        items: queryTimeline(sliced(matching)).map((item) => {
+          const layer = byId.get(item.id);
+          return {
+            ...item,
+            ...(layer?.sourceId ? { sourceId: layer.sourceId } : {}),
+            ...(layer?.sourceCompositionId
+              ? { sourceCompositionId: layer.sourceCompositionId }
+              : {}),
+          };
+        }),
+      };
+    }
+    case "properties": {
+      const selected = request.query
+        ? layers().map((layer) => layer.id)
+        : request.selection.filter((id) => composition.layers.some((layer) => layer.id === id));
+      return {
+        compositionId: composition.id,
+        ...page(queryProperties(composition, selected.slice(0, 16), request.time)),
+      };
+    }
+    case "effects":
+      return {
+        compositionId: composition.id,
+        ...page(queryEffects({ ...composition, layers: [...layers()] }, request.time)),
+      };
+    case "assets": {
+      const sources = named(project.sources);
+      return {
+        total: sources.length,
+        items: queryAssets({
+          ...project,
+          sources: sources.slice(request.offset, request.offset + request.limit),
+        }),
+      };
+    }
     case "fonts":
-      return context.fonts;
+      return page((project.fonts ?? []).map(projectFontMetadata));
+    case "markers":
+      return {
+        compositionId: composition.id,
+        ...page(
+          (composition.markers ?? []).filter(
+            (marker) =>
+              !needle ||
+              marker.kind === needle ||
+              (marker.label ?? "").toLocaleLowerCase().includes(needle),
+          ),
+        ),
+      };
     case "scene":
-      return context.scene;
+      return {
+        compositionId: composition.id,
+        ...page(queryScene(project, composition, request.time)),
+      };
     default:
-      throw new Error(`Unsupported project query kind: ${kind}`);
+      throw new Error(
+        `Unsupported project query kind: ${request.kind}. Use project, compositions, layers, properties, effects, assets, fonts, markers or scene.`,
+      );
   }
+}
+
+function queryComposition(project: Project, compositionId: string | undefined): Composition {
+  if (!compositionId) return activeComposition(project);
+  const composition = project.compositions.find((candidate) => candidate.id === compositionId);
+  if (!composition) throw new Error(`Composition does not exist: ${compositionId}`);
+  return composition;
 }
 
 export function changedIdsForOperation(operation: Operation): string[] {

@@ -30,15 +30,14 @@ describe("Pi agent runtime", () => {
         stopReason: "toolUse",
       }),
       fauxAssistantMessage(
-        fauxToolCall("begin_edit_workspace", { baseRevision: 3 }, { id: "tool-2" }),
+        fauxToolCall("describe", { topic: "commands", query: "rename layer" }, { id: "tool-2" }),
         { stopReason: "toolUse" },
       ),
       fauxAssistantMessage(
         fauxToolCall(
-          "execute_commands",
+          "execute_aster_code",
           {
-            workspaceId: "workspace-1",
-            workspaceRevision: 0,
+            baseRevision: 3,
             commands: [{ type: "renameLayer", layerId: "layer-1", name: "Renamed" }],
           },
           { id: "tool-3" },
@@ -60,9 +59,8 @@ describe("Pi agent runtime", () => {
     const runtime = new PiAgentRuntime(
       async (_sessionId, toolName) => {
         toolNames.push(toolName);
-        if (toolName === "begin_edit_workspace")
-          return { workspaceId: "workspace-1", baseRevision: 3, workspaceRevision: 0 };
-        if (toolName === "execute_commands")
+        if (toolName === "describe") return { commands: [{ name: "renameLayer" }] };
+        if (toolName === "execute_aster_code")
           return { workspaceId: "workspace-1", workspaceRevision: 1 };
         if (toolName === "submit_workspace") return { workspaceId: "workspace-1" };
         return { projectRevision: 3 };
@@ -73,8 +71,8 @@ describe("Pi agent runtime", () => {
     const result = await runtime.run(request);
     expect(toolNames).toEqual([
       "get_editor_context",
-      "begin_edit_workspace",
-      "execute_commands",
+      "describe",
+      "execute_aster_code",
       "submit_workspace",
     ]);
     expect(result.submittedWorkspaceId).toBe("workspace-1");

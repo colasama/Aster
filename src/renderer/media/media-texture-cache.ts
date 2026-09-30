@@ -61,6 +61,17 @@ import { MISSING_MEDIA_RGBA, MISSING_MEDIA_SOURCE } from "./missing-media";
 import { TextureUploadBatch } from "./texture-upload-batch";
 import { VideoExternalUpload, type VideoExternalUploadStatus } from "./video-external-upload";
 
+const EXACT_SEEK_BIAS_SECONDS = 1e-4;
+
+/**
+ * A seek that lands exactly on a frame boundary can decode the previous frame, because the
+ * media element rounds its timeline to coarser timestamps. Exact renders bias forward by a
+ * sub-millisecond amount, which selects the intended frame for any practical frame rate.
+ */
+export function videoSeekTime(sourceTime: number, lastTime: number, playing: boolean): number {
+  return playing ? sourceTime : Math.min(lastTime, sourceTime + EXACT_SEEK_BIAS_SECONDS);
+}
+
 const MAX_MEDIA_TEXTURE_DIMENSION = 8_192;
 
 export const MAX_MEDIA_TEXTURE_BYTES = 256 * 1024 * 1024;
@@ -187,6 +198,13 @@ export class MediaTextureCache {
       Boolean(resource.video?.error) ||
       resource.uploadErrorReported === true
     );
+  }
+
+  /** False while an active video has not uploaded the exact frame requested for this render. */
+  videoFrameExact(instanceId: string): boolean {
+    const resource = this.#resources.get(instanceId);
+    if (resource?.kind !== "video" || !resource.video) return true;
+    return this.#videoFrameIsExact(instanceId, resource);
   }
 
   beginFrame(): void {
@@ -973,9 +991,10 @@ export class MediaTextureCache {
       : "duration" in footage
         ? footage.duration
         : layer.outPoint - layer.inPoint;
+    const lastTime = Math.max(0, duration - 0.001);
     return {
       source,
-      time: evaluateLayerSourceTime(layer, time, Math.max(0, duration - 0.001)),
+      time: videoSeekTime(evaluateLayerSourceTime(layer, time, lastTime), lastTime, playing),
       tolerance: playing ? 0.12 : 1 / 240,
     };
   }

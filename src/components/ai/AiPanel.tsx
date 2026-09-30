@@ -19,7 +19,7 @@ import {
   loadAgentProviderSettings,
   saveAgentProviderSettings,
 } from "../../ai/provider-settings";
-import { renderAgentPreview } from "../../ai/render-preview";
+import { renderAgentContactSheet, renderAgentPreview } from "../../ai/render-preview";
 import type { Operation } from "../../core/editing/operations";
 import { activeComposition } from "../../core/project/project";
 import type { Composition } from "../../core/types";
@@ -182,6 +182,7 @@ export function AiPanel() {
         accessMode,
         primaryModelSupportsImages: provider.supportsImages,
         renderPreview: renderAgentPreview,
+        renderContactSheet: renderAgentContactSheet,
       });
       agentService.current = service;
       running.current = true;

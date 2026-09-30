@@ -4,8 +4,23 @@ import { createParticleLayerForComposition } from "../scene/bundled-particle";
 import { flattenSceneLayers } from "../scene/scene-evaluation";
 import { precomposeLayers } from "./precomposition";
 import { createBlankProject, createDemoProject } from "./project";
+import { validateProjectDocument } from "./project-file";
 
 describe("precomposition creation", () => {
+  it("keeps the nested work area frame-aligned when layer times fall between frames", () => {
+    const project = createBlankProject();
+    const composition = project.compositions[0];
+    const layer = createLayerForComposition("text", composition);
+    layer.inPoint = 1.01;
+    layer.outPoint = 3.3337;
+    composition.layers.push(layer);
+    const result = precomposeLayers(project, [layer.id]);
+    const nested = result?.project.compositions.find((c) => c.id === result.nestedCompositionId);
+    expect(nested?.duration).toBeCloseTo(101 / 30, 9);
+    expect(nested?.workArea.start).toBeCloseTo(1, 9);
+    expect(() => validateProjectDocument(result?.project)).not.toThrow();
+  });
+
   it("routes precomposed adjustment layers through an isolated 3D texture surface", () => {
     const project = createBlankProject();
     const composition = project.compositions[0];

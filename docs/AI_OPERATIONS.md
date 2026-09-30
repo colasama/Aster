@@ -38,6 +38,7 @@ because they have different authority, cancellation, and audit requirements.
 | `setCompositionEnvironment` | Compositions | Updates or clears an imported HDR environment. |
 | `setCompositionBackground` | Compositions | Sets the background RGBA; alpha 0 renders a transparent composition. |
 | `setCompositionWorkArea` | Compositions | Sets the frame-aligned work area. |
+| `setCompositionMarkers` | Compositions | Replaces the sorted timeline markers (beats, downbeats, sections or custom cues). |
 | `precomposeLayers` | Compositions | Creates a nested composition and wrapper from 1–2048 selected layer IDs. |
 | `addLayer` | Layers | Creates any supported layer kind at the current time. |
 | `duplicateLayer` | Layers | Clones a layer into an `addLayer` operation with fresh IDs. |
@@ -87,6 +88,7 @@ because they have different authority, cancellation, and audit requirements.
 | `toggleEffect` | Effects | Toggles an owned effect. |
 | `setEffectLut` | Effects | Replaces or clears a bounded 3D LUT resource. |
 | `setEffectParameterAtTime` | Effects | Sets an effect parameter at an explicit time. |
+| `setEffectParameterExpression` | Effects | Drives an effect parameter with a bounded time/value expression; an empty expression clears it. |
 | `addEffectParameterKeyframe` | Effects | Adds an effect-parameter keyframe. |
 | `removeEffectParameterKeyframe` | Effects | Removes an effect-parameter keyframe. |
 | `moveEffectParameterKeyframe` | Effects | Moves an effect-parameter keyframe. |

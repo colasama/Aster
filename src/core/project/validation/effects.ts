@@ -61,6 +61,15 @@ export function validateEffect(value: unknown, path: string): void {
       }
     }
   }
+  if (effect.parameterExpressions !== undefined) {
+    const expressions = requireObject(effect.parameterExpressions, `${path}.parameterExpressions`);
+    for (const [parameter, expression] of Object.entries(expressions)) {
+      if (!(parameter in parameters))
+        throw new Error(`${path}.parameterExpressions.${parameter} targets an unknown parameter`);
+      if (typeof expression !== "string" || !expression.trim() || expression.length > 2048)
+        throw new Error(`${path}.parameterExpressions.${parameter} must be a bounded expression`);
+    }
+  }
   if (effect.mask !== undefined) validateEffectMask(effect.mask, `${path}.mask`);
   if (effect.resource !== undefined) validateLutResource(effect.resource, `${path}.resource`);
 }

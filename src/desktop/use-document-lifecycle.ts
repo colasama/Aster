@@ -41,6 +41,9 @@ export function useDocumentLifecycle(
   const { t } = useI18n();
   const latestState = useRef(state);
   const startupProjectId = useRef(state.project.id);
+  // Saving clears the dirty flag, so "untouched since startup" must also compare revisions;
+  // otherwise edits committed and saved before the delayed restore would be replaced.
+  const startupRevision = useRef(state.projectRevision);
   const handlingSystemRequest = useRef(false);
   const saveInFlight = useRef<Promise<string | undefined> | undefined>(undefined);
   const [recentProjects, setRecentProjects] = useState<string[]>([]);
@@ -170,6 +173,7 @@ export function useDocumentLifecycle(
         if (
           handlingSystemRequest.current ||
           current.project.id !== startupProjectId.current ||
+          current.projectRevision !== startupRevision.current ||
           isProjectDirty(current)
         )
           return;
@@ -178,6 +182,7 @@ export function useDocumentLifecycle(
         const startupStillPristine = () =>
           !disposed &&
           latestState.current.project.id === startupProjectId.current &&
+          latestState.current.projectRevision === startupRevision.current &&
           !isProjectDirty(latestState.current);
         try {
           let recovery = await readRecoverySnapshot();

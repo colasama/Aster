@@ -8,6 +8,8 @@ export interface EditTask {
   maxOperations: number;
   code?: string;
   commands?: unknown[];
+  /** Session script modules available to aster.require(). */
+  modules?: Record<string, string>;
 }
 export interface EditTaskResult extends NormalizedCommandBatch {
   result: unknown;
