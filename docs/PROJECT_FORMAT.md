@@ -76,6 +76,9 @@ host; arbitrary JavaScript is never stored as executable renderer code. Line Anc
 0–100% tracking alignment, and Character Offset/Value require an explicit Preserve Case & Digits or
 Full Unicode Character Range.
 
+Expression selectors may omit the animatable `timeOffset` field; playback and property editing
+use a static zero-second offset until a value or keyframe is saved.
+
 Layer blend modes include normal, add, multiply, screen, overlay, darken, lighten,
 color-burn, color-dodge, soft-light, hard-light, difference and exclusion. Layer styles
 reuse effect records; `drop-shadow.spread` is optional and defaults to zero. See

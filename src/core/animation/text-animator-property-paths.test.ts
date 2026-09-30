@@ -7,6 +7,7 @@ import {
   createDefaultTextAnimatorGroup,
   createDefaultWigglySelector,
 } from "./text-animator-groups";
+import { migrateLegacyTextAnimator } from "./text-animator-migration";
 import {
   collectTextAnimatorTrackEntries,
   getTextAnimatorProperty,
@@ -17,6 +18,33 @@ import {
 import type { TextAnimatorProperties } from "./text-animator-stack";
 
 describe("text animator property paths", () => {
+  it("reads and keyframes a legacy expression selector's omitted time offset", () => {
+    const layer = textLayer();
+    layer.textAnimator = migrateLegacyTextAnimator({ enabled: true }, layer.id);
+    const group = layer.textAnimator.groups[0];
+    const selector = group?.selectors[0];
+    if (!group || selector?.kind !== "expression") throw new Error("Expected expression selector");
+    const path = textSelectorPropertyPath(group.id, selector.id, "timeOffset");
+    expect(selector.timeOffset).toBeUndefined();
+
+    expect(collectTextAnimatorTrackEntries(layer)).toContainEqual(
+      expect.objectContaining({ path, property: staticValue(0) }),
+    );
+    expect(getTextAnimatorProperty(layer, path)).toEqual(staticValue(0));
+    expect(getTextAnimatorProperty(layer, textAnimatorPropertyPath(group.id, "opacity"))).toEqual(
+      staticValue(0),
+    );
+    expect(selector.timeOffset).toBeUndefined();
+
+    const track = {
+      mode: "animated" as const,
+      keyframes: [{ id: "offset-key", time: 1, value: 2, interpolation: "linear" as const }],
+    };
+    setTextAnimatorProperty(layer, path, track);
+    expect(getTextAnimatorProperty(layer, path)).toEqual(track);
+    expect(group.selectors[0]).not.toBe(selector);
+  });
+
   it("enumerates every numeric animator and selector field with stable ID addressing", () => {
     const layer = textLayer();
     const group = createDefaultTextAnimatorGroup();

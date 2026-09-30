@@ -245,6 +245,8 @@ function selectorAnimatableFields(selector: TextSelector): readonly TextSelector
 
 function selectorProperty(selector: TextSelector, field: TextSelectorAnimatableField): Animatable {
   const value = (selector as unknown as Record<string, unknown>)[field];
+  if (selector.kind === "expression" && field === "timeOffset" && value === undefined)
+    return { mode: "static", value: 0 };
   if (!isAnimatable(value)) throw new Error("Text selector property does not exist");
   return value;
 }
