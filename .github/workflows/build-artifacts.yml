@@ -110,7 +110,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install --no-install-recommends -y libarchive-tools
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: |
             .aster-cache/ffmpeg/*.gz
