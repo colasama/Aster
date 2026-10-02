@@ -4,6 +4,7 @@ import {
   layerSupportsMotionBlur,
   motionBlurInterval,
 } from "../core/animation/motion-blur";
+import { AudioAnalysisProvider } from "../core/audio/audio-analysis-provider";
 import { logger } from "../core/logger";
 import { sourceForLayer } from "../core/media/footage-source";
 import { type AntiAliasingMode, antiAliasingScale } from "../core/rendering/anti-aliasing";
@@ -28,7 +29,11 @@ import {
   releaseFailedWebGpuInitialization,
   shouldReportGpuDeviceLoss,
 } from "./gpu/device-lifecycle";
-import { ExactFrameCaptureQueue } from "./gpu/exact-frame-resource-barrier";
+import {
+  combineFrameResourceBarriers,
+  ExactFrameCaptureQueue,
+  type ExactFrameResourceBarrier,
+} from "./gpu/exact-frame-resource-barrier";
 import { frameCadenceSample } from "./gpu/frame-cadence";
 import type { FrameReadbackTicket, RawFramePixelFormat, RawVideoFrame } from "./gpu/frame-readback";
 import { planGpuMemory } from "./gpu/gpu-memory-budget";
@@ -81,6 +86,8 @@ export class WebGpuRenderer {
   #lastFramePlaying = false;
   readonly #invalidate: () => void;
   readonly #evaluationCache = new SceneEvaluationCache();
+  readonly #audioAnalysis: AudioAnalysisProvider;
+  readonly #frameResources: ExactFrameResourceBarrier;
   #disposed = false;
   private constructor(
     device: GPUDevice,
@@ -96,6 +103,11 @@ export class WebGpuRenderer {
     this.#invalidate = invalidate;
     this.#resources = new RendererResources(device, format, diagnostics, invalidate);
     this.#antiAliasing = new AntiAliasingRenderer(device, format);
+    this.#audioAnalysis = new AudioAnalysisProvider(invalidate);
+    this.#frameResources = combineFrameResourceBarriers(
+      this.#resources.mediaTextures,
+      this.#audioAnalysis,
+    );
   }
   static async create(
     canvas: HTMLCanvasElement,
@@ -252,7 +264,7 @@ export class WebGpuRenderer {
     return this.#frameCaptures.capture(
       (discovery) =>
         this.#captureRawFrame(composition, time, project, synchronizeVideo && discovery),
-      this.#resources.mediaTextures,
+      this.#frameResources,
     );
   }
   #captureRawFrame(
@@ -386,7 +398,9 @@ export class WebGpuRenderer {
       (beautyMotionBlur ||
         this.#bufferVisualization === "motionVector" ||
         this.#bufferVisualization === "vectorMotionBlur");
-    resources.sceneGenerators.beginFrame();
+    resources.sceneGenerators.beginFrame(() =>
+      this.#audioAnalysis.frame(project, composition, time),
+    );
     const surfaceFrame = resources.precompositionSurfaces.prepare(
       project,
       sceneLayers,

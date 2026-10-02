@@ -17,6 +17,8 @@ export interface SceneGeneratorDefinition {
   parameters: readonly PluginParameter[];
   graph: SceneGeneratorGraph;
   shaderSources: Readonly<Record<string, string>>;
+  /** Granted by the `audio_analysis` capability: binds the read-only `aster_audio` buffer. */
+  audioAnalysis: boolean;
   /** Stable content identity used to invalidate only generators whose executable contract changed. */
   runtimeKey: string;
 }
@@ -186,6 +188,7 @@ export function sceneGeneratorDefinitionFromManifest(
     parameters: manifest.parameters,
     graph,
     shaderSources,
+    audioAnalysis: manifest.capabilities.includes("audio_analysis"),
   };
   return {
     ...definition,
@@ -261,7 +264,7 @@ function assertGraphContract(manifest: PluginManifest, graph: SceneGeneratorGrap
   if (
     !isIdentifier(graph.node_type) ||
     !isIdentifier(graph.capacity_parameter) ||
-    (graph.render_parameter !== undefined && !isIdentifier(graph.render_parameter))
+    (graph.render_parameter != null && !isIdentifier(graph.render_parameter))
   )
     throw new Error(`Plugin ${pluginId} has invalid graph identifiers`);
   if (
@@ -307,7 +310,8 @@ function assertGraphContract(manifest: PluginManifest, graph: SceneGeneratorGrap
       variant.vertex_count < 1 ||
       variant.vertex_count > 65_535 ||
       ids.has(variant.id) ||
-      (variant.auxiliary !== undefined &&
+      // The native bridge serializes an absent auxiliary pass as null.
+      (variant.auxiliary &&
         (!isShaderPath(variant.auxiliary.shader) ||
           !isIdentifier(variant.auxiliary.vertex_entry) ||
           !isIdentifier(variant.auxiliary.fragment_entry)))
@@ -325,7 +329,7 @@ function assertGraphContract(manifest: PluginManifest, graph: SceneGeneratorGrap
       if (!variant.selector_value || selectors.has(variant.selector_value))
         throw new Error(`Plugin ${pluginId} has invalid render selectors`);
       selectors.add(variant.selector_value);
-    } else if (variant.selector_value !== undefined) {
+    } else if (variant.selector_value != null) {
       throw new Error(`Plugin ${pluginId} has selectors without a render parameter`);
     }
   }

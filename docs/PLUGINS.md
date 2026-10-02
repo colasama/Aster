@@ -14,7 +14,7 @@ the same manifest, WGSL, ABI, capability, and parameter validation used by the h
 3. **Render graph** — declared passes and resources validated before insertion into the graph.
 4. **Native** — explicitly trusted binary extension; disabled by default in untrusted projects.
 
-Capabilities currently cover GPU render/compute, file read, and network access. Undeclared
+Capabilities currently cover GPU render/compute, audio analysis, file read, and network access. Undeclared
 capabilities are denied. Manifest discovery rejects unknown fields, invalid IDs and versions,
 invalid parameter ranges, duplicate keys, and third-party use of the reserved
 `org.aster.builtin.*` IDs. Installation and runtime activation additionally reject unsafe or
@@ -241,6 +241,40 @@ generator. The bundled particle system is registered as `org.aster.builtin.parti
 through the same compiler, resource owner, indirect draw, camera/transform, precomposition, cloner,
 and auxiliary-buffer route.
 
+### Audio analysis
+
+Scene generators that also request the `audio_analysis` capability may declare one more read-only
+binding in compute and render modules. Effects cannot request it. A module that declares the
+binding without the capability is rejected at installation.
+
+| Binding | WGSL declaration | Meaning |
+| --- | --- | --- |
+| 4 | `var<storage, read> aster_audio: AsterAudioAnalysis` | Host analysis of the audio heard at the evaluated time |
+
+```wgsl
+struct AsterAudioAnalysis {
+  info: vec4u,                  // band count 128, history frames 16, waveform samples 256, flags
+  timing: vec4f,                // analysis time s, history hop s (1/60), band range 30 Hz, 16 kHz
+  levels: vec4f,                // RMS, peak, loudness 0..1 (-60..0 dBFS), spectral flux
+  energy: vec4f,                // low (< 250 Hz), mid (< 4 kHz), high band means, reserved
+  spectrum: array<f32, 2048>,   // [frame * 128 + band], 0..1 over -90..0 dBFS
+  waveform: array<f32, 256>,    // mono samples of the 1024-sample window centered at the time
+}
+```
+
+The record is 9,280 bytes. `info.w` bit 0 means audio is present; bit 1 means a source is still
+decoding and the record is provisional. Bands are log-spaced from 30 Hz to 16 kHz; band `b` is
+centered at `30 * (16000 / 30) ^ ((b + 0.5) / 128)` Hz. Each history frame is a 4096-point Hann FFT
+of mono audio at 48 kHz centered on `time - frame * hop`, so frame 0 is the present and smoothing,
+release, peak hold, and onset detection are pure functions of time. Plugins never keep audio state
+between frames, and seeking, scrubbing, and export evaluate identically.
+
+The analyzed audio is the mix of the audible layers of the root composition being rendered, at the
+root time: what the viewer hears. Generators nested in precompositions see the same record. One
+host buffer serves every generator in a frame and is analyzed only when a granted generator draws.
+Exports wait for audio decoding through the same exact-frame barrier as video and image media.
+See the installable [Audio Spectrum](../examples/plugins/audio-spectrum) example.
+
 ## Growing host capabilities
 
 New plugin power belongs in small, versioned host services rather than direct access to editor or
@@ -261,8 +295,7 @@ When a new need appears, add it in this order:
 5. Add conformance fixtures, malformed-input tests, performance counters, cancellation, and a
    failure-isolation path before enabling the capability by default.
 
-Likely next services are host-owned sampled textures and meshes, audio-analysis buffers, persistent
-cache handles keyed by time and inputs, and asynchronous import jobs. They should remain separate
+Likely next services are host-owned sampled textures and meshes, persistent cache handles keyed by time and inputs, and asynchronous import jobs. They should remain separate
 capabilities so a procedural mesh generator does not automatically gain file or network access.
 
 ## Native extension draft (disabled in the MVP)

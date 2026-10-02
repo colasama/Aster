@@ -1,0 +1,280 @@
+capabilities = ["gpu_compute", "gpu_render", "audio_analysis"]
+
+[plugin]
+id = "org.aster.example.audio-spectrum"
+name = "Audio Spectrum"
+version = "1.0.0"
+api_version = 1
+shader = "compute.wgsl"
+kind = "scene_generator"
+
+[scene_generator]
+api_version = 1
+node_type = "audio_spectrum"
+capacity_parameter = "count"
+max_instances = 2048
+instance_stride = 64
+
+[[scene_generator.compute_passes]]
+id = "layout"
+shader = "compute.wgsl"
+entry_point = "compute_main"
+workgroup_size = [64, 1, 1]
+phase = "simulation"
+
+[[scene_generator.render_variants]]
+id = "spectrum"
+shader = "render.wgsl"
+vertex_entry = "vertex_main"
+fragment_entry = "fragment_main"
+vertex_count = 6
+blend = "layer"
+depth = "none"
+cull = "none"
+
+# Slot 0
+[[parameters]]
+type = "choice"
+name = "style"
+label = "Style"
+default = "bars"
+choices = ["bars", "mirror", "ring", "line", "scope", "dots"]
+
+# Slot 1
+[[parameters]]
+type = "number"
+name = "count"
+label = "Bars"
+default = 64.0
+min = 2.0
+max = 2048.0
+
+# Slot 2
+[[parameters]]
+type = "number"
+name = "width"
+label = "Width"
+default = 1200.0
+min = 16.0
+max = 8192.0
+
+# Slot 3
+[[parameters]]
+type = "number"
+name = "height"
+label = "Height"
+default = 320.0
+min = 4.0
+max = 4096.0
+
+# Slot 4
+[[parameters]]
+type = "number"
+name = "radius"
+label = "Ring radius"
+default = 220.0
+min = 0.0
+max = 4096.0
+
+# Slot 5
+[[parameters]]
+type = "number"
+name = "fill"
+label = "Bar fill"
+default = 0.62
+min = 0.05
+max = 1.0
+
+# Slot 6
+[[parameters]]
+type = "number"
+name = "line_width"
+label = "Line width"
+default = 4.0
+min = 0.5
+max = 128.0
+
+# Slot 7
+[[parameters]]
+type = "number"
+name = "roundness"
+label = "Roundness"
+default = 1.0
+min = 0.0
+max = 1.0
+
+# Slot 8
+[[parameters]]
+type = "number"
+name = "floor"
+label = "Floor"
+default = 0.42
+min = 0.0
+max = 1.0
+
+# Slot 9
+[[parameters]]
+type = "number"
+name = "ceiling"
+label = "Ceiling"
+default = 0.82
+min = 0.0
+max = 1.0
+
+# Slot 10
+[[parameters]]
+type = "number"
+name = "tilt"
+label = "Tilt dB per octave"
+default = 2.0
+min = -6.0
+max = 9.0
+
+# Slot 11
+[[parameters]]
+type = "number"
+name = "curve"
+label = "Curve"
+default = 1.25
+min = 0.25
+max = 4.0
+
+# Slot 12
+[[parameters]]
+type = "number"
+name = "release"
+label = "Release"
+default = 0.12
+min = 0.0
+max = 0.25
+
+# Slot 13
+[[parameters]]
+type = "number"
+name = "frequency_min"
+label = "Low frequency"
+default = 40.0
+min = 30.0
+max = 16000.0
+
+# Slot 14
+[[parameters]]
+type = "number"
+name = "frequency_max"
+label = "High frequency"
+default = 12000.0
+min = 30.0
+max = 16000.0
+
+# Slot 15
+[[parameters]]
+type = "number"
+name = "smoothing"
+label = "Band smoothing"
+default = 0.35
+min = 0.0
+max = 1.0
+
+# Slot 16
+[[parameters]]
+type = "color"
+name = "color_low"
+label = "Low color"
+default = [0.32, 0.52, 1.0, 1.0]
+
+# Slot 17
+[[parameters]]
+type = "color"
+name = "color_high"
+label = "High color"
+default = [0.95, 0.42, 0.86, 1.0]
+
+# Slot 18
+[[parameters]]
+type = "number"
+name = "intensity"
+label = "Intensity"
+default = 1.2
+min = 0.0
+max = 16.0
+
+# Slot 19
+[[parameters]]
+type = "number"
+name = "glow"
+label = "Glow radius"
+default = 14.0
+min = 0.0
+max = 128.0
+
+# Slot 20
+[[parameters]]
+type = "number"
+name = "glow_strength"
+label = "Glow strength"
+default = 0.7
+min = 0.0
+max = 4.0
+
+# Slot 21
+[[parameters]]
+type = "number"
+name = "peak_caps"
+label = "Peak caps"
+default = 0.85
+min = 0.0
+max = 1.0
+
+# Slot 22
+[[parameters]]
+type = "number"
+name = "cap_height"
+label = "Cap height"
+default = 4.0
+min = 1.0
+max = 64.0
+
+# Slot 23
+[[parameters]]
+type = "number"
+name = "track"
+label = "Track opacity"
+default = 0.08
+min = 0.0
+max = 1.0
+
+# Slot 24
+[[parameters]]
+type = "number"
+name = "rows"
+label = "Dot rows"
+default = 18.0
+min = 2.0
+max = 128.0
+
+# Slot 25
+[[parameters]]
+type = "number"
+name = "bass_pulse"
+label = "Bass pulse"
+default = 0.25
+min = 0.0
+max = 2.0
+
+# Slot 26
+[[parameters]]
+type = "number"
+name = "spin"
+label = "Ring spin"
+default = 6.0
+min = -360.0
+max = 360.0
+
+# Slot 27
+[[parameters]]
+type = "number"
+name = "scope_gain"
+label = "Scope gain"
+default = 1.6
+min = 0.0
+max = 16.0

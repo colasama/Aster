@@ -3,6 +3,20 @@ export interface ExactFrameResourceBarrier {
   waitForFrameResources(): Promise<void>;
 }
 
+/** Joins independent asynchronous frame inputs (media textures, audio analysis) into one barrier. */
+export function combineFrameResourceBarriers(
+  ...barriers: readonly ExactFrameResourceBarrier[]
+): ExactFrameResourceBarrier {
+  return {
+    get hasPendingFrameResources() {
+      return barriers.some((barrier) => barrier.hasPendingFrameResources);
+    },
+    async waitForFrameResources() {
+      await Promise.all(barriers.map((barrier) => barrier.waitForFrameResources()));
+    },
+  };
+}
+
 /**
  * Serializes media generations until capture submission, without waiting for GPU readback.
  * `capture(true)` is the discovery attempt; it may hold (reject unencoded) while media is not

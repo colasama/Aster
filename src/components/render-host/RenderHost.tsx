@@ -2,6 +2,8 @@ import { useEffect, useRef } from "react";
 import { AudioDecodeCache } from "../../core/audio/audio-decode-cache";
 import type { DecodedPcm } from "../../core/audio/audio-mixer";
 import { logger } from "../../core/logger";
+import { setProjectPluginRuntimes } from "../../core/plugins/plugin-runtime";
+import { projectPluginReferences } from "../../core/project/project-plugin-references";
 import type { FootageSource } from "../../core/types";
 import { desktopRenderHost } from "../../desktop/api";
 import {
@@ -64,6 +66,11 @@ export function RenderHost() {
         | { cache: AudioDecodeCache; context: OfflineAudioContext; abort: AbortController }
         | undefined;
       try {
+        if (stopped) return;
+        // The hidden host has no editor to activate plugins, so load every plugin the project
+        // references before the first frame; otherwise plugin nodes export as silent no-ops.
+        const pluginIds = projectPluginReferences(validated.project);
+        if (pluginIds.length > 0) await setProjectPluginRuntimes(pluginIds);
         if (stopped) return;
         canvas.width = validated.manifest.width;
         canvas.height = validated.manifest.height;

@@ -5,6 +5,11 @@ contextBridge.exposeInMainWorld(
   Object.freeze({
     getPreferences: () => ipcRenderer.invoke("aster:preferences-get"),
     getGpuMemoryDevices: () => ipcRenderer.invoke("aster:gpu-memory-devices"),
+    // Exports only need validated shader payloads for the plugins their project references.
+    invoke: (command: string, args: Record<string, unknown> = {}) =>
+      command === "load_plugin_runtime"
+        ? ipcRenderer.invoke("aster:invoke", command, args)
+        : Promise.reject(new Error(`Render host cannot invoke ${command}`)),
     renderHost: Object.freeze({
       take: () => ipcRenderer.invoke("aster:render-host-take"),
       output: (request: Record<string, unknown>) =>

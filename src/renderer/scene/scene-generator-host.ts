@@ -1,4 +1,8 @@
 import { evaluateLayerSourceTime } from "../../core/animation/layer-time";
+import {
+  AUDIO_ANALYSIS_BYTES,
+  buildAudioAnalysisFrame,
+} from "../../core/audio/audio-analysis-frame";
 import { logger } from "../../core/logger";
 import type { FlattenedSceneLayer } from "../../core/scene/scene-evaluation";
 import {
@@ -23,6 +27,9 @@ import {
 } from "./scene-generator-abi";
 
 const INITIAL_GENERATOR_CAPACITY = 1_024;
+
+/** Produces the frame's packed `AsterAudioAnalysis` record; called at most once per frame. */
+export type SceneGeneratorAudioSource = () => Float32Array;
 
 interface GeneratorResources {
   definitionKey: string;
@@ -78,12 +85,15 @@ export class SceneGeneratorHost {
   readonly #renderPipelineLayout: GPUPipelineLayout;
   readonly #bundledDefinitions: readonly SceneGeneratorDefinition[];
   readonly #auxiliaryMrtSupported: boolean;
+  readonly #audio: GPUBuffer;
   readonly #compiled = new Map<string, CompiledGenerator>();
   readonly #resources = new Map<string, GeneratorResources>();
   readonly #activeInstanceIds = new Set<string>();
   readonly #reportedFailures = new Set<string>();
   #registryRevision = -1;
   #diagnostics: string[] = [];
+  #audioSource?: SceneGeneratorAudioSource;
+  #audioWritten = false;
 
   constructor(
     device: GPUDevice,
@@ -101,6 +111,11 @@ export class SceneGeneratorHost {
         { binding: 1, visibility: GPUShaderStage.COMPUTE, buffer: { type: "uniform" } },
         { binding: 2, visibility: GPUShaderStage.COMPUTE, buffer: { type: "storage" } },
         { binding: 3, visibility: GPUShaderStage.COMPUTE, buffer: { type: "storage" } },
+        {
+          binding: 4,
+          visibility: GPUShaderStage.COMPUTE,
+          buffer: { type: "read-only-storage" },
+        },
       ],
     });
     this.#renderBindGroupLayout = device.createBindGroupLayout({
@@ -117,6 +132,11 @@ export class SceneGeneratorHost {
           buffer: { type: "uniform" },
         },
         { binding: 2, visibility: GPUShaderStage.VERTEX, buffer: { type: "read-only-storage" } },
+        {
+          binding: 4,
+          visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+          buffer: { type: "read-only-storage" },
+        },
       ],
     });
     this.#computePipelineLayout = device.createPipelineLayout({
@@ -127,11 +147,21 @@ export class SceneGeneratorHost {
       label: "Scene generator ABI v1 render pipeline layout",
       bindGroupLayouts: [this.#renderBindGroupLayout],
     });
+    // One record serves every generator in a frame: all of them analyze the audio heard at the
+    // root composition time, including generators nested in precompositions.
+    this.#audio = device.createBuffer({
+      label: "Scene generator audio analysis",
+      size: AUDIO_ANALYSIS_BYTES,
+      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+    });
+    device.queue.writeBuffer(this.#audio, 0, buildAudioAnalysisFrame(undefined, 0));
   }
 
-  beginFrame(): void {
+  beginFrame(audioSource?: SceneGeneratorAudioSource): void {
     this.#activeInstanceIds.clear();
     this.#diagnostics = [];
+    this.#audioSource = audioSource;
+    this.#audioWritten = false;
     const revision = getSceneGeneratorRegistryRevision();
     if (revision !== this.#registryRevision) {
       this.#registryRevision = revision;
@@ -227,6 +257,7 @@ export class SceneGeneratorHost {
         0,
         new Uint32Array([variant.definition.vertex_count, 0, 0, 0]),
       );
+      if (definition.audioAnalysis) this.#writeAudio();
       return {
         instanceId: scene.instanceId,
         selectionId: scene.selectionId,
@@ -302,13 +333,20 @@ export class SceneGeneratorHost {
         SCENE_GENERATOR_PARAMETER_BYTES +
         16;
     }
-    return total;
+    return total + AUDIO_ANALYSIS_BYTES;
   }
 
   destroy(): void {
     for (const resources of this.#resources.values()) destroyResources(resources);
     this.#resources.clear();
     this.#compiled.clear();
+    this.#audio.destroy();
+  }
+
+  #writeAudio(): void {
+    if (this.#audioWritten || !this.#audioSource) return;
+    this.#audioWritten = true;
+    this.#device.queue.writeBuffer(this.#audio, 0, this.#audioSource());
   }
 
   #reportMissing(scene: FlattenedSceneLayer, message: string): undefined {
@@ -484,6 +522,7 @@ export class SceneGeneratorHost {
             { binding: 1, resource: { buffer: parameters } },
             { binding: 2, resource: { buffer: storage } },
             { binding: 3, resource: { buffer: indirect } },
+            { binding: 4, resource: { buffer: this.#audio } },
           ],
         }),
         renderBindGroup: this.#device.createBindGroup({
@@ -493,6 +532,7 @@ export class SceneGeneratorHost {
             { binding: 0, resource: { buffer: context } },
             { binding: 1, resource: { buffer: parameters } },
             { binding: 2, resource: { buffer: storage } },
+            { binding: 4, resource: { buffer: this.#audio } },
           ],
         }),
       };
@@ -527,11 +567,16 @@ function boundedCount(
   instance: SceneGeneratorInstance,
   definition: SceneGeneratorDefinition,
 ): number {
+  // A missing capacity falls back to its manifest default, like every other packed parameter.
+  const capacity = definition.parameters.find(
+    (parameter) => parameter.name === definition.graph.capacity_parameter,
+  );
+  const fallback = capacity?.type === "number" ? capacity.default : 1;
   return Math.max(
     1,
     Math.min(
       definition.graph.max_instances,
-      Math.round(numericParameter(instance, definition.graph.capacity_parameter, 1)),
+      Math.round(numericParameter(instance, definition.graph.capacity_parameter, fallback)),
     ),
   );
 }

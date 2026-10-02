@@ -74,6 +74,9 @@ impl PluginManifest {
         }
         match (&self.plugin.kind, &self.scene_generator) {
             (PluginKind::Effect, None) => {
+                if self.capabilities.contains(&Capability::AudioAnalysis) {
+                    return Err(PluginError::UnsupportedCapabilityForKind("audio_analysis"));
+                }
                 if self
                     .parameters
                     .iter()
@@ -187,6 +190,8 @@ pub enum Capability {
     GpuRender,
     FileRead,
     Network,
+    /// Read-only, host-computed spectrum, level, and waveform analysis of the heard audio.
+    AudioAnalysis,
 }
 
 #[derive(Clone, Debug, Deserialize, JsonSchema, Serialize)]

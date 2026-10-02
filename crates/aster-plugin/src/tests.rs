@@ -463,3 +463,82 @@ fn scene_generator_parameter_roles_are_typed() -> Result<(), Box<dyn std::error:
     ));
     Ok(())
 }
+
+#[test]
+fn audio_analysis_generator_binds_the_read_only_audio_buffer()
+-> Result<(), Box<dyn std::error::Error>> {
+    let directory =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/plugins/audio-spectrum");
+    let manifest_source = fs::read_to_string(directory.join("plugin.toml"))?;
+    let manifest = PluginLimits::default()
+        .load(directory.join("plugin.toml"), true)?
+        .manifest;
+    assert!(manifest.capabilities.contains(&Capability::AudioAnalysis));
+    let sources = BTreeMap::from([
+        (
+            "compute.wgsl".into(),
+            fs::read_to_string(directory.join("compute.wgsl"))?,
+        ),
+        (
+            "render.wgsl".into(),
+            fs::read_to_string(directory.join("render.wgsl"))?,
+        ),
+    ]);
+
+    let ungranted = crate::PluginLimits::default().parse_manifest(&manifest_source.replace(
+        "[\"gpu_compute\", \"gpu_render\", \"audio_analysis\"]",
+        "[\"gpu_compute\", \"gpu_render\"]",
+    ))?;
+    assert!(matches!(
+        SceneGeneratorValidator::default().validate(&ungranted, &sources),
+        Err(PluginError::GeneratorShaderAbi(message)) if message.contains("audio_analysis")
+    ));
+
+    let mut bad_layout = sources.clone();
+    let compute = bad_layout
+        .get_mut("compute.wgsl")
+        .ok_or("fixture shader missing")?;
+    *compute = compute.replace("waveform: array<f32, 256>", "waveform: array<f32, 128>");
+    assert!(matches!(
+        SceneGeneratorValidator::default().validate(&manifest, &bad_layout),
+        Err(PluginError::GeneratorShaderAbi(message)) if message.contains("AsterAudioAnalysis")
+    ));
+
+    let mut writable = sources.clone();
+    let compute = writable
+        .get_mut("compute.wgsl")
+        .ok_or("fixture shader missing")?;
+    *compute = compute.replace(
+        "var<storage, read> aster_audio",
+        "var<storage, read_write> aster_audio",
+    );
+    assert!(matches!(
+        SceneGeneratorValidator::default().validate(&manifest, &writable),
+        Err(PluginError::GeneratorShaderAbi(message)) if message.contains("aster_audio")
+    ));
+    Ok(())
+}
+
+#[test]
+fn effects_cannot_request_audio_analysis() -> Result<(), Box<dyn std::error::Error>> {
+    let error = crate::PluginLimits::default()
+        .parse_manifest(
+            r#"
+capabilities = ["gpu_render", "audio_analysis"]
+
+[plugin]
+id = "org.example.audio-tint"
+name = "Audio Tint"
+version = "1.0.0"
+api_version = 1
+shader = "effect.wgsl"
+"#,
+        )
+        .err()
+        .ok_or("expected rejection")?;
+    assert!(matches!(
+        error,
+        PluginError::UnsupportedCapabilityForKind("audio_analysis")
+    ));
+    Ok(())
+}

@@ -316,6 +316,81 @@ describe("third-party scene generator host integration", () => {
   });
 });
 
+describe("scene generator audio analysis", () => {
+  it("writes the shared audio record once per frame, only for generators granted audio", () => {
+    const audioManifest = structuredClone(manifest);
+    audioManifest.plugin.id = "org.example.scene.spectrum";
+    audioManifest.capabilities = ["gpu_compute", "gpu_render", "audio_analysis"];
+    synchronizeSceneGeneratorDefinitions(status([manifest, audioManifest]));
+    const definitions = getSceneGeneratorDefinitions();
+    const plain = definitions.find((definition) => !definition.audioAnalysis);
+    const audio = definitions.find((definition) => definition.audioAnalysis);
+    if (!plain || !audio) throw new Error("Expected plain and audio generator definitions");
+    const project = createBlankProject();
+    const composition = project.compositions[0];
+    const plainLayer = createGeneratorLayerForComposition(
+      composition,
+      createSceneGeneratorInstance(plain),
+    );
+    const audioLayer = createGeneratorLayerForComposition(
+      composition,
+      createSceneGeneratorInstance(audio),
+    );
+    composition.layers = [plainLayer, audioLayer];
+    const scenes = flattenSceneLayers(composition, project, 0);
+    const plainScene = scenes.find((scene) => scene.layer.id === plainLayer.id);
+    const audioScene = scenes.find((scene) => scene.layer.id === audioLayer.id);
+    if (!plainScene || !audioScene) throw new Error("Expected both generator scenes");
+    const gpu = fakeGpu();
+    const host = new SceneGeneratorHost(gpu.device, "rgba16float");
+    const audioBuffer = gpu.buffers.find((buffer) => buffer.label.includes("audio analysis"));
+    if (!audioBuffer) throw new Error("Expected the shared audio analysis buffer");
+    const record = new Float32Array(audioBuffer.size / 4).fill(0.5);
+    const source = vi.fn(() => record);
+
+    host.beginFrame(source);
+    const prepared = host.prepare(plainScene, composition, 640, 360);
+    expect(source).not.toHaveBeenCalled();
+    const spectrum = host.prepare(audioScene, composition, 640, 360);
+    host.prepare(audioScene, composition, 640, 360);
+    expect(source).toHaveBeenCalledOnce();
+    if (!prepared || !spectrum) throw new Error("Expected both generators to prepare");
+    const audioWrites = gpu.writes.filter((write) => write.buffer === audioBuffer);
+    expect(
+      new Float32Array(audioWrites[audioWrites.length - 1]?.data ?? new ArrayBuffer(0))[0],
+    ).toBe(0.5);
+    for (const bindGroup of [
+      spectrum.resources.computeBindGroup,
+      prepared.resources.renderBindGroup,
+    ])
+      expect(
+        (bindGroup as unknown as { descriptor: GPUBindGroupDescriptor }).descriptor.entries,
+      ).toContainEqual({ binding: 4, resource: { buffer: audioBuffer } });
+
+    host.beginFrame(source);
+    host.prepare(audioScene, composition, 640, 360);
+    expect(source).toHaveBeenCalledTimes(2);
+  });
+
+  it("falls back to the manifest default when an instance omits its capacity", () => {
+    synchronizeSceneGeneratorDefinitions(status([manifest]));
+    const project = createBlankProject();
+    const composition = project.compositions[0];
+    const instance = createSceneGeneratorInstance(getSceneGeneratorDefinitions()[0]);
+    instance.parameters = {};
+    composition.layers = [createGeneratorLayerForComposition(composition, instance)];
+    const host = new SceneGeneratorHost(fakeGpu().device, "rgba16float");
+    host.beginFrame();
+    const prepared = host.prepare(
+      flattenSceneLayers(composition, project, 0)[0],
+      composition,
+      640,
+      360,
+    );
+    expect(prepared?.requestedCount).toBe(128);
+  });
+});
+
 function sceneCamera(): SceneCamera {
   const settings = createDefaultCameraSettings(1920, 1080);
   settings.mode = "oneNode";

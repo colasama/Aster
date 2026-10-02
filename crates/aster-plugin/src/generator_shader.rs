@@ -3,7 +3,16 @@
 use std::{collections::BTreeMap, path::PathBuf};
 
 use crate::shader_types::ShaderTypes;
-use crate::{PluginError, PluginKind, PluginManifest, generator};
+use crate::{Capability, PluginError, PluginKind, PluginManifest, generator};
+
+/// Optional binding granted by the `audio_analysis` capability to compute and render modules.
+const AUDIO_BINDING: u32 = 4;
+const AUDIO_BANDS: u32 = 128;
+const AUDIO_HISTORY: u32 = 16;
+const AUDIO_WAVEFORM: u32 = 256;
+const AUDIO_SPECTRUM_OFFSET: u32 = 64;
+const AUDIO_WAVEFORM_OFFSET: u32 = AUDIO_SPECTRUM_OFFSET + AUDIO_BANDS * AUDIO_HISTORY * 4;
+const AUDIO_SPAN: u32 = AUDIO_WAVEFORM_OFFSET + AUDIO_WAVEFORM * 4;
 
 #[derive(Clone, Copy)]
 enum GeneratorFragmentOutput {
@@ -53,11 +62,13 @@ impl SceneGeneratorValidator {
         {
             return Err(PluginError::UndeclaredShaderSource(path.clone()));
         }
-        Self::validate_scene_generator_shaders(graph, sources)
+        let audio = manifest.capabilities.contains(&Capability::AudioAnalysis);
+        Self::validate_scene_generator_shaders(graph, sources, audio)
     }
     fn validate_scene_generator_shaders(
         graph: &generator::SceneGeneratorGraph,
         sources: &BTreeMap<String, String>,
+        audio: bool,
     ) -> Result<(), PluginError> {
         use naga::{AddressSpace, ShaderStage, StorageAccess};
 
@@ -114,6 +125,7 @@ impl SceneGeneratorValidator {
                         },
                     ),
                 ],
+                audio,
             )?;
         }
         for variant in &graph.render_variants {
@@ -125,6 +137,7 @@ impl SceneGeneratorValidator {
                 &variant.fragment_entry,
                 graph.instance_stride,
                 GeneratorFragmentOutput::Beauty,
+                audio,
             )?;
             if let Some(auxiliary) = &variant.auxiliary {
                 Self::validate_generator_render_module(
@@ -135,6 +148,7 @@ impl SceneGeneratorValidator {
                     &auxiliary.fragment_entry,
                     graph.instance_stride,
                     GeneratorFragmentOutput::Auxiliary,
+                    audio,
                 )?;
             }
         }
@@ -146,6 +160,7 @@ impl SceneGeneratorValidator {
         fragment_entry: &str,
         instance_stride: u32,
         output: GeneratorFragmentOutput,
+        audio: bool,
     ) -> Result<(), PluginError> {
         use naga::{AddressSpace, ShaderStage, StorageAccess};
 
@@ -182,6 +197,7 @@ impl SceneGeneratorValidator {
                     },
                 ),
             ],
+            audio,
         )
     }
     fn validate_generator_render_interface(
@@ -331,6 +347,7 @@ impl SceneGeneratorValidator {
         module: &naga::Module,
         instance_stride: u32,
         expected: &[(u32, &str, naga::AddressSpace)],
+        audio: bool,
     ) -> Result<(), PluginError> {
         let bound = module
             .global_variables
@@ -339,7 +356,18 @@ impl SceneGeneratorValidator {
                 variable.binding.as_ref().map(|binding| (binding, variable))
             })
             .collect::<Vec<_>>();
-        if bound.len() != expected.len() {
+        let audio_variable = bound.iter().find_map(|(resource, variable)| {
+            (resource.group == 0 && resource.binding == AUDIO_BINDING).then_some(*variable)
+        });
+        if let Some(variable) = audio_variable {
+            if !audio {
+                return Err(PluginError::GeneratorShaderAbi(format!(
+                    "@binding({AUDIO_BINDING}) requires the audio_analysis capability"
+                )));
+            }
+            Self::validate_audio_analysis(module, variable)?;
+        }
+        if bound.len() - usize::from(audio_variable.is_some()) != expected.len() {
             return Err(PluginError::GeneratorShaderAbi(format!(
                 "shader must declare exactly {} standard group-0 bindings",
                 expected.len()
@@ -372,6 +400,64 @@ impl SceneGeneratorValidator {
                     ));
                 }
             }
+        }
+        Ok(())
+    }
+    fn validate_audio_analysis(
+        module: &naga::Module,
+        variable: &naga::GlobalVariable,
+    ) -> Result<(), PluginError> {
+        use naga::{AddressSpace, ArraySize, ScalarKind, StorageAccess, TypeInner, VectorSize};
+
+        if variable.name.as_deref() != Some("aster_audio")
+            || variable.space
+                != (AddressSpace::Storage {
+                    access: StorageAccess::LOAD,
+                })
+        {
+            return Err(PluginError::GeneratorShaderAbi(format!(
+                "binding {AUDIO_BINDING} must be `var<storage, read> aster_audio`"
+            )));
+        }
+        let ty = &module.types[variable.ty];
+        let TypeInner::Struct { members, span } = &ty.inner else {
+            return Err(PluginError::GeneratorShaderAbi(
+                "AsterAudioAnalysis must be a struct".to_owned(),
+            ));
+        };
+        let names = ["info", "timing", "levels", "energy", "spectrum", "waveform"];
+        let offsets = [0, 16, 32, 48, AUDIO_SPECTRUM_OFFSET, AUDIO_WAVEFORM_OFFSET];
+        if ty.name.as_deref() != Some("AsterAudioAnalysis")
+            || *span != AUDIO_SPAN
+            || members.len() != names.len()
+            || members
+                .iter()
+                .zip(names.into_iter().zip(offsets))
+                .any(|(member, (name, offset))| {
+                    member.name.as_deref() != Some(name) || member.offset != offset
+                })
+        {
+            return Err(PluginError::GeneratorShaderAbi(
+                "AsterAudioAnalysis fields or offsets do not match ABI v1".to_owned(),
+            ));
+        }
+        let float_array = |ty: naga::Handle<naga::Type>, length: u32| {
+            matches!(
+                module.types[ty].inner,
+                TypeInner::Array { base, size: ArraySize::Constant(size), stride: 4 }
+                    if size.get() == length && module.is_scalar(base, ScalarKind::Float)
+            )
+        };
+        let valid = module.is_vector(members[0].ty, VectorSize::Quad, ScalarKind::Uint)
+            && members[1..4]
+                .iter()
+                .all(|member| module.is_vector(member.ty, VectorSize::Quad, ScalarKind::Float))
+            && float_array(members[4].ty, AUDIO_BANDS * AUDIO_HISTORY)
+            && float_array(members[5].ty, AUDIO_WAVEFORM);
+        if !valid {
+            return Err(PluginError::GeneratorShaderAbi(
+                "AsterAudioAnalysis field types do not match ABI v1".to_owned(),
+            ));
         }
         Ok(())
     }

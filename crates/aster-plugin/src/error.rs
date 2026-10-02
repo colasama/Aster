@@ -75,4 +75,6 @@ pub enum PluginError {
     PrimaryShaderNotDeclared(String),
     #[error("parameter type `{0}` is not supported by this plugin kind in ABI v1")]
     UnsupportedParameterForKind(&'static str),
+    #[error("capability `{0}` is not supported by this plugin kind in ABI v1")]
+    UnsupportedCapabilityForKind(&'static str),
 }

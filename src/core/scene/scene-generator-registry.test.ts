@@ -67,6 +67,21 @@ describe("scene generator plugin registry", () => {
     });
   });
 
+  it("accepts the null optional graph fields serialized by the native bridge", () => {
+    const native = structuredClone(manifest) as unknown as {
+      scene_generator: { render_parameter: null; render_variants: Record<string, unknown>[] };
+    };
+    native.scene_generator.render_parameter = null;
+    native.scene_generator.render_variants[0].selector_value = null;
+    native.scene_generator.render_variants[0].auxiliary = null;
+    const definition = sceneGeneratorDefinitionFromManifest(
+      native as unknown as PluginManifest,
+      sources,
+    );
+    expect(definition.nodeType).toBe("points");
+    expect(definition.audioAnalysis).toBe(false);
+  });
+
   it("synchronizes enabled definitions and preserves isolated failures", () => {
     expect(synchronizeSceneGeneratorDefinitions(status([manifest]))).toEqual([]);
     expect(getSceneGeneratorDefinitions()).toHaveLength(1);

@@ -2,7 +2,12 @@ import { invoke, isDesktopRuntime, open } from "../../desktop/api";
 
 export const HOST_PLUGIN_API_VERSION = 1;
 
-export type PluginCapability = "gpu_compute" | "gpu_render" | "file_read" | "network";
+export type PluginCapability =
+  | "gpu_compute"
+  | "gpu_render"
+  | "file_read"
+  | "network"
+  | "audio_analysis";
 export type PluginKind = "effect" | "scene_generator";
 
 interface PluginParameterBase {
