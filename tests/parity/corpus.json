@@ -1,0 +1,4782 @@
+{
+  "schemaVersion": 1,
+  "cases": [
+    {
+      "id": "minimal-golden",
+      "project": "examples/projects/minimal-golden.aster.json",
+      "composition": "22222222-2222-4222-8222-222222222222",
+      "frames": [0, 30, 60, 90, 119],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "features": ["example:minimal-golden", "feature:animation", "layer:shape"],
+      "tolerance": "gpu"
+    },
+    {
+      "id": "enchanted-love",
+      "project": "artifacts/parity/projects/enchanted-love/project.json",
+      "composition": "comp-3571",
+      "frames": [
+        0, 141, 282, 283, 340, 398, 399, 488, 578, 579, 591, 604, 605, 642, 680, 681, 717, 754, 755,
+        793, 831, 832, 869, 906, 907, 949, 992, 993, 1090, 1188, 1189, 1198, 1208, 1209, 1243, 1278,
+        1279, 1311, 1343, 1344, 1356, 1368, 1369, 1382, 1396, 1397, 1414, 1431, 1432, 1474, 1517,
+        1518, 1553, 1589, 1590, 1628, 1667, 1668, 1731, 1794, 1795, 1805, 1816, 1817, 1826, 1835,
+        1836, 1863, 1890, 1891, 1901, 1911, 1912, 1929, 1946, 1947, 1957, 1968, 1969, 1986, 2003,
+        2004, 2032, 2060, 2061, 2089, 2118, 2119, 2148, 2177, 2178, 2185, 2193, 2194, 2214, 2234,
+        2256, 2279, 2280, 2333, 2387, 2388, 2419, 2451, 2452, 2518, 2585, 2586, 2618, 2650, 2651,
+        2678, 2705, 2706, 2716, 2726, 2727, 2797, 2867, 2868, 2926, 2984, 2985, 3071, 3158, 3159,
+        3173, 3188, 3189, 3371, 3554, 3555, 3592, 3630, 3631, 3672, 3713, 3714, 3808, 3902
+      ],
+      "size": {
+        "width": 1280,
+        "height": 848
+      },
+      "aa": "off",
+      "features": [
+        "example:enchanted-love",
+        "feature:expressions",
+        "feature:nested-precompositions"
+      ],
+      "tolerance": "gpu"
+    },
+    {
+      "project": "env:ASTER_PERF_PROJECT",
+      "composition": "ab7c9863-702d-4546-bc20-35f233017b77",
+      "size": {
+        "width": 1920,
+        "height": 1080
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "id": "owner-opening",
+      "frames": [0, 1, 356, 713],
+      "features": ["example:owner-project", "segment:opening"]
+    },
+    {
+      "project": "env:ASTER_PERF_PROJECT",
+      "composition": "ab7c9863-702d-4546-bc20-35f233017b77",
+      "size": {
+        "width": 1920,
+        "height": 1080
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "id": "owner-main",
+      "frames": [
+        714, 715, 716, 717, 718, 719, 720, 721, 722, 723, 724, 725, 726, 727, 728, 729, 730, 731,
+        732, 733, 734, 735, 736, 737, 738, 739, 740, 741, 742, 743, 744, 745, 746, 747, 748, 749,
+        750, 751, 752, 753, 754, 755, 756, 757, 758, 759, 760, 761, 762, 763, 764, 765, 766, 767,
+        768, 769, 770, 771, 772, 773, 774, 775, 776, 777, 778, 779, 780, 781, 782, 783, 784, 785,
+        786, 787, 788, 789, 790, 791, 792, 793, 794, 795, 796, 797, 798, 799, 800, 801, 802, 803,
+        804, 805, 806, 807, 808, 809, 810, 811, 812, 813, 814, 815, 816, 817, 818, 819, 820, 821,
+        822, 823, 824, 825, 826, 827, 828, 829, 830, 831, 832, 833, 834, 835, 836, 837, 838, 839,
+        840, 841, 842, 843, 844, 845, 846, 847, 848, 849, 850, 851, 852, 853, 854, 855, 856, 857,
+        858, 859, 860, 861, 862, 863, 864, 865, 866, 867, 868, 869, 870, 871, 872, 873, 874, 875,
+        876, 877, 878, 879, 880, 881, 882, 883, 884, 885, 886, 887, 888, 889, 890, 891, 892, 893,
+        894, 895, 896, 897, 898, 899, 900, 901, 902, 903, 904, 905, 906, 907, 908, 909, 910, 911,
+        912, 913, 914, 915, 916, 917, 918, 919, 920, 921, 922, 923, 924, 925, 926, 927, 928, 929,
+        930, 931, 932, 933, 934, 935, 936, 937, 938, 939, 940, 941, 942, 943, 944, 945, 946, 947,
+        948, 949, 950, 951, 952, 953, 954, 955, 956, 957, 958, 959, 960, 961, 962, 963, 964, 965,
+        966, 967, 968, 969, 970, 971, 972, 973, 974, 975, 976, 977, 978, 979, 980, 981, 982, 983,
+        984, 985, 986, 987, 988, 989, 990, 991, 992, 993, 994, 995, 996, 997, 998, 999, 1000, 1001,
+        1002, 1003, 1004, 1005, 1006, 1007, 1008, 1009, 1010, 1011, 1012, 1013
+      ],
+      "features": ["example:owner-project", "segment:main"]
+    },
+    {
+      "id": "aa-fxaa",
+      "project": "artifacts/parity/projects/aa-fxaa/project.json",
+      "composition": "0397ff9d-532d-4384-a61d-4d2cd7e3a15e",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "fxaa",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["aa:fxaa"]
+    },
+    {
+      "id": "aa-off",
+      "project": "artifacts/parity/projects/aa-off/project.json",
+      "composition": "fbf4229f-5f1c-48f1-a518-603dc6f39470",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["aa:off"]
+    },
+    {
+      "id": "aa-ssaa2x",
+      "project": "artifacts/parity/projects/aa-ssaa2x/project.json",
+      "composition": "7d3dfa66-5bf7-474d-a42b-f7b78cd4a3d4",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "ssaa2x",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["aa:ssaa2x"]
+    },
+    {
+      "id": "aa-ssaa4x",
+      "project": "artifacts/parity/projects/aa-ssaa4x/project.json",
+      "composition": "b9fef920-2ffa-49a4-aafe-36226d1c0700",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "ssaa4x",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["aa:ssaa4x"]
+    },
+    {
+      "id": "blend-add",
+      "project": "artifacts/parity/projects/blend-add/project.json",
+      "composition": "e7079e2e-23f7-4cd9-af24-45e54cd8fee0",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "features": ["blend:add"]
+    },
+    {
+      "id": "blend-color-burn",
+      "project": "artifacts/parity/projects/blend-color-burn/project.json",
+      "composition": "514440a9-8fdc-4af2-a5c3-b463a7ec2b27",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "features": ["blend:color-burn"]
+    },
+    {
+      "id": "blend-color-dodge",
+      "project": "artifacts/parity/projects/blend-color-dodge/project.json",
+      "composition": "1ac6f845-2180-452f-a41c-2ec324923c83",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "features": ["blend:color-dodge"]
+    },
+    {
+      "id": "blend-darken",
+      "project": "artifacts/parity/projects/blend-darken/project.json",
+      "composition": "3d771df8-ee08-4c59-a8d5-dc72b82cffc5",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "features": ["blend:darken"]
+    },
+    {
+      "id": "blend-difference",
+      "project": "artifacts/parity/projects/blend-difference/project.json",
+      "composition": "6b125ec0-fea5-43f3-a149-96dc7609e9e2",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "features": ["blend:difference"]
+    },
+    {
+      "id": "blend-exclusion",
+      "project": "artifacts/parity/projects/blend-exclusion/project.json",
+      "composition": "d3205b96-7db1-4498-a9f2-1f5f8b7ccd9a",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "features": ["blend:exclusion"]
+    },
+    {
+      "id": "blend-hard-light",
+      "project": "artifacts/parity/projects/blend-hard-light/project.json",
+      "composition": "4804e1c5-5bc9-4fc5-a928-7e0df0d606ef",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "features": ["blend:hard-light"]
+    },
+    {
+      "id": "blend-lighten",
+      "project": "artifacts/parity/projects/blend-lighten/project.json",
+      "composition": "ed251038-ee11-46ad-aa05-045ce603da63",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "features": ["blend:lighten"]
+    },
+    {
+      "id": "blend-multiply",
+      "project": "artifacts/parity/projects/blend-multiply/project.json",
+      "composition": "38e74539-be88-4489-afbc-79b6eb48963d",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "features": ["blend:multiply"]
+    },
+    {
+      "id": "blend-normal",
+      "project": "artifacts/parity/projects/blend-normal/project.json",
+      "composition": "0f4e2cca-898e-4774-ac92-88986d1fe49f",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "features": ["blend:normal"]
+    },
+    {
+      "id": "blend-overlay",
+      "project": "artifacts/parity/projects/blend-overlay/project.json",
+      "composition": "64fed184-93d2-45d2-a450-bcd93c61fbf7",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "features": ["blend:overlay"]
+    },
+    {
+      "id": "blend-screen",
+      "project": "artifacts/parity/projects/blend-screen/project.json",
+      "composition": "2da44b30-958a-4eb5-a9ac-e9dab35af8c4",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "features": ["blend:screen"]
+    },
+    {
+      "id": "blend-soft-light",
+      "project": "artifacts/parity/projects/blend-soft-light/project.json",
+      "composition": "87ece94c-d72a-4505-a894-b54474a07bf7",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "features": ["blend:soft-light"]
+    },
+    {
+      "id": "effect-add-grain",
+      "project": "artifacts/parity/projects/effect-add-grain/project.json",
+      "composition": "da6ac4fe-d8ba-4573-a724-8496be4e5a73",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:add-grain"]
+    },
+    {
+      "id": "effect-advanced-lightning",
+      "project": "artifacts/parity/projects/effect-advanced-lightning/project.json",
+      "composition": "56bc3b0e-d9a5-4aa2-a0d5-f8cc90322e89",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:advanced-lightning"]
+    },
+    {
+      "id": "effect-alpha-bevel",
+      "project": "artifacts/parity/projects/effect-alpha-bevel/project.json",
+      "composition": "62cdf765-1583-4447-afd3-4fd1bc85cca8",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:alpha-bevel"]
+    },
+    {
+      "id": "effect-alpha-boundary",
+      "project": "artifacts/parity/projects/effect-alpha-boundary/project.json",
+      "composition": "8d8fd7f0-a3b8-4333-aa82-3043bd62992a",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:alpha-boundary"]
+    },
+    {
+      "id": "effect-alpha-erode-dilate",
+      "project": "artifacts/parity/projects/effect-alpha-erode-dilate/project.json",
+      "composition": "85108630-1d65-4a08-a52a-7ddbbdbd7915",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:alpha-erode-dilate"]
+    },
+    {
+      "id": "effect-alpha-from-luminance",
+      "project": "artifacts/parity/projects/effect-alpha-from-luminance/project.json",
+      "composition": "d346cdde-3b28-47d0-a2db-f61e69519fb4",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:alpha-from-luminance"]
+    },
+    {
+      "id": "effect-alpha-levels",
+      "project": "artifacts/parity/projects/effect-alpha-levels/project.json",
+      "composition": "2ed2c543-21a2-4d0a-a824-ec6025aaf748",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:alpha-levels"]
+    },
+    {
+      "id": "effect-alpha-stroke",
+      "project": "artifacts/parity/projects/effect-alpha-stroke/project.json",
+      "composition": "f18cbc70-8fef-4b40-aa76-af57ed323471",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:alpha-stroke", "feature:layer-styles"]
+    },
+    {
+      "id": "effect-anamorphic-flare",
+      "project": "artifacts/parity/projects/effect-anamorphic-flare/project.json",
+      "composition": "77d22d68-1c18-432c-af2e-ba2c6c97c631",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:anamorphic-flare"]
+    },
+    {
+      "id": "effect-arithmetic",
+      "project": "artifacts/parity/projects/effect-arithmetic/project.json",
+      "composition": "6c22fdbe-d369-43a3-a624-64ff1892be54",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:arithmetic"]
+    },
+    {
+      "id": "effect-asc-cdl",
+      "project": "artifacts/parity/projects/effect-asc-cdl/project.json",
+      "composition": "0179579f-b065-487b-af3e-94985716f745",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:asc-cdl"]
+    },
+    {
+      "id": "effect-ball-action",
+      "project": "artifacts/parity/projects/effect-ball-action/project.json",
+      "composition": "52367e12-c992-4ece-a816-59d31404ff80",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:ball-action"]
+    },
+    {
+      "id": "effect-barn-doors",
+      "project": "artifacts/parity/projects/effect-barn-doors/project.json",
+      "composition": "3f3f5b79-62d3-4203-a99a-df6b3eebb654",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:barn-doors"]
+    },
+    {
+      "id": "effect-beam",
+      "project": "artifacts/parity/projects/effect-beam/project.json",
+      "composition": "57aa3188-4183-4c31-ac05-a5200b09c1c1",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:beam"]
+    },
+    {
+      "id": "effect-bend-it",
+      "project": "artifacts/parity/projects/effect-bend-it/project.json",
+      "composition": "e5505214-8353-43b2-af4a-884bb0c22d37",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:bend-it"]
+    },
+    {
+      "id": "effect-bevel-alpha",
+      "project": "artifacts/parity/projects/effect-bevel-alpha/project.json",
+      "composition": "1c937615-cec5-48e4-afe1-90db010d3665",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:bevel-alpha"]
+    },
+    {
+      "id": "effect-bevel-emboss-style",
+      "project": "artifacts/parity/projects/effect-bevel-emboss-style/project.json",
+      "composition": "9d4e2be8-03dd-450e-a28a-33ec7c885350",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:bevel-emboss-style", "feature:layer-styles"]
+    },
+    {
+      "id": "effect-bezier-warp",
+      "project": "artifacts/parity/projects/effect-bezier-warp/project.json",
+      "composition": "6aef3cd1-fc00-452c-a13f-3551547d392c",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:bezier-warp"]
+    },
+    {
+      "id": "effect-bilateral-blur",
+      "project": "artifacts/parity/projects/effect-bilateral-blur/project.json",
+      "composition": "677dc562-d058-4456-aea8-3fc7d394cc23",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:bilateral-blur"]
+    },
+    {
+      "id": "effect-black-white",
+      "project": "artifacts/parity/projects/effect-black-white/project.json",
+      "composition": "88fb8d58-340c-4601-ae32-cb5e9f02fd71",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:black-white"]
+    },
+    {
+      "id": "effect-block-dissolve",
+      "project": "artifacts/parity/projects/effect-block-dissolve/project.json",
+      "composition": "76345438-5219-4427-a2e2-1bff2b6a7ab7",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:block-dissolve"]
+    },
+    {
+      "id": "effect-bloom",
+      "project": "artifacts/parity/projects/effect-bloom/project.json",
+      "composition": "d36498c5-b36c-469a-ad67-ce57e0e0605b",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:bloom"]
+    },
+    {
+      "id": "effect-box-blur",
+      "project": "artifacts/parity/projects/effect-box-blur/project.json",
+      "composition": "3a96019b-9ea6-444c-a5d1-6f129c83fa38",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:box-blur"]
+    },
+    {
+      "id": "effect-brightness-contrast",
+      "project": "artifacts/parity/projects/effect-brightness-contrast/project.json",
+      "composition": "a92cd3b0-f47e-439b-a336-9da390a752cd",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:brightness-contrast"]
+    },
+    {
+      "id": "effect-broadcast-colors",
+      "project": "artifacts/parity/projects/effect-broadcast-colors/project.json",
+      "composition": "d5939a87-88a0-4169-a789-347645da7a9b",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:broadcast-colors"]
+    },
+    {
+      "id": "effect-brush-strokes",
+      "project": "artifacts/parity/projects/effect-brush-strokes/project.json",
+      "composition": "dc6c1542-bb1a-404d-a91a-9de46a520b27",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:brush-strokes"]
+    },
+    {
+      "id": "effect-bubbles",
+      "project": "artifacts/parity/projects/effect-bubbles/project.json",
+      "composition": "62c35754-af80-4de2-abe3-22a161910068",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:bubbles"]
+    },
+    {
+      "id": "effect-bulge",
+      "project": "artifacts/parity/projects/effect-bulge/project.json",
+      "composition": "f03fe529-bd3d-4793-a90e-62fa66b94f7f",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:bulge"]
+    },
+    {
+      "id": "effect-burn-film",
+      "project": "artifacts/parity/projects/effect-burn-film/project.json",
+      "composition": "e5cd9829-d1e6-4524-a7cb-4b7ab35f74e4",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:burn-film"]
+    },
+    {
+      "id": "effect-camera-lens-blur",
+      "project": "artifacts/parity/projects/effect-camera-lens-blur/project.json",
+      "composition": "290a1062-d47c-4756-ae2b-547413689b4f",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:camera-lens-blur"]
+    },
+    {
+      "id": "effect-card-wipe",
+      "project": "artifacts/parity/projects/effect-card-wipe/project.json",
+      "composition": "aec69586-52b0-4142-ad20-4198500b538b",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:card-wipe"]
+    },
+    {
+      "id": "effect-cartoon",
+      "project": "artifacts/parity/projects/effect-cartoon/project.json",
+      "composition": "fd1e9a8f-2275-43cd-ae2c-c4995e910ea5",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:cartoon"]
+    },
+    {
+      "id": "effect-caustics",
+      "project": "artifacts/parity/projects/effect-caustics/project.json",
+      "composition": "59841c14-5eee-4464-a628-a49e1d9d929a",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:caustics"]
+    },
+    {
+      "id": "effect-cc-blobbylize",
+      "project": "artifacts/parity/projects/effect-cc-blobbylize/project.json",
+      "composition": "85984089-e6f6-4305-a886-d7e1bf3264cd",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:cc-blobbylize"]
+    },
+    {
+      "id": "effect-cc-plastic",
+      "project": "artifacts/parity/projects/effect-cc-plastic/project.json",
+      "composition": "c88322cd-7396-43dc-ae56-c981bd225d83",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:cc-plastic"]
+    },
+    {
+      "id": "effect-cc-threshold",
+      "project": "artifacts/parity/projects/effect-cc-threshold/project.json",
+      "composition": "d210e9e3-5273-49ea-a96e-9a3e6c7965f8",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:cc-threshold"]
+    },
+    {
+      "id": "effect-cc-toner",
+      "project": "artifacts/parity/projects/effect-cc-toner/project.json",
+      "composition": "a4c4960e-3761-497a-a00b-ab0425f9e052",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:cc-toner"]
+    },
+    {
+      "id": "effect-cell-pattern",
+      "project": "artifacts/parity/projects/effect-cell-pattern/project.json",
+      "composition": "ff201fdd-a384-4386-a19d-04cb99af99af",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:cell-pattern"]
+    },
+    {
+      "id": "effect-change-to-color",
+      "project": "artifacts/parity/projects/effect-change-to-color/project.json",
+      "composition": "c3e7125e-a0db-4e96-a064-3d954ebf80a0",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:change-to-color"]
+    },
+    {
+      "id": "effect-channel-blur",
+      "project": "artifacts/parity/projects/effect-channel-blur/project.json",
+      "composition": "cbda4487-a5b6-4494-ace1-72d8c129b9f0",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:channel-blur"]
+    },
+    {
+      "id": "effect-channel-combiner",
+      "project": "artifacts/parity/projects/effect-channel-combiner/project.json",
+      "composition": "d096097f-4b1a-447c-a981-c6bec8e2be03",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:channel-combiner"]
+    },
+    {
+      "id": "effect-channel-mixer",
+      "project": "artifacts/parity/projects/effect-channel-mixer/project.json",
+      "composition": "59998ac0-0ff4-4ed1-a1b0-7ed3194b4c81",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:channel-mixer"]
+    },
+    {
+      "id": "effect-checkerboard",
+      "project": "artifacts/parity/projects/effect-checkerboard/project.json",
+      "composition": "3cba15c7-65a6-4742-ac70-3348f4755f29",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:checkerboard"]
+    },
+    {
+      "id": "effect-chroma-key",
+      "project": "artifacts/parity/projects/effect-chroma-key/project.json",
+      "composition": "4540f216-0bc9-417e-ae78-ac639854a051",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:chroma-key"]
+    },
+    {
+      "id": "effect-chromatic",
+      "project": "artifacts/parity/projects/effect-chromatic/project.json",
+      "composition": "1f865532-e06d-43d6-a09a-55d549f309f8",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:chromatic"]
+    },
+    {
+      "id": "effect-circle",
+      "project": "artifacts/parity/projects/effect-circle/project.json",
+      "composition": "4307177b-7761-47d0-aca3-fa70676a244d",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:circle"]
+    },
+    {
+      "id": "effect-clarity",
+      "project": "artifacts/parity/projects/effect-clarity/project.json",
+      "composition": "b612308d-6347-46f9-af04-5ca63b3f9ea7",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:clarity"]
+    },
+    {
+      "id": "effect-clock-wipe",
+      "project": "artifacts/parity/projects/effect-clock-wipe/project.json",
+      "composition": "581dbf48-1eab-44e5-a641-54039a583e12",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:clock-wipe"]
+    },
+    {
+      "id": "effect-color-balance",
+      "project": "artifacts/parity/projects/effect-color-balance/project.json",
+      "composition": "c410e6f1-24d8-4924-a4cf-a891cbbf3a86",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:color-balance"]
+    },
+    {
+      "id": "effect-color-emboss",
+      "project": "artifacts/parity/projects/effect-color-emboss/project.json",
+      "composition": "e3f451f8-cf09-4233-a2a5-44d1b5c23d1f",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:color-emboss"]
+    },
+    {
+      "id": "effect-color-halftone",
+      "project": "artifacts/parity/projects/effect-color-halftone/project.json",
+      "composition": "1916aa23-a542-45c4-a074-e371cc3c5a5c",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:color-halftone"]
+    },
+    {
+      "id": "effect-color-matrix",
+      "project": "artifacts/parity/projects/effect-color-matrix/project.json",
+      "composition": "da5acc1b-825d-40eb-aa2a-970a2a85afa0",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:color-matrix"]
+    },
+    {
+      "id": "effect-color-overlay",
+      "project": "artifacts/parity/projects/effect-color-overlay/project.json",
+      "composition": "d12289d9-989f-4a28-a2ce-c66b992a9c4a",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:color-overlay", "feature:layer-styles"]
+    },
+    {
+      "id": "effect-color-range",
+      "project": "artifacts/parity/projects/effect-color-range/project.json",
+      "composition": "836f94e5-bd4d-4fce-ab0c-24c0f28405aa",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:color-range"]
+    },
+    {
+      "id": "effect-colorama",
+      "project": "artifacts/parity/projects/effect-colorama/project.json",
+      "composition": "0f432924-3337-429a-a440-54f42f8086f7",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:colorama"]
+    },
+    {
+      "id": "effect-compound-blur",
+      "project": "artifacts/parity/projects/effect-compound-blur/project.json",
+      "composition": "eb43adae-8412-41cc-afb4-520cb2e8c639",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:compound-blur"]
+    },
+    {
+      "id": "effect-compression-blocks",
+      "project": "artifacts/parity/projects/effect-compression-blocks/project.json",
+      "composition": "511a5cb7-10d7-4b5c-aa1c-7e46e26317ac",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:compression-blocks"]
+    },
+    {
+      "id": "effect-core-matte",
+      "project": "artifacts/parity/projects/effect-core-matte/project.json",
+      "composition": "3d8c2e32-d8da-45ec-a5be-89cd7336d0f8",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:core-matte"]
+    },
+    {
+      "id": "effect-corner-pin",
+      "project": "artifacts/parity/projects/effect-corner-pin/project.json",
+      "composition": "9c416d74-e8e0-4ba9-a1ed-36dfddab1af0",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:corner-pin"]
+    },
+    {
+      "id": "effect-crop",
+      "project": "artifacts/parity/projects/effect-crop/project.json",
+      "composition": "f2254382-79a8-49a0-af14-563e8f07848f",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:crop"]
+    },
+    {
+      "id": "effect-cross-blur",
+      "project": "artifacts/parity/projects/effect-cross-blur/project.json",
+      "composition": "a52d7240-4eef-4fd2-a8cf-6aa148ef3019",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:cross-blur"]
+    },
+    {
+      "id": "effect-curves",
+      "project": "artifacts/parity/projects/effect-curves/project.json",
+      "composition": "69dd6ca9-accf-4f2d-aa2a-96b509ee3e63",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:curves"]
+    },
+    {
+      "id": "effect-cylinder",
+      "project": "artifacts/parity/projects/effect-cylinder/project.json",
+      "composition": "1f2e2bf9-2c01-4d93-a71c-a09b98392ac9",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:cylinder"]
+    },
+    {
+      "id": "effect-deband",
+      "project": "artifacts/parity/projects/effect-deband/project.json",
+      "composition": "528c3bd3-5fb9-4f1a-ad14-f4f0687c0b60",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:deband"]
+    },
+    {
+      "id": "effect-denoise",
+      "project": "artifacts/parity/projects/effect-denoise/project.json",
+      "composition": "18caf593-5045-4be4-a675-b22f553a98d3",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:denoise"]
+    },
+    {
+      "id": "effect-despot",
+      "project": "artifacts/parity/projects/effect-despot/project.json",
+      "composition": "209a95ba-f642-4cea-a158-990c4cb61329",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:despot"]
+    },
+    {
+      "id": "effect-detail-preserving-upscale",
+      "project": "artifacts/parity/projects/effect-detail-preserving-upscale/project.json",
+      "composition": "c7831f02-c2eb-47f3-a082-dbc20d33d296",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:detail-preserving-upscale"]
+    },
+    {
+      "id": "effect-directional-blur",
+      "project": "artifacts/parity/projects/effect-directional-blur/project.json",
+      "composition": "edf7abb1-a7af-4d46-a3be-5856b1a22e94",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:directional-blur"]
+    },
+    {
+      "id": "effect-displacement-map",
+      "project": "artifacts/parity/projects/effect-displacement-map/project.json",
+      "composition": "dc908556-d228-413d-a8eb-4353ae79b495",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:displacement-map"]
+    },
+    {
+      "id": "effect-drizzle",
+      "project": "artifacts/parity/projects/effect-drizzle/project.json",
+      "composition": "9352354d-22fe-4fad-ab42-14b0938830b0",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:drizzle"]
+    },
+    {
+      "id": "effect-drop-shadow",
+      "project": "artifacts/parity/projects/effect-drop-shadow/project.json",
+      "composition": "cedc65a3-a43f-48c4-a223-0b2dada11078",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:drop-shadow"]
+    },
+    {
+      "id": "effect-dust-scratches",
+      "project": "artifacts/parity/projects/effect-dust-scratches/project.json",
+      "composition": "4bcd10dc-1a4d-49fe-acdc-bc59f293e800",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:dust-scratches"]
+    },
+    {
+      "id": "effect-echo",
+      "project": "artifacts/parity/projects/effect-echo/project.json",
+      "composition": "57f4a8cc-2e98-42ec-a393-f26bf0bdc0a8",
+      "frames": [1, 2, 17, 31, 58],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "sequence": true,
+      "features": ["effect:echo"]
+    },
+    {
+      "id": "effect-edge-color-blend",
+      "project": "artifacts/parity/projects/effect-edge-color-blend/project.json",
+      "composition": "10dc235d-812a-4364-ac02-e52cb6b9e867",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:edge-color-blend"]
+    },
+    {
+      "id": "effect-edge-decontaminate",
+      "project": "artifacts/parity/projects/effect-edge-decontaminate/project.json",
+      "composition": "00693ba6-0e42-472e-abc9-6e09631f9484",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:edge-decontaminate"]
+    },
+    {
+      "id": "effect-edge-extend",
+      "project": "artifacts/parity/projects/effect-edge-extend/project.json",
+      "composition": "c42b8f2e-a465-4188-a240-8cbae8b25aea",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:edge-extend"]
+    },
+    {
+      "id": "effect-edge-feather",
+      "project": "artifacts/parity/projects/effect-edge-feather/project.json",
+      "composition": "e03f11a0-37cd-4c3c-a3b8-12ec766d872f",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:edge-feather"]
+    },
+    {
+      "id": "effect-ellipse",
+      "project": "artifacts/parity/projects/effect-ellipse/project.json",
+      "composition": "f130ad6d-29a8-40ae-a782-d8514b40943a",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:ellipse"]
+    },
+    {
+      "id": "effect-emboss",
+      "project": "artifacts/parity/projects/effect-emboss/project.json",
+      "composition": "22a7632c-6aea-438b-ac7c-c80814cca1f7",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:emboss"]
+    },
+    {
+      "id": "effect-exposure",
+      "project": "artifacts/parity/projects/effect-exposure/project.json",
+      "composition": "3d235b63-8d08-4491-a831-4395585a5391",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:exposure"]
+    },
+    {
+      "id": "effect-extract",
+      "project": "artifacts/parity/projects/effect-extract/project.json",
+      "composition": "23f51d9d-0b71-4c1b-a0b1-7cafdb68aca2",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:extract"]
+    },
+    {
+      "id": "effect-eyedropper-fill",
+      "project": "artifacts/parity/projects/effect-eyedropper-fill/project.json",
+      "composition": "cef1b59f-7ada-41e7-abc8-bc5b2fbfc137",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:eyedropper-fill"]
+    },
+    {
+      "id": "effect-false-color",
+      "project": "artifacts/parity/projects/effect-false-color/project.json",
+      "composition": "0ccd48e2-e225-4cc6-a8c3-21b89a99e41f",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:false-color"]
+    },
+    {
+      "id": "effect-fast-bokeh",
+      "project": "artifacts/parity/projects/effect-fast-bokeh/project.json",
+      "composition": "c7e1a71e-2837-493c-a459-62a0b2c374d9",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:fast-bokeh"]
+    },
+    {
+      "id": "effect-fill",
+      "project": "artifacts/parity/projects/effect-fill/project.json",
+      "composition": "7f9fb637-8a0a-48d1-a3b2-dc1aa8610fa9",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:fill"]
+    },
+    {
+      "id": "effect-film-damage",
+      "project": "artifacts/parity/projects/effect-film-damage/project.json",
+      "composition": "18e5a68e-eb8c-4d0d-aa9a-95ffeb67ffb0",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:film-damage"]
+    },
+    {
+      "id": "effect-film-emulation",
+      "project": "artifacts/parity/projects/effect-film-emulation/project.json",
+      "composition": "acbece09-7985-48f8-a29d-9c76bd35ccbc",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:film-emulation"]
+    },
+    {
+      "id": "effect-film-print-density",
+      "project": "artifacts/parity/projects/effect-film-print-density/project.json",
+      "composition": "15bb509c-039f-4f05-a7db-01e6b46cd9b8",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:film-print-density"]
+    },
+    {
+      "id": "effect-filmic-tone-map",
+      "project": "artifacts/parity/projects/effect-filmic-tone-map/project.json",
+      "composition": "fe365261-7f0e-402e-adef-224b8d1c3006",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:filmic-tone-map", "feature:filmic"]
+    },
+    {
+      "id": "effect-find-edges",
+      "project": "artifacts/parity/projects/effect-find-edges/project.json",
+      "composition": "d0452745-92bb-4b1c-a8bc-84efbb5ab62a",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:find-edges"]
+    },
+    {
+      "id": "effect-flo-motion",
+      "project": "artifacts/parity/projects/effect-flo-motion/project.json",
+      "composition": "9bf4a684-4ce8-4d27-a23e-a33ed4403117",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:flo-motion"]
+    },
+    {
+      "id": "effect-focus-peaking",
+      "project": "artifacts/parity/projects/effect-focus-peaking/project.json",
+      "composition": "c1a89545-79f4-4fbd-ab7e-eec0a95f78ed",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:focus-peaking"]
+    },
+    {
+      "id": "effect-four-color-gradient",
+      "project": "artifacts/parity/projects/effect-four-color-gradient/project.json",
+      "composition": "0e8e9c7d-2aa4-4640-a5fb-99abb3b8b9d0",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:four-color-gradient"]
+    },
+    {
+      "id": "effect-fractal-noise",
+      "project": "artifacts/parity/projects/effect-fractal-noise/project.json",
+      "composition": "082e8d27-55cf-4b45-a4f7-5b4f7c2b435b",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:fractal-noise"]
+    },
+    {
+      "id": "effect-frequency-separation",
+      "project": "artifacts/parity/projects/effect-frequency-separation/project.json",
+      "composition": "6fefd0ef-1eae-45a7-a185-e9abf6876586",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:frequency-separation"]
+    },
+    {
+      "id": "effect-gamma-pedestal-gain",
+      "project": "artifacts/parity/projects/effect-gamma-pedestal-gain/project.json",
+      "composition": "4b5ed6d3-3573-43e3-aeeb-e5258ba53f98",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:gamma-pedestal-gain"]
+    },
+    {
+      "id": "effect-gamut-compressor",
+      "project": "artifacts/parity/projects/effect-gamut-compressor/project.json",
+      "composition": "8a44359d-eb39-435b-a2e3-d0268a244c22",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:gamut-compressor"]
+    },
+    {
+      "id": "effect-gamut-warning",
+      "project": "artifacts/parity/projects/effect-gamut-warning/project.json",
+      "composition": "13c41185-fb4f-4477-a422-9671b7c7e4e6",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:gamut-warning"]
+    },
+    {
+      "id": "effect-gate-weave",
+      "project": "artifacts/parity/projects/effect-gate-weave/project.json",
+      "composition": "09f4c4a2-0dfb-4599-a3fd-feb5c55cfcdc",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:gate-weave"]
+    },
+    {
+      "id": "effect-gaussian-blur",
+      "project": "artifacts/parity/projects/effect-gaussian-blur/project.json",
+      "composition": "40b7c5cb-acf3-47ab-a269-ee8549a54969",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:gaussian-blur"]
+    },
+    {
+      "id": "effect-glass",
+      "project": "artifacts/parity/projects/effect-glass/project.json",
+      "composition": "12dc493b-ca70-4c9c-a8ef-d6bab2e9adad",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:glass"]
+    },
+    {
+      "id": "effect-glow",
+      "project": "artifacts/parity/projects/effect-glow/project.json",
+      "composition": "8b59627c-457b-45c3-ad50-2c0a01791d3c",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:glow"]
+    },
+    {
+      "id": "effect-glowing-edges",
+      "project": "artifacts/parity/projects/effect-glowing-edges/project.json",
+      "composition": "2c9adf64-6c7b-43b0-aaad-9ac775cfc58d",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:glowing-edges"]
+    },
+    {
+      "id": "effect-god-rays",
+      "project": "artifacts/parity/projects/effect-god-rays/project.json",
+      "composition": "08e0e283-964d-44a8-a673-0375b091c4e2",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:god-rays"]
+    },
+    {
+      "id": "effect-gradient-overlay",
+      "project": "artifacts/parity/projects/effect-gradient-overlay/project.json",
+      "composition": "60fa6943-61f8-4df9-ac3e-bfc33ece13b4",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:gradient-overlay", "feature:layer-styles"]
+    },
+    {
+      "id": "effect-gradient-ramp",
+      "project": "artifacts/parity/projects/effect-gradient-ramp/project.json",
+      "composition": "9a0cebe9-f48b-42de-acb9-abd3c923927e",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:gradient-ramp"]
+    },
+    {
+      "id": "effect-gradient-wipe",
+      "project": "artifacts/parity/projects/effect-gradient-wipe/project.json",
+      "composition": "8a887cfb-acc0-416b-ab82-1b6b89b9d084",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:gradient-wipe"]
+    },
+    {
+      "id": "effect-grid",
+      "project": "artifacts/parity/projects/effect-grid/project.json",
+      "composition": "ab5d2cd8-3549-4ffc-a84b-23fc754aaa4f",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:grid"]
+    },
+    {
+      "id": "effect-grid-wipe",
+      "project": "artifacts/parity/projects/effect-grid-wipe/project.json",
+      "composition": "871633a7-9f39-4beb-a5b1-67cf7b001750",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:grid-wipe"]
+    },
+    {
+      "id": "effect-griddler",
+      "project": "artifacts/parity/projects/effect-griddler/project.json",
+      "composition": "4e239b7c-3391-4065-a521-fd4d522b1d8f",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:griddler"]
+    },
+    {
+      "id": "effect-hair",
+      "project": "artifacts/parity/projects/effect-hair/project.json",
+      "composition": "e57eb545-7ce4-4ce9-ad1f-9a941f9c1c22",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:hair"]
+    },
+    {
+      "id": "effect-hdr-clamp",
+      "project": "artifacts/parity/projects/effect-hdr-clamp/project.json",
+      "composition": "f4e55e61-732c-4166-a52e-d5a8541e6a1d",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:hdr-clamp"]
+    },
+    {
+      "id": "effect-hdr-compander",
+      "project": "artifacts/parity/projects/effect-hdr-compander/project.json",
+      "composition": "b55e4a4a-9d95-434c-a5a1-8e7adde056b1",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:hdr-compander"]
+    },
+    {
+      "id": "effect-head-switching",
+      "project": "artifacts/parity/projects/effect-head-switching/project.json",
+      "composition": "311a7a56-aff6-4657-aa94-3bbf759d33d0",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:head-switching"]
+    },
+    {
+      "id": "effect-hex-tile",
+      "project": "artifacts/parity/projects/effect-hex-tile/project.json",
+      "composition": "54d971ba-75d3-4fe0-aaeb-4128039806ad",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:hex-tile"]
+    },
+    {
+      "id": "effect-high-pass",
+      "project": "artifacts/parity/projects/effect-high-pass/project.json",
+      "composition": "aed2a3d9-fe85-4aa9-ac73-344fddc06b43",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:high-pass"]
+    },
+    {
+      "id": "effect-highlight-recovery",
+      "project": "artifacts/parity/projects/effect-highlight-recovery/project.json",
+      "composition": "606ecfb3-5da2-4caf-aee5-76c1aeaba0e6",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:highlight-recovery"]
+    },
+    {
+      "id": "effect-highlight-tint",
+      "project": "artifacts/parity/projects/effect-highlight-tint/project.json",
+      "composition": "c647224f-1b43-41e4-a23c-29265337dc85",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:highlight-tint"]
+    },
+    {
+      "id": "effect-hsl-secondary",
+      "project": "artifacts/parity/projects/effect-hsl-secondary/project.json",
+      "composition": "a2885d25-f0f1-4fdf-a7ee-6c547beb1494",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:hsl-secondary"]
+    },
+    {
+      "id": "effect-hue-saturation",
+      "project": "artifacts/parity/projects/effect-hue-saturation/project.json",
+      "composition": "89a49343-493a-492b-aa6e-135adda0dc09",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:hue-saturation"]
+    },
+    {
+      "id": "effect-hue-vs-hue",
+      "project": "artifacts/parity/projects/effect-hue-vs-hue/project.json",
+      "composition": "f112af93-4e5c-4955-aa50-94f319ac0529",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:hue-vs-hue"]
+    },
+    {
+      "id": "effect-hue-vs-saturation",
+      "project": "artifacts/parity/projects/effect-hue-vs-saturation/project.json",
+      "composition": "31011d38-9b90-4216-adbd-ba87c0ea1f64",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:hue-vs-saturation"]
+    },
+    {
+      "id": "effect-inner-glow",
+      "project": "artifacts/parity/projects/effect-inner-glow/project.json",
+      "composition": "f70b782b-b19d-428e-a384-49a08d13e80f",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:inner-glow", "feature:layer-styles"]
+    },
+    {
+      "id": "effect-inner-shadow",
+      "project": "artifacts/parity/projects/effect-inner-shadow/project.json",
+      "composition": "7d04a08f-467e-4424-a5e1-f134cf8b5ae1",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:inner-shadow", "feature:layer-styles"]
+    },
+    {
+      "id": "effect-invert",
+      "project": "artifacts/parity/projects/effect-invert/project.json",
+      "composition": "ce3eeb28-9c54-4c57-a967-273f52cb6aa8",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:invert"]
+    },
+    {
+      "id": "effect-iris-wipe",
+      "project": "artifacts/parity/projects/effect-iris-wipe/project.json",
+      "composition": "0b5b2bff-2069-4a49-a716-8949cc24853d",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:iris-wipe"]
+    },
+    {
+      "id": "effect-jaws",
+      "project": "artifacts/parity/projects/effect-jaws/project.json",
+      "composition": "5fa8b033-7cd4-4a1e-a770-50bf8c3db1db",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:jaws"]
+    },
+    {
+      "id": "effect-kaleidoscope",
+      "project": "artifacts/parity/projects/effect-kaleidoscope/project.json",
+      "composition": "b2ed528a-576e-4f64-a539-e808a0bca83e",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:kaleidoscope"]
+    },
+    {
+      "id": "effect-kawase-blur",
+      "project": "artifacts/parity/projects/effect-kawase-blur/project.json",
+      "composition": "80b2d214-75ca-4e7f-aecc-cd385b1db819",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:kawase-blur"]
+    },
+    {
+      "id": "effect-key-cleaner",
+      "project": "artifacts/parity/projects/effect-key-cleaner/project.json",
+      "composition": "7a07f9e2-eb5e-49bf-a89c-9ddbc5cebc79",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:key-cleaner"]
+    },
+    {
+      "id": "effect-keylight",
+      "project": "artifacts/parity/projects/effect-keylight/project.json",
+      "composition": "05dd6e5d-2b74-4b50-a478-dbb8b4545b7b",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:keylight"]
+    },
+    {
+      "id": "effect-laser",
+      "project": "artifacts/parity/projects/effect-laser/project.json",
+      "composition": "30ae1504-6682-4dec-a7e2-ffffd61a55e5",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:laser"]
+    },
+    {
+      "id": "effect-leave-color",
+      "project": "artifacts/parity/projects/effect-leave-color/project.json",
+      "composition": "9f3b821b-a716-4334-a796-7b3b8bdab627",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:leave-color"]
+    },
+    {
+      "id": "effect-lens-distortion",
+      "project": "artifacts/parity/projects/effect-lens-distortion/project.json",
+      "composition": "b16f5192-632e-4af7-a27a-ac9ab115ba01",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:lens-distortion"]
+    },
+    {
+      "id": "effect-lens-flare",
+      "project": "artifacts/parity/projects/effect-lens-flare/project.json",
+      "composition": "3d677319-6ea8-4470-a8e8-28547ce53131",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:lens-flare"]
+    },
+    {
+      "id": "effect-letterbox",
+      "project": "artifacts/parity/projects/effect-letterbox/project.json",
+      "composition": "a6594f6f-d67b-4527-a09b-6ce2c6ecea57",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:letterbox"]
+    },
+    {
+      "id": "effect-levels",
+      "project": "artifacts/parity/projects/effect-levels/project.json",
+      "composition": "0c1c3c35-9fed-4cd4-acb1-a2309e2bb32b",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:levels"]
+    },
+    {
+      "id": "effect-light-burst",
+      "project": "artifacts/parity/projects/effect-light-burst/project.json",
+      "composition": "2eb8911f-333a-4cda-abdf-0b1cc3deb761",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:light-burst"]
+    },
+    {
+      "id": "effect-light-leak",
+      "project": "artifacts/parity/projects/effect-light-leak/project.json",
+      "composition": "0b0a07d7-b816-4dd7-af6f-beb34f0124e0",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:light-leak"]
+    },
+    {
+      "id": "effect-light-rays",
+      "project": "artifacts/parity/projects/effect-light-rays/project.json",
+      "composition": "db23a00b-cfe1-44d5-a5a6-e0a726161b58",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:light-rays"]
+    },
+    {
+      "id": "effect-light-sweep",
+      "project": "artifacts/parity/projects/effect-light-sweep/project.json",
+      "composition": "ddddcc59-4669-4ff1-a718-a00ef12b448a",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:light-sweep"]
+    },
+    {
+      "id": "effect-light-wipe",
+      "project": "artifacts/parity/projects/effect-light-wipe/project.json",
+      "composition": "d449f682-fcd2-4b96-a1ee-78315817c685",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:light-wipe"]
+    },
+    {
+      "id": "effect-light-wrap",
+      "project": "artifacts/parity/projects/effect-light-wrap/project.json",
+      "composition": "50bd002d-463c-49eb-ad4f-c84c58daa047",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:light-wrap"]
+    },
+    {
+      "id": "effect-line-sweep",
+      "project": "artifacts/parity/projects/effect-line-sweep/project.json",
+      "composition": "6ea171a5-676d-4f17-a275-1e61b9b52380",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:line-sweep"]
+    },
+    {
+      "id": "effect-linear-color-key",
+      "project": "artifacts/parity/projects/effect-linear-color-key/project.json",
+      "composition": "8832e0ad-a507-4c2f-ae9e-6c5f20f9b0a0",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:linear-color-key"]
+    },
+    {
+      "id": "effect-linear-wipe",
+      "project": "artifacts/parity/projects/effect-linear-wipe/project.json",
+      "composition": "5944feea-514b-489c-a5b8-e0ace11ed081",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:linear-wipe"]
+    },
+    {
+      "id": "effect-local-contrast",
+      "project": "artifacts/parity/projects/effect-local-contrast/project.json",
+      "composition": "f9e1afe7-6abd-4040-a6f2-0f304d47fa11",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:local-contrast"]
+    },
+    {
+      "id": "effect-log-wheels",
+      "project": "artifacts/parity/projects/effect-log-wheels/project.json",
+      "composition": "956d9585-56a6-4969-a99c-48b9050bdfb2",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:log-wheels"]
+    },
+    {
+      "id": "effect-looks-color-lab",
+      "project": "artifacts/parity/projects/effect-looks-color-lab/project.json",
+      "composition": "13f09edb-fa9f-4b32-afb1-04cbd61ab7f3",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:looks-color-lab"]
+    },
+    {
+      "id": "effect-luma-key",
+      "project": "artifacts/parity/projects/effect-luma-key/project.json",
+      "composition": "9b1ceb7a-4d22-4710-a141-af8b57a58105",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:luma-key"]
+    },
+    {
+      "id": "effect-luma-vs-saturation",
+      "project": "artifacts/parity/projects/effect-luma-vs-saturation/project.json",
+      "composition": "aea54bc3-f28e-4439-a170-391e044fd8c4",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:luma-vs-saturation"]
+    },
+    {
+      "id": "effect-lut",
+      "project": "artifacts/parity/projects/effect-lut/project.json",
+      "composition": "c528c400-3f73-4bb8-aa64-1141745e6f5c",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:lut", "lut:trilinear"]
+    },
+    {
+      "id": "effect-magnify",
+      "project": "artifacts/parity/projects/effect-magnify/project.json",
+      "composition": "bab5e195-4e9e-4286-ae77-cb6a1876d174",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:magnify"]
+    },
+    {
+      "id": "effect-mask-ellipse",
+      "project": "artifacts/parity/projects/effect-mask-ellipse/project.json",
+      "composition": "e4a70606-4279-4304-ad05-68640f9d3379",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["feature:effect-masks", "mask:ellipse"]
+    },
+    {
+      "id": "effect-mask-rectangle",
+      "project": "artifacts/parity/projects/effect-mask-rectangle/project.json",
+      "composition": "09d512cb-ba73-4f51-a4eb-8adbdbc95b66",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["feature:effect-masks", "mask:rectangle"]
+    },
+    {
+      "id": "effect-matte-choker",
+      "project": "artifacts/parity/projects/effect-matte-choker/project.json",
+      "composition": "f12edca2-8d58-4ebb-a745-069871009764",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:matte-choker"]
+    },
+    {
+      "id": "effect-matte-cleanup",
+      "project": "artifacts/parity/projects/effect-matte-cleanup/project.json",
+      "composition": "9173a11c-f447-485b-af3d-5259e51be1a3",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:matte-cleanup"]
+    },
+    {
+      "id": "effect-matte-feather",
+      "project": "artifacts/parity/projects/effect-matte-feather/project.json",
+      "composition": "4ca35c44-630b-4ac9-a509-77bac4b9b0c5",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:matte-feather"]
+    },
+    {
+      "id": "effect-median",
+      "project": "artifacts/parity/projects/effect-median/project.json",
+      "composition": "460b83df-b922-42dc-ac55-5665467ed8df",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:median"]
+    },
+    {
+      "id": "effect-mesh-warp",
+      "project": "artifacts/parity/projects/effect-mesh-warp/project.json",
+      "composition": "76297b3b-418e-479b-a487-36f4594d2320",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:mesh-warp"]
+    },
+    {
+      "id": "effect-minimax",
+      "project": "artifacts/parity/projects/effect-minimax/project.json",
+      "composition": "7f6a87c9-2ce7-458d-a1c2-5ee9a2dedfbc",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:minimax"]
+    },
+    {
+      "id": "effect-mirror",
+      "project": "artifacts/parity/projects/effect-mirror/project.json",
+      "composition": "569ffc1d-a76f-459d-a195-df4e5d1a8bec",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:mirror"]
+    },
+    {
+      "id": "effect-mosaic",
+      "project": "artifacts/parity/projects/effect-mosaic/project.json",
+      "composition": "34723d78-3424-4777-a34a-1ee3dbef6641",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:mosaic"]
+    },
+    {
+      "id": "effect-motion-tile",
+      "project": "artifacts/parity/projects/effect-motion-tile/project.json",
+      "composition": "332e6aef-3d25-4434-a548-e1d725831670",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:motion-tile"]
+    },
+    {
+      "id": "effect-motion-trails",
+      "project": "artifacts/parity/projects/effect-motion-trails/project.json",
+      "composition": "05fcb2c2-b27d-43b7-a2e5-8de4ad78e28f",
+      "frames": [1, 2, 17, 31, 58],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "sequence": true,
+      "features": ["effect:motion-trails"]
+    },
+    {
+      "id": "effect-mr-mercury",
+      "project": "artifacts/parity/projects/effect-mr-mercury/project.json",
+      "composition": "00fb6493-535f-4ad2-ac98-e43077b0d26f",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:mr-mercury"]
+    },
+    {
+      "id": "effect-multi-stop-gradient",
+      "project": "artifacts/parity/projects/effect-multi-stop-gradient/project.json",
+      "composition": "73b5e1b5-3f5c-4a22-aab5-32ec746a6503",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:multi-stop-gradient"]
+    },
+    {
+      "id": "effect-noise",
+      "project": "artifacts/parity/projects/effect-noise/project.json",
+      "composition": "e14dbad1-7439-4bce-adde-9493f1d25fce",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:noise"]
+    },
+    {
+      "id": "effect-noise-alpha",
+      "project": "artifacts/parity/projects/effect-noise-alpha/project.json",
+      "composition": "535e245f-57bc-455c-a17c-19b0fa62f88d",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:noise-alpha"]
+    },
+    {
+      "id": "effect-noise-hls",
+      "project": "artifacts/parity/projects/effect-noise-hls/project.json",
+      "composition": "4e867d04-2cc2-4e9a-abc9-56a51e09b962",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:noise-hls"]
+    },
+    {
+      "id": "effect-noise-hls-auto",
+      "project": "artifacts/parity/projects/effect-noise-hls-auto/project.json",
+      "composition": "24cec2ad-71b7-4b00-a211-8837b5b5b300",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:noise-hls-auto"]
+    },
+    {
+      "id": "effect-offset",
+      "project": "artifacts/parity/projects/effect-offset/project.json",
+      "composition": "21558297-808d-42bb-a798-d6fa3ceb0006",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:offset"]
+    },
+    {
+      "id": "effect-optics-compensation",
+      "project": "artifacts/parity/projects/effect-optics-compensation/project.json",
+      "composition": "e877c8a4-b2d9-4fe5-ad5d-a94cd441f19a",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:optics-compensation"]
+    },
+    {
+      "id": "effect-outer-glow",
+      "project": "artifacts/parity/projects/effect-outer-glow/project.json",
+      "composition": "9db7910c-bdc8-45d3-a636-f2c959dd6f88",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:outer-glow", "feature:layer-styles"]
+    },
+    {
+      "id": "effect-overscan",
+      "project": "artifacts/parity/projects/effect-overscan/project.json",
+      "composition": "6baabd41-d43f-4609-a3df-1c9e60c16717",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:overscan"]
+    },
+    {
+      "id": "effect-page-turn",
+      "project": "artifacts/parity/projects/effect-page-turn/project.json",
+      "composition": "967227d9-16fd-47ac-af70-5337d59797e2",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:page-turn"]
+    },
+    {
+      "id": "effect-paint-bucket",
+      "project": "artifacts/parity/projects/effect-paint-bucket/project.json",
+      "composition": "b6cdbf65-c050-4c11-a387-fcb4a678d254",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:paint-bucket"]
+    },
+    {
+      "id": "effect-particle-systems-ii",
+      "project": "artifacts/parity/projects/effect-particle-systems-ii/project.json",
+      "composition": "23e0f44c-399d-4eb7-a0b4-631bbc51b8f3",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:particle-systems-ii"]
+    },
+    {
+      "id": "effect-particle-world",
+      "project": "artifacts/parity/projects/effect-particle-world/project.json",
+      "composition": "2f1d886c-e736-4f58-ae81-087952c058cb",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:particle-world"]
+    },
+    {
+      "id": "effect-photo-filter",
+      "project": "artifacts/parity/projects/effect-photo-filter/project.json",
+      "composition": "347118e2-8cae-4033-ae89-57d1b5bc46b3",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:photo-filter"]
+    },
+    {
+      "id": "effect-pixel-polly",
+      "project": "artifacts/parity/projects/effect-pixel-polly/project.json",
+      "composition": "062da977-3a7d-4d63-af95-465329fe4423",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:pixel-polly"]
+    },
+    {
+      "id": "effect-pixel-sort",
+      "project": "artifacts/parity/projects/effect-pixel-sort/project.json",
+      "composition": "03d42925-3340-415a-a99b-5e812708ddc3",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:pixel-sort"]
+    },
+    {
+      "id": "effect-polar-coordinates",
+      "project": "artifacts/parity/projects/effect-polar-coordinates/project.json",
+      "composition": "eed3c900-0034-4284-a9db-a7411301296d",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:polar-coordinates"]
+    },
+    {
+      "id": "effect-posterize",
+      "project": "artifacts/parity/projects/effect-posterize/project.json",
+      "composition": "a2012021-9e74-4cb5-a3f4-d03aea2cd09c",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:posterize"]
+    },
+    {
+      "id": "effect-posterize-time",
+      "project": "artifacts/parity/projects/effect-posterize-time/project.json",
+      "composition": "7f7b4679-6747-455c-ab77-c2a3ec03b12f",
+      "frames": [1, 2, 17, 31, 58],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "sequence": true,
+      "features": ["effect:posterize-time"]
+    },
+    {
+      "id": "effect-power-pin",
+      "project": "artifacts/parity/projects/effect-power-pin/project.json",
+      "composition": "50c78281-11dc-4542-abaf-59f046165d0f",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:power-pin"]
+    },
+    {
+      "id": "effect-premultiply-color",
+      "project": "artifacts/parity/projects/effect-premultiply-color/project.json",
+      "composition": "b9e038f4-24bf-4a1a-a86b-ed98ad1494d2",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:premultiply-color"]
+    },
+    {
+      "id": "effect-printer-lights",
+      "project": "artifacts/parity/projects/effect-printer-lights/project.json",
+      "composition": "a2e89133-6e58-4db6-a96b-f42147fd2031",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:printer-lights"]
+    },
+    {
+      "id": "effect-radial-blur",
+      "project": "artifacts/parity/projects/effect-radial-blur/project.json",
+      "composition": "48c4e347-907d-4769-a7d4-78384c884487",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:radial-blur"]
+    },
+    {
+      "id": "effect-radial-fast-blur",
+      "project": "artifacts/parity/projects/effect-radial-fast-blur/project.json",
+      "composition": "551fb39c-7c33-4aa2-a73b-ef83dc1cd1b5",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:radial-fast-blur"]
+    },
+    {
+      "id": "effect-radial-shadow",
+      "project": "artifacts/parity/projects/effect-radial-shadow/project.json",
+      "composition": "c42768b3-aa2b-4b5a-ab75-2d11b2c5ca21",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:radial-shadow"]
+    },
+    {
+      "id": "effect-radial-wipe",
+      "project": "artifacts/parity/projects/effect-radial-wipe/project.json",
+      "composition": "9ad52f55-2da0-41cf-a7ec-549b4ed14ba1",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:radial-wipe"]
+    },
+    {
+      "id": "effect-radio-waves",
+      "project": "artifacts/parity/projects/effect-radio-waves/project.json",
+      "composition": "f01340b0-3738-4eb9-aca7-ed9bf48df170",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:radio-waves"]
+    },
+    {
+      "id": "effect-rainfall",
+      "project": "artifacts/parity/projects/effect-rainfall/project.json",
+      "composition": "3e07dcd6-6854-493a-a89b-02957473976e",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:rainfall"]
+    },
+    {
+      "id": "effect-reduce-interlace-flicker",
+      "project": "artifacts/parity/projects/effect-reduce-interlace-flicker/project.json",
+      "composition": "3dbd6dac-851b-42e3-a93e-9252875f840f",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:reduce-interlace-flicker"]
+    },
+    {
+      "id": "effect-refine-hard-matte",
+      "project": "artifacts/parity/projects/effect-refine-hard-matte/project.json",
+      "composition": "31f69298-d778-4a74-a852-3951aa23d319",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:refine-hard-matte"]
+    },
+    {
+      "id": "effect-refine-soft-matte",
+      "project": "artifacts/parity/projects/effect-refine-soft-matte/project.json",
+      "composition": "c66df639-9968-4f2f-a5c6-93b56931842b",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:refine-soft-matte"]
+    },
+    {
+      "id": "effect-remove-color-matting",
+      "project": "artifacts/parity/projects/effect-remove-color-matting/project.json",
+      "composition": "0441fd06-d9f8-470b-ab8c-bef421873edb",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:remove-color-matting"]
+    },
+    {
+      "id": "effect-remove-grain",
+      "project": "artifacts/parity/projects/effect-remove-grain/project.json",
+      "composition": "d57e47c7-f505-4e9e-a01a-285e44914f30",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:remove-grain"]
+    },
+    {
+      "id": "effect-rgb-lift-gamma-gain",
+      "project": "artifacts/parity/projects/effect-rgb-lift-gamma-gain/project.json",
+      "composition": "4dbfbed2-bdd1-41c2-afe5-436c965ea9dd",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:rgb-lift-gamma-gain"]
+    },
+    {
+      "id": "effect-rgb-phosphor",
+      "project": "artifacts/parity/projects/effect-rgb-phosphor/project.json",
+      "composition": "843d3667-faa1-4b65-a5e7-437f99e922df",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:rgb-phosphor"]
+    },
+    {
+      "id": "effect-ripple",
+      "project": "artifacts/parity/projects/effect-ripple/project.json",
+      "composition": "8980bb55-ea08-468f-aab3-dfac3141f391",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:ripple"]
+    },
+    {
+      "id": "effect-ripple-pulse",
+      "project": "artifacts/parity/projects/effect-ripple-pulse/project.json",
+      "composition": "c431a3e7-9329-4428-a701-058a1e7585ce",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:ripple-pulse"]
+    },
+    {
+      "id": "effect-roughen-edges",
+      "project": "artifacts/parity/projects/effect-roughen-edges/project.json",
+      "composition": "cdf57dd0-7dee-46de-a71a-f51d6409a9d3",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:roughen-edges"]
+    },
+    {
+      "id": "effect-satin",
+      "project": "artifacts/parity/projects/effect-satin/project.json",
+      "composition": "b2af6d55-0e2d-42af-af7c-4172fab266ba",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:satin", "feature:layer-styles"]
+    },
+    {
+      "id": "effect-scale-wipe",
+      "project": "artifacts/parity/projects/effect-scale-wipe/project.json",
+      "composition": "62f6dedc-68b5-48c2-ab80-06efa51fc38d",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:scale-wipe"]
+    },
+    {
+      "id": "effect-scanlines",
+      "project": "artifacts/parity/projects/effect-scanlines/project.json",
+      "composition": "fc43381c-99f5-4f53-a42e-ff44ebb58a5b",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:scanlines"]
+    },
+    {
+      "id": "effect-scatter",
+      "project": "artifacts/parity/projects/effect-scatter/project.json",
+      "composition": "7bb1c53a-e514-445f-a2a6-8b609854323c",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:scatter"]
+    },
+    {
+      "id": "effect-scatterize",
+      "project": "artifacts/parity/projects/effect-scatterize/project.json",
+      "composition": "65745c56-65e0-41dc-abed-6c3622f3963c",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:scatterize"]
+    },
+    {
+      "id": "effect-screen-matte",
+      "project": "artifacts/parity/projects/effect-screen-matte/project.json",
+      "composition": "75302fc1-f527-4626-a819-559a310d6b00",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:screen-matte"]
+    },
+    {
+      "id": "effect-scribble",
+      "project": "artifacts/parity/projects/effect-scribble/project.json",
+      "composition": "60bf5235-84d4-4011-a514-0867844224e5",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:scribble"]
+    },
+    {
+      "id": "effect-selective-color",
+      "project": "artifacts/parity/projects/effect-selective-color/project.json",
+      "composition": "c6e64b5b-dfad-46db-a390-039ef46fc5d4",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:selective-color"]
+    },
+    {
+      "id": "effect-set-channels",
+      "project": "artifacts/parity/projects/effect-set-channels/project.json",
+      "composition": "6db0033a-173b-4858-a94d-56c72759b7fa",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:set-channels"]
+    },
+    {
+      "id": "effect-set-matte",
+      "project": "artifacts/parity/projects/effect-set-matte/project.json",
+      "composition": "ade9edfa-d56a-4db5-a02e-e47b74936f3e",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:set-matte"]
+    },
+    {
+      "id": "effect-shadow-desaturate",
+      "project": "artifacts/parity/projects/effect-shadow-desaturate/project.json",
+      "composition": "e38a6ebc-22d7-411e-a050-9b781951ae0c",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:shadow-desaturate"]
+    },
+    {
+      "id": "effect-shadows-highlights",
+      "project": "artifacts/parity/projects/effect-shadows-highlights/project.json",
+      "composition": "a2ad6413-d8c3-4f39-a0f0-737564e2ebcb",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:shadows-highlights"]
+    },
+    {
+      "id": "effect-sharpen",
+      "project": "artifacts/parity/projects/effect-sharpen/project.json",
+      "composition": "8df5c005-af08-4e7d-afa2-dd38c18d5a25",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:sharpen"]
+    },
+    {
+      "id": "effect-sharpen-edges",
+      "project": "artifacts/parity/projects/effect-sharpen-edges/project.json",
+      "composition": "c2a343a3-4c0a-48f8-abb6-b2c3535ea546",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:sharpen-edges"]
+    },
+    {
+      "id": "effect-shift-channels",
+      "project": "artifacts/parity/projects/effect-shift-channels/project.json",
+      "composition": "78f92d64-d54e-4598-a637-cf82485d0026",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:shift-channels"]
+    },
+    {
+      "id": "effect-simple-choker",
+      "project": "artifacts/parity/projects/effect-simple-choker/project.json",
+      "composition": "df4e67d0-991f-4394-af07-e72e5c5dc453",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:simple-choker"]
+    },
+    {
+      "id": "effect-skin-tone-refine",
+      "project": "artifacts/parity/projects/effect-skin-tone-refine/project.json",
+      "composition": "6f159dfc-4640-42f7-aaf6-47b98431cad2",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:skin-tone-refine"]
+    },
+    {
+      "id": "effect-slant",
+      "project": "artifacts/parity/projects/effect-slant/project.json",
+      "composition": "4e60a782-97db-4dd9-a947-fae6420b8dde",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:slant"]
+    },
+    {
+      "id": "effect-smart-blur",
+      "project": "artifacts/parity/projects/effect-smart-blur/project.json",
+      "composition": "fd5a6733-0ab0-4f84-a431-e54b764fe3e3",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:smart-blur"]
+    },
+    {
+      "id": "effect-smart-sharpen",
+      "project": "artifacts/parity/projects/effect-smart-sharpen/project.json",
+      "composition": "af6657ff-6fdd-4ee8-a0c7-4ca0a3030310",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:smart-sharpen"]
+    },
+    {
+      "id": "effect-smear",
+      "project": "artifacts/parity/projects/effect-smear/project.json",
+      "composition": "47523831-333f-4784-a7b3-7f5b4e4b843c",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:smear"]
+    },
+    {
+      "id": "effect-snowfall",
+      "project": "artifacts/parity/projects/effect-snowfall/project.json",
+      "composition": "4e87d2f1-dfa9-465e-a715-84090faca048",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:snowfall"]
+    },
+    {
+      "id": "effect-solarize",
+      "project": "artifacts/parity/projects/effect-solarize/project.json",
+      "composition": "b788f29c-d122-433a-ab8f-2467a0605694",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:solarize"]
+    },
+    {
+      "id": "effect-solid-composite",
+      "project": "artifacts/parity/projects/effect-solid-composite/project.json",
+      "composition": "b6ddff7a-7a0b-4c17-a0cd-b41d8a2cdd77",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:solid-composite"]
+    },
+    {
+      "id": "effect-sphere",
+      "project": "artifacts/parity/projects/effect-sphere/project.json",
+      "composition": "f7a9d5cf-5d32-41ba-ad36-47c93e2904b5",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:sphere"]
+    },
+    {
+      "id": "effect-spherize",
+      "project": "artifacts/parity/projects/effect-spherize/project.json",
+      "composition": "5e1298d6-3b32-45b5-a580-48f1647f6c2e",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:spherize"]
+    },
+    {
+      "id": "effect-spill-killer",
+      "project": "artifacts/parity/projects/effect-spill-killer/project.json",
+      "composition": "78a7edac-eac6-48cc-adfd-615133ef4c2d",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:spill-killer"]
+    },
+    {
+      "id": "effect-spill-suppressor",
+      "project": "artifacts/parity/projects/effect-spill-suppressor/project.json",
+      "composition": "6ab9df6b-1c1e-42d1-ae89-5d99e536fa5d",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:spill-suppressor"]
+    },
+    {
+      "id": "effect-split",
+      "project": "artifacts/parity/projects/effect-split/project.json",
+      "composition": "d367cd42-dfac-424e-af2f-dc1a0f0a8a3c",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:split"]
+    },
+    {
+      "id": "effect-split-tone",
+      "project": "artifacts/parity/projects/effect-split-tone/project.json",
+      "composition": "00c4ce55-fd58-4010-adc6-1056bf7b651d",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:split-tone"]
+    },
+    {
+      "id": "effect-spotlight",
+      "project": "artifacts/parity/projects/effect-spotlight/project.json",
+      "composition": "cbb5dd8c-f2f2-41f7-af8c-aac8018a681a",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:spotlight"]
+    },
+    {
+      "id": "effect-star-burst",
+      "project": "artifacts/parity/projects/effect-star-burst/project.json",
+      "composition": "19135801-b4e5-4fc5-ade1-4bb8a77a65aa",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:star-burst"]
+    },
+    {
+      "id": "effect-strobe-light",
+      "project": "artifacts/parity/projects/effect-strobe-light/project.json",
+      "composition": "56a468f0-36cd-48cf-a113-cbf3e879f1ab",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:strobe-light"]
+    },
+    {
+      "id": "effect-stroke",
+      "project": "artifacts/parity/projects/effect-stroke/project.json",
+      "composition": "ef8bf5b7-ba0b-4fb2-a318-4136d2cc66e8",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:stroke"]
+    },
+    {
+      "id": "effect-tape-dropout",
+      "project": "artifacts/parity/projects/effect-tape-dropout/project.json",
+      "composition": "c871e618-ec66-459b-a362-55c345773a7b",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:tape-dropout"]
+    },
+    {
+      "id": "effect-texturize",
+      "project": "artifacts/parity/projects/effect-texturize/project.json",
+      "composition": "32c2ad23-3265-4b60-ad7e-c088ddef4c33",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:texturize"]
+    },
+    {
+      "id": "effect-threshold",
+      "project": "artifacts/parity/projects/effect-threshold/project.json",
+      "composition": "8b929bbc-73eb-4ad5-aa42-ee88daa07f16",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:threshold"]
+    },
+    {
+      "id": "effect-tiles",
+      "project": "artifacts/parity/projects/effect-tiles/project.json",
+      "composition": "4606e4ac-337c-426f-ae95-64e7a3c93b3f",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:tiles"]
+    },
+    {
+      "id": "effect-tint",
+      "project": "artifacts/parity/projects/effect-tint/project.json",
+      "composition": "43e815ba-6f6d-49fd-a4e3-f53f85ef0bd6",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:tint"]
+    },
+    {
+      "id": "effect-transform",
+      "project": "artifacts/parity/projects/effect-transform/project.json",
+      "composition": "cc75526f-c41d-4bab-a9b9-57840329a536",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:transform"]
+    },
+    {
+      "id": "effect-tritone",
+      "project": "artifacts/parity/projects/effect-tritone/project.json",
+      "composition": "a955987f-903a-4799-a007-d54411dfbb35",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:tritone"]
+    },
+    {
+      "id": "effect-turbulent-displace",
+      "project": "artifacts/parity/projects/effect-turbulent-displace/project.json",
+      "composition": "1f664d4e-60fa-4d5e-af81-9c0ab0ab13fe",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:turbulent-displace"]
+    },
+    {
+      "id": "effect-turbulent-noise",
+      "project": "artifacts/parity/projects/effect-turbulent-noise/project.json",
+      "composition": "71e04808-6883-45b3-ad22-c591e20af9d0",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:turbulent-noise"]
+    },
+    {
+      "id": "effect-twirl",
+      "project": "artifacts/parity/projects/effect-twirl/project.json",
+      "composition": "cd21d6b2-dac2-4621-a102-e6519e64ba58",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:twirl"]
+    },
+    {
+      "id": "effect-twister",
+      "project": "artifacts/parity/projects/effect-twister/project.json",
+      "composition": "3997d375-8810-4c25-a417-a6ce09732b82",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:twister"]
+    },
+    {
+      "id": "effect-unpremultiply-color",
+      "project": "artifacts/parity/projects/effect-unpremultiply-color/project.json",
+      "composition": "50d94fe7-bafd-4115-af4c-14fa69c55cea",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:unpremultiply-color"]
+    },
+    {
+      "id": "effect-vector-blur",
+      "project": "artifacts/parity/projects/effect-vector-blur/project.json",
+      "composition": "e2c08ea6-19e5-4cc1-a527-97e3e65f97a0",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:vector-blur"]
+    },
+    {
+      "id": "effect-vegas",
+      "project": "artifacts/parity/projects/effect-vegas/project.json",
+      "composition": "256a4d1d-3c9c-4139-a3a1-c68a652e01e5",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:vegas"]
+    },
+    {
+      "id": "effect-venetian-blinds",
+      "project": "artifacts/parity/projects/effect-venetian-blinds/project.json",
+      "composition": "dc88ea4e-5141-4e9c-a511-901ffc373616",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:venetian-blinds"]
+    },
+    {
+      "id": "effect-vibrance",
+      "project": "artifacts/parity/projects/effect-vibrance/project.json",
+      "composition": "1b4eade5-e397-4e67-a95f-4a9611aa4479",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:vibrance"]
+    },
+    {
+      "id": "effect-volumetric-fog",
+      "project": "artifacts/parity/projects/effect-volumetric-fog/project.json",
+      "composition": "1d94a189-0a60-4d0e-a7d6-9ef896bf85d2",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:volumetric-fog"]
+    },
+    {
+      "id": "effect-vr-blur",
+      "project": "artifacts/parity/projects/effect-vr-blur/project.json",
+      "composition": "31f63100-4b17-4539-af2f-e33174a31e27",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:vr-blur"]
+    },
+    {
+      "id": "effect-vr-chromatic-aberrations",
+      "project": "artifacts/parity/projects/effect-vr-chromatic-aberrations/project.json",
+      "composition": "57c725c4-577c-4630-aa60-1193b477c56c",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:vr-chromatic-aberrations"]
+    },
+    {
+      "id": "effect-vr-color-gradients",
+      "project": "artifacts/parity/projects/effect-vr-color-gradients/project.json",
+      "composition": "f2e9bc88-7eca-4da2-a45e-44bfb842600a",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:vr-color-gradients"]
+    },
+    {
+      "id": "effect-vr-digital-glitch",
+      "project": "artifacts/parity/projects/effect-vr-digital-glitch/project.json",
+      "composition": "38670ad2-4c19-4ace-ac7e-314f9d402bb6",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:vr-digital-glitch"]
+    },
+    {
+      "id": "effect-vr-fractal-noise",
+      "project": "artifacts/parity/projects/effect-vr-fractal-noise/project.json",
+      "composition": "c566b6cb-8e55-4589-aa6b-fbd828a17c81",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:vr-fractal-noise"]
+    },
+    {
+      "id": "effect-vr-glow",
+      "project": "artifacts/parity/projects/effect-vr-glow/project.json",
+      "composition": "212f5f13-16c6-4620-a50e-799882734f25",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:vr-glow"]
+    },
+    {
+      "id": "effect-vr-plane-to-sphere",
+      "project": "artifacts/parity/projects/effect-vr-plane-to-sphere/project.json",
+      "composition": "2ff209e0-0b89-40f5-a0b0-263307087a01",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:vr-plane-to-sphere"]
+    },
+    {
+      "id": "effect-vr-rotate-sphere",
+      "project": "artifacts/parity/projects/effect-vr-rotate-sphere/project.json",
+      "composition": "8e391174-dbe2-4f9a-adf1-d052da529909",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:vr-rotate-sphere"]
+    },
+    {
+      "id": "effect-warp",
+      "project": "artifacts/parity/projects/effect-warp/project.json",
+      "composition": "b02b4a8a-f4f7-4a69-a251-3b0fcb10d044",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:warp"]
+    },
+    {
+      "id": "effect-wave-warp",
+      "project": "artifacts/parity/projects/effect-wave-warp/project.json",
+      "composition": "f3ab0059-bd16-46c1-a7a6-e79d95084c7d",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:wave-warp"]
+    },
+    {
+      "id": "effect-wave-world",
+      "project": "artifacts/parity/projects/effect-wave-world/project.json",
+      "composition": "865f4f57-30af-4aa3-ac20-c97a750cb7cf",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:wave-world"]
+    },
+    {
+      "id": "effect-white-balance",
+      "project": "artifacts/parity/projects/effect-white-balance/project.json",
+      "composition": "dda40dc9-35be-48e4-a99f-3aba71973b55",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:white-balance"]
+    },
+    {
+      "id": "effect-wire-removal",
+      "project": "artifacts/parity/projects/effect-wire-removal/project.json",
+      "composition": "d158dc11-b56f-4c74-a47c-3594b28a91f7",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:wire-removal"]
+    },
+    {
+      "id": "effect-write-on",
+      "project": "artifacts/parity/projects/effect-write-on/project.json",
+      "composition": "1f00bc03-ae49-487d-afba-b40c5a0cb9fe",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:write-on"]
+    },
+    {
+      "id": "effect-zebra-overlay",
+      "project": "artifacts/parity/projects/effect-zebra-overlay/project.json",
+      "composition": "56efa8d8-30e6-4b91-a73c-dd5ee0c57909",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:zebra-overlay"]
+    },
+    {
+      "id": "effects-layer-style-chain",
+      "project": "artifacts/parity/projects/effects-layer-style-chain/project.json",
+      "composition": "900d2558-eca7-464a-a288-b6ecd1e3fc6f",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["feature:effect-chain", "feature:layer-styles"]
+    },
+    {
+      "id": "filmic-aces",
+      "project": "artifacts/parity/projects/filmic-aces/project.json",
+      "composition": "8001aa52-92ff-49d4-ab0f-5d3ff0772ad2",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:filmic-tone-map", "feature:aces"]
+    },
+    {
+      "id": "layer-adjustment",
+      "project": "artifacts/parity/projects/layer-adjustment/project.json",
+      "composition": "b13c4b83-e393-47d4-a93e-5c5b22c98272",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "features": ["feature:adjustment-layers", "layer:adjustment"]
+    },
+    {
+      "id": "layer-null",
+      "project": "artifacts/parity/projects/layer-null/project.json",
+      "composition": "bc74d9f9-4991-4c9f-a94b-1b13cf043e02",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "features": ["feature:parenting", "feature:transforms", "layer:null"]
+    },
+    {
+      "id": "layer-solid",
+      "project": "artifacts/parity/projects/layer-solid/project.json",
+      "composition": "99606872-204a-4e3d-ac97-78af4d80723a",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["layer:solid"]
+    },
+    {
+      "id": "layer-text",
+      "project": "artifacts/parity/projects/layer-text/project.json",
+      "composition": "cbecb430-111c-47f0-a78d-4f90b7a201eb",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["layer:text"]
+    },
+    {
+      "id": "lut-tetrahedral",
+      "project": "artifacts/parity/projects/lut-tetrahedral/project.json",
+      "composition": "f5efa5c8-8f97-4cae-a5ca-8ec5ddd12cba",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["effect:lut", "lut:tetrahedral"]
+    },
+    {
+      "id": "media-audio",
+      "project": "artifacts/parity/projects/media-audio/project.json",
+      "composition": "a013ac34-df9a-46ec-ab36-d3991e29b4b2",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "features": ["layer:audio", "media:audio"]
+    },
+    {
+      "id": "media-image-sequence",
+      "project": "artifacts/parity/projects/media-image-sequence/project.json",
+      "composition": "d5402133-7236-4734-a6a5-bef277f2198c",
+      "frames": [0, 14, 15, 29, 30, 44, 45, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "features": ["layer:image", "media:hold-boundaries", "media:image-sequence"]
+    },
+    {
+      "id": "media-image-sequence-identity",
+      "project": "artifacts/parity/projects/media-image-sequence-identity/project.json",
+      "composition": "9e11cfba-33e7-478d-a5e8-01251ac4bc32",
+      "frames": [0, 1, 2, 3],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "sequence": true,
+      "features": ["layer:image", "media:frame-identity", "media:image-sequence"]
+    },
+    {
+      "id": "media-jpg",
+      "project": "artifacts/parity/projects/media-jpg/project.json",
+      "composition": "e025efa6-dcdb-41ee-abb4-35461b248741",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "features": ["layer:image", "media:jpeg"]
+    },
+    {
+      "id": "media-png",
+      "project": "artifacts/parity/projects/media-png/project.json",
+      "composition": "f2b27f6c-c17e-4fc8-a375-42d04fd5d1cf",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "features": ["layer:image", "media:png"]
+    },
+    {
+      "id": "media-psd",
+      "project": "artifacts/parity/projects/media-psd/project.json",
+      "composition": "82a955ba-0122-442b-a226-a3e1e643a11d",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "features": ["layer:image", "media:psd", "psd:merged"]
+    },
+    {
+      "id": "media-psd-layer",
+      "project": "artifacts/parity/projects/media-psd-layer/project.json",
+      "composition": "1157c3a8-32bf-42f9-a703-df6d7184b493",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "features": ["layer:image", "media:psd", "psd:compositionRetainLayerSizes"]
+    },
+    {
+      "id": "media-svg",
+      "project": "artifacts/parity/projects/media-svg/project.json",
+      "composition": "8bb866cc-7959-4061-a705-713e2e734b8b",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "features": ["layer:image", "media:svg"]
+    },
+    {
+      "id": "nested-precompositions",
+      "project": "artifacts/parity/projects/nested-precompositions/project.json",
+      "composition": "ddfc3452-11c0-46d9-abce-77dea0961096",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "features": [
+        "feature:nested-precompositions",
+        "feature:precomposition-surfaces",
+        "layer:precomposition"
+      ]
+    },
+    {
+      "id": "scene-audio-spectrum-bars",
+      "project": "artifacts/parity/projects/scene-audio-spectrum-bars/project.json",
+      "composition": "0453c3ef-b491-4baf-abe6-ab1e08df5109",
+      "frames": [3, 6, 15, 33, 54],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "plugins": ["examples/plugins/audio-spectrum"],
+      "sequence": true,
+      "features": [
+        "feature:audio-analysis",
+        "layer:audio",
+        "layer:generator",
+        "plugin:org.aster.example.audio-spectrum"
+      ]
+    },
+    {
+      "id": "scene-audio-spectrum-ring",
+      "project": "artifacts/parity/projects/scene-audio-spectrum-ring/project.json",
+      "composition": "f1a94e65-e16e-4269-ab7d-79e65be73a12",
+      "frames": [3, 6, 15, 33, 54],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "plugins": ["examples/plugins/audio-spectrum"],
+      "sequence": true,
+      "features": [
+        "feature:audio-analysis",
+        "layer:audio",
+        "layer:generator",
+        "plugin:org.aster.example.audio-spectrum"
+      ]
+    },
+    {
+      "id": "scene-audio-spectrum-scope",
+      "project": "artifacts/parity/projects/scene-audio-spectrum-scope/project.json",
+      "composition": "2437e8f5-c249-4912-aab7-aaa3bf60dee8",
+      "frames": [3, 6, 15, 33, 54],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "plugins": ["examples/plugins/audio-spectrum"],
+      "sequence": true,
+      "features": [
+        "feature:audio-analysis",
+        "layer:audio",
+        "layer:generator",
+        "plugin:org.aster.example.audio-spectrum"
+      ]
+    },
+    {
+      "id": "scene-camera-orthographic",
+      "project": "artifacts/parity/projects/scene-camera-orthographic/project.json",
+      "composition": "cc684827-98a9-4747-a936-c7b228b19eac",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "features": ["feature:camera", "layer:camera", "layer:shape"]
+    },
+    {
+      "id": "scene-camera-perspective",
+      "project": "artifacts/parity/projects/scene-camera-perspective/project.json",
+      "composition": "93a4eebe-a5ed-4cc9-a9fe-b3c12e0094b3",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "features": ["feature:camera", "layer:camera", "layer:shape"]
+    },
+    {
+      "id": "scene-cloners",
+      "project": "artifacts/parity/projects/scene-cloners/project.json",
+      "composition": "c676538a-8788-44c6-a3a6-05a7d5574d71",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "sequence": true,
+      "features": ["feature:cloner", "layer:shape"]
+    },
+    {
+      "id": "scene-dof-15",
+      "project": "artifacts/parity/projects/scene-dof-15/project.json",
+      "composition": "6a963b51-d02e-4163-ab2e-03aab61769bc",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "features": ["feature:camera", "feature:depth-of-field", "layer:camera", "layer:shape"]
+    },
+    {
+      "id": "scene-dof-55",
+      "project": "artifacts/parity/projects/scene-dof-55/project.json",
+      "composition": "ab880938-8846-4259-a2cd-98b6603d444e",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "features": ["feature:camera", "feature:depth-of-field", "layer:camera", "layer:shape"]
+    },
+    {
+      "id": "scene-dof-95",
+      "project": "artifacts/parity/projects/scene-dof-95/project.json",
+      "composition": "d8ec2ccc-11c0-4eff-ae1a-83e0d7ae1f57",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "features": ["feature:camera", "feature:depth-of-field", "layer:camera", "layer:shape"]
+    },
+    {
+      "id": "scene-lighting-directional",
+      "project": "artifacts/parity/projects/scene-lighting-directional/project.json",
+      "composition": "e12435ce-e90e-49b5-a703-afda587a1bde",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "features": [
+        "feature:hdr-environment",
+        "feature:lights",
+        "feature:meshes",
+        "feature:shadows",
+        "layer:camera",
+        "layer:light",
+        "layer:mesh"
+      ]
+    },
+    {
+      "id": "scene-lighting-point",
+      "project": "artifacts/parity/projects/scene-lighting-point/project.json",
+      "composition": "516b4ce1-213e-4fa7-aa11-9bdc67ce2b98",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "features": [
+        "feature:hdr-environment",
+        "feature:lights",
+        "feature:meshes",
+        "layer:camera",
+        "layer:light",
+        "layer:mesh"
+      ]
+    },
+    {
+      "id": "scene-lighting-spot",
+      "project": "artifacts/parity/projects/scene-lighting-spot/project.json",
+      "composition": "029d418b-0902-4da5-a76f-24cf248fb012",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "features": [
+        "feature:hdr-environment",
+        "feature:lights",
+        "feature:meshes",
+        "feature:shadows",
+        "layer:camera",
+        "layer:light",
+        "layer:mesh"
+      ]
+    },
+    {
+      "id": "scene-masks-mattes-0",
+      "project": "artifacts/parity/projects/scene-masks-mattes-0/project.json",
+      "composition": "63905e32-de47-451e-a491-4985c4917568",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "features": ["feature:masks", "feature:mattes", "layer:shape"]
+    },
+    {
+      "id": "scene-masks-mattes-3",
+      "project": "artifacts/parity/projects/scene-masks-mattes-3/project.json",
+      "composition": "a8a91da4-3cdf-4ec8-a38d-1e6b47b0e606",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "features": ["feature:masks", "feature:mattes", "layer:shape"]
+    },
+    {
+      "id": "scene-masks-mattes-4",
+      "project": "artifacts/parity/projects/scene-masks-mattes-4/project.json",
+      "composition": "f2eff06f-48b9-46fb-afe9-64dd9b7caca3",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "features": ["feature:masks", "feature:mattes", "layer:shape"]
+    },
+    {
+      "id": "scene-motion-blur",
+      "project": "artifacts/parity/projects/scene-motion-blur/project.json",
+      "composition": "e4dd10db-3c99-4c69-a335-d89e1d423168",
+      "frames": [5, 15, 30, 54],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "sequence": true,
+      "features": ["feature:motion-blur", "feature:text-motion-blur", "layer:shape", "layer:text"]
+    },
+    {
+      "id": "scene-nested-adjustment",
+      "project": "artifacts/parity/projects/scene-nested-adjustment/project.json",
+      "composition": "8e89f7d0-8fc8-4e0b-af19-ba982bfb43f3",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "features": [
+        "feature:adjustment-layers",
+        "feature:backdrop-blends",
+        "feature:nested-precompositions",
+        "layer:adjustment",
+        "layer:precomposition"
+      ]
+    },
+    {
+      "id": "scene-particles-billboard",
+      "project": "artifacts/parity/projects/scene-particles-billboard/project.json",
+      "composition": "52eec484-d4b8-49ea-ab1c-66e53241ab74",
+      "frames": [3, 15, 30, 54],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "sequence": true,
+      "features": ["feature:bundled-particles", "layer:generator"]
+    },
+    {
+      "id": "scene-particles-mesh",
+      "project": "artifacts/parity/projects/scene-particles-mesh/project.json",
+      "composition": "f7624d11-ae1d-421f-a6f9-11279cb442a0",
+      "frames": [3, 15, 30, 54],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "sequence": true,
+      "features": ["feature:bundled-particles", "layer:generator"]
+    },
+    {
+      "id": "scene-particles-streak",
+      "project": "artifacts/parity/projects/scene-particles-streak/project.json",
+      "composition": "aecb5d39-3058-4780-aaba-216544dcc00a",
+      "frames": [3, 15, 30, 54],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "sequence": true,
+      "features": ["feature:bundled-particles", "layer:generator"]
+    },
+    {
+      "id": "scene-path-mask-reference",
+      "project": "artifacts/parity/projects/scene-path-mask-reference/project.json",
+      "composition": "db367fa6-323f-4fce-acb5-c09ea03d577c",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["feature:path-mask-schema", "layer:shape"]
+    },
+    {
+      "id": "scene-text-animators",
+      "project": "artifacts/parity/projects/scene-text-animators/project.json",
+      "composition": "280bc07e-5720-44f9-a3f9-6ec8aa4ddf41",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["feature:text-animators", "feature:text-multiscript", "layer:text"]
+    },
+    {
+      "id": "shape-bezier",
+      "project": "artifacts/parity/projects/shape-bezier/project.json",
+      "composition": "1acfdf89-68e4-4ded-a638-fedceacdfd7e",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["feature:transforms", "layer:shape", "shape:bezier"]
+    },
+    {
+      "id": "shape-ellipse",
+      "project": "artifacts/parity/projects/shape-ellipse/project.json",
+      "composition": "0f5fd3c9-ab49-4061-a944-f85a0274cbf0",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["feature:transforms", "layer:shape", "shape:ellipse"]
+    },
+    {
+      "id": "shape-line",
+      "project": "artifacts/parity/projects/shape-line/project.json",
+      "composition": "0629ced1-72b1-461b-a146-3c9d3cf78914",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["feature:transforms", "layer:shape", "shape:line"]
+    },
+    {
+      "id": "shape-rectangle",
+      "project": "artifacts/parity/projects/shape-rectangle/project.json",
+      "composition": "802c4bdc-8624-42a1-a89f-4f9121113fd2",
+      "frames": [0, 15, 30, 59],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "gpu",
+      "isolated": true,
+      "features": ["feature:transforms", "layer:shape", "shape:rectangle"]
+    },
+    {
+      "id": "video-24000-1001",
+      "project": "artifacts/parity/projects/video-24000-1001/project.json",
+      "composition": "6167dec7-4e0f-4bcf-ac6a-e8d9169d196d",
+      "frames": [0, 11, 12, 13, 23, 24, 25, 47, 48, 49, 70, 71],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "decode",
+      "sequence": true,
+      "features": ["layer:video", "media:frame-identity", "media:mp4", "video:24000/1001"]
+    },
+    {
+      "id": "video-24000-1001-seek",
+      "project": "artifacts/parity/projects/video-24000-1001-seek/project.json",
+      "composition": "fa7b4fab-66b4-4a08-a800-790f7a4f4d75",
+      "frames": [36, 11, 12, 0, 71, 24, 23, 48, 47, 1],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "decode",
+      "sequence": true,
+      "features": [
+        "layer:video",
+        "media:frame-identity",
+        "media:mp4",
+        "video:24000/1001",
+        "video:seek-boundaries"
+      ]
+    },
+    {
+      "id": "video-30000-1001",
+      "project": "artifacts/parity/projects/video-30000-1001/project.json",
+      "composition": "20b526ba-6e28-4c7f-ab71-c8a9bdfb651d",
+      "frames": [0, 11, 12, 13, 23, 24, 25, 47, 48, 49, 70, 71],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "decode",
+      "sequence": true,
+      "features": ["layer:video", "media:frame-identity", "media:mp4", "video:30000/1001"]
+    },
+    {
+      "id": "video-30000-1001-seek",
+      "project": "artifacts/parity/projects/video-30000-1001-seek/project.json",
+      "composition": "e4eecf8b-edb5-4dd0-a037-6d028c40ae96",
+      "frames": [36, 11, 12, 0, 71, 24, 23, 48, 47, 1],
+      "size": {
+        "width": 320,
+        "height": 180
+      },
+      "aa": "off",
+      "tolerance": "decode",
+      "sequence": true,
+      "features": [
+        "layer:video",
+        "media:frame-identity",
+        "media:mp4",
+        "video:30000/1001",
+        "video:seek-boundaries"
+      ]
+    }
+  ]
+}

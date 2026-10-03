@@ -36,6 +36,23 @@ Passing these gates does not establish a performance baseline or complete the mi
 the corpus, reference captures, pixel oracle, and measured baselines remain separate requirements in
 [the migration specification](migration/RUST_RENDERER_MIGRATION.md).
 
+`pnpm parity:generate` materializes deterministic projects under `artifacts/parity/projects/` and
+updates `tests/parity/corpus.json`. `node scripts/parity-generate.mjs --check` checks that the manifest
+matches the factories and current registries. The corpus tests validate project structures, active
+feature objects, stable project bytes, every layer/blend/effect/AA entry, and external frame addresses.
+The owner project remains external through `ASTER_PERF_PROJECT`; its Intro layer determines the
+opening interval and the following 300-frame main interval. Missing owner data is never performance
+evidence. The Enchanted Love example is generated without a private soundtrack.
+
+Committed procedural media includes byte hashes, generator provenance, fractional-rate video with
+decoded frame barcodes and fixed GOP boundaries, SVG, PSD and image-sequence payloads. Reproduce it
+with `node scripts/parity-media-assets.mjs --check` using the recorded staged FFmpeg build. Existing
+TS support boundaries are explicit: EXR bytes are retained for native decode but rejected by the
+current still-media sidecar, path masks assert schema coverage only, and point lights do not claim
+shadow coverage. Audio-analysis cases require their declared example plugin to be installed and
+loaded by the capture harness. Structural coverage does not establish GPU pixel correctness;
+reference capture and pixel self-review remain separate checks.
+
 ## Suites
 
 - 1080p and 4K 20-layer 2D composite.

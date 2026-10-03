@@ -25,6 +25,7 @@
     "format": "biome check --write . && cargo fmt --all",
     "lint": "biome lint .",
     "migrate:verify": "node scripts/migrate-verify.mjs",
+    "parity:generate": "node scripts/parity-generate.mjs && biome format --write tests/parity/corpus.json",
     "preview": "vite preview",
     "prepare": "lefthook install",
     "electron": "pnpm dev",
