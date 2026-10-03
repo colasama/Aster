@@ -220,6 +220,23 @@ frame data are excluded, and successful hot-path operations are intentionally si
    drains instead of re-queueing evicted images; a renderer request for a warm that has not started
    cancels it and decodes immediately. During playback the renderer also flattens the scene one
    lookahead window ahead to prepare arriving media.
+   Finished beauty frames are kept in a RAM preview cache (`core/rendering/preview-frame-cache.ts`,
+   default 2048 MiB, set in Preferences; 0 disables it). A scope names every frame input except its
+   index: the immutable project and composition objects, preview size, anti-aliasing, plugin
+   registries, and font activation, so any edit starts a new scope and the first lookup drops the
+   composition's stale frames. With the cache enabled, playback snaps to composition frames (as
+   export does) and a paused off-frame time renders exactly without caching. A cache hit writes
+   the stored pixels straight into the canvas texture; a miss renders and arms a readback from a
+   dedicated pool that is kept only if the frame was complete (every visible media instance
+   exact, materials and audio analysis settled, no missing generator), so a replayed frame always
+   equals a fresh render. The timeline ruler draws cached runs for the active scope.
+   While paused, `PreviewPrerenderer` fills the cache in idle time from just after the playhead to
+   the work-area end, then from its start: each frame renders through the same pipeline with a
+   capture armed, and the displayed frame is written back in the same task, so the viewport never
+   changes. A frame held for loading media is retried after the exact-frame barrier settles; other
+   incomplete frames are left to live preview. The job's window is sized to the budget and its
+   cached frames are touched as it passes them, so eviction only removes frames outside it. Seeking,
+   playback, edits, and preview size or AA changes cancel the job; media repaints do not.
    Export capture still submits its incomplete discovery frame offscreen, then waits and
    recaptures through the exact-frame barrier.
    Radiance RGBE environments transfer to the bounded CPU worker pool, which validates every

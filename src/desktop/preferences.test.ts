@@ -35,6 +35,22 @@ describe("application preferences", () => {
       ).toBe("auto");
     }
   });
+  it("defaults the frame cache budget for every schema and round-trips whole MiB", () => {
+    expect(defaultAppPreferences().frameCacheBudgetMb).toBe(2_048);
+    for (const schemaVersion of [0, 1, 2, 3, 4, 5])
+      expect(migrateAppPreferences({ schemaVersion }).frameCacheBudgetMb).toBe(2_048);
+    for (const frameCacheBudgetMb of [0, 512, 16_384]) {
+      const updated = applyUserPreferencePatch(defaultAppPreferences(), { frameCacheBudgetMb });
+      expect(migrateAppPreferences(JSON.parse(JSON.stringify(updated))).frameCacheBudgetMb).toBe(
+        frameCacheBudgetMb,
+      );
+    }
+    for (const frameCacheBudgetMb of [-1, 0.5, 70_000, "large"])
+      expect(
+        applyUserPreferencePatch(defaultAppPreferences(), { frameCacheBudgetMb })
+          .frameCacheBudgetMb,
+      ).toBe(2_048);
+  });
   it("migrates preview navigation to Smooth and round-trips both navigation modes", () => {
     expect(defaultAppPreferences().viewportNavigationMode).toBe("smooth");
     for (const schemaVersion of [0, 1, 2, 3, 4])

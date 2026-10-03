@@ -124,6 +124,10 @@ export const workspaceEn = {
   "workspace.preferences.gpuBudgetInvalid": "Enter a whole number from 32 to {max} MiB.",
   "workspace.preferences.gpuBudgetExceedsFree":
     "Exceeds currently free memory; the manual budget includes no reserve.",
+  "workspace.preferences.frameCacheBudget": "Frame cache memory (MiB, 0 = off)",
+  "workspace.preferences.frameCacheBudgetInvalid": "Enter a whole number from 0 to {max} MiB.",
+  "workspace.preferences.frameCacheUsage": "{used} MiB in use · {frames} frames",
+  "workspace.preferences.frameCacheClear": "Clear frame cache",
   "workspace.preferences.reducedMotion": "Reduce non-essential interface motion",
   "workspace.preferences.theme": "Theme colors",
   "workspace.preferences.themeAccent": "Accent",

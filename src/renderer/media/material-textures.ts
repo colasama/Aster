@@ -143,6 +143,13 @@ export class MaterialTextureRenderer {
     this.#fallbackEnvironment = undefined;
   }
 
+  /** True while a normal map or environment is still decoding into its fallback texel. */
+  get hasPendingResources(): boolean {
+    if (this.#environment?.state === "loading") return true;
+    for (const resource of this.#normals.values()) if (resource.state === "loading") return true;
+    return false;
+  }
+
   get estimatedBytes(): number {
     let normalBytes = 0;
     for (const resource of this.#normals.values()) normalBytes += resource.bytes;

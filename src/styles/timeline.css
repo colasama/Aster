@@ -170,6 +170,18 @@
   background: var(--bg-panel);
   cursor: ew-resize;
 }
+.timeline-cache-range {
+  pointer-events: none;
+  position: absolute;
+  z-index: 1;
+  bottom: 0;
+  height: 3px;
+  left: calc(var(--timeline-t, 0) * var(--timeline-pps, 82px));
+  width: calc(var(--timeline-d, 0) * var(--timeline-pps, 82px));
+  min-width: 1px;
+  background: rgb(84 196 120 / 90%);
+}
+
 .timeline-shutter-region {
   pointer-events: none;
   position: absolute;

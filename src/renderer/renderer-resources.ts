@@ -296,7 +296,9 @@ export class RendererResources {
       device: this.device,
       format,
       alphaMode: "opaque",
-      usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
+      // COPY_DST lets the preview frame cache present a finished frame without rendering it.
+      usage:
+        GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST,
     });
     this.sceneTexture?.destroy();
     this.depthTexture?.destroy();

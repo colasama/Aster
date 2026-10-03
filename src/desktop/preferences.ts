@@ -3,6 +3,10 @@ import {
   DEFAULT_ANTI_ALIASING,
   normalizeAntiAliasing,
 } from "../core/rendering/anti-aliasing.js";
+import {
+  DEFAULT_FRAME_CACHE_BUDGET_MB,
+  normalizeFrameCacheBudget,
+} from "../core/rendering/frame-cache-policy.js";
 import { type GpuMemoryBudgetMb, isGpuMemoryBudget } from "../core/rendering/gpu-memory-policy.js";
 import { type GpuPreference, normalizeGpuPreference } from "../core/rendering/gpu-preference.js";
 import { normalizeThemeColors, type ThemeColors } from "../ui/theme.js";
@@ -33,6 +37,8 @@ export interface AppPreferences {
   autosaveSeconds: AutosaveSeconds;
   reducedMotion: boolean;
   gpuMemoryBudgetMb: GpuMemoryBudgetMb;
+  /** RAM for finished preview frames; zero disables the cache. */
+  frameCacheBudgetMb: number;
   gpuPreference: GpuPreference;
   antiAliasing: AntiAliasingMode;
   viewportNavigationMode: ViewportNavigationMode;
@@ -50,6 +56,7 @@ export type UserPreferencePatch = Partial<
     | "autosaveSeconds"
     | "reducedMotion"
     | "gpuMemoryBudgetMb"
+    | "frameCacheBudgetMb"
     | "gpuPreference"
     | "uiScale"
     | "antiAliasing"
@@ -63,6 +70,7 @@ const DEFAULT_PREFERENCES: AppPreferences = {
   autosaveSeconds: 30,
   reducedMotion: false,
   gpuMemoryBudgetMb: "auto",
+  frameCacheBudgetMb: DEFAULT_FRAME_CACHE_BUDGET_MB,
   gpuPreference: "high-performance",
   antiAliasing: DEFAULT_ANTI_ALIASING,
   viewportNavigationMode: "smooth",
@@ -106,6 +114,7 @@ export function applyUserPreferencePatch(current: AppPreferences, value: unknown
     "autosaveSeconds",
     "reducedMotion",
     "gpuMemoryBudgetMb",
+    "frameCacheBudgetMb",
     "gpuPreference",
     "antiAliasing",
     "viewportNavigationMode",
@@ -221,6 +230,8 @@ function normalizeCurrentPreferences(value: Record<string, unknown>): AppPrefere
     autosaveSeconds,
     reducedMotion: value.reducedMotion === true,
     gpuMemoryBudgetMb,
+    // A defaulted field, not a schema bump: older builds ignore it instead of rejecting the file.
+    frameCacheBudgetMb: normalizeFrameCacheBudget(value.frameCacheBudgetMb),
     gpuPreference: normalizeGpuPreference(value.gpuPreference),
     antiAliasing: normalizeAntiAliasing(value.antiAliasing ?? DEFAULT_ANTI_ALIASING),
     viewportNavigationMode: normalizeViewportNavigationMode(value.viewportNavigationMode),

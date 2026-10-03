@@ -78,6 +78,8 @@ export const timelineZh = {
   "timeline.workArea.hint": "工作区 · 拖动以移动 · B/N 设置边界",
   "timeline.workArea.end": "设置工作区终点",
   "timeline.motionBlur.shutterRegion": "运动模糊快门区间",
+  "timeline.frameCache": "已缓存帧",
+  "timeline.menu.clearFrameCache": "清除帧缓存",
   "timeline.motionBlur.compositionSwitch": "合成运动模糊",
   "timeline.motionBlur.enableComposition": "启用合成运动模糊",
   "timeline.motionBlur.disableComposition": "停用合成运动模糊",
