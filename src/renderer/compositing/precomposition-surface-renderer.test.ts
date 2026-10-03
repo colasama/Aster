@@ -5,6 +5,7 @@ import {
 } from "../../core/layers/layer-factory";
 import { createBlankProject } from "../../core/project/project";
 import { flattenSceneLayers } from "../../core/scene/scene-evaluation";
+import type { Composition } from "../../core/types";
 import { createEffect } from "../../effects/registry";
 import { LayerEffectRenderer } from "../effects/layer-effects";
 import { MediaTextureCache } from "../media/media-texture-cache";
@@ -13,6 +14,7 @@ import { textRasterResolutionScale } from "../text/text-rasterizer";
 import {
   createPrecompositionSurfaceBudget,
   MAX_PRECOMPOSITION_SURFACE_BYTES,
+  MAX_PRECOMPOSITION_SURFACE_TEXTURES,
   planPrecompositionSurface,
   precompositionSurfaceByteLimit,
 } from "./precomposition-surface-plan";
@@ -23,6 +25,119 @@ import {
 
 describe("GPU precomposition surfaces", () => {
   afterEach(() => vi.unstubAllGlobals());
+
+  it("renders five full-density surfaces including nested and distinct time-addressed sources", () => {
+    installGpuConstants();
+    const textures: GPUTextureDescriptor[] = [];
+    const device = mockDevice(textures, vi.fn());
+    const layout = device.createBindGroupLayout({ entries: [] });
+    const sampler = device.createSampler();
+    const renderer = new PrecompositionSurfaceRenderer(device, {
+      mediaTextures: new MediaTextureCache(device, layout, sampler, vi.fn()),
+      mediaLayout: layout,
+      mediaSampler: sampler,
+      lightingLayout: layout,
+      shapePipelines: blendPipelines(),
+      imagePipelines: blendPipelines(),
+    });
+    const project = createBlankProject();
+    const root = project.compositions[0];
+    root.width = 1280;
+    root.height = 848;
+    const [group, shadow, broad, fine] = ["group", "shadow", "broad", "fine"].map((id) => {
+      const source = { ...structuredClone(root), id };
+      source.layers = [createLayerForComposition("shape", source)];
+      project.compositions.push(source);
+      return source;
+    });
+    const wrapper = (parent: Composition, source: Composition, time: number) => {
+      const layer = createLayerForComposition("precomposition", parent);
+      layer.sourceCompositionId = source.id;
+      layer.size = [source.width, source.height];
+      layer.effects = [createEffect("color-overlay")];
+      layer.timeRemap = { mode: "static", value: time };
+      return layer;
+    };
+    const nested = wrapper(group, shadow, 0.233333333);
+    group.layers = [nested];
+    root.layers = [
+      wrapper(root, group, 0.233333333),
+      wrapper(root, broad, 0.9),
+      wrapper(root, fine, 2.4),
+      wrapper(root, broad, 2.533333333),
+    ];
+    try {
+      const scene = flattenSceneLayers(root, project, 0);
+      const frame = renderer.prepare(project, scene, false);
+      expect(frame).toMatchObject({
+        surfaceCount: 5,
+        textureCount: 13,
+        residentTextureCount: 13,
+        estimatedBytes: 93_347_840,
+        residentBytes: 93_347_840,
+        diagnostics: [],
+      });
+      expect(scene.every((item) => renderer.bindingFor(item.instanceId))).toBe(true);
+      expect(renderer.bindingFor(scene[1].instanceId)).not.toBe(
+        renderer.bindingFor(scene[3].instanceId),
+      );
+      expect(
+        renderer.bindingFor(`surface:${scene[0].resourceInstanceId}/root/${nested.id}`),
+      ).toBeDefined();
+      const targets = textures.filter((texture) =>
+        texture.label?.startsWith("Precomposition HDR surface"),
+      );
+      expect(targets).toHaveLength(5);
+      expect(targets.every((target) => JSON.stringify(target.size) === "[1280,848]")).toBe(true);
+      const events: string[] = [];
+      renderer.encode(mockEncoder(events));
+      expect(
+        events.filter((event) => event.startsWith("pass:Isolated precomposition")),
+      ).toHaveLength(5);
+    } finally {
+      renderer.destroy();
+    }
+  });
+
+  it("evicts retained effect targets before the cache exceeds its texture allowance", () => {
+    installGpuConstants();
+    const device = mockDevice([], vi.fn());
+    const layout = device.createBindGroupLayout({ entries: [] });
+    const sampler = device.createSampler();
+    const renderer = new PrecompositionSurfaceRenderer(device, {
+      mediaTextures: new MediaTextureCache(device, layout, sampler, vi.fn()),
+      mediaLayout: layout,
+      mediaSampler: sampler,
+      lightingLayout: layout,
+      shapePipelines: blendPipelines(),
+      imagePipelines: blendPipelines(),
+    });
+    const project = createBlankProject();
+    const root = project.compositions[0];
+    root.layers = Array.from({ length: 5 }, (_, index) => {
+      const source = { ...structuredClone(root), id: `source-${index}`, width: 256, height: 256 };
+      const shape = createLayerForComposition("shape", source);
+      if (index < 4) shape.effects = [createEffect("exposure")];
+      source.layers = [shape];
+      project.compositions.push(source);
+      const layer = createLayerForComposition("precomposition", root);
+      layer.sourceCompositionId = source.id;
+      layer.threeDimensional = true;
+      layer.inPoint = index < 4 ? 0 : 1;
+      layer.outPoint = index < 4 ? 1 : 2;
+      return layer;
+    });
+    try {
+      const full = renderer.prepare(project, flattenSceneLayers(root, project, 0.5), false);
+      expect(full).toMatchObject({ diagnostics: [], surfaceCount: 4, residentTextureCount: 20 });
+      const next = renderer.prepare(project, flattenSceneLayers(root, project, 1.5), false);
+      expect(next).toMatchObject({ diagnostics: [], surfaceCount: 1, residentTextureCount: 17 });
+      expect(next.residentTextureCount).toBeLessThanOrEqual(MAX_PRECOMPOSITION_SURFACE_TEXTURES);
+      expect(next.residentBytes).toBeLessThanOrEqual(precompositionSurfaceByteLimit());
+    } finally {
+      renderer.destroy();
+    }
+  });
 
   it.each([2, 4])(
     "renders and reuses full-density SSAA %sx effect surfaces above 256 MiB",

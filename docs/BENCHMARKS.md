@@ -53,6 +53,28 @@ shadow coverage. Audio-analysis cases require their declared example plugin to b
 loaded by the capture harness. Structural coverage does not establish GPU pixel correctness;
 reference capture and pixel self-review remain separate checks.
 
+`pnpm parity:capture` builds a dedicated hidden Electron harness and reads every corpus case through
+the production beauty pipeline. Use repeated `--case <id>` arguments for a focused run; `--force`
+recaptures an existing case. The harness uses an isolated application profile, explicitly loads
+required plugins, synchronizes media at each rational frame address, and rejects resource or GPU
+errors. It preserves raw RGBA8 bytes when writing PNG, including RGB beneath zero alpha. Sequence
+cases also capture actual adjacent frames for later identity checks without changing the requested
+seek order. References are written under `artifacts/parity/reference/<case>/<frame>/`; a separate
+capture report and the raw host diagnostics identify their provenance.
+
+Reference reuse requires matching renderer/capture source, project and media hashes, adapter
+identity, and system font contents. Unavailable font provenance disables reuse. Each cached PNG and
+metadata file is checked against its recorded hash. Completed cases remain staged until every
+selected case succeeds and the launcher proves that source, fonts and case resources did not change
+during the run, then publishes each complete case directory. Missing owner data reports a skipped case and
+prevents a complete capture result. Capturing references does not compare or approve candidate
+pixels, and the comparison command must never regenerate references.
+
+The original minimal-golden example puts an opaque background above its animated disc. Its five
+reference frames are therefore the same solid color; it preserves the existing example behavior
+and does not establish visible animation. Generated moving scenes and media sequences exercise
+time-addressed output independently.
+
 ## Suites
 
 - 1080p and 4K 20-layer 2D composite.

@@ -4,6 +4,8 @@ import { createBlankProject } from "../../core/project/project";
 import { flattenSceneLayers } from "../../core/scene/scene-evaluation";
 import {
   createPrecompositionSurfaceBudget,
+  MAX_PRECOMPOSITION_SURFACE_DEPTH,
+  MAX_PRECOMPOSITION_SURFACE_TEXTURES,
   MAX_PRECOMPOSITION_SURFACES,
   planPrecompositionSurface,
   precompositionSurfaceCacheKey,
@@ -25,6 +27,38 @@ function surfaceScene(width = 1_920, height = 1_080) {
 }
 
 describe("precomposition surface planning", () => {
+  it("admits five full-density surfaces within the existing resource budgets", () => {
+    const budget = createPrecompositionSurfaceBudget();
+    for (const hasEffects of [true, false, false, false, false]) {
+      const plan = planPrecompositionSurface(
+        { scene: surfaceScene(1280, 848), deviceMaxTextureDimension: 8192, hasEffects },
+        budget,
+      );
+      expect(plan).toMatchObject({
+        status: "ready",
+        width: 1280,
+        height: 848,
+        downgraded: false,
+      });
+      expect(plan.diagnostic).toBeUndefined();
+    }
+    expect(budget).toEqual({ surfaces: 5, textures: 13, pixels: 5_427_200, bytes: 93_347_840 });
+  });
+
+  it.each([
+    { hasEffects: false, count: 10 },
+    { hasEffects: true, count: 4 },
+  ])("preserves the texture ceiling for $count surfaces", ({ hasEffects, count }) => {
+    const budget = createPrecompositionSurfaceBudget();
+    const request = { scene: surfaceScene(64, 64), deviceMaxTextureDimension: 8192, hasEffects };
+    for (let index = 0; index < count; index++)
+      expect(planPrecompositionSurface(request, budget).status).toBe("ready");
+    expect(budget.textures).toBe(MAX_PRECOMPOSITION_SURFACE_TEXTURES);
+    const fullBudget = { ...budget };
+    expect(planPrecompositionSurface(request, budget).status).toBe("skipped");
+    expect(budget).toEqual(fullBudget);
+  });
+
   it("retains a 4K effect surface at SSAA 4x on a capable GPU", () => {
     const plan = planPrecompositionSurface(
       {
@@ -143,6 +177,17 @@ describe("precomposition surface planning", () => {
         createPrecompositionSurfaceBudget(),
       ),
     ).toMatchObject({ status: "skipped", diagnostic: expect.stringContaining("cycle") });
+
+    scene.precompositionSurface.compositionPath = Array.from(
+      { length: MAX_PRECOMPOSITION_SURFACE_DEPTH + 1 },
+      (_, index) => `ancestor-${index}`,
+    );
+    expect(
+      planPrecompositionSurface(
+        { scene, deviceMaxTextureDimension: 8_192, hasEffects: false },
+        createPrecompositionSurfaceBudget(),
+      ),
+    ).toMatchObject({ status: "skipped", diagnostic: expect.stringContaining("nesting") });
 
     scene.precompositionSurface.compositionPath = [];
     const budget = createPrecompositionSurfaceBudget();

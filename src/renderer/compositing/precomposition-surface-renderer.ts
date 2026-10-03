@@ -16,6 +16,7 @@ import { FIXED_BLEND_MODES, gpuBlendState } from "./blend-state";
 import { needsLayerIsolation } from "./layer-composite";
 import {
   createPrecompositionSurfaceBudget,
+  MAX_PRECOMPOSITION_SURFACE_TEXTURES,
   MAX_PRECOMPOSITION_SURFACES,
   planPrecompositionSurface,
   precompositionSurfaceByteLimit,
@@ -417,6 +418,7 @@ export class PrecompositionSurfaceRenderer {
   ): SurfaceEntry {
     while (
       this.#entries.size >= MAX_PRECOMPOSITION_SURFACES ||
+      this.#residentTextureCount() + textureCount > MAX_PRECOMPOSITION_SURFACE_TEXTURES ||
       this.#residentBytes() + estimatedBytes > this.#byteLimit
     )
       if (!this.#evictOldest()) throw new Error("Precomposition surface cache budget is exhausted");
@@ -680,7 +682,11 @@ export class PrecompositionSurfaceRenderer {
       destroyEntry(entry);
       this.#entries.delete(key);
     }
-    while (this.#residentBytes() > this.#byteLimit) if (!this.#evictOldest()) break;
+    while (
+      this.#residentBytes() > this.#byteLimit ||
+      this.#residentTextureCount() > MAX_PRECOMPOSITION_SURFACE_TEXTURES
+    )
+      if (!this.#evictOldest()) break;
   }
 
   #evictOldest(): boolean {

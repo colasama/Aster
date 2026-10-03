@@ -91,9 +91,13 @@ resolution, and render settings match. A collapsed effect intermediate is parent
 must also distinguish the containing view and accumulated transform; the current source-only key
 cannot safely identify it.
 
-Making isolation the default exposes existing limits: four surfaces, four nesting levels, texture
-and pixel budgets, and a bounded byte budget. A fifth valid child must not disappear. Before broad
-rollout, replace the small surface-count/depth limits as normal scene limits with dependency-aware
+Making isolation the default exposes existing limits: four nesting levels, a budget of 20
+full-resolution targets, pixel budgets, and a bounded estimated-byte budget. Surface count follows
+the target accounting (two for a plain surface, five with effects), permitting at most ten surfaces.
+Pyramids and identity LUT textures are outside this target count; it is not a total GPU texture count.
+A fifth valid child within
+these resource budgets must not disappear. Before broad rollout, replace the small depth limit
+as a normal scene limit with dependency-aware
 lifetime reuse and bounded memory planning. Keep cycle detection and a defensive recursion limit.
 Do not overwrite a texture while an unconsumed parent still needs it. Preview can lower resolution
 with a visible diagnostic; if required targets still cannot be allocated, report failure rather than

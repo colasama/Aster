@@ -32,7 +32,7 @@ export function exampleCases(project: Project, shots: ExampleShot[]): ParityCase
       frames: [...goldenManifest.capture.frameIndices],
       size: { width: goldenManifest.capture.width, height: goldenManifest.capture.height },
       aa: "off",
-      features: ["example:minimal-golden", "feature:animation", "layer:shape"],
+      features: ["example:minimal-golden", "layer:shape"],
       tolerance: "gpu",
     },
     {

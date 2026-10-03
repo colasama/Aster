@@ -1,8 +1,12 @@
 import type { FlattenedSceneLayer } from "../../core/scene/scene-evaluation";
 
 export const MAX_PRECOMPOSITION_SURFACE_DEPTH = 4;
-export const MAX_PRECOMPOSITION_SURFACES = 4;
 export const MAX_PRECOMPOSITION_SURFACE_TEXTURES = 20;
+const BASE_SURFACE_TEXTURES = 2;
+// Every surface owns color and depth; effect targets consume the same texture allowance.
+export const MAX_PRECOMPOSITION_SURFACES = Math.floor(
+  MAX_PRECOMPOSITION_SURFACE_TEXTURES / BASE_SURFACE_TEXTURES,
+);
 export const MAX_PRECOMPOSITION_SURFACE_PIXELS = 8_388_608;
 export const MAX_PRECOMPOSITION_SURFACE_BYTES = 256 * 1024 * 1024;
 export const MAX_PRECOMPOSITION_SURFACE_DIMENSION = 4_096;
@@ -62,7 +66,7 @@ export function planPrecompositionSurface(
   if (budget.surfaces >= MAX_PRECOMPOSITION_SURFACES)
     return skipped(`surface count exceeds ${MAX_PRECOMPOSITION_SURFACES}`);
 
-  const textureCount = request.hasEffects ? 5 : 2;
+  const textureCount = request.hasEffects ? 5 : BASE_SURFACE_TEXTURES;
   if (budget.textures + textureCount > MAX_PRECOMPOSITION_SURFACE_TEXTURES)
     return skipped(`texture count exceeds ${MAX_PRECOMPOSITION_SURFACE_TEXTURES}`);
 

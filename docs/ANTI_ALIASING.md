@@ -39,6 +39,12 @@ the available precomposition allowance. Active targets and retained cache entrie
 same byte allowance, capped at 35% of the renderer's GPU memory budget (128 MiB when unspecified).
 This permits full-density effect surfaces larger than the native-resolution 256 MiB ceiling when
 VRAM allows it. Cache eviction never destroys a surface referenced by the current frame.
+Surface admission and retained caches share a budget of 20 full-resolution targets: a plain
+surface counts as two and an effect surface as five. This accounting excludes effect pyramids
+and identity LUT textures; it is not the total number of allocated GPU textures. Pyramid storage
+is included in the byte estimate. The defensive surface-count limit follows the minimum cost of
+two targets, permitting at most ten surfaces without raising the target, pixel, estimated-byte,
+or nesting-depth limits.
 The scene memory estimate also includes the AA texture. SSAA precomposition targets that cannot
 retain the requested density fail explicitly instead of silently downscaling. Existing text/media
 raster limits still apply. Select a lower AA mode or output resolution when a target exceeds limits.
