@@ -1,4 +1,4 @@
-export const layerStylePixelShaderCases = /* wgsl */ `
+
       case 132u: {
         let field = style_alpha_field(uv,effect.p0.y,effect.p0.z,resolution);
         let glow_alpha = pow(clamp(field,0.0,1.0),max(effect.p0.w,0.05))*effect.p0.x;
@@ -112,4 +112,3 @@ export const layerStylePixelShaderCases = /* wgsl */ `
         }
         color = mix(color, blended, effect.p1.y);
       }
-`;

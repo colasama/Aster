@@ -1,9 +1,68 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { captureAssignments, captureFrames } from "./provenance.mjs";
+import { captureAssignments, captureFrames, captureSource } from "./provenance.mjs";
+
+test("renderer identity follows existing source bytes independently of staged deletions", async (t) => {
+  const root = await mkdtemp(join(tmpdir(), "aster-parity-source-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const git = (...args) =>
+    execFileSync("git", args, { cwd: root, encoding: "utf8", windowsHide: true, stdio: "pipe" });
+  await mkdir(join(root, "src"));
+  await mkdir(join(root, "target", "release"), { recursive: true });
+  const extension = process.platform === "win32" ? ".exe" : "";
+  await writeFile(join(root, "target", "release", `aster-desktop-bridge${extension}`), "bridge");
+  await writeFile(join(root, ".gitignore"), "target/\n");
+  const sourcePath = join(root, "src", "removed.ts");
+  const source = "export const original = 1;\n";
+  await writeFile(sourcePath, source);
+  await writeFile(join(root, "src", "kept.ts"), "export const kept = 2;\n");
+  git("init");
+  git("add", ".");
+  git(
+    "-c",
+    "user.name=Aster Fixture",
+    "-c",
+    "user.email=fixture@example.invalid",
+    "-c",
+    "commit.gpgsign=false",
+    "-c",
+    `core.hooksPath=${join(root, "unused-hooks")}`,
+    "commit",
+    "--no-verify",
+    "-m",
+    "🧪 Initialize provenance fixture",
+  );
+  const original = await captureSource(root);
+
+  await rm(sourcePath);
+  const deleted = await captureSource(root);
+  assert.notEqual(deleted.renderer_source_sha256, original.renderer_source_sha256);
+  assert.notEqual(deleted.tree_sha256, original.tree_sha256);
+  assert.deepEqual(
+    deleted.files.map((file) => file.path),
+    ["src/kept.ts"],
+  );
+
+  git("add", "-u");
+  const staged = await captureSource(root);
+  assert.equal(staged.renderer_source_sha256, deleted.renderer_source_sha256);
+  assert.deepEqual(staged.files, deleted.files);
+
+  await writeFile(sourcePath, source);
+  const restored = await captureSource(root);
+  assert.equal(restored.renderer_source_sha256, original.renderer_source_sha256);
+  assert.deepEqual(restored.files, original.files);
+
+  await rm(join(root, "src", "kept.ts"));
+  await mkdir(join(root, "src", "kept.ts"));
+  await assert.rejects(captureSource(root), (error) =>
+    ["EISDIR", "EACCES", "EPERM"].includes(error.code),
+  );
+});
 
 test("identity neighbors are actual adjacent frames and preserve the requested seek order", () => {
   const composition = { duration: 5, frameRate: { numerator: 2, denominator: 1 } };

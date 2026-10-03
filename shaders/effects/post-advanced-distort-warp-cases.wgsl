@@ -1,4 +1,4 @@
-export const advancedDistortWarpShaderCases = /* wgsl */ `
+
       case 196u: {
         let bezier_position = uv * 2.0 - vec2f(1.0);
         let bezier_horizontal = mix(effect.header.w, effect.p0.x, uv.y)
@@ -96,4 +96,3 @@ export const advancedDistortWarpShaderCases = /* wgsl */ `
         );
         uv -= split_normal * effect.p0.x * split_side * split_weight * effect.p0.z / resolution;
       }
-`;

@@ -2,6 +2,7 @@
 
 mod catalog;
 mod embedded;
+mod embedded_post_process;
 mod types;
 mod validation;
 
@@ -15,5 +16,7 @@ pub use types::{
 mod constant_tests;
 #[cfg(test)]
 mod motion_tests;
+#[cfg(test)]
+mod post_process_tests;
 #[cfg(test)]
 mod tests;

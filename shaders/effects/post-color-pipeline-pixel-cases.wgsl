@@ -1,4 +1,4 @@
-export const colorPipelinePixelShaderCases = /* wgsl */ `
+
       case 227u: {
         let printer_original = color;
         let printer_points = effect.header.yzw + vec3f(effect.p0.x);
@@ -122,4 +122,3 @@ export const colorPipelinePixelShaderCases = /* wgsl */ `
         skin_result += vec3f(effect.p0.y);
         color = mix(skin_original, max(skin_result, vec3f(0.0)), skin_selection * effect.p0.w);
       }
-`;

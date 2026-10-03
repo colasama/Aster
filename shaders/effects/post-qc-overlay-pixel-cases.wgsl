@@ -1,4 +1,4 @@
-export const qcOverlayPixelShaderCases = /* wgsl */ `
+
       case 259u: {
         let zebra_direction = vec2f(cos(effect.header.w), sin(effect.header.w));
         let zebra_coordinate = dot(input.position.xy, zebra_direction) / max(effect.header.z, 2.0);
@@ -43,4 +43,3 @@ export const qcOverlayPixelShaderCases = /* wgsl */ `
         let boundary_color = vec3f(effect.header.w, effect.p0.x, effect.p0.y);
         color = mix(color, boundary_color, boundary_edge * effect.p0.z * effect.p0.w);
       }
-`;

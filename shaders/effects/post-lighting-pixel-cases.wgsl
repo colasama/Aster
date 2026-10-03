@@ -1,4 +1,4 @@
-export const lightingPixelShaderCases = /* wgsl */ `
+
       case 180u: {
         let center = effect.header.yz;
         let ray = normalize(uv - center + vec2f(0.0001)) * effect.header.w / resolution;
@@ -117,4 +117,3 @@ export const lightingPixelShaderCases = /* wgsl */ `
         color += laser_color * laser;
         alpha = max(alpha, clamp(laser, 0.0, 1.0));
       }
-`;

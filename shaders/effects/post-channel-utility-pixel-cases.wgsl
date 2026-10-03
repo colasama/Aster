@@ -1,4 +1,4 @@
-export const channelUtilityPixelShaderCases = /* wgsl */ `
+
       case 204u: {
         let shift_original_alpha = alpha;
         let shift_channels = array<f32, 7>(
@@ -116,4 +116,3 @@ export const channelUtilityPixelShaderCases = /* wgsl */ `
         }
         color = mix(clamp_original, color, effect.p0.y);
       }
-`;

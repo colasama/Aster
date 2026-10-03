@@ -46,7 +46,13 @@ export async function captureSource(root) {
     )
     .sort();
   const files = [];
-  for (const path of paths) files.push({ path, sha256: await hashFile(join(root, path)) });
+  for (const path of paths) {
+    try {
+      files.push({ path, sha256: await hashFile(join(root, path)) });
+    } catch (error) {
+      if (error.code !== "ENOENT") throw error;
+    }
+  }
   const extension = process.platform === "win32" ? ".exe" : "";
   const bridgeHash = await hashFile(
     join(root, "target", "release", `aster-desktop-bridge${extension}`),

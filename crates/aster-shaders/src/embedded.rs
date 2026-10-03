@@ -124,6 +124,7 @@ impl ShaderCatalog {
         ]
         .into_iter()
         .map(|(path, source)| (path.to_owned(), source.to_owned()))
+        .chain(Self::embedded_post_process_sources())
         .collect()
     }
 }

@@ -1,4 +1,4 @@
-export const detailProcessingPixelShaderCases = /* wgsl */ `
+
       case 219u: {
         let upscale_original = color;
         let upscale_soft = sample_blur(uv, max(effect.header.y * 0.5, 0.5));
@@ -119,4 +119,3 @@ export const detailProcessingPixelShaderCases = /* wgsl */ `
         }
         color = mix(frequency_original, max(frequency_result, vec3f(0.0)), effect.p0.x);
       }
-`;

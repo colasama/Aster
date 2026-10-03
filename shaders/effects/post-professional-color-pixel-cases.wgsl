@@ -1,4 +1,4 @@
-export const professionalColorPixelShaderCases = /* wgsl */ `
+
       case 188u: {
         let cdl_original = color;
         let cdl_slope = effect.header.yzw;
@@ -138,4 +138,3 @@ export const professionalColorPixelShaderCases = /* wgsl */ `
         print_color = vec3f(1.0) - exp(-print_color / max(effect.p0.z, 0.0001));
         color = mix(print_original, print_color, effect.p0.w);
       }
-`;

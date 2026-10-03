@@ -1,4 +1,4 @@
-export const keyingCleanupPixelShaderCases = /* wgsl */ `
+
       case 235u: {
         let cleaner_range = sample_alpha_cross(uv, effect.header.y);
         let cleaner_average = (cleaner_range.x + cleaner_range.y) * 0.5;
@@ -107,4 +107,3 @@ export const keyingCleanupPixelShaderCases = /* wgsl */ `
         );
         color = mix(color, wire_replacement, wire_mask * effect.p1.x);
       }
-`;

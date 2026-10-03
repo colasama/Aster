@@ -1,4 +1,4 @@
-export const noiseGrainPixelShaderCases = /* wgsl */ `
+
       case 140u: {
         let grain_position = input.position.xy / max(effect.header.z, 0.25);
         let temporal_seed = floor(effect_time * effect.p1.x * 24.0);
@@ -132,4 +132,3 @@ export const noiseGrainPixelShaderCases = /* wgsl */ `
         }
         color = mix(color, blended, effect.p0.y);
       }
-`;

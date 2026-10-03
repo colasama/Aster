@@ -1,4 +1,4 @@
-export const layerStyleShaderFunctions = /* wgsl */ `
+
 fn style_alpha_at(uv: vec2f) -> f32 {
   let a = textureSampleLevel(hdr_scene, linear_sampler, uv, 0.0).a;
   return select(0.0, a, all(uv >= vec2f(0.0)) && all(uv <= vec2f(1.0)));
@@ -30,4 +30,3 @@ fn style_under(color: vec3f, alpha: f32, style_color: vec3f, style_alpha: f32) -
   let result_alpha = alpha+behind;
   return vec4f((color*alpha+style_color*behind)/max(result_alpha,0.00001),result_alpha);
 }
-`;

@@ -1,15 +1,4 @@
-export const framingWarpShaderCases = /* wgsl */ `
-      case 266u: {
-        let overscan_center = effect.header.zw;
-        var overscan_uv = overscan_center + (uv - overscan_center) / max(effect.header.y, 0.01);
-        if effect.p0.x > 0.5 {
-          overscan_uv = abs(fract(overscan_uv * 0.5) * 2.0 - vec2f(1.0));
-        }
-        uv = mix(uv, overscan_uv, effect.p0.y);
-      }
-`;
 
-export const framingPixelShaderCases = /* wgsl */ `
       case 263u: {
         let crop_feather = effect.p0.y / resolution;
         let crop_horizontal = smoothstep(effect.header.y - crop_feather.x, effect.header.y + crop_feather.x, uv.x)
@@ -56,4 +45,3 @@ export const framingPixelShaderCases = /* wgsl */ `
         );
         alpha *= mix(1.0, feather_alpha, effect.p0.x);
       }
-`;

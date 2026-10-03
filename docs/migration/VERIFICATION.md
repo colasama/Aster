@@ -31,6 +31,8 @@ against an existing baseline.
 Keep source files unchanged while capture, comparison or gate execution is running. Candidate output
 contains the requested frames and any sequence neighbors. Full G3 comparison covers the requested
 addresses; it does not authorize promotion of additional neighbor frames into a new reference set.
+The renderer fingerprint hashes existing source bytes independently of Git staging. Removed tracked
+files leave that content set; the full-tree provenance also records unstaged deletions explicitly.
 The effective reference set must be fixed before M1. Each repaired frame must come from a separate
 capture run from the candidate used to prove exact parity; comparing a capture to itself is invalid.
 The original particle oracle used atomic append order, which could change transparent blending and
@@ -40,9 +42,10 @@ exact thresholds are unchanged.
 
 ## Shared-shader increments
 
-M1 currently shares output AA, core scene variants, compositing, blur/depth/surface effects, auxiliary
-surfaces and display/buffer helpers in `shaders/`; other shader families still await extraction. The
-TS catalog loads raw WGSL through Vite, and `aster-shaders` embeds the same files and validates the
+M1 currently shares output AA, core scene variants, compositing, fused post-processing,
+blur/depth/surface effects, auxiliary surfaces and display/buffer helpers in `shaders/`; other shader
+families still await extraction. The TS catalog loads raw WGSL through Vite, and `aster-shaders`
+embeds the same files and validates the
 manifest's assembled programs with Naga. Fragment order, entry points and
 typed pipeline overrides come from `shaders/manifest.json`. Fixed unsigned integer recipe items
 preserve the existing shader-creation layout constants without expression evaluation. Original
@@ -52,6 +55,11 @@ Motion blur replaces only its four fixed tile-size insertions with a typed WGSL 
 16-pixel default also controls host allocation; restoring those four literals and removing the
 override declaration must reproduce the original source hash. Whole-corpus exact G3 validates the
 resulting pipeline output.
+
+The fused post-process program preserves its complete pre-extraction source hash. Its manifest
+recipe owns the warp and pixel case order, dependent helpers and exact fragment boundaries. Rust
+validates the complete assembled program with Naga; switch-case fragments cannot be validated as
+independent modules. Tests also retain the eight binding slots, host layouts and entry points.
 
 For each M1 increment, freeze the source tree, run `pnpm parity:capture --candidate` for the full
 corpus, then run `pnpm migrate:verify --milestone M1 --candidates <candidate-manifest-path>`.

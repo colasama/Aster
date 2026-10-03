@@ -1,4 +1,4 @@
-export const matteRefinePixelShaderCases = /* wgsl */ `
+
       case 172u: {
         let alpha_range = sample_alpha_cross(uv, effect.header.y);
         let shifted = mix(alpha_range.x, alpha_range.y, effect.header.z * 0.5 + 0.5);
@@ -83,4 +83,3 @@ export const matteRefinePixelShaderCases = /* wgsl */ `
         let morphed = select(alpha_range.x, alpha_range.y, effect.header.z > 0.5);
         alpha = mix(morphed, alpha, effect.header.w);
       }
-`;

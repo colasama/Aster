@@ -1,4 +1,4 @@
-export const drawGeneratorPixelShaderCases = /* wgsl */ `
+
       case 267u: {
         let start = effect.header.yz;
         let aspect = vec2f(resolution.x / resolution.y, 1.0);
@@ -152,4 +152,3 @@ export const drawGeneratorPixelShaderCases = /* wgsl */ `
         let bucket_amount = bucket_match * bucket_region * effect.p1.w * effect.p2.x;
         color = mix(color, effect.p1.xyz, bucket_amount);
       }
-`;
