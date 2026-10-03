@@ -26,34 +26,35 @@
     "continuation": "The updated owner goal supersedes the specification's stop-on-blocker requirements. Record obstacles and evidence, resolve them or continue independent required work. Do not report failed or skipped checks as passed. Gate, pixel-review, commit and completion requirements remain in force."
   },
   "last_cycle": {
-    "notes": [
-      "Generated 337 cases and 1819 frame addresses; coverage rejects unsampled, inactive and falsely labeled features.",
-      "Real media includes decoded frame-identity proof and independent image-sequence identity/hold-boundary cases. Owner data remains external.",
-      "The first full run exposed an existing 25 ms script sandbox initialization-timeout race. The final full run passed without altering the sandbox or its timeout.",
-      "Vite artifact watching was disabled and identical project writes avoided after a transient Windows replacement lock. No partial JSON was published.",
-      "No pixel comparison is claimed by corpus structural validation; reference capture and self-review remain pending."
-    ],
+    "id": 3,
+    "time": "2026-10-03T18:06:11.538Z",
     "milestone": "M0",
-    "verification": "artifacts/migration/verify-2026-10-03T17-08-33-908Z-ce733033.json",
-    "verification_duration_ms": 88214,
-    "id": 2,
+    "task": "M0-T3",
+    "outcome": "passed",
+    "commit": "989893347bb71778fe4f4de566d9229c7b66436e",
+    "verification": "artifacts/migration/verify-2026-10-03T18-02-37-078Z-1a4b25b1.json",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 25079
+        "duration_ms": 26433
       },
       {
         "id": "G6",
         "status": "passed",
-        "duration_ms": 62162
+        "duration_ms": 61427
       }
     ],
-    "outcome": "passed",
-    "commit": "b4444428b1d615f41e268b4bc8876a3c4bc3eade",
-    "next_step": "M0-T3: capture production TS reference frames with source, case, media and adapter provenance.",
-    "time": "2026-10-03T17:11:17.0188181Z",
-    "task": "M0-T2"
+    "verification_duration_ms": 88964,
+    "next_step": "M0-T4: implement CLI comparison metrics, structural checks, tolerance profiles and a deliberately rejected candidate.",
+    "notes": [
+      "Captured every one of 337 cases: 1819 requested frame addresses plus 128 adjacent sequence frames, totaling 1947 lossless RGBA references.",
+      "A complete follow-up capture reused all 337 cases only after verifying PNG and metadata hashes, source/resource hashes, actual adapter and 282 system font identities.",
+      "An intentional one-second startup timeout failed, exited promptly and left the existing reference untouched. Late errors, stalled I/O and expired callbacks have dedicated regression coverage.",
+      "Strict capture diagnosed the existing Enchanted Love four-surface cap. Its valid fifth surface fit the unchanged target/pixel/estimated-byte budgets; admission and retained-cache accounting were repaired and all 140 sampled frames passed.",
+      "The original minimal-golden animation is fully occluded. Its reference is preserved and the misleading visible-animation feature label was removed; generated scenes and barcode media supply independent motion evidence.",
+      "No candidate pixel comparison or section 6.6 acceptance is claimed by this reference-capture increment."
+    ]
   },
   "milestones": [
     {
@@ -124,7 +125,38 @@
         {
           "title": "Capture production TS reference frames with source and adapter provenance",
           "id": "M0-T3",
-          "status": "in_progress"
+          "status": "done",
+          "completed_at": "2026-10-03T18:06:11.538Z",
+          "commit": "989893347bb71778fe4f4de566d9229c7b66436e",
+          "verification": "artifacts/migration/verify-2026-10-03T18-02-37-078Z-1a4b25b1.json",
+          "gates": [
+            {
+              "id": "G0",
+              "status": "passed",
+              "duration_ms": 26433
+            },
+            {
+              "id": "G6",
+              "status": "passed",
+              "duration_ms": 61427
+            }
+          ],
+          "verification_duration_ms": 88964,
+          "reference_capture": {
+            "report": "artifacts/parity/capture-2026-10-03T17-56-06-814Z-3bc28aaa.json",
+            "cache_verification": "artifacts/parity/capture-2026-10-03T18-01-50-039Z-2744dec3.json",
+            "case_count": 337,
+            "requested_frame_count": 1819,
+            "captured_frame_count": 1947,
+            "renderer_source_sha256": "a29a484b82eae466b72828818f628714db90f1cc7703718e71e2469329f9c703",
+            "timeout_rejection": "artifacts/parity/capture-2026-10-03T17-54-28-436Z-5adbeaf0.json",
+            "budget_audit": "artifacts/parity/enchanted-surface-budget-audit.json",
+            "failed_attempts": [
+              "artifacts/parity/capture-2026-10-03T17-32-03-903Z-97c6d334.json",
+              "artifacts/parity/capture-2026-10-03T17-34-14-037Z-6cb848af.json",
+              "artifacts/parity/capture-2026-10-03T17-42-06-271Z-8816a6e6.json"
+            ]
+          }
         },
         {
           "title": "Implement compare metrics, structural checks, tolerance profiles and rejection proof",
@@ -149,16 +181,16 @@
           {
             "id": "G0",
             "status": "passed",
-            "duration_ms": 25079
+            "duration_ms": 26433
           },
           {
             "id": "G6",
             "status": "passed",
-            "duration_ms": 62162
+            "duration_ms": 61427
           }
         ],
         "status": "passed",
-        "report": "artifacts/migration/verify-2026-10-03T17-08-33-908Z-ce733033.json"
+        "report": "artifacts/migration/verify-2026-10-03T18-02-37-078Z-1a4b25b1.json"
       }
     },
     {
@@ -308,6 +340,37 @@
       "next_step": "M0-T3: capture production TS reference frames with source, case, media and adapter provenance.",
       "time": "2026-10-03T17:11:17.0188181Z",
       "task": "M0-T2"
+    },
+    {
+      "id": 3,
+      "time": "2026-10-03T18:06:11.538Z",
+      "milestone": "M0",
+      "task": "M0-T3",
+      "outcome": "passed",
+      "commit": "989893347bb71778fe4f4de566d9229c7b66436e",
+      "verification": "artifacts/migration/verify-2026-10-03T18-02-37-078Z-1a4b25b1.json",
+      "gates": [
+        {
+          "id": "G0",
+          "status": "passed",
+          "duration_ms": 26433
+        },
+        {
+          "id": "G6",
+          "status": "passed",
+          "duration_ms": 61427
+        }
+      ],
+      "verification_duration_ms": 88964,
+      "next_step": "M0-T4: implement CLI comparison metrics, structural checks, tolerance profiles and a deliberately rejected candidate.",
+      "notes": [
+        "Captured every one of 337 cases: 1819 requested frame addresses plus 128 adjacent sequence frames, totaling 1947 lossless RGBA references.",
+        "A complete follow-up capture reused all 337 cases only after verifying PNG and metadata hashes, source/resource hashes, actual adapter and 282 system font identities.",
+        "An intentional one-second startup timeout failed, exited promptly and left the existing reference untouched. Late errors, stalled I/O and expired callbacks have dedicated regression coverage.",
+        "Strict capture diagnosed the existing Enchanted Love four-surface cap. Its valid fifth surface fit the unchanged target/pixel/estimated-byte budgets; admission and retained-cache accounting were repaired and all 140 sampled frames passed.",
+        "The original minimal-golden animation is fully occluded. Its reference is preserved and the misleading visible-animation feature label was removed; generated scenes and barcode media supply independent motion evidence.",
+        "No candidate pixel comparison or section 6.6 acceptance is claimed by this reference-capture increment."
+      ]
     }
   ],
   "known_boundaries": [
@@ -351,6 +414,15 @@
         "src/core/audio/audio-analysis-provider.ts"
       ],
       "native_milestone": "M0"
+    },
+    {
+      "id": "precomposition-target-accounting",
+      "detail": "Precomposition textureCount is the existing full-resolution target budget (two per plain surface, five with effects), not the total GPUTexture allocation count. Effect pyramids and identity LUTs are outside that count; pyramid storage is included in estimated bytes. The repaired count guard and cache preserve the existing 20-target, pixel, byte and depth limits.",
+      "evidence": [
+        "artifacts/parity/enchanted-surface-budget-audit.json",
+        "src/renderer/compositing/precomposition-surface-plan.ts",
+        "docs/ANTI_ALIASING.md"
+      ]
     }
   ]
 }
