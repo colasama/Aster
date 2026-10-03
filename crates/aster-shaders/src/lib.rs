@@ -16,6 +16,8 @@ pub use types::{
 #[cfg(test)]
 mod constant_tests;
 #[cfg(test)]
+mod coverage_tests;
+#[cfg(test)]
 mod generator_tests;
 #[cfg(test)]
 mod motion_tests;

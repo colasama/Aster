@@ -346,6 +346,66 @@ test("M0 exit audit is required at the exit task and cannot override failed gate
   }
 });
 
+test("M1 exit requires current full gates, native shader smoke and complete-source audit", async (t) => {
+  for (const outcome of [
+    "passed",
+    "audit-failed",
+    "smoke-failed",
+    "pixel-failed",
+    "quick",
+    "marked-done",
+  ]) {
+    const context = await fixture(t);
+    await writeAtomicJson(context.ledger, {
+      status: "running",
+      milestones: [
+        {
+          id: "M1",
+          status: outcome === "marked-done" ? "done" : "in_progress",
+          gates: ["G0", "G3"],
+          tasks: [{ id: "M1-T6", status: "in_progress" }],
+        },
+      ],
+    });
+    let smoked = false;
+    let audited = false;
+    const result = await verifyMigration(
+      { ...context, milestone: "M1", quick: outcome === "quick" },
+      {
+        provenance,
+        execute: fakeHook,
+        verifyTsPixels: async () => ({
+          exitCode: outcome === "pixel-failed" ? 1 : 0,
+          reportPath: join(context.root, "exact.json"),
+          report: { status: outcome === "pixel-failed" ? "failed" : "passed", gate: { id: "G3" } },
+        }),
+        runEffectShotSmoke: async () => {
+          smoked = true;
+          return { status: outcome === "smoke-failed" ? "failed" : "passed" };
+        },
+        auditM1Exit: async (root, report) => {
+          audited = true;
+          assert.equal(root, context.root);
+          assert.equal(report.native_effect_shots.status, "passed");
+          if (outcome === "audit-failed") throw new Error("Inline WGSL remains");
+          return { status: "passed" };
+        },
+      },
+    );
+    assert.equal(smoked, !["pixel-failed", "quick"].includes(outcome));
+    assert.equal(audited, !["smoke-failed", "pixel-failed", "quick"].includes(outcome));
+    assert.equal(
+      result.report.milestone_exit_satisfied,
+      ["passed", "marked-done"].includes(outcome),
+    );
+    assert.equal(result.exitCode, ["passed", "quick", "marked-done"].includes(outcome) ? 0 : 1);
+    if (outcome === "audit-failed") {
+      assert.equal(result.report.required_gates_passed, true);
+      assert.equal(result.report.status, "failed");
+    }
+  }
+});
+
 test("owner project preserves configured values and reports unavailable paths as skipped", async (t) => {
   const context = await fixture(t);
   const path = join(context.root, "owner");

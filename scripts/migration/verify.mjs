@@ -1,9 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { mkdir, readFile } from "node:fs/promises";
 import { join, relative } from "node:path";
+import { runEffectShotSmoke } from "../parity/effect-shots.mjs";
 import { runPixelGate } from "../parity/pixel-gate.mjs";
 import { runAppChecks } from "./app-checks.mjs";
 import { auditM0Exit } from "./m0-exit.mjs";
+import { auditM1Exit } from "./m1-exit.mjs";
 import { runStep } from "./process.mjs";
 import { writeAtomicJson } from "./report.mjs";
 import { ownerProject, sourceProvenance } from "./source.mjs";
@@ -193,6 +195,31 @@ export async function verifyMigration(options, dependencies = {}) {
           throw new Error("M0 exit audit did not pass");
         }
         report.milestone_exit_reason = "Corpus, pixel oracle, TS exact parity and baseline audited";
+      } catch (error) {
+        report.milestone_exit = { status: "failed", error: error.message };
+        report.milestone_exit_reason = error.message;
+      }
+    }
+    const shaderExit = milestone.tasks.find((task) => task.id === "M1-T6");
+    if (
+      milestone.id === "M1" &&
+      !quick &&
+      (milestone.status === "done" || ["in_progress", "done"].includes(shaderExit?.status))
+    ) {
+      try {
+        if (report.gates.some((gate) => gate.status !== "passed"))
+          throw new Error("M1 exit requires current full G0 and exact G3");
+        report.native_effect_shots = await (dependencies.runEffectShotSmoke ?? runEffectShotSmoke)(
+          { ...context, output: join(output, "native-effect-shots") },
+          execute,
+        );
+        if (report.native_effect_shots.status !== "passed")
+          throw new Error("Native shared-effect shader smoke did not pass");
+        report.milestone_exit = await (dependencies.auditM1Exit ?? auditM1Exit)(root, report);
+        if (report.milestone_exit.status !== "passed")
+          throw new Error("M1 shared-shader exit audit did not pass");
+        report.milestone_exit_reason =
+          "Shared-source coverage, Naga, current TS exact parity and native effect shader smoke audited";
       } catch (error) {
         report.milestone_exit = { status: "failed", error: error.message };
         report.milestone_exit_reason = error.message;

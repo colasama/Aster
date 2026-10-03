@@ -174,11 +174,13 @@ dependencies = [
 name = "aster-render"
 version = "0.3.5"
 dependencies = [
+ "aster-shaders",
  "clap",
  "flate2",
  "pollster",
  "serde",
  "serde_json",
+ "sha2",
  "thiserror",
  "tracing",
  "wgpu",

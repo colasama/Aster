@@ -1,23 +1,22 @@
 //! Renders every fused post-process effect to a PNG for visual inspection.
 //!
-//! Consumes `post-process.wgsl`, `blur-downsample.wgsl`, and `effects.json`
-//! produced by the `effect-shot-manifest` vitest test, runs each compiled
-//! effect program through the real shader on a headless wgpu device, and
-//! writes one PNG per effect. A downsample-only blur pyramid is built once
+//! Consumes parity-harness `effects.json` operation data and validates its
+//! shader hashes against the shared catalog. Runs each compiled effect on a
+//! headless wgpu device and writes PNGs plus a structured execution report.
+//! A downsample-only blur pyramid is built once
 //! from the scene input and bound at `blur_scene`, matching the layer
 //! effect renderer's radius-to-LOD mapping.
 
-use std::{
-    fs,
-    io::Write,
-    path::PathBuf,
-    sync::mpsc,
-    time::{Duration, Instant},
-};
+use std::{fs, path::PathBuf};
 
 use clap::Parser;
-use flate2::{Compression, write::ZlibEncoder};
-use serde::Deserialize;
+use harness::{HarnessInput, ImageReport, NativeReport};
+use image::ImageOutput;
+
+#[path = "effect_shots/harness.rs"]
+mod harness;
+#[path = "effect_shots/image.rs"]
+mod image;
 
 const WIDTH: u32 = 640;
 const HEIGHT: u32 = 360;
@@ -28,62 +27,46 @@ const GLOW_OPCODE: f32 = 102.0;
 
 #[derive(Parser)]
 struct Options {
-    /// Directory containing post-process.wgsl and effects.json.
-    #[arg(long, default_value = "artifacts/effect-screenshots/harness")]
+    /// Directory containing parity-harness effects.json operation data.
+    #[arg(long, default_value = "artifacts/parity/effect-shots/harness")]
     manifest: PathBuf,
     /// Output directory for the rendered PNGs.
-    #[arg(long, default_value = "artifacts/effect-screenshots/effects")]
+    #[arg(long, default_value = "artifacts/parity/effect-shots/native")]
     out: PathBuf,
-}
-
-#[derive(Deserialize)]
-struct EffectEntry {
-    #[serde(rename = "type")]
-    effect_type: String,
-    name: String,
-    ops: Vec<Vec<f32>>,
 }
 
 fn main() -> Result<(), String> {
     let options = Options::parse();
-    let shader_source = fs::read_to_string(options.manifest.join("post-process.wgsl"))
-        .map_err(|error| format!("reading post-process.wgsl failed: {error}"))?;
-    let downsample_source = fs::read_to_string(options.manifest.join("blur-downsample.wgsl"))
-        .map_err(|error| format!("reading blur-downsample.wgsl failed: {error}"))?;
-    let brightpass_source = fs::read_to_string(options.manifest.join("brightpass-downsample.wgsl"))
-        .map_err(|error| format!("reading brightpass-downsample.wgsl failed: {error}"))?;
-    let effects: Vec<EffectEntry> = serde_json::from_str(
-        &fs::read_to_string(options.manifest.join("effects.json"))
-            .map_err(|error| format!("reading effects.json failed: {error}"))?,
-    )
-    .map_err(|error| format!("parsing effects.json failed: {error}"))?;
-    fs::create_dir_all(&options.out).map_err(|error| format!("creating output dir: {error}"))?;
-
-    pollster::block_on(render_all(
-        &options,
-        &shader_source,
-        &downsample_source,
-        &brightpass_source,
-        &effects,
-    ))
+    let input = HarnessInput::load(&options.manifest)?;
+    if let Some(parent) = options.out.parent() {
+        fs::create_dir_all(parent).map_err(|error| format!("creating output parent: {error}"))?;
+    }
+    fs::create_dir(&options.out)
+        .map_err(|error| format!("output must be a new directory: {error}"))?;
+    pollster::block_on(render_all(&options, input))
 }
 
-async fn render_all(
-    options: &Options,
-    shader_source: &str,
-    downsample_source: &str,
-    brightpass_source: &str,
-    effects: &[EffectEntry],
-) -> Result<(), String> {
+async fn render_all(options: &Options, harness: HarnessInput) -> Result<(), String> {
+    let shader_source = harness.post_process.as_str();
+    let downsample_source = harness.blur_downsample.as_str();
+    let brightpass_source = harness.brightpass_downsample.as_str();
+    let effects = &harness.manifest.effects;
     let instance = wgpu::Instance::new(wgpu::InstanceDescriptor::new_without_display_handle());
     let adapter = instance
         .request_adapter(&wgpu::RequestAdapterOptions::default())
         .await
         .map_err(|error| format!("requesting an adapter failed: {error}"))?;
+    let adapter_info = adapter.get_info();
+    if adapter_info.device_type == wgpu::DeviceType::Cpu {
+        return Err("Native effect smoke requires a hardware GPU adapter".to_owned());
+    }
     let (device, queue) = adapter
         .request_device(&wgpu::DeviceDescriptor::default())
         .await
         .map_err(|error| format!("requesting a device failed: {error}"))?;
+    let memory_scope = device.push_error_scope(wgpu::ErrorFilter::OutOfMemory);
+    let internal_scope = device.push_error_scope(wgpu::ErrorFilter::Internal);
+    let validation_scope = device.push_error_scope(wgpu::ErrorFilter::Validation);
 
     let module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
         label: Some("post process"),
@@ -248,15 +231,8 @@ async fn render_all(
         mapped_at_creation: false,
     });
 
-    let mut index_lines = String::new();
+    let mut images = Vec::with_capacity(effects.len());
     for (index, entry) in effects.iter().enumerate() {
-        if entry.ops.is_empty() {
-            println!(
-                "skip {} ({}): no compiled ops",
-                entry.effect_type, entry.name
-            );
-            continue;
-        }
         let glow_threshold = entry
             .ops
             .iter()
@@ -322,24 +298,45 @@ async fn render_all(
             },
         );
         let submission = queue.submit([encoder.finish()]);
-        let pixels = map_readback(&device, &readback, submission)?;
+        let pixels = ImageOutput::map_readback(&device, &readback, submission)?;
 
         let filename = format!("{:03}-{}.png", index + 1, entry.effect_type);
         let path = options.out.join(&filename);
-        write_png(&path, WIDTH, HEIGHT, &over_checkerboard(&pixels))
-            .map_err(|error| format!("writing {filename} failed: {error}"))?;
-        index_lines.push_str(&format!(
-            "{filename}\t{}\t{}\n",
-            entry.name, entry.effect_type
-        ));
+        let png_sha256 = ImageOutput::write_png(
+            &path,
+            WIDTH,
+            HEIGHT,
+            &ImageOutput::over_checkerboard(&pixels),
+        )
+        .map_err(|error| format!("writing {filename} failed: {error}"))?;
+        images.push(ImageReport {
+            effect_type: entry.effect_type.clone(),
+            file: filename,
+            width: WIDTH,
+            height: HEIGHT,
+            png_sha256,
+        });
     }
-    fs::write(options.out.join("index.txt"), index_lines)
-        .map_err(|error| format!("writing index.txt failed: {error}"))?;
-    println!(
-        "rendered {} effects into {}",
-        effects.len(),
-        options.out.display()
-    );
+    if let Some(error) = [
+        validation_scope.pop().await,
+        internal_scope.pop().await,
+        memory_scope.pop().await,
+    ]
+    .into_iter()
+    .flatten()
+    .next()
+    {
+        return Err(format!("native effect rendering failed: {error}"));
+    }
+    NativeReport {
+        schema_version: 1,
+        status: "passed".to_owned(),
+        effects_manifest_sha256: harness.manifest_sha256,
+        shader_sources: harness.shader_sources,
+        adapter: adapter_info.into(),
+        images,
+    }
+    .publish(&options.out)?;
     Ok(())
 }
 
@@ -833,101 +830,4 @@ fn create_identity_lut(device: &wgpu::Device, queue: &wgpu::Queue) -> wgpu::Text
         },
     );
     texture
-}
-
-fn map_readback(
-    device: &wgpu::Device,
-    buffer: &wgpu::Buffer,
-    submission: wgpu::SubmissionIndex,
-) -> Result<Vec<u8>, String> {
-    let slice = buffer.slice(..);
-    let (tx, rx) = mpsc::sync_channel(1);
-    slice.map_async(wgpu::MapMode::Read, move |result| {
-        let _ = tx.send(result);
-    });
-    let started = Instant::now();
-    device
-        .poll(wgpu::PollType::Wait {
-            submission_index: Some(submission),
-            timeout: Some(Duration::from_secs(30)),
-        })
-        .map_err(|error| format!("submission did not complete: {error:?}"))?;
-    rx.recv_timeout(Duration::from_secs(30).saturating_sub(started.elapsed()))
-        .map_err(|error| format!("readback timed out: {error}"))?
-        .map_err(|error| format!("readback mapping failed: {error}"))?;
-    let mapped = slice
-        .get_mapped_range()
-        .map_err(|error| format!("map failed: {error}"))?;
-    let pixels = mapped.to_vec();
-    drop(mapped);
-    buffer.unmap();
-    Ok(pixels)
-}
-
-/// The shader outputs premultiplied sRGB; composite it over a checkerboard so
-/// effects that only change alpha remain visible.
-fn over_checkerboard(pixels: &[u8]) -> Vec<u8> {
-    let mut rgb = Vec::with_capacity((WIDTH * HEIGHT * 3) as usize);
-    for y in 0..HEIGHT {
-        for x in 0..WIDTH {
-            let offset = ((y * WIDTH + x) * 4) as usize;
-            let alpha = pixels[offset + 3] as f32 / 255.0;
-            let backdrop = if (x / 8 + y / 8) % 2 == 0 { 0.25 } else { 0.38 };
-            for channel in 0..3 {
-                let source = pixels[offset + channel] as f32 / 255.0;
-                rgb.push(((source + backdrop * (1.0 - alpha)) * 255.0) as u8);
-            }
-        }
-    }
-    rgb
-}
-
-fn crc32(bytes: &[u8]) -> u32 {
-    let mut crc = 0xffff_ffffu32;
-    for &byte in bytes {
-        crc ^= u32::from(byte);
-        for _ in 0..8 {
-            crc = if crc & 1 == 1 {
-                (crc >> 1) ^ 0xedb8_8320
-            } else {
-                crc >> 1
-            };
-        }
-    }
-    crc ^ 0xffff_ffff
-}
-
-fn png_chunk(kind: &[u8; 4], payload: &[u8]) -> Vec<u8> {
-    let mut chunk = (payload.len() as u32).to_be_bytes().to_vec();
-    chunk.extend_from_slice(kind);
-    chunk.extend_from_slice(payload);
-    chunk.extend_from_slice(&crc32(&chunk[4..]).to_be_bytes());
-    chunk
-}
-
-fn write_png(path: &PathBuf, width: u32, height: u32, rgb: &[u8]) -> Result<(), String> {
-    let mut raw = Vec::with_capacity(((width * 3 + 1) * height) as usize);
-    for y in 0..height {
-        raw.push(0);
-        let row = (y * width * 3) as usize;
-        raw.extend_from_slice(&rgb[row..row + (width * 3) as usize]);
-    }
-    let mut encoder = ZlibEncoder::new(Vec::new(), Compression::best());
-    encoder
-        .write_all(&raw)
-        .map_err(|error| format!("deflate failed: {error}"))?;
-    let compressed = encoder
-        .finish()
-        .map_err(|error| format!("deflate failed: {error}"))?;
-    let mut ihdr = width.to_be_bytes().to_vec();
-    ihdr.extend_from_slice(&height.to_be_bytes());
-    ihdr.extend_from_slice(&[8, 2, 0, 0, 0]);
-    let png = [
-        b"\x89PNG\r\n\x1a\n".as_slice(),
-        &png_chunk(b"IHDR", &ihdr),
-        &png_chunk(b"IDAT", &compressed),
-        &png_chunk(b"IEND", &[]),
-    ]
-    .concat();
-    fs::write(path, png).map_err(|error| format!("writing file failed: {error}"))
 }

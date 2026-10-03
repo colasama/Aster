@@ -63,8 +63,7 @@ independent modules. Tests also retain the eight binding slots, host layouts and
 The generator, audio, text and diagnostic programs retain their original expanded-source hashes.
 Scene-generator context, parameter, particle and audio buffer layouts remain unchanged; the audio
 arrays have fixed ABI lengths, not pipeline overrides. A direct raw import keeps the CPU audio
-module independent of the renderer catalog. Complete extraction enforcement and the native
-effect-shot consumer are separate M1 exit requirements.
+module independent of the renderer catalog.
 
 For each M1 increment, freeze the source tree, run `pnpm parity:capture --candidate` for the full
 corpus, then run `pnpm migrate:verify --milestone M1 --candidates <candidate-manifest-path>`.
@@ -80,6 +79,24 @@ only. The original reference files must also retain the aggregate digest recorde
 M0 verification, and candidate project, media, plugin and frame inputs must match those references.
 M1 exit additionally requires every shader to be shared and Naga-valid, the enforced absence of
 WGSL string literals throughout `src/`, and the remaining section 5 work.
+
+When `M1-T6` is active or complete, a full M1 run also performs the shared-source exit audit.
+The AST scan reads every TS/TSX source file, including tests, and rejects marked or unmarked inline
+WGSL implementations and literal-derived shader compiler inputs. Short syntax assertions and
+non-WGSL mock values are classified separately. Disk WGSL paths must exactly match the manifest,
+all fragments must be used, and Rust tests compare the embedded files with the same disk sources
+before validating all assembled programs with Naga.
+
+The effect-shot harness writes only compiled operation data and shader digests. Its registered
+effect types must match the canonical effect cases in the parity corpus. The exit run creates a
+fresh manifest, runs the native `effect_shots` example with the shared catalog, and audits every PNG
+and the native report before publishing its output directory. This is a native shader smoke test;
+it does not compare default-parameter diagnostic images with the richer corpus reference images or
+replace native effect parity in M4. Current full TS exact G3 remains the M1 pixel gate.
+
+The exit audit binds the source inventory, current G0/Naga results, current full exact G3 and native
+shader smoke to one source tree. Quick checks, stale evidence, missing prerequisites, incomplete
+coverage or failed output audits cannot establish M1 completion.
 
 ## Performance evidence
 

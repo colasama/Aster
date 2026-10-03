@@ -94,6 +94,9 @@ unchanged. The audio ABI is a single raw WGSL file that the CPU audio module can
 loading the renderer catalog. Its fixed array lengths preserve the 9280-byte ABI v1 layout and are
 checked against host packing and native validation. External plugin shader modules remain complete
 validated sources supplied by the plugin runtime; they are not rewritten by the shared catalog.
+An AST-based source check rejects inline WGSL implementations in `src/`, including test fixtures.
+Rust tests verify that disk sources, embedded sources and manifest coverage agree before validating
+the assembled programs.
 
 Renderer migration verification uses the CPU-only `aster-render-compare` crate behind the thin
 `aster-render-cli compare` command. It reads lossless reference and candidate PNGs without changing
@@ -320,9 +323,11 @@ frame data are excluded, and successful hot-path operations are intentionally si
    seed pass masks the source by luminance threshold through a per-program uniform and higher mips
    reuse the plain downsample filter, so the fused pass samples the masked pyramid at the same
    radius-to-LOD mapping instead of thresholding an already-diluted blur.
-   The `effect-shot-manifest` harness also exports the pyramid and bright-pass downsample WGSL, and
-   the `effect_shots` example mirrors this path so offline per-effect PNG renders exercise the
-   same LOD gather the compositor uses.
+   The parity `effect-shot-manifest` harness exports compiled operations and shared-program hashes
+   for every registered effect. The native `effect_shots` example reads the same shared catalog and
+   mirrors this path, so offline per-effect PNG renders exercise the same LOD gather the compositor
+   uses. The M1 exit shader smoke audits complete effect coverage and all generated PNGs; native
+   effect pixel parity remains a separate gate.
    Multi-stop gradients share that chain: five packed RGB stops, endpoints, interpolation and blend
    fit one existing uniform operation. Time-addressable CPU evaluation sorts stops and interpolates
    color keyframes per channel; the GPU evaluates the ramp without sampling another texture or
