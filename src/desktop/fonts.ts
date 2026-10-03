@@ -18,3 +18,19 @@ export async function listSystemFonts(): Promise<SystemFont[]> {
     );
   return browser.queryLocalFonts();
 }
+
+let familyInventory: { expires: number; families: Promise<string[]> } | undefined;
+
+/** Unique installed family names, cached briefly so pickers can reopen without a rescan. */
+export function listSystemFontFamilies(): Promise<string[]> {
+  if (!familyInventory || familyInventory.expires < Date.now()) {
+    const families = listSystemFonts().then((fonts) => [
+      ...new Set(fonts.map((font) => font.family)),
+    ]);
+    familyInventory = { expires: Date.now() + 60_000, families };
+    void families.catch(() => {
+      familyInventory = undefined;
+    });
+  }
+  return familyInventory.families;
+}

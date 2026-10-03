@@ -13,6 +13,7 @@ export function FontFamilyPicker({
   families,
   label,
   emptyLabel,
+  placeholder,
   loading,
   onOpen,
   onChange,
@@ -23,6 +24,7 @@ export function FontFamilyPicker({
   families: string[];
   label: string;
   emptyLabel: string;
+  placeholder?: string;
   loading: boolean;
   onOpen: () => void;
   onChange: (family: string) => void;
@@ -128,7 +130,7 @@ export function FontFamilyPicker({
         aria-busy={loading}
         autoComplete="off"
         maxLength={160}
-        placeholder={mixed ? "—" : undefined}
+        placeholder={mixed ? "—" : placeholder}
         data-mixed={mixed || undefined}
         value={open ? draft : mixed ? "" : value}
         onFocus={show}

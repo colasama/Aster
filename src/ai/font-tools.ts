@@ -1,8 +1,8 @@
+import { checkFontAvailability } from "../core/media/font-availability";
 import { activateProjectFonts, prepareProjectFonts } from "../core/media/project-font-runtime";
 import { projectFontMetadata } from "../core/project/project-fonts";
 import type { Project } from "../core/types";
 import { listSystemFonts } from "../desktop/fonts";
-import { checkFontAvailability } from "./font-availability";
 
 export async function listFonts(project: Project, input: Record<string, unknown>) {
   const source = input.source ?? "all";

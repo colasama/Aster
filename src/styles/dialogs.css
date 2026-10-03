@@ -268,3 +268,42 @@
 .gpu-memory-status span {
   overflow-wrap: anywhere;
 }
+.workspace-action-dialog.missing-fonts-dialog {
+  width: min(460px, calc(100vw - 32px));
+}
+.missing-fonts-dialog > ul {
+  max-height: min(360px, 50vh);
+  overflow-y: auto;
+  margin: 0;
+  padding: 6px 13px;
+  list-style: none;
+}
+.missing-fonts-dialog li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 8px;
+  padding: 7px 0;
+}
+.missing-fonts-dialog li + li {
+  border-top: 1px solid var(--border);
+}
+.missing-font-name {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 12px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.missing-font-count {
+  color: var(--muted);
+  font-size: 11px;
+}
+.missing-fonts-dialog .font-family-field {
+  grid-column: 1 / -1;
+}
+.missing-fonts-dialog > p[role="alert"] {
+  margin: 0 13px 9px;
+  color: var(--red);
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}

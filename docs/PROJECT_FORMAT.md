@@ -26,7 +26,11 @@ importing a face or producing output. Imports never modify the operating system 
 Font collections and variable-axis metadata are not imported; provide an individual supported face.
 
 Text layers persist `textStyle.fontFamily`, `fontSize`, `fontWeight`, alignment, tracking, leading and
-stroke settings. Font removal retains the requested family so Chromium can fall back. Removing an
+stroke settings. Font removal retains the requested family so Chromium can fall back. When a loaded
+document references a `fontFamily` none of whose listed names is embedded, installed or generic, the
+editor offers per-family replacements. Replacing rewrites `textStyle.fontFamily` on every matching
+text layer in every composition (locked layers included) as one undoable edit; dismissing leaves the
+document unchanged and the text keeps rendering with the fallback face. Removing an
 embedded face or switching projects invalidates text textures, including temporal text rasters.
 The optional `textStyle.fontStyle` is `normal` or `italic`; omission means `normal` in existing v10
 documents. Canvas rendering, text measurement and the viewport caret use the same style. Chromium

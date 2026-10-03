@@ -36,6 +36,8 @@ export interface EditorState {
   project: Project;
   /** Monotonic live-editor revision used to reject stale agent workspaces. */
   projectRevision: number;
+  /** Increments whenever a document replaces the open project. */
+  loadRevision: number;
   /** Revision written to the primary project file, or null for an untitled/recovered document. */
   savedProjectRevision: number | null;
   autosave: {
@@ -132,6 +134,7 @@ export function createInitialState(): EditorState {
     selectedKeyframes: [],
     project,
     projectRevision: 0,
+    loadRevision: 0,
     savedProjectRevision: 0,
     autosave: { status: "idle" },
     currentTime: 0.72,
@@ -301,6 +304,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         ...state,
         project: action.project,
         projectRevision: 0,
+        loadRevision: state.loadRevision + 1,
         savedProjectRevision: action.markSaved === true ? 0 : null,
         autosave: { status: "idle" },
         history: { past: [], future: [] },

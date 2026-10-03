@@ -5,26 +5,11 @@ import { resolveTextStyle } from "../../core/layers/text-style";
 import { createProjectFont } from "../../core/media/font-import";
 import { prepareProjectFonts } from "../../core/media/project-font-runtime";
 import type { Layer, TextStyle } from "../../core/types";
-import { listSystemFonts } from "../../desktop/fonts";
+import { listSystemFontFamilies } from "../../desktop/fonts";
 import { useI18n } from "../../i18n/react";
 import { useEditor } from "../../state/editor-store";
 import { FontFamilyPicker } from "./FontFamilyPicker";
 import { useInspectorLayers, valuesDiffer } from "./inspector-selection";
-
-let inventory: { expires: number; families: Promise<string[]> } | undefined;
-
-function systemFamilies() {
-  if (!inventory || inventory.expires < Date.now()) {
-    const families = listSystemFonts().then((fonts) => [
-      ...new Set(fonts.map((font) => font.family)),
-    ]);
-    inventory = { expires: Date.now() + 60_000, families };
-    void families.catch(() => {
-      inventory = undefined;
-    });
-  }
-  return inventory.families;
-}
 
 export function FontFamilyControl({
   layer,
@@ -56,7 +41,7 @@ export function FontFamilyControl({
     setLoading(true);
     setError(undefined);
     try {
-      setSystem(await systemFamilies());
+      setSystem(await listSystemFontFamilies());
     } catch {
       setError(t("text.fontListUnavailable"));
     } finally {

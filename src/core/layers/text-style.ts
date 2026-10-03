@@ -31,6 +31,29 @@ const GENERIC_FONT_FAMILIES = new Set([
   "math",
 ]);
 
+export function isGenericFontFamily(family: string): boolean {
+  return GENERIC_FONT_FAMILIES.has(family.trim().toLowerCase());
+}
+
+/** Splits a CSS font-family value into unquoted family names. */
+export function fontFamilyNames(value: string): string[] {
+  const names: string[] = [];
+  let current = "";
+  let quote: string | undefined;
+  for (const character of value) {
+    if (quote) {
+      if (character === quote) quote = undefined;
+      else current += character;
+    } else if (character === '"' || character === "'") quote = character;
+    else if (character === ",") {
+      names.push(current);
+      current = "";
+    } else current += character;
+  }
+  names.push(current);
+  return names.map((name) => name.trim().replace(/\s+/gu, " ")).filter(Boolean);
+}
+
 /**
  * CSS font-family token for canvas font shorthands. A plain family name is always quoted, so
  * names with digits, spaces or punctuation (for example `Brand 400W`) resolve exactly as

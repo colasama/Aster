@@ -65,6 +65,13 @@ export const controlsEn = {
   "text.fontListUnavailable":
     "System font list is unavailable. Enter a family name or import a font.",
   "text.fontImportStale": "Project changed during font import. Import the font again.",
+  "fonts.missing.title": "Missing fonts",
+  "fonts.missing.layerCount": "{count} layers",
+  "fonts.missing.fallback": "Fallback font",
+  "fonts.missing.replacementFor": "Replacement for {family}",
+  "fonts.missing.useFallback": "Use fallback font",
+  "fonts.missing.keepFallback": "Keep fallback",
+  "fonts.missing.replace": "Replace",
   "text.fontSize": "Font size",
   "text.fontWeight": "Font weight",
   "text.fontStyle": "Font style",

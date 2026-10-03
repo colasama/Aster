@@ -8,6 +8,7 @@ import {
 } from "./components/diagnostics/DiagnosticBoundary";
 import { Inspector } from "./components/inspector/Inspector";
 import { EffectsPanel } from "./components/project/EffectsPanel";
+import { MissingFontsPrompt } from "./components/project/MissingFontsPrompt";
 import { ProjectPanel } from "./components/project/ProjectPanel";
 import { ActivityBar } from "./components/shell/ActivityBar";
 import { TopBar } from "./components/shell/TopBar";
@@ -168,6 +169,7 @@ function Studio() {
         <span className="status-spacer" />
         <span>{t("app.status.version")}</span>
       </footer>
+      <MissingFontsPrompt />
     </main>
   );
 }
