@@ -33,35 +33,34 @@
     "approval": "Preserve the complete M0-T3 production TS capture as the original pixel oracle. Only the explicitly listed, section 6.6 reviewed M0 reference repairs overlay requested frames. All other original frames, including sequence neighbors, remain unchanged. Freeze this effective reference set before M1; M1 and M2 retain strict whole-corpus exact requirements."
   },
   "last_cycle": {
-    "id": 6,
-    "time": "2026-10-03T21:10:44.005Z",
-    "milestone": "M0",
-    "task": "M0-T6",
+    "id": 7,
+    "time": "2026-10-03T21:49:03.403Z",
+    "milestone": "M1",
+    "task": "M1-T1",
     "outcome": "passed",
-    "commit": "97950a5bfe3327a088a6ae31ef82fdfa0792d48a",
-    "verification": "artifacts/migration/verify-2026-10-03T21-06-58-734Z-ea472fb4.json",
+    "commit": "035f805309d27660d9be28bcadbea27b72ad0e5a",
+    "verification": "artifacts/migration/verify-2026-10-03T21-43-27-332Z-afdea747.json",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 39944
+        "duration_ms": 43872
       },
       {
-        "id": "G6",
+        "id": "G3",
         "status": "passed",
-        "duration_ms": 64593
+        "duration_ms": 258617
       }
     ],
-    "verification_duration_ms": 163175,
-    "next_step": "M1: decompose shared-WGSL extraction into cohesive increments and keep the frozen effective M0 references under strict whole-corpus exact comparison.",
+    "verification_duration_ms": 303571,
+    "next_step": "M1-T2: extract core scene variants, auxiliary surfaces, display helpers and render-buffer sources while preserving shader arithmetic and the frozen M0 reference set.",
     "notes": [
-      "Independent TS candidates publish atomically outside the original reference directory; comparison never captures or rewrites references.",
-      "The original particle shader used nondeterministic atomic append order. Stable source-index GPU slots repair transparent blend/depth ordering without changing project format or plugin ABI.",
-      "Original full exact attempts remain failed (1817/1819 before the fix, 1818/1819 after it). Only billboard frame 3 is overlaid using its accepted section 6.6 GPU review; the original 1947 files and auxiliary frame 2 remain unchanged.",
-      "The old M0 replacement-only-after-old-exact condition was agent-authored in f28525c, not an owner or specification requirement. Its evidence-based revision is recorded; M1 and M2 exact thresholds are unchanged.",
-      "A new full capture freshly rendered all 337 cases and 1947 frames, including 1819 required addresses. Every required frame passed exact against the effective reference set; source and inputs remained stable.",
-      "M0 exit independently audits original and repaired source provenance, actual decoded pixels, full coverage, sequence neighbors, self-review image hashes, the deliberate missing-patch rejection and committed local performance evidence.",
-      "Full G0/G6 and the M0 exit audit passed. Particle culling overhead remains explicitly unmeasured for later M7/G4 work; no performance or native-renderer completion claim is made."
+      "Output anti-aliasing WGSL is byte-identical to its pre-extraction template (2652 bytes, SHA-256 7ae357bfe93db1c985380b3bc2c473517593a706cc9ef9aac0fc8fbd05e3e86c).",
+      "TS raw imports and Rust include_str embed the same manifest-owned fragment order without inserting separators. Both validate declared files, reachable fragments and u32 override values; Rust validates actual entry points and override declarations with Naga.",
+      "The new aster-shaders workspace crate reuses locked Naga, serde, serde_json, thiserror and test-only sha2; no external package version changed.",
+      "M1/M2 G3 requires a fresh complete current-source TS capture, equal project/media/plugin/frame inputs and the original reference aggregate digest from completed M0 evidence. Frozen reference repairs cannot drift.",
+      "All 1819 required frames passed exact against the effective M0 references. Original reference files and the single reviewed M0 repair are unchanged; no M1 pixel tolerance or reference repair was introduced.",
+      "This completes only the shared catalog and output AA increment. Remaining WGSL families and the complete extraction exit audit remain open."
     ]
   },
   "milestones": [
@@ -355,9 +354,104 @@
     {
       "id": "M1",
       "title": "Shared WGSL",
-      "status": "pending",
+      "status": "in_progress",
       "gates": ["G0", "G3"],
-      "tasks": []
+      "tasks": [
+        {
+          "id": "M1-T1",
+          "title": "Establish the shared WGSL catalog and extract output anti-aliasing with current-source TS pixel verification",
+          "status": "done",
+          "completed_at": "2026-10-03T21:49:03.403Z",
+          "commit": "035f805309d27660d9be28bcadbea27b72ad0e5a",
+          "verification": "artifacts/migration/verify-2026-10-03T21-43-27-332Z-afdea747.json",
+          "gates": [
+            {
+              "id": "G0",
+              "status": "passed",
+              "duration_ms": 43872
+            },
+            {
+              "id": "G3",
+              "status": "passed",
+              "duration_ms": 258617
+            }
+          ],
+          "verification_duration_ms": 303571,
+          "candidate_manifest": "artifacts/parity/runs/2026-10-03T21-37-14-907Z-7d18fcfb/candidate/manifest.json",
+          "pixel_report": "artifacts/parity/ts-check/2026-10-03T21-44-11-734Z-dc1bccef/report.json",
+          "renderer_source_sha256": "fd70aca75bd0518b074b11d1b57c27ec8058293c20ed996510105ea78017054d"
+        },
+        {
+          "id": "M1-T2",
+          "title": "Extract core scene variants, auxiliary surfaces, display helpers and render-buffer shaders",
+          "status": "pending"
+        },
+        {
+          "id": "M1-T3",
+          "title": "Extract compositing, blur, depth, surface post-effects and motion-reconstruction shaders",
+          "status": "pending"
+        },
+        {
+          "id": "M1-T4",
+          "title": "Extract all effect case fragments and declare post-process shader assembly in the shared manifest",
+          "status": "pending"
+        },
+        {
+          "id": "M1-T5",
+          "title": "Extract scene-generator and audio ABI, particles, text and diagnostic shader sources",
+          "status": "pending"
+        },
+        {
+          "id": "M1-T6",
+          "title": "Integrate native effect-shot sources and enforce complete WGSL extraction and Naga coverage for M1 exit",
+          "status": "pending"
+        }
+      ],
+      "frozen_reference": {
+        "base_renderer_source_sha256": "a29a484b82eae466b72828818f628714db90f1cc7703718e71e2469329f9c703",
+        "repairs_sha256": "0c53b924d3578aeb9362ca7ee2ab711ff13c23cabce34c80041b3519d997325e",
+        "repairs": [
+          {
+            "case_id": "scene-particles-billboard",
+            "frame": 3,
+            "directory": "artifacts/parity/runs/2026-10-03T20-31-16-517Z-0437f3a7/candidate",
+            "renderer_source_sha256": "4806c30c57010efef5942717b381159ef4080b75c023d4e6df1bfc228879ab67",
+            "capture_report": "artifacts/parity/capture-2026-10-03T20-31-16-517Z-0437f3a7.json",
+            "candidate_manifest": "artifacts/parity/runs/2026-10-03T20-31-16-517Z-0437f3a7/candidate/manifest.json",
+            "approval_review": "artifacts/parity/particle-order-fixed/billboard-3-gpu/report.json",
+            "run_id": "2026-10-03T20-31-16-517Z-0437f3a7",
+            "candidate_manifest_sha256": "34cd65b03225b18243c8baa0cc372508ff9591cde7cc8885737da0e655c44531",
+            "path": "artifacts/parity/runs/2026-10-03T20-31-16-517Z-0437f3a7/candidate/scene-particles-billboard/3/frame.png",
+            "reference_rgba_sha256": "157c6f620616a2bdc02d277a2ef1b9b984a787a2b72ac53f594a0ce5205f5bd6",
+            "candidate_rgba_sha256": "5c8bfd4e6bf680ba97fa996d7abf7adf7b1189640c2f1ed97bb55b1dd6c85802"
+          }
+        ]
+      },
+      "notes": [
+        "Each increment requires full G0 and fresh production TS candidates under exact G3 against the fixed effective M0 reference set. Completed increment gates do not imply the entire milestone has exited.",
+        "Preserve shader arithmetic, bindings, opcode values, assembly order, input cases and frame addresses. Shared source extraction must not add a new M1 reference repair.",
+        "The initial inventory contains 59 marked WGSL literals in 37 renderer files plus the audio-analysis ABI literal outside renderer. Final source scanning must also detect unmarked shader literals and test fixtures rather than relying only on this inventory.",
+        "Reuse the locked Naga 30, serde, serde_json and thiserror dependencies behind aster-shaders. Do not create a second shader assembly recipe in Rust."
+      ],
+      "active_candidate_manifest": "artifacts/parity/runs/2026-10-03T21-37-14-907Z-7d18fcfb/candidate/manifest.json",
+      "last_verification": {
+        "status": "passed",
+        "required_gates_passed": true,
+        "milestone_exit_satisfied": false,
+        "gates": [
+          {
+            "id": "G0",
+            "status": "passed",
+            "duration_ms": 43872
+          },
+          {
+            "id": "G3",
+            "status": "passed",
+            "duration_ms": 258617
+          }
+        ],
+        "report": "artifacts/migration/verify-2026-10-03T21-43-27-332Z-afdea747.json"
+      }
     },
     {
       "id": "M2",
@@ -1038,6 +1132,37 @@
         "A new full capture freshly rendered all 337 cases and 1947 frames, including 1819 required addresses. Every required frame passed exact against the effective reference set; source and inputs remained stable.",
         "M0 exit independently audits original and repaired source provenance, actual decoded pixels, full coverage, sequence neighbors, self-review image hashes, the deliberate missing-patch rejection and committed local performance evidence.",
         "Full G0/G6 and the M0 exit audit passed. Particle culling overhead remains explicitly unmeasured for later M7/G4 work; no performance or native-renderer completion claim is made."
+      ]
+    },
+    {
+      "id": 7,
+      "time": "2026-10-03T21:49:03.403Z",
+      "milestone": "M1",
+      "task": "M1-T1",
+      "outcome": "passed",
+      "commit": "035f805309d27660d9be28bcadbea27b72ad0e5a",
+      "verification": "artifacts/migration/verify-2026-10-03T21-43-27-332Z-afdea747.json",
+      "gates": [
+        {
+          "id": "G0",
+          "status": "passed",
+          "duration_ms": 43872
+        },
+        {
+          "id": "G3",
+          "status": "passed",
+          "duration_ms": 258617
+        }
+      ],
+      "verification_duration_ms": 303571,
+      "next_step": "M1-T2: extract core scene variants, auxiliary surfaces, display helpers and render-buffer sources while preserving shader arithmetic and the frozen M0 reference set.",
+      "notes": [
+        "Output anti-aliasing WGSL is byte-identical to its pre-extraction template (2652 bytes, SHA-256 7ae357bfe93db1c985380b3bc2c473517593a706cc9ef9aac0fc8fbd05e3e86c).",
+        "TS raw imports and Rust include_str embed the same manifest-owned fragment order without inserting separators. Both validate declared files, reachable fragments and u32 override values; Rust validates actual entry points and override declarations with Naga.",
+        "The new aster-shaders workspace crate reuses locked Naga, serde, serde_json, thiserror and test-only sha2; no external package version changed.",
+        "M1/M2 G3 requires a fresh complete current-source TS capture, equal project/media/plugin/frame inputs and the original reference aggregate digest from completed M0 evidence. Frozen reference repairs cannot drift.",
+        "All 1819 required frames passed exact against the effective M0 references. Original reference files and the single reviewed M0 repair are unchanged; no M1 pixel tolerance or reference repair was introduced.",
+        "This completes only the shared catalog and output AA increment. Remaining WGSL families and the complete extraction exit audit remain open."
       ]
     }
   ],
