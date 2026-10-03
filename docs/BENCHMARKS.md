@@ -26,6 +26,16 @@ requires equivalent visible output and quality, rotating application order, thre
 metric sources, published fixtures and raw data, and explicit unsupported results. It forbids
 substituting an easier workload or using unmatched timing sources in one performance ratio.
 
+Renderer migration checks use `pnpm migrate:verify --milestone M0`. The full run executes the
+static checks through lefthook, rebuilds the application, and exercises preview and render-queue
+export in both foreground and background application sessions. It preserves the staged FFmpeg
+binaries and checks their packaged hashes. Reports and step logs live under `artifacts/migration/`,
+with source hashes and timings to identify the exact checked working tree. `--quick` omits the
+application checks and some static checks; its result is incomplete and cannot authorize a commit.
+Passing these gates does not establish a performance baseline or complete the migration milestone:
+the corpus, reference captures, pixel oracle, and measured baselines remain separate requirements in
+[the migration specification](migration/RUST_RENDERER_MIGRATION.md).
+
 ## Suites
 
 - 1080p and 4K 20-layer 2D composite.

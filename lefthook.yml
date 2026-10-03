@@ -1,3 +1,8 @@
+migration-static:
+  commands:
+    checks:
+      run: node scripts/migration/static-checks.mjs
+
 pre-commit:
   parallel: true
   commands:

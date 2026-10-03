@@ -24,6 +24,7 @@
     "check:rust": "cargo fmt --all --check && cargo clippy --workspace --all-targets --all-features -- -D warnings && cargo test --workspace --all-features",
     "format": "biome check --write . && cargo fmt --all",
     "lint": "biome lint .",
+    "migrate:verify": "node scripts/migrate-verify.mjs",
     "preview": "vite preview",
     "prepare": "lefthook install",
     "electron": "pnpm dev",
@@ -32,6 +33,7 @@
     "electron:compile": "node -e \"require('node:fs').rmSync('dist-electron',{recursive:true,force:true})\" && tsc -p electron/tsconfig.json",
     "test": "vitest run",
     "test:packaging": "node --test scripts/prepare-ffmpeg.test.mjs scripts/download-ffmpeg.test.mjs",
+    "test:migration": "node --test scripts/migration/*.test.mjs",
     "test:watch": "vitest",
     "typecheck": "concurrently --kill-others-on-fail \"tsc --noEmit -p tsconfig.json\" \"tsc --noEmit -p tsconfig.node.json\" \"tsc --noEmit -p electron/tsconfig.json\""
   },

@@ -1,0 +1,156 @@
+{
+  "spec": "docs/migration/RUST_RENDERER_MIGRATION.md",
+  "status": "running",
+  "base_branch": "main",
+  "migration_branch": "feature/rust-renderer",
+  "sync": {
+    "requested": false,
+    "last_synced_commit": null
+  },
+  "escalation": null,
+  "owner_overrides": {
+    "recorded_at": "2026-10-03T16:34:00Z",
+    "validation_host": {
+      "authorization": "The owner authorized testing and continued migration on the current local machine on 2026-10-04 (Asia/Tokyo).",
+      "cpu": "AMD Ryzen 7 8745H w/ Radeon 780M Graphics",
+      "gpu": "AMD Radeon 780M Graphics",
+      "os": "Windows 10 Enterprise LTSC 10.0.19044",
+      "driver": "32.0.21030.2001",
+      "baseline_policy": "Create a separate local baseline series. Do not compare local performance measurements to the historical RTX 5060 series.",
+      "evidence": [
+        "artifacts/migration/environment-hardware.json",
+        "artifacts/migration/environment-nvenc-probe.json",
+        "artifacts/migration/environment-nvenc-probe.log"
+      ]
+    },
+    "continuation": "The updated owner goal supersedes the specification's stop-on-blocker requirements. Record obstacles and evidence, resolve them or continue independent required work. Do not report failed or skipped checks as passed. Gate, pixel-review, commit and completion requirements remain in force."
+  },
+  "last_cycle": null,
+  "milestones": [
+    {
+      "id": "M0",
+      "title": "Verification harness and loop infrastructure",
+      "status": "in_progress",
+      "gates": ["G0", "G6"],
+      "tasks": [
+        {
+          "title": "Establish reproducible G0/G6 gate execution and atomic verification reports",
+          "id": "M0-T1",
+          "status": "in_progress"
+        },
+        {
+          "title": "Create deterministic corpus generators and exhaustive feature coverage checks",
+          "id": "M0-T2",
+          "status": "pending"
+        },
+        {
+          "title": "Capture production TS reference frames with source and adapter provenance",
+          "id": "M0-T3",
+          "status": "pending"
+        },
+        {
+          "title": "Implement compare metrics, structural checks, tolerance profiles and rejection proof",
+          "id": "M0-T4",
+          "status": "pending"
+        },
+        {
+          "title": "Measure and record primary-machine baselines including owner opening and main segments",
+          "id": "M0-T5",
+          "status": "pending"
+        },
+        {
+          "title": "Verify complete M0 corpus references, oracle rejection and milestone exit",
+          "id": "M0-T6",
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "M1",
+      "title": "Shared WGSL",
+      "status": "pending",
+      "gates": ["G0", "G3"],
+      "tasks": []
+    },
+    {
+      "id": "M2",
+      "title": "FramePlan IR, TS executes through the plan",
+      "status": "pending",
+      "gates": ["G0", "G1", "G3", "G4"],
+      "tasks": []
+    },
+    {
+      "id": "M3",
+      "title": "Native renderer core",
+      "status": "pending",
+      "gates": ["G0", "G1", "G3"],
+      "tasks": []
+    },
+    {
+      "id": "M4",
+      "title": "Effects",
+      "status": "pending",
+      "gates": ["G0", "G3", "G4"],
+      "tasks": []
+    },
+    {
+      "id": "M5",
+      "title": "Text, SVG, PSD rasters (Phase A)",
+      "status": "pending",
+      "gates": ["G0", "G1", "G3"],
+      "tasks": []
+    },
+    {
+      "id": "M6",
+      "title": "Native media decode",
+      "status": "pending",
+      "gates": ["G0", "G3", "G4"],
+      "tasks": []
+    },
+    {
+      "id": "M7",
+      "title": "3D, camera, lights, motion blur, generators",
+      "status": "pending",
+      "gates": ["G0", "G3", "G4"],
+      "tasks": []
+    },
+    {
+      "id": "M8",
+      "title": "Native export path",
+      "status": "pending",
+      "gates": ["G0", "G3", "G4", "G5", "G6"],
+      "tasks": []
+    },
+    {
+      "id": "M9",
+      "title": "Native evaluation (Phase B)",
+      "status": "pending",
+      "gates": ["G0", "G1", "G2", "G3", "G5"],
+      "tasks": []
+    },
+    {
+      "id": "M10",
+      "title": "Native text shaping and rasterization",
+      "status": "pending",
+      "gates": ["G0", "G3"],
+      "tasks": []
+    },
+    {
+      "id": "M11",
+      "title": "Rust preview (Phase C)",
+      "status": "pending",
+      "gates": ["G0", "G3", "G4", "G6"],
+      "tasks": []
+    },
+    {
+      "id": "M12",
+      "title": "Retire the TS GPU renderer",
+      "status": "pending",
+      "gates": ["G0", "G1", "G2", "G3", "G4", "G5", "G6"],
+      "tasks": []
+    }
+  ],
+  "tolerance_overrides": [],
+  "self_reviews": [],
+  "history": []
+}

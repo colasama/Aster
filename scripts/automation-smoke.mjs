@@ -6,12 +6,15 @@ import { dirname, join, resolve } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import { captureInitialPreview } from "./migration/preview-readiness.mjs";
 
 // Run against the packaged application: pnpm artifact:build --dir, then node scripts/automation-smoke.mjs.
 const root = resolve(import.meta.dirname, "..");
 const binary = process.argv[2] ?? join(root, "release", "win-unpacked", "Aster.exe");
 const background = process.argv.includes("--background");
-const output = join(root, "artifacts", `automation-smoke-${Date.now()}`);
+const output = resolve(
+  process.env.ASTER_SMOKE_OUTPUT ?? join(root, "artifacts", `automation-smoke-${Date.now()}`),
+);
 await mkdir(output, { recursive: true });
 const port = await freePort();
 const environment = {
@@ -45,7 +48,7 @@ const transport = new StdioClientTransport({
   stderr: "pipe",
 });
 const client = new Client({ name: "aster-packaged-smoke", version: "0.3.5" });
-const report = { output, background, steps: [] };
+const report = { output, binary, background, steps: [] };
 transport.stderr?.on("data", (data) => {
   appLog = (appLog + data).slice(-512 * 1024);
 });
@@ -123,8 +126,13 @@ try {
   ]);
   const work = { workspaceId: workspace.workspaceId, workspaceRevision: revision };
   await call("diagnostics", { action: "evaluate", ...work, time: 0.5 });
-  const preview = await call("render_preview", { ...work, times: [0, 0.5], maxDimension: 1024 });
+  report.preview_attempts = [];
+  const preview = await captureInitialPreview(
+    () => call("render_preview", { ...work, times: [0, 0.5], maxDimension: 1024 }),
+    report.preview_attempts,
+  );
   assert.equal(preview.frames[0].width, 320);
+  report.preview = preview.frames.map(({ width, height }) => ({ width, height }));
   const cropped = await call("render_preview", {
     ...work,
     times: [0.5],
@@ -291,6 +299,7 @@ try {
     includeAudio: true,
   });
   const rendered = await call("render", { action: "wait", jobId: queued.jobId });
+  report.render_job = { id: queued.jobId, status: rendered.status, output: exportPath };
   if (rendered.status !== "completed") throw new Error(JSON.stringify(rendered));
   const exported = await call("reference", { action: "probe", path: exportPath });
   assert(exported.streams.some((stream) => stream.codec_type === "video"));

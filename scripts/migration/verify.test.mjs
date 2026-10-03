@@ -1,0 +1,199 @@
+import assert from "node:assert/strict";
+import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { Writable } from "node:stream";
+import test from "node:test";
+import { runStep } from "./process.mjs";
+import { writeAtomicJson } from "./report.mjs";
+import { ownerProject } from "./source.mjs";
+import { runStaticChecks, staticCommands } from "./static-checks.mjs";
+import { parseArguments, runStaticGate, verifyMigration } from "./verify.mjs";
+
+async function fixture(t, gates = ["G0", "G6"]) {
+  const root = await mkdtemp(join(tmpdir(), "aster-migration-test-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const ledger = join(root, "docs", "migration", "rust-renderer-progress.json");
+  await writeAtomicJson(ledger, {
+    status: "running",
+    milestones: [
+      { id: "M0", status: "in_progress", gates, tasks: [{ id: "M0-T1", status: "pending" }] },
+    ],
+  });
+  return { root, ledger, output: join(root, "logs"), env: process.env };
+}
+
+async function fakeHook(command, context) {
+  assert.equal(command.id, "lefthook-static");
+  await runStaticChecks(context, context.env.ASTER_MIGRATION_QUICK === "1", async (step) => ({
+    id: step.id,
+    status: "passed",
+  }));
+  return { id: command.id, status: "passed", duration_ms: 1 };
+}
+
+const provenance = async () => ({ source_sha256: "source-123", commit: "123", dirty: true });
+
+test("argument parser rejects accidental unsupported or incomplete options", () => {
+  assert.deepEqual(parseArguments(["--milestone", "M0", "--quick"]), {
+    milestone: "M0",
+    quick: true,
+  });
+  assert.throws(() => parseArguments(["--milestone"]));
+  assert.throws(() => parseArguments(["--skip-g6"]));
+});
+
+test("atomic report publication never exposes a partial report and removes failed temp files", async (t) => {
+  const context = await fixture(t);
+  const path = join(context.root, "report.json");
+  const original = { status: "passed", payload: "a".repeat(20_000) };
+  await writeAtomicJson(path, original);
+  const invalid = { cycle: null };
+  invalid.cycle = invalid;
+  await assert.rejects(writeAtomicJson(path, invalid));
+  assert.deepEqual(JSON.parse(await readFile(path, "utf8")), original);
+  assert(!(await readdir(context.root)).some((name) => name.endsWith(".tmp")));
+  await writeAtomicJson(path, { status: "failed" });
+  assert.deepEqual(JSON.parse(await readFile(path, "utf8")), { status: "failed" });
+});
+
+test("failed child commands retain exit code, logs and timings", async (t) => {
+  const context = await fixture(t);
+  const step = await runStep(
+    {
+      id: "failed-child",
+      file: "node",
+      args: ["-e", "console.error('intentional failure');process.exit(7)"],
+    },
+    context,
+  );
+  assert.equal(step.status, "failed");
+  assert.equal(step.exit_code, 7);
+  assert(step.duration_ms >= 0);
+  assert.match(await readFile(join(context.root, step.log), "utf8"), /intentional failure/);
+});
+
+test("log stream failure terminates the child and returns failure without hanging", {
+  timeout: 5_000,
+}, async (t) => {
+  const context = await fixture(t);
+  const step = await runStep(
+    { id: "failed-log", file: "node", args: ["-e", "setInterval(()=>{},1000)"] },
+    context,
+    {
+      createLogStream: () =>
+        new Writable({
+          write(_chunk, _encoding, callback) {
+            callback(new Error("disk full"));
+          },
+        }),
+    },
+  );
+  assert.equal(step.status, "failed");
+  assert.match(step.error, /disk full/);
+});
+
+test("timeout is a failure even when a child would otherwise remain alive", {
+  timeout: 10_000,
+}, async (t) => {
+  const context = await fixture(t);
+  const step = await runStep(
+    { id: "timeout", file: "node", args: ["-e", "setInterval(()=>{},1000)"], timeout_ms: 50 },
+    context,
+  );
+  assert.equal(step.status, "failed");
+  assert.match(step.error, /exceeded 50 ms/);
+});
+
+test("a zero-exit lefthook without step evidence cannot pass G0", async (t) => {
+  const context = await fixture(t);
+  const gate = await runStaticGate(context, false, async () => ({ status: "passed" }));
+  assert.equal(gate.status, "failed");
+  assert.match(gate.error, /Missing or invalid/);
+});
+
+test("full static failure propagates while every required check is still recorded", async (t) => {
+  const context = await fixture(t);
+  const gate = await runStaticGate(context, false, async () => {
+    await runStaticChecks(context, false, async (command) => ({
+      id: command.id,
+      status: command.id === "cargo-test" ? "failed" : "passed",
+    }));
+    return { status: "passed" };
+  });
+  assert.equal(gate.status, "failed");
+  assert.equal(gate.steps.length, staticCommands().length);
+});
+
+test("quick succeeds only as incomplete and never claims full gates or milestone exit", async (t) => {
+  const context = await fixture(t);
+  const result = await verifyMigration(
+    { ...context, quick: true },
+    { execute: fakeHook, provenance },
+  );
+  assert.equal(result.exitCode, 0);
+  assert.equal(result.report.status, "incomplete");
+  assert.equal(result.report.required_gates_passed, false);
+  assert.equal(result.report.milestone_exit_satisfied, false);
+  assert.equal(result.report.gates.find((gate) => gate.id === "G6").status, "skipped");
+  const saved = JSON.parse(await readFile(result.reportPath, "utf8"));
+  assert.deepEqual(saved, result.report);
+});
+
+test("unknown required gates fail closed even in quick mode", async (t) => {
+  const context = await fixture(t, ["G0", "G6", "G99"]);
+  const result = await verifyMigration(
+    { ...context, quick: true },
+    { execute: fakeHook, provenance },
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.report.status, "failed");
+  assert.equal(result.report.gates.at(-1).id, "G99");
+  assert.match(result.report.gates.at(-1).error, /not implemented/);
+});
+
+test("unimplemented pixel gates and omitted M0 G6 cannot produce green reports", async (t) => {
+  for (const gates of [["G0", "G6", "G3"], ["G0"]]) {
+    const context = await fixture(t, gates);
+    const result = await verifyMigration(
+      { ...context, quick: true },
+      { execute: fakeHook, provenance },
+    );
+    assert.equal(result.exitCode, 1);
+    assert.equal(result.report.required_gates_passed, false);
+  }
+});
+
+test("source edits during verification invalidate successful checks", async (t) => {
+  const context = await fixture(t);
+  let count = 0;
+  const result = await verifyMigration(
+    { ...context, quick: true },
+    { execute: fakeHook, provenance: async () => ({ source_sha256: String(count++) }) },
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.report.source_unchanged, false);
+  assert.match(result.report.error, /Source changed/);
+});
+
+test("unknown milestones emit an atomic failure report", async (t) => {
+  const context = await fixture(t);
+  const result = await verifyMigration({ ...context, milestone: "M99" }, { provenance });
+  assert.equal(result.exitCode, 1);
+  assert.equal(JSON.parse(await readFile(result.reportPath, "utf8")).status, "failed");
+});
+
+test("owner project preserves configured values and reports unavailable paths as skipped", async (t) => {
+  const context = await fixture(t);
+  const path = join(context.root, "owner");
+  await mkdir(path);
+  await writeFile(join(path, "project.json"), "{}");
+  const found = await ownerProject({ ASTER_PERF_PROJECT: path }, "win32");
+  assert.equal(found.env.ASTER_PERF_PROJECT, path);
+  assert.equal(found.report.available, true);
+  const missing = await ownerProject({ ASTER_PERF_PROJECT: "" }, "win32");
+  assert.equal(missing.env.ASTER_PERF_PROJECT, "");
+  assert.equal(missing.report.status, "skipped");
+  const fallback = await ownerProject({}, "win32");
+  assert.equal(fallback.env.ASTER_PERF_PROJECT, "D:\\code\\SD04PV");
+});
