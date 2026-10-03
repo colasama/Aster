@@ -23,3 +23,14 @@ instance IDs. Windows CIM supplied the OS, CPU, physical-memory, and adapter ide
 OS-reported visible memory value is recorded separately from physical DIMM capacity. A driver, OS
 build, power mode, or display-topology change starts a new baseline series; do not silently merge it
 with the existing series.
+
+The owner-authorized migration run on the Radeon 780M machine uses the independent
+[`windows-radeon780m-local.json`](./windows-radeon780m-local.json) series. It must not be compared
+with the historical RTX 5060 baseline. `capturePerformanceHardware(root)` in
+[`scripts/performance/hardware.mjs`](../../scripts/performance/hardware.mjs) captures current
+inventory, active desktop resolution/refresh, AC status and the active power scheme without changing
+OS settings or terminating applications. The local capture reports Balanced; its Windows power-mode
+overlay is unknown and is not claimed to be Best performance. Hardware/AC eligibility does not
+verify the application's selected adapter, background workloads, quality or warm-up. Each benchmark
+must record those separately and reject changed hardware or run conditions. Unknown observations
+remain `null`; command errors retain only fixed diagnostic codes, never raw machine paths.

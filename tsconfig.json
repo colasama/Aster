@@ -21,6 +21,6 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src", "tests/parity"],
+  "include": ["src", "tests/parity", "tests/performance", "scripts/performance/workloads.ts"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

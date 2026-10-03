@@ -36,6 +36,67 @@ Passing these gates does not establish a performance baseline or complete the mi
 the corpus, reference captures, pixel oracle, and measured baselines remain separate requirements in
 [the migration specification](migration/RUST_RENDERER_MIGRATION.md).
 
+`pnpm migrate:benchmark` builds an isolated production Electron benchmark bundle and measures the
+existing `ProductionBeautyFramePipeline` through `runRenderHostFrameLoop`. This migration baseline
+suite contains the complete owner opening, its following 300-frame main interval, deterministic
+20-layer composites at 1080p and 4K, and a 1080p Blur/Glow/color effect chain. It is a throughput
+baseline for these paths, not the complete preview, interaction, particle, or media benchmark suite.
+The owner workloads run readback-only, ordinary `ipcRenderer.invoke` without encoding, and full
+20 Mbps H.264 MP4 with actual composition audio. Synthetic workloads measure readback-only. A missing
+owner project is recorded as skipped and cannot establish a complete baseline.
+
+The complete ten-frame warm-up suite precedes three measured runs; each run also discards ten
+warm-up frames. Workload order alternates and output-mode order rotates. Synthetic runs contain
+600 frames each. Owner runs preserve the exact project-derived interval: 714 opening frames and
+300 main frames on the current project, giving 2,142 and 900 measured frames per mode. The timer
+runs from the production loop's `prepared` to `completed` events, including output backpressure,
+audio mixing and encoder flush. Project loading, initialization, warm-up, audio decoding, encoder
+probing and subsequent FFprobe validation are outside it. Video synchronization and bounded
+readback concurrency follow the production assignment, including a single in-flight frame for
+the owner project's reachable video layers. Frames keep the native BGRA/RGBA format.
+
+Reports retain each frame's completion interval and readback wall latency, per-run elapsed time
+and throughput, actual encoder selection, output byte counts, and FFprobe stream evidence.
+Quantiles use linear interpolation (R-7), matching the existing renderer benchmark reports.
+Frame distributions and the distribution of three run throughputs have separate sample counts;
+three run FPS values do not establish frame-latency p95/p99. Readback wall latency includes GPU
+work and waiting and is not CPU execution time. Independent per-frame GPU timings are unavailable
+because the current asynchronous profiler does not associate completed samples with frame ids.
+The baseline does not substitute zero for unavailable measurements.
+
+Source hashes enclose compilation and the measured suite; project/resource and actual FFmpeg binary
+hashes are verified again afterward. Hardware, AC state, power scheme, display topology, driver and
+the actual WebGPU adapter must match the committed local hardware manifest. The owner-authorized
+Radeon 780M host has its own series in
+[`windows-radeon780m-local.json`](../benchmarks/hardware/windows-radeon780m-local.json), with its
+observed Balanced scheme; it is not compared with the historical RTX 5060 observations. No power
+setting or unrelated application is changed. Thermal sensors and unrelated GPU workload occupancy
+are not claimed as measured. Benchmark reports are written atomically under `artifacts/performance/`;
+only a complete, stable run may be recorded as `benchmarks/results/migration-baseline.json`.
+`--smoke` measures ten frames as a diagnostic. `--case <id>` and `--mode <mode>` restrict diagnosis;
+none of these partial runs can qualify as the complete baseline. MP4 stream validation here does
+not replace G5's decoded-pixel, quality, synchronization, pause or cancellation checks.
+
+The [2026-10-03 local TS baseline](../benchmarks/results/migration-baseline.json) contains 14,526
+measured frames plus the discarded warm-up suite. Median throughput over three runs:
+
+| Workload | Readback only | IPC, no encode | Full MP4 with audio |
+| --- | ---: | ---: | ---: |
+| Owner opening, frames 0–713 | 22.26 FPS | 16.62 FPS | 14.88 FPS |
+| Owner main, frames 714–1013 | 44.57 FPS | 31.90 FPS | 28.42 FPS |
+| 20-layer 1080p composite | 281.02 FPS | — | — |
+| 20-layer 4K composite | 74.38 FPS | — | — |
+| 1080p effect chain | 170.35 FPS | — | — |
+
+This host's existing export manager selected `libx264`; NVENC was unavailable. These measurements
+do not satisfy or replace the migration's later native hardware encoder speed or quality gates.
+Owner full-export frame-completion p95/p99 are 99.20/203.58 ms for the opening and 41.11/44.90 ms
+for the main segment. These are frame intervals, not GPU execution times. Initial renderer setup
+and the declared warm-up are excluded; on-demand resources reached later in the interval remain
+inside the timer. The effect fixture uses bright input, non-neutral curves and exposure, Blur,
+Glow and chromatic operations. Hashed raw per-run samples, FFprobe results and source provenance
+are retained alongside the summary; private owner project data remains external.
+
 `pnpm parity:generate` materializes deterministic projects under `artifacts/parity/projects/` and
 updates `tests/parity/corpus.json`. `node scripts/parity-generate.mjs --check` checks that the manifest
 matches the factories and current registries. The corpus tests validate project structures, active

@@ -1,0 +1,1470 @@
+{
+  "schema_version": 1,
+  "status": "passed",
+  "baseline_eligible": true,
+  "series": "windows-radeon780m-local",
+  "run_id": "2026-10-03T19-24-35-871Z-dc298b1d",
+  "captured_at": "2026-10-03T19:35:29.301Z",
+  "evidence": {
+    "report": "artifacts/performance/baseline-2026-10-03T19-24-35-871Z-dc298b1d.json",
+    "sha256": "a163336237539fd4681a2e62d1b63c39ef632320bafd9c7173cfe3fd801d0195",
+    "source": "benchmarks/results/migration-baseline/source.json",
+    "source_sha256": "fd25f105691b858eb8c4b25ce110994763a1232a5d5b1ce59194a02713c4cc49"
+  },
+  "source": {
+    "commit": "f28525c15f37d548dacb1b3f9c9ee2a414f96e3d",
+    "branch": "feature/rust-renderer",
+    "dirty": true,
+    "tree_sha256": "1603807620b1cac7c6886b7194e32c1169d3d65fa3f28ff8ff5627d6540e9d26",
+    "renderer_source_sha256": "fa26809cf1f54a3eae8e37f40bf7d32150e5e5d4e80f342e900bf113284d723d",
+    "bridge_sha256": "82ccf02fefd4c54e78a82a4de08df6906714ecd0b198864ec72cb0c0394dd80c"
+  },
+  "source_unchanged": true,
+  "hardware_manifest": "benchmarks/hardware/windows-radeon780m-local.json",
+  "hardware_manifest_sha256": "748fddc693da4816ab30a7fe435faa226d5fee2467107a6fd3f9f7856aba7efb",
+  "hardware": {
+    "schemaVersion": 1,
+    "capturedAt": "2026-10-03T19:25:34.802Z",
+    "platform": "win32",
+    "operatingSystem": {
+      "name": "Microsoft Windows 10 企业版 LTSC",
+      "version": "10.0.19044",
+      "build": "19044",
+      "architecture": "64 位",
+      "processArchitecture": "x64"
+    },
+    "cpu": [
+      {
+        "name": "AMD Ryzen 7 8745H w/ Radeon 780M Graphics",
+        "physicalCores": 8,
+        "logicalProcessors": 16
+      }
+    ],
+    "memory": {
+      "physicalBytes": 34359738368,
+      "modules": [
+        {
+          "capacityBytes": 17179869184,
+          "configuredClockMHz": 5600
+        },
+        {
+          "capacityBytes": 17179869184,
+          "configuredClockMHz": 5600
+        }
+      ],
+      "totalVisibleBytes": 30926098432
+    },
+    "graphicsAdapters": [
+      {
+        "name": "GameViewer Virtual Display Adapter",
+        "driverVersion": "15.6.5.199"
+      },
+      {
+        "name": "AMD Radeon 780M Graphics",
+        "driverVersion": "32.0.21030.2001"
+      }
+    ],
+    "displays": [
+      {
+        "index": 0,
+        "primary": true,
+        "x": 0,
+        "y": 0,
+        "width": 2800,
+        "height": 1260,
+        "refreshHz": 144,
+        "bitsPerPixel": 32,
+        "orientation": 0
+      }
+    ],
+    "power": {
+      "acConnected": true,
+      "activeSchemeGuid": "381b4222-f694-41f0-9685-ff5bb260df2e",
+      "activeSchemeName": "Balanced",
+      "windowsPowerMode": null,
+      "windowsPowerModeReason": "The active power scheme does not establish the Windows power-mode overlay"
+    },
+    "runConditions": {
+      "acPowerRequired": true,
+      "acPowerSatisfied": true,
+      "baselineEligible": true,
+      "eligibilityScope": "Hardware inventory and AC power only; application adapter, workload, warm-up and quality require separate validation",
+      "reasons": [],
+      "adapterSelectionVerified": false,
+      "backgroundWorkloadsVerified": false,
+      "thermalStateVerified": false
+    },
+    "collection": {
+      "status": "complete",
+      "errors": [],
+      "sources": [
+        "Windows CIM",
+        "GetSystemPowerStatus",
+        "EnumDisplayDevices/EnumDisplaySettings",
+        "powercfg /getactivescheme"
+      ]
+    },
+    "privacy": {
+      "hostnameIncluded": false,
+      "userNameIncluded": false,
+      "deviceSerialIncluded": false,
+      "hardwareInstanceIdsIncluded": false,
+      "processNamesIncluded": false
+    }
+  },
+  "hardware_after": {
+    "schemaVersion": 1,
+    "capturedAt": "2026-10-03T19:35:30.430Z",
+    "platform": "win32",
+    "operatingSystem": {
+      "name": "Microsoft Windows 10 企业版 LTSC",
+      "version": "10.0.19044",
+      "build": "19044",
+      "architecture": "64 位",
+      "processArchitecture": "x64"
+    },
+    "cpu": [
+      {
+        "name": "AMD Ryzen 7 8745H w/ Radeon 780M Graphics",
+        "physicalCores": 8,
+        "logicalProcessors": 16
+      }
+    ],
+    "memory": {
+      "physicalBytes": 34359738368,
+      "modules": [
+        {
+          "capacityBytes": 17179869184,
+          "configuredClockMHz": 5600
+        },
+        {
+          "capacityBytes": 17179869184,
+          "configuredClockMHz": 5600
+        }
+      ],
+      "totalVisibleBytes": 30926098432
+    },
+    "graphicsAdapters": [
+      {
+        "name": "GameViewer Virtual Display Adapter",
+        "driverVersion": "15.6.5.199"
+      },
+      {
+        "name": "AMD Radeon 780M Graphics",
+        "driverVersion": "32.0.21030.2001"
+      }
+    ],
+    "displays": [
+      {
+        "index": 0,
+        "primary": true,
+        "x": 0,
+        "y": 0,
+        "width": 2800,
+        "height": 1260,
+        "refreshHz": 144,
+        "bitsPerPixel": 32,
+        "orientation": 0
+      }
+    ],
+    "power": {
+      "acConnected": true,
+      "activeSchemeGuid": "381b4222-f694-41f0-9685-ff5bb260df2e",
+      "activeSchemeName": "Balanced",
+      "windowsPowerMode": null,
+      "windowsPowerModeReason": "The active power scheme does not establish the Windows power-mode overlay"
+    },
+    "runConditions": {
+      "acPowerRequired": true,
+      "acPowerSatisfied": true,
+      "baselineEligible": true,
+      "eligibilityScope": "Hardware inventory and AC power only; application adapter, workload, warm-up and quality require separate validation",
+      "reasons": [],
+      "adapterSelectionVerified": false,
+      "backgroundWorkloadsVerified": false,
+      "thermalStateVerified": false
+    },
+    "collection": {
+      "status": "complete",
+      "errors": [],
+      "sources": [
+        "Windows CIM",
+        "GetSystemPowerStatus",
+        "EnumDisplayDevices/EnumDisplaySettings",
+        "powercfg /getactivescheme"
+      ]
+    },
+    "privacy": {
+      "hostnameIncluded": false,
+      "userNameIncluded": false,
+      "deviceSerialIncluded": false,
+      "hardwareInstanceIdsIncluded": false,
+      "processNamesIncluded": false
+    }
+  },
+  "hardware_unchanged": true,
+  "host": {
+    "platform": "win32",
+    "architecture": "x64",
+    "os_release": "10.0.19044",
+    "electron": "43.5.0",
+    "chromium": "150.0.7871.250",
+    "backend": "browser-webgpu",
+    "devices": [
+      {
+        "active": true,
+        "vendorId": 4098,
+        "deviceId": 6400,
+        "deviceString": "AMD Radeon 780M Graphics",
+        "driverVendor": "AMD",
+        "driverVersion": "32.0.21030.2001",
+        "driverDate": null
+      },
+      {
+        "active": false,
+        "vendorId": 4098,
+        "deviceId": 6400,
+        "deviceString": "AMD Radeon 780M Graphics",
+        "driverVendor": null,
+        "driverVersion": "32.0.21030.2001",
+        "driverDate": null
+      },
+      {
+        "active": false,
+        "vendorId": 5140,
+        "deviceId": 140,
+        "deviceString": "Microsoft Basic Render Driver",
+        "driverVendor": null,
+        "driverVersion": "10.0.19041.7548",
+        "driverDate": null
+      }
+    ],
+    "driver": {
+      "glRenderer": "ANGLE (AMD, AMD Radeon 780M Graphics (0x00001900) Direct3D11 vs_5_0 ps_5_0, D3D11-32.0.21030.2001)",
+      "glVersion": "OpenGL ES 3.0 (ANGLE 2.1.27997 git hash: 1a32f60bea08)",
+      "displayType": "ANGLE_D3D11"
+    },
+    "gpuPreference": "high-performance",
+    "webgpuAdapter": {
+      "vendor": "amd",
+      "architecture": "rdna-3",
+      "device": "",
+      "description": "",
+      "isFallbackAdapter": false
+    },
+    "fonts": {
+      "status": "available",
+      "sha256": "f007881380b9b13a97c9e5f7f9b0bdf96f39930a40ba7643b3e8c5c4adc10ac3",
+      "count": 282
+    }
+  },
+  "eligibility": {
+    "eligible": true,
+    "reasons": [],
+    "manifest_id": "windows-radeon780m-local",
+    "adapter_verified": true,
+    "evidence": {
+      "webgpu_adapter": {
+        "vendor": "amd",
+        "architecture": "rdna-3",
+        "device": "",
+        "description": "",
+        "isFallbackAdapter": false
+      },
+      "hardware_adapter": {
+        "name": "AMD Radeon 780M Graphics",
+        "vendor_id": 4098,
+        "device_id": 6400,
+        "driver_version": "32.0.21030.2001"
+      },
+      "renderer_diagnostic_count": 36,
+      "ac_confirmed_before_and_after": true
+    },
+    "limitations": [
+      "Warm-up completion is validated from workload results; temperature is not independently measured",
+      "Unrelated background workloads are not enumerated, terminated or asserted absent",
+      "Windows power-mode overlay remains unobserved; the recorded active scheme is the baseline condition",
+      "WebGPU exposes vendor/architecture only on this host; PCI identity uses an unambiguous native-device and renderer-memory match"
+    ]
+  },
+  "binaries": {
+    "ffmpeg": "D:\\code\\Aster\\build\\ffmpeg\\ffmpeg.exe",
+    "ffprobe": "D:\\code\\Aster\\build\\ffmpeg\\ffprobe.exe"
+  },
+  "ffmpeg_sha256": {
+    "ffmpeg": "04e1307997530f9cf2fe35cba2ca7e8875ca91da02f89d6c7243df819c94ad00",
+    "ffprobe": "3a7e2dc003dc2cd1472827e4c7c4f056ae1ae0ae7c5bbc580c99b49827351ba4"
+  },
+  "ffmpeg_sha256_after": {
+    "ffmpeg": "04e1307997530f9cf2fe35cba2ca7e8875ca91da02f89d6c7243df819c94ad00",
+    "ffprobe": "3a7e2dc003dc2cd1472827e4c7c4f056ae1ae0ae7c5bbc580c99b49827351ba4"
+  },
+  "method": {
+    "build": "Vite production bundle and release desktop bridge; isolated hidden Electron without throttling",
+    "interval": "RenderHost prepared to completed, including output backpressure, audio mixing and encoder flush",
+    "excluded": [
+      "project load",
+      "renderer and shader initialization",
+      "warm-up",
+      "audio decoding",
+      "encoder probe"
+    ],
+    "warmup": "Complete ten-frame suite (run 0) plus ten frames before each measured run",
+    "samples": "Three runs; complete owner opening and fixed 300-frame main; 600 frames for each synthetic scene",
+    "order": "Alternating workload order; rotating output-mode order",
+    "statistics": "R-7 linear-interpolated median/p95/p99; raw frame intervals plus distribution of three run throughputs",
+    "gpu_time": {
+      "status": "unavailable",
+      "reason": "Existing async profiler does not bind completed GPU samples to frame identity"
+    },
+    "cpu_time": {
+      "status": "unavailable",
+      "reason": "Readback wall latency includes GPU and waiting; it is not CPU execution time"
+    },
+    "frame_conversion": "Production BGRA/RGBA bytes; no capture-only RGBA normalization or per-frame extra complete call",
+    "comparison_scope": "Local AMD baseline series only; never compare to historical NVIDIA observations",
+    "pixel_validation": "Performance MP4 ffprobe checks do not establish G5 decoded-pixel or audio-sync acceptance"
+  },
+  "measured_frame_count": 14526,
+  "warmup_suite_run_count": 9,
+  "skipped": [],
+  "measurements": [
+    {
+      "case_id": "effect-chain-1080p",
+      "mode": "readback-only",
+      "frames_per_run": 600,
+      "frame_range": [0, 600],
+      "size": {
+        "width": 1920,
+        "height": 1080
+      },
+      "frame_rate": {
+        "numerator": 30,
+        "denominator": 1
+      },
+      "runs": [
+        {
+          "id": "effect-chain-1080p-readback-only-1",
+          "run": 1,
+          "elapsed_ms": 3535.2999999523163,
+          "fps": 169.71685571467563,
+          "completion_interval_ms": {
+            "count": 600,
+            "minimum": 2.5,
+            "median": 6.1000001430511475,
+            "p95": 7.700000047683716,
+            "p99": 9.703999812602992,
+            "maximum": 18.299999952316284
+          },
+          "readback_wall_ms": {
+            "count": 600,
+            "minimum": 13.5,
+            "median": 17.5,
+            "p95": 19.700000047683716,
+            "p99": 25.601000142097472,
+            "maximum": 41.5
+          },
+          "encoder": null,
+          "audio": null
+        },
+        {
+          "id": "effect-chain-1080p-readback-only-2",
+          "run": 2,
+          "elapsed_ms": 3517.100000143051,
+          "fps": 170.5950925408991,
+          "completion_interval_ms": {
+            "count": 600,
+            "minimum": 2.3999998569488525,
+            "median": 6.200000047683716,
+            "p95": 7.900000095367432,
+            "p99": 9.100999906063079,
+            "maximum": 16.200000047683716
+          },
+          "readback_wall_ms": {
+            "count": 600,
+            "minimum": 13.5,
+            "median": 17.399999856948853,
+            "p95": 19.799999952316284,
+            "p99": 22.637999906539882,
+            "maximum": 39.5
+          },
+          "encoder": null,
+          "audio": null
+        },
+        {
+          "id": "effect-chain-1080p-readback-only-3",
+          "run": 3,
+          "elapsed_ms": 3522.2000000476837,
+          "fps": 170.3480779035481,
+          "completion_interval_ms": {
+            "count": 600,
+            "minimum": 2.6000001430511475,
+            "median": 6.200000047683716,
+            "p95": 7.900000095367432,
+            "p99": 8.701000049114226,
+            "maximum": 16.100000143051147
+          },
+          "readback_wall_ms": {
+            "count": 600,
+            "minimum": 13.200000047683716,
+            "median": 17.40000009536743,
+            "p95": 20.200000047683716,
+            "p99": 22.33100018978116,
+            "maximum": 38.80000019073486
+          },
+          "encoder": null,
+          "audio": null
+        }
+      ],
+      "fps": {
+        "count": 3,
+        "minimum": 169.71685571467563,
+        "median": 170.3480779035481,
+        "p95": 170.57039107716398,
+        "p99": 170.59015224815207,
+        "maximum": 170.5950925408991
+      },
+      "elapsed_ms": {
+        "count": 3,
+        "minimum": 3517.100000143051,
+        "median": 3522.2000000476837,
+        "p95": 3533.989999961853,
+        "p99": 3535.037999954224,
+        "maximum": 3535.2999999523163
+      },
+      "completion_interval_ms": {
+        "count": 1800,
+        "minimum": 2.3999998569488525,
+        "median": 6.200000047683716,
+        "p95": 7.800000190734863,
+        "p99": 9.000999999046325,
+        "maximum": 18.299999952316284
+      },
+      "readback_wall_ms": {
+        "count": 1800,
+        "minimum": 13.200000047683716,
+        "median": 17.40000009536743,
+        "p95": 19.89999986886978,
+        "p99": 25.40200009584427,
+        "maximum": 41.5
+      },
+      "tracked_metrics": ["fps.median", "completion_interval_ms.median"],
+      "raw_data": "benchmarks/results/migration-baseline/effect-chain-1080p-readback-only.json",
+      "raw_data_sha256": "e8b9d66be2837855e4330975bf99a61fe5653635874751529aaa49788feb7b6a"
+    },
+    {
+      "case_id": "composite-4k",
+      "mode": "readback-only",
+      "frames_per_run": 600,
+      "frame_range": [0, 600],
+      "size": {
+        "width": 3840,
+        "height": 2160
+      },
+      "frame_rate": {
+        "numerator": 30,
+        "denominator": 1
+      },
+      "runs": [
+        {
+          "id": "composite-4k-readback-only-1",
+          "run": 1,
+          "elapsed_ms": 7702,
+          "fps": 77.90184367696702,
+          "completion_interval_ms": {
+            "count": 600,
+            "minimum": 8.699999809265137,
+            "median": 12.600000023841858,
+            "p95": 16.5,
+            "p99": 18.000999999046325,
+            "maximum": 23.300000190734863
+          },
+          "readback_wall_ms": {
+            "count": 600,
+            "minimum": 19.700000047683716,
+            "median": 25.850000023841858,
+            "p95": 30.004999995231625,
+            "p99": 32.004999999999995,
+            "maximum": 33.60000014305115
+          },
+          "encoder": null,
+          "audio": null
+        },
+        {
+          "id": "composite-4k-readback-only-2",
+          "run": 2,
+          "elapsed_ms": 8067,
+          "fps": 74.37709185570844,
+          "completion_interval_ms": {
+            "count": 600,
+            "minimum": 9,
+            "median": 13.599999904632568,
+            "p95": 16.504999995231625,
+            "p99": 18.001000001430512,
+            "maximum": 22.299999952316284
+          },
+          "readback_wall_ms": {
+            "count": 600,
+            "minimum": 19.09999990463257,
+            "median": 27.299999952316284,
+            "p95": 30.099999916553497,
+            "p99": 31.60099990606308,
+            "maximum": 34.09999990463257
+          },
+          "encoder": null,
+          "audio": null
+        },
+        {
+          "id": "composite-4k-readback-only-3",
+          "run": 3,
+          "elapsed_ms": 8066.799999952316,
+          "fps": 74.37893588579693,
+          "completion_interval_ms": {
+            "count": 600,
+            "minimum": 9.099999904632568,
+            "median": 13.599999904632568,
+            "p95": 16.40000009536743,
+            "p99": 18.004999999999995,
+            "maximum": 23.799999952316284
+          },
+          "readback_wall_ms": {
+            "count": 600,
+            "minimum": 20.200000047683716,
+            "median": 27.350000023841858,
+            "p95": 30.10499991178512,
+            "p99": 31.80300019025802,
+            "maximum": 33.89999985694885
+          },
+          "encoder": null,
+          "audio": null
+        }
+      ],
+      "fps": {
+        "count": 3,
+        "minimum": 74.37709185570844,
+        "median": 74.37893588579693,
+        "p95": 77.54955289785,
+        "p99": 77.83138552114362,
+        "maximum": 77.90184367696702
+      },
+      "elapsed_ms": {
+        "count": 3,
+        "minimum": 7702,
+        "median": 8066.799999952316,
+        "p95": 8066.979999995232,
+        "p99": 8066.995999999046,
+        "maximum": 8067
+      },
+      "completion_interval_ms": {
+        "count": 1800,
+        "minimum": 8.699999809265137,
+        "median": 13.350000023841858,
+        "p95": 16.5,
+        "p99": 18.000999999046325,
+        "maximum": 23.799999952316284
+      },
+      "readback_wall_ms": {
+        "count": 1800,
+        "minimum": 19.09999990463257,
+        "median": 27,
+        "p95": 30.09999990463257,
+        "p99": 31.802000188827513,
+        "maximum": 34.09999990463257
+      },
+      "tracked_metrics": ["fps.median", "completion_interval_ms.median"],
+      "raw_data": "benchmarks/results/migration-baseline/composite-4k-readback-only.json",
+      "raw_data_sha256": "92b6d87fe6b43c5e13f97a63f69527b9e4c1504ac7c1c81fb36faecd9f24bdc4"
+    },
+    {
+      "case_id": "composite-1080p",
+      "mode": "readback-only",
+      "frames_per_run": 600,
+      "frame_range": [0, 600],
+      "size": {
+        "width": 1920,
+        "height": 1080
+      },
+      "frame_rate": {
+        "numerator": 30,
+        "denominator": 1
+      },
+      "runs": [
+        {
+          "id": "composite-1080p-readback-only-1",
+          "run": 1,
+          "elapsed_ms": 2110.5,
+          "fps": 284.29282160625445,
+          "completion_interval_ms": {
+            "count": 600,
+            "minimum": 2.200000047683716,
+            "median": 3.3999998569488525,
+            "p95": 4.799999964237213,
+            "p99": 5.799999952316284,
+            "maximum": 8.400000095367432
+          },
+          "readback_wall_ms": {
+            "count": 600,
+            "minimum": 8.400000095367432,
+            "median": 10.100000143051147,
+            "p95": 12.89999986886978,
+            "p99": 14.101000139713287,
+            "maximum": 16
+          },
+          "encoder": null,
+          "audio": null
+        },
+        {
+          "id": "composite-1080p-readback-only-2",
+          "run": 2,
+          "elapsed_ms": 2135.0999999046326,
+          "fps": 281.01728257542965,
+          "completion_interval_ms": {
+            "count": 600,
+            "minimum": 1.8999998569488525,
+            "median": 3.3999998569488525,
+            "p95": 5,
+            "p99": 5.400999858379363,
+            "maximum": 6.200000047683716
+          },
+          "readback_wall_ms": {
+            "count": 600,
+            "minimum": 6.200000047683716,
+            "median": 10.699999928474426,
+            "p95": 12.799999952316284,
+            "p99": 13.600000143051147,
+            "maximum": 15.099999904632568
+          },
+          "encoder": null,
+          "audio": null
+        },
+        {
+          "id": "composite-1080p-readback-only-3",
+          "run": 3,
+          "elapsed_ms": 2186.699999809265,
+          "fps": 274.38606121202497,
+          "completion_interval_ms": {
+            "count": 600,
+            "minimum": 2.5,
+            "median": 3.5,
+            "p95": 5.200000047683716,
+            "p99": 5.704000046253201,
+            "maximum": 7.599999904632568
+          },
+          "readback_wall_ms": {
+            "count": 600,
+            "minimum": 7.5,
+            "median": 10.799999952316284,
+            "p95": 13.299999964237212,
+            "p99": 14.30099995136261,
+            "maximum": 15.900000095367432
+          },
+          "encoder": null,
+          "audio": null
+        }
+      ],
+      "fps": {
+        "count": 3,
+        "minimum": 274.38606121202497,
+        "median": 281.01728257542965,
+        "p95": 283.96526770317195,
+        "p99": 284.22731082563797,
+        "maximum": 284.29282160625445
+      },
+      "elapsed_ms": {
+        "count": 3,
+        "minimum": 2110.5,
+        "median": 2135.0999999046326,
+        "p95": 2181.539999818802,
+        "p99": 2185.6679998111726,
+        "maximum": 2186.699999809265
+      },
+      "completion_interval_ms": {
+        "count": 1800,
+        "minimum": 1.8999998569488525,
+        "median": 3.4000000953674316,
+        "p95": 5,
+        "p99": 5.700000047683716,
+        "maximum": 8.400000095367432
+      },
+      "readback_wall_ms": {
+        "count": 1800,
+        "minimum": 6.200000047683716,
+        "median": 10.5,
+        "p95": 13,
+        "p99": 14.101000139713287,
+        "maximum": 16
+      },
+      "tracked_metrics": ["fps.median", "completion_interval_ms.median"],
+      "raw_data": "benchmarks/results/migration-baseline/composite-1080p-readback-only.json",
+      "raw_data_sha256": "fa06842b07d6d4d457d8a859fac2af28fc80a64fc4e5128207d8bc7d01009d39"
+    },
+    {
+      "case_id": "owner-main",
+      "mode": "ipc-no-encode",
+      "frames_per_run": 300,
+      "frame_range": [714, 1014],
+      "size": {
+        "width": 1920,
+        "height": 1080
+      },
+      "frame_rate": {
+        "denominator": 1,
+        "numerator": 30
+      },
+      "runs": [
+        {
+          "id": "owner-main-ipc-no-encode-1",
+          "run": 1,
+          "elapsed_ms": 9270.900000095367,
+          "fps": 32.359317865246524,
+          "completion_interval_ms": {
+            "count": 300,
+            "minimum": 15.799999952316284,
+            "median": 31.5,
+            "p95": 36.00499999523163,
+            "p99": 39.80199995279312,
+            "maximum": 41.700000047683716
+          },
+          "readback_wall_ms": {
+            "count": 300,
+            "minimum": 23.399999856948853,
+            "median": 31.5,
+            "p95": 35.5,
+            "p99": 36.20500004768371,
+            "maximum": 37.89999985694885
+          },
+          "encoder": null,
+          "audio": null
+        },
+        {
+          "id": "owner-main-ipc-no-encode-2",
+          "run": 2,
+          "elapsed_ms": 9403.200000047684,
+          "fps": 31.90403266956767,
+          "completion_interval_ms": {
+            "count": 300,
+            "minimum": 19.799999952316284,
+            "median": 31.699999928474426,
+            "p95": 36.50499999523163,
+            "p99": 37.718000047206864,
+            "maximum": 42.299999952316284
+          },
+          "readback_wall_ms": {
+            "count": 300,
+            "minimum": 22.90000009536743,
+            "median": 31.5,
+            "p95": 36.40500009059906,
+            "p99": 37.10100014209747,
+            "maximum": 40.30000019073486
+          },
+          "encoder": null,
+          "audio": null
+        },
+        {
+          "id": "owner-main-ipc-no-encode-3",
+          "run": 3,
+          "elapsed_ms": 9512.799999952316,
+          "fps": 31.536456143459734,
+          "completion_interval_ms": {
+            "count": 300,
+            "minimum": 18.799999952316284,
+            "median": 32,
+            "p95": 37.91000009775162,
+            "p99": 39.80200018882751,
+            "maximum": 43.09999990463257
+          },
+          "readback_wall_ms": {
+            "count": 300,
+            "minimum": 23.5,
+            "median": 31.90000009536743,
+            "p95": 36.50499999523163,
+            "p99": 38.902000095844265,
+            "maximum": 41.10000014305115
+          },
+          "encoder": null,
+          "audio": null
+        }
+      ],
+      "fps": {
+        "count": 3,
+        "minimum": 31.536456143459734,
+        "median": 31.90403266956767,
+        "p95": 32.313789345678636,
+        "p99": 32.35021216133295,
+        "maximum": 32.359317865246524
+      },
+      "elapsed_ms": {
+        "count": 3,
+        "minimum": 9270.900000095367,
+        "median": 9403.200000047684,
+        "p95": 9501.839999961852,
+        "p99": 9510.607999954223,
+        "maximum": 9512.799999952316
+      },
+      "completion_interval_ms": {
+        "count": 900,
+        "minimum": 15.799999952316284,
+        "median": 31.600000143051147,
+        "p95": 36.799999952316284,
+        "p99": 39.79999995470047,
+        "maximum": 43.09999990463257
+      },
+      "readback_wall_ms": {
+        "count": 900,
+        "minimum": 22.90000009536743,
+        "median": 31.700000047683716,
+        "p95": 36.19999982118607,
+        "p99": 37.800999951362606,
+        "maximum": 41.10000014305115
+      },
+      "tracked_metrics": ["fps.median", "completion_interval_ms.median"],
+      "raw_data": "benchmarks/results/migration-baseline/owner-main-ipc-no-encode.json",
+      "raw_data_sha256": "b4c04bbd7b5bf002365d031c9e80036d574480a99b185b7a9f4307997613ef8c"
+    },
+    {
+      "case_id": "owner-main",
+      "mode": "full-mp4",
+      "frames_per_run": 300,
+      "frame_range": [714, 1014],
+      "size": {
+        "width": 1920,
+        "height": 1080
+      },
+      "frame_rate": {
+        "denominator": 1,
+        "numerator": 30
+      },
+      "runs": [
+        {
+          "id": "owner-main-full-mp4-1",
+          "run": 1,
+          "elapsed_ms": 10437.700000047684,
+          "fps": 28.74196422570389,
+          "completion_interval_ms": {
+            "count": 300,
+            "minimum": 17.700000047683716,
+            "median": 34.5,
+            "p95": 41.00500000715256,
+            "p99": 44.30199995279312,
+            "maximum": 69.29999995231628
+          },
+          "readback_wall_ms": {
+            "count": 300,
+            "minimum": 25.09999990463257,
+            "median": 34.299999952316284,
+            "p95": 39.90500009059906,
+            "p99": 41.79999995470047,
+            "maximum": 46.10000014305115
+          },
+          "encoder": "libx264",
+          "audio": {
+            "enabled": true,
+            "sampleRate": 48000,
+            "channels": 2,
+            "frameCount": 480000
+          }
+        },
+        {
+          "id": "owner-main-full-mp4-2",
+          "run": 2,
+          "elapsed_ms": 10556.299999952316,
+          "fps": 28.4190483409296,
+          "completion_interval_ms": {
+            "count": 300,
+            "minimum": 22.90000009536743,
+            "median": 35.34999990463257,
+            "p95": 41.00999999046326,
+            "p99": 44.60300014019012,
+            "maximum": 49.5
+          },
+          "readback_wall_ms": {
+            "count": 300,
+            "minimum": 24.600000143051147,
+            "median": 35.25,
+            "p95": 40.59999990463257,
+            "p99": 41.9030000925064,
+            "maximum": 45.40000009536743
+          },
+          "encoder": "libx264",
+          "audio": {
+            "enabled": true,
+            "sampleRate": 48000,
+            "channels": 2,
+            "frameCount": 480000
+          }
+        },
+        {
+          "id": "owner-main-full-mp4-3",
+          "run": 3,
+          "elapsed_ms": 10710.700000047684,
+          "fps": 28.00937380364163,
+          "completion_interval_ms": {
+            "count": 300,
+            "minimum": 20.59999990463257,
+            "median": 35.700000047683716,
+            "p95": 41.210000050067904,
+            "p99": 45.00399999856948,
+            "maximum": 71.20000004768372
+          },
+          "readback_wall_ms": {
+            "count": 300,
+            "minimum": 24.299999952316284,
+            "median": 35.64999997615814,
+            "p95": 40.5,
+            "p99": 41.70200004816055,
+            "maximum": 44.89999985694885
+          },
+          "encoder": "libx264",
+          "audio": {
+            "enabled": true,
+            "sampleRate": 48000,
+            "channels": 2,
+            "frameCount": 480000
+          }
+        }
+      ],
+      "fps": {
+        "count": 3,
+        "minimum": 28.00937380364163,
+        "median": 28.4190483409296,
+        "p95": 28.70967263722646,
+        "p99": 28.735505908008403,
+        "maximum": 28.74196422570389
+      },
+      "elapsed_ms": {
+        "count": 3,
+        "minimum": 10437.700000047684,
+        "median": 10556.299999952316,
+        "p95": 10695.260000038146,
+        "p99": 10707.612000045776,
+        "maximum": 10710.700000047684
+      },
+      "completion_interval_ms": {
+        "count": 900,
+        "minimum": 17.700000047683716,
+        "median": 35.14999997615814,
+        "p95": 41.105000126361844,
+        "p99": 44.899999859333036,
+        "maximum": 71.20000004768372
+      },
+      "readback_wall_ms": {
+        "count": 900,
+        "minimum": 24.299999952316284,
+        "median": 35,
+        "p95": 40.40000009536743,
+        "p99": 41.801000189781185,
+        "maximum": 46.10000014305115
+      },
+      "tracked_metrics": ["fps.median", "completion_interval_ms.median"],
+      "raw_data": "benchmarks/results/migration-baseline/owner-main-full-mp4.json",
+      "raw_data_sha256": "04e7aa8fbd24246f5e9e803fa3dd76221a3b5585c2022f8184708a45ade11373"
+    },
+    {
+      "case_id": "owner-main",
+      "mode": "readback-only",
+      "frames_per_run": 300,
+      "frame_range": [714, 1014],
+      "size": {
+        "width": 1920,
+        "height": 1080
+      },
+      "frame_rate": {
+        "denominator": 1,
+        "numerator": 30
+      },
+      "runs": [
+        {
+          "id": "owner-main-readback-only-1",
+          "run": 1,
+          "elapsed_ms": 6731.200000047684,
+          "fps": 44.568576182237166,
+          "completion_interval_ms": {
+            "count": 300,
+            "minimum": 14.899999856948853,
+            "median": 23.100000143051147,
+            "p95": 26.799999952316284,
+            "p99": 27.5,
+            "maximum": 29.200000047683716
+          },
+          "readback_wall_ms": {
+            "count": 300,
+            "minimum": 15,
+            "median": 23.100000143051147,
+            "p95": 26.799999952316284,
+            "p99": 27.5,
+            "maximum": 29.09999990463257
+          },
+          "encoder": null,
+          "audio": null
+        },
+        {
+          "id": "owner-main-readback-only-2",
+          "run": 2,
+          "elapsed_ms": 6655.300000190735,
+          "fps": 45.07685603825556,
+          "completion_interval_ms": {
+            "count": 300,
+            "minimum": 14.700000047683716,
+            "median": 22.899999976158142,
+            "p95": 26.40500009059906,
+            "p99": 27.30099995136261,
+            "maximum": 27.5
+          },
+          "readback_wall_ms": {
+            "count": 300,
+            "minimum": 14.700000047683716,
+            "median": 22.850000023841858,
+            "p95": 26.315000176429752,
+            "p99": 27.202000048160553,
+            "maximum": 27.59999990463257
+          },
+          "encoder": null,
+          "audio": null
+        },
+        {
+          "id": "owner-main-readback-only-3",
+          "run": 3,
+          "elapsed_ms": 6751.300000190735,
+          "fps": 44.43588642061892,
+          "completion_interval_ms": {
+            "count": 300,
+            "minimum": 15,
+            "median": 23.399999856948853,
+            "p95": 27,
+            "p99": 28.20100004673004,
+            "maximum": 29.59999990463257
+          },
+          "readback_wall_ms": {
+            "count": 300,
+            "minimum": 14.899999856948853,
+            "median": 23.399999976158142,
+            "p95": 27,
+            "p99": 28.101999905109405,
+            "maximum": 29.40000009536743
+          },
+          "encoder": null,
+          "audio": null
+        }
+      ],
+      "fps": {
+        "count": 3,
+        "minimum": 44.43588642061892,
+        "median": 44.568576182237166,
+        "p95": 45.02602805265372,
+        "p99": 45.066690441135194,
+        "maximum": 45.07685603825556
+      },
+      "elapsed_ms": {
+        "count": 3,
+        "minimum": 6655.300000190735,
+        "median": 6731.200000047684,
+        "p95": 6749.29000017643,
+        "p99": 6750.898000187874,
+        "maximum": 6751.300000190735
+      },
+      "completion_interval_ms": {
+        "count": 900,
+        "minimum": 14.700000047683716,
+        "median": 23.100000143051147,
+        "p95": 26.799999952316284,
+        "p99": 27.60099990606308,
+        "maximum": 29.59999990463257
+      },
+      "readback_wall_ms": {
+        "count": 900,
+        "minimum": 14.700000047683716,
+        "median": 23.100000143051147,
+        "p95": 26.799999952316284,
+        "p99": 27.601000142097472,
+        "maximum": 29.40000009536743
+      },
+      "tracked_metrics": ["fps.median", "completion_interval_ms.median"],
+      "raw_data": "benchmarks/results/migration-baseline/owner-main-readback-only.json",
+      "raw_data_sha256": "0ed6543a273f7f0822e807536abdc19c2b1fff401e17824dd71f67bc22623fef"
+    },
+    {
+      "case_id": "owner-opening",
+      "mode": "ipc-no-encode",
+      "frames_per_run": 714,
+      "frame_range": [0, 714],
+      "size": {
+        "width": 1920,
+        "height": 1080
+      },
+      "frame_rate": {
+        "denominator": 1,
+        "numerator": 30
+      },
+      "runs": [
+        {
+          "id": "owner-opening-ipc-no-encode-1",
+          "run": 1,
+          "elapsed_ms": 43488.09999990463,
+          "fps": 16.418284542244102,
+          "completion_interval_ms": {
+            "count": 714,
+            "minimum": 14,
+            "median": 55,
+            "p95": 90.30500003099442,
+            "p99": 200.8870000767708,
+            "maximum": 232.20000004768372
+          },
+          "readback_wall_ms": {
+            "count": 714,
+            "minimum": 10.599999904632568,
+            "median": 54.90000009536743,
+            "p95": 89.33500015735626,
+            "p99": 201.20000004768372,
+            "maximum": 231.79999995231628
+          },
+          "encoder": null,
+          "audio": null
+        },
+        {
+          "id": "owner-opening-ipc-no-encode-2",
+          "run": 2,
+          "elapsed_ms": 42843.09999990463,
+          "fps": 16.66546071599836,
+          "completion_interval_ms": {
+            "count": 714,
+            "minimum": 14.599999904632568,
+            "median": 54.39999985694885,
+            "p95": 88,
+            "p99": 186.78699996471406,
+            "maximum": 210.5
+          },
+          "readback_wall_ms": {
+            "count": 714,
+            "minimum": 10.900000095367432,
+            "median": 54.299999952316284,
+            "p95": 87.36999996900559,
+            "p99": 198.38800003528596,
+            "maximum": 214.29999995231628
+          },
+          "encoder": null,
+          "audio": null
+        },
+        {
+          "id": "owner-opening-ipc-no-encode-3",
+          "run": 3,
+          "elapsed_ms": 42958,
+          "fps": 16.62088551608548,
+          "completion_interval_ms": {
+            "count": 714,
+            "minimum": 13.900000095367432,
+            "median": 54.40000009536743,
+            "p95": 89.79999995231628,
+            "p99": 199.39500000000004,
+            "maximum": 218.70000004768372
+          },
+          "readback_wall_ms": {
+            "count": 714,
+            "minimum": 8.900000095367432,
+            "median": 54.299999952316284,
+            "p95": 87.0699999332428,
+            "p99": 198.98899989843372,
+            "maximum": 217.5
+          },
+          "encoder": null,
+          "audio": null
+        }
+      ],
+      "fps": {
+        "count": 3,
+        "minimum": 16.418284542244102,
+        "median": 16.62088551608548,
+        "p95": 16.661003196007073,
+        "p99": 16.664569212000103,
+        "maximum": 16.66546071599836
+      },
+      "elapsed_ms": {
+        "count": 3,
+        "minimum": 42843.09999990463,
+        "median": 42958,
+        "p95": 43435.08999991417,
+        "p99": 43477.49799990654,
+        "maximum": 43488.09999990463
+      },
+      "completion_interval_ms": {
+        "count": 2142,
+        "minimum": 13.900000095367432,
+        "median": 54.59999990463257,
+        "p95": 89.98999999761578,
+        "p99": 200.61800002813342,
+        "maximum": 232.20000004768372
+      },
+      "readback_wall_ms": {
+        "count": 2142,
+        "minimum": 8.900000095367432,
+        "median": 54.5,
+        "p95": 88.29999995231628,
+        "p99": 199.79999995231628,
+        "maximum": 231.79999995231628
+      },
+      "tracked_metrics": ["fps.median", "completion_interval_ms.median"],
+      "raw_data": "benchmarks/results/migration-baseline/owner-opening-ipc-no-encode.json",
+      "raw_data_sha256": "52ab6d5e8fd59f47191615d40bbea893767c9311c3a256f7adb60b347b242233"
+    },
+    {
+      "case_id": "owner-opening",
+      "mode": "full-mp4",
+      "frames_per_run": 714,
+      "frame_range": [0, 714],
+      "size": {
+        "width": 1920,
+        "height": 1080
+      },
+      "frame_rate": {
+        "denominator": 1,
+        "numerator": 30
+      },
+      "runs": [
+        {
+          "id": "owner-opening-full-mp4-1",
+          "run": 1,
+          "elapsed_ms": 47806.40000009537,
+          "fps": 14.935238796449338,
+          "completion_interval_ms": {
+            "count": 714,
+            "minimum": 16.5,
+            "median": 61.700000047683716,
+            "p95": 97.80500003099442,
+            "p99": 203.92200001239777,
+            "maximum": 233.79999995231628
+          },
+          "readback_wall_ms": {
+            "count": 714,
+            "minimum": 9.400000095367432,
+            "median": 61.5,
+            "p95": 96.63499995470048,
+            "p99": 213.77599989414216,
+            "maximum": 229.09999990463257
+          },
+          "encoder": "libx264",
+          "audio": {
+            "enabled": true,
+            "sampleRate": 48000,
+            "channels": 2,
+            "frameCount": 1142400
+          }
+        },
+        {
+          "id": "owner-opening-full-mp4-2",
+          "run": 2,
+          "elapsed_ms": 48401.199999809265,
+          "fps": 14.751700371123313,
+          "completion_interval_ms": {
+            "count": 714,
+            "minimum": 15.799999952316284,
+            "median": 62.10000014305115,
+            "p95": 100.63499987125397,
+            "p99": 203.31000004768373,
+            "maximum": 223.60000014305115
+          },
+          "readback_wall_ms": {
+            "count": 714,
+            "minimum": 10.200000047683716,
+            "median": 62.10000002384186,
+            "p95": 99.53500005006791,
+            "p99": 208.47399999380113,
+            "maximum": 225.5
+          },
+          "encoder": "libx264",
+          "audio": {
+            "enabled": true,
+            "sampleRate": 48000,
+            "channels": 2,
+            "frameCount": 1142400
+          }
+        },
+        {
+          "id": "owner-opening-full-mp4-3",
+          "run": 3,
+          "elapsed_ms": 47979.199999809265,
+          "fps": 14.881448627797846,
+          "completion_interval_ms": {
+            "count": 714,
+            "minimum": 16.200000047683716,
+            "median": 61.60000002384186,
+            "p95": 97.29999995231628,
+            "p99": 202.2570001077652,
+            "maximum": 224
+          },
+          "readback_wall_ms": {
+            "count": 714,
+            "minimum": 13.199999809265137,
+            "median": 61.5,
+            "p95": 96.13499995470048,
+            "p99": 210.22799997091295,
+            "maximum": 226.29999995231628
+          },
+          "encoder": "libx264",
+          "audio": {
+            "enabled": true,
+            "sampleRate": 48000,
+            "channels": 2,
+            "frameCount": 1142400
+          }
+        }
+      ],
+      "fps": {
+        "count": 3,
+        "minimum": 14.751700371123313,
+        "median": 14.881448627797846,
+        "p95": 14.92985977958419,
+        "p99": 14.934162993076308,
+        "maximum": 14.935238796449338
+      },
+      "elapsed_ms": {
+        "count": 3,
+        "minimum": 47806.40000009537,
+        "median": 47979.199999809265,
+        "p95": 48358.99999980927,
+        "p99": 48392.75999980926,
+        "maximum": 48401.199999809265
+      },
+      "completion_interval_ms": {
+        "count": 2142,
+        "minimum": 15.799999952316284,
+        "median": 61.89999997615814,
+        "p95": 99.20000003576278,
+        "p99": 203.57700006723408,
+        "maximum": 233.79999995231628
+      },
+      "readback_wall_ms": {
+        "count": 2142,
+        "minimum": 9.400000095367432,
+        "median": 61.799999952316284,
+        "p95": 97.78999994993207,
+        "p99": 210.30800003051775,
+        "maximum": 229.09999990463257
+      },
+      "tracked_metrics": ["fps.median", "completion_interval_ms.median"],
+      "raw_data": "benchmarks/results/migration-baseline/owner-opening-full-mp4.json",
+      "raw_data_sha256": "483d1aeb048fb884bae8b4769bd80e632ee0d5b98b0da9d92713497d486a5e7a"
+    },
+    {
+      "case_id": "owner-opening",
+      "mode": "readback-only",
+      "frames_per_run": 714,
+      "frame_range": [0, 714],
+      "size": {
+        "width": 1920,
+        "height": 1080
+      },
+      "frame_rate": {
+        "denominator": 1,
+        "numerator": 30
+      },
+      "runs": [
+        {
+          "id": "owner-opening-readback-only-1",
+          "run": 1,
+          "elapsed_ms": 32081.099999904633,
+          "fps": 22.256094710035583,
+          "completion_interval_ms": {
+            "count": 714,
+            "minimum": 8,
+            "median": 40,
+            "p95": 61.97000011205674,
+            "p99": 183.5089998984337,
+            "maximum": 205.29999995231628
+          },
+          "readback_wall_ms": {
+            "count": 714,
+            "minimum": 8,
+            "median": 40,
+            "p95": 61.97000011205674,
+            "p99": 183.4960001182556,
+            "maximum": 205.29999995231628
+          },
+          "encoder": null,
+          "audio": null
+        },
+        {
+          "id": "owner-opening-readback-only-2",
+          "run": 2,
+          "elapsed_ms": 31988.299999952316,
+          "fps": 22.320660991708355,
+          "completion_interval_ms": {
+            "count": 714,
+            "minimum": 8.400000095367432,
+            "median": 39.90000009536743,
+            "p95": 60.84000008106233,
+            "p99": 184.34399999380113,
+            "maximum": 209.5
+          },
+          "readback_wall_ms": {
+            "count": 714,
+            "minimum": 8.400000095367432,
+            "median": 39.90000009536743,
+            "p95": 60.87500004768373,
+            "p99": 184.25699986934663,
+            "maximum": 209.5
+          },
+          "encoder": null,
+          "audio": null
+        },
+        {
+          "id": "owner-opening-readback-only-3",
+          "run": 3,
+          "elapsed_ms": 32109.39999985695,
+          "fps": 22.23647903739033,
+          "completion_interval_ms": {
+            "count": 714,
+            "minimum": 8,
+            "median": 39.89999997615814,
+            "p95": 62.21999996900561,
+            "p99": 187.52199991703034,
+            "maximum": 211.89999985694885
+          },
+          "readback_wall_ms": {
+            "count": 714,
+            "minimum": 8,
+            "median": 39.90000009536743,
+            "p95": 62.155000030994444,
+            "p99": 187.50899992942811,
+            "maximum": 212
+          },
+          "encoder": null,
+          "audio": null
+        }
+      ],
+      "fps": {
+        "count": 3,
+        "minimum": 22.23647903739033,
+        "median": 22.256094710035583,
+        "p95": 22.314204363541077,
+        "p99": 22.3193696660749,
+        "maximum": 22.320660991708355
+      },
+      "elapsed_ms": {
+        "count": 3,
+        "minimum": 31988.299999952316,
+        "median": 32081.099999904633,
+        "p95": 32106.569999861716,
+        "p99": 32108.833999857903,
+        "maximum": 32109.39999985695
+      },
+      "completion_interval_ms": {
+        "count": 2142,
+        "minimum": 8,
+        "median": 40,
+        "p95": 61.700000035762784,
+        "p99": 184.73599991559988,
+        "maximum": 211.89999985694885
+      },
+      "readback_wall_ms": {
+        "count": 2142,
+        "minimum": 8,
+        "median": 39.90000009536743,
+        "p95": 61.69999980926514,
+        "p99": 184.6359999132157,
+        "maximum": 212
+      },
+      "tracked_metrics": ["fps.median", "completion_interval_ms.median"],
+      "raw_data": "benchmarks/results/migration-baseline/owner-opening-readback-only.json",
+      "raw_data_sha256": "18acf64473f109d3d1b633b1fde6e625caefe2d982e41a2cb4935c30374e92b9"
+    }
+  ]
+}

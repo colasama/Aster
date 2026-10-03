@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-10-03T19:14:56.843Z",
+  "platform": "win32",
+  "operatingSystem": {
+    "name": "Microsoft Windows 10 企业版 LTSC",
+    "version": "10.0.19044",
+    "build": "19044",
+    "architecture": "64 位",
+    "processArchitecture": "x64"
+  },
+  "cpu": [
+    {
+      "name": "AMD Ryzen 7 8745H w/ Radeon 780M Graphics",
+      "physicalCores": 8,
+      "logicalProcessors": 16
+    }
+  ],
+  "memory": {
+    "physicalBytes": 34359738368,
+    "modules": [
+      {
+        "capacityBytes": 17179869184,
+        "configuredClockMHz": 5600
+      },
+      {
+        "capacityBytes": 17179869184,
+        "configuredClockMHz": 5600
+      }
+    ],
+    "totalVisibleBytes": 30926098432
+  },
+  "graphicsAdapters": [
+    {
+      "name": "GameViewer Virtual Display Adapter",
+      "driverVersion": "15.6.5.199"
+    },
+    {
+      "name": "AMD Radeon 780M Graphics",
+      "driverVersion": "32.0.21030.2001"
+    }
+  ],
+  "displays": [
+    {
+      "index": 0,
+      "primary": true,
+      "x": 0,
+      "y": 0,
+      "width": 2800,
+      "height": 1260,
+      "refreshHz": 144,
+      "bitsPerPixel": 32,
+      "orientation": 0
+    }
+  ],
+  "power": {
+    "acConnected": true,
+    "activeSchemeGuid": "381b4222-f694-41f0-9685-ff5bb260df2e",
+    "activeSchemeName": "Balanced",
+    "windowsPowerMode": null,
+    "windowsPowerModeReason": "The active power scheme does not establish the Windows power-mode overlay"
+  },
+  "runConditions": {
+    "acPowerRequired": true,
+    "acPowerSatisfied": true,
+    "baselineEligible": true,
+    "eligibilityScope": "Hardware inventory and AC power only; application adapter, workload, warm-up and quality require separate validation",
+    "reasons": [],
+    "adapterSelectionVerified": false,
+    "backgroundWorkloadsVerified": false,
+    "thermalStateVerified": false
+  },
+  "collection": {
+    "status": "complete",
+    "errors": [],
+    "sources": [
+      "Windows CIM",
+      "GetSystemPowerStatus",
+      "EnumDisplayDevices/EnumDisplaySettings",
+      "powercfg /getactivescheme"
+    ]
+  },
+  "privacy": {
+    "hostnameIncluded": false,
+    "userNameIncluded": false,
+    "deviceSerialIncluded": false,
+    "hardwareInstanceIdsIncluded": false,
+    "processNamesIncluded": false
+  },
+  "id": "windows-radeon780m-local",
+  "baselinePolicy": {
+    "authorization": "Owner authorized continued migration and a separate local hardware series on 2026-10-04 (Asia/Tokyo)",
+    "authorizationLedger": "docs/migration/rust-renderer-progress.json#owner_overrides.validation_host",
+    "requiredAdapter": {
+      "name": "AMD Radeon 780M Graphics",
+      "vendorId": 4098,
+      "deviceId": 6400,
+      "driverVersion": "32.0.21030.2001",
+      "webgpu": {
+        "vendor": "amd",
+        "architecture": "rdna-3",
+        "device": "",
+        "description": "",
+        "isFallbackAdapter": false
+      }
+    },
+    "historicalRtx5060ComparisonsAllowed": false,
+    "driverOsPowerDisplayChangesStartNewSeries": true,
+    "adapterEvidence": "artifacts/parity/reference/minimal-golden/0/meta.json"
+  },
+  "captureMethod": "scripts/performance/hardware.mjs"
+}
