@@ -25,35 +25,43 @@
     },
     "continuation": "The updated owner goal supersedes the specification's stop-on-blocker requirements. Record obstacles and evidence, resolve them or continue independent required work. Do not report failed or skipped checks as passed. Gate, pixel-review, commit and completion requirements remain in force."
   },
+  "reference_baseline": {
+    "renderer_source_sha256": "a29a484b82eae466b72828818f628714db90f1cc7703718e71e2469329f9c703",
+    "capture_report": "artifacts/parity/capture-2026-10-03T17-56-06-814Z-3bc28aaa.json",
+    "case_count": 337,
+    "frame_count": 1947,
+    "approval": "The complete M0-T3 production TS capture is the pre-change pixel oracle. A replacement source must first pass whole-corpus exact comparison against this baseline."
+  },
   "last_cycle": {
-    "id": 3,
-    "time": "2026-10-03T18:06:11.538Z",
+    "id": 4,
+    "time": "2026-10-03T18:58:19.816Z",
     "milestone": "M0",
-    "task": "M0-T3",
+    "task": "M0-T4",
     "outcome": "passed",
-    "commit": "989893347bb71778fe4f4de566d9229c7b66436e",
-    "verification": "artifacts/migration/verify-2026-10-03T18-02-37-078Z-1a4b25b1.json",
+    "commit": "86115b9000053ab91f656e9cc650ffb5b0fa5fd4",
+    "verification": "artifacts/migration/verify-2026-10-03T18-51-42-205Z-ac57c888.json",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 26433
+        "duration_ms": 110771
       },
       {
         "id": "G6",
         "status": "passed",
-        "duration_ms": 61427
+        "duration_ms": 155983
       }
     ],
-    "verification_duration_ms": 88964,
-    "next_step": "M0-T4: implement CLI comparison metrics, structural checks, tolerance profiles and a deliberately rejected candidate.",
+    "verification_duration_ms": 267885,
+    "next_step": "M0-T5: record reproducible TS performance baselines on the owner-authorized AMD host, including full opening and main segments.",
     "notes": [
-      "Captured every one of 337 cases: 1819 requested frame addresses plus 128 adjacent sequence frames, totaling 1947 lossless RGBA references.",
-      "A complete follow-up capture reused all 337 cases only after verifying PNG and metadata hashes, source/resource hashes, actual adapter and 282 system font identities.",
-      "An intentional one-second startup timeout failed, exited promptly and left the existing reference untouched. Late errors, stalled I/O and expired callbacks have dedicated regression coverage.",
-      "Strict capture diagnosed the existing Enchanted Love four-surface cap. Its valid fifth surface fit the unchanged target/pixel/estimated-byte budgets; admission and retained-cache accounting were repaired and all 140 sampled frames passed.",
-      "The original minimal-golden animation is fully occluded. Its reference is preserved and the misleading visible-animation feature label was removed; generated scenes and barcode media supply independent motion evidence.",
-      "No candidate pixel comparison or section 6.6 acceptance is claimed by this reference-capture increment."
+      "Added a CPU-only Rust comparison library and thin CLI with bounded PNG decoding, RGB PSNR/SSIM, full RGBA error and alpha checks, error components, ink bounds, phase correlation and strict sequence identity.",
+      "All 53 library tests and two CLI integration tests pass; independent numeric counterexamples prevent unchanged alpha from diluting color quality scores. Phase correlation rejects ambiguous, periodic, low-signal and incoherent inputs.",
+      "Exact identical reference pixels passed diagnostic G3. Removing a 20 by 20 interior patch failed G3 with a 400-pixel error component, 0.6944% alpha changes and RGB PSNR 30.141 dB. Direct contact-sheet and heatmap inspection confirmed the defect; the deliberate probe has a rejected structural self-review.",
+      "G3 verifies every reference and sequence neighbor against the ledger-approved renderer source, recomputes capture identity, checks full corpus coverage, and binds review reuse to all metrics and three hashed evidence files.",
+      "RustFFT and its pure-Rust dependency additions passed cargo deny and cargo audit. Existing JavaScript audit findings were repaired from 54 to zero without ignored advisories; the builder downloader compatibility adapter passed local HTTP, timeout, checksum, retry and proxy tests.",
+      "Electron 43.5.0 passed full foreground/background G6. Original Electron 43.4.1 reference pixels remain pinned and untouched; whole-corpus upgrade pixel equivalence is still required before any reference replacement.",
+      "M0 performance baselines and milestone exit remain pending; the oracle diagnostic does not claim native rendering or full corpus candidate parity."
     ]
   },
   "milestones": [
@@ -161,7 +169,47 @@
         {
           "title": "Implement compare metrics, structural checks, tolerance profiles and rejection proof",
           "id": "M0-T4",
-          "status": "pending"
+          "status": "done",
+          "oracle_rejection": {
+            "report": "artifacts/parity/oracle/2026-10-03T18-50-02-900Z-747ea93b/report.json",
+            "positive_profile": "exact",
+            "positive_gate": "passed",
+            "negative_profile": "gpu",
+            "negative_gate": "failed",
+            "self_review": "rejected",
+            "comparison_evidence": {
+              "report": "artifacts/parity/oracle/2026-10-03T18-50-02-900Z-747ea93b/negative/frames/shape-ellipse-0/report.json",
+              "heatmap": "artifacts/parity/oracle/2026-10-03T18-50-02-900Z-747ea93b/negative/frames/shape-ellipse-0/heatmap.png",
+              "contact_sheet": "artifacts/parity/oracle/2026-10-03T18-50-02-900Z-747ea93b/negative/frames/shape-ellipse-0/contact-sheet.png",
+              "report_sha256": "e6df8e413ba0ee12915b46b3ee35387af8c5dc5d8cc8fa90a822e1663c74e741",
+              "heatmap_sha256": "9fb62d7f88691768f94c7e60c783bf379590b07e72fde69dc029873b0f80ccd1",
+              "contact_sheet_sha256": "7f34c96b48c3cf0f54160f80e24ba87ddfc9254d12bffec210f961586576749f"
+            }
+          },
+          "completed_at": "2026-10-03T18:58:19.816Z",
+          "commit": "86115b9000053ab91f656e9cc650ffb5b0fa5fd4",
+          "verification": "artifacts/migration/verify-2026-10-03T18-51-42-205Z-ac57c888.json",
+          "gates": [
+            {
+              "id": "G0",
+              "status": "passed",
+              "duration_ms": 110771
+            },
+            {
+              "id": "G6",
+              "status": "passed",
+              "duration_ms": 155983
+            }
+          ],
+          "verification_duration_ms": 267885,
+          "dependency_audit": {
+            "cargo_deny": "artifacts/migration/cycle4-cargo-deny.log",
+            "cargo_audit": "artifacts/migration/cycle4-cargo-audit.log",
+            "pnpm_before": "artifacts/migration/cycle4-pnpm-audit-before.json",
+            "pnpm_after": "artifacts/migration/cycle4-pnpm-audit-after.json",
+            "remaining_vulnerabilities": 0,
+            "electron": "43.5.0"
+          }
         },
         {
           "title": "Measure and record primary-machine baselines including owner opening and main segments",
@@ -171,26 +219,29 @@
         {
           "title": "Verify complete M0 corpus references, oracle rejection and milestone exit",
           "id": "M0-T6",
-          "status": "pending"
+          "status": "pending",
+          "notes": [
+            "Capture current Electron candidates separately and compare all 1819 required frames under exact against the preserved, pinned M0-T3 reference. Only explicitly promote new reference provenance after that whole-corpus comparison passes."
+          ]
         }
       ],
       "last_verification": {
-        "milestone_exit_satisfied": false,
+        "status": "passed",
         "required_gates_passed": true,
+        "milestone_exit_satisfied": false,
         "gates": [
           {
             "id": "G0",
             "status": "passed",
-            "duration_ms": 26433
+            "duration_ms": 110771
           },
           {
             "id": "G6",
             "status": "passed",
-            "duration_ms": 61427
+            "duration_ms": 155983
           }
         ],
-        "status": "passed",
-        "report": "artifacts/migration/verify-2026-10-03T18-02-37-078Z-1a4b25b1.json"
+        "report": "artifacts/migration/verify-2026-10-03T18-51-42-205Z-ac57c888.json"
       }
     },
     {
@@ -279,7 +330,112 @@
     }
   ],
   "tolerance_overrides": [],
-  "self_reviews": [],
+  "self_reviews": [
+    {
+      "case_id": "shape-ellipse",
+      "frame": 0,
+      "profile": "gpu",
+      "purpose": "oracle-rejection-proof",
+      "reference_rgba_sha256": "38e16aea3fdf3c4aa73ec9912c221665e800eaa607168f411f266240e9ee37e2",
+      "candidate_rgba_sha256": "ec4d868f37d8c9ee7043edca583fa92c10c4fae931d3c53a5c4729048d6f69f3",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 168,
+        "mean_abs_error": 0.7479340277777777,
+        "mean_squared_error": 88.96497395833333,
+        "rgb_mean_squared_error": 62.9474537037037,
+        "psnr": {
+          "kind": "finite",
+          "db": 30.141021937758442
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 28.63861304904773
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 400
+      },
+      "ssim": {
+        "channels": [
+          0.9874650435995697, 0.9887919293880908, 0.9877295337995472, 0.9869421815445942
+        ],
+        "mean": 0.9879955022624025,
+        "rgba_mean": 0.9877321720829504,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 400,
+        "error_component_count": 1,
+        "signed_bias": [
+          -0.8260763888888889, -0.4180902777777778, -0.6713541666666667, -1.0762152777777778
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 400,
+        "alpha_changed_fraction": 0.006944444444444444,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 79,
+            "min_y": 32,
+            "max_x": 246,
+            "max_y": 139
+          },
+          "candidate": {
+            "min_x": 79,
+            "min_y": 32,
+            "max_x": 246,
+            "max_y": 139
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.2479848718803803,
+          "candidate_rms": 0.24662923852405952,
+          "reference_axis_ratio": 0.3529556047364193,
+          "candidate_axis_ratio": 0.35928328055984776,
+          "reference_window_energy_fraction": 0.9647245424845304,
+          "candidate_window_energy_fraction": 0.9661421827786535,
+          "active_frequencies": 5898,
+          "spectral_bins": 524288,
+          "peak_ratio": 10.257762317794635,
+          "peak_to_sidelobe_ratio": 107.83783643273026,
+          "peak_coherence": 0.9911721154661869,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": null,
+      "residual_class": "structural",
+      "verdict": "rejected",
+      "reviewed_at": "2026-10-03T18:51:41.486Z",
+      "inspection": "Directly inspected the full-resolution contact sheet and opaque error heatmap. The candidate has a 20 by 20 missing interior patch visible in both the premultiplied color preview and the alpha panel. The heatmap isolates that same square; outer ink bounds and registration remain unchanged. Numeric and structural failures correctly reject this deliberate oracle probe.",
+      "evidence": {
+        "report": "artifacts/parity/oracle/2026-10-03T18-50-02-900Z-747ea93b/negative/frames/shape-ellipse-0/report.json",
+        "heatmap": "artifacts/parity/oracle/2026-10-03T18-50-02-900Z-747ea93b/negative/frames/shape-ellipse-0/heatmap.png",
+        "contact_sheet": "artifacts/parity/oracle/2026-10-03T18-50-02-900Z-747ea93b/negative/frames/shape-ellipse-0/contact-sheet.png",
+        "report_sha256": "e6df8e413ba0ee12915b46b3ee35387af8c5dc5d8cc8fa90a822e1663c74e741",
+        "heatmap_sha256": "9fb62d7f88691768f94c7e60c783bf379590b07e72fde69dc029873b0f80ccd1",
+        "contact_sheet_sha256": "7f34c96b48c3cf0f54160f80e24ba87ddfc9254d12bffec210f961586576749f"
+      }
+    }
+  ],
   "history": [
     {
       "id": 1,
@@ -370,6 +526,38 @@
         "Strict capture diagnosed the existing Enchanted Love four-surface cap. Its valid fifth surface fit the unchanged target/pixel/estimated-byte budgets; admission and retained-cache accounting were repaired and all 140 sampled frames passed.",
         "The original minimal-golden animation is fully occluded. Its reference is preserved and the misleading visible-animation feature label was removed; generated scenes and barcode media supply independent motion evidence.",
         "No candidate pixel comparison or section 6.6 acceptance is claimed by this reference-capture increment."
+      ]
+    },
+    {
+      "id": 4,
+      "time": "2026-10-03T18:58:19.816Z",
+      "milestone": "M0",
+      "task": "M0-T4",
+      "outcome": "passed",
+      "commit": "86115b9000053ab91f656e9cc650ffb5b0fa5fd4",
+      "verification": "artifacts/migration/verify-2026-10-03T18-51-42-205Z-ac57c888.json",
+      "gates": [
+        {
+          "id": "G0",
+          "status": "passed",
+          "duration_ms": 110771
+        },
+        {
+          "id": "G6",
+          "status": "passed",
+          "duration_ms": 155983
+        }
+      ],
+      "verification_duration_ms": 267885,
+      "next_step": "M0-T5: record reproducible TS performance baselines on the owner-authorized AMD host, including full opening and main segments.",
+      "notes": [
+        "Added a CPU-only Rust comparison library and thin CLI with bounded PNG decoding, RGB PSNR/SSIM, full RGBA error and alpha checks, error components, ink bounds, phase correlation and strict sequence identity.",
+        "All 53 library tests and two CLI integration tests pass; independent numeric counterexamples prevent unchanged alpha from diluting color quality scores. Phase correlation rejects ambiguous, periodic, low-signal and incoherent inputs.",
+        "Exact identical reference pixels passed diagnostic G3. Removing a 20 by 20 interior patch failed G3 with a 400-pixel error component, 0.6944% alpha changes and RGB PSNR 30.141 dB. Direct contact-sheet and heatmap inspection confirmed the defect; the deliberate probe has a rejected structural self-review.",
+        "G3 verifies every reference and sequence neighbor against the ledger-approved renderer source, recomputes capture identity, checks full corpus coverage, and binds review reuse to all metrics and three hashed evidence files.",
+        "RustFFT and its pure-Rust dependency additions passed cargo deny and cargo audit. Existing JavaScript audit findings were repaired from 54 to zero without ignored advisories; the builder downloader compatibility adapter passed local HTTP, timeout, checksum, retry and proxy tests.",
+        "Electron 43.5.0 passed full foreground/background G6. Original Electron 43.4.1 reference pixels remain pinned and untouched; whole-corpus upgrade pixel equivalence is still required before any reference replacement.",
+        "M0 performance baselines and milestone exit remain pending; the oracle diagnostic does not claim native rendering or full corpus candidate parity."
       ]
     }
   ],
