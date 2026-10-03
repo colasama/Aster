@@ -33,34 +33,34 @@
     "approval": "Preserve the complete M0-T3 production TS capture as the original pixel oracle. Only the explicitly listed, section 6.6 reviewed M0 reference repairs overlay requested frames. All other original frames, including sequence neighbors, remain unchanged. Freeze this effective reference set before M1; M1 and M2 retain strict whole-corpus exact requirements."
   },
   "last_cycle": {
-    "id": 7,
-    "time": "2026-10-03T21:49:03.403Z",
+    "id": 8,
+    "time": "2026-10-03T22:09:39.305Z",
     "milestone": "M1",
-    "task": "M1-T1",
+    "task": "M1-T2",
     "outcome": "passed",
-    "commit": "035f805309d27660d9be28bcadbea27b72ad0e5a",
-    "verification": "artifacts/migration/verify-2026-10-03T21-43-27-332Z-afdea747.json",
+    "commit": "e2c0c11f28116d641a2076c2ebd36075e5afd0ce",
+    "verification": "artifacts/migration/verify-2026-10-03T22-04-10-988Z-decb8e01.json",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 43872
+        "duration_ms": 42078
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 258617
+        "duration_ms": 258460
       }
     ],
-    "verification_duration_ms": 303571,
-    "next_step": "M1-T2: extract core scene variants, auxiliary surfaces, display helpers and render-buffer sources while preserving shader arithmetic and the frozen M0 reference set.",
+    "verification_duration_ms": 301643,
+    "next_step": "M1-T3: extract compositing, blur, depth, surface post-effects and motion-reconstruction shader sources, retaining the exact frozen reference set.",
     "notes": [
-      "Output anti-aliasing WGSL is byte-identical to its pre-extraction template (2652 bytes, SHA-256 7ae357bfe93db1c985380b3bc2c473517593a706cc9ef9aac0fc8fbd05e3e86c).",
-      "TS raw imports and Rust include_str embed the same manifest-owned fragment order without inserting separators. Both validate declared files, reachable fragments and u32 override values; Rust validates actual entry points and override declarations with Naga.",
-      "The new aster-shaders workspace crate reuses locked Naga, serde, serde_json, thiserror and test-only sha2; no external package version changed.",
-      "M1/M2 G3 requires a fresh complete current-source TS capture, equal project/media/plugin/frame inputs and the original reference aggregate digest from completed M0 evidence. Frozen reference repairs cannot drift.",
-      "All 1819 required frames passed exact against the effective M0 references. Original reference files and the single reviewed M0 repair are unchanged; no M1 pixel tolerance or reference repair was introduced.",
-      "This completes only the shared catalog and output AA increment. Remaining WGSL families and the complete extraction exit audit remain open."
+      "The nine scene/auxiliary/display/buffer exports retain their complete pre-extraction expanded-source SHA-256 values. Material variants now use declarative fragment recipes rather than TS interpolation.",
+      "The fixed additional-scene-lights integer is declared once in the shared manifest and sizes both WGSL uniform arrays and the TS host allocation. Eight lights still occupy 592 bytes. Uniform array sizes cannot be pipeline overrides.",
+      "TS and Rust support only checked unsigned integer recipe insertions, with no expressions or implicit separators. Helper modules may have zero entry points but still undergo full Naga validation.",
+      "All 18 shared WGSL files participate in the ten Naga-validated manifest programs. No external dependencies or project/ABI semantics changed.",
+      "Full G0/G3 passed and every one of the 1819 required frames was exact. Source, capture inputs and frozen reference bytes remained stable; no new reference repair or tolerance override was introduced.",
+      "Remaining M1 extraction families and the final complete-WGSL exit audit remain open."
     ]
   },
   "milestones": [
@@ -384,7 +384,26 @@
         {
           "id": "M1-T2",
           "title": "Extract core scene variants, auxiliary surfaces, display helpers and render-buffer shaders",
-          "status": "pending"
+          "status": "done",
+          "completed_at": "2026-10-03T22:09:39.305Z",
+          "commit": "e2c0c11f28116d641a2076c2ebd36075e5afd0ce",
+          "verification": "artifacts/migration/verify-2026-10-03T22-04-10-988Z-decb8e01.json",
+          "gates": [
+            {
+              "id": "G0",
+              "status": "passed",
+              "duration_ms": 42078
+            },
+            {
+              "id": "G3",
+              "status": "passed",
+              "duration_ms": 258460
+            }
+          ],
+          "verification_duration_ms": 301643,
+          "candidate_manifest": "artifacts/parity/runs/2026-10-03T21-58-37-066Z-5bc154eb/candidate/manifest.json",
+          "pixel_report": "artifacts/parity/ts-check/2026-10-03T22-04-53-612Z-561e2a9e/report.json",
+          "renderer_source_sha256": "532e6bf3bd4e088e97037f6eaded876ceb670a766f144b4dadac352f4b2bade2"
         },
         {
           "id": "M1-T3",
@@ -433,7 +452,7 @@
         "The initial inventory contains 59 marked WGSL literals in 37 renderer files plus the audio-analysis ABI literal outside renderer. Final source scanning must also detect unmarked shader literals and test fixtures rather than relying only on this inventory.",
         "Reuse the locked Naga 30, serde, serde_json and thiserror dependencies behind aster-shaders. Do not create a second shader assembly recipe in Rust."
       ],
-      "active_candidate_manifest": "artifacts/parity/runs/2026-10-03T21-37-14-907Z-7d18fcfb/candidate/manifest.json",
+      "active_candidate_manifest": "artifacts/parity/runs/2026-10-03T21-58-37-066Z-5bc154eb/candidate/manifest.json",
       "last_verification": {
         "status": "passed",
         "required_gates_passed": true,
@@ -442,15 +461,15 @@
           {
             "id": "G0",
             "status": "passed",
-            "duration_ms": 43872
+            "duration_ms": 42078
           },
           {
             "id": "G3",
             "status": "passed",
-            "duration_ms": 258617
+            "duration_ms": 258460
           }
         ],
-        "report": "artifacts/migration/verify-2026-10-03T21-43-27-332Z-afdea747.json"
+        "report": "artifacts/migration/verify-2026-10-03T22-04-10-988Z-decb8e01.json"
       }
     },
     {
@@ -1163,6 +1182,37 @@
         "M1/M2 G3 requires a fresh complete current-source TS capture, equal project/media/plugin/frame inputs and the original reference aggregate digest from completed M0 evidence. Frozen reference repairs cannot drift.",
         "All 1819 required frames passed exact against the effective M0 references. Original reference files and the single reviewed M0 repair are unchanged; no M1 pixel tolerance or reference repair was introduced.",
         "This completes only the shared catalog and output AA increment. Remaining WGSL families and the complete extraction exit audit remain open."
+      ]
+    },
+    {
+      "id": 8,
+      "time": "2026-10-03T22:09:39.305Z",
+      "milestone": "M1",
+      "task": "M1-T2",
+      "outcome": "passed",
+      "commit": "e2c0c11f28116d641a2076c2ebd36075e5afd0ce",
+      "verification": "artifacts/migration/verify-2026-10-03T22-04-10-988Z-decb8e01.json",
+      "gates": [
+        {
+          "id": "G0",
+          "status": "passed",
+          "duration_ms": 42078
+        },
+        {
+          "id": "G3",
+          "status": "passed",
+          "duration_ms": 258460
+        }
+      ],
+      "verification_duration_ms": 301643,
+      "next_step": "M1-T3: extract compositing, blur, depth, surface post-effects and motion-reconstruction shader sources, retaining the exact frozen reference set.",
+      "notes": [
+        "The nine scene/auxiliary/display/buffer exports retain their complete pre-extraction expanded-source SHA-256 values. Material variants now use declarative fragment recipes rather than TS interpolation.",
+        "The fixed additional-scene-lights integer is declared once in the shared manifest and sizes both WGSL uniform arrays and the TS host allocation. Eight lights still occupy 592 bytes. Uniform array sizes cannot be pipeline overrides.",
+        "TS and Rust support only checked unsigned integer recipe insertions, with no expressions or implicit separators. Helper modules may have zero entry points but still undergo full Naga validation.",
+        "All 18 shared WGSL files participate in the ten Naga-validated manifest programs. No external dependencies or project/ABI semantics changed.",
+        "Full G0/G3 passed and every one of the 1819 required frames was exact. Source, capture inputs and frozen reference bytes remained stable; no new reference repair or tolerance override was introduced.",
+        "Remaining M1 extraction families and the final complete-WGSL exit audit remain open."
       ]
     }
   ],
