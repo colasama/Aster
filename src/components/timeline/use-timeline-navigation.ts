@@ -8,6 +8,7 @@ import {
   timelineZoomBounds,
 } from "../../ui/timeline-zoom";
 import type { TimelineShortcut } from "./timeline-interactions";
+import { revealTimelineTime } from "./timeline-scroll";
 import { timelinePixelsPerSecond, timelineZoomStore } from "./timeline-zoom-store";
 
 export function useTimelineNavigation(
@@ -187,5 +188,17 @@ export function useTimelineNavigation(
     return true;
   };
 
-  return { viewport, bounds, zoomTo, handleShortcut };
+  const revealTime = (time: number) => {
+    const scroll = scrollRef.current;
+    if (!scroll) return;
+    scroll.scrollLeft = revealTimelineTime(
+      time,
+      timelinePixelsPerSecond(),
+      scroll.scrollLeft,
+      (scroll.clientWidth || viewport.width) - TIMELINE_LABEL_WIDTH,
+      composition.duration,
+    );
+  };
+
+  return { viewport, bounds, zoomTo, handleShortcut, revealTime };
 }

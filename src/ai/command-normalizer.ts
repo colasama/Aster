@@ -136,6 +136,7 @@ export class AiCommandBatch {
     if (
       operation.type !== "setLayerTimeMapping" &&
       operation.type !== "setLayerTiming" &&
+      operation.type !== "moveLayer" &&
       operation.type !== "setLayerSource" &&
       operation.type !== "setLayerTimeRemap"
     )

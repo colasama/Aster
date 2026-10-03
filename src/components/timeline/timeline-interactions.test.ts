@@ -4,6 +4,7 @@ import {
   buildTimelineSnapTargets,
   editLayerTimingGroup,
   excludeTimelineSnapTargets,
+  layerTimingOperations,
   moveWorkArea,
   resolveTimelineShortcut,
   setWorkAreaBoundary,
@@ -14,6 +15,56 @@ import {
 const frame = 1 / 30;
 
 describe("timeline UI interaction model", () => {
+  it("moves all selected layers by the same bounded delta and ignores their own keys for snapping", () => {
+    const layers = [layer("a", 2, 4), layer("b", 3, 6)];
+    layers[0].transform.opacity = {
+      mode: "animated",
+      keyframes: [{ id: "own", time: 2.5, value: 50, interpolation: "linear" }],
+    };
+    layers[1].timeRemap = {
+      mode: "animated",
+      keyframes: [{ id: "hidden", time: 1, value: 7, interpolation: "linear" }],
+    };
+    const composition = {
+      duration: 12,
+      frameRate: { numerator: 30, denominator: 1 },
+      layers,
+    } as Composition;
+    const targets = buildTimelineSnapTargets(composition, 8, { start: 0, end: 12 });
+    const snapped = editLayerTimingGroup(
+      layers,
+      "a",
+      "move",
+      2.46,
+      composition,
+      100,
+      targets,
+      false,
+    );
+    expect(snapped[0].inPoint).toBeCloseTo(2 + 14 / 30);
+    const bounded = editLayerTimingGroup(layers, "a", "move", 0, composition, 100, targets, true);
+    expect(bounded).toEqual([
+      { id: "a", inPoint: 1, outPoint: 3 },
+      { id: "b", inPoint: 2, outPoint: 5 },
+    ]);
+    expect(layerTimingOperations(bounded, layers, "move")).toEqual([
+      { type: "moveLayer", layerId: "a", delta: -1 },
+      { type: "moveLayer", layerId: "b", delta: -1 },
+    ]);
+    expect(layerTimingOperations(layers, layers, "move")).toEqual([]);
+    const trimmed = editLayerTimingGroup(
+      layers,
+      "a",
+      "trim-in",
+      0,
+      composition,
+      100,
+      targets,
+      true,
+    );
+    expect(trimmed[0].inPoint).toBe(0);
+    expect(layerTimingOperations(trimmed, layers, "trim-in")[0].type).toBe("setLayerTiming");
+  });
   it("maps keyboard commands without hijacking command-modified keys", () => {
     const input = {
       altKey: false,

@@ -28,6 +28,20 @@ autosave cannot win a persistence race. See [Desktop application foundations](DE
 
 ## Frontend source organization
 
+Timeline layer translation uses the core `moveLayer` operation, separate from `setLayerTiming`
+trimming. The layer-animation collector includes operation-addressable properties, effect tracks
+and time remapping. Pointer-down captures owned keys; drag previews translate markers and bars
+without changing the document. Pointer-up commits the selected group as one undo transaction.
+Moving layers exclude their own keyframes from magnetic snap targets. Keyboard alignment uses
+the same timing solver and operation builder. Evaluation remains time-addressable.
+
+Playback-head scrubbing owns a cancellable animation-frame edge-scroll loop. Its speed ramps to
+720 pixels/second within 48 pixels of either track edge, excluding the fixed property column.
+Each scroll recomputes the seek from the current viewport; a stationary pointer continues seeking.
+Release, Escape, cancellation, blur, composition changes, hidden panels and unmount stop the loop.
+Keyboard time navigation reveals the requested time with a 48-pixel margin; ordinary playback and
+manual viewport scrolling do not activate this navigation behavior.
+
 Source folders follow ownership rather than a flat inventory of features. Tests stay beside the
 code they exercise; consumers import the owning module directly instead of directory-wide barrels.
 

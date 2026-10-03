@@ -5,8 +5,9 @@ import {
   type TimelineSnapTarget,
   trimLayerTimingGroup,
 } from "../../core/animation/timeline-editing";
+import { collectLayerAnimationKeyframes } from "../../core/editing/layer-animation";
 import type { Operation } from "../../core/editing/operations";
-import type { Composition, Id, Layer } from "../../core/types";
+import type { Composition, Id, Keyframe, Layer } from "../../core/types";
 
 export type TimelineWorkArea = Composition["workArea"];
 
@@ -128,6 +129,7 @@ export function editLayerTimingGroup(
   pixelsPerSecond: number,
   targets: readonly TimelineSnapTarget[],
   bypassSnap: boolean,
+  keyframes: readonly Keyframe[] = layers.flatMap(collectLayerAnimationKeyframes),
 ) {
   const timings = layers.map(({ id, inPoint, outPoint }) => ({ id, inPoint, outPoint }));
   const frameDuration = compositionFrameDuration(composition);
@@ -139,8 +141,12 @@ export function editLayerTimingGroup(
         composition.duration,
         frameDuration,
         pixelsPerSecond,
-        targets,
+        excludeTimelineSnapTargets(
+          targets,
+          keyframes.map((keyframe) => keyframe.id),
+        ),
         bypassSnap,
+        keyframes.reduce((earliest, keyframe) => Math.min(earliest, keyframe.time), Infinity),
       )
     : trimLayerTimingGroup(
         timings,
@@ -157,7 +163,17 @@ export function editLayerTimingGroup(
 
 export function layerTimingOperations(
   timings: readonly { id: Id; inPoint: number; outPoint: number }[],
+  layers: readonly Layer[],
+  mode: LayerTimingDrag,
 ): Operation[] {
+  if (mode === "move")
+    return timings.flatMap((timing) => {
+      const layer = layers.find((layer) => layer.id === timing.id);
+      const delta = layer ? timing.inPoint - layer.inPoint : 0;
+      return Math.abs(delta) > 1e-7
+        ? [{ type: "moveLayer" as const, layerId: timing.id, delta }]
+        : [];
+    });
   return timings.map((timing) => ({
     type: "setLayerTiming",
     layerId: timing.id,

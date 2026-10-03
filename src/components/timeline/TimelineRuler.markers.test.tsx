@@ -35,7 +35,7 @@ function Harness({ beats }: { beats: number }) {
   return (
     <TimelineRuler
       viewport={{ width: 2000, scrollLeft: 0 }}
-      scrub={() => undefined}
+      onScrubStart={() => undefined}
       startPointerDrag={() => undefined}
       setWorkArea={() => undefined}
     />
