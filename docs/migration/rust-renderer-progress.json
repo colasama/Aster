@@ -33,34 +33,34 @@
     "approval": "Preserve the complete M0-T3 production TS capture as the original pixel oracle. Only the explicitly listed, section 6.6 reviewed M0 reference repairs overlay requested frames. All other original frames, including sequence neighbors, remain unchanged. Freeze this effective reference set before M1; M1 and M2 retain strict whole-corpus exact requirements."
   },
   "last_cycle": {
-    "id": 9,
-    "time": "2026-10-03T22:28:11.051Z",
+    "id": 10,
+    "time": "2026-10-03T22:49:40.409Z",
     "milestone": "M1",
-    "task": "M1-T3",
+    "task": "M1-T4",
     "outcome": "passed",
-    "commit": "90023d543fbe51165b60d6590bf0aabdfe3e1bdc",
-    "verification": "artifacts/migration/verify-2026-10-03T22-22-56-954Z-e022ada2.json",
+    "commit": "e094eeee40f9058d2874fdc29d75cb20888411e3",
+    "verification": "artifacts/migration/verify-2026-10-03T22-43-51-691Z-335e064b.json",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 42447
+        "duration_ms": 50308
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 258620
+        "duration_ms": 257563
       }
     ],
-    "verification_duration_ms": 302165,
-    "next_step": "M1-T4: extract all effect case fragments and declare the post-process shader assembly in the shared manifest.",
+    "verification_duration_ms": 308988,
+    "next_step": "M1-T5: extract scene-generator and audio ABI, particles, text and diagnostic shader sources.",
     "notes": [
-      "Compositing, precomposition, blur, brightpass, depth and surface-post shaders retain their six original expanded-source hashes. Depth and surface-post reuse the existing shared sRGB fragment.",
-      "Motion blur replaces four fixed tile-size insertions with i32(tile_extent) and adds a u32 WGSL override defaulting to 16. Removing only that declaration and restoring the four literals reproduces the original source hash. The existing local tile_size variable is unchanged.",
-      "The motion host allocation and all three fragment pipelines use the manifest tile_extent default. Original entry points, nine bindings, 32-byte uniforms, pass order and sample arithmetic are preserved. Layer compositing retains its blend_mode override.",
-      "All 27 shared source files participate in 17 Naga-validated programs. No external dependencies, project semantics or ABI changed.",
-      "Full G0/G3 passed with all 1819 required frames exact, including production motion blur. Source, capture inputs and frozen references stayed stable; no M1 repair or tolerance adjustment was added.",
-      "M1 remains in progress for effect cases, generators and complete-extraction exit checks."
+      "The shared post-process recipe preserves all 193001 original expanded bytes (SHA256 815b8799306001166ee6b44ecb5f803e17bc342ccb0ef77b0a81c475567e8454). It assembles 40 new fragments and the existing sRGB helper without changing the manifest schema.",
+      "All 28 effect case/helper exports and the layer-style functions moved to shared WGSL. Their 21 obsolete TS modules had no remaining consumers and were removed; the production postProcessShader export and five base-shader reexports remain stable.",
+      "The complete Naga-validated program preserves eight resource bindings, vertex/fragment entry points, uniform and storage layouts, warp-before-pixel ordering, mask opcodes, effect-time mutation, explicit LOD sampling and premultiplied alpha handling.",
+      "The first capture stopped before GPU execution because renderer fingerprinting attempted to read removed tracked TS modules. Fingerprinting now hashes the existing source set while full-tree provenance records deletions; a real-Git regression test covers removal, staging and restoration without hiding non-ENOENT failures.",
+      "Full G0/G3 passed with all 1819 required frames exact. Source, capture inputs and frozen references stayed stable; no M1 repair or tolerance adjustment was added.",
+      "No external dependencies, effect CPU compilation, project semantics or ABI changed. M1 remains in progress for generators and complete-extraction exit checks."
     ]
   },
   "milestones": [
@@ -432,7 +432,26 @@
         {
           "id": "M1-T4",
           "title": "Extract all effect case fragments and declare post-process shader assembly in the shared manifest",
-          "status": "pending"
+          "status": "done",
+          "completed_at": "2026-10-03T22:49:40.409Z",
+          "commit": "e094eeee40f9058d2874fdc29d75cb20888411e3",
+          "verification": "artifacts/migration/verify-2026-10-03T22-43-51-691Z-335e064b.json",
+          "gates": [
+            {
+              "id": "G0",
+              "status": "passed",
+              "duration_ms": 50308
+            },
+            {
+              "id": "G3",
+              "status": "passed",
+              "duration_ms": 257563
+            }
+          ],
+          "verification_duration_ms": 308988,
+          "candidate_manifest": "artifacts/parity/runs/2026-10-03T22-38-23-227Z-e9718d5f/candidate/manifest.json",
+          "pixel_report": "artifacts/parity/ts-check/2026-10-03T22-44-42-546Z-0d0b2b23/report.json",
+          "renderer_source_sha256": "cd4ff368915ec942d771eea8f42890672afcecb8fc7382bc555ec69b60615c63"
         },
         {
           "id": "M1-T5",
@@ -471,7 +490,7 @@
         "The initial inventory contains 59 marked WGSL literals in 37 renderer files plus the audio-analysis ABI literal outside renderer. Final source scanning must also detect unmarked shader literals and test fixtures rather than relying only on this inventory.",
         "Reuse the locked Naga 30, serde, serde_json and thiserror dependencies behind aster-shaders. Do not create a second shader assembly recipe in Rust."
       ],
-      "active_candidate_manifest": "artifacts/parity/runs/2026-10-03T22-17-34-931Z-e00257c8/candidate/manifest.json",
+      "active_candidate_manifest": "artifacts/parity/runs/2026-10-03T22-38-23-227Z-e9718d5f/candidate/manifest.json",
       "last_verification": {
         "status": "passed",
         "required_gates_passed": true,
@@ -480,15 +499,15 @@
           {
             "id": "G0",
             "status": "passed",
-            "duration_ms": 42447
+            "duration_ms": 50308
           },
           {
             "id": "G3",
             "status": "passed",
-            "duration_ms": 258620
+            "duration_ms": 257563
           }
         ],
-        "report": "artifacts/migration/verify-2026-10-03T22-22-56-954Z-e022ada2.json"
+        "report": "artifacts/migration/verify-2026-10-03T22-43-51-691Z-335e064b.json"
       }
     },
     {
@@ -1263,6 +1282,37 @@
         "All 27 shared source files participate in 17 Naga-validated programs. No external dependencies, project semantics or ABI changed.",
         "Full G0/G3 passed with all 1819 required frames exact, including production motion blur. Source, capture inputs and frozen references stayed stable; no M1 repair or tolerance adjustment was added.",
         "M1 remains in progress for effect cases, generators and complete-extraction exit checks."
+      ]
+    },
+    {
+      "id": 10,
+      "time": "2026-10-03T22:49:40.409Z",
+      "milestone": "M1",
+      "task": "M1-T4",
+      "outcome": "passed",
+      "commit": "e094eeee40f9058d2874fdc29d75cb20888411e3",
+      "verification": "artifacts/migration/verify-2026-10-03T22-43-51-691Z-335e064b.json",
+      "gates": [
+        {
+          "id": "G0",
+          "status": "passed",
+          "duration_ms": 50308
+        },
+        {
+          "id": "G3",
+          "status": "passed",
+          "duration_ms": 257563
+        }
+      ],
+      "verification_duration_ms": 308988,
+      "next_step": "M1-T5: extract scene-generator and audio ABI, particles, text and diagnostic shader sources.",
+      "notes": [
+        "The shared post-process recipe preserves all 193001 original expanded bytes (SHA256 815b8799306001166ee6b44ecb5f803e17bc342ccb0ef77b0a81c475567e8454). It assembles 40 new fragments and the existing sRGB helper without changing the manifest schema.",
+        "All 28 effect case/helper exports and the layer-style functions moved to shared WGSL. Their 21 obsolete TS modules had no remaining consumers and were removed; the production postProcessShader export and five base-shader reexports remain stable.",
+        "The complete Naga-validated program preserves eight resource bindings, vertex/fragment entry points, uniform and storage layouts, warp-before-pixel ordering, mask opcodes, effect-time mutation, explicit LOD sampling and premultiplied alpha handling.",
+        "The first capture stopped before GPU execution because renderer fingerprinting attempted to read removed tracked TS modules. Fingerprinting now hashes the existing source set while full-tree provenance records deletions; a real-Git regression test covers removal, staging and restoration without hiding non-ENOENT failures.",
+        "Full G0/G3 passed with all 1819 required frames exact. Source, capture inputs and frozen references stayed stable; no M1 repair or tolerance adjustment was added.",
+        "No external dependencies, effect CPU compilation, project semantics or ABI changed. M1 remains in progress for generators and complete-extraction exit checks."
       ]
     }
   ],
