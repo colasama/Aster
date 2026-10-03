@@ -311,6 +311,10 @@ export function Viewport() {
   }, [rendererReady, state.gpuMemoryBudgetMb, t]);
 
   useEffect(() => {
+    warmProjectRasterSources(previewProject);
+  }, [previewProject]);
+
+  useEffect(() => {
     void rendererRevision;
     void viewCount;
     if (!rendererReady) return;
@@ -329,13 +333,13 @@ export function Viewport() {
       };
     }
     activateProjectFonts(previewProject);
-    warmProjectRasterSources(previewProject);
     const renderer = rendererRef.current;
     if (!renderer) return;
     const pipeline = beautyPipelineRef.current;
     let renderFailed = false;
-    const renderAtTime = (time: number) => {
-      if (renderFailed) return;
+    /** Renders one frame; true when the preview held the previous frame for loading media. */
+    const renderAtTime = (time: number): boolean => {
+      if (renderFailed) return false;
       try {
         const metrics =
           bufferView === "beauty" && pipeline
@@ -368,18 +372,22 @@ export function Viewport() {
           lastMetricUpdate.current = now;
           dispatch({ type: "setMetrics", metrics });
         }
+        return metrics.mediaPending === true;
       } catch (error) {
         renderFailed = true;
         reportUiError(t, "previewRender", error, {
           scope: { area: "render", compositionId: previewComposition.id },
         });
+        return false;
       }
     };
     if (!state.playing) renderAtTime(state.currentTime);
-    return onPlaybackFrame((frame) => {
-      if (frame.compositionId === previewComposition.id && !renderSessionGuardRef.current.active)
-        renderAtTime(frame.time);
-    });
+    return onPlaybackFrame(
+      (frame) =>
+        frame.compositionId === previewComposition.id &&
+        !renderSessionGuardRef.current.active &&
+        renderAtTime(frame.time),
+    );
   }, [
     previewComposition,
     previewProject,

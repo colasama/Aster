@@ -6,7 +6,17 @@ import type { Composition } from "../../core/types";
 import { useEditor } from "../../state/editor-store";
 import type { TimelineWorkArea } from "./timeline-interactions";
 
-/** UI values are sampled at 10 Hz; presentation and audio retain their own clocks. */
+/**
+ * Longest playback stall for loading media. A frame that never becomes ready (rather than failing,
+ * which presents a placeholder) must not freeze playback forever.
+ */
+const MAX_MEDIA_STALL_MS = 10_000;
+
+/**
+ * UI values are sampled at 10 Hz; presentation and audio retain their own clocks. When the preview
+ * holds a frame because its media is still loading, the clock and audio pause on that frame and
+ * resume from it once it presents, so playback never runs ahead of what the preview can show.
+ */
 export function usePlayback(composition: Composition, workArea: TimelineWorkArea) {
   const { state, dispatch } = useEditor();
   const latest = useRef(state);
@@ -25,6 +35,8 @@ export function usePlayback(composition: Composition, workArea: TimelineWorkArea
     let audioClock = false;
     let fallbackAnchorTime = initialTime;
     let fallbackAnchorHost = performance.now();
+    let stall: { time: number; since: number } | undefined;
+    let stallsAllowed = true;
     const schedule = () => {
       frame = requestAnimationFrame(() => void tick());
     };
@@ -43,10 +55,28 @@ export function usePlayback(composition: Composition, workArea: TimelineWorkArea
       if (disposed) return;
       if (seekRevision !== latest.current.seekRevision) {
         seekRevision = latest.current.seekRevision;
+        stall = undefined;
         presentedTime = Math.max(
           workArea.start,
           Math.min(workArea.end - 1 / 240, latest.current.currentTime),
         );
+        await restart(presentedTime);
+        if (!disposed) schedule();
+        return;
+      }
+      if (stall) {
+        const held = publishPlaybackFrame({ compositionId: composition.id, time: stall.time });
+        const expired = performance.now() - stall.since >= MAX_MEDIA_STALL_MS;
+        if (held && !expired) {
+          schedule();
+          return;
+        }
+        if (held) {
+          stallsAllowed = false;
+          logger.warn("playback", "media_stall_expired", { time: stall.time });
+        }
+        presentedTime = stall.time;
+        stall = undefined;
         await restart(presentedTime);
         if (!disposed) schedule();
         return;
@@ -58,8 +88,16 @@ export function usePlayback(composition: Composition, workArea: TimelineWorkArea
             fallbackAnchorTime + (performance.now() - fallbackAnchorHost) / 1000,
           );
       presentedTime = predicted >= workArea.end - 1 / 240 ? workArea.start : predicted;
-      publishPlaybackFrame({ compositionId: composition.id, time: presentedTime });
+      const held = publishPlaybackFrame({ compositionId: composition.id, time: presentedTime });
       const now = performance.now();
+      if (held && stallsAllowed) {
+        sharedAudioPlaybackEngine.pause();
+        stall = { time: presentedTime, since: now };
+        lastUiUpdate = now;
+        dispatch({ type: "setPlaybackTime", time: presentedTime });
+        schedule();
+        return;
+      }
       if (now - lastUiUpdate >= 100 || presentedTime === workArea.start) {
         lastUiUpdate = now;
         dispatch({ type: "setPlaybackTime", time: presentedTime });

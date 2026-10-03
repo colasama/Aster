@@ -114,3 +114,53 @@ it("presents every frame while bounding expensive React updates", async () => {
     unsubscribe();
   }
 });
+
+it("pauses the clock and audio on a frame still loading media and resumes from it", async () => {
+  let pending = false;
+  const presented: number[] = [];
+  const unsubscribe = onPlaybackFrame((frame) => {
+    presented.push(frame.time);
+    return pending;
+  });
+  try {
+    await render();
+    await frame(0.5);
+    pending = true;
+    await frame(1);
+    expect(mock.pause).toHaveBeenCalledTimes(1);
+    expect(mock.dispatch).toHaveBeenLastCalledWith({ type: "setPlaybackTime", time: 1 });
+    await frame(1.5);
+    await frame(2);
+    expect(presented.slice(-3)).toEqual([1, 1, 1]);
+    expect(mock.play).toHaveBeenCalledTimes(1);
+    pending = false;
+    await frame(2.5);
+    expect(presented[presented.length - 1]).toBe(1);
+    expect(mock.play).toHaveBeenCalledTimes(2);
+    expect(mock.play).toHaveBeenLastCalledWith(project, composition, 1, composition.workArea.end);
+    await frame(1.1);
+    expect(presented[presented.length - 1]).toBe(1.1);
+    expect(mock.pause).toHaveBeenCalledTimes(1);
+  } finally {
+    unsubscribe();
+  }
+});
+
+it("stops stalling a playback session after a frame never becomes ready", async () => {
+  let clock = 0;
+  vi.spyOn(performance, "now").mockImplementation(() => clock);
+  const unsubscribe = onPlaybackFrame(() => true);
+  try {
+    await render();
+    await frame(1);
+    expect(mock.pause).toHaveBeenCalledTimes(1);
+    clock = 10_001;
+    await frame(1.2);
+    expect(mock.play).toHaveBeenLastCalledWith(project, composition, 1, composition.workArea.end);
+    await frame(1.3);
+    await frame(1.4);
+    expect(mock.pause).toHaveBeenCalledTimes(1);
+  } finally {
+    unsubscribe();
+  }
+});

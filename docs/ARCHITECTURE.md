@@ -212,9 +212,14 @@ frame data are excluded, and successful hot-path operations are intentionally si
    Preview presentation never draws a pending media generation: `MediaTextureCache.mediaReady`
    reports unresolved fetches, decodes, and first video uploads per instance, and both renderers
    hold the previously submitted frame until every visible instance is ready, so loading media
-   cannot flash a layer-color quad or a transparent rect. Imports and project activation warm a
-   bounded still-image decode pool (`raster-image-prefetch.ts`, 2 workers, 24 entries), and during
-   playback the renderer flattens the scene one lookahead window ahead to prepare arriving media.
+   cannot flash a layer-color quad or a transparent rect. During playback a held frame stalls the
+   clock: `publishPlaybackFrame` reports it synchronously, audio pauses, and playback resumes from
+   that frame once it presents (a frame that stays pending for 10 s stops stalling the session).
+   Imports and document changes warm a bounded still-image decode pool (`raster-image-prefetch.ts`,
+   2 workers, 24 entries) with the earliest-used stills, each locator at most once, so the pool
+   drains instead of re-queueing evicted images; a renderer request for a warm that has not started
+   cancels it and decodes immediately. During playback the renderer also flattens the scene one
+   lookahead window ahead to prepare arriving media.
    Export capture still submits its incomplete discovery frame offscreen, then waits and
    recaptures through the exact-frame barrier.
    Radiance RGBE environments transfer to the bounded CPU worker pool, which validates every
