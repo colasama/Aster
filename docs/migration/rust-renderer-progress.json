@@ -25,7 +25,36 @@
     },
     "continuation": "The updated owner goal supersedes the specification's stop-on-blocker requirements. Record obstacles and evidence, resolve them or continue independent required work. Do not report failed or skipped checks as passed. Gate, pixel-review, commit and completion requirements remain in force."
   },
-  "last_cycle": null,
+  "last_cycle": {
+    "id": 1,
+    "time": "2026-10-03T16:37:51.090Z",
+    "started_at": "2026-10-03T16:17:17.000Z",
+    "milestone": "M0",
+    "task": "M0-T1",
+    "outcome": "passed",
+    "commit": "5abbc948ef83e03e9f29fb57e41a2c5352f842af",
+    "verification": "artifacts/migration/verify-2026-10-03T16-34-57-759Z-742831b8.json",
+    "gates": [
+      {
+        "id": "G0",
+        "status": "passed",
+        "duration_ms": 27306
+      },
+      {
+        "id": "G6",
+        "status": "passed",
+        "duration_ms": 65205
+      }
+    ],
+    "verification_duration_ms": 93493,
+    "next_step": "M0-T2: generate deterministic per-feature projects and enforce exhaustive corpus coverage on the owner-authorized local machine.",
+    "notes": [
+      "Bootstrap G0 passed after rebuilding stale aster-plugin artifacts and using the installed Corepack pnpm entry point.",
+      "A source-changing verification run was correctly rejected; the final full run passed with stable sources.",
+      "Foreground and background preview/render-queue smoke passed with preserved FFmpeg binaries.",
+      "The owner approved the local AMD host and requested continued work despite the original stop-on-blocker rules."
+    ]
+  },
   "milestones": [
     {
       "id": "M0",
@@ -36,7 +65,23 @@
         {
           "title": "Establish reproducible G0/G6 gate execution and atomic verification reports",
           "id": "M0-T1",
-          "status": "in_progress"
+          "status": "done",
+          "completed_at": "2026-10-03T16:37:51.090Z",
+          "commit": "5abbc948ef83e03e9f29fb57e41a2c5352f842af",
+          "verification": "artifacts/migration/verify-2026-10-03T16-34-57-759Z-742831b8.json",
+          "gates": [
+            {
+              "id": "G0",
+              "status": "passed",
+              "duration_ms": 27306
+            },
+            {
+              "id": "G6",
+              "status": "passed",
+              "duration_ms": 65205
+            }
+          ],
+          "verification_duration_ms": 93493
         },
         {
           "title": "Create deterministic corpus generators and exhaustive feature coverage checks",
@@ -63,7 +108,25 @@
           "id": "M0-T6",
           "status": "pending"
         }
-      ]
+      ],
+      "last_verification": {
+        "report": "artifacts/migration/verify-2026-10-03T16-34-57-759Z-742831b8.json",
+        "status": "passed",
+        "required_gates_passed": true,
+        "milestone_exit_satisfied": false,
+        "gates": [
+          {
+            "id": "G0",
+            "status": "passed",
+            "duration_ms": 27306
+          },
+          {
+            "id": "G6",
+            "status": "passed",
+            "duration_ms": 65205
+          }
+        ]
+      }
     },
     {
       "id": "M1",
@@ -152,5 +215,36 @@
   ],
   "tolerance_overrides": [],
   "self_reviews": [],
-  "history": []
+  "history": [
+    {
+      "id": 1,
+      "time": "2026-10-03T16:37:51.090Z",
+      "started_at": "2026-10-03T16:17:17.000Z",
+      "milestone": "M0",
+      "task": "M0-T1",
+      "outcome": "passed",
+      "commit": "5abbc948ef83e03e9f29fb57e41a2c5352f842af",
+      "verification": "artifacts/migration/verify-2026-10-03T16-34-57-759Z-742831b8.json",
+      "gates": [
+        {
+          "id": "G0",
+          "status": "passed",
+          "duration_ms": 27306
+        },
+        {
+          "id": "G6",
+          "status": "passed",
+          "duration_ms": 65205
+        }
+      ],
+      "verification_duration_ms": 93493,
+      "next_step": "M0-T2: generate deterministic per-feature projects and enforce exhaustive corpus coverage on the owner-authorized local machine.",
+      "notes": [
+        "Bootstrap G0 passed after rebuilding stale aster-plugin artifacts and using the installed Corepack pnpm entry point.",
+        "A source-changing verification run was correctly rejected; the final full run passed with stable sources.",
+        "Foreground and background preview/render-queue smoke passed with preserved FFmpeg binaries.",
+        "The owner approved the local AMD host and requested continued work despite the original stop-on-blocker rules."
+      ]
+    }
+  ]
 }
