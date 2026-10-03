@@ -33,42 +33,42 @@
     "approval": "Preserve the complete M0-T3 production TS capture as the original pixel oracle. Only the explicitly listed, section 6.6 reviewed M0 reference repairs overlay requested frames. All other original frames, including sequence neighbors, remain unchanged. Freeze this effective reference set before M1; M1 and M2 retain strict whole-corpus exact requirements."
   },
   "last_cycle": {
-    "id": 5,
-    "time": "2026-10-03T19:47:08.365Z",
+    "id": 6,
+    "time": "2026-10-03T21:10:44.005Z",
     "milestone": "M0",
-    "task": "M0-T5",
+    "task": "M0-T6",
     "outcome": "passed",
-    "commit": "6447d2b6f4649bf2bfe9857960e5407a4786e7cc",
-    "verification": "artifacts/migration/verify-2026-10-03T19-43-22-282Z-666e338b.json",
+    "commit": "97950a5bfe3327a088a6ae31ef82fdfa0792d48a",
+    "verification": "artifacts/migration/verify-2026-10-03T21-06-58-734Z-ea472fb4.json",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 39613
+        "duration_ms": 39944
       },
       {
         "id": "G6",
         "status": "passed",
-        "duration_ms": 65405
+        "duration_ms": 64593
       }
     ],
-    "verification_duration_ms": 106175,
-    "next_step": "M0-T6: exact whole-corpus current-Electron candidate comparison against the preserved TS reference, then validate complete milestone exit evidence.",
+    "verification_duration_ms": 163175,
+    "next_step": "M1: decompose shared-WGSL extraction into cohesive increments and keep the frozen effective M0 references under strict whole-corpus exact comparison.",
     "notes": [
-      "Added a release-bundled performance harness using the existing production render-host loop, original frame formats, video synchronization, bounded readback concurrency and audiovisual MP4 writer.",
-      "Nine measured workload/mode groups contain three full runs each after the complete warm-up suite. The 14,526 measured frames preserve owner opening [0,714), main [714,1014), and 600-frame synthetic composite/effect workloads.",
-      "All real IPC frame/audio byte counts and MP4 FFprobe frame/stream/duration checks passed. Source, resources, actual FFmpeg binaries and the owner-authorized Radeon 780M hardware identity remained stable.",
-      "On this separate local series, main-segment medians are 44.57 FPS readback, 31.90 FPS ordinary IPC and 28.42 FPS full MP4. Opening full MP4 is 14.88 FPS. The existing manager selected libx264; these figures do not satisfy the later native encoder gates or compare against historical NVIDIA numbers.",
-      "Committed raw samples and provenance are SHA-bound and independently audited in G0; missing samples, changed summaries, wrong adapter, malformed exports and path escapes are rejected.",
-      "Independent CPU/GPU execution times and thermal/background-load telemetry remain explicitly unavailable. Performance stream checks do not claim G5 decoded-pixel, quality or audio-sync acceptance.",
-      "Full G0/G6 passed, including rebuilt foreground preview and background render queue smoke. M0 exit and the Electron patch pixel-equivalence check remain pending."
+      "Independent TS candidates publish atomically outside the original reference directory; comparison never captures or rewrites references.",
+      "The original particle shader used nondeterministic atomic append order. Stable source-index GPU slots repair transparent blend/depth ordering without changing project format or plugin ABI.",
+      "Original full exact attempts remain failed (1817/1819 before the fix, 1818/1819 after it). Only billboard frame 3 is overlaid using its accepted section 6.6 GPU review; the original 1947 files and auxiliary frame 2 remain unchanged.",
+      "The old M0 replacement-only-after-old-exact condition was agent-authored in f28525c, not an owner or specification requirement. Its evidence-based revision is recorded; M1 and M2 exact thresholds are unchanged.",
+      "A new full capture freshly rendered all 337 cases and 1947 frames, including 1819 required addresses. Every required frame passed exact against the effective reference set; source and inputs remained stable.",
+      "M0 exit independently audits original and repaired source provenance, actual decoded pixels, full coverage, sequence neighbors, self-review image hashes, the deliberate missing-patch rejection and committed local performance evidence.",
+      "Full G0/G6 and the M0 exit audit passed. Particle culling overhead remains explicitly unmeasured for later M7/G4 work; no performance or native-renderer completion claim is made."
     ]
   },
   "milestones": [
     {
       "id": "M0",
       "title": "Verification harness and loop infrastructure",
-      "status": "in_progress",
+      "status": "done",
       "gates": ["G0", "G6"],
       "tasks": [
         {
@@ -255,7 +255,7 @@
         {
           "title": "Verify complete M0 corpus references, oracle rejection and milestone exit",
           "id": "M0-T6",
-          "status": "in_progress",
+          "status": "done",
           "notes": [
             "Validate all original reference files and oracle rejection evidence. Apply only explicitly reviewed M0 reference repairs; then require an independent fresh whole-corpus TS capture to pass strict exact against the effective reference set. Preserve failed checks against the original oracle as history."
           ],
@@ -313,27 +313,44 @@
                 "candidate_rgba_sha256": "5c8bfd4e6bf680ba97fa996d7abf7adf7b1189640c2f1ed97bb55b1dd6c85802"
               }
             ]
-          }
+          },
+          "completed_at": "2026-10-03T21:10:44.005Z",
+          "commit": "97950a5bfe3327a088a6ae31ef82fdfa0792d48a",
+          "verification": "artifacts/migration/verify-2026-10-03T21-06-58-734Z-ea472fb4.json",
+          "gates": [
+            {
+              "id": "G0",
+              "status": "passed",
+              "duration_ms": 39944
+            },
+            {
+              "id": "G6",
+              "status": "passed",
+              "duration_ms": 64593
+            }
+          ],
+          "verification_duration_ms": 163175
         }
       ],
       "last_verification": {
-        "status": "failed",
+        "status": "passed",
         "required_gates_passed": true,
-        "milestone_exit_satisfied": false,
+        "milestone_exit_satisfied": true,
         "gates": [
           {
             "id": "G0",
             "status": "passed",
-            "duration_ms": 39409
+            "duration_ms": 39944
           },
           {
             "id": "G6",
             "status": "passed",
-            "duration_ms": 64619
+            "duration_ms": 64593
           }
         ],
-        "report": "artifacts/migration/verify-2026-10-03T20-40-35-694Z-2a3c6db4.json"
-      }
+        "report": "artifacts/migration/verify-2026-10-03T21-06-58-734Z-ea472fb4.json"
+      },
+      "completed_at": "2026-10-03T21:10:44.005Z"
     },
     {
       "id": "M1",
@@ -989,6 +1006,38 @@
         "Committed raw samples and provenance are SHA-bound and independently audited in G0; missing samples, changed summaries, wrong adapter, malformed exports and path escapes are rejected.",
         "Independent CPU/GPU execution times and thermal/background-load telemetry remain explicitly unavailable. Performance stream checks do not claim G5 decoded-pixel, quality or audio-sync acceptance.",
         "Full G0/G6 passed, including rebuilt foreground preview and background render queue smoke. M0 exit and the Electron patch pixel-equivalence check remain pending."
+      ]
+    },
+    {
+      "id": 6,
+      "time": "2026-10-03T21:10:44.005Z",
+      "milestone": "M0",
+      "task": "M0-T6",
+      "outcome": "passed",
+      "commit": "97950a5bfe3327a088a6ae31ef82fdfa0792d48a",
+      "verification": "artifacts/migration/verify-2026-10-03T21-06-58-734Z-ea472fb4.json",
+      "gates": [
+        {
+          "id": "G0",
+          "status": "passed",
+          "duration_ms": 39944
+        },
+        {
+          "id": "G6",
+          "status": "passed",
+          "duration_ms": 64593
+        }
+      ],
+      "verification_duration_ms": 163175,
+      "next_step": "M1: decompose shared-WGSL extraction into cohesive increments and keep the frozen effective M0 references under strict whole-corpus exact comparison.",
+      "notes": [
+        "Independent TS candidates publish atomically outside the original reference directory; comparison never captures or rewrites references.",
+        "The original particle shader used nondeterministic atomic append order. Stable source-index GPU slots repair transparent blend/depth ordering without changing project format or plugin ABI.",
+        "Original full exact attempts remain failed (1817/1819 before the fix, 1818/1819 after it). Only billboard frame 3 is overlaid using its accepted section 6.6 GPU review; the original 1947 files and auxiliary frame 2 remain unchanged.",
+        "The old M0 replacement-only-after-old-exact condition was agent-authored in f28525c, not an owner or specification requirement. Its evidence-based revision is recorded; M1 and M2 exact thresholds are unchanged.",
+        "A new full capture freshly rendered all 337 cases and 1947 frames, including 1819 required addresses. Every required frame passed exact against the effective reference set; source and inputs remained stable.",
+        "M0 exit independently audits original and repaired source provenance, actual decoded pixels, full coverage, sequence neighbors, self-review image hashes, the deliberate missing-patch rejection and committed local performance evidence.",
+        "Full G0/G6 and the M0 exit audit passed. Particle culling overhead remains explicitly unmeasured for later M7/G4 work; no performance or native-renderer completion claim is made."
       ]
     }
   ],
