@@ -42,12 +42,11 @@ exact thresholds are unchanged.
 
 ## Shared-shader increments
 
-M1 currently shares output AA, core scene variants, compositing, fused post-processing,
-blur/depth/surface effects, auxiliary surfaces and display/buffer helpers in `shaders/`; other shader
-families still await extraction. The TS catalog loads raw WGSL through Vite, and `aster-shaders`
-embeds the same files and validates the
-manifest's assembled programs with Naga. Fragment order, entry points and
-typed pipeline overrides come from `shaders/manifest.json`. Fixed unsigned integer recipe items
+M1 shares output AA, core scene variants, compositing, fused post-processing, blur/depth/surface
+effects, auxiliary surfaces, particles, text motion blur, display/buffer helpers and generator/audio
+ABI declarations in `shaders/`. The TS catalog loads raw WGSL through Vite, and `aster-shaders`
+embeds the same files and validates the manifest's assembled programs with Naga. Fragment order,
+entry points and typed pipeline overrides come from `shaders/manifest.json`. Fixed unsigned integer recipe items
 preserve the existing shader-creation layout constants without expression evaluation. Original
 expanded-source hashes protect both scene variants and the static helpers; lighting uniform size
 remains 592 bytes for eight lights. Helper modules without entry points are still Naga-validated.
@@ -60,6 +59,12 @@ The fused post-process program preserves its complete pre-extraction source hash
 recipe owns the warp and pixel case order, dependent helpers and exact fragment boundaries. Rust
 validates the complete assembled program with Naga; switch-case fragments cannot be validated as
 independent modules. Tests also retain the eight binding slots, host layouts and entry points.
+
+The generator, audio, text and diagnostic programs retain their original expanded-source hashes.
+Scene-generator context, parameter, particle and audio buffer layouts remain unchanged; the audio
+arrays have fixed ABI lengths, not pipeline overrides. A direct raw import keeps the CPU audio
+module independent of the renderer catalog. Complete extraction enforcement and the native
+effect-shot consumer are separate M1 exit requirements.
 
 For each M1 increment, freeze the source tree, run `pnpm parity:capture --candidate` for the full
 corpus, then run `pnpm migrate:verify --milestone M1 --candidates <candidate-manifest-path>`.

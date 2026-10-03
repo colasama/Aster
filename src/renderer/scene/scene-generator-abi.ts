@@ -5,45 +5,14 @@ import type { SceneGeneratorDefinition } from "../../core/scene/scene-generator-
 import type { Composition, SceneGeneratorInstance } from "../../core/types";
 import type { SceneCamera } from "../geometry/geometry";
 import { encodeRenderId } from "../gpu/render-buffers";
+import { sharedShaders } from "../gpu/shared-shader-catalog";
 
 export const SCENE_GENERATOR_CONTEXT_BYTES = 208;
 export const SCENE_GENERATOR_PARAMETER_VECTORS = 128;
 export const SCENE_GENERATOR_PARAMETER_BYTES = SCENE_GENERATOR_PARAMETER_VECTORS * 16;
 
 /** WGSL declarations shared by every scene-generator shader ABI v1 module. */
-export const sceneGeneratorAbiWgsl = /* wgsl */ `
-struct AsterGeneratorContext {
-  resolution: vec2f,
-  composition_time: f32,
-  local_time: f32,
-  frame_duration: f32,
-  reserved_time: f32,
-  instance_count: u32,
-  instance_seed: u32,
-  layer_position_opacity: vec4f,
-  layer_rotation: vec4f,
-  layer_scale: vec4f,
-  camera_position: vec4f,
-  camera_rotation: vec4f,
-  camera_projection: vec4f,
-  composition: vec4f,
-  ids: vec4u,
-  camera_right: vec4f,
-  camera_down: vec4f,
-  camera_forward: vec4f,
-}
-
-struct AsterGeneratorParameters {
-  values: array<vec4f, 128>,
-}
-
-struct AsterDrawIndirect {
-  vertex_count: u32,
-  instance_count: atomic<u32>,
-  first_vertex: u32,
-  first_instance: u32,
-}
-`;
+export const sceneGeneratorAbiWgsl = sharedShaders.source("scene-generator-abi");
 
 export function buildSceneGeneratorContext(
   scene: FlattenedSceneLayer,

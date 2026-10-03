@@ -55,7 +55,7 @@ code they exercise; consumers import the owning module directly instead of direc
 | `src/effects/presets/`, `browser/`, `resources/` | Presets, browser preferences, and LUT parsing |
 | `src/renderer/effects/programs/` | CPU effect-program compilation |
 | `src/renderer/gpu/`, `scene/`, `compositing/`, `media/`, `text/`, `diagnostics/` | GPU services and rendering subsystems |
-| `shaders/` | Shared WGSL and declarative program manifest for scene, compositing, fused effects, AA, blur/depth/surface effects, and auxiliary/display helpers |
+| `shaders/` | Shared WGSL and declarative program manifest for the renderer and generator/audio ABI helpers |
 | `src/components/` | Feature folders for project, timeline, graph editor, inspector, viewport, settings, and shell |
 | `src/workspace/` | Layout contracts, tree edits, normalization, and workspace persistence |
 
@@ -69,8 +69,8 @@ allocation, resizing helpers, and disposal of its GPU resources and media/surfac
 submission has its own module. Frame buffers remain GPU-resident until an explicit readback.
 
 Shared WGSL includes output anti-aliasing, core scene variants, compositing, fused post-processing,
-blur/depth/surface effects, auxiliary surfaces and display/buffer helpers. The TS `SharedShaderCatalog`
-loads sources through Vite `?raw`, including in Vitest, and concatenates the fragments in
+blur/depth/surface effects, auxiliary surfaces, particles, text motion blur and display/buffer helpers.
+The TS `SharedShaderCatalog` loads sources through Vite `?raw`, including in Vitest, and concatenates the fragments in
 `shaders/manifest.json` order without inserting separators. The `aster-shaders` crate
 embeds the same files with `include_str!`, follows that manifest, and validates the assembled programs
 with Naga. The manifest declares entry points and typed override defaults; pipeline constants use
@@ -86,8 +86,14 @@ reuse the shared sRGB transfer fragment. The fused post-process recipe also reus
 orders the warp cases, pixel cases and dependent helpers in one complete program. Case fragments
 are not standalone modules; Naga validates their assembled bindings, control flow and entry points.
 Shader extraction preserves the original expanded bytes, including operation order, effect masks,
-time mutation, sampling and alpha handling. Other shader families remain in TS during the remaining
-M1 tasks.
+time mutation, sampling and alpha handling.
+
+Particle compute and render programs share the scene-generator ABI and projection fragments.
+Their storage layout, indirect draw data, visibility handling and 256-thread compute workgroup are
+unchanged. The audio ABI is a single raw WGSL file that the CPU audio module can import without
+loading the renderer catalog. Its fixed array lengths preserve the 9280-byte ABI v1 layout and are
+checked against host packing and native validation. External plugin shader modules remain complete
+validated sources supplied by the plugin runtime; they are not rewritten by the shared catalog.
 
 Renderer migration verification uses the CPU-only `aster-render-compare` crate behind the thin
 `aster-render-cli compare` command. It reads lossless reference and candidate PNGs without changing

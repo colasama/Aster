@@ -67,7 +67,20 @@
     "post-fragment-and-base-warp": "effects/post-fragment-and-base-warp.wgsl",
     "post-base-sampling-and-color": "effects/post-base-sampling-and-color.wgsl",
     "post-base-lut-and-optical": "effects/post-base-lut-and-optical.wgsl",
-    "post-finish": "effects/post-finish.wgsl"
+    "post-finish": "effects/post-finish.wgsl",
+    "scene-generator-abi": "scene/generator-abi.wgsl",
+    "audio-analysis-abi": "audio/analysis-abi.wgsl",
+    "particle-projection": "scene/particle-projection.wgsl",
+    "scene-generator-line-break": "scene/generator-line-break.wgsl",
+    "particle-compute-layout": "scene/particle-compute-layout.wgsl",
+    "particle-compute-functions": "scene/particle-compute-functions.wgsl",
+    "particle-render-layout": "scene/particle-render-layout.wgsl",
+    "particle-render-functions": "scene/particle-render-functions.wgsl",
+    "text-motion-blur-raster": "text/motion-blur-raster.wgsl",
+    "diagnostic-fullscreen-vertex": "diagnostics/fullscreen-vertex.wgsl",
+    "diagnostic-scene-fragment": "diagnostics/scene-fragment.wgsl",
+    "diagnostic-float-fragment": "diagnostics/float-fragment.wgsl",
+    "diagnostic-uint-fragment": "diagnostics/uint-fragment.wgsl"
   },
   "programs": {
     "output-anti-aliasing": {
@@ -435,6 +448,140 @@
         "post-bokeh-pixel-cases",
         "post-finish"
       ],
+      "entry_points": [
+        {
+          "name": "vertex_main",
+          "stage": "vertex"
+        },
+        {
+          "name": "fragment_main",
+          "stage": "fragment"
+        }
+      ],
+      "overrides": {}
+    },
+    "scene-generator-abi": {
+      "fragments": ["scene-generator-abi"],
+      "entry_points": [],
+      "overrides": {}
+    },
+    "audio-analysis-abi": {
+      "fragments": ["audio-analysis-abi"],
+      "entry_points": [],
+      "overrides": {}
+    },
+    "particle-compute": {
+      "fragments": [
+        "scene-generator-line-break",
+        "scene-generator-abi",
+        "particle-compute-layout",
+        "particle-projection",
+        "particle-compute-functions"
+      ],
+      "entry_points": [
+        {
+          "name": "compute_main",
+          "stage": "compute"
+        }
+      ],
+      "overrides": {}
+    },
+    "particle-render": {
+      "fragments": [
+        "scene-generator-line-break",
+        "scene-generator-abi",
+        "particle-render-layout",
+        "particle-projection",
+        "particle-render-functions"
+      ],
+      "entry_points": [
+        {
+          "name": "billboard_vertex",
+          "stage": "vertex"
+        },
+        {
+          "name": "billboard_fragment",
+          "stage": "fragment"
+        },
+        {
+          "name": "billboard_auxiliary",
+          "stage": "fragment"
+        },
+        {
+          "name": "streak_vertex",
+          "stage": "vertex"
+        },
+        {
+          "name": "streak_fragment",
+          "stage": "fragment"
+        },
+        {
+          "name": "streak_auxiliary",
+          "stage": "fragment"
+        },
+        {
+          "name": "mesh_vertex",
+          "stage": "vertex"
+        },
+        {
+          "name": "mesh_fragment",
+          "stage": "fragment"
+        },
+        {
+          "name": "mesh_auxiliary",
+          "stage": "fragment"
+        }
+      ],
+      "overrides": {}
+    },
+    "text-motion-blur-raster": {
+      "fragments": ["text-motion-blur-raster"],
+      "entry_points": [
+        {
+          "name": "vertex_main",
+          "stage": "vertex"
+        },
+        {
+          "name": "accumulate_fragment",
+          "stage": "fragment"
+        },
+        {
+          "name": "resolve_fragment",
+          "stage": "fragment"
+        }
+      ],
+      "overrides": {}
+    },
+    "diagnostic-scene": {
+      "fragments": ["diagnostic-fullscreen-vertex", "diagnostic-scene-fragment"],
+      "entry_points": [
+        {
+          "name": "vertex_main",
+          "stage": "vertex"
+        },
+        {
+          "name": "fragment_main",
+          "stage": "fragment"
+        }
+      ],
+      "overrides": {}
+    },
+    "diagnostic-float": {
+      "fragments": ["diagnostic-fullscreen-vertex", "diagnostic-float-fragment"],
+      "entry_points": [
+        {
+          "name": "vertex_main",
+          "stage": "vertex"
+        },
+        {
+          "name": "fragment_main",
+          "stage": "fragment"
+        }
+      ],
+      "overrides": {}
+    },
+    "diagnostic-uint": {
+      "fragments": ["diagnostic-fullscreen-vertex", "diagnostic-uint-fragment"],
       "entry_points": [
         {
           "name": "vertex_main",

@@ -28,16 +28,7 @@ export const AUDIO_ANALYSIS_FLAG_PRESENT = 1;
 export const AUDIO_ANALYSIS_FLAG_PENDING = 2;
 
 /** WGSL declaration of the read-only `aster_audio` buffer granted by `audio_analysis`. */
-export const audioAnalysisAbiWgsl = /* wgsl */ `
-struct AsterAudioAnalysis {
-  info: vec4u,
-  timing: vec4f,
-  levels: vec4f,
-  energy: vec4f,
-  spectrum: array<f32, ${AUDIO_ANALYSIS_BANDS * AUDIO_ANALYSIS_HISTORY}>,
-  waveform: array<f32, ${AUDIO_ANALYSIS_WAVEFORM}>,
-}
-`;
+export { default as audioAnalysisAbiWgsl } from "../../../shaders/audio/analysis-abi.wgsl?raw";
 
 /**
  * Reads mono composition audio at the analysis sample rate. Samples outside the composition or

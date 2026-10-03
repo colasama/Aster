@@ -3,6 +3,7 @@
 mod catalog;
 mod embedded;
 mod embedded_post_process;
+mod embedded_runtime;
 mod types;
 mod validation;
 
@@ -15,8 +16,12 @@ pub use types::{
 #[cfg(test)]
 mod constant_tests;
 #[cfg(test)]
+mod generator_tests;
+#[cfg(test)]
 mod motion_tests;
 #[cfg(test)]
 mod post_process_tests;
+#[cfg(test)]
+mod runtime_shader_tests;
 #[cfg(test)]
 mod tests;

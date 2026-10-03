@@ -6,6 +6,7 @@ import {
   type SceneBufferVisualization,
   type SurfaceEffectVisualization,
 } from "../gpu/render-buffers";
+import { sharedShaders } from "../gpu/shared-shader-catalog";
 
 const SCENE_MODES: Readonly<Record<Exclude<SceneBufferVisualization, "beauty">, number>> = {
   linearColor: 0,
@@ -178,57 +179,8 @@ function createPipeline(
   });
 }
 
-const fullscreenVertex = /* wgsl */ `
-struct VertexOutput { @builtin(position) position: vec4f, @location(0) uv: vec2f }
-@vertex fn vertex_main(@builtin(vertex_index) index: u32) -> VertexOutput {
-  let positions = array<vec2f, 3>(vec2f(-1.0, -1.0), vec2f(3.0, -1.0), vec2f(-1.0, 3.0));
-  let uvs = array<vec2f, 3>(vec2f(0.0, 1.0), vec2f(2.0, 1.0), vec2f(0.0, -1.0));
-  return VertexOutput(vec4f(positions[index], 0.0, 1.0), uvs[index]);
-}`;
+const sceneShader = sharedShaders.source("diagnostic-scene");
 
-const sceneShader = /* wgsl */ `${fullscreenVertex}
-struct Settings { value: u32, p0: u32, p1: u32, p2: u32 }
-@group(0) @binding(0) var source: texture_2d<f32>;
-@group(0) @binding(1) var<uniform> settings: Settings;
-@fragment fn fragment_main(input: VertexOutput) -> @location(0) vec4f {
-  let size = vec2f(textureDimensions(source));
-  let pixel = textureLoad(source, vec2u(clamp(input.uv * size, vec2f(0.0), size - 1.0)), 0);
-  if (settings.value == 1u) {
-    let luminance = dot(pixel.rgb, vec3f(0.2126, 0.7152, 0.0722));
-    return vec4f(vec3f(luminance / (1.0 + luminance)), 1.0);
-  }
-  if (settings.value == 2u) { return vec4f(vec3f(pixel.a), 1.0); }
-  return vec4f(pixel.rgb / (vec3f(1.0) + pixel.rgb), 1.0);
-}`;
+const floatShader = sharedShaders.source("diagnostic-float");
 
-const floatShader = /* wgsl */ `${fullscreenVertex}
-struct Settings { range_min: f32, range_scale: f32, mode: u32, padding: u32 }
-@group(0) @binding(0) var source: texture_2d<f32>;
-@group(0) @binding(1) var<uniform> settings: Settings;
-@fragment fn fragment_main(input: VertexOutput) -> @location(0) vec4f {
-  let size = vec2f(textureDimensions(source));
-  let pixel = textureLoad(source, vec2u(clamp(input.uv * size, vec2f(0.0), size - 1.0)), 0);
-  if (pixel.a == 0.0) { return vec4f(0.0, 0.0, 0.0, 1.0); }
-  if (settings.mode == 0u) { return vec4f(pixel.xyz * 0.5 + 0.5, 1.0); }
-  if (settings.mode == 2u) {
-    let motion_pixels = pixel.xy * size;
-    let direction = clamp(vec2f(0.5) + motion_pixels / 64.0, vec2f(0.0), vec2f(1.0));
-    return vec4f(direction, clamp(length(motion_pixels) / 32.0, 0.0, 1.0), 1.0);
-  }
-  return vec4f(clamp((pixel.xyz - settings.range_min) * settings.range_scale, vec3f(0.0), vec3f(1.0)), 1.0);
-}`;
-
-const uintShader = /* wgsl */ `${fullscreenVertex}
-struct Settings { range_min: f32, range_scale: f32, mode: u32, padding: u32 }
-@group(0) @binding(0) var source: texture_2d<u32>;
-@group(0) @binding(1) var<uniform> settings: Settings;
-fn hash_id(id: u32) -> vec3f {
-  var value = id ^ (id >> 16u); value *= 0x7feb352du; value ^= value >> 15u;
-  value *= 0x846ca68bu; value ^= value >> 16u;
-  return vec3f(f32(value & 255u), f32((value >> 8u) & 255u), f32((value >> 16u) & 255u)) / 255.0;
-}
-@fragment fn fragment_main(input: VertexOutput) -> @location(0) vec4f {
-  let size = vec2f(textureDimensions(source));
-  let id = textureLoad(source, vec2u(clamp(input.uv * size, vec2f(0.0), size - 1.0)), 0).x;
-  return select(vec4f(0.0, 0.0, 0.0, 1.0), vec4f(hash_id(id), 1.0), id != 0u);
-}`;
+const uintShader = sharedShaders.source("diagnostic-uint");
