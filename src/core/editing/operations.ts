@@ -43,6 +43,7 @@ import { assertSceneGeneratorInstance } from "../scene/scene-generator";
 import type { Id, Layer, Project, ShapeSettings, TextStyle } from "../types";
 
 import { isLayerKind, MAX_COMPOSITION_MARKERS } from "../types";
+import { moveLayerAnimation } from "./layer-animation";
 import { easeTransform, getProperty, setProperty } from "./layer-properties";
 
 import {
@@ -435,6 +436,9 @@ export function applyOperation(project: Project, operation: Operation): void {
     case "setLayerTiming":
       layer.inPoint = Math.max(0, operation.inPoint);
       layer.outPoint = Math.max(layer.inPoint + 1 / 240, operation.outPoint);
+      break;
+    case "moveLayer":
+      moveLayerAnimation(layer, operation.delta, composition.duration);
       break;
     case "setLayerTimeMapping":
       layer.timeOffset = Number.isFinite(operation.offset) ? Math.max(0, operation.offset) : 0;

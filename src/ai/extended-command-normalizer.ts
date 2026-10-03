@@ -238,6 +238,9 @@ export function normalizeExtendedAiCommand(
         );
       return { type: "setParent", layerId, ...(parentId ? { parentId } : {}) };
     }
+    case "moveLayer":
+      requireLayer(layer, layerId);
+      return { type: "moveLayer", layerId, delta: Number(input.delta) };
     case "setLayerTiming":
       requireLayer(layer, layerId);
       if (Number(input.outPoint) <= Number(input.inPoint))

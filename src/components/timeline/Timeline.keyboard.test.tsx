@@ -243,6 +243,103 @@ it("uses AE frame steps, work-area navigation, and the last visible frame", () =
   expect(editor.state.currentTime).toBe(0);
 });
 
+it("scrolls in either direction to reveal keyboard frame steps without adding history", () => {
+  const scroll = document.querySelector<HTMLDivElement>(".timeline-scroll");
+  if (!scroll) throw new Error("Missing timeline");
+  Object.defineProperty(scroll, "clientWidth", { value: 600 });
+  act(() => timelineZoomStore.set(100 / 82));
+  scroll.scrollLeft = 200;
+  act(() => editor.dispatch({ type: "setTime", time: 5.1 }));
+  press("ArrowRight", { ctrlKey: true });
+  expect(scroll.scrollLeft).toBeGreaterThan(200);
+  expect(editor.state.currentTime * 100 - scroll.scrollLeft).toBeLessThanOrEqual(314 - 48);
+  const previous = scroll.scrollLeft;
+  act(() => editor.dispatch({ type: "setTime", time: previous / 100 }));
+  press("ArrowLeft", { ctrlKey: true });
+  expect(scroll.scrollLeft).toBeLessThan(previous);
+  expect(editor.state.currentTime * 100 - scroll.scrollLeft).toBeCloseTo(48);
+  const visible = scroll.scrollLeft;
+  act(() => editor.dispatch({ type: "setTime", time: (visible + 150) / 100 }));
+  press("PageDown");
+  expect(scroll.scrollLeft).toBe(visible);
+  expect(editor.state.history.past).toHaveLength(0);
+});
+
+it("previews all layer key markers, cancels cleanly and commits the move as one undo step", async () => {
+  const project = structuredClone(editor.state.project);
+  const layer = activeComposition(project).layers[0];
+  layer.locked = false;
+  layer.inPoint = 2;
+  layer.outPoint = 6;
+  layer.transform.opacity = {
+    mode: "animated",
+    keyframes: [{ id: "key", time: 2.5, value: 50, interpolation: "linear" }],
+  };
+  act(() => editor.dispatch({ type: "loadProject", project }));
+  const expand = document.querySelector<HTMLButtonElement>(".layer-label > button");
+  act(() => expand?.click());
+  const bar = document.querySelector<HTMLDivElement>(".layer-bar");
+  if (!bar) throw new Error("Missing layer bar");
+  const drag = async () => {
+    act(() =>
+      bar.dispatchEvent(
+        new PointerEvent("pointerdown", { bubbles: true, button: 0, pointerId: 9, clientX: 500 }),
+      ),
+    );
+    await act(async () => {
+      window.dispatchEvent(
+        new PointerEvent("pointermove", { pointerId: 9, clientX: 664, ctrlKey: true }),
+      );
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+    });
+  };
+  await drag();
+  const markers = [...document.querySelectorAll<HTMLButtonElement>(".keyframe")];
+  expect(markers.length).toBeGreaterThan(1);
+  expect(markers.every((marker) => marker.getAttribute("aria-label")?.includes("4.50"))).toBe(true);
+  expect(editor.state.project).toBe(project);
+  press("Escape");
+  expect(editor.state.history.past).toHaveLength(0);
+  expect(markers.every((marker) => marker.getAttribute("aria-label")?.includes("2.50"))).toBe(true);
+  await drag();
+  act(() =>
+    window.dispatchEvent(
+      new PointerEvent("pointerup", { pointerId: 9, clientX: 664, ctrlKey: true }),
+    ),
+  );
+  const moved = activeComposition(editor.state.project).layers[0];
+  expect(moved).toMatchObject({ inPoint: 4, outPoint: 8 });
+  expect(moved.transform.opacity).toMatchObject({ keyframes: [{ id: "key", time: 4.5 }] });
+  expect(editor.state.history.past).toHaveLength(1);
+  act(() => editor.dispatch({ type: "undo" }));
+  expect(activeComposition(editor.state.project).layers[0]).toEqual(layer);
+  act(() => editor.dispatch({ type: "redo" }));
+  expect(activeComposition(editor.state.project).layers[0]).toEqual(moved);
+});
+
+it("moves keys with bracket alignment while Alt+bracket only trims", () => {
+  const project = structuredClone(editor.state.project);
+  const layer = activeComposition(project).layers[0];
+  layer.locked = false;
+  layer.inPoint = 2;
+  layer.outPoint = 6;
+  act(() => {
+    editor.dispatch({ type: "loadProject", project });
+    editor.dispatch({ type: "select", ids: [layer.id] });
+    editor.dispatch({ type: "selectKeyframes", ids: [] });
+    editor.dispatch({ type: "setTime", time: 3 });
+  });
+  press("[", { code: "BracketLeft" });
+  let moved = activeComposition(editor.state.project).layers[0];
+  expect(moved).toMatchObject({ inPoint: 3, outPoint: 7 });
+  expect(moved.transform.opacity).toMatchObject({ keyframes: [{ time: 1 }] });
+  act(() => editor.dispatch({ type: "setTime", time: 4 }));
+  press("[", { code: "BracketLeft", altKey: true });
+  moved = activeComposition(editor.state.project).layers[0];
+  expect(moved).toMatchObject({ inPoint: 4, outPoint: 7 });
+  expect(moved.transform.opacity).toMatchObject({ keyframes: [{ time: 1 }] });
+});
+
 it("zooms around the playhead and restores both scale and scroll after fitting", () => {
   const scroll = document.querySelector<HTMLDivElement>(".timeline-scroll");
   if (!scroll) throw new Error("Missing timeline");
@@ -294,11 +391,16 @@ it.each([
       window.dispatchEvent(new PointerEvent("pointermove", { pointerId: 7, clientX }));
       await new Promise((resolve) => requestAnimationFrame(resolve));
     });
-    expect(editor.state.currentTime).toBeCloseTo(firstVisibleFrame);
+    expect(editor.state.currentTime * 82 * zoom - scroll.scrollLeft).toBeGreaterThanOrEqual(-1e-7);
+    expect(editor.state.currentTime * 82 * zoom - scroll.scrollLeft).toBeLessThan(
+      8 + frame * 82 * zoom,
+    );
   }
   act(() => window.dispatchEvent(new PointerEvent("pointerup", { pointerId: 7, clientX: 0 })));
-  expect(editor.state.currentTime).toBeCloseTo(firstVisibleFrame);
-  expect(editor.state.currentTime * 82 * zoom - scrollLeft).toBeGreaterThanOrEqual(0);
+  expect(editor.state.currentTime * 82 * zoom - scroll.scrollLeft).toBeGreaterThanOrEqual(-1e-7);
+  expect(editor.state.currentTime * 82 * zoom - scroll.scrollLeft).toBeLessThan(
+    8 + frame * 82 * zoom,
+  );
 });
 
 it.each([
@@ -329,15 +431,20 @@ it.each([
         window.dispatchEvent(new PointerEvent("pointermove", { pointerId: 7, clientX, ctrlKey }));
         await new Promise((resolve) => requestAnimationFrame(resolve));
       });
-      expect(editor.state.currentTime).toBeCloseTo(lastVisibleFrame);
+      expect(286 + editor.state.currentTime * 82 * zoom - scroll.scrollLeft).toBeLessThan(width);
+      expect(286 + editor.state.currentTime * 82 * zoom - scroll.scrollLeft).toBeGreaterThan(
+        width - 9 - frame * 82 * zoom,
+      );
     }
     act(() =>
       window.dispatchEvent(
         new PointerEvent("pointerup", { pointerId: 7, clientX: width + 400, ctrlKey }),
       ),
     );
-    expect(editor.state.currentTime).toBeCloseTo(lastVisibleFrame);
-    expect(286 + editor.state.currentTime * 82 * zoom - scrollLeft).toBeLessThan(width);
+    expect(286 + editor.state.currentTime * 82 * zoom - scroll.scrollLeft).toBeLessThan(width);
+    expect(286 + editor.state.currentTime * 82 * zoom - scroll.scrollLeft).toBeGreaterThan(
+      width - 9 - frame * 82 * zoom,
+    );
   },
 );
 

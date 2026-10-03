@@ -39,8 +39,8 @@ import { frameAt } from "../../core/animation/timeline";
 import {
   adjacentTimelineEvent,
   marqueeTimelineSelection,
-  snapTimelineTime,
 } from "../../core/animation/timeline-editing";
+import { collectLayerAnimationKeyframes } from "../../core/editing/layer-animation";
 import { createLayerForComposition } from "../../core/layers/layer-factory";
 import { planPrecomposition } from "../../core/project/precomposition";
 import { activeComposition } from "../../core/project/project";
@@ -92,6 +92,7 @@ import {
 import type { KeyframeTimePreview } from "./timeline-property-tracks";
 import { timelinePixelsPerSecond, timelineZoomStore } from "./timeline-zoom-store";
 import { useTimelineNavigation } from "./use-timeline-navigation";
+import { useTimelineScrub } from "./use-timeline-scrub";
 
 const GraphEditor = lazy(() =>
   import("../graph-editor/GraphEditor").then((module) => ({ default: module.GraphEditor })),
@@ -256,49 +257,20 @@ export function Timeline({ mode }: { mode?: "timeline" | "graph" } = {}) {
       }),
     [composition.id],
   );
-  const clientXToTime = (clientX: number) => {
-    const scroll = scrollRef.current;
-    if (!scroll) return 0;
-    const bounds = scroll.getBoundingClientRect();
-    return Math.max(
-      0,
-      Math.min(
-        composition.duration,
-        (clientX - bounds.left + scroll.scrollLeft - LABEL_WIDTH) / timelinePixelsPerSecond(),
-      ),
-    );
-  };
-  const scrub = (clientX: number, bypassSnap: boolean) => {
-    const scroll = scrollRef.current;
-    if (!scroll) return;
-    const pixelsPerSecond = timelinePixelsPerSecond();
-    const time = clientXToTime(clientX);
-    const snapped = snapTimelineTime(
-      time,
-      frameDuration,
-      pixelsPerSecond,
-      timelineTargets,
-      bypassSnap,
-    );
-    const firstVisibleFrame =
-      Math.ceil(scroll.scrollLeft / pixelsPerSecond / frameDuration) * frameDuration;
-    const trackWidth = Math.max(
-      0,
-      (scroll.clientWidth || navigation.viewport.width) - LABEL_WIDTH - 1,
-    );
-    const lastVisibleFrame =
-      Math.floor((scroll.scrollLeft + trackWidth) / pixelsPerSecond / frameDuration) *
-      frameDuration;
-    // Clamp after snapping so hidden targets cannot pull the playhead outside the visible track.
-    const visibleTime = Math.min(
-      composition.duration,
-      lastVisibleFrame,
-      Math.max(firstVisibleFrame, snapped.time),
-    );
-    canvasRef.current?.style.setProperty("--timeline-playhead-time", String(visibleTime));
-    if (visibleTime !== keyboardContext.current.currentTime)
-      dispatch({ type: "setTime", time: visibleTime });
-  };
+  const startScrub = useTimelineScrub({
+    scrollRef,
+    canvasRef,
+    width: navigation.viewport.width,
+    duration: composition.duration,
+    frameDuration,
+    targets: timelineTargets,
+    startPointerDrag,
+    enabled: bottomMode === "timeline",
+    compositionId: composition.id,
+    seek: (time) => {
+      if (time !== keyboardContext.current.currentTime) dispatch({ type: "setTime", time });
+    },
+  });
   const copySelection = () => {
     // One shared clipboard: copying keyframes replaces any copied layers.
     setLayerClipboard(undefined);
@@ -579,14 +551,14 @@ export function Timeline({ mode }: { mode?: "timeline" | "graph" } = {}) {
           0,
           (Math.ceil(context.composition.duration / compositionFrame) - 1) * compositionFrame,
         );
-        const setTime = (time: number) =>
-          dispatch({
-            type: "setTime",
-            time: Math.max(
-              0,
-              Math.min(lastFrame, Math.round(time / compositionFrame) * compositionFrame),
-            ),
-          });
+        const setTime = (time: number) => {
+          const nextTime = Math.max(
+            0,
+            Math.min(lastFrame, Math.round(time / compositionFrame) * compositionFrame),
+          );
+          context.navigation.revealTime(nextTime);
+          dispatch({ type: "setTime", time: nextTime });
+        };
         if (shortcut === "work-start" || shortcut === "work-end") {
           event.preventDefault();
           setWorkArea(
@@ -676,7 +648,8 @@ export function Timeline({ mode }: { mode?: "timeline" | "graph" } = {}) {
         );
         if (!timings.length) return;
         event.preventDefault();
-        dispatch({ type: "operation", operations: layerTimingOperations(timings) });
+        const operations = layerTimingOperations(timings, selectedLayers, mode);
+        if (operations.length) dispatch({ type: "operation", operations });
       }
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -703,6 +676,7 @@ export function Timeline({ mode }: { mode?: "timeline" | "graph" } = {}) {
     const initialTime = mode === "trim-out" ? initialActive.outPoint : initialActive.inPoint;
     const startX = event.clientX;
     const targets = timelineTargets;
+    const movingKeyframes = layers.flatMap(collectLayerAnimationKeyframes);
     let next = layers.map(({ id, inPoint, outPoint }) => ({ id, inPoint, outPoint }));
     startPointerDrag(event.pointerId, {
       onMove: (moveEvent) => {
@@ -715,13 +689,25 @@ export function Timeline({ mode }: { mode?: "timeline" | "graph" } = {}) {
           timelinePixelsPerSecond(),
           targets,
           moveEvent.ctrlKey || moveEvent.metaKey,
+          movingKeyframes,
         );
         setTimingPreview(
           Object.fromEntries(next.map((timing) => [timing.id, timing])) as TimingPreview,
         );
+        if (mode === "move") {
+          const delta =
+            (next.find((timing) => timing.id === activeLayer.id)?.inPoint ?? initialTime) -
+            initialTime;
+          setKeyframeTimePreview(
+            Object.fromEntries(
+              movingKeyframes.map((keyframe) => [keyframe.id, keyframe.time + delta]),
+            ),
+          );
+        }
       },
       onCommit: () => {
         setTimingPreview(undefined);
+        setKeyframeTimePreview(undefined);
         const changed = next.some((timing) => {
           const initial = layers.find((layer) => layer.id === timing.id);
           return (
@@ -730,9 +716,13 @@ export function Timeline({ mode }: { mode?: "timeline" | "graph" } = {}) {
             Math.abs(timing.outPoint - initial.outPoint) > 0.000_001
           );
         });
-        if (changed) dispatch({ type: "operation", operations: layerTimingOperations(next) });
+        if (changed)
+          dispatch({ type: "operation", operations: layerTimingOperations(next, layers, mode) });
       },
-      onCancel: () => setTimingPreview(undefined),
+      onCancel: () => {
+        setTimingPreview(undefined);
+        setKeyframeTimePreview(undefined);
+      },
     });
   };
 
@@ -1034,7 +1024,7 @@ export function Timeline({ mode }: { mode?: "timeline" | "graph" } = {}) {
           >
             <TimelineRuler
               viewport={navigation.viewport}
-              scrub={scrub}
+              onScrubStart={startScrub}
               startPointerDrag={startPointerDrag}
               setWorkArea={setWorkArea}
             />

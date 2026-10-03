@@ -19,7 +19,7 @@ Asset queries include each footage source's stable `id` and `kind`, alongside bo
 6. Freeze one cumulative semantic diff and reject a stale live revision.
 7. Apply accepted work as one undoable transaction and append a secret-free audit record.
 
-The registry covers all 62 variants in the live TypeScript `Operation` union. Asset import, project
+The registry covers every variant in the live TypeScript `Operation` union. Asset import, project
 I/O, plugin installation, export, filesystem, process, and network actions remain separate services
 because they have different authority, cancellation, and audit requirements.
 
@@ -47,7 +47,8 @@ because they have different authority, cancellation, and audit requirements.
 | `reorderLayer` | Layers | Moves a layer to a bounded stack index. |
 | `setBlendMode` | Layers | Sets a supported blend mode. |
 | `setParent` | Layers | Sets or clears a cycle-checked layer parent. |
-| `setLayerTiming` | Layers | Sets in and out points. |
+| `setLayerTiming` | Layers | Sets in and out points without moving animation (trim semantics). |
+| `moveLayer` | Layers | Translates in/out points and all owned keyframes by `delta` seconds; rejects negative key times or layer bounds outside the composition. |
 | `setLayerTimeMapping` | Layers | Sets source-time offset and stretch. |
 | `setLayerTimeRemap` | Animation | Replaces or clears a time-remap track. |
 | `setLayerAudioGain` | Layers | Sets normalized preview audio gain. |

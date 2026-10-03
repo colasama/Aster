@@ -131,6 +131,7 @@ export type Operation =
   | { type: "setBlendMode"; layerId: Id; blendMode: BlendMode }
   | { type: "setParent"; layerId: Id; parentId?: Id }
   | { type: "setLayerTiming"; layerId: Id; inPoint: number; outPoint: number }
+  | { type: "moveLayer"; layerId: Id; delta: number }
   | { type: "setLayerTimeMapping"; layerId: Id; offset: number; stretch: number }
   | { type: "setLayerTimeRemap"; layerId: Id; value?: Animatable }
   | { type: "setLayerAudioGain"; layerId: Id; gain: number }
@@ -258,6 +259,7 @@ export const OPERATION_TYPES = [
   "setBlendMode",
   "setParent",
   "setLayerTiming",
+  "moveLayer",
   "setLayerTimeMapping",
   "setLayerTimeRemap",
   "setLayerAudioGain",

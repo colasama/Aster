@@ -1425,6 +1425,26 @@
       }
     },
     {
+      "name": "moveLayer",
+      "version": 1,
+      "category": "layers",
+      "description": "Move a layer and all its owned keyframes by delta seconds. Preserves duration and source mapping. Rejects moves outside composition bounds or to negative keyframe times.",
+      "requiredPermissions": ["project.edit"],
+      "risk": "reversible",
+      "undoable": true,
+      "previewable": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "layerId", "delta"],
+        "properties": {
+          "type": { "const": "moveLayer" },
+          "layerId": { "$ref": "#/$defs/id" },
+          "delta": { "type": "number", "minimum": -86400, "maximum": 86400 }
+        }
+      }
+    },
+    {
       "name": "setLayerTimeMapping",
       "version": 1,
       "category": "layers",

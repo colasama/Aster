@@ -1,5 +1,16 @@
 # Aster project format v10
 
+## Layer timing and keyframes
+
+Keyframe `time` remains expressed in seconds of the owning composition, including camera, text,
+shape morph, effect and time-remap tracks. Moving a layer adds the same delta to its in/out points
+and all owned key times, including keys outside its trimmed range. IDs, values, interpolation and
+tangents remain unchanged. Trimming changes only the layer bounds. Source offsets, time stretch,
+time-remap values and nested composition contents do not move; expressions retain their existing
+clock semantics. Key times must remain nonnegative and ordered, but may exceed composition duration.
+Timeline group moves stop when either a layer boundary or the earliest owned key reaches its limit.
+This editing change adds no persisted fields and requires no project migration.
+
 ## Light layers
 
 Existing `light` layer records require no migration for multiple-light rendering. Up to eight

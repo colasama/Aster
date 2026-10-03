@@ -74,6 +74,7 @@ export function moveLayerTimingGroup(
   pixelsPerSecond: number,
   targets: readonly TimelineSnapTarget[] = [],
   bypassSnap = false,
+  earliestKeyframeTime = Number.POSITIVE_INFINITY,
 ): LayerTiming[] {
   const active = layers.find((layer) => layer.id === activeLayerId);
   if (!active || layers.length === 0) return [];
@@ -86,9 +87,10 @@ export function moveLayerTimingGroup(
     bypassSnap,
   ).time;
   const requestedDelta = snapped - active.inPoint;
-  const minimumDelta = -Math.min(...layers.map((layer) => layer.inPoint));
+  const minimumDelta = -Math.min(earliestKeyframeTime, ...layers.map((layer) => layer.inPoint));
   const maximumDelta = duration - Math.max(...layers.map((layer) => layer.outPoint));
-  const delta = clamp(requestedDelta, minimumDelta, maximumDelta);
+  const delta =
+    minimumDelta <= maximumDelta ? clamp(requestedDelta, minimumDelta, maximumDelta) : 0;
   return layers.map((layer) => ({
     id: layer.id,
     inPoint: layer.inPoint + delta,

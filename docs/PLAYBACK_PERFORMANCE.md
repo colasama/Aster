@@ -114,6 +114,15 @@ frame scheduling rather than physical scanout, and do not establish a sustained 
 The timeline regression test separately verifies skipped row renders during clock/profiler updates,
 fresh playhead snapping, selection feedback, and document edits.
 
+Layer-move regression tests cover shared group offsets, keyframe preview without document writes,
+and one history transaction on release. Owned keyframes are captured at pointer-down; preview work
+scales with the moved keys rather than cloning the project. Scrub tests drive a deterministic RAF
+clock to verify continuous edge scrolling with no new pointer events, composition bounds and
+cancellation. These are behavioral checks, not measured latency claims. For interaction profiling,
+record pointer-to-paint p50/p95 and release time at fixed zoom/viewport size with 100, 1,000 and
+10,000 moved keys, and check that holding the playhead at an edge creates no history entries or
+new RAF work after release. Keep GPU resolution and scene content constant between revisions.
+
 Portable media hydration creates owned Blob URLs. The renderer's `connect-src` policy permits `blob:` so audio decoding and export snapshot capture can read those same bytes; allowing Blob media elements alone is insufficient for `fetch`.
 
 Effect parameters declared in pixels retain composition-space units in the project. Fused layer and adjustment programs scale evaluated pixel parameters and mask feathering by the render-target scale before uploading uniforms. Normalized centers, angles, colors, and percentages remain unchanged. This keeps reduced-resolution previews consistent with full-resolution exports without resizing CPU image buffers or altering keyframes.

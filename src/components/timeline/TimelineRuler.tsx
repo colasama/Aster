@@ -1,5 +1,5 @@
 import { Box, Eye, Lock, Volume2, Wind } from "lucide-react";
-import type { CSSProperties } from "react";
+import type { CSSProperties, PointerEvent } from "react";
 import { useMemo } from "react";
 import {
   compositionMotionBlurSettings,
@@ -21,12 +21,12 @@ import { useTimelineZoom } from "./timeline-zoom-store";
 
 export function TimelineRuler({
   viewport,
-  scrub,
+  onScrubStart,
   startPointerDrag,
   setWorkArea,
 }: {
   viewport: { width: number; scrollLeft: number };
-  scrub: (clientX: number, bypassSnap: boolean) => void;
+  onScrubStart: (event: PointerEvent) => void;
   startPointerDrag: ReturnType<typeof useWindowPointerDrag>["start"];
   setWorkArea: (value: WorkArea) => void;
 }) {
@@ -84,15 +84,7 @@ export function TimelineRuler({
             "--timeline-d": composition.duration,
           } as CSSProperties
         }
-        onPointerDown={(event) => {
-          if (event.button !== 0) return;
-          event.preventDefault();
-          scrub(event.clientX, event.ctrlKey || event.metaKey);
-          startPointerDrag(event.pointerId, {
-            onMove: (moveEvent) => scrub(moveEvent.clientX, moveEvent.ctrlKey || moveEvent.metaKey),
-            onCommit: () => undefined,
-          });
-        }}
+        onPointerDown={onScrubStart}
       >
         {motionBlur.enabled && motionBlur.shutterAngle > 0 && zoom >= 1.25 && (
           <div
