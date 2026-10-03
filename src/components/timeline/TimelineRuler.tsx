@@ -10,6 +10,7 @@ import { useI18n } from "../../i18n/react";
 import { useEditor } from "../../state/editor-store";
 import { TIMELINE_BASE_SCALE, TIMELINE_LABEL_WIDTH, timelineTicks } from "../../ui/timeline-zoom";
 import type { useWindowPointerDrag } from "../use-window-pointer-drag";
+import { TimelineFrameCache } from "./TimelineFrameCache";
 import { TimelineWorkArea } from "./TimelineWorkArea";
 import { formatSeconds, formatTimecode } from "./timeline-display";
 import {
@@ -98,6 +99,7 @@ export function TimelineRuler({
             title={t("timeline.motionBlur.shutterRegion")}
           />
         )}
+        <TimelineFrameCache composition={composition} />
         {ruler.ticks.map(({ time, major }) => (
           <div
             className={major ? "major tick" : "tick"}

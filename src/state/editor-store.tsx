@@ -19,7 +19,12 @@ import {
   DEFAULT_ANTI_ALIASING,
   normalizeAntiAliasing,
 } from "../core/rendering/anti-aliasing";
+import {
+  DEFAULT_FRAME_CACHE_BUDGET_MB,
+  normalizeFrameCacheBudget,
+} from "../core/rendering/frame-cache-policy";
 import { type GpuMemoryBudgetMb, isGpuMemoryBudget } from "../core/rendering/gpu-memory-policy";
+import { previewFrameCache } from "../core/rendering/preview-frame-cache";
 import type { Id, Project, RendererMetrics } from "../core/types";
 import { isDesktopRuntime, migrateLegacyPreferences } from "../desktop/api";
 import { APP_PREFERENCES_CHANGED_EVENT, type UserPreferencePatch } from "../desktop/preferences";
@@ -370,6 +375,15 @@ function readGpuMemoryBudget(): EditorState["gpuMemoryBudgetMb"] {
   return isGpuMemoryBudget(megabytes) ? megabytes : "auto";
 }
 
+export function readFrameCacheBudget(): number {
+  try {
+    const value = window.localStorage.getItem("aster.frameCacheBudgetMb");
+    return normalizeFrameCacheBudget(value === null ? undefined : Number(value));
+  } catch {
+    return DEFAULT_FRAME_CACHE_BUDGET_MB;
+  }
+}
+
 function compositionEntryState(
   project: Project,
   seekRevision = 0,
@@ -485,9 +499,11 @@ export function EditorProvider({ children }: PropsWithChildren) {
   }, []);
 
   useEffect(() => {
+    previewFrameCache.setBudgetMb(readFrameCacheBudget());
     if (!isDesktopRuntime()) return;
     void migrateLegacyPreferences(readLegacyRendererPreferences())
       .then((preferences) => {
+        previewFrameCache.setBudgetMb(preferences.frameCacheBudgetMb);
         dispatch({ type: "setGpuMemoryBudget", budget: preferences.gpuMemoryBudgetMb });
         dispatch({ type: "setAntiAliasing", mode: preferences.antiAliasing });
         dispatch({ type: "setViewportNavigationMode", mode: preferences.viewportNavigationMode });
@@ -498,6 +514,7 @@ export function EditorProvider({ children }: PropsWithChildren) {
           localStorage.setItem("aster.autosaveSeconds", String(preferences.autosaveSeconds));
           localStorage.setItem("aster.reducedMotion", String(preferences.reducedMotion));
           localStorage.setItem("aster.gpuMemoryBudgetMb", String(preferences.gpuMemoryBudgetMb));
+          localStorage.setItem("aster.frameCacheBudgetMb", String(preferences.frameCacheBudgetMb));
           if (preferences.locale) localStorage.setItem("aster.locale", preferences.locale);
           if (preferences.theme) {
             persistThemeColors(preferences.theme);

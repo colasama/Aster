@@ -39,6 +39,16 @@ export function createPrecompositionSurfaceBudget(): PrecompositionSurfaceBudget
   return { surfaces: 0, textures: 0, pixels: 0, bytes: 0 };
 }
 
+/** SSAA uses the shared VRAM allowance instead of the native-resolution cache ceiling. */
+export function precompositionSurfaceByteLimit(memoryBudgetMb?: number, renderScale = 1): number {
+  return Math.min(
+    renderScale > 1 ? Number.POSITIVE_INFINITY : MAX_PRECOMPOSITION_SURFACE_BYTES,
+    memoryBudgetMb === undefined
+      ? 128 * 1024 * 1024
+      : Math.max(1, memoryBudgetMb * 0.35) * 1024 * 1024,
+  );
+}
+
 export function planPrecompositionSurface(
   request: PrecompositionSurfaceRequest,
   budget: PrecompositionSurfaceBudget,
@@ -57,17 +67,13 @@ export function planPrecompositionSurface(
     return skipped(`texture count exceeds ${MAX_PRECOMPOSITION_SURFACE_TEXTURES}`);
 
   const bytesPerPixel = BASE_BYTES_PER_PIXEL + (request.hasEffects ? EFFECT_BYTES_PER_PIXEL : 0);
-  const byteLimit = Math.min(
-    MAX_PRECOMPOSITION_SURFACE_BYTES,
-    request.memoryBudgetMb === undefined
-      ? 128 * 1024 * 1024
-      : Math.max(1, request.memoryBudgetMb * 0.35) * 1024 * 1024,
-  );
+  const renderScale = request.renderScale ?? 1;
+  const byteLimit = precompositionSurfaceByteLimit(request.memoryBudgetMb, renderScale);
   const remainingPixels = Math.max(
     0,
     Math.floor(
       Math.min(
-        MAX_PRECOMPOSITION_SURFACE_PIXELS - budget.pixels,
+        MAX_PRECOMPOSITION_SURFACE_PIXELS * renderScale ** 2 - budget.pixels,
         (byteLimit - budget.bytes) / bytesPerPixel,
       ),
     ),
@@ -76,9 +82,8 @@ export function planPrecompositionSurface(
 
   const dimensionLimit = Math.max(
     1,
-    Math.min(request.deviceMaxTextureDimension, MAX_PRECOMPOSITION_SURFACE_DIMENSION),
+    Math.min(request.deviceMaxTextureDimension, MAX_PRECOMPOSITION_SURFACE_DIMENSION * renderScale),
   );
-  const renderScale = request.renderScale ?? 1;
   const sourceWidth = surface.composition.width * renderScale;
   const sourceHeight = surface.composition.height * renderScale;
   const dimensionScale = Math.min(1, dimensionLimit / sourceWidth, dimensionLimit / sourceHeight);

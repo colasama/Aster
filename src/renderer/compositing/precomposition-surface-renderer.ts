@@ -16,9 +16,9 @@ import { FIXED_BLEND_MODES, gpuBlendState } from "./blend-state";
 import { needsLayerIsolation } from "./layer-composite";
 import {
   createPrecompositionSurfaceBudget,
-  MAX_PRECOMPOSITION_SURFACE_BYTES,
   MAX_PRECOMPOSITION_SURFACES,
   planPrecompositionSurface,
+  precompositionSurfaceByteLimit,
   precompositionSurfaceCacheKey,
 } from "./precomposition-surface-plan";
 import { planSceneRenderStack } from "./render-stack";
@@ -97,6 +97,7 @@ export class PrecompositionSurfaceRenderer {
   #project?: Project;
   #revision = 0;
   #frame = 0;
+  #byteLimit = precompositionSurfaceByteLimit();
   #frameStats: PrecompositionSurfaceFrame = emptyFrame();
 
   constructor(device: GPUDevice, options: SurfaceRendererOptions) {
@@ -130,6 +131,7 @@ export class PrecompositionSurfaceRenderer {
     renderScale = 1,
   ): PrecompositionSurfaceFrame {
     this.#frame += 1;
+    this.#byteLimit = precompositionSurfaceByteLimit(memoryBudgetMb, renderScale);
     if (this.#project !== project) {
       for (const entry of this.#entries.values()) destroyEntry(entry);
       this.#entries.clear();
@@ -415,9 +417,9 @@ export class PrecompositionSurfaceRenderer {
   ): SurfaceEntry {
     while (
       this.#entries.size >= MAX_PRECOMPOSITION_SURFACES ||
-      this.#residentBytes() + estimatedBytes > MAX_PRECOMPOSITION_SURFACE_BYTES
+      this.#residentBytes() + estimatedBytes > this.#byteLimit
     )
-      this.#evictOldest();
+      if (!this.#evictOldest()) throw new Error("Precomposition surface cache budget is exhausted");
     const color = this.#device.createTexture({
       label: `Precomposition HDR surface · ${key}`,
       size: [width, height],
@@ -678,15 +680,19 @@ export class PrecompositionSurfaceRenderer {
       destroyEntry(entry);
       this.#entries.delete(key);
     }
+    while (this.#residentBytes() > this.#byteLimit) if (!this.#evictOldest()) break;
   }
 
-  #evictOldest(): void {
+  #evictOldest(): boolean {
     let oldest: SurfaceEntry | undefined;
-    for (const entry of this.#entries.values())
+    for (const entry of this.#entries.values()) {
+      if (entry.lastUsedFrame === this.#frame) continue;
       if (!oldest || entry.lastUsedFrame < oldest.lastUsedFrame) oldest = entry;
-    if (!oldest) return;
+    }
+    if (!oldest) return false;
     destroyEntry(oldest);
     this.#entries.delete(oldest.key);
+    return true;
   }
 
   #residentBytes(): number {

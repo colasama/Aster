@@ -12,6 +12,7 @@ import {
   type GpuMemorySnapshot,
   resolveGpuMemoryBudget,
 } from "../core/rendering/gpu-memory-policy";
+import type { CachedPreviewFrame } from "../core/rendering/preview-frame-cache";
 import { evaluateCameraBasis } from "../core/scene/camera-rig";
 import { flattenSceneLayers } from "../core/scene/scene-evaluation";
 import type { Composition, GpuDiagnostics, Project, RendererMetrics } from "../core/types";
@@ -35,7 +36,12 @@ import {
   type ExactFrameResourceBarrier,
 } from "./gpu/exact-frame-resource-barrier";
 import { frameCadenceSample } from "./gpu/frame-cadence";
-import type { FrameReadbackTicket, RawFramePixelFormat, RawVideoFrame } from "./gpu/frame-readback";
+import {
+  type FrameReadbackTicket,
+  GpuFrameReadbackPool,
+  type RawFramePixelFormat,
+  type RawVideoFrame,
+} from "./gpu/frame-readback";
 import { planGpuMemory } from "./gpu/gpu-memory-budget";
 import { initializeGpuResources } from "./gpu/initialize-gpu-resources";
 import {
@@ -88,6 +94,11 @@ export class WebGpuRenderer {
   readonly #evaluationCache = new SceneEvaluationCache();
   readonly #audioAnalysis: AudioAnalysisProvider;
   readonly #frameResources: ExactFrameResourceBarrier;
+  /** Separate from export readback so in-flight preview captures never block AA or resize. */
+  readonly #cacheReadback: GpuFrameReadbackPool;
+  #cacheCapture?: (frame?: CachedPreviewFrame) => void;
+  /** The cached frame the canvas shows, so repeated display refreshes skip the upload. */
+  #presentedCachedFrame?: CachedPreviewFrame;
   #disposed = false;
   private constructor(
     device: GPUDevice,
@@ -104,6 +115,7 @@ export class WebGpuRenderer {
     this.#resources = new RendererResources(device, format, diagnostics, invalidate);
     this.#antiAliasing = new AntiAliasingRenderer(device, format);
     this.#audioAnalysis = new AudioAnalysisProvider(invalidate);
+    this.#cacheReadback = new GpuFrameReadbackPool(device, format);
     this.#frameResources = combineFrameResourceBarriers(
       this.#resources.mediaTextures,
       this.#audioAnalysis,
@@ -119,7 +131,11 @@ export class WebGpuRenderer {
     if (!adapter) throw new Error("No compatible GPU adapter was found");
     const timestampQueries = adapter.features.has("timestamp-query");
     const requiredFeatures: GPUFeatureName[] = timestampQueries ? ["timestamp-query"] : [];
-    const device = await adapter.requestDevice({ requiredFeatures });
+    const device = await adapter.requestDevice({
+      requiredFeatures,
+      // 4K SSAA 4x needs 15360x8640 targets, beyond WebGPU's default 8192 limit.
+      requiredLimits: { maxTextureDimension2D: adapter.limits.maxTextureDimension2D },
+    });
     device.addEventListener("uncapturederror", (event) => {
       logger.error(
         "webgpu",
@@ -169,6 +185,7 @@ export class WebGpuRenderer {
   }
   resize(width: number, height: number): void {
     this.#assertActive();
+    this.#presentedCachedFrame = undefined;
     const outputWidth = Math.max(1, Math.floor(width));
     const outputHeight = Math.max(1, Math.floor(height));
     const plan = planAntiAliasing(
@@ -300,6 +317,18 @@ export class WebGpuRenderer {
     holdPendingMedia = false,
     holdInexactVideo = false,
   ): RendererMetrics {
+    // A capture is armed for exactly one render and always settles once: with the frame, or with
+    // undefined when the render held, failed, or was incomplete.
+    const armed = this.#cacheCapture;
+    this.#cacheCapture = undefined;
+    let settled = false;
+    const settleCapture = armed
+      ? (frame?: CachedPreviewFrame) => {
+          if (settled) return;
+          settled = true;
+          armed(frame);
+        }
+      : undefined;
     try {
       return this.#renderFrame(
         composition,
@@ -309,8 +338,10 @@ export class WebGpuRenderer {
         selectedLayerId,
         holdPendingMedia,
         holdInexactVideo,
+        settleCapture,
       );
     } catch (error) {
+      settleCapture?.();
       this.#resources.mediaTextures.abortFrame();
       throw error;
     }
@@ -323,9 +354,11 @@ export class WebGpuRenderer {
     selectedLayerId?: string,
     holdPendingMedia = false,
     holdInexactVideo = false,
+    cacheCapture?: (frame?: CachedPreviewFrame) => void,
   ): RendererMetrics {
     const resources = this.#resources;
     this.#assertActive();
+    this.#presentedCachedFrame = undefined;
     const started = performance.now();
     const frameInterval = this.#lastFrameStarted ? started - this.#lastFrameStarted : 16.67;
     const continuousPlayback = playing && this.#lastFramePlaying;
@@ -603,6 +636,7 @@ export class WebGpuRenderer {
       // Keep the previously presented frame until every visible layer can draw real media;
       // a finished install or a failure both invalidate and release the hold.
       resources.mediaTextures.abortFrame();
+      cacheCapture?.();
       return {
         fps: Math.min(240, 1000 / this.#smoothedFrameMs),
         frameMs: this.#smoothedFrameMs,
@@ -939,8 +973,26 @@ export class WebGpuRenderer {
     postPass.end();
     this.#antiAliasing.encode(encoder, output, resources.gpuProfiler.writes(undefined, 7));
     this.#pendingFrameReadback?.encode(encoder, outputTexture);
+    const cacheTicket =
+      cacheCapture && this.#previewFrameComplete(activeMediaInstanceIds)
+        ? this.#reserveCacheReadback()
+        : undefined;
+    cacheTicket?.encode(encoder, outputTexture);
     const collectTimestamps = resources.gpuProfiler.encodeReadback(encoder);
     this.#device.queue.submit([encoder.finish()]);
+    if (cacheTicket && cacheCapture) {
+      const width = this.#outputWidth;
+      const height = this.#outputHeight;
+      void cacheTicket.read().then(
+        (frame) => cacheCapture({ ...frame, width, height }),
+        (error: unknown) => {
+          logger.debug("webgpu", "preview_cache_capture_failed", {
+            message: error instanceof Error ? error.message : String(error),
+          });
+          cacheCapture();
+        },
+      );
+    } else cacheCapture?.();
     resources.mediaTextures.submitted();
     const textMotionBlurStats = resources.mediaTextures.textMotionBlurFrameStats;
     if (collectTimestamps) resources.gpuProfiler.readback();
@@ -995,6 +1047,68 @@ export class WebGpuRenderer {
       passTimings: resources.gpuProfiler.passTimings(),
     };
   }
+  /**
+   * Arms a readback of the next rendered frame. `onFrame` receives the pixels only if that frame
+   * is complete: every visible media instance exact, materials and audio analysis settled, and no
+   * generator missing, so a cached frame always equals a fresh render. Otherwise it receives
+   * undefined, once, so background work can tell a skipped frame from one still in flight.
+   */
+  capturePreviewFrame(onFrame: (frame?: CachedPreviewFrame) => void): void {
+    this.#assertActive();
+    this.#cacheCapture?.();
+    this.#cacheCapture = onFrame;
+  }
+
+  /** Resolves once media and audio analysis the last render waited on are ready. */
+  waitForPreviewResources(): Promise<void> {
+    return this.#frameResources.waitForFrameResources();
+  }
+
+  /** Presents a cached frame without rendering; false when it no longer fits the canvas. */
+  presentCachedFrame(frame: CachedPreviewFrame): boolean {
+    this.#assertActive();
+    if (
+      frame.width !== this.#outputWidth ||
+      frame.height !== this.#outputHeight ||
+      frame.pixelFormat !== this.exportPixelFormat ||
+      frame.pixels.byteLength !== frame.width * frame.height * 4
+    )
+      return false;
+    // The canvas keeps its last image between display refreshes; only upload a different frame.
+    if (frame === this.#presentedCachedFrame) return true;
+    this.#presentedCachedFrame = frame;
+    this.#device.queue.writeTexture(
+      { texture: this.#context.getCurrentTexture() },
+      frame.pixels,
+      { bytesPerRow: frame.width * 4, rowsPerImage: frame.height },
+      [frame.width, frame.height],
+    );
+    return true;
+  }
+
+  #previewFrameComplete(activeMediaInstanceIds: ReadonlySet<string>): boolean {
+    const media = this.#resources.mediaTextures;
+    return (
+      this.#bufferVisualization === "beauty" &&
+      !this.productionRenderError &&
+      !this.diagnostics.sceneGeneratorError &&
+      !this.#audioAnalysis.hasPendingFrameResources &&
+      !this.#resources.materialTextures?.hasPendingResources &&
+      [...activeMediaInstanceIds].every(
+        (instanceId) => media.mediaReady(instanceId) && media.videoFrameExact(instanceId),
+      )
+    );
+  }
+
+  #reserveCacheReadback(): FrameReadbackTicket | undefined {
+    try {
+      return this.#cacheReadback.reserve(this.#outputWidth, this.#outputHeight);
+    } catch {
+      // Every slot is still mapping, or a resize waits for in-flight captures: skip this frame.
+      return undefined;
+    }
+  }
+
   async complete(): Promise<void> {
     this.#assertActive();
     await this.#device.queue.onSubmittedWorkDone();
@@ -1014,6 +1128,8 @@ export class WebGpuRenderer {
     this.#disposed = true;
     this.#pendingFrameReadback?.abort();
     this.#pendingFrameReadback = undefined;
+    this.#cacheCapture = undefined;
+    this.#cacheReadback.destroy();
     this.#resources.destroy();
     this.#antiAliasing.destroy();
     this.#evaluationCache.clear();

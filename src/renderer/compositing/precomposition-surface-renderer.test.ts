@@ -14,6 +14,7 @@ import {
   createPrecompositionSurfaceBudget,
   MAX_PRECOMPOSITION_SURFACE_BYTES,
   planPrecompositionSurface,
+  precompositionSurfaceByteLimit,
 } from "./precomposition-surface-plan";
 import {
   PrecompositionSurfaceRenderer,
@@ -22,6 +23,73 @@ import {
 
 describe("GPU precomposition surfaces", () => {
   afterEach(() => vi.unstubAllGlobals());
+
+  it.each([2, 4])(
+    "renders and reuses full-density SSAA %sx effect surfaces above 256 MiB",
+    (renderScale) => {
+      installGpuConstants();
+      const textures: GPUTextureDescriptor[] = [];
+      const device = mockDevice(textures, vi.fn());
+      const layout = device.createBindGroupLayout({ entries: [] });
+      const sampler = device.createSampler();
+      const renderer = new PrecompositionSurfaceRenderer(device, {
+        mediaTextures: new MediaTextureCache(device, layout, sampler, vi.fn()),
+        mediaLayout: layout,
+        mediaSampler: sampler,
+        lightingLayout: layout,
+        shapePipelines: blendPipelines(),
+        imagePipelines: blendPipelines(),
+      });
+      const project = createBlankProject();
+      const root = project.compositions[0];
+      const nested = { ...structuredClone(root), id: "ssaa-effects", width: 1920, height: 1080 };
+      const shape = createLayerForComposition("shape", nested);
+      shape.effects = [createEffect("exposure")];
+      nested.layers = [shape];
+      const wrapper = createLayerForComposition("precomposition", root);
+      wrapper.sourceCompositionId = nested.id;
+      wrapper.threeDimensional = true;
+      root.layers = [wrapper];
+      project.compositions.push(nested);
+      try {
+        for (const time of [0, 1]) {
+          const frame = renderer.prepare(
+            project,
+            flattenSceneLayers(root, project, time),
+            false,
+            8192,
+            true,
+            renderScale,
+          );
+          expect(frame.diagnostics).toEqual([]);
+          expect(frame.residentBytes).toBeGreaterThan(MAX_PRECOMPOSITION_SURFACE_BYTES);
+          expect(frame.residentBytes).toBe(frame.estimatedBytes);
+          renderer.encode(mockEncoder([]));
+        }
+        const targets = textures.filter((texture) =>
+          texture.label?.startsWith("Precomposition HDR surface"),
+        );
+        expect(targets).toHaveLength(1);
+        expect(targets[0].size).toEqual([1920 * renderScale, 1080 * renderScale]);
+
+        // Returning to native resolution releases oversized retained SSAA cache entries.
+        const native = renderer.prepare(project, flattenSceneLayers(root, project, 2), false, 512);
+        expect(native.residentBytes).toBeLessThanOrEqual(precompositionSurfaceByteLimit(512));
+        expect(() =>
+          renderer.prepare(
+            project,
+            flattenSceneLayers(root, project, 3),
+            false,
+            512,
+            true,
+            renderScale,
+          ),
+        ).toThrow("SSAA precomposition target unavailable");
+      } finally {
+        renderer.destroy();
+      }
+    },
+  );
 
   it("evaluates flattened child effects at their mapped composition time", () => {
     installGpuConstants();

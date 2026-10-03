@@ -10,6 +10,11 @@ import {
 } from "../../core/media/project-font-runtime";
 import { planCompositionCrop } from "../../core/project/composition-crop";
 import { activeComposition } from "../../core/project/project";
+import {
+  compositionFrameIndex,
+  compositionFrameTime,
+} from "../../core/rendering/frame-cache-policy";
+import { previewFrameCache } from "../../core/rendering/preview-frame-cache";
 import type { FrameRenderSessionOpenRequest } from "../../core/rendering/render-export";
 import {
   BoundedRenderSessionController,
@@ -17,17 +22,33 @@ import {
   type RenderSessionLease,
 } from "../../core/rendering/render-session-guard";
 import { evaluateWorldTransform } from "../../core/scene/scene-evaluation";
-import { type GpuDiagnostics, setLayerSizeAndCenterAnchor } from "../../core/types";
+import { subscribeSceneGeneratorDefinitions } from "../../core/scene/scene-generator-registry";
+import {
+  type GpuDiagnostics,
+  type RendererMetrics,
+  setLayerSizeAndCenterAnchor,
+} from "../../core/types";
 import { currentGpuMemory, GPU_MEMORY_CHANGED_EVENT } from "../../desktop/gpu-memory";
+import { subscribePluginEffectDefinitions } from "../../effects/plugin-registry";
 import { reportUiError } from "../../errors/report-ui-error";
 import { useI18n } from "../../i18n/react";
 import { warmProjectRasterSources } from "../../importers/raster-image-prefetch";
 import { CanvasFallbackRenderer } from "../../renderer/canvas-fallback";
 import {
+  type BeautyFrameRequest,
   createBeautyFrameRequest,
   createViewportBeautyFrameBackend,
   ProductionBeautyFramePipeline,
 } from "../../renderer/compositing/beauty-frame";
+import {
+  presentWithPreviewCache,
+  previewFramePlan,
+} from "../../renderer/frame-cache/cached-beauty-presenter";
+import {
+  idleSlot,
+  PreviewPrerenderer,
+  prerenderFrameOrder,
+} from "../../renderer/frame-cache/preview-prerenderer";
 import { createDefaultBezierPath } from "../../renderer/geometry/vector-path";
 import { calculatePreviewSize } from "../../renderer/gpu/preview-size";
 import { encodeRawFramePng } from "../../renderer/gpu/raw-frame-png";
@@ -315,6 +336,17 @@ export function Viewport() {
   }, [previewProject]);
 
   useEffect(() => {
+    // Plugin runtimes activate asynchronously after a project opens; repaint once they arrive.
+    const repaint = () => setRendererRevision((revision) => revision + 1);
+    const unsubscribeGenerators = subscribeSceneGeneratorDefinitions(repaint);
+    const unsubscribeEffects = subscribePluginEffectDefinitions(repaint);
+    return () => {
+      unsubscribeGenerators();
+      unsubscribeEffects();
+    };
+  }, []);
+
+  useEffect(() => {
     void rendererRevision;
     void viewCount;
     if (!rendererReady) return;
@@ -341,30 +373,41 @@ export function Viewport() {
     const renderAtTime = (time: number): boolean => {
       if (renderFailed) return false;
       try {
-        const metrics =
-          bufferView === "beauty" && pipeline
-            ? pipeline.present(
-                createBeautyFrameRequest({
-                  composition: previewComposition,
-                  antiAliasing: state.antiAliasing,
-                  project: previewProject,
-                  time: time,
-                  width: canvasRef.current?.width ?? 1,
-                  height: canvasRef.current?.height ?? 1,
-                }),
-                state.selection[0],
-                state.playing,
-              )
-            : renderer.render(
-                previewComposition,
-                time,
-                state.playing,
-                previewProject,
-                state.selection[0],
-                true,
-              );
-        publishDiagnostics(renderer.diagnostics);
+        let metrics: RendererMetrics | undefined;
+        if (bufferView === "beauty" && pipeline) {
+          const request = createBeautyFrameRequest({
+            composition: previewComposition,
+            antiAliasing: state.antiAliasing,
+            project: previewProject,
+            time: time,
+            width: canvasRef.current?.width ?? 1,
+            height: canvasRef.current?.height ?? 1,
+          });
+          const present = (beauty: BeautyFrameRequest) =>
+            pipeline.present(beauty, state.selection[0], state.playing);
+          metrics =
+            renderer instanceof WebGpuRenderer
+              ? presentWithPreviewCache({
+                  cache: previewFrameCache,
+                  renderer,
+                  request,
+                  playing: state.playing,
+                  present,
+                })
+              : present(request);
+        } else
+          metrics = renderer.render(
+            previewComposition,
+            time,
+            state.playing,
+            previewProject,
+            state.selection[0],
+            true,
+          );
         syncMirrorCanvas(canvasRef.current, mirrorCanvasRef.current);
+        // A cached frame was presented without rendering, so there are no new metrics.
+        if (!metrics) return false;
+        publishDiagnostics(renderer.diagnostics);
         const now = performance.now();
         const firstPassBreakdown = Boolean(metrics.passTimings) && !hasGpuPassMetrics.current;
         if (firstPassBreakdown) hasGpuPassMetrics.current = true;
@@ -402,6 +445,80 @@ export function Viewport() {
     bufferView,
     publishDiagnostics,
     t,
+  ]);
+
+  useEffect(() => {
+    // Seeking or editing while paused fills the cache ahead of the playhead in idle time. Media
+    // repaints are not dependencies, so arriving images do not restart the job.
+    void state.previewQuality;
+    if (!rendererReady || state.playing || bufferView !== "beauty") return;
+    const renderer = rendererRef.current;
+    const pipeline = beautyPipelineRef.current;
+    const canvas = canvasRef.current;
+    if (!(renderer instanceof WebGpuRenderer) || !pipeline || !canvas) return;
+    if (!previewFrameCache.enabled) return;
+    const guard = renderSessionGuardRef.current;
+    const prerenderer = new PreviewPrerenderer({
+      cache: previewFrameCache,
+      renderer,
+      idle: async () => {
+        await idleSlot();
+        if (guard.active) prerenderer.stop();
+      },
+    });
+    const selectedLayerId = state.selection[0];
+    const frameRate = previewComposition.frameRate;
+    const request = (time: number) =>
+      createBeautyFrameRequest({
+        composition: previewComposition,
+        antiAliasing: state.antiAliasing,
+        project: previewProject,
+        time,
+        width: canvas.width,
+        height: canvas.height,
+      });
+    let attempts = 0;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const begin = () => {
+      if (guard.active) return;
+      const plan = previewFramePlan(request(state.currentTime));
+      if (!plan.onFrame) return;
+      // The displayed frame is captured asynchronously; wait for it so it can be restored.
+      const displayed = previewFrameCache.lookup(plan.compositionId, plan.scope, plan.frame);
+      if (!displayed) {
+        if (++attempts < 40) timer = setTimeout(begin, 250);
+        return;
+      }
+      const workArea = previewComposition.workArea;
+      const first = Math.max(0, compositionFrameIndex(workArea.start, frameRate));
+      const last = Math.max(
+        first,
+        Math.ceil((workArea.end * frameRate.numerator) / frameRate.denominator - 1e-6) - 1,
+      );
+      void prerenderer.start({
+        compositionId: plan.compositionId,
+        scope: plan.scope,
+        displayed,
+        frames: prerenderFrameOrder(plan.frame, first, last),
+        render: (frame) =>
+          pipeline.present(request(compositionFrameTime(frame, frameRate)), selectedLayerId, false),
+      });
+    };
+    timer = setTimeout(begin, 300);
+    return () => {
+      clearTimeout(timer);
+      prerenderer.stop();
+    };
+  }, [
+    bufferView,
+    previewComposition,
+    previewProject,
+    rendererReady,
+    state.antiAliasing,
+    state.currentTime,
+    state.playing,
+    state.previewQuality,
+    state.selection,
   ]);
 
   useEffect(() => {

@@ -25,6 +25,74 @@ function surfaceScene(width = 1_920, height = 1_080) {
 }
 
 describe("precomposition surface planning", () => {
+  it("retains a 4K effect surface at SSAA 4x on a capable GPU", () => {
+    const plan = planPrecompositionSurface(
+      {
+        scene: surfaceScene(3840, 2160),
+        deviceMaxTextureDimension: 16384,
+        memoryBudgetMb: 16384,
+        hasEffects: true,
+        renderScale: 4,
+      },
+      createPrecompositionSurfaceBudget(),
+    );
+    expect(plan).toMatchObject({
+      status: "ready",
+      width: 15360,
+      height: 8640,
+      downgraded: false,
+    });
+    expect(plan.estimatedBytes).toBeLessThanOrEqual(16384 * 0.35 * 1024 * 1024);
+  });
+  it.each([2, 4])(
+    "retains full HD effect surfaces at SSAA %sx with sufficient VRAM",
+    (renderScale) => {
+      const plan = planPrecompositionSurface(
+        {
+          scene: surfaceScene(),
+          deviceMaxTextureDimension: 8192,
+          memoryBudgetMb: 8192,
+          hasEffects: true,
+          renderScale,
+        },
+        createPrecompositionSurfaceBudget(),
+      );
+      expect(plan).toMatchObject({
+        status: "ready",
+        width: 1920 * renderScale,
+        height: 1080 * renderScale,
+        estimatedBytes: 1920 * 1080 * renderScale ** 2 * 38,
+        downgraded: false,
+      });
+    },
+  );
+
+  it("keeps SSAA constrained by the device and cumulative VRAM budget", () => {
+    const request = {
+      scene: surfaceScene(),
+      deviceMaxTextureDimension: 8192,
+      memoryBudgetMb: 1024,
+      hasEffects: true,
+      renderScale: 2,
+    };
+    const budget = createPrecompositionSurfaceBudget();
+    expect(planPrecompositionSurface(request, budget).downgraded).toBe(false);
+    expect(planPrecompositionSurface(request, budget).downgraded).toBe(true);
+    expect(budget.bytes).toBeLessThanOrEqual(1024 * 0.35 * 1024 * 1024);
+    expect(
+      planPrecompositionSurface(
+        { ...request, memoryBudgetMb: 8192, deviceMaxTextureDimension: 2048 },
+        createPrecompositionSurfaceBudget(),
+      ),
+    ).toMatchObject({ width: 2048, downgraded: true });
+    expect(
+      planPrecompositionSurface(
+        { ...request, memoryBudgetMb: 512 },
+        createPrecompositionSurfaceBudget(),
+      ).downgraded,
+    ).toBe(true);
+  });
+
   it("includes supersampling in surface sizes and cache identity", () => {
     const scene = surfaceScene(320, 180);
     const plan = planPrecompositionSurface(

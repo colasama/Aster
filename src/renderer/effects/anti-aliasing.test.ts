@@ -18,6 +18,11 @@ describe("output anti-aliasing", () => {
       renderHeight: 116,
     });
     expect(() => planAntiAliasing("ssaa4x", 3840, 2160, 8192)).toThrow("GPU limit");
+    expect(planAntiAliasing("ssaa4x", 3840, 2160, 16384, 8192)).toMatchObject({
+      renderWidth: 15360,
+      renderHeight: 8640,
+      scale: 4,
+    });
     expect(() => planAntiAliasing("ssaa2x", 1920, 1080, 8192, 32)).toThrow("GPU budget");
   });
 

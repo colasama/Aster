@@ -7,6 +7,7 @@ import { logger } from "../../core/logger";
 import { activeComposition } from "../../core/project/project";
 import { type AntiAliasingMode, normalizeAntiAliasing } from "../../core/rendering/anti-aliasing";
 import { normalizeGpuPreference } from "../../core/rendering/gpu-preference";
+import { previewFrameCache } from "../../core/rendering/preview-frame-cache";
 import { runCpuTask } from "../../core/scheduling/cpu-scheduler";
 import type { EnvironmentLighting } from "../../core/types";
 import { getPreferences, isDesktopRuntime, updatePreferences } from "../../desktop/api";
@@ -16,7 +17,7 @@ import { reportUiError } from "../../errors/report-ui-error";
 import type { Locale, PlainMessageKey, Translate } from "../../i18n/core";
 import { type UiErrorCode, uiErrorMessage } from "../../i18n/errors";
 import { useI18n } from "../../i18n/react";
-import { useEditor } from "../../state/editor-store";
+import { readFrameCacheBudget, useEditor } from "../../state/editor-store";
 import { applyBrowserUiScale } from "../../ui/browser-ui-scale";
 import { colorInputValue, parseColorInput } from "../../ui/color-input";
 import { DEFAULT_THEME_COLORS, type ThemeColors } from "../../ui/theme";
@@ -25,6 +26,7 @@ import { parseUiScale, type UiScale } from "../../ui/ui-scale";
 import { normalizeViewportNavigationMode } from "../../ui/viewport-zoom";
 import { useDialogFocus } from "../use-dialog-focus";
 import { AutomationSettingsPanel } from "./AutomationSettingsPanel";
+import { FrameCacheControls } from "./FrameCacheControls";
 import { GpuMemoryControls } from "./GpuMemoryControls";
 
 const PluginManager = lazy(() =>
@@ -99,6 +101,8 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
   const [gpuMemoryBudgetMb, setGpuMemoryBudgetMb] = useState(state.gpuMemoryBudgetMb);
   const [gpuPreference, setGpuPreference] = useState(readBrowserGpuPreference);
   const [gpuMemoryValid, setGpuMemoryValid] = useState(true);
+  const [frameCacheBudgetMb, setFrameCacheBudgetMb] = useState(readFrameCacheBudget);
+  const [frameCacheValid, setFrameCacheValid] = useState(true);
   const [reducedMotion, setReducedMotion] = useState(
     () => readPreference("aster.reducedMotion") === "true",
   );
@@ -127,6 +131,7 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
         setAutosaveSeconds(preferences.autosaveSeconds);
         setReducedMotion(preferences.reducedMotion);
         setGpuMemoryBudgetMb(preferences.gpuMemoryBudgetMb);
+        setFrameCacheBudgetMb(preferences.frameCacheBudgetMb);
         setGpuPreference(normalizeGpuPreference(preferences.gpuPreference));
         setAntiAliasing(normalizeAntiAliasing(preferences.antiAliasing));
         setViewportNavigationMode(
@@ -171,11 +176,12 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
   };
 
   const savePreferences = () => {
-    if (!gpuMemoryValid) return;
+    if (!gpuMemoryValid || !frameCacheValid) return;
     writePreferences([
       ["aster.autosaveSeconds", String(autosaveSeconds)],
       ["aster.reducedMotion", String(reducedMotion)],
       ["aster.gpuMemoryBudgetMb", String(gpuMemoryBudgetMb)],
+      ["aster.frameCacheBudgetMb", String(frameCacheBudgetMb)],
       ["aster.gpuPreference", gpuPreference],
       ["aster.antiAliasing", antiAliasing],
       ["aster.viewportNavigationMode", viewportNavigationMode],
@@ -186,6 +192,7 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
     window.dispatchEvent(new Event(APP_PREFERENCES_CHANGED_EVENT));
     dispatch({ type: "setPreviewQuality", quality: previewQuality });
     dispatch({ type: "setGpuMemoryBudget", budget: gpuMemoryBudgetMb });
+    previewFrameCache.setBudgetMb(frameCacheBudgetMb);
     dispatch({ type: "setAntiAliasing", mode: antiAliasing });
     dispatch({ type: "setViewportNavigationMode", mode: viewportNavigationMode });
     setLocale(preferredLocale);
@@ -196,6 +203,7 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
           : 30,
         reducedMotion,
         gpuMemoryBudgetMb,
+        frameCacheBudgetMb,
         gpuPreference,
         antiAliasing,
         viewportNavigationMode,
@@ -544,6 +552,11 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
               onChange={setGpuMemoryBudgetMb}
               onValidityChange={setGpuMemoryValid}
             />
+            <FrameCacheControls
+              value={frameCacheBudgetMb}
+              onChange={setFrameCacheBudgetMb}
+              onValidityChange={setFrameCacheValid}
+            />
             <label className="wide">
               {t("workspace.preferences.antiAliasing")}
               <select
@@ -671,7 +684,7 @@ export function WorkspaceDialog({ kind, onClose }: WorkspaceDialogProps) {
           {kind === "preferences" && (
             <button
               className="primary"
-              disabled={!gpuMemoryValid}
+              disabled={!gpuMemoryValid || !frameCacheValid}
               onClick={savePreferences}
               type="button"
             >

@@ -76,6 +76,8 @@ export const timelineEn = {
   "timeline.workArea.hint": "Work area · drag to move · B/N set boundaries",
   "timeline.workArea.end": "Set work area end",
   "timeline.motionBlur.shutterRegion": "Motion blur shutter interval",
+  "timeline.frameCache": "Cached frames",
+  "timeline.menu.clearFrameCache": "Clear frame cache",
   "timeline.motionBlur.compositionSwitch": "Composition motion blur",
   "timeline.motionBlur.enableComposition": "Enable composition motion blur",
   "timeline.motionBlur.disableComposition": "Disable composition motion blur",

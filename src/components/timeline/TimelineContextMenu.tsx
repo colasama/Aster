@@ -1,3 +1,4 @@
+import { previewFrameCache } from "../../core/rendering/preview-frame-cache";
 import { LAYER_STYLE_TYPES, type LayerStyleType } from "../../effects/layer-style-actions";
 import type { Translate } from "../../i18n/core";
 import { useI18n } from "../../i18n/react";
@@ -313,6 +314,14 @@ export function timelineContextMenuItems(
       kind: "command",
       label: t("timeline.menu.deleteKeyframes"),
       onSelect: actions.deleteKeyframes,
+    },
+    { id: "frame-cache-separator", kind: "separator" },
+    {
+      disabled: previewFrameCache.usage().frameCount === 0,
+      id: "clear-frame-cache",
+      kind: "command",
+      label: t("timeline.menu.clearFrameCache"),
+      onSelect: () => previewFrameCache.clear(),
     },
   );
   return items;
