@@ -66,6 +66,12 @@ separate modules. Existing document fields, effect identifiers, and operation na
 `WebGpuRenderer` coordinates frame evaluation, passes, and lifecycle. `RendererResources` owns
 allocation, resizing helpers, and disposal of its GPU resources and media/surface caches; scene batch
 submission has its own module. Frame buffers remain GPU-resident until an explicit readback.
+
+Renderer migration verification uses the CPU-only `aster-render-compare` crate behind the thin
+`aster-render-cli compare` command. It reads lossless reference and candidate PNGs without changing
+color values, evaluates fixed numeric and structural limits, and atomically publishes diagnostic
+images and reports. The production GPU path does not depend on this offline oracle. Its phase
+correlation uses RustFFT behind an Aster-owned interface; ambiguous registration fails closed.
 `ProjectPanel` owns project organization; `useProjectImports` owns import state and transactions, and
 `EffectBrowser` owns presets and effect preferences. Its state survives tab changes while inactive
 catalog rows remain unmounted. Viewport geometry and benchmark coordination are separate from the

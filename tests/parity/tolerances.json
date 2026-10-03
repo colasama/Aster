@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "profiles": {
+    "exact": { "exact": true },
+    "gpu": {
+      "exact": false,
+      "max_abs_channel_error": 2,
+      "mean_abs_error": 0.05,
+      "min_psnr_db": 50.0,
+      "structural": {
+        "largest_error_component": 64,
+        "max_abs_signed_bias": 0.5,
+        "alpha_changed_fraction": 0.001,
+        "registration_distance": 0.25,
+        "ink_edge_delta": 1
+      }
+    },
+    "decode": {
+      "exact": false,
+      "max_abs_channel_error": 4,
+      "mean_abs_error": 0.5,
+      "min_psnr_db": 42.0,
+      "structural": {
+        "largest_error_component": 64,
+        "max_abs_signed_bias": 0.5,
+        "alpha_changed_fraction": 0.001,
+        "registration_distance": 0.25,
+        "ink_edge_delta": 1
+      }
+    },
+    "yuv": {
+      "exact": false,
+      "min_psnr_db": 40.0,
+      "structural": {
+        "largest_error_component": 64,
+        "max_abs_signed_bias": 0.5,
+        "alpha_changed_fraction": 0.001,
+        "registration_distance": 0.25,
+        "ink_edge_delta": 1
+      }
+    },
+    "perceptual": {
+      "exact": false,
+      "min_psnr_db": 38.0,
+      "min_ssim": 0.99,
+      "structural": {
+        "largest_error_component": 256,
+        "max_abs_signed_bias": 1.0,
+        "alpha_changed_fraction": 0.005,
+        "registration_distance": 0.5,
+        "ink_edge_delta": 1
+      }
+    }
+  }
+}

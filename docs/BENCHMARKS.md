@@ -75,6 +75,51 @@ reference frames are therefore the same solid color; it preserves the existing e
 and does not establish visible animation. Generated moving scenes and media sequences exercise
 time-addressed output independently.
 
+Build the offline pixel oracle with `cargo build --release -p aster-render-cli`, then run
+`target/release/aster-render-cli compare --reference <png> --candidate <png> --tolerance <profile>`.
+Profiles are embedded from `tests/parity/tolerances.json`; the report records that catalog's SHA-256.
+The `yuv` default requires 40 dB on every frame. No tolerance override is implicitly applied. Exit
+codes are 0 for numeric/structural success, 1 for pixel failure, and 2 for invalid input or an I/O
+failure. Non-exact profiles still need the agent's recorded image review before G3 can pass.
+
+Maximum and mean absolute error and `mean_squared_error` include all four RGBA8 channels, including
+hidden RGB. Profile PSNR uses RGB MSE (`rgb_mean_squared_error`); `rgba_psnr` also reports the RGBA
+value. Each PSNR explicitly represents zero error in its channels as infinite. SSIM uses an 11×11
+Gaussian window (sigma 1.5), population covariance and symmetric edge reflection. Its `channels`
+report all four scores, `mean` gates the RGB average, and `rgba_mean` preserves the RGBA average.
+Matching alpha cannot dilute either color gate; alpha error is checked separately by the structural
+gate. Registration uses a zero-padded, phase-normalized Fourier
+cross-spectrum and local upsampled DFT; no registration transform is applied to metric inputs.
+Unobservable, periodic or incoherent nonidentical images fail the registration check. Coordinate-wise
+identical images have a distinct identity result. Resource limits reject oversized work instead of
+silently scaling down comparison inputs.
+
+`--context <json>` supplies `{case_id, isolated, background, sequence}`. Isolated cases must name the
+fixed RGBA8 background. A sequence supplies `{frame, first_frame, last_frame, previous, next}`; neighbor
+PNG paths are relative to the context file. Both in-domain neighbors are required, and the candidate
+must have strictly smaller RGBA mean squared error against the current frame than either neighbor.
+Only a declared domain endpoint can omit its outside neighbor; equal neighboring frames cannot prove
+identity. The batch gate obtains these facts from the corpus project rather than inferring endpoints
+from the sampled reference list.
+
+`--out <new-directory>` publishes `report.json`, `heatmap.png` and `contact-sheet.png` together. The
+heatmap is opaque grayscale, `min(255, max RGBA error × 16)` by default. The contact sheet's top row
+shows reference and candidate over a checkerboard using the production premultiplied sRGB convention;
+its bottom row shows their alpha channels. All panels retain source resolution. Existing outputs
+and references are never overwritten. Evidence includes both compressed-file and raw-pixel hashes.
+
+`pnpm parity:oracle` proves both directions: unchanged reference pixels pass an exact diagnostic G3
+comparison, while a candidate with a 20×20 erased patch fails the real GPU profile and structural
+checks. The command saves each G3 report and the failed candidate's visual evidence under
+`artifacts/parity/oracle/`. This diagnostic subset does not claim full corpus parity or completion.
+
+G3 checks every reference and sequence neighbor against the ledger's approved
+`reference_baseline.renderer_source_sha256`, in addition to capture, PNG and metadata hashes.
+Recapturing a newer renderer cannot silently replace the approved oracle. A new baseline must first
+pass an exact comparison against the preserved one. Accepted non-exact reviews bind the case, frame,
+profile, raw image hashes, all measured results, and the SHA-256 of their report, heatmap and contact
+sheet; missing or changed evidence cannot reuse a prior acceptance.
+
 ## Suites
 
 - 1080p and 4K 20-layer 2D composite.

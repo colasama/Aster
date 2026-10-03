@@ -152,7 +152,7 @@ test("unknown required gates fail closed even in quick mode", async (t) => {
   assert.match(result.report.gates.at(-1).error, /not implemented/);
 });
 
-test("unimplemented pixel gates and omitted M0 G6 cannot produce green reports", async (t) => {
+test("missing pixel evidence and omitted M0 G6 cannot produce green reports", async (t) => {
   for (const gates of [["G0", "G6", "G3"], ["G0"]]) {
     const context = await fixture(t, gates);
     const result = await verifyMigration(
@@ -162,6 +162,27 @@ test("unimplemented pixel gates and omitted M0 G6 cannot produce green reports",
     assert.equal(result.exitCode, 1);
     assert.equal(result.report.required_gates_passed, false);
   }
+});
+
+test("a full pixel gate without self-review exits nonzero and cannot authorize a commit", async (t) => {
+  const context = await fixture(t);
+  await writeAtomicJson(context.ledger, {
+    status: "running",
+    milestones: [{ id: "M1", status: "in_progress", gates: ["G0", "G3"], tasks: [] }],
+  });
+  const result = await verifyMigration(context, {
+    provenance,
+    execute: (command, context) =>
+      command.id === "compare-cli-build" ? { status: "passed" } : fakeHook(command, context),
+    runPixelGate: async (_context, options) => {
+      assert.equal(options.scope, "full");
+      assert.equal(options.profileOverride, "exact");
+      return { id: "G3", status: "incomplete", reason: "review missing" };
+    },
+  });
+  assert.equal(result.report.status, "incomplete");
+  assert.equal(result.report.required_gates_passed, false);
+  assert.equal(result.exitCode, 1);
 });
 
 test("source edits during verification invalidate successful checks", async (t) => {

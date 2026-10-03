@@ -1,0 +1,18 @@
+[package]
+name = "aster-render-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+aster-render-compare.workspace = true
+clap.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+uuid.workspace = true
+
+[[bin]]
+name = "aster-render-cli"
+path = "src/main.rs"

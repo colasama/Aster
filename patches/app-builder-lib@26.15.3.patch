@@ -1,0 +1,93 @@
+diff --git a/out/util/electronFetchDownloader.js b/out/util/electronFetchDownloader.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..f613521fa2d5414faa900ee1f2ecca3ace4bec91
+--- /dev/null
++++ b/out/util/electronFetchDownloader.js
+@@ -0,0 +1,66 @@
++"use strict";
++const { FetchDownloader } = require("@electron/get");
++const { Agent, ProxyAgent } = require("undici");
++
++// Preserve the builder's timeout, proxy and retry contracts when using the fetch downloader.
++class ElectronFetchDownloader extends FetchDownloader {
++    async download(url, targetFilePath, options = {}) {
++        const { timeout, agent, https, ...fetchOptions } = options;
++        const supported = new Set(["timeout", "agent", "https", "headers", "method", "body", "redirect", "signal", "dispatcher", "quiet", "getProgressCallback"]);
++        for (const key of Object.keys(options)) {
++            if (!supported.has(key)) throw new Error(`Unsupported Electron download option: ${key}`);
++        }
++        if (timeout && typeof timeout === "object" && Object.keys(timeout).some(key => key !== "request")) {
++            throw new Error("Electron fetch downloads support the total request timeout only");
++        }
++        const timeoutMs = typeof timeout === "number" ? timeout : timeout?.request;
++        if (timeoutMs !== undefined) {
++            if (!Number.isSafeInteger(timeoutMs) || timeoutMs <= 0 || timeoutMs > 4294967295) {
++                throw new Error("Invalid Electron download request timeout");
++            }
++            const timeoutSignal = AbortSignal.timeout(timeoutMs);
++            fetchOptions.signal = fetchOptions.signal ? AbortSignal.any([fetchOptions.signal, timeoutSignal]) : timeoutSignal;
++        }
++        let ownedDispatcher;
++        try {
++            const proxy = agent?.[new URL(url).protocol.slice(0, -1)];
++            if (proxy) {
++                if (!(proxy.proxy instanceof URL)) throw new Error("Custom Node download agents require an explicit fetch dispatcher");
++                if (fetchOptions.dispatcher) throw new Error("Electron download proxy and dispatcher cannot both be specified");
++                const headers = typeof proxy.proxyHeaders === "function" ? proxy.proxyHeaders() : proxy.proxyHeaders;
++                const proxyTls = {};
++                for (const key of ["ca", "cert", "key", "pfx", "passphrase", "rejectUnauthorized", "servername"]) {
++                    if (proxy.connectOpts?.[key] !== undefined) proxyTls[key] = proxy.connectOpts[key];
++                }
++                ownedDispatcher = new ProxyAgent({ uri: proxy.proxy.href, headers, requestTls: https, proxyTls });
++            } else if (https) {
++                if (fetchOptions.dispatcher) throw new Error("Electron download TLS options and dispatcher cannot both be specified");
++                ownedDispatcher = new Agent({ connect: https });
++            }
++            if (ownedDispatcher) fetchOptions.dispatcher = ownedDispatcher;
++            await super.download(url, targetFilePath, fetchOptions);
++        } catch (error) {
++            if (typeof error.response?.status === "number") {
++                Object.defineProperty(error.response, "statusCode", { value: error.response.status, configurable: true });
++            }
++            const code = error.name === "TimeoutError" ? "ETIMEDOUT" : error.cause?.code;
++            if (typeof code === "string" && !error.code) {
++                const compatible = new Error(error.message, { cause: error });
++                compatible.name = error.name;
++                compatible.code = code;
++                throw compatible;
++            }
++            if (error.name === "TimeoutError") {
++                const compatible = new Error(error.message, { cause: error });
++                compatible.name = error.name;
++                compatible.code = "ETIMEDOUT";
++                throw compatible;
++            }
++            throw error;
++        } finally {
++            if (ownedDispatcher) await ownedDispatcher.close();
++        }
++    }
++}
++
++exports.ElectronFetchDownloader = ElectronFetchDownloader;
+diff --git a/out/util/electronGet.js b/out/util/electronGet.js
+index a941f9d20c10ca58a84b9a600b0df468631aae01..ad1d44f8a930c616030df0bf2f9550d148fba25e 100644
+--- a/out/util/electronGet.js
++++ b/out/util/electronGet.js
+@@ -22,6 +22,7 @@ const tar = require("tar");
+ const unzipper = require("unzipper");
+ const builder_util_runtime_1 = require("builder-util-runtime");
+ const cacheState_1 = require("./cacheState");
++const { ElectronFetchDownloader } = require("./electronFetchDownloader");
+ function hashUrlSafe(input, length = 6) {
+     let hash = 5381;
+     for (let i = 0; i < input.length; i++) {
+@@ -241,7 +242,7 @@ async function downloadArtifactToFile(config, label) {
+             return Promise.resolve();
+         },
+     };
+-    const configWithProgress = { ...config, downloadOptions };
++    const configWithProgress = { ...config, downloadOptions, downloader: config.downloader ?? new ElectronFetchDownloader() };
+     try {
+         let filePath;
+         try {

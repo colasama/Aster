@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { mkdir, readFile } from "node:fs/promises";
 import { join, relative } from "node:path";
+import { runPixelGate } from "../parity/pixel-gate.mjs";
 import { runAppChecks } from "./app-checks.mjs";
 import { runStep } from "./process.mjs";
 import { writeAtomicJson } from "./report.mjs";
@@ -13,6 +14,8 @@ export function parseArguments(args) {
     if (args[index] === "--quick") options.quick = true;
     else if (args[index] === "--milestone" && /^M\d+$/.test(args[index + 1] ?? "")) {
       options.milestone = args[++index];
+    } else if (args[index] === "--candidates" && args[index + 1]) {
+      options.candidates = args[++index];
     } else throw new Error(`Unknown or incomplete argument: ${args[index]}`);
   }
   return options;
@@ -102,7 +105,39 @@ export async function verifyMigration(options, dependencies = {}) {
     }
     for (const id of milestone.gates) {
       if (id === "G0") report.gates.push(await runStaticGate(context, quick, execute));
-      else if (id === "G6" && milestone.id === "M0") {
+      else if (id === "G3") {
+        const pixelContext = { ...context, output: join(output, "G3") };
+        const build = await execute(
+          {
+            id: "compare-cli-build",
+            file: "cargo",
+            args: ["build", "--release", "-p", "aster-render-cli"],
+          },
+          pixelContext,
+        );
+        if (build.status !== "passed") {
+          report.gates.push({
+            id,
+            status: "failed",
+            error: "Pixel comparison CLI build failed",
+            build,
+          });
+        } else {
+          report.gates.push({
+            ...(await (dependencies.runPixelGate ?? runPixelGate)(
+              pixelContext,
+              {
+                manifestPath:
+                  options.candidates ?? join(root, "artifacts/parity/candidate/manifest.json"),
+                scope: "full",
+                profileOverride: ["M1", "M2"].includes(milestone.id) ? "exact" : null,
+              },
+              execute,
+            )),
+            build,
+          });
+        }
+      } else if (id === "G6" && milestone.id === "M0") {
         report.gates.push(
           quick
             ? { id, status: "skipped", reason: "Quick mode does not build or smoke-test the app" }
@@ -133,5 +168,9 @@ export async function verifyMigration(options, dependencies = {}) {
       `Report: ${relative(root, reportPath)}`,
     ].join("\n"),
   );
-  return { report, reportPath, exitCode: report.status === "failed" ? 1 : 0 };
+  return {
+    report,
+    reportPath,
+    exitCode: report.status === "failed" || (!quick && !report.required_gates_passed) ? 1 : 0,
+  };
 }
