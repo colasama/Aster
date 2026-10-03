@@ -26,34 +26,34 @@
     "continuation": "The updated owner goal supersedes the specification's stop-on-blocker requirements. Record obstacles and evidence, resolve them or continue independent required work. Do not report failed or skipped checks as passed. Gate, pixel-review, commit and completion requirements remain in force."
   },
   "last_cycle": {
-    "id": 1,
-    "time": "2026-10-03T16:37:51.090Z",
-    "started_at": "2026-10-03T16:17:17.000Z",
+    "notes": [
+      "Generated 337 cases and 1819 frame addresses; coverage rejects unsampled, inactive and falsely labeled features.",
+      "Real media includes decoded frame-identity proof and independent image-sequence identity/hold-boundary cases. Owner data remains external.",
+      "The first full run exposed an existing 25 ms script sandbox initialization-timeout race. The final full run passed without altering the sandbox or its timeout.",
+      "Vite artifact watching was disabled and identical project writes avoided after a transient Windows replacement lock. No partial JSON was published.",
+      "No pixel comparison is claimed by corpus structural validation; reference capture and self-review remain pending."
+    ],
     "milestone": "M0",
-    "task": "M0-T1",
-    "outcome": "passed",
-    "commit": "5abbc948ef83e03e9f29fb57e41a2c5352f842af",
-    "verification": "artifacts/migration/verify-2026-10-03T16-34-57-759Z-742831b8.json",
+    "verification": "artifacts/migration/verify-2026-10-03T17-08-33-908Z-ce733033.json",
+    "verification_duration_ms": 88214,
+    "id": 2,
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 27306
+        "duration_ms": 25079
       },
       {
         "id": "G6",
         "status": "passed",
-        "duration_ms": 65205
+        "duration_ms": 62162
       }
     ],
-    "verification_duration_ms": 93493,
-    "next_step": "M0-T2: generate deterministic per-feature projects and enforce exhaustive corpus coverage on the owner-authorized local machine.",
-    "notes": [
-      "Bootstrap G0 passed after rebuilding stale aster-plugin artifacts and using the installed Corepack pnpm entry point.",
-      "A source-changing verification run was correctly rejected; the final full run passed with stable sources.",
-      "Foreground and background preview/render-queue smoke passed with preserved FFmpeg binaries.",
-      "The owner approved the local AMD host and requested continued work despite the original stop-on-blocker rules."
-    ]
+    "outcome": "passed",
+    "commit": "b4444428b1d615f41e268b4bc8876a3c4bc3eade",
+    "next_step": "M0-T3: capture production TS reference frames with source, case, media and adapter provenance.",
+    "time": "2026-10-03T17:11:17.0188181Z",
+    "task": "M0-T2"
   },
   "milestones": [
     {
@@ -66,7 +66,7 @@
           "title": "Establish reproducible G0/G6 gate execution and atomic verification reports",
           "id": "M0-T1",
           "status": "done",
-          "completed_at": "2026-10-03T16:37:51.090Z",
+          "completed_at": "2026-10-03T16:37:51.09Z",
           "commit": "5abbc948ef83e03e9f29fb57e41a2c5352f842af",
           "verification": "artifacts/migration/verify-2026-10-03T16-34-57-759Z-742831b8.json",
           "gates": [
@@ -86,7 +86,40 @@
         {
           "title": "Create deterministic corpus generators and exhaustive feature coverage checks",
           "id": "M0-T2",
-          "status": "pending"
+          "status": "done",
+          "completed_at": "2026-10-03T17:11:17.0188181Z",
+          "commit": "b4444428b1d615f41e268b4bc8876a3c4bc3eade",
+          "verification": "artifacts/migration/verify-2026-10-03T17-08-33-908Z-ce733033.json",
+          "gates": [
+            {
+              "id": "G0",
+              "status": "passed",
+              "duration_ms": 25079
+            },
+            {
+              "id": "G6",
+              "status": "passed",
+              "duration_ms": 62162
+            }
+          ],
+          "verification_duration_ms": 88214,
+          "corpus": {
+            "manifest": "tests/parity/corpus.json",
+            "asset_provenance": "tests/parity/assets/media-assets.json",
+            "frame_addresses": 1819,
+            "owner_opening": {
+              "first": 0,
+              "last": 713
+            },
+            "case_count": 337,
+            "owner_main": {
+              "first": 714,
+              "last": 1013
+            }
+          },
+          "failed_verifications": [
+            "artifacts/migration/verify-2026-10-03T17-03-54-762Z-5ffe8891.json"
+          ]
         },
         {
           "title": "Capture production TS reference frames with source and adapter provenance",
@@ -110,22 +143,22 @@
         }
       ],
       "last_verification": {
-        "report": "artifacts/migration/verify-2026-10-03T16-34-57-759Z-742831b8.json",
-        "status": "passed",
-        "required_gates_passed": true,
         "milestone_exit_satisfied": false,
+        "required_gates_passed": true,
         "gates": [
           {
             "id": "G0",
             "status": "passed",
-            "duration_ms": 27306
+            "duration_ms": 25079
           },
           {
             "id": "G6",
             "status": "passed",
-            "duration_ms": 65205
+            "duration_ms": 62162
           }
-        ]
+        ],
+        "status": "passed",
+        "report": "artifacts/migration/verify-2026-10-03T17-08-33-908Z-ce733033.json"
       }
     },
     {
@@ -218,8 +251,8 @@
   "history": [
     {
       "id": 1,
-      "time": "2026-10-03T16:37:51.090Z",
-      "started_at": "2026-10-03T16:17:17.000Z",
+      "time": "2026-10-03T16:37:51.09Z",
+      "started_at": "2026-10-03T16:17:17Z",
       "milestone": "M0",
       "task": "M0-T1",
       "outcome": "passed",
@@ -245,6 +278,69 @@
         "Foreground and background preview/render-queue smoke passed with preserved FFmpeg binaries.",
         "The owner approved the local AMD host and requested continued work despite the original stop-on-blocker rules."
       ]
+    },
+    {
+      "notes": [
+        "Generated 337 cases and 1819 frame addresses; coverage rejects unsampled, inactive and falsely labeled features.",
+        "Real media includes decoded frame-identity proof and independent image-sequence identity/hold-boundary cases. Owner data remains external.",
+        "The first full run exposed an existing 25 ms script sandbox initialization-timeout race. The final full run passed without altering the sandbox or its timeout.",
+        "Vite artifact watching was disabled and identical project writes avoided after a transient Windows replacement lock. No partial JSON was published.",
+        "No pixel comparison is claimed by corpus structural validation; reference capture and self-review remain pending."
+      ],
+      "milestone": "M0",
+      "verification": "artifacts/migration/verify-2026-10-03T17-08-33-908Z-ce733033.json",
+      "verification_duration_ms": 88214,
+      "id": 2,
+      "gates": [
+        {
+          "id": "G0",
+          "status": "passed",
+          "duration_ms": 25079
+        },
+        {
+          "id": "G6",
+          "status": "passed",
+          "duration_ms": 62162
+        }
+      ],
+      "outcome": "passed",
+      "commit": "b4444428b1d615f41e268b4bc8876a3c4bc3eade",
+      "next_step": "M0-T3: capture production TS reference frames with source, case, media and adapter provenance.",
+      "time": "2026-10-03T17:11:17.0188181Z",
+      "task": "M0-T2"
+    }
+  ],
+  "known_boundaries": [
+    {
+      "detail": "The current TS sidecar rejects EXR. Real linear EXR bytes are retained for native decoder coverage; M0 does not claim a TS EXR reference.",
+      "id": "ts-exr-import",
+      "evidence": [
+        "src/importers/media-import-persistence-codec.ts",
+        "tests/parity/media.test.ts",
+        "tests/parity/assets/media-assets.json"
+      ],
+      "native_milestone": "M3"
+    },
+    {
+      "detail": "The current TS effect compiler maps path masks to ellipse parameters. The path case claims schema coverage only; ellipse and rectangle have independent real mask cases.",
+      "id": "ts-path-mask",
+      "evidence": ["src/renderer/effects/effect-program.ts:96", "tests/parity/generators/scenes.ts"]
+    },
+    {
+      "detail": "Point-light shadows are not implemented by the TS path; directional and spot fixtures provide actual shadow coverage.",
+      "id": "ts-point-shadows",
+      "evidence": ["src/renderer/webgpu-renderer.ts:543", "src/renderer/gpu/base-shaders.ts:315"]
+    },
+    {
+      "detail": "Capture must reject renderer diagnostics, media registry failures, unloaded plugin requests and audio-analysis decode warnings rather than accepting successful readback as resource correctness.",
+      "id": "capture-silent-resource-failures",
+      "evidence": [
+        "src/renderer/webgpu-renderer.ts",
+        "src/core/plugins/plugin-runtime.ts",
+        "src/importers/media-import-persistence-hydration.ts",
+        "src/core/audio/audio-analysis-provider.ts"
+      ],
+      "native_milestone": "M0"
     }
   ]
 }
