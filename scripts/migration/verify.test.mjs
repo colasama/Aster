@@ -164,11 +164,11 @@ test("missing pixel evidence and omitted M0 G6 cannot produce green reports", as
   }
 });
 
-test("a full pixel gate without self-review exits nonzero and cannot authorize a commit", async (t) => {
+test("a full non-exact pixel gate without self-review cannot authorize a commit", async (t) => {
   const context = await fixture(t);
   await writeAtomicJson(context.ledger, {
     status: "running",
-    milestones: [{ id: "M1", status: "in_progress", gates: ["G0", "G3"], tasks: [] }],
+    milestones: [{ id: "M3", status: "in_progress", gates: ["G0", "G3"], tasks: [] }],
   });
   const result = await verifyMigration(context, {
     provenance,
@@ -176,7 +176,7 @@ test("a full pixel gate without self-review exits nonzero and cannot authorize a
       command.id === "compare-cli-build" ? { status: "passed" } : fakeHook(command, context),
     runPixelGate: async (_context, options) => {
       assert.equal(options.scope, "full");
-      assert.equal(options.profileOverride, "exact");
+      assert.equal(options.profileOverride, null);
       return { id: "G3", status: "incomplete", reason: "review missing" };
     },
   });
@@ -195,6 +195,106 @@ test("source edits during verification invalidate successful checks", async (t) 
   assert.equal(result.exitCode, 1);
   assert.equal(result.report.source_unchanged, false);
   assert.match(result.report.error, /Source changed/);
+});
+
+test("M1 and M2 delegate one TS verification and preserve incomplete milestone exit", async (t) => {
+  for (const milestone of ["M1", "M2"]) {
+    for (const passed of [true, false]) {
+      const context = await fixture(t);
+      await writeAtomicJson(context.ledger, {
+        status: "running",
+        milestones: [
+          {
+            id: milestone,
+            status: "in_progress",
+            gates: ["G0", "G3"],
+            tasks: [{ id: `${milestone}-T1`, status: "in_progress" }],
+          },
+        ],
+      });
+      let verifications = 0;
+      const result = await verifyMigration(
+        { ...context, candidates: "fresh/manifest.json" },
+        {
+          provenance,
+          execute: fakeHook,
+          verifyTsPixels: async (options) => {
+            verifications++;
+            assert.equal(options.candidates, "fresh/manifest.json");
+            assert.equal(options.milestone, milestone);
+            return {
+              exitCode: passed ? 0 : 1,
+              reportPath: join(context.root, "ts-report.json"),
+              report: {
+                status: passed ? "passed" : "failed",
+                source_unchanged: passed,
+                error: passed ? undefined : "Stale TS candidate",
+                // The aggregate wrapper must preserve a provenance failure even if pixels matched.
+                gate: { id: "G3", status: "passed", full_coverage: true },
+                build: { status: "passed", exit_code: 0 },
+              },
+            };
+          },
+        },
+      );
+      assert.equal(verifications, 1);
+      assert.equal(result.report.gates[1].status, passed ? "passed" : "failed");
+      assert.equal(result.report.required_gates_passed, passed);
+      assert.equal(result.report.milestone_exit_satisfied, false);
+      assert.equal(result.exitCode, passed ? 0 : 1);
+      assert.equal(result.report.gates[1].ts_verification, "ts-report.json");
+    }
+  }
+});
+
+test("M1 refuses a missing candidate file without accepting cached gate status", async (t) => {
+  const context = await fixture(t);
+  await writeAtomicJson(context.ledger, {
+    status: "running",
+    milestones: [{ id: "M1", status: "in_progress", gates: ["G0", "G3"], tasks: [] }],
+  });
+  const result = await verifyMigration(context, { provenance, execute: fakeHook });
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.report.gates[1].status, "failed");
+  assert.match(result.report.gates[1].error, /ENOENT/);
+});
+
+test("TS candidate selection prefers explicit input, then the active ledger capture, then the default path", async (t) => {
+  for (const [explicit, active, expected] of [
+    ["explicit/manifest.json", "active/manifest.json", "explicit/manifest.json"],
+    [undefined, "active/manifest.json", "active/manifest.json"],
+    [undefined, undefined, "artifacts/parity/candidate/manifest.json"],
+  ]) {
+    const context = await fixture(t);
+    await writeAtomicJson(context.ledger, {
+      status: "running",
+      milestones: [
+        {
+          id: "M1",
+          status: "in_progress",
+          gates: ["G0", "G3"],
+          tasks: [],
+          active_candidate_manifest: active,
+        },
+      ],
+    });
+    const result = await verifyMigration(
+      { ...context, candidates: explicit },
+      {
+        provenance,
+        execute: fakeHook,
+        verifyTsPixels: async (options) => {
+          assert.equal(options.candidates, expected);
+          return {
+            exitCode: 1,
+            reportPath: join(context.root, "failed.json"),
+            report: { status: "failed" },
+          };
+        },
+      },
+    );
+    assert.equal(result.exitCode, 1);
+  }
 });
 
 test("unknown milestones emit an atomic failure report", async (t) => {

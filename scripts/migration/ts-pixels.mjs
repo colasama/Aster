@@ -1,12 +1,14 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { mkdir, readFile } from "node:fs/promises";
+import { mkdir } from "node:fs/promises";
 import { join, relative, resolve } from "node:path";
 import { runPixelGate } from "../parity/pixel-gate.mjs";
 import { captureSource } from "../parity/provenance.mjs";
+import { evidencePath, M0Evidence } from "./m0-evidence.mjs";
 import { runStep } from "./process.mjs";
 import { writeAtomicJson } from "./report.mjs";
 import { hashFile, ownerProject, sourceProvenance } from "./source.mjs";
+import { auditTsCandidate } from "./ts-candidate.mjs";
 
 export function parseTsPixelArguments(args) {
   assert.equal(args.length, 2, "Usage: parity:check-ts --candidates <manifest.json>");
@@ -34,10 +36,16 @@ export async function verifyTsPixels(options, dependencies = {}) {
     await mkdir(output, { recursive: true });
     const owner = await ownerProject(options.env ?? process.env);
     const context = { root, output, env: owner.env, print: options.print };
+    const reader = new M0Evidence(root);
     report.source = await provenance(root);
+    assert.equal(typeof options.candidates, "string", "A fresh TS candidate manifest is required");
+    const manifestPath = evidencePath(
+      relative(root, resolve(root, options.candidates)).replaceAll("\\", "/"),
+    );
+    const manifestFile = await reader.bytes(manifestPath);
     report.candidate_manifest = {
-      path: relative(root, resolve(root, options.candidates)).replaceAll("\\", "/"),
-      sha256: await hashFile(resolve(root, options.candidates)),
+      path: manifestPath,
+      sha256: manifestFile.sha256,
     };
     report.build = await execute(
       {
@@ -48,31 +56,36 @@ export async function verifyTsPixels(options, dependencies = {}) {
       context,
     );
     assert.equal(report.build.status, "passed", "Comparison CLI build failed");
+    assert.equal(report.build.exit_code, 0, "Comparison CLI build exited unsuccessfully");
     report.renderer_source = await rendererSource(root);
-    const manifest = JSON.parse(await readFile(resolve(root, options.candidates), "utf8"));
-    assert.equal(manifest.kind, "ts-candidate", "TS parity requires a production capture manifest");
-    assert.equal(manifest.source_verified, true, "Candidate capture source is not verified");
-    assert.equal(manifest.scope, "full", "TS parity requires a complete corpus capture");
-    assert.equal(
-      manifest.source?.renderer_source_sha256,
-      report.renderer_source.renderer_source_sha256,
-      "Candidate was captured from a different renderer source",
+    const candidate = await auditTsCandidate(
+      reader,
+      manifestPath,
+      report.renderer_source,
+      options.milestone,
     );
-    assert.equal(
-      manifest.source?.tree_sha256,
-      manifest.source_after?.tree_sha256,
-      "Candidate capture changed source while rendering",
-    );
-    assert.equal(
-      manifest.source_after?.renderer_source_sha256,
-      report.renderer_source.renderer_source_sha256,
-      "Candidate capture changed renderer source while rendering",
-    );
+    report.candidate_capture = {
+      report: candidate.captureReportPath,
+      run_id: candidate.captured.manifest.run_id,
+      required_frames: candidate.captured.requested.size,
+      captured_frames: candidate.captured.frames.size,
+    };
+    if (candidate.reference) report.frozen_reference = candidate.reference;
     report.gate = await (dependencies.runPixelGate ?? runPixelGate)(
       { ...context, output: join(output, "G3") },
       { manifestPath: resolve(root, options.candidates), scope: "full", profileOverride: "exact" },
       execute,
     );
+    assert.equal(report.gate.id, "G3");
+    assert.equal(report.gate.scope, "full");
+    assert.equal(report.gate.required_count, candidate.captured.requested.size);
+    if (candidate.reference)
+      assert.deepEqual(
+        report.gate.reference_binding,
+        candidate.reference,
+        "Pixel comparison used a different pre-change reference set",
+      );
+    report.checked_candidate_files = await reader.stable();
     report.renderer_source_after = await rendererSource(root);
     report.source_after = await provenance(root);
     report.source_unchanged =

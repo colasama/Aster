@@ -222,6 +222,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "aster-shaders"
+version = "0.3.5"
+dependencies = [
+ "naga",
+ "serde",
+ "serde_json",
+ "sha2",
+ "thiserror",
+]
+
+[[package]]
 name = "aster-storage"
 version = "0.3.5"
 dependencies = [

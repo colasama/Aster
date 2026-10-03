@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "fragments": {
+    "output-anti-aliasing": "effects/anti-aliasing.wgsl"
+  },
+  "programs": {
+    "output-anti-aliasing": {
+      "fragments": ["output-anti-aliasing"],
+      "entry_points": [
+        { "name": "vertex_main", "stage": "vertex" },
+        { "name": "fxaa", "stage": "fragment" },
+        { "name": "supersample", "stage": "fragment" }
+      ],
+      "overrides": { "scale": { "type": "u32", "default": 1 } }
+    }
+  }
+}

@@ -8,6 +8,7 @@ import { runStep } from "./process.mjs";
 import { writeAtomicJson } from "./report.mjs";
 import { ownerProject, sourceProvenance } from "./source.mjs";
 import { staticCommands } from "./static-checks.mjs";
+import { verifyTsPixels } from "./ts-pixels.mjs";
 
 export function parseArguments(args) {
   const options = { quick: false };
@@ -106,7 +107,38 @@ export async function verifyMigration(options, dependencies = {}) {
     }
     for (const id of milestone.gates) {
       if (id === "G0") report.gates.push(await runStaticGate(context, quick, execute));
-      else if (id === "G3") {
+      else if (id === "G3" && ["M1", "M2"].includes(milestone.id)) {
+        const checked = await (dependencies.verifyTsPixels ?? verifyTsPixels)(
+          {
+            root,
+            candidates:
+              options.candidates ??
+              milestone.active_candidate_manifest ??
+              "artifacts/parity/candidate/manifest.json",
+            milestone: milestone.id,
+            env: context.env,
+            print: options.print,
+          },
+          {
+            execute,
+            provenance,
+            rendererSource: dependencies.rendererSource,
+            runPixelGate: dependencies.runPixelGate,
+          },
+        );
+        report.gates.push({
+          ...checked.report.gate,
+          id: "G3",
+          status:
+            checked.report.status === "passed" && checked.exitCode === 0 ? "passed" : "failed",
+          build: checked.report.build,
+          ts_verification: relative(root, checked.reportPath).replaceAll("\\", "/"),
+          error: checked.report.error,
+          source_unchanged: checked.report.source_unchanged,
+          candidate_capture: checked.report.candidate_capture,
+          duration_ms: checked.report.duration_ms,
+        });
+      } else if (id === "G3") {
         const pixelContext = { ...context, output: join(output, "G3") };
         const build = await execute(
           {

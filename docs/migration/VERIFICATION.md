@@ -38,6 +38,28 @@ mesh occlusion between identical evaluations. M0 fixes the general ordering defe
 reviewed billboard-frame repair. Failed comparisons against the original remain failed. The M1/M2
 exact thresholds are unchanged.
 
+## Shared-shader increments
+
+M1 currently starts with the output anti-aliasing shader in `shaders/`; other shader families still
+await extraction. The TS catalog loads raw WGSL through Vite, and `aster-shaders` embeds the same
+files and validates the manifest's assembled programs with Naga. Fragment order, entry points and
+typed pipeline overrides come from `shaders/manifest.json`.
+
+For each M1 increment, freeze the source tree, run `pnpm parity:capture --candidate` for the full
+corpus, then run `pnpm migrate:verify --milestone M1 --candidates <candidate-manifest-path>`.
+The ledger's `active_candidate_manifest` supplies that path when `--candidates` is omitted.
+G3 audits the full capture report and frame provenance against the current renderer source before
+requiring exact pixels for every requested frame. A previous capture from different renderer sources or
+a diagnostic subset cannot satisfy this gate. Comparison never creates or refreshes references.
+
+The M1 ledger's `frozen_reference` must equal the completed M0 effective reference binding, including
+the original source pin and the exact reviewed repair set. Neither that binding nor the repair set
+may change to accommodate shader extraction. Passing G0/G3 for one task establishes that increment
+only. The original reference files must also retain the aggregate digest recorded by the completed
+M0 verification, and candidate project, media, plugin and frame inputs must match those references.
+M1 exit additionally requires every shader to be shared and Naga-valid, the enforced absence of
+WGSL string literals throughout `src/`, and the remaining section 5 work.
+
 ## Performance evidence
 
 `pnpm migrate:benchmark` measures the full warm-up and three-run workload schedule described in

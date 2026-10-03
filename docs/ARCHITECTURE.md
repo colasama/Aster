@@ -55,6 +55,7 @@ code they exercise; consumers import the owning module directly instead of direc
 | `src/effects/presets/`, `browser/`, `resources/` | Presets, browser preferences, and LUT parsing |
 | `src/renderer/effects/programs/`, `shaders/` | Effect compilation and GPU shader cases |
 | `src/renderer/gpu/`, `scene/`, `compositing/`, `media/`, `text/`, `diagnostics/` | GPU services and rendering subsystems |
+| `shaders/` | Shared WGSL sources and declarative program manifest; currently output anti-aliasing |
 | `src/components/` | Feature folders for project, timeline, graph editor, inspector, viewport, settings, and shell |
 | `src/workspace/` | Layout contracts, tree edits, normalization, and workspace persistence |
 
@@ -66,6 +67,15 @@ separate modules. Existing document fields, effect identifiers, and operation na
 `WebGpuRenderer` coordinates frame evaluation, passes, and lifecycle. `RendererResources` owns
 allocation, resizing helpers, and disposal of its GPU resources and media/surface caches; scene batch
 submission has its own module. Frame buffers remain GPU-resident until an explicit readback.
+
+Shared WGSL extraction begins with `shaders/effects/anti-aliasing.wgsl`. The TS
+`SharedShaderCatalog` loads sources through Vite `?raw`, including in Vitest, and concatenates the
+fragments in `shaders/manifest.json` order without inserting separators. The `aster-shaders` crate
+embeds the same files with `include_str!`, follows that manifest, and validates the assembled programs
+with Naga. The manifest declares entry points and typed override defaults; pipeline constants use
+those declarations and validate caller-supplied values. Output AA retains its existing FXAA and
+supersampling entry points and `scale` override. Other shader families remain in TS during the
+remaining M1 tasks; this first extraction does not complete the shared-shader migration.
 
 Renderer migration verification uses the CPU-only `aster-render-compare` crate behind the thin
 `aster-render-cli compare` command. It reads lossless reference and candidate PNGs without changing
@@ -192,6 +202,7 @@ frame data are excluded, and successful hot-path operations are intentionally si
 | `aster-timeline` | Rational time/frame rates, interpolation, arbitrary-time properties |
 | `aster-core` | Project model, dependency DAG, operations, transactions, undo/redo |
 | `aster-scene` | Unified 2D/3D entities, cameras, lights, auxiliary buffers |
+| `aster-shaders` | Embedded shared WGSL, manifest assembly, entry points, overrides, and Naga validation |
 | `aster-render` | Adapter strategy, render graph, lifetimes, aliasing, debug export |
 | `aster-profiler` | RAII CPU timing and rolling metrics |
 | `aster-project` | Versioned bundle validation and atomic persistence |
