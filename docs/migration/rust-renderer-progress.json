@@ -33,35 +33,35 @@
     "approval": "The complete M0-T3 production TS capture is the pre-change pixel oracle. A replacement source must first pass whole-corpus exact comparison against this baseline."
   },
   "last_cycle": {
-    "id": 4,
-    "time": "2026-10-03T18:58:19.816Z",
+    "id": 5,
+    "time": "2026-10-03T19:47:08.365Z",
     "milestone": "M0",
-    "task": "M0-T4",
+    "task": "M0-T5",
     "outcome": "passed",
-    "commit": "86115b9000053ab91f656e9cc650ffb5b0fa5fd4",
-    "verification": "artifacts/migration/verify-2026-10-03T18-51-42-205Z-ac57c888.json",
+    "commit": "6447d2b6f4649bf2bfe9857960e5407a4786e7cc",
+    "verification": "artifacts/migration/verify-2026-10-03T19-43-22-282Z-666e338b.json",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 110771
+        "duration_ms": 39613
       },
       {
         "id": "G6",
         "status": "passed",
-        "duration_ms": 155983
+        "duration_ms": 65405
       }
     ],
-    "verification_duration_ms": 267885,
-    "next_step": "M0-T5: record reproducible TS performance baselines on the owner-authorized AMD host, including full opening and main segments.",
+    "verification_duration_ms": 106175,
+    "next_step": "M0-T6: exact whole-corpus current-Electron candidate comparison against the preserved TS reference, then validate complete milestone exit evidence.",
     "notes": [
-      "Added a CPU-only Rust comparison library and thin CLI with bounded PNG decoding, RGB PSNR/SSIM, full RGBA error and alpha checks, error components, ink bounds, phase correlation and strict sequence identity.",
-      "All 53 library tests and two CLI integration tests pass; independent numeric counterexamples prevent unchanged alpha from diluting color quality scores. Phase correlation rejects ambiguous, periodic, low-signal and incoherent inputs.",
-      "Exact identical reference pixels passed diagnostic G3. Removing a 20 by 20 interior patch failed G3 with a 400-pixel error component, 0.6944% alpha changes and RGB PSNR 30.141 dB. Direct contact-sheet and heatmap inspection confirmed the defect; the deliberate probe has a rejected structural self-review.",
-      "G3 verifies every reference and sequence neighbor against the ledger-approved renderer source, recomputes capture identity, checks full corpus coverage, and binds review reuse to all metrics and three hashed evidence files.",
-      "RustFFT and its pure-Rust dependency additions passed cargo deny and cargo audit. Existing JavaScript audit findings were repaired from 54 to zero without ignored advisories; the builder downloader compatibility adapter passed local HTTP, timeout, checksum, retry and proxy tests.",
-      "Electron 43.5.0 passed full foreground/background G6. Original Electron 43.4.1 reference pixels remain pinned and untouched; whole-corpus upgrade pixel equivalence is still required before any reference replacement.",
-      "M0 performance baselines and milestone exit remain pending; the oracle diagnostic does not claim native rendering or full corpus candidate parity."
+      "Added a release-bundled performance harness using the existing production render-host loop, original frame formats, video synchronization, bounded readback concurrency and audiovisual MP4 writer.",
+      "Nine measured workload/mode groups contain three full runs each after the complete warm-up suite. The 14,526 measured frames preserve owner opening [0,714), main [714,1014), and 600-frame synthetic composite/effect workloads.",
+      "All real IPC frame/audio byte counts and MP4 FFprobe frame/stream/duration checks passed. Source, resources, actual FFmpeg binaries and the owner-authorized Radeon 780M hardware identity remained stable.",
+      "On this separate local series, main-segment medians are 44.57 FPS readback, 31.90 FPS ordinary IPC and 28.42 FPS full MP4. Opening full MP4 is 14.88 FPS. The existing manager selected libx264; these figures do not satisfy the later native encoder gates or compare against historical NVIDIA numbers.",
+      "Committed raw samples and provenance are SHA-bound and independently audited in G0; missing samples, changed summaries, wrong adapter, malformed exports and path escapes are rejected.",
+      "Independent CPU/GPU execution times and thermal/background-load telemetry remain explicitly unavailable. Performance stream checks do not claim G5 decoded-pixel, quality or audio-sync acceptance.",
+      "Full G0/G6 passed, including rebuilt foreground preview and background render queue smoke. M0 exit and the Electron patch pixel-equivalence check remain pending."
     ]
   },
   "milestones": [
@@ -214,7 +214,43 @@
         {
           "title": "Measure and record primary-machine baselines including owner opening and main segments",
           "id": "M0-T5",
-          "status": "pending"
+          "status": "done",
+          "completed_at": "2026-10-03T19:47:08.365Z",
+          "commit": "6447d2b6f4649bf2bfe9857960e5407a4786e7cc",
+          "verification": "artifacts/migration/verify-2026-10-03T19-43-22-282Z-666e338b.json",
+          "gates": [
+            {
+              "id": "G0",
+              "status": "passed",
+              "duration_ms": 39613
+            },
+            {
+              "id": "G6",
+              "status": "passed",
+              "duration_ms": 65405
+            }
+          ],
+          "verification_duration_ms": 106175,
+          "performance_baseline": {
+            "summary": "benchmarks/results/migration-baseline.json",
+            "report": "artifacts/performance/baseline-2026-10-03T19-24-35-871Z-dc298b1d.json",
+            "diagnostic": "artifacts/performance/baseline-2026-10-03T19-22-39-637Z-5fd3d421.json",
+            "hardware_manifest": "benchmarks/hardware/windows-radeon780m-local.json",
+            "measurement_groups": 9,
+            "runs": 36,
+            "measured_frames": 14526,
+            "encoder": "libx264",
+            "owner_opening": {
+              "start": 0,
+              "end_exclusive": 714,
+              "full_mp4_median_fps": 14.881448627797846
+            },
+            "owner_main": {
+              "start": 714,
+              "end_exclusive": 1014,
+              "full_mp4_median_fps": 28.4190483409296
+            }
+          }
         },
         {
           "title": "Verify complete M0 corpus references, oracle rejection and milestone exit",
@@ -233,15 +269,15 @@
           {
             "id": "G0",
             "status": "passed",
-            "duration_ms": 110771
+            "duration_ms": 39613
           },
           {
             "id": "G6",
             "status": "passed",
-            "duration_ms": 155983
+            "duration_ms": 65405
           }
         ],
-        "report": "artifacts/migration/verify-2026-10-03T18-51-42-205Z-ac57c888.json"
+        "report": "artifacts/migration/verify-2026-10-03T19-43-22-282Z-666e338b.json"
       }
     },
     {
@@ -558,6 +594,38 @@
         "RustFFT and its pure-Rust dependency additions passed cargo deny and cargo audit. Existing JavaScript audit findings were repaired from 54 to zero without ignored advisories; the builder downloader compatibility adapter passed local HTTP, timeout, checksum, retry and proxy tests.",
         "Electron 43.5.0 passed full foreground/background G6. Original Electron 43.4.1 reference pixels remain pinned and untouched; whole-corpus upgrade pixel equivalence is still required before any reference replacement.",
         "M0 performance baselines and milestone exit remain pending; the oracle diagnostic does not claim native rendering or full corpus candidate parity."
+      ]
+    },
+    {
+      "id": 5,
+      "time": "2026-10-03T19:47:08.365Z",
+      "milestone": "M0",
+      "task": "M0-T5",
+      "outcome": "passed",
+      "commit": "6447d2b6f4649bf2bfe9857960e5407a4786e7cc",
+      "verification": "artifacts/migration/verify-2026-10-03T19-43-22-282Z-666e338b.json",
+      "gates": [
+        {
+          "id": "G0",
+          "status": "passed",
+          "duration_ms": 39613
+        },
+        {
+          "id": "G6",
+          "status": "passed",
+          "duration_ms": 65405
+        }
+      ],
+      "verification_duration_ms": 106175,
+      "next_step": "M0-T6: exact whole-corpus current-Electron candidate comparison against the preserved TS reference, then validate complete milestone exit evidence.",
+      "notes": [
+        "Added a release-bundled performance harness using the existing production render-host loop, original frame formats, video synchronization, bounded readback concurrency and audiovisual MP4 writer.",
+        "Nine measured workload/mode groups contain three full runs each after the complete warm-up suite. The 14,526 measured frames preserve owner opening [0,714), main [714,1014), and 600-frame synthetic composite/effect workloads.",
+        "All real IPC frame/audio byte counts and MP4 FFprobe frame/stream/duration checks passed. Source, resources, actual FFmpeg binaries and the owner-authorized Radeon 780M hardware identity remained stable.",
+        "On this separate local series, main-segment medians are 44.57 FPS readback, 31.90 FPS ordinary IPC and 28.42 FPS full MP4. Opening full MP4 is 14.88 FPS. The existing manager selected libx264; these figures do not satisfy the later native encoder gates or compare against historical NVIDIA numbers.",
+        "Committed raw samples and provenance are SHA-bound and independently audited in G0; missing samples, changed summaries, wrong adapter, malformed exports and path escapes are rejected.",
+        "Independent CPU/GPU execution times and thermal/background-load telemetry remain explicitly unavailable. Performance stream checks do not claim G5 decoded-pixel, quality or audio-sync acceptance.",
+        "Full G0/G6 passed, including rebuilt foreground preview and background render queue smoke. M0 exit and the Electron patch pixel-equivalence check remain pending."
       ]
     }
   ],
