@@ -55,7 +55,7 @@ code they exercise; consumers import the owning module directly instead of direc
 | `src/effects/presets/`, `browser/`, `resources/` | Presets, browser preferences, and LUT parsing |
 | `src/renderer/effects/programs/`, `shaders/` | Effect compilation and GPU shader cases |
 | `src/renderer/gpu/`, `scene/`, `compositing/`, `media/`, `text/`, `diagnostics/` | GPU services and rendering subsystems |
-| `shaders/` | Shared WGSL sources and declarative program manifest for output AA, core scene variants, auxiliary surfaces and display/buffer helpers |
+| `shaders/` | Shared WGSL and declarative program manifest for scene, compositing, AA, blur/depth/surface effects, and auxiliary/display helpers |
 | `src/components/` | Feature folders for project, timeline, graph editor, inspector, viewport, settings, and shell |
 | `src/workspace/` | Layout contracts, tree edits, normalization, and workspace persistence |
 
@@ -68,9 +68,9 @@ separate modules. Existing document fields, effect identifiers, and operation na
 allocation, resizing helpers, and disposal of its GPU resources and media/surface caches; scene batch
 submission has its own module. Frame buffers remain GPU-resident until an explicit readback.
 
-Shared WGSL includes output anti-aliasing, core scene variants, auxiliary surfaces and display/buffer
-helpers. The TS
-`SharedShaderCatalog` loads sources through Vite `?raw`, including in Vitest, and concatenates the
+Shared WGSL includes output anti-aliasing, core scene variants, compositing, blur/depth/surface
+effects, auxiliary surfaces and display/buffer helpers. The TS `SharedShaderCatalog` loads sources
+through Vite `?raw`, including in Vitest, and concatenates the
 fragments in `shaders/manifest.json` order without inserting separators. The `aster-shaders` crate
 embeds the same files with `include_str!`, follows that manifest, and validates the assembled programs
 with Naga. The manifest declares entry points and typed override defaults; pipeline constants use
@@ -79,8 +79,11 @@ fragments when they define shader-creation layouts; the seven additional-light s
 once in the manifest and also determine the TS uniform allocation. An override cannot size this
 uniform struct array. Material variants select fixed fragment sequences, and helper modules declare
 an empty entry-point list. Naga checks their actual declarations as well as complete programs.
-Output AA retains its existing FXAA and supersampling entry points and `scale` override. Other shader
-families remain in TS during the remaining M1 tasks.
+Output AA retains its existing `scale` override; compositing retains `blend_mode`. Motion blur uses
+the `tile_extent` override for its existing 16-pixel tile algorithm, with the same manifest default
+controlling host texture dimensions and all three fragment pipelines. Depth and surface effects
+reuse the shared sRGB transfer fragment. Other shader families remain in TS during the remaining M1
+tasks.
 
 Renderer migration verification uses the CPU-only `aster-render-compare` crate behind the thin
 `aster-render-cli compare` command. It reads lossless reference and candidate PNGs without changing

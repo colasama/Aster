@@ -18,7 +18,16 @@
     "auxiliary-surface": "auxiliary/surface.wgsl",
     "srgb-display": "color/srgb-display.wgsl",
     "float-buffer-visualization": "diagnostics/float-buffer-visualization.wgsl",
-    "uint-buffer-visualization": "diagnostics/uint-buffer-visualization.wgsl"
+    "uint-buffer-visualization": "diagnostics/uint-buffer-visualization.wgsl",
+    "blur-downsample": "effects/blur-downsample.wgsl",
+    "brightpass-downsample": "effects/brightpass-downsample.wgsl",
+    "depth-effects-layout": "effects/depth-effects-layout.wgsl",
+    "depth-effects-functions": "effects/depth-effects-functions.wgsl",
+    "surface-post-effects-layout": "effects/surface-post-effects-layout.wgsl",
+    "surface-post-effects-functions": "effects/surface-post-effects-functions.wgsl",
+    "layer-composite": "compositing/layer-composite.wgsl",
+    "precomposition-surface": "compositing/precomposition-surface.wgsl",
+    "motion-blur": "compositing/motion-blur.wgsl"
   },
   "programs": {
     "output-anti-aliasing": {
@@ -196,6 +205,126 @@
       "fragments": ["uint-buffer-visualization"],
       "entry_points": [],
       "overrides": {}
+    },
+    "blur-downsample": {
+      "fragments": ["blur-downsample"],
+      "entry_points": [
+        {
+          "stage": "vertex",
+          "name": "vertex_main"
+        },
+        {
+          "stage": "fragment",
+          "name": "fragment_main"
+        }
+      ],
+      "overrides": {}
+    },
+    "brightpass-downsample": {
+      "fragments": ["brightpass-downsample"],
+      "entry_points": [
+        {
+          "stage": "vertex",
+          "name": "vertex_main"
+        },
+        {
+          "stage": "fragment",
+          "name": "fragment_main"
+        }
+      ],
+      "overrides": {}
+    },
+    "depth-effects": {
+      "fragments": ["depth-effects-layout", "srgb-display", "depth-effects-functions"],
+      "entry_points": [
+        {
+          "stage": "vertex",
+          "name": "vertex_main"
+        },
+        {
+          "stage": "fragment",
+          "name": "fragment_main"
+        }
+      ],
+      "overrides": {}
+    },
+    "surface-post-effects": {
+      "fragments": [
+        "surface-post-effects-layout",
+        "srgb-display",
+        "surface-post-effects-functions"
+      ],
+      "entry_points": [
+        {
+          "stage": "vertex",
+          "name": "vertex_main"
+        },
+        {
+          "stage": "fragment",
+          "name": "fragment_main"
+        }
+      ],
+      "overrides": {}
+    },
+    "layer-composite": {
+      "fragments": ["layer-composite"],
+      "entry_points": [
+        {
+          "stage": "vertex",
+          "name": "vertex_main"
+        },
+        {
+          "stage": "fragment",
+          "name": "fragment_main"
+        }
+      ],
+      "overrides": {
+        "blend_mode": {
+          "type": "u32",
+          "default": 0
+        }
+      }
+    },
+    "precomposition-surface": {
+      "fragments": ["precomposition-surface"],
+      "entry_points": [
+        {
+          "stage": "vertex",
+          "name": "vertex_main"
+        },
+        {
+          "stage": "fragment",
+          "name": "fragment_main"
+        }
+      ],
+      "overrides": {}
+    },
+    "motion-blur": {
+      "fragments": ["motion-blur"],
+      "entry_points": [
+        {
+          "stage": "vertex",
+          "name": "vertex_main"
+        },
+        {
+          "stage": "fragment",
+          "name": "tile_max_fragment"
+        },
+        {
+          "stage": "fragment",
+          "name": "neighbor_max_fragment"
+        },
+        {
+          "stage": "fragment",
+          "name": "reconstruct_fragment"
+        }
+      ],
+      "overrides": {
+        "tile_extent": {
+          "type": "u32",
+          "default": 16
+        }
+      }
     }
   },
   "constants": {

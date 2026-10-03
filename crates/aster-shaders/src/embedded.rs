@@ -18,6 +18,42 @@ impl ShaderCatalog {
                 include_str!("../../../shaders/effects/anti-aliasing.wgsl"),
             ),
             (
+                "effects/blur-downsample.wgsl",
+                include_str!("../../../shaders/effects/blur-downsample.wgsl"),
+            ),
+            (
+                "effects/brightpass-downsample.wgsl",
+                include_str!("../../../shaders/effects/brightpass-downsample.wgsl"),
+            ),
+            (
+                "effects/depth-effects-layout.wgsl",
+                include_str!("../../../shaders/effects/depth-effects-layout.wgsl"),
+            ),
+            (
+                "effects/depth-effects-functions.wgsl",
+                include_str!("../../../shaders/effects/depth-effects-functions.wgsl"),
+            ),
+            (
+                "effects/surface-post-effects-layout.wgsl",
+                include_str!("../../../shaders/effects/surface-post-effects-layout.wgsl"),
+            ),
+            (
+                "effects/surface-post-effects-functions.wgsl",
+                include_str!("../../../shaders/effects/surface-post-effects-functions.wgsl"),
+            ),
+            (
+                "compositing/layer-composite.wgsl",
+                include_str!("../../../shaders/compositing/layer-composite.wgsl"),
+            ),
+            (
+                "compositing/precomposition-surface.wgsl",
+                include_str!("../../../shaders/compositing/precomposition-surface.wgsl"),
+            ),
+            (
+                "compositing/motion-blur.wgsl",
+                include_str!("../../../shaders/compositing/motion-blur.wgsl"),
+            ),
+            (
                 "scene/shape-layout-prefix.wgsl",
                 include_str!("../../../shaders/scene/shape-layout-prefix.wgsl"),
             ),

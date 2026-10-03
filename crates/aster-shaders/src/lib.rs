@@ -14,4 +14,6 @@ pub use types::{
 #[cfg(test)]
 mod constant_tests;
 #[cfg(test)]
+mod motion_tests;
+#[cfg(test)]
 mod tests;
