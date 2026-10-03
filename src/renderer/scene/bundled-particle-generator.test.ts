@@ -38,7 +38,10 @@ describe("bundled particle scene-generator plugin", () => {
     expect(particleGeneratorComputeShader).toContain("aster_context.local_time / lifetime");
     expect(particleGeneratorComputeShader).toContain("aster_context.frame_duration");
     expect(particleGeneratorComputeShader).toContain("cycle_number == previous_cycle_number");
-    expect(particleGeneratorComputeShader).toContain("atomicAdd(&aster_draw.instance_count, 1u)");
+    expect(particleGeneratorComputeShader).toContain(
+      "if index == 0u { atomicStore(&aster_draw.instance_count, aster_context.instance_count); }",
+    );
+    expect(particleGeneratorComputeShader).not.toContain("atomicAdd");
     expect(particleGeneratorComputeShader).toContain("generator_clip(current)");
     expect(particleGeneratorComputeShader).not.toContain("delta_time");
   });

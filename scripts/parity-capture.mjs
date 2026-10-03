@@ -6,17 +6,21 @@ import electron from "electron";
 import { build, preview } from "vite";
 import { runStep } from "./migration/process.mjs";
 import { writeAtomicJson } from "./migration/report.mjs";
+import { sourceProvenance } from "./migration/source.mjs";
+import { publishCandidateCapture } from "./parity/candidate-capture.mjs";
 import { publishCaptures } from "./parity/capture-store.mjs";
 import { captureAssignments, captureSource, digest } from "./parity/provenance.mjs";
 
 const root = resolve(import.meta.dirname, "..");
 const selected = [];
 let force = false;
+let candidate = false;
 let timeoutMs = 120_000;
 for (let index = 2; index < process.argv.length; index++) {
   const value = process.argv[index];
   if (value === "--case" && process.argv[index + 1]) selected.push(process.argv[++index]);
   else if (value === "--force") force = true;
+  else if (value === "--candidate") candidate = true;
   else if (value === "--timeout-ms" && /^\d+$/.test(process.argv[index + 1] ?? ""))
     timeoutMs = Number(process.argv[++index]);
   else throw new Error(`Unknown or incomplete capture argument: ${value}`);
@@ -34,6 +38,7 @@ const runId = `${new Date().toISOString().replaceAll(/[:.]/g, "-")}-${randomUUID
 const runDirectory = join(root, "artifacts", "parity", "runs", runId);
 await mkdir(runDirectory, { recursive: true });
 const context = { root, output: runDirectory, env: process.env, print: console.log };
+const sourceBeforeBuild = await sourceProvenance(root);
 for (const command of [
   { id: "capture-electron-build", file: "pnpm", args: ["electron:compile"] },
   {
@@ -46,6 +51,10 @@ for (const command of [
   if (result.status !== "passed") throw new Error(`Capture prerequisite failed: ${command.id}`);
 }
 const source = await captureSource(root);
+if (sourceBeforeBuild.source_sha256 !== source.tree_sha256)
+  throw new Error(
+    "Source changed while building capture prerequisites; discard the generated code",
+  );
 const assignments = await captureAssignments(root, cases);
 const output = join(runDirectory, "web");
 await build({
@@ -75,6 +84,7 @@ const config = {
   assignments,
   timeoutMs,
   force,
+  candidate,
   url: new URL("tests/parity/harness.html", server.resolvedUrls.local[0]).href,
 };
 const configPath = join(runDirectory, "config.json");
@@ -127,7 +137,7 @@ try {
   report.selected_cases = cases.map((item) => item.id);
   if (!report.source_unchanged) {
     report.status = "failed";
-    report.error = "Source or case resources changed during capture; references were not published";
+    report.error = "Source or case resources changed during capture; images were not published";
   }
   if (
     exitCode !== 0 ||
@@ -136,7 +146,10 @@ try {
     report.cases.some((item) => !["passed", "cached"].includes(item.status))
   )
     report.status = "failed";
-  if (report.status === "passed") await publishCaptures(config, report);
+  if (report.status === "passed") {
+    if (candidate) report.candidate = await publishCandidateCapture(config, report);
+    else await publishCaptures(config, report);
+  }
   process.exitCode = report.status === "passed" ? 0 : 1;
 } catch (error) {
   report = {
@@ -148,6 +161,7 @@ try {
   };
   process.exitCode = 1;
 } finally {
+  report.capture_mode = candidate ? "candidate" : "reference";
   await new Promise((resolveClose, reject) =>
     server.httpServer.close((error) => (error ? reject(error) : resolveClose())),
   );
@@ -155,7 +169,8 @@ try {
   const reportPath = join(root, "artifacts", "parity", `capture-${runId}.json`);
   await writeAtomicJson(reportPath, report);
   console.log(
-    `Reference capture ${report.status}: ${report.cases.filter((item) => ["passed", "cached"].includes(item.status)).length}/${cases.length} cases`,
+    `${candidate ? "Candidate" : "Reference"} capture ${report.status}: ${report.cases.filter((item) => ["passed", "cached"].includes(item.status)).length}/${cases.length} cases`,
   );
   console.log(`Report: ${reportPath}`);
+  if (report.candidate) console.log(`Candidate manifest: ${report.candidate.manifest}`);
 }

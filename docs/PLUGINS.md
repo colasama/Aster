@@ -162,7 +162,7 @@ The host owns every buffer and command encoder. Compute modules receive exactly 
 | 0 | `var<uniform> aster_context: AsterGeneratorContext` | Resolution, composition/local time, frame duration, count/stable instance seed, layer transform, camera, composition size, render IDs |
 | 1 | `var<uniform> aster_parameters: AsterGeneratorParameters` | 128 `vec4f` parameter slots in manifest order |
 | 2 | `var<storage, read_write> aster_instances` | Host-sized instance records using the declared stride |
-| 3 | `var<storage, read_write> aster_draw: AsterDrawIndirect` | Host-reset indexed-free indirect draw record; compute atomically emits visible instances |
+| 3 | `var<storage, read_write> aster_draw: AsterDrawIndirect` | Host-reset indexed-free indirect draw record; compute writes a bounded instance count, which may include hidden slots clipped by the vertex shader |
 
 Render modules receive context and parameters at bindings 0 and 1, and the same instance buffer as
 read-only storage at binding 2. They never receive a raw device, encoder, surface, filesystem path,

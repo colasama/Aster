@@ -30,7 +30,7 @@
     "capture_report": "artifacts/parity/capture-2026-10-03T17-56-06-814Z-3bc28aaa.json",
     "case_count": 337,
     "frame_count": 1947,
-    "approval": "The complete M0-T3 production TS capture is the pre-change pixel oracle. A replacement source must first pass whole-corpus exact comparison against this baseline."
+    "approval": "Preserve the complete M0-T3 production TS capture as the original pixel oracle. Only the explicitly listed, section 6.6 reviewed M0 reference repairs overlay requested frames. All other original frames, including sequence neighbors, remain unchanged. Freeze this effective reference set before M1; M1 and M2 retain strict whole-corpus exact requirements."
   },
   "last_cycle": {
     "id": 5,
@@ -255,29 +255,84 @@
         {
           "title": "Verify complete M0 corpus references, oracle rejection and milestone exit",
           "id": "M0-T6",
-          "status": "pending",
+          "status": "in_progress",
           "notes": [
-            "Capture current Electron candidates separately and compare all 1819 required frames under exact against the preserved, pinned M0-T3 reference. Only explicitly promote new reference provenance after that whole-corpus comparison passes."
-          ]
+            "Validate all original reference files and oracle rejection evidence. Apply only explicitly reviewed M0 reference repairs; then require an independent fresh whole-corpus TS capture to pass strict exact against the effective reference set. Preserve failed checks against the original oracle as history."
+          ],
+          "failed_exact_checks": [
+            "artifacts/parity/ts-check/2026-10-03T20-16-13-373Z-eb72b349/report.json",
+            "artifacts/parity/ts-check/2026-10-03T20-36-38-002Z-bee54524/report.json"
+          ],
+          "particle_order_investigation": {
+            "status": "fixed-and-independently-verified",
+            "passed_required_frames": 1817,
+            "failed_required_frames": 2,
+            "full_capture": "artifacts/parity/capture-2026-10-03T20-10-39-363Z-a415414c.json",
+            "repeat_diagnostic": "artifacts/parity/capture-2026-10-03T20-22-10-159Z-34b58996.json",
+            "historical_evidence": [
+              "artifacts/parity/runs/2026-10-03T17-42-06-271Z-8816a6e6/pending/scene-particles-billboard/3/meta.json",
+              "artifacts/parity/runs/2026-10-03T17-56-06-814Z-3bc28aaa/superseded/scene-particles-mesh/3/meta.json"
+            ],
+            "finding": "Atomic append assigns particle instance order from invocation completion order. Both pixel outcomes already existed under Electron 43.4.1 with identical particle shader, host and fixture inputs. Billboard differs by one-code-value blend rounding; transparent mesh depth writes produce a structural occlusion difference. References and exact thresholds remain unchanged while a general deterministic ordering fix is evaluated.",
+            "fixed_capture": "artifacts/parity/capture-2026-10-03T20-31-16-517Z-0437f3a7.json",
+            "fixed_exact_report": "artifacts/parity/ts-check/2026-10-03T20-36-38-002Z-bee54524/report.json",
+            "fixed_passed_required_frames": 1818,
+            "fixed_failed_required_frames": 1,
+            "repeatability": "artifacts/parity/particle-order-fixed/repeatability.json",
+            "deterministic_fix": "Write all bounded particles to stable source-index slots, store visibility explicitly, and clip invisible vertices. Mesh and streak now match every original reference. Across two independent captures all 36 particle PNGs are byte-identical.",
+            "unresolved": null,
+            "fixed_self_review": "artifacts/parity/particle-order-fixed/billboard-3-gpu/report.json",
+            "independent_capture": "artifacts/parity/capture-2026-10-03T20-57-29-824Z-a9a80bc9.json",
+            "independent_exact": "artifacts/parity/ts-check/2026-10-03T21-03-00-901Z-7bad0859/report.json",
+            "independent_passed_required_frames": 1819
+          },
+          "exit_evidence": {
+            "exactReportPath": "artifacts/parity/ts-check/2026-10-03T21-03-00-901Z-7bad0859/report.json",
+            "candidateManifestPath": "artifacts/parity/runs/2026-10-03T20-57-29-824Z-a9a80bc9/candidate/manifest.json",
+            "candidateCaptureReportPath": "artifacts/parity/capture-2026-10-03T20-57-29-824Z-a9a80bc9.json"
+          },
+          "failed_verifications": [
+            "artifacts/migration/verify-2026-10-03T20-40-35-694Z-2a3c6db4.json"
+          ],
+          "effective_reference": {
+            "base_renderer_source_sha256": "a29a484b82eae466b72828818f628714db90f1cc7703718e71e2469329f9c703",
+            "repairs_sha256": "0c53b924d3578aeb9362ca7ee2ab711ff13c23cabce34c80041b3519d997325e",
+            "repairs": [
+              {
+                "case_id": "scene-particles-billboard",
+                "frame": 3,
+                "directory": "artifacts/parity/runs/2026-10-03T20-31-16-517Z-0437f3a7/candidate",
+                "renderer_source_sha256": "4806c30c57010efef5942717b381159ef4080b75c023d4e6df1bfc228879ab67",
+                "capture_report": "artifacts/parity/capture-2026-10-03T20-31-16-517Z-0437f3a7.json",
+                "candidate_manifest": "artifacts/parity/runs/2026-10-03T20-31-16-517Z-0437f3a7/candidate/manifest.json",
+                "approval_review": "artifacts/parity/particle-order-fixed/billboard-3-gpu/report.json",
+                "run_id": "2026-10-03T20-31-16-517Z-0437f3a7",
+                "candidate_manifest_sha256": "34cd65b03225b18243c8baa0cc372508ff9591cde7cc8885737da0e655c44531",
+                "path": "artifacts/parity/runs/2026-10-03T20-31-16-517Z-0437f3a7/candidate/scene-particles-billboard/3/frame.png",
+                "reference_rgba_sha256": "157c6f620616a2bdc02d277a2ef1b9b984a787a2b72ac53f594a0ce5205f5bd6",
+                "candidate_rgba_sha256": "5c8bfd4e6bf680ba97fa996d7abf7adf7b1189640c2f1ed97bb55b1dd6c85802"
+              }
+            ]
+          }
         }
       ],
       "last_verification": {
-        "status": "passed",
+        "status": "failed",
         "required_gates_passed": true,
         "milestone_exit_satisfied": false,
         "gates": [
           {
             "id": "G0",
             "status": "passed",
-            "duration_ms": 39613
+            "duration_ms": 39409
           },
           {
             "id": "G6",
             "status": "passed",
-            "duration_ms": 65405
+            "duration_ms": 64619
           }
         ],
-        "report": "artifacts/migration/verify-2026-10-03T19-43-22-282Z-666e338b.json"
+        "report": "artifacts/migration/verify-2026-10-03T20-40-35-694Z-2a3c6db4.json"
       }
     },
     {
@@ -469,6 +524,314 @@
         "report_sha256": "e6df8e413ba0ee12915b46b3ee35387af8c5dc5d8cc8fa90a822e1663c74e741",
         "heatmap_sha256": "9fb62d7f88691768f94c7e60c783bf379590b07e72fde69dc029873b0f80ccd1",
         "contact_sheet_sha256": "7f34c96b48c3cf0f54160f80e24ba87ddfc9254d12bffec210f961586576749f"
+      }
+    },
+    {
+      "case_id": "scene-particles-billboard",
+      "frame": 3,
+      "profile": "gpu",
+      "purpose": "ts-order-determinism-diagnostic",
+      "reference_rgba_sha256": "157c6f620616a2bdc02d277a2ef1b9b984a787a2b72ac53f594a0ce5205f5bd6",
+      "candidate_rgba_sha256": "5c8bfd4e6bf680ba97fa996d7abf7adf7b1189640c2f1ed97bb55b1dd6c85802",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 0.00022135416666666666,
+        "mean_squared_error": 0.00022135416666666666,
+        "rgb_mean_squared_error": 0.00023726851851851852,
+        "psnr": {
+          "kind": "finite",
+          "db": 84.37840242291048
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 84.67992659521147
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [0.9999997765646399, 0.9999997058174962, 0.9999996114404075, 0.999999765469604],
+        "mean": 0.9999996979408478,
+        "rgba_mean": 0.9999997148230368,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.00003472222222222222, 0.00001736111111111111, 0, 0.00010416666666666667],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.20636903069828785,
+          "candidate_rms": 0.206369732511224,
+          "reference_axis_ratio": 0.39661307829392517,
+          "candidate_axis_ratio": 0.39661308140930723,
+          "reference_window_energy_fraction": 0.9893709222029394,
+          "candidate_window_energy_fraction": 0.989370933449496,
+          "active_frequencies": 11624,
+          "spectral_bins": 524288,
+          "peak_ratio": 9.129692698403673,
+          "peak_to_sidelobe_ratio": 172.81242252917866,
+          "peak_coherence": 0.999999997845294,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": {
+        "frame": 3,
+        "first_frame": 0,
+        "last_frame": 59,
+        "current_mean_squared_error": 0.00022135416666666666,
+        "previous": {
+          "status": "compared",
+          "frame": 2,
+          "mean_squared_error": 118.53222222222222,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 4,
+          "mean_squared_error": 132.7995486111111,
+          "current_is_closer": true
+        },
+        "passed": true
+      },
+      "residual_class": "float-precision",
+      "verdict": "rejected",
+      "reviewed_at": "2026-10-03T20:25:45.069Z",
+      "inspection": "Directly inspected the full-resolution contact sheet and heatmap. Particle placement and coverage agree visually; 25 pixels have one-code-value blend-rounding differences. The diagnostic GPU profile passes, but the required whole-corpus exact comparison fails. Rejected for this TS migration increment: atomic append order must not select different transparent blend orders.",
+      "evidence": {
+        "report": "artifacts/parity/particle-order-review/scene-particles-billboard-3/report.json",
+        "report_sha256": "1ae15d245a47fec6a83b6b32f50bec1b117ddeab78b6eee4fe3417f3a55d3096",
+        "heatmap": "artifacts/parity/particle-order-review/scene-particles-billboard-3/heatmap.png",
+        "heatmap_sha256": "e5150dc8ef21b731411bad75ff6b6f52b61d30eb5ded20ee2d4498efec132983",
+        "contact_sheet": "artifacts/parity/particle-order-review/scene-particles-billboard-3/contact-sheet.png",
+        "contact_sheet_sha256": "01e46b681947ae9fa5549f5b98750958645704fbc8aa5945eb3cd4ec2f9d4677"
+      }
+    },
+    {
+      "case_id": "scene-particles-mesh",
+      "frame": 3,
+      "profile": "gpu",
+      "purpose": "ts-order-determinism-diagnostic",
+      "reference_rgba_sha256": "ac72edaa1d02f1b4b4391fac9be464202198fa9330cd4f7e06f69e0aac5b7ba4",
+      "candidate_rgba_sha256": "3aa7c8acefc1a8d447722aa79a7df8508de98a2fb141d2d5c2827d3c0e601626",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 181,
+        "mean_abs_error": 1.0579730902777778,
+        "mean_squared_error": 74.88110677083333,
+        "rgb_mean_squared_error": 88.75134837962963,
+        "psnr": {
+          "kind": "finite",
+          "db": 28.64905400950534
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 29.387081060551502
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 1518
+      },
+      "ssim": {
+        "channels": [0.9826973845294596, 0.9831708194753289, 0.984103116454808, 0.9897438153032082],
+        "mean": 0.9833237734865321,
+        "rgba_mean": 0.9849287839407012,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 409,
+        "error_component_count": 34,
+        "signed_bias": [
+          0.2905729166666667, 0.2897222222222222, 0.27177083333333335, 0.17996527777777777
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 829,
+        "alpha_changed_fraction": 0.014392361111111111,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": -0.0390625,
+          "dy": -0.0078125,
+          "distance": 0.03983608994994363
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.21610189988486214,
+          "candidate_rms": 0.21891633245540887,
+          "reference_axis_ratio": 0.3480894234066809,
+          "candidate_axis_ratio": 0.3508087921115336,
+          "reference_window_energy_fraction": 0.9860425495748212,
+          "candidate_window_energy_fraction": 0.985975581452417,
+          "active_frequencies": 7488,
+          "spectral_bins": 524288,
+          "peak_ratio": 8.493874366887011,
+          "peak_to_sidelobe_ratio": 124.52210036464734,
+          "peak_coherence": 0.9908034147476815,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": {
+        "frame": 3,
+        "first_frame": 0,
+        "last_frame": 59,
+        "current_mean_squared_error": 74.88110677083333,
+        "previous": {
+          "status": "compared",
+          "frame": 2,
+          "mean_squared_error": 274.2920963541667,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 4,
+          "mean_squared_error": 292.5684635416667,
+          "current_is_closer": true
+        },
+        "passed": true
+      },
+      "residual_class": "structural",
+      "verdict": "rejected",
+      "reviewed_at": "2026-10-03T20:25:45.070Z",
+      "inspection": "Directly inspected the full-resolution contact sheet and heatmap. Overlapping mesh particles have different occlusion, accumulated color and alpha despite matching overall positions. The largest error component is 409 pixels and 829 alpha pixels exceed eight code values; the GPU profile and exact requirement both fail. Rejected as a draw-order structural defect.",
+      "evidence": {
+        "report": "artifacts/parity/particle-order-review/scene-particles-mesh-3/report.json",
+        "report_sha256": "4db2093666de9cbe07794df14b3e2a4db59ae579364237908632af7b754c0f25",
+        "heatmap": "artifacts/parity/particle-order-review/scene-particles-mesh-3/heatmap.png",
+        "heatmap_sha256": "b01b0d803854823f9e0db54716d0bf59653c4d1f10b2d04264bb14daf4134254",
+        "contact_sheet": "artifacts/parity/particle-order-review/scene-particles-mesh-3/contact-sheet.png",
+        "contact_sheet_sha256": "c4cd334b458237957c4033afb7be849fb17f234dd31a3e647c2c84c0f74e3d05"
+      }
+    },
+    {
+      "case_id": "scene-particles-billboard",
+      "frame": 3,
+      "profile": "gpu",
+      "purpose": "deterministic-ts-oracle-repair",
+      "reference_rgba_sha256": "157c6f620616a2bdc02d277a2ef1b9b984a787a2b72ac53f594a0ce5205f5bd6",
+      "candidate_rgba_sha256": "5c8bfd4e6bf680ba97fa996d7abf7adf7b1189640c2f1ed97bb55b1dd6c85802",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 0.00022135416666666666,
+        "mean_squared_error": 0.00022135416666666666,
+        "rgb_mean_squared_error": 0.00023726851851851852,
+        "psnr": {
+          "kind": "finite",
+          "db": 84.37840242291048
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 84.67992659521147
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [0.9999997765646399, 0.9999997058174962, 0.9999996114404075, 0.999999765469604],
+        "mean": 0.9999996979408478,
+        "rgba_mean": 0.9999997148230368,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.00003472222222222222, 0.00001736111111111111, 0, 0.00010416666666666667],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.20636903069828785,
+          "candidate_rms": 0.206369732511224,
+          "reference_axis_ratio": 0.39661307829392517,
+          "candidate_axis_ratio": 0.39661308140930723,
+          "reference_window_energy_fraction": 0.9893709222029394,
+          "candidate_window_energy_fraction": 0.989370933449496,
+          "active_frequencies": 11624,
+          "spectral_bins": 524288,
+          "peak_ratio": 9.129692698403673,
+          "peak_to_sidelobe_ratio": 172.81242252917866,
+          "peak_coherence": 0.999999997845294,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": {
+        "frame": 3,
+        "first_frame": 0,
+        "last_frame": 59,
+        "current_mean_squared_error": 0.00022135416666666666,
+        "previous": {
+          "status": "compared",
+          "frame": 2,
+          "mean_squared_error": 118.53222222222222,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 4,
+          "mean_squared_error": 132.7995486111111,
+          "current_is_closer": true
+        },
+        "passed": true
+      },
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reviewed_at": "2026-10-03T20:46:01.944Z",
+      "inspection": "Directly inspected the full-resolution contact sheet and heatmap after the stable source-index fix. Particle positions, sizes, coverage and overlap agree; the heatmap contains only sparse one-code-value blend rounding at 25 pixels. All GPU-profile metric and structural limits pass, with zero registration shift and correct identity against the original frames 2 and 4. Two independent captures have identical bytes for all 36 particle frames. This accepts the deterministic rendering result under section 6.6; it does not relabel either failed exact comparison as passed or relax exact thresholds.",
+      "evidence": {
+        "report": "artifacts/parity/particle-order-fixed/billboard-3-gpu/report.json",
+        "report_sha256": "5b4e8b8219fd7bcb931542f8360ea3d54b0fe985b4d3d61fd2bcbaf979962011",
+        "heatmap": "artifacts/parity/particle-order-fixed/billboard-3-gpu/heatmap.png",
+        "heatmap_sha256": "e5150dc8ef21b731411bad75ff6b6f52b61d30eb5ded20ee2d4498efec132983",
+        "contact_sheet": "artifacts/parity/particle-order-fixed/billboard-3-gpu/contact-sheet.png",
+        "contact_sheet_sha256": "01e46b681947ae9fa5549f5b98750958645704fbc8aa5945eb3cd4ec2f9d4677"
       }
     }
   ],
@@ -678,6 +1041,43 @@
         "artifacts/parity/enchanted-surface-budget-audit.json",
         "src/renderer/compositing/precomposition-surface-plan.ts",
         "docs/ANTI_ALIASING.md"
+      ]
+    },
+    {
+      "id": "deterministic-particle-culling-cost",
+      "detail": "Stable particle instance order prevents atomic-append nondeterminism. Hidden slots now retain a bounded storage write and vertex visibility checks. The two 36-frame capture runs establish current-fixture repeatability, not performance equivalence or cross-driver determinism. M0 does not require G4; retain this cost for particle workload measurement in M7/G4.",
+      "evidence": [
+        "src/renderer/scene/bundled-particle-generator.ts",
+        "artifacts/parity/particle-order-fixed/repeatability.json"
+      ],
+      "follow_up": "Use the existing gpu-export-pipeline-check prepareComposition hook with fixed IDs and seeds, visible/offscreen billboard and mesh cases, warm-up plus three runs, and actual effective instance counts. Compare wall-frame distributions; do not treat unavailable GPU timestamps as zero.",
+      "native_milestone": "M7"
+    }
+  ],
+  "reference_repairs": [
+    {
+      "case_id": "scene-particles-billboard",
+      "frame": 3,
+      "directory": "artifacts/parity/runs/2026-10-03T20-31-16-517Z-0437f3a7/candidate",
+      "renderer_source_sha256": "4806c30c57010efef5942717b381159ef4080b75c023d4e6df1bfc228879ab67",
+      "capture_report": "artifacts/parity/capture-2026-10-03T20-31-16-517Z-0437f3a7.json",
+      "candidate_manifest": "artifacts/parity/runs/2026-10-03T20-31-16-517Z-0437f3a7/candidate/manifest.json",
+      "approval_review": "artifacts/parity/particle-order-fixed/billboard-3-gpu/report.json"
+    }
+  ],
+  "reference_policy_history": [
+    {
+      "id": "M0-particle-order-repair",
+      "recorded_at": "2026-10-03T20:48:15.243Z",
+      "previous_policy": "The complete M0-T3 production TS capture is the pre-change pixel oracle. A replacement source must first pass whole-corpus exact comparison against this baseline.",
+      "previous_policy_origin": "Agent-authored ledger commit f28525c15f37d548dacb1b3f9c9ee2a414f96e3d, not an additional owner requirement.",
+      "authority": "Migration specification sections 6.2, 6.6 and 10 authorize the agent to establish the M0 oracle and accept pixel results. M0 requires G0/G6 and complete references; strict pre-change exact is preserved for M1 and M2.",
+      "decision": "Repair only requested billboard frame 3 using the reviewed deterministic source-index result. Keep every original file and failed exact report unchanged. In particular, do not promote the unreviewed auxiliary frame 2. Validate the effective reference against another fresh full-corpus capture before completing M0.",
+      "evidence": [
+        "artifacts/parity/particle-order-fixed/repeatability.json",
+        "artifacts/parity/particle-order-fixed/billboard-3-gpu/report.json",
+        "artifacts/parity/ts-check/2026-10-03T20-36-38-002Z-bee54524/report.json",
+        "artifacts/migration/verify-2026-10-03T20-40-35-694Z-2a3c6db4.json"
       ]
     }
   ]

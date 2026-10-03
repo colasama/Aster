@@ -297,6 +297,7 @@ fn integrated_motion(origin: vec3f, velocity: vec3f, elapsed: f32, phase: vec3f)
 fn compute_main(@builtin(global_invocation_id) global_id: vec3u) {
   let index = global_id.x;
   if index >= aster_context.instance_count { return; }
+  if index == 0u { atomicStore(&aster_draw.instance_count, aster_context.instance_count); }
   let seeded_index = index + (aster_context.instance_seed ^ u32(parameter(3u).x)) * 1664525u;
   let lifetime = max(parameter(4u).x, 0.05);
   let cycle_phase = hash(seeded_index);
@@ -322,12 +323,12 @@ fn compute_main(@builtin(global_invocation_id) global_id: vec3u) {
   let rotation = mix(parameter(20u).x, parameter(21u).x, age) * 0.01745329252;
   let clip = generator_clip(current);
   let margin = size * 2.0 / max(aster_context.resolution.y, 1.0);
-  if abs(clip.x) <= 1.0 + margin && abs(clip.y) <= 1.0 + margin && clip.z > 0.0 && clip.z < 1.0 {
-    let visible = atomicAdd(&aster_draw.instance_count, 1u);
-    aster_instances[visible].current = vec4f(current, size);
-    aster_instances[visible].previous = vec4f(previous, continuous);
-    aster_instances[visible].appearance = vec4f(age, cos(rotation), sin(rotation), 0.0);
-  }
+  let visible = abs(clip.x) <= 1.0 + margin && abs(clip.y) <= 1.0 + margin && clip.z > 0.0 && clip.z < 1.0;
+  // Stable source indices keep blending and transparent depth writes independent of invocation order.
+  // Every slot is overwritten, including culled particles, so seeking cannot expose stale geometry.
+  aster_instances[index].current = vec4f(current, size);
+  aster_instances[index].previous = vec4f(previous, continuous);
+  aster_instances[index].appearance = vec4f(age, cos(rotation), sin(rotation), select(0.0, 1.0, visible));
 }
 `;
 
@@ -355,6 +356,11 @@ struct AuxiliaryOutput {
   @location(3) world_position: vec4f,
   @location(4) motion_vector: vec2f,
 }
+fn invisible_particle_vertex() -> ParticleVertex {
+  var output: ParticleVertex;
+  output.position = vec4f(2.0, 2.0, 2.0, 1.0);
+  return output;
+}
 fn life_color(age: f32) -> vec4f {
   return vec4f(mix(aster_parameters.values[14].xyz, aster_parameters.values[15].xyz, age), mix(aster_parameters.values[16].x, aster_parameters.values[17].x, age) * aster_context.layer_position_opacity.w);
 }
@@ -373,6 +379,7 @@ fn write_auxiliary(input: ParticleVertex) -> AuxiliaryOutput {
 
 @vertex fn billboard_vertex(@builtin(vertex_index) vertex: u32, @builtin(instance_index) instance: u32) -> ParticleVertex {
   let particle = aster_instances[instance];
+  if particle.appearance.w < 0.5 { return invisible_particle_vertex(); }
   let unit = corners(vertex);
   let rotated = vec2f(unit.x * particle.appearance.y - unit.y * particle.appearance.z, unit.x * particle.appearance.z + unit.y * particle.appearance.y);
   let center = generator_clip(particle.current.xyz);
@@ -399,9 +406,10 @@ fn write_auxiliary(input: ParticleVertex) -> AuxiliaryOutput {
 }
 
 @vertex fn streak_vertex(@builtin(vertex_index) vertex: u32, @builtin(instance_index) instance: u32) -> ParticleVertex {
+  let particle = aster_instances[instance];
+  if particle.appearance.w < 0.5 { return invisible_particle_vertex(); }
   let along = array<f32, 6>(0.0, 0.0, 1.0, 1.0, 0.0, 1.0)[vertex];
   let side = array<f32, 6>(-1.0, 1.0, -1.0, -1.0, 1.0, 1.0)[vertex];
-  let particle = aster_instances[instance];
   let center = generator_clip(particle.current.xyz);
   let previous = generator_clip(particle.previous.xyz);
   let motion = (center.xy - previous.xy) * particle.previous.w * aster_parameters.values[22].x;
@@ -440,6 +448,7 @@ fn cube_position(vertex: u32) -> vec3f {
 }
 @vertex fn mesh_vertex(@builtin(vertex_index) vertex: u32, @builtin(instance_index) instance: u32) -> ParticleVertex {
   let particle = aster_instances[instance];
+  if particle.appearance.w < 0.5 { return invisible_particle_vertex(); }
   let surface = cube_position(vertex);
   let local = vec3f(surface.x * particle.appearance.y - surface.y * particle.appearance.z, surface.x * particle.appearance.z + surface.y * particle.appearance.y, surface.z);
   let size_local = particle.current.w * 2.0 / max(aster_context.composition.y, 1.0);

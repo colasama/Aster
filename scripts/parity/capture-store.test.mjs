@@ -69,6 +69,16 @@ test("a complete staged case is not a reference until inputs have been verified"
     cases: [{ id: assignment.case.id, status: "passed" }],
   });
   assert.equal(await store.cached(assignment), true);
+  const candidateConfig = { ...config, candidate: true };
+  assert.equal(await new CaptureStore(candidateConfig, store.host).cached(assignment), false);
+  await assert.rejects(
+    publishCaptures(candidateConfig, {
+      status: "passed",
+      source_unchanged: true,
+      cases: [{ id: assignment.case.id, status: "passed" }],
+    }),
+    /must never publish references/,
+  );
   const frame = join(
     root,
     "artifacts",

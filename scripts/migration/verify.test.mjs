@@ -204,6 +204,48 @@ test("unknown milestones emit an atomic failure report", async (t) => {
   assert.equal(JSON.parse(await readFile(result.reportPath, "utf8")).status, "failed");
 });
 
+test("M0 exit audit is required at the exit task and cannot override failed gates", async (t) => {
+  for (const outcome of ["passed", "missing-evidence", "failed-gate", "quick"]) {
+    const context = await fixture(t);
+    await writeAtomicJson(context.ledger, {
+      status: "running",
+      milestones: [
+        {
+          id: "M0",
+          status: "in_progress",
+          gates: ["G0", "G6"],
+          tasks: [{ id: "M0-T6", status: "in_progress" }],
+        },
+      ],
+    });
+    let audited = false;
+    const result = await verifyMigration(
+      { ...context, quick: outcome === "quick" },
+      {
+        provenance,
+        execute: fakeHook,
+        runAppChecks: async () => ({
+          id: "G6",
+          status: outcome === "failed-gate" ? "failed" : "passed",
+        }),
+        auditM0Exit: async () => {
+          audited = true;
+          if (outcome === "missing-evidence") throw new Error("Missing exact evidence");
+          return { status: "passed" };
+        },
+      },
+    );
+    assert.equal(audited, outcome !== "quick");
+    assert.equal(result.report.milestone_exit_satisfied, outcome === "passed");
+    assert.equal(result.exitCode, ["passed", "quick"].includes(outcome) ? 0 : 1);
+    if (outcome === "missing-evidence") {
+      assert.equal(result.report.required_gates_passed, true);
+      assert.equal(result.report.status, "failed");
+      assert.match(result.report.milestone_exit_reason, /Missing exact/);
+    }
+  }
+});
+
 test("owner project preserves configured values and reports unavailable paths as skipped", async (t) => {
   const context = await fixture(t);
   const path = join(context.root, "owner");

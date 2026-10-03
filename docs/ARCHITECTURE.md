@@ -271,9 +271,12 @@ frame data are excluded, and successful hot-path operations are intentionally si
    allocates quota-bounded GPU storage, packs standard frame/transform/camera and parameter uniforms,
    runs ordered compute phases, then issues plugin-selected indirect draws at the layer's stack
    position. The bundled particle generator uses exactly this path: its 256-thread analytic kernel
-   evaluates emitter shape, velocity, gravity/drag, and turbulence and GPU-compacts visible records.
-   No generated instance state crosses the CPU boundary. Per-slot state is deterministic for seed
-   and layer-local time; atomic compaction order is deliberately unspecified. Missing plugins isolate
+   evaluates emitter shape, velocity, gravity/drag, and turbulence into stable source-index slots.
+   No generated instance state crosses the CPU boundary. State and draw order are deterministic for
+   seed and layer-local time. Every slot carries a visibility bit; culled instances exit the vertex
+   stage with clipped, degenerate geometry. This avoids scheduler-dependent blend rounding and
+   transparent-mesh depth occlusion. The indirect count includes all budgeted instances, so invisible
+   particles still incur the vertex visibility check. Missing plugins isolate
    only their nodes and preserve project data. Each effected layer uses a fused
    offscreen chain before its blend-mode composite; unaffected adjacent layers stay batched directly
    into the `rgba16float` scene target.

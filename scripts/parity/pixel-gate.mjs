@@ -231,5 +231,6 @@ export async function runPixelGate(
     gate.inputs_unchanged = false;
   }
   gate.required_count = inputs.requiredCount ?? 0;
+  gate.reference_binding = inputs.referenceBinding();
   return gate;
 }

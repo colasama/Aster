@@ -4,6 +4,7 @@ import { readFile, realpath, stat } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 import { digest } from "./provenance.mjs";
+import { ReferenceRepairs } from "./reference-repairs.mjs";
 
 export const profiles = ["exact", "gpu", "decode", "yuv", "perceptual"];
 export const hash = (bytes) => createHash("sha256").update(bytes).digest("hex");
@@ -118,11 +119,12 @@ export class PixelInputs {
     });
     if (scope === "full")
       assert.equal(seen.size, required, "Full candidate manifest is missing required frames");
+    this.repairs = new ReferenceRepairs(this, manifest);
     this.requiredCount = required;
     return entries;
   }
 
-  async #project(item, reference) {
+  async projectComposition(item, reference) {
     if (this.#projects.has(item.id)) return this.#projects.get(item.id);
     const requested =
       item.project === "env:ASTER_PERF_PROJECT"
@@ -146,7 +148,7 @@ export class PixelInputs {
     return composition;
   }
 
-  async reference(item, frame) {
+  async baseReference(item, frame) {
     const directory = join(this.context.root, "artifacts", "parity", "reference", item.id);
     let capture = this.#references.get(item.id);
     if (!capture) {
@@ -204,17 +206,39 @@ export class PixelInputs {
     assert.equal(meta.pixel_format, "rgba8");
     assert(isDeepStrictEqual(meta.size, item.size), "Reference dimensions differ from the corpus");
     assert(/^[a-f0-9]{64}$/.test(meta.rgba_sha256), "Reference RGBA SHA-256 is absent");
-    return { path, png_sha256: png.sha256, meta, capture };
+    return { path, png_sha256: png.sha256, meta_sha256: metadata.sha256, meta, capture };
+  }
+
+  async reference(item, frame) {
+    const original = await this.baseReference(item, frame);
+    return this.repairs.resolve(item, frame, original);
+  }
+
+  referenceBinding() {
+    return {
+      base_renderer_source_sha256: this.referenceSource ?? null,
+      repairs_sha256: digest(this.ledger?.reference_repairs ?? []),
+      repairs: this.repairs?.evidence ?? [],
+    };
   }
 
   async prepare(entry) {
     const reference = await this.reference(entry.item, entry.frame);
+    const [candidatePath, referencePath] = await Promise.all([
+      realpath(entry.path),
+      realpath(reference.path),
+    ]);
+    assert.notEqual(
+      candidatePath,
+      referencePath,
+      "Candidate and effective reference must be independent files",
+    );
     assert.equal(
       (await this.bytes(entry.path)).sha256,
       entry.png_sha256,
       "Candidate PNG SHA-256 differs from manifest",
     );
-    const composition = await this.#project(entry.item, reference.capture);
+    const composition = await this.projectComposition(entry.item, reference.capture);
     const context = {
       case_id: entry.case_id,
       isolated: Boolean(entry.item.isolated),

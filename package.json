@@ -27,6 +27,7 @@
     "migrate:verify": "node scripts/migrate-verify.mjs",
     "parity:generate": "node scripts/parity-generate.mjs && biome format --write tests/parity/corpus.json",
     "parity:capture": "node scripts/parity-capture.mjs",
+    "parity:check-ts": "node scripts/parity-check-ts.mjs",
     "parity:oracle": "node scripts/parity-oracle.mjs",
     "migrate:benchmark": "node scripts/performance-baseline.mjs",
     "preview": "vite preview",

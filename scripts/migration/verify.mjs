@@ -3,6 +3,7 @@ import { mkdir, readFile } from "node:fs/promises";
 import { join, relative } from "node:path";
 import { runPixelGate } from "../parity/pixel-gate.mjs";
 import { runAppChecks } from "./app-checks.mjs";
+import { auditM0Exit } from "./m0-exit.mjs";
 import { runStep } from "./process.mjs";
 import { writeAtomicJson } from "./report.mjs";
 import { ownerProject, sourceProvenance } from "./source.mjs";
@@ -141,15 +142,39 @@ export async function verifyMigration(options, dependencies = {}) {
         report.gates.push(
           quick
             ? { id, status: "skipped", reason: "Quick mode does not build or smoke-test the app" }
-            : await runAppChecks(context, execute),
+            : await (dependencies.runAppChecks ?? runAppChecks)(context, execute),
         );
       } else report.gates.push({ id, status: "failed", error: "Required gate is not implemented" });
+    }
+    const exitTask = milestone.tasks.find((task) => task.id === "M0-T6");
+    if (
+      milestone.id === "M0" &&
+      !quick &&
+      (milestone.status === "done" ||
+        exitTask?.status === "in_progress" ||
+        exitTask?.status === "done" ||
+        exitTask?.exit_evidence)
+    ) {
+      try {
+        report.milestone_exit = await (dependencies.auditM0Exit ?? auditM0Exit)(root);
+        if (report.milestone_exit.status !== "passed") {
+          throw new Error("M0 exit audit did not pass");
+        }
+        report.milestone_exit_reason = "Corpus, pixel oracle, TS exact parity and baseline audited";
+      } catch (error) {
+        report.milestone_exit = { status: "failed", error: error.message };
+        report.milestone_exit_reason = error.message;
+      }
     }
     report.source_after = await provenance(root);
     report.source_unchanged = report.source.source_sha256 === report.source_after.source_sha256;
     if (!report.source_unchanged) throw new Error("Source changed during verification; run again");
-    const failed = report.gates.some((gate) => gate.status === "failed");
+    const failed =
+      report.gates.some((gate) => gate.status === "failed") ||
+      report.milestone_exit?.status === "failed";
     report.required_gates_passed = !quick && report.gates.every((gate) => gate.status === "passed");
+    report.milestone_exit_satisfied =
+      report.required_gates_passed && report.milestone_exit?.status === "passed";
     report.status = failed ? "failed" : report.required_gates_passed ? "passed" : "incomplete";
   } catch (error) {
     report.error = error.stack ?? error.message;
@@ -164,7 +189,7 @@ export async function verifyMigration(options, dependencies = {}) {
         (gate) => `  ${gate.id}: ${gate.status}${gate.error ? ` — ${gate.error}` : ""}`,
       ),
       `Full required gates: ${report.required_gates_passed ? "passed" : "not satisfied"}`,
-      `Milestone exit: not evaluated; use the ledger and milestone exit evidence`,
+      `Milestone exit: ${report.milestone_exit_satisfied ? "passed" : report.milestone_exit_reason}`,
       `Report: ${relative(root, reportPath)}`,
     ].join("\n"),
   );

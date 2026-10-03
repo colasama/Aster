@@ -23,7 +23,7 @@ export class CaptureStore {
   }
 
   async cached(assignment) {
-    if (this.config.force) return false;
+    if (this.config.candidate || this.config.force) return false;
     if (this.host.cacheIdentity?.fonts?.status !== "available") return false;
     const path = join(this.config.root, "artifacts", "parity", "reference", assignment.case.id);
     try {
@@ -133,6 +133,7 @@ export class CaptureStore {
 }
 
 export async function publishCaptures(config, report) {
+  assert(!config.candidate, "Candidate captures must never publish references");
   assert.equal(report.status, "passed", "Cannot publish references from a failed capture run");
   assert.equal(report.source_unchanged, true, "Cannot publish references from changed inputs");
   for (const item of report.cases.filter((item) => item.status === "passed")) {

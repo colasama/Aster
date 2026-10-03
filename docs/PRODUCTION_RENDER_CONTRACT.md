@@ -26,6 +26,11 @@ therefore evaluate the same composition and final post-processing route. Fake-re
 assert byte equality for this case. Resolution-scaled requests share the exact settings object and
 differ only in their target dimensions.
 
+Bundled particles use stable source-index draw order for every time-addressed frame. GPU invocation
+completion order cannot choose the transparent blending or depth-write order. Culled slots are
+overwritten and emit clipped, degenerate vertices, including when seeking backward. The existing
+instance quota bounds both storage and the additional visibility checks for offscreen particles.
+
 The final SDR pass applies the IEC sRGB transfer once to straight linear RGB and then restores
 premultiplied alpha. Beauty, depth-of-field, and surface diagnostics share that transfer. It preserves
 unedited sRGB stills instead of imposing an ACES look; HDR channels clip at the SDR boundary unless
