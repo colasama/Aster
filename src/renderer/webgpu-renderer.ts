@@ -131,7 +131,11 @@ export class WebGpuRenderer {
     if (!adapter) throw new Error("No compatible GPU adapter was found");
     const timestampQueries = adapter.features.has("timestamp-query");
     const requiredFeatures: GPUFeatureName[] = timestampQueries ? ["timestamp-query"] : [];
-    const device = await adapter.requestDevice({ requiredFeatures });
+    const device = await adapter.requestDevice({
+      requiredFeatures,
+      // 4K SSAA 4x needs 15360x8640 targets, beyond WebGPU's default 8192 limit.
+      requiredLimits: { maxTextureDimension2D: adapter.limits.maxTextureDimension2D },
+    });
     device.addEventListener("uncapturederror", (event) => {
       logger.error(
         "webgpu",

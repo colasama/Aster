@@ -31,6 +31,14 @@ Transitioning from preview to readback settles pending presentation work once, w
 export frames retain the bounded concurrent readback path. In-flight readbacks prevent target changes.
 
 Target planning checks GPU dimensions and a minimum memory footprint before allocating AA targets.
+The GPU device requests the adapter's supported 2D texture limit, allowing 15360x8640 internal
+targets for 4K SSAA 4x on capable adapters instead of inheriting the default 8192 limit.
+Precomposition pixel ceilings scale with the square of the SSAA multiplier, and their
+dimension ceiling scales with the multiplier. SSAA replaces the native 256 MiB byte ceiling with
+the available precomposition allowance. Active targets and retained cache entries share the
+same byte allowance, capped at 35% of the renderer's GPU memory budget (128 MiB when unspecified).
+This permits full-density effect surfaces larger than the native-resolution 256 MiB ceiling when
+VRAM allows it. Cache eviction never destroys a surface referenced by the current frame.
 The scene memory estimate also includes the AA texture. SSAA precomposition targets that cannot
 retain the requested density fail explicitly instead of silently downscaling. Existing text/media
 raster limits still apply. Select a lower AA mode or output resolution when a target exceeds limits.
