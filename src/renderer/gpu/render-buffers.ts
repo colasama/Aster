@@ -1,3 +1,5 @@
+import { sharedShaders } from "./shared-shader-catalog";
+
 export const AUXILIARY_BUFFER_KINDS = [
   "normal",
   "objectId",
@@ -220,33 +222,9 @@ export function visualizationCode(mode: BufferVisualization): number {
   return ["beauty", ...AUXILIARY_BUFFER_KINDS].indexOf(mode);
 }
 
-export const FLOAT_BUFFER_VISUALIZATION_WGSL = /* wgsl */ `
-struct DebugSettings { mode: u32, range_min: f32, range_scale: f32, padding: f32 }
-@group(0) @binding(0) var source: texture_2d<f32>;
-@group(0) @binding(1) var<uniform> settings: DebugSettings;
+export const FLOAT_BUFFER_VISUALIZATION_WGSL = sharedShaders.source("float-buffer-visualization");
 
-fn visualize_float_buffer(pixel: vec4f) -> vec4f {
-  if (settings.mode == 1u) { return vec4f(pixel.xyz * 0.5 + 0.5, 1.0); }
-  if (settings.mode == 4u) {
-    return vec4f(clamp((pixel.xyz - settings.range_min) * settings.range_scale, vec3f(0.0), vec3f(1.0)), 1.0);
-  }
-  return pixel;
-}`;
-
-export const UINT_BUFFER_VISUALIZATION_WGSL = /* wgsl */ `
-fn hash_id(id: u32) -> vec3f {
-  var value = id ^ (id >> 16u);
-  value *= 0x7feb352du;
-  value ^= value >> 15u;
-  value *= 0x846ca68bu;
-  value ^= value >> 16u;
-  return vec3f(f32(value & 255u), f32((value >> 8u) & 255u), f32((value >> 16u) & 255u)) / 255.0;
-}
-
-fn visualize_id(id: u32) -> vec4f {
-  if (id == 0u) { return vec4f(0.0, 0.0, 0.0, 1.0); }
-  return vec4f(hash_id(id), 1.0);
-}`;
+export const UINT_BUFFER_VISUALIZATION_WGSL = sharedShaders.source("uint-buffer-visualization");
 
 function boundedDimension(value: number): number {
   if (!Number.isFinite(value)) throw new Error("Render buffer dimensions must be finite");

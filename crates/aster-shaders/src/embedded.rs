@@ -7,10 +7,87 @@ impl ShaderCatalog {
     pub fn embedded() -> Result<Self, ShaderError> {
         Self::from_json(
             include_str!("../../../shaders/manifest.json"),
-            BTreeMap::from([(
-                "effects/anti-aliasing.wgsl".to_owned(),
-                include_str!("../../../shaders/effects/anti-aliasing.wgsl").to_owned(),
-            )]),
+            Self::embedded_sources(),
         )
+    }
+
+    pub(crate) fn embedded_sources() -> BTreeMap<String, String> {
+        [
+            (
+                "effects/anti-aliasing.wgsl",
+                include_str!("../../../shaders/effects/anti-aliasing.wgsl"),
+            ),
+            (
+                "scene/shape-layout-prefix.wgsl",
+                include_str!("../../../shaders/scene/shape-layout-prefix.wgsl"),
+            ),
+            (
+                "scene/shape-layout-suffix.wgsl",
+                include_str!("../../../shaders/scene/shape-layout-suffix.wgsl"),
+            ),
+            (
+                "scene/shape-surface.wgsl",
+                include_str!("../../../shaders/scene/shape-surface.wgsl"),
+            ),
+            (
+                "scene/shape-lighting.wgsl",
+                include_str!("../../../shaders/scene/shape-lighting.wgsl"),
+            ),
+            (
+                "scene/shape-additional-lights.wgsl",
+                include_str!("../../../shaders/scene/shape-additional-lights.wgsl"),
+            ),
+            (
+                "scene/shape-finish.wgsl",
+                include_str!("../../../shaders/scene/shape-finish.wgsl"),
+            ),
+            (
+                "scene/material-bindings.wgsl",
+                include_str!("../../../shaders/scene/material-bindings.wgsl"),
+            ),
+            (
+                "scene/material-normal.wgsl",
+                include_str!("../../../shaders/scene/material-normal.wgsl"),
+            ),
+            (
+                "scene/shape-normal.wgsl",
+                include_str!("../../../shaders/scene/shape-normal.wgsl"),
+            ),
+            (
+                "scene/material-environment.wgsl",
+                include_str!("../../../shaders/scene/material-environment.wgsl"),
+            ),
+            (
+                "scene/shadow.wgsl",
+                include_str!("../../../shaders/scene/shadow.wgsl"),
+            ),
+            (
+                "scene/image.wgsl",
+                include_str!("../../../shaders/scene/image.wgsl"),
+            ),
+            (
+                "scene/texture-composite.wgsl",
+                include_str!("../../../shaders/scene/texture-composite.wgsl"),
+            ),
+            (
+                "auxiliary/surface.wgsl",
+                include_str!("../../../shaders/auxiliary/surface.wgsl"),
+            ),
+            (
+                "color/srgb-display.wgsl",
+                include_str!("../../../shaders/color/srgb-display.wgsl"),
+            ),
+            (
+                "diagnostics/float-buffer-visualization.wgsl",
+                include_str!("../../../shaders/diagnostics/float-buffer-visualization.wgsl"),
+            ),
+            (
+                "diagnostics/uint-buffer-visualization.wgsl",
+                include_str!("../../../shaders/diagnostics/uint-buffer-visualization.wgsl"),
+            ),
+        ]
+        .into_iter()
+        .map(|(path, source)| (path.to_owned(), source.to_owned()))
+        .collect()
     }
 }

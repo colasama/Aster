@@ -2,7 +2,9 @@ use std::collections::BTreeMap;
 
 use sha2::{Digest, Sha256};
 
-use crate::{ShaderCatalog, ShaderError, ShaderManifest, ShaderStage};
+use crate::{
+    ProgramDefinition, ProgramFragment, ShaderCatalog, ShaderError, ShaderManifest, ShaderStage,
+};
 
 struct Fixture {
     manifest: ShaderManifest,
@@ -13,10 +15,7 @@ impl Fixture {
     fn load() -> Result<Self, ShaderError> {
         Ok(Self {
             manifest: serde_json::from_str(include_str!("../../../shaders/manifest.json"))?,
-            sources: BTreeMap::from([(
-                "effects/anti-aliasing.wgsl".to_owned(),
-                include_str!("../../../shaders/effects/anti-aliasing.wgsl").to_owned(),
-            )]),
+            sources: ShaderCatalog::embedded_sources(),
         })
     }
 
@@ -39,6 +38,13 @@ impl Fixture {
         *source = source.replace(before, after);
         Ok(())
     }
+
+    fn aa_definition(&mut self) -> Result<&mut ProgramDefinition, ShaderError> {
+        self.manifest
+            .programs
+            .get_mut("output-anti-aliasing")
+            .ok_or_else(|| ShaderError::Manifest("Test AA program is absent".to_owned()))
+    }
 }
 
 #[test]
@@ -51,7 +57,10 @@ fn embedded_shader_preserves_original_browser_bytes() -> Result<(), ShaderError>
         "7ae357bfe93db1c985380b3bc2c473517593a706cc9ef9aac0fc8fbd05e3e86c"
     );
     assert_eq!(program.definition.entry_points.len(), 3);
-    assert_eq!(catalog.programs.len(), 1);
+    assert_eq!(
+        catalog.programs.len(),
+        Fixture::load()?.manifest.programs.len()
+    );
     assert!(matches!(
         catalog.program("absent"),
         Err(ShaderError::UnknownProgram(_))
@@ -110,18 +119,18 @@ fn fragment_order_is_manifest_order_without_added_separators() -> Result<(), Sha
     fixture
         .sources
         .insert("second.wgsl".to_owned(), original[split..].to_owned());
-    fixture.manifest.fragments = BTreeMap::from([
+    fixture.manifest.fragments.remove("output-anti-aliasing");
+    fixture.manifest.fragments.extend([
         ("z-first".to_owned(), "first.wgsl".to_owned()),
         ("a-second".to_owned(), "second.wgsl".to_owned()),
     ]);
-    for program in fixture.manifest.programs.values_mut() {
-        program.fragments = vec!["z-first".to_owned(), "a-second".to_owned()];
-    }
+    fixture.aa_definition()?.fragments = vec![
+        ProgramFragment::Source("z-first".to_owned()),
+        ProgramFragment::Source("a-second".to_owned()),
+    ];
     let catalog = fixture.catalog()?;
     assert_eq!(catalog.program("output-anti-aliasing")?.source, original);
-    for program in fixture.manifest.programs.values_mut() {
-        program.fragments.reverse();
-    }
+    fixture.aa_definition()?.fragments.reverse();
     assert!(fixture.catalog().is_err());
     Ok(())
 }
@@ -139,7 +148,7 @@ fn manifest_rejects_unknown_versions_files_fragments_and_empty_programs() -> Res
     assert!(fixture.catalog().is_err());
     fixture.sources.remove("extra.wgsl");
     for program in fixture.manifest.programs.values_mut() {
-        program.fragments = vec!["absent".to_owned()];
+        program.fragments = vec![ProgramFragment::Source("absent".to_owned())];
     }
     assert!(fixture.catalog().is_err());
     for program in fixture.manifest.programs.values_mut() {
@@ -214,7 +223,7 @@ fn unused_invalid_fragments_and_unreachable_aliases_cannot_skip_validation()
         .get("output-anti-aliasing")
         .cloned()
         .ok_or_else(|| ShaderError::Manifest("Test program is absent".to_owned()))?;
-    alias_program.fragments = vec!["unused".to_owned()];
+    alias_program.fragments = vec![ProgramFragment::Source("unused".to_owned())];
     fixture
         .manifest
         .programs
@@ -231,15 +240,14 @@ fn declared_entry_points_must_match_real_names_stages_and_multiplicity() -> Resu
 {
     for mutation in 0..4 {
         let mut fixture = Fixture::load()?;
-        for program in fixture.manifest.programs.values_mut() {
-            match mutation {
-                0 => program.entry_points[0].stage = ShaderStage::Compute,
-                1 => program.entry_points[0].name = "absent".to_owned(),
-                2 => {
-                    program.entry_points.pop();
-                }
-                _ => program.entry_points.push(program.entry_points[0].clone()),
+        let program = fixture.aa_definition()?;
+        match mutation {
+            0 => program.entry_points[0].stage = ShaderStage::Compute,
+            1 => program.entry_points[0].name = "absent".to_owned(),
+            2 => {
+                program.entry_points.pop();
             }
+            _ => program.entry_points.push(program.entry_points[0].clone()),
         }
         assert!(fixture.catalog().is_err());
     }
@@ -266,18 +274,17 @@ fn override_contract_rejects_drift_and_undeclared_numeric_ids() -> Result<(), Sh
     }
     for mutation in 0..3 {
         let mut fixture = Fixture::load()?;
-        for program in fixture.manifest.programs.values_mut() {
-            match mutation {
-                0 => program.overrides.clear(),
-                1 => {
-                    for definition in program.overrides.values_mut() {
-                        definition.default = 2.0;
-                    }
+        let program = fixture.aa_definition()?;
+        match mutation {
+            0 => program.overrides.clear(),
+            1 => {
+                for definition in program.overrides.values_mut() {
+                    definition.default = 2.0;
                 }
-                _ => {
-                    for definition in program.overrides.values_mut() {
-                        definition.default = -1.0;
-                    }
+            }
+            _ => {
+                for definition in program.overrides.values_mut() {
+                    definition.default = -1.0;
                 }
             }
         }

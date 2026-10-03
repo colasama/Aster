@@ -7,15 +7,24 @@ use serde::{Deserialize, Serialize};
 pub struct ShaderManifest {
     pub schema_version: u32,
     pub fragments: BTreeMap<String, String>,
+    #[serde(default)]
+    pub constants: BTreeMap<String, u32>,
     pub programs: BTreeMap<String, ProgramDefinition>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ProgramDefinition {
-    pub fragments: Vec<String>,
+    pub fragments: Vec<ProgramFragment>,
     pub entry_points: Vec<EntryPoint>,
     pub overrides: BTreeMap<String, OverrideDefinition>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(untagged, deny_unknown_fields)]
+pub enum ProgramFragment {
+    Source(String),
+    Constant { constant: String },
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord)]

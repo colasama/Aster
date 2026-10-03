@@ -1,7 +1,8 @@
+import shaderManifest from "../../../shaders/manifest.json";
 import type { FlattenedSceneLayer } from "../../core/scene/scene-evaluation";
 import type { Composition } from "../../core/types";
 
-export const MAX_SCENE_LIGHTS = 8;
+export const MAX_SCENE_LIGHTS = shaderManifest.constants["additional-scene-lights"] + 1;
 export const SCENE_LIGHTING_BYTES =
   (36 + (MAX_SCENE_LIGHTS - 1) * 16) * Float32Array.BYTES_PER_ELEMENT;
 

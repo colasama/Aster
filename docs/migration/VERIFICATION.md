@@ -40,10 +40,14 @@ exact thresholds are unchanged.
 
 ## Shared-shader increments
 
-M1 currently starts with the output anti-aliasing shader in `shaders/`; other shader families still
-await extraction. The TS catalog loads raw WGSL through Vite, and `aster-shaders` embeds the same
+M1 currently shares output AA, core scene variants, auxiliary surfaces and display/buffer helpers in
+`shaders/`; other shader families still await extraction. The TS catalog loads raw WGSL through Vite,
+and `aster-shaders` embeds the same
 files and validates the manifest's assembled programs with Naga. Fragment order, entry points and
-typed pipeline overrides come from `shaders/manifest.json`.
+typed pipeline overrides come from `shaders/manifest.json`. Fixed unsigned integer recipe items
+preserve the existing shader-creation layout constants without expression evaluation. Original
+expanded-source hashes protect both scene variants and the static helpers; lighting uniform size
+remains 592 bytes for eight lights. Helper modules without entry points are still Naga-validated.
 
 For each M1 increment, freeze the source tree, run `pnpm parity:capture --candidate` for the full
 corpus, then run `pnpm migrate:verify --milestone M1 --candidates <candidate-manifest-path>`.

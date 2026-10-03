@@ -1,3 +1,5 @@
+import { sharedShaders } from "./gpu/shared-shader-catalog";
+
 export type Rgb = readonly [number, number, number];
 export type Rgba = readonly [number, number, number, number];
 
@@ -51,13 +53,4 @@ export function compositePremultiplied(source: Rgba, destination: Rgba): Rgba {
 }
 
 /** Shared SDR output transfer for UNORM canvas targets; intermediate surfaces stay linear. */
-export const srgbDisplayShader = /* wgsl */ `
-fn linear_to_srgb(color: vec3f) -> vec3f {
-  let bounded = clamp(color, vec3f(0.0), vec3f(1.0));
-  return select(
-    bounded * 12.92,
-    1.055 * pow(bounded, vec3f(1.0 / 2.4)) - vec3f(0.055),
-    bounded > vec3f(0.0031308),
-  );
-}
-`;
+export const srgbDisplayShader = sharedShaders.source("srgb-display");

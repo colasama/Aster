@@ -1,17 +1,204 @@
 {
   "schema_version": 1,
   "fragments": {
-    "output-anti-aliasing": "effects/anti-aliasing.wgsl"
+    "output-anti-aliasing": "effects/anti-aliasing.wgsl",
+    "scene-shape-layout-prefix": "scene/shape-layout-prefix.wgsl",
+    "scene-shape-layout-suffix": "scene/shape-layout-suffix.wgsl",
+    "scene-shape-surface": "scene/shape-surface.wgsl",
+    "scene-shape-lighting": "scene/shape-lighting.wgsl",
+    "scene-shape-additional-lights": "scene/shape-additional-lights.wgsl",
+    "scene-shape-finish": "scene/shape-finish.wgsl",
+    "scene-material-bindings": "scene/material-bindings.wgsl",
+    "scene-material-normal": "scene/material-normal.wgsl",
+    "scene-shape-normal": "scene/shape-normal.wgsl",
+    "scene-material-environment": "scene/material-environment.wgsl",
+    "scene-shadow": "scene/shadow.wgsl",
+    "scene-image": "scene/image.wgsl",
+    "scene-texture-composite": "scene/texture-composite.wgsl",
+    "auxiliary-surface": "auxiliary/surface.wgsl",
+    "srgb-display": "color/srgb-display.wgsl",
+    "float-buffer-visualization": "diagnostics/float-buffer-visualization.wgsl",
+    "uint-buffer-visualization": "diagnostics/uint-buffer-visualization.wgsl"
   },
   "programs": {
     "output-anti-aliasing": {
       "fragments": ["output-anti-aliasing"],
       "entry_points": [
-        { "name": "vertex_main", "stage": "vertex" },
-        { "name": "fxaa", "stage": "fragment" },
-        { "name": "supersample", "stage": "fragment" }
+        {
+          "name": "vertex_main",
+          "stage": "vertex"
+        },
+        {
+          "name": "fxaa",
+          "stage": "fragment"
+        },
+        {
+          "name": "supersample",
+          "stage": "fragment"
+        }
       ],
-      "overrides": { "scale": { "type": "u32", "default": 1 } }
+      "overrides": {
+        "scale": {
+          "type": "u32",
+          "default": 1
+        }
+      }
+    },
+    "scene-shape": {
+      "fragments": [
+        "scene-shape-layout-prefix",
+        {
+          "constant": "additional-scene-lights"
+        },
+        "scene-shape-layout-suffix",
+        "scene-shape-surface",
+        "scene-shape-normal",
+        "scene-shape-lighting",
+        {
+          "constant": "additional-scene-lights"
+        },
+        "scene-shape-additional-lights",
+        "scene-shape-finish"
+      ],
+      "entry_points": [
+        {
+          "name": "vertex_main",
+          "stage": "vertex"
+        },
+        {
+          "name": "fragment_main",
+          "stage": "fragment"
+        }
+      ],
+      "overrides": {}
+    },
+    "scene-material-shape": {
+      "fragments": [
+        "scene-shape-layout-prefix",
+        {
+          "constant": "additional-scene-lights"
+        },
+        "scene-shape-layout-suffix",
+        "scene-material-bindings",
+        "scene-shape-surface",
+        "scene-material-normal",
+        "scene-shape-lighting",
+        {
+          "constant": "additional-scene-lights"
+        },
+        "scene-shape-additional-lights",
+        "scene-material-environment",
+        "scene-shape-finish"
+      ],
+      "entry_points": [
+        {
+          "name": "vertex_main",
+          "stage": "vertex"
+        },
+        {
+          "name": "fragment_main",
+          "stage": "fragment"
+        }
+      ],
+      "overrides": {}
+    },
+    "scene-shadow": {
+      "fragments": ["scene-shadow"],
+      "entry_points": [
+        {
+          "name": "vertex_main",
+          "stage": "vertex"
+        }
+      ],
+      "overrides": {}
+    },
+    "scene-image": {
+      "fragments": ["scene-image"],
+      "entry_points": [
+        {
+          "name": "vertex_main",
+          "stage": "vertex"
+        },
+        {
+          "name": "fragment_main",
+          "stage": "fragment"
+        }
+      ],
+      "overrides": {}
+    },
+    "texture-composite": {
+      "fragments": ["scene-texture-composite"],
+      "entry_points": [
+        {
+          "name": "vertex_main",
+          "stage": "vertex"
+        },
+        {
+          "name": "fragment_main",
+          "stage": "fragment"
+        }
+      ],
+      "overrides": {}
+    },
+    "auxiliary-surface": {
+      "fragments": ["auxiliary-surface"],
+      "entry_points": [
+        {
+          "stage": "vertex",
+          "name": "surface_vertex"
+        },
+        {
+          "stage": "fragment",
+          "name": "surface_fragment"
+        },
+        {
+          "stage": "fragment",
+          "name": "media_fragment"
+        },
+        {
+          "stage": "fragment",
+          "name": "front_color_surface_fragment"
+        },
+        {
+          "stage": "fragment",
+          "name": "front_color_media_fragment"
+        },
+        {
+          "stage": "fragment",
+          "name": "peeled_surface_fragment"
+        },
+        {
+          "stage": "fragment",
+          "name": "peeled_media_fragment"
+        },
+        {
+          "stage": "fragment",
+          "name": "transparent_surface_fragment"
+        },
+        {
+          "stage": "fragment",
+          "name": "transparent_media_fragment"
+        }
+      ],
+      "overrides": {}
+    },
+    "srgb-display": {
+      "fragments": ["srgb-display"],
+      "entry_points": [],
+      "overrides": {}
+    },
+    "float-buffer-visualization": {
+      "fragments": ["float-buffer-visualization"],
+      "entry_points": [],
+      "overrides": {}
+    },
+    "uint-buffer-visualization": {
+      "fragments": ["uint-buffer-visualization"],
+      "entry_points": [],
+      "overrides": {}
     }
+  },
+  "constants": {
+    "additional-scene-lights": 7
   }
 }

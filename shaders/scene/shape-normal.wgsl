@@ -1,0 +1,1 @@
+let normal = safe_normalize3(input.normal, vec3f(0.0, 0.0, 1.0));

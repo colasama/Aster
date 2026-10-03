@@ -1,12 +1,6 @@
 import manifest from "../../../shaders/manifest.json";
 
-type ShaderStage = "vertex" | "fragment" | "compute";
 type ShaderOverride = { type: "u32"; default: number };
-type ShaderDefinition = {
-  fragments: string[];
-  entry_points: { name: string; stage: ShaderStage }[];
-  overrides: Record<string, ShaderOverride>;
-};
 type ShaderProgram = { source: string; overrides: Map<string, ShaderOverride> };
 
 function object(value: unknown): value is Record<string, unknown> {
@@ -28,13 +22,21 @@ export class SharedShaderCatalog {
   constructor(document: unknown, sources: Readonly<Record<string, string>>) {
     if (
       !object(document) ||
-      !onlyFields(document, ["schema_version", "fragments", "programs"]) ||
+      !onlyFields(document, ["schema_version", "constants", "fragments", "programs"]) ||
       document.schema_version !== 1 ||
       !object(document.fragments) ||
       Object.keys(document.fragments).length === 0 ||
       !object(document.programs)
     )
       throw new Error("Invalid shared shader manifest");
+    const declarations = document.constants === undefined ? {} : document.constants;
+    if (!object(declarations)) throw new Error("Invalid shared shader constants");
+    const constants = new Map<string, number>();
+    for (const [name, value] of Object.entries(declarations)) {
+      if (name.length === 0 || !validU32(value))
+        throw new Error(`Invalid shared shader constant: ${name}`);
+      constants.set(name, value);
+    }
     const fragments = new Map<string, string>();
     const sourcePaths = new Set(Object.keys(sources));
     for (const [id, path] of Object.entries(document.fragments)) {
@@ -55,6 +57,7 @@ export class SharedShaderCatalog {
       if (!declaredPaths.has(path)) throw new Error(`Undeclared shared shader source: ${path}`);
     }
     const usedFragments = new Set<string>();
+    const usedConstants = new Set<string>();
     for (const [id, value] of Object.entries(document.programs)) {
       if (
         id.length === 0 ||
@@ -62,9 +65,7 @@ export class SharedShaderCatalog {
         !onlyFields(value, ["fragments", "entry_points", "overrides"]) ||
         !Array.isArray(value.fragments) ||
         value.fragments.length === 0 ||
-        !value.fragments.every((fragment) => typeof fragment === "string") ||
         !Array.isArray(value.entry_points) ||
-        value.entry_points.length === 0 ||
         !object(value.overrides)
       )
         throw new Error(`Invalid shared shader program: ${id}`);
@@ -94,9 +95,21 @@ export class SharedShaderCatalog {
           throw new Error(`Invalid shared shader override: ${id}.${name}`);
         definitions.set(name, { type: "u32", default: definition.default });
       }
-      const definition = value as ShaderDefinition;
-      const source = definition.fragments
+      const source = value.fragments
         .map((fragment) => {
+          if (typeof fragment !== "string") {
+            if (
+              !object(fragment) ||
+              !onlyFields(fragment, ["constant"]) ||
+              typeof fragment.constant !== "string"
+            )
+              throw new Error(`Invalid shared shader recipe item: ${id}`);
+            const value = constants.get(fragment.constant);
+            if (value === undefined)
+              throw new Error(`Unknown shared shader constant: ${fragment.constant}`);
+            usedConstants.add(fragment.constant);
+            return String(value);
+          }
           const text = fragments.get(fragment);
           if (text === undefined) throw new Error(`Unknown shared shader fragment: ${fragment}`);
           usedFragments.add(fragment);
@@ -109,6 +122,9 @@ export class SharedShaderCatalog {
     for (const fragment of fragments.keys()) {
       if (!usedFragments.has(fragment))
         throw new Error(`Unused shared shader fragment: ${fragment}`);
+    }
+    for (const name of constants.keys()) {
+      if (!usedConstants.has(name)) throw new Error(`Unused shared shader constant: ${name}`);
     }
   }
 

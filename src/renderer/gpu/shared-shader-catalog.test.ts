@@ -1,8 +1,14 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import manifest from "../../../shaders/manifest.json";
+import productionManifest from "../../../shaders/manifest.json";
 import { antiAliasingShader } from "../effects/anti-aliasing";
 import { SharedShaderCatalog, sharedShaders } from "./shared-shader-catalog";
+
+const manifest = {
+  schema_version: 1,
+  fragments: { "output-anti-aliasing": "effects/anti-aliasing.wgsl" },
+  programs: { "output-anti-aliasing": productionManifest.programs["output-anti-aliasing"] },
+};
 
 describe("shared shader catalog", () => {
   it("preserves the pre-extraction production AA source and pipeline override values", () => {
@@ -80,5 +86,35 @@ describe("shared shader catalog", () => {
         "fragment",
       );
     }
+  });
+
+  it("inserts checked fixed integers in decimal without changing fragment boundaries", () => {
+    const recipe = {
+      schema_version: 1,
+      constants: { count: 7 },
+      fragments: { first: "first.wgsl", second: "second.wgsl" },
+      programs: {
+        helper: {
+          fragments: ["first", { constant: "count" }, "second"],
+          entry_points: [],
+          overrides: {},
+        },
+      },
+    };
+    const sources = { "first.wgsl": " first ", "second.wgsl": "u\n" };
+    for (const count of [0, 7, 0xffff_ffff]) {
+      const catalog = new SharedShaderCatalog({ ...recipe, constants: { count } }, sources);
+      expect(catalog.source("helper")).toBe(` first ${count}u\n`);
+    }
+    for (const count of [-1, 0.5, 0x1_0000_0000, Number.NaN])
+      expect(() => new SharedShaderCatalog({ ...recipe, constants: { count } }, sources)).toThrow(
+        "constant",
+      );
+    expect(() => new SharedShaderCatalog({ ...recipe, constants: {} }, sources)).toThrow("Unknown");
+    expect(
+      () => new SharedShaderCatalog({ ...recipe, constants: { count: 7, extra: 1 } }, sources),
+    ).toThrow("Unused");
+    Object.assign(recipe.programs.helper.fragments[1], { unexpected: true });
+    expect(() => new SharedShaderCatalog(recipe, sources)).toThrow("recipe item");
   });
 });

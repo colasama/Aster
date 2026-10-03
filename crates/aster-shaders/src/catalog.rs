@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use crate::{ProgramDefinition, ShaderError, ShaderManifest};
+use crate::{ProgramDefinition, ProgramFragment, ShaderError, ShaderManifest};
 
 /// Programs become visible only after the entire manifest and all modules validate.
 #[derive(Debug)]
@@ -26,13 +26,29 @@ impl ShaderCatalog {
         for (id, definition) in &manifest.programs {
             let mut source = String::new();
             for fragment in &definition.fragments {
-                let path = manifest.fragments.get(fragment).ok_or_else(|| {
-                    ShaderError::Manifest(format!("Program {id} uses unknown fragment {fragment}"))
-                })?;
-                let content = sources.get(path).ok_or_else(|| {
-                    ShaderError::Manifest(format!("Fragment {fragment} is missing source {path}"))
-                })?;
-                source.push_str(content);
+                match fragment {
+                    ProgramFragment::Source(fragment) => {
+                        let path = manifest.fragments.get(fragment).ok_or_else(|| {
+                            ShaderError::Manifest(format!(
+                                "Program {id} uses unknown fragment {fragment}"
+                            ))
+                        })?;
+                        let content = sources.get(path).ok_or_else(|| {
+                            ShaderError::Manifest(format!(
+                                "Fragment {fragment} is missing source {path}"
+                            ))
+                        })?;
+                        source.push_str(content);
+                    }
+                    ProgramFragment::Constant { constant } => {
+                        let value = manifest.constants.get(constant).ok_or_else(|| {
+                            ShaderError::Manifest(format!(
+                                "Program {id} uses unknown constant {constant}"
+                            ))
+                        })?;
+                        source.push_str(&value.to_string());
+                    }
+                }
             }
             let program = ShaderProgram {
                 definition: definition.clone(),
@@ -107,21 +123,35 @@ impl ShaderManifest {
             )));
         }
         for (id, program) in &self.programs {
-            if id.is_empty() || program.fragments.is_empty() || program.entry_points.is_empty() {
+            if id.is_empty() || program.fragments.is_empty() {
                 return Err(ShaderError::Manifest(format!(
-                    "Program {id} requires fragments and entry points"
+                    "Program {id} requires a nonempty ID and fragments"
                 )));
             }
         }
         if let Some(id) = self.fragments.keys().find(|id| {
-            !self
-                .programs
-                .values()
-                .any(|program| program.fragments.contains(id))
+            !self.programs.values().any(|program| {
+                program.fragments.iter().any(
+                    |fragment| matches!(fragment, ProgramFragment::Source(source) if source == *id),
+                )
+            })
         }) {
             return Err(ShaderError::Manifest(format!(
                 "Declared fragment {id} is not used by any shader program"
             )));
+        }
+        for id in self.constants.keys() {
+            if id.is_empty()
+                || !self.programs.values().any(|program| {
+                    program.fragments.iter().any(|fragment| {
+                        matches!(fragment, ProgramFragment::Constant { constant } if constant == id)
+                    })
+                })
+            {
+                return Err(ShaderError::Manifest(format!(
+                    "Constant {id} requires a nonempty ID used by a shader program"
+                )));
+            }
         }
         Ok(())
     }

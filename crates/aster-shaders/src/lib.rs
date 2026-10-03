@@ -7,9 +7,11 @@ mod validation;
 
 pub use catalog::{ShaderCatalog, ShaderProgram};
 pub use types::{
-    EntryPoint, OverrideDefinition, OverrideType, ProgramDefinition, ShaderError, ShaderManifest,
-    ShaderStage,
+    EntryPoint, OverrideDefinition, OverrideType, ProgramDefinition, ProgramFragment, ShaderError,
+    ShaderManifest, ShaderStage,
 };
 
+#[cfg(test)]
+mod constant_tests;
 #[cfg(test)]
 mod tests;
