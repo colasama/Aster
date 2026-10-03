@@ -404,3 +404,34 @@ fn inline_media_uses_payload_limits_instead_of_metadata_string_limits()
     fs::remove_dir_all(root)?;
     Ok(())
 }
+
+#[test]
+fn names_bundle_files_and_detects_crlf_conversion() -> Result<(), Box<dyn std::error::Error>> {
+    let root = std::env::temp_dir().join(format!("aster-media-crlf-{}", Uuid::new_v4()));
+    let mut project = MediaFixture::inline_svg(b"<svg>\n<g/>\n</svg>\n")?;
+    ProjectMedia::default().process(&root, &mut project, MediaOperation::Materialize)?;
+    let canonical = root.canonicalize()?;
+    let relative = project["mediaImports"]["payloads"][0]["storage"]["relativePath"]
+        .as_str()
+        .ok_or("missing relative path")?
+        .to_owned();
+
+    fs::write(root.join(&relative), b"<svg>\r\n<g/>\r\n</svg>\r\n")?;
+    let converted = ProjectMedia::default()
+        .process(&canonical, &mut project.clone(), MediaOperation::Resolve)
+        .err()
+        .ok_or("expected rejection")?;
+    assert!(converted.contains("identity mismatch"));
+    assert!(converted.contains(&relative));
+    assert!(converted.contains("CRLF"));
+
+    fs::write(root.join(&relative), b"<svg><rect/></svg>\n")?;
+    let edited = ProjectMedia::default()
+        .process(&canonical, &mut project, MediaOperation::Resolve)
+        .err()
+        .ok_or("expected rejection")?;
+    assert!(edited.contains(&relative));
+    assert!(!edited.contains("CRLF"));
+    fs::remove_dir_all(root)?;
+    Ok(())
+}

@@ -49,6 +49,12 @@ impl ProjectBundle {
     pub const PROJECT_FILE: &str = "project.json";
     pub const AUTOSAVE_FILE: &str = "project.autosave.json";
     pub const EDITOR_SCHEMA_VERSION: u64 = 10;
+    pub const GIT_ATTRIBUTES_FILE: &str = ".gitattributes";
+    /// Imported media is verified by exact bytes on load, so Git must never rewrite its line endings.
+    pub const GIT_ATTRIBUTES: &str =
+        "# Aster verifies imported media by exact bytes; never convert line endings.
+assets/** -text
+";
 
     pub fn at(root: impl AsRef<Path>) -> Self {
         Self {
@@ -65,7 +71,9 @@ impl ProjectBundle {
     pub fn save_core(&self, project: &Project) -> Result<(), ProjectError> {
         let _access = BundleAccess::acquire(&self.root)?;
         Self::validate_core(project)?;
-        Self::write_json_atomic(self.root.as_path(), Self::PROJECT_FILE, project)
+        Self::write_json_atomic(self.root.as_path(), Self::PROJECT_FILE, project)?;
+        Self::ensure_git_attributes(self.root.as_path());
+        Ok(())
     }
 
     pub fn load_core(&self) -> Result<Project, ProjectError> {
@@ -79,7 +87,9 @@ impl ProjectBundle {
     pub fn save_editor(&self, project: &Value) -> Result<(), ProjectError> {
         let _access = BundleAccess::acquire(&self.root)?;
         Self::validate_editor(project, false)?;
-        Self::write_json_atomic(self.root.as_path(), Self::PROJECT_FILE, project)
+        Self::write_json_atomic(self.root.as_path(), Self::PROJECT_FILE, project)?;
+        Self::ensure_git_attributes(self.root.as_path());
+        Ok(())
     }
 
     pub fn load_editor(&self) -> Result<Value, ProjectError> {
@@ -207,6 +217,7 @@ impl ProjectBundle {
                 return Err(ProjectError::InvalidPackedProject);
             }
             Self::at(&staging).load_editor()?;
+            Self::ensure_git_attributes(&staging);
             access.replace(&staging)?;
             Ok(())
         })();
@@ -355,6 +366,18 @@ impl ProjectBundle {
             parts.push(part.to_string_lossy());
         }
         Ok(parts.join("/"))
+    }
+
+    /// Adds the bundle's `.gitattributes` once and never replaces an existing one. Best effort:
+    /// the project file is already safely written, so a failure here must not fail the save.
+    fn ensure_git_attributes(bundle: &Path) {
+        let created = fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(bundle.join(Self::GIT_ATTRIBUTES_FILE));
+        if let Ok(mut file) = created {
+            let _ = file.write_all(Self::GIT_ATTRIBUTES.as_bytes());
+        }
     }
 
     fn write_json_atomic(

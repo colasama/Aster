@@ -233,3 +233,32 @@ fn editor_validation_rejects_legacy_schema() -> Result<(), Box<dyn std::error::E
     ));
     Ok(())
 }
+
+#[test]
+fn saved_and_unpacked_bundles_keep_git_from_converting_media()
+-> Result<(), Box<dyn std::error::Error>> {
+    let root = std::env::temp_dir().join(format!("aster-git-attributes-{}", Uuid::new_v4()));
+    let source = root.join("source");
+    let unpacked = root.join("unpacked");
+    let archive = root.join("project.aster");
+    let document = EditorFixture::document()?;
+    ProjectBundle::at(&source).save_editor(&document)?;
+    let attributes = source.join(ProjectBundle::GIT_ATTRIBUTES_FILE);
+    assert_eq!(
+        fs::read_to_string(&attributes)?,
+        ProjectBundle::GIT_ATTRIBUTES
+    );
+
+    fs::write(&attributes, "* text=auto\n")?;
+    ProjectBundle::at(&source).save_editor(&document)?;
+    assert_eq!(fs::read_to_string(&attributes)?, "* text=auto\n");
+
+    ProjectBundle::at(&source).pack(&archive)?;
+    ProjectBundle::at(&unpacked).unpack(&archive)?;
+    assert_eq!(
+        fs::read_to_string(unpacked.join(ProjectBundle::GIT_ATTRIBUTES_FILE))?,
+        ProjectBundle::GIT_ATTRIBUTES
+    );
+    fs::remove_dir_all(root)?;
+    Ok(())
+}

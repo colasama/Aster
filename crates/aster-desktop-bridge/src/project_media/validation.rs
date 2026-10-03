@@ -1,7 +1,7 @@
 use serde_json::{Map, Value};
 use std::path::{Component, Path, PathBuf};
 
-use super::ProjectMedia;
+use super::{ProjectMedia, media_file::Fnv64State};
 use std::fs;
 
 pub(super) fn sidecar_mut(project: &mut Value) -> Result<Option<&mut Map<String, Value>>, String> {
@@ -183,6 +183,52 @@ pub(super) fn validate_identity(expected: &str, actual: &str, path: &str) -> Res
         return Err(format!("{path} identity mismatch"));
     }
     Ok(())
+}
+
+/// Largest bundle file re-read to diagnose a line-ending conversion.
+const LINE_ENDING_PROBE_BYTES: u64 = 64 * 1024 * 1024;
+
+/// Validates a bundle file against the identity recorded at import. A mismatch names the file and
+/// recognizes the common cause: Git `core.autocrlf` rewriting LF to CRLF in text media such as SVG.
+pub(super) fn validate_bundle_file_identity(
+    expected: &str,
+    actual: &str,
+    path: &str,
+    relative: &str,
+    resolved: &Path,
+) -> Result<(), String> {
+    if expected == actual {
+        return Ok(());
+    }
+    let cause = if is_crlf_conversion(expected, actual, resolved) {
+        "its LF line endings were converted to CRLF, for example by Git core.autocrlf. Restore the \
+         original bytes (delete the file and check it out again with `assets/** -text` in the \
+         bundle's .gitattributes)"
+    } else {
+        "the file changed after it was imported. Restore the original file or relink the footage"
+    };
+    Err(format!("{path} identity mismatch: {relative}: {cause}"))
+}
+
+fn is_crlf_conversion(expected: &str, actual: &str, resolved: &Path) -> bool {
+    let (Ok(expected_bytes), Ok(actual_bytes)) =
+        (identity_byte_length(expected), identity_byte_length(actual))
+    else {
+        return false;
+    };
+    if actual_bytes <= expected_bytes || actual_bytes > LINE_ENDING_PROBE_BYTES {
+        return false;
+    }
+    let Ok(bytes) = fs::read(resolved) else {
+        return false;
+    };
+    let mut restored = Vec::with_capacity(bytes.len());
+    for (index, byte) in bytes.iter().enumerate() {
+        if *byte != b'\r' || bytes.get(index + 1) != Some(&b'\n') {
+            restored.push(*byte);
+        }
+    }
+    Fnv64State::bytes_identity(&restored) == expected
 }
 
 pub(super) fn identity_byte_length(identity: &str) -> Result<u64, String> {

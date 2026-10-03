@@ -2,8 +2,8 @@ use super::{
     media_file::{Fnv64State, MediaFiles},
     validation::{
         identity_byte_length, object_mut, required_string, safe_relative_path,
-        validate_expected_last_modified, validate_expected_size, validate_identity,
-        validate_maximum_size,
+        validate_bundle_file_identity, validate_expected_last_modified, validate_expected_size,
+        validate_identity, validate_maximum_size,
     },
 };
 use base64::Engine;
@@ -258,7 +258,13 @@ impl MediaPayload {
         validate_maximum_size(metadata.len(), maximum_size, path)?;
 
         let (actual, sha256) = Fnv64State::file_identities(&resolved, maximum_size)?;
-        validate_identity(&identity, &actual, path)?;
+        validate_bundle_file_identity(
+            &identity,
+            &actual,
+            path,
+            &MediaFiles::slash_path(&relative),
+            &resolved,
+        )?;
         if let Some(expected) = expected_identity {
             validate_identity(expected, &actual, path)?;
         }

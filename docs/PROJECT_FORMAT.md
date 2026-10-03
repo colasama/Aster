@@ -163,7 +163,11 @@ while streaming, and atomically materialize content-addressed files below `asset
 load canonicalizes every path, rejects traversal, symbolic links, junction/reparse points, missing
 files, mutations, kind mismatches, and bound mismatches before atomically replacing the runtime
 registry. Packed `.aster` archives therefore remain usable after the originally imported files move
-or are deleted.
+or are deleted. A bundle file whose bytes differ from its recorded identity fails the load with its
+bundle-relative path; when removing CRLF pairs restores the identity, the error names line-ending
+conversion as the cause. Saving or unpacking a bundle writes `.gitattributes` with `assets/** -text`
+when the bundle has none, so Git `core.autocrlf` cannot rewrite text media such as SVG; an existing
+`.gitattributes` is never replaced.
 
 Legacy sources with bounded `dataUrl` locators remain readable. Their next native save migrates the
 decoded bytes through the same identity-checked sidecar and writes only the resulting relative bundle
