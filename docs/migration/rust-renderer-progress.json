@@ -76,39 +76,39 @@
     "approval": "Preserve the complete M0-T3 production TS capture as the original pixel oracle. Only the explicitly listed, section 6.6 reviewed M0 reference repairs overlay requested frames. All other original frames, including sequence neighbors, remain unchanged. Freeze this effective reference set before M1; M1 and M2 retain strict whole-corpus exact requirements."
   },
   "last_cycle": {
-    "id": 15,
-    "time": "2026-10-04T16:00:16.183Z",
+    "id": 16,
+    "time": "2026-10-04T16:24:38.813Z",
     "milestone": "M2",
-    "task": "M2-T2",
+    "task": "M2-T3",
     "outcome": "passed",
-    "commit": "d0a0bf289b46ba7e090de2e7dd22bc6779adb60e",
-    "verification": "artifacts/migration/verify-2026-10-04T15-50-51-505Z-ab7fe249.json",
+    "commit": "739cc523dce03f16660616d3d6f014592ad2a3eb",
+    "verification": "artifacts/migration/verify-2026-10-04T16-17-35-704Z-9c25fce0.json",
+    "verification_sha256": "8f77aab3301d5012c7f58f14ded82a135958517c13750c66aa9e22e504f74e5d",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 104262
+        "duration_ms": 84956
       },
       {
         "id": "G1",
         "status": "passed",
-        "duration_ms": 4663
+        "duration_ms": 23588
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 357111
+        "duration_ms": 266951
       }
     ],
-    "verification_duration_ms": 467321,
-    "next_step": "M2-T3: extract evaluated geometry, camera, lighting and shadow draw descriptors into supplied plan data, then verify full required G0/G1/G3 under the authorized intermediate policy.",
+    "verification_duration_ms": 376684,
+    "next_step": "Continue M2-T3: extract evaluated camera/optics descriptors and actual consumers, then verify full G0/G1/G3. Keep full-frame replay and native migration incomplete until their actual requirements hold.",
     "notes": [
-      "The production root post-process upload now consumes an owned GPU-free partial plan; the executor receives prepared GPU target information and supplied bytes only, without the original request or effect producer. Exact-media holds and command ordering remain unchanged.",
-      "The root plan's validated zero-operation contract specializes only the root post-process pipeline through a typed shared WGSL override. Per-layer effects retain the dynamic default, while supplied base-effect uniforms, sampling, color conversion and resource bindings remain intact.",
-      "Caller-owned snapshot scopes and genuine revisions travel through editor previews, drafts, immutable jobs, agent previews, export sessions, capture and benchmarks. Exact binary64 request time, decimal frame-rate inputs and the existing nonempty composition-ID domain are preserved without quantization or project-format changes.",
-      "Root control lanes require the supported display pipeline and no unplanned effect program, mip chain or masked glow. Valid supplied exposure changes are verified at the real production upload boundary. Destination reuse and readback ownership from the prior cycle remain intact.",
-      "G1 regenerated the schema and verified 15 exact cross-language round trips, 12 decoded root uploads, independent Rust payloads, resource lifecycle, malformed input and configured limits. Full G3 passed all 1819 exact frames; G4 is explicitly not_required for this intermediate milestone under the owner policy. All cycle14 failures, pixel rejections and original fixed performance evidence remain unchanged; no performance success or native completion is inferred.",
-      "The contract remains an explicitly incomplete post_uniforms_slice_v1. Other passes, full resource capture and independent complete-frame replay are still required; M2 is not done. No external dependencies or pixel tolerance changes were introduced."
+      "Added the closed scene_buffers_slice_v1 contract to TS/Rust FPLN and regenerated the schema; all existing root post-uniform validation remains enforced.",
+      "Owned lighting, evaluated camera-space vertex and motion bytes preserve existing f32 bit patterns. Plain stable-ID draw records partition the vertex stream and retain the original three-dimensional shadow condition.",
+      "Production root uploads, beauty/auxiliary ranges, selection identities, motion input and shadow draws now consume supplied plan data. Lighting-before-shape upload order, resized-buffer lookup, empty geometry and exact-media holds are preserved.",
+      "Full G0/G1/G3 passed. G1 verifies 17 exact cross-language round trips including two actual scene producers and decoded upload/shadow consumers. Fresh full-corpus G3 is exact for all 1819 required frames; no pixel tolerance or reference change.",
+      "This is a verified increment within M2-T3, not task or milestone completion. Evaluated camera/optics descriptors and remaining camera consumers need extraction; material/resource adapters still retain Layer inputs for their later tasks. The renderer remains TS and renderer_plan_complete remains false."
     ]
   },
   "milestones": [
@@ -12288,7 +12288,60 @@
           ],
           "required_full_gates": ["G0", "G1", "G3"],
           "status": "in_progress",
-          "started_at": "2026-10-04T16:06:14.027Z"
+          "started_at": "2026-10-04T16:06:14.027Z",
+          "increments": [
+            {
+              "cycle": 16,
+              "status": "passed",
+              "commit": "739cc523dce03f16660616d3d6f014592ad2a3eb",
+              "verification": {
+                "path": "artifacts/migration/verify-2026-10-04T16-17-35-704Z-9c25fce0.json",
+                "sha256": "8f77aab3301d5012c7f58f14ded82a135958517c13750c66aa9e22e504f74e5d"
+              },
+              "pixel_comparison": {
+                "path": "artifacts/parity/ts-check/2026-10-04T16-19-24-891Z-022bda62/report.json",
+                "sha256": "f2194725a75b09ad674dbaf82954df56057617b199f32b3200009394039eac21"
+              },
+              "capture": {
+                "path": "artifacts/parity/capture-2026-10-04T16-11-41-604Z-b74965e3.json",
+                "sha256": "74e2fc0767ca4f6e80c8cbfd345405eb074ca4d8a203e3c3bdbde8ff22d5b65a"
+              },
+              "manifest": {
+                "path": "artifacts/parity/runs/2026-10-04T16-11-41-604Z-b74965e3/candidate/manifest.json",
+                "sha256": "bad8bf396307f983431bd8ffc8af8f5354d09af4849882d99f4ec47600e03dbe"
+              },
+              "renderer_source_sha256": "58f01ca7e3fe69f2345a8b873fbc3e36c3d7e7de07aaf59d5094a3aa4b4ca387",
+              "bridge_sha256": "82ccf02fefd4c54e78a82a4de08df6906714ecd0b198864ec72cb0c0394dd80c",
+              "gates": [
+                {
+                  "id": "G0",
+                  "status": "passed",
+                  "duration_ms": 84956
+                },
+                {
+                  "id": "G1",
+                  "status": "passed",
+                  "duration_ms": 23588
+                },
+                {
+                  "id": "G3",
+                  "status": "passed",
+                  "duration_ms": 266951
+                }
+              ],
+              "notes": [
+                "Added the closed scene_buffers_slice_v1 contract to TS/Rust FPLN and regenerated the schema; all existing root post-uniform validation remains enforced.",
+                "Owned lighting, evaluated camera-space vertex and motion bytes preserve existing f32 bit patterns. Plain stable-ID draw records partition the vertex stream and retain the original three-dimensional shadow condition.",
+                "Production root uploads, beauty/auxiliary ranges, selection identities, motion input and shadow draws now consume supplied plan data. Lighting-before-shape upload order, resized-buffer lookup, empty geometry and exact-media holds are preserved.",
+                "Full G0/G1/G3 passed. G1 verifies 17 exact cross-language round trips including two actual scene producers and decoded upload/shadow consumers. Fresh full-corpus G3 is exact for all 1819 required frames; no pixel tolerance or reference change.",
+                "This is a verified increment within M2-T3, not task or milestone completion. Evaluated camera/optics descriptors and remaining camera consumers need extraction; material/resource adapters still retain Layer inputs for their later tasks. The renderer remains TS and renderer_plan_complete remains false."
+              ]
+            }
+          ],
+          "remaining_work": [
+            "Extract evaluated camera/optics descriptors and route remaining camera consumers through supplied values without Layer/CameraSettings references.",
+            "Verify camera mutation/clone behavior and the complete T3 required gates before closing the task."
+          ]
         },
         {
           "id": "M2-T4",
@@ -12547,7 +12600,7 @@
       ],
       "preview_baseline_path": "benchmarks/results/m2-preview-baseline.json",
       "preview_baseline_sha256": "a1c62e224c008e731c252142ab1b9de7d31ecf592452c00da1dff42516772375",
-      "active_candidate_manifest": "artifacts/parity/runs/2026-10-04T12-29-13-075Z-d01db8bd/candidate/manifest.json",
+      "active_candidate_manifest": "artifacts/parity/runs/2026-10-04T16-11-41-604Z-b74965e3/candidate/manifest.json",
       "last_verification": {
         "status": "passed",
         "required_gates_passed": true,
@@ -12556,17 +12609,17 @@
           {
             "id": "G0",
             "status": "passed",
-            "duration_ms": 104262
+            "duration_ms": 84956
           },
           {
             "id": "G1",
             "status": "passed",
-            "duration_ms": 4663
+            "duration_ms": 23588
           },
           {
             "id": "G3",
             "status": "passed",
-            "duration_ms": 357111
+            "duration_ms": 266951
           }
         ],
         "optional_gates": [
@@ -12577,7 +12630,7 @@
           }
         ],
         "performance_policy": "rust-delivery-v1",
-        "report": "artifacts/migration/verify-2026-10-04T15-50-51-505Z-ab7fe249.json"
+        "report": "artifacts/migration/verify-2026-10-04T16-17-35-704Z-9c25fce0.json"
       },
       "performance_series_history": [
         {
@@ -13883,12 +13936,5 @@
       }
     }
   ],
-  "active_cycle": {
-    "id": 16,
-    "milestone": "M2",
-    "task": "M2-T3",
-    "started_at": "2026-10-04T16:06:14.027Z",
-    "scope": "Owned evaluated geometry/lighting/motion bytes and plain stable-ID draw ranges, with actual upload and shadow consumption. Remaining camera and execution extraction stays open until verified.",
-    "previous_turn_classification": "no_progress: explanation of M0 only; resumed the first open task after re-reading authoritative state."
-  }
+  "active_cycle": null
 }
