@@ -6,12 +6,14 @@ import { writeAtomicJson } from "../migration/report.mjs";
 import { hashFile } from "../migration/source.mjs";
 import { encodeRgbaPng } from "./png.mjs";
 import { digest } from "./provenance.mjs";
+import { RasterCaptureStore } from "./raster-capture.mjs";
 
 export class CaptureStore {
   constructor(config, host) {
     this.config = config;
     this.host = host;
     this.frames = new Map();
+    this.rasters = new RasterCaptureStore();
   }
 
   key(assignment) {
@@ -71,6 +73,11 @@ export class CaptureStore {
     const path = join(this.config.runDirectory, "pending", item.id, String(payload.frame));
     await mkdir(path, { recursive: true });
     await writeFile(join(path, "frame.png"), png, { flag: "wx" });
+    const rasterReferences = await this.rasters.write(
+      join(this.config.runDirectory, "pending", item.id),
+      item.id,
+      payload.rasterCapture,
+    );
     const meta = {
       schema_version: 1,
       case_id: item.id,
@@ -93,6 +100,7 @@ export class CaptureStore {
       pixel_format: "rgba8",
       png_sha256: createHash("sha256").update(png).digest("hex"),
       rgba_sha256: createHash("sha256").update(pixels).digest("hex"),
+      raster_resources: rasterReferences,
       timings: { ...payload.timings, png_encode_write_ms: performance.now() - started },
     };
     await writeAtomicJson(join(path, "meta.json"), meta);
@@ -120,6 +128,7 @@ export class CaptureStore {
         source_verified: false,
         case_id: assignment.case.id,
         frames: ordered,
+        raster_resources: this.rasters.records(assignment.case.id),
         inputs: assignment.inputs,
         elapsed_ms: payload.elapsed_ms,
         diagnostics: payload.diagnostics,

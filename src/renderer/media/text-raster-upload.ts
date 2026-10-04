@@ -44,6 +44,7 @@ export function uploadTextRaster(
       usage:
         GPUTextureUsage.TEXTURE_BINDING |
         GPUTextureUsage.COPY_DST |
+        GPUTextureUsage.COPY_SRC |
         GPUTextureUsage.RENDER_ATTACHMENT,
     });
   let bindGroup: GPUBindGroup | undefined;

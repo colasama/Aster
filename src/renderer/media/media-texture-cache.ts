@@ -57,6 +57,7 @@ import {
   sweepMediaResources,
 } from "./media-resource";
 import { MISSING_MEDIA_RGBA, MISSING_MEDIA_SOURCE } from "./missing-media";
+import { captureRasterResources } from "./raster-resource-capture";
 import { uploadTextRaster } from "./text-raster-upload";
 import { TextureUploadBatch } from "./texture-upload-batch";
 import { VideoExternalUpload, type VideoExternalUploadStatus } from "./video-external-upload";
@@ -237,6 +238,12 @@ export class MediaTextureCache {
 
   beginFrame(): void {
     this.#textMotionBlur?.beginFrame();
+  }
+
+  captureRasterResources(scope: string, known: Map<string, string>) {
+    return captureRasterResources(this.#device, this.#resources.values(), scope, known, (texture) =>
+      this.#createBindGroup(texture, "Captured raster replay"),
+    );
   }
 
   flush(encoder: GPUCommandEncoder): void {

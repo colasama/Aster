@@ -1,4 +1,5 @@
 import type { GpuDiagnostics } from "../../src/core/types";
+import type { RasterFrameCapture } from "../../src/renderer/media/raster-resource-capture";
 import type { CaptureFontFingerprint } from "./capture-fonts";
 import type { ParityCase } from "./types";
 
@@ -18,6 +19,7 @@ export interface ParityCapturedFrame {
   height: number;
   /** Packed RGBA8 beauty bytes, without Canvas 2D conversion or PNG encoding. */
   pixels: ArrayBuffer;
+  rasterCapture?: RasterFrameCapture;
   diagnostics: GpuDiagnostics;
   timings: { load_ms: number; initialize_ms: number; readback_ms: number };
 }

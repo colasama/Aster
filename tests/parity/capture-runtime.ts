@@ -60,6 +60,7 @@ export const productionCaptureRuntime: CaptureRuntime = {
       const initializeStarted = performance.now();
       renderer = await WebGpuRenderer.create(canvas);
       const activeRenderer = renderer;
+      const capturedRasters = new Map<string, string>();
       const initialize_ms = performance.now() - initializeStarted;
       const pipeline = new ProductionBeautyFramePipeline(
         createViewportBeautyFrameBackend(activeRenderer, canvas),
@@ -79,6 +80,15 @@ export const productionCaptureRuntime: CaptureRuntime = {
         initialize_ms,
         diagnostics: () => structuredClone(activeRenderer.diagnostics),
         assertHealthy,
+        async captureRasters() {
+          const rasters = await activeRenderer.captureRasterResources(
+            snapshot.snapshotScope,
+            capturedRasters,
+          );
+          await activeRenderer.complete();
+          assertHealthy();
+          return rasters;
+        },
         async readback(time) {
           const raw = await pipeline.readback(
             createBeautyFrameRequest({

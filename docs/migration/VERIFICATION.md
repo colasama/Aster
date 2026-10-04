@@ -150,8 +150,15 @@ G1 also sends text/SVG/PSD binary pixel fixtures to the Rust resource registry t
 payload files, then admits the returned descriptors and exact bytes into an independent TS registry.
 It checks exact bounds/pixels, scope enforcement and dependency eviction; corrupt bytes, absent
 frames, mismatched extents and conflicting pixel generations must fail. Decoded GPU upload adapter
-tests discard producer-owned bytes before replay. These fixtures prove binary admission and upload
-boundaries; they do not replace real GPU readback or complete captured-frame replay evidence.
+tests discard producer-owned bytes before replay. The production capture harness additionally
+reads installed text/SVG/PSD textures, independently uploads decoded resources, and compares GPU
+readbacks byte-for-byte. Hash-named binary files and source/frame/pixel messages are retained under
+each case's `raster-resources/`; frame metadata lists referenced pixel hashes and case metadata binds
+payload, transcript and replay checksums. Candidate publication rejects missing or altered data.
+M2 G3 requires this evidence, verifies all references and all three raster origins, and submits the
+actual captured binary resources to the Rust registry. Its existing 1819-frame beauty comparison
+remains exact. This installed-resource audit does not prove complete submitted-frame plan capture or
+replay; that milestone exit requirement remains open.
 See [Frame-plan transport](FRAME_PLAN.md) for the current contract and its explicit partial scope.
 
 Full G3 continues to compare all required TS frames under `exact`, retaining the effective reference

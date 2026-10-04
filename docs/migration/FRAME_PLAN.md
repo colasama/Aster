@@ -143,8 +143,12 @@ Its descriptor binds the raster frame hash, exact extent and sRGB texture format
 the byte count, content hash, matching frame/sample and resource budget. The payload pins its frame,
 which pins its source; conflicting pixel payloads for one frame are rejected. A decoded upload
 consumer verifies the authorization scope and uploads those stored values without source evaluation
-or color conversion. Live capture/readback integration remains pending; these resources currently
-establish the binary contract and independent replay consumer, not complete captured-frame replay.
+or color conversion. The dedicated parity harness captures installed raster textures on demand,
+reconstructs independent GPU owners from the resource table, and compares both GPU readbacks exactly.
+It saves each resource generation once per case, with references from every captured frame. Source
+owners remain retained through readback; failed mapping leaves the capture cache unpublished.
+This verifies installed raster resource replay, not complete submitted-frame plan replay or temporal
+text accumulation. The normal preview path performs no diagnostic readbacks.
 The diagnostic `ir resources --payloads <directory>` reads bounded `<resource-hash>.bin` files and
 validates binary admission before publishing its typed descriptor transcript.
 

@@ -6,6 +6,7 @@ import { runPixelGate } from "../parity/pixel-gate.mjs";
 import { captureSource } from "../parity/provenance.mjs";
 import { evidencePath, M0Evidence } from "./m0-evidence.mjs";
 import { runStep } from "./process.mjs";
+import { auditCapturedRasters } from "./raster-capture-gate.mjs";
 import { writeAtomicJson } from "./report.mjs";
 import { hashFile, ownerProject, sourceProvenance } from "./source.mjs";
 import { auditTsCandidate } from "./ts-candidate.mjs";
@@ -71,6 +72,13 @@ export async function verifyTsPixels(options, dependencies = {}) {
       captured_frames: candidate.captured.frames.size,
     };
     if (candidate.reference) report.frozen_reference = candidate.reference;
+    if (options.milestone === "M2")
+      report.raster_resources = await (dependencies.auditCapturedRasters ?? auditCapturedRasters)(
+        reader,
+        manifestPath,
+        context,
+        execute,
+      );
     report.gate = await (dependencies.runPixelGate ?? runPixelGate)(
       { ...context, output: join(output, "G3") },
       { manifestPath: resolve(root, options.candidates), scope: "full", profileOverride: "exact" },

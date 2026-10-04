@@ -312,6 +312,11 @@ export class WebGpuRenderer {
       this.#frameResources,
     );
   }
+  /** Captures installed raster resources only when requested by the dedicated parity harness. */
+  captureRasterResources(scope: string, known: Map<string, string>) {
+    this.#assertActive();
+    return this.#resources.mediaTextures.captureRasterResources(scope, known);
+  }
   #captureRawFrame(
     composition: Composition,
     time: number,

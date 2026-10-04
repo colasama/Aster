@@ -202,6 +202,7 @@ test("M2 retains exact and frozen M0 references without checking historical M0 c
   const result = await verifyTsPixels(
     { root: f.root, candidates: f.candidates, milestone: "M2" },
     {
+      auditCapturedRasters: async () => ({ status: "passed" }),
       provenance: async () => ({ source_sha256: "same" }),
       rendererSource: async () => ({ renderer_source_sha256: "d".repeat(64) }),
       execute: async () => ({ status: "passed", exit_code: 0 }),

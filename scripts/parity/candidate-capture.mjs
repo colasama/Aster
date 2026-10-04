@@ -6,6 +6,7 @@ import { writeAtomicJson } from "../migration/report.mjs";
 import { hashFile } from "../migration/source.mjs";
 import { decodeRgbaPng } from "./png.mjs";
 import { digest } from "./provenance.mjs";
+import { validateCapturedRaster } from "./raster-capture.mjs";
 
 async function stagedFile(directory, ...parts) {
   const path = await realpath(join(directory, ...parts));
@@ -114,6 +115,33 @@ export async function publishCandidateCapture(config, report) {
         capture.frames.map((frame) => frame.frame),
         assignment.frames,
       );
+      const rasterHashes = new Set();
+      for (const raster of capture.raster_resources ?? []) {
+        assert(/^[a-f0-9]{64}$/.test(raster.pixel_hash));
+        assert(!rasterHashes.has(raster.pixel_hash));
+        rasterHashes.add(raster.pixel_hash);
+        const messagesPath = await stagedFile(
+          pending,
+          item.id,
+          "raster-resources",
+          `${raster.pixel_hash}.json`,
+        );
+        const pixelsPath = await stagedFile(
+          pending,
+          item.id,
+          "raster-resources",
+          `${raster.pixel_hash}.bin`,
+        );
+        assert.equal(await hashFile(messagesPath), raster.messages_sha256);
+        assert.equal(await hashFile(pixelsPath), raster.pixels_sha256);
+        const pixels = await readFile(pixelsPath);
+        const checked = validateCapturedRaster(
+          JSON.parse(await readFile(messagesPath, "utf8")),
+          pixels,
+          pixels,
+        );
+        for (const [key, value] of Object.entries(checked)) assert.equal(raster[key], value);
+      }
       for (const record of capture.frames) {
         assert(Number.isSafeInteger(record.frame) && record.frame >= 0, "Unsafe candidate frame");
         const pngPath = await stagedFile(pending, item.id, String(record.frame), "frame.png");
@@ -125,6 +153,9 @@ export async function publishCandidateCapture(config, report) {
           "Candidate metadata hash differs",
         );
         const meta = JSON.parse(await readFile(metaPath, "utf8"));
+        if (meta.raster_resources !== undefined)
+          for (const hash of meta.raster_resources)
+            assert(rasterHashes.has(hash), "Unknown captured raster reference");
         assert.equal(meta.schema_version, 1);
         assert.equal(meta.case_id, item.id);
         assert.equal(meta.frame, record.frame);

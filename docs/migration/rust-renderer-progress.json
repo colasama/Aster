@@ -14510,5 +14510,12 @@
       }
     }
   ],
-  "active_cycle": null
+  "active_cycle": {
+    "id": 27,
+    "milestone": "M2",
+    "task": "M2-T5",
+    "started_at": "2026-10-04T20:32:42.131Z",
+    "scope": "Capture installed production raster textures on demand, independently upload decoded pixel resources on GPU, and persist exact readback evidence with candidate captures.",
+    "previous_turn_classification": "progress: cycle26 binary raster resource protocol and decoded upload boundary committed after full G0/G1/G3; failed timeout attempt retained."
+  }
 }

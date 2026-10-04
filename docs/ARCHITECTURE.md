@@ -111,9 +111,12 @@ register raster descriptors. A shared upload consumer receives prepared bitmap o
 validates their extent/layout, and releases failed allocations without publishing partial owners.
 The shared resource protocol also carries content-addressed, packed raster pixel payloads with
 frame/source dependencies. An independent decoded upload consumer installs them without text/SVG/PSD
-evaluation and verifies the requested authorization scope. Production capture/readback integration
-and complete raster replay remain part of the ongoing extraction; temporal text accumulation remains
-separate.
+evaluation and verifies the requested authorization scope. The parity harness now explicitly captures
+installed text/SVG/PSD textures, uploads their decoded resources into independent GPU allocations,
+and compares packed readbacks exactly. Captures deduplicate raster generations within each case and
+retain binary evidence with per-frame references. Ordinary preview does not invoke raster readback.
+This installed-resource audit is separate from complete submitted-frame plan replay and temporal text
+accumulation, which remain under extraction.
 
 Shared WGSL includes output anti-aliasing, core scene variants, compositing, fused post-processing,
 blur/depth/surface effects, auxiliary surfaces, particles, text motion blur and display/buffer helpers.

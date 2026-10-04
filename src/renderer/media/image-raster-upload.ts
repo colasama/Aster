@@ -59,6 +59,7 @@ export function uploadImageRaster(
       usage:
         GPUTextureUsage.TEXTURE_BINDING |
         GPUTextureUsage.COPY_DST |
+        GPUTextureUsage.COPY_SRC |
         (pixels.kind === "bitmap" ? GPUTextureUsage.RENDER_ATTACHMENT : 0),
     });
     if (pixels.kind === "bitmap") {
