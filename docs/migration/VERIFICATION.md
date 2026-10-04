@@ -127,6 +127,10 @@ lighting, generator context and depth uniforms and verify that changed supplied 
 Media lease tests exercise atomic acquisition, changed-source/frame rejection, abort and delayed GPU
 completion across cache destruction, including the shared placeholder owner. Full G3 remains required
 for media draw adapter changes; these lease tests alone do not establish content-addressed replay.
+G1 also sends image/sequence/video resource messages through the Rust CLI registry and back to TS,
+checking exact descriptor hashes, requested/uploaded time values and ordered eviction. Wrong hashes,
+kind mismatches, missing sources and premature source eviction must fail. Registry tests cover
+descriptor budgets, ownership across asynchronous hashing and in-flight frame/source dependencies.
 See [Frame-plan transport](FRAME_PLAN.md) for the current contract and its explicit partial scope.
 
 Full G3 continues to compare all required TS frames under `exact`, retaining the effective reference

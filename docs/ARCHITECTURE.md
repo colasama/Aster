@@ -85,7 +85,9 @@ Root image/video drawing and auxiliary passes now acquire an explicit per-frame 
 lease after readiness checks. Source/frame generation changes are rejected during binding resolution;
 cache replacement retires owners, with destruction deferred until all submitted leases complete on
 the GPU queue. Unsubmitted failures release their leases immediately. These runtime handles remain
-outside FPLN; content-addressed media descriptors and independent resource replay are still pending.
+outside FPLN. Shared TS/Rust transport registries now accept content-addressed media source/frame
+descriptors, preserving exact video times and sequence frame numbers with dependency-aware eviction.
+Production hash binding, authorized native media resolution and independent frame replay remain pending.
 
 Shared WGSL includes output anti-aliasing, core scene variants, compositing, fused post-processing,
 blur/depth/surface effects, auxiliary surfaces, particles, text motion blur and display/buffer helpers.

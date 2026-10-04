@@ -1,19 +1,50 @@
 import { canonicalJson, hash, integer, object, requirePlan } from "./canonical";
-import type { BufferResourceDescriptor, ResourceMessage } from "./types";
+import { validateMediaFrame, validateMediaSource } from "./media-descriptors";
+import type { BufferResourceDescriptor, ResourceContent, ResourceMessage } from "./types";
 import { validateBufferDescriptor } from "./validation";
 
 export async function resourceHash(
   descriptor: BufferResourceDescriptor,
   bytes: Uint8Array,
 ): Promise<string> {
-  validateBufferDescriptor(descriptor);
+  return contentResourceHash({ kind: "buffer", descriptor }, bytes);
+}
+
+export function validateResourceContent(content: ResourceContent, bytes: Uint8Array): void {
+  if (content.kind === "buffer") {
+    validateBufferDescriptor(content.descriptor);
+    requirePlan(
+      bytes.byteLength === content.descriptor.byte_length,
+      "element_count_mismatch",
+      "Resource byte length mismatch",
+    );
+    return;
+  }
+  if (content.kind === "media_source") validateMediaSource(content.descriptor);
+  else if (content.kind === "media_frame") validateMediaFrame(content.descriptor);
+  else requirePlan(false, "unknown_variant", "Unsupported resource kind");
   requirePlan(
-    bytes.byteLength === descriptor.byte_length,
+    bytes.byteLength === 0,
     "element_count_mismatch",
-    "Resource byte length mismatch",
+    "Media descriptors must not carry pixel bytes",
   );
+}
+
+/** Same domain-separated identity for buffers and declarative media resources. */
+export async function contentResourceHash(
+  content: ResourceContent,
+  bytes: Uint8Array = new Uint8Array(),
+): Promise<string> {
+  validateResourceContent(content, bytes);
   const prefix = new TextEncoder().encode("ASTER_RESOURCE_V1\0");
-  const json = new TextEncoder().encode(canonicalJson({ kind: "buffer", descriptor }));
+  const json = new TextEncoder().encode(
+    canonicalJson({ kind: content.kind, descriptor: content.descriptor }),
+  );
+  requirePlan(
+    json.length <= 0xffff_ffff,
+    "limit_exceeded",
+    "Resource descriptor exceeds wire length",
+  );
   const input = new Uint8Array(prefix.length + 4 + json.length + bytes.length);
   input.set(prefix);
   new DataView(input.buffer).setUint32(prefix.length, json.length, true);
@@ -33,8 +64,10 @@ export function validateResourceMessage(value: unknown): ResourceMessage {
   if (type === "put_resource") {
     const message = object(value, ["type", "hash", "kind", "descriptor"]);
     hash(message.hash);
-    requirePlan(message.kind === "buffer", "unknown_variant", "Unsupported resource kind");
-    validateBufferDescriptor(message.descriptor);
+    if (message.kind === "buffer") validateBufferDescriptor(message.descriptor);
+    else if (message.kind === "media_source") validateMediaSource(message.descriptor);
+    else if (message.kind === "media_frame") validateMediaFrame(message.descriptor);
+    else requirePlan(false, "unknown_variant", "Unsupported resource kind");
     return message as unknown as ResourceMessage;
   }
   requirePlan(type === "evict_resource", "unknown_variant", "Unsupported resource operation");
@@ -44,8 +77,9 @@ export function validateResourceMessage(value: unknown): ResourceMessage {
 }
 
 interface StoredResource {
-  descriptor: BufferResourceDescriptor;
+  content: ResourceContent;
   bytes: Uint8Array;
+  accountedBytes: number;
   pins: number;
 }
 
@@ -84,40 +118,71 @@ export class FrameResourceRegistry {
       requirePlan(resource, "missing_resource", `Missing resource ${message.hash}`);
       requirePlan(resource.pins === 0, "resource_in_use", "Cannot evict a pinned resource");
       this.#resources.delete(message.hash);
-      this.#used -= resource.bytes.byteLength;
+      this.#used -= resource.accountedBytes;
+      if (resource.content.kind === "media_frame") {
+        const source = this.#resources.get(resource.content.descriptor.source);
+        requirePlan(source, "missing_resource", "Media source was evicted while referenced");
+        source.pins -= 1;
+      }
       return;
     }
-    requirePlan(bytes !== undefined, "missing_resource", "PutResource requires binary bytes");
     requirePlan(
-      bytes.byteLength === message.descriptor.byte_length,
-      "element_count_mismatch",
-      "Resource byte length mismatch",
+      message.kind !== "buffer" || bytes !== undefined,
+      "missing_resource",
+      "Buffer PutResource requires binary bytes",
     );
+    const inputBytes = bytes ?? new Uint8Array();
+    validateResourceContent(message, inputBytes);
+    const accountedBytes =
+      message.kind === "buffer"
+        ? inputBytes.byteLength
+        : new TextEncoder().encode(canonicalJson(message.descriptor)).length;
     requirePlan(
-      bytes.byteLength <= this.#budget &&
+      accountedBytes <= this.#budget &&
         (this.#resources.has(message.hash) ||
-          (this.#resources.size < this.#countLimit &&
-            bytes.byteLength <= this.#budget - this.#used)),
+          (this.#resources.size < this.#countLimit && accountedBytes <= this.#budget - this.#used)),
       "resource_budget_exceeded",
       "Resource exceeds admission budget before copying",
     );
     // Snapshot input before awaiting hashing so concurrent caller mutation cannot change admission.
-    const owned = new Uint8Array(bytes);
-    const descriptor = { ...message.descriptor };
+    const owned = new Uint8Array(inputBytes);
+    const content: ResourceContent = structuredClone({
+      kind: message.kind,
+      descriptor: message.descriptor,
+    } as ResourceContent);
     const identity = message.hash;
     requirePlan(
-      (await resourceHash(descriptor, owned)) === identity,
+      (await contentResourceHash(content, owned)) === identity,
       "hash_mismatch",
       "Resource content hash mismatch",
     );
     if (this.#resources.has(identity)) return;
     requirePlan(
-      this.#resources.size < this.#countLimit && owned.byteLength <= this.#budget - this.#used,
+      this.#resources.size < this.#countLimit && accountedBytes <= this.#budget - this.#used,
       "resource_budget_exceeded",
-      `Resource budget exceeded: used=${this.#used}, requested=${owned.byteLength}, budget=${this.#budget}`,
+      `Resource budget exceeded: used=${this.#used}, requested=${accountedBytes}, budget=${this.#budget}`,
     );
-    this.#resources.set(identity, { descriptor, bytes: owned, pins: 0 });
-    this.#used += owned.byteLength;
+    if (content.kind === "media_frame") {
+      const source = this.#resources.get(content.descriptor.source);
+      requirePlan(source, "missing_resource", "Media source must be admitted before its frame");
+      requirePlan(
+        source.content.kind === "media_source" &&
+          source.content.descriptor.media_kind === content.descriptor.sample.kind,
+        "resource_conflict",
+        "Media frame/source kind mismatch",
+      );
+      source.pins += 1;
+    }
+    this.#resources.set(identity, { content, bytes: owned, accountedBytes, pins: 0 });
+    this.#used += accountedBytes;
+  }
+
+  /** Return owned transport data; consumers cannot mutate registry identity through this view. */
+  resolve(identity: string): { content: ResourceContent; bytes: Uint8Array } {
+    hash(identity);
+    const entry = this.#resources.get(identity);
+    requirePlan(entry, "missing_resource", `Missing resource ${identity}`);
+    return { content: structuredClone(entry.content), bytes: new Uint8Array(entry.bytes) };
   }
 
   /** Resolve every reference before pinning any entry. The lease closes over its owning registry. */

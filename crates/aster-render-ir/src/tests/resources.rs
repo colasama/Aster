@@ -17,7 +17,7 @@ impl ResourceFixture {
         Ok(PutResource {
             hash: ResourceHash::for_buffer(&descriptor, bytes)?,
             kind: ResourceKind::Buffer,
-            descriptor,
+            descriptor: crate::ResourceDescriptor::Buffer(descriptor),
         })
     }
 }

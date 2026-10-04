@@ -5,7 +5,10 @@ use std::{
     process::ExitCode,
 };
 
-use aster_render_ir::{DecodeLimits, FplnCodec, FramePlanSchema, IrError, IrFixture};
+use aster_render_ir::{
+    DecodeLimits, FplnCodec, FramePlanSchema, IrError, IrFixture, ResourceLimits, ResourceMessage,
+    ResourceRegistry,
+};
 use clap::{Args, Subcommand};
 use serde::Serialize;
 use sha2::{Digest, Sha256};
@@ -19,6 +22,13 @@ pub struct IrArgs {
 
 #[derive(Debug, Subcommand)]
 enum IrCommand {
+    /// Validate and replay descriptor-only media resource messages, then emit typed JSON.
+    Resources {
+        #[arg(long)]
+        input: PathBuf,
+        #[arg(long)]
+        output: PathBuf,
+    },
     /// Emit the deterministic schema for the declared partial transport contract.
     Schema {
         #[arg(long)]
@@ -119,6 +129,23 @@ impl IrArgs {
 
     fn execute(self) -> Result<(), IrError> {
         let (kind, output, bytes) = match self.command {
+            IrCommand::Resources { input, output } => {
+                let input = Self::read_bounded(&input, &DecodeLimits::default())?;
+                let messages: Vec<ResourceMessage> = serde_json::from_slice(&input)
+                    .map_err(|error| IrError::InvalidJson(error.to_string()))?;
+                let mut registry = ResourceRegistry::new(ResourceLimits::default())?;
+                for message in &messages {
+                    match message {
+                        ResourceMessage::PutResource(request) => {
+                            registry.put(request.clone(), Vec::new())?;
+                        }
+                        ResourceMessage::EvictResource { hash } => registry.evict(hash)?,
+                    }
+                }
+                let bytes = serde_json::to_vec(&messages)
+                    .map_err(|error| IrError::InvalidJson(error.to_string()))?;
+                ("ir_resources", output, bytes)
+            }
             IrCommand::Schema { out } => ("ir_schema", out, FramePlanSchema::emit()?),
             IrCommand::Fixture { output } => (
                 "ir_fixture",

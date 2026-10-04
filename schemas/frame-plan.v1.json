@@ -287,6 +287,117 @@
         }
       ]
     },
+    "MediaFrameDescriptor": {
+      "additionalProperties": false,
+      "properties": {
+        "format": {
+          "$ref": "#/$defs/MediaTextureFormat"
+        },
+        "height": {
+          "format": "uint32",
+          "maximum": 16384,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "sample": {
+          "$ref": "#/$defs/MediaSample"
+        },
+        "source": {
+          "$ref": "#/$defs/ResourceHash"
+        },
+        "width": {
+          "format": "uint32",
+          "maximum": 16384,
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": ["source", "sample", "width", "height", "format"],
+      "type": "object"
+    },
+    "MediaKind": {
+      "enum": ["image", "sequence", "video"],
+      "type": "string"
+    },
+    "MediaSample": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "image",
+              "type": "string"
+            }
+          },
+          "required": ["kind"],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "file_identity": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "frame": {
+              "format": "int64",
+              "maximum": 9007199254740991,
+              "minimum": -9007199254740991,
+              "type": "integer"
+            },
+            "kind": {
+              "const": "sequence",
+              "type": "string"
+            }
+          },
+          "required": ["kind", "frame", "file_identity"],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "video",
+              "type": "string"
+            },
+            "requested_time": {
+              "$ref": "#/$defs/FrameTime"
+            },
+            "uploaded_time": {
+              "$ref": "#/$defs/FrameTime"
+            }
+          },
+          "required": ["kind", "requested_time", "uploaded_time"],
+          "type": "object"
+        }
+      ]
+    },
+    "MediaSourceDescriptor": {
+      "additionalProperties": false,
+      "description": "The job broker resolves this identity; a descriptor never grants filesystem access.",
+      "properties": {
+        "authorization_scope": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "content_identity": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "media_kind": {
+          "$ref": "#/$defs/MediaKind"
+        },
+        "source_id": {
+          "$ref": "#/$defs/CompositionIdentity"
+        }
+      },
+      "required": ["source_id", "content_identity", "authorization_scope", "media_kind"],
+      "type": "object"
+    },
+    "MediaTextureFormat": {
+      "enum": ["rgba8unorm-srgb"],
+      "type": "string"
+    },
     "PlanKind": {
       "enum": ["frame_plan_slice"],
       "type": "string"
@@ -398,7 +509,7 @@
       "additionalProperties": false,
       "properties": {
         "descriptor": {
-          "$ref": "#/$defs/BufferResourceDescriptor"
+          "$ref": "#/$defs/ResourceDescriptor"
         },
         "hash": {
           "$ref": "#/$defs/ResourceHash"
@@ -410,12 +521,25 @@
       "required": ["hash", "kind", "descriptor"],
       "type": "object"
     },
+    "ResourceDescriptor": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/BufferResourceDescriptor"
+        },
+        {
+          "$ref": "#/$defs/MediaSourceDescriptor"
+        },
+        {
+          "$ref": "#/$defs/MediaFrameDescriptor"
+        }
+      ]
+    },
     "ResourceHash": {
       "pattern": "^[0-9a-f]{64}$",
       "type": "string"
     },
     "ResourceKind": {
-      "enum": ["buffer"],
+      "enum": ["buffer", "media_source", "media_frame"],
       "type": "string"
     },
     "ResourceMessage": {
@@ -424,7 +548,7 @@
           "additionalProperties": false,
           "properties": {
             "descriptor": {
-              "$ref": "#/$defs/BufferResourceDescriptor"
+              "$ref": "#/$defs/ResourceDescriptor"
             },
             "hash": {
               "$ref": "#/$defs/ResourceHash"

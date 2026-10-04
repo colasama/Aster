@@ -14091,5 +14091,12 @@
       }
     }
   ],
-  "active_cycle": null
+  "active_cycle": {
+    "id": 19,
+    "milestone": "M2",
+    "task": "M2-T4",
+    "started_at": "2026-10-04T17:24:15.121Z",
+    "scope": "Extend shared TS/Rust PutResource transport and bounded registries with typed media source/frame descriptors, exact times and dependency-aware eviction; verify cross-language hashes and round trips. Production hash binding/replay remains next within T4.",
+    "previous_turn_classification": "progress: cycle18 full gates passed and implementation/ledger committed; worktree clean."
+  }
 }

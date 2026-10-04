@@ -56,6 +56,22 @@ async function fixture(t, intercept = async () => {}) {
       target = argument("--output");
       bytes = schema;
       result = { kind: "ir_schema_format" };
+    } else if (command.id === "ir-media-resources") {
+      target = argument("--output");
+      bytes = await readFile(argument("--input"));
+      result = { kind: "ir_resources" };
+    } else if (command.id.startsWith("ir-media-reject-")) {
+      step.status = "failed";
+      step.exit_code = 2;
+      result = {
+        status: "failed",
+        code: {
+          hash: "hash_mismatch",
+          kind: "invalid_resource",
+          missing: "missing_resource",
+          "in-use": "resource_in_use",
+        }[command.id.slice("ir-media-reject-".length)],
+      };
     } else if (command.id === "ir-independent-fixture") {
       const original = runtime.decodeFramePlan(runtime.productionUniformFixtures()[1].bytes);
       original.metadata.resources = [
@@ -129,6 +145,8 @@ test("G1 orchestrates all real TS codec checks and keeps renderer completion exp
   assert.equal(result.rejections.length, 6);
   assert.equal(result.custom_limits.length, 3);
   assert.equal(result.resources.status, "passed");
+  assert.equal(result.media_resources.roundtrips, 11);
+  assert.equal(result.media_resources.dependency_eviction, true);
   assert(f.calls.includes("ir-build") && f.calls.includes("ir-library-tests"));
   assert(result.checked_files > 20);
 });

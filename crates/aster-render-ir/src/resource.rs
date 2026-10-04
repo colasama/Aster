@@ -7,7 +7,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-use crate::{ElementType, FramePlanSliceV1, IrError, canonical::CanonicalJson};
+use crate::{ElementType, FramePlanSliceV1, IrError, ResourceDescriptor, canonical::CanonicalJson};
 
 #[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq, PartialOrd, Ord)]
 #[serde(transparent)]
@@ -17,6 +17,8 @@ pub struct ResourceHash(#[schemars(regex(pattern = "^[0-9a-f]{64}$"))] pub Strin
 #[serde(rename_all = "snake_case")]
 pub enum ResourceKind {
     Buffer,
+    MediaSource,
+    MediaFrame,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
@@ -48,7 +50,7 @@ impl BufferResourceDescriptor {
 #[derive(Serialize)]
 struct ResourceIdentity {
     kind: ResourceKind,
-    descriptor: BufferResourceDescriptor,
+    descriptor: ResourceDescriptor,
 }
 
 impl ResourceHash {
@@ -70,9 +72,21 @@ impl ResourceHash {
         descriptor: &BufferResourceDescriptor,
         bytes: &[u8],
     ) -> Result<Self, IrError> {
-        descriptor.validate(bytes)?;
+        Self::for_resource(
+            ResourceKind::Buffer,
+            &ResourceDescriptor::Buffer(descriptor.clone()),
+            bytes,
+        )
+    }
+
+    pub fn for_resource(
+        kind: ResourceKind,
+        descriptor: &ResourceDescriptor,
+        bytes: &[u8],
+    ) -> Result<Self, IrError> {
+        descriptor.validate(kind, bytes)?;
         let identity = ResourceIdentity {
-            kind: ResourceKind::Buffer,
+            kind,
             descriptor: descriptor.clone(),
         };
         let canonical = CanonicalJson::encode(&identity)?;
@@ -91,7 +105,7 @@ impl ResourceHash {
 pub struct PutResource {
     pub hash: ResourceHash,
     pub kind: ResourceKind,
-    pub descriptor: BufferResourceDescriptor,
+    pub descriptor: ResourceDescriptor,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
@@ -139,9 +153,10 @@ pub struct ResourceStatistics {
 }
 
 struct ResourceEntry {
-    descriptor: BufferResourceDescriptor,
+    descriptor: ResourceDescriptor,
     bytes: Vec<u8>,
     pins: usize,
+    accounted_bytes: u64,
 }
 
 pub struct ResourceRegistry {
@@ -177,8 +192,8 @@ impl ResourceRegistry {
 
     pub fn put(&mut self, request: PutResource, bytes: Vec<u8>) -> Result<PutOutcome, IrError> {
         request.hash.validate()?;
-        request.descriptor.validate(&bytes)?;
-        if ResourceHash::for_buffer(&request.descriptor, &bytes)? != request.hash {
+        request.descriptor.validate(request.kind, &bytes)?;
+        if ResourceHash::for_resource(request.kind, &request.descriptor, &bytes)? != request.hash {
             return Err(IrError::HashMismatch);
         }
         if let Some(existing) = self.entries.get(&request.hash) {
@@ -187,7 +202,11 @@ impl ResourceRegistry {
             }
             return Ok(PutOutcome::AlreadyPresent);
         }
-        let requested = u64::try_from(bytes.len()).map_err(|_| IrError::ArithmeticOverflow)?;
+        let requested = u64::try_from(match &request.descriptor {
+            ResourceDescriptor::Buffer(_) => bytes.len(),
+            _ => CanonicalJson::encode(&request.descriptor)?.len(),
+        })
+        .map_err(|_| IrError::ArithmeticOverflow)?;
         let total = self
             .used_bytes
             .checked_add(requested)
@@ -202,12 +221,24 @@ impl ResourceRegistry {
         if self.entries.len() >= self.limits.max_resources {
             return Err(IrError::LimitExceeded("resource count".to_owned()));
         }
+        if let ResourceDescriptor::MediaFrame(frame) = &request.descriptor {
+            let source = self
+                .entries
+                .get_mut(&frame.source)
+                .ok_or_else(|| IrError::MissingResource(frame.source.0.clone()))?;
+            let ResourceDescriptor::MediaSource(descriptor) = &source.descriptor else {
+                return Err(IrError::ResourceConflict);
+            };
+            frame.validate_source(descriptor)?;
+            source.pins += 1;
+        }
         self.entries.insert(
             request.hash,
             ResourceEntry {
                 descriptor: request.descriptor,
                 bytes,
                 pins: 0,
+                accounted_bytes: requested,
             },
         );
         self.used_bytes = total;
@@ -221,6 +252,14 @@ impl ResourceRegistry {
             .get(hash)
             .ok_or_else(|| IrError::MissingResource(hash.0.clone()))?;
         Ok(&resource.bytes)
+    }
+
+    pub fn descriptor(&self, hash: &ResourceHash) -> Result<&ResourceDescriptor, IrError> {
+        hash.validate()?;
+        self.entries
+            .get(hash)
+            .map(|entry| &entry.descriptor)
+            .ok_or_else(|| IrError::MissingResource(hash.0.clone()))
     }
 
     pub fn validate_references(&self, plan: &FramePlanSliceV1) -> Result<(), IrError> {
@@ -303,8 +342,16 @@ impl ResourceRegistry {
         }
         let used = self
             .used_bytes
-            .checked_sub(entry.bytes.len() as u64)
+            .checked_sub(entry.accounted_bytes)
             .ok_or(IrError::ArithmeticOverflow)?;
+        let dependency = match &entry.descriptor {
+            ResourceDescriptor::MediaFrame(frame) => Some(frame.source.clone()),
+            _ => None,
+        };
+        if let Some(source) = dependency {
+            let source = self.entries.get_mut(&source).ok_or(IrError::InvalidLease)?;
+            source.pins = source.pins.checked_sub(1).ok_or(IrError::InvalidLease)?;
+        }
         self.entries.remove(hash);
         self.used_bytes = used;
         Ok(())

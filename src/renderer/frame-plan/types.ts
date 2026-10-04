@@ -1,3 +1,5 @@
+import type { MediaFrameDescriptor, MediaSourceDescriptor } from "./media-descriptors";
+
 export interface FramePlanLimits {
   max_container_bytes: number;
   max_metadata_bytes: number;
@@ -144,14 +146,14 @@ export interface FramePlanSliceData {
   blobs: readonly Uint8Array[];
 }
 
-export type ResourceMessage =
-  | {
-      type: "put_resource";
-      hash: string;
-      kind: "buffer";
-      descriptor: BufferResourceDescriptor;
-    }
-  | { type: "evict_resource"; hash: string };
+export type ResourceContent =
+  | { kind: "buffer"; descriptor: BufferResourceDescriptor }
+  | { kind: "media_source"; descriptor: MediaSourceDescriptor }
+  | { kind: "media_frame"; descriptor: MediaFrameDescriptor };
+
+export type PutResource = ResourceContent & { type: "put_resource"; hash: string };
+
+export type ResourceMessage = PutResource | { type: "evict_resource"; hash: string };
 
 export class FramePlanError extends Error {
   constructor(

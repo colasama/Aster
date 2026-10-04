@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { access, mkdir, writeFile } from "node:fs/promises";
 import { join, relative } from "node:path";
+import { auditMediaResources } from "./ir-gate-media.mjs";
 import { auditIrResources, irNegativeFixtures, loadIrRuntime } from "./ir-gate-runtime.mjs";
 import { M0Evidence } from "./m0-evidence.mjs";
 import { runStep } from "./process.mjs";
@@ -112,6 +113,13 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
       sha256: schema.sha256,
     };
     report.resources = await auditIrResources(runtime);
+    report.media_resources = await auditMediaResources(runtime, {
+      context,
+      cli,
+      command,
+      cliReport,
+      outputFile,
+    });
     const fixtures = runtime.productionUniformFixtures();
     assert.deepEqual(
       fixtures.map((fixture) => fixture.id),

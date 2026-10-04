@@ -15,6 +15,7 @@ export async function loadIrRuntime(root) {
       "codec",
       "fixture",
       "resources",
+      "media-resource-fixture",
       "types",
       "time",
       "composition-identity",

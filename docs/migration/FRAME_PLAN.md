@@ -117,8 +117,16 @@ grading and display expressions still consume the supplied uniforms; resource bi
 ## Resource operations
 
 Plans refer to resources by content hash. Descriptors and bytes travel separately through typed
-`PutResource` and `EvictResource` operations. The initial concrete resource kind is a byte buffer;
-it does not claim support for media authorization, textures, meshes or sidecar message framing.
+`PutResource` and `EvictResource` operations. Concrete transport kinds are `buffer`, `media_source`
+and `media_frame`. Media descriptors carry no pixel bytes or runtime handles. This protocol does
+not yet implement media decoding, GPU allocation or sidecar message framing.
+
+A source binds the source ID, opaque import content identity, media kind and authorization scope.
+The broker must independently authorize and resolve that tuple; the descriptor grants no filesystem
+access and does not mistake a legacy content identity for a cryptographic digest of the asset.
+A frame binds its source hash, texture extent/format and an image, sequence or video sample.
+Sequence samples preserve the resolved safe-integer frame number and member file identity. Video samples retain both the
+exact requested and uploaded `FrameTime`, including fractional-rate seeks and signed zero.
 
 Resource identity includes interpretation as well as payload:
 
@@ -133,6 +141,12 @@ budget and eviction of pinned resources are typed errors. Plans must resolve all
 before submission; resources remain pinned until that use completes. There is no implicit eviction
 or substitution of missing resources with empty output. CPU transport accounting is separate from
 actual GPU allocation and residency.
+
+Media admission charges canonical descriptor bytes to the transport budget. Frame admission requires
+an existing source of the matching media kind and retains it until the frame is evicted. A pinned
+frame therefore also protects its source; an identical put does not add a second dependency pin.
+The Rust CLI's `ir resources` command validates and replays descriptor-only media messages and emits
+typed JSON for cross-language verification. It does not open media or render pixels.
 
 The TS media adapter now snapshots image/video bindings for the root frame and pins their owners
 through GPU queue completion. Replacement/sweep retires resources rather than destroying a pinned

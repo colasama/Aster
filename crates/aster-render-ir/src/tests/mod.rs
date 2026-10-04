@@ -3,6 +3,7 @@ mod codec;
 mod frame_time;
 mod frame_time_codec;
 mod identity;
+mod media_resources;
 mod resources;
 mod scene;
 mod schema_time;
