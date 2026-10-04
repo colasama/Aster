@@ -14902,5 +14902,12 @@
       }
     }
   ],
-  "active_cycle": null
+  "active_cycle": {
+    "id": 33,
+    "milestone": "M2",
+    "task": "M2-T6",
+    "started_at": "2026-10-04T22:39:22.798Z",
+    "scope": "Execute temporal accumulation/resolve from supplied hash-addressed sample draws and weights, with sample raster owners and submission-scoped leases. FPLN/Rust pass transport remains subsequent work.",
+    "previous_turn_classification": "no progress: answered the owner question about M0; revalidated the running M2-T6 state and resumed the existing cycle33 increment."
+  }
 }

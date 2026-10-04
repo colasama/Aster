@@ -1,5 +1,6 @@
 import type { Layer } from "../../core/types";
 import { sharedShaders } from "../gpu/shared-shader-catalog";
+import { MediaBindingLease } from "../media/media-binding-lease";
 import { preparedRasterIdentity } from "../media/media-frame-identity";
 import {
   destroyMediaResource,
@@ -7,6 +8,10 @@ import {
   mediaResourcePinned,
   mediaResourceRetired,
 } from "../media/media-resource";
+import {
+  buildTemporalTextPassPlan,
+  executeTemporalTextPassPlan,
+} from "./text-motion-blur-pass-plan";
 import type { TextMotionBlurPlan } from "./text-motion-blur-plan";
 import {
   acquireTemporalTextRasters,
@@ -48,6 +53,9 @@ interface TextMotionBlurEntry extends PreparedTextMotionBlurRaster {
   accumulation?: GPUTexture;
   sampleTextures: GPUTexture[];
   sampleBindGroups: GPUBindGroup[];
+  sampleResources: MediaResource[];
+  sampleWeights: number[];
+  passLease?: MediaBindingLease;
   resolveBindGroup?: GPUBindGroup;
   weights?: GPUBuffer;
   encoded: boolean;
@@ -299,7 +307,7 @@ export class TextMotionBlurRasterCache {
     return entry;
   }
 
-  encode(encoder: GPUCommandEncoder): void {
+  encode(encoder: GPUCommandEncoder, scope = "local-preview"): void {
     if (this.#destroyed) return;
     this.#frameStats = {
       ...emptyFrameStats(),
@@ -308,38 +316,41 @@ export class TextMotionBlurRasterCache {
     };
     for (const entry of this.#entries.values()) {
       if (entry.encoded || !entry.accumulation || !entry.resolveBindGroup) continue;
-      const accumulation = encoder.beginRenderPass({
-        label: "Temporal text premultiplied linear accumulation",
-        colorAttachments: [
-          {
-            view: entry.accumulation.createView(),
-            clearValue: { r: 0, g: 0, b: 0, a: 0 },
-            loadOp: "clear",
-            storeOp: "store",
-          },
+      const lease = new MediaBindingLease(
+        [
+          { instanceId: "output", resource: entry.resource, binding: entry.bindGroup },
+          ...entry.sampleResources.map((resource, index) => ({
+            instanceId: `sample:${index}`,
+            resource,
+            binding: resource.bindGroup,
+          })),
         ],
-      });
-      accumulation.setPipeline(this.#accumulatePipeline);
-      for (const bindGroup of entry.sampleBindGroups) {
-        accumulation.setBindGroup(0, bindGroup);
-        accumulation.draw(3);
+        scope,
+      );
+      try {
+        const plan = buildTemporalTextPassPlan(
+          entry.width,
+          entry.height,
+          entry.sampleWeights,
+          lease,
+        );
+        executeTemporalTextPassPlan(plan, lease, encoder, {
+          queue: this.#device.queue,
+          width: entry.width,
+          height: entry.height,
+          output: entry.output,
+          outputBinding: entry.bindGroup,
+          accumulation: entry.accumulation,
+          weights: entry.weights,
+          resolveBinding: entry.resolveBindGroup,
+          accumulatePipeline: this.#accumulatePipeline,
+          resolvePipeline: this.#resolvePipeline,
+        });
+        entry.passLease = lease;
+      } catch (error) {
+        lease.release();
+        throw error;
       }
-      accumulation.end();
-      const resolve = encoder.beginRenderPass({
-        label: "Temporal text straight-alpha sRGB resolve",
-        colorAttachments: [
-          {
-            view: entry.output.createView(),
-            clearValue: { r: 0, g: 0, b: 0, a: 0 },
-            loadOp: "clear",
-            storeOp: "store",
-          },
-        ],
-      });
-      resolve.setPipeline(this.#resolvePipeline);
-      resolve.setBindGroup(0, entry.resolveBindGroup);
-      resolve.draw(3);
-      resolve.end();
       this.#frameStats.drawCount += entry.sampleBindGroups.length + 1;
       this.#frameStats.passCount += 2;
       this.#frameStats.transientTextureCount += entry.sampleTextures.length + 1;
@@ -428,7 +439,11 @@ export class TextMotionBlurRasterCache {
   }
 
   #destroyTransients(entry: TextMotionBlurEntry): void {
-    for (const texture of entry.sampleTextures) texture.destroy();
+    for (const resource of entry.sampleResources) destroyMediaResource(resource);
+    entry.passLease?.release();
+    entry.passLease = undefined;
+    entry.sampleResources = [];
+    entry.sampleWeights = [];
     entry.sampleTextures = [];
     entry.sampleBindGroups = [];
     entry.accumulation?.destroy();

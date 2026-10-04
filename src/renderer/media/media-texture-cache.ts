@@ -104,6 +104,7 @@ export class MediaTextureCache {
   #missingMediaResource?: MediaResource;
   #missingMediaBindGroup?: GPUBindGroup;
   #frameBindings?: MediaBindingLease;
+  #frameScope = "local-preview";
   readonly #gpuRegistry = new MediaGpuRegistry();
   #textMotionBlur?: TextMotionBlurRasterCache;
   readonly #sequenceFrames = new ImageSequenceFrameCache<RuntimeSequenceFile, ImageBitmap>({
@@ -207,6 +208,7 @@ export class MediaTextureCache {
       };
     });
     this.#frameBindings = new MediaBindingLease(entries, scope, this.#gpuRegistry);
+    this.#frameScope = scope;
     return this.#frameBindings;
   }
 
@@ -248,7 +250,7 @@ export class MediaTextureCache {
 
   flush(encoder: GPUCommandEncoder): void {
     this.#uploads.flush(encoder);
-    this.#textMotionBlur?.encode(encoder);
+    this.#textMotionBlur?.encode(encoder, this.#frameScope);
   }
 
   submitted(): void {

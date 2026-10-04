@@ -82,11 +82,14 @@ selected sample weights and canvases before a separate evaluator-free GPU upload
 textures, accumulation storage and resolve bindings. Resolved outputs carry raster identities and
 participate in the root scene's hash bindings. The temporal cache and media registry share one physical
 owner; pinned generations cannot be overwritten and retired pinned allocations remain budgeted until
-release. Diagnostic capture now includes these resolved outputs. Sample texture hashes and explicit
-accumulation/resolve operations still require extraction.
+release. Diagnostic capture now includes these resolved outputs. Individual sample textures now have
+hash-addressed owners. The local `TemporalTextPassPlan` supplies output/sample hashes, dimensions,
+formats and weights to an evaluator-free accumulation/resolve executor. It validates all bindings
+and uniform slots before GPU writes; submission-scoped leases retain sample and output allocations.
+This local plan still requires FPLN/Rust transport and decoded sample/pass replay.
 The M2 pixel gate separately exercises actual temporal glyph accumulation in four exposure states,
 compares the resolved outputs against frozen exact references and replays their captured resources.
-This verifies the temporal output slice; sample-resource hashes and complete pass replay remain open.
+This verifies the temporal output slice; transported sample passes and complete replay remain open.
 
 ## FPLN encoding
 

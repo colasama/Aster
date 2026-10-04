@@ -114,8 +114,10 @@ local times, weights, transparent exposure and exposure-only identities survive 
 the temporal raster cache consumes the reconstructed samples. CPU preparation freezes expanded
 bounds, budget-selected resolution, copied samples and generation identity, then acquires every
 canvas before cache ownership changes. A separate GPU consumer uploads only those supplied canvases
-and aligned weights without accessing authoring layers or text evaluators. Sample GPU resources and
-explicit accumulation/resolve operations still await extraction into the executable frame plan.
+without accessing authoring layers or text evaluators. Individual samples now have raster resource
+identities. A separate pass executor resolves supplied sample/output hashes and writes supplied
+weights before encoding accumulation and resolve. Submission-scoped leases retain these resources
+until submission or abort. FPLN/Rust transport of this pass plan and decoded pass replay remain open.
 Resolved temporal outputs now use the same raster identities and planned scene bindings as ordinary
 text. Cache and frame leases share their physical owner, delaying destruction until the last lease
 releases it. Replacements preserve pinned outputs and count retired allocations against the temporal

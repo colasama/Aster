@@ -139,10 +139,13 @@ members, actual video upload times, and drawing by supplied hash independently o
 G1 round-trips temporal text samples from the actual shutter planner for full, entering and exiting
 exposure, plus transparent and exact-bit fixtures. Supplied samples and exposure identities must
 survive Rust decoding and TS cloning; invalid formats, frame time, weights and sample lanes fail.
-This contract currently covers temporal preparation inputs; planned sample-resource bindings and
-accumulation/resolve execution remain separate required work.
+This transport contract currently covers temporal preparation inputs; transporting the local
+hash-addressed accumulation/resolve pass plan remains separate required work.
 The temporal upload boundary test revokes authoring-layer access and mutates original samples after
-acquisition, then checks that uploads retain the acquired canvases and original aligned weights.
+acquisition, then checks that uploads retain the acquired canvases and copied weights. The pass
+executor test discards producer weights and executes a cloned plan with an independently changed
+weight. Extent, output binding, sample slot, missing resource, uniform storage and duplicate hash
+errors must fail before any GPU write or render pass.
 Malformed prepared extents or sample counts must fail before GPU allocation. Full G3 still verifies
 the production cache, accumulation and resolve path against exact reference pixels.
 Temporal output lifetime tests register actual cache owners by hash, retain two generations, and

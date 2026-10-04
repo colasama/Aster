@@ -136,8 +136,9 @@ describe("GPU temporal text raster accumulation", () => {
     expect(
       vi.mocked(device.queue.copyExternalImageToTexture).mock.calls.map((call) => call[0].source),
     ).toEqual(acquired.rasters.map((raster) => raster.canvas));
-    const weights = vi.mocked(device.queue.writeBuffer).mock.calls[0][2] as Float32Array;
-    expect([weights[0], weights[64]]).toEqual([0.25, 0.5]);
+    expect(uploaded.sampleWeights).toEqual([0.25, 0.5]);
+    expect(uploaded.sampleResources).toHaveLength(2);
+    expect(device.queue.writeBuffer).not.toHaveBeenCalled();
     expect(uploaded.transientBytes).toBe(100 * 50 * 4 * 4 + 512);
     const allocationCount = vi.mocked(device.createTexture).mock.calls.length;
     expect(() => uploadTemporalTextRasters({ ...acquired, rasters: [] }, destination)).toThrow(

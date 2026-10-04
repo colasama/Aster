@@ -1,3 +1,5 @@
+import { preparedRasterIdentity } from "../media/media-frame-identity";
+import type { MediaResource } from "../media/media-resource";
 import {
   type AcquiredTemporalTextRaster,
   TEXT_MOTION_BLUR_WEIGHT_STRIDE as WEIGHT_UNIFORM_STRIDE,
@@ -12,7 +14,7 @@ export interface TemporalTextUploadDestination {
   reuse?: { output: GPUTexture; bindGroup: GPUBindGroup };
 }
 
-/** Upload supplied canvases and weights; authoring layers and evaluators are absent here. */
+/** Upload supplied canvases and allocate uniform slots without authoring-layer access. */
 export function uploadTemporalTextRasters(
   prepared: AcquiredTemporalTextRaster,
   destination: TemporalTextUploadDestination,
@@ -37,9 +39,9 @@ export function uploadTemporalTextRasters(
   let weights: GPUBuffer | undefined;
   let resolveBindGroup: GPUBindGroup | undefined;
   let bindGroup: GPUBindGroup | undefined;
-  const weightData = new Float32Array((samples.length * WEIGHT_UNIFORM_STRIDE) / 4);
   const sampleTextures: GPUTexture[] = [];
   const sampleBindGroups: GPUBindGroup[] = [];
+  const sampleResources: MediaResource[] = [];
   try {
     output ??= destination.device.createTexture({
       label: `Temporal text output · ${prepared.label}`,
@@ -73,10 +75,10 @@ export function uploadTemporalTextRasters(
         usage:
           GPUTextureUsage.TEXTURE_BINDING |
           GPUTextureUsage.COPY_DST |
+          GPUTextureUsage.COPY_SRC |
           GPUTextureUsage.RENDER_ATTACHMENT,
       });
       sampleTextures.push(texture);
-      weightData[(index * WEIGHT_UNIFORM_STRIDE) / 4] = sample.weight;
       sampleBindGroups.push(
         destination.device.createBindGroup({
           label: `Temporal text sample binding · ${prepared.sourceId} · ${sample.timeBucket}`,
@@ -95,6 +97,30 @@ export function uploadTemporalTextRasters(
           ],
         }),
       );
+      const source = JSON.stringify([
+        "temporal-text-sample-v1",
+        prepared.source,
+        index,
+        sample.localTime,
+      ]);
+      const mediaIdentity = preparedRasterIdentity(
+        prepared.sourceId,
+        "text",
+        source,
+        prepared.bounds,
+      );
+      sampleResources.push({
+        kind: "text",
+        source,
+        mediaIdentity,
+        bindingGeneration: JSON.stringify([mediaIdentity, width, height]),
+        texture,
+        textureWidth: width,
+        textureHeight: height,
+        textureBytes: pixelBytes,
+        bindGroup: sampleBindGroups[index],
+        textBounds: { ...prepared.bounds },
+      });
     }
     resolveBindGroup = destination.device.createBindGroup({
       label: `Temporal text resolve binding · ${prepared.sourceId}`,
@@ -111,7 +137,6 @@ export function uploadTemporalTextRasters(
             { binding: 1, resource: destination.mediaSampler },
           ],
         });
-    if (weights) destination.device.queue.writeBuffer(weights, 0, weightData);
     for (let index = 0; index < sampleTextures.length; index += 1)
       destination.device.queue.copyExternalImageToTexture(
         { source: rasters[index].canvas },
@@ -137,6 +162,8 @@ export function uploadTemporalTextRasters(
     bindGroup,
     sampleTextures,
     sampleBindGroups,
+    sampleResources,
+    sampleWeights: samples.map((sample) => sample.weight),
     transientBytes,
   };
 }
