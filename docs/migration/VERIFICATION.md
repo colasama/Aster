@@ -136,6 +136,10 @@ and stale lease rejection after changed font/source uploads. Registry tests also
 descriptor budgets, ownership across asynchronous hashing and in-flight frame/source dependencies.
 Production adapter tests validate installed still extents after bitmap closure, resolved sequence
 members, actual video upload times, and drawing by supplied hash independently of instance IDs.
+Imported raster tests capture PSD crop/row layout before runtime mutation and consume it without
+source reevaluation, rejecting truncated layouts before GPU writes and disposing failed allocations.
+A production-cache test checks PSD descriptor publication and replaced-owner lease retention. SVG
+tests bind source revisions and bucketed extents; full G3 covers the actual rasterized output.
 G1 checks the synchronous descriptor hash against WebCrypto and Rust; missing hashes fail before draw.
 Scene media fixtures bind those actual frame hashes to ordered draw indices, including explicit
 pending output and aliases. G1 round-trips the FPLN through Rust, resolves decoded references against

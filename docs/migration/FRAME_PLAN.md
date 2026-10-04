@@ -127,10 +127,16 @@ access and does not mistake a legacy content identity for a cryptographic digest
 A frame binds its source hash, texture extent/format and an image, sequence, video or raster sample.
 Sequence samples preserve the resolved safe-integer frame number and member file identity. Video samples retain both the
 exact requested and uploaded `FrameTime`, including fractional-rate seeks and signed zero.
-Raster samples declare a text/SVG/PSD origin and four exact local bounds (x, y, width, height).
+Raster samples declare a text/SVG/PSD origin and four exact bounds (x, y, width, height).
 Each f64 is encoded as two little-endian u32 words, preserving fractional bits and signed zero
 through JSON. Both languages reject nonfinite bounds and nonpositive extents. Ordinary text source
 identity binds the prepared source/font revision, glyph signature and evaluated bounds.
+Text bounds are layer-local ink bounds. SVG bounds describe the raster viewport in pixels; PSD
+bounds describe the crop within the decoded pixel plane. Geometry continues to use the separately
+evaluated scene payload, so these raster bounds do not reinterpret layer transforms or anchors.
+SVG source identity includes the imported content revision and exact bucketed extent. PSD identity
+includes the document revision, layer key, decoded extent and crop. The upload consumer uses the
+prepared bitmap or explicit RGBA row layout without reevaluating source data.
 
 Resource identity includes interpretation as well as payload:
 
@@ -194,9 +200,11 @@ after all shared-instance preparation, and shutter sampling captures the cache a
 preparation to retain the existing timing. Ordinary text now registers raster descriptors and draws
 through serialized scene resource references and GPU leases. Bounds are read from the typed sample.
 A retained glyph result advances its lookup key without changing the installed pixel generation;
-a new upload changes that generation and invalidates stale binding resolution. The protocol supports
-SVG/PSD origins, but their production adapters still require extraction. Canvas pixel transport and
-complete decoded-frame replay remain required, as does temporal text accumulation planning.
+a new upload changes that generation and invalidates stale binding resolution. SVG/PSD production
+adapters now register their prepared raster identities through the same scene resource references.
+The upload consumer retains the external-image GPU path for SVG/stills and strided RGBA writes for
+PSD crops. Canvas/bitmap pixel transport and complete decoded-frame replay remain required, as does
+temporal text accumulation planning.
 
 ## Verification boundary
 

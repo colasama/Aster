@@ -105,8 +105,12 @@ bound maps, preserving shared-instance preparation and precomposition ordering. 
 the GPU-backed upload path. Ordinary text registers a typed raster sample with exact ink bounds and
 font/source generation identity. Its scene draw resolves the serialized resource hash through a GPU
 lease, including auxiliary draws. Reused glyph pixels retain their installed generation even when
-the animation lookup time advances. SVG/PSD producer extraction, pixel transport and complete raster
-replay remain part of the ongoing extraction; temporal text accumulation remains separate.
+the animation lookup time advances. SVG preparation freezes the bucketed target and source revision;
+PSD preparation freezes the decoded plane's crop, row layout and document/layer identity. Both now
+register raster descriptors. A shared upload consumer receives prepared bitmap or RGBA pixels,
+validates their extent/layout, and releases failed allocations without publishing partial owners.
+Pixel transport and complete raster replay remain part of the ongoing extraction; temporal text
+accumulation remains separate.
 
 Shared WGSL includes output anti-aliasing, core scene variants, compositing, fused post-processing,
 blur/depth/surface effects, auxiliary surfaces, particles, text motion blur and display/buffer helpers.

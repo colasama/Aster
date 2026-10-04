@@ -5,6 +5,7 @@ import { type FootageSource, staticValue } from "../../core/types";
 import { detectImageSequence } from "../../importers/image-sequence";
 import { mediaImportRuntime } from "../../importers/media-import-runtime";
 import { warmProjectRasterSources } from "../../importers/raster-image-prefetch";
+import { readRasterBounds } from "../frame-plan/raster-sample";
 import { FrameResourceRegistry } from "../frame-plan/resources";
 import { frameTimeToNumber } from "../frame-plan/time";
 import { MediaTextureCache, svgPreviewRasterTarget } from "./media-texture-cache";
@@ -23,6 +24,46 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("exact-frame media resource barrier", () => {
+  it("registers actual PSD crop descriptors and retains the prior binding until frame release", async () => {
+    const footage = still("psd-crop");
+    const runtime = {
+      kind: "psd" as const,
+      documentIdentity: "document-1",
+      layerKey: "layer-1",
+      importMode: "composition" as const,
+      decodedWidth: 4,
+      decodedHeight: 3,
+      crop: [1, 1, 2, 2] as const,
+      pixels: new Uint8ClampedArray(48),
+    };
+    mediaImportRuntime.register(footage.id, runtime);
+    const cache = createCache();
+    const layer = createLayerForComposition("image", createBlankComposition());
+    try {
+      cache.prepareMedia(layer, footage, 0, false, "psd");
+      await cache.waitForFrameResources();
+      const lease = cache.acquireFrameBindings(["psd"], "snapshot");
+      const frame = lease.resourceMessages.find((m) => m.kind === "media_frame");
+      if (frame?.kind !== "media_frame") throw Error("Missing PSD frame");
+      expect(readRasterBounds(frame.descriptor.sample)).toEqual({
+        x: 1,
+        y: 1,
+        width: 2,
+        height: 2,
+      });
+      const originalBinding = lease.bindingForHash(frame.hash);
+      runtime.documentIdentity = "document-2";
+      cache.prepareMedia(layer, footage, 0, false, "psd");
+      expect(lease.bindingForHash(frame.hash)).toBe(originalBinding);
+      cache.abortFrame();
+      const next = cache.acquireFrameBindings(["psd"], "snapshot");
+      expect(next.hashFor("psd")).not.toBe(frame.hash);
+      cache.abortFrame();
+    } finally {
+      cache.destroy();
+      mediaImportRuntime.remove(footage.id);
+    }
+  });
   it("binds the resolved sequence member and admits its real descriptors to the transport registry", async () => {
     vi.stubGlobal(
       "fetch",

@@ -1,4 +1,3 @@
-import { evaluateLayerTransform } from "../../core/animation/expressions";
 import { evaluateLayerSourceTime } from "../../core/animation/layer-time";
 import { configurePreviewVideoAudio } from "../../core/audio/audio-preview";
 import { sourceLocator } from "../../core/media/footage-source";
@@ -24,11 +23,7 @@ import {
 import { decodeRasterImage } from "../../importers/raster-image-decoder";
 import { takePrefetchedRasterImage } from "../../importers/raster-image-prefetch";
 
-import {
-  rasterizeSvgToImageBitmap,
-  SvgRasterCache,
-  svgTransformedRasterSize,
-} from "../../importers/svg-raster-cache";
+import { rasterizeSvgToImageBitmap, SvgRasterCache } from "../../importers/svg-raster-cache";
 import { readRasterBounds } from "../frame-plan/raster-sample";
 import type { TextMotionBlurPlan } from "../text/text-motion-blur-plan";
 import {
@@ -36,6 +31,8 @@ import {
   type TextMotionBlurRasterFrameStats,
 } from "../text/text-motion-blur-raster-cache";
 import { acquireTextRaster } from "../text/text-raster-acquisition";
+import { uploadImageRaster } from "./image-raster-upload";
+import { preparePsdRaster, prepareSvgRaster } from "./imported-raster-preparation";
 import { MediaBindingLease } from "./media-binding-lease";
 import {
   type PreparedMediaIdentity,
@@ -48,7 +45,6 @@ import {
   asError,
   hiddenMediaStyle,
   remainingTimeout,
-  svgPreviewRasterTarget,
   waitWithTimeout,
 } from "./media-loading";
 import {
@@ -397,80 +393,45 @@ export class MediaTextureCache {
     instanceId: string,
     locator: string,
   ): void {
-    const [cropX, cropY, width, height] = runtime.crop;
-    const source = `${locator}|${runtime.documentIdentity}|${cropX},${cropY},${width},${height}`;
-    const existing = this.#resources.get(instanceId);
-    if (existing?.kind === "image" && existing.source === source) {
-      this.#frameResourceErrors.delete(instanceId);
-      mediaImportRuntime.clearError(footage.id);
-      return;
-    }
-    destroyMediaResource(existing);
-    this.#resources.delete(instanceId);
-    const maximumDimension = Math.min(
-      MAX_MEDIA_TEXTURE_DIMENSION,
-      this.#device.limits.maxTextureDimension2D,
-    );
-    if (
-      width < 1 ||
-      height < 1 ||
-      width > maximumDimension ||
-      height > maximumDimension ||
-      width * height * 4 > MAX_MEDIA_TEXTURE_BYTES ||
-      cropX < 0 ||
-      cropY < 0 ||
-      cropX + width > runtime.decodedWidth ||
-      cropY + height > runtime.decodedHeight
-    ) {
-      const error = new Error(
-        "PSD layer crop exceeds the available GPU texture or decoded pixel bounds",
-      );
-      mediaImportRuntime.reportError(footage.id, error);
-      this.#frameResourceErrors.set(instanceId, { source, error });
-      return;
-    }
-    const requiredBytes = runtime.decodedWidth * runtime.decodedHeight * 4;
-    if (runtime.pixels.byteLength < requiredBytes) {
-      const error = new Error("PSD decoded pixel plane is truncated");
-      mediaImportRuntime.reportError(footage.id, error);
-      this.#frameResourceErrors.set(instanceId, { source, error });
-      return;
-    }
-    const resource: MediaResource = {
-      source,
-      kind: "image",
-      mediaIdentity: preparedMediaIdentity(
+    try {
+      const prepared = preparePsdRaster(
+        runtime,
         footage,
-        "image",
-        { kind: "image" },
-        JSON.stringify([runtime.documentIdentity, ...runtime.crop]),
-      ),
-    };
-    this.#resources.set(instanceId, resource);
-    const texture = this.#device.createTexture({
-      label: `Imported PSD layer · ${footage.name}`,
-      size: [width, height],
-      format: "rgba8unorm-srgb",
-      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
-    });
-    this.#device.queue.writeTexture(
-      { texture },
-      runtime.pixels,
-      {
-        offset: (cropY * runtime.decodedWidth + cropX) * 4,
-        bytesPerRow: runtime.decodedWidth * 4,
-        rowsPerImage: runtime.decodedHeight,
-      },
-      [width, height],
-    );
-    resource.texture = texture;
-    resource.textureBytes = width * height * 4;
-    resource.textureWidth = width;
-    resource.textureHeight = height;
-    resource.bindGroup = this.#createBindGroup(texture, `Imported PSD resources · ${layer.id}`);
-    mediaImportRuntime.clearError(footage.id);
-    this.#frameResourceErrors.delete(instanceId);
-    this.#invalidate();
+        locator,
+        Math.min(MAX_MEDIA_TEXTURE_DIMENSION, this.#device.limits.maxTextureDimension2D),
+        MAX_MEDIA_TEXTURE_BYTES,
+      );
+      const existing = this.#resources.get(instanceId);
+      if (existing?.kind === "image" && existing.source === prepared.source) {
+        this.#frameResourceErrors.delete(instanceId);
+        mediaImportRuntime.clearError(footage.id);
+        return;
+      }
+      const uploaded = uploadImageRaster(prepared.pixels, {
+        device: this.#device,
+        label: `Imported PSD layer · ${footage.name}`,
+        maximumDimension: Math.min(
+          MAX_MEDIA_TEXTURE_DIMENSION,
+          this.#device.limits.maxTextureDimension2D,
+        ),
+        maximumBytes: MAX_MEDIA_TEXTURE_BYTES,
+        createBindGroup: (texture) =>
+          this.#createBindGroup(texture, `Imported PSD resources · ${layer.id}`),
+      });
+      this.#resources.set(instanceId, {
+        source: prepared.source,
+        kind: "image",
+        mediaIdentity: prepared.identity,
+        ...uploaded,
+      });
+      destroyMediaResource(existing);
+      mediaImportRuntime.clearError(footage.id);
+      this.#frameResourceErrors.delete(instanceId);
+      this.#invalidate();
+    } catch (error) {
+      mediaImportRuntime.reportError(footage.id, error);
+      this.#frameResourceErrors.set(instanceId, { source: locator, error: asError(error) });
+    }
   }
 
   #prepareSvg(
@@ -482,15 +443,14 @@ export class MediaTextureCache {
     locator: string,
     resolutionScale: number,
   ): void {
-    const transform = evaluateLayerTransform(layer, time);
-    const rasterSize = svgTransformedRasterSize(layer.size, transform.scale);
-    const target = svgPreviewRasterTarget(
-      rasterSize.displayWidth,
-      rasterSize.displayHeight,
+    const { source, target, identity } = prepareSvgRaster(
+      layer,
+      footage,
+      time,
+      locator,
       resolutionScale,
       Math.min(MAX_MEDIA_TEXTURE_DIMENSION, this.#device.limits.maxTextureDimension2D),
     );
-    const source = `${locator}|${target.width}x${target.height}`;
     const existing = this.#resources.get(instanceId);
     if (existing?.kind === "image" && existing.source === source) {
       this.#frameResourceErrors.delete(instanceId);
@@ -503,6 +463,7 @@ export class MediaTextureCache {
       layer,
       footage,
       instanceId,
+      identity,
     );
   }
 
@@ -767,49 +728,25 @@ export class MediaTextureCache {
       if (closeBitmap) bitmap.close();
       return;
     }
-    const maximumDimension = Math.min(
-      MAX_MEDIA_TEXTURE_DIMENSION,
-      this.#device.limits.maxTextureDimension2D,
-    );
-    const width = bitmap.width;
-    const height = bitmap.height;
-    const textureBytes = width * height * 4;
-    if (
-      bitmap.width < 1 ||
-      bitmap.height < 1 ||
-      bitmap.width > maximumDimension ||
-      bitmap.height > maximumDimension ||
-      textureBytes > MAX_MEDIA_TEXTURE_BYTES
-    ) {
-      if (closeBitmap) bitmap.close();
-      throw new Error("Decoded media exceeds the GPU texture limits");
-    }
-    const texture = this.#device.createTexture({
-      label: `Imported image · ${footage.name}`,
-      size: [bitmap.width, bitmap.height],
-      format: "rgba8unorm-srgb",
-      // WebGPU external-image copies require both COPY_DST and RENDER_ATTACHMENT. Keeping the
-      // decoded bitmap on this path avoids an otherwise unnecessary Canvas2D readback/staging
-      // upload for stills and image-sequence frames.
-      usage:
-        GPUTextureUsage.TEXTURE_BINDING |
-        GPUTextureUsage.COPY_DST |
-        GPUTextureUsage.RENDER_ATTACHMENT,
-    });
-    this.#device.queue.copyExternalImageToTexture({ source: bitmap }, { texture }, [
-      bitmap.width,
-      bitmap.height,
-    ]);
-    if (closeBitmap) bitmap.close();
     if (this.#resources.get(instanceId) !== resource) {
-      texture.destroy();
+      if (closeBitmap) bitmap.close();
       return;
     }
-    resource.texture = texture;
-    resource.textureBytes = textureBytes;
-    resource.textureWidth = width;
-    resource.textureHeight = height;
-    resource.bindGroup = this.#createBindGroup(texture, `Imported image resources · ${layer.id}`);
+    const uploaded = uploadImageRaster(
+      { kind: "bitmap", bitmap, closeAfterUpload: closeBitmap },
+      {
+        device: this.#device,
+        label: `Imported image · ${footage.name}`,
+        maximumDimension: Math.min(
+          MAX_MEDIA_TEXTURE_DIMENSION,
+          this.#device.limits.maxTextureDimension2D,
+        ),
+        maximumBytes: MAX_MEDIA_TEXTURE_BYTES,
+        createBindGroup: (texture) =>
+          this.#createBindGroup(texture, `Imported image resources · ${layer.id}`),
+      },
+    );
+    Object.assign(resource, uploaded);
     this.#invalidate();
   }
 

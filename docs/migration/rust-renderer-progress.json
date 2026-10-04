@@ -14411,5 +14411,12 @@
       }
     }
   ],
-  "active_cycle": null
+  "active_cycle": {
+    "id": 25,
+    "milestone": "M2",
+    "task": "M2-T5",
+    "started_at": "2026-10-04T19:41:54.559Z",
+    "scope": "Extract SVG/PSD raster preparation and supplied-pixel GPU upload, binding source/crop/extent generations to typed raster resources.",
+    "previous_turn_classification": "progress: cycle24 ordinary-text raster descriptors and GPU draw references committed after full G0/G1/G3; clean worktree."
+  }
 }
