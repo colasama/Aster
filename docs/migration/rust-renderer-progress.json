@@ -76,39 +76,39 @@
     "approval": "Preserve the complete M0-T3 production TS capture as the original pixel oracle. Only the explicitly listed, section 6.6 reviewed M0 reference repairs overlay requested frames. All other original frames, including sequence neighbors, remain unchanged. Freeze this effective reference set before M1; M1 and M2 retain strict whole-corpus exact requirements."
   },
   "last_cycle": {
-    "id": 24,
-    "time": "2026-10-04T19:40:51.972Z",
+    "id": 25,
+    "time": "2026-10-04T19:59:28.425Z",
     "milestone": "M2",
     "task": "M2-T5",
     "outcome": "passed",
-    "commit": "ffee7703212f61213e1b35320d5d4091bed60e81",
-    "verification": "artifacts/migration/verify-2026-10-04T19-34-13-365Z-481d9992.json",
-    "verification_sha256": "15711ac63db7116a7c1404bd7586c9908b4f102a5f3c16398683b83c0af6f5b0",
+    "commit": "76394ccd1f6431736dbc7ffec43e1028f63de2c3",
+    "verification": "artifacts/migration/verify-2026-10-04T19-53-00-153Z-ab9aa324.json",
+    "verification_sha256": "58679e5d7d3717e725fc25f70c895a5276ad1e44ee187607ed051d7914b06553",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 95354
+        "duration_ms": 72920
       },
       {
         "id": "G1",
         "status": "passed",
-        "duration_ms": 4043
+        "duration_ms": 4075
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 265079
+        "duration_ms": 265274
       }
     ],
-    "verification_duration_ms": 365695,
-    "next_step": "Continue M2-T5: extract SVG/PSD acquisition and upload with typed source/crop/raster identity, then complete resource pixel transport and decoded raster replay.",
+    "verification_duration_ms": 343492,
+    "next_step": "Continue M2-T5: add raster pixel payload transport and decoded upload/replay without source reevaluation, retaining exact pixel output and the GPU-backed live path.",
     "notes": [
-      "Ordinary text now produces a typed raster sample with exact local ink bounds. Eight u32 words preserve four f64 coordinates through TS/Rust JSON without normalization; both languages reject nonfinite bounds and nonpositive extents.",
-      "Installed raster identities bind prepared font/source revisions, evaluated glyph signatures and bounds. Reused glyph pixels retain their installed resource hash when only lookup time advances; changed uploads invalidate stale GPU binding generations.",
-      "Root ordinary-text beauty and auxiliary draws resolve serialized scene references through retained GPU leases. Geometry reads the typed bounds while preserving the existing GPU-backed external canvas upload.",
-      "Full M2 G0/G1/G3 passed with 30 FPLN round trips, 17 media descriptor round trips, 11 media draw fixtures and 1819 exact pixel frames. G1 includes text/SVG/PSD raster origins and invalid-bounds rejection.",
-      "M2-T5 remains in progress: SVG/PSD production acquisition/upload extraction and full raster pixel transport/replay remain required. Temporal text accumulation remains M2-T6, and complete captured-frame replay remains M2-T14."
+      "SVG preparation now freezes the evaluated bucketed target and imported content revision before bitmap acquisition. Its production raster descriptor binds both; a changed content revision at the same locator invalidates the installed request.",
+      "PSD preparation freezes document/layer identity, decoded extent, crop bounds and strided RGBA upload layout. The GPU consumer receives those prepared pixels without runtime import access or layer evaluation.",
+      "A shared bitmap/RGBA upload consumer preserves GPU-backed external-image copies and strided PSD writes, validates sizes/layouts before allocation, and disposes failed allocations. New PSD owners publish only after successful upload and binding creation; prior leased owners remain alive until release.",
+      "Full M2 G0/G1/G3 passed with 30 FPLN round trips, 17 media descriptor round trips and 1819 exact pixel frames. Focused tests prove captured crop/layout independence after runtime mutation, SVG generation changes and production PSD descriptor/lease behavior.",
+      "M2-T5 remains in progress: transportable raster pixel payloads and decoded raster replay remain required. Temporal text accumulation remains M2-T6 and complete captured-frame replay remains M2-T14."
     ]
   },
   "milestones": [
@@ -12845,11 +12845,58 @@
                 "Full M2 G0/G1/G3 passed with 30 FPLN round trips, 17 media descriptor round trips, 11 media draw fixtures and 1819 exact pixel frames. G1 includes text/SVG/PSD raster origins and invalid-bounds rejection.",
                 "M2-T5 remains in progress: SVG/PSD production acquisition/upload extraction and full raster pixel transport/replay remain required. Temporal text accumulation remains M2-T6, and complete captured-frame replay remains M2-T14."
               ]
+            },
+            {
+              "cycle": 25,
+              "status": "passed",
+              "commit": "76394ccd1f6431736dbc7ffec43e1028f63de2c3",
+              "verification": {
+                "path": "artifacts/migration/verify-2026-10-04T19-53-00-153Z-ab9aa324.json",
+                "sha256": "58679e5d7d3717e725fc25f70c895a5276ad1e44ee187607ed051d7914b06553"
+              },
+              "pixel_comparison": {
+                "path": "artifacts/parity/ts-check/2026-10-04T19-54-17-749Z-a7ad4608/report.json",
+                "sha256": "c4c4090a382f7af355ad2dc8a7da901f5fe5a1da96a795b3d6e42b72ea2130a3"
+              },
+              "capture": {
+                "path": "artifacts/parity/capture-2026-10-04T19-46-25-991Z-f19e845e.json",
+                "sha256": "ee514ce25703bd5f42f3e63df0235c089162f23af90e4a231256b0b2dfd89373"
+              },
+              "manifest": {
+                "path": "artifacts/parity/runs/2026-10-04T19-46-25-991Z-f19e845e/candidate/manifest.json",
+                "sha256": "ad4f5d962f98070024e3b81cc6f83c5537ca3755210091bef1b37246a96f1034"
+              },
+              "renderer_source_sha256": "dd7571b714d7f8737f0c48d9a038519bdf48824ad14020271fd674e029543d88",
+              "bridge_sha256": "82ccf02fefd4c54e78a82a4de08df6906714ecd0b198864ec72cb0c0394dd80c",
+              "gates": [
+                {
+                  "id": "G0",
+                  "status": "passed",
+                  "duration_ms": 72920
+                },
+                {
+                  "id": "G1",
+                  "status": "passed",
+                  "duration_ms": 4075
+                },
+                {
+                  "id": "G3",
+                  "status": "passed",
+                  "duration_ms": 265274
+                }
+              ],
+              "notes": [
+                "SVG preparation now freezes the evaluated bucketed target and imported content revision before bitmap acquisition. Its production raster descriptor binds both; a changed content revision at the same locator invalidates the installed request.",
+                "PSD preparation freezes document/layer identity, decoded extent, crop bounds and strided RGBA upload layout. The GPU consumer receives those prepared pixels without runtime import access or layer evaluation.",
+                "A shared bitmap/RGBA upload consumer preserves GPU-backed external-image copies and strided PSD writes, validates sizes/layouts before allocation, and disposes failed allocations. New PSD owners publish only after successful upload and binding creation; prior leased owners remain alive until release.",
+                "Full M2 G0/G1/G3 passed with 30 FPLN round trips, 17 media descriptor round trips and 1819 exact pixel frames. Focused tests prove captured crop/layout independence after runtime mutation, SVG generation changes and production PSD descriptor/lease behavior.",
+                "M2-T5 remains in progress: transportable raster pixel payloads and decoded raster replay remain required. Temporal text accumulation remains M2-T6 and complete captured-frame replay remains M2-T14."
+              ]
             }
           ],
           "remaining_work": [
-            "Extract SVG/PSD acquisition/upload boundaries and bind actual source/crop/raster generations and evaluated bounds through typed resources; current production ordinary text is connected.",
-            "Connect complete raster pixel transport and decoded resource consumers so replay does not repeat text/SVG/PSD evaluation. Preserve the GPU-backed production upload path and exact pixel output.",
+            "Add transportable raster pixel payloads and decoded resource consumers so replay does not repeat text/SVG/PSD evaluation. Ordinary text/SVG/PSD production descriptors and CPU preparation/GPU upload boundaries are now connected.",
+            "Preserve the GPU-backed production path while capturing replayable pixels, exact bounds and source generations. Establish raster-specific decoded upload/replay evidence.",
             "Temporal text accumulation and sample plans remain M2-T6; complete captured-frame replay remains M2-T14."
           ]
         },
@@ -13075,7 +13122,7 @@
       ],
       "preview_baseline_path": "benchmarks/results/m2-preview-baseline.json",
       "preview_baseline_sha256": "a1c62e224c008e731c252142ab1b9de7d31ecf592452c00da1dff42516772375",
-      "active_candidate_manifest": "artifacts/parity/runs/2026-10-04T19-28-02-457Z-ea02f6d9/candidate/manifest.json",
+      "active_candidate_manifest": "artifacts/parity/runs/2026-10-04T19-46-25-991Z-f19e845e/candidate/manifest.json",
       "last_verification": {
         "status": "passed",
         "required_gates_passed": true,
@@ -13084,17 +13131,17 @@
           {
             "id": "G0",
             "status": "passed",
-            "duration_ms": 95354
+            "duration_ms": 72920
           },
           {
             "id": "G1",
             "status": "passed",
-            "duration_ms": 4043
+            "duration_ms": 4075
           },
           {
             "id": "G3",
             "status": "passed",
-            "duration_ms": 265079
+            "duration_ms": 265274
           }
         ],
         "optional_gates": [
@@ -13105,7 +13152,7 @@
           }
         ],
         "performance_policy": "rust-delivery-v1",
-        "report": "artifacts/migration/verify-2026-10-04T19-34-13-365Z-481d9992.json"
+        "report": "artifacts/migration/verify-2026-10-04T19-53-00-153Z-ab9aa324.json"
       },
       "performance_series_history": [
         {
@@ -14411,12 +14458,5 @@
       }
     }
   ],
-  "active_cycle": {
-    "id": 25,
-    "milestone": "M2",
-    "task": "M2-T5",
-    "started_at": "2026-10-04T19:41:54.559Z",
-    "scope": "Extract SVG/PSD raster preparation and supplied-pixel GPU upload, binding source/crop/extent generations to typed raster resources.",
-    "previous_turn_classification": "progress: cycle24 ordinary-text raster descriptors and GPU draw references committed after full G0/G1/G3; clean worktree."
-  }
+  "active_cycle": null
 }
