@@ -46,6 +46,98 @@ describe("video export frame readback", () => {
     expect(() => rawPixelFormat("rgba16float")).toThrow(/cannot be exported/);
   });
 
+  it("copies every tight-row byte into the caller's destination without borrowing mapped memory", () => {
+    const backing = new Uint8Array(24).fill(99);
+    const mapped = backing.subarray(4, 20);
+    mapped.set(Array.from({ length: 16 }, (_, index) => index + 1));
+    const destination = new ArrayBuffer(16);
+    expect(compactReadbackRows(mapped, 2, 2, 8, destination)).toBe(destination);
+    expect([...new Uint8Array(destination)]).toEqual(
+      Array.from({ length: 16 }, (_, index) => index + 1),
+    );
+    mapped.fill(0);
+    structuredClone(backing.buffer, { transfer: [backing.buffer] });
+    expect([...new Uint8Array(destination)]).toEqual(
+      Array.from({ length: 16 }, (_, index) => index + 1),
+    );
+  });
+
+  it("reuses a destination across padded frames and preserves the default independently owned output", () => {
+    const backing = new Uint8Array(530).fill(222);
+    const mapped = backing.subarray(17, 529);
+    const destination = new ArrayBuffer(8);
+    for (const offset of [0, 20]) {
+      mapped.set([1 + offset, 2 + offset, 3 + offset, 4 + offset], 0);
+      mapped.set([5 + offset, 6 + offset, 7 + offset, 8 + offset], 256);
+      const expected = Array.from({ length: 8 }, (_, index) => index + 1 + offset);
+      expect(compactReadbackRows(mapped, 1, 2, 256, destination)).toBe(destination);
+      expect([...new Uint8Array(destination)]).toEqual(expected);
+      const owned = compactReadbackRows(mapped, 1, 2, 256);
+      new Uint8Array(destination).fill(0);
+      expect([...new Uint8Array(owned)]).toEqual(expected);
+    }
+    const first = compactReadbackRows(mapped, 64, 2, 256);
+    const second = compactReadbackRows(mapped, 64, 2, 256);
+    new Uint8Array(first).fill(0);
+    expect(new Uint8Array(second)[0]).toBe(21);
+  });
+
+  it("rejects destination size, lifetime and alias violations before copying", () => {
+    const source = new Uint8Array(16).fill(7);
+    const detached = new ArrayBuffer(16);
+    structuredClone(detached, { transfer: [detached] });
+    const resizable = Reflect.construct(ArrayBuffer, [16, { maxByteLength: 32 }]) as ArrayBuffer;
+    const invalid = [
+      new ArrayBuffer(15),
+      new ArrayBuffer(17),
+      detached,
+      resizable,
+      new SharedArrayBuffer(16) as unknown as ArrayBuffer,
+      null as unknown as ArrayBuffer,
+    ];
+    for (const destination of invalid)
+      expect(() => compactReadbackRows(source, 2, 2, 8, destination)).toThrow(/destination/);
+    expect(() => compactReadbackRows(source, 2, 2, 8, source.buffer)).toThrow(/alias/);
+    expect([...source]).toEqual(Array(16).fill(7));
+  });
+
+  it("rechecks a destination detached during mapping and releases the GPU slot on failure", async () => {
+    vi.stubGlobal("GPUBufferUsage", { COPY_DST: 1, MAP_READ: 2 });
+    vi.stubGlobal("GPUMapMode", { READ: 1 });
+    let finishMap: (() => void) | undefined;
+    const buffer = {
+      mapState: "unmapped" as GPUBufferMapState,
+      mapAsync: () =>
+        new Promise<void>((resolve) => {
+          finishMap = () => {
+            buffer.mapState = "mapped";
+            resolve();
+          };
+        }),
+      getMappedRange: () => new ArrayBuffer(256),
+      unmap: vi.fn(() => {
+        buffer.mapState = "unmapped";
+      }),
+      destroy: vi.fn(),
+    };
+    const device = { createBuffer: () => buffer } as unknown as GPUDevice;
+    const pool = new GpuFrameReadbackPool(device, "rgba8unorm", 1);
+    const ticket = pool.reserve(64, 1);
+    ticket.encode(
+      { copyTextureToBuffer: vi.fn() } as unknown as GPUCommandEncoder,
+      {} as GPUTexture,
+    );
+    const destination = new ArrayBuffer(256);
+    const pending = ticket.read(destination);
+    structuredClone(destination, { transfer: [destination] });
+    expect(finishMap).toBeDefined();
+    finishMap?.();
+    await expect(pending).rejects.toThrow(/destination/);
+    expect(buffer.unmap).toHaveBeenCalledOnce();
+    expect(pool.reset()).toBe(true);
+    expect(buffer.destroy).toHaveBeenCalledOnce();
+  });
+
   it("bounds in-flight GPU mappings to three reusable slots", async () => {
     vi.stubGlobal("GPUBufferUsage", { COPY_DST: 1, MAP_READ: 2 });
     vi.stubGlobal("GPUMapMode", { READ: 1 });

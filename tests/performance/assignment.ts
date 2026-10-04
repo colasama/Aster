@@ -6,7 +6,7 @@ import type { PerformanceAssignment } from "./protocol";
 export function validatePerformanceAssignment(assignment: PerformanceAssignment): void {
   const value = assignment.benchmark;
   if (!value || !/^[a-z0-9-]+$/.test(value.id)) throw new Error("Invalid benchmark identity");
-  if (!["readback-only", "ipc-no-encode", "full-mp4"].includes(value.mode))
+  if (!["readback-only", "ipc-no-encode", "full-mp4", "preview-present"].includes(value.mode))
     throw new Error("Invalid benchmark output mode");
   if (value.requireAudio && value.mode !== "full-mp4")
     throw new Error("Only full MP4 benchmarks may require audio");

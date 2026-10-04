@@ -1,0 +1,1721 @@
+{
+  "schema_version": 1,
+  "kind": "additional-performance-series",
+  "status": "passed",
+  "id": "windows-radeon780m-local-1920x1080-144hz",
+  "created_at": "2026-10-04T04:46:45.343Z",
+  "parents": {
+    "throughput": {
+      "path": "benchmarks/results/migration-baseline.json",
+      "sha256": "f989577b14b4d475473949f502f01ce8f5383dcccf709bcab3ddb117df282b2b"
+    },
+    "preview": {
+      "path": "benchmarks/results/m2-preview-baseline.json",
+      "sha256": "a1c62e224c008e731c252142ab1b9de7d31ecf592452c00da1dff42516772375"
+    }
+  },
+  "hardware_manifest": {
+    "path": "benchmarks/hardware/windows-radeon780m-local-1920x1080-144hz.json",
+    "sha256": "98ce22b76650c77ab781708ecc3e43f3c30c01537a675a42da97fe32a923bf6a",
+    "content_sha256": "bf290655133df1e4d8ed39d9a0b98a009c89239a5faefed4000431ccd215a22d"
+  },
+  "historical_reference": {
+    "schema_version": 1,
+    "kind": "pinned-pre-plan-bundle",
+    "reference_commit": "b980d7d12c0395e7dc48900e68b94b70cafbbf06",
+    "bundle": {
+      "directory": "artifacts/performance/2026-10-04T00-38-15-438Z-2bc6a37a/web",
+      "sha256": "bccdd04276f17f4646da95da35ba3f9f20ebe83e6be48e991328fbac6680bdc1",
+      "files": [
+        {
+          "path": "artifacts/performance/2026-10-04T00-38-15-438Z-2bc6a37a/web/assets/cpu-task.worker-CtJwXSEJ.js",
+          "sha256": "91fd7fa1c4c6b865a33fd49073bd8d0385994e5dd1d51d1b636bf1f778bda7cb"
+        },
+        {
+          "path": "artifacts/performance/2026-10-04T00-38-15-438Z-2bc6a37a/web/assets/harness-oAB0tm8S.js",
+          "sha256": "dac427e06664ec557860d683572e3249bc36e4fab6beffb9b13cf3a289faa36e"
+        },
+        {
+          "path": "artifacts/performance/2026-10-04T00-38-15-438Z-2bc6a37a/web/assets/tiff-decoder-kOapCfeU.js",
+          "sha256": "57dc41789f9ee9c0e3c5eb027e2ba425983aefe98d343f05645865b93d53c661"
+        },
+        {
+          "path": "artifacts/performance/2026-10-04T00-38-15-438Z-2bc6a37a/web/assets/tiff-decoder.worker-X1mo5v4L.js",
+          "sha256": "510bd87dc42ee43aed70a38b3e9e6abbe4270b6fc1208c69eb09731f9cbc74c5"
+        },
+        {
+          "path": "artifacts/performance/2026-10-04T00-38-15-438Z-2bc6a37a/web/tests/performance/harness.html",
+          "sha256": "70034ba51bf83728d5570a58858eecbf1fb6f03b57608e5f0b6b0290fdda6815"
+        }
+      ]
+    },
+    "anchors": {
+      "ledger_ab": {
+        "path": "artifacts/migration/owner-ipc-ab-2026-10-04T00-53-14-263Z-5bf74445/report.json",
+        "sha256": "745c76b3e7f3533ced3a5be8f014169146ad1e6cafbe70599d127dfdfbe0dc17"
+      },
+      "preview_baseline": {
+        "path": "benchmarks/results/m2-preview-baseline.json",
+        "sha256": "a1c62e224c008e731c252142ab1b9de7d31ecf592452c00da1dff42516772375"
+      },
+      "preview_report": {
+        "path": "artifacts/performance/m2-pre-plan-preview.json",
+        "sha256": "ccbe1cf7174bc90ad3e57dca0119b2bf6274ff98958416b29d874ce75d621d3a"
+      },
+      "origin_report": {
+        "path": "artifacts/performance/2026-10-04T00-38-15-438Z-2bc6a37a/report.json",
+        "sha256": "857b66c7a9586745c5c9163f35ef856319e6e5c05e38b45c913653ba0e782901"
+      },
+      "origin_config": {
+        "path": "artifacts/performance/2026-10-04T00-38-15-438Z-2bc6a37a/config.json",
+        "sha256": "f4e83d521b6b44892f5862fd232087dba6702618a4d2e46f91ad65cd6d6aeb75"
+      }
+    },
+    "production": {
+      "file_count": 642,
+      "files_sha256": "f3b87e3b9af08a7b0380d457d403f1514fbbf1f2105fdb999aadea0bfc4de6fe",
+      "additional_wire_files": [
+        {
+          "path": "src/renderer/frame-plan/canonical.ts",
+          "sha256": "c7c33fcc42f03e954f39b73eedd92c2d3ac6227d581148a4b25ed048005e5146"
+        },
+        {
+          "path": "src/renderer/frame-plan/codec.ts",
+          "sha256": "66340b989c7c0c03c5cbaf0a2aa4d4eb3e8d80ef1affd0010b90758145629019"
+        },
+        {
+          "path": "src/renderer/frame-plan/fixture.ts",
+          "sha256": "1e7fda7fc93a9bd5a1478cac59ccc717f5480b729d0dc3673a78cbaab4a3ac97"
+        },
+        {
+          "path": "src/renderer/frame-plan/resources.ts",
+          "sha256": "b701d39b9524dc7a659ee0189ea26d40b5c4656143d79f4ac76683d0875ec9de"
+        },
+        {
+          "path": "src/renderer/frame-plan/types.ts",
+          "sha256": "c3f0f5e7409b9bfb49ad59228a55f826601ede3d12dd79fe045c338b2c80c020"
+        },
+        {
+          "path": "src/renderer/frame-plan/validation.ts",
+          "sha256": "57e7770ff7a24a7685827c2b8c3e5d3f1d507e66a6cc5bbdb08bfaf496e4bc98"
+        }
+      ]
+    },
+    "bridge": {
+      "path": "target/release/aster-desktop-bridge.exe",
+      "sha256": "82ccf02fefd4c54e78a82a4de08df6906714ecd0b198864ec72cb0c0394dd80c"
+    },
+    "electron": {
+      "files": [
+        {
+          "path": "electron/agent-grants.ts",
+          "sha256": "6a6c730d837fd43efe4842e8a823daf39caaf581804fb9877a910787a0c0e2a1"
+        },
+        {
+          "path": "electron/agent-host.ts",
+          "sha256": "ca1b77fc9431f699533c1ce4520aa7372a33f5e509b2af3a860ea61a096e8c3d"
+        },
+        {
+          "path": "electron/agent-runtime.ts",
+          "sha256": "863f62a59ae5ffff16f219f94e1af419a85802b22621369ab1c3621885ed57c0"
+        },
+        {
+          "path": "electron/agent-worker.ts",
+          "sha256": "fce0b2f20e79ee33ba3703bbea1ba6130d4316590570bda5460b1309edf1e0e4"
+        },
+        {
+          "path": "electron/app-preferences.ts",
+          "sha256": "dbe094298b595a39e35fc7f463b2bd73343ef7890f7653252df3872aad2613c2"
+        },
+        {
+          "path": "electron/asset-protocol.ts",
+          "sha256": "2d848f00ae6c48fc7ef9c212fed2f0aceaeb75ef6f2e6afb820f84efda9f2186"
+        },
+        {
+          "path": "electron/atomic-file.ts",
+          "sha256": "6689c4527414e13cd40988bddba33dbf388567aad51f2bdd1c5e099bf632d2cf"
+        },
+        {
+          "path": "electron/automation-background.ts",
+          "sha256": "07755b213df6bec4b5b46f672eebd2eb31a5f15da8b33353a5f022699c32401a"
+        },
+        {
+          "path": "electron/automation-host.ts",
+          "sha256": "24a250beb482be2d870ea800d489ae314117fd686f3466c0bd26451640c7da2f"
+        },
+        {
+          "path": "electron/automation-mcp.ts",
+          "sha256": "0017fb9c9d1a01d422bd42c03bf29f1fd47bda3aff01a84be2c117767aa5c1d6"
+        },
+        {
+          "path": "electron/automation-server.ts",
+          "sha256": "5fced7a4ae5fd7076995baf1ee43911ad13f1cfd4608b7dadf6235c68e43a0c6"
+        },
+        {
+          "path": "electron/automation-settings.ts",
+          "sha256": "2bbaf5e1f9d4c282567c082359b00951b75ee15ff57d72ef857ab887fb41e54b"
+        },
+        {
+          "path": "electron/diagnostics.ts",
+          "sha256": "f2fbcade6eacab5941ae6bb7777353567becdaf1e9f91a501597421e25c6ca46"
+        },
+        {
+          "path": "electron/editor-permissions.ts",
+          "sha256": "7fa97cc5ef18dd17be18650ad638dfd3d12109e0b94e6daafeb8915ebfa3c490"
+        },
+        {
+          "path": "electron/font-access.ts",
+          "sha256": "514494f09ab6b6a632fca078127638ce77a9ce92338c9cb16e0a1ddff1077998"
+        },
+        {
+          "path": "electron/font-files.ts",
+          "sha256": "0a9a11d37ea7f9a8875d189aba04f48aac19e588eee296dce45eaf3d40a3502e"
+        },
+        {
+          "path": "electron/full-access-aster-tools.ts",
+          "sha256": "d5fe17881e4fe7344e2694b80bcdd0179a5e137e64aab4d1e0df05d97e0b42dd"
+        },
+        {
+          "path": "electron/full-access-tools.ts",
+          "sha256": "eb0579b019c1a59c7fe028abd72efb645c1a2a6b9d280b58c9a2926e420070c8"
+        },
+        {
+          "path": "electron/gpu-memory-windows.ts",
+          "sha256": "81c70c49975e6f5e2b32a16730308a4431fcd454673d9f4d1608976f2153a968"
+        },
+        {
+          "path": "electron/gpu-memory.ts",
+          "sha256": "ee369d404b460e173db8442b2c45807f8aa98f784e753001e2f8bc527a0c65bf"
+        },
+        {
+          "path": "electron/gpu-preference.ts",
+          "sha256": "f5959334fb81f3b83dfa03731d6298b53d9b6ce7fb2917b02f81f7a1f3fde386"
+        },
+        {
+          "path": "electron/local-file-response.ts",
+          "sha256": "d2637ba46fcd4e066c5a446178808d3a49cf01cdc82e22ca173f44accf992a31"
+        },
+        {
+          "path": "electron/logger.ts",
+          "sha256": "c1424fc8f93c09730a05d93f0b9256f20b7b041430ddd221c1faa55d965f2466"
+        },
+        {
+          "path": "electron/main.ts",
+          "sha256": "70b00131443b235ca29309721d544731cc8d58d3bcf4a5c60dbaa266b28d2e9b"
+        },
+        {
+          "path": "electron/media-import.ts",
+          "sha256": "d3454676c154a66eb437a365dad4d8680f5ed392521cdcebe93d5612faf7ee67"
+        },
+        {
+          "path": "electron/mp4-export.ts",
+          "sha256": "a4f6291f242b8173f5b560e11eb4f9bf4638fea55172faa37f7ed2591df7585b"
+        },
+        {
+          "path": "electron/preload.cts",
+          "sha256": "4d503fa067e376e334f057ff7acaed174a8712fb46053f120d17e82d576df656"
+        },
+        {
+          "path": "electron/profile-paths.ts",
+          "sha256": "5be736405b2f853fda92b04566816376e15c891dd7677f8fe320d8572ae4b3a4"
+        },
+        {
+          "path": "electron/project-media-authorization.ts",
+          "sha256": "91494f511cfa02b4ff28fc42d04f7bd22cddfd47befca7d89be2d58293911dc8"
+        },
+        {
+          "path": "electron/reference-media.ts",
+          "sha256": "c7bfb99a33c3119a1fed783e996e62a7c3fea752aa994627b3824823be64a881"
+        },
+        {
+          "path": "electron/render-host-launch-barrier.ts",
+          "sha256": "c4f0fef34279dd67ca9e6f66552e76c9333e7e3ce0f1ddced0e6fc0b95fcbd1d"
+        },
+        {
+          "path": "electron/render-host-preload.cts",
+          "sha256": "9ab510667f9787727fca73532d696bc79c32f603261a59628a9c185da8c16aa2"
+        },
+        {
+          "path": "electron/render-host-terminal.ts",
+          "sha256": "4318a9a8a97d7a1500f8f30c334a4743bc0a190781686a3a0b256c6d3b5e6479"
+        },
+        {
+          "path": "electron/render-media-authorization.ts",
+          "sha256": "8fa067548c61c2bc5984c0f0a013223a954f4886cb74a7dac924a2ee83cca4fb"
+        },
+        {
+          "path": "electron/render-media-snapshot-store.ts",
+          "sha256": "8d4e527535ad0044a6a182887153a56473af7512e7d978428799ff43ae4f1406"
+        },
+        {
+          "path": "electron/render-queue-enqueue.ts",
+          "sha256": "8a7fd39116f9fd8273b6894ac38179b0e4d6c8df85db3d382fb6ff088cfd073f"
+        },
+        {
+          "path": "electron/render-queue-host-protocol.ts",
+          "sha256": "0ff7a646abe8db34f617bcc963dfc9e70a3b093bcd195329702a491bb8be59fd"
+        },
+        {
+          "path": "electron/render-queue-host.ts",
+          "sha256": "726ed6724779c7465581b1a2c10b3d336d9615edce4a21433d31b75ebf911ae8"
+        },
+        {
+          "path": "electron/render-queue-manager.ts",
+          "sha256": "56f4bcc59c7eb5122f147ba73b58fc8e4dd531b9514b31c29c218a2258ba39f5"
+        },
+        {
+          "path": "electron/render-queue-output.ts",
+          "sha256": "0e30f7d219f6bd7d466ccb2a12228e3eb43532fc1420b2b1da19839ed531f493"
+        },
+        {
+          "path": "electron/render-queue-paths.ts",
+          "sha256": "acbbe238e8da0181311b424a986a761dcc88658eeee34c58eb70d07c2c935892"
+        },
+        {
+          "path": "electron/render-queue-store.ts",
+          "sha256": "c87d7ba3de58c2c3e594147a477ed6cb243f614c23e88182560e8a3ee12238e8"
+        },
+        {
+          "path": "electron/tsconfig.json",
+          "sha256": "da20a8c0bc765452bbe2decd58ba1a003d65fc41142ecb173708e7c9fd5e99ef"
+        }
+      ],
+      "sha256": "3dff071481e05cbd2902d67cd241ab052b3e8d4c42479c528312db42f5bf0838"
+    },
+    "execution_scope": "Historical browser bundle and unchanged production Electron/bridge; the current public benchmark harness has separate provenance",
+    "bundle_hash_recorded_by": "Later ledger-pinned AB diagnostic; not a claim of a new historical build"
+  },
+  "harness_source": {
+    "commit": "24a34878744ea0907b45f0fc3d2d9d753cbb8957",
+    "branch": "feature/rust-renderer",
+    "dirty": true,
+    "status": [
+      " M Cargo.lock",
+      " M Cargo.toml",
+      " M crates/aster-render-cli/Cargo.toml",
+      " M crates/aster-render-cli/src/compare.rs",
+      " M crates/aster-render-cli/src/main.rs",
+      " M crates/aster-render-cli/tests/compare.rs",
+      " M crates/aster-render-compare/src/artifact_tests.rs",
+      " M crates/aster-render-compare/src/artifacts.rs",
+      " M crates/aster-render-compare/src/error.rs",
+      " M docs/ARCHITECTURE.md",
+      " M docs/BENCHMARKS.md",
+      " M docs/migration/VERIFICATION.md",
+      " M docs/migration/rust-renderer-progress.json",
+      " M scripts/migration/verify.mjs",
+      " M scripts/migration/verify.test.mjs",
+      " M scripts/performance-baseline.mjs",
+      " M scripts/performance/electron-main.mjs",
+      " M scripts/performance/eligibility.mjs",
+      " M scripts/performance/eligibility.test.mjs",
+      " M scripts/performance/workloads.mjs",
+      " M src/renderer/media/media-texture-cache.test.ts",
+      " M src/renderer/media/media-texture-cache.ts",
+      " M src/renderer/renderer-resources.ts",
+      " M src/renderer/text/text-scene-geometry.ts",
+      " M src/renderer/webgpu-renderer.ts",
+      " M tests/performance/assignment.ts",
+      " M tests/performance/protocol.ts",
+      " M tests/performance/runner.ts",
+      " M tests/performance/runtime.ts",
+      "?? benchmarks/hardware/windows-radeon780m-local-1920x1080-144hz.json",
+      "?? benchmarks/results/m2-preview-baseline.json",
+      "?? crates/aster-render-cli/src/ir.rs",
+      "?? crates/aster-render-cli/tests/ir.rs",
+      "?? crates/aster-render-ir/Cargo.toml",
+      "?? crates/aster-render-ir/src/canonical.rs",
+      "?? crates/aster-render-ir/src/codec.rs",
+      "?? crates/aster-render-ir/src/error.rs",
+      "?? crates/aster-render-ir/src/fixture.rs",
+      "?? crates/aster-render-ir/src/lib.rs",
+      "?? crates/aster-render-ir/src/metadata.rs",
+      "?? crates/aster-render-ir/src/resource.rs",
+      "?? crates/aster-render-ir/src/schema.rs",
+      "?? crates/aster-render-ir/src/tests/codec.rs",
+      "?? crates/aster-render-ir/src/tests/mod.rs",
+      "?? crates/aster-render-ir/src/tests/resources.rs",
+      "?? crates/aster-render-ir/src/tests/schema_time.rs",
+      "?? crates/aster-render-ir/src/time.rs",
+      "?? crates/aster-render-ir/src/wire.rs",
+      "?? docs/migration/FRAME_PLAN.md",
+      "?? schemas/frame-plan.v1.json",
+      "?? scripts/migration/ir-gate-format.mjs",
+      "?? scripts/migration/ir-gate-runtime.mjs",
+      "?? scripts/migration/ir-gate.mjs",
+      "?? scripts/migration/ir-gate.test.mjs",
+      "?? scripts/migration/performance-gate.mjs",
+      "?? scripts/migration/performance-gate.test.mjs",
+      "?? scripts/performance-series-baseline.mjs",
+      "?? scripts/performance/arguments.mjs",
+      "?? scripts/performance/execution-artifacts.mjs",
+      "?? scripts/performance/execution-artifacts.test.mjs",
+      "?? scripts/performance/historical-bundle-fixture.mjs",
+      "?? scripts/performance/historical-bundle.mjs",
+      "?? scripts/performance/historical-bundle.test.mjs",
+      "?? scripts/performance/measurement-audit.mjs",
+      "?? scripts/performance/measurement-audit.test.mjs",
+      "?? scripts/performance/measurement-fixtures.mjs",
+      "?? scripts/performance/performance-series.mjs",
+      "?? scripts/performance/performance-series.test.mjs",
+      "?? scripts/performance/preview-baseline.mjs",
+      "?? scripts/performance/preview.mjs",
+      "?? scripts/performance/preview.test.mjs",
+      "?? scripts/preview-performance-baseline.mjs",
+      "?? src/renderer/frame-plan/canonical.ts",
+      "?? src/renderer/frame-plan/codec.test.ts",
+      "?? src/renderer/frame-plan/codec.ts",
+      "?? src/renderer/frame-plan/fixture.ts",
+      "?? src/renderer/frame-plan/resources.test.ts",
+      "?? src/renderer/frame-plan/resources.ts",
+      "?? src/renderer/frame-plan/types.ts",
+      "?? src/renderer/frame-plan/validation.ts",
+      "?? src/renderer/gpu/uniform-upload-cache.test.ts",
+      "?? src/renderer/gpu/uniform-upload-cache.ts",
+      "?? src/renderer/text/text-scene-geometry.test.ts",
+      "?? tests/performance/preview-runner.test.ts",
+      "?? tests/performance/preview-runner.ts"
+    ],
+    "source_sha256": "655ded3030448217c519236f1085713a0da8036fc336b0a8231b658f4198f61c",
+    "source_file_count": 1478,
+    "source_scope": "git tracked and non-ignored untracked files, including deletions"
+  },
+  "reports": {
+    "throughput": {
+      "path": "artifacts/performance/cycle13-reference-1920-throughput.json",
+      "sha256": "deb1897d83a9ebb7ade95581717605f9a57b1bd6b3d7b922545eadf528292087",
+      "run_id": "2026-10-04T04-34-03-174Z-8df38491"
+    },
+    "preview": {
+      "path": "artifacts/performance/cycle13-reference-1920-preview.json",
+      "sha256": "656f6f12c7b1334d641b75b88eb8e225a82d86de0a6b56b47d253e18ac21d4e0",
+      "run_id": "2026-10-04T04-45-24-116Z-a9a991e2"
+    }
+  },
+  "measurements": {
+    "throughput": [
+      {
+        "case_id": "effect-chain-1080p",
+        "mode": "readback-only",
+        "frames_per_run": 600,
+        "frame_range": [0, 600],
+        "size": {
+          "width": 1920,
+          "height": 1080
+        },
+        "frame_rate": {
+          "numerator": 30,
+          "denominator": 1
+        },
+        "runs": [
+          {
+            "id": "effect-chain-1080p-readback-only-1",
+            "run": 1,
+            "elapsed_ms": 3708.7999999523163,
+            "fps": 161.7773943075157,
+            "completion_interval_ms": {
+              "count": 600,
+              "minimum": 2.700000047683716,
+              "median": 6,
+              "p95": 8.599999904632568,
+              "p99": 9.703000047206876,
+              "maximum": 18.399999856948853
+            },
+            "readback_wall_ms": {
+              "count": 600,
+              "minimum": 14.699999809265137,
+              "median": 18.300000190734863,
+              "p95": 20.799999952316284,
+              "p99": 23.424999859333017,
+              "maximum": 41.700000047683716
+            },
+            "encoder": null,
+            "audio": null
+          },
+          {
+            "id": "effect-chain-1080p-readback-only-2",
+            "run": 2,
+            "elapsed_ms": 3516.2000000476837,
+            "fps": 170.63875774752952,
+            "completion_interval_ms": {
+              "count": 600,
+              "minimum": 2.5999999046325684,
+              "median": 6.099999904632568,
+              "p95": 7.805000174045558,
+              "p99": 9.300999953746794,
+              "maximum": 19.299999952316284
+            },
+            "readback_wall_ms": {
+              "count": 600,
+              "minimum": 12.900000095367432,
+              "median": 17.299999952316284,
+              "p95": 19.80500017404556,
+              "p99": 24.424000093936897,
+              "maximum": 42
+            },
+            "encoder": null,
+            "audio": null
+          },
+          {
+            "id": "effect-chain-1080p-readback-only-3",
+            "run": 3,
+            "elapsed_ms": 3521,
+            "fps": 170.40613462084636,
+            "completion_interval_ms": {
+              "count": 600,
+              "minimum": 2.9000000953674316,
+              "median": 6.099999904632568,
+              "p95": 7.8999998569488525,
+              "p99": 9.102999906539914,
+              "maximum": 17.100000143051147
+            },
+            "readback_wall_ms": {
+              "count": 600,
+              "minimum": 13.400000095367432,
+              "median": 17.40000009536743,
+              "p95": 19.599999916553497,
+              "p99": 23.615000140666947,
+              "maximum": 39.5
+            },
+            "encoder": null,
+            "audio": null
+          }
+        ],
+        "fps": {
+          "count": 3,
+          "minimum": 161.7773943075157,
+          "median": 170.40613462084636,
+          "p95": 170.6154954348612,
+          "p99": 170.63410528499585,
+          "maximum": 170.63875774752952
+        },
+        "elapsed_ms": {
+          "count": 3,
+          "minimum": 3516.2000000476837,
+          "median": 3521,
+          "p95": 3690.0199999570846,
+          "p99": 3705.04399995327,
+          "maximum": 3708.7999999523163
+        },
+        "completion_interval_ms": {
+          "count": 1800,
+          "minimum": 2.5999999046325684,
+          "median": 6.099999904632568,
+          "p95": 8.200000047683716,
+          "p99": 9.401000094413757,
+          "maximum": 19.299999952316284
+        },
+        "readback_wall_ms": {
+          "count": 1800,
+          "minimum": 12.900000095367432,
+          "median": 17.700000047683716,
+          "p95": 20.299999952316284,
+          "p99": 24.407000093460077,
+          "maximum": 42
+        },
+        "tracked_metrics": ["fps.median", "completion_interval_ms.median"]
+      },
+      {
+        "case_id": "composite-4k",
+        "mode": "readback-only",
+        "frames_per_run": 600,
+        "frame_range": [0, 600],
+        "size": {
+          "width": 3840,
+          "height": 2160
+        },
+        "frame_rate": {
+          "numerator": 30,
+          "denominator": 1
+        },
+        "runs": [
+          {
+            "id": "composite-4k-readback-only-1",
+            "run": 1,
+            "elapsed_ms": 8842.400000095367,
+            "fps": 67.85488102704343,
+            "completion_interval_ms": {
+              "count": 600,
+              "minimum": 10.299999952316284,
+              "median": 14.5,
+              "p95": 18.300000190734863,
+              "p99": 19.702000045776366,
+              "maximum": 26.200000047683716
+            },
+            "readback_wall_ms": {
+              "count": 600,
+              "minimum": 21.5,
+              "median": 29.59999990463257,
+              "p95": 33.899999868869784,
+              "p99": 35.40200009346008,
+              "maximum": 39.39999985694885
+            },
+            "encoder": null,
+            "audio": null
+          },
+          {
+            "id": "composite-4k-readback-only-2",
+            "run": 2,
+            "elapsed_ms": 7728,
+            "fps": 77.63975155279503,
+            "completion_interval_ms": {
+              "count": 600,
+              "minimum": 9.200000047683716,
+              "median": 12.200000047683716,
+              "p95": 17.105000126361844,
+              "p99": 18.60099990606308,
+              "maximum": 22.200000047683716
+            },
+            "readback_wall_ms": {
+              "count": 600,
+              "minimum": 20.59999990463257,
+              "median": 25.850000143051147,
+              "p95": 30.5,
+              "p99": 32.6020001411438,
+              "maximum": 34.200000047683716
+            },
+            "encoder": null,
+            "audio": null
+          },
+          {
+            "id": "composite-4k-readback-only-3",
+            "run": 3,
+            "elapsed_ms": 7749.099999904633,
+            "fps": 77.42834651861301,
+            "completion_interval_ms": {
+              "count": 600,
+              "minimum": 9.599999904632568,
+              "median": 12.299999952316284,
+              "p95": 17.100000143051147,
+              "p99": 18.40199985742569,
+              "maximum": 24.299999952316284
+            },
+            "readback_wall_ms": {
+              "count": 600,
+              "minimum": 20.300000190734863,
+              "median": 25.899999976158142,
+              "p95": 30.309999954700462,
+              "p99": 32.09999990463257,
+              "maximum": 34.799999952316284
+            },
+            "encoder": null,
+            "audio": null
+          }
+        ],
+        "fps": {
+          "count": 3,
+          "minimum": 67.85488102704343,
+          "median": 77.42834651861301,
+          "p95": 77.61861104937682,
+          "p99": 77.63552345211139,
+          "maximum": 77.63975155279503
+        },
+        "elapsed_ms": {
+          "count": 3,
+          "minimum": 7728,
+          "median": 7749.099999904633,
+          "p95": 8733.070000076294,
+          "p99": 8820.534000091553,
+          "maximum": 8842.400000095367
+        },
+        "completion_interval_ms": {
+          "count": 1800,
+          "minimum": 9.200000047683716,
+          "median": 13.199999809265137,
+          "p95": 17.699999809265137,
+          "p99": 19.09999990463257,
+          "maximum": 26.200000047683716
+        },
+        "readback_wall_ms": {
+          "count": 1800,
+          "minimum": 20.300000190734863,
+          "median": 27,
+          "p95": 32.39999985694885,
+          "p99": 34.5,
+          "maximum": 39.39999985694885
+        },
+        "tracked_metrics": ["fps.median", "completion_interval_ms.median"]
+      },
+      {
+        "case_id": "composite-1080p",
+        "mode": "readback-only",
+        "frames_per_run": 600,
+        "frame_range": [0, 600],
+        "size": {
+          "width": 1920,
+          "height": 1080
+        },
+        "frame_rate": {
+          "numerator": 30,
+          "denominator": 1
+        },
+        "runs": [
+          {
+            "id": "composite-1080p-readback-only-1",
+            "run": 1,
+            "elapsed_ms": 2498.5,
+            "fps": 240.14408645187112,
+            "completion_interval_ms": {
+              "count": 600,
+              "minimum": 2.299999952316284,
+              "median": 4.099999904632568,
+              "p95": 5.599999904632568,
+              "p99": 6.301000189781188,
+              "maximum": 9
+            },
+            "readback_wall_ms": {
+              "count": 600,
+              "minimum": 9,
+              "median": 12.399999976158142,
+              "p95": 14.804999959468837,
+              "p99": 15.900000095367432,
+              "maximum": 16.700000047683716
+            },
+            "encoder": null,
+            "audio": null
+          },
+          {
+            "id": "composite-1080p-readback-only-2",
+            "run": 2,
+            "elapsed_ms": 2154,
+            "fps": 278.55153203342616,
+            "completion_interval_ms": {
+              "count": 600,
+              "minimum": 2.3999998569488525,
+              "median": 3.4000000953674316,
+              "p95": 5.004999995231624,
+              "p99": 5.79999995470047,
+              "maximum": 9
+            },
+            "readback_wall_ms": {
+              "count": 600,
+              "minimum": 8.799999952316284,
+              "median": 10.5,
+              "p95": 12.899999856948853,
+              "p99": 14.200000047683716,
+              "maximum": 15.599999904632568
+            },
+            "encoder": null,
+            "audio": null
+          },
+          {
+            "id": "composite-1080p-readback-only-3",
+            "run": 3,
+            "elapsed_ms": 2135.4000000953674,
+            "fps": 280.97780274103394,
+            "completion_interval_ms": {
+              "count": 600,
+              "minimum": 2.3999998569488525,
+              "median": 3.4000000953674316,
+              "p95": 4.70500004291534,
+              "p99": 5.802000188827513,
+              "maximum": 8.799999952316284
+            },
+            "readback_wall_ms": {
+              "count": 600,
+              "minimum": 6.900000095367432,
+              "median": 10.5,
+              "p95": 12.599999904632568,
+              "p99": 14.405000092983242,
+              "maximum": 18.399999856948853
+            },
+            "encoder": null,
+            "audio": null
+          }
+        ],
+        "fps": {
+          "count": 3,
+          "minimum": 240.14408645187112,
+          "median": 278.55153203342616,
+          "p95": 280.7351756702732,
+          "p99": 280.9292773268818,
+          "maximum": 280.97780274103394
+        },
+        "elapsed_ms": {
+          "count": 3,
+          "minimum": 2135.4000000953674,
+          "median": 2154,
+          "p95": 2464.05,
+          "p99": 2491.61,
+          "maximum": 2498.5
+        },
+        "completion_interval_ms": {
+          "count": 1800,
+          "minimum": 2.299999952316284,
+          "median": 3.6000001430511475,
+          "p95": 5.199999821186066,
+          "p99": 6.1000001430511475,
+          "maximum": 9
+        },
+        "readback_wall_ms": {
+          "count": 1800,
+          "minimum": 6.900000095367432,
+          "median": 11,
+          "p95": 13.905000090599055,
+          "p99": 15.399999859333038,
+          "maximum": 18.399999856948853
+        },
+        "tracked_metrics": ["fps.median", "completion_interval_ms.median"]
+      },
+      {
+        "case_id": "owner-main",
+        "mode": "ipc-no-encode",
+        "frames_per_run": 300,
+        "frame_range": [714, 1014],
+        "size": {
+          "width": 1920,
+          "height": 1080
+        },
+        "frame_rate": {
+          "denominator": 1,
+          "numerator": 30
+        },
+        "runs": [
+          {
+            "id": "owner-main-ipc-no-encode-1",
+            "run": 1,
+            "elapsed_ms": 10555.399999856949,
+            "fps": 28.421471474701644,
+            "completion_interval_ms": {
+              "count": 300,
+              "minimum": 17.5,
+              "median": 35.549999952316284,
+              "p95": 41.299999952316284,
+              "p99": 57.21100004673003,
+              "maximum": 99.59999990463257
+            },
+            "readback_wall_ms": {
+              "count": 300,
+              "minimum": 24.700000047683716,
+              "median": 35.40000009536743,
+              "p95": 40.32000018358231,
+              "p99": 42.96099995374665,
+              "maximum": 100.29999995231628
+            },
+            "encoder": null,
+            "audio": null
+          },
+          {
+            "id": "owner-main-ipc-no-encode-2",
+            "run": 2,
+            "elapsed_ms": 9813.400000095367,
+            "fps": 30.570444493965862,
+            "completion_interval_ms": {
+              "count": 300,
+              "minimum": 19.399999856948853,
+              "median": 33.25,
+              "p95": 38,
+              "p99": 41.30399995326996,
+              "maximum": 48.40000009536743
+            },
+            "readback_wall_ms": {
+              "count": 300,
+              "minimum": 24,
+              "median": 33.299999952316284,
+              "p95": 37.40000009536743,
+              "p99": 39.10400014162063,
+              "maximum": 49.39999985694885
+            },
+            "encoder": null,
+            "audio": null
+          },
+          {
+            "id": "owner-main-ipc-no-encode-3",
+            "run": 3,
+            "elapsed_ms": 9831.700000047684,
+            "fps": 30.513542927321318,
+            "completion_interval_ms": {
+              "count": 300,
+              "minimum": 21.5,
+              "median": 33.15000009536743,
+              "p95": 38.205000042915344,
+              "p99": 39.81399995088576,
+              "maximum": 42.59999990463257
+            },
+            "readback_wall_ms": {
+              "count": 300,
+              "minimum": 25,
+              "median": 33.450000047683716,
+              "p95": 37.60499991178513,
+              "p99": 39.299999952316284,
+              "maximum": 41.200000047683716
+            },
+            "encoder": null,
+            "audio": null
+          }
+        ],
+        "fps": {
+          "count": 3,
+          "minimum": 28.421471474701644,
+          "median": 30.513542927321318,
+          "p95": 30.56475433730141,
+          "p99": 30.569306462632973,
+          "maximum": 30.570444493965862
+        },
+        "elapsed_ms": {
+          "count": 3,
+          "minimum": 9813.400000095367,
+          "median": 9831.700000047684,
+          "p95": 10483.029999876022,
+          "p99": 10540.925999860763,
+          "maximum": 10555.399999856949
+        },
+        "completion_interval_ms": {
+          "count": 900,
+          "minimum": 17.5,
+          "median": 33.799999952316284,
+          "p95": 39.50499999523162,
+          "p99": 43.30900018930434,
+          "maximum": 99.59999990463257
+        },
+        "readback_wall_ms": {
+          "count": 900,
+          "minimum": 24,
+          "median": 33.75,
+          "p95": 39.19999982118607,
+          "p99": 41.40000009536743,
+          "maximum": 100.29999995231628
+        },
+        "tracked_metrics": ["fps.median", "completion_interval_ms.median"]
+      },
+      {
+        "case_id": "owner-main",
+        "mode": "full-mp4",
+        "frames_per_run": 300,
+        "frame_range": [714, 1014],
+        "size": {
+          "width": 1920,
+          "height": 1080
+        },
+        "frame_rate": {
+          "denominator": 1,
+          "numerator": 30
+        },
+        "runs": [
+          {
+            "id": "owner-main-full-mp4-1",
+            "run": 1,
+            "elapsed_ms": 10898,
+            "fps": 27.52798678656634,
+            "completion_interval_ms": {
+              "count": 300,
+              "minimum": 21.299999952316284,
+              "median": 36,
+              "p95": 43.110000133514404,
+              "p99": 46.801000187397,
+              "maximum": 55.200000047683716
+            },
+            "readback_wall_ms": {
+              "count": 300,
+              "minimum": 23.90000009536743,
+              "median": 35.699999928474426,
+              "p95": 41.41500008106232,
+              "p99": 44.91700009584425,
+              "maximum": 48.90000009536743
+            },
+            "encoder": "libx264",
+            "audio": {
+              "enabled": true,
+              "sampleRate": 48000,
+              "channels": 2,
+              "frameCount": 480000
+            }
+          },
+          {
+            "id": "owner-main-full-mp4-2",
+            "run": 2,
+            "elapsed_ms": 10416.399999856949,
+            "fps": 28.80073729927038,
+            "completion_interval_ms": {
+              "count": 300,
+              "minimum": 19.299999952316284,
+              "median": 34.75,
+              "p95": 39.705000042915344,
+              "p99": 45.21499981164931,
+              "maximum": 117.60000014305115
+            },
+            "readback_wall_ms": {
+              "count": 300,
+              "minimum": 25.600000143051147,
+              "median": 34.299999952316284,
+              "p95": 39.00499999523163,
+              "p99": 40.70100004673004,
+              "maximum": 46.700000047683716
+            },
+            "encoder": "libx264",
+            "audio": {
+              "enabled": true,
+              "sampleRate": 48000,
+              "channels": 2,
+              "frameCount": 480000
+            }
+          },
+          {
+            "id": "owner-main-full-mp4-3",
+            "run": 3,
+            "elapsed_ms": 10395.299999952316,
+            "fps": 28.8591959829323,
+            "completion_interval_ms": {
+              "count": 300,
+              "minimum": 19.40000009536743,
+              "median": 34.59999990463257,
+              "p95": 40.71000003814697,
+              "p99": 44.503000001907346,
+              "maximum": 54.39999985694885
+            },
+            "readback_wall_ms": {
+              "count": 300,
+              "minimum": 25.800000190734863,
+              "median": 34.5,
+              "p95": 39.705000042915344,
+              "p99": 42.40599985837936,
+              "maximum": 45
+            },
+            "encoder": "libx264",
+            "audio": {
+              "enabled": true,
+              "sampleRate": 48000,
+              "channels": 2,
+              "frameCount": 480000
+            }
+          }
+        ],
+        "fps": {
+          "count": 3,
+          "minimum": 27.52798678656634,
+          "median": 28.80073729927038,
+          "p95": 28.85335011456611,
+          "p99": 28.858026809259062,
+          "maximum": 28.8591959829323
+        },
+        "elapsed_ms": {
+          "count": 3,
+          "minimum": 10395.299999952316,
+          "median": 10416.399999856949,
+          "p95": 10849.839999985696,
+          "p99": 10888.36799999714,
+          "maximum": 10898
+        },
+        "completion_interval_ms": {
+          "count": 900,
+          "minimum": 19.299999952316284,
+          "median": 35,
+          "p95": 41.210000038146966,
+          "p99": 46.20500004768371,
+          "maximum": 117.60000014305115
+        },
+        "readback_wall_ms": {
+          "count": 900,
+          "minimum": 23.90000009536743,
+          "median": 34.69999980926514,
+          "p95": 40.299999964237216,
+          "p99": 44.401999857425686,
+          "maximum": 48.90000009536743
+        },
+        "tracked_metrics": ["fps.median", "completion_interval_ms.median"]
+      },
+      {
+        "case_id": "owner-main",
+        "mode": "readback-only",
+        "frames_per_run": 300,
+        "frame_range": [714, 1014],
+        "size": {
+          "width": 1920,
+          "height": 1080
+        },
+        "frame_rate": {
+          "denominator": 1,
+          "numerator": 30
+        },
+        "runs": [
+          {
+            "id": "owner-main-readback-only-1",
+            "run": 1,
+            "elapsed_ms": 7382.400000095367,
+            "fps": 40.63719115682225,
+            "completion_interval_ms": {
+              "count": 300,
+              "minimum": 15.699999809265137,
+              "median": 25.40000009536743,
+              "p95": 29.40500009059906,
+              "p99": 31.00299999952316,
+              "maximum": 32.09999990463257
+            },
+            "readback_wall_ms": {
+              "count": 300,
+              "minimum": 15.699999809265137,
+              "median": 25.399999976158142,
+              "p95": 29.40500009059906,
+              "p99": 31.00299999952316,
+              "maximum": 32.09999990463257
+            },
+            "encoder": null,
+            "audio": null
+          },
+          {
+            "id": "owner-main-readback-only-2",
+            "run": 2,
+            "elapsed_ms": 7168.199999809265,
+            "fps": 41.85151084065491,
+            "completion_interval_ms": {
+              "count": 300,
+              "minimum": 16.100000143051147,
+              "median": 24,
+              "p95": 28.099999916553497,
+              "p99": 47.24400004625316,
+              "maximum": 68
+            },
+            "readback_wall_ms": {
+              "count": 300,
+              "minimum": 16.100000143051147,
+              "median": 24,
+              "p95": 28.00499999523163,
+              "p99": 47.24300004720684,
+              "maximum": 68
+            },
+            "encoder": null,
+            "audio": null
+          },
+          {
+            "id": "owner-main-readback-only-3",
+            "run": 3,
+            "elapsed_ms": 7004.5,
+            "fps": 42.82960953672639,
+            "completion_interval_ms": {
+              "count": 300,
+              "minimum": 16.100000143051147,
+              "median": 24.149999976158142,
+              "p95": 28,
+              "p99": 28.599999907016755,
+              "maximum": 29.09999990463257
+            },
+            "readback_wall_ms": {
+              "count": 300,
+              "minimum": 16.09999990463257,
+              "median": 24.149999976158142,
+              "p95": 27.90000009536743,
+              "p99": 28.59999990463257,
+              "maximum": 29.200000047683716
+            },
+            "encoder": null,
+            "audio": null
+          }
+        ],
+        "fps": {
+          "count": 3,
+          "minimum": 40.63719115682225,
+          "median": 41.85151084065491,
+          "p95": 42.73179966711924,
+          "p99": 42.81004756280496,
+          "maximum": 42.82960953672639
+        },
+        "elapsed_ms": {
+          "count": 3,
+          "minimum": 7004.5,
+          "median": 7168.199999809265,
+          "p95": 7360.980000066757,
+          "p99": 7378.116000089645,
+          "maximum": 7382.400000095367
+        },
+        "completion_interval_ms": {
+          "count": 900,
+          "minimum": 15.699999809265137,
+          "median": 24.399999976158142,
+          "p95": 28.799999952316284,
+          "p99": 31.00299999952316,
+          "maximum": 68
+        },
+        "readback_wall_ms": {
+          "count": 900,
+          "minimum": 15.699999809265137,
+          "median": 24.399999856948853,
+          "p95": 28.70500004291534,
+          "p99": 31.00299999952316,
+          "maximum": 68
+        },
+        "tracked_metrics": ["fps.median", "completion_interval_ms.median"]
+      },
+      {
+        "case_id": "owner-opening",
+        "mode": "ipc-no-encode",
+        "frames_per_run": 714,
+        "frame_range": [0, 714],
+        "size": {
+          "width": 1920,
+          "height": 1080
+        },
+        "frame_rate": {
+          "denominator": 1,
+          "numerator": 30
+        },
+        "runs": [
+          {
+            "id": "owner-opening-ipc-no-encode-1",
+            "run": 1,
+            "elapsed_ms": 49778.700000047684,
+            "fps": 14.343484261326955,
+            "completion_interval_ms": {
+              "count": 714,
+              "minimum": 17.09999990463257,
+              "median": 63.700000047683716,
+              "p95": 105.93500006198883,
+              "p99": 220.13099995851516,
+              "maximum": 239.59999990463257
+            },
+            "readback_wall_ms": {
+              "count": 714,
+              "minimum": 10.5,
+              "median": 63.700000047683716,
+              "p95": 103.27000006437302,
+              "p99": 223.37,
+              "maximum": 244.29999995231628
+            },
+            "encoder": null,
+            "audio": null
+          },
+          {
+            "id": "owner-opening-ipc-no-encode-2",
+            "run": 2,
+            "elapsed_ms": 46766.90000009537,
+            "fps": 15.267208217746825,
+            "completion_interval_ms": {
+              "count": 714,
+              "minimum": 15.100000143051147,
+              "median": 59.5,
+              "p95": 97.84000008106233,
+              "p99": 200.0179998588562,
+              "maximum": 233.40000009536743
+            },
+            "readback_wall_ms": {
+              "count": 714,
+              "minimum": 11.399999856948853,
+              "median": 59.5,
+              "p95": 96.03999989032746,
+              "p99": 216.69200002908713,
+              "maximum": 235.39999985694885
+            },
+            "encoder": null,
+            "audio": null
+          },
+          {
+            "id": "owner-opening-ipc-no-encode-3",
+            "run": 3,
+            "elapsed_ms": 56418.200000047684,
+            "fps": 12.655490604085145,
+            "completion_interval_ms": {
+              "count": 714,
+              "minimum": 16.799999952316284,
+              "median": 79.40000009536743,
+              "p95": 107.77499994039542,
+              "p99": 209.87,
+              "maximum": 240.70000004768372
+            },
+            "readback_wall_ms": {
+              "count": 714,
+              "minimum": 9.900000095367432,
+              "median": 79.30000007152557,
+              "p95": 104.4399999856949,
+              "p99": 222.85799997091294,
+              "maximum": 237.5
+            },
+            "encoder": null,
+            "audio": null
+          }
+        ],
+        "fps": {
+          "count": 3,
+          "minimum": 12.655490604085145,
+          "median": 14.343484261326955,
+          "p95": 15.174835822104837,
+          "p99": 15.248733738618428,
+          "maximum": 15.267208217746825
+        },
+        "elapsed_ms": {
+          "count": 3,
+          "minimum": 46766.90000009537,
+          "median": 49778.700000047684,
+          "p95": 55754.25000004769,
+          "p99": 56285.41000004768,
+          "maximum": 56418.200000047684
+        },
+        "completion_interval_ms": {
+          "count": 2142,
+          "minimum": 15.100000143051147,
+          "median": 63.299999952316284,
+          "p95": 104.60000013113022,
+          "p99": 209.59000000000015,
+          "maximum": 240.70000004768372
+        },
+        "readback_wall_ms": {
+          "count": 2142,
+          "minimum": 9.900000095367432,
+          "median": 63,
+          "p95": 102.29499995708464,
+          "p99": 222.45900003910066,
+          "maximum": 244.29999995231628
+        },
+        "tracked_metrics": ["fps.median", "completion_interval_ms.median"]
+      },
+      {
+        "case_id": "owner-opening",
+        "mode": "full-mp4",
+        "frames_per_run": 714,
+        "frame_range": [0, 714],
+        "size": {
+          "width": 1920,
+          "height": 1080
+        },
+        "frame_rate": {
+          "denominator": 1,
+          "numerator": 30
+        },
+        "runs": [
+          {
+            "id": "owner-opening-full-mp4-1",
+            "run": 1,
+            "elapsed_ms": 52171.299999952316,
+            "fps": 13.685685424757532,
+            "completion_interval_ms": {
+              "count": 714,
+              "minimum": 20.09999990463257,
+              "median": 66.79999995231628,
+              "p95": 107.30500003099442,
+              "p99": 215.11400008916857,
+              "maximum": 245.89999985694885
+            },
+            "readback_wall_ms": {
+              "count": 714,
+              "minimum": 11.099999904632568,
+              "median": 66.89999985694885,
+              "p95": 105.33499991893768,
+              "p99": 228.87500004768373,
+              "maximum": 248.79999995231628
+            },
+            "encoder": "libx264",
+            "audio": {
+              "enabled": true,
+              "sampleRate": 48000,
+              "channels": 2,
+              "frameCount": 1142400
+            }
+          },
+          {
+            "id": "owner-opening-full-mp4-2",
+            "run": 2,
+            "elapsed_ms": 51655.40000009537,
+            "fps": 13.822369006893409,
+            "completion_interval_ms": {
+              "count": 714,
+              "minimum": 18.09999990463257,
+              "median": 66.59999990463257,
+              "p95": 105.48000003099443,
+              "p99": 211.2960001015663,
+              "maximum": 245.90000009536743
+            },
+            "readback_wall_ms": {
+              "count": 714,
+              "minimum": 9.799999952316284,
+              "median": 66.5,
+              "p95": 103.4849999547005,
+              "p99": 223.08400002479556,
+              "maximum": 251
+            },
+            "encoder": "libx264",
+            "audio": {
+              "enabled": true,
+              "sampleRate": 48000,
+              "channels": 2,
+              "frameCount": 1142400
+            }
+          },
+          {
+            "id": "owner-opening-full-mp4-3",
+            "run": 3,
+            "elapsed_ms": 63778.699999809265,
+            "fps": 11.194960072910474,
+            "completion_interval_ms": {
+              "count": 714,
+              "minimum": 15.5,
+              "median": 87.09999990463257,
+              "p95": 117.26000001430515,
+              "p99": 223.9839998817444,
+              "maximum": 262.2999999523163
+            },
+            "readback_wall_ms": {
+              "count": 714,
+              "minimum": 11.400000095367432,
+              "median": 86.89999997615814,
+              "p95": 110.59500001668934,
+              "p99": 231.94900013685233,
+              "maximum": 264.7999999523163
+            },
+            "encoder": "libx264",
+            "audio": {
+              "enabled": true,
+              "sampleRate": 48000,
+              "channels": 2,
+              "frameCount": 1142400
+            }
+          }
+        ],
+        "fps": {
+          "count": 3,
+          "minimum": 11.194960072910474,
+          "median": 13.685685424757532,
+          "p95": 13.808700648679821,
+          "p99": 13.819635335250691,
+          "maximum": 13.822369006893409
+        },
+        "elapsed_ms": {
+          "count": 3,
+          "minimum": 51655.40000009537,
+          "median": 52171.299999952316,
+          "p95": 62617.95999982357,
+          "p99": 63546.55199981212,
+          "maximum": 63778.699999809265
+        },
+        "completion_interval_ms": {
+          "count": 2142,
+          "minimum": 15.5,
+          "median": 69.79999995231628,
+          "p95": 108.1849998235702,
+          "p99": 215.81300012350093,
+          "maximum": 262.2999999523163
+        },
+        "readback_wall_ms": {
+          "count": 2142,
+          "minimum": 9.799999952316284,
+          "median": 69.09999990463257,
+          "p95": 105.99500000476836,
+          "p99": 227.8539999437333,
+          "maximum": 264.7999999523163
+        },
+        "tracked_metrics": ["fps.median", "completion_interval_ms.median"]
+      },
+      {
+        "case_id": "owner-opening",
+        "mode": "readback-only",
+        "frames_per_run": 714,
+        "frame_range": [0, 714],
+        "size": {
+          "width": 1920,
+          "height": 1080
+        },
+        "frame_rate": {
+          "denominator": 1,
+          "numerator": 30
+        },
+        "runs": [
+          {
+            "id": "owner-opening-readback-only-1",
+            "run": 1,
+            "elapsed_ms": 34319,
+            "fps": 20.80480200472042,
+            "completion_interval_ms": {
+              "count": 714,
+              "minimum": 10.200000047683716,
+              "median": 42.5,
+              "p95": 68.27000006437302,
+              "p99": 203.6049999833107,
+              "maximum": 253.79999995231628
+            },
+            "readback_wall_ms": {
+              "count": 714,
+              "minimum": 10.200000047683716,
+              "median": 42.5,
+              "p95": 68.27000006437302,
+              "p99": 203.59199996471406,
+              "maximum": 253.79999995231628
+            },
+            "encoder": null,
+            "audio": null
+          },
+          {
+            "id": "owner-opening-readback-only-2",
+            "run": 2,
+            "elapsed_ms": 33306.200000047684,
+            "fps": 21.437450084337986,
+            "completion_interval_ms": {
+              "count": 714,
+              "minimum": 8.799999952316284,
+              "median": 40.89999985694885,
+              "p95": 65.77000006437302,
+              "p99": 208.68599984645846,
+              "maximum": 260.69999980926514
+            },
+            "readback_wall_ms": {
+              "count": 714,
+              "minimum": 8.899999856948853,
+              "median": 40.89999985694885,
+              "p95": 65.67000015974045,
+              "p99": 208.7859999585152,
+              "maximum": 260.7999999523163
+            },
+            "encoder": null,
+            "audio": null
+          },
+          {
+            "id": "owner-opening-readback-only-3",
+            "run": 3,
+            "elapsed_ms": 34595.10000014305,
+            "fps": 20.638760980515958,
+            "completion_interval_ms": {
+              "count": 714,
+              "minimum": 9.299999952316284,
+              "median": 42.75,
+              "p95": 68.5,
+              "p99": 206.3360000228882,
+              "maximum": 236
+            },
+            "readback_wall_ms": {
+              "count": 714,
+              "minimum": 9.299999952316284,
+              "median": 42.700000047683716,
+              "p95": 68.43500006198883,
+              "p99": 206.34900004148486,
+              "maximum": 235.90000009536743
+            },
+            "encoder": null,
+            "audio": null
+          }
+        ],
+        "fps": {
+          "count": 3,
+          "minimum": 20.638760980515958,
+          "median": 20.80480200472042,
+          "p95": 21.374185276376227,
+          "p99": 21.424797122745634,
+          "maximum": 21.437450084337986
+        },
+        "elapsed_ms": {
+          "count": 3,
+          "minimum": 33306.200000047684,
+          "median": 34319,
+          "p95": 34567.490000128746,
+          "p99": 34589.57800014019,
+          "maximum": 34595.10000014305
+        },
+        "completion_interval_ms": {
+          "count": 2142,
+          "minimum": 8.799999952316284,
+          "median": 42,
+          "p95": 67.70000003576278,
+          "p99": 208.46999990701718,
+          "maximum": 260.69999980926514
+        },
+        "readback_wall_ms": {
+          "count": 2142,
+          "minimum": 8.899999856948853,
+          "median": 42,
+          "p95": 67.70000003576278,
+          "p99": 208.52899999141738,
+          "maximum": 260.7999999523163
+        },
+        "tracked_metrics": ["fps.median", "completion_interval_ms.median"]
+      }
+    ],
+    "preview": [
+      {
+        "case_id": "effect-chain-1080p",
+        "mode": "preview-present",
+        "frames_per_run": 600,
+        "frame_range": [0, 600],
+        "size": {
+          "width": 1920,
+          "height": 1080
+        },
+        "frame_rate": {
+          "numerator": 30,
+          "denominator": 1
+        },
+        "runs": [
+          {
+            "id": "effect-chain-1080p-preview-present-1",
+            "run": 1,
+            "elapsed_ms": 6615,
+            "fps": 90.70294784580499
+          },
+          {
+            "id": "effect-chain-1080p-preview-present-2",
+            "run": 2,
+            "elapsed_ms": 5984.5,
+            "fps": 100.25900242292589
+          },
+          {
+            "id": "effect-chain-1080p-preview-present-3",
+            "run": 3,
+            "elapsed_ms": 5964.199999809265,
+            "fps": 100.60024815049596
+          }
+        ],
+        "fps": {
+          "count": 3,
+          "minimum": 90.70294784580499,
+          "median": 100.25900242292589,
+          "p95": 100.56612357773895,
+          "p99": 100.59342323594456,
+          "maximum": 100.60024815049596
+        },
+        "elapsed_ms": {
+          "count": 3,
+          "minimum": 5964.199999809265,
+          "median": 5984.5,
+          "p95": 6551.95,
+          "p99": 6602.39,
+          "maximum": 6615
+        },
+        "present_call_ms": {
+          "count": 1800,
+          "minimum": 0.19999980926513672,
+          "median": 0.40000009536743164,
+          "p95": 0.5,
+          "p99": 0.6000001430511475,
+          "maximum": 1
+        },
+        "present_completion_ms": {
+          "count": 1800,
+          "minimum": 7,
+          "median": 10,
+          "p95": 13.39999986886978,
+          "p99": 16,
+          "maximum": 54.19999980926514
+        },
+        "tracked_metrics": ["fps.median", "present_completion_ms.median"]
+      },
+      {
+        "case_id": "composite-4k",
+        "mode": "preview-present",
+        "frames_per_run": 600,
+        "frame_range": [0, 600],
+        "size": {
+          "width": 3840,
+          "height": 2160
+        },
+        "frame_rate": {
+          "numerator": 30,
+          "denominator": 1
+        },
+        "runs": [
+          {
+            "id": "composite-4k-preview-present-1",
+            "run": 1,
+            "elapsed_ms": 4023,
+            "fps": 149.14243102162564
+          },
+          {
+            "id": "composite-4k-preview-present-2",
+            "run": 2,
+            "elapsed_ms": 3802.800000190735,
+            "fps": 157.7784790075487
+          },
+          {
+            "id": "composite-4k-preview-present-3",
+            "run": 3,
+            "elapsed_ms": 3821,
+            "fps": 157.02695629416382
+          }
+        ],
+        "fps": {
+          "count": 3,
+          "minimum": 149.14243102162564,
+          "median": 157.02695629416382,
+          "p95": 157.70332673621022,
+          "p99": 157.763448553281,
+          "maximum": 157.7784790075487
+        },
+        "elapsed_ms": {
+          "count": 3,
+          "minimum": 3802.800000190735,
+          "median": 3821,
+          "p95": 4002.8,
+          "p99": 4018.96,
+          "maximum": 4023
+        },
+        "present_call_ms": {
+          "count": 1800,
+          "minimum": 0.09999990463256836,
+          "median": 0.2999999523162842,
+          "p95": 0.5,
+          "p99": 0.5999999046325684,
+          "maximum": 1.1000001430511475
+        },
+        "present_completion_ms": {
+          "count": 1800,
+          "minimum": 4.8999998569488525,
+          "median": 6.1000001430511475,
+          "p95": 8,
+          "p99": 9.50100000143051,
+          "maximum": 14.799999952316284
+        },
+        "tracked_metrics": ["fps.median", "present_completion_ms.median"]
+      },
+      {
+        "case_id": "composite-1080p",
+        "mode": "preview-present",
+        "frames_per_run": 600,
+        "frame_range": [0, 600],
+        "size": {
+          "width": 1920,
+          "height": 1080
+        },
+        "frame_rate": {
+          "numerator": 30,
+          "denominator": 1
+        },
+        "runs": [
+          {
+            "id": "composite-1080p-preview-present-1",
+            "run": 1,
+            "elapsed_ms": 2186.699999809265,
+            "fps": 274.38606121202497
+          },
+          {
+            "id": "composite-1080p-preview-present-2",
+            "run": 2,
+            "elapsed_ms": 2111.2000000476837,
+            "fps": 284.1985600542101
+          },
+          {
+            "id": "composite-1080p-preview-present-3",
+            "run": 3,
+            "elapsed_ms": 2067.9000000953674,
+            "fps": 290.1494269415007
+          }
+        ],
+        "fps": {
+          "count": 3,
+          "minimum": 274.38606121202497,
+          "median": 284.1985600542101,
+          "p95": 289.5543402527716,
+          "p99": 290.0304096037549,
+          "maximum": 290.1494269415007
+        },
+        "elapsed_ms": {
+          "count": 3,
+          "minimum": 2067.9000000953674,
+          "median": 2111.2000000476837,
+          "p95": 2179.149999833107,
+          "p99": 2185.1899998140334,
+          "maximum": 2186.699999809265
+        },
+        "present_call_ms": {
+          "count": 1800,
+          "minimum": 0,
+          "median": 0.2999999523162842,
+          "p95": 0.40000009536743164,
+          "p99": 0.5,
+          "maximum": 0.8999998569488525
+        },
+        "present_completion_ms": {
+          "count": 1800,
+          "minimum": 2.799999952316284,
+          "median": 3.4000000953674316,
+          "p95": 4.6000001430511475,
+          "p99": 5.5,
+          "maximum": 14.599999904632568
+        },
+        "tracked_metrics": ["fps.median", "present_completion_ms.median"]
+      }
+    ]
+  }
+}

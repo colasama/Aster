@@ -428,6 +428,95 @@ describe("exact-frame media resource barrier", () => {
     expect(device.queue.copyExternalImageToTexture).toHaveBeenCalledTimes(3);
   });
 
+  it("restores animated text after seeking backward and updates styles at the same sample", () => {
+    const translate = vi.fn();
+    const paint = vi.fn();
+    class SeekCanvas extends MockTextCanvas {
+      getContext(): CanvasRenderingContext2D {
+        const context = super.getContext();
+        context.translate = translate;
+        context.fillText = (text) => paint(text, context.font);
+        return context;
+      }
+    }
+    vi.stubGlobal("document", {
+      createElement: (name: string) => {
+        if (name !== "canvas") throw new Error(`Unexpected element ${name}`);
+        return new SeekCanvas();
+      },
+    });
+    const upload = vi.fn();
+    const device = {
+      limits: { maxTextureDimension2D: 8_192 },
+      queue: { copyExternalImageToTexture: upload, writeTexture: vi.fn() },
+      createTexture: vi.fn(() => ({ createView: vi.fn(() => ({})), destroy: vi.fn() })),
+      createBuffer: vi.fn(() => ({ destroy: vi.fn() })),
+      createBindGroup: vi.fn(() => ({})),
+    } as unknown as GPUDevice;
+    const cache = new MediaTextureCache(
+      device,
+      {} as GPUBindGroupLayout,
+      {} as GPUSampler,
+      vi.fn(),
+    );
+    const layer = createLayerForComposition("text", createBlankComposition());
+    layer.size = [200, 50];
+    layer.text = 'A|"null"';
+    layer.textAnimator = {
+      enabled: true,
+      groups: [
+        {
+          id: "seek-group",
+          name: "Seek",
+          enabled: true,
+          randomSeed: 0,
+          selectors: [
+            {
+              id: "seek-selector",
+              name: "Time",
+              kind: "expression",
+              enabled: true,
+              mode: "add",
+              amount: staticValue(100),
+              basedOn: "characters",
+              expression: "time",
+            },
+          ],
+          properties: { position: [staticValue(50), staticValue(0), staticValue(0)] },
+        },
+      ],
+    };
+    const drawAt = (time: number) => {
+      translate.mockClear();
+      paint.mockClear();
+      cache.prepareText(layer, "seek-text", time, 24);
+      return {
+        positions: translate.mock.calls.map((call) => [...call]),
+        glyphs: paint.mock.calls.map((call) => [...call]),
+      };
+    };
+
+    const initial = drawAt(0);
+    expect(initial.glyphs.map(([text]) => text).join("")).toBe(layer.text);
+    const forward = drawAt(0.5);
+    expect(forward.positions).not.toEqual(initial.positions);
+    expect(forward.glyphs).toEqual(initial.glyphs);
+    expect(drawAt(0)).toEqual(initial);
+    expect(upload).toHaveBeenCalledTimes(3);
+
+    const style = layer.textStyle;
+    if (!style) throw new Error("The text factory must provide a text style");
+    layer.textStyle = { ...style, fontWeight: 400 };
+    const restyled = drawAt(0);
+    expect(restyled.glyphs.map(([text]) => text)).toEqual(initial.glyphs.map(([text]) => text));
+    expect(restyled.glyphs).not.toEqual(initial.glyphs);
+    expect(restyled.positions).toEqual(initial.positions);
+    expect(upload).toHaveBeenCalledTimes(4);
+    expect(drawAt(0)).toEqual({ positions: [], glyphs: [] });
+    expect(upload).toHaveBeenCalledTimes(4);
+    cache.destroy();
+  });
+
   it("lazily encodes exact text samples and releases their transient generation after submit", () => {
     vi.stubGlobal("document", {
       createElement: (name: string) => {

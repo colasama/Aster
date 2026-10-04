@@ -1,10 +1,13 @@
 import type { ValidatedRenderHostAssignment } from "../../src/components/render-host/render-host-session";
 import { sharedAudioDecodeCache } from "../../src/core/audio/audio-decode-cache";
 import type { AudioSourceDecoder } from "../../src/core/audio/audio-export";
-import { activateProjectFonts } from "../../src/core/media/project-font-runtime";
+import {
+  activateProjectFonts,
+  prepareProjectFonts,
+} from "../../src/core/media/project-font-runtime";
 import { setProjectPluginRuntimes } from "../../src/core/plugins/plugin-runtime";
 import { loadProjectFromPath } from "../../src/core/project/project-file";
-import type { GpuDiagnostics } from "../../src/core/types";
+import type { GpuDiagnostics, RendererMetrics } from "../../src/core/types";
 import type { Mp4PixelFormat } from "../../src/desktop/api";
 import { mediaImportRuntime } from "../../src/importers/media-import-runtime";
 import {
@@ -31,6 +34,9 @@ export interface PerformanceSession {
   initializeMs: number;
   audioDecoder?: AudioSourceDecoder;
   readback(time: number): Promise<RawVideoFrame>;
+  readbackInto?(time: number, destination: ArrayBuffer): Promise<RawVideoFrame>;
+  present?(time: number): RendererMetrics;
+  complete?(): Promise<void>;
   diagnostics(): GpuDiagnostics;
   assertHealthy(): void;
   dispose(): Promise<void>;
@@ -75,6 +81,20 @@ export const productionPerformanceRuntime: PerformanceRuntime = {
       const loadStarted = performance.now();
       const { project } = await loadProjectFromPath(assignment.projectPath);
       const validated = performanceRenderAssignment(assignment, project);
+      if (assignment.benchmark.mode === "preview-present") {
+        if (
+          !["composite-1080p", "composite-4k", "effect-chain-1080p"].includes(assignment.case.id) ||
+          project.sources.length > 0 ||
+          project.fonts?.length ||
+          project.compositions.length !== 1 ||
+          validated.composition.environment?.enabled ||
+          validated.composition.layers.some(
+            (layer) => layer.kind !== "shape" || layer.threeDimensional,
+          )
+        )
+          throw new Error("Preview performance requires the fixed resource-free synthetic scenes");
+        await prepareProjectFonts(project);
+      }
       verifyResources = () => assertCaptureMedia(validated.project, validated.composition);
       const plugins = await prepareCapturePlugins(validated.project);
       verifyResources();
@@ -100,6 +120,18 @@ export const productionPerformanceRuntime: PerformanceRuntime = {
         health.assertHealthy(active.diagnostics, active.productionRenderError);
       };
       assertHealthy();
+      const readback = (time: number, destination?: ArrayBuffer) =>
+        pipeline.readback(
+          createBeautyFrameRequest({
+            project: validated.project,
+            composition: validated.composition,
+            time,
+            ...assignment.case.size,
+            antiAliasing: assignment.case.aa,
+          }),
+          validated.synchronizeVideo,
+          destination,
+        );
       return {
         validated,
         pixelFormat: pipeline.pixelFormat,
@@ -123,8 +155,10 @@ export const productionPerformanceRuntime: PerformanceRuntime = {
               },
             }
           : {}),
-        readback: (time) =>
-          pipeline.readback(
+        readback,
+        readbackInto: readback,
+        present: (time) =>
+          pipeline.present(
             createBeautyFrameRequest({
               project: validated.project,
               composition: validated.composition,
@@ -132,8 +166,10 @@ export const productionPerformanceRuntime: PerformanceRuntime = {
               ...assignment.case.size,
               antiAliasing: assignment.case.aa,
             }),
-            validated.synchronizeVideo,
+            undefined,
+            false,
           ),
+        complete: () => active.complete(),
         diagnostics: () => structuredClone(active.diagnostics),
         assertHealthy,
         dispose,

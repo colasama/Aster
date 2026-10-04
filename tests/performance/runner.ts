@@ -3,7 +3,13 @@ import { frameTimeAtIndex } from "../../src/core/rendering/render-export";
 import { CaptureHealth, captureErrorMessage } from "../parity/capture-health";
 import { validatePerformanceAssignment } from "./assignment";
 import { PerformanceOutput } from "./output";
-import type { PerformanceApi, PerformanceAssignment, PerformanceResult } from "./protocol";
+import { measurePreviewPerformance } from "./preview-runner";
+import type {
+  PerformanceApi,
+  PerformanceAssignment,
+  PerformanceResult,
+  PreviewPerformanceResult,
+} from "./protocol";
 import type { PerformanceRuntime, PerformanceSession } from "./runtime";
 
 export async function measurePerformance(
@@ -14,6 +20,7 @@ export async function measurePerformance(
 ): Promise<PerformanceResult> {
   validatePerformanceAssignment(assignment);
   const { benchmark } = assignment;
+  if (benchmark.mode === "preview-present") throw new Error("Preview must use the present runner");
   const { validated } = session;
   const { manifest } = validated;
   const frames = benchmark.endFrameExclusive - benchmark.startFrame;
@@ -41,6 +48,17 @@ export async function measurePerformance(
   let preparedAt: number | undefined;
   let lastProgressAt: number | undefined;
   let completedAt: number | undefined;
+  const renderFrame = async (frame: number, time: number, destination?: ArrayBuffer) => {
+    session.assertHealthy();
+    const started = now();
+    const raw =
+      destination === undefined
+        ? await session.readback(time)
+        : await session.readbackInto?.(time, destination);
+    if (!raw) throw new Error("Benchmark session does not support readback destinations");
+    readbackWallLatenciesMs[frame - benchmark.startFrame] = now() - started;
+    return validateRaw(raw);
+  };
   const result = await runRenderHostFrameLoop({
     assignment: validated,
     pixelFormat: session.pixelFormat,
@@ -48,13 +66,8 @@ export async function measurePerformance(
     audioDecoder: session.audioDecoder,
     requestedControl: () => undefined,
     now,
-    renderFrame: async (frame, time) => {
-      session.assertHealthy();
-      const started = now();
-      const raw = await session.readback(time);
-      readbackWallLatenciesMs[frame - benchmark.startFrame] = now() - started;
-      return validateRaw(raw);
-    },
+    renderFrame,
+    ...(session.readbackInto ? { renderFrameInto: renderFrame } : {}),
     encodePng: async () => {
       throw new Error("Performance MP4 loop unexpectedly requested PNG encoding");
     },
@@ -146,12 +159,15 @@ export async function runPerformanceAssignments(
     if (!assignment) return;
     health.beginCase();
     let session: PerformanceSession | undefined;
-    let result: PerformanceResult | undefined;
+    let result: PerformanceResult | PreviewPerformanceResult | undefined;
     let failure: string | undefined;
     try {
       validatePerformanceAssignment(assignment);
       session = await runtime.open(assignment, health);
-      result = await measurePerformance(assignment, session, (request) => api.output(request));
+      result =
+        assignment.benchmark.mode === "preview-present"
+          ? await measurePreviewPerformance(assignment, session)
+          : await measurePerformance(assignment, session, (request) => api.output(request));
     } catch (error) {
       failure = captureErrorMessage(error);
     } finally {

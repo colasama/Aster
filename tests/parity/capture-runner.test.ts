@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { GpuDiagnostics } from "../../src/core/types";
+import { normalizeRawFrameRgba } from "../../src/renderer/gpu/raw-frame-png";
 import { CaptureHealth } from "./capture-health";
 import type { ParityCaptureApi, ParityCaptureAssignment } from "./capture-protocol";
 import { type CaptureSession, runCaptureAssignments } from "./capture-runner";
@@ -62,6 +63,75 @@ describe("ordered reference capture", () => {
     );
     expect(api.fail).not.toHaveBeenCalled();
     expect(api.done).toHaveBeenCalledOnce();
+  });
+
+  it.each(["rgba", "bgra"] as const)(
+    "awaits publication before reusing %s readback storage and keeps published RGBA independent",
+    async (pixelFormat) => {
+      const { assignment, session } = scenario("leased-readback", [2, 0]);
+      const destination = new ArrayBuffer(8);
+      const source = new Uint8Array(destination);
+      let readbacks = 0;
+      session.readback = vi.fn(async () => {
+        const red = ++readbacks * 10;
+        source.set(
+          pixelFormat === "rgba"
+            ? [red, 2, 3, 255, red, 5, 6, 128]
+            : [3, 2, red, 255, 6, 5, red, 128],
+        );
+        return normalizeRawFrameRgba({ pixels: destination, pixelFormat }, 2, 1).buffer;
+      });
+      const api = apiFor([assignment]);
+      let acknowledge!: () => void;
+      const acknowledgement = new Promise<void>((resolve) => {
+        acknowledge = resolve;
+      });
+      const submitted = new Promise<void>((resolve) => {
+        api.frame = vi.fn(async (frame) => {
+          if (frame.frame !== 2) return;
+          resolve();
+          await acknowledgement;
+          expect([...new Uint8Array(frame.pixels)]).toEqual([10, 2, 3, 255, 10, 5, 6, 128]);
+        });
+      });
+      const capture = runCaptureAssignments(api, { open: async () => session });
+      await submitted;
+      await Promise.resolve();
+      expect(session.readback).toHaveBeenCalledOnce();
+      expect(api.completeCase).not.toHaveBeenCalled();
+      expect(session.dispose).not.toHaveBeenCalled();
+      acknowledge();
+      await capture;
+
+      const frames = vi.mocked(api.frame).mock.calls.map(([frame]) => frame);
+      expect(frames.map((frame) => frame.frame)).toEqual([2, 0]);
+      expect(frames[0].pixels).not.toBe(destination);
+      expect(frames[1].pixels).not.toBe(destination);
+      expect(frames[0].pixels).not.toBe(frames[1].pixels);
+      source.fill(99);
+      expect([...new Uint8Array(frames[0].pixels)]).toEqual([10, 2, 3, 255, 10, 5, 6, 128]);
+      expect([...new Uint8Array(frames[1].pixels)]).toEqual([20, 2, 3, 255, 20, 5, 6, 128]);
+      expect(api.fail).not.toHaveBeenCalled();
+      expect(api.completeCase).toHaveBeenCalledOnce();
+    },
+  );
+
+  it("stops reusing the case destination after a failed publication acknowledgement", async () => {
+    const { assignment, session } = scenario("rejected-ack", [0, 1]);
+    const api = apiFor([assignment]);
+    api.frame = vi.fn(async () => {
+      throw new Error("Frame publication failed");
+    });
+
+    await runCaptureAssignments(api, { open: async () => session });
+
+    expect(session.readback).toHaveBeenCalledOnce();
+    expect(session.dispose).toHaveBeenCalledOnce();
+    expect(api.completeCase).not.toHaveBeenCalled();
+    expect(api.fail).toHaveBeenCalledWith({
+      caseId: assignment.case.id,
+      error: expect.stringContaining("Frame publication failed"),
+    });
   });
 
   it("rejects a pixel-sized frame with failed resources before publishing and continues independently", async () => {

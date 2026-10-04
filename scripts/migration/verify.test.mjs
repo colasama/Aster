@@ -207,7 +207,7 @@ test("M1 and M2 delegate one TS verification and preserve incomplete milestone e
           {
             id: milestone,
             status: "in_progress",
-            gates: ["G0", "G3"],
+            gates: milestone === "M2" ? ["G0", "G1", "G3", "G4"] : ["G0", "G3"],
             tasks: [{ id: `${milestone}-T1`, status: "in_progress" }],
           },
         ],
@@ -218,6 +218,8 @@ test("M1 and M2 delegate one TS verification and preserve incomplete milestone e
         {
           provenance,
           execute: fakeHook,
+          runIrGate: async () => ({ id: "G1", status: "passed" }),
+          runPerformanceGate: async () => ({ id: "G4", status: "passed" }),
           verifyTsPixels: async (options) => {
             verifications++;
             assert.equal(options.candidates, "fresh/manifest.json");
@@ -238,11 +240,12 @@ test("M1 and M2 delegate one TS verification and preserve incomplete milestone e
         },
       );
       assert.equal(verifications, 1);
-      assert.equal(result.report.gates[1].status, passed ? "passed" : "failed");
+      const pixels = result.report.gates.find((gate) => gate.id === "G3");
+      assert.equal(pixels.status, passed ? "passed" : "failed");
       assert.equal(result.report.required_gates_passed, passed);
       assert.equal(result.report.milestone_exit_satisfied, false);
       assert.equal(result.exitCode, passed ? 0 : 1);
-      assert.equal(result.report.gates[1].ts_verification, "ts-report.json");
+      assert.equal(pixels.ts_verification, "ts-report.json");
     }
   }
 });
@@ -257,6 +260,88 @@ test("M1 refuses a missing candidate file without accepting cached gate status",
   assert.equal(result.exitCode, 1);
   assert.equal(result.report.gates[1].status, "failed");
   assert.match(result.report.gates[1].error, /ENOENT/);
+});
+
+test("M2 requires fresh IR and performance gates without treating the transport slice as exit", async (t) => {
+  for (const scenario of ["passed", "ir-failed", "perf-failed", "quick", "marked-done"]) {
+    const context = await fixture(t);
+    await writeAtomicJson(context.ledger, {
+      status: "running",
+      milestones: [
+        {
+          id: "M2",
+          status: scenario === "marked-done" ? "done" : "in_progress",
+          gates: ["G0", "G1", "G3", "G4"],
+          tasks: [{ id: "M2-T1", status: "in_progress" }],
+        },
+      ],
+    });
+    const calls = [];
+    const result = await verifyMigration(
+      { ...context, milestone: "M2", quick: scenario === "quick" },
+      {
+        provenance,
+        execute: fakeHook,
+        runIrGate: async (gateContext, execute) => {
+          calls.push("G1");
+          assert.equal(gateContext.source.source_sha256, "source-123");
+          assert.equal(gateContext.output.split(/[\\/]/).at(-1), "G1");
+          assert.equal(execute, fakeHook);
+          return { id: "G1", status: scenario === "ir-failed" ? "failed" : "passed" };
+        },
+        runPerformanceGate: async (gateContext, execute) => {
+          calls.push("G4");
+          assert.equal(gateContext.milestone, "M2");
+          assert.equal(gateContext.source.source_sha256, "source-123");
+          assert.equal(gateContext.output.split(/[\\/]/).at(-1), "G4");
+          assert.equal(execute, fakeHook);
+          return { id: "G4", status: scenario === "perf-failed" ? "failed" : "passed" };
+        },
+        verifyTsPixels: async () => ({
+          exitCode: 0,
+          reportPath: join(context.root, "ts-report.json"),
+          report: {
+            status: "passed",
+            source_unchanged: true,
+            gate: { id: "G3", status: "passed", full_coverage: true },
+          },
+        }),
+      },
+    );
+    assert.deepEqual(calls, scenario === "quick" ? [] : ["G1", "G4"]);
+    assert.equal(result.report.milestone_exit_satisfied, false);
+    assert.match(result.report.milestone_exit_reason, /complete production plan/);
+    const passed = ["passed", "marked-done"].includes(scenario);
+    assert.equal(result.report.required_gates_passed, passed);
+    assert.equal(
+      result.report.status,
+      passed ? "passed" : scenario === "quick" ? "incomplete" : "failed",
+    );
+    assert.equal(result.exitCode, passed || scenario === "quick" ? 0 : 1);
+    if (scenario === "quick") {
+      for (const id of ["G1", "G4"])
+        assert.equal(result.report.gates.find((gate) => gate.id === id).status, "skipped");
+    }
+  }
+});
+
+test("M2 cannot omit, replace or duplicate any specified gate", async (t) => {
+  for (const gates of [
+    ["G0", "G3"],
+    ["G0", "G1", "G3", "G3"],
+    ["G0", "G1", "G3", "G99"],
+  ]) {
+    const context = await fixture(t);
+    await writeAtomicJson(context.ledger, {
+      status: "running",
+      milestones: [{ id: "M2", status: "in_progress", gates, tasks: [] }],
+    });
+    const result = await verifyMigration(context, { provenance, execute: fakeHook });
+    assert.equal(result.exitCode, 1);
+    assert.equal(result.report.required_gates_passed, false);
+    assert.equal(result.report.milestone_exit_satisfied, false);
+    assert.match(result.report.error, /M2 requires G0, G1, G3 and G4/);
+  }
 });
 
 test("TS candidate selection prefers explicit input, then the active ledger capture, then the default path", async (t) => {

@@ -68,6 +68,12 @@ separate modules. Existing document fields, effect identifiers, and operation na
 allocation, resizing helpers, and disposal of its GPU resources and media/surface caches; scene batch
 submission has its own module. Frame buffers remain GPU-resident until an explicit readback.
 
+The migration's `aster-render-ir` crate owns typed frame-plan transport and its generated schema.
+TS DataView and Rust owned-buffer codecs share a canonical FPLN container with aligned binary blobs
+and separate content-addressed resource operations. The initial contract carries an explicit
+partial post-process uniform slice; production execution is extracted incrementally and complete
+frame replay is a separate milestone requirement. See [Frame-plan transport](migration/FRAME_PLAN.md).
+
 Shared WGSL includes output anti-aliasing, core scene variants, compositing, fused post-processing,
 blur/depth/surface effects, auxiliary surfaces, particles, text motion blur and display/buffer helpers.
 The TS `SharedShaderCatalog` loads sources through Vite `?raw`, including in Vitest, and concatenates the fragments in
@@ -378,6 +384,13 @@ the writer. Media preparation is serialized only through exact-frame submission,
 image-sequence/SVG generations cannot overtake each other while GPU mapping and encoding proceed
 concurrently. Pause retains the
 bounded lookahead; cancel and failure drain accepted captures before disposing the renderer.
+
+RenderHosts can opt into `renderFrameInto` with a CPU destination pool sized to the clamped
+pipeline depth plus the writer's frame. The pool allocates exact-sized buffers lazily; every
+readback still copies all mapped pixels and removes row padding before unmapping. Readback callers
+that omit a destination continue to receive a fresh owned buffer. A leased destination remains
+exclusive through media retries and all PNG/MP4 output acknowledgements. Cancellation and failure
+release the selected frame and drain and release accepted lookahead before renderer disposal.
 
 The preview has a Canvas 2D compatibility renderer. It is a functional fallback, not a performance
 target. Native wgpu and browser WebGPU share formats and graph concepts, but do not yet share shader

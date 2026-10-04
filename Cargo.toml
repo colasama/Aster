@@ -18,6 +18,7 @@ aster-plugin = { path = "crates/aster-plugin", version = "0.3.5" }
 aster-profiler = { path = "crates/aster-profiler", version = "0.3.5" }
 aster-project = { path = "crates/aster-project", version = "0.3.5" }
 aster-render = { path = "crates/aster-render", version = "0.3.5" }
+aster-render-ir = { path = "crates/aster-render-ir", version = "0.3.5" }
 aster-render-compare = { path = "crates/aster-render-compare", version = "0.3.5" }
 aster-shaders = { path = "crates/aster-shaders", version = "0.3.5" }
 aster-scene = { path = "crates/aster-scene", version = "0.3.5" }

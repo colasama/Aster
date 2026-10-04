@@ -6,7 +6,12 @@ import {
   streamCompositionAudio,
 } from "../../core/audio/audio-export";
 import { validateProjectDocument } from "../../core/project/project-file";
-import { frameTimeAtIndex, streamFramePipeline } from "../../core/rendering/render-export";
+import { type FrameBufferLease, FrameBufferPool } from "../../core/rendering/frame-buffer-pool";
+import {
+  framePipelineDepth,
+  frameTimeAtIndex,
+  streamFramePipeline,
+} from "../../core/rendering/render-export";
 import type { RenderJobManifest } from "../../core/rendering/render-queue";
 import type { Composition, Project } from "../../core/types";
 import type {
@@ -34,6 +39,8 @@ interface RenderHostFrameLoopOptions {
   maxInFlightFrames?: number;
   audioDecoder?: AudioSourceDecoder;
   renderFrame(frame: number, time: number): Promise<RawVideoFrame>;
+  /** Explicit support for a caller-owned destination, retained until every output acknowledges it. */
+  renderFrameInto?(frame: number, time: number, destination: ArrayBuffer): Promise<RawVideoFrame>;
   encodePng(frame: RawVideoFrame): Promise<ArrayBuffer>;
   output(request: DesktopRenderHostOutputRequest): Promise<unknown>;
   report(report: DesktopRenderHostReport): Promise<void>;
@@ -44,6 +51,11 @@ interface RenderHostFrameLoopOptions {
 }
 
 export type RenderHostFrameLoopResult = "completed" | "cancelled";
+
+interface LeasedHostFrame {
+  raw: RawVideoFrame;
+  lease: FrameBufferLease;
+}
 
 /** Narrows an assignment to the only fields accepted by terminal report IPC. */
 export function renderHostCorrelation(
@@ -141,7 +153,14 @@ export async function runRenderHostFrameLoop(
     return released;
   };
   try {
-    const completed = await streamFramePipeline({
+    const renderFrameInto = options.renderFrameInto;
+    const frameBuffers = renderFrameInto
+      ? new FrameBufferPool(
+          manifest.width * manifest.height * 4,
+          framePipelineDepth(maxInFlight) + 1,
+        )
+      : undefined;
+    const completed = await streamFramePipeline<RawVideoFrame | LeasedHostFrame>({
       frameCount: totalFrames,
       maxInFlight,
       cancelled: () => options.requestedControl() === "cancel",
@@ -152,9 +171,16 @@ export async function runRenderHostFrameLoop(
       },
       render: (index) => {
         const frame = manifest.startFrame + index;
-        return options.renderFrame(frame, frameTimeAtIndex(frame, manifest.frameRate));
+        const time = frameTimeAtIndex(frame, manifest.frameRate);
+        return frameBuffers && renderFrameInto
+          ? renderIntoOwnedFrame(renderFrameInto, frameBuffers, frame, time)
+          : options.renderFrame(frame, time);
       },
-      write: async (raw, index) => {
+      release: (frame) => {
+        if (!("pixels" in frame)) frame.lease.release();
+      },
+      write: async (captured, index) => {
+        const raw = "pixels" in captured ? captured : captured.raw;
         const frame = manifest.startFrame + index;
         validateRawFrame(raw, manifest, options.pixelFormat);
 
@@ -230,6 +256,29 @@ export async function runRenderHostFrameLoop(
     audioAborted = true;
     // Propagate failure so the host can close the encoder and release blocked PCM writes.
     // The audio pipeline captures its own rejection, including errors from that cleanup.
+    throw error;
+  }
+}
+
+async function renderIntoOwnedFrame(
+  render: NonNullable<RenderHostFrameLoopOptions["renderFrameInto"]>,
+  buffers: FrameBufferPool,
+  frame: number,
+  time: number,
+): Promise<LeasedHostFrame> {
+  const lease = buffers.acquire();
+  try {
+    const destination = lease.buffer;
+    const raw = await render(frame, time, destination);
+    if (raw.pixels !== lease.buffer)
+      throw new Error("RenderHost renderer did not use the leased frame destination");
+    return { raw, lease };
+  } catch (error) {
+    try {
+      lease.release();
+    } catch {
+      // A broken destination must not hide the renderer's original failure.
+    }
     throw error;
   }
 }

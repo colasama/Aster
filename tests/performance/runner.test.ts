@@ -73,6 +73,41 @@ function scenario(mode: PerformanceMode = "readback-only", audio = false) {
 }
 
 describe("production performance frame loop", () => {
+  it("uses the production destination capability while retaining complete ordered output", async () => {
+    const data = scenario("ipc-no-encode");
+    data.session.maxConcurrentReadbacks = 1;
+    let frame = 3;
+    const destinations: ArrayBuffer[] = [];
+    data.session.readbackInto = vi.fn(async (_time: number, destination: ArrayBuffer) => {
+      destinations.push(destination);
+      new Uint8Array(destination).fill(frame++);
+      return { pixels: destination, pixelFormat: "bgra" as const };
+    });
+    const received: number[] = [];
+    const result = await measurePerformance(
+      data.assignment,
+      data.session,
+      async (request) => {
+        if (request.type === "writeMp4Frame") received.push(new Uint8Array(request.pixels)[0]);
+      },
+      data.now,
+    );
+    expect(data.session.readback).toHaveBeenCalledTimes(10);
+    expect(data.session.readbackInto).toHaveBeenCalledTimes(4);
+    expect(new Set(destinations).size).toBe(2);
+    expect(received).toEqual([3, 4, 5, 6]);
+    expect(result.frameCompletionIntervalsMs).toHaveLength(4);
+    expect(result.maxInFlight).toBe(1);
+  });
+
+  it("rejects a session that silently ignores its supplied destination", async () => {
+    const data = scenario();
+    data.session.readbackInto = async () => ({ pixels: new ArrayBuffer(8), pixelFormat: "bgra" });
+    await expect(
+      measurePerformance(data.assignment, data.session, data.output, data.now),
+    ).rejects.toThrow(/destination/);
+  });
+
   it("keeps rational addresses, excludes warm-up, and never invokes IPC in the local arm", async () => {
     const data = scenario();
     const result = await measurePerformance(data.assignment, data.session, data.output, data.now);

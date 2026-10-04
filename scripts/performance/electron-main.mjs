@@ -16,6 +16,7 @@ import {
   publishPerformanceReport,
   validatePerformanceResult,
 } from "./output-session.mjs";
+import { PreviewOutputSession, validatePreviewResult } from "./preview.mjs";
 
 let config;
 let bridge;
@@ -221,14 +222,17 @@ async function main() {
       const current = {
         assignment,
         completing: false,
-        output: new PerformanceOutputSession(assignment, {
-          manager,
-          ownerId: window.webContents.id,
-          runDirectory: config.runDirectory,
-          index,
-          ffprobe,
-          timeoutMs: config.timeoutMs,
-        }),
+        output:
+          assignment.benchmark.mode === "preview-present"
+            ? new PreviewOutputSession()
+            : new PerformanceOutputSession(assignment, {
+                manager,
+                ownerId: window.webContents.id,
+                runDirectory: config.runDirectory,
+                index,
+                ffprobe,
+                timeoutMs: config.timeoutMs,
+              }),
       };
       active = current;
       deadline(`Performance benchmark timed out: ${assignment.benchmark.id}`);
@@ -247,7 +251,9 @@ async function main() {
       const current = active;
       if (!current || current.completing) throw new Error("No benchmark is awaiting completion");
       current.completing = true;
-      validatePerformanceResult(
+      (current.assignment.benchmark.mode === "preview-present"
+        ? validatePreviewResult
+        : validatePerformanceResult)(
         current.assignment,
         result,
         current.output.report,

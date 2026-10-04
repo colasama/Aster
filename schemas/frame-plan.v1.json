@@ -1,0 +1,303 @@
+{
+  "$defs": {
+    "AntiAliasing": {
+      "enum": ["off", "fxaa", "ssaa2x", "ssaa4x"],
+      "type": "string"
+    },
+    "BlobDescriptor": {
+      "additionalProperties": false,
+      "properties": {
+        "byte_length": {
+          "format": "uint32",
+          "minimum": 1,
+          "type": "integer"
+        },
+        "byte_offset": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "element_count": {
+          "format": "uint32",
+          "minimum": 1,
+          "type": "integer"
+        },
+        "element_type": {
+          "$ref": "#/$defs/ElementType"
+        }
+      },
+      "required": ["byte_offset", "byte_length", "element_type", "element_count"],
+      "type": "object"
+    },
+    "BufferResourceDescriptor": {
+      "additionalProperties": false,
+      "properties": {
+        "byte_length": {
+          "format": "uint32",
+          "minimum": 1,
+          "type": "integer"
+        },
+        "element_count": {
+          "format": "uint32",
+          "minimum": 1,
+          "type": "integer"
+        },
+        "element_type": {
+          "$ref": "#/$defs/ElementType"
+        }
+      },
+      "required": ["element_type", "element_count", "byte_length"],
+      "type": "object"
+    },
+    "ColorPipeline": {
+      "enum": ["linear-hdr-to-srgb-display"],
+      "type": "string"
+    },
+    "ContractLevel": {
+      "enum": ["post_uniforms_slice_v1"],
+      "type": "string"
+    },
+    "ElementType": {
+      "enum": ["u8", "u32_le", "f32_le"],
+      "type": "string"
+    },
+    "Extent2d": {
+      "additionalProperties": false,
+      "properties": {
+        "height": {
+          "format": "uint32",
+          "minimum": 1,
+          "type": "integer"
+        },
+        "width": {
+          "format": "uint32",
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": ["width", "height"],
+      "type": "object"
+    },
+    "FrameHeaderSlice": {
+      "additionalProperties": false,
+      "properties": {
+        "aa": {
+          "$ref": "#/$defs/AntiAliasing"
+        },
+        "color_pipeline": {
+          "$ref": "#/$defs/ColorPipeline"
+        },
+        "composition_id": {
+          "maxLength": 256,
+          "minLength": 1,
+          "type": "string"
+        },
+        "frame_rate": {
+          "$ref": "#/$defs/RationalFrameRate"
+        },
+        "project_revision": {
+          "format": "uint64",
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "render_target": {
+          "$ref": "#/$defs/Extent2d"
+        },
+        "target": {
+          "$ref": "#/$defs/Extent2d"
+        },
+        "time": {
+          "$ref": "#/$defs/RationalTime"
+        }
+      },
+      "required": [
+        "project_revision",
+        "composition_id",
+        "time",
+        "frame_rate",
+        "target",
+        "render_target",
+        "aa",
+        "color_pipeline"
+      ],
+      "type": "object"
+    },
+    "PlanKind": {
+      "enum": ["frame_plan_slice"],
+      "type": "string"
+    },
+    "PlanSlice": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "blob_index": {
+              "format": "uint32",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "kind": {
+              "const": "post_process_uniforms",
+              "type": "string"
+            }
+          },
+          "required": ["kind", "blob_index"],
+          "type": "object"
+        }
+      ]
+    },
+    "PutResource": {
+      "additionalProperties": false,
+      "properties": {
+        "descriptor": {
+          "$ref": "#/$defs/BufferResourceDescriptor"
+        },
+        "hash": {
+          "$ref": "#/$defs/ResourceHash"
+        },
+        "kind": {
+          "$ref": "#/$defs/ResourceKind"
+        }
+      },
+      "required": ["hash", "kind", "descriptor"],
+      "type": "object"
+    },
+    "RationalFrameRate": {
+      "additionalProperties": false,
+      "properties": {
+        "denominator": {
+          "format": "uint32",
+          "minimum": 1,
+          "type": "integer"
+        },
+        "numerator": {
+          "format": "uint32",
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": ["numerator", "denominator"],
+      "type": "object"
+    },
+    "RationalTime": {
+      "additionalProperties": false,
+      "properties": {
+        "scale": {
+          "format": "uint32",
+          "minimum": 1,
+          "type": "integer"
+        },
+        "value": {
+          "format": "int64",
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        }
+      },
+      "required": ["value", "scale"],
+      "type": "object"
+    },
+    "ResourceHash": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "ResourceKind": {
+      "enum": ["buffer"],
+      "type": "string"
+    },
+    "ResourceMessage": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "descriptor": {
+              "$ref": "#/$defs/BufferResourceDescriptor"
+            },
+            "hash": {
+              "$ref": "#/$defs/ResourceHash"
+            },
+            "kind": {
+              "$ref": "#/$defs/ResourceKind"
+            },
+            "type": {
+              "const": "put_resource",
+              "type": "string"
+            }
+          },
+          "required": ["type", "hash", "kind", "descriptor"],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "hash": {
+              "$ref": "#/$defs/ResourceHash"
+            },
+            "type": {
+              "const": "evict_resource",
+              "type": "string"
+            }
+          },
+          "required": ["type", "hash"],
+          "type": "object"
+        }
+      ]
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "blobs": {
+      "items": {
+        "$ref": "#/$defs/BlobDescriptor"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "contract_level": {
+      "$ref": "#/$defs/ContractLevel"
+    },
+    "header": {
+      "$ref": "#/$defs/FrameHeaderSlice"
+    },
+    "kind": {
+      "$ref": "#/$defs/PlanKind"
+    },
+    "plan_version": {
+      "const": 1,
+      "format": "uint32",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "renderer_plan_complete": {
+      "const": false,
+      "type": "boolean"
+    },
+    "resources": {
+      "items": {
+        "$ref": "#/$defs/ResourceHash"
+      },
+      "type": "array"
+    },
+    "slices": {
+      "items": {
+        "$ref": "#/$defs/PlanSlice"
+      },
+      "minItems": 1,
+      "type": "array"
+    }
+  },
+  "required": [
+    "kind",
+    "plan_version",
+    "contract_level",
+    "renderer_plan_complete",
+    "header",
+    "blobs",
+    "slices",
+    "resources"
+  ],
+  "title": "FramePlanSliceV1",
+  "type": "object"
+}

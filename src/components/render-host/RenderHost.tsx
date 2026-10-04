@@ -91,6 +91,19 @@ export function RenderHost() {
           : undefined;
         audioAbort = audioRuntime?.abort;
         const activeAudioRuntime = audioRuntime;
+        const renderFrame = (_frame: number, time: number, destination?: ArrayBuffer) =>
+          pipeline.readback(
+            createBeautyFrameRequest({
+              composition: validated.composition,
+              antiAliasing: validated.manifest.antiAliasing,
+              project: validated.project,
+              time,
+              width: validated.manifest.width,
+              height: validated.manifest.height,
+            }),
+            validated.synchronizeVideo,
+            destination,
+          );
         await runRenderHostFrameLoop({
           assignment: validated,
           pixelFormat: pipeline.pixelFormat,
@@ -108,18 +121,8 @@ export function RenderHost() {
             : {}),
           requestedControl: () => requestedControl,
           waitForControlChange: () => controlSignal.promise,
-          renderFrame: (_frame, time) =>
-            pipeline.readback(
-              createBeautyFrameRequest({
-                composition: validated.composition,
-                antiAliasing: validated.manifest.antiAliasing,
-                project: validated.project,
-                time,
-                width: validated.manifest.width,
-                height: validated.manifest.height,
-              }),
-              validated.synchronizeVideo,
-            ),
+          renderFrame,
+          renderFrameInto: renderFrame,
           encodePng: async (frame) =>
             (
               await encodeRawFramePng(frame, validated.manifest.width, validated.manifest.height)

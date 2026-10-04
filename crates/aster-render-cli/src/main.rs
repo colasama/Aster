@@ -1,4 +1,5 @@
 mod compare;
+mod ir;
 
 use std::process::ExitCode;
 
@@ -18,6 +19,8 @@ struct Cli {
 enum Command {
     /// Compare lossless RGBA pixels against a fixed tolerance profile.
     Compare(CompareArgs),
+    /// Generate schemas and round-trip the bounded partial frame-plan transport.
+    Ir(ir::IrArgs),
 }
 
 #[derive(Serialize)]
@@ -30,6 +33,7 @@ impl Cli {
     fn run(self) -> Result<ExitCode, Box<dyn std::error::Error>> {
         match self.command {
             Command::Compare(arguments) => arguments.run(),
+            Command::Ir(arguments) => Ok(arguments.run()),
         }
     }
 }

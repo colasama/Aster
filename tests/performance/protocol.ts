@@ -3,11 +3,12 @@ import type { DesktopRenderHostOutputRequest, Mp4PixelFormat } from "../../src/d
 import type { ParityAdapterIdentity, ParityCaptureAssignment } from "../parity/capture-protocol";
 
 export type PerformanceMode = "readback-only" | "ipc-no-encode" | "full-mp4";
+export type BenchmarkMode = PerformanceMode | "preview-present";
 
 export interface PerformanceAssignment extends ParityCaptureAssignment {
   benchmark: {
     id: string;
-    mode: PerformanceMode;
+    mode: BenchmarkMode;
     run: number;
     warmupFrames: number;
     startFrame: number;
@@ -49,9 +50,34 @@ export interface PerformanceApi {
   ready(adapter: ParityAdapterIdentity): Promise<void>;
   take(): Promise<PerformanceAssignment | null>;
   output(request: DesktopRenderHostOutputRequest): Promise<unknown>;
-  complete(result: PerformanceResult): Promise<void>;
+  complete(result: PerformanceResult | PreviewPerformanceResult): Promise<void>;
   fail(failure: { error: string }): Promise<void>;
   done(): Promise<void>;
+}
+
+export interface PreviewPerformanceResult {
+  schemaVersion: 1;
+  id: string;
+  benchmarkId: string;
+  caseId: string;
+  mode: "preview-present";
+  run: number;
+  frames: number;
+  warmupFrames: number;
+  startFrame: number;
+  endFrameExclusive: number;
+  width: number;
+  height: number;
+  frameRate: { numerator: number; denominator: number };
+  pixelFormat: Mp4PixelFormat;
+  maxInFlight: 1;
+  playing: false;
+  elapsedMs: number;
+  framesPerSecond: number;
+  samples: { frame: number; presentCallMs: number; presentCompletionMs: number }[];
+  loadMs: number;
+  initializeMs: number;
+  diagnostics: GpuDiagnostics;
 }
 
 declare global {

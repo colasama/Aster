@@ -41,6 +41,76 @@ class FakeBeautyBackend implements BeautyFrameBackend {
 }
 
 describe("production beauty frame pipeline", () => {
+  it("rejects an invalid destination before preparing resources or calling the backend", async () => {
+    const project = createDemoProject();
+    const backend = new FakeBeautyBackend();
+    const resize = vi.spyOn(backend, "resize");
+    const readback = vi.spyOn(backend, "readback");
+    const pipeline = new ProductionBeautyFramePipeline(backend);
+    const request = createBeautyFrameRequest({
+      project,
+      composition: activeComposition(project),
+      time: 0,
+      width: 2,
+      height: 2,
+    });
+    await expect(pipeline.readback(request, true, new ArrayBuffer(15))).rejects.toThrow(
+      /destination/,
+    );
+    expect(resize).not.toHaveBeenCalled();
+    expect(readback).not.toHaveBeenCalled();
+    await expect(pipeline.readback(request, true, new ArrayBuffer(16))).rejects.toThrow(
+      /did not use/,
+    );
+  });
+
+  it("passes caller-owned output storage and exact-media synchronization to WebGPU", async () => {
+    const project = createDemoProject();
+    const destination = new ArrayBuffer(16);
+    const renderRawFrame = vi.fn(
+      async (
+        _composition: unknown,
+        _time: number,
+        _project: unknown,
+        _synchronizeVideo: boolean,
+        buffer: ArrayBuffer,
+      ) => {
+        new Uint8Array(buffer).fill(51);
+        return { pixels: buffer, pixelFormat: "rgba" as const };
+      },
+    );
+    const renderer = Object.assign(Object.create(WebGpuRenderer.prototype), {
+      configureBeautyTarget: vi.fn(),
+      renderRawFrame,
+    }) as WebGpuRenderer;
+    Object.defineProperties(renderer, {
+      exportPixelFormat: { value: "rgba" },
+      outputWidth: { value: 2 },
+      outputHeight: { value: 2 },
+      bufferVisualization: { value: "beauty" },
+    });
+    const pipeline = new ProductionBeautyFramePipeline(
+      createViewportBeautyFrameBackend(renderer, { width: 2, height: 2 } as HTMLCanvasElement),
+    );
+    const request = createBeautyFrameRequest({
+      project,
+      composition: activeComposition(project),
+      time: 0.5,
+      width: 2,
+      height: 2,
+      antiAliasing: "ssaa4x",
+    });
+    expect((await pipeline.readback(request, true, destination)).pixels).toBe(destination);
+    expect(renderRawFrame).toHaveBeenCalledWith(
+      request.composition,
+      0.5,
+      project,
+      true,
+      destination,
+    );
+    expect(new Uint8Array(destination)).toEqual(new Uint8Array(16).fill(51));
+  });
+
   it("settles preview submission once before concurrent export readbacks", async () => {
     let finish!: () => void;
     const completion = new Promise<void>((resolve) => {

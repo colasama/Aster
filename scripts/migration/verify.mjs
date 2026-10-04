@@ -4,8 +4,10 @@ import { join, relative } from "node:path";
 import { runEffectShotSmoke } from "../parity/effect-shots.mjs";
 import { runPixelGate } from "../parity/pixel-gate.mjs";
 import { runAppChecks } from "./app-checks.mjs";
+import { runIrGate } from "./ir-gate.mjs";
 import { auditM0Exit } from "./m0-exit.mjs";
 import { auditM1Exit } from "./m1-exit.mjs";
+import { runPerformanceGate } from "./performance-gate.mjs";
 import { runStep } from "./process.mjs";
 import { writeAtomicJson } from "./report.mjs";
 import { ownerProject, sourceProvenance } from "./source.mjs";
@@ -87,6 +89,10 @@ export async function verifyMigration(options, dependencies = {}) {
       : ledger.milestones.find((item) => item.status !== "done");
     if (!milestone) throw new Error("Requested milestone is missing from the migration ledger");
     report.milestone = milestone.id;
+    if (milestone.id === "M2") {
+      report.milestone_exit_reason =
+        "IR transport and performance gates do not establish complete production plan execution, replay or capture";
+    }
     report.required_gates = milestone.gates;
     report.open_tasks = milestone.tasks
       .filter((task) => task.status !== "done")
@@ -107,9 +113,39 @@ export async function verifyMigration(options, dependencies = {}) {
     if (milestone.id === "M0" && !milestone.gates.includes("G6")) {
       throw new Error("M0 requires both G0 and G6 according to the migration specification");
     }
+    if (
+      milestone.id === "M2" &&
+      (milestone.gates.length !== 4 ||
+        ["G0", "G1", "G3", "G4"].some((id) => !milestone.gates.includes(id)))
+    ) {
+      throw new Error("M2 requires G0, G1, G3 and G4 according to the migration specification");
+    }
     for (const id of milestone.gates) {
       if (id === "G0") report.gates.push(await runStaticGate(context, quick, execute));
-      else if (id === "G3" && ["M1", "M2"].includes(milestone.id)) {
+      else if (id === "G1" && milestone.id === "M2") {
+        report.gates.push(
+          quick
+            ? { id, status: "skipped", reason: "Quick mode omits the full cross-language IR gate" }
+            : await (dependencies.runIrGate ?? runIrGate)(
+                { ...context, output: join(output, "G1"), source: report.source },
+                execute,
+              ),
+        );
+      } else if (id === "G4" && milestone.id === "M2") {
+        report.gates.push(
+          quick
+            ? { id, status: "skipped", reason: "Quick mode omits measured performance suites" }
+            : await (dependencies.runPerformanceGate ?? runPerformanceGate)(
+                {
+                  ...context,
+                  output: join(output, "G4"),
+                  source: report.source,
+                  milestone: milestone.id,
+                },
+                execute,
+              ),
+        );
+      } else if (id === "G3" && ["M1", "M2"].includes(milestone.id)) {
         const checked = await (dependencies.verifyTsPixels ?? verifyTsPixels)(
           {
             root,

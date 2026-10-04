@@ -61,7 +61,14 @@ export function performanceEligibility({
   const expected = policy?.requiredAdapter;
   const validManifest =
     manifest?.schemaVersion === 1 &&
-    manifest.id === "windows-radeon780m-local" &&
+    (manifest.id === "windows-radeon780m-local" ||
+      (manifest.id === "windows-radeon780m-local-1920x1080-144hz" &&
+        manifest.parentSeries === "windows-radeon780m-local" &&
+        policy?.driverOsPowerDisplayChangesStartNewSeries === true &&
+        manifest.displays?.length === 1 &&
+        manifest.displays[0].width === 1920 &&
+        manifest.displays[0].height === 1080 &&
+        manifest.displays[0].refreshHz === 144)) &&
     typeof expected?.name === "string" &&
     expected.name.length > 0 &&
     pciId(expected.vendorId) !== null &&

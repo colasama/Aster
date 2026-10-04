@@ -55,6 +55,13 @@ probing and subsequent FFprobe validation are outside it. Video synchronization 
 readback concurrency follow the production assignment, including a single in-flight frame for
 the owner project's reachable video layers. Frames keep the native BGRA/RGBA format.
 
+Current readback benchmark sessions use the production RenderHost `renderFrameInto` path and its
+lazy CPU destination pool. Capacity is the clamped pipeline depth plus one writer-owned frame;
+all pixels are still copied, and buffers remain leased until every PNG/MP4 output acknowledges
+the frame. Initial pool allocations occur inside the measured interval. Warm-up, frame counts,
+concurrency, timing boundaries and acceptance thresholds are unchanged; buffer reuse alone does
+not establish a throughput improvement or a passing performance gate.
+
 Reports retain each frame's completion interval and readback wall latency, per-run elapsed time
 and throughput, actual encoder selection, output byte counts, and FFprobe stream evidence.
 Quantiles use linear interpolation (R-7), matching the existing renderer benchmark reports.
@@ -97,6 +104,51 @@ inside the timer. The effect fixture uses bright input, non-neutral curves and e
 Glow and chromatic operations. Hashed raw per-run samples, FFprobe results and source provenance
 are retained alongside the summary; private owner project data remains external.
 
+M2 adds a separate production-present series before changing production frame planning.
+`pnpm migrate:benchmark --suite preview --report <fresh-artifact-path>` measures the existing
+`ProductionBeautyFramePipeline.present` route in the hidden Electron canvas, then awaits the
+renderer queue's completion for each frame. It does not request pixel readback, enter the export
+loop or use cached preview frames. The three fixed synthetic workloads (1080p composite, 4K
+composite and 1080p effect chain) each run 600 measured frames in three rounds. A complete ten-frame
+warm-up suite precedes measurement, and each measured round also discards ten warm-up frames.
+
+Raw samples distinguish synchronous present-call time from wall time through GPU queue completion.
+The tracked preview medians are run throughput and per-frame present-completion interval. No
+animation-frame pacing is imposed: these measure the cost of production canvas presentation and
+completion, not monitor scan-out, playback scheduling or input latency. These resource-free scenes
+must not report pending media or GPU failures. Exact owner-video preview readiness is outside this
+preview series; the existing owner readback, IPC and full-export measurements remain required.
+
+The preview baseline is independently frozen in `benchmarks/results/m2-preview-baseline.json`;
+it includes its complete raw observations and its file hash is pinned in the migration ledger.
+It does not replace `migration-baseline.json` or its raw evidence. Hardware, adapter, power,
+workloads, timing method and source provenance accompany both series. M2 G4 runs fresh complete
+throughput and preview suites, verifies their raw evidence and compares every tracked median.
+A throughput below 95% of its baseline or a tracked interval above 105% fails the gate. Missing,
+partial, changed or stale reports do not count as passing measurements. Quick checks omit G4.
+
+The local manifest starts a new series when display conditions change. The additive
+`windows-radeon780m-local-1920x1080-144hz` series preserves the original 2800×1260 files and uses
+independent reference measurements at 1920×1080. Its reference is a retained production bundle,
+audited against the ledger-pinned pre-plan evidence and the M1 source commit; it is not described as
+a fresh rebuild. The report records historical renderer bytes and the current common harness
+separately. Complete bundle files, bridge, inputs, encoder, method and output evidence are rechecked.
+Neither a current optimized bundle nor a diagnostic subset can establish this reference.
+
+Each fresh measurement hashes the executed web files and preserves create-new copies of the live
+Electron and bridge artifacts before launch. The runner checks both live and preserved bytes after
+completion. Later evidence audits use the preserved files, so rebuilding the current application
+does not invalidate an earlier reference. Current candidates must use their own fresh web directory.
+
+To measure that fixed reference, run `pnpm migrate:benchmark --reference-bundle` for each of
+`--suite throughput` and `--suite preview`, using distinct `--report` paths and
+`--hardware-manifest benchmarks/hardware/windows-radeon780m-local-1920x1080-144hz.json`.
+`node scripts/performance-series-baseline.mjs <throughput-report> <preview-report>` audits and freezes
+the additive descriptor without replacing an existing file. Pin its path and file hash in M2's
+`performance_series` before measuring the current candidate. G4 makes that choice before any
+measurement and applies the same 24 median checks and 5 percent limits. Results measured under
+different display conditions, including previous failed runs, are never relabeled as comparable.
+
 `pnpm parity:generate` materializes deterministic projects under `artifacts/parity/projects/` and
 updates `tests/parity/corpus.json`. `node scripts/parity-generate.mjs --check` checks that the manifest
 matches the factories and current registries. The corpus tests validate project structures, active
@@ -122,6 +174,12 @@ errors. It preserves raw RGBA8 bytes when writing PNG, including RGB beneath zer
 cases also capture actual adjacent frames for later identity checks without changing the requested
 seek order. References are written under `artifacts/parity/reference/<case>/<frame>/`; a separate
 capture report and the raw host diagnostics identify their provenance.
+
+Each capture case reuses one exact-sized raw readback destination and checks the returned buffer's
+identity. RGBA normalization produces an independent owned buffer, and the next readback waits for
+the previous frame's publication acknowledgement. Candidate captures therefore exercise the same
+destination-copy path used by production exports; G3 retains its full corpus, pixel thresholds and
+reference requirements without an exemption for buffer reuse.
 
 Reference reuse requires matching renderer/capture source, project and media hashes, adapter
 identity, and system font contents. Unavailable font provenance disables reuse. Each cached PNG and

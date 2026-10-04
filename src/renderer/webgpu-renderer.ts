@@ -41,6 +41,7 @@ import {
   GpuFrameReadbackPool,
   type RawFramePixelFormat,
   type RawVideoFrame,
+  validateReadbackDestination,
 } from "./gpu/frame-readback";
 import { planGpuMemory } from "./gpu/gpu-memory-budget";
 import { initializeGpuResources } from "./gpu/initialize-gpu-resources";
@@ -274,13 +275,22 @@ export class WebGpuRenderer {
     time: number,
     project?: Project,
     synchronizeVideo = false,
+    destination?: ArrayBuffer,
   ): Promise<RawVideoFrame> {
     this.#assertActive();
+    if (destination !== undefined)
+      validateReadbackDestination(destination, this.#outputWidth, this.#outputHeight);
     // Video exports hold the discovery capture until every active video shows its exact frame,
     // so the only readback submitted is the exact one.
     return this.#frameCaptures.capture(
       (discovery) =>
-        this.#captureRawFrame(composition, time, project, synchronizeVideo && discovery),
+        this.#captureRawFrame(
+          composition,
+          time,
+          project,
+          synchronizeVideo && discovery,
+          destination,
+        ),
       this.#frameResources,
     );
   }
@@ -289,6 +299,7 @@ export class WebGpuRenderer {
     time: number,
     project?: Project,
     holdInexactVideo = false,
+    destination?: ArrayBuffer,
   ): Promise<RawVideoFrame> {
     if (this.#pendingFrameReadback)
       return Promise.reject(new Error("A GPU frame readback is already being encoded"));
@@ -306,7 +317,7 @@ export class WebGpuRenderer {
     } finally {
       this.#pendingFrameReadback = undefined;
     }
-    return ticket.read();
+    return ticket.read(destination);
   }
   render(
     composition: Composition,

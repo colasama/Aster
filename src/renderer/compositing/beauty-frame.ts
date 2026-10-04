@@ -2,7 +2,11 @@ import { activateProjectFonts, prepareProjectFonts } from "../../core/media/proj
 import { type AntiAliasingMode, normalizeAntiAliasing } from "../../core/rendering/anti-aliasing";
 import type { Composition, Project, RendererMetrics } from "../../core/types";
 import type { CanvasFallbackRenderer } from "../canvas-fallback";
-import type { RawFramePixelFormat, RawVideoFrame } from "../gpu/frame-readback";
+import {
+  type RawFramePixelFormat,
+  type RawVideoFrame,
+  validateReadbackDestination,
+} from "../gpu/frame-readback";
 import { WebGpuRenderer } from "../webgpu-renderer";
 
 export const PRODUCTION_BEAUTY_SETTINGS = Object.freeze({
@@ -41,7 +45,11 @@ export interface BeautyFrameBackend {
     selectedLayerId?: string,
     playing?: boolean,
   ): RendererMetrics;
-  readback(request: BeautyFrameRequest, synchronizeVideo: boolean): Promise<RawVideoFrame>;
+  readback(
+    request: BeautyFrameRequest,
+    synchronizeVideo: boolean,
+    destination?: ArrayBuffer,
+  ): Promise<RawVideoFrame>;
 }
 
 export function createBeautyFrameRequest(options: {
@@ -97,10 +105,18 @@ export class ProductionBeautyFramePipeline {
     return this.#backend.present(request, selectedLayerId, playing);
   }
 
-  async readback(request: BeautyFrameRequest, synchronizeVideo = false): Promise<RawVideoFrame> {
+  async readback(
+    request: BeautyFrameRequest,
+    synchronizeVideo = false,
+    destination?: ArrayBuffer,
+  ): Promise<RawVideoFrame> {
     validateBeautyFrameRequest(request);
+    if (destination !== undefined)
+      validateReadbackDestination(destination, request.target.width, request.target.height);
     this.#prepare(request);
-    const frame = await this.#backend.readback(request, synchronizeVideo);
+    const frame = await this.#backend.readback(request, synchronizeVideo, destination);
+    if (destination !== undefined && frame.pixels !== destination)
+      throw new Error("Beauty frame backend did not use the supplied readback destination");
     if (frame.pixelFormat !== this.pixelFormat)
       throw new Error("Beauty frame backend changed pixel format during a render session");
     const expectedBytes = request.target.width * request.target.height * 4;
@@ -163,7 +179,7 @@ export function createViewportBeautyFrameBackend(
         true,
       );
     },
-    readback: async (request, synchronizeVideo) => {
+    readback: async (request, synchronizeVideo, destination) => {
       // A preview may still be using the canvas presentation texture. Settle that transition once;
       // subsequent export frames retain the bounded concurrent readback path.
       if (presentationPending && renderer instanceof WebGpuRenderer) {
@@ -182,6 +198,7 @@ export function createViewportBeautyFrameBackend(
           request.time,
           request.project,
           synchronizeVideo,
+          destination,
         );
       if (synchronizeVideo)
         throw new Error("Deterministic video export requires the WebGPU renderer");
@@ -190,6 +207,11 @@ export function createViewportBeautyFrameBackend(
       const context = canvas.getContext("2d");
       if (!context) throw new Error("Canvas fallback pixels are unavailable");
       const source = context.getImageData(0, 0, canvas.width, canvas.height).data;
+      if (destination !== undefined) {
+        validateReadbackDestination(destination, canvas.width, canvas.height);
+        new Uint8Array(destination).set(source);
+        return { pixels: destination, pixelFormat: "rgba" };
+      }
       return { pixels: new Uint8Array(source).slice().buffer, pixelFormat: "rgba" };
     },
   };

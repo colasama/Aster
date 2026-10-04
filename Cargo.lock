@@ -191,6 +191,7 @@ name = "aster-render-cli"
 version = "0.3.5"
 dependencies = [
  "aster-render-compare",
+ "aster-render-ir",
  "clap",
  "serde",
  "serde_json",
@@ -210,6 +211,17 @@ dependencies = [
  "sha2",
  "thiserror",
  "uuid",
+]
+
+[[package]]
+name = "aster-render-ir"
+version = "0.3.5"
+dependencies = [
+ "schemars",
+ "serde",
+ "serde_json",
+ "sha2",
+ "thiserror",
 ]
 
 [[package]]

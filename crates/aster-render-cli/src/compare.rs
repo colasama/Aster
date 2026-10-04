@@ -7,7 +7,7 @@ use std::{
 };
 
 use aster_render_compare::{
-    artifacts::{ArtifactOptions, ArtifactPaths, ArtifactWriter},
+    artifacts::{ArtifactOptions, ArtifactPaths, ArtifactRenameOptions, ArtifactWriter},
     comparison::{Comparison, ComparisonOptions, ComparisonReport},
     error::CompareError,
     image::{ImageLimits, RgbaImage},
@@ -42,6 +42,12 @@ pub struct CompareArgs {
     registration_memory_bytes: usize,
     #[arg(long, default_value_t = 16)]
     heatmap_gain: u16,
+    /// Maximum final artifact-directory rename attempts on Windows access/sharing failures.
+    #[arg(long, default_value_t = 5, value_parser = clap::value_parser!(u8).range(1..=5))]
+    artifact_rename_attempts: u8,
+    /// Initial retry delay in milliseconds, doubled after each failed rename.
+    #[arg(long, default_value_t = 20, value_parser = clap::value_parser!(u64).range(1..=50))]
+    artifact_rename_delay_ms: u64,
 }
 
 #[derive(Debug, Default, Deserialize, Serialize)]
@@ -101,20 +107,29 @@ struct ComparisonOutput {
 
 impl ImageInput {
     fn load(path: &Path, limits: &ImageLimits) -> Result<(Self, RgbaImage), CompareError> {
-        let path = fs::canonicalize(path)?;
-        let file = File::open(&path)?;
+        let path = fs::canonicalize(path)
+            .map_err(|error| CompareError::io_at("resolve PNG input", path, error))?;
+        let file = File::open(&path)
+            .map_err(|error| CompareError::io_at("open PNG input", &path, error))?;
         let read_limit = u64::try_from(limits.max_file_bytes)
             .ok()
             .and_then(|value| value.checked_add(1))
             .ok_or_else(|| CompareError::InvalidArgument("Invalid file size budget".into()))?;
-        if file.metadata()?.len() >= read_limit {
+        if file
+            .metadata()
+            .map_err(|error| CompareError::io_at("inspect PNG input", &path, error))?
+            .len()
+            >= read_limit
+        {
             return Err(CompareError::ResourceLimit(format!(
                 "PNG exceeds file budget: {}",
                 path.display()
             )));
         }
         let mut bytes = Vec::new();
-        file.take(read_limit).read_to_end(&mut bytes)?;
+        file.take(read_limit)
+            .read_to_end(&mut bytes)
+            .map_err(|error| CompareError::io_at("read PNG input", &path, error))?;
         let image = PngCodec::decode(&bytes, limits)?;
         Ok((
             Self {
@@ -137,9 +152,14 @@ impl CompareArgs {
         let (reference, reference_image) = ImageInput::load(&self.reference, &limits)?;
         let (candidate, candidate_image) = ImageInput::load(&self.candidate, &limits)?;
         let (context, context_base) = if let Some(path) = &self.context {
-            let path = fs::canonicalize(path)?;
+            let path = fs::canonicalize(path)
+                .map_err(|error| CompareError::io_at("resolve case context", path, error))?;
             let mut bytes = Vec::new();
-            File::open(&path)?.take(65_537).read_to_end(&mut bytes)?;
+            File::open(&path)
+                .map_err(|error| CompareError::io_at("open case context", &path, error))?
+                .take(65_537)
+                .read_to_end(&mut bytes)
+                .map_err(|error| CompareError::io_at("read case context", &path, error))?;
             if bytes.len() > 65_536 {
                 return Err(
                     CompareError::ResourceLimit("Case context exceeds 64 KiB".into()).into(),
@@ -216,9 +236,11 @@ impl CompareArgs {
         let output = self.out.unwrap_or_else(|| {
             PathBuf::from("artifacts/parity/compare").join(Uuid::new_v4().to_string())
         });
-        let output = std::path::absolute(output)?;
+        let output = std::path::absolute(&output)
+            .map_err(|error| CompareError::io_at("resolve artifact output", &output, error))?;
         if let Some(parent) = output.parent() {
-            fs::create_dir_all(parent)?;
+            fs::create_dir_all(parent)
+                .map_err(|error| CompareError::io_at("create artifact parent", parent, error))?;
         }
         let artifacts = ArtifactWriter::publish(
             &output,
@@ -233,6 +255,10 @@ impl CompareArgs {
                 max_output_pixels: self.max_pixels.checked_mul(5).ok_or_else(|| {
                     CompareError::ResourceLimit("Artifact budget overflow".into())
                 })?,
+                rename: ArtifactRenameOptions {
+                    max_attempts: self.artifact_rename_attempts,
+                    base_delay_ms: self.artifact_rename_delay_ms,
+                },
             },
         )?;
         println!(

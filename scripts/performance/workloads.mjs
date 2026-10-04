@@ -6,10 +6,10 @@ import { captureAssignments } from "../parity/provenance.mjs";
 
 export const outputModes = ["readback-only", "ipc-no-encode", "full-mp4"];
 
-export async function prepareWorkloads(root, env = process.env) {
+export async function prepareWorkloads(root, env = process.env, suite = "throughput") {
   let owner;
   try {
-    if (env.ASTER_PERF_PROJECT)
+    if (suite !== "preview" && env.ASTER_PERF_PROJECT)
       owner = JSON.parse(await readFile(join(env.ASTER_PERF_PROJECT, "project.json"), "utf8"));
   } catch (error) {
     if (error.code !== "ENOENT") throw error;
@@ -18,7 +18,7 @@ export async function prepareWorkloads(root, env = process.env) {
     configFile: false,
     root,
     optimizeDeps: { noDiscovery: true, include: [] },
-    server: { middlewareMode: true, watch: { ignored: ["**/artifacts/**"] } },
+    server: { middlewareMode: true, watch: null, hmr: false, ws: false },
     appType: "custom",
   });
   try {
@@ -27,12 +27,13 @@ export async function prepareWorkloads(root, env = process.env) {
     const generated = performanceFixtures();
     for (const item of generated)
       await writeAtomicJson(join(root, item.case.project), item.project);
-    const external = ownerCases(owner);
+    const external = suite === "preview" ? [] : ownerCases(owner);
     const opening = external.find((item) => item.id === "owner-opening");
-    opening.frames = Array.from(
-      { length: Math.max(...opening.frames) - Math.min(...opening.frames) + 1 },
-      (_, index) => Math.min(...opening.frames) + index,
-    );
+    if (opening)
+      opening.frames = Array.from(
+        { length: Math.max(...opening.frames) - Math.min(...opening.frames) + 1 },
+        (_, index) => Math.min(...opening.frames) + index,
+      );
     const assignments = await captureAssignments(
       root,
       [...external, ...generated.map((item) => item.case)],
@@ -92,4 +93,31 @@ export function scheduleWorkloads(workloads, { selected = [], modes = [], smoke 
   }
   if (assignments.length === 0) throw new Error("No performance workloads were selected");
   return assignments;
+}
+
+export function schedulePreviewWorkloads(workloads, { selected = [], smoke = false } = {}) {
+  const ids = ["composite-1080p", "composite-4k", "effect-chain-1080p"];
+  if (workloads.some((item) => !ids.includes(item.case.id)))
+    throw new Error("Preview suite only supports the three fixed synthetic scenes");
+  for (const id of selected)
+    if (!ids.includes(id)) throw new Error(`Unknown preview workload ${id}`);
+  const active = workloads.filter(
+    (item) => selected.length === 0 || selected.includes(item.case.id),
+  );
+  if (active.length === 0) throw new Error("No preview workloads selected");
+  return (smoke ? [1] : [0, 1, 2, 3]).flatMap((run) =>
+    (run % 2 === 0 ? active : [...active].reverse()).map((item) => ({
+      ...item,
+      benchmark: {
+        id: `${item.case.id}-preview-present-${run}`,
+        mode: "preview-present",
+        run,
+        frameRate: item.frameRate,
+        warmupFrames: 10,
+        startFrame: 0,
+        endFrameExclusive: run === 0 || smoke ? 10 : 600,
+        requireAudio: false,
+      },
+    })),
+  );
 }

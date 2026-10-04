@@ -94,3 +94,58 @@ fn malformed_or_resource_limited_input_cannot_publish_a_pass()
     }
     Ok(())
 }
+
+#[test]
+fn input_io_failures_identify_the_operation_and_requested_path()
+-> Result<(), Box<dyn std::error::Error>> {
+    let fixture = Fixture::new()?;
+    for (candidate, extra, operation, path) in [
+        ("absent.png", Vec::new(), "resolve PNG input", "absent.png"),
+        (
+            "reference.png",
+            vec!["--context", "missing.json"],
+            "resolve case context",
+            "missing.json",
+        ),
+    ] {
+        let result = fixture.run(candidate, "output", &extra)?;
+        assert_eq!(result.status.code(), Some(2));
+        let report: serde_json::Value = serde_json::from_slice(&result.stdout)?;
+        let message = report["error"]
+            .as_str()
+            .ok_or("Expected a contextual I/O error")?;
+        assert!(message.contains(operation));
+        assert!(message.contains(path));
+        assert!(!fixture.root.join("output").exists());
+    }
+    Ok(())
+}
+
+#[test]
+fn rename_retry_cli_limits_are_bounded_before_publication() -> Result<(), Box<dyn std::error::Error>>
+{
+    let fixture = Fixture::new()?;
+    for extra in [
+        ["--artifact-rename-attempts", "0"],
+        ["--artifact-rename-attempts", "6"],
+        ["--artifact-rename-delay-ms", "0"],
+        ["--artifact-rename-delay-ms", "51"],
+    ] {
+        let result = fixture.run("reference.png", "invalid", &extra)?;
+        assert_eq!(result.status.code(), Some(2));
+        assert!(!fixture.root.join("invalid").exists());
+    }
+    let result = fixture.run(
+        "reference.png",
+        "valid",
+        &[
+            "--artifact-rename-attempts",
+            "1",
+            "--artifact-rename-delay-ms",
+            "1",
+        ],
+    )?;
+    assert_eq!(result.status.code(), Some(0));
+    assert!(fixture.root.join("valid/report.json").is_file());
+    Ok(())
+}

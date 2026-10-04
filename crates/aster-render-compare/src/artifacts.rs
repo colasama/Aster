@@ -1,8 +1,9 @@
 use std::{
     ffi::OsString,
     fs::{self, OpenOptions},
-    io::Write,
+    io::{self, Write},
     path::{Path, PathBuf},
+    time::Duration,
 };
 
 use serde::Serialize;
@@ -18,6 +19,25 @@ pub struct ArtifactOptions {
     pub checker_light: u8,
     /// Combined pixels in the full-resolution heatmap and four-panel contact sheet.
     pub max_output_pixels: usize,
+    pub rename: ArtifactRenameOptions,
+}
+
+#[derive(Clone, Debug)]
+pub struct ArtifactRenameOptions {
+    /// Includes the initial attempt; only Windows access/sharing failures are retried.
+    pub max_attempts: u8,
+    pub base_delay_ms: u64,
+}
+
+impl ArtifactRenameOptions {
+    fn validate(&self) -> Result<(), CompareError> {
+        if !(1..=5).contains(&self.max_attempts) || !(1..=50).contains(&self.base_delay_ms) {
+            return Err(CompareError::InvalidArgument(
+                "Artifact rename requires 1..=5 attempts and a 1..=50 ms base delay".into(),
+            ));
+        }
+        Ok(())
+    }
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -38,6 +58,7 @@ impl ArtifactWriter {
         options: &ArtifactOptions,
     ) -> Result<ArtifactPaths, CompareError> {
         reference.validate_pair(candidate)?;
+        options.rename.validate()?;
         if options.heatmap_gain == 0 || options.checker_size == 0 || options.max_output_pixels == 0
         {
             return Err(CompareError::InvalidArgument(
@@ -116,7 +137,12 @@ impl ArtifactWriter {
         transaction.write("heatmap.png", &heatmap)?;
         transaction.write("contact-sheet.png", &contact_sheet)?;
         transaction.write("report.json", &serde_json::to_vec_pretty(report)?)?;
-        transaction.publish()?;
+        transaction.publish_with(
+            &options.rename,
+            cfg!(windows),
+            |from, to| fs::rename(from, to),
+            std::thread::sleep,
+        )?;
         Ok(ArtifactPaths {
             report: output.join("report.json"),
             heatmap: output.join("heatmap.png"),
@@ -141,7 +167,9 @@ impl ArtifactTransaction {
             Some(parent) if !parent.as_os_str().is_empty() => parent,
             _ => Path::new("."),
         };
-        if !parent.is_dir() {
+        let metadata = fs::metadata(parent)
+            .map_err(|error| CompareError::io_at("inspect artifact parent", parent, error))?;
+        if !metadata.is_dir() {
             return Err(CompareError::InvalidArgument(
                 "Artifact parent directory does not exist".into(),
             ));
@@ -154,7 +182,8 @@ impl ArtifactTransaction {
         OpenOptions::new()
             .write(true)
             .create_new(true)
-            .open(&lock)?;
+            .open(&lock)
+            .map_err(|error| CompareError::io_at("create artifact lock", &lock, error))?;
         let mut transaction = Self {
             output: output.to_path_buf(),
             temporary: parent.join(format!(".aster-compare-{}.tmp", Uuid::new_v4())),
@@ -162,36 +191,78 @@ impl ArtifactTransaction {
             temporary_owned: false,
         };
         transaction.require_absent_output()?;
-        fs::create_dir(&transaction.temporary)?;
+        fs::create_dir(&transaction.temporary).map_err(|error| {
+            CompareError::io_at("create artifact staging", &transaction.temporary, error)
+        })?;
         transaction.temporary_owned = true;
         Ok(transaction)
     }
 
     fn require_absent_output(&self) -> Result<(), CompareError> {
         match fs::symlink_metadata(&self.output) {
-            Ok(_) => Err(CompareError::InvalidArgument(
-                "Artifact output already exists".into(),
-            )),
+            Ok(_) => Err(CompareError::InvalidArgument(format!(
+                "Artifact output already exists: {}",
+                self.output.display()
+            ))),
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
-            Err(error) => Err(error.into()),
+            Err(error) => Err(CompareError::io_at(
+                "inspect artifact output",
+                &self.output,
+                error,
+            )),
         }
     }
 
     fn write(&self, name: &str, bytes: &[u8]) -> Result<(), CompareError> {
+        let path = self.temporary.join(name);
         let mut file = OpenOptions::new()
             .write(true)
             .create_new(true)
-            .open(self.temporary.join(name))?;
-        file.write_all(bytes)?;
-        file.sync_all()?;
+            .open(&path)
+            .map_err(|error| CompareError::io_at("create artifact file", &path, error))?;
+        file.write_all(bytes)
+            .map_err(|error| CompareError::io_at("write artifact file", &path, error))?;
+        file.sync_all()
+            .map_err(|error| CompareError::io_at("sync artifact file", &path, error))?;
         Ok(())
     }
 
-    fn publish(&mut self) -> Result<(), CompareError> {
-        self.require_absent_output()?;
-        fs::rename(&self.temporary, &self.output)?;
-        self.temporary_owned = false;
-        Ok(())
+    fn publish_with(
+        &mut self,
+        options: &ArtifactRenameOptions,
+        windows: bool,
+        mut rename: impl FnMut(&Path, &Path) -> io::Result<()>,
+        mut sleep: impl FnMut(Duration),
+    ) -> Result<(), CompareError> {
+        options.validate()?;
+        let mut attempt = 1;
+        loop {
+            // Keep the complete staging directory and its publication lock across retries.
+            self.require_absent_output()?;
+            match rename(&self.temporary, &self.output) {
+                Ok(()) => {
+                    self.temporary_owned = false;
+                    return Ok(());
+                }
+                Err(source) => {
+                    if !windows
+                        || !matches!(source.raw_os_error(), Some(5 | 32 | 33))
+                        || attempt >= options.max_attempts
+                    {
+                        return Err(CompareError::ArtifactRename {
+                            from: self.temporary.clone(),
+                            to: self.output.clone(),
+                            attempts: attempt,
+                            source,
+                        });
+                    }
+                    sleep(Duration::from_millis(
+                        options.base_delay_ms * (1 << (attempt - 1)),
+                    ));
+                    attempt += 1;
+                }
+            }
+        }
     }
 }
 

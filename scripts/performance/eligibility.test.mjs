@@ -72,6 +72,33 @@ test("manifest-matched hardware, driver and renderer identity qualify without a 
   assert(result.limitations.some((value) => value.includes("not enumerated")));
 });
 
+test("a separate display series still requires matching before/after conditions and its parent policy", () => {
+  const input = fixture();
+  input.manifest.id = "windows-radeon780m-local-1920x1080-144hz";
+  input.manifest.parentSeries = "windows-radeon780m-local";
+  input.manifest.displays[0].width = 1920;
+  input.manifest.displays[0].height = 1080;
+  assert.equal(performanceEligibility(input).eligible, false);
+  input.hardware.displays = structuredClone(input.manifest.displays);
+  input.hardwareAfter.displays = structuredClone(input.manifest.displays);
+  assert.equal(performanceEligibility(input).eligible, true);
+  for (const mutate of [
+    (value) => {
+      value.manifest.parentSeries = "unknown";
+    },
+    (value) => {
+      value.manifest.baselinePolicy.driverOsPowerDisplayChangesStartNewSeries = false;
+    },
+    (value) => {
+      value.hardwareAfter.displays[0].width = 2800;
+    },
+  ]) {
+    const broken = structuredClone(input);
+    mutate(broken);
+    assert.equal(performanceEligibility(broken).eligible, false);
+  }
+});
+
 test("ANGLE active adapter alone cannot qualify fallback or missing WebGPU identity", () => {
   for (const flag of [true, undefined]) {
     const input = fixture();

@@ -40,6 +40,13 @@ mesh occlusion between identical evaluations. M0 fixes the general ordering defe
 reviewed billboard-frame repair. Failed comparisons against the original remain failed. The M1/M2
 exact thresholds are unchanged.
 
+Comparison artifacts are published as one complete directory under a create-new lock. On Windows,
+only the final directory rename retries access/sharing errors (OS codes 5, 32 and 33). The CLI defaults
+to five attempts with a 20 ms initial exponential delay, retaining the complete staging directory and
+checking that the destination remains absent before every attempt. The configurable bounds permit
+at most five attempts and a 50 ms initial delay. Other I/O failures and exhausted retries fail the
+comparison with operation/path context; they never count as accepted pixels or reuse partial output.
+
 ## Shared-shader increments
 
 M1 shares output AA, core scene variants, compositing, fused post-processing, blur/depth/surface
@@ -98,12 +105,45 @@ The exit audit binds the source inventory, current G0/Naga results, current full
 shader smoke to one source tree. Quick checks, stale evidence, missing prerequisites, incomplete
 coverage or failed output audits cannot establish M1 completion.
 
+## Frame-plan transport and consumption
+
+M2 requires G0, G1, G3 and G4. The runner rejects a ledger gate list that omits or duplicates one of
+these requirements. Full G1 regenerates the Rust-owned schema into a fresh output and runs actual
+TS-to-Rust-to-TS canonical FPLN round trips. Expected schema bytes are never overwritten during
+verification. Container boundaries, resource hashes and budgets have separate negative tests.
+See [Frame-plan transport](FRAME_PLAN.md) for the current contract and its explicit partial scope.
+
+Full G3 continues to compare all required TS frames under `exact`, retaining the effective reference
+set proven unchanged by completed M1. Each renderer-source change requires a fresh candidate
+capture. G1 success for a transport slice does not prove complete production plan consumption or
+resource replay. M2 exit remains unsatisfied until every extraction, capture and replay requirement
+is implemented and audited. Quick mode skips full G1 and measured G4 and cannot authorize a commit.
+
 ## Performance evidence
 
 `pnpm migrate:benchmark` measures the full warm-up and three-run workload schedule described in
 `docs/BENCHMARKS.md`. Scope options such as `--smoke` are diagnostic and cannot replace the baseline.
 The committed local Radeon 780M series is independent of historical NVIDIA results. Missing GPU
 timing or encoder capabilities remain explicit limitations, never fabricated measurements.
+
+For M2, full G4 invokes fresh complete throughput and preview-present suites with explicit unique
+report paths. It rechecks raw runs and measurement identities before comparing every tracked median
+against the pinned reference series for the selected hardware conditions. The original throughput
+baseline and separate pre-plan preview baseline remain frozen. A saved baseline
+validation alone is not a measurement. The preview series runs the actual production present path
+and waits for GPU completion; its scope and warm-up protocol are specified in `docs/BENCHMARKS.md`.
+The baseline-freezing command refuses to replace an existing baseline or accept measurements taken
+after production planning changes.
+
+Display-condition changes follow the hardware manifest's existing new-series policy. An additive
+1920×1080@144Hz series may use the preserved pre-plan bundle only after its complete file set and
+source/bridge provenance pass the historical-bundle audit. Reference reports identify historical
+renderer bytes and current common harness sources separately. They must contain complete independent
+throughput and preview observations at the new conditions. Current optimized output cannot become
+its own reference. The series freezer refuses overwrite; its descriptor and file hash are pinned in
+the ledger before G4 measures the candidate. G4 retains the original workload, encoder, host and
+method pins, all raw-output checks, and all 24 strict 5 percent median thresholds. Historical reports
+cannot satisfy the current candidate measurement. No previous failed run is reclassified.
 
 Generated evidence is stored under ignored `artifacts/`; hashes and paths in the ledger identify the
 actual runs. Preserve these files when continuing on the same host. A missing or modified evidence

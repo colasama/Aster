@@ -435,6 +435,8 @@ interface FramePipelineOptions<Frame> {
   cancelled: () => boolean;
   render: (frame: number) => Promise<Frame>;
   write: (frame: Frame, index: number) => Promise<void>;
+  /** Releases a completed frame after output, cancellation, or a failed consumer. */
+  release?: (frame: Frame) => void;
   beforeFrame?: () => Promise<void>;
   onProgress: (progress: RenderSequenceProgress) => void | Promise<void>;
 }
@@ -442,9 +444,7 @@ interface FramePipelineOptions<Frame> {
 export async function streamFramePipeline<Frame>(
   options: FramePipelineOptions<Frame>,
 ): Promise<number> {
-  const depth = Number.isFinite(options.maxInFlight)
-    ? Math.max(1, Math.min(3, Math.floor(options.maxInFlight)))
-    : 1;
+  const depth = framePipelineDepth(options.maxInFlight);
   const pending = new Map<number, Promise<Frame>>();
   let nextRender = 0;
   let nextWrite = 0;
@@ -459,6 +459,8 @@ export async function streamFramePipeline<Frame>(
     }
   };
   await options.onProgress({ current: 0, total: options.frameCount });
+  let failed = false;
+  let failureReason: unknown;
   try {
     while (nextWrite < options.frameCount && !options.cancelled()) {
       await options.beforeFrame?.();
@@ -466,20 +468,58 @@ export async function streamFramePipeline<Frame>(
       fill();
       const frame = await pending.get(nextWrite);
       pending.delete(nextWrite);
-      if (frame === undefined || options.cancelled()) break;
-      // Controls may arrive during GPU mapping. Hold completed frames without submitting more.
-      await options.beforeFrame?.();
-      if (options.cancelled()) break;
-      fill();
-      await options.write(frame, nextWrite);
-      completed += 1;
-      nextWrite += 1;
+      if (frame === undefined) break;
+      let consumerFailed = false;
+      try {
+        if (options.cancelled()) break;
+        // Controls may arrive during GPU mapping. Hold completed frames without submitting more.
+        await options.beforeFrame?.();
+        if (options.cancelled()) break;
+        fill();
+        await options.write(frame, nextWrite);
+        completed += 1;
+        nextWrite += 1;
+      } catch (error) {
+        consumerFailed = true;
+        throw error;
+      } finally {
+        if (consumerFailed) {
+          try {
+            options.release?.(frame);
+          } catch {
+            // Preserve the original consumer error while still draining every other frame.
+          }
+        } else options.release?.(frame);
+      }
       await options.onProgress({ current: completed, total: options.frameCount });
     }
-    return completed;
+  } catch (error) {
+    failed = true;
+    failureReason = error;
   } finally {
-    await Promise.allSettled(pending.values());
+    // Release each fulfilled lookahead as it arrives, even if another render is still pending.
+    const cleanup = await Promise.allSettled(
+      [...pending.values()].map((work) =>
+        work.then(
+          (frame) => options.release?.(frame),
+          () => undefined,
+        ),
+      ),
+    );
+    if (!failed) {
+      const failure = cleanup.find((result) => result.status === "rejected");
+      if (failure?.status === "rejected") {
+        failed = true;
+        failureReason = failure.reason;
+      }
+    }
   }
+  if (failed) throw failureReason;
+  return completed;
+}
+
+export function framePipelineDepth(maxInFlight: number): number {
+  return Number.isFinite(maxInFlight) ? Math.max(1, Math.min(3, Math.floor(maxInFlight))) : 1;
 }
 
 function settleExportStage(promise: Promise<number>): Promise<PromiseSettledResult<number>> {

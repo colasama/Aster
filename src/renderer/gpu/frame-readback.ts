@@ -15,7 +15,7 @@ interface ReadbackSlot {
 
 export interface FrameReadbackTicket {
   encode(encoder: GPUCommandEncoder, source: GPUTexture): void;
-  read(): Promise<RawVideoFrame>;
+  read(destination?: ArrayBuffer): Promise<RawVideoFrame>;
   abort(): void;
 }
 
@@ -71,15 +71,16 @@ export class GpuFrameReadbackPool {
         );
         encoded = true;
       },
-      read: async () => {
+      read: async (destination) => {
         if (!encoded) {
           release();
           throw new Error("Frame readback was not encoded before mapping");
         }
         try {
+          if (destination !== undefined) validateReadbackDestination(destination, width, height);
           await slot.buffer.mapAsync(GPUMapMode.READ);
           const mapped = new Uint8Array(slot.buffer.getMappedRange());
-          const pixels = compactReadbackRows(mapped, width, height, this.#bytesPerRow);
+          const pixels = compactReadbackRows(mapped, width, height, this.#bytesPerRow, destination);
           return { pixels, pixelFormat: this.#pixelFormat };
         } finally {
           if (slot.buffer.mapState === "mapped") slot.buffer.unmap();
@@ -146,6 +147,7 @@ export function compactReadbackRows(
   width: number,
   height: number,
   bytesPerRow: number,
+  destination?: ArrayBuffer,
 ): ArrayBuffer {
   const tightRowBytes = width * BYTES_PER_PIXEL;
   if (
@@ -157,13 +159,45 @@ export function compactReadbackRows(
     source.byteLength < bytesPerRow * height
   )
     throw new Error("Invalid GPU frame readback layout");
-  if (bytesPerRow === tightRowBytes) return source.slice(0, tightRowBytes * height).buffer;
-  const output = new Uint8Array(tightRowBytes * height);
+  if (destination !== undefined) {
+    validateReadbackDestination(destination, width, height);
+    if (destination === source.buffer)
+      throw new Error("Frame readback destination must not alias mapped GPU memory");
+  } else if (bytesPerRow === tightRowBytes) {
+    return source.slice(0, tightRowBytes * height).buffer;
+  }
+  const output =
+    destination !== undefined
+      ? new Uint8Array(destination)
+      : new Uint8Array(tightRowBytes * height);
+  if (bytesPerRow === tightRowBytes) {
+    output.set(source.subarray(0, tightRowBytes * height));
+    return output.buffer;
+  }
   for (let row = 0; row < height; row += 1) {
     const sourceOffset = row * bytesPerRow;
     output.set(source.subarray(sourceOffset, sourceOffset + tightRowBytes), row * tightRowBytes);
   }
   return output.buffer;
+}
+
+/** The caller retains this fixed buffer until the entire frame consumer has settled. */
+export function validateReadbackDestination(
+  destination: ArrayBuffer,
+  width: number,
+  height: number,
+): void {
+  if (
+    !Number.isInteger(width) ||
+    !Number.isInteger(height) ||
+    width < 1 ||
+    height < 1 ||
+    !Number.isSafeInteger(width * height * BYTES_PER_PIXEL) ||
+    !(destination instanceof ArrayBuffer) ||
+    destination.byteLength !== width * height * BYTES_PER_PIXEL ||
+    Reflect.get(destination, "resizable") === true
+  )
+    throw new Error("Frame readback destination must be a fixed, exact-sized ArrayBuffer");
 }
 
 export function rawPixelFormat(textureFormat: GPUTextureFormat): RawFramePixelFormat {
