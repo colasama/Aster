@@ -76,39 +76,39 @@
     "approval": "Preserve the complete M0-T3 production TS capture as the original pixel oracle. Only the explicitly listed, section 6.6 reviewed M0 reference repairs overlay requested frames. All other original frames, including sequence neighbors, remain unchanged. Freeze this effective reference set before M1; M1 and M2 retain strict whole-corpus exact requirements."
   },
   "last_cycle": {
-    "id": 17,
-    "time": "2026-10-04T16:46:16.238Z",
+    "id": 18,
+    "time": "2026-10-04T17:22:35.872Z",
     "milestone": "M2",
-    "task": "M2-T3",
+    "task": "M2-T4",
     "outcome": "passed",
-    "commit": "0f44e440e9a3d3f9a7b0b1a7d37d272d6e1da7c7",
-    "verification": "artifacts/migration/verify-2026-10-04T16-38-53-534Z-6a7e1f6c.json",
-    "verification_sha256": "a1a5885b107b3892ceb08518f0037cc2e60da16e8b3a43e878529c2d478c3f2a",
+    "commit": "28ab4d661edb19cbab39a02c1b1e3d48a7ca5486",
+    "verification": "artifacts/migration/verify-2026-10-04T17-16-16-577Z-d7b6fc18.json",
+    "verification_sha256": "0983aab8a0cdf5944624be5e1e464d6acd465ab1d60827218f46e4c386913c49",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 77950
+        "duration_ms": 73134
       },
       {
         "id": "G1",
         "status": "passed",
-        "duration_ms": 20352
+        "duration_ms": 3364
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 304744
+        "duration_ms": 262914
       }
     ],
-    "verification_duration_ms": 404322,
-    "next_step": "M2-T4: add explicit content resource descriptors/registry and basic image, sequence and video resolution while preserving exact media readiness. Continue full required G0/G1/G3.",
+    "verification_duration_ms": 340624,
+    "next_step": "Continue M2-T4: introduce typed content-addressed media source/frame descriptors and connect PutResource/EvictResource to the established production binding leases; preserve exact readiness and no GPU readback.",
     "notes": [
-      "Completed T3 evaluated camera extraction with a closed camera_parameters_slice_v1 descriptor and owned 37-scalar little-endian f64 payload. Camera pose/projection/optics retain JS precision and contain no Layer, authoring CameraSettings or animation references.",
-      "SceneCamera now aliases EvaluatedCamera only. Root geometry/text expansion, lighting, depth configuration and generator preparation consume reconstructed supplied camera values; no active camera retains the existing absent-camera behavior.",
-      "Camera mutation and unaligned-view tests prove supplied positions affect actual geometry; nested perspective/orthographic fixtures preserve geometry, lighting, generator-context and depth-uniform bytes. Cycle16 already established owned scene buffers and actual planned draw/upload consumption.",
-      "Full G0/G1/G3 passed. G1 verifies 19 exact cross-language round trips, including two evaluated camera fixtures, and all 1819 required frames from a new 337-case capture match the frozen reference exactly. No reference, tolerance, dependency or project-format change.",
-      "M2-T3 is complete; M2 is not. Material/media/resource tables, effect and pass extraction, full independent frame replay, plan capture and Rust rendering remain required later tasks. Production rendering remains TS."
+      "Established actual root image/video binding acquisition after media readiness. Beauty and auxiliary draws resolve the per-frame table rather than consulting changing cache entries for each draw.",
+      "Atomic owner leases reject missing/released bindings and changed source/upload generations. Retirement and cache destruction defer texture destruction until every submitted GPU lease completes; abort releases unsubmitted ownership. The shared missing-media texture has an explicit retained owner.",
+      "Moved media submission notification immediately after queue submission, before cache/readback callbacks, and release unsubmitted ownership before failure callbacks. This prevents callback exceptions from releasing submitted resources early or leaking unsubmitted pins.",
+      "Relevant media tests prove actual placeholder texture lifetime across cache destruction and GPU completion, atomic acquisition, generation mismatch and abort. Full G0/G1/G3 passed; G1 remains 19 transport round trips and all 1819 required pixels from a fresh full capture are exact.",
+      "This is the lifecycle increment within M2-T4, not completion of content-addressed media resources. The runtime binding table still uses instance IDs and GPU handles outside FPLN. Typed source/frame descriptors, content hashes, PutResource/EvictResource media integration and independent replay remain required; M2 and native rendering remain incomplete."
     ]
   },
   "milestones": [
@@ -12460,6 +12460,60 @@
               ],
               "finding": "Unrelated script-runtime timeout test exhausted its 25ms budget during API initialization under the full suite; all 5 tests pass in an isolated rerun without source changes. G1 and all 1819 exact pixel checks passed. Retry full required gates without changing production source or tolerance."
             }
+          ],
+          "increments": [
+            {
+              "cycle": 18,
+              "status": "passed",
+              "commit": "28ab4d661edb19cbab39a02c1b1e3d48a7ca5486",
+              "verification": {
+                "path": "artifacts/migration/verify-2026-10-04T17-16-16-577Z-d7b6fc18.json",
+                "sha256": "0983aab8a0cdf5944624be5e1e464d6acd465ab1d60827218f46e4c386913c49"
+              },
+              "pixel_comparison": {
+                "path": "artifacts/parity/ts-check/2026-10-04T17-17-33-670Z-f3f2b481/report.json",
+                "sha256": "463c6093c4525ae6fd3edd546d5db1d5dfcfb1c4b08e826e045e8f3f156a2d71"
+              },
+              "capture": {
+                "path": "artifacts/parity/capture-2026-10-04T16-57-10-011Z-54b2e8b4.json",
+                "sha256": "d486819e5314654829731da133180f9be50f45774a99024a000084e968349047"
+              },
+              "manifest": {
+                "path": "artifacts/parity/runs/2026-10-04T16-57-10-011Z-54b2e8b4/candidate/manifest.json",
+                "sha256": "61d52206b6b1ef2177236bb1a442b44b8279d138ddfc07d56bee492c3697289f"
+              },
+              "renderer_source_sha256": "d84c757d42ffd5d048a528286f26d5e29180ff4c5c4fa70d47f180e36d18073a",
+              "bridge_sha256": "82ccf02fefd4c54e78a82a4de08df6906714ecd0b198864ec72cb0c0394dd80c",
+              "gates": [
+                {
+                  "id": "G0",
+                  "status": "passed",
+                  "duration_ms": 73134
+                },
+                {
+                  "id": "G1",
+                  "status": "passed",
+                  "duration_ms": 3364
+                },
+                {
+                  "id": "G3",
+                  "status": "passed",
+                  "duration_ms": 262914
+                }
+              ],
+              "notes": [
+                "Established actual root image/video binding acquisition after media readiness. Beauty and auxiliary draws resolve the per-frame table rather than consulting changing cache entries for each draw.",
+                "Atomic owner leases reject missing/released bindings and changed source/upload generations. Retirement and cache destruction defer texture destruction until every submitted GPU lease completes; abort releases unsubmitted ownership. The shared missing-media texture has an explicit retained owner.",
+                "Moved media submission notification immediately after queue submission, before cache/readback callbacks, and release unsubmitted ownership before failure callbacks. This prevents callback exceptions from releasing submitted resources early or leaking unsubmitted pins.",
+                "Relevant media tests prove actual placeholder texture lifetime across cache destruction and GPU completion, atomic acquisition, generation mismatch and abort. Full G0/G1/G3 passed; G1 remains 19 transport round trips and all 1819 required pixels from a fresh full capture are exact.",
+                "This is the lifecycle increment within M2-T4, not completion of content-addressed media resources. The runtime binding table still uses instance IDs and GPU handles outside FPLN. Typed source/frame descriptors, content hashes, PutResource/EvictResource media integration and independent replay remain required; M2 and native rendering remain incomplete."
+              ]
+            }
+          ],
+          "remaining_work": [
+            "Define typed content-addressed source/frame descriptors using the existing source identity and exact requested/uploaded times; preserve resolved sequence identities and placeholder/error behavior without GPU readback.",
+            "Extend TS/Rust resource transport and registry for actual media PutResource/EvictResource, then replace instance-keyed frame binding entries with validated resource hashes. Bind generation/lifetime ownership and resident accounting to those entries.",
+            "Verify missing/evicted/hash-mismatched resource failures before submission, in-flight retirement and actual image/sequence/fractional-video identity before closing T4."
           ]
         },
         {
@@ -12701,7 +12755,7 @@
       ],
       "preview_baseline_path": "benchmarks/results/m2-preview-baseline.json",
       "preview_baseline_sha256": "a1c62e224c008e731c252142ab1b9de7d31ecf592452c00da1dff42516772375",
-      "active_candidate_manifest": "artifacts/parity/runs/2026-10-04T16-33-29-716Z-1a858db0/candidate/manifest.json",
+      "active_candidate_manifest": "artifacts/parity/runs/2026-10-04T16-57-10-011Z-54b2e8b4/candidate/manifest.json",
       "last_verification": {
         "status": "passed",
         "required_gates_passed": true,
@@ -12710,17 +12764,17 @@
           {
             "id": "G0",
             "status": "passed",
-            "duration_ms": 77950
+            "duration_ms": 73134
           },
           {
             "id": "G1",
             "status": "passed",
-            "duration_ms": 20352
+            "duration_ms": 3364
           },
           {
             "id": "G3",
             "status": "passed",
-            "duration_ms": 304744
+            "duration_ms": 262914
           }
         ],
         "optional_gates": [
@@ -12731,7 +12785,7 @@
           }
         ],
         "performance_policy": "rust-delivery-v1",
-        "report": "artifacts/migration/verify-2026-10-04T16-38-53-534Z-6a7e1f6c.json"
+        "report": "artifacts/migration/verify-2026-10-04T17-16-16-577Z-d7b6fc18.json"
       },
       "performance_series_history": [
         {
@@ -14037,12 +14091,5 @@
       }
     }
   ],
-  "active_cycle": {
-    "id": 18,
-    "milestone": "M2",
-    "task": "M2-T4",
-    "started_at": "2026-10-04T16:49:56.866Z",
-    "scope": "First T4 increment: actual root image/video binding snapshots and GPU-completion leases, generation mismatch rejection and safe resource retirement. Content-addressed descriptors/PutResource media protocol and replay remain required next; T4 stays open.",
-    "previous_turn_classification": "progress: cycles16/17 completed and verified M2-T3 with committed ledger evidence."
-  }
+  "active_cycle": null
 }
