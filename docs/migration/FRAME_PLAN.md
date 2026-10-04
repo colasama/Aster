@@ -163,8 +163,16 @@ otherwise a labeled locator hash; PSD identities include the crop variant.
 
 Small descriptors use synchronous SHA-256 through pinned MIT-licensed `@noble/hashes`, avoiding an
 asynchronous hold at the synchronous encoding boundary. G1 compares it against WebCrypto and Rust.
-Persistent GPU registry admission/eviction, resident accounting and serializable FPLN media bindings
-remain required before independent replay. Text and precomposition adapters remain separate tasks.
+A persistent GPU media registry now applies these messages against the installed binding identity.
+It bounds descriptor bytes, registered physical-owner bytes, binding versions and active leases.
+Repeated puts and authorization aliases count a physical owner once; replacing that owner under the
+same content hash preserves each in-flight lease independently. Frame eviction requires no active
+leases, and source eviction requires no dependent frames. Eviction unregisters the binding without
+destroying an allocation still owned by the media cache. Retired in-flight owners remain included in
+cache memory estimates until GPU completion. Obsolete unpinned generations and orphan source
+descriptors are pruned between acquisitions and after release. Destroying the registry retains pinned
+entries until their final release. Serializable FPLN media bindings remain required before independent
+replay. Text and precomposition adapters remain separate tasks.
 
 ## Verification boundary
 

@@ -107,9 +107,13 @@ export function sweepMediaResources(
   }
 }
 
-export function mediaTextureBytes(resources: ReadonlyMap<string, MediaResource>): number {
+export function mediaTextureBytes(
+  resources: ReadonlyMap<string, MediaResource>,
+  retained: Iterable<MediaResource> = [],
+): number {
   let bytes = 0;
-  for (const resource of resources.values()) bytes += resource.textureBytes ?? 0;
+  for (const resource of new Set([...resources.values(), ...retained]))
+    bytes += resource.textureBytes ?? 0;
   return bytes;
 }
 

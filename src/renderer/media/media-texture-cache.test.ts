@@ -89,10 +89,12 @@ describe("exact-frame media resource barrier", () => {
     cache.submitted();
     cache.destroy();
     expect(destroy).not.toHaveBeenCalled();
+    expect(cache.estimatedBytes).toBe(4);
     expect(lease.bindingFor("missing")).toBe(binding);
     completion.resolve();
     await Promise.resolve();
     expect(destroy).toHaveBeenCalledTimes(1);
+    expect(cache.estimatedBytes).toBe(0);
     expect(() => lease.bindingFor("missing")).toThrow(
       expect.objectContaining({ code: "missing_resource" }),
     );

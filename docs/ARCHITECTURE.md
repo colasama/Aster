@@ -88,8 +88,12 @@ the GPU queue. Unsubmitted failures release their leases immediately. These runt
 outside FPLN. Shared TS/Rust transport registries now accept content-addressed media source/frame
 descriptors, preserving exact video times and sequence frame numbers with dependency-aware eviction.
 Root media preparation now produces those descriptors and assigns content hashes to beauty/auxiliary
-draws. Their runtime table retains GPU owners while transport metadata stays handle-free. Persistent
-GPU registry accounting, FPLN media bindings, authorized native resolution and independent replay
+draws. A persistent GPU registry validates descriptor hashes against installed bindings, bounds
+metadata and physical-owner residency, and retains replaced in-flight owners until queue completion.
+Frame leases resolve hashes through a private lookup; source dependencies prevent premature eviction.
+Registry eviction unregisters bindings while the media cache remains the allocation owner. Cache
+accounting includes retired owners still referenced by submitted frames, without double-counting
+current owners. Serializable FPLN media bindings, authorized native resolution and independent replay
 remain pending.
 
 Shared WGSL includes output anti-aliasing, core scene variants, compositing, fused post-processing,

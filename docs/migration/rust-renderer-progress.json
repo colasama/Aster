@@ -14204,5 +14204,12 @@
       }
     }
   ],
-  "active_cycle": null
+  "active_cycle": {
+    "id": 21,
+    "milestone": "M2",
+    "task": "M2-T4",
+    "started_at": "2026-10-04T18:13:17.841Z",
+    "scope": "Connect production frame binding leases to a persistent, bounded GPU media resource registry with explicit put/evict operations, generation checks, and resident accounting including retired in-flight owners. Serializable FPLN media replay remains next.",
+    "previous_turn_classification": "no progress: the previous turn answered the owner M0 explanation question only; authoritative worktree and latest verification were re-read before resuming the existing registry increment."
+  }
 }

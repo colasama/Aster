@@ -47,6 +47,7 @@ import {
   preparedMediaIdentity,
   sequenceMemberIdentity,
 } from "./media-frame-identity";
+import { MediaGpuRegistry } from "./media-gpu-registry";
 import {
   abortError,
   asError,
@@ -110,6 +111,7 @@ export class MediaTextureCache {
   #missingMediaResource?: MediaResource;
   #missingMediaBindGroup?: GPUBindGroup;
   #frameBindings?: MediaBindingLease;
+  readonly #gpuRegistry = new MediaGpuRegistry();
   #textMotionBlur?: TextMotionBlurRasterCache;
   readonly #sequenceFrames = new ImageSequenceFrameCache<RuntimeSequenceFile, ImageBitmap>({
     decode: (file) => this.#decodeImage(file.url, file.name, file.type),
@@ -141,7 +143,10 @@ export class MediaTextureCache {
 
   get estimatedBytes(): number {
     return (
-      mediaTextureBytes(this.#resources) +
+      mediaTextureBytes(this.#resources, [
+        ...this.#gpuRegistry.residentOwners,
+        ...(this.#missingMediaResource ? [this.#missingMediaResource] : []),
+      ]) +
       this.#uploads.capacityBytes +
       (this.#textMotionBlur?.estimatedBytes ?? 0)
     );
@@ -180,6 +185,7 @@ export class MediaTextureCache {
     destroyMediaResource(this.#missingMediaResource);
     this.#missingMediaResource = undefined;
     this.#missingMediaBindGroup = undefined;
+    this.#gpuRegistry.destroy();
     this.#uploads.destroy();
     this.#textMotionBlur?.destroy();
     this.#textMotionBlur = undefined;
@@ -207,7 +213,7 @@ export class MediaTextureCache {
         requestedTime: this.#videoFrameTargets.get(instanceId)?.time,
       };
     });
-    this.#frameBindings = new MediaBindingLease(entries, scope);
+    this.#frameBindings = new MediaBindingLease(entries, scope, this.#gpuRegistry);
     return this.#frameBindings;
   }
 
