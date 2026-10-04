@@ -83,39 +83,39 @@
     }
   },
   "last_cycle": {
-    "id": 31,
-    "time": "2026-10-04T22:19:04.276Z",
+    "id": 32,
+    "time": "2026-10-04T22:35:21.863Z",
     "milestone": "M2",
     "task": "M2-T6",
     "outcome": "passed",
-    "commit": "02c7e51a2f05acd040c50a20860ae621d5e2aa03",
-    "verification": "artifacts/migration/verify-2026-10-04T22-08-49-236Z-72c0080b.json",
-    "verification_sha256": "fa18c94eafd5b97dd83b0c71eb132379050520b985633bff32e4cd21ed44699a",
+    "commit": "a4f0121d6e54f5bcfc7297d6f6c8ce00928fb26b",
+    "verification": "artifacts/migration/verify-2026-10-04T22-28-55-629Z-f076c827.json",
+    "verification_sha256": "c77b105f6e13958f826fe5f095acd6549b665489810cd25d3470c6aff7c3217d",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 73604
+        "duration_ms": 74409
       },
       {
         "id": "G1",
         "status": "passed",
-        "duration_ms": 4685
+        "duration_ms": 4663
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 270770
+        "duration_ms": 267955
       }
     ],
-    "verification_duration_ms": 350295,
-    "next_step": "Continue M2-T6: maintain real temporal GPU coverage, give individual sampled rasters planned hashes, and execute explicit accumulation/resolve.",
+    "verification_duration_ms": 348286,
+    "next_step": "Continue M2-T6: bind individual sampled rasters through planned hashes and execute explicit accumulation/resolve.",
     "notes": [
-      "Resolved temporal text outputs now carry prepared raster identities and join the root scene's planned media hash bindings. The cache and media registry share one physical resource owner.",
-      "Pinned outputs are never overwritten; replacements retain old bindings until lease release. Retired pinned allocations remain in the temporal resident budget, while unchanged pinned outputs require no new allocation. Ordinary text transitions reject retired textures.",
-      "Lifetime tests cover two simultaneously pinned generations, exhausted budgets, cache destruction, exact hash binding retention and switching from temporal to ordinary text.",
-      "Full M2 G0/G1/G3 passed with 38 FPLN round trips, 362 actual raster resources (the existing corpus does not exercise animated temporal glyphs) and 1819 exact production pixel frames. A separate four-mode real GPU diagnostic compared against the pre-cycle cache exactly, captured temporal output pixels, admitted them through Rust resource validation and independently reuploaded them with exact readbacks.",
-      "M2-T6 remains in progress: planned sample resource hashes and explicit weighted accumulation/resolve execution still require implementation. Complete submitted-frame replay remains M2-T14."
+      "M2 G3 now requires four real GPU temporal glyph exposure checks: full, entering, exiting and transparent. It validates canonical sample counts, dimensions, frozen exact pixels, independent GPU raster replay and Rust resource admission.",
+      "Four supplemental PNG references are frozen from cycle31's exact comparison to the pre-cycle-31 cache at f40eafe06d81c47c20e01458dbaadb007c3fd68a. The ledger pins the manifest; no comparison path writes references. The original 337-case corpus/reference set is unchanged.",
+      "Negative tests reject pixel corruption, replay differences, sample count changes and changed reference PNGs. A temporal failure fails the overall M2 G3 result. GPU checks run outside G0 in a bounded hidden Electron process.",
+      "Full M2 G0/G1/G3 passed with 38 FPLN round trips, 1819 exact whole-frame comparisons and four exact temporal outputs plus 12 admitted Rust resource messages. The unchanged production renderer/bridge fingerprints allowed reuse of cycle31's complete capture without redundant recapture.",
+      "M2-T6 remains in progress: planned individual sample hashes and explicit weighted accumulation/resolve execution are next. Complete submitted-frame replay remains M2-T14."
     ]
   },
   "milestones": [
@@ -13299,12 +13299,66 @@
                 "Full M2 G0/G1/G3 passed with 38 FPLN round trips, 362 actual raster resources (the existing corpus does not exercise animated temporal glyphs) and 1819 exact production pixel frames. A separate four-mode real GPU diagnostic compared against the pre-cycle cache exactly, captured temporal output pixels, admitted them through Rust resource validation and independently reuploaded them with exact readbacks.",
                 "M2-T6 remains in progress: planned sample resource hashes and explicit weighted accumulation/resolve execution still require implementation. Complete submitted-frame replay remains M2-T14."
               ]
+            },
+            {
+              "cycle": 32,
+              "status": "passed",
+              "commit": "a4f0121d6e54f5bcfc7297d6f6c8ce00928fb26b",
+              "verification": {
+                "path": "artifacts/migration/verify-2026-10-04T22-28-55-629Z-f076c827.json",
+                "sha256": "c77b105f6e13958f826fe5f095acd6549b665489810cd25d3470c6aff7c3217d"
+              },
+              "pixel_comparison": {
+                "path": "artifacts/parity/ts-check/2026-10-04T22-30-15-336Z-6151494b/report.json",
+                "sha256": "b222fabd3ba5b1e721f836c72930777d1771705a67e793dd57f91b073e577e4c"
+              },
+              "capture": {
+                "path": "artifacts/parity/capture-2026-10-04T22-02-52-653Z-27e7acac.json",
+                "sha256": "4de2831236d485af306520c9b3c6600234ffb53a68d591cf9e2f0d5deeed3230"
+              },
+              "manifest": {
+                "path": "artifacts/parity/runs/2026-10-04T22-02-52-653Z-27e7acac/candidate/manifest.json",
+                "sha256": "f9861317258a7054af689c92308481f5a12f3a44107da57dd63d0ca8aec35b43"
+              },
+              "renderer_source_sha256": "0f444c95c67384043b962d29d650a776531c9e4d7ee905b61529e7646c78c0e7",
+              "bridge_sha256": "82ccf02fefd4c54e78a82a4de08df6906714ecd0b198864ec72cb0c0394dd80c",
+              "temporal_report": {
+                "path": "artifacts/parity/ts-check/2026-10-04T22-30-15-336Z-6151494b/temporal-text/gpu.json",
+                "sha256": "8a447a70984d07135b13d5c95ecedec4043bab4d988e292c9043b1fea3a99165"
+              },
+              "temporal_reference": {
+                "path": "tests/parity/temporal-text/reference/manifest.json",
+                "sha256": "e3e3b1184d5bc969dcd5cf76a424a551a0cac1a85484e157c5b549e5d6c811d1"
+              },
+              "gates": [
+                {
+                  "id": "G0",
+                  "status": "passed",
+                  "duration_ms": 74409
+                },
+                {
+                  "id": "G1",
+                  "status": "passed",
+                  "duration_ms": 4663
+                },
+                {
+                  "id": "G3",
+                  "status": "passed",
+                  "duration_ms": 267955
+                }
+              ],
+              "notes": [
+                "M2 G3 now requires four real GPU temporal glyph exposure checks: full, entering, exiting and transparent. It validates canonical sample counts, dimensions, frozen exact pixels, independent GPU raster replay and Rust resource admission.",
+                "Four supplemental PNG references are frozen from cycle31's exact comparison to the pre-cycle-31 cache at f40eafe06d81c47c20e01458dbaadb007c3fd68a. The ledger pins the manifest; no comparison path writes references. The original 337-case corpus/reference set is unchanged.",
+                "Negative tests reject pixel corruption, replay differences, sample count changes and changed reference PNGs. A temporal failure fails the overall M2 G3 result. GPU checks run outside G0 in a bounded hidden Electron process.",
+                "Full M2 G0/G1/G3 passed with 38 FPLN round trips, 1819 exact whole-frame comparisons and four exact temporal outputs plus 12 admitted Rust resource messages. The unchanged production renderer/bridge fingerprints allowed reuse of cycle31's complete capture without redundant recapture.",
+                "M2-T6 remains in progress: planned individual sample hashes and explicit weighted accumulation/resolve execution are next. Complete submitted-frame replay remains M2-T14."
+              ]
             }
           ],
           "remaining_work": [
-            "Promote the four-mode temporal output GPU diagnostic into maintained verification; the existing scene-motion-blur fixture disables text animators and cannot prove this path is exercised.",
-            "Bind individual sampled rasters through planned content hashes, then encode explicit accumulation/resolve from supplied inputs; resolved outputs already use shared submission-safe ownership.",
-            "Verify temporal GPU replay and all shutter-edge cases; complete submitted-frame replay remains M2-T14."
+            "Bind individual sampled rasters through planned hashes and execute explicit accumulation/resolve from supplied pass inputs; resolved outputs already share submission-safe ownership.",
+            "Extend the maintained GPU checks to decoded sample/pass replay; complete submitted-frame replay remains M2-T14."
           ]
         },
         {
@@ -13521,17 +13575,17 @@
           {
             "id": "G0",
             "status": "passed",
-            "duration_ms": 73604
+            "duration_ms": 74409
           },
           {
             "id": "G1",
             "status": "passed",
-            "duration_ms": 4685
+            "duration_ms": 4663
           },
           {
             "id": "G3",
             "status": "passed",
-            "duration_ms": 270770
+            "duration_ms": 267955
           }
         ],
         "optional_gates": [
@@ -13542,7 +13596,7 @@
           }
         ],
         "performance_policy": "rust-delivery-v1",
-        "report": "artifacts/migration/verify-2026-10-04T22-08-49-236Z-72c0080b.json"
+        "report": "artifacts/migration/verify-2026-10-04T22-28-55-629Z-f076c827.json"
       },
       "performance_series_history": [
         {
@@ -14848,12 +14902,5 @@
       }
     }
   ],
-  "active_cycle": {
-    "id": 32,
-    "milestone": "M2",
-    "task": "M2-T6",
-    "started_at": "2026-10-04T22:20:07.980Z",
-    "scope": "Promote real temporal text output GPU checks into required M2 G3 with frozen pre-change references and Rust resource admission.",
-    "previous_turn_classification": "progress: cycle31 committed shared temporal output ownership and exact GPU/Rust evidence after full G0/G1/G3; discovered the existing corpus disables temporal glyph animation."
-  }
+  "active_cycle": null
 }
