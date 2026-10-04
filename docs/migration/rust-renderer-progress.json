@@ -83,39 +83,39 @@
     }
   },
   "last_cycle": {
-    "id": 34,
-    "time": "2026-10-04T23:19:08.071Z",
+    "id": 35,
+    "time": "2026-10-04T23:40:33.390Z",
     "milestone": "M2",
     "task": "M2-T6",
     "outcome": "passed",
-    "commit": "fe9519af37e03eb61a8cbc94cf01c91f1d8171c0",
-    "verification": "artifacts/migration/verify-2026-10-04T23-12-13-548Z-ea6c2dbc.json",
-    "verification_sha256": "d09fac97126259d1292e708d77c8a192984a2319086096dfc0f24022e37faee7",
+    "commit": "8e9b55e92b7cdce56beba370a21c3447b6b4fb6e",
+    "verification": "artifacts/migration/verify-2026-10-04T23-33-00-742Z-bb6f2260.json",
+    "verification_sha256": "98058c7ae20a53f4ac08505cf20b94f3bd88c9e3d8a7737f2dbaf4ca479075ec",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 81380
+        "duration_ms": 96030
       },
       {
         "id": "G1",
         "status": "passed",
-        "duration_ms": 29722
+        "duration_ms": 5151
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 268659
+        "duration_ms": 316619
       }
     ],
-    "verification_duration_ms": 380982,
-    "next_step": "Continue M2-T6: independently replay decoded sample textures and Rust-roundtripped temporal passes on the GPU.",
+    "verification_duration_ms": 419041,
+    "next_step": "Start M2-T7: plan material, HDR and LUT inputs for supplied-data execution.",
     "notes": [
-      "Added temporal_text_passes_slice_v1 to FPLN, the generated schema and Rust IR. Closed metadata contains output/sample hashes, dimensions and formats; binary f64 lanes preserve transparent exposure and each sample weight exactly.",
-      "TS and Rust reject missing or duplicate resource dependencies, invalid layout/formats, nonfinite/out-of-range weights and incomplete exposure. The production root supplies its actual frame header and executes the reconstructed pass slice.",
-      "G1 now includes four full/partial/transparent/exact-bit pass fixtures. Real Rust round trips preserve all bytes; the decoded TS executor consumes ordered hashes and weights at the recording GPU boundary. Independent GPU sample/pass replay is not claimed.",
-      "Fresh complete capture and full M2 G0/G1/G3 passed with 42 FPLN round trips, 1819 exact whole-frame comparisons and four exact temporal outputs with independent resolved-output replay.",
-      "M2-T6 remains in progress for independently decoded sample textures and GPU pass replay; complete submitted-frame replay remains M2-T14."
+      "Production temporal encoding can expose an owned pass snapshot and borrowed sample owners to a diagnostic observer. Ordinary preview performs no readbacks; submission-scoped ownership remains unchanged.",
+      "G3 captures 16 actual sample textures across full/entering/exiting exposures plus the transparent-only pass. Each actual FPLN pass round-trips through Rust before replay.",
+      "The original GPU device and page are destroyed. A separate consumer imports no authoring evaluators and receives only returned FPLN, output descriptors and decoded sample pixels. It allocates new GPU textures/uniforms, executes supplied accumulation/resolve and compares against frozen exact outputs.",
+      "The maintained audit validates saved FPLN bytes, sample hashes/dimensions/scopes, resource payloads and independent output bytes. Rust admits 60 resource messages. A static negative test rejects changed pass/output evidence and missing sample coverage.",
+      "Full M2 G0/G1/G3 passed with 42 FPLN fixtures, 1819 exact whole-frame comparisons and four exact independent temporal pass replays. M2-T6 is complete; complete submitted-frame planning/capture/replay remains under later M2 tasks."
     ]
   },
   "milestones": [
@@ -13112,7 +13112,7 @@
             "Temporal text and shutter-edge parity cases remain exact."
           ],
           "required_full_gates": ["G0", "G1", "G3"],
-          "status": "in_progress",
+          "status": "done",
           "started_at": "2026-10-04T21:13:38.519Z",
           "increments": [
             {
@@ -13464,11 +13464,83 @@
                 "Fresh complete capture and full M2 G0/G1/G3 passed with 42 FPLN round trips, 1819 exact whole-frame comparisons and four exact temporal outputs with independent resolved-output replay.",
                 "M2-T6 remains in progress for independently decoded sample textures and GPU pass replay; complete submitted-frame replay remains M2-T14."
               ]
+            },
+            {
+              "cycle": 35,
+              "status": "passed",
+              "commit": "8e9b55e92b7cdce56beba370a21c3447b6b4fb6e",
+              "verification": {
+                "path": "artifacts/migration/verify-2026-10-04T23-33-00-742Z-bb6f2260.json",
+                "sha256": "98058c7ae20a53f4ac08505cf20b94f3bd88c9e3d8a7737f2dbaf4ca479075ec"
+              },
+              "pixel_comparison": {
+                "path": "artifacts/parity/ts-check/2026-10-04T23-34-42-542Z-dc473de3/report.json",
+                "sha256": "036b2bdb2b0bc9f70aab066dda7f0d041c23543f5038082db4daebfac38d9944"
+              },
+              "capture": {
+                "path": "artifacts/parity/capture-2026-10-04T23-26-16-079Z-e7bb792e.json",
+                "sha256": "0250b51ac66985e53c953a7b83e68dfb3854fa36a9c4705584aa729193050afe"
+              },
+              "manifest": {
+                "path": "artifacts/parity/runs/2026-10-04T23-26-16-079Z-e7bb792e/candidate/manifest.json",
+                "sha256": "5f86de94b4b2023c0e39afe1708c0d419ea6cc3dd9dff9c567d960004c3bb141"
+              },
+              "renderer_source_sha256": "21c36a3edb693d58b01fd68f1b5ee760aa4965e7781726b8ce66a1b86143089f",
+              "bridge_sha256": "82ccf02fefd4c54e78a82a4de08df6906714ecd0b198864ec72cb0c0394dd80c",
+              "temporal_report": {
+                "path": "artifacts/parity/ts-check/2026-10-04T23-34-42-542Z-dc473de3/temporal-text/gpu.json",
+                "sha256": "a303b5261dd31f96ceca18f6fe1d6f422c5f0af5b8087c7f16c5f71967ebada9"
+              },
+              "temporal_reference": {
+                "path": "tests/parity/temporal-text/reference/manifest.json",
+                "sha256": "e3e3b1184d5bc969dcd5cf76a424a551a0cac1a85484e157c5b549e5d6c811d1"
+              },
+              "gates": [
+                {
+                  "id": "G0",
+                  "status": "passed",
+                  "duration_ms": 96030
+                },
+                {
+                  "id": "G1",
+                  "status": "passed",
+                  "duration_ms": 5151
+                },
+                {
+                  "id": "G3",
+                  "status": "passed",
+                  "duration_ms": 316619
+                }
+              ],
+              "notes": [
+                "Production temporal encoding can expose an owned pass snapshot and borrowed sample owners to a diagnostic observer. Ordinary preview performs no readbacks; submission-scoped ownership remains unchanged.",
+                "G3 captures 16 actual sample textures across full/entering/exiting exposures plus the transparent-only pass. Each actual FPLN pass round-trips through Rust before replay.",
+                "The original GPU device and page are destroyed. A separate consumer imports no authoring evaluators and receives only returned FPLN, output descriptors and decoded sample pixels. It allocates new GPU textures/uniforms, executes supplied accumulation/resolve and compares against frozen exact outputs.",
+                "The maintained audit validates saved FPLN bytes, sample hashes/dimensions/scopes, resource payloads and independent output bytes. Rust admits 60 resource messages. A static negative test rejects changed pass/output evidence and missing sample coverage.",
+                "Full M2 G0/G1/G3 passed with 42 FPLN fixtures, 1819 exact whole-frame comparisons and four exact independent temporal pass replays. M2-T6 is complete; complete submitted-frame planning/capture/replay remains under later M2 tasks."
+              ]
             }
           ],
-          "remaining_work": [
-            "Extend maintained GPU checks to decode captured individual sample resources and the Rust-roundtripped pass plan, then independently execute accumulation/resolve against frozen outputs.",
-            "Complete submitted-frame replay remains M2-T14."
+          "remaining_work": [],
+          "completed_at": "2026-10-04T23:40:33.389Z",
+          "commit": "8e9b55e92b7cdce56beba370a21c3447b6b4fb6e",
+          "verification": "artifacts/migration/verify-2026-10-04T23-33-00-742Z-bb6f2260.json",
+          "gates": [
+            {
+              "id": "G0",
+              "status": "passed",
+              "duration_ms": 96030
+            },
+            {
+              "id": "G1",
+              "status": "passed",
+              "duration_ms": 5151
+            },
+            {
+              "id": "G3",
+              "status": "passed",
+              "duration_ms": 316619
+            }
           ]
         },
         {
@@ -13676,7 +13748,7 @@
       ],
       "preview_baseline_path": "benchmarks/results/m2-preview-baseline.json",
       "preview_baseline_sha256": "a1c62e224c008e731c252142ab1b9de7d31ecf592452c00da1dff42516772375",
-      "active_candidate_manifest": "artifacts/parity/runs/2026-10-04T23-06-10-443Z-852c6299/candidate/manifest.json",
+      "active_candidate_manifest": "artifacts/parity/runs/2026-10-04T23-26-16-079Z-e7bb792e/candidate/manifest.json",
       "last_verification": {
         "status": "passed",
         "required_gates_passed": true,
@@ -13685,17 +13757,17 @@
           {
             "id": "G0",
             "status": "passed",
-            "duration_ms": 81380
+            "duration_ms": 96030
           },
           {
             "id": "G1",
             "status": "passed",
-            "duration_ms": 29722
+            "duration_ms": 5151
           },
           {
             "id": "G3",
             "status": "passed",
-            "duration_ms": 268659
+            "duration_ms": 316619
           }
         ],
         "optional_gates": [
@@ -13706,7 +13778,7 @@
           }
         ],
         "performance_policy": "rust-delivery-v1",
-        "report": "artifacts/migration/verify-2026-10-04T23-12-13-548Z-ea6c2dbc.json"
+        "report": "artifacts/migration/verify-2026-10-04T23-33-00-742Z-bb6f2260.json"
       },
       "performance_series_history": [
         {
@@ -15012,12 +15084,5 @@
       }
     }
   ],
-  "active_cycle": {
-    "id": 35,
-    "milestone": "M2",
-    "task": "M2-T6",
-    "started_at": "2026-10-04T23:20:41.988Z",
-    "scope": "Capture actual sampled rasters and FPLN pass slices, roundtrip through Rust, then replay from independent decoded GPU allocations without authoring inputs or original device state.",
-    "previous_turn_classification": "progress: cycle34 committed exact FPLN/Rust pass transport and full M2 gate evidence."
-  }
+  "active_cycle": null
 }
