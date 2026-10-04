@@ -84,6 +84,9 @@ participate in the root scene's hash bindings. The temporal cache and media regi
 owner; pinned generations cannot be overwritten and retired pinned allocations remain budgeted until
 release. Diagnostic capture now includes these resolved outputs. Sample texture hashes and explicit
 accumulation/resolve operations still require extraction.
+The M2 pixel gate separately exercises actual temporal glyph accumulation in four exposure states,
+compares the resolved outputs against frozen exact references and replays their captured resources.
+This verifies the temporal output slice; sample-resource hashes and complete pass replay remain open.
 
 ## FPLN encoding
 

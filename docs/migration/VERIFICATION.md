@@ -149,6 +149,14 @@ Temporal output lifetime tests register actual cache owners by hash, retain two 
 verify old bindings survive replacement and cache destruction until release. Retired pinned outputs
 remain budgeted, unchanged pinned generations remain reusable, and switching to ordinary text cannot
 reuse a retired texture. Resolved temporal outputs also enter the real raster GPU capture/replay audit.
+M2 G3 additionally runs a hidden GPU window for full, entering, exiting and transparent temporal
+glyph exposure. These four resolved outputs use separate frozen exact PNG references, established
+by comparing the pre-cycle-31 cache to its replacement on the same device. The ledger pins their
+manifest; verification never regenerates them. The gate checks canonical sample counts, dimensions,
+exact pixels, independent GPU resource replay and Rust resource admission. Its failure fails G3.
+This closes a coverage gap in the original scene-motion-blur fixture, which disables text animators
+and therefore exercises layer movement rather than temporal glyph accumulation. The original 337-case
+corpus and references remain unchanged; these four output checks do not claim complete frame replay.
 
 G1 also round-trips text/SVG/PSD scene slices built by the production geometry producer, then joins
 the returned geometry with independently admitted Rust resource transcripts and binary pixels.

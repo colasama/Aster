@@ -73,7 +73,14 @@
     "capture_report": "artifacts/parity/capture-2026-10-03T17-56-06-814Z-3bc28aaa.json",
     "case_count": 337,
     "frame_count": 1947,
-    "approval": "Preserve the complete M0-T3 production TS capture as the original pixel oracle. Only the explicitly listed, section 6.6 reviewed M0 reference repairs overlay requested frames. All other original frames, including sequence neighbors, remain unchanged. Freeze this effective reference set before M1; M1 and M2 retain strict whole-corpus exact requirements."
+    "approval": "Preserve the complete M0-T3 production TS capture as the original pixel oracle. Only the explicitly listed, section 6.6 reviewed M0 reference repairs overlay requested frames. All other original frames, including sequence neighbors, remain unchanged. Freeze this effective reference set before M1; M1 and M2 retain strict whole-corpus exact requirements.",
+    "temporal_text": {
+      "path": "tests/parity/temporal-text/reference/manifest.json",
+      "sha256": "e3e3b1184d5bc969dcd5cf76a424a551a0cac1a85484e157c5b549e5d6c811d1",
+      "reference_commit": "f40eafe06d81c47c20e01458dbaadb007c3fd68a",
+      "donor": "artifacts/migration/cycle31-temporal-gpu.json",
+      "policy": "Four additional resolved temporal glyph outputs, verified exact against the pre-cycle-31 cache. Preserve these references independently of the unchanged original whole-frame corpus."
+    }
   },
   "last_cycle": {
     "id": 31,
@@ -14841,5 +14848,12 @@
       }
     }
   ],
-  "active_cycle": null
+  "active_cycle": {
+    "id": 32,
+    "milestone": "M2",
+    "task": "M2-T6",
+    "started_at": "2026-10-04T22:20:07.980Z",
+    "scope": "Promote real temporal text output GPU checks into required M2 G3 with frozen pre-change references and Rust resource admission.",
+    "previous_turn_classification": "progress: cycle31 committed shared temporal output ownership and exact GPU/Rust evidence after full G0/G1/G3; discovered the existing corpus disables temporal glyph animation."
+  }
 }

@@ -9,6 +9,7 @@ import { runStep } from "./process.mjs";
 import { auditCapturedRasters } from "./raster-capture-gate.mjs";
 import { writeAtomicJson } from "./report.mjs";
 import { hashFile, ownerProject, sourceProvenance } from "./source.mjs";
+import { auditTemporalText } from "./temporal-text-gate.mjs";
 import { auditTsCandidate } from "./ts-candidate.mjs";
 
 export function parseTsPixelArguments(args) {
@@ -79,6 +80,18 @@ export async function verifyTsPixels(options, dependencies = {}) {
         context,
         execute,
       );
+    if (options.milestone === "M2") {
+      report.temporal_text = await (dependencies.auditTemporalText ?? auditTemporalText)(
+        reader,
+        context,
+        execute,
+      );
+      assert.equal(
+        report.temporal_text.status,
+        "passed",
+        "Temporal text GPU verification did not pass",
+      );
+    }
     report.gate = await (dependencies.runPixelGate ?? runPixelGate)(
       { ...context, output: join(output, "G3") },
       { manifestPath: resolve(root, options.candidates), scope: "full", profileOverride: "exact" },

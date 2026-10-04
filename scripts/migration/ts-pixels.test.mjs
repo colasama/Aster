@@ -198,29 +198,37 @@ test("TS comparison audits complete capture provenance, keeps one build, and bin
 });
 
 test("M2 retains exact and frozen M0 references without checking historical M0 candidate source", async (t) => {
-  const f = await candidateFixture(t);
-  const result = await verifyTsPixels(
-    { root: f.root, candidates: f.candidates, milestone: "M2" },
-    {
-      auditCapturedRasters: async () => ({ status: "passed" }),
-      provenance: async () => ({ source_sha256: "same" }),
-      rendererSource: async () => ({ renderer_source_sha256: "d".repeat(64) }),
-      execute: async () => ({ status: "passed", exit_code: 0 }),
-      runPixelGate: async (_context, options) => {
-        assert.equal(options.profileOverride, "exact");
-        return {
-          id: "G3",
-          status: "passed",
-          scope: "full",
-          full_coverage: true,
-          required_count: 1,
-          reference_binding: f.reference,
-        };
+  for (const gpuFailure of [false, true]) {
+    const f = await candidateFixture(t);
+    const result = await verifyTsPixels(
+      { root: f.root, candidates: f.candidates, milestone: "M2" },
+      {
+        auditCapturedRasters: async () => ({ status: "passed" }),
+        auditTemporalText: async () => {
+          return { status: gpuFailure ? "failed" : "passed", profile: "exact" };
+        },
+        provenance: async () => ({ source_sha256: "same" }),
+        rendererSource: async () => ({ renderer_source_sha256: "d".repeat(64) }),
+        execute: async () => ({ status: "passed", exit_code: 0 }),
+        runPixelGate: async (_context, options) => {
+          assert.equal(options.profileOverride, "exact");
+          return {
+            id: "G3",
+            status: "passed",
+            scope: "full",
+            full_coverage: true,
+            required_count: 1,
+            reference_binding: f.reference,
+          };
+        },
       },
-    },
-  );
-  assert.equal(result.exitCode, 0);
-  assert.deepEqual(result.report.frozen_reference, f.reference);
+    );
+    assert.equal(result.exitCode, gpuFailure ? 1 : 0);
+    if (gpuFailure)
+      assert.match(result.report.error, /Temporal text GPU verification did not pass/);
+    else assert.equal(result.report.temporal_text.status, "passed");
+    assert.deepEqual(result.report.frozen_reference, f.reference);
+  }
 });
 
 test("M1 rejects a self-consistent replacement of an original sequence neighbor", async (t) => {

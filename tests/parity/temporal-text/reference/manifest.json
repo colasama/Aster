@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "profile": "exact",
+  "scope": "temporal-text-resolved-output",
+  "reference_commit": "f40eafe06d81c47c20e01458dbaadb007c3fd68a",
+  "donor": {
+    "path": "artifacts/migration/cycle31-temporal-gpu.json",
+    "sha256": "7ba8dcd27c5012d035ff1c76ddeae202768fff6ff9311996c620a10e9f439eb7",
+    "scripts": [
+      {
+        "path": "artifacts/migration/cycle31-reference-cache.ts",
+        "sha256": "d0f8ef2556d3acbb7cc6dd4e75f0d84ea2b279dec88225ba3957fac50ca3db91"
+      },
+      {
+        "path": "artifacts/migration/cycle31-reference-upload.ts",
+        "sha256": "9a51e921b0ae31bb54fc025f422382fba4ee9f10816cd6faf7b25df4c614df18"
+      },
+      {
+        "path": "artifacts/migration/cycle31-temporal-gpu.mjs",
+        "sha256": "706792d0668945527399d0c539a9bac10a23d61dc65ed56467ad94897850db35"
+      },
+      {
+        "path": "artifacts/migration/cycle31-temporal-electron.cjs",
+        "sha256": "c1e325d0fba34aa1a143a8dfd5e2560e624313bf81f3dbc3060a26872d7fa2bb"
+      },
+      {
+        "path": "artifacts/migration/cycle31-run-temporal.mjs",
+        "sha256": "9a814ef0f6846f1bdac5c6517af127c21b0b648556224862fcd05b80885e8c91"
+      }
+    ]
+  },
+  "cases": [
+    {
+      "mode": "full",
+      "width": 491,
+      "height": 108,
+      "samples": 8,
+      "transparent_weight": 0,
+      "alpha_sum": 5741714,
+      "path": "full.png",
+      "png_sha256": "3c0590e7f3b13d5e3753115762465f9c9b4b83efcd660e27a2949323148e558f",
+      "rgba_sha256": "fdfdc9bdc719bb52b0101f3e18f08a93463d6a99e0fc79fd9ddfe2a48eb1734b"
+    },
+    {
+      "mode": "enters",
+      "width": 491,
+      "height": 108,
+      "samples": 4,
+      "transparent_weight": 0.5,
+      "alpha_sum": 2880940,
+      "path": "enters.png",
+      "png_sha256": "57259eacbc73e93c7da8ad202e1c5f1dc4f64bab236401272b5cc0d03dc53963",
+      "rgba_sha256": "bc55597ebf75ca245b100f6485581617988785891186ae945b4fcd0641c6e469"
+    },
+    {
+      "mode": "exits",
+      "width": 491,
+      "height": 108,
+      "samples": 4,
+      "transparent_weight": 0.5,
+      "alpha_sum": 2881866,
+      "path": "exits.png",
+      "png_sha256": "ea3d615c3f1d404fb483586eb3857233d1a6e39f7092fb120dd60f15d529de41",
+      "rgba_sha256": "7ad19b4b298b5e7f6b23854d861e87e2a0dc20bb53bb8f737ab02cd570022431"
+    },
+    {
+      "mode": "transparent",
+      "width": 256,
+      "height": 80,
+      "samples": 0,
+      "transparent_weight": 1,
+      "alpha_sum": 0,
+      "path": "transparent.png",
+      "png_sha256": "3533d82d014da083c1bb5caa400ec8fafdda1bd1da8c0662beeba918ad2c127c",
+      "rgba_sha256": "fa569e2360c540e6280e34a4627516770f1a5f34d81d35689334a99cc1013357"
+    }
+  ]
+}
