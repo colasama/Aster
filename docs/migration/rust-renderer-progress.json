@@ -76,39 +76,39 @@
     "approval": "Preserve the complete M0-T3 production TS capture as the original pixel oracle. Only the explicitly listed, section 6.6 reviewed M0 reference repairs overlay requested frames. All other original frames, including sequence neighbors, remain unchanged. Freeze this effective reference set before M1; M1 and M2 retain strict whole-corpus exact requirements."
   },
   "last_cycle": {
-    "id": 21,
-    "time": "2026-10-04T18:34:50.140Z",
+    "id": 22,
+    "time": "2026-10-04T18:54:59.233Z",
     "milestone": "M2",
     "task": "M2-T4",
     "outcome": "passed",
-    "commit": "9e9ece1230d19aeb1bd78f3be063b8ac2ab7b8bf",
-    "verification": "artifacts/migration/verify-2026-10-04T18-28-32-605Z-fe0a673e.json",
-    "verification_sha256": "d05d29f7d68f895c6c859ba70717800cacbb2b3da91c76d9805cb2e63e87b847",
+    "commit": "596ed96354c4db388648a6c5979d5da0417830c4",
+    "verification": "artifacts/migration/verify-2026-10-04T18-48-24-218Z-f69e640d.json",
+    "verification_sha256": "6b96f3bd39b6b8fbd3170d805e19f982ea850f0799b9b33a162214b927d7b6ef",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 72900
+        "duration_ms": 82598
       },
       {
         "id": "G1",
         "status": "passed",
-        "duration_ms": 3542
+        "duration_ms": 3865
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 263281
+        "duration_ms": 263977
       }
     ],
-    "verification_duration_ms": 340937,
-    "next_step": "Continue M2-T4: serialize actual media draw references into FPLN and replay decoded bindings through the persistent registry, preserving exact readiness.",
+    "verification_duration_ms": 351685,
+    "next_step": "Start M2-T5: extract text/SVG/PSD raster acquisition and evaluated bounds into explicit resources consumed by plan-based geometry and upload.",
     "notes": [
-      "Production root image/video frame leases now use a persistent GPU registry that applies typed PutResource/EvictResource messages and validates content hashes against installed owner identities and bindings. Per-lease lookup resolves supplied hashes without cache or authoring-layer access.",
-      "Registration bounds descriptor bytes, physical-owner GPU bytes, binding versions and active leases. Repeated puts and authorization aliases do not double-charge physical owners. Source dependencies and frame pins reject premature eviction; generation checks reject stale bindings.",
-      "Retired in-flight owners remain resident and included in cache memory estimates until GPU queue completion. Same-hash physical replacements retain independent leases. Registry destruction defers removal of pinned entries; eviction unregisters cache-owned allocations without destroying live cache textures.",
-      "Full G0/G1/G3 passed, with 19 FPLN round trips, 11 media descriptor round trips and 1819 exact pixel frames. Targeted cases verify atomic rejection, replacement lifetimes, stale video bindings, bounded accounting and cache destruction while submitted work remains live.",
-      "M2-T4 remains open for serializable FPLN media draw references and independent resource replay. This increment connects the production GPU registry; production rendering remains TS and native rendering is not yet accepted."
+      "The TS/Rust scene-buffer contract now includes ordered draw-index media bindings: explicit pending output or a frame hash also present in the plan resource table. Both validators reject absent references and ambiguous or out-of-range indices. The Rust-owned schema is regenerated.",
+      "Root rendering binds the actual prepared media references into an owned metadata snapshot after readiness, preserves existing geometry payload ownership, and resolves the supplied plan through retained GPU leases before encoding. Beauty and auxiliary draws receive their hashes from that plan.",
+      "G1 now runs 27 exact FPLN round trips, including eight image/sequence/fractional-video media cases with pending bindings and repeated hash aliases. It checks decoded resolution and rejects evicted resources; the existing 11 media-descriptor round trips remain required.",
+      "Replay adapter tests serialize the scene references emitted from real media leases, retain their actual descriptor messages, destroy producer owners, admit newly resolved physical GPU owners, and resolve the decoded hashes. They also reject missing resources and duplicate/out-of-range draw indices before resolution.",
+      "Full G0/G1/G3 passed, including 1819 exact pixel frames. This meets the original M2-T4 production change and completion criteria: explicit operations, hash-addressed executor resolution, pre-submission failures, pinned lifetimes and exact media identity. Complete frame planning and native rendering remain incomplete."
     ]
   },
   "milestones": [
@@ -12409,7 +12409,7 @@
             "Fractional-video and sequence identity cases stay exact; native/DOM handles never enter plan metadata."
           ],
           "required_full_gates": ["G0", "G1", "G3"],
-          "status": "in_progress",
+          "status": "done",
           "started_at": "2026-10-04T16:49:56.866Z",
           "verification_attempts": [
             {
@@ -12668,12 +12668,70 @@
                 "Full G0/G1/G3 passed, with 19 FPLN round trips, 11 media descriptor round trips and 1819 exact pixel frames. Targeted cases verify atomic rejection, replacement lifetimes, stale video bindings, bounded accounting and cache destruction while submitted work remains live.",
                 "M2-T4 remains open for serializable FPLN media draw references and independent resource replay. This increment connects the production GPU registry; production rendering remains TS and native rendering is not yet accepted."
               ]
+            },
+            {
+              "cycle": 22,
+              "status": "passed",
+              "commit": "596ed96354c4db388648a6c5979d5da0417830c4",
+              "verification": {
+                "path": "artifacts/migration/verify-2026-10-04T18-48-24-218Z-f69e640d.json",
+                "sha256": "6b96f3bd39b6b8fbd3170d805e19f982ea850f0799b9b33a162214b927d7b6ef"
+              },
+              "pixel_comparison": {
+                "path": "artifacts/parity/ts-check/2026-10-04T18-49-51-298Z-d0879df0/report.json",
+                "sha256": "fdb2493c00c2e4b4bd23c5b4dffc1da9e6e5e00319604a2a424dbbc46be1576a"
+              },
+              "capture": {
+                "path": "artifacts/parity/capture-2026-10-04T18-42-46-279Z-6bb1e4cb.json",
+                "sha256": "f6920e6df760fa4af22ffd275dc46b6bd16cf40e421a6a209a37c33e76b37d21"
+              },
+              "manifest": {
+                "path": "artifacts/parity/runs/2026-10-04T18-42-46-279Z-6bb1e4cb/candidate/manifest.json",
+                "sha256": "327a43b0f8750fa2daf0ad3ed0d02aec9f23e69f7d755d5b106c33b692bb0fd2"
+              },
+              "renderer_source_sha256": "c8094dee22003af7d03c4bbcbf80a91db92c3b5480994dd247c72687bb30f04d",
+              "bridge_sha256": "82ccf02fefd4c54e78a82a4de08df6906714ecd0b198864ec72cb0c0394dd80c",
+              "gates": [
+                {
+                  "id": "G0",
+                  "status": "passed",
+                  "duration_ms": 82598
+                },
+                {
+                  "id": "G1",
+                  "status": "passed",
+                  "duration_ms": 3865
+                },
+                {
+                  "id": "G3",
+                  "status": "passed",
+                  "duration_ms": 263977
+                }
+              ],
+              "notes": [
+                "The TS/Rust scene-buffer contract now includes ordered draw-index media bindings: explicit pending output or a frame hash also present in the plan resource table. Both validators reject absent references and ambiguous or out-of-range indices. The Rust-owned schema is regenerated.",
+                "Root rendering binds the actual prepared media references into an owned metadata snapshot after readiness, preserves existing geometry payload ownership, and resolves the supplied plan through retained GPU leases before encoding. Beauty and auxiliary draws receive their hashes from that plan.",
+                "G1 now runs 27 exact FPLN round trips, including eight image/sequence/fractional-video media cases with pending bindings and repeated hash aliases. It checks decoded resolution and rejects evicted resources; the existing 11 media-descriptor round trips remain required.",
+                "Replay adapter tests serialize the scene references emitted from real media leases, retain their actual descriptor messages, destroy producer owners, admit newly resolved physical GPU owners, and resolve the decoded hashes. They also reject missing resources and duplicate/out-of-range draw indices before resolution.",
+                "Full G0/G1/G3 passed, including 1819 exact pixel frames. This meets the original M2-T4 production change and completion criteria: explicit operations, hash-addressed executor resolution, pre-submission failures, pinned lifetimes and exact media identity. Complete frame planning and native rendering remain incomplete."
+              ]
             }
           ],
-          "remaining_work": [
-            "Add serializable FPLN image/sequence/video references and bind them to decoded scene draw descriptors; preserve explicit pending fallback and actual requested/uploaded times.",
-            "Capture and replay the actual supplied media messages with independently resolved GPU bindings; reject missing, evicted and mismatched resources before submission.",
-            "Verify full fractional-video/sequence readiness and independent decoded-plan resource replay before closing T4."
+          "remaining_work": [],
+          "completed_at": "2026-10-04T18:54:59.232Z",
+          "completion": {
+            "commit": "596ed96354c4db388648a6c5979d5da0417830c4",
+            "verification": {
+              "path": "artifacts/migration/verify-2026-10-04T18-48-24-218Z-f69e640d.json",
+              "sha256": "6b96f3bd39b6b8fbd3170d805e19f982ea850f0799b9b33a162214b927d7b6ef"
+            },
+            "scope": "Explicit content resource table and basic root image/sequence/video resolution. Actual complete plan/resource capture and full decoded-frame replay remain required by the existing M2-T14 task; no M2 exit requirement is waived."
+          },
+          "follow_up_tasks": [
+            {
+              "id": "M2-T14",
+              "requirement": "Capture actual submitted complete plans and all resources, and prove TS->Rust->TS decoded-frame replay with identical raw RGBA across the corpus."
+            }
           ]
         },
         {
@@ -12915,7 +12973,7 @@
       ],
       "preview_baseline_path": "benchmarks/results/m2-preview-baseline.json",
       "preview_baseline_sha256": "a1c62e224c008e731c252142ab1b9de7d31ecf592452c00da1dff42516772375",
-      "active_candidate_manifest": "artifacts/parity/runs/2026-10-04T18-22-59-440Z-87f50faa/candidate/manifest.json",
+      "active_candidate_manifest": "artifacts/parity/runs/2026-10-04T18-42-46-279Z-6bb1e4cb/candidate/manifest.json",
       "last_verification": {
         "status": "passed",
         "required_gates_passed": true,
@@ -12924,17 +12982,17 @@
           {
             "id": "G0",
             "status": "passed",
-            "duration_ms": 72900
+            "duration_ms": 82598
           },
           {
             "id": "G1",
             "status": "passed",
-            "duration_ms": 3542
+            "duration_ms": 3865
           },
           {
             "id": "G3",
             "status": "passed",
-            "duration_ms": 263281
+            "duration_ms": 263977
           }
         ],
         "optional_gates": [
@@ -12945,7 +13003,7 @@
           }
         ],
         "performance_policy": "rust-delivery-v1",
-        "report": "artifacts/migration/verify-2026-10-04T18-28-32-605Z-fe0a673e.json"
+        "report": "artifacts/migration/verify-2026-10-04T18-48-24-218Z-f69e640d.json"
       },
       "performance_series_history": [
         {
@@ -14251,12 +14309,5 @@
       }
     }
   ],
-  "active_cycle": {
-    "id": 22,
-    "milestone": "M2",
-    "task": "M2-T4",
-    "started_at": "2026-10-04T18:36:48.836Z",
-    "scope": "Serialize explicit root media draw references in scene FPLN metadata and resolve decoded references against pinned GPU leases before encoding; verify exact TS/Rust transport and preserve readiness.",
-    "previous_turn_classification": "progress: cycle21 persistent GPU registry and ledger committed after full required gates; clean worktree."
-  }
+  "active_cycle": null
 }
