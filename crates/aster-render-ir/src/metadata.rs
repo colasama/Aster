@@ -3,7 +3,10 @@ use std::collections::BTreeSet;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::{CompositionIdentity, DecodeLimits, FrameRate, FrameTime, IrError, ResourceHash};
+use crate::{
+    CompositionIdentity, DecodeLimits, FrameRate, FrameTime, IrError, ResourceHash,
+    SceneBuffersSlice,
+};
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -15,6 +18,7 @@ pub enum PlanKind {
 #[serde(rename_all = "snake_case")]
 pub enum ContractLevel {
     PostUniformsSliceV1,
+    SceneBuffersSliceV1,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
@@ -103,6 +107,7 @@ pub struct BlobDescriptor {
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum PlanSlice {
     PostProcessUniforms { blob_index: u32 },
+    SceneBuffers(SceneBuffersSlice),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
@@ -159,13 +164,29 @@ impl FramePlanSliceV1 {
         }
         let mut referenced = BTreeSet::new();
         for slice in &self.slices {
-            let PlanSlice::PostProcessUniforms { blob_index } = slice;
+            let blob_index = match slice {
+                PlanSlice::PostProcessUniforms { blob_index }
+                    if self.contract_level == ContractLevel::PostUniformsSliceV1 =>
+                {
+                    *blob_index
+                }
+                PlanSlice::SceneBuffers(scene)
+                    if self.contract_level == ContractLevel::SceneBuffersSliceV1 =>
+                {
+                    scene.blob_index
+                }
+                _ => return Err(IrError::InvalidHeader("slice contract mismatch".to_owned())),
+            };
             let blob = self
                 .blobs
-                .get(*blob_index as usize)
+                .get(blob_index as usize)
                 .ok_or(IrError::BlobCountMismatch)?;
-            if !referenced.insert(*blob_index) {
+            if !referenced.insert(blob_index) {
                 return Err(IrError::BlobCountMismatch);
+            }
+            if let PlanSlice::SceneBuffers(scene) = slice {
+                scene.validate(blob)?;
+                continue;
             }
             if blob.element_type != ElementType::F32Le {
                 return Err(IrError::BlobTypeMismatch);
@@ -196,7 +217,14 @@ impl FramePlanSliceV1 {
         Ok(())
     }
 
-    pub(crate) fn validate_uniforms(&self, bytes: &[u8]) -> Result<(), IrError> {
+    pub(crate) fn validate_blob(&self, index: usize, bytes: &[u8]) -> Result<(), IrError> {
+        let descriptor = self.blobs.get(index).ok_or(IrError::BlobCountMismatch)?;
+        if bytes.len() != descriptor.byte_length as usize {
+            return Err(IrError::ElementCountMismatch);
+        }
+        if self.contract_level == ContractLevel::SceneBuffersSliceV1 {
+            return Ok(());
+        }
         if bytes.len() != 96 {
             return Err(IrError::ElementCountMismatch);
         }

@@ -30,7 +30,13 @@ import { analyzeEffectFusion } from "./effects/effect-fusion";
 import { selectedRenderId } from "./effects/surface-post-effects";
 import { buildRootPostUniformPlan } from "./frame-plan/root-post-plan";
 import { uploadRootPostUniformPlan } from "./frame-plan/root-post-upload";
-import { buildSceneGeometry, FLOATS_PER_VERTEX } from "./geometry/geometry";
+import { buildSceneBufferPlan } from "./frame-plan/scene-buffer-plan";
+import {
+  drawSceneShadows,
+  prepareSceneBuffers,
+  uploadSceneBuffers,
+} from "./frame-plan/scene-buffer-upload";
+import { buildSceneGeometry } from "./geometry/geometry";
 import { productionDepthOfFieldAllocationError } from "./gpu/auxiliary-buffer-budget";
 import {
   releaseFailedWebGpuInitialization,
@@ -436,7 +442,6 @@ export class WebGpuRenderer {
       previewResolutionScale,
       textMotionBlur.plans,
     );
-    const renderStack = planSceneRenderStack(sceneLayers, geometry.batches);
     const motionBlurSelectionIds = new Set(
       geometry.batches
         .filter(
@@ -567,20 +572,39 @@ export class WebGpuRenderer {
     const shadowsEnabled =
       shadowQuality !== "off" && primaryLight?.kind !== "point" && memory.shadowMapSize > 1;
     resources.configureShadowMap(memory.shadowMapSize);
-    this.#device.queue.writeBuffer(
-      resources.lightingBuffer,
-      0,
-      buildSceneLighting(sceneLayers, composition, shadowsEnabled, cameraPosition),
+    const sceneBuffers = prepareSceneBuffers(
+      buildSceneBufferPlan({
+        snapshot,
+        compositionId: composition.id,
+        time,
+        frameRate: composition.frameRate,
+        target: { width: this.#outputWidth, height: this.#outputHeight },
+        renderTarget: { width: this.#width, height: this.#height },
+        antiAliasing: this.#activeAntiAliasing,
+        geometry,
+        lighting: buildSceneLighting(sceneLayers, composition, shadowsEnabled, cameraPosition),
+        motionVectors,
+        shadowsEnabled,
+      }),
     );
-    if (geometry.data.length > 0) {
-      resources.ensureShapeBuffer(geometry.data.byteLength);
-      this.#device.queue.writeBuffer(resources.shapeBuffer, 0, geometry.data);
-    }
+    uploadSceneBuffers(sceneBuffers, {
+      queue: this.#device.queue,
+      lightingBuffer: resources.lightingBuffer,
+      get shapeBuffer() {
+        return resources.shapeBuffer;
+      },
+      ensureShapeBuffer: (bytes) => resources.ensureShapeBuffer(bytes),
+    });
+    const sceneBatches = sceneBuffers.draws.map((draw, index) => ({
+      ...geometry.batches[index],
+      ...draw,
+    }));
+    const renderStack = planSceneRenderStack(sceneLayers, sceneBatches);
     if (
       !resources.materialTextures &&
       ((composition.environment?.enabled &&
-        geometry.batches.some((batch) => batch.layer.kind === "mesh")) ||
-        geometry.batches.some((batch) => batch.layer.mesh?.materialTextures?.normal))
+        sceneBatches.some((batch) => batch.layer.kind === "mesh")) ||
+        sceneBatches.some((batch) => batch.layer.mesh?.materialTextures?.normal))
     )
       resources.materialTextures = new MaterialTextureRenderer(
         this.#device,
@@ -591,7 +615,7 @@ export class WebGpuRenderer {
           this.diagnostics.materialResourceError = message;
         },
       );
-    resources.materialTextures?.prepare(composition, geometry.batches);
+    resources.materialTextures?.prepare(composition, sceneBatches);
     for (const scene of sceneLayers) {
       if (scene.layer.kind === "image" || scene.layer.kind === "video")
         resources.mediaTextures.prepareMedia(
@@ -645,7 +669,7 @@ export class WebGpuRenderer {
     resources.mediaTextures.sweep(new Set([...activeMediaInstanceIds, ...prefetchedInstanceIds]));
     if (
       holdPendingMedia &&
-      (geometry.batches.some(
+      (sceneBatches.some(
         (batch) =>
           (batch.layer.kind === "image" || batch.layer.kind === "video") &&
           !resources.mediaTextures.mediaReady(batch.resourceInstanceId),
@@ -710,7 +734,7 @@ export class WebGpuRenderer {
     for (const generator of sceneGenerators)
       resources.sceneGenerators.encodeCompute(compute, generator);
     compute.end();
-    if (shadowsEnabled) {
+    if (sceneBuffers.slice.shadows_enabled) {
       const shadowPass = encoder.beginRenderPass({
         label: `Scene shadow-map depth · ${resources.shadowMapSize}²`,
         timestampWrites: resources.gpuProfiler.writes(2, 3),
@@ -725,10 +749,7 @@ export class WebGpuRenderer {
       shadowPass.setPipeline(resources.shadowPipeline);
       shadowPass.setBindGroup(0, resources.shadowBindGroup);
       shadowPass.setVertexBuffer(0, resources.shapeBuffer);
-      for (const batch of geometry.batches) {
-        if (!batch.layer.threeDimensional) continue;
-        shadowPass.draw(batch.vertexCount, 1, batch.firstVertex);
-      }
+      drawSceneShadows(sceneBuffers, shadowPass);
       shadowPass.end();
     } else {
       const shadowMarker = encoder.beginComputePass({
@@ -912,9 +933,9 @@ export class WebGpuRenderer {
       auxiliaryFrameValid = resources.auxiliaryBuffers.encode({
         encoder,
         vertexBuffer: resources.shapeBuffer,
-        vertexCount: geometry.data.length / FLOATS_PER_VERTEX,
-        batches: geometry.batches,
-        motionVectors,
+        vertexCount: sceneBuffers.slice.vertex_count,
+        batches: sceneBatches,
+        motionVectors: sceneBuffers.motionVectors,
         mediaBindGroup: (batch) =>
           resources.precompositionSurfaces.bindingFor(batch.instanceId) ??
           resources.mediaTextures.bindGroup(batch.resourceInstanceId),
@@ -932,7 +953,7 @@ export class WebGpuRenderer {
     const beautyMotionBlurValid =
       beautyMotionBlur &&
       auxiliaryFrameValid &&
-      motionVectors !== undefined &&
+      sceneBuffers.motionVectors !== undefined &&
       resources.motionBlur.encode(encoder, {
         ...motionBlurSettings,
         framePosition,
@@ -956,7 +977,7 @@ export class WebGpuRenderer {
     }
     resources.surfacePostEffects.setSelection(
       selectedRenderId(
-        geometry.batches,
+        sceneBatches,
         selectedLayerId,
         sceneGenerators.map((generator) => generator.selectionId),
       ),
@@ -1037,8 +1058,8 @@ export class WebGpuRenderer {
     const cpuMs = performance.now() - started;
     const sample = frameCadenceSample(frameInterval, continuousPlayback);
     this.#smoothedFrameMs = this.#smoothedFrameMs * 0.9 + sample * 0.1;
-    const shadowDrawCalls = shadowsEnabled
-      ? geometry.batches.filter((batch) => batch.layer.threeDimensional).length
+    const shadowDrawCalls = sceneBuffers.slice.shadows_enabled
+      ? sceneBuffers.draws.filter((draw) => draw.castsShadow).length
       : 0;
     return {
       fps: Math.min(240, 1000 / this.#smoothedFrameMs),
@@ -1049,7 +1070,7 @@ export class WebGpuRenderer {
         1 +
         Number(this.#activeAntiAliasing !== "off") +
         (beautyMotionBlurValid ? 3 : 0) +
-        geometry.batches.length +
+        sceneBatches.length +
         surfaceFrame.surfaceCount +
         shadowDrawCalls +
         effectLayerCount * 2 +

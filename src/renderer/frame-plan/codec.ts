@@ -6,7 +6,7 @@ import {
   type FramePlanSliceData,
   type FramePlanSliceV1,
 } from "./types";
-import { validateLimits, validateMetadata, validatePostUniforms } from "./validation";
+import { validateLimits, validateMetadata, validatePlanBlob } from "./validation";
 
 export function encodeFramePlan(
   input: FramePlanSliceV1,
@@ -36,7 +36,7 @@ export function encodeFramePlan(
   view.setUint32(20, length, true);
   output.set(json, 32);
   for (const [index, blob] of blobs.entries()) {
-    validatePostUniforms(blob, metadata);
+    validatePlanBlob(blob, metadata, index);
     output.set(blob, start + metadata.blobs[index].byte_offset);
   }
   return output;
@@ -112,7 +112,7 @@ export function decodeFramePlan(
     requirePlan(end <= length, "blob_range_out_of_bounds", "Blob range exceeds container");
     zeroPadding(input, previousEnd, offset);
     const blob = input.subarray(offset, end);
-    validatePostUniforms(blob, metadata);
+    validatePlanBlob(blob, metadata, blobs.length);
     blobs.push(blob);
     previousEnd = end;
   }

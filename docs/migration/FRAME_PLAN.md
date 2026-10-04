@@ -41,6 +41,24 @@ composition or effect settings from which to recompute them. Media holds precede
 the existing command encoding follows it. Local execution uses typed data directly; canonical JSON
 serialization remains a transport operation. Other passes still await extraction.
 
+`scene_buffers_slice_v1` adds one owned scene blob and a `scene_buffers` descriptor. Its layout is
+592 lighting bytes, then 160 bytes per evaluated vertex, followed by an optional 8-byte motion
+vector per vertex. Vertex count and the motion flag determine the exact length, including empty
+geometry. Plain draw records partition the vertex stream in order and carry instance, resource and
+selection identities plus the existing three-dimensional shadow flag. IDs use the same lossless
+string representation as composition identities. Geometry already contains evaluated camera
+projection; the lighting bytes include evaluated light/shadow data and camera position. All f32
+bits are preserved without adding new finite-value restrictions to the existing scene producer.
+
+The root scene-buffer producer copies source data. The executor validates before GPU writes and
+preserves lighting upload, shape capacity growth and shape upload order, including the pre-media-hold
+position of these operations. Empty geometry omits shape allocation/upload. Actual beauty and
+auxiliary ranges and selection identities come from decoded/plain draw records; shadow execution
+uses only these records and the supplied shadow-enable flag. Auxiliary motion upload consumes the
+supplied motion bytes. Material/resource adapters still pair planned ranges with live layer inputs;
+camera depth settings, generator inputs and complete pass/resource planning are not covered by this
+slice. Both contracts continue to declare `renderer_plan_complete: false`.
+
 ## FPLN encoding
 
 The container begins with this 32-byte little-endian header:
@@ -115,5 +133,6 @@ exercise both implementations instead of accepting a child process that merely e
 
 Passing this transport gate proves the current closed contract only. M2 additionally requires
 production `buildFramePlan`/`executeFramePlan` consumption of every pass, complete resource capture,
-independent decoded-plan replay, whole-corpus exact pixels, and current preview/export performance
-within the specified limits. A partial slice or manually changed ledger flag cannot establish exit.
+independent decoded-plan replay and whole-corpus exact pixels. Under the approved owner policy,
+intermediate performance is informational and final native preview/export must outperform TS.
+A partial slice or manually changed ledger flag cannot establish exit.

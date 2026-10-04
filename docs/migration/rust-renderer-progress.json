@@ -12287,7 +12287,8 @@
             "Mutation/clone test proves executor consumes supplied blobs."
           ],
           "required_full_gates": ["G0", "G1", "G3"],
-          "status": "pending"
+          "status": "in_progress",
+          "started_at": "2026-10-04T16:06:14.027Z"
         },
         {
           "id": "M2-T4",
@@ -13881,5 +13882,13 @@
         "sha256": "2a52867f6da0c4ad4e8cd1ef9831d5eb9be11743fe6f26fa9f12fe8d5c83797a"
       }
     }
-  ]
+  ],
+  "active_cycle": {
+    "id": 16,
+    "milestone": "M2",
+    "task": "M2-T3",
+    "started_at": "2026-10-04T16:06:14.027Z",
+    "scope": "Owned evaluated geometry/lighting/motion bytes and plain stable-ID draw ranges, with actual upload and shadow consumption. Remaining camera and execution extraction stays open until verified.",
+    "previous_turn_classification": "no_progress: explanation of M0 only; resumed the first open task after re-reading authoritative state."
+  }
 }

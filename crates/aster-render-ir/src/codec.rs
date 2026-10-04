@@ -101,8 +101,8 @@ impl FplnCodec {
                     .ok_or(IrError::ArithmeticOverflow)?,
             )?;
         }
-        for blob in blobs {
-            metadata.validate_uniforms(blob)?;
+        for (index, blob) in blobs.iter().enumerate() {
+            metadata.validate_blob(index, blob)?;
         }
         let json = CanonicalJson::encode(&metadata)?;
         if json.len() > limits.max_metadata_bytes {
@@ -207,7 +207,7 @@ impl FplnCodec {
             let blob = bytes
                 .get(start as usize..end as usize)
                 .ok_or(IrError::BlobRangeOutOfBounds)?;
-            metadata.validate_uniforms(blob)?;
+            metadata.validate_blob(ranges.len(), blob)?;
             cursor = WireHeader::align16(relative_end)?;
             let aligned_end = header
                 .blob_section_offset

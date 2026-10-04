@@ -73,7 +73,10 @@ TS DataView and Rust owned-buffer codecs share a canonical FPLN container with a
 and separate content-addressed resource operations. The initial contract carries an explicit
 partial post-process uniform slice. Production root post-processing now builds this slice from exact
 request time and caller snapshot identity, then uploads the supplied bytes through a separate
-executor. Other passes are extracted incrementally; complete frame replay remains a separate
+executor. An additional owned scene-buffer slice carries evaluated camera-space vertices, lighting,
+motion vectors and stable-ID draw ranges. The root renderer uploads these supplied buffers and uses
+their ranges for beauty, auxiliary and shadow draws. Material/resource adapters still retain live
+layer inputs; camera depth settings and other passes remain to be extracted. Complete frame replay remains a separate
 milestone requirement. See [Frame-plan transport](migration/FRAME_PLAN.md).
 
 Shared WGSL includes output anti-aliasing, core scene variants, compositing, fused post-processing,

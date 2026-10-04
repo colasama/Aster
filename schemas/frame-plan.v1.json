@@ -96,7 +96,7 @@
       ]
     },
     "ContractLevel": {
-      "enum": ["post_uniforms_slice_v1"],
+      "enum": ["post_uniforms_slice_v1", "scene_buffers_slice_v1"],
       "type": "string"
     },
     "ElementType": {
@@ -285,6 +285,46 @@
           },
           "required": ["kind", "blob_index"],
           "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "blob_index": {
+              "format": "uint32",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "draws": {
+              "items": {
+                "$ref": "#/$defs/SceneDrawRecord"
+              },
+              "type": "array"
+            },
+            "kind": {
+              "const": "scene_buffers",
+              "type": "string"
+            },
+            "motion_vectors": {
+              "type": "boolean"
+            },
+            "shadows_enabled": {
+              "type": "boolean"
+            },
+            "vertex_count": {
+              "format": "uint32",
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "kind",
+            "blob_index",
+            "vertex_count",
+            "motion_vectors",
+            "shadows_enabled",
+            "draws"
+          ],
+          "type": "object"
         }
       ]
     },
@@ -349,6 +389,42 @@
           "type": "object"
         }
       ]
+    },
+    "SceneDrawRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "casts_shadow": {
+          "type": "boolean"
+        },
+        "first_vertex": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "instance_id": {
+          "$ref": "#/$defs/CompositionIdentity"
+        },
+        "resource_instance_id": {
+          "$ref": "#/$defs/CompositionIdentity"
+        },
+        "selection_id": {
+          "$ref": "#/$defs/CompositionIdentity"
+        },
+        "vertex_count": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "instance_id",
+        "resource_instance_id",
+        "selection_id",
+        "first_vertex",
+        "vertex_count",
+        "casts_shadow"
+      ],
+      "type": "object"
     },
     "Utf16CompositionIdentity": {
       "additionalProperties": false,

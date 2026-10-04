@@ -10,6 +10,7 @@ import { frameTimeFromNumber } from "./time";
 import {
   defaultFramePlanLimits,
   type Extent2d,
+  type FrameHeaderSlice,
   type FramePlanSliceData,
   type RationalFrameRate,
 } from "./types";
@@ -27,24 +28,13 @@ export interface RootPostUniformPlanInput {
 
 /** Produces owned, GPU-free header and uniform data for the root post-process upload. */
 export function buildRootPostUniformPlan(input: RootPostUniformPlanInput): FramePlanSliceData {
-  validateRenderSnapshotIdentity(input.snapshot);
   const metadata = validateMetadata(
     {
       kind: "frame_plan_slice",
       plan_version: 1,
       contract_level: "post_uniforms_slice_v1",
       renderer_plan_complete: false,
-      header: {
-        snapshot_scope: input.snapshot.snapshotScope,
-        project_revision: input.snapshot.projectRevision,
-        composition_id: compositionIdentityFromString(input.compositionId),
-        time: frameTimeFromNumber(input.time),
-        frame_rate: frameRateFromNumbers(input.frameRate),
-        target: { width: input.target.width, height: input.target.height },
-        render_target: { width: input.renderTarget.width, height: input.renderTarget.height },
-        aa: input.antiAliasing,
-        color_pipeline: "linear-hdr-to-srgb-display",
-      },
+      header: buildFrameHeader(input),
       blobs: [{ byte_offset: 0, byte_length: 96, element_type: "f32_le", element_count: 24 }],
       slices: [{ kind: "post_process_uniforms", blob_index: 0 }],
       resources: [],
@@ -53,6 +43,21 @@ export function buildRootPostUniformPlan(input: RootPostUniformPlanInput): Frame
   );
   const bytes = postUniformBytes(input.renderTarget.width, input.renderTarget.height, input.time);
   return { metadata, blobs: [bytes] };
+}
+
+export function buildFrameHeader(input: RootPostUniformPlanInput): FrameHeaderSlice {
+  validateRenderSnapshotIdentity(input.snapshot);
+  return {
+    snapshot_scope: input.snapshot.snapshotScope,
+    project_revision: input.snapshot.projectRevision,
+    composition_id: compositionIdentityFromString(input.compositionId),
+    time: frameTimeFromNumber(input.time),
+    frame_rate: frameRateFromNumbers(input.frameRate),
+    target: { width: input.target.width, height: input.target.height },
+    render_target: { width: input.renderTarget.width, height: input.renderTarget.height },
+    aa: input.antiAliasing,
+    color_pipeline: "linear-hdr-to-srgb-display",
+  };
 }
 
 /** Writes the existing production producer's values in the wire's explicit byte order. */

@@ -83,13 +83,33 @@ export interface FrameHeaderSlice {
 export interface FramePlanSliceV1 {
   kind: "frame_plan_slice";
   plan_version: 1;
-  contract_level: "post_uniforms_slice_v1";
+  contract_level: "post_uniforms_slice_v1" | "scene_buffers_slice_v1";
   renderer_plan_complete: false;
   header: FrameHeaderSlice;
   blobs: BlobDescriptor[];
-  slices: { kind: "post_process_uniforms"; blob_index: number }[];
+  slices: PlanSlice[];
   resources: string[];
 }
+
+export interface SceneDrawRecord {
+  instance_id: CompositionIdentity;
+  resource_instance_id: CompositionIdentity;
+  selection_id: CompositionIdentity;
+  first_vertex: number;
+  vertex_count: number;
+  casts_shadow: boolean;
+}
+
+export interface SceneBuffersSlice {
+  kind: "scene_buffers";
+  blob_index: number;
+  vertex_count: number;
+  motion_vectors: boolean;
+  shadows_enabled: boolean;
+  draws: SceneDrawRecord[];
+}
+
+export type PlanSlice = { kind: "post_process_uniforms"; blob_index: number } | SceneBuffersSlice;
 
 export interface FramePlanSliceData {
   metadata: FramePlanSliceV1;

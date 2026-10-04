@@ -1,6 +1,7 @@
 import { align16, hash, integer, object, requirePlan, validUnicode } from "./canonical";
 import { compositionIdentityToString } from "./composition-identity";
 import { validateFrameRate } from "./frame-rate";
+import { validateSceneBuffers } from "./scene-buffer-layout";
 import { frameTimeToNumber, validateFrameTime } from "./time";
 import type { BufferResourceDescriptor, FramePlanLimits, FramePlanSliceV1 } from "./types";
 
@@ -57,10 +58,12 @@ export function validateMetadata(value: unknown, limits: FramePlanLimits): Frame
   requirePlan(
     metadata.kind === "frame_plan_slice" &&
       metadata.plan_version === 1 &&
-      metadata.contract_level === "post_uniforms_slice_v1" &&
+      ["post_uniforms_slice_v1", "scene_buffers_slice_v1"].includes(
+        String(metadata.contract_level),
+      ) &&
       metadata.renderer_plan_complete === false,
     "unknown_variant",
-    "Only the incomplete post-uniform transport slice is supported",
+    "Only incomplete post-uniform and scene-buffer slices are supported",
   );
   const header = object(metadata.header, [
     "snapshot_scope",
@@ -129,12 +132,26 @@ export function validateMetadata(value: unknown, limits: FramePlanLimits): Frame
   );
   const indices = new Set<number>();
   for (const value of metadata.slices) {
-    const slice = object(value, ["kind", "blob_index"]);
-    requirePlan(slice.kind === "post_process_uniforms", "unknown_variant", "Unknown plan slice");
+    const scene = metadata.contract_level === "scene_buffers_slice_v1";
+    const slice = object(
+      value,
+      scene
+        ? ["kind", "blob_index", "vertex_count", "motion_vectors", "shadows_enabled", "draws"]
+        : ["kind", "blob_index"],
+    );
+    requirePlan(
+      slice.kind === (scene ? "scene_buffers" : "post_process_uniforms"),
+      "unknown_variant",
+      "Unknown plan slice",
+    );
     const index = integer(slice.blob_index, 0, metadata.blobs.length - 1);
     requirePlan(!indices.has(index), "blob_count_mismatch", "A blob is referenced more than once");
     indices.add(index);
     const blob = metadata.blobs[index];
+    if (scene) {
+      validateSceneBuffers(slice, blob);
+      continue;
+    }
     requirePlan(
       blob.element_type === "f32_le" && blob.element_count === 24 && blob.byte_length === 96,
       "invalid_post_uniforms",
@@ -154,6 +171,19 @@ export function validateMetadata(value: unknown, limits: FramePlanLimits): Frame
     previous = value;
   }
   return metadata as unknown as FramePlanSliceV1;
+}
+
+export function validatePlanBlob(
+  bytes: Uint8Array,
+  metadata: FramePlanSliceV1,
+  index: number,
+): void {
+  requirePlan(
+    bytes.byteLength === metadata.blobs[index].byte_length,
+    "element_count_mismatch",
+    "Supplied blob length differs from descriptor",
+  );
+  if (metadata.contract_level === "post_uniforms_slice_v1") validatePostUniforms(bytes, metadata);
 }
 
 export function validatePostUniforms(

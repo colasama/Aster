@@ -18,7 +18,8 @@ export function uploadRootPostUniformPlan(
 ): void {
   const metadata = validateMetadata(plan.metadata, defaultFramePlanLimits());
   requirePlan(
-    metadata.slices.length === 1 &&
+    metadata.contract_level === "post_uniforms_slice_v1" &&
+      metadata.slices.length === 1 &&
       metadata.blobs.length === 1 &&
       metadata.resources.length === 0 &&
       plan.blobs.length === 1,

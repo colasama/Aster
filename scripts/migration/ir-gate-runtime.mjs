@@ -19,6 +19,8 @@ export async function loadIrRuntime(root) {
       "time",
       "composition-identity",
       "root-post-upload",
+      "scene-buffer-fixture",
+      "scene-buffer-upload",
     ])
       modules.push(await server.ssrLoadModule(`/src/renderer/frame-plan/${name}.ts`));
     return Object.assign({ close: () => server.close() }, ...modules);

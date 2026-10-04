@@ -3,6 +3,7 @@ mod frame_time;
 mod frame_time_codec;
 mod identity;
 mod resources;
+mod scene;
 mod schema_time;
 
 use crate::{

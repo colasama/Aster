@@ -17,11 +17,12 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
     schema_version: 1,
     status: "failed",
     started_at: new Date(started).toISOString(),
-    scope: "post_uniforms_slice_v1",
+    scope: "post_uniforms_slice_v1 + scene_buffers_slice_v1",
     renderer_plan_complete: false,
     steps: [],
     roundtrips: [],
     root_uploads: [],
+    scene_uploads: [],
     rejections: [],
   };
   const reader = new M0Evidence(context.root);
@@ -133,7 +134,12 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
         "utf16-identity",
       ],
     );
-    for (const fixture of [...fixtures, ...rootFixtures]) {
+    const sceneFixtures = runtime.sceneBufferFixtures();
+    assert.deepEqual(
+      sceneFixtures.map((fixture) => fixture.id),
+      ["scene-nested-mesh-camera", "scene-empty"],
+    );
+    for (const fixture of [...fixtures, ...rootFixtures, ...sceneFixtures]) {
       const input = join(context.output, `${fixture.id}-ts.fpln`);
       const output = join(context.output, `${fixture.id}-rust.fpln`);
       await writeFile(input, fixture.bytes, { flag: "wx" });
@@ -156,6 +162,36 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
         Buffer.from(runtime.encodeFramePlan(after.metadata, after.blobs)),
         original.bytes,
       );
+      if (after.metadata.contract_level === "scene_buffers_slice_v1") {
+        const prepared = runtime.prepareSceneBuffers(after);
+        const writes = [];
+        const draws = [];
+        runtime.uploadSceneBuffers(prepared, {
+          queue: {
+            writeBuffer: (_target, _offset, data, offset, size) =>
+              writes.push(Buffer.from(new Uint8Array(data, offset, size))),
+          },
+          lightingBuffer: {},
+          shapeBuffer: {},
+          ensureShapeBuffer: () => {},
+        });
+        runtime.drawSceneShadows(prepared, { draw: (...args) => draws.push(args) });
+        assert.deepEqual(writes[0], Buffer.from(prepared.lighting));
+        assert.equal(writes.length, prepared.vertices.length > 0 ? 2 : 1);
+        if (prepared.vertices.length) assert.deepEqual(writes[1], Buffer.from(prepared.vertices));
+        assert.deepEqual(
+          draws,
+          prepared.draws
+            .filter((draw) => draw.castsShadow)
+            .map((draw) => [draw.vertexCount, 1, draw.firstVertex]),
+        );
+        report.scene_uploads.push({
+          id: fixture.id,
+          supplied_payload_exact: true,
+          shadow_ranges_exact: true,
+          vertex_count: prepared.slice.vertex_count,
+        });
+      }
       if ("time" in fixture) {
         assert(Object.is(runtime.frameTimeToNumber(after.metadata.header.time), fixture.time));
         assert.equal(

@@ -8,6 +8,7 @@ mod frame_rate;
 mod identity;
 mod metadata;
 mod resource;
+mod scene;
 mod schema;
 mod time;
 mod wire;
@@ -25,6 +26,7 @@ pub use resource::{
     BufferResourceDescriptor, PutOutcome, PutResource, ResourceHash, ResourceKind, ResourceLease,
     ResourceLimits, ResourceMessage, ResourceRegistry, ResourceStatistics,
 };
+pub use scene::{SceneBuffersSlice, SceneDrawRecord};
 pub use schema::FramePlanSchema;
 pub use time::{FrameTime, RationalFrameRate, RationalTime};
 
