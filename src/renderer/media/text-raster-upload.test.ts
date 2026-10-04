@@ -8,13 +8,12 @@ import { uploadTextRaster } from "./text-raster-upload";
 
 afterEach(() => vi.unstubAllGlobals());
 
-it("keeps a retained raster addressable across lookup times and rejects an overwritten generation", () => {
+it("keeps a pinned raster addressable across lookup times and replacement", () => {
   vi.stubGlobal("GPUTextureUsage", { TEXTURE_BINDING: 4, COPY_DST: 2, RENDER_ATTACHMENT: 16 });
   const copy = vi.fn();
-  const texture = { destroy: vi.fn() } as unknown as GPUTexture;
   const destination = {
     device: {
-      createTexture: () => texture,
+      createTexture: () => ({ destroy: vi.fn() }),
       queue: { copyExternalImageToTexture: copy },
     } as unknown as GPUDevice,
     sourceId: "text-layer",
@@ -43,12 +42,17 @@ it("keeps a retained raster addressable across lookup times and rejects an overw
   expect(mediaFrameMessages(resource, "snapshot")).toEqual(messages);
   expect(lease.bindingForHash(messages[1].hash)).toBe(resource.bindGroup);
   expect(copy).toHaveBeenCalledOnce();
-  uploadTextRaster({ ...prepared, source: "font-revision-2:time-1" }, resource, destination);
-  expect(mediaFrameMessages(resource, "snapshot")[1].hash).not.toBe(messages[1].hash);
-  expect(() => lease.bindingForHash(messages[1].hash)).toThrow(
-    expect.objectContaining({ code: "resource_generation_mismatch" }),
+  const next = uploadTextRaster(
+    { ...prepared, source: "font-revision-2:time-1" },
+    resource,
+    destination,
   );
+  expect(next.texture).not.toBe(resource.texture);
+  expect(mediaFrameMessages(next, "snapshot")[1].hash).not.toBe(messages[1].hash);
+  expect(lease.bindingForHash(messages[1].hash)).toBe(resource.bindGroup);
+  expect(resource.texture?.destroy).not.toHaveBeenCalled();
   lease.release();
+  expect(resource.texture?.destroy).toHaveBeenCalledOnce();
   registry.destroy();
 });
 

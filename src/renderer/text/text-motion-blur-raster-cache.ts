@@ -1,5 +1,12 @@
 import type { Layer } from "../../core/types";
 import { sharedShaders } from "../gpu/shared-shader-catalog";
+import { preparedRasterIdentity } from "../media/media-frame-identity";
+import {
+  destroyMediaResource,
+  type MediaResource,
+  mediaResourcePinned,
+  mediaResourceRetired,
+} from "../media/media-resource";
 import type { TextMotionBlurPlan } from "./text-motion-blur-plan";
 import {
   acquireTemporalTextRasters,
@@ -14,6 +21,7 @@ export const MAX_TEXT_MOTION_BLUR_RESIDENT_BYTES = 384 * 1024 * 1024;
 export const MAX_TEXT_MOTION_BLUR_CACHE_ENTRIES = 64;
 
 export interface PreparedTextMotionBlurRaster {
+  resource: MediaResource;
   bounds: TextRasterBounds;
   bindGroup: GPUBindGroup;
   source: string;
@@ -66,12 +74,12 @@ export class TextMotionBlurRasterCache {
   readonly #accumulatePipeline: GPURenderPipeline;
   readonly #resolvePipeline: GPURenderPipeline;
   readonly #entries = new Map<string, TextMotionBlurEntry>();
+  readonly #outputs = new Set<MediaResource>();
   readonly #maxEntries: number;
   readonly #maxResidentBytes: number;
   readonly #maxTransientBytes: number;
   readonly #rasterize: typeof rasterizeTextLayer;
   #frame = 0;
-  #residentBytes = 0;
   #transientBytes = 0;
   #frameStats: TextMotionBlurRasterFrameStats = emptyFrameStats();
   #destroyed = false;
@@ -187,15 +195,32 @@ export class TextMotionBlurRasterCache {
     if (this.#destroyed) throw new Error("Text motion-blur raster cache is destroyed");
     const maximumDimension = Math.min(8_192, this.#device.limits.maxTextureDimension2D);
     const existing = this.#entries.get(instanceId);
-    const prepared = planTemporalTextRaster(
+    const availableTransient = Math.max(
+      0,
+      this.#maxTransientBytes - this.#transientBytes + (existing?.transientBytes ?? 0),
+    );
+    const availableResident = Math.max(0, this.#maxResidentBytes - this.#residentBytes());
+    let prepared = planTemporalTextRaster(
       layer,
       plan,
       resolutionScale,
       maximumDimension,
-      Math.max(0, this.#maxTransientBytes - this.#transientBytes + (existing?.transientBytes ?? 0)),
-      Math.max(0, this.#maxResidentBytes - this.#residentBytes + (existing?.textureBytes ?? 0)),
+      availableTransient,
+      availableResident +
+        (existing && !mediaResourceRetired(existing.resource) ? existing.textureBytes : 0),
       existing,
     );
+    // An unchanged pinned generation needs no allocation; a replacement must budget both outputs.
+    if (existing && mediaResourcePinned(existing.resource) && existing.source !== prepared.source)
+      prepared = planTemporalTextRaster(
+        layer,
+        plan,
+        resolutionScale,
+        maximumDimension,
+        availableTransient,
+        availableResident,
+        prepared,
+      );
     const { bounds, boundsSource, source, samples, scale: scalePlan } = prepared;
     const { width, height, pixelBytes, resolutionScale: rasterScale } = scalePlan;
     if (scalePlan.reduced) {
@@ -205,14 +230,21 @@ export class TextMotionBlurRasterCache {
         rasterScale,
       );
     }
-    if (existing?.source === source) {
+    if (existing?.source === source && !mediaResourceRetired(existing.resource)) {
       existing.frame = this.#frame;
       this.#entries.delete(instanceId);
       this.#entries.set(instanceId, existing);
       return existing;
     }
-    const reuseOutput = existing?.width === width && existing.height === height;
-    if (reuseOutput && existing.encoded)
+    const reuseOutput =
+      existing?.width === width &&
+      existing.height === height &&
+      !mediaResourcePinned(existing.resource) &&
+      !mediaResourceRetired(existing.resource);
+    if (
+      existing &&
+      (existing.encoded || (existing.transientBytes > 0 && mediaResourcePinned(existing.resource)))
+    )
       throw new Error("Temporal text generation must be submitted or aborted before replacement");
     const acquired = acquireTemporalTextRasters(layer, prepared, maximumDimension, this.#rasterize);
     if (existing) {
@@ -231,7 +263,22 @@ export class TextMotionBlurRasterCache {
       reuse: reuseOutput ? existing : undefined,
     });
     const { transientBytes } = uploaded;
+    const mediaIdentity = preparedRasterIdentity(prepared.sourceId, "text", source, bounds);
+    const resource: MediaResource = reuseOutput ? existing.resource : { kind: "text", source };
+    Object.assign(resource, {
+      source,
+      mediaIdentity,
+      bindingGeneration: JSON.stringify([mediaIdentity, width, height]),
+      texture: uploaded.output,
+      bindGroup: uploaded.bindGroup,
+      textureWidth: width,
+      textureHeight: height,
+      textureBytes: pixelBytes,
+      textBounds: { ...bounds },
+    });
+    this.#outputs.add(resource);
     const entry: TextMotionBlurEntry = {
+      resource,
       bounds,
       boundsSource,
       instanceId,
@@ -248,7 +295,6 @@ export class TextMotionBlurRasterCache {
     };
     this.#entries.delete(instanceId);
     this.#entries.set(instanceId, entry);
-    if (!reuseOutput) this.#residentBytes += pixelBytes;
     this.#transientBytes += transientBytes;
     return entry;
   }
@@ -338,7 +384,7 @@ export class TextMotionBlurRasterCache {
     this.#destroyed = true;
     for (const entry of this.#entries.values()) this.#destroyEntry(entry);
     this.#entries.clear();
-    this.#residentBytes = 0;
+    this.#outputs.clear();
     this.#transientBytes = 0;
     this.#frameStats = emptyFrameStats();
   }
@@ -346,7 +392,7 @@ export class TextMotionBlurRasterCache {
   #reserveEntry(requiredBytes: number): boolean {
     while (
       this.#entries.size >= this.#maxEntries ||
-      this.#residentBytes + requiredBytes > this.#maxResidentBytes
+      this.#residentBytes() + requiredBytes > this.#maxResidentBytes
     ) {
       let oldest: [string, TextMotionBlurEntry] | undefined;
       for (const candidate of this.#entries) {
@@ -368,8 +414,17 @@ export class TextMotionBlurRasterCache {
 
   #destroyEntry(entry: TextMotionBlurEntry): void {
     this.#destroyTransients(entry);
-    entry.output.destroy();
-    this.#residentBytes = Math.max(0, this.#residentBytes - entry.textureBytes);
+    destroyMediaResource(entry.resource);
+    if (!mediaResourcePinned(entry.resource)) this.#outputs.delete(entry.resource);
+  }
+
+  #residentBytes(): number {
+    let bytes = 0;
+    for (const owner of this.#outputs) {
+      if (mediaResourceRetired(owner) && !mediaResourcePinned(owner)) this.#outputs.delete(owner);
+      else bytes += owner.textureBytes ?? 0;
+    }
+    return bytes;
   }
 
   #destroyTransients(entry: TextMotionBlurEntry): void {

@@ -65,6 +65,11 @@ export function mediaResourceRetired(resource: MediaResource): boolean {
   return lifetimes.get(resource)?.retired === true;
 }
 
+/** Pinned generations cannot be overwritten while a frame still holds their binding. */
+export function mediaResourcePinned(resource: MediaResource): boolean {
+  return (lifetimes.get(resource)?.pins ?? 0) > 0;
+}
+
 export function reportVideoUploadError(resource: MediaResource, error: unknown): void {
   if (resource.uploadErrorReported) return;
   resource.uploadErrorReported = true;

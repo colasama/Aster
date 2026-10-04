@@ -116,10 +116,14 @@ bounds, budget-selected resolution, copied samples and generation identity, then
 canvas before cache ownership changes. A separate GPU consumer uploads only those supplied canvases
 and aligned weights without accessing authoring layers or text evaluators. Sample GPU resources and
 explicit accumulation/resolve operations still await extraction into the executable frame plan.
+Resolved temporal outputs now use the same raster identities and planned scene bindings as ordinary
+text. Cache and frame leases share their physical owner, delaying destruction until the last lease
+releases it. Replacements preserve pinned outputs and count retired allocations against the temporal
+resident budget; unpinned outputs of matching dimensions remain reusable.
 The shared resource protocol also carries content-addressed, packed raster pixel payloads with
 frame/source dependencies. An independent decoded upload consumer installs them without text/SVG/PSD
 evaluation and verifies the requested authorization scope. The parity harness now explicitly captures
-installed text/SVG/PSD textures, uploads their decoded resources into independent GPU allocations,
+installed text/SVG/PSD textures, including resolved temporal text, uploads their decoded resources into independent GPU allocations,
 and compares packed readbacks exactly. Captures deduplicate raster generations within each case and
 retain binary evidence with per-frame references. Ordinary preview does not invoke raster readback.
 This installed-resource audit is separate from complete submitted-frame plan replay and temporal text

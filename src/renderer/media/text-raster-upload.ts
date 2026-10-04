@@ -1,7 +1,12 @@
 import { requirePlan } from "../frame-plan/canonical";
 import type { PreparedTextRaster } from "../text/text-raster-acquisition";
 import { preparedRasterIdentity } from "./media-frame-identity";
-import { destroyMediaResource, type MediaResource } from "./media-resource";
+import {
+  destroyMediaResource,
+  type MediaResource,
+  mediaResourcePinned,
+  mediaResourceRetired,
+} from "./media-resource";
 
 export interface TextRasterUploadDestination {
   device: GPUDevice;
@@ -17,7 +22,11 @@ export function uploadTextRaster(
   destination: TextRasterUploadDestination,
 ): MediaResource {
   if (prepared.kind === "retained") {
-    requirePlan(existing?.kind === "text", "missing_resource", "Retained text raster is absent");
+    requirePlan(
+      existing?.kind === "text" && !mediaResourceRetired(existing),
+      "missing_resource",
+      "Retained text raster is absent or retired",
+    );
     existing.source = prepared.source;
     return existing;
   }
@@ -32,6 +41,8 @@ export function uploadTextRaster(
   const bindingGeneration = JSON.stringify([mediaIdentity, raster.width, raster.height]);
   const reusable =
     existing?.kind === "text" &&
+    !mediaResourceRetired(existing) &&
+    !mediaResourcePinned(existing) &&
     existing.texture &&
     existing.textureWidth === raster.width &&
     existing.textureHeight === raster.height;

@@ -679,20 +679,9 @@ export class MediaTextureCache {
       if (temporal) {
         const existing = this.#resources.get(instanceId);
         this.#frameResourceErrors.delete(instanceId);
-        if (
-          existing?.kind === "text" &&
-          existing.source === temporal.source &&
-          existing.bindGroup === temporal.bindGroup
-        )
-          return;
+        if (existing === temporal.resource) return;
         destroyMediaResource(existing);
-        this.#resources.set(instanceId, {
-          source: temporal.source,
-          kind: "text",
-          bindGroup: temporal.bindGroup,
-          textureBytes: temporal.textureBytes,
-          textBounds: temporal.bounds,
-        });
+        this.#resources.set(instanceId, temporal.resource);
         return;
       }
     }

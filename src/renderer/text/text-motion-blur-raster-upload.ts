@@ -45,7 +45,10 @@ export function uploadTemporalTextRasters(
       label: `Temporal text output · ${prepared.label}`,
       size: [width, height],
       format: "rgba8unorm-srgb",
-      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT,
+      usage:
+        GPUTextureUsage.TEXTURE_BINDING |
+        GPUTextureUsage.RENDER_ATTACHMENT |
+        GPUTextureUsage.COPY_SRC,
     });
     accumulation = destination.device.createTexture({
       label: `Temporal text linear accumulation · ${prepared.label}`,

@@ -778,6 +778,17 @@ describe("exact-frame media resource barrier", () => {
       1,
     );
     expect(output?.destroy).not.toHaveBeenCalled();
+    expect(cache.hasPlannedRaster("text-instance")).toBe(true);
+    const temporalLease = cache.acquireFrameBindings(["text-instance"], "temporal-snapshot");
+    const temporalHash = temporalLease.hashFor("text-instance");
+    expect(temporalHash).not.toBeNull();
+    expect(temporalLease.bindingForHash(temporalHash as string)).toBe(firstBindGroup);
+    cache.prepareText(layer, "text-instance", 1.1, 24, 1);
+    expect(cache.bindGroup("text-instance")).not.toBe(firstBindGroup);
+    expect(output?.destroy).not.toHaveBeenCalled();
+    expect(temporalLease.bindingForHash(temporalHash as string)).toBe(firstBindGroup);
+    cache.abortFrame();
+    expect(output?.destroy).toHaveBeenCalledTimes(1);
     cache.destroy();
     expect(output?.destroy).toHaveBeenCalledTimes(1);
   });

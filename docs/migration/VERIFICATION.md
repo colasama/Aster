@@ -145,6 +145,10 @@ The temporal upload boundary test revokes authoring-layer access and mutates ori
 acquisition, then checks that uploads retain the acquired canvases and original aligned weights.
 Malformed prepared extents or sample counts must fail before GPU allocation. Full G3 still verifies
 the production cache, accumulation and resolve path against exact reference pixels.
+Temporal output lifetime tests register actual cache owners by hash, retain two generations, and
+verify old bindings survive replacement and cache destruction until release. Retired pinned outputs
+remain budgeted, unchanged pinned generations remain reusable, and switching to ordinary text cannot
+reuse a retired texture. Resolved temporal outputs also enter the real raster GPU capture/replay audit.
 
 G1 also round-trips text/SVG/PSD scene slices built by the production geometry producer, then joins
 the returned geometry with independently admitted Rust resource transcripts and binary pixels.

@@ -14749,5 +14749,12 @@
       }
     }
   ],
-  "active_cycle": null
+  "active_cycle": {
+    "id": 31,
+    "milestone": "M2",
+    "task": "M2-T6",
+    "started_at": "2026-10-04T21:58:39.380Z",
+    "scope": "Register resolved temporal text outputs as planned raster resources with shared, submission-safe GPU ownership and capture/replay evidence.",
+    "previous_turn_classification": "progress: cycle30 committed the CPU acquisition / evaluator-free GPU upload boundary with full M2 G0/G1/G3."
+  }
 }

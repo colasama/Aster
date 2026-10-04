@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createLayerForComposition } from "../../core/layers/layer-factory";
 import { createBlankComposition } from "../../core/project/project";
+import { mediaFrameMessages } from "../media/media-frame-identity";
+import { MediaGpuRegistry } from "../media/media-gpu-registry";
 import type { TextMotionBlurSample } from "./text-motion-blur-plan";
 import {
   acquireTemporalTextRasters,
@@ -37,6 +39,64 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("GPU temporal text raster accumulation", () => {
+  it("preserves pinned output hashes through replacement and budgets retired allocations", () => {
+    const cache = new TextMotionBlurRasterCache(
+      mockDevice([]),
+      {} as GPUBindGroupLayout,
+      {} as GPUSampler,
+      {
+        maxResidentBytes: 16,
+        rasterize: () => ({
+          width: 2,
+          height: 1,
+          canvas: {} as HTMLCanvasElement,
+        }),
+      },
+    );
+    const layer = createLayerForComposition("text", createBlankComposition());
+    layer.size = [2, 1];
+    const registry = new MediaGpuRegistry();
+    const prepare = (time: number) =>
+      cache.prepare(
+        layer,
+        "temporal",
+        {
+          frameTime: time,
+          sampleCount: 1,
+          transparentWeight: 0,
+          samples: [{ localTime: time, timeBucket: time * 1_000_000, weight: 1 }],
+        },
+        1,
+      );
+    const admit = (prepared: ReturnType<typeof prepare>) => {
+      cache.encode(mockEncoder([]));
+      cache.submitted();
+      const messages = mediaFrameMessages(prepared.resource, "snapshot");
+      registry.apply(messages[0]);
+      registry.apply(messages[1], prepared.resource, prepared.bindGroup);
+      return { hash: messages[1].hash, lease: registry.pin([messages[1].hash]) };
+    };
+    const first = prepare(1);
+    const a = admit(first);
+    const second = prepare(2);
+    const b = admit(second);
+    expect(second.resource.texture).not.toBe(first.resource.texture);
+    expect(b.hash).not.toBe(a.hash);
+    expect(a.lease.bindingForHash(a.hash)).toBe(first.bindGroup);
+    expect(first.resource.texture?.destroy).not.toHaveBeenCalled();
+    expect(registry.statistics.gpuBytes).toBe(16);
+    expect(prepare(2)).toBe(second);
+    expect(() => prepare(3)).toThrow("resident bytes");
+    a.lease.release();
+    expect(first.resource.texture?.destroy).toHaveBeenCalledOnce();
+    prepare(3);
+    expect(b.lease.bindingForHash(b.hash)).toBe(second.bindGroup);
+    cache.destroy();
+    expect(second.resource.texture?.destroy).not.toHaveBeenCalled();
+    b.lease.release();
+    expect(second.resource.texture?.destroy).toHaveBeenCalledOnce();
+    registry.destroy();
+  });
   it("uploads acquired canvases and frozen weights after authoring inputs are revoked", () => {
     const layer = createLayerForComposition("text", createBlankComposition());
     layer.size = [100, 50];

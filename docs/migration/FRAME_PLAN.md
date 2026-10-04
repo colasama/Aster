@@ -79,9 +79,11 @@ safe integer buckets and full shutter-weight coverage. Signed zero and exact sub
 preserved. Root preparation consumes supplied sample slices and exposure identities before text
 raster preparation and geometry expansion. Temporal raster acquisition now freezes bounds, scale,
 selected sample weights and canvases before a separate evaluator-free GPU uploader creates sample
-textures, accumulation storage and resolve bindings. Existing cache retention and submission rules
-still own these allocations. Sample texture hashes, explicit accumulation/resolve
-operations and independently owned temporal output bindings still require extraction.
+textures, accumulation storage and resolve bindings. Resolved outputs carry raster identities and
+participate in the root scene's hash bindings. The temporal cache and media registry share one physical
+owner; pinned generations cannot be overwritten and retired pinned allocations remain budgeted until
+release. Diagnostic capture now includes these resolved outputs. Sample texture hashes and explicit
+accumulation/resolve operations still require extraction.
 
 ## FPLN encoding
 
