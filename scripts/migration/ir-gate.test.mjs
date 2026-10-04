@@ -152,9 +152,9 @@ test("G1 orchestrates all real TS codec checks and keeps renderer completion exp
   const result = await f.run();
   assert.equal(result.status, "passed", result.error);
   assert.equal(result.renderer_plan_complete, false);
-  assert.equal(result.roundtrips.length, 30);
+  assert.equal(result.roundtrips.length, 33);
   assert.equal(result.camera_roundtrips.length, 2);
-  assert.equal(result.scene_uploads.length, 13);
+  assert.equal(result.scene_uploads.length, 16);
   assert.equal(result.media_draws.length, 11);
   assert.equal(result.root_uploads.length, 12);
   assert.equal(result.rejections.length, 6);
@@ -164,6 +164,15 @@ test("G1 orchestrates all real TS codec checks and keeps renderer completion exp
   assert.equal(result.media_resources.exact_raster_bounds, true);
   assert.equal(result.raster_pixels.resources, 3);
   assert.equal(result.raster_pixels.exact_pixels, true);
+  assert.deepEqual(
+    result.raster_scenes.map((scene) => scene.origin),
+    ["text", "svg", "psd"],
+  );
+  assert(
+    result.raster_scenes.every(
+      (scene) => scene.decoded_geometry_exact && scene.decoded_pixels_exact && scene.clone_replay,
+    ),
+  );
   assert.equal(result.media_resources.dependency_eviction, true);
   assert(f.calls.includes("ir-build") && f.calls.includes("ir-library-tests"));
   assert(result.checked_files > 20);
@@ -195,7 +204,7 @@ test("G1 rejects source drift even when every codec result is exact", async (t) 
   }));
   assert.equal(result.status, "failed");
   assert.equal(result.source_unchanged, false);
-  assert.equal(result.roundtrips.length, 30);
+  assert.equal(result.roundtrips.length, 33);
   assert.match(result.error, /Source changed during G1/);
 });
 

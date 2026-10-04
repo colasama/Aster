@@ -205,7 +205,8 @@ resolves every supplied media hash before encoding draws. A decoded FPLN can res
 against newly admitted GPU owners without retaining the producer's handles. G1 exercises image,
 sequence and exact fractional-video references with pending entries and repeated hash aliases.
 This partial scene contract still lacks material/pass planning and complete captured-frame replay;
-it does not establish a complete render plan. Text and precomposition adapters remain separate tasks.
+it does not establish a complete render plan. Temporal text and precomposition planning remain
+separate tasks.
 
 Ordinary text now has separate CPU acquisition and GPU upload boundaries. Acquisition preserves
 font revision, sampled animation time, density buckets and glyph-state reuse; upload consumes the
@@ -217,8 +218,13 @@ A retained glyph result advances its lookup key without changing the installed p
 a new upload changes that generation and invalidates stale binding resolution. SVG/PSD production
 adapters now register their prepared raster identities through the same scene resource references.
 The upload consumer retains the external-image GPU path for SVG/stills and strided RGBA writes for
-PSD crops. Canvas/bitmap pixel transport and complete decoded-frame replay remain required, as does
-temporal text accumulation planning.
+PSD crops. Captured binary pixel transport is available through the raster resource contract.
+G1 jointly exercises Rust-decoded raster scene geometry and a fresh resource registry through the
+production geometry-upload, raster-upload and draw-resolution consumers. Text quads use supplied
+ink bounds; source geometry and authoring scenes are discarded before replay. Cloning the decoded
+plan preserves uploads and bindings, and an evicted binding prevents replay. This proves the
+ordinary raster scene slice; complete decoded-frame replay and temporal text accumulation planning
+remain required.
 
 ## Verification boundary
 

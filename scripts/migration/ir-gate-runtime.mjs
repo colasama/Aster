@@ -18,6 +18,7 @@ export async function loadIrRuntime(root) {
       "media-resource-fixture",
       "raster-sample",
       "raster-pixel-fixture",
+      "raster-scene-fixture",
       "raster-resource",
       "types",
       "time",
@@ -31,6 +32,8 @@ export async function loadIrRuntime(root) {
       "camera-plan",
     ])
       modules.push(await server.ssrLoadModule(`/src/renderer/frame-plan/${name}.ts`));
+    for (const name of ["raster-resource-upload", "media-gpu-registry", "media-resource"])
+      modules.push(await server.ssrLoadModule(`/src/renderer/media/${name}.ts`));
     return Object.assign({ close: () => server.close() }, ...modules);
   } catch (error) {
     await server.close();

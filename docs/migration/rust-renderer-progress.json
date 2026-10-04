@@ -14553,5 +14553,12 @@
       }
     }
   ],
-  "active_cycle": null
+  "active_cycle": {
+    "id": 28,
+    "milestone": "M2",
+    "task": "M2-T5",
+    "started_at": "2026-10-04T20:55:40.407Z",
+    "scope": "Verify decoded raster scene geometry and independently admitted pixel resources through the production upload/resolution consumers; audit M2-T5 completion.",
+    "previous_turn_classification": "progress: cycle27 committed real GPU raster capture/replay after full G0/G1/G3 and a clean ledger closure."
+  }
 }

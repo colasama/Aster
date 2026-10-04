@@ -136,6 +136,13 @@ and stale lease rejection after changed font/source uploads. Registry tests also
 descriptor budgets, ownership across asynchronous hashing and in-flight frame/source dependencies.
 Production adapter tests validate installed still extents after bitmap closure, resolved sequence
 members, actual video upload times, and drawing by supplied hash independently of instance IDs.
+G1 also round-trips text/SVG/PSD scene slices built by the production geometry producer, then joins
+the returned geometry with independently admitted Rust resource transcripts and binary pixels.
+The original geometry and authoring scenes are discarded before the production upload and binding
+consumers run. Decoded and cloned plans must upload exact vertices/pixels, retain exact bounds and
+resolve the planned frame hash; missing or evicted bindings fail. These are scene-slice checks,
+not evidence of complete submitted-frame replay.
+
 Imported raster tests capture PSD crop/row layout before runtime mutation and consume it without
 source reevaluation, rejecting truncated layouts before GPU writes and disposing failed allocations.
 A production-cache test checks PSD descriptor publication and replaced-owner lease retention. SVG

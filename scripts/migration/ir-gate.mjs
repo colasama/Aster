@@ -4,6 +4,7 @@ import { access, mkdir, writeFile } from "node:fs/promises";
 import { join, relative } from "node:path";
 import { auditMediaResources } from "./ir-gate-media.mjs";
 import { auditRasterPixels } from "./ir-gate-raster.mjs";
+import { auditRasterScene } from "./ir-gate-raster-scene.mjs";
 import { auditIrResources, irNegativeFixtures, loadIrRuntime } from "./ir-gate-runtime.mjs";
 import { M0Evidence } from "./m0-evidence.mjs";
 import { runStep } from "./process.mjs";
@@ -27,6 +28,7 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
     scene_uploads: [],
     camera_roundtrips: [],
     media_draws: [],
+    raster_scenes: [],
     rejections: [],
   };
   const reader = new M0Evidence(context.root);
@@ -164,12 +166,21 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
     );
     const mediaFixtures = await runtime.sceneMediaFixtures();
     assert.equal(mediaFixtures.length, 11);
+    const rasterFixtures = await runtime.rasterSceneFixtures();
+    assert.deepEqual(
+      rasterFixtures.map((fixture) => fixture.id),
+      ["raster-scene-text", "raster-scene-svg", "raster-scene-psd"],
+    );
+    const rasterMessages = await reader.json(
+      path(join(context.output, "raster-resources.output.json")),
+    );
     for (const fixture of [
       ...fixtures,
       ...rootFixtures,
       ...sceneFixtures,
       ...cameraFixtures,
       ...mediaFixtures,
+      ...rasterFixtures,
     ]) {
       const input = join(context.output, `${fixture.id}-ts.fpln`);
       const output = join(context.output, `${fixture.id}-rust.fpln`);
@@ -229,6 +240,14 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
           pending_explicit: true,
           missing_rejected: true,
         });
+      }
+      if (fixture.raster) {
+        const pixels = await reader.bytes(
+          path(join(context.output, "raster-payloads", `${fixture.raster.message.hash}.bin`)),
+        );
+        report.raster_scenes.push(
+          await auditRasterScene(runtime, after, fixture, rasterMessages, pixels.bytes),
+        );
       }
       if (after.metadata.contract_level === "camera_parameters_slice_v1") {
         const supplied = runtime.readCameraPlan(after);
