@@ -15012,5 +15012,12 @@
       }
     }
   ],
-  "active_cycle": null
+  "active_cycle": {
+    "id": 35,
+    "milestone": "M2",
+    "task": "M2-T6",
+    "started_at": "2026-10-04T23:20:41.988Z",
+    "scope": "Capture actual sampled rasters and FPLN pass slices, roundtrip through Rust, then replay from independent decoded GPU allocations without authoring inputs or original device state.",
+    "previous_turn_classification": "progress: cycle34 committed exact FPLN/Rust pass transport and full M2 gate evidence."
+  }
 }

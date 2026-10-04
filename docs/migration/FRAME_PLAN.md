@@ -95,8 +95,11 @@ The production root supplies its actual frame header and executes the reconstruc
 The M2 pixel gate separately exercises actual temporal glyph accumulation in four exposure states,
 compares the resolved outputs against frozen exact references and replays their captured resources.
 G1 also round-trips full, partial, transparent and exact-bit pass fixtures through Rust and executes
-their reconstructed hashes/weights against a recording GPU boundary. Independent GPU sample/pass
-replay and complete submitted-frame replay remain open.
+their reconstructed hashes/weights against a recording GPU boundary. G3 also captures the actual
+sample owners and pass, round-trips FPLN through Rust, and replays decoded sample textures in a fresh
+page/device after destroying the producer environment. Only output descriptors, sample pixels and
+the returned plan enter the consumer. Its GPU result must equal the frozen output. Complete
+submitted-frame capture/replay remains open.
 
 ## FPLN encoding
 
@@ -175,8 +178,8 @@ or color conversion. The dedicated parity harness captures installed raster text
 reconstructs independent GPU owners from the resource table, and compares both GPU readbacks exactly.
 It saves each resource generation once per case, with references from every captured frame. Source
 owners remain retained through readback; failed mapping leaves the capture cache unpublished.
-This verifies installed raster resource replay, not complete submitted-frame plan replay or temporal
-text accumulation. The normal preview path performs no diagnostic readbacks.
+This verifies installed raster resource replay, separately from temporal sample/pass replay and
+complete submitted-frame plan replay. The normal preview path performs no diagnostic readbacks.
 The diagnostic `ir resources --payloads <directory>` reads bounded `<resource-hash>.bin` files and
 validates binary admission before publishing its typed descriptor transcript.
 
@@ -251,8 +254,8 @@ G1 jointly exercises Rust-decoded raster scene geometry and a fresh resource reg
 production geometry-upload, raster-upload and draw-resolution consumers. Text quads use supplied
 ink bounds; source geometry and authoring scenes are discarded before replay. Cloning the decoded
 plan preserves uploads and bindings, and an evicted binding prevents replay. This proves the
-ordinary raster scene slice; complete decoded-frame replay and temporal text accumulation planning
-remain required.
+ordinary raster scene slice. Temporal sample/pass replay is verified separately as described above;
+complete decoded-frame replay remains required.
 
 ## Verification boundary
 

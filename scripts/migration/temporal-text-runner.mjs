@@ -12,12 +12,17 @@ const output = resolve(process.argv[2]);
 await mkdir(output, { recursive: true });
 const web = join(output, "web");
 const entry = "tests/parity/temporal-text/index.html";
+const replayEntry = "tests/parity/temporal-text/replay.html";
 let server;
 try {
   await build({
     configFile: false,
     logLevel: "error",
-    build: { outDir: web, emptyOutDir: false, rolldownOptions: { input: resolve(entry) } },
+    build: {
+      outDir: web,
+      emptyOutDir: false,
+      rolldownOptions: { input: [resolve(entry), resolve(replayEntry)] },
+    },
   });
   server = await preview({
     configFile: false,
@@ -28,8 +33,10 @@ try {
   const config = join(output, "config.json");
   await writeAtomicJson(config, {
     output,
+    root,
     reference: join(root, "tests/parity/temporal-text/reference"),
     url: `http://127.0.0.1:${server.httpServer.address().port}/${entry}`,
+    replayUrl: `http://127.0.0.1:${server.httpServer.address().port}/${replayEntry}`,
   });
   const result = await runStep(
     {

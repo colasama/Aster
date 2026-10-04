@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import { join, relative } from "node:path";
+import { loadIrRuntime } from "./ir-gate-runtime.mjs";
+import { auditTemporalPassReplay } from "./temporal-pass-capture.mjs";
 import { validateTemporalOutput } from "./temporal-text-evidence.mjs";
 
 /** Required M2 GPU coverage for glyph-local shutter samples, absent from the legacy corpus. */
@@ -32,23 +34,39 @@ export async function auditTemporalText(reader, context, execute) {
   assert.equal(gpu.results.length, reference.cases.length);
   const results = [];
   const transcript = [];
-  for (let index = 0; index < reference.cases.length; index++) {
-    const expected = reference.cases[index];
-    const actual = gpu.results[index];
-    assert(/^[a-f0-9]{64}$/.test(actual.pixel_hash));
-    const path = `${logical}/payloads/${actual.pixel_hash}`;
-    const pixels = await reader.bytes(`${path}.bin`, actual.pixels_sha256);
-    const replay = await reader.bytes(`${path}.replay.bin`, actual.replay_sha256);
-    const messages = await reader.json(`${path}.json`);
-    const png = await reader.bytes(`${prefix}/${expected.path}`, expected.png_sha256);
-    const checked = validateTemporalOutput(
-      { ...actual, pixels: pixels.bytes, replay: replay.bytes, messages },
-      expected,
-      png.bytes,
-    );
-    assert.deepEqual(checked, actual);
-    results.push(checked);
-    transcript.push(...messages);
+  assert.equal(gpu.pass_replays.length, reference.cases.length);
+  const runtime = await loadIrRuntime(context.root);
+  try {
+    for (let index = 0; index < reference.cases.length; index++) {
+      const expected = reference.cases[index];
+      const actual = gpu.results[index];
+      assert(/^[a-f0-9]{64}$/.test(actual.pixel_hash));
+      const path = `${logical}/payloads/${actual.pixel_hash}`;
+      const pixels = await reader.bytes(`${path}.bin`, actual.pixels_sha256);
+      const replay = await reader.bytes(`${path}.replay.bin`, actual.replay_sha256);
+      const messages = await reader.json(`${path}.json`);
+      const png = await reader.bytes(`${prefix}/${expected.path}`, expected.png_sha256);
+      const checked = validateTemporalOutput(
+        { ...actual, pixels: pixels.bytes, replay: replay.bytes, messages },
+        expected,
+        png.bytes,
+      );
+      assert.deepEqual(checked, actual);
+      results.push(checked);
+      transcript.push(...messages);
+      assert.equal(gpu.pass_replays[index].mode, expected.mode);
+      await auditTemporalPassReplay(
+        reader,
+        logical,
+        runtime,
+        gpu.pass_replays[index],
+        checked,
+        pixels,
+        transcript,
+      );
+    }
+  } finally {
+    await runtime.close();
   }
   assert.deepEqual(await reader.json(`${logical}/resources.input.json`), transcript);
   const cli = join(
@@ -81,6 +99,7 @@ export async function auditTemporalText(reader, context, execute) {
     profile: "exact",
     adapter: gpu.adapter,
     results,
+    pass_replays: gpu.pass_replays,
     reference: `${prefix}/manifest.json`,
     report: `${logical}/gpu.json`,
     rust_messages: transcript.length,

@@ -1,9 +1,12 @@
 import { createLayerForComposition } from "../../../src/core/layers/layer-factory";
 import { createBlankProject } from "../../../src/core/project/project";
 import { flattenSceneLayers } from "../../../src/core/scene/scene-evaluation";
+import { encodeFramePlan } from "../../../src/renderer/frame-plan/codec";
 import { buildFrameHeader } from "../../../src/renderer/frame-plan/root-post-plan";
+import type { FramePlanSliceData } from "../../../src/renderer/frame-plan/types";
 import { mediaFrameMessages } from "../../../src/renderer/media/media-frame-identity";
 import { MediaGpuRegistry } from "../../../src/renderer/media/media-gpu-registry";
+import type { MediaResource } from "../../../src/renderer/media/media-resource";
 import { captureRasterResources } from "../../../src/renderer/media/raster-resource-capture";
 import {
   planTextMotionBlurFrame,
@@ -86,7 +89,14 @@ export async function runTemporalTextGpuCheck() {
   try {
     for (const mode of ["full", "enters", "exits", "transparent"] as const) {
       const { layer, plan, header } = fixture(mode);
-      const cache = new TextMotionBlurRasterCache(device, layout, sampler);
+      let pass: FramePlanSliceData | undefined;
+      let samples: readonly MediaResource[] = [];
+      const cache = new TextMotionBlurRasterCache(device, layout, sampler, {
+        capturePass: (slice, owners) => {
+          pass = slice;
+          samples = owners;
+        },
+      });
       const registry = new MediaGpuRegistry();
       let lease: ReturnType<MediaGpuRegistry["pin"]> | undefined;
       try {
@@ -100,8 +110,23 @@ export async function runTemporalTextGpuCheck() {
         const encoder = device.createCommandEncoder();
         cache.encode(encoder, header.snapshot_scope, header);
         device.queue.submit([encoder.finish()]);
-        cache.submitted();
         await device.queue.onSubmittedWorkDone();
+        if (!pass) throw new Error("Production temporal pass was not captured");
+        const capturedSamples = await captureRasterResources(
+          device,
+          samples,
+          "temporal-gpu",
+          new Map(),
+          (texture) =>
+            device.createBindGroup({
+              layout,
+              entries: [
+                { binding: 0, resource: texture.createView() },
+                { binding: 1, resource: sampler },
+              ],
+            }),
+        );
+        cache.submitted();
         const captured = await captureRasterResources(
           device,
           [prepared.resource],
@@ -127,6 +152,12 @@ export async function runTemporalTextGpuCheck() {
           messages: resource.messages,
           pixels: Array.from(new Uint8Array(resource.pixels)),
           replay: Array.from(new Uint8Array(resource.replay)),
+          pass: Array.from(encodeFramePlan(pass.metadata, pass.blobs)),
+          sample_resources: capturedSamples.resources.map((sample) => ({
+            messages: sample.messages,
+            pixels: Array.from(new Uint8Array(sample.pixels)),
+            replay: Array.from(new Uint8Array(sample.replay)),
+          })),
         });
       } finally {
         cache.destroy();

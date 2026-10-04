@@ -4,6 +4,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { app, BrowserWindow } from "electron";
 import { writeAtomicJson } from "./report.mjs";
+import { captureTemporalPassReplay } from "./temporal-pass-capture.mjs";
 import { validateTemporalOutput } from "./temporal-text-evidence.mjs";
 
 const config = JSON.parse(readFileSync(process.env.ASTER_TEMPORAL_GPU_CONFIG, "utf8"));
@@ -15,7 +16,7 @@ for (const flag of [
   "disable-backgrounding-occluded-windows",
 ])
   app.commandLine.appendSwitch(flag);
-const report = { status: "failed", results: [] };
+const report = { status: "failed", results: [], pass_replays: [] };
 let window;
 async function main() {
   try {
@@ -38,6 +39,7 @@ async function main() {
     const payloads = join(config.output, "payloads");
     await mkdir(payloads);
     const transcript = [];
+    await window.loadURL(config.replayUrl);
     for (let index = 0; index < actual.results.length; index++) {
       const result = actual.results[index];
       const expected = reference.cases[index];
@@ -52,6 +54,9 @@ async function main() {
       await writeAtomicJson(join(payloads, `${checked.pixel_hash}.json`), result.messages);
       transcript.push(...result.messages);
       report.results.push(checked);
+      const pass = await captureTemporalPassReplay(config, window, result, payloads);
+      report.pass_replays.push(pass);
+      for (const sample of result.sample_resources) transcript.push(...sample.messages);
     }
     await writeAtomicJson(join(config.output, "resources.input.json"), transcript);
     report.status = "passed";

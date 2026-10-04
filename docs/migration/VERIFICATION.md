@@ -143,8 +143,12 @@ G1 additionally transports hash-addressed accumulation/resolve plans through Rus
 full exposure, partial exposure, transparent-only and exact-bit weights (including negative zero
 and a subnormal). Reconstructed ordered hashes drive recorded draw bindings and reconstructed f64
 weights drive the final f32 uniform writes. TS and Rust reject malformed dependency/exposure inputs.
-G3 exercises the production reconstructed pass slice; independently decoded GPU sample/pass replay
-remains separate required work.
+G3 captures the production pass slice and individual sampled rasters before submission cleanup.
+It round-trips the captured FPLN through Rust and loads a separate replay page after destroying the
+original device. That consumer imports no authoring evaluators and receives no resolved output
+pixels: it uploads decoded samples into new allocations and executes supplied accumulation/resolve.
+Saved sample payloads, resource dependencies, FPLN bytes and independent GPU output are audited;
+any missing or changed evidence fails the gate. Complete submitted-frame replay remains open.
 The temporal upload boundary test revokes authoring-layer access and mutates original samples after
 acquisition, then checks that uploads retain the acquired canvases and copied weights. The pass
 executor test discards producer weights and executes a cloned plan with an independently changed

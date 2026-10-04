@@ -119,7 +119,10 @@ identities. A separate pass executor resolves supplied sample/output hashes and 
 weights before encoding accumulation and resolve. Submission-scoped leases retain these resources
 until submission or abort. A closed FPLN slice now carries the ordered hashes, dimensions, formats
 and exact f64 exposure weights through Rust. Production root encoding supplies its frame header and
-executes the reconstructed slice. GPU replay from independently decoded sample textures remains open.
+executes the reconstructed slice. The diagnostic GPU gate captures actual sample textures and the
+encoded pass, round-trips the pass through Rust, destroys the original device/page, and executes
+decoded pixels in independent GPU allocations without authoring inputs. Full, entering, exiting and
+transparent exposures must exactly match frozen outputs.
 Resolved temporal outputs now use the same raster identities and planned scene bindings as ordinary
 text. Cache and frame leases share their physical owner, delaying destruction until the last lease
 releases it. Replacements preserve pinned outputs and count retired allocations against the temporal
@@ -130,8 +133,8 @@ evaluation and verifies the requested authorization scope. The parity harness no
 installed text/SVG/PSD textures, including resolved temporal text, uploads their decoded resources into independent GPU allocations,
 and compares packed readbacks exactly. Captures deduplicate raster generations within each case and
 retain binary evidence with per-frame references. Ordinary preview does not invoke raster readback.
-This installed-resource audit is separate from complete submitted-frame plan replay and temporal text
-accumulation, which remain under extraction.
+This installed-resource audit is separate from the temporal sample/pass replay described above.
+Complete submitted-frame plan capture and replay remain under extraction.
 
 Shared WGSL includes output anti-aliasing, core scene variants, compositing, fused post-processing,
 blur/depth/surface effects, auxiliary surfaces, particles, text motion blur and display/buffer helpers.

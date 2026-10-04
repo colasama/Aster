@@ -1,6 +1,6 @@
 import type { Layer } from "../../core/types";
 import { buildTemporalPassSlice, readTemporalPassSlice } from "../frame-plan/temporal-pass-plan";
-import type { FrameHeaderSlice } from "../frame-plan/types";
+import type { FrameHeaderSlice, FramePlanSliceData } from "../frame-plan/types";
 import { sharedShaders } from "../gpu/shared-shader-catalog";
 import { MediaBindingLease } from "../media/media-binding-lease";
 import { preparedRasterIdentity } from "../media/media-frame-identity";
@@ -69,6 +69,8 @@ interface TextMotionBlurRasterCacheOptions {
   maxResidentBytes?: number;
   maxTransientBytes?: number;
   rasterize?: typeof rasterizeTextLayer;
+  /** Diagnostic observer; sample owners remain valid until submitted() or abortSubmission(). */
+  capturePass?: (plan: FramePlanSliceData, samples: readonly MediaResource[]) => void;
 }
 
 /**
@@ -89,6 +91,7 @@ export class TextMotionBlurRasterCache {
   readonly #maxResidentBytes: number;
   readonly #maxTransientBytes: number;
   readonly #rasterize: typeof rasterizeTextLayer;
+  readonly #capturePass?: TextMotionBlurRasterCacheOptions["capturePass"];
   #frame = 0;
   #transientBytes = 0;
   #frameStats: TextMotionBlurRasterFrameStats = emptyFrameStats();
@@ -122,6 +125,7 @@ export class TextMotionBlurRasterCache {
       MAX_TEXT_MOTION_BLUR_TRANSIENT_BYTES,
     );
     this.#rasterize = options.rasterize ?? rasterizeTextLayer;
+    this.#capturePass = options.capturePass;
     this.#sampleLayout = device.createBindGroupLayout({
       label: "Temporal text sample layout",
       entries: [
@@ -336,9 +340,8 @@ export class TextMotionBlurRasterCache {
           entry.sampleWeights,
           lease,
         );
-        const supplied = header
-          ? readTemporalPassSlice(buildTemporalPassSlice(header, plan))
-          : plan;
+        const slice = header ? buildTemporalPassSlice(header, plan) : undefined;
+        const supplied = slice ? readTemporalPassSlice(slice) : plan;
         executeTemporalTextPassPlan(supplied, lease, encoder, {
           queue: this.#device.queue,
           width: entry.width,
@@ -351,6 +354,8 @@ export class TextMotionBlurRasterCache {
           accumulatePipeline: this.#accumulatePipeline,
           resolvePipeline: this.#resolvePipeline,
         });
+        if (slice && this.#capturePass)
+          this.#capturePass(structuredClone(slice), [...entry.sampleResources]);
         entry.passLease = lease;
       } catch (error) {
         lease.release();
