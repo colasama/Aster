@@ -76,39 +76,39 @@
     "approval": "Preserve the complete M0-T3 production TS capture as the original pixel oracle. Only the explicitly listed, section 6.6 reviewed M0 reference repairs overlay requested frames. All other original frames, including sequence neighbors, remain unchanged. Freeze this effective reference set before M1; M1 and M2 retain strict whole-corpus exact requirements."
   },
   "last_cycle": {
-    "id": 16,
-    "time": "2026-10-04T16:24:38.813Z",
+    "id": 17,
+    "time": "2026-10-04T16:46:16.238Z",
     "milestone": "M2",
     "task": "M2-T3",
     "outcome": "passed",
-    "commit": "739cc523dce03f16660616d3d6f014592ad2a3eb",
-    "verification": "artifacts/migration/verify-2026-10-04T16-17-35-704Z-9c25fce0.json",
-    "verification_sha256": "8f77aab3301d5012c7f58f14ded82a135958517c13750c66aa9e22e504f74e5d",
+    "commit": "0f44e440e9a3d3f9a7b0b1a7d37d272d6e1da7c7",
+    "verification": "artifacts/migration/verify-2026-10-04T16-38-53-534Z-6a7e1f6c.json",
+    "verification_sha256": "a1a5885b107b3892ceb08518f0037cc2e60da16e8b3a43e878529c2d478c3f2a",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 84956
+        "duration_ms": 77950
       },
       {
         "id": "G1",
         "status": "passed",
-        "duration_ms": 23588
+        "duration_ms": 20352
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 266951
+        "duration_ms": 304744
       }
     ],
-    "verification_duration_ms": 376684,
-    "next_step": "Continue M2-T3: extract evaluated camera/optics descriptors and actual consumers, then verify full G0/G1/G3. Keep full-frame replay and native migration incomplete until their actual requirements hold.",
+    "verification_duration_ms": 404322,
+    "next_step": "M2-T4: add explicit content resource descriptors/registry and basic image, sequence and video resolution while preserving exact media readiness. Continue full required G0/G1/G3.",
     "notes": [
-      "Added the closed scene_buffers_slice_v1 contract to TS/Rust FPLN and regenerated the schema; all existing root post-uniform validation remains enforced.",
-      "Owned lighting, evaluated camera-space vertex and motion bytes preserve existing f32 bit patterns. Plain stable-ID draw records partition the vertex stream and retain the original three-dimensional shadow condition.",
-      "Production root uploads, beauty/auxiliary ranges, selection identities, motion input and shadow draws now consume supplied plan data. Lighting-before-shape upload order, resized-buffer lookup, empty geometry and exact-media holds are preserved.",
-      "Full G0/G1/G3 passed. G1 verifies 17 exact cross-language round trips including two actual scene producers and decoded upload/shadow consumers. Fresh full-corpus G3 is exact for all 1819 required frames; no pixel tolerance or reference change.",
-      "This is a verified increment within M2-T3, not task or milestone completion. Evaluated camera/optics descriptors and remaining camera consumers need extraction; material/resource adapters still retain Layer inputs for their later tasks. The renderer remains TS and renderer_plan_complete remains false."
+      "Completed T3 evaluated camera extraction with a closed camera_parameters_slice_v1 descriptor and owned 37-scalar little-endian f64 payload. Camera pose/projection/optics retain JS precision and contain no Layer, authoring CameraSettings or animation references.",
+      "SceneCamera now aliases EvaluatedCamera only. Root geometry/text expansion, lighting, depth configuration and generator preparation consume reconstructed supplied camera values; no active camera retains the existing absent-camera behavior.",
+      "Camera mutation and unaligned-view tests prove supplied positions affect actual geometry; nested perspective/orthographic fixtures preserve geometry, lighting, generator-context and depth-uniform bytes. Cycle16 already established owned scene buffers and actual planned draw/upload consumption.",
+      "Full G0/G1/G3 passed. G1 verifies 19 exact cross-language round trips, including two evaluated camera fixtures, and all 1819 required frames from a new 337-case capture match the frozen reference exactly. No reference, tolerance, dependency or project-format change.",
+      "M2-T3 is complete; M2 is not. Material/media/resource tables, effect and pass extraction, full independent frame replay, plan capture and Rust rendering remain required later tasks. Production rendering remains TS."
     ]
   },
   "milestones": [
@@ -12287,7 +12287,7 @@
             "Mutation/clone test proves executor consumes supplied blobs."
           ],
           "required_full_gates": ["G0", "G1", "G3"],
-          "status": "in_progress",
+          "status": "done",
           "started_at": "2026-10-04T16:06:14.027Z",
           "increments": [
             {
@@ -12336,12 +12336,62 @@
                 "Full G0/G1/G3 passed. G1 verifies 17 exact cross-language round trips including two actual scene producers and decoded upload/shadow consumers. Fresh full-corpus G3 is exact for all 1819 required frames; no pixel tolerance or reference change.",
                 "This is a verified increment within M2-T3, not task or milestone completion. Evaluated camera/optics descriptors and remaining camera consumers need extraction; material/resource adapters still retain Layer inputs for their later tasks. The renderer remains TS and renderer_plan_complete remains false."
               ]
+            },
+            {
+              "cycle": 17,
+              "status": "passed",
+              "commit": "0f44e440e9a3d3f9a7b0b1a7d37d272d6e1da7c7",
+              "verification": {
+                "path": "artifacts/migration/verify-2026-10-04T16-38-53-534Z-6a7e1f6c.json",
+                "sha256": "a1a5885b107b3892ceb08518f0037cc2e60da16e8b3a43e878529c2d478c3f2a"
+              },
+              "pixel_comparison": {
+                "path": "artifacts/parity/ts-check/2026-10-04T16-40-32-429Z-5e03dc3d/report.json",
+                "sha256": "34fbaaa0f803912565af1796590193c9db00dad4d0e7882526d48cce6b736fe0"
+              },
+              "capture": {
+                "path": "artifacts/parity/capture-2026-10-04T16-33-29-716Z-1a858db0.json",
+                "sha256": "f1e85b590e46e1007d3e74e0ea2670d2ac2d8503dbd5717931bc0efc29f0eea5"
+              },
+              "manifest": {
+                "path": "artifacts/parity/runs/2026-10-04T16-33-29-716Z-1a858db0/candidate/manifest.json",
+                "sha256": "4e84a7bdaa8f55693fb46f9eb01f6895c451be67c37f0974149717b69c6e0cfb"
+              },
+              "renderer_source_sha256": "6499d8c553f0085c7321d225e6267d111e2a9aba29411251ef19bfe5c94b400a",
+              "bridge_sha256": "82ccf02fefd4c54e78a82a4de08df6906714ecd0b198864ec72cb0c0394dd80c",
+              "gates": [
+                {
+                  "id": "G0",
+                  "status": "passed",
+                  "duration_ms": 77950
+                },
+                {
+                  "id": "G1",
+                  "status": "passed",
+                  "duration_ms": 20352
+                },
+                {
+                  "id": "G3",
+                  "status": "passed",
+                  "duration_ms": 304744
+                }
+              ],
+              "notes": [
+                "Completed T3 evaluated camera extraction with a closed camera_parameters_slice_v1 descriptor and owned 37-scalar little-endian f64 payload. Camera pose/projection/optics retain JS precision and contain no Layer, authoring CameraSettings or animation references.",
+                "SceneCamera now aliases EvaluatedCamera only. Root geometry/text expansion, lighting, depth configuration and generator preparation consume reconstructed supplied camera values; no active camera retains the existing absent-camera behavior.",
+                "Camera mutation and unaligned-view tests prove supplied positions affect actual geometry; nested perspective/orthographic fixtures preserve geometry, lighting, generator-context and depth-uniform bytes. Cycle16 already established owned scene buffers and actual planned draw/upload consumption.",
+                "Full G0/G1/G3 passed. G1 verifies 19 exact cross-language round trips, including two evaluated camera fixtures, and all 1819 required frames from a new 337-case capture match the frozen reference exactly. No reference, tolerance, dependency or project-format change.",
+                "M2-T3 is complete; M2 is not. Material/media/resource tables, effect and pass extraction, full independent frame replay, plan capture and Rust rendering remain required later tasks. Production rendering remains TS."
+              ]
             }
           ],
-          "remaining_work": [
-            "Extract evaluated camera/optics descriptors and route remaining camera consumers through supplied values without Layer/CameraSettings references.",
-            "Verify camera mutation/clone behavior and the complete T3 required gates before closing the task."
-          ]
+          "remaining_work": [],
+          "completed_at": "2026-10-04T16:46:16.238Z",
+          "commit": "0f44e440e9a3d3f9a7b0b1a7d37d272d6e1da7c7",
+          "last_verification": {
+            "path": "artifacts/migration/verify-2026-10-04T16-38-53-534Z-6a7e1f6c.json",
+            "sha256": "a1a5885b107b3892ceb08518f0037cc2e60da16e8b3a43e878529c2d478c3f2a"
+          }
         },
         {
           "id": "M2-T4",
@@ -12600,7 +12650,7 @@
       ],
       "preview_baseline_path": "benchmarks/results/m2-preview-baseline.json",
       "preview_baseline_sha256": "a1c62e224c008e731c252142ab1b9de7d31ecf592452c00da1dff42516772375",
-      "active_candidate_manifest": "artifacts/parity/runs/2026-10-04T16-11-41-604Z-b74965e3/candidate/manifest.json",
+      "active_candidate_manifest": "artifacts/parity/runs/2026-10-04T16-33-29-716Z-1a858db0/candidate/manifest.json",
       "last_verification": {
         "status": "passed",
         "required_gates_passed": true,
@@ -12609,17 +12659,17 @@
           {
             "id": "G0",
             "status": "passed",
-            "duration_ms": 84956
+            "duration_ms": 77950
           },
           {
             "id": "G1",
             "status": "passed",
-            "duration_ms": 23588
+            "duration_ms": 20352
           },
           {
             "id": "G3",
             "status": "passed",
-            "duration_ms": 266951
+            "duration_ms": 304744
           }
         ],
         "optional_gates": [
@@ -12630,7 +12680,7 @@
           }
         ],
         "performance_policy": "rust-delivery-v1",
-        "report": "artifacts/migration/verify-2026-10-04T16-17-35-704Z-9c25fce0.json"
+        "report": "artifacts/migration/verify-2026-10-04T16-38-53-534Z-6a7e1f6c.json"
       },
       "performance_series_history": [
         {
@@ -13936,12 +13986,5 @@
       }
     }
   ],
-  "active_cycle": {
-    "id": 17,
-    "milestone": "M2",
-    "task": "M2-T3",
-    "started_at": "2026-10-04T16:26:03.979Z",
-    "scope": "Complete evaluated camera/optics transport and route actual root camera consumers through owned decoded values; close T3 only after full required gates.",
-    "previous_turn_classification": "progress: cycle16 scene-buffer implementation and full verification committed with ledger evidence."
-  }
+  "active_cycle": null
 }
