@@ -2,8 +2,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createLayerForComposition } from "../../core/layers/layer-factory";
 import { createBlankComposition, createBlankProject } from "../../core/project/project";
 import { type FootageSource, staticValue } from "../../core/types";
+import { detectImageSequence } from "../../importers/image-sequence";
 import { mediaImportRuntime } from "../../importers/media-import-runtime";
 import { warmProjectRasterSources } from "../../importers/raster-image-prefetch";
+import { FrameResourceRegistry } from "../frame-plan/resources";
+import { frameTimeToNumber } from "../frame-plan/time";
 import { MediaTextureCache, svgPreviewRasterTarget } from "./media-texture-cache";
 
 beforeEach(() => {
@@ -20,6 +23,61 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("exact-frame media resource barrier", () => {
+  it("binds the resolved sequence member and admits its real descriptors to the transport registry", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({ ok: true, blob: async () => new Blob() })),
+    );
+    vi.stubGlobal(
+      "createImageBitmap",
+      vi.fn(async () => bitmap()),
+    );
+    const files = [1001, 1003].map((frame) => ({
+      name: `shot_${frame}.png`,
+      size: 10,
+      lastModified: 1,
+      type: "image/png",
+      url: `https://assets.invalid/shot_${frame}.png`,
+      byteIdentity: `verified:${frame}`,
+    }));
+    const selection = detectImageSequence(files);
+    const footage: FootageSource = {
+      ...still("sequence"),
+      kind: "imageSequence",
+      width: 16,
+      height: 16,
+      pattern: selection.pattern,
+      startFrame: 1001,
+      endFrame: 1003,
+    };
+    mediaImportRuntime.register(footage.id, {
+      kind: "imageSequence",
+      selection,
+      frameRate: { numerator: 24, denominator: 1 },
+      loop: false,
+      missingFramePolicy: "holdPrevious",
+    });
+    const cache = createCache();
+    try {
+      const layer = createLayerForComposition("image", createBlankComposition());
+      cache.prepareMedia(layer, footage, 1 / 24, false, "sequence-instance");
+      await cache.waitForFrameResources(1000);
+      const lease = cache.acquireFrameBindings(["sequence-instance"], "sequence-snapshot");
+      const messages = lease.resourceMessages;
+      expect(messages[1]).toMatchObject({
+        kind: "media_frame",
+        descriptor: { sample: { kind: "sequence", frame: 1001, file_identity: "verified:1001" } },
+      });
+      const registry = new FrameResourceRegistry({ budget_bytes: 10000, max_resources: 10 });
+      for (const message of messages) await registry.apply(message);
+      expect(registry.resolve(messages[1].hash).content.descriptor).toEqual(messages[1].descriptor);
+      expect(lease.bindingForHash(messages[1].hash)).toBe(cache.bindGroup("sequence-instance"));
+      cache.abortFrame();
+    } finally {
+      cache.destroy();
+      mediaImportRuntime.remove(footage.id);
+    }
+  });
   it("holds submitted media bindings until GPU completion even after cache destruction", async () => {
     const completion = deferred<void>();
     const destroy = vi.fn();
@@ -93,6 +151,20 @@ describe("exact-frame media resource barrier", () => {
     await waiting;
     expect(settled).toBe(true);
     expect(cache.bindGroup("image-instance")).toBeDefined();
+    const lease = cache.acquireFrameBindings(["image-instance"], "test-snapshot");
+    const messages = lease.resourceMessages;
+    expect(messages[0]).toMatchObject({
+      kind: "media_source",
+      descriptor: { source_id: "second.png", authorization_scope: "test-snapshot" },
+    });
+    expect(messages[1]).toMatchObject({
+      kind: "media_frame",
+      descriptor: { width: 16, height: 16, sample: { kind: "image" } },
+    });
+    expect(lease.bindingForHash(lease.hashFor("image-instance"))).toBe(
+      cache.bindGroup("image-instance"),
+    );
+    cache.abortFrame();
   });
 
   it("binds the magenta placeholder while footage is unresolved", () => {
@@ -175,6 +247,17 @@ describe("exact-frame media resource barrier", () => {
     await vi.waitFor(() => expect(cache.hasPendingFrameResources).toBe(false));
     // Upload validation completes asynchronously, without another media element event.
     await waiting;
+    const lease = cache.acquireFrameBindings(["video-instance"], "video-test");
+    expect(lease.resourceMessages[1]).toMatchObject({
+      kind: "media_frame",
+      descriptor: { sample: { kind: "video" } },
+    });
+    const frame = lease.resourceMessages[1];
+    if (frame.kind !== "media_frame" || frame.descriptor.sample.kind !== "video")
+      throw Error("Expected video descriptor");
+    expect(frameTimeToNumber(frame.descriptor.sample.uploaded_time)).toBe(video.currentTime);
+    expect(frameTimeToNumber(frame.descriptor.sample.requested_time)).toBe(0.0001);
+    cache.abortFrame();
   });
 
   it("creates external-image destinations with copy and render-attachment usage", async () => {
@@ -780,7 +863,15 @@ function videoSource(): FootageSource {
 }
 
 function bitmap(): ImageBitmap {
-  return { width: 16, height: 16, close: vi.fn() } as unknown as ImageBitmap;
+  const value = {
+    width: 16,
+    height: 16,
+    close: vi.fn(() => {
+      value.width = 0;
+      value.height = 0;
+    }),
+  };
+  return value as unknown as ImageBitmap;
 }
 
 function deferred<Value>() {

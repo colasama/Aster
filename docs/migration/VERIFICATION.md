@@ -131,6 +131,9 @@ G1 also sends image/sequence/video resource messages through the Rust CLI regist
 checking exact descriptor hashes, requested/uploaded time values and ordered eviction. Wrong hashes,
 kind mismatches, missing sources and premature source eviction must fail. Registry tests cover
 descriptor budgets, ownership across asynchronous hashing and in-flight frame/source dependencies.
+Production adapter tests validate installed still extents after bitmap closure, resolved sequence
+members, actual video upload times, and drawing by supplied hash independently of instance IDs.
+G1 checks the synchronous descriptor hash against WebCrypto and Rust; missing hashes fail before draw.
 See [Frame-plan transport](FRAME_PLAN.md) for the current contract and its explicit partial scope.
 
 Full G3 continues to compare all required TS frames under `exact`, retaining the effective reference

@@ -14,6 +14,7 @@ export async function auditMediaResources(
   for (const message of messages) {
     assert.deepEqual(registry.resolve(message.hash).content.descriptor, message.descriptor);
     assert.equal(await runtime.contentResourceHash(message), message.hash);
+    assert.equal(runtime.contentResourceHashSync(message), message.hash);
   }
   const transcript = [
     ...messages,

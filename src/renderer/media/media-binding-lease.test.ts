@@ -7,6 +7,12 @@ function resource(): MediaResource {
     source: "asset",
     kind: "video",
     lastUploadedTime: 1,
+    textureWidth: 16,
+    textureHeight: 16,
+    mediaIdentity: {
+      source: { source_id: "asset", content_identity: "content:asset", media_kind: "video" },
+      sample: { kind: "image" },
+    },
     bindGroup: {} as GPUBindGroup,
     texture: { destroy: vi.fn() } as unknown as GPUTexture,
   };
@@ -16,10 +22,10 @@ describe("frame-owned media bindings", () => {
   it("defers retirement until all submitted owners release and destroys exactly once", () => {
     const owner = resource();
     const first = new MediaBindingLease([
-      { instanceId: "a", resource: owner, binding: owner.bindGroup },
+      { instanceId: "a", resource: owner, binding: owner.bindGroup, requestedTime: 1 },
     ]);
     const second = new MediaBindingLease([
-      { instanceId: "b", resource: owner, binding: owner.bindGroup },
+      { instanceId: "b", resource: owner, binding: owner.bindGroup, requestedTime: 1 },
     ]);
     destroyMediaResource(owner);
     expect(owner.texture?.destroy).not.toHaveBeenCalled();
@@ -41,7 +47,7 @@ describe("frame-owned media bindings", () => {
   it("rejects an unknown binding or changed source/frame instead of reading another generation", () => {
     const owner = resource();
     const lease = new MediaBindingLease([
-      { instanceId: "video", resource: owner, binding: owner.bindGroup },
+      { instanceId: "video", resource: owner, binding: owner.bindGroup, requestedTime: 1 },
       { instanceId: "pending" },
     ]);
     expect(lease.bindingFor("pending")).toBeUndefined();

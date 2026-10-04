@@ -1,3 +1,4 @@
+import { sha256 } from "@noble/hashes/sha2.js";
 import { canonicalJson, hash, integer, object, requirePlan } from "./canonical";
 import { validateMediaFrame, validateMediaSource } from "./media-descriptors";
 import type { BufferResourceDescriptor, ResourceContent, ResourceMessage } from "./types";
@@ -35,6 +36,19 @@ export async function contentResourceHash(
   content: ResourceContent,
   bytes: Uint8Array = new Uint8Array(),
 ): Promise<string> {
+  const input = resourceHashInput(content, bytes);
+  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", input));
+  return Array.from(digest, (value) => value.toString(16).padStart(2, "0")).join("");
+}
+
+/** Synchronous small-descriptor hashing keeps frame preparation free of asynchronous stalls. */
+export function contentResourceHashSync(content: ResourceContent): string {
+  return Array.from(sha256(resourceHashInput(content, new Uint8Array())), (value) =>
+    value.toString(16).padStart(2, "0"),
+  ).join("");
+}
+
+function resourceHashInput(content: ResourceContent, bytes: Uint8Array): Uint8Array<ArrayBuffer> {
   validateResourceContent(content, bytes);
   const prefix = new TextEncoder().encode("ASTER_RESOURCE_V1\0");
   const json = new TextEncoder().encode(
@@ -50,8 +64,7 @@ export async function contentResourceHash(
   new DataView(input.buffer).setUint32(prefix.length, json.length, true);
   input.set(json, prefix.length + 4);
   input.set(bytes, prefix.length + 4 + json.length);
-  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", input));
-  return Array.from(digest, (value) => value.toString(16).padStart(2, "0")).join("");
+  return input;
 }
 
 export function validateResourceMessage(value: unknown): ResourceMessage {

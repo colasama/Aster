@@ -714,7 +714,12 @@ export class WebGpuRenderer {
       sceneBatches
         .filter((batch) => batch.layer.kind === "image" || batch.layer.kind === "video")
         .map((batch) => batch.resourceInstanceId),
+      framePlanInput.snapshot.snapshotScope,
     );
+    for (const batch of sceneBatches) {
+      if (batch.layer.kind === "image" || batch.layer.kind === "video")
+        batch.mediaResourceHash = mediaBindings.hashFor(batch.resourceInstanceId);
+    }
     const postPlan = buildRootPostUniformPlan(framePlanInput);
     uploadRootPostUniformPlan(postPlan, {
       queue: this.#device.queue,
@@ -956,7 +961,7 @@ export class WebGpuRenderer {
         mediaBindGroup: (batch) =>
           resources.precompositionSurfaces.bindingFor(batch.instanceId) ??
           (batch.layer.kind === "image" || batch.layer.kind === "video"
-            ? mediaBindings.bindingFor(batch.resourceInstanceId)
+            ? mediaBindings.bindingForHash(batch.mediaResourceHash)
             : resources.mediaTextures.bindGroup(batch.resourceInstanceId)),
         generators: beautyMotionBlur
           ? []

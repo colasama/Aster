@@ -43,6 +43,11 @@ import {
 } from "../text/text-rasterizer";
 import { MediaBindingLease } from "./media-binding-lease";
 import {
+  type PreparedMediaIdentity,
+  preparedMediaIdentity,
+  sequenceMemberIdentity,
+} from "./media-frame-identity";
+import {
   abortError,
   asError,
   hiddenMediaStyle,
@@ -186,7 +191,7 @@ export class MediaTextureCache {
     return this.#frameResourceErrors.has(instanceId) ? this.#missingMediaBinding() : undefined;
   }
 
-  acquireFrameBindings(instanceIds: readonly string[]): MediaBindingLease {
+  acquireFrameBindings(instanceIds: readonly string[], scope = "local-preview"): MediaBindingLease {
     if (this.#destroyed || this.#frameBindings)
       throw new Error("Media frame binding lifecycle is not ready");
     const entries = [...new Set(instanceIds)].map((instanceId) => {
@@ -195,9 +200,14 @@ export class MediaTextureCache {
         binding && binding === this.#missingMediaBindGroup
           ? this.#missingMediaResource
           : this.#resources.get(instanceId);
-      return { instanceId, binding, resource };
+      return {
+        instanceId,
+        binding,
+        resource,
+        requestedTime: this.#videoFrameTargets.get(instanceId)?.time,
+      };
     });
-    this.#frameBindings = new MediaBindingLease(entries);
+    this.#frameBindings = new MediaBindingLease(entries, scope);
     return this.#frameBindings;
   }
 
@@ -339,7 +349,11 @@ export class MediaTextureCache {
     this.#pendingFrameResources.delete(instanceId);
     this.#frameResourceErrors.delete(instanceId);
     destroyMediaResource(existing);
-    const resource: MediaResource = { source, kind: layer.kind === "video" ? "video" : "image" };
+    const resource: MediaResource = {
+      source,
+      kind: layer.kind === "video" ? "video" : "image",
+      mediaIdentity: preparedMediaIdentity(footage, layer.kind === "video" ? "video" : "image"),
+    };
     this.#resources.set(instanceId, resource);
     if (resource.kind === "video") {
       this.#prepareVideo(resource, layer, footage, time, playing, instanceId);
@@ -420,7 +434,16 @@ export class MediaTextureCache {
       this.#frameResourceErrors.set(instanceId, { source, error });
       return;
     }
-    const resource: MediaResource = { source, kind: "image" };
+    const resource: MediaResource = {
+      source,
+      kind: "image",
+      mediaIdentity: preparedMediaIdentity(
+        footage,
+        "image",
+        { kind: "image" },
+        JSON.stringify([runtime.documentIdentity, ...runtime.crop]),
+      ),
+    };
     this.#resources.set(instanceId, resource);
     const texture = this.#device.createTexture({
       label: `Imported PSD layer · ${footage.name}`,
@@ -440,6 +463,8 @@ export class MediaTextureCache {
     );
     resource.texture = texture;
     resource.textureBytes = width * height * 4;
+    resource.textureWidth = width;
+    resource.textureHeight = height;
     resource.bindGroup = this.#createBindGroup(texture, `Imported PSD resources · ${layer.id}`);
     mediaImportRuntime.clearError(footage.id);
     this.#frameResourceErrors.delete(instanceId);
@@ -522,6 +547,11 @@ export class MediaTextureCache {
         layer,
         footage,
         instanceId,
+        preparedMediaIdentity(footage, "sequence", {
+          kind: "sequence",
+          frame: resolved.actualFrame,
+          file_identity: sequenceMemberIdentity(resolved.file),
+        }),
       );
     void this.#sequenceFrames
       .preload(runtime.selection.frames, resolved.actualFrame, runtime.loop ? 2 : 3, 2)
@@ -542,13 +572,14 @@ export class MediaTextureCache {
     layer: Layer,
     footage: FootageSource,
     instanceId: string,
+    identity: PreparedMediaIdentity = preparedMediaIdentity(footage, "image"),
   ): void {
     const installation = pending.then(
       (bitmap) => {
         if (this.#destroyed) return;
         if (this.#pendingFrameResources.get(instanceId)?.source !== source) return;
         const previous = this.#resources.get(instanceId);
-        const resource: MediaResource = { source, kind: "image" };
+        const resource: MediaResource = { source, kind: "image", mediaIdentity: identity };
         this.#resources.set(instanceId, resource);
         try {
           this.#installBitmap(resource, bitmap, layer, footage, instanceId, false);
@@ -624,6 +655,17 @@ export class MediaTextureCache {
       source: MISSING_MEDIA_SOURCE,
       kind: "image",
       texture,
+      textureWidth: 1,
+      textureHeight: 1,
+      textureBytes: 4,
+      mediaIdentity: {
+        source: {
+          source_id: "aster:missing-media",
+          content_identity: "rgba8:255,0,255,255",
+          media_kind: "image",
+        },
+        sample: { kind: "image" },
+      },
       bindGroup: this.#missingMediaBindGroup,
     };
     return this.#missingMediaBindGroup;
@@ -775,7 +817,9 @@ export class MediaTextureCache {
       MAX_MEDIA_TEXTURE_DIMENSION,
       this.#device.limits.maxTextureDimension2D,
     );
-    const textureBytes = bitmap.width * bitmap.height * 4;
+    const width = bitmap.width;
+    const height = bitmap.height;
+    const textureBytes = width * height * 4;
     if (
       bitmap.width < 1 ||
       bitmap.height < 1 ||
@@ -809,6 +853,8 @@ export class MediaTextureCache {
     }
     resource.texture = texture;
     resource.textureBytes = textureBytes;
+    resource.textureWidth = width;
+    resource.textureHeight = height;
     resource.bindGroup = this.#createBindGroup(texture, `Imported image resources · ${layer.id}`);
     this.#invalidate();
   }

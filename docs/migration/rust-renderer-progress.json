@@ -14138,5 +14138,21 @@
       }
     }
   ],
-  "active_cycle": null
+  "active_cycle": {
+    "id": 20,
+    "milestone": "M2",
+    "task": "M2-T4",
+    "started_at": "2026-10-04T17:47:47.313Z",
+    "scope": "Connect production root media ownership to typed source/frame descriptors and hash-based draw bindings while preserving exact readiness. Add synchronous descriptor hashing to avoid introducing async frame holds. Full FPLN media replay/resident registry integration remains required.",
+    "previous_turn_classification": "progress: cycle19 transport implementation and ledger committed with full G0/G1/G3, clean worktree.",
+    "dependency": {
+      "name": "@noble/hashes",
+      "version": "2.4.0",
+      "license": "MIT",
+      "rationale": "Synchronous audited SHA-256 for small media descriptors avoids asynchronous rendering holds and a locally maintained cryptographic implementation. Existing transitive noble hashes is now a pinned direct dependency.",
+      "pnpm_audit": "artifacts/migration/cycle20-pnpm-audit.json",
+      "cargo_deny": "artifacts/migration/cycle20-cargo-deny-resolved.log",
+      "known_vulnerabilities": 0
+    }
+  }
 }

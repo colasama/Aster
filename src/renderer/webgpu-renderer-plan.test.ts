@@ -150,7 +150,10 @@ describe("production root post-plan integration", () => {
       f.encoded,
     );
     expect(harness.plans).toHaveLength(1);
-    expect(f.media.acquireFrameBindings).toHaveBeenCalledExactlyOnceWith([]);
+    expect(f.media.acquireFrameBindings).toHaveBeenCalledExactlyOnceWith(
+      [],
+      f.snapshot.snapshotScope,
+    );
     expect(f.media.abortFrame).toHaveBeenCalledOnce();
     const plan = harness.plans[0];
     expect(frameTimeToNumber(plan.metadata.header.time)).toBe(time);

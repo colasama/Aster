@@ -87,7 +87,10 @@ cache replacement retires owners, with destruction deferred until all submitted 
 the GPU queue. Unsubmitted failures release their leases immediately. These runtime handles remain
 outside FPLN. Shared TS/Rust transport registries now accept content-addressed media source/frame
 descriptors, preserving exact video times and sequence frame numbers with dependency-aware eviction.
-Production hash binding, authorized native media resolution and independent frame replay remain pending.
+Root media preparation now produces those descriptors and assigns content hashes to beauty/auxiliary
+draws. Their runtime table retains GPU owners while transport metadata stays handle-free. Persistent
+GPU registry accounting, FPLN media bindings, authorized native resolution and independent replay
+remain pending.
 
 Shared WGSL includes output anti-aliasing, core scene variants, compositing, fused post-processing,
 blur/depth/surface effects, auxiliary surfaces, particles, text motion blur and display/buffer helpers.

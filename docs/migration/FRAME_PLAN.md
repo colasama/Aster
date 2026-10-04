@@ -153,9 +153,18 @@ through GPU queue completion. Replacement/sweep retires resources rather than de
 texture. Unknown bindings, released leases and source/upload-generation mismatches fail before
 submission; an explicitly captured pending binding still preserves the existing preview fallback.
 The shared missing-media texture has its own retained owner. Abort releases unsubmitted leases, and
-submission transfers ownership before invoking user readback/cache callbacks. This runtime table
-still uses instance IDs and is not yet the content-addressed `PutResource` media protocol. Text and
-precomposition resource adapters also remain separate extraction tasks.
+submission transfers ownership before invoking user readback/cache callbacks. Preparation now emits
+typed `PutResource` source/frame messages and assigns their hashes to root draw batches; beauty and
+auxiliary draws resolve those hashes against the retained frame table. Instance IDs are used only
+while constructing these explicit references. Null references preserve the pending fallback; unknown
+hashes fail before drawing. The magenta placeholder and not-yet-uploaded zero video texture have
+explicit built-in identities. Sequence descriptors use verified member byte identities when available,
+otherwise a labeled locator hash; PSD identities include the crop variant.
+
+Small descriptors use synchronous SHA-256 through pinned MIT-licensed `@noble/hashes`, avoiding an
+asynchronous hold at the synchronous encoding boundary. G1 compares it against WebCrypto and Rust.
+Persistent GPU registry admission/eviction, resident accounting and serializable FPLN media bindings
+remain required before independent replay. Text and precomposition adapters remain separate tasks.
 
 ## Verification boundary
 

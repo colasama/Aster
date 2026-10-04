@@ -30,6 +30,8 @@ export interface GeometryBatch {
   layer: Layer;
   instanceId: string;
   resourceInstanceId: string;
+  /** Filled by frame preparation; null explicitly preserves a pending media fallback. */
+  mediaResourceHash?: string | null;
   selectionId: string;
   firstVertex: number;
   vertexCount: number;

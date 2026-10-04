@@ -1,9 +1,11 @@
 import { logger } from "../../core/logger";
 import { FramePlanError } from "../frame-plan/types";
 import type { TextRasterBounds } from "../text/text-raster-bounds";
+import type { PreparedMediaIdentity } from "./media-frame-identity";
 import type { VideoExternalUpload } from "./video-external-upload";
 
 export interface MediaResource {
+  mediaIdentity?: PreparedMediaIdentity;
   source: string;
   kind: "image" | "video" | "text";
   texture?: GPUTexture;

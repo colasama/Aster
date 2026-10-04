@@ -16,7 +16,7 @@ export function drawSceneBatch(
       : undefined;
   const media =
     batch.layer.kind === "image" || batch.layer.kind === "video"
-      ? mediaBindings.bindingFor(batch.resourceInstanceId)
+      ? mediaBindings.bindingForHash(batch.mediaResourceHash)
       : batch.layer.kind === "text"
         ? resources.mediaTextures.bindGroup(batch.resourceInstanceId)
         : undefined;
