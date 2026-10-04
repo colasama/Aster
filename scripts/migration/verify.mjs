@@ -8,6 +8,7 @@ import { runIrGate } from "./ir-gate.mjs";
 import { auditM0Exit } from "./m0-exit.mjs";
 import { auditM1Exit } from "./m1-exit.mjs";
 import { runPerformanceGate } from "./performance-gate.mjs";
+import { selectRequiredGates } from "./performance-policy.mjs";
 import { runStep } from "./process.mjs";
 import { writeAtomicJson } from "./report.mjs";
 import { ownerProject, sourceProvenance } from "./source.mjs";
@@ -91,9 +92,12 @@ export async function verifyMigration(options, dependencies = {}) {
     report.milestone = milestone.id;
     if (milestone.id === "M2") {
       report.milestone_exit_reason =
-        "IR transport and performance gates do not establish complete production plan execution, replay or capture";
+        "IR transport gates do not establish complete production plan execution, replay or capture";
     }
-    report.required_gates = milestone.gates;
+    Object.assign(
+      report,
+      selectRequiredGates(milestone, ledger.owner_overrides?.performance_delivery_policy),
+    );
     report.open_tasks = milestone.tasks
       .filter((task) => task.status !== "done")
       .map((task) => task.id);
@@ -107,20 +111,7 @@ export async function verifyMigration(options, dependencies = {}) {
       },
       print: options.print,
     };
-    if (!Array.isArray(milestone.gates) || !milestone.gates.includes("G0")) {
-      throw new Error("The milestone must declare G0 and every required gate explicitly");
-    }
-    if (milestone.id === "M0" && !milestone.gates.includes("G6")) {
-      throw new Error("M0 requires both G0 and G6 according to the migration specification");
-    }
-    if (
-      milestone.id === "M2" &&
-      (milestone.gates.length !== 4 ||
-        ["G0", "G1", "G3", "G4"].some((id) => !milestone.gates.includes(id)))
-    ) {
-      throw new Error("M2 requires G0, G1, G3 and G4 according to the migration specification");
-    }
-    for (const id of milestone.gates) {
+    for (const id of report.required_gates) {
       if (id === "G0") report.gates.push(await runStaticGate(context, quick, execute));
       else if (id === "G1" && milestone.id === "M2") {
         report.gates.push(
@@ -216,6 +207,12 @@ export async function verifyMigration(options, dependencies = {}) {
         );
       } else report.gates.push({ id, status: "failed", error: "Required gate is not implemented" });
     }
+    if (
+      report.gates.length !== report.required_gates.length ||
+      report.required_gates.some((id) => report.gates.filter((gate) => gate.id === id).length !== 1)
+    ) {
+      throw new Error("Gate results must cover every required gate exactly once");
+    }
     const exitTask = milestone.tasks.find((task) => task.id === "M0-T6");
     if (
       milestone.id === "M0" &&
@@ -282,6 +279,9 @@ export async function verifyMigration(options, dependencies = {}) {
       `${report.milestone ?? "unknown"} ${report.mode}: ${report.status}`,
       ...report.gates.map(
         (gate) => `  ${gate.id}: ${gate.status}${gate.error ? ` — ${gate.error}` : ""}`,
+      ),
+      ...(report.optional_gates ?? []).map(
+        (gate) => `  ${gate.id}: ${gate.status} — ${gate.reason}`,
       ),
       `Full required gates: ${report.required_gates_passed ? "passed" : "not satisfied"}`,
       `Milestone exit: ${report.milestone_exit_satisfied ? "passed" : report.milestone_exit_reason}`,

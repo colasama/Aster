@@ -14,13 +14,32 @@ The initial contract is a `frame_plan_slice` with `contract_level: post_uniforms
 frame, does not contain a pass graph, and cannot establish M2 completion. Later extraction tasks
 must add concrete typed data from production consumers; unknown fields and variants are rejected.
 
-The header identifies project revision, composition, rational time and frame rate, output and
-internal render dimensions, AA mode, and the existing color pipeline. Motion-blur shutter data and
-other evaluation results are added when their actual producers and consumers are extracted.
-Explicit rational inputs are reduced and bounded to the shared integer domains. Existing preview
-requests accept arbitrary finite JS times; production integration must preserve them without
-silently quantizing through the current bounded rational type. GPU time and effect values remain
-in the original f32 payload rather than being reconstructed from header metadata.
+The header identifies a caller-owned snapshot scope and project revision, composition, exact time
+and frame rate, output and internal render dimensions, AA mode, and the existing color pipeline.
+Motion-blur shutter data and other evaluation results are added when their producers and consumers
+are extracted. The snapshot scope distinguishes loaded documents, draft sessions and immutable jobs;
+the revision comes from that caller's mutation boundary, never from renderer observation or a
+per-frame content digest.
+
+Composition IDs retain the project's existing nonempty string domain. Ordinary Unicode strings,
+including long IDs and NUL, remain strings. An ID containing unpaired UTF-16 surrogates uses a closed
+`utf16_units` representation so Rust can preserve its exact code units without replacement. This
+alternative is rejected for well-formed strings. Container and metadata byte budgets still apply
+at serialization boundaries; the snapshot scope has its own bounded identity rules.
+
+Time has two closed variants: reduced bounded `rational` and `binary_rational`. The latter preserves
+every finite binary64 request, including signed zero and subnormals, using a sign, odd integer
+significand and power-of-two exponent. Production uses the actual request's bits, without deriving
+an ideal frame-index time. Frame rates use a reduced `rational` when their exact ratio fits the wire
+limits, or a `binary_ratio` retaining the two positive finite input scalars. This preserves existing
+preview support for decimal rates without quantization.
+
+`buildRootPostUniformPlan` copies scalar header inputs and produces the existing 96-byte root
+post-process payload. `uploadRootPostUniformPlan` validates the supported slice and prepared target,
+then uploads those supplied bytes, including a decoded view's offset. It receives no project,
+composition or effect settings from which to recompute them. Media holds precede this boundary and
+the existing command encoding follows it. Local execution uses typed data directly; canonical JSON
+serialization remains a transport operation. Other passes still await extraction.
 
 ## FPLN encoding
 
@@ -53,7 +72,18 @@ Rust owns one container buffer and borrows validated blob ranges from it. It doe
 copy each blob while decoding. Re-encoding constructs a new header, metadata and container from the
 validated types and borrowed payloads. TS honors each input view's byte offset and writes newly
 produced scalar data explicitly in little-endian order. Existing binary payload bits are preserved,
-including valid signed zeros; nonfinite post-process uniform values are rejected.
+including valid signed zeros. Nonfinite post-process values are rejected except signed infinity in
+the time lane when it exactly matches conversion of a finite header time to f32. This preserves the
+original producer's overflow behavior; NaN is always rejected. Root execution additionally binds
+finite time-lane bits to the header and rejects resource references, additional slices, effect
+operations, linear-output bypass, blur mip selection and masked-glow controls. Valid supplied effect
+scalars, such as exposure, are uploaded without replacement.
+
+The root post-process pipeline specializes the shared shader's `root_zero_operations` override to
+`1`, using the executor's validated zero-operation contract to eliminate both effect loops at
+pipeline creation. The shared default remains `0` for dynamic per-layer effect programs. Sampling,
+grading and display expressions still consume the supplied uniforms; resource bindings and the
+96-byte layout are unchanged.
 
 ## Resource operations
 

@@ -34,6 +34,71 @@ async function fakeHook(command, context) {
 
 const provenance = async () => ({ source_sha256: "source-123", commit: "123", dirty: true });
 
+const deliveryPolicy = {
+  kind: "rust-delivery-v1",
+  status: "approved",
+  authorization_received: true,
+  approved_at: "2026-01-01T00:00:00.000Z",
+  authorization_text: "CPU test fixture: intermediate performance is informational",
+  intermediate_milestones: ["M2", "M4", "M6", "M7"],
+  intermediate_performance: "informational",
+  native_performance: "higher-median-fps-than-contemporaneous-ts",
+  native_milestones: ["M8", "M11", "M12"],
+};
+
+async function deliveryVerification(t, options = {}) {
+  const { gates, quick = false, failure } = options;
+  const policy = Object.hasOwn(options, "policy") ? options.policy : deliveryPolicy;
+  const context = await fixture(t);
+  await writeAtomicJson(context.ledger, {
+    status: "running",
+    owner_overrides: { performance_delivery_policy: policy },
+    milestones: [
+      {
+        id: "M2",
+        status: "in_progress",
+        gates: gates ?? ["G0", "G1", "G3"],
+        tasks: [{ id: "M2-T2", status: "in_progress" }],
+      },
+    ],
+  });
+  const calls = [];
+  const result = await verifyMigration(
+    { ...context, quick },
+    {
+      provenance,
+      execute: async (command, context) => {
+        calls.push("G0");
+        return fakeHook(command, context);
+      },
+      runIrGate: async () => {
+        calls.push("G1");
+        return {
+          id: failure === "duplicate-result" ? "G0" : "G1",
+          status: failure === "G1" ? "failed" : "passed",
+        };
+      },
+      runPerformanceGate: async () => {
+        calls.push("G4");
+        return { id: "G4", status: "failed", error: "Preserved fixed-baseline regression" };
+      },
+      verifyTsPixels: async () => {
+        calls.push("G3");
+        return {
+          exitCode: failure === "G3" ? 1 : 0,
+          reportPath: join(context.root, "ts-report.json"),
+          report: {
+            status: failure === "G3" ? "failed" : "passed",
+            source_unchanged: true,
+            gate: { id: "G3", status: "passed", full_coverage: true },
+          },
+        };
+      },
+    },
+  );
+  return { ...result, calls };
+}
+
 test("argument parser rejects accidental unsupported or incomplete options", () => {
   assert.deepEqual(parseArguments(["--milestone", "M0", "--quick"]), {
     milestone: "M0",
@@ -342,6 +407,79 @@ test("M2 cannot omit, replace or duplicate any specified gate", async (t) => {
     assert.equal(result.report.milestone_exit_satisfied, false);
     assert.match(result.report.error, /M2 requires G0, G1, G3 and G4/);
   }
+});
+
+test("approved delivery policy runs all required M2 gates without claiming a performance pass", async (t) => {
+  for (const failure of [undefined, "G1", "G3"]) {
+    const result = await deliveryVerification(t, { failure });
+    assert.deepEqual(result.calls, ["G0", "G1", "G3"]);
+    assert.deepEqual(result.report.required_gates, ["G0", "G1", "G3"]);
+    assert.deepEqual(
+      result.report.gates.map((gate) => gate.id),
+      ["G0", "G1", "G3"],
+    );
+    assert.equal(result.report.optional_gates.length, 1);
+    assert.equal(result.report.optional_gates[0].id, "G4");
+    assert.equal(result.report.optional_gates[0].status, "not_required");
+    assert(result.report.optional_gates[0].reason.length > 0);
+    assert.equal(result.report.required_gates_passed, failure === undefined);
+    assert.equal(result.report.status, failure === undefined ? "passed" : "failed");
+    assert.equal(result.exitCode, failure === undefined ? 0 : 1);
+    assert.equal(result.report.milestone_exit_satisfied, false);
+  }
+});
+
+test("missing, pending or invalid delivery authorization cannot remove the fixed G4 requirement", async (t) => {
+  const pending = { ...deliveryPolicy, status: "pending", authorization_received: false };
+  for (const policy of [undefined, pending]) {
+    const unchanged = await deliveryVerification(t, { policy, gates: ["G0", "G1", "G3", "G4"] });
+    assert.deepEqual(unchanged.calls, ["G0", "G1", "G3", "G4"]);
+    assert.equal(unchanged.exitCode, 1);
+    assert.equal(unchanged.report.gates.find((gate) => gate.id === "G4").status, "failed");
+  }
+  for (const policy of [
+    undefined,
+    pending,
+    { ...deliveryPolicy, authorization_received: false },
+    { ...deliveryPolicy, approved_at: "invalid" },
+    { ...deliveryPolicy, native_performance: "no-performance-requirement" },
+  ]) {
+    const refused = await deliveryVerification(t, { policy });
+    assert.equal(refused.exitCode, 1);
+    assert.equal(refused.report.required_gates_passed, false);
+    assert.equal(refused.report.status, "failed");
+    assert.deepEqual(refused.calls, []);
+    assert.match(refused.report.error, /requires|authorization|policy|approved/i);
+  }
+});
+
+test("delivery authorization cannot omit or duplicate required gates or accept the wrong gate result", async (t) => {
+  for (const gates of [
+    ["G1", "G3"],
+    ["G0", "G3"],
+    ["G0", "G1"],
+    ["G0", "G1", "G3", "G3"],
+  ]) {
+    const refused = await deliveryVerification(t, { gates });
+    assert.equal(refused.exitCode, 1);
+    assert.equal(refused.report.required_gates_passed, false);
+    assert.deepEqual(refused.calls, []);
+  }
+  const duplicate = await deliveryVerification(t, { failure: "duplicate-result" });
+  assert.equal(duplicate.exitCode, 1);
+  assert.equal(duplicate.report.required_gates_passed, false);
+  assert.equal(duplicate.report.milestone_exit_satisfied, false);
+});
+
+test("approved delivery policy keeps quick verification incomplete and unable to authorize a commit", async (t) => {
+  const result = await deliveryVerification(t, { quick: true });
+  assert.deepEqual(result.calls, ["G0", "G3"]);
+  assert.equal(result.exitCode, 0);
+  assert.equal(result.report.status, "incomplete");
+  assert.equal(result.report.required_gates_passed, false);
+  assert.equal(result.report.milestone_exit_satisfied, false);
+  assert.equal(result.report.gates.find((gate) => gate.id === "G1").status, "skipped");
+  assert.equal(result.report.optional_gates[0].status, "not_required");
 });
 
 test("TS candidate selection prefers explicit input, then the active ledger capture, then the default path", async (t) => {

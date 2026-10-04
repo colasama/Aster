@@ -2,6 +2,10 @@ import {
   type FrameRenderSessionOptions,
   openFrameRenderSession,
 } from "../core/rendering/render-export";
+import {
+  copyRenderSnapshotIdentity,
+  type RenderSnapshotIdentity,
+} from "../core/rendering/render-snapshot";
 import type { Project } from "../core/types";
 import type { RawFramePixelFormat } from "../renderer/gpu/frame-readback";
 import {
@@ -43,12 +47,14 @@ export interface AgentContactSheet extends ContactSheet {
 /** Renders many small samples of the staged project into one labeled image. */
 export async function renderAgentContactSheet(
   project: Project,
+  snapshot: RenderSnapshotIdentity,
   request: ContactSheetRequest,
   signal: AbortSignal,
   input: PreviewOptions = {},
 ): Promise<AgentContactSheet> {
   const options = parsePreviewOptions(input);
   project = isolatePreviewLayers(project, options);
+  snapshot = previewSnapshotIdentity(snapshot, options);
   const composition = project.compositions.find((item) => item.id === project.activeCompositionId);
   if (!composition) throw new Error("Preview composition is unavailable");
   const times = contactSheetTimes(request, [0, composition.duration]);
@@ -57,7 +63,7 @@ export async function renderAgentContactSheet(
   const cellWidth = request.cellWidth ?? 320;
   const aspect = composition.height / composition.width;
   const session = await openPreviewSession(
-    { project, maxDimension: Math.max(64, Math.round(cellWidth * Math.max(1, aspect))) },
+    { project, snapshot, maxDimension: Math.max(64, Math.round(cellWidth * Math.max(1, aspect))) },
     signal,
   );
   const crop = previewCropPixels(session.width, session.height, options.crop);
@@ -101,14 +107,16 @@ function isolatePreviewLayers(project: Project, options: PreviewOptions): Projec
 
 export async function renderAgentPreview(
   project: Project,
+  snapshot: RenderSnapshotIdentity,
   times: readonly number[],
   signal: AbortSignal,
   input: PreviewOptions = {},
 ): Promise<AgentRenderedPreviewFrame[]> {
   const options = parsePreviewOptions(input);
   project = isolatePreviewLayers(project, options);
+  snapshot = previewSnapshotIdentity(snapshot, options);
   const session = await openPreviewSession(
-    { project, maxDimension: options.maxDimension ?? AGENT_PREVIEW_MAX_DIMENSION },
+    { project, snapshot, maxDimension: options.maxDimension ?? AGENT_PREVIEW_MAX_DIMENSION },
     signal,
   );
   const crop = previewCropPixels(session.width, session.height, options.crop);
@@ -142,6 +150,18 @@ export async function renderAgentPreview(
   } finally {
     session.close();
   }
+}
+
+/** Layer isolation owns a new derived document; crop and scale do not change its source. */
+export function previewSnapshotIdentity(
+  source: RenderSnapshotIdentity,
+  options: PreviewOptions,
+): RenderSnapshotIdentity {
+  const captured = copyRenderSnapshotIdentity(source);
+  return copyRenderSnapshotIdentity({
+    snapshotScope: options.layerIds ? `isolated:${crypto.randomUUID()}` : captured.snapshotScope,
+    projectRevision: captured.projectRevision,
+  });
 }
 
 async function openPreviewSession(options: FrameRenderSessionOptions, signal: AbortSignal) {

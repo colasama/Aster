@@ -21,6 +21,10 @@ import {
   ExclusiveRenderSessionGuard,
   type RenderSessionLease,
 } from "../../core/rendering/render-session-guard";
+import {
+  copyRenderSnapshotIdentity,
+  editorRenderSnapshotIdentity,
+} from "../../core/rendering/render-snapshot";
 import { evaluateWorldTransform } from "../../core/scene/scene-evaluation";
 import { subscribeSceneGeneratorDefinitions } from "../../core/scene/scene-generator-registry";
 import {
@@ -64,6 +68,7 @@ import {
   previewViewportTextEdit,
   updateViewportTextEdit,
   type ViewportTextEditSession,
+  viewportTextSnapshotIdentity,
 } from "../../ui/viewport-text-editing";
 import { resolveWorkspaceViewerComposition } from "../../workspace/viewer-context";
 import { currentWorkspaceController } from "../../workspace/workspace-controller";
@@ -105,6 +110,11 @@ const claimedRenderSessionEvents = new WeakSet<Event>();
 
 export function Viewport() {
   const { state, dispatch } = useEditor();
+  const [editorScope] = useState(() => `editor:${crypto.randomUUID()}`);
+  const projectSnapshot = useMemo(
+    () => editorRenderSnapshotIdentity(editorScope, state.loadRevision, state.projectRevision),
+    [editorScope, state.loadRevision, state.projectRevision],
+  );
   const { t } = useI18n();
   const viewerIdentity = useWorkspaceViewerIdentity();
   const { composition, readOnly: viewerReadOnly } = resolveWorkspaceViewerComposition(
@@ -153,11 +163,17 @@ export function Viewport() {
       ? composition
       : (previewProject.compositions.find((candidate) => candidate.id === composition.id) ??
         composition);
+  const previewSnapshot = useMemo(
+    () =>
+      viewportTextSnapshotIdentity(projectSnapshot, state.project, previewProject, textEditSession),
+    [projectSnapshot, state.project, previewProject, textEditSession],
+  );
   const previewRestoreRef = useRef({
     antiAliasing: state.antiAliasing,
     bufferView,
     composition: previewComposition,
     project: previewProject,
+    snapshot: previewSnapshot,
     selectedLayerId: state.selection[0],
     time: state.currentTime,
   });
@@ -166,6 +182,7 @@ export function Viewport() {
     bufferView,
     composition: previewComposition,
     project: previewProject,
+    snapshot: previewSnapshot,
     selectedLayerId: state.selection[0],
     time: state.currentTime,
   };
@@ -191,14 +208,26 @@ export function Viewport() {
   const captureSnapshot = () => {
     if (!rendererReady || renderSessionGuardRef.current.active) return;
     const preview = previewRestoreRef.current;
-    rendererRef.current?.render(
-      preview.composition,
-      preview.time,
-      false,
-      preview.project,
-      preview.selectedLayerId,
-      true,
-    );
+    const renderer = rendererRef.current;
+    if (renderer instanceof WebGpuRenderer)
+      renderer.render(
+        preview.composition,
+        preview.time,
+        preview.snapshot,
+        false,
+        preview.project,
+        preview.selectedLayerId,
+        true,
+      );
+    else
+      renderer?.render(
+        preview.composition,
+        preview.time,
+        false,
+        preview.project,
+        preview.selectedLayerId,
+        true,
+      );
     snapshot.capture();
   };
   const selectedLayer = composition.layers.find((layer) => layer.id === state.selection[0]);
@@ -376,6 +405,7 @@ export function Viewport() {
         let metrics: RendererMetrics | undefined;
         if (bufferView === "beauty" && pipeline) {
           const request = createBeautyFrameRequest({
+            snapshot: previewSnapshot,
             composition: previewComposition,
             antiAliasing: state.antiAliasing,
             project: previewProject,
@@ -395,7 +425,17 @@ export function Viewport() {
                   present,
                 })
               : present(request);
-        } else
+        } else if (renderer instanceof WebGpuRenderer)
+          metrics = renderer.render(
+            previewComposition,
+            time,
+            previewSnapshot,
+            state.playing,
+            previewProject,
+            state.selection[0],
+            true,
+          );
+        else
           metrics = renderer.render(
             previewComposition,
             time,
@@ -434,6 +474,7 @@ export function Viewport() {
   }, [
     previewComposition,
     previewProject,
+    previewSnapshot,
     dispatch,
     rendererReady,
     rendererRevision,
@@ -470,6 +511,7 @@ export function Viewport() {
     const frameRate = previewComposition.frameRate;
     const request = (time: number) =>
       createBeautyFrameRequest({
+        snapshot: previewSnapshot,
         composition: previewComposition,
         antiAliasing: state.antiAliasing,
         project: previewProject,
@@ -513,6 +555,7 @@ export function Viewport() {
     bufferView,
     previewComposition,
     previewProject,
+    previewSnapshot,
     rendererReady,
     state.antiAliasing,
     state.currentTime,
@@ -539,7 +582,16 @@ export function Viewport() {
       claimedRenderSessionEvents.add(event);
       const previewWidth = canvas.width;
       const previewHeight = canvas.height;
+      if (request.detail.options.project && !request.detail.options.snapshot) {
+        request.detail.reject(
+          new Error("An explicit render project requires its snapshot identity"),
+        );
+        return;
+      }
       const renderProject = request.detail.options?.project ?? state.project;
+      const renderSnapshot = copyRenderSnapshotIdentity(
+        request.detail.options.snapshot ?? projectSnapshot,
+      );
       const renderComposition = activeComposition(renderProject);
       const maxDimension = request.detail.options?.maxDimension;
       const renderScale =
@@ -558,17 +610,29 @@ export function Viewport() {
               if (renderer instanceof WebGpuRenderer)
                 renderer.setBufferVisualization(preview.bufferView);
               pipeline.resize(previewWidth, previewHeight);
-              renderer.render(
-                preview.composition,
-                preview.time,
-                false,
-                preview.project,
-                preview.selectedLayerId,
-                true,
-              );
+              if (renderer instanceof WebGpuRenderer)
+                renderer.render(
+                  preview.composition,
+                  preview.time,
+                  preview.snapshot,
+                  false,
+                  preview.project,
+                  preview.selectedLayerId,
+                  true,
+                );
+              else
+                renderer.render(
+                  preview.composition,
+                  preview.time,
+                  false,
+                  preview.project,
+                  preview.selectedLayerId,
+                  true,
+                );
             } else
               pipeline.present(
                 createBeautyFrameRequest({
+                  snapshot: preview.snapshot,
                   composition: preview.composition,
                   antiAliasing: preview.antiAliasing,
                   project: preview.project,
@@ -601,6 +665,7 @@ export function Viewport() {
       );
       const renderRequestAt = (time: number) =>
         createBeautyFrameRequest({
+          snapshot: renderSnapshot,
           composition: renderComposition,
           antiAliasing: state.antiAliasing,
           project: renderProject,
@@ -626,9 +691,9 @@ export function Viewport() {
     };
     window.addEventListener("aster:open-render-session", openRenderSession);
     return () => window.removeEventListener("aster:open-render-session", openRenderSession);
-  }, [resize, state.project, state.antiAliasing]);
+  }, [resize, state.project, state.antiAliasing, projectSnapshot]);
 
-  useViewportBenchmark(canvasRef, rendererRef, renderSessionGuardRef, resize);
+  useViewportBenchmark(canvasRef, rendererRef, renderSessionGuardRef, resize, projectSnapshot);
 
   const beginTextEditing = useCallback(
     (layerId: string) => {

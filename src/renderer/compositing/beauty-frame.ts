@@ -1,5 +1,10 @@
 import { activateProjectFonts, prepareProjectFonts } from "../../core/media/project-font-runtime";
 import { type AntiAliasingMode, normalizeAntiAliasing } from "../../core/rendering/anti-aliasing";
+import {
+  copyRenderSnapshotIdentity,
+  type RenderSnapshotIdentity,
+  validateRenderSnapshotIdentity,
+} from "../../core/rendering/render-snapshot";
 import type { Composition, Project, RendererMetrics } from "../../core/types";
 import type { CanvasFallbackRenderer } from "../canvas-fallback";
 import {
@@ -26,6 +31,7 @@ export interface BeautyFrameTarget {
  * effects, color processing, sampling, and the beauty output route are immutable.
  */
 export interface BeautyFrameRequest {
+  readonly snapshot: RenderSnapshotIdentity;
   composition: Composition;
   project: Project;
   time: number;
@@ -53,6 +59,7 @@ export interface BeautyFrameBackend {
 }
 
 export function createBeautyFrameRequest(options: {
+  snapshot: RenderSnapshotIdentity;
   antiAliasing?: AntiAliasingMode;
   composition: Composition;
   project: Project;
@@ -63,6 +70,7 @@ export function createBeautyFrameRequest(options: {
   const target = validatedTarget(options.width, options.height);
   if (!Number.isFinite(options.time)) throw new Error("Beauty frame time must be finite");
   return {
+    snapshot: copyRenderSnapshotIdentity(options.snapshot),
     composition: options.composition,
     project: options.project,
     time: options.time,
@@ -170,6 +178,16 @@ export function createViewportBeautyFrameBackend(
       activateProjectFonts(request.project);
       activateBeauty();
       presentationPending = true;
+      if (renderer instanceof WebGpuRenderer)
+        return renderer.render(
+          request.composition,
+          request.time,
+          request.snapshot,
+          playing,
+          request.project,
+          selectedLayerId,
+          true,
+        );
       return renderer.render(
         request.composition,
         request.time,
@@ -196,6 +214,7 @@ export function createViewportBeautyFrameBackend(
         return renderer.renderRawFrame(
           request.composition,
           request.time,
+          request.snapshot,
           request.project,
           synchronizeVideo,
           destination,
@@ -218,6 +237,7 @@ export function createViewportBeautyFrameBackend(
 }
 
 function validateBeautyFrameRequest(request: BeautyFrameRequest): void {
+  validateRenderSnapshotIdentity(request.snapshot);
   if (request.settings !== PRODUCTION_BEAUTY_SETTINGS)
     throw new Error("Production beauty settings cannot be overridden per frame");
   if (!Number.isFinite(request.time)) throw new Error("Beauty frame time must be finite");

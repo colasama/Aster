@@ -13,6 +13,10 @@ import {
   streamFramePipeline,
 } from "../../core/rendering/render-export";
 import type { RenderJobManifest } from "../../core/rendering/render-queue";
+import {
+  copyRenderSnapshotIdentity,
+  type RenderSnapshotIdentity,
+} from "../../core/rendering/render-snapshot";
 import type { Composition, Project } from "../../core/types";
 import type {
   DesktopRenderHostAssignment,
@@ -26,6 +30,7 @@ import type { RawVideoFrame } from "../../renderer/gpu/frame-readback";
 const MAX_PREFETCH_BYTES = 64 * 1024 * 1024;
 
 export interface ValidatedRenderHostAssignment {
+  snapshot: RenderSnapshotIdentity;
   assignment: DesktopRenderHostAssignment;
   manifest: RenderJobManifest;
   composition: Composition;
@@ -298,6 +303,10 @@ export function validateRenderHostAssignment(
   return {
     assignment,
     manifest: assignment.manifest,
+    snapshot: copyRenderSnapshotIdentity({
+      snapshotScope: `render-job:${assignment.jobId}`,
+      projectRevision: assignment.manifest.projectRevision,
+    }),
     project,
     composition,
     synchronizeVideo: compositionUsesVideo(project, composition),

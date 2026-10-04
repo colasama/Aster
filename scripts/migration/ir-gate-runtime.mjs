@@ -11,7 +11,15 @@ export async function loadIrRuntime(root) {
   });
   try {
     const modules = [];
-    for (const name of ["codec", "fixture", "resources", "types"])
+    for (const name of [
+      "codec",
+      "fixture",
+      "resources",
+      "types",
+      "time",
+      "composition-identity",
+      "root-post-upload",
+    ])
       modules.push(await server.ssrLoadModule(`/src/renderer/frame-plan/${name}.ts`));
     return Object.assign({ close: () => server.close() }, ...modules);
   } catch (error) {

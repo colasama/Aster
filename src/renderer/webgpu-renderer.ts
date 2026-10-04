@@ -13,6 +13,11 @@ import {
   resolveGpuMemoryBudget,
 } from "../core/rendering/gpu-memory-policy";
 import type { CachedPreviewFrame } from "../core/rendering/preview-frame-cache";
+import {
+  copyRenderSnapshotIdentity,
+  type RenderSnapshotIdentity,
+  validateRenderSnapshotIdentity,
+} from "../core/rendering/render-snapshot";
 import { evaluateCameraBasis } from "../core/scene/camera-rig";
 import { flattenSceneLayers } from "../core/scene/scene-evaluation";
 import type { Composition, GpuDiagnostics, Project, RendererMetrics } from "../core/types";
@@ -22,8 +27,9 @@ import { planSceneRenderStack } from "./compositing/render-stack";
 import { AntiAliasingRenderer, planAntiAliasing } from "./effects/anti-aliasing";
 import { depthEffectSettingsFromCameraOptics } from "./effects/depth-effects";
 import { analyzeEffectFusion } from "./effects/effect-fusion";
-import { buildPostProcessUniforms } from "./effects/post-process";
 import { selectedRenderId } from "./effects/surface-post-effects";
+import { buildRootPostUniformPlan } from "./frame-plan/root-post-plan";
+import { uploadRootPostUniformPlan } from "./frame-plan/root-post-upload";
 import { buildSceneGeometry, FLOATS_PER_VERTEX } from "./geometry/geometry";
 import { productionDepthOfFieldAllocationError } from "./gpu/auxiliary-buffer-budget";
 import {
@@ -273,11 +279,13 @@ export class WebGpuRenderer {
   async renderRawFrame(
     composition: Composition,
     time: number,
+    snapshot: RenderSnapshotIdentity,
     project?: Project,
     synchronizeVideo = false,
     destination?: ArrayBuffer,
   ): Promise<RawVideoFrame> {
     this.#assertActive();
+    const capturedSnapshot = copyRenderSnapshotIdentity(snapshot);
     if (destination !== undefined)
       validateReadbackDestination(destination, this.#outputWidth, this.#outputHeight);
     // Video exports hold the discovery capture until every active video shows its exact frame,
@@ -287,6 +295,7 @@ export class WebGpuRenderer {
         this.#captureRawFrame(
           composition,
           time,
+          capturedSnapshot,
           project,
           synchronizeVideo && discovery,
           destination,
@@ -297,6 +306,7 @@ export class WebGpuRenderer {
   #captureRawFrame(
     composition: Composition,
     time: number,
+    snapshot: RenderSnapshotIdentity,
     project?: Project,
     holdInexactVideo = false,
     destination?: ArrayBuffer,
@@ -308,7 +318,7 @@ export class WebGpuRenderer {
     try {
       // The first capture exists to register pending media; holding keeps its incomplete
       // frame off the preview canvas. The barrier waits and recaptures the ready frame.
-      this.render(composition, time, false, project, undefined, true, holdInexactVideo);
+      this.render(composition, time, snapshot, false, project, undefined, true, holdInexactVideo);
       const productionError = this.productionRenderError;
       if (productionError) throw new Error(productionError);
     } catch (error) {
@@ -322,6 +332,7 @@ export class WebGpuRenderer {
   render(
     composition: Composition,
     time: number,
+    snapshot: RenderSnapshotIdentity,
     playing = false,
     project?: Project,
     selectedLayerId?: string,
@@ -344,6 +355,7 @@ export class WebGpuRenderer {
       return this.#renderFrame(
         composition,
         time,
+        snapshot,
         playing,
         project,
         selectedLayerId,
@@ -360,6 +372,7 @@ export class WebGpuRenderer {
   #renderFrame(
     composition: Composition,
     time: number,
+    snapshot: RenderSnapshotIdentity,
     playing = false,
     project?: Project,
     selectedLayerId?: string,
@@ -369,6 +382,7 @@ export class WebGpuRenderer {
   ): RendererMetrics {
     const resources = this.#resources;
     this.#assertActive();
+    validateRenderSnapshotIdentity(snapshot);
     this.#presentedCachedFrame = undefined;
     const started = performance.now();
     const frameInterval = this.#lastFrameStarted ? started - this.#lastFrameStarted : 16.67;
@@ -664,11 +678,24 @@ export class WebGpuRenderer {
         mediaPending: true,
       };
     }
-    this.#device.queue.writeBuffer(
-      resources.postUniformBuffer,
-      0,
-      buildPostProcessUniforms(this.#width, this.#height, time),
-    );
+    const target = { width: this.#outputWidth, height: this.#outputHeight };
+    const renderTarget = { width: this.#width, height: this.#height };
+    const postPlan = buildRootPostUniformPlan({
+      snapshot,
+      compositionId: composition.id,
+      time,
+      frameRate: composition.frameRate,
+      target,
+      renderTarget,
+      antiAliasing: this.#activeAntiAliasing,
+    });
+    uploadRootPostUniformPlan(postPlan, {
+      queue: this.#device.queue,
+      buffer: resources.postUniformBuffer,
+      target,
+      renderTarget,
+      antiAliasing: this.#activeAntiAliasing,
+    });
     if (!resources.sceneTexture || !resources.postBindGroup)
       this.resize(this.#outputWidth, this.#outputHeight);
     const encoder = this.#device.createCommandEncoder({ label: "Aster frame render graph" });

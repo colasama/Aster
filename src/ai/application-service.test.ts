@@ -166,8 +166,10 @@ describe("Aster agent application service", () => {
         currentTime: 0,
         accessMode: "agent",
         primaryModelSupportsImages: supportsImages,
-        renderPreview: async (stagedProject, times) => {
+        renderPreview: async (stagedProject, snapshot, times) => {
           expect(stagedProject).not.toBe(project);
+          expect(snapshot.snapshotScope).toMatch(/^workspace:.+:7$/);
+          expect(snapshot.projectRevision).toBe(0);
           expect(times).toEqual([0]);
           return [rendered];
         },

@@ -94,6 +94,7 @@ export function RenderHost() {
         const renderFrame = (_frame: number, time: number, destination?: ArrayBuffer) =>
           pipeline.readback(
             createBeautyFrameRequest({
+              snapshot: validated.snapshot,
               composition: validated.composition,
               antiAliasing: validated.manifest.antiAliasing,
               project: validated.project,

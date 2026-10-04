@@ -25,6 +25,7 @@ describe("reference capture resources", () => {
       case: generated.case,
       frames: [30, 29, 31],
       projectPath: "D:/project.json",
+      caseHash: "d".repeat(64),
     };
     expect(captureComposition(assignment, generated.project).id).toBe(generated.case.composition);
     expect(assignment.frames).toEqual([30, 29, 31]);

@@ -13,6 +13,12 @@ describe("GPU adjustment-layer effects", () => {
     const textures: Array<{ label?: string; usage: number }> = [];
     const device = mockDevice(textures);
     const renderer = new LayerEffectRenderer(device, "rgba16float");
+    const effectPipeline = vi
+      .mocked(device.createRenderPipeline)
+      .mock.calls.map(([descriptor]) => descriptor)
+      .find((descriptor) => descriptor.label === "Per-layer fused effect pass");
+    expect(effectPipeline?.fragment).toMatchObject({ entryPoint: "fragment_main" });
+    expect(effectPipeline?.fragment?.constants?.root_zero_operations ?? 0).toBe(0);
     renderer.resize(320, 180);
     const project = createBlankProject();
     const composition = project.compositions[0];

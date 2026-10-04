@@ -93,6 +93,7 @@ export async function run({
   const capture = (frame) =>
     pipeline.readback(
       createBeautyFrameRequest({
+        snapshot: assignment.snapshot,
         project: assignment.project,
         composition: assignment.composition,
         time: frameTimeAtIndex(frame, composition.frameRate),
@@ -191,6 +192,10 @@ export async function checkImageSequence() {
   );
   project.sources = imported.sources;
   composition.layers = imported.layers;
+  const snapshot = {
+    snapshotScope: `image-sequence-check:${crypto.randomUUID()}`,
+    projectRevision: 0,
+  };
   const captures = [];
   try {
     for (const concurrent of [false, true]) {
@@ -202,6 +207,7 @@ export async function checkImageSequence() {
       const capture = (frame) =>
         pipeline.readback(
           createBeautyFrameRequest({
+            snapshot,
             project,
             composition,
             time: frame / 30,

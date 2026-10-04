@@ -9,7 +9,12 @@ export function createPostPipeline(device: GPUDevice, format: GPUTextureFormat):
     label: "HDR post-process and sRGB output",
     layout: "auto",
     vertex: { module, entryPoint: "vertex_main" },
-    fragment: { module, entryPoint: "fragment_main", targets: [{ format }] },
+    fragment: {
+      module,
+      entryPoint: "fragment_main",
+      constants: { root_zero_operations: 1 },
+      targets: [{ format }],
+    },
     primitive: { topology: "triangle-list" },
   });
 }

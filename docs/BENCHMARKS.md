@@ -122,10 +122,27 @@ preview series; the existing owner readback, IPC and full-export measurements re
 The preview baseline is independently frozen in `benchmarks/results/m2-preview-baseline.json`;
 it includes its complete raw observations and its file hash is pinned in the migration ledger.
 It does not replace `migration-baseline.json` or its raw evidence. Hardware, adapter, power,
-workloads, timing method and source provenance accompany both series. M2 G4 runs fresh complete
-throughput and preview suites, verifies their raw evidence and compares every tracked median.
-A throughput below 95% of its baseline or a tracked interval above 105% fails the gate. Missing,
-partial, changed or stale reports do not count as passing measurements. Quick checks omit G4.
+workloads, timing method and source provenance accompany both series. The original 24-median
+comparison rejected throughput below 95% or intervals above 105% of the fixed reference. Those
+limits and M8's original 75 fps required / 120 fps stretch targets remain historical references.
+Missing, partial, changed or stale reports do not count as measured evidence.
+
+On 2026-10-05 (Asia/Tokyo), the owner approved the migration ledger's
+`owner_overrides.performance_delivery_policy` with kind `rust-delivery-v1`. M2 requires G0/G1/G3;
+M4, M6 and M7 require G0/G3. Performance observations in these stages are optional diagnostics,
+not repeated blocking gates. M8, M11 and M12 retain G4 for final native delivery: native preview
+and export median FPS must exceed the independently retained TS program measured contemporaneously
+on the same machine, using matched workloads and output quality. M11's input-to-present p95 must
+also remain no worse than TS. Preserve the warm-up, repeated-run method and complete raw evidence,
+with both program identities, inputs and hardware conditions bound to the comparison. The candidate
+cannot supply its own reference. Native paired G4 support is still required; these TS benchmark
+commands do not yet prove native acceptance.
+
+The fixed-reference 5 percent limits and absolute 75/120 fps targets no longer block this migration.
+Baseline files and all previous failed evidence remain unchanged and are not reclassified. This
+override does not reduce pixel, quality or functional coverage, waive G0 or the full required gates
+before commits, or narrow the M0–M12 migration scope. Repeat performance diagnostics only to answer
+a concrete implementation question or establish the final native comparison.
 
 The local manifest starts a new series when display conditions change. The additive
 `windows-radeon780m-local-1920x1080-144hz` series preserves the original 2800×1260 files and uses
@@ -145,8 +162,8 @@ To measure that fixed reference, run `pnpm migrate:benchmark --reference-bundle`
 `--hardware-manifest benchmarks/hardware/windows-radeon780m-local-1920x1080-144hz.json`.
 `node scripts/performance-series-baseline.mjs <throughput-report> <preview-report>` audits and freezes
 the additive descriptor without replacing an existing file. Pin its path and file hash in M2's
-`performance_series` before measuring the current candidate. G4 makes that choice before any
-measurement and applies the same 24 median checks and 5 percent limits. Results measured under
+`performance_series` before comparisons use it. The series retains the original 24 median checks
+and 5 percent limits as historical diagnostics under `rust-delivery-v1`. Results measured under
 different display conditions, including previous failed runs, are never relabeled as comparable.
 
 `pnpm parity:generate` materializes deterministic projects under `artifacts/parity/projects/` and
@@ -255,7 +272,8 @@ sheet; missing or changed evidence cannot reuse a prior acceptance.
 Report CPU submit time, GPU frame/pass time, FPS, draw/dispatch counts, upload bytes, transient texture
 count, peak estimated VRAM, cache hit rate, and shader/pipeline compilation events. Commit machine-
 readable JSON baselines; a regression is more than 5% median or 10% p95 unless the change documents an
-intentional quality tradeoff.
+intentional quality tradeoff. The Rust migration's approved `rust-delivery-v1` acceptance policy above
+overrides these blocking thresholds without changing the reported measurements.
 
 For sequence export, also report frames per second, median GPU render time, median PNG encode/write
 time, peak resident memory, and cancellation latency. Use at least 300 frames and a pre-selected local
@@ -435,8 +453,9 @@ cargo run -p aster-profiler --release --example incremental_evaluation
 It discards 20 warm-up iterations and emits two 600-frame JSON reports: full-graph invalidation and
 single-leaf invalidation. Reports use schema version 1 and include environment metadata plus min,
 median, p95, p99, and max distributions. `BenchmarkReport::regressions_against` applies the project
-policy of 5% median and 10% p95 timing thresholds. Nightly CI stores the generated JSON as a build
-artifact so results remain attributable to the exact commit and runner.
+policy of 5% median and 10% p95 timing thresholds. This library comparison remains a diagnostic under
+the migration's `rust-delivery-v1` policy. Nightly CI stores the generated JSON as a build artifact so
+results remain attributable to the exact commit and runner.
 
 On the Windows x86-64 development machine used for the initial implementation, the 10,000-node full
 invalidation measured 1.008 ms median / 1.234 ms p95; a leaf-only invalidation measured 0.069 ms

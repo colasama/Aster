@@ -109,9 +109,11 @@ export async function run() {
   layer.size = [35, 22];
   layer.transform.rotation[2].value = 23;
   composition.layers = [layer];
+  const snapshot = { snapshotScope: `aa-check:${crypto.randomUUID()}`, projectRevision: 0 };
   const rendered = {};
   try {
     const coldRequest = createBeautyFrameRequest({
+      snapshot,
       project,
       composition,
       time: 0.25,
@@ -125,6 +127,7 @@ export async function run() {
       throw new Error("Cold export changed on its second frame");
     for (const mode of ["off", "fxaa", "ssaa2x", "ssaa4x", "off"]) {
       const request = createBeautyFrameRequest({
+        snapshot,
         project,
         composition,
         time: 0.25,
@@ -158,6 +161,7 @@ export async function run() {
         throw new Error(`${mode}: beauty output did not change`);
     }
     const small = createBeautyFrameRequest({
+      snapshot,
       project,
       composition,
       time: 0.25,
@@ -171,6 +175,7 @@ export async function run() {
     try {
       await beauty.readback(
         createBeautyFrameRequest({
+          snapshot,
           project,
           composition,
           time: 0.25,
@@ -187,6 +192,7 @@ export async function run() {
       (
         await beauty.readback(
           createBeautyFrameRequest({
+            snapshot,
             project,
             composition,
             time: 0.25,
@@ -208,9 +214,14 @@ export async function run() {
     depthComposition.layers[0].motionBlur = true;
     depthComposition.motionBlur.enabled = true;
     depthComposition.layers.push(camera);
+    const depthSnapshot = {
+      snapshotScope: `aa-depth-check:${crypto.randomUUID()}`,
+      projectRevision: 0,
+    };
     for (const antiAliasing of ["fxaa", "ssaa2x", "ssaa4x"]) {
       const request = createBeautyFrameRequest({
         project: depthProject,
+        snapshot: depthSnapshot,
         composition: depthComposition,
         time: 0.25,
         width: 64,

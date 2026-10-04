@@ -64,6 +64,18 @@ function assignment(width = 64, height = 64): DesktopRenderHostAssignment {
   return { jobId: manifest.id, leaseId: "lease", manifest };
 }
 
+it("keeps queued snapshot revision independent of later manifest mutation and execution lease", () => {
+  const work = assignment();
+  const captured = validateRenderHostAssignment(work);
+  const originalProject = structuredClone(captured.project);
+  const sameJob = validateRenderHostAssignment({ ...work, leaseId: "resumed-lease" });
+  work.manifest.projectRevision += 1;
+  work.manifest.projectSnapshot = JSON.stringify(createBlankProject());
+  expect(captured.snapshot).toEqual({ snapshotScope: "render-job:job", projectRevision: 3 });
+  expect(sameJob.snapshot).toEqual(captured.snapshot);
+  expect(captured.project).toEqual(originalProject);
+});
+
 function assignmentWithAudio(range = { start: 6, end: 8 }): {
   assignment: DesktopRenderHostAssignment;
   project: Project;

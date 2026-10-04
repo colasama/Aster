@@ -5,11 +5,13 @@ import { logger } from "../../core/logger";
 
 import { activeComposition } from "../../core/project/project";
 import type { ExclusiveRenderSessionGuard } from "../../core/rendering/render-session-guard";
+import type { RenderSnapshotIdentity } from "../../core/rendering/render-snapshot";
 
 import {
   type GpuBenchmarkRequest,
   runGpuBenchmark,
 } from "../../renderer/diagnostics/gpu-benchmark";
+import { WebGpuRenderer } from "../../renderer/webgpu-renderer";
 
 import { useEditor } from "../../state/editor-store";
 
@@ -22,6 +24,7 @@ export function useViewportBenchmark(
   rendererRef: RefObject<Renderer | undefined>,
   renderSessionGuardRef: RefObject<ExclusiveRenderSessionGuard>,
   resize: () => void,
+  snapshot: RenderSnapshotIdentity,
 ) {
   const { state } = useEditor();
   useEffect(() => {
@@ -48,10 +51,18 @@ export function useViewportBenchmark(
       const benchmarkComposition = activeComposition(state.project);
       logger.info("gpu_benchmark", "started", { sampleFrames: request.detail.sampleFrames });
       void runGpuBenchmark(
-        renderer,
+        {
+          resize: (width, height) => renderer.resize(width, height),
+          render: (composition, time, identity, playing, project) =>
+            renderer instanceof WebGpuRenderer
+              ? renderer.render(composition, time, identity, playing, project)
+              : renderer.render(composition, time, playing, project),
+          complete: () => renderer.complete(),
+        },
         canvas,
         benchmarkComposition,
         state.project,
+        snapshot,
         state.currentTime,
         renderer.diagnostics.adapter,
         renderer.diagnostics.architecture,
@@ -80,5 +91,13 @@ export function useViewportBenchmark(
     };
     window.addEventListener("aster:run-gpu-benchmark", runBenchmark);
     return () => window.removeEventListener("aster:run-gpu-benchmark", runBenchmark);
-  }, [canvasRef, rendererRef, renderSessionGuardRef, resize, state.currentTime, state.project]);
+  }, [
+    canvasRef,
+    rendererRef,
+    renderSessionGuardRef,
+    resize,
+    state.currentTime,
+    state.project,
+    snapshot,
+  ]);
 }

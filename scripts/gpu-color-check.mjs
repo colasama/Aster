@@ -79,6 +79,7 @@ export async function run() {
         scene.layers.push(camera);
       }
       const request = createBeautyFrameRequest({
+        snapshot: { snapshotScope: `color-check:${crypto.randomUUID()}`, projectRevision: 0 },
         project: snapshot,
         composition: scene,
         time: 0,
@@ -90,7 +91,7 @@ export async function run() {
       const diagnostic = mode === "vectorMotionBlur" || mode === "selectionIsolation";
       if (diagnostic) renderer.setBufferVisualization(mode);
       const frame = diagnostic
-        ? await renderer.renderRawFrame(scene, 0, snapshot)
+        ? await renderer.renderRawFrame(scene, 0, request.snapshot, snapshot)
         : await beauty.readback(request);
       const actual = new Uint8Array(frame.pixels);
       const channels = frame.pixelFormat === "bgra" ? [2, 1, 0, 3] : [0, 1, 2, 3];

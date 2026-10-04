@@ -8,13 +8,13 @@ import { postProcessShader } from "./shaders";
 import { sharedShaders } from "./shared-shader-catalog";
 
 describe("shared post-process shader", () => {
-  it("preserves the complete original shader bytes through the production export", () => {
+  it("pins the shared source and retains the generic catalog default", () => {
     const source = sharedShaders.source("post-process");
     expect(postProcessShader).toBe(source);
     expect(createHash("sha256").update(source).digest("hex")).toBe(
-      "815b8799306001166ee6b44ecb5f803e17bc342ccb0ef77b0a81c475567e8454",
+      "5323555f0dcad8d861f15dda7e04f31143888c0fc0a61fedd3f4cef8d4caac31",
     );
-    expect(sharedShaders.pipelineConstants("post-process")).toEqual({});
+    expect(sharedShaders.pipelineConstants("post-process")).toEqual({ root_zero_operations: 0 });
   });
 
   it("preserves the host uniform, operation and eight-binding ABI", () => {
@@ -74,7 +74,12 @@ describe("shared post-process shader", () => {
       label: "HDR post-process and sRGB output",
       layout: "auto",
       vertex: { module, entryPoint: "vertex_main" },
-      fragment: { module, entryPoint: "fragment_main", targets: [{ format: "rgba8unorm" }] },
+      fragment: {
+        module,
+        entryPoint: "fragment_main",
+        constants: { root_zero_operations: 1 },
+        targets: [{ format: "rgba8unorm" }],
+      },
       primitive: { topology: "triangle-list" },
     });
   });

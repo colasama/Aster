@@ -1,8 +1,14 @@
 import type { Operation } from "../core/editing/operations";
+import {
+  copyRenderSnapshotIdentity,
+  type RenderSnapshotIdentity,
+} from "../core/rendering/render-snapshot";
 import { visibleLayersAtTime } from "../core/scene/scene-evaluation";
 import type { Composition, Id, Project } from "../core/types";
 
 export interface ViewportTextEditSession {
+  readonly snapshotScope: string;
+  readonly draftRevision: number;
   readonly compositionId: Id;
   readonly historyBase: Project;
   readonly initialText: string;
@@ -25,6 +31,8 @@ export function beginViewportTextEdit(
   if (!layer) return undefined;
   const text = layer.text ?? "";
   return {
+    snapshotScope: `text-draft:${crypto.randomUUID()}`,
+    draftRevision: 0,
     compositionId: composition.id,
     historyBase: project,
     initialText: text,
@@ -37,7 +45,26 @@ export function updateViewportTextEdit(
   session: ViewportTextEditSession,
   value: string,
 ): ViewportTextEditSession {
-  return { ...session, value: value.slice(0, 20_000) };
+  const next = value.slice(0, 20_000);
+  if (next === session.value) return session;
+  if (!Number.isSafeInteger(session.draftRevision + 1))
+    throw new Error("Text draft revision exceeds the safe integer range");
+  return { ...session, value: next, draftRevision: session.draftRevision + 1 };
+}
+
+export function viewportTextSnapshotIdentity(
+  document: RenderSnapshotIdentity,
+  project: Project,
+  preview: Project,
+  session: ViewportTextEditSession | undefined,
+): RenderSnapshotIdentity {
+  if (preview === project) return document;
+  if (!session || session.historyBase !== project)
+    throw new Error("Text preview does not belong to its document snapshot");
+  return copyRenderSnapshotIdentity({
+    snapshotScope: `${session.snapshotScope}:${session.draftRevision}`,
+    projectRevision: document.projectRevision,
+  });
 }
 
 /**

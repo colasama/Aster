@@ -26,6 +26,7 @@ import {
 import { sharedAudioPlaybackEngine } from "../audio/audio-playback-engine";
 import { logger } from "../logger";
 import type { Composition, Project } from "../types";
+import { copyRenderSnapshotIdentity, type RenderSnapshotIdentity } from "./render-snapshot";
 
 export interface FrameRenderSession {
   renderFrame: (time: number) => Promise<Blob>;
@@ -40,6 +41,7 @@ export interface FrameRenderSession {
 
 export interface FrameRenderSessionOptions {
   project?: Project;
+  snapshot?: RenderSnapshotIdentity;
   maxDimension?: number;
 }
 
@@ -80,12 +82,20 @@ export function nativeMp4ExportAvailable(): boolean {
 export async function openFrameRenderSession(
   options: FrameRenderSessionOptions = {},
 ): Promise<FrameRenderSession> {
+  if (options.project && !options.snapshot)
+    throw new Error("An explicit render project requires its snapshot identity");
+  if (options.snapshot && !options.project)
+    throw new Error("A render snapshot identity requires its captured project");
+  const capturedOptions = {
+    ...options,
+    ...(options.snapshot ? { snapshot: copyRenderSnapshotIdentity(options.snapshot) } : {}),
+  };
   return new Promise<FrameRenderSession>((resolve, reject) => {
     let handled = false;
     window.dispatchEvent(
       new CustomEvent<FrameRenderSessionOpenRequest>("aster:open-render-session", {
         detail: {
-          options,
+          options: capturedOptions,
           resolve: (session) => {
             handled = true;
             resolve(session);
@@ -142,7 +152,7 @@ export async function renderPngSequence(
   );
   let session: FrameRenderSession;
   try {
-    session = await openFrameRenderSession({ project });
+    session = await openFrameRenderSession({ project, snapshot: foreground.snapshot });
   } catch (error) {
     foreground.mediaLease.dispose();
     throw error;
@@ -229,7 +239,7 @@ export async function renderMp4(
       : 0;
   let session: FrameRenderSession;
   try {
-    session = await openFrameRenderSession({ project });
+    session = await openFrameRenderSession({ project, snapshot: foreground.snapshot });
   } catch (error) {
     foreground.mediaLease.dispose();
     throw error;
@@ -358,7 +368,7 @@ export async function renderMp4(
 export function captureRenderProjectSnapshot(
   project: Project,
   composition: Composition,
-): { project: Project; composition: Composition } {
+): { project: Project; composition: Composition; snapshot: RenderSnapshotIdentity } {
   // Production export is an in-process runtime operation. Keep ephemeral media locators in the
   // immutable capture; the persistence sanitizer deliberately removes them and would make linked
   // still/video/audio sources go offline before the first exported frame.
@@ -369,7 +379,14 @@ export function captureRenderProjectSnapshot(
   if (!capturedComposition)
     throw new Error("Render composition is not present in the captured project snapshot");
   snapshot.activeCompositionId = capturedComposition.id;
-  return { project: snapshot, composition: capturedComposition };
+  return {
+    project: snapshot,
+    composition: capturedComposition,
+    snapshot: copyRenderSnapshotIdentity({
+      snapshotScope: `export:${crypto.randomUUID()}`,
+      projectRevision: 0,
+    }),
+  };
 }
 
 export async function captureForegroundRenderProjectSnapshot(
@@ -378,6 +395,7 @@ export async function captureForegroundRenderProjectSnapshot(
 ): Promise<{
   project: Project;
   composition: Composition;
+  snapshot: RenderSnapshotIdentity;
   mediaLease: RenderMediaHydrationLease;
 }> {
   // Start Blob/asset reads and clone registry-owned bytes before the first await. The editor may

@@ -33,22 +33,48 @@ export interface BlobDescriptor extends BufferResourceDescriptor {
 }
 
 export interface RationalTime {
+  kind: "rational";
   value: number;
   scale: number;
 }
+
+export interface BinaryRationalTime {
+  kind: "binary_rational";
+  negative: boolean;
+  significand: number;
+  exponent: number;
+}
+
+export type FrameTime = RationalTime | BinaryRationalTime;
+
+export interface Extent2d {
+  width: number;
+  height: number;
+}
+
+export type CompositionIdentity = string | { utf16_units: number[] };
 
 export interface RationalFrameRate {
   numerator: number;
   denominator: number;
 }
 
+export type FrameRate =
+  | ({ kind: "rational" } & RationalFrameRate)
+  | {
+      kind: "binary_ratio";
+      numerator: BinaryRationalTime;
+      denominator: BinaryRationalTime;
+    };
+
 export interface FrameHeaderSlice {
+  snapshot_scope: string;
   project_revision: number;
-  composition_id: string;
-  time: RationalTime;
-  frame_rate: RationalFrameRate;
-  target: { width: number; height: number };
-  render_target: { width: number; height: number };
+  composition_id: CompositionIdentity;
+  time: FrameTime;
+  frame_rate: FrameRate;
+  target: Extent2d;
+  render_target: Extent2d;
   aa: "off" | "fxaa" | "ssaa2x" | "ssaa4x";
   color_pipeline: "linear-hdr-to-srgb-display";
 }
@@ -63,6 +89,12 @@ export interface FramePlanSliceV1 {
   blobs: BlobDescriptor[];
   slices: { kind: "post_process_uniforms"; blob_index: number }[];
   resources: string[];
+}
+
+export interface FramePlanSliceData {
+  metadata: FramePlanSliceV1;
+  /** Decoders may return borrowed views; owners must not mutate them during execution. */
+  blobs: readonly Uint8Array[];
 }
 
 export type ResourceMessage =

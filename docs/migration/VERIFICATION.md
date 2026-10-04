@@ -62,10 +62,13 @@ Motion blur replaces only its four fixed tile-size insertions with a typed WGSL 
 override declaration must reproduce the original source hash. Whole-corpus exact G3 validates the
 resulting pipeline output.
 
-The fused post-process program preserves its complete pre-extraction source hash. Its manifest
-recipe owns the warp and pixel case order, dependent helpers and exact fragment boundaries. Rust
-validates the complete assembled program with Naga; switch-case fragments cannot be validated as
-independent modules. Tests also retain the eight binding slots, host layouts and entry points.
+The fused post-process recipe owns the warp and pixel case order, dependent helpers and exact
+fragment boundaries. Its root-only `root_zero_operations` specialization follows the validated
+zero-operation upload contract; the default remains dynamic for layer effects. Tests pin the full
+assembled source and check the production pipeline's specialization. Rust validates the complete
+assembled program with Naga; switch-case
+fragments cannot be validated as independent modules. Tests also retain the eight binding slots,
+host layouts, entry points and typed override default. Whole-corpus exact G3 remains required.
 
 The generator, audio, text and diagnostic programs retain their original expanded-source hashes.
 Scene-generator context, parameter, particle and audio buffer layouts remain unchanged; the audio
@@ -107,17 +110,22 @@ coverage or failed output audits cannot establish M1 completion.
 
 ## Frame-plan transport and consumption
 
-M2 requires G0, G1, G3 and G4. The runner rejects a ledger gate list that omits or duplicates one of
-these requirements. Full G1 regenerates the Rust-owned schema into a fresh output and runs actual
+Under the approved `rust-delivery-v1` policy, M2 requires G0, G1 and G3; performance observations
+do not block TS plan extraction. The runner rejects a ledger gate list that omits or duplicates a
+required gate. Full G1 regenerates the Rust-owned schema into a fresh output and runs actual
 TS-to-Rust-to-TS canonical FPLN round trips. Expected schema bytes are never overwritten during
 verification. Container boundaries, resource hashes and budgets have separate negative tests.
+Root producer fixtures also round-trip signed zero, subnormal and extreme finite times, fractional
+seek requests and exact decimal-rate metadata. Their decoded time bits and actual supplied uniform
+uploads are checked independently of the original request.
 See [Frame-plan transport](FRAME_PLAN.md) for the current contract and its explicit partial scope.
 
 Full G3 continues to compare all required TS frames under `exact`, retaining the effective reference
 set proven unchanged by completed M1. Each renderer-source change requires a fresh candidate
 capture. G1 success for a transport slice does not prove complete production plan consumption or
 resource replay. M2 exit remains unsatisfied until every extraction, capture and replay requirement
-is implemented and audited. Quick mode skips full G1 and measured G4 and cannot authorize a commit.
+is implemented and audited. Quick mode skips full G1 and cannot authorize a commit. All required
+gates must pass in a full run before committing.
 
 ## Performance evidence
 
@@ -126,14 +134,27 @@ is implemented and audited. Quick mode skips full G1 and measured G4 and cannot 
 The committed local Radeon 780M series is independent of historical NVIDIA results. Missing GPU
 timing or encoder capabilities remain explicit limitations, never fabricated measurements.
 
-For M2, full G4 invokes fresh complete throughput and preview-present suites with explicit unique
-report paths. It rechecks raw runs and measurement identities before comparing every tracked median
-against the pinned reference series for the selected hardware conditions. The original throughput
-baseline and separate pre-plan preview baseline remain frozen. A saved baseline
-validation alone is not a measurement. The preview series runs the actual production present path
-and waits for GPU completion; its scope and warm-up protocol are specified in `docs/BENCHMARKS.md`.
+The original throughput baseline and separate pre-plan preview baseline remain frozen. A saved
+baseline validation alone is not a measurement. The preview series runs the actual production
+present path and waits for GPU completion; its scope and warm-up protocol are specified in
+`docs/BENCHMARKS.md`.
 The baseline-freezing command refuses to replace an existing baseline or accept measurements taken
 after production planning changes.
+
+On 2026-10-05 (Asia/Tokyo), the owner approved `owner_overrides.performance_delivery_policy`
+with kind `rust-delivery-v1`. M2 requires G0/G1/G3; M4, M6 and M7 require G0/G3, with GPU timings
+and other performance observations recorded when useful rather than repeatedly enforced as hard
+gates. M8, M11 and M12 retain G4: native export and preview must achieve higher median FPS than
+the independently retained TS program run contemporaneously on the same machine, with matched
+workloads and output quality. M11 also retains its input-to-present p95 latency requirement.
+Fresh measurements must bind both programs, inputs, hardware conditions and raw evidence; the
+candidate cannot serve as its own reference. Native paired G4 support remains to be implemented
+and verified; existing TS measurements do not satisfy that final acceptance requirement.
+
+The old fixed-reference 5 percent limits and M8's 75/120 fps targets remain historical references,
+not blocking conditions for this migration. Frozen baselines and previous failed evidence remain
+unchanged, with no failed run reclassified. Pixel, quality, functional and G0 requirements remain
+in force, as does the full required-gates-before-commit rule.
 
 Display-condition changes follow the hardware manifest's existing new-series policy. An additive
 1920×1080@144Hz series may use the preserved pre-plan bundle only after its complete file set and
@@ -141,9 +162,10 @@ source/bridge provenance pass the historical-bundle audit. Reference reports ide
 renderer bytes and current common harness sources separately. They must contain complete independent
 throughput and preview observations at the new conditions. Current optimized output cannot become
 its own reference. The series freezer refuses overwrite; its descriptor and file hash are pinned in
-the ledger before G4 measures the candidate. G4 retains the original workload, encoder, host and
-method pins, all raw-output checks, and all 24 strict 5 percent median thresholds. Historical reports
-cannot satisfy the current candidate measurement. No previous failed run is reclassified.
+the ledger before comparisons use that series. Workload, encoder, host and method pins and raw-output
+checks remain part of the evidence. The former 24 fixed-reference median checks are historical
+diagnostics under `rust-delivery-v1`. Historical reports cannot satisfy a fresh candidate measurement.
+No previous failed run is reclassified.
 
 Generated evidence is stored under ignored `artifacts/`; hashes and paths in the ledger identify the
 actual runs. Preserve these files when continuing on the same host. A missing or modified evidence

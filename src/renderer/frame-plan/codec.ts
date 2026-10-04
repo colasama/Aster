@@ -3,15 +3,10 @@ import {
   defaultFramePlanLimits,
   FramePlanError,
   type FramePlanLimits,
+  type FramePlanSliceData,
   type FramePlanSliceV1,
 } from "./types";
 import { validateLimits, validateMetadata, validatePostUniforms } from "./validation";
-
-export interface DecodedFramePlan {
-  metadata: FramePlanSliceV1;
-  /** Views borrow the supplied container. Its owner must not mutate bytes during use. */
-  blobs: Uint8Array[];
-}
 
 export function encodeFramePlan(
   input: FramePlanSliceV1,
@@ -50,7 +45,7 @@ export function encodeFramePlan(
 export function decodeFramePlan(
   input: Uint8Array,
   limits: FramePlanLimits = defaultFramePlanLimits(),
-): DecodedFramePlan {
+): FramePlanSliceData {
   validateLimits(limits);
   requirePlan(input.byteLength >= 32, "truncated_header", "FPLN header is incomplete");
   const view = new DataView(input.buffer, input.byteOffset, input.byteLength);

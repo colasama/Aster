@@ -71,8 +71,10 @@ submission has its own module. Frame buffers remain GPU-resident until an explic
 The migration's `aster-render-ir` crate owns typed frame-plan transport and its generated schema.
 TS DataView and Rust owned-buffer codecs share a canonical FPLN container with aligned binary blobs
 and separate content-addressed resource operations. The initial contract carries an explicit
-partial post-process uniform slice; production execution is extracted incrementally and complete
-frame replay is a separate milestone requirement. See [Frame-plan transport](migration/FRAME_PLAN.md).
+partial post-process uniform slice. Production root post-processing now builds this slice from exact
+request time and caller snapshot identity, then uploads the supplied bytes through a separate
+executor. Other passes are extracted incrementally; complete frame replay remains a separate
+milestone requirement. See [Frame-plan transport](migration/FRAME_PLAN.md).
 
 Shared WGSL includes output anti-aliasing, core scene variants, compositing, fused post-processing,
 blur/depth/surface effects, auxiliary surfaces, particles, text motion blur and display/buffer helpers.
@@ -93,6 +95,10 @@ orders the warp cases, pixel cases and dependent helpers in one complete program
 are not standalone modules; Naga validates their assembled bindings, control flow and entry points.
 Shader extraction preserves the original expanded bytes, including operation order, effect masks,
 time mutation, sampling and alpha handling.
+The root post-process pipeline uses the `root_zero_operations` specialization after its plan
+executor validates a zero operation count. Layer effects retain the dynamic default. This removes
+unreachable root effect loops at pipeline creation while keeping all supplied base-effect uniforms,
+sampling, grading, display expressions and resource bindings intact.
 
 Particle compute and render programs share the scene-generator ABI and projection fragments.
 Their storage layout, indirect draw data, visibility handling and 256-thread compute workgroup are

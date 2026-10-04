@@ -1,4 +1,8 @@
 import {
+  copyRenderSnapshotIdentity,
+  type RenderSnapshotIdentity,
+} from "../../core/rendering/render-snapshot";
+import {
   createParticleLayerForComposition,
   createParticleSceneGenerator,
 } from "../../core/scene/bundled-particle";
@@ -43,6 +47,7 @@ export interface BenchmarkRenderer {
   render(
     composition: Composition,
     time: number,
+    snapshot: RenderSnapshotIdentity,
     playing?: boolean,
     project?: Project,
   ): RendererMetrics;
@@ -67,18 +72,24 @@ export async function runGpuBenchmark(
   canvas: HTMLCanvasElement,
   composition: Composition,
   project: Project,
+  snapshot: RenderSnapshotIdentity,
   currentTime: number,
   adapter: string,
   backend: string,
   sampleFrames: number,
   onProgress: GpuBenchmarkRequest["onProgress"],
 ): Promise<GpuBenchmarkReport> {
+  const originalSnapshot = copyRenderSnapshotIdentity(snapshot);
   const preview = { width: canvas.width, height: canvas.height };
   const samples = Math.max(1, Math.floor(sampleFrames));
   const scenarios = buildBenchmarkScenarios(composition);
   const reports: GpuBenchmarkScenarioReport[] = [];
   try {
     for (const [scenarioIndex, scenario] of scenarios.entries()) {
+      const scenarioSnapshot = copyRenderSnapshotIdentity({
+        snapshotScope: `benchmark:${crypto.randomUUID()}`,
+        projectRevision: 0,
+      });
       const { width, height } = scenario.composition;
       canvas.width = width;
       canvas.height = height;
@@ -87,6 +98,7 @@ export async function runGpuBenchmark(
         renderer.render(
           scenario.composition,
           (frame / 60) % scenario.composition.duration,
+          scenarioSnapshot,
           false,
           project,
         );
@@ -100,6 +112,7 @@ export async function runGpuBenchmark(
         const metrics = renderer.render(
           scenario.composition,
           (frame / 60) % scenario.composition.duration,
+          scenarioSnapshot,
           false,
           project,
         );
@@ -133,7 +146,7 @@ export async function runGpuBenchmark(
     canvas.width = preview.width;
     canvas.height = preview.height;
     renderer.resize(preview.width, preview.height);
-    renderer.render(composition, currentTime, false, project);
+    renderer.render(composition, currentTime, originalSnapshot, false, project);
   }
   return {
     schemaVersion: 1,

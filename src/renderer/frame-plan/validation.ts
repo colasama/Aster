@@ -1,4 +1,7 @@
-import { align16, gcd, hash, integer, object, requirePlan, validUnicode } from "./canonical";
+import { align16, hash, integer, object, requirePlan, validUnicode } from "./canonical";
+import { compositionIdentityToString } from "./composition-identity";
+import { validateFrameRate } from "./frame-rate";
+import { frameTimeToNumber, validateFrameTime } from "./time";
 import type { BufferResourceDescriptor, FramePlanLimits, FramePlanSliceV1 } from "./types";
 
 export function validateLimits(limits: FramePlanLimits): void {
@@ -60,6 +63,7 @@ export function validateMetadata(value: unknown, limits: FramePlanLimits): Frame
     "Only the incomplete post-uniform transport slice is supported",
   );
   const header = object(metadata.header, [
+    "snapshot_scope",
     "project_revision",
     "composition_id",
     "time",
@@ -71,30 +75,17 @@ export function validateMetadata(value: unknown, limits: FramePlanLimits): Frame
   ]);
   integer(header.project_revision);
   requirePlan(
-    typeof header.composition_id === "string" &&
-      validUnicode(header.composition_id) &&
-      !header.composition_id.includes("\0") &&
-      header.composition_id.length > 0 &&
-      new TextEncoder().encode(header.composition_id).length <= 256,
+    typeof header.snapshot_scope === "string" &&
+      validUnicode(header.snapshot_scope) &&
+      !header.snapshot_scope.includes("\0") &&
+      header.snapshot_scope.length > 0 &&
+      new TextEncoder().encode(header.snapshot_scope).length <= 256,
     "invalid_json",
-    "Composition identity must contain 1..256 valid UTF-8 bytes without NUL",
+    "Snapshot scope must contain 1..256 valid UTF-8 bytes without NUL",
   );
-  const time = object(header.time, ["value", "scale"]);
-  integer(time.value, -Number.MAX_SAFE_INTEGER);
-  integer(time.scale, 1, 0xffff_ffff);
-  requirePlan(
-    gcd(BigInt(time.value as number), BigInt(time.scale as number)) === 1n,
-    "invalid_rational",
-    "Time must be a reduced rational",
-  );
-  const rate = object(header.frame_rate, ["numerator", "denominator"]);
-  integer(rate.numerator, 1, 0xffff_ffff);
-  integer(rate.denominator, 1, 0xffff_ffff);
-  requirePlan(
-    gcd(BigInt(rate.numerator as number), BigInt(rate.denominator as number)) === 1n,
-    "invalid_rational",
-    "Frame rate must be reduced",
-  );
+  compositionIdentityToString(header.composition_id);
+  validateFrameTime(header.time);
+  validateFrameRate(header.frame_rate);
   extent(header.target, limits);
   extent(header.render_target, limits);
   requirePlan(
@@ -165,14 +156,22 @@ export function validateMetadata(value: unknown, limits: FramePlanLimits): Frame
   return metadata as unknown as FramePlanSliceV1;
 }
 
-export function validatePostUniforms(bytes: Uint8Array, metadata: FramePlanSliceV1): void {
+export function validatePostUniforms(
+  bytes: Uint8Array,
+  metadata: FramePlanSliceV1,
+  bindTime = false,
+): void {
   requirePlan(bytes.byteLength === 96, "invalid_post_uniforms", "Invalid post-uniform byte length");
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const expectedTime = new DataView(new ArrayBuffer(4));
+  expectedTime.setFloat32(0, frameTimeToNumber(metadata.header.time), true);
   for (let index = 0; index < 24; index += 1)
     requirePlan(
-      Number.isFinite(view.getFloat32(index * 4, true)),
+      index === 2 && (bindTime || !Number.isFinite(view.getFloat32(8, true)))
+        ? view.getUint32(8, true) === expectedTime.getUint32(0, true)
+        : Number.isFinite(view.getFloat32(index * 4, true)),
       "invalid_post_uniforms",
-      "Nonfinite uniform",
+      "Nonfinite uniform or time lane inconsistent with its header",
     );
   const operationCount = view.getFloat32(64, true);
   requirePlan(

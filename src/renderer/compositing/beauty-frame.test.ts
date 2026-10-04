@@ -41,6 +41,54 @@ class FakeBeautyBackend implements BeautyFrameBackend {
 }
 
 describe("production beauty frame pipeline", () => {
+  it("captures caller snapshot identity and preserves arbitrary finite seek values", () => {
+    const project = createDemoProject();
+    const snapshot = { snapshotScope: "editor:load:3", projectRevision: 41 };
+    const requests = [-0, 0.1, Number.MIN_VALUE, Number.MAX_VALUE].map((time) =>
+      createBeautyFrameRequest({
+        snapshot,
+        project,
+        composition: activeComposition(project),
+        time,
+        width: 2,
+        height: 2,
+      }),
+    );
+    snapshot.projectRevision = 42;
+    snapshot.snapshotScope = "editor:load:4";
+    for (const request of requests) {
+      expect(request.snapshot).toEqual({ snapshotScope: "editor:load:3", projectRevision: 41 });
+      expect(request.snapshot).not.toBe(snapshot);
+      expect(Object.isFrozen(request.snapshot)).toBe(true);
+    }
+    expect(requests.map((request) => request.time)).toEqual([
+      -0,
+      0.1,
+      Number.MIN_VALUE,
+      Number.MAX_VALUE,
+    ]);
+  });
+
+  it("rejects missing or invalid snapshot identity before preparing the backend", () => {
+    const project = createDemoProject();
+    const backend = new FakeBeautyBackend();
+    const resize = vi.spyOn(backend, "resize");
+    const pipeline = new ProductionBeautyFramePipeline(backend);
+    const request = createBeautyFrameRequest({
+      snapshot: { snapshotScope: "immutable:session", projectRevision: 0 },
+      project,
+      composition: activeComposition(project),
+      time: 0,
+      width: 2,
+      height: 2,
+    });
+    for (const snapshot of [undefined, { snapshotScope: "", projectRevision: 0 }]) {
+      expect(() => pipeline.present({ ...request, snapshot } as BeautyFrameRequest)).toThrow();
+    }
+    expect(resize).not.toHaveBeenCalled();
+    expect(backend.requests).toHaveLength(0);
+  });
+
   it("rejects an invalid destination before preparing resources or calling the backend", async () => {
     const project = createDemoProject();
     const backend = new FakeBeautyBackend();
@@ -48,6 +96,7 @@ describe("production beauty frame pipeline", () => {
     const readback = vi.spyOn(backend, "readback");
     const pipeline = new ProductionBeautyFramePipeline(backend);
     const request = createBeautyFrameRequest({
+      snapshot: { snapshotScope: "beauty-test", projectRevision: 7 },
       project,
       composition: activeComposition(project),
       time: 0,
@@ -71,6 +120,7 @@ describe("production beauty frame pipeline", () => {
       async (
         _composition: unknown,
         _time: number,
+        _snapshot: unknown,
         _project: unknown,
         _synchronizeVideo: boolean,
         buffer: ArrayBuffer,
@@ -93,6 +143,7 @@ describe("production beauty frame pipeline", () => {
       createViewportBeautyFrameBackend(renderer, { width: 2, height: 2 } as HTMLCanvasElement),
     );
     const request = createBeautyFrameRequest({
+      snapshot: { snapshotScope: "beauty-test", projectRevision: 7 },
       project,
       composition: activeComposition(project),
       time: 0.5,
@@ -104,6 +155,7 @@ describe("production beauty frame pipeline", () => {
     expect(renderRawFrame).toHaveBeenCalledWith(
       request.composition,
       0.5,
+      request.snapshot,
       project,
       true,
       destination,
@@ -136,6 +188,7 @@ describe("production beauty frame pipeline", () => {
     );
     const project = createDemoProject();
     const request = createBeautyFrameRequest({
+      snapshot: { snapshotScope: "beauty-test", projectRevision: 7 },
       project,
       composition: activeComposition(project),
       time: 0,
@@ -163,6 +216,7 @@ describe("production beauty frame pipeline", () => {
     const pipeline = new ProductionBeautyFramePipeline(Object.assign(backend, { prepareTarget }));
     for (const antiAliasing of ["off", "fxaa", "ssaa2x", "ssaa4x"] as const) {
       const request = createBeautyFrameRequest({
+        snapshot: { snapshotScope: "beauty-test", projectRevision: 7 },
         project,
         composition: activeComposition(project),
         time: 0,
@@ -182,6 +236,7 @@ describe("production beauty frame pipeline", () => {
     const backend = new FakeBeautyBackend();
     const pipeline = new ProductionBeautyFramePipeline(backend);
     const request = createBeautyFrameRequest({
+      snapshot: { snapshotScope: "beauty-test", projectRevision: 7 },
       composition,
       project,
       time: 1_001 / 30_000,
@@ -200,6 +255,7 @@ describe("production beauty frame pipeline", () => {
     const project = createDemoProject();
     const composition = activeComposition(project);
     const preview = createBeautyFrameRequest({
+      snapshot: { snapshotScope: "beauty-test", projectRevision: 7 },
       composition,
       project,
       time: 2.5,
@@ -207,6 +263,7 @@ describe("production beauty frame pipeline", () => {
       height: 270,
     });
     const full = createBeautyFrameRequest({
+      snapshot: { snapshotScope: "beauty-test", projectRevision: 7 },
       composition,
       project,
       time: 2.5,
@@ -226,6 +283,7 @@ describe("production beauty frame pipeline", () => {
     backend.readback = async () => ({ pixels: new ArrayBuffer(3), pixelFormat: "rgba" });
     const pipeline = new ProductionBeautyFramePipeline(backend);
     const request = createBeautyFrameRequest({
+      snapshot: { snapshotScope: "beauty-test", projectRevision: 7 },
       composition,
       project,
       time: 0,
@@ -264,6 +322,7 @@ describe("production beauty frame pipeline", () => {
       createViewportBeautyFrameBackend(renderer, canvas),
     );
     const request = createBeautyFrameRequest({
+      snapshot: { snapshotScope: "beauty-test", projectRevision: 7 },
       composition,
       project,
       time: 4,
@@ -301,6 +360,7 @@ describe("production beauty frame pipeline", () => {
       createViewportBeautyFrameBackend(renderer, canvas),
     );
     const request = createBeautyFrameRequest({
+      snapshot: { snapshotScope: "beauty-test", projectRevision: 7 },
       composition,
       project,
       time: 0,

@@ -4,6 +4,7 @@ import { normalizeRawFrameRgba } from "../../src/renderer/gpu/raw-frame-png";
 import { CaptureHealth } from "./capture-health";
 import type { ParityCaptureApi, ParityCaptureAssignment } from "./capture-protocol";
 import { type CaptureSession, runCaptureAssignments } from "./capture-runner";
+import { captureSnapshotIdentity } from "./capture-snapshot";
 import { caseFor, fixture } from "./generators/base";
 
 function scenario(id: string, frames = [1, 0, 2]) {
@@ -14,6 +15,7 @@ function scenario(id: string, frames = [1, 0, 2]) {
     case: generated.case,
     frames,
     projectPath: `D:/fixtures/${id}/project.json`,
+    caseHash: "a".repeat(64),
   };
   const diagnostics: GpuDiagnostics = {
     available: true,
@@ -48,6 +50,14 @@ function apiFor(assignments: ParityCaptureAssignment[]): ParityCaptureApi {
 }
 
 describe("ordered reference capture", () => {
+  it("scopes immutable initial revisions to exact inputs independently of frame addresses", () => {
+    const first = captureSnapshotIdentity("a".repeat(64));
+    expect(first.projectRevision).toBe(0);
+    expect(captureSnapshotIdentity("a".repeat(64))).toEqual(first);
+    expect(captureSnapshotIdentity("b".repeat(64)).snapshotScope).not.toBe(first.snapshotScope);
+    expect(() => captureSnapshotIdentity("missing")).toThrow("input SHA-256");
+  });
+
   it("retains reverse seeks and appended neighbors with exact rational timestamps", async () => {
     const { assignment, session } = scenario("order", [20, 0, 19, 21]);
     const api = apiFor([assignment]);

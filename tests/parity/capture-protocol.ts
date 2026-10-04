@@ -6,6 +6,7 @@ export interface ParityCaptureAssignment {
   case: ParityCase;
   frames: number[];
   projectPath: string;
+  caseHash: string;
 }
 
 export interface ParityCapturedFrame {

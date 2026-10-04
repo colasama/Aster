@@ -1,7 +1,8 @@
 use std::collections::BTreeMap;
 
 use naga::{
-    AddressSpace, ArraySize, ScalarKind, ShaderStage, StorageAccess, TypeInner, VectorSize,
+    AddressSpace, ArraySize, Expression, Literal, ScalarKind, ShaderStage, StorageAccess,
+    TypeInner, VectorSize,
 };
 use sha2::{Digest, Sha256};
 
@@ -12,12 +13,17 @@ fn post_process_preserves_complete_source_and_real_naga_resource_contract()
 -> Result<(), ShaderError> {
     let catalog = ShaderCatalog::embedded()?;
     let program = catalog.program("post-process")?;
-    assert_eq!(program.source.len(), 193001);
+    assert_eq!(program.source.len(), 193083);
     assert_eq!(
         format!("{:x}", Sha256::digest(program.source.as_bytes())),
-        "815b8799306001166ee6b44ecb5f803e17bc342ccb0ef77b0a81c475567e8454"
+        "5323555f0dcad8d861f15dda7e04f31143888c0fc0a61fedd3f4cef8d4caac31"
     );
-    assert!(program.pipeline_constants(&BTreeMap::new())?.is_empty());
+    assert_eq!(
+        program.pipeline_constants(&BTreeMap::new())?,
+        BTreeMap::from([("root_zero_operations".to_owned(), 0.0)])
+    );
+    let root_constants = BTreeMap::from([("root_zero_operations".to_owned(), 1.0)]);
+    assert_eq!(program.pipeline_constants(&root_constants)?, root_constants);
     let module =
         naga::front::wgsl::parse_str(&program.source).map_err(|error| ShaderError::Parse {
             program: "post-process".to_owned(),
@@ -138,6 +144,24 @@ fn post_process_preserves_complete_source_and_real_naga_resource_contract()
             _ => {}
         }
     }
-    assert!(module.overrides.is_empty());
+    assert_eq!(module.overrides.len(), 1);
+    for (_, value) in module.overrides.iter() {
+        assert_eq!(value.name.as_deref(), Some("root_zero_operations"));
+        assert_eq!(value.id, None);
+        assert!(matches!(
+            module.types[value.ty].inner,
+            TypeInner::Scalar(naga::Scalar {
+                kind: ScalarKind::Uint,
+                width: 4,
+            })
+        ));
+        let init = value.init.ok_or_else(|| {
+            ShaderError::Manifest("Root post-process override has no default".to_owned())
+        })?;
+        assert!(matches!(
+            module.global_expressions[init],
+            Expression::Literal(Literal::U32(0))
+        ));
+    }
     Ok(())
 }

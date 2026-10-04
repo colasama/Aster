@@ -3,7 +3,7 @@ use std::collections::BTreeSet;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::{DecodeLimits, IrError, RationalFrameRate, RationalTime, ResourceHash};
+use crate::{CompositionIdentity, DecodeLimits, FrameRate, FrameTime, IrError, ResourceHash};
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -58,12 +58,13 @@ impl Extent2d {
 #[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct FrameHeaderSlice {
+    #[schemars(length(min = 1, max = 256), extend("description" = "Snapshot identity: 1..256 UTF-8 bytes, without NUL."))]
+    pub snapshot_scope: String,
     #[schemars(range(max = 9007199254740991_u64))]
     pub project_revision: u64,
-    #[schemars(length(min = 1, max = 256))]
-    pub composition_id: String,
-    pub time: RationalTime,
-    pub frame_rate: RationalFrameRate,
+    pub composition_id: CompositionIdentity,
+    pub time: FrameTime,
+    pub frame_rate: FrameRate,
     pub target: Extent2d,
     pub render_target: Extent2d,
     pub aa: AntiAliasing,
@@ -135,14 +136,13 @@ impl FramePlanSliceV1 {
         if self.header.project_revision > 9_007_199_254_740_991 {
             return Err(IrError::InvalidSafeInteger);
         }
-        if self.header.composition_id.is_empty()
-            || self.header.composition_id.len() > 256
-            || self.header.composition_id.contains('\0')
+        if self.header.snapshot_scope.is_empty()
+            || self.header.snapshot_scope.len() > 256
+            || self.header.snapshot_scope.contains('\0')
         {
-            return Err(IrError::InvalidHeader(
-                "invalid composition identifier".to_owned(),
-            ));
+            return Err(IrError::InvalidHeader("invalid snapshot scope".to_owned()));
         }
+        self.header.composition_id.validate()?;
         self.header.time.validate()?;
         self.header.frame_rate.validate()?;
         self.header.target.validate(limits)?;
@@ -204,7 +204,10 @@ impl FramePlanSliceV1 {
         for (index, chunk) in bytes.chunks_exact(4).enumerate() {
             lanes[index] = f32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]);
         }
-        if lanes.iter().any(|value| !value.is_finite()) {
+        let time_bits = (self.header.time.to_f64()? as f32).to_bits();
+        if lanes.iter().enumerate().any(|(index, value)| {
+            !value.is_finite() && (index != 2 || value.is_nan() || value.to_bits() != time_bits)
+        }) {
             return Err(IrError::InvalidPostUniforms("nonfinite lane".to_owned()));
         }
         if lanes[0] != self.header.render_target.width as f32

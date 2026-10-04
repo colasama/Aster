@@ -39,7 +39,14 @@ function fakeRenderer(accept = true) {
 function request(project: Project, time: number): BeautyFrameRequest {
   const composition = activeComposition(project);
   composition.frameRate = { numerator: 30, denominator: 1 };
-  return createBeautyFrameRequest({ composition, project, time, width: 64, height: 36 });
+  return createBeautyFrameRequest({
+    composition,
+    project,
+    time,
+    width: 64,
+    height: 36,
+    snapshot: { snapshotScope: "preview-cache-test", projectRevision: 0 },
+  });
 }
 
 function present(

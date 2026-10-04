@@ -240,11 +240,25 @@ any required gate fails. Gate ids:
 | `G1-ir` | Schema regenerated and unchanged in git; FPLN round-trip tests (TS write → Rust read → Rust write → TS read, `exact`) |
 | `G2-plan` | Phase B plan parity over the whole corpus |
 | `G3-pixel` | Native render vs reference per case and tolerance profile; GPU tests run here, not in `G0` |
-| `G4-perf` | Benchmarks per `docs/BENCHMARKS.md` method; compare against `benchmarks/results/migration-baseline.json`; fail on >5% median regression of any tracked metric or on a missed milestone target |
+| `G4-perf` | Under the approved `rust-delivery-v1` policy below, final native preview/export median FPS must exceed contemporaneous retained TS on the same machine at matched workloads and quality; retain M11's latency requirement |
 | `G5-export` | Full export E2E: ffprobe stream/frame count/duration, decoded frames vs reference (`yuv`), audio present and in sync, cancel and pause leave no published or temp files |
 | `G6-app` | Electron app smoke: `scripts/automation-smoke.mjs`, background render queue job, preview opens; Phase C adds latency checks |
 
 GPU-dependent Rust tests stay `#[ignore = "requires GPU"]` in `G0` and run in `G3`.
+
+On 2026-10-05 (Asia/Tokyo), the owner approved the ledger's
+`owner_overrides.performance_delivery_policy` with kind `rust-delivery-v1`: deliver the complete
+Rust preview/export migration and require final native median FPS to exceed the independently
+retained TS program run contemporaneously on the same machine, with matched workloads and output
+quality. M2 requires G0/G1/G3; M4/M6/M7 require G0/G3, recording performance when useful without
+repeated hard performance gates. M8/M11/M12 retain G4. Implement and verify native paired G4 before
+those exits; existing TS diagnostics do not establish native performance acceptance.
+
+The original fixed-reference 5% limits and M8's 75/120 fps targets remain historical references,
+not blocking conditions for this migration. Baselines and prior failed evidence remain frozen;
+no failed run is reclassified. All M0–M12 functionality, pixel and quality checks, G0, M11 latency,
+and the full required-gates-before-commit rule remain required. Performance diagnostics should
+answer concrete implementation questions or establish final native acceptance.
 
 ### 6.6 Pixel-level self-review
 
@@ -307,7 +321,7 @@ required gates; `G0` is always required.
   messages.
 - Exit: TS renderer through the plan is `exact` against M1 references for the whole corpus; FPLN
   round trip `exact`; capture writes `plan.fpln` for every case.
-- Gates: G0, G1, G3, G4 (TS preview/export must not regress >5%).
+- Gates: G0, G1, G3. TS performance observations are diagnostic under `rust-delivery-v1`.
 
 ### M3 — Native renderer core
 
@@ -324,7 +338,7 @@ required gates; `G0` is always required.
   tetrahedral), layer styles, surface post effects, chromatic aberration, Filmic/ACES effects.
 - Implement the section 9 fixes **only in the native renderer** and only if parity holds.
 - Exit: every `EFFECT_REGISTRY` entry and layer-style case passes `G3`.
-- Gates: G0, G3, G4 (native effect-chain timings recorded).
+- Gates: G0, G3. Record native effect-chain timings when useful; they do not block this stage.
 
 ### M5 — Text, SVG, PSD rasters (Phase A)
 
@@ -341,7 +355,7 @@ required gates; `G0` is always required.
   optional path (`docs/MEDIA_BACKENDS.md` capability rules: only a checksum-verified import may claim
   `zero_copy`).
 - Exit: video cases `G3` `decode`; frame identity exact (no off-by-one at any seek boundary).
-- Gates: G0, G3, G4.
+- Gates: G0, G3. Record media performance when useful; it does not block this stage.
 
 ### M7 — 3D, camera, lights, motion blur, generators
 
@@ -350,7 +364,7 @@ required gates; `G0` is always required.
   WGSL ABI (`src/renderer/scene/scene-generator-abi.ts`) with audio-analysis inputs, cloner,
   auxiliary buffer views.
 - Exit: all 3D and generator cases `G3`.
-- Gates: G0, G3, G4.
+- Gates: G0, G3. Record scene performance when useful; it does not block this stage.
 
 ### M8 — Native export path
 
@@ -364,8 +378,10 @@ required gates; `G0` is always required.
   The encoder never silently falls back to a software or legally different encoder.
 - Annex-B to the existing FFmpeg mux with `-c:v copy`, existing audio pipe, existing
   `h264_metadata` color flags, atomic publish, pause/cancel semantics.
-- Exit: `G5` on the corpus and owner project; `G4` main-segment full MP4 export ≥ 75 fps
-  (2× baseline) required, ≥ 120 fps stretch, reported with median/p95/p99.
+- Exit: `G5` on the corpus and owner project; `G4` native full MP4 export median FPS exceeds
+  contemporaneous retained TS at matched workloads and quality, including the owner's main segment.
+  Report median/p95/p99. The original ≥ 75 fps (2× baseline) / ≥ 120 fps stretch targets remain
+  historical references and are not blocking requirements under `rust-delivery-v1`.
 - Encoding quality is accepted automatically: export the corpus and the owner project's main segment
   at the same bitrate through the native path and the current FFmpeg NVENC path, decode both, and
   score each against the lossless reference frames. Use VMAF when the bundled FFmpeg has libvmaf;
@@ -406,7 +422,8 @@ required gates; `G0` is always required.
 - Integrate with the RAM preview frame cache and playhead pre-renderer
   (`src/core/rendering/preview-frame-cache.ts`, `src/renderer/frame-cache/`).
 - Exit: preview pixels `G3`; in-editor benchmark (`docs/BENCHMARKS.md` "In-editor WebGPU benchmark")
-  shows no regression in playback fps; input-to-present p95 latency not worse than the TS renderer.
+  shows native preview median FPS above contemporaneous retained TS at matched workloads and quality;
+  input-to-present p95 latency remains no worse than TS.
 - Gates: G0, G3, G4, G6.
 
 ### M12 — Retire the TS GPU renderer
@@ -483,7 +500,8 @@ Write the reason, the evidence paths, and a concrete question for the owner into
 
 ## 11. Definition of done
 
-All milestones `done`; all gates green on the primary machine; documentation synchronized; the
-native export meets the M8 speed and quality targets on the owner project; every non-`exact`
-comparison has a passing `self_reviews` record and every tolerance change is recorded within the hard
-floor.
+All M0–M12 milestones `done`; all required gates green on the primary machine; documentation
+synchronized; all production preview and export rendering uses Rust. Native preview and export
+median FPS exceed contemporaneous retained TS under G4, with M8 export quality and M11 latency
+requirements satisfied. Every non-`exact` comparison has a passing `self_reviews` record and every
+tolerance change is recorded within the hard floor.

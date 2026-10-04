@@ -64,9 +64,38 @@ fn generated_schema_is_deterministic_and_cannot_claim_a_complete_plan() -> Resul
         false
     );
     assert_eq!(schema["properties"]["plan_version"]["const"], 1);
+    let times = schema["$defs"]["FrameTime"]["oneOf"]
+        .as_array()
+        .ok_or_else(|| IrError::InvalidJson("missing time variants".to_owned()))?;
+    assert_eq!(times.len(), 2);
+    assert!(
+        times
+            .iter()
+            .all(|variant| variant["additionalProperties"] == false)
+    );
+    let rational = times
+        .iter()
+        .find(|variant| variant["properties"]["kind"]["const"] == "rational")
+        .ok_or_else(|| IrError::InvalidJson("missing rational variant".to_owned()))?;
     assert_eq!(
-        schema["$defs"]["RationalTime"]["properties"]["value"]["maximum"],
+        rational["properties"]["value"]["maximum"],
         9_007_199_254_740_991_u64
+    );
+    let rates = schema["$defs"]["FrameRate"]["oneOf"]
+        .as_array()
+        .ok_or_else(|| IrError::InvalidJson("missing frame rate variants".to_owned()))?;
+    assert_eq!(rates.len(), 2);
+    assert!(
+        rates
+            .iter()
+            .all(|variant| variant["additionalProperties"] == false)
+    );
+    let rate_scalar = &schema["$defs"]["BinaryRationalTime"]["oneOf"][0];
+    assert_eq!(rate_scalar["properties"]["negative"]["const"], false);
+    assert_eq!(rate_scalar["properties"]["significand"]["minimum"], 1);
+    assert_eq!(
+        schema["$defs"]["FrameHeaderSlice"]["properties"]["snapshot_scope"]["maxLength"],
+        256
     );
     assert_eq!(
         schema["$defs"]["PutResource"]["additionalProperties"],

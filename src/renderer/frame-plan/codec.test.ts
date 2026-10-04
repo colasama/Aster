@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { canonicalJson } from "./canonical";
 import { decodeFramePlan, encodeFramePlan } from "./codec";
-import { frameIndexTime, productionUniformFixtures } from "./fixture";
+import { frameIndexTime, productionUniformFixtures, rootPostPlanFixtures } from "./fixture";
+import { frameTimeFromNumber } from "./time";
 import { defaultFramePlanLimits } from "./types";
 
 function rewriteMetadata(
@@ -28,6 +29,42 @@ function rewriteMetadata(
 }
 
 describe("FPLN typed post-uniform transport", () => {
+  it("permits f32 time overflow only when signed bits agree with the finite header", () => {
+    for (const fixture of rootPostPlanFixtures().filter((item) =>
+      ["max-finite", "f32-overflow"].includes(item.id),
+    )) {
+      const decoded = decodeFramePlan(fixture.bytes);
+      expect(encodeFramePlan(decoded.metadata, decoded.blobs)).toEqual(fixture.bytes);
+      const blob = decoded.blobs[0];
+      const view = new DataView(blob.buffer, blob.byteOffset, blob.byteLength);
+      const time = view.getFloat32(8, true);
+      expect(Number.isFinite(time)).toBe(false);
+      view.setFloat32(8, -time, true);
+      expect(() => encodeFramePlan(decoded.metadata, decoded.blobs)).toThrow(/uniform/);
+      view.setFloat32(8, NaN, true);
+      expect(() => encodeFramePlan(decoded.metadata, decoded.blobs)).toThrow(/uniform/);
+      view.setFloat32(8, time, true);
+      for (const lane of [0, 1, 3, 14, 16, 23]) {
+        const saved = view.getUint32(lane * 4, true);
+        view.setFloat32(lane * 4, time, true);
+        expect(() => encodeFramePlan(decoded.metadata, decoded.blobs)).toThrow(/uniform/);
+        view.setUint32(lane * 4, saved, true);
+      }
+      decoded.metadata.header.time = frameTimeFromNumber(0);
+      expect(() => encodeFramePlan(decoded.metadata, decoded.blobs)).toThrow(/uniform/);
+    }
+  });
+
+  it("retains the generic multi-slice contract with independently finite time lanes", () => {
+    const decoded = decodeFramePlan(productionUniformFixtures()[1].bytes);
+    const first = new DataView(decoded.blobs[0].buffer, decoded.blobs[0].byteOffset, 96);
+    const second = new DataView(decoded.blobs[1].buffer, decoded.blobs[1].byteOffset, 96);
+    expect(first.getFloat32(8, true)).not.toBe(second.getFloat32(8, true));
+    expect(decodeFramePlan(encodeFramePlan(decoded.metadata, decoded.blobs)).blobs).toEqual(
+      decoded.blobs,
+    );
+  });
+
   it("preserves real production uniforms, signed zero, multiple blobs and nonzero view offsets", () => {
     for (const fixture of productionUniformFixtures()) {
       const padded = new Uint8Array(fixture.bytes.length + 13);
@@ -46,14 +83,20 @@ describe("FPLN typed post-uniform transport", () => {
 
   it("uses exact rational arithmetic and rejects implicit overflow or approximate time", () => {
     expect(frameIndexTime(240, { numerator: 24000, denominator: 1001 })).toEqual({
+      kind: "rational",
       value: 1001,
       scale: 100,
     });
     expect(frameIndexTime(-30, { numerator: 30000, denominator: 1001 })).toEqual({
+      kind: "rational",
       value: -1001,
       scale: 1000,
     });
-    expect(frameIndexTime(0, { numerator: 24, denominator: 1 })).toEqual({ value: 0, scale: 1 });
+    expect(frameIndexTime(0, { numerator: 24, denominator: 1 })).toEqual({
+      kind: "rational",
+      value: 0,
+      scale: 1,
+    });
     expect(() => frameIndexTime(Number.MAX_SAFE_INTEGER, { numerator: 1, denominator: 2 })).toThrow(
       /exactly/,
     );
@@ -109,7 +152,11 @@ describe("FPLN typed post-uniform transport", () => {
         (metadata.header as Record<string, unknown>).project_revision = Number.MAX_SAFE_INTEGER + 1;
       },
       (metadata: Record<string, unknown>) => {
-        (metadata.header as Record<string, unknown>).time = { value: 2, scale: 2 };
+        (metadata.header as Record<string, unknown>).time = {
+          kind: "rational",
+          value: 2,
+          scale: 2,
+        };
       },
       (metadata: Record<string, unknown>) => {
         (metadata.header as Record<string, unknown>).composition_id = "bad\ud800";

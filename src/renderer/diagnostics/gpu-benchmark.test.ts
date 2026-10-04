@@ -1,9 +1,52 @@
 import { describe, expect, it } from "vitest";
 import { activeComposition, createDemoProject } from "../../core/project/project";
+import type { RenderSnapshotIdentity } from "../../core/rendering/render-snapshot";
 import { particleSettingsFromGenerator } from "../../core/scene/bundled-particle";
-import { buildBenchmarkScenarios, summarizeSamples } from "./gpu-benchmark";
+import type { RendererMetrics } from "../../core/types";
+import { buildBenchmarkScenarios, runGpuBenchmark, summarizeSamples } from "./gpu-benchmark";
 
 describe("GPU benchmark harness", () => {
+  it("owns derived scenario scopes and restores the captured editor revision after awaits", async () => {
+    const project = createDemoProject();
+    const composition = activeComposition(project);
+    const original = { snapshotScope: "editor:load", projectRevision: 7 };
+    const rendered: Array<{ compositionId: string; snapshot: RenderSnapshotIdentity }> = [];
+    await runGpuBenchmark(
+      {
+        resize: () => undefined,
+        render: (scene, _time, snapshot) => {
+          rendered.push({ compositionId: scene.id, snapshot });
+          return { cpuMs: 1 } as RendererMetrics;
+        },
+        complete: async () => {
+          original.projectRevision = 8;
+        },
+      },
+      { width: 64, height: 36 } as HTMLCanvasElement,
+      composition,
+      project,
+      original,
+      0,
+      "test",
+      "test",
+      1,
+      () => undefined,
+    );
+    const restore = rendered.pop();
+    expect(restore).toEqual({
+      compositionId: composition.id,
+      snapshot: { snapshotScope: "editor:load", projectRevision: 7 },
+    });
+    const scopes = new Map<string, string>();
+    for (const frame of rendered) {
+      const previous = scopes.get(frame.compositionId);
+      if (previous) expect(frame.snapshot.snapshotScope).toBe(previous);
+      else scopes.set(frame.compositionId, frame.snapshot.snapshotScope);
+      expect(frame.snapshot.projectRevision).toBe(0);
+    }
+    expect(new Set(scopes.values()).size).toBe(7);
+  });
+
   it("builds representative resolution, layer, and effect scenarios", () => {
     const scenarios = buildBenchmarkScenarios(activeComposition(createDemoProject()));
     expect(scenarios.map((scenario) => scenario.name)).toEqual([

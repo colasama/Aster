@@ -458,7 +458,9 @@
           "stage": "fragment"
         }
       ],
-      "overrides": {}
+      "overrides": {
+        "root_zero_operations": { "type": "u32", "default": 0 }
+      }
     },
     "scene-generator-abi": {
       "fragments": ["scene-generator-abi"],

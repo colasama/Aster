@@ -21,6 +21,7 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
     renderer_plan_complete: false,
     steps: [],
     roundtrips: [],
+    root_uploads: [],
     rejections: [],
   };
   const reader = new M0Evidence(context.root);
@@ -114,7 +115,25 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
       fixtures.map((fixture) => fixture.id),
       ["zero", "fractional", "negative"],
     );
-    for (const fixture of fixtures) {
+    const rootFixtures = runtime.rootPostPlanFixtures();
+    assert.deepEqual(
+      rootFixtures.map((fixture) => fixture.id),
+      [
+        "negative-zero",
+        "min-subnormal",
+        "max-finite",
+        "f32-underflow",
+        "f32-overflow",
+        "fractional-rate-request-seek",
+        "binary-ratio",
+        "reduced-rate",
+        "extreme-binary-ratio",
+        "long-identity",
+        "nul-identity",
+        "utf16-identity",
+      ],
+    );
+    for (const fixture of [...fixtures, ...rootFixtures]) {
       const input = join(context.output, `${fixture.id}-ts.fpln`);
       const output = join(context.output, `${fixture.id}-rust.fpln`);
       await writeFile(input, fixture.bytes, { flag: "wx" });
@@ -137,6 +156,38 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
         Buffer.from(runtime.encodeFramePlan(after.metadata, after.blobs)),
         original.bytes,
       );
+      if ("time" in fixture) {
+        assert(Object.is(runtime.frameTimeToNumber(after.metadata.header.time), fixture.time));
+        assert.equal(
+          runtime.compositionIdentityToString(after.metadata.header.composition_id),
+          fixture.compositionId,
+        );
+        const buffer = {};
+        const uploads = [];
+        const header = after.metadata.header;
+        runtime.uploadRootPostUniformPlan(after, {
+          queue: {
+            writeBuffer: (target, offset, data, dataOffset, size) => {
+              assert.equal(target, buffer);
+              assert.equal(offset, 0);
+              uploads.push(Buffer.from(new Uint8Array(data, dataOffset, size)));
+            },
+          },
+          buffer,
+          target: header.target,
+          renderTarget: header.render_target,
+          antiAliasing: header.aa,
+        });
+        assert.equal(uploads.length, 1);
+        assert.deepEqual(uploads[0], Buffer.from(after.blobs[0]));
+        report.root_uploads.push({
+          id: fixture.id,
+          time_bits_exact: true,
+          composition_identity_exact: true,
+          supplied_payload_exact: true,
+          sha256: sha256(uploads[0]),
+        });
+      }
       report.roundtrips.push({
         id: fixture.id,
         input: path(input),

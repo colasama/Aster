@@ -23,6 +23,7 @@ import {
   prepareCaptureAudio,
   prepareCapturePlugins,
 } from "../parity/capture-resources";
+import { captureSnapshotIdentity } from "../parity/capture-snapshot";
 import { performanceRenderAssignment } from "./assignment";
 import type { PerformanceAssignment } from "./protocol";
 
@@ -81,6 +82,10 @@ export const productionPerformanceRuntime: PerformanceRuntime = {
       const loadStarted = performance.now();
       const { project } = await loadProjectFromPath(assignment.projectPath);
       const validated = performanceRenderAssignment(assignment, project);
+      const snapshot = captureSnapshotIdentity(
+        assignment.caseHash,
+        validated.manifest.projectRevision,
+      );
       if (assignment.benchmark.mode === "preview-present") {
         if (
           !["composite-1080p", "composite-4k", "effect-chain-1080p"].includes(assignment.case.id) ||
@@ -123,6 +128,7 @@ export const productionPerformanceRuntime: PerformanceRuntime = {
       const readback = (time: number, destination?: ArrayBuffer) =>
         pipeline.readback(
           createBeautyFrameRequest({
+            snapshot,
             project: validated.project,
             composition: validated.composition,
             time,
@@ -160,6 +166,7 @@ export const productionPerformanceRuntime: PerformanceRuntime = {
         present: (time) =>
           pipeline.present(
             createBeautyFrameRequest({
+              snapshot,
               project: validated.project,
               composition: validated.composition,
               time,

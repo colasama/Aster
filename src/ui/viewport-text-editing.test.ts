@@ -12,9 +12,46 @@ import {
   commitViewportTextEdit,
   previewViewportTextEdit,
   updateViewportTextEdit,
+  viewportTextSnapshotIdentity,
 } from "./viewport-text-editing";
 
 describe("viewport text edit transaction", () => {
+  it("versions actual draft edits while cancellation restores document identity", () => {
+    const project = createBlankProject();
+    const composition = activeComposition(project);
+    const layer = createLayerForComposition("text", composition);
+    layer.text = "Original";
+    composition.layers = [layer];
+    const document = { snapshotScope: "x".repeat(256), projectRevision: 19 };
+    const session = beginViewportTextEdit(project, composition, layer.id, 0);
+    if (!session) throw new Error("Expected editable text session");
+    const first = updateViewportTextEdit(session, "A");
+    const second = updateViewportTextEdit(first, "B");
+    const third = updateViewportTextEdit(second, "A");
+    const identities = [first, second, third].map((draft) =>
+      viewportTextSnapshotIdentity(
+        document,
+        project,
+        previewViewportTextEdit(project, composition, 0, draft),
+        draft,
+      ),
+    );
+    expect(new Set(identities.map((value) => value.snapshotScope)).size).toBe(3);
+    expect(identities.map((value) => value.projectRevision)).toEqual([19, 19, 19]);
+    expect(updateViewportTextEdit(third, "A")).toBe(third);
+    expect(viewportTextSnapshotIdentity(document, project, project, undefined)).toBe(document);
+    const restored = updateViewportTextEdit(third, "Original");
+    expect(
+      viewportTextSnapshotIdentity(
+        document,
+        project,
+        previewViewportTextEdit(project, composition, 0, restored),
+        restored,
+      ),
+    ).toBe(document);
+    expect(layer.text).toBe("Original");
+  });
+
   it("renders an immutable live draft and commits the whole edit as one undo step", () => {
     const project = createBlankProject();
     const composition = activeComposition(project);

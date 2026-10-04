@@ -4,6 +4,37 @@
       "enum": ["off", "fxaa", "ssaa2x", "ssaa4x"],
       "type": "string"
     },
+    "BinaryRationalTime": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "exponent": {
+              "format": "int16",
+              "maximum": 1023,
+              "minimum": -1074,
+              "type": "integer"
+            },
+            "kind": {
+              "const": "binary_rational",
+              "type": "string"
+            },
+            "negative": {
+              "const": false,
+              "type": "boolean"
+            },
+            "significand": {
+              "format": "uint64",
+              "maximum": 9007199254740991,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          "required": ["kind", "negative", "significand", "exponent"],
+          "type": "object"
+        }
+      ]
+    },
     "BlobDescriptor": {
       "additionalProperties": false,
       "properties": {
@@ -53,6 +84,17 @@
       "enum": ["linear-hdr-to-srgb-display"],
       "type": "string"
     },
+    "CompositionIdentity": {
+      "anyOf": [
+        {
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "$ref": "#/$defs/Utf16CompositionIdentity"
+        }
+      ]
+    },
     "ContractLevel": {
       "enum": ["post_uniforms_slice_v1"],
       "type": "string"
@@ -88,12 +130,10 @@
           "$ref": "#/$defs/ColorPipeline"
         },
         "composition_id": {
-          "maxLength": 256,
-          "minLength": 1,
-          "type": "string"
+          "$ref": "#/$defs/CompositionIdentity"
         },
         "frame_rate": {
-          "$ref": "#/$defs/RationalFrameRate"
+          "$ref": "#/$defs/FrameRate"
         },
         "project_revision": {
           "format": "uint64",
@@ -104,14 +144,21 @@
         "render_target": {
           "$ref": "#/$defs/Extent2d"
         },
+        "snapshot_scope": {
+          "description": "Snapshot identity: 1..256 UTF-8 bytes, without NUL.",
+          "maxLength": 256,
+          "minLength": 1,
+          "type": "string"
+        },
         "target": {
           "$ref": "#/$defs/Extent2d"
         },
         "time": {
-          "$ref": "#/$defs/RationalTime"
+          "$ref": "#/$defs/FrameTime"
         }
       },
       "required": [
+        "snapshot_scope",
         "project_revision",
         "composition_id",
         "time",
@@ -122,6 +169,100 @@
         "color_pipeline"
       ],
       "type": "object"
+    },
+    "FrameRate": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "denominator": {
+              "format": "uint32",
+              "minimum": 1,
+              "type": "integer"
+            },
+            "kind": {
+              "const": "rational",
+              "type": "string"
+            },
+            "numerator": {
+              "format": "uint32",
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          "required": ["kind", "numerator", "denominator"],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "denominator": {
+              "$ref": "#/$defs/BinaryRationalTime"
+            },
+            "kind": {
+              "const": "binary_ratio",
+              "type": "string"
+            },
+            "numerator": {
+              "$ref": "#/$defs/BinaryRationalTime"
+            }
+          },
+          "required": ["kind", "numerator", "denominator"],
+          "type": "object"
+        }
+      ]
+    },
+    "FrameTime": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "rational",
+              "type": "string"
+            },
+            "scale": {
+              "format": "uint32",
+              "minimum": 1,
+              "type": "integer"
+            },
+            "value": {
+              "format": "int64",
+              "maximum": 9007199254740991,
+              "minimum": -9007199254740991,
+              "type": "integer"
+            }
+          },
+          "required": ["kind", "value", "scale"],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "exponent": {
+              "format": "int16",
+              "maximum": 1023,
+              "minimum": -1074,
+              "type": "integer"
+            },
+            "kind": {
+              "const": "binary_rational",
+              "type": "string"
+            },
+            "negative": {
+              "type": "boolean"
+            },
+            "significand": {
+              "format": "uint64",
+              "maximum": 9007199254740991,
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          "required": ["kind", "negative", "significand", "exponent"],
+          "type": "object"
+        }
+      ]
     },
     "PlanKind": {
       "enum": ["frame_plan_slice"],
@@ -161,41 +302,6 @@
         }
       },
       "required": ["hash", "kind", "descriptor"],
-      "type": "object"
-    },
-    "RationalFrameRate": {
-      "additionalProperties": false,
-      "properties": {
-        "denominator": {
-          "format": "uint32",
-          "minimum": 1,
-          "type": "integer"
-        },
-        "numerator": {
-          "format": "uint32",
-          "minimum": 1,
-          "type": "integer"
-        }
-      },
-      "required": ["numerator", "denominator"],
-      "type": "object"
-    },
-    "RationalTime": {
-      "additionalProperties": false,
-      "properties": {
-        "scale": {
-          "format": "uint32",
-          "minimum": 1,
-          "type": "integer"
-        },
-        "value": {
-          "format": "int64",
-          "maximum": 9007199254740991,
-          "minimum": -9007199254740991,
-          "type": "integer"
-        }
-      },
-      "required": ["value", "scale"],
       "type": "object"
     },
     "ResourceHash": {
@@ -243,6 +349,23 @@
           "type": "object"
         }
       ]
+    },
+    "Utf16CompositionIdentity": {
+      "additionalProperties": false,
+      "properties": {
+        "utf16_units": {
+          "items": {
+            "format": "uint16",
+            "maximum": 65535,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "minItems": 1,
+          "type": "array"
+        }
+      },
+      "required": ["utf16_units"],
+      "type": "object"
     }
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",

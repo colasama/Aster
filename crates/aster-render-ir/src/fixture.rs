@@ -1,7 +1,7 @@
 use crate::{
-    AntiAliasing, BlobDescriptor, BufferResourceDescriptor, ColorPipeline, ContractLevel,
-    DecodeLimits, ElementType, Extent2d, FplnCodec, FrameHeaderSlice, FramePlanSliceV1, IrError,
-    PlanKind, PlanSlice, RationalFrameRate, RationalTime, ResourceHash,
+    AntiAliasing, BlobDescriptor, BufferResourceDescriptor, ColorPipeline, CompositionIdentity,
+    ContractLevel, DecodeLimits, ElementType, Extent2d, FplnCodec, FrameHeaderSlice,
+    FramePlanSliceV1, FrameRate, FrameTime, IrError, PlanKind, PlanSlice, ResourceHash,
 };
 
 /// Independently generated numeric payloads exercise the wire format without a GPU or TS source.
@@ -45,13 +45,14 @@ impl IrFixture {
             contract_level: ContractLevel::PostUniformsSliceV1,
             renderer_plan_complete: false,
             header: FrameHeaderSlice {
+                snapshot_scope: "rust-independent-fixture".to_owned(),
                 project_revision: 9_007_199_254_740_991,
-                composition_id: "Rust fixture · 空 ☄".to_owned(),
-                time: RationalTime {
+                composition_id: CompositionIdentity::Unicode("Rust fixture · 空 ☄".to_owned()),
+                time: FrameTime::Rational {
                     value: -1001,
                     scale: 24000,
                 },
-                frame_rate: RationalFrameRate {
+                frame_rate: FrameRate::Rational {
                     numerator: 24000,
                     denominator: 1001,
                 },

@@ -1,10 +1,12 @@
 
 
+override root_zero_operations: u32 = 0u;
+
 @fragment
 fn fragment_main(input: VertexOutput) -> @location(0) vec4f {
   let resolution = settings.resolution_time_exposure.xy;
   let time = settings.resolution_time_exposure.z;
-  let effect_count = u32(settings.program.x);
+  let effect_count = select(u32(settings.program.x), 0u, root_zero_operations != 0u);
   var uv = input.uv;
   var active_warp_mask = 1.0;
   for (var index = 0u; index < 64u; index += 1u) {

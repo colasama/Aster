@@ -48,15 +48,19 @@ export function canonicalJson(value: unknown): string {
 }
 
 export function integer(value: unknown, minimum = 0, maximum = Number.MAX_SAFE_INTEGER): number {
-  requirePlan(
-    typeof value === "number" &&
+  if (
+    !(
+      typeof value === "number" &&
       Number.isSafeInteger(value) &&
       !Object.is(value, -0) &&
       value >= minimum &&
-      value <= maximum,
-    "invalid_safe_integer",
-    `Expected an integer in [${minimum}, ${maximum}]`,
-  );
+      value <= maximum
+    )
+  )
+    throw new FramePlanError(
+      "invalid_safe_integer",
+      `Expected an integer in [${minimum}, ${maximum}]`,
+    );
   return value;
 }
 
@@ -66,13 +70,9 @@ export function object(value: unknown, keys: string[]): Record<string, unknown> 
     "invalid_json",
     "Expected a wire object",
   );
-  const actual = Object.keys(value).sort();
-  const expected = [...keys].sort();
-  requirePlan(
-    actual.length === expected.length && actual.every((key, index) => key === expected[index]),
-    "unknown_field",
-    `Expected exactly these fields: ${keys.join(", ")}`,
-  );
+  const actual = Object.keys(value);
+  if (actual.length !== keys.length || actual.some((key) => !keys.includes(key)))
+    throw new FramePlanError("unknown_field", `Expected exactly these fields: ${keys.join(", ")}`);
   return value as Record<string, unknown>;
 }
 

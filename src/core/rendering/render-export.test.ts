@@ -11,15 +11,45 @@ import {
   type FrameRenderSession,
   type FrameRenderSessionOpenRequest,
   frameTimeAtIndex,
+  openFrameRenderSession,
   renderMp4,
   streamFramePipeline,
 } from "./render-export";
 
 describe("MP4 frame pipeline", () => {
+  it("requires explicit-project identity and captures it before asynchronous session opening", async () => {
+    const project = createBlankProject();
+    await expect(openFrameRenderSession({ project })).rejects.toThrow("snapshot identity");
+    const snapshot = { snapshotScope: "agent:workspace", projectRevision: 3 };
+    let received: FrameRenderSessionOpenRequest | undefined;
+    const listener = (event: Event) => {
+      received = (event as CustomEvent<FrameRenderSessionOpenRequest>).detail;
+      snapshot.projectRevision = 7;
+      snapshot.snapshotScope = "unrelated-editor";
+      received.reject(new Error("Expected test rejection"));
+    };
+    window.addEventListener("aster:open-render-session", listener);
+    try {
+      await expect(openFrameRenderSession({ project, snapshot })).rejects.toThrow(
+        "Expected test rejection",
+      );
+      expect(received?.options.project).toBe(project);
+      expect(received?.options.snapshot).toEqual({
+        snapshotScope: "agent:workspace",
+        projectRevision: 3,
+      });
+    } finally {
+      window.removeEventListener("aster:open-render-session", listener);
+    }
+  });
+
   it("captures one immutable project/composition document for picture and audio", () => {
     const project = createBlankProject();
     const composition = project.compositions[0];
     const captured = captureRenderProjectSnapshot(project, composition);
+    const other = captureRenderProjectSnapshot(project, composition);
+    expect(captured.snapshot.projectRevision).toBe(0);
+    expect(captured.snapshot.snapshotScope).not.toBe(other.snapshot.snapshotScope);
     composition.width = 123;
     composition.layers[0].name = "edited after capture";
 

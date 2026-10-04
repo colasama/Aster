@@ -17,6 +17,7 @@ import {
   prepareCapturePlugins,
 } from "./capture-resources";
 import type { CaptureRuntime } from "./capture-runner";
+import { captureSnapshotIdentity } from "./capture-snapshot";
 
 export const productionCaptureRuntime: CaptureRuntime = {
   async open(assignment, health) {
@@ -45,6 +46,7 @@ export const productionCaptureRuntime: CaptureRuntime = {
     try {
       const loadStarted = performance.now();
       const { project } = await loadProjectFromPath(assignment.projectPath);
+      const snapshot = captureSnapshotIdentity(assignment.caseHash);
       const composition = captureComposition(assignment, project);
       assertCaptureMedia(project, composition);
       const plugins = await prepareCapturePlugins(project);
@@ -80,6 +82,7 @@ export const productionCaptureRuntime: CaptureRuntime = {
         async readback(time) {
           const raw = await pipeline.readback(
             createBeautyFrameRequest({
+              snapshot,
               project,
               composition,
               time,

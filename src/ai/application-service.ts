@@ -2,6 +2,10 @@ import { buildAiContext } from "../core/editing/ai-context";
 import type { Operation } from "../core/editing/operations";
 import { prepareProjectFonts } from "../core/media/project-font-runtime";
 import { activeComposition } from "../core/project/project";
+import {
+  copyRenderSnapshotIdentity,
+  type RenderSnapshotIdentity,
+} from "../core/rendering/render-snapshot";
 import { visibleLayersAtTime } from "../core/scene/scene-evaluation";
 import { createId, type Project } from "../core/types";
 import { EFFECT_REGISTRY } from "../effects/registry";
@@ -82,12 +86,14 @@ export interface AgentApplicationContext {
   scriptModules?: () => Record<string, string>;
   renderPreview?: (
     project: Project,
+    snapshot: RenderSnapshotIdentity,
     times: readonly number[],
     signal: AbortSignal,
     options?: PreviewOptions,
   ) => Promise<AgentRenderedPreviewFrame[]>;
   renderContactSheet?: (
     project: Project,
+    snapshot: RenderSnapshotIdentity,
     request: ContactSheetRequest,
     signal: AbortSignal,
     options?: PreviewOptions,
@@ -597,6 +603,10 @@ export class AsterAgentApplicationService {
       try {
         const frames = await this.#context.renderPreview(
           structuredClone(workspace.project),
+          copyRenderSnapshotIdentity({
+            snapshotScope: `workspace:${workspace.id}:${workspace.baseRevision}`,
+            projectRevision: workspace.revision,
+          }),
           times,
           controller.signal,
           parsePreviewOptions(input),
@@ -647,6 +657,10 @@ export class AsterAgentApplicationService {
     try {
       const sheet = await this.#context.renderContactSheet(
         structuredClone(workspace.project),
+        copyRenderSnapshotIdentity({
+          snapshotScope: `workspace:${workspace.id}:${workspace.baseRevision}`,
+          projectRevision: workspace.revision,
+        }),
         input.contactSheet as ContactSheetRequest,
         controller.signal,
         parsePreviewOptions(input),

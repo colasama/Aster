@@ -43,11 +43,14 @@ export async function run() {
     bendPhase: 0,
     bendSpeed: 180,
   });
+  const snapshotScope = `wipe-check:${crypto.randomUUID()}`;
+  let projectRevision = 0;
   const read = async (size, time) =>
     new Uint8Array(
       (
         await beauty.readback(
           createBeautyFrameRequest({
+            snapshot: { snapshotScope, projectRevision },
             project,
             composition,
             time,
@@ -62,8 +65,10 @@ export async function run() {
   try {
     for (const size of [128, 64]) {
       layer.effects = [];
+      projectRevision += 1;
       const baseline = await read(size, 0);
       layer.effects = [wipe];
+      projectRevision += 1;
       for (const time of [0, 1, 0]) {
         const frame = await read(size, time);
         let unchanged = 0,

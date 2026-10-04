@@ -14,6 +14,7 @@ function scenario() {
     case: generated.case,
     frames: [3, 6],
     projectPath: "preview/project.json",
+    caseHash: "c".repeat(64),
     benchmark: {
       id: "preview-test-1",
       mode: "preview-present",

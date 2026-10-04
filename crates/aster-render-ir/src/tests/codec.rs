@@ -1,5 +1,6 @@
 use crate::{
-    DecodeLimits, FplnCodec, IrError, IrFixture, canonical::CanonicalJson, wire::WireHeader,
+    CompositionIdentity, DecodeLimits, FplnCodec, FrameTime, IrError, IrFixture,
+    canonical::CanonicalJson, wire::WireHeader,
 };
 
 use super::Fixture;
@@ -17,7 +18,8 @@ fn typed_roundtrip_rebuilds_metadata_and_borrows_original_blob_ranges() -> Resul
     assert_eq!(decoded.blob(1)?.as_ptr(), base.wrapping_add(start + 96));
     assert_eq!(&decoded.blob(0)?[12..16], &(-0.0_f32).to_le_bytes());
     assert_eq!(decoded.reencode(&DecodeLimits::default())?, original);
-    decoded.metadata.header.composition_id = "new serialized identity \" \\ \n 空 🦀".to_owned();
+    decoded.metadata.header.composition_id =
+        CompositionIdentity::Unicode("new serialized identity \" \\ \n 空 🦀".to_owned());
     let rebuilt = decoded.reencode(&DecodeLimits::default())?;
     assert_ne!(rebuilt, original);
     let restored = FplnCodec::decode(rebuilt, &DecodeLimits::default())?;
@@ -138,14 +140,15 @@ fn unsafe_integers_rationals_and_incomplete_contract_are_not_normalized() -> Res
         Err(IrError::InvalidSafeInteger)
     ));
     fixture.metadata.header.project_revision = 0;
-    fixture.metadata.header.time.value = 500;
-    fixture.metadata.header.time.scale = 1000;
+    fixture.metadata.header.time = FrameTime::Rational {
+        value: 500,
+        scale: 1000,
+    };
     assert!(matches!(
         FplnCodec::decode(fixture.unchecked_metadata()?, &DecodeLimits::default()),
         Err(IrError::InvalidRational)
     ));
-    fixture.metadata.header.time.value = 0;
-    fixture.metadata.header.time.scale = 1;
+    fixture.metadata.header.time = FrameTime::Rational { value: 0, scale: 1 };
     fixture.metadata.renderer_plan_complete = true;
     assert!(matches!(
         FplnCodec::decode(fixture.unchecked_metadata()?, &DecodeLimits::default()),

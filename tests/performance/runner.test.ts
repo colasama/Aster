@@ -25,6 +25,7 @@ function scenario(mode: PerformanceMode = "readback-only", audio = false) {
     case: generated.case,
     frames: generated.case.frames,
     projectPath: "D:/fixtures/performance-test/project.json",
+    caseHash: "b".repeat(64),
     benchmark: {
       id: "performance-test-readback-1",
       mode,
