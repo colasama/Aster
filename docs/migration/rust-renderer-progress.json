@@ -76,39 +76,39 @@
     "approval": "Preserve the complete M0-T3 production TS capture as the original pixel oracle. Only the explicitly listed, section 6.6 reviewed M0 reference repairs overlay requested frames. All other original frames, including sequence neighbors, remain unchanged. Freeze this effective reference set before M1; M1 and M2 retain strict whole-corpus exact requirements."
   },
   "last_cycle": {
-    "id": 29,
-    "time": "2026-10-04T21:35:12.304Z",
+    "id": 30,
+    "time": "2026-10-04T21:57:50.263Z",
     "milestone": "M2",
     "task": "M2-T6",
     "outcome": "passed",
-    "commit": "319585a64c5a85c9b65a4f5c5d123e7b7df7ed11",
-    "verification": "artifacts/migration/verify-2026-10-04T21-28-33-943Z-8346951f.json",
-    "verification_sha256": "5901f3e8b27f69ee522df2b83b9a410d183d496ae1dbd2bae43729f55698dc71",
+    "commit": "8e0e2622b3533864358066b9ac40f553c8049dd6",
+    "verification": "D:\\code\\Aster\\artifacts\\migration\\verify-2026-10-04T21-51-24-419Z-e3aa1673.json",
+    "verification_sha256": "0c9b3b456de19982bc2e9fcd4576e188eeef56d2bcaf01647a21b370278123b3",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 80966
+        "duration_ms": 72859
       },
       {
         "id": "G1",
         "status": "passed",
-        "duration_ms": 4573
+        "duration_ms": 4697
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 266535
+        "duration_ms": 266632
       }
     ],
-    "verification_duration_ms": 353317,
-    "next_step": "Continue M2-T6: separate temporal raster acquisition from GPU upload and encode weighted accumulation/resolve from planned sample resources with safe output ownership.",
+    "verification_duration_ms": 345429,
+    "next_step": "Continue M2-T6: bind sampled rasters and temporal output generations through planned resources with safe ownership, then execute explicit accumulation/resolve.",
     "notes": [
-      "TS/Rust now share temporal_text_samples_slice_v1 with exact f64 frame time, transparent weight and local-time/weight/time-bucket triples. Closed descriptors carry resource identity, sample counts, exposure-only identity and sample/accumulation/resolve formats.",
-      "Both validators reject invalid counts, nonfinite lanes, unsafe buckets, incorrect formats, mismatched frame times and incomplete shutter-weight coverage. Schema is regenerated. Signed zero and fractional sample bits survive FPLN transport.",
-      "Root production preparation consumes the supplied sample map and exposure identities before raster acquisition and text geometry expansion. No extra canvas/GPU readback was introduced; temporal GPU cache ownership and pass encoding are unchanged in this increment.",
-      "Full M2 G0/G1/G3 passed with 38 FPLN round trips including five temporal fixtures (actual full/entering/exiting shutter plans, transparent exposure and exact-bit values), 362 real raster resources and 1819 exact production pixel frames.",
-      "M2-T6 remains in progress: extract CPU temporal raster acquisition, planned sample resource hashes, explicit weighted accumulation/resolve execution and safely retained temporal output bindings. Complete submitted-frame capture/replay remains M2-T14."
+      "Temporal text CPU preparation now freezes expanded bounds, budget-selected scale, copied samples and generation identity, then acquires and validates every canvas before cache ownership changes.",
+      "The evaluator-free GPU uploader consumes supplied canvases and aligned weights. Existing RGBA16F accumulation, sRGB resolve, retained output reuse and submission cleanup behavior are preserved.",
+      "A boundary test revokes authoring-layer access and mutates canonical samples after acquisition, verifies the original canvas/weight uploads, and rejects malformed prepared input before allocation.",
+      "Full M2 G0/G1/G3 passed with 38 FPLN round trips, five temporal sample fixtures, 362 real raster resources and 1819 exact production pixel frames.",
+      "M2-T6 remains in progress: planned sample resource hashes, explicit weighted accumulation/resolve execution and safely retained temporal output bindings still require implementation. Complete submitted-frame replay remains M2-T14."
     ]
   },
   "milestones": [
@@ -13154,10 +13154,56 @@
                 "Full M2 G0/G1/G3 passed with 38 FPLN round trips including five temporal fixtures (actual full/entering/exiting shutter plans, transparent exposure and exact-bit values), 362 real raster resources and 1819 exact production pixel frames.",
                 "M2-T6 remains in progress: extract CPU temporal raster acquisition, planned sample resource hashes, explicit weighted accumulation/resolve execution and safely retained temporal output bindings. Complete submitted-frame capture/replay remains M2-T14."
               ]
+            },
+            {
+              "cycle": 30,
+              "status": "passed",
+              "commit": "8e0e2622b3533864358066b9ac40f553c8049dd6",
+              "verification": {
+                "path": "D:\\code\\Aster\\artifacts\\migration\\verify-2026-10-04T21-51-24-419Z-e3aa1673.json",
+                "sha256": "0c9b3b456de19982bc2e9fcd4576e188eeef56d2bcaf01647a21b370278123b3"
+              },
+              "pixel_comparison": {
+                "path": "artifacts/parity/ts-check/2026-10-04T21-52-42-581Z-57ec51e6/report.json",
+                "sha256": "609cde26c12286f2e4266a08c814ab68716eb92ac05516a6cb4155f9ea97835e"
+              },
+              "capture": {
+                "path": "artifacts/parity/capture-2026-10-04T21-45-18-823Z-7c2aedbc.json",
+                "sha256": "9d1cfaaacc37691fd78df98713fe853f9686b771ab396c05b3a9cd6436e610c0"
+              },
+              "manifest": {
+                "path": "artifacts/parity/runs/2026-10-04T21-45-18-823Z-7c2aedbc/candidate/manifest.json",
+                "sha256": "c2a1f6646d4ad71269145c72027112a41e7f88b9a271fb99e9b275df0699da47"
+              },
+              "renderer_source_sha256": "85ee150aa0f65c459678f23dd2c23f3da3b901296d273d2faf84cf9e71d8caa6",
+              "bridge_sha256": "82ccf02fefd4c54e78a82a4de08df6906714ecd0b198864ec72cb0c0394dd80c",
+              "gates": [
+                {
+                  "id": "G0",
+                  "status": "passed",
+                  "duration_ms": 72859
+                },
+                {
+                  "id": "G1",
+                  "status": "passed",
+                  "duration_ms": 4697
+                },
+                {
+                  "id": "G3",
+                  "status": "passed",
+                  "duration_ms": 266632
+                }
+              ],
+              "notes": [
+                "Temporal text CPU preparation now freezes expanded bounds, budget-selected scale, copied samples and generation identity, then acquires and validates every canvas before cache ownership changes.",
+                "The evaluator-free GPU uploader consumes supplied canvases and aligned weights. Existing RGBA16F accumulation, sRGB resolve, retained output reuse and submission cleanup behavior are preserved.",
+                "A boundary test revokes authoring-layer access and mutates canonical samples after acquisition, verifies the original canvas/weight uploads, and rejects malformed prepared input before allocation.",
+                "Full M2 G0/G1/G3 passed with 38 FPLN round trips, five temporal sample fixtures, 362 real raster resources and 1819 exact production pixel frames.",
+                "M2-T6 remains in progress: planned sample resource hashes, explicit weighted accumulation/resolve execution and safely retained temporal output bindings still require implementation. Complete submitted-frame replay remains M2-T14."
+              ]
             }
           ],
           "remaining_work": [
-            "Separate temporal raster acquisition/bounds/budget preparation from GPU texture upload and pass encoding; retain current cache reuse and exact weights.",
             "Bind sampled rasters and resolved temporal outputs through planned content hashes with submission-safe ownership, then encode explicit accumulation/resolve from supplied inputs.",
             "Verify temporal GPU replay and all shutter-edge cases; complete submitted-frame replay remains M2-T14."
           ]
@@ -13367,7 +13413,7 @@
       ],
       "preview_baseline_path": "benchmarks/results/m2-preview-baseline.json",
       "preview_baseline_sha256": "a1c62e224c008e731c252142ab1b9de7d31ecf592452c00da1dff42516772375",
-      "active_candidate_manifest": "artifacts/parity/runs/2026-10-04T21-21-37-566Z-6a44b215/candidate/manifest.json",
+      "active_candidate_manifest": "artifacts/parity/runs/2026-10-04T21-45-18-823Z-7c2aedbc/candidate/manifest.json",
       "last_verification": {
         "status": "passed",
         "required_gates_passed": true,
@@ -13376,17 +13422,17 @@
           {
             "id": "G0",
             "status": "passed",
-            "duration_ms": 80966
+            "duration_ms": 72859
           },
           {
             "id": "G1",
             "status": "passed",
-            "duration_ms": 4573
+            "duration_ms": 4697
           },
           {
             "id": "G3",
             "status": "passed",
-            "duration_ms": 266535
+            "duration_ms": 266632
           }
         ],
         "optional_gates": [
@@ -13397,7 +13443,7 @@
           }
         ],
         "performance_policy": "rust-delivery-v1",
-        "report": "artifacts/migration/verify-2026-10-04T21-28-33-943Z-8346951f.json"
+        "report": "D:\\code\\Aster\\artifacts\\migration\\verify-2026-10-04T21-51-24-419Z-e3aa1673.json"
       },
       "performance_series_history": [
         {
@@ -14703,12 +14749,5 @@
       }
     }
   ],
-  "active_cycle": {
-    "id": 30,
-    "milestone": "M2",
-    "task": "M2-T6",
-    "started_at": "2026-10-04T21:37:18.716Z",
-    "scope": "Separate temporal text bounds/budget/sample preparation and raster acquisition from evaluator-free GPU upload, retaining exact weights and cache ownership behavior.",
-    "previous_turn_classification": "progress: cycle29 committed exact temporal sample transport and production consumption after full G0/G1/G3."
-  }
+  "active_cycle": null
 }
