@@ -75,7 +75,8 @@ import type { PreparedSceneGenerator } from "./scene/scene-generator-host";
 import { buildSceneLighting, shadowMapSize } from "./scene/scene-lighting";
 import { buildTimeAddressedMotionVectors } from "./scene/time-addressed-motion-vectors";
 import { planTextMotionBlurFrame } from "./text/text-motion-blur-plan";
-import { expandTextSceneGeometry, prepareTextSceneGeometry } from "./text/text-scene-geometry";
+import { expandTextSceneGeometry } from "./text/text-scene-geometry";
+import { prepareTextSceneRasters } from "./text/text-scene-preparation";
 
 const SCENE_FORMAT: GPUTextureFormat = "rgba16float";
 
@@ -445,16 +446,21 @@ export class WebGpuRenderer {
       textMotionBlur.exposureSceneLayers.length > 0
         ? [...textMotionBlur.renderSceneLayers]
         : evaluation.sceneLayers;
-    const geometry = prepareTextSceneGeometry(
+    const textBounds = prepareTextSceneRasters(
+      composition,
+      sceneLayers,
+      resources.mediaTextures,
+      previewResolutionScale,
+      textMotionBlur.plans,
+    );
+    const geometry = expandTextSceneGeometry(
       composition,
       sceneLayers,
       textMotionBlur.exposureSceneLayers.length > 0
         ? buildSceneGeometry(composition, [...sceneLayers], camera)
         : evaluation.geometry,
       camera,
-      resources.mediaTextures,
-      previewResolutionScale,
-      textMotionBlur.plans,
+      (id) => textBounds.get(id),
     );
     const motionBlurSelectionIds = new Set(
       geometry.batches
@@ -508,6 +514,7 @@ export class WebGpuRenderer {
     const shutterInterval = motionBlurInterval(time, frameRate, motionBlurSettings);
     let motionVectors: Float32Array | undefined;
     if (motionBlurRequested) {
+      const motionTextBounds = resources.mediaTextures.snapshotTextBounds();
       const geometryAt = (sampleTime: number) => {
         const sample = this.#evaluationCache.evaluate(
           composition,
@@ -521,7 +528,7 @@ export class WebGpuRenderer {
           sample.sceneLayers,
           sample.geometry,
           evaluateSceneCamera(composition, sampleTime),
-          (id) => resources.mediaTextures.textBounds(id),
+          (id) => motionTextBounds.get(id),
         );
       };
       motionVectors = buildTimeAddressedMotionVectors(

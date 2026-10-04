@@ -1,10 +1,8 @@
 import { evaluateLayerTransform } from "../../core/animation/expressions";
 import { evaluateLayerSourceTime } from "../../core/animation/layer-time";
-import { clampTextAnimationTime } from "../../core/animation/text-animator";
 import { configurePreviewVideoAudio } from "../../core/audio/audio-preview";
 import { sourceLocator } from "../../core/media/footage-source";
 
-import { projectFontRevision } from "../../core/media/project-font-runtime";
 import { AsyncWorkPool } from "../../core/scheduling/async-work-pool";
 
 import type { FootageSource, Layer } from "../../core/types";
@@ -36,11 +34,7 @@ import {
   TextMotionBlurRasterCache,
   type TextMotionBlurRasterFrameStats,
 } from "../text/text-motion-blur-raster-cache";
-import {
-  rasterizeTextLayer,
-  textRasterResolutionScale,
-  textRasterSignature,
-} from "../text/text-rasterizer";
+import { acquireTextRaster } from "../text/text-raster-acquisition";
 import { MediaBindingLease } from "./media-binding-lease";
 import {
   type PreparedMediaIdentity,
@@ -66,6 +60,7 @@ import {
   sweepMediaResources,
 } from "./media-resource";
 import { MISSING_MEDIA_RGBA, MISSING_MEDIA_SOURCE } from "./missing-media";
+import { uploadTextRaster } from "./text-raster-upload";
 import { TextureUploadBatch } from "./texture-upload-batch";
 import { VideoExternalUpload, type VideoExternalUploadStatus } from "./video-external-upload";
 
@@ -681,6 +676,16 @@ export class MediaTextureCache {
     return this.#resources.get(instanceId)?.textBounds;
   }
 
+  snapshotTextBounds() {
+    return new Map(
+      [...this.#resources].flatMap(([id, resource]) =>
+        resource.kind === "text" && resource.textBounds
+          ? [[id, { ...resource.textBounds }] as const]
+          : [],
+      ),
+    );
+  }
+
   prepareText(
     layer: Layer,
     instanceId: string,
@@ -690,7 +695,6 @@ export class MediaTextureCache {
     motionBlur?: TextMotionBlurPlan,
   ): void {
     if (this.#destroyed) throw new Error("Media texture cache is destroyed");
-    const rasterScale = textRasterResolutionScale(resolutionScale);
     if (motionBlur) {
       this.#textMotionBlur ??= new TextMotionBlurRasterCache(
         this.#device,
@@ -719,92 +723,29 @@ export class MediaTextureCache {
       }
     }
     this.#textMotionBlur?.delete(instanceId);
-    const animationTime = clampTextAnimationTime(layer.textAnimator, localTime);
-    const sampleRate = Number.isFinite(frameRate) ? Math.max(1, Math.min(240, frameRate)) : 60;
-    const sampledAnimationTime =
-      animationTime === undefined ? undefined : Math.round(animationTime * sampleRate) / sampleRate;
-    const staticSource = JSON.stringify([
-      layer.text,
-      layer.name,
-      layer.color,
-      layer.size,
-      layer.textStyle,
-      projectFontRevision(),
-      layer.textAnimator,
-      rasterScale,
-    ]);
-    const source = JSON.stringify([
-      layer.text,
-      layer.name,
-      layer.color,
-      layer.size,
-      layer.textStyle,
-      projectFontRevision(),
-      layer.textAnimator,
-      sampledAnimationTime,
-      rasterScale,
-    ]);
     const existing = this.#resources.get(instanceId);
-    if (existing?.kind === "text" && existing.source === source) {
-      this.#frameResourceErrors.delete(instanceId);
-      return;
-    }
     this.#frameResourceErrors.delete(instanceId);
-    // Expression and wiggly selectors keep the sampled time moving, so key the raster work on
-    // the evaluated glyph state instead: identical output reuses the existing texture.
-    const textSignature = `${staticSource}|${textRasterSignature(layer, sampledAnimationTime ?? 0).toString(36)}`;
-    if (existing?.kind === "text" && existing.texture && existing.textSignature === textSignature) {
-      existing.source = source;
-      return;
-    }
-    const raster = rasterizeTextLayer(
+    const prepared = acquireTextRaster(
       layer,
+      localTime,
+      frameRate,
+      resolutionScale,
       Math.min(MAX_MEDIA_TEXTURE_DIMENSION, this.#device.limits.maxTextureDimension2D),
-      sampledAnimationTime,
-      rasterScale,
+      existing?.kind === "text"
+        ? {
+            source: existing.source,
+            signature: existing.textSignature,
+            hasPixels: existing.texture !== undefined,
+          }
+        : undefined,
     );
-    if (
-      existing?.kind === "text" &&
-      existing.texture &&
-      existing.textureWidth === raster.width &&
-      existing.textureHeight === raster.height
-    ) {
-      existing.source = source;
-      existing.textBounds = raster.bounds;
-      existing.textSignature = textSignature;
-      this.#device.queue.copyExternalImageToTexture(
-        { source: raster.canvas },
-        { texture: existing.texture },
-        [raster.width, raster.height],
-      );
-      return;
-    }
-    destroyMediaResource(existing);
-    const resource: MediaResource = {
-      source,
-      kind: "text",
-      textureWidth: raster.width,
-      textureHeight: raster.height,
-      textBounds: raster.bounds,
-      textSignature,
-    };
-    this.#resources.set(instanceId, resource);
-    const texture = this.#device.createTexture({
-      label: `GPU text cache · ${layer.name}`,
-      size: [raster.width, raster.height],
-      format: "rgba8unorm-srgb",
-      usage:
-        GPUTextureUsage.TEXTURE_BINDING |
-        GPUTextureUsage.COPY_DST |
-        GPUTextureUsage.RENDER_ATTACHMENT,
+    const resource = uploadTextRaster(prepared, existing, {
+      device: this.#device,
+      textureLabel: `GPU text cache · ${layer.name}`,
+      createBindGroup: (texture) =>
+        this.#createBindGroup(texture, `GPU text resources · ${layer.id}`),
     });
-    this.#device.queue.copyExternalImageToTexture({ source: raster.canvas }, { texture }, [
-      raster.width,
-      raster.height,
-    ]);
-    resource.texture = texture;
-    resource.textureBytes = raster.width * raster.height * 4;
-    resource.bindGroup = this.#createBindGroup(texture, `GPU text resources · ${layer.id}`);
+    this.#resources.set(instanceId, resource);
   }
 
   #installBitmap(

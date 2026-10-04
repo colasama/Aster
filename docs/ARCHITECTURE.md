@@ -98,6 +98,13 @@ states and frame hashes included in the plan resource table. Root preparation bu
 after readiness and resolves the supplied plan before encoding. TS/Rust FPLN preserves them exactly;
 authorized native media resolution and full captured-frame replay remain pending.
 
+Ordinary text raster acquisition now owns sampled-time evaluation, font revision, raster density and
+glyph-state reuse. A separate GPU consumer receives the prepared canvas, extent and copied ink bounds;
+it does not read a Layer or rerun text evaluation. Root text geometry and shutter samples use captured
+bound maps, preserving shared-instance preparation and precomposition ordering. Canvas pixels stay on
+the GPU-backed upload path. Transportable raster resource descriptors and text/SVG/PSD replay remain
+part of the ongoing extraction.
+
 Shared WGSL includes output anti-aliasing, core scene variants, compositing, fused post-processing,
 blur/depth/surface effects, auxiliary surfaces, particles, text motion blur and display/buffer helpers.
 The TS `SharedShaderCatalog` loads sources through Vite `?raw`, including in Vitest, and concatenates the fragments in

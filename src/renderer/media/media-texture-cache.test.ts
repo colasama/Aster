@@ -444,6 +444,8 @@ describe("exact-frame media resource barrier", () => {
     layer.text = "Before";
     cache.prepareText(layer, "inline-text", 0, 24);
     const beforeBindGroup = cache.bindGroup("inline-text");
+    const boundsSnapshot = cache.snapshotTextBounds();
+    const beforeBounds = { ...cache.textBounds("inline-text") };
     expect(device.queue.copyExternalImageToTexture).toHaveBeenCalledTimes(1);
     cache.flush({ copyBufferToTexture: vi.fn() } as unknown as GPUCommandEncoder);
     cache.submitted();
@@ -470,6 +472,7 @@ describe("exact-frame media resource barrier", () => {
     cache.prepareText(layer, "inline-text", 0, 24);
     expect(textures).toHaveLength(2);
     expect(textures[0].destroy).toHaveBeenCalledTimes(1);
+    expect(boundsSnapshot.get("inline-text")).toEqual(beforeBounds);
   });
 
   it("retains the text texture while a time-varying selector output is unchanged", () => {

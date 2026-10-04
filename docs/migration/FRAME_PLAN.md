@@ -183,6 +183,13 @@ sequence and exact fractional-video references with pending entries and repeated
 This partial scene contract still lacks material/pass planning and complete captured-frame replay;
 it does not establish a complete render plan. Text and precomposition adapters remain separate tasks.
 
+Ordinary text now has separate CPU acquisition and GPU upload boundaries. Acquisition preserves
+font revision, sampled animation time, density buckets and glyph-state reuse; upload consumes the
+supplied raster without access to the authoring layer. Geometry expansion receives copied bounds
+after all shared-instance preparation, and shutter sampling captures the cache after precomposition
+preparation to retain the existing timing. These transient canvas inputs are not yet serialized
+raster resources; raster identity, pixel transport and evaluated-bound resources remain required.
+
 ## Verification boundary
 
 G1 regenerates the schema to a fresh ignored path and compares it byte-for-byte with the expected

@@ -12749,7 +12749,8 @@
             "Font/material/source generations bind resource hashes; all raster cases remain exact."
           ],
           "required_full_gates": ["G0", "G1", "G3"],
-          "status": "pending"
+          "status": "in_progress",
+          "started_at": "2026-10-04T18:57:58.910Z"
         },
         {
           "id": "M2-T6",
@@ -14309,5 +14310,12 @@
       }
     }
   ],
-  "active_cycle": null
+  "active_cycle": {
+    "id": 23,
+    "milestone": "M2",
+    "task": "M2-T5",
+    "started_at": "2026-10-04T18:57:58.910Z",
+    "scope": "Separate ordinary text CPU raster acquisition from GPU upload, and snapshot evaluated text bounds before pure geometry expansion; preserve exact sampling, font generation, cache reuse and temporal-text behavior.",
+    "previous_turn_classification": "progress: cycles21/22 committed full-gate green changes and M2-T4 completion, with a clean worktree."
+  }
 }

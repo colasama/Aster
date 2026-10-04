@@ -7,7 +7,8 @@ import { buildSceneGeometry, FLOATS_PER_VERTEX } from "../geometry/geometry";
 import type { MediaTextureCache } from "../media/media-texture-cache";
 import { evaluateSceneCamera } from "../scene/scene-camera";
 import type { TextRasterBounds } from "./text-raster-bounds";
-import { expandTextSceneGeometry, prepareTextSceneGeometry } from "./text-scene-geometry";
+import { expandTextSceneGeometry } from "./text-scene-geometry";
+import { prepareTextSceneRasters } from "./text-scene-preparation";
 
 function fixture() {
   const project = createBlankProject();
@@ -100,18 +101,20 @@ describe("text geometry expansion", () => {
         return finalBounds;
       },
     } as unknown as MediaTextureCache;
-    const actual = prepareTextSceneGeometry(
-      composition,
-      scenes,
-      cached,
-      undefined,
-      media,
-      1,
-      new Map(),
+    const captured = prepareTextSceneRasters(composition, scenes, media, 1, new Map());
+    const actual = expandTextSceneGeometry(composition, scenes, cached, undefined, (id) =>
+      captured.get(id),
     );
     expect(prepared[1]).toBeGreaterThan(prepared[0]);
     const expected = buildSceneGeometry(composition, scenes, undefined, () => finalBounds);
     expect(bytes(actual.data)).toEqual(bytes(expected.data));
+    if (!finalBounds) throw new Error("Expected prepared bounds");
+    finalBounds.width *= 2;
+    const replay = expandTextSceneGeometry(composition, scenes, cached, undefined, (id) =>
+      captured.get(id),
+    );
+    expect(bytes(replay.data)).toEqual(bytes(actual.data));
+    expect(prepared).toHaveLength(2);
   });
 
   it.each(["perspective", "orthographic"] as const)(
