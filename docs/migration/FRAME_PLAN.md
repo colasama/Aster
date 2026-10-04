@@ -86,10 +86,17 @@ release. Diagnostic capture now includes these resolved outputs. Individual samp
 hash-addressed owners. The local `TemporalTextPassPlan` supplies output/sample hashes, dimensions,
 formats and weights to an evaluator-free accumulation/resolve executor. It validates all bindings
 and uniform slots before GPU writes; submission-scoped leases retain sample and output allocations.
-This local plan still requires FPLN/Rust transport and decoded sample/pass replay.
+`temporal_text_passes_slice_v1` transports this plan through FPLN/Rust. Its closed metadata owns
+dimensions, formats, output hash and ordered sample hashes, all present in the resource table. Its
+binary payload is an f64 transparent exposure lane followed by one exact f64 weight per sample;
+transparent-only passes therefore still have an eight-byte payload. Both readers reject missing or
+duplicate dependencies, invalid formats, nonfinite/out-of-range weights and incomplete exposure.
+The production root supplies its actual frame header and executes the reconstructed slice.
 The M2 pixel gate separately exercises actual temporal glyph accumulation in four exposure states,
 compares the resolved outputs against frozen exact references and replays their captured resources.
-This verifies the temporal output slice; transported sample passes and complete replay remain open.
+G1 also round-trips full, partial, transparent and exact-bit pass fixtures through Rust and executes
+their reconstructed hashes/weights against a recording GPU boundary. Independent GPU sample/pass
+replay and complete submitted-frame replay remain open.
 
 ## FPLN encoding
 

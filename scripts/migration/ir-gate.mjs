@@ -21,7 +21,7 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
     status: "failed",
     started_at: new Date(started).toISOString(),
     scope:
-      "post_uniforms_slice_v1 + scene_buffers_slice_v1 + camera_parameters_slice_v1 + temporal_text_samples_slice_v1",
+      "post_uniforms_slice_v1 + scene_buffers_slice_v1 + camera_parameters_slice_v1 + temporal_text_samples_slice_v1 + temporal_text_passes_slice_v1",
     renderer_plan_complete: false,
     steps: [],
     roundtrips: [],
@@ -31,6 +31,7 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
     media_draws: [],
     raster_scenes: [],
     temporal_samples: [],
+    temporal_passes: [],
     rejections: [],
   };
   const reader = new M0Evidence(context.root);
@@ -186,6 +187,7 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
       ...mediaFixtures,
       ...rasterFixtures,
       ...temporalFixtures,
+      ...runtime.temporalPassFixtures(),
     ]) {
       const input = join(context.output, `${fixture.id}-ts.fpln`);
       const output = join(context.output, `${fixture.id}-rust.fpln`);
@@ -253,6 +255,54 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
         report.raster_scenes.push(
           await auditRasterScene(runtime, after, fixture, rasterMessages, pixels.bytes),
         );
+      }
+      if (fixture.passes) {
+        const passes = runtime.readTemporalPassSlice(structuredClone(after));
+        assert.deepEqual(passes, fixture.passes);
+        const writes = [];
+        const bindings = new Map(after.metadata.resources.map((hash) => [hash, { hash }]));
+        const draws = [];
+        runtime.executeTemporalTextPassPlan(
+          passes,
+          {
+            hashFor: (id) =>
+              id === "output" ? passes.output : passes.samples[Number(id.split(":")[1])].hash,
+            bindingForHash: (hash) => bindings.get(hash),
+          },
+          {
+            beginRenderPass: () => ({
+              setPipeline() {},
+              setBindGroup(_slot, binding) {
+                draws.push(binding.hash);
+              },
+              draw() {},
+              end() {},
+            }),
+          },
+          {
+            queue: { writeBuffer: (_buffer, _offset, data) => writes.push([...data]) },
+            width: passes.width,
+            height: passes.height,
+            output: { createView() {} },
+            outputBinding: bindings.get(passes.output),
+            accumulation: { createView() {} },
+            weights: { size: passes.samples.length * 256 },
+            resolveBinding: { hash: passes.output },
+            accumulatePipeline: {},
+            resolvePipeline: {},
+          },
+        );
+        assert.deepEqual(draws, [...passes.samples.map((s) => s.hash), passes.output]);
+        assert.equal(writes.length, passes.samples.length ? 1 : 0);
+        passes.samples.forEach((sample, index) => {
+          assert(Object.is(writes[0][index * 64], Math.fround(sample.weight)));
+        });
+        report.temporal_passes.push({
+          id: fixture.id,
+          exact_weights: true,
+          ordered_hashes_exact: true,
+          supplied_execution: true,
+        });
       }
       if (fixture.temporal) {
         const supplied = runtime.readTemporalTextPlan(after);

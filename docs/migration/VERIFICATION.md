@@ -139,8 +139,12 @@ members, actual video upload times, and drawing by supplied hash independently o
 G1 round-trips temporal text samples from the actual shutter planner for full, entering and exiting
 exposure, plus transparent and exact-bit fixtures. Supplied samples and exposure identities must
 survive Rust decoding and TS cloning; invalid formats, frame time, weights and sample lanes fail.
-This transport contract currently covers temporal preparation inputs; transporting the local
-hash-addressed accumulation/resolve pass plan remains separate required work.
+G1 additionally transports hash-addressed accumulation/resolve plans through Rust in four fixtures:
+full exposure, partial exposure, transparent-only and exact-bit weights (including negative zero
+and a subnormal). Reconstructed ordered hashes drive recorded draw bindings and reconstructed f64
+weights drive the final f32 uniform writes. TS and Rust reject malformed dependency/exposure inputs.
+G3 exercises the production reconstructed pass slice; independently decoded GPU sample/pass replay
+remains separate required work.
 The temporal upload boundary test revokes authoring-layer access and mutates original samples after
 acquisition, then checks that uploads retain the acquired canvases and copied weights. The pass
 executor test discards producer weights and executes a cloned plan with an independently changed

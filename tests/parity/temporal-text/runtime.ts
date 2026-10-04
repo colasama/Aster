@@ -1,6 +1,7 @@
 import { createLayerForComposition } from "../../../src/core/layers/layer-factory";
 import { createBlankProject } from "../../../src/core/project/project";
 import { flattenSceneLayers } from "../../../src/core/scene/scene-evaluation";
+import { buildFrameHeader } from "../../../src/renderer/frame-plan/root-post-plan";
 import { mediaFrameMessages } from "../../../src/renderer/media/media-frame-identity";
 import { MediaGpuRegistry } from "../../../src/renderer/media/media-gpu-registry";
 import { captureRasterResources } from "../../../src/renderer/media/raster-resource-capture";
@@ -51,7 +52,19 @@ function fixture(mode: Mode) {
       : [...frame.plans.values()][0];
   if (!plan || (mode !== "transparent" && plan.samples.length < 2))
     throw new Error("Temporal GPU fixture did not exercise shutter samples");
-  return { layer, plan };
+  return {
+    layer,
+    plan,
+    header: buildFrameHeader({
+      snapshot: { snapshotScope: "temporal-gpu", projectRevision: 1 },
+      compositionId: composition.id,
+      time: 1,
+      frameRate: composition.frameRate,
+      target: { width: 256, height: 80 },
+      renderTarget: { width: 256, height: 80 },
+      antiAliasing: "off",
+    }),
+  };
 }
 
 /** Runs only in the hidden G3 window, never during ordinary preview or static tests. */
@@ -72,7 +85,7 @@ export async function runTemporalTextGpuCheck() {
   const results = [];
   try {
     for (const mode of ["full", "enters", "exits", "transparent"] as const) {
-      const { layer, plan } = fixture(mode);
+      const { layer, plan, header } = fixture(mode);
       const cache = new TextMotionBlurRasterCache(device, layout, sampler);
       const registry = new MediaGpuRegistry();
       let lease: ReturnType<MediaGpuRegistry["pin"]> | undefined;
@@ -85,7 +98,7 @@ export async function runTemporalTextGpuCheck() {
         if (lease.bindingForHash(messages[1].hash) !== prepared.bindGroup)
           throw new Error("Temporal output does not resolve its planned hash");
         const encoder = device.createCommandEncoder();
-        cache.encode(encoder);
+        cache.encode(encoder, header.snapshot_scope, header);
         device.queue.submit([encoder.finish()]);
         cache.submitted();
         await device.queue.onSubmittedWorkDone();

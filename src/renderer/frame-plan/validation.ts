@@ -4,6 +4,11 @@ import { compositionIdentityToString } from "./composition-identity";
 import { validateFrameRate } from "./frame-rate";
 import { validateSceneBuffers } from "./scene-buffer-layout";
 import {
+  TEMPORAL_PASS_FIELDS,
+  validateTemporalPass,
+  validateTemporalPassBlob,
+} from "./temporal-pass-layout";
+import {
   TEMPORAL_TEXT_FIELDS,
   validateTemporalText,
   validateTemporalTextBlob,
@@ -69,6 +74,7 @@ export function validateMetadata(value: unknown, limits: FramePlanLimits): Frame
         "scene_buffers_slice_v1",
         "camera_parameters_slice_v1",
         "temporal_text_samples_slice_v1",
+        "temporal_text_passes_slice_v1",
       ].includes(String(metadata.contract_level)) &&
       metadata.renderer_plan_complete === false,
     "unknown_variant",
@@ -144,6 +150,24 @@ export function validateMetadata(value: unknown, limits: FramePlanLimits): Frame
     const scene = metadata.contract_level === "scene_buffers_slice_v1";
     const camera = metadata.contract_level === "camera_parameters_slice_v1";
     const temporal = metadata.contract_level === "temporal_text_samples_slice_v1";
+    const passes = metadata.contract_level === "temporal_text_passes_slice_v1";
+    if (passes) {
+      const slice = object(value, TEMPORAL_PASS_FIELDS);
+      requirePlan(
+        slice.kind === "temporal_text_passes",
+        "unknown_variant",
+        "Unknown temporal pass slice",
+      );
+      const index = integer(slice.blob_index, 0, metadata.blobs.length - 1);
+      requirePlan(
+        !indices.has(index),
+        "blob_count_mismatch",
+        "A blob is referenced more than once",
+      );
+      indices.add(index);
+      validateTemporalPass(slice, metadata.blobs[index], metadata.resources);
+      continue;
+    }
     const slice = object(
       value,
       scene
@@ -222,6 +246,15 @@ export function validatePlanBlob(
     "Supplied blob length differs from descriptor",
   );
   if (metadata.contract_level === "post_uniforms_slice_v1") validatePostUniforms(bytes, metadata);
+  if (metadata.contract_level === "temporal_text_passes_slice_v1") {
+    const slice = metadata.slices.find((slice) => slice.blob_index === index);
+    requirePlan(
+      slice?.kind === "temporal_text_passes",
+      "invalid_temporal_text",
+      "Missing temporal passes",
+    );
+    validateTemporalPassBlob(bytes, slice);
+  }
   if (metadata.contract_level === "temporal_text_samples_slice_v1") {
     const slice = metadata.slices.find((slice) => slice.blob_index === index);
     requirePlan(

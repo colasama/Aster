@@ -777,7 +777,7 @@ export class WebGpuRenderer {
     if (!resources.sceneTexture || !resources.postBindGroup)
       this.resize(this.#outputWidth, this.#outputHeight);
     const encoder = this.#device.createCommandEncoder({ label: "Aster frame render graph" });
-    resources.mediaTextures.flush(encoder);
+    resources.mediaTextures.flush(encoder, postPlan.metadata.header);
     resources.precompositionSurfaces.encode(encoder);
     const compute = encoder.beginComputePass({
       label: sceneGenerators.some((generator) => generator.lodApplied)

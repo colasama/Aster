@@ -1,4 +1,4 @@
-use crate::{CameraParametersSlice, TemporalTextSamplesSlice};
+use crate::{CameraParametersSlice, TemporalTextPassesSlice, TemporalTextSamplesSlice};
 use std::collections::BTreeSet;
 
 use schemars::JsonSchema;
@@ -22,6 +22,7 @@ pub enum ContractLevel {
     SceneBuffersSliceV1,
     CameraParametersSliceV1,
     TemporalTextSamplesSliceV1,
+    TemporalTextPassesSliceV1,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
@@ -113,6 +114,7 @@ pub enum PlanSlice {
     SceneBuffers(SceneBuffersSlice),
     CameraParameters(CameraParametersSlice),
     TemporalTextSamples(TemporalTextSamplesSlice),
+    TemporalTextPasses(TemporalTextPassesSlice),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
@@ -190,6 +192,11 @@ impl FramePlanSliceV1 {
                 {
                     temporal.blob_index
                 }
+                PlanSlice::TemporalTextPasses(temporal)
+                    if self.contract_level == ContractLevel::TemporalTextPassesSliceV1 =>
+                {
+                    temporal.blob_index
+                }
                 _ => return Err(IrError::InvalidHeader("slice contract mismatch".to_owned())),
             };
             let blob = self
@@ -209,6 +216,10 @@ impl FramePlanSliceV1 {
             }
             if let PlanSlice::TemporalTextSamples(temporal) = slice {
                 temporal.validate(blob)?;
+                continue;
+            }
+            if let PlanSlice::TemporalTextPasses(temporal) = slice {
+                temporal.validate(blob, &self.resources)?;
                 continue;
             }
             if blob.element_type != ElementType::F32Le {
@@ -251,6 +262,16 @@ impl FramePlanSliceV1 {
                     && temporal.blob_index as usize == index
                 {
                     return temporal.validate_payload(bytes, &self.header);
+                }
+            }
+            return Err(IrError::BlobCountMismatch);
+        }
+        if self.contract_level == ContractLevel::TemporalTextPassesSliceV1 {
+            for slice in &self.slices {
+                if let PlanSlice::TemporalTextPasses(temporal) = slice
+                    && temporal.blob_index as usize == index
+                {
+                    return temporal.validate_payload(bytes);
                 }
             }
             return Err(IrError::BlobCountMismatch);

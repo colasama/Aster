@@ -25,6 +25,7 @@ import { takePrefetchedRasterImage } from "../../importers/raster-image-prefetch
 
 import { rasterizeSvgToImageBitmap, SvgRasterCache } from "../../importers/svg-raster-cache";
 import { readRasterBounds } from "../frame-plan/raster-sample";
+import type { FrameHeaderSlice } from "../frame-plan/types";
 import type { TextMotionBlurPlan } from "../text/text-motion-blur-plan";
 import {
   TextMotionBlurRasterCache,
@@ -248,9 +249,9 @@ export class MediaTextureCache {
     );
   }
 
-  flush(encoder: GPUCommandEncoder): void {
+  flush(encoder: GPUCommandEncoder, header?: FrameHeaderSlice): void {
     this.#uploads.flush(encoder);
-    this.#textMotionBlur?.encode(encoder, this.#frameScope);
+    this.#textMotionBlur?.encode(encoder, header?.snapshot_scope ?? this.#frameScope, header);
   }
 
   submitted(): void {

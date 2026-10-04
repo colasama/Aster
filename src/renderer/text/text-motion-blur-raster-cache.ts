@@ -1,4 +1,6 @@
 import type { Layer } from "../../core/types";
+import { buildTemporalPassSlice, readTemporalPassSlice } from "../frame-plan/temporal-pass-plan";
+import type { FrameHeaderSlice } from "../frame-plan/types";
 import { sharedShaders } from "../gpu/shared-shader-catalog";
 import { MediaBindingLease } from "../media/media-binding-lease";
 import { preparedRasterIdentity } from "../media/media-frame-identity";
@@ -307,7 +309,7 @@ export class TextMotionBlurRasterCache {
     return entry;
   }
 
-  encode(encoder: GPUCommandEncoder, scope = "local-preview"): void {
+  encode(encoder: GPUCommandEncoder, scope = "local-preview", header?: FrameHeaderSlice): void {
     if (this.#destroyed) return;
     this.#frameStats = {
       ...emptyFrameStats(),
@@ -334,7 +336,10 @@ export class TextMotionBlurRasterCache {
           entry.sampleWeights,
           lease,
         );
-        executeTemporalTextPassPlan(plan, lease, encoder, {
+        const supplied = header
+          ? readTemporalPassSlice(buildTemporalPassSlice(header, plan))
+          : plan;
+        executeTemporalTextPassPlan(supplied, lease, encoder, {
           queue: this.#device.queue,
           width: entry.width,
           height: entry.height,

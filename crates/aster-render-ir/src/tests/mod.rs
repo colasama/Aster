@@ -7,6 +7,7 @@ mod media_resources;
 mod resources;
 mod scene;
 mod schema_time;
+mod temporal_pass;
 mod temporal_text;
 
 use crate::{

@@ -117,7 +117,9 @@ canvas before cache ownership changes. A separate GPU consumer uploads only thos
 without accessing authoring layers or text evaluators. Individual samples now have raster resource
 identities. A separate pass executor resolves supplied sample/output hashes and writes supplied
 weights before encoding accumulation and resolve. Submission-scoped leases retain these resources
-until submission or abort. FPLN/Rust transport of this pass plan and decoded pass replay remain open.
+until submission or abort. A closed FPLN slice now carries the ordered hashes, dimensions, formats
+and exact f64 exposure weights through Rust. Production root encoding supplies its frame header and
+executes the reconstructed slice. GPU replay from independently decoded sample textures remains open.
 Resolved temporal outputs now use the same raster identities and planned scene bindings as ordinary
 text. Cache and frame leases share their physical owner, delaying destruction until the last lease
 releases it. Replacements preserve pinned outputs and count retired allocations against the temporal

@@ -90,7 +90,8 @@ export interface FramePlanSliceV1 {
     | "post_uniforms_slice_v1"
     | "scene_buffers_slice_v1"
     | "camera_parameters_slice_v1"
-    | "temporal_text_samples_slice_v1";
+    | "temporal_text_samples_slice_v1"
+    | "temporal_text_passes_slice_v1";
   renderer_plan_complete: false;
   header: FrameHeaderSlice;
   blobs: BlobDescriptor[];
@@ -126,7 +127,20 @@ export type PlanSlice =
   | { kind: "post_process_uniforms"; blob_index: number }
   | SceneBuffersSlice
   | CameraParametersSlice
-  | TemporalTextSamplesSlice;
+  | TemporalTextSamplesSlice
+  | TemporalTextPassesSlice;
+
+export interface TemporalTextPassesSlice {
+  kind: "temporal_text_passes";
+  blob_index: number;
+  width: number;
+  height: number;
+  output: string;
+  samples: string[];
+  sample_format: "rgba8unorm-srgb";
+  accumulation_format: "rgba16float";
+  output_format: "rgba8unorm-srgb";
+}
 
 export interface TemporalTextSamplesSlice {
   kind: "temporal_text_samples";
