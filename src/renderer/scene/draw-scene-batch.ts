@@ -1,10 +1,12 @@
 import type { BlendMode, EnvironmentLighting } from "../../core/types";
 import type { GeometryBatch } from "../geometry/geometry";
+import type { MediaBindingLease } from "../media/media-binding-lease";
 import type { RendererResources } from "../renderer-resources";
 export function drawSceneBatch(
   resources: RendererResources,
   pass: GPURenderPassEncoder,
   batch: GeometryBatch,
+  mediaBindings: MediaBindingLease,
   blendMode: BlendMode = batch.layer.blendMode,
   environment?: EnvironmentLighting,
 ): void {
@@ -13,9 +15,11 @@ export function drawSceneBatch(
       ? resources.precompositionSurfaces.bindingFor(batch.instanceId)
       : undefined;
   const media =
-    batch.layer.kind === "image" || batch.layer.kind === "video" || batch.layer.kind === "text"
-      ? resources.mediaTextures.bindGroup(batch.resourceInstanceId)
-      : undefined;
+    batch.layer.kind === "image" || batch.layer.kind === "video"
+      ? mediaBindings.bindingFor(batch.resourceInstanceId)
+      : batch.layer.kind === "text"
+        ? resources.mediaTextures.bindGroup(batch.resourceInstanceId)
+        : undefined;
   pass.setVertexBuffer(0, resources.shapeBuffer);
   if (surface) {
     pass.setPipeline(resources.precompositionSurfaces.pipelineFor(blendMode));

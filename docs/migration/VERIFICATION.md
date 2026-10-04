@@ -124,6 +124,9 @@ tests verify producer ownership, borrowed unaligned views and destination replac
 Evaluated camera fixtures cover nested perspective and orthographic cameras with exact f64 payloads.
 Their decoded pose, projection and optics match TS evaluation; consumer tests compare geometry,
 lighting, generator context and depth uniforms and verify that changed supplied bytes alter geometry.
+Media lease tests exercise atomic acquisition, changed-source/frame rejection, abort and delayed GPU
+completion across cache destruction, including the shared placeholder owner. Full G3 remains required
+for media draw adapter changes; these lease tests alone do not establish content-addressed replay.
 See [Frame-plan transport](FRAME_PLAN.md) for the current contract and its explicit partial scope.
 
 Full G3 continues to compare all required TS frames under `exact`, retaining the effective reference

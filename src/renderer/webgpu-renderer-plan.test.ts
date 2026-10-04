@@ -6,6 +6,7 @@ import { buildPostProcessUniforms } from "./effects/post-process";
 import { buildRootPostUniformPlan } from "./frame-plan/root-post-plan";
 import { frameTimeToNumber } from "./frame-plan/time";
 import type { FramePlanSliceData } from "./frame-plan/types";
+import { MediaBindingLease } from "./media/media-binding-lease";
 import { WebGpuRenderer } from "./webgpu-renderer";
 
 const harness = vi.hoisted(() => ({
@@ -67,6 +68,7 @@ function setup() {
   const media = {
     estimatedBytes: 0,
     beginFrame: vi.fn(),
+    acquireFrameBindings: vi.fn(() => new MediaBindingLease([])),
     abortFrame: vi.fn(),
     sweep: vi.fn(),
     mediaReady: () => !pending,
@@ -148,6 +150,8 @@ describe("production root post-plan integration", () => {
       f.encoded,
     );
     expect(harness.plans).toHaveLength(1);
+    expect(f.media.acquireFrameBindings).toHaveBeenCalledExactlyOnceWith([]);
+    expect(f.media.abortFrame).toHaveBeenCalledOnce();
     const plan = harness.plans[0];
     expect(frameTimeToNumber(plan.metadata.header.time)).toBe(time);
     expect(plan.metadata.header).toMatchObject({

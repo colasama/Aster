@@ -1,4 +1,5 @@
 import { logger } from "../../core/logger";
+import { FramePlanError } from "../frame-plan/types";
 import type { TextRasterBounds } from "../text/text-raster-bounds";
 import type { VideoExternalUpload } from "./video-external-upload";
 
@@ -20,6 +21,46 @@ export interface MediaResource {
   uploadErrorReported?: boolean;
 }
 
+interface MediaResourceLifetime {
+  pins: number;
+  retired: boolean;
+  destroyed: boolean;
+}
+
+const lifetimes = new WeakMap<MediaResource, MediaResourceLifetime>();
+
+/** Acquires every owner atomically before encoding commands that reference its texture. */
+export function retainMediaResources(resources: readonly MediaResource[]): () => void {
+  const owners = [...new Set(resources)];
+  const states = owners.map((resource) => {
+    let state = lifetimes.get(resource);
+    if (!state) {
+      state = { pins: 0, retired: false, destroyed: false };
+      lifetimes.set(resource, state);
+    }
+    if (state.retired)
+      throw new FramePlanError(
+        "missing_resource",
+        "Media resource was retired before frame acquisition",
+      );
+    return state;
+  });
+  for (const state of states) state.pins += 1;
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
+    owners.forEach((resource, index) => {
+      states[index].pins -= 1;
+      if (states[index].retired) destroyMediaResource(resource);
+    });
+  };
+}
+
+export function mediaResourceRetired(resource: MediaResource): boolean {
+  return lifetimes.get(resource)?.retired === true;
+}
+
 export function reportVideoUploadError(resource: MediaResource, error: unknown): void {
   if (resource.uploadErrorReported) return;
   resource.uploadErrorReported = true;
@@ -30,6 +71,14 @@ export function reportVideoUploadError(resource: MediaResource, error: unknown):
 
 export function destroyMediaResource(resource?: MediaResource): void {
   if (!resource) return;
+  let state = lifetimes.get(resource);
+  if (!state) {
+    state = { pins: 0, retired: false, destroyed: false };
+    lifetimes.set(resource, state);
+  }
+  state.retired = true;
+  if (state.pins > 0 || state.destroyed) return;
+  state.destroyed = true;
   resource.videoExternalUpload?.destroy();
   resource.video?.pause();
   if (resource.videoCanvas) {

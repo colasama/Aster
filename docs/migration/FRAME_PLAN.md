@@ -134,6 +134,15 @@ before submission; resources remain pinned until that use completes. There is no
 or substitution of missing resources with empty output. CPU transport accounting is separate from
 actual GPU allocation and residency.
 
+The TS media adapter now snapshots image/video bindings for the root frame and pins their owners
+through GPU queue completion. Replacement/sweep retires resources rather than destroying a pinned
+texture. Unknown bindings, released leases and source/upload-generation mismatches fail before
+submission; an explicitly captured pending binding still preserves the existing preview fallback.
+The shared missing-media texture has its own retained owner. Abort releases unsubmitted leases, and
+submission transfers ownership before invoking user readback/cache callbacks. This runtime table
+still uses instance IDs and is not yet the content-addressed `PutResource` media protocol. Text and
+precomposition resource adapters also remain separate extraction tasks.
+
 ## Verification boundary
 
 G1 regenerates the schema to a fresh ignored path and compares it byte-for-byte with the expected

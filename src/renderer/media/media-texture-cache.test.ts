@@ -20,6 +20,39 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("exact-frame media resource barrier", () => {
+  it("holds submitted media bindings until GPU completion even after cache destruction", async () => {
+    const completion = deferred<void>();
+    const destroy = vi.fn();
+    const cache = createCache(completion.promise, destroy);
+    const layer = createLayerForComposition("image", createBlankComposition());
+    cache.prepareMedia(layer, undefined, 0, false, "missing");
+    const lease = cache.acquireFrameBindings(["missing"]);
+    const binding = lease.bindingFor("missing");
+    cache.submitted();
+    cache.destroy();
+    expect(destroy).not.toHaveBeenCalled();
+    expect(lease.bindingFor("missing")).toBe(binding);
+    completion.resolve();
+    await Promise.resolve();
+    expect(destroy).toHaveBeenCalledTimes(1);
+    expect(() => lease.bindingFor("missing")).toThrow(
+      expect.objectContaining({ code: "missing_resource" }),
+    );
+  });
+
+  it("releases failed frame acquisitions and rejects a second unsubmitted frame", () => {
+    const cache = createCache();
+    const layer = createLayerForComposition("image", createBlankComposition());
+    cache.prepareMedia(layer, undefined, 0, false, "missing");
+    const lease = cache.acquireFrameBindings(["missing"]);
+    expect(() => cache.acquireFrameBindings(["missing"])).toThrow();
+    cache.abortFrame();
+    expect(() => lease.bindingFor("missing")).toThrow();
+    expect(cache.acquireFrameBindings(["missing"]).bindingFor("missing")).toBeDefined();
+    cache.abortFrame();
+    cache.destroy();
+  });
+
   it("requests high-magnification SVG rasters instead of stretching the base texture", () => {
     const target = svgPreviewRasterTarget(400, 200, 8, 4_096);
     expect(target.width).toBeGreaterThanOrEqual(3_200);
@@ -698,11 +731,18 @@ describe("exact-frame media resource barrier", () => {
   });
 });
 
-function createCache(): MediaTextureCache {
-  const texture = { createView: vi.fn(() => ({})), destroy: vi.fn() };
+function createCache(
+  completion: Promise<void> = Promise.resolve(),
+  destroy = vi.fn(),
+): MediaTextureCache {
+  const texture = { createView: vi.fn(() => ({})), destroy };
   const device = {
     limits: { maxTextureDimension2D: 8_192 },
-    queue: { copyExternalImageToTexture: vi.fn(), writeTexture: vi.fn() },
+    queue: {
+      copyExternalImageToTexture: vi.fn(),
+      writeTexture: vi.fn(),
+      onSubmittedWorkDone: vi.fn(() => completion),
+    },
     createTexture: vi.fn(() => texture),
     createBuffer: vi.fn(() => ({ destroy: vi.fn() })),
     createBindGroup: vi.fn(() => ({})),

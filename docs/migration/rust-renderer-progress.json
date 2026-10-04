@@ -12409,7 +12409,58 @@
             "Fractional-video and sequence identity cases stay exact; native/DOM handles never enter plan metadata."
           ],
           "required_full_gates": ["G0", "G1", "G3"],
-          "status": "pending"
+          "status": "in_progress",
+          "started_at": "2026-10-04T16:49:56.866Z",
+          "verification_attempts": [
+            {
+              "cycle": 18,
+              "attempt": 1,
+              "status": "failed",
+              "report": "artifacts/migration/verify-2026-10-04T17-02-51-605Z-2f931f98.json",
+              "sha256": "08ce131bcd77cc75d459f3e7513f59784e3d22ca461a5c624fb60f71931f3200",
+              "source_unchanged": true,
+              "gates": [
+                {
+                  "id": "G0",
+                  "status": "failed",
+                  "duration_ms": 72908
+                },
+                {
+                  "id": "G1",
+                  "status": "passed",
+                  "duration_ms": 3293
+                },
+                {
+                  "id": "G3",
+                  "status": "passed",
+                  "duration_ms": 263588
+                }
+              ],
+              "failure": "G0/Vitest: existing root post-plan integration fixture omitted the new acquireFrameBindings method; real media tests and capture passed.",
+              "repair": "Update that test adapter with an empty real MediaBindingLease and assert acquisition/abort. Production renderer/bridge hashes remain identical to the successful full candidate capture; reuse candidate for fresh full required verification."
+            },
+            {
+              "cycle": 18,
+              "verification": "artifacts/migration/verify-2026-10-04T17-09-24-799Z-e381d886.json",
+              "sha256": "36f6a346b8eb5ca8eed978a53ad95dba4988a70ca169ca3e6a9f1d7faccef73d",
+              "status": "failed",
+              "gates": [
+                {
+                  "id": "G0",
+                  "status": "failed"
+                },
+                {
+                  "id": "G1",
+                  "status": "passed"
+                },
+                {
+                  "id": "G3",
+                  "status": "passed"
+                }
+              ],
+              "finding": "Unrelated script-runtime timeout test exhausted its 25ms budget during API initialization under the full suite; all 5 tests pass in an isolated rerun without source changes. G1 and all 1819 exact pixel checks passed. Retry full required gates without changing production source or tolerance."
+            }
+          ]
         },
         {
           "id": "M2-T5",
@@ -13986,5 +14037,12 @@
       }
     }
   ],
-  "active_cycle": null
+  "active_cycle": {
+    "id": 18,
+    "milestone": "M2",
+    "task": "M2-T4",
+    "started_at": "2026-10-04T16:49:56.866Z",
+    "scope": "First T4 increment: actual root image/video binding snapshots and GPU-completion leases, generation mismatch rejection and safe resource retirement. Content-addressed descriptors/PutResource media protocol and replay remain required next; T4 stays open.",
+    "previous_turn_classification": "progress: cycles16/17 completed and verified M2-T3 with committed ledger evidence."
+  }
 }

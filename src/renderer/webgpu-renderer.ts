@@ -371,8 +371,8 @@ export class WebGpuRenderer {
         settleCapture,
       );
     } catch (error) {
-      settleCapture?.();
       this.#resources.mediaTextures.abortFrame();
+      settleCapture?.();
       throw error;
     }
   }
@@ -710,6 +710,11 @@ export class WebGpuRenderer {
       };
     }
     const { target, renderTarget } = framePlanInput;
+    const mediaBindings = resources.mediaTextures.acquireFrameBindings(
+      sceneBatches
+        .filter((batch) => batch.layer.kind === "image" || batch.layer.kind === "video")
+        .map((batch) => batch.resourceInstanceId),
+    );
     const postPlan = buildRootPostUniformPlan(framePlanInput);
     uploadRootPostUniformPlan(postPlan, {
       queue: this.#device.queue,
@@ -900,7 +905,14 @@ export class WebGpuRenderer {
           batch.instanceId,
           item.scene.localTime,
           (layerPass) =>
-            drawSceneBatch(resources, layerPass, batch, "normal", composition.environment),
+            drawSceneBatch(
+              resources,
+              layerPass,
+              batch,
+              mediaBindings,
+              "normal",
+              composition.environment,
+            ),
         );
       } else {
         if (!scenePass) {
@@ -917,7 +929,14 @@ export class WebGpuRenderer {
           scenePassCount += 1;
           clearSceneDepth = false;
         }
-        drawSceneBatch(resources, scenePass, batch, batch.layer.blendMode, composition.environment);
+        drawSceneBatch(
+          resources,
+          scenePass,
+          batch,
+          mediaBindings,
+          batch.layer.blendMode,
+          composition.environment,
+        );
       }
     }
     const generatorDrawCount = drawnGenerators.size;
@@ -936,7 +955,9 @@ export class WebGpuRenderer {
         motionVectors: sceneBuffers.motionVectors,
         mediaBindGroup: (batch) =>
           resources.precompositionSurfaces.bindingFor(batch.instanceId) ??
-          resources.mediaTextures.bindGroup(batch.resourceInstanceId),
+          (batch.layer.kind === "image" || batch.layer.kind === "video"
+            ? mediaBindings.bindingFor(batch.resourceInstanceId)
+            : resources.mediaTextures.bindGroup(batch.resourceInstanceId)),
         generators: beautyMotionBlur
           ? []
           : sceneGenerators
@@ -1037,6 +1058,7 @@ export class WebGpuRenderer {
     cacheTicket?.encode(encoder, outputTexture);
     const collectTimestamps = resources.gpuProfiler.encodeReadback(encoder);
     this.#device.queue.submit([encoder.finish()]);
+    resources.mediaTextures.submitted();
     if (cacheTicket && cacheCapture) {
       const width = this.#outputWidth;
       const height = this.#outputHeight;
@@ -1050,7 +1072,6 @@ export class WebGpuRenderer {
         },
       );
     } else cacheCapture?.();
-    resources.mediaTextures.submitted();
     const textMotionBlurStats = resources.mediaTextures.textMotionBlurFrameStats;
     if (collectTimestamps) resources.gpuProfiler.readback();
     const cpuMs = performance.now() - started;

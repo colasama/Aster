@@ -81,6 +81,12 @@ lighting, depth settings and generator preparation consume its decoded values wi
 Complete depth/pass planning and frame replay remain separate
 milestone requirement. See [Frame-plan transport](migration/FRAME_PLAN.md).
 
+Root image/video drawing and auxiliary passes now acquire an explicit per-frame media binding
+lease after readiness checks. Source/frame generation changes are rejected during binding resolution;
+cache replacement retires owners, with destruction deferred until all submitted leases complete on
+the GPU queue. Unsubmitted failures release their leases immediately. These runtime handles remain
+outside FPLN; content-addressed media descriptors and independent resource replay are still pending.
+
 Shared WGSL includes output anti-aliasing, core scene variants, compositing, fused post-processing,
 blur/depth/surface effects, auxiliary surfaces, particles, text motion blur and display/buffer helpers.
 The TS `SharedShaderCatalog` loads sources through Vite `?raw`, including in Vitest, and concatenates the fragments in

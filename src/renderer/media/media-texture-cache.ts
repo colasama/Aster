@@ -41,6 +41,7 @@ import {
   textRasterResolutionScale,
   textRasterSignature,
 } from "../text/text-rasterizer";
+import { MediaBindingLease } from "./media-binding-lease";
 import {
   abortError,
   asError,
@@ -52,6 +53,7 @@ import {
 import {
   destroyMediaResource,
   type MediaResource,
+  mediaResourceRetired,
   mediaTextureBytes,
   mediaTextureExtent,
   reportVideoUploadError,
@@ -100,8 +102,9 @@ export class MediaTextureCache {
   readonly #videoUploadListeners = new Set<(resource: MediaResource) => void>();
   readonly #decodePool = new AsyncWorkPool(4);
   readonly #uploads: TextureUploadBatch;
-  #missingMediaTexture?: GPUTexture;
+  #missingMediaResource?: MediaResource;
   #missingMediaBindGroup?: GPUBindGroup;
+  #frameBindings?: MediaBindingLease;
   #textMotionBlur?: TextMotionBlurRasterCache;
   readonly #sequenceFrames = new ImageSequenceFrameCache<RuntimeSequenceFile, ImageBitmap>({
     decode: (file) => this.#decodeImage(file.url, file.name, file.type),
@@ -160,6 +163,8 @@ export class MediaTextureCache {
   destroy(): void {
     if (this.#destroyed) return;
     this.#destroyed = true;
+    this.#frameBindings?.release();
+    this.#frameBindings = undefined;
     for (const resource of this.#resources.values()) destroyMediaResource(resource);
     this.#resources.clear();
     this.#pendingFrameResources.clear();
@@ -167,8 +172,8 @@ export class MediaTextureCache {
     this.#videoFrameTargets.clear();
     this.#sequenceFrames.clear();
     this.#svgRasters.clear();
-    this.#missingMediaTexture?.destroy();
-    this.#missingMediaTexture = undefined;
+    destroyMediaResource(this.#missingMediaResource);
+    this.#missingMediaResource = undefined;
     this.#missingMediaBindGroup = undefined;
     this.#uploads.destroy();
     this.#textMotionBlur?.destroy();
@@ -179,6 +184,21 @@ export class MediaTextureCache {
     const bound = this.#resources.get(instanceId)?.bindGroup;
     if (bound) return bound;
     return this.#frameResourceErrors.has(instanceId) ? this.#missingMediaBinding() : undefined;
+  }
+
+  acquireFrameBindings(instanceIds: readonly string[]): MediaBindingLease {
+    if (this.#destroyed || this.#frameBindings)
+      throw new Error("Media frame binding lifecycle is not ready");
+    const entries = [...new Set(instanceIds)].map((instanceId) => {
+      const binding = this.bindGroup(instanceId);
+      const resource =
+        binding && binding === this.#missingMediaBindGroup
+          ? this.#missingMediaResource
+          : this.#resources.get(instanceId);
+      return { instanceId, binding, resource };
+    });
+    this.#frameBindings = new MediaBindingLease(entries);
+    return this.#frameBindings;
   }
 
   /**
@@ -217,10 +237,20 @@ export class MediaTextureCache {
   }
 
   submitted(): void {
+    const bindings = this.#frameBindings;
+    this.#frameBindings = undefined;
+    if (bindings?.hasOwners) {
+      void this.#device.queue.onSubmittedWorkDone().then(
+        () => bindings.release(),
+        () => bindings.release(),
+      );
+    } else bindings?.release();
     this.#textMotionBlur?.submitted();
   }
 
   abortFrame(): void {
+    this.#frameBindings?.release();
+    this.#frameBindings = undefined;
     this.#textMotionBlur?.abortSubmission();
   }
 
@@ -586,11 +616,16 @@ export class MediaTextureCache {
       usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
     });
     this.#device.queue.writeTexture({ texture }, MISSING_MEDIA_RGBA, {}, [1, 1]);
-    this.#missingMediaTexture = texture;
     this.#missingMediaBindGroup = this.#createBindGroup(
       texture,
       "Missing media placeholder resources",
     );
+    this.#missingMediaResource = {
+      source: MISSING_MEDIA_SOURCE,
+      kind: "image",
+      texture,
+      bindGroup: this.#missingMediaBindGroup,
+    };
     return this.#missingMediaBindGroup;
   }
 
@@ -1022,6 +1057,7 @@ export class MediaTextureCache {
   }
 
   #copyVideoFrame(resource: MediaResource): void {
+    if (mediaResourceRetired(resource)) return;
     const video = resource.video;
     const texture = resource.texture;
     if (
