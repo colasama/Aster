@@ -76,39 +76,39 @@
     "approval": "Preserve the complete M0-T3 production TS capture as the original pixel oracle. Only the explicitly listed, section 6.6 reviewed M0 reference repairs overlay requested frames. All other original frames, including sequence neighbors, remain unchanged. Freeze this effective reference set before M1; M1 and M2 retain strict whole-corpus exact requirements."
   },
   "last_cycle": {
-    "id": 20,
-    "time": "2026-10-04T18:09:06.658Z",
+    "id": 21,
+    "time": "2026-10-04T18:34:50.140Z",
     "milestone": "M2",
     "task": "M2-T4",
     "outcome": "passed",
-    "commit": "7d5d7450de98c093c18811cb76188c7b7e715471",
-    "verification": "artifacts/migration/verify-2026-10-04T18-02-51-717Z-5b4f89ee.json",
-    "verification_sha256": "35dc9868cead32e4057e935535c1bfa1038318258d42af95aa1cfea54d8079c3",
+    "commit": "9e9ece1230d19aeb1bd78f3be063b8ac2ab7b8bf",
+    "verification": "artifacts/migration/verify-2026-10-04T18-28-32-605Z-fe0a673e.json",
+    "verification_sha256": "d05d29f7d68f895c6c859ba70717800cacbb2b3da91c76d9805cb2e63e87b847",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 73201
+        "duration_ms": 72900
       },
       {
         "id": "G1",
         "status": "passed",
-        "duration_ms": 3553
+        "duration_ms": 3542
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 263177
+        "duration_ms": 263281
       }
     ],
-    "verification_duration_ms": 341144,
-    "next_step": "Continue M2-T4: integrate persistent GPU resource registry/residency and serializable FPLN media references for independent replay while preserving exact readiness.",
+    "verification_duration_ms": 340937,
+    "next_step": "Continue M2-T4: serialize actual media draw references into FPLN and replay decoded bindings through the persistent registry, preserving exact readiness.",
     "notes": [
-      "Production still/SVG/PSD/sequence resources now retain typed prepared identities and installed extents; sequence members preserve resolved frame numbers and byte identity or labeled locator hash, and PSD identities include crop variants. Video bindings capture requested seek time and actual uploaded time; explicit builtin identities preserve missing-media and pre-upload texture behavior.",
-      "Root preparation emits typed media PutResource descriptors, hashes them synchronously and supplies hashes to beauty/auxiliary draw batches. The retained frame table resolves those hashes without a draw-time media-cache lookup. Unknown hashes fail before drawing; null explicitly retains pending fallback behavior. GPU-completion owner leases remain in force.",
-      "Pinned direct @noble/hashes 2.4.0 (MIT) avoids asynchronous holds at the synchronous encoding boundary and maintaining local cryptographic code. pnpm audit reports zero vulnerabilities and cargo deny check passes advisories/bans/licenses/sources. G1 independently compares synchronous SHA-256 with WebCrypto and Rust.",
-      "Production adapter tests cover bitmap closure/extents, sequence holdPrevious member identity, transport admission of actual descriptors, video upload times, and supplied-hash drawing independent of instance IDs. Full G0/G1/G3 passed: 19 existing FPLN round trips, 11 media descriptor round trips and 1819 exact pixel frames.",
-      "M2-T4 remains open: persistent GPU resource registry admission/eviction and resident accounting, serializable FPLN media draw references, and independent resource replay are still required. Production rendering remains TS; this change connects its root media draws to the shared hash identities."
+      "Production root image/video frame leases now use a persistent GPU registry that applies typed PutResource/EvictResource messages and validates content hashes against installed owner identities and bindings. Per-lease lookup resolves supplied hashes without cache or authoring-layer access.",
+      "Registration bounds descriptor bytes, physical-owner GPU bytes, binding versions and active leases. Repeated puts and authorization aliases do not double-charge physical owners. Source dependencies and frame pins reject premature eviction; generation checks reject stale bindings.",
+      "Retired in-flight owners remain resident and included in cache memory estimates until GPU queue completion. Same-hash physical replacements retain independent leases. Registry destruction defers removal of pinned entries; eviction unregisters cache-owned allocations without destroying live cache textures.",
+      "Full G0/G1/G3 passed, with 19 FPLN round trips, 11 media descriptor round trips and 1819 exact pixel frames. Targeted cases verify atomic rejection, replacement lifetimes, stale video bindings, bounded accounting and cache destruction while submitted work remains live.",
+      "M2-T4 remains open for serializable FPLN media draw references and independent resource replay. This increment connects the production GPU registry; production rendering remains TS and native rendering is not yet accepted."
     ]
   },
   "milestones": [
@@ -12621,12 +12621,59 @@
                 "Production adapter tests cover bitmap closure/extents, sequence holdPrevious member identity, transport admission of actual descriptors, video upload times, and supplied-hash drawing independent of instance IDs. Full G0/G1/G3 passed: 19 existing FPLN round trips, 11 media descriptor round trips and 1819 exact pixel frames.",
                 "M2-T4 remains open: persistent GPU resource registry admission/eviction and resident accounting, serializable FPLN media draw references, and independent resource replay are still required. Production rendering remains TS; this change connects its root media draws to the shared hash identities."
               ]
+            },
+            {
+              "cycle": 21,
+              "status": "passed",
+              "commit": "9e9ece1230d19aeb1bd78f3be063b8ac2ab7b8bf",
+              "verification": {
+                "path": "artifacts/migration/verify-2026-10-04T18-28-32-605Z-fe0a673e.json",
+                "sha256": "d05d29f7d68f895c6c859ba70717800cacbb2b3da91c76d9805cb2e63e87b847"
+              },
+              "pixel_comparison": {
+                "path": "artifacts/parity/ts-check/2026-10-04T18-29-49-652Z-bbe3bd9d/report.json",
+                "sha256": "9d2d65f1c79265260d56bf4b7a8f84e539b3abdae4f0891a5c453366b2227eb9"
+              },
+              "capture": {
+                "path": "artifacts/parity/capture-2026-10-04T18-22-59-440Z-87f50faa.json",
+                "sha256": "88a3491e19b0d9dcdd62c41724a343c1da29b59cf7833502f0575e11a1ada305"
+              },
+              "manifest": {
+                "path": "artifacts/parity/runs/2026-10-04T18-22-59-440Z-87f50faa/candidate/manifest.json",
+                "sha256": "7a6fffbe37966b9d6331fe3900cfc7a3903fe823ca37ed344cf315e97fe168b4"
+              },
+              "renderer_source_sha256": "13c844ff51d41f32071df9ff3034c5fe8523ea0636bede5960f584509bcb9983",
+              "bridge_sha256": "82ccf02fefd4c54e78a82a4de08df6906714ecd0b198864ec72cb0c0394dd80c",
+              "gates": [
+                {
+                  "id": "G0",
+                  "status": "passed",
+                  "duration_ms": 72900
+                },
+                {
+                  "id": "G1",
+                  "status": "passed",
+                  "duration_ms": 3542
+                },
+                {
+                  "id": "G3",
+                  "status": "passed",
+                  "duration_ms": 263281
+                }
+              ],
+              "notes": [
+                "Production root image/video frame leases now use a persistent GPU registry that applies typed PutResource/EvictResource messages and validates content hashes against installed owner identities and bindings. Per-lease lookup resolves supplied hashes without cache or authoring-layer access.",
+                "Registration bounds descriptor bytes, physical-owner GPU bytes, binding versions and active leases. Repeated puts and authorization aliases do not double-charge physical owners. Source dependencies and frame pins reject premature eviction; generation checks reject stale bindings.",
+                "Retired in-flight owners remain resident and included in cache memory estimates until GPU queue completion. Same-hash physical replacements retain independent leases. Registry destruction defers removal of pinned entries; eviction unregisters cache-owned allocations without destroying live cache textures.",
+                "Full G0/G1/G3 passed, with 19 FPLN round trips, 11 media descriptor round trips and 1819 exact pixel frames. Targeted cases verify atomic rejection, replacement lifetimes, stale video bindings, bounded accounting and cache destruction while submitted work remains live.",
+                "M2-T4 remains open for serializable FPLN media draw references and independent resource replay. This increment connects the production GPU registry; production rendering remains TS and native rendering is not yet accepted."
+              ]
             }
           ],
           "remaining_work": [
-            "Connect typed media PutResource/EvictResource to a persistent GPU executor registry with explicit byte budgets and residency accounting including retired in-flight owners.",
-            "Encode media draw references and explicit pending/builtin states in the TS/Rust FPLN schema; replay supplied descriptors/resources independently of live preparation and instance IDs.",
-            "Verify actual missing/evicted/hash-mismatched resource failures, generation/lifetime behavior and fractional-video/sequence parity through the serializable plan before closing T4."
+            "Add serializable FPLN image/sequence/video references and bind them to decoded scene draw descriptors; preserve explicit pending fallback and actual requested/uploaded times.",
+            "Capture and replay the actual supplied media messages with independently resolved GPU bindings; reject missing, evicted and mismatched resources before submission.",
+            "Verify full fractional-video/sequence readiness and independent decoded-plan resource replay before closing T4."
           ]
         },
         {
@@ -12868,7 +12915,7 @@
       ],
       "preview_baseline_path": "benchmarks/results/m2-preview-baseline.json",
       "preview_baseline_sha256": "a1c62e224c008e731c252142ab1b9de7d31ecf592452c00da1dff42516772375",
-      "active_candidate_manifest": "artifacts/parity/runs/2026-10-04T17-57-07-747Z-1a3c8374/candidate/manifest.json",
+      "active_candidate_manifest": "artifacts/parity/runs/2026-10-04T18-22-59-440Z-87f50faa/candidate/manifest.json",
       "last_verification": {
         "status": "passed",
         "required_gates_passed": true,
@@ -12877,17 +12924,17 @@
           {
             "id": "G0",
             "status": "passed",
-            "duration_ms": 73201
+            "duration_ms": 72900
           },
           {
             "id": "G1",
             "status": "passed",
-            "duration_ms": 3553
+            "duration_ms": 3542
           },
           {
             "id": "G3",
             "status": "passed",
-            "duration_ms": 263177
+            "duration_ms": 263281
           }
         ],
         "optional_gates": [
@@ -12898,7 +12945,7 @@
           }
         ],
         "performance_policy": "rust-delivery-v1",
-        "report": "artifacts/migration/verify-2026-10-04T18-02-51-717Z-5b4f89ee.json"
+        "report": "artifacts/migration/verify-2026-10-04T18-28-32-605Z-fe0a673e.json"
       },
       "performance_series_history": [
         {
@@ -14204,12 +14251,5 @@
       }
     }
   ],
-  "active_cycle": {
-    "id": 21,
-    "milestone": "M2",
-    "task": "M2-T4",
-    "started_at": "2026-10-04T18:13:17.841Z",
-    "scope": "Connect production frame binding leases to a persistent, bounded GPU media resource registry with explicit put/evict operations, generation checks, and resident accounting including retired in-flight owners. Serializable FPLN media replay remains next.",
-    "previous_turn_classification": "no progress: the previous turn answered the owner M0 explanation question only; authoritative worktree and latest verification were re-read before resuming the existing registry increment."
-  }
+  "active_cycle": null
 }
