@@ -14,6 +14,7 @@ mod resource;
 mod resource_descriptor;
 mod scene;
 mod schema;
+mod temporal_text;
 mod time;
 mod wire;
 
@@ -38,6 +39,7 @@ pub use resource::{
 pub use resource_descriptor::ResourceDescriptor;
 pub use scene::{MediaDrawBinding, SceneBuffersSlice, SceneDrawRecord, SceneMediaBinding};
 pub use schema::FramePlanSchema;
+pub use temporal_text::{TemporalTextFormat, TemporalTextSamplesSlice};
 pub use time::{FrameTime, RationalFrameRate, RationalTime};
 
 #[cfg(test)]

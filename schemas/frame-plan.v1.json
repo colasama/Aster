@@ -119,7 +119,12 @@
       ]
     },
     "ContractLevel": {
-      "enum": ["post_uniforms_slice_v1", "scene_buffers_slice_v1", "camera_parameters_slice_v1"],
+      "enum": [
+        "post_uniforms_slice_v1",
+        "scene_buffers_slice_v1",
+        "camera_parameters_slice_v1",
+        "temporal_text_samples_slice_v1"
+      ],
       "type": "string"
     },
     "ElementType": {
@@ -563,6 +568,59 @@
             "iris_shape"
           ],
           "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "accumulation_format": {
+              "$ref": "#/$defs/TemporalTextFormat"
+            },
+            "blob_index": {
+              "format": "uint32",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "exposure_only": {
+              "type": "boolean"
+            },
+            "kind": {
+              "const": "temporal_text_samples",
+              "type": "string"
+            },
+            "resolve_format": {
+              "$ref": "#/$defs/TemporalTextFormat"
+            },
+            "resource_instance_id": {
+              "$ref": "#/$defs/CompositionIdentity"
+            },
+            "sample_count": {
+              "format": "uint32",
+              "maximum": 4096,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "sample_format": {
+              "$ref": "#/$defs/TemporalTextFormat"
+            },
+            "unique_sample_count": {
+              "format": "uint32",
+              "maximum": 4096,
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "kind",
+            "blob_index",
+            "resource_instance_id",
+            "sample_count",
+            "unique_sample_count",
+            "exposure_only",
+            "sample_format",
+            "accumulation_format",
+            "resolve_format"
+          ],
+          "type": "object"
         }
       ]
     },
@@ -723,6 +781,10 @@
       },
       "required": ["draw_index", "binding"],
       "type": "object"
+    },
+    "TemporalTextFormat": {
+      "enum": ["rgba8unorm-srgb", "rgba16float"],
+      "type": "string"
     },
     "Utf16CompositionIdentity": {
       "additionalProperties": false,

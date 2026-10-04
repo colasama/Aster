@@ -109,6 +109,10 @@ the animation lookup time advances. SVG preparation freezes the bucketed target 
 PSD preparation freezes the decoded plane's crop, row layout and document/layer identity. Both now
 register raster descriptors. A shared upload consumer receives prepared bitmap or RGBA pixels,
 validates their extent/layout, and releases failed allocations without publishing partial owners.
+Root temporal text preparation now consumes a typed sample slice per resource instance. Exact
+local times, weights, transparent exposure and exposure-only identities survive TS/Rust transport;
+the existing temporal raster cache consumes the reconstructed samples. Sample GPU resources and
+explicit accumulation/resolve operations still await extraction into the executable frame plan.
 The shared resource protocol also carries content-addressed, packed raster pixel payloads with
 frame/source dependencies. An independent decoded upload consumer installs them without text/SVG/PSD
 evaluation and verifies the requested authorization scope. The parity harness now explicitly captures

@@ -7,6 +7,7 @@ mod media_resources;
 mod resources;
 mod scene;
 mod schema_time;
+mod temporal_text;
 
 use crate::{
     DecodeLimits, FramePlanSliceV1, IrError, IrFixture, canonical::CanonicalJson, wire::WireHeader,

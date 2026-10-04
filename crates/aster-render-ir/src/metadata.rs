@@ -1,4 +1,4 @@
-use crate::CameraParametersSlice;
+use crate::{CameraParametersSlice, TemporalTextSamplesSlice};
 use std::collections::BTreeSet;
 
 use schemars::JsonSchema;
@@ -21,6 +21,7 @@ pub enum ContractLevel {
     PostUniformsSliceV1,
     SceneBuffersSliceV1,
     CameraParametersSliceV1,
+    TemporalTextSamplesSliceV1,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
@@ -111,6 +112,7 @@ pub enum PlanSlice {
     PostProcessUniforms { blob_index: u32 },
     SceneBuffers(SceneBuffersSlice),
     CameraParameters(CameraParametersSlice),
+    TemporalTextSamples(TemporalTextSamplesSlice),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
@@ -183,6 +185,11 @@ impl FramePlanSliceV1 {
                 {
                     camera.blob_index
                 }
+                PlanSlice::TemporalTextSamples(temporal)
+                    if self.contract_level == ContractLevel::TemporalTextSamplesSliceV1 =>
+                {
+                    temporal.blob_index
+                }
                 _ => return Err(IrError::InvalidHeader("slice contract mismatch".to_owned())),
             };
             let blob = self
@@ -198,6 +205,10 @@ impl FramePlanSliceV1 {
             }
             if let PlanSlice::CameraParameters(camera) = slice {
                 camera.validate(blob)?;
+                continue;
+            }
+            if let PlanSlice::TemporalTextSamples(temporal) = slice {
+                temporal.validate(blob)?;
                 continue;
             }
             if blob.element_type != ElementType::F32Le {
@@ -233,6 +244,16 @@ impl FramePlanSliceV1 {
         let descriptor = self.blobs.get(index).ok_or(IrError::BlobCountMismatch)?;
         if bytes.len() != descriptor.byte_length as usize {
             return Err(IrError::ElementCountMismatch);
+        }
+        if self.contract_level == ContractLevel::TemporalTextSamplesSliceV1 {
+            for slice in &self.slices {
+                if let PlanSlice::TemporalTextSamples(temporal) = slice
+                    && temporal.blob_index as usize == index
+                {
+                    return temporal.validate_payload(bytes, &self.header);
+                }
+            }
+            return Err(IrError::BlobCountMismatch);
         }
         if self.contract_level != ContractLevel::PostUniformsSliceV1 {
             return Ok(());

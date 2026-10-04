@@ -38,6 +38,10 @@ import {
   uploadSceneBuffers,
 } from "./frame-plan/scene-buffer-upload";
 import { bindSceneMediaPlan, resolveSceneMediaPlan } from "./frame-plan/scene-media-plan";
+import {
+  buildTextFrameSamplePlans,
+  readTextFrameSamplePlans,
+} from "./frame-plan/temporal-text-frame";
 import { buildSceneGeometry } from "./geometry/geometry";
 import { productionDepthOfFieldAllocationError } from "./gpu/auxiliary-buffer-budget";
 import {
@@ -420,7 +424,7 @@ export class WebGpuRenderer {
       this.#bufferVisualization === "beauty" &&
       motionBlurSettings.enabled &&
       motionBlurSettings.shutterAngle > 0;
-    const textMotionBlur = textMotionBlurRequested
+    const evaluatedTextMotionBlur = textMotionBlurRequested
       ? planTextMotionBlurFrame({
           composition,
           project,
@@ -444,12 +448,21 @@ export class WebGpuRenderer {
       antiAliasing: this.#activeAntiAliasing,
     };
     const evaluatedCamera = evaluateSceneCamera(composition, time);
+    const textMotionBlur = readTextFrameSamplePlans(
+      buildTextFrameSamplePlans(framePlanInput, evaluatedTextMotionBlur),
+    );
     const camera = evaluatedCamera
       ? readCameraPlan(buildCameraPlan(framePlanInput, evaluatedCamera))
       : undefined;
+    const currentScenes =
+      textMotionBlur.exposureResourceIds.size > 0 ? new Set(evaluation.sceneLayers) : undefined;
     const sceneLayers =
-      textMotionBlur.exposureSceneLayers.length > 0
-        ? [...textMotionBlur.renderSceneLayers]
+      textMotionBlur.exposureResourceIds.size > 0
+        ? evaluatedTextMotionBlur.renderSceneLayers.filter(
+            (scene) =>
+              currentScenes?.has(scene) ||
+              textMotionBlur.exposureResourceIds.has(scene.resourceInstanceId),
+          )
         : evaluation.sceneLayers;
     const textBounds = prepareTextSceneRasters(
       composition,
@@ -461,7 +474,7 @@ export class WebGpuRenderer {
     const geometry = expandTextSceneGeometry(
       composition,
       sceneLayers,
-      textMotionBlur.exposureSceneLayers.length > 0
+      textMotionBlur.exposureResourceIds.size > 0
         ? buildSceneGeometry(composition, [...sceneLayers], camera)
         : evaluation.geometry,
       camera,

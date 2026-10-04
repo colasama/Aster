@@ -40,6 +40,8 @@ pub enum IrError {
     ElementCountMismatch,
     #[error("Invalid post-process uniform payload: {0}")]
     InvalidPostUniforms(String),
+    #[error("Invalid temporal text sample payload: {0}")]
+    InvalidTemporalText(String),
     #[error("This transport contract cannot describe a complete renderer plan")]
     IncompleteFramePlan,
     #[error("Resource content hash differs from its descriptor and bytes")]
@@ -87,6 +89,7 @@ impl IrError {
             Self::InvalidPadding => "invalid_padding",
             Self::ElementCountMismatch => "element_count_mismatch",
             Self::InvalidPostUniforms(_) => "invalid_post_uniforms",
+            Self::InvalidTemporalText(_) => "invalid_temporal_text",
             Self::IncompleteFramePlan => "incomplete_frame_plan",
             Self::HashMismatch => "hash_mismatch",
             Self::ResourceConflict => "resource_conflict",

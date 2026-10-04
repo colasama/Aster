@@ -13104,7 +13104,8 @@
             "Temporal text and shutter-edge parity cases remain exact."
           ],
           "required_full_gates": ["G0", "G1", "G3"],
-          "status": "pending"
+          "status": "in_progress",
+          "started_at": "2026-10-04T21:13:38.519Z"
         },
         {
           "id": "M2-T7",
@@ -14647,5 +14648,12 @@
       }
     }
   ],
-  "active_cycle": null
+  "active_cycle": {
+    "id": 29,
+    "milestone": "M2",
+    "task": "M2-T6",
+    "started_at": "2026-10-04T21:13:38.519Z",
+    "scope": "Introduce exact typed temporal text sample transport in TS/Rust and consume supplied samples and exposure identities in production preparation. Raster acquisition and GPU pass/resource extraction remain the next increment.",
+    "previous_turn_classification": "progress: cycle28 closed M2-T5 after joined decoded raster scene evidence and full G0/G1/G3, with clean committed ledger."
+  }
 }

@@ -3,6 +3,11 @@ import { align16, hash, integer, object, requirePlan, validUnicode } from "./can
 import { compositionIdentityToString } from "./composition-identity";
 import { validateFrameRate } from "./frame-rate";
 import { validateSceneBuffers } from "./scene-buffer-layout";
+import {
+  TEMPORAL_TEXT_FIELDS,
+  validateTemporalText,
+  validateTemporalTextBlob,
+} from "./temporal-text-layout";
 import { frameTimeToNumber, validateFrameTime } from "./time";
 import type { BufferResourceDescriptor, FramePlanLimits, FramePlanSliceV1 } from "./types";
 
@@ -59,12 +64,15 @@ export function validateMetadata(value: unknown, limits: FramePlanLimits): Frame
   requirePlan(
     metadata.kind === "frame_plan_slice" &&
       metadata.plan_version === 1 &&
-      ["post_uniforms_slice_v1", "scene_buffers_slice_v1", "camera_parameters_slice_v1"].includes(
-        String(metadata.contract_level),
-      ) &&
+      [
+        "post_uniforms_slice_v1",
+        "scene_buffers_slice_v1",
+        "camera_parameters_slice_v1",
+        "temporal_text_samples_slice_v1",
+      ].includes(String(metadata.contract_level)) &&
       metadata.renderer_plan_complete === false,
     "unknown_variant",
-    "Only incomplete post-uniform, scene-buffer and camera slices are supported",
+    "Only declared incomplete plan slices are supported",
   );
   const header = object(metadata.header, [
     "snapshot_scope",
@@ -135,6 +143,7 @@ export function validateMetadata(value: unknown, limits: FramePlanLimits): Frame
   for (const value of metadata.slices) {
     const scene = metadata.contract_level === "scene_buffers_slice_v1";
     const camera = metadata.contract_level === "camera_parameters_slice_v1";
+    const temporal = metadata.contract_level === "temporal_text_samples_slice_v1";
     const slice = object(
       value,
       scene
@@ -149,11 +158,19 @@ export function validateMetadata(value: unknown, limits: FramePlanLimits): Frame
           ]
         : camera
           ? CAMERA_SLICE_FIELDS
-          : ["kind", "blob_index"],
+          : temporal
+            ? TEMPORAL_TEXT_FIELDS
+            : ["kind", "blob_index"],
     );
     requirePlan(
       slice.kind ===
-        (scene ? "scene_buffers" : camera ? "camera_parameters" : "post_process_uniforms"),
+        (scene
+          ? "scene_buffers"
+          : camera
+            ? "camera_parameters"
+            : temporal
+              ? "temporal_text_samples"
+              : "post_process_uniforms"),
       "unknown_variant",
       "Unknown plan slice",
     );
@@ -161,6 +178,10 @@ export function validateMetadata(value: unknown, limits: FramePlanLimits): Frame
     requirePlan(!indices.has(index), "blob_count_mismatch", "A blob is referenced more than once");
     indices.add(index);
     const blob = metadata.blobs[index];
+    if (temporal) {
+      validateTemporalText(slice, blob);
+      continue;
+    }
     if (camera) {
       validateCameraParameters(slice, blob);
       continue;
@@ -201,6 +222,15 @@ export function validatePlanBlob(
     "Supplied blob length differs from descriptor",
   );
   if (metadata.contract_level === "post_uniforms_slice_v1") validatePostUniforms(bytes, metadata);
+  if (metadata.contract_level === "temporal_text_samples_slice_v1") {
+    const slice = metadata.slices.find((slice) => slice.blob_index === index);
+    requirePlan(
+      slice?.kind === "temporal_text_samples",
+      "invalid_temporal_text",
+      "Missing samples",
+    );
+    validateTemporalTextBlob(bytes, slice, metadata.header);
+  }
 }
 
 export function validatePostUniforms(

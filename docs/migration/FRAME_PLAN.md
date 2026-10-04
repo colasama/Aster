@@ -70,6 +70,16 @@ lighting, depth configuration and generator preparation consume reconstructed va
 supplied bytes. Absence of an active camera retains the existing no-camera path. `SceneCamera` now
 aliases only `EvaluatedCamera`; original transform/settings references no longer escape evaluation.
 
+`temporal_text_samples_slice_v1` owns the evaluated samples for one text resource instance. Its
+closed descriptor records canonical and unique sample counts, the exposure-only flag, and the
+RGBA8 sRGB sample / RGBA16F linear accumulation / RGBA8 sRGB resolve formats. The byte blob contains
+frame time and transparent weight as little-endian f64, followed by local-time/weight/time-bucket
+f64 triples. TS and Rust validate the frame time against the header, finite values, bounded counts,
+safe integer buckets and full shutter-weight coverage. Signed zero and exact sub-frame values are
+preserved. Root preparation consumes supplied sample slices and exposure identities before text
+raster preparation and geometry expansion. Sample texture hashes, explicit accumulation/resolve
+operations and independently owned temporal output bindings still require extraction.
+
 ## FPLN encoding
 
 The container begins with this 32-byte little-endian header:

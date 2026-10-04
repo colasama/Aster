@@ -20,7 +20,8 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
     schema_version: 1,
     status: "failed",
     started_at: new Date(started).toISOString(),
-    scope: "post_uniforms_slice_v1 + scene_buffers_slice_v1 + camera_parameters_slice_v1",
+    scope:
+      "post_uniforms_slice_v1 + scene_buffers_slice_v1 + camera_parameters_slice_v1 + temporal_text_samples_slice_v1",
     renderer_plan_complete: false,
     steps: [],
     roundtrips: [],
@@ -29,6 +30,7 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
     camera_roundtrips: [],
     media_draws: [],
     raster_scenes: [],
+    temporal_samples: [],
     rejections: [],
   };
   const reader = new M0Evidence(context.root);
@@ -167,6 +169,8 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
     const mediaFixtures = await runtime.sceneMediaFixtures();
     assert.equal(mediaFixtures.length, 11);
     const rasterFixtures = await runtime.rasterSceneFixtures();
+    const temporalFixtures = runtime.temporalTextFixtures();
+    assert.equal(temporalFixtures.length, 5);
     assert.deepEqual(
       rasterFixtures.map((fixture) => fixture.id),
       ["raster-scene-text", "raster-scene-svg", "raster-scene-psd"],
@@ -181,6 +185,7 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
       ...cameraFixtures,
       ...mediaFixtures,
       ...rasterFixtures,
+      ...temporalFixtures,
     ]) {
       const input = join(context.output, `${fixture.id}-ts.fpln`);
       const output = join(context.output, `${fixture.id}-rust.fpln`);
@@ -248,6 +253,23 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
         report.raster_scenes.push(
           await auditRasterScene(runtime, after, fixture, rasterMessages, pixels.bytes),
         );
+      }
+      if (fixture.temporal) {
+        const supplied = runtime.readTemporalTextPlan(after);
+        assert.deepEqual(supplied, fixture.temporal);
+        const frame = runtime.readTextFrameSamplePlans([structuredClone(after)]);
+        assert.deepEqual(frame.plans.get(supplied.resourceInstanceId), supplied.plan);
+        assert.equal(
+          frame.exposureResourceIds.has(supplied.resourceInstanceId),
+          supplied.exposureOnly,
+        );
+        report.temporal_samples.push({
+          id: fixture.id,
+          exact_samples: true,
+          exact_weights: true,
+          exact_exposure: true,
+          formats_preserved: true,
+        });
       }
       if (after.metadata.contract_level === "camera_parameters_slice_v1") {
         const supplied = runtime.readCameraPlan(after);

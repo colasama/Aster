@@ -89,7 +89,8 @@ export interface FramePlanSliceV1 {
   contract_level:
     | "post_uniforms_slice_v1"
     | "scene_buffers_slice_v1"
-    | "camera_parameters_slice_v1";
+    | "camera_parameters_slice_v1"
+    | "temporal_text_samples_slice_v1";
   renderer_plan_complete: false;
   header: FrameHeaderSlice;
   blobs: BlobDescriptor[];
@@ -124,7 +125,20 @@ export interface SceneMediaBinding {
 export type PlanSlice =
   | { kind: "post_process_uniforms"; blob_index: number }
   | SceneBuffersSlice
-  | CameraParametersSlice;
+  | CameraParametersSlice
+  | TemporalTextSamplesSlice;
+
+export interface TemporalTextSamplesSlice {
+  kind: "temporal_text_samples";
+  blob_index: number;
+  resource_instance_id: CompositionIdentity;
+  sample_count: number;
+  unique_sample_count: number;
+  exposure_only: boolean;
+  sample_format: "rgba8unorm-srgb";
+  accumulation_format: "rgba16float";
+  resolve_format: "rgba8unorm-srgb";
+}
 
 export interface CameraParametersSlice {
   kind: "camera_parameters";

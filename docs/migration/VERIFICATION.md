@@ -136,6 +136,12 @@ and stale lease rejection after changed font/source uploads. Registry tests also
 descriptor budgets, ownership across asynchronous hashing and in-flight frame/source dependencies.
 Production adapter tests validate installed still extents after bitmap closure, resolved sequence
 members, actual video upload times, and drawing by supplied hash independently of instance IDs.
+G1 round-trips temporal text samples from the actual shutter planner for full, entering and exiting
+exposure, plus transparent and exact-bit fixtures. Supplied samples and exposure identities must
+survive Rust decoding and TS cloning; invalid formats, frame time, weights and sample lanes fail.
+This contract currently covers temporal preparation inputs; planned sample-resource bindings and
+accumulation/resolve execution remain separate required work.
+
 G1 also round-trips text/SVG/PSD scene slices built by the production geometry producer, then joins
 the returned geometry with independently admitted Rust resource transcripts and binary pixels.
 The original geometry and authoring scenes are discarded before the production upload and binding

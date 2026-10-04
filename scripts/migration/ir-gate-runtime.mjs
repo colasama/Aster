@@ -30,6 +30,9 @@ export async function loadIrRuntime(root) {
       "scene-media-plan",
       "camera-fixture",
       "camera-plan",
+      "temporal-text-fixture",
+      "temporal-text-plan",
+      "temporal-text-frame",
     ])
       modules.push(await server.ssrLoadModule(`/src/renderer/frame-plan/${name}.ts`));
     for (const name of ["raster-resource-upload", "media-gpu-registry", "media-resource"])
