@@ -117,8 +117,8 @@ grading and display expressions still consume the supplied uniforms; resource bi
 ## Resource operations
 
 Plans refer to resources by content hash. Descriptors and bytes travel separately through typed
-`PutResource` and `EvictResource` operations. Concrete transport kinds are `buffer`, `media_source`
-and `media_frame`. Media descriptors carry no pixel bytes or runtime handles. This protocol does
+`PutResource` and `EvictResource` operations. Concrete transport kinds are `buffer`, `media_source`,
+`media_frame` and `raster_pixels`. Media descriptors carry no pixel bytes or runtime handles. This protocol does
 not yet implement media decoding, GPU allocation or sidecar message framing.
 
 A source binds the source ID, opaque import content identity, media kind and authorization scope.
@@ -137,6 +137,16 @@ evaluated scene payload, so these raster bounds do not reinterpret layer transfo
 SVG source identity includes the imported content revision and exact bucketed extent. PSD identity
 includes the document revision, layer key, decoded extent and crop. The upload consumer uses the
 prepared bitmap or explicit RGBA row layout without reevaluating source data.
+
+`raster_pixels` carries tightly packed stored RGBA8 texture values in a separate binary payload.
+Its descriptor binds the raster frame hash, exact extent and sRGB texture format. Admission checks
+the byte count, content hash, matching frame/sample and resource budget. The payload pins its frame,
+which pins its source; conflicting pixel payloads for one frame are rejected. A decoded upload
+consumer verifies the authorization scope and uploads those stored values without source evaluation
+or color conversion. Live capture/readback integration remains pending; these resources currently
+establish the binary contract and independent replay consumer, not complete captured-frame replay.
+The diagnostic `ir resources --payloads <directory>` reads bounded `<resource-hash>.bin` files and
+validates binary admission before publishing its typed descriptor transcript.
 
 Resource identity includes interpretation as well as payload:
 

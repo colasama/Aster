@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { access, mkdir, writeFile } from "node:fs/promises";
 import { join, relative } from "node:path";
 import { auditMediaResources } from "./ir-gate-media.mjs";
+import { auditRasterPixels } from "./ir-gate-raster.mjs";
 import { auditIrResources, irNegativeFixtures, loadIrRuntime } from "./ir-gate-runtime.mjs";
 import { M0Evidence } from "./m0-evidence.mjs";
 import { runStep } from "./process.mjs";
@@ -115,6 +116,13 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
     };
     report.resources = await auditIrResources(runtime);
     report.media_resources = await auditMediaResources(runtime, {
+      context,
+      cli,
+      command,
+      cliReport,
+      outputFile,
+    });
+    report.raster_pixels = await auditRasterPixels(runtime, {
       context,
       cli,
       command,

@@ -81,7 +81,7 @@ export class MediaGpuRegistry {
     }
     requirePlan(!this.#destroyed, "missing_resource", "GPU registry is destroyed");
     requirePlan(
-      message.kind !== "buffer",
+      message.kind === "media_source" || message.kind === "media_frame",
       "invalid_resource",
       "GPU media registry accepts media descriptors only",
     );

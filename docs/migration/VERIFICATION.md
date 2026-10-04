@@ -146,6 +146,12 @@ pending output and aliases. G1 round-trips the FPLN through Rust, resolves decod
 an independent registry, and rejects evicted frames. GPU adapter tests additionally replay serialized
 references against newly admitted physical owners after the producing owners have been destroyed.
 Complete captured-frame replay remains a separate exit requirement.
+G1 also sends text/SVG/PSD binary pixel fixtures to the Rust resource registry through hash-named
+payload files, then admits the returned descriptors and exact bytes into an independent TS registry.
+It checks exact bounds/pixels, scope enforcement and dependency eviction; corrupt bytes, absent
+frames, mismatched extents and conflicting pixel generations must fail. Decoded GPU upload adapter
+tests discard producer-owned bytes before replay. These fixtures prove binary admission and upload
+boundaries; they do not replace real GPU readback or complete captured-frame replay evidence.
 See [Frame-plan transport](FRAME_PLAN.md) for the current contract and its explicit partial scope.
 
 Full G3 continues to compare all required TS frames under `exact`, retaining the effective reference

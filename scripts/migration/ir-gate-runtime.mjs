@@ -17,6 +17,8 @@ export async function loadIrRuntime(root) {
       "resources",
       "media-resource-fixture",
       "raster-sample",
+      "raster-pixel-fixture",
+      "raster-resource",
       "types",
       "time",
       "composition-identity",

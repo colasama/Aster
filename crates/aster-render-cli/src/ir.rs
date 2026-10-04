@@ -6,8 +6,8 @@ use std::{
 };
 
 use aster_render_ir::{
-    DecodeLimits, FplnCodec, FramePlanSchema, IrError, IrFixture, ResourceLimits, ResourceMessage,
-    ResourceRegistry,
+    DecodeLimits, FplnCodec, FramePlanSchema, IrError, IrFixture, ResourceKind, ResourceLimits,
+    ResourceMessage, ResourceRegistry,
 };
 use clap::{Args, Subcommand};
 use serde::Serialize;
@@ -22,12 +22,14 @@ pub struct IrArgs {
 
 #[derive(Debug, Subcommand)]
 enum IrCommand {
-    /// Validate and replay descriptor-only media resource messages, then emit typed JSON.
+    /// Validate resource messages and optional hash-named binary payloads, then emit typed JSON.
     Resources {
         #[arg(long)]
         input: PathBuf,
         #[arg(long)]
         output: PathBuf,
+        #[arg(long)]
+        payloads: Option<PathBuf>,
     },
     /// Emit the deterministic schema for the declared partial transport contract.
     Schema {
@@ -129,7 +131,11 @@ impl IrArgs {
 
     fn execute(self) -> Result<(), IrError> {
         let (kind, output, bytes) = match self.command {
-            IrCommand::Resources { input, output } => {
+            IrCommand::Resources {
+                input,
+                output,
+                payloads,
+            } => {
                 let input = Self::read_bounded(&input, &DecodeLimits::default())?;
                 let messages: Vec<ResourceMessage> = serde_json::from_slice(&input)
                     .map_err(|error| IrError::InvalidJson(error.to_string()))?;
@@ -137,7 +143,22 @@ impl IrArgs {
                 for message in &messages {
                     match message {
                         ResourceMessage::PutResource(request) => {
-                            registry.put(request.clone(), Vec::new())?;
+                            request.hash.validate()?;
+                            let bytes = if matches!(
+                                request.kind,
+                                ResourceKind::Buffer | ResourceKind::RasterPixels
+                            ) {
+                                let directory = payloads.as_ref().ok_or_else(|| {
+                                    IrError::MissingResource(request.hash.0.clone())
+                                })?;
+                                Self::read_bounded(
+                                    &directory.join(format!("{}.bin", request.hash.0)),
+                                    &DecodeLimits::default(),
+                                )?
+                            } else {
+                                Vec::new()
+                            };
+                            registry.put(request.clone(), bytes)?;
                         }
                         ResourceMessage::EvictResource { hash } => registry.evict(hash)?,
                     }

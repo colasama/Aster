@@ -56,10 +56,23 @@ async function fixture(t, intercept = async () => {}) {
       target = argument("--output");
       bytes = schema;
       result = { kind: "ir_schema_format" };
-    } else if (command.id === "ir-media-resources") {
+    } else if (command.id === "ir-media-resources" || command.id === "ir-raster-resources") {
       target = argument("--output");
       bytes = await readFile(argument("--input"));
       result = { kind: "ir_resources" };
+    } else if (command.id.startsWith("ir-raster-reject-")) {
+      step.status = "failed";
+      step.exit_code = 2;
+      result = {
+        status: "failed",
+        code: {
+          bytes: "hash_mismatch",
+          frame: "missing_resource",
+          extent: "resource_conflict",
+          generation: "resource_conflict",
+          "in-use": "resource_in_use",
+        }[command.id.slice("ir-raster-reject-".length)],
+      };
     } else if (command.id.startsWith("ir-media-reject-")) {
       step.status = "failed";
       step.exit_code = 2;
@@ -149,6 +162,8 @@ test("G1 orchestrates all real TS codec checks and keeps renderer completion exp
   assert.equal(result.resources.status, "passed");
   assert.equal(result.media_resources.roundtrips, 17);
   assert.equal(result.media_resources.exact_raster_bounds, true);
+  assert.equal(result.raster_pixels.resources, 3);
+  assert.equal(result.raster_pixels.exact_pixels, true);
   assert.equal(result.media_resources.dependency_eviction, true);
   assert(f.calls.includes("ir-build") && f.calls.includes("ir-library-tests"));
   assert(result.checked_files > 20);

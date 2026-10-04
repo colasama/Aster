@@ -1,6 +1,7 @@
 import { sha256 } from "@noble/hashes/sha2.js";
 import { canonicalJson, hash, integer, object, requirePlan } from "./canonical";
 import { validateMediaFrame, validateMediaSource } from "./media-descriptors";
+import { validateRasterPixels } from "./raster-pixels";
 import type { BufferResourceDescriptor, ResourceContent, ResourceMessage } from "./types";
 import { validateBufferDescriptor } from "./validation";
 
@@ -18,6 +19,15 @@ export function validateResourceContent(content: ResourceContent, bytes: Uint8Ar
       bytes.byteLength === content.descriptor.byte_length,
       "element_count_mismatch",
       "Resource byte length mismatch",
+    );
+    return;
+  }
+  if (content.kind === "raster_pixels") {
+    const raster = validateRasterPixels(content.descriptor);
+    requirePlan(
+      bytes.byteLength === raster.width * raster.height * 4,
+      "element_count_mismatch",
+      "Raster pixel byte length mismatch",
     );
     return;
   }
@@ -80,6 +90,7 @@ export function validateResourceMessage(value: unknown): ResourceMessage {
     if (message.kind === "buffer") validateBufferDescriptor(message.descriptor);
     else if (message.kind === "media_source") validateMediaSource(message.descriptor);
     else if (message.kind === "media_frame") validateMediaFrame(message.descriptor);
+    else if (message.kind === "raster_pixels") validateRasterPixels(message.descriptor);
     else requirePlan(false, "unknown_variant", "Unsupported resource kind");
     return message as unknown as ResourceMessage;
   }
@@ -104,6 +115,7 @@ export interface ResourceLease {
 /** Bounded CPU transport storage. It does not claim GPU allocation or sidecar transport. */
 export class FrameResourceRegistry {
   readonly #resources = new Map<string, StoredResource>();
+  readonly #rasterPixels = new Map<string, string>();
   #used = 0;
   readonly #budget: number;
   readonly #countLimit: number;
@@ -131,23 +143,31 @@ export class FrameResourceRegistry {
       requirePlan(resource, "missing_resource", `Missing resource ${message.hash}`);
       requirePlan(resource.pins === 0, "resource_in_use", "Cannot evict a pinned resource");
       this.#resources.delete(message.hash);
+      if (resource.content.kind === "raster_pixels")
+        this.#rasterPixels.delete(resource.content.descriptor.frame);
       this.#used -= resource.accountedBytes;
-      if (resource.content.kind === "media_frame") {
-        const source = this.#resources.get(resource.content.descriptor.source);
+      const dependency =
+        resource.content.kind === "media_frame"
+          ? resource.content.descriptor.source
+          : resource.content.kind === "raster_pixels"
+            ? resource.content.descriptor.frame
+            : undefined;
+      if (dependency) {
+        const source = this.#resources.get(dependency);
         requirePlan(source, "missing_resource", "Media source was evicted while referenced");
         source.pins -= 1;
       }
       return;
     }
     requirePlan(
-      message.kind !== "buffer" || bytes !== undefined,
+      (message.kind !== "buffer" && message.kind !== "raster_pixels") || bytes !== undefined,
       "missing_resource",
-      "Buffer PutResource requires binary bytes",
+      "Pixel and buffer PutResource require binary bytes",
     );
     const inputBytes = bytes ?? new Uint8Array();
     validateResourceContent(message, inputBytes);
     const accountedBytes =
-      message.kind === "buffer"
+      message.kind === "buffer" || message.kind === "raster_pixels"
         ? inputBytes.byteLength
         : new TextEncoder().encode(canonicalJson(message.descriptor)).length;
     requirePlan(
@@ -185,6 +205,26 @@ export class FrameResourceRegistry {
         "Media frame/source kind mismatch",
       );
       source.pins += 1;
+    }
+    if (content.kind === "raster_pixels") {
+      requirePlan(
+        !this.#rasterPixels.has(content.descriptor.frame),
+        "resource_conflict",
+        "A raster frame already has different pixel content",
+      );
+      const frame = this.#resources.get(content.descriptor.frame);
+      requirePlan(frame, "missing_resource", "Raster frame must precede pixel admission");
+      requirePlan(
+        frame.content.kind === "media_frame" &&
+          frame.content.descriptor.sample.kind === "raster" &&
+          frame.content.descriptor.width === content.descriptor.width &&
+          frame.content.descriptor.height === content.descriptor.height &&
+          frame.content.descriptor.format === content.descriptor.format,
+        "resource_conflict",
+        "Raster pixel/frame mismatch",
+      );
+      frame.pins += 1;
+      this.#rasterPixels.set(content.descriptor.frame, identity);
     }
     this.#resources.set(identity, { content, bytes: owned, accountedBytes, pins: 0 });
     this.#used += accountedBytes;

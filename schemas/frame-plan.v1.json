@@ -586,6 +586,31 @@
       "enum": ["text", "svg", "psd"],
       "type": "string"
     },
+    "RasterPixelsDescriptor": {
+      "additionalProperties": false,
+      "properties": {
+        "format": {
+          "$ref": "#/$defs/MediaTextureFormat"
+        },
+        "frame": {
+          "$ref": "#/$defs/ResourceHash"
+        },
+        "height": {
+          "format": "uint32",
+          "maximum": 16384,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "width": {
+          "format": "uint32",
+          "maximum": 16384,
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": ["frame", "width", "height", "format"],
+      "type": "object"
+    },
     "ResourceDescriptor": {
       "anyOf": [
         {
@@ -596,6 +621,9 @@
         },
         {
           "$ref": "#/$defs/MediaFrameDescriptor"
+        },
+        {
+          "$ref": "#/$defs/RasterPixelsDescriptor"
         }
       ]
     },
@@ -604,7 +632,7 @@
       "type": "string"
     },
     "ResourceKind": {
-      "enum": ["buffer", "media_source", "media_frame"],
+      "enum": ["buffer", "media_source", "media_frame", "raster_pixels"],
       "type": "string"
     },
     "ResourceMessage": {

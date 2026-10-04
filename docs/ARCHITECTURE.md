@@ -109,8 +109,11 @@ the animation lookup time advances. SVG preparation freezes the bucketed target 
 PSD preparation freezes the decoded plane's crop, row layout and document/layer identity. Both now
 register raster descriptors. A shared upload consumer receives prepared bitmap or RGBA pixels,
 validates their extent/layout, and releases failed allocations without publishing partial owners.
-Pixel transport and complete raster replay remain part of the ongoing extraction; temporal text
-accumulation remains separate.
+The shared resource protocol also carries content-addressed, packed raster pixel payloads with
+frame/source dependencies. An independent decoded upload consumer installs them without text/SVG/PSD
+evaluation and verifies the requested authorization scope. Production capture/readback integration
+and complete raster replay remain part of the ongoing extraction; temporal text accumulation remains
+separate.
 
 Shared WGSL includes output anti-aliasing, core scene variants, compositing, fused post-processing,
 blur/depth/surface effects, auxiliary surfaces, particles, text motion blur and display/buffer helpers.

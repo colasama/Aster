@@ -1,4 +1,4 @@
-use crate::IrError;
+use crate::{IrError, MediaFrameDescriptor, MediaSample, MediaTextureFormat, ResourceHash};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -28,5 +28,40 @@ impl RasterSample {
             return Err(IrError::InvalidResource("invalid raster bounds".to_owned()));
         }
         Ok(values)
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct RasterPixelsDescriptor {
+    pub frame: ResourceHash,
+    #[schemars(range(min = 1, max = 16384))]
+    pub width: u32,
+    #[schemars(range(min = 1, max = 16384))]
+    pub height: u32,
+    pub format: MediaTextureFormat,
+}
+
+impl RasterPixelsDescriptor {
+    pub fn validate(&self, bytes: &[u8]) -> Result<(), IrError> {
+        self.frame.validate()?;
+        if self.width == 0 || self.height == 0 || self.width > 16384 || self.height > 16384 {
+            return Err(IrError::InvalidResource("invalid raster extent".to_owned()));
+        }
+        if u64::from(self.width) * u64::from(self.height) * 4 != bytes.len() as u64 {
+            return Err(IrError::ElementCountMismatch);
+        }
+        Ok(())
+    }
+
+    pub fn validate_frame(&self, frame: &MediaFrameDescriptor) -> Result<(), IrError> {
+        if !matches!(frame.sample, MediaSample::Raster(_))
+            || frame.width != self.width
+            || frame.height != self.height
+            || frame.format != self.format
+        {
+            return Err(IrError::ResourceConflict);
+        }
+        Ok(())
     }
 }

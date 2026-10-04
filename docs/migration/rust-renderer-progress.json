@@ -14458,5 +14458,12 @@
       }
     }
   ],
-  "active_cycle": null
+  "active_cycle": {
+    "id": 26,
+    "milestone": "M2",
+    "task": "M2-T5",
+    "started_at": "2026-10-04T20:01:44.720Z",
+    "scope": "Add bounded content-addressed raster pixel resources and decoded upload consumers, with TS/Rust binary admission and dependency validation.",
+    "previous_turn_classification": "progress: cycles24/25 committed ordinary text and imported raster preparation/upload integration with full exact gates."
+  }
 }

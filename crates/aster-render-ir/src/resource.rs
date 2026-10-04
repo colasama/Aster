@@ -19,6 +19,7 @@ pub enum ResourceKind {
     Buffer,
     MediaSource,
     MediaFrame,
+    RasterPixels,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
@@ -162,6 +163,7 @@ struct ResourceEntry {
 pub struct ResourceRegistry {
     limits: ResourceLimits,
     entries: BTreeMap<ResourceHash, ResourceEntry>,
+    raster_pixels: BTreeMap<ResourceHash, ResourceHash>,
     leases: BTreeMap<u64, Vec<ResourceHash>>,
     next_lease: u64,
     used_bytes: u64,
@@ -183,6 +185,7 @@ impl ResourceRegistry {
         Ok(Self {
             limits,
             entries: BTreeMap::new(),
+            raster_pixels: BTreeMap::new(),
             leases: BTreeMap::new(),
             next_lease: 0,
             used_bytes: 0,
@@ -203,7 +206,7 @@ impl ResourceRegistry {
             return Ok(PutOutcome::AlreadyPresent);
         }
         let requested = u64::try_from(match &request.descriptor {
-            ResourceDescriptor::Buffer(_) => bytes.len(),
+            ResourceDescriptor::Buffer(_) | ResourceDescriptor::RasterPixels(_) => bytes.len(),
             _ => CanonicalJson::encode(&request.descriptor)?.len(),
         })
         .map_err(|_| IrError::ArithmeticOverflow)?;
@@ -231,6 +234,22 @@ impl ResourceRegistry {
             };
             frame.validate_source(descriptor)?;
             source.pins += 1;
+        }
+        if let ResourceDescriptor::RasterPixels(pixels) = &request.descriptor {
+            if self.raster_pixels.contains_key(&pixels.frame) {
+                return Err(IrError::ResourceConflict);
+            }
+            let frame = self
+                .entries
+                .get_mut(&pixels.frame)
+                .ok_or_else(|| IrError::MissingResource(pixels.frame.0.clone()))?;
+            let ResourceDescriptor::MediaFrame(descriptor) = &frame.descriptor else {
+                return Err(IrError::ResourceConflict);
+            };
+            pixels.validate_frame(descriptor)?;
+            frame.pins += 1;
+            self.raster_pixels
+                .insert(pixels.frame.clone(), request.hash.clone());
         }
         self.entries.insert(
             request.hash,
@@ -346,8 +365,12 @@ impl ResourceRegistry {
             .ok_or(IrError::ArithmeticOverflow)?;
         let dependency = match &entry.descriptor {
             ResourceDescriptor::MediaFrame(frame) => Some(frame.source.clone()),
+            ResourceDescriptor::RasterPixels(pixels) => Some(pixels.frame.clone()),
             _ => None,
         };
+        if let ResourceDescriptor::RasterPixels(pixels) = &entry.descriptor {
+            self.raster_pixels.remove(&pixels.frame);
+        }
         if let Some(source) = dependency {
             let source = self.entries.get_mut(&source).ok_or(IrError::InvalidLease)?;
             source.pins = source.pins.checked_sub(1).ok_or(IrError::InvalidLease)?;

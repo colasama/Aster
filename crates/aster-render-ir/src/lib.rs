@@ -30,7 +30,7 @@ pub use metadata::{
     AntiAliasing, BlobDescriptor, ColorPipeline, ContractLevel, ElementType, Extent2d,
     FrameHeaderSlice, FramePlanSliceV1, PlanKind, PlanSlice,
 };
-pub use raster::{RasterOrigin, RasterSample};
+pub use raster::{RasterOrigin, RasterPixelsDescriptor, RasterSample};
 pub use resource::{
     BufferResourceDescriptor, PutOutcome, PutResource, ResourceHash, ResourceKind, ResourceLease,
     ResourceLimits, ResourceMessage, ResourceRegistry, ResourceStatistics,
