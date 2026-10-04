@@ -83,39 +83,39 @@
     }
   },
   "last_cycle": {
-    "id": 32,
-    "time": "2026-10-04T22:35:21.863Z",
+    "id": 33,
+    "time": "2026-10-04T22:58:57.688Z",
     "milestone": "M2",
     "task": "M2-T6",
     "outcome": "passed",
-    "commit": "a4f0121d6e54f5bcfc7297d6f6c8ce00928fb26b",
-    "verification": "artifacts/migration/verify-2026-10-04T22-28-55-629Z-f076c827.json",
-    "verification_sha256": "c77b105f6e13958f826fe5f095acd6549b665489810cd25d3470c6aff7c3217d",
+    "commit": "c8566c2d54526d2ff4597a50c6b8fc6120828576",
+    "verification": "artifacts/migration/verify-2026-10-04T22-52-41-059Z-2129e024.json",
+    "verification_sha256": "d5adf9e5d7b02bf0f113110399b1064237aaf64339e33e9d425ffadb35faa3bf",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 74409
+        "duration_ms": 73428
       },
       {
         "id": "G1",
         "status": "passed",
-        "duration_ms": 4663
+        "duration_ms": 4694
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 267955
+        "duration_ms": 267824
       }
     ],
-    "verification_duration_ms": 348286,
-    "next_step": "Continue M2-T6: bind individual sampled rasters through planned hashes and execute explicit accumulation/resolve.",
+    "verification_duration_ms": 347218,
+    "next_step": "Continue M2-T6: transport temporal pass inputs through FPLN/Rust and verify decoded sample/pass execution.",
     "notes": [
-      "M2 G3 now requires four real GPU temporal glyph exposure checks: full, entering, exiting and transparent. It validates canonical sample counts, dimensions, frozen exact pixels, independent GPU raster replay and Rust resource admission.",
-      "Four supplemental PNG references are frozen from cycle31's exact comparison to the pre-cycle-31 cache at f40eafe06d81c47c20e01458dbaadb007c3fd68a. The ledger pins the manifest; no comparison path writes references. The original 337-case corpus/reference set is unchanged.",
-      "Negative tests reject pixel corruption, replay differences, sample count changes and changed reference PNGs. A temporal failure fails the overall M2 G3 result. GPU checks run outside G0 in a bounded hidden Electron process.",
-      "Full M2 G0/G1/G3 passed with 38 FPLN round trips, 1819 exact whole-frame comparisons and four exact temporal outputs plus 12 admitted Rust resource messages. The unchanged production renderer/bridge fingerprints allowed reuse of cycle31's complete capture without redundant recapture.",
-      "M2-T6 remains in progress: planned individual sample hashes and explicit weighted accumulation/resolve execution are next. Complete submitted-frame replay remains M2-T14."
+      "Individual temporal sample textures now have hash-addressed raster owners. Submission-scoped media leases retain sample/output generations until submission or abort.",
+      "A separate evaluator-free pass executor validates supplied dimensions, formats, output/sample hashes, uniform slots and weights before encoding linear premultiplied accumulation and straight-alpha sRGB resolve. GPU uniform writes consume the supplied plan rather than producer inputs.",
+      "Targeted tests execute a cloned plan after producer weights are discarded, and reject allocation/binding/slot/missing-resource/weight-buffer/duplicate-hash faults before GPU writes. Typecheck and all 39 focused tests passed.",
+      "Fresh full-corpus capture and required M2 G0/G1/G3 passed: 38 FPLN round trips, 1819 exact whole-frame comparisons, four exact temporal outputs and independent output replay with 12 admitted Rust resource messages.",
+      "M2-T6 remains in progress. The new local TemporalTextPassPlan still needs FPLN/Rust transport and decoded sample/pass replay; complete submitted-frame replay remains M2-T14."
     ]
   },
   "milestones": [
@@ -13354,11 +13354,66 @@
                 "Full M2 G0/G1/G3 passed with 38 FPLN round trips, 1819 exact whole-frame comparisons and four exact temporal outputs plus 12 admitted Rust resource messages. The unchanged production renderer/bridge fingerprints allowed reuse of cycle31's complete capture without redundant recapture.",
                 "M2-T6 remains in progress: planned individual sample hashes and explicit weighted accumulation/resolve execution are next. Complete submitted-frame replay remains M2-T14."
               ]
+            },
+            {
+              "cycle": 33,
+              "status": "passed",
+              "commit": "c8566c2d54526d2ff4597a50c6b8fc6120828576",
+              "verification": {
+                "path": "artifacts/migration/verify-2026-10-04T22-52-41-059Z-2129e024.json",
+                "sha256": "d5adf9e5d7b02bf0f113110399b1064237aaf64339e33e9d425ffadb35faa3bf"
+              },
+              "pixel_comparison": {
+                "path": "artifacts/parity/ts-check/2026-10-04T22-53-59-794Z-dc261dcf/report.json",
+                "sha256": "d437c47848ceb72c9108c9d3da78d310e214aad0f640502beb783c10e0c04656"
+              },
+              "capture": {
+                "path": "artifacts/parity/capture-2026-10-04T22-46-30-669Z-3f8271ba.json",
+                "sha256": "0582cc3482010868fa653825cfead3c2fd12d24fa77e1cae85e03e690b7b5e46"
+              },
+              "manifest": {
+                "path": "artifacts/parity/runs/2026-10-04T22-46-30-669Z-3f8271ba/candidate/manifest.json",
+                "sha256": "e3251d13d28db607f7f309c83832446cf5036701a254c6d16d906548712526ba"
+              },
+              "renderer_source_sha256": "e1eee8fe82a4cb67ae097dd9753d88de51658dba71c256e2897be839ede66bc4",
+              "bridge_sha256": "82ccf02fefd4c54e78a82a4de08df6906714ecd0b198864ec72cb0c0394dd80c",
+              "temporal_report": {
+                "path": "artifacts/parity/ts-check/2026-10-04T22-53-59-794Z-dc261dcf/temporal-text/gpu.json",
+                "sha256": "c89bcf91763a8a4a28679222d0d183c5f8c80f2e1af9647eb9386ebc8b5d1afd"
+              },
+              "temporal_reference": {
+                "path": "tests/parity/temporal-text/reference/manifest.json",
+                "sha256": "e3e3b1184d5bc969dcd5cf76a424a551a0cac1a85484e157c5b549e5d6c811d1"
+              },
+              "gates": [
+                {
+                  "id": "G0",
+                  "status": "passed",
+                  "duration_ms": 73428
+                },
+                {
+                  "id": "G1",
+                  "status": "passed",
+                  "duration_ms": 4694
+                },
+                {
+                  "id": "G3",
+                  "status": "passed",
+                  "duration_ms": 267824
+                }
+              ],
+              "notes": [
+                "Individual temporal sample textures now have hash-addressed raster owners. Submission-scoped media leases retain sample/output generations until submission or abort.",
+                "A separate evaluator-free pass executor validates supplied dimensions, formats, output/sample hashes, uniform slots and weights before encoding linear premultiplied accumulation and straight-alpha sRGB resolve. GPU uniform writes consume the supplied plan rather than producer inputs.",
+                "Targeted tests execute a cloned plan after producer weights are discarded, and reject allocation/binding/slot/missing-resource/weight-buffer/duplicate-hash faults before GPU writes. Typecheck and all 39 focused tests passed.",
+                "Fresh full-corpus capture and required M2 G0/G1/G3 passed: 38 FPLN round trips, 1819 exact whole-frame comparisons, four exact temporal outputs and independent output replay with 12 admitted Rust resource messages.",
+                "M2-T6 remains in progress. The new local TemporalTextPassPlan still needs FPLN/Rust transport and decoded sample/pass replay; complete submitted-frame replay remains M2-T14."
+              ]
             }
           ],
           "remaining_work": [
-            "Bind individual sampled rasters through planned hashes and execute explicit accumulation/resolve from supplied pass inputs; resolved outputs already share submission-safe ownership.",
-            "Extend the maintained GPU checks to decoded sample/pass replay; complete submitted-frame replay remains M2-T14."
+            "Transport the hash-addressed temporal pass plan through FPLN/Rust with exact weights and resource dependencies.",
+            "Extend maintained GPU checks to decoded sample/pass replay; complete submitted-frame replay remains M2-T14."
           ]
         },
         {
@@ -13566,7 +13621,7 @@
       ],
       "preview_baseline_path": "benchmarks/results/m2-preview-baseline.json",
       "preview_baseline_sha256": "a1c62e224c008e731c252142ab1b9de7d31ecf592452c00da1dff42516772375",
-      "active_candidate_manifest": "artifacts/parity/runs/2026-10-04T22-02-52-653Z-27e7acac/candidate/manifest.json",
+      "active_candidate_manifest": "artifacts/parity/runs/2026-10-04T22-46-30-669Z-3f8271ba/candidate/manifest.json",
       "last_verification": {
         "status": "passed",
         "required_gates_passed": true,
@@ -13575,17 +13630,17 @@
           {
             "id": "G0",
             "status": "passed",
-            "duration_ms": 74409
+            "duration_ms": 73428
           },
           {
             "id": "G1",
             "status": "passed",
-            "duration_ms": 4663
+            "duration_ms": 4694
           },
           {
             "id": "G3",
             "status": "passed",
-            "duration_ms": 267955
+            "duration_ms": 267824
           }
         ],
         "optional_gates": [
@@ -13596,7 +13651,7 @@
           }
         ],
         "performance_policy": "rust-delivery-v1",
-        "report": "artifacts/migration/verify-2026-10-04T22-28-55-629Z-f076c827.json"
+        "report": "artifacts/migration/verify-2026-10-04T22-52-41-059Z-2129e024.json"
       },
       "performance_series_history": [
         {
@@ -14902,12 +14957,5 @@
       }
     }
   ],
-  "active_cycle": {
-    "id": 33,
-    "milestone": "M2",
-    "task": "M2-T6",
-    "started_at": "2026-10-04T22:39:22.798Z",
-    "scope": "Execute temporal accumulation/resolve from supplied hash-addressed sample draws and weights, with sample raster owners and submission-scoped leases. FPLN/Rust pass transport remains subsequent work.",
-    "previous_turn_classification": "no progress: answered the owner question about M0; revalidated the running M2-T6 state and resumed the existing cycle33 increment."
-  }
+  "active_cycle": null
 }
