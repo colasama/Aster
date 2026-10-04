@@ -14364,5 +14364,12 @@
       }
     }
   ],
-  "active_cycle": null
+  "active_cycle": {
+    "id": 24,
+    "milestone": "M2",
+    "task": "M2-T5",
+    "started_at": "2026-10-04T19:18:37.479Z",
+    "scope": "Add exact typed raster samples to the shared media resource protocol, bind ordinary text raster generations and bounds, and execute ordinary text draws through serialized scene resource references and GPU leases.",
+    "previous_turn_classification": "progress: cycle23 text raster acquisition/upload separation and bounds snapshots committed after full required gates; clean worktree."
+  }
 }

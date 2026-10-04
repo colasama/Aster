@@ -155,7 +155,7 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
       ["camera-perspective", "camera-orthographic"],
     );
     const mediaFixtures = await runtime.sceneMediaFixtures();
-    assert.equal(mediaFixtures.length, 8);
+    assert.equal(mediaFixtures.length, 11);
     for (const fixture of [
       ...fixtures,
       ...rootFixtures,

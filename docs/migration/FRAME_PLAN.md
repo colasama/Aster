@@ -124,9 +124,13 @@ not yet implement media decoding, GPU allocation or sidecar message framing.
 A source binds the source ID, opaque import content identity, media kind and authorization scope.
 The broker must independently authorize and resolve that tuple; the descriptor grants no filesystem
 access and does not mistake a legacy content identity for a cryptographic digest of the asset.
-A frame binds its source hash, texture extent/format and an image, sequence or video sample.
+A frame binds its source hash, texture extent/format and an image, sequence, video or raster sample.
 Sequence samples preserve the resolved safe-integer frame number and member file identity. Video samples retain both the
 exact requested and uploaded `FrameTime`, including fractional-rate seeks and signed zero.
+Raster samples declare a text/SVG/PSD origin and four exact local bounds (x, y, width, height).
+Each f64 is encoded as two little-endian u32 words, preserving fractional bits and signed zero
+through JSON. Both languages reject nonfinite bounds and nonpositive extents. Ordinary text source
+identity binds the prepared source/font revision, glyph signature and evaluated bounds.
 
 Resource identity includes interpretation as well as payload:
 
@@ -187,8 +191,12 @@ Ordinary text now has separate CPU acquisition and GPU upload boundaries. Acquis
 font revision, sampled animation time, density buckets and glyph-state reuse; upload consumes the
 supplied raster without access to the authoring layer. Geometry expansion receives copied bounds
 after all shared-instance preparation, and shutter sampling captures the cache after precomposition
-preparation to retain the existing timing. These transient canvas inputs are not yet serialized
-raster resources; raster identity, pixel transport and evaluated-bound resources remain required.
+preparation to retain the existing timing. Ordinary text now registers raster descriptors and draws
+through serialized scene resource references and GPU leases. Bounds are read from the typed sample.
+A retained glyph result advances its lookup key without changing the installed pixel generation;
+a new upload changes that generation and invalidates stale binding resolution. The protocol supports
+SVG/PSD origins, but their production adapters still require extraction. Canvas pixel transport and
+complete decoded-frame replay remain required, as does temporal text accumulation planning.
 
 ## Verification boundary
 

@@ -1,10 +1,12 @@
 import { requirePlan } from "../frame-plan/canonical";
 import type { PreparedTextRaster } from "../text/text-raster-acquisition";
+import { preparedRasterIdentity } from "./media-frame-identity";
 import { destroyMediaResource, type MediaResource } from "./media-resource";
 
 export interface TextRasterUploadDestination {
   device: GPUDevice;
   textureLabel: string;
+  sourceId: string;
   createBindGroup(texture: GPUTexture): GPUBindGroup;
 }
 
@@ -20,6 +22,14 @@ export function uploadTextRaster(
     return existing;
   }
   const { raster, source, signature } = prepared;
+  requirePlan(raster.bounds, "invalid_resource", "Prepared text raster lacks evaluated bounds");
+  const mediaIdentity = preparedRasterIdentity(
+    destination.sourceId,
+    "text",
+    JSON.stringify([source, signature]),
+    raster.bounds,
+  );
+  const bindingGeneration = JSON.stringify([mediaIdentity, raster.width, raster.height]);
   const reusable =
     existing?.kind === "text" &&
     existing.texture &&
@@ -51,10 +61,14 @@ export function uploadTextRaster(
     existing.source = source;
     existing.textSignature = signature;
     existing.textBounds = raster.bounds && { ...raster.bounds };
+    existing.mediaIdentity = mediaIdentity;
+    existing.bindingGeneration = bindingGeneration;
     return existing;
   }
   const resource: MediaResource = {
     source,
+    mediaIdentity,
+    bindingGeneration,
     kind: "text",
     texture,
     textureWidth: raster.width,

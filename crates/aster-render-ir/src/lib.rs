@@ -9,6 +9,7 @@ mod frame_rate;
 mod identity;
 mod media;
 mod metadata;
+mod raster;
 mod resource;
 mod resource_descriptor;
 mod scene;
@@ -29,6 +30,7 @@ pub use metadata::{
     AntiAliasing, BlobDescriptor, ColorPipeline, ContractLevel, ElementType, Extent2d,
     FrameHeaderSlice, FramePlanSliceV1, PlanKind, PlanSlice,
 };
+pub use raster::{RasterOrigin, RasterSample};
 pub use resource::{
     BufferResourceDescriptor, PutOutcome, PutResource, ResourceHash, ResourceKind, ResourceLease,
     ResourceLimits, ResourceMessage, ResourceRegistry, ResourceStatistics,

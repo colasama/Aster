@@ -70,6 +70,7 @@ async function fixture(t, intercept = async () => {}) {
           kind: "invalid_resource",
           missing: "missing_resource",
           "in-use": "resource_in_use",
+          bounds: "invalid_resource",
         }[command.id.slice("ir-media-reject-".length)],
       };
     } else if (command.id === "ir-independent-fixture") {
@@ -138,15 +139,16 @@ test("G1 orchestrates all real TS codec checks and keeps renderer completion exp
   const result = await f.run();
   assert.equal(result.status, "passed", result.error);
   assert.equal(result.renderer_plan_complete, false);
-  assert.equal(result.roundtrips.length, 27);
+  assert.equal(result.roundtrips.length, 30);
   assert.equal(result.camera_roundtrips.length, 2);
-  assert.equal(result.scene_uploads.length, 10);
-  assert.equal(result.media_draws.length, 8);
+  assert.equal(result.scene_uploads.length, 13);
+  assert.equal(result.media_draws.length, 11);
   assert.equal(result.root_uploads.length, 12);
   assert.equal(result.rejections.length, 6);
   assert.equal(result.custom_limits.length, 3);
   assert.equal(result.resources.status, "passed");
-  assert.equal(result.media_resources.roundtrips, 11);
+  assert.equal(result.media_resources.roundtrips, 17);
+  assert.equal(result.media_resources.exact_raster_bounds, true);
   assert.equal(result.media_resources.dependency_eviction, true);
   assert(f.calls.includes("ir-build") && f.calls.includes("ir-library-tests"));
   assert(result.checked_files > 20);
@@ -178,7 +180,7 @@ test("G1 rejects source drift even when every codec result is exact", async (t) 
   }));
   assert.equal(result.status, "failed");
   assert.equal(result.source_unchanged, false);
-  assert.equal(result.roundtrips.length, 27);
+  assert.equal(result.roundtrips.length, 30);
   assert.match(result.error, /Source changed during G1/);
 });
 

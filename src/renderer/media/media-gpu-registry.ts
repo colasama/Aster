@@ -147,7 +147,7 @@ export class MediaGpuRegistry {
       version ??= {
         owner,
         binding,
-        source: owner.source,
+        source: owner.bindingGeneration ?? owner.source,
         uploadedTime: owner.lastUploadedTime,
         pins: 0,
       };
@@ -283,7 +283,7 @@ export class MediaGpuRegistry {
 
   #current(version: BindingVersion): boolean {
     return (
-      version.owner.source === version.source &&
+      (version.owner.bindingGeneration ?? version.owner.source) === version.source &&
       Object.is(version.owner.lastUploadedTime, version.uploadedTime) &&
       version.owner.bindGroup === version.binding
     );

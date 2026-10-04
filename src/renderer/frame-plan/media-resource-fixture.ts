@@ -1,3 +1,4 @@
+import { rasterSample } from "./raster-sample";
 import { contentResourceHash } from "./resources";
 import { frameTimeFromNumber } from "./time";
 import type { PutResource, ResourceContent } from "./types";
@@ -48,6 +49,27 @@ export async function mediaResourceFixtures(): Promise<PutResource[]> {
           format: "rgba8unorm-srgb",
         },
       });
+  }
+  for (const origin of ["text", "svg", "psd"] as const) {
+    const source = await put({
+      kind: "media_source",
+      descriptor: {
+        source_id: `raster/${origin}`,
+        content_identity: `${origin}:font-or-source-generation:17`,
+        authorization_scope: "render-job:test",
+        media_kind: "raster",
+      },
+    });
+    await put({
+      kind: "media_frame",
+      descriptor: {
+        source: source.hash,
+        sample: rasterSample(origin, { x: -0, y: -12.25, width: Math.PI, height: 45.5 }),
+        width: 64,
+        height: 64,
+        format: "rgba8unorm-srgb",
+      },
+    });
   }
   return messages;
 }

@@ -6,6 +6,8 @@ import type { VideoExternalUpload } from "./video-external-upload";
 
 export interface MediaResource {
   mediaIdentity?: PreparedMediaIdentity;
+  /** Installed pixel generation, separate from a lookup key that may advance without upload. */
+  bindingGeneration?: string;
   source: string;
   kind: "image" | "video" | "text";
   texture?: GPUTexture;

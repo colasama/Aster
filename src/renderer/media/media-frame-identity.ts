@@ -6,6 +6,7 @@ import type {
   MediaSample,
   MediaSourceDescriptor,
 } from "../frame-plan/media-descriptors";
+import { type RasterBounds, type RasterSample, rasterSample } from "../frame-plan/raster-sample";
 import { contentResourceHashSync } from "../frame-plan/resources";
 import { frameTimeFromNumber } from "../frame-plan/time";
 import { FramePlanError, type PutResource } from "../frame-plan/types";
@@ -29,6 +30,23 @@ export function preparedMediaIdentity(
         ? JSON.stringify([footage.contentIdentity, variant])
         : footage.contentIdentity,
       media_kind: mediaKind,
+    },
+    sample,
+  };
+}
+
+export function preparedRasterIdentity(
+  sourceId: string,
+  origin: RasterSample["origin"],
+  generation: string,
+  bounds: RasterBounds,
+): PreparedMediaIdentity {
+  const sample = rasterSample(origin, bounds);
+  return {
+    source: {
+      source_id: compositionIdentityFromString(sourceId),
+      content_identity: JSON.stringify([generation, sample.bounds_f64_le]),
+      media_kind: "raster",
     },
     sample,
   };

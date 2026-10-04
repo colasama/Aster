@@ -1,5 +1,6 @@
 import { hash, integer, object, requirePlan, validUnicode } from "./canonical";
 import { compositionIdentityToString } from "./composition-identity";
+import { type RasterSample, readRasterBounds } from "./raster-sample";
 import { validateFrameTime } from "./time";
 import type { CompositionIdentity, FrameTime } from "./types";
 
@@ -8,13 +9,14 @@ export interface MediaSourceDescriptor {
   source_id: CompositionIdentity;
   content_identity: string;
   authorization_scope: string;
-  media_kind: "image" | "sequence" | "video";
+  media_kind: "image" | "sequence" | "video" | "raster";
 }
 
 export type MediaSample =
   | { kind: "image" }
   | { kind: "sequence"; frame: number; file_identity: string }
-  | { kind: "video"; requested_time: FrameTime; uploaded_time: FrameTime };
+  | { kind: "video"; requested_time: FrameTime; uploaded_time: FrameTime }
+  | RasterSample;
 
 export interface MediaFrameDescriptor {
   source: string;
@@ -39,7 +41,7 @@ export function validateMediaSource(value: unknown): MediaSourceDescriptor {
       "Media source identity must be nonempty Unicode",
     );
   requirePlan(
-    ["image", "sequence", "video"].includes(source.media_kind as string),
+    ["image", "sequence", "video", "raster"].includes(source.media_kind as string),
     "invalid_resource",
     "Unknown media source kind",
   );
@@ -63,6 +65,7 @@ export function validateMediaFrame(value: unknown): MediaFrameDescriptor {
     "Missing media sample",
   );
   if (sample.kind === "image") object(sample, ["kind"]);
+  else if (sample.kind === "raster") readRasterBounds(sample);
   else if (sample.kind === "sequence") {
     object(sample, ["kind", "frame", "file_identity"]);
     requirePlan(

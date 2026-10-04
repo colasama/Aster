@@ -127,9 +127,12 @@ lighting, generator context and depth uniforms and verify that changed supplied 
 Media lease tests exercise atomic acquisition, changed-source/frame rejection, abort and delayed GPU
 completion across cache destruction, including the shared placeholder owner. Full G3 remains required
 for media draw adapter changes; these lease tests alone do not establish content-addressed replay.
-G1 also sends image/sequence/video resource messages through the Rust CLI registry and back to TS,
+G1 also sends image/sequence/video/raster resource messages through the Rust CLI registry and back to TS,
 checking exact descriptor hashes, requested/uploaded time values and ordered eviction. Wrong hashes,
 kind mismatches, missing sources and premature source eviction must fail. Registry tests cover
+exact text/SVG/PSD raster bounds, including signed zero and fractional values; nonfinite bounds must
+be rejected before registry admission. Ordinary text upload tests check stable retained generations
+and stale lease rejection after changed font/source uploads. Registry tests also cover
 descriptor budgets, ownership across asynchronous hashing and in-flight frame/source dependencies.
 Production adapter tests validate installed still extents after bitmap closure, resolved sequence
 members, actual video upload times, and drawing by supplied hash independently of instance IDs.

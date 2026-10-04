@@ -1,7 +1,7 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::{CompositionIdentity, FrameTime, IrError, ResourceHash};
+use crate::{CompositionIdentity, FrameTime, IrError, RasterSample, ResourceHash};
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -9,6 +9,7 @@ pub enum MediaKind {
     Image,
     Sequence,
     Video,
+    Raster,
 }
 
 /// The job broker resolves this identity; a descriptor never grants filesystem access.
@@ -27,6 +28,7 @@ pub struct MediaSourceDescriptor {
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum MediaSample {
     Image,
+    Raster(RasterSample),
     Sequence {
         #[schemars(range(min = -9007199254740991_i64, max = 9007199254740991_i64))]
         frame: i64,
@@ -77,6 +79,7 @@ impl MediaFrameDescriptor {
         }
         match &self.sample {
             MediaSample::Image => Ok(()),
+            MediaSample::Raster(sample) => sample.bounds().map(|_| ()),
             MediaSample::Sequence {
                 frame,
                 file_identity,
@@ -107,6 +110,7 @@ impl MediaFrameDescriptor {
             (MediaSample::Image, MediaKind::Image)
                 | (MediaSample::Sequence { .. }, MediaKind::Sequence)
                 | (MediaSample::Video { .. }, MediaKind::Video)
+                | (MediaSample::Raster(_), MediaKind::Raster)
         ) {
             return Err(IrError::ResourceConflict);
         }

@@ -345,7 +345,7 @@
       "type": "object"
     },
     "MediaKind": {
-      "enum": ["image", "sequence", "video"],
+      "enum": ["image", "sequence", "video", "raster"],
       "type": "string"
     },
     "MediaSample": {
@@ -359,6 +359,31 @@
             }
           },
           "required": ["kind"],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "bounds_f64_le": {
+              "description": "x/y/width/height, each represented by two little-endian IEEE-754 f64 words.",
+              "items": {
+                "format": "uint32",
+                "minimum": 0,
+                "type": "integer"
+              },
+              "maxItems": 8,
+              "minItems": 8,
+              "type": "array"
+            },
+            "kind": {
+              "const": "raster",
+              "type": "string"
+            },
+            "origin": {
+              "$ref": "#/$defs/RasterOrigin"
+            }
+          },
+          "required": ["kind", "origin", "bounds_f64_le"],
           "type": "object"
         },
         {
@@ -556,6 +581,10 @@
       },
       "required": ["hash", "kind", "descriptor"],
       "type": "object"
+    },
+    "RasterOrigin": {
+      "enum": ["text", "svg", "psd"],
+      "type": "string"
     },
     "ResourceDescriptor": {
       "anyOf": [

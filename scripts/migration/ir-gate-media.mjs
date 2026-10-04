@@ -15,6 +15,11 @@ export async function auditMediaResources(
     assert.deepEqual(registry.resolve(message.hash).content.descriptor, message.descriptor);
     assert.equal(await runtime.contentResourceHash(message), message.hash);
     assert.equal(runtime.contentResourceHashSync(message), message.hash);
+    if (message.kind === "media_frame" && message.descriptor.sample.kind === "raster") {
+      const bounds = runtime.readRasterBounds(message.descriptor.sample);
+      assert(Object.is(bounds.x, -0));
+      assert.deepEqual(bounds, { x: -0, y: -12.25, width: Math.PI, height: 45.5 });
+    }
   }
   const transcript = [
     ...messages,
@@ -53,11 +58,19 @@ export async function auditMediaResources(
     messages[1],
     { type: "evict_resource", hash: messages[0].hash },
   ];
+  const raster = structuredClone(
+    messages.find((m) => m.kind === "media_frame" && m.descriptor.sample.kind === "raster"),
+  );
+  assert(raster);
+  raster.descriptor.sample.bounds_f64_le[0] = 0;
+  raster.descriptor.sample.bounds_f64_le[1] = 0x7ff00000;
+  const badBounds = [messages.find((m) => m.hash === raster.descriptor.source), raster];
   for (const [id, values, code] of [
     ["hash", wrongHash, "hash_mismatch"],
     ["kind", wrongKind, "invalid_resource"],
     ["missing", [messages[1]], "missing_resource"],
     ["in-use", earlyEviction, "resource_in_use"],
+    ["bounds", badBounds, "invalid_resource"],
   ]) {
     const path = join(context.output, `media-reject-${id}.json`);
     await writeFile(path, JSON.stringify(values));
@@ -86,7 +99,8 @@ export async function auditMediaResources(
     descriptor_bytes: before,
     dependency_eviction: true,
     exact_video_times: true,
-    source_kinds: ["image", "sequence", "video"],
+    exact_raster_bounds: true,
+    source_kinds: ["image", "sequence", "video", "raster"],
     output_sha256: file.sha256,
   };
 }

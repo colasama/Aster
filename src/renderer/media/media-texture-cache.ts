@@ -29,6 +29,7 @@ import {
   SvgRasterCache,
   svgTransformedRasterSize,
 } from "../../importers/svg-raster-cache";
+import { readRasterBounds } from "../frame-plan/raster-sample";
 import type { TextMotionBlurPlan } from "../text/text-motion-blur-plan";
 import {
   TextMotionBlurRasterCache,
@@ -673,16 +674,21 @@ export class MediaTextureCache {
   }
 
   textBounds(instanceId: string) {
-    return this.#resources.get(instanceId)?.textBounds;
+    const resource = this.#resources.get(instanceId);
+    const sample = resource?.mediaIdentity?.sample;
+    return sample?.kind === "raster" ? readRasterBounds(sample) : resource?.textBounds;
+  }
+
+  hasPlannedRaster(instanceId: string): boolean {
+    return this.#resources.get(instanceId)?.mediaIdentity?.sample.kind === "raster";
   }
 
   snapshotTextBounds() {
     return new Map(
-      [...this.#resources].flatMap(([id, resource]) =>
-        resource.kind === "text" && resource.textBounds
-          ? [[id, { ...resource.textBounds }] as const]
-          : [],
-      ),
+      [...this.#resources].flatMap(([id, resource]) => {
+        const bounds = resource.kind === "text" ? this.textBounds(id) : undefined;
+        return bounds ? [[id, { ...bounds }] as const] : [];
+      }),
     );
   }
 
@@ -742,6 +748,7 @@ export class MediaTextureCache {
     const resource = uploadTextRaster(prepared, existing, {
       device: this.#device,
       textureLabel: `GPU text cache · ${layer.name}`,
+      sourceId: layer.id,
       createBindGroup: (texture) =>
         this.#createBindGroup(texture, `GPU text resources · ${layer.id}`),
     });

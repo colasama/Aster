@@ -717,16 +717,25 @@ export class WebGpuRenderer {
       };
     }
     const { target, renderTarget } = framePlanInput;
-    const mediaBindings = resources.mediaTextures.acquireFrameBindings(
+    const plannedMediaIds = new Set(
       sceneBatches
-        .filter((batch) => batch.layer.kind === "image" || batch.layer.kind === "video")
+        .filter(
+          (batch) =>
+            batch.layer.kind === "image" ||
+            batch.layer.kind === "video" ||
+            (batch.layer.kind === "text" &&
+              resources.mediaTextures.hasPlannedRaster(batch.resourceInstanceId)),
+        )
         .map((batch) => batch.resourceInstanceId),
+    );
+    const mediaBindings = resources.mediaTextures.acquireFrameBindings(
+      [...plannedMediaIds],
       framePlanInput.snapshot.snapshotScope,
     );
     const mediaPlan = bindSceneMediaPlan(
       scenePlan,
       sceneBatches.flatMap((batch, draw_index) => {
-        if (batch.layer.kind !== "image" && batch.layer.kind !== "video") return [];
+        if (!plannedMediaIds.has(batch.resourceInstanceId)) return [];
         const hash = mediaBindings.hashFor(batch.resourceInstanceId);
         return [
           {
@@ -979,7 +988,9 @@ export class WebGpuRenderer {
         motionVectors: sceneBuffers.motionVectors,
         mediaBindGroup: (batch) =>
           resources.precompositionSurfaces.bindingFor(batch.instanceId) ??
-          (batch.layer.kind === "image" || batch.layer.kind === "video"
+          (batch.layer.kind === "image" ||
+          batch.layer.kind === "video" ||
+          batch.mediaResourceHash !== undefined
             ? mediaBindings.bindingForHash(batch.mediaResourceHash)
             : resources.mediaTextures.bindGroup(batch.resourceInstanceId)),
         generators: beautyMotionBlur

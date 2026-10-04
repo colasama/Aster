@@ -102,8 +102,11 @@ Ordinary text raster acquisition now owns sampled-time evaluation, font revision
 glyph-state reuse. A separate GPU consumer receives the prepared canvas, extent and copied ink bounds;
 it does not read a Layer or rerun text evaluation. Root text geometry and shutter samples use captured
 bound maps, preserving shared-instance preparation and precomposition ordering. Canvas pixels stay on
-the GPU-backed upload path. Transportable raster resource descriptors and text/SVG/PSD replay remain
-part of the ongoing extraction.
+the GPU-backed upload path. Ordinary text registers a typed raster sample with exact ink bounds and
+font/source generation identity. Its scene draw resolves the serialized resource hash through a GPU
+lease, including auxiliary draws. Reused glyph pixels retain their installed generation even when
+the animation lookup time advances. SVG/PSD producer extraction, pixel transport and complete raster
+replay remain part of the ongoing extraction; temporal text accumulation remains separate.
 
 Shared WGSL includes output anti-aliasing, core scene variants, compositing, fused post-processing,
 blur/depth/surface effects, auxiliary surfaces, particles, text motion blur and display/buffer helpers.
