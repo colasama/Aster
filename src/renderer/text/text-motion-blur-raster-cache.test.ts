@@ -3,12 +3,19 @@ import { createLayerForComposition } from "../../core/layers/layer-factory";
 import { createBlankComposition } from "../../core/project/project";
 import type { TextMotionBlurSample } from "./text-motion-blur-plan";
 import {
-  boundTextMotionBlurSamples,
-  planTextMotionBlurRasterScale,
+  acquireTemporalTextRasters,
+  planTemporalTextRaster,
+} from "./text-motion-blur-raster-acquisition";
+import {
   TextMotionBlurRasterCache,
   textMotionBlurRasterShader,
-  textMotionBlurRasterSource,
 } from "./text-motion-blur-raster-cache";
+import {
+  boundTextMotionBlurSamples,
+  planTextMotionBlurRasterScale,
+  textMotionBlurRasterSource,
+} from "./text-motion-blur-raster-policy";
+import { uploadTemporalTextRasters } from "./text-motion-blur-raster-upload";
 import { measureTextLayerBounds, textRasterSize } from "./text-rasterizer";
 
 vi.mock("./text-rasterizer", async (importOriginal) => ({
@@ -30,6 +37,54 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("GPU temporal text raster accumulation", () => {
+  it("uploads acquired canvases and frozen weights after authoring inputs are revoked", () => {
+    const layer = createLayerForComposition("text", createBlankComposition());
+    layer.size = [100, 50];
+    const authoring = Proxy.revocable(layer, {});
+    const samples = [
+      { localTime: 0.9, timeBucket: 900_000, weight: 0.25 },
+      { localTime: 1.1, timeBucket: 1_100_000, weight: 0.5 },
+    ];
+    const planned = planTemporalTextRaster(
+      authoring.proxy,
+      { frameTime: 1, sampleCount: 4, transparentWeight: 0.25, samples },
+      1,
+      8192,
+      1_000_000,
+      1_000_000,
+    );
+    const rasterize = vi.fn(() => ({
+      width: 100,
+      height: 50,
+      bounds: { x: 0, y: 0, width: 100, height: 50 },
+      canvas: {} as HTMLCanvasElement,
+    }));
+    const acquired = acquireTemporalTextRasters(authoring.proxy, planned, 8192, rasterize);
+    authoring.revoke();
+    samples[0].weight = 1;
+    samples.length = 0;
+    const device = mockDevice([]);
+    const destination = {
+      device,
+      sampleLayout: {} as GPUBindGroupLayout,
+      resolveLayout: {} as GPUBindGroupLayout,
+      mediaLayout: {} as GPUBindGroupLayout,
+      mediaSampler: {} as GPUSampler,
+    };
+    const uploaded = uploadTemporalTextRasters(acquired, destination);
+    expect(rasterize).toHaveBeenCalledTimes(2);
+    expect(
+      vi.mocked(device.queue.copyExternalImageToTexture).mock.calls.map((call) => call[0].source),
+    ).toEqual(acquired.rasters.map((raster) => raster.canvas));
+    const weights = vi.mocked(device.queue.writeBuffer).mock.calls[0][2] as Float32Array;
+    expect([weights[0], weights[64]]).toEqual([0.25, 0.5]);
+    expect(uploaded.transientBytes).toBe(100 * 50 * 4 * 4 + 512);
+    const allocationCount = vi.mocked(device.createTexture).mock.calls.length;
+    expect(() => uploadTemporalTextRasters({ ...acquired, rasters: [] }, destination)).toThrow(
+      "extents or sample count",
+    );
+    expect(device.createTexture).toHaveBeenCalledTimes(allocationCount);
+  });
   it("uses one expanded local-space extent for every shutter sample", () => {
     vi.mocked(measureTextLayerBounds)
       .mockReturnValueOnce({ x: -30, y: -20, width: 130, height: 70 })

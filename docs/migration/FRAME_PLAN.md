@@ -77,7 +77,10 @@ frame time and transparent weight as little-endian f64, followed by local-time/w
 f64 triples. TS and Rust validate the frame time against the header, finite values, bounded counts,
 safe integer buckets and full shutter-weight coverage. Signed zero and exact sub-frame values are
 preserved. Root preparation consumes supplied sample slices and exposure identities before text
-raster preparation and geometry expansion. Sample texture hashes, explicit accumulation/resolve
+raster preparation and geometry expansion. Temporal raster acquisition now freezes bounds, scale,
+selected sample weights and canvases before a separate evaluator-free GPU uploader creates sample
+textures, accumulation storage and resolve bindings. Existing cache retention and submission rules
+still own these allocations. Sample texture hashes, explicit accumulation/resolve
 operations and independently owned temporal output bindings still require extraction.
 
 ## FPLN encoding

@@ -1,19 +1,17 @@
-import { projectFontRevision } from "../../core/media/project-font-runtime";
 import type { Layer } from "../../core/types";
 import { sharedShaders } from "../gpu/shared-shader-catalog";
-import type { TextMotionBlurPlan, TextMotionBlurSample } from "./text-motion-blur-plan";
-import { includeTextBounds, type TextRasterBounds } from "./text-raster-bounds";
+import type { TextMotionBlurPlan } from "./text-motion-blur-plan";
 import {
-  measureTextLayerBounds,
-  rasterizeTextLayer,
-  textRasterResolutionScale,
-  textRasterSize,
-} from "./text-rasterizer";
+  acquireTemporalTextRasters,
+  planTemporalTextRaster,
+} from "./text-motion-blur-raster-acquisition";
+import { uploadTemporalTextRasters } from "./text-motion-blur-raster-upload";
+import type { TextRasterBounds } from "./text-raster-bounds";
+import { rasterizeTextLayer } from "./text-rasterizer";
 
 export const MAX_TEXT_MOTION_BLUR_TRANSIENT_BYTES = 384 * 1024 * 1024;
 export const MAX_TEXT_MOTION_BLUR_RESIDENT_BYTES = 384 * 1024 * 1024;
 export const MAX_TEXT_MOTION_BLUR_CACHE_ENTRIES = 64;
-const WEIGHT_UNIFORM_STRIDE = 256;
 
 export interface PreparedTextMotionBlurRaster {
   bounds: TextRasterBounds;
@@ -31,17 +29,6 @@ export interface TextMotionBlurRasterFrameStats {
   transientTextureCount: number;
   resolutionScaleReductionCount: number;
   lowestResolutionScale?: number;
-}
-
-export interface TextMotionBlurRasterScalePlan {
-  requestedScale: number;
-  resolutionScale: number;
-  width: number;
-  height: number;
-  pixelBytes: number;
-  minimumSampleCount: number;
-  requiredTransientBytes: number;
-  reduced: boolean;
 }
 
 interface TextMotionBlurEntry extends PreparedTextMotionBlurRaster {
@@ -198,34 +185,18 @@ export class TextMotionBlurRasterCache {
     resolutionScale: number,
   ): PreparedTextMotionBlurRaster {
     if (this.#destroyed) throw new Error("Text motion-blur raster cache is destroyed");
-    const requestedScale = textRasterResolutionScale(resolutionScale);
     const maximumDimension = Math.min(8_192, this.#device.limits.maxTextureDimension2D);
     const existing = this.#entries.get(instanceId);
-    const boundsSource = textMotionBlurRasterSource(layer, plan, plan.samples, requestedScale);
-    const bounds =
-      existing?.boundsSource === boundsSource
-        ? existing.bounds
-        : {
-            x: 0,
-            y: 0,
-            width: Math.max(1, layer.size[0]),
-            height: Math.max(1, layer.size[1]),
-          };
-    if (existing?.boundsSource !== boundsSource)
-      for (const sample of plan.samples)
-        includeTextBounds(bounds, measureTextLayerBounds(layer, sample.localTime));
-    const availableBytes = Math.max(
-      0,
-      this.#maxTransientBytes - this.#transientBytes + (existing?.transientBytes ?? 0),
-    );
-    const scalePlan = planTextMotionBlurRasterScale(
-      { size: [bounds.width, bounds.height] },
+    const prepared = planTemporalTextRaster(
+      layer,
+      plan,
+      resolutionScale,
       maximumDimension,
-      requestedScale,
-      plan.samples.length,
-      availableBytes,
+      Math.max(0, this.#maxTransientBytes - this.#transientBytes + (existing?.transientBytes ?? 0)),
       Math.max(0, this.#maxResidentBytes - this.#residentBytes + (existing?.textureBytes ?? 0)),
+      existing,
     );
+    const { bounds, boundsSource, source, samples, scale: scalePlan } = prepared;
     const { width, height, pixelBytes, resolutionScale: rasterScale } = scalePlan;
     if (scalePlan.reduced) {
       this.#frameStats.resolutionScaleReductionCount += 1;
@@ -234,17 +205,6 @@ export class TextMotionBlurRasterCache {
         rasterScale,
       );
     }
-    const samples = boundTextMotionBlurSamples(plan.samples, pixelBytes, availableBytes);
-    if (plan.samples.length > 1 && samples.length < 2)
-      throw new Error("Temporal text motion blur requires at least two canonical samples");
-    if (plan.samples.length === 1 && samples.length === 0)
-      throw new Error("Temporal text samples exceed the bounded GPU transient budget");
-    if (pixelBytes * 2 > availableBytes)
-      throw new Error("Temporal text accumulation exceeds the bounded GPU transient budget");
-    const source = JSON.stringify([
-      textMotionBlurRasterSource(layer, plan, samples, rasterScale),
-      bounds,
-    ]);
     if (existing?.source === source) {
       existing.frame = this.#frame;
       this.#entries.delete(instanceId);
@@ -254,20 +214,7 @@ export class TextMotionBlurRasterCache {
     const reuseOutput = existing?.width === width && existing.height === height;
     if (reuseOutput && existing.encoded)
       throw new Error("Temporal text generation must be submitted or aborted before replacement");
-    // Rasterize and validate the complete generation before mutating cache ownership or enqueuing
-    // any upload. A later sample failure therefore cannot leave a destroyed texture in #uploads.
-    const rasters = samples.map((sample) => {
-      const raster = this.#rasterize(
-        layer,
-        maximumDimension,
-        sample.localTime,
-        rasterScale,
-        bounds,
-      );
-      if (raster.width !== width || raster.height !== height)
-        throw new Error("Temporal text raster dimensions changed inside one shutter interval");
-      return raster;
-    });
+    const acquired = acquireTemporalTextRasters(layer, prepared, maximumDimension, this.#rasterize);
     if (existing) {
       if (reuseOutput) this.#destroyTransients(existing);
       else this.#delete(instanceId, existing);
@@ -275,100 +222,15 @@ export class TextMotionBlurRasterCache {
     if (!reuseOutput && !this.#reserveEntry(pixelBytes))
       throw new Error("Temporal text outputs exceed the bounded GPU resident budget");
 
-    let output = reuseOutput ? existing.output : undefined;
-    let accumulation: GPUTexture | undefined;
-    let weights: GPUBuffer | undefined;
-    let resolveBindGroup: GPUBindGroup | undefined;
-    let bindGroup: GPUBindGroup | undefined;
-    const weightData = new Float32Array((samples.length * WEIGHT_UNIFORM_STRIDE) / 4);
-    const sampleTextures: GPUTexture[] = [];
-    const sampleBindGroups: GPUBindGroup[] = [];
-    try {
-      output ??= this.#device.createTexture({
-        label: `Temporal text output · ${layer.name}`,
-        size: [width, height],
-        format: "rgba8unorm-srgb",
-        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT,
-      });
-      accumulation = this.#device.createTexture({
-        label: `Temporal text linear accumulation · ${layer.name}`,
-        size: [width, height],
-        format: "rgba16float",
-        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT,
-      });
-      weights =
-        samples.length > 0
-          ? this.#device.createBuffer({
-              label: `Temporal text sample weights · ${layer.name}`,
-              size: samples.length * WEIGHT_UNIFORM_STRIDE,
-              usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-            })
-          : undefined;
-      for (let index = 0; index < samples.length; index += 1) {
-        const sample = samples[index];
-        const texture = this.#device.createTexture({
-          label: `Temporal text sample ${index + 1}/${samples.length} · ${layer.name}`,
-          size: [width, height],
-          format: "rgba8unorm-srgb",
-          usage:
-            GPUTextureUsage.TEXTURE_BINDING |
-            GPUTextureUsage.COPY_DST |
-            GPUTextureUsage.RENDER_ATTACHMENT,
-        });
-        sampleTextures.push(texture);
-        weightData[(index * WEIGHT_UNIFORM_STRIDE) / 4] = sample.weight;
-        sampleBindGroups.push(
-          this.#device.createBindGroup({
-            label: `Temporal text sample binding · ${layer.id} · ${sample.timeBucket}`,
-            layout: this.#sampleLayout,
-            entries: [
-              { binding: 0, resource: texture.createView() },
-              { binding: 1, resource: this.#mediaSampler },
-              {
-                binding: 2,
-                resource: {
-                  buffer: weights as GPUBuffer,
-                  offset: index * WEIGHT_UNIFORM_STRIDE,
-                  size: 16,
-                },
-              },
-            ],
-          }),
-        );
-      }
-      resolveBindGroup = this.#device.createBindGroup({
-        label: `Temporal text resolve binding · ${layer.id}`,
-        layout: this.#resolveLayout,
-        entries: [{ binding: 0, resource: accumulation.createView() }],
-      });
-      bindGroup =
-        existing && reuseOutput
-          ? existing.bindGroup
-          : this.#device.createBindGroup({
-              label: `Temporal text media binding · ${layer.id}`,
-              layout: this.#mediaLayout,
-              entries: [
-                { binding: 0, resource: output.createView() },
-                { binding: 1, resource: this.#mediaSampler },
-              ],
-            });
-      if (weights) this.#device.queue.writeBuffer(weights, 0, weightData);
-      for (let index = 0; index < sampleTextures.length; index += 1)
-        this.#device.queue.copyExternalImageToTexture(
-          { source: rasters[index].canvas },
-          { texture: sampleTextures[index] },
-          [width, height],
-        );
-    } catch (error) {
-      for (const texture of sampleTextures) texture.destroy();
-      accumulation?.destroy();
-      if (!reuseOutput) output?.destroy();
-      weights?.destroy();
-      throw error;
-    }
-    if (!output || !accumulation || !resolveBindGroup || !bindGroup)
-      throw new Error("Temporal text generation did not initialize its GPU resources");
-    const transientBytes = pixelBytes * samples.length + pixelBytes * 2 + (weights?.size ?? 0);
+    const uploaded = uploadTemporalTextRasters(acquired, {
+      device: this.#device,
+      sampleLayout: this.#sampleLayout,
+      resolveLayout: this.#resolveLayout,
+      mediaLayout: this.#mediaLayout,
+      mediaSampler: this.#mediaSampler,
+      reuse: reuseOutput ? existing : undefined,
+    });
+    const { transientBytes } = uploaded;
     const entry: TextMotionBlurEntry = {
       bounds,
       boundsSource,
@@ -376,13 +238,7 @@ export class TextMotionBlurRasterCache {
       width,
       height,
       source,
-      output,
-      accumulation,
-      sampleTextures,
-      sampleBindGroups,
-      resolveBindGroup,
-      weights,
-      bindGroup,
+      ...uploaded,
       textureBytes: pixelBytes,
       transientBytes,
       sampleCount: samples.length,
@@ -530,102 +386,6 @@ export class TextMotionBlurRasterCache {
   }
 }
 
-export function boundTextMotionBlurSamples(
-  samples: readonly TextMotionBlurSample[],
-  pixelBytes: number,
-  byteBudget: number,
-): TextMotionBlurSample[] {
-  if (samples.length === 0) return [];
-  const bytes = Math.max(4, Math.floor(pixelBytes));
-  const budget = Math.max(0, Math.floor(byteBudget));
-  // One linear RGBA16F accumulation, sample RGBA8 textures, and aligned uniform weights consume
-  // transient space. The resolved RGBA8 output is governed by the separate resident budget.
-  const fixedBytes = bytes * 2;
-  const maximumSamples = Math.min(
-    samples.length,
-    Math.max(0, Math.floor((budget - fixedBytes) / (bytes + WEIGHT_UNIFORM_STRIDE))),
-  );
-  if (maximumSamples <= 0) return [];
-  if (maximumSamples >= samples.length) return samples.map((sample) => ({ ...sample }));
-  const selectedIndices = Array.from({ length: maximumSamples }, (_, index) =>
-    maximumSamples === 1
-      ? Math.floor((samples.length - 1) / 2)
-      : Math.round((index * (samples.length - 1)) / (maximumSamples - 1)),
-  );
-  const selected = selectedIndices.map((index) => ({ ...samples[index], weight: 0 }));
-  for (let index = 0; index < samples.length; index += 1) {
-    let nearest = 0;
-    for (let candidate = 1; candidate < selectedIndices.length; candidate += 1)
-      if (Math.abs(selectedIndices[candidate] - index) < Math.abs(selectedIndices[nearest] - index))
-        nearest = candidate;
-    selected[nearest].weight += samples[index].weight;
-  }
-  return selected;
-}
-
-export function planTextMotionBlurRasterScale(
-  layer: Pick<Layer, "size">,
-  maximumDimension: number,
-  requestedResolutionScale: number,
-  canonicalSampleCount: number,
-  transientBudget: number,
-  residentBudget: number,
-): TextMotionBlurRasterScalePlan {
-  const requestedScale = textRasterResolutionScale(requestedResolutionScale);
-  const minimumSampleCount = canonicalSampleCount > 1 ? 2 : Math.max(0, canonicalSampleCount);
-  const scales = discreteTextRasterScales(requestedScale);
-  for (let index = scales.length - 1; index >= 0; index -= 1) {
-    const resolutionScale = scales[index];
-    const { width, height } = textRasterSize(layer, maximumDimension, resolutionScale);
-    const pixelBytes = width * height * 4;
-    const requiredTransientBytes =
-      pixelBytes * 2 + minimumSampleCount * (pixelBytes + WEIGHT_UNIFORM_STRIDE);
-    if (pixelBytes > residentBudget || requiredTransientBytes > transientBudget) continue;
-    return {
-      requestedScale,
-      resolutionScale,
-      width,
-      height,
-      pixelBytes,
-      minimumSampleCount,
-      requiredTransientBytes,
-      reduced: resolutionScale < requestedScale,
-    };
-  }
-  const { width, height } = textRasterSize(layer, maximumDimension, 1);
-  const pixelBytes = width * height * 4;
-  const requiredTransientBytes =
-    pixelBytes * 2 + minimumSampleCount * (pixelBytes + WEIGHT_UNIFORM_STRIDE);
-  if (pixelBytes > residentBudget)
-    throw new Error(
-      `Temporal text motion blur ${width}×${height} requires ${pixelBytes} resident bytes; budget is ${Math.max(0, Math.floor(residentBudget))}`,
-    );
-  throw new Error(
-    `Temporal text motion blur ${width}×${height} requires ${requiredTransientBytes} transient bytes for ${minimumSampleCount} samples at 1x; budget is ${Math.max(0, Math.floor(transientBudget))}`,
-  );
-}
-
-export function textMotionBlurRasterSource(
-  layer: Layer,
-  plan: TextMotionBlurPlan,
-  samples: readonly TextMotionBlurSample[],
-  resolutionScale: number,
-): string {
-  return JSON.stringify([
-    "text-motion-blur-v1",
-    layer.text,
-    layer.name,
-    layer.color,
-    layer.size,
-    layer.textStyle,
-    projectFontRevision(),
-    layer.textAnimator,
-    samples.map((sample) => [sample.timeBucket, sample.weight]),
-    plan.transparentWeight,
-    resolutionScale,
-  ]);
-}
-
 function boundedInteger(
   value: number | undefined,
   minimum: number,
@@ -643,16 +403,6 @@ function emptyFrameStats(): TextMotionBlurRasterFrameStats {
     transientTextureCount: 0,
     resolutionScaleReductionCount: 0,
   };
-}
-
-function discreteTextRasterScales(maximum: number): number[] {
-  const result = [1];
-  while (result[result.length - 1] < maximum) {
-    const next = Math.min(maximum, result[result.length - 1] * 1.25);
-    if (next <= result[result.length - 1]) break;
-    result.push(next);
-  }
-  return result;
 }
 
 export const textMotionBlurRasterShader = sharedShaders.source("text-motion-blur-raster");

@@ -111,7 +111,10 @@ register raster descriptors. A shared upload consumer receives prepared bitmap o
 validates their extent/layout, and releases failed allocations without publishing partial owners.
 Root temporal text preparation now consumes a typed sample slice per resource instance. Exact
 local times, weights, transparent exposure and exposure-only identities survive TS/Rust transport;
-the existing temporal raster cache consumes the reconstructed samples. Sample GPU resources and
+the temporal raster cache consumes the reconstructed samples. CPU preparation freezes expanded
+bounds, budget-selected resolution, copied samples and generation identity, then acquires every
+canvas before cache ownership changes. A separate GPU consumer uploads only those supplied canvases
+and aligned weights without accessing authoring layers or text evaluators. Sample GPU resources and
 explicit accumulation/resolve operations still await extraction into the executable frame plan.
 The shared resource protocol also carries content-addressed, packed raster pixel payloads with
 frame/source dependencies. An independent decoded upload consumer installs them without text/SVG/PSD

@@ -141,6 +141,10 @@ exposure, plus transparent and exact-bit fixtures. Supplied samples and exposure
 survive Rust decoding and TS cloning; invalid formats, frame time, weights and sample lanes fail.
 This contract currently covers temporal preparation inputs; planned sample-resource bindings and
 accumulation/resolve execution remain separate required work.
+The temporal upload boundary test revokes authoring-layer access and mutates original samples after
+acquisition, then checks that uploads retain the acquired canvases and original aligned weights.
+Malformed prepared extents or sample counts must fail before GPU allocation. Full G3 still verifies
+the production cache, accumulation and resolve path against exact reference pixels.
 
 G1 also round-trips text/SVG/PSD scene slices built by the production geometry producer, then joins
 the returned geometry with independently admitted Rust resource transcripts and binary pixels.

@@ -14703,5 +14703,12 @@
       }
     }
   ],
-  "active_cycle": null
+  "active_cycle": {
+    "id": 30,
+    "milestone": "M2",
+    "task": "M2-T6",
+    "started_at": "2026-10-04T21:37:18.716Z",
+    "scope": "Separate temporal text bounds/budget/sample preparation and raster acquisition from evaluator-free GPU upload, retaining exact weights and cache ownership behavior.",
+    "previous_turn_classification": "progress: cycle29 committed exact temporal sample transport and production consumption after full G0/G1/G3."
+  }
 }
