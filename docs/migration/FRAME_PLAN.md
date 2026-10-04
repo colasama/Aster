@@ -56,8 +56,19 @@ position of these operations. Empty geometry omits shape allocation/upload. Actu
 auxiliary ranges and selection identities come from decoded/plain draw records; shadow execution
 uses only these records and the supplied shadow-enable flag. Auxiliary motion upload consumes the
 supplied motion bytes. Material/resource adapters still pair planned ranges with live layer inputs;
-camera depth settings, generator inputs and complete pass/resource planning are not covered by this
-slice. Both contracts continue to declare `renderer_plan_complete: false`.
+complete depth settings, generator inputs and pass/resource planning are not covered by this slice.
+All partial contracts continue to declare `renderer_plan_complete: false`.
+
+`camera_parameters_slice_v1` owns evaluated camera pose, projection and optics without `Layer`,
+authoring `CameraSettings` or animation objects. A closed `camera_parameters` descriptor carries
+pose mode, projection kinds, depth-of-field and focus-lock flags, and iris shape. Its single 296-byte
+`u8` blob contains 37 little-endian f64 scalars: position, point of interest, orientation and rotation
+(four vec3s), projection zoom/orthographic size/near/far, then the 21 optics scalars in
+`camera-layout.ts` order. The dedicated layout preserves JS evaluation precision before GPU f32
+packing. It does not add value normalization to existing consumers. Root geometry/text expansion,
+lighting, depth configuration and generator preparation consume reconstructed values from these
+supplied bytes. Absence of an active camera retains the existing no-camera path. `SceneCamera` now
+aliases only `EvaluatedCamera`; original transform/settings references no longer escape evaluation.
 
 ## FPLN encoding
 

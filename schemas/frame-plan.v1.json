@@ -80,6 +80,29 @@
       "required": ["element_type", "element_count", "byte_length"],
       "type": "object"
     },
+    "CameraIrisShape": {
+      "enum": [
+        "fastRectangle",
+        "square",
+        "triangle",
+        "pentagon",
+        "hexagon",
+        "heptagon",
+        "octagon",
+        "nonagon",
+        "decagon",
+        "circle"
+      ],
+      "type": "string"
+    },
+    "CameraPoseMode": {
+      "enum": ["oneNode", "twoNode"],
+      "type": "string"
+    },
+    "CameraProjectionKind": {
+      "enum": ["perspective", "orthographic"],
+      "type": "string"
+    },
     "ColorPipeline": {
       "enum": ["linear-hdr-to-srgb-display"],
       "type": "string"
@@ -96,7 +119,7 @@
       ]
     },
     "ContractLevel": {
-      "enum": ["post_uniforms_slice_v1", "scene_buffers_slice_v1"],
+      "enum": ["post_uniforms_slice_v1", "scene_buffers_slice_v1", "camera_parameters_slice_v1"],
       "type": "string"
     },
     "ElementType": {
@@ -323,6 +346,49 @@
             "motion_vectors",
             "shadows_enabled",
             "draws"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "blob_index": {
+              "format": "uint32",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "depth_of_field": {
+              "type": "boolean"
+            },
+            "iris_shape": {
+              "$ref": "#/$defs/CameraIrisShape"
+            },
+            "kind": {
+              "const": "camera_parameters",
+              "type": "string"
+            },
+            "lock_focus_to_zoom": {
+              "type": "boolean"
+            },
+            "optics_projection": {
+              "$ref": "#/$defs/CameraProjectionKind"
+            },
+            "pose_mode": {
+              "$ref": "#/$defs/CameraPoseMode"
+            },
+            "projection_kind": {
+              "$ref": "#/$defs/CameraProjectionKind"
+            }
+          },
+          "required": [
+            "kind",
+            "blob_index",
+            "pose_mode",
+            "projection_kind",
+            "optics_projection",
+            "depth_of_field",
+            "lock_focus_to_zoom",
+            "iris_shape"
           ],
           "type": "object"
         }

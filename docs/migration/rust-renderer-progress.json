@@ -13936,5 +13936,12 @@
       }
     }
   ],
-  "active_cycle": null
+  "active_cycle": {
+    "id": 17,
+    "milestone": "M2",
+    "task": "M2-T3",
+    "started_at": "2026-10-04T16:26:03.979Z",
+    "scope": "Complete evaluated camera/optics transport and route actual root camera consumers through owned decoded values; close T3 only after full required gates.",
+    "previous_turn_classification": "progress: cycle16 scene-buffer implementation and full verification committed with ledger evidence."
+  }
 }

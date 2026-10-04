@@ -1,3 +1,4 @@
+use crate::CameraParametersSlice;
 use std::collections::BTreeSet;
 
 use schemars::JsonSchema;
@@ -19,6 +20,7 @@ pub enum PlanKind {
 pub enum ContractLevel {
     PostUniformsSliceV1,
     SceneBuffersSliceV1,
+    CameraParametersSliceV1,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
@@ -108,6 +110,7 @@ pub struct BlobDescriptor {
 pub enum PlanSlice {
     PostProcessUniforms { blob_index: u32 },
     SceneBuffers(SceneBuffersSlice),
+    CameraParameters(CameraParametersSlice),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
@@ -175,6 +178,11 @@ impl FramePlanSliceV1 {
                 {
                     scene.blob_index
                 }
+                PlanSlice::CameraParameters(camera)
+                    if self.contract_level == ContractLevel::CameraParametersSliceV1 =>
+                {
+                    camera.blob_index
+                }
                 _ => return Err(IrError::InvalidHeader("slice contract mismatch".to_owned())),
             };
             let blob = self
@@ -186,6 +194,10 @@ impl FramePlanSliceV1 {
             }
             if let PlanSlice::SceneBuffers(scene) = slice {
                 scene.validate(blob)?;
+                continue;
+            }
+            if let PlanSlice::CameraParameters(camera) = slice {
+                camera.validate(blob)?;
                 continue;
             }
             if blob.element_type != ElementType::F32Le {
@@ -222,7 +234,7 @@ impl FramePlanSliceV1 {
         if bytes.len() != descriptor.byte_length as usize {
             return Err(IrError::ElementCountMismatch);
         }
-        if self.contract_level == ContractLevel::SceneBuffersSliceV1 {
+        if self.contract_level != ContractLevel::PostUniformsSliceV1 {
             return Ok(());
         }
         if bytes.len() != 96 {

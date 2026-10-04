@@ -16,9 +16,5 @@ export function evaluateSceneCamera(
   const settings =
     layer.camera ?? createDefaultCameraSettings(composition.width, composition.height);
   const transform = evaluateWorldTransform(layer, composition, time);
-  return {
-    transform,
-    settings,
-    ...evaluateCameraSettings(settings, transform, time, composition.width),
-  };
+  return evaluateCameraSettings(settings, transform, time, composition.width);
 }

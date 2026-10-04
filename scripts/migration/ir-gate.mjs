@@ -17,12 +17,13 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
     schema_version: 1,
     status: "failed",
     started_at: new Date(started).toISOString(),
-    scope: "post_uniforms_slice_v1 + scene_buffers_slice_v1",
+    scope: "post_uniforms_slice_v1 + scene_buffers_slice_v1 + camera_parameters_slice_v1",
     renderer_plan_complete: false,
     steps: [],
     roundtrips: [],
     root_uploads: [],
     scene_uploads: [],
+    camera_roundtrips: [],
     rejections: [],
   };
   const reader = new M0Evidence(context.root);
@@ -139,7 +140,12 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
       sceneFixtures.map((fixture) => fixture.id),
       ["scene-nested-mesh-camera", "scene-empty"],
     );
-    for (const fixture of [...fixtures, ...rootFixtures, ...sceneFixtures]) {
+    const cameraFixtures = runtime.cameraPlanFixtures();
+    assert.deepEqual(
+      cameraFixtures.map((fixture) => fixture.id),
+      ["camera-perspective", "camera-orthographic"],
+    );
+    for (const fixture of [...fixtures, ...rootFixtures, ...sceneFixtures, ...cameraFixtures]) {
       const input = join(context.output, `${fixture.id}-ts.fpln`);
       const output = join(context.output, `${fixture.id}-rust.fpln`);
       await writeFile(input, fixture.bytes, { flag: "wx" });
@@ -162,6 +168,12 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
         Buffer.from(runtime.encodeFramePlan(after.metadata, after.blobs)),
         original.bytes,
       );
+      if (after.metadata.contract_level === "camera_parameters_slice_v1") {
+        const supplied = runtime.readCameraPlan(after);
+        assert.deepEqual(supplied, fixture.camera);
+        assert(!("settings" in supplied) && !("transform" in supplied));
+        report.camera_roundtrips.push({ id: fixture.id, evaluated_values_exact: true });
+      }
       if (after.metadata.contract_level === "scene_buffers_slice_v1") {
         const prepared = runtime.prepareSceneBuffers(after);
         const writes = [];

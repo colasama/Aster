@@ -121,6 +121,9 @@ uploads are checked independently of the original request.
 Scene-buffer fixtures add nested composition, camera, mesh, lighting and motion payloads plus empty
 geometry. G1 round-trips them through Rust and checks decoded uploads and shadow ranges. Mutation
 tests verify producer ownership, borrowed unaligned views and destination replacement on resizing.
+Evaluated camera fixtures cover nested perspective and orthographic cameras with exact f64 payloads.
+Their decoded pose, projection and optics match TS evaluation; consumer tests compare geometry,
+lighting, generator context and depth uniforms and verify that changed supplied bytes alter geometry.
 See [Frame-plan transport](FRAME_PLAN.md) for the current contract and its explicit partial scope.
 
 Full G3 continues to compare all required TS frames under `exact`, retaining the effective reference

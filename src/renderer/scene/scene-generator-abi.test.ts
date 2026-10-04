@@ -97,9 +97,5 @@ function sceneCamera(): SceneCamera {
     anchor: [0, 0, 0] as [number, number, number],
     opacity: 1,
   };
-  return {
-    transform,
-    settings,
-    ...evaluateCameraSettings(settings, transform, 0, 1920),
-  };
+  return evaluateCameraSettings(settings, transform, 0, 1920);
 }

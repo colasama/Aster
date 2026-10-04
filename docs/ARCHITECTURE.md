@@ -76,7 +76,9 @@ request time and caller snapshot identity, then uploads the supplied bytes throu
 executor. An additional owned scene-buffer slice carries evaluated camera-space vertices, lighting,
 motion vectors and stable-ID draw ranges. The root renderer uploads these supplied buffers and uses
 their ranges for beauty, auxiliary and shadow draws. Material/resource adapters still retain live
-layer inputs; camera depth settings and other passes remain to be extracted. Complete frame replay remains a separate
+layer inputs. A separate camera slice owns exact evaluated pose, projection and optics; root geometry,
+lighting, depth settings and generator preparation consume its decoded values without authoring settings.
+Complete depth/pass planning and frame replay remain separate
 milestone requirement. See [Frame-plan transport](migration/FRAME_PLAN.md).
 
 Shared WGSL includes output anti-aliasing, core scene variants, compositing, fused post-processing,

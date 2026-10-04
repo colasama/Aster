@@ -1,5 +1,6 @@
 //! Bounded frame-plan transport. The initial uniform slice is not a complete renderer plan.
 
+mod camera;
 mod canonical;
 mod codec;
 mod error;
@@ -13,6 +14,7 @@ mod schema;
 mod time;
 mod wire;
 
+pub use camera::{CameraIrisShape, CameraParametersSlice, CameraPoseMode, CameraProjectionKind};
 pub use codec::{DecodeLimits, FplnCodec, OwnedFpln};
 pub use error::IrError;
 pub use fixture::IrFixture;

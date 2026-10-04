@@ -6,7 +6,7 @@ import {
   type EvaluatedCamera,
 } from "../../core/scene/camera-settings";
 import type { FlattenedSceneLayer } from "../../core/scene/scene-evaluation";
-import type { CameraSettings, Composition, EvaluatedTransform, Layer } from "../../core/types";
+import type { Composition, EvaluatedTransform, Layer } from "../../core/types";
 import type { TextRasterBounds } from "../text/text-raster-bounds";
 import { cachedBezierGeometry } from "./bezier-geometry-cache";
 
@@ -45,10 +45,7 @@ interface VertexWriter {
   length: number;
 }
 
-export interface SceneCamera extends EvaluatedCamera {
-  transform: EvaluatedTransform;
-  settings: CameraSettings;
-}
+export type SceneCamera = EvaluatedCamera;
 
 const QUAD_CORNERS: ReadonlyArray<readonly [number, number, number, number]> = [
   [-0.5, -0.5, 0, 0],

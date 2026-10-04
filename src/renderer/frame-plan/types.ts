@@ -83,7 +83,10 @@ export interface FrameHeaderSlice {
 export interface FramePlanSliceV1 {
   kind: "frame_plan_slice";
   plan_version: 1;
-  contract_level: "post_uniforms_slice_v1" | "scene_buffers_slice_v1";
+  contract_level:
+    | "post_uniforms_slice_v1"
+    | "scene_buffers_slice_v1"
+    | "camera_parameters_slice_v1";
   renderer_plan_complete: false;
   header: FrameHeaderSlice;
   blobs: BlobDescriptor[];
@@ -109,7 +112,31 @@ export interface SceneBuffersSlice {
   draws: SceneDrawRecord[];
 }
 
-export type PlanSlice = { kind: "post_process_uniforms"; blob_index: number } | SceneBuffersSlice;
+export type PlanSlice =
+  | { kind: "post_process_uniforms"; blob_index: number }
+  | SceneBuffersSlice
+  | CameraParametersSlice;
+
+export interface CameraParametersSlice {
+  kind: "camera_parameters";
+  blob_index: number;
+  pose_mode: "oneNode" | "twoNode";
+  projection_kind: "perspective" | "orthographic";
+  optics_projection: "perspective" | "orthographic";
+  depth_of_field: boolean;
+  lock_focus_to_zoom: boolean;
+  iris_shape:
+    | "fastRectangle"
+    | "square"
+    | "triangle"
+    | "pentagon"
+    | "hexagon"
+    | "heptagon"
+    | "octagon"
+    | "nonagon"
+    | "decagon"
+    | "circle";
+}
 
 export interface FramePlanSliceData {
   metadata: FramePlanSliceV1;

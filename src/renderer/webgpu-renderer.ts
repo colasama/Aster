@@ -28,6 +28,7 @@ import { AntiAliasingRenderer, planAntiAliasing } from "./effects/anti-aliasing"
 import { depthEffectSettingsFromCameraOptics } from "./effects/depth-effects";
 import { analyzeEffectFusion } from "./effects/effect-fusion";
 import { selectedRenderId } from "./effects/surface-post-effects";
+import { buildCameraPlan, readCameraPlan } from "./frame-plan/camera-plan";
 import { buildRootPostUniformPlan } from "./frame-plan/root-post-plan";
 import { uploadRootPostUniformPlan } from "./frame-plan/root-post-upload";
 import { buildSceneBufferPlan } from "./frame-plan/scene-buffer-plan";
@@ -426,7 +427,19 @@ export class WebGpuRenderer {
           exposureSceneLayers: [],
           renderSceneLayers: evaluation.sceneLayers,
         };
-    const camera = evaluateSceneCamera(composition, time);
+    const framePlanInput = {
+      snapshot,
+      compositionId: composition.id,
+      time,
+      frameRate: composition.frameRate,
+      target: { width: this.#outputWidth, height: this.#outputHeight },
+      renderTarget: { width: this.#width, height: this.#height },
+      antiAliasing: this.#activeAntiAliasing,
+    };
+    const evaluatedCamera = evaluateSceneCamera(composition, time);
+    const camera = evaluatedCamera
+      ? readCameraPlan(buildCameraPlan(framePlanInput, evaluatedCamera))
+      : undefined;
     const sceneLayers =
       textMotionBlur.exposureSceneLayers.length > 0
         ? [...textMotionBlur.renderSceneLayers]
@@ -574,13 +587,7 @@ export class WebGpuRenderer {
     resources.configureShadowMap(memory.shadowMapSize);
     const sceneBuffers = prepareSceneBuffers(
       buildSceneBufferPlan({
-        snapshot,
-        compositionId: composition.id,
-        time,
-        frameRate: composition.frameRate,
-        target: { width: this.#outputWidth, height: this.#outputHeight },
-        renderTarget: { width: this.#width, height: this.#height },
-        antiAliasing: this.#activeAntiAliasing,
+        ...framePlanInput,
         geometry,
         lighting: buildSceneLighting(sceneLayers, composition, shadowsEnabled, cameraPosition),
         motionVectors,
@@ -702,17 +709,8 @@ export class WebGpuRenderer {
         mediaPending: true,
       };
     }
-    const target = { width: this.#outputWidth, height: this.#outputHeight };
-    const renderTarget = { width: this.#width, height: this.#height };
-    const postPlan = buildRootPostUniformPlan({
-      snapshot,
-      compositionId: composition.id,
-      time,
-      frameRate: composition.frameRate,
-      target,
-      renderTarget,
-      antiAliasing: this.#activeAntiAliasing,
-    });
+    const { target, renderTarget } = framePlanInput;
+    const postPlan = buildRootPostUniformPlan(framePlanInput);
     uploadRootPostUniformPlan(postPlan, {
       queue: this.#device.queue,
       buffer: resources.postUniformBuffer,

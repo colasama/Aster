@@ -1,3 +1,4 @@
+import { CAMERA_SLICE_FIELDS, validateCameraParameters } from "./camera-layout";
 import { align16, hash, integer, object, requirePlan, validUnicode } from "./canonical";
 import { compositionIdentityToString } from "./composition-identity";
 import { validateFrameRate } from "./frame-rate";
@@ -58,12 +59,12 @@ export function validateMetadata(value: unknown, limits: FramePlanLimits): Frame
   requirePlan(
     metadata.kind === "frame_plan_slice" &&
       metadata.plan_version === 1 &&
-      ["post_uniforms_slice_v1", "scene_buffers_slice_v1"].includes(
+      ["post_uniforms_slice_v1", "scene_buffers_slice_v1", "camera_parameters_slice_v1"].includes(
         String(metadata.contract_level),
       ) &&
       metadata.renderer_plan_complete === false,
     "unknown_variant",
-    "Only incomplete post-uniform and scene-buffer slices are supported",
+    "Only incomplete post-uniform, scene-buffer and camera slices are supported",
   );
   const header = object(metadata.header, [
     "snapshot_scope",
@@ -133,14 +134,18 @@ export function validateMetadata(value: unknown, limits: FramePlanLimits): Frame
   const indices = new Set<number>();
   for (const value of metadata.slices) {
     const scene = metadata.contract_level === "scene_buffers_slice_v1";
+    const camera = metadata.contract_level === "camera_parameters_slice_v1";
     const slice = object(
       value,
       scene
         ? ["kind", "blob_index", "vertex_count", "motion_vectors", "shadows_enabled", "draws"]
-        : ["kind", "blob_index"],
+        : camera
+          ? CAMERA_SLICE_FIELDS
+          : ["kind", "blob_index"],
     );
     requirePlan(
-      slice.kind === (scene ? "scene_buffers" : "post_process_uniforms"),
+      slice.kind ===
+        (scene ? "scene_buffers" : camera ? "camera_parameters" : "post_process_uniforms"),
       "unknown_variant",
       "Unknown plan slice",
     );
@@ -148,6 +153,10 @@ export function validateMetadata(value: unknown, limits: FramePlanLimits): Frame
     requirePlan(!indices.has(index), "blob_count_mismatch", "A blob is referenced more than once");
     indices.add(index);
     const blob = metadata.blobs[index];
+    if (camera) {
+      validateCameraParameters(slice, blob);
+      continue;
+    }
     if (scene) {
       validateSceneBuffers(slice, blob);
       continue;

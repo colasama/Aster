@@ -1,3 +1,4 @@
+mod camera;
 mod codec;
 mod frame_time;
 mod frame_time_codec;
