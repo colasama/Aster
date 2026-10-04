@@ -34,7 +34,7 @@ pub use resource::{
     ResourceLimits, ResourceMessage, ResourceRegistry, ResourceStatistics,
 };
 pub use resource_descriptor::ResourceDescriptor;
-pub use scene::{SceneBuffersSlice, SceneDrawRecord};
+pub use scene::{MediaDrawBinding, SceneBuffersSlice, SceneDrawRecord, SceneMediaBinding};
 pub use schema::FramePlanSchema;
 pub use time::{FrameTime, RationalFrameRate, RationalTime};
 

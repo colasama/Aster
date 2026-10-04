@@ -287,6 +287,35 @@
         }
       ]
     },
+    "MediaDrawBinding": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "pending",
+              "type": "string"
+            }
+          },
+          "required": ["kind"],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "hash": {
+              "$ref": "#/$defs/ResourceHash"
+            },
+            "kind": {
+              "const": "frame",
+              "type": "string"
+            }
+          },
+          "required": ["kind", "hash"],
+          "type": "object"
+        }
+      ]
+    },
     "MediaFrameDescriptor": {
       "additionalProperties": false,
       "properties": {
@@ -438,6 +467,12 @@
               "const": "scene_buffers",
               "type": "string"
             },
+            "media_bindings": {
+              "items": {
+                "$ref": "#/$defs/SceneMediaBinding"
+              },
+              "type": "array"
+            },
             "motion_vectors": {
               "type": "boolean"
             },
@@ -456,7 +491,8 @@
             "vertex_count",
             "motion_vectors",
             "shadows_enabled",
-            "draws"
+            "draws",
+            "media_bindings"
           ],
           "type": "object"
         },
@@ -614,6 +650,21 @@
         "vertex_count",
         "casts_shadow"
       ],
+      "type": "object"
+    },
+    "SceneMediaBinding": {
+      "additionalProperties": false,
+      "properties": {
+        "binding": {
+          "$ref": "#/$defs/MediaDrawBinding"
+        },
+        "draw_index": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": ["draw_index", "binding"],
       "type": "object"
     },
     "Utf16CompositionIdentity": {

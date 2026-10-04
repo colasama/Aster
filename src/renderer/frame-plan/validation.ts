@@ -138,7 +138,15 @@ export function validateMetadata(value: unknown, limits: FramePlanLimits): Frame
     const slice = object(
       value,
       scene
-        ? ["kind", "blob_index", "vertex_count", "motion_vectors", "shadows_enabled", "draws"]
+        ? [
+            "kind",
+            "blob_index",
+            "vertex_count",
+            "motion_vectors",
+            "shadows_enabled",
+            "draws",
+            "media_bindings",
+          ]
         : camera
           ? CAMERA_SLICE_FIELDS
           : ["kind", "blob_index"],
@@ -158,7 +166,7 @@ export function validateMetadata(value: unknown, limits: FramePlanLimits): Frame
       continue;
     }
     if (scene) {
-      validateSceneBuffers(slice, blob);
+      validateSceneBuffers(slice, blob, metadata.resources);
       continue;
     }
     requirePlan(

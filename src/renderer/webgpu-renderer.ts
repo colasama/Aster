@@ -37,6 +37,7 @@ import {
   prepareSceneBuffers,
   uploadSceneBuffers,
 } from "./frame-plan/scene-buffer-upload";
+import { bindSceneMediaPlan, resolveSceneMediaPlan } from "./frame-plan/scene-media-plan";
 import { buildSceneGeometry } from "./geometry/geometry";
 import { productionDepthOfFieldAllocationError } from "./gpu/auxiliary-buffer-budget";
 import {
@@ -585,15 +586,14 @@ export class WebGpuRenderer {
     const shadowsEnabled =
       shadowQuality !== "off" && primaryLight?.kind !== "point" && memory.shadowMapSize > 1;
     resources.configureShadowMap(memory.shadowMapSize);
-    const sceneBuffers = prepareSceneBuffers(
-      buildSceneBufferPlan({
-        ...framePlanInput,
-        geometry,
-        lighting: buildSceneLighting(sceneLayers, composition, shadowsEnabled, cameraPosition),
-        motionVectors,
-        shadowsEnabled,
-      }),
-    );
+    const scenePlan = buildSceneBufferPlan({
+      ...framePlanInput,
+      geometry,
+      lighting: buildSceneLighting(sceneLayers, composition, shadowsEnabled, cameraPosition),
+      motionVectors,
+      shadowsEnabled,
+    });
+    const sceneBuffers = prepareSceneBuffers(scenePlan);
     uploadSceneBuffers(sceneBuffers, {
       queue: this.#device.queue,
       lightingBuffer: resources.lightingBuffer,
@@ -716,10 +716,22 @@ export class WebGpuRenderer {
         .map((batch) => batch.resourceInstanceId),
       framePlanInput.snapshot.snapshotScope,
     );
-    for (const batch of sceneBatches) {
-      if (batch.layer.kind === "image" || batch.layer.kind === "video")
-        batch.mediaResourceHash = mediaBindings.hashFor(batch.resourceInstanceId);
-    }
+    const mediaPlan = bindSceneMediaPlan(
+      scenePlan,
+      sceneBatches.flatMap((batch, draw_index) => {
+        if (batch.layer.kind !== "image" && batch.layer.kind !== "video") return [];
+        const hash = mediaBindings.hashFor(batch.resourceInstanceId);
+        return [
+          {
+            draw_index,
+            binding:
+              hash === null ? { kind: "pending" as const } : { kind: "frame" as const, hash },
+          },
+        ];
+      }),
+    );
+    for (const media of resolveSceneMediaPlan(mediaPlan, mediaBindings))
+      sceneBatches[media.drawIndex].mediaResourceHash = media.hash;
     const postPlan = buildRootPostUniformPlan(framePlanInput);
     uploadRootPostUniformPlan(postPlan, {
       queue: this.#device.queue,

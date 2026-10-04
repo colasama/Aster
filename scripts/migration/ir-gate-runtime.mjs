@@ -22,6 +22,8 @@ export async function loadIrRuntime(root) {
       "root-post-upload",
       "scene-buffer-fixture",
       "scene-buffer-upload",
+      "scene-media-fixture",
+      "scene-media-plan",
       "camera-fixture",
       "camera-plan",
     ])

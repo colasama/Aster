@@ -171,8 +171,17 @@ leases, and source eviction requires no dependent frames. Eviction unregisters t
 destroying an allocation still owned by the media cache. Retired in-flight owners remain included in
 cache memory estimates until GPU completion. Obsolete unpinned generations and orphan source
 descriptors are pruned between acquisitions and after release. Destroying the registry retains pinned
-entries until their final release. Serializable FPLN media bindings remain required before independent
-replay. Text and precomposition adapters remain separate tasks.
+entries until their final release.
+
+The scene-buffer slice carries `media_bindings`, ordered by unique `draw_index`. Each entry is either
+`pending` or a `frame` with a content hash also listed in the plan's resource references. Out-of-range
+or duplicated indices and absent resource references fail validation in both TS and Rust. Root
+preparation adds these references after media readiness, preserving the owned geometry bytes, and
+resolves every supplied media hash before encoding draws. A decoded FPLN can resolve the references
+against newly admitted GPU owners without retaining the producer's handles. G1 exercises image,
+sequence and exact fractional-video references with pending entries and repeated hash aliases.
+This partial scene contract still lacks material/pass planning and complete captured-frame replay;
+it does not establish a complete render plan. Text and precomposition adapters remain separate tasks.
 
 ## Verification boundary
 

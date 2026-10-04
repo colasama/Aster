@@ -134,6 +134,11 @@ descriptor budgets, ownership across asynchronous hashing and in-flight frame/so
 Production adapter tests validate installed still extents after bitmap closure, resolved sequence
 members, actual video upload times, and drawing by supplied hash independently of instance IDs.
 G1 checks the synchronous descriptor hash against WebCrypto and Rust; missing hashes fail before draw.
+Scene media fixtures bind those actual frame hashes to ordered draw indices, including explicit
+pending output and aliases. G1 round-trips the FPLN through Rust, resolves decoded references against
+an independent registry, and rejects evicted frames. GPU adapter tests additionally replay serialized
+references against newly admitted physical owners after the producing owners have been destroyed.
+Complete captured-frame replay remains a separate exit requirement.
 See [Frame-plan transport](FRAME_PLAN.md) for the current contract and its explicit partial scope.
 
 Full G3 continues to compare all required TS frames under `exact`, retaining the effective reference

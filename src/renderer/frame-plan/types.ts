@@ -112,6 +112,12 @@ export interface SceneBuffersSlice {
   motion_vectors: boolean;
   shadows_enabled: boolean;
   draws: SceneDrawRecord[];
+  media_bindings: SceneMediaBinding[];
+}
+
+export interface SceneMediaBinding {
+  draw_index: number;
+  binding: { kind: "pending" } | { kind: "frame"; hash: string };
 }
 
 export type PlanSlice =

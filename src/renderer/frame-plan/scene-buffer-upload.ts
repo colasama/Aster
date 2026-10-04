@@ -32,7 +32,6 @@ export function prepareSceneBuffers(plan: FramePlanSliceData): PreparedSceneBuff
   requirePlan(
     metadata.contract_level === "scene_buffers_slice_v1" &&
       metadata.slices.length === 1 &&
-      metadata.resources.length === 0 &&
       plan.blobs.length === 1,
     "invalid_scene_buffers",
     "Scene upload requires one complete buffer slice",

@@ -25,6 +25,7 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
     root_uploads: [],
     scene_uploads: [],
     camera_roundtrips: [],
+    media_draws: [],
     rejections: [],
   };
   const reader = new M0Evidence(context.root);
@@ -153,7 +154,15 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
       cameraFixtures.map((fixture) => fixture.id),
       ["camera-perspective", "camera-orthographic"],
     );
-    for (const fixture of [...fixtures, ...rootFixtures, ...sceneFixtures, ...cameraFixtures]) {
+    const mediaFixtures = await runtime.sceneMediaFixtures();
+    assert.equal(mediaFixtures.length, 8);
+    for (const fixture of [
+      ...fixtures,
+      ...rootFixtures,
+      ...sceneFixtures,
+      ...cameraFixtures,
+      ...mediaFixtures,
+    ]) {
       const input = join(context.output, `${fixture.id}-ts.fpln`);
       const output = join(context.output, `${fixture.id}-rust.fpln`);
       await writeFile(input, fixture.bytes, { flag: "wx" });
@@ -176,6 +185,43 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
         Buffer.from(runtime.encodeFramePlan(after.metadata, after.blobs)),
         original.bytes,
       );
+      if (fixture.media) {
+        const registry = new runtime.FrameResourceRegistry({
+          budget_bytes: 10000,
+          max_resources: 20,
+        });
+        for (const message of fixture.messages) await registry.apply(message);
+        const handles = new Map();
+        const supplied = runtime.resolveSceneMediaPlan(after, {
+          bindingForHash: (hash) => {
+            const resource = registry.resolve(hash);
+            assert.equal(resource.content.kind, "media_frame");
+            const handle = { hash, descriptor: resource.content.descriptor };
+            handles.set(hash, handle);
+            return handle;
+          },
+        });
+        assert.deepEqual(after.metadata.slices[0].media_bindings, fixture.media);
+        assert.equal(handles.size, 1);
+        assert.equal(supplied[0].hash, fixture.messages[1].hash);
+        assert.equal(supplied[1].hash, null);
+        assert.equal(supplied[1].binding, undefined);
+        assert.equal(supplied[0].binding, supplied[2].binding);
+        await registry.apply({ type: "evict_resource", hash: supplied[0].hash });
+        assert.throws(
+          () =>
+            runtime.resolveSceneMediaPlan(after, {
+              bindingForHash: (hash) => registry.resolve(hash),
+            }),
+          { code: "missing_resource" },
+        );
+        report.media_draws.push({
+          id: fixture.id,
+          supplied_hashes_exact: true,
+          pending_explicit: true,
+          missing_rejected: true,
+        });
+      }
       if (after.metadata.contract_level === "camera_parameters_slice_v1") {
         const supplied = runtime.readCameraPlan(after);
         assert.deepEqual(supplied, fixture.camera);

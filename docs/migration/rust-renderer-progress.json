@@ -14251,5 +14251,12 @@
       }
     }
   ],
-  "active_cycle": null
+  "active_cycle": {
+    "id": 22,
+    "milestone": "M2",
+    "task": "M2-T4",
+    "started_at": "2026-10-04T18:36:48.836Z",
+    "scope": "Serialize explicit root media draw references in scene FPLN metadata and resolve decoded references against pinned GPU leases before encoding; verify exact TS/Rust transport and preserve readiness.",
+    "previous_turn_classification": "progress: cycle21 persistent GPU registry and ledger committed after full required gates; clean worktree."
+  }
 }

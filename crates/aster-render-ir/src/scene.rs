@@ -1,7 +1,21 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::{BlobDescriptor, CompositionIdentity, ElementType, IrError};
+use crate::{BlobDescriptor, CompositionIdentity, ElementType, IrError, ResourceHash};
+
+#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+#[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
+pub enum MediaDrawBinding {
+    Pending,
+    Frame { hash: ResourceHash },
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct SceneMediaBinding {
+    pub draw_index: u32,
+    pub binding: MediaDrawBinding,
+}
 
 #[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
@@ -22,10 +36,15 @@ pub struct SceneBuffersSlice {
     pub motion_vectors: bool,
     pub shadows_enabled: bool,
     pub draws: Vec<SceneDrawRecord>,
+    pub media_bindings: Vec<SceneMediaBinding>,
 }
 
 impl SceneBuffersSlice {
-    pub fn validate(&self, blob: &BlobDescriptor) -> Result<(), IrError> {
+    pub fn validate(
+        &self,
+        blob: &BlobDescriptor,
+        resources: &[ResourceHash],
+    ) -> Result<(), IrError> {
         // Wire ABI: 148 lighting f32 lanes, 40 vertex lanes, optional vec2 motion.
         let length =
             u64::from(self.vertex_count) * (160 + if self.motion_vectors { 8 } else { 0 }) + 592;
@@ -52,6 +71,26 @@ impl SceneBuffersSlice {
         }
         if end != self.vertex_count {
             return Err(IrError::InvalidHeader("scene draw coverage".to_owned()));
+        }
+        let mut previous = None;
+        let referenced = resources.iter().collect::<std::collections::BTreeSet<_>>();
+        for media in &self.media_bindings {
+            if media.draw_index as usize >= self.draws.len()
+                || previous.is_some_and(|index| index >= media.draw_index)
+            {
+                return Err(IrError::InvalidHeader(
+                    "invalid media draw index".to_owned(),
+                ));
+            }
+            previous = Some(media.draw_index);
+            if let MediaDrawBinding::Frame { hash } = &media.binding {
+                hash.validate()?;
+                if !referenced.contains(hash) {
+                    return Err(IrError::MissingResource(
+                        "media frame is absent from plan resources".to_owned(),
+                    ));
+                }
+            }
         }
         Ok(())
     }

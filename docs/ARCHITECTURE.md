@@ -93,8 +93,10 @@ metadata and physical-owner residency, and retains replaced in-flight owners unt
 Frame leases resolve hashes through a private lookup; source dependencies prevent premature eviction.
 Registry eviction unregisters bindings while the media cache remains the allocation owner. Cache
 accounting includes retired owners still referenced by submitted frames, without double-counting
-current owners. Serializable FPLN media bindings, authorized native resolution and independent replay
-remain pending.
+current owners. The scene slice now carries ordered draw-index media references with explicit pending
+states and frame hashes included in the plan resource table. Root preparation builds these references
+after readiness and resolves the supplied plan before encoding. TS/Rust FPLN preserves them exactly;
+authorized native media resolution and full captured-frame replay remain pending.
 
 Shared WGSL includes output anti-aliasing, core scene variants, compositing, fused post-processing,
 blur/depth/surface effects, auxiliary surfaces, particles, text motion blur and display/buffer helpers.

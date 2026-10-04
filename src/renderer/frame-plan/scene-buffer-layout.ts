@@ -1,4 +1,4 @@
-import { integer, object, requirePlan } from "./canonical";
+import { hash, integer, object, requirePlan } from "./canonical";
 import { compositionIdentityToString } from "./composition-identity";
 import type { BlobDescriptor, SceneBuffersSlice } from "./types";
 
@@ -12,7 +12,11 @@ export function sceneBufferByteLength(vertexCount: number, motionVectors: boolea
   );
 }
 
-export function validateSceneBuffers(value: unknown, blob: BlobDescriptor): SceneBuffersSlice {
+export function validateSceneBuffers(
+  value: unknown,
+  blob: BlobDescriptor,
+  resources: unknown,
+): SceneBuffersSlice {
   const slice = object(value, [
     "kind",
     "blob_index",
@@ -20,6 +24,7 @@ export function validateSceneBuffers(value: unknown, blob: BlobDescriptor): Scen
     "motion_vectors",
     "shadows_enabled",
     "draws",
+    "media_bindings",
   ]);
   const count = integer(slice.vertex_count, 0, 0xffff_ffff);
   requirePlan(
@@ -62,5 +67,37 @@ export function validateSceneBuffers(value: unknown, blob: BlobDescriptor): Scen
     end = first + length;
   }
   requirePlan(end === count, "invalid_scene_buffers", "Draw ranges do not cover all vertices");
+  requirePlan(
+    Array.isArray(slice.media_bindings) && Array.isArray(resources),
+    "invalid_scene_buffers",
+    "Missing media bindings or resource references",
+  );
+  const referenced = new Set(resources);
+  let previous = -1;
+  for (const value of slice.media_bindings) {
+    const media = object(value, ["draw_index", "binding"]);
+    const index = integer(media.draw_index, 0, slice.draws.length - 1);
+    requirePlan(
+      index > previous,
+      "invalid_scene_buffers",
+      "Media draw indices must be unique and ordered",
+    );
+    previous = index;
+    const kind = (media.binding as { kind?: unknown } | null)?.kind;
+    const binding = object(media.binding, kind === "frame" ? ["kind", "hash"] : ["kind"]);
+    requirePlan(
+      kind === "pending" || kind === "frame",
+      "unknown_variant",
+      "Unknown media draw binding",
+    );
+    if (kind === "frame") {
+      hash(binding.hash);
+      requirePlan(
+        referenced.has(binding.hash),
+        "missing_resource",
+        "Media frame is absent from plan resources",
+      );
+    }
+  }
   return slice as unknown as SceneBuffersSlice;
 }

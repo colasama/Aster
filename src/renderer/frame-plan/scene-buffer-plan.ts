@@ -54,6 +54,7 @@ export function buildSceneBufferPlan(input: SceneBufferPlanInput): FramePlanSlic
           vertex_count: vertexCount,
           motion_vectors: input.motionVectors !== undefined,
           shadows_enabled: input.shadowsEnabled,
+          media_bindings: [],
           draws: input.geometry.batches.map((batch) => ({
             instance_id: compositionIdentityFromString(batch.instanceId),
             resource_instance_id: compositionIdentityFromString(batch.resourceInstanceId),

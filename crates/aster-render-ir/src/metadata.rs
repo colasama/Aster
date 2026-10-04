@@ -193,7 +193,7 @@ impl FramePlanSliceV1 {
                 return Err(IrError::BlobCountMismatch);
             }
             if let PlanSlice::SceneBuffers(scene) = slice {
-                scene.validate(blob)?;
+                scene.validate(blob, &self.resources)?;
                 continue;
             }
             if let PlanSlice::CameraParameters(camera) = slice {
