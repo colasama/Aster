@@ -76,39 +76,39 @@
     "approval": "Preserve the complete M0-T3 production TS capture as the original pixel oracle. Only the explicitly listed, section 6.6 reviewed M0 reference repairs overlay requested frames. All other original frames, including sequence neighbors, remain unchanged. Freeze this effective reference set before M1; M1 and M2 retain strict whole-corpus exact requirements."
   },
   "last_cycle": {
-    "id": 18,
-    "time": "2026-10-04T17:22:35.872Z",
+    "id": 19,
+    "time": "2026-10-04T17:45:35.920Z",
     "milestone": "M2",
     "task": "M2-T4",
     "outcome": "passed",
-    "commit": "28ab4d661edb19cbab39a02c1b1e3d48a7ca5486",
-    "verification": "artifacts/migration/verify-2026-10-04T17-16-16-577Z-d7b6fc18.json",
-    "verification_sha256": "0983aab8a0cdf5944624be5e1e464d6acd465ab1d60827218f46e4c386913c49",
+    "commit": "f87f675c3f5fe4199e05f2d7dd65158ff2de0608",
+    "verification": "artifacts/migration/verify-2026-10-04T17-39-12-176Z-cb28d291.json",
+    "verification_sha256": "b29bcdc50671d2ac79ad5e6e6e132b60f907fb20e9b2f06c9f5da7af7311ca00",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 73134
+        "duration_ms": 79941
       },
       {
         "id": "G1",
         "status": "passed",
-        "duration_ms": 3364
+        "duration_ms": 3520
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 262914
+        "duration_ms": 264238
       }
     ],
-    "verification_duration_ms": 340624,
-    "next_step": "Continue M2-T4: introduce typed content-addressed media source/frame descriptors and connect PutResource/EvictResource to the established production binding leases; preserve exact readiness and no GPU readback.",
+    "verification_duration_ms": 348944,
+    "next_step": "Continue M2-T4: connect production media preparation and GPU binding leases to the verified source/frame content-hash protocol; preserve exact readiness and track resident resources.",
     "notes": [
-      "Established actual root image/video binding acquisition after media readiness. Beauty and auxiliary draws resolve the per-frame table rather than consulting changing cache entries for each draw.",
-      "Atomic owner leases reject missing/released bindings and changed source/upload generations. Retirement and cache destruction defer texture destruction until every submitted GPU lease completes; abort releases unsubmitted ownership. The shared missing-media texture has an explicit retained owner.",
-      "Moved media submission notification immediately after queue submission, before cache/readback callbacks, and release unsubmitted ownership before failure callbacks. This prevents callback exceptions from releasing submitted resources early or leaking unsubmitted pins.",
-      "Relevant media tests prove actual placeholder texture lifetime across cache destruction and GPU completion, atomic acquisition, generation mismatch and abort. Full G0/G1/G3 passed; G1 remains 19 transport round trips and all 1819 required pixels from a fresh full capture are exact.",
-      "This is the lifecycle increment within M2-T4, not completion of content-addressed media resources. The runtime binding table still uses instance IDs and GPU handles outside FPLN. Typed source/frame descriptors, content hashes, PutResource/EvictResource media integration and independent replay remain required; M2 and native rendering remain incomplete."
+      "TS/Rust resource transport now supports media_source and media_frame descriptors alongside buffer resources. Source identity is scoped to broker authorization without granting access or treating opaque legacy identities as asset digests.",
+      "Media frames bind source hashes, texture extent/format, resolved sequence frame/member identity, and exact requested/uploaded video times. Descriptor hashes use the existing domain-separated SHA-256 protocol without GPU readback or runtime handles.",
+      "Bounded registries charge media descriptor bytes, require matching admitted sources and retain dependencies until frame eviction. In-flight frame leases protect sources; duplicate puts do not duplicate pins. TS admission snapshots nested descriptors before async hashing and rejects a source evicted while hashing.",
+      "Added Rust ir resources validation/replay and G1 cross-language verification of 11 media descriptors, plus hash/kind/missing-source/in-use rejection. Full G0/G1/G3 passed, including 19 existing FPLN round trips and 1819 exact corpus frames.",
+      "This closes the shared protocol increment, not M2-T4: production media preparation must still emit descriptors and resolve GPU bindings by hashes, preserve placeholder/readiness behavior, account GPU residency and support independent replay. Production rendering remains TS."
     ]
   },
   "milestones": [
@@ -12508,12 +12508,59 @@
                 "Relevant media tests prove actual placeholder texture lifetime across cache destruction and GPU completion, atomic acquisition, generation mismatch and abort. Full G0/G1/G3 passed; G1 remains 19 transport round trips and all 1819 required pixels from a fresh full capture are exact.",
                 "This is the lifecycle increment within M2-T4, not completion of content-addressed media resources. The runtime binding table still uses instance IDs and GPU handles outside FPLN. Typed source/frame descriptors, content hashes, PutResource/EvictResource media integration and independent replay remain required; M2 and native rendering remain incomplete."
               ]
+            },
+            {
+              "cycle": 19,
+              "status": "passed",
+              "commit": "f87f675c3f5fe4199e05f2d7dd65158ff2de0608",
+              "verification": {
+                "path": "artifacts/migration/verify-2026-10-04T17-39-12-176Z-cb28d291.json",
+                "sha256": "b29bcdc50671d2ac79ad5e6e6e132b60f907fb20e9b2f06c9f5da7af7311ca00"
+              },
+              "pixel_comparison": {
+                "path": "artifacts/parity/ts-check/2026-10-04T17-40-36-245Z-c0d95e1d/report.json",
+                "sha256": "a3b8f14ea4966d5760326fe223575d5953e3b0327c08aa96b057c66cf721257a"
+              },
+              "capture": {
+                "path": "artifacts/parity/capture-2026-10-04T17-33-32-265Z-e630f5a9.json",
+                "sha256": "4916a793e57d581ee626a94465e4dc8bf00de24959614afa2db87fe15b670714"
+              },
+              "manifest": {
+                "path": "artifacts/parity/runs/2026-10-04T17-33-32-265Z-e630f5a9/candidate/manifest.json",
+                "sha256": "6827be039930656e2c4a922f79251ef48fd9b30dac0c340b4f27c774b1b46cfe"
+              },
+              "renderer_source_sha256": "4cba737c4549df2f25a2f1beba44c981ef02862b4064766817400f52e1c8b560",
+              "bridge_sha256": "82ccf02fefd4c54e78a82a4de08df6906714ecd0b198864ec72cb0c0394dd80c",
+              "gates": [
+                {
+                  "id": "G0",
+                  "status": "passed",
+                  "duration_ms": 79941
+                },
+                {
+                  "id": "G1",
+                  "status": "passed",
+                  "duration_ms": 3520
+                },
+                {
+                  "id": "G3",
+                  "status": "passed",
+                  "duration_ms": 264238
+                }
+              ],
+              "notes": [
+                "TS/Rust resource transport now supports media_source and media_frame descriptors alongside buffer resources. Source identity is scoped to broker authorization without granting access or treating opaque legacy identities as asset digests.",
+                "Media frames bind source hashes, texture extent/format, resolved sequence frame/member identity, and exact requested/uploaded video times. Descriptor hashes use the existing domain-separated SHA-256 protocol without GPU readback or runtime handles.",
+                "Bounded registries charge media descriptor bytes, require matching admitted sources and retain dependencies until frame eviction. In-flight frame leases protect sources; duplicate puts do not duplicate pins. TS admission snapshots nested descriptors before async hashing and rejects a source evicted while hashing.",
+                "Added Rust ir resources validation/replay and G1 cross-language verification of 11 media descriptors, plus hash/kind/missing-source/in-use rejection. Full G0/G1/G3 passed, including 19 existing FPLN round trips and 1819 exact corpus frames.",
+                "This closes the shared protocol increment, not M2-T4: production media preparation must still emit descriptors and resolve GPU bindings by hashes, preserve placeholder/readiness behavior, account GPU residency and support independent replay. Production rendering remains TS."
+              ]
             }
           ],
           "remaining_work": [
-            "Define typed content-addressed source/frame descriptors using the existing source identity and exact requested/uploaded times; preserve resolved sequence identities and placeholder/error behavior without GPU readback.",
-            "Extend TS/Rust resource transport and registry for actual media PutResource/EvictResource, then replace instance-keyed frame binding entries with validated resource hashes. Bind generation/lifetime ownership and resident accounting to those entries.",
-            "Verify missing/evicted/hash-mismatched resource failures before submission, in-flight retirement and actual image/sequence/fractional-video identity before closing T4."
+            "Connect image/sequence/video preparation to media source/frame descriptors, including actual sequence member identity, exact requested/uploaded times and explicit placeholder fallback.",
+            "Replace instance-keyed production bindings with content hashes and the established GPU-completion leases; implement media PutResource/EvictResource adapter accounting including retired in-flight GPU owners.",
+            "Verify actual missing/evicted/hash-mismatched draw failures, fractional-video/sequence identity and independent resource replay before closing T4."
           ]
         },
         {
@@ -12755,7 +12802,7 @@
       ],
       "preview_baseline_path": "benchmarks/results/m2-preview-baseline.json",
       "preview_baseline_sha256": "a1c62e224c008e731c252142ab1b9de7d31ecf592452c00da1dff42516772375",
-      "active_candidate_manifest": "artifacts/parity/runs/2026-10-04T16-57-10-011Z-54b2e8b4/candidate/manifest.json",
+      "active_candidate_manifest": "artifacts/parity/runs/2026-10-04T17-33-32-265Z-e630f5a9/candidate/manifest.json",
       "last_verification": {
         "status": "passed",
         "required_gates_passed": true,
@@ -12764,17 +12811,17 @@
           {
             "id": "G0",
             "status": "passed",
-            "duration_ms": 73134
+            "duration_ms": 79941
           },
           {
             "id": "G1",
             "status": "passed",
-            "duration_ms": 3364
+            "duration_ms": 3520
           },
           {
             "id": "G3",
             "status": "passed",
-            "duration_ms": 262914
+            "duration_ms": 264238
           }
         ],
         "optional_gates": [
@@ -12785,7 +12832,7 @@
           }
         ],
         "performance_policy": "rust-delivery-v1",
-        "report": "artifacts/migration/verify-2026-10-04T17-16-16-577Z-d7b6fc18.json"
+        "report": "artifacts/migration/verify-2026-10-04T17-39-12-176Z-cb28d291.json"
       },
       "performance_series_history": [
         {
@@ -14091,12 +14138,5 @@
       }
     }
   ],
-  "active_cycle": {
-    "id": 19,
-    "milestone": "M2",
-    "task": "M2-T4",
-    "started_at": "2026-10-04T17:24:15.121Z",
-    "scope": "Extend shared TS/Rust PutResource transport and bounded registries with typed media source/frame descriptors, exact times and dependency-aware eviction; verify cross-language hashes and round trips. Production hash binding/replay remains next within T4.",
-    "previous_turn_classification": "progress: cycle18 full gates passed and implementation/ledger committed; worktree clean."
-  }
+  "active_cycle": null
 }
