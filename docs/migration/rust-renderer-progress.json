@@ -33,34 +33,49 @@
     "approval": "Preserve the complete M0-T3 production TS capture as the original pixel oracle. Only the explicitly listed, section 6.6 reviewed M0 reference repairs overlay requested frames. All other original frames, including sequence neighbors, remain unchanged. Freeze this effective reference set before M1; M1 and M2 retain strict whole-corpus exact requirements."
   },
   "last_cycle": {
-    "id": 12,
-    "time": "2026-10-03T23:47:45.613Z",
-    "milestone": "M1",
-    "task": "M1-T6",
+    "id": 13,
+    "time": "2026-10-04T06:55:48.092Z",
+    "milestone": "M2",
+    "task": "M2-T1",
     "outcome": "passed",
-    "commit": "b980d7d12c0395e7dc48900e68b94b70cafbbf06",
-    "verification": "artifacts/migration/verify-2026-10-03T23-40-18-903Z-b43dc189.json",
+    "commit": "0e16b16b301e29e64d4f562ab73c24afa649f5aa",
+    "verification": "artifacts/migration/verify-2026-10-04T06-36-24-845Z-50d11f1a.json",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 73086
+        "duration_ms": 83754
+      },
+      {
+        "id": "G1",
+        "status": "passed",
+        "duration_ms": 2641
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 295227
+        "duration_ms": 274602
+      },
+      {
+        "id": "G4",
+        "status": "passed",
+        "duration_ms": 672708
       }
     ],
-    "verification_duration_ms": 388499,
-    "next_step": "M2: decompose the FramePlan IR, exact FPLN round trips, production TS consumption and performance gates into bounded tasks, then implement the first open task.",
+    "verification_duration_ms": 1034903,
+    "next_step": "M2-T2: preserve arbitrary finite preview times and make the production GPU upload consume the planned header and 96-byte post-process uniform slice, then rerun full G0/G1/G3/G4.",
     "notes": [
-      "All 775 TS/TSX sources, including tests, pass AST enforcement with zero inline WGSL implementations. The 80 shared files match the manifest and embedded Rust files; all 26 assembled programs pass Naga. Short syntax assertions and non-WGSL mock data remain distinct from implementations.",
-      "The effect-shot harness compiles every registered effect to operation data bound to canonical parity case IDs and shared program hashes. Native rendering reads the same catalog and records real adapter, source hashes and complete PNG output evidence in a fresh audited run.",
-      "Native effect images are a shader smoke test with registry-default parameters, not a substitute for M4 native pixel parity. Failed or partial native outputs are not published.",
-      "The M1 exit audit requires current complete G0 and exact G3, same-source coverage and fresh native shader evidence. It rechecks ignored comparison and image artifacts, rejects stale or changed evidence, and cannot be bypassed by quick mode or manually marking the milestone done.",
-      "Full G0/G3 and the complete M1 exit audit passed with all 1819 required TS frames exact. Frozen M0 reference binding and tolerances remain unchanged. M1 is complete; the production renderer remains TypeScript until the subsequent gated milestones.",
-      "Only existing workspace shader and hash dependencies were added to the native diagnostic example. Cargo deny advisories, bans, licenses and sources passed with no policy exception. No external version, project-format or plugin-ABI changes."
+      "Introduced a closed, versioned partial FPLN contract with generated Rust schema, explicit little-endian binary payloads, owned Rust container/borrowed blob ranges, exact TS/Rust re-encoding and typed resource operations. It does not claim complete frame planning or independent rendering.",
+      "G1 regenerates schema to fresh files without rewriting the expected schema. Production TS uniform fixtures round-trip through the real Rust CLI byte-exactly; an independent Rust fixture, malformed containers and caller-limit cases exercise both implementations.",
+      "Established a separate pre-plan preview baseline from real production present/queue-completion measurements, with complete raw observations and a ledger-pinned file hash. The original throughput baseline and frozen pixel oracle remain unchanged.",
+      "Display conditions changed after the original local measurements. The original manifest's new-series policy is honored with an additive, ledger-pinned 1920x1080@144Hz series. Its independent reference measurements replay preserved pre-plan browser bytes whose production sources and bridge match the pinned historical evidence; current common harness provenance is recorded separately. All original baseline bytes and failed attempts remain unchanged. Candidate checks use the selected matched-condition series and unchanged strict thresholds.",
+      "G4 executes fresh complete throughput and preview suites, binds current source/bridge and raw inputs to measurements, checks all 24 tracked medians against the strict 5 percent thresholds, and rechecks evidence and MP4 outputs for changes before accepting results.",
+      "Required full G0/G1/G3/G4 passed, including all 1819 required TS frames under exact comparison. M2 remains in progress with renderer_plan_complete false; production consumption, complete resources, capture and replay remain required work.",
+      "Failed G4 attempts, paired historical/current bundle measurements, CPU profiles and GPU transition diagnostics remain recorded as historical evidence. All experimental text-key, text-geometry batching, shadow, depth-store, timing-marker and lighting-upload optimizations were reverted to the accepted M1 production implementation before the final candidate capture. The earlier delayed-upload trial also remains reverted. This scope reduction does not establish any experiment as the cause of earlier performance failures.",
+      "After the unchanged production bundle still failed five throughput metrics, a separate diagnostic localized material CPU output allocation/copy wall time. Bounded caller-owned destination reuse now retains the full mapped-pixel copy and the default independently owned readback API. The RenderHost pool holds each frame through all PNG/MP4 acknowledgments; synchronous bounded acquisition and stream cleanup cover failures, cancellation and pending frames. The production performance runner uses the same capability, and fresh G3 captures the complete corpus through the destination path. Original timing boundaries and thresholds remain unchanged.",
+      "The CPU-only three-slot experiment supported implementing destination reuse but never substituted for production gates. Complete current-source G0/G1/G3/G4 establishes acceptance. The earlier GPU/text experiments remain reverted; the typed transport still awaits production plan consumption and M2 exit remains false.",
+      "One comparison process failed with Windows access denied before publishing its report; the failed run remains recorded without a pixel verdict. Artifact I/O now retains operation/path context, and only the final atomic directory rename has bounded retries for Windows access/sharing errors. The original failing syscall is not proven. Fault-injection tests preserve complete staging, destination absence checks and failure cleanup; fresh full G3 is still required.",
+      "Only existing workspace dependencies were used. Cargo deny advisories, bans, licenses and sources passed; no dependency policy exception, external version change, project-format change or plugin-ABI change was introduced."
     ]
   },
   "milestones": [
@@ -583,9 +598,2475 @@
     {
       "id": "M2",
       "title": "FramePlan IR, TS executes through the plan",
-      "status": "pending",
+      "status": "in_progress",
       "gates": ["G0", "G1", "G3", "G4"],
-      "tasks": []
+      "tasks": [
+        {
+          "id": "M2-T1",
+          "title": "Establish typed FPLN transport, exact cross-language G1 and measured G4 gates",
+          "status": "done",
+          "estimated_implementation_hours": "2-4",
+          "production_change": "Add aster-render-ir with generated schema, canonical DataView/owned-buffer FPLN codecs and typed resource/session primitives. Round-trip a real 96-byte production uniform payload without changing the production rendering path. Implement fresh schema and cross-process exact G1; implement fresh full export/throughput G4 and establish a separate pre-plan production-present baseline for the three synthetic workloads before any production refactor.",
+          "completion_evidence": [
+            "Schema regeneration byte equality, actual TS write -> Rust decode/re-encode -> TS read exact plus independent Rust fixture and negative boundary tests.",
+            "Fresh complete 36-run owner/synthetic throughput suite compares all 18 tracked medians to the unchanged local baseline.",
+            "Separate preview-present baseline and fresh 12-run comparison use 600 frames per synthetic workload in each of three measured runs, actual GPU queue completion, no readback, and explicit scope.",
+            "Full required G0/G1/G3/G4 pass while renderer_plan_complete remains false."
+          ],
+          "required_full_gates": ["G0", "G1", "G3", "G4"],
+          "verification_attempts": [
+            {
+              "attempt": 1,
+              "cycle": 13,
+              "recorded_at": "2026-10-04T00:52:01.768Z",
+              "verification": "artifacts/migration/verify-2026-10-04T00-32-20-806Z-86f5b5bd.json",
+              "verification_sha256": "5ea31f8dddce3232199a90fd2b621c85b54184b401f760786947d8c2ce6d0f64",
+              "status": "failed",
+              "source_unchanged": true,
+              "gates": [
+                {
+                  "id": "G0",
+                  "status": "passed",
+                  "duration_ms": 78217
+                },
+                {
+                  "id": "G1",
+                  "status": "passed",
+                  "duration_ms": 2427
+                },
+                {
+                  "id": "G3",
+                  "status": "passed",
+                  "duration_ms": 272569
+                },
+                {
+                  "id": "G4",
+                  "status": "failed",
+                  "duration_ms": 720288
+                }
+              ],
+              "performance_report": "artifacts/migration/2026-10-04T00-32-20-806Z-86f5b5bd/G4/performance-wn1twu/gate.json",
+              "performance_report_sha256": "412155eb8be813ad1642a403220acdf5f08f2e2e76705c02037b9aeb1bfe835d",
+              "failed_metrics": [
+                {
+                  "suite": "throughput",
+                  "group": "composite-1080p/readback-only",
+                  "metric": "completion_interval_ms.median",
+                  "baseline": 3.4000000953674316,
+                  "current": 3.5999999046325684,
+                  "direction": "lower-is-better",
+                  "regression_percent": 5.882347166332158,
+                  "limit_percent": 5,
+                  "passed": false
+                },
+                {
+                  "suite": "throughput",
+                  "group": "owner-main/ipc-no-encode",
+                  "metric": "fps.median",
+                  "baseline": 31.90403266956767,
+                  "current": 29.756000793493353,
+                  "direction": "higher-is-better",
+                  "regression_percent": 6.732791112401482,
+                  "limit_percent": 5,
+                  "passed": false
+                },
+                {
+                  "suite": "throughput",
+                  "group": "owner-main/ipc-no-encode",
+                  "metric": "completion_interval_ms.median",
+                  "baseline": 31.600000143051147,
+                  "current": 34.299999952316284,
+                  "direction": "lower-is-better",
+                  "regression_percent": 8.544303155197518,
+                  "limit_percent": 5,
+                  "passed": false
+                },
+                {
+                  "suite": "throughput",
+                  "group": "owner-opening/ipc-no-encode",
+                  "metric": "fps.median",
+                  "baseline": 16.62088551608548,
+                  "current": 15.210356676457707,
+                  "direction": "higher-is-better",
+                  "regression_percent": 8.486484298701658,
+                  "limit_percent": 5,
+                  "passed": false
+                },
+                {
+                  "suite": "throughput",
+                  "group": "owner-opening/ipc-no-encode",
+                  "metric": "completion_interval_ms.median",
+                  "baseline": 54.59999990463257,
+                  "current": 60.19999980926514,
+                  "direction": "lower-is-better",
+                  "regression_percent": 10.256410099659053,
+                  "limit_percent": 5,
+                  "passed": false
+                },
+                {
+                  "suite": "throughput",
+                  "group": "owner-opening/full-mp4",
+                  "metric": "fps.median",
+                  "baseline": 14.881448627797846,
+                  "current": 14.107409946765092,
+                  "direction": "higher-is-better",
+                  "regression_percent": 5.201366482473269,
+                  "limit_percent": 5,
+                  "passed": false
+                },
+                {
+                  "suite": "throughput",
+                  "group": "owner-opening/full-mp4",
+                  "metric": "completion_interval_ms.median",
+                  "baseline": 61.89999997615814,
+                  "current": 65.14999997615814,
+                  "direction": "lower-is-better",
+                  "regression_percent": 5.250403879243604,
+                  "limit_percent": 5,
+                  "passed": false
+                },
+                {
+                  "suite": "preview",
+                  "group": "composite-4k/preview-present",
+                  "metric": "present_completion_ms.median",
+                  "baseline": 5.699999809265137,
+                  "current": 6,
+                  "direction": "lower-is-better",
+                  "regression_percent": 5.263161417079765,
+                  "limit_percent": 5,
+                  "passed": false
+                }
+              ],
+              "disposition": "Continue the same task without committing. Preserve all baseline bytes and thresholds. Diagnose current performance with raw latency decomposition and interleaved historical/current bundle observations; diagnostic observations do not substitute for a fresh full G4."
+            },
+            {
+              "attempt": 2,
+              "cycle": 13,
+              "recorded_at": "2026-10-04T02:16:21.201Z",
+              "verification": "artifacts/migration/verify-2026-10-04T01-56-45-592Z-2b1f1985.json",
+              "verification_sha256": "978b49ae83dd0c48b3f50b4cc8ebbae6d963aef1f9b09ecf7e138b5b225f960f",
+              "status": "failed",
+              "source_unchanged": true,
+              "gates": [
+                {
+                  "id": "G0",
+                  "status": "passed",
+                  "duration_ms": 73176
+                },
+                {
+                  "id": "G1",
+                  "status": "passed",
+                  "duration_ms": 2453
+                },
+                {
+                  "id": "G3",
+                  "status": "passed",
+                  "duration_ms": 306221
+                },
+                {
+                  "id": "G4",
+                  "status": "failed",
+                  "duration_ms": 723510
+                }
+              ],
+              "performance_report": "artifacts/migration/2026-10-04T01-56-45-592Z-2b1f1985/G4/performance-zO4bzz/gate.json",
+              "performance_report_sha256": "9ed6b83bed140c3ee1e4602e91140bd63d724224a3d15c0cdbe3d6c4827cfd5f",
+              "failed_metrics": [
+                {
+                  "suite": "throughput",
+                  "group": "composite-1080p/readback-only",
+                  "metric": "fps.median",
+                  "baseline": 281.01728257542965,
+                  "current": 262.3753717039142,
+                  "direction": "higher-is-better",
+                  "regression_percent": 6.633723983332473,
+                  "limit_percent": 5,
+                  "passed": false
+                },
+                {
+                  "suite": "throughput",
+                  "group": "composite-1080p/readback-only",
+                  "metric": "completion_interval_ms.median",
+                  "baseline": 3.4000000953674316,
+                  "current": 3.6999998092651367,
+                  "direction": "lower-is-better",
+                  "regression_percent": 8.823520749498236,
+                  "limit_percent": 5,
+                  "passed": false
+                },
+                {
+                  "suite": "throughput",
+                  "group": "owner-main/ipc-no-encode",
+                  "metric": "completion_interval_ms.median",
+                  "baseline": 31.600000143051147,
+                  "current": 33.299999952316284,
+                  "direction": "lower-is-better",
+                  "regression_percent": 5.379746207497926,
+                  "limit_percent": 5,
+                  "passed": false
+                },
+                {
+                  "suite": "throughput",
+                  "group": "owner-opening/ipc-no-encode",
+                  "metric": "fps.median",
+                  "baseline": 16.62088551608548,
+                  "current": 15.22556871978825,
+                  "direction": "higher-is-better",
+                  "regression_percent": 8.394960635201176,
+                  "limit_percent": 5,
+                  "passed": false
+                },
+                {
+                  "suite": "throughput",
+                  "group": "owner-opening/ipc-no-encode",
+                  "metric": "completion_interval_ms.median",
+                  "baseline": 54.59999990463257,
+                  "current": 59.5,
+                  "direction": "lower-is-better",
+                  "regression_percent": 8.974359164699731,
+                  "limit_percent": 5,
+                  "passed": false
+                },
+                {
+                  "suite": "throughput",
+                  "group": "owner-opening/full-mp4",
+                  "metric": "fps.median",
+                  "baseline": 14.881448627797846,
+                  "current": 13.915822914331933,
+                  "direction": "higher-is-better",
+                  "regression_percent": 6.488788407750635,
+                  "limit_percent": 5,
+                  "passed": false
+                },
+                {
+                  "suite": "throughput",
+                  "group": "owner-opening/full-mp4",
+                  "metric": "completion_interval_ms.median",
+                  "baseline": 61.89999997615814,
+                  "current": 66.30000007152557,
+                  "direction": "lower-is-better",
+                  "regression_percent": 7.108239252119808,
+                  "limit_percent": 5,
+                  "passed": false
+                },
+                {
+                  "suite": "preview",
+                  "group": "composite-4k/preview-present",
+                  "metric": "fps.median",
+                  "baseline": 171.69838317355845,
+                  "current": 161.6597063182002,
+                  "direction": "higher-is-better",
+                  "regression_percent": 5.846692711841572,
+                  "limit_percent": 5,
+                  "passed": false
+                },
+                {
+                  "suite": "preview",
+                  "group": "composite-4k/preview-present",
+                  "metric": "present_completion_ms.median",
+                  "baseline": 5.699999809265137,
+                  "current": 6,
+                  "direction": "lower-is-better",
+                  "regression_percent": 5.263161417079765,
+                  "limit_percent": 5,
+                  "passed": false
+                },
+                {
+                  "suite": "preview",
+                  "group": "composite-1080p/preview-present",
+                  "metric": "fps.median",
+                  "baseline": 307.345558886703,
+                  "current": 282.6588778696532,
+                  "direction": "higher-is-better",
+                  "regression_percent": 8.03222311279599,
+                  "limit_percent": 5,
+                  "passed": false
+                },
+                {
+                  "suite": "preview",
+                  "group": "composite-1080p/preview-present",
+                  "metric": "present_completion_ms.median",
+                  "baseline": 3.0999999046325684,
+                  "current": 3.5999999046325684,
+                  "direction": "lower-is-better",
+                  "regression_percent": 16.129032754253036,
+                  "limit_percent": 5,
+                  "passed": false
+                }
+              ],
+              "disposition": "Continue this task without committing. Preserve baselines and thresholds; failed or skipped gates remain failures."
+            },
+            {
+              "attempt": 3,
+              "cycle": 13,
+              "recorded_at": "2026-10-04T03:28:40.894Z",
+              "verification": "artifacts/migration/verify-2026-10-04T03-09-56-943Z-5dc76c15.json",
+              "verification_sha256": "c3fb52a128bb8c3b9b2417313f019896cddceb74392f43fb0360eb6aa5efb669",
+              "status": "failed",
+              "source_unchanged": true,
+              "gates": [
+                {
+                  "id": "G0",
+                  "status": "passed",
+                  "duration_ms": 70955
+                },
+                {
+                  "id": "G1",
+                  "status": "passed",
+                  "duration_ms": 2473
+                },
+                {
+                  "id": "G3",
+                  "status": "passed",
+                  "duration_ms": 266956
+                },
+                {
+                  "id": "G4",
+                  "status": "failed",
+                  "duration_ms": 610481
+                }
+              ],
+              "performance_report": "artifacts/migration/2026-10-04T03-09-56-943Z-5dc76c15/G4/performance-wKi6Fe/gate.json",
+              "performance_report_sha256": "17cecfce08080d6eaa2200b9d2ca4067e821b79eed53f2668c2ca2f1a164874f",
+              "failed_metrics": [],
+              "disposition": "G0/G1 and 1819 exact TS frames passed. All throughput cases completed, but the display changed from the frozen 2800x1260 to 1920x1080 during measurement. G4 correctly rejected unstable hardware before threshold comparison and did not run preview. This report cannot establish regression causality or accepted performance.",
+              "failure_kind": "performance-hardware-changed",
+              "performance_measurement": {
+                "path": "artifacts/performance/baseline-2026-10-04T03-15-38-824Z-20e26b7c.json",
+                "sha256": "a2fef282c4c00dcc22e8f66aa517023ac071ab0580b8b1def06c06bb64290056",
+                "source_unchanged": true,
+                "hardware_unchanged": false,
+                "display_before": [
+                  {
+                    "index": 0,
+                    "primary": true,
+                    "x": 0,
+                    "y": 0,
+                    "width": 2800,
+                    "height": 1260,
+                    "refreshHz": 144,
+                    "bitsPerPixel": 32,
+                    "orientation": 0
+                  }
+                ],
+                "display_after": [
+                  {
+                    "index": 0,
+                    "primary": true,
+                    "x": 0,
+                    "y": 0,
+                    "width": 1920,
+                    "height": 1080,
+                    "refreshHz": 144,
+                    "bitsPerPixel": 32,
+                    "orientation": 0
+                  }
+                ]
+              }
+            },
+            {
+              "attempt": 4,
+              "cycle": 13,
+              "recorded_at": "2026-10-04T03:57:07.144Z",
+              "verification": "artifacts/migration/verify-2026-10-04T03-40-21-630Z-27a7c23c.json",
+              "verification_sha256": "2ee5912c39090e4d52387ea0c68d1a709ac23c68838b26076d541d7ad890848e",
+              "status": "failed",
+              "source_unchanged": true,
+              "gates": [
+                {
+                  "id": "G0",
+                  "status": "passed",
+                  "duration_ms": 75941
+                },
+                {
+                  "id": "G1",
+                  "status": "passed",
+                  "duration_ms": 2446
+                },
+                {
+                  "id": "G3",
+                  "status": "failed",
+                  "duration_ms": 268010
+                },
+                {
+                  "id": "G4",
+                  "status": "failed",
+                  "duration_ms": 581680
+                }
+              ],
+              "performance_report": "artifacts/migration/2026-10-04T03-40-21-630Z-27a7c23c/G4/performance-vuTguS/gate.json",
+              "performance_report_sha256": "0f1b1127714d367ade7ecd978df4f87336ffee0c4dab906024ae4988089c254d",
+              "failed_metrics": [],
+              "disposition": "G0/G1 passed; G3 rejected one unpublished comparison report. The display changed back to 1920x1080 after wrapper setup but before performance sampling; the throughput run stayed stable at that mode, which differs from the frozen hardware manifest. G4 rejected the mismatch before threshold comparison and did not run preview. Preserve all 36 observations, the current mode and every frozen baseline byte. Repair publication diagnostics and bounded transient rename handling before a fresh full verification; do not infer regression causality from measurements at different display conditions.",
+              "failure_kind": "artifact-publication-io-and-performance-hardware-mismatch",
+              "pixel_failure": {
+                "report": {
+                  "path": "artifacts/parity/ts-check/2026-10-04T03-41-40-698Z-21e15653/report.json",
+                  "sha256": "1d6167b7d8b5973f7620dc146117a62dd600baa3c1cf889c4fbfebf192d7a7ca"
+                },
+                "passed_frames": 1818,
+                "case_id": "enchanted-love",
+                "frame": 2256,
+                "log": {
+                  "path": "artifacts/parity/ts-check/2026-10-04T03-41-40-698Z-21e15653/G3/pixel-enchanted-love-2256.log",
+                  "sha256": "9cd52e0e887e5ec428c3b82efc55cbb1fe3dc6c9a9ca8ca690a88a1b0d2c56be"
+                },
+                "reason": "Comparison CLI exited 2 with Windows access denied (OS error 5); no report was published. This is not a measured pixel mismatch. The exact I/O operation is unknown because the old error omitted operation/path context."
+              },
+              "performance_measurement": {
+                "path": "artifacts/performance/baseline-2026-10-04T03-46-09-497Z-4bc3d95d.json",
+                "sha256": "3d71cb985ff20ffdc732e21402d9490e75f09d413b9fd9f6df52c612c74b807f",
+                "source_unchanged": true,
+                "hardware_unchanged": true,
+                "baseline_eligible": false,
+                "eligibility_reasons": [
+                  "before-hardware-differs-from-manifest",
+                  "after-hardware-differs-from-manifest"
+                ],
+                "display_before": [
+                  {
+                    "index": 0,
+                    "primary": true,
+                    "x": 0,
+                    "y": 0,
+                    "width": 1920,
+                    "height": 1080,
+                    "refreshHz": 144,
+                    "bitsPerPixel": 32,
+                    "orientation": 0
+                  }
+                ],
+                "display_after": [
+                  {
+                    "index": 0,
+                    "primary": true,
+                    "x": 0,
+                    "y": 0,
+                    "width": 1920,
+                    "height": 1080,
+                    "refreshHz": 144,
+                    "bitsPerPixel": 32,
+                    "orientation": 0
+                  }
+                ]
+              },
+              "display_recovery": {
+                "path": "artifacts/migration/temporary-display-2026-10-04T03-40-20-914Z-c3a050e7.json",
+                "sha256": "d87a45c1c35763513860050a04498fd840569dbf80d41d7873c65fb8f15d793f"
+              }
+            },
+            {
+              "attempt": 5,
+              "cycle": 13,
+              "recorded_at": "2026-10-04T05:05:34.192Z",
+              "verification": "artifacts/migration/verify-2026-10-04T04-47-14-772Z-33e5084e.json",
+              "verification_sha256": "1f7ffbd71bc9eb7b1540520f00169c4d7cfa97ddcb3073bd51461ac8cd749db0",
+              "status": "failed",
+              "source_unchanged": true,
+              "gates": [
+                {
+                  "id": "G0",
+                  "status": "passed",
+                  "duration_ms": 88349
+                },
+                {
+                  "id": "G1",
+                  "status": "passed",
+                  "duration_ms": 2589
+                },
+                {
+                  "id": "G3",
+                  "status": "passed",
+                  "duration_ms": 280060
+                },
+                {
+                  "id": "G4",
+                  "status": "failed",
+                  "duration_ms": 692721
+                }
+              ],
+              "performance_report": "artifacts/migration/2026-10-04T04-47-14-772Z-33e5084e/G4/performance-HaxpWs/gate.json",
+              "performance_report_sha256": "ee689902bbcf91c2890cc87329495642d75d3e57baa285f839fedbe0c1669af2",
+              "failed_metrics": [
+                {
+                  "suite": "throughput",
+                  "group": "owner-opening/readback-only",
+                  "metric": "fps.median",
+                  "baseline": 20.80480200472042,
+                  "current": 19.683519876495563,
+                  "direction": "higher-is-better",
+                  "regression_percent": 5.38953520427855,
+                  "limit_percent": 5,
+                  "passed": false
+                },
+                {
+                  "suite": "throughput",
+                  "group": "owner-opening/readback-only",
+                  "metric": "completion_interval_ms.median",
+                  "baseline": 42,
+                  "current": 47.60000014305115,
+                  "direction": "lower-is-better",
+                  "regression_percent": 13.333333673931303,
+                  "limit_percent": 5,
+                  "passed": false
+                },
+                {
+                  "suite": "preview",
+                  "group": "effect-chain-1080p/preview-present",
+                  "metric": "fps.median",
+                  "baseline": 100.25900242292589,
+                  "current": 94.94271789497031,
+                  "direction": "higher-is-better",
+                  "regression_percent": 5.30255079292502,
+                  "limit_percent": 5,
+                  "passed": false
+                },
+                {
+                  "suite": "preview",
+                  "group": "composite-4k/preview-present",
+                  "metric": "fps.median",
+                  "baseline": 157.02695629416382,
+                  "current": 124.42453651737111,
+                  "direction": "higher-is-better",
+                  "regression_percent": 20.762307661187496,
+                  "limit_percent": 5,
+                  "passed": false
+                },
+                {
+                  "suite": "preview",
+                  "group": "composite-4k/preview-present",
+                  "metric": "present_completion_ms.median",
+                  "baseline": 6.1000001430511475,
+                  "current": 8,
+                  "direction": "lower-is-better",
+                  "regression_percent": 31.147537908064614,
+                  "limit_percent": 5,
+                  "passed": false
+                },
+                {
+                  "suite": "preview",
+                  "group": "composite-1080p/preview-present",
+                  "metric": "fps.median",
+                  "baseline": 284.1985600542101,
+                  "current": 249.51137357990208,
+                  "direction": "higher-is-better",
+                  "regression_percent": 12.20526468103551,
+                  "limit_percent": 5,
+                  "passed": false
+                },
+                {
+                  "suite": "preview",
+                  "group": "composite-1080p/preview-present",
+                  "metric": "present_completion_ms.median",
+                  "baseline": 3.4000000953674316,
+                  "current": 3.9000000953674316,
+                  "direction": "lower-is-better",
+                  "regression_percent": 14.705881940452304,
+                  "limit_percent": 5,
+                  "passed": false
+                }
+              ],
+              "disposition": "Continue this task without committing. Preserve baselines and thresholds; failed or skipped gates remain failures."
+            },
+            {
+              "attempt": 6,
+              "cycle": 13,
+              "recorded_at": "2026-10-04T05:36:01.222Z",
+              "verification": "artifacts/migration/verify-2026-10-04T05-16-27-338Z-c43e5e58.json",
+              "verification_sha256": "1fdc6d12bd9cf53502242a3bb54c1701654b364a274e8b575014dfc1e3095d53",
+              "status": "failed",
+              "source_unchanged": true,
+              "gates": [
+                {
+                  "id": "G0",
+                  "status": "passed",
+                  "duration_ms": 84457
+                },
+                {
+                  "id": "G1",
+                  "status": "passed",
+                  "duration_ms": 2520
+                },
+                {
+                  "id": "G3",
+                  "status": "passed",
+                  "duration_ms": 291010
+                },
+                {
+                  "id": "G4",
+                  "status": "failed",
+                  "duration_ms": 695450
+                }
+              ],
+              "performance_report": "artifacts/migration/2026-10-04T05-16-27-338Z-c43e5e58/G4/performance-FKnVQ4/gate.json",
+              "performance_report_sha256": "1944a6cc8dceede770afa8a6a8ffddde6b8bcdd7fdc01c9d9dfae91d7e5f72a2",
+              "failed_metrics": [
+                {
+                  "suite": "throughput",
+                  "group": "effect-chain-1080p/readback-only",
+                  "metric": "completion_interval_ms.median",
+                  "baseline": 6.099999904632568,
+                  "current": 6.5,
+                  "direction": "lower-is-better",
+                  "regression_percent": 6.557378715098938,
+                  "limit_percent": 5,
+                  "passed": false
+                },
+                {
+                  "suite": "throughput",
+                  "group": "owner-opening/readback-only",
+                  "metric": "completion_interval_ms.median",
+                  "baseline": 42,
+                  "current": 45.049999952316284,
+                  "direction": "lower-is-better",
+                  "regression_percent": 7.261904648372108,
+                  "limit_percent": 5,
+                  "passed": false
+                }
+              ],
+              "disposition": "Continue this task without committing. Preserve baselines and thresholds; failed or skipped gates remain failures."
+            },
+            {
+              "attempt": 7,
+              "cycle": 13,
+              "recorded_at": "2026-10-04T06:07:05.080Z",
+              "verification": "artifacts/migration/verify-2026-10-04T05-47-12-880Z-54574749.json",
+              "verification_sha256": "8d92b405c546b05a7ab4d7f596dc0978edfb5628caedd309a6db47e713a5669c",
+              "status": "failed",
+              "source_unchanged": true,
+              "gates": [
+                {
+                  "id": "G0",
+                  "status": "passed",
+                  "duration_ms": 95403
+                },
+                {
+                  "id": "G1",
+                  "status": "passed",
+                  "duration_ms": 3032
+                },
+                {
+                  "id": "G3",
+                  "status": "passed",
+                  "duration_ms": 292695
+                },
+                {
+                  "id": "G4",
+                  "status": "failed",
+                  "duration_ms": 740437
+                }
+              ],
+              "performance_report": "artifacts/migration/2026-10-04T05-47-12-880Z-54574749/G4/performance-R70UPL/gate.json",
+              "performance_report_sha256": "5d54e23e900e6bdf077f57fd9d6a0cb0375276a384ac599d16fa929c37003d92",
+              "failed_metrics": [
+                {
+                  "suite": "throughput",
+                  "group": "composite-4k/readback-only",
+                  "metric": "fps.median",
+                  "baseline": 77.42834651861301,
+                  "current": 73.43761474584444,
+                  "direction": "higher-is-better",
+                  "regression_percent": 5.154096596663393,
+                  "limit_percent": 5,
+                  "passed": false
+                },
+                {
+                  "suite": "throughput",
+                  "group": "composite-1080p/readback-only",
+                  "metric": "fps.median",
+                  "baseline": 278.55153203342616,
+                  "current": 257.4333891053008,
+                  "direction": "higher-is-better",
+                  "regression_percent": 7.581413311196994,
+                  "limit_percent": 5,
+                  "passed": false
+                },
+                {
+                  "suite": "throughput",
+                  "group": "owner-main/ipc-no-encode",
+                  "metric": "fps.median",
+                  "baseline": 30.513542927321318,
+                  "current": 28.605209961850946,
+                  "direction": "higher-is-better",
+                  "regression_percent": 6.254052405568689,
+                  "limit_percent": 5,
+                  "passed": false
+                },
+                {
+                  "suite": "throughput",
+                  "group": "owner-main/full-mp4",
+                  "metric": "fps.median",
+                  "baseline": 28.80073729927038,
+                  "current": 27.127471990651234,
+                  "direction": "higher-is-better",
+                  "regression_percent": 5.80980025348704,
+                  "limit_percent": 5,
+                  "passed": false
+                },
+                {
+                  "suite": "throughput",
+                  "group": "owner-main/full-mp4",
+                  "metric": "completion_interval_ms.median",
+                  "baseline": 35,
+                  "current": 36.799999952316284,
+                  "direction": "lower-is-better",
+                  "regression_percent": 5.142857006617962,
+                  "limit_percent": 5,
+                  "passed": false
+                }
+              ],
+              "disposition": "Continue this task without committing. Preserve baselines and thresholds; failed or skipped gates remain failures."
+            },
+            {
+              "attempt": 8,
+              "cycle": 13,
+              "recorded_at": "2026-10-04T06:55:48.092Z",
+              "verification": "artifacts/migration/verify-2026-10-04T06-36-24-845Z-50d11f1a.json",
+              "verification_sha256": "140b828518f73aa14af273b30e494211007555b860b725bda4df6ffd948b70f0",
+              "status": "passed",
+              "source_unchanged": true,
+              "gates": [
+                {
+                  "id": "G0",
+                  "status": "passed",
+                  "duration_ms": 83754
+                },
+                {
+                  "id": "G1",
+                  "status": "passed",
+                  "duration_ms": 2641
+                },
+                {
+                  "id": "G3",
+                  "status": "passed",
+                  "duration_ms": 274602
+                },
+                {
+                  "id": "G4",
+                  "status": "passed",
+                  "duration_ms": 672708
+                }
+              ],
+              "performance_report": "artifacts/migration/2026-10-04T06-36-24-845Z-50d11f1a/G4/performance-WyaR5G/gate.json",
+              "performance_report_sha256": "162b1143e089809c9a995217a907d4ec7b54b3480153a4e6b62b08583c72f144",
+              "failed_metrics": [],
+              "disposition": "Full required gates passed on the verified source. The implementation was committed before closing this cycle; the passing attempt and cycle completion are recorded together."
+            }
+          ],
+          "performance_diagnostics": {
+            "interleaved_bundles": {
+              "path": "artifacts/migration/owner-ipc-ab-2026-10-04T00-53-14-263Z-5bf74445/report.json",
+              "sha256": "745c76b3e7f3533ced3a5be8f014169146ad1e6cafbe70599d127dfdfbe0dc17",
+              "gate_eligible": false,
+              "old_fps_median": 29.87928767820747,
+              "current_fps_median": 29.592219219299164,
+              "comparison": "The retained original bundle also misses the frozen historical throughput baseline in the current environment. The current bundle is approximately 0.96 percent slower than that original bundle in the controlled paired diagnostic. This does not satisfy or replace G4."
+            },
+            "saved_raw_decomposition": {
+              "path": "artifacts/migration/owner-ipc-saved-evidence.json",
+              "sha256": "905645e90b4bd4682a53abc47d5c6500c1c43d882cf05c8686aebb22c75b6f92"
+            },
+            "background_load": {
+              "path": "artifacts/migration/cycle13-host-contention.json",
+              "sha256": "6ffae620bd40d373a3b3b229405288075c4d2c3614b6bbbd9332f5dc60829313",
+              "observation": "A Zed TypeScript language-service process consumed 2.15625 CPU seconds during a 2.0294193-second sample. Its causal impact has not been established; the process was not changed by this diagnostic."
+            },
+            "cpu_profile": {
+              "path": "artifacts/migration/owner-ipc-cpu-2026-10-04T01-06-42-230Z-504fd7bd/cpu-analysis.json",
+              "sha256": "c5a7260c9590e1eef05d5be5f72d7257636dc299924bb48e684b7fac10761a51",
+              "gate_eligible": false,
+              "observation": "A CDP CPU sample of 300 measured owner-main IPC frames attributed 26.1 percent of inclusive sampled time to output/IPC, 12.2 percent to text scene preparation, and 7.7 percent of self time to the required owned readback copy. Profiling overhead and idle samples prevent interpreting these values as independent wall-clock bottlenecks."
+            },
+            "focused": [
+              {
+                "path": "artifacts/performance/cycle13-text-key-owner-ipc.json",
+                "sha256": "b75a485338fe8f600df7e264eb2a3bc993fed87eeef85c11a34a6408b627c82d",
+                "gate_eligible": false,
+                "source_unchanged": true,
+                "hardware_unchanged": true,
+                "recorded_at": "2026-10-04T01:33:11.446Z",
+                "measurements": [
+                  {
+                    "case": "owner-main",
+                    "mode": "ipc-no-encode",
+                    "fps_median": 30.16621584976373,
+                    "completion_interval_ms_median": 33.59999990463257
+                  },
+                  {
+                    "case": "owner-opening",
+                    "mode": "ipc-no-encode",
+                    "fps_median": 15.061098700867479,
+                    "completion_interval_ms_median": 61
+                  }
+                ],
+                "scope": "Partial selected workloads only; cannot replace complete G4."
+              },
+              {
+                "path": "artifacts/performance/cycle13-text-geometry-owner-ipc.json",
+                "sha256": "500e2ead3074d63f729603bd137d04cc1bfac07f73d3a7db884cfd369eee0413",
+                "gate_eligible": false,
+                "source_unchanged": true,
+                "hardware_unchanged": true,
+                "recorded_at": "2026-10-04T01:40:20.852Z",
+                "measurements": [
+                  {
+                    "case": "owner-main",
+                    "mode": "ipc-no-encode",
+                    "fps_median": 30.67829714968701,
+                    "completion_interval_ms_median": 33
+                  },
+                  {
+                    "case": "owner-opening",
+                    "mode": "ipc-no-encode",
+                    "fps_median": 15.27530855476786,
+                    "completion_interval_ms_median": 59.5
+                  }
+                ],
+                "scope": "Partial selected workloads only; cannot replace complete G4."
+              },
+              {
+                "path": "artifacts/performance/cycle13-original-upload-owner-ipc.json",
+                "sha256": "aeceaa721999ff89357482e970b4d5c9b0a52dd7800e62beaada401afb1dd10d",
+                "gate_eligible": false,
+                "source_unchanged": true,
+                "hardware_unchanged": true,
+                "recorded_at": "2026-10-04T02:30:40.483Z",
+                "measurements": [
+                  {
+                    "case": "owner-main",
+                    "mode": "ipc-no-encode",
+                    "fps_median": 36.37245392822503,
+                    "completion_interval_ms_median": 28
+                  },
+                  {
+                    "case": "owner-opening",
+                    "mode": "ipc-no-encode",
+                    "fps_median": 18.164102746770176,
+                    "completion_interval_ms_median": 49.40000009536743
+                  }
+                ],
+                "scope": "Partial selected workloads only; cannot replace complete G4."
+              }
+            ],
+            "opening_profile": {
+              "gate_eligible": false,
+              "evidence": [
+                {
+                  "path": "artifacts/migration/owner-opening-ipc-cpu-2026-10-04T01-42-46-929Z-001111fc/diagnostic.json",
+                  "sha256": "106146266b75caa901dcac4b2f9e2bb0f59353f7fb3db4c7d44f3c5c951c9fd2"
+                },
+                {
+                  "path": "artifacts/migration/owner-opening-ipc-cpu-2026-10-04T01-42-46-929Z-001111fc/cpu-analysis.json",
+                  "sha256": "3e9420bcb035f938173eb5c4395f4d947bc9b88c267e354304fbe05190fc3455"
+                },
+                {
+                  "path": "artifacts/migration/owner-opening-ipc-cpu-2026-10-04T01-42-46-929Z-001111fc/latency-analysis.json",
+                  "sha256": "99bf8bbf7236e2102fd3e5306730c7e36b9d3852bc42d6ffcad4638cdef92807"
+                }
+              ],
+              "observation": "714 measured opening frames on the current prebuilt bundle, after 10 warmup frames. The 47.232-second renderer sample contained 74.60 percent idle, 13.39 percent inclusive output/IPC work, 3.68 percent owned readback copying, and 1.92 percent text geometry preparation. Idle samples alone cannot distinguish GPU, media decoding or main-process waits. This diagnostic does not replace G4."
+            },
+            "async_boundaries": {
+              "gate_eligible": false,
+              "evidence": [
+                {
+                  "path": "artifacts/migration/owner-opening-boundary-2026-10-04T02-19-12-231Z-8c03a3f7/diagnostic.json",
+                  "sha256": "e6d34ae3282ad7fd032bc11195fee3877cb3cd25386eb5b1f96c61044c7b981f"
+                },
+                {
+                  "path": "artifacts/migration/owner-opening-boundary-2026-10-04T02-19-12-231Z-8c03a3f7/boundary-findings.json",
+                  "sha256": "070e44d0af95c28a2b3cfebf60e1550d97bee5f26a2820a0c8d0b97dd6c495bc"
+                }
+              ],
+              "observation": "After restoring original root upload order, all 714 instrumented frames and event/source/input/adapter bindings passed the diagnostic audit. Median readback was 49.5 ms, media barrier 0 ms, mapAsync wall time 37.75 ms, owned row copying 2.1 ms and video IPC 14.3 ms. The observed 17.93 fps is diagnostic only. Timings overlap, include JavaScript scheduling, and cannot be added or described as GPU hardware time. Causality of the performance recovery is not established."
+            },
+            "copy_alternatives": {
+              "gate_eligible": false,
+              "evidence": [
+                {
+                  "path": "artifacts/migration/readback-copy-electron43.json",
+                  "sha256": "3dd2109b858361b83125e552bd27a6ba16444e3a8ea9f2c3fb6485af20c56f55"
+                },
+                {
+                  "path": "artifacts/migration/readback-copy-node24.json",
+                  "sha256": "19161e4dabfbcce854585590bb648acc6ead064001e0ad975f39a15c5eb1be10"
+                }
+              ],
+              "disposition": "Retain production owned copying. Same-Electron V8 ordinary CPU-buffer alternatives saved at most 0.059 ms per 8.29 MB copy with overlapping measurement ranges; these are not mapped-GPU or G4 timings. Returning mapped memory without ownership is invalid after unmap."
+            },
+            "preview_trials": [
+              {
+                "name": "original-upload",
+                "path": "artifacts/performance/cycle13-original-upload-preview.json",
+                "sha256": "b2efa4404410e67e6f94f61dea117d229be20030c4f2fa2854db4ee209184778",
+                "run_id": "2026-10-04T02-30-41-295Z-d8439232",
+                "gate_eligible": false,
+                "comparison": {
+                  "status": "failed",
+                  "checks": [
+                    {
+                      "group": "effect-chain-1080p/preview-present",
+                      "metric": "fps.median",
+                      "baseline": 102.7714021436572,
+                      "current": 102.81542916789715,
+                      "direction": "higher-is-better",
+                      "regression_percent": -0.04283976215329055,
+                      "limit_percent": 5,
+                      "passed": true
+                    },
+                    {
+                      "group": "effect-chain-1080p/preview-present",
+                      "metric": "present_completion_ms.median",
+                      "baseline": 10,
+                      "current": 10,
+                      "direction": "lower-is-better",
+                      "regression_percent": 0,
+                      "limit_percent": 5,
+                      "passed": true
+                    },
+                    {
+                      "group": "composite-4k/preview-present",
+                      "metric": "fps.median",
+                      "baseline": 171.69838317355845,
+                      "current": 160.89673110857407,
+                      "direction": "higher-is-better",
+                      "regression_percent": 6.291062190181318,
+                      "limit_percent": 5,
+                      "passed": false
+                    },
+                    {
+                      "group": "composite-4k/preview-present",
+                      "metric": "present_completion_ms.median",
+                      "baseline": 5.699999809265137,
+                      "current": 6,
+                      "direction": "lower-is-better",
+                      "regression_percent": 5.263161417079765,
+                      "limit_percent": 5,
+                      "passed": false
+                    },
+                    {
+                      "group": "composite-1080p/preview-present",
+                      "metric": "fps.median",
+                      "baseline": 307.345558886703,
+                      "current": 297.27988902253156,
+                      "direction": "higher-is-better",
+                      "regression_percent": 3.275033451152587,
+                      "limit_percent": 5,
+                      "passed": true
+                    },
+                    {
+                      "group": "composite-1080p/preview-present",
+                      "metric": "present_completion_ms.median",
+                      "baseline": 3.0999999046325684,
+                      "current": 3.0999999046325684,
+                      "direction": "lower-is-better",
+                      "regression_percent": 0,
+                      "limit_percent": 5,
+                      "passed": true
+                    }
+                  ]
+                },
+                "scope": "Standalone complete preview measurement only; does not replace full G4 throughput plus preview."
+              },
+              {
+                "name": "compute-marker",
+                "path": "artifacts/performance/cycle13-compute-marker-preview.json",
+                "sha256": "3f436c2d6a806c307b59d374ca93d4ed58173486bf537c3b03e4168be051635c",
+                "run_id": "2026-10-04T02-33-26-056Z-9edd67bc",
+                "gate_eligible": false,
+                "comparison": {
+                  "status": "failed",
+                  "checks": [
+                    {
+                      "group": "effect-chain-1080p/preview-present",
+                      "metric": "fps.median",
+                      "baseline": 102.7714021436572,
+                      "current": 103.11227207722533,
+                      "direction": "higher-is-better",
+                      "regression_percent": -0.3316778076956073,
+                      "limit_percent": 5,
+                      "passed": true
+                    },
+                    {
+                      "group": "effect-chain-1080p/preview-present",
+                      "metric": "present_completion_ms.median",
+                      "baseline": 10,
+                      "current": 10,
+                      "direction": "lower-is-better",
+                      "regression_percent": 0,
+                      "limit_percent": 5,
+                      "passed": true
+                    },
+                    {
+                      "group": "composite-4k/preview-present",
+                      "metric": "fps.median",
+                      "baseline": 171.69838317355845,
+                      "current": 162.3859914976085,
+                      "direction": "higher-is-better",
+                      "regression_percent": 5.423692118601187,
+                      "limit_percent": 5,
+                      "passed": false
+                    },
+                    {
+                      "group": "composite-4k/preview-present",
+                      "metric": "present_completion_ms.median",
+                      "baseline": 5.699999809265137,
+                      "current": 6,
+                      "direction": "lower-is-better",
+                      "regression_percent": 5.263161417079765,
+                      "limit_percent": 5,
+                      "passed": false
+                    },
+                    {
+                      "group": "composite-1080p/preview-present",
+                      "metric": "fps.median",
+                      "baseline": 307.345558886703,
+                      "current": 294.76787030213706,
+                      "direction": "higher-is-better",
+                      "regression_percent": 4.092360608731759,
+                      "limit_percent": 5,
+                      "passed": true
+                    },
+                    {
+                      "group": "composite-1080p/preview-present",
+                      "metric": "present_completion_ms.median",
+                      "baseline": 3.0999999046325684,
+                      "current": 3.1000001430511475,
+                      "direction": "lower-is-better",
+                      "regression_percent": 0.000007690922143588352,
+                      "limit_percent": 5,
+                      "passed": true
+                    }
+                  ]
+                },
+                "scope": "Standalone complete preview measurement only; does not replace full G4 throughput plus preview."
+              },
+              {
+                "name": "empty-shadow",
+                "path": "artifacts/performance/cycle13-empty-shadow-preview.json",
+                "sha256": "97730954c819b65b4d39ec68c32de6114ac09825742a9be123534ac782c9bf47",
+                "run_id": "2026-10-04T02-36-04-000Z-3391c541",
+                "gate_eligible": false,
+                "comparison": {
+                  "status": "failed",
+                  "checks": [
+                    {
+                      "group": "effect-chain-1080p/preview-present",
+                      "metric": "fps.median",
+                      "baseline": 102.7714021436572,
+                      "current": 103.96811644429042,
+                      "direction": "higher-is-better",
+                      "regression_percent": -1.1644429050023275,
+                      "limit_percent": 5,
+                      "passed": true
+                    },
+                    {
+                      "group": "effect-chain-1080p/preview-present",
+                      "metric": "present_completion_ms.median",
+                      "baseline": 10,
+                      "current": 9.799999952316284,
+                      "direction": "lower-is-better",
+                      "regression_percent": -2.0000004768371604,
+                      "limit_percent": 5,
+                      "passed": true
+                    },
+                    {
+                      "group": "composite-4k/preview-present",
+                      "metric": "fps.median",
+                      "baseline": 171.69838317355845,
+                      "current": 164.93938477393272,
+                      "direction": "higher-is-better",
+                      "regression_percent": 3.936553317915359,
+                      "limit_percent": 5,
+                      "passed": true
+                    },
+                    {
+                      "group": "composite-4k/preview-present",
+                      "metric": "present_completion_ms.median",
+                      "baseline": 5.699999809265137,
+                      "current": 6,
+                      "direction": "lower-is-better",
+                      "regression_percent": 5.263161417079765,
+                      "limit_percent": 5,
+                      "passed": false
+                    },
+                    {
+                      "group": "composite-1080p/preview-present",
+                      "metric": "fps.median",
+                      "baseline": 307.345558886703,
+                      "current": 293.1548346049843,
+                      "direction": "higher-is-better",
+                      "regression_percent": 4.617188656677429,
+                      "limit_percent": 5,
+                      "passed": true
+                    },
+                    {
+                      "group": "composite-1080p/preview-present",
+                      "metric": "present_completion_ms.median",
+                      "baseline": 3.0999999046325684,
+                      "current": 3.1000001430511475,
+                      "direction": "lower-is-better",
+                      "regression_percent": 0.000007690922143588352,
+                      "limit_percent": 5,
+                      "passed": true
+                    }
+                  ]
+                },
+                "scope": "Standalone complete preview measurement only; does not replace full G4 throughput plus preview."
+              },
+              {
+                "name": "shadow-marker",
+                "path": "artifacts/performance/cycle13-shadow-marker-preview.json",
+                "sha256": "7eb9ade8cfe6f0fee3134b799f0346f1111fcf34f62b8e5bad433478ec9ea796",
+                "run_id": "2026-10-04T02-38-13-442Z-b73f78d1",
+                "gate_eligible": false,
+                "comparison": {
+                  "status": "failed",
+                  "checks": [
+                    {
+                      "group": "effect-chain-1080p/preview-present",
+                      "metric": "fps.median",
+                      "baseline": 102.7714021436572,
+                      "current": 102.65359544050543,
+                      "direction": "higher-is-better",
+                      "regression_percent": 0.11462984905771245,
+                      "limit_percent": 5,
+                      "passed": true
+                    },
+                    {
+                      "group": "effect-chain-1080p/preview-present",
+                      "metric": "present_completion_ms.median",
+                      "baseline": 10,
+                      "current": 9.900000095367432,
+                      "direction": "lower-is-better",
+                      "regression_percent": -0.9999990463256836,
+                      "limit_percent": 5,
+                      "passed": true
+                    },
+                    {
+                      "group": "composite-4k/preview-present",
+                      "metric": "fps.median",
+                      "baseline": 171.69838317355845,
+                      "current": 163.98819285225198,
+                      "direction": "higher-is-better",
+                      "regression_percent": 4.490543346300912,
+                      "limit_percent": 5,
+                      "passed": true
+                    },
+                    {
+                      "group": "composite-4k/preview-present",
+                      "metric": "present_completion_ms.median",
+                      "baseline": 5.699999809265137,
+                      "current": 6,
+                      "direction": "lower-is-better",
+                      "regression_percent": 5.263161417079765,
+                      "limit_percent": 5,
+                      "passed": false
+                    },
+                    {
+                      "group": "composite-1080p/preview-present",
+                      "metric": "fps.median",
+                      "baseline": 307.345558886703,
+                      "current": 297.8110884924799,
+                      "direction": "higher-is-better",
+                      "regression_percent": 3.1021988502972886,
+                      "limit_percent": 5,
+                      "passed": true
+                    },
+                    {
+                      "group": "composite-1080p/preview-present",
+                      "metric": "present_completion_ms.median",
+                      "baseline": 3.0999999046325684,
+                      "current": 3.1000001430511475,
+                      "direction": "lower-is-better",
+                      "regression_percent": 0.000007690922143588352,
+                      "limit_percent": 5,
+                      "passed": true
+                    }
+                  ]
+                },
+                "scope": "Standalone complete preview measurement only; does not replace full G4 throughput plus preview."
+              },
+              {
+                "name": "depth-store",
+                "path": "artifacts/performance/cycle13-depth-store-preview.json",
+                "sha256": "8b76842065bae93d6d0c75eb55f8063b36872d6a2599023a1d3750ecf653c658",
+                "run_id": "2026-10-04T02-41-21-448Z-aa1501fd",
+                "gate_eligible": false,
+                "comparison": {
+                  "status": "failed",
+                  "checks": [
+                    {
+                      "group": "effect-chain-1080p/preview-present",
+                      "metric": "fps.median",
+                      "baseline": 102.7714021436572,
+                      "current": 102.24600388451732,
+                      "direction": "higher-is-better",
+                      "regression_percent": 0.5112300194225816,
+                      "limit_percent": 5,
+                      "passed": true
+                    },
+                    {
+                      "group": "effect-chain-1080p/preview-present",
+                      "metric": "present_completion_ms.median",
+                      "baseline": 10,
+                      "current": 10,
+                      "direction": "lower-is-better",
+                      "regression_percent": 0,
+                      "limit_percent": 5,
+                      "passed": true
+                    },
+                    {
+                      "group": "composite-4k/preview-present",
+                      "metric": "fps.median",
+                      "baseline": 171.69838317355845,
+                      "current": 165.30747190207322,
+                      "direction": "higher-is-better",
+                      "regression_percent": 3.7221732397008545,
+                      "limit_percent": 5,
+                      "passed": true
+                    },
+                    {
+                      "group": "composite-4k/preview-present",
+                      "metric": "present_completion_ms.median",
+                      "baseline": 5.699999809265137,
+                      "current": 6,
+                      "direction": "lower-is-better",
+                      "regression_percent": 5.263161417079765,
+                      "limit_percent": 5,
+                      "passed": false
+                    },
+                    {
+                      "group": "composite-1080p/preview-present",
+                      "metric": "fps.median",
+                      "baseline": 307.345558886703,
+                      "current": 293.39853300733495,
+                      "direction": "higher-is-better",
+                      "regression_percent": 4.537897319840345,
+                      "limit_percent": 5,
+                      "passed": true
+                    },
+                    {
+                      "group": "composite-1080p/preview-present",
+                      "metric": "present_completion_ms.median",
+                      "baseline": 3.0999999046325684,
+                      "current": 3.1000001430511475,
+                      "direction": "lower-is-better",
+                      "regression_percent": 0.000007690922143588352,
+                      "limit_percent": 5,
+                      "passed": true
+                    }
+                  ]
+                },
+                "scope": "Standalone complete preview measurement only; does not replace full G4 throughput plus preview."
+              },
+              {
+                "name": "lighting-cache",
+                "path": "artifacts/performance/cycle13-lighting-cache-preview.json",
+                "sha256": "caed86cb514053f51665f271dc5fdfeef3d7c37ffe136c27c2b405decf291b47",
+                "run_id": "2026-10-04T03-01-53-918Z-c97228c9",
+                "gate_eligible": false,
+                "comparison": {
+                  "status": "passed",
+                  "checks": [
+                    {
+                      "group": "effect-chain-1080p/preview-present",
+                      "metric": "fps.median",
+                      "baseline": 102.7714021436572,
+                      "current": 102.9336078229542,
+                      "direction": "higher-is-better",
+                      "regression_percent": -0.15783153281325735,
+                      "limit_percent": 5,
+                      "passed": true
+                    },
+                    {
+                      "group": "effect-chain-1080p/preview-present",
+                      "metric": "present_completion_ms.median",
+                      "baseline": 10,
+                      "current": 10,
+                      "direction": "lower-is-better",
+                      "regression_percent": 0,
+                      "limit_percent": 5,
+                      "passed": true
+                    },
+                    {
+                      "group": "composite-4k/preview-present",
+                      "metric": "fps.median",
+                      "baseline": 171.69838317355845,
+                      "current": 167.82277914298433,
+                      "direction": "higher-is-better",
+                      "regression_percent": 2.2572163808068813,
+                      "limit_percent": 5,
+                      "passed": true
+                    },
+                    {
+                      "group": "composite-4k/preview-present",
+                      "metric": "present_completion_ms.median",
+                      "baseline": 5.699999809265137,
+                      "current": 5.900000095367432,
+                      "direction": "lower-is-better",
+                      "regression_percent": 3.5087770665746643,
+                      "limit_percent": 5,
+                      "passed": true
+                    },
+                    {
+                      "group": "composite-1080p/preview-present",
+                      "metric": "fps.median",
+                      "baseline": 307.345558886703,
+                      "current": 301.856416993296,
+                      "direction": "higher-is-better",
+                      "regression_percent": 1.785983800543678,
+                      "limit_percent": 5,
+                      "passed": true
+                    },
+                    {
+                      "group": "composite-1080p/preview-present",
+                      "metric": "present_completion_ms.median",
+                      "baseline": 3.0999999046325684,
+                      "current": 3.0999999046325684,
+                      "direction": "lower-is-better",
+                      "regression_percent": 0,
+                      "limit_percent": 5,
+                      "passed": true
+                    }
+                  ]
+                },
+                "scope": "Standalone complete preview suite; all six medians satisfy the unchanged baseline. Full G4 throughput plus preview remains required."
+              }
+            ],
+            "preview_gpu": {
+              "gate_eligible": false,
+              "evidence": [
+                {
+                  "path": "artifacts/migration/preview-gpu-2026-10-04T02-51-53-084Z-65fc9d61/diagnostic.json",
+                  "sha256": "0602d4373b182227abb6b03f617cfc36444655517d4d824c1fda352c2730f539"
+                },
+                {
+                  "path": "artifacts/migration/preview-gpu-2026-10-04T02-51-53-084Z-65fc9d61/gpu-analysis.json",
+                  "sha256": "f59cb4453aeab41024616a3060e89a7ca17ce5c90de033a3d79d17933ae4c961"
+                }
+              ],
+              "observation": "A 600-frame instrumented 4K preview diagnostic observed 0.3 ms median renderer CPU time, 3.014656 ms latest asynchronous GPU span sum and 6 ms present completion. The GPU samples are not tied to frame identity and do not cover the full queue timeline; subtracting these medians cannot isolate precise scheduling latency. This diagnostic does not satisfy G4."
+            },
+            "shadow_harness_startup": {
+              "path": "artifacts/migration/shadow-state-2026-10-04T02-52-48-342Z-6f82a811/diagnostic.json",
+              "sha256": "53a512db13ee45e1ae3ef391ae7cf0e831caf508b3812828575f86bb277a672f",
+              "gate_eligible": false,
+              "disposition": "The ignored Electron diagnostic deadlocked at top-level await app.whenReady before any renderer/GPU test. Its owned process was terminated after confirming its full command line. Move startup into a non-awaited async main, then rerun; no renderer or pixel result was produced."
+            },
+            "shadow_state": {
+              "gate_eligible": false,
+              "evidence": [
+                {
+                  "path": "artifacts/migration/shadow-state-2026-10-04T03-01-16-332Z-50cab6c4/diagnostic.json",
+                  "sha256": "e721cc0637020c38117fd6ba59e6cb295337017cc4a6a5653b3d7b4c4d2e7124"
+                },
+                {
+                  "path": "artifacts/migration/shadow-state-2026-10-04T03-01-16-332Z-50cab6c4/observations.json",
+                  "sha256": "e89948d42b49c1fc76890094ddab12288b9147403176e19a30a5c4b99a3043f6"
+                }
+              ],
+              "summary": [
+                {
+                  "id": "first-3d",
+                  "exact": true,
+                  "differing_bytes": 0,
+                  "checks": {
+                    "reused": {
+                      "shadow_passes": 1,
+                      "shadow_draws": 2,
+                      "lighting_upload_count": 1,
+                      "resident_lighting_flags": [1],
+                      "root_depth": [
+                        {
+                          "label": "Linear HDR composition",
+                          "load": "clear",
+                          "store": "discard",
+                          "clear": 1
+                        }
+                      ]
+                    },
+                    "independent": {
+                      "shadow_passes": 1,
+                      "shadow_draws": 2,
+                      "lighting_upload_count": 1,
+                      "resident_lighting_flags": [1],
+                      "root_depth": [
+                        {
+                          "label": "Linear HDR composition",
+                          "load": "clear",
+                          "store": "discard",
+                          "clear": 1
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "id": "middle-2d",
+                  "exact": true,
+                  "differing_bytes": 0,
+                  "checks": {
+                    "reused": {
+                      "shadow_passes": 0,
+                      "shadow_draws": 0,
+                      "lighting_upload_count": 1,
+                      "resident_lighting_flags": [0],
+                      "root_depth": [
+                        {
+                          "label": "Linear HDR composition",
+                          "load": "clear",
+                          "store": "discard",
+                          "clear": 1
+                        }
+                      ]
+                    },
+                    "independent": {
+                      "shadow_passes": 0,
+                      "shadow_draws": 0,
+                      "lighting_upload_count": 1,
+                      "resident_lighting_flags": [0],
+                      "root_depth": [
+                        {
+                          "label": "Linear HDR composition",
+                          "load": "clear",
+                          "store": "discard",
+                          "clear": 1
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "id": "restored-3d",
+                  "exact": true,
+                  "differing_bytes": 0,
+                  "checks": {
+                    "reused": {
+                      "shadow_passes": 1,
+                      "shadow_draws": 2,
+                      "lighting_upload_count": 1,
+                      "resident_lighting_flags": [1],
+                      "root_depth": [
+                        {
+                          "label": "Linear HDR composition",
+                          "load": "clear",
+                          "store": "discard",
+                          "clear": 1
+                        }
+                      ]
+                    },
+                    "independent": {
+                      "shadow_passes": 1,
+                      "shadow_draws": 2,
+                      "lighting_upload_count": 1,
+                      "resident_lighting_flags": [1],
+                      "root_depth": [
+                        {
+                          "label": "Linear HDR composition",
+                          "load": "clear",
+                          "store": "discard",
+                          "clear": 1
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "id": "grouped-3d-2d-3d",
+                  "exact": true,
+                  "differing_bytes": 0,
+                  "checks": {
+                    "reused": {
+                      "shadow_passes": 1,
+                      "shadow_draws": 2,
+                      "lighting_upload_count": 0,
+                      "resident_lighting_flags": [1],
+                      "root_depth": [
+                        {
+                          "label": "Linear HDR composition",
+                          "load": "clear",
+                          "store": "store",
+                          "clear": 1
+                        },
+                        {
+                          "label": "Linear HDR direct layer group",
+                          "load": "clear",
+                          "store": "store",
+                          "clear": 1
+                        }
+                      ]
+                    },
+                    "independent": {
+                      "shadow_passes": 1,
+                      "shadow_draws": 2,
+                      "lighting_upload_count": 1,
+                      "resident_lighting_flags": [1],
+                      "root_depth": [
+                        {
+                          "label": "Linear HDR composition",
+                          "load": "clear",
+                          "store": "store",
+                          "clear": 1
+                        },
+                        {
+                          "label": "Linear HDR direct layer group",
+                          "load": "clear",
+                          "store": "store",
+                          "clear": 1
+                        }
+                      ]
+                    }
+                  }
+                }
+              ],
+              "scope": "Actual production GPU API observations and saved-PNG exact comparison for one reused renderer versus fresh renderers across 3D, 2D, restored 3D and split-depth groups. Confirms resident lighting flags and depth clear/store/discard, including a skipped repeated upload. Does not replace full historical pixel parity or G4."
+            },
+            "display_conditions": {
+              "evidence": [
+                {
+                  "path": "artifacts/migration/cycle13-display-modes.json",
+                  "sha256": "86b275b84f8a31b672e69a41fb57b8106d67450a67259024a3188b6e0d7c22a2"
+                },
+                {
+                  "path": "artifacts/migration/cycle13-verify3-host-sample.json",
+                  "sha256": "89eec18f91dcdadcc2099038cd28aeea985dd126ab7580ee6810e4fb5a3add4e"
+                }
+              ],
+              "observation": "Both recorded modes use 144 Hz and 32-bit color. The frozen 2800x1260 mode remains enumerated by Windows. The host sample observed the benchmark Electron GPU process, low DWM/remote-display activity and the previously recorded busy language service; it does not establish the cause of timing changes.",
+              "recovery": "Run a fresh full verification in the original frozen mode using a temporary non-registry Windows mode change, restore the saved prior mode in finally, and preserve a new external mode choice if it changes again during the test. Keep the failed run and all baseline bytes unchanged.",
+              "second_attempt": {
+                "evidence": {
+                  "path": "artifacts/migration/temporary-display-2026-10-04T03-40-20-914Z-c3a050e7.json",
+                  "sha256": "d87a45c1c35763513860050a04498fd840569dbf80d41d7873c65fb8f15d793f"
+                },
+                "result": "Temporary frozen mode was applied successfully, but the external display state returned to the saved 1920x1080 mode before performance sampling. The stable throughput sample differs from the frozen baseline manifest. The wrapper preserved that choice and made no further change.",
+                "next_step": "Preserve the external 1920x1080 mode and prepare an additive display-condition series under the existing manifest policy. A preference question was offered; no new owner approval is claimed. The historical production bundle, source/bridge provenance, complete raw samples and unchanged thresholds must be audited before the series can be used."
+              }
+            },
+            "additional_series_plan": {
+              "status": "verified-reference-and-candidate",
+              "selected_before_measurement": true,
+              "hardware_manifest": {
+                "path": "benchmarks/hardware/windows-radeon780m-local-1920x1080-144hz.json",
+                "sha256": "98ce22b76650c77ab781708ecc3e43f3c30c01537a675a42da97fe32a923bf6a"
+              },
+              "hardware_observation": {
+                "path": "artifacts/migration/cycle13-hardware-1920-observation.json",
+                "sha256": "02726ad52254268d2ff6a3bec66637307942d8c93d37d432dbc903a5627cfdf1"
+              },
+              "policy": "The original manifest already requires a new series for display changes. Preserve the original throughput/preview files and all M0 pins; use 1920x1080@144Hz as the current stable condition. Never compare current measurements at this mode against the historical 2800x1260 series.",
+              "reference": "Replay the preserved pre-plan production bundle whose bytes are anchored by the ledger-pinned AB report, audit its production sources against b980d7d12c0395e7dc48900e68b94b70cafbbf06 and verify the historical bridge. Record historical renderer and current common harness sources separately. Do not label the retained bundle as a fresh Git rebuild or use the current optimized renderer to set its own baseline.",
+              "acceptance": "Require complete independent 36-run throughput and 12-run preview reference observations, unchanged source/resources/hardware, original inputs/method/encoder/host pins and raw output audits. Freeze the additive descriptor once, pin it in the ledger before candidate measurements, and run fresh full G0/G1/G3/G4. All 24 median checks retain the strict 5 percent limits; diagnostic or incomplete observations cannot qualify.",
+              "frozen_at": "2026-10-04T04:47:02.892Z",
+              "descriptor": {
+                "path": "benchmarks/results/m2-performance-1920x1080-144hz.json",
+                "sha256": "d8bc58dbf1c90bbcb92577741ed9338fa97ac0c875243df5f3c794daa1149870"
+              },
+              "reference_runs": 48,
+              "tracked_medians": 24,
+              "reference_suites": [
+                {
+                  "suite": "throughput",
+                  "report": {
+                    "path": "artifacts/performance/cycle13-reference-1920-throughput.json",
+                    "sha256": "deb1897d83a9ebb7ade95581717605f9a57b1bd6b3d7b922545eadf528292087",
+                    "run_id": "2026-10-04T04-34-03-174Z-8df38491"
+                  },
+                  "groups": 9,
+                  "runs": 36,
+                  "tracked_medians": 18,
+                  "execution_artifacts": {
+                    "sha256": "02dec0bf8c449623bf0af44c7a2b44d3662b1a820a4fde9d00ee49ddc1683b13",
+                    "run_directory": "artifacts/performance/2026-10-04T04-34-03-174Z-8df38491",
+                    "web_sha256": "bccdd04276f17f4646da95da35ba3f9f20ebe83e6be48e991328fbac6680bdc1",
+                    "runtime_sha256": "4c78c7e33eae4d30eb283904cd9ebd3aefb7889281893465f9d0b5cdadb41101",
+                    "web_files": 5,
+                    "runtime_files": 65
+                  }
+                },
+                {
+                  "suite": "preview",
+                  "report": {
+                    "path": "artifacts/performance/cycle13-reference-1920-preview.json",
+                    "sha256": "656f6f12c7b1334d641b75b88eb8e225a82d86de0a6b56b47d253e18ac21d4e0",
+                    "run_id": "2026-10-04T04-45-24-116Z-a9a991e2"
+                  },
+                  "groups": 3,
+                  "runs": 12,
+                  "tracked_medians": 6,
+                  "execution_artifacts": {
+                    "sha256": "b3ea7a4b7a035a85baccbacb05b422a43e37d678044be126f9e20609da5ce947",
+                    "run_directory": "artifacts/performance/2026-10-04T04-45-24-116Z-a9a991e2",
+                    "web_sha256": "bccdd04276f17f4646da95da35ba3f9f20ebe83e6be48e991328fbac6680bdc1",
+                    "runtime_sha256": "bcbdc1afbde8b626045f8e0330ecd8a2cc14815cdb6c1e0eb2a09befb8ba55a4",
+                    "web_files": 5,
+                    "runtime_files": 65
+                  }
+                }
+              ],
+              "candidate_verification": "artifacts/migration/verify-2026-10-04T06-36-24-845Z-50d11f1a.json"
+            },
+            "attempt5_recheck": {
+              "recorded_at": "2026-10-04T05:16:13.480Z",
+              "verification": {
+                "path": "artifacts/migration/verify-2026-10-04T04-47-14-772Z-33e5084e.json",
+                "sha256": "1f7ffbd71bc9eb7b1540520f00169c4d7cfa97ddcb3073bd51461ac8cd749db0"
+              },
+              "preview_boundaries": {
+                "path": "artifacts/migration/cycle13-attempt5-preview-boundaries.json",
+                "sha256": "8b59527dd078d7967118fca2048c4a879d1f1ba9ab2eee6842a4a7c1121b495c"
+              },
+              "host_observation": {
+                "path": "artifacts/migration/cycle13-attempt5-host-observation.json",
+                "sha256": "e739051280e4a1facebee27a3435b35a3fc4bdf0dda7342da77fc9acf2c0e294"
+              },
+              "interleaved_preview": {
+                "path": "artifacts/migration/preview-4k-ab-2026-10-04T05-09-59-993Z-b287cf89/report.json",
+                "sha256": "46515b6cb8c570e749382c9a39e46baa6d898c104afb8c85fa08bbe4645b737b"
+              },
+              "summary": {
+                "historical": {
+                  "fps": {
+                    "count": 3,
+                    "minimum": 93.73828271535899,
+                    "median": 155.73089701189417,
+                    "p95": 156.52109554616723,
+                    "p99": 156.5913354158804,
+                    "maximum": 156.6088953833087
+                  },
+                  "elapsed_ms": {
+                    "count": 3,
+                    "minimum": 3831.2000000476837,
+                    "median": 3852.7999999523163,
+                    "p95": 6145.999999952316,
+                    "p99": 6349.839999952316,
+                    "maximum": 6400.799999952316
+                  },
+                  "present_call_ms": {
+                    "count": 1800,
+                    "minimum": 0.09999990463256836,
+                    "median": 0.3000001907348633,
+                    "p95": 0.6000001430511475,
+                    "p99": 0.7999999523162842,
+                    "maximum": 1.5
+                  },
+                  "present_completion_ms": {
+                    "count": 1800,
+                    "minimum": 4.8999998569488525,
+                    "median": 7,
+                    "p95": 12.099999904632568,
+                    "p99": 16.10999990463256,
+                    "maximum": 48.40000009536743
+                  }
+                },
+                "candidate": {
+                  "fps": {
+                    "count": 3,
+                    "minimum": 108.96411448307576,
+                    "median": 152.02574302398227,
+                    "p95": 158.1126468196345,
+                    "p99": 158.65370493480359,
+                    "maximum": 158.78896946359586
+                  },
+                  "elapsed_ms": {
+                    "count": 3,
+                    "minimum": 3778.5999999046326,
+                    "median": 3946.7000000476837,
+                    "p95": 5350.430000090599,
+                    "p99": 5475.206000094414,
+                    "maximum": 5506.400000095367
+                  },
+                  "present_call_ms": {
+                    "count": 1800,
+                    "minimum": 0.09999990463256836,
+                    "median": 0.39999985694885254,
+                    "p95": 0.5999999046325684,
+                    "p99": 0.7999999523162842,
+                    "maximum": 1.1999998092651367
+                  },
+                  "present_completion_ms": {
+                    "count": 1800,
+                    "minimum": 4.8999998569488525,
+                    "median": 7,
+                    "p95": 10.899999856948853,
+                    "p99": 11.700000047683716,
+                    "maximum": 12.899999856948853
+                  }
+                }
+              },
+              "finding": "All seven G4 failures remain valid failures. Opening readback is persistently slower across many frames rather than a few outliers. Preview present-call CPU wall remains similar while completion waits increase. A six-process interleaved 4K diagnostic shows large slowdowns and recovery in both historical and candidate bundles, with throughput medians approximately 2.4 percent apart; it does not prove a systematic candidate regression or isolate GPU execution from driver/event-loop waits.",
+              "limits": "The host snapshot found no residual test Electron process and approximately 13 GB free physical memory. A background language service remained active; it was not changed and its causal impact is unproven. No background application, remote viewer, display condition, reference, workload or threshold was altered. The diagnostic cannot substitute for G4.",
+              "next_step": "Run one fresh complete G0/G1/G3/G4 recheck with the same implementation and pinned reference series after recording the independent fluctuation evidence. Retain all prior failed reports; accept only a full gate run satisfying every original requirement. Do not select individual favorable samples or publish the paired diagnostic as a gate."
+            },
+            "attempt7_readback": {
+              "recorded_at": "2026-10-04T06:14:57.433Z",
+              "verification": {
+                "path": "artifacts/migration/verify-2026-10-04T05-47-12-880Z-54574749.json",
+                "sha256": "8d92b405c546b05a7ab4d7f596dc0978edfb5628caedd309a6db47e713a5669c"
+              },
+              "web_comparison": {
+                "path": "artifacts/migration/cycle13-attempt7-web-comparison.json",
+                "sha256": "e82c5960c679e6b35850a03f0f3bc18ed97a7bb46ccca2176c4a517885fb4991"
+              },
+              "execution_comparison": {
+                "path": "artifacts/migration/cycle13-attempt7-execution-comparison.json",
+                "sha256": "eb889fc1d4d92987e1cbfe542ad7d0f71ecadde661451cd45147c77f4bdf5c5b"
+              },
+              "readback_diagnostic": {
+                "path": "artifacts/migration/readback-1080p-2026-10-04T06-08-30-867Z-1acdd7e3/diagnostic.json",
+                "sha256": "19294e37ad482e33e174985dfd4c4b7fbd03c2afb263f21a84b7961ab1eee0bf"
+              },
+              "readback_boundaries": {
+                "path": "artifacts/migration/readback-1080p-2026-10-04T06-08-30-867Z-1acdd7e3/boundary-analysis.json",
+                "sha256": "e3bf4448da720ca30c5a44b9eed0d456d22f02b11ef536b3f13211843c90530d"
+              },
+              "distributions": {
+                "readback": {
+                  "count": 600,
+                  "minimum": 8,
+                  "median": 10.799999952316284,
+                  "p95": 13.399999856948853,
+                  "p99": 14.302999951839444,
+                  "maximum": 19.200000047683716
+                },
+                "submission-queue-wait": {
+                  "count": 600,
+                  "minimum": 0,
+                  "median": 0,
+                  "p95": 0.10000014305114746,
+                  "p99": 0.10000014305114746,
+                  "maximum": 0.7000000476837158
+                },
+                "cpu-render-encode": {
+                  "count": 600,
+                  "minimum": 0.09999990463256836,
+                  "median": 0.39999985694885254,
+                  "p95": 1.5999999046325684,
+                  "p99": 1.9000000953674316,
+                  "maximum": 2.9000000953674316
+                },
+                "scene-evaluation": {
+                  "count": 600,
+                  "minimum": 0,
+                  "median": 0.10000014305114746,
+                  "p95": 0.5,
+                  "p99": 0.7010000491142264,
+                  "maximum": 2.5999999046325684
+                },
+                "queue-submit-call": {
+                  "count": 600,
+                  "minimum": 0,
+                  "median": 0,
+                  "p95": 0.10000014305114746,
+                  "p99": 0.10000014305114746,
+                  "maximum": 0.20000004768371582
+                },
+                "gpu-map-async": {
+                  "count": 600,
+                  "minimum": 4.700000047683716,
+                  "median": 7.299999952316284,
+                  "p95": 9.305000174045558,
+                  "p99": 10.30199995279312,
+                  "maximum": 13.299999952316284
+                },
+                "compact-readback-rows": {
+                  "count": 600,
+                  "minimum": 2,
+                  "median": 2.8999998569488525,
+                  "p95": 3.5,
+                  "p99": 4,
+                  "maximum": 5
+                }
+              },
+              "finding": "The five failed throughput metrics remain failures. All six preview metrics passed. The candidate browser bundle's five files and the archived runtime's 65 files match the selected historical reference byte-for-byte; assignments are identical and hardware snapshots differ only by capture time. This does not prove that every process or unarchived host script was identical, isolate an environmental cause, or waive G4.",
+              "diagnostic_finding": "A separate instrumented 600-frame 1080p readback-only run preserved three in-flight frames, all pixel copies and original waits. Median CPU render/encode was about 0.4 ms, mapping callback wall time about 7.3 ms and allocating/compacting output pixels about 2.9 ms. Overlapping callback wall times are not isolated GPU costs. The earlier copy experiment allocated a new output in every arm and did not measure bounded destination reuse.",
+              "next_step": "Measure full copies into explicitly leased, preallocated CPU buffers before deciding whether to implement this narrower output-lifetime improvement. Preserve the default independently owned readback API, all original workloads, frozen references and strict thresholds. Any implementation requires lifecycle tests, pixel coverage of the reused destination path and a fresh complete G0/G1/G3/G4 run."
+            }
+          },
+          "gate_repair": {
+            "status": "output-buffer-reuse-verified",
+            "changes": [
+              "Allow explicitly supplied, fixed-size CPU readback destinations while retaining the complete mapped-pixel copy and the independently owned default API.",
+              "Reuse a bounded, lazily allocated RenderHost buffer pool only through the explicit renderFrameInto capability. Keep each lease through all output acknowledgments and release current and pending frames on cancellation or failure without increasing the existing prefetch window.",
+              "Exercise the same leased destination path in production performance measurements and the full pixel candidate capture. Preserve complete workloads, timing boundaries, frozen references and strict thresholds."
+            ],
+            "performance_claim": "The earlier experimental GPU/text optimizations remain reverted. A separate CPU output-lifetime improvement retains the full pixel copy while reusing explicitly leased RenderHost destinations until all output acknowledgments settle. Its destination path passed the complete exact pixel corpus and the final source passed fresh G4 for all 24 tracked medians. Failed attempts, rollback and AB diagnostics remain recorded without claiming an environmental cause. Original baseline bytes and strict thresholds remain unchanged.",
+            "rejected_changes": [
+              {
+                "file": "src/renderer/webgpu-renderer.ts",
+                "change": "Delay root lighting construction/upload and geometry upload until pending/exact-media hold has returned. Preserve geometry allocation before discovery so memory planning on a retry sees the same allocation. Discovery, exact-frame waiting, evaluated parameters and ready-frame draw inputs remain unchanged.",
+                "disposition": "Reverted after no measured standalone gain and a second full G4 failure. Deferring ready-frame uploads may reduce CPU/GPU overlap; that causal explanation is a hypothesis, not established by the measurements. Restore the original production upload order and keep the two independently exact text changes.",
+                "evidence": [
+                  "artifacts/performance/cycle13-deferred-uploads-main-ipc.json",
+                  "artifacts/migration/verify-2026-10-04T01-56-45-592Z-2b1f1985.json"
+                ]
+              },
+              {
+                "file": "src/renderer/media/media-texture-cache.ts",
+                "change": "Reuse one serialized static text tuple in both the resource source key and raster signature. Append the independently serialized sampled time to the source key, preserving cache equality, animation seeking and static/style/font invalidation while removing the repeated full tuple serialization.",
+                "disposition": "Remove unaccepted optional production optimizations to keep T1 limited to typed transport and real gates. This scope reduction does not establish the optimizations as the cause of the observed hardware-time fluctuations.",
+                "evidence": [
+                  "artifacts/migration/cycle13-rejected-production-trials/report.json",
+                  "artifacts/migration/verify-2026-10-04T05-16-27-338Z-c43e5e58.json"
+                ]
+              },
+              {
+                "file": "src/renderer/text/text-scene-geometry.ts",
+                "change": "Index the first geometry batch per instance and build the current call's text quads together after all raster preparation. Reuse the existing arithmetic and restore original scene write order from the builder's reverse output. Preserve shared resource lookup, duplicate-instance last writes, the original batch table, and uncopied non-text geometry. No cross-frame cache or time/field shortcut is introduced.",
+                "disposition": "Remove unaccepted optional production optimizations to keep T1 limited to typed transport and real gates. This scope reduction does not establish the optimizations as the cause of the observed hardware-time fluctuations.",
+                "evidence": [
+                  "artifacts/migration/cycle13-rejected-production-trials/report.json",
+                  "artifacts/migration/verify-2026-10-04T05-16-27-338Z-c43e5e58.json"
+                ]
+              },
+              {
+                "file": "src/renderer/webgpu-renderer.ts",
+                "change": "Skip the root shadow raster pass when its existing draw predicate has no eligible geometry batches and disable the matching lighting shadow-sample flag. Use an attachment-free compute pass at the same composition timing boundary. Discard root depth after a single uninterrupted scene pass; keep store for all potentially split passes and retain every frame initial depth clear.",
+                "disposition": "Remove unaccepted optional production optimizations to keep T1 limited to typed transport and real gates. This scope reduction does not establish the optimizations as the cause of the observed hardware-time fluctuations.",
+                "evidence": [
+                  "artifacts/migration/cycle13-rejected-production-trials/report.json",
+                  "artifacts/migration/verify-2026-10-04T05-16-27-338Z-c43e5e58.json"
+                ]
+              },
+              {
+                "file": "src/renderer/gpu/uniform-upload-cache.ts",
+                "change": "Retain owned Uint32 bit snapshots for the fixed root lighting uniform buffer. Continue building scene lighting at each requested time and preserve its upload position; skip only byte-identical uploads. Camera/shadow/light changes and A/B/A seek transitions upload immediately. A synchronous upload failure never advances the snapshot.",
+                "disposition": "Remove unaccepted optional production optimizations to keep T1 limited to typed transport and real gates. This scope reduction does not establish the optimizations as the cause of the observed hardware-time fluctuations.",
+                "evidence": [
+                  "artifacts/migration/cycle13-rejected-production-trials/report.json",
+                  "artifacts/migration/verify-2026-10-04T05-16-27-338Z-c43e5e58.json"
+                ]
+              }
+            ],
+            "artifact_publication": {
+              "status": "verified",
+              "reason": "One comparison process returned Windows access denied without identifying the failing operation. The original failing syscall remains unproven.",
+              "change": "Retain operation/path/source in I/O errors. Retry only final atomic directory rename on Windows OS codes 5/32/33, default five attempts with 20 ms exponential delay. Every attempt checks absent destination and retains the complete staging directory plus lock; persistent failures remain errors and cleanup only owned staging.",
+              "focused_exact_recheck": {
+                "path": "artifacts/parity/cycle13-publication-recheck/enchanted-love-2256/report.json",
+                "sha256": "382734045291eea677dc00ba304db0be19d3216148590afa007bc2c13c1cd00f"
+              },
+              "build_log": {
+                "path": "artifacts/migration/cycle13-compare-publication-build.log",
+                "sha256": "00e49595289f093fd3d135d19e747775b79e0cd0debeac5c1ebfa54d8efc41b4"
+              },
+              "cli_log": {
+                "path": "artifacts/migration/cycle13-publication-recheck.log",
+                "sha256": "4df4cdd8255f90a177ee0c30abada1def6febd96c46fd66793b5c91f0b9108e0"
+              },
+              "limitation": "The successful focused comparison does not prove which old I/O operation failed or replace fresh whole-corpus G3.",
+              "full_pixel_verification": {
+                "path": "artifacts/parity/ts-check/2026-10-04T04-48-46-322Z-81bdfd3b/report.json",
+                "sha256": "719d67cb369bfef474ddbfdd2920529f247ff23da39c21e236357d20d786564a"
+              },
+              "whole_corpus_exact_frames": 1819,
+              "verification": "artifacts/migration/verify-2026-10-04T06-36-24-845Z-50d11f1a.json"
+            },
+            "production_rollback": {
+              "path": "artifacts/migration/cycle13-rejected-production-trials/report.json",
+              "sha256": "78c780aed457492c6094b4469c117c4cf15b7df62b891781e59181941f5a3f84",
+              "reference_commit": "b980d7d12c0395e7dc48900e68b94b70cafbbf06",
+              "recapture": {
+                "path": "artifacts/parity/capture-2026-10-04T05-40-04-591Z-87de11c6.json",
+                "sha256": "00e6de13bb138c0d4ff2469d55a78501b198c294c4e12fec78022d3995da0631",
+                "manifest": {
+                  "path": "artifacts/parity/runs/2026-10-04T05-40-04-591Z-87de11c6/candidate/manifest.json",
+                  "sha256": "0c50a00a6c3d9c695373fd15324f6672d6360a20f6f9556d1ad4b373864daba2"
+                },
+                "cases": 337,
+                "source_unchanged": true,
+                "pixel_comparison": "pending-full-G3"
+              },
+              "validation": [
+                {
+                  "path": "artifacts/migration/cycle13-rollback-tests.log",
+                  "sha256": "a07eb6a30a160084333e18a6a0fd6cfcf1db0aa5242a31e53754a7ed95cad569"
+                },
+                {
+                  "path": "artifacts/migration/cycle13-rollback-biome.log",
+                  "sha256": "ec06dac64c7ed642715e3c914800b60ad2d95c560ed6a224c15fe0b812c8e38d"
+                },
+                {
+                  "path": "artifacts/migration/cycle13-rollback-typecheck.log",
+                  "sha256": "f4e615bd8efe94bbada6ecf60dd957086f330c6cf47b09b3e41a4d6c991e69db"
+                }
+              ]
+            },
+            "output_buffer_reuse": {
+              "status": "verified",
+              "recorded_at": "2026-10-04T06:30:15.540Z",
+              "trigger_attempt": 7,
+              "cpu_experiment": {
+                "path": "artifacts/migration/readback-copy-lease-electron43-2026-10-04T06-17.json",
+                "sha256": "c300a1e108cd02f7f3aded46f9b8bb5f72ebeaf23e2b68806232614037922489"
+              },
+              "cpu_summary": [
+                {
+                  "width": 1920,
+                  "height": 1080,
+                  "summaries": {
+                    "typed_slice": {
+                      "wall_ms_per_frame": {
+                        "count": 8,
+                        "min": 1.849256250000001,
+                        "median": 1.9420510416666663,
+                        "p95": 2.0019220833333313,
+                        "max": 2.0025958333333307
+                      },
+                      "copy_ms": {
+                        "count": 384,
+                        "min": 1.5090000000000146,
+                        "median": 1.8549000000000433,
+                        "p95": 2.5325650000001145,
+                        "max": 5.263300000000072
+                      }
+                    },
+                    "leased_set_3": {
+                      "wall_ms_per_frame": {
+                        "count": 8,
+                        "min": 0.28905625000000157,
+                        "median": 0.30142812500000105,
+                        "p95": 0.3375833333333323,
+                        "max": 0.3375833333333323
+                      },
+                      "copy_ms": {
+                        "count": 384,
+                        "min": 0.21739999999999782,
+                        "median": 0.2968500000000631,
+                        "p95": 0.35933499999993035,
+                        "max": 0.7291999999999916
+                      }
+                    }
+                  },
+                  "paired_saving_ms_per_frame": {
+                    "count": 8,
+                    "min": 1.5447916666666686,
+                    "median": 1.6459239583333325,
+                    "p95": 1.6847177083333313,
+                    "max": 1.6946854166666652
+                  }
+                },
+                {
+                  "width": 3840,
+                  "height": 2160,
+                  "summaries": {
+                    "typed_slice": {
+                      "wall_ms_per_frame": {
+                        "count": 8,
+                        "min": 7.760589583333332,
+                        "median": 9.829417708333343,
+                        "p95": 10.21826333333334,
+                        "max": 10.253143750000012
+                      },
+                      "copy_ms": {
+                        "count": 384,
+                        "min": 6.902700000000095,
+                        "median": 9.378850000000057,
+                        "p95": 11.806945000000063,
+                        "max": 21.03980000000047
+                      }
+                    },
+                    "leased_set_3": {
+                      "wall_ms_per_frame": {
+                        "count": 8,
+                        "min": 1.3151062500000041,
+                        "median": 1.3663062499999987,
+                        "p95": 1.4700645833333312,
+                        "max": 1.4719458333333364
+                      },
+                      "copy_ms": {
+                        "count": 384,
+                        "min": 1.1683000000002721,
+                        "median": 1.3391499999997905,
+                        "p95": 1.6304800000001245,
+                        "max": 1.9621999999999389
+                      }
+                    }
+                  },
+                  "paired_saving_ms_per_frame": {
+                    "count": 8,
+                    "min": 6.366441666666674,
+                    "median": 8.425155208333356,
+                    "p95": 8.898180520833336,
+                    "max": 8.938037500000007
+                  }
+                }
+              ],
+              "limits": "The CPU-only three-slot experiment establishes neither mapped-memory performance nor G4 acceptance. Production uses the existing bounded depth plus the active output frame, retains the full copy, and includes lazy allocation in measured elapsed time. New frame ownership and pixel paths require focused lifecycle validation, full candidate capture and complete required gates.",
+              "validation": [
+                {
+                  "path": "artifacts/migration/cycle13-output-reuse-tests.log",
+                  "sha256": "e4e18387a8e9d2e82cd34f010b04d73bdbcbe02de5fe3679e8a80ab44578334b"
+                },
+                {
+                  "path": "artifacts/migration/cycle13-output-reuse-typecheck.log",
+                  "sha256": "f4e615bd8efe94bbada6ecf60dd957086f330c6cf47b09b3e41a4d6c991e69db"
+                },
+                {
+                  "path": "artifacts/migration/cycle13-output-reuse-biome.log",
+                  "sha256": "770fcc48b70574ba94acf7e50eaf24a209cf39b2c24faca93ddf139e518cdab8"
+                }
+              ],
+              "capture": {
+                "path": "artifacts/parity/capture-2026-10-04T06-30-16-961Z-9b8c7b6c.json",
+                "sha256": "1259494f57e86994ee12cddcc580b9277b557da7afc8b92c49d0adee28c04c69",
+                "manifest": {
+                  "path": "artifacts/parity/runs/2026-10-04T06-30-16-961Z-9b8c7b6c/candidate/manifest.json",
+                  "sha256": "25754899469abf90953487c336540148a36a636923197a3d07c95f64eb7f19ca"
+                },
+                "cases": 337,
+                "source_unchanged": true,
+                "pixel_comparison": "passed-full-G3-exact"
+              },
+              "verification": "artifacts/migration/verify-2026-10-04T06-36-24-845Z-50d11f1a.json"
+            },
+            "verification": "artifacts/migration/verify-2026-10-04T06-36-24-845Z-50d11f1a.json"
+          },
+          "iteration_checks": [
+            {
+              "report": "artifacts/migration/verify-2026-10-04T01-47-59-625Z-2b63f00b.json",
+              "scope": "quick",
+              "result": "Formatting, Biome, typecheck and migration tests passed. G3 correctly rejected the prior candidate because production source changed. Fresh full capture is required before complete verification; skipped checks are not passes."
+            },
+            {
+              "report": "artifacts/migration/verify-2026-10-04T02-44-05-395Z-739950d7.json",
+              "sha256": "181ce5c9572e1e137ac2dcbf9a36c18dc9f2ad46680453d96bceeec496f6115d",
+              "mode": "quick",
+              "status": "failed",
+              "disposition": "Formatting, Biome, typecheck and migration tool tests passed. Quick mode skips complete G0/G1/G4. G3 correctly rejected the older candidate renderer fingerprint; a fresh capture is required. This is not an accepted gate run."
+            }
+          ],
+          "completed_at": "2026-10-04T06:55:48.092Z",
+          "commit": "0e16b16b301e29e64d4f562ab73c24afa649f5aa",
+          "verification": "artifacts/migration/verify-2026-10-04T06-36-24-845Z-50d11f1a.json",
+          "verification_sha256": "140b828518f73aa14af273b30e494211007555b860b725bda4df6ffd948b70f0",
+          "gates": [
+            {
+              "id": "G0",
+              "status": "passed",
+              "duration_ms": 83754
+            },
+            {
+              "id": "G1",
+              "status": "passed",
+              "duration_ms": 2641
+            },
+            {
+              "id": "G3",
+              "status": "passed",
+              "duration_ms": 274602
+            },
+            {
+              "id": "G4",
+              "status": "passed",
+              "duration_ms": 672708
+            }
+          ],
+          "verification_duration_ms": 1034903,
+          "renderer_plan_complete": false,
+          "candidate_manifest": "artifacts/parity/runs/2026-10-04T06-30-16-961Z-9b8c7b6c/candidate/manifest.json",
+          "pixel_report": "artifacts/parity/ts-check/2026-10-04T06-37-51-838Z-39f0a474/report.json",
+          "renderer_source_sha256": "ed95828c6c6ebd98c495ce8cf713b8d63f80e14d6f6d07d8992f89af5469f374",
+          "ir_evidence": {
+            "report": "artifacts/migration/2026-10-04T06-36-24-845Z-50d11f1a/G1/report.json",
+            "sha256": "333baea14eccf3c3c092f90060405dbfec5aa3a787035f86c4b46eb5bbce7e5a",
+            "schema_sha256": "afd026ed9d79bd56949a7af6ff19563251bb03745b30ec3408c3d502f7a8e6d3",
+            "exact_roundtrips": 3,
+            "independent_rust_fixture": {
+              "input": "artifacts/migration/2026-10-04T06-36-24-845Z-50d11f1a/G1/independent-rust.fpln",
+              "output": "artifacts/migration/2026-10-04T06-36-24-845Z-50d11f1a/G1/independent-rust-ts.fpln",
+              "sha256": "172a4a1591b8b739fa4751a23e65e24dec72534a08c660a7224a3f7ce28e3333",
+              "exact": true
+            },
+            "rejected_inputs": 6,
+            "custom_limits": 3
+          },
+          "performance_evidence": {
+            "report": "artifacts/migration/2026-10-04T06-36-24-845Z-50d11f1a/G4/performance-WyaR5G/gate.json",
+            "sha256": "162b1143e089809c9a995217a907d4ec7b54b3480153a4e6b62b08583c72f144",
+            "tracked_medians": 24,
+            "baselines": {
+              "throughput": {
+                "path": "benchmarks/results/migration-baseline.json",
+                "sha256": "f989577b14b4d475473949f502f01ce8f5383dcccf709bcab3ddb117df282b2b"
+              },
+              "preview": {
+                "path": "benchmarks/results/m2-preview-baseline.json",
+                "sha256": "a1c62e224c008e731c252142ab1b9de7d31ecf592452c00da1dff42516772375"
+              },
+              "series": {
+                "path": "benchmarks/results/m2-performance-1920x1080-144hz.json",
+                "sha256": "d8bc58dbf1c90bbcb92577741ed9338fa97ac0c875243df5f3c794daa1149870"
+              },
+              "hardware_manifest": {
+                "path": "benchmarks/hardware/windows-radeon780m-local-1920x1080-144hz.json",
+                "sha256": "98ce22b76650c77ab781708ecc3e43f3c30c01537a675a42da97fe32a923bf6a"
+              }
+            },
+            "comparison_series": {
+              "kind": "additional-performance-series",
+              "hardware_manifest": "benchmarks/hardware/windows-radeon780m-local-1920x1080-144hz.json",
+              "descriptor": {
+                "path": "benchmarks/results/m2-performance-1920x1080-144hz.json",
+                "sha256": "d8bc58dbf1c90bbcb92577741ed9338fa97ac0c875243df5f3c794daa1149870"
+              }
+            },
+            "suites": [
+              {
+                "suite": "throughput",
+                "report": {
+                  "path": "artifacts/migration/2026-10-04T06-36-24-845Z-50d11f1a/G4/performance-WyaR5G/throughput.json",
+                  "sha256": "9bd8785708531505a4cb3bc871ef279214c56170e701b6b2ecfcda35e0fb94fe"
+                },
+                "status": "passed",
+                "groups": 9,
+                "runs": 36,
+                "measured_frames": 14526,
+                "tracked_medians": 18
+              },
+              {
+                "suite": "preview",
+                "report": {
+                  "path": "artifacts/migration/2026-10-04T06-36-24-845Z-50d11f1a/G4/performance-WyaR5G/preview.json",
+                  "sha256": "598adcb969041c5dcbbb6f481e102b3177fad95f32bb79f8cf7547479f58f044"
+                },
+                "status": "passed",
+                "groups": 3,
+                "runs": 12,
+                "measured_frames": 5400,
+                "tracked_medians": 6
+              }
+            ]
+          },
+          "dependency_policy": {
+            "status": "passed",
+            "command": "cargo deny check",
+            "log": "artifacts/migration/cycle13-cargo-deny.log",
+            "log_sha256": "eff687af5bdaeadc0cc324d3ecdef2d86fd998d93de0628a244efe80d960d48b",
+            "external_version_changes": false
+          }
+        },
+        {
+          "id": "M2-T2",
+          "title": "Make production upload consume the planned header and post-process uniform slice",
+          "status": "pending",
+          "estimated_implementation_hours": "1-3",
+          "production_change": "Extract a GPU-free time-addressed header and the existing 96-byte post-process uniform payload. Upload the actual supplied plan bytes and remove duplicate calculation in execution. Preserve arbitrary finite preview seek semantics without silent time quantization. Keep partial-plan coverage explicit.",
+          "completion_evidence": [
+            "Changing supplied plan bytes changes actual writeBuffer data; the executor does not reread the request for this slice.",
+            "Whole-corpus TS exact, cross-language FPLN exact and fresh preview/export performance remain green."
+          ],
+          "required_full_gates": ["G0", "G1", "G3", "G4"]
+        },
+        {
+          "id": "M2-T3",
+          "title": "Extract evaluated geometry, camera, lighting and shadow draw descriptors",
+          "estimated_implementation_hours": "2-3",
+          "production_change": "Build immutable evaluated draw records and vertex/lighting/motion inputs with stable instance/selection IDs. Execute shape uploads and shadow draw ranges from these values; no Layer object in the produced slice.",
+          "paths": [
+            "src/renderer/scene/scene-evaluation-cache.ts",
+            "src/renderer/geometry/geometry.ts",
+            "src/renderer/scene/scene-lighting.ts",
+            "src/renderer/webgpu-renderer.ts"
+          ],
+          "completion_evidence": [
+            "Original vertex/lighting bytes and draw ranges match for nested cameras, mesh and vector fixtures.",
+            "Mutation/clone test proves executor consumes supplied blobs."
+          ],
+          "required_full_gates": ["G0", "G1", "G3", "G4"],
+          "status": "pending"
+        },
+        {
+          "id": "M2-T4",
+          "title": "Add explicit content resource table and basic image/sequence/video resolution",
+          "estimated_implementation_hours": "2-3",
+          "production_change": "Introduce PutResource/EvictResource and an executor registry with typed absence/mismatch errors. Preserve current media preparation/readiness; bind media by content hash and exact source-time descriptor rather than hidden instance lookup.",
+          "paths": [
+            "src/renderer/media/media-texture-cache.ts",
+            "src/renderer/media/media-resource.ts",
+            "src/renderer/gpu/exact-frame-resource-barrier.ts",
+            "src/renderer/scene/draw-scene-batch.ts"
+          ],
+          "completion_evidence": [
+            "Missing/evicted resources fail before submission; in-flight leases prevent premature destruction.",
+            "Fractional-video and sequence identity cases stay exact; native/DOM handles never enter plan metadata."
+          ],
+          "required_full_gates": ["G0", "G1", "G3", "G4"],
+          "status": "pending"
+        },
+        {
+          "id": "M2-T5",
+          "title": "Plan text/SVG/PSD raster inputs and geometry bounds",
+          "estimated_implementation_hours": "2-3",
+          "production_change": "Separate CPU raster acquisition/bounds from GPU resource upload. Put actual raster resources and evaluated bounds in the resource table; build text quads from those bounds without MediaTextureCache in the pure builder.",
+          "paths": [
+            "src/renderer/text/text-scene-geometry.ts",
+            "src/renderer/media/media-texture-cache.ts",
+            "src/renderer/text/text-rasterizer.ts"
+          ],
+          "completion_evidence": [
+            "Replaying a clone/decoded plan does not rerun text/SVG/PSD evaluators.",
+            "Font/material/source generations bind resource hashes; all raster cases remain exact."
+          ],
+          "required_full_gates": ["G0", "G1", "G3", "G4"],
+          "status": "pending"
+        },
+        {
+          "id": "M2-T6",
+          "title": "Plan temporal text samples and explicit accumulation/resolve passes",
+          "estimated_implementation_hours": "2-3",
+          "production_change": "Lift TextMotionBlurPlan sample addresses/weights/transparent weight and exposure-only scenes into typed plan data. Execute accumulation/resolve using planned raster hashes and weights.",
+          "paths": [
+            "src/renderer/text/text-motion-blur-plan.ts",
+            "src/renderer/text/text-motion-blur-raster-cache.ts",
+            "src/renderer/text/text-scene-geometry.ts"
+          ],
+          "completion_evidence": [
+            "Exact local samples, weights and premultiply/resolve formats survive codec round trip.",
+            "Temporal text and shutter-edge parity cases remain exact."
+          ],
+          "required_full_gates": ["G0", "G1", "G3", "G4"],
+          "status": "pending"
+        },
+        {
+          "id": "M2-T7",
+          "title": "Plan material, HDR environment and LUT resources",
+          "estimated_implementation_hours": "1-3",
+          "production_change": "Resolve material scalar settings and source hashes before drawing; execute pipeline/resource binding from the plan. Preserve current normal/environment readiness and LUT-selection behavior.",
+          "paths": [
+            "src/renderer/media/material-textures.ts",
+            "src/renderer/media/lut-texture.ts",
+            "src/renderer/effects/layer-effects.ts"
+          ],
+          "completion_evidence": [
+            "Resource descriptor/format/hash mismatch rejection.",
+            "Normal/HDR/LUT corpus bytes remain exact without layer lookups during execution."
+          ],
+          "required_full_gates": ["G0", "G1", "G3", "G4"],
+          "status": "pending"
+        },
+        {
+          "id": "M2-T8",
+          "title": "Move per-layer effect compilation and isolation decisions into the plan",
+          "estimated_implementation_hours": "2-3",
+          "production_change": "Compile op blobs/uniforms/LUT and blur/glow requirements once while planning. Make LayerEffectRenderer execute already-compiled data and explicit isolation/composite/backdrop operations; remove compileEffectProgram from encode paths.",
+          "paths": [
+            "src/renderer/effects/layer-effects.ts",
+            "src/renderer/effects/effect-program.ts",
+            "src/renderer/effects/effect-fusion.ts",
+            "src/renderer/compositing/layer-composite.ts"
+          ],
+          "completion_evidence": [
+            "All effect registry cases and adjustment/backdrop blends exact.",
+            "Executor invoked with no Project/Composition/Layer cannot compile/re-evaluate effects."
+          ],
+          "required_full_gates": ["G0", "G1", "G3", "G4"],
+          "status": "pending"
+        },
+        {
+          "id": "M2-T9",
+          "title": "Execute the ordered root stack from data-only draw/adjustment/generator commands",
+          "estimated_implementation_hours": "2-3",
+          "production_change": "Use explicit pass boundaries, attachment load/store, blend and clearDepth. Replace draw callbacks and Layer-bearing SceneRenderItem consumption with typed draw IDs and resource references.",
+          "paths": [
+            "src/renderer/compositing/render-stack.ts",
+            "src/renderer/scene/draw-scene-batch.ts",
+            "src/renderer/webgpu-renderer.ts"
+          ],
+          "completion_evidence": [
+            "Recorded command order, 2D/3D depth transitions and effect boundaries preserved.",
+            "Altering/removing a planned draw changes actual recorded execution, ruling out shadow consumption."
+          ],
+          "required_full_gates": ["G0", "G1", "G3", "G4"],
+          "status": "pending"
+        },
+        {
+          "id": "M2-T10",
+          "title": "Plan generator invocations and root-time audio ABI blobs",
+          "estimated_implementation_hours": "2-3",
+          "production_change": "Split supports/evaluation/LOD/context/parameter/audio preparation from GPU allocation/pipeline execution. Use shader content hashes and explicit entry points/workgroups/variant descriptors in the plan.",
+          "paths": [
+            "src/renderer/scene/scene-generator-host.ts",
+            "src/renderer/scene/scene-generator-abi.ts",
+            "src/core/audio/audio-analysis-frame.ts",
+            "src/core/scene/scene-generator-registry.ts"
+          ],
+          "completion_evidence": [
+            "Installed plugin and bundled generators use the same resource validation boundary.",
+            "Exact particles/audio/cloner cases and preserved source-index ordering; no PreparedSceneGenerator handle in plan."
+          ],
+          "required_full_gates": ["G0", "G1", "G3", "G4"],
+          "status": "pending"
+        },
+        {
+          "id": "M2-T11",
+          "title": "Extract recursive precomposition plans and surface-cache descriptors",
+          "estimated_implementation_hours": "2-3",
+          "production_change": "Replace SurfaceJob entry handles with child plans/output target IDs. Move child evaluation, lighting/geometry/effect/generator decisions to planning; retain child-first order, budgets and sharing keys in execution.",
+          "paths": [
+            "src/renderer/compositing/precomposition-surface-plan.ts",
+            "src/renderer/compositing/precomposition-surface-renderer.ts"
+          ],
+          "completion_evidence": [
+            "Nested-camera/precomp/effects owner scenes exact.",
+            "Recursive plan can be serialized independently; missing child/output target fails typed; current-frame resources stay pinned."
+          ],
+          "required_full_gates": ["G0", "G1", "G3", "G4"],
+          "status": "pending"
+        },
+        {
+          "id": "M2-T12",
+          "title": "Plan auxiliary, motion blur, depth and final output routes",
+          "estimated_implementation_hours": "2-3",
+          "production_change": "Encode auxiliary draw resource identities, motion vectors/shutter/framePosition, depth uniforms/sources, selection, final display and AA decisions as typed passes. Keep pipeline-specific arithmetic unchanged.",
+          "paths": [
+            "src/renderer/gpu/auxiliary-buffer-renderer.ts",
+            "src/renderer/compositing/motion-blur-renderer.ts",
+            "src/renderer/effects/depth-effects.ts",
+            "src/renderer/effects/surface-post-effects.ts",
+            "src/renderer/effects/anti-aliasing.ts",
+            "src/renderer/webgpu-renderer.ts"
+          ],
+          "completion_evidence": [
+            "Full AA/depth/motion/selection cases exact.",
+            "No live composition/view settings are read while encoding the planned output route."
+          ],
+          "required_full_gates": ["G0", "G1", "G3", "G4"],
+          "status": "pending"
+        },
+        {
+          "id": "M2-T13",
+          "title": "Complete production buildFramePlan -> executeFramePlan cutover",
+          "estimated_implementation_hours": "2-3",
+          "production_change": "Compose the established planning slices into complete FramePlan and make every production branch use the same executor. Remove transitional partial coverage and legacy evaluation/compile fallbacks from execution.",
+          "paths": [
+            "src/renderer/webgpu-renderer.ts",
+            "src/renderer/compositing/beauty-frame.ts",
+            "src/renderer/frame-plan/"
+          ],
+          "completion_evidence": [
+            "Execute a decoded plan with a fresh registry and no original Project/Composition objects.",
+            "Strict plan validation rejects closures/nonplain objects/GPU handles and incomplete coverage.",
+            "Full live and decoded TS paths exact against frozen baseline."
+          ],
+          "required_full_gates": ["G0", "G1", "G3", "G4"],
+          "status": "pending"
+        },
+        {
+          "id": "M2-T14",
+          "title": "Capture actual submitted FPLN/resources and audit replay coverage",
+          "estimated_implementation_hours": "2-3",
+          "production_change": "Extend parity capture publication/provenance to bind the successfully executed plan.fpln and all referenced resources to every frame, including sequence neighbors. Add CLI dump/round-trip tooling without pretending Rust render-plan already renders M3 features.",
+          "paths": [
+            "tests/parity/capture-runtime.ts",
+            "tests/parity/capture-protocol.ts",
+            "scripts/parity/capture-store.mjs",
+            "crates/aster-render-cli/",
+            "scripts/migration/"
+          ],
+          "completion_evidence": [
+            "337 cases and all captured frames contain complete real submitted plans; required 1819 remain exact.",
+            "FPLN files replay through TS after TS->Rust->TS round trip with identical raw RGBA.",
+            "Missing/changed plan/resource or discovery-only plan cannot publish as success."
+          ],
+          "required_full_gates": ["G0", "G1", "G3", "G4"],
+          "status": "pending"
+        },
+        {
+          "id": "M2-T15",
+          "title": "Run complete M2 exit audit and performance closure",
+          "estimated_implementation_hours": "1-3",
+          "production_change": "Audit schema/gate integration/full plan coverage, resource protocol eviction and no remaining executor-side project evaluation. Run full G0/G1/G3/G4 and synchronize architecture/IR docs.",
+          "paths": [
+            "scripts/migration/",
+            "schemas/frame-plan.v1.json",
+            "docs/ARCHITECTURE.md",
+            "docs/migration/VERIFICATION.md",
+            "docs/BENCHMARKS.md"
+          ],
+          "completion_evidence": [
+            "All spec M2 exit conditions hold simultaneously on current source and eligible hardware.",
+            "No >5% tracked median regression; schema and FPLN byte round-trip exact; actual capture artifacts complete."
+          ],
+          "required_full_gates": ["G0", "G1", "G3", "G4"],
+          "status": "pending"
+        }
+      ],
+      "started_at": "2026-10-03T23:49:41.992Z",
+      "renderer_plan_complete": false,
+      "frozen_reference": {
+        "base_renderer_source_sha256": "a29a484b82eae466b72828818f628714db90f1cc7703718e71e2469329f9c703",
+        "repairs_sha256": "0c53b924d3578aeb9362ca7ee2ab711ff13c23cabce34c80041b3519d997325e",
+        "repairs": [
+          {
+            "case_id": "scene-particles-billboard",
+            "frame": 3,
+            "directory": "artifacts/parity/runs/2026-10-03T20-31-16-517Z-0437f3a7/candidate",
+            "renderer_source_sha256": "4806c30c57010efef5942717b381159ef4080b75c023d4e6df1bfc228879ab67",
+            "capture_report": "artifacts/parity/capture-2026-10-03T20-31-16-517Z-0437f3a7.json",
+            "candidate_manifest": "artifacts/parity/runs/2026-10-03T20-31-16-517Z-0437f3a7/candidate/manifest.json",
+            "approval_review": "artifacts/parity/particle-order-fixed/billboard-3-gpu/report.json",
+            "run_id": "2026-10-03T20-31-16-517Z-0437f3a7",
+            "candidate_manifest_sha256": "34cd65b03225b18243c8baa0cc372508ff9591cde7cc8885737da0e655c44531",
+            "path": "artifacts/parity/runs/2026-10-03T20-31-16-517Z-0437f3a7/candidate/scene-particles-billboard/3/frame.png",
+            "reference_rgba_sha256": "157c6f620616a2bdc02d277a2ef1b9b984a787a2b72ac53f594a0ce5205f5bd6",
+            "candidate_rgba_sha256": "5c8bfd4e6bf680ba97fa996d7abf7adf7b1189640c2f1ed97bb55b1dd6c85802"
+          }
+        ]
+      },
+      "reference_milestone": {
+        "id": "M1",
+        "commit": "b980d7d12c0395e7dc48900e68b94b70cafbbf06",
+        "verification": "artifacts/migration/verify-2026-10-03T23-40-18-903Z-b43dc189.json",
+        "verification_sha256": "1a52eb887bc243283f1deb033095f0bc6082d3c5182a9cff4b686addd48731ba",
+        "policy": "The complete M1 TS candidate is exact against this unchanged effective reference set. Preserve these bytes and reviewed M0 repairs throughout M2; no new reference repair or tolerance change."
+      },
+      "planning_evidence": [
+        "artifacts/migration/m2-plan-inventory.json",
+        "artifacts/migration/m2-gates-inventory.json"
+      ],
+      "pre_plan_renderer_commit": "b980d7d12c0395e7dc48900e68b94b70cafbbf06",
+      "scope_notes": [
+        "Early wire-contract and partial-consumption increments do not constitute a complete executable FramePlan.",
+        "Milestone exit requires every production pass and resource to cross the plan boundary, decoded-plan replay in a fresh registry, complete plan/resource capture and all required gates on current source.",
+        "The new preview-present measurements cover the three deterministic synthetic workloads and GPU-completed canvas presentation; they do not measure display scan-out, interaction latency or exact owner-video preview. Existing owner export/readback/IPC baselines remain unchanged."
+      ],
+      "preview_baseline_path": "benchmarks/results/m2-preview-baseline.json",
+      "preview_baseline_sha256": "a1c62e224c008e731c252142ab1b9de7d31ecf592452c00da1dff42516772375",
+      "active_candidate_manifest": "artifacts/parity/runs/2026-10-04T06-30-16-961Z-9b8c7b6c/candidate/manifest.json",
+      "last_verification": {
+        "status": "passed",
+        "required_gates_passed": true,
+        "milestone_exit_satisfied": false,
+        "gates": [
+          {
+            "id": "G0",
+            "status": "passed",
+            "duration_ms": 83754
+          },
+          {
+            "id": "G1",
+            "status": "passed",
+            "duration_ms": 2641
+          },
+          {
+            "id": "G3",
+            "status": "passed",
+            "duration_ms": 274602
+          },
+          {
+            "id": "G4",
+            "status": "passed",
+            "duration_ms": 672708
+          }
+        ],
+        "report": "artifacts/migration/verify-2026-10-04T06-36-24-845Z-50d11f1a.json"
+      },
+      "performance_series": {
+        "path": "benchmarks/results/m2-performance-1920x1080-144hz.json",
+        "sha256": "d8bc58dbf1c90bbcb92577741ed9338fa97ac0c875243df5f3c794daa1149870"
+      }
     },
     {
       "id": "M3",
@@ -1445,6 +3926,52 @@
         "The M1 exit audit requires current complete G0 and exact G3, same-source coverage and fresh native shader evidence. It rechecks ignored comparison and image artifacts, rejects stale or changed evidence, and cannot be bypassed by quick mode or manually marking the milestone done.",
         "Full G0/G3 and the complete M1 exit audit passed with all 1819 required TS frames exact. Frozen M0 reference binding and tolerances remain unchanged. M1 is complete; the production renderer remains TypeScript until the subsequent gated milestones.",
         "Only existing workspace shader and hash dependencies were added to the native diagnostic example. Cargo deny advisories, bans, licenses and sources passed with no policy exception. No external version, project-format or plugin-ABI changes."
+      ]
+    },
+    {
+      "id": 13,
+      "time": "2026-10-04T06:55:48.092Z",
+      "milestone": "M2",
+      "task": "M2-T1",
+      "outcome": "passed",
+      "commit": "0e16b16b301e29e64d4f562ab73c24afa649f5aa",
+      "verification": "artifacts/migration/verify-2026-10-04T06-36-24-845Z-50d11f1a.json",
+      "gates": [
+        {
+          "id": "G0",
+          "status": "passed",
+          "duration_ms": 83754
+        },
+        {
+          "id": "G1",
+          "status": "passed",
+          "duration_ms": 2641
+        },
+        {
+          "id": "G3",
+          "status": "passed",
+          "duration_ms": 274602
+        },
+        {
+          "id": "G4",
+          "status": "passed",
+          "duration_ms": 672708
+        }
+      ],
+      "verification_duration_ms": 1034903,
+      "next_step": "M2-T2: preserve arbitrary finite preview times and make the production GPU upload consume the planned header and 96-byte post-process uniform slice, then rerun full G0/G1/G3/G4.",
+      "notes": [
+        "Introduced a closed, versioned partial FPLN contract with generated Rust schema, explicit little-endian binary payloads, owned Rust container/borrowed blob ranges, exact TS/Rust re-encoding and typed resource operations. It does not claim complete frame planning or independent rendering.",
+        "G1 regenerates schema to fresh files without rewriting the expected schema. Production TS uniform fixtures round-trip through the real Rust CLI byte-exactly; an independent Rust fixture, malformed containers and caller-limit cases exercise both implementations.",
+        "Established a separate pre-plan preview baseline from real production present/queue-completion measurements, with complete raw observations and a ledger-pinned file hash. The original throughput baseline and frozen pixel oracle remain unchanged.",
+        "Display conditions changed after the original local measurements. The original manifest's new-series policy is honored with an additive, ledger-pinned 1920x1080@144Hz series. Its independent reference measurements replay preserved pre-plan browser bytes whose production sources and bridge match the pinned historical evidence; current common harness provenance is recorded separately. All original baseline bytes and failed attempts remain unchanged. Candidate checks use the selected matched-condition series and unchanged strict thresholds.",
+        "G4 executes fresh complete throughput and preview suites, binds current source/bridge and raw inputs to measurements, checks all 24 tracked medians against the strict 5 percent thresholds, and rechecks evidence and MP4 outputs for changes before accepting results.",
+        "Required full G0/G1/G3/G4 passed, including all 1819 required TS frames under exact comparison. M2 remains in progress with renderer_plan_complete false; production consumption, complete resources, capture and replay remain required work.",
+        "Failed G4 attempts, paired historical/current bundle measurements, CPU profiles and GPU transition diagnostics remain recorded as historical evidence. All experimental text-key, text-geometry batching, shadow, depth-store, timing-marker and lighting-upload optimizations were reverted to the accepted M1 production implementation before the final candidate capture. The earlier delayed-upload trial also remains reverted. This scope reduction does not establish any experiment as the cause of earlier performance failures.",
+        "After the unchanged production bundle still failed five throughput metrics, a separate diagnostic localized material CPU output allocation/copy wall time. Bounded caller-owned destination reuse now retains the full mapped-pixel copy and the default independently owned readback API. The RenderHost pool holds each frame through all PNG/MP4 acknowledgments; synchronous bounded acquisition and stream cleanup cover failures, cancellation and pending frames. The production performance runner uses the same capability, and fresh G3 captures the complete corpus through the destination path. Original timing boundaries and thresholds remain unchanged.",
+        "The CPU-only three-slot experiment supported implementing destination reuse but never substituted for production gates. Complete current-source G0/G1/G3/G4 establishes acceptance. The earlier GPU/text experiments remain reverted; the typed transport still awaits production plan consumption and M2 exit remains false.",
+        "One comparison process failed with Windows access denied before publishing its report; the failed run remains recorded without a pixel verdict. Artifact I/O now retains operation/path context, and only the final atomic directory rename has bounded retries for Windows access/sharing errors. The original failing syscall is not proven. Fault-injection tests preserve complete staging, destination absence checks and failure cleanup; fresh full G3 is still required.",
+        "Only existing workspace dependencies were used. Cargo deny advisories, bans, licenses and sources passed; no dependency policy exception, external version change, project-format change or plugin-ABI change was introduced."
       ]
     }
   ],
