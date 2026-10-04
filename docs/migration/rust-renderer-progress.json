@@ -76,40 +76,38 @@
     "approval": "Preserve the complete M0-T3 production TS capture as the original pixel oracle. Only the explicitly listed, section 6.6 reviewed M0 reference repairs overlay requested frames. All other original frames, including sequence neighbors, remain unchanged. Freeze this effective reference set before M1; M1 and M2 retain strict whole-corpus exact requirements."
   },
   "last_cycle": {
-    "id": 26,
-    "time": "2026-10-04T20:27:54.035Z",
+    "id": 27,
+    "time": "2026-10-04T20:53:36.971Z",
     "milestone": "M2",
     "task": "M2-T5",
     "outcome": "passed",
-    "commit": "3930f5e6e93c7e27e1678475e13873de5ae03f49",
-    "verification": "artifacts/migration/verify-2026-10-04T20-21-48-805Z-6022ed31.json",
-    "verification_sha256": "baa6496e2306c192bab93acc780567bbdce906fe1efd88983145aa97f882950b",
+    "commit": "8b2f9c04579c3b1a263776117edd978cf40e8466",
+    "verification": "artifacts/migration/verify-2026-10-04T20-46-41-316Z-55ac530f.json",
+    "verification_sha256": "2d9706661f64ec34ee83f4df184ca5372e9cc7708b1807b574cf420228a8003c",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 73380
+        "duration_ms": 73705
       },
       {
         "id": "G1",
         "status": "passed",
-        "duration_ms": 4244
+        "duration_ms": 4276
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 264052
+        "duration_ms": 268700
       }
     ],
-    "verification_duration_ms": 342928,
-    "next_step": "Continue M2-T5: integrate actual raster GPU readback/capture and exact decoded replay, without adding readback to ordinary preview.",
+    "verification_duration_ms": 347921,
+    "next_step": "Continue M2-T5: bind decoded scene-plan geometry and raster resources in evaluator-free consumption evidence, then audit its completion criteria.",
     "notes": [
-      "TS and Rust now accept raster_pixels resources containing exact packed RGBA8 texture values, linked to typed raster frame descriptors. Admission validates binary hashes, byte counts, dimensions, format and budgets; pixel/frame/source dependencies prevent premature eviction.",
-      "A frame may have only one admitted pixel generation. Both registries reject conflicting payloads for the same frame; the CLI reads bounded hash-named binary files and validates all resource messages before publishing the descriptor transcript.",
-      "The decoded raster upload consumer resolves frame/source metadata and checks authorization scope before GPU allocation. It uploads supplied bytes without text shaping, SVG parsing, PSD decoding or color conversion, then admits bindings under the original frame hash.",
-      "Full M2 G0/G1/G3 passed with 30 FPLN round trips, 17 media descriptor round trips, three binary raster fixtures (49152 bytes), and 1819 exact production pixel frames. G1 checks corrupt bytes, absent frames, extent mismatches, conflicting generations and dependency eviction through the actual Rust CLI.",
-      "M2-T5 remains in progress: integrate production GPU raster capture/readback and replay evidence. Current binary fixtures and decoded GPU adapter tests prove the transport boundary, not complete production captured-frame replay. Temporal text remains M2-T6; complete capture/replay remains M2-T14.",
-      "The first full attempt retained a G0 failure in the unrelated 25ms script-runtime timeout test (API initialization failed before the expected execution_timeout). No source or assertion was changed; a fresh full run was required for acceptance. Failed report: artifacts/migration/verify-2026-10-04T20-14-07-895Z-aa8f3bc8.json"
+      "Diagnostic capture now reads actual installed text/SVG/PSD GPU textures, independently uploads content-addressed decoded resources, and requires exact GPU readback. Ordinary preview remains GPU resident without readback.",
+      "Candidate publication pins binary pixels and typed descriptors per raster generation, records per-frame references, and compares actual original/replayed byte arrays before accepting evidence.",
+      "Full M2 G0/G1/G3 passed: 362 captured raster resources (45471008 bytes) across 1947 captured frames; Rust independently admits the real binary payloads. All 1819 required production pixel frames remain exact.",
+      "M2-T5 remains in progress pending decoded scene-plan consumption evidence binding raster pixels and evaluated geometry together. Installed resource replay is verified; complete submitted-frame capture remains M2-T14 and temporal text remains M2-T6."
     ]
   },
   "milestones": [
@@ -12941,12 +12939,57 @@
                 "M2-T5 remains in progress: integrate production GPU raster capture/readback and replay evidence. Current binary fixtures and decoded GPU adapter tests prove the transport boundary, not complete production captured-frame replay. Temporal text remains M2-T6; complete capture/replay remains M2-T14.",
                 "The first full attempt retained a G0 failure in the unrelated 25ms script-runtime timeout test (API initialization failed before the expected execution_timeout). No source or assertion was changed; a fresh full run was required for acceptance. Failed report: artifacts/migration/verify-2026-10-04T20-14-07-895Z-aa8f3bc8.json"
               ]
+            },
+            {
+              "cycle": 27,
+              "status": "passed",
+              "commit": "8b2f9c04579c3b1a263776117edd978cf40e8466",
+              "verification": {
+                "path": "artifacts/migration/verify-2026-10-04T20-46-41-316Z-55ac530f.json",
+                "sha256": "2d9706661f64ec34ee83f4df184ca5372e9cc7708b1807b574cf420228a8003c"
+              },
+              "pixel_comparison": {
+                "path": "artifacts/parity/ts-check/2026-10-04T20-47-59-904Z-b041138a/report.json",
+                "sha256": "44803cd5f5ceb23c40e30031c6dd12eb71b572b837eb6095186839473297ecd4"
+              },
+              "capture": {
+                "path": "artifacts/parity/capture-2026-10-04T20-40-39-004Z-0e06d6f4.json",
+                "sha256": "ab4d5519b669501ccf721d982cf33f324bbebb66f902a4de206d73a22172fbe3"
+              },
+              "manifest": {
+                "path": "artifacts/parity/runs/2026-10-04T20-40-39-004Z-0e06d6f4/candidate/manifest.json",
+                "sha256": "707bc8f7c4f6251b1c477fbe9913d7dd29507faf89c8f5cfc07343c9ec49d40c"
+              },
+              "renderer_source_sha256": "7298110f81ee6f45cbf6e5567efe1bd76a1a32938780db5c7c046848e0763b7f",
+              "bridge_sha256": "82ccf02fefd4c54e78a82a4de08df6906714ecd0b198864ec72cb0c0394dd80c",
+              "gates": [
+                {
+                  "id": "G0",
+                  "status": "passed",
+                  "duration_ms": 73705
+                },
+                {
+                  "id": "G1",
+                  "status": "passed",
+                  "duration_ms": 4276
+                },
+                {
+                  "id": "G3",
+                  "status": "passed",
+                  "duration_ms": 268700
+                }
+              ],
+              "notes": [
+                "Diagnostic capture now reads actual installed text/SVG/PSD GPU textures, independently uploads content-addressed decoded resources, and requires exact GPU readback. Ordinary preview remains GPU resident without readback.",
+                "Candidate publication pins binary pixels and typed descriptors per raster generation, records per-frame references, and compares actual original/replayed byte arrays before accepting evidence.",
+                "Full M2 G0/G1/G3 passed: 362 captured raster resources (45471008 bytes) across 1947 captured frames; Rust independently admits the real binary payloads. All 1819 required production pixel frames remain exact.",
+                "M2-T5 remains in progress pending decoded scene-plan consumption evidence binding raster pixels and evaluated geometry together. Installed resource replay is verified; complete submitted-frame capture remains M2-T14 and temporal text remains M2-T6."
+              ]
             }
           ],
           "remaining_work": [
-            "Integrate production raster GPU readback/capture with the binary resource contract, preserving the GPU-resident ordinary preview path.",
-            "Prove real text/SVG/PSD raster upload/replay from captured pixel resources without evaluator access, with exact bounds and output. The typed descriptor, binary admission and independent decoded upload boundaries now exist.",
-            "Temporal text accumulation and sample plans remain M2-T6; complete captured-frame replay remains M2-T14."
+            "Prove cloned/decoded scene-plan consumption joins supplied raster resources with evaluated geometry and bounds without source evaluators. Actual GPU resource capture, independent upload/readback and Rust binary admission are now required evidence.",
+            "Temporal text accumulation and sample plans remain M2-T6; complete submitted-frame capture/replay remains M2-T14."
           ],
           "failed_verifications": [
             "artifacts/migration/verify-2026-10-04T20-14-07-895Z-aa8f3bc8.json"
@@ -13174,7 +13217,7 @@
       ],
       "preview_baseline_path": "benchmarks/results/m2-preview-baseline.json",
       "preview_baseline_sha256": "a1c62e224c008e731c252142ab1b9de7d31ecf592452c00da1dff42516772375",
-      "active_candidate_manifest": "artifacts/parity/runs/2026-10-04T20-07-56-702Z-82ee087e/candidate/manifest.json",
+      "active_candidate_manifest": "artifacts/parity/runs/2026-10-04T20-40-39-004Z-0e06d6f4/candidate/manifest.json",
       "last_verification": {
         "status": "passed",
         "required_gates_passed": true,
@@ -13183,17 +13226,17 @@
           {
             "id": "G0",
             "status": "passed",
-            "duration_ms": 73380
+            "duration_ms": 73705
           },
           {
             "id": "G1",
             "status": "passed",
-            "duration_ms": 4244
+            "duration_ms": 4276
           },
           {
             "id": "G3",
             "status": "passed",
-            "duration_ms": 264052
+            "duration_ms": 268700
           }
         ],
         "optional_gates": [
@@ -13204,7 +13247,7 @@
           }
         ],
         "performance_policy": "rust-delivery-v1",
-        "report": "artifacts/migration/verify-2026-10-04T20-21-48-805Z-6022ed31.json"
+        "report": "artifacts/migration/verify-2026-10-04T20-46-41-316Z-55ac530f.json"
       },
       "performance_series_history": [
         {
@@ -14510,12 +14553,5 @@
       }
     }
   ],
-  "active_cycle": {
-    "id": 27,
-    "milestone": "M2",
-    "task": "M2-T5",
-    "started_at": "2026-10-04T20:32:42.131Z",
-    "scope": "Capture installed production raster textures on demand, independently upload decoded pixel resources on GPU, and persist exact readback evidence with candidate captures.",
-    "previous_turn_classification": "progress: cycle26 binary raster resource protocol and decoded upload boundary committed after full G0/G1/G3; failed timeout attempt retained."
-  }
+  "active_cycle": null
 }
