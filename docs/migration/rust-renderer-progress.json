@@ -83,39 +83,39 @@
     }
   },
   "last_cycle": {
-    "id": 33,
-    "time": "2026-10-04T22:58:57.688Z",
+    "id": 34,
+    "time": "2026-10-04T23:19:08.071Z",
     "milestone": "M2",
     "task": "M2-T6",
     "outcome": "passed",
-    "commit": "c8566c2d54526d2ff4597a50c6b8fc6120828576",
-    "verification": "artifacts/migration/verify-2026-10-04T22-52-41-059Z-2129e024.json",
-    "verification_sha256": "d5adf9e5d7b02bf0f113110399b1064237aaf64339e33e9d425ffadb35faa3bf",
+    "commit": "fe9519af37e03eb61a8cbc94cf01c91f1d8171c0",
+    "verification": "artifacts/migration/verify-2026-10-04T23-12-13-548Z-ea6c2dbc.json",
+    "verification_sha256": "d09fac97126259d1292e708d77c8a192984a2319086096dfc0f24022e37faee7",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 73428
+        "duration_ms": 81380
       },
       {
         "id": "G1",
         "status": "passed",
-        "duration_ms": 4694
+        "duration_ms": 29722
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 267824
+        "duration_ms": 268659
       }
     ],
-    "verification_duration_ms": 347218,
-    "next_step": "Continue M2-T6: transport temporal pass inputs through FPLN/Rust and verify decoded sample/pass execution.",
+    "verification_duration_ms": 380982,
+    "next_step": "Continue M2-T6: independently replay decoded sample textures and Rust-roundtripped temporal passes on the GPU.",
     "notes": [
-      "Individual temporal sample textures now have hash-addressed raster owners. Submission-scoped media leases retain sample/output generations until submission or abort.",
-      "A separate evaluator-free pass executor validates supplied dimensions, formats, output/sample hashes, uniform slots and weights before encoding linear premultiplied accumulation and straight-alpha sRGB resolve. GPU uniform writes consume the supplied plan rather than producer inputs.",
-      "Targeted tests execute a cloned plan after producer weights are discarded, and reject allocation/binding/slot/missing-resource/weight-buffer/duplicate-hash faults before GPU writes. Typecheck and all 39 focused tests passed.",
-      "Fresh full-corpus capture and required M2 G0/G1/G3 passed: 38 FPLN round trips, 1819 exact whole-frame comparisons, four exact temporal outputs and independent output replay with 12 admitted Rust resource messages.",
-      "M2-T6 remains in progress. The new local TemporalTextPassPlan still needs FPLN/Rust transport and decoded sample/pass replay; complete submitted-frame replay remains M2-T14."
+      "Added temporal_text_passes_slice_v1 to FPLN, the generated schema and Rust IR. Closed metadata contains output/sample hashes, dimensions and formats; binary f64 lanes preserve transparent exposure and each sample weight exactly.",
+      "TS and Rust reject missing or duplicate resource dependencies, invalid layout/formats, nonfinite/out-of-range weights and incomplete exposure. The production root supplies its actual frame header and executes the reconstructed pass slice.",
+      "G1 now includes four full/partial/transparent/exact-bit pass fixtures. Real Rust round trips preserve all bytes; the decoded TS executor consumes ordered hashes and weights at the recording GPU boundary. Independent GPU sample/pass replay is not claimed.",
+      "Fresh complete capture and full M2 G0/G1/G3 passed with 42 FPLN round trips, 1819 exact whole-frame comparisons and four exact temporal outputs with independent resolved-output replay.",
+      "M2-T6 remains in progress for independently decoded sample textures and GPU pass replay; complete submitted-frame replay remains M2-T14."
     ]
   },
   "milestones": [
@@ -13409,11 +13409,66 @@
                 "Fresh full-corpus capture and required M2 G0/G1/G3 passed: 38 FPLN round trips, 1819 exact whole-frame comparisons, four exact temporal outputs and independent output replay with 12 admitted Rust resource messages.",
                 "M2-T6 remains in progress. The new local TemporalTextPassPlan still needs FPLN/Rust transport and decoded sample/pass replay; complete submitted-frame replay remains M2-T14."
               ]
+            },
+            {
+              "cycle": 34,
+              "status": "passed",
+              "commit": "fe9519af37e03eb61a8cbc94cf01c91f1d8171c0",
+              "verification": {
+                "path": "artifacts/migration/verify-2026-10-04T23-12-13-548Z-ea6c2dbc.json",
+                "sha256": "d09fac97126259d1292e708d77c8a192984a2319086096dfc0f24022e37faee7"
+              },
+              "pixel_comparison": {
+                "path": "artifacts/parity/ts-check/2026-10-04T23-14-05-250Z-7027590f/report.json",
+                "sha256": "7614cf527d9653d79ac6316d1b3756004e18afd5d051b901dad0a07d7b63c2c9"
+              },
+              "capture": {
+                "path": "artifacts/parity/capture-2026-10-04T23-06-10-443Z-852c6299.json",
+                "sha256": "4cedc840ca7b948178629a33bcbe1edcb0499b60a45014a8f855313393f7e74d"
+              },
+              "manifest": {
+                "path": "artifacts/parity/runs/2026-10-04T23-06-10-443Z-852c6299/candidate/manifest.json",
+                "sha256": "e8be9c4fcee8972b6022b80b6c3dea676477e0ea01833b72997d7af56b14a68d"
+              },
+              "renderer_source_sha256": "2ef7b30cf9484fb9a232e5cb93d5177cf13c5590cf36c491c6e1340b51054ae9",
+              "bridge_sha256": "82ccf02fefd4c54e78a82a4de08df6906714ecd0b198864ec72cb0c0394dd80c",
+              "temporal_report": {
+                "path": "artifacts/parity/ts-check/2026-10-04T23-14-05-250Z-7027590f/temporal-text/gpu.json",
+                "sha256": "516dd2b2ac6d337aabb4622a6bce033c45ca75a2cb2d63db1cae2a88e1e33e92"
+              },
+              "temporal_reference": {
+                "path": "tests/parity/temporal-text/reference/manifest.json",
+                "sha256": "e3e3b1184d5bc969dcd5cf76a424a551a0cac1a85484e157c5b549e5d6c811d1"
+              },
+              "gates": [
+                {
+                  "id": "G0",
+                  "status": "passed",
+                  "duration_ms": 81380
+                },
+                {
+                  "id": "G1",
+                  "status": "passed",
+                  "duration_ms": 29722
+                },
+                {
+                  "id": "G3",
+                  "status": "passed",
+                  "duration_ms": 268659
+                }
+              ],
+              "notes": [
+                "Added temporal_text_passes_slice_v1 to FPLN, the generated schema and Rust IR. Closed metadata contains output/sample hashes, dimensions and formats; binary f64 lanes preserve transparent exposure and each sample weight exactly.",
+                "TS and Rust reject missing or duplicate resource dependencies, invalid layout/formats, nonfinite/out-of-range weights and incomplete exposure. The production root supplies its actual frame header and executes the reconstructed pass slice.",
+                "G1 now includes four full/partial/transparent/exact-bit pass fixtures. Real Rust round trips preserve all bytes; the decoded TS executor consumes ordered hashes and weights at the recording GPU boundary. Independent GPU sample/pass replay is not claimed.",
+                "Fresh complete capture and full M2 G0/G1/G3 passed with 42 FPLN round trips, 1819 exact whole-frame comparisons and four exact temporal outputs with independent resolved-output replay.",
+                "M2-T6 remains in progress for independently decoded sample textures and GPU pass replay; complete submitted-frame replay remains M2-T14."
+              ]
             }
           ],
           "remaining_work": [
-            "Transport the hash-addressed temporal pass plan through FPLN/Rust with exact weights and resource dependencies.",
-            "Extend maintained GPU checks to decoded sample/pass replay; complete submitted-frame replay remains M2-T14."
+            "Extend maintained GPU checks to decode captured individual sample resources and the Rust-roundtripped pass plan, then independently execute accumulation/resolve against frozen outputs.",
+            "Complete submitted-frame replay remains M2-T14."
           ]
         },
         {
@@ -13621,7 +13676,7 @@
       ],
       "preview_baseline_path": "benchmarks/results/m2-preview-baseline.json",
       "preview_baseline_sha256": "a1c62e224c008e731c252142ab1b9de7d31ecf592452c00da1dff42516772375",
-      "active_candidate_manifest": "artifacts/parity/runs/2026-10-04T22-46-30-669Z-3f8271ba/candidate/manifest.json",
+      "active_candidate_manifest": "artifacts/parity/runs/2026-10-04T23-06-10-443Z-852c6299/candidate/manifest.json",
       "last_verification": {
         "status": "passed",
         "required_gates_passed": true,
@@ -13630,17 +13685,17 @@
           {
             "id": "G0",
             "status": "passed",
-            "duration_ms": 73428
+            "duration_ms": 81380
           },
           {
             "id": "G1",
             "status": "passed",
-            "duration_ms": 4694
+            "duration_ms": 29722
           },
           {
             "id": "G3",
             "status": "passed",
-            "duration_ms": 267824
+            "duration_ms": 268659
           }
         ],
         "optional_gates": [
@@ -13651,7 +13706,7 @@
           }
         ],
         "performance_policy": "rust-delivery-v1",
-        "report": "artifacts/migration/verify-2026-10-04T22-52-41-059Z-2129e024.json"
+        "report": "artifacts/migration/verify-2026-10-04T23-12-13-548Z-ea6c2dbc.json"
       },
       "performance_series_history": [
         {
@@ -14957,12 +15012,5 @@
       }
     }
   ],
-  "active_cycle": {
-    "id": 34,
-    "milestone": "M2",
-    "task": "M2-T6",
-    "started_at": "2026-10-04T23:01:09.018Z",
-    "scope": "Transport explicit temporal sample/output hashes and exact weights through FPLN/Rust; execute the reconstructed pass in the production path and gate cross-language fidelity.",
-    "previous_turn_classification": "progress: cycle33 committed hash-addressed temporal pass execution and full required gate evidence."
-  }
+  "active_cycle": null
 }
