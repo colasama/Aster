@@ -76,39 +76,39 @@
     "approval": "Preserve the complete M0-T3 production TS capture as the original pixel oracle. Only the explicitly listed, section 6.6 reviewed M0 reference repairs overlay requested frames. All other original frames, including sequence neighbors, remain unchanged. Freeze this effective reference set before M1; M1 and M2 retain strict whole-corpus exact requirements."
   },
   "last_cycle": {
-    "id": 19,
-    "time": "2026-10-04T17:45:35.920Z",
+    "id": 20,
+    "time": "2026-10-04T18:09:06.658Z",
     "milestone": "M2",
     "task": "M2-T4",
     "outcome": "passed",
-    "commit": "f87f675c3f5fe4199e05f2d7dd65158ff2de0608",
-    "verification": "artifacts/migration/verify-2026-10-04T17-39-12-176Z-cb28d291.json",
-    "verification_sha256": "b29bcdc50671d2ac79ad5e6e6e132b60f907fb20e9b2f06c9f5da7af7311ca00",
+    "commit": "7d5d7450de98c093c18811cb76188c7b7e715471",
+    "verification": "artifacts/migration/verify-2026-10-04T18-02-51-717Z-5b4f89ee.json",
+    "verification_sha256": "35dc9868cead32e4057e935535c1bfa1038318258d42af95aa1cfea54d8079c3",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 79941
+        "duration_ms": 73201
       },
       {
         "id": "G1",
         "status": "passed",
-        "duration_ms": 3520
+        "duration_ms": 3553
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 264238
+        "duration_ms": 263177
       }
     ],
-    "verification_duration_ms": 348944,
-    "next_step": "Continue M2-T4: connect production media preparation and GPU binding leases to the verified source/frame content-hash protocol; preserve exact readiness and track resident resources.",
+    "verification_duration_ms": 341144,
+    "next_step": "Continue M2-T4: integrate persistent GPU resource registry/residency and serializable FPLN media references for independent replay while preserving exact readiness.",
     "notes": [
-      "TS/Rust resource transport now supports media_source and media_frame descriptors alongside buffer resources. Source identity is scoped to broker authorization without granting access or treating opaque legacy identities as asset digests.",
-      "Media frames bind source hashes, texture extent/format, resolved sequence frame/member identity, and exact requested/uploaded video times. Descriptor hashes use the existing domain-separated SHA-256 protocol without GPU readback or runtime handles.",
-      "Bounded registries charge media descriptor bytes, require matching admitted sources and retain dependencies until frame eviction. In-flight frame leases protect sources; duplicate puts do not duplicate pins. TS admission snapshots nested descriptors before async hashing and rejects a source evicted while hashing.",
-      "Added Rust ir resources validation/replay and G1 cross-language verification of 11 media descriptors, plus hash/kind/missing-source/in-use rejection. Full G0/G1/G3 passed, including 19 existing FPLN round trips and 1819 exact corpus frames.",
-      "This closes the shared protocol increment, not M2-T4: production media preparation must still emit descriptors and resolve GPU bindings by hashes, preserve placeholder/readiness behavior, account GPU residency and support independent replay. Production rendering remains TS."
+      "Production still/SVG/PSD/sequence resources now retain typed prepared identities and installed extents; sequence members preserve resolved frame numbers and byte identity or labeled locator hash, and PSD identities include crop variants. Video bindings capture requested seek time and actual uploaded time; explicit builtin identities preserve missing-media and pre-upload texture behavior.",
+      "Root preparation emits typed media PutResource descriptors, hashes them synchronously and supplies hashes to beauty/auxiliary draw batches. The retained frame table resolves those hashes without a draw-time media-cache lookup. Unknown hashes fail before drawing; null explicitly retains pending fallback behavior. GPU-completion owner leases remain in force.",
+      "Pinned direct @noble/hashes 2.4.0 (MIT) avoids asynchronous holds at the synchronous encoding boundary and maintaining local cryptographic code. pnpm audit reports zero vulnerabilities and cargo deny check passes advisories/bans/licenses/sources. G1 independently compares synchronous SHA-256 with WebCrypto and Rust.",
+      "Production adapter tests cover bitmap closure/extents, sequence holdPrevious member identity, transport admission of actual descriptors, video upload times, and supplied-hash drawing independent of instance IDs. Full G0/G1/G3 passed: 19 existing FPLN round trips, 11 media descriptor round trips and 1819 exact pixel frames.",
+      "M2-T4 remains open: persistent GPU resource registry admission/eviction and resident accounting, serializable FPLN media draw references, and independent resource replay are still required. Production rendering remains TS; this change connects its root media draws to the shared hash identities."
     ]
   },
   "milestones": [
@@ -12555,12 +12555,78 @@
                 "Added Rust ir resources validation/replay and G1 cross-language verification of 11 media descriptors, plus hash/kind/missing-source/in-use rejection. Full G0/G1/G3 passed, including 19 existing FPLN round trips and 1819 exact corpus frames.",
                 "This closes the shared protocol increment, not M2-T4: production media preparation must still emit descriptors and resolve GPU bindings by hashes, preserve placeholder/readiness behavior, account GPU residency and support independent replay. Production rendering remains TS."
               ]
+            },
+            {
+              "cycle": 20,
+              "dependency": {
+                "name": "@noble/hashes",
+                "version": "2.4.0",
+                "license": "MIT",
+                "rationale": "Synchronous audited SHA-256 for small media descriptors avoids asynchronous rendering holds and a locally maintained cryptographic implementation. Existing transitive noble hashes is now a pinned direct dependency.",
+                "pnpm_audit": "artifacts/migration/cycle20-pnpm-audit.json",
+                "cargo_deny": "artifacts/migration/cycle20-cargo-deny-resolved.log",
+                "known_vulnerabilities": 0,
+                "evidence": [
+                  {
+                    "path": "artifacts/migration/cycle20-pnpm-audit.json",
+                    "sha256": "8b4e72b244b660bdf4dc13481dca95b3431c7bb4eae592871cf698a207f9f82d"
+                  },
+                  {
+                    "path": "artifacts/migration/cycle20-cargo-deny-resolved.log",
+                    "sha256": "eff687af5bdaeadc0cc324d3ecdef2d86fd998d93de0628a244efe80d960d48b"
+                  }
+                ]
+              },
+              "status": "passed",
+              "commit": "7d5d7450de98c093c18811cb76188c7b7e715471",
+              "verification": {
+                "path": "artifacts/migration/verify-2026-10-04T18-02-51-717Z-5b4f89ee.json",
+                "sha256": "35dc9868cead32e4057e935535c1bfa1038318258d42af95aa1cfea54d8079c3"
+              },
+              "pixel_comparison": {
+                "path": "artifacts/parity/ts-check/2026-10-04T18-04-09-073Z-dfd3e255/report.json",
+                "sha256": "a5afb6081463ca8e27b329bbbe17c34e18c241fbb273eced54aa0fcd356c9ff5"
+              },
+              "capture": {
+                "path": "artifacts/parity/capture-2026-10-04T17-57-07-747Z-1a3c8374.json",
+                "sha256": "9d96dd8317c88577391d2f0b213ba08b0be5bc335db1cd18d5f6e0ffdbb28415"
+              },
+              "manifest": {
+                "path": "artifacts/parity/runs/2026-10-04T17-57-07-747Z-1a3c8374/candidate/manifest.json",
+                "sha256": "cd1b958f6d15f54e74897bf0542b639b0e943a2c59341b89ac11cc5f5e5f9dea"
+              },
+              "renderer_source_sha256": "f183ce493c49249b9f12c2e105def0a23a33aaf1bc1a4691dedfc244e31f22ba",
+              "bridge_sha256": "82ccf02fefd4c54e78a82a4de08df6906714ecd0b198864ec72cb0c0394dd80c",
+              "gates": [
+                {
+                  "id": "G0",
+                  "status": "passed",
+                  "duration_ms": 73201
+                },
+                {
+                  "id": "G1",
+                  "status": "passed",
+                  "duration_ms": 3553
+                },
+                {
+                  "id": "G3",
+                  "status": "passed",
+                  "duration_ms": 263177
+                }
+              ],
+              "notes": [
+                "Production still/SVG/PSD/sequence resources now retain typed prepared identities and installed extents; sequence members preserve resolved frame numbers and byte identity or labeled locator hash, and PSD identities include crop variants. Video bindings capture requested seek time and actual uploaded time; explicit builtin identities preserve missing-media and pre-upload texture behavior.",
+                "Root preparation emits typed media PutResource descriptors, hashes them synchronously and supplies hashes to beauty/auxiliary draw batches. The retained frame table resolves those hashes without a draw-time media-cache lookup. Unknown hashes fail before drawing; null explicitly retains pending fallback behavior. GPU-completion owner leases remain in force.",
+                "Pinned direct @noble/hashes 2.4.0 (MIT) avoids asynchronous holds at the synchronous encoding boundary and maintaining local cryptographic code. pnpm audit reports zero vulnerabilities and cargo deny check passes advisories/bans/licenses/sources. G1 independently compares synchronous SHA-256 with WebCrypto and Rust.",
+                "Production adapter tests cover bitmap closure/extents, sequence holdPrevious member identity, transport admission of actual descriptors, video upload times, and supplied-hash drawing independent of instance IDs. Full G0/G1/G3 passed: 19 existing FPLN round trips, 11 media descriptor round trips and 1819 exact pixel frames.",
+                "M2-T4 remains open: persistent GPU resource registry admission/eviction and resident accounting, serializable FPLN media draw references, and independent resource replay are still required. Production rendering remains TS; this change connects its root media draws to the shared hash identities."
+              ]
             }
           ],
           "remaining_work": [
-            "Connect image/sequence/video preparation to media source/frame descriptors, including actual sequence member identity, exact requested/uploaded times and explicit placeholder fallback.",
-            "Replace instance-keyed production bindings with content hashes and the established GPU-completion leases; implement media PutResource/EvictResource adapter accounting including retired in-flight GPU owners.",
-            "Verify actual missing/evicted/hash-mismatched draw failures, fractional-video/sequence identity and independent resource replay before closing T4."
+            "Connect typed media PutResource/EvictResource to a persistent GPU executor registry with explicit byte budgets and residency accounting including retired in-flight owners.",
+            "Encode media draw references and explicit pending/builtin states in the TS/Rust FPLN schema; replay supplied descriptors/resources independently of live preparation and instance IDs.",
+            "Verify actual missing/evicted/hash-mismatched resource failures, generation/lifetime behavior and fractional-video/sequence parity through the serializable plan before closing T4."
           ]
         },
         {
@@ -12802,7 +12868,7 @@
       ],
       "preview_baseline_path": "benchmarks/results/m2-preview-baseline.json",
       "preview_baseline_sha256": "a1c62e224c008e731c252142ab1b9de7d31ecf592452c00da1dff42516772375",
-      "active_candidate_manifest": "artifacts/parity/runs/2026-10-04T17-33-32-265Z-e630f5a9/candidate/manifest.json",
+      "active_candidate_manifest": "artifacts/parity/runs/2026-10-04T17-57-07-747Z-1a3c8374/candidate/manifest.json",
       "last_verification": {
         "status": "passed",
         "required_gates_passed": true,
@@ -12811,17 +12877,17 @@
           {
             "id": "G0",
             "status": "passed",
-            "duration_ms": 79941
+            "duration_ms": 73201
           },
           {
             "id": "G1",
             "status": "passed",
-            "duration_ms": 3520
+            "duration_ms": 3553
           },
           {
             "id": "G3",
             "status": "passed",
-            "duration_ms": 264238
+            "duration_ms": 263177
           }
         ],
         "optional_gates": [
@@ -12832,7 +12898,7 @@
           }
         ],
         "performance_policy": "rust-delivery-v1",
-        "report": "artifacts/migration/verify-2026-10-04T17-39-12-176Z-cb28d291.json"
+        "report": "artifacts/migration/verify-2026-10-04T18-02-51-717Z-5b4f89ee.json"
       },
       "performance_series_history": [
         {
@@ -14138,21 +14204,5 @@
       }
     }
   ],
-  "active_cycle": {
-    "id": 20,
-    "milestone": "M2",
-    "task": "M2-T4",
-    "started_at": "2026-10-04T17:47:47.313Z",
-    "scope": "Connect production root media ownership to typed source/frame descriptors and hash-based draw bindings while preserving exact readiness. Add synchronous descriptor hashing to avoid introducing async frame holds. Full FPLN media replay/resident registry integration remains required.",
-    "previous_turn_classification": "progress: cycle19 transport implementation and ledger committed with full G0/G1/G3, clean worktree.",
-    "dependency": {
-      "name": "@noble/hashes",
-      "version": "2.4.0",
-      "license": "MIT",
-      "rationale": "Synchronous audited SHA-256 for small media descriptors avoids asynchronous rendering holds and a locally maintained cryptographic implementation. Existing transitive noble hashes is now a pinned direct dependency.",
-      "pnpm_audit": "artifacts/migration/cycle20-pnpm-audit.json",
-      "cargo_deny": "artifacts/migration/cycle20-cargo-deny-resolved.log",
-      "known_vulnerabilities": 0
-    }
-  }
+  "active_cycle": null
 }
