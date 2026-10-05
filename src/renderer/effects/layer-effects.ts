@@ -29,6 +29,15 @@ interface LayerEffectBuffers {
   lutBytes: number;
 }
 
+interface LayerEffectInput {
+  encoder: GPUCommandEncoder;
+  input: GPUTexture;
+  output: GPUTexture;
+  compositeBindGroup: GPUBindGroup;
+  resource: LayerEffectBuffers;
+  effect: ReturnType<typeof suppliedLayerEffect>;
+}
+
 export class LayerEffectRenderer {
   readonly #device: GPUDevice;
   readonly #format: GPUTextureFormat;
@@ -46,6 +55,7 @@ export class LayerEffectRenderer {
   readonly #pyramid: BlurPyramid;
   readonly #glowPyramid: BrightpassPyramid;
   readonly #resources = new Map<string, LayerEffectBuffers>();
+  readonly #inputs = new WeakMap<GPURenderPassEncoder, LayerEffectInput>();
   #input?: GPUTexture;
   #output?: GPUTexture;
   #depth?: GPUTexture;
@@ -199,6 +209,15 @@ export class LayerEffectRenderer {
     effect: PreparedLayerEffect | undefined,
     drawLayer: (pass: GPURenderPassEncoder) => void,
   ): number {
+    const inputPass = this.beginLayer(encoder, effect);
+    drawLayer(inputPass);
+    return this.finishLayer(encoder, target, inputPass);
+  }
+
+  beginLayer(
+    encoder: GPUCommandEncoder,
+    effect: PreparedLayerEffect | undefined,
+  ): GPURenderPassEncoder {
     if (!this.#input || !this.#output || !this.#depth || !this.#compositeBindGroup) {
       this.resize(this.#width, this.#height);
     }
@@ -209,12 +228,8 @@ export class LayerEffectRenderer {
     if (!input || !output || !depth || !compositeBindGroup)
       throw new Error("Layer effect targets unavailable");
 
-    const { program, uniforms, instanceId, slice, execution, lut } = suppliedLayerEffect(
-      effect,
-      this.#width,
-      this.#height,
-      "layer",
-    );
+    const supplied = suppliedLayerEffect(effect, this.#width, this.#height, "layer");
+    const { program, uniforms, instanceId, lut } = supplied;
     const resource = this.#resource(instanceId, lut);
     this.#device.queue.writeBuffer(resource.program, 0, program.data);
     this.#device.queue.writeBuffer(resource.uniforms, 0, uniforms);
@@ -236,8 +251,29 @@ export class LayerEffectRenderer {
         depthStoreOp: "discard",
       },
     });
-    drawLayer(inputPass);
+    this.#inputs.set(inputPass, {
+      encoder,
+      input,
+      output,
+      compositeBindGroup,
+      resource,
+      effect: supplied,
+    });
+    return inputPass;
+  }
+
+  finishLayer(
+    encoder: GPUCommandEncoder,
+    target: GPUTexture,
+    inputPass: GPURenderPassEncoder,
+  ): number {
+    const pending = this.#inputs.get(inputPass);
+    if (!pending || pending.encoder !== encoder)
+      throw new Error("Layer input is absent, finished or belongs to another encoder");
+    this.#inputs.delete(inputPass);
     inputPass.end();
+    const { input, output, compositeBindGroup, resource, effect } = pending;
+    const { program, instanceId, slice, execution } = effect;
 
     if (program.usesBlur) this.#pyramid.encode(encoder);
     if (program.usesGlow) this.#glowPyramid.encode(encoder, program.glowThreshold);

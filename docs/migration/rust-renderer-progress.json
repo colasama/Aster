@@ -14266,6 +14266,28 @@
             "Plan explicit root begin/end passes with attachment load/store and depth clear values.",
             "Replace isolated draw callbacks with typed draw commands and resource references.",
             "Serialize and replay the complete ordered root command stream, including altered/removed command execution evidence."
+          ],
+          "failed_attempts": [
+            {
+              "cycle": 45,
+              "verification": {
+                "path": "artifacts/migration/verify-2026-10-05T03-40-25-268Z-34519a30.json",
+                "sha256": "393df9972d5030e7cb695a07861cd643365a452a43f55803fcab37f196ba9e7d"
+              },
+              "pixel_comparison": {
+                "path": "artifacts/parity/ts-check/2026-10-05T03-41-46-423Z-830a30e4/G3/frames/owner-main-991/report.json",
+                "sha256": "714892ddcb5387cfb0f8142e6164c9b85ce18440b2528f13cd6c1e2d830223d3"
+              },
+              "disposition": "Rejected the original four-pixel alpha defect. An unchanged-source owner-main recapture matched all 300 frozen RGBA hashes after PNG SHA verification. The occurrence was not reproduced, but the root cause remains unknown and no fix is claimed. Require a new complete capture and full G0/G1/G3 before committing; preserve all failed evidence and the rejected structural self-review.",
+              "repeat_capture": {
+                "path": "artifacts/parity/capture-2026-10-05T03-48-22-621Z-db1eb933.json",
+                "sha256": "d31d5194276c25a3499beb5374abb98e8b073c06656fb1f474a15d71aa6aa6a4"
+              },
+              "repeat_analysis": {
+                "path": "artifacts/migration/cycle45-owner-repeat-analysis.json",
+                "sha256": "d40bfb34a25a5efe0e4925519e8dc96ae79328427883d06d014dad016d1904dc"
+              }
+            }
           ]
         },
         {
@@ -15090,6 +15112,59 @@
         "heatmap": "artifacts/parity/ts-check/2026-10-04T10-53-47-655Z-73b59ade/G3/frames/owner-main-782/heatmap.png",
         "heatmap_sha256": "7a66affcbcfb9e474b3ac6264086ff1c2bb4bd4d06e0079436fd391e99c8a187"
       }
+    },
+    {
+      "case_id": "owner-main",
+      "frame": 991,
+      "profile": "exact",
+      "purpose": "m2-exact-parity-rejection",
+      "reference_rgba_sha256": "b91b567fbdabb2175edccdf14dbc406963ff2ee1d05fa92aca2afc815f370ce9",
+      "candidate_rgba_sha256": "36ae61dd9dbe1e78f8ff7db36ef269eb3308d0d1638873f94ebc894a778787be",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 2073600,
+        "max_abs_channel_error": 255,
+        "mean_abs_error": 0.0004880401234567901,
+        "mean_squared_error": 0.1234789737654321,
+        "rgb_mean_squared_error": 0.12282728909465021,
+        "psnr": {
+          "kind": "finite",
+          "db": 57.23785494172092
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 57.214873494671664
+        },
+        "channel_tolerance": 0,
+        "pixels_above_tolerance": 4
+      },
+      "ssim": {
+        "channels": [
+          0.9999583374920941, 0.9999582820615454, 0.9999581719209617, 0.9999581172072091
+        ],
+        "mean": 0.9999582638248671,
+        "rgba_mean": 0.9999582271704526,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": null,
+      "registration": null,
+      "sequence": null,
+      "residual_class": "structural",
+      "verdict": "rejected",
+      "recorded_at": "2026-10-05T03:51:08.874Z",
+      "inspection": "The migration agent directly inspected the contact sheet and heatmap. Pixel analysis locates a 2x2 transparent hole at x=1566..1567, y=706..707: reference RGBA [251,252,254,255], candidate [0,0,0,0]. All other pixels match. This is a hard exact failure, not acceptable float precision. Root cause is unknown; earlier rejected 2x2 anomalies are recorded separately and do not prove this occurrence has the same cause. Structural, registration and sequence fields retain the null exact-profile measurements. No reference or tolerance is changed.",
+      "evidence": {
+        "report": "artifacts/parity/ts-check/2026-10-05T03-41-46-423Z-830a30e4/G3/frames/owner-main-991/report.json",
+        "report_sha256": "714892ddcb5387cfb0f8142e6164c9b85ce18440b2528f13cd6c1e2d830223d3",
+        "heatmap": "artifacts/parity/ts-check/2026-10-05T03-41-46-423Z-830a30e4/G3/frames/owner-main-991/heatmap.png",
+        "heatmap_sha256": "c254402b225b145b297f343593be53b9ad226c83e5d0e9e68105df150255700f",
+        "contact_sheet": "artifacts/parity/ts-check/2026-10-05T03-41-46-423Z-830a30e4/G3/frames/owner-main-991/contact-sheet.png",
+        "contact_sheet_sha256": "1df419162ab47e3a0acdc4f99a1c6ae186cacf263415d67909ad9f83da214196",
+        "analysis": "artifacts/migration/cycle45-pixel-difference.json",
+        "analysis_sha256": "d264d9d49d0627d8b4687be86d08d347c02736f8b21d6395e6ba1f47390344dd"
+      }
     }
   ],
   "history": [
@@ -15757,5 +15832,12 @@
       }
     }
   ],
-  "active_cycle": null
+  "active_cycle": {
+    "id": 45,
+    "milestone": "M2",
+    "task": "M2-T9",
+    "started_at": "2026-10-05T03:29:13.545Z",
+    "increment": "Execute explicit root pass/draw/effect commands; remove per-layer draw callbacks from root execution.",
+    "required_gates": ["G0", "G1", "G3"]
+  }
 }

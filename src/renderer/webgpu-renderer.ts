@@ -22,7 +22,9 @@ import { evaluateCameraBasis } from "../core/scene/camera-rig";
 import { flattenSceneLayers } from "../core/scene/scene-evaluation";
 import type { Composition, GpuDiagnostics, Project, RendererMetrics } from "../core/types";
 import { requestPreferredGpuAdapter } from "../desktop/gpu-preference";
+import { executeRootScene } from "./compositing/execute-root-scene";
 import { planRootSceneStack } from "./compositing/render-stack";
+import { planRootSceneCommands } from "./compositing/root-scene-commands";
 import { AntiAliasingRenderer, planAntiAliasing } from "./effects/anti-aliasing";
 import { depthEffectSettingsFromCameraOptics } from "./effects/depth-effects";
 import { effectExecution } from "./effects/layer-effect-plan";
@@ -71,7 +73,6 @@ import {
 } from "./gpu/render-buffers";
 import { MaterialTextureRenderer } from "./media/material-textures";
 import { RendererResources } from "./renderer-resources";
-import { drawPlannedSceneBatch } from "./scene/draw-planned-scene-batch";
 import { evaluateSceneCamera } from "./scene/scene-camera";
 import { SceneEvaluationCache } from "./scene/scene-evaluation-cache";
 import type { PreparedSceneGenerator } from "./scene/scene-generator-host";
@@ -770,6 +771,12 @@ export class WebGpuRenderer {
     for (const media of resolveSceneMediaPlan(mediaPlan, mediaBindings))
       sceneBatches[media.drawIndex].mediaResourceHash = media.hash;
     const renderStack = planRootSceneStack(sceneLayers, sceneBatches);
+    const rootCommands = planRootSceneCommands(
+      renderStack,
+      new Map([...effectPlans].map(([id, effect]) => [id, effectExecution(effect)])),
+      new Set(generatorByInstance.keys()),
+      composition.background,
+    );
     const postPlan = buildRootPostUniformPlan(framePlanInput);
     uploadRootPostUniformPlan(postPlan, {
       queue: this.#device.queue,
@@ -821,157 +828,37 @@ export class WebGpuRenderer {
     const depthView = resources.depthTexture?.createView();
     if (!sceneTexture || !sceneView || !depthView || !resources.postBindGroup)
       throw new Error("HDR scene target is unavailable");
-    let scenePass: GPURenderPassEncoder | undefined = encoder.beginRenderPass({
-      label: "Linear HDR composition",
-      timestampWrites: resources.gpuProfiler.writes(4),
-      colorAttachments: [
-        {
-          view: sceneView,
-          clearValue: {
-            r: composition.background[0],
-            g: composition.background[1],
-            b: composition.background[2],
-            a: composition.background[3],
-          },
-          loadOp: "clear",
-          storeOp: "store",
-        },
-      ],
-      depthStencilAttachment: {
-        view: depthView,
-        depthClearValue: 1,
-        depthLoadOp: "clear",
-        depthStoreOp: "store",
-      },
+    const {
+      scenePassCount,
+      effectOperationCount,
+      effectLayerCount,
+      adjustmentEffectLayerCount,
+      fusedEffectCount,
+      fusionGroupCount,
+      fusionBarrierCount,
+      generatorDrawCount,
+      activeEffectInstances,
+      adjustmentErrors,
+    } = executeRootScene({
+      commands: rootCommands,
+      draws: renderStack.draws,
+      effects: effectPlans,
+      generators: generatorByInstance,
+      mediaBindings,
+      resources,
+      encoder,
+      sceneTexture,
+      sceneView,
+      depthView,
     });
-    let scenePassCount = 1;
-    let effectOperationCount = 0;
-    let effectLayerCount = 0;
-    let adjustmentEffectLayerCount = 0;
-    let fusedEffectCount = 0;
-    let fusionGroupCount = 0;
-    let fusionBarrierCount = 0;
-    const drawnGenerators = new Set<string>();
-    const activeEffectInstances = new Set<string>();
-    let clearSceneDepth = false;
-    this.diagnostics.adjustmentLayerError = undefined;
-    for (const item of renderStack.items) {
-      if (item.clearDepth) {
-        scenePass?.end();
-        scenePass = undefined;
-        clearSceneDepth = true;
-      }
-      if (item.kind === "adjustment") {
-        const execution = effectExecution(effectPlans.get(item.instanceId));
-        if (execution.route === "skip") continue;
-        const fusion = execution.fusion;
-        scenePass?.end();
-        scenePass = undefined;
-        try {
-          const operationCount = resources.layerEffects.encodeAdjustment(
-            encoder,
-            sceneTexture,
-            effectPlans.get(item.instanceId),
-          );
-          if (operationCount > 0) {
-            activeEffectInstances.add(item.instanceId);
-            adjustmentEffectLayerCount += 1;
-            effectOperationCount += operationCount;
-            fusedEffectCount += fusion.fusedEffectCount;
-            fusionGroupCount += fusion.fusedGroupCount;
-            fusionBarrierCount += fusion.barrierCount;
-          }
-        } catch (error) {
-          const message = error instanceof Error ? error.message : String(error);
-          this.diagnostics.adjustmentLayerError = message;
-          const diagnosticKey = `${execution.layerId}:${message}`;
-          if (!this.#reportedAdjustmentErrors.has(diagnosticKey)) {
-            this.#reportedAdjustmentErrors.add(diagnosticKey);
-            logger.warn("webgpu", "adjustment_layer_skipped", {
-              layerId: execution.layerId,
-              error: message,
-            });
-          }
-        }
-        continue;
-      }
-      if (item.kind === "generator") {
-        const generator = generatorByInstance.get(item.instanceId);
-        if (!generator || drawnGenerators.has(generator.instanceId)) continue;
-        const execution = effectExecution(effectPlans.get(item.instanceId));
-        if (execution.route === "layer") {
-          const fusion = execution.fusion;
-          scenePass?.end();
-          scenePass = undefined;
-          activeEffectInstances.add(item.instanceId);
-          effectLayerCount += 1;
-          effectOperationCount += resources.layerEffects.encode(
-            encoder,
-            sceneTexture,
-            effectPlans.get(item.instanceId),
-            (layerPass) => resources.sceneGenerators.draw(layerPass, generator, "normal"),
-          );
-          fusedEffectCount += fusion.fusedEffectCount;
-          fusionGroupCount += fusion.fusedGroupCount;
-          fusionBarrierCount += fusion.barrierCount;
-          drawnGenerators.add(generator.instanceId);
-          continue;
-        }
-        if (!scenePass) {
-          scenePass = encoder.beginRenderPass({
-            label: "Linear HDR scene generator group",
-            colorAttachments: [{ view: sceneView, loadOp: "load", storeOp: "store" }],
-            depthStencilAttachment: {
-              view: depthView,
-              depthClearValue: 1,
-              depthLoadOp: clearSceneDepth ? "clear" : "load",
-              depthStoreOp: "store",
-            },
-          });
-          scenePassCount += 1;
-          clearSceneDepth = false;
-        }
-        resources.sceneGenerators.draw(scenePass, generator, execution.blendMode);
-        drawnGenerators.add(generator.instanceId);
-        continue;
-      }
-      const draw = renderStack.draws[item.drawIndex];
-      const execution = effectExecution(effectPlans.get(item.instanceId));
-      if (execution.route === "layer") {
-        const fusion = execution.fusion;
-        fusedEffectCount += fusion.fusedEffectCount;
-        fusionGroupCount += fusion.fusedGroupCount;
-        fusionBarrierCount += fusion.barrierCount;
-        scenePass?.end();
-        scenePass = undefined;
-        activeEffectInstances.add(item.instanceId);
-        effectLayerCount += 1;
-        effectOperationCount += resources.layerEffects.encode(
-          encoder,
-          sceneTexture,
-          effectPlans.get(item.instanceId),
-          (layerPass) => drawPlannedSceneBatch(resources, layerPass, draw, mediaBindings, "normal"),
-        );
-      } else {
-        if (!scenePass) {
-          scenePass = encoder.beginRenderPass({
-            label: "Linear HDR direct layer group",
-            colorAttachments: [{ view: sceneView, loadOp: "load", storeOp: "store" }],
-            depthStencilAttachment: {
-              view: depthView,
-              depthClearValue: 1,
-              depthLoadOp: clearSceneDepth ? "clear" : "load",
-              depthStoreOp: "store",
-            },
-          });
-          scenePassCount += 1;
-          clearSceneDepth = false;
-        }
-        drawPlannedSceneBatch(resources, scenePass, draw, mediaBindings, execution.blendMode);
+    this.diagnostics.adjustmentLayerError = adjustmentErrors[adjustmentErrors.length - 1]?.message;
+    for (const { layerId, message } of adjustmentErrors) {
+      const diagnosticKey = `${layerId}:${message}`;
+      if (!this.#reportedAdjustmentErrors.has(diagnosticKey)) {
+        this.#reportedAdjustmentErrors.add(diagnosticKey);
+        logger.warn("webgpu", "adjustment_layer_skipped", { layerId, error: message });
       }
     }
-    const generatorDrawCount = drawnGenerators.size;
-    scenePass?.end();
     const needsAuxiliarySurfaceData =
       usesAuxiliarySurfaceData(this.#bufferVisualization) ||
       beautyDepthOfField ||

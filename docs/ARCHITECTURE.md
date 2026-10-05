@@ -161,8 +161,12 @@ planning and capture remain under extraction. Root scene ordering now snapshots 
 geometry draw indices and depth transitions after media/material preparation. Geometry execution
 consumes owned draw ranges, blend modes, texture references and material values without retaining
 authoring layers. Pending media retains the shape fallback; unavailable precomposition surfaces
-remain omitted. Precomposition encoding still uses a preparation adapter, and root pass boundaries
-and isolated draw callbacks remain to be extracted.
+remain omitted. Root preparation emits an ordered command stream for scene attachment load/store,
+depth clears, geometry/generator draws, isolated inputs/composites and adjustment operations. The
+root executor consumes that stream without rediscovering pass boundaries or supplying draw
+callbacks. Layer effects expose paired input/completion operations; the legacy precomposition
+adapter retains callback compatibility. Complete root command transport and frame capture remain
+under extraction.
 
 Shared WGSL includes output anti-aliasing, core scene variants, compositing, fused post-processing,
 blur/depth/surface effects, auxiliary surfaces, particles, text motion blur and display/buffer helpers.
