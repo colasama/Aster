@@ -3,25 +3,28 @@ import { sourceForLayer } from "../../core/media/footage-source";
 import { type FlattenedSceneLayer, flattenSceneLayers } from "../../core/scene/scene-evaluation";
 import type { BlendMode, Composition, Project } from "../../core/types";
 import { BLEND_MODES } from "../../core/types";
-import {
-  effectExecution,
-  type PreparedLayerEffect,
-  prepareLayerEffects,
-} from "../effects/layer-effect-plan";
+import { prepareLayerEffects } from "../effects/layer-effect-plan";
 import { LayerEffectRenderer } from "../effects/layer-effects";
 import { buildFrameHeader } from "../frame-plan/root-post-plan";
-import { buildSceneGeometry, FLOATS_PER_VERTEX, type GeometryBatch } from "../geometry/geometry";
+import { prepareSceneBuffers } from "../frame-plan/scene-buffer-upload";
+import { buildSceneGeometry, FLOATS_PER_VERTEX } from "../geometry/geometry";
 import { sharedShaders } from "../gpu/shared-shader-catalog";
 import { LutSelectionPlanner } from "../media/lut-selection-plan";
 import type { MediaTextureCache } from "../media/media-texture-cache";
 import { evaluateSceneCamera } from "../scene/scene-camera";
 import type { PreparedSceneGenerator, SceneGeneratorHost } from "../scene/scene-generator-host";
+import type { SceneGeneratorPlan } from "../scene/scene-generator-plan";
 import { buildSceneLighting, SCENE_LIGHTING_BYTES } from "../scene/scene-lighting";
 import { IMAGE_VERTEX_BUFFERS } from "../scene/scene-pipelines";
 import { planTextMotionBlurFrame, type TextMotionBlurPlan } from "../text/text-motion-blur-plan";
 import { transformedTextRasterScale } from "../text/text-rasterizer";
 import { FIXED_BLEND_MODES, gpuBlendState } from "./blend-state";
+import { executePrecompositionScene } from "./execute-precomposition-scene";
 import { needsLayerIsolation } from "./layer-composite";
+import {
+  buildPrecompositionScenePlan,
+  type PrecompositionScenePlan,
+} from "./precomposition-scene-plan";
 import {
   createPrecompositionSurfaceBudget,
   MAX_PRECOMPOSITION_SURFACE_TEXTURES,
@@ -30,7 +33,6 @@ import {
   precompositionSurfaceByteLimit,
   precompositionSurfaceCacheKey,
 } from "./precomposition-surface-plan";
-import { planSceneRenderStack } from "./render-stack";
 
 const SURFACE_FORMAT: GPUTextureFormat = "rgba16float";
 const INITIAL_VERTEX_BYTES = 6 * FLOATS_PER_VERTEX * Float32Array.BYTES_PER_ELEMENT;
@@ -51,16 +53,6 @@ interface SurfaceEntry {
   estimatedBytes: number;
   textureCount: number;
   lastUsedFrame: number;
-}
-
-interface SurfaceJob {
-  entry: SurfaceEntry;
-  composition: Composition;
-  time: number;
-  sceneLayers: FlattenedSceneLayer[];
-  geometry: ReturnType<typeof buildSceneGeometry>;
-  generators: PreparedSceneGenerator[];
-  effectPlans: ReadonlyMap<string, PreparedLayerEffect>;
 }
 
 export interface PrecompositionSurfaceFrame {
@@ -102,9 +94,10 @@ export class PrecompositionSurfaceRenderer {
   readonly #shadowTexture: GPUTexture;
   readonly #shadowSampler: GPUSampler;
   readonly #entries = new Map<string, SurfaceEntry>();
-  readonly #bindings = new Map<string, GPUBindGroup>();
+  readonly #bindings = new Map<string, string>();
+  readonly #generators = new Map<string, PreparedSceneGenerator>();
   readonly #mediaInstanceIds = new Set<string>();
-  #jobs: SurfaceJob[] = [];
+  #jobs: PrecompositionScenePlan[] = [];
   #project?: Project;
   #revision = 0;
   #frame = 0;
@@ -150,12 +143,13 @@ export class PrecompositionSurfaceRenderer {
       this.#revision += 1;
     }
     this.#jobs = [];
+    this.#generators.clear();
     this.#bindings.clear();
     this.#mediaInstanceIds.clear();
     const diagnostics: string[] = [];
     const budget = createPrecompositionSurfaceBudget();
     const preparedKeys = new Set<string>();
-    const preparedSources = new Map<string, SurfaceEntry>();
+    const preparedSources = new Map<string, string>();
     if (project) {
       for (const scene of sceneLayers) {
         if (!scene.precompositionSurface) continue;
@@ -191,7 +185,8 @@ export class PrecompositionSurfaceRenderer {
   }
 
   bindingFor(instanceId: string): GPUBindGroup | undefined {
-    return this.#bindings.get(instanceId);
+    const target = this.#bindings.get(instanceId);
+    return target === undefined ? undefined : this.#entries.get(target)?.bindGroup;
   }
 
   pipelineFor(blendMode: BlendMode): GPURenderPipeline {
@@ -210,6 +205,7 @@ export class PrecompositionSurfaceRenderer {
     for (const entry of this.#entries.values()) destroyEntry(entry);
     this.#entries.clear();
     this.#bindings.clear();
+    this.#generators.clear();
     this.#jobs = [];
     this.#shadowTexture.destroy();
   }
@@ -221,7 +217,7 @@ export class PrecompositionSurfaceRenderer {
     memoryBudgetMb: number | undefined,
     budget: ReturnType<typeof createPrecompositionSurfaceBudget>,
     preparedKeys: Set<string>,
-    preparedSources: Map<string, SurfaceEntry>,
+    preparedSources: Map<string, string>,
     diagnostics: string[],
     enableTextMotionBlur: boolean,
     renderScale: number,
@@ -231,8 +227,7 @@ export class PrecompositionSurfaceRenderer {
     const logicalKey = `${this.#revision}:${surface.composition.id}:${surface.time.toFixed(9)}`;
     const shared = preparedSources.get(logicalKey);
     if (shared) {
-      shared.lastUsedFrame = this.#frame;
-      this.#bindings.set(scene.instanceId, shared.bindGroup);
+      this.#bindings.set(scene.instanceId, shared);
       return;
     }
     let childLayers: FlattenedSceneLayer[];
@@ -273,12 +268,12 @@ export class PrecompositionSurfaceRenderer {
       this.#createEntry(key, plan.width, plan.height, plan.estimatedBytes, plan.textureCount);
     if (!this.#entries.has(key)) this.#entries.set(key, entry);
     entry.lastUsedFrame = this.#frame;
-    preparedSources.set(logicalKey, entry);
+    preparedSources.set(logicalKey, key);
     if (hasEffects && !entry.effects) {
       entry.effects = new LayerEffectRenderer(this.#device, SURFACE_FORMAT);
       entry.effects.resize(entry.width, entry.height);
     }
-    this.#bindings.set(scene.instanceId, entry.bindGroup);
+    this.#bindings.set(scene.instanceId, key);
     if (preparedKeys.has(key)) return;
     preparedKeys.add(key);
 
@@ -356,15 +351,7 @@ export class PrecompositionSurfaceRenderer {
       diagnostics.push(
         `${surface.composition.name}: child shadow maps are not encoded inside precomposition surfaces`,
       );
-    this.#ensureVertexBuffer(entry, geometry.data.byteLength);
-    if (geometry.data.byteLength > 0)
-      this.#device.queue.writeBuffer(entry.vertexBuffer, 0, geometry.data);
-    const cameraPosition = camera?.pose.position;
-    this.#device.queue.writeBuffer(
-      entry.lightingBuffer,
-      0,
-      buildSceneLighting(childLayers, surface.composition, false, cameraPosition),
-    );
+    const effects = this.#prepareEffects(entry, surface.composition, childLayers, surface.time);
     const generatorHeader = buildFrameHeader({
       snapshot: { snapshotScope: "precomposition-generators", projectRevision: this.#revision },
       compositionId: surface.composition.id,
@@ -374,30 +361,65 @@ export class PrecompositionSurfaceRenderer {
       renderTarget: { width: entry.width, height: entry.height },
       antiAliasing: "off",
     });
-    this.#jobs.push({
-      entry,
+    const generators: SceneGeneratorPlan[] = [];
+    if (this.#sceneGenerators)
+      for (const child of childLayers) {
+        if (!this.#sceneGenerators.supports(child)) continue;
+        const planned = this.#sceneGenerators.plan(
+          child,
+          surface.composition,
+          entry.width,
+          entry.height,
+          memoryBudgetMb,
+          camera,
+        );
+        if (!planned) continue;
+        const prepared = this.#sceneGenerators.preparePlanned(
+          planned,
+          { layerName: child.layer.name, pluginId: child.layer.generator?.pluginId ?? "" },
+          generatorHeader,
+        );
+        if (!prepared) continue;
+        this.#generators.set(planned.instanceId, prepared);
+        generators.push(planned);
+      }
+    const job = buildPrecompositionScenePlan({
+      target: {
+        id: key,
+        width: entry.width,
+        height: entry.height,
+        estimatedBytes: entry.estimatedBytes,
+        textureCount: entry.textureCount,
+        hasEffects,
+      },
+      revision: this.#revision,
       composition: surface.composition,
       time: surface.time,
-      sceneLayers: childLayers,
+      layers: childLayers,
       geometry,
-      effectPlans: this.#prepareEffects(entry, surface.composition, childLayers, surface.time),
-      generators: this.#sceneGenerators
-        ? childLayers
-            .filter((child) => this.#sceneGenerators?.supports(child))
-            .map((child) =>
-              this.#sceneGenerators?.prepare(
-                child,
-                surface.composition,
-                entry.width,
-                entry.height,
-                memoryBudgetMb,
-                camera,
-                generatorHeader,
-              ),
-            )
-            .filter((generator): generator is PreparedSceneGenerator => Boolean(generator))
-        : [],
+      lighting: buildSceneLighting(childLayers, surface.composition, false, camera?.pose.position),
+      effects,
+      generators,
+      surfaceTargets: this.#bindings,
     });
+    this.#jobs.push(job);
+    const buffers = prepareSceneBuffers(job.scene);
+    this.#ensureVertexBuffer(entry, buffers.vertices.byteLength);
+    if (buffers.vertices.byteLength)
+      this.#device.queue.writeBuffer(
+        entry.vertexBuffer,
+        0,
+        buffers.vertices.buffer,
+        buffers.vertices.byteOffset,
+        buffers.vertices.byteLength,
+      );
+    this.#device.queue.writeBuffer(
+      entry.lightingBuffer,
+      0,
+      buffers.lighting.buffer,
+      buffers.lighting.byteOffset,
+      buffers.lighting.byteLength,
+    );
   }
 
   #prepareMedia(
@@ -565,156 +587,18 @@ export class PrecompositionSurfaceRenderer {
     );
   }
 
-  #encodeJob(encoder: GPUCommandEncoder, job: SurfaceJob): void {
-    const { entry, composition, geometry, sceneLayers, generators } = job;
-    if (generators.length > 0) {
-      const compute = encoder.beginComputePass({
-        label: `Precomposition scene generators · ${composition.name}`,
-      });
-      for (const generator of generators) this.#sceneGenerators?.encodeCompute(compute, generator);
-      compute.end();
-    }
-    const generatorByInstance = new Map(
-      generators.map((generator) => [generator.instanceId, generator]),
-    );
-    const stack = planSceneRenderStack(sceneLayers, geometry.batches);
-    let pass: GPURenderPassEncoder | undefined = this.#beginPass(encoder, entry, composition);
-    const activeEffects = new Set<string>();
-    let clearDepth = false;
-    for (const item of stack) {
-      if (item.clearDepth) {
-        pass?.end();
-        pass = undefined;
-        clearDepth = true;
-      }
-      if (item.kind === "generator") {
-        const generator = generatorByInstance.get(item.scene.instanceId);
-        if (!generator) continue;
-        const execution = effectExecution(job.effectPlans.get(item.scene.instanceId));
-        if (execution.route === "layer") {
-          pass?.end();
-          pass = undefined;
-          activeEffects.add(item.scene.instanceId);
-          entry.effects?.encode(
-            encoder,
-            entry.color,
-            job.effectPlans.get(item.scene.instanceId),
-            (layerPass) => this.#sceneGenerators?.draw(layerPass, generator, "normal"),
-          );
-          continue;
-        }
-        pass ??= this.#resumePass(encoder, entry, clearDepth);
-        clearDepth = false;
-        this.#sceneGenerators?.draw(pass, generator, execution.blendMode);
-        continue;
-      }
-      if (item.kind === "adjustment") {
-        if (effectExecution(job.effectPlans.get(item.scene.instanceId)).route === "skip") continue;
-        pass?.end();
-        pass = undefined;
-        const count = entry.effects?.encodeAdjustment(
-          encoder,
-          entry.color,
-          job.effectPlans.get(item.scene.instanceId),
-        );
-        if (count) activeEffects.add(item.scene.instanceId);
-        continue;
-      }
-      const { batch } = item;
-      const execution = effectExecution(job.effectPlans.get(batch.instanceId));
-      if (execution.route === "layer") {
-        pass?.end();
-        pass = undefined;
-        activeEffects.add(batch.instanceId);
-        entry.effects?.encode(
-          encoder,
-          entry.color,
-          job.effectPlans.get(batch.instanceId),
-          (layerPass) => this.#drawBatch(layerPass, entry, batch, "normal"),
-        );
-        continue;
-      }
-      pass ??= this.#resumePass(encoder, entry, clearDepth);
-      clearDepth = false;
-      this.#drawBatch(pass, entry, batch, execution.blendMode);
-    }
-    pass?.end();
-    entry.effects?.sweep(activeEffects);
-  }
-
-  #beginPass(
-    encoder: GPUCommandEncoder,
-    entry: SurfaceEntry,
-    composition: Composition,
-  ): GPURenderPassEncoder {
-    return encoder.beginRenderPass({
-      label: `Isolated precomposition · ${composition.name}`,
-      colorAttachments: [
-        {
-          view: entry.color.createView(),
-          clearValue: {
-            r: composition.background[0],
-            g: composition.background[1],
-            b: composition.background[2],
-            a: composition.background[3],
-          },
-          loadOp: "clear",
-          storeOp: "store",
-        },
-      ],
-      depthStencilAttachment: {
-        view: entry.depth.createView(),
-        depthClearValue: 1,
-        depthLoadOp: "clear",
-        depthStoreOp: "store",
-      },
+  #encodeJob(encoder: GPUCommandEncoder, plan: PrecompositionScenePlan): void {
+    executePrecompositionScene({
+      plan,
+      encoder,
+      targets: this.#entries,
+      generators: this.#generators,
+      host: this.#sceneGenerators,
+      mediaBinding: (id) => this.#mediaTextures.bindGroup(id),
+      surfacePipelines: this.#surfacePipelines,
+      imagePipelines: this.#imagePipelines,
+      shapePipelines: this.#shapePipelines,
     });
-  }
-
-  #resumePass(
-    encoder: GPUCommandEncoder,
-    entry: SurfaceEntry,
-    clearDepth: boolean,
-  ): GPURenderPassEncoder {
-    return encoder.beginRenderPass({
-      label: "Resume isolated precomposition stack",
-      colorAttachments: [{ view: entry.color.createView(), loadOp: "load", storeOp: "store" }],
-      depthStencilAttachment: {
-        view: entry.depth.createView(),
-        depthClearValue: 1,
-        depthLoadOp: clearDepth ? "clear" : "load",
-        depthStoreOp: "store",
-      },
-    });
-  }
-
-  #drawBatch(
-    pass: GPURenderPassEncoder,
-    entry: SurfaceEntry,
-    batch: GeometryBatch,
-    blendMode = batch.layer.blendMode,
-  ): void {
-    pass.setVertexBuffer(0, entry.vertexBuffer);
-    const surface =
-      batch.layer.kind === "precomposition" ? this.#bindings.get(batch.instanceId) : undefined;
-    if (surface) {
-      pass.setPipeline(this.#surfacePipelines[blendMode]);
-      pass.setBindGroup(0, surface);
-    } else {
-      const media =
-        batch.layer.kind === "image" || batch.layer.kind === "video" || batch.layer.kind === "text"
-          ? this.#mediaTextures.bindGroup(batch.resourceInstanceId)
-          : undefined;
-      if (batch.layer.kind === "precomposition" && !media) return;
-      if (media) {
-        pass.setPipeline(this.#imagePipelines[blendMode]);
-        pass.setBindGroup(0, media);
-      } else {
-        pass.setPipeline(this.#shapePipelines[blendMode]);
-        pass.setBindGroup(0, entry.lightingBindGroup);
-      }
-    }
-    pass.draw(batch.vertexCount, 1, batch.firstVertex);
   }
 
   #sweep(activeKeys: ReadonlySet<string>): void {

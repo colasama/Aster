@@ -22,7 +22,7 @@ export type RootSceneCommand =
 
 /** Resolve ordering and pass boundaries once; execution must not rediscover routing. */
 export function planRootSceneCommands(
-  stack: PlannedSceneStack,
+  stack: Pick<PlannedSceneStack, "items">,
   effects: ReadonlyMap<string, EffectExecution>,
   generators: ReadonlySet<string>,
   background: readonly [number, number, number, number],

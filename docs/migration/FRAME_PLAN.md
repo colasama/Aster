@@ -418,3 +418,22 @@ boundary. Skipping compute, changing supplied context opacity, clearing supplied
 a clone must visibly alter pixels. Reference pixels and the retained implementation are frozen
 and hash-pinned; the checking command cannot update them. Complete frame capture remains pending,
 and this slice does not claim a complete renderer plan.
+
+### Precomposition scene planning boundary
+
+`PrecompositionScenePlan` replaces GPU-entry/authoring-object jobs with owned inputs: a target
+descriptor, scene-buffer FPLN bytes, ordered pass commands, draw ranges and texture references,
+copied layer-effect plans, and generator FPLN slices plus WGSL resources. Output and child surfaces
+are addressed by stable cache target IDs. GPU entries and prepared generator handles live only
+in execution-owned maps; no `Composition`, `Layer` or `GeometryBatch` reaches command encoding.
+
+The existing recursive preparation still chooses surfaces, namespaces child media, samples text
+motion blur and preserves child-first jobs, sharing keys, budgets and current-frame pinning.
+Scene geometry and lighting uploads consume the scene-buffer slice; generator realization uses
+the existing validated transport and preserves diagnostic/skip behavior on preparation failure.
+The executor consumes copied pass/clear/blend decisions and rejects missing declared output or
+child targets before recording commands. Budget-skipped children have an explicit null target.
+
+This is an in-memory scene boundary, not a complete recursive wire contract. Child media still
+uses frame-local instance bindings. A recursive frame envelope, resource-hash resolution,
+independent Rust-returned replay and complete capture remain required by M2-T11/M2 exit.

@@ -187,6 +187,14 @@ particle, cloner and installed audio-plugin cases on an independent device. Outp
 frozen pre-extraction host captures; fifteen deliberate compute/context/audio/clone mutations must
 visibly change pixels. Complete frame capture remains pending.
 
+Precomposition jobs now own scene-buffer FPLN data, copied effect and generator payloads,
+draw references and explicit pass commands. They address output and child surfaces by target ID;
+GPU entries and prepared generators remain in execution-owned maps. Encoding no longer reads
+`Composition`, `Layer` or `GeometryBatch`. The existing child-first traversal, cache sharing,
+current-frame eviction protection, limits and generator failure diagnostics remain at the
+preparation boundary. The recursive frame envelope and content-addressed child media bindings
+are still required before complete precomposition transport and independent replay.
+
 Shared WGSL includes output anti-aliasing, core scene variants, compositing, fused post-processing,
 blur/depth/surface effects, auxiliary surfaces, particles, text motion blur and display/buffer helpers.
 The TS `SharedShaderCatalog` loads sources through Vite `?raw`, including in Vitest, and concatenates the fragments in

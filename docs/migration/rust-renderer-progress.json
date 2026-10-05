@@ -14935,7 +14935,7 @@
             "Recursive plan can be serialized independently; missing child/output target fails typed; current-frame resources stay pinned."
           ],
           "required_full_gates": ["G0", "G1", "G3"],
-          "status": "pending"
+          "status": "in_progress"
         },
         {
           "id": "M2-T12",
@@ -16445,5 +16445,16 @@
       }
     }
   ],
-  "active_cycle": null
+  "active_cycle": {
+    "id": 51,
+    "started_at": "2026-10-05T06:05:29.021Z",
+    "milestone": "M2",
+    "task": "M2-T11",
+    "intent": "Replace precomposition encoding jobs with owned scene plans and target IDs; keep GPU targets and prepared generators in execution-owned registries.",
+    "previous_turn": "progress: M2-T10 closed with independent generator GPU replay and full gates green.",
+    "usage": {
+      "used_percent": 32,
+      "remaining_percent": 68
+    }
+  }
 }

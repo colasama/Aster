@@ -251,6 +251,18 @@ export class SceneGeneratorHost {
   ): PreparedSceneGenerator | undefined {
     const plan = this.plan(scene, composition, width, height, memoryBudgetMb, camera);
     if (!plan) return undefined;
+    return this.preparePlanned(
+      plan,
+      { layerName: scene.layer.name, pluginId: scene.layer.generator?.pluginId ?? "" },
+      header,
+    );
+  }
+
+  preparePlanned(
+    plan: SceneGeneratorPlan,
+    source: { layerName: string; pluginId: string },
+    header?: FrameHeaderSlice,
+  ): PreparedSceneGenerator | undefined {
     try {
       const supplied = header
         ? readGeneratorSlice(
@@ -261,8 +273,8 @@ export class SceneGeneratorHost {
       return this.preparePlan(supplied);
     } catch (error) {
       return this.#reportMissing(
-        scene,
-        `Scene generator ${scene.layer.generator?.pluginId} failed to prepare: ${error instanceof Error ? error.message : String(error)}`,
+        { instanceId: plan.instanceId, layer: { name: source.layerName } },
+        `Scene generator ${source.pluginId} failed to prepare: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }
@@ -369,7 +381,10 @@ export class SceneGeneratorHost {
     this.#audio.destroy();
   }
 
-  #reportMissing(scene: FlattenedSceneLayer, message: string): undefined {
+  #reportMissing(
+    scene: { instanceId: string; layer: { name: string } },
+    message: string,
+  ): undefined {
     this.#diagnostics.push(`${scene.layer.name}: ${message}`);
     const key = `${scene.instanceId}:${message}`;
     if (!this.#reportedFailures.has(key)) {

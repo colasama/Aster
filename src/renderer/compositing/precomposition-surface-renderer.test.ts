@@ -10,7 +10,9 @@ import { createEffect } from "../../effects/registry";
 import { LayerEffectRenderer } from "../effects/layer-effects";
 import { readLayerEffectSlice } from "../frame-plan/layer-effect-plan";
 import { MediaTextureCache } from "../media/media-texture-cache";
+import { bundledParticleDefinition } from "../scene/bundled-particle-generator";
 import type { SceneGeneratorHost } from "../scene/scene-generator-host";
+import { SceneGeneratorPlanner } from "../scene/scene-generator-plan";
 import { textRasterResolutionScale } from "../text/text-rasterizer";
 import {
   createPrecompositionSurfaceBudget,
@@ -237,14 +239,14 @@ describe("GPU precomposition surfaces", () => {
     wrapper.timeRemap = { mode: "static", value: 4 };
     root.layers = [wrapper];
     project.compositions.push(group, child);
-    const encode = vi.spyOn(LayerEffectRenderer.prototype, "encode");
+    const encode = vi.spyOn(LayerEffectRenderer.prototype, "beginLayer");
     try {
       renderer.prepare(project, flattenSceneLayers(root, project, 1), false);
       shape.effects = [];
       shape.blendMode = "screen";
       renderer.encode(mockEncoder([]));
       expect(encode.mock.calls).toHaveLength(1);
-      const effect = encode.mock.calls[0][2];
+      const effect = encode.mock.calls[0][1];
       if (effect?.status !== "ready") throw Error("Missing prepared nested effect");
       const plan = readLayerEffectSlice(effect.plan);
       expect(plan.instanceId).toContain(shape.id);
@@ -367,13 +369,23 @@ describe("GPU precomposition surfaces", () => {
     const layout = device.createBindGroupLayout({ entries: [] });
     const sampler = device.createSampler();
     const pipelines = blendPipelines();
-    const prepared = { instanceId: "", selectionId: "" };
+    const planner = new SceneGeneratorPlanner();
     const sceneGenerators = {
       supports: vi.fn((scene) => scene.layer.kind === "generator"),
-      prepare: vi.fn((scene) => ({
-        ...prepared,
-        instanceId: scene.instanceId,
-        selectionId: scene.selectionId,
+      plan: vi.fn((scene, composition, width, height) =>
+        planner.prepare({
+          scene,
+          composition,
+          width,
+          height,
+          definition: bundledParticleDefinition,
+          storageByteLimit: 512 * 1024 * 1024,
+          dispatchWorkgroupLimit: 65535,
+        }),
+      ),
+      preparePlanned: vi.fn((plan) => ({
+        instanceId: plan.instanceId,
+        selectionId: plan.selectionId,
       })),
       encodeCompute: vi.fn(() => events.push("generator-compute")),
       draw: vi.fn(() => events.push("generator-draw")),
@@ -410,7 +422,7 @@ describe("GPU precomposition surfaces", () => {
     renderer.prepare(project, flattenSceneLayers(root, project, 0), false);
     renderer.encode(mockEncoder(events));
 
-    expect(sceneGenerators.prepare).toHaveBeenCalledWith(
+    expect(sceneGenerators.plan).toHaveBeenCalledWith(
       expect.objectContaining({
         layer: expect.objectContaining({ id: generator.id, kind: "generator" }),
         localTime: 2.5,
@@ -420,16 +432,13 @@ describe("GPU precomposition surfaces", () => {
       root.height,
       undefined,
       undefined,
-      expect.objectContaining({
-        snapshot_scope: "precomposition-generators",
-        project_revision: 1,
-        composition_id: nested.id,
-        time: { kind: "binary_rational", negative: false, significand: 5, exponent: -1 },
-        target: { width: nested.width, height: nested.height },
-        render_target: { width: root.width, height: root.height },
-        aa: "off",
-      }),
     );
+    expect(sceneGenerators.preparePlanned).toHaveBeenCalledOnce();
+    const supplied = vi.mocked(sceneGenerators.preparePlanned).mock.calls[0][0];
+    expect(supplied.effectiveCount).toBe(64);
+    expect(
+      new Float32Array(supplied.context.buffer, supplied.context.byteOffset, 4).slice(0, 4),
+    ).toEqual(new Float32Array([root.width, root.height, 2.5, 2.5]));
     expect(sceneGenerators.encodeCompute).toHaveBeenCalledOnce();
     expect(sceneGenerators.draw).toHaveBeenCalledOnce();
     expect(events.indexOf("generator-compute")).toBeLessThan(events.indexOf("generator-draw"));
@@ -439,6 +448,11 @@ describe("GPU precomposition surfaces", () => {
     expect(events).toEqual(
       expect.arrayContaining([expect.stringMatching(/^pass:Fused layer effects .*surface:/)]),
     );
+    vi.mocked(sceneGenerators.preparePlanned).mockReturnValueOnce(undefined);
+    renderer.prepare(project, flattenSceneLayers(root, project, 0), false);
+    renderer.encode(mockEncoder(events));
+    expect(sceneGenerators.encodeCompute).toHaveBeenCalledOnce();
+    expect(sceneGenerators.draw).toHaveBeenCalledOnce();
   });
 
   it("uses the isolated surface scale and namespaced exact-time plan for animated text", () => {
