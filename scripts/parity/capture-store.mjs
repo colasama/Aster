@@ -104,6 +104,7 @@ export class CaptureStore {
       rgba_sha256: createHash("sha256").update(pixels).digest("hex"),
       raster_resources: rasterReferences,
       ...(frameReplay ? { frame_replay: frameReplay } : {}),
+      ...(payload.temporalReplay ? { temporal_replay: payload.temporalReplay } : {}),
       timings: { ...payload.timings, png_encode_write_ms: performance.now() - started },
     };
     await writeAtomicJson(join(path, "meta.json"), meta);

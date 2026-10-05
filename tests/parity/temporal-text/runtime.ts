@@ -13,6 +13,7 @@ import {
   type TextMotionBlurPlan,
 } from "../../../src/renderer/text/text-motion-blur-plan";
 import { TextMotionBlurRasterCache } from "../../../src/renderer/text/text-motion-blur-raster-cache";
+import { auditTemporalFrameReplay } from "./whole-frame";
 
 type Mode = "full" | "enters" | "exits" | "transparent";
 
@@ -56,6 +57,8 @@ function fixture(mode: Mode) {
   if (!plan || (mode !== "transparent" && plan.samples.length < 2))
     throw new Error("Temporal GPU fixture did not exercise shutter samples");
   return {
+    project,
+    composition,
     layer,
     plan,
     header: buildFrameHeader({
@@ -86,9 +89,12 @@ export async function runTemporalTextGpuCheck() {
   });
   const sampler = device.createSampler({ minFilter: "linear", magFilter: "linear" });
   const results = [];
+  const frameReplays = [];
   try {
     for (const mode of ["full", "enters", "exits", "transparent"] as const) {
-      const { layer, plan, header } = fixture(mode);
+      const { project, composition, layer, plan, header } = fixture(mode);
+      if (mode !== "transparent")
+        frameReplays.push({ mode, frames: await auditTemporalFrameReplay(project, composition) });
       let pass: FramePlanSliceData | undefined;
       let samples: readonly MediaResource[] = [];
       const cache = new TextMotionBlurRasterCache(device, layout, sampler, {
@@ -177,6 +183,7 @@ export async function runTemporalTextGpuCheck() {
         description: adapter.info.description,
       },
       results,
+      frame_replays: frameReplays,
     };
   } finally {
     device.destroy();

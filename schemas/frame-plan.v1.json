@@ -926,6 +926,12 @@
               "format": "uint32",
               "minimum": 0,
               "type": "integer"
+            },
+            "temporal": {
+              "items": {
+                "$ref": "#/$defs/ResourceHash"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -939,7 +945,8 @@
             "shadow_map_size",
             "effects",
             "generators",
-            "media_pixels"
+            "media_pixels",
+            "temporal"
           ],
           "type": "object"
         },

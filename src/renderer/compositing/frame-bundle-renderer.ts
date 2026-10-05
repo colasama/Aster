@@ -2,6 +2,7 @@ import { AntiAliasingRenderer } from "../effects/anti-aliasing";
 import { requirePlan } from "../frame-plan/canonical";
 import type { FrameBundle } from "../frame-plan/frame-bundle-plan";
 import { readFrameBundleAsync } from "../frame-plan/frame-bundle-read";
+import { readTemporalPassSlice } from "../frame-plan/temporal-pass-plan";
 import { normalizeRawFrameRgba } from "../gpu/raw-frame-png";
 import { RendererResources } from "../renderer-resources";
 import { prepareSuppliedFrame } from "./prepare-supplied-frame";
@@ -15,6 +16,11 @@ export class FrameBundleRenderer {
   #output?: GPUTexture;
   #busy = false;
   #destroyed = false;
+  #temporalExecution = { passes: 0, samples: 0 };
+
+  get temporalExecution() {
+    return { ...this.#temporalExecution };
+  }
 
   private constructor(
     readonly device: GPUDevice,
@@ -57,6 +63,7 @@ export class FrameBundleRenderer {
       "Supplied frame renderer is busy or destroyed",
     );
     this.#busy = true;
+    this.#temporalExecution = { passes: 0, samples: 0 };
     let assets: SuppliedFrameAssets | undefined;
     const resources = this.#resources,
       device = this.device;
@@ -93,6 +100,7 @@ export class FrameBundleRenderer {
         antiAliasing: this.#aa,
         mediaBindings: assets.media,
         materialBindings: assets.materials,
+        temporalPasses: assets.temporal,
       });
       requirePlan(
         result.adjustmentErrors.length === 0,
@@ -105,6 +113,13 @@ export class FrameBundleRenderer {
         device.queue.submit([encoder.finish()]);
         const raw = await ticket.read();
         await device.queue.onSubmittedWorkDone();
+        this.#temporalExecution = {
+          passes: decoded.plans.temporal.length,
+          samples: decoded.plans.temporal.reduce(
+            (count, slice) => count + readTemporalPassSlice(slice).samples.length,
+            0,
+          ),
+        };
         return normalizeRawFrameRgba(raw, width, height);
       } finally {
         ticket.abort();

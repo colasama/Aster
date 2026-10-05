@@ -26,6 +26,7 @@ export interface FrameBundleInput {
   generators: readonly { plan: SceneGeneratorPlan; capacity: number }[];
   resources: readonly BundleResource[];
   precompositions?: FrameBundle;
+  temporal?: readonly FramePlanSliceData[];
 }
 /** Assemble one frame from observed plans and cache payloads, without evaluating source objects. */
 export function buildFrameBundle(input: FrameBundleInput): FrameBundle {
@@ -48,6 +49,7 @@ export function buildFrameBundle(input: FrameBundleInput): FrameBundle {
     precompositions: optional(input.precompositions?.plan),
     shadow_map_size: input.shadowMapSize,
     media_pixels: [],
+    temporal: (input.temporal ?? []).map((plan) => resources.addPlan(plan)),
     effects: buildBundleEffects(input.effects, resources),
     generators: input.generators.map(({ plan: generator, capacity }) => {
       for (const shader of generator.program.shaders) resources.add(shader);
@@ -82,7 +84,8 @@ export function buildFrameBundle(input: FrameBundleInput): FrameBundle {
     }
   }
   for (const generator of bundle.generators) markPlan(generator.plan, "scene_generator_slice_v1");
-  const bytes = new Uint8Array(20),
+  for (const plan of bundle.temporal) markPlan(plan, "temporal_text_passes_slice_v1");
+  const bytes = new Uint8Array(24),
     view = new DataView(bytes.buffer);
   [
     bundle.shadow_map_size,
@@ -90,6 +93,7 @@ export function buildFrameBundle(input: FrameBundleInput): FrameBundle {
     bundle.generators.length,
     Number(bundle.precompositions !== null),
     bundle.media_pixels.length,
+    bundle.temporal.length,
   ].forEach((value, index) => {
     view.setUint32(index * 4, value, true);
   });
@@ -101,7 +105,7 @@ export function buildFrameBundle(input: FrameBundleInput): FrameBundle {
       renderer_plan_complete: false,
       header: structuredClone(header),
       resources: [...resources.used].sort(),
-      blobs: [{ byte_offset: 0, byte_length: 20, element_type: "u32_le", element_count: 5 }],
+      blobs: [{ byte_offset: 0, byte_length: 24, element_type: "u32_le", element_count: 6 }],
       slices: [bundle],
     },
     defaultFramePlanLimits(),

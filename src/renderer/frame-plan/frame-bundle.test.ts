@@ -6,6 +6,18 @@ import { readFrameBundle, readFrameBundleAsync } from "./frame-bundle-read";
 import { contentResourceHashSync } from "./resources";
 
 describe("owned root frame bundles", () => {
+  it("owns temporal samples and rejects duplicate passes and undeclared stages", () => {
+    const packet = structuredClone(frameBundleFixtures()[2].frameBundle);
+    const decoded = readFrameBundle(packet);
+    expect(decoded.plans.temporal).toHaveLength(2);
+    expect(decoded.mediaPixels).toHaveLength(4);
+    const bundle = packet.plan.metadata.slices[0];
+    if (bundle.kind !== "frame_bundle") throw Error("Missing fixture");
+    bundle.temporal[1] = bundle.temporal[0];
+    expect(() => readFrameBundle(packet)).toThrow(/Duplicate temporal/);
+    bundle.temporal[1] = "f".repeat(64);
+    expect(() => readFrameBundle(packet)).toThrow(/Undeclared temporal/);
+  });
   it("resolves recursive scenes, LUT effects and effective generator inputs without authoring objects", () => {
     const fixture = frameBundleFixtures()[0];
     const packet = structuredClone(fixture.frameBundle);

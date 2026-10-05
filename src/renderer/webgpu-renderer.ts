@@ -389,7 +389,7 @@ export class WebGpuRenderer {
       this.#width,
       this.#height,
     );
-    resources.mediaTextures.beginFrame();
+    resources.mediaTextures.beginFrame(this.#frameCaptures.capturesBundle);
     const motionBlurSettings = compositionMotionBlurSettings(composition);
     const previewResolutionScale = Math.max(
       this.#width / Math.max(1, composition.width),

@@ -5,7 +5,10 @@ import { type ImageRasterDestination, uploadImageRaster } from "./image-raster-u
 import { SuppliedMediaPixels } from "./supplied-media-pixels";
 
 vi.mock("./image-raster-upload", () => ({ uploadImageRaster: vi.fn() }));
-const destination = { maximumBytes: 64 * 1024 * 1024 } as ImageRasterDestination;
+const destination = {
+  maximumDimension: 8192,
+  maximumBytes: 64 * 1024 * 1024,
+} as ImageRasterDestination;
 
 describe("supplied frame media ownership", () => {
   beforeEach(() => vi.resetAllMocks());
@@ -46,6 +49,28 @@ describe("supplied frame media ownership", () => {
       /hash differs/,
     );
     expect(uploadImageRaster).not.toHaveBeenCalled();
+  });
+  it("allocates derived outputs without uploading their captured resolved pixels", async () => {
+    vi.stubGlobal("GPUTextureUsage", { RENDER_ATTACHMENT: 1, TEXTURE_BINDING: 2, COPY_SRC: 4 });
+    const captures = readFrameBundle(frameBundleFixtures()[0].frameBundle).mediaPixels;
+    const hash = captures[0].frame.hash,
+      texture = { destroy: vi.fn() } as unknown as GPUTexture;
+    const supplied = await SuppliedMediaPixels.create(
+      captures,
+      [hash],
+      {
+        ...destination,
+        device: { createTexture: vi.fn(() => texture) } as unknown as GPUDevice,
+        createBindGroup: () => ({}) as GPUBindGroup,
+      },
+      [hash],
+    );
+    expect(uploadImageRaster).not.toHaveBeenCalled();
+    expect(supplied.textureForHash(hash)).toBe(texture);
+    supplied.destroy();
+    expect(texture.destroy).toHaveBeenCalledOnce();
+    expect(() => supplied.textureForHash(hash)).toThrow(/absent or destroyed/);
+    vi.unstubAllGlobals();
   });
   it("releases an uploaded texture when its binding is missing", async () => {
     const captures = readFrameBundle(frameBundleFixtures()[0].frameBundle).mediaPixels;

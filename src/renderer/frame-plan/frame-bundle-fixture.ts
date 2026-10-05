@@ -14,9 +14,10 @@ import { buildRootScenePlan } from "./root-scene-plan";
 import { sceneBufferFixtureInput } from "./scene-buffer-fixture";
 import { buildSceneBufferPlan } from "./scene-buffer-plan";
 import { prepareSceneBuffers } from "./scene-buffer-upload";
+import { temporalFrameBundleFixture } from "./temporal-frame-bundle-fixture";
 
 export function frameBundleFixtures() {
-  return [false, true].map((empty) => {
+  const fixtures = [false, true].map((empty) => {
     const input = {
         ...sceneBufferFixtureInput(empty),
         target: { width: 64, height: 48 },
@@ -95,4 +96,13 @@ export function frameBundleFixtures() {
       bytes: encodeFramePlan(frameBundle.plan.metadata, frameBundle.plan.blobs),
     };
   });
+  const frameBundle = temporalFrameBundleFixture(fixtures[1].frameBundle);
+  return [
+    ...fixtures,
+    {
+      id: "frame-bundle-temporal",
+      frameBundle,
+      bytes: encodeFramePlan(frameBundle.plan.metadata, frameBundle.plan.blobs),
+    },
+  ];
 }

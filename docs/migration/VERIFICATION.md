@@ -28,6 +28,10 @@ against an existing baseline.
    (`candidateCaptureReportPath`, `candidateManifestPath`, `exactReportPath`), then run the full
    migration verification command. The audit checks their underlying files and source bindings.
 
+Diagnostic capture accepts `--timeout-ms` from 1,000 to 1,200,000 per case. Long sequences that
+capture resources and independently replay every frame can require more than ten minutes. A timeout
+remains a failed run; retry with an explicit larger deadline without changing pixel acceptance.
+
 Keep source files unchanged while capture, comparison or gate execution is running. Candidate output
 contains the requested frames and any sequence neighbors. Full G3 comparison covers the requested
 addresses; it does not authorize promotion of additional neighbor frames into a new reference set.

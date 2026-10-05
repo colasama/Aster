@@ -10,6 +10,7 @@ import { readPrecompositionBundle } from "./precomposition-bundle-read";
 import { PrecompositionBundleResources } from "./precomposition-bundle-resources";
 import { readRootScenePlan } from "./root-scene-plan";
 import { prepareSceneBuffers } from "./scene-buffer-upload";
+import { readTemporalPassSlice } from "./temporal-pass-plan";
 import { defaultFramePlanLimits, type FramePlanSliceData } from "./types";
 import { validateMetadata, validatePlanBlob } from "./validation";
 
@@ -110,6 +111,30 @@ function readValidatedFrameBundle(
         recursive.metadata.resources.map((hash) => resources.resolve(hash)),
       ).plans
     : [];
+  const temporal = bundle.temporal.map((hash) => stage(hash, "temporal_text_passes_slice_v1"));
+  const outputs = new Set<string>();
+  for (const slice of temporal) {
+    const pass = readTemporalPassSlice(slice);
+    requirePlan(!outputs.has(pass.output), "invalid_temporal_text", "Duplicate temporal output");
+    outputs.add(pass.output);
+    for (const hash of [pass.output, ...pass.samples.map((sample) => sample.hash)]) {
+      const frame = resources.resolve(hash).message;
+      requirePlan(
+        frame.kind === "media_frame" &&
+          frame.descriptor.width === pass.width &&
+          frame.descriptor.height === pass.height &&
+          frame.descriptor.format === pass.output_format,
+        "invalid_temporal_text",
+        "Temporal resource extent or format differs",
+      );
+    }
+  }
+  for (const slice of temporal)
+    requirePlan(
+      readTemporalPassSlice(slice).samples.every((s) => !outputs.has(s.hash)),
+      "invalid_temporal_text",
+      "Temporal samples cannot alias derived outputs",
+    );
   const mediaFrames = [...resources.used].sort().flatMap((hash) => {
     const packet = resources.resolve(hash);
     return packet.message.kind === "media_frame" ? [packet.message] : [];
@@ -151,7 +176,7 @@ function readValidatedFrameBundle(
           resources: recursive.metadata.resources.map((hash) => resources.resolve(hash)),
         }
       : null,
-    plans: { scene, root, post, output, precompositions },
+    plans: { scene, root, post, output, precompositions, temporal },
     effects,
     generators: generators.map((g) => {
       requirePlan(

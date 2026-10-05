@@ -26,6 +26,10 @@ export class ProductionFrameCapture {
   readonly #queue = new ExactFrameCaptureQueue<CapturedProductionFrame>();
   #pending?: PendingCapture;
 
+  get capturesBundle(): boolean {
+    return this.#pending?.captureBundle === true;
+  }
+
   capture(options: {
     pool: GpuFrameReadbackPool;
     resources: ExactFrameResourceBarrier;

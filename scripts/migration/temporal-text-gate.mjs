@@ -32,6 +32,26 @@ export async function auditTemporalText(reader, context, execute) {
   const gpu = await reader.json(`${logical}/gpu.json`);
   assert.equal(gpu.status, "passed");
   assert.equal(gpu.results.length, reference.cases.length);
+  assert.deepEqual(
+    gpu.frame_replays.map((item) => item.mode),
+    ["full", "enters", "exits"],
+  );
+  assert(
+    gpu.frame_replays.every(
+      (item) =>
+        item.frames.length === 2 &&
+        item.frames.every(
+          (f) =>
+            f.exact &&
+            f.changed_pixels > 16 &&
+            f.independent_device &&
+            f.warmed_cache &&
+            f.passes > 0 &&
+            f.samples > 0 &&
+            f.bytes === 230400,
+        ),
+    ),
+  );
   const results = [];
   const transcript = [];
   assert.equal(gpu.pass_replays.length, reference.cases.length);
@@ -100,6 +120,7 @@ export async function auditTemporalText(reader, context, execute) {
     adapter: gpu.adapter,
     results,
     pass_replays: gpu.pass_replays,
+    frame_replays: gpu.frame_replays,
     reference: `${prefix}/manifest.json`,
     report: `${logical}/gpu.json`,
     rust_messages: transcript.length,

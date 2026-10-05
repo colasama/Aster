@@ -25,8 +25,8 @@ for (let index = 2; index < process.argv.length; index++) {
     timeoutMs = Number(process.argv[++index]);
   else throw new Error(`Unknown or incomplete capture argument: ${value}`);
 }
-if (timeoutMs < 1000 || timeoutMs > 600_000)
-  throw new Error("Capture timeout must be 1000..600000 ms per case");
+if (timeoutMs < 1000 || timeoutMs > 1_200_000)
+  throw new Error("Capture timeout must be 1000..1200000 ms per case");
 process.env.ASTER_PERF_PROJECT ??= process.platform === "win32" ? "D:\\code\\SD04PV" : "";
 const corpus = JSON.parse(await readFile(join(root, "tests", "parity", "corpus.json"), "utf8"));
 for (const id of selected) {

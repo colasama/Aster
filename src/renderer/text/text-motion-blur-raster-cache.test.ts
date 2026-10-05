@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createLayerForComposition } from "../../core/layers/layer-factory";
 import { createBlankComposition } from "../../core/project/project";
+import { decodeFramePlan } from "../frame-plan/codec";
+import { productionUniformFixtures } from "../frame-plan/fixture";
+import { readTemporalPassSlice } from "../frame-plan/temporal-pass-plan";
+import { MediaBindingLease } from "../media/media-binding-lease";
 import { mediaFrameMessages } from "../media/media-frame-identity";
 import { MediaGpuRegistry } from "../media/media-gpu-registry";
 import type { TextMotionBlurSample } from "./text-motion-blur-plan";
@@ -39,6 +43,63 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("GPU temporal text raster accumulation", () => {
+  it("plans before recording, rejects omitted passes and retains sample owners through capture", () => {
+    const device = mockDevice([]),
+      records: Array<{ label: string; draws: number }> = [];
+    const cache = new TextMotionBlurRasterCache(
+      device,
+      {} as GPUBindGroupLayout,
+      {} as GPUSampler,
+      { rasterize: () => ({ width: 2, height: 1, canvas: {} as HTMLCanvasElement }) },
+    );
+    const layer = createLayerForComposition("text", createBlankComposition());
+    layer.size = [2, 1];
+    const prepared = cache.prepare(
+      layer,
+      "test",
+      {
+        frameTime: 1,
+        sampleCount: 1,
+        transparentWeight: 0.5,
+        samples: [{ localTime: 1, timeBucket: 1000000, weight: 0.5 }],
+      },
+      1,
+    );
+    const header = decodeFramePlan(productionUniformFixtures()[0].bytes).metadata.header;
+    const lease = new MediaBindingLease(cache.frameEntries(), header.snapshot_scope);
+    const slices = cache.planPasses(header, lease),
+      plan = readTemporalPassSlice(slices[0]);
+    const sample = lease.textureForHash(plan.samples[0].hash);
+    const capture = lease.retainForCapture([plan.samples[0].hash]);
+    expect(device.queue.writeBuffer).not.toHaveBeenCalled();
+    expect(() =>
+      cache.encode(mockEncoder(records), header.snapshot_scope, header, [], lease),
+    ).toThrow(/differs/);
+    expect(records).toHaveLength(0);
+    cache.encode(mockEncoder(records), header.snapshot_scope, header, slices, lease);
+    expect(records.map((record) => record.draws)).toEqual([1, 1]);
+    cache.submitted();
+    lease.release();
+    expect(sample.destroy).not.toHaveBeenCalled();
+    expect(cache.frameEntries()).toHaveLength(0);
+    expect(prepared.resource.texture?.destroy).not.toHaveBeenCalled();
+    capture.release();
+    expect(sample.destroy).toHaveBeenCalledOnce();
+    cache.prepare(
+      layer,
+      "test",
+      {
+        frameTime: 1,
+        sampleCount: 1,
+        transparentWeight: 0.5,
+        samples: [{ localTime: 1, timeBucket: 1000000, weight: 0.5 }],
+      },
+      1,
+      true,
+    );
+    expect(cache.frameEntries()).toHaveLength(2);
+    cache.destroy();
+  });
   it("preserves pinned output hashes through replacement and budgets retired allocations", () => {
     const cache = new TextMotionBlurRasterCache(
       mockDevice([]),

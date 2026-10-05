@@ -295,9 +295,15 @@ images and its byte-difference report in the run directory before rejecting fram
 Large capture payloads use browser-native asynchronous SHA-256 with owned inputs; they retain the
 same content-hash and layout checks as synchronous decoding. Video and placeholder allocations allow
 copy-source access so capture reads the installed texture rather than decoding a replacement frame.
-Capturing a temporal raster's resolved pixels does not replace its native accumulation passes.
-The bundle therefore remains explicitly incomplete until temporal sample and accumulation execution
-is captured, and per-frame plan/resource publication and the complete coverage audit are finished.
+Pending temporal text passes are planned before command recording and included as nested FPLN
+resources in the frame envelope. Sample hashes, exposure weights and output formats travel with
+leased sample generations. Supplied replay allocates blank derived outputs instead of uploading
+their captured resolved pixels, then executes the shared linear accumulation and sRGB resolve
+passes before scene drawing. Frame metadata records replayed temporal pass and sample counts.
+Diagnostic bundle capture reconstructs unchanged temporal generations during raster preparation,
+so warm-up cache hits still expose their actual submitted sample passes. Normal preview/export keep
+their existing cache reuse. Cached recursive-surface coverage and per-frame plan/resource publication
+remain part of the complete-frame exit audit.
 
 Shared WGSL includes output anti-aliasing, core scene variants, compositing, fused post-processing,
 blur/depth/surface effects, auxiliary surfaces, particles, text motion blur and display/buffer helpers.

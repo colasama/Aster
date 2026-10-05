@@ -12,8 +12,8 @@ fn root_bundle_uses_typed_count_payload_and_requires_declared_stages() -> Result
     metadata.resources = vec![stage.clone()];
     metadata.blobs.truncate(1);
     metadata.blobs[0].element_type = ElementType::U32Le;
-    metadata.blobs[0].byte_length = 20;
-    metadata.blobs[0].element_count = 5;
+    metadata.blobs[0].byte_length = 24;
+    metadata.blobs[0].element_count = 6;
     metadata.slices = vec![PlanSlice::FrameBundle(FrameBundleSlice {
         blob_index: 0,
         scene: stage.clone(),
@@ -28,8 +28,9 @@ fn root_bundle_uses_typed_count_payload_and_requires_declared_stages() -> Result
         effects: Vec::new(),
         generators: Vec::new(),
         media_pixels: Vec::new(),
+        temporal: Vec::new(),
     })];
-    let bytes: Vec<u8> = [1024_u32, 0, 0, 0, 0]
+    let bytes: Vec<u8> = [1024_u32, 0, 0, 0, 0, 0]
         .into_iter()
         .flat_map(u32::to_le_bytes)
         .collect();
@@ -65,6 +66,25 @@ fn root_bundle_uses_typed_count_payload_and_requires_declared_stages() -> Result
     capture_bytes[16] = 2;
     assert!(matches!(
         FplnCodec::encode(captured, &[&capture_bytes], &limits),
+        Err(IrError::InvalidResource(_))
+    ));
+    let mut temporal = metadata.clone();
+    if let PlanSlice::FrameBundle(bundle) = &mut temporal.slices[0] {
+        bundle.temporal.push(bundle.scene.clone());
+    }
+    let mut temporal_bytes = bytes.clone();
+    temporal_bytes[20] = 1;
+    let encoded = FplnCodec::encode(temporal.clone(), &[&temporal_bytes], &limits)?;
+    assert_eq!(
+        FplnCodec::decode(encoded.clone(), &limits)?.reencode(&limits)?,
+        encoded
+    );
+    if let PlanSlice::FrameBundle(bundle) = &mut temporal.slices[0] {
+        bundle.temporal.push(bundle.temporal[0].clone());
+    }
+    temporal_bytes[20] = 2;
+    assert!(matches!(
+        FplnCodec::encode(temporal, &[&temporal_bytes], &limits),
         Err(IrError::InvalidResource(_))
     ));
     metadata.resources.clear();

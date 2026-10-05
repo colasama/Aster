@@ -1,7 +1,9 @@
 import type { Layer } from "../../core/types";
+import { canonicalJson, requirePlan } from "../frame-plan/canonical";
 import { buildTemporalPassSlice, readTemporalPassSlice } from "../frame-plan/temporal-pass-plan";
 import type { FrameHeaderSlice, FramePlanSliceData } from "../frame-plan/types";
 import { sharedShaders } from "../gpu/shared-shader-catalog";
+import type { MediaBindingEntry } from "../media/media-binding-lease";
 import { MediaBindingLease } from "../media/media-binding-lease";
 import { preparedRasterIdentity } from "../media/media-frame-identity";
 import {
@@ -10,6 +12,7 @@ import {
   mediaResourcePinned,
   mediaResourceRetired,
 } from "../media/media-resource";
+import { TemporalTextPipelines } from "./temporal-text-pipelines";
 import {
   buildTemporalTextPassPlan,
   executeTemporalTextPassPlan,
@@ -126,62 +129,11 @@ export class TextMotionBlurRasterCache {
     );
     this.#rasterize = options.rasterize ?? rasterizeTextLayer;
     this.#capturePass = options.capturePass;
-    this.#sampleLayout = device.createBindGroupLayout({
-      label: "Temporal text sample layout",
-      entries: [
-        {
-          binding: 0,
-          visibility: GPUShaderStage.FRAGMENT,
-          texture: { sampleType: "float" },
-        },
-        { binding: 1, visibility: GPUShaderStage.FRAGMENT, sampler: { type: "filtering" } },
-        { binding: 2, visibility: GPUShaderStage.FRAGMENT, buffer: { type: "uniform" } },
-      ],
-    });
-    this.#resolveLayout = device.createBindGroupLayout({
-      label: "Temporal text resolve layout",
-      entries: [
-        {
-          binding: 0,
-          visibility: GPUShaderStage.FRAGMENT,
-          texture: { sampleType: "float" },
-        },
-      ],
-    });
-    const module = device.createShaderModule({
-      label: "Temporal text premultiplied accumulation shader",
-      code: textMotionBlurRasterShader,
-    });
-    this.#accumulatePipeline = device.createRenderPipeline({
-      label: "Temporal text linear HDR accumulation",
-      layout: device.createPipelineLayout({ bindGroupLayouts: [this.#sampleLayout] }),
-      vertex: { module, entryPoint: "vertex_main" },
-      fragment: {
-        module,
-        entryPoint: "accumulate_fragment",
-        targets: [
-          {
-            format: "rgba16float",
-            blend: {
-              color: { srcFactor: "one", dstFactor: "one", operation: "add" },
-              alpha: { srcFactor: "one", dstFactor: "one", operation: "add" },
-            },
-          },
-        ],
-      },
-      primitive: { topology: "triangle-list" },
-    });
-    this.#resolvePipeline = device.createRenderPipeline({
-      label: "Temporal text straight-alpha sRGB resolve",
-      layout: device.createPipelineLayout({ bindGroupLayouts: [this.#resolveLayout] }),
-      vertex: { module, entryPoint: "vertex_main" },
-      fragment: {
-        module,
-        entryPoint: "resolve_fragment",
-        targets: [{ format: "rgba8unorm-srgb" }],
-      },
-      primitive: { topology: "triangle-list" },
-    });
+    const pipelines = new TemporalTextPipelines(device);
+    this.#sampleLayout = pipelines.sampleLayout;
+    this.#resolveLayout = pipelines.resolveLayout;
+    this.#accumulatePipeline = pipelines.accumulatePipeline;
+    this.#resolvePipeline = pipelines.resolvePipeline;
   }
 
   get estimatedBytes(): number {
@@ -205,6 +157,7 @@ export class TextMotionBlurRasterCache {
     instanceId: string,
     plan: TextMotionBlurPlan,
     resolutionScale: number,
+    captureDerivation = false,
   ): PreparedTextMotionBlurRaster {
     if (this.#destroyed) throw new Error("Text motion-blur raster cache is destroyed");
     const maximumDimension = Math.min(8_192, this.#device.limits.maxTextureDimension2D);
@@ -225,7 +178,11 @@ export class TextMotionBlurRasterCache {
       existing,
     );
     // An unchanged pinned generation needs no allocation; a replacement must budget both outputs.
-    if (existing && mediaResourcePinned(existing.resource) && existing.source !== prepared.source)
+    if (
+      existing &&
+      mediaResourcePinned(existing.resource) &&
+      (existing.source !== prepared.source || (captureDerivation && !existing.accumulation))
+    )
       prepared = planTemporalTextRaster(
         layer,
         plan,
@@ -244,7 +201,11 @@ export class TextMotionBlurRasterCache {
         rasterScale,
       );
     }
-    if (existing?.source === source && !mediaResourceRetired(existing.resource)) {
+    if (
+      existing?.source === source &&
+      !mediaResourceRetired(existing.resource) &&
+      (!captureDerivation || existing.accumulation)
+    ) {
       existing.frame = this.#frame;
       this.#entries.delete(instanceId);
       this.#entries.set(instanceId, existing);
@@ -313,15 +274,80 @@ export class TextMotionBlurRasterCache {
     return entry;
   }
 
-  encode(encoder: GPUCommandEncoder, scope = "local-preview", header?: FrameHeaderSlice): void {
+  /** Register transient inputs with the same frame lease that owns their resolved outputs. */
+  frameEntries(): MediaBindingEntry[] {
+    return [...this.#entries.values()]
+      .filter((entry) => !entry.encoded && entry.accumulation)
+      .flatMap((entry) => [
+        {
+          instanceId: temporalEntryId(entry.instanceId, "output"),
+          resource: entry.resource,
+          binding: entry.bindGroup,
+        },
+        ...entry.sampleResources.map((resource, index) => ({
+          instanceId: temporalEntryId(entry.instanceId, `sample:${index}`),
+          resource,
+          binding: resource.bindGroup,
+        })),
+      ]);
+  }
+
+  planPasses(header: FrameHeaderSlice, bindings: MediaBindingLease): FramePlanSliceData[] {
+    const slices = [...this.#entries.values()]
+      .filter((entry) => !entry.encoded && entry.accumulation)
+      .map((entry) =>
+        buildTemporalPassSlice(
+          header,
+          buildTemporalTextPassPlan(entry.width, entry.height, entry.sampleWeights, {
+            hashFor: (id) => bindings.hashFor(temporalEntryId(entry.instanceId, id)),
+          }),
+        ),
+      );
+    const unique = new Map<string, FramePlanSliceData>();
+    for (const slice of slices) unique.set(readTemporalPassSlice(slice).output, slice);
+    return [...unique.values()];
+  }
+
+  encode(
+    encoder: GPUCommandEncoder,
+    scope = "local-preview",
+    header?: FrameHeaderSlice,
+    suppliedSlices?: readonly FramePlanSliceData[],
+    bindings?: MediaBindingLease,
+  ): void {
     if (this.#destroyed) return;
+    const suppliedPlans = suppliedSlices?.map(readTemporalPassSlice);
+    const pending = [...this.#entries.values()].filter(
+      (entry) => !entry.encoded && entry.accumulation && entry.resolveBindGroup,
+    );
+    if (suppliedPlans) {
+      requirePlan(
+        header && bindings,
+        "missing_resource",
+        "Temporal submission lacks frame ownership",
+      );
+      const expected = this.planPasses(header, bindings);
+      requirePlan(
+        suppliedSlices?.length === expected.length &&
+          expected.every((slice, index) => {
+            const supplied = suppliedSlices[index];
+            return (
+              canonicalJson(supplied.metadata) === canonicalJson(slice.metadata) &&
+              supplied.blobs[0].length === slice.blobs[0].length &&
+              supplied.blobs[0].every((byte, lane) => byte === slice.blobs[0][lane])
+            );
+          }),
+        "resource_generation_mismatch",
+        "Temporal submission differs from prepared generations",
+      );
+    }
     this.#frameStats = {
       ...emptyFrameStats(),
       resolutionScaleReductionCount: this.#frameStats.resolutionScaleReductionCount,
       lowestResolutionScale: this.#frameStats.lowestResolutionScale,
     };
-    for (const entry of this.#entries.values()) {
-      if (entry.encoded || !entry.accumulation || !entry.resolveBindGroup) continue;
+    for (const entry of pending) {
+      if (!entry.accumulation || !entry.resolveBindGroup) continue;
       const lease = new MediaBindingLease(
         [
           { instanceId: "output", resource: entry.resource, binding: entry.bindGroup },
@@ -341,7 +367,9 @@ export class TextMotionBlurRasterCache {
           lease,
         );
         const slice = header ? buildTemporalPassSlice(header, plan) : undefined;
-        const supplied = slice ? readTemporalPassSlice(slice) : plan;
+        const supplied =
+          suppliedPlans?.find((supplied) => supplied.output === plan.output) ??
+          (slice ? readTemporalPassSlice(slice) : plan);
         executeTemporalTextPassPlan(supplied, lease, encoder, {
           queue: this.#device.queue,
           width: entry.width,
@@ -486,3 +514,7 @@ function emptyFrameStats(): TextMotionBlurRasterFrameStats {
 }
 
 export const textMotionBlurRasterShader = sharedShaders.source("text-motion-blur-raster");
+
+function temporalEntryId(instanceId: string, slot: string): string {
+  return JSON.stringify(["temporal-text-input", instanceId, slot]);
+}

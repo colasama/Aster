@@ -1,16 +1,19 @@
 import { requirePlan } from "../frame-plan/canonical";
 import type { readFrameBundle } from "../frame-plan/frame-bundle-read";
 import { readRootScenePlan } from "../frame-plan/root-scene-plan";
+import { readTemporalPassSlice } from "../frame-plan/temporal-pass-plan";
 import { uploadEncodedTexture } from "../media/encoded-texture-upload";
 import { MaterialGpuBindings } from "../media/material-gpu-bindings";
 import { SuppliedMediaPixels } from "../media/supplied-media-pixels";
 import { uploadTexturePixels } from "../media/texture-pixel-upload";
 import type { RendererResources } from "../renderer-resources";
+import { SuppliedTemporalTextPasses } from "../text/supplied-temporal-text-passes";
 
 /** A frame owns its installed texture generations until submission and readback complete. */
 export class SuppliedFrameAssets {
   readonly materials: MaterialGpuBindings;
   media?: SuppliedMediaPixels;
+  temporal?: SuppliedTemporalTextPasses;
   readonly #textures: GPUTexture[] = [];
 
   private constructor(resources: RendererResources) {
@@ -45,6 +48,13 @@ export class SuppliedFrameAssets {
               ],
             }),
         },
+        decoded.plans.temporal.map((slice) => readTemporalPassSlice(slice).output),
+      );
+      result.temporal = new SuppliedTemporalTextPasses(
+        decoded.plans.temporal,
+        device,
+        resources.imageSampler,
+        result.media,
       );
       const packets = new Map(
         decoded.materialPackets.map((packet) => [packet.message.hash, packet]),
@@ -94,6 +104,7 @@ export class SuppliedFrameAssets {
   }
 
   destroy(): void {
+    this.temporal?.destroy();
     this.media?.destroy();
     this.materials.destroy();
     for (const texture of this.#textures) texture.destroy();

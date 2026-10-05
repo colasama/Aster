@@ -93,6 +93,7 @@ export const productionCaptureRuntime: CaptureRuntime = {
         initialize_ms,
         diagnostics: () => structuredClone(activeRenderer.diagnostics),
         assertHealthy,
+        temporalReplay: () => activeReplay.temporalExecution,
         productionPixels: () => productionPixels,
         async captureRasters() {
           const rasters = await activeRenderer.captureRasterResources(

@@ -36,6 +36,27 @@ async function main() {
     );
     assert.equal(actual.status, "passed");
     report.adapter = actual.adapter;
+    report.frame_replays = actual.frame_replays;
+    assert.deepEqual(
+      actual.frame_replays.map((item) => item.mode),
+      ["full", "enters", "exits"],
+    );
+    assert(
+      actual.frame_replays.every(
+        (item) =>
+          item.frames.length === 2 &&
+          item.frames.every(
+            (f) =>
+              f.exact &&
+              f.changed_pixels > 16 &&
+              f.independent_device &&
+              f.warmed_cache &&
+              f.passes > 0 &&
+              f.samples > 0 &&
+              f.bytes === 230400,
+          ),
+      ),
+    );
     const payloads = join(config.output, "payloads");
     await mkdir(payloads);
     const transcript = [];

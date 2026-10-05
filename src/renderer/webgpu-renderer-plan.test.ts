@@ -66,6 +66,7 @@ function setup() {
   const media = {
     estimatedBytes: 0,
     beginFrame: vi.fn(),
+    planTemporalPasses: vi.fn(() => []),
     acquireFrameBindings: vi.fn(
       (ids: string[]) => new MediaBindingLease(ids.map((instanceId) => ({ instanceId }))),
     ),

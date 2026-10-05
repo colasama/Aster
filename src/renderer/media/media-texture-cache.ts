@@ -1,17 +1,13 @@
 import { evaluateLayerSourceTime } from "../../core/animation/layer-time";
 import { configurePreviewVideoAudio } from "../../core/audio/audio-preview";
 import { sourceLocator } from "../../core/media/footage-source";
-
 import { AsyncWorkPool } from "../../core/scheduling/async-work-pool";
-
 import type { FootageSource, Layer } from "../../core/types";
-
 import {
   ImageSequenceFrameCache,
   type ResolvedSequenceFrame,
   resolveImageSequenceFrame,
 } from "../../importers/image-sequence-runtime";
-
 import {
   mediaImportRuntime,
   type RuntimeImageSequence,
@@ -19,13 +15,11 @@ import {
   type RuntimeSequenceFile,
   type RuntimeSvgSource,
 } from "../../importers/media-import-runtime";
-
 import { decodeRasterImage } from "../../importers/raster-image-decoder";
 import { takePrefetchedRasterImage } from "../../importers/raster-image-prefetch";
-
 import { rasterizeSvgToImageBitmap, SvgRasterCache } from "../../importers/svg-raster-cache";
 import { readRasterBounds } from "../frame-plan/raster-sample";
-import type { FrameHeaderSlice } from "../frame-plan/types";
+import type { FrameHeaderSlice, FramePlanSliceData } from "../frame-plan/types";
 import type { TextMotionBlurPlan } from "../text/text-motion-blur-plan";
 import {
   TextMotionBlurRasterCache,
@@ -51,28 +45,15 @@ import {
 import {
   destroyMediaResource,
   type MediaResource,
-  mediaResourceRetired,
   mediaTextureBytes,
-  mediaTextureExtent,
-  reportVideoUploadError,
   sweepMediaResources,
 } from "./media-resource";
 import { MISSING_MEDIA_RGBA, MISSING_MEDIA_SOURCE } from "./missing-media";
 import { captureRasterResources } from "./raster-resource-capture";
 import { uploadTextRaster } from "./text-raster-upload";
 import { TextureUploadBatch } from "./texture-upload-batch";
-import { VideoExternalUpload, type VideoExternalUploadStatus } from "./video-external-upload";
-
-const EXACT_SEEK_BIAS_SECONDS = 1e-4;
-
-/**
- * A seek that lands exactly on a frame boundary can decode the previous frame, because the
- * media element rounds its timeline to coarser timestamps. Exact renders bias forward by a
- * sub-millisecond amount, which selects the intended frame for any practical frame rate.
- */
-export function videoSeekTime(sourceTime: number, lastTime: number, playing: boolean): number {
-  return playing ? sourceTime : Math.min(lastTime, sourceTime + EXACT_SEEK_BIAS_SECONDS);
-}
+import { VideoExternalUpload } from "./video-external-upload";
+import { type VideoFrameTarget, VideoFrameUploader } from "./video-frame-uploader";
 
 const MAX_MEDIA_TEXTURE_DIMENSION = 8_192;
 
@@ -81,12 +62,6 @@ export const MAX_MEDIA_TEXTURE_BYTES = 256 * 1024 * 1024;
 interface PendingFrameResource {
   source: string;
   promise: Promise<void>;
-}
-
-interface VideoFrameTarget {
-  source: string;
-  time: number;
-  tolerance: number;
 }
 
 /** Owns decoded media, text rasters, and the staging upload queue used by the renderer. */
@@ -102,10 +77,12 @@ export class MediaTextureCache {
   readonly #videoUploadListeners = new Set<(resource: MediaResource) => void>();
   readonly #decodePool = new AsyncWorkPool(4);
   readonly #uploads: TextureUploadBatch;
+  readonly #videoUploader: VideoFrameUploader;
   #missingMediaResource?: MediaResource;
   #missingMediaBindGroup?: GPUBindGroup;
   #frameBindings?: MediaBindingLease;
   #frameScope = "local-preview";
+  #captureTemporalDerivations = false;
   readonly #gpuRegistry = new MediaGpuRegistry();
   #textMotionBlur?: TextMotionBlurRasterCache;
   readonly #sequenceFrames = new ImageSequenceFrameCache<RuntimeSequenceFile, ImageBitmap>({
@@ -134,6 +111,7 @@ export class MediaTextureCache {
     this.#sampler = sampler;
     this.#invalidate = invalidate;
     this.#uploads = new TextureUploadBatch(device);
+    this.#videoUploader = new VideoFrameUploader(this.#uploads);
   }
 
   get estimatedBytes(): number {
@@ -150,7 +128,11 @@ export class MediaTextureCache {
   get hasPendingFrameResources(): boolean {
     if (this.#pendingFrameResources.size > 0) return true;
     for (const [instanceId, resource] of this.#resources)
-      if (resource.kind === "video" && !this.#videoFrameIsExact(instanceId, resource)) return true;
+      if (
+        resource.kind === "video" &&
+        !this.#videoUploader.isExact(resource, this.#videoFrameTargets.get(instanceId))
+      )
+        return true;
     return false;
   }
 
@@ -208,7 +190,11 @@ export class MediaTextureCache {
         requestedTime: this.#videoFrameTargets.get(instanceId)?.time,
       };
     });
-    this.#frameBindings = new MediaBindingLease(entries, scope, this.#gpuRegistry);
+    this.#frameBindings = new MediaBindingLease(
+      [...entries, ...(this.#textMotionBlur?.frameEntries() ?? [])],
+      scope,
+      this.#gpuRegistry,
+    );
     this.#frameScope = scope;
     return this.#frameBindings;
   }
@@ -236,10 +222,11 @@ export class MediaTextureCache {
   videoFrameExact(instanceId: string): boolean {
     const resource = this.#resources.get(instanceId);
     if (resource?.kind !== "video" || !resource.video) return true;
-    return this.#videoFrameIsExact(instanceId, resource);
+    return this.#videoUploader.isExact(resource, this.#videoFrameTargets.get(instanceId));
   }
 
-  beginFrame(): void {
+  beginFrame(captureTemporalDerivations = false): void {
+    this.#captureTemporalDerivations = captureTemporalDerivations;
     this.#textMotionBlur?.beginFrame();
   }
 
@@ -249,9 +236,23 @@ export class MediaTextureCache {
     );
   }
 
-  flush(encoder: GPUCommandEncoder, header?: FrameHeaderSlice): void {
+  planTemporalPasses(header: FrameHeaderSlice, bindings: MediaBindingLease): FramePlanSliceData[] {
+    return this.#textMotionBlur?.planPasses(header, bindings) ?? [];
+  }
+
+  flush(
+    encoder: GPUCommandEncoder,
+    header?: FrameHeaderSlice,
+    temporal?: readonly FramePlanSliceData[],
+  ): void {
     this.#uploads.flush(encoder);
-    this.#textMotionBlur?.encode(encoder, header?.snapshot_scope ?? this.#frameScope, header);
+    this.#textMotionBlur?.encode(
+      encoder,
+      header?.snapshot_scope ?? this.#frameScope,
+      header,
+      temporal,
+      this.#frameBindings,
+    );
   }
 
   submitted(): void {
@@ -678,7 +679,13 @@ export class MediaTextureCache {
         this.#layout,
         this.#sampler,
       );
-      const temporal = this.#textMotionBlur.prepare(layer, instanceId, motionBlur, resolutionScale);
+      const temporal = this.#textMotionBlur.prepare(
+        layer,
+        instanceId,
+        motionBlur,
+        resolutionScale,
+        this.#captureTemporalDerivations,
+      );
       if (temporal) {
         const existing = this.#resources.get(instanceId);
         this.#frameResourceErrors.delete(instanceId);
@@ -784,7 +791,7 @@ export class MediaTextureCache {
     resource.video = video;
     this.#videoFrameTargets.set(
       instanceId,
-      this.#resolveVideoFrameTarget(resource.source, video, layer, footage, time, playing),
+      this.#videoUploader.resolveTarget(resource.source, video, layer, footage, time, playing),
     );
     document.body.append(video);
     const prepareTexture = () => {
@@ -816,7 +823,7 @@ export class MediaTextureCache {
       resource.textureBytes = width * height * 4;
       resource.textureWidth = width;
       resource.textureHeight = height;
-      this.#ensureVideoFallbackSurface(resource);
+      this.#videoUploader.ensureFallbackSurface(resource);
       resource.bindGroup = this.#createBindGroup(
         resource.texture,
         `Video texture resources · ${layer.id}`,
@@ -830,9 +837,9 @@ export class MediaTextureCache {
         {
           onStatus: (status) => {
             if (this.#resources.get(instanceId) !== resource) return;
-            this.#reportVideoUploadStatus(resource, status);
-            if (status.mode === "direct") this.#releaseVideoFallbackSurface(resource);
-            if (status.mode !== "validating") this.#copyVideoFrame(resource);
+            this.#videoUploader.reportStatus(resource, status);
+            if (status.mode === "direct") this.#videoUploader.releaseFallbackSurface(resource);
+            if (status.mode !== "validating") this.#videoUploader.copy(resource);
             for (const notify of this.#videoUploadListeners) notify(resource);
             this.#invalidate();
           },
@@ -845,7 +852,7 @@ export class MediaTextureCache {
     video.addEventListener("loadeddata", prepareTexture, { once: true });
     video.addEventListener("seeked", () => {
       video.dataset.decoderState = "seeked";
-      this.#copyVideoFrame(resource);
+      this.#videoUploader.copy(resource);
       this.#invalidate();
     });
     video.addEventListener("error", () => {
@@ -901,10 +908,14 @@ export class MediaTextureCache {
           finish(new Error(video.error.message || "Video decode failed during export"));
           return;
         }
-        if (this.#videoFrameCanUpload(resource)) {
-          this.#copyVideoFrame(resource);
+        if (this.#videoUploader.canUpload(resource)) {
+          this.#videoUploader.copy(resource);
           const instanceId = video.dataset.asterLayerId;
-          if (instanceId && this.#videoFrameIsExact(instanceId, resource)) finish();
+          if (
+            instanceId &&
+            this.#videoUploader.isExact(resource, this.#videoFrameTargets.get(instanceId))
+          )
+            finish();
         }
       };
       const timeout = setTimeout(
@@ -934,7 +945,7 @@ export class MediaTextureCache {
     const video = resource.video;
     if (!video) return;
     configurePreviewVideoAudio(video, layer);
-    const target = this.#resolveVideoFrameTarget(
+    const target = this.#videoUploader.resolveTarget(
       resource.source,
       video,
       layer,
@@ -947,138 +958,9 @@ export class MediaTextureCache {
       video.currentTime = target.time;
     if (playing && video.paused) void video.play().catch(() => undefined);
     else if (!playing && !video.paused) video.pause();
-    this.#copyVideoFrame(resource);
-  }
-
-  #resolveVideoFrameTarget(
-    source: string,
-    video: HTMLVideoElement,
-    layer: Layer,
-    footage: FootageSource,
-    time: number,
-    playing: boolean,
-  ): VideoFrameTarget {
-    const duration = Number.isFinite(video.duration)
-      ? video.duration
-      : "duration" in footage
-        ? footage.duration
-        : layer.outPoint - layer.inPoint;
-    const lastTime = Math.max(0, duration - 0.001);
-    return {
-      source,
-      time: videoSeekTime(evaluateLayerSourceTime(layer, time, lastTime), lastTime, playing),
-      tolerance: playing ? 0.12 : 1 / 240,
-    };
-  }
-
-  #videoFrameCanUpload(resource: MediaResource): boolean {
-    const video = resource.video;
-    return Boolean(
-      resource.texture &&
-        video &&
-        video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA &&
-        !video.seeking,
-    );
-  }
-
-  #videoFrameIsExact(instanceId: string, resource: MediaResource): boolean {
-    if (!this.#videoFrameCanUpload(resource)) return false;
-    const video = resource.video;
-    const target = this.#videoFrameTargets.get(instanceId);
-    if (!video || !target || target.source !== resource.source) return false;
-    return (
-      Math.abs(video.currentTime - target.time) <= target.tolerance &&
-      resource.lastUploadedTime !== undefined &&
-      Math.abs(resource.lastUploadedTime - target.time) <= target.tolerance
-    );
-  }
-
-  #copyVideoFrame(resource: MediaResource): void {
-    if (mediaResourceRetired(resource)) return;
-    const video = resource.video;
-    const texture = resource.texture;
-    if (
-      !video ||
-      !texture ||
-      video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA ||
-      video.seeking ||
-      resource.lastUploadedTime === video.currentTime
-    )
-      return;
-    const mediaTime = video.currentTime;
-    try {
-      const externalUpload = resource.videoExternalUpload;
-      if (externalUpload?.copyFrame()) {
-        resource.lastUploadedTime = mediaTime;
-        resource.uploadErrorReported = false;
-        video.dataset.gpuFrame = "direct-external-copy";
-        video.dataset.gpuUploadPath = "direct-external-copy";
-        delete video.dataset.gpuError;
-        return;
-      }
-      // Do not read back a full frame while the bounded compatibility probe is still running.
-      // Its status callback schedules the exact frame through either the direct GPU copy or the
-      // conservative staging fallback once the adapter result is known.
-      if (externalUpload?.status.mode === "validating") {
-        video.dataset.gpuFrame = "external-copy-validation";
-        video.dataset.gpuUploadPath = "external-copy-validation";
-        return;
-      }
-      const context = this.#ensureVideoFallbackSurface(resource);
-      const canvas = resource.videoCanvas;
-      if (!context || !canvas) throw new Error("Canvas2D video upload fallback is unavailable");
-      context.drawImage(video, 0, 0, canvas.width, canvas.height);
-      const pixels = context.getImageData(0, 0, canvas.width, canvas.height);
-      this.#uploads.enqueue(texture, pixels.data, canvas.width, canvas.height);
-      resource.lastUploadedTime = mediaTime;
-      resource.uploadErrorReported = false;
-      video.dataset.gpuFrame = "cpu-staging-fallback";
-      video.dataset.gpuUploadPath = "cpu-staging-fallback";
-      delete video.dataset.gpuError;
-    } catch (error) {
-      reportVideoUploadError(resource, error);
-    }
-  }
-
-  #ensureVideoFallbackSurface(resource: MediaResource): CanvasRenderingContext2D | undefined {
-    const extent = mediaTextureExtent(resource);
-    if (!extent) return undefined;
-    const [width, height] = extent;
-    if (
-      resource.videoCanvas?.width === width &&
-      resource.videoCanvas.height === height &&
-      resource.videoContext
-    )
-      return resource.videoContext;
-    this.#releaseVideoFallbackSurface(resource);
-    const canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
-    canvas.setAttribute("aria-hidden", "true");
-    const context =
-      canvas.getContext("2d", { alpha: false, willReadFrequently: true }) ?? undefined;
-    resource.videoCanvas = canvas;
-    resource.videoContext = context;
-    return context;
-  }
-
-  #releaseVideoFallbackSurface(resource: MediaResource): void {
-    if (resource.videoCanvas) {
-      resource.videoCanvas.width = 1;
-      resource.videoCanvas.height = 1;
-      resource.videoCanvas.remove();
-    }
-    resource.videoCanvas = undefined;
-    resource.videoContext = undefined;
-  }
-
-  #reportVideoUploadStatus(resource: MediaResource, status: VideoExternalUploadStatus): void {
-    const video = resource.video;
-    if (!video) return;
-    video.dataset.gpuUploadCapability = status.mode;
-    video.dataset.gpuUploadDiagnostic = status.reason;
-    video.dataset.gpuUploadPath =
-      status.mode === "direct" ? "direct-external-copy" : "cpu-staging-fallback";
+    this.#videoUploader.copy(resource);
   }
 }
 export { svgPreviewRasterTarget } from "./media-loading";
+
+export { videoSeekTime } from "./video-frame-uploader";

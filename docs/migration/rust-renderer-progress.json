@@ -17333,6 +17333,39 @@
                 "artifacts/migration/cycle71-debug6.log"
               ],
               "log": "artifacts/migration/cycle71-capture.log"
+            },
+            {
+              "cycle": 72,
+              "status": "failed",
+              "capture": {
+                "path": "artifacts/parity/capture-2026-10-05T18-18-37-974Z-d29dbcac.json",
+                "sha256": "64545d130400b723e9facfe6cb0751d18e973f11774502c78cc1af88e2a8cabf"
+              },
+              "disposition": "336/337 cases passed. The 300-frame owner-main case exceeded the explicit 600000 ms capture deadline, without a reported pixel mismatch. All 300 frame directories exist but do not override the failed case lifecycle. Preserve the failed run; expand the bounded CLI timeout allowance to 1200000 ms and perform a fresh full capture with that explicit deadline. Do not relax exact comparison or reuse a partial candidate.",
+              "log": "artifacts/migration/cycle72-capture.log"
+            },
+            {
+              "cycle": 72,
+              "status": "failed",
+              "verification": {
+                "path": "artifacts/migration/verify-2026-10-05T18-50-02-873Z-fa5c83f3.json",
+                "sha256": "b37e4cbc5390bf1ad93d7d7e8832c26f1b69a000f10d0bb9d3119f558dec5082"
+              },
+              "gates": [
+                {
+                  "id": "G0",
+                  "status": "failed"
+                },
+                {
+                  "id": "G1",
+                  "status": "passed"
+                },
+                {
+                  "id": "G3",
+                  "status": "passed"
+                }
+              ],
+              "disposition": "G1 and exact G3 passed. G0 rejected three stale test expectations: the renderer mock lacked planTemporalPasses and two IR tests still expected 127 instead of 128 roundtrips. Update those tests and assert the new temporal bundle counts. Reuse the accepted capture only after renderer and bridge fingerprints match; rerun all required gates."
             }
           ],
           "increments": [
@@ -19809,5 +19842,12 @@
       }
     }
   ],
-  "active_cycle": null
+  "active_cycle": {
+    "id": 72,
+    "started_at": "2026-10-05T18:04:07.215Z",
+    "milestone": "M2",
+    "task": "M2-T13",
+    "intent": "Include pending temporal sample and accumulation passes in submitted frame bundles and execute them on independent replay allocations.",
+    "base_commit": "bc75c407048c9d8b181d6a3f07a19ff406cb5b98"
+  }
 }

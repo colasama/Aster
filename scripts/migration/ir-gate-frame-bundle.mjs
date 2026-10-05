@@ -97,6 +97,7 @@ export async function auditFrameBundle(runtime, fixture, after, options) {
     generators: decoded.generators.length,
     precompositions: decoded.plans.precompositions.length,
     media_pixels: decoded.mediaPixels.length,
+    temporal_passes: decoded.plans.temporal.length,
     exact_payloads: true,
     exact_dependencies: true,
     missing_rejected: true,

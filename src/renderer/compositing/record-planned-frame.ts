@@ -25,6 +25,7 @@ interface FrameRecordingContext {
   resources: RendererResources;
   auxiliaryBindings: AuxiliaryPlanBindings;
   mediaBindings: Pick<MediaBindingLease, "bindingForHash">;
+  temporalPasses?: { encode(encoder: GPUCommandEncoder): void };
   materialBindings?: Pick<MaterialGpuBindings, "bindingFor">;
 }
 
@@ -76,7 +77,12 @@ export function recordDecodedFrame(
     renderTarget: header.render_target,
     antiAliasing: header.aa,
   });
-  resources.mediaTextures.flush(encoder, plans.post.metadata.header);
+  resources.mediaTextures.flush(
+    encoder,
+    plans.post.metadata.header,
+    input.temporalPasses ? [] : plans.temporal,
+  );
+  input.temporalPasses?.encode(encoder);
   resources.precompositionSurfaces.encode(encoder, plans.precompositions, mediaBindings);
   const compute = encoder.beginComputePass({
     label: generators.some((generator) => generator.lodApplied)

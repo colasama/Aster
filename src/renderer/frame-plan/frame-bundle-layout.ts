@@ -21,6 +21,7 @@ export interface FrameBundleSlice {
   effects: PrecompositionEffectRecord[];
   generators: PrecompositionSceneRecord["generators"];
   media_pixels: { frame: string; pixels: string }[];
+  temporal: string[];
 }
 export const FRAME_BUNDLE_FIELDS = [
   "kind",
@@ -37,6 +38,7 @@ export const FRAME_BUNDLE_FIELDS = [
   "effects",
   "generators",
   "media_pixels",
+  "temporal",
 ];
 export function frameBundlePlanResources(bundle: FrameBundleSlice): string[] {
   return [
@@ -53,6 +55,7 @@ export function frameBundlePlanResources(bundle: FrameBundleSlice): string[] {
         e.status === "ready" ? [e.execution, e.plan] : [e.execution],
       ),
       ...bundle.generators.map((g) => g.plan),
+      ...bundle.temporal,
     ]),
   ].sort();
 }
@@ -80,6 +83,18 @@ export function validateFrameBundle(
   }
   integer(record.shadow_map_size, 1, 16384);
   requirePlan(
+    Array.isArray(record.temporal) && record.temporal.length <= 64,
+    "invalid_temporal_text",
+    "Invalid temporal pass count",
+  );
+  const temporal = new Set<string>();
+  for (const value of record.temporal) {
+    hash(value);
+    requirePlan(!temporal.has(value), "invalid_temporal_text", "Duplicate temporal pass");
+    requirePlan(resources.includes(value), "missing_resource", "Undeclared temporal pass");
+    temporal.add(value);
+  }
+  requirePlan(
     Array.isArray(record.media_pixels) && record.media_pixels.length <= 65536,
     "invalid_resource",
     "Invalid frame media pixel count",
@@ -106,13 +121,13 @@ export function validateFrameBundle(
     "Root generator must have an observed execution",
   );
   requirePlan(
-    blob.element_type === "u32_le" && blob.element_count === 5 && blob.byte_length === 20,
+    blob.element_type === "u32_le" && blob.element_count === 6 && blob.byte_length === 24,
     "invalid_header",
     "Invalid frame bundle counts",
   );
 }
 export function validateFrameBundleBlob(bytes: Uint8Array, bundle: FrameBundleSlice): void {
-  requirePlan(bytes.length === 20, "invalid_header", "Invalid frame bundle payload");
+  requirePlan(bytes.length === 24, "invalid_header", "Invalid frame bundle payload");
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   [
     bundle.shadow_map_size,
@@ -120,6 +135,7 @@ export function validateFrameBundleBlob(bytes: Uint8Array, bundle: FrameBundleSl
     bundle.generators.length,
     Number(bundle.precompositions !== null),
     bundle.media_pixels.length,
+    bundle.temporal.length,
   ].forEach((n, i) => {
     requirePlan(view.getUint32(i * 4, true) === n, "invalid_header", "Frame bundle count mismatch");
   });

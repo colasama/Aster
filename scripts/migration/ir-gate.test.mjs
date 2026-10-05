@@ -189,7 +189,11 @@ test("G1 orchestrates all real TS codec checks and keeps renderer completion exp
   const result = await f.run();
   assert.equal(result.status, "passed", result.error);
   assert.equal(result.renderer_plan_complete, false);
-  assert.equal(result.roundtrips.length, 127);
+  assert.equal(result.roundtrips.length, 128);
+  assert.deepEqual(
+    result.frame_bundles.map((bundle) => bundle.temporal_passes),
+    [0, 0, 2],
+  );
   assert.equal(result.auxiliary.length, 10);
   assert(
     result.auxiliary.every(
@@ -318,7 +322,7 @@ test("G1 rejects source drift even when every codec result is exact", async (t) 
   }));
   assert.equal(result.status, "failed");
   assert.equal(result.source_unchanged, false);
-  assert.equal(result.roundtrips.length, 127);
+  assert.equal(result.roundtrips.length, 128);
   assert.match(result.error, /Source changed during G1/);
 });
 

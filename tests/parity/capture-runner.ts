@@ -11,6 +11,7 @@ export interface CaptureSession {
   diagnostics(): GpuDiagnostics;
   assertHealthy(): void;
   readback(time: number): Promise<ArrayBuffer>;
+  temporalReplay?(): { passes: number; samples: number };
   productionPixels?(): ArrayBuffer | undefined;
   captureRasters?(): Promise<RasterFrameCapture>;
   dispose(): Promise<void>;
@@ -53,6 +54,7 @@ export async function runCaptureAssignments(
           frameRate: { ...session.composition.frameRate },
           ...assignment.case.size,
           pixels,
+          temporalReplay: session.temporalReplay?.(),
           productionPixels: session.productionPixels?.(),
           rasterCapture: await session.captureRasters?.(),
           diagnostics: session.diagnostics(),

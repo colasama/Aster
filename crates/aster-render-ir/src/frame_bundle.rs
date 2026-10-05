@@ -23,6 +23,7 @@ pub struct FrameBundleSlice {
     pub effects: Vec<PrecompositionEffectRecord>,
     pub generators: Vec<PrecompositionGeneratorRecord>,
     pub media_pixels: Vec<PrecompositionMediaPixels>,
+    pub temporal: Vec<ResourceHash>,
 }
 impl FrameBundleSlice {
     pub fn validate(
@@ -33,8 +34,9 @@ impl FrameBundleSlice {
         if self.shadow_map_size == 0
             || self.shadow_map_size > 16_384
             || blob.element_type != ElementType::U32Le
-            || blob.element_count != 5
-            || blob.byte_length != 20
+            || blob.element_count != 6
+            || blob.byte_length != 24
+            || self.temporal.len() > 64
             || self.media_pixels.len() > 65_536
             || self
                 .generators
@@ -48,6 +50,15 @@ impl FrameBundleSlice {
         let mut references =
             PrecompositionBundleSlice::program_references(&self.effects, &self.generators)?;
         let mut frames = BTreeMap::new();
+        for hash in &self.temporal {
+            if frames.insert(hash, ()).is_some() {
+                return Err(IrError::InvalidResource(
+                    "duplicate temporal pass".to_owned(),
+                ));
+            }
+            references.push(hash.clone());
+        }
+        frames.clear();
         for pixel in &self.media_pixels {
             if frames.insert(&pixel.frame, ()).is_some() {
                 return Err(IrError::InvalidResource(
@@ -81,7 +92,7 @@ impl FrameBundleSlice {
         Ok(())
     }
     pub fn validate_payload(&self, bytes: &[u8]) -> Result<(), IrError> {
-        if bytes.len() != 20 {
+        if bytes.len() != 24 {
             return Err(IrError::InvalidHeader(
                 "frame bundle payload length".to_owned(),
             ));
@@ -92,6 +103,7 @@ impl FrameBundleSlice {
             self.generators.len() as u32,
             u32::from(self.precompositions.is_some()),
             self.media_pixels.len() as u32,
+            self.temporal.len() as u32,
         ];
         for (lane, expected) in bytes.chunks_exact(4).zip(counts) {
             if u32::from_le_bytes([lane[0], lane[1], lane[2], lane[3]]) != expected {

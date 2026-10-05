@@ -21,6 +21,10 @@ export function buildProductionFrameBundle(
   const materialHashes = input.root.metadata.resources.filter((hash) => !mediaHashes.has(hash));
   return buildFrameBundle({
     ...input,
+    temporal: input.resources.mediaTextures.planTemporalPasses(
+      input.post.metadata.header,
+      input.mediaBindings,
+    ),
     generators: input.generators.map((generator) => ({
       plan: generator.plan,
       capacity: generator.resources.capacity,
