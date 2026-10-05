@@ -234,6 +234,7 @@ dependencies = [
  "aster-render-ir",
  "aster-shaders",
  "pollster",
+ "serde",
  "thiserror",
  "wgpu",
 ]

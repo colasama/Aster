@@ -19639,7 +19639,12 @@
         {
           "id": "M3-T2",
           "title": "Decode authorized PNG, JPEG and EXR stills and execute image draws with cached GPU resources",
-          "status": "pending"
+          "status": "in_progress",
+          "remaining": [
+            "Native image texture upload, sampling and budgeted persistent GPU caching",
+            "Authorized native PNG/JPEG/EXR decoding and decoder rejection evidence",
+            "Image corpus pixel acceptance and EXR linear sample checks"
+          ]
         },
         {
           "id": "M3-T3",
@@ -28656,6 +28661,662 @@
       },
       "inspection": "Directly inspected the full-resolution contact sheets and heatmaps on review-page-1 through review-page-6. Image-pair hashes group identical frame images; every frame retains its own comparison and evidence. Geometry, alpha silhouettes, gradients and blending match without displaced or missing elements. Residuals are sparse single-code-value rounding consistent with native GPU float arithmetic; exact results have no residual. All GPU metric and structural checks pass without tolerance changes.",
       "inspection_groups": "artifacts/migration/cycle76-native-gpu-review/inspection-groups.json"
+    },
+    {
+      "case_id": "media-png",
+      "frame": 0,
+      "profile": "gpu",
+      "purpose": "M3 supplied still-image GPU execution; native file decode remains pending",
+      "reviewed_at": "2026-10-05T22:59:52.896Z",
+      "reference_rgba_sha256": "8d7f7b900b01432eb3d3f01a1869bddd957eece3c4cc28fac090b2949ffb3a81",
+      "candidate_rgba_sha256": "8d7f7b900b01432eb3d3f01a1869bddd957eece3c4cc28fac090b2949ffb3a81",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 1, 1, 1],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, 0, 0, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle77-images/pixels/frames/media-png-0/report.json",
+        "heatmap": "artifacts/migration/cycle77-images/pixels/frames/media-png-0/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle77-images/pixels/frames/media-png-0/contact-sheet.png",
+        "report_sha256": "104b2c089380327227bcdb5a015ac26040be43276fba14495c331aadb06c18b9",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet_sha256": "bc7986eccec16edd9151110aedc6c64ea10b43d67464094777fef505d1419ada"
+      },
+      "inspection": "Directly inspected both unique contact sheets and their black heatmaps. SHA-256 equality proves the four frame image pairs in each case are identical. Color bars, gradients, bounds and PNG alpha ramp match the frozen TS output; JPEG remains opaque. Pixels are exact, so no residual exists. All GPU metric and structural checks pass; no tolerance changes."
+    },
+    {
+      "case_id": "media-png",
+      "frame": 15,
+      "profile": "gpu",
+      "purpose": "M3 supplied still-image GPU execution; native file decode remains pending",
+      "reviewed_at": "2026-10-05T22:59:52.897Z",
+      "reference_rgba_sha256": "8d7f7b900b01432eb3d3f01a1869bddd957eece3c4cc28fac090b2949ffb3a81",
+      "candidate_rgba_sha256": "8d7f7b900b01432eb3d3f01a1869bddd957eece3c4cc28fac090b2949ffb3a81",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 1, 1, 1],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, 0, 0, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle77-images/pixels/frames/media-png-15/report.json",
+        "heatmap": "artifacts/migration/cycle77-images/pixels/frames/media-png-15/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle77-images/pixels/frames/media-png-15/contact-sheet.png",
+        "report_sha256": "ca7de4be1235b0e0153471a03683a927a65f10251f61f368fbf6d80c9ccdc8f8",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet_sha256": "bc7986eccec16edd9151110aedc6c64ea10b43d67464094777fef505d1419ada"
+      },
+      "inspection": "Directly inspected both unique contact sheets and their black heatmaps. SHA-256 equality proves the four frame image pairs in each case are identical. Color bars, gradients, bounds and PNG alpha ramp match the frozen TS output; JPEG remains opaque. Pixels are exact, so no residual exists. All GPU metric and structural checks pass; no tolerance changes."
+    },
+    {
+      "case_id": "media-png",
+      "frame": 30,
+      "profile": "gpu",
+      "purpose": "M3 supplied still-image GPU execution; native file decode remains pending",
+      "reviewed_at": "2026-10-05T22:59:52.897Z",
+      "reference_rgba_sha256": "8d7f7b900b01432eb3d3f01a1869bddd957eece3c4cc28fac090b2949ffb3a81",
+      "candidate_rgba_sha256": "8d7f7b900b01432eb3d3f01a1869bddd957eece3c4cc28fac090b2949ffb3a81",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 1, 1, 1],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, 0, 0, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle77-images/pixels/frames/media-png-30/report.json",
+        "heatmap": "artifacts/migration/cycle77-images/pixels/frames/media-png-30/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle77-images/pixels/frames/media-png-30/contact-sheet.png",
+        "report_sha256": "f2e509bd35854c69893ddd7e972b736f32a8012a2381eeced1d0d6f7ca772504",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet_sha256": "bc7986eccec16edd9151110aedc6c64ea10b43d67464094777fef505d1419ada"
+      },
+      "inspection": "Directly inspected both unique contact sheets and their black heatmaps. SHA-256 equality proves the four frame image pairs in each case are identical. Color bars, gradients, bounds and PNG alpha ramp match the frozen TS output; JPEG remains opaque. Pixels are exact, so no residual exists. All GPU metric and structural checks pass; no tolerance changes."
+    },
+    {
+      "case_id": "media-png",
+      "frame": 59,
+      "profile": "gpu",
+      "purpose": "M3 supplied still-image GPU execution; native file decode remains pending",
+      "reviewed_at": "2026-10-05T22:59:52.897Z",
+      "reference_rgba_sha256": "8d7f7b900b01432eb3d3f01a1869bddd957eece3c4cc28fac090b2949ffb3a81",
+      "candidate_rgba_sha256": "8d7f7b900b01432eb3d3f01a1869bddd957eece3c4cc28fac090b2949ffb3a81",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 1, 1, 1],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, 0, 0, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle77-images/pixels/frames/media-png-59/report.json",
+        "heatmap": "artifacts/migration/cycle77-images/pixels/frames/media-png-59/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle77-images/pixels/frames/media-png-59/contact-sheet.png",
+        "report_sha256": "2763b7964702daee53af8511b076ca4bb19795e0c139a774142b54de3ebb51f3",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet_sha256": "bc7986eccec16edd9151110aedc6c64ea10b43d67464094777fef505d1419ada"
+      },
+      "inspection": "Directly inspected both unique contact sheets and their black heatmaps. SHA-256 equality proves the four frame image pairs in each case are identical. Color bars, gradients, bounds and PNG alpha ramp match the frozen TS output; JPEG remains opaque. Pixels are exact, so no residual exists. All GPU metric and structural checks pass; no tolerance changes."
+    },
+    {
+      "case_id": "media-jpg",
+      "frame": 0,
+      "profile": "gpu",
+      "purpose": "M3 supplied still-image GPU execution; native file decode remains pending",
+      "reviewed_at": "2026-10-05T22:59:52.897Z",
+      "reference_rgba_sha256": "51a8443333181ff119976ff190a8c491e6b6d646d58bfb937af008894d8d1c1f",
+      "candidate_rgba_sha256": "51a8443333181ff119976ff190a8c491e6b6d646d58bfb937af008894d8d1c1f",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 1, 1, 1],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, 0, 0, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle77-images/pixels/frames/media-jpg-0/report.json",
+        "heatmap": "artifacts/migration/cycle77-images/pixels/frames/media-jpg-0/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle77-images/pixels/frames/media-jpg-0/contact-sheet.png",
+        "report_sha256": "45cc50777379101912933c2e82e34f496535a00dbd4c93172c1136efefa9e041",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet_sha256": "6b12eb737c667afa8e520e151eb0772d94193f147b303360bc589b3287b84973"
+      },
+      "inspection": "Directly inspected both unique contact sheets and their black heatmaps. SHA-256 equality proves the four frame image pairs in each case are identical. Color bars, gradients, bounds and PNG alpha ramp match the frozen TS output; JPEG remains opaque. Pixels are exact, so no residual exists. All GPU metric and structural checks pass; no tolerance changes."
+    },
+    {
+      "case_id": "media-jpg",
+      "frame": 15,
+      "profile": "gpu",
+      "purpose": "M3 supplied still-image GPU execution; native file decode remains pending",
+      "reviewed_at": "2026-10-05T22:59:52.897Z",
+      "reference_rgba_sha256": "51a8443333181ff119976ff190a8c491e6b6d646d58bfb937af008894d8d1c1f",
+      "candidate_rgba_sha256": "51a8443333181ff119976ff190a8c491e6b6d646d58bfb937af008894d8d1c1f",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 1, 1, 1],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, 0, 0, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle77-images/pixels/frames/media-jpg-15/report.json",
+        "heatmap": "artifacts/migration/cycle77-images/pixels/frames/media-jpg-15/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle77-images/pixels/frames/media-jpg-15/contact-sheet.png",
+        "report_sha256": "ff8f9a82007d7a81ebe1cb11511229220be9031abe87caa4d24ffa238d8c99e2",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet_sha256": "6b12eb737c667afa8e520e151eb0772d94193f147b303360bc589b3287b84973"
+      },
+      "inspection": "Directly inspected both unique contact sheets and their black heatmaps. SHA-256 equality proves the four frame image pairs in each case are identical. Color bars, gradients, bounds and PNG alpha ramp match the frozen TS output; JPEG remains opaque. Pixels are exact, so no residual exists. All GPU metric and structural checks pass; no tolerance changes."
+    },
+    {
+      "case_id": "media-jpg",
+      "frame": 30,
+      "profile": "gpu",
+      "purpose": "M3 supplied still-image GPU execution; native file decode remains pending",
+      "reviewed_at": "2026-10-05T22:59:52.897Z",
+      "reference_rgba_sha256": "51a8443333181ff119976ff190a8c491e6b6d646d58bfb937af008894d8d1c1f",
+      "candidate_rgba_sha256": "51a8443333181ff119976ff190a8c491e6b6d646d58bfb937af008894d8d1c1f",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 1, 1, 1],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, 0, 0, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle77-images/pixels/frames/media-jpg-30/report.json",
+        "heatmap": "artifacts/migration/cycle77-images/pixels/frames/media-jpg-30/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle77-images/pixels/frames/media-jpg-30/contact-sheet.png",
+        "report_sha256": "4953a3c62dbca8dc3221a8cadd977838c1e4759c1d995a95b0e377bb21674a95",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet_sha256": "6b12eb737c667afa8e520e151eb0772d94193f147b303360bc589b3287b84973"
+      },
+      "inspection": "Directly inspected both unique contact sheets and their black heatmaps. SHA-256 equality proves the four frame image pairs in each case are identical. Color bars, gradients, bounds and PNG alpha ramp match the frozen TS output; JPEG remains opaque. Pixels are exact, so no residual exists. All GPU metric and structural checks pass; no tolerance changes."
+    },
+    {
+      "case_id": "media-jpg",
+      "frame": 59,
+      "profile": "gpu",
+      "purpose": "M3 supplied still-image GPU execution; native file decode remains pending",
+      "reviewed_at": "2026-10-05T22:59:52.897Z",
+      "reference_rgba_sha256": "51a8443333181ff119976ff190a8c491e6b6d646d58bfb937af008894d8d1c1f",
+      "candidate_rgba_sha256": "51a8443333181ff119976ff190a8c491e6b6d646d58bfb937af008894d8d1c1f",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 1, 1, 1],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, 0, 0, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle77-images/pixels/frames/media-jpg-59/report.json",
+        "heatmap": "artifacts/migration/cycle77-images/pixels/frames/media-jpg-59/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle77-images/pixels/frames/media-jpg-59/contact-sheet.png",
+        "report_sha256": "11b5dc608cb0d4cef39d1d6a113f3df58c9771e8fcfbda122e514dc62b390c9c",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet_sha256": "6b12eb737c667afa8e520e151eb0772d94193f147b303360bc589b3287b84973"
+      },
+      "inspection": "Directly inspected both unique contact sheets and their black heatmaps. SHA-256 equality proves the four frame image pairs in each case are identical. Color bars, gradients, bounds and PNG alpha ramp match the frozen TS output; JPEG remains opaque. Pixels are exact, so no residual exists. All GPU metric and structural checks pass; no tolerance changes."
     }
   ],
   "history": [
@@ -29358,5 +30019,13 @@
         "sha256": "2a52867f6da0c4ad4e8cd1ef9831d5eb9be11743fe6f26fa9f12fe8d5c83797a"
       }
     }
-  ]
+  ],
+  "active_cycle": {
+    "id": 77,
+    "started_at": "2026-10-05T22:50:03.976Z",
+    "milestone": "M3",
+    "task": "M3-T2",
+    "base_commit": "815b95bc6c7bb4d869b8dfbfde3a7cd6507ccb59",
+    "intent": "Execute supplied still-image pixels using shared native image shaders and a budgeted GPU cache. This is the rendering increment of M3-T2; native file decoding remains required before task completion."
+  }
 }

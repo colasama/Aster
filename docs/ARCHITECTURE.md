@@ -69,10 +69,10 @@ allocation, resizing helpers, and disposal of its GPU resources and media/surfac
 submission has its own module. Frame buffers remain GPU-resident until an explicit readback.
 
 `aster-renderer` executes validated supplied frame bundles on a headless native wgpu device.
-Its initial capability covers solid/vector draws, fixed and backdrop blends, display conversion
-and all four AA modes. It consumes shared WGSL and exact supplied geometry, lighting, clear and
+Its initial capability covers solid/vector draws, supplied still-image pixels, fixed and backdrop
+blends, display conversion and all four AA modes. It consumes shared WGSL and exact supplied geometry, lighting, clear and
 post-process buffers; it does not evaluate projects or open media paths. Unsupported operations
-return explicit errors before rendering. Images, masks, adjustments and recursive surfaces remain
+return explicit errors before rendering. Native image file decoding, masks, adjustments and recursive surfaces remain
 pending native capabilities, and production preview/export still use the TS execution path.
 
 Linear HDR scene and isolated layer intermediates stay on the GPU. Frame targets are reused by
@@ -81,6 +81,15 @@ preventing reuse while a consumer still owns it. `aster-render-cli render-plan` 
 diagnostic readback to publish a PNG atomically. Future preview and encoder consumers use the GPU
 texture directly. The CLI verifies the exact content-addressed resource closure before execution
 and reports adapter identity and input/output hashes for independent pixel verification.
+
+Native still-image draws sample cached `rgba8unorm-srgb` textures through the shared image shader.
+The cache key includes both frame identity and pixel content hash, so an updated pixel generation
+cannot reuse stale content. Frame admission checks complete texture demand before mutation; LRU
+eviction excludes current-frame inputs and waits for submitted GPU work only under memory pressure.
+Scene targets and cached image textures share the configured GPU budget. Unchanged textures are
+not uploaded again, and frame plans retain resource keys instead of copying image pixels.
+Diagnostic receipts report upload/hit/eviction counts and explicitly identify supplied-pixel
+execution as distinct from native file decoding.
 
 The migration's `aster-render-ir` crate owns typed frame-plan transport and its generated schema.
 TS DataView and Rust owned-buffer codecs share a canonical FPLN container with aligned binary blobs

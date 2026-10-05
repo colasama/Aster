@@ -9,6 +9,10 @@ use aster_shaders::ShaderCatalog;
 
 use crate::{RenderError, SuppliedFrame, output::OutputPipelines, scene::ScenePipelines};
 
+#[cfg(test)]
+#[path = "image_cache_tests.rs"]
+mod image_cache_tests;
+
 pub struct NativeOptions {
     pub backend: NativeBackend,
     pub adapter_name: Option<String>,
@@ -20,6 +24,7 @@ pub struct RenderedFrame {
     pub texture: wgpu::Texture,
     pub size: Extent2d,
     pub submission: wgpu::SubmissionIndex,
+    pub image_cache: crate::ImageCacheStatistics,
     _lease: Arc<()>,
 }
 
@@ -41,6 +46,7 @@ pub struct NativeRenderer {
     output: OutputPipelines,
     targets: Option<FrameTargets>,
     output_lease: Weak<()>,
+    images: crate::image_cache::ImageCache,
 }
 
 impl FrameTargets {
@@ -135,7 +141,8 @@ impl NativeRenderer {
         let internal_scope = device.push_error_scope(wgpu::ErrorFilter::Internal);
         let scope = device.push_error_scope(wgpu::ErrorFilter::Validation);
         let catalog = ShaderCatalog::embedded()?;
-        let scene = ScenePipelines::new(&device, &catalog)?;
+        let images = crate::image_cache::ImageCache::new(&device);
+        let scene = ScenePipelines::new(&device, &catalog, &images.layout)?;
         let output = OutputPipelines::new(&device, &queue, &catalog)?;
         let validation_error = pollster::block_on(scope.pop());
         let internal_error = pollster::block_on(internal_scope.pop());
@@ -152,11 +159,16 @@ impl NativeRenderer {
             output,
             targets: None,
             output_lease: Weak::new(),
+            images,
         })
     }
 
     /// Executes only supplied inputs; the returned frame remains on the GPU.
-    pub fn render(&mut self, frame: &SuppliedFrame) -> Result<RenderedFrame, RenderError> {
+    pub fn render(
+        &mut self,
+        frame: &SuppliedFrame,
+        registry: &aster_render_ir::ResourceRegistry,
+    ) -> Result<RenderedFrame, RenderError> {
         if self.output_lease.upgrade().is_some() {
             return Err(RenderError::Invalid(
                 "previous output frame is still leased".into(),
@@ -187,12 +199,26 @@ impl NativeRenderer {
         let memory = self.device.push_error_scope(wgpu::ErrorFilter::OutOfMemory);
         let internal = self.device.push_error_scope(wgpu::ErrorFilter::Internal);
         let validation = self.device.push_error_scope(wgpu::ErrorFilter::Validation);
-        if self
-            .targets
-            .as_ref()
-            .is_none_or(|targets| targets.render_size != render_size || targets.output_size != size)
-        {
+        let resized = self.targets.as_ref().is_none_or(|targets| {
+            targets.render_size != render_size || targets.output_size != size
+        });
+        if resized && self.targets.is_some() {
+            self.device
+                .poll(wgpu::PollType::Wait {
+                    submission_index: None,
+                    timeout: Some(self.options.timeout),
+                })
+                .map_err(|error| RenderError::Gpu(error.to_string()))?;
             self.targets = None;
+        }
+        self.images.prepare(
+            (&self.device, &self.queue),
+            &frame.images,
+            registry,
+            self.options.gpu_budget_bytes - bytes,
+            self.options.timeout,
+        )?;
+        if resized {
             self.targets = Some(FrameTargets::new(&self.device, render_size, size));
         }
         let targets = self
@@ -212,8 +238,8 @@ impl NativeRenderer {
             &self.device,
             &mut encoder,
             frame,
-            targets.scene.raw(),
-            &depth,
+            (targets.scene.raw(), &depth),
+            &self.images,
             &self.output,
         )?;
         self.output.record(
@@ -233,6 +259,7 @@ impl NativeRenderer {
         let internal_error = pollster::block_on(internal.pop());
         let memory_error = pollster::block_on(memory.pop());
         if let Some(error) = validation_error.or(internal_error).or(memory_error) {
+            self.images.invalidate();
             return Err(RenderError::Gpu(error.to_string()));
         }
         let lease = Arc::new(());
@@ -241,6 +268,7 @@ impl NativeRenderer {
             texture: targets.output.raw().clone(),
             size,
             submission,
+            image_cache: self.images.statistics,
             _lease: lease,
         })
     }

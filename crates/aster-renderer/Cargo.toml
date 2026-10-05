@@ -10,5 +10,6 @@ aster-render.workspace = true
 aster-render-ir.workspace = true
 aster-shaders.workspace = true
 pollster.workspace = true
+serde.workspace = true
 thiserror.workspace = true
 wgpu.workspace = true

@@ -34,6 +34,8 @@ export const coreGeometryCases = [
   "blend-exclusion",
 ];
 
+export const coreImageCases = ["media-png", "media-jpg"];
+
 export function validateNativeReceipt(receipt, expected) {
   assert.equal(receipt.schema_version, 1);
   assert.equal(receipt.status, "passed");
@@ -56,7 +58,8 @@ export async function runNativeCoreGate(context, execute = runStep) {
   const report = {
     id: "G3",
     status: "failed",
-    scope: "native-core-geometry-v1",
+    scope: "native-core-geometry-and-image-pixels-v1",
+    native_image_decode: false,
     full_coverage: false,
     milestone_exit_eligible: false,
     native_gpu_execution: true,
@@ -98,7 +101,8 @@ export async function runNativeCoreGate(context, execute = runStep) {
     report.binary = { path: local(binary), sha256: await hashFile(binary) };
     const base = posix.dirname(milestone.input_manifest.path);
     const candidate = { schema_version: 1, frames: [] };
-    for (const id of coreGeometryCases) {
+    const cases = [...coreGeometryCases, ...coreImageCases];
+    for (const id of cases) {
       const item = corpus.cases.find((value) => value.id === id);
       assert(item, `Required native core case absent: ${id}`);
       const source = manifest.cases.find((value) => value.case_id === id);
@@ -149,6 +153,11 @@ export async function runNativeCoreGate(context, execute = runStep) {
           ...item.size,
           adapter: meta.adapter.gpuMemory.device,
         });
+        assert.equal(receipt.native_image_decode, false);
+        if (coreImageCases.includes(id)) {
+          assert(receipt.image_cache.uploads > 0, "Native image case uploaded no texture");
+          assert(receipt.image_cache.resident_bytes > 0);
+        }
         const entry = {
           case_id: id,
           frame,
@@ -166,7 +175,7 @@ export async function runNativeCoreGate(context, execute = runStep) {
         });
       }
     }
-    report.required_count = coreGeometryCases.reduce(
+    report.required_count = cases.reduce(
       (count, id) => count + corpus.cases.find((item) => item.id === id).frames.length,
       0,
     );
@@ -186,6 +195,15 @@ export async function runNativeCoreGate(context, execute = runStep) {
     assert.equal(report.pixels.frames.length, report.required_count);
     assert.equal(report.pixels.comparisons.length, report.required_count);
     report.rejections = await runNativeRejections(context, { reader, base, binary }, execute);
+    report.image_cache = await execute(
+      {
+        id: "native-image-cache",
+        file: "cargo",
+        args: ["test", "-p", "aster-renderer", "native_image_cache", "--", "--ignored"],
+      },
+      context,
+    );
+    assert.equal(report.image_cache.status, "passed");
     assert.equal(
       await hashFile(binary),
       report.binary.sha256,

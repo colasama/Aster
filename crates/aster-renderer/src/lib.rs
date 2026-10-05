@@ -1,6 +1,9 @@
 //! Native, GPU-resident execution of supplied frame plans.
 mod device;
 mod frame;
+mod geometry_pipelines;
+mod image_cache;
+mod image_input;
 mod layer_plan;
 mod layers;
 mod output;
@@ -8,6 +11,7 @@ mod scene;
 
 pub use device::{NativeOptions, NativeRenderer, RenderedFrame};
 pub use frame::SuppliedFrame;
+pub use image_cache::ImageCacheStatistics;
 
 #[derive(Debug, thiserror::Error)]
 pub enum RenderError {

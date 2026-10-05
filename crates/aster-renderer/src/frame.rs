@@ -16,6 +16,8 @@ pub struct SuppliedFrame {
     pub(crate) post: Vec<u8>,
     pub(crate) output_clear: wgpu::Color,
     pub(crate) layers: std::collections::BTreeMap<u32, crate::layer_plan::LayerPlan>,
+    pub(crate) images:
+        std::collections::BTreeMap<aster_render_ir::ResourceHash, crate::image_input::ImageInput>,
 }
 
 impl SuppliedFrame {
@@ -77,17 +79,20 @@ impl SuppliedFrame {
         let Some(PlanSlice::SceneBuffers(scene_slice)) = scene.metadata.slices.first() else {
             return Err(RenderError::Invalid("scene buffers required".into()));
         };
-        if !scene_slice.media_bindings.is_empty()
-            || (scene_slice.shadows_enabled
-                && scene_slice.draws.iter().any(|draw| draw.casts_shadow))
-        {
-            return Err(RenderError::Unsupported("media or shadow draws".into()));
+        if scene_slice.shadows_enabled && scene_slice.draws.iter().any(|draw| draw.casts_shadow) {
+            return Err(RenderError::Unsupported("shadow draws".into()));
         }
         let Some(PlanSlice::RootSceneCommands(commands)) = root.metadata.slices.first() else {
             return Err(RenderError::Invalid("root commands required".into()));
         };
+        let images =
+            crate::image_input::ImageInput::collect(bundle, scene_slice, commands, registry)?;
         for draw in &commands.draws {
-            if draw.texture != RootTextureReference::None || draw.material_blob_index.is_some() {
+            if !matches!(
+                draw.texture,
+                RootTextureReference::None | RootTextureReference::Media { .. }
+            ) || draw.material_blob_index.is_some()
+            {
                 return Err(RenderError::Unsupported("texture or material draw".into()));
             }
             if draw
@@ -144,6 +149,7 @@ impl SuppliedFrame {
             clears,
             post: post.blob(0)?.to_vec(),
             layers,
+            images,
             output_clear: wgpu::Color {
                 r: clear[0],
                 g: clear[1],

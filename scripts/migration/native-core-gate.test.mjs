@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { coreGeometryCases, validateNativeReceipt } from "./native-core-gate.mjs";
+import { coreGeometryCases, coreImageCases, validateNativeReceipt } from "./native-core-gate.mjs";
 import { selectRequiredGates } from "./performance-policy.mjs";
 
 test("native execution receipts reject foreign plans, pixels, dimensions and adapters", () => {
@@ -68,6 +68,7 @@ test("native core gates cannot omit IR or pixels, and geometry coverage includes
     "G3",
   ]);
   assert.equal(new Set(coreGeometryCases).size, coreGeometryCases.length);
+  assert.deepEqual(coreImageCases, ["media-png", "media-jpg"]);
   for (const mode of ["off", "fxaa", "ssaa2x", "ssaa4x"])
     assert(coreGeometryCases.includes(`aa-${mode}`));
 });

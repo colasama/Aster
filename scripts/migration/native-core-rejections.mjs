@@ -54,8 +54,14 @@ export async function runNativeRejections(context, { reader, base, binary }, exe
   await invoke("existing-output", "layer-solid", [], /output already exists/, true);
   await invoke("resource-budget", "layer-solid", ["--resource-byte-budget", "16"], /budget/i);
   await invoke("gpu-budget", "layer-solid", ["--gpu-budget-bytes", "16"], /GPU allocation budget/);
-  for (const id of [
+  await invoke(
+    "image-budget",
     "media-png",
+    ["--gpu-budget-bytes", "1170000"],
+    /images exceed GPU allocation budget/,
+  );
+  for (const id of [
+    "media-image-sequence",
     "nested-precompositions",
     "scene-masks-mattes-0",
     "scene-particles-billboard",

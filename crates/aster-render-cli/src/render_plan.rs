@@ -54,6 +54,8 @@ struct RenderReport {
     status: &'static str,
     native_gpu_execution: bool,
     diagnostic_readback: bool,
+    native_image_decode: bool,
+    image_cache: aster_renderer::ImageCacheStatistics,
     adapter: AdapterDiagnostics,
     plan_sha256: String,
     rgba_sha256: String,
@@ -139,7 +141,7 @@ impl RenderPlanArgs {
             gpu_budget_bytes: self.gpu_budget_bytes,
             timeout: Duration::from_millis(self.timeout_ms),
         })?;
-        let rendered = renderer.render(&frame)?;
+        let rendered = renderer.render(&frame, &registry)?;
         let pixels = renderer.read_rgba(&rendered)?;
         let rgba_sha256 = format!("{:x}", Sha256::digest(&pixels));
         let image = RgbaImage::new(rendered.size.width, rendered.size.height, pixels)?;
@@ -151,6 +153,8 @@ impl RenderPlanArgs {
                 status: "passed",
                 native_gpu_execution: true,
                 diagnostic_readback: true,
+                native_image_decode: false,
+                image_cache: rendered.image_cache,
                 adapter: renderer.diagnostics,
                 plan_sha256,
                 rgba_sha256,

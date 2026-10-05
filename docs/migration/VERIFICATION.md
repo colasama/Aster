@@ -319,11 +319,11 @@ The required LUT/effect GPU replay now round-trips six routing slices alongside 
 programs; supplied execution decisions still match the existing frozen outputs exactly. A production
 precomposition test changes authored effects/blend after planning and verifies retained execution.
 
-## Native geometry and blend acceptance
+## Native geometry, blend and supplied-image acceptance
 
 M3 G3 executes the current release `aster-render-cli render-plan` against complete captured FPLN
-bundles and their hash-pinned resource closure. The initial increment covers 22 cases (88 frames):
-solid/vector geometry, every blend mode and off/FXAA/SSAA2x/SSAA4x. Each receipt binds the native
+bundles and their hash-pinned resource closure. The current increment covers 24 cases (96 frames):
+solid/vector geometry, every blend mode, off/FXAA/SSAA2x/SSAA4x and supplied PNG/JPEG image pixels. Each receipt binds the native
 adapter, plan hash, dimensions and decoded PNG pixels. Comparisons use the independently frozen
 TS references under the specified `gpu` profile, including every structural check and recorded
 section 6.6 self-review. M1/M2 retain their separate whole-corpus `exact` requirements.
@@ -332,5 +332,11 @@ The gate also checks rejection without output publication for unsupported featur
 budgets and corrupt resources, and preserves pre-existing output. Binary and input hashes must
 remain stable throughout the run. This is explicitly an incremental gate: its report sets
 `full_coverage` and `milestone_exit_eligible` to false. Passing G0/G1/G3 permits the increment's
-commit but cannot complete M3 while images, masks, adjustment layers or precomposition surfaces
+commit but cannot complete M3 while native image file decoding, masks, adjustment layers or precomposition surfaces
 remain unimplemented. M3 exit requires the complete core corpus and an exit audit.
+
+Image receipts require actual native texture uploads and report `native_image_decode: false` until
+authorized file decoding is implemented. Supplied pixel hashes are bound to matching frame
+descriptors and scene/root draw references before allocation. An ignored GPU test, run by G3,
+checks repeated texture reuse, distinct pixel generations for one frame, current-frame eviction
+protection, budget shrink and unchanged cache state after rejected input or insufficient budget.

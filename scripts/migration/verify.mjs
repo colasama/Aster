@@ -191,7 +191,7 @@ export async function verifyMigration(options, dependencies = {}) {
               ),
         );
         report.milestone_exit_reason =
-          "Native geometry and blend increment does not establish image, mask, adjustment or precomposition coverage";
+          "Native geometry, blend and supplied-image increment does not establish native image decoding, masks, adjustments or precomposition coverage";
       } else if (id === "G3") {
         const pixelContext = { ...context, output: join(output, "G3") };
         const build = await execute(
