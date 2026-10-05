@@ -79,6 +79,40 @@ export async function auditPrecompositionBundle(runtime, fixture, after, options
   );
   assert.equal(cliReport(rejection.log).code, "invalid_precomposition");
   await assert.rejects(access(invalidOutput), { code: "ENOENT" });
+  const generator = decoded.plans.flatMap((p) => p.generators)[0];
+  if (generator) {
+    assert.deepEqual(generator.execution, { status: "ready", capacity: 3, effective_count: 3 });
+    for (const status of ["planned", "unavailable", "invalid-capacity"]) {
+      const bytes = mutate(fixture.bytes, (metadata) => {
+        metadata.slices[0].scenes[0].generators[0].execution =
+          status === "invalid-capacity"
+            ? { status: "ready", capacity: 2, effective_count: 3 }
+            : { status };
+      });
+      const input = join(directory, `execution-${status}.fpln`);
+      const output = join(directory, `execution-${status}.output.fpln`);
+      await writeFile(input, bytes, { flag: "wx" });
+      const rejected = status === "invalid-capacity";
+      const step = await command(
+        rejected ? "ir-precomposition-reject-execution" : `ir-roundtrip-execution-${status}`,
+        cli,
+        ["ir", "roundtrip", "--input", input, "--output", output],
+        rejected ? 2 : 0,
+      );
+      if (rejected) {
+        assert.equal(cliReport(step.log).code, "invalid_precomposition");
+        await assert.rejects(access(output), { code: "ENOENT" });
+      } else {
+        const result = await outputFile(output, cliReport(step.log, "ir_roundtrip"));
+        assert.deepEqual(result.bytes, Buffer.from(bytes));
+        const plans = runtime.readPrecompositionBundle(
+          runtime.decodeFramePlan(result.bytes),
+          supplied,
+        ).plans;
+        assert.equal(plans[0].generators[0].execution?.status ?? "planned", status);
+      }
+    }
+  }
   if (decoded.mediaPixels.length) {
     const duplicate = mutate(fixture.bytes, (metadata) =>
       metadata.slices[0].media_pixels.push({ ...metadata.slices[0].media_pixels[0] }),
@@ -97,6 +131,7 @@ export async function auditPrecompositionBundle(runtime, fixture, after, options
     await assert.rejects(access(output), { code: "ENOENT" });
   }
   return {
+    captured_execution: Boolean(generator),
     media_duplicate_rejected: decoded.mediaPixels.length > 0,
     id: fixture.id,
     scenes: decoded.plans.length,

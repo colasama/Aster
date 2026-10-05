@@ -397,6 +397,8 @@ describe("GPU precomposition surfaces", () => {
       preparePlanned: vi.fn((plan) => ({
         instanceId: plan.instanceId,
         selectionId: plan.selectionId,
+        effectiveCount: plan.effectiveCount,
+        resources: { capacity: plan.capacity },
       })),
       encodeCompute: vi.fn(() => events.push("generator-compute")),
       draw: vi.fn(() => events.push("generator-draw")),

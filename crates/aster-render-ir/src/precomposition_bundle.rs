@@ -34,6 +34,14 @@ pub struct PrecompositionGeneratorRecord {
     pub plan: ResourceHash,
     pub layer_name_utf16: Vec<u16>,
     pub plugin_id_utf16: Vec<u16>,
+    pub execution: PrecompositionGeneratorExecution,
+}
+#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+#[serde(tag = "status", rename_all = "snake_case", deny_unknown_fields)]
+pub enum PrecompositionGeneratorExecution {
+    Planned,
+    Unavailable,
+    Ready { capacity: u32, effective_count: u32 },
 }
 #[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
@@ -153,6 +161,16 @@ impl PrecompositionBundleSlice {
                 references.push(execution);
             }
             for generator in &scene.generators {
+                if let PrecompositionGeneratorExecution::Ready {
+                    capacity,
+                    effective_count,
+                } = generator.execution
+                    && (effective_count == 0 || effective_count > capacity)
+                {
+                    return Err(IrError::InvalidPrecomposition(
+                        "generator execution capacity".to_owned(),
+                    ));
+                }
                 if generator.layer_name_utf16.len() > 65_536
                     || generator.plugin_id_utf16.len() > 65_536
                 {

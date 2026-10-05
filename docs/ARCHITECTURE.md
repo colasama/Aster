@@ -223,8 +223,12 @@ and 59 resources. Capture reads installed image, video or raster pixels through 
 lease, preserving its exact frame identity and sRGB sampling. The bundle links each media frame to
 an owned packed byte resource; validation rejects duplicate frames, unreferenced frames, mismatched
 extents and corrupt payloads. Independent replay rebuilds bindings from these bytes without media
-decoders. Ordinary preview keeps media GPU-resident. Full-frame capture with execution availability
-outcomes remains open.
+decoders. Ordinary preview keeps media GPU-resident. Recursive capture binds observed generator
+availability, allocation capacity and effective instance counts to the exact supplied scene generation.
+Replay skips captured unavailable generators even on a healthy host, constrains successful invocations
+to their observed capacity, and rejects a consumer that cannot reproduce the captured count. The
+failure GPU case uses a healthy replay host, so omission is driven by transported data. Integration
+of these recursive snapshots into complete root-frame capture remains open.
 
 
 Shared WGSL includes output anti-aliasing, core scene variants, compositing, fused post-processing,

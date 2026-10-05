@@ -102,6 +102,16 @@ export async function auditPrecompositions(reader, context, execute) {
               decoded.plans.reduce((n, p) => n + p.generators.length, 0),
               c.id.startsWith("generator") ? 1 : 0,
             );
+            for (const generator of decoded.plans.flatMap((p) => p.generators)) {
+              assert.equal(
+                generator.execution?.status,
+                c.id === "generator-failed" ? "unavailable" : "ready",
+              );
+              if (generator.execution.status === "ready") {
+                assert(generator.execution.effective_count > 0);
+                assert(generator.execution.capacity >= generator.execution.effective_count);
+              }
+            }
             assert(decoded.graph.bindings.has(c.output));
           } else {
             assert.equal(decoded.plans.length, 1);

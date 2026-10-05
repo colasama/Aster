@@ -1324,9 +1324,59 @@
         }
       ]
     },
+    "PrecompositionGeneratorExecution": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "const": "planned",
+              "type": "string"
+            }
+          },
+          "required": ["status"],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "const": "unavailable",
+              "type": "string"
+            }
+          },
+          "required": ["status"],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "capacity": {
+              "format": "uint32",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "effective_count": {
+              "format": "uint32",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "status": {
+              "const": "ready",
+              "type": "string"
+            }
+          },
+          "required": ["status", "capacity", "effective_count"],
+          "type": "object"
+        }
+      ]
+    },
     "PrecompositionGeneratorRecord": {
       "additionalProperties": false,
       "properties": {
+        "execution": {
+          "$ref": "#/$defs/PrecompositionGeneratorExecution"
+        },
         "instance_id": {
           "$ref": "#/$defs/CompositionIdentity"
         },
@@ -1352,7 +1402,7 @@
           "type": "array"
         }
       },
-      "required": ["instance_id", "plan", "layer_name_utf16", "plugin_id_utf16"],
+      "required": ["instance_id", "plan", "layer_name_utf16", "plugin_id_utf16", "execution"],
       "type": "object"
     },
     "PrecompositionMediaPixels": {

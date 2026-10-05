@@ -205,6 +205,13 @@ export function readPrecompositionBundle(
       });
       const decoded = readGeneratorSlice(plan, new Map(shaders.map((s) => [s.message.hash, s])));
       validateGeneratorResources(decoded);
+      if (record.execution.status === "ready")
+        requirePlan(
+          record.execution.effective_count ===
+            Math.min(decoded.effectiveCount, record.execution.capacity),
+          "invalid_precomposition",
+          "Captured generator count differs from invocation",
+        );
       requirePlan(
         decoded.instanceId === text(record.instance_id),
         "invalid_precomposition",
@@ -212,6 +219,9 @@ export function readPrecompositionBundle(
       );
       return {
         instanceId: decoded.instanceId,
+        ...(record.execution.status === "planned"
+          ? {}
+          : { execution: structuredClone(record.execution) }),
         plan,
         shaders,
         origin: {

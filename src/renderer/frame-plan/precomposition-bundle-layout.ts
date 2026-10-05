@@ -22,8 +22,12 @@ export interface PrecompositionSceneRecord {
     plan: string;
     layer_name_utf16: number[];
     plugin_id_utf16: number[];
+    execution: PrecompositionGeneratorExecution;
   }[];
 }
+export type PrecompositionGeneratorExecution =
+  | { status: "planned" | "unavailable" }
+  | { status: "ready"; capacity: number; effective_count: number };
 export interface PrecompositionBundleSlice {
   kind: "precomposition_bundle";
   blob_index: number;
@@ -166,6 +170,7 @@ export function validatePrecompositionBundle(
           "plan",
           "layer_name_utf16",
           "plugin_id_utf16",
+          "execution",
         ]),
         id = compositionIdentityToString(generator.instance_id);
       requirePlan(!generators.has(id), "invalid_precomposition", "Duplicate bundled generator");
@@ -173,6 +178,20 @@ export function validatePrecompositionBundle(
       reference(generator.plan);
       readUtf16Text(generator.layer_name_utf16);
       readUtf16Text(generator.plugin_id_utf16);
+      const status = (generator.execution as Record<string, unknown>)?.status;
+      requirePlan(
+        status === "planned" || status === "ready" || status === "unavailable",
+        "invalid_precomposition",
+        "Unknown generator execution state",
+      );
+      const execution = object(generator.execution, [
+        "status",
+        ...(status === "ready" ? ["capacity", "effective_count"] : []),
+      ]);
+      if (status === "ready") {
+        const capacity = integer(execution.capacity, 1, 0xffffffff);
+        integer(execution.effective_count, 1, capacity);
+      }
     }
   }
   requirePlan(

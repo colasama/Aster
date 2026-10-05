@@ -33,8 +33,10 @@ export function precompositionBundleFixtures() {
   return precompositionGraphFixtures(true, frame.hash).map((fixture) => {
     if (fixture.plans[0]) fixture.plans[0].label = "\0bundle\ud800";
     if (fixture.plans[1]) fixture.plans[1].label = "";
-    for (const generator of fixture.plans[0]?.generators ?? [])
+    for (const generator of fixture.plans[0]?.generators ?? []) {
       generator.origin.layerName = "nested\0label\ud800";
+      generator.execution = { status: "ready", capacity: 3, effective_count: 3 };
+    }
     const mediaPixels = fixture.plans.length
       ? [
           createMediaPixelPayload(

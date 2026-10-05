@@ -2,6 +2,7 @@ import type { FlattenedSceneLayer } from "../../core/scene/scene-evaluation";
 import type { Composition } from "../../core/types";
 import { effectExecution, type PreparedLayerEffect } from "../effects/layer-effect-plan";
 import { buildGeneratorSlice } from "../frame-plan/generator-plan";
+import type { PrecompositionGeneratorExecution } from "../frame-plan/precomposition-bundle-layout";
 import { buildSceneBufferPlan } from "../frame-plan/scene-buffer-plan";
 import type { FramePlanSliceData } from "../frame-plan/types";
 import type { GeometryResult } from "../geometry/geometry";
@@ -44,6 +45,7 @@ export interface PrecompositionScenePlan {
   effects: Map<string, PreparedLayerEffect>;
   generators: {
     instanceId: string;
+    execution?: PrecompositionGeneratorExecution;
     origin: { layerName: string; pluginId: string };
     plan: FramePlanSliceData;
     shaders: GeneratorShaderResource[];

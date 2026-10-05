@@ -54,9 +54,7 @@ async function capture() {
       const options = surfaceOptions(device);
       const Host = id === "generator-failed" ? UnavailableHost : SceneGeneratorHost;
       const legacyHost = new Host(device, "rgba16float", [bundledParticleDefinition]);
-      const plannerHost = new SceneGeneratorHost(device, "rgba16float", [
-        bundledParticleDefinition,
-      ]);
+      const plannerHost = new Host(device, "rgba16float", [bundledParticleDefinition]);
       const mediaTextures = new MediaTextureCache(
         device,
         options.mediaLayout,
@@ -87,7 +85,8 @@ async function capture() {
         );
         const supplied = producer.buildBundle(media);
         if (!supplied) throw Error("No captured bundle");
-        const bundle = await capturePrecompositionBundle(device, supplied, media);
+        const executed = producer.planScenes(media);
+        const bundle = await capturePrecompositionBundle(device, supplied, media, executed);
         const decoded = readPrecompositionBundle(bundle.plan, bundle.resources);
         let warmup: Packet | undefined;
         if (id === "nested") {
@@ -150,11 +149,7 @@ async function replay(input: Input) {
       if (!adapter) throw Error("GPU unavailable");
       const device = await adapter.requestDevice();
       device.pushErrorScope("validation");
-      const Host =
-        item.id === "generator-failed" && mutation !== "restore-generator"
-          ? UnavailableHost
-          : SceneGeneratorHost;
-      const host = new Host(device, "rgba16float", []);
+      const host = new SceneGeneratorHost(device, "rgba16float", []);
       const options = surfaceOptions(device);
       const renderer = new PrecompositionSurfaceRenderer(device, {
         ...options,
@@ -169,6 +164,12 @@ async function replay(input: Input) {
           pinned = renderer.bindingFor("warmup");
         }
         const bundle = unpack(item.bundle);
+        if (mutation === "restore-generator") {
+          const slice = bundle.plan.metadata.slices[0];
+          if (slice.kind !== "precomposition_bundle") throw Error("Missing surface bundle");
+          for (const scene of slice.scenes)
+            for (const generator of scene.generators) generator.execution = { status: "planned" };
+        }
         const decoded = readPrecompositionBundle(bundle.plan, bundle.resources);
         const captured = decoded.mediaPixels.map((capture) =>
           mutation === "change-media-pixels"

@@ -19,7 +19,7 @@ import { sharedShaders } from "../gpu/shared-shader-catalog";
 import { LutSelectionPlanner } from "../media/lut-selection-plan";
 import type { MediaTextureCache } from "../media/media-texture-cache";
 import type { PreparedSceneGenerator, SceneGeneratorHost } from "../scene/scene-generator-host";
-import type { SceneGeneratorPlan } from "../scene/scene-generator-plan";
+import { constrainGeneratorPlan, type SceneGeneratorPlan } from "../scene/scene-generator-plan";
 import { SCENE_LIGHTING_BYTES } from "../scene/scene-lighting";
 import { IMAGE_VERTEX_BUFFERS } from "../scene/scene-pipelines";
 import type { TextMotionBlurPlan } from "../text/text-motion-blur-plan";
@@ -273,7 +273,10 @@ export class PrecompositionSurfaceRenderer {
       );
     }
     requirePlan(
-      this.#sceneGenerators || decoded.plans.every((plan) => plan.generators.length === 0),
+      this.#sceneGenerators ||
+        decoded.plans.every((plan) =>
+          plan.generators.every((generator) => generator.execution?.status === "unavailable"),
+        ),
       "missing_resource",
       "Supplied generators require an execution host",
     );
@@ -314,15 +317,38 @@ export class PrecompositionSurfaceRenderer {
       if (!entry) throw new Error("Decoded precomposition target is absent");
       this.#uploadScene(entry, plan);
       for (const generator of plan.generators) {
+        if (generator.execution?.status === "unavailable") {
+          this.#generators.set(generator.instanceId, null);
+          continue;
+        }
         if (!this.#sceneGenerators) throw new Error("Decoded generator host is absent");
         const invocation = readGeneratorSlice(
           generator.plan,
           new Map(generator.shaders.map((s) => [s.message.hash, s])),
         );
-        this.#generators.set(
-          generator.instanceId,
-          this.#sceneGenerators.preparePlanned(invocation, generator.origin) ?? null,
+        const expected = generator.execution;
+        const prepared = this.#sceneGenerators.preparePlanned(
+          expected?.status === "ready"
+            ? constrainGeneratorPlan(invocation, expected.capacity)
+            : invocation,
+          generator.origin,
         );
+        requirePlan(
+          expected?.status !== "ready" || prepared?.effectiveCount === expected.effective_count,
+          "resource_generation_mismatch",
+          "Captured generator execution cannot be reproduced",
+        );
+        generator.execution =
+          expected?.status === "ready"
+            ? expected
+            : prepared
+              ? {
+                  status: "ready",
+                  capacity: prepared.resources.capacity,
+                  effective_count: prepared.effectiveCount,
+                }
+              : { status: "unavailable" };
+        this.#generators.set(generator.instanceId, prepared ?? null);
       }
     }
     return decoded.plans;

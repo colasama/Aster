@@ -17493,5 +17493,11 @@
       }
     }
   ],
-  "active_cycle": null
+  "active_cycle": {
+    "id": 60,
+    "milestone": "M2",
+    "task": "M2-T11",
+    "started_at": "2026-10-05T10:27:40.191Z",
+    "intent": "Capture recursive generator execution outcomes and require supplied replay to preserve unavailable draws and reject unreproducible ready outcomes."
+  }
 }

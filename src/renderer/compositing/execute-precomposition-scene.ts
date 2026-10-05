@@ -43,7 +43,7 @@ export function executePrecompositionScene(input: {
   const generators = plan.generators.flatMap((p) => {
     const prepared = input.generators.get(p.instanceId);
     requirePlan(
-      prepared !== undefined && input.host,
+      prepared !== undefined && (prepared === null || input.host),
       "missing_resource",
       "Precomposition generator is absent",
     );
