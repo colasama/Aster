@@ -146,39 +146,39 @@
     }
   },
   "last_cycle": {
-    "id": 76,
-    "time": "2026-10-05T22:48:45.857Z",
+    "id": 77,
+    "time": "2026-10-05T23:05:05.939Z",
     "milestone": "M3",
-    "task": "M3-T1",
+    "task": "M3-T2",
     "outcome": "passed",
-    "commit": "4f22ce5b14b9fc3a29b91e383cd791759c77f9bd",
-    "verification": "artifacts/migration/verify-2026-10-05T22-42-43-329Z-7f4add64.json",
-    "verification_sha256": "3eda52bb4eea0e67b5e088f62b488c048f020809bb58fe98837f3aa085fc02d3",
+    "commit": "daadfcf799799a685a6636884f5fa8c0d0dc0798",
+    "verification": "artifacts/migration/verify-2026-10-05T23-00-05-959Z-dd6ba9f7.json",
+    "verification_sha256": "d8fae5f1aa83ade94dd9b7918ff84c0595b9ff5ec019f08247e8ead5232ec6d5",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 109481
+        "duration_ms": 89853
       },
       {
         "id": "G1",
         "status": "passed",
-        "duration_ms": 32609
+        "duration_ms": 28614
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 104963
+        "duration_ms": 128275
       }
     ],
-    "verification_duration_ms": 248612,
-    "next_step": "M3-T2: authorized native PNG/JPEG/EXR decode, image draws and budgeted GPU resource caching.",
+    "verification_duration_ms": 248267,
+    "next_step": "Continue M3-T2 with authorized native PNG/JPEG/EXR file decoding; supplied-pixel execution does not complete the task.",
     "notes": [
-      "Native wgpu now executes supplied solid/vector geometry, every blend mode, display conversion and all AA modes through shared WGSL. Intermediate surfaces and returned frames remain GPU-resident.",
-      "Current full G0/G1/G3 passed with 22 cases, 88 native frames and ten expected rejection probes. Every GPU metric and structural check passed; self-reviews accept only sparse one-code-value float rounding. References and tolerance limits remain unchanged.",
-      "The failed direct-only, FXC and stronger exact diagnostic attempts remain preserved. Zero-operation specialization fixes the current compiler issue; full effect shader compilation remains required in M4.",
-      "The resource closure validator moved from the CLI to aster-render-ir for shared use; no new external dependency was introduced.",
-      "M3 remains in progress: native images, masks, adjustment layers and recursive surfaces remain open. Production preview/export still use TS, and the complete migration goal remains active."
+      "Native image draws now use the shared sRGB image shader and a GPU cache keyed by frame identity and pixel generation. Supplied plans retain keys rather than copying pixel payloads.",
+      "The cache preflights full demand, protects current-frame generations, evicts unused textures under the shared GPU budget and waits for retired work only under pressure or target resize. GPU failures invalidate cache entries.",
+      "Full current G0/G1/G3 passed across 24 cases and 96 native frames. Eight new PNG/JPEG supplied-pixel frames match frozen TS references exactly and have recorded GPU-profile self-reviews. Prior geometry and blend results match their accepted reviews.",
+      "An actual GPU cache lifecycle test and eleven expected CLI rejection cases pass. No external package or tolerance change was introduced.",
+      "M3-T2 remains in progress: native file authorization/decoding and EXR linear sample validation are still required. Production preview/export remain TS until later migration integration."
     ]
   },
   "milestones": [
@@ -19641,10 +19641,56 @@
           "title": "Decode authorized PNG, JPEG and EXR stills and execute image draws with cached GPU resources",
           "status": "in_progress",
           "remaining": [
-            "Native image texture upload, sampling and budgeted persistent GPU caching",
-            "Authorized native PNG/JPEG/EXR decoding and decoder rejection evidence",
-            "Image corpus pixel acceptance and EXR linear sample checks"
-          ]
+            "Authorized native PNG/JPEG/EXR file decoding and decoder rejection evidence",
+            "Native-decoded image corpus acceptance and EXR linear HDR sample checks"
+          ],
+          "increments": [
+            {
+              "id": 77,
+              "time": "2026-10-05T23:05:05.939Z",
+              "milestone": "M3",
+              "task": "M3-T2",
+              "outcome": "passed",
+              "commit": "daadfcf799799a685a6636884f5fa8c0d0dc0798",
+              "verification": "artifacts/migration/verify-2026-10-05T23-00-05-959Z-dd6ba9f7.json",
+              "verification_sha256": "d8fae5f1aa83ade94dd9b7918ff84c0595b9ff5ec019f08247e8ead5232ec6d5",
+              "gates": [
+                {
+                  "id": "G0",
+                  "status": "passed",
+                  "duration_ms": 89853
+                },
+                {
+                  "id": "G1",
+                  "status": "passed",
+                  "duration_ms": 28614
+                },
+                {
+                  "id": "G3",
+                  "status": "passed",
+                  "duration_ms": 128275
+                }
+              ],
+              "verification_duration_ms": 248267,
+              "next_step": "Continue M3-T2 with authorized native PNG/JPEG/EXR file decoding; supplied-pixel execution does not complete the task.",
+              "notes": [
+                "Native image draws now use the shared sRGB image shader and a GPU cache keyed by frame identity and pixel generation. Supplied plans retain keys rather than copying pixel payloads.",
+                "The cache preflights full demand, protects current-frame generations, evicts unused textures under the shared GPU budget and waits for retired work only under pressure or target resize. GPU failures invalidate cache entries.",
+                "Full current G0/G1/G3 passed across 24 cases and 96 native frames. Eight new PNG/JPEG supplied-pixel frames match frozen TS references exactly and have recorded GPU-profile self-reviews. Prior geometry and blend results match their accepted reviews.",
+                "An actual GPU cache lifecycle test and eleven expected CLI rejection cases pass. No external package or tolerance change was introduced.",
+                "M3-T2 remains in progress: native file authorization/decoding and EXR linear sample validation are still required. Production preview/export remain TS until later migration integration."
+              ]
+            }
+          ],
+          "completed_scope": {
+            "supplied_image_gpu": {
+              "commit": "daadfcf799799a685a6636884f5fa8c0d0dc0798",
+              "verification": "artifacts/migration/verify-2026-10-05T23-00-05-959Z-dd6ba9f7.json",
+              "frames": 8,
+              "exact": true,
+              "cache_lifecycle": "GPU verified"
+            }
+          }
         },
         {
           "id": "M3-T3",
@@ -29847,6 +29893,42 @@
         "The resource closure validator moved from the CLI to aster-render-ir for shared use; no new external dependency was introduced.",
         "M3 remains in progress: native images, masks, adjustment layers and recursive surfaces remain open. Production preview/export still use TS, and the complete migration goal remains active."
       ]
+    },
+    {
+      "id": 77,
+      "time": "2026-10-05T23:05:05.939Z",
+      "milestone": "M3",
+      "task": "M3-T2",
+      "outcome": "passed",
+      "commit": "daadfcf799799a685a6636884f5fa8c0d0dc0798",
+      "verification": "artifacts/migration/verify-2026-10-05T23-00-05-959Z-dd6ba9f7.json",
+      "verification_sha256": "d8fae5f1aa83ade94dd9b7918ff84c0595b9ff5ec019f08247e8ead5232ec6d5",
+      "gates": [
+        {
+          "id": "G0",
+          "status": "passed",
+          "duration_ms": 89853
+        },
+        {
+          "id": "G1",
+          "status": "passed",
+          "duration_ms": 28614
+        },
+        {
+          "id": "G3",
+          "status": "passed",
+          "duration_ms": 128275
+        }
+      ],
+      "verification_duration_ms": 248267,
+      "next_step": "Continue M3-T2 with authorized native PNG/JPEG/EXR file decoding; supplied-pixel execution does not complete the task.",
+      "notes": [
+        "Native image draws now use the shared sRGB image shader and a GPU cache keyed by frame identity and pixel generation. Supplied plans retain keys rather than copying pixel payloads.",
+        "The cache preflights full demand, protects current-frame generations, evicts unused textures under the shared GPU budget and waits for retired work only under pressure or target resize. GPU failures invalidate cache entries.",
+        "Full current G0/G1/G3 passed across 24 cases and 96 native frames. Eight new PNG/JPEG supplied-pixel frames match frozen TS references exactly and have recorded GPU-profile self-reviews. Prior geometry and blend results match their accepted reviews.",
+        "An actual GPU cache lifecycle test and eleven expected CLI rejection cases pass. No external package or tolerance change was introduced.",
+        "M3-T2 remains in progress: native file authorization/decoding and EXR linear sample validation are still required. Production preview/export remain TS until later migration integration."
+      ]
     }
   ],
   "known_boundaries": [
@@ -30019,13 +30101,5 @@
         "sha256": "2a52867f6da0c4ad4e8cd1ef9831d5eb9be11743fe6f26fa9f12fe8d5c83797a"
       }
     }
-  ],
-  "active_cycle": {
-    "id": 77,
-    "started_at": "2026-10-05T22:50:03.976Z",
-    "milestone": "M3",
-    "task": "M3-T2",
-    "base_commit": "815b95bc6c7bb4d869b8dfbfde3a7cd6507ccb59",
-    "intent": "Execute supplied still-image pixels using shared native image shaders and a budgeted GPU cache. This is the rendering increment of M3-T2; native file decoding remains required before task completion."
-  }
+  ]
 }
