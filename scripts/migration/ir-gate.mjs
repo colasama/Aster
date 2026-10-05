@@ -6,6 +6,7 @@ import { auditMediaResources } from "./ir-gate-media.mjs";
 import { auditRasterPixels } from "./ir-gate-raster.mjs";
 import { auditRasterScene } from "./ir-gate-raster-scene.mjs";
 import { auditIrResources, irNegativeFixtures, loadIrRuntime } from "./ir-gate-runtime.mjs";
+import { auditTexturePixels } from "./ir-gate-texture.mjs";
 import { M0Evidence } from "./m0-evidence.mjs";
 import { runStep } from "./process.mjs";
 import { writeAtomicJson } from "./report.mjs";
@@ -135,6 +136,13 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
       outputFile,
     });
     const fixtures = runtime.productionUniformFixtures();
+    report.texture_pixels = await auditTexturePixels(runtime, {
+      context,
+      cli,
+      command,
+      cliReport,
+      outputFile,
+    });
     assert.deepEqual(
       fixtures.map((fixture) => fixture.id),
       ["zero", "fractional", "negative"],

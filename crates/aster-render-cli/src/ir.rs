@@ -146,7 +146,9 @@ impl IrArgs {
                             request.hash.validate()?;
                             let bytes = if matches!(
                                 request.kind,
-                                ResourceKind::Buffer | ResourceKind::RasterPixels
+                                ResourceKind::Buffer
+                                    | ResourceKind::RasterPixels
+                                    | ResourceKind::TexturePixels
                             ) {
                                 let directory = payloads.as_ref().ok_or_else(|| {
                                     IrError::MissingResource(request.hash.0.clone())

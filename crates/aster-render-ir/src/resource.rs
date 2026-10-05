@@ -20,6 +20,7 @@ pub enum ResourceKind {
     MediaSource,
     MediaFrame,
     RasterPixels,
+    TexturePixels,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
@@ -206,7 +207,9 @@ impl ResourceRegistry {
             return Ok(PutOutcome::AlreadyPresent);
         }
         let requested = u64::try_from(match &request.descriptor {
-            ResourceDescriptor::Buffer(_) | ResourceDescriptor::RasterPixels(_) => bytes.len(),
+            ResourceDescriptor::Buffer(_)
+            | ResourceDescriptor::RasterPixels(_)
+            | ResourceDescriptor::TexturePixels(_) => bytes.len(),
             _ => CanonicalJson::encode(&request.descriptor)?.len(),
         })
         .map_err(|_| IrError::ArithmeticOverflow)?;

@@ -2,6 +2,7 @@ import { sha256 } from "@noble/hashes/sha2.js";
 import { canonicalJson, hash, integer, object, requirePlan } from "./canonical";
 import { validateMediaFrame, validateMediaSource } from "./media-descriptors";
 import { validateRasterPixels } from "./raster-pixels";
+import { validateTexturePixels } from "./texture-pixels";
 import type { BufferResourceDescriptor, ResourceContent, ResourceMessage } from "./types";
 import { validateBufferDescriptor } from "./validation";
 
@@ -13,6 +14,15 @@ export async function resourceHash(
 }
 
 export function validateResourceContent(content: ResourceContent, bytes: Uint8Array): void {
+  if (content.kind === "texture_pixels") {
+    const d = validateTexturePixels(content.descriptor);
+    requirePlan(
+      bytes.length === d.width * d.height * d.depth * (d.format === "rgba16float" ? 8 : 4),
+      "element_count_mismatch",
+      "Texture pixel byte length mismatch",
+    );
+    return;
+  }
   if (content.kind === "buffer") {
     validateBufferDescriptor(content.descriptor);
     requirePlan(
@@ -52,8 +62,11 @@ export async function contentResourceHash(
 }
 
 /** Synchronous small-descriptor hashing keeps frame preparation free of asynchronous stalls. */
-export function contentResourceHashSync(content: ResourceContent): string {
-  return Array.from(sha256(resourceHashInput(content, new Uint8Array())), (value) =>
+export function contentResourceHashSync(
+  content: ResourceContent,
+  bytes: Uint8Array = new Uint8Array(),
+): string {
+  return Array.from(sha256(resourceHashInput(content, bytes)), (value) =>
     value.toString(16).padStart(2, "0"),
   ).join("");
 }
@@ -91,6 +104,7 @@ export function validateResourceMessage(value: unknown): ResourceMessage {
     else if (message.kind === "media_source") validateMediaSource(message.descriptor);
     else if (message.kind === "media_frame") validateMediaFrame(message.descriptor);
     else if (message.kind === "raster_pixels") validateRasterPixels(message.descriptor);
+    else if (message.kind === "texture_pixels") validateTexturePixels(message.descriptor);
     else requirePlan(false, "unknown_variant", "Unsupported resource kind");
     return message as unknown as ResourceMessage;
   }
@@ -160,14 +174,19 @@ export class FrameResourceRegistry {
       return;
     }
     requirePlan(
-      (message.kind !== "buffer" && message.kind !== "raster_pixels") || bytes !== undefined,
+      (message.kind !== "buffer" &&
+        message.kind !== "raster_pixels" &&
+        message.kind !== "texture_pixels") ||
+        bytes !== undefined,
       "missing_resource",
       "Pixel and buffer PutResource require binary bytes",
     );
     const inputBytes = bytes ?? new Uint8Array();
     validateResourceContent(message, inputBytes);
     const accountedBytes =
-      message.kind === "buffer" || message.kind === "raster_pixels"
+      message.kind === "buffer" ||
+      message.kind === "raster_pixels" ||
+      message.kind === "texture_pixels"
         ? inputBytes.byteLength
         : new TextEncoder().encode(canonicalJson(message.descriptor)).length;
     requirePlan(

@@ -9,6 +9,7 @@ mod scene;
 mod schema_time;
 mod temporal_pass;
 mod temporal_text;
+mod texture_pixels;
 
 use crate::{
     DecodeLimits, FramePlanSliceV1, IrError, IrFixture, canonical::CanonicalJson, wire::WireHeader,

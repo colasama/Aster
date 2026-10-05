@@ -16,6 +16,7 @@ mod scene;
 mod schema;
 mod temporal_pass;
 mod temporal_text;
+mod texture_pixels;
 mod time;
 mod wire;
 
@@ -42,6 +43,7 @@ pub use scene::{MediaDrawBinding, SceneBuffersSlice, SceneDrawRecord, SceneMedia
 pub use schema::FramePlanSchema;
 pub use temporal_pass::TemporalTextPassesSlice;
 pub use temporal_text::{TemporalTextFormat, TemporalTextSamplesSlice};
+pub use texture_pixels::{TextureDimension, TexturePixelFormat, TexturePixelsDescriptor};
 pub use time::{FrameTime, RationalFrameRate, RationalTime};
 
 #[cfg(test)]

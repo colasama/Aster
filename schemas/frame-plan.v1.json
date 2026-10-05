@@ -740,6 +740,9 @@
         },
         {
           "$ref": "#/$defs/RasterPixelsDescriptor"
+        },
+        {
+          "$ref": "#/$defs/TexturePixelsDescriptor"
         }
       ]
     },
@@ -748,7 +751,7 @@
       "type": "string"
     },
     "ResourceKind": {
-      "enum": ["buffer", "media_source", "media_frame", "raster_pixels"],
+      "enum": ["buffer", "media_source", "media_frame", "raster_pixels", "texture_pixels"],
       "type": "string"
     },
     "ResourceMessage": {
@@ -843,6 +846,42 @@
     "TemporalTextFormat": {
       "enum": ["rgba8unorm-srgb", "rgba16float"],
       "type": "string"
+    },
+    "TextureDimension": {
+      "enum": ["2d", "3d"],
+      "type": "string"
+    },
+    "TexturePixelFormat": {
+      "enum": ["rgba8unorm", "rgba16float"],
+      "type": "string"
+    },
+    "TexturePixelsDescriptor": {
+      "additionalProperties": false,
+      "properties": {
+        "depth": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "dimension": {
+          "$ref": "#/$defs/TextureDimension"
+        },
+        "format": {
+          "$ref": "#/$defs/TexturePixelFormat"
+        },
+        "height": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "width": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": ["dimension", "width", "height", "depth", "format"],
+      "type": "object"
     },
     "Utf16CompositionIdentity": {
       "additionalProperties": false,

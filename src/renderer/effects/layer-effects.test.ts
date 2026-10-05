@@ -187,6 +187,7 @@ function mockDevice(
     return { createView: vi.fn(() => ({})), destroy };
   };
   return {
+    limits: { maxTextureDimension2D: 8192, maxTextureDimension3D: 256 },
     queue: { writeTexture: vi.fn(), writeBuffer: vi.fn() },
     createSampler: vi.fn(() => ({})),
     createTexture: vi.fn(texture),

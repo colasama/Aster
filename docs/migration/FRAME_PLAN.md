@@ -259,6 +259,15 @@ complete decoded-frame replay remains required.
 
 ## Verification boundary
 
+`texture_pixels` is an immutable packed texture resource with `dimension` (`2d` or `3d`), width,
+height, depth and `format` (`rgba8unorm` or `rgba16float`). Rows and layers have no padding; half-float
+lanes are little-endian. 2D depth must be one; 2D dimensions are bounded to 8192 and 3D dimensions to
+256, with a 256 MiB payload ceiling. TS and Rust validate the descriptor, exact payload length and
+domain-separated content hash. Registries account the binary bytes against their existing budgets.
+The production LUT uploader consumes this prepared resource rather than the authoring LUT object;
+names remain diagnostic labels outside resource identity. Material scalar and binding plans,
+normal/HDR preparation and LUT-selection planning remain open.
+
 G1 regenerates the schema to a fresh ignored path and compares it byte-for-byte with the expected
 schema, without rewriting that expected file. It constructs real TS uniform payloads, encodes them,
 invokes the current Rust CLI to decode and re-encode, and decodes the result in TS. The canonical

@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     BufferResourceDescriptor, IrError, MediaFrameDescriptor, MediaSourceDescriptor,
-    RasterPixelsDescriptor, ResourceKind,
+    RasterPixelsDescriptor, ResourceKind, TexturePixelsDescriptor,
 };
 
 #[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
@@ -13,12 +13,16 @@ pub enum ResourceDescriptor {
     MediaSource(MediaSourceDescriptor),
     MediaFrame(MediaFrameDescriptor),
     RasterPixels(RasterPixelsDescriptor),
+    TexturePixels(TexturePixelsDescriptor),
 }
 
 impl ResourceDescriptor {
     pub fn validate(&self, kind: ResourceKind, bytes: &[u8]) -> Result<(), IrError> {
         match (self, kind) {
             (Self::Buffer(descriptor), ResourceKind::Buffer) => descriptor.validate(bytes),
+            (Self::TexturePixels(descriptor), ResourceKind::TexturePixels) => {
+                descriptor.validate(bytes)
+            }
             (Self::RasterPixels(descriptor), ResourceKind::RasterPixels) => {
                 descriptor.validate(bytes)
             }

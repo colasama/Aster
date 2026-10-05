@@ -18,6 +18,7 @@ export async function loadIrRuntime(root) {
       "media-resource-fixture",
       "raster-sample",
       "raster-pixel-fixture",
+      "texture-pixel-fixture",
       "raster-scene-fixture",
       "raster-resource",
       "types",
@@ -37,7 +38,12 @@ export async function loadIrRuntime(root) {
       "temporal-pass-plan",
     ])
       modules.push(await server.ssrLoadModule(`/src/renderer/frame-plan/${name}.ts`));
-    for (const name of ["raster-resource-upload", "media-gpu-registry", "media-resource"])
+    for (const name of [
+      "raster-resource-upload",
+      "media-gpu-registry",
+      "media-resource",
+      "texture-pixel-upload",
+    ])
       modules.push(await server.ssrLoadModule(`/src/renderer/media/${name}.ts`));
     modules.push(await server.ssrLoadModule("/src/renderer/text/text-motion-blur-pass-plan.ts"));
     return Object.assign({ close: () => server.close() }, ...modules);

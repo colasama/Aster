@@ -1,5 +1,8 @@
 import { float32ToFloat16 } from "../../core/media/half-float";
 import type { Lut3dResource } from "../../core/types";
+import { contentResourceHashSync } from "../frame-plan/resources";
+import type { PutResource } from "../frame-plan/types";
+import { uploadTexturePixels } from "./texture-pixel-upload";
 
 export { float32ToFloat16 };
 
@@ -14,21 +17,34 @@ export function createLutSampler(device: GPUDevice): GPUSampler {
 }
 
 export function createLutTexture(device: GPUDevice, resource?: Lut3dResource): GPUTexture {
+  const prepared = prepareLutTexture(resource);
+  return uploadTexturePixels(device, prepared.message, prepared.bytes, prepared.label);
+}
+
+export function prepareLutTexture(resource?: Lut3dResource) {
   const size = resource?.size ?? 2;
-  const texture = device.createTexture({
-    label: resource ? `3D LUT · ${resource.name}` : "Identity 3D LUT",
-    size: [size, size, size],
-    dimension: "3d",
-    format: "rgba16float",
-    usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+  const packed = packLutTextureData(resource?.data ?? IDENTITY_DATA);
+  const bytes = new Uint8Array(packed.byteLength);
+  const view = new DataView(bytes.buffer);
+  packed.forEach((value, index) => {
+    view.setUint16(index * 2, value, true);
   });
-  device.queue.writeTexture(
-    { texture },
-    packLutTextureData(resource?.data ?? IDENTITY_DATA),
-    { bytesPerRow: size * 8, rowsPerImage: size },
-    { width: size, height: size, depthOrArrayLayers: size },
-  );
-  return texture;
+  const content = {
+    kind: "texture_pixels" as const,
+    descriptor: {
+      dimension: "3d" as const,
+      width: size,
+      height: size,
+      depth: size,
+      format: "rgba16float" as const,
+    },
+  };
+  const message: PutResource = {
+    type: "put_resource",
+    ...content,
+    hash: contentResourceHashSync(content, bytes),
+  };
+  return { message, bytes, label: resource ? `3D LUT · ${resource.name}` : "Identity 3D LUT" };
 }
 
 export function packLutTextureData(rgb: number[]): Uint16Array {

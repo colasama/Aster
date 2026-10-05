@@ -1,5 +1,6 @@
 import type { MediaFrameDescriptor, MediaSourceDescriptor } from "./media-descriptors";
 import type { RasterPixelsDescriptor } from "./raster-pixels";
+import type { TexturePixelsDescriptor } from "./texture-pixels";
 
 export interface FramePlanLimits {
   max_container_bytes: number;
@@ -185,6 +186,7 @@ export type ResourceContent =
   | { kind: "buffer"; descriptor: BufferResourceDescriptor }
   | { kind: "media_source"; descriptor: MediaSourceDescriptor }
   | { kind: "raster_pixels"; descriptor: RasterPixelsDescriptor }
+  | { kind: "texture_pixels"; descriptor: TexturePixelsDescriptor }
   | { kind: "media_frame"; descriptor: MediaFrameDescriptor };
 
 export type PutResource = ResourceContent & { type: "put_resource"; hash: string };

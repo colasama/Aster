@@ -13558,7 +13558,14 @@
             "Normal/HDR/LUT corpus bytes remain exact without layer lookups during execution."
           ],
           "required_full_gates": ["G0", "G1", "G3"],
-          "status": "pending"
+          "status": "in_progress",
+          "remaining_work": [
+            "Transport packed texture dimensions/formats/pixels across TS/Rust and use supplied resources for LUT upload.",
+            "Move material scalar settings, normal/HDR resource selection and draw bindings into supplied plans; preserve readiness and LUT-selection behavior."
+          ],
+          "failed_verifications": [
+            "artifacts/migration/verify-2026-10-04T23-54-08-699Z-793466b8.json"
+          ]
         },
         {
           "id": "M2-T8",
@@ -15084,5 +15091,12 @@
       }
     }
   ],
-  "active_cycle": null
+  "active_cycle": {
+    "id": 36,
+    "milestone": "M2",
+    "task": "M2-T7",
+    "started_at": "2026-10-04T23:42:26.824Z",
+    "scope": "Add typed packed 2D/3D texture resource transport in TS/Rust and move production LUT uploads to supplied hash-addressed pixels.",
+    "previous_turn_classification": "progress: cycle35 completed M2-T6 with exact independent temporal GPU replay and full gates."
+  }
 }

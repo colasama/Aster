@@ -877,7 +877,7 @@ function mockDevice(
   destroy: ReturnType<typeof vi.fn>,
 ): GPUDevice {
   return {
-    limits: { maxTextureDimension2D: 8_192 },
+    limits: { maxTextureDimension2D: 8_192, maxTextureDimension3D: 256 },
     queue: { writeTexture: vi.fn(), writeBuffer: vi.fn() },
     createTexture: vi.fn((descriptor: GPUTextureDescriptor) => {
       textures.push(descriptor);

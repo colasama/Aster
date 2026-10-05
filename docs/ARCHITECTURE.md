@@ -136,6 +136,12 @@ retain binary evidence with per-frame references. Ordinary preview does not invo
 This installed-resource audit is separate from the temporal sample/pass replay described above.
 Complete submitted-frame plan capture and replay remain under extraction.
 
+Packed `texture_pixels` resources carry explicit 2D/3D dimensions and linear RGBA8 or RGBA16F
+formats. Descriptor and little-endian pixel bytes share one content hash validated by TS and Rust.
+LUT preparation now owns packed half-float voxels; the GPU uploader consumes only the supplied
+resource and rejects hash/layout/device-limit mismatches before allocation. Material settings,
+normal/HDR selection and LUT selection still require extraction into complete draw/pass plans.
+
 Shared WGSL includes output anti-aliasing, core scene variants, compositing, fused post-processing,
 blur/depth/surface effects, auxiliary surfaces, particles, text motion blur and display/buffer helpers.
 The TS `SharedShaderCatalog` loads sources through Vite `?raw`, including in Vitest, and concatenates the fragments in
