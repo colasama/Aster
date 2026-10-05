@@ -22,27 +22,18 @@ import { evaluateCameraBasis } from "../core/scene/camera-rig";
 import { flattenSceneLayers } from "../core/scene/scene-evaluation";
 import type { Composition, GpuDiagnostics, Project, RendererMetrics } from "../core/types";
 import { requestPreferredGpuAdapter } from "../desktop/gpu-preference";
-import { executeFinalOutput } from "./compositing/execute-final-output";
-import { executeRootScene } from "./compositing/execute-root-scene";
+import { planFrameOutput } from "./compositing/plan-frame-output";
+import { recordPlannedFrame } from "./compositing/record-planned-frame";
 import { planRootSceneStack } from "./compositing/render-stack";
 import { planRootSceneCommands } from "./compositing/root-scene-commands";
 import { AntiAliasingRenderer, planAntiAliasing } from "./effects/anti-aliasing";
 import { depthEffectSettingsFromCameraOptics } from "./effects/depth-effects";
 import { effectExecution } from "./effects/layer-effect-plan";
-import { selectedRenderId } from "./effects/surface-post-effects";
 import { buildCameraPlan, readCameraPlan } from "./frame-plan/camera-plan";
-import { compositionIdentityFromString } from "./frame-plan/composition-identity";
-import { buildFinalOutputPlan, readFinalOutputPlan } from "./frame-plan/final-output-plan";
-import { buildMotionReconstructionPlan } from "./frame-plan/motion-reconstruction-plan";
 import { buildFrameHeader, buildRootPostUniformPlan } from "./frame-plan/root-post-plan";
-import { uploadRootPostUniformPlan } from "./frame-plan/root-post-upload";
-import { buildRootScenePlan, readRootScenePlan } from "./frame-plan/root-scene-plan";
+import { buildRootScenePlan } from "./frame-plan/root-scene-plan";
 import { buildSceneBufferPlan } from "./frame-plan/scene-buffer-plan";
-import {
-  drawSceneShadows,
-  prepareSceneBuffers,
-  uploadSceneBuffers,
-} from "./frame-plan/scene-buffer-upload";
+import { prepareSceneBuffers } from "./frame-plan/scene-buffer-upload";
 import { bindSceneMediaPlan, resolveSceneMediaPlan } from "./frame-plan/scene-media-plan";
 import {
   buildTextFrameSamplePlans,
@@ -69,7 +60,7 @@ import {
 } from "./gpu/frame-readback";
 import { planGpuMemory } from "./gpu/gpu-memory-budget";
 import { initializeGpuResources } from "./gpu/initialize-gpu-resources";
-import { type BufferVisualization, usesAuxiliarySurfaceData } from "./gpu/render-buffers";
+import type { BufferVisualization } from "./gpu/render-buffers";
 import { MaterialTextureRenderer } from "./media/material-textures";
 import { RendererResources } from "./renderer-resources";
 import { evaluateSceneCamera } from "./scene/scene-camera";
@@ -104,7 +95,6 @@ export class WebGpuRenderer {
   #bufferVisualization: BufferVisualization = "beauty";
   #beautyDepthOfFieldActive = false;
   #beautyMotionBlurActive = false;
-  #depthEffectsUseMotionBlur = false;
   readonly #reportedAdjustmentErrors = new Set<string>();
   #smoothedFrameMs = 16.67;
   #lastFrameStarted?: number;
@@ -620,14 +610,6 @@ export class WebGpuRenderer {
       shadowsEnabled,
     });
     const sceneBuffers = prepareSceneBuffers(scenePlan);
-    uploadSceneBuffers(sceneBuffers, {
-      queue: this.#device.queue,
-      lightingBuffer: resources.lightingBuffer,
-      get shapeBuffer() {
-        return resources.shapeBuffer;
-      },
-      ensureShapeBuffer: (bytes) => resources.ensureShapeBuffer(bytes),
-    });
     const sceneBatches = sceneBuffers.draws.map((draw, index) => ({
       ...geometry.batches[index],
       ...draw,
@@ -739,7 +721,6 @@ export class WebGpuRenderer {
         mediaPending: true,
       };
     }
-    const { target, renderTarget } = framePlanInput;
     const plannedMediaIds = new Set(
       sceneBatches
         .filter(
@@ -779,60 +760,28 @@ export class WebGpuRenderer {
       new Set(generatorByInstance.keys()),
       composition.background,
     );
-    const rootPlan = readRootScenePlan(
-      buildRootScenePlan(scenePlan.metadata.header, rootCommands, renderStack.draws),
-    );
+    const rootPlan = buildRootScenePlan(scenePlan.metadata.header, rootCommands, renderStack.draws);
     const postPlan = buildRootPostUniformPlan(framePlanInput);
-    uploadRootPostUniformPlan(postPlan, {
-      queue: this.#device.queue,
-      buffer: resources.postUniformBuffer,
-      target,
-      renderTarget,
-      antiAliasing: this.#activeAntiAliasing,
-    });
     if (!resources.sceneTexture || !resources.postBindGroup)
       this.resize(this.#outputWidth, this.#outputHeight);
-    const encoder = this.#device.createCommandEncoder({ label: "Aster frame render graph" });
-    resources.mediaTextures.flush(encoder, postPlan.metadata.header);
-    resources.precompositionSurfaces.encode(encoder, surfacePlans, mediaBindings);
-    const compute = encoder.beginComputePass({
-      label: sceneGenerators.some((generator) => generator.lodApplied)
-        ? "Scene generators · bounded LOD"
-        : "Scene generators",
-      timestampWrites: resources.gpuProfiler.writes(0, 1),
+    const plannedOutput = planFrameOutput({
+      header: postPlan.metadata.header,
+      resources,
+      sceneBuffers,
+      sceneBatches,
+      sceneGenerators,
+      mediaBindings,
+      visualization: this.#bufferVisualization,
+      beautyDepthOfField,
+      beautyMotionBlur,
+      motionBlurRequested,
+      motionBlurSettings,
+      shutterInterval,
+      compositionWidth: composition.width,
+      selectedLayerId,
     });
-    for (const generator of sceneGenerators)
-      resources.sceneGenerators.encodeCompute(compute, generator);
-    compute.end();
-    if (sceneBuffers.slice.shadows_enabled) {
-      const shadowPass = encoder.beginRenderPass({
-        label: `Scene shadow-map depth · ${resources.shadowMapSize}²`,
-        timestampWrites: resources.gpuProfiler.writes(2, 3),
-        colorAttachments: [],
-        depthStencilAttachment: {
-          view: resources.shadowTexture.createView(),
-          depthClearValue: 1,
-          depthLoadOp: "clear",
-          depthStoreOp: "store",
-        },
-      });
-      shadowPass.setPipeline(resources.shadowPipeline);
-      shadowPass.setBindGroup(0, resources.shadowBindGroup);
-      shadowPass.setVertexBuffer(0, resources.shapeBuffer);
-      drawSceneShadows(sceneBuffers, shadowPass);
-      shadowPass.end();
-    } else {
-      const shadowMarker = encoder.beginComputePass({
-        label: "Shadow raster disabled",
-        timestampWrites: resources.gpuProfiler.writes(2, 3),
-      });
-      shadowMarker.end();
-    }
-    const sceneTexture = resources.sceneTexture;
-    const sceneView = sceneTexture?.createView();
-    const depthView = resources.depthTexture?.createView();
-    if (!sceneTexture || !sceneView || !depthView || !resources.postBindGroup)
-      throw new Error("HDR scene target is unavailable");
+    const encoder = this.#device.createCommandEncoder({ label: "Aster frame render graph" });
+    const outputTexture = this.#context.getCurrentTexture();
     const {
       scenePassCount,
       effectOperationCount,
@@ -842,19 +791,24 @@ export class WebGpuRenderer {
       fusionGroupCount,
       fusionBarrierCount,
       generatorDrawCount,
-      activeEffectInstances,
       adjustmentErrors,
-    } = executeRootScene({
-      commands: rootPlan.commands,
-      draws: rootPlan.draws,
+      beautyMotionBlurValid,
+    } = recordPlannedFrame({
+      plans: {
+        scene: scenePlan,
+        root: rootPlan,
+        post: postPlan,
+        precompositions: surfacePlans,
+        output: plannedOutput.plans,
+      },
+      encoder,
+      output: outputTexture.createView(),
+      antiAliasing: this.#antiAliasing,
+      resources,
       effects: effectPlans,
       generators: generatorByInstance,
+      auxiliaryBindings: plannedOutput.auxiliaryBindings,
       mediaBindings,
-      resources,
-      encoder,
-      sceneTexture,
-      sceneView,
-      depthView,
     });
     this.diagnostics.adjustmentLayerError = adjustmentErrors[adjustmentErrors.length - 1]?.message;
     for (const { layerId, message } of adjustmentErrors) {
@@ -864,126 +818,6 @@ export class WebGpuRenderer {
         logger.warn("webgpu", "adjustment_layer_skipped", { layerId, error: message });
       }
     }
-    const needsAuxiliarySurfaceData =
-      usesAuxiliarySurfaceData(this.#bufferVisualization) ||
-      beautyDepthOfField ||
-      motionBlurRequested;
-    let auxiliaryFrameValid = !needsAuxiliarySurfaceData;
-    if (!auxiliaryFrameValid) {
-      const auxiliary = resources.auxiliaryBuffers.buildPlan({
-        header: postPlan.metadata.header,
-        vertexCount: sceneBuffers.slice.vertex_count,
-        batches: sceneBatches,
-        motionVectors: sceneBuffers.motionVectors,
-        mediaBinding: (batch) => {
-          const surface = resources.precompositionSurfaces.bindingFor(batch.instanceId);
-          if (surface)
-            return {
-              texture: {
-                kind: "surface",
-                instance_id: compositionIdentityFromString(batch.instanceId),
-              },
-              binding: surface,
-            };
-          if (
-            batch.layer.kind === "image" ||
-            batch.layer.kind === "video" ||
-            batch.mediaResourceHash !== undefined
-          ) {
-            const binding = mediaBindings.bindingForHash(batch.mediaResourceHash);
-            return binding && batch.mediaResourceHash
-              ? { texture: { kind: "media", hash: batch.mediaResourceHash }, binding }
-              : undefined;
-          }
-          const binding = resources.mediaTextures.bindGroup(batch.resourceInstanceId);
-          return binding
-            ? {
-                texture: {
-                  kind: "raster_cache",
-                  instance_id: compositionIdentityFromString(batch.resourceInstanceId),
-                },
-                binding,
-              }
-            : undefined;
-        },
-        generators: beautyMotionBlur
-          ? []
-          : sceneGenerators.flatMap((generator) => {
-              const draw = resources.sceneGenerators.auxiliaryDraw(generator);
-              return draw ? [{ instanceId: generator.instanceId, draw }] : [];
-            }),
-      });
-      auxiliaryFrameValid = resources.auxiliaryBuffers.encodePlan(
-        encoder,
-        auxiliary.plan,
-        resources.shapeBuffer,
-        auxiliary.bindings,
-      );
-    }
-    const motionPlan = buildMotionReconstructionPlan(postPlan.metadata.header, {
-      requested:
-        beautyMotionBlur && auxiliaryFrameValid && sceneBuffers.motionVectors !== undefined,
-      resourcesAvailable: resources.motionBlur.ready,
-      settings: motionBlurSettings,
-      shutter: shutterInterval,
-      compositionWidth: composition.width,
-    });
-    const beautyMotionBlurValid = resources.motionBlur.encodePlan(encoder, motionPlan);
-    if (beautyDepthOfField && beautyMotionBlurValid !== this.#depthEffectsUseMotionBlur) {
-      this.#depthEffectsUseMotionBlur = beautyMotionBlurValid;
-      resources.depthEffects.setSources(
-        this.#width,
-        this.#height,
-        beautyMotionBlurValid ? resources.motionBlur.outputTexture : resources.sceneTexture,
-        resources.auxiliaryBuffers.textures.get("worldPosition"),
-        resources.auxiliaryBuffers.transparentWorldPosition,
-        resources.auxiliaryBuffers.peeledWorldPosition,
-        resources.auxiliaryBuffers.frontLayerColor,
-        resources.auxiliaryBuffers.peeledLayerColor,
-        beautyMotionBlurValid ? "motion_blur" : "scene",
-      );
-    }
-    resources.surfacePostEffects.setSelection(
-      selectedRenderId(
-        sceneBatches,
-        selectedLayerId,
-        sceneGenerators.map((generator) => generator.selectionId),
-      ),
-    );
-    resources.surfacePostEffects.setMotionShutterScale(
-      resources.auxiliaryBuffers.motionShutterScale,
-    );
-    resources.layerEffects.sweep(activeEffectInstances);
-    const sceneTimingEnd = encoder.beginRenderPass({
-      label: "Composition timing marker",
-      timestampWrites: resources.gpuProfiler.writes(undefined, 5),
-      colorAttachments: [{ view: sceneView, loadOp: "load", storeOp: "store" }],
-    });
-    sceneTimingEnd.end();
-    const outputTexture = this.#context.getCurrentTexture();
-    const output = outputTexture.createView();
-    const outputPlan = buildFinalOutputPlan(postPlan.metadata.header, {
-      visualization: this.#bufferVisualization,
-      auxiliaryValid: auxiliaryFrameValid,
-      beautyDepthOfField,
-      motionBlurValid: beautyMotionBlurValid,
-      motionBlurBindingAvailable: Boolean(resources.motionBlurPostBindGroup),
-    });
-    const { route: outputRoute } = readFinalOutputPlan(outputPlan);
-    const postEffectPlan =
-      outputRoute.kind === "depth"
-        ? resources.depthEffects.buildPlan(postPlan.metadata.header, outputRoute.mode)
-        : outputRoute.kind === "surface"
-          ? resources.surfacePostEffects.buildPlan(postPlan.metadata.header, outputRoute.mode)
-          : undefined;
-    executeFinalOutput({
-      plan: outputPlan,
-      postEffectPlan,
-      encoder,
-      output,
-      antiAliasing: this.#antiAliasing,
-      resources,
-    });
     this.#pendingFrameReadback?.encode(encoder, outputTexture);
     const cacheTicket =
       cacheCapture && this.#previewFrameComplete(activeMediaInstanceIds)
@@ -1182,7 +1016,6 @@ export class WebGpuRenderer {
           "motion-blurred scene",
         )
       : undefined;
-    this.#depthEffectsUseMotionBlur = false;
     this.#resources.depthEffects.setSources(
       this.#width,
       this.#height,

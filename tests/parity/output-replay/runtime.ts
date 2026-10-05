@@ -1,4 +1,4 @@
-import { executeFinalOutput } from "../../../src/renderer/compositing/execute-final-output";
+import { executeFrameOutput } from "../../../src/renderer/compositing/execute-frame-output";
 import { MotionBlurRenderer } from "../../../src/renderer/compositing/motion-blur-renderer";
 import { DepthEffectsRenderer } from "../../../src/renderer/effects/depth-effects";
 import { buildPostProcessUniforms } from "../../../src/renderer/effects/post-process";
@@ -8,7 +8,10 @@ import {
   buildFinalOutputPlan,
   readFinalOutputPlan,
 } from "../../../src/renderer/frame-plan/final-output-plan";
-import { buildMotionReconstructionPlan } from "../../../src/renderer/frame-plan/motion-reconstruction-plan";
+import {
+  buildMotionReconstructionPlan,
+  readMotionReconstructionPlan,
+} from "../../../src/renderer/frame-plan/motion-reconstruction-plan";
 import {
   buildPostEffectPlan,
   readPostEffectPlan,
@@ -209,7 +212,7 @@ async function run(device: GPUDevice, item: ReplayCase, mutation?: string) {
       r.texture("objectId"),
     );
     const encoder = device.createCommandEncoder(),
-      motionValid = motion.encodePlan(encoder, plans.motion);
+      motionValid = readMotionReconstructionPlan(plans.motion).slice.status === "ready";
     setSources(
       depth,
       surface,
@@ -221,13 +224,18 @@ async function run(device: GPUDevice, item: ReplayCase, mutation?: string) {
     depth.setSettings({ fogDensity: 99, aperture: 0, focusDistance: 999 });
     surface.setSelection(999);
     surface.setMotionShutterScale(0);
-    executeFinalOutput({
-      plan: plans.output,
-      postEffectPlan: mutation === "route" ? undefined : plans.effect,
+    executeFrameOutput({
+      plans: {
+        auxiliary: null,
+        motion: plans.motion,
+        output: plans.output,
+        effect: mutation === "route" ? null : (plans.effect ?? null),
+      },
       encoder,
       output: r.target.createView(),
       antiAliasing: r.aa,
       resources: {
+        motionBlur: motion,
         postPipeline: r.pipeline,
         postBindGroup: r.binding(r.texture("scene")),
         motionBlurPostBindGroup: r.binding(motion.outputTexture as GPUTexture),

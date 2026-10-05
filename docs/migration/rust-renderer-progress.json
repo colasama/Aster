@@ -17237,7 +17237,12 @@
             "Full live and decoded TS paths exact against frozen baseline."
           ],
           "required_full_gates": ["G0", "G1", "G3"],
-          "status": "pending"
+          "status": "in_progress",
+          "remaining_work": [
+            "Move all root GPU command recording behind a supplied-plan boundary.",
+            "Assemble complete serializable frame data and resource closure, including media, material and recursive plans.",
+            "Prove fresh-registry decoded production replay without authoring objects."
+          ]
         },
         {
           "id": "M2-T14",
@@ -18818,5 +18823,11 @@
       }
     }
   ],
-  "active_cycle": null
+  "active_cycle": {
+    "id": 68,
+    "milestone": "M2",
+    "task": "M2-T13",
+    "started_at": "2026-10-05T14:29:09.290Z",
+    "intent": "Resolve auxiliary/motion/output decisions before command recording and centralize supplied root GPU execution."
+  }
 }

@@ -40,7 +40,7 @@ vi.mock("./frame-plan/root-post-plan", async (original) => {
 function setup() {
   const postBuffer = {} as GPUBuffer;
   const uploads: { buffer: GPUBuffer; bytes: Uint8Array }[] = [];
-  const encoded = new Error("test stops at the unchanged command-encoding boundary");
+  const encoded = new Error("test stops after planned uploads before GPU passes");
   const device = {
     queue: {
       writeBuffer: (
@@ -59,9 +59,7 @@ function setup() {
         });
       },
     },
-    createCommandEncoder: vi.fn(() => {
-      throw encoded;
-    }),
+    createCommandEncoder: vi.fn(() => ({})),
   } as unknown as GPUDevice;
   let pending = false;
   let wait = async () => {};
@@ -72,6 +70,9 @@ function setup() {
       (ids: string[]) => new MediaBindingLease(ids.map((instanceId) => ({ instanceId }))),
     ),
     abortFrame: vi.fn(),
+    flush: vi.fn(() => {
+      throw encoded;
+    }),
     sweep: vi.fn(),
     mediaReady: () => !pending,
     get hasPendingFrameResources() {
@@ -81,11 +82,14 @@ function setup() {
   };
   const read = vi.fn(async () => ({ pixels: new ArrayBuffer(4), pixelFormat: "rgba" as const }));
   harness.resources = {
+    device,
     postUniformBuffer: postBuffer,
     lightingBuffer: {},
     sceneTexture: {},
     postBindGroup: {},
     shapeBufferBytes: 0,
+    shapeBuffer: {},
+    ensureShapeBuffer: vi.fn(),
     configureShadowMap: vi.fn(),
     sceneGenerators: { beginFrame: vi.fn(), sweep: vi.fn(), diagnostics: [], estimatedBytes: 0 },
     precompositionSurfaces: {
@@ -95,7 +99,11 @@ function setup() {
     layerEffects: { estimatedTextureBytes: () => 0, prepareEffects: () => new Map() },
     auxiliaryBuffers: { estimatedBytes: 0 },
     motionBlur: { estimatedBytes: 0 },
-    surfacePostEffects: { estimatedBytes: 0 },
+    surfacePostEffects: {
+      estimatedBytes: 0,
+      setSelection: vi.fn(),
+      setMotionShutterScale: vi.fn(),
+    },
     mediaTextures: media,
     frameReadback: { reserve: () => ({ read, abort: vi.fn() }) },
   };
@@ -109,7 +117,7 @@ function setup() {
   ) => WebGpuRenderer;
   const renderer = new Renderer(
     device,
-    {} as GPUCanvasContext,
+    { getCurrentTexture: () => ({ createView: () => ({}) }) } as unknown as GPUCanvasContext,
     "rgba8unorm",
     {} as GpuDiagnostics,
     () => {},
@@ -146,7 +154,7 @@ beforeEach(() => {
 });
 
 describe("production root post-plan integration", () => {
-  it("uploads the supplied plan bytes at the existing encoding boundary", () => {
+  it("uploads the supplied plan bytes through planned frame recording", () => {
     const f = setup();
     const time = 0.1 + Number.EPSILON;
     expect(() => f.renderer.render(f.composition, time, f.snapshot, false, f.project)).toThrow(
@@ -158,6 +166,8 @@ describe("production root post-plan integration", () => {
       f.snapshot.snapshotScope,
     );
     expect(f.media.abortFrame).toHaveBeenCalledOnce();
+    expect(f.device.createCommandEncoder).toHaveBeenCalledOnce();
+    expect(f.media.flush).toHaveBeenCalledOnce();
     const plan = harness.plans[0];
     expect(frameTimeToNumber(plan.metadata.header.time)).toBe(time);
     expect(plan.metadata.header).toMatchObject({

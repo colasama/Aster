@@ -266,6 +266,13 @@ change visible output even when live settings are poisoned. Integer diagnostic v
 their declared texture, and their colors are independently checked against the WGSL ID hash.
 Complete root-frame capture and production cutover remain open.
 
+Root rendering now resolves auxiliary availability, motion reconstruction, depth-source selection
+and final output before creating the command encoder. `recordPlannedFrame` records supplied scene,
+shadow, recursive surface, generator and output work through one entry point. Output stages share
+a checked frame identity and reject inconsistent effect coverage or skipped motion dependencies
+before GPU recording. GPU bindings remain separate from the output plan data. Complete wire-level
+frame assembly and fresh-registry production replay are still pending.
+
 Shared WGSL includes output anti-aliasing, core scene variants, compositing, fused post-processing,
 blur/depth/surface effects, auxiliary surfaces, particles, text motion blur and display/buffer helpers.
 The TS `SharedShaderCatalog` loads sources through Vite `?raw`, including in Vitest, and concatenates the fragments in
