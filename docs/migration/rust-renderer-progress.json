@@ -146,38 +146,40 @@
     }
   },
   "last_cycle": {
-    "id": 74,
-    "time": "2026-10-05T20:57:53.150Z",
+    "id": 75,
+    "time": "2026-10-05T22:13:07.011Z",
     "milestone": "M2",
-    "task": "M2-T14",
+    "task": "M2-T15",
     "outcome": "passed",
-    "commit": "8cb858d99ff3174ae425b87986de45f33de02faa",
-    "verification": "artifacts/migration/verify-2026-10-05T20-48-21-336Z-1709b2e5.json",
-    "verification_sha256": "ad17d397381d5721beb7c7680d1752a6727a65107d4207f9b0dd9e0b975d2d43",
+    "commit": "55f2ca1e0ab831b6dd0c5f65bec305e77d007ea4",
+    "verification": "artifacts/migration/verify-2026-10-05T22-03-30-579Z-0d436034.json",
+    "verification_sha256": "da30c5811261f5155e1968388007d215e842df6725751725208f56bf92fb20c1",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 98928
+        "duration_ms": 99791
       },
       {
         "id": "G1",
         "status": "passed",
-        "duration_ms": 13243
+        "duration_ms": 13108
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 412693
+        "duration_ms": 415547
       }
     ],
-    "verification_duration_ms": 526361,
-    "next_step": "M2-T15: audit complete plan/resource coverage, production consumption and resource eviction; disposition the preserved cycle71 rejected frame and integrate the M2 exit gate.",
+    "verification_duration_ms": 539415,
+    "next_step": "M3: plan bounded native renderer tasks, then implement headless FramePlan execution and core-case pixel parity.",
     "notes": [
-      "Every actual submitted root FPLN is preserved separately from its captured-media replay envelope. Resources are content-addressed and deduplicated per case. Rust validates the full closure and typed nested plans, proves pixel attachment leaves execution unchanged, and returns the exact plan used by independent TS GPU replay.",
-      "All 337 cases and 1947 captured frames, including sequence neighbors, contain hash-bound plan/resource/native receipts. All live-versus-replay bytes match, and all 1819 frozen baseline comparisons remain exact. Publication and G3 reject missing or changed evidence.",
-      "G1 verifies complete empty, recursive and temporal bundles through native admission and rejects missing/corrupt resources, changed submitted execution and partial discovery plans without publishing output. Arbitrary resource bytes beginning with FPLN remain ordinary data unless referenced as a typed plan.",
-      "M2-T14 is complete. M2-T15 still requires the final exit audit and explicit disposition of the preserved cycle71 owner-main mismatch. Native production preview/export remain pending; the new CLI validates transport without claiming native rendering."
+      "Complete executable root bundles now declare renderer_plan_complete; TS and Rust reject mismatched completeness markers while partial stages remain incomplete.",
+      "Current full G0/G1/G3 and the integrated M2 exit audit pass on unchanged source: 128 exact FPLN round trips, 337 cases, 1947 captured and independently replayed frames, and 1819 exact frozen-reference comparisons.",
+      "The production/supplied execution boundary is reviewed and pinned. Resource pinning, budget atomicity, explicit eviction and dependency lifetime checks are included in current G1.",
+      "The preserved cycle71 owner-main frame828 failure remains rejected with unknown root cause. Its current full-capture address is exact; future mismatches retain both images and comparison evidence before rejection. No reference or tolerance changed.",
+      "The first verification rejected a legacy HDR loading-state discrepancy on directional-light frame15. A readiness experiment was also rejected because it changed frozen frame0 pixels, and was reverted. Both attempts and image reviews remain in the ledger; this increment preserves observed material availability and does not claim a readiness fix.",
+      "M2 is complete. Native GPU execution and production Rust preview/export are not yet implemented; the next milestone is M3 native renderer core."
     ]
   },
   "milestones": [
@@ -700,7 +702,7 @@
     {
       "id": "M2",
       "title": "FramePlan IR, TS executes through the plan",
-      "status": "in_progress",
+      "status": "done",
       "gates": ["G0", "G1", "G3"],
       "tasks": [
         {
@@ -19251,10 +19253,8 @@
             "Schema and FPLN byte round-trip exact; actual capture artifacts complete; all current M2 required gates pass."
           ],
           "required_full_gates": ["G0", "G1", "G3"],
-          "status": "in_progress",
-          "remaining_work": [
-            "Disposition the preserved cycle71 owner-main frame 828 replay failure without reclassifying it as passed or claiming an unproven root-cause fix; retain exact comparisons and persistent dual-image rejection evidence."
-          ],
+          "status": "done",
+          "remaining_work": [],
           "execution_boundary_audit": {
             "status": "reviewed",
             "project_evaluation_in_executor": false,
@@ -19386,11 +19386,75 @@
               "sha256": "5f9f19622e8617550d2c5303271fcc6a7cd8e303d33df91ee8cfe159f6073e9e"
             },
             "acceptance": "Require a new complete candidate and current full exact G3. Preserve both rejected attempts; do not substitute frames, claim a readiness fix or modify references/tolerances."
-          }
+          },
+          "increments": [
+            {
+              "cycle": 75,
+              "status": "passed",
+              "commit": "55f2ca1e0ab831b6dd0c5f65bec305e77d007ea4",
+              "evidence": {
+                "path": "artifacts/migration/cycle75-accepted.json",
+                "sha256": "40ae32d92dc8252fb6b29501d26a5b5fe42f62574319cef46918072db84be47b"
+              },
+              "verification": {
+                "path": "artifacts/migration/verify-2026-10-05T22-03-30-579Z-0d436034.json",
+                "sha256": "da30c5811261f5155e1968388007d215e842df6725751725208f56bf92fb20c1"
+              },
+              "pixel_comparison": {
+                "path": "artifacts/parity/ts-check/2026-10-05T22-05-24-240Z-16f2c9b1/report.json",
+                "sha256": "23e0398aab565c2ad4d35987d21210a867c3982e52ae7fdad84e4a5012665eb1"
+              },
+              "capture": {
+                "path": "artifacts/parity/capture-2026-10-05T21-43-24-957Z-fefdc50f.json",
+                "sha256": "7dd2fe4202434a7b46034e3071399ac6fbe1c574f3445deb35a25f402b6ee52b"
+              },
+              "manifest": {
+                "path": "artifacts/parity/runs/2026-10-05T21-43-24-957Z-fefdc50f/candidate/manifest.json",
+                "sha256": "5685bd3cba3022c783e9183f542576d9f2fe6c0a9b30e55f00f39afccd8820a1"
+              },
+              "frame_artifacts": {
+                "status": "passed",
+                "frames": 1947,
+                "cases": 337,
+                "resources": 96670,
+                "resource_bytes": 476584830,
+                "nested_plans": 94596,
+                "exact_rust_roundtrip": true,
+                "exact_ts_replay": true
+              },
+              "gates": [
+                {
+                  "id": "G0",
+                  "status": "passed",
+                  "duration_ms": 99791
+                },
+                {
+                  "id": "G1",
+                  "status": "passed",
+                  "duration_ms": 13108
+                },
+                {
+                  "id": "G3",
+                  "status": "passed",
+                  "duration_ms": 415547
+                }
+              ],
+              "notes": [
+                "Complete executable root bundles now declare renderer_plan_complete; TS and Rust reject mismatched completeness markers while partial stages remain incomplete.",
+                "Current full G0/G1/G3 and the integrated M2 exit audit pass on unchanged source: 128 exact FPLN round trips, 337 cases, 1947 captured and independently replayed frames, and 1819 exact frozen-reference comparisons.",
+                "The production/supplied execution boundary is reviewed and pinned. Resource pinning, budget atomicity, explicit eviction and dependency lifetime checks are included in current G1.",
+                "The preserved cycle71 owner-main frame828 failure remains rejected with unknown root cause. Its current full-capture address is exact; future mismatches retain both images and comparison evidence before rejection. No reference or tolerance changed.",
+                "The first verification rejected a legacy HDR loading-state discrepancy on directional-light frame15. A readiness experiment was also rejected because it changed frozen frame0 pixels, and was reverted. Both attempts and image reviews remain in the ledger; this increment preserves observed material availability and does not claim a readiness fix.",
+                "M2 is complete. Native GPU execution and production Rust preview/export are not yet implemented; the next milestone is M3 native renderer core."
+              ]
+            }
+          ],
+          "commit": "55f2ca1e0ab831b6dd0c5f65bec305e77d007ea4",
+          "verification": "artifacts/migration/verify-2026-10-05T22-03-30-579Z-0d436034.json"
         }
       ],
       "started_at": "2026-10-03T23:49:41.992Z",
-      "renderer_plan_complete": false,
+      "renderer_plan_complete": true,
       "frozen_reference": {
         "base_renderer_source_sha256": "a29a484b82eae466b72828818f628714db90f1cc7703718e71e2469329f9c703",
         "repairs_sha256": "0c53b924d3578aeb9362ca7ee2ab711ff13c23cabce34c80041b3519d997325e",
@@ -19430,26 +19494,26 @@
       ],
       "preview_baseline_path": "benchmarks/results/m2-preview-baseline.json",
       "preview_baseline_sha256": "a1c62e224c008e731c252142ab1b9de7d31ecf592452c00da1dff42516772375",
-      "active_candidate_manifest": "artifacts/parity/runs/2026-10-05T20-28-10-955Z-e353fb6f/candidate/manifest.json",
+      "active_candidate_manifest": "artifacts/parity/runs/2026-10-05T21-43-24-957Z-fefdc50f/candidate/manifest.json",
       "last_verification": {
         "status": "passed",
         "required_gates_passed": true,
-        "milestone_exit_satisfied": false,
+        "milestone_exit_satisfied": true,
         "gates": [
           {
             "id": "G0",
             "status": "passed",
-            "duration_ms": 98928
+            "duration_ms": 99791
           },
           {
             "id": "G1",
             "status": "passed",
-            "duration_ms": 13243
+            "duration_ms": 13108
           },
           {
             "id": "G3",
             "status": "passed",
-            "duration_ms": 412693
+            "duration_ms": 415547
           }
         ],
         "optional_gates": [
@@ -19460,7 +19524,7 @@
           }
         ],
         "performance_policy": "rust-delivery-v1",
-        "report": "artifacts/migration/verify-2026-10-05T20-48-21-336Z-1709b2e5.json"
+        "report": "artifacts/migration/verify-2026-10-05T22-03-30-579Z-0d436034.json"
       },
       "performance_series_history": [
         {
@@ -19509,6 +19573,12 @@
           "path": "benchmarks/results/m2-preview-baseline.json",
           "sha256": "a1c62e224c008e731c252142ab1b9de7d31ecf592452c00da1dff42516772375"
         }
+      },
+      "completed_at": "2026-10-05T22:13:07.011Z",
+      "exit_evidence": {
+        "path": "artifacts/migration/verify-2026-10-05T22-03-30-579Z-0d436034.json",
+        "sha256": "da30c5811261f5155e1968388007d215e842df6725751725208f56bf92fb20c1",
+        "commit": "55f2ca1e0ab831b6dd0c5f65bec305e77d007ea4"
       }
     },
     {
@@ -21094,12 +21164,5 @@
       }
     }
   ],
-  "active_cycle": {
-    "id": 75,
-    "started_at": "2026-10-05T21:02:34.795Z",
-    "milestone": "M2",
-    "task": "M2-T15",
-    "intent": "Declare complete executable root plans and bind the M2 exit to current full correctness, resource lifetime and independent replay evidence.",
-    "base_commit": "6455eb89acf838155dd955936a20c978f569f304"
-  }
+  "active_cycle": null
 }
