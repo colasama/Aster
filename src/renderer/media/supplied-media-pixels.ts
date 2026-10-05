@@ -1,6 +1,11 @@
 import { requirePlan } from "../frame-plan/canonical";
+import { contentResourceHash } from "../frame-plan/resources";
 import { type ImageRasterDestination, uploadImageRaster } from "./image-raster-upload";
-import { type CapturedMediaPixels, validateMediaPixelPayload } from "./media-pixel-payload";
+import {
+  type CapturedMediaPixels,
+  validateMediaPixelLayout,
+  validateMediaPixelPayload,
+} from "./media-pixel-payload";
 
 /** GPU bindings reconstructed solely from content-checked installed pixel generations. */
 export class SuppliedMediaPixels {
@@ -11,10 +16,41 @@ export class SuppliedMediaPixels {
     required: readonly string[],
     destination: ImageRasterDestination,
   ) {
+    for (const capture of captures) validateMediaPixelPayload(capture);
+    this.#install(captures, required, destination);
+  }
+
+  static async create(
+    captures: readonly CapturedMediaPixels[],
+    required: readonly string[],
+    destination: ImageRasterDestination,
+  ): Promise<SuppliedMediaPixels> {
+    const owned = structuredClone(captures),
+      hashes = [...required];
+    for (const capture of owned) {
+      validateMediaPixelLayout(capture);
+      requirePlan(
+        (await contentResourceHash(capture.frame)) === capture.frame.hash &&
+          (await contentResourceHash(capture.pixels.message, capture.pixels.bytes)) ===
+            capture.pixels.message.hash,
+        "hash_mismatch",
+        "Supplied media payload hash differs",
+      );
+    }
+    const result = new SuppliedMediaPixels([], [], destination);
+    result.#install(owned, hashes, destination);
+    return result;
+  }
+
+  #install(
+    captures: readonly CapturedMediaPixels[],
+    required: readonly string[],
+    destination: ImageRasterDestination,
+  ): void {
     const frames = new Set<string>();
     let bytes = 0;
     for (const capture of captures) {
-      validateMediaPixelPayload(capture);
+      validateMediaPixelLayout(capture);
       requirePlan(
         !frames.has(capture.frame.hash),
         "resource_conflict",
@@ -56,7 +92,9 @@ export class SuppliedMediaPixels {
       throw error;
     }
   }
-  bindingForHash(hash: string): GPUBindGroup {
+  bindingForHash(hash: string | null | undefined): GPUBindGroup | undefined {
+    if (hash === null) return undefined;
+    requirePlan(hash !== undefined, "missing_resource", "Supplied media hash is absent");
     const binding = this.#bindings.get(hash);
     requirePlan(binding, "missing_resource", "Supplied media frame is absent or destroyed");
     return binding;

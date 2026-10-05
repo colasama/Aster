@@ -284,13 +284,20 @@ plans. Content-addressed pixel links are part of the typed frame envelope and va
 Rust; a complete capture must cover each declared media frame exactly once. An independent lease
 keeps those texture generations alive after the normal submission lease releases. Normal preview
 and export do not request this diagnostic readback. The parity capture path exercises the submitted
-bundle and verifies its media closure after FPLN encoding and decoding on every captured frame.
+bundle after FPLN encoding and decoding on every captured frame. A separate headless GPU device
+reconstructs media and material registries, recursive surfaces, generator workloads and auxiliary
+bindings solely from the decoded bundle. Each captured candidate is this replay's output, accepted
+only after byte-for-byte comparison with the original production frame. Supplied texture owners
+remain alive until readback completes; missing dependencies and authoring raster-cache aliases fail
+replay. Resource limits apply independently of authoring preferences.
+Capture metadata records both pixel hashes for this comparison. A mismatch preserves both lossless
+images and its byte-difference report in the run directory before rejecting frame publication.
 Large capture payloads use browser-native asynchronous SHA-256 with owned inputs; they retain the
 same content-hash and layout checks as synchronous decoding. Video and placeholder allocations allow
 copy-source access so capture reads the installed texture rather than decoding a replacement frame.
 Capturing a temporal raster's resolved pixels does not replace its native accumulation passes.
-The bundle therefore remains explicitly incomplete until full resource capture and fresh-registry
-production replay close those dependencies.
+The bundle therefore remains explicitly incomplete until temporal sample and accumulation execution
+is captured, and per-frame plan/resource publication and the complete coverage audit are finished.
 
 Shared WGSL includes output anti-aliasing, core scene variants, compositing, fused post-processing,
 blur/depth/surface effects, auxiliary surfaces, particles, text motion blur and display/buffer helpers.

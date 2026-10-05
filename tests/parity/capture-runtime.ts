@@ -8,8 +8,8 @@ import {
   createViewportBeautyFrameBackend,
   ProductionBeautyFramePipeline,
 } from "../../src/renderer/compositing/beauty-frame";
+import { FrameBundleRenderer } from "../../src/renderer/compositing/frame-bundle-renderer";
 import { decodeFramePlan, encodeFramePlan } from "../../src/renderer/frame-plan/codec";
-import { readFrameBundleAsync } from "../../src/renderer/frame-plan/frame-bundle-read";
 import { normalizeRawFrameRgba } from "../../src/renderer/gpu/raw-frame-png";
 import { WebGpuRenderer } from "../../src/renderer/webgpu-renderer";
 import {
@@ -24,6 +24,9 @@ import { captureSnapshotIdentity } from "./capture-snapshot";
 export const productionCaptureRuntime: CaptureRuntime = {
   async open(assignment, health) {
     let renderer: WebGpuRenderer | undefined;
+    let replay: FrameBundleRenderer | undefined;
+    let replayPixels: Uint8ClampedArray<ArrayBuffer> | undefined;
+    let productionPixels: ArrayBuffer | undefined;
     const canvas = document.createElement("canvas");
     canvas.width = assignment.case.size.width;
     canvas.height = assignment.case.size.height;
@@ -38,6 +41,7 @@ export const productionCaptureRuntime: CaptureRuntime = {
           }
         }
       } finally {
+        replay?.destroy();
         canvas.remove();
         sharedAudioDecodeCache.clear();
         mediaImportRuntime.clear();
@@ -61,17 +65,17 @@ export const productionCaptureRuntime: CaptureRuntime = {
       const load_ms = performance.now() - loadStarted;
       const initializeStarted = performance.now();
       renderer = await WebGpuRenderer.create(canvas);
+      replay = await FrameBundleRenderer.create();
+      const activeReplay = replay;
       const activeRenderer = renderer;
       const capturedRasters = new Map<string, string>();
       const initialize_ms = performance.now() - initializeStarted;
       const pipeline = new ProductionBeautyFramePipeline(
         createViewportBeautyFrameBackend(activeRenderer, canvas, async (bundle) => {
-          const decoded = await readFrameBundleAsync({
+          replayPixels = await activeReplay.render({
             ...bundle,
             plan: decodeFramePlan(encodeFramePlan(bundle.plan.metadata, bundle.plan.blobs)),
           });
-          if (decoded.mediaFrames.length !== decoded.mediaPixels.length)
-            throw new Error("Submitted frame media capture is incomplete");
         }),
       );
       // The runner awaits frame publication before starting the next readback in this case.
@@ -89,6 +93,7 @@ export const productionCaptureRuntime: CaptureRuntime = {
         initialize_ms,
         diagnostics: () => structuredClone(activeRenderer.diagnostics),
         assertHealthy,
+        productionPixels: () => productionPixels,
         async captureRasters() {
           const rasters = await activeRenderer.captureRasterResources(
             snapshot.snapshotScope,
@@ -99,6 +104,8 @@ export const productionCaptureRuntime: CaptureRuntime = {
           return rasters;
         },
         async readback(time) {
+          replayPixels = undefined;
+          productionPixels = undefined;
           const raw = await pipeline.readback(
             createBeautyFrameRequest({
               snapshot,
@@ -116,8 +123,16 @@ export const productionCaptureRuntime: CaptureRuntime = {
           assertHealthy();
           if (raw.pixels !== destination)
             throw new Error("Capture readback did not use its owned destination");
-          return normalizeRawFrameRgba(raw, assignment.case.size.width, assignment.case.size.height)
-            .buffer;
+          const expected = normalizeRawFrameRgba(
+            raw,
+            assignment.case.size.width,
+            assignment.case.size.height,
+          );
+          const actual = replayPixels as Uint8ClampedArray<ArrayBuffer> | undefined;
+          if (!actual || actual.length !== expected.length)
+            throw new Error("Supplied frame replay is absent");
+          productionPixels = expected.buffer;
+          return actual.buffer;
         },
         dispose,
       };

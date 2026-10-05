@@ -19,6 +19,8 @@ export interface ParityCapturedFrame {
   height: number;
   /** Packed RGBA8 beauty bytes, without Canvas 2D conversion or PNG encoding. */
   pixels: ArrayBuffer;
+  /** Live production pixels used only to verify independently replayed diagnostic candidates. */
+  productionPixels?: ArrayBuffer;
   rasterCapture?: RasterFrameCapture;
   diagnostics: GpuDiagnostics;
   timings: { load_ms: number; initialize_ms: number; readback_ms: number };

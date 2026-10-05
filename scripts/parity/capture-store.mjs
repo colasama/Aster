@@ -4,6 +4,7 @@ import { mkdir, readFile, rename, stat, writeFile } from "node:fs/promises";
 import { isAbsolute, join, relative, resolve } from "node:path";
 import { writeAtomicJson } from "../migration/report.mjs";
 import { hashFile } from "../migration/source.mjs";
+import { compareFrameReplay } from "./frame-replay-comparison.mjs";
 import { encodeRgbaPng } from "./png.mjs";
 import { digest } from "./provenance.mjs";
 import { RasterCaptureStore } from "./raster-capture.mjs";
@@ -68,6 +69,7 @@ export class CaptureStore {
     const pixels =
       payload.pixels instanceof ArrayBuffer ? new Uint8Array(payload.pixels) : payload.pixels;
     assert.equal(pixels.byteLength, payload.width * payload.height * 4);
+    const frameReplay = await compareFrameReplay(this.config.runDirectory, payload, pixels);
     const started = performance.now();
     const png = encodeRgbaPng(payload.width, payload.height, pixels);
     const path = join(this.config.runDirectory, "pending", item.id, String(payload.frame));
@@ -101,6 +103,7 @@ export class CaptureStore {
       png_sha256: createHash("sha256").update(png).digest("hex"),
       rgba_sha256: createHash("sha256").update(pixels).digest("hex"),
       raster_resources: rasterReferences,
+      ...(frameReplay ? { frame_replay: frameReplay } : {}),
       timings: { ...payload.timings, png_encode_write_ms: performance.now() - started },
     };
     await writeAtomicJson(join(path, "meta.json"), meta);

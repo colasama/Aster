@@ -1,5 +1,6 @@
 import type { PreparedLayerEffect } from "../effects/layer-effect-plan";
 import type { EffectExecution } from "../frame-plan/effect-execution-plan";
+import type { MaterialGpuBindings } from "../media/material-gpu-bindings";
 import type { MediaBindingLease } from "../media/media-binding-lease";
 import type { RendererResources } from "../renderer-resources";
 import { drawPlannedSceneBatch } from "../scene/draw-planned-scene-batch";
@@ -12,7 +13,8 @@ export function executeRootScene(input: {
   draws: readonly SceneDrawPlan[];
   effects: ReadonlyMap<string, PreparedLayerEffect>;
   generators: ReadonlyMap<string, PreparedSceneGenerator>;
-  mediaBindings: MediaBindingLease;
+  mediaBindings: Pick<MediaBindingLease, "bindingForHash">;
+  materialBindings?: Pick<MaterialGpuBindings, "bindingFor">;
   resources: RendererResources;
   encoder: GPUCommandEncoder;
   sceneTexture: GPUTexture;
@@ -122,7 +124,14 @@ export function executeRootScene(input: {
         if (!pass) throw new Error("Geometry draw has no pass");
         const draw = input.draws[command.drawIndex];
         if (!draw) throw new Error("Geometry draw reference is absent");
-        drawPlannedSceneBatch(resources, pass, draw, input.mediaBindings, command.blendMode);
+        drawPlannedSceneBatch(
+          resources,
+          pass,
+          draw,
+          input.mediaBindings,
+          command.blendMode,
+          input.materialBindings,
+        );
         break;
       }
       case "generator": {

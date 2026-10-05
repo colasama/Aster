@@ -10,23 +10,37 @@ import {
   uploadSceneBuffers,
 } from "../frame-plan/scene-buffer-upload";
 import type { AuxiliaryPlanBindings } from "../gpu/auxiliary-plan-bindings";
+import type { MaterialGpuBindings } from "../media/material-gpu-bindings";
 import type { MediaBindingLease } from "../media/media-binding-lease";
 import type { RendererResources } from "../renderer-resources";
+import type { PreparedSceneGenerator } from "../scene/scene-generator-host";
 import { executeFrameOutput } from "./execute-frame-output";
 import { executeRootScene } from "./execute-root-scene";
 
 /** Record an already planned frame. Resource preparation and authoring evaluation happen upstream. */
-export function recordPlannedFrame(input: {
-  bundle: FrameBundle;
+interface FrameRecordingContext {
   encoder: GPUCommandEncoder;
   output: GPUTextureView;
   antiAliasing: AntiAliasingRenderer;
   resources: RendererResources;
   auxiliaryBindings: AuxiliaryPlanBindings;
-  mediaBindings: MediaBindingLease;
-}) {
+  mediaBindings: Pick<MediaBindingLease, "bindingForHash">;
+  materialBindings?: Pick<MaterialGpuBindings, "bindingFor">;
+}
+
+export function recordPlannedFrame(input: FrameRecordingContext & { bundle: FrameBundle }) {
+  return recordDecodedFrame({ ...input, decoded: readFrameBundle(input.bundle) });
+}
+
+/** Validated transport data can be realized independently before command recording. */
+export function recordDecodedFrame(
+  input: FrameRecordingContext & {
+    decoded: ReturnType<typeof readFrameBundle>;
+    generators?: PreparedSceneGenerator[];
+  },
+) {
   const { encoder, resources, mediaBindings } = input;
-  const { plans, effects, generators: invocations, shadowMapSize } = readFrameBundle(input.bundle);
+  const { plans, effects, generators: invocations, shadowMapSize } = input.decoded;
   const header = plans.post.metadata.header;
   requirePlan(
     resources.shadowMapSize === shadowMapSize,
@@ -35,15 +49,17 @@ export function recordPlannedFrame(input: {
   );
   const sceneBuffers = prepareSceneBuffers(plans.scene),
     root = readRootScenePlan(plans.root);
-  const generators = invocations.map((plan) => {
-    const prepared = resources.sceneGenerators.preparePlan(plan);
-    requirePlan(
-      prepared.effectiveCount === plan.effectiveCount,
-      "resource_generation_mismatch",
-      "Captured root generator workload cannot be reproduced",
-    );
-    return prepared;
-  });
+  const generators =
+    input.generators ??
+    invocations.map((plan) => {
+      const prepared = resources.sceneGenerators.preparePlan(plan);
+      requirePlan(
+        prepared.effectiveCount === plan.effectiveCount,
+        "resource_generation_mismatch",
+        "Captured root generator workload cannot be reproduced",
+      );
+      return prepared;
+    });
   const generatorMap = new Map(generators.map((generator) => [generator.instanceId, generator]));
   uploadSceneBuffers(sceneBuffers, {
     queue: resources.device.queue,
@@ -105,6 +121,7 @@ export function recordPlannedFrame(input: {
     effects,
     generators: generatorMap,
     mediaBindings,
+    materialBindings: input.materialBindings,
     resources,
     encoder,
     sceneTexture,

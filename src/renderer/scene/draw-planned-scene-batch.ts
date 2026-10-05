@@ -1,4 +1,5 @@
 import type { BlendMode } from "../../core/types";
+import type { MaterialGpuBindings } from "../media/material-gpu-bindings";
 import type { MediaBindingLease } from "../media/media-binding-lease";
 import type { RendererResources } from "../renderer-resources";
 import type { SceneDrawPlan } from "./scene-draw-plan";
@@ -7,8 +8,11 @@ export function drawPlannedSceneBatch(
   resources: RendererResources,
   pass: GPURenderPassEncoder,
   draw: SceneDrawPlan,
-  mediaBindings: MediaBindingLease,
+  mediaBindings: Pick<MediaBindingLease, "bindingForHash">,
   blendMode: BlendMode = draw.blendMode,
+  materialBindings:
+    | Pick<MaterialGpuBindings, "bindingFor">
+    | undefined = resources.materialTextures,
 ): void {
   const texture = draw.texture;
   const surface =
@@ -29,7 +33,7 @@ export function drawPlannedSceneBatch(
     return;
   }
   if (texture.kind === "surface") return;
-  const material = resources.materialTextures?.bindingFor(draw.material, blendMode);
+  const material = materialBindings?.bindingFor(draw.material, blendMode);
   if (material) {
     pass.setPipeline(material.pipeline);
     pass.setBindGroup(0, resources.lightingBindGroup);

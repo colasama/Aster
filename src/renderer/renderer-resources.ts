@@ -300,6 +300,11 @@ export class RendererResources {
       usage:
         GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST,
     });
+    this.resizeRenderTargets(width, height);
+  }
+
+  /** Allocate scene targets without requiring a presentation surface. */
+  resizeRenderTargets(width: number, height: number): void {
     this.sceneTexture?.destroy();
     this.depthTexture?.destroy();
     this.sceneTexture = this.device.createTexture({

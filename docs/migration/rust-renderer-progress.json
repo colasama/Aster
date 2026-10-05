@@ -17317,6 +17317,23 @@
               "status": "interrupted",
               "disposition": "Stopped the scoped diagnostic capture after owner-main frames showed about 5-6 seconds per frame from repeated synchronous large-payload validation. Replaced bulk hashing with browser-native asynchronous SHA-256, preserved input ownership and rejection checks, then reran affected cases and the full corpus. No interrupted output is accepted as verification.",
               "log": "artifacts/migration/cycle70-video-capture.log"
+            },
+            {
+              "cycle": 71,
+              "status": "failed",
+              "capture": {
+                "path": "artifacts/parity/capture-2026-10-05T17-02-36-269Z-7ef3349b.json",
+                "sha256": "3f32c932acb992357364dc4a466bf2dd9af173f916209639a50c5bc7f8b12e8e"
+              },
+              "disposition": "336/337 cases passed independent whole-frame replay. Owner-main rejected frame 828 after 114 accepted frames: first differing byte 4813872, replay 86 versus production 55. Focused cold, consecutive and preceding-project diagnostic runs did not reproduce it; cold frame 828 was also exact against the frozen reference. No cause is claimed resolved. Add persistent dual-image mismatch evidence and per-frame exact-comparison hashes before a full rerun. Keep this incident open for the M2 exit audit.",
+              "diagnostic_logs": [
+                "artifacts/migration/cycle71-debug2.log",
+                "artifacts/migration/cycle71-debug3.log",
+                "artifacts/migration/cycle71-debug4.log",
+                "artifacts/migration/cycle71-debug5.log",
+                "artifacts/migration/cycle71-debug6.log"
+              ],
+              "log": "artifacts/migration/cycle71-capture.log"
             }
           ],
           "increments": [
@@ -19538,5 +19555,11 @@
       }
     }
   ],
-  "active_cycle": null
+  "active_cycle": {
+    "id": 71,
+    "started_at": "2026-10-05T16:56:01.346Z",
+    "milestone": "M2",
+    "task": "M2-T13",
+    "intent": "Reconstruct supplied production frame resources on an independent device and prove whole-frame replay without authoring caches. Keep temporal sample execution capture explicit and open."
+  }
 }

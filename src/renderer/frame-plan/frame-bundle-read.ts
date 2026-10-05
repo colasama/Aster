@@ -136,6 +136,21 @@ function readValidatedFrameBundle(
   return {
     mediaFrames,
     mediaPixels,
+    materialPackets: [
+      ...new Set(
+        commands.draws.flatMap((draw) =>
+          [draw.material?.normalHash, draw.material?.environmentHash].filter(
+            (hash): hash is string => !!hash,
+          ),
+        ),
+      ),
+    ].map((hash) => resources.resolve(hash)),
+    precompositionBundle: recursive
+      ? {
+          plan: recursive,
+          resources: recursive.metadata.resources.map((hash) => resources.resolve(hash)),
+        }
+      : null,
     plans: { scene, root, post, output, precompositions },
     effects,
     generators: generators.map((g) => {

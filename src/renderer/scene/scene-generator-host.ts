@@ -173,10 +173,8 @@ export class SceneGeneratorHost {
   }
 
   beginFrame(audioSource?: SceneGeneratorAudioSource): void {
-    this.#activeInstanceIds.clear();
-    this.#diagnostics = [];
+    this.beginPlannedFrame();
     this.#planner.beginFrame(audioSource);
-    this.#frameAudio = undefined;
     const revision = getSceneGeneratorRegistryRevision();
     if (revision !== this.#registryRevision) {
       this.#registryRevision = revision;
@@ -191,6 +189,13 @@ export class SceneGeneratorHost {
       }
       this.#reportedFailures.clear();
     }
+  }
+
+  /** Reset supplied execution without consulting the authoring plugin registry. */
+  beginPlannedFrame(): void {
+    this.#activeInstanceIds.clear();
+    this.#diagnostics = [];
+    this.#frameAudio = undefined;
   }
 
   supports(scene: FlattenedSceneLayer): boolean {
