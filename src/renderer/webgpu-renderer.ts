@@ -647,7 +647,7 @@ export class WebGpuRenderer {
           this.diagnostics.materialResourceError = message;
         },
       );
-    resources.materialTextures?.prepare(composition, sceneBatches);
+    resources.materialTextures?.prepare(composition, sceneBatches, scenePlan.metadata.header);
     for (const scene of sceneLayers) {
       if (scene.layer.kind === "image" || scene.layer.kind === "video")
         resources.mediaTextures.prepareMedia(

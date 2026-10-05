@@ -2,6 +2,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { createLayerForComposition } from "../../core/layers/layer-factory";
 import { createBlankComposition } from "../../core/project/project";
 import { runCpuTask } from "../../core/scheduling/cpu-scheduler";
+import { buildFrameHeader } from "../frame-plan/root-post-plan";
 import type { GeometryBatch } from "../geometry/geometry";
 import { MaterialTextureRenderer } from "./material-textures";
 
@@ -50,7 +51,16 @@ function fixture() {
     firstVertex: 0,
     vertexCount: 3,
   };
-  return { device, renderer, composition, layer, batch, invalidate };
+  const header = buildFrameHeader({
+    snapshot: { snapshotScope: "material-test", projectRevision: 0 },
+    compositionId: composition.id,
+    time: 0,
+    frameRate: composition.frameRate,
+    target: { width: 1, height: 1 },
+    renderTarget: { width: 1, height: 1 },
+    antiAliasing: "off",
+  });
+  return { device, renderer, composition, layer, batch, invalidate, header };
 }
 
 it("draws supplied material settings after authoring changes and rejects retired owners", async () => {
@@ -68,11 +78,11 @@ it("draws supplied material settings after authoring changes and rejects retired
   const pixels = new Uint16Array(128);
   pixels.set([0x4000, 0x3c00, 0x3800, 0x3c00]);
   vi.mocked(runCpuTask).mockResolvedValue({ width: 1, height: 1, bytesPerRow: 256, pixels });
-  f.renderer.prepare(f.composition, [f.batch]);
+  f.renderer.prepare(f.composition, [f.batch], f.header);
   const pending = structuredClone(f.batch.materialTexturePlan);
   await vi.waitFor(() => expect(f.renderer.hasPendingResources).toBe(false));
   expect(f.renderer.bindingFor(pending, "normal")).toBeUndefined();
-  f.renderer.prepare(f.composition, [f.batch]);
+  f.renderer.prepare(f.composition, [f.batch], f.header);
   const supplied = structuredClone(f.batch.materialTexturePlan);
   f.composition.environment.intensity = 17;
   f.composition.environment.rotation = 30;
@@ -83,7 +93,7 @@ it("draws supplied material settings after authoring changes and rejects retired
     new Uint8Array([0, 64, 0, 60, 0, 56, 0, 60]),
   );
   const count = f.device.createBindGroup.mock.calls.length;
-  f.renderer.prepare(f.composition, []);
+  f.renderer.prepare(f.composition, [], f.header);
   expect(() => f.renderer.bindingFor(supplied, "normal")).toThrow(
     expect.objectContaining({ code: "missing_resource" }),
   );
@@ -115,11 +125,11 @@ it("binds normal hashes independently of draw IDs and replaces retired duplicate
     vi.fn(async () => ({ width: 1, height: 1, close: vi.fn() })),
   );
   const second: GeometryBatch = { ...f.batch, resourceInstanceId: "second" };
-  f.renderer.prepare(f.composition, [f.batch]);
+  f.renderer.prepare(f.composition, [f.batch], f.header);
   await vi.waitFor(() => expect(f.renderer.hasPendingResources).toBe(false));
-  f.renderer.prepare(f.composition, [f.batch, second]);
+  f.renderer.prepare(f.composition, [f.batch, second], f.header);
   await vi.waitFor(() => expect(f.renderer.hasPendingResources).toBe(false));
-  f.renderer.prepare(f.composition, [f.batch, second]);
+  f.renderer.prepare(f.composition, [f.batch, second], f.header);
   expect(f.batch.materialTexturePlan?.normalHash).toBe(second.materialTexturePlan?.normalHash);
   if (!second.materialTexturePlan) throw Error("Material plan missing");
   const supplied = { ...second.materialTexturePlan, instanceId: "independent-wire-instance" };
@@ -127,12 +137,12 @@ it("binds normal hashes independently of draw IDs and replaces retired duplicate
   const before = f.device.createBindGroup.mock.calls.length;
   const firstTexture = f.device.createTexture.mock.results[0].value;
   const secondTexture = f.device.createTexture.mock.results[1].value;
-  f.renderer.prepare(f.composition, [second]);
+  f.renderer.prepare(f.composition, [second], f.header);
   expect(firstTexture.destroy).toHaveBeenCalledOnce();
   expect(f.renderer.bindingFor(supplied, "normal")).toBeDefined();
   expect(f.device.createBindGroup).toHaveBeenCalledTimes(before + 1);
   expect(secondTexture.createView).toHaveBeenCalledOnce();
-  f.renderer.prepare(f.composition, []);
+  f.renderer.prepare(f.composition, [], f.header);
   expect(() => f.renderer.bindingFor(supplied, "normal")).toThrow(
     expect.objectContaining({ code: "missing_resource" }),
   );
@@ -170,10 +180,10 @@ it("destroys a normal upload retired while GPU validation is pending", async () 
         complete = resolve;
       }),
   );
-  f.renderer.prepare(f.composition, [f.batch]);
+  f.renderer.prepare(f.composition, [f.batch], f.header);
   await vi.waitFor(() => expect(f.device.popErrorScope).toHaveBeenCalledOnce());
   const texture = f.device.createTexture.mock.results[0].value;
-  f.renderer.prepare(f.composition, []);
+  f.renderer.prepare(f.composition, [], f.header);
   complete(null);
   await vi.waitFor(() => expect(texture.destroy).toHaveBeenCalledOnce());
   expect(bitmap.close).toHaveBeenCalledOnce();

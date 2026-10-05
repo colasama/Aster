@@ -8,6 +8,7 @@ mod error;
 mod fixture;
 mod frame_rate;
 mod identity;
+mod material;
 mod media;
 mod metadata;
 mod raster;
@@ -28,6 +29,7 @@ pub use error::IrError;
 pub use fixture::IrFixture;
 pub use frame_rate::{BinaryRationalTime, FrameRate};
 pub use identity::{CompositionIdentity, Utf16CompositionIdentity};
+pub use material::{MaterialBindingSlice, MaterialTextureReference};
 pub use media::{
     MediaFrameDescriptor, MediaKind, MediaSample, MediaSourceDescriptor, MediaTextureFormat,
 };

@@ -1,5 +1,7 @@
 #[derive(Debug, thiserror::Error)]
 pub enum IrError {
+    #[error("Invalid material binding: {0}")]
+    InvalidMaterialBinding(String),
     #[error("FPLN header is truncated")]
     TruncatedHeader,
     #[error("FPLN magic is invalid")]
@@ -69,6 +71,7 @@ pub enum IrError {
 impl IrError {
     pub fn code(&self) -> &'static str {
         match self {
+            Self::InvalidMaterialBinding(_) => "invalid_material_binding",
             Self::TruncatedHeader => "truncated_header",
             Self::InvalidMagic => "invalid_magic",
             Self::UnsupportedVersion(_) => "unsupported_version",

@@ -15,6 +15,16 @@ export interface MaterialBindingPlan extends MaterialTexturePlan {
   environmentHash: string | null;
 }
 
+/** Convert supplied values once at the GPU upload boundary. */
+export function materialBindingUniforms(plan: MaterialBindingPlan): Float32Array {
+  return new Float32Array([
+    plan.normalScale,
+    plan.environmentIntensity,
+    Number(plan.normalEnabled),
+    plan.environmentRotation,
+  ]);
+}
+
 export function planMaterialTextures(
   layer: Layer,
   environment: EnvironmentLighting | undefined,

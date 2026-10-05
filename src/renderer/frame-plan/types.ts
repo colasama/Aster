@@ -92,7 +92,8 @@ export interface FramePlanSliceV1 {
     | "scene_buffers_slice_v1"
     | "camera_parameters_slice_v1"
     | "temporal_text_samples_slice_v1"
-    | "temporal_text_passes_slice_v1";
+    | "temporal_text_passes_slice_v1"
+    | "material_bindings_slice_v1";
   renderer_plan_complete: false;
   header: FrameHeaderSlice;
   blobs: BlobDescriptor[];
@@ -128,8 +129,19 @@ export type PlanSlice =
   | { kind: "post_process_uniforms"; blob_index: number }
   | SceneBuffersSlice
   | CameraParametersSlice
+  | MaterialBindingSlice
   | TemporalTextSamplesSlice
   | TemporalTextPassesSlice;
+
+export type MaterialTextureReference = { kind: "fallback" } | { kind: "texture"; hash: string };
+
+export interface MaterialBindingSlice {
+  kind: "material_binding";
+  blob_index: number;
+  instance_id: CompositionIdentity;
+  normal: MaterialTextureReference;
+  environment: MaterialTextureReference;
+}
 
 export interface TemporalTextPassesSlice {
   kind: "temporal_text_passes";

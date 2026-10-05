@@ -1,4 +1,6 @@
-use crate::{CameraParametersSlice, TemporalTextPassesSlice, TemporalTextSamplesSlice};
+use crate::{
+    CameraParametersSlice, MaterialBindingSlice, TemporalTextPassesSlice, TemporalTextSamplesSlice,
+};
 use std::collections::BTreeSet;
 
 use schemars::JsonSchema;
@@ -23,6 +25,7 @@ pub enum ContractLevel {
     CameraParametersSliceV1,
     TemporalTextSamplesSliceV1,
     TemporalTextPassesSliceV1,
+    MaterialBindingsSliceV1,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
@@ -110,6 +113,7 @@ pub struct BlobDescriptor {
 #[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum PlanSlice {
+    MaterialBinding(MaterialBindingSlice),
     PostProcessUniforms { blob_index: u32 },
     SceneBuffers(SceneBuffersSlice),
     CameraParameters(CameraParametersSlice),
@@ -172,6 +176,11 @@ impl FramePlanSliceV1 {
         let mut referenced = BTreeSet::new();
         for slice in &self.slices {
             let blob_index = match slice {
+                PlanSlice::MaterialBinding(material)
+                    if self.contract_level == ContractLevel::MaterialBindingsSliceV1 =>
+                {
+                    material.blob_index
+                }
                 PlanSlice::PostProcessUniforms { blob_index }
                     if self.contract_level == ContractLevel::PostUniformsSliceV1 =>
                 {
@@ -205,6 +214,10 @@ impl FramePlanSliceV1 {
                 .ok_or(IrError::BlobCountMismatch)?;
             if !referenced.insert(blob_index) {
                 return Err(IrError::BlobCountMismatch);
+            }
+            if let PlanSlice::MaterialBinding(material) = slice {
+                material.validate(blob, &self.resources)?;
+                continue;
             }
             if let PlanSlice::SceneBuffers(scene) = slice {
                 scene.validate(blob, &self.resources)?;
@@ -255,6 +268,16 @@ impl FramePlanSliceV1 {
         let descriptor = self.blobs.get(index).ok_or(IrError::BlobCountMismatch)?;
         if bytes.len() != descriptor.byte_length as usize {
             return Err(IrError::ElementCountMismatch);
+        }
+        if self.contract_level == ContractLevel::MaterialBindingsSliceV1 {
+            for slice in &self.slices {
+                if let PlanSlice::MaterialBinding(material) = slice
+                    && material.blob_index as usize == index
+                {
+                    return material.validate_payload(bytes);
+                }
+            }
+            return Err(IrError::BlobCountMismatch);
         }
         if self.contract_level == ContractLevel::TemporalTextSamplesSliceV1 {
             for slice in &self.slices {

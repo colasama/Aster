@@ -144,6 +144,11 @@ production GPU uploads with exact format, extent and row/layer layout. Both regi
 corrupted pixels; upload tests reject descriptor/hash corruption before allocation. Material tests
 mutate authoring inputs after preparation, check supplied uniforms and pending fallback behavior,
 reject retired generations, and retire a normal upload while GPU validation is pending.
+G1 transports five material binding slices through Rust: inactive, normal-only, environment-only,
+combined and exact-bit scalars. Decoded binary64 values, tagged texture hashes, UTF-16 instance
+identities and production float32 uniforms must match exactly. A hash registry resolves decoded
+references independently of authoring IDs and rejects missing or wrong-role owners. These checks
+establish binding transport; they do not establish complete material shader draw replay.
 G3 also verifies PNG/JPEG/WebP normal uploads outside the legacy scene corpus. A pinned legacy
 uploader records actual linear RGBA8 texture bytes, then its GPU device and page are destroyed.
 Encoded resource messages and payloads pass through Rust before a new page/device decodes and uploads

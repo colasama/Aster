@@ -36,6 +36,8 @@ export async function loadIrRuntime(root) {
       "temporal-text-frame",
       "temporal-pass-fixture",
       "temporal-pass-plan",
+      "material-binding-fixture",
+      "material-binding-plan",
     ])
       modules.push(await server.ssrLoadModule(`/src/renderer/frame-plan/${name}.ts`));
     for (const name of [
@@ -43,6 +45,8 @@ export async function loadIrRuntime(root) {
       "media-gpu-registry",
       "media-resource",
       "texture-pixel-upload",
+      "material-texture-plan",
+      "material-texture-registry",
     ])
       modules.push(await server.ssrLoadModule(`/src/renderer/media/${name}.ts`));
     modules.push(await server.ssrLoadModule("/src/renderer/text/text-motion-blur-pass-plan.ts"));

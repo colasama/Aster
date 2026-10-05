@@ -145,8 +145,10 @@ settings and ready texture hashes on each geometry batch. Drawing resolves regis
 owners by hash without authoring lookups. Retiring any duplicate owner invalidates cached bindings;
 another identical owner remains usable until the last owner retires. Normal acquisition supplies
 bounded encoded PNG/JPEG/WebP resources to an independent decode/upload consumer, preserving linear
-RGBA8 and disabled color-space conversion. Material binding FPLN transport and LUT selection remain
-under extraction.
+RGBA8 and disabled color-space conversion. Material bindings use a closed FPLN slice with tagged
+normal/environment hash references and three little-endian binary64 scalars. Production drawing
+consumes the decoded binding; conversion to float32 happens only at uniform upload. LUT selection
+and complete material draw replay remain under extraction.
 
 Shared WGSL includes output anti-aliasing, core scene variants, compositing, fused post-processing,
 blur/depth/surface effects, auxiliary surfaces, particles, text motion blur and display/buffer helpers.

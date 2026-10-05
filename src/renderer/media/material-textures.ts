@@ -1,10 +1,19 @@
 import { logger } from "../../core/logger";
 import { runCpuTask } from "../../core/scheduling/cpu-scheduler";
 import type { BlendMode, Composition, EnvironmentLighting, Layer } from "../../core/types";
+import {
+  buildMaterialBindingSlice,
+  readMaterialBindingSlice,
+} from "../frame-plan/material-binding-plan";
+import type { FrameHeaderSlice } from "../frame-plan/types";
 import { createMaterialShapePipelines } from "../scene/scene-pipelines";
 import { prepareEncodedTexture, uploadEncodedTexture } from "./encoded-texture-upload";
 import { prepareHdrTexture } from "./hdr-texture-resource";
-import { type MaterialBindingPlan, planMaterialTextures } from "./material-texture-plan";
+import {
+  type MaterialBindingPlan,
+  materialBindingUniforms,
+  planMaterialTextures,
+} from "./material-texture-plan";
 import { MaterialTextureRegistry } from "./material-texture-registry";
 import { uploadTexturePixels } from "./texture-pixel-upload";
 
@@ -138,6 +147,7 @@ export class MaterialTextureRenderer {
       resourceInstanceId: string;
       materialTexturePlan?: MaterialBindingPlan;
     }[],
+    header: FrameHeaderSlice,
   ): void {
     const environmentActive = Boolean(
       composition.environment?.enabled && batches.some((batch) => batch.layer.kind === "mesh"),
@@ -172,7 +182,7 @@ export class MaterialTextureRenderer {
       batch.materialTexturePlan = undefined;
       if (batch.layer.kind !== "mesh") continue;
       const normal = this.#normals.get(batch.resourceInstanceId);
-      batch.materialTexturePlan = {
+      const material: MaterialBindingPlan = {
         ...planMaterialTextures(
           batch.layer,
           composition.environment,
@@ -184,6 +194,9 @@ export class MaterialTextureRenderer {
         environmentHash:
           this.#environment?.state === "ready" ? (this.#environment.hash ?? null) : null,
       };
+      batch.materialTexturePlan = readMaterialBindingSlice(
+        buildMaterialBindingSlice(header, material),
+      );
     }
   }
 
@@ -218,16 +231,7 @@ export class MaterialTextureRenderer {
       this.#uniforms.set(instanceId, uniform);
     }
     if (!cached || cached.key !== key) {
-      this.#device.queue.writeBuffer(
-        uniform,
-        0,
-        new Float32Array([
-          plan.normalScale,
-          plan.environmentIntensity,
-          Number(plan.normalEnabled),
-          plan.environmentRotation,
-        ]),
-      );
+      this.#device.queue.writeBuffer(uniform, 0, materialBindingUniforms(plan));
       cached = {
         key,
         bindGroup: this.#device.createBindGroup({

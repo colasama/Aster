@@ -124,7 +124,8 @@
         "scene_buffers_slice_v1",
         "camera_parameters_slice_v1",
         "temporal_text_samples_slice_v1",
-        "temporal_text_passes_slice_v1"
+        "temporal_text_passes_slice_v1",
+        "material_bindings_slice_v1"
       ],
       "type": "string"
     },
@@ -309,6 +310,35 @@
         }
       ]
     },
+    "MaterialTextureReference": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "fallback",
+              "type": "string"
+            }
+          },
+          "required": ["kind"],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "hash": {
+              "$ref": "#/$defs/ResourceHash"
+            },
+            "kind": {
+              "const": "texture",
+              "type": "string"
+            }
+          },
+          "required": ["kind", "hash"],
+          "type": "object"
+        }
+      ]
+    },
     "MediaDrawBinding": {
       "oneOf": [
         {
@@ -480,6 +510,31 @@
     },
     "PlanSlice": {
       "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "blob_index": {
+              "format": "uint32",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "environment": {
+              "$ref": "#/$defs/MaterialTextureReference"
+            },
+            "instance_id": {
+              "$ref": "#/$defs/CompositionIdentity"
+            },
+            "kind": {
+              "const": "material_binding",
+              "type": "string"
+            },
+            "normal": {
+              "$ref": "#/$defs/MaterialTextureReference"
+            }
+          },
+          "required": ["kind", "blob_index", "instance_id", "normal", "environment"],
+          "type": "object"
+        },
         {
           "additionalProperties": false,
           "properties": {

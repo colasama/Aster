@@ -22,7 +22,7 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
     status: "failed",
     started_at: new Date(started).toISOString(),
     scope:
-      "post_uniforms_slice_v1 + scene_buffers_slice_v1 + camera_parameters_slice_v1 + temporal_text_samples_slice_v1 + temporal_text_passes_slice_v1",
+      "post_uniforms_slice_v1 + scene_buffers_slice_v1 + camera_parameters_slice_v1 + temporal_text_samples_slice_v1 + temporal_text_passes_slice_v1 + material_bindings_slice_v1",
     renderer_plan_complete: false,
     steps: [],
     roundtrips: [],
@@ -33,6 +33,7 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
     raster_scenes: [],
     temporal_samples: [],
     temporal_passes: [],
+    material_bindings: [],
     rejections: [],
   };
   const reader = new M0Evidence(context.root);
@@ -196,6 +197,7 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
       ...rasterFixtures,
       ...temporalFixtures,
       ...runtime.temporalPassFixtures(),
+      ...runtime.materialBindingFixtures(),
     ]) {
       const input = join(context.output, `${fixture.id}-ts.fpln`);
       const output = join(context.output, `${fixture.id}-rust.fpln`);
@@ -253,6 +255,42 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
           id: fixture.id,
           supplied_hashes_exact: true,
           pending_explicit: true,
+          missing_rejected: true,
+        });
+      }
+      if (fixture.material) {
+        const binding = runtime.readMaterialBindingSlice(structuredClone(after));
+        assert.deepEqual(binding, fixture.material);
+        assert.deepEqual(
+          runtime.materialBindingUniforms(binding),
+          new Float32Array([
+            fixture.material.normalScale,
+            fixture.material.environmentIntensity,
+            Number(fixture.material.normalEnabled),
+            fixture.material.environmentRotation,
+          ]),
+        );
+        const registry = new runtime.MaterialTextureRegistry();
+        for (const [hash, role] of [
+          [binding.normalHash, "normal"],
+          [binding.environmentHash, "environment"],
+        ]) {
+          if (hash === null) continue;
+          const texture = { hash };
+          registry.register(hash, role, texture);
+          assert.equal(registry.resolve(hash, role), texture);
+          assert.throws(
+            () => registry.resolve(hash, role === "normal" ? "environment" : "normal"),
+            { code: "resource_conflict" },
+          );
+          registry.retire(hash, texture);
+          assert.throws(() => registry.resolve(hash, role), { code: "missing_resource" });
+        }
+        report.material_bindings.push({
+          id: fixture.id,
+          exact_scalars: true,
+          exact_uniforms: true,
+          supplied_hashes: true,
           missing_rejected: true,
         });
       }

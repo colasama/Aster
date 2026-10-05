@@ -270,7 +270,15 @@ lanes without changing their bits. Material preparation snapshots scalar setting
 hashes on geometry batches before encoding. Drawing consumes the supplied snapshot, preserves pending
 fallbacks, and resolves owners by hash independently of draw IDs. Missing hashes and texture role
 mismatches fail before binding. Retiring a duplicate owner invalidates bind groups that may reference
-it. These local binding snapshots still require FPLN transport and LUT-selection planning.
+it. These snapshots use `material_bindings_slice_v1`: each `material_binding` has an instance identity,
+tagged `fallback` or `texture` references for normal/environment, and a 24-byte `u8` blob containing
+three little-endian binary64 values in order: normal scale, environment intensity, environment
+rotation. Keeping binary64 preserves signed zero and subnormal values until GPU float32 conversion.
+Both decoders reject nonfinite/out-of-range values, undeclared hashes, shared normal/environment
+hashes, and nonzero environment intensity without a texture. Normal scale is in [-8, 8], intensity
+in [0, 32], and rotation in [0, 1). Activity is derived from the supplied references and intensity.
+Production preparation builds and reads this slice before drawing; LUT-selection planning and
+complete material draw replay remain required.
 The renderer encodes synchronously through submission, so asynchronous uploads
 cannot retire resources midway through this local execution scope.
 

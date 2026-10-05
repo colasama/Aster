@@ -15273,5 +15273,12 @@
       }
     }
   ],
-  "active_cycle": null
+  "active_cycle": {
+    "id": 39,
+    "milestone": "M2",
+    "task": "M2-T7",
+    "started_at": "2026-10-05T00:53:39.166Z",
+    "scope": "Transport supplied material scalar values and normal/HDR hashes through FPLN and consume decoded bindings in production drawing.",
+    "previous_turn_classification": "progress: cycle38 committed encoded normal resources and content-addressed material owners with full exact gates."
+  }
 }
