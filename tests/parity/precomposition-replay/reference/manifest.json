@@ -1,0 +1,49 @@
+{
+  "reference_commit": "2515c73a710c0151230c718429d4a833431b5452",
+  "profile": "exact",
+  "format": "rgba16float-le",
+  "width": 64,
+  "height": 48,
+  "implementation": {
+    "path": "tests/parity/precomposition-replay/legacy-surface.ts",
+    "sha256": "f8cd1bd48ef8c40cac361ef50900defef58d38bd988b5983972cd44cc4b5a90b"
+  },
+  "original_source": {
+    "path": "src/renderer/compositing/precomposition-surface-renderer.ts",
+    "sha256": "a11ad5efc45cbf990ad8b3a86848e568277509748110ea61d3d25cf290814ad9"
+  },
+  "provenance": "Retained pre-extraction surface implementation with import-path remapping and Biome formatting only. Shared effect and generator executors have separately pinned reference suites.",
+  "scope": "Recursive shape surfaces, shared aliases, retained-target pinning, effects, adjustments and generator success/failure. Standalone child media payloads and captured runtime availability remain separate tasks.",
+  "adapter": {
+    "vendor": "amd",
+    "architecture": "rdna-3",
+    "description": ""
+  },
+  "cases": [
+    {
+      "id": "direct",
+      "path": "tests/parity/precomposition-replay/reference/direct.bin",
+      "sha256": "f113e7b8c6654852424e228b8efbafb8234f4cdc13df90dc0c2c64a67596d911"
+    },
+    {
+      "id": "nested",
+      "path": "tests/parity/precomposition-replay/reference/nested.bin",
+      "sha256": "9dbe4de21714891c049404fcbef104ecc3488a56ea56b7abeb68c4a555879933"
+    },
+    {
+      "id": "effects",
+      "path": "tests/parity/precomposition-replay/reference/effects.bin",
+      "sha256": "3708296471bbc139d263c757b5f24a2c187bc26d639b33bec7d2a2173b4b174f"
+    },
+    {
+      "id": "generator",
+      "path": "tests/parity/precomposition-replay/reference/generator.bin",
+      "sha256": "4d03a12877cbf314f0ac4fdac212d4f362c57a4d47f09bf2f4492a916911fe1d"
+    },
+    {
+      "id": "generator-failed",
+      "path": "tests/parity/precomposition-replay/reference/generator-failed.bin",
+      "sha256": "f113e7b8c6654852424e228b8efbafb8234f4cdc13df90dc0c2c64a67596d911"
+    }
+  ]
+}

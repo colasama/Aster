@@ -1,0 +1,855 @@
+import { evaluateLayerSourceTime } from "../../../src/core/animation/layer-time";
+import { sourceForLayer } from "../../../src/core/media/footage-source";
+import {
+  type FlattenedSceneLayer,
+  flattenSceneLayers,
+} from "../../../src/core/scene/scene-evaluation";
+import type { BlendMode, Composition, Project } from "../../../src/core/types";
+import { BLEND_MODES } from "../../../src/core/types";
+import { FIXED_BLEND_MODES, gpuBlendState } from "../../../src/renderer/compositing/blend-state";
+import { needsLayerIsolation } from "../../../src/renderer/compositing/layer-composite";
+import {
+  createPrecompositionSurfaceBudget,
+  MAX_PRECOMPOSITION_SURFACE_TEXTURES,
+  MAX_PRECOMPOSITION_SURFACES,
+  planPrecompositionSurface,
+  precompositionSurfaceByteLimit,
+  precompositionSurfaceCacheKey,
+} from "../../../src/renderer/compositing/precomposition-surface-plan";
+import { planSceneRenderStack } from "../../../src/renderer/compositing/render-stack";
+import {
+  effectExecution,
+  type PreparedLayerEffect,
+  prepareLayerEffects,
+} from "../../../src/renderer/effects/layer-effect-plan";
+import { LayerEffectRenderer } from "../../../src/renderer/effects/layer-effects";
+import { buildFrameHeader } from "../../../src/renderer/frame-plan/root-post-plan";
+import {
+  buildSceneGeometry,
+  FLOATS_PER_VERTEX,
+  type GeometryBatch,
+} from "../../../src/renderer/geometry/geometry";
+import { sharedShaders } from "../../../src/renderer/gpu/shared-shader-catalog";
+import { LutSelectionPlanner } from "../../../src/renderer/media/lut-selection-plan";
+import type { MediaTextureCache } from "../../../src/renderer/media/media-texture-cache";
+import { evaluateSceneCamera } from "../../../src/renderer/scene/scene-camera";
+import type {
+  PreparedSceneGenerator,
+  SceneGeneratorHost,
+} from "../../../src/renderer/scene/scene-generator-host";
+import {
+  buildSceneLighting,
+  SCENE_LIGHTING_BYTES,
+} from "../../../src/renderer/scene/scene-lighting";
+import { IMAGE_VERTEX_BUFFERS } from "../../../src/renderer/scene/scene-pipelines";
+import {
+  planTextMotionBlurFrame,
+  type TextMotionBlurPlan,
+} from "../../../src/renderer/text/text-motion-blur-plan";
+import { transformedTextRasterScale } from "../../../src/renderer/text/text-rasterizer";
+
+const SURFACE_FORMAT: GPUTextureFormat = "rgba16float";
+const INITIAL_VERTEX_BYTES = 6 * FLOATS_PER_VERTEX * Float32Array.BYTES_PER_ELEMENT;
+const CACHE_RETENTION_FRAMES = 2;
+
+interface SurfaceEntry {
+  key: string;
+  width: number;
+  height: number;
+  color: GPUTexture;
+  depth: GPUTexture;
+  bindGroup: GPUBindGroup;
+  vertexBuffer: GPUBuffer;
+  vertexBufferBytes: number;
+  lightingBuffer: GPUBuffer;
+  lightingBindGroup: GPUBindGroup;
+  effects?: LayerEffectRenderer;
+  estimatedBytes: number;
+  textureCount: number;
+  lastUsedFrame: number;
+}
+
+interface SurfaceJob {
+  entry: SurfaceEntry;
+  composition: Composition;
+  time: number;
+  sceneLayers: FlattenedSceneLayer[];
+  geometry: ReturnType<typeof buildSceneGeometry>;
+  generators: PreparedSceneGenerator[];
+  effectPlans: ReadonlyMap<string, PreparedLayerEffect>;
+}
+
+export interface PrecompositionSurfaceFrame {
+  diagnostics: string[];
+  estimatedBytes: number;
+  residentBytes: number;
+  residentTextureCount: number;
+  textureCount: number;
+  surfaceCount: number;
+  mediaInstanceIds: ReadonlySet<string>;
+}
+
+interface SurfaceRendererOptions {
+  mediaTextures: MediaTextureCache;
+  mediaLayout: GPUBindGroupLayout;
+  mediaSampler: GPUSampler;
+  lightingLayout: GPUBindGroupLayout;
+  shapePipelines: Record<BlendMode, GPURenderPipeline>;
+  imagePipelines: Record<BlendMode, GPURenderPipeline>;
+  sceneGenerators?: SceneGeneratorHost;
+}
+
+/**
+ * Owns bounded, time-addressed GPU render targets for 3D precomposition
+ * surfaces. Source compositions are encoded in dependency order and never read
+ * back to the CPU.
+ */
+export class PrecompositionSurfaceRenderer {
+  readonly #directEffectPlanner = new LutSelectionPlanner();
+  readonly #device: GPUDevice;
+  readonly #mediaTextures: MediaTextureCache;
+  readonly #mediaLayout: GPUBindGroupLayout;
+  readonly #mediaSampler: GPUSampler;
+  readonly #lightingLayout: GPUBindGroupLayout;
+  readonly #shapePipelines: Record<BlendMode, GPURenderPipeline>;
+  readonly #imagePipelines: Record<BlendMode, GPURenderPipeline>;
+  readonly #sceneGenerators?: SceneGeneratorHost;
+  readonly #surfacePipelines: Record<BlendMode, GPURenderPipeline>;
+  readonly #shadowTexture: GPUTexture;
+  readonly #shadowSampler: GPUSampler;
+  readonly #entries = new Map<string, SurfaceEntry>();
+  readonly #bindings = new Map<string, GPUBindGroup>();
+  readonly #mediaInstanceIds = new Set<string>();
+  #jobs: SurfaceJob[] = [];
+  #project?: Project;
+  #revision = 0;
+  #frame = 0;
+  #byteLimit = precompositionSurfaceByteLimit();
+  #frameStats: PrecompositionSurfaceFrame = emptyFrame();
+
+  constructor(device: GPUDevice, options: SurfaceRendererOptions) {
+    this.#device = device;
+    this.#mediaTextures = options.mediaTextures;
+    this.#mediaLayout = options.mediaLayout;
+    this.#mediaSampler = options.mediaSampler;
+    this.#lightingLayout = options.lightingLayout;
+    this.#shapePipelines = options.shapePipelines;
+    this.#imagePipelines = options.imagePipelines;
+    this.#sceneGenerators = options.sceneGenerators;
+    this.#surfacePipelines = createSurfacePipelines(device, options.mediaLayout);
+    this.#shadowTexture = device.createTexture({
+      label: "Precomposition surface unshadowed depth",
+      size: [1, 1],
+      format: "depth24plus",
+      usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
+    });
+    this.#shadowSampler = device.createSampler({
+      label: "Precomposition surface shadow comparison",
+      compare: "less-equal",
+    });
+  }
+
+  prepare(
+    project: Project | undefined,
+    sceneLayers: readonly FlattenedSceneLayer[],
+    playing: boolean,
+    memoryBudgetMb?: number,
+    enableTextMotionBlur = true,
+    renderScale = 1,
+  ): PrecompositionSurfaceFrame {
+    this.#frame += 1;
+    this.#byteLimit = precompositionSurfaceByteLimit(memoryBudgetMb, renderScale);
+    if (this.#project !== project) {
+      for (const entry of this.#entries.values()) destroyEntry(entry);
+      this.#entries.clear();
+      this.#project = project;
+      this.#revision += 1;
+    }
+    this.#jobs = [];
+    this.#bindings.clear();
+    this.#mediaInstanceIds.clear();
+    const diagnostics: string[] = [];
+    const budget = createPrecompositionSurfaceBudget();
+    const preparedKeys = new Set<string>();
+    const preparedSources = new Map<string, SurfaceEntry>();
+    if (project) {
+      for (const scene of sceneLayers) {
+        if (!scene.precompositionSurface) continue;
+        this.#prepareSurface(
+          scene,
+          project,
+          playing,
+          memoryBudgetMb,
+          budget,
+          preparedKeys,
+          preparedSources,
+          diagnostics,
+          enableTextMotionBlur,
+          renderScale,
+        );
+      }
+    }
+    this.#sweep(preparedKeys);
+    this.#frameStats = {
+      diagnostics,
+      estimatedBytes: budget.bytes,
+      residentBytes: this.#residentBytes(),
+      residentTextureCount: this.#residentTextureCount(),
+      textureCount: budget.textures,
+      surfaceCount: budget.surfaces,
+      mediaInstanceIds: new Set(this.#mediaInstanceIds),
+    };
+    return this.#frameStats;
+  }
+
+  encode(encoder: GPUCommandEncoder): void {
+    for (const job of this.#jobs) this.#encodeJob(encoder, job);
+  }
+
+  bindingFor(instanceId: string): GPUBindGroup | undefined {
+    return this.#bindings.get(instanceId);
+  }
+
+  pipelineFor(blendMode: BlendMode): GPURenderPipeline {
+    return this.#surfacePipelines[blendMode];
+  }
+
+  get estimatedBytes(): number {
+    return this.#frameStats.estimatedBytes;
+  }
+
+  get textureCount(): number {
+    return this.#frameStats.textureCount;
+  }
+
+  destroy(): void {
+    for (const entry of this.#entries.values()) destroyEntry(entry);
+    this.#entries.clear();
+    this.#bindings.clear();
+    this.#jobs = [];
+    this.#shadowTexture.destroy();
+  }
+
+  #prepareSurface(
+    scene: FlattenedSceneLayer,
+    project: Project,
+    playing: boolean,
+    memoryBudgetMb: number | undefined,
+    budget: ReturnType<typeof createPrecompositionSurfaceBudget>,
+    preparedKeys: Set<string>,
+    preparedSources: Map<string, SurfaceEntry>,
+    diagnostics: string[],
+    enableTextMotionBlur: boolean,
+    renderScale: number,
+  ): void {
+    const surface = scene.precompositionSurface;
+    if (!surface) return;
+    const logicalKey = `${this.#revision}:${surface.composition.id}:${surface.time.toFixed(9)}`;
+    const shared = preparedSources.get(logicalKey);
+    if (shared) {
+      shared.lastUsedFrame = this.#frame;
+      this.#bindings.set(scene.instanceId, shared.bindGroup);
+      return;
+    }
+    let childLayers: FlattenedSceneLayer[];
+    try {
+      childLayers = namespaceSurfaceLayers(
+        flattenSceneLayers(surface.composition, project, surface.time),
+        scene.resourceInstanceId,
+        surface.compositionPath,
+      );
+    } catch (error) {
+      diagnostics.push(error instanceof Error ? error.message : String(error));
+      return;
+    }
+    const hasEffects = childLayers.some(
+      (child) => child.layer.kind === "adjustment" || needsLayerIsolation(child.layer),
+    );
+    const plan = planPrecompositionSurface(
+      {
+        scene,
+        deviceMaxTextureDimension: this.#device.limits.maxTextureDimension2D,
+        memoryBudgetMb,
+        hasEffects,
+        renderScale,
+      },
+      budget,
+    );
+    if (plan.diagnostic) diagnostics.push(plan.diagnostic);
+    if (renderScale > 1 && (plan.status === "skipped" || plan.downgraded))
+      throw new Error(
+        `SSAA precomposition target unavailable: ${plan.diagnostic}. Choose a lower AA mode or resolution.`,
+      );
+    if (plan.status === "skipped") return;
+    const key = precompositionSurfaceCacheKey(scene, this.#revision, plan.width, plan.height);
+    const existing = this.#entries.get(key);
+    const entry =
+      existing ??
+      this.#reuseEntry(key, plan.width, plan.height, hasEffects) ??
+      this.#createEntry(key, plan.width, plan.height, plan.estimatedBytes, plan.textureCount);
+    if (!this.#entries.has(key)) this.#entries.set(key, entry);
+    entry.lastUsedFrame = this.#frame;
+    preparedSources.set(logicalKey, entry);
+    if (hasEffects && !entry.effects) {
+      entry.effects = new LayerEffectRenderer(this.#device, SURFACE_FORMAT);
+      entry.effects.resize(entry.width, entry.height);
+    }
+    this.#bindings.set(scene.instanceId, entry.bindGroup);
+    if (preparedKeys.has(key)) return;
+    preparedKeys.add(key);
+
+    const resolutionScale = Math.max(
+      entry.width / Math.max(1, surface.composition.width),
+      entry.height / Math.max(1, surface.composition.height),
+    );
+    const textMotionBlur = enableTextMotionBlur
+      ? planTextMotionBlurFrame({
+          composition: surface.composition,
+          project,
+          frameTime: surface.time,
+          sceneLayers: childLayers,
+          resolutionScale,
+          evaluateSceneLayers: (sampleTime) =>
+            namespaceSurfaceLayers(
+              flattenSceneLayers(surface.composition, project, sampleTime),
+              scene.resourceInstanceId,
+              surface.compositionPath,
+            ),
+        })
+      : {
+          sampleCount: 0,
+          plans: new Map(),
+          exposureSceneLayers: [],
+          renderSceneLayers: childLayers,
+        };
+    childLayers = [...textMotionBlur.renderSceneLayers];
+    for (const child of childLayers) {
+      this.#prepareMedia(
+        child,
+        playing,
+        resolutionScale,
+        textMotionBlur.plans.get(child.resourceInstanceId),
+      );
+      if (child.precompositionSurface)
+        this.#prepareSurface(
+          child,
+          project,
+          playing,
+          memoryBudgetMb,
+          budget,
+          preparedKeys,
+          preparedSources,
+          diagnostics,
+          enableTextMotionBlur,
+          renderScale,
+        );
+    }
+    const camera = evaluateSceneCamera(surface.composition, surface.time);
+    const geometry = buildSceneGeometry(surface.composition, childLayers, camera, (instanceId) =>
+      this.#mediaTextures.textBounds(instanceId),
+    );
+    if (
+      surface.composition.environment?.enabled &&
+      geometry.batches.some((batch) => batch.layer.kind === "mesh")
+    )
+      diagnostics.push(
+        `${surface.composition.name}: HDR environment lighting is not sampled inside precomposition surfaces`,
+      );
+    if (
+      geometry.batches.some(
+        (batch) => batch.layer.kind === "mesh" && batch.layer.mesh?.materialTextures?.normal,
+      )
+    )
+      diagnostics.push(
+        `${surface.composition.name}: mesh normal maps are not sampled inside precomposition surfaces`,
+      );
+    if (
+      childLayers.some(
+        (child) => child.layer.kind === "light" && child.layer.light?.shadowQuality !== "off",
+      ) &&
+      geometry.batches.some((batch) => batch.layer.threeDimensional)
+    )
+      diagnostics.push(
+        `${surface.composition.name}: child shadow maps are not encoded inside precomposition surfaces`,
+      );
+    this.#ensureVertexBuffer(entry, geometry.data.byteLength);
+    if (geometry.data.byteLength > 0)
+      this.#device.queue.writeBuffer(entry.vertexBuffer, 0, geometry.data);
+    const cameraPosition = camera?.pose.position;
+    this.#device.queue.writeBuffer(
+      entry.lightingBuffer,
+      0,
+      buildSceneLighting(childLayers, surface.composition, false, cameraPosition),
+    );
+    const generatorHeader = buildFrameHeader({
+      snapshot: { snapshotScope: "precomposition-generators", projectRevision: this.#revision },
+      compositionId: surface.composition.id,
+      time: surface.time,
+      frameRate: surface.composition.frameRate,
+      target: { width: surface.composition.width, height: surface.composition.height },
+      renderTarget: { width: entry.width, height: entry.height },
+      antiAliasing: "off",
+    });
+    this.#jobs.push({
+      entry,
+      composition: surface.composition,
+      time: surface.time,
+      sceneLayers: childLayers,
+      geometry,
+      effectPlans: this.#prepareEffects(entry, surface.composition, childLayers, surface.time),
+      generators: this.#sceneGenerators
+        ? childLayers
+            .filter((child) => this.#sceneGenerators?.supports(child))
+            .map((child) =>
+              this.#sceneGenerators?.prepare(
+                child,
+                surface.composition,
+                entry.width,
+                entry.height,
+                memoryBudgetMb,
+                camera,
+                generatorHeader,
+              ),
+            )
+            .filter((generator): generator is PreparedSceneGenerator => Boolean(generator))
+        : [],
+    });
+  }
+
+  #prepareMedia(
+    scene: FlattenedSceneLayer,
+    playing: boolean,
+    resolutionScale: number,
+    textMotionBlur?: TextMotionBlurPlan,
+  ): void {
+    if (scene.layer.kind === "text") {
+      this.#mediaTextures.prepareText(
+        scene.layer,
+        scene.resourceInstanceId,
+        evaluateLayerSourceTime(scene.layer, scene.localTime),
+        scene.sourceComposition.frameRate.numerator / scene.sourceComposition.frameRate.denominator,
+        transformedTextRasterScale(resolutionScale, scene.transform.scale),
+        textMotionBlur,
+      );
+      this.#mediaInstanceIds.add(scene.resourceInstanceId);
+      return;
+    }
+    if (scene.layer.kind === "image" || scene.layer.kind === "video") {
+      this.#mediaTextures.prepareMedia(
+        scene.layer,
+        sourceForLayer(this.#project, scene.layer),
+        scene.localTime,
+        playing,
+        scene.resourceInstanceId,
+      );
+      this.#mediaInstanceIds.add(scene.resourceInstanceId);
+    }
+  }
+
+  #createEntry(
+    key: string,
+    width: number,
+    height: number,
+    estimatedBytes: number,
+    textureCount: number,
+  ): SurfaceEntry {
+    while (
+      this.#entries.size >= MAX_PRECOMPOSITION_SURFACES ||
+      this.#residentTextureCount() + textureCount > MAX_PRECOMPOSITION_SURFACE_TEXTURES ||
+      this.#residentBytes() + estimatedBytes > this.#byteLimit
+    )
+      if (!this.#evictOldest()) throw new Error("Precomposition surface cache budget is exhausted");
+    const color = this.#device.createTexture({
+      label: `Precomposition HDR surface · ${key}`,
+      size: [width, height],
+      format: SURFACE_FORMAT,
+      usage:
+        GPUTextureUsage.RENDER_ATTACHMENT |
+        GPUTextureUsage.TEXTURE_BINDING |
+        GPUTextureUsage.COPY_SRC |
+        GPUTextureUsage.COPY_DST,
+    });
+    const depth = this.#device.createTexture({
+      label: `Precomposition depth surface · ${key}`,
+      size: [width, height],
+      format: "depth24plus",
+      usage: GPUTextureUsage.RENDER_ATTACHMENT,
+    });
+    const vertexBuffer = this.#device.createBuffer({
+      label: `Precomposition geometry · ${key}`,
+      size: INITIAL_VERTEX_BYTES,
+      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+    });
+    const lightingBuffer = this.#device.createBuffer({
+      label: `Precomposition lighting · ${key}`,
+      size: SCENE_LIGHTING_BYTES,
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    });
+    return {
+      key,
+      width,
+      height,
+      color,
+      depth,
+      bindGroup: this.#device.createBindGroup({
+        label: `Precomposition sampler · ${key}`,
+        layout: this.#mediaLayout,
+        entries: [
+          { binding: 0, resource: color.createView() },
+          { binding: 1, resource: this.#mediaSampler },
+        ],
+      }),
+      vertexBuffer,
+      vertexBufferBytes: INITIAL_VERTEX_BYTES,
+      lightingBuffer,
+      lightingBindGroup: this.#device.createBindGroup({
+        label: `Precomposition lighting resources · ${key}`,
+        layout: this.#lightingLayout,
+        entries: [
+          { binding: 0, resource: { buffer: lightingBuffer } },
+          { binding: 1, resource: this.#shadowTexture.createView() },
+          { binding: 2, resource: this.#shadowSampler },
+        ],
+      }),
+      estimatedBytes,
+      textureCount,
+      lastUsedFrame: this.#frame,
+    };
+  }
+
+  #reuseEntry(
+    key: string,
+    width: number,
+    height: number,
+    hasEffects: boolean,
+  ): SurfaceEntry | undefined {
+    let reusable: SurfaceEntry | undefined;
+    for (const entry of this.#entries.values()) {
+      if (
+        entry.lastUsedFrame === this.#frame ||
+        entry.width !== width ||
+        entry.height !== height ||
+        Boolean(entry.effects) !== hasEffects
+      )
+        continue;
+      if (!reusable || entry.lastUsedFrame < reusable.lastUsedFrame) reusable = entry;
+    }
+    if (!reusable) return undefined;
+    this.#entries.delete(reusable.key);
+    reusable.key = key;
+    this.#entries.set(key, reusable);
+    return reusable;
+  }
+
+  #ensureVertexBuffer(entry: SurfaceEntry, requiredBytes: number): void {
+    if (requiredBytes <= entry.vertexBufferBytes) return;
+    const size = 2 ** Math.ceil(Math.log2(requiredBytes));
+    entry.vertexBuffer.destroy();
+    entry.vertexBuffer = this.#device.createBuffer({
+      label: `Precomposition geometry · ${entry.key} · grown`,
+      size,
+      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+    });
+    entry.vertexBufferBytes = size;
+  }
+
+  #prepareEffects(
+    entry: SurfaceEntry,
+    composition: Composition,
+    scene: readonly FlattenedSceneLayer[],
+    time: number,
+  ) {
+    const header = buildFrameHeader({
+      snapshot: { snapshotScope: "precomposition-effects", projectRevision: this.#revision },
+      compositionId: composition.id,
+      time,
+      frameRate: composition.frameRate,
+      target: { width: composition.width, height: composition.height },
+      renderTarget: { width: entry.width, height: entry.height },
+      antiAliasing: "off",
+    });
+    return (
+      entry.effects?.prepareEffects(scene, composition, header, "precomposition") ??
+      prepareLayerEffects({
+        scene,
+        composition,
+        header,
+        context: "precomposition",
+        mipLevelCount: 1,
+        planner: this.#directEffectPlanner,
+      })
+    );
+  }
+
+  #encodeJob(encoder: GPUCommandEncoder, job: SurfaceJob): void {
+    const { entry, composition, geometry, sceneLayers, generators } = job;
+    if (generators.length > 0) {
+      const compute = encoder.beginComputePass({
+        label: `Precomposition scene generators · ${composition.name}`,
+      });
+      for (const generator of generators) this.#sceneGenerators?.encodeCompute(compute, generator);
+      compute.end();
+    }
+    const generatorByInstance = new Map(
+      generators.map((generator) => [generator.instanceId, generator]),
+    );
+    const stack = planSceneRenderStack(sceneLayers, geometry.batches);
+    let pass: GPURenderPassEncoder | undefined = this.#beginPass(encoder, entry, composition);
+    const activeEffects = new Set<string>();
+    let clearDepth = false;
+    for (const item of stack) {
+      if (item.clearDepth) {
+        pass?.end();
+        pass = undefined;
+        clearDepth = true;
+      }
+      if (item.kind === "generator") {
+        const generator = generatorByInstance.get(item.scene.instanceId);
+        if (!generator) continue;
+        const execution = effectExecution(job.effectPlans.get(item.scene.instanceId));
+        if (execution.route === "layer") {
+          pass?.end();
+          pass = undefined;
+          activeEffects.add(item.scene.instanceId);
+          entry.effects?.encode(
+            encoder,
+            entry.color,
+            job.effectPlans.get(item.scene.instanceId),
+            (layerPass) => this.#sceneGenerators?.draw(layerPass, generator, "normal"),
+          );
+          continue;
+        }
+        pass ??= this.#resumePass(encoder, entry, clearDepth);
+        clearDepth = false;
+        this.#sceneGenerators?.draw(pass, generator, execution.blendMode);
+        continue;
+      }
+      if (item.kind === "adjustment") {
+        if (effectExecution(job.effectPlans.get(item.scene.instanceId)).route === "skip") continue;
+        pass?.end();
+        pass = undefined;
+        const count = entry.effects?.encodeAdjustment(
+          encoder,
+          entry.color,
+          job.effectPlans.get(item.scene.instanceId),
+        );
+        if (count) activeEffects.add(item.scene.instanceId);
+        continue;
+      }
+      const { batch } = item;
+      const execution = effectExecution(job.effectPlans.get(batch.instanceId));
+      if (execution.route === "layer") {
+        pass?.end();
+        pass = undefined;
+        activeEffects.add(batch.instanceId);
+        entry.effects?.encode(
+          encoder,
+          entry.color,
+          job.effectPlans.get(batch.instanceId),
+          (layerPass) => this.#drawBatch(layerPass, entry, batch, "normal"),
+        );
+        continue;
+      }
+      pass ??= this.#resumePass(encoder, entry, clearDepth);
+      clearDepth = false;
+      this.#drawBatch(pass, entry, batch, execution.blendMode);
+    }
+    pass?.end();
+    entry.effects?.sweep(activeEffects);
+  }
+
+  #beginPass(
+    encoder: GPUCommandEncoder,
+    entry: SurfaceEntry,
+    composition: Composition,
+  ): GPURenderPassEncoder {
+    return encoder.beginRenderPass({
+      label: `Isolated precomposition · ${composition.name}`,
+      colorAttachments: [
+        {
+          view: entry.color.createView(),
+          clearValue: {
+            r: composition.background[0],
+            g: composition.background[1],
+            b: composition.background[2],
+            a: composition.background[3],
+          },
+          loadOp: "clear",
+          storeOp: "store",
+        },
+      ],
+      depthStencilAttachment: {
+        view: entry.depth.createView(),
+        depthClearValue: 1,
+        depthLoadOp: "clear",
+        depthStoreOp: "store",
+      },
+    });
+  }
+
+  #resumePass(
+    encoder: GPUCommandEncoder,
+    entry: SurfaceEntry,
+    clearDepth: boolean,
+  ): GPURenderPassEncoder {
+    return encoder.beginRenderPass({
+      label: "Resume isolated precomposition stack",
+      colorAttachments: [{ view: entry.color.createView(), loadOp: "load", storeOp: "store" }],
+      depthStencilAttachment: {
+        view: entry.depth.createView(),
+        depthClearValue: 1,
+        depthLoadOp: clearDepth ? "clear" : "load",
+        depthStoreOp: "store",
+      },
+    });
+  }
+
+  #drawBatch(
+    pass: GPURenderPassEncoder,
+    entry: SurfaceEntry,
+    batch: GeometryBatch,
+    blendMode = batch.layer.blendMode,
+  ): void {
+    pass.setVertexBuffer(0, entry.vertexBuffer);
+    const surface =
+      batch.layer.kind === "precomposition" ? this.#bindings.get(batch.instanceId) : undefined;
+    if (surface) {
+      pass.setPipeline(this.#surfacePipelines[blendMode]);
+      pass.setBindGroup(0, surface);
+    } else {
+      const media =
+        batch.layer.kind === "image" || batch.layer.kind === "video" || batch.layer.kind === "text"
+          ? this.#mediaTextures.bindGroup(batch.resourceInstanceId)
+          : undefined;
+      if (batch.layer.kind === "precomposition" && !media) return;
+      if (media) {
+        pass.setPipeline(this.#imagePipelines[blendMode]);
+        pass.setBindGroup(0, media);
+      } else {
+        pass.setPipeline(this.#shapePipelines[blendMode]);
+        pass.setBindGroup(0, entry.lightingBindGroup);
+      }
+    }
+    pass.draw(batch.vertexCount, 1, batch.firstVertex);
+  }
+
+  #sweep(activeKeys: ReadonlySet<string>): void {
+    for (const [key, entry] of this.#entries) {
+      if (activeKeys.has(key) || this.#frame - entry.lastUsedFrame <= CACHE_RETENTION_FRAMES)
+        continue;
+      destroyEntry(entry);
+      this.#entries.delete(key);
+    }
+    while (
+      this.#residentBytes() > this.#byteLimit ||
+      this.#residentTextureCount() > MAX_PRECOMPOSITION_SURFACE_TEXTURES
+    )
+      if (!this.#evictOldest()) break;
+  }
+
+  #evictOldest(): boolean {
+    let oldest: SurfaceEntry | undefined;
+    for (const entry of this.#entries.values()) {
+      if (entry.lastUsedFrame === this.#frame) continue;
+      if (!oldest || entry.lastUsedFrame < oldest.lastUsedFrame) oldest = entry;
+    }
+    if (!oldest) return false;
+    destroyEntry(oldest);
+    this.#entries.delete(oldest.key);
+    return true;
+  }
+
+  #residentBytes(): number {
+    let total = 0;
+    for (const entry of this.#entries.values()) total += entry.estimatedBytes;
+    return total;
+  }
+
+  #residentTextureCount(): number {
+    let total = 0;
+    for (const entry of this.#entries.values()) total += entry.textureCount;
+    return total;
+  }
+}
+
+function createSurfacePipelines(
+  device: GPUDevice,
+  mediaLayout: GPUBindGroupLayout,
+): Record<BlendMode, GPURenderPipeline> {
+  const module = device.createShaderModule({
+    label: "Premultiplied precomposition surface shader",
+    code: precompositionSurfaceShader,
+  });
+  const layout = device.createPipelineLayout({ bindGroupLayouts: [mediaLayout] });
+  const pipelines = Object.fromEntries(
+    FIXED_BLEND_MODES.map((blendMode) => [
+      blendMode,
+      device.createRenderPipeline({
+        label: `Precomposition 3D surface · ${blendMode}`,
+        layout,
+        vertex: { module, entryPoint: "vertex_main", buffers: IMAGE_VERTEX_BUFFERS },
+        fragment: {
+          module,
+          entryPoint: "fragment_main",
+          targets: [{ format: SURFACE_FORMAT, blend: gpuBlendState(blendMode) }],
+        },
+        primitive: { topology: "triangle-list", cullMode: "none" },
+        depthStencil: {
+          format: "depth24plus",
+          depthWriteEnabled: true,
+          depthCompare: "less-equal",
+        },
+      }),
+    ]),
+  );
+  return Object.fromEntries(
+    BLEND_MODES.map((mode) => [mode, pipelines[mode] ?? pipelines.normal]),
+  ) as Record<BlendMode, GPURenderPipeline>;
+}
+
+function destroyEntry(entry: SurfaceEntry): void {
+  entry.effects?.destroy();
+  entry.color.destroy();
+  entry.depth.destroy();
+  entry.vertexBuffer.destroy();
+  entry.lightingBuffer.destroy();
+}
+
+function namespaceSurfaceLayers(
+  layers: readonly FlattenedSceneLayer[],
+  surfaceKey: string,
+  compositionPath: readonly string[],
+): FlattenedSceneLayer[] {
+  return layers.map((child) => ({
+    ...child,
+    // Standalone evaluation starts every source at `root`. Namespace both identities by the stable
+    // outer wrapper resource path: separate wrappers cannot overwrite each other, clones share,
+    // and playback does not churn media resources merely because the sample time moved.
+    instanceId: namespaceSurfaceChild(surfaceKey, child.instanceId),
+    resourceInstanceId: namespaceSurfaceChild(surfaceKey, child.resourceInstanceId),
+    precompositionSurface: child.precompositionSurface
+      ? {
+          ...child.precompositionSurface,
+          compositionPath: [...compositionPath, ...child.precompositionSurface.compositionPath],
+        }
+      : undefined,
+  }));
+}
+
+function namespaceSurfaceChild(surfaceKey: string, relativeId: string): string {
+  return `surface:${surfaceKey}/${relativeId}`;
+}
+
+function emptyFrame(): PrecompositionSurfaceFrame {
+  return {
+    diagnostics: [],
+    estimatedBytes: 0,
+    residentBytes: 0,
+    residentTextureCount: 0,
+    textureCount: 0,
+    surfaceCount: 0,
+    mediaInstanceIds: new Set(),
+  };
+}
+
+export const precompositionSurfaceShader = sharedShaders.source("precomposition-surface");

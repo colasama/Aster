@@ -1,0 +1,151 @@
+import assert from "node:assert/strict";
+import { join, relative } from "node:path";
+import { loadIrRuntime } from "./ir-gate-runtime.mjs";
+
+export async function auditPrecompositions(reader, context, execute) {
+  const ledger = await reader.json("docs/migration/rust-renderer-progress.json");
+  const reference = ledger.reference_baseline.precomposition;
+  assert.equal(reference.path, "tests/parity/precomposition-replay/reference/manifest.json");
+  await reader.bytes(reference.path, reference.sha256);
+  const frozen = await reader.json(reference.path);
+  assert.equal(frozen.reference_commit, reference.reference_commit);
+  assert.equal(frozen.profile, "exact");
+  assert.equal(frozen.format, "rgba16float-le");
+  assert.equal(frozen.width, 64);
+  assert.equal(frozen.height, 48);
+  await reader.bytes(frozen.implementation.path, frozen.implementation.sha256);
+  const output = join(context.output, "precomposition");
+  const run = await execute(
+    {
+      id: "precomposition-gpu",
+      file: "node",
+      args: ["scripts/migration/precomposition-runner.mjs", output],
+      timeout_ms: 300_000,
+    },
+    context,
+  );
+  assert.equal(run.status, "passed", "Precomposition GPU replay failed");
+  const path = relative(context.root, output).replaceAll("\\", "/");
+  const gpu = await reader.json(`${path}/gpu.json`);
+  assert.equal(gpu.status, "passed");
+  const ids = ["direct", "nested", "effects", "generator", "generator-failed"];
+  assert.deepEqual(
+    gpu.results.map((r) => r.id),
+    ids,
+  );
+  assert.deepEqual(
+    frozen.cases.map((r) => r.id),
+    ids,
+  );
+  const messages = await reader.json(`${path}/decoded.json`);
+  assert.deepEqual(messages, await reader.json(`${path}/input.json`));
+  assert.equal(gpu.rust_messages, messages.length);
+  const input = await reader.json(`${path}/replay-input.json`);
+  assert.deepEqual(
+    input.map((c) => c.id),
+    ids,
+  );
+  const runtime = await loadIrRuntime(context.root);
+  try {
+    const resources = new Map();
+    const expectedRoundtrips = new Set();
+    for (const message of messages) {
+      const payload = await reader.bytes(`${path}/payloads/${message.hash}.bin`);
+      assert.equal(await runtime.contentResourceHash(message, payload.bytes), message.hash);
+      resources.set(message.hash, { message, bytes: payload.bytes });
+      if (message.kind === "buffer" && payload.bytes.subarray(0, 4).toString() === "FPLN")
+        expectedRoundtrips.add(message.hash);
+    }
+    for (const c of input) {
+      for (const name of ["bundle", "warmup"])
+        if (c[name]) {
+          expectedRoundtrips.add(`${c.id}-${name}`);
+          const packet = c[name];
+          const bytes = await reader.bytes(`${path}/${c.id}-${name}.decoded.fpln`);
+          assert.deepEqual(Buffer.from(packet.plan), bytes.bytes);
+          const supplied = packet.resources.map((r) => {
+            const checked = resources.get(r.message.hash);
+            assert(checked);
+            assert.deepEqual(r.message, checked.message);
+            assert.deepEqual(Buffer.from(r.bytes), checked.bytes);
+            return checked;
+          });
+          const decoded = runtime.readPrecompositionBundle(
+            runtime.decodeFramePlan(bytes.bytes),
+            supplied,
+          );
+          if (name === "bundle") {
+            const expected = c.id === "nested" || c.id === "effects" ? 2 : 1;
+            assert.equal(decoded.plans.length, expected);
+            assert.equal(
+              decoded.plans.reduce((n, p) => n + p.generators.length, 0),
+              c.id.startsWith("generator") ? 1 : 0,
+            );
+            assert(decoded.graph.bindings.has(c.output));
+          } else {
+            assert.equal(decoded.plans.length, 1);
+            assert(decoded.graph.bindings.has("warmup"));
+          }
+        }
+      assert.equal(Boolean(c.warmup), c.id === "nested");
+      const saved = frozen.cases.find((f) => f.id === c.id);
+      const expected = await reader.bytes(saved.path, saved.sha256);
+      const captured = await reader.bytes(`${path}/${c.id}.reference.bin`);
+      const actual = await reader.bytes(`${path}/${c.id}.replay.bin`);
+      assert.equal(expected.bytes.length, 24576);
+      assert(expected.bytes.some((v) => v !== 0));
+      assert.deepEqual(captured.bytes, expected.bytes);
+      assert.deepEqual(actual.bytes, expected.bytes);
+      const result = gpu.results.find((r) => r.id === c.id);
+      for (const field of ["exact", "independent_device", "rust_roundtrip"])
+        assert.equal(result[field], true);
+      assert.equal(result.bytes, 24576);
+      assert.equal(result.pinned, c.id === "nested");
+      const mutations = [
+        "remove-draw",
+        ...(c.id === "nested" ? ["reverse-order"] : []),
+        ...(c.id === "effects" ? ["remove-adjustment"] : []),
+        ...(c.id === "generator" ? ["remove-generator"] : []),
+        ...(c.id === "generator-failed" ? ["restore-generator"] : []),
+      ];
+      assert.deepEqual(
+        result.mutations.map((m) => m.id),
+        mutations,
+      );
+      for (const m of result.mutations) {
+        assert.equal(m.file, `${c.id}.${m.id}.bin`);
+        const altered = await reader.bytes(`${path}/${m.file}`);
+        assert.equal(altered.bytes.length, 24576);
+        let changed = 0;
+        for (let i = 0; i < 24576; i += 8)
+          if (!altered.bytes.subarray(i, i + 8).equals(expected.bytes.subarray(i, i + 8)))
+            changed++;
+        assert.equal(changed, m.changed_pixels);
+        assert(changed > 16, "Surface mutation must visibly change pixels");
+      }
+    }
+    assert.deepEqual(new Set(gpu.roundtrips), expectedRoundtrips);
+    assert.equal(gpu.roundtrips.length, expectedRoundtrips.size);
+    assert.equal(gpu.rust_plans, expectedRoundtrips.size);
+    for (const id of expectedRoundtrips) {
+      const original = await reader.bytes(`${path}/${id}.input.fpln`),
+        decoded = await reader.bytes(`${path}/${id}.decoded.fpln`);
+      assert.deepEqual(original.bytes, decoded.bytes);
+      runtime.decodeFramePlan(decoded.bytes);
+      if (resources.has(id)) assert.deepEqual(original.bytes, resources.get(id).bytes);
+    }
+  } finally {
+    await runtime.close();
+  }
+  return {
+    status: "passed",
+    profile: "exact",
+    results: gpu.results,
+    adapter: gpu.adapter,
+    reference,
+    rust_plans: gpu.rust_plans,
+    rust_messages: gpu.rust_messages,
+    report: `${path}/gpu.json`,
+    duration_ms: run.duration_ms,
+  };
+}

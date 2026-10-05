@@ -108,6 +108,12 @@
       "path": "tests/parity/generators-replay/reference/manifest.json",
       "sha256": "a573fe3ababaa0f207eed4a0a6d11a4269ee90a877a244c1f8abed9fdbbfce09",
       "reference_commit": "d4a6a4db0e28c3108e590bda45c19a2876d5df1b"
+    },
+    "precomposition": {
+      "path": "tests/parity/precomposition-replay/reference/manifest.json",
+      "sha256": "b0e3a9edb52e73c46f67331b4b1634d6584b02a842f96140f588863460e4ca97",
+      "reference_commit": "2515c73a710c0151230c718429d4a833431b5452",
+      "profile": "exact"
     }
   },
   "last_cycle": {
@@ -17230,5 +17236,11 @@
       }
     }
   ],
-  "active_cycle": null
+  "active_cycle": {
+    "id": 58,
+    "milestone": "M2",
+    "task": "M2-T11",
+    "started_at": "2026-10-05T09:13:50.587Z",
+    "intent": "Require real independent-device recursive precomposition GPU replay through Rust transport against a pinned pre-extraction surface renderer."
+  }
 }

@@ -172,6 +172,7 @@ export async function verifyMigration(options, dependencies = {}) {
           lut_draws: checked.report.lut_draws,
           root_scenes: checked.report.root_scenes,
           generators: checked.report.generators,
+          precompositions: checked.report.precompositions,
           duration_ms: checked.report.duration_ms,
         });
       } else if (id === "G3") {

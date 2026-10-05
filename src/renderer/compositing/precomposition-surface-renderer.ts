@@ -9,10 +9,11 @@ import { requirePlan } from "../frame-plan/canonical";
 import { readGeneratorSlice } from "../frame-plan/generator-plan";
 import { buildPrecompositionBundle } from "../frame-plan/precomposition-bundle-plan";
 import { readPrecompositionBundle } from "../frame-plan/precomposition-bundle-read";
+import type { BundleResource } from "../frame-plan/precomposition-bundle-resources";
 import { buildPrecompositionGraph } from "../frame-plan/precomposition-graph-plan";
 import { buildFrameHeader } from "../frame-plan/root-post-plan";
 import { prepareSceneBuffers } from "../frame-plan/scene-buffer-upload";
-import type { PutResource } from "../frame-plan/types";
+import type { FramePlanSliceData, PutResource } from "../frame-plan/types";
 import { FLOATS_PER_VERTEX } from "../geometry/geometry";
 import { sharedShaders } from "../gpu/shared-shader-catalog";
 import { LutSelectionPlanner } from "../media/lut-selection-plan";
@@ -77,7 +78,10 @@ export interface PrecompositionSurfaceFrame {
   mediaInstanceIds: ReadonlySet<string>;
 }
 
-export type PrecompositionBundle = ReturnType<typeof buildPrecompositionBundle>;
+export interface PrecompositionBundle {
+  plan: FramePlanSliceData;
+  resources: readonly BundleResource[];
+}
 interface PrecompositionBundleMedia extends PrecompositionMediaBindings {
   hashFor(instanceId: string): string | null;
   resourceMessages: readonly PutResource[];

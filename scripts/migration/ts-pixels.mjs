@@ -9,6 +9,7 @@ import { auditGenerators } from "./generator-gate.mjs";
 import { auditLutDraws } from "./lut-draw-gate.mjs";
 import { evidencePath, M0Evidence } from "./m0-evidence.mjs";
 import { auditMaterialDraws } from "./material-draw-gate.mjs";
+import { auditPrecompositions } from "./precomposition-gate.mjs";
 import { runStep } from "./process.mjs";
 import { auditCapturedRasters } from "./raster-capture-gate.mjs";
 import { writeAtomicJson } from "./report.mjs";
@@ -134,6 +135,12 @@ export async function verifyTsPixels(options, dependencies = {}) {
         execute,
       );
       assert.equal(report.generators.status, "passed", "Generator GPU replay failed");
+      report.precompositions = await (dependencies.auditPrecompositions ?? auditPrecompositions)(
+        reader,
+        context,
+        execute,
+      );
+      assert.equal(report.precompositions.status, "passed", "Precomposition GPU replay failed");
     }
     report.gate = await (dependencies.runPixelGate ?? runPixelGate)(
       { ...context, output: join(output, "G3") },
