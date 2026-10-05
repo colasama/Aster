@@ -146,40 +146,40 @@
     }
   },
   "last_cycle": {
-    "id": 66,
-    "time": "2026-10-05T13:56:03.344Z",
+    "id": 67,
+    "time": "2026-10-05T14:26:23.476Z",
     "milestone": "M2",
     "task": "M2-T12",
     "outcome": "passed",
-    "commit": "bdf2d9108154b828f9016b656b759b2f0515d020",
-    "verification": "artifacts/migration/verify-2026-10-05T13-47-58-410Z-18d76d17.json",
-    "verification_sha256": "197a94a0724db15373a038dc11ac448ab5e3aac7d78d265b5f0a2f0528887991",
+    "commit": "b6720ae2dddcb415f1c9b59a524b169db48e48b6",
+    "verification": "artifacts/migration/verify-2026-10-05T14-18-26-800Z-991c6471.json",
+    "verification_sha256": "769482ade58539f53e148e03fe674614ee724c1d9f6920ccf4cd21a49e7cc3f7",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 81536
+        "duration_ms": 76729
       },
       {
         "id": "G1",
         "status": "passed",
-        "duration_ms": 11105
+        "duration_ms": 9972
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 348009
+        "duration_ms": 339550
       }
     ],
-    "verification_duration_ms": 442061,
-    "next_step": "Continue M2-T12: verify combined motion, depth/surface and final output GPU replay.",
+    "verification_duration_ms": 427637,
+    "next_step": "Continue M2-T13: assemble the complete production frame plan and supplied executor.",
     "notes": [
-      "Added required G3 generator auxiliary replay against the independently retained generator host and pre-extraction auxiliary executor. Five cases cover billboard, streak, mesh, cloned particle draws and an audio plugin without an auxiliary shader.",
-      "Eleven generator/auxiliary plans and four shader resources round-trip through Rust before replay on a fresh GPU device. Normal, object/material IDs, world-position and motion attachments match the pinned legacy bytes exactly. Twelve skip-compute, remove-generator and change-ID mutations each affect more than sixteen surface pixels.",
-      "The audio plugin keeps an empty auxiliary contribution and rejects an invented auxiliary draw with missing_resource. Required gate auditing validates shader payload hashes, complete frame headers, ordered generator identities, exact raw attachments, declared instance counts and independently counted mutation differences.",
-      "Seven gate-runner tests, typecheck, whole-repository Biome and full M2 G0/G1/G3 passed. The first bootstrap assumed zero opacity changed auxiliary surfaces; retained particle shaders do not use color alpha for auxiliary output. Replaced that ineffective mutation with an object-ID mutation without changing shaders or references; cycle66-bootstrap.log and its failed GPU report are retained.",
-      "Production renderer and bridge hashes remain unchanged, so the accepted full capture is reused and all 1819 required corpus frames remain exact. Existing frozen references, tolerances and dependencies are unchanged; the generator auxiliary reference set is separately pinned.",
-      "M2-T12 remains open for independent combined motion, depth/surface and final output GPU execution. Complete root-frame capture and production native preview/export remain pending."
+      "Completed M2-T12 combined output replay. Twenty-three cases transport 56 motion, depth/surface and output plans through Rust and execute them on a separate GPU device against retained pre-extraction executors. All output bytes match pinned references exactly.",
+      "Thirty-seven route, effect-uniform and motion-radius mutations each change more than sixteen output pixels. Poisoned live settings do not affect supplied execution. Coverage includes all diagnostic modes, four AA modes, motion followed by depth of field and transparency tiers 0/1/2.",
+      "The first GPU bootstrap exposed an existing integer diagnostic bind-group error: the uint shader declares only binding 0, but the renderer also supplied uniform binding 1. Omit the undeclared binding without changing shaders. Object/material ID pixels are additionally checked independently against the existing WGSL u32 hash.",
+      "Preserved bootstrap failures: initial harness compilation imports/type narrowing were corrected; bootstrap2/gpu.json records the production validation error; bootstrap3/gpu.json records an ineffective mutation that wrote at the decoded backing buffer start instead of blob.byteOffset. Bootstrap4 and the independent required gate pass after fixing the harness offset. No pixel tolerance or existing reference was changed.",
+      "Fresh full production capture and M2 G0/G1/G3 pass; all 1819 required corpus frames are exact. Seven gate-runner tests, typecheck and whole-repository Biome also passed. The new separately pinned output reference records retained implementation commits and supplied input hashes.",
+      "M2-T13 is next: assemble a complete production frame plan and execute it without authoring-state reads. Complete root-frame capture and native Rust preview/export remain pending."
     ]
   },
   "milestones": [
@@ -16153,7 +16153,7 @@
             "No live composition/view settings are read while encoding the planned output route."
           ],
           "required_full_gates": ["G0", "G1", "G3"],
-          "status": "in_progress",
+          "status": "done",
           "failed_verifications": [
             "artifacts/migration/verify-2026-10-05T11-04-14-872Z-0789395b.json"
           ],
@@ -16966,13 +16966,199 @@
                 "Production renderer and bridge hashes remain unchanged, so the accepted full capture is reused and all 1819 required corpus frames remain exact. Existing frozen references, tolerances and dependencies are unchanged; the generator auxiliary reference set is separately pinned.",
                 "M2-T12 remains open for independent combined motion, depth/surface and final output GPU execution. Complete root-frame capture and production native preview/export remain pending."
               ]
+            },
+            {
+              "cycle": 67,
+              "output_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T14-19-54-212Z-c1eea6f2/output-replay/gpu.json",
+                "sha256": "7b8b9c0b0af79ba23e717860e7ffe639d9ed7d87c695690fd3092b344a6bb523"
+              },
+              "output_reference": {
+                "path": "tests/parity/output-replay/reference/manifest.json",
+                "sha256": "9f4af4260aec5aa4aeb57131add08f2698bf0b6caeb6c948caf772c0652c6e7a"
+              },
+              "output_implementations": [
+                {
+                  "path": "tests/parity/output-replay/legacy-motion.ts",
+                  "sha256": "59a947cdf2de69aeaffd10f4c309c34006d2152d13ac691125c0aa9f9b84aec2",
+                  "reference_commit": "c9b6fe254c9d52b6153ad012ab8da237fc2f8f70"
+                },
+                {
+                  "path": "tests/parity/output-replay/legacy-depth.ts",
+                  "sha256": "8ddc7fb7942db6d9c8b40b8cb9c1ce0fd1ca8815cab0855a4f4b8d5712093361",
+                  "reference_commit": "badb4563a348c52ab2b025ce83eee83eb2e7770b"
+                },
+                {
+                  "path": "tests/parity/output-replay/legacy-surface.ts",
+                  "sha256": "2e7d816c02a1ffe7eec8e5f2148ae5c54dd4feafaea114416c776a56163f3767",
+                  "reference_commit": "badb4563a348c52ab2b025ce83eee83eb2e7770b"
+                },
+                {
+                  "path": "tests/parity/output-replay/legacy-output.ts",
+                  "sha256": "f2d4c4c7d5a8d6e4a45e9f8b41f1295b4bef77f12219f51ebfe5b2b0de37b451",
+                  "reference_commit": "8e73f610efbad84680b4c87475833e599d9253ae"
+                }
+              ],
+              "auxiliary_generators_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T14-19-54-212Z-c1eea6f2/auxiliary-generators/gpu.json",
+                "sha256": "2f2d69a577741c248c66809dd6838f4db48012a8da6e34a7e946f7213fabd249"
+              },
+              "auxiliary_generators_reference": {
+                "path": "tests/parity/auxiliary-generators/reference/manifest.json",
+                "sha256": "e245fe63a39fb4bc5abc69e428355cc2dc7d725887ef2150c4a8713a6a801974"
+              },
+              "auxiliary_generators_implementations": [
+                {
+                  "path": "tests/parity/auxiliary-replay/legacy-auxiliary.ts",
+                  "sha256": "8e8af02381010031e3d5df9032a0cf1858e2780c6c29f1001ed2013e89cba771"
+                },
+                {
+                  "path": "tests/parity/generators-replay/legacy-host.ts",
+                  "sha256": "e458d028ca20002b7e7379f9daf9d5ca0a0f0960a3676dd3e0153e5ce19c8392"
+                }
+              ],
+              "auxiliary_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T14-19-54-212Z-c1eea6f2/auxiliary/gpu.json",
+                "sha256": "b80afb6ea1a2b07d16168d54e0f11c7fc45e7d7dd895c8f5de1b8b089e7418ef"
+              },
+              "auxiliary_reference": {
+                "path": "tests/parity/auxiliary-replay/reference/manifest.json",
+                "sha256": "c2cfa75ecff2cf547a68d434ca4702980c28b298f16e063fe45399d42722bc2a"
+              },
+              "auxiliary_implementation": {
+                "path": "tests/parity/auxiliary-replay/legacy-auxiliary.ts",
+                "sha256": "8e8af02381010031e3d5df9032a0cf1858e2780c6c29f1001ed2013e89cba771"
+              },
+              "status": "passed",
+              "commit": "b6720ae2dddcb415f1c9b59a524b169db48e48b6",
+              "verification": {
+                "path": "artifacts/migration/verify-2026-10-05T14-18-26-800Z-991c6471.json",
+                "sha256": "769482ade58539f53e148e03fe674614ee724c1d9f6920ccf4cd21a49e7cc3f7"
+              },
+              "pixel_comparison": {
+                "path": "artifacts/parity/ts-check/2026-10-05T14-19-54-212Z-c1eea6f2/report.json",
+                "sha256": "4810528ffda8ad598ce92b1af33f0e08d1f31a1b0ef176f9aaad4839bd1b0ee0"
+              },
+              "capture": {
+                "path": "artifacts/parity/capture-2026-10-05T14-12-10-504Z-da7fc8d8.json",
+                "sha256": "66f5c492c20d3d07f9983c6f4f3291c21c412e9b088298d8907fe15b6cb1fd6a"
+              },
+              "manifest": {
+                "path": "artifacts/parity/runs/2026-10-05T14-12-10-504Z-da7fc8d8/candidate/manifest.json",
+                "sha256": "a5544d5b2b7eb1b2b5c36a1d97d9e2716d9a2717bb0cf57585bbbf4ec3b25bc5"
+              },
+              "renderer_source_sha256": "c5b230c2f4a1897dba7b955e44a93c4b7dc0920b2a24e6b15e4acf18eddba248",
+              "bridge_sha256": "82ccf02fefd4c54e78a82a4de08df6906714ecd0b198864ec72cb0c0394dd80c",
+              "temporal_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T14-19-54-212Z-c1eea6f2/temporal-text/gpu.json",
+                "sha256": "bfa6cfce60e46dcfd9da1820eda750be6d54f14d0818677643476a1945f47774"
+              },
+              "temporal_reference": {
+                "path": "tests/parity/temporal-text/reference/manifest.json",
+                "sha256": "e3e3b1184d5bc969dcd5cf76a424a551a0cac1a85484e157c5b549e5d6c811d1"
+              },
+              "encoded_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T14-19-54-212Z-c1eea6f2/encoded-textures/gpu.json",
+                "sha256": "9028f092c712475018d1db0dfb7122b7e5704ff3ac8c8b82ecaa4b950963c872"
+              },
+              "encoded_reference": {
+                "path": "tests/parity/material-textures/legacy-upload.ts",
+                "sha256": "508c2ad47f5a3f6e18069ce070e0ee0133668074bf81309a9144180f532f2498"
+              },
+              "material_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T14-19-54-212Z-c1eea6f2/material-draw/gpu.json",
+                "sha256": "26fbad56513b96310770da0538c5ac89d791322886d4d66134972714e0cdfe58"
+              },
+              "material_reference": {
+                "path": "tests/parity/material-draw/reference/manifest.json",
+                "sha256": "06debe986bca2118a9d4a07f5cc36a31b3926398f95d582e25f90ceabc21bc6e"
+              },
+              "material_implementation": {
+                "path": "tests/parity/material-draw/legacy-bindings.ts",
+                "sha256": "ff838daeb3950e90d263504007836d900060e9a2ff1ddb30e706a76d0a011d79"
+              },
+              "lut_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T14-19-54-212Z-c1eea6f2/lut-draw/gpu.json",
+                "sha256": "b80c09bbf0624b5c7d0f0147dedaafba3356c689451337bbbe2524e12d32c7a4"
+              },
+              "lut_reference": {
+                "path": "tests/parity/lut-draw/reference/manifest.json",
+                "sha256": "2e026afbad6143b822f38490650920003d0ad53705d705d1f2c206f05f181d59"
+              },
+              "lut_implementation": {
+                "path": "tests/parity/lut-draw/legacy-effects.ts",
+                "sha256": "999fb67e09a07322e7d8d9ea2c58a0442d7d5377f0cd1029eeab16e29f714a0b"
+              },
+              "root_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T14-19-54-212Z-c1eea6f2/root-scene/gpu.json",
+                "sha256": "049b9b48a98a31f1a1460658b136474b8fdfd78cbbb81411893661509599cfe0"
+              },
+              "root_reference": {
+                "path": "tests/parity/root-scene/reference/manifest.json",
+                "sha256": "4c5b2ffd5828db24f929f1bcc350a4a7e7c75be05cb65b9bbe2b4c48eaba267f"
+              },
+              "root_implementation": {
+                "path": "tests/parity/root-scene/legacy-execute.ts",
+                "sha256": "22b0f40e52a5c330646a7fe4a581aaacd6de2db225c4030f1cdd658177d52e8a"
+              },
+              "generator_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T14-19-54-212Z-c1eea6f2/generators/gpu.json",
+                "sha256": "ee372f72a9560059fe4dd8f8ab18c040e2ef6cadcaa5cc7249278e95de347dbf"
+              },
+              "generator_reference": {
+                "path": "tests/parity/generators-replay/reference/manifest.json",
+                "sha256": "a573fe3ababaa0f207eed4a0a6d11a4269ee90a877a244c1f8abed9fdbbfce09"
+              },
+              "generator_implementation": {
+                "path": "tests/parity/generators-replay/legacy-host.ts",
+                "sha256": "e458d028ca20002b7e7379f9daf9d5ca0a0f0960a3676dd3e0153e5ce19c8392"
+              },
+              "precomposition_media_reference": {
+                "path": "tests/parity/precomposition-replay/reference/media-manifest.json",
+                "sha256": "46b095b3e2fa862eef2d2d2860a3a78824fb3e42fc0836ac705f8c91f493240a"
+              },
+              "precomposition_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T14-19-54-212Z-c1eea6f2/precomposition/gpu.json",
+                "sha256": "4aa2af42926134a34ea38a4216eff7e3c87fc58d106a519d6abe275c40340861"
+              },
+              "precomposition_reference": {
+                "path": "tests/parity/precomposition-replay/reference/manifest.json",
+                "sha256": "b0e3a9edb52e73c46f67331b4b1634d6584b02a842f96140f588863460e4ca97"
+              },
+              "precomposition_implementation": {
+                "path": "tests/parity/precomposition-replay/legacy-surface.ts",
+                "sha256": "f8cd1bd48ef8c40cac361ef50900defef58d38bd988b5983972cd44cc4b5a90b"
+              },
+              "gates": [
+                {
+                  "id": "G0",
+                  "status": "passed",
+                  "duration_ms": 76729
+                },
+                {
+                  "id": "G1",
+                  "status": "passed",
+                  "duration_ms": 9972
+                },
+                {
+                  "id": "G3",
+                  "status": "passed",
+                  "duration_ms": 339550
+                }
+              ],
+              "notes": [
+                "Completed M2-T12 combined output replay. Twenty-three cases transport 56 motion, depth/surface and output plans through Rust and execute them on a separate GPU device against retained pre-extraction executors. All output bytes match pinned references exactly.",
+                "Thirty-seven route, effect-uniform and motion-radius mutations each change more than sixteen output pixels. Poisoned live settings do not affect supplied execution. Coverage includes all diagnostic modes, four AA modes, motion followed by depth of field and transparency tiers 0/1/2.",
+                "The first GPU bootstrap exposed an existing integer diagnostic bind-group error: the uint shader declares only binding 0, but the renderer also supplied uniform binding 1. Omit the undeclared binding without changing shaders. Object/material ID pixels are additionally checked independently against the existing WGSL u32 hash.",
+                "Preserved bootstrap failures: initial harness compilation imports/type narrowing were corrected; bootstrap2/gpu.json records the production validation error; bootstrap3/gpu.json records an ineffective mutation that wrote at the decoded backing buffer start instead of blob.byteOffset. Bootstrap4 and the independent required gate pass after fixing the harness offset. No pixel tolerance or existing reference was changed.",
+                "Fresh full production capture and M2 G0/G1/G3 pass; all 1819 required corpus frames are exact. Seven gate-runner tests, typecheck and whole-repository Biome also passed. The new separately pinned output reference records retained implementation commits and supplied input hashes.",
+                "M2-T13 is next: assemble a complete production frame plan and execute it without authoring-state reads. Complete root-frame capture and native Rust preview/export remain pending."
+              ]
             }
           ],
-          "remaining_work": [
-            "Verify independent combined motion, depth/surface and final output GPU execution."
-          ],
-          "commit": "bdf2d9108154b828f9016b656b759b2f0515d020",
-          "verification": "artifacts/migration/verify-2026-10-05T13-47-58-410Z-18d76d17.json",
+          "remaining_work": [],
+          "commit": "b6720ae2dddcb415f1c9b59a524b169db48e48b6",
+          "verification": "artifacts/migration/verify-2026-10-05T14-18-26-800Z-991c6471.json",
           "failed_attempts": [
             {
               "cycle": 62,
@@ -17137,7 +17323,7 @@
       ],
       "preview_baseline_path": "benchmarks/results/m2-preview-baseline.json",
       "preview_baseline_sha256": "a1c62e224c008e731c252142ab1b9de7d31ecf592452c00da1dff42516772375",
-      "active_candidate_manifest": "artifacts/parity/runs/2026-10-05T12-51-52-424Z-ff6eca0c/candidate/manifest.json",
+      "active_candidate_manifest": "artifacts/parity/runs/2026-10-05T14-12-10-504Z-da7fc8d8/candidate/manifest.json",
       "last_verification": {
         "status": "passed",
         "required_gates_passed": true,
@@ -17146,17 +17332,17 @@
           {
             "id": "G0",
             "status": "passed",
-            "duration_ms": 81536
+            "duration_ms": 76729
           },
           {
             "id": "G1",
             "status": "passed",
-            "duration_ms": 11105
+            "duration_ms": 9972
           },
           {
             "id": "G3",
             "status": "passed",
-            "duration_ms": 348009
+            "duration_ms": 339550
           }
         ],
         "optional_gates": [
@@ -17167,7 +17353,7 @@
           }
         ],
         "performance_policy": "rust-delivery-v1",
-        "report": "artifacts/migration/verify-2026-10-05T13-47-58-410Z-18d76d17.json"
+        "report": "artifacts/migration/verify-2026-10-05T14-18-26-800Z-991c6471.json"
       },
       "performance_series_history": [
         {
@@ -18632,11 +18818,5 @@
       }
     }
   ],
-  "active_cycle": {
-    "id": 67,
-    "milestone": "M2",
-    "task": "M2-T12",
-    "started_at": "2026-10-05T14:02:53.147Z",
-    "intent": "Verify combined motion reconstruction, depth/surface effects and final output with independent GPU replay against retained executors."
-  }
+  "active_cycle": null
 }
