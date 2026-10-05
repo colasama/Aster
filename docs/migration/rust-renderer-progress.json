@@ -86,6 +86,12 @@
       "sha256": "508c2ad47f5a3f6e18069ce070e0ee0133668074bf81309a9144180f532f2498",
       "reference_commit": "9121e2b3a507c57a14cfed6c055c9a176657f9f4",
       "scope": "Normal ImageBitmap decode and linear RGBA8 external-image upload; COPY_SRC added only for diagnostic readback."
+    },
+    "material_draw": {
+      "path": "tests/parity/material-draw/reference/manifest.json",
+      "sha256": "06debe986bca2118a9d4a07f5cc36a31b3926398f95d582e25f90ceabc21bc6e",
+      "reference_commit": "4d840845e9552f2ba83dec0531fb006f798ed6e0",
+      "scope": "Six frozen RGBA16F material draw outputs from pre-extraction bindings; independently replayed supplied scene/material FPLN and normal/HDR resources."
     }
   },
   "last_cycle": {
@@ -15399,5 +15405,12 @@
       }
     }
   ],
-  "active_cycle": null
+  "active_cycle": {
+    "id": 41,
+    "milestone": "M2",
+    "task": "M2-T7",
+    "started_at": "2026-10-05T01:31:28.574Z",
+    "scope": "Separate supplied material GPU binding consumption from acquisition and verify decoded scene/material draws on an independent GPU device.",
+    "previous_turn_classification": "progress: cycle40 committed LUT selection extraction with full exact gates."
+  }
 }

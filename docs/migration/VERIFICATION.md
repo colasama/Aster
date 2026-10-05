@@ -160,7 +160,15 @@ uploader records actual linear RGBA8 texture bytes, then its GPU device and page
 Encoded resource messages and payloads pass through Rust before a new page/device decodes and uploads
 them. Every replay texel must match exactly; the consumer never receives reference pixels. The gate
 audits saved payload hashes, Rust-returned messages and both pixel buffers. This verifies normal
-resource upload; complete material draw-plan replay remains required.
+resource upload. A separate required material-draw audit transports one scene and six material plans
+through Rust together with encoded normal and packed HDR resources. The original page/device is
+destroyed before the production GPU binding consumer replays only the supplied data. Inactive,
+normal, negative normal scale, environment, rotated environment and combined draws compare exactly
+against separately frozen 64x48 RGBA16F buffers. The reference uses the pre-extraction binding logic,
+direct evaluated scene buffers, legacy normal upload and padded decoded HDR pixels. All six outputs
+must differ and contain visible geometry. The audit pins the reference implementation and buffers,
+verifies seven exact FPLN round trips and both resource hashes, and compares saved GPU output bytes.
+This is material draw coverage, not complete captured-frame or LUT effect-plan replay.
 Temporal sample fixtures cover full, entering and exiting
 exposure, plus transparent and exact-bit fixtures. Supplied samples and exposure identities must
 survive Rust decoding and TS cloning; invalid formats, frame time, weights and sample lanes fail.

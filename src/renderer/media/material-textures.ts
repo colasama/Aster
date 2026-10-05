@@ -6,15 +6,10 @@ import {
   readMaterialBindingSlice,
 } from "../frame-plan/material-binding-plan";
 import type { FrameHeaderSlice } from "../frame-plan/types";
-import { createMaterialShapePipelines } from "../scene/scene-pipelines";
 import { prepareEncodedTexture, uploadEncodedTexture } from "./encoded-texture-upload";
 import { prepareHdrTexture } from "./hdr-texture-resource";
-import {
-  type MaterialBindingPlan,
-  materialBindingUniforms,
-  planMaterialTextures,
-} from "./material-texture-plan";
-import { MaterialTextureRegistry } from "./material-texture-registry";
+import { MaterialGpuBindings, type MaterialTextureBinding } from "./material-gpu-bindings";
+import { type MaterialBindingPlan, planMaterialTextures } from "./material-texture-plan";
 import { uploadTexturePixels } from "./texture-pixel-upload";
 
 export { type MaterialTexturePlan, planMaterialTextures } from "./material-texture-plan";
@@ -39,44 +34,21 @@ interface EnvironmentResource {
   diagnosticReported?: boolean;
 }
 
-export interface MaterialTextureBinding {
-  bindGroup: GPUBindGroup;
-  pipeline: GPURenderPipeline;
-}
-
-export const NORMAL_MAP_SAMPLER_DESCRIPTOR: GPUSamplerDescriptor = {
-  addressModeU: "repeat",
-  addressModeV: "repeat",
-  magFilter: "linear",
-  minFilter: "linear",
-};
-
-export const HDR_ENVIRONMENT_SAMPLER_DESCRIPTOR: GPUSamplerDescriptor = {
-  addressModeU: "repeat",
-  addressModeV: "clamp-to-edge",
-  magFilter: "linear",
-  minFilter: "linear",
-};
+export {
+  HDR_ENVIRONMENT_SAMPLER_DESCRIPTOR,
+  type MaterialTextureBinding,
+  NORMAL_MAP_SAMPLER_DESCRIPTOR,
+} from "./material-gpu-bindings";
 
 /** Lazily owns mesh material maps so the default beauty path pays no texture or pipeline cost. */
 export class MaterialTextureRenderer {
   readonly #device: GPUDevice;
-  readonly #lightingLayout: GPUBindGroupLayout;
-  readonly #format: GPUTextureFormat;
+  readonly #gpu: MaterialGpuBindings;
   readonly #invalidate: () => void;
-  readonly #layout: GPUBindGroupLayout;
-  readonly #normalSampler: GPUSampler;
-  readonly #environmentSampler: GPUSampler;
   readonly #reportDiagnostic: (message?: string) => void;
   readonly #normals = new Map<string, NormalResource>();
   readonly #failures = new Map<string, string>();
-  readonly #uniforms = new Map<string, GPUBuffer>();
-  readonly #bindGroups = new Map<string, { key: string; bindGroup: GPUBindGroup }>();
   #environment?: EnvironmentResource;
-  #pipelines?: Record<BlendMode, GPURenderPipeline>;
-  #fallbackNormal?: GPUTexture;
-  #fallbackEnvironment?: GPUTexture;
-  readonly #textures = new MaterialTextureRegistry();
 
   constructor(
     device: GPUDevice,
@@ -86,28 +58,9 @@ export class MaterialTextureRenderer {
     reportDiagnostic: (message?: string) => void,
   ) {
     this.#device = device;
-    this.#format = format;
-    this.#lightingLayout = lightingLayout;
     this.#invalidate = invalidate;
     this.#reportDiagnostic = reportDiagnostic;
-    this.#layout = device.createBindGroupLayout({
-      label: "Mesh normal map + HDR environment layout",
-      entries: [
-        { binding: 0, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: "float" } },
-        { binding: 1, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: "float" } },
-        { binding: 2, visibility: GPUShaderStage.FRAGMENT, sampler: { type: "filtering" } },
-        { binding: 3, visibility: GPUShaderStage.FRAGMENT, sampler: { type: "filtering" } },
-        { binding: 4, visibility: GPUShaderStage.FRAGMENT, buffer: { type: "uniform" } },
-      ],
-    });
-    this.#normalSampler = device.createSampler({
-      ...NORMAL_MAP_SAMPLER_DESCRIPTOR,
-      label: "Repeating mesh normal-map sampler",
-    });
-    this.#environmentSampler = device.createSampler({
-      ...HDR_ENVIRONMENT_SAMPLER_DESCRIPTOR,
-      label: "Equirectangular HDR environment sampler",
-    });
+    this.#gpu = new MaterialGpuBindings(device, format, lightingLayout);
   }
 
   destroy(): void {
@@ -117,14 +70,8 @@ export class MaterialTextureRenderer {
     this.#normals.clear();
     this.#retire(this.#environment);
     this.#environment = undefined;
-    for (const uniform of this.#uniforms.values()) uniform.destroy();
-    this.#uniforms.clear();
-    this.#bindGroups.clear();
+    this.#gpu.destroy();
     this.#failures.clear();
-    this.#fallbackNormal?.destroy();
-    this.#fallbackNormal = undefined;
-    this.#fallbackEnvironment?.destroy();
-    this.#fallbackEnvironment = undefined;
   }
 
   /** True while a normal map or environment is still decoding into its fallback texel. */
@@ -137,7 +84,7 @@ export class MaterialTextureRenderer {
   get estimatedBytes(): number {
     let normalBytes = 0;
     for (const resource of this.#normals.values()) normalBytes += resource.bytes;
-    return normalBytes + (this.#environment?.bytes ?? 0) + this.#uniforms.size * 16;
+    return normalBytes + (this.#environment?.bytes ?? 0) + this.#gpu.uniformBytes;
   }
 
   prepare(
@@ -167,16 +114,9 @@ export class MaterialTextureRenderer {
       this.#retire(resource);
       this.#normals.delete(instanceId);
       this.#clearFailure(`normal:${instanceId}`);
-      this.#uniforms.get(instanceId)?.destroy();
-      this.#uniforms.delete(instanceId);
-      this.#bindGroups.delete(instanceId);
+      this.#gpu.remove(instanceId);
     }
-    for (const [instanceId, uniform] of this.#uniforms) {
-      if (activeBindingInstances.has(instanceId)) continue;
-      uniform.destroy();
-      this.#uniforms.delete(instanceId);
-      this.#bindGroups.delete(instanceId);
-    }
+    this.#gpu.sweep(activeBindingInstances);
     this.#prepareEnvironment(environmentActive ? composition.environment : undefined);
     for (const batch of batches) {
       batch.materialTexturePlan = undefined;
@@ -204,69 +144,14 @@ export class MaterialTextureRenderer {
     plan: MaterialBindingPlan | undefined,
     blendMode: BlendMode,
   ): MaterialTextureBinding | undefined {
-    if (!plan?.active) return undefined;
-    const { instanceId } = plan;
-    const normalTexture = plan.normalHash
-      ? this.#textures.resolve(plan.normalHash, "normal")
-      : this.#ensureFallbackNormal();
-    const environmentTexture = plan.environmentHash
-      ? this.#textures.resolve(plan.environmentHash, "environment")
-      : this.#ensureFallbackEnvironment();
-    const key = [
-      plan.normalHash,
-      plan.environmentHash,
-      plan.normalScale,
-      plan.normalEnabled,
-      plan.environmentIntensity,
-      plan.environmentRotation,
-    ].join("|");
-    let cached = this.#bindGroups.get(instanceId);
-    let uniform = this.#uniforms.get(instanceId);
-    if (!uniform) {
-      uniform = this.#device.createBuffer({
-        label: `Mesh material map uniforms · ${instanceId}`,
-        size: 16,
-        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-      });
-      this.#uniforms.set(instanceId, uniform);
-    }
-    if (!cached || cached.key !== key) {
-      this.#device.queue.writeBuffer(uniform, 0, materialBindingUniforms(plan));
-      cached = {
-        key,
-        bindGroup: this.#device.createBindGroup({
-          label: `Mesh normal + environment resources · ${instanceId}`,
-          layout: this.#layout,
-          entries: [
-            { binding: 0, resource: normalTexture.createView() },
-            { binding: 1, resource: environmentTexture.createView() },
-            { binding: 2, resource: this.#normalSampler },
-            { binding: 3, resource: this.#environmentSampler },
-            { binding: 4, resource: { buffer: uniform } },
-          ],
-        }),
-      };
-      this.#bindGroups.set(instanceId, cached);
-    }
-    return { bindGroup: cached.bindGroup, pipeline: this.#pipeline(blendMode) };
+    return this.#gpu.bindingFor(plan, blendMode);
   }
 
   #retire(resource: NormalResource | EnvironmentResource | undefined): void {
     if (!resource) return;
     resource.abort.abort();
-    this.#textures.retire(resource.hash, resource.texture);
-    if (resource.texture) this.#bindGroups.clear();
+    this.#gpu.retire(resource.hash, resource.texture);
     resource.texture?.destroy();
-  }
-
-  #pipeline(blendMode: BlendMode): GPURenderPipeline {
-    this.#pipelines ??= createMaterialShapePipelines(
-      this.#device,
-      this.#format,
-      this.#lightingLayout,
-      this.#layout,
-    );
-    return this.#pipelines[blendMode];
   }
 
   #prepareNormal(instanceId: string, source: string): void {
@@ -282,7 +167,7 @@ export class MaterialTextureRenderer {
     };
     this.#normals.set(instanceId, resource);
     this.#clearFailure(`normal:${instanceId}`);
-    this.#bindGroups.delete(instanceId);
+    this.#gpu.invalidate(instanceId);
     void fetch(source, { signal: abort.signal })
       .then((response) => {
         if (!response.ok) throw new Error(`Normal map request failed with HTTP ${response.status}`);
@@ -305,9 +190,9 @@ export class MaterialTextureRenderer {
         resource.hash = prepared.message.hash;
         resource.bytes = uploaded.bytes;
         resource.state = "ready";
-        this.#textures.register(resource.hash, "normal", uploaded.texture);
+        this.#gpu.register(resource.hash, "normal", uploaded.texture);
         this.#clearFailure(`normal:${instanceId}`);
-        this.#bindGroups.delete(instanceId);
+        this.#gpu.invalidate(instanceId);
         this.#invalidate();
       })
       .catch((error) => {
@@ -324,7 +209,7 @@ export class MaterialTextureRenderer {
       this.#retire(this.#environment);
       this.#environment = undefined;
       this.#clearFailure("environment");
-      this.#bindGroups.clear();
+      this.#gpu.invalidate();
       return;
     }
     if (this.#environment?.source === source) return;
@@ -339,7 +224,7 @@ export class MaterialTextureRenderer {
     const sourceName = environment?.source.name ?? "environment.hdr";
     this.#environment = resource;
     this.#clearFailure("environment");
-    this.#bindGroups.clear();
+    this.#gpu.invalidate();
     if (source.length > 64 * 1024 * 1024) {
       resource.state = "failed";
       this.#reportFailure(
@@ -397,11 +282,11 @@ export class MaterialTextureRenderer {
         }
         resource.texture = texture;
         resource.hash = prepared.message.hash;
-        this.#textures.register(resource.hash, "environment", texture);
+        this.#gpu.register(resource.hash, "environment", texture);
         resource.bytes = decoded.width * decoded.height * 8;
         resource.state = "ready";
         this.#clearFailure("environment");
-        this.#bindGroups.clear();
+        this.#gpu.invalidate();
         this.#invalidate();
       })
       .catch((error) => {
@@ -433,39 +318,5 @@ export class MaterialTextureRenderer {
 
   #updateDiagnostic(): void {
     this.#reportDiagnostic(this.#failures.values().next().value);
-  }
-
-  #ensureFallbackNormal(): GPUTexture {
-    if (this.#fallbackNormal) return this.#fallbackNormal;
-    this.#fallbackNormal = this.#device.createTexture({
-      label: "Flat normal map fallback",
-      size: [1, 1],
-      format: "rgba8unorm",
-      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
-    });
-    this.#device.queue.writeTexture(
-      { texture: this.#fallbackNormal },
-      new Uint8Array([128, 128, 255, 255]),
-      { bytesPerRow: 4 },
-      [1, 1],
-    );
-    return this.#fallbackNormal;
-  }
-
-  #ensureFallbackEnvironment(): GPUTexture {
-    if (this.#fallbackEnvironment) return this.#fallbackEnvironment;
-    this.#fallbackEnvironment = this.#device.createTexture({
-      label: "Black HDR environment fallback",
-      size: [1, 1],
-      format: "rgba16float",
-      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
-    });
-    this.#device.queue.writeTexture(
-      { texture: this.#fallbackEnvironment },
-      new Uint16Array([0, 0, 0, 0x3c00]),
-      { bytesPerRow: 8 },
-      [1, 1],
-    );
-    return this.#fallbackEnvironment;
   }
 }

@@ -6,6 +6,7 @@ import { runPixelGate } from "../parity/pixel-gate.mjs";
 import { captureSource } from "../parity/provenance.mjs";
 import { auditEncodedTextures } from "./encoded-texture-gate.mjs";
 import { evidencePath, M0Evidence } from "./m0-evidence.mjs";
+import { auditMaterialDraws } from "./material-draw-gate.mjs";
 import { runStep } from "./process.mjs";
 import { auditCapturedRasters } from "./raster-capture-gate.mjs";
 import { writeAtomicJson } from "./report.mjs";
@@ -101,6 +102,16 @@ export async function verifyTsPixels(options, dependencies = {}) {
         report.encoded_textures.status,
         "passed",
         "Encoded texture GPU verification did not pass",
+      );
+      report.material_draws = await (dependencies.auditMaterialDraws ?? auditMaterialDraws)(
+        reader,
+        context,
+        execute,
+      );
+      assert.equal(
+        report.material_draws.status,
+        "passed",
+        "Material draw GPU verification did not pass",
       );
     }
     report.gate = await (dependencies.runPixelGate ?? runPixelGate)(

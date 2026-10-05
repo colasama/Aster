@@ -198,7 +198,7 @@ test("TS comparison audits complete capture provenance, keeps one build, and bin
 });
 
 test("M2 retains exact and frozen M0 references without checking historical M0 candidate source", async (t) => {
-  for (const gpuFailure of [false, "temporal", "encoded"]) {
+  for (const gpuFailure of [false, "temporal", "encoded", "material"]) {
     const f = await candidateFixture(t);
     const result = await verifyTsPixels(
       { root: f.root, candidates: f.candidates, milestone: "M2" },
@@ -209,6 +209,9 @@ test("M2 retains exact and frozen M0 references without checking historical M0 c
         },
         auditEncodedTextures: async () => ({
           status: gpuFailure === "encoded" ? "failed" : "passed",
+        }),
+        auditMaterialDraws: async () => ({
+          status: gpuFailure === "material" ? "failed" : "passed",
         }),
         provenance: async () => ({ source_sha256: "same" }),
         rendererSource: async () => ({ renderer_source_sha256: "d".repeat(64) }),
@@ -232,7 +235,9 @@ test("M2 retains exact and frozen M0 references without checking historical M0 c
         result.report.error,
         gpuFailure === "temporal"
           ? /Temporal text GPU verification did not pass/
-          : /Encoded texture GPU verification did not pass/,
+          : gpuFailure === "encoded"
+            ? /Encoded texture GPU verification did not pass/
+            : /Material draw GPU verification did not pass/,
       );
     else assert.equal(result.report.temporal_text.status, "passed");
     assert.deepEqual(result.report.frozen_reference, f.reference);

@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "profile": "exact",
+  "format": "rgba16float-le",
+  "width": 64,
+  "height": 48,
+  "reference_commit": "4d840845e9552f2ba83dec0531fb006f798ed6e0",
+  "scope": "Frozen pre-extraction material GPU bindings with direct evaluated geometry/lighting, legacy normal upload and padded HDR upload.",
+  "implementation": {
+    "path": "tests/parity/material-draw/legacy-bindings.ts",
+    "sha256": "ff838daeb3950e90d263504007836d900060e9a2ff1ddb30e706a76d0a011d79"
+  },
+  "donor": "artifacts/migration/cycle41-material-probe/gpu.json",
+  "cases": [
+    {
+      "id": "inactive",
+      "path": "tests/parity/material-draw/reference/inactive.bin",
+      "sha256": "61f1e4315e79daa148ba15db7b9b844ceecc456462bec47c1a6833f7923db8db",
+      "bytes": 24576,
+      "covered_pixels": 1444
+    },
+    {
+      "id": "normal",
+      "path": "tests/parity/material-draw/reference/normal.bin",
+      "sha256": "ae5bef0316da14e257fe6a410fc45bb4c8f95a21fe650447f589857902fd46d4",
+      "bytes": 24576,
+      "covered_pixels": 1444
+    },
+    {
+      "id": "normal-negative",
+      "path": "tests/parity/material-draw/reference/normal-negative.bin",
+      "sha256": "780a3e0b135663013ca1de041cc4fd4946fcbe58e3005a9052b90e0272c87fdd",
+      "bytes": 24576,
+      "covered_pixels": 1444
+    },
+    {
+      "id": "environment",
+      "path": "tests/parity/material-draw/reference/environment.bin",
+      "sha256": "2deba1658cd93a6ff9b76195751f2d98af371490b520c65284f48bd425f5171f",
+      "bytes": 24576,
+      "covered_pixels": 1444
+    },
+    {
+      "id": "environment-rotated",
+      "path": "tests/parity/material-draw/reference/environment-rotated.bin",
+      "sha256": "ed8811c2f9494a51b5375a681d7bf78d9aaed117facae0baa82e82ffdd05792c",
+      "bytes": 24576,
+      "covered_pixels": 1444
+    },
+    {
+      "id": "combined",
+      "path": "tests/parity/material-draw/reference/combined.bin",
+      "sha256": "610ed291d56a7cfa77650b8bb6a3dabcc1b2a0523b009926280a1b910297f934",
+      "bytes": 24576,
+      "covered_pixels": 1444
+    }
+  ]
+}

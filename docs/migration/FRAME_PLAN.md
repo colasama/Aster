@@ -283,7 +283,12 @@ last enabled loaded LUT, and reuses selections until checksum/size changes or th
 Execution receives the supplied texture resource rather than an authored LUT. It installs a changed
 hash before retiring the old GPU owner; identical content reuses the installed texture. Preparation
 errors remain data until the existing effect diagnostic boundary consumes them. Complete effect
-binding FPLN transport and independent material draw replay remain required.
+binding FPLN transport and independent LUT draw replay remain required. Material GPU execution is
+separate from source acquisition: the production consumer takes a supplied binding plan and resolves
+registered normal/environment owners. G3 independently replays six material draws after scene and
+material FPLN plus both texture resource messages pass through Rust. It uses a new page/device and
+compares raw RGBA16F pixels exactly against frozen pre-extraction outputs. This covers the material
+draw boundary; complete captured-frame execution remains required.
 The renderer encodes synchronously through submission, so asynchronous uploads
 cannot retire resources midway through this local execution scope.
 
