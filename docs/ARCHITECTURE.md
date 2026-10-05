@@ -165,8 +165,11 @@ remain omitted. Root preparation emits an ordered command stream for scene attac
 depth clears, geometry/generator draws, isolated inputs/composites and adjustment operations. The
 root executor consumes that stream without rediscovering pass boundaries or supplying draw
 callbacks. Layer effects expose paired input/completion operations; the legacy precomposition
-adapter retains callback compatibility. Complete root command transport and frame capture remain
-under extraction.
+adapter retains callback compatibility. The root command FPLN contract carries ordered commands,
+geometry ranges, texture references, and linked material/effect slices. Clear values retain binary64
+bits in a dedicated payload. TS and Rust validate pass nesting, draw identities and dependency
+types; production executes the decoded command data. Independent GPU replay of the complete root
+stream and whole-frame capture remain under extraction.
 
 Shared WGSL includes output anti-aliasing, core scene variants, compositing, fused post-processing,
 blur/depth/surface effects, auxiliary surfaces, particles, text motion blur and display/buffer helpers.

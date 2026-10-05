@@ -339,3 +339,26 @@ backdrop-only adjustments preserve their pass interruption and zero-operation be
 read supplied routing and diagnostics; they do not inspect authored effect lists or rerun fusion
 analysis. Executable routing/program pairs must agree on instance, route, blend and frame header.
 The ordered scene stack and complete recursive pass graph remain subsequent extraction work.
+
+### Root command stream
+
+The incomplete `root_scene_commands_slice_v1` contract contains exactly one
+`root_scene_commands` slice and its linked material-binding and effect-execution slices.
+Commands explicitly describe scene pass begin/end, isolated input/completion, geometry and
+scene-generator draws, and adjustment operations. Draw records own vertex ranges, blend modes,
+texture routes and material blob references. Texture routes distinguish no texture, pending media,
+content-addressed media, precomposition surface identities and legacy raster-cache identities.
+
+Each scene pass addresses one consecutive 40-byte clear record: four binary64 RGBA values followed
+by binary64 depth, all little-endian. Negative zero and subnormal values are preserved. Nonfinite
+values and depth outside [0, 1] are rejected. The stream must start by clearing both scene targets,
+finish with no open pass, and keep isolated draws inside their matching effect instance. References
+must target the correct slice kind; media/material hashes must be declared. Existing material and
+fusion payload validation applies unchanged. Clear records and linked payloads use canonical aligned
+FPLN blob ranges. All instance identities use the existing UTF-16-safe identity representation.
+
+Production root drawing consumes decoded commands and draw records. G1 transports empty and mixed
+stacks through Rust, including all texture routes and exact scalar bits, then records the actual
+TS command consumer. This establishes command transport, not a complete standalone renderer plan:
+compiled effect programs, generator resources, precomposition surfaces and remaining frame passes
+still require their associated preparation/capture work and independent GPU replay.

@@ -17,6 +17,7 @@ mod metadata;
 mod raster;
 mod resource;
 mod resource_descriptor;
+mod root_scene;
 mod scene;
 mod schema;
 mod temporal_pass;
@@ -47,6 +48,10 @@ pub use resource::{
     ResourceLimits, ResourceMessage, ResourceRegistry, ResourceStatistics,
 };
 pub use resource_descriptor::ResourceDescriptor;
+pub use root_scene::{
+    RootCommandRecord, RootDrawRecord, RootLoadOp, RootPassGroup, RootSceneCommandsSlice,
+    RootStoreOp, RootTextureReference,
+};
 pub use scene::{MediaDrawBinding, SceneBuffersSlice, SceneDrawRecord, SceneMediaBinding};
 pub use schema::FramePlanSchema;
 pub use temporal_pass::TemporalTextPassesSlice;

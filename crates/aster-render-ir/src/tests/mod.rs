@@ -7,6 +7,7 @@ mod identity;
 mod material;
 mod media_resources;
 mod resources;
+mod root_scene;
 mod scene;
 mod schema_time;
 mod temporal_pass;

@@ -42,6 +42,8 @@ export async function loadIrRuntime(root) {
       "layer-effect-plan",
       "effect-execution-plan",
       "effect-execution-fixture",
+      "root-scene-plan",
+      "root-scene-fixture",
     ])
       modules.push(await server.ssrLoadModule(`/src/renderer/frame-plan/${name}.ts`));
     for (const name of [

@@ -32,6 +32,7 @@ import { selectedRenderId } from "./effects/surface-post-effects";
 import { buildCameraPlan, readCameraPlan } from "./frame-plan/camera-plan";
 import { buildRootPostUniformPlan } from "./frame-plan/root-post-plan";
 import { uploadRootPostUniformPlan } from "./frame-plan/root-post-upload";
+import { buildRootScenePlan, readRootScenePlan } from "./frame-plan/root-scene-plan";
 import { buildSceneBufferPlan } from "./frame-plan/scene-buffer-plan";
 import {
   drawSceneShadows,
@@ -777,6 +778,9 @@ export class WebGpuRenderer {
       new Set(generatorByInstance.keys()),
       composition.background,
     );
+    const rootPlan = readRootScenePlan(
+      buildRootScenePlan(scenePlan.metadata.header, rootCommands, renderStack.draws),
+    );
     const postPlan = buildRootPostUniformPlan(framePlanInput);
     uploadRootPostUniformPlan(postPlan, {
       queue: this.#device.queue,
@@ -840,8 +844,8 @@ export class WebGpuRenderer {
       activeEffectInstances,
       adjustmentErrors,
     } = executeRootScene({
-      commands: rootCommands,
-      draws: renderStack.draws,
+      commands: rootPlan.commands,
+      draws: rootPlan.draws,
       effects: effectPlans,
       generators: generatorByInstance,
       mediaBindings,

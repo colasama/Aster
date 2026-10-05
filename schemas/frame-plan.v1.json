@@ -127,7 +127,8 @@
         "temporal_text_passes_slice_v1",
         "material_bindings_slice_v1",
         "layer_effects_slice_v1",
-        "effect_execution_slice_v1"
+        "effect_execution_slice_v1",
+        "root_scene_commands_slice_v1"
       ],
       "type": "string"
     },
@@ -542,6 +543,34 @@
     },
     "PlanSlice": {
       "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "blob_index": {
+              "format": "uint32",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "commands": {
+              "items": {
+                "$ref": "#/$defs/RootCommandRecord"
+              },
+              "type": "array"
+            },
+            "draws": {
+              "items": {
+                "$ref": "#/$defs/RootDrawRecord"
+              },
+              "type": "array"
+            },
+            "kind": {
+              "const": "root_scene_commands",
+              "type": "string"
+            }
+          },
+          "required": ["kind", "blob_index", "draws", "commands"],
+          "type": "object"
+        },
         {
           "additionalProperties": false,
           "properties": {
@@ -989,6 +1018,250 @@
             }
           },
           "required": ["type", "hash"],
+          "type": "object"
+        }
+      ]
+    },
+    "RootCommandRecord": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "clear_index": {
+              "format": "uint32",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "color_load": {
+              "$ref": "#/$defs/RootLoadOp"
+            },
+            "color_store": {
+              "$ref": "#/$defs/RootStoreOp"
+            },
+            "depth_load": {
+              "$ref": "#/$defs/RootLoadOp"
+            },
+            "depth_store": {
+              "$ref": "#/$defs/RootStoreOp"
+            },
+            "group": {
+              "$ref": "#/$defs/RootPassGroup"
+            },
+            "kind": {
+              "const": "begin_scene",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "group",
+            "color_load",
+            "color_store",
+            "depth_load",
+            "depth_store",
+            "clear_index"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "end_scene",
+              "type": "string"
+            }
+          },
+          "required": ["kind"],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "effect_blob_index": {
+              "format": "uint32",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "kind": {
+              "const": "begin_layer",
+              "type": "string"
+            }
+          },
+          "required": ["kind", "effect_blob_index"],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "finish_layer",
+              "type": "string"
+            }
+          },
+          "required": ["kind"],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "effect_blob_index": {
+              "format": "uint32",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "kind": {
+              "const": "adjustment",
+              "type": "string"
+            }
+          },
+          "required": ["kind", "effect_blob_index"],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "blend_mode": {
+              "$ref": "#/$defs/EffectBlendMode"
+            },
+            "draw_index": {
+              "format": "uint32",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "kind": {
+              "const": "geometry",
+              "type": "string"
+            }
+          },
+          "required": ["kind", "draw_index", "blend_mode"],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "blend_mode": {
+              "$ref": "#/$defs/EffectBlendMode"
+            },
+            "instance_id": {
+              "$ref": "#/$defs/CompositionIdentity"
+            },
+            "kind": {
+              "const": "generator",
+              "type": "string"
+            }
+          },
+          "required": ["kind", "instance_id", "blend_mode"],
+          "type": "object"
+        }
+      ]
+    },
+    "RootDrawRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "blend_mode": {
+          "$ref": "#/$defs/EffectBlendMode"
+        },
+        "first_vertex": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "instance_id": {
+          "$ref": "#/$defs/CompositionIdentity"
+        },
+        "material_blob_index": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": ["integer", "null"]
+        },
+        "texture": {
+          "$ref": "#/$defs/RootTextureReference"
+        },
+        "vertex_count": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": ["instance_id", "first_vertex", "vertex_count", "blend_mode", "texture"],
+      "type": "object"
+    },
+    "RootLoadOp": {
+      "enum": ["clear", "load"],
+      "type": "string"
+    },
+    "RootPassGroup": {
+      "enum": ["composition", "geometry", "generator"],
+      "type": "string"
+    },
+    "RootStoreOp": {
+      "enum": ["store", "discard"],
+      "type": "string"
+    },
+    "RootTextureReference": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "none",
+              "type": "string"
+            }
+          },
+          "required": ["kind"],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "pending",
+              "type": "string"
+            }
+          },
+          "required": ["kind"],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "hash": {
+              "$ref": "#/$defs/ResourceHash"
+            },
+            "kind": {
+              "const": "media",
+              "type": "string"
+            }
+          },
+          "required": ["kind", "hash"],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "instance_id": {
+              "$ref": "#/$defs/CompositionIdentity"
+            },
+            "kind": {
+              "const": "surface",
+              "type": "string"
+            }
+          },
+          "required": ["kind", "instance_id"],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "instance_id": {
+              "$ref": "#/$defs/CompositionIdentity"
+            },
+            "kind": {
+              "const": "raster_cache",
+              "type": "string"
+            }
+          },
+          "required": ["kind", "instance_id"],
           "type": "object"
         }
       ]

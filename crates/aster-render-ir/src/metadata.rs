@@ -1,8 +1,8 @@
-use crate::EffectExecutionSlice;
 use crate::LayerEffectSlice;
 use crate::{
     CameraParametersSlice, MaterialBindingSlice, TemporalTextPassesSlice, TemporalTextSamplesSlice,
 };
+use crate::{EffectExecutionSlice, RootSceneCommandsSlice};
 use std::collections::BTreeSet;
 
 use schemars::JsonSchema;
@@ -30,6 +30,7 @@ pub enum ContractLevel {
     MaterialBindingsSliceV1,
     LayerEffectsSliceV1,
     EffectExecutionSliceV1,
+    RootSceneCommandsSliceV1,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
@@ -117,6 +118,7 @@ pub struct BlobDescriptor {
 #[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum PlanSlice {
+    RootSceneCommands(RootSceneCommandsSlice),
     LayerEffect(LayerEffectSlice),
     EffectExecution(EffectExecutionSlice),
     MaterialBinding(MaterialBindingSlice),
@@ -179,11 +181,30 @@ impl FramePlanSliceV1 {
         {
             return Err(IrError::LimitExceeded("metadata array count".to_owned()));
         }
+        if self.contract_level == ContractLevel::RootSceneCommandsSliceV1
+            && self
+                .slices
+                .iter()
+                .filter(|s| matches!(s, PlanSlice::RootSceneCommands(_)))
+                .count()
+                != 1
+        {
+            return Err(IrError::InvalidRootScene("expected one root".to_owned()));
+        }
         let mut referenced = BTreeSet::new();
         for slice in &self.slices {
             let blob_index = match slice {
+                PlanSlice::RootSceneCommands(root)
+                    if self.contract_level == ContractLevel::RootSceneCommandsSliceV1 =>
+                {
+                    root.blob_index
+                }
                 PlanSlice::EffectExecution(execution)
-                    if self.contract_level == ContractLevel::EffectExecutionSliceV1 =>
+                    if matches!(
+                        self.contract_level,
+                        ContractLevel::EffectExecutionSliceV1
+                            | ContractLevel::RootSceneCommandsSliceV1
+                    ) =>
                 {
                     execution.blob_index
                 }
@@ -195,7 +216,11 @@ impl FramePlanSliceV1 {
                 }
 
                 PlanSlice::MaterialBinding(material)
-                    if self.contract_level == ContractLevel::MaterialBindingsSliceV1 =>
+                    if matches!(
+                        self.contract_level,
+                        ContractLevel::MaterialBindingsSliceV1
+                            | ContractLevel::RootSceneCommandsSliceV1
+                    ) =>
                 {
                     material.blob_index
                 }
@@ -232,6 +257,10 @@ impl FramePlanSliceV1 {
                 .ok_or(IrError::BlobCountMismatch)?;
             if !referenced.insert(blob_index) {
                 return Err(IrError::BlobCountMismatch);
+            }
+            if let PlanSlice::RootSceneCommands(root) = slice {
+                root.validate(blob, &self.slices, &self.resources)?;
+                continue;
             }
             if let PlanSlice::EffectExecution(execution) = slice {
                 execution.validate(blob)?;
@@ -294,6 +323,25 @@ impl FramePlanSliceV1 {
         let descriptor = self.blobs.get(index).ok_or(IrError::BlobCountMismatch)?;
         if bytes.len() != descriptor.byte_length as usize {
             return Err(IrError::ElementCountMismatch);
+        }
+        if self.contract_level == ContractLevel::RootSceneCommandsSliceV1 {
+            for slice in &self.slices {
+                match slice {
+                    PlanSlice::RootSceneCommands(root) if root.blob_index as usize == index => {
+                        return root.validate_payload(bytes);
+                    }
+                    PlanSlice::EffectExecution(effect) if effect.blob_index as usize == index => {
+                        return effect.validate_payload(bytes);
+                    }
+                    PlanSlice::MaterialBinding(material)
+                        if material.blob_index as usize == index =>
+                    {
+                        return material.validate_payload(bytes);
+                    }
+                    _ => {}
+                }
+            }
+            return Err(IrError::BlobCountMismatch);
         }
         if self.contract_level == ContractLevel::EffectExecutionSliceV1 {
             for slice in &self.slices {

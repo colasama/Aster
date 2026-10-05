@@ -17,6 +17,7 @@ import {
   validateMaterialBinding,
   validateMaterialBindingBlob,
 } from "./material-binding-layout";
+import { ROOT_SCENE_FIELDS, validateRootScene, validateRootSceneBlob } from "./root-scene-layout";
 import { validateSceneBuffers } from "./scene-buffer-layout";
 import {
   TEMPORAL_PASS_FIELDS,
@@ -29,7 +30,13 @@ import {
   validateTemporalTextBlob,
 } from "./temporal-text-layout";
 import { frameTimeToNumber, validateFrameTime } from "./time";
-import type { BufferResourceDescriptor, FramePlanLimits, FramePlanSliceV1 } from "./types";
+import type {
+  BlobDescriptor,
+  BufferResourceDescriptor,
+  FramePlanLimits,
+  FramePlanSliceV1,
+  PlanSlice,
+} from "./types";
 
 export function validateLimits(limits: FramePlanLimits): void {
   integer(limits.max_container_bytes, 32, 0xffff_ffff);
@@ -93,6 +100,7 @@ export function validateMetadata(value: unknown, limits: FramePlanLimits): Frame
         "material_bindings_slice_v1",
         "layer_effects_slice_v1",
         "effect_execution_slice_v1",
+        "root_scene_commands_slice_v1",
       ].includes(String(metadata.contract_level)) &&
       metadata.renderer_plan_complete === false,
     "unknown_variant",
@@ -169,7 +177,24 @@ export function validateMetadata(value: unknown, limits: FramePlanLimits): Frame
     const camera = metadata.contract_level === "camera_parameters_slice_v1";
     const temporal = metadata.contract_level === "temporal_text_samples_slice_v1";
     const passes = metadata.contract_level === "temporal_text_passes_slice_v1";
-    if (metadata.contract_level === "effect_execution_slice_v1") {
+    const rootContract = metadata.contract_level === "root_scene_commands_slice_v1";
+    if (rootContract && (value as Record<string, unknown>).kind === "root_scene_commands") {
+      const slice = object(value, ROOT_SCENE_FIELDS);
+      const index = integer(slice.blob_index, 0, metadata.blobs.length - 1);
+      requirePlan(!indices.has(index), "blob_count_mismatch", "Duplicate root blob");
+      indices.add(index);
+      validateRootScene(
+        slice,
+        metadata.blobs[index] as BlobDescriptor,
+        metadata.slices as PlanSlice[],
+        metadata.resources as string[],
+      );
+      continue;
+    }
+    if (
+      metadata.contract_level === "effect_execution_slice_v1" ||
+      (rootContract && (value as Record<string, unknown>).kind === "effect_execution")
+    ) {
       const slice = object(value, EFFECT_EXECUTION_FIELDS);
       requirePlan(slice.kind === "effect_execution", "unknown_variant", "Unknown execution slice");
       const index = integer(slice.blob_index, 0, metadata.blobs.length - 1);
@@ -191,7 +216,10 @@ export function validateMetadata(value: unknown, limits: FramePlanLimits): Frame
       validateLayerEffect(slice, metadata.blobs[index], metadata.resources);
       continue;
     }
-    if (metadata.contract_level === "material_bindings_slice_v1") {
+    if (
+      metadata.contract_level === "material_bindings_slice_v1" ||
+      (rootContract && (value as Record<string, unknown>).kind === "material_binding")
+    ) {
       const slice = object(value, MATERIAL_BINDING_FIELDS);
       requirePlan(slice.kind === "material_binding", "unknown_variant", "Unknown material slice");
       const index = integer(slice.blob_index, 0, metadata.blobs.length - 1);
@@ -204,6 +232,7 @@ export function validateMetadata(value: unknown, limits: FramePlanLimits): Frame
       validateMaterialBinding(slice, metadata.blobs[index], metadata.resources);
       continue;
     }
+    requirePlan(!rootContract, "invalid_root_scene", "Unexpected root dependency slice");
     if (passes) {
       const slice = object(value, TEMPORAL_PASS_FIELDS);
       requirePlan(
@@ -285,6 +314,13 @@ export function validateMetadata(value: unknown, limits: FramePlanLimits): Frame
     requirePlan(previous < value, "hash_mismatch", "Resource hashes must be unique and sorted");
     previous = value;
   }
+  if (metadata.contract_level === "root_scene_commands_slice_v1")
+    requirePlan(
+      metadata.slices.filter((s) => (s as Record<string, unknown>).kind === "root_scene_commands")
+        .length === 1,
+      "invalid_root_scene",
+      "Expected one root command stream",
+    );
   return metadata as unknown as FramePlanSliceV1;
 }
 
@@ -298,6 +334,13 @@ export function validatePlanBlob(
     "element_count_mismatch",
     "Supplied blob length differs from descriptor",
   );
+  if (metadata.contract_level === "root_scene_commands_slice_v1") {
+    const slice = metadata.slices.find((s) => s.blob_index === index);
+    if (slice?.kind === "root_scene_commands") validateRootSceneBlob(bytes);
+    else if (slice?.kind === "effect_execution") validateEffectExecutionBlob(bytes);
+    else if (slice?.kind === "material_binding") validateMaterialBindingBlob(bytes, slice);
+    else requirePlan(false, "invalid_root_scene", "Unexpected root slice");
+  }
   if (metadata.contract_level === "post_uniforms_slice_v1") validatePostUniforms(bytes, metadata);
   if (metadata.contract_level === "effect_execution_slice_v1") validateEffectExecutionBlob(bytes);
   if (metadata.contract_level === "layer_effects_slice_v1") {

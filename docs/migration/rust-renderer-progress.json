@@ -15919,5 +15919,12 @@
       }
     }
   ],
-  "active_cycle": null
+  "active_cycle": {
+    "id": 46,
+    "milestone": "M2",
+    "task": "M2-T9",
+    "started_at": "2026-10-05T04:06:39.986Z",
+    "increment": "Transport root commands and draw references through FPLN and consume decoded commands in production.",
+    "required_gates": ["G0", "G1", "G3"]
+  }
 }

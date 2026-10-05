@@ -22,7 +22,7 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
     status: "failed",
     started_at: new Date(started).toISOString(),
     scope:
-      "post_uniforms_slice_v1 + scene_buffers_slice_v1 + camera_parameters_slice_v1 + temporal_text_samples_slice_v1 + temporal_text_passes_slice_v1 + material_bindings_slice_v1 + layer_effects_slice_v1 + effect_execution_slice_v1",
+      "post_uniforms_slice_v1 + scene_buffers_slice_v1 + camera_parameters_slice_v1 + temporal_text_samples_slice_v1 + temporal_text_passes_slice_v1 + material_bindings_slice_v1 + layer_effects_slice_v1 + effect_execution_slice_v1 + root_scene_commands_slice_v1",
     renderer_plan_complete: false,
     steps: [],
     roundtrips: [],
@@ -36,6 +36,7 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
     material_bindings: [],
     layer_effects: [],
     effect_executions: [],
+    root_scenes: [],
     rejections: [],
   };
   const reader = new M0Evidence(context.root);
@@ -202,6 +203,7 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
       ...runtime.materialBindingFixtures(),
       ...runtime.layerEffectFixtures(),
       ...runtime.effectExecutionFixtures(),
+      ...runtime.rootSceneFixtures(),
     ]) {
       const input = join(context.output, `${fixture.id}-ts.fpln`);
       const output = join(context.output, `${fixture.id}-rust.fpln`);
@@ -260,6 +262,28 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
           supplied_hashes_exact: true,
           pending_explicit: true,
           missing_rejected: true,
+        });
+      }
+      if (fixture.root) {
+        const root = runtime.readRootScenePlan(after);
+        assert.deepEqual(root, fixture.root);
+        const trace = runtime.recordRootSceneExecution(root);
+        assert.deepEqual(trace, runtime.recordRootSceneExecution(fixture.root));
+        const broken = structuredClone(after);
+        broken.metadata.slices[0].commands.pop();
+        assert.throws(() => runtime.readRootScenePlan(broken));
+        if (root.draws.length) {
+          root.commands = root.commands.filter(
+            (c) => !(c.kind === "geometry" && c.drawIndex === 0),
+          );
+          assert.notDeepEqual(runtime.recordRootSceneExecution(root), trace);
+        }
+        report.root_scenes.push({
+          id: fixture.id,
+          exact_commands: true,
+          exact_draws: true,
+          supplied_execution: true,
+          invalid_order_rejected: true,
         });
       }
       if (fixture.execution) {
