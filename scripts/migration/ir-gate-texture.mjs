@@ -7,7 +7,7 @@ export async function auditTexturePixels(
   { context, cli, command, cliReport, outputFile },
 ) {
   const fixtures = runtime.texturePixelFixtures();
-  assert.equal(fixtures.length, 4);
+  assert.equal(fixtures.length, 5);
   const payloads = join(context.output, "texture-payloads");
   await mkdir(payloads);
   const messages = fixtures.map((f) => f.message);

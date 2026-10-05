@@ -1,4 +1,4 @@
-import type { BlendMode, EnvironmentLighting } from "../../core/types";
+import type { BlendMode } from "../../core/types";
 import type { GeometryBatch } from "../geometry/geometry";
 import type { MediaBindingLease } from "../media/media-binding-lease";
 import type { RendererResources } from "../renderer-resources";
@@ -8,7 +8,6 @@ export function drawSceneBatch(
   batch: GeometryBatch,
   mediaBindings: MediaBindingLease,
   blendMode: BlendMode = batch.layer.blendMode,
-  environment?: EnvironmentLighting,
 ): void {
   const surface =
     batch.layer.kind === "precomposition"
@@ -30,12 +29,7 @@ export function drawSceneBatch(
     return;
   }
   if (batch.layer.kind === "precomposition") return;
-  const material = resources.materialTextures?.bindingFor(
-    batch.layer,
-    batch.resourceInstanceId,
-    blendMode,
-    environment,
-  );
+  const material = resources.materialTextures?.bindingFor(batch.materialTexturePlan, blendMode);
   if (material) {
     pass.setPipeline(material.pipeline);
     pass.setBindGroup(0, resources.lightingBindGroup);

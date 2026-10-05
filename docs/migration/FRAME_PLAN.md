@@ -264,9 +264,14 @@ height, depth and `format` (`rgba8unorm` or `rgba16float`). Rows and layers have
 lanes are little-endian. 2D depth must be one; 2D dimensions are bounded to 8192 and 3D dimensions to
 256, with a 256 MiB payload ceiling. TS and Rust validate the descriptor, exact payload length and
 domain-separated content hash. Registries account the binary bytes against their existing budgets.
-The production LUT uploader consumes this prepared resource rather than the authoring LUT object;
-names remain diagnostic labels outside resource identity. Material scalar and binding plans,
-normal/HDR preparation and LUT-selection planning remain open.
+Production LUT and HDR uploads consume prepared resources; names remain diagnostic labels outside
+resource identity. HDR preparation strips worker row padding and writes owned little-endian binary16
+lanes without changing their bits. Material preparation snapshots scalar settings and ready texture
+generations on geometry batches before encoding. Drawing consumes the supplied snapshot, preserves
+pending fallbacks, and rejects retired generations before creating a binding. These local snapshots
+still require FPLN transport with hash-addressed owners; normal preparation and LUT-selection planning
+also remain open. The renderer encodes synchronously through submission, so asynchronous uploads
+cannot retire resources midway through this local execution scope.
 
 G1 regenerates the schema to a fresh ignored path and compares it byte-for-byte with the expected
 schema, without rewriting that expected file. It constructs real TS uniform payloads, encodes them,

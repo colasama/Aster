@@ -955,15 +955,7 @@ export class WebGpuRenderer {
           batch.layer,
           batch.instanceId,
           item.scene.localTime,
-          (layerPass) =>
-            drawSceneBatch(
-              resources,
-              layerPass,
-              batch,
-              mediaBindings,
-              "normal",
-              composition.environment,
-            ),
+          (layerPass) => drawSceneBatch(resources, layerPass, batch, mediaBindings, "normal"),
         );
       } else {
         if (!scenePass) {
@@ -980,14 +972,7 @@ export class WebGpuRenderer {
           scenePassCount += 1;
           clearSceneDepth = false;
         }
-        drawSceneBatch(
-          resources,
-          scenePass,
-          batch,
-          mediaBindings,
-          batch.layer.blendMode,
-          composition.environment,
-        );
+        drawSceneBatch(resources, scenePass, batch, mediaBindings, batch.layer.blendMode);
       }
     }
     const generatorDrawCount = drawnGenerators.size;

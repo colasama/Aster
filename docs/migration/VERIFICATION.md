@@ -137,10 +137,13 @@ descriptor budgets, ownership across asynchronous hashing and in-flight frame/so
 Production adapter tests validate installed still extents after bitmap closure, resolved sequence
 members, actual video upload times, and drawing by supplied hash independently of instance IDs.
 G1 round-trips temporal text samples from the actual shutter planner for full, entering and exiting
-exposure. It also admits four packed texture resources through Rust: identity/custom 3D LUTs,
-linear RGBA8 normal texels and RGBA16F HDR texels. The decoded descriptors and pixels drive recorded
+exposure. It also admits five packed texture resources through Rust: identity/custom 3D LUTs,
+linear RGBA8 normal texels, RGBA16F HDR texels, and an actual two-row Radiance decode with worker
+padding removed. The decoded descriptors and pixels drive recorded
 production GPU uploads with exact format, extent and row/layer layout. Both registries reject
-corrupted pixels; upload tests reject descriptor/hash corruption before allocation.
+corrupted pixels; upload tests reject descriptor/hash corruption before allocation. Material tests
+mutate authoring inputs after preparation, check supplied uniforms and pending fallback behavior,
+reject retired generations, and retire a normal upload while GPU validation is pending.
 Temporal sample fixtures cover full, entering and exiting
 exposure, plus transparent and exact-bit fixtures. Supplied samples and exposure identities must
 survive Rust decoding and TS cloning; invalid formats, frame time, weights and sample lanes fail.

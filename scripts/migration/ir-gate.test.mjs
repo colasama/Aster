@@ -171,7 +171,7 @@ test("G1 orchestrates all real TS codec checks and keeps renderer completion exp
   assert.equal(result.media_resources.roundtrips, 17);
   assert.equal(result.media_resources.exact_raster_bounds, true);
   assert.equal(result.raster_pixels.resources, 3);
-  assert.equal(result.texture_pixels.resources, 4);
+  assert.equal(result.texture_pixels.resources, 5);
   assert.equal(result.texture_pixels.supplied_upload, true);
   assert.equal(result.raster_pixels.exact_pixels, true);
   assert.deepEqual(

@@ -138,9 +138,12 @@ Complete submitted-frame plan capture and replay remain under extraction.
 
 Packed `texture_pixels` resources carry explicit 2D/3D dimensions and linear RGBA8 or RGBA16F
 formats. Descriptor and little-endian pixel bytes share one content hash validated by TS and Rust.
-LUT preparation now owns packed half-float voxels; the GPU uploader consumes only the supplied
-resource and rejects hash/layout/device-limit mismatches before allocation. Material settings,
-normal/HDR selection and LUT selection still require extraction into complete draw/pass plans.
+LUT and HDR preparation own packed half-float pixels; HDR preparation removes decoder row padding
+without changing channel bits. The GPU uploader consumes only supplied resources and rejects
+hash/layout/device-limit mismatches before allocation. Material preparation snapshots scalar
+settings and ready texture generations on each geometry batch. Drawing consumes these values without
+reading authoring material/environment settings and rejects retired generations. Full hash-addressed
+material binding transport, normal preparation and LUT selection remain under extraction.
 
 Shared WGSL includes output anti-aliasing, core scene variants, compositing, fused post-processing,
 blur/depth/surface effects, auxiliary surfaces, particles, text motion blur and display/buffer helpers.

@@ -40,5 +40,16 @@ export function texturePixelFixtures() {
     };
     fixtures.push({ id: format, message, bytes, label: format });
   }
+  const header = new TextEncoder().encode("#?RADIANCE\nFORMAT=32-bit_rle_rgbe\n\n-Y 2 +X 1\n");
+  const encoded = new Uint8Array(header.length + 8);
+  encoded.set(header);
+  encoded.set([128, 64, 32, 130, 32, 64, 128, 129], header.length);
+  const decoded = decodeRadianceHdrForUpload(encoded);
+  const hdr = prepareHdrTexture(decoded);
+  decoded.pixels?.fill(0);
+  fixtures.push({ id: "hdr-worker-padded", ...hdr, label: "Padded decoded HDR" });
   return fixtures;
 }
+
+import { decodeRadianceHdrForUpload } from "../../core/media/hdr-environment";
+import { prepareHdrTexture } from "../media/hdr-texture-resource";

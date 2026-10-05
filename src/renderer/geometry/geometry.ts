@@ -7,6 +7,7 @@ import {
 } from "../../core/scene/camera-settings";
 import type { FlattenedSceneLayer } from "../../core/scene/scene-evaluation";
 import type { Composition, EvaluatedTransform, Layer } from "../../core/types";
+import type { MaterialBindingPlan } from "../media/material-texture-plan";
 import type { TextRasterBounds } from "../text/text-raster-bounds";
 import { cachedBezierGeometry } from "./bezier-geometry-cache";
 
@@ -32,6 +33,7 @@ export interface GeometryBatch {
   resourceInstanceId: string;
   /** Filled by frame preparation; null explicitly preserves a pending media fallback. */
   mediaResourceHash?: string | null;
+  materialTexturePlan?: MaterialBindingPlan;
   selectionId: string;
   firstVertex: number;
   vertexCount: number;

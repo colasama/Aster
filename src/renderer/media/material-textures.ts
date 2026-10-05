@@ -1,7 +1,13 @@
 import { logger } from "../../core/logger";
 import { runCpuTask } from "../../core/scheduling/cpu-scheduler";
 import type { BlendMode, Composition, EnvironmentLighting, Layer } from "../../core/types";
+import { requirePlan } from "../frame-plan/canonical";
 import { createMaterialShapePipelines } from "../scene/scene-pipelines";
+import { prepareHdrTexture } from "./hdr-texture-resource";
+import { type MaterialBindingPlan, planMaterialTextures } from "./material-texture-plan";
+import { uploadTexturePixels } from "./texture-pixel-upload";
+
+export { type MaterialTexturePlan, planMaterialTextures } from "./material-texture-plan";
 
 const MAX_NORMAL_DIMENSION = 4_096;
 const MAX_NORMAL_BYTES = 64 * 1024 * 1024;
@@ -31,14 +37,6 @@ export interface MaterialTextureBinding {
   pipeline: GPURenderPipeline;
 }
 
-export interface MaterialTexturePlan {
-  active: boolean;
-  normalEnabled: boolean;
-  normalScale: number;
-  environmentIntensity: number;
-  environmentRotation: number;
-}
-
 export const NORMAL_MAP_SAMPLER_DESCRIPTOR: GPUSamplerDescriptor = {
   addressModeU: "repeat",
   addressModeV: "repeat",
@@ -52,25 +50,6 @@ export const HDR_ENVIRONMENT_SAMPLER_DESCRIPTOR: GPUSamplerDescriptor = {
   magFilter: "linear",
   minFilter: "linear",
 };
-
-export function planMaterialTextures(
-  layer: Layer,
-  environment: EnvironmentLighting | undefined,
-  normalReady: boolean,
-  environmentReady: boolean,
-): MaterialTexturePlan {
-  const normal = layer.kind === "mesh" ? layer.mesh?.materialTextures?.normal : undefined;
-  const normalEnabled = Boolean(normal && normalReady);
-  const environmentIntensity =
-    environment?.enabled && environmentReady ? clampFinite(environment.intensity, 0, 32, 1) : 0;
-  return {
-    active: normalEnabled || environmentIntensity > 0,
-    normalEnabled,
-    normalScale: clampFinite(normal?.scale ?? 1, -8, 8, 1),
-    environmentIntensity,
-    environmentRotation: wrapDegrees(environment?.rotation ?? 0) / 360,
-  };
-}
 
 /** Lazily owns mesh material maps so the default beauty path pays no texture or pipeline cost. */
 export class MaterialTextureRenderer {
@@ -158,7 +137,11 @@ export class MaterialTextureRenderer {
 
   prepare(
     composition: Composition,
-    batches: readonly { layer: Layer; resourceInstanceId: string }[],
+    batches: readonly {
+      layer: Layer;
+      resourceInstanceId: string;
+      materialTexturePlan?: MaterialBindingPlan;
+    }[],
   ): void {
     const environmentActive = Boolean(
       composition.environment?.enabled && batches.some((batch) => batch.layer.kind === "mesh"),
@@ -190,30 +173,52 @@ export class MaterialTextureRenderer {
       this.#bindGroups.delete(instanceId);
     }
     this.#prepareEnvironment(environmentActive ? composition.environment : undefined);
+    for (const batch of batches) {
+      batch.materialTexturePlan = undefined;
+      if (batch.layer.kind !== "mesh") continue;
+      const normal = this.#normals.get(batch.resourceInstanceId);
+      batch.materialTexturePlan = {
+        ...planMaterialTextures(
+          batch.layer,
+          composition.environment,
+          normal?.state === "ready",
+          this.#environment?.state === "ready",
+        ),
+        instanceId: batch.resourceInstanceId,
+        normalRevision: normal?.state === "ready" ? normal.revision : 0,
+        environmentRevision: this.#environment?.state === "ready" ? this.#environment.revision : 0,
+      };
+    }
   }
 
   bindingFor(
-    layer: Layer,
-    instanceId: string,
+    plan: MaterialBindingPlan | undefined,
     blendMode: BlendMode,
-    environment: EnvironmentLighting | undefined,
   ): MaterialTextureBinding | undefined {
-    if (layer.kind !== "mesh") return undefined;
+    if (!plan?.active) return undefined;
+    const { instanceId } = plan;
     const normal = this.#normals.get(instanceId);
-    const plan = planMaterialTextures(
-      layer,
-      environment,
-      normal?.state === "ready",
-      this.#environment?.state === "ready",
+    requirePlan(
+      (!plan.normalRevision ||
+        (normal?.state === "ready" && normal.revision === plan.normalRevision)) &&
+        (!plan.environmentRevision ||
+          (this.#environment?.state === "ready" &&
+            this.#environment.revision === plan.environmentRevision)),
+      "missing_resource",
+      "Prepared material texture generation is no longer resident",
     );
-    if (!plan.active) return undefined;
-    const normalTexture = normal?.texture ?? this.#ensureFallbackNormal();
-    const environmentTexture = this.#environment?.texture ?? this.#ensureFallbackEnvironment();
+    const normalTexture = plan.normalRevision ? normal?.texture : this.#ensureFallbackNormal();
+    const environmentTexture = plan.environmentRevision
+      ? this.#environment?.texture
+      : this.#ensureFallbackEnvironment();
+    requirePlan(
+      normalTexture && environmentTexture,
+      "missing_resource",
+      "Missing material texture",
+    );
     const key = [
-      normal?.revision ?? 0,
-      normal?.state ?? "none",
-      this.#environment?.revision ?? 0,
-      this.#environment?.state ?? "none",
+      plan.normalRevision,
+      plan.environmentRevision,
       plan.normalScale,
       plan.normalEnabled,
       plan.environmentIntensity,
@@ -340,6 +345,10 @@ export class MaterialTextureRenderer {
         } finally {
           bitmap.close();
         }
+        if (this.#normals.get(instanceId) !== resource || abort.signal.aborted) {
+          texture.destroy();
+          return;
+        }
         resource.texture = texture;
         resource.bytes = bytes;
         resource.state = "ready";
@@ -410,26 +419,21 @@ export class MaterialTextureRenderer {
       )
       .then(async (decoded) => {
         if (this.#environment !== resource || abort.signal.aborted) return;
-        if (!decoded.pixels) throw new Error("HDR worker returned no upload payload");
-        const maximum = this.#device.limits.maxTextureDimension2D;
-        if (decoded.width > maximum || decoded.height > maximum)
-          throw new Error("HDR environment exceeds the GPU texture dimension limit");
+        const prepared = prepareHdrTexture(decoded);
         this.#device.pushErrorScope("validation");
         let texture: GPUTexture | undefined;
         try {
-          texture = this.#device.createTexture({
-            label: `Linear HDR environment · ${sourceName}`,
-            size: [decoded.width, decoded.height],
-            format: "rgba16float",
-            usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
-          });
-          this.#device.queue.writeTexture(
-            { texture },
-            decoded.pixels,
-            { bytesPerRow: decoded.bytesPerRow, rowsPerImage: decoded.height },
-            [decoded.width, decoded.height],
-          );
-          const validationError = await this.#device.popErrorScope();
+          let validationError: GPUError | null;
+          try {
+            texture = uploadTexturePixels(
+              this.#device,
+              prepared.message,
+              prepared.bytes,
+              `Linear HDR environment · ${sourceName}`,
+            );
+          } finally {
+            validationError = await this.#device.popErrorScope();
+          }
           if (validationError)
             throw new Error(`HDR environment GPU upload failed: ${validationError.message}`);
         } catch (error) {
@@ -511,13 +515,4 @@ export class MaterialTextureRenderer {
     );
     return this.#fallbackEnvironment;
   }
-}
-
-function clampFinite(value: number, minimum: number, maximum: number, fallback: number): number {
-  return Number.isFinite(value) ? Math.min(maximum, Math.max(minimum, value)) : fallback;
-}
-
-function wrapDegrees(value: number): number {
-  if (!Number.isFinite(value)) return 0;
-  return ((value % 360) + 360) % 360;
 }

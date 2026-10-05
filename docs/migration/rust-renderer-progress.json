@@ -15150,5 +15150,12 @@
       }
     }
   ],
-  "active_cycle": null
+  "active_cycle": {
+    "id": 37,
+    "milestone": "M2",
+    "task": "M2-T7",
+    "started_at": "2026-10-05T00:10:17.193Z",
+    "scope": "Prepare supplied material scalar/binding snapshots before drawing and upload HDR environments through packed texture resources.",
+    "previous_turn_classification": "progress: cycle36 committed packed texture transport and exact full gates."
+  }
 }
