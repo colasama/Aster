@@ -9,11 +9,14 @@ import { buildFrameHeader } from "../frame-plan/root-post-plan";
 import { prepareSceneBuffers } from "../frame-plan/scene-buffer-upload";
 import { buildSceneGeometry } from "../geometry/geometry";
 import { LutSelectionPlanner } from "../media/lut-selection-plan";
+import { MediaBindingLease } from "../media/media-binding-lease";
+import { destroyMediaResource, type MediaResource } from "../media/media-resource";
 import { buildSceneLighting } from "../scene/scene-lighting";
 import {
   executePrecompositionScene,
   type PrecompositionExecutionTarget,
 } from "./execute-precomposition-scene";
+import { bindPrecompositionSceneMedia } from "./precomposition-scene-media";
 import { buildPrecompositionScenePlan } from "./precomposition-scene-plan";
 
 function fixture() {
@@ -56,7 +59,7 @@ function fixture() {
   const surfaces = new Map(
     layers.filter((s) => s.precompositionSurface).map((s) => [s.instanceId, "child-target"]),
   );
-  const plan = buildPrecompositionScenePlan({
+  const inputs = buildPrecompositionScenePlan({
     target: {
       id: "parent",
       width: 64,
@@ -75,7 +78,11 @@ function fixture() {
     generators: [],
     surfaceTargets: surfaces,
   });
-  return { plan, composition, layers, geometry, lighting, effects, surfaces };
+  const plan = bindPrecompositionSceneMedia(inputs, {
+    hashFor: () => "a".repeat(64),
+    bindingForHash: () => ({}) as GPUBindGroup,
+  });
+  return { plan, inputs, composition, layers, geometry, lighting, effects, surfaces };
 }
 function executor(plan: ReturnType<typeof fixture>["plan"]) {
   const passes: GPURenderPassDescriptor[] = [];
@@ -111,7 +118,7 @@ function executor(plan: ReturnType<typeof fixture>["plan"]) {
       ["child-target", target],
     ]),
     generators: new Map(),
-    mediaBinding: vi.fn(() => ({ name: "media" }) as unknown as GPUBindGroup),
+    media: { bindingForHash: vi.fn(() => ({ name: "media" }) as unknown as GPUBindGroup) },
     surfacePipelines: pipelines,
     imagePipelines: pipelines,
     shapePipelines: pipelines,
@@ -119,6 +126,85 @@ function executor(plan: ReturnType<typeof fixture>["plan"]) {
   return { input, pass, passes };
 }
 describe("owned precomposition scene plans", () => {
+  it("replays supplied media hashes while retaining a retired texture until submission releases it", () => {
+    const f = fixture();
+    const mediaDraw = f.inputs.draws.find((d) => d.texture.kind === "media");
+    if (mediaDraw?.texture.kind !== "media") throw new Error("Missing media fixture");
+    const destroy = vi.fn();
+    const resource: MediaResource = {
+      source: "child-image",
+      kind: "image",
+      textureWidth: 16,
+      textureHeight: 16,
+      texture: { destroy } as unknown as GPUTexture,
+      bindGroup: { name: "retained child texture" } as unknown as GPUBindGroup,
+      mediaIdentity: {
+        source: { source_id: "child", content_identity: "original-pixels", media_kind: "image" },
+        sample: { kind: "image" },
+      },
+    };
+    const lease = new MediaBindingLease(
+      [{ instanceId: mediaDraw.texture.instanceId, resource, binding: resource.bindGroup }],
+      "precomposition-test",
+    );
+    try {
+      const plan = structuredClone(bindPrecompositionSceneMedia(f.inputs, lease));
+      plan.scene = decodeFramePlan(encodeFramePlan(plan.scene.metadata, plan.scene.blobs));
+      const hash = lease.hashFor(mediaDraw.texture.instanceId);
+      expect(plan.scene.metadata.resources).toEqual([hash]);
+      expect(plan.draws.find((d) => d.texture.kind === "media")?.texture).toEqual({
+        kind: "media",
+        hash,
+      });
+      expect(lease.resourceMessages).toHaveLength(2);
+      destroyMediaResource(resource);
+      expect(destroy).not.toHaveBeenCalled();
+      const e = executor(plan);
+      executePrecompositionScene({ ...e.input, media: lease });
+      expect(e.pass.setBindGroup).toHaveBeenCalledWith(0, resource.bindGroup);
+      expect(e.pass.draw).toHaveBeenCalledTimes(3);
+    } finally {
+      lease.release();
+    }
+    expect(destroy).toHaveBeenCalledOnce();
+    const e = executor(
+      bindPrecompositionSceneMedia(f.inputs, {
+        hashFor: () => "a".repeat(64),
+        bindingForHash: () => ({}) as GPUBindGroup,
+      }),
+    );
+    expect(() => executePrecompositionScene({ ...e.input, media: lease })).toThrow(
+      expect.objectContaining({ code: "missing_resource" }),
+    );
+    expect(e.passes).toEqual([]);
+  });
+
+  it("rejects absent or inconsistent media before GPU recording and preserves explicit pending draws", () => {
+    for (const mismatch of [false, true]) {
+      const f = fixture();
+      const e = executor(f.plan);
+      if (mismatch) {
+        const draw = f.plan.draws.find((d) => d.texture.kind === "media");
+        if (draw?.texture.kind === "media") draw.texture.hash = "b".repeat(64);
+      } else e.input.media.bindingForHash.mockReturnValue(undefined as unknown as GPUBindGroup);
+      expect(() => executePrecompositionScene(e.input)).toThrow(
+        expect.objectContaining({ code: "missing_resource" }),
+      );
+      expect(e.passes).toEqual([]);
+    }
+    const pending = bindPrecompositionSceneMedia(fixture().inputs, {
+      hashFor: () => null,
+      bindingForHash: () => {
+        throw new Error("Pending media must not resolve a texture");
+      },
+    });
+    const e = executor(pending);
+    executePrecompositionScene(e.input);
+    expect(e.input.media.bindingForHash).not.toHaveBeenCalled();
+    expect(e.pass.draw).toHaveBeenCalledTimes(3);
+    expect(pending.scene.metadata.resources).toEqual([]);
+  });
+
   it("detaches authoring, byte uploads and target routing before encoding", () => {
     const f = fixture(),
       snapshot = structuredClone(f.plan);
@@ -141,7 +227,7 @@ describe("owned precomposition scene plans", () => {
     const e = executor(structuredClone(f.plan));
     executePrecompositionScene(e.input);
     expect(e.pass.draw).toHaveBeenCalledTimes(3);
-    expect(e.input.mediaBinding).toHaveBeenCalledOnce();
+    expect(e.input.media.bindingForHash).toHaveBeenCalledOnce();
     expect(e.passes[0].colorAttachments[Symbol.iterator]().next().value?.clearValue).toEqual({
       r: 0.1,
       g: 0.2,

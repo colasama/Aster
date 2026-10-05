@@ -2,6 +2,10 @@ import type { BlendMode } from "../../core/types";
 import type { LayerEffectRenderer } from "../effects/layer-effects";
 import { requirePlan } from "../frame-plan/canonical";
 import type { PreparedSceneGenerator, SceneGeneratorHost } from "../scene/scene-generator-host";
+import {
+  type PrecompositionMediaBindings,
+  resolvePrecompositionSceneMedia,
+} from "./precomposition-scene-media";
 import type { PrecompositionScenePlan } from "./precomposition-scene-plan";
 
 export interface PrecompositionExecutionTarget {
@@ -18,7 +22,7 @@ export function executePrecompositionScene(input: {
   targets: ReadonlyMap<string, PrecompositionExecutionTarget>;
   generators: ReadonlyMap<string, PreparedSceneGenerator>;
   host?: SceneGeneratorHost;
-  mediaBinding: (instanceId: string) => GPUBindGroup | undefined;
+  media: PrecompositionMediaBindings;
   surfacePipelines: Record<BlendMode, GPURenderPipeline>;
   imagePipelines: Record<BlendMode, GPURenderPipeline>;
   shapePipelines: Record<BlendMode, GPURenderPipeline>;
@@ -33,6 +37,7 @@ export function executePrecompositionScene(input: {
         "missing_resource",
         "Precomposition child target is absent",
       );
+  const mediaBindings = resolvePrecompositionSceneMedia(plan, input.media);
   const generators = plan.generators.map((p) => {
     const prepared = input.generators.get(p.instanceId);
     requirePlan(prepared && input.host, "missing_resource", "Precomposition generator is absent");
@@ -140,8 +145,7 @@ export function executePrecompositionScene(input: {
           pass.setPipeline(input.surfacePipelines[command.blendMode]);
           pass.setBindGroup(0, child.bindGroup);
         } else {
-          const media =
-            texture.kind === "media" ? input.mediaBinding(texture.instanceId) : undefined;
+          const media = texture.kind === "media" ? mediaBindings.get(command.drawIndex) : undefined;
           pass.setPipeline(
             (media ? input.imagePipelines : input.shapePipelines)[command.blendMode],
           );

@@ -19,13 +19,21 @@ export interface PrecompositionTarget {
   hasEffects: boolean;
 }
 export interface PrecompositionDraw {
+  sceneDrawIndex: number;
   firstVertex: number;
   vertexCount: number;
   texture:
     | { kind: "surface"; targetId: string | null }
-    | { kind: "media"; instanceId: string }
+    | { kind: "media"; hash: string | null }
     | { kind: "none" };
 }
+export type PrecompositionSceneInputs = Omit<PrecompositionScenePlan, "draws"> & {
+  draws: (Omit<PrecompositionDraw, "texture"> & {
+    texture:
+      | Exclude<PrecompositionDraw["texture"], { kind: "media" }>
+      | { kind: "media"; instanceId: string };
+  })[];
+};
 /** Owned inputs for one child scene; GPU allocations and authoring objects are outside this plan. */
 export interface PrecompositionScenePlan {
   target: PrecompositionTarget;
@@ -51,7 +59,7 @@ export function buildPrecompositionScenePlan(input: {
   effects: ReadonlyMap<string, PreparedLayerEffect>;
   generators: readonly SceneGeneratorPlan[];
   surfaceTargets: ReadonlyMap<string, string>;
-}): PrecompositionScenePlan {
+}): PrecompositionSceneInputs {
   const { composition, target } = input;
   const scene = buildSceneBufferPlan({
     snapshot: { snapshotScope: "precomposition-scenes", projectRevision: input.revision },
@@ -65,7 +73,7 @@ export function buildPrecompositionScenePlan(input: {
     lighting: input.lighting,
     shadowsEnabled: false,
   });
-  const draws: PrecompositionDraw[] = [];
+  const draws: PrecompositionSceneInputs["draws"] = [];
   const items = planSceneRenderStack(input.layers, input.geometry.batches).map(
     (item): PlannedSceneItem => {
       const base = { instanceId: item.scene.instanceId, clearDepth: item.clearDepth === true };
@@ -74,6 +82,7 @@ export function buildPrecompositionScenePlan(input: {
         kind = batch.layer.kind,
         drawIndex = draws.length;
       draws.push({
+        sceneDrawIndex: input.geometry.batches.indexOf(batch),
         firstVertex: batch.firstVertex,
         vertexCount: batch.vertexCount,
         texture:

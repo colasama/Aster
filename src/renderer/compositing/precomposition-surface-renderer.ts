@@ -22,7 +22,12 @@ import { FIXED_BLEND_MODES, gpuBlendState } from "./blend-state";
 import { executePrecompositionScene } from "./execute-precomposition-scene";
 import { needsLayerIsolation } from "./layer-composite";
 import {
+  bindPrecompositionSceneMedia,
+  type PrecompositionMediaBindings,
+} from "./precomposition-scene-media";
+import {
   buildPrecompositionScenePlan,
+  type PrecompositionSceneInputs,
   type PrecompositionScenePlan,
 } from "./precomposition-scene-plan";
 import {
@@ -97,7 +102,7 @@ export class PrecompositionSurfaceRenderer {
   readonly #bindings = new Map<string, string>();
   readonly #generators = new Map<string, PreparedSceneGenerator>();
   readonly #mediaInstanceIds = new Set<string>();
-  #jobs: PrecompositionScenePlan[] = [];
+  #jobs: PrecompositionSceneInputs[] = [];
   #project?: Project;
   #revision = 0;
   #frame = 0;
@@ -180,8 +185,18 @@ export class PrecompositionSurfaceRenderer {
     return this.#frameStats;
   }
 
-  encode(encoder: GPUCommandEncoder): void {
-    for (const job of this.#jobs) this.#encodeJob(encoder, job);
+  planScenes(
+    media: PrecompositionMediaBindings & { hashFor(instanceId: string): string | null },
+  ): PrecompositionScenePlan[] {
+    return this.#jobs.map((job) => bindPrecompositionSceneMedia(job, media));
+  }
+
+  encode(
+    encoder: GPUCommandEncoder,
+    plans: readonly PrecompositionScenePlan[],
+    media: PrecompositionMediaBindings,
+  ): void {
+    for (const plan of plans) this.#encodeJob(encoder, plan, media);
   }
 
   bindingFor(instanceId: string): GPUBindGroup | undefined {
@@ -587,14 +602,18 @@ export class PrecompositionSurfaceRenderer {
     );
   }
 
-  #encodeJob(encoder: GPUCommandEncoder, plan: PrecompositionScenePlan): void {
+  #encodeJob(
+    encoder: GPUCommandEncoder,
+    plan: PrecompositionScenePlan,
+    media: PrecompositionMediaBindings,
+  ): void {
     executePrecompositionScene({
       plan,
       encoder,
       targets: this.#entries,
       generators: this.#generators,
       host: this.#sceneGenerators,
-      mediaBinding: (id) => this.#mediaTextures.bindGroup(id),
+      media,
       surfacePipelines: this.#surfacePipelines,
       imagePipelines: this.#imagePipelines,
       shapePipelines: this.#shapePipelines,

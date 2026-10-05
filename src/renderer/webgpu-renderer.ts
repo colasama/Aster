@@ -754,9 +754,10 @@ export class WebGpuRenderer {
         .map((batch) => batch.resourceInstanceId),
     );
     const mediaBindings = resources.mediaTextures.acquireFrameBindings(
-      [...plannedMediaIds],
+      [...new Set([...plannedMediaIds, ...surfaceFrame.mediaInstanceIds])],
       framePlanInput.snapshot.snapshotScope,
     );
+    const surfacePlans = resources.precompositionSurfaces.planScenes(mediaBindings);
     const mediaPlan = bindSceneMediaPlan(
       scenePlan,
       sceneBatches.flatMap((batch, draw_index) => {
@@ -795,7 +796,7 @@ export class WebGpuRenderer {
       this.resize(this.#outputWidth, this.#outputHeight);
     const encoder = this.#device.createCommandEncoder({ label: "Aster frame render graph" });
     resources.mediaTextures.flush(encoder, postPlan.metadata.header);
-    resources.precompositionSurfaces.encode(encoder);
+    resources.precompositionSurfaces.encode(encoder, surfacePlans, mediaBindings);
     const compute = encoder.beginComputePass({
       label: sceneGenerators.some((generator) => generator.lodApplied)
         ? "Scene generators · bounded LOD"

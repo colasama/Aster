@@ -9,6 +9,7 @@ import type { Composition } from "../../core/types";
 import { createEffect } from "../../effects/registry";
 import { LayerEffectRenderer } from "../effects/layer-effects";
 import { readLayerEffectSlice } from "../frame-plan/layer-effect-plan";
+import { MediaBindingLease } from "../media/media-binding-lease";
 import { MediaTextureCache } from "../media/media-texture-cache";
 import { bundledParticleDefinition } from "../scene/bundled-particle-generator";
 import type { SceneGeneratorHost } from "../scene/scene-generator-host";
@@ -93,7 +94,7 @@ describe("GPU precomposition surfaces", () => {
       expect(targets).toHaveLength(5);
       expect(targets.every((target) => JSON.stringify(target.size) === "[1280,848]")).toBe(true);
       const events: string[] = [];
-      renderer.encode(mockEncoder(events));
+      encodeSurfaces(renderer, mockEncoder(events));
       expect(
         events.filter((event) => event.startsWith("pass:Isolated precomposition")),
       ).toHaveLength(5);
@@ -182,7 +183,7 @@ describe("GPU precomposition surfaces", () => {
           expect(frame.diagnostics).toEqual([]);
           expect(frame.residentBytes).toBeGreaterThan(MAX_PRECOMPOSITION_SURFACE_BYTES);
           expect(frame.residentBytes).toBe(frame.estimatedBytes);
-          renderer.encode(mockEncoder([]));
+          encodeSurfaces(renderer, mockEncoder([]));
         }
         const targets = textures.filter((texture) =>
           texture.label?.startsWith("Precomposition HDR surface"),
@@ -244,7 +245,7 @@ describe("GPU precomposition surfaces", () => {
       renderer.prepare(project, flattenSceneLayers(root, project, 1), false);
       shape.effects = [];
       shape.blendMode = "screen";
-      renderer.encode(mockEncoder([]));
+      encodeSurfaces(renderer, mockEncoder([]));
       expect(encode.mock.calls).toHaveLength(1);
       const effect = encode.mock.calls[0][1];
       if (effect?.status !== "ready") throw Error("Missing prepared nested effect");
@@ -285,7 +286,7 @@ describe("GPU precomposition surfaces", () => {
     renderer.prepare(project, flattenSceneLayers(root, project, 0), false);
     const encoder = mockEncoder([]);
     const begin = vi.spyOn(encoder, "beginRenderPass");
-    renderer.encode(encoder);
+    encodeSurfaces(renderer, encoder);
     const resumed = begin.mock.calls.find(
       ([descriptor]) => descriptor.label === "Resume isolated precomposition stack",
     )?.[0];
@@ -333,7 +334,7 @@ describe("GPU precomposition surfaces", () => {
 
     const frame = renderer.prepare(project, flattenSceneLayers(root, project, 0), false);
     const encoder = mockEncoder(events);
-    renderer.encode(encoder);
+    encodeSurfaces(renderer, encoder);
 
     expect(frame).toMatchObject({ surfaceCount: 1, textureCount: 5, diagnostics: [] });
     expect(textures).toEqual(
@@ -420,7 +421,7 @@ describe("GPU precomposition surfaces", () => {
     project.compositions.push(nested);
 
     renderer.prepare(project, flattenSceneLayers(root, project, 0), false);
-    renderer.encode(mockEncoder(events));
+    encodeSurfaces(renderer, mockEncoder(events));
 
     expect(sceneGenerators.plan).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -450,7 +451,7 @@ describe("GPU precomposition surfaces", () => {
     );
     vi.mocked(sceneGenerators.preparePlanned).mockReturnValueOnce(undefined);
     renderer.prepare(project, flattenSceneLayers(root, project, 0), false);
-    renderer.encode(mockEncoder(events));
+    encodeSurfaces(renderer, mockEncoder(events));
     expect(sceneGenerators.encodeCompute).toHaveBeenCalledOnce();
     expect(sceneGenerators.draw).toHaveBeenCalledOnce();
   });
@@ -951,4 +952,13 @@ function mockEncoder(events: string[]): GPUCommandEncoder {
       };
     }),
   } as unknown as GPUCommandEncoder;
+}
+
+function encodeSurfaces(renderer: PrecompositionSurfaceRenderer, encoder: GPUCommandEncoder): void {
+  const media = new MediaBindingLease([]);
+  try {
+    renderer.encode(encoder, renderer.planScenes(media), media);
+  } finally {
+    media.release();
+  }
 }

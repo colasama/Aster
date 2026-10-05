@@ -434,6 +434,14 @@ the existing validated transport and preserves diagnostic/skip behavior on prepa
 The executor consumes copied pass/clear/blend decisions and rejects missing declared output or
 child targets before recording commands. Budget-skipped children have an explicit null target.
 
-This is an in-memory scene boundary, not a complete recursive wire contract. Child media still
-uses frame-local instance bindings. A recursive frame envelope, resource-hash resolution,
-independent Rust-returned replay and complete capture remain required by M2-T11/M2 exit.
+Before command-encoder creation, `planScenes` resolves the preparation inputs' child media
+addresses through the same `MediaBindingLease` as the root scene. Executable child draws contain
+only content hashes or explicit pending references. Their scene-buffer slices record matching
+media bindings using original geometry draw indices, independently of stack ordering. Both
+planning and execution preflight the hashes; a missing or inconsistent reference cannot silently
+fall back. Pending references preserve the original shape fallback. The shared lease retains
+child image, video and raster owners until GPU submission completes or the frame is aborted.
+
+This is still an in-memory scene boundary, not a complete recursive wire contract. A recursive
+frame envelope, independent Rust-returned replay and complete capture remain required by
+M2-T11/M2 exit. Child media descriptors reuse the existing FPLN media-resource contract.

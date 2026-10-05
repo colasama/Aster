@@ -68,7 +68,9 @@ function setup() {
   const media = {
     estimatedBytes: 0,
     beginFrame: vi.fn(),
-    acquireFrameBindings: vi.fn(() => new MediaBindingLease([])),
+    acquireFrameBindings: vi.fn(
+      (ids: string[]) => new MediaBindingLease(ids.map((instanceId) => ({ instanceId }))),
+    ),
     abortFrame: vi.fn(),
     sweep: vi.fn(),
     mediaReady: () => !pending,
@@ -87,6 +89,7 @@ function setup() {
     configureShadowMap: vi.fn(),
     sceneGenerators: { beginFrame: vi.fn(), sweep: vi.fn(), diagnostics: [], estimatedBytes: 0 },
     precompositionSurfaces: {
+      planScenes: vi.fn(() => []),
       prepare: () => ({ diagnostics: [], mediaInstanceIds: new Set(["media"]), residentBytes: 0 }),
     },
     layerEffects: { estimatedTextureBytes: () => 0, prepareEffects: () => new Map() },
@@ -151,7 +154,7 @@ describe("production root post-plan integration", () => {
     );
     expect(harness.plans).toHaveLength(1);
     expect(f.media.acquireFrameBindings).toHaveBeenCalledExactlyOnceWith(
-      [],
+      ["media"],
       f.snapshot.snapshotScope,
     );
     expect(f.media.abortFrame).toHaveBeenCalledOnce();

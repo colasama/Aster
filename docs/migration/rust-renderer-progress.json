@@ -16565,5 +16565,16 @@
       }
     }
   ],
-  "active_cycle": null
+  "active_cycle": {
+    "id": 52,
+    "started_at": "2026-10-05T06:31:32.296Z",
+    "milestone": "M2",
+    "task": "M2-T11",
+    "intent": "Bind precomposition media draws to content hashes before encoding and share the root frame resource lease.",
+    "previous_turn": "progress: cycle 51 committed owned precomposition scene plans with full required gates green.",
+    "usage": {
+      "used_percent": 35,
+      "remaining_percent": 65
+    }
+  }
 }

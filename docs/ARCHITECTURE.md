@@ -192,8 +192,11 @@ draw references and explicit pass commands. They address output and child surfac
 GPU entries and prepared generators remain in execution-owned maps. Encoding no longer reads
 `Composition`, `Layer` or `GeometryBatch`. The existing child-first traversal, cache sharing,
 current-frame eviction protection, limits and generator failure diagnostics remain at the
-preparation boundary. The recursive frame envelope and content-addressed child media bindings
-are still required before complete precomposition transport and independent replay.
+preparation boundary. Child media addresses resolve to content hashes before command-encoder
+creation. Root and child scenes share one frame lease, keeping media owners alive through GPU
+submission. Executable child draws and their scene-buffer FPLN slices carry matching hash/pending
+references, preflighted before drawing. The recursive frame envelope and independent replay
+remain required before complete precomposition transport.
 
 Shared WGSL includes output anti-aliasing, core scene variants, compositing, fused post-processing,
 blur/depth/surface effects, auxiliary surfaces, particles, text motion blur and display/buffer helpers.
