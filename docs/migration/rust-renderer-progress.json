@@ -123,39 +123,40 @@
     }
   },
   "last_cycle": {
-    "id": 63,
-    "time": "2026-10-05T12:37:06.900Z",
+    "id": 64,
+    "time": "2026-10-05T13:13:53.546Z",
     "milestone": "M2",
     "task": "M2-T12",
     "outcome": "passed",
-    "commit": "ff8688b2a12ee1bf81626524266f90822b7ebc3d",
-    "verification": "artifacts/migration/verify-2026-10-05T12-28-08-856Z-1622cbe1.json",
-    "verification_sha256": "eee55ee90dfcf2285cc82e954ae934756cb6e61985b490fded6202e026b2c6ab",
+    "commit": "e4360cdafb062a7aa4050af2a0082336934943a6",
+    "verification": "artifacts/migration/verify-2026-10-05T13-06-11-040Z-7dc03960.json",
+    "verification_sha256": "f24d584e1936555df55c6586abcf3d108cddbb3dd91ce133003724fd82cabece",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 109852
+        "duration_ms": 75725
       },
       {
         "id": "G1",
         "status": "passed",
-        "duration_ms": 16187
+        "duration_ms": 10250
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 369730
+        "duration_ms": 325083
       }
     ],
-    "verification_duration_ms": 497198,
-    "next_step": "Continue M2-T12: extract auxiliary draw identities and attachment decisions, then verify independently supplied GPU output execution.",
+    "verification_duration_ms": 412424,
+    "next_step": "Continue M2-T12: verify independent GPU execution of supplied auxiliary, motion, depth/surface and final output plans.",
     "notes": [
-      "Added typed TS/Rust post-effect plans carrying ready/skipped outcomes, depth/surface modes, owned mixed-layout GPU uniforms, selection IDs and ordered attachment roles. Depth fallback routes and scene versus motion-blur color input are captured explicitly.",
-      "Production final output requires a matching post-effect plan for depth/surface routes. Kind, mode and complete frame identity are checked before GPU output recording. Executors consume transported bytes without consulting mutable lens, fog, selection or shutter settings, and reject missing resources or stale dimensions.",
-      "Required G1 covers 115 top-level exact round trips, including eight post-effect cases and five malformed payload rejections. Actual renderers prove mutable-settings independence, retained fallbacks when replay has extra attachments, skip preservation and preflight failure. All six gate-runner tests, 17 focused tests, final typecheck and Biome checks passed. The initial focused gate test found only a Buffer versus Uint8Array assertion mismatch; normalized byte views preserve exact byte comparison and the passing rerun is cycle63-ir-tests-final.log.",
-      "Fresh full candidate capture and M2 G0/G1/G3 passed with 1819 exact required frames and all independent GPU suites. Schema and architecture documentation are synchronized. Biome now admits files up to 2 MiB so the growing migration ledger remains checked. References, pixel tolerances and dependencies are unchanged.",
-      "M2-T12 stays in progress for auxiliary draw identities and independent supplied GPU replay of the complete output path. Complete root-frame capture and native preview/export remain pending."
+      "Added typed TS/Rust auxiliary plans carrying observed unavailable/cleared/drawn outcomes, transparency tiers, ordered geometry/media/surface/raster-cache and generator identities, owned object/material IDs and motion-vector bytes.",
+      "Production auxiliary planning resolves bindings once and captures budget fallbacks. Supplied execution resolves all planned resources and validates dimensions, geometry capacity and receiver budget before GPU writes or recording. A healthier replay device preserves captured skips, clears and lower attachment tiers.",
+      "Required G1 covers 125 top-level exact round trips including ten auxiliary cases and three malformed motion/padding payload rejections in both TS and Rust. Six gate-runner tests, seven focused auxiliary tests and typecheck passed. The first focused G1 run rejected zero-length fallback blobs; four validated zero bytes now preserve the existing nonempty FPLN blob invariant. Original failure evidence is retained in cycle64-ir-tests.log.",
+      "Fresh full candidate capture and M2 G0/G1/G3 passed with 1819 exact required frames and all existing independent GPU suites. Schema and architecture documentation are synchronized; references, tolerances and dependencies are unchanged.",
+      "M2-T12 remains in progress for independent GPU execution of the supplied combined auxiliary, motion, depth/surface and final output path. Complete root-frame capture and native preview/export remain pending.",
+      "The first full run failed only the existing script-runtime 25 ms timeout test during API initialization; G1/G3 passed. Unchanged-source focused recheck and a fresh full verification passed. The original failed report remains failed and is retained in failed_attempts; the initialization-timeout classification edge is not claimed fixed."
     ]
   },
   "milestones": [
@@ -16516,14 +16517,141 @@
                 "Fresh full candidate capture and M2 G0/G1/G3 passed with 1819 exact required frames and all independent GPU suites. Schema and architecture documentation are synchronized. Biome now admits files up to 2 MiB so the growing migration ledger remains checked. References, pixel tolerances and dependencies are unchanged.",
                 "M2-T12 stays in progress for auxiliary draw identities and independent supplied GPU replay of the complete output path. Complete root-frame capture and native preview/export remain pending."
               ]
+            },
+            {
+              "cycle": 64,
+              "status": "passed",
+              "commit": "e4360cdafb062a7aa4050af2a0082336934943a6",
+              "verification": {
+                "path": "artifacts/migration/verify-2026-10-05T13-06-11-040Z-7dc03960.json",
+                "sha256": "f24d584e1936555df55c6586abcf3d108cddbb3dd91ce133003724fd82cabece"
+              },
+              "pixel_comparison": {
+                "path": "artifacts/parity/ts-check/2026-10-05T13-07-37-704Z-b325be58/report.json",
+                "sha256": "0246348f64cceedd8fac0868754da0eedaddec3bfb3bd6ee5104714f4cca5311"
+              },
+              "capture": {
+                "path": "artifacts/parity/capture-2026-10-05T12-51-52-424Z-ff6eca0c.json",
+                "sha256": "f60b8f76fd29f197b9919fb79bf55535f0f62688688cc79e20b854aa622a02c1"
+              },
+              "manifest": {
+                "path": "artifacts/parity/runs/2026-10-05T12-51-52-424Z-ff6eca0c/candidate/manifest.json",
+                "sha256": "bbac7a207974d06c7845e7ec98898b480789e1b42341fc9e797b22808358138b"
+              },
+              "renderer_source_sha256": "486de267fe261cdb96ecca149f3094f68bfba7aa7ef60561f3d4903fa40893fb",
+              "bridge_sha256": "82ccf02fefd4c54e78a82a4de08df6906714ecd0b198864ec72cb0c0394dd80c",
+              "temporal_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T13-07-37-704Z-b325be58/temporal-text/gpu.json",
+                "sha256": "edd956fe14ae1dbecb2029a2964c501322668f078a030b8fb906e9ef14a100c8"
+              },
+              "temporal_reference": {
+                "path": "tests/parity/temporal-text/reference/manifest.json",
+                "sha256": "e3e3b1184d5bc969dcd5cf76a424a551a0cac1a85484e157c5b549e5d6c811d1"
+              },
+              "encoded_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T13-07-37-704Z-b325be58/encoded-textures/gpu.json",
+                "sha256": "9028f092c712475018d1db0dfb7122b7e5704ff3ac8c8b82ecaa4b950963c872"
+              },
+              "encoded_reference": {
+                "path": "tests/parity/material-textures/legacy-upload.ts",
+                "sha256": "508c2ad47f5a3f6e18069ce070e0ee0133668074bf81309a9144180f532f2498"
+              },
+              "material_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T13-07-37-704Z-b325be58/material-draw/gpu.json",
+                "sha256": "26fbad56513b96310770da0538c5ac89d791322886d4d66134972714e0cdfe58"
+              },
+              "material_reference": {
+                "path": "tests/parity/material-draw/reference/manifest.json",
+                "sha256": "06debe986bca2118a9d4a07f5cc36a31b3926398f95d582e25f90ceabc21bc6e"
+              },
+              "material_implementation": {
+                "path": "tests/parity/material-draw/legacy-bindings.ts",
+                "sha256": "ff838daeb3950e90d263504007836d900060e9a2ff1ddb30e706a76d0a011d79"
+              },
+              "lut_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T13-07-37-704Z-b325be58/lut-draw/gpu.json",
+                "sha256": "b80c09bbf0624b5c7d0f0147dedaafba3356c689451337bbbe2524e12d32c7a4"
+              },
+              "lut_reference": {
+                "path": "tests/parity/lut-draw/reference/manifest.json",
+                "sha256": "2e026afbad6143b822f38490650920003d0ad53705d705d1f2c206f05f181d59"
+              },
+              "lut_implementation": {
+                "path": "tests/parity/lut-draw/legacy-effects.ts",
+                "sha256": "999fb67e09a07322e7d8d9ea2c58a0442d7d5377f0cd1029eeab16e29f714a0b"
+              },
+              "root_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T13-07-37-704Z-b325be58/root-scene/gpu.json",
+                "sha256": "049b9b48a98a31f1a1460658b136474b8fdfd78cbbb81411893661509599cfe0"
+              },
+              "root_reference": {
+                "path": "tests/parity/root-scene/reference/manifest.json",
+                "sha256": "4c5b2ffd5828db24f929f1bcc350a4a7e7c75be05cb65b9bbe2b4c48eaba267f"
+              },
+              "root_implementation": {
+                "path": "tests/parity/root-scene/legacy-execute.ts",
+                "sha256": "22b0f40e52a5c330646a7fe4a581aaacd6de2db225c4030f1cdd658177d52e8a"
+              },
+              "generator_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T13-07-37-704Z-b325be58/generators/gpu.json",
+                "sha256": "ee372f72a9560059fe4dd8f8ab18c040e2ef6cadcaa5cc7249278e95de347dbf"
+              },
+              "generator_reference": {
+                "path": "tests/parity/generators-replay/reference/manifest.json",
+                "sha256": "a573fe3ababaa0f207eed4a0a6d11a4269ee90a877a244c1f8abed9fdbbfce09"
+              },
+              "generator_implementation": {
+                "path": "tests/parity/generators-replay/legacy-host.ts",
+                "sha256": "e458d028ca20002b7e7379f9daf9d5ca0a0f0960a3676dd3e0153e5ce19c8392"
+              },
+              "precomposition_media_reference": {
+                "path": "tests/parity/precomposition-replay/reference/media-manifest.json",
+                "sha256": "46b095b3e2fa862eef2d2d2860a3a78824fb3e42fc0836ac705f8c91f493240a"
+              },
+              "precomposition_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T13-07-37-704Z-b325be58/precomposition/gpu.json",
+                "sha256": "4aa2af42926134a34ea38a4216eff7e3c87fc58d106a519d6abe275c40340861"
+              },
+              "precomposition_reference": {
+                "path": "tests/parity/precomposition-replay/reference/manifest.json",
+                "sha256": "b0e3a9edb52e73c46f67331b4b1634d6584b02a842f96140f588863460e4ca97"
+              },
+              "precomposition_implementation": {
+                "path": "tests/parity/precomposition-replay/legacy-surface.ts",
+                "sha256": "f8cd1bd48ef8c40cac361ef50900defef58d38bd988b5983972cd44cc4b5a90b"
+              },
+              "gates": [
+                {
+                  "id": "G0",
+                  "status": "passed",
+                  "duration_ms": 75725
+                },
+                {
+                  "id": "G1",
+                  "status": "passed",
+                  "duration_ms": 10250
+                },
+                {
+                  "id": "G3",
+                  "status": "passed",
+                  "duration_ms": 325083
+                }
+              ],
+              "notes": [
+                "Added typed TS/Rust auxiliary plans carrying observed unavailable/cleared/drawn outcomes, transparency tiers, ordered geometry/media/surface/raster-cache and generator identities, owned object/material IDs and motion-vector bytes.",
+                "Production auxiliary planning resolves bindings once and captures budget fallbacks. Supplied execution resolves all planned resources and validates dimensions, geometry capacity and receiver budget before GPU writes or recording. A healthier replay device preserves captured skips, clears and lower attachment tiers.",
+                "Required G1 covers 125 top-level exact round trips including ten auxiliary cases and three malformed motion/padding payload rejections in both TS and Rust. Six gate-runner tests, seven focused auxiliary tests and typecheck passed. The first focused G1 run rejected zero-length fallback blobs; four validated zero bytes now preserve the existing nonempty FPLN blob invariant. Original failure evidence is retained in cycle64-ir-tests.log.",
+                "Fresh full candidate capture and M2 G0/G1/G3 passed with 1819 exact required frames and all existing independent GPU suites. Schema and architecture documentation are synchronized; references, tolerances and dependencies are unchanged.",
+                "M2-T12 remains in progress for independent GPU execution of the supplied combined auxiliary, motion, depth/surface and final output path. Complete root-frame capture and native preview/export remain pending.",
+                "The first full run failed only the existing script-runtime 25 ms timeout test during API initialization; G1/G3 passed. Unchanged-source focused recheck and a fresh full verification passed. The original failed report remains failed and is retained in failed_attempts; the initialization-timeout classification edge is not claimed fixed."
+              ]
             }
           ],
           "remaining_work": [
-            "Extract auxiliary draw resource identities and supplied attachment decisions.",
             "Verify independent GPU execution of supplied auxiliary, motion, depth/surface and final output plans."
           ],
-          "commit": "ff8688b2a12ee1bf81626524266f90822b7ebc3d",
-          "verification": "artifacts/migration/verify-2026-10-05T12-28-08-856Z-1622cbe1.json",
+          "commit": "e4360cdafb062a7aa4050af2a0082336934943a6",
+          "verification": "artifacts/migration/verify-2026-10-05T13-06-11-040Z-7dc03960.json",
           "failed_attempts": [
             {
               "cycle": 62,
@@ -16536,6 +16664,30 @@
                 "sha256": "f9fb9bf2f8ea0553643492cdd67941af7d63ac65b8e0ba05a098e23dc9f43e80"
               },
               "disposition": "Rejected two isolated pixel defects; test unchanged-source repeatability, preserve failures and require a fresh exact full capture and full verification."
+            },
+            {
+              "cycle": 64,
+              "verification": {
+                "path": "artifacts/migration/verify-2026-10-05T12-58-12-358Z-91ed5663.json",
+                "sha256": "f05703d49239d7e8f354004f9c3aaad856e0aff047f6c993076b9ae7027f40d7"
+              },
+              "gates": [
+                {
+                  "id": "G0",
+                  "status": "failed"
+                },
+                {
+                  "id": "G1",
+                  "status": "passed"
+                },
+                {
+                  "id": "G3",
+                  "status": "passed"
+                }
+              ],
+              "log": "artifacts/migration/2026-10-05T12-58-12-358Z-91ed5663/vitest.log",
+              "focused_recheck": "artifacts/migration/cycle64-timeout-recheck.log",
+              "disposition": "Rejected full verification because the existing 25 ms script-runtime timeout test exhausted its deadline during API initialization and returned an unclassified initialization error. No renderer or AI source change followed; focused five-test recheck passed. Preserve the original failure and require a new full required-gates run. The timeout classification edge remains unresolved."
             }
           ]
         },
@@ -16641,7 +16793,7 @@
       ],
       "preview_baseline_path": "benchmarks/results/m2-preview-baseline.json",
       "preview_baseline_sha256": "a1c62e224c008e731c252142ab1b9de7d31ecf592452c00da1dff42516772375",
-      "active_candidate_manifest": "artifacts/parity/runs/2026-10-05T12-20-38-501Z-e4b260de/candidate/manifest.json",
+      "active_candidate_manifest": "artifacts/parity/runs/2026-10-05T12-51-52-424Z-ff6eca0c/candidate/manifest.json",
       "last_verification": {
         "status": "passed",
         "required_gates_passed": true,
@@ -16650,17 +16802,17 @@
           {
             "id": "G0",
             "status": "passed",
-            "duration_ms": 109852
+            "duration_ms": 75725
           },
           {
             "id": "G1",
             "status": "passed",
-            "duration_ms": 16187
+            "duration_ms": 10250
           },
           {
             "id": "G3",
             "status": "passed",
-            "duration_ms": 369730
+            "duration_ms": 325083
           }
         ],
         "optional_gates": [
@@ -16671,7 +16823,7 @@
           }
         ],
         "performance_policy": "rust-delivery-v1",
-        "report": "artifacts/migration/verify-2026-10-05T12-28-08-856Z-1622cbe1.json"
+        "report": "artifacts/migration/verify-2026-10-05T13-06-11-040Z-7dc03960.json"
       },
       "performance_series_history": [
         {
@@ -18136,11 +18288,5 @@
       }
     }
   ],
-  "active_cycle": {
-    "id": 64,
-    "milestone": "M2",
-    "task": "M2-T12",
-    "started_at": "2026-10-05T12:39:48.814Z",
-    "intent": "Transport observed auxiliary MRT outcomes, attachment tiers, geometry/media/generator draw identities and owned ID/motion payloads into supplied GPU execution."
-  }
+  "active_cycle": null
 }
