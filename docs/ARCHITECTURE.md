@@ -203,9 +203,13 @@ LUT pixels, shader bytes and media source/frame descriptors. Decoding validates 
 closure, frame identities and geometry/media/command cross-references. Production consumes the
 decoded scene buffers and generator invocations for GPU uploads. G1 round-trips both the bundle
 and embedded FPLN through Rust and checks all resource messages at the Rust registry boundary.
-Media pixels remain owned by the shared frame lease. Child evaluation and target allocation are
-still coupled; generator preparation still probes availability before packaging and realizes the
-decoded invocation afterward. Independent recursive GPU replay and full-frame capture remain open.
+Media pixels remain owned by the shared frame lease. Recursive source-time evaluation, shared
+aliases, target budgeting, text shutter samples and ordered media requests are computed before
+GPU allocation. The CPU geometry evaluator consumes child layers and supplied raster bounds.
+The renderer realizes the ordered preparation operations, retaining cache pinning and child-first
+execution. Generator preparation still probes availability before packaging and realizes the
+decoded invocation afterward; extracting that availability boundary, independent recursive GPU
+replay and full-frame capture remain open.
 
 
 Shared WGSL includes output anti-aliasing, core scene variants, compositing, fused post-processing,

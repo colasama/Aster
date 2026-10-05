@@ -1,6 +1,6 @@
 import { evaluateLayerSourceTime } from "../../core/animation/layer-time";
 import { sourceForLayer } from "../../core/media/footage-source";
-import { type FlattenedSceneLayer, flattenSceneLayers } from "../../core/scene/scene-evaluation";
+import type { FlattenedSceneLayer } from "../../core/scene/scene-evaluation";
 import type { BlendMode, Composition, Project } from "../../core/types";
 import { BLEND_MODES } from "../../core/types";
 import { prepareLayerEffects } from "../effects/layer-effect-plan";
@@ -12,20 +12,18 @@ import { buildPrecompositionGraph } from "../frame-plan/precomposition-graph-pla
 import { buildFrameHeader } from "../frame-plan/root-post-plan";
 import { prepareSceneBuffers } from "../frame-plan/scene-buffer-upload";
 import type { PutResource } from "../frame-plan/types";
-import { buildSceneGeometry, FLOATS_PER_VERTEX } from "../geometry/geometry";
+import { FLOATS_PER_VERTEX } from "../geometry/geometry";
 import { sharedShaders } from "../gpu/shared-shader-catalog";
 import { LutSelectionPlanner } from "../media/lut-selection-plan";
 import type { MediaTextureCache } from "../media/media-texture-cache";
-import { evaluateSceneCamera } from "../scene/scene-camera";
 import type { PreparedSceneGenerator, SceneGeneratorHost } from "../scene/scene-generator-host";
 import type { SceneGeneratorPlan } from "../scene/scene-generator-plan";
-import { buildSceneLighting, SCENE_LIGHTING_BYTES } from "../scene/scene-lighting";
+import { SCENE_LIGHTING_BYTES } from "../scene/scene-lighting";
 import { IMAGE_VERTEX_BUFFERS } from "../scene/scene-pipelines";
-import { planTextMotionBlurFrame, type TextMotionBlurPlan } from "../text/text-motion-blur-plan";
+import type { TextMotionBlurPlan } from "../text/text-motion-blur-plan";
 import { transformedTextRasterScale } from "../text/text-rasterizer";
 import { FIXED_BLEND_MODES, gpuBlendState } from "./blend-state";
 import { executePrecompositionScene } from "./execute-precomposition-scene";
-import { needsLayerIsolation } from "./layer-composite";
 import {
   bindPrecompositionSceneMedia,
   type PrecompositionMediaBindings,
@@ -34,14 +32,17 @@ import {
   buildPrecompositionScenePlan,
   type PrecompositionSceneInputs,
   type PrecompositionScenePlan,
+  type PrecompositionTarget,
 } from "./precomposition-scene-plan";
 import {
-  createPrecompositionSurfaceBudget,
+  type EvaluatedPrecompositionSource,
+  evaluatePrecompositionGeometry,
+  evaluatePrecompositionSources,
+} from "./precomposition-source-evaluation";
+import {
   MAX_PRECOMPOSITION_SURFACE_TEXTURES,
   MAX_PRECOMPOSITION_SURFACES,
-  planPrecompositionSurface,
   precompositionSurfaceByteLimit,
-  precompositionSurfaceCacheKey,
 } from "./precomposition-surface-plan";
 
 const SURFACE_FORMAT: GPUTextureFormat = "rgba16float";
@@ -156,28 +157,36 @@ export class PrecompositionSurfaceRenderer {
     this.#generators.clear();
     this.#bindings.clear();
     this.#mediaInstanceIds.clear();
-    const diagnostics: string[] = [];
-    const budget = createPrecompositionSurfaceBudget();
-    const preparedKeys = new Set<string>();
-    const preparedSources = new Map<string, string>();
-    if (project) {
-      for (const scene of sceneLayers) {
-        if (!scene.precompositionSurface) continue;
-        this.#prepareSurface(
-          scene,
-          project,
-          playing,
-          memoryBudgetMb,
-          budget,
-          preparedKeys,
-          preparedSources,
-          diagnostics,
-          enableTextMotionBlur,
-          renderScale,
-        );
+    const evaluation = evaluatePrecompositionSources({
+      project,
+      sceneLayers,
+      revision: this.#revision,
+      maxTextureDimension: this.#device.limits.maxTextureDimension2D,
+      memoryBudgetMb,
+      enableTextMotionBlur,
+      renderScale,
+    });
+    const { diagnostics, budget } = evaluation;
+    for (const [id, target] of evaluation.bindings) this.#bindings.set(id, target);
+    for (const operation of evaluation.operations) {
+      switch (operation.kind) {
+        case "target":
+          this.#prepareTarget(operation.target);
+          break;
+        case "media":
+          this.#prepareMedia(
+            operation.scene,
+            playing,
+            operation.resolutionScale,
+            operation.textMotionBlur,
+          );
+          break;
+        case "scene":
+          this.#prepareScene(operation.source, memoryBudgetMb, diagnostics);
+          break;
       }
     }
-    this.#sweep(preparedKeys);
+    this.#sweep(evaluation.activeKeys);
     this.#frameStats = {
       diagnostics,
       estimatedBytes: budget.bytes,
@@ -262,154 +271,43 @@ export class PrecompositionSurfaceRenderer {
     this.#shadowTexture.destroy();
   }
 
-  #prepareSurface(
-    scene: FlattenedSceneLayer,
-    project: Project,
-    playing: boolean,
-    memoryBudgetMb: number | undefined,
-    budget: ReturnType<typeof createPrecompositionSurfaceBudget>,
-    preparedKeys: Set<string>,
-    preparedSources: Map<string, string>,
-    diagnostics: string[],
-    enableTextMotionBlur: boolean,
-    renderScale: number,
-  ): void {
-    const surface = scene.precompositionSurface;
-    if (!surface) return;
-    const logicalKey = `${this.#revision}:${surface.composition.id}:${surface.time.toFixed(9)}`;
-    const shared = preparedSources.get(logicalKey);
-    if (shared) {
-      this.#bindings.set(scene.instanceId, shared);
-      return;
-    }
-    let childLayers: FlattenedSceneLayer[];
-    try {
-      childLayers = namespaceSurfaceLayers(
-        flattenSceneLayers(surface.composition, project, surface.time),
-        scene.resourceInstanceId,
-        surface.compositionPath,
-      );
-    } catch (error) {
-      diagnostics.push(error instanceof Error ? error.message : String(error));
-      return;
-    }
-    const hasEffects = childLayers.some(
-      (child) => child.layer.kind === "adjustment" || needsLayerIsolation(child.layer),
-    );
-    const plan = planPrecompositionSurface(
-      {
-        scene,
-        deviceMaxTextureDimension: this.#device.limits.maxTextureDimension2D,
-        memoryBudgetMb,
-        hasEffects,
-        renderScale,
-      },
-      budget,
-    );
-    if (plan.diagnostic) diagnostics.push(plan.diagnostic);
-    if (renderScale > 1 && (plan.status === "skipped" || plan.downgraded))
-      throw new Error(
-        `SSAA precomposition target unavailable: ${plan.diagnostic}. Choose a lower AA mode or resolution.`,
-      );
-    if (plan.status === "skipped") return;
-    const key = precompositionSurfaceCacheKey(scene, this.#revision, plan.width, plan.height);
-    const existing = this.#entries.get(key);
+  #prepareTarget(target: PrecompositionTarget): void {
+    const { id: key, width, height, hasEffects } = target;
     const entry =
-      existing ??
-      this.#reuseEntry(key, plan.width, plan.height, hasEffects) ??
-      this.#createEntry(key, plan.width, plan.height, plan.estimatedBytes, plan.textureCount);
+      this.#entries.get(key) ??
+      this.#reuseEntry(key, width, height, hasEffects) ??
+      this.#createEntry(key, width, height, target.estimatedBytes, target.textureCount);
     if (!this.#entries.has(key)) this.#entries.set(key, entry);
     entry.lastUsedFrame = this.#frame;
-    preparedSources.set(logicalKey, key);
     if (hasEffects && !entry.effects) {
       entry.effects = new LayerEffectRenderer(this.#device, SURFACE_FORMAT);
-      entry.effects.resize(entry.width, entry.height);
+      entry.effects.resize(width, height);
     }
-    this.#bindings.set(scene.instanceId, key);
-    if (preparedKeys.has(key)) return;
-    preparedKeys.add(key);
+  }
 
-    const resolutionScale = Math.max(
-      entry.width / Math.max(1, surface.composition.width),
-      entry.height / Math.max(1, surface.composition.height),
-    );
-    const textMotionBlur = enableTextMotionBlur
-      ? planTextMotionBlurFrame({
-          composition: surface.composition,
-          project,
-          frameTime: surface.time,
-          sceneLayers: childLayers,
-          resolutionScale,
-          evaluateSceneLayers: (sampleTime) =>
-            namespaceSurfaceLayers(
-              flattenSceneLayers(surface.composition, project, sampleTime),
-              scene.resourceInstanceId,
-              surface.compositionPath,
-            ),
-        })
-      : {
-          sampleCount: 0,
-          plans: new Map(),
-          exposureSceneLayers: [],
-          renderSceneLayers: childLayers,
-        };
-    childLayers = [...textMotionBlur.renderSceneLayers];
-    for (const child of childLayers) {
-      this.#prepareMedia(
-        child,
-        playing,
-        resolutionScale,
-        textMotionBlur.plans.get(child.resourceInstanceId),
-      );
-      if (child.precompositionSurface)
-        this.#prepareSurface(
-          child,
-          project,
-          playing,
-          memoryBudgetMb,
-          budget,
-          preparedKeys,
-          preparedSources,
-          diagnostics,
-          enableTextMotionBlur,
-          renderScale,
-        );
-    }
-    const camera = evaluateSceneCamera(surface.composition, surface.time);
-    const geometry = buildSceneGeometry(surface.composition, childLayers, camera, (instanceId) =>
-      this.#mediaTextures.textBounds(instanceId),
-    );
-    if (
-      surface.composition.environment?.enabled &&
-      geometry.batches.some((batch) => batch.layer.kind === "mesh")
-    )
-      diagnostics.push(
-        `${surface.composition.name}: HDR environment lighting is not sampled inside precomposition surfaces`,
-      );
-    if (
-      geometry.batches.some(
-        (batch) => batch.layer.kind === "mesh" && batch.layer.mesh?.materialTextures?.normal,
-      )
-    )
-      diagnostics.push(
-        `${surface.composition.name}: mesh normal maps are not sampled inside precomposition surfaces`,
-      );
-    if (
-      childLayers.some(
-        (child) => child.layer.kind === "light" && child.layer.light?.shadowQuality !== "off",
-      ) &&
-      geometry.batches.some((batch) => batch.layer.threeDimensional)
-    )
-      diagnostics.push(
-        `${surface.composition.name}: child shadow maps are not encoded inside precomposition surfaces`,
-      );
-    const effects = this.#prepareEffects(entry, surface.composition, childLayers, surface.time);
+  #prepareScene(
+    source: EvaluatedPrecompositionSource,
+    memoryBudgetMb: number | undefined,
+    diagnostics: string[],
+  ): void {
+    const { target } = source;
+    const childLayers = [...source.layers];
+    const entry = this.#entries.get(target.id);
+    if (!entry) throw new Error("Evaluated precomposition target is absent");
+    const {
+      camera,
+      geometry,
+      lighting,
+      diagnostics: sceneDiagnostics,
+    } = evaluatePrecompositionGeometry(source, (id) => this.#mediaTextures.textBounds(id));
+    diagnostics.push(...sceneDiagnostics);
+    const effects = this.#prepareEffects(entry, source.composition, childLayers, source.time);
     const generatorHeader = buildFrameHeader({
       snapshot: { snapshotScope: "precomposition-generators", projectRevision: this.#revision },
-      compositionId: surface.composition.id,
-      time: surface.time,
-      frameRate: surface.composition.frameRate,
-      target: { width: surface.composition.width, height: surface.composition.height },
+      compositionId: source.composition.id,
+      time: source.time,
+      frameRate: source.composition.frameRate,
+      target: { width: source.composition.width, height: source.composition.height },
       renderTarget: { width: entry.width, height: entry.height },
       antiAliasing: "off",
     });
@@ -419,7 +317,7 @@ export class PrecompositionSurfaceRenderer {
         if (!this.#sceneGenerators.supports(child)) continue;
         const planned = this.#sceneGenerators.plan(
           child,
-          surface.composition,
+          source.composition,
           entry.width,
           entry.height,
           memoryBudgetMb,
@@ -436,20 +334,13 @@ export class PrecompositionSurfaceRenderer {
         generators.push(planned);
       }
     const job = buildPrecompositionScenePlan({
-      target: {
-        id: key,
-        width: entry.width,
-        height: entry.height,
-        estimatedBytes: entry.estimatedBytes,
-        textureCount: entry.textureCount,
-        hasEffects,
-      },
+      target,
       revision: this.#revision,
-      composition: surface.composition,
-      time: surface.time,
+      composition: source.composition,
+      time: source.time,
       layers: childLayers,
       geometry,
-      lighting: buildSceneLighting(childLayers, surface.composition, false, camera?.pose.position),
+      lighting,
       effects,
       generators,
       surfaceTargets: this.#bindings,
@@ -740,31 +631,6 @@ function destroyEntry(entry: SurfaceEntry): void {
   entry.depth.destroy();
   entry.vertexBuffer.destroy();
   entry.lightingBuffer.destroy();
-}
-
-function namespaceSurfaceLayers(
-  layers: readonly FlattenedSceneLayer[],
-  surfaceKey: string,
-  compositionPath: readonly string[],
-): FlattenedSceneLayer[] {
-  return layers.map((child) => ({
-    ...child,
-    // Standalone evaluation starts every source at `root`. Namespace both identities by the stable
-    // outer wrapper resource path: separate wrappers cannot overwrite each other, clones share,
-    // and playback does not churn media resources merely because the sample time moved.
-    instanceId: namespaceSurfaceChild(surfaceKey, child.instanceId),
-    resourceInstanceId: namespaceSurfaceChild(surfaceKey, child.resourceInstanceId),
-    precompositionSurface: child.precompositionSurface
-      ? {
-          ...child.precompositionSurface,
-          compositionPath: [...compositionPath, ...child.precompositionSurface.compositionPath],
-        }
-      : undefined,
-  }));
-}
-
-function namespaceSurfaceChild(surfaceKey: string, relativeId: string): string {
-  return `surface:${surfaceKey}/${relativeId}`;
 }
 
 function emptyFrame(): PrecompositionSurfaceFrame {

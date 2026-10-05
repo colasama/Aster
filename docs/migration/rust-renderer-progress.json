@@ -16897,5 +16897,16 @@
       }
     }
   ],
-  "active_cycle": null
+  "active_cycle": {
+    "id": 55,
+    "started_at": "2026-10-05T07:52:09.365Z",
+    "milestone": "M2",
+    "task": "M2-T11",
+    "intent": "Extract recursive time-addressed child evaluation and surface budget decisions before GPU allocation.",
+    "previous_turn": "progress: cycle 54 committed content-addressed bundle transport with full required gates green.",
+    "usage": {
+      "used_percent": 37,
+      "remaining_percent": 63
+    }
+  }
 }
