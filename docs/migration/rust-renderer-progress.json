@@ -18011,5 +18011,11 @@
       }
     }
   ],
-  "active_cycle": null
+  "active_cycle": {
+    "id": 63,
+    "milestone": "M2",
+    "task": "M2-T12",
+    "started_at": "2026-10-05T12:13:37.960Z",
+    "intent": "Transport depth/surface uniform bytes, selected object IDs and observed attachment routes through typed plans consumed by final output execution."
+  }
 }

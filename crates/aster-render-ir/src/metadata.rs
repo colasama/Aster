@@ -1,6 +1,7 @@
 use crate::FinalOutputSlice;
 use crate::LayerEffectSlice;
 use crate::MotionReconstructionSlice;
+use crate::PostEffectSlice;
 use crate::PrecompositionBundleSlice;
 use crate::PrecompositionGraphSlice;
 use crate::SceneGeneratorSlice;
@@ -29,6 +30,7 @@ pub enum PlanKind {
 pub enum ContractLevel {
     FinalOutputSliceV1,
     MotionReconstructionSliceV1,
+    PostEffectSliceV1,
     PostUniformsSliceV1,
     SceneBuffersSliceV1,
     CameraParametersSliceV1,
@@ -130,6 +132,7 @@ pub struct BlobDescriptor {
 pub enum PlanSlice {
     FinalOutput(FinalOutputSlice),
     MotionReconstruction(MotionReconstructionSlice),
+    PostEffect(PostEffectSlice),
     PrecompositionBundle(PrecompositionBundleSlice),
     PrecompositionGraph(PrecompositionGraphSlice),
     SceneGenerator(SceneGeneratorSlice),
@@ -212,7 +215,9 @@ impl FramePlanSliceV1 {
         let mut referenced = BTreeSet::new();
         if matches!(
             self.contract_level,
-            ContractLevel::FinalOutputSliceV1 | ContractLevel::MotionReconstructionSliceV1
+            ContractLevel::FinalOutputSliceV1
+                | ContractLevel::MotionReconstructionSliceV1
+                | ContractLevel::PostEffectSliceV1
         ) && (self.slices.len() != 1 || !self.resources.is_empty())
         {
             return Err(IrError::InvalidHeader(
@@ -235,6 +240,11 @@ impl FramePlanSliceV1 {
         }
         for slice in &self.slices {
             let blob_index = match slice {
+                PlanSlice::PostEffect(effect)
+                    if self.contract_level == ContractLevel::PostEffectSliceV1 =>
+                {
+                    effect.blob_index
+                }
                 PlanSlice::MotionReconstruction(motion)
                     if self.contract_level == ContractLevel::MotionReconstructionSliceV1 =>
                 {
@@ -332,6 +342,10 @@ impl FramePlanSliceV1 {
                 motion.validate(blob)?;
                 continue;
             }
+            if let PlanSlice::PostEffect(effect) = slice {
+                effect.validate(blob)?;
+                continue;
+            }
             if let PlanSlice::PrecompositionBundle(bundle) = slice {
                 bundle.validate(blob, &self.resources)?;
                 continue;
@@ -406,6 +420,16 @@ impl FramePlanSliceV1 {
     }
 
     pub(crate) fn validate_blob(&self, index: usize, bytes: &[u8]) -> Result<(), IrError> {
+        if self.contract_level == ContractLevel::PostEffectSliceV1 {
+            for slice in &self.slices {
+                if let PlanSlice::PostEffect(effect) = slice
+                    && effect.blob_index as usize == index
+                {
+                    return effect.validate_bytes(bytes, &self.header);
+                }
+            }
+            return Err(IrError::BlobCountMismatch);
+        }
         if self.contract_level == ContractLevel::MotionReconstructionSliceV1 {
             for slice in &self.slices {
                 if let PlanSlice::MotionReconstruction(motion) = slice

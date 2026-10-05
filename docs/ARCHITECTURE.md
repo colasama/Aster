@@ -241,8 +241,13 @@ roles, the observed ready/skipped decision, and owned mixed f32/u32 GPU uniform 
 tile-max, neighbor-max and HDR reconstruction passes consume those bytes without consulting mutable
 settings. Missing attachments or mismatched dimensions fail before GPU recording; captured skips
 remain skips even if resources become available. G1 exercises Rust transport and supplied execution,
-including malformed uniform rejection. Depth/surface uniforms and auxiliary draw identities still
-require their own planning boundaries before independent full-frame replay and the cutover.
+including malformed uniform rejection. Depth and surface effects also transport owned GPU uniforms,
+the selected object ID, observed availability, and ordered attachment roles. Depth fallback choices
+are explicit: replay retains a captured world-position or scene fallback even when additional
+attachments exist. Final output checks the effect kind, mode and complete frame header, then
+prepares the supplied effect before opening its render pass. Missing planned attachments and stale
+dimensions fail without recording that pass. Auxiliary draw identities still require their own
+planning boundary before independent full-frame replay and the cutover.
 
 Shared WGSL includes output anti-aliasing, core scene variants, compositing, fused post-processing,
 blur/depth/surface effects, auxiliary surfaces, particles, text motion blur and display/buffer helpers.

@@ -3,6 +3,10 @@ import {
   DEFAULT_CAMERA_APERTURE_PIXELS,
   depthOfFieldSampleCount,
 } from "../../core/scene/camera-optics";
+import { requirePlan } from "../frame-plan/canonical";
+import type { DepthInputs } from "../frame-plan/post-effect-layout";
+import { buildPostEffectPlan, readPostEffectPlan } from "../frame-plan/post-effect-plan";
+import type { FrameHeaderSlice, FramePlanSliceData } from "../frame-plan/types";
 import type { DepthEffectVisualization } from "../gpu/render-buffers";
 import { sharedShaders } from "../gpu/shared-shader-catalog";
 
@@ -156,7 +160,15 @@ export class DepthEffectsRenderer {
   readonly #pipeline: GPURenderPipeline;
   readonly #sampler: GPUSampler;
   readonly #uniform: GPUBuffer;
-  #bindGroup?: GPUBindGroup;
+  #sources: Partial<Record<DepthInputs[number], GPUTexture>> = {};
+  #inputs: DepthInputs = [
+    "scene",
+    "worldPosition",
+    "worldPosition",
+    "worldPosition",
+    "scene",
+    "scene",
+  ];
   #width = 1;
   #height = 1;
   #settings: DepthEffectSettings = DEFAULT_DEPTH_EFFECT_SETTINGS;
@@ -195,59 +207,91 @@ export class DepthEffectsRenderer {
     peeledWorldPosition: GPUTexture | undefined,
     frontLayerColor: GPUTexture | undefined,
     peeledLayerColor: GPUTexture | undefined,
+    sceneRole: "scene" | "motion_blur" = "scene",
   ): void {
     this.#width = width;
     this.#height = height;
-    this.#bindGroup =
-      scene && worldPosition
-        ? this.#device.createBindGroup({
-            label: "Depth effects HDR + world-position resources",
-            layout: this.#pipeline.getBindGroupLayout(0),
-            entries: [
-              { binding: 0, resource: scene.createView() },
-              { binding: 1, resource: worldPosition.createView() },
-              { binding: 2, resource: this.#sampler },
-              { binding: 3, resource: { buffer: this.#uniform } },
-              {
-                binding: 4,
-                resource: (transparentWorldPosition ?? worldPosition).createView(),
-              },
-              {
-                binding: 5,
-                resource: (peeledWorldPosition ?? worldPosition).createView(),
-              },
-              {
-                binding: 6,
-                resource: (frontLayerColor ?? scene).createView(),
-              },
-              {
-                binding: 7,
-                resource: (peeledLayerColor ?? scene).createView(),
-              },
-            ],
-          })
-        : undefined;
+    this.#sources = {
+      [sceneRole]: scene,
+      worldPosition,
+      transparentWorldPosition,
+      peeledWorldPosition,
+      frontLayerColor,
+      peeledLayerColor,
+    };
+    this.#inputs = [
+      sceneRole,
+      "worldPosition",
+      transparentWorldPosition ? "transparentWorldPosition" : "worldPosition",
+      peeledWorldPosition ? "peeledWorldPosition" : "worldPosition",
+      frontLayerColor ? "frontLayerColor" : sceneRole,
+      peeledLayerColor ? "peeledLayerColor" : sceneRole,
+    ];
   }
 
   setSettings(settings: Partial<DepthEffectSettings>): void {
     this.#settings = { ...this.#settings, ...settings };
   }
 
-  encode(pass: GPURenderPassEncoder, mode: DepthEffectVisualization): boolean {
-    if (!this.#bindGroup) return false;
-    this.#device.queue.writeBuffer(
-      this.#uniform,
-      0,
-      buildDepthEffectUniforms(mode, this.#width, this.#height, this.#settings),
+  buildPlan(header: FrameHeaderSlice, mode: DepthEffectVisualization): FramePlanSliceData {
+    const floats = buildDepthEffectUniforms(
+      mode,
+      header.render_target.width,
+      header.render_target.height,
+      this.#settings,
     );
-    pass.setPipeline(this.#pipeline);
-    pass.setBindGroup(0, this.#bindGroup);
-    pass.draw(3);
-    return true;
+    const bytes = new Uint8Array(floats.byteLength),
+      view = new DataView(bytes.buffer);
+    floats.forEach((value, i) => {
+      view.setFloat32(i * 4, value, true);
+    });
+    return buildPostEffectPlan(
+      header,
+      { kind: "depth", mode, inputs: this.#inputs },
+      this.#inputs.every((role) => this.#sources[role] !== undefined),
+      bytes,
+    );
+  }
+
+  preparePlan(input: FramePlanSliceData): (pass: GPURenderPassEncoder) => boolean {
+    const plan = readPostEffectPlan(input);
+    requirePlan(plan.slice.effect.kind === "depth", "invalid_header", "Expected depth effect plan");
+    if (plan.slice.status === "skipped") return () => false;
+    requirePlan(
+      this.#width === plan.header.render_target.width &&
+        this.#height === plan.header.render_target.height,
+      "resource_generation_mismatch",
+      "Depth attachment dimensions differ from the plan",
+    );
+    const textures = plan.slice.effect.inputs.map((role) => {
+      const texture = this.#sources[role];
+      requirePlan(texture, "missing_resource", `Missing planned depth attachment: ${role}`);
+      return texture;
+    });
+    const bindGroup = this.#device.createBindGroup({
+      label: "Depth effects HDR + world-position resources",
+      layout: this.#pipeline.getBindGroupLayout(0),
+      entries: [
+        { binding: 0, resource: textures[0].createView() },
+        { binding: 1, resource: textures[1].createView() },
+        { binding: 2, resource: this.#sampler },
+        { binding: 3, resource: { buffer: this.#uniform } },
+        ...textures
+          .slice(2)
+          .map((texture, i) => ({ binding: i + 4, resource: texture.createView() })),
+      ],
+    });
+    this.#device.queue.writeBuffer(this.#uniform, 0, plan.uniforms);
+    return (pass) => {
+      pass.setPipeline(this.#pipeline);
+      pass.setBindGroup(0, bindGroup);
+      pass.draw(3);
+      return true;
+    };
   }
 
   destroy(): void {
-    this.#bindGroup = undefined;
+    this.#sources = {};
     this.#uniform.destroy();
   }
 }

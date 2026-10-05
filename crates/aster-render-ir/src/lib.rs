@@ -1,7 +1,12 @@
 //! Bounded frame-plan transport. Individual slices are not a complete renderer plan.
 mod final_output;
 mod motion_reconstruction;
+mod post_effect;
 pub use motion_reconstruction::MotionReconstructionSlice;
+pub use post_effect::{
+    DepthEffectMode, PostEffect, PostEffectInput, PostEffectSlice, PostEffectStatus,
+    SurfaceEffectMode,
+};
 mod generator;
 pub use final_output::FinalOutputSlice;
 mod precomposition;

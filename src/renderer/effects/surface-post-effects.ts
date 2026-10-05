@@ -1,3 +1,6 @@
+import { requirePlan } from "../frame-plan/canonical";
+import { buildPostEffectPlan, readPostEffectPlan } from "../frame-plan/post-effect-plan";
+import type { FrameHeaderSlice, FramePlanSliceData } from "../frame-plan/types";
 import type { GeometryBatch } from "../geometry/geometry";
 import { encodeRenderId, type SurfaceEffectVisualization } from "../gpu/render-buffers";
 import { sharedShaders } from "../gpu/shared-shader-catalog";
@@ -116,23 +119,46 @@ export class SurfacePostEffectsRenderer {
     this.#motionShutterScale = scale;
   }
 
-  encode(pass: GPURenderPassEncoder, mode: SurfaceEffectVisualization): boolean {
-    if (!this.#bindGroup) return false;
-    this.#device.queue.writeBuffer(
-      this.#uniform,
-      0,
-      buildSurfacePostUniforms(
-        mode,
-        this.#width,
-        this.#height,
-        this.#selectedRenderId,
-        this.#motionShutterScale,
+  buildPlan(header: FrameHeaderSlice, mode: SurfaceEffectVisualization): FramePlanSliceData {
+    return buildPostEffectPlan(
+      header,
+      { kind: "surface", mode, inputs: ["scene", "objectId", "motionVector"] },
+      Boolean(this.#bindGroup),
+      new Uint8Array(
+        buildSurfacePostUniforms(
+          mode,
+          header.render_target.width,
+          header.render_target.height,
+          this.#selectedRenderId,
+          this.#motionShutterScale,
+        ),
       ),
     );
-    pass.setPipeline(this.#pipeline);
-    pass.setBindGroup(0, this.#bindGroup);
-    pass.draw(3);
-    return true;
+  }
+
+  preparePlan(input: FramePlanSliceData): (pass: GPURenderPassEncoder) => boolean {
+    const plan = readPostEffectPlan(input);
+    requirePlan(
+      plan.slice.effect.kind === "surface",
+      "invalid_header",
+      "Expected surface effect plan",
+    );
+    if (plan.slice.status === "skipped") return () => false;
+    requirePlan(
+      this.#width === plan.header.render_target.width &&
+        this.#height === plan.header.render_target.height,
+      "resource_generation_mismatch",
+      "Surface attachment dimensions differ from the plan",
+    );
+    const bindGroup = this.#bindGroup;
+    requirePlan(bindGroup, "missing_resource", "Missing planned surface attachments");
+    this.#device.queue.writeBuffer(this.#uniform, 0, plan.uniforms);
+    return (pass) => {
+      pass.setPipeline(this.#pipeline);
+      pass.setBindGroup(0, bindGroup);
+      pass.draw(3);
+      return true;
+    };
   }
 
   destroy(): void {

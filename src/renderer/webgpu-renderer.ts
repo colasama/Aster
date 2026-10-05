@@ -31,7 +31,7 @@ import { depthEffectSettingsFromCameraOptics } from "./effects/depth-effects";
 import { effectExecution } from "./effects/layer-effect-plan";
 import { selectedRenderId } from "./effects/surface-post-effects";
 import { buildCameraPlan, readCameraPlan } from "./frame-plan/camera-plan";
-import { buildFinalOutputPlan } from "./frame-plan/final-output-plan";
+import { buildFinalOutputPlan, readFinalOutputPlan } from "./frame-plan/final-output-plan";
 import { buildMotionReconstructionPlan } from "./frame-plan/motion-reconstruction-plan";
 import { buildFrameHeader, buildRootPostUniformPlan } from "./frame-plan/root-post-plan";
 import { uploadRootPostUniformPlan } from "./frame-plan/root-post-upload";
@@ -909,6 +909,7 @@ export class WebGpuRenderer {
         resources.auxiliaryBuffers.peeledWorldPosition,
         resources.auxiliaryBuffers.frontLayerColor,
         resources.auxiliaryBuffers.peeledLayerColor,
+        beautyMotionBlurValid ? "motion_blur" : "scene",
       );
     }
     resources.surfacePostEffects.setSelection(
@@ -937,8 +938,16 @@ export class WebGpuRenderer {
       motionBlurValid: beautyMotionBlurValid,
       motionBlurBindingAvailable: Boolean(resources.motionBlurPostBindGroup),
     });
+    const { route: outputRoute } = readFinalOutputPlan(outputPlan);
+    const postEffectPlan =
+      outputRoute.kind === "depth"
+        ? resources.depthEffects.buildPlan(postPlan.metadata.header, outputRoute.mode)
+        : outputRoute.kind === "surface"
+          ? resources.surfacePostEffects.buildPlan(postPlan.metadata.header, outputRoute.mode)
+          : undefined;
     executeFinalOutput({
       plan: outputPlan,
+      postEffectPlan,
       encoder,
       output,
       antiAliasing: this.#antiAliasing,

@@ -17,6 +17,8 @@ export async function loadIrRuntime(root) {
       "final-output-fixture",
       "motion-reconstruction-plan",
       "motion-reconstruction-fixture",
+      "post-effect-plan",
+      "post-effect-fixture",
       "fixture",
       "resources",
       "media-resource-fixture",
@@ -69,6 +71,8 @@ export async function loadIrRuntime(root) {
     modules.push(await server.ssrLoadModule("/src/renderer/text/text-motion-blur-pass-plan.ts"));
     modules.push(await server.ssrLoadModule("/src/renderer/compositing/execute-final-output.ts"));
     modules.push(await server.ssrLoadModule("/src/renderer/compositing/motion-blur-renderer.ts"));
+    modules.push(await server.ssrLoadModule("/src/renderer/effects/depth-effects.ts"));
+    modules.push(await server.ssrLoadModule("/src/renderer/effects/surface-post-effects.ts"));
     return Object.assign({ close: () => server.close() }, ...modules);
   } catch (error) {
     await server.close();

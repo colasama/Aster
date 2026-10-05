@@ -1,12 +1,14 @@
 import type { AntiAliasingRenderer } from "../effects/anti-aliasing";
-import { requirePlan } from "../frame-plan/canonical";
+import { canonicalJson, requirePlan } from "../frame-plan/canonical";
 import { readFinalOutputPlan } from "../frame-plan/final-output-plan";
+import { readPostEffectPlan } from "../frame-plan/post-effect-plan";
 import type { FramePlanSliceData } from "../frame-plan/types";
 import type { RendererResources } from "../renderer-resources";
 
 /** The output route and AA mode are supplied; this boundary reads no authoring or view settings. */
 export function executeFinalOutput(input: {
   plan: FramePlanSliceData;
+  postEffectPlan?: FramePlanSliceData;
   encoder: GPUCommandEncoder;
   output: GPUTextureView;
   antiAliasing: Pick<AntiAliasingRenderer, "plannedView" | "encode">;
@@ -35,6 +37,27 @@ export function executeFinalOutput(input: {
     "missing_resource",
     "Planned beauty source is absent",
   );
+  let encodePostEffect: ((pass: GPURenderPassEncoder) => boolean) | undefined;
+  if (route.kind === "depth" || route.kind === "surface") {
+    requirePlan(input.postEffectPlan, "missing_resource", "Missing planned output effect");
+    const effect = readPostEffectPlan(input.postEffectPlan);
+    requirePlan(
+      canonicalJson(effect.header) === canonicalJson(header) &&
+        effect.slice.effect.kind === route.kind &&
+        effect.slice.effect.mode === route.mode,
+      "invalid_header",
+      "Output effect differs from its route or frame",
+    );
+    encodePostEffect =
+      route.kind === "depth"
+        ? resources.depthEffects.preparePlan(input.postEffectPlan)
+        : resources.surfacePostEffects.preparePlan(input.postEffectPlan);
+  } else
+    requirePlan(
+      input.postEffectPlan === undefined,
+      "invalid_header",
+      "Unexpected output effect plan",
+    );
   const pass = encoder.beginRenderPass({
     label: "Fused effects + sRGB display transform",
     timestampWrites: resources.gpuProfiler.writes(6, header.aa === "off" ? 7 : undefined),
@@ -47,10 +70,8 @@ export function executeFinalOutput(input: {
       pass.draw(3);
       break;
     case "depth":
-      resources.depthEffects.encode(pass, route.mode);
-      break;
     case "surface":
-      resources.surfacePostEffects.encode(pass, route.mode);
+      encodePostEffect?.(pass);
       break;
     case "visualizer":
       resources.bufferVisualizer.encode(pass, route.mode);

@@ -130,6 +130,11 @@ async function fixture(t, intercept = async () => {}) {
         "motion-samples": "invalid_header",
         "motion-nonfinite": "invalid_header",
         "motion-padding": "invalid_header",
+        "post-depth-mode": "invalid_header",
+        "post-depth-nonfinite": "invalid_header",
+        "post-depth-range": "invalid_header",
+        "post-surface-mode": "invalid_header",
+        "post-surface-padding": "invalid_header",
       };
       result = {
         status: "failed",
@@ -172,7 +177,18 @@ test("G1 orchestrates all real TS codec checks and keeps renderer completion exp
   const result = await f.run();
   assert.equal(result.status, "passed", result.error);
   assert.equal(result.renderer_plan_complete, false);
-  assert.equal(result.roundtrips.length, 107);
+  assert.equal(result.roundtrips.length, 115);
+  assert.equal(result.post_effects.length, 8);
+  assert(
+    result.post_effects.every(
+      (p) =>
+        p.exact_uniforms &&
+        p.exact_routes &&
+        p.supplied_execution &&
+        p.settings_independent &&
+        p.availability_preserved,
+    ),
+  );
   assert.equal(result.motion_reconstruction.length, 6);
   assert(
     result.motion_reconstruction.every(
@@ -230,7 +246,7 @@ test("G1 orchestrates all real TS codec checks and keeps renderer completion exp
   assert.equal(result.scene_uploads.length, 16);
   assert.equal(result.media_draws.length, 11);
   assert.equal(result.root_uploads.length, 12);
-  assert.equal(result.rejections.length, 10);
+  assert.equal(result.rejections.length, 15);
   assert.equal(result.custom_limits.length, 3);
   assert.equal(result.resources.status, "passed");
   assert.equal(result.media_resources.roundtrips, 17);
@@ -279,7 +295,7 @@ test("G1 rejects source drift even when every codec result is exact", async (t) 
   }));
   assert.equal(result.status, "failed");
   assert.equal(result.source_unchanged, false);
-  assert.equal(result.roundtrips.length, 107);
+  assert.equal(result.roundtrips.length, 115);
   assert.match(result.error, /Source changed during G1/);
 });
 

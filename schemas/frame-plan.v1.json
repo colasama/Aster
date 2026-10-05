@@ -122,6 +122,7 @@
       "enum": [
         "final_output_slice_v1",
         "motion_reconstruction_slice_v1",
+        "post_effect_slice_v1",
         "post_uniforms_slice_v1",
         "scene_buffers_slice_v1",
         "camera_parameters_slice_v1",
@@ -135,6 +136,10 @@
         "precomposition_graph_slice_v1",
         "precomposition_bundle_slice_v1"
       ],
+      "type": "string"
+    },
+    "DepthEffectMode": {
+      "enum": ["depthFog", "depthOfField"],
       "type": "string"
     },
     "EffectBlendMode": {
@@ -880,6 +885,28 @@
               "minimum": 0,
               "type": "integer"
             },
+            "effect": {
+              "$ref": "#/$defs/PostEffect"
+            },
+            "kind": {
+              "const": "post_effect",
+              "type": "string"
+            },
+            "status": {
+              "$ref": "#/$defs/PostEffectStatus"
+            }
+          },
+          "required": ["kind", "blob_index", "status", "effect"],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "blob_index": {
+              "format": "uint32",
+              "minimum": 0,
+              "type": "integer"
+            },
             "graph": {
               "$ref": "#/$defs/ResourceHash"
             },
@@ -1366,6 +1393,72 @@
           "type": "object"
         }
       ]
+    },
+    "PostEffect": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "inputs": {
+              "items": {
+                "$ref": "#/$defs/PostEffectInput"
+              },
+              "maxItems": 6,
+              "minItems": 6,
+              "type": "array"
+            },
+            "kind": {
+              "const": "depth",
+              "type": "string"
+            },
+            "mode": {
+              "$ref": "#/$defs/DepthEffectMode"
+            }
+          },
+          "required": ["kind", "mode", "inputs"],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "inputs": {
+              "items": {
+                "$ref": "#/$defs/PostEffectInput"
+              },
+              "maxItems": 3,
+              "minItems": 3,
+              "type": "array"
+            },
+            "kind": {
+              "const": "surface",
+              "type": "string"
+            },
+            "mode": {
+              "$ref": "#/$defs/SurfaceEffectMode"
+            }
+          },
+          "required": ["kind", "mode", "inputs"],
+          "type": "object"
+        }
+      ]
+    },
+    "PostEffectInput": {
+      "enum": [
+        "scene",
+        "motion_blur",
+        "worldPosition",
+        "transparentWorldPosition",
+        "peeledWorldPosition",
+        "frontLayerColor",
+        "peeledLayerColor",
+        "objectId",
+        "motionVector"
+      ],
+      "type": "string"
+    },
+    "PostEffectStatus": {
+      "enum": ["ready", "skipped"],
+      "type": "string"
     },
     "PrecompositionBinding": {
       "additionalProperties": false,
@@ -2082,6 +2175,10 @@
       },
       "required": ["draw_index", "binding"],
       "type": "object"
+    },
+    "SurfaceEffectMode": {
+      "enum": ["selectionIsolation", "vectorMotionBlur"],
+      "type": "string"
     },
     "TemporalTextFormat": {
       "enum": ["rgba8unorm-srgb", "rgba16float"],

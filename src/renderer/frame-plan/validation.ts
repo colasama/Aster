@@ -29,6 +29,11 @@ import {
   validateMotionReconstructionBlob,
 } from "./motion-reconstruction-layout";
 import {
+  POST_EFFECT_FIELDS,
+  validatePostEffect,
+  validatePostEffectBlob,
+} from "./post-effect-layout";
+import {
   PRECOMPOSITION_BUNDLE_FIELDS,
   validatePrecompositionBundle,
   validatePrecompositionBundleBlob,
@@ -127,6 +132,7 @@ export function validateMetadata(value: unknown, limits: FramePlanLimits): Frame
         "precomposition_bundle_slice_v1",
         "final_output_slice_v1",
         "motion_reconstruction_slice_v1",
+        "post_effect_slice_v1",
       ].includes(String(metadata.contract_level)) &&
       metadata.renderer_plan_complete === false,
     "unknown_variant",
@@ -199,6 +205,20 @@ export function validateMetadata(value: unknown, limits: FramePlanLimits): Frame
   );
   const indices = new Set<number>();
   for (const value of metadata.slices) {
+    if (metadata.contract_level === "post_effect_slice_v1") {
+      requirePlan(
+        metadata.slices.length === 1 &&
+          Array.isArray(metadata.resources) &&
+          metadata.resources.length === 0,
+        "invalid_header",
+        "Post effect requires one transient slice",
+      );
+      const slice = object(value, POST_EFFECT_FIELDS),
+        index = integer(slice.blob_index, 0, metadata.blobs.length - 1);
+      indices.add(index);
+      validatePostEffect(slice, metadata.blobs[index] as BlobDescriptor);
+      continue;
+    }
     if (metadata.contract_level === "motion_reconstruction_slice_v1") {
       requirePlan(
         metadata.slices.length === 1 &&
@@ -437,6 +457,12 @@ export function validatePlanBlob(
   );
   if (metadata.contract_level === "motion_reconstruction_slice_v1") {
     validateMotionReconstructionBlob(bytes, metadata.header);
+    return;
+  }
+  if (metadata.contract_level === "post_effect_slice_v1") {
+    const slice = metadata.slices[0];
+    requirePlan(slice.kind === "post_effect", "invalid_header", "Missing post effect slice");
+    validatePostEffectBlob(bytes, metadata.header, slice.effect);
     return;
   }
   if (metadata.contract_level === "final_output_slice_v1") {

@@ -11,8 +11,14 @@ export function auditFinalOutput(runtime, fixture, plan) {
     postBindGroup: "scene",
     motionBlurPostBindGroup: "motion_blur",
     gpuProfiler: { writes: () => undefined },
-    depthEffects: { encode: (_pass, mode) => events.push(["depth", mode]) },
-    surfacePostEffects: { encode: (_pass, mode) => events.push(["surface", mode]) },
+    depthEffects: {
+      preparePlan: (p) => () =>
+        events.push(["depth", runtime.readPostEffectPlan(p).slice.effect.mode]),
+    },
+    surfacePostEffects: {
+      preparePlan: (p) => () =>
+        events.push(["surface", runtime.readPostEffectPlan(p).slice.effect.mode]),
+    },
     bufferVisualizer: { encode: (_pass, mode) => events.push(["visualizer", mode]) },
   };
   let passes = 0;
@@ -40,11 +46,33 @@ export function auditFinalOutput(runtime, fixture, plan) {
     },
     encode: (_encoder, output) => assert.equal(output, "canvas"),
   };
-  const input = { plan, encoder, output: "canvas", antiAliasing, resources };
-  runtime.executeFinalOutput(input);
   const route = fixture.output.route;
+  const postEffectPlan =
+    route.kind === "depth" || route.kind === "surface"
+      ? runtime
+          .postEffectFixtures()
+          .find(
+            (f) =>
+              f.postEffect.effect.kind === route.kind && f.postEffect.effect.mode === route.mode,
+          ).plan
+      : undefined;
+  if (postEffectPlan) postEffectPlan.metadata.header = structuredClone(plan.metadata.header);
+  const input = { plan, postEffectPlan, encoder, output: "canvas", antiAliasing, resources };
+  runtime.executeFinalOutput(input);
   assert.deepEqual(events, [[route.kind, route.kind === "beauty" ? route.source : route.mode]]);
   let missingRejected = false;
+  if (postEffectPlan) {
+    assert.throws(() => runtime.executeFinalOutput({ ...input, postEffectPlan: undefined }), {
+      code: "missing_resource",
+    });
+    const wrong = structuredClone(postEffectPlan);
+    wrong.metadata.header.project_revision++;
+    assert.throws(() => runtime.executeFinalOutput({ ...input, postEffectPlan: wrong }), {
+      code: "invalid_header",
+    });
+    assert.equal(passes, 1);
+    missingRejected = true;
+  }
   if (route.kind === "beauty" && route.source === "motion_blur") {
     resources.motionBlurPostBindGroup = undefined;
     assert.throws(() => runtime.executeFinalOutput(input), { code: "missing_resource" });
