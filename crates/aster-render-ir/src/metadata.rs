@@ -1,4 +1,5 @@
 use crate::LayerEffectSlice;
+use crate::PrecompositionGraphSlice;
 use crate::SceneGeneratorSlice;
 use crate::{
     CameraParametersSlice, MaterialBindingSlice, TemporalTextPassesSlice, TemporalTextSamplesSlice,
@@ -33,6 +34,7 @@ pub enum ContractLevel {
     EffectExecutionSliceV1,
     RootSceneCommandsSliceV1,
     SceneGeneratorSliceV1,
+    PrecompositionGraphSliceV1,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
@@ -120,6 +122,7 @@ pub struct BlobDescriptor {
 #[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum PlanSlice {
+    PrecompositionGraph(PrecompositionGraphSlice),
     SceneGenerator(SceneGeneratorSlice),
     RootSceneCommands(RootSceneCommandsSlice),
     LayerEffect(LayerEffectSlice),
@@ -198,8 +201,20 @@ impl FramePlanSliceV1 {
             return Err(IrError::InvalidGenerator("expected one slice".to_owned()));
         }
         let mut referenced = BTreeSet::new();
+        if self.contract_level == ContractLevel::PrecompositionGraphSliceV1
+            && (self.slices.len() != 1 || !self.resources.is_empty())
+        {
+            return Err(IrError::InvalidPrecomposition(
+                "expected one transient graph".to_owned(),
+            ));
+        }
         for slice in &self.slices {
             let blob_index = match slice {
+                PlanSlice::PrecompositionGraph(graph)
+                    if self.contract_level == ContractLevel::PrecompositionGraphSliceV1 =>
+                {
+                    graph.blob_index
+                }
                 PlanSlice::SceneGenerator(g)
                     if self.contract_level == ContractLevel::SceneGeneratorSliceV1 =>
                 {
@@ -269,6 +284,10 @@ impl FramePlanSliceV1 {
             if !referenced.insert(blob_index) {
                 return Err(IrError::BlobCountMismatch);
             }
+            if let PlanSlice::PrecompositionGraph(graph) = slice {
+                graph.validate(blob, limits)?;
+                continue;
+            }
             if let PlanSlice::SceneGenerator(g) = slice {
                 g.validate(blob, &self.resources)?;
                 continue;
@@ -335,6 +354,16 @@ impl FramePlanSliceV1 {
     }
 
     pub(crate) fn validate_blob(&self, index: usize, bytes: &[u8]) -> Result<(), IrError> {
+        if self.contract_level == ContractLevel::PrecompositionGraphSliceV1 {
+            for slice in &self.slices {
+                if let PlanSlice::PrecompositionGraph(graph) = slice
+                    && graph.blob_index as usize == index
+                {
+                    return graph.validate_payload(bytes);
+                }
+            }
+            return Err(IrError::BlobCountMismatch);
+        }
         let descriptor = self.blobs.get(index).ok_or(IrError::BlobCountMismatch)?;
         if bytes.len() != descriptor.byte_length as usize {
             return Err(IrError::ElementCountMismatch);

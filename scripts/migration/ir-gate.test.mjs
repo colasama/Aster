@@ -67,6 +67,10 @@ async function fixture(t, intercept = async () => {}) {
       target = argument("--output");
       bytes = await readFile(argument("--input"));
       result = { kind: "ir_resources" };
+    } else if (command.id.startsWith("ir-precomposition-reject-")) {
+      step.status = "failed";
+      step.exit_code = 2;
+      result = { status: "failed", code: "invalid_precomposition" };
     } else if (command.id === "ir-texture-reject-bytes") {
       step.status = "failed";
       step.exit_code = 2;
@@ -163,7 +167,14 @@ test("G1 orchestrates all real TS codec checks and keeps renderer completion exp
   const result = await f.run();
   assert.equal(result.status, "passed", result.error);
   assert.equal(result.renderer_plan_complete, false);
-  assert.equal(result.roundtrips.length, 76);
+  assert.equal(result.roundtrips.length, 78);
+  assert.equal(result.precompositions.length, 2);
+  assert.equal(result.precompositions[0].rejections.length, 6);
+  assert(
+    result.precompositions.every(
+      (p) => p.exact_targets && p.exact_routes && p.exact_aliases && p.supplied_execution,
+    ),
+  );
   assert.equal(result.generators.length, 3);
   assert(
     result.generators.every(
@@ -244,7 +255,7 @@ test("G1 rejects source drift even when every codec result is exact", async (t) 
   }));
   assert.equal(result.status, "failed");
   assert.equal(result.source_unchanged, false);
-  assert.equal(result.roundtrips.length, 76);
+  assert.equal(result.roundtrips.length, 78);
   assert.match(result.error, /Source changed during G1/);
 });
 

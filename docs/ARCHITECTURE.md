@@ -196,7 +196,11 @@ preparation boundary. Child media addresses resolve to content hashes before com
 creation. Root and child scenes share one frame lease, keeping media owners alive through GPU
 submission. Executable child draws and their scene-buffer FPLN slices carry matching hash/pending
 references, preflighted before drawing. The recursive frame envelope and independent replay
-remain required before complete precomposition transport.
+remain required before complete precomposition transport. The target graph now has a bounded
+FPLN contract shared with Rust: child-first target descriptors, explicit shared aliases and per-draw
+surface routing. Production consumes decoded graph order and routes; validators reject cycles,
+missing alias targets and inconsistent cache accounting. Scene payload packaging and independent
+recursive GPU replay remain under extraction.
 
 Shared WGSL includes output anti-aliasing, core scene variants, compositing, fused post-processing,
 blur/depth/surface effects, auxiliary surfaces, particles, text motion blur and display/buffer helpers.

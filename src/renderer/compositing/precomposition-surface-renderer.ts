@@ -5,6 +5,11 @@ import type { BlendMode, Composition, Project } from "../../core/types";
 import { BLEND_MODES } from "../../core/types";
 import { prepareLayerEffects } from "../effects/layer-effect-plan";
 import { LayerEffectRenderer } from "../effects/layer-effects";
+import {
+  applyPrecompositionGraph,
+  buildPrecompositionGraph,
+  readPrecompositionGraph,
+} from "../frame-plan/precomposition-graph-plan";
 import { buildFrameHeader } from "../frame-plan/root-post-plan";
 import { prepareSceneBuffers } from "../frame-plan/scene-buffer-upload";
 import { buildSceneGeometry, FLOATS_PER_VERTEX } from "../geometry/geometry";
@@ -188,7 +193,23 @@ export class PrecompositionSurfaceRenderer {
   planScenes(
     media: PrecompositionMediaBindings & { hashFor(instanceId: string): string | null },
   ): PrecompositionScenePlan[] {
-    return this.#jobs.map((job) => bindPrecompositionSceneMedia(job, media));
+    if (this.#jobs.length === 0) return [];
+    const scenes = this.#jobs.map((job) => bindPrecompositionSceneMedia(job, media));
+    const graph = readPrecompositionGraph(
+      buildPrecompositionGraph(
+        scenes[0].scene.metadata.header,
+        scenes.map((scene) => ({
+          target: scene.target,
+          drawTargets: scene.draws.map((draw) =>
+            draw.texture.kind === "surface" ? draw.texture.targetId : undefined,
+          ),
+        })),
+        this.#bindings,
+      ),
+    );
+    this.#bindings.clear();
+    for (const [id, target] of graph.bindings) this.#bindings.set(id, target);
+    return applyPrecompositionGraph(graph, scenes);
   }
 
   encode(

@@ -445,3 +445,18 @@ child image, video and raster owners until GPU submission completes or the frame
 This is still an in-memory scene boundary, not a complete recursive wire contract. A recursive
 frame envelope, independent Rust-returned replay and complete capture remain required by
 M2-T11/M2 exit. Child media descriptors reuse the existing FPLN media-resource contract.
+
+`precomposition_graph_slice_v1` transports the child-first surface target graph separately from
+scene payloads. Target descriptors contain cache IDs, dimensions, exact allocation accounting,
+effect-target flags and draw counts. Instance aliases explicitly preserve shared targets. Its
+`u32_le` blob starts with target/draw/alias counts and a reserved zero lane, then one routing lane
+per draw: zero means non-surface, one means budget-skipped, and larger values address an earlier
+target at index `lane - 2`. TS and Rust reject cycles/forward references, duplicate targets or
+aliases, inconsistent counts, invalid extents and allocation accounting. The graph respects the
+existing ten-surface/twenty-texture limits and declares no persistent resource hashes.
+
+Production reads this graph before encoding, applies its execution order and surface routes to
+the separately supplied scenes, and resolves surface aliases from decoded records. G1 round trips
+empty and nested/shared/skipped graphs, including non-Unicode cache IDs, and verifies six invalid
+graph rejections in both languages. This graph does not yet transport complete scene payloads or
+establish independent recursive GPU replay; those remain required for M2-T11.

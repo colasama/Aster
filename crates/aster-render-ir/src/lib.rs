@@ -1,5 +1,9 @@
 //! Bounded frame-plan transport. Individual slices are not a complete renderer plan.
 mod generator;
+mod precomposition;
+pub use precomposition::{
+    PrecompositionBinding, PrecompositionGraphSlice, PrecompositionTargetRecord,
+};
 mod generator_program;
 pub use generator::SceneGeneratorSlice;
 pub use generator_program::{

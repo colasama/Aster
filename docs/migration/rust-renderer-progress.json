@@ -16675,5 +16675,16 @@
       }
     }
   ],
-  "active_cycle": null
+  "active_cycle": {
+    "id": 53,
+    "started_at": "2026-10-05T06:49:50.340Z",
+    "milestone": "M2",
+    "task": "M2-T11",
+    "intent": "Transport and consume a validated child-first precomposition target graph with cache descriptors and shared target aliases.",
+    "previous_turn": "progress: cycle 52 committed content-addressed child media and shared frame leases with full required gates green.",
+    "usage": {
+      "used_percent": 35,
+      "remaining_percent": 65
+    }
+  }
 }

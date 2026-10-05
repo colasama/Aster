@@ -46,6 +46,8 @@ export async function loadIrRuntime(root) {
       "root-scene-fixture",
       "generator-plan",
       "generator-fixture",
+      "precomposition-graph-plan",
+      "precomposition-graph-fixture",
     ])
       modules.push(await server.ssrLoadModule(`/src/renderer/frame-plan/${name}.ts`));
     for (const name of [

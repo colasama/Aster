@@ -22,6 +22,11 @@ import {
   validateMaterialBinding,
   validateMaterialBindingBlob,
 } from "./material-binding-layout";
+import {
+  PRECOMPOSITION_GRAPH_FIELDS,
+  validatePrecompositionGraph,
+  validatePrecompositionGraphBlob,
+} from "./precomposition-graph-layout";
 import { ROOT_SCENE_FIELDS, validateRootScene, validateRootSceneBlob } from "./root-scene-layout";
 import { validateSceneBuffers } from "./scene-buffer-layout";
 import {
@@ -107,6 +112,7 @@ export function validateMetadata(value: unknown, limits: FramePlanLimits): Frame
         "effect_execution_slice_v1",
         "root_scene_commands_slice_v1",
         "scene_generator_slice_v1",
+        "precomposition_graph_slice_v1",
       ].includes(String(metadata.contract_level)) &&
       metadata.renderer_plan_complete === false,
     "unknown_variant",
@@ -179,6 +185,20 @@ export function validateMetadata(value: unknown, limits: FramePlanLimits): Frame
   );
   const indices = new Set<number>();
   for (const value of metadata.slices) {
+    if (metadata.contract_level === "precomposition_graph_slice_v1") {
+      requirePlan(
+        metadata.slices.length === 1 &&
+          Array.isArray(metadata.resources) &&
+          metadata.resources.length === 0,
+        "invalid_precomposition",
+        "Surface graph declares only transient targets",
+      );
+      const slice = object(value, PRECOMPOSITION_GRAPH_FIELDS);
+      const index = integer(slice.blob_index, 0, metadata.blobs.length - 1);
+      indices.add(index);
+      validatePrecompositionGraph(slice, metadata.blobs[index] as BlobDescriptor, limits);
+      continue;
+    }
     if (metadata.contract_level === "scene_generator_slice_v1") {
       requirePlan(
         metadata.slices.length === 1,
@@ -357,6 +377,15 @@ export function validatePlanBlob(
     "element_count_mismatch",
     "Supplied blob length differs from descriptor",
   );
+  if (metadata.contract_level === "precomposition_graph_slice_v1") {
+    const graph = metadata.slices[0];
+    requirePlan(
+      graph.kind === "precomposition_graph",
+      "invalid_precomposition",
+      "Missing surface graph",
+    );
+    validatePrecompositionGraphBlob(bytes, graph);
+  }
   if (metadata.contract_level === "scene_generator_slice_v1") {
     const slice = metadata.slices.find((s) => s.blob_index === index);
     requirePlan(slice?.kind === "scene_generator", "invalid_generator", "Missing generator slice");

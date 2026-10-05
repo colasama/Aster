@@ -129,7 +129,8 @@
         "layer_effects_slice_v1",
         "effect_execution_slice_v1",
         "root_scene_commands_slice_v1",
-        "scene_generator_slice_v1"
+        "scene_generator_slice_v1",
+        "precomposition_graph_slice_v1"
       ],
       "type": "string"
     },
@@ -719,6 +720,34 @@
         {
           "additionalProperties": false,
           "properties": {
+            "bindings": {
+              "items": {
+                "$ref": "#/$defs/PrecompositionBinding"
+              },
+              "type": "array"
+            },
+            "blob_index": {
+              "format": "uint32",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "kind": {
+              "const": "precomposition_graph",
+              "type": "string"
+            },
+            "targets": {
+              "items": {
+                "$ref": "#/$defs/PrecompositionTargetRecord"
+              },
+              "type": "array"
+            }
+          },
+          "required": ["kind", "blob_index", "targets", "bindings"],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
             "blend_mode": {
               "$ref": "#/$defs/EffectBlendMode"
             },
@@ -1151,6 +1180,67 @@
           "type": "object"
         }
       ]
+    },
+    "PrecompositionBinding": {
+      "additionalProperties": false,
+      "properties": {
+        "instance_id": {
+          "$ref": "#/$defs/CompositionIdentity"
+        },
+        "target_index": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": ["instance_id", "target_index"],
+      "type": "object"
+    },
+    "PrecompositionTargetRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "draw_count": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "estimated_bytes": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "has_effects": {
+          "type": "boolean"
+        },
+        "height": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "id": {
+          "$ref": "#/$defs/CompositionIdentity"
+        },
+        "texture_count": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "width": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "width",
+        "height",
+        "estimated_bytes",
+        "texture_count",
+        "has_effects",
+        "draw_count"
+      ],
+      "type": "object"
     },
     "PutResource": {
       "additionalProperties": false,

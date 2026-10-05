@@ -1,6 +1,7 @@
 import type { BlendMode } from "../../core/types";
 import type { SceneGeneratorSlice } from "./generator-types";
 import type { MediaFrameDescriptor, MediaSourceDescriptor } from "./media-descriptors";
+import type { PrecompositionGraphSlice } from "./precomposition-graph-layout";
 import type { RasterPixelsDescriptor } from "./raster-pixels";
 import type { RootSceneCommandsSlice } from "./root-scene-types";
 import type { TexturePixelsDescriptor } from "./texture-pixels";
@@ -100,7 +101,8 @@ export interface FramePlanSliceV1 {
     | "layer_effects_slice_v1"
     | "effect_execution_slice_v1"
     | "root_scene_commands_slice_v1"
-    | "scene_generator_slice_v1";
+    | "scene_generator_slice_v1"
+    | "precomposition_graph_slice_v1";
   renderer_plan_complete: false;
   header: FrameHeaderSlice;
   blobs: BlobDescriptor[];
@@ -133,6 +135,7 @@ export interface SceneMediaBinding {
 }
 
 export type PlanSlice =
+  | PrecompositionGraphSlice
   | SceneGeneratorSlice
   | RootSceneCommandsSlice
   | { kind: "post_process_uniforms"; blob_index: number }
