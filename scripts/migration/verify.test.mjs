@@ -375,14 +375,26 @@ test("M2 requires fresh IR and performance gates without treating the transport 
     );
     assert.deepEqual(calls, scenario === "quick" ? [] : ["G1", "G4"]);
     assert.equal(result.report.milestone_exit_satisfied, false);
-    assert.match(result.report.milestone_exit_reason, /complete production plan/);
+    assert.match(
+      result.report.milestone_exit_reason,
+      scenario === "marked-done" ? /requires completed M0/ : /complete production plan/,
+    );
     const passed = ["passed", "marked-done"].includes(scenario);
     assert.equal(result.report.required_gates_passed, passed);
     assert.equal(
       result.report.status,
-      passed ? "passed" : scenario === "quick" ? "incomplete" : "failed",
+      scenario === "marked-done"
+        ? "failed"
+        : passed
+          ? "passed"
+          : scenario === "quick"
+            ? "incomplete"
+            : "failed",
     );
-    assert.equal(result.exitCode, passed || scenario === "quick" ? 0 : 1);
+    assert.equal(
+      result.exitCode,
+      scenario === "marked-done" ? 1 : passed || scenario === "quick" ? 0 : 1,
+    );
     if (scenario === "quick") {
       for (const id of ["G1", "G4"])
         assert.equal(result.report.gates.find((gate) => gate.id === id).status, "skipped");

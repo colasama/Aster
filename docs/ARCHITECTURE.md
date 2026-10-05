@@ -227,8 +227,8 @@ decoders. Ordinary preview keeps media GPU-resident. Recursive capture binds obs
 availability, allocation capacity and effective instance counts to the exact supplied scene generation.
 Replay skips captured unavailable generators even on a healthy host, constrains successful invocations
 to their observed capacity, and rejects a consumer that cannot reproduce the captured count. The
-failure GPU case uses a healthy replay host, so omission is driven by transported data. Integration
-of these recursive snapshots into complete root-frame capture remains open.
+failure GPU case uses a healthy replay host, so omission is driven by transported data. Complete
+root-frame capture includes these recursive snapshots and their retained media generations.
 
 
 The final output route is a typed FPLN slice selecting scene or motion-blurred beauty, a depth or
@@ -306,8 +306,10 @@ their existing cache reuse. Each captured address retains the actual submitted `
 envelope with installed media pixels, all content-addressed resources, and the Rust admission report.
 Before independent TS replay, Rust validates resource hashes, nested plans and the unchanged submitted
 execution, then re-encodes the replay envelope exactly. Capture publication and M2 verification audit
-these artifacts for every frame, including sequence neighbors. Native GPU execution and the final
-milestone coverage audit remain separate requirements.
+these artifacts for every frame, including sequence neighbors. Root bundles declare a complete
+renderer plan, while partial stage contracts remain incomplete. The M2 exit auditor binds the
+current full correctness gates to this capture evidence and the reviewed execution boundary.
+Native GPU execution remains a separate capability to be implemented by the native renderer.
 
 Root and auxiliary draw contracts accept content-addressed media or planned surface references;
 instance-based raster-cache aliases are rejected at the transport boundary. Vector text retains

@@ -102,7 +102,7 @@ export function buildFrameBundle(input: FrameBundleInput): FrameBundle {
       kind: "frame_plan_slice",
       plan_version: 1,
       contract_level: "frame_bundle_slice_v1",
-      renderer_plan_complete: false,
+      renderer_plan_complete: true,
       header: structuredClone(header),
       resources: [...resources.used].sort(),
       blobs: [{ byte_offset: 0, byte_length: 24, element_type: "u32_le", element_count: 6 }],

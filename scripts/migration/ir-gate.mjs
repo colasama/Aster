@@ -736,6 +736,7 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
     report.source_after = await provenance(context.root);
     report.source_unchanged = report.source.source_sha256 === report.source_after.source_sha256;
     assert(report.source_unchanged, "Source changed during G1 verification");
+    report.renderer_plan_complete = true;
     report.status = "passed";
   } catch (error) {
     report.error = error.stack ?? error.message;

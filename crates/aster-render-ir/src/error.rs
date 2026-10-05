@@ -54,7 +54,7 @@ pub enum IrError {
     InvalidPostUniforms(String),
     #[error("Invalid temporal text sample payload: {0}")]
     InvalidTemporalText(String),
-    #[error("This transport contract cannot describe a complete renderer plan")]
+    #[error("Plan completeness must match the executable root bundle contract")]
     IncompleteFramePlan,
     #[error("Resource content hash differs from its descriptor and bytes")]
     HashMismatch,

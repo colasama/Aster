@@ -115,7 +115,7 @@ export interface FramePlanSliceV1 {
     | "post_effect_slice_v1"
     | "auxiliary_slice_v1"
     | "frame_bundle_slice_v1";
-  renderer_plan_complete: false;
+  renderer_plan_complete: boolean;
   header: FrameHeaderSlice;
   blobs: BlobDescriptor[];
   slices: PlanSlice[];

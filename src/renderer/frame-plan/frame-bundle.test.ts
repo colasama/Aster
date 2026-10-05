@@ -6,6 +6,14 @@ import { readFrameBundle, readFrameBundleAsync } from "./frame-bundle-read";
 import { contentResourceHashSync } from "./resources";
 
 describe("owned root frame bundles", () => {
+  it("requires the complete marker on executable root bundles", () => {
+    const packet = structuredClone(frameBundleFixtures()[1].frameBundle);
+    expect(packet.plan.metadata.renderer_plan_complete).toBe(true);
+    packet.plan.metadata.renderer_plan_complete = false;
+    expect(() => encodeFramePlan(packet.plan.metadata, packet.plan.blobs)).toThrow(
+      /complete renderer plan/,
+    );
+  });
   it("owns temporal samples and rejects duplicate passes and undeclared stages", () => {
     const packet = structuredClone(frameBundleFixtures()[2].frameBundle);
     const decoded = readFrameBundle(packet);

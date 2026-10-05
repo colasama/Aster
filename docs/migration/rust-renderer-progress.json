@@ -19251,10 +19251,142 @@
             "Schema and FPLN byte round-trip exact; actual capture artifacts complete; all current M2 required gates pass."
           ],
           "required_full_gates": ["G0", "G1", "G3"],
-          "status": "pending",
+          "status": "in_progress",
           "remaining_work": [
             "Disposition the preserved cycle71 owner-main frame 828 replay failure without reclassifying it as passed or claiming an unproven root-cause fix; retain exact comparisons and persistent dual-image rejection evidence."
-          ]
+          ],
+          "execution_boundary_audit": {
+            "status": "reviewed",
+            "project_evaluation_in_executor": false,
+            "reviewed_at": "2026-10-05T21:43:00.624Z",
+            "findings": [
+              "WebGpuRenderer evaluates and prepares authoring inputs before buildProductionFrameBundle. It records that exact bundle via recordPlannedFrame and preserves the submitted bundle for capture.",
+              "recordDecodedFrame uploads supplied scene/post buffers, executes typed root commands, recursive plans and generator invocations, then executes supplied auxiliary/motion/post/output stages. It accepts no Project or Composition input.",
+              "FrameBundleRenderer creates an independent GPU device. SuppliedFrameAssets and prepareSuppliedFrame install content-addressed media/material resources, blank temporal outputs, recursive surfaces and specified generator workloads solely from decoded transport.",
+              "Temporal derived outputs are recomputed from captured samples. Recursive prepareBundle validates descriptors and byte limits, pins targets before eviction, and realizes supplied scene plans without evaluating source compositions.",
+              "G1 exercises explicit resource eviction, pin protection, missing hashes and budget atomicity. Whole-corpus production-versus-independent replay and frozen-reference comparison provide dynamic coverage of the reviewed boundary."
+            ],
+            "files": [
+              {
+                "path": "src/renderer/webgpu-renderer.ts",
+                "sha256": "2ded218953f80791873c6e29dd3dfc84ad0bb5fbdbf29336b03851f89ee57c27"
+              },
+              {
+                "path": "src/renderer/compositing/build-production-frame-bundle.ts",
+                "sha256": "0156e7c42d2f28cf649ccd95aa74114468ad623afc20a3c757862a2317553879"
+              },
+              {
+                "path": "src/renderer/compositing/record-planned-frame.ts",
+                "sha256": "13e24864b0465b33b12c327b43231f9357e93ffdca417049248d2e162113b430"
+              },
+              {
+                "path": "src/renderer/compositing/execute-root-scene.ts",
+                "sha256": "c155eb56d6b4045613741f84d9490cb456e011caf0908f67b5add00e89f5cafd"
+              },
+              {
+                "path": "src/renderer/compositing/execute-frame-output.ts",
+                "sha256": "c52a112cab6794a34d335223deca403c48c7c36846b0b78aef928b690a0c58ae"
+              },
+              {
+                "path": "src/renderer/compositing/frame-bundle-renderer.ts",
+                "sha256": "d63545c987341e8448f96789e65b88a74c7b065fc4206a927721f8fd63f764c6"
+              },
+              {
+                "path": "src/renderer/compositing/prepare-supplied-frame.ts",
+                "sha256": "cd907dcf53adbf39fefbe285ac54e8491db2c057a8a634589bdafaa48f052bf9"
+              },
+              {
+                "path": "src/renderer/compositing/supplied-frame-assets.ts",
+                "sha256": "3def500cd9fb7c1fdff4311e52b96786ca41364b90fb9f249059bd18453286dc"
+              },
+              {
+                "path": "src/renderer/compositing/precomposition-surface-renderer.ts",
+                "sha256": "e4f024fff16e6a72cc4c2aab3465a9b441cedcac813f69e0aa9974f2ffd9cece"
+              },
+              {
+                "path": "src/renderer/text/supplied-temporal-text-passes.ts",
+                "sha256": "c6019921b4cdd67913ee967006db73f060e5220c330b900b2ac364870c209871"
+              }
+            ]
+          },
+          "rejected_capture_disposition": {
+            "verdict": "rejected-not-reproduced",
+            "root_cause": "unknown",
+            "case_id": "owner-main",
+            "frame": 828,
+            "report": {
+              "path": "artifacts/parity/capture-2026-10-05T17-02-36-269Z-7ef3349b.json",
+              "sha256": "3f32c932acb992357364dc4a466bf2dd9af173f916209639a50c5bc7f8b12e8e"
+            },
+            "observed": "Supplied frame differs at byte 4813872: 86 != 55. The original failed images were not retained; the cause cannot be established retrospectively.",
+            "decision": "Keep the failed capture rejected. Do not claim a root-cause fix, accept its pixels, change references or loosen exact tolerance. M2 acceptance requires a fresh complete capture and exact comparison including this address. Every future replay mismatch persists both lossless images and its comparison before rejection.",
+            "rejection_guard": [
+              {
+                "path": "scripts/parity/frame-replay-comparison.mjs",
+                "sha256": "901866f57446555b520bbcc4e476f654c6ba5f72c22e7e7b25d4103ed1b7ef5a"
+              },
+              {
+                "path": "scripts/parity/frame-replay-comparison.test.mjs",
+                "sha256": "83ea79e3ca12bdbe859debc92ff4377c77e0c7d9b46ba3414754e2897a033d14"
+              },
+              {
+                "path": "scripts/parity/capture-store.mjs",
+                "sha256": "85da430f8bc9f6c386b526d22d93b21985d190da2182be99641a3c72b81a7c24"
+              }
+            ]
+          },
+          "failed_attempts": [
+            {
+              "cycle": 75,
+              "verification": {
+                "path": "artifacts/migration/verify-2026-10-05T21-27-24-360Z-8f456468.json",
+                "sha256": "ca1010a60eca577f2813b1da8fc3050938bf325f1b133797dd94977c0f3ff780"
+              },
+              "capture": {
+                "path": "artifacts/parity/capture-2026-10-05T21-07-22-572Z-f8549e6c.json",
+                "sha256": "25e35e3ce65e2b4be2497a92e253d4ee1d83932727e803719df455aaf20f517e"
+              },
+              "reason": "G0/G1 passed; G3 rejected scene-lighting-directional frame15 because HDR material acquisition was outside exact-frame readiness. 1818 other comparisons were exact. The failed report remains rejected.",
+              "readiness_experiment": {
+                "status": "preserved-legacy-behavior",
+                "failed_frame": 15,
+                "reference_loading_frame": 0,
+                "diagnosis": "The preserved failure carries material fallback references while its accepted predecessor carries the HDR texture; other stage plans are byte-identical. Requiring readiness changes the frozen frame0 oracle and was therefore rejected and reverted.",
+                "rejected_capture": {
+                  "path": "artifacts/parity/capture-2026-10-05T21-07-22-572Z-f8549e6c.json",
+                  "sha256": "25e35e3ce65e2b4be2497a92e253d4ee1d83932727e803719df455aaf20f517e"
+                },
+                "rejected_readiness_capture": {
+                  "path": "artifacts/parity/capture-2026-10-05T21-40-23-685Z-6903ef10.json",
+                  "sha256": "3619b4c544d9ba2cba3eb5e496d9e3f7000004609603e4916e86a4ac2e112748"
+                },
+                "readiness_frame_comparison": {
+                  "path": "artifacts/migration/cycle75-lighting-fixed.json",
+                  "sha256": "5f9f19622e8617550d2c5303271fcc6a7cd8e303d33df91ee8cfe159f6073e9e"
+                },
+                "acceptance": "Require a new complete candidate and current full exact G3. Preserve both rejected attempts; do not substitute frames, claim a readiness fix or modify references/tolerances."
+              }
+            }
+          ],
+          "material_readiness_disposition": {
+            "status": "preserved-legacy-behavior",
+            "failed_frame": 15,
+            "reference_loading_frame": 0,
+            "diagnosis": "The preserved failure carries material fallback references while its accepted predecessor carries the HDR texture; other stage plans are byte-identical. Requiring readiness changes the frozen frame0 oracle and was therefore rejected and reverted.",
+            "rejected_capture": {
+              "path": "artifacts/parity/capture-2026-10-05T21-07-22-572Z-f8549e6c.json",
+              "sha256": "25e35e3ce65e2b4be2497a92e253d4ee1d83932727e803719df455aaf20f517e"
+            },
+            "rejected_readiness_capture": {
+              "path": "artifacts/parity/capture-2026-10-05T21-40-23-685Z-6903ef10.json",
+              "sha256": "3619b4c544d9ba2cba3eb5e496d9e3f7000004609603e4916e86a4ac2e112748"
+            },
+            "readiness_frame_comparison": {
+              "path": "artifacts/migration/cycle75-lighting-fixed.json",
+              "sha256": "5f9f19622e8617550d2c5303271fcc6a7cd8e303d33df91ee8cfe159f6073e9e"
+            },
+            "acceptance": "Require a new complete candidate and current full exact G3. Preserve both rejected attempts; do not substitute frames, claim a readiness fix or modify references/tolerances."
+          }
         }
       ],
       "started_at": "2026-10-03T23:49:41.992Z",
@@ -20126,6 +20258,175 @@
         "analysis": "artifacts/migration/cycle62-pixel-difference.json",
         "analysis_sha256": "3430e90649a29ecb6c9143057e352daff1a128e1fcec47c73beea43b9731a71f"
       }
+    },
+    {
+      "case_id": "scene-lighting-directional",
+      "frame": 15,
+      "profile": "exact",
+      "cycle": 75,
+      "verdict": "rejected",
+      "residual_class": "structural",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 45,
+        "mean_abs_error": 7.471150173611111,
+        "mean_squared_error": 245.38281684027777,
+        "rgb_mean_squared_error": 327.1770891203704,
+        "psnr": {
+          "kind": "finite",
+          "db": 22.982974766784416
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 24.232362132867415
+        },
+        "channel_tolerance": 0,
+        "pixels_above_tolerance": 19985
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 19985,
+        "error_component_count": 1,
+        "signed_bias": [-8.675451388888888, -9.403368055555555, -11.80578125, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0.0078125,
+          "distance": 0.0078125
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.2964072533185015,
+          "candidate_rms": 0.2710779297305767,
+          "reference_axis_ratio": 0.412476042690529,
+          "candidate_axis_ratio": 0.4130412839349653,
+          "reference_window_energy_fraction": 0.9180298155150834,
+          "candidate_window_energy_fraction": 0.9177585069659804,
+          "active_frequencies": 1704,
+          "spectral_bins": 524288,
+          "peak_ratio": 5.807196241868679,
+          "peak_to_sidelobe_ratio": 49.09894387670106,
+          "peak_coherence": 0.9993742974662194,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "evidence": {
+        "exact": {
+          "path": "artifacts/parity/ts-check/2026-10-05T21-29-18-734Z-1d75f105/G3/frames/scene-lighting-directional-15/report.json",
+          "sha256": "1b1e43855c17e8ae8f0b8bc05584657f4957c8470619706fa481e24d5b8e42ec"
+        },
+        "structural_diagnostic": {
+          "path": "artifacts/migration/cycle75-lighting-review/report.json",
+          "sha256": "f6f4f03ed701dee34dbbf2be228f5988789b1497231ca87f9d1cff6c1b575b94"
+        },
+        "contact_sheet": {
+          "path": "artifacts/parity/ts-check/2026-10-05T21-29-18-734Z-1d75f105/G3/frames/scene-lighting-directional-15/contact-sheet.png",
+          "sha256": "2f21464ac0fef75450b78b0aec740cc30db4ed4f8dc827debaece3dc9061e089"
+        },
+        "heatmap": {
+          "path": "artifacts/parity/ts-check/2026-10-05T21-29-18-734Z-1d75f105/G3/frames/scene-lighting-directional-15/heatmap.png",
+          "sha256": "cf2f2b6651efe4f7e21e2d0db0477f6c554e016d08c56081d1c85c36fea72769"
+        }
+      },
+      "notes": [
+        "Direct image inspection shows broad missing environment illumination, not numerical rounding; reject without changing reference or tolerance.",
+        "Compared with the prior accepted frame, scene/lighting, post, motion and output plans are byte-identical. Root material bindings alone use fallback instead of the captured HDR environment hash.",
+        "Exact-frame readiness combined media and audio but omitted lazy material decode/upload. Added material readiness through publication and a delayed GPU validation regression test; fresh capture and full gates remain required."
+      ]
+    },
+    {
+      "case_id": "scene-lighting-directional",
+      "frame": 0,
+      "profile": "gpu",
+      "cycle": 75,
+      "purpose": "rejected-readiness-behavior-change",
+      "verdict": "rejected",
+      "residual_class": "structural",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 45,
+        "mean_abs_error": 7.6809722222222225,
+        "mean_squared_error": 246.68705729166666,
+        "rgb_mean_squared_error": 328.9160763888889,
+        "psnr": {
+          "kind": "finite",
+          "db": 22.959952599107826
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 24.209339965190825
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 20723
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 20723,
+        "error_component_count": 1,
+        "signed_bias": [9.210399305555555, 9.653663194444444, 11.859826388888889, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0.0078125,
+          "dy": 0,
+          "distance": 0.0078125
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.27357329238524297,
+          "candidate_rms": 0.2987508254264851,
+          "reference_axis_ratio": 0.390072636550342,
+          "candidate_axis_ratio": 0.38930971316329355,
+          "reference_window_energy_fraction": 0.9130698239811503,
+          "candidate_window_energy_fraction": 0.9132830519850482,
+          "active_frequencies": 1732,
+          "spectral_bins": 524288,
+          "peak_ratio": 5.548066030124705,
+          "peak_to_sidelobe_ratio": 49.51055688328867,
+          "peak_coherence": 0.9994450506272439,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "evidence": {
+        "report": {
+          "path": "artifacts/migration/cycle75-lighting-ready-rejected/report.json",
+          "sha256": "803485864bf4ac7fd3f88d27ac737a8cfee920595aad0d94850bf733279ba1e2"
+        },
+        "contact_sheet": {
+          "path": "artifacts/migration/cycle75-lighting-ready-rejected/contact-sheet.png",
+          "sha256": "03f77fcccdf70a6a6fbda91bd9d69071387b86668bd98bac3b91162d7eaf72a1"
+        },
+        "heatmap": {
+          "path": "artifacts/migration/cycle75-lighting-ready-rejected/heatmap.png",
+          "sha256": "08a921722ff1aeac027de875b3cc859493356a371cc103bd4848a5cb6fac6977"
+        }
+      },
+      "notes": [
+        "Direct image inspection shows that mandatory material readiness adds environment illumination absent from the frozen first-frame oracle. This is a visible behavior change, not an acceptable precision residual.",
+        "The readiness experiment made frames15/30/59 exact but changed frame0, so the experiment and its regression test were withdrawn. Existing material-loading behavior, references and tolerances remain unchanged.",
+        "The complete FPLN preserves observed material fallback versus ready hashes. Native execution must honor that explicit availability; this M2 increment does not claim to repair legacy asynchronous material acquisition."
+      ]
     }
   ],
   "history": [
@@ -20793,5 +21094,12 @@
       }
     }
   ],
-  "active_cycle": null
+  "active_cycle": {
+    "id": 75,
+    "started_at": "2026-10-05T21:02:34.795Z",
+    "milestone": "M2",
+    "task": "M2-T15",
+    "intent": "Declare complete executable root plans and bind the M2 exit to current full correctness, resource lifetime and independent replay evidence.",
+    "base_commit": "6455eb89acf838155dd955936a20c978f569f304"
+  }
 }

@@ -39,6 +39,7 @@ function frameMetadata(bytes) {
   assert(bytes.length >= 32 && bytes.subarray(0, 4).toString() === "FPLN", "Missing FPLN header");
   assert.equal(bytes.readUInt32LE(20), bytes.length);
   const metadata = JSON.parse(bytes.subarray(32, 32 + bytes.readUInt32LE(8)).toString());
+  assert.equal(metadata.renderer_plan_complete, true, "Submitted frame plan is incomplete");
   assert.equal(
     metadata.contract_level,
     "frame_bundle_slice_v1",

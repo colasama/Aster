@@ -160,7 +160,6 @@ pub struct FramePlanSliceV1 {
     #[schemars(extend("const" = 1))]
     pub plan_version: u32,
     pub contract_level: ContractLevel,
-    #[schemars(extend("const" = false))]
     pub renderer_plan_complete: bool,
     pub header: FrameHeaderSlice,
     #[schemars(length(min = 1))]
@@ -178,7 +177,8 @@ impl FramePlanSliceV1 {
                 "unsupported plan_version".to_owned(),
             ));
         }
-        if self.renderer_plan_complete {
+        if self.renderer_plan_complete != (self.contract_level == ContractLevel::FrameBundleSliceV1)
+        {
             return Err(IrError::IncompleteFramePlan);
         }
         if self.header.project_revision > 9_007_199_254_740_991 {

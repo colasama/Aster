@@ -13,6 +13,14 @@ round trip for independent TS execution. Per-frame receipts and content-addresse
 are checked again before capture publication and during M2 verification. This transport validation
 does not claim that the native renderer executes those GPU commands yet.
 
+## Complete frame envelope
+
+The production root uses `contract_level: frame_bundle_slice_v1` and
+`renderer_plan_complete: true`. TS and Rust reject a false marker on that root and a true marker
+on any partial stage. The legacy `frame_plan_slice` kind remains the version-one container kind;
+completeness is determined by the root contract and its validated resource closure. Native GPU
+execution is a separate capability and is not implied by this marker.
+
 ## Initial scope
 
 The initial contract is a `frame_plan_slice` with `contract_level: post_uniforms_slice_v1` and

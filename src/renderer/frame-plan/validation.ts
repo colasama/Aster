@@ -142,9 +142,9 @@ export function validateMetadata(value: unknown, limits: FramePlanLimits): Frame
         "auxiliary_slice_v1",
         "frame_bundle_slice_v1",
       ].includes(String(metadata.contract_level)) &&
-      metadata.renderer_plan_complete === false,
+      metadata.renderer_plan_complete === (metadata.contract_level === "frame_bundle_slice_v1"),
     "unknown_variant",
-    "Only declared incomplete plan slices are supported",
+    "Only the root frame bundle may declare a complete renderer plan",
   );
   const header = object(metadata.header, [
     "snapshot_scope",

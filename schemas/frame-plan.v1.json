@@ -2444,7 +2444,6 @@
       "type": "integer"
     },
     "renderer_plan_complete": {
-      "const": false,
       "type": "boolean"
     },
     "resources": {

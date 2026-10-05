@@ -9,6 +9,7 @@ fn root_bundle_uses_typed_count_payload_and_requires_declared_stages() -> Result
     let mut metadata = Fixture::new()?.metadata;
     let stage = ResourceHash("a".repeat(64));
     metadata.contract_level = ContractLevel::FrameBundleSliceV1;
+    metadata.renderer_plan_complete = true;
     metadata.resources = vec![stage.clone()];
     metadata.blobs.truncate(1);
     metadata.blobs[0].element_type = ElementType::U32Le;
@@ -35,6 +36,12 @@ fn root_bundle_uses_typed_count_payload_and_requires_declared_stages() -> Result
         .flat_map(u32::to_le_bytes)
         .collect();
     let limits = DecodeLimits::default();
+    let mut incomplete = metadata.clone();
+    incomplete.renderer_plan_complete = false;
+    assert!(matches!(
+        FplnCodec::encode(incomplete, &[&bytes], &limits),
+        Err(IrError::IncompleteFramePlan)
+    ));
     let encoded = FplnCodec::encode(metadata.clone(), &[&bytes], &limits)?;
     assert_eq!(
         FplnCodec::decode(encoded.clone(), &limits)?.reencode(&limits)?,

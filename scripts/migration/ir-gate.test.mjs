@@ -203,7 +203,7 @@ test("G1 orchestrates all real TS codec checks and keeps renderer completion exp
   const f = await fixture(t);
   const result = await f.run();
   assert.equal(result.status, "passed", result.error);
-  assert.equal(result.renderer_plan_complete, false);
+  assert.equal(result.renderer_plan_complete, true);
   assert.equal(result.roundtrips.length, 128);
   assert.deepEqual(
     result.frame_bundles.map((bundle) => bundle.temporal_passes),

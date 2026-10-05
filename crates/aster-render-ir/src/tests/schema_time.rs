@@ -53,15 +53,15 @@ fn rational_wire_values_reject_quantization_normalization_and_unsafe_ranges() ->
 }
 
 #[test]
-fn generated_schema_is_deterministic_and_cannot_claim_a_complete_plan() -> Result<(), IrError> {
+fn generated_schema_is_deterministic_and_describes_plan_completeness() -> Result<(), IrError> {
     let first = FramePlanSchema::emit()?;
     assert_eq!(first, FramePlanSchema::emit()?);
     let schema: serde_json::Value =
         serde_json::from_slice(&first).map_err(|error| IrError::InvalidJson(error.to_string()))?;
     assert_eq!(schema["additionalProperties"], false);
     assert_eq!(
-        schema["properties"]["renderer_plan_complete"]["const"],
-        false
+        schema["properties"]["renderer_plan_complete"]["type"],
+        "boolean"
     );
     assert_eq!(schema["properties"]["plan_version"]["const"], 1);
     let times = schema["$defs"]["FrameTime"]["oneOf"]

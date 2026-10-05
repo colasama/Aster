@@ -7,6 +7,7 @@ import { runAppChecks } from "./app-checks.mjs";
 import { runIrGate } from "./ir-gate.mjs";
 import { auditM0Exit } from "./m0-exit.mjs";
 import { auditM1Exit } from "./m1-exit.mjs";
+import { auditM2Exit } from "./m2-exit.mjs";
 import { runPerformanceGate } from "./performance-gate.mjs";
 import { selectRequiredGates } from "./performance-policy.mjs";
 import { runStep } from "./process.mjs";
@@ -265,6 +266,23 @@ export async function verifyMigration(options, dependencies = {}) {
           throw new Error("M1 shared-shader exit audit did not pass");
         report.milestone_exit_reason =
           "Shared-source coverage, Naga, current TS exact parity and native effect shader smoke audited";
+      } catch (error) {
+        report.milestone_exit = { status: "failed", error: error.message };
+        report.milestone_exit_reason = error.message;
+      }
+    }
+    const planExit = milestone.tasks.find((task) => task.id === "M2-T15");
+    if (
+      milestone.id === "M2" &&
+      !quick &&
+      (milestone.status === "done" || ["in_progress", "done"].includes(planExit?.status))
+    ) {
+      try {
+        report.milestone_exit = await (dependencies.auditM2Exit ?? auditM2Exit)(root, report);
+        if (report.milestone_exit.status !== "passed")
+          throw new Error("M2 complete-frame exit audit did not pass");
+        report.milestone_exit_reason =
+          "Complete submitted plans, resource lifetimes, exact Rust transport and independent TS replay audited";
       } catch (error) {
         report.milestone_exit = { status: "failed", error: error.message };
         report.milestone_exit_reason = error.message;

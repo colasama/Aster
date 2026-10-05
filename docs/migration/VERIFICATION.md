@@ -251,8 +251,12 @@ The command validates transport; it does not implement native GPU rendering.
 Full G3 continues to compare all required TS frames under `exact`, retaining the effective reference
 set proven unchanged by completed M1. Each renderer-source change requires a fresh candidate
 capture. G1 success for a transport slice does not prove complete production plan consumption or
-resource replay. M2 exit remains unsatisfied until every extraction, capture and replay requirement
-is implemented and audited. Quick mode skips full G1 and cannot authorize a commit. All required
+resource replay. The M2 exit auditor runs when M2-T15 is active or completed. It binds current full
+G0/G1/G3 to unchanged source, regenerated schema, exact round trips, complete captured frame coverage,
+resource pin/eviction checks, and the reviewed production/supplied execution boundary. Executable
+root envelopes must declare completeness; partial stages cannot. Historical failed captures remain
+rejected, with their recorded disposition and a current exact comparison of the affected address.
+Quick mode skips full G1 and cannot authorize a commit. All required
 gates must pass in a full run before committing.
 
 ## Performance evidence
