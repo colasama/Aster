@@ -101,39 +101,39 @@
     }
   },
   "last_cycle": {
-    "id": 42,
-    "time": "2026-10-05T02:29:29.583Z",
+    "id": 43,
+    "time": "2026-10-05T03:01:39.019Z",
     "milestone": "M2",
-    "task": "M2-T7",
+    "task": "M2-T8",
     "outcome": "passed",
-    "commit": "e44644eef559d938963cb847fe7515132d7cb4aa",
-    "verification": "artifacts/migration/verify-2026-10-05T02-22-17-250Z-24cf8ef8.json",
-    "verification_sha256": "3c0317815113d424f26a058cef2aa700634bf66963f6b57a8130ff7b9610a718",
+    "commit": "138d05f06116cf384a2140ced705043f233b5dd4",
+    "verification": "artifacts/migration/verify-2026-10-05T02-54-25-387Z-a476b419.json",
+    "verification_sha256": "4eef8847608137721fa758113d07e0d69d877fc7705d9a9ed986e91c8e480858",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 82870
+        "duration_ms": 82115
       },
       {
         "id": "G1",
         "status": "passed",
-        "duration_ms": 5533
+        "duration_ms": 6388
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 292792
+        "duration_ms": 295031
       }
     ],
-    "verification_duration_ms": 382530,
-    "next_step": "Continue M2-T8: move isolation and fusion decisions into supplied effect plans.",
+    "verification_duration_ms": 384857,
+    "next_step": "Continue M2-T9: serialize and execute the ordered root scene stack.",
     "notes": [
-      "Added layer_effects_slice_v1 across TS/Rust: exact uniform/instruction bytes, binary64 bright-pass threshold, blend/route controls, pyramid requirements, UTF-16-safe identity and selected LUT hash.",
-      "Root and precomposition effect encoders consume supplied compiled plans and LUT payloads. Authored effect evaluation happens before command encoding; zero-op adjustments and deferred resource failures preserve previous behavior.",
-      "Six distinct frozen RGBA16F LUT/effect cases independently replay after six FPLN plans and three texture resources pass through Rust. A new page/device receives only supplied plans and pixels. Identity, custom LUT, adjustment, blur, glow and soft-light output match pre-extraction execution exactly.",
-      "Full M2 G0/G1/G3 passed with 51 general FPLN round trips, 1819 exact full-frame comparisons, existing temporal/normal/material checks and six required LUT effect replays. No ordinary-preview readback was introduced.",
-      "M2-T7 is complete. M2-T8 still owns isolation and fusion decisions; full captured-frame execution, native renderer and production preview/export migration remain open."
+      "Added effect_execution_slice_v1 with UTF-16-safe instance/layer identities, explicit direct/layer/adjustment/skip routing, fixed/backdrop/replace/none compositing and exact fusion statistics. TS/Rust reject inconsistent routing and invalid counts.",
+      "Root and precomposition encode loops consume supplied routing, blend and fusion decisions. No authored effect list or fusion analysis remains in these encode loops; the isolated effect executor consumes paired compiled data and explicit composite operation. Program/routing header and identity mismatches are rejected.",
+      "Preserved root empty-adjustment skip behavior, precomposition backdrop-only zero-op pass interruption, deferred malformed LUT failures and program overflow statistics. No-effect precomposition surfaces receive CPU execution plans without allocating an effect renderer.",
+      "G1 now covers 70 exact FPLN round trips, including 19 execution fixtures spanning all blend modes and edge cases. G3 transports six additional routing plans before independently replaying the existing six frozen LUT/effect outputs. A production precomposition test mutates authored effects and blend after preparation and verifies retained execution.",
+      "Full M2 G0/G1/G3 passed with 1819 exact required frame comparisons and all prior temporal/texture/material/LUT replay checks. M2-T8 is complete; ordered root stack, complete captured-frame execution and native preview/export remain open."
     ]
   },
   "milestones": [
@@ -14064,8 +14064,100 @@
             "Executor invoked with no Project/Composition/Layer cannot compile/re-evaluate effects."
           ],
           "required_full_gates": ["G0", "G1", "G3"],
-          "status": "in_progress",
-          "started_at": "2026-10-05T02:34:32.265Z"
+          "status": "done",
+          "started_at": "2026-10-05T02:34:32.265Z",
+          "increments": [
+            {
+              "cycle": 43,
+              "status": "passed",
+              "commit": "138d05f06116cf384a2140ced705043f233b5dd4",
+              "verification": {
+                "path": "artifacts/migration/verify-2026-10-05T02-54-25-387Z-a476b419.json",
+                "sha256": "4eef8847608137721fa758113d07e0d69d877fc7705d9a9ed986e91c8e480858"
+              },
+              "pixel_comparison": {
+                "path": "artifacts/parity/ts-check/2026-10-05T02-55-54-531Z-c6770845/report.json",
+                "sha256": "f32711cf9aae921063dc630bbf1304d4931e66032006146634e7d9b24bbbeec9"
+              },
+              "capture": {
+                "path": "artifacts/parity/capture-2026-10-05T02-47-45-816Z-d205eb91.json",
+                "sha256": "697d78824c75ccf0f4a99d3816165f690ed8d14234dfd24ef8059c848a6dba66"
+              },
+              "manifest": {
+                "path": "artifacts/parity/runs/2026-10-05T02-47-45-816Z-d205eb91/candidate/manifest.json",
+                "sha256": "47f2fee6cc36acc992249a018b7b4271022e7a7f4df7296e9c74320f98c6e78c"
+              },
+              "renderer_source_sha256": "7f625c47f8980a78483474ff92faaf009da8d8191e8f45e8ad0260a6c4c06b4c",
+              "bridge_sha256": "82ccf02fefd4c54e78a82a4de08df6906714ecd0b198864ec72cb0c0394dd80c",
+              "temporal_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T02-55-54-531Z-c6770845/temporal-text/gpu.json",
+                "sha256": "598e835cdbc8451db89efe1907137c20c99965397a542688833a7c0753b30722"
+              },
+              "temporal_reference": {
+                "path": "tests/parity/temporal-text/reference/manifest.json",
+                "sha256": "e3e3b1184d5bc969dcd5cf76a424a551a0cac1a85484e157c5b549e5d6c811d1"
+              },
+              "encoded_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T02-55-54-531Z-c6770845/encoded-textures/gpu.json",
+                "sha256": "9028f092c712475018d1db0dfb7122b7e5704ff3ac8c8b82ecaa4b950963c872"
+              },
+              "encoded_reference": {
+                "path": "tests/parity/material-textures/legacy-upload.ts",
+                "sha256": "508c2ad47f5a3f6e18069ce070e0ee0133668074bf81309a9144180f532f2498"
+              },
+              "material_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T02-55-54-531Z-c6770845/material-draw/gpu.json",
+                "sha256": "26fbad56513b96310770da0538c5ac89d791322886d4d66134972714e0cdfe58"
+              },
+              "material_reference": {
+                "path": "tests/parity/material-draw/reference/manifest.json",
+                "sha256": "06debe986bca2118a9d4a07f5cc36a31b3926398f95d582e25f90ceabc21bc6e"
+              },
+              "material_implementation": {
+                "path": "tests/parity/material-draw/legacy-bindings.ts",
+                "sha256": "ff838daeb3950e90d263504007836d900060e9a2ff1ddb30e706a76d0a011d79"
+              },
+              "lut_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T02-55-54-531Z-c6770845/lut-draw/gpu.json",
+                "sha256": "b80c09bbf0624b5c7d0f0147dedaafba3356c689451337bbbe2524e12d32c7a4"
+              },
+              "lut_reference": {
+                "path": "tests/parity/lut-draw/reference/manifest.json",
+                "sha256": "2e026afbad6143b822f38490650920003d0ad53705d705d1f2c206f05f181d59"
+              },
+              "lut_implementation": {
+                "path": "tests/parity/lut-draw/legacy-effects.ts",
+                "sha256": "999fb67e09a07322e7d8d9ea2c58a0442d7d5377f0cd1029eeab16e29f714a0b"
+              },
+              "gates": [
+                {
+                  "id": "G0",
+                  "status": "passed",
+                  "duration_ms": 82115
+                },
+                {
+                  "id": "G1",
+                  "status": "passed",
+                  "duration_ms": 6388
+                },
+                {
+                  "id": "G3",
+                  "status": "passed",
+                  "duration_ms": 295031
+                }
+              ],
+              "notes": [
+                "Added effect_execution_slice_v1 with UTF-16-safe instance/layer identities, explicit direct/layer/adjustment/skip routing, fixed/backdrop/replace/none compositing and exact fusion statistics. TS/Rust reject inconsistent routing and invalid counts.",
+                "Root and precomposition encode loops consume supplied routing, blend and fusion decisions. No authored effect list or fusion analysis remains in these encode loops; the isolated effect executor consumes paired compiled data and explicit composite operation. Program/routing header and identity mismatches are rejected.",
+                "Preserved root empty-adjustment skip behavior, precomposition backdrop-only zero-op pass interruption, deferred malformed LUT failures and program overflow statistics. No-effect precomposition surfaces receive CPU execution plans without allocating an effect renderer.",
+                "G1 now covers 70 exact FPLN round trips, including 19 execution fixtures spanning all blend modes and edge cases. G3 transports six additional routing plans before independently replaying the existing six frozen LUT/effect outputs. A production precomposition test mutates authored effects and blend after preparation and verifies retained execution.",
+                "Full M2 G0/G1/G3 passed with 1819 exact required frame comparisons and all prior temporal/texture/material/LUT replay checks. M2-T8 is complete; ordered root stack, complete captured-frame execution and native preview/export remain open."
+              ]
+            }
+          ],
+          "completed_at": "2026-10-05T03:01:39.018Z",
+          "completed_commit": "138d05f06116cf384a2140ced705043f233b5dd4",
+          "remaining_work": []
         },
         {
           "id": "M2-T9",
@@ -14237,7 +14329,7 @@
       ],
       "preview_baseline_path": "benchmarks/results/m2-preview-baseline.json",
       "preview_baseline_sha256": "a1c62e224c008e731c252142ab1b9de7d31ecf592452c00da1dff42516772375",
-      "active_candidate_manifest": "artifacts/parity/runs/2026-10-05T02-15-53-484Z-14a1e8e3/candidate/manifest.json",
+      "active_candidate_manifest": "artifacts/parity/runs/2026-10-05T02-47-45-816Z-d205eb91/candidate/manifest.json",
       "last_verification": {
         "status": "passed",
         "required_gates_passed": true,
@@ -14246,17 +14338,17 @@
           {
             "id": "G0",
             "status": "passed",
-            "duration_ms": 82870
+            "duration_ms": 82115
           },
           {
             "id": "G1",
             "status": "passed",
-            "duration_ms": 5533
+            "duration_ms": 6388
           },
           {
             "id": "G3",
             "status": "passed",
-            "duration_ms": 292792
+            "duration_ms": 295031
           }
         ],
         "optional_gates": [
@@ -14267,7 +14359,7 @@
           }
         ],
         "performance_policy": "rust-delivery-v1",
-        "report": "artifacts/migration/verify-2026-10-05T02-22-17-250Z-24cf8ef8.json"
+        "report": "artifacts/migration/verify-2026-10-05T02-54-25-387Z-a476b419.json"
       },
       "performance_series_history": [
         {
@@ -15573,12 +15665,5 @@
       }
     }
   ],
-  "active_cycle": {
-    "id": 43,
-    "milestone": "M2",
-    "task": "M2-T8",
-    "started_at": "2026-10-05T02:34:32.265Z",
-    "scope": "Transport explicit effect routing/composite decisions and fusion statistics; remove authored effect decisions from root/precomposition encode loops.",
-    "previous_turn_classification": "progress: cycle42 completed M2-T7 with full exact gates and committed ledger."
-  }
+  "active_cycle": null
 }
