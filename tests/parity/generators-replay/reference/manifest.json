@@ -1,0 +1,70 @@
+{
+  "reference_commit": "d4a6a4db0e28c3108e590bda45c19a2876d5df1b",
+  "profile": "exact",
+  "format": "rgba16float-le",
+  "width": 128,
+  "height": 96,
+  "implementation": {
+    "path": "tests/parity/generators-replay/legacy-host.ts",
+    "sha256": "e458d028ca20002b7e7379f9daf9d5ca0a0f0960a3676dd3e0153e5ce19c8392"
+  },
+  "scope": "Generator compute, ordered indirect draw, selected variants, cloned transforms and root-time audio through the retained pre-extraction host. Captured separately before independent replay.",
+  "cases": [
+    {
+      "id": "billboard",
+      "counts": [257],
+      "root_time": 1.1,
+      "bytes": 98304,
+      "path": "tests/parity/generators-replay/reference/billboard.bin",
+      "sha256": "79d80baf99c4b71e9761a1d983ff83b5713109a8a61529a81974819d6591f025"
+    },
+    {
+      "id": "streak",
+      "counts": [257],
+      "root_time": 1.1,
+      "bytes": 98304,
+      "path": "tests/parity/generators-replay/reference/streak.bin",
+      "sha256": "38c580bdb85bded039122c8cf12699225851168a21374b3df6fb0fa2bc10845b"
+    },
+    {
+      "id": "mesh",
+      "counts": [257],
+      "root_time": 1.1,
+      "bytes": 98304,
+      "path": "tests/parity/generators-replay/reference/mesh.bin",
+      "sha256": "21c8a7482a791773f57bf236db939a770e34d9937f91ee69341f623b17da2df2"
+    },
+    {
+      "id": "clones",
+      "counts": [257, 257],
+      "root_time": 1.1,
+      "bytes": 98304,
+      "path": "tests/parity/generators-replay/reference/clones.bin",
+      "sha256": "c458b050840ebf377f0cf3ad9ad2716d0b83c665f0736f25990db617b39c2a75"
+    },
+    {
+      "id": "audio-bars",
+      "counts": [48],
+      "root_time": 1.1,
+      "bytes": 98304,
+      "path": "tests/parity/generators-replay/reference/audio-bars.bin",
+      "sha256": "b5e15f3ba91bd60c09148baee77c528bb8814d1d53e2db8a6b6f7d3b35ac532c"
+    },
+    {
+      "id": "audio-ring",
+      "counts": [48],
+      "root_time": 1.1,
+      "bytes": 98304,
+      "path": "tests/parity/generators-replay/reference/audio-ring.bin",
+      "sha256": "9c0135449ab0a1306c5357c94b9e098ba86b7aec84717d5a5565a2ed031dea1c"
+    },
+    {
+      "id": "audio-scope",
+      "counts": [48],
+      "root_time": 1.1,
+      "bytes": 98304,
+      "path": "tests/parity/generators-replay/reference/audio-scope.bin",
+      "sha256": "b8369ad2ebcfc04f3e97112e744643c2e0affa804250507e3a949b5523fd0197"
+    }
+  ]
+}

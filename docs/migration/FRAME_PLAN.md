@@ -385,8 +385,8 @@ programs, allocates resources and uploads those exact bytes. A failed resize ret
 buffer and constrains a copy of context/dispatch counts; source plans remain unchanged. Root-time
 audio is sampled once by the producer and conflicting audio within one executing frame is rejected.
 The existing `prepare` entry point adapts authoring inputs to this plan for root and precomposition
-callers. Wire transport is described below; independent generator GPU replay and complete
-frame capture are still required before this portion of the frame plan is complete.
+callers. Wire transport and independent GPU replay are described below; integration into complete
+frame capture is still required.
 
 ### Generator transport slice
 
@@ -407,5 +407,14 @@ from a supplied key. The resource list contains exactly the graph's shader ident
 
 Production root and precomposition generator adapters build and read this contract before GPU
 realization. G1 sends bundled billboard, cloned mesh/LOD and capability-enabled audio fixtures
-through the Rust CLI and records actual consumer uploads and dispatches. Independent generator
-GPU replay and complete frame capture remain outstanding; this slice is still explicitly incomplete.
+through the Rust CLI and records actual consumer uploads and dispatches.
+
+G3 separately captures the retained pre-extraction host, then replays Rust-returned plans and
+shader resources in a fresh page/device with no installed registry. Seven exact cases cover
+billboard, streak, mesh, two generator clones and the installed audio-spectrum plugin's bars,
+ring and scope variants. The eight plans preserve source-index draw ordering and remapped local
+time separately from root-time audio. Four WGSL resources travel through the Rust resource
+boundary. Skipping compute, changing supplied context opacity, clearing supplied audio or removing
+a clone must visibly alter pixels. Reference pixels and the retained implementation are frozen
+and hash-pinned; the checking command cannot update them. Complete frame capture remains pending,
+and this slice does not claim a complete renderer plan.

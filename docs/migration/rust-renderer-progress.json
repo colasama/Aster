@@ -103,6 +103,11 @@
       "path": "tests/parity/root-scene/reference/manifest.json",
       "sha256": "4c5b2ffd5828db24f929f1bcc350a4a7e7c75be05cb65b9bbe2b4c48eaba267f",
       "reference_commit": "e5130c134d13d1e442a6efa9cdc64466b620bc9a"
+    },
+    "generator_draw": {
+      "path": "tests/parity/generators-replay/reference/manifest.json",
+      "sha256": "a573fe3ababaa0f207eed4a0a6d11a4269ee90a877a244c1f8abed9fdbbfce09",
+      "reference_commit": "d4a6a4db0e28c3108e590bda45c19a2876d5df1b"
     }
   },
   "last_cycle": {
@@ -16330,5 +16335,16 @@
       }
     }
   ],
-  "active_cycle": null
+  "active_cycle": {
+    "id": 50,
+    "started_at": "2026-10-05T05:47:50.729Z",
+    "milestone": "M2",
+    "task": "M2-T10",
+    "intent": "Independently GPU-replay Rust-returned generator plans and shader/audio resources against retained pre-extraction execution, with visible mutation evidence.",
+    "previous_turn": "progress: generator FPLN transport committed with full G0/G1/G3 passed.",
+    "usage": {
+      "used_percent": 31,
+      "remaining_percent": 69
+    }
+  }
 }

@@ -198,7 +198,7 @@ test("TS comparison audits complete capture provenance, keeps one build, and bin
 });
 
 test("M2 retains exact and frozen M0 references without checking historical M0 candidate source", async (t) => {
-  for (const gpuFailure of [false, "temporal", "encoded", "material", "lut", "root"]) {
+  for (const gpuFailure of [false, "temporal", "encoded", "material", "lut", "root", "generator"]) {
     const f = await candidateFixture(t);
     const result = await verifyTsPixels(
       { root: f.root, candidates: f.candidates, milestone: "M2" },
@@ -211,6 +211,7 @@ test("M2 retains exact and frozen M0 references without checking historical M0 c
           status: gpuFailure === "encoded" ? "failed" : "passed",
         }),
         auditRootScenes: async () => ({ status: gpuFailure === "root" ? "failed" : "passed" }),
+        auditGenerators: async () => ({ status: gpuFailure === "generator" ? "failed" : "passed" }),
         auditLutDraws: async () => ({ status: gpuFailure === "lut" ? "failed" : "passed" }),
         auditMaterialDraws: async () => ({
           status: gpuFailure === "material" ? "failed" : "passed",
@@ -243,7 +244,9 @@ test("M2 retains exact and frozen M0 references without checking historical M0 c
               ? /Material draw GPU verification did not pass/
               : gpuFailure === "lut"
                 ? /Supplied LUT draw replay failed/
-                : /Root scene GPU replay failed/,
+                : gpuFailure === "root"
+                  ? /Root scene GPU replay failed/
+                  : /Generator GPU replay failed/,
       );
     else assert.equal(result.report.temporal_text.status, "passed");
     assert.deepEqual(result.report.frozen_reference, f.reference);

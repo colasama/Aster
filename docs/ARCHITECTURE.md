@@ -181,8 +181,11 @@ only supplied plans; authoring lookup, time mapping, variant selection and LOD r
 producer. Allocation failure can bound the supplied count to retained storage without mutating
 its plan. The generator FPLN slice now transports executable metadata and packed context, parameters,
 indirect initialization and optional audio through Rust. Production root and precomposition
-adapters execute decoded inputs; G1 verifies exact payloads and supplied execution. Independent
-generator GPU replay and complete frame capture remain pending.
+adapters execute decoded inputs; G1 verifies exact payloads and supplied execution. G3 additionally
+round-trips eight invocation plans and four shader resources through Rust, then replays seven
+particle, cloner and installed audio-plugin cases on an independent device. Outputs exactly match
+frozen pre-extraction host captures; fifteen deliberate compute/context/audio/clone mutations must
+visibly change pixels. Complete frame capture remains pending.
 
 Shared WGSL includes output anti-aliasing, core scene variants, compositing, fused post-processing,
 blur/depth/surface effects, auxiliary surfaces, particles, text motion blur and display/buffer helpers.

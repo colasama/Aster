@@ -5,6 +5,7 @@ import { join, relative, resolve } from "node:path";
 import { runPixelGate } from "../parity/pixel-gate.mjs";
 import { captureSource } from "../parity/provenance.mjs";
 import { auditEncodedTextures } from "./encoded-texture-gate.mjs";
+import { auditGenerators } from "./generator-gate.mjs";
 import { auditLutDraws } from "./lut-draw-gate.mjs";
 import { evidencePath, M0Evidence } from "./m0-evidence.mjs";
 import { auditMaterialDraws } from "./material-draw-gate.mjs";
@@ -127,6 +128,12 @@ export async function verifyTsPixels(options, dependencies = {}) {
         execute,
       );
       assert.equal(report.root_scenes.status, "passed", "Root scene GPU replay failed");
+      report.generators = await (dependencies.auditGenerators ?? auditGenerators)(
+        reader,
+        context,
+        execute,
+      );
+      assert.equal(report.generators.status, "passed", "Generator GPU replay failed");
     }
     report.gate = await (dependencies.runPixelGate ?? runPixelGate)(
       { ...context, output: join(output, "G3") },
