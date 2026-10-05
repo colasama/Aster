@@ -267,11 +267,19 @@ domain-separated content hash. Registries account the binary bytes against their
 Production LUT and HDR uploads consume prepared resources; names remain diagnostic labels outside
 resource identity. HDR preparation strips worker row padding and writes owned little-endian binary16
 lanes without changing their bits. Material preparation snapshots scalar settings and ready texture
-generations on geometry batches before encoding. Drawing consumes the supplied snapshot, preserves
-pending fallbacks, and rejects retired generations before creating a binding. These local snapshots
-still require FPLN transport with hash-addressed owners; normal preparation and LUT-selection planning
-also remain open. The renderer encodes synchronously through submission, so asynchronous uploads
+hashes on geometry batches before encoding. Drawing consumes the supplied snapshot, preserves pending
+fallbacks, and resolves owners by hash independently of draw IDs. Missing hashes and texture role
+mismatches fail before binding. Retiring a duplicate owner invalidates bind groups that may reference
+it. These local binding snapshots still require FPLN transport and LUT-selection planning.
+The renderer encodes synchronously through submission, so asynchronous uploads
 cannot retire resources midway through this local execution scope.
+
+`encoded_texture` resources carry bounded compressed PNG/JPEG/WebP bytes with linear `rgba8unorm`
+output and `color_space_conversion: "none"`. TS/Rust validate the encoding signature, format, 64 MiB
+encoded-byte ceiling and descriptor/payload hash. Signature admission does not prove successful
+decoding. The upload consumer owns bytes across asynchronous hashing, decodes without authoring URLs,
+and checks the existing 4096px/64 MiB decoded normal limit before GPU allocation. Original bitmap
+copy semantics are preserved; ordinary preview performs no texture readback.
 
 G1 regenerates the schema to a fresh ignored path and compares it byte-for-byte with the expected
 schema, without rewriting that expected file. It constructs real TS uniform payloads, encodes them,

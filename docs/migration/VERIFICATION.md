@@ -144,6 +144,12 @@ production GPU uploads with exact format, extent and row/layer layout. Both regi
 corrupted pixels; upload tests reject descriptor/hash corruption before allocation. Material tests
 mutate authoring inputs after preparation, check supplied uniforms and pending fallback behavior,
 reject retired generations, and retire a normal upload while GPU validation is pending.
+G3 also verifies PNG/JPEG/WebP normal uploads outside the legacy scene corpus. A pinned legacy
+uploader records actual linear RGBA8 texture bytes, then its GPU device and page are destroyed.
+Encoded resource messages and payloads pass through Rust before a new page/device decodes and uploads
+them. Every replay texel must match exactly; the consumer never receives reference pixels. The gate
+audits saved payload hashes, Rust-returned messages and both pixel buffers. This verifies normal
+resource upload; complete material draw-plan replay remains required.
 Temporal sample fixtures cover full, entering and exiting
 exposure, plus transparent and exact-bit fixtures. Supplied samples and exposure identities must
 survive Rust decoding and TS cloning; invalid formats, frame time, weights and sample lanes fail.

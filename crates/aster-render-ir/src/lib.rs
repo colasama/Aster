@@ -3,6 +3,7 @@
 mod camera;
 mod canonical;
 mod codec;
+mod encoded_texture;
 mod error;
 mod fixture;
 mod frame_rate;
@@ -22,6 +23,7 @@ mod wire;
 
 pub use camera::{CameraIrisShape, CameraParametersSlice, CameraPoseMode, CameraProjectionKind};
 pub use codec::{DecodeLimits, FplnCodec, OwnedFpln};
+pub use encoded_texture::{EncodedTextureDescriptor, TextureColorConversion, TextureEncoding};
 pub use error::IrError;
 pub use fixture::IrFixture;
 pub use frame_rate::{BinaryRationalTime, FrameRate};

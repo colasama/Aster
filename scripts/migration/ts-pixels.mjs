@@ -4,6 +4,7 @@ import { mkdir } from "node:fs/promises";
 import { join, relative, resolve } from "node:path";
 import { runPixelGate } from "../parity/pixel-gate.mjs";
 import { captureSource } from "../parity/provenance.mjs";
+import { auditEncodedTextures } from "./encoded-texture-gate.mjs";
 import { evidencePath, M0Evidence } from "./m0-evidence.mjs";
 import { runStep } from "./process.mjs";
 import { auditCapturedRasters } from "./raster-capture-gate.mjs";
@@ -90,6 +91,16 @@ export async function verifyTsPixels(options, dependencies = {}) {
         report.temporal_text.status,
         "passed",
         "Temporal text GPU verification did not pass",
+      );
+      report.encoded_textures = await (dependencies.auditEncodedTextures ?? auditEncodedTextures)(
+        reader,
+        context,
+        execute,
+      );
+      assert.equal(
+        report.encoded_textures.status,
+        "passed",
+        "Encoded texture GPU verification did not pass",
       );
     }
     report.gate = await (dependencies.runPixelGate ?? runPixelGate)(

@@ -149,6 +149,7 @@ impl IrArgs {
                                 ResourceKind::Buffer
                                     | ResourceKind::RasterPixels
                                     | ResourceKind::TexturePixels
+                                    | ResourceKind::EncodedTexture
                             ) {
                                 let directory = payloads.as_ref().ok_or_else(|| {
                                     IrError::MissingResource(request.hash.0.clone())

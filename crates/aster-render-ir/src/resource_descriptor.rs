@@ -2,8 +2,8 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    BufferResourceDescriptor, IrError, MediaFrameDescriptor, MediaSourceDescriptor,
-    RasterPixelsDescriptor, ResourceKind, TexturePixelsDescriptor,
+    BufferResourceDescriptor, EncodedTextureDescriptor, IrError, MediaFrameDescriptor,
+    MediaSourceDescriptor, RasterPixelsDescriptor, ResourceKind, TexturePixelsDescriptor,
 };
 
 #[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
@@ -14,11 +14,15 @@ pub enum ResourceDescriptor {
     MediaFrame(MediaFrameDescriptor),
     RasterPixels(RasterPixelsDescriptor),
     TexturePixels(TexturePixelsDescriptor),
+    EncodedTexture(EncodedTextureDescriptor),
 }
 
 impl ResourceDescriptor {
     pub fn validate(&self, kind: ResourceKind, bytes: &[u8]) -> Result<(), IrError> {
         match (self, kind) {
+            (Self::EncodedTexture(descriptor), ResourceKind::EncodedTexture) => {
+                descriptor.validate(bytes)
+            }
             (Self::Buffer(descriptor), ResourceKind::Buffer) => descriptor.validate(bytes),
             (Self::TexturePixels(descriptor), ResourceKind::TexturePixels) => {
                 descriptor.validate(bytes)

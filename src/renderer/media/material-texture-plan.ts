@@ -8,11 +8,11 @@ export interface MaterialTexturePlan {
   environmentRotation: number;
 }
 
-/** Prepared values and owner generations; no authoring objects reach the draw consumer. */
+/** Prepared values and resource hashes; no authoring objects reach the draw consumer. */
 export interface MaterialBindingPlan extends MaterialTexturePlan {
   instanceId: string;
-  normalRevision: number;
-  environmentRevision: number;
+  normalHash: string | null;
+  environmentHash: string | null;
 }
 
 export function planMaterialTextures(

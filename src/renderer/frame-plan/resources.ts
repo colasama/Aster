@@ -1,5 +1,6 @@
 import { sha256 } from "@noble/hashes/sha2.js";
 import { canonicalJson, hash, integer, object, requirePlan } from "./canonical";
+import { encodedTextureEncoding, validateEncodedTexture } from "./encoded-texture";
 import { validateMediaFrame, validateMediaSource } from "./media-descriptors";
 import { validateRasterPixels } from "./raster-pixels";
 import { validateTexturePixels } from "./texture-pixels";
@@ -14,6 +15,15 @@ export async function resourceHash(
 }
 
 export function validateResourceContent(content: ResourceContent, bytes: Uint8Array): void {
+  if (content.kind === "encoded_texture") {
+    const d = validateEncodedTexture(content.descriptor);
+    requirePlan(
+      encodedTextureEncoding(bytes) === d.encoding,
+      "invalid_resource",
+      "Texture encoding mismatch",
+    );
+    return;
+  }
   if (content.kind === "texture_pixels") {
     const d = validateTexturePixels(content.descriptor);
     requirePlan(
@@ -105,6 +115,7 @@ export function validateResourceMessage(value: unknown): ResourceMessage {
     else if (message.kind === "media_frame") validateMediaFrame(message.descriptor);
     else if (message.kind === "raster_pixels") validateRasterPixels(message.descriptor);
     else if (message.kind === "texture_pixels") validateTexturePixels(message.descriptor);
+    else if (message.kind === "encoded_texture") validateEncodedTexture(message.descriptor);
     else requirePlan(false, "unknown_variant", "Unsupported resource kind");
     return message as unknown as ResourceMessage;
   }
@@ -176,6 +187,7 @@ export class FrameResourceRegistry {
     requirePlan(
       (message.kind !== "buffer" &&
         message.kind !== "raster_pixels" &&
+        message.kind !== "encoded_texture" &&
         message.kind !== "texture_pixels") ||
         bytes !== undefined,
       "missing_resource",
@@ -186,6 +198,7 @@ export class FrameResourceRegistry {
     const accountedBytes =
       message.kind === "buffer" ||
       message.kind === "raster_pixels" ||
+      message.kind === "encoded_texture" ||
       message.kind === "texture_pixels"
         ? inputBytes.byteLength
         : new TextEncoder().encode(canonicalJson(message.descriptor)).length;

@@ -183,6 +183,7 @@ export interface FramePlanSliceData {
 }
 
 export type ResourceContent =
+  | { kind: "encoded_texture"; descriptor: EncodedTextureDescriptor }
   | { kind: "buffer"; descriptor: BufferResourceDescriptor }
   | { kind: "media_source"; descriptor: MediaSourceDescriptor }
   | { kind: "raster_pixels"; descriptor: RasterPixelsDescriptor }
@@ -202,3 +203,5 @@ export class FramePlanError extends Error {
     this.name = "FramePlanError";
   }
 }
+
+import type { EncodedTextureDescriptor } from "./encoded-texture";

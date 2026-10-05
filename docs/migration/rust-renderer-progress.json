@@ -80,6 +80,12 @@
       "reference_commit": "f40eafe06d81c47c20e01458dbaadb007c3fd68a",
       "donor": "artifacts/migration/cycle31-temporal-gpu.json",
       "policy": "Four additional resolved temporal glyph outputs, verified exact against the pre-cycle-31 cache. Preserve these references independently of the unchanged original whole-frame corpus."
+    },
+    "normal_texture_upload": {
+      "path": "tests/parity/material-textures/legacy-upload.ts",
+      "sha256": "508c2ad47f5a3f6e18069ce070e0ee0133668074bf81309a9144180f532f2498",
+      "reference_commit": "9121e2b3a507c57a14cfed6c055c9a176657f9f4",
+      "scope": "Normal ImageBitmap decode and linear RGBA8 external-image upload; COPY_SRC added only for diagnostic readback."
     }
   },
   "last_cycle": {
@@ -15204,5 +15210,12 @@
       }
     }
   ],
-  "active_cycle": null
+  "active_cycle": {
+    "id": 38,
+    "milestone": "M2",
+    "task": "M2-T7",
+    "started_at": "2026-10-05T00:30:01.671Z",
+    "scope": "Transport encoded normal textures through TS/Rust resource validation and resolve supplied material textures by content hash.",
+    "previous_turn_classification": "progress: cycle37 committed material parameter preparation and packed HDR uploads with full exact gates."
+  }
 }

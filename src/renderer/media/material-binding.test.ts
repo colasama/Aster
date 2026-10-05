@@ -91,6 +91,54 @@ it("draws supplied material settings after authoring changes and rejects retired
   f.renderer.destroy();
 });
 
+it("binds normal hashes independently of draw IDs and replaces retired duplicate owners", async () => {
+  const f = fixture();
+  f.layer.mesh = {
+    name: "mesh",
+    positions: [],
+    normals: [],
+    uvs: [],
+    indices: [],
+    materialTextures: {
+      normal: { dataUrl: "normal:shared", mimeType: "image/png", texCoord: 0, scale: 0.75 },
+    },
+  };
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => ({
+      ok: true,
+      blob: async () => new Blob([new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10])]),
+    })),
+  );
+  vi.stubGlobal(
+    "createImageBitmap",
+    vi.fn(async () => ({ width: 1, height: 1, close: vi.fn() })),
+  );
+  const second: GeometryBatch = { ...f.batch, resourceInstanceId: "second" };
+  f.renderer.prepare(f.composition, [f.batch]);
+  await vi.waitFor(() => expect(f.renderer.hasPendingResources).toBe(false));
+  f.renderer.prepare(f.composition, [f.batch, second]);
+  await vi.waitFor(() => expect(f.renderer.hasPendingResources).toBe(false));
+  f.renderer.prepare(f.composition, [f.batch, second]);
+  expect(f.batch.materialTexturePlan?.normalHash).toBe(second.materialTexturePlan?.normalHash);
+  if (!second.materialTexturePlan) throw Error("Material plan missing");
+  const supplied = { ...second.materialTexturePlan, instanceId: "independent-wire-instance" };
+  expect(f.renderer.bindingFor(supplied, "normal")).toBeDefined();
+  const before = f.device.createBindGroup.mock.calls.length;
+  const firstTexture = f.device.createTexture.mock.results[0].value;
+  const secondTexture = f.device.createTexture.mock.results[1].value;
+  f.renderer.prepare(f.composition, [second]);
+  expect(firstTexture.destroy).toHaveBeenCalledOnce();
+  expect(f.renderer.bindingFor(supplied, "normal")).toBeDefined();
+  expect(f.device.createBindGroup).toHaveBeenCalledTimes(before + 1);
+  expect(secondTexture.createView).toHaveBeenCalledOnce();
+  f.renderer.prepare(f.composition, []);
+  expect(() => f.renderer.bindingFor(supplied, "normal")).toThrow(
+    expect.objectContaining({ code: "missing_resource" }),
+  );
+  f.renderer.destroy();
+});
+
 it("destroys a normal upload retired while GPU validation is pending", async () => {
   const f = fixture();
   f.layer.mesh = {
@@ -106,7 +154,10 @@ it("destroys a normal upload retired while GPU validation is pending", async () 
   const bitmap = { width: 1, height: 1, close: vi.fn() };
   vi.stubGlobal(
     "fetch",
-    vi.fn(async () => ({ ok: true, blob: async () => new Blob(["image"]) })),
+    vi.fn(async () => ({
+      ok: true,
+      blob: async () => new Blob([new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10])]),
+    })),
   );
   vi.stubGlobal(
     "createImageBitmap",

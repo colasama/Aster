@@ -141,9 +141,12 @@ formats. Descriptor and little-endian pixel bytes share one content hash validat
 LUT and HDR preparation own packed half-float pixels; HDR preparation removes decoder row padding
 without changing channel bits. The GPU uploader consumes only supplied resources and rejects
 hash/layout/device-limit mismatches before allocation. Material preparation snapshots scalar
-settings and ready texture generations on each geometry batch. Drawing consumes these values without
-reading authoring material/environment settings and rejects retired generations. Full hash-addressed
-material binding transport, normal preparation and LUT selection remain under extraction.
+settings and ready texture hashes on each geometry batch. Drawing resolves registered normal/HDR
+owners by hash without authoring lookups. Retiring any duplicate owner invalidates cached bindings;
+another identical owner remains usable until the last owner retires. Normal acquisition supplies
+bounded encoded PNG/JPEG/WebP resources to an independent decode/upload consumer, preserving linear
+RGBA8 and disabled color-space conversion. Material binding FPLN transport and LUT selection remain
+under extraction.
 
 Shared WGSL includes output anti-aliasing, core scene variants, compositing, fused post-processing,
 blur/depth/surface effects, auxiliary surfaces, particles, text motion blur and display/buffer helpers.

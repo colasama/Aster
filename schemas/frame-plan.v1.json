@@ -132,6 +132,22 @@
       "enum": ["u8", "u32_le", "f32_le"],
       "type": "string"
     },
+    "EncodedTextureDescriptor": {
+      "additionalProperties": false,
+      "properties": {
+        "color_space_conversion": {
+          "$ref": "#/$defs/TextureColorConversion"
+        },
+        "encoding": {
+          "$ref": "#/$defs/TextureEncoding"
+        },
+        "format": {
+          "$ref": "#/$defs/TexturePixelFormat"
+        }
+      },
+      "required": ["encoding", "format", "color_space_conversion"],
+      "type": "object"
+    },
     "Extent2d": {
       "additionalProperties": false,
       "properties": {
@@ -743,6 +759,9 @@
         },
         {
           "$ref": "#/$defs/TexturePixelsDescriptor"
+        },
+        {
+          "$ref": "#/$defs/EncodedTextureDescriptor"
         }
       ]
     },
@@ -751,7 +770,14 @@
       "type": "string"
     },
     "ResourceKind": {
-      "enum": ["buffer", "media_source", "media_frame", "raster_pixels", "texture_pixels"],
+      "enum": [
+        "buffer",
+        "media_source",
+        "media_frame",
+        "raster_pixels",
+        "texture_pixels",
+        "encoded_texture"
+      ],
       "type": "string"
     },
     "ResourceMessage": {
@@ -847,8 +873,16 @@
       "enum": ["rgba8unorm-srgb", "rgba16float"],
       "type": "string"
     },
+    "TextureColorConversion": {
+      "enum": ["none"],
+      "type": "string"
+    },
     "TextureDimension": {
       "enum": ["2d", "3d"],
+      "type": "string"
+    },
+    "TextureEncoding": {
+      "enum": ["png", "jpeg", "webp"],
       "type": "string"
     },
     "TexturePixelFormat": {

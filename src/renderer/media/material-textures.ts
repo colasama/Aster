@@ -1,20 +1,18 @@
 import { logger } from "../../core/logger";
 import { runCpuTask } from "../../core/scheduling/cpu-scheduler";
 import type { BlendMode, Composition, EnvironmentLighting, Layer } from "../../core/types";
-import { requirePlan } from "../frame-plan/canonical";
 import { createMaterialShapePipelines } from "../scene/scene-pipelines";
+import { prepareEncodedTexture, uploadEncodedTexture } from "./encoded-texture-upload";
 import { prepareHdrTexture } from "./hdr-texture-resource";
 import { type MaterialBindingPlan, planMaterialTextures } from "./material-texture-plan";
+import { MaterialTextureRegistry } from "./material-texture-registry";
 import { uploadTexturePixels } from "./texture-pixel-upload";
 
 export { type MaterialTexturePlan, planMaterialTextures } from "./material-texture-plan";
 
-const MAX_NORMAL_DIMENSION = 4_096;
-const MAX_NORMAL_BYTES = 64 * 1024 * 1024;
-
 interface NormalResource {
   source: string;
-  revision: number;
+  hash?: string;
   texture?: GPUTexture;
   bytes: number;
   state: "loading" | "ready" | "failed";
@@ -24,7 +22,7 @@ interface NormalResource {
 
 interface EnvironmentResource {
   source: string;
-  revision: number;
+  hash?: string;
   texture?: GPUTexture;
   bytes: number;
   state: "loading" | "ready" | "failed";
@@ -69,7 +67,7 @@ export class MaterialTextureRenderer {
   #pipelines?: Record<BlendMode, GPURenderPipeline>;
   #fallbackNormal?: GPUTexture;
   #fallbackEnvironment?: GPUTexture;
-  #revision = 0;
+  readonly #textures = new MaterialTextureRegistry();
 
   constructor(
     device: GPUDevice,
@@ -105,12 +103,10 @@ export class MaterialTextureRenderer {
 
   destroy(): void {
     for (const resource of this.#normals.values()) {
-      resource.abort.abort();
-      resource.texture?.destroy();
+      this.#retire(resource);
     }
     this.#normals.clear();
-    this.#environment?.abort.abort();
-    this.#environment?.texture?.destroy();
+    this.#retire(this.#environment);
     this.#environment = undefined;
     for (const uniform of this.#uniforms.values()) uniform.destroy();
     this.#uniforms.clear();
@@ -158,8 +154,7 @@ export class MaterialTextureRenderer {
     }
     for (const [instanceId, resource] of this.#normals) {
       if (activeNormalInstances.has(instanceId)) continue;
-      resource.abort.abort();
-      resource.texture?.destroy();
+      this.#retire(resource);
       this.#normals.delete(instanceId);
       this.#clearFailure(`normal:${instanceId}`);
       this.#uniforms.get(instanceId)?.destroy();
@@ -185,8 +180,9 @@ export class MaterialTextureRenderer {
           this.#environment?.state === "ready",
         ),
         instanceId: batch.resourceInstanceId,
-        normalRevision: normal?.state === "ready" ? normal.revision : 0,
-        environmentRevision: this.#environment?.state === "ready" ? this.#environment.revision : 0,
+        normalHash: normal?.state === "ready" ? (normal.hash ?? null) : null,
+        environmentHash:
+          this.#environment?.state === "ready" ? (this.#environment.hash ?? null) : null,
       };
     }
   }
@@ -197,28 +193,15 @@ export class MaterialTextureRenderer {
   ): MaterialTextureBinding | undefined {
     if (!plan?.active) return undefined;
     const { instanceId } = plan;
-    const normal = this.#normals.get(instanceId);
-    requirePlan(
-      (!plan.normalRevision ||
-        (normal?.state === "ready" && normal.revision === plan.normalRevision)) &&
-        (!plan.environmentRevision ||
-          (this.#environment?.state === "ready" &&
-            this.#environment.revision === plan.environmentRevision)),
-      "missing_resource",
-      "Prepared material texture generation is no longer resident",
-    );
-    const normalTexture = plan.normalRevision ? normal?.texture : this.#ensureFallbackNormal();
-    const environmentTexture = plan.environmentRevision
-      ? this.#environment?.texture
+    const normalTexture = plan.normalHash
+      ? this.#textures.resolve(plan.normalHash, "normal")
+      : this.#ensureFallbackNormal();
+    const environmentTexture = plan.environmentHash
+      ? this.#textures.resolve(plan.environmentHash, "environment")
       : this.#ensureFallbackEnvironment();
-    requirePlan(
-      normalTexture && environmentTexture,
-      "missing_resource",
-      "Missing material texture",
-    );
     const key = [
-      plan.normalRevision,
-      plan.environmentRevision,
+      plan.normalHash,
+      plan.environmentHash,
       plan.normalScale,
       plan.normalEnabled,
       plan.environmentIntensity,
@@ -264,6 +247,14 @@ export class MaterialTextureRenderer {
     return { bindGroup: cached.bindGroup, pipeline: this.#pipeline(blendMode) };
   }
 
+  #retire(resource: NormalResource | EnvironmentResource | undefined): void {
+    if (!resource) return;
+    resource.abort.abort();
+    this.#textures.retire(resource.hash, resource.texture);
+    if (resource.texture) this.#bindGroups.clear();
+    resource.texture?.destroy();
+  }
+
   #pipeline(blendMode: BlendMode): GPURenderPipeline {
     this.#pipelines ??= createMaterialShapePipelines(
       this.#device,
@@ -277,12 +268,10 @@ export class MaterialTextureRenderer {
   #prepareNormal(instanceId: string, source: string): void {
     const existing = this.#normals.get(instanceId);
     if (existing?.source === source) return;
-    existing?.abort.abort();
-    existing?.texture?.destroy();
+    this.#retire(existing);
     const abort = new AbortController();
     const resource: NormalResource = {
       source,
-      revision: ++this.#revision,
       bytes: 0,
       state: "loading",
       abort,
@@ -295,63 +284,24 @@ export class MaterialTextureRenderer {
         if (!response.ok) throw new Error(`Normal map request failed with HTTP ${response.status}`);
         return response.blob();
       })
-      .then((blob) => {
-        if (blob.size === 0 || blob.size > MAX_NORMAL_BYTES)
-          throw new Error("Encoded normal map exceeds the 64 MiB limit");
-        return createImageBitmap(blob, { colorSpaceConversion: "none" });
-      })
-      .then(async (bitmap) => {
-        if (this.#normals.get(instanceId) !== resource) {
-          bitmap.close();
-          return;
-        }
-        const bytes = bitmap.width * bitmap.height * 4;
-        const maximum = Math.min(MAX_NORMAL_DIMENSION, this.#device.limits.maxTextureDimension2D);
-        if (
-          bitmap.width < 1 ||
-          bitmap.height < 1 ||
-          bitmap.width > maximum ||
-          bitmap.height > maximum ||
-          bytes > MAX_NORMAL_BYTES
-        ) {
-          bitmap.close();
-          throw new Error("Normal map exceeds the 4096px or 64 MiB limit");
-        }
-        this.#device.pushErrorScope("validation");
-        let texture: GPUTexture | undefined;
-        try {
-          texture = this.#device.createTexture({
-            label: `Linear mesh normal map · ${instanceId}`,
-            size: [bitmap.width, bitmap.height],
-            format: "rgba8unorm",
-            // Dawn uses a render pass for external-image copies, so the destination must support
-            // both the explicit copy and render-attachment paths.
-            usage:
-              GPUTextureUsage.TEXTURE_BINDING |
-              GPUTextureUsage.COPY_DST |
-              GPUTextureUsage.RENDER_ATTACHMENT,
-          });
-          this.#device.queue.copyExternalImageToTexture(
-            { source: bitmap, flipY: false },
-            { texture },
-            [bitmap.width, bitmap.height],
-          );
-          const validationError = await this.#device.popErrorScope();
-          if (validationError)
-            throw new Error(`Normal map GPU upload failed: ${validationError.message}`);
-        } catch (error) {
-          texture?.destroy();
-          throw error;
-        } finally {
-          bitmap.close();
-        }
+      .then(prepareEncodedTexture)
+      .then(async (prepared) => {
+        if (this.#normals.get(instanceId) !== resource || abort.signal.aborted) return;
+        const uploaded = await uploadEncodedTexture(
+          this.#device,
+          prepared.message,
+          prepared.bytes,
+          `Linear mesh normal map · ${instanceId}`,
+        );
         if (this.#normals.get(instanceId) !== resource || abort.signal.aborted) {
-          texture.destroy();
+          uploaded.texture.destroy();
           return;
         }
-        resource.texture = texture;
-        resource.bytes = bytes;
+        resource.texture = uploaded.texture;
+        resource.hash = prepared.message.hash;
+        resource.bytes = uploaded.bytes;
         resource.state = "ready";
+        this.#textures.register(resource.hash, "normal", uploaded.texture);
         this.#clearFailure(`normal:${instanceId}`);
         this.#bindGroups.delete(instanceId);
         this.#invalidate();
@@ -367,20 +317,17 @@ export class MaterialTextureRenderer {
     const source = environment?.enabled ? environment.source.dataUrl : undefined;
     if (!source) {
       if (!this.#environment) return;
-      this.#environment.abort.abort();
-      this.#environment?.texture?.destroy();
+      this.#retire(this.#environment);
       this.#environment = undefined;
       this.#clearFailure("environment");
       this.#bindGroups.clear();
       return;
     }
     if (this.#environment?.source === source) return;
-    this.#environment?.abort.abort();
-    this.#environment?.texture?.destroy();
+    this.#retire(this.#environment);
     const abort = new AbortController();
     const resource: EnvironmentResource = {
       source,
-      revision: ++this.#revision,
       bytes: 0,
       state: "loading",
       abort,
@@ -445,6 +392,8 @@ export class MaterialTextureRenderer {
           return;
         }
         resource.texture = texture;
+        resource.hash = prepared.message.hash;
+        this.#textures.register(resource.hash, "environment", texture);
         resource.bytes = decoded.width * decoded.height * 8;
         resource.state = "ready";
         this.#clearFailure("environment");

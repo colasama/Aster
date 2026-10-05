@@ -167,6 +167,7 @@ export async function verifyMigration(options, dependencies = {}) {
           candidate_capture: checked.report.candidate_capture,
           raster_resources: checked.report.raster_resources,
           temporal_text: checked.report.temporal_text,
+          encoded_textures: checked.report.encoded_textures,
           duration_ms: checked.report.duration_ms,
         });
       } else if (id === "G3") {
