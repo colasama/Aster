@@ -111,39 +111,39 @@
     }
   },
   "last_cycle": {
-    "id": 52,
-    "time": "2026-10-05T06:47:52.643Z",
+    "id": 53,
+    "time": "2026-10-05T07:13:55.577Z",
     "milestone": "M2",
     "task": "M2-T11",
     "outcome": "passed",
-    "commit": "a0837f220f80dfcd7447b4d147a52f891b9550e8",
-    "verification": "artifacts/migration/verify-2026-10-05T06-40-27-564Z-e762613e.json",
-    "verification_sha256": "53c170349556d89f54eda69e7743030a38c6481e4860c95c6afbb018562f7952",
+    "commit": "566decf9529ddf508052b7f386fc623afd1482e6",
+    "verification": "artifacts/migration/verify-2026-10-05T07-06-08-031Z-c2880394.json",
+    "verification_sha256": "387ddc110e128eb178138aa94c42d102a168c52c48630cfe4e0226b06b497942",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 78333
+        "duration_ms": 84876
       },
       {
         "id": "G1",
         "status": "passed",
-        "duration_ms": 6827
+        "duration_ms": 6819
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 320804
+        "duration_ms": 312548
       }
     ],
-    "verification_duration_ms": 407336,
-    "next_step": "Continue M2-T11: serialize recursive target/scene dependencies and prove independent replay of supplied child plans.",
+    "verification_duration_ms": 405545,
+    "next_step": "Continue M2-T11: package scene/effect/generator payload dependencies alongside the target graph and prove independent recursive replay.",
     "notes": [
-      "Separated precomposition preparation inputs from executable scene plans. planScenes binds child image/video/text addresses to content hashes or explicit pending values before command-encoder creation. Scene-buffer FPLN carries the same references keyed by original geometry draw indices, independently of render-stack ordering.",
-      "The production root acquires one media lease over root and child instances. Precomposition execution consumes supplied plans and resolves only their hashes; it no longer looks up textures by instance ID. Planning and execution preflight absent/inconsistent references, while pending media preserves the previous shape fallback.",
-      "Added tests for exact scene media FPLN encode/decode, real resource lease retention after retirement, release cleanup, typed missing/released/inconsistent dependency rejection before GPU recording, and explicit pending draws. Updated production-boundary tests to verify child IDs participate in the shared lease. All 22 focused tests and typechecking passed before capture.",
-      "Fresh full candidate capture and complete M2 G0/G1/G3 passed with 1819 exact required frames, 76 cross-language G1 round trips and all mandatory independent GPU replay suites. Reference pixels, tolerance profiles, dependencies and schemas remain unchanged.",
-      "M2-T11 remains open for recursive planning/serialization and independent recursive GPU replay. Child media uses the existing validated media descriptor contract, but no full recursive wire envelope or native renderer is claimed. M2 and full Rust preview/export remain incomplete."
+      "Added precomposition_graph_slice_v1 in TS and Rust with generated schema. It carries child-first target/cache descriptors, explicit shared aliases and u32 per-draw surface routes: non-surface, budget-skipped or an earlier child target. The wire preserves non-Unicode IDs and NUL-containing keys without encoding GPU handles.",
+      "Production planScenes builds and reads the graph, resolves aliases from decoded records and applies graph order/routing to independently supplied scene payloads. TS/Rust validate the existing ten-surface/twenty-texture budget, extent/accounting/counts, unique IDs/aliases and child-first acyclic routing. This remains a routing graph, not a complete recursive scene payload envelope.",
+      "Seventeen focused tests and typecheck passed. Actual G1 diagnostic passed with 78 exact TS/Rust round trips, two graph fixtures and six typed rejections: self/forward references, routing count, duplicate target, missing alias target and cache accounting. Tests also prove graph routing changes affect consumed scene plans and reordered input scenes follow graph order. Six gate-runner tests passed.",
+      "Fresh complete candidate capture and full M2 G0/G1/G3 passed with 1819 exact required frames, 78 cross-language round trips and all mandatory independent GPU replays. The FramePlan schema was regenerated from Rust; no dependencies, reference pixels or tolerance profiles changed.",
+      "M2-T11 stays in progress. Complete recursive scene/effect/generator payload packaging, extraction of child evaluation and independent recursive GPU replay/capture remain open. Native preview/export and the full migration are not delivered."
     ]
   },
   "milestones": [
@@ -15158,14 +15158,125 @@
                 "Fresh full candidate capture and complete M2 G0/G1/G3 passed with 1819 exact required frames, 76 cross-language G1 round trips and all mandatory independent GPU replay suites. Reference pixels, tolerance profiles, dependencies and schemas remain unchanged.",
                 "M2-T11 remains open for recursive planning/serialization and independent recursive GPU replay. Child media uses the existing validated media descriptor contract, but no full recursive wire envelope or native renderer is claimed. M2 and full Rust preview/export remain incomplete."
               ]
+            },
+            {
+              "cycle": 53,
+              "status": "passed",
+              "commit": "566decf9529ddf508052b7f386fc623afd1482e6",
+              "verification": {
+                "path": "artifacts/migration/verify-2026-10-05T07-06-08-031Z-c2880394.json",
+                "sha256": "387ddc110e128eb178138aa94c42d102a168c52c48630cfe4e0226b06b497942"
+              },
+              "pixel_comparison": {
+                "path": "artifacts/parity/ts-check/2026-10-05T07-07-40-408Z-f67247cb/report.json",
+                "sha256": "06a0b862778ae5bb62a84b204585400a1cd6f546b32aebb80dcec42762ea86fc"
+              },
+              "capture": {
+                "path": "artifacts/parity/capture-2026-10-05T06-59-58-073Z-ab4569ca.json",
+                "sha256": "3c27b53f6bfddf88602e9c6bc87ce42907879703fefe5fe0538f24c1f630e16b"
+              },
+              "manifest": {
+                "path": "artifacts/parity/runs/2026-10-05T06-59-58-073Z-ab4569ca/candidate/manifest.json",
+                "sha256": "25aefebc22dfff8463935fab8ddd3d693f5732d0a655265c84d8dc36e71d2ac9"
+              },
+              "renderer_source_sha256": "f09fb755ebdf56a1a7793589f890170c08861d46f896a44262877fc874a6a595",
+              "bridge_sha256": "82ccf02fefd4c54e78a82a4de08df6906714ecd0b198864ec72cb0c0394dd80c",
+              "temporal_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T07-07-40-408Z-f67247cb/temporal-text/gpu.json",
+                "sha256": "fdeeedb1813d32df0357441f67d81846dc72e45ed6425f9d303f7fb3bd39509c"
+              },
+              "temporal_reference": {
+                "path": "tests/parity/temporal-text/reference/manifest.json",
+                "sha256": "e3e3b1184d5bc969dcd5cf76a424a551a0cac1a85484e157c5b549e5d6c811d1"
+              },
+              "encoded_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T07-07-40-408Z-f67247cb/encoded-textures/gpu.json",
+                "sha256": "9028f092c712475018d1db0dfb7122b7e5704ff3ac8c8b82ecaa4b950963c872"
+              },
+              "encoded_reference": {
+                "path": "tests/parity/material-textures/legacy-upload.ts",
+                "sha256": "508c2ad47f5a3f6e18069ce070e0ee0133668074bf81309a9144180f532f2498"
+              },
+              "material_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T07-07-40-408Z-f67247cb/material-draw/gpu.json",
+                "sha256": "26fbad56513b96310770da0538c5ac89d791322886d4d66134972714e0cdfe58"
+              },
+              "material_reference": {
+                "path": "tests/parity/material-draw/reference/manifest.json",
+                "sha256": "06debe986bca2118a9d4a07f5cc36a31b3926398f95d582e25f90ceabc21bc6e"
+              },
+              "material_implementation": {
+                "path": "tests/parity/material-draw/legacy-bindings.ts",
+                "sha256": "ff838daeb3950e90d263504007836d900060e9a2ff1ddb30e706a76d0a011d79"
+              },
+              "lut_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T07-07-40-408Z-f67247cb/lut-draw/gpu.json",
+                "sha256": "b80c09bbf0624b5c7d0f0147dedaafba3356c689451337bbbe2524e12d32c7a4"
+              },
+              "lut_reference": {
+                "path": "tests/parity/lut-draw/reference/manifest.json",
+                "sha256": "2e026afbad6143b822f38490650920003d0ad53705d705d1f2c206f05f181d59"
+              },
+              "lut_implementation": {
+                "path": "tests/parity/lut-draw/legacy-effects.ts",
+                "sha256": "999fb67e09a07322e7d8d9ea2c58a0442d7d5377f0cd1029eeab16e29f714a0b"
+              },
+              "root_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T07-07-40-408Z-f67247cb/root-scene/gpu.json",
+                "sha256": "049b9b48a98a31f1a1460658b136474b8fdfd78cbbb81411893661509599cfe0"
+              },
+              "root_reference": {
+                "path": "tests/parity/root-scene/reference/manifest.json",
+                "sha256": "4c5b2ffd5828db24f929f1bcc350a4a7e7c75be05cb65b9bbe2b4c48eaba267f"
+              },
+              "root_implementation": {
+                "path": "tests/parity/root-scene/legacy-execute.ts",
+                "sha256": "22b0f40e52a5c330646a7fe4a581aaacd6de2db225c4030f1cdd658177d52e8a"
+              },
+              "generator_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T07-07-40-408Z-f67247cb/generators/gpu.json",
+                "sha256": "ee372f72a9560059fe4dd8f8ab18c040e2ef6cadcaa5cc7249278e95de347dbf"
+              },
+              "generator_reference": {
+                "path": "tests/parity/generators-replay/reference/manifest.json",
+                "sha256": "a573fe3ababaa0f207eed4a0a6d11a4269ee90a877a244c1f8abed9fdbbfce09"
+              },
+              "generator_implementation": {
+                "path": "tests/parity/generators-replay/legacy-host.ts",
+                "sha256": "e458d028ca20002b7e7379f9daf9d5ca0a0f0960a3676dd3e0153e5ce19c8392"
+              },
+              "gates": [
+                {
+                  "id": "G0",
+                  "status": "passed",
+                  "duration_ms": 84876
+                },
+                {
+                  "id": "G1",
+                  "status": "passed",
+                  "duration_ms": 6819
+                },
+                {
+                  "id": "G3",
+                  "status": "passed",
+                  "duration_ms": 312548
+                }
+              ],
+              "notes": [
+                "Added precomposition_graph_slice_v1 in TS and Rust with generated schema. It carries child-first target/cache descriptors, explicit shared aliases and u32 per-draw surface routes: non-surface, budget-skipped or an earlier child target. The wire preserves non-Unicode IDs and NUL-containing keys without encoding GPU handles.",
+                "Production planScenes builds and reads the graph, resolves aliases from decoded records and applies graph order/routing to independently supplied scene payloads. TS/Rust validate the existing ten-surface/twenty-texture budget, extent/accounting/counts, unique IDs/aliases and child-first acyclic routing. This remains a routing graph, not a complete recursive scene payload envelope.",
+                "Seventeen focused tests and typecheck passed. Actual G1 diagnostic passed with 78 exact TS/Rust round trips, two graph fixtures and six typed rejections: self/forward references, routing count, duplicate target, missing alias target and cache accounting. Tests also prove graph routing changes affect consumed scene plans and reordered input scenes follow graph order. Six gate-runner tests passed.",
+                "Fresh complete candidate capture and full M2 G0/G1/G3 passed with 1819 exact required frames, 78 cross-language round trips and all mandatory independent GPU replays. The FramePlan schema was regenerated from Rust; no dependencies, reference pixels or tolerance profiles changed.",
+                "M2-T11 stays in progress. Complete recursive scene/effect/generator payload packaging, extraction of child evaluation and independent recursive GPU replay/capture remain open. Native preview/export and the full migration are not delivered."
+              ]
             }
           ],
           "remaining_work": [
             "Extract recursive child evaluation and resource decisions into a complete serializable surface plan with validated target/cache descriptors.",
             "Add TS/Rust round-trip and independent recursive GPU replay/capture evidence with missing-resource and current-frame pinning checks."
           ],
-          "commit": "a0837f220f80dfcd7447b4d147a52f891b9550e8",
-          "verification": "artifacts/migration/verify-2026-10-05T06-40-27-564Z-e762613e.json"
+          "commit": "566decf9529ddf508052b7f386fc623afd1482e6",
+          "verification": "artifacts/migration/verify-2026-10-05T07-06-08-031Z-c2880394.json"
         },
         {
           "id": "M2-T12",
@@ -15286,7 +15397,7 @@
       ],
       "preview_baseline_path": "benchmarks/results/m2-preview-baseline.json",
       "preview_baseline_sha256": "a1c62e224c008e731c252142ab1b9de7d31ecf592452c00da1dff42516772375",
-      "active_candidate_manifest": "artifacts/parity/runs/2026-10-05T06-34-07-893Z-90064533/candidate/manifest.json",
+      "active_candidate_manifest": "artifacts/parity/runs/2026-10-05T06-59-58-073Z-ab4569ca/candidate/manifest.json",
       "last_verification": {
         "status": "passed",
         "required_gates_passed": true,
@@ -15295,17 +15406,17 @@
           {
             "id": "G0",
             "status": "passed",
-            "duration_ms": 78333
+            "duration_ms": 84876
           },
           {
             "id": "G1",
             "status": "passed",
-            "duration_ms": 6827
+            "duration_ms": 6819
           },
           {
             "id": "G3",
             "status": "passed",
-            "duration_ms": 320804
+            "duration_ms": 312548
           }
         ],
         "optional_gates": [
@@ -15316,7 +15427,7 @@
           }
         ],
         "performance_policy": "rust-delivery-v1",
-        "report": "artifacts/migration/verify-2026-10-05T06-40-27-564Z-e762613e.json"
+        "report": "artifacts/migration/verify-2026-10-05T07-06-08-031Z-c2880394.json"
       },
       "performance_series_history": [
         {
@@ -16675,16 +16786,5 @@
       }
     }
   ],
-  "active_cycle": {
-    "id": 53,
-    "started_at": "2026-10-05T06:49:50.340Z",
-    "milestone": "M2",
-    "task": "M2-T11",
-    "intent": "Transport and consume a validated child-first precomposition target graph with cache descriptors and shared target aliases.",
-    "previous_turn": "progress: cycle 52 committed content-addressed child media and shared frame leases with full required gates green.",
-    "usage": {
-      "used_percent": 35,
-      "remaining_percent": 65
-    }
-  }
+  "active_cycle": null
 }
