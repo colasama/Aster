@@ -11,6 +11,7 @@ import { auditGenerators } from "./generator-gate.mjs";
 import { auditLutDraws } from "./lut-draw-gate.mjs";
 import { evidencePath, M0Evidence } from "./m0-evidence.mjs";
 import { auditMaterialDraws } from "./material-draw-gate.mjs";
+import { auditOutputReplay } from "./output-replay-gate.mjs";
 import { auditPrecompositions } from "./precomposition-gate.mjs";
 import { runStep } from "./process.mjs";
 import { auditCapturedRasters } from "./raster-capture-gate.mjs";
@@ -157,6 +158,14 @@ export async function verifyTsPixels(options, dependencies = {}) {
         "passed",
         "Auxiliary generator GPU replay failed",
       );
+    }
+    if (options.milestone === "M2") {
+      report.output_replay = await (dependencies.auditOutputReplay ?? auditOutputReplay)(
+        reader,
+        context,
+        execute,
+      );
+      assert.equal(report.output_replay.status, "passed", "Combined output GPU replay failed");
     }
     report.gate = await (dependencies.runPixelGate ?? runPixelGate)(
       { ...context, output: join(output, "G3") },

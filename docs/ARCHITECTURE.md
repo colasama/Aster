@@ -258,7 +258,13 @@ clear mutations must visibly change the relevant surfaces. A separate generator 
 transports particle compute/draw plans and shader resources, compares every MRT attachment against
 the retained host and auxiliary executors, and checks compute, draw and object-ID mutations. A
 plugin without an auxiliary shader retains its empty contribution and rejects an invented draw.
-The combined motion/final output path remains open before complete root-frame capture and cutover.
+Combined output replay transports motion, depth/surface and final-route plans through Rust and
+executes them on a separate GPU device. Twenty-three cases cover all diagnostic modes, four AA
+modes, motion followed by depth of field, and transparent attachment fallbacks. Pinned retained
+executors supply the reference pixels; route, effect-uniform and motion-radius mutations must
+change visible output even when live settings are poisoned. Integer diagnostic views bind only
+their declared texture, and their colors are independently checked against the WGSL ID hash.
+Complete root-frame capture and production cutover remain open.
 
 Shared WGSL includes output anti-aliasing, core scene variants, compositing, fused post-processing,
 blur/depth/surface effects, auxiliary surfaces, particles, text motion blur and display/buffer helpers.

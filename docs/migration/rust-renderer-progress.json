@@ -137,6 +137,12 @@
       ],
       "profile": "exact",
       "cases": 5
+    },
+    "output_replay": {
+      "path": "tests/parity/output-replay/reference/manifest.json",
+      "sha256": "9f4af4260aec5aa4aeb57131add08f2698bf0b6caeb6c948caf772c0652c6e7a",
+      "profile": "exact",
+      "cases": 23
     }
   },
   "last_cycle": {
@@ -18626,5 +18632,11 @@
       }
     }
   ],
-  "active_cycle": null
+  "active_cycle": {
+    "id": 67,
+    "milestone": "M2",
+    "task": "M2-T12",
+    "started_at": "2026-10-05T14:02:53.147Z",
+    "intent": "Verify combined motion reconstruction, depth/surface effects and final output with independent GPU replay against retained executors."
+  }
 }

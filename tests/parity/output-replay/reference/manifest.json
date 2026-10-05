@@ -1,0 +1,201 @@
+{
+  "schema_version": 1,
+  "profile": "exact",
+  "width": 64,
+  "height": 48,
+  "format": "rgba8unorm",
+  "implementations": [
+    {
+      "path": "tests/parity/output-replay/legacy-motion.ts",
+      "sha256": "59a947cdf2de69aeaffd10f4c309c34006d2152d13ac691125c0aa9f9b84aec2",
+      "reference_commit": "c9b6fe254c9d52b6153ad012ab8da237fc2f8f70"
+    },
+    {
+      "path": "tests/parity/output-replay/legacy-depth.ts",
+      "sha256": "8ddc7fb7942db6d9c8b40b8cb9c1ce0fd1ca8815cab0855a4f4b8d5712093361",
+      "reference_commit": "badb4563a348c52ab2b025ce83eee83eb2e7770b"
+    },
+    {
+      "path": "tests/parity/output-replay/legacy-surface.ts",
+      "sha256": "2e7d816c02a1ffe7eec8e5f2148ae5c54dd4feafaea114416c776a56163f3767",
+      "reference_commit": "badb4563a348c52ab2b025ce83eee83eb2e7770b"
+    },
+    {
+      "path": "tests/parity/output-replay/legacy-output.ts",
+      "sha256": "f2d4c4c7d5a8d6e4a45e9f8b41f1295b4bef77f12219f51ebfe5b2b0de37b451",
+      "reference_commit": "8e73f610efbad84680b4c87475833e599d9253ae"
+    }
+  ],
+  "adapter": {
+    "vendor": "amd",
+    "architecture": "rdna-3",
+    "description": ""
+  },
+  "notes": [
+    "Retained pre-extraction motion, depth, surface and final-route executors. Shared shaders and AA are unchanged.",
+    "Integer diagnostic bind groups now omit the undeclared uniform. Their pixels additionally match the existing WGSL u32 ID hash independently."
+  ],
+  "cases": [
+    {
+      "id": "beauty",
+      "path": "tests/parity/output-replay/reference/beauty.bin",
+      "sha256": "9e86aced6f917a045413759a7aeb1a8067a72af35c824fd798acb562a2fe99f1",
+      "input_sha256": "b5e1274cd44196a45129cafc5dab9ccaf352d2767c1be06caa80f57ed134c09d",
+      "bytes": 12288
+    },
+    {
+      "id": "linearColor",
+      "path": "tests/parity/output-replay/reference/linearColor.bin",
+      "sha256": "8cc5787a9deb55eb14d63dd90f4a0a022c6ff494c86eed5284c487ebc5e3f6e6",
+      "input_sha256": "816f6f98c99423a427d6ddf57be8df6e9aaf8510fba356d3abdd61f6e1c00e04",
+      "bytes": 12288
+    },
+    {
+      "id": "luminance",
+      "path": "tests/parity/output-replay/reference/luminance.bin",
+      "sha256": "38fb4acc0dfeba58a6b99d1b5e480253db9cc85b69402da099c23a4a1e7b5cdf",
+      "input_sha256": "7ff5e06d02e81d4c7d07e863a3d328ca24b562c55cfed0ed593dc6d1d1f3a618",
+      "bytes": 12288
+    },
+    {
+      "id": "alpha",
+      "path": "tests/parity/output-replay/reference/alpha.bin",
+      "sha256": "8497b1d11fb04065fc92fd2a209e658ba196a2f0fcaac5cf6945af0d24dfbabd",
+      "input_sha256": "e0bf6bb772f1d7da11843c35c5989b9228a815d9fe6edacbc363893204b9974b",
+      "bytes": 12288
+    },
+    {
+      "id": "normal",
+      "path": "tests/parity/output-replay/reference/normal.bin",
+      "sha256": "13a7fa8f3dfeabac62a1390fcf8a163873310185b316122c783b6d1e70b5d212",
+      "input_sha256": "d7ccf02ee20487b6378c6694beaf15609dd8965f5ee08e21f4e641cef0a76abd",
+      "bytes": 12288
+    },
+    {
+      "id": "objectId",
+      "path": "tests/parity/output-replay/reference/objectId.bin",
+      "sha256": "2284bf095eb3ca16f7a59c34b1ce5115ebbf1a28883fcab65f5dc6ac143ab5e6",
+      "input_sha256": "d4e3ec72ed1a73f57b87ff73437c18c618013189629449cd8521835c25d8ad3f",
+      "bytes": 12288
+    },
+    {
+      "id": "materialId",
+      "path": "tests/parity/output-replay/reference/materialId.bin",
+      "sha256": "ab5d963d140743ce7f4d93a84cf6435c3886f1efa85f597a90b817149a7b4ea4",
+      "input_sha256": "fc77197252675cf15cde1f309db2529c2b543a1d5007e6bfdcc9090ffe4eaa8f",
+      "bytes": 12288
+    },
+    {
+      "id": "worldPosition",
+      "path": "tests/parity/output-replay/reference/worldPosition.bin",
+      "sha256": "7c9e6f83183f374476c8305454c592fbdb97ce9c9cb6f8ba83edea83fff85f59",
+      "input_sha256": "a66e7f18668202c329b59d23e87eb52e1645bf4295c1ad9ee748323f75591382",
+      "bytes": 12288
+    },
+    {
+      "id": "motionVector",
+      "path": "tests/parity/output-replay/reference/motionVector.bin",
+      "sha256": "5ba359ebc4ef39bebd7564374008921c1e05a9749fe459a2a33a40cfd7976c4a",
+      "input_sha256": "f335922b93aa929c8595ebea9b5fefec11d961fe33851a54e35633381ad67a41",
+      "bytes": 12288
+    },
+    {
+      "id": "depthFog",
+      "path": "tests/parity/output-replay/reference/depthFog.bin",
+      "sha256": "80dd6582af182037de5b70d0857527a2f6d45d0a2ce61f2e9652ae2e8f197c24",
+      "input_sha256": "86f28d670b98438a00d852a1a44214c4b348a2fd0c3f4a4f0014a01fdead6135",
+      "bytes": 12288
+    },
+    {
+      "id": "depthOfField",
+      "path": "tests/parity/output-replay/reference/depthOfField.bin",
+      "sha256": "ac176a3fd7f80cd345f1cb6565feee23e3146d5a170a713dbace98b8f37c5917",
+      "input_sha256": "d0503649fd7cc04fa46f5eff429e2606d061ecb85b07f5dd4e2f5e5ad6fee77d",
+      "bytes": 12288
+    },
+    {
+      "id": "selectionIsolation",
+      "path": "tests/parity/output-replay/reference/selectionIsolation.bin",
+      "sha256": "410a6ca02afcec03015e1f92eaa17ba2c563a4def2d5cc65e499ace6344b70a9",
+      "input_sha256": "b8e4466ca4a48f8dd95f2b8c007d9b0325f705917c9437563d39e4c7f3f43d7d",
+      "bytes": 12288
+    },
+    {
+      "id": "vectorMotionBlur",
+      "path": "tests/parity/output-replay/reference/vectorMotionBlur.bin",
+      "sha256": "eb1cd6d95d4da930b970ebcb343074e1303175c3bf25873de9001e521cb8422c",
+      "input_sha256": "e550ccf999a1dbabf41b2ce29f787a6e45c308ee3d56728d07c19a4b69440d2e",
+      "bytes": 12288
+    },
+    {
+      "id": "motion-beauty-off",
+      "path": "tests/parity/output-replay/reference/motion-beauty-off.bin",
+      "sha256": "62b3dcd371be94be01cf20fb8be50469d2e594b832fe53d0a7b47daa5357c4ba",
+      "input_sha256": "043d8888f05b45992a987907a10d4e8d3a193cefca27e9be40dfd22fd6acb02b",
+      "bytes": 12288
+    },
+    {
+      "id": "motion-depthOfField-off",
+      "path": "tests/parity/output-replay/reference/motion-depthOfField-off.bin",
+      "sha256": "61ec8fbac740e052ee29444f1f4ed0b60e79c75dc90e7f04d157ebe0fbdd97d2",
+      "input_sha256": "6ce83cf6a566cb0ce2f886fddf7d93e8905c0a65d904252eec56b9a5199aff08",
+      "bytes": 12288
+    },
+    {
+      "id": "motion-beauty-fxaa",
+      "path": "tests/parity/output-replay/reference/motion-beauty-fxaa.bin",
+      "sha256": "625f065eab1258b212f898bd14c909d4d30558a593dbfa7d10e06d8deb222e37",
+      "input_sha256": "4e7ab820b0bfc1ac18667b0a9f55cacf3df71ca175e47f7b939a06e6a499d8d4",
+      "bytes": 12288
+    },
+    {
+      "id": "motion-depthOfField-fxaa",
+      "path": "tests/parity/output-replay/reference/motion-depthOfField-fxaa.bin",
+      "sha256": "61ec8fbac740e052ee29444f1f4ed0b60e79c75dc90e7f04d157ebe0fbdd97d2",
+      "input_sha256": "b91b94cc310cfffbe21248b35ac7c9ff89a0ac6f32e5e7a81ea68ed84f3a4847",
+      "bytes": 12288
+    },
+    {
+      "id": "motion-beauty-ssaa2x",
+      "path": "tests/parity/output-replay/reference/motion-beauty-ssaa2x.bin",
+      "sha256": "3c2243b9c83a74ab94caf3fee527c4974bf6314938bc11171208cc0bcb5413e0",
+      "input_sha256": "d7219807a458a3eea0bf085a66e24c9a0d13853050148b264fd2494a6ebbe065",
+      "bytes": 12288
+    },
+    {
+      "id": "motion-depthOfField-ssaa2x",
+      "path": "tests/parity/output-replay/reference/motion-depthOfField-ssaa2x.bin",
+      "sha256": "eec070b0daee5ecb771e46672b438c674401250503ff6a625d9bf0bc2bb66e0d",
+      "input_sha256": "8abc97182c26bd4f236576b77a7cc2d139d506cb240cc42ad21703b7ca23a811",
+      "bytes": 12288
+    },
+    {
+      "id": "motion-beauty-ssaa4x",
+      "path": "tests/parity/output-replay/reference/motion-beauty-ssaa4x.bin",
+      "sha256": "38b5ee47da73e4954597f4bc031727232ade8d92bf1b74db22974ec526d53c7e",
+      "input_sha256": "e5f3f20ff0dc6406954bf857a67d43acf503c7d16ebd546fee3d72e01e2d6d59",
+      "bytes": 12288
+    },
+    {
+      "id": "motion-depthOfField-ssaa4x",
+      "path": "tests/parity/output-replay/reference/motion-depthOfField-ssaa4x.bin",
+      "sha256": "a77227aefe07388804147a4af29eadb5901b432453a6dd05150ed9b018aea27f",
+      "input_sha256": "d4621d77a8e93555b0a26930f9915cef206bd8344b5b4cc5d6fa054fe1caf505",
+      "bytes": 12288
+    },
+    {
+      "id": "depth-tier0",
+      "path": "tests/parity/output-replay/reference/depth-tier0.bin",
+      "sha256": "9249c4e225e4a9ca01aa396ed3ea05707e22bddf1d4cca64c4d7972adbdc7cec",
+      "input_sha256": "fcd32b79b4d76cfe7b6a701012d1249554db885f37e68253ecdc05b584e14751",
+      "bytes": 12288
+    },
+    {
+      "id": "depth-tier1",
+      "path": "tests/parity/output-replay/reference/depth-tier1.bin",
+      "sha256": "64c521c5aad55f93d424e7ea2a4ee00b58f88e0bb8079b18d95c4eaaddf9a259",
+      "input_sha256": "6af0c6f4f95412ca586a3910f632bbad756e4784dd89284acdfd20381890e8f5",
+      "bytes": 12288
+    }
+  ]
+}

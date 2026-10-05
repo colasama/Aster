@@ -91,7 +91,9 @@ export class SceneBufferVisualizer {
         this.#createBindGroup(
           pipeline,
           source,
-          this.#auxiliaryUniform,
+          AUXILIARY_BUFFER_DESCRIPTORS[kind].sampleType === "uint"
+            ? undefined
+            : this.#auxiliaryUniform,
           `${kind} visualization resources`,
         ),
       );
@@ -142,7 +144,7 @@ export class SceneBufferVisualizer {
   #createBindGroup(
     pipeline: GPURenderPipeline,
     source: GPUTexture,
-    uniform: GPUBuffer,
+    uniform: GPUBuffer | undefined,
     label: string,
   ): GPUBindGroup {
     return this.#device.createBindGroup({
@@ -150,7 +152,7 @@ export class SceneBufferVisualizer {
       layout: pipeline.getBindGroupLayout(0),
       entries: [
         { binding: 0, resource: source.createView() },
-        { binding: 1, resource: { buffer: uniform } },
+        ...(uniform ? [{ binding: 1, resource: { buffer: uniform } }] : []),
       ],
     });
   }
