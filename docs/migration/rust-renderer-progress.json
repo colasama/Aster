@@ -101,39 +101,38 @@
     }
   },
   "last_cycle": {
-    "id": 43,
-    "time": "2026-10-05T03:01:39.019Z",
+    "id": 44,
+    "time": "2026-10-05T03:27:00.303Z",
     "milestone": "M2",
-    "task": "M2-T8",
+    "task": "M2-T9",
     "outcome": "passed",
-    "commit": "138d05f06116cf384a2140ced705043f233b5dd4",
-    "verification": "artifacts/migration/verify-2026-10-05T02-54-25-387Z-a476b419.json",
-    "verification_sha256": "4eef8847608137721fa758113d07e0d69d877fc7705d9a9ed986e91c8e480858",
+    "commit": "5f797c1dc7e78a23ac6d363b4741c3b8d35ff166",
+    "verification": "artifacts/migration/verify-2026-10-05T03-20-03-236Z-2de5cd06.json",
+    "verification_sha256": "6acb94ac9aeea5a43128d55d7f6339a168b5453dd2d30855dd26678f64df9356",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 82115
+        "duration_ms": 75685
       },
       {
         "id": "G1",
         "status": "passed",
-        "duration_ms": 6388
+        "duration_ms": 6443
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 295031
+        "duration_ms": 294516
       }
     ],
-    "verification_duration_ms": 384857,
-    "next_step": "Continue M2-T9: serialize and execute the ordered root scene stack.",
+    "verification_duration_ms": 377946,
+    "next_step": "Continue M2-T9: plan explicit root pass boundaries and replace isolated draw callbacks.",
     "notes": [
-      "Added effect_execution_slice_v1 with UTF-16-safe instance/layer identities, explicit direct/layer/adjustment/skip routing, fixed/backdrop/replace/none compositing and exact fusion statistics. TS/Rust reject inconsistent routing and invalid counts.",
-      "Root and precomposition encode loops consume supplied routing, blend and fusion decisions. No authored effect list or fusion analysis remains in these encode loops; the isolated effect executor consumes paired compiled data and explicit composite operation. Program/routing header and identity mismatches are rejected.",
-      "Preserved root empty-adjustment skip behavior, precomposition backdrop-only zero-op pass interruption, deferred malformed LUT failures and program overflow statistics. No-effect precomposition surfaces receive CPU execution plans without allocating an effect renderer.",
-      "G1 now covers 70 exact FPLN round trips, including 19 execution fixtures spanning all blend modes and edge cases. G3 transports six additional routing plans before independently replaying the existing six frozen LUT/effect outputs. A production precomposition test mutates authored effects and blend after preparation and verifies retained execution.",
-      "Full M2 G0/G1/G3 passed with 1819 exact required frame comparisons and all prior temporal/texture/material/LUT replay checks. M2-T8 is complete; ordered root stack, complete captured-frame execution and native preview/export remain open."
+      "Root preparation now snapshots stack instance identities, geometry draw indices and 2D/3D depth transitions after media/material preparation. The root encode loop no longer consumes Layer-bearing SceneRenderItem or GeometryBatch objects for geometry drawing.",
+      "Geometry execution consumes owned draw ranges, blend modes, tagged surface/media/raster references and copied material values. Missing precomposition surfaces remain omitted, explicit pending media preserves the shape fallback, and material precedence remains unchanged. The precomposition path uses a compatibility preparation adapter.",
+      "Targeted tests mutate authored layers, geometry ranges and material inputs after planning, then verify unchanged prepared execution; altering supplied draw ranges changes recorded GPU draw arguments. Tests also cover mixed generator/adjustment ordering and resource fallbacks.",
+      "Full M2 G0/G1/G3 passed with 1819 exact required frame comparisons and existing independent temporal/texture/material/LUT replay checks. This is an incremental M2-T9 change; explicit root pass commands, removal of isolated draw callbacks and complete stack serialization remain open. No native renderer completion is claimed."
     ]
   },
   "milestones": [
@@ -14174,7 +14173,100 @@
             "Altering/removing a planned draw changes actual recorded execution, ruling out shadow consumption."
           ],
           "required_full_gates": ["G0", "G1", "G3"],
-          "status": "in_progress"
+          "status": "in_progress",
+          "increments": [
+            {
+              "cycle": 44,
+              "status": "passed",
+              "commit": "5f797c1dc7e78a23ac6d363b4741c3b8d35ff166",
+              "verification": {
+                "path": "artifacts/migration/verify-2026-10-05T03-20-03-236Z-2de5cd06.json",
+                "sha256": "6acb94ac9aeea5a43128d55d7f6339a168b5453dd2d30855dd26678f64df9356"
+              },
+              "pixel_comparison": {
+                "path": "artifacts/parity/ts-check/2026-10-05T03-21-26-006Z-93e829b4/report.json",
+                "sha256": "53f80d3eaa763b099bcec4136997f579310236b882088c31d2a7175faf779217"
+              },
+              "capture": {
+                "path": "artifacts/parity/capture-2026-10-05T03-13-43-314Z-c5a41f98.json",
+                "sha256": "b6955a2ce3a00913ea7534d466b82dcd26a64b040495ef72dbe5a0ac88fa2f4f"
+              },
+              "manifest": {
+                "path": "artifacts/parity/runs/2026-10-05T03-13-43-314Z-c5a41f98/candidate/manifest.json",
+                "sha256": "f9f863e2837a343bbf44fabe988b2a8aa9dda589d8507b1fa37b78220656255a"
+              },
+              "renderer_source_sha256": "70a0d3ccd938d87a8a2bc12f618145580c7c3d504ed8a8d4923d8c0ddb5f48de",
+              "bridge_sha256": "82ccf02fefd4c54e78a82a4de08df6906714ecd0b198864ec72cb0c0394dd80c",
+              "temporal_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T03-21-26-006Z-93e829b4/temporal-text/gpu.json",
+                "sha256": "1581997712f24cc783a01ed6054ba3f287cf7a5332b0824958af11d00fb09b52"
+              },
+              "temporal_reference": {
+                "path": "tests/parity/temporal-text/reference/manifest.json",
+                "sha256": "e3e3b1184d5bc969dcd5cf76a424a551a0cac1a85484e157c5b549e5d6c811d1"
+              },
+              "encoded_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T03-21-26-006Z-93e829b4/encoded-textures/gpu.json",
+                "sha256": "9028f092c712475018d1db0dfb7122b7e5704ff3ac8c8b82ecaa4b950963c872"
+              },
+              "encoded_reference": {
+                "path": "tests/parity/material-textures/legacy-upload.ts",
+                "sha256": "508c2ad47f5a3f6e18069ce070e0ee0133668074bf81309a9144180f532f2498"
+              },
+              "material_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T03-21-26-006Z-93e829b4/material-draw/gpu.json",
+                "sha256": "26fbad56513b96310770da0538c5ac89d791322886d4d66134972714e0cdfe58"
+              },
+              "material_reference": {
+                "path": "tests/parity/material-draw/reference/manifest.json",
+                "sha256": "06debe986bca2118a9d4a07f5cc36a31b3926398f95d582e25f90ceabc21bc6e"
+              },
+              "material_implementation": {
+                "path": "tests/parity/material-draw/legacy-bindings.ts",
+                "sha256": "ff838daeb3950e90d263504007836d900060e9a2ff1ddb30e706a76d0a011d79"
+              },
+              "lut_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T03-21-26-006Z-93e829b4/lut-draw/gpu.json",
+                "sha256": "b80c09bbf0624b5c7d0f0147dedaafba3356c689451337bbbe2524e12d32c7a4"
+              },
+              "lut_reference": {
+                "path": "tests/parity/lut-draw/reference/manifest.json",
+                "sha256": "2e026afbad6143b822f38490650920003d0ad53705d705d1f2c206f05f181d59"
+              },
+              "lut_implementation": {
+                "path": "tests/parity/lut-draw/legacy-effects.ts",
+                "sha256": "999fb67e09a07322e7d8d9ea2c58a0442d7d5377f0cd1029eeab16e29f714a0b"
+              },
+              "gates": [
+                {
+                  "id": "G0",
+                  "status": "passed",
+                  "duration_ms": 75685
+                },
+                {
+                  "id": "G1",
+                  "status": "passed",
+                  "duration_ms": 6443
+                },
+                {
+                  "id": "G3",
+                  "status": "passed",
+                  "duration_ms": 294516
+                }
+              ],
+              "notes": [
+                "Root preparation now snapshots stack instance identities, geometry draw indices and 2D/3D depth transitions after media/material preparation. The root encode loop no longer consumes Layer-bearing SceneRenderItem or GeometryBatch objects for geometry drawing.",
+                "Geometry execution consumes owned draw ranges, blend modes, tagged surface/media/raster references and copied material values. Missing precomposition surfaces remain omitted, explicit pending media preserves the shape fallback, and material precedence remains unchanged. The precomposition path uses a compatibility preparation adapter.",
+                "Targeted tests mutate authored layers, geometry ranges and material inputs after planning, then verify unchanged prepared execution; altering supplied draw ranges changes recorded GPU draw arguments. Tests also cover mixed generator/adjustment ordering and resource fallbacks.",
+                "Full M2 G0/G1/G3 passed with 1819 exact required frame comparisons and existing independent temporal/texture/material/LUT replay checks. This is an incremental M2-T9 change; explicit root pass commands, removal of isolated draw callbacks and complete stack serialization remain open. No native renderer completion is claimed."
+              ]
+            }
+          ],
+          "remaining_work": [
+            "Plan explicit root begin/end passes with attachment load/store and depth clear values.",
+            "Replace isolated draw callbacks with typed draw commands and resource references.",
+            "Serialize and replay the complete ordered root command stream, including altered/removed command execution evidence."
+          ]
         },
         {
           "id": "M2-T10",
@@ -14329,7 +14421,7 @@
       ],
       "preview_baseline_path": "benchmarks/results/m2-preview-baseline.json",
       "preview_baseline_sha256": "a1c62e224c008e731c252142ab1b9de7d31ecf592452c00da1dff42516772375",
-      "active_candidate_manifest": "artifacts/parity/runs/2026-10-05T02-47-45-816Z-d205eb91/candidate/manifest.json",
+      "active_candidate_manifest": "artifacts/parity/runs/2026-10-05T03-13-43-314Z-c5a41f98/candidate/manifest.json",
       "last_verification": {
         "status": "passed",
         "required_gates_passed": true,
@@ -14338,17 +14430,17 @@
           {
             "id": "G0",
             "status": "passed",
-            "duration_ms": 82115
+            "duration_ms": 75685
           },
           {
             "id": "G1",
             "status": "passed",
-            "duration_ms": 6388
+            "duration_ms": 6443
           },
           {
             "id": "G3",
             "status": "passed",
-            "duration_ms": 295031
+            "duration_ms": 294516
           }
         ],
         "optional_gates": [
@@ -14359,7 +14451,7 @@
           }
         ],
         "performance_policy": "rust-delivery-v1",
-        "report": "artifacts/migration/verify-2026-10-05T02-54-25-387Z-a476b419.json"
+        "report": "artifacts/migration/verify-2026-10-05T03-20-03-236Z-2de5cd06.json"
       },
       "performance_series_history": [
         {
@@ -15665,12 +15757,5 @@
       }
     }
   ],
-  "active_cycle": {
-    "id": 44,
-    "milestone": "M2",
-    "task": "M2-T9",
-    "started_at": "2026-10-05T03:09:27.911Z",
-    "increment": "Snapshot root stack identities and geometry draw descriptors before encoding; execute geometry without authored Layer objects.",
-    "required_gates": ["G0", "G1", "G3"]
-  }
+  "active_cycle": null
 }
