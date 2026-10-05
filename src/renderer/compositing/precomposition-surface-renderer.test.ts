@@ -420,6 +420,15 @@ describe("GPU precomposition surfaces", () => {
       root.height,
       undefined,
       undefined,
+      expect.objectContaining({
+        snapshot_scope: "precomposition-generators",
+        project_revision: 1,
+        composition_id: nested.id,
+        time: { kind: "binary_rational", negative: false, significand: 5, exponent: -1 },
+        target: { width: nested.width, height: nested.height },
+        render_target: { width: root.width, height: root.height },
+        aa: "off",
+      }),
     );
     expect(sceneGenerators.encodeCompute).toHaveBeenCalledOnce();
     expect(sceneGenerators.draw).toHaveBeenCalledOnce();

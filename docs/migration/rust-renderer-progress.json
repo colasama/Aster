@@ -16230,5 +16230,16 @@
       }
     }
   ],
-  "active_cycle": null
+  "active_cycle": {
+    "id": 49,
+    "started_at": "2026-10-05T05:14:45.491Z",
+    "milestone": "M2",
+    "task": "M2-T10",
+    "intent": "Transport generator executable descriptors and invocation/audio payloads through FPLN with equivalent TS/Rust validation and production decoded consumption.",
+    "previous_turn": "progress: generator planning boundary committed with all required gates green.",
+    "usage": {
+      "used_percent": 30,
+      "remaining_percent": 70
+    }
+  }
 }

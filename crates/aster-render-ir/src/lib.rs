@@ -1,4 +1,11 @@
-//! Bounded frame-plan transport. The initial uniform slice is not a complete renderer plan.
+//! Bounded frame-plan transport. Individual slices are not a complete renderer plan.
+mod generator;
+mod generator_program;
+pub use generator::SceneGeneratorSlice;
+pub use generator_program::{
+    GeneratorAuxiliary, GeneratorBlend, GeneratorCompute, GeneratorCull, GeneratorDepth,
+    GeneratorGraph, GeneratorPhase, GeneratorProgram, GeneratorVariant,
+};
 mod layer_effect;
 pub use layer_effect::{EffectBlendMode, EffectRoute, LayerEffectSlice};
 

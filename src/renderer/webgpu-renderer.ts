@@ -30,7 +30,7 @@ import { depthEffectSettingsFromCameraOptics } from "./effects/depth-effects";
 import { effectExecution } from "./effects/layer-effect-plan";
 import { selectedRenderId } from "./effects/surface-post-effects";
 import { buildCameraPlan, readCameraPlan } from "./frame-plan/camera-plan";
-import { buildRootPostUniformPlan } from "./frame-plan/root-post-plan";
+import { buildFrameHeader, buildRootPostUniformPlan } from "./frame-plan/root-post-plan";
 import { uploadRootPostUniformPlan } from "./frame-plan/root-post-upload";
 import { buildRootScenePlan, readRootScenePlan } from "./frame-plan/root-scene-plan";
 import { buildSceneBufferPlan } from "./frame-plan/scene-buffer-plan";
@@ -567,6 +567,7 @@ export class WebGpuRenderer {
       });
     }
     const shadowQuality = primaryLight?.shadowQuality ?? "medium";
+    const generatorHeader = buildFrameHeader(framePlanInput);
     const sceneGenerators = sceneLayers
       .filter((scene) => resources.sceneGenerators.supports(scene))
       .map((scene) =>
@@ -577,6 +578,7 @@ export class WebGpuRenderer {
           this.#height,
           this.#memoryBudgetMb,
           camera,
+          generatorHeader,
         ),
       )
       .filter((generator): generator is PreparedSceneGenerator => generator !== undefined);

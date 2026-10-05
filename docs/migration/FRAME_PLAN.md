@@ -385,5 +385,27 @@ programs, allocates resources and uploads those exact bytes. A failed resize ret
 buffer and constrains a copy of context/dispatch counts; source plans remain unchanged. Root-time
 audio is sampled once by the producer and conflicting audio within one executing frame is rejected.
 The existing `prepare` entry point adapts authoring inputs to this plan for root and precomposition
-callers. This is an in-memory preparation boundary: generator FPLN schema, Rust transport and
-independent GPU replay are still required before this portion of the frame plan is complete.
+callers. Wire transport is described below; independent generator GPU replay and complete
+frame capture are still required before this portion of the frame plan is complete.
+
+### Generator transport slice
+
+`scene_generator_slice_v1` carries one generator invocation and its executable program. Instance,
+selection, program-source and display identities use the UTF-16-safe identity representation.
+The program declares compute/render/auxiliary entry points, shader resource hashes, workgroups,
+blend/depth/cull modes, storage stride and maximum instance count. The selected variant, requested
+and effective counts, allocation capacity and dispatch triples are explicit. Authoring selectors
+and parameter schemas are absent; the consumer receives evaluated ABI payloads.
+
+The single `u8` blob contains 208 context bytes, 2048 parameter bytes, 16 indirect bytes and,
+when present, 9280 root-time audio bytes: 2272 or 11552 bytes total. All non-count ABI lanes retain
+their original bits, including signed zero and NaN payloads. TS and Rust check layout, graph bounds,
+resource references, variant index, capacity/count relationships, dispatch triples and embedded
+context/indirect counts. Shader content remains a separately hash-validated buffer resource.
+The runtime program-cache identity is derived from decoded executable data rather than trusted
+from a supplied key. The resource list contains exactly the graph's shader identities.
+
+Production root and precomposition generator adapters build and read this contract before GPU
+realization. G1 sends bundled billboard, cloned mesh/LOD and capability-enabled audio fixtures
+through the Rust CLI and records actual consumer uploads and dispatches. Independent generator
+GPU replay and complete frame capture remain outstanding; this slice is still explicitly incomplete.

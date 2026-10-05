@@ -1,4 +1,5 @@
 use crate::LayerEffectSlice;
+use crate::SceneGeneratorSlice;
 use crate::{
     CameraParametersSlice, MaterialBindingSlice, TemporalTextPassesSlice, TemporalTextSamplesSlice,
 };
@@ -31,6 +32,7 @@ pub enum ContractLevel {
     LayerEffectsSliceV1,
     EffectExecutionSliceV1,
     RootSceneCommandsSliceV1,
+    SceneGeneratorSliceV1,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
@@ -118,6 +120,7 @@ pub struct BlobDescriptor {
 #[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum PlanSlice {
+    SceneGenerator(SceneGeneratorSlice),
     RootSceneCommands(RootSceneCommandsSlice),
     LayerEffect(LayerEffectSlice),
     EffectExecution(EffectExecutionSlice),
@@ -191,9 +194,17 @@ impl FramePlanSliceV1 {
         {
             return Err(IrError::InvalidRootScene("expected one root".to_owned()));
         }
+        if self.contract_level == ContractLevel::SceneGeneratorSliceV1 && self.slices.len() != 1 {
+            return Err(IrError::InvalidGenerator("expected one slice".to_owned()));
+        }
         let mut referenced = BTreeSet::new();
         for slice in &self.slices {
             let blob_index = match slice {
+                PlanSlice::SceneGenerator(g)
+                    if self.contract_level == ContractLevel::SceneGeneratorSliceV1 =>
+                {
+                    g.blob_index
+                }
                 PlanSlice::RootSceneCommands(root)
                     if self.contract_level == ContractLevel::RootSceneCommandsSliceV1 =>
                 {
@@ -257,6 +268,10 @@ impl FramePlanSliceV1 {
                 .ok_or(IrError::BlobCountMismatch)?;
             if !referenced.insert(blob_index) {
                 return Err(IrError::BlobCountMismatch);
+            }
+            if let PlanSlice::SceneGenerator(g) = slice {
+                g.validate(blob, &self.resources)?;
+                continue;
             }
             if let PlanSlice::RootSceneCommands(root) = slice {
                 root.validate(blob, &self.slices, &self.resources)?;
@@ -323,6 +338,15 @@ impl FramePlanSliceV1 {
         let descriptor = self.blobs.get(index).ok_or(IrError::BlobCountMismatch)?;
         if bytes.len() != descriptor.byte_length as usize {
             return Err(IrError::ElementCountMismatch);
+        }
+        if self.contract_level == ContractLevel::SceneGeneratorSliceV1 {
+            for slice in &self.slices {
+                if let PlanSlice::SceneGenerator(g) = slice
+                    && g.blob_index as usize == index
+                {
+                    g.validate_payload(bytes)?;
+                }
+            }
         }
         if self.contract_level == ContractLevel::RootSceneCommandsSliceV1 {
             for slice in &self.slices {

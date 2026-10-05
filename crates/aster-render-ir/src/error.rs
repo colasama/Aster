@@ -1,5 +1,7 @@
 #[derive(Debug, thiserror::Error)]
 pub enum IrError {
+    #[error("Invalid scene generator: {0}")]
+    InvalidGenerator(String),
     #[error("Invalid root scene commands: {0}")]
     InvalidRootScene(String),
     #[error("Invalid layer effect: {0}")]
@@ -77,6 +79,7 @@ pub enum IrError {
 impl IrError {
     pub fn code(&self) -> &'static str {
         match self {
+            Self::InvalidGenerator(_) => "invalid_generator",
             Self::InvalidRootScene(_) => "invalid_root_scene",
             Self::InvalidLayerEffect(_) => "invalid_layer_effect",
             Self::InvalidEffectExecution(_) => "invalid_effect_execution",

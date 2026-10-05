@@ -365,6 +365,15 @@ export class PrecompositionSurfaceRenderer {
       0,
       buildSceneLighting(childLayers, surface.composition, false, cameraPosition),
     );
+    const generatorHeader = buildFrameHeader({
+      snapshot: { snapshotScope: "precomposition-generators", projectRevision: this.#revision },
+      compositionId: surface.composition.id,
+      time: surface.time,
+      frameRate: surface.composition.frameRate,
+      target: { width: surface.composition.width, height: surface.composition.height },
+      renderTarget: { width: entry.width, height: entry.height },
+      antiAliasing: "off",
+    });
     this.#jobs.push({
       entry,
       composition: surface.composition,
@@ -383,6 +392,7 @@ export class PrecompositionSurfaceRenderer {
                 entry.height,
                 memoryBudgetMb,
                 camera,
+                generatorHeader,
               ),
             )
             .filter((generator): generator is PreparedSceneGenerator => Boolean(generator))

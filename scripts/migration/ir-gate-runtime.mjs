@@ -44,6 +44,8 @@ export async function loadIrRuntime(root) {
       "effect-execution-fixture",
       "root-scene-plan",
       "root-scene-fixture",
+      "generator-plan",
+      "generator-fixture",
     ])
       modules.push(await server.ssrLoadModule(`/src/renderer/frame-plan/${name}.ts`));
     for (const name of [

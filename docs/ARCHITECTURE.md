@@ -179,7 +179,10 @@ resources and carry compute/render/auxiliary entry points, depth, cull and blend
 Bundled and installed generators enter the same shader validation boundary. GPU realization reads
 only supplied plans; authoring lookup, time mapping, variant selection and LOD remain in the
 producer. Allocation failure can bound the supplied count to retained storage without mutating
-its plan. Generator FPLN transport and independent replay remain pending.
+its plan. The generator FPLN slice now transports executable metadata and packed context, parameters,
+indirect initialization and optional audio through Rust. Production root and precomposition
+adapters execute decoded inputs; G1 verifies exact payloads and supplied execution. Independent
+generator GPU replay and complete frame capture remain pending.
 
 Shared WGSL includes output anti-aliasing, core scene variants, compositing, fused post-processing,
 blur/depth/surface effects, auxiliary surfaces, particles, text motion blur and display/buffer helpers.

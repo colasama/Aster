@@ -128,7 +128,8 @@
         "material_bindings_slice_v1",
         "layer_effects_slice_v1",
         "effect_execution_slice_v1",
-        "root_scene_commands_slice_v1"
+        "root_scene_commands_slice_v1",
+        "scene_generator_slice_v1"
       ],
       "type": "string"
     },
@@ -343,6 +344,178 @@
         }
       ]
     },
+    "GeneratorAuxiliary": {
+      "additionalProperties": false,
+      "properties": {
+        "fragment_entry": {
+          "type": "string"
+        },
+        "shader": {
+          "$ref": "#/$defs/ResourceHash"
+        },
+        "vertex_entry": {
+          "type": "string"
+        }
+      },
+      "required": ["shader", "vertex_entry", "fragment_entry"],
+      "type": "object"
+    },
+    "GeneratorBlend": {
+      "enum": ["normal", "add", "multiply", "screen", "overlay", "layer"],
+      "type": "string"
+    },
+    "GeneratorCompute": {
+      "additionalProperties": false,
+      "properties": {
+        "entry_point": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "phase": {
+          "$ref": "#/$defs/GeneratorPhase"
+        },
+        "shader": {
+          "$ref": "#/$defs/ResourceHash"
+        },
+        "workgroup_size": {
+          "items": {
+            "format": "uint32",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "type": "array"
+        }
+      },
+      "required": ["id", "shader", "entry_point", "workgroup_size", "phase"],
+      "type": "object"
+    },
+    "GeneratorCull": {
+      "enum": ["none", "front", "back"],
+      "type": "string"
+    },
+    "GeneratorDepth": {
+      "enum": ["none", "read", "read_write"],
+      "type": "string"
+    },
+    "GeneratorGraph": {
+      "additionalProperties": false,
+      "properties": {
+        "api_version": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "compute_passes": {
+          "items": {
+            "$ref": "#/$defs/GeneratorCompute"
+          },
+          "type": "array"
+        },
+        "instance_stride": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "max_instances": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "render_variants": {
+          "items": {
+            "$ref": "#/$defs/GeneratorVariant"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "api_version",
+        "max_instances",
+        "instance_stride",
+        "compute_passes",
+        "render_variants"
+      ],
+      "type": "object"
+    },
+    "GeneratorPhase": {
+      "enum": ["simulation", "pre_render"],
+      "type": "string"
+    },
+    "GeneratorProgram": {
+      "additionalProperties": false,
+      "properties": {
+        "audio_analysis": {
+          "type": "boolean"
+        },
+        "graph": {
+          "$ref": "#/$defs/GeneratorGraph"
+        },
+        "label": {
+          "$ref": "#/$defs/CompositionIdentity"
+        },
+        "source_key": {
+          "$ref": "#/$defs/CompositionIdentity"
+        }
+      },
+      "required": ["source_key", "label", "audio_analysis", "graph"],
+      "type": "object"
+    },
+    "GeneratorVariant": {
+      "additionalProperties": false,
+      "properties": {
+        "auxiliary": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GeneratorAuxiliary"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "blend": {
+          "$ref": "#/$defs/GeneratorBlend"
+        },
+        "cull": {
+          "$ref": "#/$defs/GeneratorCull"
+        },
+        "depth": {
+          "$ref": "#/$defs/GeneratorDepth"
+        },
+        "fragment_entry": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "shader": {
+          "$ref": "#/$defs/ResourceHash"
+        },
+        "vertex_count": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "vertex_entry": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "shader",
+        "vertex_entry",
+        "fragment_entry",
+        "vertex_count",
+        "blend",
+        "depth",
+        "cull"
+      ],
+      "type": "object"
+    },
     "MaterialTextureReference": {
       "oneOf": [
         {
@@ -543,6 +716,83 @@
     },
     "PlanSlice": {
       "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "blend_mode": {
+              "$ref": "#/$defs/EffectBlendMode"
+            },
+            "blob_index": {
+              "format": "uint32",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "capacity": {
+              "format": "uint32",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "dispatches": {
+              "items": {
+                "items": {
+                  "format": "uint32",
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "maxItems": 3,
+                "minItems": 3,
+                "type": "array"
+              },
+              "type": "array"
+            },
+            "effective_count": {
+              "format": "uint32",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "has_audio": {
+              "type": "boolean"
+            },
+            "instance_id": {
+              "$ref": "#/$defs/CompositionIdentity"
+            },
+            "kind": {
+              "const": "scene_generator",
+              "type": "string"
+            },
+            "program": {
+              "$ref": "#/$defs/GeneratorProgram"
+            },
+            "requested_count": {
+              "format": "uint32",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "selection_id": {
+              "$ref": "#/$defs/CompositionIdentity"
+            },
+            "variant_index": {
+              "format": "uint32",
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "kind",
+            "blob_index",
+            "instance_id",
+            "selection_id",
+            "blend_mode",
+            "program",
+            "variant_index",
+            "requested_count",
+            "effective_count",
+            "capacity",
+            "dispatches",
+            "has_audio"
+          ],
+          "type": "object"
+        },
         {
           "additionalProperties": false,
           "properties": {

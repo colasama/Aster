@@ -80,7 +80,9 @@ export function buildGeneratorProgram(definition: SceneGeneratorDefinition): Gen
     label: definition.pluginName,
     audioAnalysis: definition.audioAnalysis,
     graph,
-    shaders: Array.from(shaders.values()),
+    shaders: Array.from(shaders.values()).sort((a, b) =>
+      a.message.hash.localeCompare(b.message.hash),
+    ),
   };
   return { ...program, key: generatorProgramKey(program) };
 }
@@ -88,7 +90,31 @@ export function buildGeneratorProgram(definition: SceneGeneratorDefinition): Gen
 export function readGeneratorShaders(program: GeneratorProgramPlan): ReadonlyMap<string, string> {
   if (program.key !== generatorProgramKey(program))
     throw Error("Generator program identity mismatch");
-  const { graph } = program;
+  const required = validateGeneratorGraph(program.graph);
+  const code = new Map<string, string>();
+  let total = 0;
+  for (const shader of program.shaders) {
+    const m = shader.message;
+    total += shader.bytes.byteLength;
+    if (
+      m.type !== "put_resource" ||
+      m.kind !== "buffer" ||
+      m.descriptor.element_type !== "u8" ||
+      shader.bytes.length < 1 ||
+      shader.bytes.length > 4 * 1024 * 1024 ||
+      total > 16 * 1024 * 1024 ||
+      !required.has(m.hash) ||
+      code.has(m.hash) ||
+      contentResourceHashSync(m, shader.bytes) !== m.hash
+    )
+      throw Error("Invalid generator shader resource");
+    code.set(m.hash, new TextDecoder("utf-8", { fatal: true }).decode(shader.bytes));
+  }
+  if (code.size !== required.size) throw Error("Missing generator shader resource");
+  return code;
+}
+
+export function validateGeneratorGraph(graph: GeneratorProgramPlan["graph"]): ReadonlySet<string> {
   if (
     graph.api_version !== 1 ||
     !Number.isInteger(graph.max_instances) ||
@@ -144,25 +170,5 @@ export function readGeneratorShaders(program: GeneratorProgramPlan): ReadonlyMap
       required.add(v.auxiliary.shader);
     }
   }
-  const code = new Map<string, string>();
-  let total = 0;
-  for (const shader of program.shaders) {
-    const m = shader.message;
-    total += shader.bytes.byteLength;
-    if (
-      m.type !== "put_resource" ||
-      m.kind !== "buffer" ||
-      m.descriptor.element_type !== "u8" ||
-      shader.bytes.length < 1 ||
-      shader.bytes.length > 4 * 1024 * 1024 ||
-      total > 16 * 1024 * 1024 ||
-      !required.has(m.hash) ||
-      code.has(m.hash) ||
-      contentResourceHashSync(m, shader.bytes) !== m.hash
-    )
-      throw Error("Invalid generator shader resource");
-    code.set(m.hash, new TextDecoder("utf-8", { fatal: true }).decode(shader.bytes));
-  }
-  if (code.size !== required.size) throw Error("Missing generator shader resource");
-  return code;
+  return required;
 }

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { access, mkdir, writeFile } from "node:fs/promises";
 import { join, relative } from "node:path";
+import { auditGeneratorResources } from "./ir-gate-generator.mjs";
 import { auditMediaResources } from "./ir-gate-media.mjs";
 import { auditRasterPixels } from "./ir-gate-raster.mjs";
 import { auditRasterScene } from "./ir-gate-raster-scene.mjs";
@@ -22,7 +23,7 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
     status: "failed",
     started_at: new Date(started).toISOString(),
     scope:
-      "post_uniforms_slice_v1 + scene_buffers_slice_v1 + camera_parameters_slice_v1 + temporal_text_samples_slice_v1 + temporal_text_passes_slice_v1 + material_bindings_slice_v1 + layer_effects_slice_v1 + effect_execution_slice_v1 + root_scene_commands_slice_v1",
+      "post_uniforms_slice_v1 + scene_buffers_slice_v1 + camera_parameters_slice_v1 + temporal_text_samples_slice_v1 + temporal_text_passes_slice_v1 + material_bindings_slice_v1 + layer_effects_slice_v1 + effect_execution_slice_v1 + root_scene_commands_slice_v1 + scene_generator_slice_v1",
     renderer_plan_complete: false,
     steps: [],
     roundtrips: [],
@@ -37,6 +38,7 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
     layer_effects: [],
     effect_executions: [],
     root_scenes: [],
+    generators: [],
     rejections: [],
   };
   const reader = new M0Evidence(context.root);
@@ -191,6 +193,19 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
     const rasterMessages = await reader.json(
       path(join(context.output, "raster-resources.output.json")),
     );
+    const generatorFixtures = runtime.generatorFixtures();
+    const generatorResources = await auditGeneratorResources(generatorFixtures, {
+      context,
+      cli,
+      command,
+      cliReport,
+      outputFile,
+    });
+    report.generator_resources = {
+      status: "passed",
+      resources: generatorResources.size,
+      bytes: [...generatorResources.values()].reduce((n, r) => n + r.bytes.length, 0),
+    };
     for (const fixture of [
       ...fixtures,
       ...rootFixtures,
@@ -204,6 +219,7 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
       ...runtime.layerEffectFixtures(),
       ...runtime.effectExecutionFixtures(),
       ...runtime.rootSceneFixtures(),
+      ...generatorFixtures,
     ]) {
       const input = join(context.output, `${fixture.id}-ts.fpln`);
       const output = join(context.output, `${fixture.id}-rust.fpln`);
@@ -262,6 +278,30 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
           supplied_hashes_exact: true,
           pending_explicit: true,
           missing_rejected: true,
+        });
+      }
+      if (fixture.generator) {
+        const generator = runtime.readGeneratorSlice(after, generatorResources);
+        assert.deepEqual(generator, fixture.generator);
+        runtime.validateGeneratorResources(generator);
+        const trace = runtime.recordGeneratorExecution(generator);
+        assert.deepEqual(trace, runtime.recordGeneratorExecution(fixture.generator));
+        const changed = structuredClone(generator);
+        changed.parameters[0] ^= 1;
+        assert.notDeepEqual(runtime.recordGeneratorExecution(changed), trace);
+        assert.throws(() => runtime.readGeneratorSlice(after, new Map()));
+        const bad = structuredClone(after);
+        bad.blobs[0][24] ^= 1;
+        assert.throws(() => runtime.readGeneratorSlice(bad, generatorResources));
+        report.generators.push({
+          id: fixture.id,
+          exact_descriptors: true,
+          exact_payloads: true,
+          shader_resources_exact: true,
+          supplied_execution: true,
+          missing_rejected: true,
+          count_mismatch_rejected: true,
+          audio: generator.audio !== undefined,
         });
       }
       if (fixture.root) {

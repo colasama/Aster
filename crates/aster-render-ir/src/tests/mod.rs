@@ -3,6 +3,7 @@ mod codec;
 mod encoded_texture;
 mod frame_time;
 mod frame_time_codec;
+mod generator;
 mod identity;
 mod material;
 mod media_resources;

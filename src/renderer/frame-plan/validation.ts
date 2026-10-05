@@ -8,6 +8,11 @@ import {
 } from "./effect-execution-layout";
 import { validateFrameRate } from "./frame-rate";
 import {
+  GENERATOR_FIELDS,
+  validateGeneratorBlob,
+  validateGeneratorSlice,
+} from "./generator-layout";
+import {
   LAYER_EFFECT_FIELDS,
   validateLayerEffect,
   validateLayerEffectBlob,
@@ -101,6 +106,7 @@ export function validateMetadata(value: unknown, limits: FramePlanLimits): Frame
         "layer_effects_slice_v1",
         "effect_execution_slice_v1",
         "root_scene_commands_slice_v1",
+        "scene_generator_slice_v1",
       ].includes(String(metadata.contract_level)) &&
       metadata.renderer_plan_complete === false,
     "unknown_variant",
@@ -173,6 +179,23 @@ export function validateMetadata(value: unknown, limits: FramePlanLimits): Frame
   );
   const indices = new Set<number>();
   for (const value of metadata.slices) {
+    if (metadata.contract_level === "scene_generator_slice_v1") {
+      requirePlan(
+        metadata.slices.length === 1,
+        "invalid_generator",
+        "Expected one generator slice",
+      );
+      const slice = object(value, GENERATOR_FIELDS);
+      const index = integer(slice.blob_index, 0, metadata.blobs.length - 1);
+      requirePlan(!indices.has(index), "blob_count_mismatch", "Duplicate generator blob");
+      indices.add(index);
+      validateGeneratorSlice(
+        slice,
+        metadata.blobs[index] as BlobDescriptor,
+        metadata.resources as string[],
+      );
+      continue;
+    }
     const scene = metadata.contract_level === "scene_buffers_slice_v1";
     const camera = metadata.contract_level === "camera_parameters_slice_v1";
     const temporal = metadata.contract_level === "temporal_text_samples_slice_v1";
@@ -334,6 +357,11 @@ export function validatePlanBlob(
     "element_count_mismatch",
     "Supplied blob length differs from descriptor",
   );
+  if (metadata.contract_level === "scene_generator_slice_v1") {
+    const slice = metadata.slices.find((s) => s.blob_index === index);
+    requirePlan(slice?.kind === "scene_generator", "invalid_generator", "Missing generator slice");
+    validateGeneratorBlob(bytes, slice);
+  }
   if (metadata.contract_level === "root_scene_commands_slice_v1") {
     const slice = metadata.slices.find((s) => s.blob_index === index);
     if (slice?.kind === "root_scene_commands") validateRootSceneBlob(bytes);

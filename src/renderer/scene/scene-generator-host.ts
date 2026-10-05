@@ -12,6 +12,8 @@ import {
 } from "../../core/scene/scene-generator-registry";
 import type { BlendMode, Composition, SceneGeneratorInstance } from "../../core/types";
 import { FIXED_BLEND_MODES, gpuBlendState } from "../compositing/blend-state";
+import { buildGeneratorSlice, readGeneratorSlice } from "../frame-plan/generator-plan";
+import type { FrameHeaderSlice } from "../frame-plan/types";
 import type { SceneCamera } from "../geometry/geometry";
 import {
   AUXILIARY_BUFFER_DESCRIPTORS,
@@ -245,11 +247,18 @@ export class SceneGeneratorHost {
     height: number,
     memoryBudgetMb?: number,
     camera?: SceneCamera,
+    header?: FrameHeaderSlice,
   ): PreparedSceneGenerator | undefined {
     const plan = this.plan(scene, composition, width, height, memoryBudgetMb, camera);
     if (!plan) return undefined;
     try {
-      return this.preparePlan(plan);
+      const supplied = header
+        ? readGeneratorSlice(
+            buildGeneratorSlice(header, plan),
+            new Map(plan.program.shaders.map((r) => [r.message.hash, r])),
+          )
+        : plan;
+      return this.preparePlan(supplied);
     } catch (error) {
       return this.#reportMissing(
         scene,
