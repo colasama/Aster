@@ -4,9 +4,49 @@ import { createBlankProject } from "../../core/project/project";
 import { createParticleLayerForComposition } from "../../core/scene/bundled-particle";
 import { flattenSceneLayers } from "../../core/scene/scene-evaluation";
 import { buildSceneGeometry } from "../geometry/geometry";
-import { planSceneRenderStack } from "./render-stack";
+import { planRootSceneStack, planSceneRenderStack } from "./render-stack";
 
 describe("scene render-stack planning", () => {
+  it("snapshots root order, depth transitions and draw references without authoring objects", () => {
+    const project = createBlankProject();
+    const composition = project.compositions[0];
+    const lower = createLayerForComposition("shape", composition);
+    lower.threeDimensional = true;
+    const generator = createParticleLayerForComposition(composition);
+    const adjustment = createLayerForComposition("adjustment", composition);
+    const upper = createLayerForComposition("shape", composition);
+    composition.layers = [upper, adjustment, generator, lower];
+    const scene = flattenSceneLayers(composition, project, 0);
+    const geometry = buildSceneGeometry(composition, scene);
+    const planned = planRootSceneStack(scene, geometry.batches);
+    const snapshot = structuredClone(planned);
+    const legacy = planSceneRenderStack(scene, geometry.batches);
+    expect(planned.items.map((item) => item.kind)).toEqual([
+      "geometry",
+      "generator",
+      "adjustment",
+      "geometry",
+    ]);
+    expect(planned.items.map((item) => item.clearDepth)).toEqual(
+      legacy.map((item) => item.clearDepth === true),
+    );
+    for (const item of planned.items) {
+      expect(Object.keys(item).sort()).toEqual(
+        (item.kind === "geometry"
+          ? ["clearDepth", "drawIndex", "instanceId", "kind"]
+          : ["clearDepth", "instanceId", "kind"]
+        ).sort(),
+      );
+      if (item.kind === "geometry")
+        expect(planned.draws[item.drawIndex].instanceId).toBe(item.instanceId);
+    }
+    lower.kind = "image";
+    lower.threeDimensional = false;
+    composition.layers.reverse();
+    geometry.batches[0].vertexCount = 0;
+    geometry.batches[0].instanceId = "changed";
+    expect(planned).toEqual(snapshot);
+  });
   it("retains mapped local time for flattened geometry effects", () => {
     const project = createBlankProject();
     const composition = project.compositions[0];

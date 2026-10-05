@@ -14174,7 +14174,7 @@
             "Altering/removing a planned draw changes actual recorded execution, ruling out shadow consumption."
           ],
           "required_full_gates": ["G0", "G1", "G3"],
-          "status": "pending"
+          "status": "in_progress"
         },
         {
           "id": "M2-T10",
@@ -15665,5 +15665,12 @@
       }
     }
   ],
-  "active_cycle": null
+  "active_cycle": {
+    "id": 44,
+    "milestone": "M2",
+    "task": "M2-T9",
+    "started_at": "2026-10-05T03:09:27.911Z",
+    "increment": "Snapshot root stack identities and geometry draw descriptors before encoding; execute geometry without authored Layer objects.",
+    "required_gates": ["G0", "G1", "G3"]
+  }
 }

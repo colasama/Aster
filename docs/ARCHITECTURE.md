@@ -157,7 +157,12 @@ replayed on a new device from Rust-returned scene/material plans and normal/HDR 
 instructions, uniforms, blend/route controls, pyramid needs and selected LUT hashes. Six frozen
 LUT/effect draws replay on an independent device after Rust transport. Effect execution routing also travels through FPLN: root and precomposition consumers read supplied
 isolation, composite and fusion decisions, including direct and skipped instances. Whole-frame pass
-planning and capture remain under extraction.
+planning and capture remain under extraction. Root scene ordering now snapshots only instance IDs,
+geometry draw indices and depth transitions after media/material preparation. Geometry execution
+consumes owned draw ranges, blend modes, texture references and material values without retaining
+authoring layers. Pending media retains the shape fallback; unavailable precomposition surfaces
+remain omitted. Precomposition encoding still uses a preparation adapter, and root pass boundaries
+and isolated draw callbacks remain to be extracted.
 
 Shared WGSL includes output anti-aliasing, core scene variants, compositing, fused post-processing,
 blur/depth/surface effects, auxiliary surfaces, particles, text motion blur and display/buffer helpers.

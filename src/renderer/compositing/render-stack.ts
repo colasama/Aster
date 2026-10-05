@@ -1,5 +1,36 @@
 import type { FlattenedSceneLayer } from "../../core/scene/scene-evaluation";
 import type { GeometryBatch } from "../geometry/geometry";
+import { planSceneDraw, type SceneDrawPlan } from "../scene/scene-draw-plan";
+
+export type PlannedSceneItem = (
+  | { kind: "geometry"; drawIndex: number }
+  | { kind: "adjustment" }
+  | { kind: "generator" }
+) & { instanceId: string; clearDepth: boolean };
+
+export interface PlannedSceneStack {
+  items: PlannedSceneItem[];
+  draws: SceneDrawPlan[];
+}
+
+/** Snapshot authoring-dependent ordering and draw routes before GPU command encoding. */
+export function planRootSceneStack(
+  sceneLayers: readonly FlattenedSceneLayer[],
+  geometryBatches: readonly GeometryBatch[],
+): PlannedSceneStack {
+  const draws: SceneDrawPlan[] = [];
+  const items = planSceneRenderStack(sceneLayers, geometryBatches).map((item): PlannedSceneItem => {
+    const identity = {
+      instanceId: item.scene.instanceId,
+      clearDepth: item.clearDepth === true,
+    };
+    if (item.kind !== "geometry") return { ...identity, kind: item.kind };
+    const drawIndex = draws.length;
+    draws.push(planSceneDraw(item.batch));
+    return { ...identity, kind: "geometry", drawIndex };
+  });
+  return { items, draws };
+}
 
 export type SceneRenderItem = (
   | { kind: "geometry"; batch: GeometryBatch; scene: FlattenedSceneLayer }

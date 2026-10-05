@@ -22,7 +22,7 @@ import { evaluateCameraBasis } from "../core/scene/camera-rig";
 import { flattenSceneLayers } from "../core/scene/scene-evaluation";
 import type { Composition, GpuDiagnostics, Project, RendererMetrics } from "../core/types";
 import { requestPreferredGpuAdapter } from "../desktop/gpu-preference";
-import { planSceneRenderStack } from "./compositing/render-stack";
+import { planRootSceneStack } from "./compositing/render-stack";
 import { AntiAliasingRenderer, planAntiAliasing } from "./effects/anti-aliasing";
 import { depthEffectSettingsFromCameraOptics } from "./effects/depth-effects";
 import { effectExecution } from "./effects/layer-effect-plan";
@@ -71,7 +71,7 @@ import {
 } from "./gpu/render-buffers";
 import { MaterialTextureRenderer } from "./media/material-textures";
 import { RendererResources } from "./renderer-resources";
-import { drawSceneBatch } from "./scene/draw-scene-batch";
+import { drawPlannedSceneBatch } from "./scene/draw-planned-scene-batch";
 import { evaluateSceneCamera } from "./scene/scene-camera";
 import { SceneEvaluationCache } from "./scene/scene-evaluation-cache";
 import type { PreparedSceneGenerator } from "./scene/scene-generator-host";
@@ -630,7 +630,6 @@ export class WebGpuRenderer {
       ...geometry.batches[index],
       ...draw,
     }));
-    const renderStack = planSceneRenderStack(sceneLayers, sceneBatches);
     const effectPlans = resources.layerEffects.prepareEffects(
       sceneLayers,
       composition,
@@ -770,6 +769,7 @@ export class WebGpuRenderer {
     );
     for (const media of resolveSceneMediaPlan(mediaPlan, mediaBindings))
       sceneBatches[media.drawIndex].mediaResourceHash = media.hash;
+    const renderStack = planRootSceneStack(sceneLayers, sceneBatches);
     const postPlan = buildRootPostUniformPlan(framePlanInput);
     uploadRootPostUniformPlan(postPlan, {
       queue: this.#device.queue,
@@ -855,14 +855,14 @@ export class WebGpuRenderer {
     const activeEffectInstances = new Set<string>();
     let clearSceneDepth = false;
     this.diagnostics.adjustmentLayerError = undefined;
-    for (const item of renderStack) {
+    for (const item of renderStack.items) {
       if (item.clearDepth) {
         scenePass?.end();
         scenePass = undefined;
         clearSceneDepth = true;
       }
       if (item.kind === "adjustment") {
-        const execution = effectExecution(effectPlans.get(item.scene.instanceId));
+        const execution = effectExecution(effectPlans.get(item.instanceId));
         if (execution.route === "skip") continue;
         const fusion = execution.fusion;
         scenePass?.end();
@@ -871,10 +871,10 @@ export class WebGpuRenderer {
           const operationCount = resources.layerEffects.encodeAdjustment(
             encoder,
             sceneTexture,
-            effectPlans.get(item.scene.instanceId),
+            effectPlans.get(item.instanceId),
           );
           if (operationCount > 0) {
-            activeEffectInstances.add(item.scene.instanceId);
+            activeEffectInstances.add(item.instanceId);
             adjustmentEffectLayerCount += 1;
             effectOperationCount += operationCount;
             fusedEffectCount += fusion.fusedEffectCount;
@@ -896,19 +896,19 @@ export class WebGpuRenderer {
         continue;
       }
       if (item.kind === "generator") {
-        const generator = generatorByInstance.get(item.scene.instanceId);
+        const generator = generatorByInstance.get(item.instanceId);
         if (!generator || drawnGenerators.has(generator.instanceId)) continue;
-        const execution = effectExecution(effectPlans.get(item.scene.instanceId));
+        const execution = effectExecution(effectPlans.get(item.instanceId));
         if (execution.route === "layer") {
           const fusion = execution.fusion;
           scenePass?.end();
           scenePass = undefined;
-          activeEffectInstances.add(item.scene.instanceId);
+          activeEffectInstances.add(item.instanceId);
           effectLayerCount += 1;
           effectOperationCount += resources.layerEffects.encode(
             encoder,
             sceneTexture,
-            effectPlans.get(item.scene.instanceId),
+            effectPlans.get(item.instanceId),
             (layerPass) => resources.sceneGenerators.draw(layerPass, generator, "normal"),
           );
           fusedEffectCount += fusion.fusedEffectCount;
@@ -935,8 +935,8 @@ export class WebGpuRenderer {
         drawnGenerators.add(generator.instanceId);
         continue;
       }
-      const { batch } = item;
-      const execution = effectExecution(effectPlans.get(batch.instanceId));
+      const draw = renderStack.draws[item.drawIndex];
+      const execution = effectExecution(effectPlans.get(item.instanceId));
       if (execution.route === "layer") {
         const fusion = execution.fusion;
         fusedEffectCount += fusion.fusedEffectCount;
@@ -944,13 +944,13 @@ export class WebGpuRenderer {
         fusionBarrierCount += fusion.barrierCount;
         scenePass?.end();
         scenePass = undefined;
-        activeEffectInstances.add(batch.instanceId);
+        activeEffectInstances.add(item.instanceId);
         effectLayerCount += 1;
         effectOperationCount += resources.layerEffects.encode(
           encoder,
           sceneTexture,
-          effectPlans.get(batch.instanceId),
-          (layerPass) => drawSceneBatch(resources, layerPass, batch, mediaBindings, "normal"),
+          effectPlans.get(item.instanceId),
+          (layerPass) => drawPlannedSceneBatch(resources, layerPass, draw, mediaBindings, "normal"),
         );
       } else {
         if (!scenePass) {
@@ -967,7 +967,7 @@ export class WebGpuRenderer {
           scenePassCount += 1;
           clearSceneDepth = false;
         }
-        drawSceneBatch(resources, scenePass, batch, mediaBindings, execution.blendMode);
+        drawPlannedSceneBatch(resources, scenePass, draw, mediaBindings, execution.blendMode);
       }
     }
     const generatorDrawCount = drawnGenerators.size;
