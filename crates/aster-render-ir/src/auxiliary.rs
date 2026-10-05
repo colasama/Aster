@@ -70,8 +70,7 @@ impl AuxiliarySlice {
                     hash.validate()?;
                     hashes.insert(hash.clone());
                 }
-                RootTextureReference::Surface { instance_id }
-                | RootTextureReference::RasterCache { instance_id } => instance_id.validate()?,
+                RootTextureReference::Surface { instance_id } => instance_id.validate()?,
             }
         }
         for id in &self.generators {

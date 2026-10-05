@@ -12,7 +12,6 @@ pub enum RootTextureReference {
     Pending,
     Media { hash: ResourceHash },
     Surface { instance_id: CompositionIdentity },
-    RasterCache { instance_id: CompositionIdentity },
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
@@ -108,8 +107,7 @@ impl RootSceneCommandsSlice {
                         return Err(IrError::InvalidRootScene("undeclared media".to_owned()));
                     }
                 }
-                RootTextureReference::Surface { instance_id }
-                | RootTextureReference::RasterCache { instance_id } => instance_id.validate()?,
+                RootTextureReference::Surface { instance_id } => instance_id.validate()?,
                 _ => {}
             }
             if let Some(index) = draw.material_blob_index

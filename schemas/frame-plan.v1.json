@@ -2294,20 +2294,6 @@
           },
           "required": ["kind", "instance_id"],
           "type": "object"
-        },
-        {
-          "additionalProperties": false,
-          "properties": {
-            "instance_id": {
-              "$ref": "#/$defs/CompositionIdentity"
-            },
-            "kind": {
-              "const": "raster_cache",
-              "type": "string"
-            }
-          },
-          "required": ["kind", "instance_id"],
-          "type": "object"
         }
       ]
     },

@@ -79,10 +79,10 @@ export function auxiliaryGpuFixture(id: string) {
       hash: contentResourceHashSync(content, pixels),
     };
     const texture: AuxiliaryTexture =
-      index === 0
+      index !== 1
         ? { kind: "media", hash: message.hash }
         : {
-            kind: index === 1 ? "surface" : "raster_cache",
+            kind: "surface",
             instance_id: compositionIdentityFromString(batch.instanceId),
           };
     return { instanceId: batch.instanceId, texture, message, pixels };

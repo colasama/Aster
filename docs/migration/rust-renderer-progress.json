@@ -20217,5 +20217,12 @@
       }
     }
   ],
-  "active_cycle": null
+  "active_cycle": {
+    "id": 73,
+    "started_at": "2026-10-05T19:12:01.285Z",
+    "milestone": "M2",
+    "task": "M2-T13",
+    "intent": "Remove root and auxiliary raster-cache execution aliases and prove recursive temporal sample replay across isolated precomposition surfaces.",
+    "base_commit": "589368568cbc5f1bbcc75043656713f349266e3c"
+  }
 }

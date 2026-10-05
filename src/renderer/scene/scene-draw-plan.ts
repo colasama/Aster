@@ -6,7 +6,6 @@ import type { MaterialBindingPlan } from "../media/material-texture-plan";
 export type SceneTextureReference =
   | { kind: "surface"; instanceId: string }
   | { kind: "media"; hash: string | null }
-  | { kind: "raster-cache"; instanceId: string }
   | { kind: "none" };
 
 /** Owned draw inputs; resource lookup happens against the frame's retained GPU owners. */
@@ -34,8 +33,6 @@ export function planSceneDraw(batch: GeometryBatch): SceneDrawPlan {
       "Media hash is absent from the frame",
     );
     texture = { kind: "media", hash: batch.mediaResourceHash };
-  } else if (batch.layer.kind === "text") {
-    texture = { kind: "raster-cache", instanceId: batch.resourceInstanceId };
   } else texture = { kind: "none" };
   return {
     instanceId: batch.instanceId,

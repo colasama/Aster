@@ -39,12 +39,13 @@ async function main() {
     report.frame_replays = actual.frame_replays;
     assert.deepEqual(
       actual.frame_replays.map((item) => item.mode),
-      ["full", "enters", "exits"],
+      ["full", "enters", "exits", "recursive"],
     );
     assert(
       actual.frame_replays.every(
         (item) =>
           item.frames.length === 2 &&
+          (item.mode !== "recursive" || item.frames.every((frame) => frame.surfaces >= 2)) &&
           item.frames.every(
             (f) =>
               f.exact &&

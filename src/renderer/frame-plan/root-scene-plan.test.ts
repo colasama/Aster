@@ -6,7 +6,7 @@ import { readRootScenePlan } from "./root-scene-plan";
 describe("root command transport", () => {
   it("preserves supplied draws, resources, UTF-16 identities and binary64 clears", () => {
     for (const fixture of rootSceneFixtures()) {
-      const plan = decodeFramePlan(fixture.bytes);
+      const plan = decodeFramePlan(fixture.bytes.slice());
       const root = readRootScenePlan(plan);
       expect(root).toEqual(fixture.root);
       expect(encodeFramePlan(plan.metadata, plan.blobs)).toEqual(fixture.bytes);
@@ -33,8 +33,9 @@ describe("root command transport", () => {
       "material",
       "resource",
       "clear",
+      "raster-alias",
     ] as const) {
-      const plan = decodeFramePlan(fixture.bytes);
+      const plan = decodeFramePlan(fixture.bytes.slice());
       const root = plan.metadata.slices[0];
       if (root.kind !== "root_scene_commands") throw Error("Wrong slice");
       if (mutation === "end") root.commands.pop();
@@ -52,6 +53,10 @@ describe("root command transport", () => {
       }
       if (mutation === "material") root.draws[0].material_blob_index = 0;
       if (mutation === "resource") plan.metadata.resources = [];
+      if (mutation === "raster-alias")
+        Object.assign(root.draws[0], {
+          texture: { kind: "raster_cache", instance_id: root.draws[0].instance_id },
+        });
       if (mutation === "clear") {
         const blob = plan.blobs[0];
         new DataView(blob.buffer, blob.byteOffset, blob.byteLength).setFloat64(0, Number.NaN, true);

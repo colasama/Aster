@@ -5,7 +5,7 @@ export type RootTextureReference =
   | { kind: "none" }
   | { kind: "pending" }
   | { kind: "media"; hash: string }
-  | { kind: "surface" | "raster_cache"; instance_id: CompositionIdentity };
+  | { kind: "surface"; instance_id: CompositionIdentity };
 
 export interface RootDrawRecord {
   instance_id: CompositionIdentity;

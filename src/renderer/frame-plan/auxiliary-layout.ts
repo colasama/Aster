@@ -81,11 +81,7 @@ export function validateAuxiliary(
       hashes.add(texture.hash as string);
     } else {
       object(texture, ["kind", "instance_id"]);
-      requirePlan(
-        texture.kind === "surface" || texture.kind === "raster_cache",
-        "invalid_header",
-        "Invalid auxiliary texture role",
-      );
+      requirePlan(texture.kind === "surface", "invalid_header", "Invalid auxiliary texture role");
       compositionIdentityToString(texture.instance_id);
     }
   }

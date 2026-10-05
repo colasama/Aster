@@ -80,16 +80,7 @@ export function planFrameOutput(input: {
             ? { texture: { kind: "media", hash: batch.mediaResourceHash }, binding }
             : undefined;
         }
-        const binding = resources.mediaTextures.bindGroup(batch.resourceInstanceId);
-        return binding
-          ? {
-              texture: {
-                kind: "raster_cache",
-                instance_id: compositionIdentityFromString(batch.resourceInstanceId),
-              },
-              binding,
-            }
-          : undefined;
+        return undefined;
       },
       generators: beautyMotionBlur
         ? []

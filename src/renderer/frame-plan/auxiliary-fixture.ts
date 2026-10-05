@@ -11,7 +11,7 @@ export function auxiliaryFixtures() {
     { kind: "none" },
     { kind: "media", hash: "a".repeat(64) },
     { kind: "surface", instance_id: compositionIdentityFromString("nested/surface") },
-    { kind: "raster_cache", instance_id: compositionIdentityFromString("text/cache") },
+    { kind: "media", hash: "b".repeat(64) },
   ];
   const batches: GeometryBatch[] = textures.map((_, i) => ({
     instanceId: `draw/${i}`,

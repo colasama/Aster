@@ -3,7 +3,6 @@ import { requirePlan } from "../frame-plan/canonical";
 import { compositionIdentityToString } from "../frame-plan/composition-identity";
 import type { readFrameBundle } from "../frame-plan/frame-bundle-read";
 import { readPostEffectPlan } from "../frame-plan/post-effect-plan";
-import { readRootScenePlan } from "../frame-plan/root-scene-plan";
 import type { AuxiliaryPlanBindings } from "../gpu/auxiliary-plan-bindings";
 import type { RendererResources } from "../renderer-resources";
 import type { SuppliedFrameAssets } from "./supplied-frame-assets";
@@ -17,12 +16,6 @@ export function prepareSuppliedFrame(
   const { width, height } = decoded.plans.post.metadata.header.render_target;
   const media = assets.media;
   requirePlan(media, "missing_resource", "Supplied frame media was not installed");
-  for (const draw of readRootScenePlan(decoded.plans.root).draws)
-    requirePlan(
-      draw.texture.kind !== "raster-cache",
-      "missing_resource",
-      "Supplied replay cannot resolve an authoring raster-cache alias",
-    );
   resources.configureShadowMap(decoded.shadowMapSize);
   resources.sceneGenerators.beginPlannedFrame();
   if (decoded.precompositionBundle)

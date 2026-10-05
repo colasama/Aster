@@ -40,7 +40,7 @@ export function rootSceneFixtures() {
     { kind: "media", hash: "a".repeat(64) },
     { kind: "media", hash: null },
     { kind: "surface", instanceId: "nested\ud800" },
-    { kind: "raster-cache", instanceId: "text\udfff" },
+    { kind: "media", hash: "d".repeat(64) },
     { kind: "none" },
     { kind: "none" },
   ].map((texture, index) => ({

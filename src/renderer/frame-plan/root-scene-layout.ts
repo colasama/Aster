@@ -70,11 +70,7 @@ export function validateRootScene(
       );
     } else {
       object(texture, ["kind", "instance_id"]);
-      requirePlan(
-        texture.kind === "surface" || texture.kind === "raster_cache",
-        "invalid_root_scene",
-        "Unknown root texture",
-      );
+      requirePlan(texture.kind === "surface", "invalid_root_scene", "Unknown root texture");
       compositionIdentityToString(texture.instance_id);
     }
     if (draw.material_blob_index !== null) typedSlice(draw.material_blob_index, "material_binding");

@@ -302,8 +302,13 @@ their captured resolved pixels, then executes the shared linear accumulation and
 passes before scene drawing. Frame metadata records replayed temporal pass and sample counts.
 Diagnostic bundle capture reconstructs unchanged temporal generations during raster preparation,
 so warm-up cache hits still expose their actual submitted sample passes. Normal preview/export keep
-their existing cache reuse. Cached recursive-surface coverage and per-frame plan/resource publication
-remain part of the complete-frame exit audit.
+their existing cache reuse. Per-frame plan/resource publication and the final coverage audit remain
+required before declaring the complete-frame contract finished.
+
+Root and auxiliary draw contracts accept content-addressed media or planned surface references;
+instance-based raster-cache aliases are rejected at the transport boundary. Vector text retains
+its geometry-only path. Two isolated precomposition levels exercise warmed temporal sample replay
+and exposure mutations through the same frame-owned resource lease.
 
 Shared WGSL includes output anti-aliasing, core scene variants, compositing, fused post-processing,
 blur/depth/surface effects, auxiliary surfaces, particles, text motion blur and display/buffer helpers.

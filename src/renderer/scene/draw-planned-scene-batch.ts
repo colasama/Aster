@@ -19,12 +19,7 @@ export function drawPlannedSceneBatch(
     texture.kind === "surface"
       ? resources.precompositionSurfaces.bindingFor(texture.instanceId)
       : undefined;
-  const media =
-    texture.kind === "media"
-      ? mediaBindings.bindingForHash(texture.hash)
-      : texture.kind === "raster-cache"
-        ? resources.mediaTextures.bindGroup(texture.instanceId)
-        : undefined;
+  const media = texture.kind === "media" ? mediaBindings.bindingForHash(texture.hash) : undefined;
   pass.setVertexBuffer(0, resources.shapeBuffer);
   if (surface) {
     pass.setPipeline(resources.precompositionSurfaces.pipelineFor(blendMode));

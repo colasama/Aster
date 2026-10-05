@@ -158,10 +158,14 @@ describe("planned scene drawing", () => {
 
   it("preserves material, raster, then shape fallback priority and explicit pending media", () => {
     const h = harness();
-    h.draw.texture = { kind: "raster-cache", instanceId: "text-at-time" };
+    h.draw.texture = { kind: "media", hash: "a".repeat(64) };
+    vi.spyOn(h.lease, "bindingForHash").mockImplementation((hash) =>
+      hash === null ? undefined : h.raster,
+    );
     h.execute();
     expect(h.pass.setPipeline).toHaveBeenLastCalledWith(h.material.pipeline);
-    expect(h.resources.mediaTextures.bindGroup).toHaveBeenLastCalledWith("text-at-time");
+    expect(h.lease.bindingForHash).toHaveBeenLastCalledWith("a".repeat(64));
+    expect(h.resources.mediaTextures.bindGroup).not.toHaveBeenCalled();
     h.resources.materialTextures.bindingFor.mockReturnValue(undefined);
     h.execute();
     expect(h.pass.setPipeline).toHaveBeenLastCalledWith(h.resources.imagePipelines.screen);

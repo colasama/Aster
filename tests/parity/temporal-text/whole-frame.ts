@@ -1,6 +1,7 @@
 import type { Composition, Project } from "../../../src/core/types";
 import { FrameBundleRenderer } from "../../../src/renderer/compositing/frame-bundle-renderer";
 import { decodeFramePlan, encodeFramePlan } from "../../../src/renderer/frame-plan/codec";
+import { readFrameBundle } from "../../../src/renderer/frame-plan/frame-bundle-read";
 import { contentResourceHashSync } from "../../../src/renderer/frame-plan/resources";
 import {
   buildTemporalPassSlice,
@@ -10,7 +11,11 @@ import { normalizeRawFrameRgba } from "../../../src/renderer/gpu/raw-frame-png";
 import { WebGpuRenderer } from "../../../src/renderer/webgpu-renderer";
 
 /** Warmed production caches must still supply executable temporal derivations to an isolated device. */
-export async function auditTemporalFrameReplay(project: Project, composition: Composition) {
+export async function auditTemporalFrameReplay(
+  project: Project,
+  composition: Composition,
+  minimumSurfaces = 0,
+) {
   const canvas = document.createElement("canvas");
   canvas.width = 320;
   canvas.height = 180;
@@ -35,6 +40,8 @@ export async function auditTemporalFrameReplay(project: Project, composition: Co
         true,
       );
       if (!raw.bundle) throw Error("Temporal whole-frame bundle is absent");
+      const surfaces = readFrameBundle(raw.bundle).plans.precompositions.length;
+      if (surfaces < minimumSurfaces) throw Error("Recursive temporal surfaces are absent");
       const actual = await replay.render({
         ...raw.bundle,
         plan: decodeFramePlan(encodeFramePlan(raw.bundle.plan.metadata, raw.bundle.plan.blobs)),
@@ -83,6 +90,7 @@ export async function auditTemporalFrameReplay(project: Project, composition: Co
         exact: true,
         independent_device: true,
         warmed_cache: true,
+        surfaces,
       });
     }
     return results;

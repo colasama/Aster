@@ -13,6 +13,7 @@ import {
   type TextMotionBlurPlan,
 } from "../../../src/renderer/text/text-motion-blur-plan";
 import { TextMotionBlurRasterCache } from "../../../src/renderer/text/text-motion-blur-raster-cache";
+import { auditRecursiveTemporalFrame } from "./recursive-frame";
 import { auditTemporalFrameReplay } from "./whole-frame";
 
 type Mode = "full" | "enters" | "exits" | "transparent";
@@ -171,6 +172,11 @@ export async function runTemporalTextGpuCheck() {
         registry.destroy();
       }
     }
+    const recursive = fixture("full");
+    frameReplays.push({
+      mode: "recursive",
+      frames: await auditRecursiveTemporalFrame(recursive.project, recursive.composition),
+    });
     const scoped = await device.popErrorScope();
     if (scoped) errors.push(scoped.message);
     if (errors.length) throw new Error(errors.join("\n"));

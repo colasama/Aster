@@ -34,12 +34,13 @@ export async function auditTemporalText(reader, context, execute) {
   assert.equal(gpu.results.length, reference.cases.length);
   assert.deepEqual(
     gpu.frame_replays.map((item) => item.mode),
-    ["full", "enters", "exits"],
+    ["full", "enters", "exits", "recursive"],
   );
   assert(
     gpu.frame_replays.every(
       (item) =>
         item.frames.length === 2 &&
+        (item.mode !== "recursive" || item.frames.every((frame) => frame.surfaces >= 2)) &&
         item.frames.every(
           (f) =>
             f.exact &&

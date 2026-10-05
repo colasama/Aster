@@ -79,7 +79,7 @@ export function buildRootScenePlan(
         break;
       default:
         texture = {
-          kind: draw.texture.kind === "surface" ? "surface" : "raster_cache",
+          kind: "surface",
           instance_id: identity(draw.texture.instanceId),
         };
     }
@@ -188,7 +188,7 @@ export function readRootScenePlan(input: FramePlanSliceData): {
             : texture.kind === "media"
               ? { kind: "media", hash: texture.hash }
               : {
-                  kind: texture.kind === "surface" ? "surface" : "raster-cache",
+                  kind: "surface",
                   instanceId: text(texture.instance_id),
                 },
       ...(draw.material_blob_index === null

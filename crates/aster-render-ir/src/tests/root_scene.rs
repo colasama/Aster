@@ -7,6 +7,14 @@ use crate::{
 
 #[test]
 fn root_commands_preserve_clear_bits_and_reject_invalid_execution() -> Result<(), IrError> {
+    let surface = RootTextureReference::Surface {
+        instance_id: CompositionIdentity::Unicode("surface".to_owned()),
+    };
+    let serialized = serde_json::to_string(&surface)
+        .map_err(|error| IrError::InvalidRootScene(error.to_string()))?;
+    assert!(serde_json::from_str::<RootTextureReference>(&serialized).is_ok());
+    let alias = serialized.replacen("\"surface\"", "\"raster_cache\"", 1);
+    assert!(serde_json::from_str::<RootTextureReference>(&alias).is_err());
     let mut metadata = Fixture::new()?.metadata;
     metadata.contract_level = ContractLevel::RootSceneCommandsSliceV1;
     metadata.resources.clear();
