@@ -125,8 +125,31 @@
         "camera_parameters_slice_v1",
         "temporal_text_samples_slice_v1",
         "temporal_text_passes_slice_v1",
-        "material_bindings_slice_v1"
+        "material_bindings_slice_v1",
+        "layer_effects_slice_v1"
       ],
+      "type": "string"
+    },
+    "EffectBlendMode": {
+      "enum": [
+        "normal",
+        "add",
+        "multiply",
+        "screen",
+        "overlay",
+        "darken",
+        "lighten",
+        "color-burn",
+        "color-dodge",
+        "soft-light",
+        "hard-light",
+        "difference",
+        "exclusion"
+      ],
+      "type": "string"
+    },
+    "EffectRoute": {
+      "enum": ["layer", "adjustment"],
       "type": "string"
     },
     "ElementType": {
@@ -510,6 +533,55 @@
     },
     "PlanSlice": {
       "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "blend_mode": {
+              "$ref": "#/$defs/EffectBlendMode"
+            },
+            "blob_index": {
+              "format": "uint32",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "instance_id": {
+              "$ref": "#/$defs/CompositionIdentity"
+            },
+            "kind": {
+              "const": "layer_effect",
+              "type": "string"
+            },
+            "lut_hash": {
+              "$ref": "#/$defs/ResourceHash"
+            },
+            "operation_count": {
+              "format": "uint32",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "route": {
+              "$ref": "#/$defs/EffectRoute"
+            },
+            "uses_blur": {
+              "type": "boolean"
+            },
+            "uses_glow": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "kind",
+            "blob_index",
+            "instance_id",
+            "blend_mode",
+            "route",
+            "operation_count",
+            "uses_blur",
+            "uses_glow",
+            "lut_hash"
+          ],
+          "type": "object"
+        },
         {
           "additionalProperties": false,
           "properties": {

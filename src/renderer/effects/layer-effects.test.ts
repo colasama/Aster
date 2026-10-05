@@ -1,7 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createLayerForComposition } from "../../core/layers/layer-factory";
 import { createBlankProject } from "../../core/project/project";
+import type { Composition, Layer } from "../../core/types";
 import { createEffect } from "../../effects/registry";
+import { buildFrameHeader } from "../frame-plan/root-post-plan";
+import type { LutSelection } from "../media/lut-selection-plan";
 import { LutSelectionPlanner, suppliedLutResource } from "../media/lut-selection-plan";
 import { LayerEffectRenderer } from "./layer-effects";
 
@@ -40,11 +43,7 @@ describe("GPU adjustment-layer effects", () => {
     renderer.encodeAdjustment(
       encoder,
       {} as GPUTexture,
-      composition,
-      layer,
-      "instance",
-      0,
-      selected,
+      prepareEffectFixture(renderer, composition, layer, "instance", 0, selected),
     );
     const calls = vi.mocked(device.queue.writeTexture).mock.calls;
     expect(calls[calls.length - 1]?.[1]).toEqual(expected);
@@ -52,22 +51,21 @@ describe("GPU adjustment-layer effects", () => {
     renderer.encodeAdjustment(
       encoder,
       {} as GPUTexture,
-      composition,
-      layer,
-      "instance",
-      0,
-      structuredClone(selected),
+      prepareEffectFixture(renderer, composition, layer, "instance", 0, structuredClone(selected)),
     );
     expect(device.queue.writeTexture).toHaveBeenCalledTimes(uploads);
     const before = destroy.mock.calls.length;
     renderer.encodeAdjustment(
       encoder,
       {} as GPUTexture,
-      composition,
-      layer,
-      "instance",
-      0,
-      planner.prepare("instance", layer),
+      prepareEffectFixture(
+        renderer,
+        composition,
+        layer,
+        "instance",
+        0,
+        planner.prepare("instance", layer),
+      ),
     );
     expect(destroy).toHaveBeenCalledTimes(before + 1);
     renderer.sweep(new Set());
@@ -76,13 +74,9 @@ describe("GPU adjustment-layer effects", () => {
       renderer.encodeAdjustment(
         encoder,
         {} as GPUTexture,
-        composition,
-        layer,
-        "missing",
-        0,
-        undefined,
+        prepareEffectFixture(renderer, composition, layer, "missing", 0, undefined),
       ),
-    ).toThrow("Missing prepared LUT selection");
+    ).toThrow("Missing prepared layer effect");
     renderer.destroy();
   });
 
@@ -120,11 +114,14 @@ describe("GPU adjustment-layer effects", () => {
     const operationCount = renderer.encodeAdjustment(
       encoder,
       { label: "scene" } as GPUTexture,
-      composition,
-      adjustment,
-      "root/adjustment",
-      0,
-      new LutSelectionPlanner().prepare("root/adjustment", adjustment),
+      prepareEffectFixture(
+        renderer,
+        composition,
+        adjustment,
+        "root/adjustment",
+        0,
+        new LutSelectionPlanner().prepare("root/adjustment", adjustment),
+      ),
     );
 
     expect(operationCount).toBe(2);
@@ -155,11 +152,14 @@ describe("GPU adjustment-layer effects", () => {
       renderer.encodeAdjustment(
         encoder,
         {} as GPUTexture,
-        composition,
-        adjustment,
-        "root/adjustment",
-        0,
-        new LutSelectionPlanner().prepare("root/adjustment", adjustment),
+        prepareEffectFixture(
+          renderer,
+          composition,
+          adjustment,
+          "root/adjustment",
+          0,
+          new LutSelectionPlanner().prepare("root/adjustment", adjustment),
+        ),
       ),
     ).toBe(0);
     expect(encoder.copyTextureToTexture).not.toHaveBeenCalled();
@@ -193,20 +193,26 @@ describe("GPU adjustment-layer effects", () => {
     renderer.encodeAdjustment(
       encoder,
       target,
-      composition,
-      first,
-      "first",
-      0,
-      new LutSelectionPlanner().prepare("first", first),
+      prepareEffectFixture(
+        renderer,
+        composition,
+        first,
+        "first",
+        0,
+        new LutSelectionPlanner().prepare("first", first),
+      ),
     );
     renderer.encodeAdjustment(
       encoder,
       target,
-      composition,
-      second,
-      "second",
-      0,
-      new LutSelectionPlanner().prepare("second", second),
+      prepareEffectFixture(
+        renderer,
+        composition,
+        second,
+        "second",
+        0,
+        new LutSelectionPlanner().prepare("second", second),
+      ),
     );
     expect(events).toEqual(["copy", "draw", "copy", "copy", "draw", "copy"]);
 
@@ -219,11 +225,14 @@ describe("GPU adjustment-layer effects", () => {
       renderer.encodeAdjustment(
         encoder,
         target,
-        composition,
-        unsupported,
-        "unknown",
-        0,
-        new LutSelectionPlanner().prepare("unknown", unsupported),
+        prepareEffectFixture(
+          renderer,
+          composition,
+          unsupported,
+          "unknown",
+          0,
+          new LutSelectionPlanner().prepare("unknown", unsupported),
+        ),
       ),
     ).toBe(0);
     expect(events).toEqual([]);
@@ -265,11 +274,14 @@ describe("GPU adjustment-layer effects", () => {
     renderer.encodeAdjustment(
       encoder,
       {} as GPUTexture,
-      composition,
-      adjustment,
-      "root",
-      0,
-      new LutSelectionPlanner().prepare("root", adjustment),
+      prepareEffectFixture(
+        renderer,
+        composition,
+        adjustment,
+        "root",
+        0,
+        new LutSelectionPlanner().prepare("root", adjustment),
+      ),
     );
 
     expect(events[0]).toBe("copy");
@@ -321,4 +333,31 @@ function toUsage(texture: { usage: number }): {
     copySource: Boolean(texture.usage & GPUTextureUsage.COPY_SRC),
     copyDestination: Boolean(texture.usage & GPUTextureUsage.COPY_DST),
   };
+}
+
+function prepareEffectFixture(
+  renderer: LayerEffectRenderer,
+  composition: Composition,
+  layer: Layer,
+  instanceId: string,
+  time: number,
+  lut: LutSelection | undefined,
+) {
+  if (!lut) return undefined;
+  return renderer.prepareEffect(
+    composition,
+    layer,
+    instanceId,
+    time,
+    buildFrameHeader({
+      snapshot: { snapshotScope: "effect-test", projectRevision: 0 },
+      compositionId: composition.id,
+      time,
+      frameRate: composition.frameRate,
+      target: { width: composition.width, height: composition.height },
+      renderTarget: { width: composition.width, height: composition.height },
+      antiAliasing: "off",
+    }),
+    lut,
+  );
 }

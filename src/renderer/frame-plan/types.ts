@@ -1,3 +1,4 @@
+import type { BlendMode } from "../../core/types";
 import type { MediaFrameDescriptor, MediaSourceDescriptor } from "./media-descriptors";
 import type { RasterPixelsDescriptor } from "./raster-pixels";
 import type { TexturePixelsDescriptor } from "./texture-pixels";
@@ -93,7 +94,8 @@ export interface FramePlanSliceV1 {
     | "camera_parameters_slice_v1"
     | "temporal_text_samples_slice_v1"
     | "temporal_text_passes_slice_v1"
-    | "material_bindings_slice_v1";
+    | "material_bindings_slice_v1"
+    | "layer_effects_slice_v1";
   renderer_plan_complete: false;
   header: FrameHeaderSlice;
   blobs: BlobDescriptor[];
@@ -130,6 +132,7 @@ export type PlanSlice =
   | SceneBuffersSlice
   | CameraParametersSlice
   | MaterialBindingSlice
+  | LayerEffectSlice
   | TemporalTextSamplesSlice
   | TemporalTextPassesSlice;
 
@@ -217,3 +220,15 @@ export class FramePlanError extends Error {
 }
 
 import type { EncodedTextureDescriptor } from "./encoded-texture";
+
+export interface LayerEffectSlice {
+  kind: "layer_effect";
+  blob_index: number;
+  instance_id: CompositionIdentity;
+  blend_mode: BlendMode;
+  route: "layer" | "adjustment";
+  operation_count: number;
+  uses_blur: boolean;
+  uses_glow: boolean;
+  lut_hash: string;
+}

@@ -22,7 +22,7 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
     status: "failed",
     started_at: new Date(started).toISOString(),
     scope:
-      "post_uniforms_slice_v1 + scene_buffers_slice_v1 + camera_parameters_slice_v1 + temporal_text_samples_slice_v1 + temporal_text_passes_slice_v1 + material_bindings_slice_v1",
+      "post_uniforms_slice_v1 + scene_buffers_slice_v1 + camera_parameters_slice_v1 + temporal_text_samples_slice_v1 + temporal_text_passes_slice_v1 + material_bindings_slice_v1 + layer_effects_slice_v1",
     renderer_plan_complete: false,
     steps: [],
     roundtrips: [],
@@ -34,6 +34,7 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
     temporal_samples: [],
     temporal_passes: [],
     material_bindings: [],
+    layer_effects: [],
     rejections: [],
   };
   const reader = new M0Evidence(context.root);
@@ -198,6 +199,7 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
       ...temporalFixtures,
       ...runtime.temporalPassFixtures(),
       ...runtime.materialBindingFixtures(),
+      ...runtime.layerEffectFixtures(),
     ]) {
       const input = join(context.output, `${fixture.id}-ts.fpln`);
       const output = join(context.output, `${fixture.id}-rust.fpln`);
@@ -255,6 +257,24 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
           id: fixture.id,
           supplied_hashes_exact: true,
           pending_explicit: true,
+          missing_rejected: true,
+        });
+      }
+      if (fixture.effect) {
+        const supplied = runtime.readLayerEffectSlice(after);
+        assert.deepEqual(supplied, fixture.effect);
+        assert.deepEqual(
+          Buffer.from(supplied.program.data.buffer).subarray(96),
+          Buffer.from(after.blobs[0]).subarray(96, 4192),
+        );
+        const missing = structuredClone(after);
+        missing.metadata.resources = [];
+        assert.throws(() => runtime.readLayerEffectSlice(missing));
+        report.layer_effects.push({
+          id: fixture.id,
+          exact_controls: true,
+          exact_program: true,
+          supplied_lut_hash: true,
           missing_rejected: true,
         });
       }

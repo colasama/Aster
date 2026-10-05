@@ -6,6 +6,7 @@ import {
   needsBackdropBlend,
   needsLayerIsolation,
 } from "../compositing/layer-composite";
+import type { FrameHeaderSlice } from "../frame-plan/types";
 import { postProcessShader, textureCompositeShader } from "../gpu/shaders";
 import {
   type LutSelection,
@@ -15,13 +16,12 @@ import {
 import { createLutSampler } from "../media/lut-texture";
 import { uploadTexturePixels } from "../media/texture-pixel-upload";
 import { BlurPyramid, BrightpassPyramid } from "./blur-pyramid";
-import { defaultPostProcessParameters } from "./effect-parameters";
+import { FLOATS_PER_EFFECT_OPERATION, MAX_EFFECT_OPERATIONS } from "./effect-program";
 import {
-  compileEffectProgram,
-  FLOATS_PER_EFFECT_OPERATION,
-  MAX_EFFECT_OPERATIONS,
-} from "./effect-program";
-import { buildPostProcessUniforms } from "./post-process";
+  type PreparedLayerEffect,
+  prepareLayerEffect,
+  suppliedLayerEffect,
+} from "./layer-effect-plan";
 
 interface LayerEffectBuffers {
   uniforms: GPUBuffer;
@@ -124,13 +124,40 @@ export class LayerEffectRenderer {
     };
   }
 
-  prepareLuts(scene: readonly FlattenedSceneLayer[]): ReadonlyMap<string, LutSelection> {
-    const selections = new Map<string, LutSelection>();
+  prepareEffects(
+    scene: readonly FlattenedSceneLayer[],
+    composition: Composition,
+    header: FrameHeaderSlice,
+  ): ReadonlyMap<string, PreparedLayerEffect> {
+    const plans = new Map<string, PreparedLayerEffect>();
     for (const item of scene) {
       if (item.layer.kind === "adjustment" || needsLayerIsolation(item.layer))
-        selections.set(item.instanceId, this.#lutPlans.prepare(item.instanceId, item.layer));
+        plans.set(
+          item.instanceId,
+          this.prepareEffect(composition, item.layer, item.instanceId, item.localTime, header),
+        );
     }
-    return selections;
+    return plans;
+  }
+
+  prepareEffect(
+    composition: Composition,
+    layer: Layer,
+    instanceId: string,
+    time: number,
+    header: FrameHeaderSlice,
+    lut?: LutSelection,
+  ): PreparedLayerEffect {
+    return prepareLayerEffect({
+      composition,
+      layer,
+      instanceId,
+      time,
+      header: { ...header, render_target: { width: this.#width, height: this.#height } },
+      mipLevelCount: this.#pyramid.mipLevelCount,
+      planner: this.#lutPlans,
+      lut,
+    });
   }
 
   resize(width: number, height: number): void {
@@ -170,11 +197,7 @@ export class LayerEffectRenderer {
   encode(
     encoder: GPUCommandEncoder,
     target: GPUTexture,
-    composition: Composition,
-    layer: Layer,
-    instanceId: string,
-    time: number,
-    lut: LutSelection | undefined,
+    effect: PreparedLayerEffect | undefined,
     drawLayer: (pass: GPURenderPassEncoder) => void,
   ): number {
     if (!this.#input || !this.#output || !this.#depth || !this.#compositeBindGroup) {
@@ -187,32 +210,18 @@ export class LayerEffectRenderer {
     if (!input || !output || !depth || !compositeBindGroup)
       throw new Error("Layer effect targets unavailable");
 
-    const program = compileEffectProgram(
-      composition,
-      time,
-      [layer],
-      Math.min(this.#width / composition.width, this.#height / composition.height),
+    const { program, uniforms, instanceId, slice, lut } = suppliedLayerEffect(
+      effect,
+      this.#width,
+      this.#height,
+      "layer",
     );
-    const effects = defaultPostProcessParameters();
     const resource = this.#resource(instanceId, lut);
     this.#device.queue.writeBuffer(resource.program, 0, program.data);
-    this.#device.queue.writeBuffer(
-      resource.uniforms,
-      0,
-      buildPostProcessUniforms(
-        this.#width,
-        this.#height,
-        time,
-        effects,
-        program.count,
-        true,
-        Math.max(0, this.#pyramid.mipLevelCount - 1),
-        program.usesGlow,
-      ),
-    );
+    this.#device.queue.writeBuffer(resource.uniforms, 0, uniforms);
 
     const inputPass = encoder.beginRenderPass({
-      label: `Layer source · ${layer.name}`,
+      label: `Layer source · ${instanceId}`,
       colorAttachments: [
         {
           view: input.createView(),
@@ -235,7 +244,7 @@ export class LayerEffectRenderer {
     if (program.usesGlow) this.#glowPyramid.encode(encoder, program.glowThreshold);
 
     const effectPass = encoder.beginRenderPass({
-      label: `Fused layer effects · ${layer.name}`,
+      label: `Fused layer effects · ${instanceId}`,
       colorAttachments: [
         {
           view: output.createView(),
@@ -250,21 +259,21 @@ export class LayerEffectRenderer {
     effectPass.draw(3);
     effectPass.end();
 
-    if (needsBackdropBlend(layer.blendMode)) {
+    if (needsBackdropBlend(slice.blend_mode)) {
       // Source effects are finished; recycle their input as the backdrop snapshot.
       encoder.copyTextureToTexture({ texture: target }, { texture: input }, [
         this.#width,
         this.#height,
       ]);
-      this.#compositor.encode(encoder, target, layer.blendMode);
+      this.#compositor.encode(encoder, target, slice.blend_mode);
       return program.count;
     }
     const compositePass = encoder.beginRenderPass({
-      label: `Layer composite · ${layer.name}`,
+      label: `Layer composite · ${instanceId}`,
       colorAttachments: [{ view: target.createView(), loadOp: "load", storeOp: "store" }],
     });
     compositePass.setPipeline(
-      this.#compositePipelines[layer.blendMode] ?? this.#compositePipelines.normal,
+      this.#compositePipelines[slice.blend_mode] ?? this.#compositePipelines.normal,
     );
     compositePass.setBindGroup(0, compositeBindGroup);
     compositePass.draw(3);
@@ -281,41 +290,24 @@ export class LayerEffectRenderer {
   encodeAdjustment(
     encoder: GPUCommandEncoder,
     target: GPUTexture,
-    composition: Composition,
-    layer: Layer,
-    instanceId: string,
-    time: number,
-    lut: LutSelection | undefined,
+    effect: PreparedLayerEffect | undefined,
   ): number {
-    if (!layer.effects.some((effect) => effect.enabled)) return 0;
+    if (effect?.status === "skipped") return 0;
     if (!this.#input || !this.#output) this.resize(this.#width, this.#height);
     const input = this.#input;
     const output = this.#output;
     if (!input || !output) throw new Error("Adjustment effect targets unavailable");
 
-    const program = compileEffectProgram(
-      composition,
-      time,
-      [layer],
-      Math.min(this.#width / composition.width, this.#height / composition.height),
+    const { program, uniforms, instanceId, lut } = suppliedLayerEffect(
+      effect,
+      this.#width,
+      this.#height,
+      "adjustment",
     );
     if (program.count === 0) return 0;
     const resource = this.#resource(instanceId, lut);
     this.#device.queue.writeBuffer(resource.program, 0, program.data);
-    this.#device.queue.writeBuffer(
-      resource.uniforms,
-      0,
-      buildPostProcessUniforms(
-        this.#width,
-        this.#height,
-        time,
-        defaultPostProcessParameters(),
-        program.count,
-        true,
-        Math.max(0, this.#pyramid.mipLevelCount - 1),
-        program.usesGlow,
-      ),
-    );
+    this.#device.queue.writeBuffer(resource.uniforms, 0, uniforms);
 
     const extent: GPUExtent3DStrict = {
       width: this.#width,
@@ -326,7 +318,7 @@ export class LayerEffectRenderer {
     if (program.usesBlur) this.#pyramid.encode(encoder);
     if (program.usesGlow) this.#glowPyramid.encode(encoder, program.glowThreshold);
     const effectPass = encoder.beginRenderPass({
-      label: `Adjustment effects · ${layer.name}`,
+      label: `Adjustment effects · ${instanceId}`,
       colorAttachments: [
         {
           view: output.createView(),

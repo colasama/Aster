@@ -89,7 +89,7 @@ function setup() {
     precompositionSurfaces: {
       prepare: () => ({ diagnostics: [], mediaInstanceIds: new Set(["media"]), residentBytes: 0 }),
     },
-    layerEffects: { estimatedTextureBytes: () => 0, prepareLuts: () => new Map() },
+    layerEffects: { estimatedTextureBytes: () => 0, prepareEffects: () => new Map() },
     auxiliaryBuffers: { estimatedBytes: 0 },
     motionBlur: { estimatedBytes: 0 },
     surfacePostEffects: { estimatedBytes: 0 },

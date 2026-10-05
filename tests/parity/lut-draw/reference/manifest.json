@@ -1,0 +1,49 @@
+{
+  "reference_commit": "453ecbce12d1010c00c3bfbde1b2a1566f9cebe9",
+  "profile": "exact",
+  "format": "rgba16float-le",
+  "width": 64,
+  "height": 48,
+  "implementation": {
+    "path": "tests/parity/lut-draw/legacy-effects.ts",
+    "sha256": "999fb67e09a07322e7d8d9ea2c58a0442d7d5377f0cd1029eeab16e29f714a0b"
+  },
+  "cases": [
+    {
+      "id": "identity",
+      "path": "tests/parity/lut-draw/reference/identity.bin",
+      "sha256": "566b61a894915caaefb8969c27e01d9bdb0fb4ba42cfc387598b1523c8418ba1",
+      "covered_pixels": 2688
+    },
+    {
+      "id": "custom",
+      "path": "tests/parity/lut-draw/reference/custom.bin",
+      "sha256": "11b3982110b1cdb7820289b7c9ce34641f111848a2ab8d72254915ce862d770e",
+      "covered_pixels": 2688
+    },
+    {
+      "id": "adjustment",
+      "path": "tests/parity/lut-draw/reference/adjustment.bin",
+      "sha256": "4b426c7ab1092f70cf4561ff42f57639996d36ac579ae8ff2c8ddb460978aa74",
+      "covered_pixels": 2688
+    },
+    {
+      "id": "blur",
+      "path": "tests/parity/lut-draw/reference/blur.bin",
+      "sha256": "89f4a9be19883fbe55521957855f1a29d798bc7b8dcf8bb44b712054c32b2153",
+      "covered_pixels": 2688
+    },
+    {
+      "id": "glow",
+      "path": "tests/parity/lut-draw/reference/glow.bin",
+      "sha256": "7c40c0d70a927675966508fb45f76fc06fb277dd90885fbde540a7af4ba146e0",
+      "covered_pixels": 2688
+    },
+    {
+      "id": "blend",
+      "path": "tests/parity/lut-draw/reference/blend.bin",
+      "sha256": "f3dd7c01a00d5cabbb28f17ce0f5af4ecf1b6f5202d1bbf6bc29b936c1aeb004",
+      "covered_pixels": 2688
+    }
+  ]
+}

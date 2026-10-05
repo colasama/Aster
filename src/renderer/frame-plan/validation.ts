@@ -3,6 +3,11 @@ import { align16, hash, integer, object, requirePlan, validUnicode } from "./can
 import { compositionIdentityToString } from "./composition-identity";
 import { validateFrameRate } from "./frame-rate";
 import {
+  LAYER_EFFECT_FIELDS,
+  validateLayerEffect,
+  validateLayerEffectBlob,
+} from "./layer-effect-layout";
+import {
   MATERIAL_BINDING_FIELDS,
   validateMaterialBinding,
   validateMaterialBindingBlob,
@@ -81,6 +86,7 @@ export function validateMetadata(value: unknown, limits: FramePlanLimits): Frame
         "temporal_text_samples_slice_v1",
         "temporal_text_passes_slice_v1",
         "material_bindings_slice_v1",
+        "layer_effects_slice_v1",
       ].includes(String(metadata.contract_level)) &&
       metadata.renderer_plan_complete === false,
     "unknown_variant",
@@ -157,6 +163,19 @@ export function validateMetadata(value: unknown, limits: FramePlanLimits): Frame
     const camera = metadata.contract_level === "camera_parameters_slice_v1";
     const temporal = metadata.contract_level === "temporal_text_samples_slice_v1";
     const passes = metadata.contract_level === "temporal_text_passes_slice_v1";
+    if (metadata.contract_level === "layer_effects_slice_v1") {
+      const slice = object(value, LAYER_EFFECT_FIELDS);
+      requirePlan(slice.kind === "layer_effect", "unknown_variant", "Unknown effect slice");
+      const index = integer(slice.blob_index, 0, metadata.blobs.length - 1);
+      requirePlan(
+        !indices.has(index),
+        "blob_count_mismatch",
+        "A blob is referenced more than once",
+      );
+      indices.add(index);
+      validateLayerEffect(slice, metadata.blobs[index], metadata.resources);
+      continue;
+    }
     if (metadata.contract_level === "material_bindings_slice_v1") {
       const slice = object(value, MATERIAL_BINDING_FIELDS);
       requirePlan(slice.kind === "material_binding", "unknown_variant", "Unknown material slice");
@@ -265,6 +284,11 @@ export function validatePlanBlob(
     "Supplied blob length differs from descriptor",
   );
   if (metadata.contract_level === "post_uniforms_slice_v1") validatePostUniforms(bytes, metadata);
+  if (metadata.contract_level === "layer_effects_slice_v1") {
+    const slice = metadata.slices.find((slice) => slice.blob_index === index);
+    requirePlan(slice?.kind === "layer_effect", "invalid_layer_effect", "Missing effect slice");
+    validateLayerEffectBlob(bytes, slice, metadata.header);
+  }
   if (metadata.contract_level === "material_bindings_slice_v1") {
     const slice = metadata.slices.find((slice) => slice.blob_index === index);
     requirePlan(

@@ -1,4 +1,6 @@
 //! Bounded frame-plan transport. The initial uniform slice is not a complete renderer plan.
+mod layer_effect;
+pub use layer_effect::{EffectBlendMode, EffectRoute, LayerEffectSlice};
 
 mod camera;
 mod canonical;

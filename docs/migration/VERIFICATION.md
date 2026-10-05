@@ -168,7 +168,7 @@ against separately frozen 64x48 RGBA16F buffers. The reference uses the pre-extr
 direct evaluated scene buffers, legacy normal upload and padded decoded HDR pixels. All six outputs
 must differ and contain visible geometry. The audit pins the reference implementation and buffers,
 verifies seven exact FPLN round trips and both resource hashes, and compares saved GPU output bytes.
-This is material draw coverage, not complete captured-frame or LUT effect-plan replay.
+This is material draw coverage, not complete captured-frame replay.
 Temporal sample fixtures cover full, entering and exiting
 exposure, plus transparent and exact-bit fixtures. Supplied samples and exposure identities must
 survive Rust decoding and TS cloning; invalid formats, frame time, weights and sample lanes fail.
@@ -284,3 +284,12 @@ No previous failed run is reclassified.
 Generated evidence is stored under ignored `artifacts/`; hashes and paths in the ledger identify the
 actual runs. Preserve these files when continuing on the same host. A missing or modified evidence
 file must fail verification rather than being accepted from a previous status string.
+
+G1 additionally round-trips four compiled layer-effect plans, covering identity/custom LUTs,
+both pyramid flags, UTF-16 identities and exact unused instruction bits. It checks supplied
+uniform/program bytes and rejects undeclared LUTs. G3 requires six independent LUT/effect draws:
+identity, custom LUT, adjustment, blur, glow and soft-light blend. The old effect executor is pinned
+from the pre-extraction commit and its six distinct RGBA16F outputs are frozen separately under
+`tests/parity/lut-draw/reference`. A fresh page/device receives only Rust-returned effect plans and
+texture resource payloads; all outputs must match the frozen bytes exactly. This supplements the
+full-frame corpus and does not claim full frame-plan capture or native rendering.

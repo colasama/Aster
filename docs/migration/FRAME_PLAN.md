@@ -283,7 +283,7 @@ last enabled loaded LUT, and reuses selections until checksum/size changes or th
 Execution receives the supplied texture resource rather than an authored LUT. It installs a changed
 hash before retiring the old GPU owner; identical content reuses the installed texture. Preparation
 errors remain data until the existing effect diagnostic boundary consumes them. Complete effect
-binding FPLN transport and independent LUT draw replay remain required. Material GPU execution is
+binding FPLN transport and independent LUT draw replay are now exercised by required gates. Material GPU execution is
 separate from source acquisition: the production consumer takes a supplied binding plan and resolves
 registered normal/environment owners. G3 independently replays six material draws after scene and
 material FPLN plus both texture resource messages pass through Rust. It uses a new page/device and
@@ -310,3 +310,18 @@ production `buildFramePlan`/`executeFramePlan` consumption of every pass, comple
 independent decoded-plan replay and whole-corpus exact pixels. Under the approved owner policy,
 intermediate performance is informational and final native preview/export must outperform TS.
 A partial slice or manually changed ledger flag cannot establish exit.
+
+### Compiled layer effect slices
+
+`layer_effects_slice_v1` carries one `layer_effect` with UTF-16-safe instance identity,
+blend mode, layer/adjustment route, operation count, blur/glow flags and a declared LUT hash.
+Its 4200-byte payload owns 24 f32 uniform lanes, 1024 f32 instruction lanes and one binary64
+bright-pass threshold, all little-endian. Transport preserves instruction bits, including unused
+NaN payloads. Readers validate target dimensions, linear output, count and glow control agreement,
+blur LOD bounds and finite nonnegative threshold before GPU execution.
+
+Root and precomposition producers compile before encoding. Consumers upload the supplied buffers
+and resolve the supplied LUT without consulting authored effects or evaluating parameters again.
+A zero-op adjustment retains the existing skipped behavior. Compilation/resource errors remain
+explicit prepared failures and reach the existing render error boundary. Stack isolation decisions,
+fusion and complete recursive pass planning are still outside this partial contract.

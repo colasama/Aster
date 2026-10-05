@@ -1,0 +1,507 @@
+import type { FlattenedSceneLayer } from "../../../src/core/scene/scene-evaluation";
+import type { BlendMode, Composition, Layer } from "../../../src/core/types";
+import { gpuBlendState } from "../../../src/renderer/compositing/blend-state";
+import {
+  LayerCompositor,
+  needsBackdropBlend,
+  needsLayerIsolation,
+} from "../../../src/renderer/compositing/layer-composite";
+import { BlurPyramid, BrightpassPyramid } from "../../../src/renderer/effects/blur-pyramid";
+import { defaultPostProcessParameters } from "../../../src/renderer/effects/effect-parameters";
+import {
+  compileEffectProgram,
+  FLOATS_PER_EFFECT_OPERATION,
+  MAX_EFFECT_OPERATIONS,
+} from "../../../src/renderer/effects/effect-program";
+import { buildPostProcessUniforms } from "../../../src/renderer/effects/post-process";
+import { postProcessShader, textureCompositeShader } from "../../../src/renderer/gpu/shaders";
+import {
+  type LutSelection,
+  LutSelectionPlanner,
+  suppliedLutResource,
+} from "../../../src/renderer/media/lut-selection-plan";
+import { createLutSampler } from "../../../src/renderer/media/lut-texture";
+import { uploadTexturePixels } from "../../../src/renderer/media/texture-pixel-upload";
+
+interface LayerEffectBuffers {
+  uniforms: GPUBuffer;
+  program: GPUBuffer;
+  bindGroup: GPUBindGroup;
+  lutTexture: GPUTexture;
+  lutKey: string;
+  lutBytes: number;
+}
+
+export class LegacyLayerEffectRenderer {
+  readonly #device: GPUDevice;
+  readonly #format: GPUTextureFormat;
+  readonly #sampler: GPUSampler;
+  readonly #lutSampler: GPUSampler;
+  readonly #identityLut: GPUTexture;
+  readonly #lutPlans = new LutSelectionPlanner();
+  readonly #postLayout: GPUBindGroupLayout;
+  readonly #compositeLayout: GPUBindGroupLayout;
+  readonly #effectPipeline: GPURenderPipeline;
+  readonly #compositePipelines: Partial<Record<BlendMode, GPURenderPipeline>> & {
+    normal: GPURenderPipeline;
+  };
+  readonly #compositor: LayerCompositor;
+  readonly #pyramid: BlurPyramid;
+  readonly #glowPyramid: BrightpassPyramid;
+  readonly #resources = new Map<string, LayerEffectBuffers>();
+  #input?: GPUTexture;
+  #output?: GPUTexture;
+  #depth?: GPUTexture;
+  #compositeBindGroup?: GPUBindGroup;
+  #width = 1;
+  #height = 1;
+
+  constructor(device: GPUDevice, format: GPUTextureFormat) {
+    this.#device = device;
+    this.#format = format;
+    this.#compositor = new LayerCompositor(device, format);
+    this.#sampler = device.createSampler({
+      label: "Layer effect linear sampler",
+      magFilter: "linear",
+      minFilter: "linear",
+      mipmapFilter: "linear",
+    });
+    this.#lutSampler = createLutSampler(device);
+    const identity = this.#lutPlans.identity;
+    this.#identityLut = uploadTexturePixels(
+      device,
+      identity.message,
+      identity.bytes,
+      identity.label,
+    );
+    this.#pyramid = new BlurPyramid(device, format, this.#sampler);
+    this.#glowPyramid = new BrightpassPyramid(device, format, this.#sampler);
+    this.#postLayout = device.createBindGroupLayout({
+      label: "Layer effect post-process layout",
+      entries: [
+        { binding: 0, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: "float" } },
+        { binding: 1, visibility: GPUShaderStage.FRAGMENT, sampler: { type: "filtering" } },
+        { binding: 2, visibility: GPUShaderStage.FRAGMENT, buffer: { type: "uniform" } },
+        { binding: 3, visibility: GPUShaderStage.FRAGMENT, buffer: { type: "read-only-storage" } },
+        {
+          binding: 4,
+          visibility: GPUShaderStage.FRAGMENT,
+          texture: { sampleType: "float", viewDimension: "3d" },
+        },
+        { binding: 5, visibility: GPUShaderStage.FRAGMENT, sampler: { type: "filtering" } },
+        { binding: 6, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: "float" } },
+        { binding: 7, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: "float" } },
+      ],
+    });
+    this.#compositeLayout = device.createBindGroupLayout({
+      label: "Layer effect composite layout",
+      entries: [
+        { binding: 0, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: "float" } },
+        { binding: 1, visibility: GPUShaderStage.FRAGMENT, sampler: { type: "filtering" } },
+      ],
+    });
+    const effectModule = device.createShaderModule({
+      label: "Per-layer fused effect shader",
+      code: postProcessShader,
+    });
+    this.#effectPipeline = device.createRenderPipeline({
+      label: "Per-layer fused effect pass",
+      layout: device.createPipelineLayout({ bindGroupLayouts: [this.#postLayout] }),
+      vertex: { module: effectModule, entryPoint: "vertex_main" },
+      fragment: {
+        module: effectModule,
+        entryPoint: "fragment_main",
+        targets: [{ format }],
+      },
+      primitive: { topology: "triangle-list" },
+    });
+    this.#compositePipelines = {
+      normal: this.#createCompositePipeline("normal"),
+      add: this.#createCompositePipeline("add"),
+      multiply: this.#createCompositePipeline("multiply"),
+      screen: this.#createCompositePipeline("screen"),
+      overlay: this.#createCompositePipeline("overlay"),
+    };
+  }
+
+  prepareLuts(scene: readonly FlattenedSceneLayer[]): ReadonlyMap<string, LutSelection> {
+    const selections = new Map<string, LutSelection>();
+    for (const item of scene) {
+      if (item.layer.kind === "adjustment" || needsLayerIsolation(item.layer))
+        selections.set(item.instanceId, this.#lutPlans.prepare(item.instanceId, item.layer));
+    }
+    return selections;
+  }
+
+  resize(width: number, height: number): void {
+    this.#width = Math.max(1, Math.floor(width));
+    this.#height = Math.max(1, Math.floor(height));
+    this.#input?.destroy();
+    this.#output?.destroy();
+    this.#depth?.destroy();
+    this.#input = this.#createTexture("Per-layer effect input");
+    this.#output = this.#createTexture("Per-layer effect output");
+    this.#pyramid.resize(this.#width, this.#height, this.#input);
+    this.#glowPyramid.resize(this.#width, this.#height, this.#input);
+    this.#compositor.resize(this.#output, this.#input);
+    this.#depth = this.#device.createTexture({
+      label: "Per-layer effect depth",
+      size: [this.#width, this.#height],
+      format: "depth24plus",
+      usage: GPUTextureUsage.RENDER_ATTACHMENT,
+    });
+    this.#compositeBindGroup = this.#device.createBindGroup({
+      label: "Per-layer effect composite resources",
+      layout: this.#compositeLayout,
+      entries: [
+        { binding: 0, resource: this.#output.createView() },
+        { binding: 1, resource: this.#sampler },
+      ],
+    });
+    for (const resource of this.#resources.values()) {
+      resource.uniforms.destroy();
+      resource.program.destroy();
+      if (resource.lutTexture !== this.#identityLut) resource.lutTexture.destroy();
+    }
+    this.#resources.clear();
+    this.#lutPlans.clear();
+  }
+
+  encode(
+    encoder: GPUCommandEncoder,
+    target: GPUTexture,
+    composition: Composition,
+    layer: Layer,
+    instanceId: string,
+    time: number,
+    lut: LutSelection | undefined,
+    drawLayer: (pass: GPURenderPassEncoder) => void,
+  ): number {
+    if (!this.#input || !this.#output || !this.#depth || !this.#compositeBindGroup) {
+      this.resize(this.#width, this.#height);
+    }
+    const input = this.#input;
+    const output = this.#output;
+    const depth = this.#depth;
+    const compositeBindGroup = this.#compositeBindGroup;
+    if (!input || !output || !depth || !compositeBindGroup)
+      throw new Error("Layer effect targets unavailable");
+
+    const program = compileEffectProgram(
+      composition,
+      time,
+      [layer],
+      Math.min(this.#width / composition.width, this.#height / composition.height),
+    );
+    const effects = defaultPostProcessParameters();
+    const resource = this.#resource(instanceId, lut);
+    this.#device.queue.writeBuffer(resource.program, 0, program.data);
+    this.#device.queue.writeBuffer(
+      resource.uniforms,
+      0,
+      buildPostProcessUniforms(
+        this.#width,
+        this.#height,
+        time,
+        effects,
+        program.count,
+        true,
+        Math.max(0, this.#pyramid.mipLevelCount - 1),
+        program.usesGlow,
+      ),
+    );
+
+    const inputPass = encoder.beginRenderPass({
+      label: `Layer source · ${layer.name}`,
+      colorAttachments: [
+        {
+          view: input.createView(),
+          clearValue: { r: 0, g: 0, b: 0, a: 0 },
+          loadOp: "clear",
+          storeOp: "store",
+        },
+      ],
+      depthStencilAttachment: {
+        view: depth.createView(),
+        depthClearValue: 1,
+        depthLoadOp: "clear",
+        depthStoreOp: "discard",
+      },
+    });
+    drawLayer(inputPass);
+    inputPass.end();
+
+    if (program.usesBlur) this.#pyramid.encode(encoder);
+    if (program.usesGlow) this.#glowPyramid.encode(encoder, program.glowThreshold);
+
+    const effectPass = encoder.beginRenderPass({
+      label: `Fused layer effects · ${layer.name}`,
+      colorAttachments: [
+        {
+          view: output.createView(),
+          clearValue: { r: 0, g: 0, b: 0, a: 0 },
+          loadOp: "clear",
+          storeOp: "store",
+        },
+      ],
+    });
+    effectPass.setPipeline(this.#effectPipeline);
+    effectPass.setBindGroup(0, resource.bindGroup);
+    effectPass.draw(3);
+    effectPass.end();
+
+    if (needsBackdropBlend(layer.blendMode)) {
+      // Source effects are finished; recycle their input as the backdrop snapshot.
+      encoder.copyTextureToTexture({ texture: target }, { texture: input }, [
+        this.#width,
+        this.#height,
+      ]);
+      this.#compositor.encode(encoder, target, layer.blendMode);
+      return program.count;
+    }
+    const compositePass = encoder.beginRenderPass({
+      label: `Layer composite · ${layer.name}`,
+      colorAttachments: [{ view: target.createView(), loadOp: "load", storeOp: "store" }],
+    });
+    compositePass.setPipeline(
+      this.#compositePipelines[layer.blendMode] ?? this.#compositePipelines.normal,
+    );
+    compositePass.setBindGroup(0, compositeBindGroup);
+    compositePass.draw(3);
+    compositePass.end();
+    return program.count;
+  }
+
+  /**
+   * Applies a composition-wide effect to the pixels already accumulated below
+   * an adjustment layer. Separate ping-pong textures make every read/write
+   * dependency explicit; the final copy replaces the HDR target without alpha
+   * compositing the same pixels a second time.
+   */
+  encodeAdjustment(
+    encoder: GPUCommandEncoder,
+    target: GPUTexture,
+    composition: Composition,
+    layer: Layer,
+    instanceId: string,
+    time: number,
+    lut: LutSelection | undefined,
+  ): number {
+    if (!layer.effects.some((effect) => effect.enabled)) return 0;
+    if (!this.#input || !this.#output) this.resize(this.#width, this.#height);
+    const input = this.#input;
+    const output = this.#output;
+    if (!input || !output) throw new Error("Adjustment effect targets unavailable");
+
+    const program = compileEffectProgram(
+      composition,
+      time,
+      [layer],
+      Math.min(this.#width / composition.width, this.#height / composition.height),
+    );
+    if (program.count === 0) return 0;
+    const resource = this.#resource(instanceId, lut);
+    this.#device.queue.writeBuffer(resource.program, 0, program.data);
+    this.#device.queue.writeBuffer(
+      resource.uniforms,
+      0,
+      buildPostProcessUniforms(
+        this.#width,
+        this.#height,
+        time,
+        defaultPostProcessParameters(),
+        program.count,
+        true,
+        Math.max(0, this.#pyramid.mipLevelCount - 1),
+        program.usesGlow,
+      ),
+    );
+
+    const extent: GPUExtent3DStrict = {
+      width: this.#width,
+      height: this.#height,
+      depthOrArrayLayers: 1,
+    };
+    encoder.copyTextureToTexture({ texture: target }, { texture: input }, extent);
+    if (program.usesBlur) this.#pyramid.encode(encoder);
+    if (program.usesGlow) this.#glowPyramid.encode(encoder, program.glowThreshold);
+    const effectPass = encoder.beginRenderPass({
+      label: `Adjustment effects · ${layer.name}`,
+      colorAttachments: [
+        {
+          view: output.createView(),
+          clearValue: { r: 0, g: 0, b: 0, a: 0 },
+          loadOp: "clear",
+          storeOp: "store",
+        },
+      ],
+    });
+    effectPass.setPipeline(this.#effectPipeline);
+    effectPass.setBindGroup(0, resource.bindGroup);
+    effectPass.draw(3);
+    effectPass.end();
+    encoder.copyTextureToTexture({ texture: output }, { texture: target }, extent);
+    return program.count;
+  }
+
+  sweep(activeInstanceIds: Set<string>): void {
+    this.#lutPlans.sweep(activeInstanceIds);
+    for (const [instanceId, resource] of this.#resources) {
+      if (activeInstanceIds.has(instanceId)) continue;
+      resource.uniforms.destroy();
+      resource.program.destroy();
+      if (resource.lutTexture !== this.#identityLut) resource.lutTexture.destroy();
+      this.#resources.delete(instanceId);
+    }
+  }
+
+  estimatedTextureBytes(): number {
+    let bytes =
+      this.#width * this.#height * (8 * 2 + 4) +
+      this.#pyramid.estimatedTextureBytes +
+      this.#glowPyramid.estimatedTextureBytes;
+    for (const resource of this.#resources.values()) bytes += resource.lutBytes;
+    return bytes;
+  }
+
+  destroy(): void {
+    this.#input?.destroy();
+    this.#output?.destroy();
+    this.#depth?.destroy();
+    this.#pyramid.destroy();
+    this.#glowPyramid.destroy();
+    this.#input = undefined;
+    this.#output = undefined;
+    this.#depth = undefined;
+    this.#compositeBindGroup = undefined;
+    for (const resource of this.#resources.values()) {
+      resource.uniforms.destroy();
+      resource.program.destroy();
+      if (resource.lutTexture !== this.#identityLut) resource.lutTexture.destroy();
+    }
+    this.#resources.clear();
+    this.#lutPlans.clear();
+    this.#identityLut.destroy();
+  }
+
+  #resource(instanceId: string, lut: LutSelection | undefined): LayerEffectBuffers {
+    const existing = this.#resources.get(instanceId);
+    if (existing) {
+      this.#updateLut(existing, lut, instanceId);
+      return existing;
+    }
+    if (!this.#input) throw new Error("Layer effect input is unavailable");
+    const uniforms = this.#device.createBuffer({
+      label: `Layer effect uniforms · ${instanceId}`,
+      size: 96,
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    });
+    const program = this.#device.createBuffer({
+      label: `Layer effect program · ${instanceId}`,
+      size: MAX_EFFECT_OPERATIONS * FLOATS_PER_EFFECT_OPERATION * Float32Array.BYTES_PER_ELEMENT,
+      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+    });
+    const resource: LayerEffectBuffers = {
+      uniforms,
+      program,
+      bindGroup: this.#createEffectBindGroup(instanceId, uniforms, program, this.#identityLut),
+      lutTexture: this.#identityLut,
+      lutKey: this.#lutPlans.identity.message.hash,
+      lutBytes: 0,
+    };
+    try {
+      this.#updateLut(resource, lut, instanceId);
+    } catch (error) {
+      uniforms.destroy();
+      program.destroy();
+      throw error;
+    }
+    this.#resources.set(instanceId, resource);
+    return resource;
+  }
+
+  #updateLut(
+    resource: LayerEffectBuffers,
+    selection: LutSelection | undefined,
+    instanceId: string,
+  ): void {
+    const supplied = suppliedLutResource(selection);
+    const key = supplied.message.hash;
+    if (resource.lutKey === key) return;
+    const identity = key === this.#lutPlans.identity.message.hash;
+    const texture = identity
+      ? this.#identityLut
+      : uploadTexturePixels(this.#device, supplied.message, supplied.bytes, supplied.label);
+    let bindGroup: GPUBindGroup;
+    try {
+      bindGroup = this.#createEffectBindGroup(
+        instanceId,
+        resource.uniforms,
+        resource.program,
+        texture,
+      );
+    } catch (error) {
+      if (texture !== this.#identityLut) texture.destroy();
+      throw error;
+    }
+    if (resource.lutTexture !== this.#identityLut) resource.lutTexture.destroy();
+    resource.lutTexture = texture;
+    resource.lutKey = key;
+    resource.lutBytes = identity ? 0 : supplied.bytes.byteLength;
+    resource.bindGroup = bindGroup;
+  }
+
+  #createEffectBindGroup(
+    instanceId: string,
+    uniforms: GPUBuffer,
+    program: GPUBuffer,
+    lutTexture: GPUTexture,
+  ): GPUBindGroup {
+    if (!this.#input) throw new Error("Layer effect input is unavailable");
+    return this.#device.createBindGroup({
+      label: `Layer effect resources · ${instanceId}`,
+      layout: this.#postLayout,
+      entries: [
+        { binding: 0, resource: this.#input.createView() },
+        { binding: 1, resource: this.#sampler },
+        { binding: 2, resource: { buffer: uniforms } },
+        { binding: 3, resource: { buffer: program } },
+        { binding: 4, resource: lutTexture.createView({ dimension: "3d" }) },
+        { binding: 5, resource: this.#lutSampler },
+        { binding: 6, resource: this.#pyramid.view ?? this.#input.createView() },
+        { binding: 7, resource: this.#glowPyramid.view ?? this.#input.createView() },
+      ],
+    });
+  }
+
+  #createTexture(label: string): GPUTexture {
+    return this.#device.createTexture({
+      label,
+      size: [this.#width, this.#height],
+      format: this.#format,
+      usage:
+        GPUTextureUsage.RENDER_ATTACHMENT |
+        GPUTextureUsage.TEXTURE_BINDING |
+        GPUTextureUsage.COPY_SRC |
+        GPUTextureUsage.COPY_DST,
+    });
+  }
+
+  #createCompositePipeline(blendMode: BlendMode): GPURenderPipeline {
+    const module = this.#device.createShaderModule({
+      label: "Layer texture composite shader",
+      code: textureCompositeShader,
+    });
+    return this.#device.createRenderPipeline({
+      label: `Per-layer ${blendMode} effect composite`,
+      layout: this.#device.createPipelineLayout({ bindGroupLayouts: [this.#compositeLayout] }),
+      vertex: { module, entryPoint: "vertex_main" },
+      fragment: {
+        module,
+        entryPoint: "fragment_main",
+        targets: [{ format: this.#format, blend: gpuBlendState(blendMode) }],
+      },
+      primitive: { topology: "triangle-list" },
+    });
+  }
+}

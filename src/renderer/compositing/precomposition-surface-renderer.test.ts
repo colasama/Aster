@@ -8,6 +8,7 @@ import { flattenSceneLayers } from "../../core/scene/scene-evaluation";
 import type { Composition } from "../../core/types";
 import { createEffect } from "../../effects/registry";
 import { LayerEffectRenderer } from "../effects/layer-effects";
+import { readLayerEffectSlice } from "../frame-plan/layer-effect-plan";
 import { MediaTextureCache } from "../media/media-texture-cache";
 import type { SceneGeneratorHost } from "../scene/scene-generator-host";
 import { textRasterResolutionScale } from "../text/text-rasterizer";
@@ -240,7 +241,12 @@ describe("GPU precomposition surfaces", () => {
     try {
       renderer.prepare(project, flattenSceneLayers(root, project, 1), false);
       renderer.encode(mockEncoder([]));
-      expect(encode.mock.calls.map((args) => [args[3].id, args[5]])).toEqual([[shape.id, 2.5]]);
+      expect(encode.mock.calls).toHaveLength(1);
+      const effect = encode.mock.calls[0][2];
+      if (effect?.status !== "ready") throw Error("Missing prepared nested effect");
+      const plan = readLayerEffectSlice(effect.plan);
+      expect(plan.instanceId).toContain(shape.id);
+      expect(plan.uniforms[2]).toBe(2.5);
     } finally {
       encode.mockRestore();
       renderer.destroy();
@@ -342,7 +348,7 @@ describe("GPU precomposition surfaces", () => {
     expect(events).toEqual(
       expect.arrayContaining([
         "pass:Isolated precomposition · Nested",
-        "pass:Adjustment effects · Adjustment Layer",
+        expect.stringMatching(/^pass:Adjustment effects .*surface:/),
         "pass:Resume isolated precomposition stack",
       ]),
     );
@@ -416,8 +422,12 @@ describe("GPU precomposition surfaces", () => {
     expect(sceneGenerators.encodeCompute).toHaveBeenCalledOnce();
     expect(sceneGenerators.draw).toHaveBeenCalledOnce();
     expect(events.indexOf("generator-compute")).toBeLessThan(events.indexOf("generator-draw"));
-    expect(events).toContain("pass:Layer source · Scene Generator");
-    expect(events).toContain("pass:Fused layer effects · Scene Generator");
+    expect(events).toEqual(
+      expect.arrayContaining([expect.stringMatching(/^pass:Layer source .*surface:/)]),
+    );
+    expect(events).toEqual(
+      expect.arrayContaining([expect.stringMatching(/^pass:Fused layer effects .*surface:/)]),
+    );
   });
 
   it("uses the isolated surface scale and namespaced exact-time plan for animated text", () => {

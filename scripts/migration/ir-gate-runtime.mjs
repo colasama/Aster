@@ -38,6 +38,8 @@ export async function loadIrRuntime(root) {
       "temporal-pass-plan",
       "material-binding-fixture",
       "material-binding-plan",
+      "layer-effect-fixture",
+      "layer-effect-plan",
     ])
       modules.push(await server.ssrLoadModule(`/src/renderer/frame-plan/${name}.ts`));
     for (const name of [

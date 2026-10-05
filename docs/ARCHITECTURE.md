@@ -153,8 +153,10 @@ the last enabled loaded LUT and its source-key invalidation policy; execution co
 content-addressed packed pixels without consulting the layer's LUT resource. GPU replacement is
 atomic and stale owners are destroyed. Material GPU bindings now consume supplied scalar/hash plans
 and registered texture owners independently of acquisition. Six frozen RGBA16F material draws are
-replayed on a new device from Rust-returned scene/material plans and normal/HDR resources. Complete
-effect binding transport, LUT draw replay and whole-frame plan capture remain under extraction.
+replayed on a new device from Rust-returned scene/material plans and normal/HDR resources. Root and precomposition effect execution now consumes supplied effect FPLN, including compiled
+instructions, uniforms, blend/route controls, pyramid needs and selected LUT hashes. Six frozen
+LUT/effect draws replay on an independent device after Rust transport. Whole-frame pass planning
+and capture remain under extraction.
 
 Shared WGSL includes output anti-aliasing, core scene variants, compositing, fused post-processing,
 blur/depth/surface effects, auxiliary surfaces, particles, text motion blur and display/buffer helpers.

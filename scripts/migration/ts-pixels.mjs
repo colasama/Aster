@@ -5,6 +5,7 @@ import { join, relative, resolve } from "node:path";
 import { runPixelGate } from "../parity/pixel-gate.mjs";
 import { captureSource } from "../parity/provenance.mjs";
 import { auditEncodedTextures } from "./encoded-texture-gate.mjs";
+import { auditLutDraws } from "./lut-draw-gate.mjs";
 import { evidencePath, M0Evidence } from "./m0-evidence.mjs";
 import { auditMaterialDraws } from "./material-draw-gate.mjs";
 import { runStep } from "./process.mjs";
@@ -113,6 +114,12 @@ export async function verifyTsPixels(options, dependencies = {}) {
         "passed",
         "Material draw GPU verification did not pass",
       );
+      report.lut_draws = await (dependencies.auditLutDraws ?? auditLutDraws)(
+        reader,
+        context,
+        execute,
+      );
+      assert.equal(report.lut_draws.status, "passed", "Supplied LUT draw replay failed");
     }
     report.gate = await (dependencies.runPixelGate ?? runPixelGate)(
       { ...context, output: join(output, "G3") },

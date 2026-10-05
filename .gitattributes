@@ -5,3 +5,5 @@
 *.ico binary
 *.icns binary
 tests/parity/material-draw/reference/*.bin binary
+
+tests/parity/lut-draw/reference/*.bin binary

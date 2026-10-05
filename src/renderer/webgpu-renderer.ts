@@ -632,7 +632,11 @@ export class WebGpuRenderer {
       ...draw,
     }));
     const renderStack = planSceneRenderStack(sceneLayers, sceneBatches);
-    const lutSelections = resources.layerEffects.prepareLuts(sceneLayers);
+    const effectPlans = resources.layerEffects.prepareEffects(
+      sceneLayers,
+      composition,
+      scenePlan.metadata.header,
+    );
     if (
       !resources.materialTextures &&
       ((composition.environment?.enabled &&
@@ -868,11 +872,7 @@ export class WebGpuRenderer {
           const operationCount = resources.layerEffects.encodeAdjustment(
             encoder,
             sceneTexture,
-            composition,
-            layer,
-            item.scene.instanceId,
-            item.scene.localTime,
-            lutSelections.get(item.scene.instanceId),
+            effectPlans.get(item.scene.instanceId),
           );
           if (operationCount > 0) {
             activeEffectInstances.add(item.scene.instanceId);
@@ -909,11 +909,7 @@ export class WebGpuRenderer {
           effectOperationCount += resources.layerEffects.encode(
             encoder,
             sceneTexture,
-            composition,
-            item.scene.layer,
-            item.scene.instanceId,
-            item.scene.localTime,
-            lutSelections.get(item.scene.instanceId),
+            effectPlans.get(item.scene.instanceId),
             (layerPass) => resources.sceneGenerators.draw(layerPass, generator, "normal"),
           );
           fusedEffectCount += fusion.fusedEffectCount;
@@ -954,11 +950,7 @@ export class WebGpuRenderer {
         effectOperationCount += resources.layerEffects.encode(
           encoder,
           sceneTexture,
-          composition,
-          batch.layer,
-          batch.instanceId,
-          item.scene.localTime,
-          lutSelections.get(batch.instanceId),
+          effectPlans.get(batch.instanceId),
           (layerPass) => drawSceneBatch(resources, layerPass, batch, mediaBindings, "normal"),
         );
       } else {

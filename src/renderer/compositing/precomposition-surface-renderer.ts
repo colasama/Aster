@@ -3,10 +3,11 @@ import { sourceForLayer } from "../../core/media/footage-source";
 import { type FlattenedSceneLayer, flattenSceneLayers } from "../../core/scene/scene-evaluation";
 import type { BlendMode, Composition, Project } from "../../core/types";
 import { BLEND_MODES } from "../../core/types";
+import type { PreparedLayerEffect } from "../effects/layer-effect-plan";
 import { LayerEffectRenderer } from "../effects/layer-effects";
+import { buildFrameHeader } from "../frame-plan/root-post-plan";
 import { buildSceneGeometry, FLOATS_PER_VERTEX, type GeometryBatch } from "../geometry/geometry";
 import { sharedShaders } from "../gpu/shared-shader-catalog";
-import type { LutSelection } from "../media/lut-selection-plan";
 import type { MediaTextureCache } from "../media/media-texture-cache";
 import { evaluateSceneCamera } from "../scene/scene-camera";
 import type { PreparedSceneGenerator, SceneGeneratorHost } from "../scene/scene-generator-host";
@@ -54,7 +55,7 @@ interface SurfaceJob {
   sceneLayers: FlattenedSceneLayer[];
   geometry: ReturnType<typeof buildSceneGeometry>;
   generators: PreparedSceneGenerator[];
-  lutSelections: ReadonlyMap<string, LutSelection>;
+  effectPlans: ReadonlyMap<string, PreparedLayerEffect>;
 }
 
 export interface PrecompositionSurfaceFrame {
@@ -364,7 +365,20 @@ export class PrecompositionSurfaceRenderer {
       time: surface.time,
       sceneLayers: childLayers,
       geometry,
-      lutSelections: entry.effects?.prepareLuts(childLayers) ?? new Map(),
+      effectPlans:
+        entry.effects?.prepareEffects(
+          childLayers,
+          surface.composition,
+          buildFrameHeader({
+            snapshot: { snapshotScope: "precomposition-effects", projectRevision: this.#revision },
+            compositionId: surface.composition.id,
+            time: surface.time,
+            frameRate: surface.composition.frameRate,
+            target: { width: surface.composition.width, height: surface.composition.height },
+            renderTarget: { width: entry.width, height: entry.height },
+            antiAliasing: "off",
+          }),
+        ) ?? new Map(),
       generators: this.#sceneGenerators
         ? childLayers
             .filter((child) => this.#sceneGenerators?.supports(child))
@@ -552,11 +566,7 @@ export class PrecompositionSurfaceRenderer {
           entry.effects?.encode(
             encoder,
             entry.color,
-            composition,
-            item.scene.layer,
-            item.scene.instanceId,
-            item.scene.localTime,
-            job.lutSelections.get(item.scene.instanceId),
+            job.effectPlans.get(item.scene.instanceId),
             (layerPass) => this.#sceneGenerators?.draw(layerPass, generator, "normal"),
           );
           continue;
@@ -573,11 +583,7 @@ export class PrecompositionSurfaceRenderer {
         const count = entry.effects?.encodeAdjustment(
           encoder,
           entry.color,
-          composition,
-          item.scene.layer,
-          item.scene.instanceId,
-          item.scene.localTime,
-          job.lutSelections.get(item.scene.instanceId),
+          job.effectPlans.get(item.scene.instanceId),
         );
         if (count) activeEffects.add(item.scene.instanceId);
         continue;
@@ -590,11 +596,7 @@ export class PrecompositionSurfaceRenderer {
         entry.effects?.encode(
           encoder,
           entry.color,
-          composition,
-          batch.layer,
-          batch.instanceId,
-          item.scene.localTime,
-          job.lutSelections.get(batch.instanceId),
+          job.effectPlans.get(batch.instanceId),
           (layerPass) => this.#drawBatch(layerPass, entry, batch, "normal"),
         );
         continue;
