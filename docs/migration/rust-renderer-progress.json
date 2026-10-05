@@ -101,39 +101,39 @@
     }
   },
   "last_cycle": {
-    "id": 41,
-    "time": "2026-10-05T01:53:31.145Z",
+    "id": 42,
+    "time": "2026-10-05T02:29:29.583Z",
     "milestone": "M2",
     "task": "M2-T7",
     "outcome": "passed",
-    "commit": "b3483cb296557913c759f6085674e8454c47c7a0",
-    "verification": "artifacts/migration/verify-2026-10-05T01-46-35-943Z-469fac91.json",
-    "verification_sha256": "eae3be31d884d4e7a69250964c602ec913cebdebea9b311b6de4ccb67ca9f305",
+    "commit": "e44644eef559d938963cb847fe7515132d7cb4aa",
+    "verification": "artifacts/migration/verify-2026-10-05T02-22-17-250Z-24cf8ef8.json",
+    "verification_sha256": "3c0317815113d424f26a058cef2aa700634bf66963f6b57a8130ff7b9610a718",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 74564
+        "duration_ms": 82870
       },
       {
         "id": "G1",
         "status": "passed",
-        "duration_ms": 5205
+        "duration_ms": 5533
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 276439
+        "duration_ms": 292792
       }
     ],
-    "verification_duration_ms": 357522,
-    "next_step": "Continue M2-T7: transport selected LUT/effect bindings and verify independent LUT draw replay.",
+    "verification_duration_ms": 382530,
+    "next_step": "Continue M2-T8: move isolation and fusion decisions into supplied effect plans.",
     "notes": [
-      "Extracted MaterialGpuBindings as the production consumer of supplied scalar/hash plans and registered texture owners. Source acquisition, readiness, diagnostics and ownership remain in MaterialTextureRenderer; retirement and uniform-cache behavior are preserved.",
-      "Added six distinct visible material draws: inactive, normal, negative normal scale, environment, rotated environment and combined. Frozen RGBA16F references use pre-extraction binding logic with direct evaluated scene buffers, legacy normal upload and padded HDR upload.",
-      "The new required G3 material audit sends one scene plan, six material FPLN plans and two texture messages through Rust. After destroying the original page/device, the production consumer replays only decoded plans and payloads on a new device. All six 24576-byte outputs match frozen references exactly.",
-      "Full M2 G0/G1/G3 passed with 47 general FPLN round trips, 1819 exact whole-frame comparisons, four temporal pass replays, three encoded normal uploads and six independent material draws. No ordinary-preview readback was introduced.",
-      "M2-T7 remains in progress only for selected LUT/effect binding FPLN transport and independent LUT draw replay. Complete frame capture/execution and later native milestones remain open."
+      "Added layer_effects_slice_v1 across TS/Rust: exact uniform/instruction bytes, binary64 bright-pass threshold, blend/route controls, pyramid requirements, UTF-16-safe identity and selected LUT hash.",
+      "Root and precomposition effect encoders consume supplied compiled plans and LUT payloads. Authored effect evaluation happens before command encoding; zero-op adjustments and deferred resource failures preserve previous behavior.",
+      "Six distinct frozen RGBA16F LUT/effect cases independently replay after six FPLN plans and three texture resources pass through Rust. A new page/device receives only supplied plans and pixels. Identity, custom LUT, adjustment, blur, glow and soft-light output match pre-extraction execution exactly.",
+      "Full M2 G0/G1/G3 passed with 51 general FPLN round trips, 1819 exact full-frame comparisons, existing temporal/normal/material checks and six required LUT effect replays. No ordinary-preview readback was introduced.",
+      "M2-T7 is complete. M2-T8 still owns isolation and fusion decisions; full captured-frame execution, native renderer and production preview/export migration remain open."
     ]
   },
   "milestones": [
@@ -13576,10 +13576,8 @@
             "Normal/HDR/LUT corpus bytes remain exact without layer lookups during execution."
           ],
           "required_full_gates": ["G0", "G1", "G3"],
-          "status": "in_progress",
-          "remaining_work": [
-            "Transport selected LUT hashes with executable effect bindings through FPLN and verify independent LUT draw replay."
-          ],
+          "status": "done",
+          "remaining_work": [],
           "failed_verifications": [
             "artifacts/migration/verify-2026-10-04T23-54-08-699Z-793466b8.json"
           ],
@@ -13958,8 +13956,97 @@
                 "Full M2 G0/G1/G3 passed with 47 general FPLN round trips, 1819 exact whole-frame comparisons, four temporal pass replays, three encoded normal uploads and six independent material draws. No ordinary-preview readback was introduced.",
                 "M2-T7 remains in progress only for selected LUT/effect binding FPLN transport and independent LUT draw replay. Complete frame capture/execution and later native milestones remain open."
               ]
+            },
+            {
+              "cycle": 42,
+              "status": "passed",
+              "commit": "e44644eef559d938963cb847fe7515132d7cb4aa",
+              "verification": {
+                "path": "artifacts/migration/verify-2026-10-05T02-22-17-250Z-24cf8ef8.json",
+                "sha256": "3c0317815113d424f26a058cef2aa700634bf66963f6b57a8130ff7b9610a718"
+              },
+              "pixel_comparison": {
+                "path": "artifacts/parity/ts-check/2026-10-05T02-23-46-311Z-c9515b97/report.json",
+                "sha256": "6c3bc706b4bd3d0ccfdf910975cc0837f61c94d18136393b3d9a708531c64ddd"
+              },
+              "capture": {
+                "path": "artifacts/parity/capture-2026-10-05T02-15-53-484Z-14a1e8e3.json",
+                "sha256": "cefe2d2ba021a7e5e26106d95ba880cd7e24aab12826a41dd0c25a83b9b63627"
+              },
+              "manifest": {
+                "path": "artifacts/parity/runs/2026-10-05T02-15-53-484Z-14a1e8e3/candidate/manifest.json",
+                "sha256": "66708e6159cfb37f0bfd606f387377d681f1be0bf5c340cba6c4bf727575991a"
+              },
+              "renderer_source_sha256": "037f56d29e7a97f7225108f93c69949b960a679a76a7e1123982717b98036bf8",
+              "bridge_sha256": "82ccf02fefd4c54e78a82a4de08df6906714ecd0b198864ec72cb0c0394dd80c",
+              "temporal_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T02-23-46-311Z-c9515b97/temporal-text/gpu.json",
+                "sha256": "5e952a3e013c479ddd9b170ce8ba104431037b221d27ca9187a4f3e4423cdbb2"
+              },
+              "temporal_reference": {
+                "path": "tests/parity/temporal-text/reference/manifest.json",
+                "sha256": "e3e3b1184d5bc969dcd5cf76a424a551a0cac1a85484e157c5b549e5d6c811d1"
+              },
+              "encoded_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T02-23-46-311Z-c9515b97/encoded-textures/gpu.json",
+                "sha256": "9028f092c712475018d1db0dfb7122b7e5704ff3ac8c8b82ecaa4b950963c872"
+              },
+              "encoded_reference": {
+                "path": "tests/parity/material-textures/legacy-upload.ts",
+                "sha256": "508c2ad47f5a3f6e18069ce070e0ee0133668074bf81309a9144180f532f2498"
+              },
+              "material_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T02-23-46-311Z-c9515b97/material-draw/gpu.json",
+                "sha256": "26fbad56513b96310770da0538c5ac89d791322886d4d66134972714e0cdfe58"
+              },
+              "material_reference": {
+                "path": "tests/parity/material-draw/reference/manifest.json",
+                "sha256": "06debe986bca2118a9d4a07f5cc36a31b3926398f95d582e25f90ceabc21bc6e"
+              },
+              "material_implementation": {
+                "path": "tests/parity/material-draw/legacy-bindings.ts",
+                "sha256": "ff838daeb3950e90d263504007836d900060e9a2ff1ddb30e706a76d0a011d79"
+              },
+              "lut_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T02-23-46-311Z-c9515b97/lut-draw/gpu.json",
+                "sha256": "b80c09bbf0624b5c7d0f0147dedaafba3356c689451337bbbe2524e12d32c7a4"
+              },
+              "lut_reference": {
+                "path": "tests/parity/lut-draw/reference/manifest.json",
+                "sha256": "2e026afbad6143b822f38490650920003d0ad53705d705d1f2c206f05f181d59"
+              },
+              "lut_implementation": {
+                "path": "tests/parity/lut-draw/legacy-effects.ts",
+                "sha256": "999fb67e09a07322e7d8d9ea2c58a0442d7d5377f0cd1029eeab16e29f714a0b"
+              },
+              "gates": [
+                {
+                  "id": "G0",
+                  "status": "passed",
+                  "duration_ms": 82870
+                },
+                {
+                  "id": "G1",
+                  "status": "passed",
+                  "duration_ms": 5533
+                },
+                {
+                  "id": "G3",
+                  "status": "passed",
+                  "duration_ms": 292792
+                }
+              ],
+              "notes": [
+                "Added layer_effects_slice_v1 across TS/Rust: exact uniform/instruction bytes, binary64 bright-pass threshold, blend/route controls, pyramid requirements, UTF-16-safe identity and selected LUT hash.",
+                "Root and precomposition effect encoders consume supplied compiled plans and LUT payloads. Authored effect evaluation happens before command encoding; zero-op adjustments and deferred resource failures preserve previous behavior.",
+                "Six distinct frozen RGBA16F LUT/effect cases independently replay after six FPLN plans and three texture resources pass through Rust. A new page/device receives only supplied plans and pixels. Identity, custom LUT, adjustment, blur, glow and soft-light output match pre-extraction execution exactly.",
+                "Full M2 G0/G1/G3 passed with 51 general FPLN round trips, 1819 exact full-frame comparisons, existing temporal/normal/material checks and six required LUT effect replays. No ordinary-preview readback was introduced.",
+                "M2-T7 is complete. M2-T8 still owns isolation and fusion decisions; full captured-frame execution, native renderer and production preview/export migration remain open."
+              ]
             }
-          ]
+          ],
+          "completed_at": "2026-10-05T02:29:29.582Z",
+          "completed_commit": "e44644eef559d938963cb847fe7515132d7cb4aa"
         },
         {
           "id": "M2-T8",
@@ -14149,7 +14236,7 @@
       ],
       "preview_baseline_path": "benchmarks/results/m2-preview-baseline.json",
       "preview_baseline_sha256": "a1c62e224c008e731c252142ab1b9de7d31ecf592452c00da1dff42516772375",
-      "active_candidate_manifest": "artifacts/parity/runs/2026-10-05T01-40-20-021Z-23970319/candidate/manifest.json",
+      "active_candidate_manifest": "artifacts/parity/runs/2026-10-05T02-15-53-484Z-14a1e8e3/candidate/manifest.json",
       "last_verification": {
         "status": "passed",
         "required_gates_passed": true,
@@ -14158,17 +14245,17 @@
           {
             "id": "G0",
             "status": "passed",
-            "duration_ms": 74564
+            "duration_ms": 82870
           },
           {
             "id": "G1",
             "status": "passed",
-            "duration_ms": 5205
+            "duration_ms": 5533
           },
           {
             "id": "G3",
             "status": "passed",
-            "duration_ms": 276439
+            "duration_ms": 292792
           }
         ],
         "optional_gates": [
@@ -14179,7 +14266,7 @@
           }
         ],
         "performance_policy": "rust-delivery-v1",
-        "report": "artifacts/migration/verify-2026-10-05T01-46-35-943Z-469fac91.json"
+        "report": "artifacts/migration/verify-2026-10-05T02-22-17-250Z-24cf8ef8.json"
       },
       "performance_series_history": [
         {
@@ -15485,12 +15572,5 @@
       }
     }
   ],
-  "active_cycle": {
-    "id": 42,
-    "milestone": "M2",
-    "task": "M2-T7",
-    "started_at": "2026-10-05T01:55:28.342Z",
-    "scope": "Transport compiled layer effect uniforms/programs and selected LUT hashes through FPLN and consume supplied plans in root/precomposition effects.",
-    "previous_turn_classification": "progress: cycle41 committed six independently replayed material draws with full exact gates."
-  }
+  "active_cycle": null
 }
