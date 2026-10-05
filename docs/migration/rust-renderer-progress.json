@@ -123,40 +123,40 @@
     }
   },
   "last_cycle": {
-    "id": 59,
-    "time": "2026-10-05T10:25:53.954Z",
+    "id": 60,
+    "time": "2026-10-05T10:48:44.040Z",
     "milestone": "M2",
     "task": "M2-T11",
     "outcome": "passed",
-    "commit": "32e6505a163e2d8695e5936c7309b99f6f1edf9b",
-    "verification": "artifacts/migration/verify-2026-10-05T10-17-58-830Z-4c3a0513.json",
-    "verification_sha256": "da800fcd8097d2f174c3b2e9ca086fab9e7476e2b6028db962fc8279801966f0",
+    "commit": "ae0669caf2356cf6fead04ea66f4d54e155c2e8a",
+    "verification": "artifacts/migration/verify-2026-10-05T10-40-37-566Z-55617efa.json",
+    "verification_sha256": "e34e40d8f4b6e0b87c1e32389e79dd8f41b0e98a60353b27ab3cbf63de5d0e77",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 90075
+        "duration_ms": 90345
       },
       {
         "id": "G1",
         "status": "passed",
-        "duration_ms": 12491
+        "duration_ms": 16342
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 327197
+        "duration_ms": 338732
       }
     ],
-    "verification_duration_ms": 431147,
-    "next_step": "Continue M2-T11: retain captured execution availability in supplied replay and audit the recursive plan exit requirements.",
+    "verification_duration_ms": 446807,
+    "next_step": "Begin M2-T12: extract auxiliary, motion, depth and final output decisions into typed supplied routes.",
     "notes": [
-      "Added capture-only readback of leased child media generations and content-addressed packed RGBA payloads to recursive bundles. Independent replay reconstructs owned sRGB GPU textures solely from validated pixels and frame descriptors; normal preview keeps media GPU-resident.",
-      "Capture preserves image, video requested/uploaded times and raster identities, validates retained texture generation and extent, and releases readback resources on failures. Focused tests cover pinned retired owners, padded GPU rows, released leases, map failures and invalid bundle pixel mappings.",
-      "Extended typed TS/Rust bundle schema with media frame-to-buffer references. Embedded FPLN resources are selected by declared plan roles, never byte-prefix guesses; the G1 fixture intentionally starts raw pixels with FPLN bytes and verifies exact round trips and rejection of duplicate mappings.",
-      "Added one separately pinned media reference from the retained pre-extraction renderer, preserving all five existing reference files and their manifest. Required independent-device replay now covers six cases, sixty Rust FPLN round trips, fifty-nine resource messages and eleven visible mutations, including supplied-media RGB changes.",
-      "Preserved cycle59-media-diagnostic failure evidence: dependent media frames were admitted before their sources. Corrected registry admission ordering, then the actual recursive auditor and fresh full M2 G0/G1/G3 passed with 1819 exact required corpus frames. No pixel tolerance changed. Architecture and schema are synchronized; no dependencies changed.",
-      "M2-T11 remains in progress for captured execution availability and its complete exit audit. The media capture API is ready for full-frame integration in M2-T14. Native production preview/export and the complete migration remain unfinished."
+      "Captured recursive generator execution as typed planned, unavailable or ready outcomes. Ready records preserve actual allocation capacity and effective count. A healthy replay host does not retry captured unavailable invocations; a larger host keeps the captured count and an insufficient host fails with a typed resource-generation error.",
+      "Execution capture requires observed outcomes and verifies that all scene metadata, resource identities and draw mappings match the supplied bundle before asynchronous media readback. No extra GPU readback is added to normal production preview.",
+      "Required G1 verifies ready execution metadata, planned and unavailable Rust round trips, and rejection of impossible capacity. G3 now captures actual producer realization and replays both success and failure with a healthy independent host; sixty Rust plans, fifty-nine resources, six exact cases and eleven visible mutations pass against unchanged frozen references.",
+      "Focused tests cover host-free unavailable replay, reduced allocation counts, repeated capture on a larger device, insufficient replay capacity, unobserved outcomes and mismatched scene generations. All 27 initial focused tests and the updated six focused tests passed. An initial G1 runner unit-test failure came from unrecognized diagnostic command IDs; aligned IDs with the process adapter and all six runner tests passed. Evidence remains in cycle60-ir-tests.log and cycle60-ir-tests-2.log.",
+      "Fresh whole-corpus capture and full M2 G0/G1/G3 passed with 1819 exact required frames. Architecture and generated schema are synchronized; dependencies, frozen pixels and tolerance profiles are unchanged.",
+      "M2-T11 exit audit is satisfied: owned recursive plans contain child target routing, effects, generator programs, media identities/pixels and captured execution outcomes; independent-device replay is exact, missing child/output targets fail typed, and current-frame shared targets remain pinned. Actual submitted complete root-frame capture and all-frame publication remain required under M2-T13/T14/T15. Native production preview/export and M2 as a whole are not yet complete."
     ]
   },
   "milestones": [
@@ -14948,7 +14948,7 @@
             "Recursive plan can be serialized independently; missing child/output target fails typed; current-frame resources stay pinned."
           ],
           "required_full_gates": ["G0", "G1", "G3"],
-          "status": "in_progress",
+          "status": "done",
           "increments": [
             {
               "cycle": 51,
@@ -15977,13 +15977,140 @@
                 "Preserved cycle59-media-diagnostic failure evidence: dependent media frames were admitted before their sources. Corrected registry admission ordering, then the actual recursive auditor and fresh full M2 G0/G1/G3 passed with 1819 exact required corpus frames. No pixel tolerance changed. Architecture and schema are synchronized; no dependencies changed.",
                 "M2-T11 remains in progress for captured execution availability and its complete exit audit. The media capture API is ready for full-frame integration in M2-T14. Native production preview/export and the complete migration remain unfinished."
               ]
+            },
+            {
+              "cycle": 60,
+              "status": "passed",
+              "commit": "ae0669caf2356cf6fead04ea66f4d54e155c2e8a",
+              "verification": {
+                "path": "artifacts/migration/verify-2026-10-05T10-40-37-566Z-55617efa.json",
+                "sha256": "e34e40d8f4b6e0b87c1e32389e79dd8f41b0e98a60353b27ab3cbf63de5d0e77"
+              },
+              "pixel_comparison": {
+                "path": "artifacts/parity/ts-check/2026-10-05T10-42-24-968Z-4b02f150/report.json",
+                "sha256": "cffb64c0b57b9a67a78713e3e6da8fa25fea512ecd44a027b945974b507cd391"
+              },
+              "capture": {
+                "path": "artifacts/parity/capture-2026-10-05T10-34-17-290Z-2906ead0.json",
+                "sha256": "37844e6491430abb2830eadab984c4f1e4005725e4e9dee53bd2a7b46ee3d84e"
+              },
+              "manifest": {
+                "path": "artifacts/parity/runs/2026-10-05T10-34-17-290Z-2906ead0/candidate/manifest.json",
+                "sha256": "8f42d4185e50c6d9b93978695e608e43ab8679fbe4dc9a99e2685fa02faadcd5"
+              },
+              "renderer_source_sha256": "4590ed43634838bdec27ea258fc558161b9998ef0bd41ffcabbf84faca2070ac",
+              "bridge_sha256": "82ccf02fefd4c54e78a82a4de08df6906714ecd0b198864ec72cb0c0394dd80c",
+              "temporal_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T10-42-24-968Z-4b02f150/temporal-text/gpu.json",
+                "sha256": "66834eec22ed057e2b5431c9d10cb94378a2f22f1bf42d38a14733ab00afa779"
+              },
+              "temporal_reference": {
+                "path": "tests/parity/temporal-text/reference/manifest.json",
+                "sha256": "e3e3b1184d5bc969dcd5cf76a424a551a0cac1a85484e157c5b549e5d6c811d1"
+              },
+              "encoded_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T10-42-24-968Z-4b02f150/encoded-textures/gpu.json",
+                "sha256": "9028f092c712475018d1db0dfb7122b7e5704ff3ac8c8b82ecaa4b950963c872"
+              },
+              "encoded_reference": {
+                "path": "tests/parity/material-textures/legacy-upload.ts",
+                "sha256": "508c2ad47f5a3f6e18069ce070e0ee0133668074bf81309a9144180f532f2498"
+              },
+              "material_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T10-42-24-968Z-4b02f150/material-draw/gpu.json",
+                "sha256": "26fbad56513b96310770da0538c5ac89d791322886d4d66134972714e0cdfe58"
+              },
+              "material_reference": {
+                "path": "tests/parity/material-draw/reference/manifest.json",
+                "sha256": "06debe986bca2118a9d4a07f5cc36a31b3926398f95d582e25f90ceabc21bc6e"
+              },
+              "material_implementation": {
+                "path": "tests/parity/material-draw/legacy-bindings.ts",
+                "sha256": "ff838daeb3950e90d263504007836d900060e9a2ff1ddb30e706a76d0a011d79"
+              },
+              "lut_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T10-42-24-968Z-4b02f150/lut-draw/gpu.json",
+                "sha256": "b80c09bbf0624b5c7d0f0147dedaafba3356c689451337bbbe2524e12d32c7a4"
+              },
+              "lut_reference": {
+                "path": "tests/parity/lut-draw/reference/manifest.json",
+                "sha256": "2e026afbad6143b822f38490650920003d0ad53705d705d1f2c206f05f181d59"
+              },
+              "lut_implementation": {
+                "path": "tests/parity/lut-draw/legacy-effects.ts",
+                "sha256": "999fb67e09a07322e7d8d9ea2c58a0442d7d5377f0cd1029eeab16e29f714a0b"
+              },
+              "root_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T10-42-24-968Z-4b02f150/root-scene/gpu.json",
+                "sha256": "049b9b48a98a31f1a1460658b136474b8fdfd78cbbb81411893661509599cfe0"
+              },
+              "root_reference": {
+                "path": "tests/parity/root-scene/reference/manifest.json",
+                "sha256": "4c5b2ffd5828db24f929f1bcc350a4a7e7c75be05cb65b9bbe2b4c48eaba267f"
+              },
+              "root_implementation": {
+                "path": "tests/parity/root-scene/legacy-execute.ts",
+                "sha256": "22b0f40e52a5c330646a7fe4a581aaacd6de2db225c4030f1cdd658177d52e8a"
+              },
+              "generator_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T10-42-24-968Z-4b02f150/generators/gpu.json",
+                "sha256": "ee372f72a9560059fe4dd8f8ab18c040e2ef6cadcaa5cc7249278e95de347dbf"
+              },
+              "generator_reference": {
+                "path": "tests/parity/generators-replay/reference/manifest.json",
+                "sha256": "a573fe3ababaa0f207eed4a0a6d11a4269ee90a877a244c1f8abed9fdbbfce09"
+              },
+              "generator_implementation": {
+                "path": "tests/parity/generators-replay/legacy-host.ts",
+                "sha256": "e458d028ca20002b7e7379f9daf9d5ca0a0f0960a3676dd3e0153e5ce19c8392"
+              },
+              "precomposition_media_reference": {
+                "path": "tests/parity/precomposition-replay/reference/media-manifest.json",
+                "sha256": "46b095b3e2fa862eef2d2d2860a3a78824fb3e42fc0836ac705f8c91f493240a"
+              },
+              "precomposition_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T10-42-24-968Z-4b02f150/precomposition/gpu.json",
+                "sha256": "4aa2af42926134a34ea38a4216eff7e3c87fc58d106a519d6abe275c40340861"
+              },
+              "precomposition_reference": {
+                "path": "tests/parity/precomposition-replay/reference/manifest.json",
+                "sha256": "b0e3a9edb52e73c46f67331b4b1634d6584b02a842f96140f588863460e4ca97"
+              },
+              "precomposition_implementation": {
+                "path": "tests/parity/precomposition-replay/legacy-surface.ts",
+                "sha256": "f8cd1bd48ef8c40cac361ef50900defef58d38bd988b5983972cd44cc4b5a90b"
+              },
+              "gates": [
+                {
+                  "id": "G0",
+                  "status": "passed",
+                  "duration_ms": 90345
+                },
+                {
+                  "id": "G1",
+                  "status": "passed",
+                  "duration_ms": 16342
+                },
+                {
+                  "id": "G3",
+                  "status": "passed",
+                  "duration_ms": 338732
+                }
+              ],
+              "notes": [
+                "Captured recursive generator execution as typed planned, unavailable or ready outcomes. Ready records preserve actual allocation capacity and effective count. A healthy replay host does not retry captured unavailable invocations; a larger host keeps the captured count and an insufficient host fails with a typed resource-generation error.",
+                "Execution capture requires observed outcomes and verifies that all scene metadata, resource identities and draw mappings match the supplied bundle before asynchronous media readback. No extra GPU readback is added to normal production preview.",
+                "Required G1 verifies ready execution metadata, planned and unavailable Rust round trips, and rejection of impossible capacity. G3 now captures actual producer realization and replays both success and failure with a healthy independent host; sixty Rust plans, fifty-nine resources, six exact cases and eleven visible mutations pass against unchanged frozen references.",
+                "Focused tests cover host-free unavailable replay, reduced allocation counts, repeated capture on a larger device, insufficient replay capacity, unobserved outcomes and mismatched scene generations. All 27 initial focused tests and the updated six focused tests passed. An initial G1 runner unit-test failure came from unrecognized diagnostic command IDs; aligned IDs with the process adapter and all six runner tests passed. Evidence remains in cycle60-ir-tests.log and cycle60-ir-tests-2.log.",
+                "Fresh whole-corpus capture and full M2 G0/G1/G3 passed with 1819 exact required frames. Architecture and generated schema are synchronized; dependencies, frozen pixels and tolerance profiles are unchanged.",
+                "M2-T11 exit audit is satisfied: owned recursive plans contain child target routing, effects, generator programs, media identities/pixels and captured execution outcomes; independent-device replay is exact, missing child/output targets fail typed, and current-frame shared targets remain pinned. Actual submitted complete root-frame capture and all-frame publication remain required under M2-T13/T14/T15. Native production preview/export and M2 as a whole are not yet complete."
+              ]
             }
           ],
-          "remaining_work": [
-            "Retain execution availability outcomes in complete frame capture and supplied replay."
-          ],
-          "commit": "32e6505a163e2d8695e5936c7309b99f6f1edf9b",
-          "verification": "artifacts/migration/verify-2026-10-05T10-17-58-830Z-4c3a0513.json"
+          "remaining_work": [],
+          "commit": "ae0669caf2356cf6fead04ea66f4d54e155c2e8a",
+          "verification": "artifacts/migration/verify-2026-10-05T10-40-37-566Z-55617efa.json",
+          "completed_at": "2026-10-05T10:48:44.040Z"
         },
         {
           "id": "M2-T12",
@@ -16041,7 +16168,10 @@
             "Missing/changed plan/resource or discovery-only plan cannot publish as success."
           ],
           "required_full_gates": ["G0", "G1", "G3"],
-          "status": "pending"
+          "status": "pending",
+          "notes": [
+            "Integrate recursive media pixels and captured generator execution outcomes into every successfully submitted complete root-frame artifact. Use capturePrecompositionBundle with observed executed plans; reject unobserved outcomes or mismatched generations. All-frame publication and replay are still required."
+          ]
         },
         {
           "id": "M2-T15",
@@ -16104,7 +16234,7 @@
       ],
       "preview_baseline_path": "benchmarks/results/m2-preview-baseline.json",
       "preview_baseline_sha256": "a1c62e224c008e731c252142ab1b9de7d31ecf592452c00da1dff42516772375",
-      "active_candidate_manifest": "artifacts/parity/runs/2026-10-05T10-11-38-087Z-7512651c/candidate/manifest.json",
+      "active_candidate_manifest": "artifacts/parity/runs/2026-10-05T10-34-17-290Z-2906ead0/candidate/manifest.json",
       "last_verification": {
         "status": "passed",
         "required_gates_passed": true,
@@ -16113,17 +16243,17 @@
           {
             "id": "G0",
             "status": "passed",
-            "duration_ms": 90075
+            "duration_ms": 90345
           },
           {
             "id": "G1",
             "status": "passed",
-            "duration_ms": 12491
+            "duration_ms": 16342
           },
           {
             "id": "G3",
             "status": "passed",
-            "duration_ms": 327197
+            "duration_ms": 338732
           }
         ],
         "optional_gates": [
@@ -16134,7 +16264,7 @@
           }
         ],
         "performance_policy": "rust-delivery-v1",
-        "report": "artifacts/migration/verify-2026-10-05T10-17-58-830Z-4c3a0513.json"
+        "report": "artifacts/migration/verify-2026-10-05T10-40-37-566Z-55617efa.json"
       },
       "performance_series_history": [
         {
@@ -17493,11 +17623,5 @@
       }
     }
   ],
-  "active_cycle": {
-    "id": 60,
-    "milestone": "M2",
-    "task": "M2-T11",
-    "started_at": "2026-10-05T10:27:40.191Z",
-    "intent": "Capture recursive generator execution outcomes and require supplied replay to preserve unavailable draws and reject unreproducible ready outcomes."
-  }
+  "active_cycle": null
 }
