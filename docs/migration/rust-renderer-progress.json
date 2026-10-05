@@ -146,39 +146,50 @@
     }
   },
   "last_cycle": {
-    "id": 77,
-    "time": "2026-10-05T23:05:05.939Z",
+    "id": 78,
+    "time": "2026-10-05T23:35:15.639Z",
     "milestone": "M3",
     "task": "M3-T2",
     "outcome": "passed",
-    "commit": "daadfcf799799a685a6636884f5fa8c0d0dc0798",
-    "verification": "artifacts/migration/verify-2026-10-05T23-00-05-959Z-dd6ba9f7.json",
-    "verification_sha256": "d8fae5f1aa83ade94dd9b7918ff84c0595b9ff5ec019f08247e8ead5232ec6d5",
+    "commit": "18243bd3475546dc333beb90f073f79adcfc7c3e",
+    "verification": "artifacts/migration/verify-2026-10-05T23-29-43-732Z-477086f7.json",
+    "verification_sha256": "51a8dfd066f07280775c4f7c3800055d409f1276829994cfd90fb4b0b163bfc2",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 89853
+        "duration_ms": 83757
       },
       {
         "id": "G1",
         "status": "passed",
-        "duration_ms": 28614
+        "duration_ms": 58143
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 128275
+        "duration_ms": 152439
       }
     ],
-    "verification_duration_ms": 248267,
-    "next_step": "Continue M3-T2 with authorized native PNG/JPEG/EXR file decoding; supplied-pixel execution does not complete the task.",
+    "verification_duration_ms": 295774,
+    "next_step": "Complete M3-T2 native EXR linear HDR decode, GPU texture support and sample validation, then continue masks/mattes/adjustments.",
     "notes": [
-      "Native image draws now use the shared sRGB image shader and a GPU cache keyed by frame identity and pixel generation. Supplied plans retain keys rather than copying pixel payloads.",
-      "The cache preflights full demand, protects current-frame generations, evicts unused textures under the shared GPU budget and waits for retired work only under pressure or target resize. GPU failures invalidate cache entries.",
-      "Full current G0/G1/G3 passed across 24 cases and 96 native frames. Eight new PNG/JPEG supplied-pixel frames match frozen TS references exactly and have recorded GPU-profile self-reviews. Prior geometry and blend results match their accepted reviews.",
-      "An actual GPU cache lifecycle test and eleven expected CLI rejection cases pass. No external package or tolerance change was introduced.",
-      "M3-T2 remains in progress: native file authorization/decoding and EXR linear sample validation are still required. Production preview/export remain TS until later migration integration."
+      "Added internal aster-media-native broker using existing bounded FFmpeg process support. Explicit source/scope/path grants, SHA-256 plus imported content identity and immutable stdin snapshots prevent unauthorized or changed inputs from decoding. No new external dependency or shipped FFmpeg change.",
+      "Original PNG/JPEG frame plans now render without TS pixel attachments. Eight native-decoded outputs supplement the existing 96 supplied-resource outputs. All current G0/G1/G3 gates pass.",
+      "Initial PNG comparison was rejected at max error 4 despite aligned structures. Matching browser associated-alpha precision reduced max error to 1. JPEG max error is 2. All GPU metrics and structural checks pass; inspected contact sheets/heatmaps and recorded accepted reviews. No tolerance or reference changes.",
+      "Five native CLI authorization/budget rejection cases and CPU tests verify rejection ordering, source identity, cancellation and malformed/changed encoded extents. Existing GPU cache and eleven supplied-path rejection cases still pass.",
+      "M3-T2 remains in progress for EXR/HDR. Production preview and export remain TS; the final migration goal is not complete."
+    ],
+    "verification_attempts": [
+      {
+        "path": "artifacts/migration/verify-2026-10-05T23-22-15-739Z-caf342b5.json",
+        "status": "failed",
+        "reason": "G0 Clippy manual_checked_ops; replaced alpha branch division with checked_div. G1/G3 passed."
+      },
+      {
+        "path": "artifacts/migration/verify-2026-10-05T23-29-43-732Z-477086f7.json",
+        "status": "passed"
+      }
     ]
   },
   "milestones": [
@@ -19641,8 +19652,8 @@
           "title": "Decode authorized PNG, JPEG and EXR stills and execute image draws with cached GPU resources",
           "status": "in_progress",
           "remaining": [
-            "Authorized native PNG/JPEG/EXR file decoding and decoder rejection evidence",
-            "Native-decoded image corpus acceptance and EXR linear HDR sample checks"
+            "Authorized native EXR decode preserving linear HDR samples",
+            "EXR GPU texture execution and real-byte sample checks"
           ],
           "increments": [
             {
@@ -19680,6 +19691,53 @@
                 "An actual GPU cache lifecycle test and eleven expected CLI rejection cases pass. No external package or tolerance change was introduced.",
                 "M3-T2 remains in progress: native file authorization/decoding and EXR linear sample validation are still required. Production preview/export remain TS until later migration integration."
               ]
+            },
+            {
+              "id": 78,
+              "time": "2026-10-05T23:35:15.639Z",
+              "milestone": "M3",
+              "task": "M3-T2",
+              "outcome": "passed",
+              "commit": "18243bd3475546dc333beb90f073f79adcfc7c3e",
+              "verification": "artifacts/migration/verify-2026-10-05T23-29-43-732Z-477086f7.json",
+              "verification_sha256": "51a8dfd066f07280775c4f7c3800055d409f1276829994cfd90fb4b0b163bfc2",
+              "gates": [
+                {
+                  "id": "G0",
+                  "status": "passed",
+                  "duration_ms": 83757
+                },
+                {
+                  "id": "G1",
+                  "status": "passed",
+                  "duration_ms": 58143
+                },
+                {
+                  "id": "G3",
+                  "status": "passed",
+                  "duration_ms": 152439
+                }
+              ],
+              "verification_duration_ms": 295774,
+              "next_step": "Complete M3-T2 native EXR linear HDR decode, GPU texture support and sample validation, then continue masks/mattes/adjustments.",
+              "notes": [
+                "Added internal aster-media-native broker using existing bounded FFmpeg process support. Explicit source/scope/path grants, SHA-256 plus imported content identity and immutable stdin snapshots prevent unauthorized or changed inputs from decoding. No new external dependency or shipped FFmpeg change.",
+                "Original PNG/JPEG frame plans now render without TS pixel attachments. Eight native-decoded outputs supplement the existing 96 supplied-resource outputs. All current G0/G1/G3 gates pass.",
+                "Initial PNG comparison was rejected at max error 4 despite aligned structures. Matching browser associated-alpha precision reduced max error to 1. JPEG max error is 2. All GPU metrics and structural checks pass; inspected contact sheets/heatmaps and recorded accepted reviews. No tolerance or reference changes.",
+                "Five native CLI authorization/budget rejection cases and CPU tests verify rejection ordering, source identity, cancellation and malformed/changed encoded extents. Existing GPU cache and eleven supplied-path rejection cases still pass.",
+                "M3-T2 remains in progress for EXR/HDR. Production preview and export remain TS; the final migration goal is not complete."
+              ],
+              "verification_attempts": [
+                {
+                  "path": "artifacts/migration/verify-2026-10-05T23-22-15-739Z-caf342b5.json",
+                  "status": "failed",
+                  "reason": "G0 Clippy manual_checked_ops; replaced alpha branch division with checked_div. G1/G3 passed."
+                },
+                {
+                  "path": "artifacts/migration/verify-2026-10-05T23-29-43-732Z-477086f7.json",
+                  "status": "passed"
+                }
+              ]
             }
           ],
           "completed_scope": {
@@ -19689,6 +19747,14 @@
               "frames": 8,
               "exact": true,
               "cache_lifecycle": "GPU verified"
+            },
+            "native_png_jpeg": {
+              "commit": "18243bd3475546dc333beb90f073f79adcfc7c3e",
+              "verification": "artifacts/migration/verify-2026-10-05T23-29-43-732Z-477086f7.json",
+              "frames": 8,
+              "profile": "gpu",
+              "native_image_decode": true,
+              "authorization_rejections": 5
             }
           }
         },
@@ -31273,6 +31339,53 @@
         "An actual GPU cache lifecycle test and eleven expected CLI rejection cases pass. No external package or tolerance change was introduced.",
         "M3-T2 remains in progress: native file authorization/decoding and EXR linear sample validation are still required. Production preview/export remain TS until later migration integration."
       ]
+    },
+    {
+      "id": 78,
+      "time": "2026-10-05T23:35:15.639Z",
+      "milestone": "M3",
+      "task": "M3-T2",
+      "outcome": "passed",
+      "commit": "18243bd3475546dc333beb90f073f79adcfc7c3e",
+      "verification": "artifacts/migration/verify-2026-10-05T23-29-43-732Z-477086f7.json",
+      "verification_sha256": "51a8dfd066f07280775c4f7c3800055d409f1276829994cfd90fb4b0b163bfc2",
+      "gates": [
+        {
+          "id": "G0",
+          "status": "passed",
+          "duration_ms": 83757
+        },
+        {
+          "id": "G1",
+          "status": "passed",
+          "duration_ms": 58143
+        },
+        {
+          "id": "G3",
+          "status": "passed",
+          "duration_ms": 152439
+        }
+      ],
+      "verification_duration_ms": 295774,
+      "next_step": "Complete M3-T2 native EXR linear HDR decode, GPU texture support and sample validation, then continue masks/mattes/adjustments.",
+      "notes": [
+        "Added internal aster-media-native broker using existing bounded FFmpeg process support. Explicit source/scope/path grants, SHA-256 plus imported content identity and immutable stdin snapshots prevent unauthorized or changed inputs from decoding. No new external dependency or shipped FFmpeg change.",
+        "Original PNG/JPEG frame plans now render without TS pixel attachments. Eight native-decoded outputs supplement the existing 96 supplied-resource outputs. All current G0/G1/G3 gates pass.",
+        "Initial PNG comparison was rejected at max error 4 despite aligned structures. Matching browser associated-alpha precision reduced max error to 1. JPEG max error is 2. All GPU metrics and structural checks pass; inspected contact sheets/heatmaps and recorded accepted reviews. No tolerance or reference changes.",
+        "Five native CLI authorization/budget rejection cases and CPU tests verify rejection ordering, source identity, cancellation and malformed/changed encoded extents. Existing GPU cache and eleven supplied-path rejection cases still pass.",
+        "M3-T2 remains in progress for EXR/HDR. Production preview and export remain TS; the final migration goal is not complete."
+      ],
+      "verification_attempts": [
+        {
+          "path": "artifacts/migration/verify-2026-10-05T23-22-15-739Z-caf342b5.json",
+          "status": "failed",
+          "reason": "G0 Clippy manual_checked_ops; replaced alpha branch division with checked_div. G1/G3 passed."
+        },
+        {
+          "path": "artifacts/migration/verify-2026-10-05T23-29-43-732Z-477086f7.json",
+          "status": "passed"
+        }
+      ]
     }
   ],
   "known_boundaries": [
@@ -31445,13 +31558,5 @@
         "sha256": "2a52867f6da0c4ad4e8cd1ef9831d5eb9be11743fe6f26fa9f12fe8d5c83797a"
       }
     }
-  ],
-  "active_cycle": {
-    "id": 78,
-    "started_at": "2026-10-05T23:06:27.080Z",
-    "milestone": "M3",
-    "task": "M3-T2",
-    "base_commit": "2606fa1965511845c2e4788b62e503c51f819924",
-    "intent": "Add a native still-image decode broker with explicit source authorization, pinned file identity and bounded FFmpeg decode; execute original plans without supplied pixel payloads and verify PNG/JPEG parity. Retain EXR linear HDR work until actually verified."
-  }
+  ]
 }
