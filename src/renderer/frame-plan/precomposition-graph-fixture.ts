@@ -1,17 +1,24 @@
-import { createLayerForComposition } from "../../core/layers/layer-factory";
+import {
+  createGeneratorLayerForComposition,
+  createLayerForComposition,
+} from "../../core/layers/layer-factory";
 import { createBlankProject } from "../../core/project/project";
 import { flattenSceneLayers } from "../../core/scene/scene-evaluation";
+import { createSceneGeneratorInstance } from "../../core/scene/scene-generator-registry";
+import { createEffect } from "../../effects/registry";
 import { bindPrecompositionSceneMedia } from "../compositing/precomposition-scene-media";
 import { buildPrecompositionScenePlan } from "../compositing/precomposition-scene-plan";
 import { prepareLayerEffects } from "../effects/layer-effect-plan";
 import { buildSceneGeometry } from "../geometry/geometry";
 import { LutSelectionPlanner } from "../media/lut-selection-plan";
+import { bundledParticleDefinition } from "../scene/bundled-particle-generator";
+import { SceneGeneratorPlanner } from "../scene/scene-generator-plan";
 import { buildSceneLighting } from "../scene/scene-lighting";
 import { encodeFramePlan } from "./codec";
 import { buildPrecompositionGraph, readPrecompositionGraph } from "./precomposition-graph-plan";
 import { buildFrameHeader } from "./root-post-plan";
 
-export function precompositionGraphFixtures() {
+export function precompositionGraphFixtures(rich = false, mediaHash: string | null = null) {
   const project = createBlankProject(),
     parent = project.compositions[0];
   parent.width = 64;
@@ -19,6 +26,16 @@ export function precompositionGraphFixtures() {
   const leaf = structuredClone(parent);
   leaf.id = "child";
   leaf.layers = [createLayerForComposition("shape", leaf)];
+  if (rich) {
+    leaf.layers[0].effects = [createEffect("exposure")];
+    leaf.layers.push(createLayerForComposition("image", leaf));
+    leaf.layers.push(
+      createGeneratorLayerForComposition(
+        leaf,
+        createSceneGeneratorInstance(bundledParticleDefinition),
+      ),
+    );
+  }
   project.compositions.push(leaf);
   parent.layers = Array.from({ length: 3 }, () => {
     const layer = createLayerForComposition("precomposition", parent);
@@ -39,6 +56,21 @@ export function precompositionGraphFixtures() {
       renderTarget: { width: 64, height: 48 },
       antiAliasing: "off",
     });
+    const planner = new SceneGeneratorPlanner();
+    const generators = layers
+      .filter((s) => s.layer.kind === "generator")
+      .map((scene) =>
+        planner.prepare({
+          scene,
+          composition,
+          definition: bundledParticleDefinition,
+          width: 64,
+          height: 48,
+          storageByteLimit: 16777216,
+          dispatchWorkgroupLimit: 65535,
+        }),
+      );
+    const hasEffects = rich && index === 0;
     const wrappers = layers.filter((s) => s.precompositionSurface);
     const surfaceTargets = new Map(wrappers.slice(0, 2).map((s) => [s.instanceId, ids[0]]));
     return bindPrecompositionSceneMedia(
@@ -47,9 +79,9 @@ export function precompositionGraphFixtures() {
           id: ids[index],
           width: 64,
           height: 48,
-          estimatedBytes: 64 * 48 * 12,
-          textureCount: 2,
-          hasEffects: false,
+          estimatedBytes: 64 * 48 * (hasEffects ? 38 : 12),
+          textureCount: hasEffects ? 5 : 2,
+          hasEffects,
         },
         revision: 7,
         composition,
@@ -65,14 +97,12 @@ export function precompositionGraphFixtures() {
           mipLevelCount: 1,
           planner: new LutSelectionPlanner(),
         }),
-        generators: [],
+        generators,
         surfaceTargets,
       }),
       {
-        hashFor: () => {
-          throw new Error("Unexpected media in graph fixture");
-        },
-        bindingForHash: () => undefined,
+        hashFor: () => mediaHash,
+        bindingForHash: () => (mediaHash ? ({} as GPUBindGroup) : undefined),
       },
     );
   });

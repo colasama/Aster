@@ -16786,5 +16786,16 @@
       }
     }
   ],
-  "active_cycle": null
+  "active_cycle": {
+    "id": 54,
+    "started_at": "2026-10-05T07:16:25.608Z",
+    "milestone": "M2",
+    "task": "M2-T11",
+    "intent": "Package child scene/effect/generator plans and resource dependencies with the target graph in a typed content-addressed bundle.",
+    "previous_turn": "progress: cycle 53 committed TS/Rust target graph transport with full required gates green.",
+    "usage": {
+      "used_percent": 36,
+      "remaining_percent": 64
+    }
+  }
 }

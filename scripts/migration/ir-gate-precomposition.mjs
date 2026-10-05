@@ -86,7 +86,7 @@ export async function auditPrecompositionGraph(runtime, fixture, after, options)
   };
 }
 
-function mutate(input, metadata, payload) {
+export function mutate(input, metadata, payload) {
   const old = new DataView(input.buffer, input.byteOffset, input.byteLength);
   const json = JSON.parse(
     Buffer.from(input.subarray(32, 32 + old.getUint32(8, true))).toString("utf8"),

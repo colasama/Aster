@@ -130,7 +130,8 @@
         "effect_execution_slice_v1",
         "root_scene_commands_slice_v1",
         "scene_generator_slice_v1",
-        "precomposition_graph_slice_v1"
+        "precomposition_graph_slice_v1",
+        "precomposition_bundle_slice_v1"
       ],
       "type": "string"
     },
@@ -720,6 +721,31 @@
         {
           "additionalProperties": false,
           "properties": {
+            "blob_index": {
+              "format": "uint32",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "graph": {
+              "$ref": "#/$defs/ResourceHash"
+            },
+            "kind": {
+              "const": "precomposition_bundle",
+              "type": "string"
+            },
+            "scenes": {
+              "items": {
+                "$ref": "#/$defs/PrecompositionSceneRecord"
+              },
+              "type": "array"
+            }
+          },
+          "required": ["kind", "blob_index", "graph", "scenes"],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
             "bindings": {
               "items": {
                 "$ref": "#/$defs/PrecompositionBinding"
@@ -1194,6 +1220,165 @@
         }
       },
       "required": ["instance_id", "target_index"],
+      "type": "object"
+    },
+    "PrecompositionEffectRecord": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "execution": {
+              "$ref": "#/$defs/ResourceHash"
+            },
+            "instance_id": {
+              "$ref": "#/$defs/CompositionIdentity"
+            },
+            "status": {
+              "const": "direct",
+              "type": "string"
+            }
+          },
+          "required": ["status", "instance_id", "execution"],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "execution": {
+              "$ref": "#/$defs/ResourceHash"
+            },
+            "instance_id": {
+              "$ref": "#/$defs/CompositionIdentity"
+            },
+            "status": {
+              "const": "skipped",
+              "type": "string"
+            }
+          },
+          "required": ["status", "instance_id", "execution"],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "error_utf16": {
+              "items": {
+                "format": "uint16",
+                "maximum": 65535,
+                "minimum": 0,
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            "execution": {
+              "$ref": "#/$defs/ResourceHash"
+            },
+            "instance_id": {
+              "$ref": "#/$defs/CompositionIdentity"
+            },
+            "status": {
+              "const": "failed",
+              "type": "string"
+            }
+          },
+          "required": ["status", "instance_id", "execution", "error_utf16"],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "execution": {
+              "$ref": "#/$defs/ResourceHash"
+            },
+            "instance_id": {
+              "$ref": "#/$defs/CompositionIdentity"
+            },
+            "label_utf16": {
+              "items": {
+                "format": "uint16",
+                "maximum": 65535,
+                "minimum": 0,
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            "lut": {
+              "$ref": "#/$defs/ResourceHash"
+            },
+            "plan": {
+              "$ref": "#/$defs/ResourceHash"
+            },
+            "status": {
+              "const": "ready",
+              "type": "string"
+            }
+          },
+          "required": ["status", "instance_id", "execution", "plan", "lut", "label_utf16"],
+          "type": "object"
+        }
+      ]
+    },
+    "PrecompositionGeneratorRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "instance_id": {
+          "$ref": "#/$defs/CompositionIdentity"
+        },
+        "plan": {
+          "$ref": "#/$defs/ResourceHash"
+        }
+      },
+      "required": ["instance_id", "plan"],
+      "type": "object"
+    },
+    "PrecompositionSceneRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "commands": {
+          "$ref": "#/$defs/ResourceHash"
+        },
+        "draw_count": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "effects": {
+          "items": {
+            "$ref": "#/$defs/PrecompositionEffectRecord"
+          },
+          "type": "array"
+        },
+        "generators": {
+          "items": {
+            "$ref": "#/$defs/PrecompositionGeneratorRecord"
+          },
+          "type": "array"
+        },
+        "label_utf16": {
+          "items": {
+            "format": "uint16",
+            "maximum": 65535,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "type": "array"
+        },
+        "scene": {
+          "$ref": "#/$defs/ResourceHash"
+        },
+        "target_id": {
+          "$ref": "#/$defs/CompositionIdentity"
+        }
+      },
+      "required": [
+        "target_id",
+        "label_utf16",
+        "scene",
+        "commands",
+        "draw_count",
+        "effects",
+        "generators"
+      ],
       "type": "object"
     },
     "PrecompositionTargetRecord": {

@@ -5,6 +5,7 @@ import { join, relative } from "node:path";
 import { auditGeneratorResources } from "./ir-gate-generator.mjs";
 import { auditMediaResources } from "./ir-gate-media.mjs";
 import { auditPrecompositionGraph } from "./ir-gate-precomposition.mjs";
+import { auditPrecompositionBundle } from "./ir-gate-precomposition-bundle.mjs";
 import { auditRasterPixels } from "./ir-gate-raster.mjs";
 import { auditRasterScene } from "./ir-gate-raster-scene.mjs";
 import { auditIrResources, irNegativeFixtures, loadIrRuntime } from "./ir-gate-runtime.mjs";
@@ -24,7 +25,7 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
     status: "failed",
     started_at: new Date(started).toISOString(),
     scope:
-      "post_uniforms_slice_v1 + scene_buffers_slice_v1 + camera_parameters_slice_v1 + temporal_text_samples_slice_v1 + temporal_text_passes_slice_v1 + material_bindings_slice_v1 + layer_effects_slice_v1 + effect_execution_slice_v1 + root_scene_commands_slice_v1 + scene_generator_slice_v1 + precomposition_graph_slice_v1",
+      "post_uniforms_slice_v1 + scene_buffers_slice_v1 + camera_parameters_slice_v1 + temporal_text_samples_slice_v1 + temporal_text_passes_slice_v1 + material_bindings_slice_v1 + layer_effects_slice_v1 + effect_execution_slice_v1 + root_scene_commands_slice_v1 + scene_generator_slice_v1 + precomposition_graph_slice_v1 + precomposition_bundle_slice_v1",
     renderer_plan_complete: false,
     steps: [],
     roundtrips: [],
@@ -41,6 +42,7 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
     root_scenes: [],
     generators: [],
     precompositions: [],
+    precomposition_bundles: [],
     rejections: [],
   };
   const reader = new M0Evidence(context.root);
@@ -223,6 +225,7 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
       ...runtime.rootSceneFixtures(),
       ...generatorFixtures,
       ...runtime.precompositionGraphFixtures(),
+      ...runtime.precompositionBundleFixtures(),
     ]) {
       const input = join(context.output, `${fixture.id}-ts.fpln`);
       const output = join(context.output, `${fixture.id}-rust.fpln`);
@@ -242,6 +245,16 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
       assert.deepEqual(roundtrip.bytes, original.bytes, "TS -> Rust FPLN is not byte-exact");
       assert.deepEqual(after.metadata, before.metadata);
       assert.deepEqual(after.blobs, before.blobs);
+      if (fixture.bundle)
+        report.precomposition_bundles.push(
+          await auditPrecompositionBundle(runtime, fixture, after, {
+            context,
+            cli,
+            command,
+            cliReport,
+            outputFile,
+          }),
+        );
       if (fixture.graph)
         report.precompositions.push(
           await auditPrecompositionGraph(runtime, fixture, after, {

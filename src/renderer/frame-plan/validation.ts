@@ -23,6 +23,11 @@ import {
   validateMaterialBindingBlob,
 } from "./material-binding-layout";
 import {
+  PRECOMPOSITION_BUNDLE_FIELDS,
+  validatePrecompositionBundle,
+  validatePrecompositionBundleBlob,
+} from "./precomposition-bundle-layout";
+import {
   PRECOMPOSITION_GRAPH_FIELDS,
   validatePrecompositionGraph,
   validatePrecompositionGraphBlob,
@@ -113,6 +118,7 @@ export function validateMetadata(value: unknown, limits: FramePlanLimits): Frame
         "root_scene_commands_slice_v1",
         "scene_generator_slice_v1",
         "precomposition_graph_slice_v1",
+        "precomposition_bundle_slice_v1",
       ].includes(String(metadata.contract_level)) &&
       metadata.renderer_plan_complete === false,
     "unknown_variant",
@@ -185,6 +191,22 @@ export function validateMetadata(value: unknown, limits: FramePlanLimits): Frame
   );
   const indices = new Set<number>();
   for (const value of metadata.slices) {
+    if (metadata.contract_level === "precomposition_bundle_slice_v1") {
+      requirePlan(
+        metadata.slices.length === 1 && Array.isArray(metadata.resources),
+        "invalid_precomposition",
+        "Expected one surface bundle",
+      );
+      const slice = object(value, PRECOMPOSITION_BUNDLE_FIELDS),
+        index = integer(slice.blob_index, 0, metadata.blobs.length - 1);
+      indices.add(index);
+      validatePrecompositionBundle(
+        slice,
+        metadata.blobs[index] as BlobDescriptor,
+        metadata.resources as string[],
+      );
+      continue;
+    }
     if (metadata.contract_level === "precomposition_graph_slice_v1") {
       requirePlan(
         metadata.slices.length === 1 &&
@@ -377,6 +399,15 @@ export function validatePlanBlob(
     "element_count_mismatch",
     "Supplied blob length differs from descriptor",
   );
+  if (metadata.contract_level === "precomposition_bundle_slice_v1") {
+    const bundle = metadata.slices[0];
+    requirePlan(
+      bundle.kind === "precomposition_bundle",
+      "invalid_precomposition",
+      "Missing surface bundle",
+    );
+    validatePrecompositionBundleBlob(bytes, bundle);
+  }
   if (metadata.contract_level === "precomposition_graph_slice_v1") {
     const graph = metadata.slices[0];
     requirePlan(

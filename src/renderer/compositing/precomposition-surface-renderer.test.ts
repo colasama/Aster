@@ -384,6 +384,10 @@ describe("GPU precomposition surfaces", () => {
           dispatchWorkgroupLimit: 65535,
         }),
       ),
+      preparePlan: vi.fn((plan) => ({
+        instanceId: plan.instanceId,
+        selectionId: plan.selectionId,
+      })),
       preparePlanned: vi.fn((plan) => ({
         instanceId: plan.instanceId,
         selectionId: plan.selectionId,
@@ -436,6 +440,10 @@ describe("GPU precomposition surfaces", () => {
     );
     expect(sceneGenerators.preparePlanned).toHaveBeenCalledOnce();
     const supplied = vi.mocked(sceneGenerators.preparePlanned).mock.calls[0][0];
+    expect(sceneGenerators.preparePlan).toHaveBeenCalledOnce();
+    const decoded = vi.mocked(sceneGenerators.preparePlan).mock.calls[0][0];
+    expect(decoded).toEqual(supplied);
+    expect(decoded.context).not.toBe(supplied.context);
     expect(supplied.effectiveCount).toBe(64);
     expect(
       new Float32Array(supplied.context.buffer, supplied.context.byteOffset, 4).slice(0, 4),

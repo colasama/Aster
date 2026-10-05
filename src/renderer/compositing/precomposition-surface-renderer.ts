@@ -5,13 +5,13 @@ import type { BlendMode, Composition, Project } from "../../core/types";
 import { BLEND_MODES } from "../../core/types";
 import { prepareLayerEffects } from "../effects/layer-effect-plan";
 import { LayerEffectRenderer } from "../effects/layer-effects";
-import {
-  applyPrecompositionGraph,
-  buildPrecompositionGraph,
-  readPrecompositionGraph,
-} from "../frame-plan/precomposition-graph-plan";
+import { readGeneratorSlice } from "../frame-plan/generator-plan";
+import { buildPrecompositionBundle } from "../frame-plan/precomposition-bundle-plan";
+import { readPrecompositionBundle } from "../frame-plan/precomposition-bundle-read";
+import { buildPrecompositionGraph } from "../frame-plan/precomposition-graph-plan";
 import { buildFrameHeader } from "../frame-plan/root-post-plan";
 import { prepareSceneBuffers } from "../frame-plan/scene-buffer-upload";
+import type { PutResource } from "../frame-plan/types";
 import { buildSceneGeometry, FLOATS_PER_VERTEX } from "../geometry/geometry";
 import { sharedShaders } from "../gpu/shared-shader-catalog";
 import { LutSelectionPlanner } from "../media/lut-selection-plan";
@@ -191,25 +191,41 @@ export class PrecompositionSurfaceRenderer {
   }
 
   planScenes(
-    media: PrecompositionMediaBindings & { hashFor(instanceId: string): string | null },
+    media: PrecompositionMediaBindings & {
+      hashFor(instanceId: string): string | null;
+      resourceMessages: readonly PutResource[];
+    },
   ): PrecompositionScenePlan[] {
     if (this.#jobs.length === 0) return [];
     const scenes = this.#jobs.map((job) => bindPrecompositionSceneMedia(job, media));
-    const graph = readPrecompositionGraph(
-      buildPrecompositionGraph(
-        scenes[0].scene.metadata.header,
-        scenes.map((scene) => ({
-          target: scene.target,
-          drawTargets: scene.draws.map((draw) =>
-            draw.texture.kind === "surface" ? draw.texture.targetId : undefined,
-          ),
-        })),
-        this.#bindings,
-      ),
+    const graph = buildPrecompositionGraph(
+      scenes[0].scene.metadata.header,
+      scenes.map((scene) => ({
+        target: scene.target,
+        drawTargets: scene.draws.map((draw) =>
+          draw.texture.kind === "surface" ? draw.texture.targetId : undefined,
+        ),
+      })),
+      this.#bindings,
     );
+    const bundle = buildPrecompositionBundle(graph, scenes, media.resourceMessages);
+    const decoded = readPrecompositionBundle(bundle.plan, bundle.resources);
     this.#bindings.clear();
-    for (const [id, target] of graph.bindings) this.#bindings.set(id, target);
-    return applyPrecompositionGraph(graph, scenes);
+    for (const [id, target] of decoded.graph.bindings) this.#bindings.set(id, target);
+    for (const plan of decoded.plans) {
+      const entry = this.#entries.get(plan.target.id);
+      if (!entry) throw new Error("Decoded precomposition target is absent");
+      this.#uploadScene(entry, plan);
+      for (const generator of plan.generators) {
+        if (!this.#sceneGenerators) throw new Error("Decoded generator host is absent");
+        const invocation = readGeneratorSlice(
+          generator.plan,
+          new Map(generator.shaders.map((s) => [s.message.hash, s])),
+        );
+        this.#generators.set(generator.instanceId, this.#sceneGenerators.preparePlan(invocation));
+      }
+    }
+    return decoded.plans;
   }
 
   encode(
@@ -439,7 +455,10 @@ export class PrecompositionSurfaceRenderer {
       surfaceTargets: this.#bindings,
     });
     this.#jobs.push(job);
-    const buffers = prepareSceneBuffers(job.scene);
+  }
+
+  #uploadScene(entry: SurfaceEntry, plan: PrecompositionScenePlan): void {
+    const buffers = prepareSceneBuffers(plan.scene);
     this.#ensureVertexBuffer(entry, buffers.vertices.byteLength);
     if (buffers.vertices.byteLength)
       this.#device.queue.writeBuffer(

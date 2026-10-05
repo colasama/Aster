@@ -195,12 +195,18 @@ current-frame eviction protection, limits and generator failure diagnostics rema
 preparation boundary. Child media addresses resolve to content hashes before command-encoder
 creation. Root and child scenes share one frame lease, keeping media owners alive through GPU
 submission. Executable child draws and their scene-buffer FPLN slices carry matching hash/pending
-references, preflighted before drawing. The recursive frame envelope and independent replay
-remain required before complete precomposition transport. The target graph now has a bounded
-FPLN contract shared with Rust: child-first target descriptors, explicit shared aliases and per-draw
-surface routing. Production consumes decoded graph order and routes; validators reject cycles,
-missing alias targets and inconsistent cache accounting. Scene payload packaging and independent
-recursive GPU replay remain under extraction.
+references, preflighted before drawing. The target graph has a bounded FPLN contract shared with
+Rust: child-first target descriptors, explicit shared aliases and per-draw surface routing.
+Validators reject cycles, missing alias targets and inconsistent cache accounting.
+A content-addressed bundle now carries that graph with child scene/command/effect/generator FPLN,
+LUT pixels, shader bytes and media source/frame descriptors. Decoding validates hashes, dependency
+closure, frame identities and geometry/media/command cross-references. Production consumes the
+decoded scene buffers and generator invocations for GPU uploads. G1 round-trips both the bundle
+and embedded FPLN through Rust and checks all resource messages at the Rust registry boundary.
+Media pixels remain owned by the shared frame lease. Child evaluation and target allocation are
+still coupled; generator preparation still probes availability before packaging and realizes the
+decoded invocation afterward. Independent recursive GPU replay and full-frame capture remain open.
+
 
 Shared WGSL includes output anti-aliasing, core scene variants, compositing, fused post-processing,
 blur/depth/surface effects, auxiliary surfaces, particles, text motion blur and display/buffer helpers.

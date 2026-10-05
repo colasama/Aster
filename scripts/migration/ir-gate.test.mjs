@@ -62,7 +62,8 @@ async function fixture(t, intercept = async () => {}) {
         "ir-raster-resources",
         "ir-texture-resources",
         "ir-generator-shaders",
-      ].includes(command.id)
+      ].includes(command.id) ||
+      command.id.startsWith("ir-bundle-resources-")
     ) {
       target = argument("--output");
       bytes = await readFile(argument("--input"));
@@ -167,7 +168,18 @@ test("G1 orchestrates all real TS codec checks and keeps renderer completion exp
   const result = await f.run();
   assert.equal(result.status, "passed", result.error);
   assert.equal(result.renderer_plan_complete, false);
-  assert.equal(result.roundtrips.length, 78);
+  assert.equal(result.roundtrips.length, 80);
+  assert.equal(result.precomposition_bundles.length, 2);
+  assert(
+    result.precomposition_bundles.every(
+      (b) =>
+        b.exact_payloads &&
+        b.exact_dependencies &&
+        b.missing_rejected &&
+        b.corrupt_rejected &&
+        b.nested_roundtrips > 0,
+    ),
+  );
   assert.equal(result.precompositions.length, 2);
   assert.equal(result.precompositions[0].rejections.length, 6);
   assert(
@@ -255,7 +267,7 @@ test("G1 rejects source drift even when every codec result is exact", async (t) 
   }));
   assert.equal(result.status, "failed");
   assert.equal(result.source_unchanged, false);
-  assert.equal(result.roundtrips.length, 78);
+  assert.equal(result.roundtrips.length, 80);
   assert.match(result.error, /Source changed during G1/);
 });
 

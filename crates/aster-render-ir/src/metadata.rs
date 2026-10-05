@@ -1,4 +1,5 @@
 use crate::LayerEffectSlice;
+use crate::PrecompositionBundleSlice;
 use crate::PrecompositionGraphSlice;
 use crate::SceneGeneratorSlice;
 use crate::{
@@ -35,6 +36,7 @@ pub enum ContractLevel {
     RootSceneCommandsSliceV1,
     SceneGeneratorSliceV1,
     PrecompositionGraphSliceV1,
+    PrecompositionBundleSliceV1,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
@@ -122,6 +124,7 @@ pub struct BlobDescriptor {
 #[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum PlanSlice {
+    PrecompositionBundle(PrecompositionBundleSlice),
     PrecompositionGraph(PrecompositionGraphSlice),
     SceneGenerator(SceneGeneratorSlice),
     RootSceneCommands(RootSceneCommandsSlice),
@@ -201,6 +204,13 @@ impl FramePlanSliceV1 {
             return Err(IrError::InvalidGenerator("expected one slice".to_owned()));
         }
         let mut referenced = BTreeSet::new();
+        if self.contract_level == ContractLevel::PrecompositionBundleSliceV1
+            && self.slices.len() != 1
+        {
+            return Err(IrError::InvalidPrecomposition(
+                "expected one surface bundle".to_owned(),
+            ));
+        }
         if self.contract_level == ContractLevel::PrecompositionGraphSliceV1
             && (self.slices.len() != 1 || !self.resources.is_empty())
         {
@@ -210,6 +220,11 @@ impl FramePlanSliceV1 {
         }
         for slice in &self.slices {
             let blob_index = match slice {
+                PlanSlice::PrecompositionBundle(bundle)
+                    if self.contract_level == ContractLevel::PrecompositionBundleSliceV1 =>
+                {
+                    bundle.blob_index
+                }
                 PlanSlice::PrecompositionGraph(graph)
                     if self.contract_level == ContractLevel::PrecompositionGraphSliceV1 =>
                 {
@@ -284,6 +299,10 @@ impl FramePlanSliceV1 {
             if !referenced.insert(blob_index) {
                 return Err(IrError::BlobCountMismatch);
             }
+            if let PlanSlice::PrecompositionBundle(bundle) = slice {
+                bundle.validate(blob, &self.resources)?;
+                continue;
+            }
             if let PlanSlice::PrecompositionGraph(graph) = slice {
                 graph.validate(blob, limits)?;
                 continue;
@@ -354,6 +373,16 @@ impl FramePlanSliceV1 {
     }
 
     pub(crate) fn validate_blob(&self, index: usize, bytes: &[u8]) -> Result<(), IrError> {
+        if self.contract_level == ContractLevel::PrecompositionBundleSliceV1 {
+            for slice in &self.slices {
+                if let PlanSlice::PrecompositionBundle(bundle) = slice
+                    && bundle.blob_index as usize == index
+                {
+                    return bundle.validate_payload(bytes);
+                }
+            }
+            return Err(IrError::BlobCountMismatch);
+        }
         if self.contract_level == ContractLevel::PrecompositionGraphSliceV1 {
             for slice in &self.slices {
                 if let PlanSlice::PrecompositionGraph(graph) = slice
