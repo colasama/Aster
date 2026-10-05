@@ -146,38 +146,38 @@
     }
   },
   "last_cycle": {
-    "id": 73,
-    "time": "2026-10-05T19:38:54.347Z",
+    "id": 74,
+    "time": "2026-10-05T20:57:53.150Z",
     "milestone": "M2",
-    "task": "M2-T13",
+    "task": "M2-T14",
     "outcome": "passed",
-    "commit": "952cefa4843a804b449cbf21f96753bcac8701f8",
-    "verification": "artifacts/migration/verify-2026-10-05T19-30-27-652Z-d9f56a66.json",
-    "verification_sha256": "06f6b4a65baf1e5bc7499b1dc46a6833405e1567c5400fff7329c97123898afe",
+    "commit": "8cb858d99ff3174ae425b87986de45f33de02faa",
+    "verification": "artifacts/migration/verify-2026-10-05T20-48-21-336Z-1709b2e5.json",
+    "verification_sha256": "ad17d397381d5721beb7c7680d1752a6727a65107d4207f9b0dd9e0b975d2d43",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 93837
+        "duration_ms": 98928
       },
       {
         "id": "G1",
         "status": "passed",
-        "duration_ms": 16495
+        "duration_ms": 13243
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 369633
+        "duration_ms": 412693
       }
     ],
-    "verification_duration_ms": 481373,
-    "next_step": "M2-T14: publish the submitted root FPLN and every dependency for each captured frame, including sequence neighbors, and bind them to replay provenance.",
+    "verification_duration_ms": 526361,
+    "next_step": "M2-T15: audit complete plan/resource coverage, production consumption and resource eviction; disposition the preserved cycle71 rejected frame and integrate the M2 exit gate.",
     "notes": [
-      "Root and auxiliary scene contracts no longer accept raster-cache aliases. Rasterized media resolves only through supplied content hashes; vector text retains its geometry path. TS validation and Rust deserialization reject the removed reference variant; the schema is regenerated.",
-      "The dedicated whole-frame GPU suite now covers two isolated recursive surfaces after production cache warm-up. Both recursive frames execute one temporal pass and eight samples, match production bytes exactly, and change 558 pixels when exposure weights are zeroed. All eight glyph frames execute 48 samples. Frozen reference pixels and legacy executor implementations remain unchanged.",
-      "Source review confirms production command recording consumes the root frame envelope, nested scene/effect/generator plans and supplied output routes. The independent renderer takes only FPLN/resource bytes on a fresh GPU device; it receives no Project or Composition. Full G0/G1/G3 and all 1947 captured live/replay comparisons pass, including 1819 frozen baseline addresses.",
-      "M2-T13 implementation and its listed completion evidence are satisfied. M2 remains in progress: T14 must publish per-frame FPLN and dependency resources, including neighbors, and T15 must audit the full exit contract. The cycle71 failed owner-main frame remains rejected and preserved; its unresolved cause is explicitly carried into T15, not reported fixed by subsequent green runs. Native production preview/export remain pending."
+      "Every actual submitted root FPLN is preserved separately from its captured-media replay envelope. Resources are content-addressed and deduplicated per case. Rust validates the full closure and typed nested plans, proves pixel attachment leaves execution unchanged, and returns the exact plan used by independent TS GPU replay.",
+      "All 337 cases and 1947 captured frames, including sequence neighbors, contain hash-bound plan/resource/native receipts. All live-versus-replay bytes match, and all 1819 frozen baseline comparisons remain exact. Publication and G3 reject missing or changed evidence.",
+      "G1 verifies complete empty, recursive and temporal bundles through native admission and rejects missing/corrupt resources, changed submitted execution and partial discovery plans without publishing output. Arbitrary resource bytes beginning with FPLN remain ordinary data unless referenced as a typed plan.",
+      "M2-T14 is complete. M2-T15 still requires the final exit audit and explicit disposition of the preserved cycle71 owner-main mismatch. Native production preview/export remain pending; the new CLI validates transport without claiming native rendering."
     ]
   },
   "milestones": [
@@ -19088,10 +19088,151 @@
             "Missing/changed plan/resource or discovery-only plan cannot publish as success."
           ],
           "required_full_gates": ["G0", "G1", "G3"],
-          "status": "in_progress",
+          "status": "done",
           "notes": [
             "Integrate recursive media pixels and captured generator execution outcomes into every successfully submitted complete root-frame artifact. Use capturePrecompositionBundle with observed executed plans; reject unobserved outcomes or mismatched generations. All-frame publication and replay are still required."
-          ]
+          ],
+          "increments": [
+            {
+              "cycle": 74,
+              "status": "passed",
+              "commit": "8cb858d99ff3174ae425b87986de45f33de02faa",
+              "evidence": {
+                "path": "artifacts/migration/cycle74-accepted.json",
+                "sha256": "f93a5a6bf8547e55fe25f734ac02d5b53cd528668b3f86d11f1a7ad2acda9ad7"
+              },
+              "rejected_verifications": [
+                {
+                  "path": "artifacts/migration/verify-2026-10-05T20-18-36-163Z-8742dec2.json",
+                  "sha256": "43f7d0dd3b469bbc52a1e77732983783eaf9ff55ad7667d9effd614921fb75ba",
+                  "reason": "Adding the native validator to the shared source identity broke historical performance test fixtures. Native binary binding is now explicitly scoped to frame-bundle capture; existing performance evidence rules are unchanged. The rejected report is preserved."
+                }
+              ],
+              "verification": {
+                "path": "artifacts/migration/verify-2026-10-05T20-48-21-336Z-1709b2e5.json",
+                "sha256": "ad17d397381d5721beb7c7680d1752a6727a65107d4207f9b0dd9e0b975d2d43"
+              },
+              "pixel_comparison": {
+                "path": "artifacts/parity/ts-check/2026-10-05T20-50-14-248Z-39e0d95e/report.json",
+                "sha256": "4d3e2b8ab0141bc786141d9f6f9dd033a82f4980ee106cc54069d03b539bea25"
+              },
+              "capture": {
+                "path": "artifacts/parity/capture-2026-10-05T20-28-10-955Z-e353fb6f.json",
+                "sha256": "643ae4de5dff13168cc16332d60fe6dba92f568770206580323a9fc5ae316f46"
+              },
+              "manifest": {
+                "path": "artifacts/parity/runs/2026-10-05T20-28-10-955Z-e353fb6f/candidate/manifest.json",
+                "sha256": "762b537f912e7112fddf5430d3080a6dcb1a2bed4b164412841ac9dde49a8621"
+              },
+              "frame_artifacts": {
+                "status": "passed",
+                "frames": 1947,
+                "cases": 337,
+                "resources": 96670,
+                "resource_bytes": 476584830,
+                "nested_plans": 94596,
+                "exact_rust_roundtrip": true,
+                "exact_ts_replay": true
+              },
+              "frame_bundles": [
+                {
+                  "id": "frame-bundle-programs-recursive",
+                  "capture_admission": {
+                    "exact": true,
+                    "missing_rejected": true,
+                    "execution_change_rejected": true,
+                    "discovery_rejected": true,
+                    "corrupt_rejected": true
+                  },
+                  "nested_roundtrips": 31,
+                  "resources": 38,
+                  "effects": 4,
+                  "generators": 3,
+                  "precompositions": 2,
+                  "media_pixels": 1,
+                  "temporal_passes": 0,
+                  "exact_payloads": true,
+                  "exact_dependencies": true,
+                  "missing_rejected": true,
+                  "corrupt_rejected": true,
+                  "rust_count_rejected": true
+                },
+                {
+                  "id": "frame-bundle-empty",
+                  "capture_admission": {
+                    "exact": true,
+                    "missing_rejected": true,
+                    "execution_change_rejected": true,
+                    "discovery_rejected": true,
+                    "corrupt_rejected": true
+                  },
+                  "nested_roundtrips": 5,
+                  "resources": 5,
+                  "effects": 0,
+                  "generators": 0,
+                  "precompositions": 0,
+                  "media_pixels": 0,
+                  "temporal_passes": 0,
+                  "exact_payloads": true,
+                  "exact_dependencies": true,
+                  "missing_rejected": true,
+                  "corrupt_rejected": true,
+                  "rust_count_rejected": true
+                },
+                {
+                  "id": "frame-bundle-temporal",
+                  "capture_admission": {
+                    "exact": true,
+                    "missing_rejected": true,
+                    "execution_change_rejected": true,
+                    "discovery_rejected": true,
+                    "corrupt_rejected": true
+                  },
+                  "nested_roundtrips": 7,
+                  "resources": 19,
+                  "effects": 0,
+                  "generators": 0,
+                  "precompositions": 0,
+                  "media_pixels": 4,
+                  "temporal_passes": 2,
+                  "exact_payloads": true,
+                  "exact_dependencies": true,
+                  "missing_rejected": true,
+                  "corrupt_rejected": true,
+                  "rust_count_rejected": true
+                }
+              ],
+              "renderer_source_sha256": "1707c7dc96ba27493c4c82c3f42305769af91dcd3fff34735a219892e8fc0cfe",
+              "bridge_sha256": "6cce47787eb67f63d65249595cbe209358b024d1423044e37296c35d8b6ee735",
+              "ir_cli_sha256": "e8776ed8ef77d53089ad7e11e27b22290b9a9bb1ad693eab17c827957afa2f3e",
+              "gates": [
+                {
+                  "id": "G0",
+                  "status": "passed",
+                  "duration_ms": 98928
+                },
+                {
+                  "id": "G1",
+                  "status": "passed",
+                  "duration_ms": 13243
+                },
+                {
+                  "id": "G3",
+                  "status": "passed",
+                  "duration_ms": 412693
+                }
+              ],
+              "notes": [
+                "Every actual submitted root FPLN is preserved separately from its captured-media replay envelope. Resources are content-addressed and deduplicated per case. Rust validates the full closure and typed nested plans, proves pixel attachment leaves execution unchanged, and returns the exact plan used by independent TS GPU replay.",
+                "All 337 cases and 1947 captured frames, including sequence neighbors, contain hash-bound plan/resource/native receipts. All live-versus-replay bytes match, and all 1819 frozen baseline comparisons remain exact. Publication and G3 reject missing or changed evidence.",
+                "G1 verifies complete empty, recursive and temporal bundles through native admission and rejects missing/corrupt resources, changed submitted execution and partial discovery plans without publishing output. Arbitrary resource bytes beginning with FPLN remain ordinary data unless referenced as a typed plan.",
+                "M2-T14 is complete. M2-T15 still requires the final exit audit and explicit disposition of the preserved cycle71 owner-main mismatch. Native production preview/export remain pending; the new CLI validates transport without claiming native rendering."
+              ]
+            }
+          ],
+          "commit": "8cb858d99ff3174ae425b87986de45f33de02faa",
+          "verification": "artifacts/migration/verify-2026-10-05T20-48-21-336Z-1709b2e5.json",
+          "remaining_work": []
         },
         {
           "id": "M2-T15",
@@ -19157,7 +19298,7 @@
       ],
       "preview_baseline_path": "benchmarks/results/m2-preview-baseline.json",
       "preview_baseline_sha256": "a1c62e224c008e731c252142ab1b9de7d31ecf592452c00da1dff42516772375",
-      "active_candidate_manifest": "artifacts/parity/runs/2026-10-05T19-15-06-985Z-8c327d82/candidate/manifest.json",
+      "active_candidate_manifest": "artifacts/parity/runs/2026-10-05T20-28-10-955Z-e353fb6f/candidate/manifest.json",
       "last_verification": {
         "status": "passed",
         "required_gates_passed": true,
@@ -19166,17 +19307,17 @@
           {
             "id": "G0",
             "status": "passed",
-            "duration_ms": 93837
+            "duration_ms": 98928
           },
           {
             "id": "G1",
             "status": "passed",
-            "duration_ms": 16495
+            "duration_ms": 13243
           },
           {
             "id": "G3",
             "status": "passed",
-            "duration_ms": 369633
+            "duration_ms": 412693
           }
         ],
         "optional_gates": [
@@ -19187,7 +19328,7 @@
           }
         ],
         "performance_policy": "rust-delivery-v1",
-        "report": "artifacts/migration/verify-2026-10-05T19-30-27-652Z-d9f56a66.json"
+        "report": "artifacts/migration/verify-2026-10-05T20-48-21-336Z-1709b2e5.json"
       },
       "performance_series_history": [
         {
@@ -20652,12 +20793,5 @@
       }
     }
   ],
-  "active_cycle": {
-    "id": 74,
-    "started_at": "2026-10-05T19:42:44.615Z",
-    "milestone": "M2",
-    "task": "M2-T14",
-    "intent": "Publish actual submitted frame plans with complete captured resource closure, validate and roundtrip them in Rust before independent TS replay, and bind every frame to its durable evidence.",
-    "base_commit": "760a35b856d044aad34a711a3b53ab43ab0d1c1f"
-  }
+  "active_cycle": null
 }
