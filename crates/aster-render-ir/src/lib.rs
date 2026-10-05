@@ -16,7 +16,7 @@ pub use precomposition::{
 };
 pub use precomposition_bundle::{
     PrecompositionBundleSlice, PrecompositionEffectRecord, PrecompositionGeneratorRecord,
-    PrecompositionSceneRecord,
+    PrecompositionMediaPixels, PrecompositionSceneRecord,
 };
 mod generator_program;
 pub use generator::SceneGeneratorSlice;

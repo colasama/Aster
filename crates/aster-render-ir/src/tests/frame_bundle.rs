@@ -1,7 +1,7 @@
 use super::Fixture;
 use crate::{
     ContractLevel, DecodeLimits, ElementType, FplnCodec, FrameBundleSlice, IrError, PlanSlice,
-    ResourceHash,
+    PrecompositionMediaPixels, ResourceHash,
 };
 
 #[test]
@@ -12,8 +12,8 @@ fn root_bundle_uses_typed_count_payload_and_requires_declared_stages() -> Result
     metadata.resources = vec![stage.clone()];
     metadata.blobs.truncate(1);
     metadata.blobs[0].element_type = ElementType::U32Le;
-    metadata.blobs[0].byte_length = 16;
-    metadata.blobs[0].element_count = 4;
+    metadata.blobs[0].byte_length = 20;
+    metadata.blobs[0].element_count = 5;
     metadata.slices = vec![PlanSlice::FrameBundle(FrameBundleSlice {
         blob_index: 0,
         scene: stage.clone(),
@@ -27,8 +27,9 @@ fn root_bundle_uses_typed_count_payload_and_requires_declared_stages() -> Result
         shadow_map_size: 1024,
         effects: Vec::new(),
         generators: Vec::new(),
+        media_pixels: Vec::new(),
     })];
-    let bytes: Vec<u8> = [1024_u32, 0, 0, 0]
+    let bytes: Vec<u8> = [1024_u32, 0, 0, 0, 0]
         .into_iter()
         .flat_map(u32::to_le_bytes)
         .collect();
@@ -43,6 +44,28 @@ fn root_bundle_uses_typed_count_payload_and_requires_declared_stages() -> Result
     assert!(matches!(
         FplnCodec::encode(metadata.clone(), &[&wrong_count], &limits),
         Err(IrError::InvalidHeader(_))
+    ));
+    let mut captured = metadata.clone();
+    if let PlanSlice::FrameBundle(bundle) = &mut captured.slices[0] {
+        bundle.media_pixels.push(PrecompositionMediaPixels {
+            frame: bundle.scene.clone(),
+            pixels: bundle.scene.clone(),
+        });
+    }
+    let mut capture_bytes = bytes.clone();
+    capture_bytes[16] = 1;
+    let captured_bytes = FplnCodec::encode(captured.clone(), &[&capture_bytes], &limits)?;
+    assert_eq!(
+        FplnCodec::decode(captured_bytes.clone(), &limits)?.reencode(&limits)?,
+        captured_bytes
+    );
+    if let PlanSlice::FrameBundle(bundle) = &mut captured.slices[0] {
+        bundle.media_pixels.push(bundle.media_pixels[0].clone());
+    }
+    capture_bytes[16] = 2;
+    assert!(matches!(
+        FplnCodec::encode(captured, &[&capture_bytes], &limits),
+        Err(IrError::InvalidResource(_))
     ));
     metadata.resources.clear();
     assert!(matches!(

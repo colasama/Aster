@@ -7,6 +7,7 @@ import {
 } from "../../core/rendering/render-snapshot";
 import type { Composition, Project, RendererMetrics } from "../../core/types";
 import type { CanvasFallbackRenderer } from "../canvas-fallback";
+import type { FrameBundle } from "../frame-plan/frame-bundle-plan";
 import {
   type RawFramePixelFormat,
   type RawVideoFrame,
@@ -145,6 +146,7 @@ export class ProductionBeautyFramePipeline {
 export function createViewportBeautyFrameBackend(
   renderer: WebGpuRenderer | CanvasFallbackRenderer,
   canvas: HTMLCanvasElement,
+  captureBundle?: (bundle: FrameBundle) => void | Promise<void>,
 ): BeautyFrameBackend {
   let presentationPending = false;
   let presentationCompletion: Promise<void> | undefined;
@@ -210,15 +212,22 @@ export function createViewportBeautyFrameBackend(
       await prepareProjectFonts(request.project);
       activateProjectFonts(request.project);
       activateBeauty();
-      if (renderer instanceof WebGpuRenderer)
-        return renderer.renderRawFrame(
+      if (renderer instanceof WebGpuRenderer) {
+        const frame = await renderer.renderRawFrame(
           request.composition,
           request.time,
           request.snapshot,
           request.project,
           synchronizeVideo,
           destination,
+          captureBundle !== undefined,
         );
+        if (captureBundle) {
+          if (!frame.bundle) throw new Error("Production frame bundle is absent");
+          await captureBundle(frame.bundle);
+        }
+        return frame;
+      }
       if (synchronizeVideo)
         throw new Error("Deterministic video export requires the WebGPU renderer");
       renderer.render(request.composition, request.time, false, request.project);

@@ -159,6 +159,7 @@ describe("production beauty frame pipeline", () => {
       project,
       true,
       destination,
+      false,
     );
     expect(new Uint8Array(destination)).toEqual(new Uint8Array(16).fill(51));
   });

@@ -17290,6 +17290,23 @@
               "log": "artifacts/migration/2026-10-05T15-27-46-137Z-2957c33c/G1/ir-roundtrip-frame-bundle-programs-recursive.log",
               "disposition": "Rejected G1: frame-bundle validation fell through to the legacy f32 uniform layout after validating its u32 payload. Added the missing branch completion and a real Rust codec regression test. G0/G3 passed in the rejected run; retain it and rerun the full gates. Reuse capture only after the production/bridge hash audit.",
               "source_recheck": "artifacts/migration/cycle69-source-check.json"
+            },
+            {
+              "cycle": 70,
+              "capture": {
+                "path": "artifacts/parity/capture-2026-10-05T16-01-20-522Z-73031406.json",
+                "sha256": "fc5be6d189d002037b775d47baaedffeb162b991d21818dfd3fdcbb0c24a05aa"
+              },
+              "status": "failed",
+              "failed_cases": [
+                "owner-opening",
+                "owner-main",
+                "video-24000-1001",
+                "video-24000-1001-seek",
+                "video-30000-1001",
+                "video-30000-1001-seek"
+              ],
+              "disposition": "Video textures lacked COPY_SRC usage and the new real submitted-media capture correctly rejected them. Add copy-source usage to decoded video and built-in placeholder textures without changing sampling or pixel content. Retain this rejected capture and rerun the affected cases and full corpus."
             }
           ],
           "increments": [
@@ -19287,5 +19304,11 @@
       }
     }
   ],
-  "active_cycle": null
+  "active_cycle": {
+    "id": 70,
+    "started_at": "2026-10-05T15:54:01.717Z",
+    "milestone": "M2",
+    "task": "M2-T13",
+    "intent": "Capture content-addressed root and recursive media pixels from submitted production frames under independently retained resource leases. Keep fresh-registry replay and complete temporal execution capture open."
+  }
 }

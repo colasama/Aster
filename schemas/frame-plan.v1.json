@@ -891,6 +891,12 @@
               "const": "frame_bundle",
               "type": "string"
             },
+            "media_pixels": {
+              "items": {
+                "$ref": "#/$defs/PrecompositionMediaPixels"
+              },
+              "type": "array"
+            },
             "motion": {
               "$ref": "#/$defs/ResourceHash"
             },
@@ -932,7 +938,8 @@
             "output",
             "shadow_map_size",
             "effects",
-            "generators"
+            "generators",
+            "media_pixels"
           ],
           "type": "object"
         },

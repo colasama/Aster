@@ -22,6 +22,8 @@ import { evaluateCameraBasis } from "../core/scene/camera-rig";
 import { flattenSceneLayers } from "../core/scene/scene-evaluation";
 import type { Composition, GpuDiagnostics, Project, RendererMetrics } from "../core/types";
 import { requestPreferredGpuAdapter } from "../desktop/gpu-preference";
+import { buildProductionFrameBundle } from "./compositing/build-production-frame-bundle";
+import { configureFrameSources } from "./compositing/configure-frame-sources";
 import { planFrameOutput } from "./compositing/plan-frame-output";
 import { recordPlannedFrame } from "./compositing/record-planned-frame";
 import { planRootSceneStack } from "./compositing/render-stack";
@@ -30,7 +32,6 @@ import { AntiAliasingRenderer, planAntiAliasing } from "./effects/anti-aliasing"
 import { depthEffectSettingsFromCameraOptics } from "./effects/depth-effects";
 import { effectExecution } from "./effects/layer-effect-plan";
 import { buildCameraPlan, readCameraPlan } from "./frame-plan/camera-plan";
-import { buildFrameBundle } from "./frame-plan/frame-bundle-plan";
 import { buildFrameHeader, buildRootPostUniformPlan } from "./frame-plan/root-post-plan";
 import { buildRootScenePlan } from "./frame-plan/root-scene-plan";
 import { buildSceneBufferPlan } from "./frame-plan/scene-buffer-plan";
@@ -48,7 +49,6 @@ import {
 } from "./gpu/device-lifecycle";
 import {
   combineFrameResourceBarriers,
-  ExactFrameCaptureQueue,
   type ExactFrameResourceBarrier,
 } from "./gpu/exact-frame-resource-barrier";
 import { frameCadenceSample } from "./gpu/frame-cadence";
@@ -56,11 +56,13 @@ import {
   type FrameReadbackTicket,
   GpuFrameReadbackPool,
   type RawFramePixelFormat,
-  type RawVideoFrame,
-  validateReadbackDestination,
 } from "./gpu/frame-readback";
 import { planGpuMemory } from "./gpu/gpu-memory-budget";
 import { initializeGpuResources } from "./gpu/initialize-gpu-resources";
+import {
+  type CapturedProductionFrame,
+  ProductionFrameCapture,
+} from "./gpu/production-frame-capture";
 import type { BufferVisualization } from "./gpu/render-buffers";
 import { MaterialTextureRenderer } from "./media/material-textures";
 import { RendererResources } from "./renderer-resources";
@@ -84,8 +86,7 @@ export class WebGpuRenderer {
   readonly #device: GPUDevice;
   readonly #context: GPUCanvasContext;
   readonly #format: GPUTextureFormat;
-  #pendingFrameReadback?: FrameReadbackTicket;
-  readonly #frameCaptures = new ExactFrameCaptureQueue<RawVideoFrame>();
+  readonly #frameCaptures = new ProductionFrameCapture();
   #width = 1;
   #height = 1;
   #outputWidth = 1;
@@ -286,56 +287,40 @@ export class WebGpuRenderer {
     project?: Project,
     synchronizeVideo = false,
     destination?: ArrayBuffer,
-  ): Promise<RawVideoFrame> {
+    captureBundle = false,
+  ): Promise<CapturedProductionFrame> {
     this.#assertActive();
     const capturedSnapshot = copyRenderSnapshotIdentity(snapshot);
-    if (destination !== undefined)
-      validateReadbackDestination(destination, this.#outputWidth, this.#outputHeight);
     // Video exports hold the discovery capture until every active video shows its exact frame,
     // so the only readback submitted is the exact one.
-    return this.#frameCaptures.capture(
-      (discovery) =>
-        this.#captureRawFrame(
+    return this.#frameCaptures.capture({
+      pool: this.#resources.frameReadback,
+      resources: this.#frameResources,
+      width: this.#outputWidth,
+      height: this.#outputHeight,
+      synchronizeVideo,
+      destination,
+      captureBundle,
+      render: (holdInexactVideo) => {
+        this.render(
           composition,
           time,
           capturedSnapshot,
+          false,
           project,
-          synchronizeVideo && discovery,
-          destination,
-        ),
-      this.#frameResources,
-    );
+          undefined,
+          true,
+          holdInexactVideo,
+        );
+        const error = this.productionRenderError;
+        if (error) throw new Error(error);
+      },
+    });
   }
   /** Captures installed raster resources only when requested by the dedicated parity harness. */
   captureRasterResources(scope: string, known: Map<string, string>) {
     this.#assertActive();
     return this.#resources.mediaTextures.captureRasterResources(scope, known);
-  }
-  #captureRawFrame(
-    composition: Composition,
-    time: number,
-    snapshot: RenderSnapshotIdentity,
-    project?: Project,
-    holdInexactVideo = false,
-    destination?: ArrayBuffer,
-  ): Promise<RawVideoFrame> {
-    if (this.#pendingFrameReadback)
-      return Promise.reject(new Error("A GPU frame readback is already being encoded"));
-    const ticket = this.#resources.frameReadback.reserve(this.#outputWidth, this.#outputHeight);
-    this.#pendingFrameReadback = ticket;
-    try {
-      // The first capture exists to register pending media; holding keeps its incomplete
-      // frame off the preview canvas. The barrier waits and recaptures the ready frame.
-      this.render(composition, time, snapshot, false, project, undefined, true, holdInexactVideo);
-      const productionError = this.productionRenderError;
-      if (productionError) throw new Error(productionError);
-    } catch (error) {
-      ticket.abort();
-      throw error;
-    } finally {
-      this.#pendingFrameReadback = undefined;
-    }
-    return ticket.read(destination);
   }
   render(
     composition: Composition,
@@ -781,31 +766,17 @@ export class WebGpuRenderer {
       compositionWidth: composition.width,
       selectedLayerId,
     });
-    const mediaPackets = mediaBindings.resourceMessages.map((message) => ({
-      message,
-      bytes: new Uint8Array(),
-    }));
-    const mediaHashes = new Set(mediaPackets.map((packet) => packet.message.hash));
-    const materialHashes = rootPlan.metadata.resources.filter((hash) => !mediaHashes.has(hash));
-    const frameBundle = buildFrameBundle({
+    const frameBundle = buildProductionFrameBundle({
       scene: mediaPlan,
       root: rootPlan,
       post: postPlan,
       output: plannedOutput.plans,
       shadowMapSize: memory.shadowMapSize,
       effects: effectPlans,
-      generators: sceneGenerators.map((generator) => ({
-        plan: generator.plan,
-        capacity: generator.resources.capacity,
-      })),
-      precompositions: resources.precompositionSurfaces.serializeScenes(
-        surfacePlans,
-        mediaBindings,
-      ),
-      resources: [
-        ...mediaPackets,
-        ...(resources.materialTextures?.resourcePackets(materialHashes) ?? []),
-      ],
+      generators: sceneGenerators,
+      surfaces: surfacePlans,
+      mediaBindings,
+      resources,
     });
     const encoder = this.#device.createCommandEncoder({ label: "Aster frame render graph" });
     const outputTexture = this.#context.getCurrentTexture();
@@ -837,7 +808,7 @@ export class WebGpuRenderer {
         logger.warn("webgpu", "adjustment_layer_skipped", { layerId, error: message });
       }
     }
-    this.#pendingFrameReadback?.encode(encoder, outputTexture);
+    this.#frameCaptures.encode(encoder, outputTexture);
     const cacheTicket =
       cacheCapture && this.#previewFrameComplete(activeMediaInstanceIds)
         ? this.#reserveCacheReadback()
@@ -845,6 +816,7 @@ export class WebGpuRenderer {
     cacheTicket?.encode(encoder, outputTexture);
     const collectTimestamps = resources.gpuProfiler.encodeReadback(encoder);
     this.#device.queue.submit([encoder.finish()]);
+    this.#frameCaptures.submitted(this.#device, frameBundle, mediaBindings);
     resources.mediaTextures.submitted();
     if (cacheTicket && cacheCapture) {
       const width = this.#outputWidth;
@@ -991,8 +963,7 @@ export class WebGpuRenderer {
   dispose(): void {
     if (this.#disposed) return;
     this.#disposed = true;
-    this.#pendingFrameReadback?.abort();
-    this.#pendingFrameReadback = undefined;
+    this.#frameCaptures.abort();
     this.#cacheCapture = undefined;
     this.#cacheReadback.destroy();
     this.#resources.destroy();
@@ -1005,52 +976,15 @@ export class WebGpuRenderer {
     if (this.#disposed) throw new Error("WebGPU renderer is disposed");
   }
   #configureAuxiliaryBuffers(): void {
-    this.#bufferVisualization = this.#resources.auxiliaryBuffers.configureVisualization(
-      this.#resources.bufferVisualizer,
-      this.#bufferVisualization,
+    this.#bufferVisualization = configureFrameSources(
+      this.#resources,
       this.#width,
       this.#height,
+      this.#beautyMotionBlurActive,
       this.#memoryBudgetMb,
-      this.#beautyDepthOfFieldActive || this.#beautyMotionBlurActive,
       this.#beautyDepthOfFieldActive,
-    );
-    this.diagnostics.depthOfFieldTier = this.#resources.auxiliaryBuffers.depthOfFieldTier;
-    this.diagnostics.depthOfFieldDegradedReason =
-      this.#resources.auxiliaryBuffers.depthOfFieldDiagnostic;
-    this.#resources.motionBlur.setSources(
-      this.#width,
-      this.#height,
-      this.#beautyMotionBlurActive ? this.#resources.sceneTexture : undefined,
-      this.#beautyMotionBlurActive
-        ? this.#resources.auxiliaryBuffers.textures.get("motionVector")
-        : undefined,
-      this.#beautyMotionBlurActive
-        ? this.#resources.auxiliaryBuffers.textures.get("objectId")
-        : undefined,
-      (this.#memoryBudgetMb ?? 512) * 1024 * 1024 * 0.25,
-    );
-    this.#resources.motionBlurPostBindGroup = this.#resources.motionBlur.outputTexture
-      ? this.#resources.createPostBindGroup(
-          this.#resources.motionBlur.outputTexture,
-          "motion-blurred scene",
-        )
-      : undefined;
-    this.#resources.depthEffects.setSources(
-      this.#width,
-      this.#height,
-      this.#resources.sceneTexture,
-      this.#resources.auxiliaryBuffers.textures.get("worldPosition"),
-      this.#resources.auxiliaryBuffers.transparentWorldPosition,
-      this.#resources.auxiliaryBuffers.peeledWorldPosition,
-      this.#resources.auxiliaryBuffers.frontLayerColor,
-      this.#resources.auxiliaryBuffers.peeledLayerColor,
-    );
-    this.#resources.surfacePostEffects.setSources(
-      this.#width,
-      this.#height,
-      this.#resources.sceneTexture,
-      this.#resources.auxiliaryBuffers.textures.get("objectId"),
-      this.#resources.auxiliaryBuffers.textures.get("motionVector"),
+      this.#bufferVisualization,
+      this.diagnostics,
     );
   }
 }

@@ -8,6 +8,8 @@ import {
   createViewportBeautyFrameBackend,
   ProductionBeautyFramePipeline,
 } from "../../src/renderer/compositing/beauty-frame";
+import { decodeFramePlan, encodeFramePlan } from "../../src/renderer/frame-plan/codec";
+import { readFrameBundleAsync } from "../../src/renderer/frame-plan/frame-bundle-read";
 import { normalizeRawFrameRgba } from "../../src/renderer/gpu/raw-frame-png";
 import { WebGpuRenderer } from "../../src/renderer/webgpu-renderer";
 import {
@@ -63,7 +65,14 @@ export const productionCaptureRuntime: CaptureRuntime = {
       const capturedRasters = new Map<string, string>();
       const initialize_ms = performance.now() - initializeStarted;
       const pipeline = new ProductionBeautyFramePipeline(
-        createViewportBeautyFrameBackend(activeRenderer, canvas),
+        createViewportBeautyFrameBackend(activeRenderer, canvas, async (bundle) => {
+          const decoded = await readFrameBundleAsync({
+            ...bundle,
+            plan: decodeFramePlan(encodeFramePlan(bundle.plan.metadata, bundle.plan.blobs)),
+          });
+          if (decoded.mediaFrames.length !== decoded.mediaPixels.length)
+            throw new Error("Submitted frame media capture is incomplete");
+        }),
       );
       // The runner awaits frame publication before starting the next readback in this case.
       const destination = new ArrayBuffer(

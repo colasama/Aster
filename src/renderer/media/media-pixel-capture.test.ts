@@ -113,3 +113,25 @@ it("cleans readback resources when GPU mapping fails", async () => {
     destroyMediaResource(f.owner);
   }
 });
+it("keeps an independent capture pin after submission releases and retires its original owner", async () => {
+  let resolve = () => {};
+  const f = fixture(
+    () =>
+      new Promise<void>((r) => {
+        resolve = r;
+      }),
+  );
+  const retained = f.lease.retainForCapture(f.frames.map((frame) => frame.hash));
+  const capturing = captureMediaPixels(f.device, retained, f.frames);
+  f.lease.release();
+  destroyMediaResource(f.owner);
+  expect(f.texture.destroy).not.toHaveBeenCalled();
+  resolve();
+  try {
+    expect((await capturing)[0].frame).toEqual(f.frames[0]);
+    expect(f.texture.destroy).not.toHaveBeenCalled();
+  } finally {
+    retained.release();
+  }
+  expect(f.texture.destroy).toHaveBeenCalledOnce();
+});

@@ -1,9 +1,11 @@
 use crate::{
     BlobDescriptor, ElementType, IrError, PrecompositionBundleSlice, PrecompositionEffectRecord,
-    PrecompositionGeneratorExecution, PrecompositionGeneratorRecord, ResourceHash,
+    PrecompositionGeneratorExecution, PrecompositionGeneratorRecord, PrecompositionMediaPixels,
+    ResourceHash,
 };
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 
 #[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
@@ -20,6 +22,7 @@ pub struct FrameBundleSlice {
     pub shadow_map_size: u32,
     pub effects: Vec<PrecompositionEffectRecord>,
     pub generators: Vec<PrecompositionGeneratorRecord>,
+    pub media_pixels: Vec<PrecompositionMediaPixels>,
 }
 impl FrameBundleSlice {
     pub fn validate(
@@ -30,8 +33,9 @@ impl FrameBundleSlice {
         if self.shadow_map_size == 0
             || self.shadow_map_size > 16_384
             || blob.element_type != ElementType::U32Le
-            || blob.element_count != 4
-            || blob.byte_length != 16
+            || blob.element_count != 5
+            || blob.byte_length != 20
+            || self.media_pixels.len() > 65_536
             || self
                 .generators
                 .iter()
@@ -43,6 +47,15 @@ impl FrameBundleSlice {
         }
         let mut references =
             PrecompositionBundleSlice::program_references(&self.effects, &self.generators)?;
+        let mut frames = BTreeMap::new();
+        for pixel in &self.media_pixels {
+            if frames.insert(&pixel.frame, ()).is_some() {
+                return Err(IrError::InvalidResource(
+                    "duplicate frame media pixels".to_owned(),
+                ));
+            }
+            references.extend([pixel.frame.clone(), pixel.pixels.clone()]);
+        }
         references.extend([
             self.scene.clone(),
             self.root.clone(),
@@ -68,7 +81,7 @@ impl FrameBundleSlice {
         Ok(())
     }
     pub fn validate_payload(&self, bytes: &[u8]) -> Result<(), IrError> {
-        if bytes.len() != 16 {
+        if bytes.len() != 20 {
             return Err(IrError::InvalidHeader(
                 "frame bundle payload length".to_owned(),
             ));
@@ -78,6 +91,7 @@ impl FrameBundleSlice {
             self.effects.len() as u32,
             self.generators.len() as u32,
             u32::from(self.precompositions.is_some()),
+            self.media_pixels.len() as u32,
         ];
         for (lane, expected) in bytes.chunks_exact(4).zip(counts) {
             if u32::from_le_bytes([lane[0], lane[1], lane[2], lane[3]]) != expected {

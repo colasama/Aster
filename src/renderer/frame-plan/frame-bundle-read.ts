@@ -1,4 +1,5 @@
 import { effectExecution } from "../effects/layer-effect-plan";
+import { validateMediaPixelLayout } from "../media/media-pixel-payload";
 import { constrainGeneratorPlan } from "../scene/scene-generator-plan";
 import { readBundlePrograms } from "./bundle-programs-read";
 import { canonicalJson, requirePlan } from "./canonical";
@@ -14,6 +15,26 @@ import { validateMetadata, validatePlanBlob } from "./validation";
 
 /** Reject missing or mismatched dependencies before a frame can record GPU commands. */
 export function readFrameBundle(input: FrameBundle) {
+  const resources = new PrecompositionBundleResources();
+  for (const packet of input.resources) resources.add(packet);
+  return readValidatedFrameBundle(input.plan, resources);
+}
+
+/** Same decoding and rejection rules, with native asynchronous hashing for captured pixel data. */
+export async function readFrameBundleAsync(input: FrameBundle) {
+  const plan = structuredClone(input.plan);
+  const resources = new PrecompositionBundleResources();
+  // Snapshot all packets before the first await so the caller can release or reuse its buffers.
+  const packets = structuredClone(input.resources);
+  for (const packet of packets) await resources.addAsync(packet);
+  return readValidatedFrameBundle(plan, resources);
+}
+
+function readValidatedFrameBundle(
+  plan: FramePlanSliceData,
+  resources: PrecompositionBundleResources,
+) {
+  const input = { plan };
   canonicalJson(input.plan.metadata);
   const metadata = validateMetadata(input.plan.metadata, defaultFramePlanLimits());
   const bundle = metadata.slices[0];
@@ -25,8 +46,6 @@ export function readFrameBundle(input: FrameBundle) {
     "Expected one root frame bundle",
   );
   validatePlanBlob(input.plan.blobs[0], metadata, 0);
-  const resources = new PrecompositionBundleResources();
-  for (const packet of input.resources) resources.add(packet);
   const matchingFrame = (plan: FramePlanSliceData) =>
     requirePlan(
       canonicalJson(plan.metadata.header) === canonicalJson(metadata.header),
@@ -82,18 +101,41 @@ export function readFrameBundle(input: FrameBundle) {
         "Root generator invocation is absent",
       );
   }
-  const precompositions = bundle.precompositions
+  const recursive = bundle.precompositions
+    ? resources.plan(bundle.precompositions, "precomposition_bundle_slice_v1")
+    : null;
+  const precompositions = recursive
     ? readPrecompositionBundle(
-        resources.plan(bundle.precompositions, "precomposition_bundle_slice_v1"),
-        input.resources,
+        recursive,
+        recursive.metadata.resources.map((hash) => resources.resolve(hash)),
       ).plans
     : [];
+  const mediaFrames = [...resources.used].sort().flatMap((hash) => {
+    const packet = resources.resolve(hash);
+    return packet.message.kind === "media_frame" ? [packet.message] : [];
+  });
+  const requiredMedia = new Set(mediaFrames.map((frame) => frame.hash));
+  const mediaPixels = bundle.media_pixels.map((link) => {
+    requirePlan(
+      requiredMedia.has(link.frame),
+      "invalid_resource",
+      "Unreferenced frame media pixels",
+    );
+    const capture = {
+      frame: resources.resolve(link.frame).message,
+      pixels: resources.resolve(link.pixels),
+    };
+    validateMediaPixelLayout(capture);
+    return capture;
+  });
   requirePlan(
     canonicalJson([...resources.used].sort()) === canonicalJson(metadata.resources),
     "invalid_resource",
     "Frame dependency closure differs from declarations",
   );
   return {
+    mediaFrames,
+    mediaPixels,
     plans: { scene, root, post, output, precompositions },
     effects,
     generators: generators.map((g) => {

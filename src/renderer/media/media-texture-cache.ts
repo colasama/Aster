@@ -617,7 +617,7 @@ export class MediaTextureCache {
       label: "Missing media placeholder",
       size: [1, 1],
       format: "rgba8unorm-srgb",
-      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.COPY_SRC,
     });
     this.#device.queue.writeTexture({ texture }, MISSING_MEDIA_RGBA, {}, [1, 1]);
     this.#missingMediaBindGroup = this.#createBindGroup(
@@ -810,6 +810,7 @@ export class MediaTextureCache {
         usage:
           GPUTextureUsage.TEXTURE_BINDING |
           GPUTextureUsage.COPY_DST |
+          GPUTextureUsage.COPY_SRC |
           GPUTextureUsage.RENDER_ATTACHMENT,
       });
       resource.textureBytes = width * height * 4;

@@ -3,6 +3,7 @@ import type { RootSceneCommand } from "../compositing/root-scene-commands";
 import { effectExecution } from "../effects/layer-effect-plan";
 import { encodeFramePlan } from "./codec";
 import { buildFinalOutputPlan } from "./final-output-plan";
+import { withFrameBundleMedia } from "./frame-bundle-media";
 import { buildFrameBundle } from "./frame-bundle-plan";
 import { generatorFixtures } from "./generator-fixture";
 import { layerEffectFixtures } from "./layer-effect-fixture";
@@ -75,7 +76,8 @@ export function frameBundleFixtures() {
         compositionWidth: header.target.width,
       }),
     };
-    const frameBundle = buildFrameBundle({
+    const recursive = empty ? undefined : precompositionBundleFixtures()[0];
+    const plannedBundle = buildFrameBundle({
       scene,
       root: buildRootScenePlan(header, commands, draws),
       post: buildRootPostUniformPlan(input),
@@ -84,8 +86,9 @@ export function frameBundleFixtures() {
       effects: new Map(effects),
       generators: generators.map((plan) => ({ plan, capacity: plan.capacity })),
       resources: [],
-      precompositions: empty ? undefined : precompositionBundleFixtures()[0].bundle,
+      precompositions: recursive?.bundle,
     });
+    const frameBundle = withFrameBundleMedia(plannedBundle, recursive?.mediaPixels ?? []);
     return {
       id: empty ? "frame-bundle-empty" : "frame-bundle-programs-recursive",
       frameBundle,

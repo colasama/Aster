@@ -1,6 +1,6 @@
 import { requirePlan } from "./canonical";
 import { decodeFramePlan, encodeFramePlan } from "./codec";
-import { contentResourceHashSync, validateResourceMessage } from "./resources";
+import { contentResourceHash, contentResourceHashSync, validateResourceMessage } from "./resources";
 import type { FramePlanSliceData, FramePlanSliceV1, PutResource } from "./types";
 
 export interface BundleResource {
@@ -26,17 +26,36 @@ export class PrecompositionBundleResources {
       "hash_mismatch",
       "Surface bundle resource hash mismatch",
     );
+    return this.#store(message, input.bytes);
+  }
+  /** Own the input before awaiting accelerated hashing; callers may reuse their transport buffers. */
+  async addAsync(input: BundleResource): Promise<string> {
+    const message = structuredClone(validateResourceMessage(input.message));
+    requirePlan(
+      message.type === "put_resource",
+      "invalid_resource",
+      "Bundle cannot contain eviction",
+    );
+    const bytes = new Uint8Array(input.bytes);
+    requirePlan(
+      (await contentResourceHash(message, bytes)) === message.hash,
+      "hash_mismatch",
+      "Surface bundle resource hash mismatch",
+    );
+    return this.#store(message, bytes);
+  }
+  #store(message: PutResource, bytes: Uint8Array): string {
     if (!this.entries.has(message.hash)) {
       requirePlan(
-        this.entries.size < 65536 && this.#bytes + input.bytes.length <= 67108864,
+        this.entries.size < 65536 && this.#bytes + bytes.length <= 67108864,
         "limit_exceeded",
         "Surface bundle resource budget exceeded",
       );
       this.entries.set(message.hash, {
         message: structuredClone(message),
-        bytes: new Uint8Array(input.bytes),
+        bytes: new Uint8Array(bytes),
       });
-      this.#bytes += input.bytes.length;
+      this.#bytes += bytes.length;
     }
     return message.hash;
   }

@@ -1,13 +1,13 @@
 import { requirePlan } from "../frame-plan/canonical";
 import type { PutResource } from "../frame-plan/types";
 import { GpuFrameReadbackPool } from "../gpu/frame-readback";
-import type { MediaBindingLease } from "./media-binding-lease";
-import { type CapturedMediaPixels, createMediaPixelPayload } from "./media-pixel-payload";
+import type { MediaGpuLease } from "./media-gpu-registry";
+import { type CapturedMediaPixels, createMediaPixelPayloadAsync } from "./media-pixel-payload";
 
 /** The caller holds the frame lease until capture completes; preview never invokes readback. */
 export async function captureMediaPixels(
   device: GPUDevice,
-  lease: MediaBindingLease,
+  lease: Pick<MediaGpuLease, "textureForHash">,
   frames: readonly PutResource[],
 ): Promise<CapturedMediaPixels[]> {
   const selected = structuredClone(frames);
@@ -53,7 +53,7 @@ export async function captureMediaPixels(
           "resource_generation_mismatch",
           "Media changed during capture",
         );
-        result.push(createMediaPixelPayload(frame, new Uint8Array(captured.pixels)));
+        result.push(await createMediaPixelPayloadAsync(frame, new Uint8Array(captured.pixels)));
       } catch (error) {
         ticket.abort();
         throw error;

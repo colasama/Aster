@@ -279,6 +279,16 @@ bundle, uploads its supplied bytes and uses its effect and generator inputs. Roo
 bundles share program serialization and dependency validation. G1 transports the envelope, nested
 FPLN and resource messages through Rust. Media descriptors still require live GPU leases, temporal
 raster aliases still use their cache, and auxiliary bindings/recursive targets are prepared upstream.
+Diagnostic frame readback now captures the media pixels used by the submitted root and recursive
+plans. Content-addressed pixel links are part of the typed frame envelope and validated in TS and
+Rust; a complete capture must cover each declared media frame exactly once. An independent lease
+keeps those texture generations alive after the normal submission lease releases. Normal preview
+and export do not request this diagnostic readback. The parity capture path exercises the submitted
+bundle and verifies its media closure after FPLN encoding and decoding on every captured frame.
+Large capture payloads use browser-native asynchronous SHA-256 with owned inputs; they retain the
+same content-hash and layout checks as synchronous decoding. Video and placeholder allocations allow
+copy-source access so capture reads the installed texture rather than decoding a replacement frame.
+Capturing a temporal raster's resolved pixels does not replace its native accumulation passes.
 The bundle therefore remains explicitly incomplete until full resource capture and fresh-registry
 production replay close those dependencies.
 

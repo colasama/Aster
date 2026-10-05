@@ -77,6 +77,13 @@ export class MediaBindingLease {
     return this.#lease.textureForHash(hash);
   }
 
+  /** Independent ownership for readback that outlives the producer's submission lease. */
+  retainForCapture(hashes: readonly string[]): MediaGpuLease {
+    requirePlan(!this.#released, "missing_resource", "Media binding lease was released");
+    for (const hash of hashes) this.#lease.textureForHash(hash);
+    return this.#registry.pin(hashes);
+  }
+
   bindingFor(instanceId: string): GPUBindGroup | undefined {
     return this.bindingForHash(this.hashFor(instanceId));
   }

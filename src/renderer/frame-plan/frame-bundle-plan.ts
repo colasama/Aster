@@ -47,6 +47,7 @@ export function buildFrameBundle(input: FrameBundleInput): FrameBundle {
     effect: optional(input.output.effect),
     precompositions: optional(input.precompositions?.plan),
     shadow_map_size: input.shadowMapSize,
+    media_pixels: [],
     effects: buildBundleEffects(input.effects, resources),
     generators: input.generators.map(({ plan: generator, capacity }) => {
       for (const shader of generator.program.shaders) resources.add(shader);
@@ -81,13 +82,14 @@ export function buildFrameBundle(input: FrameBundleInput): FrameBundle {
     }
   }
   for (const generator of bundle.generators) markPlan(generator.plan, "scene_generator_slice_v1");
-  const bytes = new Uint8Array(16),
+  const bytes = new Uint8Array(20),
     view = new DataView(bytes.buffer);
   [
     bundle.shadow_map_size,
     bundle.effects.length,
     bundle.generators.length,
     Number(bundle.precompositions !== null),
+    bundle.media_pixels.length,
   ].forEach((value, index) => {
     view.setUint32(index * 4, value, true);
   });
@@ -99,7 +101,7 @@ export function buildFrameBundle(input: FrameBundleInput): FrameBundle {
       renderer_plan_complete: false,
       header: structuredClone(header),
       resources: [...resources.used].sort(),
-      blobs: [{ byte_offset: 0, byte_length: 16, element_type: "u32_le", element_count: 4 }],
+      blobs: [{ byte_offset: 0, byte_length: 20, element_type: "u32_le", element_count: 5 }],
       slices: [bundle],
     },
     defaultFramePlanLimits(),

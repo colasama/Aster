@@ -66,6 +66,8 @@ export async function auditFrameBundle(runtime, fixture, after, options) {
     resources: messages.map((message, i) => ({ message, bytes: packets[i].bytes })),
   };
   const decoded = runtime.readFrameBundle(supplied);
+  assert.deepEqual(await runtime.readFrameBundleAsync(supplied), decoded);
+  assert.equal(decoded.mediaPixels.length, decoded.mediaFrames.length);
   assert.deepEqual(decoded, runtime.readFrameBundle(fixture.frameBundle));
   assert.throws(
     () => runtime.readFrameBundle({ ...supplied, resources: supplied.resources.slice(1) }),
@@ -94,6 +96,7 @@ export async function auditFrameBundle(runtime, fixture, after, options) {
     effects: decoded.effects.size,
     generators: decoded.generators.length,
     precompositions: decoded.plans.precompositions.length,
+    media_pixels: decoded.mediaPixels.length,
     exact_payloads: true,
     exact_dependencies: true,
     missing_rejected: true,
