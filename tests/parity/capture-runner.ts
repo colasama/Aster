@@ -2,7 +2,11 @@ import { frameTimeAtIndex } from "../../src/core/rendering/render-export";
 import type { Composition, GpuDiagnostics } from "../../src/core/types";
 import type { RasterFrameCapture } from "../../src/renderer/media/raster-resource-capture";
 import { CaptureHealth, captureErrorMessage } from "./capture-health";
-import type { ParityCaptureApi, ParityCaptureAssignment } from "./capture-protocol";
+import type {
+  ParityCaptureApi,
+  ParityCaptureAssignment,
+  ParityFramePlanReceipt,
+} from "./capture-protocol";
 
 export interface CaptureSession {
   composition: Composition;
@@ -12,6 +16,7 @@ export interface CaptureSession {
   assertHealthy(): void;
   readback(time: number): Promise<ArrayBuffer>;
   temporalReplay?(): { passes: number; samples: number };
+  framePlan?(): ParityFramePlanReceipt | undefined;
   productionPixels?(): ArrayBuffer | undefined;
   captureRasters?(): Promise<RasterFrameCapture>;
   dispose(): Promise<void>;
@@ -54,6 +59,7 @@ export async function runCaptureAssignments(
           frameRate: { ...session.composition.frameRate },
           ...assignment.case.size,
           pixels,
+          framePlan: session.framePlan?.(),
           temporalReplay: session.temporalReplay?.(),
           productionPixels: session.productionPixels?.(),
           rasterCapture: await session.captureRasters?.(),

@@ -7,13 +7,13 @@ import {
 } from "../../core/rendering/render-snapshot";
 import type { Composition, Project, RendererMetrics } from "../../core/types";
 import type { CanvasFallbackRenderer } from "../canvas-fallback";
-import type { FrameBundle } from "../frame-plan/frame-bundle-plan";
 import {
   type RawFramePixelFormat,
   type RawVideoFrame,
   validateReadbackDestination,
 } from "../gpu/frame-readback";
 import { WebGpuRenderer } from "../webgpu-renderer";
+import type { CapturedFrameBundle } from "./frame-bundle-capture";
 
 export const PRODUCTION_BEAUTY_SETTINGS = Object.freeze({
   buffer: "beauty",
@@ -146,7 +146,7 @@ export class ProductionBeautyFramePipeline {
 export function createViewportBeautyFrameBackend(
   renderer: WebGpuRenderer | CanvasFallbackRenderer,
   canvas: HTMLCanvasElement,
-  captureBundle?: (bundle: FrameBundle) => void | Promise<void>,
+  captureBundle?: (bundle: CapturedFrameBundle) => void | Promise<void>,
 ): BeautyFrameBackend {
   let presentationPending = false;
   let presentationCompletion: Promise<void> | undefined;

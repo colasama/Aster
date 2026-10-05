@@ -1,7 +1,22 @@
 import type { GpuDiagnostics } from "../../src/core/types";
+import type { BundleResource } from "../../src/renderer/frame-plan/precomposition-bundle-resources";
 import type { RasterFrameCapture } from "../../src/renderer/media/raster-resource-capture";
 import type { CaptureFontFingerprint } from "./capture-fonts";
 import type { ParityCase } from "./types";
+
+export interface ParityFramePlan {
+  caseId: string;
+  frame: number;
+  diagnostics: GpuDiagnostics;
+  submitted: Uint8Array;
+  replay: Uint8Array;
+  resources: readonly BundleResource[];
+}
+
+export interface ParityFramePlanReceipt {
+  submitted_sha256: string;
+  replay_sha256: string;
+}
 
 export interface ParityCaptureAssignment {
   case: ParityCase;
@@ -19,6 +34,7 @@ export interface ParityCapturedFrame {
   height: number;
   /** Packed RGBA8 beauty bytes, without Canvas 2D conversion or PNG encoding. */
   pixels: ArrayBuffer;
+  framePlan?: ParityFramePlanReceipt;
   /** Live production pixels used only to verify independently replayed diagnostic candidates. */
   temporalReplay?: { passes: number; samples: number };
   productionPixels?: ArrayBuffer;
@@ -43,6 +59,9 @@ export interface ParityAdapterIdentity {
 }
 
 export interface ParityCaptureApi {
+  prepareFrame?(
+    frame: ParityFramePlan,
+  ): Promise<{ plan: Uint8Array; receipt: ParityFramePlanReceipt }>;
   ready(adapter: ParityAdapterIdentity): Promise<void>;
   take(): Promise<ParityCaptureAssignment | null>;
   frame(frame: ParityCapturedFrame): Promise<void>;

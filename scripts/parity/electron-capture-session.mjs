@@ -90,6 +90,7 @@ export class CaptureSession {
         assignment,
         frames: new Set(),
         pendingFrames: new Set(),
+        preparedFrames: new Set(),
         errors: [],
         started: Date.now(),
         completing: false,
@@ -143,6 +144,30 @@ export class CaptureSession {
     if (current.errors.length) throw new Error(current.errors.join("\n"));
   }
 
+  async prepareFrame(payload) {
+    const current = this.#requireCase(payload);
+    if (
+      current.completing ||
+      !current.assignment.frames.includes(payload.frame) ||
+      current.frames.has(payload.frame) ||
+      current.pendingFrames.has(payload.frame) ||
+      current.preparedFrames.has(payload.frame)
+    )
+      throw new Error("Unexpected or duplicate frame plan");
+    current.pendingFrames.add(payload.frame);
+    try {
+      const prepared = await this.#store.prepareFrame(current.assignment, payload);
+      this.#assertCurrent(current);
+      current.preparedFrames.add(payload.frame);
+      return prepared;
+    } catch (error) {
+      if (this.#current === current) current.errors.push(error.message);
+      throw error;
+    } finally {
+      current.pendingFrames.delete(payload.frame);
+    }
+  }
+
   async frame(payload) {
     const current = this.#requireCase(payload);
     if (
@@ -153,6 +178,8 @@ export class CaptureSession {
     ) {
       throw new Error("Unexpected or duplicate capture frame");
     }
+    if (this.#config.requireFrameBundles && !current.preparedFrames.has(payload.frame))
+      throw new Error("Frame has no prepared native plan");
     const expected = current.assignment.case.size;
     if (
       payload.width !== expected.width ||

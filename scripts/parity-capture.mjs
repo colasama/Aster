@@ -44,13 +44,13 @@ for (const command of [
   {
     id: "capture-bridge-build",
     file: "cargo",
-    args: ["build", "--release", "-p", "aster-desktop-bridge"],
+    args: ["build", "--release", "-p", "aster-desktop-bridge", "-p", "aster-render-cli"],
   },
 ]) {
   const result = await runStep(command, context);
   if (result.status !== "passed") throw new Error(`Capture prerequisite failed: ${command.id}`);
 }
-const source = await captureSource(root);
+const source = await captureSource(root, { frameBundles: true });
 if (sourceBeforeBuild.source_sha256 !== source.tree_sha256)
   throw new Error(
     "Source changed while building capture prerequisites; discard the generated code",
@@ -85,6 +85,7 @@ const config = {
   timeoutMs,
   force,
   candidate,
+  requireFrameBundles: true,
   url: new URL("tests/parity/harness.html", server.resolvedUrls.local[0]).href,
 };
 const configPath = join(runDirectory, "config.json");
@@ -124,7 +125,7 @@ try {
     });
   });
   report = JSON.parse(await readFile(join(runDirectory, "report.json"), "utf8"));
-  const after = await captureSource(root);
+  const after = await captureSource(root, { frameBundles: true });
   const inputsAfter = await captureAssignments(root, cases);
   report.source_unchanged =
     source.tree_sha256 === after.tree_sha256 &&

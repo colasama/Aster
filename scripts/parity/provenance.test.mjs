@@ -15,6 +15,7 @@ test("renderer identity follows existing source bytes independently of staged de
   await mkdir(join(root, "target", "release"), { recursive: true });
   const extension = process.platform === "win32" ? ".exe" : "";
   await writeFile(join(root, "target", "release", `aster-desktop-bridge${extension}`), "bridge");
+  await writeFile(join(root, "target", "release", `aster-render-cli${extension}`), "ir validator");
   await writeFile(join(root, ".gitignore"), "target/\n");
   const sourcePath = join(root, "src", "removed.ts");
   const source = "export const original = 1;\n";
@@ -37,6 +38,17 @@ test("renderer identity follows existing source bytes independently of staged de
     "🧪 Initialize provenance fixture",
   );
   const original = await captureSource(root);
+  const native = await captureSource(root, { frameBundles: true });
+  assert(/^[a-f0-9]{64}$/.test(native.ir_cli_sha256));
+  await writeFile(
+    join(root, "target", "release", `aster-render-cli${extension}`),
+    "changed validator",
+  );
+  assert.equal((await captureSource(root)).renderer_source_sha256, original.renderer_source_sha256);
+  assert.notEqual(
+    (await captureSource(root, { frameBundles: true })).renderer_source_sha256,
+    native.renderer_source_sha256,
+  );
 
   await rm(sourcePath);
   const deleted = await captureSource(root);

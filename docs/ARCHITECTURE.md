@@ -277,8 +277,8 @@ Material acquisition retains encoded normal maps and HDR pixel payloads until th
 retired; assembling the bundle requires no material GPU readback. Production recording decodes the
 bundle, uploads its supplied bytes and uses its effect and generator inputs. Root and recursive
 bundles share program serialization and dependency validation. G1 transports the envelope, nested
-FPLN and resource messages through Rust. Media descriptors still require live GPU leases, temporal
-raster aliases still use their cache, and auxiliary bindings/recursive targets are prepared upstream.
+FPLN and resource messages through Rust. Production media descriptors resolve through live GPU
+leases; auxiliary bindings and recursive targets are prepared from supplied plans.
 Diagnostic frame readback now captures the media pixels used by the submitted root and recursive
 plans. Content-addressed pixel links are part of the typed frame envelope and validated in TS and
 Rust; a complete capture must cover each declared media frame exactly once. An independent lease
@@ -302,8 +302,12 @@ their captured resolved pixels, then executes the shared linear accumulation and
 passes before scene drawing. Frame metadata records replayed temporal pass and sample counts.
 Diagnostic bundle capture reconstructs unchanged temporal generations during raster preparation,
 so warm-up cache hits still expose their actual submitted sample passes. Normal preview/export keep
-their existing cache reuse. Per-frame plan/resource publication and the final coverage audit remain
-required before declaring the complete-frame contract finished.
+their existing cache reuse. Each captured address retains the actual submitted `plan.fpln`, a replay
+envelope with installed media pixels, all content-addressed resources, and the Rust admission report.
+Before independent TS replay, Rust validates resource hashes, nested plans and the unchanged submitted
+execution, then re-encodes the replay envelope exactly. Capture publication and M2 verification audit
+these artifacts for every frame, including sequence neighbors. Native GPU execution and the final
+milestone coverage audit remain separate requirements.
 
 Root and auxiliary draw contracts accept content-addressed media or planned surface references;
 instance-based raster-cache aliases are rejected at the transport boundary. Vector text retains

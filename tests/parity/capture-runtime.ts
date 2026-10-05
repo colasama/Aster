@@ -12,6 +12,7 @@ import { FrameBundleRenderer } from "../../src/renderer/compositing/frame-bundle
 import { decodeFramePlan, encodeFramePlan } from "../../src/renderer/frame-plan/codec";
 import { normalizeRawFrameRgba } from "../../src/renderer/gpu/raw-frame-png";
 import { WebGpuRenderer } from "../../src/renderer/webgpu-renderer";
+import type { ParityFramePlanReceipt } from "./capture-protocol";
 import {
   assertCaptureMedia,
   captureComposition,
@@ -27,6 +28,8 @@ export const productionCaptureRuntime: CaptureRuntime = {
     let replay: FrameBundleRenderer | undefined;
     let replayPixels: Uint8ClampedArray<ArrayBuffer> | undefined;
     let productionPixels: ArrayBuffer | undefined;
+    let framePlan: ParityFramePlanReceipt | undefined;
+    let frameIndex = -1;
     const canvas = document.createElement("canvas");
     canvas.width = assignment.case.size.width;
     canvas.height = assignment.case.size.height;
@@ -72,10 +75,21 @@ export const productionCaptureRuntime: CaptureRuntime = {
       const initialize_ms = performance.now() - initializeStarted;
       const pipeline = new ProductionBeautyFramePipeline(
         createViewportBeautyFrameBackend(activeRenderer, canvas, async (bundle) => {
+          const prepare = window.asterParity?.prepareFrame;
+          if (!prepare) throw Error("Native frame artifact roundtrip is unavailable");
+          const prepared = await prepare({
+            caseId: assignment.case.id,
+            frame: frameIndex,
+            diagnostics: structuredClone(activeRenderer.diagnostics),
+            submitted: encodeFramePlan(bundle.submittedPlan.metadata, bundle.submittedPlan.blobs),
+            replay: encodeFramePlan(bundle.plan.metadata, bundle.plan.blobs),
+            resources: bundle.resources,
+          });
           replayPixels = await activeReplay.render({
             ...bundle,
-            plan: decodeFramePlan(encodeFramePlan(bundle.plan.metadata, bundle.plan.blobs)),
+            plan: decodeFramePlan(new Uint8Array(prepared.plan)),
           });
+          framePlan = prepared.receipt;
         }),
       );
       // The runner awaits frame publication before starting the next readback in this case.
@@ -94,6 +108,7 @@ export const productionCaptureRuntime: CaptureRuntime = {
         diagnostics: () => structuredClone(activeRenderer.diagnostics),
         assertHealthy,
         temporalReplay: () => activeReplay.temporalExecution,
+        framePlan: () => framePlan,
         productionPixels: () => productionPixels,
         async captureRasters() {
           const rasters = await activeRenderer.captureRasterResources(
@@ -107,6 +122,10 @@ export const productionCaptureRuntime: CaptureRuntime = {
         async readback(time) {
           replayPixels = undefined;
           productionPixels = undefined;
+          framePlan = undefined;
+          frameIndex = Math.round(
+            (time * composition.frameRate.numerator) / composition.frameRate.denominator,
+          );
           const raw = await pipeline.readback(
             createBeautyFrameRequest({
               snapshot,

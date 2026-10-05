@@ -4,6 +4,7 @@ import { lstat, open, readFile, realpath, rename, rm } from "node:fs/promises";
 import { isAbsolute, join, relative, sep } from "node:path";
 import { writeAtomicJson } from "../migration/report.mjs";
 import { hashFile } from "../migration/source.mjs";
+import { validateFrameArtifacts } from "./frame-artifacts.mjs";
 import { decodeRgbaPng } from "./png.mjs";
 import { digest } from "./provenance.mjs";
 import { validateCapturedRaster } from "./raster-capture.mjs";
@@ -142,6 +143,7 @@ export async function publishCandidateCapture(config, report) {
         );
         for (const [key, value] of Object.entries(checked)) assert.equal(raster[key], value);
       }
+      const frameResources = new Map();
       for (const record of capture.frames) {
         assert(Number.isSafeInteger(record.frame) && record.frame >= 0, "Unsafe candidate frame");
         const pngPath = await stagedFile(pending, item.id, String(record.frame), "frame.png");
@@ -153,6 +155,14 @@ export async function publishCandidateCapture(config, report) {
           "Candidate metadata hash differs",
         );
         const meta = JSON.parse(await readFile(metaPath, "utf8"));
+        if (config.requireFrameBundles || meta.frame_plan)
+          await validateFrameArtifacts(
+            async (path) => readFile(await stagedFile(pending, item.id, path)),
+            meta,
+            item,
+            config.source,
+            frameResources,
+          );
         if (meta.raster_resources !== undefined)
           for (const hash of meta.raster_resources)
             assert(rasterHashes.has(hash), "Unknown captured raster reference");

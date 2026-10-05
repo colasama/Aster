@@ -157,6 +157,7 @@ async function main() {
       return assignment;
     });
     handle("frame", (payload) => capture.frame(payload));
+    handle("prepare-frame", (payload) => capture.prepareFrame(payload));
     handle("complete", async (payload) => {
       await capture.completeCase(payload);
       waitForProgress("Renderer did not continue after completing its case");

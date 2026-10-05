@@ -7,6 +7,7 @@ import { captureSource } from "../parity/provenance.mjs";
 import { auditAuxiliaryGenerators } from "./auxiliary-generators-gate.mjs";
 import { auditAuxiliaryReplay } from "./auxiliary-replay-gate.mjs";
 import { auditEncodedTextures } from "./encoded-texture-gate.mjs";
+import { auditFrameArtifacts } from "./frame-artifacts-gate.mjs";
 import { auditGenerators } from "./generator-gate.mjs";
 import { auditLutDraws } from "./lut-draw-gate.mjs";
 import { evidencePath, M0Evidence } from "./m0-evidence.mjs";
@@ -42,7 +43,9 @@ export async function verifyTsPixels(options, dependencies = {}) {
   };
   const execute = dependencies.execute ?? runStep;
   const provenance = dependencies.provenance ?? sourceProvenance;
-  const rendererSource = dependencies.rendererSource ?? captureSource;
+  const rendererSource =
+    dependencies.rendererSource ??
+    ((directory) => captureSource(directory, { frameBundles: true }));
   try {
     await mkdir(output, { recursive: true });
     const owner = await ownerProject(options.env ?? process.env);
@@ -62,7 +65,7 @@ export async function verifyTsPixels(options, dependencies = {}) {
       {
         id: "compare-build",
         file: "cargo",
-        args: ["build", "--release", "-p", "aster-render-cli"],
+        args: ["build", "--release", "-p", "aster-desktop-bridge", "-p", "aster-render-cli"],
       },
       context,
     );
@@ -90,6 +93,11 @@ export async function verifyTsPixels(options, dependencies = {}) {
         execute,
       );
     if (options.milestone === "M2") {
+      report.frame_artifacts = await (dependencies.auditFrameArtifacts ?? auditFrameArtifacts)(
+        reader,
+        manifestPath,
+      );
+      assert.equal(report.frame_artifacts.status, "passed", "Frame artifact verification failed");
       report.temporal_text = await (dependencies.auditTemporalText ?? auditTemporalText)(
         reader,
         context,

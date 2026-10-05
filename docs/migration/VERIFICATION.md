@@ -234,9 +234,19 @@ each case's `raster-resources/`; frame metadata lists referenced pixel hashes an
 payload, transcript and replay checksums. Candidate publication rejects missing or altered data.
 M2 G3 requires this evidence, verifies all references and all three raster origins, and submits the
 actual captured binary resources to the Rust registry. Its existing 1819-frame beauty comparison
-remains exact. This installed-resource audit does not prove complete submitted-frame plan capture or
-replay; that milestone exit requirement remains open.
+remains exact. The separate frame-artifact audit described below covers complete submitted plans.
 See [Frame-plan transport](FRAME_PLAN.md) for the current contract and its explicit partial scope.
+
+Every fresh capture saves `plan.fpln` from the actual production submission, `replay.fpln` with
+installed media pixel links, `replay.rust.fpln`, `resources.json`, and `rust.json` per frame. Resource
+payloads are deduplicated under each case's `frame-resources/<hash>.bin`. Before independent TS GPU
+replay, `aster-render-cli ir bundle` validates the complete resource closure, round-trips nested FPLN,
+and proves that attaching pixels did not alter submitted execution. The returned root FPLN drives
+replay. Frame metadata binds all file hashes, the native binary and the exact production/replay
+pixel comparison. Candidate publication and M2 G3 both check all captured addresses, including
+sequence neighbors. Missing or changed evidence fails publication. G1 additionally proves that
+missing/corrupt resources, changed execution and partial plans fail native admission without output.
+The command validates transport; it does not implement native GPU rendering.
 
 Full G3 continues to compare all required TS frames under `exact`, retaining the effective reference
 set proven unchanged by completed M1. Each renderer-source change requires a fresh candidate

@@ -19088,7 +19088,7 @@
             "Missing/changed plan/resource or discovery-only plan cannot publish as success."
           ],
           "required_full_gates": ["G0", "G1", "G3"],
-          "status": "pending",
+          "status": "in_progress",
           "notes": [
             "Integrate recursive media pixels and captured generator execution outcomes into every successfully submitted complete root-frame artifact. Use capturePrecompositionBundle with observed executed plans; reject unobserved outcomes or mismatched generations. All-frame publication and replay are still required."
           ]
@@ -20652,5 +20652,12 @@
       }
     }
   ],
-  "active_cycle": null
+  "active_cycle": {
+    "id": 74,
+    "started_at": "2026-10-05T19:42:44.615Z",
+    "milestone": "M2",
+    "task": "M2-T14",
+    "intent": "Publish actual submitted frame plans with complete captured resource closure, validate and roundtrip them in Rust before independent TS replay, and bind every frame to its durable evidence.",
+    "base_commit": "760a35b856d044aad34a711a3b53ab43ab0d1c1f"
+  }
 }

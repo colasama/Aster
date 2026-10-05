@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { access, mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { auditBundleCapture } from "./ir-gate-bundle-capture.mjs";
 import { mutate } from "./ir-gate-precomposition.mjs";
 
 export async function auditFrameBundle(runtime, fixture, after, options) {
@@ -91,6 +92,7 @@ export async function auditFrameBundle(runtime, fixture, after, options) {
   await assert.rejects(access(badOutput), { code: "ENOENT" });
   return {
     id: fixture.id,
+    capture_admission: await auditBundleCapture(runtime, fixture, packets, directory, options),
     nested_roundtrips: nested,
     resources: messages.length,
     effects: decoded.effects.size,

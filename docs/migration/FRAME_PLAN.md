@@ -6,6 +6,13 @@ format and plugin ABI. `aster-render-ir` owns the Rust types and generated
 and DataView codec. The production beauty renderer remains the source of pixel behavior while its
 evaluation and execution responsibilities are extracted.
 
+Diagnostic capture preserves the actual submitted root as `plan.fpln`. A separate `replay.fpln`
+adds exact installed media pixels without changing executable stages. The native `ir bundle`
+command validates both envelopes, every dependency and nested plan, and emits an exact canonical
+round trip for independent TS execution. Per-frame receipts and content-addressed payload files
+are checked again before capture publication and during M2 verification. This transport validation
+does not claim that the native renderer executes those GPU commands yet.
+
 ## Initial scope
 
 The initial contract is a `frame_plan_slice` with `contract_level: post_uniforms_slice_v1` and

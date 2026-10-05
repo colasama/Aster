@@ -69,6 +69,21 @@ async function fixture(t, intercept = async () => {}) {
       target = argument("--output");
       bytes = await readFile(argument("--input"));
       result = { kind: "ir_resources" };
+    } else if (command.args[0] === "ir" && command.args[1] === "bundle") {
+      if (command.id.endsWith("-accepted")) {
+        target = argument("--output");
+        bytes = await readFile(argument("--input"));
+        result = {
+          kind: "ir_bundle",
+          submitted_sha256: hash(await readFile(argument("--submitted"))),
+          replay_sha256: hash(bytes),
+          roundtrip_sha256: hash(bytes),
+        };
+      } else {
+        step.status = "failed";
+        step.exit_code = 2;
+        result = { status: "failed", code: "invalid_header" };
+      }
     } else if (command.id.startsWith("ir-frame-reject-")) {
       step.status = "failed";
       step.exit_code = 2;

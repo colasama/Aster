@@ -22,6 +22,8 @@ pub struct IrArgs {
 
 #[derive(Debug, Subcommand)]
 enum IrCommand {
+    /// Validate captured dependencies and round-trip submitted and replay plans without rendering.
+    Bundle(crate::bundle::BundleArgs),
     /// Validate resource messages and optional hash-named binary payloads, then emit typed JSON.
     Resources {
         #[arg(long)]
@@ -60,7 +62,7 @@ enum IrCommand {
 }
 
 #[derive(Debug, Args)]
-struct IrLimits {
+pub(super) struct IrLimits {
     #[arg(long, default_value_t = DecodeLimits::default().max_container_bytes)]
     max_container_bytes: usize,
     #[arg(long, default_value_t = DecodeLimits::default().max_metadata_bytes)]
@@ -131,6 +133,7 @@ impl IrArgs {
 
     fn execute(self) -> Result<(), IrError> {
         let (kind, output, bytes) = match self.command {
+            IrCommand::Bundle(arguments) => return arguments.run(),
             IrCommand::Resources {
                 input,
                 output,
@@ -213,7 +216,7 @@ impl IrArgs {
         Ok(())
     }
 
-    fn read_bounded(path: &Path, limits: &DecodeLimits) -> Result<Vec<u8>, IrError> {
+    pub(super) fn read_bounded(path: &Path, limits: &DecodeLimits) -> Result<Vec<u8>, IrError> {
         limits.validate()?;
         let file = File::open(path)?;
         let maximum =
@@ -232,7 +235,7 @@ impl IrArgs {
         Ok(bytes)
     }
 
-    fn publish(path: &Path, bytes: &[u8]) -> Result<(), IrError> {
+    pub(super) fn publish(path: &Path, bytes: &[u8]) -> Result<(), IrError> {
         let parent = match path
             .parent()
             .filter(|parent| !parent.as_os_str().is_empty())

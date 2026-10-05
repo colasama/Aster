@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { mkdir, readFile, rename, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, realpath, rename, stat, writeFile } from "node:fs/promises";
 import { isAbsolute, join, relative, resolve } from "node:path";
 import { writeAtomicJson } from "../migration/report.mjs";
 import { hashFile } from "../migration/source.mjs";
+import { FrameArtifactStore, validateFrameArtifacts } from "./frame-artifacts.mjs";
 import { compareFrameReplay } from "./frame-replay-comparison.mjs";
 import { encodeRgbaPng } from "./png.mjs";
 import { digest } from "./provenance.mjs";
@@ -15,6 +16,11 @@ export class CaptureStore {
     this.host = host;
     this.frames = new Map();
     this.rasters = new RasterCaptureStore();
+    this.plans = new FrameArtifactStore(config);
+  }
+
+  async prepareFrame(assignment, payload) {
+    return this.plans.prepare(assignment, payload);
   }
 
   key(assignment) {
@@ -27,6 +33,7 @@ export class CaptureStore {
 
   async cached(assignment) {
     if (this.config.candidate || this.config.force) return false;
+    if (this.config.requireFrameBundles) return false;
     if (this.host.cacheIdentity?.fonts?.status !== "available") return false;
     const path = join(this.config.root, "artifacts", "parity", "reference", assignment.case.id);
     try {
@@ -70,6 +77,11 @@ export class CaptureStore {
       payload.pixels instanceof ArrayBuffer ? new Uint8Array(payload.pixels) : payload.pixels;
     assert.equal(pixels.byteLength, payload.width * payload.height * 4);
     const frameReplay = await compareFrameReplay(this.config.runDirectory, payload, pixels);
+    const framePlan =
+      this.config.requireFrameBundles || payload.framePlan
+        ? this.plans.consume(payload)
+        : undefined;
+    if (framePlan) assert.equal(frameReplay?.exact, true, "Frame plan requires exact replay");
     const started = performance.now();
     const png = encodeRgbaPng(payload.width, payload.height, pixels);
     const path = join(this.config.runDirectory, "pending", item.id, String(payload.frame));
@@ -103,6 +115,7 @@ export class CaptureStore {
       png_sha256: createHash("sha256").update(png).digest("hex"),
       rgba_sha256: createHash("sha256").update(pixels).digest("hex"),
       raster_resources: rasterReferences,
+      ...(framePlan ? { frame_plan: framePlan } : {}),
       ...(frameReplay ? { frame_replay: frameReplay } : {}),
       ...(payload.temporalReplay ? { temporal_replay: payload.temporalReplay } : {}),
       timings: { ...payload.timings, png_encode_write_ms: performance.now() - started },
@@ -152,6 +165,32 @@ export async function publishCaptures(config, report) {
   for (const item of report.cases.filter((item) => item.status === "passed")) {
     const pending = join(config.runDirectory, "pending", item.id);
     const record = JSON.parse(await readFile(join(pending, "capture.json"), "utf8"));
+    if (config.requireFrameBundles) {
+      const assignment = config.assignments.find((entry) => entry.case.id === item.id);
+      assert(assignment, "Missing reference capture assignment");
+      const base = await realpath(pending);
+      const read = async (name) => {
+        const path = await realpath(join(base, name));
+        const member = relative(base, path);
+        assert(
+          member && !member.startsWith("..") && !isAbsolute(member),
+          "Frame artifact escaped staging",
+        );
+        return readFile(path);
+      };
+      const resources = new Map();
+      for (const frame of record.frames) {
+        const name = `${frame.frame}/meta.json`;
+        assert.equal(await hashFile(join(base, name)), frame.meta_sha256);
+        await validateFrameArtifacts(
+          read,
+          JSON.parse((await read(name)).toString()),
+          assignment.case,
+          config.source,
+          resources,
+        );
+      }
+    }
     record.source_verified = true;
     await writeAtomicJson(join(pending, "capture.json"), record);
     const destination = join(config.root, "artifacts", "parity", "reference", item.id);

@@ -1,4 +1,7 @@
-import { captureSubmittedFrameBundle } from "../compositing/frame-bundle-capture";
+import {
+  type CapturedFrameBundle,
+  captureSubmittedFrameBundle,
+} from "../compositing/frame-bundle-capture";
 import type { FrameBundle } from "../frame-plan/frame-bundle-plan";
 import type { MediaBindingLease } from "../media/media-binding-lease";
 import {
@@ -13,12 +16,12 @@ import {
 } from "./frame-readback";
 
 export interface CapturedProductionFrame extends RawVideoFrame {
-  bundle?: FrameBundle;
+  bundle?: CapturedFrameBundle;
 }
 interface PendingCapture {
   ticket: FrameReadbackTicket;
   captureBundle: boolean;
-  bundle?: Promise<FrameBundle>;
+  bundle?: Promise<CapturedFrameBundle>;
 }
 
 /** Serialize exact-frame discovery while retaining independent owners for diagnostic capture. */

@@ -94,7 +94,14 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
     const expectedSchema = await reader.bytes("schemas/frame-plan.v1.json");
     runtime = await (dependencies.loadRuntime ?? loadIrRuntime)(context.root);
     report.limits = runtime.defaultFramePlanLimits();
-    await command("ir-build", "cargo", ["build", "--release", "-p", "aster-render-cli"]);
+    await command("ir-build", "cargo", [
+      "build",
+      "--release",
+      "-p",
+      "aster-desktop-bridge",
+      "-p",
+      "aster-render-cli",
+    ]);
     const libraryTests = await command("ir-library-tests", "cargo", [
       "test",
       "-p",

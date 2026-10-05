@@ -17,6 +17,7 @@ contextBridge.exposeInMainWorld(
     ready: (identity) => ipcRenderer.invoke("aster:parity-ready", identity),
     take: () => ipcRenderer.invoke("aster:parity-take"),
     frame: (payload) => ipcRenderer.invoke("aster:parity-frame", payload),
+    prepareFrame: (payload) => ipcRenderer.invoke("aster:parity-prepare-frame", payload),
     completeCase: (payload) => ipcRenderer.invoke("aster:parity-complete", payload),
     fail: (payload) => ipcRenderer.invoke("aster:parity-fail", payload),
     done: () => ipcRenderer.invoke("aster:parity-done"),

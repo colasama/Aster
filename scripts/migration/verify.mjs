@@ -166,6 +166,7 @@ export async function verifyMigration(options, dependencies = {}) {
           source_unchanged: checked.report.source_unchanged,
           candidate_capture: checked.report.candidate_capture,
           raster_resources: checked.report.raster_resources,
+          frame_artifacts: checked.report.frame_artifacts,
           temporal_text: checked.report.temporal_text,
           encoded_textures: checked.report.encoded_textures,
           material_draws: checked.report.material_draws,

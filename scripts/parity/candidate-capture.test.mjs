@@ -96,6 +96,16 @@ async function changeMeta(data, edit) {
   await writeAtomicJson(capturePath, capture);
 }
 
+test("required submitted-plan evidence cannot be omitted from candidate publication", async (t) => {
+  const data = await fixture(t);
+  data.config.requireFrameBundles = true;
+  await assert.rejects(
+    publishCandidateCapture(data.config, data.report),
+    /Missing submitted frame artifact/,
+  );
+  await assert.rejects(lstat(data.destination), { code: "ENOENT" });
+});
+
 test("fresh candidates publish atomically with complete provenance and requested-only gate manifest", async (t) => {
   const data = await fixture(t);
   const reference = join(data.root, "artifacts", "parity", "reference", "sequence");

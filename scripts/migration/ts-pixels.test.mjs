@@ -216,6 +216,7 @@ test("M2 retains exact and frozen M0 references without checking historical M0 c
       { root: f.root, candidates: f.candidates, milestone: "M2" },
       {
         auditCapturedRasters: async () => ({ status: "passed" }),
+        auditFrameArtifacts: async () => ({ status: "passed" }),
         auditTemporalText: async () => {
           return { status: gpuFailure === "temporal" ? "failed" : "passed", profile: "exact" };
         },

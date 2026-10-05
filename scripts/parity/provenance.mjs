@@ -26,7 +26,7 @@ async function directoryHashes(directory) {
   return files.sort((a, b) => a.path.localeCompare(b.path, "en"));
 }
 
-export async function captureSource(root) {
+export async function captureSource(root, { frameBundles = false } = {}) {
   const tree = await sourceProvenance(root);
   const tracked = execFileSync(
     "git",
@@ -57,13 +57,21 @@ export async function captureSource(root) {
   const bridgeHash = await hashFile(
     join(root, "target", "release", `aster-desktop-bridge${extension}`),
   );
+  const native = frameBundles
+    ? {
+        ir_cli_sha256: await hashFile(
+          join(root, "target", "release", `aster-render-cli${extension}`),
+        ),
+      }
+    : {};
   return {
     commit: tree.commit,
     branch: tree.branch,
     dirty: tree.dirty,
     tree_sha256: tree.source_sha256,
-    renderer_source_sha256: digest({ files, bridge_sha256: bridgeHash }),
+    renderer_source_sha256: digest({ files, bridge_sha256: bridgeHash, ...native }),
     bridge_sha256: bridgeHash,
+    ...native,
     files,
   };
 }
