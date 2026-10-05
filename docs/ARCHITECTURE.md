@@ -236,8 +236,13 @@ surface effect, or a specific diagnostic buffer view. Planning resolves availabi
 encoding consumes only the supplied route, clear color and header AA mode. It rejects missing
 motion-blur bindings and mismatched AA allocation generations before starting the output pass.
 The G1 transport gate covers all view modes and four AA modes through Rust and the supplied executor.
-Depth/surface uniforms, auxiliary draws and motion reconstruction still require their own complete
-planning boundaries before the full-frame cutover.
+Motion reconstruction has a separate typed FPLN slice with exact shutter timing, ordered attachment
+roles, the observed ready/skipped decision, and owned mixed f32/u32 GPU uniform bytes. The existing
+tile-max, neighbor-max and HDR reconstruction passes consume those bytes without consulting mutable
+settings. Missing attachments or mismatched dimensions fail before GPU recording; captured skips
+remain skips even if resources become available. G1 exercises Rust transport and supplied execution,
+including malformed uniform rejection. Depth/surface uniforms and auxiliary draw identities still
+require their own planning boundaries before independent full-frame replay and the cutover.
 
 Shared WGSL includes output anti-aliasing, core scene variants, compositing, fused post-processing,
 blur/depth/surface effects, auxiliary surfaces, particles, text motion blur and display/buffer helpers.

@@ -1,5 +1,7 @@
 //! Bounded frame-plan transport. Individual slices are not a complete renderer plan.
 mod final_output;
+mod motion_reconstruction;
+pub use motion_reconstruction::MotionReconstructionSlice;
 mod generator;
 pub use final_output::FinalOutputSlice;
 mod precomposition;

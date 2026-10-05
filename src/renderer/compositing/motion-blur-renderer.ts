@@ -1,16 +1,18 @@
 import shaderManifest from "../../../shaders/manifest.json";
-import type { MotionBlurSettings } from "../../core/types";
+import { requirePlan } from "../frame-plan/canonical";
+import { readMotionReconstructionPlan } from "../frame-plan/motion-reconstruction-plan";
+import type { FramePlanSliceData } from "../frame-plan/types";
+import { boundedMotionDimension, MOTION_BLUR_UNIFORM_BYTES } from "./motion-blur-uniforms";
+
+export {
+  buildMotionBlurUniforms,
+  MOTION_BLUR_UNIFORM_BYTES,
+  type MotionBlurFrameSettings,
+} from "./motion-blur-uniforms";
+
 import { sharedShaders } from "../gpu/shared-shader-catalog";
 
 const TILE_SIZE = shaderManifest.programs["motion-blur"].overrides.tile_extent.default;
-export const MOTION_BLUR_UNIFORM_BYTES = 32;
-
-export interface MotionBlurFrameSettings extends MotionBlurSettings {
-  /** Frame-time position within the shutter interval: 0=open, 1=close. */
-  framePosition: number;
-  maximumRadius: number;
-}
-
 export interface MotionBlurTexturePlan {
   width: number;
   height: number;
@@ -20,8 +22,8 @@ export interface MotionBlurTexturePlan {
 }
 
 export function planMotionBlurTextures(width: number, height: number): MotionBlurTexturePlan {
-  const safeWidth = boundedDimension(width);
-  const safeHeight = boundedDimension(height);
+  const safeWidth = boundedMotionDimension(width);
+  const safeHeight = boundedMotionDimension(height);
   const tileWidth = Math.ceil(safeWidth / TILE_SIZE);
   const tileHeight = Math.ceil(safeHeight / TILE_SIZE);
   return {
@@ -31,28 +33,6 @@ export function planMotionBlurTextures(width: number, height: number): MotionBlu
     tileHeight,
     estimatedBytes: safeWidth * safeHeight * 8 + tileWidth * tileHeight * 8 * 2,
   };
-}
-
-/** Packs viewport, sample limits, radius, and shutter placement into two vec4 slots. */
-export function buildMotionBlurUniforms(
-  width: number,
-  height: number,
-  settings: MotionBlurFrameSettings,
-): ArrayBuffer {
-  const buffer = new ArrayBuffer(MOTION_BLUR_UNIFORM_BYTES);
-  new Float32Array(buffer, 0, 2).set([boundedDimension(width), boundedDimension(height)]);
-  const baseSamples = boundedInteger(settings.samplesPerFrame, 2, 64, 8);
-  new Uint32Array(buffer, 8, 2).set([
-    baseSamples,
-    Math.max(baseSamples, boundedInteger(settings.adaptiveSampleLimit, 2, 128, 32)),
-  ]);
-  new Float32Array(buffer, 16, 4).set([
-    bounded(settings.maximumRadius, 0, 256, 128),
-    bounded(settings.framePosition, -4, 4, 0.5),
-    0,
-    0,
-  ]);
-  return buffer;
 }
 
 /**
@@ -186,24 +166,40 @@ export class MotionBlurRenderer {
     });
   }
 
-  encode(encoder: GPUCommandEncoder, settings: MotionBlurFrameSettings): boolean {
+  get ready(): boolean {
+    return !!(
+      this.#output &&
+      this.#tileMax &&
+      this.#neighborMax &&
+      this.#tileBindGroup &&
+      this.#neighborBindGroup &&
+      this.#reconstructionBindGroup
+    );
+  }
+
+  encodePlan(encoder: GPUCommandEncoder, input: FramePlanSliceData): boolean {
+    const plan = readMotionReconstructionPlan(input);
+    if (plan.slice.status === "skipped") return false;
     const output = this.#output;
     const tileMax = this.#tileMax;
     const neighborMax = this.#neighborMax;
-    if (
-      !output ||
-      !tileMax ||
-      !neighborMax ||
-      !this.#tileBindGroup ||
-      !this.#neighborBindGroup ||
-      !this.#reconstructionBindGroup
-    )
-      return false;
-    this.#device.queue.writeBuffer(
-      this.#uniform,
-      0,
-      buildMotionBlurUniforms(this.#plan.width, this.#plan.height, settings),
+    requirePlan(
+      output &&
+        tileMax &&
+        neighborMax &&
+        this.#tileBindGroup &&
+        this.#neighborBindGroup &&
+        this.#reconstructionBindGroup,
+      "missing_resource",
+      "Motion reconstruction attachments are unavailable",
     );
+    requirePlan(
+      this.#plan.width === plan.header.render_target.width &&
+        this.#plan.height === plan.header.render_target.height,
+      "resource_generation_mismatch",
+      "Motion reconstruction attachment dimensions differ from the supplied plan",
+    );
+    this.#device.queue.writeBuffer(this.#uniform, 0, plan.uniforms);
     const tilePass = encoder.beginRenderPass({
       label: "Motion blur tile-max",
       colorAttachments: [
@@ -294,19 +290,6 @@ export class MotionBlurRenderer {
     this.#neighborBindGroup = undefined;
     this.#reconstructionBindGroup = undefined;
   }
-}
-
-function boundedDimension(value: number): number {
-  return Math.min(16_384, Math.max(1, Math.floor(Number.isFinite(value) ? value : 1)));
-}
-
-function bounded(value: number, minimum: number, maximum: number, fallback: number): number {
-  const finite = Number.isFinite(value) ? value : fallback;
-  return Math.min(maximum, Math.max(minimum, finite));
-}
-
-function boundedInteger(value: number, minimum: number, maximum: number, fallback: number): number {
-  return Math.round(bounded(value, minimum, maximum, fallback));
 }
 
 export const motionBlurShader = sharedShaders.source("motion-blur");

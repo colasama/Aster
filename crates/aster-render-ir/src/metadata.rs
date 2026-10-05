@@ -1,5 +1,6 @@
 use crate::FinalOutputSlice;
 use crate::LayerEffectSlice;
+use crate::MotionReconstructionSlice;
 use crate::PrecompositionBundleSlice;
 use crate::PrecompositionGraphSlice;
 use crate::SceneGeneratorSlice;
@@ -27,6 +28,7 @@ pub enum PlanKind {
 #[serde(rename_all = "snake_case")]
 pub enum ContractLevel {
     FinalOutputSliceV1,
+    MotionReconstructionSliceV1,
     PostUniformsSliceV1,
     SceneBuffersSliceV1,
     CameraParametersSliceV1,
@@ -127,6 +129,7 @@ pub struct BlobDescriptor {
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum PlanSlice {
     FinalOutput(FinalOutputSlice),
+    MotionReconstruction(MotionReconstructionSlice),
     PrecompositionBundle(PrecompositionBundleSlice),
     PrecompositionGraph(PrecompositionGraphSlice),
     SceneGenerator(SceneGeneratorSlice),
@@ -207,8 +210,10 @@ impl FramePlanSliceV1 {
             return Err(IrError::InvalidGenerator("expected one slice".to_owned()));
         }
         let mut referenced = BTreeSet::new();
-        if self.contract_level == ContractLevel::FinalOutputSliceV1
-            && (self.slices.len() != 1 || !self.resources.is_empty())
+        if matches!(
+            self.contract_level,
+            ContractLevel::FinalOutputSliceV1 | ContractLevel::MotionReconstructionSliceV1
+        ) && (self.slices.len() != 1 || !self.resources.is_empty())
         {
             return Err(IrError::InvalidHeader(
                 "expected one transient output route".to_owned(),
@@ -230,6 +235,11 @@ impl FramePlanSliceV1 {
         }
         for slice in &self.slices {
             let blob_index = match slice {
+                PlanSlice::MotionReconstruction(motion)
+                    if self.contract_level == ContractLevel::MotionReconstructionSliceV1 =>
+                {
+                    motion.blob_index
+                }
                 PlanSlice::FinalOutput(output)
                     if self.contract_level == ContractLevel::FinalOutputSliceV1 =>
                 {
@@ -318,6 +328,10 @@ impl FramePlanSliceV1 {
                 output.validate(blob)?;
                 continue;
             }
+            if let PlanSlice::MotionReconstruction(motion) = slice {
+                motion.validate(blob)?;
+                continue;
+            }
             if let PlanSlice::PrecompositionBundle(bundle) = slice {
                 bundle.validate(blob, &self.resources)?;
                 continue;
@@ -392,6 +406,16 @@ impl FramePlanSliceV1 {
     }
 
     pub(crate) fn validate_blob(&self, index: usize, bytes: &[u8]) -> Result<(), IrError> {
+        if self.contract_level == ContractLevel::MotionReconstructionSliceV1 {
+            for slice in &self.slices {
+                if let PlanSlice::MotionReconstruction(motion) = slice
+                    && motion.blob_index as usize == index
+                {
+                    return motion.validate_bytes(bytes, &self.header);
+                }
+            }
+            return Err(IrError::BlobCountMismatch);
+        }
         if self.contract_level == ContractLevel::FinalOutputSliceV1 {
             for slice in &self.slices {
                 if let PlanSlice::FinalOutput(output) = slice

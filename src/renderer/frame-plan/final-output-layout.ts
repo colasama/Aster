@@ -38,7 +38,7 @@ export function validateFinalOutput(value: unknown, blob: BlobDescriptor): void 
   };
   requirePlan(
     typeof kind === "string" &&
-      Object.prototype.hasOwnProperty.call(modes, kind) &&
+      Object.keys(modes).includes(kind) &&
       modes[kind].includes(String(kind === "beauty" ? route.source : route.mode)),
     "invalid_header",
     "Invalid final output route",

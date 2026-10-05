@@ -15,6 +15,8 @@ export async function loadIrRuntime(root) {
       "codec",
       "final-output-plan",
       "final-output-fixture",
+      "motion-reconstruction-plan",
+      "motion-reconstruction-fixture",
       "fixture",
       "resources",
       "media-resource-fixture",
@@ -66,6 +68,7 @@ export async function loadIrRuntime(root) {
       modules.push(await server.ssrLoadModule(`/src/renderer/media/${name}.ts`));
     modules.push(await server.ssrLoadModule("/src/renderer/text/text-motion-blur-pass-plan.ts"));
     modules.push(await server.ssrLoadModule("/src/renderer/compositing/execute-final-output.ts"));
+    modules.push(await server.ssrLoadModule("/src/renderer/compositing/motion-blur-renderer.ts"));
     return Object.assign({ close: () => server.close() }, ...modules);
   } catch (error) {
     await server.close();

@@ -32,6 +32,7 @@ import { effectExecution } from "./effects/layer-effect-plan";
 import { selectedRenderId } from "./effects/surface-post-effects";
 import { buildCameraPlan, readCameraPlan } from "./frame-plan/camera-plan";
 import { buildFinalOutputPlan } from "./frame-plan/final-output-plan";
+import { buildMotionReconstructionPlan } from "./frame-plan/motion-reconstruction-plan";
 import { buildFrameHeader, buildRootPostUniformPlan } from "./frame-plan/root-post-plan";
 import { uploadRootPostUniformPlan } from "./frame-plan/root-post-upload";
 import { buildRootScenePlan, readRootScenePlan } from "./frame-plan/root-scene-plan";
@@ -888,22 +889,15 @@ export class WebGpuRenderer {
               .filter((draw) => draw !== undefined),
       });
     }
-    const framePosition =
-      shutterInterval.duration > Number.EPSILON
-        ? (time - shutterInterval.openTime) / shutterInterval.duration
-        : 0.5;
-    const beautyMotionBlurValid =
-      beautyMotionBlur &&
-      auxiliaryFrameValid &&
-      sceneBuffers.motionVectors !== undefined &&
-      resources.motionBlur.encode(encoder, {
-        ...motionBlurSettings,
-        framePosition,
-        maximumRadius: Math.max(
-          1,
-          Math.min(256, 256 * (this.#width / Math.max(composition.width, 1))),
-        ),
-      });
+    const motionPlan = buildMotionReconstructionPlan(postPlan.metadata.header, {
+      requested:
+        beautyMotionBlur && auxiliaryFrameValid && sceneBuffers.motionVectors !== undefined,
+      resourcesAvailable: resources.motionBlur.ready,
+      settings: motionBlurSettings,
+      shutter: shutterInterval,
+      compositionWidth: composition.width,
+    });
+    const beautyMotionBlurValid = resources.motionBlur.encodePlan(encoder, motionPlan);
     if (beautyDepthOfField && beautyMotionBlurValid !== this.#depthEffectsUseMotionBlur) {
       this.#depthEffectsUseMotionBlur = beautyMotionBlurValid;
       resources.depthEffects.setSources(

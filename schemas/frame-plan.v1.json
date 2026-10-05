@@ -121,6 +121,7 @@
     "ContractLevel": {
       "enum": [
         "final_output_slice_v1",
+        "motion_reconstruction_slice_v1",
         "post_uniforms_slice_v1",
         "scene_buffers_slice_v1",
         "camera_parameters_slice_v1",
@@ -798,6 +799,14 @@
       "enum": ["rgba8unorm-srgb"],
       "type": "string"
     },
+    "MotionReconstructionInput": {
+      "enum": ["scene", "motionVector", "objectId"],
+      "type": "string"
+    },
+    "MotionReconstructionStatus": {
+      "enum": ["ready", "skipped"],
+      "type": "string"
+    },
     "PlanKind": {
       "enum": ["frame_plan_slice"],
       "type": "string"
@@ -821,6 +830,46 @@
             }
           },
           "required": ["kind", "blob_index", "route"],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "blob_index": {
+              "format": "uint32",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "inputs": {
+              "items": {
+                "$ref": "#/$defs/MotionReconstructionInput"
+              },
+              "maxItems": 3,
+              "minItems": 3,
+              "type": "array"
+            },
+            "kind": {
+              "const": "motion_reconstruction",
+              "type": "string"
+            },
+            "shutter_duration": {
+              "$ref": "#/$defs/FrameTime"
+            },
+            "shutter_open": {
+              "$ref": "#/$defs/FrameTime"
+            },
+            "status": {
+              "$ref": "#/$defs/MotionReconstructionStatus"
+            }
+          },
+          "required": [
+            "kind",
+            "blob_index",
+            "status",
+            "inputs",
+            "shutter_open",
+            "shutter_duration"
+          ],
           "type": "object"
         },
         {

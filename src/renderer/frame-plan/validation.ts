@@ -24,6 +24,11 @@ import {
   validateMaterialBindingBlob,
 } from "./material-binding-layout";
 import {
+  MOTION_RECONSTRUCTION_FIELDS,
+  validateMotionReconstruction,
+  validateMotionReconstructionBlob,
+} from "./motion-reconstruction-layout";
+import {
   PRECOMPOSITION_BUNDLE_FIELDS,
   validatePrecompositionBundle,
   validatePrecompositionBundleBlob,
@@ -121,6 +126,7 @@ export function validateMetadata(value: unknown, limits: FramePlanLimits): Frame
         "precomposition_graph_slice_v1",
         "precomposition_bundle_slice_v1",
         "final_output_slice_v1",
+        "motion_reconstruction_slice_v1",
       ].includes(String(metadata.contract_level)) &&
       metadata.renderer_plan_complete === false,
     "unknown_variant",
@@ -193,6 +199,20 @@ export function validateMetadata(value: unknown, limits: FramePlanLimits): Frame
   );
   const indices = new Set<number>();
   for (const value of metadata.slices) {
+    if (metadata.contract_level === "motion_reconstruction_slice_v1") {
+      requirePlan(
+        metadata.slices.length === 1 &&
+          Array.isArray(metadata.resources) &&
+          metadata.resources.length === 0,
+        "invalid_header",
+        "Motion reconstruction requires one transient slice",
+      );
+      const slice = object(value, MOTION_RECONSTRUCTION_FIELDS);
+      const index = integer(slice.blob_index, 0, metadata.blobs.length - 1);
+      indices.add(index);
+      validateMotionReconstruction(slice, metadata.blobs[index] as BlobDescriptor);
+      continue;
+    }
     if (metadata.contract_level === "final_output_slice_v1") {
       requirePlan(
         metadata.slices.length === 1 &&
@@ -415,6 +435,10 @@ export function validatePlanBlob(
     "element_count_mismatch",
     "Supplied blob length differs from descriptor",
   );
+  if (metadata.contract_level === "motion_reconstruction_slice_v1") {
+    validateMotionReconstructionBlob(bytes, metadata.header);
+    return;
+  }
   if (metadata.contract_level === "final_output_slice_v1") {
     validateFinalOutputBlob(bytes);
     return;

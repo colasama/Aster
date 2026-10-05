@@ -5,6 +5,7 @@ import { join, relative } from "node:path";
 import { auditFinalOutput } from "./ir-gate-final-output.mjs";
 import { auditGeneratorResources } from "./ir-gate-generator.mjs";
 import { auditMediaResources } from "./ir-gate-media.mjs";
+import { auditMotionReconstruction, motionNegativeFixtures } from "./ir-gate-motion.mjs";
 import { auditPrecompositionGraph } from "./ir-gate-precomposition.mjs";
 import { auditPrecompositionBundle } from "./ir-gate-precomposition-bundle.mjs";
 import { auditRasterPixels } from "./ir-gate-raster.mjs";
@@ -228,6 +229,7 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
       ...runtime.precompositionGraphFixtures(),
       ...runtime.precompositionBundleFixtures(),
       ...runtime.finalOutputFixtures(),
+      ...runtime.motionReconstructionFixtures(),
     ]) {
       const input = join(context.output, `${fixture.id}-ts.fpln`);
       const output = join(context.output, `${fixture.id}-rust.fpln`);
@@ -250,6 +252,10 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
       if (fixture.output) {
         report.final_outputs ??= [];
         report.final_outputs.push(auditFinalOutput(runtime, fixture, after));
+      }
+      if (fixture.motion) {
+        report.motion_reconstruction ??= [];
+        report.motion_reconstruction.push(auditMotionReconstruction(runtime, fixture, after));
       }
       if (fixture.bundle)
         report.precomposition_bundles.push(
@@ -609,7 +615,7 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
       sha256: rust.sha256,
       exact: true,
     };
-    for (const fixture of irNegativeFixtures(fixtures)) {
+    for (const fixture of [...irNegativeFixtures(fixtures), ...motionNegativeFixtures(runtime)]) {
       const input = join(context.output, `reject-${fixture.id}.fpln`);
       const output = join(context.output, `rejected-${fixture.id}-must-not-exist.fpln`);
       assert.throws(() => runtime.decodeFramePlan(fixture.bytes), `TS accepted ${fixture.id}`);

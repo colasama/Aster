@@ -16270,7 +16270,21 @@
             "Serialize depth/surface uniforms, source routing and selection controls; verify independent supplied execution."
           ],
           "commit": "73944f6534607500253a631c37887b57fd6f756f",
-          "verification": "artifacts/migration/verify-2026-10-05T11-18-13-108Z-bd496f41.json"
+          "verification": "artifacts/migration/verify-2026-10-05T11-18-13-108Z-bd496f41.json",
+          "failed_attempts": [
+            {
+              "cycle": 62,
+              "verification": {
+                "path": "artifacts/migration/verify-2026-10-05T11-45-18-876Z-322f607d.json",
+                "sha256": "b0c919bcce3b26b22ebd52e37fb81b02e90f94053cd3b2c17d719b10d2240ed8"
+              },
+              "pixel_comparison": {
+                "path": "artifacts/parity/ts-check/2026-10-05T11-47-04-026Z-6e608003/report.json",
+                "sha256": "f9fb9bf2f8ea0553643492cdd67941af7d63ac65b8e0ba05a098e23dc9f43e80"
+              },
+              "disposition": "Rejected two isolated pixel defects; test unchanged-source repeatability, preserve failures and require a fresh exact full capture and full verification."
+            }
+          ]
         },
         {
           "id": "M2-T13",
@@ -17096,6 +17110,112 @@
         "analysis": "artifacts/migration/cycle45-pixel-difference.json",
         "analysis_sha256": "d264d9d49d0627d8b4687be86d08d347c02736f8b21d6395e6ba1f47390344dd"
       }
+    },
+    {
+      "case_id": "owner-main",
+      "frame": 739,
+      "profile": "exact",
+      "purpose": "m2-exact-parity-rejection",
+      "reference_rgba_sha256": "8a6fd787d366ada3752f9c03d2b1d1d0fa448d9a90298a25b40f3c4b81f02998",
+      "candidate_rgba_sha256": "6648091ddb4816bad8b334c05d1a64b27758584753d6a57449693c6358a4ce9f",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 2073600,
+        "max_abs_channel_error": 255,
+        "mean_abs_error": 0.0004788773148148148,
+        "mean_squared_error": 0.11901813271604939,
+        "rgb_mean_squared_error": 0.11882860725308642,
+        "psnr": {
+          "kind": "finite",
+          "db": 57.3815935392189
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 57.37467228562706
+        },
+        "channel_tolerance": 0,
+        "pixels_above_tolerance": 4
+      },
+      "ssim": {
+        "channels": [
+          0.9999852174249056, 0.9999848007138947, 0.9999836620908177, 0.9999584573132162
+        ],
+        "mean": 0.9999845600765394,
+        "rgba_mean": 0.9999780343857085,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": null,
+      "registration": null,
+      "sequence": null,
+      "residual_class": "structural",
+      "verdict": "rejected",
+      "recorded_at": "2026-10-05T11:57:31.525Z",
+      "inspection": "The migration agent directly inspected the contact sheet and heatmap. Pixel analysis locates a 2x2 alpha defect at x=1542..1543,y=442..443; three candidate pixels are transparent zero and the fourth has alpha 25. All other pixels match. Exact parity fails and this is not accepted as float precision. The owner root composition disables motion blur. Similar earlier isolated defects do not prove a shared cause; root cause remains unknown. Null structural measurements are retained from the exact profile. No reference or tolerance is changed.",
+      "evidence": {
+        "report": "artifacts/parity/ts-check/2026-10-05T11-47-04-026Z-6e608003/G3/frames/owner-main-739/report.json",
+        "report_sha256": "3acfa2a4c0c7f194c63e9aba0636941bdc47ee89204d9091200551b7d9f1f96d",
+        "heatmap": "artifacts/parity/ts-check/2026-10-05T11-47-04-026Z-6e608003/G3/frames/owner-main-739/heatmap.png",
+        "heatmap_sha256": "43cfea2969401f42cc7e942dd8a49d1b0b9aca36514dead7f043924d1462f302",
+        "contact_sheet": "artifacts/parity/ts-check/2026-10-05T11-47-04-026Z-6e608003/G3/frames/owner-main-739/contact-sheet.png",
+        "contact_sheet_sha256": "220d2731bc6f3f1d52909b09586bc5b6ed892e8c142864d78cd308be0b79962c",
+        "analysis": "artifacts/migration/cycle62-pixel-difference.json",
+        "analysis_sha256": "3430e90649a29ecb6c9143057e352daff1a128e1fcec47c73beea43b9731a71f"
+      }
+    },
+    {
+      "case_id": "owner-main",
+      "frame": 850,
+      "profile": "exact",
+      "purpose": "m2-exact-parity-rejection",
+      "reference_rgba_sha256": "89cfdb847a91a29620bf8485aa6c790eb10368a79abdc38915a201c41126254c",
+      "candidate_rgba_sha256": "01513e657ce83f91820f7daaa850a751ef702561db1385f7b98fb07f187d9500",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 2073600,
+        "max_abs_channel_error": 67,
+        "mean_abs_error": 0.00009874131944444444,
+        "mean_squared_error": 0.004669294945987655,
+        "rgb_mean_squared_error": 0.006225726594650206,
+        "psnr": {
+          "kind": "finite",
+          "db": 70.18890316323844
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 71.43829052932143
+        },
+        "channel_tolerance": 0,
+        "pixels_above_tolerance": 8
+      },
+      "ssim": {
+        "channels": [
+          0.9999706346597665, 0.9999925008571358, 0.9999856345093272, 0.9999999999999992
+        ],
+        "mean": 0.9999829233420764,
+        "rgba_mean": 0.9999871925065571,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": null,
+      "registration": null,
+      "sequence": null,
+      "residual_class": "structural",
+      "verdict": "rejected",
+      "recorded_at": "2026-10-05T11:57:31.528Z",
+      "inspection": "The migration agent directly inspected the contact sheet and heatmap. Pixel analysis locates a 4x2 RGB defect at x=520..523,y=570..571, with unchanged opaque alpha and channel differences up to 67. All other pixels match. Exact parity fails and this is not accepted as float precision. The owner root composition disables motion blur. Similar earlier isolated defects do not prove a shared cause; root cause remains unknown. Null structural measurements are retained from the exact profile. No reference or tolerance is changed.",
+      "evidence": {
+        "report": "artifacts/parity/ts-check/2026-10-05T11-47-04-026Z-6e608003/G3/frames/owner-main-850/report.json",
+        "report_sha256": "85060be2d04f02680afb5150e0d2516199940af200088cbe698dbcb1569717b2",
+        "heatmap": "artifacts/parity/ts-check/2026-10-05T11-47-04-026Z-6e608003/G3/frames/owner-main-850/heatmap.png",
+        "heatmap_sha256": "7d3954bbb2e198986409bbdc46ae64f457c6850ad272597886e2f5bb38e19ac5",
+        "contact_sheet": "artifacts/parity/ts-check/2026-10-05T11-47-04-026Z-6e608003/G3/frames/owner-main-850/contact-sheet.png",
+        "contact_sheet_sha256": "6d3758d7be497c7bec9ab544407f0e27fd54344bb550c41febc48cc8fa4f46d0",
+        "analysis": "artifacts/migration/cycle62-pixel-difference.json",
+        "analysis_sha256": "3430e90649a29ecb6c9143057e352daff1a128e1fcec47c73beea43b9731a71f"
+      }
     }
   ],
   "history": [
@@ -17763,5 +17883,11 @@
       }
     }
   ],
-  "active_cycle": null
+  "active_cycle": {
+    "id": 62,
+    "milestone": "M2",
+    "task": "M2-T12",
+    "started_at": "2026-10-05T11:29:47.945Z",
+    "intent": "Capture motion reconstruction uniforms, exact shutter timing and observed availability in typed plans consumed by the existing GPU renderer."
+  }
 }
