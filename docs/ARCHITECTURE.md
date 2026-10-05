@@ -251,8 +251,11 @@ cleared or drawn outcome, transparency tier, ordered geometry and generator iden
 resource roles, and owned object/material IDs and motion vectors. The executor resolves the supplied
 resource closure before writes or passes and preserves captured fallbacks on a healthier replay
 device. Empty payloads use four zero bytes to retain the nonempty FPLN blob invariant. G1 checks
-transport and supplied command execution; independent GPU validation of the combined auxiliary,
-motion and final output path remains open before complete root-frame capture and the cutover.
+transport and supplied command execution. G3 also round-trips scene/auxiliary plans and texture
+resources through Rust, replays them on a separate GPU device, and compares every auxiliary
+attachment against a pinned pre-extraction executor. Draw, ID, motion, texture, transparency and
+clear mutations must visibly change the relevant surfaces. Auxiliary generator replay and the
+combined motion/final output path remain open before complete root-frame capture and the cutover.
 
 Shared WGSL includes output anti-aliasing, core scene variants, compositing, fused post-processing,
 blur/depth/surface effects, auxiliary surfaces, particles, text motion blur and display/buffer helpers.

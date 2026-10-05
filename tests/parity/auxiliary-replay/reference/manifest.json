@@ -1,0 +1,293 @@
+{
+  "schema_version": 1,
+  "profile": "exact",
+  "format": "mixed-auxiliary-attachments",
+  "width": 64,
+  "height": 48,
+  "reference_commit": "4f5e2de28e0fc0281a42afe2be8ec7400cf98d24",
+  "implementation": {
+    "path": "tests/parity/auxiliary-replay/legacy-auxiliary.ts",
+    "sha256": "8e8af02381010031e3d5df9032a0cf1858e2780c6c29f1001ed2013e89cba771"
+  },
+  "adapter": {
+    "vendor": "amd",
+    "architecture": "rdna-3",
+    "description": ""
+  },
+  "cases": [
+    {
+      "id": "basic",
+      "tier": -1,
+      "targets": [
+        {
+          "name": "normal",
+          "bpp": 8,
+          "bytes": 24576
+        },
+        {
+          "name": "objectId",
+          "bpp": 4,
+          "bytes": 12288
+        },
+        {
+          "name": "materialId",
+          "bpp": 4,
+          "bytes": 12288
+        },
+        {
+          "name": "worldPosition",
+          "bpp": 8,
+          "bytes": 24576
+        },
+        {
+          "name": "motionVector",
+          "bpp": 4,
+          "bytes": 12288
+        }
+      ],
+      "path": "tests/parity/auxiliary-replay/reference/basic.bin",
+      "sha256": "234c53e737f0d56a482229f9aa20be555c8a5e1475bb5fe5b60cdab59d903fe1",
+      "bytes": 86016
+    },
+    {
+      "id": "tier0",
+      "tier": 0,
+      "targets": [
+        {
+          "name": "normal",
+          "bpp": 8,
+          "bytes": 24576
+        },
+        {
+          "name": "objectId",
+          "bpp": 4,
+          "bytes": 12288
+        },
+        {
+          "name": "materialId",
+          "bpp": 4,
+          "bytes": 12288
+        },
+        {
+          "name": "worldPosition",
+          "bpp": 8,
+          "bytes": 24576
+        },
+        {
+          "name": "motionVector",
+          "bpp": 4,
+          "bytes": 12288
+        }
+      ],
+      "path": "tests/parity/auxiliary-replay/reference/tier0.bin",
+      "sha256": "234c53e737f0d56a482229f9aa20be555c8a5e1475bb5fe5b60cdab59d903fe1",
+      "bytes": 86016
+    },
+    {
+      "id": "tier1",
+      "tier": 1,
+      "targets": [
+        {
+          "name": "normal",
+          "bpp": 8,
+          "bytes": 24576
+        },
+        {
+          "name": "objectId",
+          "bpp": 4,
+          "bytes": 12288
+        },
+        {
+          "name": "materialId",
+          "bpp": 4,
+          "bytes": 12288
+        },
+        {
+          "name": "worldPosition",
+          "bpp": 8,
+          "bytes": 24576
+        },
+        {
+          "name": "motionVector",
+          "bpp": 4,
+          "bytes": 12288
+        },
+        {
+          "name": "aggregate",
+          "bpp": 8,
+          "bytes": 24576
+        },
+        {
+          "name": "frontColor",
+          "bpp": 8,
+          "bytes": 24576
+        }
+      ],
+      "path": "tests/parity/auxiliary-replay/reference/tier1.bin",
+      "sha256": "71e69d5368e1b428aff238cc33059c7aa4add2439a2dcb9c35d3728a2501e654",
+      "bytes": 135168
+    },
+    {
+      "id": "tier2",
+      "tier": 2,
+      "targets": [
+        {
+          "name": "normal",
+          "bpp": 8,
+          "bytes": 24576
+        },
+        {
+          "name": "objectId",
+          "bpp": 4,
+          "bytes": 12288
+        },
+        {
+          "name": "materialId",
+          "bpp": 4,
+          "bytes": 12288
+        },
+        {
+          "name": "worldPosition",
+          "bpp": 8,
+          "bytes": 24576
+        },
+        {
+          "name": "motionVector",
+          "bpp": 4,
+          "bytes": 12288
+        },
+        {
+          "name": "aggregate",
+          "bpp": 8,
+          "bytes": 24576
+        },
+        {
+          "name": "frontColor",
+          "bpp": 8,
+          "bytes": 24576
+        },
+        {
+          "name": "peeledPosition",
+          "bpp": 8,
+          "bytes": 24576
+        },
+        {
+          "name": "peeledColor",
+          "bpp": 8,
+          "bytes": 24576
+        }
+      ],
+      "path": "tests/parity/auxiliary-replay/reference/tier2.bin",
+      "sha256": "79d6756665fc2b130a94d3328b07913dd646a0a461f8302282a166566a8128dd",
+      "bytes": 184320
+    },
+    {
+      "id": "no-motion",
+      "tier": 2,
+      "targets": [
+        {
+          "name": "normal",
+          "bpp": 8,
+          "bytes": 24576
+        },
+        {
+          "name": "objectId",
+          "bpp": 4,
+          "bytes": 12288
+        },
+        {
+          "name": "materialId",
+          "bpp": 4,
+          "bytes": 12288
+        },
+        {
+          "name": "worldPosition",
+          "bpp": 8,
+          "bytes": 24576
+        },
+        {
+          "name": "motionVector",
+          "bpp": 4,
+          "bytes": 12288
+        },
+        {
+          "name": "aggregate",
+          "bpp": 8,
+          "bytes": 24576
+        },
+        {
+          "name": "frontColor",
+          "bpp": 8,
+          "bytes": 24576
+        },
+        {
+          "name": "peeledPosition",
+          "bpp": 8,
+          "bytes": 24576
+        },
+        {
+          "name": "peeledColor",
+          "bpp": 8,
+          "bytes": 24576
+        }
+      ],
+      "path": "tests/parity/auxiliary-replay/reference/no-motion.bin",
+      "sha256": "e0c991eeac3b16232c59a42fec8727c3671be6848c491c57b55bf0c32e5fc33f",
+      "bytes": 184320
+    },
+    {
+      "id": "cleared",
+      "tier": 2,
+      "targets": [
+        {
+          "name": "normal",
+          "bpp": 8,
+          "bytes": 24576
+        },
+        {
+          "name": "objectId",
+          "bpp": 4,
+          "bytes": 12288
+        },
+        {
+          "name": "materialId",
+          "bpp": 4,
+          "bytes": 12288
+        },
+        {
+          "name": "worldPosition",
+          "bpp": 8,
+          "bytes": 24576
+        },
+        {
+          "name": "motionVector",
+          "bpp": 4,
+          "bytes": 12288
+        },
+        {
+          "name": "aggregate",
+          "bpp": 8,
+          "bytes": 24576
+        },
+        {
+          "name": "frontColor",
+          "bpp": 8,
+          "bytes": 24576
+        },
+        {
+          "name": "peeledPosition",
+          "bpp": 8,
+          "bytes": 24576
+        },
+        {
+          "name": "peeledColor",
+          "bpp": 8,
+          "bytes": 24576
+        }
+      ],
+      "path": "tests/parity/auxiliary-replay/reference/cleared.bin",
+      "sha256": "dd493585bde88d5307e760b29cdd3a721ad9fa8fa5cb16618c77889c0d6be401",
+      "bytes": 184320
+    }
+  ]
+}

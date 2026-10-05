@@ -120,6 +120,13 @@
       "sha256": "46b095b3e2fa862eef2d2d2860a3a78824fb3e42fc0836ac705f8c91f493240a",
       "reference_commit": "2515c73a710c0151230c718429d4a833431b5452",
       "profile": "exact"
+    },
+    "auxiliary": {
+      "path": "tests/parity/auxiliary-replay/reference/manifest.json",
+      "sha256": "c2cfa75ecff2cf547a68d434ca4702980c28b298f16e063fe45399d42722bc2a",
+      "reference_commit": "4f5e2de28e0fc0281a42afe2be8ec7400cf98d24",
+      "profile": "exact",
+      "cases": 6
     }
   },
   "last_cycle": {
@@ -18288,5 +18295,11 @@
       }
     }
   ],
-  "active_cycle": null
+  "active_cycle": {
+    "id": 65,
+    "milestone": "M2",
+    "task": "M2-T12",
+    "started_at": "2026-10-05T13:16:22.184Z",
+    "intent": "Verify auxiliary MRT and transparency outputs on an independent GPU device from Rust-round-tripped supplied plans against a retained pre-extraction executor, with observable mutation checks."
+  }
 }
