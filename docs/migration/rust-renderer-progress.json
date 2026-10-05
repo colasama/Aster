@@ -123,40 +123,40 @@
     }
   },
   "last_cycle": {
-    "id": 61,
-    "time": "2026-10-05T11:25:58.400Z",
+    "id": 62,
+    "time": "2026-10-05T12:12:08.864Z",
     "milestone": "M2",
     "task": "M2-T12",
     "outcome": "passed",
-    "commit": "73944f6534607500253a631c37887b57fd6f756f",
-    "verification": "artifacts/migration/verify-2026-10-05T11-18-13-108Z-bd496f41.json",
-    "verification_sha256": "c81239479522b3668d4eb3256d0fa3fcfbe96b9b0ab014b38197fb951d5bba7b",
+    "commit": "68046d2642fc3793df5ab85eae430b6f3d076e47",
+    "verification": "artifacts/migration/verify-2026-10-05T12-04-28-051Z-31596a00.json",
+    "verification_sha256": "db39e56f47ec2c28c3b23ab5a19273cb589415343d06425ebe278e5cc3ab0aa2",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 80936
+        "duration_ms": 80985
       },
       {
         "id": "G1",
         "status": "passed",
-        "duration_ms": 8976
+        "duration_ms": 9411
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 336529
+        "duration_ms": 335115
       }
     ],
-    "verification_duration_ms": 427876,
-    "next_step": "Continue M2-T12: extract auxiliary draws, motion reconstruction and depth/surface controls into supplied plans.",
+    "verification_duration_ms": 426919,
+    "next_step": "Continue M2-T12: extract depth/surface controls and auxiliary draws, then verify independently supplied GPU output execution.",
     "notes": [
-      "Preserved initial full verification artifacts/migration/verify-2026-10-05T11-04-14-872Z-0789395b.json: G0 typecheck rejected Object.hasOwn because the frontend target library is older than ES2022. Replaced it with Object.prototype.hasOwnProperty.call, then repeated fresh capture and all required gates on the repaired source. No failed result was reclassified.",
-      "Added a closed final-output FPLN slice in TS/Rust with typed beauty sources, depth/surface modes, diagnostic buffer modes and owned clear-color bytes. The header retains the selected AA mode; validation rejects invalid variants, unused resources and nonfinite or out-of-range clear data.",
-      "Production output now resolves view and observed availability into a plan and executes its decoded route through executeFinalOutput. The executor reads no composition or view settings and checks requested beauty bindings and AA allocation mode/extent before opening a GPU output pass. Existing display/AA shaders and pixel arithmetic are unchanged.",
-      "Required G1 now covers 101 top-level round trips, including 21 final-output cases for all visualization modes, availability fallbacks and four AA modes. It independently consumes decoded routes through the supplied executor and proves missing motion-blur bindings fail before GPU recording. Four focused tests and all six gate-runner tests passed.",
-      "Fresh whole-corpus capture and full M2 G0/G1/G3 passed with 1819 exact required frames and all independent GPU suites. Generated schema and architecture documentation are synchronized. Dependencies, frozen reference images and tolerance profiles are unchanged.",
-      "M2-T12 remains in progress: this increment extracts final output routing, not depth/surface uniform preparation, auxiliary draw resources or motion reconstruction. Full root-frame capture and native preview/export are still pending."
+      "The first full verification passed G0/G1 but rejected isolated owner-main defects on frames 739 (four pixels, alpha damage) and 850 (eight pixels, RGB damage). Both were directly reviewed and rejected as structural; evidence remains in self_reviews and failed_attempts. An unchanged-source recapture matched all 300 owner frames exactly (artifacts/migration/cycle62-owner-repeat-analysis.json). Root cause remains unknown; this increment does not claim to fix the intermittent anomaly. A new full candidate and full verification are required for acceptance.",
+      "Added a closed motion-reconstruction FPLN slice in TS/Rust with exact binary shutter timing, ordered scene/vector/object-ID roles, observed ready/skipped status and owned 32-byte mixed f32/u32 GPU uniforms. Validators reject invalid dimensions, sample limits, nonfinite controls and nonzero padding.",
+      "Production vector reconstruction now consumes the supplied plan without consulting mutable settings. Captured skips remain skipped with healthy resources; missing attachments and mismatched allocation dimensions fail before GPU writes or render passes. Tile-max, neighbor-max and HDR reconstruction shaders and arithmetic are unchanged.",
+      "G1 covers 107 top-level round trips, including six reconstruction cases and four malformed motion payload rejections in both TS and Rust. The actual renderer is exercised with supplied bytes and pass ordering. All six gate-runner tests, three focused tests and final typecheck passed.",
+      "Fresh whole-corpus capture and full M2 G0/G1/G3 passed with 1819 exact required frames and all existing independent GPU suites. Schema and architecture documentation are synchronized; dependencies, references and tolerances are unchanged.",
+      "M2-T12 remains in progress for auxiliary draw identities, depth/surface controls and independent supplied replay of the complete output path. Full root-frame capture and native preview/export remain pending."
     ]
   },
   "milestones": [
@@ -16262,15 +16262,143 @@
                 "Fresh whole-corpus capture and full M2 G0/G1/G3 passed with 1819 exact required frames and all independent GPU suites. Generated schema and architecture documentation are synchronized. Dependencies, frozen reference images and tolerance profiles are unchanged.",
                 "M2-T12 remains in progress: this increment extracts final output routing, not depth/surface uniform preparation, auxiliary draw resources or motion reconstruction. Full root-frame capture and native preview/export are still pending."
               ]
+            },
+            {
+              "cycle": 62,
+              "status": "passed",
+              "commit": "68046d2642fc3793df5ab85eae430b6f3d076e47",
+              "verification": {
+                "path": "artifacts/migration/verify-2026-10-05T12-04-28-051Z-31596a00.json",
+                "sha256": "db39e56f47ec2c28c3b23ab5a19273cb589415343d06425ebe278e5cc3ab0aa2"
+              },
+              "pixel_comparison": {
+                "path": "artifacts/parity/ts-check/2026-10-05T12-05-59-163Z-cc1753e6/report.json",
+                "sha256": "ef733a3cee81475901223e51960dbde644805ed6264fe01dfc482a69447f8e26"
+              },
+              "capture": {
+                "path": "artifacts/parity/capture-2026-10-05T11-57-33-101Z-78181dbd.json",
+                "sha256": "e35b74247f53cb4a4ab67230d0e570e124a0ff855759bb11fc41c75f54a957b9"
+              },
+              "manifest": {
+                "path": "artifacts/parity/runs/2026-10-05T11-57-33-101Z-78181dbd/candidate/manifest.json",
+                "sha256": "f221c41feb73491dcee2be171d929ae7a923022fc73f9a3db45755d49e4d5a7f"
+              },
+              "renderer_source_sha256": "b06c2ac00b4e2d61121a2c75354de47303e2d67edc7e6d76794f5157506aba8a",
+              "bridge_sha256": "82ccf02fefd4c54e78a82a4de08df6906714ecd0b198864ec72cb0c0394dd80c",
+              "temporal_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T12-05-59-163Z-cc1753e6/temporal-text/gpu.json",
+                "sha256": "0394fcc8b16ce524861fa683cdf995e6f7478852ad555dcd028c20e4b5df427a"
+              },
+              "temporal_reference": {
+                "path": "tests/parity/temporal-text/reference/manifest.json",
+                "sha256": "e3e3b1184d5bc969dcd5cf76a424a551a0cac1a85484e157c5b549e5d6c811d1"
+              },
+              "encoded_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T12-05-59-163Z-cc1753e6/encoded-textures/gpu.json",
+                "sha256": "9028f092c712475018d1db0dfb7122b7e5704ff3ac8c8b82ecaa4b950963c872"
+              },
+              "encoded_reference": {
+                "path": "tests/parity/material-textures/legacy-upload.ts",
+                "sha256": "508c2ad47f5a3f6e18069ce070e0ee0133668074bf81309a9144180f532f2498"
+              },
+              "material_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T12-05-59-163Z-cc1753e6/material-draw/gpu.json",
+                "sha256": "26fbad56513b96310770da0538c5ac89d791322886d4d66134972714e0cdfe58"
+              },
+              "material_reference": {
+                "path": "tests/parity/material-draw/reference/manifest.json",
+                "sha256": "06debe986bca2118a9d4a07f5cc36a31b3926398f95d582e25f90ceabc21bc6e"
+              },
+              "material_implementation": {
+                "path": "tests/parity/material-draw/legacy-bindings.ts",
+                "sha256": "ff838daeb3950e90d263504007836d900060e9a2ff1ddb30e706a76d0a011d79"
+              },
+              "lut_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T12-05-59-163Z-cc1753e6/lut-draw/gpu.json",
+                "sha256": "b80c09bbf0624b5c7d0f0147dedaafba3356c689451337bbbe2524e12d32c7a4"
+              },
+              "lut_reference": {
+                "path": "tests/parity/lut-draw/reference/manifest.json",
+                "sha256": "2e026afbad6143b822f38490650920003d0ad53705d705d1f2c206f05f181d59"
+              },
+              "lut_implementation": {
+                "path": "tests/parity/lut-draw/legacy-effects.ts",
+                "sha256": "999fb67e09a07322e7d8d9ea2c58a0442d7d5377f0cd1029eeab16e29f714a0b"
+              },
+              "root_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T12-05-59-163Z-cc1753e6/root-scene/gpu.json",
+                "sha256": "049b9b48a98a31f1a1460658b136474b8fdfd78cbbb81411893661509599cfe0"
+              },
+              "root_reference": {
+                "path": "tests/parity/root-scene/reference/manifest.json",
+                "sha256": "4c5b2ffd5828db24f929f1bcc350a4a7e7c75be05cb65b9bbe2b4c48eaba267f"
+              },
+              "root_implementation": {
+                "path": "tests/parity/root-scene/legacy-execute.ts",
+                "sha256": "22b0f40e52a5c330646a7fe4a581aaacd6de2db225c4030f1cdd658177d52e8a"
+              },
+              "generator_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T12-05-59-163Z-cc1753e6/generators/gpu.json",
+                "sha256": "ee372f72a9560059fe4dd8f8ab18c040e2ef6cadcaa5cc7249278e95de347dbf"
+              },
+              "generator_reference": {
+                "path": "tests/parity/generators-replay/reference/manifest.json",
+                "sha256": "a573fe3ababaa0f207eed4a0a6d11a4269ee90a877a244c1f8abed9fdbbfce09"
+              },
+              "generator_implementation": {
+                "path": "tests/parity/generators-replay/legacy-host.ts",
+                "sha256": "e458d028ca20002b7e7379f9daf9d5ca0a0f0960a3676dd3e0153e5ce19c8392"
+              },
+              "precomposition_media_reference": {
+                "path": "tests/parity/precomposition-replay/reference/media-manifest.json",
+                "sha256": "46b095b3e2fa862eef2d2d2860a3a78824fb3e42fc0836ac705f8c91f493240a"
+              },
+              "precomposition_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T12-05-59-163Z-cc1753e6/precomposition/gpu.json",
+                "sha256": "4aa2af42926134a34ea38a4216eff7e3c87fc58d106a519d6abe275c40340861"
+              },
+              "precomposition_reference": {
+                "path": "tests/parity/precomposition-replay/reference/manifest.json",
+                "sha256": "b0e3a9edb52e73c46f67331b4b1634d6584b02a842f96140f588863460e4ca97"
+              },
+              "precomposition_implementation": {
+                "path": "tests/parity/precomposition-replay/legacy-surface.ts",
+                "sha256": "f8cd1bd48ef8c40cac361ef50900defef58d38bd988b5983972cd44cc4b5a90b"
+              },
+              "gates": [
+                {
+                  "id": "G0",
+                  "status": "passed",
+                  "duration_ms": 80985
+                },
+                {
+                  "id": "G1",
+                  "status": "passed",
+                  "duration_ms": 9411
+                },
+                {
+                  "id": "G3",
+                  "status": "passed",
+                  "duration_ms": 335115
+                }
+              ],
+              "notes": [
+                "The first full verification passed G0/G1 but rejected isolated owner-main defects on frames 739 (four pixels, alpha damage) and 850 (eight pixels, RGB damage). Both were directly reviewed and rejected as structural; evidence remains in self_reviews and failed_attempts. An unchanged-source recapture matched all 300 owner frames exactly (artifacts/migration/cycle62-owner-repeat-analysis.json). Root cause remains unknown; this increment does not claim to fix the intermittent anomaly. A new full candidate and full verification are required for acceptance.",
+                "Added a closed motion-reconstruction FPLN slice in TS/Rust with exact binary shutter timing, ordered scene/vector/object-ID roles, observed ready/skipped status and owned 32-byte mixed f32/u32 GPU uniforms. Validators reject invalid dimensions, sample limits, nonfinite controls and nonzero padding.",
+                "Production vector reconstruction now consumes the supplied plan without consulting mutable settings. Captured skips remain skipped with healthy resources; missing attachments and mismatched allocation dimensions fail before GPU writes or render passes. Tile-max, neighbor-max and HDR reconstruction shaders and arithmetic are unchanged.",
+                "G1 covers 107 top-level round trips, including six reconstruction cases and four malformed motion payload rejections in both TS and Rust. The actual renderer is exercised with supplied bytes and pass ordering. All six gate-runner tests, three focused tests and final typecheck passed.",
+                "Fresh whole-corpus capture and full M2 G0/G1/G3 passed with 1819 exact required frames and all existing independent GPU suites. Schema and architecture documentation are synchronized; dependencies, references and tolerances are unchanged.",
+                "M2-T12 remains in progress for auxiliary draw identities, depth/surface controls and independent supplied replay of the complete output path. Full root-frame capture and native preview/export remain pending."
+              ]
             }
           ],
           "remaining_work": [
             "Extract auxiliary draw resource identities and supplied attachment decisions.",
-            "Capture motion vectors, shutter/frame position and motion reconstruction controls.",
-            "Serialize depth/surface uniforms, source routing and selection controls; verify independent supplied execution."
+            "Serialize depth/surface uniforms, source routing and selection controls.",
+            "Verify independent GPU execution of supplied auxiliary, motion, depth/surface and final output plans."
           ],
-          "commit": "73944f6534607500253a631c37887b57fd6f756f",
-          "verification": "artifacts/migration/verify-2026-10-05T11-18-13-108Z-bd496f41.json",
+          "commit": "68046d2642fc3793df5ab85eae430b6f3d076e47",
+          "verification": "artifacts/migration/verify-2026-10-05T12-04-28-051Z-31596a00.json",
           "failed_attempts": [
             {
               "cycle": 62,
@@ -16388,7 +16516,7 @@
       ],
       "preview_baseline_path": "benchmarks/results/m2-preview-baseline.json",
       "preview_baseline_sha256": "a1c62e224c008e731c252142ab1b9de7d31ecf592452c00da1dff42516772375",
-      "active_candidate_manifest": "artifacts/parity/runs/2026-10-05T11-11-41-802Z-2579ca05/candidate/manifest.json",
+      "active_candidate_manifest": "artifacts/parity/runs/2026-10-05T11-57-33-101Z-78181dbd/candidate/manifest.json",
       "last_verification": {
         "status": "passed",
         "required_gates_passed": true,
@@ -16397,17 +16525,17 @@
           {
             "id": "G0",
             "status": "passed",
-            "duration_ms": 80936
+            "duration_ms": 80985
           },
           {
             "id": "G1",
             "status": "passed",
-            "duration_ms": 8976
+            "duration_ms": 9411
           },
           {
             "id": "G3",
             "status": "passed",
-            "duration_ms": 336529
+            "duration_ms": 335115
           }
         ],
         "optional_gates": [
@@ -16418,7 +16546,7 @@
           }
         ],
         "performance_policy": "rust-delivery-v1",
-        "report": "artifacts/migration/verify-2026-10-05T11-18-13-108Z-bd496f41.json"
+        "report": "artifacts/migration/verify-2026-10-05T12-04-28-051Z-31596a00.json"
       },
       "performance_series_history": [
         {
@@ -17883,11 +18011,5 @@
       }
     }
   ],
-  "active_cycle": {
-    "id": 62,
-    "milestone": "M2",
-    "task": "M2-T12",
-    "started_at": "2026-10-05T11:29:47.945Z",
-    "intent": "Capture motion reconstruction uniforms, exact shutter timing and observed availability in typed plans consumed by the existing GPU renderer."
-  }
+  "active_cycle": null
 }
