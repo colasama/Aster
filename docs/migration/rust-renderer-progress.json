@@ -111,40 +111,39 @@
     }
   },
   "last_cycle": {
-    "id": 49,
-    "time": "2026-10-05T05:46:28.705Z",
+    "id": 50,
+    "time": "2026-10-05T06:03:13.395Z",
     "milestone": "M2",
     "task": "M2-T10",
     "outcome": "passed",
-    "commit": "ab5255e6edae06a2722efa7c4c0750e4c0b88ccd",
-    "verification": "artifacts/migration/verify-2026-10-05T05-39-27-509Z-94806455.json",
-    "verification_sha256": "54b45bfbf167292ddde6301c5527f94afef21e5fc36df28c32ab5cf42b761b57",
+    "commit": "2515c73a710c0151230c718429d4a833431b5452",
+    "verification": "artifacts/migration/verify-2026-10-05T05-55-47-300Z-3db86d6e.json",
+    "verification_sha256": "a9e4a577266ecbc411d2f7c1626fea687d9700580c8ccad155c56344a398c834",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 75075
+        "duration_ms": 74483
       },
       {
         "id": "G1",
         "status": "passed",
-        "duration_ms": 6386
+        "duration_ms": 6827
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 302471
+        "duration_ms": 324395
       }
     ],
-    "verification_duration_ms": 385218,
-    "next_step": "Continue M2-T10: independently GPU-replay Rust-returned generator plans and shader/audio resources.",
+    "verification_duration_ms": 407092,
+    "next_step": "Start M2-T11: extract recursive precomposition plans and surface-cache descriptors.",
     "notes": [
-      "The first full verification failed only an outdated nested-generator call assertion after the frame header was added (artifacts/migration/verify-2026-10-05T05-32-01-503Z-2222ebcf.json). Its G1/G3 passed. The assertion now checks the actual nested composition identity, revision, time and dimensions; the focused precomposition tests and second complete verification passed. Production renderer and bridge hashes stayed unchanged, so the candidate capture was reused.",
-      "Added scene_generator_slice_v1 with a single invocation/program record and one 2272-byte ABI blob, extended to 11552 bytes when root-time audio is present. Metadata carries UTF-16-safe identities, executable shader references, entry points, workgroups, variants, counts, capacity and explicit dispatch triples. No authoring selector, parameter schema or GPU handle is serialized.",
-      "TS and Rust validate graph bounds, the exact shader reference set, variant/capacity/count/dispatch consistency, audio capability and embedded context/indirect counts. Unknown fields are rejected; non-count ABI lanes preserve all bits. Runtime cache identities derive from decoded executable data; WGSL content uses the existing hash-validated buffer resource protocol.",
-      "Production root and precomposition adapters now build/read generator FPLN data before GPU realization, using their actual snapshot/target/time headers. G1 transports billboard, cloned mesh/LOD and capability-enabled audio fixtures through the Rust CLI; two shader resources and all actual consumer uploads/dispatches are exact. Modified supplied parameters alter execution, and missing shaders or mismatched count payloads are rejected.",
-      "G1 now covers 76 FPLN round trips; Rust IR has 35 unit tests. Seventeen focused TS tests, the actual CLI diagnostic and full G0/G1/G3 passed, including 1819 exact corpus frames and all independent temporal/texture/material/LUT/root replays.",
-      "M2-T10 remains in progress until generator plans returned by Rust are independently GPU-replayed with particles/audio/cloner coverage. Complete frame capture and native preview/export delivery remain open."
+      "Added mandatory independent generator GPU replay to M2 G3. The retained pre-extraction host at d4a6a4db0e28c3108e590bda45c19a2876d5df1b has only import-path/formatting adaptations. Seven 128x96 RGBA16F reference cases were captured separately, then frozen and hash-pinned before replay.",
+      "Billboard, streak, mesh, dual-clone and actual installed audio-spectrum bars/ring/scope cases send eight FPLN plans and four WGSL resources through the Rust CLI. A fresh page/device with no installed generator registry consumes only returned plans/resources and exactly reproduces the reference bytes. Root-time audio at 1.1 s stays distinct from composition time 1.5 s and remapped local time 1 s.",
+      "Fifteen mutations prove GPU data consumption: skipping compute, changing supplied opacity, clearing signal audio and removing a clone visibly change more than 16 pixels. G3 audits decoded plans, content hashes, frozen implementation/pixels and mutation artifacts rather than trusting summary flags.",
+      "The integrated failure-injection check initially needed its new generator error branch added; the focused seven-test suite then passed. Full G0/G1/G3 passed with 76 G1 FPLN round trips, all independent GPU replays and 1819 exact corpus frames. Production renderer and bridge hashes remained unchanged, so the previous full candidate capture was reused.",
+      "M2-T10 is complete across planning, executable resource validation, FPLN transport and independent replay. M2 overall remains in progress: recursive surfaces, auxiliary/output planning, complete frame capture/replay and native preview/export are not delivered."
     ]
   },
   "milestones": [
@@ -14605,7 +14604,7 @@
             "Exact particles/audio/cloner cases and preserved source-index ordering; no PreparedSceneGenerator handle in plan."
           ],
           "required_full_gates": ["G0", "G1", "G3"],
-          "status": "in_progress",
+          "status": "done",
           "increments": [
             {
               "cycle": 48,
@@ -14805,11 +14804,122 @@
                 "G1 now covers 76 FPLN round trips; Rust IR has 35 unit tests. Seventeen focused TS tests, the actual CLI diagnostic and full G0/G1/G3 passed, including 1819 exact corpus frames and all independent temporal/texture/material/LUT/root replays.",
                 "M2-T10 remains in progress until generator plans returned by Rust are independently GPU-replayed with particles/audio/cloner coverage. Complete frame capture and native preview/export delivery remain open."
               ]
+            },
+            {
+              "cycle": 50,
+              "status": "passed",
+              "commit": "2515c73a710c0151230c718429d4a833431b5452",
+              "verification": {
+                "path": "artifacts/migration/verify-2026-10-05T05-55-47-300Z-3db86d6e.json",
+                "sha256": "a9e4a577266ecbc411d2f7c1626fea687d9700580c8ccad155c56344a398c834"
+              },
+              "pixel_comparison": {
+                "path": "artifacts/parity/ts-check/2026-10-05T05-57-09-299Z-7f0ec209/report.json",
+                "sha256": "97c52135fca50dc3d652573fff914081961cc8c4d3cd560186d355c8f81522df"
+              },
+              "capture": {
+                "path": "artifacts/parity/capture-2026-10-05T05-25-55-482Z-c8928f1d.json",
+                "sha256": "8b3dc7b0d02f4dfb3bc40fefd106c95c522ac6f2c3315ae15d1514a22a6ffb28"
+              },
+              "manifest": {
+                "path": "artifacts/parity/runs/2026-10-05T05-25-55-482Z-c8928f1d/candidate/manifest.json",
+                "sha256": "0e9a8eb0f7ceaeb73dca7cf70d52f7e6dff2183f3140d209b136ae68bf2fb3e9"
+              },
+              "renderer_source_sha256": "0b6ed24310eb08c4e4cf5e03ef01e5d9149eeec5d97461d873e2fbed67067b51",
+              "bridge_sha256": "82ccf02fefd4c54e78a82a4de08df6906714ecd0b198864ec72cb0c0394dd80c",
+              "temporal_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T05-57-09-299Z-7f0ec209/temporal-text/gpu.json",
+                "sha256": "140a03d622fdaee4547cdaed25ec160df0f881548c2ac5c6a06f22378f95f543"
+              },
+              "temporal_reference": {
+                "path": "tests/parity/temporal-text/reference/manifest.json",
+                "sha256": "e3e3b1184d5bc969dcd5cf76a424a551a0cac1a85484e157c5b549e5d6c811d1"
+              },
+              "encoded_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T05-57-09-299Z-7f0ec209/encoded-textures/gpu.json",
+                "sha256": "9028f092c712475018d1db0dfb7122b7e5704ff3ac8c8b82ecaa4b950963c872"
+              },
+              "encoded_reference": {
+                "path": "tests/parity/material-textures/legacy-upload.ts",
+                "sha256": "508c2ad47f5a3f6e18069ce070e0ee0133668074bf81309a9144180f532f2498"
+              },
+              "material_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T05-57-09-299Z-7f0ec209/material-draw/gpu.json",
+                "sha256": "26fbad56513b96310770da0538c5ac89d791322886d4d66134972714e0cdfe58"
+              },
+              "material_reference": {
+                "path": "tests/parity/material-draw/reference/manifest.json",
+                "sha256": "06debe986bca2118a9d4a07f5cc36a31b3926398f95d582e25f90ceabc21bc6e"
+              },
+              "material_implementation": {
+                "path": "tests/parity/material-draw/legacy-bindings.ts",
+                "sha256": "ff838daeb3950e90d263504007836d900060e9a2ff1ddb30e706a76d0a011d79"
+              },
+              "lut_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T05-57-09-299Z-7f0ec209/lut-draw/gpu.json",
+                "sha256": "b80c09bbf0624b5c7d0f0147dedaafba3356c689451337bbbe2524e12d32c7a4"
+              },
+              "lut_reference": {
+                "path": "tests/parity/lut-draw/reference/manifest.json",
+                "sha256": "2e026afbad6143b822f38490650920003d0ad53705d705d1f2c206f05f181d59"
+              },
+              "lut_implementation": {
+                "path": "tests/parity/lut-draw/legacy-effects.ts",
+                "sha256": "999fb67e09a07322e7d8d9ea2c58a0442d7d5377f0cd1029eeab16e29f714a0b"
+              },
+              "root_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T05-57-09-299Z-7f0ec209/root-scene/gpu.json",
+                "sha256": "049b9b48a98a31f1a1460658b136474b8fdfd78cbbb81411893661509599cfe0"
+              },
+              "root_reference": {
+                "path": "tests/parity/root-scene/reference/manifest.json",
+                "sha256": "4c5b2ffd5828db24f929f1bcc350a4a7e7c75be05cb65b9bbe2b4c48eaba267f"
+              },
+              "root_implementation": {
+                "path": "tests/parity/root-scene/legacy-execute.ts",
+                "sha256": "22b0f40e52a5c330646a7fe4a581aaacd6de2db225c4030f1cdd658177d52e8a"
+              },
+              "generator_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T05-57-09-299Z-7f0ec209/generators/gpu.json",
+                "sha256": "ee372f72a9560059fe4dd8f8ab18c040e2ef6cadcaa5cc7249278e95de347dbf"
+              },
+              "generator_reference": {
+                "path": "tests/parity/generators-replay/reference/manifest.json",
+                "sha256": "a573fe3ababaa0f207eed4a0a6d11a4269ee90a877a244c1f8abed9fdbbfce09"
+              },
+              "generator_implementation": {
+                "path": "tests/parity/generators-replay/legacy-host.ts",
+                "sha256": "e458d028ca20002b7e7379f9daf9d5ca0a0f0960a3676dd3e0153e5ce19c8392"
+              },
+              "gates": [
+                {
+                  "id": "G0",
+                  "status": "passed",
+                  "duration_ms": 74483
+                },
+                {
+                  "id": "G1",
+                  "status": "passed",
+                  "duration_ms": 6827
+                },
+                {
+                  "id": "G3",
+                  "status": "passed",
+                  "duration_ms": 324395
+                }
+              ],
+              "notes": [
+                "Added mandatory independent generator GPU replay to M2 G3. The retained pre-extraction host at d4a6a4db0e28c3108e590bda45c19a2876d5df1b has only import-path/formatting adaptations. Seven 128x96 RGBA16F reference cases were captured separately, then frozen and hash-pinned before replay.",
+                "Billboard, streak, mesh, dual-clone and actual installed audio-spectrum bars/ring/scope cases send eight FPLN plans and four WGSL resources through the Rust CLI. A fresh page/device with no installed generator registry consumes only returned plans/resources and exactly reproduces the reference bytes. Root-time audio at 1.1 s stays distinct from composition time 1.5 s and remapped local time 1 s.",
+                "Fifteen mutations prove GPU data consumption: skipping compute, changing supplied opacity, clearing signal audio and removing a clone visibly change more than 16 pixels. G3 audits decoded plans, content hashes, frozen implementation/pixels and mutation artifacts rather than trusting summary flags.",
+                "The integrated failure-injection check initially needed its new generator error branch added; the focused seven-test suite then passed. Full G0/G1/G3 passed with 76 G1 FPLN round trips, all independent GPU replays and 1819 exact corpus frames. Production renderer and bridge hashes remained unchanged, so the previous full candidate capture was reused.",
+                "M2-T10 is complete across planning, executable resource validation, FPLN transport and independent replay. M2 overall remains in progress: recursive surfaces, auxiliary/output planning, complete frame capture/replay and native preview/export are not delivered."
+              ]
             }
           ],
-          "remaining_work": [
-            "Replay Rust-returned generator plans/resources on an independent GPU device, with exact particles/audio/cloner coverage and supplied-command evidence."
-          ]
+          "remaining_work": [],
+          "commit": "2515c73a710c0151230c718429d4a833431b5452",
+          "verification": "artifacts/migration/verify-2026-10-05T05-55-47-300Z-3db86d6e.json"
         },
         {
           "id": "M2-T11",
@@ -14955,17 +15065,17 @@
           {
             "id": "G0",
             "status": "passed",
-            "duration_ms": 75075
+            "duration_ms": 74483
           },
           {
             "id": "G1",
             "status": "passed",
-            "duration_ms": 6386
+            "duration_ms": 6827
           },
           {
             "id": "G3",
             "status": "passed",
-            "duration_ms": 302471
+            "duration_ms": 324395
           }
         ],
         "optional_gates": [
@@ -14976,7 +15086,7 @@
           }
         ],
         "performance_policy": "rust-delivery-v1",
-        "report": "artifacts/migration/verify-2026-10-05T05-39-27-509Z-94806455.json"
+        "report": "artifacts/migration/verify-2026-10-05T05-55-47-300Z-3db86d6e.json"
       },
       "performance_series_history": [
         {
@@ -16335,16 +16445,5 @@
       }
     }
   ],
-  "active_cycle": {
-    "id": 50,
-    "started_at": "2026-10-05T05:47:50.729Z",
-    "milestone": "M2",
-    "task": "M2-T10",
-    "intent": "Independently GPU-replay Rust-returned generator plans and shader/audio resources against retained pre-extraction execution, with visible mutation evidence.",
-    "previous_turn": "progress: generator FPLN transport committed with full G0/G1/G3 passed.",
-    "usage": {
-      "used_percent": 31,
-      "remaining_percent": 69
-    }
-  }
+  "active_cycle": null
 }
