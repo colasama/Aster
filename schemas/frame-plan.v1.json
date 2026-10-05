@@ -1324,11 +1324,29 @@
         "instance_id": {
           "$ref": "#/$defs/CompositionIdentity"
         },
+        "layer_name_utf16": {
+          "items": {
+            "format": "uint16",
+            "maximum": 65535,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "type": "array"
+        },
         "plan": {
           "$ref": "#/$defs/ResourceHash"
+        },
+        "plugin_id_utf16": {
+          "items": {
+            "format": "uint16",
+            "maximum": 65535,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "type": "array"
         }
       },
-      "required": ["instance_id", "plan"],
+      "required": ["instance_id", "plan", "layer_name_utf16", "plugin_id_utf16"],
       "type": "object"
     },
     "PrecompositionSceneRecord": {

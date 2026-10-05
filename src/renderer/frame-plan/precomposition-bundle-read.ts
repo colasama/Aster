@@ -209,7 +209,15 @@ export function readPrecompositionBundle(
         "invalid_precomposition",
         "Bundled generator identity differs",
       );
-      return { instanceId: decoded.instanceId, plan, shaders };
+      return {
+        instanceId: decoded.instanceId,
+        plan,
+        shaders,
+        origin: {
+          layerName: readUtf16Text(record.layer_name_utf16),
+          pluginId: readUtf16Text(record.plugin_id_utf16),
+        },
+      };
     });
     for (const command of root.commands) {
       if (command.kind === "begin_layer" || command.kind === "adjustment")

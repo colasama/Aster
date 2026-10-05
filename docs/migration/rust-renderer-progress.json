@@ -17008,5 +17008,16 @@
       }
     }
   ],
-  "active_cycle": null
+  "active_cycle": {
+    "id": 56,
+    "started_at": "2026-10-05T08:13:34.682Z",
+    "milestone": "M2",
+    "task": "M2-T11",
+    "intent": "Realize nested generators once from decoded bundles and preserve explicit failure skips without authoring access.",
+    "previous_turn": "progress: cycle 55 committed CPU recursive evaluation with full required gates green.",
+    "usage": {
+      "used_percent": 38,
+      "remaining_percent": 62
+    }
+  }
 }

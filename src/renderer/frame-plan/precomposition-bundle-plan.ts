@@ -78,6 +78,8 @@ export function buildPrecompositionBundle(
         return {
           instance_id: identity(generator.instanceId),
           plan: resources.addPlan(generator.plan),
+          layer_name_utf16: utf16Text(generator.origin.layerName),
+          plugin_id_utf16: utf16Text(generator.origin.pluginId),
         };
       }),
     });

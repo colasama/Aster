@@ -44,6 +44,7 @@ export interface PrecompositionScenePlan {
   effects: Map<string, PreparedLayerEffect>;
   generators: {
     instanceId: string;
+    origin: { layerName: string; pluginId: string };
     plan: FramePlanSliceData;
     shaders: GeneratorShaderResource[];
   }[];
@@ -110,10 +111,15 @@ export function buildPrecompositionScenePlan(input: {
     commands,
     draws,
     effects,
-    generators: input.generators.map((p) => ({
-      instanceId: p.instanceId,
-      plan: buildGeneratorSlice(generatorHeader, p),
-      shaders: structuredClone(p.program.shaders),
-    })),
+    generators: input.generators.map((p) => {
+      const source = input.layers.find((s) => s.instanceId === p.instanceId);
+      if (!source) throw new Error("Generator diagnostic origin is absent");
+      return {
+        instanceId: p.instanceId,
+        origin: { layerName: source.layer.name, pluginId: source.layer.generator?.pluginId ?? "" },
+        plan: buildGeneratorSlice(generatorHeader, p),
+        shaders: structuredClone(p.program.shaders),
+      };
+    }),
   };
 }

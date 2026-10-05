@@ -32,6 +32,8 @@ pub enum PrecompositionEffectRecord {
 pub struct PrecompositionGeneratorRecord {
     pub instance_id: CompositionIdentity,
     pub plan: ResourceHash,
+    pub layer_name_utf16: Vec<u16>,
+    pub plugin_id_utf16: Vec<u16>,
 }
 #[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
@@ -134,6 +136,13 @@ impl PrecompositionBundleSlice {
                 references.push(execution);
             }
             for generator in &scene.generators {
+                if generator.layer_name_utf16.len() > 65_536
+                    || generator.plugin_id_utf16.len() > 65_536
+                {
+                    return Err(IrError::InvalidPrecomposition(
+                        "bundle generator origin".to_owned(),
+                    ));
+                }
                 if generators
                     .insert(identity(&generator.instance_id)?, ())
                     .is_some()

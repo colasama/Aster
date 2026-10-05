@@ -2,6 +2,7 @@ import type { BlendMode } from "../../core/types";
 import type { LayerEffectRenderer } from "../effects/layer-effects";
 import { requirePlan } from "../frame-plan/canonical";
 import type { PreparedSceneGenerator, SceneGeneratorHost } from "../scene/scene-generator-host";
+import { omitUnavailableGenerators } from "./precomposition-generator-availability";
 import {
   type PrecompositionMediaBindings,
   resolvePrecompositionSceneMedia,
@@ -20,7 +21,7 @@ export function executePrecompositionScene(input: {
   plan: PrecompositionScenePlan;
   encoder: GPUCommandEncoder;
   targets: ReadonlyMap<string, PrecompositionExecutionTarget>;
-  generators: ReadonlyMap<string, PreparedSceneGenerator>;
+  generators: ReadonlyMap<string, PreparedSceneGenerator | null>;
   host?: SceneGeneratorHost;
   media: PrecompositionMediaBindings;
   surfacePipelines: Record<BlendMode, GPURenderPipeline>;
@@ -38,10 +39,19 @@ export function executePrecompositionScene(input: {
         "Precomposition child target is absent",
       );
   const mediaBindings = resolvePrecompositionSceneMedia(plan, input.media);
-  const generators = plan.generators.map((p) => {
+  const unavailable = new Set<string>();
+  const generators = plan.generators.flatMap((p) => {
     const prepared = input.generators.get(p.instanceId);
-    requirePlan(prepared && input.host, "missing_resource", "Precomposition generator is absent");
-    return prepared;
+    requirePlan(
+      prepared !== undefined && input.host,
+      "missing_resource",
+      "Precomposition generator is absent",
+    );
+    if (prepared === null) {
+      unavailable.add(p.instanceId);
+      return [];
+    }
+    return [prepared];
   });
   if (generators.length) {
     const compute = encoder.beginComputePass({
@@ -52,7 +62,7 @@ export function executePrecompositionScene(input: {
   }
   let pass: GPURenderPassEncoder | undefined, layerId: string | undefined;
   const active = new Set<string>();
-  for (const command of plan.commands)
+  for (const command of omitUnavailableGenerators(plan.commands, unavailable))
     switch (command.kind) {
       case "begin_scene": {
         requirePlan(!pass, "invalid_root_scene", "Precomposition passes overlap");

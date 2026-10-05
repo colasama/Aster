@@ -106,7 +106,7 @@ export class PrecompositionSurfaceRenderer {
   readonly #shadowSampler: GPUSampler;
   readonly #entries = new Map<string, SurfaceEntry>();
   readonly #bindings = new Map<string, string>();
-  readonly #generators = new Map<string, PreparedSceneGenerator>();
+  readonly #generators = new Map<string, PreparedSceneGenerator | null>();
   readonly #mediaInstanceIds = new Set<string>();
   #jobs: PrecompositionSceneInputs[] = [];
   #project?: Project;
@@ -231,7 +231,10 @@ export class PrecompositionSurfaceRenderer {
           generator.plan,
           new Map(generator.shaders.map((s) => [s.message.hash, s])),
         );
-        this.#generators.set(generator.instanceId, this.#sceneGenerators.preparePlan(invocation));
+        this.#generators.set(
+          generator.instanceId,
+          this.#sceneGenerators.preparePlanned(invocation, generator.origin) ?? null,
+        );
       }
     }
     return decoded.plans;
@@ -302,15 +305,6 @@ export class PrecompositionSurfaceRenderer {
     } = evaluatePrecompositionGeometry(source, (id) => this.#mediaTextures.textBounds(id));
     diagnostics.push(...sceneDiagnostics);
     const effects = this.#prepareEffects(entry, source.composition, childLayers, source.time);
-    const generatorHeader = buildFrameHeader({
-      snapshot: { snapshotScope: "precomposition-generators", projectRevision: this.#revision },
-      compositionId: source.composition.id,
-      time: source.time,
-      frameRate: source.composition.frameRate,
-      target: { width: source.composition.width, height: source.composition.height },
-      renderTarget: { width: entry.width, height: entry.height },
-      antiAliasing: "off",
-    });
     const generators: SceneGeneratorPlan[] = [];
     if (this.#sceneGenerators)
       for (const child of childLayers) {
@@ -324,13 +318,6 @@ export class PrecompositionSurfaceRenderer {
           camera,
         );
         if (!planned) continue;
-        const prepared = this.#sceneGenerators.preparePlanned(
-          planned,
-          { layerName: child.layer.name, pluginId: child.layer.generator?.pluginId ?? "" },
-          generatorHeader,
-        );
-        if (!prepared) continue;
-        this.#generators.set(planned.instanceId, prepared);
         generators.push(planned);
       }
     const job = buildPrecompositionScenePlan({

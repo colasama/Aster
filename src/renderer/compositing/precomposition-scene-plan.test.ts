@@ -5,12 +5,14 @@ import { flattenSceneLayers } from "../../core/scene/scene-evaluation";
 import { BLEND_MODES, type BlendMode } from "../../core/types";
 import { prepareLayerEffects } from "../effects/layer-effect-plan";
 import { decodeFramePlan, encodeFramePlan } from "../frame-plan/codec";
+import { generatorFixtures } from "../frame-plan/generator-fixture";
 import { buildFrameHeader } from "../frame-plan/root-post-plan";
 import { prepareSceneBuffers } from "../frame-plan/scene-buffer-upload";
 import { buildSceneGeometry } from "../geometry/geometry";
 import { LutSelectionPlanner } from "../media/lut-selection-plan";
 import { MediaBindingLease } from "../media/media-binding-lease";
 import { destroyMediaResource, type MediaResource } from "../media/media-resource";
+import type { SceneGeneratorHost } from "../scene/scene-generator-host";
 import { buildSceneLighting } from "../scene/scene-lighting";
 import {
   executePrecompositionScene,
@@ -126,6 +128,30 @@ function executor(plan: ReturnType<typeof fixture>["plan"]) {
   return { input, pass, passes };
 }
 describe("owned precomposition scene plans", () => {
+  it("rejects absent generator realization but allows an explicit failed realization", () => {
+    const f = fixture();
+    const generator = generatorFixtures()[0];
+    const id = generator.generator.instanceId;
+    f.plan.generators = [
+      {
+        instanceId: id,
+        plan: generator.plan,
+        shaders: generator.generator.program.shaders,
+        origin: { layerName: "failed generator", pluginId: "plugin" },
+      },
+    ];
+    f.plan.commands.splice(1, 0, { kind: "generator", instanceId: id, blendMode: "normal" });
+    const e = executor(f.plan);
+    const host = { encodeCompute: vi.fn(), draw: vi.fn() } as unknown as SceneGeneratorHost;
+    expect(() => executePrecompositionScene({ ...e.input, host })).toThrow(
+      expect.objectContaining({ code: "missing_resource" }),
+    );
+    expect(e.passes).toEqual([]);
+    executePrecompositionScene({ ...e.input, host, generators: new Map([[id, null]]) });
+    expect(e.pass.draw).toHaveBeenCalledTimes(3);
+    expect(host.encodeCompute).not.toHaveBeenCalled();
+    expect(host.draw).not.toHaveBeenCalled();
+  });
   it("replays supplied media hashes while retaining a retired texture until submission releases it", () => {
     const f = fixture();
     const mediaDraw = f.inputs.draws.find((d) => d.texture.kind === "media");

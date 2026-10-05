@@ -17,7 +17,12 @@ export interface PrecompositionSceneRecord {
   commands: string;
   draw_count: number;
   effects: PrecompositionEffectRecord[];
-  generators: { instance_id: CompositionIdentity; plan: string }[];
+  generators: {
+    instance_id: CompositionIdentity;
+    plan: string;
+    layer_name_utf16: number[];
+    plugin_id_utf16: number[];
+  }[];
 }
 export interface PrecompositionBundleSlice {
   kind: "precomposition_bundle";
@@ -118,11 +123,18 @@ export function validatePrecompositionBundle(
       }
     }
     for (const value of scene.generators) {
-      const generator = object(value, ["instance_id", "plan"]),
+      const generator = object(value, [
+          "instance_id",
+          "plan",
+          "layer_name_utf16",
+          "plugin_id_utf16",
+        ]),
         id = compositionIdentityToString(generator.instance_id);
       requirePlan(!generators.has(id), "invalid_precomposition", "Duplicate bundled generator");
       generators.add(id);
       reference(generator.plan);
+      readUtf16Text(generator.layer_name_utf16);
+      readUtf16Text(generator.plugin_id_utf16);
     }
   }
   requirePlan(

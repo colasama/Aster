@@ -207,9 +207,12 @@ Media pixels remain owned by the shared frame lease. Recursive source-time evalu
 aliases, target budgeting, text shutter samples and ordered media requests are computed before
 GPU allocation. The CPU geometry evaluator consumes child layers and supplied raster bounds.
 The renderer realizes the ordered preparation operations, retaining cache pinning and child-first
-execution. Generator preparation still probes availability before packaging and realizes the
-decoded invocation afterward; extracting that availability boundary, independent recursive GPU
-replay and full-frame capture remain open.
+execution. Nested generator planning performs no preliminary GPU realization. After bundle
+validation, each invocation is realized once from decoded bytes; the bundle also preserves the
+layer/plugin diagnostic origin. Explicit realization failures omit the generator draw and any
+otherwise-empty isolated effect pass, retaining attachment clears and other draws. Missing
+realization records remain errors before GPU encoding. Independent recursive GPU replay and
+full-frame capture remain open.
 
 
 Shared WGSL includes output anti-aliasing, core scene variants, compositing, fused post-processing,

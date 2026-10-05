@@ -425,6 +425,7 @@ describe("GPU precomposition surfaces", () => {
     project.compositions.push(nested);
 
     renderer.prepare(project, flattenSceneLayers(root, project, 0), false);
+    expect(sceneGenerators.preparePlanned).not.toHaveBeenCalled();
     encodeSurfaces(renderer, mockEncoder(events));
 
     expect(sceneGenerators.plan).toHaveBeenCalledWith(
@@ -440,10 +441,14 @@ describe("GPU precomposition surfaces", () => {
     );
     expect(sceneGenerators.preparePlanned).toHaveBeenCalledOnce();
     const supplied = vi.mocked(sceneGenerators.preparePlanned).mock.calls[0][0];
-    expect(sceneGenerators.preparePlan).toHaveBeenCalledOnce();
-    const decoded = vi.mocked(sceneGenerators.preparePlan).mock.calls[0][0];
-    expect(decoded).toEqual(supplied);
-    expect(decoded.context).not.toBe(supplied.context);
+    expect(sceneGenerators.preparePlan).not.toHaveBeenCalled();
+    const planned = vi.mocked(sceneGenerators.plan).mock.results[0].value;
+    expect(supplied).toEqual(planned);
+    expect(supplied.context).not.toBe(planned.context);
+    expect(vi.mocked(sceneGenerators.preparePlanned).mock.calls[0][1]).toEqual({
+      layerName: generator.name,
+      pluginId: generator.generator?.pluginId,
+    });
     expect(supplied.effectiveCount).toBe(64);
     expect(
       new Float32Array(supplied.context.buffer, supplied.context.byteOffset, 4).slice(0, 4),
@@ -457,11 +462,17 @@ describe("GPU precomposition surfaces", () => {
     expect(events).toEqual(
       expect.arrayContaining([expect.stringMatching(/^pass:Fused layer effects .*surface:/)]),
     );
+    const eventCount = events.length;
     vi.mocked(sceneGenerators.preparePlanned).mockReturnValueOnce(undefined);
     renderer.prepare(project, flattenSceneLayers(root, project, 0), false);
     encodeSurfaces(renderer, mockEncoder(events));
     expect(sceneGenerators.encodeCompute).toHaveBeenCalledOnce();
     expect(sceneGenerators.draw).toHaveBeenCalledOnce();
+    expect(
+      events
+        .slice(eventCount)
+        .some((e) => e.startsWith("pass:Layer source") || e.startsWith("pass:Fused layer effects")),
+    ).toBe(false);
   });
 
   it("uses the isolated surface scale and namespaced exact-time plan for animated text", () => {
