@@ -211,8 +211,12 @@ execution. Nested generator planning performs no preliminary GPU realization. Af
 validation, each invocation is realized once from decoded bytes; the bundle also preserves the
 layer/plugin diagnostic origin. Explicit realization failures omit the generator draw and any
 otherwise-empty isolated effect pass, retaining attachment clears and other draws. Missing
-realization records remain errors before GPU encoding. Independent recursive GPU replay and
-full-frame capture remain open.
+realization records remain errors before GPU encoding. A consumer can allocate targets and realize
+an owned bundle without an authoring media cache or source evaluation. Both production planning and
+supplied-bundle execution use the same decoded scene/generator upload boundary. Supplied bundles
+validate target identity, device dimensions and memory limits before allocation; all retained targets
+in the incoming frame are pinned before any entry can be recycled. Independent recursive GPU pixel
+replay and full-frame capture remain open.
 
 
 Shared WGSL includes output anti-aliasing, core scene variants, compositing, fused post-processing,

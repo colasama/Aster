@@ -5,6 +5,7 @@ import type { BlendMode, Composition, Project } from "../../core/types";
 import { BLEND_MODES } from "../../core/types";
 import { prepareLayerEffects } from "../effects/layer-effect-plan";
 import { LayerEffectRenderer } from "../effects/layer-effects";
+import { requirePlan } from "../frame-plan/canonical";
 import { readGeneratorSlice } from "../frame-plan/generator-plan";
 import { buildPrecompositionBundle } from "../frame-plan/precomposition-bundle-plan";
 import { readPrecompositionBundle } from "../frame-plan/precomposition-bundle-read";
@@ -76,8 +77,14 @@ export interface PrecompositionSurfaceFrame {
   mediaInstanceIds: ReadonlySet<string>;
 }
 
+export type PrecompositionBundle = ReturnType<typeof buildPrecompositionBundle>;
+interface PrecompositionBundleMedia extends PrecompositionMediaBindings {
+  hashFor(instanceId: string): string | null;
+  resourceMessages: readonly PutResource[];
+}
+
 interface SurfaceRendererOptions {
-  mediaTextures: MediaTextureCache;
+  mediaTextures?: MediaTextureCache;
   mediaLayout: GPUBindGroupLayout;
   mediaSampler: GPUSampler;
   lightingLayout: GPUBindGroupLayout;
@@ -94,7 +101,7 @@ interface SurfaceRendererOptions {
 export class PrecompositionSurfaceRenderer {
   readonly #directEffectPlanner = new LutSelectionPlanner();
   readonly #device: GPUDevice;
-  readonly #mediaTextures: MediaTextureCache;
+  readonly #mediaTextures?: MediaTextureCache;
   readonly #mediaLayout: GPUBindGroupLayout;
   readonly #mediaSampler: GPUSampler;
   readonly #lightingLayout: GPUBindGroupLayout;
@@ -145,6 +152,11 @@ export class PrecompositionSurfaceRenderer {
     enableTextMotionBlur = true,
     renderScale = 1,
   ): PrecompositionSurfaceFrame {
+    requirePlan(
+      this.#mediaTextures,
+      "missing_resource",
+      "Source preparation requires a media cache",
+    );
     this.#frame += 1;
     this.#byteLimit = precompositionSurfaceByteLimit(memoryBudgetMb, renderScale);
     if (this.#project !== project) {
@@ -167,6 +179,9 @@ export class PrecompositionSurfaceRenderer {
       renderScale,
     });
     const { diagnostics, budget } = evaluation;
+    this.#pinTargets(
+      evaluation.operations.flatMap((op) => (op.kind === "target" ? [op.target] : [])),
+    );
     for (const [id, target] of evaluation.bindings) this.#bindings.set(id, target);
     for (const operation of evaluation.operations) {
       switch (operation.kind) {
@@ -199,13 +214,16 @@ export class PrecompositionSurfaceRenderer {
     return this.#frameStats;
   }
 
-  planScenes(
-    media: PrecompositionMediaBindings & {
-      hashFor(instanceId: string): string | null;
-      resourceMessages: readonly PutResource[];
-    },
-  ): PrecompositionScenePlan[] {
-    if (this.#jobs.length === 0) return [];
+  planScenes(media: PrecompositionBundleMedia): PrecompositionScenePlan[] {
+    const bundle = this.buildBundle(media);
+    return bundle
+      ? this.#realizeBundle(readPrecompositionBundle(bundle.plan, bundle.resources))
+      : [];
+  }
+
+  /** Captures owned transport data without realizing generators or uploading scene buffers. */
+  buildBundle(media: PrecompositionBundleMedia): PrecompositionBundle | undefined {
+    if (this.#jobs.length === 0) return undefined;
     const scenes = this.#jobs.map((job) => bindPrecompositionSceneMedia(job, media));
     const graph = buildPrecompositionGraph(
       scenes[0].scene.metadata.header,
@@ -217,8 +235,74 @@ export class PrecompositionSurfaceRenderer {
       })),
       this.#bindings,
     );
-    const bundle = buildPrecompositionBundle(graph, scenes, media.resourceMessages);
+    return buildPrecompositionBundle(graph, scenes, media.resourceMessages);
+  }
+
+  /** Executes supplied transport data without source evaluation or an authoring media cache. */
+  prepareBundle(
+    bundle: PrecompositionBundle,
+    options: { memoryBudgetMb?: number; renderScale?: number } = {},
+  ): PrecompositionScenePlan[] {
     const decoded = readPrecompositionBundle(bundle.plan, bundle.resources);
+    const targets = decoded.graph.nodes.map((node) => node.target);
+    const byteLimit = precompositionSurfaceByteLimit(options.memoryBudgetMb, options.renderScale);
+    requirePlan(
+      targets.reduce((sum, target) => sum + target.estimatedBytes, 0) <= byteLimit &&
+        targets.every(
+          (target) =>
+            target.width <= this.#device.limits.maxTextureDimension2D &&
+            target.height <= this.#device.limits.maxTextureDimension2D,
+        ),
+      "limit_exceeded",
+      "Supplied precomposition targets exceed device or memory limits",
+    );
+    for (const target of targets) {
+      const entry = this.#entries.get(target.id);
+      requirePlan(
+        !entry ||
+          (entry.width === target.width &&
+            entry.height === target.height &&
+            entry.estimatedBytes === target.estimatedBytes &&
+            entry.textureCount === target.textureCount),
+        "invalid_precomposition",
+        "Supplied target identity changed its allocation descriptor",
+      );
+    }
+    requirePlan(
+      this.#sceneGenerators || decoded.plans.every((plan) => plan.generators.length === 0),
+      "missing_resource",
+      "Supplied generators require an execution host",
+    );
+    this.#frame += 1;
+    this.#byteLimit = byteLimit;
+    this.#jobs = [];
+    this.#mediaInstanceIds.clear();
+    this.#pinTargets(targets);
+    for (const target of targets) this.#prepareTarget(target);
+    this.#sweep(new Set(targets.map((target) => target.id)));
+    const plans = this.#realizeBundle(decoded);
+    this.#frameStats = {
+      diagnostics: [],
+      estimatedBytes: targets.reduce((sum, target) => sum + target.estimatedBytes, 0),
+      textureCount: targets.reduce((sum, target) => sum + target.textureCount, 0),
+      surfaceCount: targets.length,
+      residentBytes: this.#residentBytes(),
+      residentTextureCount: this.#residentTextureCount(),
+      mediaInstanceIds: new Set(),
+    };
+    return plans;
+  }
+
+  #pinTargets(targets: readonly PrecompositionTarget[]): void {
+    // Pin the complete frame before a new target can recycle an unvisited retained entry.
+    for (const target of targets) {
+      const entry = this.#entries.get(target.id);
+      if (entry) entry.lastUsedFrame = this.#frame;
+    }
+  }
+
+  #realizeBundle(decoded: ReturnType<typeof readPrecompositionBundle>): PrecompositionScenePlan[] {
+    this.#generators.clear();
     this.#bindings.clear();
     for (const [id, target] of decoded.graph.bindings) this.#bindings.set(id, target);
     for (const plan of decoded.plans) {
@@ -293,6 +377,8 @@ export class PrecompositionSurfaceRenderer {
     memoryBudgetMb: number | undefined,
     diagnostics: string[],
   ): void {
+    const mediaTextures = this.#mediaTextures;
+    requirePlan(mediaTextures, "missing_resource", "Source geometry requires a media cache");
     const { target } = source;
     const childLayers = [...source.layers];
     const entry = this.#entries.get(target.id);
@@ -302,7 +388,7 @@ export class PrecompositionSurfaceRenderer {
       geometry,
       lighting,
       diagnostics: sceneDiagnostics,
-    } = evaluatePrecompositionGeometry(source, (id) => this.#mediaTextures.textBounds(id));
+    } = evaluatePrecompositionGeometry(source, (id) => mediaTextures.textBounds(id));
     diagnostics.push(...sceneDiagnostics);
     const effects = this.#prepareEffects(entry, source.composition, childLayers, source.time);
     const generators: SceneGeneratorPlan[] = [];
@@ -361,8 +447,10 @@ export class PrecompositionSurfaceRenderer {
     resolutionScale: number,
     textMotionBlur?: TextMotionBlurPlan,
   ): void {
+    const mediaTextures = this.#mediaTextures;
+    requirePlan(mediaTextures, "missing_resource", "Source media requires a media cache");
     if (scene.layer.kind === "text") {
-      this.#mediaTextures.prepareText(
+      mediaTextures.prepareText(
         scene.layer,
         scene.resourceInstanceId,
         evaluateLayerSourceTime(scene.layer, scene.localTime),
@@ -374,7 +462,7 @@ export class PrecompositionSurfaceRenderer {
       return;
     }
     if (scene.layer.kind === "image" || scene.layer.kind === "video") {
-      this.#mediaTextures.prepareMedia(
+      mediaTextures.prepareMedia(
         scene.layer,
         sourceForLayer(this.#project, scene.layer),
         scene.localTime,

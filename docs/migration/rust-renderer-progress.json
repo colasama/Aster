@@ -17119,5 +17119,11 @@
       }
     }
   ],
-  "active_cycle": null
+  "active_cycle": {
+    "id": 57,
+    "milestone": "M2",
+    "task": "M2-T11",
+    "started_at": "2026-10-05T08:41:19.704Z",
+    "intent": "Realize supplied precomposition bundles independently of authoring preparation, with whole-frame cache pinning and validated allocation limits."
+  }
 }
