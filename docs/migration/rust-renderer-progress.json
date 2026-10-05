@@ -106,38 +106,38 @@
     }
   },
   "last_cycle": {
-    "id": 46,
-    "time": "2026-10-05T04:31:16.550Z",
+    "id": 47,
+    "time": "2026-10-05T04:51:23.221Z",
     "milestone": "M2",
     "task": "M2-T9",
     "outcome": "passed",
-    "commit": "e2629753f7feaf6dc757439aaae1d78c0e763259",
-    "verification": "artifacts/migration/verify-2026-10-05T04-24-13-479Z-9d321551.json",
-    "verification_sha256": "af6b1a26e64fbcfd998fb5256ffe98c30516c10f31aaf43610b029dad8f38615",
+    "commit": "330f79a11171c9e00a12417d44929c40305ceeb4",
+    "verification": "artifacts/migration/verify-2026-10-05T04-44-21-296Z-ec79ff22.json",
+    "verification_sha256": "1f62f61bfaf640dab41e75eb491c0d593870ac5a6ff62d972da42181cb8bf228",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 84332
+        "duration_ms": 75067
       },
       {
         "id": "G1",
         "status": "passed",
-        "duration_ms": 9664
+        "duration_ms": 6214
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 284744
+        "duration_ms": 302589
       }
     ],
-    "verification_duration_ms": 380002,
-    "next_step": "Continue M2-T9: independently GPU-replay Rust-returned root commands and resource references.",
+    "verification_duration_ms": 385127,
+    "next_step": "Begin M2-T10: plan generator invocations and root-time audio ABI blobs.",
     "notes": [
-      "Added root_scene_commands_slice_v1 with one root command stream plus linked material-binding and effect-execution slices. Draws carry ranges, blend modes and explicit none/pending/media/surface/raster references. Scene clear values use consecutive 40-byte binary64 records; all IDs remain UTF-16-safe.",
-      "TS and Rust enforce pass nesting, initial target clears, draw/effect identity matching, direct versus isolated blend rules, typed blob dependencies, declared resource hashes, bounded arrays and finite clear/depth values. Existing material and fusion validation remains in force. The generated schema is synchronized.",
-      "Production root drawing now builds and reads the FPLN data contract and executes decoded commands/draws, including decoded material scalars. G1 transports three new root fixtures through Rust, preserving exact bytes and actual recorded command execution. Removing a decoded command changes recorded GPU draws. G1 now covers 73 FPLN round trips; Rust IR has 34 unit tests.",
-      "Full M2 G0/G1/G3 passed with 1819 exact required frame comparisons and existing independent temporal/texture/material/LUT replay checks. M2-T9 remains in progress until root commands returned by Rust are independently GPU-replayed. Whole-frame capture and native preview/export delivery remain open."
+      "Added mandatory M2 G3 independent-device replay for four root stacks: direct ordering, 3D-to-2D depth reset, isolated blur/backdrop blend, and adjustment. The reference is the frozen root loop from e5130c134d13d1e442a6efa9cdc64466b620bc9a, with only enclosing inputs and diagnostics adapted.",
+      "Each replay receives Rust-returned root commands, scene uploads, effect plans/execution and hash-validated LUT resources. All RGBA16F pixels and root execution metrics match frozen references exactly across 12 FPLN round trips and one resource message.",
+      "Seven deliberate command mutations visibly change real GPU pixels: draw deletion, draw reordering, depth retention and adjustment removal. G3 independently reads the mutation buffers and verifies changed-pixel counts, so reported success alone is insufficient.",
+      "No production renderer or bridge source changed in this cycle; verified identical hashes permit reuse of the cycle46 candidate capture. Full G0/G1/G3 reruns all required checks, including 1819 exact corpus frames and the new root replay. M2-T9 is complete. Generator internals/audio, recursive surfaces, auxiliary/output plans and whole-frame capture remain open; native preview/export are not yet delivered."
     ]
   },
   "milestones": [
@@ -14178,7 +14178,7 @@
             "Altering/removing a planned draw changes actual recorded execution, ruling out shadow consumption."
           ],
           "required_full_gates": ["G0", "G1", "G3"],
-          "status": "in_progress",
+          "status": "done",
           "increments": [
             {
               "cycle": 44,
@@ -14438,11 +14438,107 @@
                 "Production root drawing now builds and reads the FPLN data contract and executes decoded commands/draws, including decoded material scalars. G1 transports three new root fixtures through Rust, preserving exact bytes and actual recorded command execution. Removing a decoded command changes recorded GPU draws. G1 now covers 73 FPLN round trips; Rust IR has 34 unit tests.",
                 "Full M2 G0/G1/G3 passed with 1819 exact required frame comparisons and existing independent temporal/texture/material/LUT replay checks. M2-T9 remains in progress until root commands returned by Rust are independently GPU-replayed. Whole-frame capture and native preview/export delivery remain open."
               ]
+            },
+            {
+              "cycle": 47,
+              "status": "passed",
+              "commit": "330f79a11171c9e00a12417d44929c40305ceeb4",
+              "verification": {
+                "path": "artifacts/migration/verify-2026-10-05T04-44-21-296Z-ec79ff22.json",
+                "sha256": "1f62f61bfaf640dab41e75eb491c0d593870ac5a6ff62d972da42181cb8bf228"
+              },
+              "pixel_comparison": {
+                "path": "artifacts/parity/ts-check/2026-10-05T04-45-43-238Z-493a25be/report.json",
+                "sha256": "f020c221e27ee414ccd7ba12e27269fc6f5c83747a321c6086ff4a9219eaaa04"
+              },
+              "capture": {
+                "path": "artifacts/parity/capture-2026-10-05T04-18-12-633Z-481bc7f3.json",
+                "sha256": "ab654dcf82bfe777c45e988a89d948e1610e8f27c1b87d54587d71355f21b748"
+              },
+              "manifest": {
+                "path": "artifacts/parity/runs/2026-10-05T04-18-12-633Z-481bc7f3/candidate/manifest.json",
+                "sha256": "531aec4167808a177473e8e5503124abdd60fb237466e10be4e460d3db4bd828"
+              },
+              "renderer_source_sha256": "3a2498064911685fb6f6aecd22d750f76758950470dae71c7142e9e969a7511b",
+              "bridge_sha256": "82ccf02fefd4c54e78a82a4de08df6906714ecd0b198864ec72cb0c0394dd80c",
+              "temporal_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T04-45-43-238Z-493a25be/temporal-text/gpu.json",
+                "sha256": "65bc7f1e17048aca2726f4d735767ef133c1ad3c7f128da802a864abdc471d67"
+              },
+              "temporal_reference": {
+                "path": "tests/parity/temporal-text/reference/manifest.json",
+                "sha256": "e3e3b1184d5bc969dcd5cf76a424a551a0cac1a85484e157c5b549e5d6c811d1"
+              },
+              "encoded_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T04-45-43-238Z-493a25be/encoded-textures/gpu.json",
+                "sha256": "9028f092c712475018d1db0dfb7122b7e5704ff3ac8c8b82ecaa4b950963c872"
+              },
+              "encoded_reference": {
+                "path": "tests/parity/material-textures/legacy-upload.ts",
+                "sha256": "508c2ad47f5a3f6e18069ce070e0ee0133668074bf81309a9144180f532f2498"
+              },
+              "material_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T04-45-43-238Z-493a25be/material-draw/gpu.json",
+                "sha256": "26fbad56513b96310770da0538c5ac89d791322886d4d66134972714e0cdfe58"
+              },
+              "material_reference": {
+                "path": "tests/parity/material-draw/reference/manifest.json",
+                "sha256": "06debe986bca2118a9d4a07f5cc36a31b3926398f95d582e25f90ceabc21bc6e"
+              },
+              "material_implementation": {
+                "path": "tests/parity/material-draw/legacy-bindings.ts",
+                "sha256": "ff838daeb3950e90d263504007836d900060e9a2ff1ddb30e706a76d0a011d79"
+              },
+              "lut_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T04-45-43-238Z-493a25be/lut-draw/gpu.json",
+                "sha256": "b80c09bbf0624b5c7d0f0147dedaafba3356c689451337bbbe2524e12d32c7a4"
+              },
+              "lut_reference": {
+                "path": "tests/parity/lut-draw/reference/manifest.json",
+                "sha256": "2e026afbad6143b822f38490650920003d0ad53705d705d1f2c206f05f181d59"
+              },
+              "lut_implementation": {
+                "path": "tests/parity/lut-draw/legacy-effects.ts",
+                "sha256": "999fb67e09a07322e7d8d9ea2c58a0442d7d5377f0cd1029eeab16e29f714a0b"
+              },
+              "root_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T04-45-43-238Z-493a25be/root-scene/gpu.json",
+                "sha256": "049b9b48a98a31f1a1460658b136474b8fdfd78cbbb81411893661509599cfe0"
+              },
+              "root_reference": {
+                "path": "tests/parity/root-scene/reference/manifest.json",
+                "sha256": "4c5b2ffd5828db24f929f1bcc350a4a7e7c75be05cb65b9bbe2b4c48eaba267f"
+              },
+              "root_implementation": {
+                "path": "tests/parity/root-scene/legacy-execute.ts",
+                "sha256": "22b0f40e52a5c330646a7fe4a581aaacd6de2db225c4030f1cdd658177d52e8a"
+              },
+              "gates": [
+                {
+                  "id": "G0",
+                  "status": "passed",
+                  "duration_ms": 75067
+                },
+                {
+                  "id": "G1",
+                  "status": "passed",
+                  "duration_ms": 6214
+                },
+                {
+                  "id": "G3",
+                  "status": "passed",
+                  "duration_ms": 302589
+                }
+              ],
+              "notes": [
+                "Added mandatory M2 G3 independent-device replay for four root stacks: direct ordering, 3D-to-2D depth reset, isolated blur/backdrop blend, and adjustment. The reference is the frozen root loop from e5130c134d13d1e442a6efa9cdc64466b620bc9a, with only enclosing inputs and diagnostics adapted.",
+                "Each replay receives Rust-returned root commands, scene uploads, effect plans/execution and hash-validated LUT resources. All RGBA16F pixels and root execution metrics match frozen references exactly across 12 FPLN round trips and one resource message.",
+                "Seven deliberate command mutations visibly change real GPU pixels: draw deletion, draw reordering, depth retention and adjustment removal. G3 independently reads the mutation buffers and verifies changed-pixel counts, so reported success alone is insufficient.",
+                "No production renderer or bridge source changed in this cycle; verified identical hashes permit reuse of the cycle46 candidate capture. Full G0/G1/G3 reruns all required checks, including 1819 exact corpus frames and the new root replay. M2-T9 is complete. Generator internals/audio, recursive surfaces, auxiliary/output plans and whole-frame capture remain open; native preview/export are not yet delivered."
+              ]
             }
           ],
-          "remaining_work": [
-            "Replay Rust-returned root commands on an independent GPU device with exact output and altered/removed command evidence."
-          ],
+          "remaining_work": [],
           "failed_attempts": [
             {
               "cycle": 45,
@@ -14463,6 +14559,26 @@
                 "path": "artifacts/migration/cycle45-owner-repeat-analysis.json",
                 "sha256": "d40bfb34a25a5efe0e4925519e8dc96ae79328427883d06d014dad016d1904dc"
               }
+            }
+          ],
+          "completed_at": "2026-10-05T04:51:23.220Z",
+          "commit": "330f79a11171c9e00a12417d44929c40305ceeb4",
+          "verification": "artifacts/migration/verify-2026-10-05T04-44-21-296Z-ec79ff22.json",
+          "gates": [
+            {
+              "id": "G0",
+              "status": "passed",
+              "duration_ms": 75067
+            },
+            {
+              "id": "G1",
+              "status": "passed",
+              "duration_ms": 6214
+            },
+            {
+              "id": "G3",
+              "status": "passed",
+              "duration_ms": 302589
             }
           ]
         },
@@ -14628,17 +14744,17 @@
           {
             "id": "G0",
             "status": "passed",
-            "duration_ms": 84332
+            "duration_ms": 75067
           },
           {
             "id": "G1",
             "status": "passed",
-            "duration_ms": 9664
+            "duration_ms": 6214
           },
           {
             "id": "G3",
             "status": "passed",
-            "duration_ms": 284744
+            "duration_ms": 302589
           }
         ],
         "optional_gates": [
@@ -14649,7 +14765,7 @@
           }
         ],
         "performance_policy": "rust-delivery-v1",
-        "report": "artifacts/migration/verify-2026-10-05T04-24-13-479Z-9d321551.json"
+        "report": "artifacts/migration/verify-2026-10-05T04-44-21-296Z-ec79ff22.json"
       },
       "performance_series_history": [
         {
@@ -16008,16 +16124,5 @@
       }
     }
   ],
-  "active_cycle": {
-    "id": 47,
-    "started_at": "2026-10-05T04:40:09.997364+00:00",
-    "milestone": "M2",
-    "task": "M2-T9",
-    "intent": "Independently GPU-replay Rust-returned root commands against the pre-command loop, including visible command mutation evidence.",
-    "previous_turn": "no_progress: answered the owner question; revalidated clean branch, ledger and latest full gates before resuming.",
-    "usage": {
-      "used_percent": 29,
-      "remaining_percent": 71
-    }
-  }
+  "active_cycle": null
 }
