@@ -89,39 +89,39 @@
     }
   },
   "last_cycle": {
-    "id": 38,
-    "time": "2026-10-05T00:51:01.967Z",
+    "id": 39,
+    "time": "2026-10-05T01:12:30.965Z",
     "milestone": "M2",
     "task": "M2-T7",
     "outcome": "passed",
-    "commit": "9673d7fd15c4e0cbb77989f2d15190b52121956e",
-    "verification": "artifacts/migration/verify-2026-10-05T00-44-20-767Z-df4a31de.json",
-    "verification_sha256": "ba032c5b731d081ee525c0371ebbf82ce22a3edbc57bc9bd46fb6649433e9479",
+    "commit": "0786d91c6f95bc9f1ca72189de1b0d0dbe91dbc4",
+    "verification": "D:\\code\\Aster\\artifacts\\migration\\verify-2026-10-05T01-05-55-316Z-dfbb21f2.json",
+    "verification_sha256": "e8718ce4696a6bcb95c84bc9543e7e4f3b84c5a327006061f6fec6567d8ce1c6",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 81635
+        "duration_ms": 81340
       },
       {
         "id": "G1",
         "status": "passed",
-        "duration_ms": 7632
+        "duration_ms": 7053
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 272361
+        "duration_ms": 272609
       }
     ],
-    "verification_duration_ms": 362922,
-    "next_step": "Continue M2-T7: add material binding FPLN transport and extract LUT selection.",
+    "verification_duration_ms": 362274,
+    "next_step": "Continue M2-T7: extract LUT selection and complete independent material draw replay.",
     "notes": [
-      "Added bounded encoded_texture resource admission in TS/Rust for PNG/JPEG/WebP with fixed linear RGBA8 and disabled color conversion. Normal preparation owns compressed bytes, and the independent upload consumer verifies content before decode/allocation with the original decoded limits.",
-      "Material snapshots reference normal/HDR content hashes. A registry resolves textures independently of draw IDs; retiring any duplicate owner invalidates cached bind groups, while equal-content owners remain usable until the last retires.",
-      "G3 now requires three actual normal GPU upload replays outside the legacy scene corpus. The pinned prior upload behavior produces reference texels, then the original device/page are destroyed. Encoded messages and payloads pass through Rust before independent replay; PNG/JPEG/WebP texels are exact.",
+      "Added material_bindings_slice_v1 with tagged normal/environment texture references and three binary64 scalar lanes. TS/Rust validate closed metadata, declared role-distinct hashes, finite bounds and environment dependencies.",
+      "Production material preparation builds and reads the supplied slice before drawing. Float32 conversion happens at uniform upload, preserving signed-zero/subnormal binary64 values and pending fallback decisions through transport.",
+      "G1 now verifies 47 exact FPLN round trips including five material cases, exact supplied uniforms, hash resolution, wrong-role rejection and retirement. This proves material binding transport, not independent full material draw replay.",
       "Full M2 G0/G1/G3 passed with 1819 exact whole-frame comparisons, four temporal pass replays, and three encoded normal resource replays. Ordinary preview adds no readback.",
-      "M2-T7 remains in progress: supplied hash/scalar binding snapshots still require FPLN transport and complete material draw replay; LUT-selection planning remains open."
+      "M2-T7 remains in progress: extract LUT-selection bindings and finish independent material draw replay."
     ]
   },
   "milestones": [
@@ -13566,7 +13566,7 @@
           "required_full_gates": ["G0", "G1", "G3"],
           "status": "in_progress",
           "remaining_work": [
-            "Transport supplied material scalar/hash binding snapshots through FPLN and verify decoded material draws.",
+            "Verify complete material draws from decoded bindings and supplied resources on an independent GPU device.",
             "Extract LUT-selection bindings while preserving readiness/retirement behavior and finish material replay coverage."
           ],
           "failed_verifications": [
@@ -13745,6 +13745,69 @@
                 "G3 now requires three actual normal GPU upload replays outside the legacy scene corpus. The pinned prior upload behavior produces reference texels, then the original device/page are destroyed. Encoded messages and payloads pass through Rust before independent replay; PNG/JPEG/WebP texels are exact.",
                 "Full M2 G0/G1/G3 passed with 1819 exact whole-frame comparisons, four temporal pass replays, and three encoded normal resource replays. Ordinary preview adds no readback.",
                 "M2-T7 remains in progress: supplied hash/scalar binding snapshots still require FPLN transport and complete material draw replay; LUT-selection planning remains open."
+              ]
+            },
+            {
+              "cycle": 39,
+              "status": "passed",
+              "commit": "0786d91c6f95bc9f1ca72189de1b0d0dbe91dbc4",
+              "verification": {
+                "path": "D:\\code\\Aster\\artifacts\\migration\\verify-2026-10-05T01-05-55-316Z-dfbb21f2.json",
+                "sha256": "e8718ce4696a6bcb95c84bc9543e7e4f3b84c5a327006061f6fec6567d8ce1c6"
+              },
+              "pixel_comparison": {
+                "path": "artifacts/parity/ts-check/2026-10-05T01-07-24-340Z-266489b6/report.json",
+                "sha256": "ca44d53f01dab6ba5b378c08bbfccc3bb6aeace5c08c11907cfaf5b142e3e404"
+              },
+              "capture": {
+                "path": "artifacts/parity/capture-2026-10-05T00-59-43-616Z-f16c1f06.json",
+                "sha256": "be3fdfb0b9f2b952aac9196fc1dd44ce400e8d277f1a88d592b083c40dcf8caf"
+              },
+              "manifest": {
+                "path": "artifacts/parity/runs/2026-10-05T00-59-43-616Z-f16c1f06/candidate/manifest.json",
+                "sha256": "34caddaf08ddae90a68d76a1904e75e2656b0a0c566ca98e6a3da487adbfd5d5"
+              },
+              "renderer_source_sha256": "64c57a73d529a310daa4b977f8953d2ec83d50208af91ed4a40ab97c0282ad6e",
+              "bridge_sha256": "82ccf02fefd4c54e78a82a4de08df6906714ecd0b198864ec72cb0c0394dd80c",
+              "temporal_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T01-07-24-340Z-266489b6/temporal-text/gpu.json",
+                "sha256": "2d74f493012d2c1817a4eca9367145f7e1416754aff08cad81343647ac3f9cdd"
+              },
+              "temporal_reference": {
+                "path": "tests/parity/temporal-text/reference/manifest.json",
+                "sha256": "e3e3b1184d5bc969dcd5cf76a424a551a0cac1a85484e157c5b549e5d6c811d1"
+              },
+              "encoded_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T01-07-24-340Z-266489b6/encoded-textures/gpu.json",
+                "sha256": "9028f092c712475018d1db0dfb7122b7e5704ff3ac8c8b82ecaa4b950963c872"
+              },
+              "encoded_reference": {
+                "path": "tests/parity/material-textures/legacy-upload.ts",
+                "sha256": "508c2ad47f5a3f6e18069ce070e0ee0133668074bf81309a9144180f532f2498"
+              },
+              "gates": [
+                {
+                  "id": "G0",
+                  "status": "passed",
+                  "duration_ms": 81340
+                },
+                {
+                  "id": "G1",
+                  "status": "passed",
+                  "duration_ms": 7053
+                },
+                {
+                  "id": "G3",
+                  "status": "passed",
+                  "duration_ms": 272609
+                }
+              ],
+              "notes": [
+                "Added material_bindings_slice_v1 with tagged normal/environment texture references and three binary64 scalar lanes. TS/Rust validate closed metadata, declared role-distinct hashes, finite bounds and environment dependencies.",
+                "Production material preparation builds and reads the supplied slice before drawing. Float32 conversion happens at uniform upload, preserving signed-zero/subnormal binary64 values and pending fallback decisions through transport.",
+                "G1 now verifies 47 exact FPLN round trips including five material cases, exact supplied uniforms, hash resolution, wrong-role rejection and retirement. This proves material binding transport, not independent full material draw replay.",
+                "Full M2 G0/G1/G3 passed with 1819 exact whole-frame comparisons, four temporal pass replays, and three encoded normal resource replays. Ordinary preview adds no readback.",
+                "M2-T7 remains in progress: extract LUT-selection bindings and finish independent material draw replay."
               ]
             }
           ]
@@ -13937,7 +14000,7 @@
       ],
       "preview_baseline_path": "benchmarks/results/m2-preview-baseline.json",
       "preview_baseline_sha256": "a1c62e224c008e731c252142ab1b9de7d31ecf592452c00da1dff42516772375",
-      "active_candidate_manifest": "artifacts/parity/runs/2026-10-05T00-38-00-839Z-b55eb1a8/candidate/manifest.json",
+      "active_candidate_manifest": "artifacts/parity/runs/2026-10-05T00-59-43-616Z-f16c1f06/candidate/manifest.json",
       "last_verification": {
         "status": "passed",
         "required_gates_passed": true,
@@ -13946,17 +14009,17 @@
           {
             "id": "G0",
             "status": "passed",
-            "duration_ms": 81635
+            "duration_ms": 81340
           },
           {
             "id": "G1",
             "status": "passed",
-            "duration_ms": 7632
+            "duration_ms": 7053
           },
           {
             "id": "G3",
             "status": "passed",
-            "duration_ms": 272361
+            "duration_ms": 272609
           }
         ],
         "optional_gates": [
@@ -13967,7 +14030,7 @@
           }
         ],
         "performance_policy": "rust-delivery-v1",
-        "report": "artifacts/migration/verify-2026-10-05T00-44-20-767Z-df4a31de.json"
+        "report": "D:\\code\\Aster\\artifacts\\migration\\verify-2026-10-05T01-05-55-316Z-dfbb21f2.json"
       },
       "performance_series_history": [
         {
@@ -15273,12 +15336,5 @@
       }
     }
   ],
-  "active_cycle": {
-    "id": 39,
-    "milestone": "M2",
-    "task": "M2-T7",
-    "started_at": "2026-10-05T00:53:39.166Z",
-    "scope": "Transport supplied material scalar values and normal/HDR hashes through FPLN and consume decoded bindings in production drawing.",
-    "previous_turn_classification": "progress: cycle38 committed encoded normal resources and content-addressed material owners with full exact gates."
-  }
+  "active_cycle": null
 }
