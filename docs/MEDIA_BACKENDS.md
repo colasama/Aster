@@ -21,6 +21,19 @@ native platform decode/encode surfaces, and zero-copy interop remain future work
 The MVP keeps one project model and one rendering contract. Media backends are replaceable adapters;
 codec, platform, and driver details must not leak into layer evaluation.
 
+## Native still imports
+
+`aster-media-native` decodes authorized PNG/JPEG snapshots through the existing packaged FFmpeg
+backend. Source hash, job scope, SHA-256 and imported content identity must agree before decoding.
+Encoded dimensions and source/pixel budgets are checked before launching the codec; subprocess
+output, time and cancellation are bounded. The child reads immutable bytes through a pipe, never a
+media path. Native imports preserve the browser's eight-bit associated-alpha precision boundary
+before the renderer uploads straight sRGB samples into its content-addressed GPU cache.
+
+This path currently serves headless frame-plan rendering. Production preview/export still use TS,
+and native EXR/HDR import remains pending. It does not change the shipped FFmpeg build or encoding
+backend selection.
+
 ## Required backend contract
 
 Every decode or encode adapter must report a capability record before a job is accepted. Capability

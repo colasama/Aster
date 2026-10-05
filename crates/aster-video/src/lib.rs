@@ -9,6 +9,10 @@ mod export;
 mod exr;
 mod ffmpeg;
 mod process;
+mod still;
+#[cfg(test)]
+mod still_tests;
+pub use still::StillEncoding;
 
 pub use audio::{AudioDecodeRequest, AudioLimits, DecodedAudio};
 

@@ -217,7 +217,13 @@ impl FfmpegCommand {
     }
 
     pub(crate) fn spawn(&self, stdin: Stdio, stdout: Stdio) -> io::Result<MediaProcess> {
-        Command::new(&self.executable)
+        let mut command = Command::new(&self.executable);
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            command.creation_flags(0x08000000);
+        }
+        command
             .args(&self.arguments)
             .stdin(stdin)
             .stdout(stdout)

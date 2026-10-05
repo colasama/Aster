@@ -46,6 +46,8 @@ pub struct RenderPlanArgs {
     timeout_ms: u64,
     #[command(flatten)]
     limits: IrLimits,
+    #[command(flatten)]
+    native_stills: crate::native_stills::NativeStillArgs,
 }
 
 #[derive(Serialize)]
@@ -55,6 +57,7 @@ struct RenderReport {
     native_gpu_execution: bool,
     diagnostic_readback: bool,
     native_image_decode: bool,
+    native_images: Vec<aster_media_native::NativeImageReceipt>,
     image_cache: aster_renderer::ImageCacheStatistics,
     adapter: AdapterDiagnostics,
     plan_sha256: String,
@@ -126,7 +129,8 @@ impl RenderPlanArgs {
             }
             registry.put(request, payload)?;
         }
-        let frame = SuppliedFrame::new(plan, &registry, &limits)?;
+        let native = self.native_stills.install(&plan, &mut registry, &limits)?;
+        let frame = SuppliedFrame::new(plan, &registry, &limits, &native.pixels)?;
         let backend = match self.backend.as_str() {
             "dx12" => NativeBackend::Dx12,
             "metal" => NativeBackend::Metal,
@@ -153,7 +157,8 @@ impl RenderPlanArgs {
                 status: "passed",
                 native_gpu_execution: true,
                 diagnostic_readback: true,
-                native_image_decode: false,
+                native_image_decode: !native.receipts.is_empty(),
+                native_images: native.receipts,
                 image_cache: rendered.image_cache,
                 adapter: renderer.diagnostics,
                 plan_sha256,

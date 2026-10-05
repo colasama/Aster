@@ -25,6 +25,7 @@ impl SuppliedFrame {
         plan: OwnedFpln,
         registry: &ResourceRegistry,
         limits: &DecodeLimits,
+        decoded_images: &[aster_render_ir::PrecompositionMediaPixels],
     ) -> Result<Self, RenderError> {
         let Some(PlanSlice::FrameBundle(bundle)) = plan.metadata.slices.first() else {
             return Err(RenderError::Invalid("complete root bundle required".into()));
@@ -85,8 +86,21 @@ impl SuppliedFrame {
         let Some(PlanSlice::RootSceneCommands(commands)) = root.metadata.slices.first() else {
             return Err(RenderError::Invalid("root commands required".into()));
         };
-        let images =
-            crate::image_input::ImageInput::collect(bundle, scene_slice, commands, registry)?;
+        if !decoded_images.is_empty() && !bundle.media_pixels.is_empty() {
+            return Err(RenderError::Invalid(
+                "native and supplied image generations cannot be mixed".into(),
+            ));
+        }
+        let images = crate::image_input::ImageInput::collect(
+            if decoded_images.is_empty() {
+                &bundle.media_pixels
+            } else {
+                decoded_images
+            },
+            scene_slice,
+            commands,
+            registry,
+        )?;
         for draw in &commands.draws {
             if !matches!(
                 draw.texture,

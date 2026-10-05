@@ -332,11 +332,18 @@ The gate also checks rejection without output publication for unsupported featur
 budgets and corrupt resources, and preserves pre-existing output. Binary and input hashes must
 remain stable throughout the run. This is explicitly an incremental gate: its report sets
 `full_coverage` and `milestone_exit_eligible` to false. Passing G0/G1/G3 permits the increment's
-commit but cannot complete M3 while native image file decoding, masks, adjustment layers or precomposition surfaces
+commit but cannot complete M3 while EXR decoding, masks, adjustment layers or precomposition surfaces
 remain unimplemented. M3 exit requires the complete core corpus and an exit audit.
 
-Image receipts require actual native texture uploads and report `native_image_decode: false` until
-authorized file decoding is implemented. Supplied pixel hashes are bound to matching frame
+Supplied-image receipts require actual native texture uploads and report `native_image_decode: false`.
+Supplied pixel hashes are bound to matching frame
 descriptors and scene/root draw references before allocation. An ignored GPU test, run by G3,
 checks repeated texture reuse, distinct pixel generations for one frame, current-frame eviction
 protection, budget shrink and unchanged cache state after rejected input or insufficient budget.
+
+A separate native-still subgate renders eight PNG/JPEG frames from original FPLN without captured
+pixels. It materializes hash-pinned source files, grants each source and scope explicitly, and checks
+native decode receipts plus the same frozen-reference GPU comparisons and self-reviews. Missing
+grants, incorrect scopes/hashes and source/pixel budget violations must reject without publication.
+The packaged FFmpeg executable and all source inputs are pinned for the run. These eight renders
+supplement the 96 supplied-resource frames; EXR and complete core coverage are still required.

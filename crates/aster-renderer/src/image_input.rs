@@ -1,8 +1,9 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use aster_render_ir::{
-    ElementType, FrameBundleSlice, MediaDrawBinding, MediaSample, ResourceDescriptor, ResourceHash,
-    ResourceRegistry, RootSceneCommandsSlice, RootTextureReference, SceneBuffersSlice,
+    ElementType, MediaDrawBinding, MediaSample, PrecompositionMediaPixels, ResourceDescriptor,
+    ResourceHash, ResourceRegistry, RootSceneCommandsSlice, RootTextureReference,
+    SceneBuffersSlice,
 };
 
 use crate::RenderError;
@@ -18,13 +19,13 @@ pub(crate) struct ImageInput {
 
 impl ImageInput {
     pub(crate) fn collect(
-        bundle: &FrameBundleSlice,
+        records: &[PrecompositionMediaPixels],
         scene: &SceneBuffersSlice,
         root: &RootSceneCommandsSlice,
         registry: &ResourceRegistry,
     ) -> Result<BTreeMap<ResourceHash, Self>, RenderError> {
         let mut images = BTreeMap::new();
-        for record in &bundle.media_pixels {
+        for record in records {
             let ResourceDescriptor::MediaFrame(frame) = registry.descriptor(&record.frame)? else {
                 return Err(RenderError::Invalid(
                     "image frame descriptor missing".into(),

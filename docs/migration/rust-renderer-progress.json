@@ -29363,6 +29363,1350 @@
         "contact_sheet_sha256": "6b12eb737c667afa8e520e151eb0772d94193f147b303360bc589b3287b84973"
       },
       "inspection": "Directly inspected both unique contact sheets and their black heatmaps. SHA-256 equality proves the four frame image pairs in each case are identical. Color bars, gradients, bounds and PNG alpha ramp match the frozen TS output; JPEG remains opaque. Pixels are exact, so no residual exists. All GPU metric and structural checks pass; no tolerance changes."
+    },
+    {
+      "case_id": "media-png",
+      "frame": 0,
+      "profile": "gpu",
+      "purpose": "M3 native PNG/JPEG decode initial diagnostic",
+      "reviewed_at": "2026-10-05T23:21:00.488Z",
+      "reference_rgba_sha256": "8d7f7b900b01432eb3d3f01a1869bddd957eece3c4cc28fac090b2949ffb3a81",
+      "candidate_rgba_sha256": "eecdb6404687f0df3257227e7e3d0324daf0d7414a67d82877230fd9cf1fcc20",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 4,
+        "mean_abs_error": 0.010286458333333333,
+        "mean_squared_error": 0.010607638888888889,
+        "rgb_mean_squared_error": 0.014143518518518519,
+        "psnr": {
+          "kind": "finite",
+          "db": 66.62522897440267
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 67.87461634048567
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 5
+      },
+      "ssim": {
+        "channels": [0.9998934866757856, 0.9998187184785399, 0.9997976147021916, 1],
+        "mean": 0.999836606618839,
+        "rgba_mean": 0.9998774549641293,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0006076388888888889, -0.0013194444444444445, 0.00019097222222222223, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.3063530814155481,
+          "candidate_rms": 0.30635425910117653,
+          "reference_axis_ratio": 0.4968386547428969,
+          "candidate_axis_ratio": 0.4968132960655012,
+          "reference_window_energy_fraction": 0.9167024761532748,
+          "candidate_window_energy_fraction": 0.9167033679932781,
+          "active_frequencies": 2724,
+          "spectral_bins": 524288,
+          "peak_ratio": 2.8508582152336035,
+          "peak_to_sidelobe_ratio": 63.3032378808009,
+          "peak_coherence": 0.9999999703712134,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": null,
+      "residual_class": "decoder-rounding",
+      "verdict": "rejected",
+      "evidence": {
+        "report": "artifacts/migration/cycle78-native-first/pixels/frames/media-png-0/report.json",
+        "heatmap": "artifacts/migration/cycle78-native-first/pixels/frames/media-png-0/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle78-native-first/pixels/frames/media-png-0/contact-sheet.png",
+        "report_sha256": "4faec024d1ca4e99423a697479219e47356d356f40cf34f95941ce92741f5c1d",
+        "heatmap_sha256": "ec9a80809cf5cb4a63aad24e5572a01d1ff711a48afb6a4584c51c19bd6395d9",
+        "contact_sheet_sha256": "fe4adf69bd42a30bc3c48f8c00f2ac225b3ab6b987e271a4527a480b7bdee0b4"
+      },
+      "inspection": "Directly inspected both distinct contact sheets and heatmaps. Per-case RGBA hash pairs are identical across all four frames. Bars, gradients, bounds and transparency are aligned. JPEG passes every GPU and structural check. PNG has max error 4 with five pixels above tolerance 2; reject despite passing structures and visually aligned content. Native import will reproduce the browser eight-bit associated-alpha precision boundary; no tolerance changes."
+    },
+    {
+      "case_id": "media-png",
+      "frame": 15,
+      "profile": "gpu",
+      "purpose": "M3 native PNG/JPEG decode initial diagnostic",
+      "reviewed_at": "2026-10-05T23:21:00.489Z",
+      "reference_rgba_sha256": "8d7f7b900b01432eb3d3f01a1869bddd957eece3c4cc28fac090b2949ffb3a81",
+      "candidate_rgba_sha256": "eecdb6404687f0df3257227e7e3d0324daf0d7414a67d82877230fd9cf1fcc20",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 4,
+        "mean_abs_error": 0.010286458333333333,
+        "mean_squared_error": 0.010607638888888889,
+        "rgb_mean_squared_error": 0.014143518518518519,
+        "psnr": {
+          "kind": "finite",
+          "db": 66.62522897440267
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 67.87461634048567
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 5
+      },
+      "ssim": {
+        "channels": [0.9998934866757856, 0.9998187184785399, 0.9997976147021916, 1],
+        "mean": 0.999836606618839,
+        "rgba_mean": 0.9998774549641293,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0006076388888888889, -0.0013194444444444445, 0.00019097222222222223, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.3063530814155481,
+          "candidate_rms": 0.30635425910117653,
+          "reference_axis_ratio": 0.4968386547428969,
+          "candidate_axis_ratio": 0.4968132960655012,
+          "reference_window_energy_fraction": 0.9167024761532748,
+          "candidate_window_energy_fraction": 0.9167033679932781,
+          "active_frequencies": 2724,
+          "spectral_bins": 524288,
+          "peak_ratio": 2.8508582152336035,
+          "peak_to_sidelobe_ratio": 63.3032378808009,
+          "peak_coherence": 0.9999999703712134,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": null,
+      "residual_class": "decoder-rounding",
+      "verdict": "rejected",
+      "evidence": {
+        "report": "artifacts/migration/cycle78-native-first/pixels/frames/media-png-15/report.json",
+        "heatmap": "artifacts/migration/cycle78-native-first/pixels/frames/media-png-15/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle78-native-first/pixels/frames/media-png-15/contact-sheet.png",
+        "report_sha256": "09c623418e506ff5e83072ebcdd6234e1d1eac84ebc596f407f74324bb2ff1f1",
+        "heatmap_sha256": "ec9a80809cf5cb4a63aad24e5572a01d1ff711a48afb6a4584c51c19bd6395d9",
+        "contact_sheet_sha256": "fe4adf69bd42a30bc3c48f8c00f2ac225b3ab6b987e271a4527a480b7bdee0b4"
+      },
+      "inspection": "Directly inspected both distinct contact sheets and heatmaps. Per-case RGBA hash pairs are identical across all four frames. Bars, gradients, bounds and transparency are aligned. JPEG passes every GPU and structural check. PNG has max error 4 with five pixels above tolerance 2; reject despite passing structures and visually aligned content. Native import will reproduce the browser eight-bit associated-alpha precision boundary; no tolerance changes."
+    },
+    {
+      "case_id": "media-png",
+      "frame": 30,
+      "profile": "gpu",
+      "purpose": "M3 native PNG/JPEG decode initial diagnostic",
+      "reviewed_at": "2026-10-05T23:21:00.489Z",
+      "reference_rgba_sha256": "8d7f7b900b01432eb3d3f01a1869bddd957eece3c4cc28fac090b2949ffb3a81",
+      "candidate_rgba_sha256": "eecdb6404687f0df3257227e7e3d0324daf0d7414a67d82877230fd9cf1fcc20",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 4,
+        "mean_abs_error": 0.010286458333333333,
+        "mean_squared_error": 0.010607638888888889,
+        "rgb_mean_squared_error": 0.014143518518518519,
+        "psnr": {
+          "kind": "finite",
+          "db": 66.62522897440267
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 67.87461634048567
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 5
+      },
+      "ssim": {
+        "channels": [0.9998934866757856, 0.9998187184785399, 0.9997976147021916, 1],
+        "mean": 0.999836606618839,
+        "rgba_mean": 0.9998774549641293,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0006076388888888889, -0.0013194444444444445, 0.00019097222222222223, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.3063530814155481,
+          "candidate_rms": 0.30635425910117653,
+          "reference_axis_ratio": 0.4968386547428969,
+          "candidate_axis_ratio": 0.4968132960655012,
+          "reference_window_energy_fraction": 0.9167024761532748,
+          "candidate_window_energy_fraction": 0.9167033679932781,
+          "active_frequencies": 2724,
+          "spectral_bins": 524288,
+          "peak_ratio": 2.8508582152336035,
+          "peak_to_sidelobe_ratio": 63.3032378808009,
+          "peak_coherence": 0.9999999703712134,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": null,
+      "residual_class": "decoder-rounding",
+      "verdict": "rejected",
+      "evidence": {
+        "report": "artifacts/migration/cycle78-native-first/pixels/frames/media-png-30/report.json",
+        "heatmap": "artifacts/migration/cycle78-native-first/pixels/frames/media-png-30/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle78-native-first/pixels/frames/media-png-30/contact-sheet.png",
+        "report_sha256": "3bad3d1ea1dfc07d3b5e92aa5299a366bf720133ea0b1243c80ffa374aaaad2e",
+        "heatmap_sha256": "ec9a80809cf5cb4a63aad24e5572a01d1ff711a48afb6a4584c51c19bd6395d9",
+        "contact_sheet_sha256": "fe4adf69bd42a30bc3c48f8c00f2ac225b3ab6b987e271a4527a480b7bdee0b4"
+      },
+      "inspection": "Directly inspected both distinct contact sheets and heatmaps. Per-case RGBA hash pairs are identical across all four frames. Bars, gradients, bounds and transparency are aligned. JPEG passes every GPU and structural check. PNG has max error 4 with five pixels above tolerance 2; reject despite passing structures and visually aligned content. Native import will reproduce the browser eight-bit associated-alpha precision boundary; no tolerance changes."
+    },
+    {
+      "case_id": "media-png",
+      "frame": 59,
+      "profile": "gpu",
+      "purpose": "M3 native PNG/JPEG decode initial diagnostic",
+      "reviewed_at": "2026-10-05T23:21:00.489Z",
+      "reference_rgba_sha256": "8d7f7b900b01432eb3d3f01a1869bddd957eece3c4cc28fac090b2949ffb3a81",
+      "candidate_rgba_sha256": "eecdb6404687f0df3257227e7e3d0324daf0d7414a67d82877230fd9cf1fcc20",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 4,
+        "mean_abs_error": 0.010286458333333333,
+        "mean_squared_error": 0.010607638888888889,
+        "rgb_mean_squared_error": 0.014143518518518519,
+        "psnr": {
+          "kind": "finite",
+          "db": 66.62522897440267
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 67.87461634048567
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 5
+      },
+      "ssim": {
+        "channels": [0.9998934866757856, 0.9998187184785399, 0.9997976147021916, 1],
+        "mean": 0.999836606618839,
+        "rgba_mean": 0.9998774549641293,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0006076388888888889, -0.0013194444444444445, 0.00019097222222222223, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.3063530814155481,
+          "candidate_rms": 0.30635425910117653,
+          "reference_axis_ratio": 0.4968386547428969,
+          "candidate_axis_ratio": 0.4968132960655012,
+          "reference_window_energy_fraction": 0.9167024761532748,
+          "candidate_window_energy_fraction": 0.9167033679932781,
+          "active_frequencies": 2724,
+          "spectral_bins": 524288,
+          "peak_ratio": 2.8508582152336035,
+          "peak_to_sidelobe_ratio": 63.3032378808009,
+          "peak_coherence": 0.9999999703712134,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": null,
+      "residual_class": "decoder-rounding",
+      "verdict": "rejected",
+      "evidence": {
+        "report": "artifacts/migration/cycle78-native-first/pixels/frames/media-png-59/report.json",
+        "heatmap": "artifacts/migration/cycle78-native-first/pixels/frames/media-png-59/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle78-native-first/pixels/frames/media-png-59/contact-sheet.png",
+        "report_sha256": "bde238bacb6e39d854912bb5ee845bdfd9ed613c67ad61de274ceca4ec7dca77",
+        "heatmap_sha256": "ec9a80809cf5cb4a63aad24e5572a01d1ff711a48afb6a4584c51c19bd6395d9",
+        "contact_sheet_sha256": "fe4adf69bd42a30bc3c48f8c00f2ac225b3ab6b987e271a4527a480b7bdee0b4"
+      },
+      "inspection": "Directly inspected both distinct contact sheets and heatmaps. Per-case RGBA hash pairs are identical across all four frames. Bars, gradients, bounds and transparency are aligned. JPEG passes every GPU and structural check. PNG has max error 4 with five pixels above tolerance 2; reject despite passing structures and visually aligned content. Native import will reproduce the browser eight-bit associated-alpha precision boundary; no tolerance changes."
+    },
+    {
+      "case_id": "media-jpg",
+      "frame": 0,
+      "profile": "gpu",
+      "purpose": "M3 native PNG/JPEG decode initial diagnostic",
+      "reviewed_at": "2026-10-05T23:21:00.489Z",
+      "reference_rgba_sha256": "51a8443333181ff119976ff190a8c491e6b6d646d58bfb937af008894d8d1c1f",
+      "candidate_rgba_sha256": "5ae197529816af38f0f715fb04d6010e2afd261dc385fa08fbc0c319566d9609",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 2,
+        "mean_abs_error": 0.0034548611111111112,
+        "mean_squared_error": 0.003498263888888889,
+        "rgb_mean_squared_error": 0.004664351851851852,
+        "psnr": {
+          "kind": "finite",
+          "db": 71.44289057205694
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 72.69227793813994
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [0.9999517074949118, 0.9999562564046779, 0.9999684258357051, 1],
+        "mean": 0.9999587965784317,
+        "rgba_mean": 0.9999690974338238,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [-0.004982638888888889, 0.0003298611111111111, -0.0036458333333333334, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.32536748666931004,
+          "candidate_rms": 0.3253604374408974,
+          "reference_axis_ratio": 0.4452215490841898,
+          "candidate_axis_ratio": 0.44525655513766815,
+          "reference_window_energy_fraction": 0.9031964041242259,
+          "candidate_window_energy_fraction": 0.9031959946112144,
+          "active_frequencies": 2496,
+          "spectral_bins": 524288,
+          "peak_ratio": 2.7348188731940484,
+          "peak_to_sidelobe_ratio": 60.38251925744253,
+          "peak_coherence": 0.9999999911584121,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": null,
+      "residual_class": "decoder-rounding",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle78-native-first/pixels/frames/media-jpg-0/report.json",
+        "heatmap": "artifacts/migration/cycle78-native-first/pixels/frames/media-jpg-0/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle78-native-first/pixels/frames/media-jpg-0/contact-sheet.png",
+        "report_sha256": "38ad257211b8877afb8ad5f975c59d438e92847965216e9870e5b639e856e3c7",
+        "heatmap_sha256": "5eb9c44bb4544e740a027ad354046a54405fe38648c8c941ca2beca99cd16a76",
+        "contact_sheet_sha256": "677e2516cd0037cd5d60673c05f6304d99e26efe5c1d4e4b142b8980b6be1932"
+      },
+      "inspection": "Directly inspected both distinct contact sheets and heatmaps. Per-case RGBA hash pairs are identical across all four frames. Bars, gradients, bounds and transparency are aligned. JPEG passes every GPU and structural check. PNG has max error 4 with five pixels above tolerance 2; reject despite passing structures and visually aligned content. Native import will reproduce the browser eight-bit associated-alpha precision boundary; no tolerance changes."
+    },
+    {
+      "case_id": "media-jpg",
+      "frame": 15,
+      "profile": "gpu",
+      "purpose": "M3 native PNG/JPEG decode initial diagnostic",
+      "reviewed_at": "2026-10-05T23:21:00.489Z",
+      "reference_rgba_sha256": "51a8443333181ff119976ff190a8c491e6b6d646d58bfb937af008894d8d1c1f",
+      "candidate_rgba_sha256": "5ae197529816af38f0f715fb04d6010e2afd261dc385fa08fbc0c319566d9609",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 2,
+        "mean_abs_error": 0.0034548611111111112,
+        "mean_squared_error": 0.003498263888888889,
+        "rgb_mean_squared_error": 0.004664351851851852,
+        "psnr": {
+          "kind": "finite",
+          "db": 71.44289057205694
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 72.69227793813994
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [0.9999517074949118, 0.9999562564046779, 0.9999684258357051, 1],
+        "mean": 0.9999587965784317,
+        "rgba_mean": 0.9999690974338238,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [-0.004982638888888889, 0.0003298611111111111, -0.0036458333333333334, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.32536748666931004,
+          "candidate_rms": 0.3253604374408974,
+          "reference_axis_ratio": 0.4452215490841898,
+          "candidate_axis_ratio": 0.44525655513766815,
+          "reference_window_energy_fraction": 0.9031964041242259,
+          "candidate_window_energy_fraction": 0.9031959946112144,
+          "active_frequencies": 2496,
+          "spectral_bins": 524288,
+          "peak_ratio": 2.7348188731940484,
+          "peak_to_sidelobe_ratio": 60.38251925744253,
+          "peak_coherence": 0.9999999911584121,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": null,
+      "residual_class": "decoder-rounding",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle78-native-first/pixels/frames/media-jpg-15/report.json",
+        "heatmap": "artifacts/migration/cycle78-native-first/pixels/frames/media-jpg-15/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle78-native-first/pixels/frames/media-jpg-15/contact-sheet.png",
+        "report_sha256": "37884615e508a9955f78f53b33be466905727ddffd90ad2b4bc5b82dac9fdff4",
+        "heatmap_sha256": "5eb9c44bb4544e740a027ad354046a54405fe38648c8c941ca2beca99cd16a76",
+        "contact_sheet_sha256": "677e2516cd0037cd5d60673c05f6304d99e26efe5c1d4e4b142b8980b6be1932"
+      },
+      "inspection": "Directly inspected both distinct contact sheets and heatmaps. Per-case RGBA hash pairs are identical across all four frames. Bars, gradients, bounds and transparency are aligned. JPEG passes every GPU and structural check. PNG has max error 4 with five pixels above tolerance 2; reject despite passing structures and visually aligned content. Native import will reproduce the browser eight-bit associated-alpha precision boundary; no tolerance changes."
+    },
+    {
+      "case_id": "media-jpg",
+      "frame": 30,
+      "profile": "gpu",
+      "purpose": "M3 native PNG/JPEG decode initial diagnostic",
+      "reviewed_at": "2026-10-05T23:21:00.489Z",
+      "reference_rgba_sha256": "51a8443333181ff119976ff190a8c491e6b6d646d58bfb937af008894d8d1c1f",
+      "candidate_rgba_sha256": "5ae197529816af38f0f715fb04d6010e2afd261dc385fa08fbc0c319566d9609",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 2,
+        "mean_abs_error": 0.0034548611111111112,
+        "mean_squared_error": 0.003498263888888889,
+        "rgb_mean_squared_error": 0.004664351851851852,
+        "psnr": {
+          "kind": "finite",
+          "db": 71.44289057205694
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 72.69227793813994
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [0.9999517074949118, 0.9999562564046779, 0.9999684258357051, 1],
+        "mean": 0.9999587965784317,
+        "rgba_mean": 0.9999690974338238,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [-0.004982638888888889, 0.0003298611111111111, -0.0036458333333333334, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.32536748666931004,
+          "candidate_rms": 0.3253604374408974,
+          "reference_axis_ratio": 0.4452215490841898,
+          "candidate_axis_ratio": 0.44525655513766815,
+          "reference_window_energy_fraction": 0.9031964041242259,
+          "candidate_window_energy_fraction": 0.9031959946112144,
+          "active_frequencies": 2496,
+          "spectral_bins": 524288,
+          "peak_ratio": 2.7348188731940484,
+          "peak_to_sidelobe_ratio": 60.38251925744253,
+          "peak_coherence": 0.9999999911584121,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": null,
+      "residual_class": "decoder-rounding",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle78-native-first/pixels/frames/media-jpg-30/report.json",
+        "heatmap": "artifacts/migration/cycle78-native-first/pixels/frames/media-jpg-30/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle78-native-first/pixels/frames/media-jpg-30/contact-sheet.png",
+        "report_sha256": "4d6ad2f47625843ef3142aa6e072806045bb0590e47be432f0f719ed6726026b",
+        "heatmap_sha256": "5eb9c44bb4544e740a027ad354046a54405fe38648c8c941ca2beca99cd16a76",
+        "contact_sheet_sha256": "677e2516cd0037cd5d60673c05f6304d99e26efe5c1d4e4b142b8980b6be1932"
+      },
+      "inspection": "Directly inspected both distinct contact sheets and heatmaps. Per-case RGBA hash pairs are identical across all four frames. Bars, gradients, bounds and transparency are aligned. JPEG passes every GPU and structural check. PNG has max error 4 with five pixels above tolerance 2; reject despite passing structures and visually aligned content. Native import will reproduce the browser eight-bit associated-alpha precision boundary; no tolerance changes."
+    },
+    {
+      "case_id": "media-jpg",
+      "frame": 59,
+      "profile": "gpu",
+      "purpose": "M3 native PNG/JPEG decode initial diagnostic",
+      "reviewed_at": "2026-10-05T23:21:00.489Z",
+      "reference_rgba_sha256": "51a8443333181ff119976ff190a8c491e6b6d646d58bfb937af008894d8d1c1f",
+      "candidate_rgba_sha256": "5ae197529816af38f0f715fb04d6010e2afd261dc385fa08fbc0c319566d9609",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 2,
+        "mean_abs_error": 0.0034548611111111112,
+        "mean_squared_error": 0.003498263888888889,
+        "rgb_mean_squared_error": 0.004664351851851852,
+        "psnr": {
+          "kind": "finite",
+          "db": 71.44289057205694
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 72.69227793813994
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [0.9999517074949118, 0.9999562564046779, 0.9999684258357051, 1],
+        "mean": 0.9999587965784317,
+        "rgba_mean": 0.9999690974338238,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [-0.004982638888888889, 0.0003298611111111111, -0.0036458333333333334, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.32536748666931004,
+          "candidate_rms": 0.3253604374408974,
+          "reference_axis_ratio": 0.4452215490841898,
+          "candidate_axis_ratio": 0.44525655513766815,
+          "reference_window_energy_fraction": 0.9031964041242259,
+          "candidate_window_energy_fraction": 0.9031959946112144,
+          "active_frequencies": 2496,
+          "spectral_bins": 524288,
+          "peak_ratio": 2.7348188731940484,
+          "peak_to_sidelobe_ratio": 60.38251925744253,
+          "peak_coherence": 0.9999999911584121,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": null,
+      "residual_class": "decoder-rounding",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle78-native-first/pixels/frames/media-jpg-59/report.json",
+        "heatmap": "artifacts/migration/cycle78-native-first/pixels/frames/media-jpg-59/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle78-native-first/pixels/frames/media-jpg-59/contact-sheet.png",
+        "report_sha256": "4bf9810944ca014b89e7607462d400153848d7505d10b1e4013261959662bc90",
+        "heatmap_sha256": "5eb9c44bb4544e740a027ad354046a54405fe38648c8c941ca2beca99cd16a76",
+        "contact_sheet_sha256": "677e2516cd0037cd5d60673c05f6304d99e26efe5c1d4e4b142b8980b6be1932"
+      },
+      "inspection": "Directly inspected both distinct contact sheets and heatmaps. Per-case RGBA hash pairs are identical across all four frames. Bars, gradients, bounds and transparency are aligned. JPEG passes every GPU and structural check. PNG has max error 4 with five pixels above tolerance 2; reject despite passing structures and visually aligned content. Native import will reproduce the browser eight-bit associated-alpha precision boundary; no tolerance changes."
+    },
+    {
+      "case_id": "media-png",
+      "frame": 0,
+      "profile": "gpu",
+      "purpose": "M3 authorized native PNG/JPEG decode with browser-compatible alpha precision",
+      "reviewed_at": "2026-10-05T23:22:14.098Z",
+      "reference_rgba_sha256": "8d7f7b900b01432eb3d3f01a1869bddd957eece3c4cc28fac090b2949ffb3a81",
+      "candidate_rgba_sha256": "2ffc62d40f77bef9592425302676560822c5a1d5167925181c1455b641df028e",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 0.0014670138888888888,
+        "mean_squared_error": 0.0014670138888888888,
+        "rgb_mean_squared_error": 0.0019560185185185184,
+        "psnr": {
+          "kind": "finite",
+          "db": 75.2170739873313
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 76.4664613534143
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [0.9999944271743166, 0.9999739776643095, 0.9999726089798734, 1],
+        "mean": 0.9999803379394998,
+        "rgba_mean": 0.9999852534546249,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0006076388888888889, -0.00010416666666666667, 0.0016493055555555556, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.3063530814155481,
+          "candidate_rms": 0.3063558945736294,
+          "reference_axis_ratio": 0.4968386547428969,
+          "candidate_axis_ratio": 0.49682251333968597,
+          "reference_window_energy_fraction": 0.9167024761532748,
+          "candidate_window_energy_fraction": 0.9167028888405166,
+          "active_frequencies": 2724,
+          "spectral_bins": 524288,
+          "peak_ratio": 2.8508460647158693,
+          "peak_to_sidelobe_ratio": 63.30323911736598,
+          "peak_coherence": 0.9999999942899254,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": null,
+      "residual_class": "decoder-rounding",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle78-native-alpha/pixels/frames/media-png-0/report.json",
+        "heatmap": "artifacts/migration/cycle78-native-alpha/pixels/frames/media-png-0/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle78-native-alpha/pixels/frames/media-png-0/contact-sheet.png",
+        "report_sha256": "cf3257f465fec6be3ca4bc1ee0b2170af0f46b30388234a57ff83e8c6bd193c5",
+        "heatmap_sha256": "cdb85d3cc88291e53423426fe12d117be5650a81c88d199f15189e2ff664a3b9",
+        "contact_sheet_sha256": "7437a24af961d86f3cddd7ecb656dad1afa4f7fe1b6519a6622ab1705c56faa0"
+      },
+      "inspection": "Directly inspected updated PNG contact sheet and heatmap. JPEG image pair is hash-identical to the directly inspected initial diagnostic. All four frames per case share identical reference/candidate RGBA hashes. Color bars, gradients, bounds and transparency remain aligned; only sparse decoder-rounding residuals remain (PNG max 1, JPEG max 2). All GPU metrics and structural checks pass. No reference or tolerance changes."
+    },
+    {
+      "case_id": "media-png",
+      "frame": 15,
+      "profile": "gpu",
+      "purpose": "M3 authorized native PNG/JPEG decode with browser-compatible alpha precision",
+      "reviewed_at": "2026-10-05T23:22:14.099Z",
+      "reference_rgba_sha256": "8d7f7b900b01432eb3d3f01a1869bddd957eece3c4cc28fac090b2949ffb3a81",
+      "candidate_rgba_sha256": "2ffc62d40f77bef9592425302676560822c5a1d5167925181c1455b641df028e",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 0.0014670138888888888,
+        "mean_squared_error": 0.0014670138888888888,
+        "rgb_mean_squared_error": 0.0019560185185185184,
+        "psnr": {
+          "kind": "finite",
+          "db": 75.2170739873313
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 76.4664613534143
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [0.9999944271743166, 0.9999739776643095, 0.9999726089798734, 1],
+        "mean": 0.9999803379394998,
+        "rgba_mean": 0.9999852534546249,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0006076388888888889, -0.00010416666666666667, 0.0016493055555555556, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.3063530814155481,
+          "candidate_rms": 0.3063558945736294,
+          "reference_axis_ratio": 0.4968386547428969,
+          "candidate_axis_ratio": 0.49682251333968597,
+          "reference_window_energy_fraction": 0.9167024761532748,
+          "candidate_window_energy_fraction": 0.9167028888405166,
+          "active_frequencies": 2724,
+          "spectral_bins": 524288,
+          "peak_ratio": 2.8508460647158693,
+          "peak_to_sidelobe_ratio": 63.30323911736598,
+          "peak_coherence": 0.9999999942899254,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": null,
+      "residual_class": "decoder-rounding",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle78-native-alpha/pixels/frames/media-png-15/report.json",
+        "heatmap": "artifacts/migration/cycle78-native-alpha/pixels/frames/media-png-15/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle78-native-alpha/pixels/frames/media-png-15/contact-sheet.png",
+        "report_sha256": "b0f96eb54bdd551e4ac0ddacbf92d4de5e91a46ce4413d9f492ee2527244585d",
+        "heatmap_sha256": "cdb85d3cc88291e53423426fe12d117be5650a81c88d199f15189e2ff664a3b9",
+        "contact_sheet_sha256": "7437a24af961d86f3cddd7ecb656dad1afa4f7fe1b6519a6622ab1705c56faa0"
+      },
+      "inspection": "Directly inspected updated PNG contact sheet and heatmap. JPEG image pair is hash-identical to the directly inspected initial diagnostic. All four frames per case share identical reference/candidate RGBA hashes. Color bars, gradients, bounds and transparency remain aligned; only sparse decoder-rounding residuals remain (PNG max 1, JPEG max 2). All GPU metrics and structural checks pass. No reference or tolerance changes."
+    },
+    {
+      "case_id": "media-png",
+      "frame": 30,
+      "profile": "gpu",
+      "purpose": "M3 authorized native PNG/JPEG decode with browser-compatible alpha precision",
+      "reviewed_at": "2026-10-05T23:22:14.099Z",
+      "reference_rgba_sha256": "8d7f7b900b01432eb3d3f01a1869bddd957eece3c4cc28fac090b2949ffb3a81",
+      "candidate_rgba_sha256": "2ffc62d40f77bef9592425302676560822c5a1d5167925181c1455b641df028e",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 0.0014670138888888888,
+        "mean_squared_error": 0.0014670138888888888,
+        "rgb_mean_squared_error": 0.0019560185185185184,
+        "psnr": {
+          "kind": "finite",
+          "db": 75.2170739873313
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 76.4664613534143
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [0.9999944271743166, 0.9999739776643095, 0.9999726089798734, 1],
+        "mean": 0.9999803379394998,
+        "rgba_mean": 0.9999852534546249,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0006076388888888889, -0.00010416666666666667, 0.0016493055555555556, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.3063530814155481,
+          "candidate_rms": 0.3063558945736294,
+          "reference_axis_ratio": 0.4968386547428969,
+          "candidate_axis_ratio": 0.49682251333968597,
+          "reference_window_energy_fraction": 0.9167024761532748,
+          "candidate_window_energy_fraction": 0.9167028888405166,
+          "active_frequencies": 2724,
+          "spectral_bins": 524288,
+          "peak_ratio": 2.8508460647158693,
+          "peak_to_sidelobe_ratio": 63.30323911736598,
+          "peak_coherence": 0.9999999942899254,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": null,
+      "residual_class": "decoder-rounding",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle78-native-alpha/pixels/frames/media-png-30/report.json",
+        "heatmap": "artifacts/migration/cycle78-native-alpha/pixels/frames/media-png-30/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle78-native-alpha/pixels/frames/media-png-30/contact-sheet.png",
+        "report_sha256": "4e996d8152f899426a158e680d95ad3e686e3b5f5283dc26d212afc5859c2331",
+        "heatmap_sha256": "cdb85d3cc88291e53423426fe12d117be5650a81c88d199f15189e2ff664a3b9",
+        "contact_sheet_sha256": "7437a24af961d86f3cddd7ecb656dad1afa4f7fe1b6519a6622ab1705c56faa0"
+      },
+      "inspection": "Directly inspected updated PNG contact sheet and heatmap. JPEG image pair is hash-identical to the directly inspected initial diagnostic. All four frames per case share identical reference/candidate RGBA hashes. Color bars, gradients, bounds and transparency remain aligned; only sparse decoder-rounding residuals remain (PNG max 1, JPEG max 2). All GPU metrics and structural checks pass. No reference or tolerance changes."
+    },
+    {
+      "case_id": "media-png",
+      "frame": 59,
+      "profile": "gpu",
+      "purpose": "M3 authorized native PNG/JPEG decode with browser-compatible alpha precision",
+      "reviewed_at": "2026-10-05T23:22:14.099Z",
+      "reference_rgba_sha256": "8d7f7b900b01432eb3d3f01a1869bddd957eece3c4cc28fac090b2949ffb3a81",
+      "candidate_rgba_sha256": "2ffc62d40f77bef9592425302676560822c5a1d5167925181c1455b641df028e",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 0.0014670138888888888,
+        "mean_squared_error": 0.0014670138888888888,
+        "rgb_mean_squared_error": 0.0019560185185185184,
+        "psnr": {
+          "kind": "finite",
+          "db": 75.2170739873313
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 76.4664613534143
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [0.9999944271743166, 0.9999739776643095, 0.9999726089798734, 1],
+        "mean": 0.9999803379394998,
+        "rgba_mean": 0.9999852534546249,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0006076388888888889, -0.00010416666666666667, 0.0016493055555555556, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.3063530814155481,
+          "candidate_rms": 0.3063558945736294,
+          "reference_axis_ratio": 0.4968386547428969,
+          "candidate_axis_ratio": 0.49682251333968597,
+          "reference_window_energy_fraction": 0.9167024761532748,
+          "candidate_window_energy_fraction": 0.9167028888405166,
+          "active_frequencies": 2724,
+          "spectral_bins": 524288,
+          "peak_ratio": 2.8508460647158693,
+          "peak_to_sidelobe_ratio": 63.30323911736598,
+          "peak_coherence": 0.9999999942899254,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": null,
+      "residual_class": "decoder-rounding",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle78-native-alpha/pixels/frames/media-png-59/report.json",
+        "heatmap": "artifacts/migration/cycle78-native-alpha/pixels/frames/media-png-59/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle78-native-alpha/pixels/frames/media-png-59/contact-sheet.png",
+        "report_sha256": "3c5ea816721c0d14b6fdbfb8689a88d781afccd1d44dfed9cca4f885be163552",
+        "heatmap_sha256": "cdb85d3cc88291e53423426fe12d117be5650a81c88d199f15189e2ff664a3b9",
+        "contact_sheet_sha256": "7437a24af961d86f3cddd7ecb656dad1afa4f7fe1b6519a6622ab1705c56faa0"
+      },
+      "inspection": "Directly inspected updated PNG contact sheet and heatmap. JPEG image pair is hash-identical to the directly inspected initial diagnostic. All four frames per case share identical reference/candidate RGBA hashes. Color bars, gradients, bounds and transparency remain aligned; only sparse decoder-rounding residuals remain (PNG max 1, JPEG max 2). All GPU metrics and structural checks pass. No reference or tolerance changes."
+    },
+    {
+      "case_id": "media-jpg",
+      "frame": 0,
+      "profile": "gpu",
+      "purpose": "M3 authorized native PNG/JPEG decode with browser-compatible alpha precision",
+      "reviewed_at": "2026-10-05T23:22:14.099Z",
+      "reference_rgba_sha256": "51a8443333181ff119976ff190a8c491e6b6d646d58bfb937af008894d8d1c1f",
+      "candidate_rgba_sha256": "5ae197529816af38f0f715fb04d6010e2afd261dc385fa08fbc0c319566d9609",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 2,
+        "mean_abs_error": 0.0034548611111111112,
+        "mean_squared_error": 0.003498263888888889,
+        "rgb_mean_squared_error": 0.004664351851851852,
+        "psnr": {
+          "kind": "finite",
+          "db": 71.44289057205694
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 72.69227793813994
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [0.9999517074949118, 0.9999562564046779, 0.9999684258357051, 1],
+        "mean": 0.9999587965784317,
+        "rgba_mean": 0.9999690974338238,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [-0.004982638888888889, 0.0003298611111111111, -0.0036458333333333334, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.32536748666931004,
+          "candidate_rms": 0.3253604374408974,
+          "reference_axis_ratio": 0.4452215490841898,
+          "candidate_axis_ratio": 0.44525655513766815,
+          "reference_window_energy_fraction": 0.9031964041242259,
+          "candidate_window_energy_fraction": 0.9031959946112144,
+          "active_frequencies": 2496,
+          "spectral_bins": 524288,
+          "peak_ratio": 2.7348188731940484,
+          "peak_to_sidelobe_ratio": 60.38251925744253,
+          "peak_coherence": 0.9999999911584121,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": null,
+      "residual_class": "decoder-rounding",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle78-native-alpha/pixels/frames/media-jpg-0/report.json",
+        "heatmap": "artifacts/migration/cycle78-native-alpha/pixels/frames/media-jpg-0/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle78-native-alpha/pixels/frames/media-jpg-0/contact-sheet.png",
+        "report_sha256": "1c642a83de46cb8866c9692af39a615785f3aaa6bad9abdbca9c88a6d76f6d00",
+        "heatmap_sha256": "5eb9c44bb4544e740a027ad354046a54405fe38648c8c941ca2beca99cd16a76",
+        "contact_sheet_sha256": "677e2516cd0037cd5d60673c05f6304d99e26efe5c1d4e4b142b8980b6be1932"
+      },
+      "inspection": "Directly inspected updated PNG contact sheet and heatmap. JPEG image pair is hash-identical to the directly inspected initial diagnostic. All four frames per case share identical reference/candidate RGBA hashes. Color bars, gradients, bounds and transparency remain aligned; only sparse decoder-rounding residuals remain (PNG max 1, JPEG max 2). All GPU metrics and structural checks pass. No reference or tolerance changes."
+    },
+    {
+      "case_id": "media-jpg",
+      "frame": 15,
+      "profile": "gpu",
+      "purpose": "M3 authorized native PNG/JPEG decode with browser-compatible alpha precision",
+      "reviewed_at": "2026-10-05T23:22:14.099Z",
+      "reference_rgba_sha256": "51a8443333181ff119976ff190a8c491e6b6d646d58bfb937af008894d8d1c1f",
+      "candidate_rgba_sha256": "5ae197529816af38f0f715fb04d6010e2afd261dc385fa08fbc0c319566d9609",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 2,
+        "mean_abs_error": 0.0034548611111111112,
+        "mean_squared_error": 0.003498263888888889,
+        "rgb_mean_squared_error": 0.004664351851851852,
+        "psnr": {
+          "kind": "finite",
+          "db": 71.44289057205694
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 72.69227793813994
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [0.9999517074949118, 0.9999562564046779, 0.9999684258357051, 1],
+        "mean": 0.9999587965784317,
+        "rgba_mean": 0.9999690974338238,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [-0.004982638888888889, 0.0003298611111111111, -0.0036458333333333334, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.32536748666931004,
+          "candidate_rms": 0.3253604374408974,
+          "reference_axis_ratio": 0.4452215490841898,
+          "candidate_axis_ratio": 0.44525655513766815,
+          "reference_window_energy_fraction": 0.9031964041242259,
+          "candidate_window_energy_fraction": 0.9031959946112144,
+          "active_frequencies": 2496,
+          "spectral_bins": 524288,
+          "peak_ratio": 2.7348188731940484,
+          "peak_to_sidelobe_ratio": 60.38251925744253,
+          "peak_coherence": 0.9999999911584121,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": null,
+      "residual_class": "decoder-rounding",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle78-native-alpha/pixels/frames/media-jpg-15/report.json",
+        "heatmap": "artifacts/migration/cycle78-native-alpha/pixels/frames/media-jpg-15/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle78-native-alpha/pixels/frames/media-jpg-15/contact-sheet.png",
+        "report_sha256": "c539c3e67b68507812cd8f88911be5895ca45b44c39552eaa7dab3c67dd6b5f1",
+        "heatmap_sha256": "5eb9c44bb4544e740a027ad354046a54405fe38648c8c941ca2beca99cd16a76",
+        "contact_sheet_sha256": "677e2516cd0037cd5d60673c05f6304d99e26efe5c1d4e4b142b8980b6be1932"
+      },
+      "inspection": "Directly inspected updated PNG contact sheet and heatmap. JPEG image pair is hash-identical to the directly inspected initial diagnostic. All four frames per case share identical reference/candidate RGBA hashes. Color bars, gradients, bounds and transparency remain aligned; only sparse decoder-rounding residuals remain (PNG max 1, JPEG max 2). All GPU metrics and structural checks pass. No reference or tolerance changes."
+    },
+    {
+      "case_id": "media-jpg",
+      "frame": 30,
+      "profile": "gpu",
+      "purpose": "M3 authorized native PNG/JPEG decode with browser-compatible alpha precision",
+      "reviewed_at": "2026-10-05T23:22:14.099Z",
+      "reference_rgba_sha256": "51a8443333181ff119976ff190a8c491e6b6d646d58bfb937af008894d8d1c1f",
+      "candidate_rgba_sha256": "5ae197529816af38f0f715fb04d6010e2afd261dc385fa08fbc0c319566d9609",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 2,
+        "mean_abs_error": 0.0034548611111111112,
+        "mean_squared_error": 0.003498263888888889,
+        "rgb_mean_squared_error": 0.004664351851851852,
+        "psnr": {
+          "kind": "finite",
+          "db": 71.44289057205694
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 72.69227793813994
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [0.9999517074949118, 0.9999562564046779, 0.9999684258357051, 1],
+        "mean": 0.9999587965784317,
+        "rgba_mean": 0.9999690974338238,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [-0.004982638888888889, 0.0003298611111111111, -0.0036458333333333334, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.32536748666931004,
+          "candidate_rms": 0.3253604374408974,
+          "reference_axis_ratio": 0.4452215490841898,
+          "candidate_axis_ratio": 0.44525655513766815,
+          "reference_window_energy_fraction": 0.9031964041242259,
+          "candidate_window_energy_fraction": 0.9031959946112144,
+          "active_frequencies": 2496,
+          "spectral_bins": 524288,
+          "peak_ratio": 2.7348188731940484,
+          "peak_to_sidelobe_ratio": 60.38251925744253,
+          "peak_coherence": 0.9999999911584121,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": null,
+      "residual_class": "decoder-rounding",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle78-native-alpha/pixels/frames/media-jpg-30/report.json",
+        "heatmap": "artifacts/migration/cycle78-native-alpha/pixels/frames/media-jpg-30/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle78-native-alpha/pixels/frames/media-jpg-30/contact-sheet.png",
+        "report_sha256": "685808884fff3c624517e78a37b395fae407dc8d12bf974ab13577a6e11085fa",
+        "heatmap_sha256": "5eb9c44bb4544e740a027ad354046a54405fe38648c8c941ca2beca99cd16a76",
+        "contact_sheet_sha256": "677e2516cd0037cd5d60673c05f6304d99e26efe5c1d4e4b142b8980b6be1932"
+      },
+      "inspection": "Directly inspected updated PNG contact sheet and heatmap. JPEG image pair is hash-identical to the directly inspected initial diagnostic. All four frames per case share identical reference/candidate RGBA hashes. Color bars, gradients, bounds and transparency remain aligned; only sparse decoder-rounding residuals remain (PNG max 1, JPEG max 2). All GPU metrics and structural checks pass. No reference or tolerance changes."
+    },
+    {
+      "case_id": "media-jpg",
+      "frame": 59,
+      "profile": "gpu",
+      "purpose": "M3 authorized native PNG/JPEG decode with browser-compatible alpha precision",
+      "reviewed_at": "2026-10-05T23:22:14.099Z",
+      "reference_rgba_sha256": "51a8443333181ff119976ff190a8c491e6b6d646d58bfb937af008894d8d1c1f",
+      "candidate_rgba_sha256": "5ae197529816af38f0f715fb04d6010e2afd261dc385fa08fbc0c319566d9609",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 2,
+        "mean_abs_error": 0.0034548611111111112,
+        "mean_squared_error": 0.003498263888888889,
+        "rgb_mean_squared_error": 0.004664351851851852,
+        "psnr": {
+          "kind": "finite",
+          "db": 71.44289057205694
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 72.69227793813994
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [0.9999517074949118, 0.9999562564046779, 0.9999684258357051, 1],
+        "mean": 0.9999587965784317,
+        "rgba_mean": 0.9999690974338238,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [-0.004982638888888889, 0.0003298611111111111, -0.0036458333333333334, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.32536748666931004,
+          "candidate_rms": 0.3253604374408974,
+          "reference_axis_ratio": 0.4452215490841898,
+          "candidate_axis_ratio": 0.44525655513766815,
+          "reference_window_energy_fraction": 0.9031964041242259,
+          "candidate_window_energy_fraction": 0.9031959946112144,
+          "active_frequencies": 2496,
+          "spectral_bins": 524288,
+          "peak_ratio": 2.7348188731940484,
+          "peak_to_sidelobe_ratio": 60.38251925744253,
+          "peak_coherence": 0.9999999911584121,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": null,
+      "residual_class": "decoder-rounding",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle78-native-alpha/pixels/frames/media-jpg-59/report.json",
+        "heatmap": "artifacts/migration/cycle78-native-alpha/pixels/frames/media-jpg-59/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle78-native-alpha/pixels/frames/media-jpg-59/contact-sheet.png",
+        "report_sha256": "dabd7e9d6499956c5952cf7fac4a3ee04435463a5ebad6b161d35cc113089a1e",
+        "heatmap_sha256": "5eb9c44bb4544e740a027ad354046a54405fe38648c8c941ca2beca99cd16a76",
+        "contact_sheet_sha256": "677e2516cd0037cd5d60673c05f6304d99e26efe5c1d4e4b142b8980b6be1932"
+      },
+      "inspection": "Directly inspected updated PNG contact sheet and heatmap. JPEG image pair is hash-identical to the directly inspected initial diagnostic. All four frames per case share identical reference/candidate RGBA hashes. Color bars, gradients, bounds and transparency remain aligned; only sparse decoder-rounding residuals remain (PNG max 1, JPEG max 2). All GPU metrics and structural checks pass. No reference or tolerance changes."
     }
   ],
   "history": [
@@ -30101,5 +31445,13 @@
         "sha256": "2a52867f6da0c4ad4e8cd1ef9831d5eb9be11743fe6f26fa9f12fe8d5c83797a"
       }
     }
-  ]
+  ],
+  "active_cycle": {
+    "id": 78,
+    "started_at": "2026-10-05T23:06:27.080Z",
+    "milestone": "M3",
+    "task": "M3-T2",
+    "base_commit": "2606fa1965511845c2e4788b62e503c51f819924",
+    "intent": "Add a native still-image decode broker with explicit source authorization, pinned file identity and bounded FFmpeg decode; execute original plans without supplied pixel payloads and verify PNG/JPEG parity. Retain EXR linear HDR work until actually verified."
+  }
 }

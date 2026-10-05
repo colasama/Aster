@@ -72,7 +72,7 @@ submission has its own module. Frame buffers remain GPU-resident until an explic
 Its initial capability covers solid/vector draws, supplied still-image pixels, fixed and backdrop
 blends, display conversion and all four AA modes. It consumes shared WGSL and exact supplied geometry, lighting, clear and
 post-process buffers; it does not evaluate projects or open media paths. Unsupported operations
-return explicit errors before rendering. Native image file decoding, masks, adjustments and recursive surfaces remain
+return explicit errors before rendering. EXR image decoding, masks, adjustments and recursive surfaces remain
 pending native capabilities, and production preview/export still use the TS execution path.
 
 Linear HDR scene and isolated layer intermediates stay on the GPU. Frame targets are reused by
@@ -90,6 +90,15 @@ Scene targets and cached image textures share the configured GPU budget. Unchang
 not uploaded again, and frame plans retain resource keys instead of copying image pixels.
 Diagnostic receipts report upload/hit/eviction counts and explicitly identify supplied-pixel
 execution as distinct from native file decoding.
+
+`aster-media-native` resolves PNG/JPEG sources from explicit job grants keyed by source hash and
+authorization scope. It checks file size, SHA-256 and the imported content identity, then feeds an
+immutable snapshot to the existing bounded FFmpeg process through stdin. Encoded dimensions are
+checked before codec execution; source/pixel budgets, timeout and cancellation bound the work.
+The child receives no source path. Eight-bit associated-alpha rounding preserves the browser import
+precision boundary before straight sRGB pixels enter the GPU cache. The CLI accepts original plans
+with `--media-authorizations` and `--ffmpeg`; captured pixel attachments cannot be mixed with native
+decode. Receipts bind source and decoded hashes. EXR linear HDR support remains pending.
 
 The migration's `aster-render-ir` crate owns typed frame-plan transport and its generated schema.
 TS DataView and Rust owned-buffer codecs share a canonical FPLN container with aligned binary blobs

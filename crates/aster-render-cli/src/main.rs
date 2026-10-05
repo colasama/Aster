@@ -1,6 +1,7 @@
 mod bundle;
 mod compare;
 mod ir;
+mod native_stills;
 mod render_plan;
 
 use std::process::ExitCode;

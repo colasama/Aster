@@ -5,6 +5,7 @@ import { validateFrameArtifacts } from "../parity/frame-artifacts.mjs";
 import { runPixelGate } from "../parity/pixel-gate.mjs";
 import { M0Evidence } from "./m0-evidence.mjs";
 import { runNativeRejections } from "./native-core-rejections.mjs";
+import { runNativeStillGate } from "./native-still-gate.mjs";
 import { runStep } from "./process.mjs";
 import { writeAtomicJson } from "./report.mjs";
 import { hashFile } from "./source.mjs";
@@ -58,8 +59,8 @@ export async function runNativeCoreGate(context, execute = runStep) {
   const report = {
     id: "G3",
     status: "failed",
-    scope: "native-core-geometry-and-image-pixels-v1",
-    native_image_decode: false,
+    scope: "native-core-geometry-and-stills-v2",
+    native_image_decode: true,
     full_coverage: false,
     milestone_exit_eligible: false,
     native_gpu_execution: true,
@@ -204,6 +205,12 @@ export async function runNativeCoreGate(context, execute = runStep) {
       context,
     );
     assert.equal(report.image_cache.status, "passed");
+    report.native_stills = await runNativeStillGate(
+      { ...context, output: join(context.output, "native-stills") },
+      { base, binary, validateReceipt: validateNativeReceipt },
+      execute,
+    );
+    assert.equal(report.native_stills.status, "passed", "Native still decode gate failed");
     assert.equal(
       await hashFile(binary),
       report.binary.sha256,
