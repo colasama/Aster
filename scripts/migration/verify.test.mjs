@@ -34,6 +34,35 @@ async function fakeHook(command, context) {
 
 const provenance = async () => ({ source_sha256: "source-123", commit: "123", dirty: true });
 
+test("passing native geometry gates cannot establish the full M3 exit", async (t) => {
+  const context = await fixture(t);
+  await writeAtomicJson(context.ledger, {
+    status: "running",
+    milestones: [
+      {
+        id: "M3",
+        status: "in_progress",
+        gates: ["G0", "G1", "G3"],
+        tasks: [{ id: "M3-T1", status: "in_progress" }],
+      },
+    ],
+  });
+  const calls = [];
+  const result = await verifyMigration(context, {
+    provenance,
+    execute: fakeHook,
+    runIrGate: async () => ({ id: "G1", status: "passed" }),
+    runNativeCoreGate: async () => {
+      calls.push("native");
+      return { id: "G3", status: "passed", full_coverage: false, milestone_exit_eligible: false };
+    },
+  });
+  assert.deepEqual(calls, ["native"]);
+  assert.equal(result.report.required_gates_passed, true);
+  assert.equal(result.report.milestone_exit_satisfied, false);
+  assert.equal(result.exitCode, 0);
+});
+
 const deliveryPolicy = {
   kind: "rust-delivery-v1",
   status: "approved",
@@ -233,7 +262,7 @@ test("a full non-exact pixel gate without self-review cannot authorize a commit"
   const context = await fixture(t);
   await writeAtomicJson(context.ledger, {
     status: "running",
-    milestones: [{ id: "M3", status: "in_progress", gates: ["G0", "G3"], tasks: [] }],
+    milestones: [{ id: "M4", status: "in_progress", gates: ["G0", "G3"], tasks: [] }],
   });
   const result = await verifyMigration(context, {
     provenance,

@@ -68,6 +68,20 @@ separate modules. Existing document fields, effect identifiers, and operation na
 allocation, resizing helpers, and disposal of its GPU resources and media/surface caches; scene batch
 submission has its own module. Frame buffers remain GPU-resident until an explicit readback.
 
+`aster-renderer` executes validated supplied frame bundles on a headless native wgpu device.
+Its initial capability covers solid/vector draws, fixed and backdrop blends, display conversion
+and all four AA modes. It consumes shared WGSL and exact supplied geometry, lighting, clear and
+post-process buffers; it does not evaluate projects or open media paths. Unsupported operations
+return explicit errors before rendering. Images, masks, adjustments and recursive surfaces remain
+pending native capabilities, and production preview/export still use the TS execution path.
+
+Linear HDR scene and isolated layer intermediates stay on the GPU. Frame targets are reused by
+extent under a configured allocation budget; a returned frame leases its output until released,
+preventing reuse while a consumer still owns it. `aster-render-cli render-plan` uses an explicit
+diagnostic readback to publish a PNG atomically. Future preview and encoder consumers use the GPU
+texture directly. The CLI verifies the exact content-addressed resource closure before execution
+and reports adapter identity and input/output hashes for independent pixel verification.
+
 The migration's `aster-render-ir` crate owns typed frame-plan transport and its generated schema.
 TS DataView and Rust owned-buffer codecs share a canonical FPLN container with aligned binary blobs
 and separate content-addressed resource operations. The initial contract carries an explicit
@@ -477,6 +491,9 @@ frame data are excluded, and successful hot-path operations are intentionally si
 | `aster-scene` | Unified 2D/3D entities, cameras, lights, auxiliary buffers |
 | `aster-shaders` | Embedded shared WGSL, manifest assembly, entry points, overrides, and Naga validation |
 | `aster-render` | Adapter strategy, render graph, lifetimes, aliasing, debug export |
+| `aster-render-ir` | Typed frame plans, recursive resource closure and bounded transport validation |
+| `aster-renderer` | Native wgpu execution of supplied frame plans with explicit capability rejection |
+| `aster-render-cli` | Headless plan rendering, transport diagnostics and image comparison |
 | `aster-profiler` | RAII CPU timing and rolling metrics |
 | `aster-project` | Versioned bundle validation and atomic persistence |
 | `aster-plugin` | Manifest, parameter, permission, and capability validation |

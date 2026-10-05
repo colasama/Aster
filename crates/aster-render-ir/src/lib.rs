@@ -2,13 +2,13 @@
 mod final_output;
 mod motion_reconstruction;
 mod post_effect;
-pub use motion_reconstruction::MotionReconstructionSlice;
+pub use motion_reconstruction::{MotionReconstructionSlice, MotionReconstructionStatus};
 pub use post_effect::{
     DepthEffectMode, PostEffect, PostEffectInput, PostEffectSlice, PostEffectStatus,
     SurfaceEffectMode,
 };
 mod generator;
-pub use final_output::FinalOutputSlice;
+pub use final_output::{FinalBeautySource, FinalOutputRoute, FinalOutputSlice};
 mod precomposition;
 mod precomposition_bundle;
 pub use precomposition::{
@@ -86,6 +86,8 @@ pub use time::{FrameTime, RationalFrameRate, RationalTime};
 
 mod frame_bundle;
 pub use frame_bundle::FrameBundleSlice;
+mod bundle_dependencies;
+pub use bundle_dependencies::BundleDependencies;
 pub use precomposition_bundle::PrecompositionGeneratorExecution;
 mod auxiliary;
 #[cfg(test)]

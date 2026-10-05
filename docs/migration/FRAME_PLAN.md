@@ -457,9 +457,10 @@ planning and execution preflight the hashes; a missing or inconsistent reference
 fall back. Pending references preserve the original shape fallback. The shared lease retains
 child image, video and raster owners until GPU submission completes or the frame is aborted.
 
-This is still an in-memory scene boundary, not a complete recursive wire contract. A recursive
-frame envelope, independent Rust-returned replay and complete capture remain required by
-M2-T11/M2 exit. Child media descriptors reuse the existing FPLN media-resource contract.
+The complete frame bundle now transports this boundary recursively, including child scene payloads
+and content-addressed media descriptors. Independent TS GPU replay consumes the Rust-returned
+bundle without evaluating authoring objects. Native execution of precomposition surfaces remains
+part of M3; transport acceptance does not establish native rendering coverage.
 
 `precomposition_graph_slice_v1` transports the child-first surface target graph separately from
 scene payloads. Target descriptors contain cache IDs, dimensions, exact allocation accounting,
@@ -473,5 +474,5 @@ existing ten-surface/twenty-texture limits and declares no persistent resource h
 Production reads this graph before encoding, applies its execution order and surface routes to
 the separately supplied scenes, and resolves surface aliases from decoded records. G1 round trips
 empty and nested/shared/skipped graphs, including non-Unicode cache IDs, and verifies six invalid
-graph rejections in both languages. This graph does not yet transport complete scene payloads or
-establish independent recursive GPU replay; those remain required for M2-T11.
+graph rejections in both languages. The complete frame bundle supplies the scene payloads alongside
+this routing graph and establishes independent recursive TS GPU replay at M2 exit.

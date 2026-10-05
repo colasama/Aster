@@ -190,8 +190,10 @@ dependencies = [
 name = "aster-render-cli"
 version = "0.3.5"
 dependencies = [
+ "aster-render",
  "aster-render-compare",
  "aster-render-ir",
+ "aster-renderer",
  "clap",
  "serde",
  "serde_json",
@@ -222,6 +224,18 @@ dependencies = [
  "serde_json",
  "sha2",
  "thiserror",
+]
+
+[[package]]
+name = "aster-renderer"
+version = "0.3.5"
+dependencies = [
+ "aster-render",
+ "aster-render-ir",
+ "aster-shaders",
+ "pollster",
+ "thiserror",
+ "wgpu",
 ]
 
 [[package]]

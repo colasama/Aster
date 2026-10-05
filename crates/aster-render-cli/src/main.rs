@@ -1,7 +1,7 @@
 mod bundle;
-mod bundle_dependencies;
 mod compare;
 mod ir;
+mod render_plan;
 
 use std::process::ExitCode;
 
@@ -23,6 +23,8 @@ enum Command {
     Compare(CompareArgs),
     /// Generate schemas and round-trip the bounded partial frame-plan transport.
     Ir(ir::IrArgs),
+    /// Execute a complete supplied frame on a native GPU, with optional diagnostic PNG output.
+    RenderPlan(render_plan::RenderPlanArgs),
 }
 
 #[derive(Serialize)]
@@ -36,6 +38,7 @@ impl Cli {
         match self.command {
             Command::Compare(arguments) => arguments.run(),
             Command::Ir(arguments) => Ok(arguments.run()),
+            Command::RenderPlan(arguments) => arguments.run(),
         }
     }
 }

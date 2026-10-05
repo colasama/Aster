@@ -318,3 +318,19 @@ LUT. The routing and fusion counts survive Rust unchanged, and inconsistent comp
 The required LUT/effect GPU replay now round-trips six routing slices alongside the six compiled
 programs; supplied execution decisions still match the existing frozen outputs exactly. A production
 precomposition test changes authored effects/blend after planning and verifies retained execution.
+
+## Native geometry and blend acceptance
+
+M3 G3 executes the current release `aster-render-cli render-plan` against complete captured FPLN
+bundles and their hash-pinned resource closure. The initial increment covers 22 cases (88 frames):
+solid/vector geometry, every blend mode and off/FXAA/SSAA2x/SSAA4x. Each receipt binds the native
+adapter, plan hash, dimensions and decoded PNG pixels. Comparisons use the independently frozen
+TS references under the specified `gpu` profile, including every structural check and recorded
+section 6.6 self-review. M1/M2 retain their separate whole-corpus `exact` requirements.
+
+The gate also checks rejection without output publication for unsupported features, allocation
+budgets and corrupt resources, and preserves pre-existing output. Binary and input hashes must
+remain stable throughout the run. This is explicitly an incremental gate: its report sets
+`full_coverage` and `milestone_exit_eligible` to false. Passing G0/G1/G3 permits the increment's
+commit but cannot complete M3 while images, masks, adjustment layers or precomposition surfaces
+remain unimplemented. M3 exit requires the complete core corpus and an exit audit.

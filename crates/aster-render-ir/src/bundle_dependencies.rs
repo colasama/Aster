@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use aster_render_ir::{
+use crate::{
     DecodeLimits, FplnCodec, FramePlanSliceV1, IrError, PlanSlice, PrecompositionEffectRecord,
     PrecompositionGeneratorRecord, ResourceHash, ResourceRegistry,
 };

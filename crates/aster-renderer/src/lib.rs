@@ -1,0 +1,24 @@
+//! Native, GPU-resident execution of supplied frame plans.
+mod device;
+mod frame;
+mod layer_plan;
+mod layers;
+mod output;
+mod scene;
+
+pub use device::{NativeOptions, NativeRenderer, RenderedFrame};
+pub use frame::SuppliedFrame;
+
+#[derive(Debug, thiserror::Error)]
+pub enum RenderError {
+    #[error(transparent)]
+    Plan(#[from] aster_render_ir::IrError),
+    #[error(transparent)]
+    Shader(#[from] aster_shaders::ShaderError),
+    #[error("unsupported native feature: {0}")]
+    Unsupported(String),
+    #[error("native GPU failure: {0}")]
+    Gpu(String),
+    #[error("invalid supplied frame: {0}")]
+    Invalid(String),
+}

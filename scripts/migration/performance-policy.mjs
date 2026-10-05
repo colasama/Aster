@@ -52,6 +52,9 @@ export function selectRequiredGates(milestone, policy) {
   const intermediate = approved && policy.intermediate_milestones.includes(milestone.id);
   const native = approved && policy.native_milestones.includes(milestone.id);
   let required = [...declared];
+  if (milestone.id === "M3") {
+    assert.deepEqual([...declared].sort(), ["G0", "G1", "G3"], "M3 requires G0, G1 and G3");
+  }
   if (milestone.id === "M2" || intermediate) {
     required =
       milestone.id === "M2"

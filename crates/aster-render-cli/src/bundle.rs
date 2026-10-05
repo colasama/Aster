@@ -131,7 +131,7 @@ impl BundleArgs {
             }
             registry.put(request, bytes)?;
         }
-        let nested_plans = crate::bundle_dependencies::BundleDependencies::default().validate(
+        let nested_plans = aster_render_ir::BundleDependencies::default().validate(
             &plan.metadata,
             &registry,
             &limits,

@@ -8,6 +8,7 @@ import { runIrGate } from "./ir-gate.mjs";
 import { auditM0Exit } from "./m0-exit.mjs";
 import { auditM1Exit } from "./m1-exit.mjs";
 import { auditM2Exit } from "./m2-exit.mjs";
+import { runNativeCoreGate } from "./native-core-gate.mjs";
 import { runPerformanceGate } from "./performance-gate.mjs";
 import { selectRequiredGates } from "./performance-policy.mjs";
 import { runStep } from "./process.mjs";
@@ -114,7 +115,7 @@ export async function verifyMigration(options, dependencies = {}) {
     };
     for (const id of report.required_gates) {
       if (id === "G0") report.gates.push(await runStaticGate(context, quick, execute));
-      else if (id === "G1" && milestone.id === "M2") {
+      else if (id === "G1" && ["M2", "M3"].includes(milestone.id)) {
         report.gates.push(
           quick
             ? { id, status: "skipped", reason: "Quick mode omits the full cross-language IR gate" }
@@ -180,6 +181,17 @@ export async function verifyMigration(options, dependencies = {}) {
           output_replay: checked.report.output_replay,
           duration_ms: checked.report.duration_ms,
         });
+      } else if (id === "G3" && milestone.id === "M3") {
+        report.gates.push(
+          quick
+            ? { id, status: "skipped", reason: "Quick mode omits native core GPU execution" }
+            : await (dependencies.runNativeCoreGate ?? runNativeCoreGate)(
+                { ...context, output: join(output, "G3") },
+                execute,
+              ),
+        );
+        report.milestone_exit_reason =
+          "Native geometry and blend increment does not establish image, mask, adjustment or precomposition coverage";
       } else if (id === "G3") {
         const pixelContext = { ...context, output: join(output, "G3") };
         const build = await execute(
