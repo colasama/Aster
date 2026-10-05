@@ -126,7 +126,8 @@
         "temporal_text_samples_slice_v1",
         "temporal_text_passes_slice_v1",
         "material_bindings_slice_v1",
-        "layer_effects_slice_v1"
+        "layer_effects_slice_v1",
+        "effect_execution_slice_v1"
       ],
       "type": "string"
     },
@@ -146,6 +147,14 @@
         "difference",
         "exclusion"
       ],
+      "type": "string"
+    },
+    "EffectComposite": {
+      "enum": ["none", "fixed", "backdrop", "replace"],
+      "type": "string"
+    },
+    "EffectExecutionRoute": {
+      "enum": ["direct", "layer", "adjustment", "skip"],
       "type": "string"
     },
     "EffectRoute": {
@@ -579,6 +588,45 @@
             "uses_blur",
             "uses_glow",
             "lut_hash"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "blend_mode": {
+              "$ref": "#/$defs/EffectBlendMode"
+            },
+            "blob_index": {
+              "format": "uint32",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "composite": {
+              "$ref": "#/$defs/EffectComposite"
+            },
+            "instance_id": {
+              "$ref": "#/$defs/CompositionIdentity"
+            },
+            "kind": {
+              "const": "effect_execution",
+              "type": "string"
+            },
+            "layer_id": {
+              "$ref": "#/$defs/CompositionIdentity"
+            },
+            "route": {
+              "$ref": "#/$defs/EffectExecutionRoute"
+            }
+          },
+          "required": [
+            "kind",
+            "blob_index",
+            "instance_id",
+            "layer_id",
+            "route",
+            "blend_mode",
+            "composite"
           ],
           "type": "object"
         },

@@ -22,7 +22,7 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
     status: "failed",
     started_at: new Date(started).toISOString(),
     scope:
-      "post_uniforms_slice_v1 + scene_buffers_slice_v1 + camera_parameters_slice_v1 + temporal_text_samples_slice_v1 + temporal_text_passes_slice_v1 + material_bindings_slice_v1 + layer_effects_slice_v1",
+      "post_uniforms_slice_v1 + scene_buffers_slice_v1 + camera_parameters_slice_v1 + temporal_text_samples_slice_v1 + temporal_text_passes_slice_v1 + material_bindings_slice_v1 + layer_effects_slice_v1 + effect_execution_slice_v1",
     renderer_plan_complete: false,
     steps: [],
     roundtrips: [],
@@ -35,6 +35,7 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
     temporal_passes: [],
     material_bindings: [],
     layer_effects: [],
+    effect_executions: [],
     rejections: [],
   };
   const reader = new M0Evidence(context.root);
@@ -200,6 +201,7 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
       ...runtime.temporalPassFixtures(),
       ...runtime.materialBindingFixtures(),
       ...runtime.layerEffectFixtures(),
+      ...runtime.effectExecutionFixtures(),
     ]) {
       const input = join(context.output, `${fixture.id}-ts.fpln`);
       const output = join(context.output, `${fixture.id}-rust.fpln`);
@@ -258,6 +260,19 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
           supplied_hashes_exact: true,
           pending_explicit: true,
           missing_rejected: true,
+        });
+      }
+      if (fixture.execution) {
+        assert.deepEqual(runtime.readEffectExecutionSlice(after), fixture.execution);
+        const broken = structuredClone(after);
+        broken.metadata.slices[0].composite =
+          fixture.execution.composite === "none" ? "fixed" : "none";
+        assert.throws(() => runtime.readEffectExecutionSlice(broken));
+        report.effect_executions.push({
+          id: fixture.id,
+          exact_routing: true,
+          exact_fusion: true,
+          inconsistent_rejected: true,
         });
       }
       if (fixture.effect) {

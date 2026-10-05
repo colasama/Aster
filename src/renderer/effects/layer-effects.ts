@@ -1,11 +1,7 @@
 import type { FlattenedSceneLayer } from "../../core/scene/scene-evaluation";
 import type { BlendMode, Composition, Layer } from "../../core/types";
 import { gpuBlendState } from "../compositing/blend-state";
-import {
-  LayerCompositor,
-  needsBackdropBlend,
-  needsLayerIsolation,
-} from "../compositing/layer-composite";
+import { LayerCompositor } from "../compositing/layer-composite";
 import type { FrameHeaderSlice } from "../frame-plan/types";
 import { postProcessShader, textureCompositeShader } from "../gpu/shaders";
 import {
@@ -20,6 +16,7 @@ import { FLOATS_PER_EFFECT_OPERATION, MAX_EFFECT_OPERATIONS } from "./effect-pro
 import {
   type PreparedLayerEffect,
   prepareLayerEffect,
+  prepareLayerEffects,
   suppliedLayerEffect,
 } from "./layer-effect-plan";
 
@@ -128,16 +125,16 @@ export class LayerEffectRenderer {
     scene: readonly FlattenedSceneLayer[],
     composition: Composition,
     header: FrameHeaderSlice,
+    context: "root" | "precomposition" = "root",
   ): ReadonlyMap<string, PreparedLayerEffect> {
-    const plans = new Map<string, PreparedLayerEffect>();
-    for (const item of scene) {
-      if (item.layer.kind === "adjustment" || needsLayerIsolation(item.layer))
-        plans.set(
-          item.instanceId,
-          this.prepareEffect(composition, item.layer, item.instanceId, item.localTime, header),
-        );
-    }
-    return plans;
+    return prepareLayerEffects({
+      scene,
+      composition,
+      header: { ...header, render_target: { width: this.#width, height: this.#height } },
+      context,
+      mipLevelCount: this.#pyramid.mipLevelCount,
+      planner: this.#lutPlans,
+    });
   }
 
   prepareEffect(
@@ -147,6 +144,7 @@ export class LayerEffectRenderer {
     time: number,
     header: FrameHeaderSlice,
     lut?: LutSelection,
+    context: "root" | "precomposition" | "isolated" = "isolated",
   ): PreparedLayerEffect {
     return prepareLayerEffect({
       composition,
@@ -157,6 +155,7 @@ export class LayerEffectRenderer {
       mipLevelCount: this.#pyramid.mipLevelCount,
       planner: this.#lutPlans,
       lut,
+      context,
     });
   }
 
@@ -210,7 +209,7 @@ export class LayerEffectRenderer {
     if (!input || !output || !depth || !compositeBindGroup)
       throw new Error("Layer effect targets unavailable");
 
-    const { program, uniforms, instanceId, slice, lut } = suppliedLayerEffect(
+    const { program, uniforms, instanceId, slice, execution, lut } = suppliedLayerEffect(
       effect,
       this.#width,
       this.#height,
@@ -259,7 +258,7 @@ export class LayerEffectRenderer {
     effectPass.draw(3);
     effectPass.end();
 
-    if (needsBackdropBlend(slice.blend_mode)) {
+    if (execution.composite === "backdrop") {
       // Source effects are finished; recycle their input as the backdrop snapshot.
       encoder.copyTextureToTexture({ texture: target }, { texture: input }, [
         this.#width,

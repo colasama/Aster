@@ -1,3 +1,4 @@
+use crate::EffectExecutionSlice;
 use crate::LayerEffectSlice;
 use crate::{
     CameraParametersSlice, MaterialBindingSlice, TemporalTextPassesSlice, TemporalTextSamplesSlice,
@@ -28,6 +29,7 @@ pub enum ContractLevel {
     TemporalTextPassesSliceV1,
     MaterialBindingsSliceV1,
     LayerEffectsSliceV1,
+    EffectExecutionSliceV1,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
@@ -116,6 +118,7 @@ pub struct BlobDescriptor {
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum PlanSlice {
     LayerEffect(LayerEffectSlice),
+    EffectExecution(EffectExecutionSlice),
     MaterialBinding(MaterialBindingSlice),
     PostProcessUniforms { blob_index: u32 },
     SceneBuffers(SceneBuffersSlice),
@@ -179,6 +182,12 @@ impl FramePlanSliceV1 {
         let mut referenced = BTreeSet::new();
         for slice in &self.slices {
             let blob_index = match slice {
+                PlanSlice::EffectExecution(execution)
+                    if self.contract_level == ContractLevel::EffectExecutionSliceV1 =>
+                {
+                    execution.blob_index
+                }
+
                 PlanSlice::LayerEffect(effect)
                     if self.contract_level == ContractLevel::LayerEffectsSliceV1 =>
                 {
@@ -223,6 +232,10 @@ impl FramePlanSliceV1 {
                 .ok_or(IrError::BlobCountMismatch)?;
             if !referenced.insert(blob_index) {
                 return Err(IrError::BlobCountMismatch);
+            }
+            if let PlanSlice::EffectExecution(execution) = slice {
+                execution.validate(blob)?;
+                continue;
             }
             if let PlanSlice::LayerEffect(effect) = slice {
                 effect.validate(blob, &self.resources)?;
@@ -281,6 +294,16 @@ impl FramePlanSliceV1 {
         let descriptor = self.blobs.get(index).ok_or(IrError::BlobCountMismatch)?;
         if bytes.len() != descriptor.byte_length as usize {
             return Err(IrError::ElementCountMismatch);
+        }
+        if self.contract_level == ContractLevel::EffectExecutionSliceV1 {
+            for slice in &self.slices {
+                if let PlanSlice::EffectExecution(execution) = slice
+                    && execution.blob_index as usize == index
+                {
+                    return execution.validate_payload(bytes);
+                }
+            }
+            return Err(IrError::BlobCountMismatch);
         }
         if self.contract_level == ContractLevel::LayerEffectsSliceV1 {
             for slice in &self.slices {

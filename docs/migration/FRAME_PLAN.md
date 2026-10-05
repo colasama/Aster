@@ -323,5 +323,19 @@ blur LOD bounds and finite nonnegative threshold before GPU execution.
 Root and precomposition producers compile before encoding. Consumers upload the supplied buffers
 and resolve the supplied LUT without consulting authored effects or evaluating parameters again.
 A zero-op adjustment retains the existing skipped behavior. Compilation/resource errors remain
-explicit prepared failures and reach the existing render error boundary. Stack isolation decisions,
-fusion and complete recursive pass planning are still outside this partial contract.
+explicit prepared failures and reach the existing render error boundary. Complete recursive pass planning remains outside this partial contract.
+
+### Effect execution routing
+
+`effect_execution_slice_v1` records each instance/layer identity, direct/isolated-layer/adjustment/skip
+route, blend mode and explicit fixed/backdrop/replace/no-composite operation. A 16-byte u32 payload
+owns fused effect/group, barrier and analyzed operation counts. Both languages reject inconsistent
+blend/composite combinations and invalid bounded operation counts. The separate routing slice also
+exists when no executable program is needed or a resource failure is deferred.
+
+Root and precomposition preparation computes these decisions before command encoding, including
+no-effect surfaces without a GPU effect renderer. Root empty adjustments are skipped; precomposition
+backdrop-only adjustments preserve their pass interruption and zero-operation behavior. Consumers
+read supplied routing and diagnostics; they do not inspect authored effect lists or rerun fusion
+analysis. Executable routing/program pairs must agree on instance, route, blend and frame header.
+The ordered scene stack and complete recursive pass graph remain subsequent extraction work.

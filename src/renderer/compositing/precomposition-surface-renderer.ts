@@ -3,11 +3,16 @@ import { sourceForLayer } from "../../core/media/footage-source";
 import { type FlattenedSceneLayer, flattenSceneLayers } from "../../core/scene/scene-evaluation";
 import type { BlendMode, Composition, Project } from "../../core/types";
 import { BLEND_MODES } from "../../core/types";
-import type { PreparedLayerEffect } from "../effects/layer-effect-plan";
+import {
+  effectExecution,
+  type PreparedLayerEffect,
+  prepareLayerEffects,
+} from "../effects/layer-effect-plan";
 import { LayerEffectRenderer } from "../effects/layer-effects";
 import { buildFrameHeader } from "../frame-plan/root-post-plan";
 import { buildSceneGeometry, FLOATS_PER_VERTEX, type GeometryBatch } from "../geometry/geometry";
 import { sharedShaders } from "../gpu/shared-shader-catalog";
+import { LutSelectionPlanner } from "../media/lut-selection-plan";
 import type { MediaTextureCache } from "../media/media-texture-cache";
 import { evaluateSceneCamera } from "../scene/scene-camera";
 import type { PreparedSceneGenerator, SceneGeneratorHost } from "../scene/scene-generator-host";
@@ -84,6 +89,7 @@ interface SurfaceRendererOptions {
  * back to the CPU.
  */
 export class PrecompositionSurfaceRenderer {
+  readonly #directEffectPlanner = new LutSelectionPlanner();
   readonly #device: GPUDevice;
   readonly #mediaTextures: MediaTextureCache;
   readonly #mediaLayout: GPUBindGroupLayout;
@@ -365,20 +371,7 @@ export class PrecompositionSurfaceRenderer {
       time: surface.time,
       sceneLayers: childLayers,
       geometry,
-      effectPlans:
-        entry.effects?.prepareEffects(
-          childLayers,
-          surface.composition,
-          buildFrameHeader({
-            snapshot: { snapshotScope: "precomposition-effects", projectRevision: this.#revision },
-            compositionId: surface.composition.id,
-            time: surface.time,
-            frameRate: surface.composition.frameRate,
-            target: { width: surface.composition.width, height: surface.composition.height },
-            renderTarget: { width: entry.width, height: entry.height },
-            antiAliasing: "off",
-          }),
-        ) ?? new Map(),
+      effectPlans: this.#prepareEffects(entry, surface.composition, childLayers, surface.time),
       generators: this.#sceneGenerators
         ? childLayers
             .filter((child) => this.#sceneGenerators?.supports(child))
@@ -534,6 +527,34 @@ export class PrecompositionSurfaceRenderer {
     entry.vertexBufferBytes = size;
   }
 
+  #prepareEffects(
+    entry: SurfaceEntry,
+    composition: Composition,
+    scene: readonly FlattenedSceneLayer[],
+    time: number,
+  ) {
+    const header = buildFrameHeader({
+      snapshot: { snapshotScope: "precomposition-effects", projectRevision: this.#revision },
+      compositionId: composition.id,
+      time,
+      frameRate: composition.frameRate,
+      target: { width: composition.width, height: composition.height },
+      renderTarget: { width: entry.width, height: entry.height },
+      antiAliasing: "off",
+    });
+    return (
+      entry.effects?.prepareEffects(scene, composition, header, "precomposition") ??
+      prepareLayerEffects({
+        scene,
+        composition,
+        header,
+        context: "precomposition",
+        mipLevelCount: 1,
+        planner: this.#directEffectPlanner,
+      })
+    );
+  }
+
   #encodeJob(encoder: GPUCommandEncoder, job: SurfaceJob): void {
     const { entry, composition, geometry, sceneLayers, generators } = job;
     if (generators.length > 0) {
@@ -559,7 +580,8 @@ export class PrecompositionSurfaceRenderer {
       if (item.kind === "generator") {
         const generator = generatorByInstance.get(item.scene.instanceId);
         if (!generator) continue;
-        if (needsLayerIsolation(item.scene.layer)) {
+        const execution = effectExecution(job.effectPlans.get(item.scene.instanceId));
+        if (execution.route === "layer") {
           pass?.end();
           pass = undefined;
           activeEffects.add(item.scene.instanceId);
@@ -573,11 +595,11 @@ export class PrecompositionSurfaceRenderer {
         }
         pass ??= this.#resumePass(encoder, entry, clearDepth);
         clearDepth = false;
-        this.#sceneGenerators?.draw(pass, generator);
+        this.#sceneGenerators?.draw(pass, generator, execution.blendMode);
         continue;
       }
       if (item.kind === "adjustment") {
-        if (!needsLayerIsolation(item.scene.layer)) continue;
+        if (effectExecution(job.effectPlans.get(item.scene.instanceId)).route === "skip") continue;
         pass?.end();
         pass = undefined;
         const count = entry.effects?.encodeAdjustment(
@@ -589,7 +611,8 @@ export class PrecompositionSurfaceRenderer {
         continue;
       }
       const { batch } = item;
-      if (needsLayerIsolation(batch.layer)) {
+      const execution = effectExecution(job.effectPlans.get(batch.instanceId));
+      if (execution.route === "layer") {
         pass?.end();
         pass = undefined;
         activeEffects.add(batch.instanceId);
@@ -603,7 +626,7 @@ export class PrecompositionSurfaceRenderer {
       }
       pass ??= this.#resumePass(encoder, entry, clearDepth);
       clearDepth = false;
-      this.#drawBatch(pass, entry, batch);
+      this.#drawBatch(pass, entry, batch, execution.blendMode);
     }
     pass?.end();
     entry.effects?.sweep(activeEffects);

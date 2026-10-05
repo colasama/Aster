@@ -22,11 +22,10 @@ import { evaluateCameraBasis } from "../core/scene/camera-rig";
 import { flattenSceneLayers } from "../core/scene/scene-evaluation";
 import type { Composition, GpuDiagnostics, Project, RendererMetrics } from "../core/types";
 import { requestPreferredGpuAdapter } from "../desktop/gpu-preference";
-import { needsLayerIsolation } from "./compositing/layer-composite";
 import { planSceneRenderStack } from "./compositing/render-stack";
 import { AntiAliasingRenderer, planAntiAliasing } from "./effects/anti-aliasing";
 import { depthEffectSettingsFromCameraOptics } from "./effects/depth-effects";
-import { analyzeEffectFusion } from "./effects/effect-fusion";
+import { effectExecution } from "./effects/layer-effect-plan";
 import { selectedRenderId } from "./effects/surface-post-effects";
 import { buildCameraPlan, readCameraPlan } from "./frame-plan/camera-plan";
 import { buildRootPostUniformPlan } from "./frame-plan/root-post-plan";
@@ -863,9 +862,9 @@ export class WebGpuRenderer {
         clearSceneDepth = true;
       }
       if (item.kind === "adjustment") {
-        const { layer } = item.scene;
-        if (!layer.effects.some((effect) => effect.enabled)) continue;
-        const fusion = analyzeEffectFusion(layer.effects);
+        const execution = effectExecution(effectPlans.get(item.scene.instanceId));
+        if (execution.route === "skip") continue;
+        const fusion = execution.fusion;
         scenePass?.end();
         scenePass = undefined;
         try {
@@ -885,11 +884,11 @@ export class WebGpuRenderer {
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
           this.diagnostics.adjustmentLayerError = message;
-          const diagnosticKey = `${layer.id}:${message}`;
+          const diagnosticKey = `${execution.layerId}:${message}`;
           if (!this.#reportedAdjustmentErrors.has(diagnosticKey)) {
             this.#reportedAdjustmentErrors.add(diagnosticKey);
             logger.warn("webgpu", "adjustment_layer_skipped", {
-              layerId: layer.id,
+              layerId: execution.layerId,
               error: message,
             });
           }
@@ -899,9 +898,9 @@ export class WebGpuRenderer {
       if (item.kind === "generator") {
         const generator = generatorByInstance.get(item.scene.instanceId);
         if (!generator || drawnGenerators.has(generator.instanceId)) continue;
-        const hasEffects = needsLayerIsolation(item.scene.layer);
-        if (hasEffects) {
-          const fusion = analyzeEffectFusion(item.scene.layer.effects);
+        const execution = effectExecution(effectPlans.get(item.scene.instanceId));
+        if (execution.route === "layer") {
+          const fusion = execution.fusion;
           scenePass?.end();
           scenePass = undefined;
           activeEffectInstances.add(item.scene.instanceId);
@@ -932,14 +931,14 @@ export class WebGpuRenderer {
           scenePassCount += 1;
           clearSceneDepth = false;
         }
-        resources.sceneGenerators.draw(scenePass, generator);
+        resources.sceneGenerators.draw(scenePass, generator, execution.blendMode);
         drawnGenerators.add(generator.instanceId);
         continue;
       }
       const { batch } = item;
-      const hasEffects = needsLayerIsolation(batch.layer);
-      if (hasEffects) {
-        const fusion = analyzeEffectFusion(batch.layer.effects);
+      const execution = effectExecution(effectPlans.get(batch.instanceId));
+      if (execution.route === "layer") {
+        const fusion = execution.fusion;
         fusedEffectCount += fusion.fusedEffectCount;
         fusionGroupCount += fusion.fusedGroupCount;
         fusionBarrierCount += fusion.barrierCount;
@@ -968,7 +967,7 @@ export class WebGpuRenderer {
           scenePassCount += 1;
           clearSceneDepth = false;
         }
-        drawSceneBatch(resources, scenePass, batch, mediaBindings, batch.layer.blendMode);
+        drawSceneBatch(resources, scenePass, batch, mediaBindings, execution.blendMode);
       }
     }
     const generatorDrawCount = drawnGenerators.size;

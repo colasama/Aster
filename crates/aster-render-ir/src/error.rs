@@ -2,6 +2,8 @@
 pub enum IrError {
     #[error("Invalid layer effect: {0}")]
     InvalidLayerEffect(String),
+    #[error("invalid effect execution: {0}")]
+    InvalidEffectExecution(String),
     #[error("Invalid material binding: {0}")]
     InvalidMaterialBinding(String),
     #[error("FPLN header is truncated")]
@@ -74,6 +76,7 @@ impl IrError {
     pub fn code(&self) -> &'static str {
         match self {
             Self::InvalidLayerEffect(_) => "invalid_layer_effect",
+            Self::InvalidEffectExecution(_) => "invalid_effect_execution",
             Self::InvalidMaterialBinding(_) => "invalid_material_binding",
             Self::TruncatedHeader => "truncated_header",
             Self::InvalidMagic => "invalid_magic",

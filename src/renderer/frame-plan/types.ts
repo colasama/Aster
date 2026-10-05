@@ -95,7 +95,8 @@ export interface FramePlanSliceV1 {
     | "temporal_text_samples_slice_v1"
     | "temporal_text_passes_slice_v1"
     | "material_bindings_slice_v1"
-    | "layer_effects_slice_v1";
+    | "layer_effects_slice_v1"
+    | "effect_execution_slice_v1";
   renderer_plan_complete: false;
   header: FrameHeaderSlice;
   blobs: BlobDescriptor[];
@@ -132,6 +133,7 @@ export type PlanSlice =
   | SceneBuffersSlice
   | CameraParametersSlice
   | MaterialBindingSlice
+  | EffectExecutionSlice
   | LayerEffectSlice
   | TemporalTextSamplesSlice
   | TemporalTextPassesSlice;
@@ -231,4 +233,14 @@ export interface LayerEffectSlice {
   uses_blur: boolean;
   uses_glow: boolean;
   lut_hash: string;
+}
+
+export interface EffectExecutionSlice {
+  kind: "effect_execution";
+  blob_index: number;
+  instance_id: CompositionIdentity;
+  layer_id: CompositionIdentity;
+  route: "direct" | "layer" | "adjustment" | "skip";
+  blend_mode: BlendMode;
+  composite: "none" | "fixed" | "backdrop" | "replace";
 }

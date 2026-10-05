@@ -73,7 +73,11 @@ async function main() {
     };
     const input = { sourceHash: captured.sourceHash, cases: [], resources: [] };
     for (const r of captured.cases) {
-      input.cases.push({ id: r.id, plan: await roundtrip(r.id, r.plan) });
+      input.cases.push({
+        id: r.id,
+        plan: await roundtrip(r.id, r.plan),
+        execution: await roundtrip(`${r.id}-execution`, r.execution),
+      });
       await writeFile(join(config.output, `${r.id}.reference.bin`), Buffer.from(r.reference));
     }
     for (const message of messages)

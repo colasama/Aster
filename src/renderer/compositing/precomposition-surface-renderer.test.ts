@@ -240,6 +240,8 @@ describe("GPU precomposition surfaces", () => {
     const encode = vi.spyOn(LayerEffectRenderer.prototype, "encode");
     try {
       renderer.prepare(project, flattenSceneLayers(root, project, 1), false);
+      shape.effects = [];
+      shape.blendMode = "screen";
       renderer.encode(mockEncoder([]));
       expect(encode.mock.calls).toHaveLength(1);
       const effect = encode.mock.calls[0][2];

@@ -63,6 +63,18 @@ export async function auditLutDraws(reader, context, execute) {
       assert.equal(effect.slice.uses_blur, id === "blur");
       assert.equal(effect.slice.uses_glow, id === "glow");
       assert.equal(effect.slice.blend_mode, id === "blend" ? "soft-light" : "normal");
+      const executionInput = await reader.bytes(`${path}/${id}-execution.input.fpln`);
+      const executionOutput = await reader.bytes(`${path}/${id}-execution.decoded.fpln`);
+      assert.deepEqual(executionInput.bytes, executionOutput.bytes);
+      const execution = runtime.readEffectExecutionSlice(
+        runtime.decodeFramePlan(executionOutput.bytes),
+      );
+      assert.equal(execution.route, effect.slice.route);
+      assert.equal(execution.blendMode, effect.slice.blend_mode);
+      assert.equal(
+        execution.composite,
+        id === "blend" ? "backdrop" : id === "adjustment" ? "replace" : "fixed",
+      );
       const saved = frozen.cases.find((c) => c.id === id);
       const expected = await reader.bytes(saved.path, saved.sha256);
       const captured = await reader.bytes(`${path}/${id}.reference.bin`);
@@ -91,7 +103,7 @@ export async function auditLutDraws(reader, context, execute) {
     results: gpu.results,
     adapter: gpu.adapter,
     reference,
-    rust_plans: 6,
+    rust_plans: 12,
     rust_messages: 3,
     report: `${path}/gpu.json`,
     duration_ms: run.duration_ms,

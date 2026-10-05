@@ -75,6 +75,9 @@ async function capture() {
       cases.push({
         id: item.id,
         plan: Array.from(encodeFramePlan(prepared.plan.metadata, prepared.plan.blobs)),
+        execution: Array.from(
+          encodeFramePlan(prepared.execution.metadata, prepared.execution.blobs),
+        ),
         reference,
       });
     }
@@ -102,7 +105,7 @@ async function capture() {
 
 async function replay(input: {
   sourceHash: string;
-  cases: { id: string; plan: number[] }[];
+  cases: { id: string; plan: number[]; execution: number[] }[];
   resources: { message: PutResource; bytes: number[] }[];
 }) {
   const adapter = await navigator.gpu.requestAdapter();
@@ -148,6 +151,7 @@ async function replay(input: {
       if (resource?.message.kind !== "texture_pixels") throw Error("Missing supplied LUT");
       const prepared = {
         status: "ready" as const,
+        execution: decodeFramePlan(new Uint8Array(item.execution)),
         plan,
         lut: { status: "ready" as const, resource: { ...resource, message: resource.message } },
       };

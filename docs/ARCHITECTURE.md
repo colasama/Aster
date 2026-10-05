@@ -155,8 +155,9 @@ atomic and stale owners are destroyed. Material GPU bindings now consume supplie
 and registered texture owners independently of acquisition. Six frozen RGBA16F material draws are
 replayed on a new device from Rust-returned scene/material plans and normal/HDR resources. Root and precomposition effect execution now consumes supplied effect FPLN, including compiled
 instructions, uniforms, blend/route controls, pyramid needs and selected LUT hashes. Six frozen
-LUT/effect draws replay on an independent device after Rust transport. Whole-frame pass planning
-and capture remain under extraction.
+LUT/effect draws replay on an independent device after Rust transport. Effect execution routing also travels through FPLN: root and precomposition consumers read supplied
+isolation, composite and fusion decisions, including direct and skipped instances. Whole-frame pass
+planning and capture remain under extraction.
 
 Shared WGSL includes output anti-aliasing, core scene variants, compositing, fused post-processing,
 blur/depth/surface effects, auxiliary surfaces, particles, text motion blur and display/buffer helpers.

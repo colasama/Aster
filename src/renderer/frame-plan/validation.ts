@@ -1,6 +1,11 @@
 import { CAMERA_SLICE_FIELDS, validateCameraParameters } from "./camera-layout";
 import { align16, hash, integer, object, requirePlan, validUnicode } from "./canonical";
 import { compositionIdentityToString } from "./composition-identity";
+import {
+  EFFECT_EXECUTION_FIELDS,
+  validateEffectExecution,
+  validateEffectExecutionBlob,
+} from "./effect-execution-layout";
 import { validateFrameRate } from "./frame-rate";
 import {
   LAYER_EFFECT_FIELDS,
@@ -87,6 +92,7 @@ export function validateMetadata(value: unknown, limits: FramePlanLimits): Frame
         "temporal_text_passes_slice_v1",
         "material_bindings_slice_v1",
         "layer_effects_slice_v1",
+        "effect_execution_slice_v1",
       ].includes(String(metadata.contract_level)) &&
       metadata.renderer_plan_complete === false,
     "unknown_variant",
@@ -163,6 +169,15 @@ export function validateMetadata(value: unknown, limits: FramePlanLimits): Frame
     const camera = metadata.contract_level === "camera_parameters_slice_v1";
     const temporal = metadata.contract_level === "temporal_text_samples_slice_v1";
     const passes = metadata.contract_level === "temporal_text_passes_slice_v1";
+    if (metadata.contract_level === "effect_execution_slice_v1") {
+      const slice = object(value, EFFECT_EXECUTION_FIELDS);
+      requirePlan(slice.kind === "effect_execution", "unknown_variant", "Unknown execution slice");
+      const index = integer(slice.blob_index, 0, metadata.blobs.length - 1);
+      requirePlan(!indices.has(index), "blob_count_mismatch", "Duplicate execution blob");
+      indices.add(index);
+      validateEffectExecution(slice, metadata.blobs[index]);
+      continue;
+    }
     if (metadata.contract_level === "layer_effects_slice_v1") {
       const slice = object(value, LAYER_EFFECT_FIELDS);
       requirePlan(slice.kind === "layer_effect", "unknown_variant", "Unknown effect slice");
@@ -284,6 +299,7 @@ export function validatePlanBlob(
     "Supplied blob length differs from descriptor",
   );
   if (metadata.contract_level === "post_uniforms_slice_v1") validatePostUniforms(bytes, metadata);
+  if (metadata.contract_level === "effect_execution_slice_v1") validateEffectExecutionBlob(bytes);
   if (metadata.contract_level === "layer_effects_slice_v1") {
     const slice = metadata.slices.find((slice) => slice.blob_index === index);
     requirePlan(slice?.kind === "layer_effect", "invalid_layer_effect", "Missing effect slice");

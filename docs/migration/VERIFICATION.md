@@ -293,3 +293,10 @@ from the pre-extraction commit and its six distinct RGBA16F outputs are frozen s
 `tests/parity/lut-draw/reference`. A fresh page/device receives only Rust-returned effect plans and
 texture resource payloads; all outputs must match the frozen bytes exactly. This supplements the
 full-frame corpus and does not claim full frame-plan capture or native rendering.
+
+G1 additionally transports 19 effect execution routing slices: all blend modes, direct rendering,
+root skip, precomposition zero-op adjustment, overflow, disabled effects and a deferred malformed
+LUT. The routing and fusion counts survive Rust unchanged, and inconsistent composites are rejected.
+The required LUT/effect GPU replay now round-trips six routing slices alongside the six compiled
+programs; supplied execution decisions still match the existing frozen outputs exactly. A production
+precomposition test changes authored effects/blend after planning and verifies retained execution.

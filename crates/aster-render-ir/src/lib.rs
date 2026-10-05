@@ -5,6 +5,7 @@ pub use layer_effect::{EffectBlendMode, EffectRoute, LayerEffectSlice};
 mod camera;
 mod canonical;
 mod codec;
+mod effect_execution;
 mod encoded_texture;
 mod error;
 mod fixture;
@@ -26,6 +27,7 @@ mod wire;
 
 pub use camera::{CameraIrisShape, CameraParametersSlice, CameraPoseMode, CameraProjectionKind};
 pub use codec::{DecodeLimits, FplnCodec, OwnedFpln};
+pub use effect_execution::{EffectComposite, EffectExecutionRoute, EffectExecutionSlice};
 pub use encoded_texture::{EncodedTextureDescriptor, TextureColorConversion, TextureEncoding};
 pub use error::IrError;
 pub use fixture::IrFixture;
