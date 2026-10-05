@@ -29,8 +29,32 @@ export interface PrecompositionBundleSlice {
   blob_index: number;
   graph: string;
   scenes: PrecompositionSceneRecord[];
+  media_pixels: { frame: string; pixels: string }[];
 }
-export const PRECOMPOSITION_BUNDLE_FIELDS = ["kind", "blob_index", "graph", "scenes"];
+export const PRECOMPOSITION_BUNDLE_FIELDS = [
+  "kind",
+  "blob_index",
+  "graph",
+  "scenes",
+  "media_pixels",
+];
+
+/** Distinguish executable containers from arbitrary shader and pixel byte buffers. */
+export function precompositionPlanResources(bundle: PrecompositionBundleSlice): string[] {
+  return [
+    ...new Set([
+      bundle.graph,
+      ...bundle.scenes.flatMap((scene) => [
+        scene.scene,
+        scene.commands,
+        ...scene.effects.flatMap((effect) =>
+          effect.status === "ready" ? [effect.execution, effect.plan] : [effect.execution],
+        ),
+        ...scene.generators.map((generator) => generator.plan),
+      ]),
+    ]),
+  ].sort();
+}
 
 export function utf16Text(value: string): number[] {
   return Array.from({ length: value.length }, (_, index) => value.charCodeAt(index));
@@ -60,6 +84,20 @@ export function validatePrecompositionBundle(
     );
   };
   reference(bundle.graph);
+  requirePlan(
+    Array.isArray(bundle.media_pixels) && bundle.media_pixels.length <= 65536,
+    "invalid_precomposition",
+    "Surface media pixel count",
+  );
+  const mediaFrames = new Set<string>();
+  for (const value of bundle.media_pixels) {
+    const pixel = object(value, ["frame", "pixels"]);
+    reference(pixel.frame);
+    reference(pixel.pixels);
+    const frame = pixel.frame as string;
+    requirePlan(!mediaFrames.has(frame), "invalid_precomposition", "Duplicate surface media frame");
+    mediaFrames.add(frame);
+  }
   requirePlan(
     Array.isArray(bundle.scenes) && bundle.scenes.length <= 10,
     "invalid_precomposition",

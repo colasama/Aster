@@ -72,6 +72,11 @@ export class MediaBindingLease {
     return this.#lease.bindingForHash(hash);
   }
 
+  textureForHash(hash: string): GPUTexture {
+    requirePlan(!this.#released, "missing_resource", "Media binding lease was released");
+    return this.#lease.textureForHash(hash);
+  }
+
   bindingFor(instanceId: string): GPUBindGroup | undefined {
     return this.bindingForHash(this.hashFor(instanceId));
   }

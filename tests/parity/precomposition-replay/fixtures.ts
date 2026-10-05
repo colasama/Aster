@@ -30,6 +30,34 @@ export function surfaceFixture(id: string) {
     layer.transform.position = [staticValue(23 + i * 15), staticValue(21 + i * 7), staticValue(0)];
     return layer;
   });
+  if (id === "media") {
+    const canvas = document.createElement("canvas");
+    canvas.width = 64;
+    canvas.height = 48;
+    const context = canvas.getContext("2d");
+    if (!context) throw Error("No media fixture canvas");
+    const image = context.createImageData(64, 48);
+    for (let i = 0; i < 64 * 48; i++)
+      image.data.set([i % 251, (i * 7) % 251, 210, 128 + (i % 2) * 80], i * 4);
+    context.putImageData(image, 0, 0);
+    project.sources.push({
+      id: "captured-image",
+      name: "captured-image.png",
+      kind: "still",
+      mimeType: "image/png",
+      contentIdentity: "recursive-media-fixture-v1",
+      dataUrl: canvas.toDataURL("image/png"),
+      width: 64,
+      height: 48,
+      interpretation: { alpha: "straight", colorSpace: "srgb" },
+    });
+    const layer = createLayerForComposition("image", leaf);
+    layer.id = "image";
+    layer.sourceId = "captured-image";
+    layer.size = [64, 48];
+    layer.transform.anchor = [staticValue(32), staticValue(24), staticValue(0)];
+    leaf.layers.unshift(layer);
+  }
   if (id === "effects") leaf.layers[0].effects = [createEffect("gaussian-blur")];
   if (id.startsWith("generator")) {
     const instance = createSceneGeneratorInstance(bundledParticleDefinition);
@@ -62,7 +90,7 @@ export function surfaceFixture(id: string) {
     return layer;
   };
   let source = leaf;
-  if (id === "nested" || id === "effects") {
+  if (id === "nested" || id === "effects" || id === "media") {
     const parent = { ...structuredClone(root), id: `parent-${id}`, name: "Parent" };
     parent.layers = ["left", "right"].map((name, i) => {
       const layer = wrapper(parent, leaf, name);

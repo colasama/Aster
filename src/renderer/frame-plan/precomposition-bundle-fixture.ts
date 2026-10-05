@@ -1,3 +1,4 @@
+import { createMediaPixelPayload } from "../media/media-pixel-payload";
 import { encodeFramePlan } from "./codec";
 import { buildPrecompositionBundle } from "./precomposition-bundle-plan";
 import { precompositionGraphFixtures } from "./precomposition-graph-fixture";
@@ -34,10 +35,21 @@ export function precompositionBundleFixtures() {
     if (fixture.plans[1]) fixture.plans[1].label = "";
     for (const generator of fixture.plans[0]?.generators ?? [])
       generator.origin.layerName = "nested\0label\ud800";
-    const bundle = buildPrecompositionBundle(fixture, fixture.plans, [source, frame]);
+    const mediaPixels = fixture.plans.length
+      ? [
+          createMediaPixelPayload(
+            frame,
+            Uint8Array.from({ length: 64 * 48 * 4 }, (_, i) =>
+              i < 4 ? [70, 80, 76, 78][i] : i % 251,
+            ),
+          ),
+        ]
+      : [];
+    const bundle = buildPrecompositionBundle(fixture, fixture.plans, [source, frame], mediaPixels);
     return {
       id: `${fixture.id}-bundle`,
       bundle,
+      mediaPixels,
       plans: fixture.plans,
       bytes: encodeFramePlan(bundle.plan.metadata, bundle.plan.blobs),
     };

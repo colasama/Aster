@@ -114,6 +114,12 @@
       "sha256": "b0e3a9edb52e73c46f67331b4b1634d6584b02a842f96140f588863460e4ca97",
       "reference_commit": "2515c73a710c0151230c718429d4a833431b5452",
       "profile": "exact"
+    },
+    "precomposition_media": {
+      "path": "tests/parity/precomposition-replay/reference/media-manifest.json",
+      "sha256": "46b095b3e2fa862eef2d2d2860a3a78824fb3e42fc0836ac705f8c91f493240a",
+      "reference_commit": "2515c73a710c0151230c718429d4a833431b5452",
+      "profile": "exact"
     }
   },
   "last_cycle": {
@@ -17359,5 +17365,11 @@
       }
     }
   ],
-  "active_cycle": null
+  "active_cycle": {
+    "id": 59,
+    "milestone": "M2",
+    "task": "M2-T11",
+    "started_at": "2026-10-05T09:54:37.531Z",
+    "intent": "Capture retained child media texture pixels into supplied precomposition bundles and reconstruct independent GPU media bindings from validated payloads."
+  }
 }

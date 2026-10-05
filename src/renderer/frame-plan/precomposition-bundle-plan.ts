@@ -1,5 +1,6 @@
 import type { PrecompositionScenePlan } from "../compositing/precomposition-scene-plan";
 import { suppliedLutResource } from "../media/lut-selection-plan";
+import { type CapturedMediaPixels, validateMediaPixelPayload } from "../media/media-pixel-payload";
 import { requirePlan } from "./canonical";
 import { compositionIdentityFromString as identity } from "./composition-identity";
 import {
@@ -17,6 +18,7 @@ export function buildPrecompositionBundle(
   graph: FramePlanSliceData,
   plans: readonly PrecompositionScenePlan[],
   media: readonly PutResource[],
+  pixels: readonly CapturedMediaPixels[] = [],
 ) {
   const resources = new PrecompositionBundleResources();
   for (const message of media) resources.add({ message, bytes: new Uint8Array() });
@@ -25,6 +27,7 @@ export function buildPrecompositionBundle(
     blob_index: 0,
     graph: resources.addPlan(graph),
     scenes: [],
+    media_pixels: [],
   };
   const mappings: number[] = [];
   for (const scene of plans) {
@@ -97,6 +100,17 @@ export function buildPrecompositionBundle(
     }
     for (const generator of scene.generators)
       resources.plan(generator.plan, "scene_generator_slice_v1");
+  }
+  for (const capture of pixels) {
+    validateMediaPixelPayload(capture);
+    requirePlan(
+      resources.used.has(capture.frame.hash),
+      "invalid_resource",
+      "Captured media frame is unused",
+    );
+    const hash = resources.add(capture.pixels);
+    resources.resolve(hash);
+    bundle.media_pixels.push({ frame: capture.frame.hash, pixels: hash });
   }
   const counts = [
     plans.length,

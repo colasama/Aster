@@ -733,6 +733,12 @@
               "const": "precomposition_bundle",
               "type": "string"
             },
+            "media_pixels": {
+              "items": {
+                "$ref": "#/$defs/PrecompositionMediaPixels"
+              },
+              "type": "array"
+            },
             "scenes": {
               "items": {
                 "$ref": "#/$defs/PrecompositionSceneRecord"
@@ -740,7 +746,7 @@
               "type": "array"
             }
           },
-          "required": ["kind", "blob_index", "graph", "scenes"],
+          "required": ["kind", "blob_index", "graph", "scenes", "media_pixels"],
           "type": "object"
         },
         {
@@ -1347,6 +1353,19 @@
         }
       },
       "required": ["instance_id", "plan", "layer_name_utf16", "plugin_id_utf16"],
+      "type": "object"
+    },
+    "PrecompositionMediaPixels": {
+      "additionalProperties": false,
+      "properties": {
+        "frame": {
+          "$ref": "#/$defs/ResourceHash"
+        },
+        "pixels": {
+          "$ref": "#/$defs/ResourceHash"
+        }
+      },
+      "required": ["frame", "pixels"],
       "type": "object"
     },
     "PrecompositionSceneRecord": {

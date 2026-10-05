@@ -24,6 +24,7 @@ interface RegisteredMedia {
 
 export interface MediaGpuLease {
   bindingForHash(hash: string): GPUBindGroup;
+  textureForHash(hash: string): GPUTexture;
   release(): void;
 }
 
@@ -209,17 +210,23 @@ export class MediaGpuRegistry {
       version.pins += 1;
     }
     let released = false;
+    const selectedVersion = (hash: string) => {
+      requirePlan(!released, "missing_resource", "GPU media lease was released");
+      const selectedFrame = byHash.get(hash);
+      requirePlan(selectedFrame, "missing_resource", "GPU media hash is absent from the lease");
+      requirePlan(
+        this.#current(selectedFrame.version),
+        "resource_generation_mismatch",
+        "Media changed after acquisition",
+      );
+      return selectedFrame.version;
+    };
     return {
-      bindingForHash: (hash) => {
-        requirePlan(!released, "missing_resource", "GPU media lease was released");
-        const selectedFrame = byHash.get(hash);
-        requirePlan(selectedFrame, "missing_resource", "GPU media hash is absent from the lease");
-        requirePlan(
-          this.#current(selectedFrame.version),
-          "resource_generation_mismatch",
-          "Media changed after acquisition",
-        );
-        return selectedFrame.version.binding;
+      bindingForHash: (hash) => selectedVersion(hash).binding,
+      textureForHash: (hash) => {
+        const texture = selectedVersion(hash).owner.texture;
+        requirePlan(texture, "missing_resource", "Pinned media texture is absent");
+        return texture;
       },
       release: () => {
         if (released) return;

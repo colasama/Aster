@@ -9,12 +9,12 @@ export async function auditPrecompositionBundle(runtime, fixture, after, options
   await mkdir(directory);
   const packets = [];
   let nested = 0;
+  const planResources = new Set(
+    runtime.precompositionPlanResources(fixture.bundle.plan.metadata.slices[0]),
+  );
   for (const resource of fixture.bundle.resources) {
     let bytes = resource.bytes;
-    if (
-      resource.message.kind === "buffer" &&
-      Buffer.from(bytes.subarray(0, 4)).toString() === "FPLN"
-    ) {
+    if (planResources.has(resource.message.hash)) {
       const input = join(directory, `${resource.message.hash}.input.fpln`);
       const output = join(directory, `${resource.message.hash}.output.fpln`);
       await writeFile(input, bytes, { flag: "wx" });
@@ -59,6 +59,7 @@ export async function auditPrecompositionBundle(runtime, fixture, after, options
   const supplied = messages.map((message, index) => ({ message, bytes: packets[index].bytes }));
   const decoded = runtime.readPrecompositionBundle(after, supplied);
   assert.deepEqual(decoded.plans, fixture.plans);
+  assert.deepEqual(decoded.mediaPixels, fixture.mediaPixels);
   assert.throws(() => runtime.readPrecompositionBundle(after, supplied.slice(1)), {
     code: "missing_resource",
   });
@@ -78,11 +79,31 @@ export async function auditPrecompositionBundle(runtime, fixture, after, options
   );
   assert.equal(cliReport(rejection.log).code, "invalid_precomposition");
   await assert.rejects(access(invalidOutput), { code: "ENOENT" });
+  if (decoded.mediaPixels.length) {
+    const duplicate = mutate(fixture.bytes, (metadata) =>
+      metadata.slices[0].media_pixels.push({ ...metadata.slices[0].media_pixels[0] }),
+    );
+    assert.throws(() => runtime.decodeFramePlan(duplicate), { code: "invalid_precomposition" });
+    const input = join(directory, "duplicate-media.fpln"),
+      output = join(directory, "duplicate-media.output.fpln");
+    await writeFile(input, duplicate, { flag: "wx" });
+    const rejected = await command(
+      `ir-precomposition-reject-media-${fixture.id}`,
+      cli,
+      ["ir", "roundtrip", "--input", input, "--output", output],
+      2,
+    );
+    assert.equal(cliReport(rejected.log).code, "invalid_precomposition");
+    await assert.rejects(access(output), { code: "ENOENT" });
+  }
   return {
+    media_duplicate_rejected: decoded.mediaPixels.length > 0,
     id: fixture.id,
     scenes: decoded.plans.length,
     resources: supplied.length,
     nested_roundtrips: nested,
+    exact_media_pixels: true,
+    media_pixel_bytes: decoded.mediaPixels.reduce((n, p) => n + p.pixels.bytes.length, 0),
     exact_payloads: true,
     exact_dependencies: true,
     missing_rejected: true,

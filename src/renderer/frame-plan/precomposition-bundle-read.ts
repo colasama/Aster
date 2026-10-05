@@ -1,6 +1,7 @@
 import type { PrecompositionScenePlan } from "../compositing/precomposition-scene-plan";
 import { effectExecution, type PreparedLayerEffect } from "../effects/layer-effect-plan";
 import { suppliedLutResource } from "../media/lut-selection-plan";
+import { validateMediaPixelPayload } from "../media/media-pixel-payload";
 import type { GeneratorShaderResource } from "../scene/scene-generator-program";
 import { canonicalJson, requirePlan } from "./canonical";
 import { compositionIdentityToString as text } from "./composition-identity";
@@ -244,10 +245,22 @@ export function readPrecompositionBundle(
       generators,
     };
   });
+  const mediaPixels = bundle.media_pixels.map((record) => {
+    requirePlan(
+      resources.used.has(record.frame),
+      "invalid_resource",
+      "Captured media frame is unused",
+    );
+    const frame = resources.resolve(record.frame).message;
+    const pixels = resources.resolve(record.pixels);
+    const capture = { frame, pixels };
+    validateMediaPixelPayload(capture);
+    return capture;
+  });
   requirePlan(
     canonicalJson([...resources.used].sort()) === canonicalJson(metadata.resources),
     "invalid_precomposition",
     "Bundle resource references are not exact",
   );
-  return { graph, plans: applyPrecompositionGraph(graph, plans) };
+  return { graph, plans: applyPrecompositionGraph(graph, plans), mediaPixels };
 }

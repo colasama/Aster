@@ -8,6 +8,19 @@ export async function auditPrecompositions(reader, context, execute) {
   assert.equal(reference.path, "tests/parity/precomposition-replay/reference/manifest.json");
   await reader.bytes(reference.path, reference.sha256);
   const frozen = await reader.json(reference.path);
+  const mediaReference = ledger.reference_baseline.precomposition_media;
+  assert.equal(
+    mediaReference.path,
+    "tests/parity/precomposition-replay/reference/media-manifest.json",
+  );
+  await reader.bytes(mediaReference.path, mediaReference.sha256);
+  const mediaFrozen = await reader.json(mediaReference.path);
+  assert.equal(mediaFrozen.reference_commit, reference.reference_commit);
+  assert.equal(mediaFrozen.profile, "exact");
+  assert.equal(mediaFrozen.format, "rgba16float-le");
+  assert.equal(mediaFrozen.width, 64);
+  assert.equal(mediaFrozen.height, 48);
+  assert.deepEqual(mediaFrozen.implementation, frozen.implementation);
   assert.equal(frozen.reference_commit, reference.reference_commit);
   assert.equal(frozen.profile, "exact");
   assert.equal(frozen.format, "rgba16float-le");
@@ -28,14 +41,18 @@ export async function auditPrecompositions(reader, context, execute) {
   const path = relative(context.root, output).replaceAll("\\", "/");
   const gpu = await reader.json(`${path}/gpu.json`);
   assert.equal(gpu.status, "passed");
-  const ids = ["direct", "nested", "effects", "generator", "generator-failed"];
+  const ids = ["direct", "nested", "effects", "generator", "generator-failed", "media"];
   assert.deepEqual(
     gpu.results.map((r) => r.id),
     ids,
   );
   assert.deepEqual(
     frozen.cases.map((r) => r.id),
-    ids,
+    ids.slice(0, 5),
+  );
+  assert.deepEqual(
+    mediaFrozen.cases.map((r) => r.id),
+    ["media"],
   );
   const messages = await reader.json(`${path}/decoded.json`);
   assert.deepEqual(messages, await reader.json(`${path}/input.json`));
@@ -53,8 +70,6 @@ export async function auditPrecompositions(reader, context, execute) {
       const payload = await reader.bytes(`${path}/payloads/${message.hash}.bin`);
       assert.equal(await runtime.contentResourceHash(message, payload.bytes), message.hash);
       resources.set(message.hash, { message, bytes: payload.bytes });
-      if (message.kind === "buffer" && payload.bytes.subarray(0, 4).toString() === "FPLN")
-        expectedRoundtrips.add(message.hash);
     }
     for (const c of input) {
       for (const name of ["bundle", "warmup"])
@@ -70,13 +85,19 @@ export async function auditPrecompositions(reader, context, execute) {
             assert.deepEqual(Buffer.from(r.bytes), checked.bytes);
             return checked;
           });
+          const container = runtime.decodeFramePlan(bytes.bytes);
+          const planResources = runtime.precompositionPlanResources(container.metadata.slices[0]);
+          assert.deepEqual(packet.plan_resources, planResources);
+          for (const hash of planResources) expectedRoundtrips.add(hash);
           const decoded = runtime.readPrecompositionBundle(
             runtime.decodeFramePlan(bytes.bytes),
             supplied,
           );
           if (name === "bundle") {
-            const expected = c.id === "nested" || c.id === "effects" ? 2 : 1;
+            const expected = ["nested", "effects", "media"].includes(c.id) ? 2 : 1;
             assert.equal(decoded.plans.length, expected);
+            assert.equal(decoded.mediaPixels.length, c.id === "media" ? 1 : 0);
+            if (c.id === "media") assert.equal(decoded.mediaPixels[0].pixels.bytes.length, 12288);
             assert.equal(
               decoded.plans.reduce((n, p) => n + p.generators.length, 0),
               c.id.startsWith("generator") ? 1 : 0,
@@ -88,7 +109,7 @@ export async function auditPrecompositions(reader, context, execute) {
           }
         }
       assert.equal(Boolean(c.warmup), c.id === "nested");
-      const saved = frozen.cases.find((f) => f.id === c.id);
+      const saved = [...frozen.cases, ...mediaFrozen.cases].find((f) => f.id === c.id);
       const expected = await reader.bytes(saved.path, saved.sha256);
       const captured = await reader.bytes(`${path}/${c.id}.reference.bin`);
       const actual = await reader.bytes(`${path}/${c.id}.replay.bin`);
@@ -107,6 +128,7 @@ export async function auditPrecompositions(reader, context, execute) {
         ...(c.id === "effects" ? ["remove-adjustment"] : []),
         ...(c.id === "generator" ? ["remove-generator"] : []),
         ...(c.id === "generator-failed" ? ["restore-generator"] : []),
+        ...(c.id === "media" ? ["change-media-pixels"] : []),
       ];
       assert.deepEqual(
         result.mutations.map((m) => m.id),
@@ -143,6 +165,7 @@ export async function auditPrecompositions(reader, context, execute) {
     results: gpu.results,
     adapter: gpu.adapter,
     reference,
+    media_reference: mediaReference,
     rust_plans: gpu.rust_plans,
     rust_messages: gpu.rust_messages,
     report: `${path}/gpu.json`,

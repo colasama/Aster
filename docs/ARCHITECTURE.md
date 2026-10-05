@@ -215,12 +215,16 @@ realization records remain errors before GPU encoding. A consumer can allocate t
 an owned bundle without an authoring media cache or source evaluation. Both production planning and
 supplied-bundle execution use the same decoded scene/generator upload boundary. Supplied bundles
 validate target identity, device dimensions and memory limits before allocation; all retained targets
-in the incoming frame are pinned before any entry can be recycled. G3 replays five recursive
+in the incoming frame are pinned before any entry can be recycled. G3 replays six recursive
 surface cases on independent devices after Rust transport, matching frozen pre-extraction surface
 execution exactly. Shared targets, child-first order, isolated effects, adjustments and generator
-success/failure are covered, including a retained-target pinning challenge and nine visible command
-mutations. The suite transports 49 FPLN packets and 46 resources. Standalone child-media pixels and
-full-frame capture with execution availability outcomes remain open.
+success/failure are covered, including a retained-target pinning challenge and eleven visible command or pixel mutations. The suite transports 60 FPLN packets
+and 59 resources. Capture reads installed image, video or raster pixels through the retained frame
+lease, preserving its exact frame identity and sRGB sampling. The bundle links each media frame to
+an owned packed byte resource; validation rejects duplicate frames, unreferenced frames, mismatched
+extents and corrupt payloads. Independent replay rebuilds bindings from these bytes without media
+decoders. Ordinary preview keeps media GPU-resident. Full-frame capture with execution availability
+outcomes remains open.
 
 
 Shared WGSL includes output anti-aliasing, core scene variants, compositing, fused post-processing,

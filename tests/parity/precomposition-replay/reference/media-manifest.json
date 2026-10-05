@@ -1,0 +1,19 @@
+{
+  "reference_commit": "2515c73a710c0151230c718429d4a833431b5452",
+  "profile": "exact",
+  "format": "rgba16float-le",
+  "width": 64,
+  "height": 48,
+  "implementation": {
+    "path": "tests/parity/precomposition-replay/legacy-surface.ts",
+    "sha256": "f8cd1bd48ef8c40cac361ef50900defef58d38bd988b5983972cd44cc4b5a90b"
+  },
+  "scope": "A nested image shared by two wrapper instances; installed RGBA pixels are captured through the pinned production media lease and rebuilt on an independent GPU device after Rust transport.",
+  "cases": [
+    {
+      "id": "media",
+      "path": "tests/parity/precomposition-replay/reference/media.bin",
+      "sha256": "1056a65936fa92edc71b0a16189a1c1fa44bb801607ba5e3095bd8863c80194b"
+    }
+  ]
+}

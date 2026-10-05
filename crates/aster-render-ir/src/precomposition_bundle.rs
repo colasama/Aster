@@ -52,6 +52,14 @@ pub struct PrecompositionBundleSlice {
     pub blob_index: u32,
     pub graph: ResourceHash,
     pub scenes: Vec<PrecompositionSceneRecord>,
+    pub media_pixels: Vec<PrecompositionMediaPixels>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct PrecompositionMediaPixels {
+    pub frame: ResourceHash,
+    pub pixels: ResourceHash,
 }
 
 impl PrecompositionBundleSlice {
@@ -60,7 +68,7 @@ impl PrecompositionBundleSlice {
         blob: &BlobDescriptor,
         resources: &[ResourceHash],
     ) -> Result<(), IrError> {
-        if self.scenes.len() > 10 {
+        if self.scenes.len() > 10 || self.media_pixels.len() > 65_536 {
             return Err(IrError::InvalidPrecomposition(
                 "bundle scene count".to_owned(),
             ));
@@ -73,6 +81,15 @@ impl PrecompositionBundleSlice {
             })
         };
         let mut references = vec![&self.graph];
+        let mut media_frames = BTreeMap::new();
+        for pixel in &self.media_pixels {
+            if media_frames.insert(&pixel.frame, ()).is_some() {
+                return Err(IrError::InvalidPrecomposition(
+                    "duplicate media frame".to_owned(),
+                ));
+            }
+            references.extend([&pixel.frame, &pixel.pixels]);
+        }
         let mut targets = BTreeMap::new();
         let mut draws = 0_u64;
         for scene in &self.scenes {

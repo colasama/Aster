@@ -34,6 +34,11 @@ async function main() {
     const payloads = join(config.output, "payloads");
     await mkdir(payloads);
     const resources = new Map();
+    const planResources = new Set(
+      capture.cases.flatMap((c) =>
+        [c.bundle, c.warmup].filter(Boolean).flatMap((p) => p.plan_resources),
+      ),
+    );
     for (const c of capture.cases)
       for (const packet of [c.bundle, c.warmup].filter(Boolean))
         for (const r of packet.resources) {
@@ -42,7 +47,9 @@ async function main() {
         }
     for (const r of resources.values())
       await writeFile(join(payloads, `${r.message.hash}.bin`), Buffer.from(r.bytes));
-    const messages = [...resources.values()].map((r) => r.message);
+    const messages = [...resources.values()]
+      .map((r) => r.message)
+      .sort((a, b) => Number(b.kind === "media_source") - Number(a.kind === "media_source"));
     await writeAtomicJson(join(config.output, "input.json"), messages);
     const cli = join(
       config.root,
@@ -79,8 +86,7 @@ async function main() {
       return Array.from(decoded);
     };
     for (const r of resources.values())
-      if (r.message.kind === "buffer" && Buffer.from(r.bytes).subarray(0, 4).toString() === "FPLN")
-        r.bytes = await roundtrip(r.message.hash, r.bytes);
+      if (planResources.has(r.message.hash)) r.bytes = await roundtrip(r.message.hash, r.bytes);
     const input = [];
     for (const c of capture.cases) {
       const item = { id: c.id, output: c.output };
@@ -88,6 +94,7 @@ async function main() {
         if (c[name]) {
           const packet = c[name];
           item[name] = {
+            plan_resources: packet.plan_resources,
             plan: await roundtrip(`${c.id}-${name}`, packet.plan),
             resources: packet.resources.map((r) => ({
               message: decodedMessages.find((m) => m.hash === r.message.hash),

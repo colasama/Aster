@@ -11,6 +11,7 @@ describe("precomposition payload bundles", () => {
         fixture.bundle.resources,
       );
       expect(decoded.plans).toEqual(fixture.plans);
+      expect(decoded.mediaPixels).toEqual(fixture.mediaPixels);
       if (!decoded.plans.length) continue;
       expect(decoded.plans[0].effects.size).toBeGreaterThan(0);
       expect(decoded.plans[0].generators).toHaveLength(1);
@@ -19,6 +20,32 @@ describe("precomposition payload bundles", () => {
         decoded.plans,
       );
     }
+  });
+
+  it("rejects duplicate media frames, missing pixels and invalid frame layouts", () => {
+    const { bundle } = precompositionBundleFixtures()[0];
+    const pixel = bundle.plan.metadata.slices[0];
+    if (pixel.kind !== "precomposition_bundle") throw Error("Missing bundle");
+    expect(pixel.media_pixels).toHaveLength(1);
+    const record = pixel.media_pixels[0];
+    expect(() =>
+      readPrecompositionBundle(
+        bundle.plan,
+        bundle.resources.filter((r) => r.message.hash !== record.pixels),
+      ),
+    ).toThrow(/Missing declared/);
+    pixel.media_pixels.push({ ...record });
+    expect(() => encodeFramePlan(bundle.plan.metadata, bundle.plan.blobs)).toThrow(
+      /Duplicate surface media/,
+    );
+    pixel.media_pixels.pop();
+    const graphResource = bundle.resources.find((r) => r.message.hash === pixel.graph);
+    if (!graphResource) throw Error("Missing graph");
+    record.pixels = graphResource.message.hash;
+    bundle.plan.metadata.resources = bundle.plan.metadata.resources.filter(
+      (hash) => hash !== bundle.resources.find((r) => r.bytes.length === 12288)?.message.hash,
+    );
+    expect(() => readPrecompositionBundle(bundle.plan, bundle.resources)).toThrow(/frame layout/);
   });
 
   it("rejects missing, corrupted and cross-linked payloads before execution", () => {
