@@ -146,39 +146,39 @@
     }
   },
   "last_cycle": {
-    "id": 71,
-    "time": "2026-10-05T17:56:33.336Z",
+    "id": 72,
+    "time": "2026-10-05T19:10:01.696Z",
     "milestone": "M2",
     "task": "M2-T13",
     "outcome": "passed",
-    "commit": "c82918e4b7183cad64b5eac2dfbc25fcfe0738b6",
-    "verification": "artifacts/migration/verify-2026-10-05T17-47-36-670Z-8dc66b19.json",
-    "verification_sha256": "203a0e14c2690e55aa283589772551c0563e3306d26ed6f442c75de56981c5e0",
+    "commit": "152a6b3756b83c9f33460a14482b1a9c8deb86d7",
+    "verification": "artifacts/migration/verify-2026-10-05T19-01-25-603Z-c730c73f.json",
+    "verification_sha256": "2c88f3b56b1a5cc06b74b711497459b85099291753c5db8a43030a06ac4b4b62",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 91518
+        "duration_ms": 102274
       },
       {
         "id": "G1",
         "status": "passed",
-        "duration_ms": 11850
+        "duration_ms": 13057
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 347413
+        "duration_ms": 357628
       }
     ],
-    "verification_duration_ms": 452230,
-    "next_step": "Continue M2-T13: capture temporal sample/accumulation execution and close remaining raster aliases, then publish complete frame artifacts in T14.",
+    "verification_duration_ms": 474391,
+    "next_step": "Continue M2-T13: audit cached recursive temporal coverage and remaining raster aliases, then publish complete frame artifacts in T14.",
     "notes": [
-      "Added headless FrameBundleRenderer on an independent GPU device. Its resources are constructed only from owned, decoded frame bytes: captured media, encoded normal maps, HDR textures, recursive surfaces, generator workloads, auxiliary bindings and output routes. Authoring raster-cache aliases are rejected.",
-      "Production and supplied execution share recordDecodedFrame. Scene target allocation no longer requires a canvas; supplied generator frames reset independently of the authoring plugin registry. Per-frame media/material owners are destroyed only after GPU completion/readback, and bounded output targets and pipelines are retained within a capture case.",
-      "Every captured candidate now comes from supplied replay and is compared byte-for-byte to the live production frame before publication. Six representative probe cases passed, then all 337 cases / 1947 captured frames passed the same comparison. Full M2 G0/G1/G3 also passed against 1819 unchanged frozen exact references.",
-      "34 focused ownership and adjacent integration tests plus 22 capture publication/comparison tests and 8 capture-runner tests pass, including asynchronous input mutation, corrupt payload and missing dependency rejection, budget enforcement and upload cleanup. Per-frame metadata proves exact production/replay hashes; the capture store preserves both PNGs before rejecting any mismatch. No new dependency, performance investigation, reference refresh or tolerance change.",
-      "The initial full capture rejected owner-main frame 828 (336/337 cases passed). Cold, consecutive and preceding-project diagnostics did not reproduce it; its cause is not claimed fixed and remains open for the M2 exit audit. M2-T13 remains open for temporal sample/accumulation execution capture; resolved temporal media pixels are explicitly an intermediate replay input, not a substitute for native passes. T14 per-frame plan/resource publication and T15 exit audit remain open. Native production preview/export are not complete."
+      "Nested temporal FPLN stages now carry sample/output resource dependencies and exact exposure weights in the root frame bundle. TS and Rust validate the expanded envelope, declared stages, duplicate references and the sixth count lane; G1 roundtrips include partial and transparent temporal bundles.",
+      "Live media preparation registers temporal samples under the frame lease before buildProductionFrameBundle. Command recording consumes and checks the supplied temporal stages against prepared generations. Independent capture pins keep samples alive after submission retirement.",
+      "Supplied replay allocates blank derived outputs, uploads only their sampled inputs, then runs the shared linear accumulation and sRGB resolve pipelines before scene drawing. Captured resolved pixels are validated as evidence but are never uploaded for declared temporal outputs. Diagnostic capture rebuilds unchanged temporal generations so warm-up cache hits exercise those passes; ordinary preview/export retain cache reuse.",
+      "Full M2 G0/G1/G3 passed against unchanged exact references. Six dedicated warmed whole-frame glyph cases execute 32 samples exactly and reject a zero-exposure mutation through changed output pixels. The legacy corpus has no animated-glyph temporal workload; its zero counters remain explicit. Per-frame metadata records actual replay counts and production/replay pixel hashes. Focused ownership/contract tests and real Rust codec tests pass. Video upload and timing responsibilities were extracted to keep the media facade bounded, preserving its existing behavior.",
+      "A pinned read-only audit confirms recursive surfaces rebuild scene/media operations each frame while retaining GPU allocations. M2 remains in progress: remove the legacy raster-cache execution fallback, verify recursive temporal replay, disposition the isolated cycle71 owner-main mismatch, then publish per-frame FPLN/resource artifacts and complete the exit audit. The first full capture timed out only on owner-main; preserve that failure and use an explicit 1200000 ms per-case deadline for the fresh accepted run. Native production preview/export are not complete."
     ]
   },
   "milestones": [
@@ -17238,7 +17238,7 @@
           "required_full_gates": ["G0", "G1", "G3"],
           "status": "in_progress",
           "remaining_work": [
-            "Capture temporal accumulation/sample execution and audit remaining raster-cache aliases without replacing native passes with resolved pixels.",
+            "Remove root and auxiliary raster-cache fallback lookups and their shared TS/Rust reference variant; verify recursive temporal replay using the shared media lease.",
             "Close the isolated cycle71 owner-main replay mismatch investigation before the M2 exit audit; retain strict comparisons and dual-image rejection evidence."
           ],
           "failed_attempts": [
@@ -18258,10 +18258,385 @@
                 "34 focused ownership and adjacent integration tests plus 22 capture publication/comparison tests and 8 capture-runner tests pass, including asynchronous input mutation, corrupt payload and missing dependency rejection, budget enforcement and upload cleanup. Per-frame metadata proves exact production/replay hashes; the capture store preserves both PNGs before rejecting any mismatch. No new dependency, performance investigation, reference refresh or tolerance change.",
                 "The initial full capture rejected owner-main frame 828 (336/337 cases passed). Cold, consecutive and preceding-project diagnostics did not reproduce it; its cause is not claimed fixed and remains open for the M2 exit audit. M2-T13 remains open for temporal sample/accumulation execution capture; resolved temporal media pixels are explicitly an intermediate replay input, not a substitute for native passes. T14 per-frame plan/resource publication and T15 exit audit remain open. Native production preview/export are not complete."
               ]
+            },
+            {
+              "cycle": 72,
+              "followup_audit": {
+                "path": "artifacts/migration/cycle72-followup-audit.json",
+                "sha256": "9e96e2044c7a28b3fa478834711a454cdf98cff8939e8d891ea30c01b2a3dc5e"
+              },
+              "frame_replay": {
+                "glyph_frame_replays": [
+                  {
+                    "mode": "full",
+                    "frames": [
+                      {
+                        "passes": 1,
+                        "samples": 8,
+                        "changed_pixels": 687,
+                        "bytes": 230400,
+                        "exact": true,
+                        "independent_device": true,
+                        "warmed_cache": true
+                      },
+                      {
+                        "passes": 1,
+                        "samples": 8,
+                        "changed_pixels": 687,
+                        "bytes": 230400,
+                        "exact": true,
+                        "independent_device": true,
+                        "warmed_cache": true
+                      }
+                    ]
+                  },
+                  {
+                    "mode": "enters",
+                    "frames": [
+                      {
+                        "passes": 1,
+                        "samples": 4,
+                        "changed_pixels": 682,
+                        "bytes": 230400,
+                        "exact": true,
+                        "independent_device": true,
+                        "warmed_cache": true
+                      },
+                      {
+                        "passes": 1,
+                        "samples": 4,
+                        "changed_pixels": 682,
+                        "bytes": 230400,
+                        "exact": true,
+                        "independent_device": true,
+                        "warmed_cache": true
+                      }
+                    ]
+                  },
+                  {
+                    "mode": "exits",
+                    "frames": [
+                      {
+                        "passes": 1,
+                        "samples": 4,
+                        "changed_pixels": 681,
+                        "bytes": 230400,
+                        "exact": true,
+                        "independent_device": true,
+                        "warmed_cache": true
+                      },
+                      {
+                        "passes": 1,
+                        "samples": 4,
+                        "changed_pixels": 681,
+                        "bytes": 230400,
+                        "exact": true,
+                        "independent_device": true,
+                        "warmed_cache": true
+                      }
+                    ]
+                  }
+                ],
+                "temporal_frames": 0,
+                "temporal_passes": 0,
+                "temporal_samples": 0,
+                "derived_output_uploads": 0,
+                "frames": 1947,
+                "independent_device": true,
+                "exact_production_comparison": true,
+                "implementations": [
+                  {
+                    "path": "tests/parity/temporal-text/whole-frame.ts",
+                    "sha256": "16f08e17bc73287f7853622f60543856413e0fe5408311275137b2495cd23aef"
+                  },
+                  {
+                    "path": "scripts/migration/temporal-text-gate.mjs",
+                    "sha256": "2e49a191f1c474d2330a40e02e974c85dc9f88c46e06836546acf513dd88541f"
+                  },
+                  {
+                    "path": "src/renderer/text/supplied-temporal-text-passes.ts",
+                    "sha256": "c6019921b4cdd67913ee967006db73f060e5220c330b900b2ac364870c209871"
+                  },
+                  {
+                    "path": "src/renderer/text/temporal-text-pipelines.ts",
+                    "sha256": "1a7dbd904cf4243bbbfe26c2bb7c156d9093e0b8e71ed77aec978e6fe817b919"
+                  },
+                  {
+                    "path": "src/renderer/text/text-motion-blur-raster-cache.ts",
+                    "sha256": "b1508c2c3dac8f6bab97f328856822093a4bcc39890adf754909e13d611169bb"
+                  },
+                  {
+                    "path": "src/renderer/media/supplied-media-pixels.ts",
+                    "sha256": "264fc0299b57d403010fa259afd48bc12463ead77718f2bcbbf2f95e3c11bf2e"
+                  },
+                  {
+                    "path": "src/renderer/compositing/frame-bundle-renderer.ts",
+                    "sha256": "d63545c987341e8448f96789e65b88a74c7b065fc4206a927721f8fd63f764c6"
+                  },
+                  {
+                    "path": "src/renderer/compositing/prepare-supplied-frame.ts",
+                    "sha256": "771e350a28fc8d8d15a73dbee6677b2e3a3b1eb6d3f3e9282f00d46a2fb57dc6"
+                  },
+                  {
+                    "path": "src/renderer/compositing/supplied-frame-assets.ts",
+                    "sha256": "3def500cd9fb7c1fdff4311e52b96786ca41364b90fb9f249059bd18453286dc"
+                  },
+                  {
+                    "path": "tests/parity/capture-runtime.ts",
+                    "sha256": "5a3594967366c7898f17d3aa5184d54244e1e5fb5d4998f6a65dd34ba35fef04"
+                  },
+                  {
+                    "path": "scripts/parity/capture-store.mjs",
+                    "sha256": "34f1c2a3ddb806cead22fe541516972a09a791ee27ff2a6780e5cd0ddab39ba8"
+                  },
+                  {
+                    "path": "scripts/parity/frame-replay-comparison.mjs",
+                    "sha256": "901866f57446555b520bbcc4e476f654c6ba5f72c22e7e7b25d4103ed1b7ef5a"
+                  }
+                ]
+              },
+              "frame_bundles": [
+                {
+                  "id": "frame-bundle-programs-recursive",
+                  "nested_roundtrips": 31,
+                  "resources": 38,
+                  "effects": 4,
+                  "generators": 3,
+                  "precompositions": 2,
+                  "media_pixels": 1,
+                  "temporal_passes": 0,
+                  "exact_payloads": true,
+                  "exact_dependencies": true,
+                  "missing_rejected": true,
+                  "corrupt_rejected": true,
+                  "rust_count_rejected": true
+                },
+                {
+                  "id": "frame-bundle-empty",
+                  "nested_roundtrips": 5,
+                  "resources": 5,
+                  "effects": 0,
+                  "generators": 0,
+                  "precompositions": 0,
+                  "media_pixels": 0,
+                  "temporal_passes": 0,
+                  "exact_payloads": true,
+                  "exact_dependencies": true,
+                  "missing_rejected": true,
+                  "corrupt_rejected": true,
+                  "rust_count_rejected": true
+                },
+                {
+                  "id": "frame-bundle-temporal",
+                  "nested_roundtrips": 7,
+                  "resources": 19,
+                  "effects": 0,
+                  "generators": 0,
+                  "precompositions": 0,
+                  "media_pixels": 4,
+                  "temporal_passes": 2,
+                  "exact_payloads": true,
+                  "exact_dependencies": true,
+                  "missing_rejected": true,
+                  "corrupt_rejected": true,
+                  "rust_count_rejected": true
+                }
+              ],
+              "schema": {
+                "path": "schemas/frame-plan.v1.json",
+                "generated": "artifacts/migration/2026-10-05T19-01-25-603Z-c730c73f/G1/frame-plan.v1.json",
+                "raw": "artifacts/migration/2026-10-05T19-01-25-603Z-c730c73f/G1/frame-plan.raw.v1.json",
+                "raw_sha256": "dc3a3f3504a42a715e1103f9a047e2212a75b1880a79d7eb95bd5bc43ec89e98",
+                "sha256": "5975ac01addebb645f15bbf1b5cce5688e8f7730af56f4aba947faef6b63d49c"
+              },
+              "output_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T19-03-21-635Z-ab8153f3/output-replay/gpu.json",
+                "sha256": "7b8b9c0b0af79ba23e717860e7ffe639d9ed7d87c695690fd3092b344a6bb523"
+              },
+              "output_reference": {
+                "path": "tests/parity/output-replay/reference/manifest.json",
+                "sha256": "9f4af4260aec5aa4aeb57131add08f2698bf0b6caeb6c948caf772c0652c6e7a"
+              },
+              "output_implementations": [
+                {
+                  "path": "tests/parity/output-replay/legacy-motion.ts",
+                  "sha256": "59a947cdf2de69aeaffd10f4c309c34006d2152d13ac691125c0aa9f9b84aec2",
+                  "reference_commit": "c9b6fe254c9d52b6153ad012ab8da237fc2f8f70"
+                },
+                {
+                  "path": "tests/parity/output-replay/legacy-depth.ts",
+                  "sha256": "8ddc7fb7942db6d9c8b40b8cb9c1ce0fd1ca8815cab0855a4f4b8d5712093361",
+                  "reference_commit": "badb4563a348c52ab2b025ce83eee83eb2e7770b"
+                },
+                {
+                  "path": "tests/parity/output-replay/legacy-surface.ts",
+                  "sha256": "2e7d816c02a1ffe7eec8e5f2148ae5c54dd4feafaea114416c776a56163f3767",
+                  "reference_commit": "badb4563a348c52ab2b025ce83eee83eb2e7770b"
+                },
+                {
+                  "path": "tests/parity/output-replay/legacy-output.ts",
+                  "sha256": "f2d4c4c7d5a8d6e4a45e9f8b41f1295b4bef77f12219f51ebfe5b2b0de37b451",
+                  "reference_commit": "8e73f610efbad84680b4c87475833e599d9253ae"
+                }
+              ],
+              "auxiliary_generators_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T19-03-21-635Z-ab8153f3/auxiliary-generators/gpu.json",
+                "sha256": "2f2d69a577741c248c66809dd6838f4db48012a8da6e34a7e946f7213fabd249"
+              },
+              "auxiliary_generators_reference": {
+                "path": "tests/parity/auxiliary-generators/reference/manifest.json",
+                "sha256": "e245fe63a39fb4bc5abc69e428355cc2dc7d725887ef2150c4a8713a6a801974"
+              },
+              "auxiliary_generators_implementations": [
+                {
+                  "path": "tests/parity/auxiliary-replay/legacy-auxiliary.ts",
+                  "sha256": "8e8af02381010031e3d5df9032a0cf1858e2780c6c29f1001ed2013e89cba771"
+                },
+                {
+                  "path": "tests/parity/generators-replay/legacy-host.ts",
+                  "sha256": "e458d028ca20002b7e7379f9daf9d5ca0a0f0960a3676dd3e0153e5ce19c8392"
+                }
+              ],
+              "auxiliary_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T19-03-21-635Z-ab8153f3/auxiliary/gpu.json",
+                "sha256": "b80afb6ea1a2b07d16168d54e0f11c7fc45e7d7dd895c8f5de1b8b089e7418ef"
+              },
+              "auxiliary_reference": {
+                "path": "tests/parity/auxiliary-replay/reference/manifest.json",
+                "sha256": "c2cfa75ecff2cf547a68d434ca4702980c28b298f16e063fe45399d42722bc2a"
+              },
+              "auxiliary_implementation": {
+                "path": "tests/parity/auxiliary-replay/legacy-auxiliary.ts",
+                "sha256": "8e8af02381010031e3d5df9032a0cf1858e2780c6c29f1001ed2013e89cba771"
+              },
+              "status": "passed",
+              "commit": "152a6b3756b83c9f33460a14482b1a9c8deb86d7",
+              "verification": {
+                "path": "artifacts/migration/verify-2026-10-05T19-01-25-603Z-c730c73f.json",
+                "sha256": "2c88f3b56b1a5cc06b74b711497459b85099291753c5db8a43030a06ac4b4b62"
+              },
+              "pixel_comparison": {
+                "path": "artifacts/parity/ts-check/2026-10-05T19-03-21-635Z-ab8153f3/report.json",
+                "sha256": "f1de37dc8d2849c23ed2aaa7a495da1cca43bf07e545c29ba4ae1f1d181468d5"
+              },
+              "capture": {
+                "path": "artifacts/parity/capture-2026-10-05T18-34-44-043Z-a0e00942.json",
+                "sha256": "d04aa4db063b70b0efe245f67f2ce7d2d7f834e06f6c3f8df51065032ec42e54"
+              },
+              "manifest": {
+                "path": "artifacts/parity/runs/2026-10-05T18-34-44-043Z-a0e00942/candidate/manifest.json",
+                "sha256": "15b6c28892e507580772ff5964629a43104a1266e4b5d4def480576e4f4becf1"
+              },
+              "renderer_source_sha256": "21fdf539e397cb37d275b59550766b9cf5a23fb921570531050aa4259a7071f4",
+              "bridge_sha256": "82ccf02fefd4c54e78a82a4de08df6906714ecd0b198864ec72cb0c0394dd80c",
+              "temporal_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T19-03-21-635Z-ab8153f3/temporal-text/gpu.json",
+                "sha256": "f31b1a5a31ce1050c9d48dfe31a5b8187ce5c99e3c480d35e309b562b27b612b"
+              },
+              "temporal_reference": {
+                "path": "tests/parity/temporal-text/reference/manifest.json",
+                "sha256": "e3e3b1184d5bc969dcd5cf76a424a551a0cac1a85484e157c5b549e5d6c811d1"
+              },
+              "encoded_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T19-03-21-635Z-ab8153f3/encoded-textures/gpu.json",
+                "sha256": "9028f092c712475018d1db0dfb7122b7e5704ff3ac8c8b82ecaa4b950963c872"
+              },
+              "encoded_reference": {
+                "path": "tests/parity/material-textures/legacy-upload.ts",
+                "sha256": "508c2ad47f5a3f6e18069ce070e0ee0133668074bf81309a9144180f532f2498"
+              },
+              "material_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T19-03-21-635Z-ab8153f3/material-draw/gpu.json",
+                "sha256": "26fbad56513b96310770da0538c5ac89d791322886d4d66134972714e0cdfe58"
+              },
+              "material_reference": {
+                "path": "tests/parity/material-draw/reference/manifest.json",
+                "sha256": "06debe986bca2118a9d4a07f5cc36a31b3926398f95d582e25f90ceabc21bc6e"
+              },
+              "material_implementation": {
+                "path": "tests/parity/material-draw/legacy-bindings.ts",
+                "sha256": "ff838daeb3950e90d263504007836d900060e9a2ff1ddb30e706a76d0a011d79"
+              },
+              "lut_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T19-03-21-635Z-ab8153f3/lut-draw/gpu.json",
+                "sha256": "b80c09bbf0624b5c7d0f0147dedaafba3356c689451337bbbe2524e12d32c7a4"
+              },
+              "lut_reference": {
+                "path": "tests/parity/lut-draw/reference/manifest.json",
+                "sha256": "2e026afbad6143b822f38490650920003d0ad53705d705d1f2c206f05f181d59"
+              },
+              "lut_implementation": {
+                "path": "tests/parity/lut-draw/legacy-effects.ts",
+                "sha256": "999fb67e09a07322e7d8d9ea2c58a0442d7d5377f0cd1029eeab16e29f714a0b"
+              },
+              "root_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T19-03-21-635Z-ab8153f3/root-scene/gpu.json",
+                "sha256": "049b9b48a98a31f1a1460658b136474b8fdfd78cbbb81411893661509599cfe0"
+              },
+              "root_reference": {
+                "path": "tests/parity/root-scene/reference/manifest.json",
+                "sha256": "4c5b2ffd5828db24f929f1bcc350a4a7e7c75be05cb65b9bbe2b4c48eaba267f"
+              },
+              "root_implementation": {
+                "path": "tests/parity/root-scene/legacy-execute.ts",
+                "sha256": "22b0f40e52a5c330646a7fe4a581aaacd6de2db225c4030f1cdd658177d52e8a"
+              },
+              "generator_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T19-03-21-635Z-ab8153f3/generators/gpu.json",
+                "sha256": "ee372f72a9560059fe4dd8f8ab18c040e2ef6cadcaa5cc7249278e95de347dbf"
+              },
+              "generator_reference": {
+                "path": "tests/parity/generators-replay/reference/manifest.json",
+                "sha256": "a573fe3ababaa0f207eed4a0a6d11a4269ee90a877a244c1f8abed9fdbbfce09"
+              },
+              "generator_implementation": {
+                "path": "tests/parity/generators-replay/legacy-host.ts",
+                "sha256": "e458d028ca20002b7e7379f9daf9d5ca0a0f0960a3676dd3e0153e5ce19c8392"
+              },
+              "precomposition_media_reference": {
+                "path": "tests/parity/precomposition-replay/reference/media-manifest.json",
+                "sha256": "46b095b3e2fa862eef2d2d2860a3a78824fb3e42fc0836ac705f8c91f493240a"
+              },
+              "precomposition_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T19-03-21-635Z-ab8153f3/precomposition/gpu.json",
+                "sha256": "4aa2af42926134a34ea38a4216eff7e3c87fc58d106a519d6abe275c40340861"
+              },
+              "precomposition_reference": {
+                "path": "tests/parity/precomposition-replay/reference/manifest.json",
+                "sha256": "b0e3a9edb52e73c46f67331b4b1634d6584b02a842f96140f588863460e4ca97"
+              },
+              "precomposition_implementation": {
+                "path": "tests/parity/precomposition-replay/legacy-surface.ts",
+                "sha256": "f8cd1bd48ef8c40cac361ef50900defef58d38bd988b5983972cd44cc4b5a90b"
+              },
+              "gates": [
+                {
+                  "id": "G0",
+                  "status": "passed",
+                  "duration_ms": 102274
+                },
+                {
+                  "id": "G1",
+                  "status": "passed",
+                  "duration_ms": 13057
+                },
+                {
+                  "id": "G3",
+                  "status": "passed",
+                  "duration_ms": 357628
+                }
+              ],
+              "notes": [
+                "Nested temporal FPLN stages now carry sample/output resource dependencies and exact exposure weights in the root frame bundle. TS and Rust validate the expanded envelope, declared stages, duplicate references and the sixth count lane; G1 roundtrips include partial and transparent temporal bundles.",
+                "Live media preparation registers temporal samples under the frame lease before buildProductionFrameBundle. Command recording consumes and checks the supplied temporal stages against prepared generations. Independent capture pins keep samples alive after submission retirement.",
+                "Supplied replay allocates blank derived outputs, uploads only their sampled inputs, then runs the shared linear accumulation and sRGB resolve pipelines before scene drawing. Captured resolved pixels are validated as evidence but are never uploaded for declared temporal outputs. Diagnostic capture rebuilds unchanged temporal generations so warm-up cache hits exercise those passes; ordinary preview/export retain cache reuse.",
+                "Full M2 G0/G1/G3 passed against unchanged exact references. Six dedicated warmed whole-frame glyph cases execute 32 samples exactly and reject a zero-exposure mutation through changed output pixels. The legacy corpus has no animated-glyph temporal workload; its zero counters remain explicit. Per-frame metadata records actual replay counts and production/replay pixel hashes. Focused ownership/contract tests and real Rust codec tests pass. Video upload and timing responsibilities were extracted to keep the media facade bounded, preserving its existing behavior.",
+                "A pinned read-only audit confirms recursive surfaces rebuild scene/media operations each frame while retaining GPU allocations. M2 remains in progress: remove the legacy raster-cache execution fallback, verify recursive temporal replay, disposition the isolated cycle71 owner-main mismatch, then publish per-frame FPLN/resource artifacts and complete the exit audit. The first full capture timed out only on owner-main; preserve that failure and use an explicit 1200000 ms per-case deadline for the fresh accepted run. Native production preview/export are not complete."
+              ]
             }
           ],
-          "commit": "c82918e4b7183cad64b5eac2dfbc25fcfe0738b6",
-          "verification": "artifacts/migration/verify-2026-10-05T17-47-36-670Z-8dc66b19.json"
+          "commit": "152a6b3756b83c9f33460a14482b1a9c8deb86d7",
+          "verification": "artifacts/migration/verify-2026-10-05T19-01-25-603Z-c730c73f.json"
         },
         {
           "id": "M2-T14",
@@ -18347,7 +18722,7 @@
       ],
       "preview_baseline_path": "benchmarks/results/m2-preview-baseline.json",
       "preview_baseline_sha256": "a1c62e224c008e731c252142ab1b9de7d31ecf592452c00da1dff42516772375",
-      "active_candidate_manifest": "artifacts/parity/runs/2026-10-05T17-31-58-432Z-b305e808/candidate/manifest.json",
+      "active_candidate_manifest": "artifacts/parity/runs/2026-10-05T18-34-44-043Z-a0e00942/candidate/manifest.json",
       "last_verification": {
         "status": "passed",
         "required_gates_passed": true,
@@ -18356,17 +18731,17 @@
           {
             "id": "G0",
             "status": "passed",
-            "duration_ms": 91518
+            "duration_ms": 102274
           },
           {
             "id": "G1",
             "status": "passed",
-            "duration_ms": 11850
+            "duration_ms": 13057
           },
           {
             "id": "G3",
             "status": "passed",
-            "duration_ms": 347413
+            "duration_ms": 357628
           }
         ],
         "optional_gates": [
@@ -18377,7 +18752,7 @@
           }
         ],
         "performance_policy": "rust-delivery-v1",
-        "report": "artifacts/migration/verify-2026-10-05T17-47-36-670Z-8dc66b19.json"
+        "report": "artifacts/migration/verify-2026-10-05T19-01-25-603Z-c730c73f.json"
       },
       "performance_series_history": [
         {
@@ -19842,12 +20217,5 @@
       }
     }
   ],
-  "active_cycle": {
-    "id": 72,
-    "started_at": "2026-10-05T18:04:07.215Z",
-    "milestone": "M2",
-    "task": "M2-T13",
-    "intent": "Include pending temporal sample and accumulation passes in submitted frame bundles and execute them on independent replay allocations.",
-    "base_commit": "bc75c407048c9d8b181d6a3f07a19ff406cb5b98"
-  }
+  "active_cycle": null
 }
