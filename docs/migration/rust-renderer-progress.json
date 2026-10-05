@@ -146,40 +146,39 @@
     }
   },
   "last_cycle": {
-    "id": 75,
-    "time": "2026-10-05T22:13:07.011Z",
-    "milestone": "M2",
-    "task": "M2-T15",
+    "id": 76,
+    "time": "2026-10-05T22:48:45.857Z",
+    "milestone": "M3",
+    "task": "M3-T1",
     "outcome": "passed",
-    "commit": "55f2ca1e0ab831b6dd0c5f65bec305e77d007ea4",
-    "verification": "artifacts/migration/verify-2026-10-05T22-03-30-579Z-0d436034.json",
-    "verification_sha256": "da30c5811261f5155e1968388007d215e842df6725751725208f56bf92fb20c1",
+    "commit": "4f22ce5b14b9fc3a29b91e383cd791759c77f9bd",
+    "verification": "artifacts/migration/verify-2026-10-05T22-42-43-329Z-7f4add64.json",
+    "verification_sha256": "3eda52bb4eea0e67b5e088f62b488c048f020809bb58fe98837f3aa085fc02d3",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 99791
+        "duration_ms": 109481
       },
       {
         "id": "G1",
         "status": "passed",
-        "duration_ms": 13108
+        "duration_ms": 32609
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 415547
+        "duration_ms": 104963
       }
     ],
-    "verification_duration_ms": 539415,
-    "next_step": "M3: plan bounded native renderer tasks, then implement headless FramePlan execution and core-case pixel parity.",
+    "verification_duration_ms": 248612,
+    "next_step": "M3-T2: authorized native PNG/JPEG/EXR decode, image draws and budgeted GPU resource caching.",
     "notes": [
-      "Complete executable root bundles now declare renderer_plan_complete; TS and Rust reject mismatched completeness markers while partial stages remain incomplete.",
-      "Current full G0/G1/G3 and the integrated M2 exit audit pass on unchanged source: 128 exact FPLN round trips, 337 cases, 1947 captured and independently replayed frames, and 1819 exact frozen-reference comparisons.",
-      "The production/supplied execution boundary is reviewed and pinned. Resource pinning, budget atomicity, explicit eviction and dependency lifetime checks are included in current G1.",
-      "The preserved cycle71 owner-main frame828 failure remains rejected with unknown root cause. Its current full-capture address is exact; future mismatches retain both images and comparison evidence before rejection. No reference or tolerance changed.",
-      "The first verification rejected a legacy HDR loading-state discrepancy on directional-light frame15. A readiness experiment was also rejected because it changed frozen frame0 pixels, and was reverted. Both attempts and image reviews remain in the ledger; this increment preserves observed material availability and does not claim a readiness fix.",
-      "M2 is complete. Native GPU execution and production Rust preview/export are not yet implemented; the next milestone is M3 native renderer core."
+      "Native wgpu now executes supplied solid/vector geometry, every blend mode, display conversion and all AA modes through shared WGSL. Intermediate surfaces and returned frames remain GPU-resident.",
+      "Current full G0/G1/G3 passed with 22 cases, 88 native frames and ten expected rejection probes. Every GPU metric and structural check passed; self-reviews accept only sparse one-code-value float rounding. References and tolerance limits remain unchanged.",
+      "The failed direct-only, FXC and stronger exact diagnostic attempts remain preserved. Zero-operation specialization fixes the current compiler issue; full effect shader compilation remains required in M4.",
+      "The resource closure validator moved from the CLI to aster-render-ir for shared use; no new external dependency was introduced.",
+      "M3 remains in progress: native images, masks, adjustment layers and recursive surfaces remain open. Production preview/export still use TS, and the complete migration goal remains active."
     ]
   },
   "milestones": [
@@ -19590,7 +19589,7 @@
         {
           "id": "M3-T1",
           "title": "Execute supplied solid/vector geometry, all blends, display transform and AA on a headless native device",
-          "status": "in_progress",
+          "status": "done",
           "failed_attempts": [
             {
               "path": "artifacts/migration/cycle76-native-first/report.json",
@@ -19613,7 +19612,29 @@
             "GPU profile: maximum error 1, maximum mean error 0.00006510416666666667; every metric and structural check passed. No tolerance overrides.",
             "Ten expected CLI rejections verified budgets, unsupported routes, resource integrity and preservation of existing outputs.",
             "This increment does not establish complete M3 coverage or production Rust preview/export."
-          ]
+          ],
+          "completed_at": "2026-10-05T22:48:45.857Z",
+          "commit": "4f22ce5b14b9fc3a29b91e383cd791759c77f9bd",
+          "verification": "artifacts/migration/verify-2026-10-05T22-42-43-329Z-7f4add64.json",
+          "verification_sha256": "3eda52bb4eea0e67b5e088f62b488c048f020809bb58fe98837f3aa085fc02d3",
+          "gates": [
+            {
+              "id": "G0",
+              "status": "passed",
+              "duration_ms": 109481
+            },
+            {
+              "id": "G1",
+              "status": "passed",
+              "duration_ms": 32609
+            },
+            {
+              "id": "G3",
+              "status": "passed",
+              "duration_ms": 104963
+            }
+          ],
+          "verification_duration_ms": 248612
         },
         {
           "id": "M3-T2",
@@ -19622,8 +19643,15 @@
         },
         {
           "id": "M3-T3",
-          "title": "Execute all fixed and backdrop blends, masks, mattes and adjustment-layer composition",
-          "status": "pending"
+          "title": "Complete masks, mattes and adjustment-layer composition",
+          "status": "pending",
+          "completed_scope": {
+            "all_blend_modes": {
+              "commit": "4f22ce5b14b9fc3a29b91e383cd791759c77f9bd",
+              "verification": "artifacts/migration/verify-2026-10-05T22-42-43-329Z-7f4add64.json",
+              "task": "M3-T1"
+            }
+          }
         },
         {
           "id": "M3-T4",
@@ -29122,6 +29150,42 @@
         "G1 regenerated the schema and verified 15 exact cross-language round trips, 12 decoded root uploads, independent Rust payloads, resource lifecycle, malformed input and configured limits. Full G3 passed all 1819 exact frames; G4 is explicitly not_required for this intermediate milestone under the owner policy. All cycle14 failures, pixel rejections and original fixed performance evidence remain unchanged; no performance success or native completion is inferred.",
         "The contract remains an explicitly incomplete post_uniforms_slice_v1. Other passes, full resource capture and independent complete-frame replay are still required; M2 is not done. No external dependencies or pixel tolerance changes were introduced."
       ]
+    },
+    {
+      "id": 76,
+      "time": "2026-10-05T22:48:45.857Z",
+      "milestone": "M3",
+      "task": "M3-T1",
+      "outcome": "passed",
+      "commit": "4f22ce5b14b9fc3a29b91e383cd791759c77f9bd",
+      "verification": "artifacts/migration/verify-2026-10-05T22-42-43-329Z-7f4add64.json",
+      "verification_sha256": "3eda52bb4eea0e67b5e088f62b488c048f020809bb58fe98837f3aa085fc02d3",
+      "gates": [
+        {
+          "id": "G0",
+          "status": "passed",
+          "duration_ms": 109481
+        },
+        {
+          "id": "G1",
+          "status": "passed",
+          "duration_ms": 32609
+        },
+        {
+          "id": "G3",
+          "status": "passed",
+          "duration_ms": 104963
+        }
+      ],
+      "verification_duration_ms": 248612,
+      "next_step": "M3-T2: authorized native PNG/JPEG/EXR decode, image draws and budgeted GPU resource caching.",
+      "notes": [
+        "Native wgpu now executes supplied solid/vector geometry, every blend mode, display conversion and all AA modes through shared WGSL. Intermediate surfaces and returned frames remain GPU-resident.",
+        "Current full G0/G1/G3 passed with 22 cases, 88 native frames and ten expected rejection probes. Every GPU metric and structural check passed; self-reviews accept only sparse one-code-value float rounding. References and tolerance limits remain unchanged.",
+        "The failed direct-only, FXC and stronger exact diagnostic attempts remain preserved. Zero-operation specialization fixes the current compiler issue; full effect shader compilation remains required in M4.",
+        "The resource closure validator moved from the CLI to aster-render-ir for shared use; no new external dependency was introduced.",
+        "M3 remains in progress: native images, masks, adjustment layers and recursive surfaces remain open. Production preview/export still use TS, and the complete migration goal remains active."
+      ]
     }
   ],
   "known_boundaries": [
@@ -29294,13 +29358,5 @@
         "sha256": "2a52867f6da0c4ad4e8cd1ef9831d5eb9be11743fe6f26fa9f12fe8d5c83797a"
       }
     }
-  ],
-  "active_cycle": {
-    "id": 76,
-    "started_at": "2026-10-05T22:13:59.650Z",
-    "milestone": "M3",
-    "task": "M3-T1",
-    "base_commit": "6750e636a870a2de61fbe7852e8b1a02508c2ab1",
-    "intent": "Render supplied solid/vector plans on native wgpu with shared shaders, GPU-resident intermediate surfaces, display conversion and AA; retain unsupported-route rejection and explicit incomplete M3 coverage."
-  }
+  ]
 }
