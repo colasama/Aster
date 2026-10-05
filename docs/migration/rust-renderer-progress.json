@@ -89,39 +89,39 @@
     }
   },
   "last_cycle": {
-    "id": 39,
-    "time": "2026-10-05T01:12:30.965Z",
+    "id": 40,
+    "time": "2026-10-05T01:30:35.000Z",
     "milestone": "M2",
     "task": "M2-T7",
     "outcome": "passed",
-    "commit": "0786d91c6f95bc9f1ca72189de1b0d0dbe91dbc4",
-    "verification": "D:\\code\\Aster\\artifacts\\migration\\verify-2026-10-05T01-05-55-316Z-dfbb21f2.json",
-    "verification_sha256": "e8718ce4696a6bcb95c84bc9543e7e4f3b84c5a327006061f6fec6567d8ce1c6",
+    "commit": "61a4a3b97867de0f8b5c0b227f7561c123e890cb",
+    "verification": "artifacts/migration/verify-2026-10-05T01-23-58-535Z-08d3c552.json",
+    "verification_sha256": "e3596bcaea067bd99eb36d8d36506a95b41ca9d56e932386339cf975d0e14475",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 81340
+        "duration_ms": 73951
       },
       {
         "id": "G1",
         "status": "passed",
-        "duration_ms": 7053
+        "duration_ms": 5202
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 272609
+        "duration_ms": 273034
       }
     ],
-    "verification_duration_ms": 362274,
-    "next_step": "Continue M2-T7: extract LUT selection and complete independent material draw replay.",
+    "verification_duration_ms": 353476,
+    "next_step": "Continue M2-T7: transport selected LUT bindings and complete independent material draw replay.",
     "notes": [
-      "Added material_bindings_slice_v1 with tagged normal/environment texture references and three binary64 scalar lanes. TS/Rust validate closed metadata, declared role-distinct hashes, finite bounds and environment dependencies.",
-      "Production material preparation builds and reads the supplied slice before drawing. Float32 conversion happens at uniform upload, preserving signed-zero/subnormal binary64 values and pending fallback decisions through transport.",
-      "G1 now verifies 47 exact FPLN round trips including five material cases, exact supplied uniforms, hash resolution, wrong-role rejection and retirement. This proves material binding transport, not independent full material draw replay.",
-      "Full M2 G0/G1/G3 passed with 1819 exact whole-frame comparisons, four temporal pass replays, and three encoded normal resource replays. Ordinary preview adds no readback.",
-      "M2-T7 remains in progress: extract LUT-selection bindings and finish independent material draw replay."
+      "Root and precomposition effects now prepare LUT selections before command encoding. The CPU planner selects the last enabled loaded LUT, owns packed bytes, preserves checksum/size invalidation, and sweeps inactive instance selections.",
+      "Effect GPU execution consumes supplied texture_pixels messages and bytes without looking up authored LUT resources. Unchanged content hashes reuse textures; replacement installs the new binding before destroying the old owner, and failures clean up new allocations.",
+      "G1 identity/custom LUT resources originate in the production selection planner. Consumer tests mutate authoring after preparation, upload cloned snapshots, verify unchanged-hash reuse and replacement/sweep retirement. Existing adjustment error handling remains at the execution boundary.",
+      "Full M2 G0/G1/G3 passed with 47 FPLN round trips, 1819 exact whole-frame comparisons including nonlinear LUT modes, four temporal pass replays, and three encoded normal resource replays. Ordinary preview adds no readback.",
+      "M2-T7 remains in progress: complete effect LUT binding FPLN transport and independent material draw replay."
     ]
   },
   "milestones": [
@@ -13567,7 +13567,7 @@
           "status": "in_progress",
           "remaining_work": [
             "Verify complete material draws from decoded bindings and supplied resources on an independent GPU device.",
-            "Extract LUT-selection bindings while preserving readiness/retirement behavior and finish material replay coverage."
+            "Transport selected LUT hashes with executable effect bindings through FPLN and finish independent material/LUT draw replay."
           ],
           "failed_verifications": [
             "artifacts/migration/verify-2026-10-04T23-54-08-699Z-793466b8.json"
@@ -13809,6 +13809,69 @@
                 "Full M2 G0/G1/G3 passed with 1819 exact whole-frame comparisons, four temporal pass replays, and three encoded normal resource replays. Ordinary preview adds no readback.",
                 "M2-T7 remains in progress: extract LUT-selection bindings and finish independent material draw replay."
               ]
+            },
+            {
+              "cycle": 40,
+              "status": "passed",
+              "commit": "61a4a3b97867de0f8b5c0b227f7561c123e890cb",
+              "verification": {
+                "path": "artifacts/migration/verify-2026-10-05T01-23-58-535Z-08d3c552.json",
+                "sha256": "e3596bcaea067bd99eb36d8d36506a95b41ca9d56e932386339cf975d0e14475"
+              },
+              "pixel_comparison": {
+                "path": "artifacts/parity/ts-check/2026-10-05T01-25-18-315Z-0eb1af42/report.json",
+                "sha256": "fd49393c8695b932ece66862202344f5d998a9b590be69ca33b4d9b36c3cb8b7"
+              },
+              "capture": {
+                "path": "artifacts/parity/capture-2026-10-05T01-17-38-812Z-cbc318aa.json",
+                "sha256": "40323549d0cd959e4bbb85eb64cc03c21a9f20439c382ee90bb46eeca78d276b"
+              },
+              "manifest": {
+                "path": "artifacts/parity/runs/2026-10-05T01-17-38-812Z-cbc318aa/candidate/manifest.json",
+                "sha256": "a3768f98819672f80a56a51c1d38222dc11b861f59b7b76e66ec357c297308a8"
+              },
+              "renderer_source_sha256": "7073fbc965e40160847426586da54793b0863f9030e102a1a5b5810cb832a66f",
+              "bridge_sha256": "82ccf02fefd4c54e78a82a4de08df6906714ecd0b198864ec72cb0c0394dd80c",
+              "temporal_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T01-25-18-315Z-0eb1af42/temporal-text/gpu.json",
+                "sha256": "b9a3d4c660dd49588bb4d28176d3bcb03b19b73d2a6cd2cdcac6051760a73627"
+              },
+              "temporal_reference": {
+                "path": "tests/parity/temporal-text/reference/manifest.json",
+                "sha256": "e3e3b1184d5bc969dcd5cf76a424a551a0cac1a85484e157c5b549e5d6c811d1"
+              },
+              "encoded_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T01-25-18-315Z-0eb1af42/encoded-textures/gpu.json",
+                "sha256": "9028f092c712475018d1db0dfb7122b7e5704ff3ac8c8b82ecaa4b950963c872"
+              },
+              "encoded_reference": {
+                "path": "tests/parity/material-textures/legacy-upload.ts",
+                "sha256": "508c2ad47f5a3f6e18069ce070e0ee0133668074bf81309a9144180f532f2498"
+              },
+              "gates": [
+                {
+                  "id": "G0",
+                  "status": "passed",
+                  "duration_ms": 73951
+                },
+                {
+                  "id": "G1",
+                  "status": "passed",
+                  "duration_ms": 5202
+                },
+                {
+                  "id": "G3",
+                  "status": "passed",
+                  "duration_ms": 273034
+                }
+              ],
+              "notes": [
+                "Root and precomposition effects now prepare LUT selections before command encoding. The CPU planner selects the last enabled loaded LUT, owns packed bytes, preserves checksum/size invalidation, and sweeps inactive instance selections.",
+                "Effect GPU execution consumes supplied texture_pixels messages and bytes without looking up authored LUT resources. Unchanged content hashes reuse textures; replacement installs the new binding before destroying the old owner, and failures clean up new allocations.",
+                "G1 identity/custom LUT resources originate in the production selection planner. Consumer tests mutate authoring after preparation, upload cloned snapshots, verify unchanged-hash reuse and replacement/sweep retirement. Existing adjustment error handling remains at the execution boundary.",
+                "Full M2 G0/G1/G3 passed with 47 FPLN round trips, 1819 exact whole-frame comparisons including nonlinear LUT modes, four temporal pass replays, and three encoded normal resource replays. Ordinary preview adds no readback.",
+                "M2-T7 remains in progress: complete effect LUT binding FPLN transport and independent material draw replay."
+              ]
             }
           ]
         },
@@ -14000,7 +14063,7 @@
       ],
       "preview_baseline_path": "benchmarks/results/m2-preview-baseline.json",
       "preview_baseline_sha256": "a1c62e224c008e731c252142ab1b9de7d31ecf592452c00da1dff42516772375",
-      "active_candidate_manifest": "artifacts/parity/runs/2026-10-05T00-59-43-616Z-f16c1f06/candidate/manifest.json",
+      "active_candidate_manifest": "artifacts/parity/runs/2026-10-05T01-17-38-812Z-cbc318aa/candidate/manifest.json",
       "last_verification": {
         "status": "passed",
         "required_gates_passed": true,
@@ -14009,17 +14072,17 @@
           {
             "id": "G0",
             "status": "passed",
-            "duration_ms": 81340
+            "duration_ms": 73951
           },
           {
             "id": "G1",
             "status": "passed",
-            "duration_ms": 7053
+            "duration_ms": 5202
           },
           {
             "id": "G3",
             "status": "passed",
-            "duration_ms": 272609
+            "duration_ms": 273034
           }
         ],
         "optional_gates": [
@@ -14030,7 +14093,7 @@
           }
         ],
         "performance_policy": "rust-delivery-v1",
-        "report": "D:\\code\\Aster\\artifacts\\migration\\verify-2026-10-05T01-05-55-316Z-dfbb21f2.json"
+        "report": "artifacts/migration/verify-2026-10-05T01-23-58-535Z-08d3c552.json"
       },
       "performance_series_history": [
         {
@@ -15336,12 +15399,5 @@
       }
     }
   ],
-  "active_cycle": {
-    "id": 40,
-    "milestone": "M2",
-    "task": "M2-T7",
-    "started_at": "2026-10-05T01:13:35.943Z",
-    "scope": "Prepare owned content-addressed LUT selections before effect execution and preserve source-key caching and GPU retirement.",
-    "previous_turn_classification": "progress: cycle39 committed material binding FPLN transport with full exact gates."
-  }
+  "active_cycle": null
 }
