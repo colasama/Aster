@@ -22,6 +22,7 @@ import { evaluateCameraBasis } from "../core/scene/camera-rig";
 import { flattenSceneLayers } from "../core/scene/scene-evaluation";
 import type { Composition, GpuDiagnostics, Project, RendererMetrics } from "../core/types";
 import { requestPreferredGpuAdapter } from "../desktop/gpu-preference";
+import { executeFinalOutput } from "./compositing/execute-final-output";
 import { executeRootScene } from "./compositing/execute-root-scene";
 import { planRootSceneStack } from "./compositing/render-stack";
 import { planRootSceneCommands } from "./compositing/root-scene-commands";
@@ -30,6 +31,7 @@ import { depthEffectSettingsFromCameraOptics } from "./effects/depth-effects";
 import { effectExecution } from "./effects/layer-effect-plan";
 import { selectedRenderId } from "./effects/surface-post-effects";
 import { buildCameraPlan, readCameraPlan } from "./frame-plan/camera-plan";
+import { buildFinalOutputPlan } from "./frame-plan/final-output-plan";
 import { buildFrameHeader, buildRootPostUniformPlan } from "./frame-plan/root-post-plan";
 import { uploadRootPostUniformPlan } from "./frame-plan/root-post-upload";
 import { buildRootScenePlan, readRootScenePlan } from "./frame-plan/root-scene-plan";
@@ -65,13 +67,7 @@ import {
 } from "./gpu/frame-readback";
 import { planGpuMemory } from "./gpu/gpu-memory-budget";
 import { initializeGpuResources } from "./gpu/initialize-gpu-resources";
-import {
-  type BufferVisualization,
-  isDepthEffectVisualization,
-  isSurfaceEffectVisualization,
-  postRenderRoute,
-  usesAuxiliarySurfaceData,
-} from "./gpu/render-buffers";
+import { type BufferVisualization, usesAuxiliarySurfaceData } from "./gpu/render-buffers";
 import { MaterialTextureRenderer } from "./media/material-textures";
 import { RendererResources } from "./renderer-resources";
 import { evaluateSceneCamera } from "./scene/scene-camera";
@@ -940,43 +936,20 @@ export class WebGpuRenderer {
     sceneTimingEnd.end();
     const outputTexture = this.#context.getCurrentTexture();
     const output = outputTexture.createView();
-    const postPass = encoder.beginRenderPass({
-      label: "Fused effects + sRGB display transform",
-      timestampWrites: resources.gpuProfiler.writes(
-        6,
-        this.#activeAntiAliasing === "off" ? 7 : undefined,
-      ),
-      colorAttachments: [
-        {
-          view: this.#antiAliasing.view ?? output,
-          clearValue: { r: 0, g: 0, b: 0, a: 1 },
-          loadOp: "clear",
-          storeOp: "store",
-        },
-      ],
+    const outputPlan = buildFinalOutputPlan(postPlan.metadata.header, {
+      visualization: this.#bufferVisualization,
+      auxiliaryValid: auxiliaryFrameValid,
+      beautyDepthOfField,
+      motionBlurValid: beautyMotionBlurValid,
+      motionBlurBindingAvailable: Boolean(resources.motionBlurPostBindGroup),
     });
-    const postRoute = postRenderRoute(this.#bufferVisualization, auxiliaryFrameValid);
-    const beautyPostBindGroup =
-      beautyMotionBlurValid && resources.motionBlurPostBindGroup
-        ? resources.motionBlurPostBindGroup
-        : resources.postBindGroup;
-    if (beautyDepthOfField && auxiliaryFrameValid) {
-      resources.depthEffects.encode(postPass, "depthOfField");
-    } else if (postRoute === "beauty") {
-      postPass.setPipeline(resources.postPipeline);
-      postPass.setBindGroup(0, beautyPostBindGroup);
-      postPass.draw(3);
-    } else if (isDepthEffectVisualization(this.#bufferVisualization)) {
-      resources.depthEffects.encode(postPass, this.#bufferVisualization);
-    } else if (isSurfaceEffectVisualization(this.#bufferVisualization)) {
-      resources.surfacePostEffects.encode(postPass, this.#bufferVisualization);
-    } else if (this.#bufferVisualization === "beauty") {
-      postPass.setPipeline(resources.postPipeline);
-      postPass.setBindGroup(0, beautyPostBindGroup);
-      postPass.draw(3);
-    } else resources.bufferVisualizer.encode(postPass, this.#bufferVisualization);
-    postPass.end();
-    this.#antiAliasing.encode(encoder, output, resources.gpuProfiler.writes(undefined, 7));
+    executeFinalOutput({
+      plan: outputPlan,
+      encoder,
+      output,
+      antiAliasing: this.#antiAliasing,
+      resources,
+    });
     this.#pendingFrameReadback?.encode(encoder, outputTexture);
     const cacheTicket =
       cacheCapture && this.#previewFrameComplete(activeMediaInstanceIds)

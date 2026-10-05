@@ -1,4 +1,5 @@
 import { type AntiAliasingMode, antiAliasingScale } from "../../core/rendering/anti-aliasing";
+import { requirePlan } from "../frame-plan/canonical";
 import { sharedShaders } from "../gpu/shared-shader-catalog";
 
 export function planAntiAliasing(
@@ -44,6 +45,21 @@ export class AntiAliasingRenderer {
   }
   get view(): GPUTextureView | undefined {
     return this.#texture?.createView();
+  }
+
+  plannedView(mode: AntiAliasingMode, width: number, height: number): GPUTextureView | undefined {
+    requirePlan(
+      mode === this.#mode &&
+        (mode === "off" ||
+          (this.#width === width &&
+            this.#height === height &&
+            this.#texture &&
+            this.#pipeline &&
+            this.#bindGroup)),
+      "resource_generation_mismatch",
+      "Output anti-aliasing allocation differs from plan",
+    );
+    return this.view;
   }
 
   resize(mode: AntiAliasingMode, width: number, height: number): void {

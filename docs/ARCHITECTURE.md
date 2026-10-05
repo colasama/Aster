@@ -231,6 +231,14 @@ failure GPU case uses a healthy replay host, so omission is driven by transporte
 of these recursive snapshots into complete root-frame capture remains open.
 
 
+The final output route is a typed FPLN slice selecting scene or motion-blurred beauty, a depth or
+surface effect, or a specific diagnostic buffer view. Planning resolves availability fallbacks;
+encoding consumes only the supplied route, clear color and header AA mode. It rejects missing
+motion-blur bindings and mismatched AA allocation generations before starting the output pass.
+The G1 transport gate covers all view modes and four AA modes through Rust and the supplied executor.
+Depth/surface uniforms, auxiliary draws and motion reconstruction still require their own complete
+planning boundaries before the full-frame cutover.
+
 Shared WGSL includes output anti-aliasing, core scene variants, compositing, fused post-processing,
 blur/depth/surface effects, auxiliary surfaces, particles, text motion blur and display/buffer helpers.
 The TS `SharedShaderCatalog` loads sources through Vite `?raw`, including in Vitest, and concatenates the fragments in

@@ -45,6 +45,9 @@ describe("output anti-aliasing", () => {
       aa.resize("fxaa", 64, 32);
       expect(createTexture).toHaveBeenCalledTimes(1);
       expect(aa.estimatedBytes).toBe(64 * 32 * 4);
+      expect(aa.plannedView("fxaa", 64, 32)).toBeDefined();
+      expect(() => aa.plannedView("ssaa2x", 64, 32)).toThrow(/differs from plan/);
+      expect(() => aa.plannedView("fxaa", 32, 32)).toThrow(/differs from plan/);
       const pass = { setPipeline: vi.fn(), setBindGroup: vi.fn(), draw: vi.fn(), end: vi.fn() };
       const encoder = { beginRenderPass: vi.fn(() => pass) };
       aa.encode(encoder as unknown as GPUCommandEncoder, {} as GPUTextureView);
@@ -54,6 +57,7 @@ describe("output anti-aliasing", () => {
       aa.resize("off", 64, 32);
       expect(destroy).toHaveBeenCalledTimes(2);
       expect(aa.view).toBeUndefined();
+      expect(aa.plannedView("off", 64, 32)).toBeUndefined();
       expect(aa.estimatedBytes).toBe(0);
       aa.encode(encoder as unknown as GPUCommandEncoder, {} as GPUTextureView);
       expect(encoder.beginRenderPass).toHaveBeenCalledTimes(1);

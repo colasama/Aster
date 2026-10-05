@@ -1,4 +1,5 @@
 import type { BlendMode } from "../../core/types";
+import type { FinalOutputSlice } from "./final-output-layout";
 import type { SceneGeneratorSlice } from "./generator-types";
 import type { MediaFrameDescriptor, MediaSourceDescriptor } from "./media-descriptors";
 import type { PrecompositionBundleSlice } from "./precomposition-bundle-layout";
@@ -104,7 +105,8 @@ export interface FramePlanSliceV1 {
     | "root_scene_commands_slice_v1"
     | "scene_generator_slice_v1"
     | "precomposition_graph_slice_v1"
-    | "precomposition_bundle_slice_v1";
+    | "precomposition_bundle_slice_v1"
+    | "final_output_slice_v1";
   renderer_plan_complete: false;
   header: FrameHeaderSlice;
   blobs: BlobDescriptor[];
@@ -137,6 +139,7 @@ export interface SceneMediaBinding {
 }
 
 export type PlanSlice =
+  | FinalOutputSlice
   | PrecompositionBundleSlice
   | PrecompositionGraphSlice
   | SceneGeneratorSlice

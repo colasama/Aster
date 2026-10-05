@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { access, mkdir, writeFile } from "node:fs/promises";
 import { join, relative } from "node:path";
+import { auditFinalOutput } from "./ir-gate-final-output.mjs";
 import { auditGeneratorResources } from "./ir-gate-generator.mjs";
 import { auditMediaResources } from "./ir-gate-media.mjs";
 import { auditPrecompositionGraph } from "./ir-gate-precomposition.mjs";
@@ -226,6 +227,7 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
       ...generatorFixtures,
       ...runtime.precompositionGraphFixtures(),
       ...runtime.precompositionBundleFixtures(),
+      ...runtime.finalOutputFixtures(),
     ]) {
       const input = join(context.output, `${fixture.id}-ts.fpln`);
       const output = join(context.output, `${fixture.id}-rust.fpln`);
@@ -245,6 +247,10 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
       assert.deepEqual(roundtrip.bytes, original.bytes, "TS -> Rust FPLN is not byte-exact");
       assert.deepEqual(after.metadata, before.metadata);
       assert.deepEqual(after.blobs, before.blobs);
+      if (fixture.output) {
+        report.final_outputs ??= [];
+        report.final_outputs.push(auditFinalOutput(runtime, fixture, after));
+      }
       if (fixture.bundle)
         report.precomposition_bundles.push(
           await auditPrecompositionBundle(runtime, fixture, after, {

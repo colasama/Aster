@@ -1,3 +1,4 @@
+use crate::FinalOutputSlice;
 use crate::LayerEffectSlice;
 use crate::PrecompositionBundleSlice;
 use crate::PrecompositionGraphSlice;
@@ -25,6 +26,7 @@ pub enum PlanKind {
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum ContractLevel {
+    FinalOutputSliceV1,
     PostUniformsSliceV1,
     SceneBuffersSliceV1,
     CameraParametersSliceV1,
@@ -124,6 +126,7 @@ pub struct BlobDescriptor {
 #[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum PlanSlice {
+    FinalOutput(FinalOutputSlice),
     PrecompositionBundle(PrecompositionBundleSlice),
     PrecompositionGraph(PrecompositionGraphSlice),
     SceneGenerator(SceneGeneratorSlice),
@@ -204,6 +207,13 @@ impl FramePlanSliceV1 {
             return Err(IrError::InvalidGenerator("expected one slice".to_owned()));
         }
         let mut referenced = BTreeSet::new();
+        if self.contract_level == ContractLevel::FinalOutputSliceV1
+            && (self.slices.len() != 1 || !self.resources.is_empty())
+        {
+            return Err(IrError::InvalidHeader(
+                "expected one transient output route".to_owned(),
+            ));
+        }
         if self.contract_level == ContractLevel::PrecompositionBundleSliceV1
             && self.slices.len() != 1
         {
@@ -220,6 +230,11 @@ impl FramePlanSliceV1 {
         }
         for slice in &self.slices {
             let blob_index = match slice {
+                PlanSlice::FinalOutput(output)
+                    if self.contract_level == ContractLevel::FinalOutputSliceV1 =>
+                {
+                    output.blob_index
+                }
                 PlanSlice::PrecompositionBundle(bundle)
                     if self.contract_level == ContractLevel::PrecompositionBundleSliceV1 =>
                 {
@@ -299,6 +314,10 @@ impl FramePlanSliceV1 {
             if !referenced.insert(blob_index) {
                 return Err(IrError::BlobCountMismatch);
             }
+            if let PlanSlice::FinalOutput(output) = slice {
+                output.validate(blob)?;
+                continue;
+            }
             if let PlanSlice::PrecompositionBundle(bundle) = slice {
                 bundle.validate(blob, &self.resources)?;
                 continue;
@@ -373,6 +392,16 @@ impl FramePlanSliceV1 {
     }
 
     pub(crate) fn validate_blob(&self, index: usize, bytes: &[u8]) -> Result<(), IrError> {
+        if self.contract_level == ContractLevel::FinalOutputSliceV1 {
+            for slice in &self.slices {
+                if let PlanSlice::FinalOutput(output) = slice
+                    && output.blob_index as usize == index
+                {
+                    return output.validate_bytes(bytes);
+                }
+            }
+            return Err(IrError::BlobCountMismatch);
+        }
         if self.contract_level == ContractLevel::PrecompositionBundleSliceV1 {
             for slice in &self.slices {
                 if let PlanSlice::PrecompositionBundle(bundle) = slice

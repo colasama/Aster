@@ -120,6 +120,7 @@
     },
     "ContractLevel": {
       "enum": [
+        "final_output_slice_v1",
         "post_uniforms_slice_v1",
         "scene_buffers_slice_v1",
         "camera_parameters_slice_v1",
@@ -201,6 +202,91 @@
       },
       "required": ["width", "height"],
       "type": "object"
+    },
+    "FinalBeautySource": {
+      "enum": ["scene", "motion_blur"],
+      "type": "string"
+    },
+    "FinalDepthMode": {
+      "enum": ["depthFog", "depthOfField"],
+      "type": "string"
+    },
+    "FinalOutputRoute": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "beauty",
+              "type": "string"
+            },
+            "source": {
+              "$ref": "#/$defs/FinalBeautySource"
+            }
+          },
+          "required": ["kind", "source"],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "depth",
+              "type": "string"
+            },
+            "mode": {
+              "$ref": "#/$defs/FinalDepthMode"
+            }
+          },
+          "required": ["kind", "mode"],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "surface",
+              "type": "string"
+            },
+            "mode": {
+              "$ref": "#/$defs/FinalSurfaceMode"
+            }
+          },
+          "required": ["kind", "mode"],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "visualizer",
+              "type": "string"
+            },
+            "mode": {
+              "$ref": "#/$defs/FinalVisualization"
+            }
+          },
+          "required": ["kind", "mode"],
+          "type": "object"
+        }
+      ]
+    },
+    "FinalSurfaceMode": {
+      "enum": ["selectionIsolation", "vectorMotionBlur"],
+      "type": "string"
+    },
+    "FinalVisualization": {
+      "enum": [
+        "linearColor",
+        "luminance",
+        "alpha",
+        "normal",
+        "objectId",
+        "materialId",
+        "worldPosition",
+        "motionVector"
+      ],
+      "type": "string"
     },
     "FrameHeaderSlice": {
       "additionalProperties": false,
@@ -718,6 +804,25 @@
     },
     "PlanSlice": {
       "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "blob_index": {
+              "format": "uint32",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "kind": {
+              "const": "final_output",
+              "type": "string"
+            },
+            "route": {
+              "$ref": "#/$defs/FinalOutputRoute"
+            }
+          },
+          "required": ["kind", "blob_index", "route"],
+          "type": "object"
+        },
         {
           "additionalProperties": false,
           "properties": {

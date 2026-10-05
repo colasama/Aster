@@ -16130,7 +16130,7 @@
             "No live composition/view settings are read while encoding the planned output route."
           ],
           "required_full_gates": ["G0", "G1", "G3"],
-          "status": "pending"
+          "status": "in_progress"
         },
         {
           "id": "M2-T13",
@@ -17623,5 +17623,11 @@
       }
     }
   ],
-  "active_cycle": null
+  "active_cycle": {
+    "id": 61,
+    "milestone": "M2",
+    "task": "M2-T12",
+    "started_at": "2026-10-05T10:52:24.002Z",
+    "intent": "Extract final output routing into typed TS/Rust transport and consume the supplied route for display, visualization and anti-aliasing encoding."
+  }
 }

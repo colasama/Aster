@@ -13,6 +13,8 @@ export async function loadIrRuntime(root) {
     const modules = [];
     for (const name of [
       "codec",
+      "final-output-plan",
+      "final-output-fixture",
       "fixture",
       "resources",
       "media-resource-fixture",
@@ -63,6 +65,7 @@ export async function loadIrRuntime(root) {
     ])
       modules.push(await server.ssrLoadModule(`/src/renderer/media/${name}.ts`));
     modules.push(await server.ssrLoadModule("/src/renderer/text/text-motion-blur-pass-plan.ts"));
+    modules.push(await server.ssrLoadModule("/src/renderer/compositing/execute-final-output.ts"));
     return Object.assign({ close: () => server.close() }, ...modules);
   } catch (error) {
     await server.close();

@@ -6,6 +6,7 @@ import {
   validateEffectExecution,
   validateEffectExecutionBlob,
 } from "./effect-execution-layout";
+import { validateFinalOutput, validateFinalOutputBlob } from "./final-output-layout";
 import { validateFrameRate } from "./frame-rate";
 import {
   GENERATOR_FIELDS,
@@ -119,6 +120,7 @@ export function validateMetadata(value: unknown, limits: FramePlanLimits): Frame
         "scene_generator_slice_v1",
         "precomposition_graph_slice_v1",
         "precomposition_bundle_slice_v1",
+        "final_output_slice_v1",
       ].includes(String(metadata.contract_level)) &&
       metadata.renderer_plan_complete === false,
     "unknown_variant",
@@ -191,6 +193,20 @@ export function validateMetadata(value: unknown, limits: FramePlanLimits): Frame
   );
   const indices = new Set<number>();
   for (const value of metadata.slices) {
+    if (metadata.contract_level === "final_output_slice_v1") {
+      requirePlan(
+        metadata.slices.length === 1 &&
+          Array.isArray(metadata.resources) &&
+          metadata.resources.length === 0,
+        "invalid_header",
+        "Output route requires one transient slice",
+      );
+      const slice = object(value, ["kind", "blob_index", "route"]);
+      const index = integer(slice.blob_index, 0, metadata.blobs.length - 1);
+      indices.add(index);
+      validateFinalOutput(slice, metadata.blobs[index] as BlobDescriptor);
+      continue;
+    }
     if (metadata.contract_level === "precomposition_bundle_slice_v1") {
       requirePlan(
         metadata.slices.length === 1 && Array.isArray(metadata.resources),
@@ -399,6 +415,10 @@ export function validatePlanBlob(
     "element_count_mismatch",
     "Supplied blob length differs from descriptor",
   );
+  if (metadata.contract_level === "final_output_slice_v1") {
+    validateFinalOutputBlob(bytes);
+    return;
+  }
   if (metadata.contract_level === "precomposition_bundle_slice_v1") {
     const bundle = metadata.slices[0];
     requirePlan(
