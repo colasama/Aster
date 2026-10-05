@@ -1,3 +1,4 @@
+use crate::AuxiliarySlice;
 use crate::FinalOutputSlice;
 use crate::LayerEffectSlice;
 use crate::MotionReconstructionSlice;
@@ -28,6 +29,7 @@ pub enum PlanKind {
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum ContractLevel {
+    AuxiliarySliceV1,
     FinalOutputSliceV1,
     MotionReconstructionSliceV1,
     PostEffectSliceV1,
@@ -130,6 +132,7 @@ pub struct BlobDescriptor {
 #[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum PlanSlice {
+    Auxiliary(AuxiliarySlice),
     FinalOutput(FinalOutputSlice),
     MotionReconstruction(MotionReconstructionSlice),
     PostEffect(PostEffectSlice),
@@ -213,6 +216,11 @@ impl FramePlanSliceV1 {
             return Err(IrError::InvalidGenerator("expected one slice".to_owned()));
         }
         let mut referenced = BTreeSet::new();
+        if self.contract_level == ContractLevel::AuxiliarySliceV1 && self.slices.len() != 1 {
+            return Err(IrError::InvalidHeader(
+                "expected one auxiliary slice".to_owned(),
+            ));
+        }
         if matches!(
             self.contract_level,
             ContractLevel::FinalOutputSliceV1
@@ -240,6 +248,11 @@ impl FramePlanSliceV1 {
         }
         for slice in &self.slices {
             let blob_index = match slice {
+                PlanSlice::Auxiliary(auxiliary)
+                    if self.contract_level == ContractLevel::AuxiliarySliceV1 =>
+                {
+                    auxiliary.blob_index
+                }
                 PlanSlice::PostEffect(effect)
                     if self.contract_level == ContractLevel::PostEffectSliceV1 =>
                 {
@@ -338,6 +351,10 @@ impl FramePlanSliceV1 {
                 output.validate(blob)?;
                 continue;
             }
+            if let PlanSlice::Auxiliary(auxiliary) = slice {
+                auxiliary.validate(blob, &self.resources)?;
+                continue;
+            }
             if let PlanSlice::MotionReconstruction(motion) = slice {
                 motion.validate(blob)?;
                 continue;
@@ -420,6 +437,16 @@ impl FramePlanSliceV1 {
     }
 
     pub(crate) fn validate_blob(&self, index: usize, bytes: &[u8]) -> Result<(), IrError> {
+        if self.contract_level == ContractLevel::AuxiliarySliceV1 {
+            for slice in &self.slices {
+                if let PlanSlice::Auxiliary(auxiliary) = slice
+                    && auxiliary.blob_index as usize == index
+                {
+                    return auxiliary.validate_bytes(bytes);
+                }
+            }
+            return Err(IrError::BlobCountMismatch);
+        }
         if self.contract_level == ContractLevel::PostEffectSliceV1 {
             for slice in &self.slices {
                 if let PlanSlice::PostEffect(effect) = slice

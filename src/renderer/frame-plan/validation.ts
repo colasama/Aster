@@ -1,3 +1,4 @@
+import { AUXILIARY_FIELDS, validateAuxiliary, validateAuxiliaryBlob } from "./auxiliary-layout";
 import { CAMERA_SLICE_FIELDS, validateCameraParameters } from "./camera-layout";
 import { align16, hash, integer, object, requirePlan, validUnicode } from "./canonical";
 import { compositionIdentityToString } from "./composition-identity";
@@ -133,6 +134,7 @@ export function validateMetadata(value: unknown, limits: FramePlanLimits): Frame
         "final_output_slice_v1",
         "motion_reconstruction_slice_v1",
         "post_effect_slice_v1",
+        "auxiliary_slice_v1",
       ].includes(String(metadata.contract_level)) &&
       metadata.renderer_plan_complete === false,
     "unknown_variant",
@@ -205,6 +207,22 @@ export function validateMetadata(value: unknown, limits: FramePlanLimits): Frame
   );
   const indices = new Set<number>();
   for (const value of metadata.slices) {
+    if (metadata.contract_level === "auxiliary_slice_v1") {
+      requirePlan(
+        metadata.slices.length === 1 && Array.isArray(metadata.resources),
+        "invalid_header",
+        "Expected one auxiliary slice",
+      );
+      const slice = object(value, AUXILIARY_FIELDS),
+        index = integer(slice.blob_index, 0, metadata.blobs.length - 1);
+      indices.add(index);
+      validateAuxiliary(
+        slice,
+        metadata.blobs[index] as BlobDescriptor,
+        metadata.resources as string[],
+      );
+      continue;
+    }
     if (metadata.contract_level === "post_effect_slice_v1") {
       requirePlan(
         metadata.slices.length === 1 &&
@@ -463,6 +481,12 @@ export function validatePlanBlob(
     const slice = metadata.slices[0];
     requirePlan(slice.kind === "post_effect", "invalid_header", "Missing post effect slice");
     validatePostEffectBlob(bytes, metadata.header, slice.effect);
+    return;
+  }
+  if (metadata.contract_level === "auxiliary_slice_v1") {
+    const slice = metadata.slices[0];
+    requirePlan(slice.kind === "auxiliary", "invalid_header", "Missing auxiliary slice");
+    validateAuxiliaryBlob(bytes, slice);
     return;
   }
   if (metadata.contract_level === "final_output_slice_v1") {

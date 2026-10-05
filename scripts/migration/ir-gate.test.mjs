@@ -135,6 +135,9 @@ async function fixture(t, intercept = async () => {}) {
         "post-depth-range": "invalid_header",
         "post-surface-mode": "invalid_header",
         "post-surface-padding": "invalid_header",
+        "auxiliary-nonfinite": "invalid_header",
+        "auxiliary-range": "invalid_header",
+        "auxiliary-padding": "invalid_header",
       };
       result = {
         status: "failed",
@@ -177,7 +180,18 @@ test("G1 orchestrates all real TS codec checks and keeps renderer completion exp
   const result = await f.run();
   assert.equal(result.status, "passed", result.error);
   assert.equal(result.renderer_plan_complete, false);
-  assert.equal(result.roundtrips.length, 115);
+  assert.equal(result.roundtrips.length, 125);
+  assert.equal(result.auxiliary.length, 10);
+  assert(
+    result.auxiliary.every(
+      (a) =>
+        a.exact_payloads &&
+        a.exact_draws &&
+        a.supplied_execution &&
+        a.availability_preserved &&
+        a.preflight_rejection,
+    ),
+  );
   assert.equal(result.post_effects.length, 8);
   assert(
     result.post_effects.every(
@@ -246,7 +260,7 @@ test("G1 orchestrates all real TS codec checks and keeps renderer completion exp
   assert.equal(result.scene_uploads.length, 16);
   assert.equal(result.media_draws.length, 11);
   assert.equal(result.root_uploads.length, 12);
-  assert.equal(result.rejections.length, 15);
+  assert.equal(result.rejections.length, 18);
   assert.equal(result.custom_limits.length, 3);
   assert.equal(result.resources.status, "passed");
   assert.equal(result.media_resources.roundtrips, 17);
@@ -295,7 +309,7 @@ test("G1 rejects source drift even when every codec result is exact", async (t) 
   }));
   assert.equal(result.status, "failed");
   assert.equal(result.source_unchanged, false);
-  assert.equal(result.roundtrips.length, 115);
+  assert.equal(result.roundtrips.length, 125);
   assert.match(result.error, /Source changed during G1/);
 });
 

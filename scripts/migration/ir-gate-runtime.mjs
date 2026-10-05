@@ -13,6 +13,8 @@ export async function loadIrRuntime(root) {
     const modules = [];
     for (const name of [
       "codec",
+      "auxiliary-plan",
+      "auxiliary-fixture",
       "final-output-plan",
       "final-output-fixture",
       "motion-reconstruction-plan",
@@ -73,6 +75,7 @@ export async function loadIrRuntime(root) {
     modules.push(await server.ssrLoadModule("/src/renderer/compositing/motion-blur-renderer.ts"));
     modules.push(await server.ssrLoadModule("/src/renderer/effects/depth-effects.ts"));
     modules.push(await server.ssrLoadModule("/src/renderer/effects/surface-post-effects.ts"));
+    modules.push(await server.ssrLoadModule("/src/renderer/gpu/auxiliary-buffer-renderer.ts"));
     return Object.assign({ close: () => server.close() }, ...modules);
   } catch (error) {
     await server.close();

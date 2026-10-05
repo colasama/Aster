@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { access, mkdir, writeFile } from "node:fs/promises";
 import { join, relative } from "node:path";
+import { auditAuxiliary, auxiliaryNegativeFixtures } from "./ir-gate-auxiliary.mjs";
 import { auditFinalOutput } from "./ir-gate-final-output.mjs";
 import { auditGeneratorResources } from "./ir-gate-generator.mjs";
 import { auditMediaResources } from "./ir-gate-media.mjs";
@@ -232,6 +233,7 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
       ...runtime.finalOutputFixtures(),
       ...runtime.motionReconstructionFixtures(),
       ...runtime.postEffectFixtures(),
+      ...runtime.auxiliaryFixtures(),
     ]) {
       const input = join(context.output, `${fixture.id}-ts.fpln`);
       const output = join(context.output, `${fixture.id}-rust.fpln`);
@@ -258,6 +260,10 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
       if (fixture.postEffect) {
         report.post_effects ??= [];
         report.post_effects.push(auditPostEffect(runtime, fixture, after));
+      }
+      if (fixture.auxiliary) {
+        report.auxiliary ??= [];
+        report.auxiliary.push(auditAuxiliary(runtime, fixture, after));
       }
       if (fixture.motion) {
         report.motion_reconstruction ??= [];
@@ -625,6 +631,7 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
       ...irNegativeFixtures(fixtures),
       ...motionNegativeFixtures(runtime),
       ...postEffectNegativeFixtures(runtime),
+      ...auxiliaryNegativeFixtures(runtime),
     ]) {
       const input = join(context.output, `reject-${fixture.id}.fpln`);
       const output = join(context.output, `rejected-${fixture.id}-must-not-exist.fpln`);

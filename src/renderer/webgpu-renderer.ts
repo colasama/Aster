@@ -31,6 +31,7 @@ import { depthEffectSettingsFromCameraOptics } from "./effects/depth-effects";
 import { effectExecution } from "./effects/layer-effect-plan";
 import { selectedRenderId } from "./effects/surface-post-effects";
 import { buildCameraPlan, readCameraPlan } from "./frame-plan/camera-plan";
+import { compositionIdentityFromString } from "./frame-plan/composition-identity";
 import { buildFinalOutputPlan, readFinalOutputPlan } from "./frame-plan/final-output-plan";
 import { buildMotionReconstructionPlan } from "./frame-plan/motion-reconstruction-plan";
 import { buildFrameHeader, buildRootPostUniformPlan } from "./frame-plan/root-post-plan";
@@ -869,25 +870,55 @@ export class WebGpuRenderer {
       motionBlurRequested;
     let auxiliaryFrameValid = !needsAuxiliarySurfaceData;
     if (!auxiliaryFrameValid) {
-      auxiliaryFrameValid = resources.auxiliaryBuffers.encode({
-        encoder,
-        vertexBuffer: resources.shapeBuffer,
+      const auxiliary = resources.auxiliaryBuffers.buildPlan({
+        header: postPlan.metadata.header,
         vertexCount: sceneBuffers.slice.vertex_count,
         batches: sceneBatches,
         motionVectors: sceneBuffers.motionVectors,
-        mediaBindGroup: (batch) =>
-          resources.precompositionSurfaces.bindingFor(batch.instanceId) ??
-          (batch.layer.kind === "image" ||
-          batch.layer.kind === "video" ||
-          batch.mediaResourceHash !== undefined
-            ? mediaBindings.bindingForHash(batch.mediaResourceHash)
-            : resources.mediaTextures.bindGroup(batch.resourceInstanceId)),
+        mediaBinding: (batch) => {
+          const surface = resources.precompositionSurfaces.bindingFor(batch.instanceId);
+          if (surface)
+            return {
+              texture: {
+                kind: "surface",
+                instance_id: compositionIdentityFromString(batch.instanceId),
+              },
+              binding: surface,
+            };
+          if (
+            batch.layer.kind === "image" ||
+            batch.layer.kind === "video" ||
+            batch.mediaResourceHash !== undefined
+          ) {
+            const binding = mediaBindings.bindingForHash(batch.mediaResourceHash);
+            return binding && batch.mediaResourceHash
+              ? { texture: { kind: "media", hash: batch.mediaResourceHash }, binding }
+              : undefined;
+          }
+          const binding = resources.mediaTextures.bindGroup(batch.resourceInstanceId);
+          return binding
+            ? {
+                texture: {
+                  kind: "raster_cache",
+                  instance_id: compositionIdentityFromString(batch.resourceInstanceId),
+                },
+                binding,
+              }
+            : undefined;
+        },
         generators: beautyMotionBlur
           ? []
-          : sceneGenerators
-              .map((generator) => resources.sceneGenerators.auxiliaryDraw(generator))
-              .filter((draw) => draw !== undefined),
+          : sceneGenerators.flatMap((generator) => {
+              const draw = resources.sceneGenerators.auxiliaryDraw(generator);
+              return draw ? [{ instanceId: generator.instanceId, draw }] : [];
+            }),
       });
+      auxiliaryFrameValid = resources.auxiliaryBuffers.encodePlan(
+        encoder,
+        auxiliary.plan,
+        resources.shapeBuffer,
+        auxiliary.bindings,
+      );
     }
     const motionPlan = buildMotionReconstructionPlan(postPlan.metadata.header, {
       requested:

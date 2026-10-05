@@ -1,23 +1,27 @@
 import { logger } from "../../core/logger";
 import type { SceneBufferVisualizer } from "../diagnostics/buffer-visualizer";
-import type { GeometryBatch } from "../geometry/geometry";
+import {
+  auxiliaryTextureKey,
+  buildAuxiliaryPlan,
+  readAuxiliaryPlan,
+} from "../frame-plan/auxiliary-plan";
+import { requirePlan } from "../frame-plan/canonical";
+import { compositionIdentityToString } from "../frame-plan/composition-identity";
+import type { FramePlanSliceData } from "../frame-plan/types";
+import { FLOATS_PER_VERTEX } from "../geometry/geometry";
 import { GpuTimeAddressedMotionVectors } from "../scene/time-addressed-motion-vectors";
 import {
   type DepthOfFieldSurfaceTier,
   planAuxiliarySurfaceAllocation,
 } from "./auxiliary-buffer-budget";
-import {
-  buildAuxiliaryBatchIds,
-  idBufferCapacityBytes,
-  transparencyFallbackDiagnostic,
-} from "./auxiliary-buffer-data";
-import {
-  beginAuxiliaryAggregatePass,
-  beginAuxiliaryFrontColorPass,
-  beginAuxiliaryMrtPass,
-  beginAuxiliaryPeelPass,
-} from "./auxiliary-buffer-passes";
+import { idBufferCapacityBytes, transparencyFallbackDiagnostic } from "./auxiliary-buffer-data";
 import { createAuxiliaryBufferPipelines } from "./auxiliary-buffer-pipelines";
+import {
+  type AuxiliaryPlanBindings,
+  type AuxiliaryPlanRequest,
+  captureAuxiliaryDraws,
+} from "./auxiliary-plan-bindings";
+import { executeAuxiliaryPasses, validateAuxiliaryTargets } from "./auxiliary-plan-execution";
 import {
   type AuxiliaryBufferKind,
   auxiliaryRenderPassBytes,
@@ -30,34 +34,10 @@ import {
   usesAuxiliarySurfaceData,
 } from "./render-buffers";
 
-export interface GeneratorDraw {
-  pipeline: GPURenderPipeline;
-  bindGroup: GPUBindGroup;
-  indirectBuffer: GPUBuffer;
-}
-
-export interface AuxiliaryEncodeRequest {
-  encoder: GPUCommandEncoder;
-  vertexBuffer: GPUBuffer;
-  vertexCount: number;
-  batches: readonly GeometryBatch[];
-  motionVectors?: Float32Array;
-  mediaBindGroup: (batch: GeometryBatch) => GPUBindGroup | undefined;
-  generators?: readonly GeneratorDraw[];
-}
-
 /** Owns the transient MRT surface-data pass used by the viewport debugger. */
 export class AuxiliaryBufferRenderer {
   readonly #device: GPUDevice;
-  readonly #shapePipeline: GPURenderPipeline;
-  readonly #mediaPipeline: GPURenderPipeline;
-  readonly #transparentShapePipeline: GPURenderPipeline;
-  readonly #transparentMediaPipeline: GPURenderPipeline;
-  readonly #peelShapePipeline: GPURenderPipeline;
-  readonly #peelMediaPipeline: GPURenderPipeline;
-  readonly #frontColorShapePipeline: GPURenderPipeline;
-  readonly #frontColorMediaPipeline: GPURenderPipeline;
-  readonly #peelBindGroupLayout: GPUBindGroupLayout;
+  readonly #pipelines: ReturnType<typeof createAuxiliaryBufferPipelines>;
   readonly #motionVectors: GpuTimeAddressedMotionVectors;
   #textures = new Map<AuxiliaryBufferKind, GPUTexture>();
   #depth?: GPUTexture;
@@ -88,16 +68,7 @@ export class AuxiliaryBufferRenderer {
     this.#device = device;
     this.#motionVectors = new GpuTimeAddressedMotionVectors(device);
     this.supported = supportsAuxiliaryMrt(device.limits);
-    const pipelines = createAuxiliaryBufferPipelines(device, imageBindGroupLayout);
-    this.#shapePipeline = pipelines.shape;
-    this.#mediaPipeline = pipelines.media;
-    this.#transparentShapePipeline = pipelines.transparentShape;
-    this.#transparentMediaPipeline = pipelines.transparentMedia;
-    this.#peelShapePipeline = pipelines.peelShape;
-    this.#peelMediaPipeline = pipelines.peelMedia;
-    this.#frontColorShapePipeline = pipelines.frontColorShape;
-    this.#frontColorMediaPipeline = pipelines.frontColorMedia;
-    this.#peelBindGroupLayout = pipelines.peelBindGroupLayout;
+    this.#pipelines = createAuxiliaryBufferPipelines(device, imageBindGroupLayout);
   }
 
   get estimatedBytes(): number {
@@ -299,12 +270,28 @@ export class AuxiliaryBufferRenderer {
     return mode;
   }
 
-  encode(request: AuxiliaryEncodeRequest): boolean {
-    if (!this.#enabled || !this.#depth) return false;
-    const nextIdBytes = idBufferCapacityBytes(request.batches.length);
+  buildPlan(request: AuxiliaryPlanRequest): {
+    plan: FramePlanSliceData;
+    bindings: AuxiliaryPlanBindings;
+  } {
+    const empty = (status: "unavailable" | "cleared") => ({
+      plan: buildAuxiliaryPlan(
+        request.header,
+        {
+          status,
+          tier: status === "unavailable" ? -1 : this.#depthOfFieldTier,
+          vertex_count: 0,
+          draws: [],
+          generators: [],
+        },
+        new Uint32Array(),
+      ),
+      bindings: { media: new Map(), generators: new Map() },
+    });
+    if (!this.#enabled || !this.#depth) return empty("unavailable");
     const plannedBytes =
       this.#estimatedBytes +
-      Math.max(this.#idBufferBytes, nextIdBytes) +
+      Math.max(this.#idBufferBytes, idBufferCapacityBytes(request.batches.length)) +
       this.#motionVectors.plannedBytes(request.vertexCount);
     if (plannedBytes > this.#byteBudget) {
       if (!this.#budgetFailureReported) {
@@ -314,35 +301,7 @@ export class AuxiliaryBufferRenderer {
           byteBudget: this.#byteBudget,
         });
       }
-      beginAuxiliaryMrtPass(
-        request.encoder,
-        "Auxiliary MRT budget fallback · cleared",
-        this.#textures,
-        this.#depth,
-      ).end();
-      if (this.#depthOfFieldTier >= 1) {
-        beginAuxiliaryFrontColorPass(
-          request.encoder,
-          "Auxiliary front color fallback · cleared",
-          this.#frontLayerColor,
-          this.#depth,
-        ).end();
-        beginAuxiliaryAggregatePass(
-          request.encoder,
-          "Auxiliary transparency fallback · cleared",
-          this.#transparentWorldPosition,
-        ).end();
-      }
-      if (this.#depthOfFieldTier >= 2)
-        beginAuxiliaryPeelPass(
-          request.encoder,
-          "Auxiliary depth peel fallback · cleared",
-          this.#peeledWorldPosition,
-          this.#peeledLayerColor,
-          this.#peelDepth,
-        ).end();
-      this.#motionShutterScale = 0;
-      return false;
+      return empty("cleared");
     }
     this.#budgetFailureReported = false;
     this.#transparencyFallbackDiagnostic = transparencyFallbackDiagnostic(
@@ -355,113 +314,106 @@ export class AuxiliaryBufferRenderer {
         generatorCount: request.generators?.length ?? 0,
       });
     }
-    this.#uploadBatchIds(request.batches);
-    const idBuffer = this.#idBuffer;
-    if (!idBuffer) return false;
-    if (request.motionVectors && request.motionVectors.length !== request.vertexCount * 2)
-      throw new Error("Auxiliary motion vectors must match the current geometry vertex count");
-    const motionBuffer = request.motionVectors
-      ? this.#motionVectors.upload(request.motionVectors)
-      : this.#motionVectors.clear(request.vertexCount, request.encoder);
-    this.#motionShutterScale = request.motionVectors ? 1 : 0;
-    const pass = beginAuxiliaryMrtPass(
-      request.encoder,
-      "Normal + IDs + World Position + Motion Vector MRT",
-      this.#textures,
-      this.#depth,
-    );
-    pass.setVertexBuffer(0, request.vertexBuffer);
-    pass.setVertexBuffer(1, idBuffer);
-    pass.setVertexBuffer(2, motionBuffer);
-    for (let index = 0; index < request.batches.length; index += 1) {
-      const batch = request.batches[index];
-      const media = request.mediaBindGroup(batch);
-      pass.setPipeline(media ? this.#mediaPipeline : this.#shapePipeline);
-      if (media) pass.setBindGroup(0, media);
-      pass.draw(batch.vertexCount, 1, batch.firstVertex, index);
-    }
-    for (const generator of request.generators ?? []) {
-      pass.setPipeline(generator.pipeline);
-      pass.setBindGroup(0, generator.bindGroup);
-      pass.drawIndirect(generator.indirectBuffer, 0);
-    }
-    pass.end();
-    if (this.#depthOfFieldTier >= 1) this.#encodeFrontAndAggregate(request, idBuffer, motionBuffer);
-    if (this.#depthOfFieldTier >= 2) this.#encodeSecondPeel(request, idBuffer, motionBuffer);
-    return true;
+    const captured = captureAuxiliaryDraws(request);
+    return {
+      plan: buildAuxiliaryPlan(
+        request.header,
+        {
+          status: "drawn",
+          tier: this.#depthOfFieldTier,
+          vertex_count: request.vertexCount,
+          draws: captured.draws,
+          generators: captured.generatorIds,
+        },
+        captured.ids,
+        request.motionVectors,
+      ),
+      bindings: captured.bindings,
+    };
   }
 
-  #encodeFrontAndAggregate(
-    request: AuxiliaryEncodeRequest,
-    idBuffer: GPUBuffer,
-    motionBuffer: GPUBuffer,
-  ): void {
-    const front = beginAuxiliaryFrontColorPass(
-      request.encoder,
-      "Front layer color surface",
-      this.#frontLayerColor,
-      this.#depth,
-    );
-    front.setVertexBuffer(0, request.vertexBuffer);
-    front.setVertexBuffer(1, idBuffer);
-    front.setVertexBuffer(2, motionBuffer);
-    for (let index = 0; index < request.batches.length; index += 1) {
-      const batch = request.batches[index];
-      const media = request.mediaBindGroup(batch);
-      front.setPipeline(media ? this.#frontColorMediaPipeline : this.#frontColorShapePipeline);
-      if (media) front.setBindGroup(0, media);
-      front.draw(batch.vertexCount, 1, batch.firstVertex, index);
+  encodePlan(
+    encoder: GPUCommandEncoder,
+    plan: FramePlanSliceData,
+    vertexBuffer: GPUBuffer,
+    bindings: AuxiliaryPlanBindings,
+  ): boolean {
+    const { header, slice, ids, motion } = readAuxiliaryPlan(plan);
+    if (slice.status === "unavailable") {
+      this.#motionShutterScale = 0;
+      return false;
     }
-    front.end();
-
-    const aggregate = beginAuxiliaryAggregatePass(
-      request.encoder,
-      "Transparency-weighted world-position surface",
-      this.#transparentWorldPosition,
+    requirePlan(
+      this.#enabled && this.#depth,
+      "missing_resource",
+      "Auxiliary targets are unavailable",
     );
-    aggregate.setVertexBuffer(0, request.vertexBuffer);
-    aggregate.setVertexBuffer(1, idBuffer);
-    aggregate.setVertexBuffer(2, motionBuffer);
-    for (const [index, batch] of request.batches.entries()) {
-      const media = request.mediaBindGroup(batch);
-      aggregate.setPipeline(
-        media ? this.#transparentMediaPipeline : this.#transparentShapePipeline,
-      );
-      if (media) aggregate.setBindGroup(0, media);
-      aggregate.draw(batch.vertexCount, 1, batch.firstVertex, index);
-    }
-    aggregate.end();
-  }
-
-  #encodeSecondPeel(
-    request: AuxiliaryEncodeRequest,
-    idBuffer: GPUBuffer,
-    motionBuffer: GPUBuffer,
-  ): void {
-    if (!this.#depth) throw new Error("Auxiliary front depth is unavailable");
-    const peelBindGroup = this.#device.createBindGroup({
-      label: "Auxiliary front-depth peel source",
-      layout: this.#peelBindGroupLayout,
-      entries: [{ binding: 0, resource: this.#depth.createView() }],
+    requirePlan(
+      header.render_target.width === this.#width && header.render_target.height === this.#height,
+      "resource_generation_mismatch",
+      "Auxiliary target dimensions differ from plan",
+    );
+    requirePlan(
+      this.#depthOfFieldTier >= slice.tier,
+      "missing_resource",
+      "Auxiliary attachment tier is unavailable",
+    );
+    const targets = {
+      textures: this.#textures,
+      depth: this.#depth,
+      frontColor: this.#frontLayerColor,
+      aggregate: this.#transparentWorldPosition,
+      peeledPosition: this.#peeledWorldPosition,
+      peeledColor: this.#peeledLayerColor,
+      peelDepth: this.#peelDepth,
+    };
+    validateAuxiliaryTargets(slice, targets);
+    const media = slice.draws.map((draw) => {
+      if (draw.texture.kind === "none") return undefined;
+      const binding = bindings.media.get(auxiliaryTextureKey(draw.texture));
+      requirePlan(binding, "missing_resource", "Planned auxiliary texture binding is unavailable");
+      return binding;
     });
-    const peel = beginAuxiliaryPeelPass(
-      request.encoder,
-      "Second transparent depth layer peel",
-      this.#peeledWorldPosition,
-      this.#peeledLayerColor,
-      this.#peelDepth,
-    );
-    peel.setVertexBuffer(0, request.vertexBuffer);
-    peel.setVertexBuffer(1, idBuffer);
-    peel.setVertexBuffer(2, motionBuffer);
-    for (const [index, batch] of request.batches.entries()) {
-      const media = request.mediaBindGroup(batch);
-      peel.setPipeline(media ? this.#peelMediaPipeline : this.#peelShapePipeline);
-      if (media) peel.setBindGroup(0, media);
-      peel.setBindGroup(1, peelBindGroup);
-      peel.draw(batch.vertexCount, 1, batch.firstVertex, index);
+    const generators = slice.generators.map((id) => {
+      const draw = bindings.generators.get(compositionIdentityToString(id));
+      requirePlan(draw, "missing_resource", "Planned auxiliary generator is unavailable");
+      return draw;
+    });
+    let motionBuffer: GPUBuffer | undefined;
+    if (slice.status === "drawn") {
+      requirePlan(
+        vertexBuffer.size >= slice.vertex_count * FLOATS_PER_VERTEX * 4,
+        "invalid_header",
+        "Auxiliary geometry buffer is too small",
+      );
+      const bytes =
+        this.#estimatedBytes +
+        Math.max(this.#idBufferBytes, idBufferCapacityBytes(slice.draws.length)) +
+        this.#motionVectors.plannedBytes(slice.vertex_count);
+      requirePlan(
+        bytes <= this.#byteBudget,
+        "resource_budget_exceeded",
+        "Supplied auxiliary plan exceeds available GPU budget",
+      );
+      this.#uploadBatchIds(ids);
+      motionBuffer = motion
+        ? this.#motionVectors.upload(motion)
+        : this.#motionVectors.clear(slice.vertex_count, encoder);
     }
-    peel.end();
+    executeAuxiliaryPasses({
+      device: this.#device,
+      encoder,
+      slice,
+      targets,
+      pipelines: this.#pipelines,
+      vertexBuffer,
+      ids: this.#idBuffer,
+      motion: motionBuffer,
+      media,
+      generators,
+    });
+    this.#motionShutterScale = motion ? 1 : 0;
+    return slice.status === "drawn";
   }
 
   #createLayerTexture(label: string, width: number, height: number): GPUTexture {
@@ -481,9 +433,8 @@ export class AuxiliaryBufferRenderer {
     this.#motionVectors.destroy();
   }
 
-  #uploadBatchIds(batches: readonly GeometryBatch[]): void {
-    const records = buildAuxiliaryBatchIds(batches);
-    const requiredBytes = idBufferCapacityBytes(batches.length);
+  #uploadBatchIds(records: Uint32Array): void {
+    const requiredBytes = idBufferCapacityBytes(records.length / 2);
     if (!this.#idBuffer || requiredBytes > this.#idBufferBytes) {
       this.#idBuffer?.destroy();
       this.#idBufferBytes = requiredBytes;

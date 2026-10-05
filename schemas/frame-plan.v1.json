@@ -4,6 +4,33 @@
       "enum": ["off", "fxaa", "ssaa2x", "ssaa4x"],
       "type": "string"
     },
+    "AuxiliaryDraw": {
+      "additionalProperties": false,
+      "properties": {
+        "first_vertex": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "instance_id": {
+          "$ref": "#/$defs/CompositionIdentity"
+        },
+        "texture": {
+          "$ref": "#/$defs/RootTextureReference"
+        },
+        "vertex_count": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": ["instance_id", "first_vertex", "vertex_count", "texture"],
+      "type": "object"
+    },
+    "AuxiliaryStatus": {
+      "enum": ["unavailable", "cleared", "drawn"],
+      "type": "string"
+    },
     "BinaryRationalTime": {
       "oneOf": [
         {
@@ -120,6 +147,7 @@
     },
     "ContractLevel": {
       "enum": [
+        "auxiliary_slice_v1",
         "final_output_slice_v1",
         "motion_reconstruction_slice_v1",
         "post_effect_slice_v1",
@@ -818,6 +846,60 @@
     },
     "PlanSlice": {
       "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "blob_index": {
+              "format": "uint32",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "draws": {
+              "items": {
+                "$ref": "#/$defs/AuxiliaryDraw"
+              },
+              "type": "array"
+            },
+            "generators": {
+              "items": {
+                "$ref": "#/$defs/CompositionIdentity"
+              },
+              "type": "array"
+            },
+            "kind": {
+              "const": "auxiliary",
+              "type": "string"
+            },
+            "motion": {
+              "type": "boolean"
+            },
+            "status": {
+              "$ref": "#/$defs/AuxiliaryStatus"
+            },
+            "tier": {
+              "format": "int8",
+              "maximum": 127,
+              "minimum": -128,
+              "type": "integer"
+            },
+            "vertex_count": {
+              "format": "uint32",
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "kind",
+            "blob_index",
+            "status",
+            "tier",
+            "vertex_count",
+            "motion",
+            "draws",
+            "generators"
+          ],
+          "type": "object"
+        },
         {
           "additionalProperties": false,
           "properties": {

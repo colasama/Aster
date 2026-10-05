@@ -84,5 +84,7 @@ pub use temporal_text::{TemporalTextFormat, TemporalTextSamplesSlice};
 pub use texture_pixels::{TextureDimension, TexturePixelFormat, TexturePixelsDescriptor};
 pub use time::{FrameTime, RationalFrameRate, RationalTime};
 
+mod auxiliary;
 #[cfg(test)]
 mod tests;
+pub use auxiliary::{AuxiliaryDraw, AuxiliarySlice, AuxiliaryStatus};

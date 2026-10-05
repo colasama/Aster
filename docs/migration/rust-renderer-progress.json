@@ -18136,5 +18136,11 @@
       }
     }
   ],
-  "active_cycle": null
+  "active_cycle": {
+    "id": 64,
+    "milestone": "M2",
+    "task": "M2-T12",
+    "started_at": "2026-10-05T12:39:48.814Z",
+    "intent": "Transport observed auxiliary MRT outcomes, attachment tiers, geometry/media/generator draw identities and owned ID/motion payloads into supplied GPU execution."
+  }
 }

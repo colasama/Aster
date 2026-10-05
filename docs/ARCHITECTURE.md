@@ -246,8 +246,13 @@ the selected object ID, observed availability, and ordered attachment roles. Dep
 are explicit: replay retains a captured world-position or scene fallback even when additional
 attachments exist. Final output checks the effect kind, mode and complete frame header, then
 prepares the supplied effect before opening its render pass. Missing planned attachments and stale
-dimensions fail without recording that pass. Auxiliary draw identities still require their own
-planning boundary before independent full-frame replay and the cutover.
+dimensions fail without recording that pass. Auxiliary MRT plans carry the observed unavailable,
+cleared or drawn outcome, transparency tier, ordered geometry and generator identities, texture
+resource roles, and owned object/material IDs and motion vectors. The executor resolves the supplied
+resource closure before writes or passes and preserves captured fallbacks on a healthier replay
+device. Empty payloads use four zero bytes to retain the nonempty FPLN blob invariant. G1 checks
+transport and supplied command execution; independent GPU validation of the combined auxiliary,
+motion and final output path remains open before complete root-frame capture and the cutover.
 
 Shared WGSL includes output anti-aliasing, core scene variants, compositing, fused post-processing,
 blur/depth/surface effects, auxiliary surfaces, particles, text motion blur and display/buffer helpers.
