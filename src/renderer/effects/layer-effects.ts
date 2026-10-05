@@ -1,8 +1,19 @@
+import type { FlattenedSceneLayer } from "../../core/scene/scene-evaluation";
 import type { BlendMode, Composition, Layer } from "../../core/types";
 import { gpuBlendState } from "../compositing/blend-state";
-import { LayerCompositor, needsBackdropBlend } from "../compositing/layer-composite";
+import {
+  LayerCompositor,
+  needsBackdropBlend,
+  needsLayerIsolation,
+} from "../compositing/layer-composite";
 import { postProcessShader, textureCompositeShader } from "../gpu/shaders";
-import { createLutSampler, createLutTexture } from "../media/lut-texture";
+import {
+  type LutSelection,
+  LutSelectionPlanner,
+  suppliedLutResource,
+} from "../media/lut-selection-plan";
+import { createLutSampler } from "../media/lut-texture";
+import { uploadTexturePixels } from "../media/texture-pixel-upload";
 import { BlurPyramid, BrightpassPyramid } from "./blur-pyramid";
 import { defaultPostProcessParameters } from "./effect-parameters";
 import {
@@ -27,6 +38,7 @@ export class LayerEffectRenderer {
   readonly #sampler: GPUSampler;
   readonly #lutSampler: GPUSampler;
   readonly #identityLut: GPUTexture;
+  readonly #lutPlans = new LutSelectionPlanner();
   readonly #postLayout: GPUBindGroupLayout;
   readonly #compositeLayout: GPUBindGroupLayout;
   readonly #effectPipeline: GPURenderPipeline;
@@ -55,7 +67,13 @@ export class LayerEffectRenderer {
       mipmapFilter: "linear",
     });
     this.#lutSampler = createLutSampler(device);
-    this.#identityLut = createLutTexture(device);
+    const identity = this.#lutPlans.identity;
+    this.#identityLut = uploadTexturePixels(
+      device,
+      identity.message,
+      identity.bytes,
+      identity.label,
+    );
     this.#pyramid = new BlurPyramid(device, format, this.#sampler);
     this.#glowPyramid = new BrightpassPyramid(device, format, this.#sampler);
     this.#postLayout = device.createBindGroupLayout({
@@ -106,6 +124,15 @@ export class LayerEffectRenderer {
     };
   }
 
+  prepareLuts(scene: readonly FlattenedSceneLayer[]): ReadonlyMap<string, LutSelection> {
+    const selections = new Map<string, LutSelection>();
+    for (const item of scene) {
+      if (item.layer.kind === "adjustment" || needsLayerIsolation(item.layer))
+        selections.set(item.instanceId, this.#lutPlans.prepare(item.instanceId, item.layer));
+    }
+    return selections;
+  }
+
   resize(width: number, height: number): void {
     this.#width = Math.max(1, Math.floor(width));
     this.#height = Math.max(1, Math.floor(height));
@@ -137,6 +164,7 @@ export class LayerEffectRenderer {
       if (resource.lutTexture !== this.#identityLut) resource.lutTexture.destroy();
     }
     this.#resources.clear();
+    this.#lutPlans.clear();
   }
 
   encode(
@@ -146,6 +174,7 @@ export class LayerEffectRenderer {
     layer: Layer,
     instanceId: string,
     time: number,
+    lut: LutSelection | undefined,
     drawLayer: (pass: GPURenderPassEncoder) => void,
   ): number {
     if (!this.#input || !this.#output || !this.#depth || !this.#compositeBindGroup) {
@@ -165,7 +194,7 @@ export class LayerEffectRenderer {
       Math.min(this.#width / composition.width, this.#height / composition.height),
     );
     const effects = defaultPostProcessParameters();
-    const resource = this.#resource(instanceId, layer);
+    const resource = this.#resource(instanceId, lut);
     this.#device.queue.writeBuffer(resource.program, 0, program.data);
     this.#device.queue.writeBuffer(
       resource.uniforms,
@@ -256,6 +285,7 @@ export class LayerEffectRenderer {
     layer: Layer,
     instanceId: string,
     time: number,
+    lut: LutSelection | undefined,
   ): number {
     if (!layer.effects.some((effect) => effect.enabled)) return 0;
     if (!this.#input || !this.#output) this.resize(this.#width, this.#height);
@@ -270,7 +300,7 @@ export class LayerEffectRenderer {
       Math.min(this.#width / composition.width, this.#height / composition.height),
     );
     if (program.count === 0) return 0;
-    const resource = this.#resource(instanceId, layer);
+    const resource = this.#resource(instanceId, lut);
     this.#device.queue.writeBuffer(resource.program, 0, program.data);
     this.#device.queue.writeBuffer(
       resource.uniforms,
@@ -315,6 +345,7 @@ export class LayerEffectRenderer {
   }
 
   sweep(activeInstanceIds: Set<string>): void {
+    this.#lutPlans.sweep(activeInstanceIds);
     for (const [instanceId, resource] of this.#resources) {
       if (activeInstanceIds.has(instanceId)) continue;
       resource.uniforms.destroy();
@@ -349,13 +380,14 @@ export class LayerEffectRenderer {
       if (resource.lutTexture !== this.#identityLut) resource.lutTexture.destroy();
     }
     this.#resources.clear();
+    this.#lutPlans.clear();
     this.#identityLut.destroy();
   }
 
-  #resource(instanceId: string, layer: Layer): LayerEffectBuffers {
+  #resource(instanceId: string, lut: LutSelection | undefined): LayerEffectBuffers {
     const existing = this.#resources.get(instanceId);
     if (existing) {
-      this.#updateLut(existing, layer);
+      this.#updateLut(existing, lut, instanceId);
       return existing;
     }
     if (!this.#input) throw new Error("Layer effect input is unavailable");
@@ -374,30 +406,49 @@ export class LayerEffectRenderer {
       program,
       bindGroup: this.#createEffectBindGroup(instanceId, uniforms, program, this.#identityLut),
       lutTexture: this.#identityLut,
-      lutKey: "identity",
+      lutKey: this.#lutPlans.identity.message.hash,
       lutBytes: 0,
     };
-    this.#updateLut(resource, layer);
+    try {
+      this.#updateLut(resource, lut, instanceId);
+    } catch (error) {
+      uniforms.destroy();
+      program.destroy();
+      throw error;
+    }
     this.#resources.set(instanceId, resource);
     return resource;
   }
 
-  #updateLut(resource: LayerEffectBuffers, layer: Layer): void {
-    const lut = [...layer.effects]
-      .reverse()
-      .find((effect) => effect.enabled && effect.type === "lut" && effect.resource)?.resource;
-    const key = lut ? `${lut.checksum}:${lut.size}` : "identity";
+  #updateLut(
+    resource: LayerEffectBuffers,
+    selection: LutSelection | undefined,
+    instanceId: string,
+  ): void {
+    const supplied = suppliedLutResource(selection);
+    const key = supplied.message.hash;
     if (resource.lutKey === key) return;
+    const identity = key === this.#lutPlans.identity.message.hash;
+    const texture = identity
+      ? this.#identityLut
+      : uploadTexturePixels(this.#device, supplied.message, supplied.bytes, supplied.label);
+    let bindGroup: GPUBindGroup;
+    try {
+      bindGroup = this.#createEffectBindGroup(
+        instanceId,
+        resource.uniforms,
+        resource.program,
+        texture,
+      );
+    } catch (error) {
+      if (texture !== this.#identityLut) texture.destroy();
+      throw error;
+    }
     if (resource.lutTexture !== this.#identityLut) resource.lutTexture.destroy();
-    resource.lutTexture = lut ? createLutTexture(this.#device, lut) : this.#identityLut;
+    resource.lutTexture = texture;
     resource.lutKey = key;
-    resource.lutBytes = lut ? lut.size ** 3 * 8 : 0;
-    resource.bindGroup = this.#createEffectBindGroup(
-      layer.id,
-      resource.uniforms,
-      resource.program,
-      resource.lutTexture,
-    );
+    resource.lutBytes = identity ? 0 : supplied.bytes.byteLength;
+    resource.bindGroup = bindGroup;
   }
 
   #createEffectBindGroup(

@@ -277,8 +277,13 @@ rotation. Keeping binary64 preserves signed zero and subnormal values until GPU 
 Both decoders reject nonfinite/out-of-range values, undeclared hashes, shared normal/environment
 hashes, and nonzero environment intensity without a texture. Normal scale is in [-8, 8], intensity
 in [0, 32], and rotation in [0, 1). Activity is derived from the supplied references and intensity.
-Production preparation builds and reads this slice before drawing; LUT-selection planning and
-complete material draw replay remain required.
+Production preparation builds and reads this slice before drawing. Root and precomposition effects
+also prepare LUT selections before command encoding. The CPU planner owns packed bytes, keeps the
+last enabled loaded LUT, and reuses selections until checksum/size changes or the instance is swept.
+Execution receives the supplied texture resource rather than an authored LUT. It installs a changed
+hash before retiring the old GPU owner; identical content reuses the installed texture. Preparation
+errors remain data until the existing effect diagnostic boundary consumes them. Complete effect
+binding FPLN transport and independent material draw replay remain required.
 The renderer encodes synchronously through submission, so asynchronous uploads
 cannot retire resources midway through this local execution scope.
 

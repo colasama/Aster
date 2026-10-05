@@ -1,10 +1,15 @@
-import { prepareLutTexture } from "../media/lut-texture";
+import { createLayerForComposition } from "../../core/layers/layer-factory";
+import { createBlankComposition } from "../../core/project/project";
+import { createEffect } from "../../effects/registry";
+import { LutSelectionPlanner, suppliedLutResource } from "../media/lut-selection-plan";
 import { contentResourceHashSync } from "./resources";
 import type { TexturePixelsDescriptor } from "./texture-pixels";
 import type { PutResource } from "./types";
 
 export function texturePixelFixtures() {
-  const identity = prepareLutTexture();
+  const layer = createLayerForComposition("shape", createBlankComposition());
+  const planner = new LutSelectionPlanner();
+  const identity = suppliedLutResource(planner.prepare("lut", layer));
   const source = {
     kind: "lut3d" as const,
     name: "test.cube",
@@ -14,7 +19,10 @@ export function texturePixelFixtures() {
     domainMax: [1, 1, 1] as [number, number, number],
     checksum: "fixture",
   };
-  const custom = prepareLutTexture(source);
+  const effect = createEffect("lut");
+  effect.resource = source;
+  layer.effects = [effect];
+  const custom = suppliedLutResource(planner.prepare("lut", layer));
   source.data.fill(99);
   const fixtures = [
     { id: "lut-identity", ...identity },

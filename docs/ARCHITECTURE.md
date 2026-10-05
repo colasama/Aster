@@ -147,8 +147,12 @@ another identical owner remains usable until the last owner retires. Normal acqu
 bounded encoded PNG/JPEG/WebP resources to an independent decode/upload consumer, preserving linear
 RGBA8 and disabled color-space conversion. Material bindings use a closed FPLN slice with tagged
 normal/environment hash references and three little-endian binary64 scalars. Production drawing
-consumes the decoded binding; conversion to float32 happens only at uniform upload. LUT selection
-and complete material draw replay remain under extraction.
+consumes the decoded binding; conversion to float32 happens only at uniform upload. Root and
+precomposition effect paths prepare owned LUT selections before command encoding. Selection keeps
+the last enabled loaded LUT and its source-key invalidation policy; execution consumes supplied
+content-addressed packed pixels without consulting the layer's LUT resource. GPU replacement is
+atomic and stale owners are destroyed. Complete effect binding transport and material draw replay
+remain under extraction.
 
 Shared WGSL includes output anti-aliasing, core scene variants, compositing, fused post-processing,
 blur/depth/surface effects, auxiliary surfaces, particles, text motion blur and display/buffer helpers.

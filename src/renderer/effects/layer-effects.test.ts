@@ -2,10 +2,89 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { createLayerForComposition } from "../../core/layers/layer-factory";
 import { createBlankProject } from "../../core/project/project";
 import { createEffect } from "../../effects/registry";
+import { LutSelectionPlanner, suppliedLutResource } from "../media/lut-selection-plan";
 import { LayerEffectRenderer } from "./layer-effects";
 
 describe("GPU adjustment-layer effects", () => {
   afterEach(() => vi.unstubAllGlobals());
+
+  it("uploads supplied LUT pixels after authoring changes and retires replaced owners", () => {
+    installGpuConstants();
+    const destroy = vi.fn();
+    const device = mockDevice([], destroy);
+    const renderer = new LayerEffectRenderer(device, "rgba16float");
+    renderer.resize(16, 16);
+    const composition = createBlankProject().compositions[0];
+    const layer = createLayerForComposition("adjustment", composition);
+    const effect = createEffect("lut");
+    effect.resource = {
+      kind: "lut3d",
+      name: "first",
+      checksum: "first",
+      size: 2,
+      data: Array(24).fill(0.25),
+      domainMin: [0, 0, 0],
+      domainMax: [1, 1, 1],
+    };
+    layer.effects = [effect];
+    const planner = new LutSelectionPlanner();
+    const selected = structuredClone(planner.prepare("instance", layer));
+    const expected = suppliedLutResource(selected).bytes.slice();
+    effect.resource.data.fill(0.75);
+    effect.resource.checksum = "second";
+    const pass = { setPipeline: vi.fn(), setBindGroup: vi.fn(), draw: vi.fn(), end: vi.fn() };
+    const encoder = {
+      copyTextureToTexture: vi.fn(),
+      beginRenderPass: () => pass,
+    } as unknown as GPUCommandEncoder;
+    renderer.encodeAdjustment(
+      encoder,
+      {} as GPUTexture,
+      composition,
+      layer,
+      "instance",
+      0,
+      selected,
+    );
+    const calls = vi.mocked(device.queue.writeTexture).mock.calls;
+    expect(calls[calls.length - 1]?.[1]).toEqual(expected);
+    const uploads = vi.mocked(device.queue.writeTexture).mock.calls.length;
+    renderer.encodeAdjustment(
+      encoder,
+      {} as GPUTexture,
+      composition,
+      layer,
+      "instance",
+      0,
+      structuredClone(selected),
+    );
+    expect(device.queue.writeTexture).toHaveBeenCalledTimes(uploads);
+    const before = destroy.mock.calls.length;
+    renderer.encodeAdjustment(
+      encoder,
+      {} as GPUTexture,
+      composition,
+      layer,
+      "instance",
+      0,
+      planner.prepare("instance", layer),
+    );
+    expect(destroy).toHaveBeenCalledTimes(before + 1);
+    renderer.sweep(new Set());
+    expect(destroy).toHaveBeenCalledTimes(before + 2);
+    expect(() =>
+      renderer.encodeAdjustment(
+        encoder,
+        {} as GPUTexture,
+        composition,
+        layer,
+        "missing",
+        0,
+        undefined,
+      ),
+    ).toThrow("Missing prepared LUT selection");
+    renderer.destroy();
+  });
 
   it("uses one fused pass between two explicit HDR texture copies", () => {
     installGpuConstants();
@@ -45,6 +124,7 @@ describe("GPU adjustment-layer effects", () => {
       adjustment,
       "root/adjustment",
       0,
+      new LutSelectionPlanner().prepare("root/adjustment", adjustment),
     );
 
     expect(operationCount).toBe(2);
@@ -79,6 +159,7 @@ describe("GPU adjustment-layer effects", () => {
         adjustment,
         "root/adjustment",
         0,
+        new LutSelectionPlanner().prepare("root/adjustment", adjustment),
       ),
     ).toBe(0);
     expect(encoder.copyTextureToTexture).not.toHaveBeenCalled();
@@ -109,8 +190,24 @@ describe("GPU adjustment-layer effects", () => {
     } as unknown as GPUCommandEncoder;
     const target = {} as GPUTexture;
 
-    renderer.encodeAdjustment(encoder, target, composition, first, "first", 0);
-    renderer.encodeAdjustment(encoder, target, composition, second, "second", 0);
+    renderer.encodeAdjustment(
+      encoder,
+      target,
+      composition,
+      first,
+      "first",
+      0,
+      new LutSelectionPlanner().prepare("first", first),
+    );
+    renderer.encodeAdjustment(
+      encoder,
+      target,
+      composition,
+      second,
+      "second",
+      0,
+      new LutSelectionPlanner().prepare("second", second),
+    );
     expect(events).toEqual(["copy", "draw", "copy", "copy", "draw", "copy"]);
 
     const unsupported = createLayerForComposition("adjustment", composition);
@@ -118,9 +215,17 @@ describe("GPU adjustment-layer effects", () => {
       { id: "unknown", type: "unknown", name: "Unknown", enabled: true, parameters: {} },
     ];
     events.length = 0;
-    expect(renderer.encodeAdjustment(encoder, target, composition, unsupported, "unknown", 0)).toBe(
-      0,
-    );
+    expect(
+      renderer.encodeAdjustment(
+        encoder,
+        target,
+        composition,
+        unsupported,
+        "unknown",
+        0,
+        new LutSelectionPlanner().prepare("unknown", unsupported),
+      ),
+    ).toBe(0);
     expect(events).toEqual([]);
   });
 
@@ -157,7 +262,15 @@ describe("GPU adjustment-layer effects", () => {
       }),
     } as unknown as GPUCommandEncoder;
 
-    renderer.encodeAdjustment(encoder, {} as GPUTexture, composition, adjustment, "root", 0);
+    renderer.encodeAdjustment(
+      encoder,
+      {} as GPUTexture,
+      composition,
+      adjustment,
+      "root",
+      0,
+      new LutSelectionPlanner().prepare("root", adjustment),
+    );
 
     expect(events[0]).toBe("copy");
     expect(events[events.length - 1]).toBe("copy");

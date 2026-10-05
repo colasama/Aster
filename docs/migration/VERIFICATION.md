@@ -141,7 +141,13 @@ exposure. It also admits five packed texture resources through Rust: identity/cu
 linear RGBA8 normal texels, RGBA16F HDR texels, and an actual two-row Radiance decode with worker
 padding removed. The decoded descriptors and pixels drive recorded
 production GPU uploads with exact format, extent and row/layer layout. Both registries reject
-corrupted pixels; upload tests reject descriptor/hash corruption before allocation. Material tests
+corrupted pixels; upload tests reject descriptor/hash corruption before allocation.
+The identity/custom LUT fixtures originate in the production selection planner. Selection tests
+cover last-enabled-loaded precedence, owned bytes after authoring mutation, source-key reuse and
+eviction. Effect consumer tests upload a cloned selection after its authored LUT changes, reuse an
+unchanged hash without another upload, and destroy replaced/swept GPU owners. Root and precomposition
+adapters are exercised by full G3, including nonlinear trilinear/tetrahedral LUT corpus cases.
+Material tests
 mutate authoring inputs after preparation, check supplied uniforms and pending fallback behavior,
 reject retired generations, and retire a normal upload while GPU validation is pending.
 G1 transports five material binding slices through Rust: inactive, normal-only, environment-only,

@@ -6,6 +6,7 @@ import { BLEND_MODES } from "../../core/types";
 import { LayerEffectRenderer } from "../effects/layer-effects";
 import { buildSceneGeometry, FLOATS_PER_VERTEX, type GeometryBatch } from "../geometry/geometry";
 import { sharedShaders } from "../gpu/shared-shader-catalog";
+import type { LutSelection } from "../media/lut-selection-plan";
 import type { MediaTextureCache } from "../media/media-texture-cache";
 import { evaluateSceneCamera } from "../scene/scene-camera";
 import type { PreparedSceneGenerator, SceneGeneratorHost } from "../scene/scene-generator-host";
@@ -53,6 +54,7 @@ interface SurfaceJob {
   sceneLayers: FlattenedSceneLayer[];
   geometry: ReturnType<typeof buildSceneGeometry>;
   generators: PreparedSceneGenerator[];
+  lutSelections: ReadonlyMap<string, LutSelection>;
 }
 
 export interface PrecompositionSurfaceFrame {
@@ -362,6 +364,7 @@ export class PrecompositionSurfaceRenderer {
       time: surface.time,
       sceneLayers: childLayers,
       geometry,
+      lutSelections: entry.effects?.prepareLuts(childLayers) ?? new Map(),
       generators: this.#sceneGenerators
         ? childLayers
             .filter((child) => this.#sceneGenerators?.supports(child))
@@ -553,6 +556,7 @@ export class PrecompositionSurfaceRenderer {
             item.scene.layer,
             item.scene.instanceId,
             item.scene.localTime,
+            job.lutSelections.get(item.scene.instanceId),
             (layerPass) => this.#sceneGenerators?.draw(layerPass, generator, "normal"),
           );
           continue;
@@ -573,6 +577,7 @@ export class PrecompositionSurfaceRenderer {
           item.scene.layer,
           item.scene.instanceId,
           item.scene.localTime,
+          job.lutSelections.get(item.scene.instanceId),
         );
         if (count) activeEffects.add(item.scene.instanceId);
         continue;
@@ -589,6 +594,7 @@ export class PrecompositionSurfaceRenderer {
           batch.layer,
           batch.instanceId,
           item.scene.localTime,
+          job.lutSelections.get(batch.instanceId),
           (layerPass) => this.#drawBatch(layerPass, entry, batch, "normal"),
         );
         continue;
