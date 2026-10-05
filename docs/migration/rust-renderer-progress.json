@@ -111,39 +111,39 @@
     }
   },
   "last_cycle": {
-    "id": 56,
-    "time": "2026-10-05T08:33:11.677Z",
+    "id": 57,
+    "time": "2026-10-05T09:04:21.694Z",
     "milestone": "M2",
     "task": "M2-T11",
     "outcome": "passed",
-    "commit": "e83f5f11b40d0931836d30c6bf228673e94e12a7",
-    "verification": "artifacts/migration/verify-2026-10-05T08-25-43-080Z-b6e95d85.json",
-    "verification_sha256": "aa5b6a7c57ff36377431298010c2934bfb2a567d1b85a7274a6b7094f195a1d9",
+    "commit": "308d00139c619378e0be2a0a73f29c8bcce5eef0",
+    "verification": "artifacts/migration/verify-2026-10-05T08-54-12-548Z-a683d4c4.json",
+    "verification_sha256": "ed62c182f8e844af82cb18c6cbe23a744a54310676bbf18568901d81e0e2e246",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 85823
+        "duration_ms": 75593
       },
       {
         "id": "G1",
         "status": "passed",
-        "duration_ms": 7641
+        "duration_ms": 7497
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 312484
+        "duration_ms": 308160
       }
     ],
-    "verification_duration_ms": 407317,
-    "next_step": "Continue M2-T11: implement independent recursive GPU replay from supplied bundles with media payloads, target pinning and explicit availability outcomes.",
+    "verification_duration_ms": 392623,
+    "next_step": "Continue M2-T11: exercise the fresh supplied-bundle consumer with independent-device recursive GPU pixel replay, then complete media payloads and captured availability outcomes.",
     "notes": [
-      "Removed preliminary nested-generator GPU realization. The CPU producer collects invocation plans; after bundle validation the execution boundary calls preparePlanned exactly once with decoded invocation bytes and supplied diagnostic origin.",
-      "Added bounded UTF-16 layer/plugin diagnostic fields to the TS/Rust precomposition bundle schema. Rich G1 fixtures preserve NUL and unpaired UTF-16 labels. Missing realization records remain typed errors before GPU encoding; explicit null results from failed realization skip generator draws and otherwise-empty isolated effect groups while retaining supplied attachment operations and other draws.",
-      "Twenty-three focused tests and typecheck passed. Tests prove no generator realization during source preparation, single realization from owned decoded bytes, preserved diagnostic labels, explicit failure skips without effect passes, and rejection of absent realization before render/compute recording. Actual Rust G1 diagnostic passed 80 top-level plus 15 embedded-plan exact round trips.",
-      "Fresh full capture and complete M2 G0/G1/G3 passed with 1819 exact required frames and all mandatory independent GPU replay suites. Schema and architecture documentation are synchronized. No dependencies, frozen reference pixels or tolerances changed.",
-      "M2-T11 remains in progress for independent recursive GPU replay and standalone media payload coverage. Complete frame capture must retain execution availability outcomes as well as submitted plans. Native preview/export and full migration are not delivered."
+      "Added a production bundle capture API and a fresh-consumer prepareBundle entry point. Supplied bundles allocate GPU targets and upload owned scene/generator data without an authoring project, media cache or source evaluation. Both entry paths share decoded realization.",
+      "Validated device dimensions, total memory budget, target allocation identities and generator-host availability before mutating the supplied consumer frame. Pin every retained target in the incoming frame before allocation, preventing earlier new targets from recycling a later still-required surface. Production source preparation uses the same whole-frame pinning rule.",
+      "Twenty-one focused tests and typecheck passed. New consumer tests cover production capture followed by source destruction, fresh-instance child-first execution, shared aliases, cache pinning and reuse, preflight rejection preserving the live frame, device bounds and single generator realization with explicit failure. GPU test helpers were extracted to keep the existing test file bounded.",
+      "Fresh full capture and complete M2 G0/G1/G3 passed with 1819 exact required frames and the mandatory existing independent GPU replay suites. No schema, dependency, frozen reference or tolerance changed. Architecture documentation describes the supplied consumer boundary.",
+      "M2-T11 remains in progress: these new consumer tests use GPU mocks, so independent-device recursive pixel replay is still required. Standalone child media payloads and captured generator availability outcomes remain open. Native preview/export and the complete migration are not delivered."
     ]
   },
   "milestones": [
@@ -15602,14 +15602,125 @@
                 "Fresh full capture and complete M2 G0/G1/G3 passed with 1819 exact required frames and all mandatory independent GPU replay suites. Schema and architecture documentation are synchronized. No dependencies, frozen reference pixels or tolerances changed.",
                 "M2-T11 remains in progress for independent recursive GPU replay and standalone media payload coverage. Complete frame capture must retain execution availability outcomes as well as submitted plans. Native preview/export and full migration are not delivered."
               ]
+            },
+            {
+              "cycle": 57,
+              "status": "passed",
+              "commit": "308d00139c619378e0be2a0a73f29c8bcce5eef0",
+              "verification": {
+                "path": "artifacts/migration/verify-2026-10-05T08-54-12-548Z-a683d4c4.json",
+                "sha256": "ed62c182f8e844af82cb18c6cbe23a744a54310676bbf18568901d81e0e2e246"
+              },
+              "pixel_comparison": {
+                "path": "artifacts/parity/ts-check/2026-10-05T08-55-36-340Z-a7d20802/report.json",
+                "sha256": "ddaf16c03ff3202132c5b423415081f8a96d0917f9b211fe2860f8bccff6eff1"
+              },
+              "capture": {
+                "path": "artifacts/parity/capture-2026-10-05T08-47-30-052Z-6afc51f2.json",
+                "sha256": "e08a353a0da55e7b073aac7c39e541e41a9e227ff21e9717f92a8ef2f4ee731b"
+              },
+              "manifest": {
+                "path": "artifacts/parity/runs/2026-10-05T08-47-30-052Z-6afc51f2/candidate/manifest.json",
+                "sha256": "0941a9573a1b9a50e59d45e6bd5ef3ff7ac91cc001db3e96b17176acbb92f04a"
+              },
+              "renderer_source_sha256": "9de5a911687ac6a905dd559c706179dde336af64fd63e443b9d17377a1e530c5",
+              "bridge_sha256": "82ccf02fefd4c54e78a82a4de08df6906714ecd0b198864ec72cb0c0394dd80c",
+              "temporal_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T08-55-36-340Z-a7d20802/temporal-text/gpu.json",
+                "sha256": "2a1ddf2bc615609c18e0800a9bd14dd59df6670bc3c67031e9446e0ff962ff9d"
+              },
+              "temporal_reference": {
+                "path": "tests/parity/temporal-text/reference/manifest.json",
+                "sha256": "e3e3b1184d5bc969dcd5cf76a424a551a0cac1a85484e157c5b549e5d6c811d1"
+              },
+              "encoded_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T08-55-36-340Z-a7d20802/encoded-textures/gpu.json",
+                "sha256": "9028f092c712475018d1db0dfb7122b7e5704ff3ac8c8b82ecaa4b950963c872"
+              },
+              "encoded_reference": {
+                "path": "tests/parity/material-textures/legacy-upload.ts",
+                "sha256": "508c2ad47f5a3f6e18069ce070e0ee0133668074bf81309a9144180f532f2498"
+              },
+              "material_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T08-55-36-340Z-a7d20802/material-draw/gpu.json",
+                "sha256": "26fbad56513b96310770da0538c5ac89d791322886d4d66134972714e0cdfe58"
+              },
+              "material_reference": {
+                "path": "tests/parity/material-draw/reference/manifest.json",
+                "sha256": "06debe986bca2118a9d4a07f5cc36a31b3926398f95d582e25f90ceabc21bc6e"
+              },
+              "material_implementation": {
+                "path": "tests/parity/material-draw/legacy-bindings.ts",
+                "sha256": "ff838daeb3950e90d263504007836d900060e9a2ff1ddb30e706a76d0a011d79"
+              },
+              "lut_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T08-55-36-340Z-a7d20802/lut-draw/gpu.json",
+                "sha256": "b80c09bbf0624b5c7d0f0147dedaafba3356c689451337bbbe2524e12d32c7a4"
+              },
+              "lut_reference": {
+                "path": "tests/parity/lut-draw/reference/manifest.json",
+                "sha256": "2e026afbad6143b822f38490650920003d0ad53705d705d1f2c206f05f181d59"
+              },
+              "lut_implementation": {
+                "path": "tests/parity/lut-draw/legacy-effects.ts",
+                "sha256": "999fb67e09a07322e7d8d9ea2c58a0442d7d5377f0cd1029eeab16e29f714a0b"
+              },
+              "root_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T08-55-36-340Z-a7d20802/root-scene/gpu.json",
+                "sha256": "049b9b48a98a31f1a1460658b136474b8fdfd78cbbb81411893661509599cfe0"
+              },
+              "root_reference": {
+                "path": "tests/parity/root-scene/reference/manifest.json",
+                "sha256": "4c5b2ffd5828db24f929f1bcc350a4a7e7c75be05cb65b9bbe2b4c48eaba267f"
+              },
+              "root_implementation": {
+                "path": "tests/parity/root-scene/legacy-execute.ts",
+                "sha256": "22b0f40e52a5c330646a7fe4a581aaacd6de2db225c4030f1cdd658177d52e8a"
+              },
+              "generator_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T08-55-36-340Z-a7d20802/generators/gpu.json",
+                "sha256": "ee372f72a9560059fe4dd8f8ab18c040e2ef6cadcaa5cc7249278e95de347dbf"
+              },
+              "generator_reference": {
+                "path": "tests/parity/generators-replay/reference/manifest.json",
+                "sha256": "a573fe3ababaa0f207eed4a0a6d11a4269ee90a877a244c1f8abed9fdbbfce09"
+              },
+              "generator_implementation": {
+                "path": "tests/parity/generators-replay/legacy-host.ts",
+                "sha256": "e458d028ca20002b7e7379f9daf9d5ca0a0f0960a3676dd3e0153e5ce19c8392"
+              },
+              "gates": [
+                {
+                  "id": "G0",
+                  "status": "passed",
+                  "duration_ms": 75593
+                },
+                {
+                  "id": "G1",
+                  "status": "passed",
+                  "duration_ms": 7497
+                },
+                {
+                  "id": "G3",
+                  "status": "passed",
+                  "duration_ms": 308160
+                }
+              ],
+              "notes": [
+                "Added a production bundle capture API and a fresh-consumer prepareBundle entry point. Supplied bundles allocate GPU targets and upload owned scene/generator data without an authoring project, media cache or source evaluation. Both entry paths share decoded realization.",
+                "Validated device dimensions, total memory budget, target allocation identities and generator-host availability before mutating the supplied consumer frame. Pin every retained target in the incoming frame before allocation, preventing earlier new targets from recycling a later still-required surface. Production source preparation uses the same whole-frame pinning rule.",
+                "Twenty-one focused tests and typecheck passed. New consumer tests cover production capture followed by source destruction, fresh-instance child-first execution, shared aliases, cache pinning and reuse, preflight rejection preserving the live frame, device bounds and single generator realization with explicit failure. GPU test helpers were extracted to keep the existing test file bounded.",
+                "Fresh full capture and complete M2 G0/G1/G3 passed with 1819 exact required frames and the mandatory existing independent GPU replay suites. No schema, dependency, frozen reference or tolerance changed. Architecture documentation describes the supplied consumer boundary.",
+                "M2-T11 remains in progress: these new consumer tests use GPU mocks, so independent-device recursive pixel replay is still required. Standalone child media payloads and captured generator availability outcomes remain open. Native preview/export and the complete migration are not delivered."
+              ]
             }
           ],
           "remaining_work": [
             "Prove independent recursive GPU replay from supplied bundles, including explicit generator failures and current-frame target pinning.",
             "Extend child media to standalone replay payloads and retain execution availability outcomes in complete frame capture."
           ],
-          "commit": "e83f5f11b40d0931836d30c6bf228673e94e12a7",
-          "verification": "artifacts/migration/verify-2026-10-05T08-25-43-080Z-b6e95d85.json"
+          "commit": "308d00139c619378e0be2a0a73f29c8bcce5eef0",
+          "verification": "artifacts/migration/verify-2026-10-05T08-54-12-548Z-a683d4c4.json"
         },
         {
           "id": "M2-T12",
@@ -15730,7 +15841,7 @@
       ],
       "preview_baseline_path": "benchmarks/results/m2-preview-baseline.json",
       "preview_baseline_sha256": "a1c62e224c008e731c252142ab1b9de7d31ecf592452c00da1dff42516772375",
-      "active_candidate_manifest": "artifacts/parity/runs/2026-10-05T08-19-21-883Z-21b443fe/candidate/manifest.json",
+      "active_candidate_manifest": "artifacts/parity/runs/2026-10-05T08-47-30-052Z-6afc51f2/candidate/manifest.json",
       "last_verification": {
         "status": "passed",
         "required_gates_passed": true,
@@ -15739,17 +15850,17 @@
           {
             "id": "G0",
             "status": "passed",
-            "duration_ms": 85823
+            "duration_ms": 75593
           },
           {
             "id": "G1",
             "status": "passed",
-            "duration_ms": 7641
+            "duration_ms": 7497
           },
           {
             "id": "G3",
             "status": "passed",
-            "duration_ms": 312484
+            "duration_ms": 308160
           }
         ],
         "optional_gates": [
@@ -15760,7 +15871,7 @@
           }
         ],
         "performance_policy": "rust-delivery-v1",
-        "report": "artifacts/migration/verify-2026-10-05T08-25-43-080Z-b6e95d85.json"
+        "report": "artifacts/migration/verify-2026-10-05T08-54-12-548Z-a683d4c4.json"
       },
       "performance_series_history": [
         {
@@ -17119,11 +17230,5 @@
       }
     }
   ],
-  "active_cycle": {
-    "id": 57,
-    "milestone": "M2",
-    "task": "M2-T11",
-    "started_at": "2026-10-05T08:41:19.704Z",
-    "intent": "Realize supplied precomposition bundles independently of authoring preparation, with whole-frame cache pinning and validated allocation limits."
-  }
+  "active_cycle": null
 }
