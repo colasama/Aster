@@ -4,6 +4,7 @@ import { mkdir } from "node:fs/promises";
 import { join, relative, resolve } from "node:path";
 import { runPixelGate } from "../parity/pixel-gate.mjs";
 import { captureSource } from "../parity/provenance.mjs";
+import { auditAuxiliaryGenerators } from "./auxiliary-generators-gate.mjs";
 import { auditAuxiliaryReplay } from "./auxiliary-replay-gate.mjs";
 import { auditEncodedTextures } from "./encoded-texture-gate.mjs";
 import { auditGenerators } from "./generator-gate.mjs";
@@ -148,6 +149,14 @@ export async function verifyTsPixels(options, dependencies = {}) {
         execute,
       );
       assert.equal(report.auxiliary.status, "passed", "Auxiliary GPU replay failed");
+      report.auxiliary_generators = await (
+        dependencies.auditAuxiliaryGenerators ?? auditAuxiliaryGenerators
+      )(reader, context, execute);
+      assert.equal(
+        report.auxiliary_generators.status,
+        "passed",
+        "Auxiliary generator GPU replay failed",
+      );
     }
     report.gate = await (dependencies.runPixelGate ?? runPixelGate)(
       { ...context, output: join(output, "G3") },

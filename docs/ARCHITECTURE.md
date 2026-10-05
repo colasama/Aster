@@ -254,8 +254,11 @@ device. Empty payloads use four zero bytes to retain the nonempty FPLN blob inva
 transport and supplied command execution. G3 also round-trips scene/auxiliary plans and texture
 resources through Rust, replays them on a separate GPU device, and compares every auxiliary
 attachment against a pinned pre-extraction executor. Draw, ID, motion, texture, transparency and
-clear mutations must visibly change the relevant surfaces. Auxiliary generator replay and the
-combined motion/final output path remain open before complete root-frame capture and the cutover.
+clear mutations must visibly change the relevant surfaces. A separate generator auxiliary suite
+transports particle compute/draw plans and shader resources, compares every MRT attachment against
+the retained host and auxiliary executors, and checks compute, draw and object-ID mutations. A
+plugin without an auxiliary shader retains its empty contribution and rejects an invented draw.
+The combined motion/final output path remains open before complete root-frame capture and cutover.
 
 Shared WGSL includes output anti-aliasing, core scene variants, compositing, fused post-processing,
 blur/depth/surface effects, auxiliary surfaces, particles, text motion blur and display/buffer helpers.

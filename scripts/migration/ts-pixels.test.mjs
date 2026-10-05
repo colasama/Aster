@@ -208,6 +208,7 @@ test("M2 retains exact and frozen M0 references without checking historical M0 c
     "generator",
     "precomposition",
     "auxiliary",
+    "auxiliary-generator",
   ]) {
     const f = await candidateFixture(t);
     const result = await verifyTsPixels(
@@ -226,6 +227,9 @@ test("M2 retains exact and frozen M0 references without checking historical M0 c
         }),
         auditAuxiliaryReplay: async () => ({
           status: gpuFailure === "auxiliary" ? "failed" : "passed",
+        }),
+        auditAuxiliaryGenerators: async () => ({
+          status: gpuFailure === "auxiliary-generator" ? "failed" : "passed",
         }),
         auditGenerators: async () => ({ status: gpuFailure === "generator" ? "failed" : "passed" }),
         auditLutDraws: async () => ({ status: gpuFailure === "lut" ? "failed" : "passed" }),
@@ -266,7 +270,9 @@ test("M2 retains exact and frozen M0 references without checking historical M0 c
                     ? /Generator GPU replay failed/
                     : gpuFailure === "auxiliary"
                       ? /Auxiliary GPU replay failed/
-                      : /Precomposition GPU replay failed/,
+                      : gpuFailure === "auxiliary-generator"
+                        ? /Auxiliary generator GPU replay failed/
+                        : /Precomposition GPU replay failed/,
       );
     else assert.equal(result.report.temporal_text.status, "passed");
     assert.deepEqual(result.report.frozen_reference, f.reference);

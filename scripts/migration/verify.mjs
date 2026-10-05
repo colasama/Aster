@@ -174,6 +174,7 @@ export async function verifyMigration(options, dependencies = {}) {
           generators: checked.report.generators,
           precompositions: checked.report.precompositions,
           auxiliary: checked.report.auxiliary,
+          auxiliary_generators: checked.report.auxiliary_generators,
           duration_ms: checked.report.duration_ms,
         });
       } else if (id === "G3") {

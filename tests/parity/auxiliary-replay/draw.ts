@@ -35,6 +35,8 @@ export async function readAuxiliary(
     | "peeledLayerColor"
   >,
   tier: number,
+  width = 64,
+  height = 48,
 ) {
   const targets: { name: string; texture: GPUTexture; bpp: number }[] = [...renderer.textures].map(
     ([name, texture]) => ({ name, texture, bpp: AUXILIARY_BUFFER_DESCRIPTORS[name].bytesPerPixel }),
@@ -52,13 +54,13 @@ export async function readAuxiliary(
   const encoder = device.createCommandEncoder(),
     buffers = targets.map((t) => {
       const buffer = device.createBuffer({
-        size: 64 * 48 * t.bpp,
+        size: width * height * t.bpp,
         usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
       });
       encoder.copyTextureToBuffer(
         { texture: t.texture },
-        { buffer, bytesPerRow: 64 * t.bpp, rowsPerImage: 48 },
-        [64, 48],
+        { buffer, bytesPerRow: width * t.bpp, rowsPerImage: height },
+        [width, height],
       );
       return buffer;
     });

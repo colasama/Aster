@@ -1,0 +1,193 @@
+{
+  "schema_version": 1,
+  "profile": "exact",
+  "format": "mixed-auxiliary-attachments",
+  "width": 128,
+  "height": 96,
+  "reference_commits": [
+    "4f5e2de28e0fc0281a42afe2be8ec7400cf98d24",
+    "d4a6a4db0e28c3108e590bda45c19a2876d5df1b"
+  ],
+  "implementations": [
+    {
+      "path": "tests/parity/auxiliary-replay/legacy-auxiliary.ts",
+      "sha256": "8e8af02381010031e3d5df9032a0cf1858e2780c6c29f1001ed2013e89cba771"
+    },
+    {
+      "path": "tests/parity/generators-replay/legacy-host.ts",
+      "sha256": "e458d028ca20002b7e7379f9daf9d5ca0a0f0960a3676dd3e0153e5ce19c8392"
+    }
+  ],
+  "adapter": {
+    "vendor": "amd",
+    "architecture": "rdna-3",
+    "description": ""
+  },
+  "cases": [
+    {
+      "id": "billboard",
+      "targets": [
+        {
+          "name": "normal",
+          "bpp": 8,
+          "bytes": 98304
+        },
+        {
+          "name": "objectId",
+          "bpp": 4,
+          "bytes": 49152
+        },
+        {
+          "name": "materialId",
+          "bpp": 4,
+          "bytes": 49152
+        },
+        {
+          "name": "worldPosition",
+          "bpp": 8,
+          "bytes": 98304
+        },
+        {
+          "name": "motionVector",
+          "bpp": 4,
+          "bytes": 49152
+        }
+      ],
+      "path": "tests/parity/auxiliary-generators/reference/billboard.bin",
+      "sha256": "d0af185109858f63b1486062ee335271545bd052545b99e07e853b3e7f893ce7",
+      "bytes": 344064
+    },
+    {
+      "id": "streak",
+      "targets": [
+        {
+          "name": "normal",
+          "bpp": 8,
+          "bytes": 98304
+        },
+        {
+          "name": "objectId",
+          "bpp": 4,
+          "bytes": 49152
+        },
+        {
+          "name": "materialId",
+          "bpp": 4,
+          "bytes": 49152
+        },
+        {
+          "name": "worldPosition",
+          "bpp": 8,
+          "bytes": 98304
+        },
+        {
+          "name": "motionVector",
+          "bpp": 4,
+          "bytes": 49152
+        }
+      ],
+      "path": "tests/parity/auxiliary-generators/reference/streak.bin",
+      "sha256": "e87d83230a6c345b4c60089c3c85e89399a36a46f5695f7ec1bc0530a2fe6e32",
+      "bytes": 344064
+    },
+    {
+      "id": "mesh",
+      "targets": [
+        {
+          "name": "normal",
+          "bpp": 8,
+          "bytes": 98304
+        },
+        {
+          "name": "objectId",
+          "bpp": 4,
+          "bytes": 49152
+        },
+        {
+          "name": "materialId",
+          "bpp": 4,
+          "bytes": 49152
+        },
+        {
+          "name": "worldPosition",
+          "bpp": 8,
+          "bytes": 98304
+        },
+        {
+          "name": "motionVector",
+          "bpp": 4,
+          "bytes": 49152
+        }
+      ],
+      "path": "tests/parity/auxiliary-generators/reference/mesh.bin",
+      "sha256": "8603c16e29e8f211f085c0669e259e318d73eef2c8e4055dcb1bc11f56d4c23f",
+      "bytes": 344064
+    },
+    {
+      "id": "clones",
+      "targets": [
+        {
+          "name": "normal",
+          "bpp": 8,
+          "bytes": 98304
+        },
+        {
+          "name": "objectId",
+          "bpp": 4,
+          "bytes": 49152
+        },
+        {
+          "name": "materialId",
+          "bpp": 4,
+          "bytes": 49152
+        },
+        {
+          "name": "worldPosition",
+          "bpp": 8,
+          "bytes": 98304
+        },
+        {
+          "name": "motionVector",
+          "bpp": 4,
+          "bytes": 49152
+        }
+      ],
+      "path": "tests/parity/auxiliary-generators/reference/clones.bin",
+      "sha256": "3589cee9bf99a44528cb9a2f22c173f3f9058cbe870513161bafeb579bc72baf",
+      "bytes": 344064
+    },
+    {
+      "id": "audio-bars",
+      "targets": [
+        {
+          "name": "normal",
+          "bpp": 8,
+          "bytes": 98304
+        },
+        {
+          "name": "objectId",
+          "bpp": 4,
+          "bytes": 49152
+        },
+        {
+          "name": "materialId",
+          "bpp": 4,
+          "bytes": 49152
+        },
+        {
+          "name": "worldPosition",
+          "bpp": 8,
+          "bytes": 98304
+        },
+        {
+          "name": "motionVector",
+          "bpp": 4,
+          "bytes": 49152
+        }
+      ],
+      "path": "tests/parity/auxiliary-generators/reference/audio-bars.bin",
+      "sha256": "0cc5f11e4d6807acffd5f9167d709d2bf1e91700460cdc33161486ce3ccc22d9",
+      "bytes": 344064
+    }
+  ]
+}

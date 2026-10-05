@@ -127,6 +127,16 @@
       "reference_commit": "4f5e2de28e0fc0281a42afe2be8ec7400cf98d24",
       "profile": "exact",
       "cases": 6
+    },
+    "auxiliary_generators": {
+      "path": "tests/parity/auxiliary-generators/reference/manifest.json",
+      "sha256": "e245fe63a39fb4bc5abc69e428355cc2dc7d725887ef2150c4a8713a6a801974",
+      "reference_commits": [
+        "4f5e2de28e0fc0281a42afe2be8ec7400cf98d24",
+        "d4a6a4db0e28c3108e590bda45c19a2876d5df1b"
+      ],
+      "profile": "exact",
+      "cases": 5
     }
   },
   "last_cycle": {
@@ -18458,5 +18468,11 @@
       }
     }
   ],
-  "active_cycle": null
+  "active_cycle": {
+    "id": 66,
+    "milestone": "M2",
+    "task": "M2-T12",
+    "started_at": "2026-10-05T13:41:52.608Z",
+    "intent": "Verify independently supplied generator auxiliary MRT draws and unavailable auxiliary variants against retained host and auxiliary executors."
+  }
 }
