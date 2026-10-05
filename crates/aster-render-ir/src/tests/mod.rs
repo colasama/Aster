@@ -1,6 +1,7 @@
 mod camera;
 mod codec;
 mod encoded_texture;
+mod frame_bundle;
 mod frame_time;
 mod frame_time_codec;
 mod generator;

@@ -8,6 +8,11 @@ import {
   validateEffectExecutionBlob,
 } from "./effect-execution-layout";
 import { validateFinalOutput, validateFinalOutputBlob } from "./final-output-layout";
+import {
+  FRAME_BUNDLE_FIELDS,
+  validateFrameBundle,
+  validateFrameBundleBlob,
+} from "./frame-bundle-layout";
 import { validateFrameRate } from "./frame-rate";
 import {
   GENERATOR_FIELDS,
@@ -135,6 +140,7 @@ export function validateMetadata(value: unknown, limits: FramePlanLimits): Frame
         "motion_reconstruction_slice_v1",
         "post_effect_slice_v1",
         "auxiliary_slice_v1",
+        "frame_bundle_slice_v1",
       ].includes(String(metadata.contract_level)) &&
       metadata.renderer_plan_complete === false,
     "unknown_variant",
@@ -207,6 +213,22 @@ export function validateMetadata(value: unknown, limits: FramePlanLimits): Frame
   );
   const indices = new Set<number>();
   for (const value of metadata.slices) {
+    if (metadata.contract_level === "frame_bundle_slice_v1") {
+      requirePlan(
+        metadata.slices.length === 1 && Array.isArray(metadata.resources),
+        "invalid_header",
+        "Expected one frame bundle",
+      );
+      const slice = object(value, FRAME_BUNDLE_FIELDS),
+        index = integer(slice.blob_index, 0, metadata.blobs.length - 1);
+      indices.add(index);
+      validateFrameBundle(
+        slice,
+        metadata.blobs[index] as BlobDescriptor,
+        metadata.resources as string[],
+      );
+      continue;
+    }
     if (metadata.contract_level === "auxiliary_slice_v1") {
       requirePlan(
         metadata.slices.length === 1 && Array.isArray(metadata.resources),
@@ -473,6 +495,12 @@ export function validatePlanBlob(
     "element_count_mismatch",
     "Supplied blob length differs from descriptor",
   );
+  if (metadata.contract_level === "frame_bundle_slice_v1") {
+    const slice = metadata.slices[0];
+    requirePlan(slice.kind === "frame_bundle", "invalid_header", "Missing frame bundle");
+    validateFrameBundleBlob(bytes, slice);
+    return;
+  }
   if (metadata.contract_level === "motion_reconstruction_slice_v1") {
     validateMotionReconstructionBlob(bytes, metadata.header);
     return;

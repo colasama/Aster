@@ -126,73 +126,7 @@ export function validatePrecompositionBundle(
     reference(scene.scene);
     reference(scene.commands);
     draws += integer(scene.draw_count, 0, 65536);
-    requirePlan(
-      Array.isArray(scene.effects) &&
-        scene.effects.length <= 65536 &&
-        Array.isArray(scene.generators) &&
-        scene.generators.length <= 65536,
-      "invalid_precomposition",
-      "Surface bundle dependency count",
-    );
-    const effects = new Set<string>(),
-      generators = new Set<string>();
-    for (const value of scene.effects) {
-      const status = (value as Record<string, unknown>)?.status;
-      requirePlan(
-        ["direct", "skipped", "failed", "ready"].includes(String(status)),
-        "invalid_precomposition",
-        "Unknown effect state",
-      );
-      const effect = object(value, [
-        "instance_id",
-        "execution",
-        "status",
-        ...(status === "failed"
-          ? ["error_utf16"]
-          : status === "ready"
-            ? ["plan", "lut", "label_utf16"]
-            : []),
-      ]);
-      const id = compositionIdentityToString(effect.instance_id);
-      requirePlan(!effects.has(id), "invalid_precomposition", "Duplicate bundled effect");
-      effects.add(id);
-      reference(effect.execution);
-      if (status === "failed") readUtf16Text(effect.error_utf16);
-      if (status === "ready") {
-        reference(effect.plan);
-        reference(effect.lut);
-        readUtf16Text(effect.label_utf16);
-      }
-    }
-    for (const value of scene.generators) {
-      const generator = object(value, [
-          "instance_id",
-          "plan",
-          "layer_name_utf16",
-          "plugin_id_utf16",
-          "execution",
-        ]),
-        id = compositionIdentityToString(generator.instance_id);
-      requirePlan(!generators.has(id), "invalid_precomposition", "Duplicate bundled generator");
-      generators.add(id);
-      reference(generator.plan);
-      readUtf16Text(generator.layer_name_utf16);
-      readUtf16Text(generator.plugin_id_utf16);
-      const status = (generator.execution as Record<string, unknown>)?.status;
-      requirePlan(
-        status === "planned" || status === "ready" || status === "unavailable",
-        "invalid_precomposition",
-        "Unknown generator execution state",
-      );
-      const execution = object(generator.execution, [
-        "status",
-        ...(status === "ready" ? ["capacity", "effective_count"] : []),
-      ]);
-      if (status === "ready") {
-        const capacity = integer(execution.capacity, 1, 0xffffffff);
-        integer(execution.effective_count, 1, capacity);
-      }
-    }
+    validateBundlePrograms(scene.effects, scene.generators, resources);
   }
   requirePlan(
     draws <= 65536 &&
@@ -226,4 +160,82 @@ export function validatePrecompositionBundleBlob(
       "Surface bundle count mismatch",
     );
   });
+}
+
+export function validateBundlePrograms(
+  effectRecords: unknown,
+  generatorRecords: unknown,
+  resources: readonly string[],
+): void {
+  const reference = (value: unknown) => {
+    hash(value);
+    requirePlan(resources.includes(value), "missing_resource", "Undeclared program resource");
+  };
+  requirePlan(
+    Array.isArray(effectRecords) &&
+      effectRecords.length <= 65536 &&
+      Array.isArray(generatorRecords) &&
+      generatorRecords.length <= 65536,
+    "invalid_precomposition",
+    "Surface bundle dependency count",
+  );
+  const effects = new Set<string>(),
+    generators = new Set<string>();
+  for (const value of effectRecords) {
+    const status = (value as Record<string, unknown>)?.status;
+    requirePlan(
+      ["direct", "skipped", "failed", "ready"].includes(String(status)),
+      "invalid_precomposition",
+      "Unknown effect state",
+    );
+    const effect = object(value, [
+      "instance_id",
+      "execution",
+      "status",
+      ...(status === "failed"
+        ? ["error_utf16"]
+        : status === "ready"
+          ? ["plan", "lut", "label_utf16"]
+          : []),
+    ]);
+    const id = compositionIdentityToString(effect.instance_id);
+    requirePlan(!effects.has(id), "invalid_precomposition", "Duplicate bundled effect");
+    effects.add(id);
+    reference(effect.execution);
+    if (status === "failed") readUtf16Text(effect.error_utf16);
+    if (status === "ready") {
+      reference(effect.plan);
+      reference(effect.lut);
+      readUtf16Text(effect.label_utf16);
+    }
+  }
+  for (const value of generatorRecords) {
+    const generator = object(value, [
+        "instance_id",
+        "plan",
+        "layer_name_utf16",
+        "plugin_id_utf16",
+        "execution",
+      ]),
+      id = compositionIdentityToString(generator.instance_id);
+    requirePlan(!generators.has(id), "invalid_precomposition", "Duplicate bundled generator");
+    generators.add(id);
+    reference(generator.plan);
+    readUtf16Text(generator.layer_name_utf16);
+    readUtf16Text(generator.plugin_id_utf16);
+    const status = (generator.execution as Record<string, unknown>)?.status;
+    requirePlan(
+      status === "planned" || status === "ready" || status === "unavailable",
+      "invalid_precomposition",
+      "Unknown generator execution state",
+    );
+    const execution = object(generator.execution, [
+      "status",
+      ...(status === "ready" ? ["capacity", "effective_count"] : []),
+    ]);
+    if (status === "ready") {
+      const capacity = integer(execution.capacity, 1, 0xffffffff);
+      integer(execution.effective_count, 1, capacity);
+    }
+  }
 }

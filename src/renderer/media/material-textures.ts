@@ -1,10 +1,12 @@
 import { logger } from "../../core/logger";
 import { runCpuTask } from "../../core/scheduling/cpu-scheduler";
 import type { BlendMode, Composition, EnvironmentLighting, Layer } from "../../core/types";
+import { requirePlan } from "../frame-plan/canonical";
 import {
   buildMaterialBindingSlice,
   readMaterialBindingSlice,
 } from "../frame-plan/material-binding-plan";
+import type { BundleResource } from "../frame-plan/precomposition-bundle-resources";
 import type { FrameHeaderSlice } from "../frame-plan/types";
 import { prepareEncodedTexture, uploadEncodedTexture } from "./encoded-texture-upload";
 import { prepareHdrTexture } from "./hdr-texture-resource";
@@ -17,6 +19,7 @@ export { type MaterialTexturePlan, planMaterialTextures } from "./material-textu
 interface NormalResource {
   source: string;
   hash?: string;
+  packet?: BundleResource;
   texture?: GPUTexture;
   bytes: number;
   state: "loading" | "ready" | "failed";
@@ -27,6 +30,7 @@ interface NormalResource {
 interface EnvironmentResource {
   source: string;
   hash?: string;
+  packet?: BundleResource;
   texture?: GPUTexture;
   bytes: number;
   state: "loading" | "ready" | "failed";
@@ -140,6 +144,16 @@ export class MaterialTextureRenderer {
     }
   }
 
+  /** Borrow cached wire payloads; bundle construction takes ownership without GPU readback. */
+  resourcePackets(hashes: readonly string[]): BundleResource[] {
+    const entries = [...this.#normals.values(), this.#environment];
+    return [...new Set(hashes)].map((hash) => {
+      const resource = entries.find((entry) => entry?.state === "ready" && entry.hash === hash);
+      requirePlan(resource?.packet, "missing_resource", "Material payload is no longer resident");
+      return resource.packet;
+    });
+  }
+
   bindingFor(
     plan: MaterialBindingPlan | undefined,
     blendMode: BlendMode,
@@ -152,6 +166,7 @@ export class MaterialTextureRenderer {
     resource.abort.abort();
     this.#gpu.retire(resource.hash, resource.texture);
     resource.texture?.destroy();
+    resource.packet = undefined;
   }
 
   #prepareNormal(instanceId: string, source: string): void {
@@ -188,6 +203,7 @@ export class MaterialTextureRenderer {
         }
         resource.texture = uploaded.texture;
         resource.hash = prepared.message.hash;
+        resource.packet = prepared;
         resource.bytes = uploaded.bytes;
         resource.state = "ready";
         this.#gpu.register(resource.hash, "normal", uploaded.texture);
@@ -282,6 +298,7 @@ export class MaterialTextureRenderer {
         }
         resource.texture = texture;
         resource.hash = prepared.message.hash;
+        resource.packet = prepared;
         this.#gpu.register(resource.hash, "environment", texture);
         resource.bytes = decoded.width * decoded.height * 8;
         resource.state = "ready";

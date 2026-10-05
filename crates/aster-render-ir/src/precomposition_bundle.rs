@@ -88,7 +88,7 @@ impl PrecompositionBundleSlice {
                 CompositionIdentity::Utf16(value) => value.utf16_units.clone(),
             })
         };
-        let mut references = vec![&self.graph];
+        let mut references = vec![self.graph.clone()];
         let mut media_frames = BTreeMap::new();
         for pixel in &self.media_pixels {
             if media_frames.insert(&pixel.frame, ()).is_some() {
@@ -96,7 +96,7 @@ impl PrecompositionBundleSlice {
                     "duplicate media frame".to_owned(),
                 ));
             }
-            references.extend([&pixel.frame, &pixel.pixels]);
+            references.extend([pixel.frame.clone(), pixel.pixels.clone()]);
         }
         let mut targets = BTreeMap::new();
         let mut draws = 0_u64;
@@ -112,86 +112,12 @@ impl PrecompositionBundleSlice {
                 ));
             }
             draws += u64::from(scene.draw_count);
-            references.extend([&scene.scene, &scene.commands]);
-            let mut effects = BTreeMap::new();
-            let mut generators = BTreeMap::new();
-            for effect in &scene.effects {
-                let (id, execution) = match effect {
-                    PrecompositionEffectRecord::Direct {
-                        instance_id,
-                        execution,
-                    }
-                    | PrecompositionEffectRecord::Skipped {
-                        instance_id,
-                        execution,
-                    } => (instance_id, execution),
-                    PrecompositionEffectRecord::Failed {
-                        instance_id,
-                        execution,
-                        error_utf16,
-                    } => {
-                        if error_utf16.len() > 65_536 {
-                            return Err(IrError::InvalidPrecomposition(
-                                "bundle error text".to_owned(),
-                            ));
-                        }
-                        (instance_id, execution)
-                    }
-                    PrecompositionEffectRecord::Ready {
-                        instance_id,
-                        execution,
-                        plan,
-                        lut,
-                        label_utf16,
-                    } => {
-                        if label_utf16.len() > 65_536 {
-                            return Err(IrError::InvalidPrecomposition(
-                                "bundle LUT text".to_owned(),
-                            ));
-                        }
-                        references.extend([plan, lut]);
-                        (instance_id, execution)
-                    }
-                };
-                if effects.insert(identity(id)?, ()).is_some() {
-                    return Err(IrError::InvalidPrecomposition(
-                        "duplicate bundled effect".to_owned(),
-                    ));
-                }
-                references.push(execution);
-            }
-            for generator in &scene.generators {
-                if let PrecompositionGeneratorExecution::Ready {
-                    capacity,
-                    effective_count,
-                } = generator.execution
-                    && (effective_count == 0 || effective_count > capacity)
-                {
-                    return Err(IrError::InvalidPrecomposition(
-                        "generator execution capacity".to_owned(),
-                    ));
-                }
-                if generator.layer_name_utf16.len() > 65_536
-                    || generator.plugin_id_utf16.len() > 65_536
-                {
-                    return Err(IrError::InvalidPrecomposition(
-                        "bundle generator origin".to_owned(),
-                    ));
-                }
-                if generators
-                    .insert(identity(&generator.instance_id)?, ())
-                    .is_some()
-                {
-                    return Err(IrError::InvalidPrecomposition(
-                        "duplicate bundled generator".to_owned(),
-                    ));
-                }
-                references.push(&generator.plan);
-            }
+            references.extend([scene.scene.clone(), scene.commands.clone()]);
+            references.extend(Self::program_references(&scene.effects, &scene.generators)?);
         }
         for reference in references {
             reference.validate()?;
-            if !resources.contains(reference) {
+            if !resources.contains(&reference) {
                 return Err(IrError::MissingResource(reference.0.clone()));
             }
         }
@@ -205,6 +131,95 @@ impl PrecompositionBundleSlice {
             ));
         }
         Ok(())
+    }
+    pub fn program_references(
+        effects_input: &[PrecompositionEffectRecord],
+        generators_input: &[PrecompositionGeneratorRecord],
+    ) -> Result<Vec<ResourceHash>, IrError> {
+        if effects_input.len() > 65_536 || generators_input.len() > 65_536 {
+            return Err(IrError::LimitExceeded("bundle programs".to_owned()));
+        }
+        let identity = |id: &CompositionIdentity| -> Result<Vec<u16>, IrError> {
+            id.validate()?;
+            Ok(match id {
+                CompositionIdentity::Unicode(value) => value.encode_utf16().collect(),
+                CompositionIdentity::Utf16(value) => value.utf16_units.clone(),
+            })
+        };
+        let mut references = Vec::new();
+        let mut effects = BTreeMap::new();
+        let mut generators = BTreeMap::new();
+        for effect in effects_input {
+            let (id, execution) = match effect {
+                PrecompositionEffectRecord::Direct {
+                    instance_id,
+                    execution,
+                }
+                | PrecompositionEffectRecord::Skipped {
+                    instance_id,
+                    execution,
+                } => (instance_id, execution),
+                PrecompositionEffectRecord::Failed {
+                    instance_id,
+                    execution,
+                    error_utf16,
+                } => {
+                    if error_utf16.len() > 65_536 {
+                        return Err(IrError::InvalidPrecomposition(
+                            "bundle error text".to_owned(),
+                        ));
+                    }
+                    (instance_id, execution)
+                }
+                PrecompositionEffectRecord::Ready {
+                    instance_id,
+                    execution,
+                    plan,
+                    lut,
+                    label_utf16,
+                } => {
+                    if label_utf16.len() > 65_536 {
+                        return Err(IrError::InvalidPrecomposition("bundle LUT text".to_owned()));
+                    }
+                    references.extend([plan.clone(), lut.clone()]);
+                    (instance_id, execution)
+                }
+            };
+            if effects.insert(identity(id)?, ()).is_some() {
+                return Err(IrError::InvalidPrecomposition(
+                    "duplicate bundled effect".to_owned(),
+                ));
+            }
+            references.push(execution.clone());
+        }
+        for generator in generators_input {
+            if let PrecompositionGeneratorExecution::Ready {
+                capacity,
+                effective_count,
+            } = generator.execution
+                && (effective_count == 0 || effective_count > capacity)
+            {
+                return Err(IrError::InvalidPrecomposition(
+                    "generator execution capacity".to_owned(),
+                ));
+            }
+            if generator.layer_name_utf16.len() > 65_536 || generator.plugin_id_utf16.len() > 65_536
+            {
+                return Err(IrError::InvalidPrecomposition(
+                    "bundle generator origin".to_owned(),
+                ));
+            }
+            if generators
+                .insert(identity(&generator.instance_id)?, ())
+                .is_some()
+            {
+                return Err(IrError::InvalidPrecomposition(
+                    "duplicate bundled generator".to_owned(),
+                ));
+            }
+            references.push(generator.plan.clone());
+        }
+        Ok(references)
     }
     pub fn validate_payload(&self, bytes: &[u8]) -> Result<(), IrError> {
         let counts = [

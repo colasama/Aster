@@ -19040,5 +19040,10 @@
       }
     }
   ],
-  "active_cycle": null
+  "active_cycle": {
+    "id": 69,
+    "milestone": "M2",
+    "task": "M2-T13",
+    "intent": "Assemble content-addressed root frame stages, programs and material resources for supplied production execution."
+  }
 }

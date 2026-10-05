@@ -30,6 +30,7 @@ import { AntiAliasingRenderer, planAntiAliasing } from "./effects/anti-aliasing"
 import { depthEffectSettingsFromCameraOptics } from "./effects/depth-effects";
 import { effectExecution } from "./effects/layer-effect-plan";
 import { buildCameraPlan, readCameraPlan } from "./frame-plan/camera-plan";
+import { buildFrameBundle } from "./frame-plan/frame-bundle-plan";
 import { buildFrameHeader, buildRootPostUniformPlan } from "./frame-plan/root-post-plan";
 import { buildRootScenePlan } from "./frame-plan/root-scene-plan";
 import { buildSceneBufferPlan } from "./frame-plan/scene-buffer-plan";
@@ -780,6 +781,32 @@ export class WebGpuRenderer {
       compositionWidth: composition.width,
       selectedLayerId,
     });
+    const mediaPackets = mediaBindings.resourceMessages.map((message) => ({
+      message,
+      bytes: new Uint8Array(),
+    }));
+    const mediaHashes = new Set(mediaPackets.map((packet) => packet.message.hash));
+    const materialHashes = rootPlan.metadata.resources.filter((hash) => !mediaHashes.has(hash));
+    const frameBundle = buildFrameBundle({
+      scene: mediaPlan,
+      root: rootPlan,
+      post: postPlan,
+      output: plannedOutput.plans,
+      shadowMapSize: memory.shadowMapSize,
+      effects: effectPlans,
+      generators: sceneGenerators.map((generator) => ({
+        plan: generator.plan,
+        capacity: generator.resources.capacity,
+      })),
+      precompositions: resources.precompositionSurfaces.serializeScenes(
+        surfacePlans,
+        mediaBindings,
+      ),
+      resources: [
+        ...mediaPackets,
+        ...(resources.materialTextures?.resourcePackets(materialHashes) ?? []),
+      ],
+    });
     const encoder = this.#device.createCommandEncoder({ label: "Aster frame render graph" });
     const outputTexture = this.#context.getCurrentTexture();
     const {
@@ -794,19 +821,11 @@ export class WebGpuRenderer {
       adjustmentErrors,
       beautyMotionBlurValid,
     } = recordPlannedFrame({
-      plans: {
-        scene: scenePlan,
-        root: rootPlan,
-        post: postPlan,
-        precompositions: surfacePlans,
-        output: plannedOutput.plans,
-      },
+      bundle: frameBundle,
       encoder,
       output: outputTexture.createView(),
       antiAliasing: this.#antiAliasing,
       resources,
-      effects: effectPlans,
-      generators: generatorByInstance,
       auxiliaryBindings: plannedOutput.auxiliaryBindings,
       mediaBindings,
     });

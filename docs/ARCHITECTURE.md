@@ -270,8 +270,17 @@ Root rendering now resolves auxiliary availability, motion reconstruction, depth
 and final output before creating the command encoder. `recordPlannedFrame` records supplied scene,
 shadow, recursive surface, generator and output work through one entry point. Output stages share
 a checked frame identity and reject inconsistent effect coverage or skipped motion dependencies
-before GPU recording. GPU bindings remain separate from the output plan data. Complete wire-level
-frame assembly and fresh-registry production replay are still pending.
+before GPU recording. A typed `frame_bundle_slice_v1` now groups the root scene, ordered commands,
+post uniforms, auxiliary/motion/output stages, effect/LUT programs and generator invocations by
+content hash. It includes observed shadow allocation and recursive bundles with generator outcomes.
+Material acquisition retains encoded normal maps and HDR pixel payloads until their GPU owners are
+retired; assembling the bundle requires no material GPU readback. Production recording decodes the
+bundle, uploads its supplied bytes and uses its effect and generator inputs. Root and recursive
+bundles share program serialization and dependency validation. G1 transports the envelope, nested
+FPLN and resource messages through Rust. Media descriptors still require live GPU leases, temporal
+raster aliases still use their cache, and auxiliary bindings/recursive targets are prepared upstream.
+The bundle therefore remains explicitly incomplete until full resource capture and fresh-registry
+production replay close those dependencies.
 
 Shared WGSL includes output anti-aliasing, core scene variants, compositing, fused post-processing,
 blur/depth/surface effects, auxiliary surfaces, particles, text motion blur and display/buffer helpers.

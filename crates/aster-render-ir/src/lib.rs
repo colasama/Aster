@@ -84,6 +84,9 @@ pub use temporal_text::{TemporalTextFormat, TemporalTextSamplesSlice};
 pub use texture_pixels::{TextureDimension, TexturePixelFormat, TexturePixelsDescriptor};
 pub use time::{FrameTime, RationalFrameRate, RationalTime};
 
+mod frame_bundle;
+pub use frame_bundle::FrameBundleSlice;
+pub use precomposition_bundle::PrecompositionGeneratorExecution;
 mod auxiliary;
 #[cfg(test)]
 mod tests;

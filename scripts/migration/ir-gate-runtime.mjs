@@ -13,6 +13,9 @@ export async function loadIrRuntime(root) {
     const modules = [];
     for (const name of [
       "codec",
+      "frame-bundle-fixture",
+      "frame-bundle-read",
+      "frame-bundle-layout",
       "auxiliary-plan",
       "auxiliary-fixture",
       "final-output-plan",

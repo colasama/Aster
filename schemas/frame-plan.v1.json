@@ -147,6 +147,7 @@
     },
     "ContractLevel": {
       "enum": [
+        "frame_bundle_slice_v1",
         "auxiliary_slice_v1",
         "final_output_slice_v1",
         "motion_reconstruction_slice_v1",
@@ -846,6 +847,95 @@
     },
     "PlanSlice": {
       "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "auxiliary": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/ResourceHash"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "blob_index": {
+              "format": "uint32",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "effect": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/ResourceHash"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "effects": {
+              "items": {
+                "$ref": "#/$defs/PrecompositionEffectRecord"
+              },
+              "type": "array"
+            },
+            "generators": {
+              "items": {
+                "$ref": "#/$defs/PrecompositionGeneratorRecord"
+              },
+              "type": "array"
+            },
+            "kind": {
+              "const": "frame_bundle",
+              "type": "string"
+            },
+            "motion": {
+              "$ref": "#/$defs/ResourceHash"
+            },
+            "output": {
+              "$ref": "#/$defs/ResourceHash"
+            },
+            "post": {
+              "$ref": "#/$defs/ResourceHash"
+            },
+            "precompositions": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/ResourceHash"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "root": {
+              "$ref": "#/$defs/ResourceHash"
+            },
+            "scene": {
+              "$ref": "#/$defs/ResourceHash"
+            },
+            "shadow_map_size": {
+              "format": "uint32",
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "kind",
+            "blob_index",
+            "scene",
+            "root",
+            "post",
+            "motion",
+            "output",
+            "shadow_map_size",
+            "effects",
+            "generators"
+          ],
+          "type": "object"
+        },
         {
           "additionalProperties": false,
           "properties": {

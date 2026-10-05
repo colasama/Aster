@@ -71,6 +71,7 @@ interface CompiledGenerator {
 }
 
 export interface PreparedSceneGenerator {
+  plan: SceneGeneratorPlan;
   instanceId: string;
   selectionId: string;
   blendMode: BlendMode;
@@ -304,6 +305,7 @@ export class SceneGeneratorHost {
       this.#frameAudio = plan.audio.slice();
     }
     return {
+      plan,
       instanceId: plan.instanceId,
       selectionId: plan.selectionId,
       blendMode: plan.blendMode,

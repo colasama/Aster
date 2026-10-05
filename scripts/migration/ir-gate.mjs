@@ -4,6 +4,7 @@ import { access, mkdir, writeFile } from "node:fs/promises";
 import { join, relative } from "node:path";
 import { auditAuxiliary, auxiliaryNegativeFixtures } from "./ir-gate-auxiliary.mjs";
 import { auditFinalOutput } from "./ir-gate-final-output.mjs";
+import { auditFrameBundle } from "./ir-gate-frame-bundle.mjs";
 import { auditGeneratorResources } from "./ir-gate-generator.mjs";
 import { auditMediaResources } from "./ir-gate-media.mjs";
 import { auditMotionReconstruction, motionNegativeFixtures } from "./ir-gate-motion.mjs";
@@ -234,6 +235,7 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
       ...runtime.motionReconstructionFixtures(),
       ...runtime.postEffectFixtures(),
       ...runtime.auxiliaryFixtures(),
+      ...runtime.frameBundleFixtures(),
     ]) {
       const input = join(context.output, `${fixture.id}-ts.fpln`);
       const output = join(context.output, `${fixture.id}-rust.fpln`);
@@ -253,6 +255,18 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
       assert.deepEqual(roundtrip.bytes, original.bytes, "TS -> Rust FPLN is not byte-exact");
       assert.deepEqual(after.metadata, before.metadata);
       assert.deepEqual(after.blobs, before.blobs);
+      if (fixture.frameBundle) {
+        report.frame_bundles ??= [];
+        report.frame_bundles.push(
+          await auditFrameBundle(runtime, fixture, after, {
+            context,
+            cli,
+            command,
+            cliReport,
+            outputFile,
+          }),
+        );
+      }
       if (fixture.output) {
         report.final_outputs ??= [];
         report.final_outputs.push(auditFinalOutput(runtime, fixture, after));

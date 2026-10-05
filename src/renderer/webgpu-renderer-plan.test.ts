@@ -88,12 +88,16 @@ function setup() {
     sceneTexture: {},
     postBindGroup: {},
     shapeBufferBytes: 0,
+    shadowMapSize: 1,
     shapeBuffer: {},
     ensureShapeBuffer: vi.fn(),
-    configureShadowMap: vi.fn(),
+    configureShadowMap: vi.fn(function (this: { shadowMapSize: number }, size: number) {
+      this.shadowMapSize = size;
+    }),
     sceneGenerators: { beginFrame: vi.fn(), sweep: vi.fn(), diagnostics: [], estimatedBytes: 0 },
     precompositionSurfaces: {
       planScenes: vi.fn(() => []),
+      serializeScenes: vi.fn(() => undefined),
       prepare: () => ({ diagnostics: [], mediaInstanceIds: new Set(["media"]), residentBytes: 0 }),
     },
     layerEffects: { estimatedTextureBytes: () => 0, prepareEffects: () => new Map() },

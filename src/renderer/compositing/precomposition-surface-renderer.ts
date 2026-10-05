@@ -229,6 +229,14 @@ export class PrecompositionSurfaceRenderer {
   buildBundle(media: PrecompositionBundleMedia): PrecompositionBundle | undefined {
     if (this.#jobs.length === 0) return undefined;
     const scenes = this.#jobs.map((job) => bindPrecompositionSceneMedia(job, media));
+    return this.serializeScenes(scenes, media);
+  }
+
+  serializeScenes(
+    scenes: readonly PrecompositionScenePlan[],
+    media: PrecompositionBundleMedia,
+  ): PrecompositionBundle | undefined {
+    if (scenes.length === 0) return undefined;
     const graph = buildPrecompositionGraph(
       scenes[0].scene.metadata.header,
       scenes.map((scene) => ({

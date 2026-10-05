@@ -1,5 +1,6 @@
 use crate::AuxiliarySlice;
 use crate::FinalOutputSlice;
+use crate::FrameBundleSlice;
 use crate::LayerEffectSlice;
 use crate::MotionReconstructionSlice;
 use crate::PostEffectSlice;
@@ -29,6 +30,7 @@ pub enum PlanKind {
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum ContractLevel {
+    FrameBundleSliceV1,
     AuxiliarySliceV1,
     FinalOutputSliceV1,
     MotionReconstructionSliceV1,
@@ -132,6 +134,7 @@ pub struct BlobDescriptor {
 #[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum PlanSlice {
+    FrameBundle(FrameBundleSlice),
     Auxiliary(AuxiliarySlice),
     FinalOutput(FinalOutputSlice),
     MotionReconstruction(MotionReconstructionSlice),
@@ -215,6 +218,11 @@ impl FramePlanSliceV1 {
         if self.contract_level == ContractLevel::SceneGeneratorSliceV1 && self.slices.len() != 1 {
             return Err(IrError::InvalidGenerator("expected one slice".to_owned()));
         }
+        if self.contract_level == ContractLevel::FrameBundleSliceV1 && self.slices.len() != 1 {
+            return Err(IrError::InvalidHeader(
+                "expected one frame bundle".to_owned(),
+            ));
+        }
         let mut referenced = BTreeSet::new();
         if self.contract_level == ContractLevel::AuxiliarySliceV1 && self.slices.len() != 1 {
             return Err(IrError::InvalidHeader(
@@ -248,6 +256,11 @@ impl FramePlanSliceV1 {
         }
         for slice in &self.slices {
             let blob_index = match slice {
+                PlanSlice::FrameBundle(bundle)
+                    if self.contract_level == ContractLevel::FrameBundleSliceV1 =>
+                {
+                    bundle.blob_index
+                }
                 PlanSlice::Auxiliary(auxiliary)
                     if self.contract_level == ContractLevel::AuxiliarySliceV1 =>
                 {
@@ -351,6 +364,10 @@ impl FramePlanSliceV1 {
                 output.validate(blob)?;
                 continue;
             }
+            if let PlanSlice::FrameBundle(bundle) = slice {
+                bundle.validate(blob, &self.resources)?;
+                continue;
+            }
             if let PlanSlice::Auxiliary(auxiliary) = slice {
                 auxiliary.validate(blob, &self.resources)?;
                 continue;
@@ -437,6 +454,15 @@ impl FramePlanSliceV1 {
     }
 
     pub(crate) fn validate_blob(&self, index: usize, bytes: &[u8]) -> Result<(), IrError> {
+        if self.contract_level == ContractLevel::FrameBundleSliceV1 {
+            for slice in &self.slices {
+                if let PlanSlice::FrameBundle(bundle) = slice
+                    && bundle.blob_index as usize == index
+                {
+                    return bundle.validate_payload(bytes);
+                }
+            }
+        }
         if self.contract_level == ContractLevel::AuxiliarySliceV1 {
             for slice in &self.slices {
                 if let PlanSlice::Auxiliary(auxiliary) = slice

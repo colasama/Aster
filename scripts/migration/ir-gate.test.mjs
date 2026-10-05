@@ -63,11 +63,16 @@ async function fixture(t, intercept = async () => {}) {
         "ir-texture-resources",
         "ir-generator-shaders",
       ].includes(command.id) ||
-      command.id.startsWith("ir-bundle-resources-")
+      command.id.startsWith("ir-bundle-resources-") ||
+      command.id.startsWith("ir-frame-resources-")
     ) {
       target = argument("--output");
       bytes = await readFile(argument("--input"));
       result = { kind: "ir_resources" };
+    } else if (command.id.startsWith("ir-frame-reject-")) {
+      step.status = "failed";
+      step.exit_code = 2;
+      result = { status: "failed", code: "invalid_header" };
     } else if (command.id.startsWith("ir-precomposition-reject-")) {
       step.status = "failed";
       step.exit_code = 2;
@@ -144,7 +149,11 @@ async function fixture(t, intercept = async () => {}) {
         code: codes[command.id.slice("ir-reject-".length)] ?? "limit_exceeded",
         error: "Expected fixture rejection",
       };
-    } else if (command.id.startsWith("ir-roundtrip-") || command.id.startsWith("ir-limits-")) {
+    } else if (
+      command.id.startsWith("ir-roundtrip-") ||
+      command.id.startsWith("ir-frame-stage-") ||
+      command.id.startsWith("ir-limits-")
+    ) {
       const original = runtime.decodeFramePlan(await readFile(argument("--input")));
       bytes = runtime.encodeFramePlan(original.metadata, original.blobs);
       target = argument("--output");
@@ -180,7 +189,7 @@ test("G1 orchestrates all real TS codec checks and keeps renderer completion exp
   const result = await f.run();
   assert.equal(result.status, "passed", result.error);
   assert.equal(result.renderer_plan_complete, false);
-  assert.equal(result.roundtrips.length, 125);
+  assert.equal(result.roundtrips.length, 127);
   assert.equal(result.auxiliary.length, 10);
   assert(
     result.auxiliary.every(
@@ -309,7 +318,7 @@ test("G1 rejects source drift even when every codec result is exact", async (t) 
   }));
   assert.equal(result.status, "failed");
   assert.equal(result.source_unchanged, false);
-  assert.equal(result.roundtrips.length, 125);
+  assert.equal(result.roundtrips.length, 127);
   assert.match(result.error, /Source changed during G1/);
 });
 

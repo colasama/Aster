@@ -1,13 +1,9 @@
 import type { PrecompositionScenePlan } from "../compositing/precomposition-scene-plan";
-import { suppliedLutResource } from "../media/lut-selection-plan";
 import { type CapturedMediaPixels, validateMediaPixelPayload } from "../media/media-pixel-payload";
+import { buildBundleEffects } from "./bundle-effect-records";
 import { requirePlan } from "./canonical";
 import { compositionIdentityFromString as identity } from "./composition-identity";
-import {
-  type PrecompositionBundleSlice,
-  type PrecompositionEffectRecord,
-  utf16Text,
-} from "./precomposition-bundle-layout";
+import { type PrecompositionBundleSlice, utf16Text } from "./precomposition-bundle-layout";
 import { PrecompositionBundleResources } from "./precomposition-bundle-resources";
 import { buildRootScenePlan } from "./root-scene-plan";
 import { prepareSceneBuffers } from "./scene-buffer-upload";
@@ -53,22 +49,7 @@ export function buildPrecompositionBundle(
         };
       }),
     );
-    const effects = [...scene.effects].map(([id, effect]): PrecompositionEffectRecord => {
-      const base = { instance_id: identity(id), execution: resources.addPlan(effect.execution) };
-      if (effect.status === "ready") {
-        const lut = suppliedLutResource(effect.lut);
-        return {
-          ...base,
-          status: "ready",
-          plan: resources.addPlan(effect.plan),
-          lut: resources.add(lut),
-          label_utf16: utf16Text(lut.label),
-        };
-      }
-      if (effect.status === "failed")
-        return { ...base, status: "failed", error_utf16: utf16Text(effect.error) };
-      return { ...base, status: effect.status };
-    });
+    const effects = buildBundleEffects(scene.effects, resources);
     bundle.scenes.push({
       target_id: identity(scene.target.id),
       label_utf16: utf16Text(scene.label),

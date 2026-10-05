@@ -1,7 +1,7 @@
 import type { AntiAliasingRenderer } from "../effects/anti-aliasing";
-import type { PreparedLayerEffect } from "../effects/layer-effect-plan";
-import { canonicalJson, requirePlan } from "../frame-plan/canonical";
-import { type FrameOutputPlans, validateFrameOutputPlans } from "../frame-plan/frame-output-plans";
+import { requirePlan } from "../frame-plan/canonical";
+import type { FrameBundle } from "../frame-plan/frame-bundle-plan";
+import { readFrameBundle } from "../frame-plan/frame-bundle-read";
 import { uploadRootPostUniformPlan } from "../frame-plan/root-post-upload";
 import { readRootScenePlan } from "../frame-plan/root-scene-plan";
 import {
@@ -9,45 +9,42 @@ import {
   prepareSceneBuffers,
   uploadSceneBuffers,
 } from "../frame-plan/scene-buffer-upload";
-import type { FramePlanSliceData } from "../frame-plan/types";
 import type { AuxiliaryPlanBindings } from "../gpu/auxiliary-plan-bindings";
 import type { MediaBindingLease } from "../media/media-binding-lease";
 import type { RendererResources } from "../renderer-resources";
-import type { PreparedSceneGenerator } from "../scene/scene-generator-host";
 import { executeFrameOutput } from "./execute-frame-output";
 import { executeRootScene } from "./execute-root-scene";
-import type { PrecompositionScenePlan } from "./precomposition-scene-plan";
 
-export interface PlannedFrameStages {
-  scene: FramePlanSliceData;
-  root: FramePlanSliceData;
-  post: FramePlanSliceData;
-  precompositions: readonly PrecompositionScenePlan[];
-  output: FrameOutputPlans;
-}
 /** Record an already planned frame. Resource preparation and authoring evaluation happen upstream. */
 export function recordPlannedFrame(input: {
-  plans: PlannedFrameStages;
+  bundle: FrameBundle;
   encoder: GPUCommandEncoder;
   output: GPUTextureView;
   antiAliasing: AntiAliasingRenderer;
   resources: RendererResources;
-  effects: ReadonlyMap<string, PreparedLayerEffect>;
-  generators: ReadonlyMap<string, PreparedSceneGenerator>;
   auxiliaryBindings: AuxiliaryPlanBindings;
   mediaBindings: MediaBindingLease;
 }) {
-  const { plans, encoder, resources, mediaBindings } = input;
-  const { header } = validateFrameOutputPlans(plans.output);
-  for (const plan of [plans.scene, plans.root, plans.post])
-    requirePlan(
-      canonicalJson(plan.metadata.header) === canonicalJson(header),
-      "invalid_header",
-      "Frame stage headers differ",
-    );
+  const { encoder, resources, mediaBindings } = input;
+  const { plans, effects, generators: invocations, shadowMapSize } = readFrameBundle(input.bundle);
+  const header = plans.post.metadata.header;
+  requirePlan(
+    resources.shadowMapSize === shadowMapSize,
+    "resource_generation_mismatch",
+    "Shadow allocation differs from supplied frame",
+  );
   const sceneBuffers = prepareSceneBuffers(plans.scene),
-    root = readRootScenePlan(plans.root),
-    generators = [...input.generators.values()];
+    root = readRootScenePlan(plans.root);
+  const generators = invocations.map((plan) => {
+    const prepared = resources.sceneGenerators.preparePlan(plan);
+    requirePlan(
+      prepared.effectiveCount === plan.effectiveCount,
+      "resource_generation_mismatch",
+      "Captured root generator workload cannot be reproduced",
+    );
+    return prepared;
+  });
+  const generatorMap = new Map(generators.map((generator) => [generator.instanceId, generator]));
   uploadSceneBuffers(sceneBuffers, {
     queue: resources.device.queue,
     lightingBuffer: resources.lightingBuffer,
@@ -105,8 +102,8 @@ export function recordPlannedFrame(input: {
   const result = executeRootScene({
     commands: root.commands,
     draws: root.draws,
-    effects: input.effects,
-    generators: input.generators,
+    effects,
+    generators: generatorMap,
     mediaBindings,
     resources,
     encoder,
