@@ -98,6 +98,11 @@
       "sha256": "2e026afbad6143b822f38490650920003d0ad53705d705d1f2c206f05f181d59",
       "reference_commit": "453ecbce12d1010c00c3bfbde1b2a1566f9cebe9",
       "scope": "Six frozen RGBA16F LUT/effect draws from pre-plan execution; supplied effect FPLN and texture payloads replayed independently."
+    },
+    "root_scene": {
+      "path": "tests/parity/root-scene/reference/manifest.json",
+      "sha256": "4c5b2ffd5828db24f929f1bcc350a4a7e7c75be05cb65b9bbe2b4c48eaba267f",
+      "reference_commit": "e5130c134d13d1e442a6efa9cdc64466b620bc9a"
     }
   },
   "last_cycle": {
@@ -16003,5 +16008,16 @@
       }
     }
   ],
-  "active_cycle": null
+  "active_cycle": {
+    "id": 47,
+    "started_at": "2026-10-05T04:40:09.997364+00:00",
+    "milestone": "M2",
+    "task": "M2-T9",
+    "intent": "Independently GPU-replay Rust-returned root commands against the pre-command loop, including visible command mutation evidence.",
+    "previous_turn": "no_progress: answered the owner question; revalidated clean branch, ledger and latest full gates before resuming.",
+    "usage": {
+      "used_percent": 29,
+      "remaining_percent": 71
+    }
+  }
 }

@@ -170,6 +170,7 @@ export async function verifyMigration(options, dependencies = {}) {
           encoded_textures: checked.report.encoded_textures,
           material_draws: checked.report.material_draws,
           lut_draws: checked.report.lut_draws,
+          root_scenes: checked.report.root_scenes,
           duration_ms: checked.report.duration_ms,
         });
       } else if (id === "G3") {

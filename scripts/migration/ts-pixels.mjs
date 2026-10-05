@@ -11,6 +11,7 @@ import { auditMaterialDraws } from "./material-draw-gate.mjs";
 import { runStep } from "./process.mjs";
 import { auditCapturedRasters } from "./raster-capture-gate.mjs";
 import { writeAtomicJson } from "./report.mjs";
+import { auditRootScenes } from "./root-scene-gate.mjs";
 import { hashFile, ownerProject, sourceProvenance } from "./source.mjs";
 import { auditTemporalText } from "./temporal-text-gate.mjs";
 import { auditTsCandidate } from "./ts-candidate.mjs";
@@ -120,6 +121,12 @@ export async function verifyTsPixels(options, dependencies = {}) {
         execute,
       );
       assert.equal(report.lut_draws.status, "passed", "Supplied LUT draw replay failed");
+      report.root_scenes = await (dependencies.auditRootScenes ?? auditRootScenes)(
+        reader,
+        context,
+        execute,
+      );
+      assert.equal(report.root_scenes.status, "passed", "Root scene GPU replay failed");
     }
     report.gate = await (dependencies.runPixelGate ?? runPixelGate)(
       { ...context, output: join(output, "G3") },

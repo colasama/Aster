@@ -1,0 +1,82 @@
+{
+  "reference_commit": "e5130c134d13d1e442a6efa9cdc64466b620bc9a",
+  "profile": "exact",
+  "format": "rgba16float-le",
+  "width": 64,
+  "height": 48,
+  "implementation": {
+    "path": "tests/parity/root-scene/legacy-execute.ts",
+    "sha256": "22b0f40e52a5c330646a7fe4a581aaacd6de2db225c4030f1cdd658177d52e8a"
+  },
+  "scope": "Root stack ordering, attachment depth transitions, isolated effects and adjustment routing. Generator internals and recursively produced surfaces have separate migration tasks.",
+  "cases": [
+    {
+      "id": "direct",
+      "path": "tests/parity/root-scene/reference/direct.bin",
+      "sha256": "4f5c9a1e3f9e62e633901772ff1a299432bc1f3668d23fe3ef8e987cee066a07",
+      "metrics": {
+        "scenePassCount": 1,
+        "effectOperationCount": 0,
+        "effectLayerCount": 0,
+        "adjustmentEffectLayerCount": 0,
+        "fusedEffectCount": 0,
+        "fusionGroupCount": 0,
+        "fusionBarrierCount": 0,
+        "generatorDrawCount": 0,
+        "activeEffectInstances": [],
+        "adjustmentErrors": []
+      }
+    },
+    {
+      "id": "depth",
+      "path": "tests/parity/root-scene/reference/depth.bin",
+      "sha256": "00cb991671f200e8cace8d7bc799eb2a93db1bf5ae9192c2c04a7e79409fefcf",
+      "metrics": {
+        "scenePassCount": 2,
+        "effectOperationCount": 0,
+        "effectLayerCount": 0,
+        "adjustmentEffectLayerCount": 0,
+        "fusedEffectCount": 0,
+        "fusionGroupCount": 0,
+        "fusionBarrierCount": 0,
+        "generatorDrawCount": 0,
+        "activeEffectInstances": [],
+        "adjustmentErrors": []
+      }
+    },
+    {
+      "id": "isolated",
+      "path": "tests/parity/root-scene/reference/isolated.bin",
+      "sha256": "cfc3f941525298422813ad72fda5e9de2c89ca3154e13de11ba625f85231ea12",
+      "metrics": {
+        "scenePassCount": 2,
+        "effectOperationCount": 1,
+        "effectLayerCount": 1,
+        "adjustmentEffectLayerCount": 0,
+        "fusedEffectCount": 0,
+        "fusionGroupCount": 0,
+        "fusionBarrierCount": 1,
+        "generatorDrawCount": 0,
+        "activeEffectInstances": ["root/shape-1"],
+        "adjustmentErrors": []
+      }
+    },
+    {
+      "id": "adjustment",
+      "path": "tests/parity/root-scene/reference/adjustment.bin",
+      "sha256": "0433bdcef1c3f90df774068a441e25fa99b84b7a9f4614d9267d544611929565",
+      "metrics": {
+        "scenePassCount": 2,
+        "effectOperationCount": 1,
+        "effectLayerCount": 0,
+        "adjustmentEffectLayerCount": 1,
+        "fusedEffectCount": 1,
+        "fusionGroupCount": 1,
+        "fusionBarrierCount": 0,
+        "generatorDrawCount": 0,
+        "activeEffectInstances": ["root/adjustment"],
+        "adjustmentErrors": []
+      }
+    }
+  ]
+}

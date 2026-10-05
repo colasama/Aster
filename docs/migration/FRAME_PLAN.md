@@ -362,3 +362,11 @@ stacks through Rust, including all texture routes and exact scalar bits, then re
 TS command consumer. This establishes command transport, not a complete standalone renderer plan:
 compiled effect programs, generator resources, precomposition surfaces and remaining frame passes
 still require their associated preparation/capture work and independent GPU replay.
+
+Root command replay is mandatory in M2 G3. Four 64×48 RGBA16F fixtures compare the
+pre-command root loop with a fresh-device executor receiving only Rust-returned plans and
+resource payloads. Direct ordering, depth resets, isolated effects and adjustment boundaries
+must match exactly, including execution metrics. Deliberate draw deletion/reordering, retained
+depth and adjustment removal must change pixels. The frozen loop source and reference pixels
+are hash-pinned in the ledger. This supplements corpus parity; it does not claim serialized
+generator internals, recursive surface production or complete frame capture.

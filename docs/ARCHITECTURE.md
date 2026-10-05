@@ -168,8 +168,11 @@ callbacks. Layer effects expose paired input/completion operations; the legacy p
 adapter retains callback compatibility. The root command FPLN contract carries ordered commands,
 geometry ranges, texture references, and linked material/effect slices. Clear values retain binary64
 bits in a dedicated payload. TS and Rust validate pass nesting, draw identities and dependency
-types; production executes the decoded command data. Independent GPU replay of the complete root
-stream and whole-frame capture remain under extraction.
+types; production executes the decoded command data. Four root-stack fixtures replay on a fresh
+GPU device from Rust-returned scene, command and effect plans, exactly matching a frozen
+pre-command loop. Draw deletion/reordering, depth-load changes and adjustment removal must
+change real pixels. This verifies root orchestration; generator payloads, recursively produced
+surfaces and whole-frame capture remain under extraction.
 
 Shared WGSL includes output anti-aliasing, core scene variants, compositing, fused post-processing,
 blur/depth/surface effects, auxiliary surfaces, particles, text motion blur and display/buffer helpers.

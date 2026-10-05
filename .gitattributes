@@ -7,3 +7,4 @@
 tests/parity/material-draw/reference/*.bin binary
 
 tests/parity/lut-draw/reference/*.bin binary
+tests/parity/root-scene/reference/*.bin binary
