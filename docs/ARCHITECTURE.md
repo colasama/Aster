@@ -173,6 +173,13 @@ GPU device from Rust-returned scene, command and effect plans, exactly matching 
 pre-command loop. Draw deletion/reordering, depth-load changes and adjustment removal must
 change real pixels. This verifies root orchestration; generator payloads, recursively produced
 surfaces and whole-frame capture remain under extraction.
+Generator preparation now produces owned context, parameter, indirect and root-time audio payloads
+plus explicit compute dispatches. Executable program snapshots reference content-addressed WGSL
+resources and carry compute/render/auxiliary entry points, depth, cull and blend descriptors.
+Bundled and installed generators enter the same shader validation boundary. GPU realization reads
+only supplied plans; authoring lookup, time mapping, variant selection and LOD remain in the
+producer. Allocation failure can bound the supplied count to retained storage without mutating
+its plan. Generator FPLN transport and independent replay remain pending.
 
 Shared WGSL includes output anti-aliasing, core scene variants, compositing, fused post-processing,
 blur/depth/surface effects, auxiliary surfaces, particles, text motion blur and display/buffer helpers.

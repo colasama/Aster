@@ -1,4 +1,3 @@
-import { evaluateLayerSourceTime } from "../../core/animation/layer-time";
 import {
   AUDIO_ANALYSIS_BYTES,
   buildAudioAnalysisFrame,
@@ -20,16 +19,27 @@ import {
   supportsAuxiliaryMrt,
 } from "../gpu/render-buffers";
 import {
-  buildSceneGeneratorContext,
-  buildSceneGeneratorParameters,
   SCENE_GENERATOR_CONTEXT_BYTES,
   SCENE_GENERATOR_PARAMETER_BYTES,
 } from "./scene-generator-abi";
 
-const INITIAL_GENERATOR_CAPACITY = 1_024;
+import {
+  constrainGeneratorPlan,
+  type SceneGeneratorAudioSource,
+  type SceneGeneratorPlan,
+  SceneGeneratorPlanner,
+  validateGeneratorInvocation,
+} from "./scene-generator-plan";
+import {
+  type GeneratorProgramPlan,
+  generatorDefinitionKey,
+  readGeneratorShaders,
+} from "./scene-generator-program";
 
-/** Produces the frame's packed `AsterAudioAnalysis` record; called at most once per frame. */
-export type SceneGeneratorAudioSource = () => Float32Array;
+export { planGeneratorCapacity } from "./scene-generator-capacity";
+export type { SceneGeneratorAudioSource } from "./scene-generator-plan";
+
+const INITIAL_GENERATOR_CAPACITY = 1_024;
 
 interface GeneratorResources {
   definitionKey: string;
@@ -52,7 +62,8 @@ interface CompiledRenderVariant {
 
 interface CompiledGenerator {
   key: string;
-  definition: SceneGeneratorDefinition;
+  sourceKey: string;
+  instanceStride: number;
   computePipelines: readonly GPUComputePipeline[];
   variants: readonly CompiledRenderVariant[];
 }
@@ -67,6 +78,7 @@ export interface PreparedSceneGenerator {
   resources: GeneratorResources;
   compiled: CompiledGenerator;
   variant: CompiledRenderVariant;
+  dispatches: readonly [number, number, number][];
 }
 
 export interface SceneGeneratorAuxiliaryDraw {
@@ -92,8 +104,8 @@ export class SceneGeneratorHost {
   readonly #reportedFailures = new Set<string>();
   #registryRevision = -1;
   #diagnostics: string[] = [];
-  #audioSource?: SceneGeneratorAudioSource;
-  #audioWritten = false;
+  readonly #planner = new SceneGeneratorPlanner();
+  #frameAudio?: Uint8Array;
 
   constructor(
     device: GPUDevice,
@@ -160,16 +172,19 @@ export class SceneGeneratorHost {
   beginFrame(audioSource?: SceneGeneratorAudioSource): void {
     this.#activeInstanceIds.clear();
     this.#diagnostics = [];
-    this.#audioSource = audioSource;
-    this.#audioWritten = false;
+    this.#planner.beginFrame(audioSource);
+    this.#frameAudio = undefined;
     const revision = getSceneGeneratorRegistryRevision();
     if (revision !== this.#registryRevision) {
       this.#registryRevision = revision;
       const currentDefinitionKeys = new Set(
-        [...this.#bundledDefinitions, ...getSceneGeneratorDefinitions()].map(definitionKey),
+        [...this.#bundledDefinitions, ...getSceneGeneratorDefinitions()].map(
+          generatorDefinitionKey,
+        ),
       );
       for (const key of this.#compiled.keys()) {
-        if (!currentDefinitionKeys.has(key)) this.#compiled.delete(key);
+        const compiled = this.#compiled.get(key);
+        if (compiled && !currentDefinitionKeys.has(compiled.sourceKey)) this.#compiled.delete(key);
       }
       this.#reportedFailures.clear();
     }
@@ -179,14 +194,14 @@ export class SceneGeneratorHost {
     return scene.layer.kind === "generator";
   }
 
-  prepare(
+  plan(
     scene: FlattenedSceneLayer,
     composition: Composition,
     width: number,
     height: number,
     memoryBudgetMb?: number,
     camera?: SceneCamera,
-  ): PreparedSceneGenerator | undefined {
+  ): SceneGeneratorPlan | undefined {
     const instance = scene.layer.generator;
     if (!instance) return this.#reportMissing(scene, "Generator layer has no plugin instance");
     const definition = this.#resolveDefinition(instance);
@@ -200,91 +215,93 @@ export class SceneGeneratorHost {
         scene,
         `Scene generator ${instance.pluginId}:${instance.nodeType} requires API ${instance.apiVersion}; installed definition provides ${definition.apiVersion}`,
       );
-    let compiled: CompiledGenerator;
     try {
-      compiled = this.#compile(definition);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      return this.#reportMissing(
+      return this.#planner.prepare({
         scene,
-        `Scene generator ${instance.pluginId} failed to compile: ${message}`,
-      );
-    }
-    try {
-      const variant = selectVariant(compiled, instance);
-      const requestedCount = boundedCount(instance, definition);
-      const capacityPlan = planGeneratorCapacity(
-        requestedCount,
-        definition.graph.max_instances,
-        definition.graph.instance_stride,
-        variant.definition.vertex_count,
+        composition,
+        definition,
+        width,
+        height,
         memoryBudgetMb,
-        Math.min(
+        camera,
+        storageByteLimit: Math.min(
           Number(this.#device.limits.maxStorageBufferBindingSize),
           Number(this.#device.limits.maxBufferSize),
         ),
-        Number(this.#device.limits.maxComputeWorkgroupsPerDimension) *
-          Math.min(...definition.graph.compute_passes.map((pass) => pass.workgroup_size[0])),
-      );
-      const resources = this.#resource(scene.instanceId, compiled, capacityPlan.capacity);
-      this.#activeInstanceIds.add(scene.instanceId);
-      const effectiveCount = Math.min(capacityPlan.effectiveCount, resources.capacity);
-      const frameDuration =
-        composition.frameRate.denominator / Math.max(composition.frameRate.numerator, 1);
-      const localTime = evaluateLayerSourceTime(scene.layer, scene.localTime);
-      const contextScene = localTime === scene.localTime ? scene : { ...scene, localTime };
-      this.#device.queue.writeBuffer(
-        resources.context,
-        0,
-        buildSceneGeneratorContext(
-          contextScene,
-          composition,
-          camera,
-          width,
-          height,
-          scene.localTime,
-          frameDuration,
-          effectiveCount,
-        ),
-      );
-      this.#device.queue.writeBuffer(
-        resources.parameters,
-        0,
-        buildSceneGeneratorParameters(definition, instance),
-      );
-      this.#device.queue.writeBuffer(
-        resources.indirect,
-        0,
-        new Uint32Array([variant.definition.vertex_count, 0, 0, 0]),
-      );
-      if (definition.audioAnalysis) this.#writeAudio();
-      return {
-        instanceId: scene.instanceId,
-        selectionId: scene.selectionId,
-        blendMode: scene.layer.blendMode,
-        effectiveCount,
-        requestedCount,
-        lodApplied: effectiveCount < requestedCount,
-        resources,
-        compiled,
-        variant,
-      };
+        dispatchWorkgroupLimit: Number(this.#device.limits.maxComputeWorkgroupsPerDimension),
+      });
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
       return this.#reportMissing(
         scene,
-        `Scene generator ${instance.pluginId} failed to prepare: ${message}`,
+        `Scene generator ${instance.pluginId} failed to prepare: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }
 
+  prepare(
+    scene: FlattenedSceneLayer,
+    composition: Composition,
+    width: number,
+    height: number,
+    memoryBudgetMb?: number,
+    camera?: SceneCamera,
+  ): PreparedSceneGenerator | undefined {
+    const plan = this.plan(scene, composition, width, height, memoryBudgetMb, camera);
+    if (!plan) return undefined;
+    try {
+      return this.preparePlan(plan);
+    } catch (error) {
+      return this.#reportMissing(
+        scene,
+        `Scene generator ${scene.layer.generator?.pluginId} failed to prepare: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
+  /** GPU realization consumes only supplied executable descriptors and owned ABI payloads. */
+  preparePlan(input: SceneGeneratorPlan): PreparedSceneGenerator {
+    validateGeneratorInvocation(input);
+    if (
+      input.audio &&
+      this.#frameAudio &&
+      input.audio.some((value, index) => value !== this.#frameAudio?.[index])
+    )
+      throw Error("Generator audio differs within the root frame");
+    const compiled = this.#compile(input.program);
+    const resources = this.#resource(input.instanceId, compiled, input.capacity);
+    const plan = constrainGeneratorPlan(input, resources.capacity);
+    this.#activeInstanceIds.add(plan.instanceId);
+    this.#device.queue.writeBuffer(resources.context, 0, plan.context as Uint8Array<ArrayBuffer>);
+    this.#device.queue.writeBuffer(
+      resources.parameters,
+      0,
+      plan.parameters as Uint8Array<ArrayBuffer>,
+    );
+    this.#device.queue.writeBuffer(resources.indirect, 0, plan.indirect as Uint8Array<ArrayBuffer>);
+    if (plan.audio && !this.#frameAudio) {
+      this.#device.queue.writeBuffer(this.#audio, 0, plan.audio as Uint8Array<ArrayBuffer>);
+      this.#frameAudio = plan.audio.slice();
+    }
+    return {
+      instanceId: plan.instanceId,
+      selectionId: plan.selectionId,
+      blendMode: plan.blendMode,
+      effectiveCount: plan.effectiveCount,
+      requestedCount: plan.requestedCount,
+      lodApplied: plan.effectiveCount < plan.requestedCount,
+      resources,
+      compiled,
+      variant: compiled.variants[plan.variantIndex],
+      dispatches: plan.dispatches.map((d) => [...d]),
+    };
+  }
+
   encodeCompute(pass: GPUComputePassEncoder, generator: PreparedSceneGenerator): void {
-    const passes = generator.compiled.definition.graph.compute_passes;
     for (let index = 0; index < generator.compiled.computePipelines.length; index += 1) {
-      const workgroup = passes[index].workgroup_size;
+      const dispatch = generator.dispatches[index];
       pass.setPipeline(generator.compiled.computePipelines[index]);
       pass.setBindGroup(0, generator.resources.computeBindGroup);
-      pass.dispatchWorkgroups(Math.ceil(generator.effectiveCount / workgroup[0]), 1, 1);
+      pass.dispatchWorkgroups(...dispatch);
     }
   }
 
@@ -343,12 +360,6 @@ export class SceneGeneratorHost {
     this.#audio.destroy();
   }
 
-  #writeAudio(): void {
-    if (this.#audioWritten || !this.#audioSource) return;
-    this.#audioWritten = true;
-    this.#device.queue.writeBuffer(this.#audio, 0, this.#audioSource());
-  }
-
   #reportMissing(scene: FlattenedSceneLayer, message: string): undefined {
     this.#diagnostics.push(`${scene.layer.name}: ${message}`);
     const key = `${scene.instanceId}:${message}`;
@@ -371,31 +382,32 @@ export class SceneGeneratorHost {
     );
   }
 
-  #compile(definition: SceneGeneratorDefinition): CompiledGenerator {
-    const key = definitionKey(definition);
+  #compile(program: GeneratorProgramPlan): CompiledGenerator {
+    const key = program.key;
     const existing = this.#compiled.get(key);
     if (existing) return existing;
+    const sources = readGeneratorShaders(program);
     const modules = new Map<string, GPUShaderModule>();
     const module = (path: string) => {
       const cached = modules.get(path);
       if (cached) return cached;
-      const code = definition.shaderSources[path];
+      const code = sources.get(path);
       if (!code) throw new Error(`Runtime shader ${path} is unavailable`);
       const created = this.#device.createShaderModule({
-        label: `${definition.pluginName} · ${path}`,
+        label: `${program.label} · ${path}`,
         code,
       });
       modules.set(path, created);
       return created;
     };
-    const computePipelines = definition.graph.compute_passes.map((pass) =>
+    const computePipelines = program.graph.compute_passes.map((pass) =>
       this.#device.createComputePipeline({
-        label: `${definition.pluginName} · ${pass.id}`,
+        label: `${program.label} · ${pass.id}`,
         layout: this.#computePipelineLayout,
         compute: { module: module(pass.shader), entryPoint: pass.entry_point },
       }),
     );
-    const variants = definition.graph.render_variants.map((variant) => {
+    const variants = program.graph.render_variants.map((variant) => {
       const blendModes: readonly BlendMode[] =
         variant.blend === "layer" ? FIXED_BLEND_MODES : [variant.blend];
       const pipelines = new Map<BlendMode, GPURenderPipeline>();
@@ -403,7 +415,7 @@ export class SceneGeneratorHost {
         pipelines.set(
           blendMode,
           this.#device.createRenderPipeline({
-            label: `${definition.pluginName} · ${variant.id} · ${blendMode}`,
+            label: `${program.label} · ${variant.id} · ${blendMode}`,
             layout: this.#renderPipelineLayout,
             vertex: { module: module(variant.shader), entryPoint: variant.vertex_entry },
             fragment: {
@@ -419,7 +431,7 @@ export class SceneGeneratorHost {
       const auxiliaryPipeline =
         variant.auxiliary && this.#auxiliaryMrtSupported
           ? this.#device.createRenderPipeline({
-              label: `${definition.pluginName} · ${variant.id} · auxiliary MRT`,
+              label: `${program.label} · ${variant.id} · auxiliary MRT`,
               layout: this.#renderPipelineLayout,
               vertex: {
                 module: module(variant.auxiliary.shader),
@@ -436,9 +448,15 @@ export class SceneGeneratorHost {
               depthStencil: depthState(variant.depth),
             })
           : undefined;
-      return { definition: variant, pipelines, auxiliaryPipeline };
+      return { definition: structuredClone(variant), pipelines, auxiliaryPipeline };
     });
-    const compiled = { key, definition, computePipelines, variants };
+    const compiled = {
+      key,
+      sourceKey: program.sourceKey,
+      instanceStride: program.graph.instance_stride,
+      computePipelines,
+      variants,
+    };
     this.#compiled.set(key, compiled);
     return compiled;
   }
@@ -487,7 +505,7 @@ export class SceneGeneratorHost {
   ): GeneratorResources {
     const storage = this.#device.createBuffer({
       label: `Scene generator storage · ${instanceId} · ${capacity.toLocaleString()}`,
-      size: capacity * compiled.definition.graph.instance_stride,
+      size: capacity * compiled.instanceStride,
       usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
     });
     const indirect = this.#device.createBuffer({
@@ -508,7 +526,7 @@ export class SceneGeneratorHost {
     try {
       return {
         definitionKey: compiled.key,
-        instanceStride: compiled.definition.graph.instance_stride,
+        instanceStride: compiled.instanceStride,
         capacity,
         storage,
         indirect,
@@ -544,90 +562,6 @@ export class SceneGeneratorHost {
       throw error;
     }
   }
-}
-
-function definitionKey(definition: SceneGeneratorDefinition): string {
-  return `${definition.pluginId}:${definition.nodeType}:${definition.runtimeKey}`;
-}
-
-function selectVariant(
-  compiled: CompiledGenerator,
-  instance: SceneGeneratorInstance,
-): CompiledRenderVariant {
-  const selector = compiled.definition.graph.render_parameter
-    ? String(instance.parameters[compiled.definition.graph.render_parameter] ?? "")
-    : undefined;
-  return (
-    compiled.variants.find((variant) => variant.definition.selector_value === selector) ??
-    compiled.variants[0]
-  );
-}
-
-function boundedCount(
-  instance: SceneGeneratorInstance,
-  definition: SceneGeneratorDefinition,
-): number {
-  // A missing capacity falls back to its manifest default, like every other packed parameter.
-  const capacity = definition.parameters.find(
-    (parameter) => parameter.name === definition.graph.capacity_parameter,
-  );
-  const fallback = capacity?.type === "number" ? capacity.default : 1;
-  return Math.max(
-    1,
-    Math.min(
-      definition.graph.max_instances,
-      Math.round(numericParameter(instance, definition.graph.capacity_parameter, fallback)),
-    ),
-  );
-}
-
-function numericParameter(
-  instance: SceneGeneratorInstance,
-  name: string,
-  fallback: number,
-): number {
-  const value = instance.parameters[name];
-  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
-}
-
-export function planGeneratorCapacity(
-  requestedCount: number,
-  maximumCount: number,
-  stride: number,
-  verticesPerInstance: number,
-  budgetMb = 512,
-  storageByteLimit = Number.POSITIVE_INFINITY,
-  dispatchInstanceLimit = Number.POSITIVE_INFINITY,
-): { effectiveCount: number; capacity: number } {
-  const boundedBudgetMb = Number.isFinite(budgetMb) ? Math.max(16, budgetMb) : 512;
-  const memoryLimit = Math.max(1_024, Math.floor((boundedBudgetMb * 1024 * 1024 * 0.125) / stride));
-  const deviceStorageLimit = Math.max(1, Math.floor(storageByteLimit / stride));
-  const boundedDispatchLimit = Math.max(1, Math.floor(dispatchInstanceLimit));
-  const vertexLimit = Math.max(
-    16_384,
-    Math.floor((boundedBudgetMb * 12_288) / Math.max(verticesPerInstance, 1)),
-  );
-  const effectiveCount = Math.min(
-    requestedCount,
-    maximumCount,
-    memoryLimit,
-    deviceStorageLimit,
-    boundedDispatchLimit,
-    vertexLimit,
-  );
-  const capacityCeiling = Math.min(maximumCount, deviceStorageLimit);
-  return {
-    effectiveCount,
-    capacity: Math.min(
-      capacityCeiling,
-      2 **
-        Math.ceil(
-          Math.log2(
-            Math.min(capacityCeiling, Math.max(INITIAL_GENERATOR_CAPACITY, effectiveCount)),
-          ),
-        ),
-    ),
-  };
 }
 
 function depthState(mode: "none" | "read" | "read_write"): GPUDepthStencilState {

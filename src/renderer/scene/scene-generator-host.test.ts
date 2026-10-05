@@ -391,6 +391,168 @@ describe("scene generator audio analysis", () => {
   });
 });
 
+describe("supplied generator plans", () => {
+  it("owns evaluated bytes and executes a clone after authoring and registry changes", () => {
+    synchronizeSceneGeneratorDefinitions(status([manifest]));
+    const project = createBlankProject(),
+      composition = project.compositions[0];
+    const layer = createGeneratorLayerForComposition(
+      composition,
+      createSceneGeneratorInstance(getSceneGeneratorDefinitions()[0]),
+    );
+    composition.layers = [layer];
+    const scene = flattenSceneLayers(composition, project, 2)[0];
+    const producerGpu = fakeGpu(),
+      producer = new SceneGeneratorHost(producerGpu.device, "rgba16float");
+    producer.beginFrame();
+    const planned = producer.plan(scene, composition, 640, 360);
+    if (!planned) throw Error("Missing plan");
+    expect(producerGpu.createShaderModule).not.toHaveBeenCalled();
+    expect(producerGpu.createComputePipeline).not.toHaveBeenCalled();
+    expect(producerGpu.writes).toHaveLength(1); // Initial shared silence only.
+    const supplied = structuredClone(planned);
+    if (!layer.generator) throw Error("Missing generator");
+    layer.generator.parameters.count = 4000;
+    layer.generator.parameters.mode = "mesh";
+    scene.transform.position[0] = 999;
+    composition.width = 1920;
+    synchronizeSceneGeneratorDefinitions(status([]));
+    const gpu = fakeGpu(),
+      consumer = new SceneGeneratorHost(gpu.device, "rgba16float");
+    consumer.beginFrame();
+    const prepared = consumer.preparePlan(supplied);
+    expect(prepared.effectiveCount).toBe(128);
+    const context = gpu.writes.find(
+      (w) => w.buffer === (prepared.resources.context as unknown as FakeBuffer),
+    );
+    const parameters = gpu.writes.find(
+      (w) => w.buffer === (prepared.resources.parameters as unknown as FakeBuffer),
+    );
+    expect(new Uint8Array(context?.data ?? new ArrayBuffer(0))).toEqual(planned.context);
+    expect(new Uint8Array(parameters?.data ?? new ArrayBuffer(0))).toEqual(planned.parameters);
+    const compute = fakeComputePass();
+    consumer.encodeCompute(compute.pass, prepared);
+    expect(compute.dispatches).toEqual([
+      [2, 1, 1],
+      [4, 1, 1],
+    ]);
+    new DataView(supplied.parameters.buffer).setFloat32(32, 7, true);
+    const altered = consumer.preparePlan(supplied);
+    const last = gpu.writes
+      .filter((w) => w.buffer === (altered.resources.parameters as unknown as FakeBuffer))
+      .slice(-1)[0];
+    expect(new DataView(last?.data ?? new ArrayBuffer(0)).getFloat32(32, true)).toBe(7);
+    const invalid = structuredClone(supplied);
+    invalid.dispatches[0][0]++;
+    const before = gpu.writes.length;
+    expect(() => consumer.preparePlan(invalid)).toThrow("Generator dispatch mismatch");
+    expect(gpu.writes).toHaveLength(before);
+  });
+  it("snapshots root-time audio once and rejects conflicting supplied audio in the same frame", () => {
+    const audioManifest = structuredClone(manifest);
+    audioManifest.capabilities.push("audio_analysis");
+    synchronizeSceneGeneratorDefinitions(status([audioManifest]));
+    const project = createBlankProject(),
+      composition = project.compositions[0];
+    composition.layers = [
+      createGeneratorLayerForComposition(
+        composition,
+        createSceneGeneratorInstance(getSceneGeneratorDefinitions()[0]),
+      ),
+    ];
+    const scene = flattenSceneLayers(composition, project, 0)[0],
+      gpu = fakeGpu(),
+      producer = new SceneGeneratorHost(gpu.device, "rgba16float");
+    const record = new Float32Array(gpu.buffers[0].size / 4).fill(0.5),
+      source = vi.fn(() => record);
+    producer.beginFrame(source);
+    const first = producer.plan(scene, composition, 640, 360);
+    if (!first?.audio) throw Error("Missing audio plan");
+    record.fill(0);
+    const second = producer.plan(scene, composition, 640, 360);
+    expect(source).toHaveBeenCalledOnce();
+    expect(second?.audio).toEqual(first.audio);
+    expect(new DataView(first.audio.buffer).getFloat32(0, true)).toBe(0.5);
+    const replayGpu = fakeGpu(),
+      consumer = new SceneGeneratorHost(replayGpu.device, "rgba16float");
+    consumer.beginFrame();
+    consumer.preparePlan(structuredClone(first));
+    expect(replayGpu.writes.filter((w) => w.buffer === replayGpu.buffers[0])).toHaveLength(2);
+    const different = structuredClone(first);
+    if (!different.audio) throw Error("Missing copied audio");
+    different.audio[0] ^= 1;
+    expect(() => consumer.preparePlan(different)).toThrow(
+      "Generator audio differs within the root frame",
+    );
+    consumer.beginFrame();
+    expect(() => consumer.preparePlan(different)).not.toThrow();
+  });
+  it("rejects corrupt shader bytes before compiling or allocating generator resources", () => {
+    synchronizeSceneGeneratorDefinitions(status([manifest]));
+    const project = createBlankProject(),
+      composition = project.compositions[0];
+    composition.layers = [
+      createGeneratorLayerForComposition(
+        composition,
+        createSceneGeneratorInstance(getSceneGeneratorDefinitions()[0]),
+      ),
+    ];
+    const gpu = fakeGpu(),
+      host = new SceneGeneratorHost(gpu.device, "rgba16float");
+    const plan = host.plan(flattenSceneLayers(composition, project, 0)[0], composition, 640, 360);
+    if (!plan) throw Error("Missing plan");
+    const corrupt = structuredClone(plan);
+    corrupt.program.shaders[0].bytes[0] ^= 1;
+    expect(() => host.preparePlan(corrupt)).toThrow("Invalid generator shader resource");
+    expect(gpu.createShaderModule).not.toHaveBeenCalled();
+    expect(gpu.buffers).toHaveLength(1);
+  });
+  it("keeps supplied context and dispatch counts bounded when a larger allocation fails", () => {
+    synchronizeSceneGeneratorDefinitions(status([manifest]));
+    const project = createBlankProject(),
+      composition = project.compositions[0];
+    const layer = createGeneratorLayerForComposition(
+      composition,
+      createSceneGeneratorInstance(getSceneGeneratorDefinitions()[0]),
+    );
+    composition.layers = [layer];
+    const scene = flattenSceneLayers(composition, project, 0)[0],
+      gpu = fakeGpu(),
+      host = new SceneGeneratorHost(gpu.device, "rgba16float");
+    const initial = host.prepare(scene, composition, 640, 360);
+    if (!initial || !layer.generator) throw Error("Missing initial generator");
+    layer.generator.parameters.count = 4096;
+    const create = gpu.device.createBuffer.bind(gpu.device);
+    vi.spyOn(gpu.device, "createBuffer").mockImplementation((d) => {
+      if (
+        String(d.label).startsWith("Scene generator storage") &&
+        Number(d.size) > initial.resources.storage.size
+      )
+        throw Error("Simulated allocation failure");
+      return create(d);
+    });
+    const plan = host.plan(scene, composition, 640, 360);
+    if (!plan) throw Error("Missing resize plan");
+    const supplied = structuredClone(plan),
+      fallback = host.preparePlan(supplied);
+    expect(fallback.resources).toBe(initial.resources);
+    expect(fallback.effectiveCount).toBe(1024);
+    expect(fallback.lodApplied).toBe(true);
+    expect(supplied.effectiveCount).toBe(4096);
+    expect(new DataView(supplied.context.buffer).getUint32(24, true)).toBe(4096);
+    const context = gpu.writes
+      .filter((w) => w.buffer === (fallback.resources.context as unknown as FakeBuffer))
+      .slice(-1)[0];
+    expect(new DataView(context?.data ?? new ArrayBuffer(0)).getUint32(24, true)).toBe(1024);
+    const compute = fakeComputePass();
+    host.encodeCompute(compute.pass, fallback);
+    expect(compute.dispatches).toEqual([
+      [16, 1, 1],
+      [32, 1, 1],
+    ]);
+  });
+});
+
 function sceneCamera(): SceneCamera {
   const settings = createDefaultCameraSettings(1920, 1080);
   settings.mode = "oneNode";

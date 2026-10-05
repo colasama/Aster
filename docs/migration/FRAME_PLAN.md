@@ -370,3 +370,20 @@ must match exactly, including execution metrics. Deliberate draw deletion/reorde
 depth and adjustment removal must change pixels. The frozen loop source and reference pixels
 are hash-pinned in the ledger. This supplements corpus parity; it does not claim serialized
 generator internals, recursive surface production or complete frame capture.
+
+### Generator preparation boundary
+
+`SceneGeneratorPlanner` snapshots evaluated context (208 bytes), parameters (2048 bytes),
+indirect draw initialization (16 bytes), explicit compute dispatch counts and optional shared
+root-time audio. Its plan contains no GPU handles or authoring layer. Program snapshots replace
+shader paths with domain-separated buffer resource hashes and copy executable entry points,
+workgroup sizes, render and auxiliary variants. Variant selection and capacity policy run before
+GPU realization. Both bundled and installed definitions use this resource boundary.
+
+`SceneGeneratorHost.preparePlan` validates supplied counts and payloads, resolves compiled
+programs, allocates resources and uploads those exact bytes. A failed resize retains the prior
+buffer and constrains a copy of context/dispatch counts; source plans remain unchanged. Root-time
+audio is sampled once by the producer and conflicting audio within one executing frame is rejected.
+The existing `prepare` entry point adapts authoring inputs to this plan for root and precomposition
+callers. This is an in-memory preparation boundary: generator FPLN schema, Rust transport and
+independent GPU replay are still required before this portion of the frame plan is complete.

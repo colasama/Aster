@@ -14598,7 +14598,7 @@
             "Exact particles/audio/cloner cases and preserved source-index ordering; no PreparedSceneGenerator handle in plan."
           ],
           "required_full_gates": ["G0", "G1", "G3"],
-          "status": "pending"
+          "status": "in_progress"
         },
         {
           "id": "M2-T11",
@@ -16124,5 +16124,16 @@
       }
     }
   ],
-  "active_cycle": null
+  "active_cycle": {
+    "id": 48,
+    "started_at": "2026-10-05T04:52:47.141Z",
+    "milestone": "M2",
+    "task": "M2-T10",
+    "intent": "Separate pure generator program/invocation/audio planning from GPU compilation, allocation and execution using owned payloads and content-addressed shader resources.",
+    "previous_turn": "progress: M2-T9 completed with full gates and committed ledger.",
+    "usage": {
+      "used_percent": 29,
+      "remaining_percent": 71
+    }
+  }
 }

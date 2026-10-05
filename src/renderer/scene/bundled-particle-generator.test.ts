@@ -8,6 +8,7 @@ import {
   particleGeneratorRenderShader,
 } from "./bundled-particle-generator";
 import { planGeneratorCapacity } from "./scene-generator-host";
+import { buildGeneratorProgram, readGeneratorShaders } from "./scene-generator-program";
 
 describe("bundled particle scene-generator plugin", () => {
   it("declares the bounded GPU graph consumed by the generic host", () => {
@@ -32,6 +33,18 @@ describe("bundled particle scene-generator plugin", () => {
       "particle-compute.wgsl": particleGeneratorComputeShader,
       "particle-render.wgsl": particleGeneratorRenderShader,
     });
+  });
+
+  it("uses the same content-addressed shader boundary as installed generators", () => {
+    const plan = buildGeneratorProgram(bundledParticleDefinition),
+      sources = readGeneratorShaders(plan);
+    expect(sources.size).toBe(2);
+    expect(sources.get(plan.graph.compute_passes[0].shader)).toBe(particleGeneratorComputeShader);
+    expect(sources.get(plan.graph.render_variants[0].shader)).toBe(particleGeneratorRenderShader);
+    expect(plan.graph.render_variants.every((v) => v.selector_value === undefined)).toBe(true);
+    const corrupt = structuredClone(plan);
+    corrupt.shaders[0].bytes[0] ^= 1;
+    expect(() => readGeneratorShaders(corrupt)).toThrow("Invalid generator shader resource");
   });
 
   it("evaluates deterministic state from local time and writes an indirect draw", () => {
